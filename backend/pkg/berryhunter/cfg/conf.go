@@ -26,6 +26,7 @@ type Config struct {
 		ColdFractionNightPerS  float32 `json:"coldFractionNightPerSecond"`
 		TotalDayCycleSeconds   uint64  `json:"totalDayCycleSeconds"`
 		DayTimeSeconds         uint64  `json:"dayTimeSeconds"`
+		InitialMobCount        int     `json:"initialMobCount"`
 		MobChaseIntoAuraMargin float32 `json:"mobChaseIntoAuraMargin"`
 		Player                 struct {
 			FreezingDamageTickFraction       float32 `json:"freezingDamageTickFraction"`
@@ -44,7 +45,10 @@ type Config struct {
 			DamageAuraRadius               float32 `json:"damageAuraRadius"`
 			DamageAuraDamageFraction       float32 `json:"damageAuraDamageFraction"`
 			DamageAuraLevelGainFraction    float32 `json:"damageAuraLevelGainFraction"`
+			MaxHealthLevelGainFraction     float32 `json:"maxHealthLevelGainFraction"`
+			HealAuraRadius                 float32 `json:"healAuraRadius"`
 			HealAuraHealTickFraction       float32 `json:"healAuraHealTickFraction"`
+			HealAuraLevelGainFraction      float32 `json:"healAuraLevelGainFraction"`
 			HealAuraSelfDamageTickFraction float32 `json:"healAuraSelfDamageTickFraction"`
 			LevelUpXPBase                  uint32  `json:"levelUpXPBase"`
 			LevelUpXPGrowthFactor          float32 `json:"levelUpXPGrowthFactor"`
@@ -73,6 +77,9 @@ func ReadConfig(filename string) (*Config, error) {
 	}
 	if config.Game.DayTimeSeconds <= 0 {
 		config.Game.DayTimeSeconds = 400
+	}
+	if config.Game.InitialMobCount <= 0 {
+		config.Game.InitialMobCount = 70
 	}
 	// Validate
 	if config.Game.DayTimeSeconds > config.Game.TotalDayCycleSeconds {

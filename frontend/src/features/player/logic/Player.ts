@@ -90,6 +90,9 @@ export class Player {
             this.character.setActiveAura(entity.activeAura);
             HUD.setActiveAura(entity.activeAura);
         }
+        if (isDefined(entity.auraRadius)) {
+            this.character.setAuraRadius(entity.auraRadius);
+        }
         if (isDefined(entity.level)) {
             this.character.setLevel(entity.level);
         }

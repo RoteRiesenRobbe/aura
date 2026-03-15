@@ -61,6 +61,7 @@ type PlayerEntity interface {
 	LoseCurrentLevelExperience()
 	ActiveAura() AuraType
 	SetActiveAura(aura AuraType)
+	AuraRadius() float32
 	DamageAuraDamageFraction() float32
 	HealAuraSelfDamageTickFraction() float32
 	HealAuraHealTickFraction() float32

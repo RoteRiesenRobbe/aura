@@ -320,6 +320,15 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         this.healAuraSprite.visible = useHealAura;
     }
 
+    setAuraRadius(radiusPx: number) {
+        // `auraRadius` from the backend is already serialized in pixel units.
+        const diameter = radiusPx * 2;
+        this.damageAuraSprite.width = diameter;
+        this.damageAuraSprite.height = diameter;
+        this.healAuraSprite.width = diameter;
+        this.healAuraSprite.height = diameter;
+    }
+
     createMinimapIcon() {
         const miniMapCfg = GraphicsConfig.miniMap.icons.character;
         return new Graphics()

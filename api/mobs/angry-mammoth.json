@@ -3,9 +3,9 @@
   "name": "AngryMammoth",
   "type": "MOB",
   "factors": {
-    "vulnerability": 0.1,
+    "vulnerability": 0.02,
     "damageFraction": 0.0067,
-    "experience": 250,
+    "experience": 1000,
     "structureDamageFraction": 0.67,
     "speed": 0.1,
     "deltaPhi": 0.05,

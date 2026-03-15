@@ -3,7 +3,7 @@
   "name": "Dodo",
   "type": "MOB",
   "factors": {
-    "vulnerability": 5.0,
+    "vulnerability": 2,
     "damageFraction": 0.001,
     "experience": 15,
     "speed": 0.4,

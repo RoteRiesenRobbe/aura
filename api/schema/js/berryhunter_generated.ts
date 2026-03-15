@@ -1874,10 +1874,18 @@ bodyTemperature():number {
 };
 
 /**
+ * @returns {number}
+ */
+auraRadius():number {
+  var offset = this.bb!.__offset(this.bb_pos, 30);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+};
+
+/**
  * @returns {BerryhunterApi.AuraType}
  */
 activeAura():BerryhunterApi.AuraType {
-  var offset = this.bb!.__offset(this.bb_pos, 30);
+  var offset = this.bb!.__offset(this.bb_pos, 32);
   return offset ? /** @type {BerryhunterApi.AuraType} */ (this.bb!.readUint8(this.bb_pos + offset)) : BerryhunterApi.AuraType.Damage;
 };
 
@@ -1886,7 +1894,7 @@ activeAura():BerryhunterApi.AuraType {
  * @returns {BerryhunterApi.AABB|null}
  */
 aabb(obj?:BerryhunterApi.AABB):BerryhunterApi.AABB|null {
-  var offset = this.bb!.__offset(this.bb_pos, 32);
+  var offset = this.bb!.__offset(this.bb_pos, 34);
   return offset ? (obj || new BerryhunterApi.AABB).__init(this.bb_pos + offset, this.bb!) : null;
 };
 
@@ -1894,7 +1902,7 @@ aabb(obj?:BerryhunterApi.AABB):BerryhunterApi.AABB|null {
  * @param {flatbuffers.Builder} builder
  */
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(15);
+  builder.startObject(16);
 };
 
 /**
@@ -2045,10 +2053,18 @@ static addBodyTemperature(builder:flatbuffers.Builder, bodyTemperature:number) {
 
 /**
  * @param {flatbuffers.Builder} builder
+ * @param {number} auraRadius
+ */
+static addAuraRadius(builder:flatbuffers.Builder, auraRadius:number) {
+  builder.addFieldInt16(13, auraRadius, 0);
+};
+
+/**
+ * @param {flatbuffers.Builder} builder
  * @param {BerryhunterApi.AuraType} activeAura
  */
 static addActiveAura(builder:flatbuffers.Builder, activeAura:BerryhunterApi.AuraType) {
-  builder.addFieldInt8(13, activeAura, BerryhunterApi.AuraType.Damage);
+  builder.addFieldInt8(14, activeAura, BerryhunterApi.AuraType.Damage);
 };
 
 /**
@@ -2056,7 +2072,7 @@ static addActiveAura(builder:flatbuffers.Builder, activeAura:BerryhunterApi.Aura
  * @param {flatbuffers.Offset} aabbOffset
  */
 static addAabb(builder:flatbuffers.Builder, aabbOffset:flatbuffers.Offset) {
-  builder.addFieldStruct(14, aabbOffset, 0);
+  builder.addFieldStruct(15, aabbOffset, 0);
 };
 
 /**

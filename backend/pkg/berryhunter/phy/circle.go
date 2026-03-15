@@ -141,6 +141,11 @@ func NewCircle(pos Vec2f, radius float32) *Circle {
 	return c
 }
 
+func (c *Circle) SetRadius(radius float32) {
+	c.Radius = radius
+	c.updateBB()
+}
+
 func (circle *Circle) MinkowskiDiff(other *Circle) *Circle {
 	r := circle.Radius + other.Radius
 	o := circle.Position().Sub(other.Position())

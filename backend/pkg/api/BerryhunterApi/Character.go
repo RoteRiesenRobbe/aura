@@ -231,8 +231,20 @@ func (rcv *Character) MutateBodyTemperature(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(28, n)
 }
 
-func (rcv *Character) ActiveAura() AuraType {
+func (rcv *Character) AuraRadius() uint16 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateAuraRadius(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(30, n)
+}
+
+func (rcv *Character) ActiveAura() AuraType {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
 	if o != 0 {
 		return AuraType(rcv._tab.GetByte(o + rcv._tab.Pos))
 	}
@@ -240,11 +252,11 @@ func (rcv *Character) ActiveAura() AuraType {
 }
 
 func (rcv *Character) MutateActiveAura(n AuraType) bool {
-	return rcv._tab.MutateByteSlot(30, byte(n))
+	return rcv._tab.MutateByteSlot(32, byte(n))
 }
 
 func (rcv *Character) Aabb(obj *AABB) *AABB {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
 	if o != 0 {
 		x := o + rcv._tab.Pos
 		if obj == nil {
@@ -257,7 +269,7 @@ func (rcv *Character) Aabb(obj *AABB) *AABB {
 }
 
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(15)
+	builder.StartObject(16)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -304,11 +316,14 @@ func CharacterAddSatiety(builder *flatbuffers.Builder, satiety uint32) {
 func CharacterAddBodyTemperature(builder *flatbuffers.Builder, bodyTemperature uint32) {
 	builder.PrependUint32Slot(12, bodyTemperature, 0)
 }
+func CharacterAddAuraRadius(builder *flatbuffers.Builder, auraRadius uint16) {
+	builder.PrependUint16Slot(13, auraRadius, 0)
+}
 func CharacterAddActiveAura(builder *flatbuffers.Builder, activeAura AuraType) {
-	builder.PrependByteSlot(13, byte(activeAura), 0)
+	builder.PrependByteSlot(14, byte(activeAura), 0)
 }
 func CharacterAddAabb(builder *flatbuffers.Builder, aabb flatbuffers.UOffsetT) {
-	builder.PrependStructSlot(14, flatbuffers.UOffsetT(aabb), 0)
+	builder.PrependStructSlot(15, flatbuffers.UOffsetT(aabb), 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

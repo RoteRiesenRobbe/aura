@@ -19,6 +19,7 @@ type GameConfig struct {
 
 	TotalDayCycleSeconds   uint64
 	DayTimeSeconds         uint64
+	InitialMobCount        int
 	MobChaseIntoAuraMargin float32
 
 	PlayerConfig    PlayerConfig
@@ -67,7 +68,10 @@ type PlayerConfig struct {
 	DamageAuraRadius               float32
 	DamageAuraDamageFraction       float32
 	DamageAuraLevelGainFraction    float32
+	MaxHealthLevelGainFraction     float32
+	HealAuraRadius                 float32
 	HealAuraHealTickFraction       float32
+	HealAuraLevelGainFraction      float32
 	HealAuraSelfDamageTickFraction float32
 
 	LevelUpXPBase         uint32

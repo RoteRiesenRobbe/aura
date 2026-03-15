@@ -3,9 +3,9 @@
   "name": "SaberToothCat",
   "type": "MOB",
   "factors": {
-    "vulnerability": 0.833,
+    "vulnerability": 1,
     "damageFraction": 0.004,
-    "experience": 25,
+    "experience": 40,
     "speed": 0.5,
     "deltaPhi": 0.1,
     "turnRate": 0.1

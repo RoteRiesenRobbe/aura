@@ -122,7 +122,7 @@ func parseMobDefinition(data []byte) (*mobDefinition, error) {
 }
 
 func (m *mobDefinition) mapToMobDefinition(r items.Registry) (*MobDefinition, error) {
-	respawnBehavior := RespawnBehaviorProcreation
+	respawnBehavior := RespawnBehaviorRandomLocation
 	if m.Generator.RespawnBehavior != "" {
 		respawnBehavior = namesEnumRespawnBehavior[m.Generator.RespawnBehavior]
 	}

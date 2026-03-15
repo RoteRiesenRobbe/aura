@@ -145,6 +145,9 @@ export class EntityManager {
             if (isDefined(entity.activeAura) && isFunction(character['setActiveAura'])) {
                 character['setActiveAura'](entity.activeAura);
             }
+            if (isDefined(entity.auraRadius) && isFunction(character['setAuraRadius'])) {
+                character['setAuraRadius'](entity.auraRadius);
+            }
         }
 
         if (Array.isArray(entity.statusEffects)) {

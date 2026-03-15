@@ -143,6 +143,15 @@ func (p *player) SetActiveAura(aura model.AuraType) {
 	default:
 		p.activeAura = model.AuraTypeDamage
 	}
+	p.damageAura.SetRadius(p.AuraRadius())
+}
+
+func (p *player) maxHealthFactor() float32 {
+	level := p.progression.Level
+	if level < 1 {
+		level = 1
+	}
+	return 1 + float32(level-1)*p.config.MaxHealthLevelGainFraction
 }
 
 func (p *player) takeDamage(damage float32, s model.StatusEffect) {
@@ -150,7 +159,7 @@ func (p *player) takeDamage(damage float32, s model.StatusEffect) {
 		return
 	}
 
-	dmgFraction := damage // * vulnerability
+	dmgFraction := damage / p.maxHealthFactor()
 	if dmgFraction > 0 {
 		h := p.PlayerVitalSigns.Health
 		p.PlayerVitalSigns.Health = h.SubFraction(dmgFraction)
@@ -280,12 +289,22 @@ func (p *player) DamageAuraDamageFraction() float32 {
 	return p.config.DamageAuraDamageFraction + levelBonus
 }
 
+func (p *player) AuraRadius() float32 {
+	switch p.activeAura {
+	case model.AuraTypeHeal:
+		return p.config.HealAuraRadius
+	default:
+		return p.config.DamageAuraRadius
+	}
+}
+
 func (p *player) HealAuraSelfDamageTickFraction() float32 {
 	return p.config.HealAuraSelfDamageTickFraction
 }
 
 func (p *player) HealAuraHealTickFraction() float32 {
-	return p.config.HealAuraHealTickFraction
+	levelBonus := float32(p.progression.Level-1) * p.config.HealAuraLevelGainFraction
+	return p.config.HealAuraHealTickFraction + levelBonus
 }
 
 func (p *player) LevelProgressFraction() float32 {

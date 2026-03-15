@@ -58,6 +58,7 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddHealth(builder, p.VitalSigns().Health.UInt32())
 	BerryhunterApi.CharacterAddSatiety(builder, fracToUint32(p.LevelProgressFraction()))
 	BerryhunterApi.CharacterAddBodyTemperature(builder, p.Progression().Level)
+	BerryhunterApi.CharacterAddAuraRadius(builder, f32ToU16Px(p.AuraRadius()))
 	BerryhunterApi.CharacterAddActiveAura(builder, BerryhunterApi.AuraType(p.ActiveAura()))
 
 	BerryhunterApi.CharacterAddEquipment(builder, equipment)

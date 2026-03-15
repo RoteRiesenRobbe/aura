@@ -95,11 +95,12 @@ func main() {
 
 	mobList := mobsRegistry.Mobs()
 	spawnedMobs := make(map[string]int)
+	initialMobCount := g.Config().InitialMobCount
 
 	if len(mobList) > 0 {
-		spawned := make([]model.MobEntity, 0, 70)
+		spawned := make([]model.MobEntity, 0, initialMobCount)
 		// add some mobsRegistry
-		for i := 0; i < 70; i++ {
+		for i := 0; i < initialMobCount; i++ {
 			m := newRandomMobEntity(mobList, rnd, radius, g.Config().MobChaseIntoAuraMargin, spawned)
 
 			g.AddEntity(m)
