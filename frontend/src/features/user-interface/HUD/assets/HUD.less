@@ -108,6 +108,40 @@
 	}
 }
 
+#auras {
+	position: absolute;
+	bottom: 1.25rem;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 0.75rem;
+	z-index: 2;
+
+	> .auraButton {
+		border: 1px solid fade(white, 25%);
+		border-radius: 999px;
+		background: fade(black, 45%);
+		color: fade(white, 92%);
+		padding: 0.7rem 1rem;
+		font-size: 0.9rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		cursor: pointer;
+
+		&.active {
+			border-color: fade(#4fe28b, 70%);
+			background: fade(#123322, 82%);
+			box-shadow: 0 0 0 1px fade(#4fe28b, 35%);
+		}
+
+		&[data-aura="damage"].active {
+			border-color: fade(#ff6e6e, 70%);
+			background: fade(#3a1616, 82%);
+			box-shadow: 0 0 0 1px fade(#ff6e6e, 35%);
+		}
+	}
+}
+
 @keyframes red-flash {
 	40%, 60% {
 		background-color: crimson;

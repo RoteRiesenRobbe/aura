@@ -86,6 +86,10 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 		return
 	}
 
+	if next.Aura != nil {
+		p.SetActiveAura(*next.Aura)
+	}
+
 	// do we even have inputs?
 	if next.Movement != nil {
 		// we can only move if we are still alive!

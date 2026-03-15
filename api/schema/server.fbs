@@ -113,6 +113,7 @@ table Character {
   health:uint;
   satiety:uint;
   body_temperature:uint;
+  active_aura:AuraType = Damage;
 
   aabb:AABB;
 }

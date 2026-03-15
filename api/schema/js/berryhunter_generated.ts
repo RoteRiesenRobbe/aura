@@ -18,6 +18,15 @@ export enum ActionType{
  * @enum
  */
 export namespace BerryhunterApi{
+export enum AuraType{
+  Damage= 0,
+  Heal= 1
+}};
+
+/**
+ * @enum
+ */
+export namespace BerryhunterApi{
 export enum ClientMessageBody{
   NONE= 0,
   Input= 1,
@@ -370,10 +379,18 @@ action(obj?:BerryhunterApi.Action):BerryhunterApi.Action|null {
 };
 
 /**
+ * @returns {BerryhunterApi.AuraType}
+ */
+aura():BerryhunterApi.AuraType {
+  var offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? /** @type {BerryhunterApi.AuraType} */ (this.bb!.readUint8(this.bb_pos + offset)) : BerryhunterApi.AuraType.Damage;
+};
+
+/**
  * @param {flatbuffers.Builder} builder
  */
 static startInput(builder:flatbuffers.Builder) {
-  builder.startObject(4);
+  builder.startObject(5);
 };
 
 /**
@@ -406,6 +423,14 @@ static addRotation(builder:flatbuffers.Builder, rotation:number) {
  */
 static addAction(builder:flatbuffers.Builder, actionOffset:flatbuffers.Offset) {
   builder.addFieldOffset(3, actionOffset, 0);
+};
+
+/**
+ * @param {flatbuffers.Builder} builder
+ * @param {BerryhunterApi.AuraType} aura
+ */
+static addAura(builder:flatbuffers.Builder, aura:BerryhunterApi.AuraType) {
+  builder.addFieldInt8(4, aura, BerryhunterApi.AuraType.Damage);
 };
 
 /**
@@ -1849,11 +1874,19 @@ bodyTemperature():number {
 };
 
 /**
+ * @returns {BerryhunterApi.AuraType}
+ */
+activeAura():BerryhunterApi.AuraType {
+  var offset = this.bb!.__offset(this.bb_pos, 30);
+  return offset ? /** @type {BerryhunterApi.AuraType} */ (this.bb!.readUint8(this.bb_pos + offset)) : BerryhunterApi.AuraType.Damage;
+};
+
+/**
  * @param {BerryhunterApi.AABB=} obj
  * @returns {BerryhunterApi.AABB|null}
  */
 aabb(obj?:BerryhunterApi.AABB):BerryhunterApi.AABB|null {
-  var offset = this.bb!.__offset(this.bb_pos, 30);
+  var offset = this.bb!.__offset(this.bb_pos, 32);
   return offset ? (obj || new BerryhunterApi.AABB).__init(this.bb_pos + offset, this.bb!) : null;
 };
 
@@ -1861,7 +1894,7 @@ aabb(obj?:BerryhunterApi.AABB):BerryhunterApi.AABB|null {
  * @param {flatbuffers.Builder} builder
  */
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(14);
+  builder.startObject(15);
 };
 
 /**
@@ -2012,10 +2045,18 @@ static addBodyTemperature(builder:flatbuffers.Builder, bodyTemperature:number) {
 
 /**
  * @param {flatbuffers.Builder} builder
+ * @param {BerryhunterApi.AuraType} activeAura
+ */
+static addActiveAura(builder:flatbuffers.Builder, activeAura:BerryhunterApi.AuraType) {
+  builder.addFieldInt8(13, activeAura, BerryhunterApi.AuraType.Damage);
+};
+
+/**
+ * @param {flatbuffers.Builder} builder
  * @param {flatbuffers.Offset} aabbOffset
  */
 static addAabb(builder:flatbuffers.Builder, aabbOffset:flatbuffers.Offset) {
-  builder.addFieldStruct(13, aabbOffset, 0);
+  builder.addFieldStruct(14, aabbOffset, 0);
 };
 
 /**

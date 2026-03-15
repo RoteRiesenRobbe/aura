@@ -9,6 +9,7 @@ import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {BerryhunterApi} from '../../backend/logic/BerryhunterApi';
 import {MiniMap} from '../../mini-map/logic/MiniMap';
 import {PlayerCraftingStateChangedEvent, PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
+import * as HUD from '../../user-interface/HUD/logic/HUD';
 import './PlayerJuice';
 
 export class Player {
@@ -84,6 +85,10 @@ export class Player {
         this.vitalSigns.updateFromBackend(newVitalSigns, damageState);
         if (isDefined(entity.health)) {
             this.character.setHealth(entity.health);
+        }
+        if (isDefined(entity.activeAura)) {
+            this.character.setActiveAura(entity.activeAura);
+            HUD.setActiveAura(entity.activeAura);
         }
         if (isDefined(entity.level)) {
             this.character.setLevel(entity.level);

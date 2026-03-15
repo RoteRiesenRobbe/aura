@@ -17,6 +17,7 @@ export class InputMessage extends ClientMessage {
     rotation: radians = undefined;
     movement: Vector = null;
     action: InputAction = null;
+    aura: BerryhunterApi.AuraType = undefined;
     tick: number;
 
     private marshal(): flatbuffers.Offset {
@@ -45,6 +46,10 @@ export class InputMessage extends ClientMessage {
 
         if (isDefined(this.rotation)) {
             BerryhunterApi.Input.addRotation(this.builder, this.rotation);
+        }
+
+        if (isDefined(this.aura)) {
+            this.builder.addFieldInt8(4, this.aura, 255);
         }
 
         BerryhunterApi.Input.addTick(this.builder, flatbuffers.Long.create(this.tick, 0));

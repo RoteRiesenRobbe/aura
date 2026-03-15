@@ -22,6 +22,8 @@
       "damageAuraRadius": 0.6,
       "damageAuraDamageFraction": 0.009,
       "damageAuraLevelGainFraction": 0.002,
+      "healAuraHealTickFraction": 0.001,
+      "healAuraSelfDamageTickFraction": 0.0015,
       "levelUpXPBase": 150,
       "levelUpXPGrowthFactor": 1.2
     }

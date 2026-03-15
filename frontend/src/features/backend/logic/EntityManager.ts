@@ -142,6 +142,9 @@ export class EntityManager {
             if (isDefined(entity.level) && isFunction(character['setLevel'])) {
                 character['setLevel'](entity.level);
             }
+            if (isDefined(entity.activeAura) && isFunction(character['setActiveAura'])) {
+                character['setActiveAura'](entity.activeAura);
+            }
         }
 
         if (Array.isArray(entity.statusEffects)) {

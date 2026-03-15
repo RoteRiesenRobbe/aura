@@ -91,8 +91,20 @@ func (rcv *Input) Action(obj *Action) *Action {
 	return nil
 }
 
+func (rcv *Input) Aura() AuraType {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return AuraType(rcv._tab.GetByte(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *Input) MutateAura(n AuraType) bool {
+	return rcv._tab.MutateByteSlot(12, byte(n))
+}
+
 func InputStart(builder *flatbuffers.Builder) {
-	builder.StartObject(4)
+	builder.StartObject(5)
 }
 func InputAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -105,6 +117,9 @@ func InputAddRotation(builder *flatbuffers.Builder, rotation float32) {
 }
 func InputAddAction(builder *flatbuffers.Builder, action flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(action), 0)
+}
+func InputAddAura(builder *flatbuffers.Builder, aura AuraType) {
+	builder.PrependByteSlot(4, byte(aura), 0)
 }
 func InputEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

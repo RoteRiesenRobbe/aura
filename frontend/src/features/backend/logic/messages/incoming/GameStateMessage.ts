@@ -120,6 +120,7 @@ function unmarshalEntity(entity, eType) {
         bodyHeat: undefined,
         level: undefined,
         levelProgress: undefined,
+        activeAura: undefined,
         statusEffects: undefined,
     };
 
@@ -158,6 +159,7 @@ function unmarshalEntity(entity, eType) {
         result.bodyHeat = entity.bodyTemperature();
         result.level = entity.bodyTemperature();
         result.levelProgress = entity.satiety() / 0xffffffff;
+        result.activeAura = entity.activeAura();
 
         result.equipment = [];
         for (let i = 0; i < entity.equipmentLength(); ++i) {

@@ -29,6 +29,8 @@ func Config(conf *cfg.Config) Configuration {
 		g.PlayerConfig.DamageAuraRadius = conf.Game.Player.DamageAuraRadius
 		g.PlayerConfig.DamageAuraDamageFraction = conf.Game.Player.DamageAuraDamageFraction
 		g.PlayerConfig.DamageAuraLevelGainFraction = conf.Game.Player.DamageAuraLevelGainFraction
+		g.PlayerConfig.HealAuraHealTickFraction = conf.Game.Player.HealAuraHealTickFraction
+		g.PlayerConfig.HealAuraSelfDamageTickFraction = conf.Game.Player.HealAuraSelfDamageTickFraction
 		g.PlayerConfig.LevelUpXPBase = conf.Game.Player.LevelUpXPBase
 		g.PlayerConfig.LevelUpXPGrowthFactor = conf.Game.Player.LevelUpXPGrowthFactor
 		if g.PlayerConfig.DamageAuraRadius <= 0 {
@@ -39,6 +41,12 @@ func Config(conf *cfg.Config) Configuration {
 		}
 		if g.PlayerConfig.DamageAuraLevelGainFraction <= 0 {
 			g.PlayerConfig.DamageAuraLevelGainFraction = 0.002
+		}
+		if g.PlayerConfig.HealAuraHealTickFraction <= 0 {
+			g.PlayerConfig.HealAuraHealTickFraction = 0.001
+		}
+		if g.PlayerConfig.HealAuraSelfDamageTickFraction <= 0 {
+			g.PlayerConfig.HealAuraSelfDamageTickFraction = 0.0015
 		}
 		if g.PlayerConfig.LevelUpXPBase == 0 {
 			g.PlayerConfig.LevelUpXPBase = 150

@@ -8,6 +8,8 @@ import {VitalSignBar} from '../../../vital-signs/logic/VitalSignBar';
 import {IGame} from "../../../core/logic/IGame";
 import {UserInteraceDomReadyEvent} from '../../../core/logic/Events';
 import {VitalSign} from '../../../vital-signs/logic/VitalSigns';
+import {BerryhunterApi} from '../../../backend/logic/BerryhunterApi';
+import {InputMessage} from '../../../backend/logic/messages/outgoing/InputMessage';
 
 let Game: IGame = null;
 
@@ -17,6 +19,7 @@ let cycleIcon = require('../assets/cycle-icon.svg?raw');
 let craftingElement: HTMLElement;
 let craftableItemTemplate: HTMLElement;
 let inventorySlots: ClickableCountableIcon[];
+let auraButtons: {[key: number]: HTMLButtonElement};
 
 let vitalSignsBars: { [key: string]: VitalSignBar };
 
@@ -33,6 +36,7 @@ export function setup(game) {
     setupInventory();
 
     setupVitalSigns();
+    setupAuras();
 }
 
 function setupCrafting() {
@@ -69,6 +73,32 @@ function setupVitalSigns() {
         satiety: new VitalSignBar(document.getElementById('satietyBar'), VitalSign.satiety),
         bodyHeat: new VitalSignBar(document.getElementById('bodyHeatBar'), VitalSign.bodyHeat),
     };
+}
+
+function setupAuras() {
+    auraButtons = {
+        [BerryhunterApi.AuraType.Damage]: document.querySelector('#auras [data-aura="damage"]') as HTMLButtonElement,
+        [BerryhunterApi.AuraType.Heal]: document.querySelector('#auras [data-aura="heal"]') as HTMLButtonElement,
+    };
+
+    Object.entries(auraButtons).forEach(([aura, button]) => {
+        button.addEventListener('click', () => {
+            const auraType = Number(aura) as BerryhunterApi.AuraType;
+            setActiveAura(auraType);
+
+            if (!Game || !Game.player) {
+                return;
+            }
+
+            Game.player.character.setActiveAura(auraType);
+
+            const input = new InputMessage();
+            input.aura = auraType;
+            input.send();
+        });
+    });
+
+    setActiveAura(BerryhunterApi.AuraType.Damage);
 }
 
 export function show() {
@@ -165,4 +195,14 @@ export function getChat(): HTMLElement {
 
 export function getScoreboard(): HTMLElement {
     return document.getElementById('scoreboard');
+}
+
+export function setActiveAura(aura: BerryhunterApi.AuraType) {
+    if (!auraButtons) {
+        return;
+    }
+
+    Object.entries(auraButtons).forEach(([buttonAura, button]) => {
+        button.classList.toggle('active', Number(buttonAura) === aura);
+    });
 }

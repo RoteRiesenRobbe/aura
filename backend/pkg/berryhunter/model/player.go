@@ -59,7 +59,11 @@ type PlayerEntity interface {
 	Progression() PlayerProgression
 	SetProgression(progression PlayerProgression)
 	LoseCurrentLevelExperience()
+	ActiveAura() AuraType
+	SetActiveAura(aura AuraType)
 	DamageAuraDamageFraction() float32
+	HealAuraSelfDamageTickFraction() float32
+	HealAuraHealTickFraction() float32
 	LevelProgressFraction() float32
 }
 

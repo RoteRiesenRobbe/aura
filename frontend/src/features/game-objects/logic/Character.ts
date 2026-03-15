@@ -24,12 +24,13 @@ import {
 } from '../../core/logic/Events';
 import {ICharacterLike} from './ICharacter';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
-import {Container, Graphics, Text, Texture} from 'pixi.js';
+import {Container, Graphics, Sprite, Text, Texture} from 'pixi.js';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {spatialAudio} from '../../audio/logic/SpatialAudio';
 import {swingLightAudioCues} from '../../player/logic/PlayerJuice';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
+import {BerryhunterApi} from '../../backend/logic/BerryhunterApi';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -47,6 +48,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     static svg: Texture;
     static craftingIndicator: ISvgContainer = {svg: undefined};
     static damageAura: ISvgContainer = {svg: undefined};
+    static healAura: ISvgContainer = {svg: undefined};
     static hitAnimationFrameDuration: number = GraphicsConfig.character.actionAnimation.backendTicks;
     static readonly DOWNWARD_FACING_ROTATION = Math.PI / 2;
     private static readonly MAX_HEALTH = 0xffffffff;
@@ -66,6 +68,8 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
     actualShape: Container;
     private healthFillGroup: Container;
+    private damageAuraSprite: Sprite;
+    private healAuraSprite: Sprite;
 
     // Contains Containers that will mirror this characters position
     followGroups: Container[];
@@ -117,6 +121,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
         // Keep a fixed default facing (down) until explicit rotation is applied.
         this.setRotation(Character.DOWNWARD_FACING_ROTATION);
+        this.setActiveAura(BerryhunterApi.AuraType.Damage);
 
         this.initHealthBar();
         this.createName();
@@ -169,12 +174,22 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         const group = new Container();
         group.position.set(x, y);
 
-        group.addChild(createInjectedSVG(
+        this.damageAuraSprite = createInjectedSVG(
             Character.damageAura.svg,
             0,
             0,
             meter2px(GraphicsConfig.character.damageAuraRadiusMeters),
-        ));
+        );
+        group.addChild(this.damageAuraSprite);
+
+        this.healAuraSprite = createInjectedSVG(
+            Character.healAura.svg,
+            0,
+            0,
+            meter2px(GraphicsConfig.character.damageAuraRadiusMeters),
+        );
+        this.healAuraSprite.visible = false;
+        group.addChild(this.healAuraSprite);
 
         this.actualShape = createNamedContainer('actualShape');
         this.actualShape.addChild(super.initShape(svg, 0, 0, size, rotation));
@@ -297,6 +312,12 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     setHealth(health: number) {
         const relativeHealth = Math.max(0, Math.min(1, health / Character.MAX_HEALTH));
         this.healthFillGroup.scale.x = relativeHealth;
+    }
+
+    setActiveAura(aura: BerryhunterApi.AuraType) {
+        const useHealAura = aura === BerryhunterApi.AuraType.Heal;
+        this.damageAuraSprite.visible = !useHealAura;
+        this.healAuraSprite.visible = useHealAura;
     }
 
     createMinimapIcon() {
@@ -591,4 +612,10 @@ Preloading.registerGameObjectSVG(
 Preloading.registerGameObjectSVG(
     Character.damageAura,
     GraphicsConfig.character.damageAuraFile,
+    meter2px(GraphicsConfig.character.damageAuraRadiusMeters));
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(
+    Character.healAura,
+    GraphicsConfig.character.healAuraFile,
     meter2px(GraphicsConfig.character.damageAuraRadiusMeters));

@@ -70,7 +70,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	damageAura.Shape().IsSensor = true
 	damageAura.Shape().Group = shapeGroup
 	damageAura.Shape().Layer = int(model.LayerNoneCollision)
-	damageAura.Shape().Mask = int(model.LayerActionCollision)
+	damageAura.Shape().Mask = int(model.LayerPlayerCollision | model.LayerActionCollision)
 	p.damageAura = damageAura
 
 	p.updateHand()
@@ -110,6 +110,7 @@ type player struct {
 
 	stats       model.Stats
 	progression model.PlayerProgression
+	activeAura  model.AuraType
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {
@@ -129,6 +130,19 @@ func (p *player) AddAction(a model.PlayerAction) {
 
 func (p *player) CurrentAction() model.PlayerAction {
 	return p.ongoingAction
+}
+
+func (p *player) ActiveAura() model.AuraType {
+	return p.activeAura
+}
+
+func (p *player) SetActiveAura(aura model.AuraType) {
+	switch aura {
+	case model.AuraTypeHeal:
+		p.activeAura = aura
+	default:
+		p.activeAura = model.AuraTypeDamage
+	}
 }
 
 func (p *player) takeDamage(damage float32, s model.StatusEffect) {
@@ -264,6 +278,14 @@ func (p *player) LoseCurrentLevelExperience() {
 func (p *player) DamageAuraDamageFraction() float32 {
 	levelBonus := float32(p.progression.Level-1) * p.config.DamageAuraLevelGainFraction
 	return p.config.DamageAuraDamageFraction + levelBonus
+}
+
+func (p *player) HealAuraSelfDamageTickFraction() float32 {
+	return p.config.HealAuraSelfDamageTickFraction
+}
+
+func (p *player) HealAuraHealTickFraction() float32 {
+	return p.config.HealAuraHealTickFraction
 }
 
 func (p *player) LevelProgressFraction() float32 {
