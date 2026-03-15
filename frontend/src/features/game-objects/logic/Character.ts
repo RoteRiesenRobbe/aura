@@ -48,6 +48,8 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     static craftingIndicator: ISvgContainer = {svg: undefined};
     static damageAura: ISvgContainer = {svg: undefined};
     static hitAnimationFrameDuration: number = GraphicsConfig.character.actionAnimation.backendTicks;
+    static readonly DOWNWARD_FACING_ROTATION = Math.PI / 2;
+    private static readonly MAX_HEALTH = 0xffffffff;
 
 
     name: string;
@@ -63,6 +65,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     useLeftHand: boolean = false;
 
     actualShape: Container;
+    private healthFillGroup: Container;
 
     // Contains Containers that will mirror this characters position
     followGroups: Container[];
@@ -77,7 +80,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     private prerenderSubToken: ISubscriptionToken;
 
     constructor(id: number, x: number, y: number, name: string, isPlayerCharacter: boolean) {
-        super(id, Game.layers.characters, x, y, GraphicsConfig.character.size, Math.PI / 2, Character.pickVariant(name).svg);
+        super(id, Game.layers.characters, x, y, GraphicsConfig.character.size, Character.DOWNWARD_FACING_ROTATION, Character.pickVariant(name).svg);
         this.name = name;
         this.isPlayerCharacter = isPlayerCharacter;
         this.movementSpeed = Constants.BASE_MOVEMENT_SPEED;
@@ -113,8 +116,9 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         });
 
         // Keep a fixed default facing (down) until explicit rotation is applied.
-        this.setRotation(Math.PI / 2);
+        this.setRotation(Character.DOWNWARD_FACING_ROTATION);
 
+        this.initHealthBar();
         this.createName();
         this.setLevel(1);
 
@@ -193,6 +197,14 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
     getRotationShape() {
         return this.actualShape;
+    }
+
+    setRotation(rotation: number) {
+        if (!this.isPlayerCharacter) {
+            rotation = Character.DOWNWARD_FACING_ROTATION;
+        }
+
+        super.setRotation(rotation);
     }
 
     createHands() {
@@ -282,6 +294,11 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         this.levelElement.text = String(level);
     }
 
+    setHealth(health: number) {
+        const relativeHealth = Math.max(0, Math.min(1, health / Character.MAX_HEALTH));
+        this.healthFillGroup.scale.x = relativeHealth;
+    }
+
     createMinimapIcon() {
         const miniMapCfg = GraphicsConfig.miniMap.icons.character;
         return new Graphics()
@@ -366,6 +383,36 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
             },
             mirrored,
         });
+    }
+
+    private initHealthBar() {
+        const barWidth = Math.min(160, Math.max(30, this.size * 0.9));
+        const barHeight = Math.max(5, Math.min(10, barWidth * 0.12));
+        const borderWidth = 1;
+
+        const bar = new Container();
+        bar.y = -Math.max(48, this.size * 1.7);
+
+        bar.addChild(
+            new Graphics()
+                .rect(-barWidth / 2, -barHeight / 2, barWidth, barHeight)
+                .fill({color: 0x000000, alpha: 0.6})
+                .stroke({width: borderWidth, color: 0xffffff, alpha: 0.35}),
+        );
+
+        const innerWidth = barWidth - 2 * borderWidth;
+        const innerHeight = barHeight - 2 * borderWidth;
+        this.healthFillGroup = new Container();
+        this.healthFillGroup.position.set(-innerWidth / 2, -innerHeight / 2);
+        this.healthFillGroup.addChild(
+            new Graphics()
+                .rect(0, 0, innerWidth, innerHeight)
+                .fill({color: 0xaa3b3b, alpha: 0.9}),
+        );
+        bar.addChild(this.healthFillGroup);
+
+        this.shape.addChild(bar);
+        this.setHealth(Character.MAX_HEALTH);
     }
 
     update() {

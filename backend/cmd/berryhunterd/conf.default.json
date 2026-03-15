@@ -18,10 +18,10 @@
       "healthGainTemperatureThreshold": 0.5,
       "healthGainTick": 0.00033,
       "healthGainSatietyLossTickFraction": 0.0,
-      "walkingSpeedPerTick": 0.055,
+      "walkingSpeedPerTick": 0.05,
       "damageAuraRadius": 0.6,
-      "damageAuraDamageFraction": 0.01,
-      "damageAuraLevelGainFraction": 0.001,
+      "damageAuraDamageFraction": 0.009,
+      "damageAuraLevelGainFraction": 0.002,
       "levelUpXPBase": 150,
       "levelUpXPGrowthFactor": 1.2
     }

@@ -82,6 +82,9 @@ export class Player {
             bodyHeat: VitalSigns.MAXIMUM_VALUES.bodyHeat
         };
         this.vitalSigns.updateFromBackend(newVitalSigns, damageState);
+        if (isDefined(entity.health)) {
+            this.character.setHealth(entity.health);
+        }
         if (isDefined(entity.level)) {
             this.character.setLevel(entity.level);
         }

@@ -35,10 +35,10 @@ func Config(conf *cfg.Config) Configuration {
 			g.PlayerConfig.DamageAuraRadius = 0.6
 		}
 		if g.PlayerConfig.DamageAuraDamageFraction <= 0 {
-			g.PlayerConfig.DamageAuraDamageFraction = 0.01
+			g.PlayerConfig.DamageAuraDamageFraction = 0.009
 		}
 		if g.PlayerConfig.DamageAuraLevelGainFraction <= 0 {
-			g.PlayerConfig.DamageAuraLevelGainFraction = 0.01
+			g.PlayerConfig.DamageAuraLevelGainFraction = 0.002
 		}
 		if g.PlayerConfig.LevelUpXPBase == 0 {
 			g.PlayerConfig.LevelUpXPBase = 150

@@ -70,7 +70,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	damageAura.Shape().IsSensor = true
 	damageAura.Shape().Group = shapeGroup
 	damageAura.Shape().Layer = int(model.LayerNoneCollision)
-	damageAura.Shape().Mask = int(model.LayerPlayerCollision | model.LayerActionCollision)
+	damageAura.Shape().Mask = int(model.LayerActionCollision)
 	p.damageAura = damageAura
 
 	p.updateHand()
@@ -225,6 +225,10 @@ func (p *player) AddExperience(xp uint64) {
 	if xp == 0 {
 		return
 	}
+	previousLevel := p.progression.Level
+	if previousLevel < 1 {
+		previousLevel = 1
+	}
 	p.progression.Experience += xp
 
 	level := p.levelForExperience(p.progression.Experience)
@@ -232,6 +236,9 @@ func (p *player) AddExperience(xp uint64) {
 		level = 1
 	}
 	p.progression.Level = level
+	if level > previousLevel {
+		p.PlayerVitalSigns.Health = vitals.Max
+	}
 }
 
 func (p *player) Progression() model.PlayerProgression {
@@ -243,6 +250,15 @@ func (p *player) SetProgression(progression model.PlayerProgression) {
 		progression.Level = 1
 	}
 	p.progression = progression
+}
+
+func (p *player) LoseCurrentLevelExperience() {
+	level := p.progression.Level
+	if level < 1 {
+		level = 1
+	}
+	p.progression.Level = level
+	p.progression.Experience = p.totalXPForLevel(level)
 }
 
 func (p *player) DamageAuraDamageFraction() float32 {

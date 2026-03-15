@@ -105,6 +105,7 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 			log.Printf("💀 '%s' died.", p.Name())
 			sendObituaryMessage(p.Client())
 			deathspot := p.Position()
+			p.LoseCurrentLevelExperience()
 			s.progressionByClient[p.Client().UUID()] = p.Progression()
 
 			// remove the player from the game

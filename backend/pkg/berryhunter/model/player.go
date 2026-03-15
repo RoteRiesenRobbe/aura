@@ -58,6 +58,7 @@ type PlayerEntity interface {
 	AddExperience(xp uint64)
 	Progression() PlayerProgression
 	SetProgression(progression PlayerProgression)
+	LoseCurrentLevelExperience()
 	DamageAuraDamageFraction() float32
 	LevelProgressFraction() float32
 }
