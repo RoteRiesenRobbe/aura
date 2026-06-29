@@ -145,8 +145,6 @@ func (p *Placeable) PlayerHitsWith(player model.PlayerEntity, item items.Item) {
 }
 
 func (p *Placeable) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	log.Printf("👉")
-
 	p.takeDamage(factors.StructureDamageFraction, model.StatusEffectDamagedAmbient)
 }
 

@@ -293,14 +293,10 @@ func (m *Mob) PlayerHitsWith(p model.PlayerEntity, item items.Item) {
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	log.Printf("👉")
-
 	m.takeDamage(factors.DamageFraction, model.StatusEffectDamagedAmbient)
 }
 
 func (m *Mob) PlayerTouches(p model.PlayerEntity, damageFraction float32) {
-	log.Printf("👉")
-
 	m.takeDamage(damageFraction, model.StatusEffectDamagedAmbient)
 	m.tryGrantKillRewards(p)
 }
