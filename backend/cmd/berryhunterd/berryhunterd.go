@@ -38,6 +38,7 @@ func main() {
 	config := loadConf()
 	itemsRegistry := loadItems()
 	mobsRegistry := loadMobs(itemsRegistry)
+	skillsRegistry := loadSkills()
 
 	tokens := loadOrCreateTokens("./tokens.list")
 	slog.Info("👮‍♀️ read tokens", slog.Int("token_count", len(tokens)))
@@ -80,6 +81,7 @@ func main() {
 		rnd.Int63(),
 		core.Config(config),
 		core.Registries(itemsRegistry, mobsRegistry),
+		core.SkillRegistry(skillsRegistry),
 		core.Tokens(tokens),
 		core.Radius(radius),
 	)

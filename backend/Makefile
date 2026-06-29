@@ -11,9 +11,9 @@ fmt:
 	@gofumpt -l -w .
 
 cp-defs:
-	$(info "bundling items and mobs definitions")
+	$(info "bundling items, mobs and skills definitions")
 	@find ./pkg/api -type f -name '*.json' -delete
-	@cp -rf ../api/items ../api/mobs ./pkg/api
+	@cp -rf ../api/items ../api/mobs ../api/skills ./pkg/api
 
 %.build: gen cp-defs
 	go build -o $* ./cmd/$*

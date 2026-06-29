@@ -6,13 +6,15 @@ import (
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 type GameConfig struct {
-	Tokens       []string
-	Radius       float32
-	ItemRegistry items.Registry
-	MobRegistry  mobs.Registry
+	Tokens        []string
+	Radius        float32
+	ItemRegistry  items.Registry
+	MobRegistry   mobs.Registry
+	SkillRegistry skills.Registry
 
 	ColdFractionNightPerS float32
 	ColdFractionDayPerS   float32

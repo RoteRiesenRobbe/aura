@@ -4,6 +4,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 type Configuration func(g *cfg.GameConfig) error
@@ -91,6 +92,13 @@ func Registries(r items.Registry, m mobs.Registry) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.ItemRegistry = r
 		g.MobRegistry = m
+		return nil
+	}
+}
+
+func SkillRegistry(r skills.Registry) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.SkillRegistry = r
 		return nil
 	}
 }

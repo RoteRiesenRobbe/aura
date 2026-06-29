@@ -16,6 +16,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/codec"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/client"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/constant"
@@ -33,10 +34,11 @@ type entitiesMap map[uint64]model.BasicEntity
 
 type game struct {
 	ecs.World
-	Tick         uint64
-	config       *cfg.GameConfig
-	itemRegistry items.Registry
-	mobRegistry  mobs.Registry
+	Tick          uint64
+	config        *cfg.GameConfig
+	itemRegistry  items.Registry
+	mobRegistry   mobs.Registry
+	skillRegistry skills.Registry
 
 	entities entitiesMap
 
@@ -64,12 +66,13 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	slog.Debug("new game with config", slog.Any("configuration", gc))
 
 	g := &game{
-		entities:     make(entitiesMap),
-		joinQueue:    make(chan model.Client, 16),
-		mobRegistry:  gc.MobRegistry,
-		itemRegistry: gc.ItemRegistry,
-		radius:       gc.Radius,
-		config:       gc,
+		entities:      make(entitiesMap),
+		joinQueue:     make(chan model.Client, 16),
+		mobRegistry:   gc.MobRegistry,
+		itemRegistry:  gc.ItemRegistry,
+		skillRegistry: gc.SkillRegistry,
+		radius:        gc.Radius,
+		config:        gc,
 	}
 
 	// Prepare welcome message. Its static anyways.

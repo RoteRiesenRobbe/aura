@@ -15,9 +15,11 @@ import (
 
 	aitems "github.com/trichner/berryhunter/pkg/api/items"
 	amobs "github.com/trichner/berryhunter/pkg/api/mobs"
+	askills "github.com/trichner/berryhunter/pkg/api/skills"
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 //go:embed conf.default.json
@@ -55,6 +57,17 @@ func loadItems() items.Registry {
 	for _, i := range itemList {
 		slog.Debug(fmt.Sprintf("%3d: %s (%d)", i.ID, i.Name, i.Type))
 	}
+	return registry
+}
+
+// loadSkills parses the skill definitions from the definition files
+func loadSkills() skills.Registry {
+	registry, err := skills.RegistryFromFS(askills.Skills)
+	if err != nil {
+		slog.Error("failed to load skills", slog.Any("err", err))
+		panic(err)
+	}
+	slog.Info("Loaded skill definitions", slog.Int("count", len(registry.All())))
 	return registry
 }
 
