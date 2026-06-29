@@ -2,6 +2,50 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Principles
+
+These principles apply to all code written or modified in this project.
+
+### KISS — Keep It Simple, Stupid
+
+Prefer the simplest solution that works. Avoid clever abstractions, unnecessary
+indirection, or premature generalization. If a function does one clear thing in
+20 lines, that's better than a "flexible" version in 80. When proposing
+architecture, start with the simplest design that satisfies the actual
+requirements — not the imagined future ones.
+
+### DRY — Don't Repeat Yourself
+
+Knowledge should have a single source of truth. If the same logic, constant, or
+configuration appears in multiple places, extract it. Watch for subtler
+duplication: parallel switch statements, repeated validation patterns, copy-paste
+between similar systems. But: don't deduplicate things that just *look* similar
+— two pieces of code that happen to be identical today but represent different
+concepts should stay separate.
+
+### YAGNI — You Aren't Gonna Need It
+
+Don't build for hypothetical future requirements. No "we might need this later"
+parameters, configuration options, or abstraction layers. Add complexity only
+when there is a concrete, present need. This applies especially to the aura
+system: build what the current design requires, not what every possible future
+combination might require.
+
+### TDD — Test-Driven Development
+
+For new features and bug fixes:
+
+1. Write a failing test that captures the desired behavior
+2. Write the minimum code to make it pass
+3. Refactor if needed, keeping tests green
+
+This applies to backend Go code (`go test ./...`) primarily. For exploratory
+prototype work or UI tweaks, strict TDD may be relaxed — but any non-trivial
+game logic (aura calculations, combination resolution, damage application)
+should have tests before or alongside the implementation.
+
+When fixing a bug: first write a test that reproduces it, then fix.
+
 ## Project Overview
 
 **Berryhunter** (repo name: aurahunter) is a multiplayer browser survival game. Players gather resources, craft items, manage vitals (health, satiety, temperature), and fight mobs. The repo has three main parts:
