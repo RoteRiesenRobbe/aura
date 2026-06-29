@@ -9,13 +9,7 @@ import (
 )
 
 func (p *player) Update(dt float32) {
-	auraCollisions := p.damageAura.Collisions()
-	switch p.ActiveAura() {
-	case model.AuraTypeHeal:
-		p.applyHealAura(auraCollisions)
-	default:
-		p.applyDamageAura(auraCollisions)
-	}
+	// Aura effects are now applied by SkillSystem. Old calls removed in Phase 2.4.
 
 	// update time based tings
 
@@ -56,6 +50,7 @@ func (p *player) addHealthFraction(fraction float32) {
 	p.VitalSigns().Health = h
 }
 
+// DEPRECATED: superseded by SkillSystem, removal in Phase 5.
 func (p *player) applyDamageAura(auraCollisions phy.ColliderSet) {
 	for c := range auraCollisions {
 		usr := c.Shape().UserData
@@ -77,6 +72,7 @@ func (p *player) applyDamageAura(auraCollisions phy.ColliderSet) {
 	}
 }
 
+// DEPRECATED: superseded by SkillSystem, removal in Phase 5.
 func (p *player) applyHealAura(auraCollisions phy.ColliderSet) {
 	healedSomeone := false
 	for c := range auraCollisions {
