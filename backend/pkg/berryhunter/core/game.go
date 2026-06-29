@@ -116,6 +116,9 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	pl := sys.NewUpdateSystem()
 	g.AddSystem(pl)
 
+	sk := sys.NewSkillSystem()
+	g.AddSystem(sk)
+
 	postu := sys.NewPostUpdateSystem()
 	g.AddSystem(postu)
 
@@ -393,6 +396,8 @@ func (g *game) addPlayer(p model.PlayerEntity) {
 			s.AddPlayer(p)
 		case *sys.ScoreboardSystem:
 			s.AddPlayer(p)
+		case *sys.SkillSystem:
+			s.AddEntity(p)
 		}
 	}
 }

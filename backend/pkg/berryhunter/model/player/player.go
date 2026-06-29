@@ -447,6 +447,10 @@ func (p *player) updateHand() {
 	p.hand.Collider.SetPosition(handPos)
 }
 
+func (p *player) SkillComponent() *skills.SkillComponent {
+	return p.skills
+}
+
 func (p *player) OwnedEntities() model.BasicEntities {
 	return p.ownedEntitites
 }

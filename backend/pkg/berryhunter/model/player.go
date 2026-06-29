@@ -6,6 +6,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 type PlayerVitalSigns struct {
@@ -66,6 +67,7 @@ type PlayerEntity interface {
 	HealAuraSelfDamageTickFraction() float32
 	HealAuraHealTickFraction() float32
 	LevelProgressFraction() float32
+	SkillComponent() *skills.SkillComponent
 }
 
 type BasicEntities map[uint64]ecs.BasicEntity
