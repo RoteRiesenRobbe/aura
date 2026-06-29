@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"os"
 	"testing"
 	"testing/fstest"
 
@@ -103,4 +104,19 @@ func TestRegistry_EmptyDirectory(t *testing.T) {
 	r, err := RegistryFromFS(fsys)
 	require.NoError(t, err)
 	assert.Empty(t, r.All())
+}
+
+func TestRegistry_LoadsFromDisk(t *testing.T) {
+	fsys := os.DirFS("../../../../api/skills")
+	r, err := RegistryFromFS(fsys)
+	require.NoError(t, err)
+	assert.Len(t, r.All(), 2)
+
+	damage, err := r.GetByName("DamageAura")
+	require.NoError(t, err)
+	assert.Equal(t, SkillID(1), damage.ID)
+
+	heal, err := r.GetByName("HealAura")
+	require.NoError(t, err)
+	assert.Equal(t, SkillID(2), heal.ID)
 }

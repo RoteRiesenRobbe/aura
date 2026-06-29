@@ -1,0 +1,18 @@
+{
+  "_comment": "Values copied from backend/conf.json as of migration start — all [PLACEHOLDER] pending balance pass",
+  "id": 1,
+  "name": "DamageAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageFraction": 0.009,
+      "damageFractionPerLevel": 0.002,
+      "targetsMobs": true,
+      "targetsPlayers": false
+    }
+  ]
+}

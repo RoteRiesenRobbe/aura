@@ -1,0 +1,17 @@
+{
+  "_comment": "Values copied from backend/conf.json as of migration start — all [PLACEHOLDER] pending balance pass",
+  "id": 2,
+  "name": "HealAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "heal_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "healFraction": 0.001,
+      "healFractionPerLevel": 0.0005,
+      "selfDamageFraction": 0.0015
+    }
+  ]
+}
