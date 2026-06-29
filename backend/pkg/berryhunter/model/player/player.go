@@ -451,6 +451,14 @@ func (p *player) SkillComponent() *skills.SkillComponent {
 	return p.skills
 }
 
+func (p *player) AuraCollider() phy.DynamicCollider {
+	return p.damageAura
+}
+
+func (p *player) MaxHealthFactor() float32 {
+	return p.maxHealthFactor()
+}
+
 func (p *player) OwnedEntities() model.BasicEntities {
 	return p.ownedEntitites
 }

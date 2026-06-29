@@ -68,6 +68,8 @@ type PlayerEntity interface {
 	HealAuraHealTickFraction() float32
 	LevelProgressFraction() float32
 	SkillComponent() *skills.SkillComponent
+	AuraCollider() phy.DynamicCollider
+	MaxHealthFactor() float32
 }
 
 type BasicEntities map[uint64]ecs.BasicEntity
