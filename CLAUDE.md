@@ -294,3 +294,30 @@ PvP, formal group system, economy, mobile, endgame raid events, character sacrif
 - When in doubt about game design intent, ask — don't infer from the codebase.
 
 
+## Implementation Workflow
+
+The skill system migration follows `docs/skill-system-design.md`. When working on
+that migration, reference the phase and step you're implementing in commit
+messages and explanations (e.g. "Phase 1.2: skill registry").
+
+### Plan before code
+
+For any non-trivial change (new file, new system, refactor, multi-file edit):
+
+1. State the plan in plain text first — what files will change, what gets added,
+   what the test strategy is.
+2. Wait for confirmation before writing.
+3. Then write the code.
+
+This applies even when running with auto-edits enabled. Showing the plan is not
+the same as asking permission for each file — it's about making the reasoning
+visible so it can be corrected before code is written.
+
+### Sanity checks after every step
+
+After completing a step, before declaring it done:
+- Run `go build ./...` from `backend/`
+- Run relevant `go test` for affected packages
+- Report the output
+
+Don't claim "done" without these checks.
