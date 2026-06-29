@@ -1,6 +1,7 @@
 package player
 
 import (
+	"fmt"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"log"
 	"math"
@@ -13,6 +14,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/constant"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 var _ = model.PlayerEntity(&player{})
@@ -53,6 +55,13 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 		panic(err)
 	}
 	p.inventory = inventory
+
+	//--- initialize skill component
+	sc, err := initializePlayerSkills(g.Skills())
+	if err != nil {
+		panic(err)
+	}
+	p.skills = sc
 
 	//--- setup vital signs
 	p.PlayerVitalSigns.Health = vitals.Max
@@ -111,6 +120,8 @@ type player struct {
 	stats       model.Stats
 	progression model.PlayerProgression
 	activeAura  model.AuraType
+
+	skills *skills.SkillComponent
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {
@@ -325,6 +336,25 @@ func (p *player) LevelProgressFraction() float32 {
 		return 1
 	}
 	return fraction
+}
+
+func initializePlayerSkills(r skills.Registry) (*skills.SkillComponent, error) {
+	damageAura, err := r.GetByName("DamageAura")
+	if err != nil {
+		return nil, fmt.Errorf("skill registry missing DamageAura: %w", err)
+	}
+	healAura, err := r.GetByName("HealAura")
+	if err != nil {
+		return nil, fmt.Errorf("skill registry missing HealAura: %w", err)
+	}
+
+	sc := skills.NewSkillComponent(true)
+	sc.EquipAura(0, damageAura, 1)
+	sc.EquipAura(1, healAura, 1)
+	sc.Discover(damageAura.ID)
+	sc.Discover(healAura.ID)
+	sc.SetActiveAura(0)
+	return sc, nil
 }
 
 func initializePlayerInventory(r items.Registry) (items.Inventory, error) {

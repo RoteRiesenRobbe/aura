@@ -7,6 +7,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 type Game interface {
@@ -31,6 +32,9 @@ type Game interface {
 
 	// Mobs returns the registry with all available mob definitions
 	Mobs() mobs.Registry
+
+	// Skills returns the registry with all available skill definitions
+	Skills() skills.Registry
 
 	// Ticks returns the number of ticks
 	Ticks() uint64

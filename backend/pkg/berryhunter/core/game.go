@@ -163,6 +163,10 @@ func (g *game) Mobs() mobs.Registry {
 	return g.mobRegistry
 }
 
+func (g *game) Skills() skills.Registry {
+	return g.skillRegistry
+}
+
 func (g *game) Handler() http.Handler {
 	return net.NewHandleFunc(func(c *net.Client) {
 		client := client.NewClient(c)
