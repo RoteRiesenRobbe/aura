@@ -321,3 +321,13 @@ After completing a step, before declaring it done:
 - Report the output
 
 Don't claim "done" without these checks.
+
+
+## Current Migration Status
+
+- **Last completed:** Phase 2.4 — old hardcoded aura system disabled, SkillSystem is sole driver
+- **Next step:** Phase 2.5a — backend wire protocol for `active_aura_slot` (frontend untouched)
+- **Known transitional state:** heal toggle button is non-functional until Phase 2.5b
+- Migration plan lives in `docs/skill-system-design.md`
+
+Update this section after each phase step is committed.
