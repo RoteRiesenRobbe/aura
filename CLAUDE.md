@@ -4,10 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Migration Status
 
-- **Last completed:** Phase 2.5b — aura buttons wired to active_aura_slot, heal toggle works via SkillSystem. Phase 2 (player migration) complete.
-- **Next step:** Phase 3 — see docs/skill-system-design.md
-- **Note:** old `aura` wire field + old `applyDamageAura`/`applyHealAura` still present as dead code; flagged for Phase 5 cleanup. Frontend FlatBuffers toolchain migrated to flatc v24.3.25.
-- Migration plan lives in `docs/skill-system-design.md`
+- **Last completed:** Phase 3.2 — HealAura unlocks in spellbook at level 2 (data-driven milestone table at backend/pkg/berryhunter/skills/milestone-unlocks.json). Verified in-game: leveling to 2 fires the unlock log.
+- **Remaining plan for the spellbook chapter (Phase 3):**
+  - 3.3 — send spellbook state over the wire to the client
+  - 3.4 — spellbook UI panel (display discovered skills)
+  - 3.5 — equip message + backend handling (skill into slot)
+  - 3.6 — equip UI (click skill from spellbook into a slot)
+  - 3.7 — unlock event over wire + glow/pulse animation on spellbook icon
+- **Current transitional state:** new players start with only DamageAura in slot 0. HealAura unlocks into the spellbook at level 2 but is NOT auto-equipped. The old hardcoded HUD heal button sends active_aura_slot=1, but slot 1 is empty, so heal does nothing until the equip flow (3.5/3.6) exists. This is expected.
+- **Note:** old `aura` wire field + old applyDamageAura/applyHealAura still present as dead code, flagged for Phase 5 cleanup. The leftover `[SkillSystem] tick` debug log also still fires in -dev; remove in Phase 5. Frontend FlatBuffers toolchain was migrated to flatc v24.3.25 in a dedicated commit.
+- Full plan: docs/skill-system-design.md
 
 
 ## Development Principles
