@@ -90,6 +90,10 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 		p.SetActiveAura(*next.Aura)
 	}
 
+	if next.ActiveAuraSlot >= 0 {
+		p.SkillComponent().SetActiveAura(next.ActiveAuraSlot)
+	}
+
 	// do we even have inputs?
 	if next.Movement != nil {
 		// we can only move if we are still alive!

@@ -52,6 +52,8 @@ func unmarshalInput(fbInput *BerryhunterApi.Input) *model.PlayerInput {
 		aura := model.AuraType(fbInput.Aura())
 		i.Aura = &aura
 	}
+
+	i.ActiveAuraSlot = int(fbInput.ActiveAuraSlot())
 	return i
 }
 

@@ -103,8 +103,20 @@ func (rcv *Input) MutateAura(n AuraType) bool {
 	return rcv._tab.MutateByteSlot(12, byte(n))
 }
 
+func (rcv *Input) ActiveAuraSlot() int8 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	if o != 0 {
+		return rcv._tab.GetInt8(o + rcv._tab.Pos)
+	}
+	return -1
+}
+
+func (rcv *Input) MutateActiveAuraSlot(n int8) bool {
+	return rcv._tab.MutateInt8Slot(14, n)
+}
+
 func InputStart(builder *flatbuffers.Builder) {
-	builder.StartObject(5)
+	builder.StartObject(6)
 }
 func InputAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -120,6 +132,9 @@ func InputAddAction(builder *flatbuffers.Builder, action flatbuffers.UOffsetT) {
 }
 func InputAddAura(builder *flatbuffers.Builder, aura AuraType) {
 	builder.PrependByteSlot(4, byte(aura), 0)
+}
+func InputAddActiveAuraSlot(builder *flatbuffers.Builder, activeAuraSlot int8) {
+	builder.PrependInt8Slot(5, activeAuraSlot, -1)
 }
 func InputEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
