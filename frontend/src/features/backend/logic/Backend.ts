@@ -13,7 +13,7 @@ import * as StartScreen from '../../user-interface/start-screen/logic/StartScree
 import * as EndScreen from '../../user-interface/end-screen/logic/EndScreen';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {BerryhunterApi} from './BerryhunterApi';
-import {flatbuffers} from 'flatbuffers';
+import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
 import {GameState, IGame} from "../../core/logic/IGame";
 import {BackendState, IBackend} from "./IBackend";
@@ -197,7 +197,7 @@ export class Backend implements IBackend {
                     Develop.get().logServerMessage(entityMessage, 'EntityMessage', timeSinceLastMessage);
                 }
 
-                Chat.showMessage(entityMessage.entityId().toFloat64(), entityMessage.message());
+                Chat.showMessage(Number(entityMessage.entityId()), entityMessage.message());
 
                 break;
             case BerryhunterApi.ServerMessageBody.GameState:

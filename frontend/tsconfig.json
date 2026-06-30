@@ -17,6 +17,10 @@
 		],
 		"moduleResolution": "Node",
 		"esModuleInterop": true,
+		"baseUrl": ".",
+		"paths": {
+			"flatbuffers": ["./node_modules/flatbuffers"]
+		},
 	},
 	"include": [
 		"./src/index.ts",

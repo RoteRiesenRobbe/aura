@@ -1,7 +1,7 @@
 import {radians} from "../../../../common/logic/Types";
 import {Vector} from "../../../../core/logic/Vector";
 import {BerryhunterApi} from "../../BerryhunterApi";
-import {flatbuffers} from "flatbuffers";
+import * as flatbuffers from "flatbuffers";
 import {ClientMessage} from "./ClientMessage";
 import * as BackendConstants from "../../BackendConstants";
 import {isDefined} from "../../../../common/logic/Utils";
@@ -52,7 +52,7 @@ export class InputMessage extends ClientMessage {
             this.builder.addFieldInt8(4, this.aura, 255);
         }
 
-        BerryhunterApi.Input.addTick(this.builder, flatbuffers.Long.create(this.tick, 0));
+        BerryhunterApi.Input.addTick(this.builder, BigInt(this.tick));
 
         return BerryhunterApi.Input.endInput(this.builder);
     }

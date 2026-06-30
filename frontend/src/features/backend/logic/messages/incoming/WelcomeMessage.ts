@@ -14,7 +14,7 @@ export class WelcomeMessage {
     constructor(welcome) {
         this.serverName = welcome.serverName();
         this.mapRadius = welcome.mapRadius();
-        this.totalDayCycleTicks = welcome.totalDaycycleTicks().toFloat64();
-        this.dayTimeTicks = welcome.dayTimeTicks().toFloat64();
+        this.totalDayCycleTicks = Number(welcome.totalDaycycleTicks());
+        this.dayTimeTicks = Number(welcome.dayTimeTicks());
     }
 }

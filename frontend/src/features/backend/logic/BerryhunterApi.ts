@@ -1,3 +1,2 @@
-import {flatbuffers} from 'flatbuffers';
-
-export {BerryhunterApi} from "../../../../../api/schema/js/berryhunter_generated";
+import * as BerryhunterApi from '../../../../../api/schema/js/berryhunter-api';
+export { BerryhunterApi };

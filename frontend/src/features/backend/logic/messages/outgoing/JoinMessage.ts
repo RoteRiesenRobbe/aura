@@ -1,4 +1,4 @@
-import {flatbuffers} from "flatbuffers";
+import * as flatbuffers from "flatbuffers";
 import {BerryhunterApi} from "../../BerryhunterApi";
 import {ClientMessage} from "./ClientMessage";
 import {GameLateSetupEvent} from "../../../../core/logic/Events";

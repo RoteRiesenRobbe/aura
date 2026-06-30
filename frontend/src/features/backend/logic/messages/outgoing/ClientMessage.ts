@@ -1,6 +1,6 @@
 "use strict";
 
-import {flatbuffers} from 'flatbuffers';
+import * as flatbuffers from 'flatbuffers';
 import {BerryhunterApi} from '../../BerryhunterApi';
 import {IBackend} from "../../IBackend";
 import {BackendSetupEvent} from "../../../../core/logic/Events";

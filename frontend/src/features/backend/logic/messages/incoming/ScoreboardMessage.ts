@@ -22,6 +22,6 @@ export class ScoreboardMessage {
 function unmarshalPlayer(scoreboardPlayer) {
     return {
         name: scoreboardPlayer.name(),
-        score: scoreboardPlayer.score().toFloat64()
+        score: Number(scoreboardPlayer.score())
     }
 }

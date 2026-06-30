@@ -17,7 +17,7 @@ export class Spectator {
      * @param {BerryhunterApi.Spectator} spectator
      */
     constructor(spectator) {
-        this.id = spectator.id().toFloat64();
+        this.id = Number(spectator.id());
         this.position = unmarshalVec2f(spectator.pos());
     }
 }
@@ -29,7 +29,7 @@ export class GameStateMessage {
     entities;
 
     constructor(gameState: BerryhunterApi.GameState) {
-        this.tick = gameState.tick().toFloat64();
+        this.tick = Number(gameState.tick());
 
         switch (gameState.playerType()) {
             case BerryhunterApi.Player.Spectator:
@@ -76,14 +76,13 @@ function unmarshalWrappedEntity(wrappedEntity: BerryhunterApi.Entity) {
         return null;
     }
 
-    let entity;
-
-    for (let eTypeName in BerryhunterApi.AnyEntity) {
-        // @ts-ignore
-        if (BerryhunterApi.AnyEntity[eTypeName] === eType) {
-            entity = new BerryhunterApi[eTypeName]();
-        }
-    }
+    const entityCtors = {
+        [BerryhunterApi.AnyEntity.Character]: BerryhunterApi.Character,
+        [BerryhunterApi.AnyEntity.Mob]:       BerryhunterApi.Mob,
+        [BerryhunterApi.AnyEntity.Resource]:  BerryhunterApi.Resource,
+        [BerryhunterApi.AnyEntity.Placeable]: BerryhunterApi.Placeable,
+    };
+    let entity = new entityCtors[eType]();
 
     /**
      * @type {BerryhunterApi.Mob | BerryhunterApi.Resource | BerryhunterApi.Player}
@@ -94,7 +93,7 @@ function unmarshalWrappedEntity(wrappedEntity: BerryhunterApi.Entity) {
 }
 
 function unmarshalEntity(entity, eType) {
-    let id = entity.id().toFloat64();
+    let id = Number(entity.id());
 
     if (id === 0) {
         return null;

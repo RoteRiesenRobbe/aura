@@ -36,6 +36,16 @@ module.exports = {
 	resolve: {
 		// Add '.ts' as resolvable extensions.
 		extensions: ['.ts', '.js'],
+		// Generated FlatBuffers bindings use explicit .js extensions (ESM style);
+		// map them to .ts so webpack finds the source files.
+		extensionAlias: {
+			'.js': ['.ts', '.js'],
+		},
+		// flatbuffers is installed under frontend/node_modules but imported by
+		// generated files under api/schema/js/ which are outside this tree.
+		alias: {
+			flatbuffers: path.resolve(__dirname, 'node_modules/flatbuffers'),
+		},
 	},
 
 	module: {
