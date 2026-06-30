@@ -94,6 +94,7 @@ function setupAuras() {
 
             const input = new InputMessage();
             input.aura = auraType;
+            input.activeAuraSlot = Number(auraType);
             input.send();
         });
     });

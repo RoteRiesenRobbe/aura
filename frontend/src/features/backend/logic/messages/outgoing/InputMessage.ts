@@ -18,6 +18,7 @@ export class InputMessage extends ClientMessage {
     movement: Vector = null;
     action: InputAction = null;
     aura: BerryhunterApi.AuraType = undefined;
+    activeAuraSlot: number = -1;
     tick: number;
 
     private marshal(): flatbuffers.Offset {
@@ -50,6 +51,10 @@ export class InputMessage extends ClientMessage {
 
         if (isDefined(this.aura)) {
             this.builder.addFieldInt8(4, this.aura, 255);
+        }
+
+        if (this.activeAuraSlot >= 0) {
+            BerryhunterApi.Input.addActiveAuraSlot(this.builder, this.activeAuraSlot);
         }
 
         BerryhunterApi.Input.addTick(this.builder, BigInt(this.tick));
