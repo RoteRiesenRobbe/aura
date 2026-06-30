@@ -343,16 +343,10 @@ func initializePlayerSkills(r skills.Registry) (*skills.SkillComponent, error) {
 	if err != nil {
 		return nil, fmt.Errorf("skill registry missing DamageAura: %w", err)
 	}
-	healAura, err := r.GetByName("HealAura")
-	if err != nil {
-		return nil, fmt.Errorf("skill registry missing HealAura: %w", err)
-	}
 
 	sc := skills.NewSkillComponent(true)
 	sc.EquipAura(0, damageAura, 1)
-	sc.EquipAura(1, healAura, 1)
 	sc.Discover(damageAura.ID)
-	sc.Discover(healAura.ID)
 	sc.SetActiveAura(0)
 	return sc, nil
 }

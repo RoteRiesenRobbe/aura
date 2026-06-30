@@ -49,11 +49,10 @@ func (r *stubRegistry) All() []*skills.SkillDefinition {
 
 var (
 	defDamageAura = &skills.SkillDefinition{ID: 1, Name: "DamageAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
-	defHealAura   = &skills.SkillDefinition{ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 )
 
 func TestInitializePlayerSkills_SlotsAndSpellbook(t *testing.T) {
-	r := newStubRegistry(defDamageAura, defHealAura)
+	r := newStubRegistry(defDamageAura)
 	sc, err := initializePlayerSkills(r)
 	require.NoError(t, err)
 
@@ -61,26 +60,17 @@ func TestInitializePlayerSkills_SlotsAndSpellbook(t *testing.T) {
 	assert.Equal(t, "DamageAura", sc.AuraSlots[0].Def.Name)
 	assert.Equal(t, 1, sc.AuraSlots[0].Level)
 
-	require.NotNil(t, sc.AuraSlots[1], "slot 1 must be populated")
-	assert.Equal(t, "HealAura", sc.AuraSlots[1].Def.Name)
-	assert.Equal(t, 1, sc.AuraSlots[1].Level)
+	assert.Nil(t, sc.AuraSlots[1], "slot 1 must be empty — HealAura not yet unlocked")
 
 	assert.Equal(t, 0, sc.ActiveAuraSlot)
 
 	assert.True(t, sc.HasDiscovered(defDamageAura.ID), "DamageAura must be in spellbook")
-	assert.True(t, sc.HasDiscovered(defHealAura.ID), "HealAura must be in spellbook")
 }
 
 func TestInitializePlayerSkills_MissingDamageAura(t *testing.T) {
-	r := newStubRegistry(defHealAura) // DamageAura absent
+	r := newStubRegistry() // DamageAura absent
 	_, err := initializePlayerSkills(r)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "DamageAura")
 }
 
-func TestInitializePlayerSkills_MissingHealAura(t *testing.T) {
-	r := newStubRegistry(defDamageAura) // HealAura absent
-	_, err := initializePlayerSkills(r)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "HealAura")
-}
