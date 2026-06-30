@@ -27,6 +27,7 @@ export class GameStateMessage {
     player;
     inventory;
     entities;
+    spellbook: number[];
 
     constructor(gameState: BerryhunterApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -51,6 +52,11 @@ export class GameStateMessage {
         this.entities = [];
         for (let i = 0; i < gameState.entitiesLength(); ++i) {
             this.entities.push(unmarshalWrappedEntity(gameState.entities(i)));
+        }
+
+        this.spellbook = [];
+        for (let i = 0; i < gameState.spellbookLength(); ++i) {
+            this.spellbook.push(gameState.spellbook(i));
         }
     }
 }

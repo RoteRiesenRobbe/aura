@@ -135,6 +135,9 @@ table GameState {
   inventory:[ItemStack];
 
   entities:[Entity];
+
+  // discovered skill IDs — sent only to the owning player, not to other clients
+  spellbook:[ushort];
 }
 
 table Welcome {

@@ -1,5 +1,7 @@
 package skills
 
+import "slices"
+
 // MaxAuraSlots, MaxPassiveSlots, MaxCooldownSlots are [PLACEHOLDER] — adjust during balancing.
 const (
 	MaxAuraSlots     = 4
@@ -88,7 +90,7 @@ func (sc *SkillComponent) HasDiscovered(id SkillID) bool {
 	return sc.Spellbook[id]
 }
 
-// Discovered returns all discovered skill IDs. Returns nil for mobs.
+// Discovered returns all discovered skill IDs in ascending order. Returns nil for mobs.
 func (sc *SkillComponent) Discovered() []SkillID {
 	if len(sc.Spellbook) == 0 {
 		return nil
@@ -97,5 +99,6 @@ func (sc *SkillComponent) Discovered() []SkillID {
 	for id := range sc.Spellbook {
 		ids = append(ids, id)
 	}
+	slices.Sort(ids)
 	return ids
 }

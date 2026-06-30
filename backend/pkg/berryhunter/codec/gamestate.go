@@ -10,6 +10,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 func Vec2fMarshalFlatbuf(builder *flatbuffers.Builder, v phy.Vec2f) flatbuffers.UOffsetT {
@@ -148,11 +149,24 @@ func InventoryMarshalFlatbuf(inventory *items.Inventory, builder *flatbuffers.Bu
 	return builder.EndVector(n)
 }
 
+// SpellbookMarshalFlatbuf serializes the discovered skill IDs from sc as a
+// [ushort] vector. Must be called before GameStateStart (FlatBuffers rule).
+func SpellbookMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	ids := sc.Discovered()
+	n := len(ids)
+	BerryhunterApi.GameStateStartSpellbookVector(builder, n)
+	for _, id := range ids {
+		builder.PrependUint16(uint16(id))
+	}
+	return builder.EndVector(n)
+}
+
 // MarshalFlatbuf implements FlatbufCodec for GameState
 func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	entities := EntitiesMarshalFlatbuf(gs.Entities, builder)
 	character := CharacterMarshalFlatbuf(gs.Player, builder)
 	inventory := InventoryMarshalFlatbuf(gs.Player.Inventory(), builder)
+	spellbook := SpellbookMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 
 	BerryhunterApi.GameStateStart(builder)
 	BerryhunterApi.GameStateAddTick(builder, gs.Tick)
@@ -162,6 +176,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 
 	BerryhunterApi.GameStateAddEntities(builder, entities)
 	BerryhunterApi.GameStateAddInventory(builder, inventory)
+	BerryhunterApi.GameStateAddSpellbook(builder, spellbook)
 
 	return BerryhunterApi.GameStateEnd(builder)
 }
