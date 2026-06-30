@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"log"
+	"log/slog"
 	"math"
 
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
@@ -62,6 +63,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 		panic(err)
 	}
 	p.skills = sc
+	p.milestoneUnlocks = g.Config().MilestoneUnlocks
 
 	//--- setup vital signs
 	p.PlayerVitalSigns.Health = vitals.Max
@@ -121,7 +123,8 @@ type player struct {
 	progression model.PlayerProgression
 	activeAura  model.AuraType
 
-	skills *skills.SkillComponent
+	skills           *skills.SkillComponent
+	milestoneUnlocks []skills.MilestoneUnlock
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {
@@ -272,6 +275,7 @@ func (p *player) AddExperience(xp uint64) {
 	p.progression.Level = level
 	if level > previousLevel {
 		p.PlayerVitalSigns.Health = vitals.Max
+		p.applyMilestoneUnlocks(previousLevel+1, level)
 	}
 }
 
@@ -336,6 +340,17 @@ func (p *player) LevelProgressFraction() float32 {
 		return 1
 	}
 	return fraction
+}
+
+// applyMilestoneUnlocks discovers any skills whose unlock level falls in [from, to].
+// Called on level-up; from/to are both inclusive so a multi-level jump catches all entries.
+func (p *player) applyMilestoneUnlocks(from, to uint32) {
+	for _, u := range p.milestoneUnlocks {
+		if u.Level >= from && u.Level <= to {
+			p.skills.Discover(u.Skill.ID)
+			slog.Info("milestone unlock", slog.String("player", p.name), slog.String("skill", u.Skill.Name), slog.Uint64("level", uint64(u.Level)))
+		}
+	}
 }
 
 func initializePlayerSkills(r skills.Registry) (*skills.SkillComponent, error) {

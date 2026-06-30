@@ -103,6 +103,13 @@ func SkillRegistry(r skills.Registry) Configuration {
 	}
 }
 
+func MilestoneUnlocks(unlocks []skills.MilestoneUnlock) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.MilestoneUnlocks = unlocks
+		return nil
+	}
+}
+
 func Tokens(t []string) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.Tokens = t

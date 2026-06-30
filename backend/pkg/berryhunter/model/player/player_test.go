@@ -6,6 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
@@ -72,5 +75,57 @@ func TestInitializePlayerSkills_MissingDamageAura(t *testing.T) {
 	_, err := initializePlayerSkills(r)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "DamageAura")
+}
+
+// --- milestone unlock tests ---
+
+var defHealAura = &skills.SkillDefinition{ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+
+// newTestPlayer builds a minimal *player for unit-testing AddExperience.
+// LevelUpXPBase=100, LevelUpXPGrowthFactor=2.0 means:
+//
+//	level 1→2 costs 100 XP, level 2→3 costs 200 XP.
+func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
+	r := newStubRegistry(defDamageAura, defHealAura)
+	sc, _ := initializePlayerSkills(r)
+	return &player{
+		progression:      model.PlayerProgression{Level: 1},
+		config:           &cfg.PlayerConfig{LevelUpXPBase: 100, LevelUpXPGrowthFactor: 2.0},
+		skills:           sc,
+		milestoneUnlocks: milestones,
+		PlayerVitalSigns: model.PlayerVitalSigns{Health: vitals.Max},
+	}
+}
+
+func TestAddExperience_Level2_DiscoversHealAura(t *testing.T) {
+	milestones := []skills.MilestoneUnlock{{Level: 2, Skill: defHealAura}}
+	p := newTestPlayer(milestones)
+
+	p.AddExperience(100) // exactly enough for level 2
+
+	assert.Equal(t, uint32(2), p.progression.Level)
+	assert.True(t, p.skills.HasDiscovered(defHealAura.ID), "HealAura must be discovered at level 2")
+}
+
+func TestAddExperience_Level3_NoMilestoneEntry(t *testing.T) {
+	milestones := []skills.MilestoneUnlock{{Level: 2, Skill: defHealAura}}
+	p := newTestPlayer(milestones)
+
+	p.AddExperience(300) // enough for level 3 (100 + 200)
+
+	assert.Equal(t, uint32(3), p.progression.Level)
+	// spellbook: DamageAura (from init) + HealAura (level-2 unlock) — nothing more
+	assert.Len(t, p.skills.Discovered(), 2)
+}
+
+func TestAddExperience_DiscoverIdempotent(t *testing.T) {
+	milestones := []skills.MilestoneUnlock{{Level: 2, Skill: defHealAura}}
+	p := newTestPlayer(milestones)
+
+	p.AddExperience(100) // reaches level 2, fires unlock
+	p.AddExperience(50)  // stays at level 2, no new level-up
+
+	assert.Equal(t, uint32(2), p.progression.Level)
+	assert.Len(t, p.skills.Discovered(), 2, "spellbook must not grow on second XP grant at same level")
 }
 

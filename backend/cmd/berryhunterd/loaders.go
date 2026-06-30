@@ -71,6 +71,18 @@ func loadSkills() skills.Registry {
 	return registry
 }
 
+// loadMilestoneUnlocks parses the embedded milestone-unlock table and resolves
+// skill names against the provided registry.
+func loadMilestoneUnlocks(r skills.Registry) []skills.MilestoneUnlock {
+	unlocks, err := skills.DefaultMilestoneUnlocks(r)
+	if err != nil {
+		slog.Error("failed to load milestone unlocks", slog.Any("err", err))
+		panic(err)
+	}
+	slog.Info("Loaded milestone unlocks", slog.Int("count", len(unlocks)))
+	return unlocks
+}
+
 // loadConf parses the config file
 func loadConf() *cfg.Config {
 	configFile := strings.TrimSpace(os.Getenv("BERRYHUNTERD_CONF"))

@@ -10,11 +10,12 @@ import (
 )
 
 type GameConfig struct {
-	Tokens        []string
-	Radius        float32
-	ItemRegistry  items.Registry
-	MobRegistry   mobs.Registry
-	SkillRegistry skills.Registry
+	Tokens           []string
+	Radius           float32
+	ItemRegistry     items.Registry
+	MobRegistry      mobs.Registry
+	SkillRegistry    skills.Registry
+	MilestoneUnlocks []skills.MilestoneUnlock
 
 	ColdFractionNightPerS float32
 	ColdFractionDayPerS   float32
