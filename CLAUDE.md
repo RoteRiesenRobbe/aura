@@ -218,9 +218,12 @@ direction — not isometric, not pixel art).
 
 Players collect, level, and combine three categories of skills:
 
-- **Active auras** — toggleable (not permanently active), have visible ranges in-world
-- **Passives** — passive bonuses, always on
-- **Cooldowns** — active abilities with cooldown timers
+- **Active auras** — toggleable, have visible ranges in-world. **Exactly one
+  active aura is on at a time**; the aura slots are a loadout (several equipped,
+  one active, switchable mid-fight), not multiple simultaneously-active auras.
+  Build variety comes from slot loadout, combination unlocks, and switch timing.
+- **Passives** — passive bonuses, always on (these DO run in parallel)
+- **Cooldowns** — active abilities with cooldown timers (triggered individually)
 
 Mobs use the same aura system as players.
 
@@ -245,12 +248,15 @@ one. Content (specific recipes) is added manually over time.
 ### Spellbook & Unlocks
 
 The **spellbook** is the collection of all auras, passives, and cooldowns a
-player has discovered. Four ways to obtain new entries:
+player has discovered. Five ways to obtain new entries:
 
 1. **Milestone unlocks** — guaranteed at certain levels
 2. **Monster kill unlocks** — certain mobs drop auras/passives on death
 3. **World exploration** — clue anchor points throughout zones
-4. **Meta-progression** — sacrificing a max-level character unlocks new base auras account-wide
+4. **NPC teaching** — peaceful NPCs teach a specific aura on approach, often
+   tied to nearby harvest-mobs that only that aura can damage (soft "profession"
+   identity without a class system)
+5. **Meta-progression** — sacrificing a max-level character unlocks new base auras account-wide
 
 ### World Design
 
