@@ -4,13 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Migration Status
 
-- **Last completed:** Phase 3.4 — read-only spellbook panel. Discovered skills rendered in `#spellbook` panel (left-center HUD), updated per tick, driven purely by `snapshot.spellbook`. FlatBuffers wire order bug fixed (prepend in reverse to preserve ascending order). Static skill lookup in `frontend/src/client-data/Skills.ts`. Verified in-game: "Damage Aura" on spawn, "Heal Aura" appears at level 2.
+- **Last completed:** Phase 3.5 — equip flow. `EquipMessage` (client→server FlatBuffers), `EquipSystem` (backend ECS with guards for discovery and slot bounds), `aura_slots` wire field (server→client positional array), `#auraLoadout` panel, spellbook click-to-select and slot click-to-equip UI. Full spellbook→slot equip flow works end-to-end.
 - **Remaining plan for the spellbook chapter (Phase 3):**
-  - 3.5 — equip message + backend handling (skill into slot)
-  - 3.6 — equip UI (click skill from spellbook into a slot)
   - 3.7 — unlock event over wire + glow/pulse animation on spellbook icon
-- **Current transitional state:** new players start with only DamageAura in slot 0. HealAura unlocks into the spellbook at level 2 but is NOT auto-equipped. The old hardcoded HUD heal button sends active_aura_slot=1, but slot 1 is empty, so heal does nothing until the equip flow (3.5/3.6) exists. This is expected. The `#auras` hardcoded buttons and `setActiveAura()` path are the active-loadout toggle — kept strictly separate from the spellbook (discovered skills).
-- **Note:** old `aura` wire field + old applyDamageAura/applyHealAura still present as dead code, flagged for Phase 5 cleanup. The leftover `[SkillSystem] tick` debug log also still fires in -dev; remove in Phase 5. Frontend FlatBuffers toolchain was migrated to flatc v24.3.25 in a dedicated commit.
+  - *(3.6 equip UI was folded into 3.5)*
+- **Current state:** new players start with DamageAura in slot 0 on spawn. HealAura unlocks into the spellbook at level 2; the player can equip it into any slot via the Aura Slots panel. The `#auras` hardcoded buttons and `setActiveAura()` path are the active-loadout toggle — kept strictly separate from the spellbook (discovered skills).
+- **Deferred tech debt:**
+  - Old `aura` wire field + old `applyDamageAura`/`applyHealAura` still present as dead code — Phase 5 cleanup.
+  - `[SkillSystem] tick` debug log still fires in -dev — remove in Phase 5.
+  - `backend/pkg/berryhunter/net/net_test.go` — not a real test; a manual `ListenAndServe` script with no timeout/teardown that hangs `go test ./...`. Fix later via `t.Skip`.
+  - `sys/equip/equip.go` `RemovePlayer(equipEntity)` — dead code superseded by ECS `Remove(ecs.BasicEntity)`. Remove in a later cleanup.
+  - Equip level=1 gap: `SkillComponent.Spellbook` is `map[SkillID]bool` (discovery only, no per-skill level), so `EquipSystem` always equips at level 1. Revisit when skill-leveling is implemented.
+  - Frontend FlatBuffers toolchain migrated to flatc v24.3.25 in a dedicated commit.
 - Full plan: docs/skill-system-design.md
 
 
@@ -113,8 +118,10 @@ Optional dev query params:
 
 ### Backend tests
 
+> **Warning:** `go test ./...` hangs — `backend/pkg/berryhunter/net/net_test.go` is a manual `ListenAndServe` script, not a real test (no timeout or teardown). Use the safe scope:
+
 ```bash
-cd backend && go test ./...
+cd backend && go test -timeout 30s ./pkg/berryhunter/skills/... ./pkg/berryhunter/codec/... ./pkg/berryhunter/sys/...
 ```
 
 The test runner requires generated files (`go generate ./...`). The Makefile `gen` target runs this automatically before builds.
@@ -174,6 +181,8 @@ The frontend is structured as feature modules under `frontend/src/features/`:
 - `game-objects/` — rendering entities (resources, mobs, placeables) via PixiJS
 - `input-system/`, `controls/` — keyboard/mouse/touch input
 - `internal-tools/` — dev panel, console, overlay tester (only active with `?develop`)
+
+**HUD event handling:** Use `pointerdown` (not `click`) for all interactive HUD panels. `MouseManager` (`input-system/logic/mouse/MouseManager.ts`) registers a `mousedown` listener on `document.documentElement` with `event.preventDefault()`, which suppresses the synthetic `click` event. `pointerdown` fires before this and is unaffected. `click` listeners on HUD panels silently never fire — this is not obvious from the source.
 
 Webpack configs: `webpack.common.js` (shared), `webpack.dev.js` (HMR, port 2001), `webpack.prod.js` (minified output).
 

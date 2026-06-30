@@ -340,7 +340,7 @@ changes.
 The goal is no build break longer than a few hours at any step. Old and new code
 run in parallel until Phase 5.
 
-### Phase 1 — Skill package and registry (~1 day)
+### Phase 1 — Skill package and registry (~1 day) ✓ Done
 
 - Create `api/skills/` with `damage-aura.json` and `heal-aura.json` matching
   current hardcoded behavior exactly.
@@ -350,7 +350,7 @@ run in parallel until Phase 5.
   correctly, invalid JSON returns error.
 - No changes to player, mob, or ECS.
 
-### Phase 2 — Player migration (~1 day)
+### Phase 2 — Player migration (~1 day) ✓ Done
 
 - Add `SkillComponent` to the `player` struct, initialized with `DamageAura`
   and `HealAura` at level 1 in slot 0 and slot 1.
@@ -369,13 +369,20 @@ run in parallel until Phase 5.
   no longer called.
 - Tests: mob damages player correctly via SkillSystem.
 
-### Phase 4 — Wire protocol update (~0.5 days)
+### Phase 4 — Wire protocol update (~0.5 days) ✓ Done
 
 - Add skill slot fields to FlatBuffers (see Wire Protocol Changes).
 - Update `codec/` to serialize `SkillComponent` state.
 - Update frontend to read new skill slot data. Old `active_aura` / `aura_radius`
   fields remain in the schema (deprecated, not removed yet) to avoid a hard
   frontend cutover.
+
+*Implemented: `spellbook: [ushort]` on `GameState` (discovered skill IDs),
+`aura_slots: [ushort]` on `Character` (equipped slot contents, positional),
+`active_aura_slot` on `Input`, and `Equip` client message. Spellbook panel and
+Aura Slots panel in the frontend. Wire format chose flat ushort arrays rather
+than the `SkillSlot` table structure described above — simpler given current
+needs.*
 
 ### Phase 5 — Cleanup (~0.5 days)
 
@@ -477,6 +484,31 @@ After Phase 5, `AuraType` is removed from `common.fbs`.
    `SkillSystem` calls the same `PlayerTouches` path as today; no XP logic moves
    into the skill package.
 
-8. **Spellbook wire format**: The spellbook (which skill IDs are discovered) is
-   not currently sent to the client. A full spellbook sync is needed for the
-   frontend to render the skill UI. Out of scope for this document — design TBD.
+8. **[Resolved] Spellbook wire format**: `spellbook: [ushort]` added to the
+   `GameState` FlatBuffers table in `server.fbs`. Codec encodes the player's
+   full discovered-skill-ID list each tick. Frontend reads it and renders the
+   `#spellbook` panel; skills can be selected and equipped into aura slots via
+   the `#auraLoadout` panel using the `Equip` client message.
+
+---
+
+## Deferred Tech Debt
+
+Known issues to address in a future cleanup pass — not blocking current work.
+
+- **`backend/pkg/berryhunter/net/net_test.go`** — not a real test; a manual
+  `ListenAndServe` script with no timeout or teardown that hangs `go test ./...`.
+  Fix via `t.Skip` or convert to a proper integration test. Safe test scope in
+  the meantime: `go test -timeout 30s ./pkg/berryhunter/skills/... ./pkg/berryhunter/codec/... ./pkg/berryhunter/sys/...`
+
+- **`sys/equip/equip.go` `RemovePlayer(equipEntity)`** — dead code. The ECS
+  `Remove(ecs.BasicEntity)` method handles entity removal; `RemovePlayer` is
+  never called. Remove in Phase 5 cleanup.
+
+- **Equip level=1 gap** — `SkillComponent.Spellbook` is `map[SkillID]bool`
+  (discovery only; no per-skill level stored). `EquipSystem` therefore always
+  equips at level 1. Revisit when skill-leveling is implemented.
+
+- **Dead aura code** — `applyDamageAura`, `applyHealAura`, the old `aura` wire
+  field, and the `[SkillSystem] tick` debug log are all present as dead code.
+  Phase 5 cleanup target (see Migration Plan above).
