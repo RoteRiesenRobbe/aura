@@ -139,8 +139,34 @@ func (rcv *GameState) MutateSpellbook(j int, n uint16) bool {
 	return false
 }
 
+func (rcv *GameState) AuraSlots(j int) uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
+	}
+	return 0
+}
+
+func (rcv *GameState) AuraSlotsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateAuraSlots(j int, n uint16) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
+	}
+	return false
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(7)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -167,6 +193,12 @@ func GameStateAddSpellbook(builder *flatbuffers.Builder, spellbook flatbuffers.U
 	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(spellbook), 0)
 }
 func GameStateStartSpellbookVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(2, numElems, 2)
+}
+func GameStateAddAuraSlots(builder *flatbuffers.Builder, auraSlots flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(auraSlots), 0)
+}
+func GameStateStartAuraSlotsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {

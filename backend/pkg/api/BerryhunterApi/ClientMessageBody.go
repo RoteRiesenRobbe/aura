@@ -12,6 +12,7 @@ const (
 	ClientMessageBodyJoin        ClientMessageBody = 2
 	ClientMessageBodyCheat       ClientMessageBody = 3
 	ClientMessageBodyChatMessage ClientMessageBody = 4
+	ClientMessageBodyEquip       ClientMessageBody = 5
 )
 
 var EnumNamesClientMessageBody = map[ClientMessageBody]string{
@@ -20,6 +21,7 @@ var EnumNamesClientMessageBody = map[ClientMessageBody]string{
 	ClientMessageBodyJoin:        "Join",
 	ClientMessageBodyCheat:       "Cheat",
 	ClientMessageBodyChatMessage: "ChatMessage",
+	ClientMessageBodyEquip:       "Equip",
 }
 
 var EnumValuesClientMessageBody = map[string]ClientMessageBody{
@@ -28,6 +30,7 @@ var EnumValuesClientMessageBody = map[string]ClientMessageBody{
 	"Join":        ClientMessageBodyJoin,
 	"Cheat":       ClientMessageBodyCheat,
 	"ChatMessage": ClientMessageBodyChatMessage,
+	"Equip":       ClientMessageBodyEquip,
 }
 
 func (v ClientMessageBody) String() string {

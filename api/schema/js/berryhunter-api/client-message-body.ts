@@ -4,6 +4,7 @@
 
 import { ChatMessage } from '../berryhunter-api/chat-message.js';
 import { Cheat } from '../berryhunter-api/cheat.js';
+import { Equip } from '../berryhunter-api/equip.js';
 import { Input } from '../berryhunter-api/input.js';
 import { Join } from '../berryhunter-api/join.js';
 
@@ -13,34 +14,37 @@ export enum ClientMessageBody {
   Input = 1,
   Join = 2,
   Cheat = 3,
-  ChatMessage = 4
+  ChatMessage = 4,
+  Equip = 5
 }
 
 export function unionToClientMessageBody(
   type: ClientMessageBody,
-  accessor: (obj:ChatMessage|Cheat|Input|Join) => ChatMessage|Cheat|Input|Join|null
-): ChatMessage|Cheat|Input|Join|null {
+  accessor: (obj:ChatMessage|Cheat|Equip|Input|Join) => ChatMessage|Cheat|Equip|Input|Join|null
+): ChatMessage|Cheat|Equip|Input|Join|null {
   switch(ClientMessageBody[type]) {
     case 'NONE': return null; 
     case 'Input': return accessor(new Input())! as Input;
     case 'Join': return accessor(new Join())! as Join;
     case 'Cheat': return accessor(new Cheat())! as Cheat;
     case 'ChatMessage': return accessor(new ChatMessage())! as ChatMessage;
+    case 'Equip': return accessor(new Equip())! as Equip;
     default: return null;
   }
 }
 
 export function unionListToClientMessageBody(
   type: ClientMessageBody, 
-  accessor: (index: number, obj:ChatMessage|Cheat|Input|Join) => ChatMessage|Cheat|Input|Join|null, 
+  accessor: (index: number, obj:ChatMessage|Cheat|Equip|Input|Join) => ChatMessage|Cheat|Equip|Input|Join|null, 
   index: number
-): ChatMessage|Cheat|Input|Join|null {
+): ChatMessage|Cheat|Equip|Input|Join|null {
   switch(ClientMessageBody[type]) {
     case 'NONE': return null; 
     case 'Input': return accessor(index, new Input())! as Input;
     case 'Join': return accessor(index, new Join())! as Join;
     case 'Cheat': return accessor(index, new Cheat())! as Cheat;
     case 'ChatMessage': return accessor(index, new ChatMessage())! as ChatMessage;
+    case 'Equip': return accessor(index, new Equip())! as Equip;
     default: return null;
   }
 }

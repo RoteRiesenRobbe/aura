@@ -21,6 +21,10 @@ type Client interface {
 	// from the client. Returns nil if none available.
 	NextChatMessage() *ChatMessage
 
+	// NextEquip deques an EquipSkill message received
+	// from the client. Returns nil if none available.
+	NextEquip() *EquipSkill
+
 	// SendMessage enqueues a message in the outgoing
 	// messages queue
 	SendMessage([]byte) error

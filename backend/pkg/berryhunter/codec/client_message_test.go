@@ -5,7 +5,9 @@ import (
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 func buildInputBytes(addFields func(b *flatbuffers.Builder)) []byte {
@@ -35,4 +37,37 @@ func TestUnmarshalInput_ActiveAuraSlot_SlotTwo(t *testing.T) {
 	fbInput := BerryhunterApi.GetRootAsInput(buf, 0)
 	result := unmarshalInput(fbInput)
 	assert.Equal(t, 2, result.ActiveAuraSlot)
+}
+
+func buildEquipClientMessage(skillID uint16, slot int8) []byte {
+	b := flatbuffers.NewBuilder(64)
+	BerryhunterApi.EquipStart(b)
+	BerryhunterApi.EquipAddSkillId(b, skillID)
+	BerryhunterApi.EquipAddSlot(b, slot)
+	body := BerryhunterApi.EquipEnd(b)
+
+	BerryhunterApi.ClientMessageStart(b)
+	BerryhunterApi.ClientMessageAddBodyType(b, BerryhunterApi.ClientMessageBodyEquip)
+	BerryhunterApi.ClientMessageAddBody(b, body)
+	root := BerryhunterApi.ClientMessageEnd(b)
+	b.Finish(root)
+	return b.FinishedBytes()
+}
+
+func TestEquipMessageFlatbufferUnmarshal_RoundTrip(t *testing.T) {
+	buf := buildEquipClientMessage(2, 1)
+	msg := ClientMessageFlatbufferUnmarshal(buf)
+	result := EquipMessageFlatbufferUnmarshal(msg)
+	require.NotNil(t, result)
+	assert.Equal(t, skills.SkillID(2), result.SkillID)
+	assert.Equal(t, 1, result.Slot)
+}
+
+func TestEquipMessageFlatbufferUnmarshal_SlotZero(t *testing.T) {
+	buf := buildEquipClientMessage(1, 0)
+	msg := ClientMessageFlatbufferUnmarshal(buf)
+	result := EquipMessageFlatbufferUnmarshal(msg)
+	require.NotNil(t, result)
+	assert.Equal(t, skills.SkillID(1), result.SkillID)
+	assert.Equal(t, 0, result.Slot)
 }

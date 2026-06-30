@@ -138,6 +138,9 @@ table GameState {
 
   // discovered skill IDs — sent only to the owning player, not to other clients
   spellbook:[ushort];
+
+  // equipped aura slot contents — positional: index i = AuraSlots[i], 0 = empty slot
+  aura_slots:[ushort];
 }
 
 table Welcome {

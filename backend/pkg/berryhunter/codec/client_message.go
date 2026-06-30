@@ -6,6 +6,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 	"github.com/trichner/berryhunter/pkg/fbutil"
 )
 
@@ -93,6 +94,25 @@ func unmarshalCheat(c *BerryhunterApi.Cheat) *model.Cheat {
 	return cheat
 }
 
+func unwrapEquip(msg *BerryhunterApi.ClientMessage) *BerryhunterApi.Equip {
+	i := &BerryhunterApi.Equip{}
+	err := fbutil.UnwrapUnion[BerryhunterApi.ClientMessageBody](msg, i)
+	if err != nil {
+		return nil
+	}
+	return i
+}
+
+func unmarshalEquip(e *BerryhunterApi.Equip) *model.EquipSkill {
+	if e == nil {
+		return nil
+	}
+	return &model.EquipSkill{
+		SkillID: skills.SkillID(e.SkillId()),
+		Slot:    int(e.Slot()),
+	}
+}
+
 func unwrapChatMessage(msg *BerryhunterApi.ClientMessage) *BerryhunterApi.ChatMessage {
 	i := &BerryhunterApi.ChatMessage{}
 	err := fbutil.UnwrapUnion[BerryhunterApi.ClientMessageBody](msg, i)
@@ -129,6 +149,11 @@ func CheatMessageFlatbufferUnmarshal(msg *BerryhunterApi.ClientMessage) *model.C
 func ChatMessageFlatbufferUnmarshal(msg *BerryhunterApi.ClientMessage) *model.ChatMessage {
 	fbutil.AssertBodyType[BerryhunterApi.ClientMessageBody](msg, BerryhunterApi.ClientMessageBodyChatMessage)
 	return unmarshalChatMessage(unwrapChatMessage(msg))
+}
+
+func EquipMessageFlatbufferUnmarshal(msg *BerryhunterApi.ClientMessage) *model.EquipSkill {
+	fbutil.AssertBodyType[BerryhunterApi.ClientMessageBody](msg, BerryhunterApi.ClientMessageBodyEquip)
+	return unmarshalEquip(unwrapEquip(msg))
 }
 
 func ClientMessageFlatbufferUnmarshal(bytes []byte) *BerryhunterApi.ClientMessage {

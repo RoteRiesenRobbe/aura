@@ -29,7 +29,12 @@ table ChatMessage {
     message:string;
 }
 
-union ClientMessageBody { Input, Join, Cheat, ChatMessage }
+table Equip {
+    skill_id: ushort;
+    slot:     byte;
+}
+
+union ClientMessageBody { Input, Join, Cheat, ChatMessage, Equip }
 table ClientMessage { body:ClientMessageBody; }
 
 root_type ClientMessage;

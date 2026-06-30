@@ -18,6 +18,7 @@ type client struct {
 	inputs chan *model.PlayerInput
 	cheats chan *model.Cheat
 	chat   chan *model.ChatMessage
+	equips chan *model.EquipSkill
 	uuid   uuid.UUID
 }
 
@@ -55,6 +56,15 @@ func (c *client) NextCheat() *model.Cheat {
 func (c *client) NextChatMessage() *model.ChatMessage {
 	select {
 	case msg := <-c.chat:
+		return msg
+	default:
+	}
+	return nil
+}
+
+func (c *client) NextEquip() *model.EquipSkill {
+	select {
+	case msg := <-c.equips:
 		return msg
 	default:
 	}
@@ -105,6 +115,13 @@ func (c *client) routeMessage(msg *BerryhunterApi.ClientMessage) {
 		default:
 			log.Print("ChatMessage dropped.")
 		}
+	case BerryhunterApi.ClientMessageBodyEquip:
+		m := codec.EquipMessageFlatbufferUnmarshal(msg)
+		select {
+		case c.equips <- m:
+		default:
+			log.Print("Equip dropped.")
+		}
 	}
 }
 
@@ -115,6 +132,7 @@ func NewClient(c *net.Client) model.Client {
 		joins:  make(chan *model.Join, 2),
 		cheats: make(chan *model.Cheat, 2),
 		chat:   make(chan *model.ChatMessage, 2),
+		equips: make(chan *model.EquipSkill, 2),
 		uuid:   uuid.New(),
 	}
 

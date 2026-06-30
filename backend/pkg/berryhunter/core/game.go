@@ -26,6 +26,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/sys"
 	"github.com/trichner/berryhunter/pkg/berryhunter/sys/chat"
 	"github.com/trichner/berryhunter/pkg/berryhunter/sys/cmd"
+	"github.com/trichner/berryhunter/pkg/berryhunter/sys/equip"
 	"github.com/trichner/berryhunter/pkg/berryhunter/sys/heater"
 	"github.com/trichner/berryhunter/pkg/berryhunter/sys/statuseffects"
 )
@@ -130,6 +131,9 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 
 	c := cmd.NewCommandSystem(g, gc.Tokens)
 	g.AddSystem(c)
+
+	eq := equip.NewEquipSystem(g)
+	g.AddSystem(eq)
 
 	chat := chat.New()
 	g.AddSystem(chat)
@@ -398,6 +402,8 @@ func (g *game) addPlayer(p model.PlayerEntity) {
 			s.AddPlayer(p)
 		case *sys.SkillSystem:
 			s.AddEntity(p)
+		case *equip.EquipSystem:
+			s.AddPlayer(p)
 		}
 	}
 }

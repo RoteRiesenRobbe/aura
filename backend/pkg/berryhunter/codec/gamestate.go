@@ -149,6 +149,24 @@ func InventoryMarshalFlatbuf(inventory *items.Inventory, builder *flatbuffers.Bu
 	return builder.EndVector(n)
 }
 
+// AuraSlotsMarshalFlatbuf serializes the 4 aura slot contents as a positional
+// [ushort] vector: index i = AuraSlots[i], 0 = empty slot. Must be called before
+// GameStateStart (FlatBuffers rule). Emits in slot order 0→3 (reverse-prepend
+// is the FlatBuffers write mechanic; the logical index ordering is preserved).
+func AuraSlotsMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	n := skills.MaxAuraSlots
+	BerryhunterApi.GameStateStartAuraSlotsVector(builder, n)
+	// Prepend in reverse (slots 3→0) so index 0 lands at the lowest address.
+	for i := n - 1; i >= 0; i-- {
+		var id uint16
+		if sc.AuraSlots[i] != nil {
+			id = uint16(sc.AuraSlots[i].Def.ID)
+		}
+		builder.PrependUint16(id)
+	}
+	return builder.EndVector(n)
+}
+
 // SpellbookMarshalFlatbuf serializes the discovered skill IDs from sc as a
 // [ushort] vector. Must be called before GameStateStart (FlatBuffers rule).
 func SpellbookMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
@@ -170,6 +188,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	character := CharacterMarshalFlatbuf(gs.Player, builder)
 	inventory := InventoryMarshalFlatbuf(gs.Player.Inventory(), builder)
 	spellbook := SpellbookMarshalFlatbuf(gs.Player.SkillComponent(), builder)
+	auraSlots := AuraSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 
 	BerryhunterApi.GameStateStart(builder)
 	BerryhunterApi.GameStateAddTick(builder, gs.Tick)
@@ -180,6 +199,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	BerryhunterApi.GameStateAddEntities(builder, entities)
 	BerryhunterApi.GameStateAddInventory(builder, inventory)
 	BerryhunterApi.GameStateAddSpellbook(builder, spellbook)
+	BerryhunterApi.GameStateAddAuraSlots(builder, auraSlots)
 
 	return BerryhunterApi.GameStateEnd(builder)
 }

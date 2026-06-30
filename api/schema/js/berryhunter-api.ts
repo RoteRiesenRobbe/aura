@@ -16,6 +16,7 @@ export { ClientMessageBody } from './berryhunter-api/client-message-body.js';
 export { Entity } from './berryhunter-api/entity.js';
 export { EntityMessage } from './berryhunter-api/entity-message.js';
 export { EntityType } from './berryhunter-api/entity-type.js';
+export { Equip } from './berryhunter-api/equip.js';
 export { GameState } from './berryhunter-api/game-state.js';
 export { Input } from './berryhunter-api/input.js';
 export { ItemStack } from './berryhunter-api/item-stack.js';
