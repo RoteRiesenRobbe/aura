@@ -461,27 +461,44 @@
 	line-height: 1.4;
 }
 
-#spellbook {
+#leftColumn {
 	position: absolute;
 	top: 50%;
 	left: 1rem;
 	transform: translateY(-50%);
 
-	background: fade(black, 50%);
-	border: 1px solid fade(white, 15%);
-	border-radius: 1rem;
-	padding: 1rem 1.5rem;
-	min-width: 18rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
 
-	color: fade(white, 85%);
-	font-size: 1.7rem;
+@panel-bg:           fade(black, 50%);
+@panel-border:       fade(white, 15%);
+@panel-border-radius: 1rem;
+@panel-padding:      1rem 1.5rem;
+@panel-min-width:    18rem;
+@panel-color:        fade(white, 85%);
+@panel-font-size:    1.7rem;
+@panel-title-color:  fade(white, 60%);
+@panel-title-size:   1.5rem;
+@panel-row-divider:  fade(white, 8%);
+
+#spellbook {
+	background: @panel-bg;
+	border: 1px solid @panel-border;
+	border-radius: @panel-border-radius;
+	padding: @panel-padding;
+	min-width: @panel-min-width;
+
+	color: @panel-color;
+	font-size: @panel-font-size;
 
 	> .spellbookTitle {
 		font-weight: 700;
 		letter-spacing: 0.04em;
 		margin-bottom: 0.8rem;
-		color: fade(white, 60%);
-		font-size: 1.5rem;
+		color: @panel-title-color;
+		font-size: @panel-title-size;
 		text-transform: uppercase;
 	}
 
@@ -492,11 +509,63 @@
 
 		> li {
 			padding: 0.4rem 0;
-			border-bottom: 1px solid fade(white, 8%);
+			border-bottom: 1px solid @panel-row-divider;
+
+			&:last-child {
+				border-bottom: none;
+			}
+
+			&.selected {
+				color: white;
+				font-weight: 700;
+				background: fade(white, 8%);
+				border-radius: 0.4rem;
+				padding-left: 0.4rem;
+			}
+		}
+	}
+}
+
+#auraLoadout {
+	background: @panel-bg;
+	border: 1px solid @panel-border;
+	border-radius: @panel-border-radius;
+	padding: @panel-padding;
+	min-width: @panel-min-width;
+
+	color: @panel-color;
+	font-size: @panel-font-size;
+
+	> .auraLoadoutTitle {
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		margin-bottom: 0.8rem;
+		color: @panel-title-color;
+		font-size: @panel-title-size;
+		text-transform: uppercase;
+	}
+
+	> #auraSlotList {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+
+		> .auraSlot {
+			padding: 0.4rem 0;
+			border-bottom: 1px solid @panel-row-divider;
+			color: fade(white, 35%);
 
 			&:last-child {
 				border-bottom: none;
 			}
 		}
+	}
+
+	&.hasPendingSkill > #auraSlotList > .auraSlot {
+		cursor: pointer;
+		color: @panel-color;
+		background: fade(white, 5%);
+		border-radius: 0.4rem;
+		padding-left: 0.4rem;
 	}
 }

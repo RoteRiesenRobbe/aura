@@ -28,6 +28,7 @@ export class GameStateMessage {
     inventory;
     entities;
     spellbook: number[];
+    auraSlots: number[];
 
     constructor(gameState: BerryhunterApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -57,6 +58,11 @@ export class GameStateMessage {
         this.spellbook = [];
         for (let i = 0; i < gameState.spellbookLength(); ++i) {
             this.spellbook.push(gameState.spellbook(i));
+        }
+
+        this.auraSlots = [];
+        for (let i = 0; i < gameState.auraSlotsLength(); ++i) {
+            this.auraSlots.push(gameState.auraSlots(i));
         }
     }
 }

@@ -11,6 +11,7 @@ import {UserInteraceDomReadyEvent} from '../../../core/logic/Events';
 import {VitalSign} from '../../../vital-signs/logic/VitalSigns';
 import {BerryhunterApi} from '../../../backend/logic/BerryhunterApi';
 import {InputMessage} from '../../../backend/logic/messages/outgoing/InputMessage';
+import {EquipMessage} from '../../../backend/logic/messages/outgoing/EquipMessage';
 
 let Game: IGame = null;
 
@@ -22,6 +23,10 @@ let craftableItemTemplate: HTMLElement;
 let inventorySlots: ClickableCountableIcon[];
 let auraButtons: {[key: number]: HTMLButtonElement};
 let spellbookListElement: HTMLElement;
+let auraLoadoutElement: HTMLElement;
+let auraSlotListElement: HTMLElement;
+
+let selectedSkillId: number | null = null;
 
 let vitalSignsBars: { [key: string]: VitalSignBar };
 
@@ -40,6 +45,7 @@ export function setup(game) {
     setupVitalSigns();
     setupAuras();
     setupSpellbook();
+    setupAuraLoadout();
 }
 
 function setupCrafting() {
@@ -203,19 +209,61 @@ export function getScoreboard(): HTMLElement {
 
 function setupSpellbook() {
     spellbookListElement = document.getElementById('spellbookList');
+    spellbookListElement.addEventListener('pointerdown', (e) => {
+        const li = (e.target as HTMLElement).closest('li') as HTMLElement;
+        if (!li || !li.dataset.skillId) return;
+        const id = Number(li.dataset.skillId);
+        if (selectedSkillId === id) {
+            clearEquipSelection();
+        } else {
+            selectedSkillId = id;
+            spellbookListElement.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
+            li.classList.add('selected');
+            auraLoadoutElement.classList.add('hasPendingSkill');
+        }
+    });
+}
+
+function setupAuraLoadout() {
+    auraLoadoutElement = document.getElementById('auraLoadout');
+    auraSlotListElement = document.getElementById('auraSlotList');
+    auraSlotListElement.addEventListener('pointerdown', (e) => {
+        if (selectedSkillId === null) return;
+        const li = (e.target as HTMLElement).closest('li') as HTMLElement;
+        if (!li || li.dataset.slot === undefined) return;
+        new EquipMessage(selectedSkillId, Number(li.dataset.slot)).send();
+        clearEquipSelection();
+    });
+}
+
+function clearEquipSelection() {
+    selectedSkillId = null;
+    spellbookListElement.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
+    auraLoadoutElement.classList.remove('hasPendingSkill');
 }
 
 // updateSpellbook is called every tick in PLAYING state with the full list of
 // discovered skill IDs. An empty array clears the list.
 export function updateSpellbook(ids: number[]) {
-    if (!spellbookListElement) {
-        return;
-    }
+    if (!spellbookListElement) return;
     spellbookListElement.innerHTML = '';
     for (const id of ids) {
         const li = document.createElement('li');
         li.textContent = skillDisplayName(id);
+        li.dataset.skillId = String(id);
+        if (selectedSkillId === id) {
+            li.classList.add('selected');
+        }
         spellbookListElement.appendChild(li);
+    }
+}
+
+export function updateAuraLoadout(slots: number[]) {
+    if (!auraSlotListElement) return;
+    for (let i = 0; i < slots.length; i++) {
+        const li = auraSlotListElement.querySelector(`.auraSlot[data-slot="${i}"]`) as HTMLElement;
+        if (!li) continue;
+        li.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
     }
 }
 

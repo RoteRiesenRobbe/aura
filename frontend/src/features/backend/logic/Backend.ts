@@ -261,6 +261,10 @@ export class Backend implements IBackend {
                 HUD.updateSpellbook(snapshot.spellbook);
             }
 
+            if (Utils.isDefined(snapshot.auraSlots)) {
+                HUD.updateAuraLoadout(snapshot.auraSlots);
+            }
+
             if (Develop.isActive()) {
                 this.game.player.character['updateAABB'](snapshot.player.aabb);
             }
