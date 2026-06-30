@@ -27,8 +27,9 @@ func TestSpellbookMarshalFlatbuf_RoundTrip(t *testing.T) {
 	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
 
 	require.Equal(t, 2, result.SpellbookLength())
-	ids := []uint16{result.Spellbook(0), result.Spellbook(1)}
-	assert.ElementsMatch(t, []uint16{1, 2}, ids)
+	// Discovered() returns IDs ascending; the codec must preserve that order on the wire.
+	assert.Equal(t, uint16(1), result.Spellbook(0))
+	assert.Equal(t, uint16(2), result.Spellbook(1))
 }
 
 func TestSpellbookMarshalFlatbuf_Empty(t *testing.T) {

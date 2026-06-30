@@ -155,8 +155,11 @@ func SpellbookMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.Bui
 	ids := sc.Discovered()
 	n := len(ids)
 	BerryhunterApi.GameStateStartSpellbookVector(builder, n)
-	for _, id := range ids {
-		builder.PrependUint16(uint16(id))
+	// Prepend in reverse: FlatBuffers grows the buffer downward, so the last
+	// prepended element lands at the lowest address (index 0 when read).
+	// Iterating backward preserves the ascending order that Discovered() returns.
+	for i := n - 1; i >= 0; i-- {
+		builder.PrependUint16(uint16(ids[i]))
 	}
 	return builder.EndVector(n)
 }
