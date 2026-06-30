@@ -1,6 +1,7 @@
 import '../assets/HUD.less';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
+import {skillDisplayName} from '../../../../client-data/Skills';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import {ClickableIcon} from './ClickableIcon';
 import {ClickableCountableIcon} from './ClickableCountableIcon';
@@ -20,6 +21,7 @@ let craftingElement: HTMLElement;
 let craftableItemTemplate: HTMLElement;
 let inventorySlots: ClickableCountableIcon[];
 let auraButtons: {[key: number]: HTMLButtonElement};
+let spellbookListElement: HTMLElement;
 
 let vitalSignsBars: { [key: string]: VitalSignBar };
 
@@ -37,6 +39,7 @@ export function setup(game) {
 
     setupVitalSigns();
     setupAuras();
+    setupSpellbook();
 }
 
 function setupCrafting() {
@@ -196,6 +199,24 @@ export function getChat(): HTMLElement {
 
 export function getScoreboard(): HTMLElement {
     return document.getElementById('scoreboard');
+}
+
+function setupSpellbook() {
+    spellbookListElement = document.getElementById('spellbookList');
+}
+
+// updateSpellbook is called every tick in PLAYING state with the full list of
+// discovered skill IDs. An empty array clears the list.
+export function updateSpellbook(ids: number[]) {
+    if (!spellbookListElement) {
+        return;
+    }
+    spellbookListElement.innerHTML = '';
+    for (const id of ids) {
+        const li = document.createElement('li');
+        li.textContent = skillDisplayName(id);
+        spellbookListElement.appendChild(li);
+    }
 }
 
 export function setActiveAura(aura: BerryhunterApi.AuraType) {

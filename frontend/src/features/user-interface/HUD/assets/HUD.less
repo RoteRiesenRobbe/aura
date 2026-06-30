@@ -460,3 +460,43 @@
 	font-size: 0.7em;
 	line-height: 1.4;
 }
+
+#spellbook {
+	position: absolute;
+	top: 50%;
+	left: 1rem;
+	transform: translateY(-50%);
+
+	background: fade(black, 50%);
+	border: 1px solid fade(white, 15%);
+	border-radius: 1rem;
+	padding: 1rem 1.5rem;
+	min-width: 18rem;
+
+	color: fade(white, 85%);
+	font-size: 1.7rem;
+
+	> .spellbookTitle {
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		margin-bottom: 0.8rem;
+		color: fade(white, 60%);
+		font-size: 1.5rem;
+		text-transform: uppercase;
+	}
+
+	> #spellbookList {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+
+		> li {
+			padding: 0.4rem 0;
+			border-bottom: 1px solid fade(white, 8%);
+
+			&:last-child {
+				border-bottom: none;
+			}
+		}
+	}
+}

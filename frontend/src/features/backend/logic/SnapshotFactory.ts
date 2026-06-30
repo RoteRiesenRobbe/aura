@@ -11,6 +11,7 @@ export class Snapshot {
     player: any; // TODO introduce interfaces to player, spectator, entity...
     entities: [];
     inventory: [];
+    spellbook: number[]; // discovered skill IDs, owning player only
 }
 
 export function newSnapshot(backendState: BackendState, gameState: GameStateMessage) {
@@ -33,7 +34,11 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
 
         // EntityManager handles entity states
         snapshot.entities = gameState.entities;
+
+        // Spellbook: always carry the full list (only changes on level-up/unlock)
+        snapshot.spellbook = gameState.spellbook;
     } else {
+        // First snapshot: assign the whole GameStateMessage, which already carries spellbook.
         snapshot = gameState;
     }
 
