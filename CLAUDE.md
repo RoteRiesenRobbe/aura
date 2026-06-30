@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Current Migration Status
+
+- **Last completed:** Phase 2.5b — aura buttons wired to active_aura_slot, heal toggle works via SkillSystem. Phase 2 (player migration) complete.
+- **Next step:** Phase 3 — see docs/skill-system-design.md
+- **Note:** old `aura` wire field + old `applyDamageAura`/`applyHealAura` still present as dead code; flagged for Phase 5 cleanup. Frontend FlatBuffers toolchain migrated to flatc v24.3.25.
+- Migration plan lives in `docs/skill-system-design.md`
+
+
 ## Development Principles
 
 These principles apply to all code written or modified in this project.
@@ -321,13 +329,3 @@ After completing a step, before declaring it done:
 - Report the output
 
 Don't claim "done" without these checks.
-
-
-## Current Migration Status
-
-- **Last completed:** Phase 2.4 — old hardcoded aura system disabled, SkillSystem is sole driver
-- **Next step:** Phase 2.5a — backend wire protocol for `active_aura_slot` (frontend untouched)
-- **Known transitional state:** heal toggle button is non-functional until Phase 2.5b
-- Migration plan lives in `docs/skill-system-design.md`
-
-Update this section after each phase step is committed.
