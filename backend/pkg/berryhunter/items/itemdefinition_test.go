@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	apiitems "github.com/trichner/berryhunter/pkg/api/items"
 )
 
 func TestParseRecipe(t *testing.T) {
@@ -32,7 +33,11 @@ func TestMapRecipe(t *testing.T) {
 }
 
 func TestCreateRegistry(t *testing.T) {
-	r := RegistryFromPaths("../../api/items/")
+	// Same loading path as production (cmd/berryhunterd/loaders.go): the
+	// embedded FS contains only the JSON definitions. RegistryFromPaths would
+	// trip over non-JSON files (.gitignore, items.go) in the same directory.
+	r, err := RegistryFromFS(apiitems.Items)
+	assert.NoError(t, err, "Should load definitions just fine.")
 	assert.NotNil(t, r, "registry should be defined")
 	assert.NotEmpty(t, r.Items(), "Should have some items.")
 

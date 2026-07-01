@@ -12,7 +12,7 @@ func HandleMessage(bytes []byte) error {
 	case ChieftainApi.ClientMessageBodyScoreboard:
 		// TODO
 	default:
-		return fmt.Errorf("unknown ClientMessage type: %s", msg.BodyType())
+		return fmt.Errorf("unknown ClientMessage type: %d", msg.BodyType())
 	}
 	return nil
 }

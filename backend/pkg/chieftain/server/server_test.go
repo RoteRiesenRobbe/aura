@@ -105,15 +105,17 @@ func (pd *mockPlayerDao) FindPlayers(ctx context.Context) ([]dao.Player, error) 
 
 func generateScoreboard() *client.Scoreboard {
 	return &client.Scoreboard{
-		client.Player{
-			Uuid:  "123412341234",
-			Name:  "TestPlayer",
-			Score: 9001,
-		},
-		client.Player{
-			Uuid:  "kaskdkdkksksk",
-			Name:  "AnotherPlayer",
-			Score: 101,
+		Players: []client.Player{
+			{
+				Uuid:  "123412341234",
+				Name:  "TestPlayer",
+				Score: 9001,
+			},
+			{
+				Uuid:  "kaskdkdkksksk",
+				Name:  "AnotherPlayer",
+				Score: 101,
+			},
 		},
 	}
 }

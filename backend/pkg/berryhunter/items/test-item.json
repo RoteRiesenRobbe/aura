@@ -27,10 +27,6 @@
       }
     ],
     "_": "Tools required to craft this item.",
-    "tools": [
-      {
-        "entityType": "FirePlace"
-      }
-    ]
+    "tools": ["FirePlace"]
   }
 }
