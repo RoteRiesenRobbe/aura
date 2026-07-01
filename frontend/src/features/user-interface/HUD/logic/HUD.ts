@@ -28,6 +28,12 @@ let auraSlotListElement: HTMLElement;
 
 let selectedSkillId: number | null = null;
 
+// Latest positional aura-slot contents from the server (skill id per slot, 0 = empty).
+// Source of truth for the activate-vs-empty check in the slot pointerdown handler.
+let currentAuraSlots: number[] = [];
+// Optimistically-highlighted active slot in the new panel; client-side only in 1a.
+let activeSlotIndex: number | null = null;
+
 let vitalSignsBars: { [key: string]: VitalSignBar };
 
 Preloading.renderPartial(require('../assets/HUD.html'), () => {
@@ -228,12 +234,38 @@ function setupAuraLoadout() {
     auraLoadoutElement = document.getElementById('auraLoadout');
     auraSlotListElement = document.getElementById('auraSlotList');
     auraSlotListElement.addEventListener('pointerdown', (e) => {
-        if (selectedSkillId === null) return;
         const li = (e.target as HTMLElement).closest('li') as HTMLElement;
         if (!li || li.dataset.slot === undefined) return;
-        new EquipMessage(selectedSkillId, Number(li.dataset.slot)).send();
-        clearEquipSelection();
+        const slot = Number(li.dataset.slot);
+
+        if (selectedSkillId !== null) {
+            // Equip branch: a spellbook skill is pending — install it into this slot.
+            new EquipMessage(selectedSkillId, slot).send();
+            clearEquipSelection();
+            return;
+        }
+
+        // Activate branch: nothing pending — make this slot's aura the active one.
+        // Empty slots (skill id 0) do nothing. Sends only activeAuraSlot; the
+        // on-character ring deliberately does NOT follow here (see step 1b — a real
+        // incoming active_aura_slot wire field will drive both ring and highlight).
+        if (currentAuraSlots[slot] === 0 || currentAuraSlots[slot] === undefined) {
+            return;
+        }
+        const input = new InputMessage();
+        input.activeAuraSlot = slot;
+        input.send();
+        setActiveSlotHighlight(slot);
     });
+}
+
+// setActiveSlotHighlight marks one slot active in the panel (optimistic, client-side).
+function setActiveSlotHighlight(slot: number) {
+    activeSlotIndex = slot;
+    if (!auraSlotListElement) return;
+    auraSlotListElement.querySelectorAll('.auraSlot').forEach(el => el.classList.remove('activeSlot'));
+    const li = auraSlotListElement.querySelector(`.auraSlot[data-slot="${slot}"]`);
+    if (li) li.classList.add('activeSlot');
 }
 
 function clearEquipSelection() {
@@ -260,10 +292,14 @@ export function updateSpellbook(ids: number[]) {
 
 export function updateAuraLoadout(slots: number[]) {
     if (!auraSlotListElement) return;
+    currentAuraSlots = slots;
     for (let i = 0; i < slots.length; i++) {
         const li = auraSlotListElement.querySelector(`.auraSlot[data-slot="${i}"]`) as HTMLElement;
         if (!li) continue;
         li.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
+        // Re-apply the optimistic highlight after the per-tick text re-render.
+        // Never highlight an empty slot (guards against a slot emptied while active).
+        li.classList.toggle('activeSlot', activeSlotIndex === i && slots[i] !== 0);
     }
 }
 
