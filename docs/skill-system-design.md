@@ -566,8 +566,8 @@ earlier phases build (skill levels, all three categories, the unlock event).
 - Variant auras (rare world drops) enter as ingredients later — out of scope
   for this phase.
 - The full design section for this phase is written during Phase 7 (decided
-  there); the remaining open questions (recipe JSON format, trigger timing,
-  multi-result recipes?) land in that design pass.
+  there). The prepared question catalog for that design pass lives in
+  `docs/combo-design-questions.md`.
 
 ---
 
@@ -714,3 +714,22 @@ Known issues to address in a future cleanup pass — not blocking current work.
   differing `tickInterval` values would fire its shorter-interval effects on
   consecutive ticks near the shared reset (see ECS Integration, Known
   limitation). Move `TickAccumulator` per-effect before shipping such a skill.
+  Pinned by `sys/skills_behavior_test.go` `TestSkillSystem_MultiEffectIntervalQuirk`.
+
+- **Per-skill aura colliders are not wired up** — `SkillSystem.processEntity`
+  reads `e.AuraCollider()` (the entity's single legacy aura sensor, sized via
+  legacy `AuraRadius()`), not `EquippedSkill.Collider` (allocated per the
+  design above but never read). Consequence: a skill's `radius` /
+  `radiusPerLevel` effect parameters currently have **no effect** — every aura
+  uses the legacy collider's radius. Works today because both skills use the
+  same radius and the `AuraType`=slot hack keeps the legacy sizing alive;
+  becomes real work in 1b/Phase 5 when the legacy path is retired.
+
+- **Zombie-mob bug** — `mob.Update()` applies out-of-combat regeneration
+  *before* the death check, so a mob reaching 0 health while it has no aggro
+  target (reachable by kiting it out of its territory) heals above zero in the
+  same tick and survives — with `deathRewardGiven` latched, so it never grants
+  XP or drops again. `MobSystem` relies solely on `Update`'s return value.
+  Fix: check health before (or immediately after) aura intake in `Update`.
+  Pinned by `model/mob/mob_test.go` `TestMob_Update_DeadMobWithoutAggro_ZombieBug`
+  — invert its assertions when fixing. Natural fix window: Phase 6 (mob chapter).
