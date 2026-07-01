@@ -10,7 +10,7 @@ import {IGame} from "../../../core/logic/IGame";
 import {UserInteraceDomReadyEvent} from '../../../core/logic/Events';
 import {VitalSign} from '../../../vital-signs/logic/VitalSigns';
 import {BerryhunterApi} from '../../../backend/logic/BerryhunterApi';
-import {InputMessage} from '../../../backend/logic/messages/outgoing/InputMessage';
+import {InputMessage, DEACTIVATE_AURA_SLOT} from '../../../backend/logic/messages/outgoing/InputMessage';
 import {EquipMessage} from '../../../backend/logic/messages/outgoing/EquipMessage';
 
 let Game: IGame = null;
@@ -245,17 +245,26 @@ function setupAuraLoadout() {
             return;
         }
 
-        // Activate branch: nothing pending — make this slot's aura the active one.
+        // Activate branch: nothing pending — toggle this slot's aura.
         // Empty slots (skill id 0) do nothing. Sends only activeAuraSlot; the
         // on-character ring deliberately does NOT follow here (see step 1b — a real
         // incoming active_aura_slot wire field will drive both ring and highlight).
         if (currentAuraSlots[slot] === 0 || currentAuraSlots[slot] === undefined) {
             return;
         }
+
         const input = new InputMessage();
-        input.activeAuraSlot = slot;
-        input.send();
-        setActiveSlotHighlight(slot);
+        if (activeSlotIndex === slot) {
+            // Clicking the already-active slot deactivates it → Nothing.
+            input.activeAuraSlot = DEACTIVATE_AURA_SLOT;
+            input.send();
+            clearActiveSlotHighlight();
+        } else {
+            // Switch the active aura to this slot.
+            input.activeAuraSlot = slot;
+            input.send();
+            setActiveSlotHighlight(slot);
+        }
     });
 }
 
@@ -266,6 +275,13 @@ function setActiveSlotHighlight(slot: number) {
     auraSlotListElement.querySelectorAll('.auraSlot').forEach(el => el.classList.remove('activeSlot'));
     const li = auraSlotListElement.querySelector(`.auraSlot[data-slot="${slot}"]`);
     if (li) li.classList.add('activeSlot');
+}
+
+// clearActiveSlotHighlight drops the active-slot highlight (optimistic Nothing state).
+function clearActiveSlotHighlight() {
+    activeSlotIndex = null;
+    if (!auraSlotListElement) return;
+    auraSlotListElement.querySelectorAll('.auraSlot').forEach(el => el.classList.remove('activeSlot'));
 }
 
 function clearEquipSelection() {

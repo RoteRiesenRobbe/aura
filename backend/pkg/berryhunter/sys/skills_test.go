@@ -70,6 +70,32 @@ func TestSkillSystem_RemoveDropsEntity(t *testing.T) {
 	assert.Equal(t, e2.ID(), sk.entities[0].Basic().ID())
 }
 
+// --- "Nothing" (no active aura) ticks nothing ---
+
+func TestSkillSystem_NoActiveAura_TicksNothing(t *testing.T) {
+	sk := NewSkillSystem()
+	e := newFakeEntity()
+
+	// Equip a heal aura but leave the active slot at Nothing (-1).
+	def := &skills.SkillDefinition{
+		ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeHealAura, HealFraction: 0.5, SelfDamageFraction: 0.5,
+		}},
+	}
+	e.sc.EquipAura(0, def, 1)
+	e.sc.ActiveAuraSlot = -1 // Nothing
+
+	sk.AddEntity(e)
+	startHealth := e.vitalSigns.Health
+
+	// AuraCollider() returns nil; if the deactivated slot were processed, reading
+	// collisions on the nil collider would panic. No panic + unchanged health proves
+	// the Nothing state applies no aura effect at all.
+	assert.NotPanics(t, func() { sk.Update(33.0) })
+	assert.Equal(t, startHealth, e.vitalSigns.Health)
+}
+
 // --- effect math tests ---
 
 func TestEffectDamageFraction_Level1(t *testing.T) {

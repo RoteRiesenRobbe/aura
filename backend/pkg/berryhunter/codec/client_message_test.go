@@ -39,6 +39,19 @@ func TestUnmarshalInput_ActiveAuraSlot_SlotTwo(t *testing.T) {
 	assert.Equal(t, 2, result.ActiveAuraSlot)
 }
 
+func TestUnmarshalInput_ActiveAuraSlot_DeactivateSentinel(t *testing.T) {
+	buf := buildInputBytes(func(b *flatbuffers.Builder) {
+		BerryhunterApi.InputAddTick(b, 1)
+		BerryhunterApi.InputAddActiveAuraSlot(b, int8(-2))
+	})
+	fbInput := BerryhunterApi.GetRootAsInput(buf, 0)
+	result := unmarshalInput(fbInput)
+	// -2 is the explicit "deactivate" wire sentinel. It must survive as a value
+	// distinct from the absent-field case (which yields -1 = no change); otherwise
+	// the server cannot tell "no command" from "explicitly go to Nothing".
+	assert.Equal(t, -2, result.ActiveAuraSlot)
+}
+
 func buildEquipClientMessage(skillID uint16, slot int8) []byte {
 	b := flatbuffers.NewBuilder(64)
 	BerryhunterApi.EquipStart(b)

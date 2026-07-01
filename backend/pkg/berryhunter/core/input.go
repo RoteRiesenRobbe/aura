@@ -90,8 +90,13 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 		p.SetActiveAura(*next.Aura)
 	}
 
+	// Active-aura command. >= 0 switches to that slot; the -2 wire sentinel means
+	// "explicitly deactivate" (maps to component slot -1 = Nothing); -1 (the wire
+	// default) means the client said nothing, so we leave the active aura untouched.
 	if next.ActiveAuraSlot >= 0 {
 		p.SkillComponent().SetActiveAura(next.ActiveAuraSlot)
+	} else if next.ActiveAuraSlot == model.ActiveAuraSlotDeactivate {
+		p.SkillComponent().SetActiveAura(-1)
 	}
 
 	// do we even have inputs?

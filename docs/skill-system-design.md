@@ -451,6 +451,15 @@ it each tick; switching to a new index resets that slot's `TickAccumulator` to 0
 `cooldown_activations` is a list of slot indices; the server ignores any slot that
 is still on cooldown.
 
+> **Implementation divergence:** the `active_aura_slot` field kept its `= -1`
+> schema default (`-1` = "no change / field absent"). Because FlatBuffers omits a
+> scalar equal to its default, an explicit `-1` is indistinguishable from an absent
+> field, so it cannot signal "deactivate". The client therefore sends a `-2`
+> **deactivate sentinel** (paired constants `model.ActiveAuraSlotDeactivate` /
+> `DEACTIVATE_AURA_SLOT`), which the server maps to `SkillComponent.ActiveAuraSlot = -1`
+> (Nothing). Collapse `-2` back onto `-1` if the schema default is ever changed and
+> regenerated (a Linux `flatc` is available via `make -C backend build`).
+
 After Phase 5, `AuraType` is removed from `common.fbs`.
 
 ---

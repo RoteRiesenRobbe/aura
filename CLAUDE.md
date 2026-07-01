@@ -4,11 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Migration Status
 
-- **Last completed:** Phase 3.5 — equip flow. `EquipMessage` (client→server FlatBuffers), `EquipSystem` (backend ECS with guards for discovery and slot bounds), `aura_slots` wire field (server→client positional array), `#auraLoadout` panel, spellbook click-to-select and slot click-to-equip UI. Full spellbook→slot equip flow works end-to-end.
+- **Last completed:** Legacy-aura-UI replacement — activate + Nothing state. The Aura Slots panel (`#auraLoadout`) now **activates/switches/deactivates** the active aura, not just equips: clicking an occupied slot activates it (sends `active_aura_slot`); clicking the active slot again deactivates to a server-authoritative **Nothing** state; optimistic client-side `.activeSlot` highlight. Backend: `active_aura_slot >= 0` switches, the `-2` wire sentinel deactivates (→ `SkillComponent.ActiveAuraSlot = -1`), `SkillSystem` ticks no aura at `-1`. Legacy `#auras` buttons still coexist.
 - **Remaining plan for the spellbook chapter (Phase 3):**
   - 3.7 — unlock event over wire + glow/pulse animation on spellbook icon
   - *(3.6 equip UI was folded into 3.5)*
-- **Current state:** new players start with DamageAura in slot 0 on spawn. HealAura unlocks into the spellbook at level 2; the player can equip it into any slot via the Aura Slots panel. The `#auras` hardcoded buttons and `setActiveAura()` path are the active-loadout toggle — kept strictly separate from the spellbook (discovered skills).
+- **Legacy aura UI replacement (separate from 3.7):**
+  - activate + optimistic highlight ✓
+  - server-authoritative Nothing / deactivate (`-2` sentinel) ✓
+  - **next (1b):** incoming server→client `active_aura_slot` field driving both panel highlight and on-character ring from spawn; retires `#auras` buttons, the `AuraType`=slot hack, and the deprecated `aura`/`activeAura` fields.
+- **Current state:** new players start with DamageAura in slot 0 on spawn. HealAura unlocks into the spellbook at level 2; the player can equip it into any slot via the Aura Slots panel, and **activate/switch/deactivate** the active aura from that same panel. Known cosmetic gap: on spawn the server has DamageAura active (slot 0) but the panel shows no highlight (no incoming active-slot field yet); it aligns after the first switch/toggle. Closed by 1b. Legacy `#auras` buttons + `setActiveAura()` still coexist.
 - **Deferred tech debt:**
   - Old `aura` wire field + old `applyDamageAura`/`applyHealAura` still present as dead code — Phase 5 cleanup.
   - `[SkillSystem] tick` debug log still fires in -dev — remove in Phase 5.
@@ -16,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `sys/equip/equip.go` `RemovePlayer(equipEntity)` — dead code superseded by ECS `Remove(ecs.BasicEntity)`. Remove in a later cleanup.
   - Equip level=1 gap: `SkillComponent.Spellbook` is `map[SkillID]bool` (discovery only, no per-skill level), so `EquipSystem` always equips at level 1. Revisit when skill-leveling is implemented.
   - Frontend FlatBuffers toolchain migrated to flatc v24.3.25 in a dedicated commit.
+  - `-2` `active_aura_slot` deactivate sentinel is a workaround for FlatBuffers omitting the `-1` default (making an explicit `-1` indistinguishable from an absent field); collapse onto `-1` if/when the schema default is changed and regenerated. Paired constants: `model.ActiveAuraSlotDeactivate` (Go) / `DEACTIVATE_AURA_SLOT` (InputMessage.ts).
 - Full plan: docs/skill-system-design.md
 
 
@@ -89,6 +94,10 @@ cd backend && ./berryhunterd -dev
 # Run without build (go run)
 make -C backend dev
 ```
+
+> **Gotcha:** after backend logic changes, rebuild the binary with `make -C backend build`.
+> `go build ./...` compiles/type-checks packages but does **not** refresh `./berryhunterd`,
+> so a running `-dev` server keeps executing stale code.
 
 `backend/conf.json` controls server port (default `2000`), day/night cycle durations, and all game-balance tuning values. `backend/tokens.list` must exist with at least one token (e.g. `plz`) for in-game commands to work.
 
