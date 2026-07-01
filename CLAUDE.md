@@ -21,7 +21,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Equip level=1 gap: `SkillComponent.Spellbook` is `map[SkillID]bool` (discovery only, no per-skill level), so `EquipSystem` always equips at level 1. Revisit when skill-leveling is implemented.
   - Frontend FlatBuffers toolchain migrated to flatc v24.3.25 in a dedicated commit.
   - `-2` `active_aura_slot` deactivate sentinel is a workaround for FlatBuffers omitting the `-1` default (making an explicit `-1` indistinguishable from an absent field); collapse onto `-1` if/when the schema default is changed and regenerated. Paired constants: `model.ActiveAuraSlotDeactivate` (Go) / `DEACTIVATE_AURA_SLOT` (InputMessage.ts).
-- Full plan: docs/skill-system-design.md
+- Full plan: docs/skill-system-design.md (skill system, Phases 1–9)
+- v1.0 scope outside the skill system: docs/v1-roadmap.md (skeleton)
 
 
 ## Development Principles

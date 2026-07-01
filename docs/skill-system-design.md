@@ -283,12 +283,18 @@ type skillEntity interface {
 Per-tick behavior:
 
 1. **Active aura slot**: Read `sc.ActiveAuraSlot` (−1 = none active). For that
-   slot, increment `slot.TickAccumulator`. For each `EffectDef` in the skill's
-   `Effects` slice, check whether `TickAccumulator >= effect.TickInterval`; if so,
-   read `slot.Collider.Collisions()`, apply the effect (scaling fractions by level),
-   and reset `TickAccumulator = 0`. Effects with different `tickInterval` values
-   within the same skill each track the accumulator independently against their own
-   threshold.
+   slot, increment `slot.TickAccumulator`. Each `EffectDef` whose `TickInterval`
+   the accumulator has reached fires: read `slot.Collider.Collisions()` and apply
+   the effect (scaling fractions by level). There is a **single accumulator per
+   equipped skill**, not one per effect; it resets to 0 only once it reaches the
+   maximum `TickInterval` across the skill's effects.
+
+   > **Known limitation:** with multiple effects of *different* intervals on one
+   > skill, a shorter-interval effect re-fires on every tick between reaching its
+   > own threshold and the shared reset (e.g. intervals 2 and 3 → the interval-2
+   > effect fires on ticks 2 *and* 3, then again on 5 and 6). Correct for all
+   > current skills (each has a single effect). Move the accumulator per-effect
+   > before shipping a multi-effect skill with differing intervals.
 2. **Cooldown slots**: Decrement `CdTicks` by 1 if `> 0`. A cooldown skill fires
    (apply `instant_damage` effects) only when the game loop receives an explicit
    activation input for that slot index, and `CdTicks == 0`. After firing,
@@ -305,6 +311,9 @@ registered between the existing `update` and `postupdate` systems.
 ---
 
 ## Mob Integration
+
+*Status: not implemented — scheduled as Phase 6 (see Migration Plan). Mobs still
+use the hardcoded aura path.*
 
 Mobs get the same `SkillComponent`. The current hardcoded damage aura in
 `model/mob/mob.go` (driven by `Body.DamageRadius` and `Factors.DamageFraction`)
@@ -340,6 +349,9 @@ changes.
 The goal is no build break longer than a few hours at any step. Old and new code
 run in parallel until Phase 5.
 
+**Execution order:** 3.7 → 1b → Phase 5 → 6 → 7 → 8 → 9.
+**⚑** marks open decision points to resolve before (or during) the phase.
+
 ### Phase 1 — Skill package and registry (~1 day) ✓ Done
 
 - Create `api/skills/` with `damage-aura.json` and `heal-aura.json` matching
@@ -361,13 +373,21 @@ run in parallel until Phase 5.
   `SkillComponent.ActiveAuraSlot` (0 for damage, 1 for heal).
 - Tests: player takes and deals correct damage after migration.
 
-### Phase 3 — Mob migration (~0.5 days)
+### Phase 3 — Spellbook chapter (milestone unlocks + equip)
 
-- Add `skills` field to all four mob JSON files.
-- Initialize `SkillComponent` on mob construction from JSON-declared skills.
-- `SkillSystem` handles mob aura application; mob-side hardcoded aura code is
-  no longer called.
-- Tests: mob damages player correctly via SkillSystem.
+*Renumbered: this phase was originally "Mob migration", which moved to Phase 6
+(not yet scheduled). Substep numbers below match commit messages.*
+
+- 3.1 ✓ New players start with only DamageAura in slot 0; HealAura no longer
+  pre-equipped.
+- 3.2 ✓ HealAura unlocks into the spellbook at level 2 via a milestone table.
+- 3.3 ✓ Spellbook state sent to the owning client over the wire
+  (`spellbook: [ushort]` on `GameState`).
+- 3.4 ✓ Spellbook panel in the frontend (read-only).
+- 3.5 ✓ Equip: `Equip` client message + backend `EquipSystem`;
+  click-skill-then-click-slot UI. *(3.6, the equip UI, was folded into 3.5.)*
+- 3.7 — Unlock event over the wire + glow/pulse animation on the spellbook
+  icon. **Remaining.**
 
 ### Phase 4 — Wire protocol update (~0.5 days) ✓ Done
 
@@ -381,10 +401,30 @@ run in parallel until Phase 5.
 `aura_slots: [ushort]` on `Character` (equipped slot contents, positional),
 `active_aura_slot` on `Input`, and `Equip` client message. Spellbook panel and
 Aura Slots panel in the frontend. Wire format chose flat ushort arrays rather
-than the `SkillSlot` table structure described above — simpler given current
-needs.*
+than the originally planned `SkillSlot` table (see Wire Protocol Changes →
+Rejected) — simpler given current needs.*
 
-### Phase 5 — Cleanup (~0.5 days)
+### Legacy aura UI replacement (steps 1a / 1b)
+
+Separate track from the numbered phases; replaces the legacy `#auras` buttons
+with the Aura Slots panel (`#auraLoadout`). Step names match commit messages
+("1a", "1b") and are unrelated to Phase 1.
+
+- 1a ✓ Panel activates/switches/deactivates the active aura: clicking an
+  occupied slot sends `active_aura_slot`; clicking the active slot again
+  deactivates via the `-2` wire sentinel to a server-authoritative **Nothing**
+  state (`SkillComponent.ActiveAuraSlot = -1`). Optimistic client-side
+  `.activeSlot` highlight.
+- 1b — Incoming server→client `active_aura_slot` field on `Character`, driving
+  both the panel highlight and the on-character ring from spawn. Closes the
+  known cosmetic gap (server has DamageAura active on spawn but the panel shows
+  no highlight until the first switch). Prerequisite for the frontend parts of
+  Phase 5. **Next.**
+
+### Phase 5 — Cleanup (~0.5 days) — requires 1b
+
+Player- and wire-side legacy removal. (Mob-side legacy fields are removed in
+Phase 6 instead.)
 
 - Remove `applyDamageAura`, `applyHealAura`, `DamageAuraDamageFraction`,
   `HealAuraHealTickFraction`, `HealAuraSelfDamageTickFraction`, `AuraRadius` from
@@ -395,63 +435,171 @@ needs.*
 - Remove `active_aura` and `aura_radius` from `server.fbs Character` table.
 - Remove `aura` field from `client.fbs Input` table.
 - Remove `AuraType` enum from `common.fbs`.
+- Frontend: remove the legacy `#auras` buttons, `setActiveAura()`, and the
+  `AuraType`=slot hack.
+- Remove the `[SkillSystem] tick` debug log.
+- Remove dead `sys/equip/equip.go RemovePlayer` (see Deferred Tech Debt).
+- Decide whether to change the `client.fbs` `active_aura_slot` schema default
+  so the `-2` deactivate sentinel can collapse onto `-1` (requires regenerating
+  bindings for both sides).
+
+### Phase 6 — Mob chapter (~1–2 days)
+
+*Formerly just "mob migration" (the original Phase 3); expanded to pair the
+refactor with monster-kill unlocks so the chapter has player-visible payoff.*
+
+**6.1 — Mob migration** (see Mob Integration above)
+
+- Add `skills` field to all four mob JSON files.
+- Initialize `SkillComponent` on mob construction from JSON-declared skills.
+- `SkillSystem` handles mob aura application; mob-side hardcoded aura code is
+  no longer called.
+- Remove `Body.DamageRadius` / `Factors.DamageFraction` once all mobs declare
+  skills.
+- Tests: mob damages player correctly via SkillSystem.
+- **Decided: strict 1:1 migration.** All four mobs keep exactly today's
+  behavior (radius, damage per tick); tests compare old vs. new so any observed
+  deviation is by definition a bug. Differentiation afterwards is a pure JSON
+  edit (which 6.3 then demonstrates).
+
+**6.2 — Monster-kill unlocks** (unlock source #2 from the vision)
+
+- Certain mobs add a skill to the killer's spellbook on death; delivery reuses
+  the 3.7 unlock event.
+- Drop declaration lives in the mob JSON (e.g. an `unlocks` field).
+- **Decided: mixed model.** The data model supports both guaranteed and
+  chance-based unlocks from the start (e.g. a `chance` field where `1.0` =
+  guaranteed). Which mobs unlock which skills, and the chance values:
+  content decisions, [PLACEHOLDER].
+- **Decided: aura drops only until Phase 8** — a content decision, not a
+  technical restriction (the spellbook is category-agnostic). A spellbook entry
+  that can't be equipped or used reads as a bug, not a teaser; passive/cooldown
+  drops are added in Phase 8 as a pure mob-JSON edit.
+
+**6.3 — First new mob or elite variant**
+
+*Decided: fixed part of Phase 6 (no longer optional).* Proof that data-driven
+mobs make content cheap: one new mob defined purely in JSON (different
+skill/level loadout), no new Go code.
+
+### Phase 7 — Skill leveling & skill points (~2–3 days)
+
+Activates every `*PerLevel` parameter (currently dead weight) and closes the
+equip-at-level-1 gap.
+
+- Per-skill level storage: replace `Spellbook map[skills.SkillID]bool` with a
+  structure storing a level per discovered skill.
+- Skill points awarded on player level-up; a spend mechanic raises a skill's
+  level up to its `maxLevel`.
+- Wire: spellbook entries carry levels; spend/unspend messages client→server;
+  `EquipSystem` equips at the stored level.
+- **Decided: skill points buy skill levels only.** Slot counts are not
+  purchasable with points — no competing point sinks. Slots may still grow via
+  *milestones* (e.g. "player level N → additional aura slot", [PLACEHOLDER]):
+  that is gifted progression, not a point sink, and stays open as an option.
+- **Decided: free respec in v1.** Points can be unspent and redistributed at
+  any time, no cost. Data-model consequence: level *decreases* are a
+  first-class operation (equipped skills, active auras, and passive
+  `DerivedStats` must all handle a level drop live). ⚑ Interaction with
+  combination unlocks: see Phase 9 design (to be written during this phase).
+- **Decided: spend UI lives in the spellbook panel.** Level + spend/unspend
+  controls per entry, remaining-points display in the panel header. No
+  dedicated skill screen in v1.
+- **Decided: the full combinations design (Phase 9's design section) is
+  written during this phase** — design only, no code. Recipes trigger on
+  "skills X, Y at levels A, B", so the leveling data model must be shaped
+  around the recipe check from the start.
+- Points-per-level budget: number stays [PLACEHOLDER] (Open Question 1).
+
+### Phase 8 — Passives & cooldowns (~2–3 days)
+
+Implements the two designed-but-unbuilt skill categories (see Effect Types).
+**Decided: passives first, then cooldowns** (8.1 has no input path and no new
+wire field — the simpler half informs the harder one). Phase order is settled:
+Phase 8 runs after Phase 7.
+
+**8.1 — Passives**
+
+- Equip into `PassiveSlots`; `stat_multiplier` applied via `DerivedStats` on
+  equip, unequip, and level change (free respec means level *drops* too).
+- Passives run in parallel — all equipped passives are active at once (unlike
+  auras).
+- Wire: `SkillCategory` enum added to `common.fbs`; passive slot contents
+  serialized to the client; passive slot display in the UI.
+- Spellbook UI splits into its three category sections (active auras /
+  passives / cooldowns). **The passives section doubles as the game's
+  "inventory":** item-flavored passives (e.g. a "Dagger" passive adding flat
+  damage per tick) act as gear — there is no separate item/inventory system
+  (see `v1-roadmap.md`, survival-system removal).
+
+**8.2 — Cooldowns**
+
+- Add `cooldown_activations: [ubyte]` to `client.fbs Input` (see Wire Protocol
+  Changes → Planned); `instant_damage` via temporary `*phy.Circle` sensor;
+  `CdTicks` bookkeeping in `SkillSystem`; cooldown slot contents + remaining
+  ticks serialized to the client.
+- **Decided: input is hotkeys + ability-bar click.** Keys (e.g. 1–4,
+  [PLACEHOLDER]) and clicking the ability bar both send the same
+  `cooldown_activations` entry.
+- **Decided: mobs use cooldown skills in this phase too.** Simple AI rule to
+  start: fire as soon as ready and a valid target is in range. Smarter timing
+  (boss mechanics) belongs to mob-tiers/boss design later.
+- UI: ability bar (v1.0 scope) with cooldown state per slot.
+
+### Phase 9 — Combinations (size unknown) — requires 7 & 8
+
+The curated recipe system. Deliberately last: it consumes everything the
+earlier phases build (skill levels, all three categories, the unlock event).
+
+- Recipe registry (JSON, mirroring the skill registry): ingredients are
+  (skill, level) pairs, cross-category allowed; the result is a skill ID that
+  can itself be an ingredient in higher recipes.
+- Trigger check on skill level-up: when all ingredients of a recipe reach their
+  required levels, the result unlocks into the spellbook (reuses the unlock
+  event).
+- Recipes are curated content, never documented in-game; added manually over
+  time.
+- **Decided: combination unlocks are permanent.** Once a recipe triggers, the
+  result stays in the spellbook forever — even if ingredient levels later drop
+  below the recipe requirement (free respec makes this reachable on purpose).
+  Discovery of the secret recipe is the gate, not maintaining the levels.
+- Variant auras (rare world drops) enter as ingredients later — out of scope
+  for this phase.
+- The full design section for this phase is written during Phase 7 (decided
+  there); the remaining open questions (recipe JSON format, trigger timing,
+  multi-result recipes?) land in that design pass.
 
 ---
 
 ## Wire Protocol Changes
 
-### `common.fbs`
+### Implemented
 
-Add a `SkillCategory` enum:
-
-```flatbuffers
-enum SkillCategory: ubyte {
-    ActiveAura = 0,
-    Passive,
-    Cooldown
-}
-```
-
-### `server.fbs`
-
-Add a `SkillSlot` table and a field on `Character`:
+**`server.fbs`** — flat ushort arrays were chosen over the originally planned
+`SkillSlot` table (see Rejected below):
 
 ```flatbuffers
-table SkillSlot {
-    skill_id:        ushort;
-    skill_level:     ubyte;
-    radius:          ushort;     // active_aura: computed radius in game units * 100
-    cooldown_ticks:  ushort;     // cooldown: ticks remaining (0 = ready)
-}
+// In table GameState:
+    spellbook:  [ushort];   // discovered skill IDs, sent to the owning client
 
-// In table Character, add:
-    skill_slots:       [SkillSlot];
-    active_aura_slot:  byte = -1;  // index into the aura portion of skill_slots; -1 = none
+// In table Character:
+    aura_slots: [ushort];   // equipped aura slot contents, positional; 0 = empty
 ```
 
-`skill_slots` is ordered: aura slots first, then passive slots, then cooldown
-slots. Slot index within each category matches the server-side slot array index.
-The frontend uses slot index + category to render the correct UI.
-
-### `client.fbs`
-
-Replace the single `aura: AuraType` toggle with a slot index and cooldown
-activations:
+**`client.fbs`**:
 
 ```flatbuffers
-// In table Input, replace:
-//   aura: AuraType = Damage;
-// with:
-    active_aura_slot:      byte = -1;  // which aura slot to make active; -1 = none
-    cooldown_activations:  [ubyte];    // cooldown slot indices to activate this tick
+// In table Input:
+    active_aura_slot: byte = -1;   // requested active aura slot; -1 = no change
+
+table Equip { ... }                // equip a spellbook skill into an aura slot
 ```
 
-`active_aura_slot` is the client's requested active aura slot. The server applies
-it each tick; switching to a new index resets that slot's `TickAccumulator` to 0.
-`cooldown_activations` is a list of slot indices; the server ignores any slot that
-is still on cooldown.
+`active_aura_slot` is the client's requested active aura slot. The server
+applies it each tick; switching to a new index resets that slot's
+`TickAccumulator` to 0.
 
-> **Implementation divergence:** the `active_aura_slot` field kept its `= -1`
+> **`-2` deactivate sentinel:** the `active_aura_slot` field kept its `= -1`
 > schema default (`-1` = "no change / field absent"). Because FlatBuffers omits a
 > scalar equal to its default, an explicit `-1` is indistinguishable from an absent
 > field, so it cannot signal "deactivate". The client therefore sends a `-2`
@@ -460,15 +608,55 @@ is still on cooldown.
 > (Nothing). Collapse `-2` back onto `-1` if the schema default is ever changed and
 > regenerated (a Linux `flatc` is available via `make -C backend build`).
 
-After Phase 5, `AuraType` is removed from `common.fbs`.
+Legacy fields still present and deprecated until Phase 5: `active_aura` and
+`aura_radius` on `Character`, `aura: AuraType` on `Input`, and the `AuraType`
+enum in `common.fbs`.
+
+### Planned
+
+**Step 1b — `server.fbs Character`:**
+
+```flatbuffers
+// In table Character, add:
+    active_aura_slot: byte = -1;   // index into aura_slots; -1 = none active
+```
+
+> Note: the FlatBuffers default-omission pitfall that forced the client-side
+> `-2` sentinel does **not** apply here. Server→client, an absent field reads
+> back as the default `-1`, which already means "nothing active" — absent and
+> explicit `-1` are semantically identical in this direction, so no sentinel is
+> needed.
+
+**With the cooldown-skill implementation (not yet scheduled) —
+`client.fbs Input`:**
+
+```flatbuffers
+    cooldown_activations: [ubyte];  // cooldown slot indices to activate this tick
+```
+
+The server ignores any listed slot that is still on cooldown.
+
+**`common.fbs` `SkillCategory` enum** — designed (`ActiveAura` / `Passive` /
+`Cooldown`) but not added; not needed while only aura slots cross the wire. Add
+when passive/cooldown slots are serialized.
+
+### Rejected — `SkillSlot` table
+
+The original design serialized per-slot tables
+(`skill_id`/`skill_level`/`radius`/`cooldown_ticks`) in a single ordered
+`skill_slots: [SkillSlot]` vector. Flat `[ushort]` ID arrays were chosen instead
+(KISS): the current UI only needs skill IDs, and level/radius/cooldown state can
+be added when something consumes them.
 
 ---
 
 ## Open Questions
 
-1. **Skill point budget**: How many skill points does a player earn per level?
-   Is there a respec mechanic, and if so, what does it cost? This determines slot
-   and level caps in practice.
+1. **Skill point budget** (→ Phase 7): How many skill points does a player earn
+   per level? This determines level caps in practice. *(Partially resolved:
+   respec exists and is free in v1; points buy skill levels only; slots are not
+   purchasable but may grow via milestones — see Phase 7. Only the budget
+   number itself remains open, [PLACEHOLDER].)*
 
 2. **[Resolved] Aura slot independence**: Only one aura is active at a time.
    The 4 aura slots are a loadout — players switch the active one per tick via
@@ -521,3 +709,8 @@ Known issues to address in a future cleanup pass — not blocking current work.
 - **Dead aura code** — `applyDamageAura`, `applyHealAura`, the old `aura` wire
   field, and the `[SkillSystem] tick` debug log are all present as dead code.
   Phase 5 cleanup target (see Migration Plan above).
+
+- **Single tick accumulator per equipped skill** — a multi-effect skill with
+  differing `tickInterval` values would fire its shorter-interval effects on
+  consecutive ticks near the shared reset (see ECS Integration, Known
+  limitation). Move `TickAccumulator` per-effect before shipping such a skill.
