@@ -126,6 +126,20 @@ var commands = map[string]Command{
 
 		return nil
 	},
+	"XP": func(g model.Game, p model.PlayerEntity, arg *string) error {
+		if arg == nil || len(*arg) == 0 {
+			return fmt.Errorf("no argument, usage: 'XP <amount>'")
+		}
+
+		xp, err := strconv.ParseUint(*arg, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		p.AddExperience(xp)
+
+		return nil
+	},
 	"DAMAGE": func(g model.Game, p model.PlayerEntity, arg *string) error {
 		if arg == nil || len(*arg) == 0 {
 			return fmt.Errorf("no argument, usage: 'DAMAGE <percentage>'")
