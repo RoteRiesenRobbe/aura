@@ -531,16 +531,20 @@ refactor with monster-kill unlocks so the chapter has player-visible payoff.*
   behavior, the three idle archetypes, individual placement/respawn) are
   owned by `v1-roadmap.md` item 7.
 
-**6.2 — Monster-kill unlocks** (unlock source #2 from the vision)
+**6.2 — Monster-kill unlocks ✓ Done** (unlock source #2 from the vision)
 
-- Certain mobs add a skill to the killer's spellbook on death; the client-side
-  unlock glow (3.7 spellbook diff) picks this up automatically — no delivery
-  work needed.
-- Drop declaration lives in the mob JSON (e.g. an `unlocks` field).
+- ✓ `unlocks: [{skillName, chance}]` in the mob JSON, resolved against the
+  skill registry at load (unknown skill / chance outside `(0, 1]` = startup
+  failure; absent chance = 1.0). On death, **every rewarded participant**
+  (damagers + their recent healers, same set as the item-10 XP) rolls each
+  unlock independently (`m.rand`); a win calls `Discover()` — the client-side
+  spellbook diff (3.7) turns it into the glow with no wire event.
+- ✓ First content: `WildAura` (player skill ID 3, damage-aura variant — wider
+  ring, lower dps, values [PLACEHOLDER]); guaranteed from the AngryMammoth
+  (boss designation in 6.3), 20% from the SaberToothCat [PLACEHOLDER].
 - **Decided: mixed model.** The data model supports both guaranteed and
-  chance-based unlocks from the start (e.g. a `chance` field where `1.0` =
-  guaranteed). Which mobs unlock which skills, and the chance values:
-  content decisions, [PLACEHOLDER].
+  chance-based unlocks (`chance`, `1.0` = guaranteed). Which mobs unlock
+  which skills: content decisions, [PLACEHOLDER].
 - **Decided: aura drops only until Phase 8** — a content decision, not a
   technical restriction (the spellbook is category-agnostic). A spellbook entry
   that can't be equipped or used reads as a bug, not a teaser; passive/cooldown

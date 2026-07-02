@@ -4,6 +4,7 @@
 export const SkillNames: { [id: number]: string } = {
     1: 'Damage Aura',
     2: 'Heal Aura',
+    3: 'Wild Aura',
 };
 
 export function skillDisplayName(id: number): string {

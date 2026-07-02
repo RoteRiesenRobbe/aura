@@ -353,14 +353,27 @@ func (m *Mob) tryGrantKillRewards(lastToucher model.PlayerEntity) {
 	for id, p := range m.participants {
 		if !rewarded[id] {
 			rewarded[id] = true
-			p.AddExperience(xp)
+			m.rewardPlayer(p, xp)
 		}
 		for _, healer := range p.RecentHealers() {
 			hid := healer.Basic().ID()
 			if !rewarded[hid] {
 				rewarded[hid] = true
-				healer.AddExperience(xp)
+				m.rewardPlayer(healer, xp)
 			}
+		}
+	}
+}
+
+// rewardPlayer grants one participant their death rewards: the full XP amount
+// plus an independent roll on every declared kill unlock (Phase 6.2, unlock
+// source #2). Discovery is idempotent; the client-side spellbook diff turns a
+// fresh unlock into the glow animation with no extra wire event.
+func (m *Mob) rewardPlayer(p model.PlayerEntity, xp uint64) {
+	p.AddExperience(xp)
+	for _, u := range m.definition.Unlocks {
+		if m.rand.Float32() < u.Chance {
+			p.SkillComponent().Discover(u.Skill.ID)
 		}
 	}
 }

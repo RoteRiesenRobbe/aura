@@ -1,0 +1,18 @@
+{
+  "_comment": "First monster-kill unlock payload (Phase 6.2): a damage-aura variant — wider ring, lower dps than DamageAura. All values [PLACEHOLDER]",
+  "id": 3,
+  "name": "WildAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.4,
+      "radiusPerLevel": 0.05,
+      "damageFraction": 0.006,
+      "damageFractionPerLevel": 0.0015,
+      "targetsMobs": true,
+      "targetsPlayers": false
+    }
+  ]
+}

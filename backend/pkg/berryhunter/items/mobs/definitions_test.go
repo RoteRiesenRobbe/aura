@@ -61,6 +61,71 @@ func TestMapMobDefinition_SkillLevelDefaultsToOne(t *testing.T) {
 	assert.Equal(t, 1, def.Skills[0].Level)
 }
 
+func TestMapMobDefinition_ResolvesUnlocks(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "unlocks": [{"skillName": "DodoAura", "chance": 0.2}],
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	require.NoError(t, err)
+
+	require.Len(t, def.Unlocks, 1)
+	assert.Equal(t, "DodoAura", def.Unlocks[0].Skill.Name)
+	assert.InDelta(t, 0.2, def.Unlocks[0].Chance, 1e-6)
+}
+
+func TestMapMobDefinition_UnlockChanceDefaultsToGuaranteed(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "unlocks": [{"skillName": "DodoAura"}],
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	require.NoError(t, err)
+
+	require.Len(t, def.Unlocks, 1)
+	assert.InDelta(t, 1.0, def.Unlocks[0].Chance, 1e-6, "absent chance = guaranteed")
+}
+
+func TestMapMobDefinition_UnknownUnlockSkillFails(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "unlocks": [{"skillName": "NoSuchAura"}],
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	assert.Error(t, err)
+}
+
+func TestMapMobDefinition_InvalidUnlockChanceFails(t *testing.T) {
+	for _, chance := range []string{"0", "-0.5", "1.5"} {
+		raw, err := parseMobDefinition([]byte(`{
+		  "id": 1,
+		  "name": "Dodo",
+		  "type": "MOB",
+		  "unlocks": [{"skillName": "DodoAura", "chance": ` + chance + `}],
+		  "body": {"radius": 0.2, "aggroRadius": 2.4}
+		}`))
+		require.NoError(t, err)
+
+		_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t))
+		assert.Error(t, err, "chance %s must be rejected", chance)
+	}
+}
+
 func TestMapMobDefinition_UnknownSkillFails(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,

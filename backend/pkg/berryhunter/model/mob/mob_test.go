@@ -64,20 +64,23 @@ type fakeAuraPlayer struct {
 	vs      model.PlayerVitalSigns
 	xp      []uint64
 	healers []model.PlayerEntity
+	sc      *skills.SkillComponent
 }
 
-func (f *fakeAuraPlayer) Basic() ecs.BasicEntity              { return f.basic }
-func (f *fakeAuraPlayer) Position() phy.Vec2f                 { return f.pos }
-func (f *fakeAuraPlayer) Radius() float32                     { return f.radius }
-func (f *fakeAuraPlayer) VitalSigns() *model.PlayerVitalSigns { return &f.vs }
-func (f *fakeAuraPlayer) AddExperience(xp uint64)             { f.xp = append(f.xp, xp) }
-func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity { return f.healers }
+func (f *fakeAuraPlayer) Basic() ecs.BasicEntity                 { return f.basic }
+func (f *fakeAuraPlayer) Position() phy.Vec2f                    { return f.pos }
+func (f *fakeAuraPlayer) Radius() float32                        { return f.radius }
+func (f *fakeAuraPlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vs }
+func (f *fakeAuraPlayer) AddExperience(xp uint64)                { f.xp = append(f.xp, xp) }
+func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity    { return f.healers }
+func (f *fakeAuraPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
 
 func newFakeAuraPlayer() *fakeAuraPlayer {
 	return &fakeAuraPlayer{
 		basic:  ecs.NewBasic(),
 		radius: 0.25,
 		vs:     model.PlayerVitalSigns{Health: vitals.Max},
+		sc:     skills.NewSkillComponent(true),
 	}
 }
 
@@ -140,6 +143,37 @@ func TestMob_Kill_HealerWhoAlsoDamagedGetsXPOnce(t *testing.T) {
 	m.PlayerTouches(damager, 1.0) // kill
 
 	assert.Equal(t, []uint64{42}, hybrid.xp, "no double grant for damager+healer")
+}
+
+// --- kill unlocks (Phase 6.2) ---
+
+func TestMob_Kill_GuaranteedUnlockGoesToAllRewardedPlayers(t *testing.T) {
+	unlockSkill := &skills.SkillDefinition{ID: 3, Name: "WildAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	d := testMobDefinition()
+	d.Unlocks = []mobs.MobUnlock{{Skill: unlockSkill, Chance: 1.0}}
+	m := NewMob(d, false, 0, 0)
+
+	damager := newFakeAuraPlayer()
+	healer := newFakeAuraPlayer()
+	damager.healers = []model.PlayerEntity{healer}
+	finisher := newFakeAuraPlayer()
+
+	m.PlayerTouches(damager, 0.2)
+	m.PlayerTouches(finisher, 1.0) // kill
+
+	for name, p := range map[string]*fakeAuraPlayer{"damager": damager, "healer": healer, "finisher": finisher} {
+		assert.True(t, p.sc.HasDiscovered(unlockSkill.ID),
+			"%s must roll (and win) the guaranteed unlock", name)
+	}
+}
+
+func TestMob_Kill_NoUnlocksDeclared_NoDiscovery(t *testing.T) {
+	m := newTestMob()
+	p := newFakeAuraPlayer()
+
+	m.PlayerTouches(p, 1.0)
+
+	assert.Empty(t, p.sc.Discovered())
 }
 
 func TestMob_FullOutOfCombatRegenClearsParticipants(t *testing.T) {

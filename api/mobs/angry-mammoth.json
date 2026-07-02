@@ -31,5 +31,8 @@
   },
   "skills": [
     { "skillName": "AngryMammothAura", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "WildAura", "chance": 1.0 }
   ]
 }

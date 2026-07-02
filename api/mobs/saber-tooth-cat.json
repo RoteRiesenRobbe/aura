@@ -24,5 +24,8 @@
   },
   "skills": [
     { "skillName": "SaberToothCatAura", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "WildAura", "chance": 0.2 }
   ]
 }

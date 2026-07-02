@@ -75,6 +75,14 @@ type MobSkill struct {
 	Level int
 }
 
+// MobUnlock is a skill this mob may add to a killer's spellbook on death
+// (unlock source #2, skill-system Phase 6.2). Chance is in (0, 1];
+// 1.0 = guaranteed (mixed model, absent chance in JSON defaults to 1.0).
+type MobUnlock struct {
+	Skill  *skills.SkillDefinition
+	Chance float32
+}
+
 type MobDefinition struct {
 	ID        MobID
 	Name      string
@@ -84,6 +92,7 @@ type MobDefinition struct {
 	Body      Body
 	Generator Generator
 	Skills    []MobSkill
+	Unlocks   []MobUnlock
 }
 
 type mobDefinition struct {
@@ -121,6 +130,11 @@ type mobDefinition struct {
 		SkillName string `json:"skillName"`
 		Level     int    `json:"level"` // absent → 1
 	} `json:"skills"`
+
+	Unlocks []struct {
+		SkillName string   `json:"skillName"`
+		Chance    *float32 `json:"chance"` // nil → 1.0 (guaranteed)
+	} `json:"unlocks"`
 }
 
 // parseItemDefinition parses a json string from a byte array into the
@@ -195,6 +209,22 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 			level = 1
 		}
 		mob.Skills = append(mob.Skills, MobSkill{Def: def, Level: level})
+	}
+
+	// resolve kill unlocks
+	for _, u := range m.Unlocks {
+		def, err := sr.GetByName(u.SkillName)
+		if err != nil {
+			return nil, fmt.Errorf("mob %q: unlock skill %q not found: %w", m.Name, u.SkillName, err)
+		}
+		chance := float32(1.0)
+		if u.Chance != nil {
+			chance = *u.Chance
+		}
+		if chance <= 0 || chance > 1 {
+			return nil, fmt.Errorf("mob %q: unlock %q chance %f must be in (0, 1]", m.Name, u.SkillName, chance)
+		}
+		mob.Unlocks = append(mob.Unlocks, MobUnlock{Skill: def, Chance: chance})
 	}
 
 	return mob, nil
