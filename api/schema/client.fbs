@@ -12,7 +12,6 @@ table Input {
     movement:Vec2f;
     rotation:float;
     action:Action;
-    aura:AuraType = Damage;
     active_aura_slot:byte = -1;
 }
 

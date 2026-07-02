@@ -60,7 +60,6 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddSatiety(builder, fracToUint32(p.LevelProgressFraction()))
 	BerryhunterApi.CharacterAddBodyTemperature(builder, p.Progression().Level)
 	BerryhunterApi.CharacterAddAuraRadius(builder, f32ToU16Px(p.AuraRadius()))
-	BerryhunterApi.CharacterAddActiveAura(builder, BerryhunterApi.AuraType(p.ActiveAura()))
 	BerryhunterApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
 
 	BerryhunterApi.CharacterAddEquipment(builder, equipment)

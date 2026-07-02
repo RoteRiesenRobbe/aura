@@ -113,8 +113,8 @@ table Character {
   health:uint;
   satiety:uint;
   body_temperature:uint;
+  // effective radius of the active aura in px; 0 = none active
   aura_radius:ushort;
-  active_aura:AuraType = Damage;
 
   aabb:AABB;
 

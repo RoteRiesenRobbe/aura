@@ -354,7 +354,7 @@ changes.
 The goal is no build break longer than a few hours at any step. Old and new code
 run in parallel until Phase 5.
 
-**Execution order:** ~~3.7~~ → ~~1b~~ → Phase 5 → 6 → 7 → 8 → 9.
+**Execution order:** ~~3.7~~ → ~~1b~~ → ~~Phase 5~~ → 6 → 7 → 8 → 9.
 **⚑** marks open decision points to resolve before (or during) the phase.
 
 ### Phase 1 — Skill package and registry (~1 day) ✓ Done
@@ -443,30 +443,37 @@ with the Aura Slots panel (`#auraLoadout`). Step names match commit messages
   `active_aura` field still exists on the wire but is ignored (removed in
   Phase 5).
 
-### Phase 5 — Cleanup (~0.5 days) — requires 1b
+### Phase 5 — Cleanup (~0.5 days) ✓ Done
 
 Player- and wire-side legacy removal. (Mob-side legacy fields are removed in
 Phase 6 instead.)
 
-- Remove `applyDamageAura`, `applyHealAura`, `DamageAuraDamageFraction`,
-  `HealAuraHealTickFraction`, `HealAuraSelfDamageTickFraction`, `AuraRadius` from
-  `player/`.
-- Remove `model.AuraType`, `model.AuraTypeDamage`, `model.AuraTypeHeal`.
-- Remove `DamageAuraRadius`, `HealAuraRadius`, `DamageAuraDamageFraction`, etc.
-  from `cfg.PlayerConfig`.
-- Remove `active_aura` from the `server.fbs Character` table. **Decided:
+- ✓ Removed `applyDamageAura`, `applyHealAura`, `DamageAuraDamageFraction`,
+  `HealAuraHealTickFraction`, `HealAuraSelfDamageTickFraction`,
+  `ActiveAura`/`SetActiveAura` from `player/`. `AuraRadius()` was kept but
+  re-sourced: it now returns the active skill's `EffectiveRadius()` (0 while
+  Nothing is active) and feeds the retained `aura_radius` wire field.
+- ✓ Removed `model.AuraType`, `model.AuraTypeDamage`, `model.AuraTypeHeal`,
+  and `PlayerInput.Aura`.
+- ✓ Removed all `DamageAura*`/`HealAura*` fields from `cfg.PlayerConfig`, the
+  conf JSON schema, and all `conf*.json` files (`mobChaseIntoAuraMargin` stays
+  — mob-side, Phase 6).
+- ✓ Removed `active_aura` from `server.fbs Character`. **Decided:
   `aura_radius` stays** — all clients need it to size the ring, and it remains
-  correct when Phase 7 adds level-scaled radii; its meaning becomes "effective
+  correct when Phase 7 adds level-scaled radii; its meaning is now "effective
   radius of the active aura, 0 = none".
-- Remove `aura` field from `client.fbs Input` table.
-- Remove `AuraType` enum from `common.fbs`.
-- Frontend: remove the legacy `#auras` buttons, `setActiveAura()`, and the
-  `AuraType`=slot hack.
-- Remove the `[SkillSystem] tick` debug log.
-- Remove dead `sys/equip/equip.go RemovePlayer` (see Deferred Tech Debt).
-- Decide whether to change the `client.fbs` `active_aura_slot` schema default
-  so the `-2` deactivate sentinel can collapse onto `-1` (requires regenerating
-  bindings for both sides).
+- ✓ Removed `aura` from `client.fbs Input` and the `AuraType` enum from
+  `common.fbs`; regenerated bindings for both sides in the same commit
+  (field-ID shift on `Input` makes stale client bundles wire-incompatible —
+  hard-reload clients after deploying).
+- ✓ Frontend: removed the legacy `#auras` buttons, `setActiveAura()` (HUD and
+  Character), the `AuraType`=slot hack, and `InputMessage.aura`.
+- ✓ Removed the `[SkillSystem] tick` debug log and the dead
+  `sys/equip/equip.go RemovePlayer`.
+- ✓ **Decided: the `-2` deactivate sentinel stays.** Collapsing it onto `-1`
+  would require a new schema default (e.g. `-128` as "no change") for purely
+  cosmetic gain at real regression risk in the input path. The sentinel is
+  tested and documented; revisit only if the field is ever redesigned anyway.
 
 ### Phase 6 — Mob chapter (~1–2 days)
 
@@ -640,9 +647,10 @@ applies it each tick; switching to a new index resets that slot's
 > (Nothing). Collapse `-2` back onto `-1` if the schema default is ever changed and
 > regenerated (a Linux `flatc` is available via `make -C backend build`).
 
-Legacy fields still present and deprecated until Phase 5: `active_aura` and
-`aura_radius` on `Character`, `aura: AuraType` on `Input`, and the `AuraType`
-enum in `common.fbs`.
+All legacy aura wire artifacts (`active_aura` on `Character`, `aura: AuraType`
+on `Input`, the `AuraType` enum) were removed in Phase 5. `aura_radius` on
+`Character` remains by decision: effective radius of the active aura in px,
+0 = none active.
 
 ### Planned
 
@@ -717,17 +725,9 @@ Known issues to address in a future cleanup pass — not blocking current work.
   Fix via `t.Skip` or convert to a proper integration test. Safe test scope in
   the meantime: `go test -timeout 30s ./pkg/berryhunter/skills/... ./pkg/berryhunter/codec/... ./pkg/berryhunter/sys/...`
 
-- **`sys/equip/equip.go` `RemovePlayer(equipEntity)`** — dead code. The ECS
-  `Remove(ecs.BasicEntity)` method handles entity removal; `RemovePlayer` is
-  never called. Remove in Phase 5 cleanup.
-
 - **Equip level=1 gap** — `SkillComponent.Spellbook` is `map[SkillID]bool`
   (discovery only; no per-skill level stored). `EquipSystem` therefore always
   equips at level 1. Revisit when skill-leveling is implemented.
-
-- **Dead aura code** — `applyDamageAura`, `applyHealAura`, the old `aura` wire
-  field, and the `[SkillSystem] tick` debug log are all present as dead code.
-  Phase 5 cleanup target (see Migration Plan above).
 
 - **Single tick accumulator per equipped skill** — a multi-effect skill with
   differing `tickInterval` values would fire its shorter-interval effects on

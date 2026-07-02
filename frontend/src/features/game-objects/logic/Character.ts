@@ -30,7 +30,6 @@ import {spatialAudio} from '../../audio/logic/SpatialAudio';
 import {swingLightAudioCues} from '../../player/logic/PlayerJuice';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
-import {BerryhunterApi} from '../../backend/logic/BerryhunterApi';
 import {HEAL_AURA_SKILL_ID} from '../../../client-data/Skills';
 
 let Game: IGame = null;
@@ -314,12 +313,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     setHealth(health: number) {
         const relativeHealth = Math.max(0, Math.min(1, health / Character.MAX_HEALTH));
         this.healthFillGroup.scale.x = relativeHealth;
-    }
-
-    setActiveAura(aura: BerryhunterApi.AuraType) {
-        const useHealAura = aura === BerryhunterApi.AuraType.Heal;
-        this.damageAuraSprite.visible = !useHealAura;
-        this.healAuraSprite.visible = useHealAura;
     }
 
     // setActiveSkill drives the aura ring from the server-authoritative

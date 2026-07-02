@@ -86,10 +86,6 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 		return
 	}
 
-	if next.Aura != nil {
-		p.SetActiveAura(*next.Aura)
-	}
-
 	// Active-aura command. >= 0 switches to that slot; the -2 wire sentinel means
 	// "explicitly deactivate" (maps to component slot -1 = Nothing); -1 (the wire
 	// default) means the client said nothing, so we leave the active aura untouched.

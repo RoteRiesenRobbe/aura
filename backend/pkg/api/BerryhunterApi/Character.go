@@ -243,20 +243,8 @@ func (rcv *Character) MutateAuraRadius(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(30, n)
 }
 
-func (rcv *Character) ActiveAura() AuraType {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
-	if o != 0 {
-		return AuraType(rcv._tab.GetByte(o + rcv._tab.Pos))
-	}
-	return 0
-}
-
-func (rcv *Character) MutateActiveAura(n AuraType) bool {
-	return rcv._tab.MutateByteSlot(32, byte(n))
-}
-
 func (rcv *Character) Aabb(obj *AABB) *AABB {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
 	if o != 0 {
 		x := o + rcv._tab.Pos
 		if obj == nil {
@@ -269,7 +257,7 @@ func (rcv *Character) Aabb(obj *AABB) *AABB {
 }
 
 func (rcv *Character) ActiveSkillId() uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
 	if o != 0 {
 		return rcv._tab.GetUint16(o + rcv._tab.Pos)
 	}
@@ -277,11 +265,11 @@ func (rcv *Character) ActiveSkillId() uint16 {
 }
 
 func (rcv *Character) MutateActiveSkillId(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(36, n)
+	return rcv._tab.MutateUint16Slot(34, n)
 }
 
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(17)
+	builder.StartObject(16)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -331,14 +319,11 @@ func CharacterAddBodyTemperature(builder *flatbuffers.Builder, bodyTemperature u
 func CharacterAddAuraRadius(builder *flatbuffers.Builder, auraRadius uint16) {
 	builder.PrependUint16Slot(13, auraRadius, 0)
 }
-func CharacterAddActiveAura(builder *flatbuffers.Builder, activeAura AuraType) {
-	builder.PrependByteSlot(14, byte(activeAura), 0)
-}
 func CharacterAddAabb(builder *flatbuffers.Builder, aabb flatbuffers.UOffsetT) {
-	builder.PrependStructSlot(15, flatbuffers.UOffsetT(aabb), 0)
+	builder.PrependStructSlot(14, flatbuffers.UOffsetT(aabb), 0)
 }
 func CharacterAddActiveSkillId(builder *flatbuffers.Builder, activeSkillId uint16) {
-	builder.PrependUint16Slot(16, activeSkillId, 0)
+	builder.PrependUint16Slot(15, activeSkillId, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

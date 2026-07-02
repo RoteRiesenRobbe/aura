@@ -7,7 +7,6 @@ export { Accept } from './berryhunter-api/accept.js';
 export { Action } from './berryhunter-api/action.js';
 export { ActionType } from './berryhunter-api/action-type.js';
 export { AnyEntity } from './berryhunter-api/any-entity.js';
-export { AuraType } from './berryhunter-api/aura-type.js';
 export { Character } from './berryhunter-api/character.js';
 export { ChatMessage } from './berryhunter-api/chat-message.js';
 export { Cheat } from './berryhunter-api/cheat.js';

@@ -5,7 +5,6 @@
 import * as flatbuffers from 'flatbuffers';
 
 import { AABB } from '../berryhunter-api/aabb.js';
-import { AuraType } from '../berryhunter-api/aura-type.js';
 import { EntityType } from '../berryhunter-api/entity-type.js';
 import { OngoingAction } from '../berryhunter-api/ongoing-action.js';
 import { StatusEffect } from '../berryhunter-api/status-effect.js';
@@ -122,23 +121,18 @@ auraRadius():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
-activeAura():AuraType {
-  const offset = this.bb!.__offset(this.bb_pos, 32);
-  return offset ? this.bb!.readUint8(this.bb_pos + offset) : AuraType.Damage;
-}
-
 aabb(obj?:AABB):AABB|null {
-  const offset = this.bb!.__offset(this.bb_pos, 34);
+  const offset = this.bb!.__offset(this.bb_pos, 32);
   return offset ? (obj || new AABB()).__init(this.bb_pos + offset, this.bb!) : null;
 }
 
 activeSkillId():number {
-  const offset = this.bb!.__offset(this.bb_pos, 36);
+  const offset = this.bb!.__offset(this.bb_pos, 34);
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(17);
+  builder.startObject(16);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -221,16 +215,12 @@ static addAuraRadius(builder:flatbuffers.Builder, auraRadius:number) {
   builder.addFieldInt16(13, auraRadius, 0);
 }
 
-static addActiveAura(builder:flatbuffers.Builder, activeAura:AuraType) {
-  builder.addFieldInt8(14, activeAura, AuraType.Damage);
-}
-
 static addAabb(builder:flatbuffers.Builder, aabbOffset:flatbuffers.Offset) {
-  builder.addFieldStruct(15, aabbOffset, 0);
+  builder.addFieldStruct(14, aabbOffset, 0);
 }
 
 static addActiveSkillId(builder:flatbuffers.Builder, activeSkillId:number) {
-  builder.addFieldInt16(16, activeSkillId, 0);
+  builder.addFieldInt16(15, activeSkillId, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

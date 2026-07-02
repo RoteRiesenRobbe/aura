@@ -21,14 +21,7 @@
       "healthGainSatietyLossTickFraction": 0.0,
       "walkingSpeedPerTick": 0.05,
       "_walkingSpeedPerTick": 0.2,
-      "damageAuraRadius": 1,
-      "damageAuraDamageFraction": 0.009,
-      "damageAuraLevelGainFraction": 0.002,
       "maxHealthLevelGainFraction": 0.1,
-      "healAuraRadius": 1,
-      "healAuraHealTickFraction": 0.001,
-      "healAuraLevelGainFraction": 0.0005,
-      "healAuraSelfDamageTickFraction": 0.0015,
       "levelUpXPBase": 300,
       "levelUpXPGrowthFactor": 1.2
     }

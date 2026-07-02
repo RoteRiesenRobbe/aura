@@ -28,39 +28,11 @@ func Config(conf *cfg.Config) Configuration {
 		g.PlayerConfig.StarveDamageTickFraction = conf.Game.Player.StarveDamageTickFraction
 		g.PlayerConfig.FreezingStarveDamageTickFraction = conf.Game.Player.FreezingStarveDamageTickFraction
 		g.PlayerConfig.WalkingSpeedPerTick = conf.Game.Player.WalkingSpeedPerTick
-		g.PlayerConfig.DamageAuraRadius = conf.Game.Player.DamageAuraRadius
-		g.PlayerConfig.DamageAuraDamageFraction = conf.Game.Player.DamageAuraDamageFraction
-		g.PlayerConfig.DamageAuraLevelGainFraction = conf.Game.Player.DamageAuraLevelGainFraction
 		g.PlayerConfig.MaxHealthLevelGainFraction = conf.Game.Player.MaxHealthLevelGainFraction
-		g.PlayerConfig.HealAuraRadius = conf.Game.Player.HealAuraRadius
-		g.PlayerConfig.HealAuraHealTickFraction = conf.Game.Player.HealAuraHealTickFraction
-		g.PlayerConfig.HealAuraLevelGainFraction = conf.Game.Player.HealAuraLevelGainFraction
-		g.PlayerConfig.HealAuraSelfDamageTickFraction = conf.Game.Player.HealAuraSelfDamageTickFraction
 		g.PlayerConfig.LevelUpXPBase = conf.Game.Player.LevelUpXPBase
 		g.PlayerConfig.LevelUpXPGrowthFactor = conf.Game.Player.LevelUpXPGrowthFactor
-		if g.PlayerConfig.DamageAuraRadius <= 0 {
-			g.PlayerConfig.DamageAuraRadius = 1
-		}
-		if g.PlayerConfig.DamageAuraDamageFraction <= 0 {
-			g.PlayerConfig.DamageAuraDamageFraction = 0.009
-		}
-		if g.PlayerConfig.DamageAuraLevelGainFraction <= 0 {
-			g.PlayerConfig.DamageAuraLevelGainFraction = 0.002
-		}
 		if g.PlayerConfig.MaxHealthLevelGainFraction <= 0 {
 			g.PlayerConfig.MaxHealthLevelGainFraction = 0.1
-		}
-		if g.PlayerConfig.HealAuraRadius <= 0 {
-			g.PlayerConfig.HealAuraRadius = g.PlayerConfig.DamageAuraRadius
-		}
-		if g.PlayerConfig.HealAuraHealTickFraction <= 0 {
-			g.PlayerConfig.HealAuraHealTickFraction = 0.001
-		}
-		if g.PlayerConfig.HealAuraLevelGainFraction <= 0 {
-			g.PlayerConfig.HealAuraLevelGainFraction = 0.0005
-		}
-		if g.PlayerConfig.HealAuraSelfDamageTickFraction <= 0 {
-			g.PlayerConfig.HealAuraSelfDamageTickFraction = 0.0015
 		}
 		if g.PlayerConfig.LevelUpXPBase == 0 {
 			g.PlayerConfig.LevelUpXPBase = 300

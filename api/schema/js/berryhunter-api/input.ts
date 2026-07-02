@@ -5,7 +5,6 @@
 import * as flatbuffers from 'flatbuffers';
 
 import { Action } from '../berryhunter-api/action.js';
-import { AuraType } from '../berryhunter-api/aura-type.js';
 import { Vec2f } from '../berryhunter-api/vec2f.js';
 
 
@@ -47,18 +46,13 @@ action(obj?:Action):Action|null {
   return offset ? (obj || new Action()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 }
 
-aura():AuraType {
-  const offset = this.bb!.__offset(this.bb_pos, 12);
-  return offset ? this.bb!.readUint8(this.bb_pos + offset) : AuraType.Damage;
-}
-
 activeAuraSlot():number {
-  const offset = this.bb!.__offset(this.bb_pos, 14);
+  const offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.readInt8(this.bb_pos + offset) : -1;
 }
 
 static startInput(builder:flatbuffers.Builder) {
-  builder.startObject(6);
+  builder.startObject(5);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -77,12 +71,8 @@ static addAction(builder:flatbuffers.Builder, actionOffset:flatbuffers.Offset) {
   builder.addFieldOffset(3, actionOffset, 0);
 }
 
-static addAura(builder:flatbuffers.Builder, aura:AuraType) {
-  builder.addFieldInt8(4, aura, AuraType.Damage);
-}
-
 static addActiveAuraSlot(builder:flatbuffers.Builder, activeAuraSlot:number) {
-  builder.addFieldInt8(5, activeAuraSlot, -1);
+  builder.addFieldInt8(4, activeAuraSlot, -1);
 }
 
 static endInput(builder:flatbuffers.Builder):flatbuffers.Offset {

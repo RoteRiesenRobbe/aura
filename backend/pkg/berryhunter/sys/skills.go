@@ -2,7 +2,6 @@ package sys
 
 import (
 	"log"
-	"log/slog"
 
 	"github.com/EngoEngine/ecs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/minions"
@@ -35,11 +34,8 @@ type skillEntity interface {
 }
 
 // SkillSystem applies active-aura effects for every tracked entity each tick.
-// It runs in parallel with the existing hardcoded aura system during Phase 2;
-// effects will double until Phase 2.4 removes the old path.
 type SkillSystem struct {
 	entities []skillEntity
-	logTick  int
 }
 
 func NewSkillSystem() *SkillSystem {
@@ -61,12 +57,6 @@ func (s *SkillSystem) AddEntity(e skillEntity) {
 func (s *SkillSystem) Update(dt float32) {
 	for _, e := range s.entities {
 		s.processEntity(e)
-	}
-
-	s.logTick++
-	if s.logTick >= 30 {
-		slog.Debug("[SkillSystem] tick", slog.Int("entities", len(s.entities)))
-		s.logTick = 0
 	}
 }
 
@@ -175,13 +165,11 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 }
 
 // effectDamageFraction scales the base damage fraction by skill level.
-// Mirrors: config.DamageAuraDamageFraction + (level-1)*config.DamageAuraLevelGainFraction
 func effectDamageFraction(e skills.EffectDef, level int) float32 {
 	return e.DamageFraction + float32(level-1)*e.DamageFractionPerLevel
 }
 
 // effectHealFraction scales the base heal fraction by skill level.
-// Mirrors: config.HealAuraHealTickFraction + (level-1)*config.HealAuraLevelGainFraction
 func effectHealFraction(e skills.EffectDef, level int) float32 {
 	return e.HealFraction + float32(level-1)*e.HealFractionPerLevel
 }

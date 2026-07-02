@@ -20,8 +20,3 @@ enum ActionType: ubyte {
     PlaceItem,
     ConsumeItem
 }
-
-enum AuraType: ubyte {
-    Damage = 0,
-    Heal
-}

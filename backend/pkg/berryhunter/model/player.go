@@ -60,12 +60,7 @@ type PlayerEntity interface {
 	Progression() PlayerProgression
 	SetProgression(progression PlayerProgression)
 	LoseCurrentLevelExperience()
-	ActiveAura() AuraType
-	SetActiveAura(aura AuraType)
 	AuraRadius() float32
-	DamageAuraDamageFraction() float32
-	HealAuraSelfDamageTickFraction() float32
-	HealAuraHealTickFraction() float32
 	LevelProgressFraction() float32
 	SkillComponent() *skills.SkillComponent
 	AuraCollider() *phy.Circle

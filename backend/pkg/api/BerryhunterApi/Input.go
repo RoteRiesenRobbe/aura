@@ -91,20 +91,8 @@ func (rcv *Input) Action(obj *Action) *Action {
 	return nil
 }
 
-func (rcv *Input) Aura() AuraType {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
-	if o != 0 {
-		return AuraType(rcv._tab.GetByte(o + rcv._tab.Pos))
-	}
-	return 0
-}
-
-func (rcv *Input) MutateAura(n AuraType) bool {
-	return rcv._tab.MutateByteSlot(12, byte(n))
-}
-
 func (rcv *Input) ActiveAuraSlot() int8 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.GetInt8(o + rcv._tab.Pos)
 	}
@@ -112,11 +100,11 @@ func (rcv *Input) ActiveAuraSlot() int8 {
 }
 
 func (rcv *Input) MutateActiveAuraSlot(n int8) bool {
-	return rcv._tab.MutateInt8Slot(14, n)
+	return rcv._tab.MutateInt8Slot(12, n)
 }
 
 func InputStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(5)
 }
 func InputAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -130,11 +118,8 @@ func InputAddRotation(builder *flatbuffers.Builder, rotation float32) {
 func InputAddAction(builder *flatbuffers.Builder, action flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(action), 0)
 }
-func InputAddAura(builder *flatbuffers.Builder, aura AuraType) {
-	builder.PrependByteSlot(4, byte(aura), 0)
-}
 func InputAddActiveAuraSlot(builder *flatbuffers.Builder, activeAuraSlot int8) {
-	builder.PrependInt8Slot(5, activeAuraSlot, -1)
+	builder.PrependInt8Slot(4, activeAuraSlot, -1)
 }
 func InputEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

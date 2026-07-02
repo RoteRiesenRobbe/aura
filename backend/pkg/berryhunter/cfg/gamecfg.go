@@ -68,14 +68,7 @@ type PlayerConfig struct {
 
 	WalkingSpeedPerTick float32
 
-	DamageAuraRadius               float32
-	DamageAuraDamageFraction       float32
-	DamageAuraLevelGainFraction    float32
-	MaxHealthLevelGainFraction     float32
-	HealAuraRadius                 float32
-	HealAuraHealTickFraction       float32
-	HealAuraLevelGainFraction      float32
-	HealAuraSelfDamageTickFraction float32
+	MaxHealthLevelGainFraction float32
 
 	LevelUpXPBase         uint32
 	LevelUpXPGrowthFactor float32

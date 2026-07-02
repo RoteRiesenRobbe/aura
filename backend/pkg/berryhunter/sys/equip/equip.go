@@ -50,16 +50,6 @@ func (es *EquipSystem) AddPlayer(p equipEntity) {
 	es.players = append(es.players, p)
 }
 
-func (es *EquipSystem) RemovePlayer(p equipEntity) {
-	id := p.Basic().ID()
-	for i, e := range es.players {
-		if e.Basic().ID() == id {
-			es.players = append(es.players[:i], es.players[i+1:]...)
-			return
-		}
-	}
-}
-
 func (es *EquipSystem) Update(dt float32) {
 	for _, player := range es.players {
 		msg := player.Client().NextEquip()

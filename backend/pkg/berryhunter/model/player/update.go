@@ -1,11 +1,8 @@
 package player
 
 import (
-	"log"
-
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
-	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 )
 
 func (p *player) Update(dt float32) {
@@ -48,58 +45,4 @@ func (p *player) addHealthFraction(fraction float32) {
 	h := p.VitalSigns().Health
 	h = h.AddFraction(fraction)
 	p.VitalSigns().Health = h
-}
-
-// DEPRECATED: superseded by SkillSystem, removal in Phase 5.
-func (p *player) applyDamageAura(auraCollisions phy.ColliderSet) {
-	for c := range auraCollisions {
-		usr := c.Shape().UserData
-		if usr == nil {
-			log.Printf("Missing UserData!")
-			continue
-		}
-
-		if _, ok := usr.(model.PlayerEntity); ok {
-			continue
-		}
-
-		r, ok := usr.(model.Interacter)
-		if !ok {
-			log.Printf("Non conformant UserData: %T", usr)
-			continue
-		}
-		r.PlayerTouches(p, p.DamageAuraDamageFraction())
-	}
-}
-
-// DEPRECATED: superseded by SkillSystem, removal in Phase 5.
-func (p *player) applyHealAura(auraCollisions phy.ColliderSet) {
-	healedSomeone := false
-	for c := range auraCollisions {
-		usr := c.Shape().UserData
-		if usr == nil {
-			log.Printf("Missing UserData!")
-			continue
-		}
-
-		other, ok := usr.(model.PlayerEntity)
-		if !ok {
-			continue
-		}
-		if other.Basic().ID() == p.Basic().ID() {
-			continue
-		}
-		vitalSigns := other.VitalSigns()
-		if vitalSigns.Health == vitals.Max {
-			continue
-		}
-
-		h := vitalSigns.Health
-		vitalSigns.Health = h.AddFraction(p.HealAuraHealTickFraction())
-		healedSomeone = true
-	}
-
-	if healedSomeone {
-		p.takeDamage(p.HealAuraSelfDamageTickFraction(), model.StatusEffectDamagedAmbient)
-	}
 }

@@ -25,7 +25,6 @@ export class InputMessage extends ClientMessage {
     rotation: radians = undefined;
     movement: Vector = null;
     action: InputAction = null;
-    aura: BerryhunterApi.AuraType = undefined;
     activeAuraSlot: number = -1;
     tick: number;
 
@@ -55,10 +54,6 @@ export class InputMessage extends ClientMessage {
 
         if (isDefined(this.rotation)) {
             BerryhunterApi.Input.addRotation(this.builder, this.rotation);
-        }
-
-        if (isDefined(this.aura)) {
-            this.builder.addFieldInt8(4, this.aura, 255);
         }
 
         // Marshal any real command: slot index (>= 0) or the -2 deactivate sentinel.

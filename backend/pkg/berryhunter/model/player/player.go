@@ -76,13 +76,14 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	hand.Shape().Group = shapeGroup
 	p.hand = model.Hand{Collider: hand}
 
-	// setup damage aura
-	damageAura := phy.NewCircle(e.Body.Position(), p.config.DamageAuraRadius)
-	damageAura.Shape().IsSensor = true
-	damageAura.Shape().Group = shapeGroup
-	damageAura.Shape().Layer = int(model.LayerNoneCollision)
-	damageAura.Shape().Mask = int(model.LayerPlayerCollision | model.LayerActionCollision)
-	p.damageAura = damageAura
+	// setup the single aura sensor; SkillSystem resizes it per tick to the
+	// active skill's EffectiveRadius (0 while nothing is active)
+	aura := phy.NewCircle(e.Body.Position(), 0)
+	aura.Shape().IsSensor = true
+	aura.Shape().Group = shapeGroup
+	aura.Shape().Layer = int(model.LayerNoneCollision)
+	aura.Shape().Mask = int(model.LayerPlayerCollision | model.LayerActionCollision)
+	p.aura = aura
 
 	p.updateHand()
 
@@ -101,8 +102,8 @@ type player struct {
 	angle  float32
 	client model.Client
 
-	viewport   *phy.Box
-	damageAura *phy.Circle
+	viewport *phy.Box
+	aura     *phy.Circle
 
 	hand      model.Hand
 	inventory items.Inventory
@@ -121,7 +122,6 @@ type player struct {
 
 	stats       model.Stats
 	progression model.PlayerProgression
-	activeAura  model.AuraType
 
 	skills           *skills.SkillComponent
 	milestoneUnlocks []skills.MilestoneUnlock
@@ -144,20 +144,6 @@ func (p *player) AddAction(a model.PlayerAction) {
 
 func (p *player) CurrentAction() model.PlayerAction {
 	return p.ongoingAction
-}
-
-func (p *player) ActiveAura() model.AuraType {
-	return p.activeAura
-}
-
-func (p *player) SetActiveAura(aura model.AuraType) {
-	switch aura {
-	case model.AuraTypeHeal:
-		p.activeAura = aura
-	default:
-		p.activeAura = model.AuraTypeDamage
-	}
-	p.damageAura.SetRadius(p.AuraRadius())
 }
 
 func (p *player) maxHealthFactor() float32 {
@@ -206,7 +192,7 @@ func (p *player) Bodies() model.Bodies {
 	b[0] = p.Body
 	b[1] = p.hand.Collider
 	b[2] = p.viewport
-	b[3] = p.damageAura
+	b[3] = p.aura
 	return b
 }
 
@@ -233,7 +219,7 @@ func (p *player) Position() phy.Vec2f {
 func (p *player) SetPosition(v phy.Vec2f) {
 	p.Body.SetPosition(v)
 	p.viewport.SetPosition(v)
-	p.damageAura.SetPosition(v)
+	p.aura.SetPosition(v)
 	p.updateHand()
 }
 
@@ -299,27 +285,14 @@ func (p *player) LoseCurrentLevelExperience() {
 	p.progression.Experience = p.totalXPForLevel(level)
 }
 
-func (p *player) DamageAuraDamageFraction() float32 {
-	levelBonus := float32(p.progression.Level-1) * p.config.DamageAuraLevelGainFraction
-	return p.config.DamageAuraDamageFraction + levelBonus
-}
-
+// AuraRadius is the effective radius of the active aura, 0 while nothing is
+// active. Serialized as Character.aura_radius so all clients can size the ring.
 func (p *player) AuraRadius() float32 {
-	switch p.activeAura {
-	case model.AuraTypeHeal:
-		return p.config.HealAuraRadius
-	default:
-		return p.config.DamageAuraRadius
+	slot := p.skills.ActiveAuraSlot
+	if slot < 0 || p.skills.AuraSlots[slot] == nil {
+		return 0
 	}
-}
-
-func (p *player) HealAuraSelfDamageTickFraction() float32 {
-	return p.config.HealAuraSelfDamageTickFraction
-}
-
-func (p *player) HealAuraHealTickFraction() float32 {
-	levelBonus := float32(p.progression.Level-1) * p.config.HealAuraLevelGainFraction
-	return p.config.HealAuraHealTickFraction + levelBonus
+	return p.skills.AuraSlots[slot].EffectiveRadius()
 }
 
 func (p *player) LevelProgressFraction() float32 {
@@ -461,7 +434,7 @@ func (p *player) SkillComponent() *skills.SkillComponent {
 }
 
 func (p *player) AuraCollider() *phy.Circle {
-	return p.damageAura
+	return p.aura
 }
 
 func (p *player) MaxHealthFactor() float32 {

@@ -1,7 +1,6 @@
 package codec
 
 import (
-	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
@@ -46,12 +45,6 @@ func unmarshalInput(fbInput *BerryhunterApi.Input) *model.PlayerInput {
 			Item: items.ItemID(a.Item()),
 			Type: model.ActionType(a.ActionType()),
 		}
-	}
-
-	table := fbInput.Table()
-	if flatbuffers.UOffsetT(table.Offset(12)) != 0 {
-		aura := model.AuraType(fbInput.Aura())
-		i.Aura = &aura
 	}
 
 	i.ActiveAuraSlot = int(fbInput.ActiveAuraSlot())
