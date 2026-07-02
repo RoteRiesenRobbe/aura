@@ -97,6 +97,47 @@ func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
 	}
 }
 
+// --- recent healers (participation XP, v1-roadmap item 10) ---
+
+func TestRecentHealers_RecordedAfterHeal(t *testing.T) {
+	p := newTestPlayer(nil)
+	healer := newTestPlayer(nil)
+
+	p.NoteHealedBy(healer)
+
+	require.Len(t, p.RecentHealers(), 1)
+	assert.Equal(t, model.PlayerEntity(healer), p.RecentHealers()[0])
+}
+
+func TestRecentHealers_ExpireAfterWindow(t *testing.T) {
+	p := newTestPlayer(nil)
+	healer := newTestPlayer(nil)
+	p.NoteHealedBy(healer)
+
+	for i := 0; i < healParticipationWindowTicks; i++ {
+		p.tickRecentHealers()
+	}
+
+	assert.Empty(t, p.RecentHealers())
+}
+
+func TestRecentHealers_ReheatRefreshesWindow(t *testing.T) {
+	p := newTestPlayer(nil)
+	healer := newTestPlayer(nil)
+	p.NoteHealedBy(healer)
+
+	// Half the window passes, then the healer heals again.
+	for i := 0; i < healParticipationWindowTicks/2; i++ {
+		p.tickRecentHealers()
+	}
+	p.NoteHealedBy(healer)
+	for i := 0; i < healParticipationWindowTicks/2; i++ {
+		p.tickRecentHealers()
+	}
+
+	assert.Len(t, p.RecentHealers(), 1, "a fresh heal restarts the window")
+}
+
 func TestAddExperience_Level2_DiscoversHealAura(t *testing.T) {
 	milestones := []skills.MilestoneUnlock{{Level: 2, Skill: defHealAura}}
 	p := newTestPlayer(milestones)

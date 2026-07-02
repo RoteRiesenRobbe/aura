@@ -62,6 +62,12 @@ type PlayerEntity interface {
 	LoseCurrentLevelExperience()
 	AuraRadius() float32
 	LevelProgressFraction() float32
+
+	// Participation XP (v1-roadmap item 10): healing a player registers the
+	// healer for a limited window; mobs read this on death to reward healers
+	// of their combat participants.
+	NoteHealedBy(healer PlayerEntity)
+	RecentHealers() []PlayerEntity
 	SkillComponent() *skills.SkillComponent
 	AuraCollider() *phy.Circle
 	MaxHealthFactor() float32

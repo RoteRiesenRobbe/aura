@@ -52,15 +52,17 @@ type fakePlayer struct {
 	aura            *phy.Circle
 	god             bool
 	maxHealthFactor float32
+	healedBy        []model.PlayerEntity
 }
 
-func (f *fakePlayer) Basic() ecs.BasicEntity                    { return f.basic }
-func (f *fakePlayer) SkillComponent() *skills.SkillComponent    { return f.sc }
-func (f *fakePlayer) AuraCollider() *phy.Circle                 { return f.aura }
-func (f *fakePlayer) VitalSigns() *model.PlayerVitalSigns       { return &f.vitalSigns }
-func (f *fakePlayer) StatusEffects() *model.StatusEffects       { return &f.statusEffects }
-func (f *fakePlayer) MaxHealthFactor() float32                  { return f.maxHealthFactor }
-func (f *fakePlayer) IsGod() bool                               { return f.god }
+func (f *fakePlayer) Basic() ecs.BasicEntity                 { return f.basic }
+func (f *fakePlayer) SkillComponent() *skills.SkillComponent { return f.sc }
+func (f *fakePlayer) AuraCollider() *phy.Circle              { return f.aura }
+func (f *fakePlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vitalSigns }
+func (f *fakePlayer) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
+func (f *fakePlayer) MaxHealthFactor() float32               { return f.maxHealthFactor }
+func (f *fakePlayer) IsGod() bool                            { return f.god }
+func (f *fakePlayer) NoteHealedBy(h model.PlayerEntity)      { f.healedBy = append(f.healedBy, h) }
 
 var (
 	_ skillEntity        = (*fakePlayer)(nil)
@@ -190,6 +192,29 @@ func TestApplyHealAura_HealsHurtAllyByExactFraction(t *testing.T) {
 	applyHealAura(caster, 1, healEffect(), set)
 
 	assert.Equal(t, start.AddFraction(0.1), ally.vitalSigns.Health)
+}
+
+func TestApplyHealAura_NotesHealerOnTarget(t *testing.T) {
+	// Participation XP (v1-roadmap item 10): a successful heal registers the
+	// caster as a recent healer on the target, so mob kills the target
+	// participates in also reward the healer.
+	caster := newFakePlayer()
+	ally := newFakePlayer()
+	ally.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+
+	applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+
+	require.Len(t, ally.healedBy, 1)
+	assert.Equal(t, model.PlayerEntity(caster), ally.healedBy[0])
+}
+
+func TestApplyHealAura_FullHealthTargetNotesNothing(t *testing.T) {
+	caster := newFakePlayer()
+	ally := newFakePlayer() // full health — no heal happens
+
+	applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+
+	assert.Empty(t, ally.healedBy)
 }
 
 func TestApplyHealAura_SkipsAllyAtFullHealth_NoSelfDamage(t *testing.T) {

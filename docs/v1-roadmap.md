@@ -176,18 +176,24 @@ World-exploration clue anchors (source #3) and NPC teaching incl. harvest-mobs
 - Depends on: world & zones, skill-system unlock event (3.7), mob chapter (6).
 - NPC teaching needs peaceful NPCs — a new entity behavior.
 
-## 10. XP & participation
+## 10. XP & participation ✓ Done
 
 Vision: **all combat participants receive XP** (no formal groups in v1).
 
-- Current state: on mob death exactly *one* player receives
-  `Factors.Experience` (`model/mob/mob.go`). The player-level curve and
-  milestone unlocks already work (`AddExperience`).
-- Work: track combat participants per mob (damage *and* healing contributions)
-  and award XP to all of them on death.
-- ⚑ Does healing a participant count as participating? The vision implies yes
-  — heal support at bosses must be able to level — but the exact rule
-  (any heal? minimum contribution?) is open.
+- ✓ Implemented (Block 3, with the Phase 6 mob chapter): mobs track damage
+  contributors (`participants`, keyed by entity ID); on death **every
+  participant receives the full XP amount** (no split — no groups, no grief
+  potential in v1).
+- ✓ **Decided: healing counts.** Any successful heal registers the caster as
+  a "recent healer" on the target (`NoteHealedBy`/`RecentHealers`, window
+  ~10 s [PLACEHOLDER], refreshed per heal); on mob death the recent healers
+  of every damage participant are rewarded too, deduplicated (a
+  damager+healer gets XP once). No minimum contribution — KISS for v1.
+- ✓ **Combat reset rule:** a mob that fully regenerates out of combat clears
+  its participants — contributors to an abandoned fight don't get XP for a
+  later kill. No clock needed (regen completion is the reset signal).
+- ✓ **Decided: drops stay with the last toucher.** The item system is removed
+  with the survival systems (item 2); no investment there.
 
 ## 11. Initial content pass (prototype gate)
 
@@ -211,7 +217,7 @@ server today. The minimal subset for a playable prototype:
 1. **Skill system complete** — `skill-system-design.md` Phases 3.7 → 1b → 5
    → 6 → 7 → 8 → 9.
 2. **Items 1 + 2** — single resource, survival systems removed.
-3. **Item 10** — participation XP (otherwise support roles can't level).
+3. ~~**Item 10** — participation XP (otherwise support roles can't level).~~ ✓
 4. **Item 11** — initial content pass.
 
 The prototype runs on the existing procedurally assembled world, without

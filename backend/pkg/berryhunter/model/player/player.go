@@ -125,6 +125,10 @@ type player struct {
 
 	skills           *skills.SkillComponent
 	milestoneUnlocks []skills.MilestoneUnlock
+
+	// healers inside the participation window (v1-roadmap item 10);
+	// lazily initialized by NoteHealedBy
+	recentHealers map[uint64]*healerEntry
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {

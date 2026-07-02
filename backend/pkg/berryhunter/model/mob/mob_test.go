@@ -9,6 +9,7 @@ package mob
 import (
 	"testing"
 
+	"github.com/EngoEngine/ecs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
@@ -57,19 +58,24 @@ func newTestMob() *Mob {
 // interacts with. Unimplemented methods panic via the embedded nil interface.
 type fakeAuraPlayer struct {
 	model.PlayerEntity
-	pos    phy.Vec2f
-	radius float32
-	vs     model.PlayerVitalSigns
-	xp     []uint64
+	basic   ecs.BasicEntity
+	pos     phy.Vec2f
+	radius  float32
+	vs      model.PlayerVitalSigns
+	xp      []uint64
+	healers []model.PlayerEntity
 }
 
+func (f *fakeAuraPlayer) Basic() ecs.BasicEntity              { return f.basic }
 func (f *fakeAuraPlayer) Position() phy.Vec2f                 { return f.pos }
 func (f *fakeAuraPlayer) Radius() float32                     { return f.radius }
 func (f *fakeAuraPlayer) VitalSigns() *model.PlayerVitalSigns { return &f.vs }
 func (f *fakeAuraPlayer) AddExperience(xp uint64)             { f.xp = append(f.xp, xp) }
+func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity { return f.healers }
 
 func newFakeAuraPlayer() *fakeAuraPlayer {
 	return &fakeAuraPlayer{
+		basic:  ecs.NewBasic(),
 		radius: 0.25,
 		vs:     model.PlayerVitalSigns{Health: vitals.Max},
 	}
@@ -97,7 +103,62 @@ func TestMob_PlayerTouches_ZeroVulnerabilityDefaultsToOne(t *testing.T) {
 	assert.Equal(t, vitals.Max.SubFraction(0.1), m.Health())
 }
 
-// --- kill rewards ---
+// --- kill rewards (participation XP, v1-roadmap item 10) ---
+
+func TestMob_Kill_AllDamagersGetFullXP(t *testing.T) {
+	m := newTestMob()
+	attacker := newFakeAuraPlayer()
+	finisher := newFakeAuraPlayer()
+
+	m.PlayerTouches(attacker, 0.2) // participates, doesn't kill
+	m.PlayerTouches(finisher, 1.0) // kill
+
+	assert.Equal(t, []uint64{42}, attacker.xp, "every damage participant gets the full XP")
+	assert.Equal(t, []uint64{42}, finisher.xp)
+}
+
+func TestMob_Kill_RecentHealerOfParticipantGetsXP(t *testing.T) {
+	m := newTestMob()
+	damager := newFakeAuraPlayer()
+	healer := newFakeAuraPlayer()
+	damager.healers = []model.PlayerEntity{healer}
+
+	m.PlayerTouches(damager, 1.0) // kill
+
+	assert.Equal(t, []uint64{42}, healer.xp,
+		"healing a participant within the window counts as participating")
+	assert.Equal(t, []uint64{42}, damager.xp)
+}
+
+func TestMob_Kill_HealerWhoAlsoDamagedGetsXPOnce(t *testing.T) {
+	m := newTestMob()
+	damager := newFakeAuraPlayer()
+	hybrid := newFakeAuraPlayer() // damages AND heals the other damager
+	damager.healers = []model.PlayerEntity{hybrid}
+
+	m.PlayerTouches(hybrid, 0.2)
+	m.PlayerTouches(damager, 1.0) // kill
+
+	assert.Equal(t, []uint64{42}, hybrid.xp, "no double grant for damager+healer")
+}
+
+func TestMob_FullOutOfCombatRegenClearsParticipants(t *testing.T) {
+	m := newTestMob()
+	early := newFakeAuraPlayer()
+	m.PlayerTouches(early, 0.05) // 0.1 damage after vulnerability 2.0
+
+	// No aggro target → out-of-combat regen runs; let it reach full health.
+	for i := 0; i < 3*constant.TicksPerSecond && m.Health() < vitals.Max; i++ {
+		m.Update(0)
+	}
+	require.Equal(t, vitals.Max, m.Health(), "mob must fully regenerate")
+
+	killer := newFakeAuraPlayer()
+	m.PlayerTouches(killer, 1.0)
+
+	assert.Empty(t, early.xp, "full regen is a combat reset — earlier participants are cleared")
+	assert.Equal(t, []uint64{42}, killer.xp)
+}
 
 func TestMob_KillGrantsExperienceExactlyOnce(t *testing.T) {
 	m := newTestMob()
@@ -142,21 +203,6 @@ func TestMob_Update_DeadMobWithoutAggro_Dies(t *testing.T) {
 		"out-of-combat regen must not run on a dead mob")
 }
 
-// TestMob_KillRewardGoesToLastToucherOnly characterizes the single-recipient
-// XP model: only the player whose touch drops the mob to 0 is rewarded. This
-// is exactly what v1-roadmap.md item 10 (XP & participation) will change —
-// when participation XP lands, replace this test with the new rule.
-func TestMob_KillRewardGoesToLastToucherOnly(t *testing.T) {
-	m := newTestMob()
-	attacker := newFakeAuraPlayer()
-	finisher := newFakeAuraPlayer()
-
-	m.PlayerTouches(attacker, 0.2) // 0.4 damage — participates, doesn't kill
-	m.PlayerTouches(finisher, 1.0) // kill
-
-	assert.Empty(t, attacker.xp, "participant gets nothing today")
-	assert.Equal(t, []uint64{42}, finisher.xp)
-}
 
 // --- skill loadout wiring (Phase 6.1: damage application itself lives in the
 // SkillSystem; see sys/skills_behavior_test.go for the mob-caster path) ---

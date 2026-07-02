@@ -206,6 +206,12 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		}
 		vs.Health = vs.Health.AddFraction(healFrac)
 		healedSomeone = true
+
+		// Participation XP (v1-roadmap item 10): a successful heal makes the
+		// caster a recent healer of the target for a limited window.
+		if healerPE, isPlayer := e.(model.PlayerEntity); isPlayer {
+			other.NoteHealedBy(healerPE)
+		}
 	}
 
 	if healedSomeone && !caster.IsGod() {

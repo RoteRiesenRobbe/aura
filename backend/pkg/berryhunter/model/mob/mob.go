@@ -128,6 +128,11 @@ type Mob struct {
 	statusEffects       model.StatusEffects
 	deathRewardGiven    bool
 	chaseIntoAuraMargin float32
+
+	// combat participants for the death rewards (v1-roadmap item 10),
+	// keyed by entity ID; cleared when the mob fully regenerates out of
+	// combat (combat reset). Lazily initialized by noteParticipant.
+	participants map[uint64]model.PlayerEntity
 }
 
 func (m *Mob) StatusEffects() *model.StatusEffects {
@@ -186,6 +191,11 @@ func (m *Mob) Update(dt float32) bool {
 		// Heal to full in ~2 seconds while out of combat.
 		if m.health < vitals.Max {
 			m.health = m.health.AddFraction(1.0 / (2 * constant.TicksPerSecond))
+		}
+		// Back at full health with no aggro = combat over; earlier
+		// contributors no longer count as participants for the next fight.
+		if m.health == vitals.Max && len(m.participants) > 0 {
+			m.participants = nil
 		}
 	}
 
@@ -301,6 +311,7 @@ func (m *Mob) takeDamage(damage float32, s model.StatusEffect) {
 func (m *Mob) PlayerHitsWith(p model.PlayerEntity, item items.Item) {
 	log.Printf("🎯")
 
+	m.noteParticipant(p)
 	m.takeDamage(item.Factors.Damage, model.StatusEffectDamaged)
 	m.tryGrantKillRewards(p)
 }
@@ -310,17 +321,46 @@ func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
 }
 
 func (m *Mob) PlayerTouches(p model.PlayerEntity, damageFraction float32) {
+	m.noteParticipant(p)
 	m.takeDamage(damageFraction, model.StatusEffectDamagedAmbient)
 	m.tryGrantKillRewards(p)
 }
 
-func (m *Mob) tryGrantKillRewards(p model.PlayerEntity) {
-	// is it dead?
-	if m.health <= 0 && !m.deathRewardGiven {
-		m.deathRewardGiven = true
-		for _, i := range m.definition.Drops {
-			p.Inventory().AddItem(i)
+// noteParticipant records a damage contributor for the death rewards.
+func (m *Mob) noteParticipant(p model.PlayerEntity) {
+	if m.participants == nil {
+		m.participants = make(map[uint64]model.PlayerEntity)
+	}
+	m.participants[p.Basic().ID()] = p
+}
+
+// tryGrantKillRewards distributes the death rewards once (v1-roadmap item 10):
+// every combat participant — damage contributors plus their recent healers —
+// receives the full XP amount; drops go to the last toucher only (the item
+// system is scheduled for removal, so no investment there).
+func (m *Mob) tryGrantKillRewards(lastToucher model.PlayerEntity) {
+	if m.health > 0 || m.deathRewardGiven {
+		return
+	}
+	m.deathRewardGiven = true
+
+	for _, i := range m.definition.Drops {
+		lastToucher.Inventory().AddItem(i)
+	}
+
+	xp := uint64(m.definition.Factors.Experience)
+	rewarded := make(map[uint64]bool, len(m.participants))
+	for id, p := range m.participants {
+		if !rewarded[id] {
+			rewarded[id] = true
+			p.AddExperience(xp)
 		}
-		p.AddExperience(uint64(m.definition.Factors.Experience))
+		for _, healer := range p.RecentHealers() {
+			hid := healer.Basic().ID()
+			if !rewarded[hid] {
+				rewarded[hid] = true
+				healer.AddExperience(xp)
+			}
+		}
 	}
 }

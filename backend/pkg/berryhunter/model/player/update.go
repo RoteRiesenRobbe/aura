@@ -19,6 +19,8 @@ func (p *player) Update(dt float32) {
 		}
 	}
 
+	p.tickRecentHealers()
+
 	if !p.isGod {
 		p.updateVitalSigns(dt)
 	}
