@@ -4,29 +4,32 @@ import (
 	"log"
 
 	"github.com/EngoEngine/ecs"
+	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/minions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
-	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 )
 
-// skillEntity is the minimal interface SkillSystem requires.
-// Satisfied by PlayerEntity (and later MobEntity) once they expose the methods below.
-// VitalSigns/StatusEffects/MaxHealthFactor/IsGod are needed only for heal self-damage.
+// skillEntity is the minimal interface SkillSystem requires; players and mobs
+// both satisfy it.
 //
 // AuraCollider is the entity's single aura sensor. It returns the concrete
 // *phy.Circle (not phy.DynamicCollider) because the SkillSystem resizes it to
-// the active skill's EffectiveRadius — there is deliberately no collider per
-// equipped skill, since exactly one aura is active at a time.
-//
-// For this step all tracked entities are players. The type assertion to model.PlayerEntity
-// inside applyDamageAura (required by the Interacter API) is transitional — Phase 6 will
-// revisit when mobs are also tracked.
+// the active skill's EffectiveRadius and re-derives its collision mask via
+// model.AuraMaskFor — there is deliberately no collider per equipped skill,
+// since exactly one aura is active at a time.
 type skillEntity interface {
 	model.BasicEntity
 	SkillComponent() *skills.SkillComponent
 	AuraCollider() *phy.Circle
+}
+
+// healCaster holds the additional capabilities the heal-aura self-damage
+// bookkeeping needs. Players satisfy it; mobs do not (no PlayerVitalSigns) —
+// a heal effect on an entity without these capabilities is skipped.
+type healCaster interface {
 	VitalSigns() *model.PlayerVitalSigns
 	StatusEffects() *model.StatusEffects
 	MaxHealthFactor() float32
@@ -71,13 +74,17 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 		return
 	}
 
-	// Keep the single aura sensor sized to the active skill. The SkillSystem
-	// runs after physics resolution, so a new radius takes effect on the next
-	// tick's collisions — consistent with the accumulator reset on switch,
-	// which already defers the first effect application anyway.
+	// Keep the single aura sensor sized and targeted per the active skill.
+	// The SkillSystem runs after physics resolution, so a new radius/mask
+	// takes effect on the next tick's collisions — consistent with the
+	// accumulator reset on switch, which already defers the first effect
+	// application anyway.
 	collider := e.AuraCollider()
 	if r := equip.EffectiveRadius(); collider.Radius != r {
 		collider.SetRadius(r)
+	}
+	if m := model.AuraMaskFor(equip.Def); collider.Shape().Mask != m {
+		collider.Shape().Mask = m
 	}
 
 	equip.TickAccumulator++
@@ -106,14 +113,19 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	}
 }
 
+// applyDamageAura dispatches on the caster type: player and mob auras use
+// different Interacter entry points (PlayerTouches vs. MobTouches double
+// dispatch), mirroring the two legacy damage paths 1:1.
 func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
-	// PlayerTouches requires a model.PlayerEntity first argument.
-	// All tracked entities are players in this phase; revisit in Phase 3 for mobs.
-	caster, ok := e.(model.PlayerEntity)
-	if !ok {
-		return
+	switch caster := e.(type) {
+	case model.PlayerEntity:
+		applyPlayerDamageAura(caster, level, effect, collisions)
+	case model.MobEntity:
+		applyMobDamageAura(caster, level, effect, collisions)
 	}
+}
 
+func applyPlayerDamageAura(caster model.PlayerEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	fraction := effectDamageFraction(effect, level)
 
 	for c := range collisions {
@@ -121,8 +133,15 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 		if usr == nil {
 			continue
 		}
+		// Declarative targeting: the sensor mask pre-filters layers, the flags
+		// decide per target class. targetsPlayers=false is the no-friendly-fire
+		// rule; everything non-player (mobs, resources) is gated by targetsMobs.
 		if _, isPlayer := usr.(model.PlayerEntity); isPlayer {
-			continue // no friendly fire
+			if !effect.TargetsPlayers {
+				continue
+			}
+		} else if !effect.TargetsMobs {
+			continue
 		}
 		r, ok := usr.(model.Interacter)
 		if !ok {
@@ -132,7 +151,37 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 	}
 }
 
+// applyMobDamageAura applies a mob's aura to everything in the (mask-filtered)
+// collision set via MobTouches. Target discrimination is purely the sensor
+// mask, exactly like the legacy mob damage loop; the Factors payload carries
+// both fractions and each target picks the one that applies to it.
+func applyMobDamageAura(caster model.MobEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+	factors := mobs.Factors{
+		DamageFraction:          effectDamageFraction(effect, level),
+		StructureDamageFraction: effect.StructureDamageFraction,
+	}
+
+	for c := range collisions {
+		usr := c.Shape().UserData
+		if usr == nil {
+			continue
+		}
+		r, ok := usr.(model.Interacter)
+		if !ok {
+			continue
+		}
+		r.MobTouches(caster, factors)
+	}
+}
+
 func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+	// The self-damage bookkeeping needs player vitals; entities without them
+	// (mobs) cannot cast heal auras — skip rather than panic.
+	caster, ok := e.(healCaster)
+	if !ok {
+		return
+	}
+
 	healFrac := effectHealFraction(effect, level)
 	healedSomeone := false
 
@@ -156,11 +205,11 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		healedSomeone = true
 	}
 
-	if healedSomeone && !e.IsGod() {
-		selfFrac := effect.SelfDamageFraction / e.MaxHealthFactor()
-		vs := e.VitalSigns()
+	if healedSomeone && !caster.IsGod() {
+		selfFrac := effect.SelfDamageFraction / caster.MaxHealthFactor()
+		vs := caster.VitalSigns()
 		vs.Health = vs.Health.SubFraction(selfFrac)
-		e.StatusEffects().Add(model.StatusEffectDamagedAmbient)
+		caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
 	}
 }
 

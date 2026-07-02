@@ -108,6 +108,39 @@ func TestParse_DamageAura(t *testing.T) {
 	assert.Equal(t, 1, e.TickInterval) // absent in JSON → normalized to default 1
 }
 
+// Mob aura shape: structure damage + structure targeting (Phase 6). Values
+// mirror the AngryMammoth 1:1 migration.
+var mobAuraJSON = []byte(`{
+  "id": 104,
+  "name": "AngryMammothAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 3.0,
+      "damageFraction": 0.0067,
+      "structureDamageFraction": 0.67,
+      "targetsMobs": false,
+      "targetsPlayers": true,
+      "targetsStructures": true
+    }
+  ]
+}`)
+
+func TestParse_MobAuraWithStructureDamage(t *testing.T) {
+	def := mustParse(t, mobAuraJSON)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeDamageAura, e.Type)
+	assert.InDelta(t, 0.0067, e.DamageFraction, 1e-6)
+	assert.InDelta(t, 0.67, e.StructureDamageFraction, 1e-6)
+	assert.False(t, e.TargetsMobs)
+	assert.True(t, e.TargetsPlayers)
+	assert.True(t, e.TargetsStructures)
+}
+
 func TestParse_HealAura(t *testing.T) {
 	def := mustParse(t, healAuraJSON)
 

@@ -17,6 +17,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/mob"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -115,6 +116,7 @@ func damageEffect(interval int) skills.EffectDef {
 		Type:                   skills.EffectTypeDamageAura,
 		DamageFraction:         0.01,
 		DamageFractionPerLevel: 0.002,
+		TargetsMobs:            true, // mirrors the real DamageAura JSON
 		TickInterval:           interval,
 	}
 }
@@ -295,6 +297,176 @@ func activeAuraPlayer(t *testing.T, effects ...skills.EffectDef) (*fakePlayer, *
 	caster.sc.EquipAura(0, def, 1)
 	caster.sc.SetActiveAura(0)
 	return caster, target
+}
+
+// --- mob casters (Phase 6.1) ---
+
+// mobTouchRecorder implements model.Interacter and records MobTouches calls —
+// it stands in for a player or structure hit by a mob's aura.
+type mobTouchRecorder struct {
+	factors []mobs.Factors
+}
+
+func (r *mobTouchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item)       {}
+func (r *mobTouchRecorder) PlayerTouches(p model.PlayerEntity, damageFraction float32) {}
+func (r *mobTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
+	r.factors = append(r.factors, factors)
+}
+
+var _ model.Interacter = (*mobTouchRecorder)(nil)
+
+// fakeMob satisfies skillEntity and model.MobEntity via the embedded nil
+// interface (panics loudly on any method the test did not anticipate).
+type fakeMob struct {
+	model.MobEntity
+	basic ecs.BasicEntity
+	sc    *skills.SkillComponent
+	aura  *phy.Circle
+}
+
+func (f *fakeMob) Basic() ecs.BasicEntity                 { return f.basic }
+func (f *fakeMob) SkillComponent() *skills.SkillComponent { return f.sc }
+func (f *fakeMob) AuraCollider() *phy.Circle              { return f.aura }
+
+var (
+	_ skillEntity     = (*fakeMob)(nil)
+	_ model.MobEntity = (*fakeMob)(nil)
+)
+
+func newFakeMob(effects ...skills.EffectDef) *fakeMob {
+	def := &skills.SkillDefinition{
+		ID: 101, Name: "TestMobAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
+		Effects: effects,
+	}
+	sc := skills.NewSkillComponent(false)
+	sc.EquipAura(0, def, 1)
+	sc.SetActiveAura(0)
+	return &fakeMob{
+		basic: ecs.NewBasic(),
+		sc:    sc,
+		aura:  phy.NewCircle(phy.VEC2F_ZERO, 1.0),
+	}
+}
+
+func TestApplyDamageAura_MobCaster_DamagesViaMobTouches(t *testing.T) {
+	caster := newFakeMob()
+	target := &mobTouchRecorder{}
+	effect := skills.EffectDef{
+		Type: skills.EffectTypeDamageAura, DamageFraction: 0.004, TargetsPlayers: true,
+	}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target))
+
+	require.Len(t, target.factors, 1)
+	assert.InDelta(t, 0.004, target.factors[0].DamageFraction, 1e-6)
+}
+
+func TestApplyDamageAura_MobCaster_LevelScalesDamage(t *testing.T) {
+	caster := newFakeMob()
+	target := &mobTouchRecorder{}
+	effect := skills.EffectDef{
+		Type: skills.EffectTypeDamageAura, DamageFraction: 0.004,
+		DamageFractionPerLevel: 0.001, TargetsPlayers: true,
+	}
+
+	applyDamageAura(caster, 3, effect, colliderSetOf(target))
+
+	require.Len(t, target.factors, 1)
+	assert.InDelta(t, 0.006, target.factors[0].DamageFraction, 1e-6)
+}
+
+func TestApplyDamageAura_MobCaster_CarriesStructureDamage(t *testing.T) {
+	caster := newFakeMob()
+	target := &mobTouchRecorder{}
+	effect := skills.EffectDef{
+		Type: skills.EffectTypeDamageAura, DamageFraction: 0.0067,
+		StructureDamageFraction: 0.67, TargetsPlayers: true, TargetsStructures: true,
+	}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target))
+
+	require.Len(t, target.factors, 1)
+	assert.InDelta(t, 0.67, target.factors[0].StructureDamageFraction, 1e-6)
+}
+
+func TestApplyDamageAura_PlayerCaster_RespectsTargetsMobsFlag(t *testing.T) {
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+	effect := skills.EffectDef{
+		Type: skills.EffectTypeDamageAura, DamageFraction: 0.01, TargetsMobs: false,
+	}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target))
+
+	assert.Empty(t, target.touches, "targetsMobs=false must not hit mob-like targets")
+}
+
+func TestProcessEntity_MobWithHealEffectIsNoop(t *testing.T) {
+	// Mobs do not satisfy the heal-caster capabilities (no PlayerVitalSigns);
+	// a heal effect on a mob must be skipped, not panic.
+	caster := newFakeMob(healEffect())
+
+	s := NewSkillSystem()
+	s.AddEntity(caster)
+
+	assert.NotPanics(t, func() { s.Update(0) })
+}
+
+func TestProcessEntity_DerivesSensorMaskFromActiveSkill(t *testing.T) {
+	caster := newFakeMob(skills.EffectDef{
+		Type: skills.EffectTypeDamageAura, DamageFraction: 0.0067, TickInterval: 1,
+		TargetsPlayers: true, TargetsStructures: true,
+	})
+	caster.aura.Shape().Mask = 0
+
+	s := NewSkillSystem()
+	s.AddEntity(caster)
+	s.Update(0)
+
+	assert.Equal(t, int(model.LayerPlayerCollision|model.LayerPlaceableCollision),
+		caster.aura.Shape().Mask)
+}
+
+// TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget replaces the retired
+// mob.Update characterization test: a real Mob built from a definition with a
+// skill loadout, wired through a real phy.Space, damages a player-layer
+// target with exactly the skill's damageFraction via MobTouches.
+func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
+	def := &mobs.MobDefinition{
+		ID:   1,
+		Name: "Dodo",
+		Body: mobs.Body{Radius: 0.3, AggroRadius: 2.0},
+		Skills: []mobs.MobSkill{{
+			Def: &skills.SkillDefinition{
+				ID: 199, Name: "TestMobAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
+				Effects: []skills.EffectDef{{
+					Type: skills.EffectTypeDamageAura, Radius: 0.5,
+					DamageFraction: 0.05, TargetsPlayers: true, TickInterval: 1,
+				}},
+			},
+			Level: 1,
+		}},
+	}
+	m := mob.NewMob(def, false, 0, 0)
+
+	target := &mobTouchRecorder{}
+	targetCircle := phy.NewCircle(phy.VEC2F_ZERO, 0.25)
+	targetCircle.Shape().IsSensor = true
+	targetCircle.Shape().Layer = int(model.LayerPlayerCollision)
+	targetCircle.Shape().UserData = target
+
+	space := phy.NewSpace()
+	space.AddShape(m.AuraCollider())
+	space.AddShape(targetCircle)
+	space.Update()
+	require.NotEmpty(t, m.AuraCollider().Collisions(), "physics setup must produce a collision")
+
+	s := NewSkillSystem()
+	s.AddEntity(m)
+	s.Update(0)
+
+	require.Len(t, target.factors, 1, "one MobTouches per tick per target in range")
+	assert.InDelta(t, 0.05, target.factors[0].DamageFraction, 1e-6)
 }
 
 // --- collider sizing (single aura sensor, resized from the active skill) ---

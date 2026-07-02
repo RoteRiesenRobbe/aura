@@ -25,9 +25,10 @@ import (
 //go:embed conf.default.json
 var defaultConfig []byte
 
-// loadMobs parses the mob definitions from the definition files
-func loadMobs(r items.Registry) mobs.Registry {
-	registry, err := mobs.RegistryFromFS(r, amobs.Mobs)
+// loadMobs parses the mob definitions from the definition files, resolving
+// drops against the item registry and skill loadouts against the skill registry.
+func loadMobs(r items.Registry, sr skills.Registry) mobs.Registry {
+	registry, err := mobs.RegistryFromFS(r, sr, amobs.Mobs)
 	if err != nil {
 		slog.Error("failed to load mobs", slog.Any("err", err))
 		panic(err)

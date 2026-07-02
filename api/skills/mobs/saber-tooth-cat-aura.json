@@ -1,0 +1,18 @@
+{
+  "_comment": "1:1 migration of SaberToothCat body.damageRadius/factors.damageFraction (Phase 6.1) — all values [PLACEHOLDER]",
+  "id": 102,
+  "name": "SaberToothCatAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageFraction": 0.004,
+      "damageFractionPerLevel": 0.0,
+      "targetsMobs": false,
+      "targetsPlayers": true
+    }
+  ]
+}

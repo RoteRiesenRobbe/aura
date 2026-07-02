@@ -7,6 +7,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 // EntityType is an enum describing the type of the entity
@@ -98,6 +99,10 @@ type MobEntity interface {
 	// SetVelocity(v phy.Vec2f)
 	Update(dt float32) bool
 	SetAngle(a float32)
+
+	// Skill loadout (Phase 6.1): mobs run on the same SkillSystem as players.
+	SkillComponent() *skills.SkillComponent
+	AuraCollider() *phy.Circle
 }
 
 // AABB is an alias to not expose transitive dependencies

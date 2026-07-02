@@ -37,8 +37,8 @@ func main() {
 
 	config := loadConf()
 	itemsRegistry := loadItems()
-	mobsRegistry := loadMobs(itemsRegistry)
 	skillsRegistry := loadSkills()
+	mobsRegistry := loadMobs(itemsRegistry, skillsRegistry)
 	milestoneUnlocks := loadMilestoneUnlocks(skillsRegistry)
 
 	tokens := loadOrCreateTokens("./tokens.list")

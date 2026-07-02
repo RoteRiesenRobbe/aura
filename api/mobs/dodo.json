@@ -4,7 +4,6 @@
   "type": "MOB",
   "factors": {
     "vulnerability": 2,
-    "damageFraction": 0.001,
     "experience": 15,
     "speed": 0.4,
     "deltaPhi": 0.1,
@@ -22,10 +21,12 @@
   ],
   "body": {
     "radius": 0.2,
-    "damageRadius": 0.6,
     "aggroRadius": 2.4
   },
   "generator": {
     "weight": 100
-  }
+  },
+  "skills": [
+    { "skillName": "DodoAura", "level": 1 }
+  ]
 }

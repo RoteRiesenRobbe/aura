@@ -1,7 +1,6 @@
 package mob
 
 import (
-	"fmt"
 	"log"
 	"math/rand"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/constant"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 var _ = model.MobEntity(&Mob{})
@@ -24,12 +24,6 @@ var types = func() map[string]model.EntityType {
 	}
 	return t
 }()
-
-var namesEnumDamages = map[string]model.CollisionLayer{
-	"Player":    model.LayerPlayerCollision,
-	"Placeable": model.LayerPlaceableCollision,
-	"All":       model.LayerPlayerCollision | model.LayerPlaceableCollision,
-}
 
 func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMargin float32) *Mob {
 	entityType, ok := types[d.Name]
@@ -49,23 +43,37 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 		mobBody.Shape().Mask = d.Body.CollisionMask
 	}
 
-	damageAura := phy.NewCircle(phy.VEC2F_ZERO, d.Body.DamageRadius)
-	damageAura.Shape().Layer = int(model.LayerNoneCollision)
-	damageAuraMask := namesEnumDamages["Player"]
-	if d.Body.Damages != "" {
-		damageAuraMask, ok = namesEnumDamages[d.Body.Damages]
-		if !ok {
-			panic(fmt.Sprintf("Can not convert damages: %s to a collision mask for %s.", d.Body.Damages, d.Name))
+	// Skill loadout: equip every declared skill into consecutive aura slots
+	// (the whole loadout is available so future AI/boss scripts can switch),
+	// slot 0 starts active. Mobs have no spellbook.
+	sc := skills.NewSkillComponent(false)
+	for i, s := range d.Skills {
+		if i >= skills.MaxAuraSlots {
+			log.Printf("mob %s declares more skills than aura slots (%d); ignoring the rest", d.Name, skills.MaxAuraSlots)
+			break
 		}
+		sc.EquipAura(i, s.Def, s.Level)
 	}
-	damageAura.Shape().Mask = int(damageAuraMask)
-	damageAura.Shape().IsSensor = true
+	if len(d.Skills) > 0 {
+		sc.SetActiveAura(0)
+	}
 
-	aggroRadius := d.Body.AggroRadius
-	if aggroRadius <= 0 {
-		aggroRadius = d.Body.DamageRadius * 4
+	// The single aura sensor. Initial radius/mask come from the active skill
+	// so aggro stop distance and the first tick are correct from spawn;
+	// SkillSystem re-derives both per tick (aura switching stays possible).
+	var auraRadius float32
+	auraMask := int(model.LayerNoneCollision)
+	if active := sc.AuraSlots[0]; sc.ActiveAuraSlot == 0 && active != nil {
+		auraRadius = active.EffectiveRadius()
+		auraMask = model.AuraMaskFor(active.Def)
 	}
-	aggroAura := phy.NewCircle(phy.VEC2F_ZERO, aggroRadius)
+	aura := phy.NewCircle(phy.VEC2F_ZERO, auraRadius)
+	aura.Shape().Layer = int(model.LayerNoneCollision)
+	aura.Shape().Mask = auraMask
+	aura.Shape().IsSensor = true
+
+	// AggroRadius is validated > 0 at definition load time.
+	aggroAura := phy.NewCircle(phy.VEC2F_ZERO, d.Body.AggroRadius)
 	aggroAura.Shape().Layer = int(model.LayerNoneCollision)
 	aggroAura.Shape().Mask = int(model.LayerPlayerCollision)
 	aggroAura.Shape().IsSensor = true
@@ -78,7 +86,8 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 		heading:          phy.Vec2f{-1, 0},
 		health:           vitals.Max,
 		definition:       d,
-		damageAura:       damageAura,
+		skills:           sc,
+		aura:             aura,
 		aggroAura:        aggroAura,
 		spawnPosition:    phy.VEC2F_ZERO,
 		spawnInitialized: false,
@@ -107,8 +116,9 @@ type Mob struct {
 	heading phy.Vec2f
 	rand    *rand.Rand
 
-	damageAura *phy.Circle
-	aggroAura  *phy.Circle
+	skills    *skills.SkillComponent
+	aura      *phy.Circle
+	aggroAura *phy.Circle
 
 	velocity         float32
 	aggroTarget      model.PlayerEntity
@@ -126,7 +136,15 @@ func (m *Mob) StatusEffects() *model.StatusEffects {
 
 func (m *Mob) Bodies() model.Bodies {
 	b := m.BaseEntity.Bodies()
-	return append(b, m.damageAura, m.aggroAura)
+	return append(b, m.aura, m.aggroAura)
+}
+
+func (m *Mob) SkillComponent() *skills.SkillComponent {
+	return m.skills
+}
+
+func (m *Mob) AuraCollider() *phy.Circle {
+	return m.aura
 }
 
 func (m *Mob) MobID() mobs.MobID {
@@ -146,21 +164,8 @@ func (m *Mob) Update(dt float32) bool {
 		return false
 	}
 
-	auraCollisions := m.damageAura.Collisions()
-	for c := range auraCollisions {
-		usr := c.Shape().UserData
-		if usr == nil {
-			log.Printf("Missing UserData!")
-			continue
-		}
-
-		r, ok := usr.(model.Interacter)
-		if !ok {
-			log.Printf("Non conformant UserData: %T", usr)
-			continue
-		}
-		r.MobTouches(m, m.definition.Factors)
-	}
+	// Aura damage is applied by the SkillSystem (Phase 6.1); Update only
+	// handles aggro, movement, regeneration and death.
 
 	if m.aggroTarget == nil {
 		m.aggroTarget = m.findAggroTarget()
@@ -194,7 +199,7 @@ func (m *Mob) shouldApproachAggroTarget() bool {
 
 	// Stop once target is already within damage aura, minus a tiny margin.
 	// Include player radius because collision is shape-vs-shape.
-	stopDistance := m.damageAura.Radius + m.aggroTarget.Radius() - m.chaseIntoAuraMargin
+	stopDistance := m.aura.Radius + m.aggroTarget.Radius() - m.chaseIntoAuraMargin
 	if stopDistance < 0 {
 		stopDistance = 0
 	}
@@ -208,7 +213,7 @@ func (m *Mob) SetPosition(p phy.Vec2f) {
 		m.aggroAura.SetPosition(p)
 	}
 	m.Body.SetPosition(p)
-	m.damageAura.SetPosition(p)
+	m.aura.SetPosition(p)
 }
 
 func (m *Mob) Angle() float32 {

@@ -110,7 +110,13 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	fsys := os.DirFS("../../../../api/skills")
 	r, err := RegistryFromFS(fsys)
 	require.NoError(t, err)
-	assert.Len(t, r.All(), 2)
+	// 2 player skills + 4 mob auras (mobs/ subdirectory, Phase 6.1)
+	assert.Len(t, r.All(), 6)
+
+	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura"} {
+		_, err := r.GetByName(name)
+		assert.NoError(t, err, name)
+	}
 
 	damage, err := r.GetByName("DamageAura")
 	require.NoError(t, err)

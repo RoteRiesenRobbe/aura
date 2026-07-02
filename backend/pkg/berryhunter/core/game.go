@@ -274,6 +274,8 @@ func (g *game) addMobEntity(e model.MobEntity) {
 			s.AddEntity(e)
 		case *sys.MobSystem:
 			s.AddEntity(e)
+		case *sys.SkillSystem:
+			s.AddEntity(e)
 		}
 	}
 }

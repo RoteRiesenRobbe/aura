@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 //{
@@ -24,6 +25,12 @@ import (
 
 type MobID uint64
 
+// Factors carries a mob's tuning values. DamageFraction and
+// StructureDamageFraction are no longer part of the mob JSON — mob damage
+// lives in the skill loadout (Phase 6.1). The fields remain because Factors
+// doubles as the MobTouches payload: the SkillSystem fills them from the
+// active skill's effect parameters and each target picks the fraction that
+// applies to it (players: DamageFraction, structures: StructureDamageFraction).
 type Factors struct {
 	Vulnerability           float32
 	DamageFraction          float32
@@ -38,9 +45,7 @@ type Body struct {
 	Radius         float32
 	CollisionLayer int
 	CollisionMask  int
-	DamageRadius   float32
 	AggroRadius    float32
-	Damages        string
 }
 
 type RespawnBehavior int
@@ -63,6 +68,13 @@ type Generator struct {
 
 type Drops []*items.ItemStack
 
+// MobSkill is one entry of a mob's skill loadout, resolved against the skill
+// registry at load time.
+type MobSkill struct {
+	Def   *skills.SkillDefinition
+	Level int
+}
+
 type MobDefinition struct {
 	ID        MobID
 	Name      string
@@ -71,6 +83,7 @@ type MobDefinition struct {
 	Drops     Drops
 	Body      Body
 	Generator Generator
+	Skills    []MobSkill
 }
 
 type mobDefinition struct {
@@ -79,13 +92,11 @@ type mobDefinition struct {
 	Type string `json:"type"`
 
 	Factors struct {
-		Vulnerability           float32 `json:"vulnerability"`
-		DamageFraction          float32 `json:"damageFraction"`
-		StructureDamageFraction float32 `json:"structureDamageFraction"`
-		Speed                   float32 `json:"speed"`
-		DeltaPhi                float32 `json:"deltaPhi"`
-		TurnRate                float32 `json:"turnRate"`
-		Experience              uint32  `json:"experience"`
+		Vulnerability float32 `json:"vulnerability"`
+		Speed         float32 `json:"speed"`
+		DeltaPhi      float32 `json:"deltaPhi"`
+		TurnRate      float32 `json:"turnRate"`
+		Experience    uint32  `json:"experience"`
 	} `json:"factors"`
 
 	Drops []struct {
@@ -97,9 +108,7 @@ type mobDefinition struct {
 		Radius         float32 `json:"radius"`
 		CollisionLayer int     `json:"collisionLayer"`
 		CollisionMask  int     `json:"collisionMask"`
-		DamageRadius   float32 `json:"damageRadius"`
 		AggroRadius    float32 `json:"aggroRadius"`
-		Damages        string  `json:"damages"`
 	} `json:"body"`
 
 	Generator struct {
@@ -107,6 +116,11 @@ type mobDefinition struct {
 		Fixed           int    `json:"fixed"`
 		RespawnBehavior string `json:"respawnBehavior"`
 	} `json:"generator"`
+
+	Skills []struct {
+		SkillName string `json:"skillName"`
+		Level     int    `json:"level"` // absent → 1
+	} `json:"skills"`
 }
 
 // parseItemDefinition parses a json string from a byte array into the
@@ -121,10 +135,16 @@ func parseMobDefinition(data []byte) (*mobDefinition, error) {
 	return &mob, nil
 }
 
-func (m *mobDefinition) mapToMobDefinition(r items.Registry) (*MobDefinition, error) {
+func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry) (*MobDefinition, error) {
 	respawnBehavior := RespawnBehaviorRandomLocation
 	if m.Generator.RespawnBehavior != "" {
 		respawnBehavior = namesEnumRespawnBehavior[m.Generator.RespawnBehavior]
+	}
+
+	// Mobs need an aggro territory; the former 4x-damage-radius fallback died
+	// with Body.DamageRadius (Phase 6.1), so the value is now required.
+	if m.Body.AggroRadius <= 0 {
+		return nil, fmt.Errorf("mob %q: body.aggroRadius is required and must be > 0", m.Name)
 	}
 
 	mob := &MobDefinition{
@@ -132,22 +152,18 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry) (*MobDefinition, er
 		Name: m.Name,
 		Type: m.Type,
 		Factors: Factors{
-			Vulnerability:           m.Factors.Vulnerability,
-			StructureDamageFraction: m.Factors.StructureDamageFraction,
-			DamageFraction:          m.Factors.DamageFraction,
-			Speed:                   m.Factors.Speed,
-			DeltaPhi:                m.Factors.DeltaPhi,
-			TurnRate:                m.Factors.TurnRate,
-			Experience:              m.Factors.Experience,
+			Vulnerability: m.Factors.Vulnerability,
+			Speed:         m.Factors.Speed,
+			DeltaPhi:      m.Factors.DeltaPhi,
+			TurnRate:      m.Factors.TurnRate,
+			Experience:    m.Factors.Experience,
 		},
 		Drops: make(Drops, 0, 1),
 		Body: Body{
 			Radius:         m.Body.Radius,
 			CollisionLayer: m.Body.CollisionLayer,
 			CollisionMask:  m.Body.CollisionMask,
-			DamageRadius:   m.Body.DamageRadius,
 			AggroRadius:    m.Body.AggroRadius,
-			Damages:        m.Body.Damages,
 		},
 		Generator: Generator{
 			Weight:          m.Generator.Weight,
@@ -166,6 +182,19 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry) (*MobDefinition, er
 			return nil, fmt.Errorf("Invalid Mob Definition, drop count is %d", d.Count)
 		}
 		mob.Drops = append(mob.Drops, items.NewItemStack(i, d.Count))
+	}
+
+	// resolve skill loadout
+	for _, s := range m.Skills {
+		def, err := sr.GetByName(s.SkillName)
+		if err != nil {
+			return nil, fmt.Errorf("mob %q: skill %q not found: %w", m.Name, s.SkillName, err)
+		}
+		level := s.Level
+		if level < 1 {
+			level = 1
+		}
+		mob.Skills = append(mob.Skills, MobSkill{Def: def, Level: level})
 	}
 
 	return mob, nil

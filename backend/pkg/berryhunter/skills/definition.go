@@ -14,7 +14,7 @@ func (s SkillID) String() string {
 type SkillCategory int
 
 const (
-	SkillCategoryNone       SkillCategory = iota
+	SkillCategoryNone SkillCategory = iota
 	SkillCategoryActiveAura
 	SkillCategoryPassive
 	SkillCategoryCooldown
@@ -29,7 +29,7 @@ var skillCategoryMap = map[string]SkillCategory{
 type EffectType int
 
 const (
-	EffectTypeNone           EffectType = iota
+	EffectTypeNone EffectType = iota
 	EffectTypeDamageAura
 	EffectTypeHealAura
 	EffectTypeStatMultiplier
@@ -59,6 +59,11 @@ type EffectDef struct {
 	DamageFractionPerLevel float32
 	TargetsMobs            bool
 	TargetsPlayers         bool
+
+	// damage_aura, mob casters only: damage dealt to structures (placeables)
+	// per tick. Structures read this via MobTouches double dispatch.
+	StructureDamageFraction float32
+	TargetsStructures       bool
 
 	// heal_aura
 	HealFraction         float32
@@ -98,6 +103,9 @@ type effectDef struct {
 	DamageFractionPerLevel float32 `json:"damageFractionPerLevel"`
 	TargetsMobs            bool    `json:"targetsMobs"`
 	TargetsPlayers         bool    `json:"targetsPlayers"`
+
+	StructureDamageFraction float32 `json:"structureDamageFraction"`
+	TargetsStructures       bool    `json:"targetsStructures"`
 
 	HealFraction         float32 `json:"healFraction"`
 	HealFractionPerLevel float32 `json:"healFractionPerLevel"`
@@ -167,18 +175,20 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 	}
 
 	return EffectDef{
-		Type:                   effectType,
-		Radius:                 e.Radius,
-		RadiusPerLevel:         e.RadiusPerLevel,
-		DamageFraction:         e.DamageFraction,
-		DamageFractionPerLevel: e.DamageFractionPerLevel,
-		TargetsMobs:            e.TargetsMobs,
-		TargetsPlayers:         e.TargetsPlayers,
-		HealFraction:           e.HealFraction,
-		HealFractionPerLevel:   e.HealFractionPerLevel,
-		SelfDamageFraction:     e.SelfDamageFraction,
-		TickInterval:           tickInterval,
-		Stat:                   e.Stat,
-		AdditivePerLevel:       e.AdditivePerLevel,
+		Type:                    effectType,
+		Radius:                  e.Radius,
+		RadiusPerLevel:          e.RadiusPerLevel,
+		DamageFraction:          e.DamageFraction,
+		DamageFractionPerLevel:  e.DamageFractionPerLevel,
+		TargetsMobs:             e.TargetsMobs,
+		TargetsPlayers:          e.TargetsPlayers,
+		StructureDamageFraction: e.StructureDamageFraction,
+		TargetsStructures:       e.TargetsStructures,
+		HealFraction:            e.HealFraction,
+		HealFractionPerLevel:    e.HealFractionPerLevel,
+		SelfDamageFraction:      e.SelfDamageFraction,
+		TickInterval:            tickInterval,
+		Stat:                    e.Stat,
+		AdditivePerLevel:        e.AdditivePerLevel,
 	}, nil
 }

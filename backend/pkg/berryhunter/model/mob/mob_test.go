@@ -11,29 +11,41 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/constant"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
+
+func testAuraSkill() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 199, Name: "TestMobAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
+		Effects: []skills.EffectDef{{
+			Type:           skills.EffectTypeDamageAura,
+			Radius:         0.5,
+			DamageFraction: 0.05,
+			TargetsPlayers: true,
+			TickInterval:   1,
+		}},
+	}
+}
 
 func testMobDefinition() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID:   1,
 		Name: "Dodo", // must be a valid BerryhunterApi entity type name
 		Factors: mobs.Factors{
-			Vulnerability:  2.0,
-			DamageFraction: 0.05,
-			Speed:          1.0,
-			Experience:     42,
+			Vulnerability: 2.0,
+			Speed:         1.0,
+			Experience:    42,
 		},
 		Body: mobs.Body{
-			Radius:       0.3,
-			DamageRadius: 0.5,
-			// AggroRadius unset on purpose — the default is characterized below.
+			Radius:      0.3,
+			AggroRadius: 2.0,
 		},
+		Skills: []mobs.MobSkill{{Def: testAuraSkill(), Level: 1}},
 	}
 }
 
@@ -51,28 +63,16 @@ type fakeAuraPlayer struct {
 	xp     []uint64
 }
 
-func (f *fakeAuraPlayer) Position() phy.Vec2f                { return f.pos }
-func (f *fakeAuraPlayer) Radius() float32                    { return f.radius }
+func (f *fakeAuraPlayer) Position() phy.Vec2f                 { return f.pos }
+func (f *fakeAuraPlayer) Radius() float32                     { return f.radius }
 func (f *fakeAuraPlayer) VitalSigns() *model.PlayerVitalSigns { return &f.vs }
-func (f *fakeAuraPlayer) AddExperience(xp uint64)            { f.xp = append(f.xp, xp) }
+func (f *fakeAuraPlayer) AddExperience(xp uint64)             { f.xp = append(f.xp, xp) }
 
 func newFakeAuraPlayer() *fakeAuraPlayer {
 	return &fakeAuraPlayer{
 		radius: 0.25,
 		vs:     model.PlayerVitalSigns{Health: vitals.Max},
 	}
-}
-
-// mobTouchRecorder implements model.Interacter and records MobTouches calls —
-// it stands in for whatever the mob's damage aura hits.
-type mobTouchRecorder struct {
-	factors []mobs.Factors
-}
-
-func (r *mobTouchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item)       {}
-func (r *mobTouchRecorder) PlayerTouches(p model.PlayerEntity, damageFraction float32) {}
-func (r *mobTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
-	r.factors = append(r.factors, factors)
 }
 
 // --- damage intake (what player auras do to the mob) ---
@@ -158,46 +158,46 @@ func TestMob_KillRewardGoesToLastToucherOnly(t *testing.T) {
 	assert.Equal(t, []uint64{42}, finisher.xp)
 }
 
-// --- damage aura output (what the mob does per tick) ---
+// --- skill loadout wiring (Phase 6.1: damage application itself lives in the
+// SkillSystem; see sys/skills_behavior_test.go for the mob-caster path) ---
 
-func TestMob_Update_DamageAuraTouchesTargetsWithFactors(t *testing.T) {
+func TestNewMob_SkillLoadoutWiring(t *testing.T) {
 	m := newTestMob()
-	target := &mobTouchRecorder{}
 
-	targetCircle := phy.NewCircle(phy.VEC2F_ZERO, 0.25)
-	targetCircle.Shape().IsSensor = true
-	targetCircle.Shape().Layer = int(model.LayerPlayerCollision)
-	targetCircle.Shape().UserData = target
-
-	space := phy.NewSpace()
-	space.AddShape(m.damageAura)
-	space.AddShape(targetCircle)
-	space.Update()
-	require.NotEmpty(t, m.damageAura.Collisions(), "physics setup must produce a collision")
-
-	m.Update(0)
-
-	require.Len(t, target.factors, 1, "one MobTouches per tick per target in range")
-	assert.InDelta(t, 0.05, target.factors[0].DamageFraction, 1e-6,
-		"the mob passes its full Factors through — the target applies DamageFraction")
+	sc := m.SkillComponent()
+	require.NotNil(t, sc.AuraSlots[0])
+	assert.Equal(t, "TestMobAura", sc.AuraSlots[0].Def.Name)
+	assert.Equal(t, 0, sc.ActiveAuraSlot, "slot 0 is active from spawn")
+	assert.Nil(t, sc.Spellbook, "mobs have no spellbook")
 }
 
-func TestNewMob_DamageAuraWiring(t *testing.T) {
+func TestNewMob_AuraSensorWiring(t *testing.T) {
 	m := newTestMob()
 
-	assert.True(t, m.damageAura.Shape().IsSensor)
-	assert.InDelta(t, 0.5, m.damageAura.Radius, 1e-6, "radius = Body.DamageRadius")
-	assert.Equal(t, int(model.LayerPlayerCollision), m.damageAura.Shape().Mask,
-		"Damages unset defaults to Player")
-	assert.Equal(t, int(model.LayerNoneCollision), m.damageAura.Shape().Layer)
+	aura := m.AuraCollider()
+	assert.True(t, aura.Shape().IsSensor)
+	assert.InDelta(t, 0.5, aura.Radius, 1e-6, "radius = active skill's EffectiveRadius")
+	assert.Equal(t, int(model.LayerPlayerCollision), aura.Shape().Mask,
+		"mask derived from the active skill's target flags")
+	assert.Equal(t, int(model.LayerNoneCollision), aura.Shape().Layer)
+}
+
+func TestNewMob_NoSkills_InertSensor(t *testing.T) {
+	d := testMobDefinition()
+	d.Skills = nil
+	m := NewMob(d, false, 0, 0)
+
+	assert.Equal(t, -1, m.SkillComponent().ActiveAuraSlot)
+	assert.InDelta(t, 0.0, m.AuraCollider().Radius, 1e-6)
+	assert.Equal(t, int(model.LayerNoneCollision), m.AuraCollider().Shape().Mask)
 }
 
 // --- aggro ---
 
-func TestNewMob_AggroRadiusDefaultsToFourTimesDamageRadius(t *testing.T) {
+func TestNewMob_AggroRadiusFromBody(t *testing.T) {
 	m := newTestMob()
 
-	assert.InDelta(t, 4*0.5, m.aggroAura.Radius, 1e-6)
+	assert.InDelta(t, 2.0, m.aggroAura.Radius, 1e-6)
 }
 
 func TestMob_StopsChasingInsideAuraStopDistance(t *testing.T) {

@@ -317,35 +317,46 @@ registered between the existing `update` and `postupdate` systems.
 
 ## Mob Integration
 
-*Status: not implemented — scheduled as Phase 6 (see Migration Plan). Mobs still
-use the hardcoded aura path.*
+*Status: implemented (Phase 6.1). Mobs run on the SkillSystem; the hardcoded
+mob aura path is gone.*
 
-Mobs get the same `SkillComponent`. The current hardcoded damage aura in
-`model/mob/mob.go` (driven by `Body.DamageRadius` and `Factors.DamageFraction`)
-becomes a `DamageAura` skill.
+Mobs carry the same `SkillComponent`. Because every mob had its own damage
+values, **each mob has its own aura skill JSON** in `api/skills/mobs/`
+(`DodoAura`, `SaberToothCatAura`, `MammothAura`, `AngryMammothAura`; IDs 101+
+[PLACEHOLDER]), values migrated 1:1. Mob-relevant `damage_aura` extensions:
+`structureDamageFraction` and `targetsStructures` (the former `damages: "All"`
+of the AngryMammoth).
 
-### Mob JSON changes
-
-Add a `skills` array to each mob JSON:
+### Mob JSON shape
 
 ```json
 {
   "id": 1,
   "name": "Dodo",
   "skills": [
-    { "skillName": "DamageAura", "level": 1 }
+    { "skillName": "DodoAura", "level": 1 }
   ]
 }
 ```
 
-The registry loader resolves `skillName` to a `*SkillDefinition` at startup.
-`Body.DamageRadius` and `Factors.DamageFraction` are superseded by the skill
-definition's effect parameters and can be removed once all mobs declare skills.
-During migration both can coexist (mob.go uses old fields if `skills` is absent).
+`skillName` is resolved against the skill registry at startup (unknown name =
+startup failure; load order is items → skills → mobs). `Body.DamageRadius`,
+`Body.Damages`, `Factors.DamageFraction` and `Factors.StructureDamageFraction`
+were removed from the JSON shape. The `mobs.Factors` struct keeps the two
+damage fields as the **MobTouches payload**: the SkillSystem fills them from
+the active skill's effect parameters and each target picks its fraction
+(players: `DamageFraction`, structures: `StructureDamageFraction`) — the
+legacy double dispatch is preserved 1:1. `body.aggroRadius` is now required
+(the 4x-damage-radius fallback died with `DamageRadius`).
 
-Mobs have no spellbook (`Spellbook == nil`), no slot limits configurable by
-players, and no switching — `ActiveAuraSlot` is fixed at 0 on spawn and never
-changes.
+The aura sensor's collision mask is derived from the active skill's target
+flags via `model.AuraMaskFor` (heal auras implicitly target players) — both
+radius and mask are re-derived by the SkillSystem every tick, so **mob aura
+switching works** the moment an AI/boss script calls `SetActiveAura`. The
+whole JSON loadout is equipped into consecutive slots (slot 0 active on
+spawn); mobs have no spellbook (`Spellbook == nil`). Mob damage moved from
+`MobSystem` time (before physics) to `SkillSystem` time (after physics) —
+same per-tick frequency, collisions one physics step fresher.
 
 ---
 
@@ -480,19 +491,32 @@ Phase 6 instead.)
 *Formerly just "mob migration" (the original Phase 3); expanded to pair the
 refactor with monster-kill unlocks so the chapter has player-visible payoff.*
 
-**6.1 — Mob migration** (see Mob Integration above)
+**6.1 — Mob migration ✓ Done** (see Mob Integration above)
 
-- Add `skills` field to all four mob JSON files.
-- Initialize `SkillComponent` on mob construction from JSON-declared skills.
-- `SkillSystem` handles mob aura application; mob-side hardcoded aura code is
-  no longer called.
-- Remove `Body.DamageRadius` / `Factors.DamageFraction` once all mobs declare
-  skills.
-- Tests: mob damages player correctly via SkillSystem.
+- ✓ `skills` field in all four mob JSONs; per-mob aura skill JSONs in
+  `api/skills/mobs/` (values 1:1); `damage_aura` extended with
+  `structureDamageFraction`/`targetsStructures`.
+- ✓ `SkillComponent` initialized on mob construction; `SkillSystem` applies
+  mob auras via the `MobTouches(Factors)` double dispatch (target flags are
+  enforced for player casters too — behavior-neutral, the flags mirror the
+  former hardcoded rules); the `skillEntity` interface was split so mobs
+  don't need player vitals (heal effects on non-players are skipped).
+- ✓ `Body.DamageRadius`/`Body.Damages`/`Factors.DamageFraction`/
+  `Factors.StructureDamageFraction` removed from the JSON shape;
+  `body.aggroRadius` required. The zombie-mob bug was fixed at the start of
+  this chapter.
+- ✓ Tests: mob-caster path unit tests + real-mob end-to-end via SkillSystem
+  and phy.Space; sensor wiring (radius/mask from skill); mask derivation.
 - **Decided: strict 1:1 migration.** All four mobs keep exactly today's
-  behavior (radius, damage per tick); tests compare old vs. new so any observed
-  deviation is by definition a bug. Differentiation afterwards is a pure JSON
-  edit (which 6.3 then demonstrates).
+  behavior (radius, damage per tick). Differentiation afterwards is a pure
+  JSON edit (which 6.3 then demonstrates).
+- **Future-proofing (decided with the boss designation in 6.3):** the full
+  loadout is equipped (not just slot 0) and radius+mask are re-derived per
+  tick, so later boss scripts can switch auras; add spawning reuses the
+  existing mid-game `game.AddEntity` path (`MobSystem.respawnMob` proves it).
+  A brand-new mob *name* still needs an `EntityType` (schema+frontend); a
+  small JSON `entityType` override is the known ~5-line addition when mob
+  tiers (roadmap item 7) introduce variants.
 
 **6.2 — Monster-kill unlocks** (unlock source #2 from the vision)
 

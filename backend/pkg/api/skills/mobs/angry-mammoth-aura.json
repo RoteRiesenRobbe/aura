@@ -1,0 +1,20 @@
+{
+  "_comment": "1:1 migration of AngryMammoth body.damageRadius/damages=All/factors.damageFraction+structureDamageFraction (Phase 6.1) — all values [PLACEHOLDER]",
+  "id": 104,
+  "name": "AngryMammothAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 3.0,
+      "radiusPerLevel": 0.0,
+      "damageFraction": 0.0067,
+      "damageFractionPerLevel": 0.0,
+      "structureDamageFraction": 0.67,
+      "targetsMobs": false,
+      "targetsPlayers": true,
+      "targetsStructures": true
+    }
+  ]
+}

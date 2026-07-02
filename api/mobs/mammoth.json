@@ -4,7 +4,6 @@
   "type": "MOB",
   "factors": {
     "vulnerability": 0.5,
-    "damageFraction": 0.0033,
     "experience": 90,
     "speed": 0.2,
     "deltaPhi": 0.1,
@@ -18,10 +17,12 @@
   ],
   "body": {
     "radius": 0.5,
-    "damageRadius": 1,
     "aggroRadius": 4
   },
   "generator": {
     "weight": 20
-  }
+  },
+  "skills": [
+    { "skillName": "MammothAura", "level": 1 }
+  ]
 }
