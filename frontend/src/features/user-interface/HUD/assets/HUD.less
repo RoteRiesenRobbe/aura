@@ -522,7 +522,35 @@
 				border-radius: 0.4rem;
 				padding-left: 0.4rem;
 			}
+
+			&.unlocked {
+				animation: skill-unlock-glow 2.5s ease-out;
+				border-radius: 0.4rem;
+			}
 		}
+	}
+
+	&.unlockPulse {
+		animation: spellbook-unlock-pulse 2.5s ease-out;
+	}
+}
+
+@keyframes skill-unlock-glow {
+	0% {
+		background: fade(gold, 45%);
+		color: white;
+	}
+	100% {
+		background: transparent;
+	}
+}
+
+@keyframes spellbook-unlock-pulse {
+	0% {
+		box-shadow: 0 0 0 0 fade(gold, 70%);
+	}
+	100% {
+		box-shadow: 0 0 1.2rem 0.6rem fade(gold, 0%);
 	}
 }
 

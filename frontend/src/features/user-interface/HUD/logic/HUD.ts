@@ -290,10 +290,28 @@ function clearEquipSelection() {
     auraLoadoutElement.classList.remove('hasPendingSkill');
 }
 
+// Previous tick's spellbook contents, used to detect fresh unlocks for the
+// one-shot glow. Empty = no baseline yet (join/respawn/death cleared it) —
+// the first non-empty list renders without glow. That never swallows a real
+// unlock, since players always spawn with DamageAura already discovered.
+let knownSpellbookIds: number[] = [];
+
+function sameIds(a: number[], b: number[]) {
+    return a.length === b.length && a.every((id, i) => id === b[i]);
+}
+
 // updateSpellbook is called every tick in PLAYING state with the full list of
-// discovered skill IDs. An empty array clears the list.
+// discovered skill IDs. An empty array clears the list. Rebuilds the DOM only
+// when the list actually changed, so the unlock animation is not restarted by
+// the per-tick calls.
 export function updateSpellbook(ids: number[]) {
     if (!spellbookListElement) return;
+    if (sameIds(ids, knownSpellbookIds)) return;
+
+    const isBaseline = knownSpellbookIds.length === 0;
+    const known = new Set(knownSpellbookIds);
+    let anyUnlock = false;
+
     spellbookListElement.innerHTML = '';
     for (const id of ids) {
         const li = document.createElement('li');
@@ -302,8 +320,18 @@ export function updateSpellbook(ids: number[]) {
         if (selectedSkillId === id) {
             li.classList.add('selected');
         }
+        if (!isBaseline && !known.has(id)) {
+            li.classList.add('unlocked');
+            anyUnlock = true;
+        }
         spellbookListElement.appendChild(li);
     }
+
+    if (anyUnlock) {
+        playCssAnimation(document.getElementById('spellbook'), 'unlockPulse');
+    }
+
+    knownSpellbookIds = ids.slice();
 }
 
 export function updateAuraLoadout(slots: number[]) {

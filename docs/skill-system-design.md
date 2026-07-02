@@ -349,7 +349,7 @@ changes.
 The goal is no build break longer than a few hours at any step. Old and new code
 run in parallel until Phase 5.
 
-**Execution order:** 3.7 → 1b → Phase 5 → 6 → 7 → 8 → 9.
+**Execution order:** ~~3.7~~ → 1b → Phase 5 → 6 → 7 → 8 → 9.
 **⚑** marks open decision points to resolve before (or during) the phase.
 
 ### Phase 1 — Skill package and registry (~1 day) ✓ Done
@@ -373,7 +373,7 @@ run in parallel until Phase 5.
   `SkillComponent.ActiveAuraSlot` (0 for damage, 1 for heal).
 - Tests: player takes and deals correct damage after migration.
 
-### Phase 3 — Spellbook chapter (milestone unlocks + equip)
+### Phase 3 — Spellbook chapter (milestone unlocks + equip) ✓ Done
 
 *Renumbered: this phase was originally "Mob migration", which moved to Phase 6
 (not yet scheduled). Substep numbers below match commit messages.*
@@ -386,8 +386,15 @@ run in parallel until Phase 5.
 - 3.4 ✓ Spellbook panel in the frontend (read-only).
 - 3.5 ✓ Equip: `Equip` client message + backend `EquipSystem`;
   click-skill-then-click-slot UI. *(3.6, the equip UI, was folded into 3.5.)*
-- 3.7 — Unlock event over the wire + glow/pulse animation on the spellbook
-  icon. **Remaining.**
+- 3.7 ✓ Unlock glow/pulse animation on the spellbook panel. **Decided: no
+  wire event** — the spellbook is already streamed in full every tick, so the
+  client detects fresh unlocks by diffing against the previous tick
+  (`HUD.ts updateSpellbook`, now rebuilds the DOM only on change). An empty
+  known list (join/death/respawn) is adopted as baseline without glow; safe
+  because every spawn starts with DamageAura discovered. Any future unlock
+  source (6.2 monster kills, Phase 9 combinations) gets the glow for free.
+  Also added: `XP <amount>` cheat command (goes through `AddExperience`, so it
+  exercises milestone unlocks) for manual testing.
 
 ### Phase 4 — Wire protocol update (~0.5 days) ✓ Done
 
@@ -464,8 +471,9 @@ refactor with monster-kill unlocks so the chapter has player-visible payoff.*
 
 **6.2 — Monster-kill unlocks** (unlock source #2 from the vision)
 
-- Certain mobs add a skill to the killer's spellbook on death; delivery reuses
-  the 3.7 unlock event.
+- Certain mobs add a skill to the killer's spellbook on death; the client-side
+  unlock glow (3.7 spellbook diff) picks this up automatically — no delivery
+  work needed.
 - Drop declaration lives in the mob JSON (e.g. an `unlocks` field).
 - **Decided: mixed model.** The data model supports both guaranteed and
   chance-based unlocks from the start (e.g. a `chance` field where `1.0` =

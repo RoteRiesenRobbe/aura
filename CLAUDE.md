@@ -4,11 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Migration Status
 
-- **Last completed:** Legacy-aura-UI replacement — activate + Nothing state. The Aura Slots panel (`#auraLoadout`) now **activates/switches/deactivates** the active aura, not just equips: clicking an occupied slot activates it (sends `active_aura_slot`); clicking the active slot again deactivates to a server-authoritative **Nothing** state; optimistic client-side `.activeSlot` highlight. Backend: `active_aura_slot >= 0` switches, the `-2` wire sentinel deactivates (→ `SkillComponent.ActiveAuraSlot = -1`), `SkillSystem` ticks no aura at `-1`. Legacy `#auras` buttons still coexist.
-- **Remaining plan for the spellbook chapter (Phase 3):**
-  - 3.7 — unlock event over wire + glow/pulse animation on spellbook icon
-  - *(3.6 equip UI was folded into 3.5)*
-- **Legacy aura UI replacement (separate from 3.7):**
+- **Last completed:** Phase 3.7 — unlock glow. **Decided: no wire event**; the client diffs the per-tick spellbook stream (`HUD.ts updateSpellbook`, rebuilds DOM only on change) and plays a one-shot gold glow + panel pulse on fresh IDs. Empty known list (join/death/respawn) = baseline, no glow. Plus `XP <amount>` cheat command (through `AddExperience`, triggers milestone unlocks). **Phase 3 (spellbook chapter) is complete.**
+- **Legacy aura UI replacement:**
   - activate + optimistic highlight ✓
   - server-authoritative Nothing / deactivate (`-2` sentinel) ✓
   - **next (1b):** incoming server→client `active_aura_slot` field driving both panel highlight and on-character ring from spawn; retires `#auras` buttons, the `AuraType`=slot hack, and the deprecated `aura`/`activeAura` fields.
