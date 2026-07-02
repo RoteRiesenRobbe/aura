@@ -61,8 +61,20 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddBodyTemperature(builder, p.Progression().Level)
 	BerryhunterApi.CharacterAddAuraRadius(builder, f32ToU16Px(p.AuraRadius()))
 	BerryhunterApi.CharacterAddActiveAura(builder, BerryhunterApi.AuraType(p.ActiveAura()))
+	BerryhunterApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
 
 	BerryhunterApi.CharacterAddEquipment(builder, equipment)
+}
+
+// ActiveSkillID returns the skill ID of the currently active aura, or 0 if no
+// aura is active (Nothing) or the active slot is empty. 0 is the wire encoding
+// for "no ring" on Character.active_skill_id.
+func ActiveSkillID(sc *skills.SkillComponent) uint16 {
+	slot := sc.ActiveAuraSlot
+	if slot < 0 || slot >= len(sc.AuraSlots) || sc.AuraSlots[slot] == nil {
+		return 0
+	}
+	return uint16(sc.AuraSlots[slot].Def.ID)
 }
 
 func playerActionTypeMarshal(action model.PlayerActionType) BerryhunterApi.ActionType {
@@ -200,6 +212,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	BerryhunterApi.GameStateAddInventory(builder, inventory)
 	BerryhunterApi.GameStateAddSpellbook(builder, spellbook)
 	BerryhunterApi.GameStateAddAuraSlots(builder, auraSlots)
+	BerryhunterApi.GameStateAddActiveAuraSlot(builder, int8(gs.Player.SkillComponent().ActiveAuraSlot))
 
 	return BerryhunterApi.GameStateEnd(builder)
 }

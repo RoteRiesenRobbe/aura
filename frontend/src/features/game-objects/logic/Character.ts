@@ -31,6 +31,7 @@ import {swingLightAudioCues} from '../../player/logic/PlayerJuice';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
 import {BerryhunterApi} from '../../backend/logic/BerryhunterApi';
+import {HEAL_AURA_SKILL_ID} from '../../../client-data/Skills';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -121,7 +122,8 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
         // Keep a fixed default facing (down) until explicit rotation is applied.
         this.setRotation(Character.DOWNWARD_FACING_ROTATION);
-        this.setActiveAura(BerryhunterApi.AuraType.Damage);
+        // No ring until the first server state arrives (active_skill_id drives it).
+        this.setActiveSkill(0);
 
         this.initHealthBar();
         this.createName();
@@ -318,6 +320,14 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         const useHealAura = aura === BerryhunterApi.AuraType.Heal;
         this.damageAuraSprite.visible = !useHealAura;
         this.healAuraSprite.visible = useHealAura;
+    }
+
+    // setActiveSkill drives the aura ring from the server-authoritative
+    // Character.active_skill_id wire field. 0 = Nothing → no ring.
+    // Ring style per skill ID is a client-side mapping (resolved question 6).
+    setActiveSkill(skillId: number) {
+        this.damageAuraSprite.visible = skillId !== 0 && skillId !== HEAL_AURA_SKILL_ID;
+        this.healAuraSprite.visible = skillId === HEAL_AURA_SKILL_ID;
     }
 
     setAuraRadius(radiusPx: number) {

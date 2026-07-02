@@ -142,8 +142,10 @@ export class EntityManager {
             if (isDefined(entity.level) && isFunction(character['setLevel'])) {
                 character['setLevel'](entity.level);
             }
-            if (isDefined(entity.activeAura) && isFunction(character['setActiveAura'])) {
-                character['setActiveAura'](entity.activeAura);
+            // Ring is driven solely by the server-authoritative active_skill_id
+            // (0 = Nothing → no ring); the legacy activeAura field is ignored here.
+            if (isDefined(entity.activeSkillId) && isFunction(character['setActiveSkill'])) {
+                character['setActiveSkill'](entity.activeSkillId);
             }
             if (isDefined(entity.auraRadius) && isFunction(character['setAuraRadius'])) {
                 character['setAuraRadius'](entity.auraRadius);

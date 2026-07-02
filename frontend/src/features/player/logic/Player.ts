@@ -87,8 +87,12 @@ export class Player {
             this.character.setHealth(entity.health);
         }
         if (isDefined(entity.activeAura)) {
-            this.character.setActiveAura(entity.activeAura);
+            // Legacy #auras button highlight only; the on-character ring is
+            // driven by the server-authoritative activeSkillId below.
             HUD.setActiveAura(entity.activeAura);
+        }
+        if (isDefined(entity.activeSkillId)) {
+            this.character.setActiveSkill(entity.activeSkillId);
         }
         if (isDefined(entity.auraRadius)) {
             this.character.setAuraRadius(entity.auraRadius);

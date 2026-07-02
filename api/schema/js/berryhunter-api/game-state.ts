@@ -92,8 +92,13 @@ auraSlotsArray():Uint16Array|null {
   return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
+activeAuraSlot():number {
+  const offset = this.bb!.__offset(this.bb_pos, 18);
+  return offset ? this.bb!.readInt8(this.bb_pos + offset) : -1;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(7);
+  builder.startObject(8);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -174,12 +179,16 @@ static startAuraSlotsVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(2, numElems, 2);
 }
 
+static addActiveAuraSlot(builder:flatbuffers.Builder, activeAuraSlot:number) {
+  builder.addFieldInt8(7, activeAuraSlot, -1);
+}
+
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, inventoryOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, inventoryOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number):flatbuffers.Offset {
   GameState.startGameState(builder);
   GameState.addTick(builder, tick);
   GameState.addPlayerType(builder, playerType);
@@ -188,6 +197,7 @@ static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Play
   GameState.addEntities(builder, entitiesOffset);
   GameState.addSpellbook(builder, spellbookOffset);
   GameState.addAuraSlots(builder, auraSlotsOffset);
+  GameState.addActiveAuraSlot(builder, activeAuraSlot);
   return GameState.endGameState(builder);
 }
 }

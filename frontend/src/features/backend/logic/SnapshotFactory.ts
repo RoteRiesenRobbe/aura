@@ -13,6 +13,7 @@ export class Snapshot {
     inventory: [];
     spellbook: number[]; // discovered skill IDs, owning player only
     auraSlots: number[]; // equipped aura slot contents, positional (index i = slot i, 0 = empty)
+    activeAuraSlot: number; // active aura slot index, owning player only; -1 = Nothing
 }
 
 export function newSnapshot(backendState: BackendState, gameState: GameStateMessage) {
@@ -41,6 +42,9 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
 
         // Aura slots: positional, always carry the full array
         snapshot.auraSlots = gameState.auraSlots;
+
+        // Active aura slot: scalar, always carried (server-authoritative highlight)
+        snapshot.activeAuraSlot = gameState.activeAuraSlot;
     } else {
         // First snapshot: assign the whole GameStateMessage, which already carries spellbook.
         snapshot = gameState;

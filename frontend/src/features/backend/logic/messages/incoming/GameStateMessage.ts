@@ -29,6 +29,8 @@ export class GameStateMessage {
     entities;
     spellbook: number[];
     auraSlots: number[];
+    // index of the active aura slot for the owning player; -1 = Nothing
+    activeAuraSlot: number;
 
     constructor(gameState: BerryhunterApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -64,6 +66,8 @@ export class GameStateMessage {
         for (let i = 0; i < gameState.auraSlotsLength(); ++i) {
             this.auraSlots.push(gameState.auraSlots(i));
         }
+
+        this.activeAuraSlot = gameState.activeAuraSlot();
     }
 }
 
@@ -133,6 +137,7 @@ function unmarshalEntity(entity, eType) {
         levelProgress: undefined,
         auraRadius: undefined,
         activeAura: undefined,
+        activeSkillId: undefined,
         statusEffects: undefined,
     };
 
@@ -173,6 +178,7 @@ function unmarshalEntity(entity, eType) {
         result.levelProgress = entity.satiety() / 0xffffffff;
         result.auraRadius = entity.auraRadius();
         result.activeAura = entity.activeAura();
+        result.activeSkillId = entity.activeSkillId();
 
         result.equipment = [];
         for (let i = 0; i < entity.equipmentLength(); ++i) {

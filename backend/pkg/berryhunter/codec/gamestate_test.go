@@ -90,6 +90,73 @@ func TestAuraSlotsMarshalFlatbuf_AllEmpty(t *testing.T) {
 	}
 }
 
+func TestActiveSkillID_ActiveSlotYieldsSkillID(t *testing.T) {
+	sc := skills.NewSkillComponent(true)
+	sc.EquipAura(1, &skills.SkillDefinition{ID: 2, Name: "HealAura"}, 1)
+	sc.SetActiveAura(1)
+
+	assert.Equal(t, uint16(2), ActiveSkillID(sc))
+}
+
+func TestActiveSkillID_NothingActiveYieldsZero(t *testing.T) {
+	sc := skills.NewSkillComponent(true)
+	sc.EquipAura(0, &skills.SkillDefinition{ID: 1, Name: "DamageAura"}, 1)
+
+	assert.Equal(t, uint16(0), ActiveSkillID(sc))
+}
+
+func TestActiveSkillID_ActiveButEmptySlotYieldsZero(t *testing.T) {
+	sc := skills.NewSkillComponent(true)
+	sc.SetActiveAura(2) // slot 2 was never equipped
+
+	assert.Equal(t, uint16(0), ActiveSkillID(sc))
+}
+
+func TestCharacterActiveSkillId_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	BerryhunterApi.CharacterStart(b)
+	BerryhunterApi.CharacterAddActiveSkillId(b, 2)
+	c := BerryhunterApi.CharacterEnd(b)
+	b.Finish(c)
+
+	result := BerryhunterApi.GetRootAsCharacter(b.FinishedBytes(), 0)
+	assert.Equal(t, uint16(2), result.ActiveSkillId())
+}
+
+func TestCharacterActiveSkillId_AbsentReadsZero(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	BerryhunterApi.CharacterStart(b)
+	c := BerryhunterApi.CharacterEnd(b)
+	b.Finish(c)
+
+	result := BerryhunterApi.GetRootAsCharacter(b.FinishedBytes(), 0)
+	assert.Equal(t, uint16(0), result.ActiveSkillId(), "absent field must read as 0 = Nothing")
+}
+
+func TestGameStateActiveAuraSlot_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	BerryhunterApi.GameStateStart(b)
+	BerryhunterApi.GameStateAddActiveAuraSlot(b, 2)
+	gs := BerryhunterApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	assert.Equal(t, int8(2), result.ActiveAuraSlot())
+}
+
+func TestGameStateActiveAuraSlot_AbsentReadsMinusOne(t *testing.T) {
+	// Server→client the -1 default and an absent field are semantically
+	// identical (Nothing) — this pins the claim that no sentinel is needed
+	// in this direction (unlike the client→server -2 deactivate sentinel).
+	b := flatbuffers.NewBuilder(64)
+	BerryhunterApi.GameStateStart(b)
+	gs := BerryhunterApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	assert.Equal(t, int8(-1), result.ActiveAuraSlot())
+}
+
 func TestSpellbookMarshalFlatbuf_NilSpellbook(t *testing.T) {
 	sc := skills.NewSkillComponent(false) // mob — nil spellbook
 

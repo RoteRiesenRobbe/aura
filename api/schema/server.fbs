@@ -117,6 +117,10 @@ table Character {
   active_aura:AuraType = Damage;
 
   aabb:AABB;
+
+  // skill ID of the currently active aura; 0 = none active (Nothing).
+  // Appended at the table end so existing field IDs stay stable.
+  active_skill_id:ushort = 0;
 }
 
 table Spectator {
@@ -141,6 +145,11 @@ table GameState {
 
   // equipped aura slot contents — positional: index i = AuraSlots[i], 0 = empty slot
   aura_slots:[ushort];
+
+  // index of the active aura slot, for the owning player's panel highlight;
+  // -1 = none active (Nothing). Server→client: absent reads as the default -1,
+  // which is semantically identical — no sentinel needed in this direction.
+  active_aura_slot:byte = -1;
 }
 
 table Welcome {

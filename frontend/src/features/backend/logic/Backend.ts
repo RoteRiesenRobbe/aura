@@ -265,6 +265,10 @@ export class Backend implements IBackend {
                 HUD.updateAuraLoadout(snapshot.auraSlots);
             }
 
+            if (Utils.isDefined(snapshot.activeAuraSlot)) {
+                HUD.updateActiveAuraSlot(snapshot.activeAuraSlot);
+            }
+
             if (Develop.isActive()) {
                 this.game.player.character['updateAABB'](snapshot.player.aabb);
             }

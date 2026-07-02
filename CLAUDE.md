@@ -4,12 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Migration Status
 
-- **Last completed:** Phase 3.7 — unlock glow. **Decided: no wire event**; the client diffs the per-tick spellbook stream (`HUD.ts updateSpellbook`, rebuilds DOM only on change) and plays a one-shot gold glow + panel pulse on fresh IDs. Empty known list (join/death/respawn) = baseline, no glow. Plus `XP <amount>` cheat command (through `AddExperience`, triggers milestone unlocks). **Phase 3 (spellbook chapter) is complete.**
-- **Legacy aura UI replacement:**
-  - activate + optimistic highlight ✓
-  - server-authoritative Nothing / deactivate (`-2` sentinel) ✓
-  - **next (1b):** incoming server→client `active_aura_slot` field driving both panel highlight and on-character ring from spawn; retires `#auras` buttons, the `AuraType`=slot hack, and the deprecated `aura`/`activeAura` fields.
-- **Current state:** new players start with DamageAura in slot 0 on spawn. HealAura unlocks into the spellbook at level 2; the player can equip it into any slot via the Aura Slots panel, and **activate/switch/deactivate** the active aura from that same panel. Known cosmetic gap: on spawn the server has DamageAura active (slot 0) but the panel shows no highlight (no incoming active-slot field yet); it aligns after the first switch/toggle. Closed by 1b. Legacy `#auras` buttons + `setActiveAura()` still coexist.
+- **Last completed:** Step 1b — server-authoritative active-aura state, incoming. Two new wire fields (appended at table ends, field IDs stable): `Character.active_skill_id` (ushort, 0 = Nothing) drives the on-character ring for **all** clients incl. the new "no ring" state (`Character.setActiveSkill`); `GameState.active_aura_slot` (byte, -1 = Nothing) drives the owning player's panel highlight, overwriting the optimistic click highlight each tick. Deviates from the doc's original plan (slot index on `Character`) because `aura_slots` lives on `GameState` and duplicate equips make skill→slot derivation ambiguous. Spawn cosmetic gap closed. Ring application reads only the new field; legacy `active_aura` is ignored (wire removal in Phase 5).
+- **Legacy aura UI replacement:** 1a ✓, 1b ✓ — **next: Phase 5 cleanup** (preceded by re-sourcing the aura collider radius from the active skill definition, since Phase 5 removes the legacy sizing path). Retires `#auras` buttons, the `AuraType`=slot hack, and the deprecated `aura`/`active_aura` fields; **decided: `aura_radius` stays** (sizes the ring for all clients, Phase-7-proof).
+- **Current state:** new players start with DamageAura in slot 0 on spawn, panel highlight + ring correct from spawn. HealAura unlocks into the spellbook at level 2 (gold glow); equip via Aura Slots panel; activate/switch/deactivate from that panel, server-authoritative. Legacy `#auras` buttons + `setActiveAura()` still coexist until Phase 5.
 - **Deferred tech debt:**
   - Old `aura` wire field + old `applyDamageAura`/`applyHealAura` still present as dead code — Phase 5 cleanup.
   - `[SkillSystem] tick` debug log still fires in -dev — remove in Phase 5.

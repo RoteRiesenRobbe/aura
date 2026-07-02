@@ -246,9 +246,10 @@ function setupAuraLoadout() {
         }
 
         // Activate branch: nothing pending — toggle this slot's aura.
-        // Empty slots (skill id 0) do nothing. Sends only activeAuraSlot; the
-        // on-character ring deliberately does NOT follow here (see step 1b — a real
-        // incoming active_aura_slot wire field will drive both ring and highlight).
+        // Empty slots (skill id 0) do nothing. The highlight set here is
+        // optimistic (instant feedback); the server-authoritative
+        // active_aura_slot overwrites it every tick (updateActiveAuraSlot),
+        // and the on-character ring follows Character.active_skill_id.
         if (currentAuraSlots[slot] === 0 || currentAuraSlots[slot] === undefined) {
             return;
         }
@@ -332,6 +333,18 @@ export function updateSpellbook(ids: number[]) {
     }
 
     knownSpellbookIds = ids.slice();
+}
+
+// updateActiveAuraSlot applies the server-authoritative active aura slot
+// (GameState.active_aura_slot) each tick; -1 = Nothing. It overwrites the
+// optimistic click highlight within a tick, making the server the source of
+// truth for the panel from spawn on.
+export function updateActiveAuraSlot(slot: number) {
+    if (slot >= 0) {
+        setActiveSlotHighlight(slot);
+    } else {
+        clearActiveSlotHighlight();
+    }
 }
 
 export function updateAuraLoadout(slots: number[]) {

@@ -349,7 +349,7 @@ changes.
 The goal is no build break longer than a few hours at any step. Old and new code
 run in parallel until Phase 5.
 
-**Execution order:** ~~3.7~~ → 1b → Phase 5 → 6 → 7 → 8 → 9.
+**Execution order:** ~~3.7~~ → ~~1b~~ → Phase 5 → 6 → 7 → 8 → 9.
 **⚑** marks open decision points to resolve before (or during) the phase.
 
 ### Phase 1 — Skill package and registry (~1 day) ✓ Done
@@ -422,11 +422,21 @@ with the Aura Slots panel (`#auraLoadout`). Step names match commit messages
   deactivates via the `-2` wire sentinel to a server-authoritative **Nothing**
   state (`SkillComponent.ActiveAuraSlot = -1`). Optimistic client-side
   `.activeSlot` highlight.
-- 1b — Incoming server→client `active_aura_slot` field on `Character`, driving
-  both the panel highlight and the on-character ring from spawn. Closes the
-  known cosmetic gap (server has DamageAura active on spawn but the panel shows
-  no highlight until the first switch). Prerequisite for the frontend parts of
-  Phase 5. **Next.**
+- 1b ✓ Server-authoritative active-aura state, incoming. **Implemented as two
+  fields, deviating from the plan above** (which wanted `active_aura_slot` on
+  `Character`): `aura_slots` actually lives on `GameState` (owning client
+  only), so other clients cannot resolve a slot index to a skill — and since
+  `EquipSystem` allows the same skill in two slots, the owning client cannot
+  derive the slot from a skill ID either. Therefore:
+  `Character.active_skill_id` (ushort, 0 = Nothing) drives the on-character
+  ring for **all** clients (style via the client-side `Skills.ts` mapping,
+  resolved question 6; `Character.setActiveSkill` includes the previously
+  missing "no ring" state), and `GameState.active_aura_slot` (byte, -1 =
+  Nothing) drives the owning player's panel highlight, overwriting the
+  optimistic click highlight each tick. Closes the spawn cosmetic gap. The
+  per-tick ring application now reads only the new field; the legacy
+  `active_aura` field still exists on the wire but is ignored (removed in
+  Phase 5).
 
 ### Phase 5 — Cleanup (~0.5 days) — requires 1b
 
@@ -439,7 +449,10 @@ Phase 6 instead.)
 - Remove `model.AuraType`, `model.AuraTypeDamage`, `model.AuraTypeHeal`.
 - Remove `DamageAuraRadius`, `HealAuraRadius`, `DamageAuraDamageFraction`, etc.
   from `cfg.PlayerConfig`.
-- Remove `active_aura` and `aura_radius` from `server.fbs Character` table.
+- Remove `active_aura` from the `server.fbs Character` table. **Decided:
+  `aura_radius` stays** — all clients need it to size the ring, and it remains
+  correct when Phase 7 adds level-scaled radii; its meaning becomes "effective
+  radius of the active aura, 0 = none".
 - Remove `aura` field from `client.fbs Input` table.
 - Remove `AuraType` enum from `common.fbs`.
 - Frontend: remove the legacy `#auras` buttons, `setActiveAura()`, and the
@@ -587,12 +600,18 @@ earlier phases build (skill levels, all three categories, the unlock event).
 `SkillSlot` table (see Rejected below):
 
 ```flatbuffers
-// In table GameState:
-    spellbook:  [ushort];   // discovered skill IDs, sent to the owning client
+// In table GameState (owning client only):
+    spellbook:        [ushort];   // discovered skill IDs
+    aura_slots:       [ushort];   // equipped aura slot contents, positional; 0 = empty
+    active_aura_slot: byte = -1;  // active slot index for the panel highlight; -1 = Nothing
 
-// In table Character:
-    aura_slots: [ushort];   // equipped aura slot contents, positional; 0 = empty
+// In table Character (visible to all clients):
+    active_skill_id:  ushort = 0; // skill ID of the active aura; 0 = Nothing (no ring)
 ```
+
+(Earlier revisions of this document wrongly listed `aura_slots` on `Character`;
+it has always been on `GameState`. The 1b fields are appended at the table ends
+so existing field IDs stay stable.)
 
 **`client.fbs`**:
 
@@ -621,19 +640,6 @@ Legacy fields still present and deprecated until Phase 5: `active_aura` and
 enum in `common.fbs`.
 
 ### Planned
-
-**Step 1b — `server.fbs Character`:**
-
-```flatbuffers
-// In table Character, add:
-    active_aura_slot: byte = -1;   // index into aura_slots; -1 = none active
-```
-
-> Note: the FlatBuffers default-omission pitfall that forced the client-side
-> `-2` sentinel does **not** apply here. Server→client, an absent field reads
-> back as the default `-1`, which already means "nothing active" — absent and
-> explicit `-1` are semantically identical in this direction, so no sentinel is
-> needed.
 
 **With the cooldown-skill implementation (not yet scheduled) —
 `client.fbs Input`:**

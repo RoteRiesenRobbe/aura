@@ -165,8 +165,20 @@ func (rcv *GameState) MutateAuraSlots(j int, n uint16) bool {
 	return false
 }
 
+func (rcv *GameState) ActiveAuraSlot() int8 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetInt8(o + rcv._tab.Pos)
+	}
+	return -1
+}
+
+func (rcv *GameState) MutateActiveAuraSlot(n int8) bool {
+	return rcv._tab.MutateInt8Slot(18, n)
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(7)
+	builder.StartObject(8)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -200,6 +212,9 @@ func GameStateAddAuraSlots(builder *flatbuffers.Builder, auraSlots flatbuffers.U
 }
 func GameStateStartAuraSlotsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)
+}
+func GameStateAddActiveAuraSlot(builder *flatbuffers.Builder, activeAuraSlot int8) {
+	builder.PrependInt8Slot(7, activeAuraSlot, -1)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
