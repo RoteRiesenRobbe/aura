@@ -550,11 +550,20 @@ refactor with monster-kill unlocks so the chapter has player-visible payoff.*
   that can't be equipped or used reads as a bug, not a teaser; passive/cooldown
   drops are added in Phase 8 as a pure mob-JSON edit.
 
-**6.3 — First new mob or elite variant**
+**6.3 — Boss designation ✓ Done** *(scope changed by decision: instead of a
+new mob / elite variant, the existing big mob becomes the boss)*
 
-*Decided: fixed part of Phase 6 (no longer optional).* Proof that data-driven
-mobs make content cheap: one new mob defined purely in JSON (different
-skill/level loadout), no new Go code.
+- ✓ The **AngryMammoth is the boss**: already the biggest mob by far (body
+  1.7 vs. 0.5, sprite 180–220 px vs. 60–80, `bossMobs` render layer, fixed
+  single spawn, 1000 XP) — and now also the biggest aura. Implemented purely
+  as data: `AngryMammothAura` gained per-level scaling (`radiusPerLevel`
+  0.25, `damageFractionPerLevel` 0.002 [PLACEHOLDER]) and the mob equips it
+  at **level 3** → effective radius 3.5, damage 0.0107/tick. This is the
+  proof that data-driven mobs make content cheap: the boss designation is a
+  level knob in two JSON files.
+- ✓ Guaranteed `WildAura` unlock on kill (6.2) rounds out the boss reward.
+- The original "one new mob purely in JSON" proof moved to roadmap item 7
+  (mob tiers/variants), where the `entityType` override lands.
 
 ### Phase 7 — Skill leveling & skill points (~2–3 days)
 
@@ -769,6 +778,14 @@ Known issues to address in a future cleanup pass — not blocking current work.
 - **Equip level=1 gap** — `SkillComponent.Spellbook` is `map[SkillID]bool`
   (discovery only; no per-skill level stored). `EquipSystem` therefore always
   equips at level 1. Revisit when skill-leveling is implemented.
+
+- **Mob aura ring size is a frontend constant** —
+  `GraphicsConfig.mobs.<mob>.damageAuraRadiusMeters` duplicates the effective
+  radius of the mob's aura skill (player rings are wire-driven via
+  `aura_radius`; mob rings are not). The values must be kept in sync manually
+  when a mob's skill radius or level changes. Consider serializing mob aura
+  radii (or reusing the skill-id → radius mapping) — becomes pressing when
+  mobs switch auras mid-fight (boss scripts) or radii scale dynamically.
 
 - **Single tick accumulator per equipped skill** — a multi-effect skill with
   differing `tickInterval` values would fire its shorter-interval effects on

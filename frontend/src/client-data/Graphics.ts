@@ -107,7 +107,10 @@ export const GraphicsConfig = {
             file: require('../features/game-objects/assets/mobs/demon.svg'),
             minSize: <number> 180,
             maxSize: <number> 220,
-            damageAuraRadiusMeters: <number> 3
+            // Must match the effective radius of AngryMammothAura at the
+            // equipped level (skill radius 3.0 + 2 * 0.25 at level 3) — the
+            // mob ring is a client constant, not wire-driven like player rings.
+            damageAuraRadiusMeters: <number> 3.5
         },
     },
 

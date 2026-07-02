@@ -1,5 +1,5 @@
 {
-  "_comment": "1:1 migration of AngryMammoth body.damageRadius/damages=All/factors.damageFraction+structureDamageFraction (Phase 6.1) — all values [PLACEHOLDER]",
+  "_comment": "Boss aura (Phase 6.3): level-1 values are the 1:1 migration of the legacy AngryMammoth; per-level scaling makes the boss designation a pure mob-JSON level knob. All values [PLACEHOLDER]. NOTE: the frontend ring size is a GraphicsConfig constant (angryMammoth.damageAuraRadiusMeters) — keep it in sync with the effective radius at the equipped level.",
   "id": 104,
   "name": "AngryMammothAura",
   "category": "active_aura",
@@ -8,9 +8,9 @@
     {
       "type": "damage_aura",
       "radius": 3.0,
-      "radiusPerLevel": 0.0,
+      "radiusPerLevel": 0.25,
       "damageFraction": 0.0067,
-      "damageFractionPerLevel": 0.0,
+      "damageFractionPerLevel": 0.002,
       "structureDamageFraction": 0.67,
       "targetsMobs": false,
       "targetsPlayers": true,
