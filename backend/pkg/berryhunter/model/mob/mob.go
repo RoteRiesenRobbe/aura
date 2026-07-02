@@ -138,6 +138,14 @@ func (m *Mob) MobDefinition() *mobs.MobDefinition {
 }
 
 func (m *Mob) Update(dt float32) bool {
+	// Death check before anything else — in particular before out-of-combat
+	// regeneration, which would otherwise revive a 0-HP mob that has no aggro
+	// target (the former zombie bug: revived with deathRewardGiven latched,
+	// never granting XP or drops again).
+	if m.health == 0 {
+		return false
+	}
+
 	auraCollisions := m.damageAura.Collisions()
 	for c := range auraCollisions {
 		usr := c.Shape().UserData

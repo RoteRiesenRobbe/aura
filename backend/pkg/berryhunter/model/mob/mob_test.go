@@ -125,27 +125,21 @@ func TestMob_Update_DeadMobWithAggroTargetIsRemoved(t *testing.T) {
 		"a dead mob that still has an aggro target reports death and gets removed")
 }
 
-// TestMob_Update_DeadMobWithoutAggro_ZombieBug documents a real bug found while
-// writing these tests: Update applies out-of-combat regeneration BEFORE the
-// death check, so a mob that reaches 0 health while it has no aggro target
-// (reachable by kiting it out of its territory until it drops aggro, then
-// letting the aura finish it) heals itself above zero in the same tick and
-// survives. Because deathRewardGiven is already latched, the resurrected mob
-// never grants XP or drops again. MobSystem relies solely on Update's return
-// value, so nothing else removes it.
-//
-// This test pins the CURRENT (buggy) behavior on purpose — fixing it means
-// checking health before regenerating (or right after aura intake). When the
-// fix lands, invert these assertions.
-func TestMob_Update_DeadMobWithoutAggro_ZombieBug(t *testing.T) {
+// TestMob_Update_DeadMobWithoutAggro_Dies pins the fix for the former zombie
+// bug: Update used to apply out-of-combat regeneration BEFORE the death check,
+// so a mob that reached 0 health while it had no aggro target (kited out of
+// its territory) healed itself above zero in the same tick and survived —
+// with deathRewardGiven latched, never granting XP or drops again. The death
+// check now runs before regeneration.
+func TestMob_Update_DeadMobWithoutAggro_Dies(t *testing.T) {
 	m := newTestMob()
 	m.health = 0 // dead, but no aggro target and no spawn set
 
 	alive := m.Update(0)
 
-	assert.True(t, alive, "BUG: corpse regenerates instead of dying")
-	assert.Greater(t, uint32(m.Health()), uint32(0),
-		"BUG: out-of-combat regen runs on a dead mob")
+	assert.False(t, alive, "a dead mob must die even without an aggro target")
+	assert.Equal(t, uint32(0), uint32(m.Health()),
+		"out-of-combat regen must not run on a dead mob")
 }
 
 // TestMob_KillRewardGoesToLastToucherOnly characterizes the single-recipient

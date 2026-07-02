@@ -735,11 +735,6 @@ Known issues to address in a future cleanup pass — not blocking current work.
   limitation). Move `TickAccumulator` per-effect before shipping such a skill.
   Pinned by `sys/skills_behavior_test.go` `TestSkillSystem_MultiEffectIntervalQuirk`.
 
-- **Zombie-mob bug** — `mob.Update()` applies out-of-combat regeneration
-  *before* the death check, so a mob reaching 0 health while it has no aggro
-  target (reachable by kiting it out of its territory) heals above zero in the
-  same tick and survives — with `deathRewardGiven` latched, so it never grants
-  XP or drops again. `MobSystem` relies solely on `Update`'s return value.
-  Fix: check health before (or immediately after) aura intake in `Update`.
-  Pinned by `model/mob/mob_test.go` `TestMob_Update_DeadMobWithoutAggro_ZombieBug`
-  — invert its assertions when fixing. Natural fix window: Phase 6 (mob chapter).
+- ~~**Zombie-mob bug**~~ — fixed at the start of the Phase 6 chapter:
+  `mob.Update()` now checks for death before out-of-combat regeneration.
+  Pinned by `model/mob/mob_test.go` `TestMob_Update_DeadMobWithoutAggro_Dies`.
