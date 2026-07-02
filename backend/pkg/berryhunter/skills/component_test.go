@@ -44,7 +44,46 @@ func TestEquipAura_PopulatesSlot(t *testing.T) {
 	require.NotNil(t, sc.AuraSlots[0])
 	assert.Equal(t, testDef, sc.AuraSlots[0].Def)
 	assert.Equal(t, 2, sc.AuraSlots[0].Level)
-	assert.Nil(t, sc.AuraSlots[0].Collider)
+}
+
+func TestEffectiveRadius_Level1(t *testing.T) {
+	es := &EquippedSkill{
+		Def: &SkillDefinition{Effects: []EffectDef{
+			{Radius: 1.5, RadiusPerLevel: 0.25},
+		}},
+		Level: 1,
+	}
+
+	assert.Equal(t, float32(1.5), es.EffectiveRadius())
+}
+
+func TestEffectiveRadius_ScalesWithLevel(t *testing.T) {
+	es := &EquippedSkill{
+		Def: &SkillDefinition{Effects: []EffectDef{
+			{Radius: 1.5, RadiusPerLevel: 0.25},
+		}},
+		Level: 3,
+	}
+
+	assert.Equal(t, float32(2.0), es.EffectiveRadius())
+}
+
+func TestEffectiveRadius_MultiEffectTakesMax(t *testing.T) {
+	es := &EquippedSkill{
+		Def: &SkillDefinition{Effects: []EffectDef{
+			{Radius: 1.0},
+			{Radius: 2.5},
+		}},
+		Level: 1,
+	}
+
+	assert.Equal(t, float32(2.5), es.EffectiveRadius())
+}
+
+func TestEffectiveRadius_NoEffectsYieldsZero(t *testing.T) {
+	es := &EquippedSkill{Def: &SkillDefinition{}, Level: 1}
+
+	assert.Equal(t, float32(0), es.EffectiveRadius())
 }
 
 func TestUnequipAura_ClearsSlot(t *testing.T) {

@@ -10,20 +10,32 @@ const (
 )
 
 // EquippedSkill is one skill installed in a slot on a SkillComponent.
+//
+// There is deliberately no per-skill physics collider: since exactly one aura
+// is active at a time, each entity owns a single aura sensor that the
+// SkillSystem resizes to the active skill's EffectiveRadius.
 type EquippedSkill struct {
 	Def   *SkillDefinition
 	Level int
 
-	// Collider holds a *phy.Circle for active_aura skills. It is stored as any
-	// to avoid an import cycle: the skills package must remain importable by both
-	// players and mobs without depending on the phy package. The concrete type is
-	// always *phy.Circle. The entity sets this field after registering the physics
-	// sensor with the world; the SkillSystem reads it (with a type assertion) each
-	// tick to query collisions. Nil until the entity performs that registration.
-	Collider any
-
 	CdTicks         int // cooldown only: ticks remaining (0 = ready)
 	TickAccumulator int // active_aura only: ticks since last effect application
+}
+
+// EffectiveRadius is the level-scaled aura radius: the maximum over all
+// effects of radius + (level-1)*radiusPerLevel. The maximum matters only for
+// hypothetical multi-effect skills with differing radii — the single sensor
+// must reach the largest one (effects with smaller radii would then need
+// per-effect range checks; no such skill exists yet).
+func (es *EquippedSkill) EffectiveRadius() float32 {
+	var max float32
+	for _, e := range es.Def.Effects {
+		r := e.Radius + float32(es.Level-1)*e.RadiusPerLevel
+		if r > max {
+			max = r
+		}
+	}
+	return max
 }
 
 // SkillComponent holds all skill slots and spellbook state for one entity.
@@ -50,7 +62,6 @@ func NewSkillComponent(withSpellbook bool) *SkillComponent {
 }
 
 // EquipAura installs a skill into the given aura slot.
-// Collider is left nil; the entity sets it after registering the physics sensor.
 func (sc *SkillComponent) EquipAura(slot int, def *SkillDefinition, level int) {
 	sc.AuraSlots[slot] = &EquippedSkill{Def: def, Level: level}
 }

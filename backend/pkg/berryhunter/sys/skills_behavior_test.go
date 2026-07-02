@@ -48,14 +48,14 @@ type fakePlayer struct {
 	sc              *skills.SkillComponent
 	vitalSigns      model.PlayerVitalSigns
 	statusEffects   model.StatusEffects
-	aura            phy.DynamicCollider
+	aura            *phy.Circle
 	god             bool
 	maxHealthFactor float32
 }
 
 func (f *fakePlayer) Basic() ecs.BasicEntity                    { return f.basic }
 func (f *fakePlayer) SkillComponent() *skills.SkillComponent    { return f.sc }
-func (f *fakePlayer) AuraCollider() phy.DynamicCollider         { return f.aura }
+func (f *fakePlayer) AuraCollider() *phy.Circle                 { return f.aura }
 func (f *fakePlayer) VitalSigns() *model.PlayerVitalSigns       { return &f.vitalSigns }
 func (f *fakePlayer) StatusEffects() *model.StatusEffects       { return &f.statusEffects }
 func (f *fakePlayer) MaxHealthFactor() float32                  { return f.maxHealthFactor }
@@ -295,6 +295,61 @@ func activeAuraPlayer(t *testing.T, effects ...skills.EffectDef) (*fakePlayer, *
 	caster.sc.EquipAura(0, def, 1)
 	caster.sc.SetActiveAura(0)
 	return caster, target
+}
+
+// --- collider sizing (single aura sensor, resized from the active skill) ---
+
+func auraDefWithRadius(id int, radius, radiusPerLevel float32) *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: skills.SkillID(id), Name: "SizedAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeDamageAura, Radius: radius, RadiusPerLevel: radiusPerLevel, TickInterval: 1,
+		}},
+	}
+}
+
+func TestSkillSystem_ResizesColliderToEffectiveRadius(t *testing.T) {
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipAura(0, auraDefWithRadius(7, 2.0, 0.25), 3) // effective: 2.0 + 2*0.25
+	caster.sc.SetActiveAura(0)
+
+	s := NewSkillSystem()
+	s.AddEntity(caster)
+	s.Update(0)
+
+	assert.Equal(t, float32(2.5), caster.aura.Radius)
+}
+
+func TestSkillSystem_SwitchingSlotsResizesCollider(t *testing.T) {
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipAura(0, auraDefWithRadius(7, 2.0, 0), 1)
+	caster.sc.EquipAura(1, auraDefWithRadius(8, 3.5, 0), 1)
+
+	s := NewSkillSystem()
+	s.AddEntity(caster)
+
+	caster.sc.SetActiveAura(0)
+	s.Update(0)
+	assert.Equal(t, float32(2.0), caster.aura.Radius)
+
+	caster.sc.SetActiveAura(1)
+	s.Update(0)
+	assert.Equal(t, float32(3.5), caster.aura.Radius)
+}
+
+func TestSkillSystem_NothingActive_LeavesColliderUntouched(t *testing.T) {
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipAura(0, auraDefWithRadius(7, 2.0, 0), 1)
+	// no SetActiveAura — Nothing is active
+
+	s := NewSkillSystem()
+	s.AddEntity(caster)
+	s.Update(0)
+
+	assert.Equal(t, float32(1.0), caster.aura.Radius)
 }
 
 func TestSkillSystem_EndToEnd_DamageAuraHitsTarget(t *testing.T) {

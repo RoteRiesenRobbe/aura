@@ -14,16 +14,20 @@ import (
 
 // skillEntity is the minimal interface SkillSystem requires.
 // Satisfied by PlayerEntity (and later MobEntity) once they expose the methods below.
-// VitalSigns/StatusEffects/MaxHealthFactor/IsGod are needed only for heal self-damage;
-// AuraCollider provides the physics sensor whose Collisions() the system reads.
+// VitalSigns/StatusEffects/MaxHealthFactor/IsGod are needed only for heal self-damage.
+//
+// AuraCollider is the entity's single aura sensor. It returns the concrete
+// *phy.Circle (not phy.DynamicCollider) because the SkillSystem resizes it to
+// the active skill's EffectiveRadius — there is deliberately no collider per
+// equipped skill, since exactly one aura is active at a time.
 //
 // For this step all tracked entities are players. The type assertion to model.PlayerEntity
-// inside applyDamageAura (required by the Interacter API) is transitional — Phase 3 will
+// inside applyDamageAura (required by the Interacter API) is transitional — Phase 6 will
 // revisit when mobs are also tracked.
 type skillEntity interface {
 	model.BasicEntity
 	SkillComponent() *skills.SkillComponent
-	AuraCollider() phy.DynamicCollider
+	AuraCollider() *phy.Circle
 	VitalSigns() *model.PlayerVitalSigns
 	StatusEffects() *model.StatusEffects
 	MaxHealthFactor() float32
@@ -77,9 +81,18 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 		return
 	}
 
+	// Keep the single aura sensor sized to the active skill. The SkillSystem
+	// runs after physics resolution, so a new radius takes effect on the next
+	// tick's collisions — consistent with the accumulator reset on switch,
+	// which already defers the first effect application anyway.
+	collider := e.AuraCollider()
+	if r := equip.EffectiveRadius(); collider.Radius != r {
+		collider.SetRadius(r)
+	}
+
 	equip.TickAccumulator++
 
-	collisions := e.AuraCollider().Collisions()
+	collisions := collider.Collisions()
 	for _, effect := range equip.Def.Effects {
 		if equip.TickAccumulator >= effect.TickInterval {
 			switch effect.Type {

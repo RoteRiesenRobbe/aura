@@ -238,7 +238,6 @@ Attached to any entity that can use skills. Players and mobs both carry one.
 type EquippedSkill struct {
     Def             *skills.SkillDefinition
     Level           int
-    Collider        *phy.Circle // active_aura only: physics sensor
     CdTicks         int         // cooldown only: ticks remaining (0 = ready)
     TickAccumulator int         // active_aura only: ticks since last effect application
 }
@@ -252,10 +251,16 @@ type SkillComponent struct {
 }
 ```
 
-Each `EquippedSkill.Collider` is a `*phy.Circle` allocated when the skill is
-equipped into an aura slot and released when it is unequipped. Physics bodies from
-equipped aura skills must be included in the entity's `Bodies()` return value so
-the physics system keeps their positions in sync.
+**Decided: no per-skill colliders.** An earlier revision gave every
+`EquippedSkill` its own `*phy.Circle`; that design predates the one-active-aura
+resolution (Open Question 2) and was never wired up — the physics system also
+registers bodies only once at `AddEntity`, so per-equip sensors would need new
+registration plumbing. Instead each entity owns a **single aura sensor**
+(already in its `Bodies()`), and `SkillSystem` resizes it every tick to the
+active skill's `EquippedSkill.EffectiveRadius()` — the level-scaled maximum of
+`radius + (level-1)*radiusPerLevel` over the skill's effects. The resize
+happens after physics resolution, so a new radius takes effect on the next
+tick's collisions, consistent with the accumulator reset on switch.
 
 When `ActiveAuraSlot` changes, the incoming slot's `TickAccumulator` is reset to
 0. The new aura cannot apply its first effect until a full `TickInterval` has
@@ -729,15 +734,6 @@ Known issues to address in a future cleanup pass — not blocking current work.
   consecutive ticks near the shared reset (see ECS Integration, Known
   limitation). Move `TickAccumulator` per-effect before shipping such a skill.
   Pinned by `sys/skills_behavior_test.go` `TestSkillSystem_MultiEffectIntervalQuirk`.
-
-- **Per-skill aura colliders are not wired up** — `SkillSystem.processEntity`
-  reads `e.AuraCollider()` (the entity's single legacy aura sensor, sized via
-  legacy `AuraRadius()`), not `EquippedSkill.Collider` (allocated per the
-  design above but never read). Consequence: a skill's `radius` /
-  `radiusPerLevel` effect parameters currently have **no effect** — every aura
-  uses the legacy collider's radius. Works today because both skills use the
-  same radius and the `AuraType`=slot hack keeps the legacy sizing alive;
-  becomes real work in 1b/Phase 5 when the legacy path is retired.
 
 - **Zombie-mob bug** — `mob.Update()` applies out-of-combat regeneration
   *before* the death check, so a mob reaching 0 health while it has no aggro

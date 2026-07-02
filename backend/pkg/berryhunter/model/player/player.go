@@ -460,7 +460,7 @@ func (p *player) SkillComponent() *skills.SkillComponent {
 	return p.skills
 }
 
-func (p *player) AuraCollider() phy.DynamicCollider {
+func (p *player) AuraCollider() *phy.Circle {
 	return p.damageAura
 }
 

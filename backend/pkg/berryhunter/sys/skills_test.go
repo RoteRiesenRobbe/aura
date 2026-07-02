@@ -22,7 +22,7 @@ type fakeSkillEntity struct {
 
 func (f *fakeSkillEntity) Basic() ecs.BasicEntity        { return f.BasicEntity }
 func (f *fakeSkillEntity) SkillComponent() *skills.SkillComponent { return f.sc }
-func (f *fakeSkillEntity) AuraCollider() phy.DynamicCollider { return nil }
+func (f *fakeSkillEntity) AuraCollider() *phy.Circle { return nil }
 func (f *fakeSkillEntity) VitalSigns() *model.PlayerVitalSigns { return &f.vitalSigns }
 func (f *fakeSkillEntity) StatusEffects() *model.StatusEffects { return &f.statusEffects }
 func (f *fakeSkillEntity) MaxHealthFactor() float32 { return 1.0 }
