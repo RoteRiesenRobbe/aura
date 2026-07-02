@@ -4,14 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Migration Status
 
-- **Last completed:** Phase 6.3 boss designation — **Phase 6 (mob chapter) and Block 3 are complete.** The AngryMammoth is the boss: already biggest in every dimension (body 1.7, sprite 180–220px, `bossMobs` layer, fixed spawn, 1000 XP), now also biggest aura via a pure data change: `AngryMammothAura` gained per-level scaling and the mob equips it at level 3 (effective radius 3.5, ~0.0107 dmg/tick, all [PLACEHOLDER]); guaranteed `WildAura` unlock from 6.2. ⚠️ New tech debt: mob aura ring size is a frontend constant (`GraphicsConfig.mobs.*.damageAuraRadiusMeters`) duplicating the skill's effective radius — sync manually until mob radii are wire-driven. Earlier in Block 3: 6.2 kill unlocks (per-participant rolls), Item 10 participation XP, 6.1 mob migration, zombie-bug fix, and the skills-embed fix (`*.json **/*.json` — subdirectories!).
-- **Next:** per the block plan, Block 2 (survival removal + resource unification, roadmap items 1+2) or Phase 7 (skill leveling, incl. writing the full combinations design). Roadmap: docs/v1-roadmap.md.
-- **Current state:** new players start with DamageAura in slot 0 on spawn, panel highlight + ring correct from spawn, server-authoritative. HealAura unlocks into the spellbook at level 2 (gold glow); equip via Aura Slots panel; activate/switch/deactivate from that panel. `XP <amount>` cheat for manual leveling.
-- **Deferred tech debt:**
+- **Last completed:** **Block 3 complete and verified in-game (M2)** — Phase 6 (mob chapter: 6.1 migration, 6.2 kill unlocks, 6.3 AngryMammoth boss designation via level knob), Item 10 participation XP, zombie-bug fix, skills-embed fix. Skill phases 1–6 done; players and mobs run on one SkillSystem.
+- **Next:** Block 2 (survival removal + resource unification, roadmap items 1+2) or Phase 7 (skill leveling + skill points; includes writing the full combinations design and is the natural fix window for the respawn-unlocks bug below). Roadmap: docs/v1-roadmap.md.
+- **Current state:** new players start with DamageAura in slot 0 on spawn, panel highlight + ring correct from spawn, server-authoritative. HealAura unlocks at level 2 (gold glow), `WildAura` drops from SaberToothCat (20%) and guaranteed from the boss; equip/activate via Aura Slots panel. All combat participants (incl. healers, ~10s window) get full XP on mob death. `XP <amount>` cheat for manual leveling.
+- **Deferred tech debt / known bugs:**
+  - **BUG — respawn loses spellbook unlocks:** death keeps the level (`SetProgression` on re-join) but the fresh spellbook only has DamageAura, and milestone unlocks fire only on level-ups — milestones ≤ current level (HealAura!) are unreachable after the first death. Fix sketch + details in skill-system-design.md tech debt; fix window Phase 7.
+  - Mob aura ring size is a frontend constant (`GraphicsConfig.mobs.*.damageAuraRadiusMeters`) duplicating the skill's effective radius — sync manually until mob radii are wire-driven (pressing once boss scripts switch auras).
   - `backend/pkg/berryhunter/net/net_test.go` — not a real test; a manual `ListenAndServe` script with no timeout/teardown that hangs `go test ./...`. Fix later via `t.Skip`.
-  - Equip level=1 gap: `SkillComponent.Spellbook` is `map[SkillID]bool` (discovery only, no per-skill level), so `EquipSystem` always equips at level 1. Revisit when skill-leveling is implemented.
+  - Equip level=1 gap: `SkillComponent.Spellbook` is `map[SkillID]bool` (discovery only, no per-skill level), so `EquipSystem` always equips at level 1. Revisit in Phase 7.
   - Frontend FlatBuffers toolchain migrated to flatc v24.3.25 in a dedicated commit.
   - `-2` `active_aura_slot` deactivate sentinel is a workaround for FlatBuffers omitting the `-1` default (an explicit `-1` is indistinguishable from an absent field). Decided in Phase 5: it stays. Paired constants: `model.ActiveAuraSlotDeactivate` (Go) / `DEACTIVATE_AURA_SLOT` (InputMessage.ts).
+  - ⚠️ Testing gotcha: `go:embed` patterns don't include subdirectories (`*.json **/*.json`!), and disk-based registry tests can't catch embed gaps — pinned by `pkg/api/skills/skills_test.go`. Before manual tests: `pkill berryhunterd`, rebuild, and check the boot log (`Loaded skill definitions count=7`) — a stale server process silently masks new behavior.
 - Full plan: docs/skill-system-design.md (skill system, Phases 1–9)
 - v1.0 scope outside the skill system: docs/v1-roadmap.md (skeleton)
 

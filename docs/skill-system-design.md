@@ -374,7 +374,7 @@ same per-tick frequency, collisions one physics step fresher.
 The goal is no build break longer than a few hours at any step. Old and new code
 run in parallel until Phase 5.
 
-**Execution order:** ~~3.7~~ → ~~1b~~ → ~~Phase 5~~ → 6 → 7 → 8 → 9.
+**Execution order:** ~~3.7~~ → ~~1b~~ → ~~Phase 5~~ → ~~6~~ → 7 → 8 → 9.
 **⚑** marks open decision points to resolve before (or during) the phase.
 
 ### Phase 1 — Skill package and registry (~1 day) ✓ Done
@@ -495,7 +495,7 @@ Phase 6 instead.)
   cosmetic gain at real regression risk in the input path. The sentinel is
   tested and documented; revisit only if the field is ever redesigned anyway.
 
-### Phase 6 — Mob chapter (~1–2 days)
+### Phase 6 — Mob chapter ✓ Done
 
 *Formerly just "mob migration" (the original Phase 3); expanded to pair the
 refactor with monster-kill unlocks so the chapter has player-visible payoff.*
@@ -774,6 +774,19 @@ Known issues to address in a future cleanup pass — not blocking current work.
   `ListenAndServe` script with no timeout or teardown that hangs `go test ./...`.
   Fix via `t.Skip` or convert to a proper integration test. Safe test scope in
   the meantime: `go test -timeout 30s ./pkg/berryhunter/skills/... ./pkg/berryhunter/codec/... ./pkg/berryhunter/sys/...`
+
+- **Respawn loses spellbook unlocks (BUG)** — on death, `sys/state.go` stores
+  the player's progression (`LoseCurrentLevelExperience` — the level itself is
+  kept) and restores it via `SetProgression` on re-join. But the new player
+  entity starts with a fresh spellbook (DamageAura only), and
+  `applyMilestoneUnlocks` fires only on level-*ups* inside `AddExperience` —
+  so every milestone at or below the restored level (e.g. HealAura at 2) is
+  unreachable forever after the first death. Kill unlocks (6.2) are equally
+  lost but can at least drop again. Fix sketch: after restoring progression,
+  re-apply milestone unlocks for `[1..level]` (`Discover` is idempotent).
+  Natural fix window: Phase 7, which reworks the spellbook data model and
+  raises the same "what survives death/respawn" questions (see also
+  accounts/persistence, roadmap item 3).
 
 - **Equip level=1 gap** — `SkillComponent.Spellbook` is `map[SkillID]bool`
   (discovery only; no per-skill level stored). `EquipSystem` therefore always

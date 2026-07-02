@@ -214,8 +214,8 @@ needs real design time:
 Multiplayer itself already works — the game runs as a shared-world WebSocket
 server today. The minimal subset for a playable prototype:
 
-1. **Skill system complete** — `skill-system-design.md` Phases 3.7 → 1b → 5
-   → 6 → 7 → 8 → 9.
+1. **Skill system complete** — `skill-system-design.md` Phases ~~3.7 → 1b →
+   5 → 6~~ → **7 → 8 → 9 (remaining)**.
 2. **Items 1 + 2** — single resource, survival systems removed.
 3. ~~**Item 10** — participation XP (otherwise support roles can't level).~~ ✓
 4. **Item 11** — initial content pass.
