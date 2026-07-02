@@ -28,7 +28,10 @@ type skillEntity interface {
 
 // healCaster holds the additional capabilities the heal-aura self-damage
 // bookkeeping needs. Players satisfy it; mobs do not (no PlayerVitalSigns) —
-// a heal effect on an entity without these capabilities is skipped.
+// a heal effect on an entity without these capabilities is skipped. This is a
+// deliberate limitation: mob support behaviors ("move to allied mobs with a
+// mob-only heal aura", v1-roadmap.md item 7) will need heal_aura target flags
+// plus a vitals abstraction here.
 type healCaster interface {
 	VitalSigns() *model.PlayerVitalSigns
 	StatusEffects() *model.StatusEffects

@@ -79,7 +79,10 @@ storytelling.
 - Current state: single world assembled procedurally at startup (deterministic
   seeds) — the opposite of the hand-authored target.
 - Work: map format + authoring workflow (hand-built, no procgen), zone layout,
-  spawn/respawn per zone.
+  spawn/respawn per zone. The map format must carry **individually placed mob
+  instances** (fixed spawn points, per-instance respawn timer + variance) and
+  **patrol waypoints/routes** — see item 7 (mob behavior, tiers & spawning),
+  which owns the behavior side of these.
 - ⚑ Authoring tooling: external editor (e.g. Tiled) vs. custom JSON — biggest
   unknown in this item. *Deliberately left open (2026-07); decide when this
   item starts. Suggested first step: a Tiled spike (build one test zone, load
@@ -109,16 +112,49 @@ Aura effects blocked by walls/obstacles.
 - Depends on: world & zones providing walls worth occluding; cheap to defer
   until then.
 
-## 7. Mob tiers — normal / elite / boss
+## 7. Mob behavior, tiers & spawning — normal / elite / boss
 
 - Builds directly on skill-system Phase 6 (data-driven mobs): tiers are largely
   JSON loadouts (skills, levels, resource pool) + spawn placement.
+- **Current base behavior (Phase 6 state — this stays the shared foundation):**
+  all mobs run one identical behavior, parameterized per mob: idle at a spawn
+  anchor; aggro the nearest living player inside `aggroRadius`; chase until the
+  target sits just inside the aura edge (`chaseIntoAuraMargin`), then hold
+  position there; give up once the mob itself is farther than `aggroRadius`
+  from its spawn anchor (per-mob **max chase distance**); walk back home;
+  regenerate out of combat. No mob flees; differences between mobs are purely
+  values (speed, radii, aura), not behavior.
+- **Behavior archetypes (WoW-Classic-style, required):** on top of the shared
+  base, three idle-movement archetypes must exist:
+  1. **Stationary** — stands at its spot until aggroed (today's behavior).
+  2. **Local patrol** — wanders randomly within a small radius around its
+     spawn anchor until aggroed.
+  3. **Route patrol** — patrols between fixed waypoints on the map.
+  Waypoints are map data → depends on item 4 (world & zones authoring format).
+- **Support behaviors:** mobs must be able to run behaviors like "move toward
+  allied mobs with a mob-only heal aura active". Two known, deliberate Phase-6
+  limitations must be lifted for this (both flagged in
+  `skill-system-design.md`): `heal_aura` has no target flags yet (implicitly
+  players-only), and mob entities cannot cast heal auras (the SkillSystem's
+  `healCaster` split — mobs lack player vitals).
+- **Placement & respawn (level design / environmental storytelling):**
+  individually configured mob instances, placed by hand at fixed spawn points,
+  with per-instance respawn time **at the same spot** plus a random respawn
+  variance. This is essential for hand-built zones and environmental
+  storytelling. Spawn points and patrol routes live in map data → item 4.
+  *Current state:* procedural weight/fixed-count spawning (`generator` in the
+  mob JSON); on death an immediate replacement spawns at a new random (or
+  procreation-nearby) position — no timer, no fixed spot.
 - **Decided: bosses get scripted mechanics (phases, adds).** Scripts
   orchestrate *which* skills fire when, phase transitions, and add spawns —
   combat itself stays aura-only, the skill loadout remains the substrate.
-  Cost note: this implies a boss-scripting layer (data-driven state machine or
-  Go behaviors), which is its own design task inside this item, scope
-  [PLACEHOLDER].
+  Aura switching and mid-game mob spawning are already technically possible
+  since Phase 6.1. Cost note: this implies a boss-scripting layer (data-driven
+  state machine or Go behaviors), which is its own design task inside this
+  item, scope [PLACEHOLDER].
+- A brand-new mob *name* still requires an `EntityType` (schema + frontend
+  rendering class); a small JSON `entityType` override (reuse an existing
+  look) is the known ~5-line addition when this item introduces variants.
 
 ## 8. UI chrome
 

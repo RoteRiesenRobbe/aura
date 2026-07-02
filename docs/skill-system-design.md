@@ -169,6 +169,15 @@ Applied while the aura slot is toggled **on**.
 Heals nearby allies per tick while the aura slot is toggled on. If at least one
 ally was healed and `selfDamageFraction > 0`, the caster takes that much damage.
 
+> **Known, deliberate limitations (to be lifted for mob support behaviors,
+> see `v1-roadmap.md` item 7):** `heal_aura` has no target flags yet — it
+> implicitly targets players only. And mob entities cannot *cast* heal auras:
+> the SkillSystem's `healCaster` capability split skips heal effects on
+> casters without player vitals. Both block the planned "mob moves to allied
+> mobs with a mob-only heal aura" support behavior; lifting them means target
+> flags on `heal_aura` (like `damage_aura`) plus a vitals abstraction for the
+> self-damage bookkeeping.
+
 | Parameter | Type | Description |
 |---|---|---|
 | `radius` | float | Base collision radius [PLACEHOLDER] |
@@ -516,7 +525,11 @@ refactor with monster-kill unlocks so the chapter has player-visible payoff.*
   existing mid-game `game.AddEntity` path (`MobSystem.respawnMob` proves it).
   A brand-new mob *name* still needs an `EntityType` (schema+frontend); a
   small JSON `entityType` override is the known ~5-line addition when mob
-  tiers (roadmap item 7) introduce variants.
+  tiers (roadmap item 7) introduce variants. Mob *heal* auras (support
+  behaviors) are deliberately not possible yet — see the `heal_aura`
+  limitation note under Effect Types. Mob behavior requirements (base
+  behavior, the three idle archetypes, individual placement/respawn) are
+  owned by `v1-roadmap.md` item 7.
 
 **6.2 — Monster-kill unlocks** (unlock source #2 from the vision)
 
