@@ -14,6 +14,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/player"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/spectator"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 type stringSet map[string]struct{}
@@ -31,19 +32,28 @@ func (s stringSet) contains(str string) bool {
 	return ok
 }
 
+// carriedState is what survives a player's death and is restored on re-join.
+// The level is kept (only the current level's partial XP is lost); the whole
+// skill component carries the spellbook, equipped loadout and active aura so no
+// unlock — milestone or drop — is ever lost on death.
+type carriedState struct {
+	progression model.PlayerProgression
+	skills      *skills.SkillComponent
+}
+
 type ConnectionStateSystem struct {
-	spectators          []model.Spectator
-	players             []model.PlayerEntity
-	game                model.Game
-	names               stringSet
-	progressionByClient map[uuid.UUID]model.PlayerProgression
+	spectators    []model.Spectator
+	players       []model.PlayerEntity
+	game          model.Game
+	names         stringSet
+	stateByClient map[uuid.UUID]carriedState
 }
 
 func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
 	return &ConnectionStateSystem{
-		game:                g,
-		names:               stringSet{},
-		progressionByClient: map[uuid.UUID]model.PlayerProgression{},
+		game:          g,
+		names:         stringSet{},
+		stateByClient: map[uuid.UUID]carriedState{},
 	}
 }
 
@@ -85,8 +95,9 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 			sendAcceptMessage(client)
 
 			p := player.New(s.game, client, name)
-			if progression, ok := s.progressionByClient[client.UUID()]; ok {
-				p.SetProgression(progression)
+			if carried, ok := s.stateByClient[client.UUID()]; ok {
+				p.SetProgression(carried.progression)
+				p.SetSkillComponent(carried.skills)
 			}
 
 			// spawn the player at a random location
@@ -106,7 +117,10 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 			sendObituaryMessage(p.Client())
 			deathspot := p.Position()
 			p.LoseCurrentLevelExperience()
-			s.progressionByClient[p.Client().UUID()] = p.Progression()
+			s.stateByClient[p.Client().UUID()] = carriedState{
+				progression: p.Progression(),
+				skills:      p.SkillComponent(),
+			}
 
 			// remove the player from the game
 			s.game.RemoveEntity(p.Basic())

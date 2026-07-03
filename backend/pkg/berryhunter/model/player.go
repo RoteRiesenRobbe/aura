@@ -69,6 +69,9 @@ type PlayerEntity interface {
 	NoteHealedBy(healer PlayerEntity)
 	RecentHealers() []PlayerEntity
 	SkillComponent() *skills.SkillComponent
+	// SetSkillComponent replaces the player's skill component wholesale.
+	// Used on respawn to restore the spellbook + loadout the player died with.
+	SetSkillComponent(sc *skills.SkillComponent)
 	AuraCollider() *phy.Circle
 	MaxHealthFactor() float32
 }

@@ -159,6 +159,42 @@ func TestAddExperience_Level3_NoMilestoneEntry(t *testing.T) {
 	assert.Len(t, p.skills.Discovered(), 2)
 }
 
+// TestDeathRespawn_RetainsSpellbookAndProgression reproduces the semi-permadeath
+// bug: on death sys/state.go stashes the player's progression + skill component,
+// and on re-join it restores both onto the fresh player entity. Without the
+// SkillComponent carry-over, drop unlocks (and milestone unlocks below the
+// current level) are lost forever. This mirrors exactly what ConnectionStateSystem
+// does across the death→spectator→rejoin transition.
+func TestDeathRespawn_RetainsSpellbookAndProgression(t *testing.T) {
+	// A "drop" skill discovered only via a monster kill — unrecoverable by
+	// re-applying milestones, so it must survive death via the component itself.
+	defWildAura := &skills.SkillDefinition{ID: 3, Name: "WildAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+
+	// Player levels up (milestone HealAura) and picks up a WildAura drop.
+	dying := newTestPlayer([]skills.MilestoneUnlock{{Level: 2, Skill: defHealAura}})
+	dying.AddExperience(150) // reach level 2 with progress toward 3
+	dying.skills.Discover(defWildAura.ID)
+	require.True(t, dying.skills.HasDiscovered(defHealAura.ID))
+	require.True(t, dying.skills.HasDiscovered(defWildAura.ID))
+
+	// Death: state.go keeps the level (partial-XP loss) and stashes the component.
+	dying.LoseCurrentLevelExperience()
+	stashedProgression := dying.Progression()
+	stashedSkills := dying.SkillComponent()
+
+	// Re-join: player.New builds a fresh entity — spellbook has DamageAura only.
+	respawned := newTestPlayer(nil)
+	require.False(t, respawned.skills.HasDiscovered(defWildAura.ID), "fresh player must lack the drop (bug precondition)")
+
+	// state.go restores the stashed progression and spellbook.
+	respawned.SetProgression(stashedProgression)
+	respawned.SetSkillComponent(stashedSkills)
+
+	assert.Equal(t, uint32(2), respawned.progression.Level, "level retained")
+	assert.True(t, respawned.skills.HasDiscovered(defHealAura.ID), "milestone unlock retained")
+	assert.True(t, respawned.skills.HasDiscovered(defWildAura.ID), "drop unlock retained")
+}
+
 func TestAddExperience_DiscoverIdempotent(t *testing.T) {
 	milestones := []skills.MilestoneUnlock{{Level: 2, Skill: defHealAura}}
 	p := newTestPlayer(milestones)

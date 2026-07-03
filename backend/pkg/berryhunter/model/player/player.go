@@ -437,6 +437,16 @@ func (p *player) SkillComponent() *skills.SkillComponent {
 	return p.skills
 }
 
+// SetSkillComponent replaces the freshly-initialized skill component with a
+// restored one (respawn), preserving the spellbook, equipped loadout and active
+// aura the player had at death. The aura sensor created in New is resized to the
+// active skill's radius by the SkillSystem on the next tick.
+func (p *player) SetSkillComponent(sc *skills.SkillComponent) {
+	if sc != nil {
+		p.skills = sc
+	}
+}
+
 func (p *player) AuraCollider() *phy.Circle {
 	return p.aura
 }

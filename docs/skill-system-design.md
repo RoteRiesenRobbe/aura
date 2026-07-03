@@ -775,18 +775,20 @@ Known issues to address in a future cleanup pass — not blocking current work.
   Fix via `t.Skip` or convert to a proper integration test. Safe test scope in
   the meantime: `go test -timeout 30s ./pkg/berryhunter/skills/... ./pkg/berryhunter/codec/... ./pkg/berryhunter/sys/...`
 
-- **Respawn loses spellbook unlocks (BUG)** — on death, `sys/state.go` stores
-  the player's progression (`LoseCurrentLevelExperience` — the level itself is
-  kept) and restores it via `SetProgression` on re-join. But the new player
-  entity starts with a fresh spellbook (DamageAura only), and
-  `applyMilestoneUnlocks` fires only on level-*ups* inside `AddExperience` —
-  so every milestone at or below the restored level (e.g. HealAura at 2) is
-  unreachable forever after the first death. Kill unlocks (6.2) are equally
-  lost but can at least drop again. Fix sketch: after restoring progression,
-  re-apply milestone unlocks for `[1..level]` (`Discover` is idempotent).
-  Natural fix window: Phase 7, which reworks the spellbook data model and
-  raises the same "what survives death/respawn" questions (see also
-  accounts/persistence, roadmap item 3).
+- **Respawn loses spellbook unlocks (FIXED)** — on death, `sys/state.go` now
+  stashes the player's progression *and* the whole `SkillComponent`
+  (`carriedState`, keyed by client UUID) rather than progression alone; re-join
+  restores both via `SetProgression` + `SetSkillComponent(...)`. This preserves
+  the full spellbook — milestone unlocks *and* kill drops (WildAura) — plus the
+  equipped loadout and active aura, so the player respawns with the exact build
+  they died with. The milestone-replay sketch was rejected in favour of carrying
+  the component because drops can't be recovered by replaying milestones. The
+  `LoseCurrentLevelExperience` partial-XP-within-level loss is deliberately
+  retained (chosen 2026-07-03) — level is kept, only progress toward the next
+  level resets. Pinned by
+  `model/player TestDeathRespawn_RetainsSpellbookAndProgression`. When accounts/
+  persistence (roadmap item 3) lands, `carriedState` is the natural thing to
+  persist across sessions.
 
 - **Equip level=1 gap** — `SkillComponent.Spellbook` is `map[SkillID]bool`
   (discovery only; no per-skill level stored). `EquipSystem` therefore always
