@@ -369,6 +369,105 @@ same per-tick frequency, collisions one physics step fresher.
 
 ---
 
+## Combination System
+
+*Design written 2026-07-04 (Phase 7.4, as decided in Phase 7). Implementation
+is Phase 9. Question catalog with per-option rationale:
+`docs/combo-design-questions.md` — all 16 questions decided.*
+
+Curated, secret recipes: when a player's spellbook levels line up with a
+recipe's ingredients, the result skill unlocks. Recipes are never documented
+in-game; the community discovers and shares them.
+
+### Recipe data model
+
+Recipes live in `api/recipes/` as individual JSON files, mirroring the skill
+registry pattern:
+
+```json
+{
+  "id": 100,
+  "result": "FrostfireAura",
+  "ingredients": [
+    { "skill": "DamageAura", "level": 3 },
+    { "skill": "SwiftPassive", "level": 2 }
+  ]
+}
+```
+
+- **One result per recipe** (Q5). Names are resolved against the skill
+  registry at startup (load order: items → skills → recipes → mobs).
+- **Alternate paths allowed** (Q5): multiple recipes may yield the same
+  result. **Shared ingredient sets allowed** (Q5): two recipes may require
+  the exact same ingredients — both fire, which is how "one configuration
+  unlocks several skills" is expressed. The checker therefore always
+  evaluates *all* recipes, never stops at the first match, and duplicate
+  ingredient sets are not a validation error.
+- **No extra metadata for now** (Q4): a hint-text field for world-exploration
+  clue anchors (unlock source #3) is a known extension, added when roadmap
+  item 9 needs it — YAGNI.
+- **Startup validation, hard fail** (Q16): unknown result/ingredient names,
+  ingredient level < 1 or > that skill's `maxLevel`, duplicate recipe IDs,
+  empty ingredient list — all abort startup, matching the mob-unlock loader's
+  strictness (content errors in a curated system must be loud).
+- **Cycles are allowed** (Q13): recipe chains may be circular (A's result an
+  ingredient of B and vice versa) — that is at worst unreachable content, not
+  an error, and the trigger mechanics cannot loop (see below). No depth cap.
+
+### Trigger semantics
+
+- **Trigger events** (Q1): skill *discovery* and skill *level increase* — the
+  only two events that can newly satisfy a recipe (unspending never can).
+- **Condition** (Q2, decided in Phase 7): all ingredients simultaneously at
+  **≥** their required level, read from the spellbook's *current* levels. The
+  ≥ matters: over-leveling an ingredient must never lock a recipe out.
+- **Spellbook levels only** (Q3): equip and active states are irrelevant.
+  Discovery is a build-configuration act — "get X to 3 and Y to 2" is also
+  the natural shape for community sharing.
+- **Pure threshold** (Q6): nothing is consumed; ingredient levels stay where
+  they are. A consume model would fight free respec.
+- **Cascades terminate:** a result unlocks as a discovery, which is itself a
+  trigger event — chain recipes requiring the result at level 1 fire
+  immediately. Each pass can only fire recipes whose result is still
+  *undiscovered*, and every firing discovers a new skill, so the cascade is
+  bounded by the number of skills — cycles cannot loop.
+- **No missed windows** (Q14, corollary of Q2 + permanence): a player can
+  drop below a threshold and re-approach any number of times until the recipe
+  triggers once; after that it is permanent (decided earlier).
+
+### Result properties
+
+- **Unlocks at level 1** like every other discovery (Q7); the free discovery
+  level applies. No derived starting levels.
+- **One economy** (Q15): leveling the result costs the same flat points as
+  everything else; no refunds, no discounts — the Phase 7 invariant
+  `spent = Σ(level−1)` stays universal.
+- **Ordinary skill IDs; unlock sources may overlap** (Q8): a combo result may
+  also be a mob drop or milestone. `Discover` is idempotent — whichever
+  source fires first wins, the other is a no-op. Whether any overlap ships is
+  a per-skill content decision.
+- **Variant auras use the same mechanism** (Q12): variants are skills with
+  their own IDs; as ingredients or results they need zero extra code.
+
+### Secrecy
+
+- **Zero in-game traces** (Q10): no "???" entries, no locked silhouettes, no
+  counters. UI guard for all future work: never render totals that reveal
+  undiscovered skills exist (e.g. a "12/20 skills" counter would leak).
+- **Backend-only loading** (Q11): the recipe registry is loaded and evaluated
+  server-side only; the wire carries no recipe data — clients only ever see
+  results via the normal spellbook stream. That the recipe JSONs sit in a
+  (currently public) repo is a separate project-policy question, deferred —
+  e.g. a private overlay before launch.
+- **Unlock feedback: the standard spellbook glow** (Q9). The 3.7 diff glow
+  fires for any new entry, so combos get it for free. A distinct bigger
+  moment (sound, screen effect) is deliberately deferred frontend polish — it
+  would require the client to know *why* an entry appeared, which brushes
+  against the anti-datamining stance; revisit when the game has audio/VFX
+  identity.
+
+---
+
 ## Migration Plan
 
 The goal is no build break longer than a few hours at any step. Old and new code
@@ -565,15 +664,39 @@ new mob / elite variant, the existing big mob becomes the boss)*
 - The original "one new mob purely in JSON" proof moved to roadmap item 7
   (mob tiers/variants), where the `entityType` override lands.
 
-### Phase 7 — Skill leveling & skill points (~2–3 days)
+### Phase 7 — Skill leveling & skill points
 
-Activates every `*PerLevel` parameter (currently dead weight) and closes the
+*Status: 7.1–7.3 implemented and verified in-game (2026-07-03, commit
+442d2b50). 7.4 (writing the combinations design) remains.*
+
+Activates every `*PerLevel` parameter (formerly dead weight) and closes the
 equip-at-level-1 gap.
 
-- Per-skill level storage: replace `Spellbook map[skills.SkillID]bool` with
-  `map[skills.SkillID]int` — presence = discovered, value = current level ≥ 1.
-- Skill points awarded on player level-up; a spend mechanic raises a skill's
-  level up to its `maxLevel`.
+**Implemented (7.1 data model, 7.2 wire + spend mechanic, 7.3 spend UI):**
+
+- `Spellbook` is `map[skills.SkillID]int` (presence = discovered, value =
+  level ≥ 1). `Discover()` grants level 1, never downgrades on re-discovery.
+  `RaiseSkillLevel`/`LowerSkillLevel` (±1, bounds `1..maxLevel`) sync every
+  equipped instance across all three slot arrays; the active aura rescales
+  live via the per-tick radius re-derivation.
+- Derived point economy: `SpentPoints()` = Σ(level−1) over the spellbook;
+  `TotalSkillPoints(playerLevel, perLevel)` = (level−1)×perLevel;
+  `player.AvailableSkillPoints()` = total − spent, computed per call.
+  `skillPointsPerLevel` lives in conf.json (`= 1` [PLACEHOLDER], defaulted to
+  1 when missing so old configs can't silently disable leveling).
+- Wire: `spellbook_levels`/`skill_points` on `GameState`, `SpendSkillPoint`
+  client message (see Wire Protocol Changes). `EquipSystem` handles it
+  (availability check for spend, none for unspend — refunding frees a point)
+  and equips at the stored spellbook level.
+- Spend UI in the spellbook panel: per-entry `− 2/5 +` controls
+  (`pointerdown`), gold "N Points" header badge (hidden at 0), buttons dim at
+  bounds/no points, server re-validates everything. Level changes rebuild the
+  list without triggering the unlock glow (glow still diffs IDs only).
+- Skill levels survive death via the existing `carriedState` component carry
+  (extended pinned respawn test).
+
+**Decisions (2026-07-03):**
+
 - **Decided: flat cost.** Raising any skill by one level costs exactly 1 skill
   point. Balance differences live in `maxLevel` per skill; escalating costs
   could be added later as data if ever needed.
@@ -589,8 +712,6 @@ equip-at-level-1 gap.
   model): recipe ingredient levels must be met *simultaneously*.** High-water
   marks rejected — so the spellbook stores current levels only, no per-skill
   history.
-- Wire: spellbook entries carry levels; spend/unspend messages client→server;
-  `EquipSystem` equips at the stored level.
 - **Decided: skill points buy skill levels only.** Slot counts are not
   purchasable with points — no competing point sinks. Slots may still grow via
   *milestones* (e.g. "player level N → additional aura slot", [PLACEHOLDER]):
@@ -606,8 +727,10 @@ equip-at-level-1 gap.
 - **Decided: the full combinations design (Phase 9's design section) is
   written during this phase** — design only, no code. Recipes trigger on
   "skills X, Y at levels A, B", so the leveling data model must be shaped
-  around the recipe check from the start.
-- Points-per-level budget: number stays [PLACEHOLDER] (Open Question 1).
+  around the recipe check from the start. *(= step 7.4, the remaining part of
+  this phase; question catalog: `docs/combo-design-questions.md`.)*
+- Points-per-level budget: mechanism built (`skillPointsPerLevel` in
+  conf.json), the number itself stays 1 [PLACEHOLDER] (Open Question 1).
 
 ### Phase 8 — Passives & cooldowns (~2–3 days)
 
@@ -654,23 +777,26 @@ Phase 8 runs after Phase 7.
 The curated recipe system. Deliberately last: it consumes everything the
 earlier phases build (skill levels, all three categories, the unlock event).
 
-- Recipe registry (JSON, mirroring the skill registry): ingredients are
-  (skill, level) pairs, cross-category allowed; the result is a skill ID that
-  can itself be an ingredient in higher recipes.
-- Trigger check on skill level-up: when all ingredients of a recipe reach their
-  required levels, the result unlocks into the spellbook (reuses the unlock
-  event).
-- Recipes are curated content, never documented in-game; added manually over
-  time.
-- **Decided: combination unlocks are permanent.** Once a recipe triggers, the
-  result stays in the spellbook forever — even if ingredient levels later drop
-  below the recipe requirement (free respec makes this reachable on purpose).
-  Discovery of the secret recipe is the gate, not maintaining the levels.
-- Variant auras (rare world drops) enter as ingredients later — out of scope
-  for this phase.
-- The full design section for this phase is written during Phase 7 (decided
-  there). The prepared question catalog for that design pass lives in
-  `docs/combo-design-questions.md`.
+**The design is fully written — see the Combination System section above**
+(all 16 catalog questions decided, 2026-07-04). Standing decisions: unlocks
+are **permanent** once triggered (free respec cannot revoke them; discovery is
+the gate, not maintaining the levels); recipes are curated, secret, cross-
+category; results can be ingredients of higher recipes.
+
+Implementation steps when this phase runs:
+
+- `RecipeDefinition` + recipe registry in `pkg/berryhunter/skills/` (mirror
+  the skill registry; load order items → skills → recipes → mobs; hard-fail
+  validation per the design).
+- Trigger hook on the two events (discovery, level increase) at their call
+  sites — `Discover` itself has no registry access, so the check lives beside
+  the EquipSystem spend handler and the unlock paths; cascade until no recipe
+  fires (bounded, see design).
+- Tests: trigger on discovery / on raise, ≥ semantics, threshold (nothing
+  consumed), chain cascade incl. cycle termination, idempotent re-trigger,
+  two recipes with identical ingredients both firing, validation failures.
+- First content: 1–2 secret starter recipes [PLACEHOLDER], e.g. requiring the
+  Phase 8 passive/cooldown — exercises the cross-category path.
 
 ---
 
@@ -753,10 +879,11 @@ be added when something consumes them.
 ## Open Questions
 
 1. **Skill point budget** (→ Phase 7): How many skill points does a player earn
-   per level? This determines level caps in practice. *(Partially resolved:
-   respec exists and is free in v1; points buy skill levels only; slots are not
-   purchasable but may grow via milestones — see Phase 7. Only the budget
-   number itself remains open, [PLACEHOLDER].)*
+   per level? This determines level caps in practice. *(Mechanism resolved and
+   implemented: free respec, points buy skill levels only (flat 1/level,
+   level 1 free on discovery), budget derived as (level−1)×`skillPointsPerLevel`
+   from conf.json. Only the number itself remains open — currently 1,
+   [PLACEHOLDER] — a pure balancing knob for the content pass.)*
 
 2. **[Resolved] Aura slot independence**: Only one aura is active at a time.
    The 4 aura slots are a loadout — players switch the active one per tick via
@@ -813,9 +940,14 @@ Known issues to address in a future cleanup pass — not blocking current work.
   persistence (roadmap item 3) lands, `carriedState` is the natural thing to
   persist across sessions.
 
-- **Equip level=1 gap** — `SkillComponent.Spellbook` is `map[SkillID]bool`
-  (discovery only; no per-skill level stored). `EquipSystem` therefore always
-  equips at level 1. Revisit when skill-leveling is implemented.
+- ~~**Equip level=1 gap**~~ — fixed in Phase 7: the spellbook stores per-skill
+  levels and `EquipSystem` equips at the stored level.
+
+- **Frontend skill metadata is a hardcoded duplicate** — `Skills.ts` maps
+  skill ID → display name *and* (since Phase 7.3, for the "2/5" level badge)
+  skill ID → maxLevel, duplicating the backend registry. Sync manually when
+  skills are added or maxLevels change; consider serving skill metadata over
+  the wire (or a generated file) when the skill list grows past a handful.
 
 - **Mob aura ring size is a frontend constant** —
   `GraphicsConfig.mobs.<mob>.damageAuraRadiusMeters` duplicates the effective

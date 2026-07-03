@@ -1,8 +1,26 @@
 # Combination System — Design Question Catalog
 
-Input for the Phase 9 design section, which gets written during Phase 7
-(decided in `skill-system-design.md`). **Questions only — no decisions.**
-Where a lean is noted, it is a suggestion to react to, not a default.
+> **RESOLVED (2026-07-04).** All 16 questions were decided in the Phase 7.4
+> design session; the resulting design lives in
+> `skill-system-design.md → Combination System`. This catalog is kept for the
+> per-option rationale. Decisions in short:
+>
+> - **Q1** level-up AND discovery trigger the check · **Q2** simultaneous
+>   (≥, current levels) · **Q3** spellbook levels only
+> - **Q4** JSON shape as sketched, no extra metadata (hint field deferred to
+>   roadmap item 9) · **Q5** one result per recipe; alternate paths allowed;
+>   identical ingredient sets across recipes allowed (both fire) ·
+>   **Q6** pure threshold
+> - **Q7** result unlocks at level 1 · **Q8** unlock sources may overlap
+>   (Discover is idempotent)
+> - **Q9** standard spellbook glow for now · **Q10** zero in-game traces ·
+>   **Q11** backend-only loading (repo visibility = later policy question)
+> - **Q12** variants use the same mechanism · **Q13** cycles allowed, no
+>   depth cap · **Q14** no missed windows (corollary) · **Q15** one point
+>   economy · **Q16** hard startup failure on invalid recipes
+
+Original intro: input for the Phase 9 design section, written during Phase 7.
+Where a lean is noted, it was a suggestion to react to, not a default.
 
 Already decided (do not re-open):
 
