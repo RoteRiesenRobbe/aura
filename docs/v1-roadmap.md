@@ -82,7 +82,9 @@ storytelling.
   spawn/respawn per zone. The map format must carry **individually placed mob
   instances** (fixed spawn points, per-instance respawn timer + variance) and
   **patrol waypoints/routes** — see item 7 (mob behavior, tiers & spawning),
-  which owns the behavior side of these.
+  which owns the behavior side of these. The map format must also carry the
+  **LoS occluder layer** (see item 6): a per-object blocks-LoS flag, curated —
+  walls/rocks/cliffs block, decorative trees don't.
 - ⚑ Authoring tooling: external editor (e.g. Tiled) vs. custom JSON — biggest
   unknown in this item. *Deliberately left open (2026-07); decide when this
   item starts. Suggested first step: a Tiled spike (build one test zone, load
@@ -98,6 +100,12 @@ trade-offs (light aura vs. damage aura).
 - Work: darkness as a *zone/area* property rather than a time property, light
   sources (light aura, campfires), dark-area definition in map data.
 - Depends on: world & zones (map data), skill system (light aura as a skill).
+- **Decided: darkness is purely presentational.** It restricts what the player
+  *sees* — no effect on damage, hit chance, aura behavior, or any other
+  mechanic. You *can* be hit in the dark; you just can't see well. The value
+  of the light-support role is vision for the group (positioning, spotting
+  targets). This deliberately decouples the cheap, atmospheric part from the
+  server-authoritative LoS occlusion work (item 6).
 - **Gap owned by this item:** a `light_aura` effect type does not exist yet.
   It would be the first effect type whose effect is *rendering* (light radius
   counteracting darkness) rather than damage/heal/stats — design it here, as
@@ -107,10 +115,29 @@ trade-offs (light aura vs. damage aura).
 
 Aura effects blocked by walls/obstacles.
 
-- Work: raycast or occlusion check in `phy` between aura owner and target,
-  applied in `SkillSystem` effect application.
+- Work: occlusion check between aura owner and each target candidate, applied
+  in `SkillSystem` effect application (in the targeting pipeline: range filter
+  → **LoS filter** → selector sort → take N, see item 11).
+- **Decided: occlusion is separate from darkness/vision.** This item is only
+  the server-authoritative, combat-relevant part (does a wall block the
+  effect?). Vision/darkness is client-side rendering (item 5).
+- **Decided: occluders are curated.** A blocks-LoS flag on large objects
+  (walls, rocks, cliffs); decorative trees do *not* block — otherwise forest
+  combat gets chopped up and feels random. The flag lives in map data (item 4).
+- **Approach (direction, to be validated by a spike):** occluder layer as a
+  grid/tilemap + integer raycast (DDA); LoS result caching (recompute every K
+  ticks or on movement [PLACEHOLDER]); with capped targets (item 11), raycast
+  candidates in selector order with early-out once N targets pass — normally N
+  raycasts, not all candidates.
+- **Performance model:** cost scales with *co-located* aura casters (the blob:
+  boss events, special-event puddle), not total entities; the broadphase is
+  the expensive part and `phy` already has spatial hashing. The spike is a
+  **blob benchmark**: X synthetic casters, tick time must stay under 33 ms.
+- ⚑ Occluder representation: static geometry (pre-bakeable) vs. entities
+  (Berryhunter resources are harvestable → potentially dynamic). Depends on
+  the map format (item 4).
 - Depends on: world & zones providing walls worth occluding; cheap to defer
-  until then.
+  until then. Not part of the prototype path.
 
 ## 7. Mob behavior, tiers & spawning — normal / elite / boss
 
@@ -136,7 +163,8 @@ Aura effects blocked by walls/obstacles.
   limitations must be lifted for this (both flagged in
   `skill-system-design.md`): `heal_aura` has no target flags yet (implicitly
   players-only), and mob entities cannot cast heal auras (the SkillSystem's
-  `healCaster` split — mobs lack player vitals).
+  `healCaster` split — mobs lack player vitals). **Confirmed (targeting
+  session): this stays here — no earlier lift, YAGNI.**
 - **Placement & respawn (level design / environmental storytelling):**
   individually configured mob instances, placed by hand at fixed spawn points,
   with per-instance respawn time **at the same spot** plus a random respawn
@@ -195,7 +223,47 @@ Vision: **all combat participants receive XP** (no formal groups in v1).
 - ✓ **Decided: drops stay with the last toucher.** The item system is removed
   with the survival systems (item 2); no investment there.
 
-## 11. Initial content pass (prototype gate)
+## 11. Aura targeting: selector & target cap
+
+**Decided (targeting session): base auras get capped targeting.** The design
+pitch changes from "no targeting" to "**no manual aiming**": every aura picks
+its own targets by a per-aura rule; positioning controls *who* gets hit.
+Current implementation is AoE-all (every matching entity in range) — this item
+changes shipped base-aura behavior and is its own step.
+
+- **Effect data fields** (analogous to `tickInterval`): `selector` and
+  `maxTargets` on `damage_aura`, `heal_aura`, `instant_damage`.
+  - `selector: nearest` — default for *everything* (damage and heal).
+    Positioning steers the target directly.
+  - `selector: lowest_health` — special auras only; **percentual** (lowest
+    current/max ratio, not absolute values), so it picks the most-wounded
+    target relative to its pool, not always the small add.
+- **Target selection pipeline:** range filter (aura sensor, exists) → LoS
+  filter (item 6, later) → selector sort → take first N. "All in range" is
+  the uncapped special case, reserved for late unlock auras.
+- **Base auras start with few targets** (initial 1 [PLACEHOLDER]); more
+  targets come via per-aura level-ups or dedicated unlocks.
+- **Per-aura level-up axes:** what a level-up improves is defined per aura —
+  damage/heal, radius, target count, tick rate; multiple axes at once are
+  allowed. Schema gains `maxTargetsPerLevel` and `tickIntervalPerLevel`
+  [PLACEHOLDER] alongside the existing `*PerLevel` fields. *Balance note for
+  the content pass: scaling target count × damage on the same aura is the
+  most dangerous multiplier — use deliberately.*
+- **Heal:** default nearest on allies; **never heals the caster** — self-heal
+  is conceptually a cooldown (not yet implemented).
+- **Frontend part of this item: per-tick hit VFX on the struck target**
+  (sword slash for slow-ticking auras, constant effect e.g. fire for
+  fast-ticking ones). This makes the circle read as *range*, not as a hit
+  zone — required for capped targeting to feel right, ships together with it.
+- *Deferred:* sticky targeting (keep target until dead/out of range) against
+  target flicker with `nearest` on fast ticks — build only if flicker actually
+  bothers in practice.
+- Depends on: nothing hard — the effect application loop exists since Phase 2.
+  Placement: **its own step, at the latest before the content pass (item 12)**,
+  since the content pass authors per-aura selectors/caps and the prototype
+  should ship the decided base-aura feel.
+
+## 12. Initial content pass (prototype gate)
 
 Systems alone aren't a game. Before the prototype is *playable*, a curated
 first content set is needed — almost entirely JSON/data work, no code, but it
@@ -203,6 +271,9 @@ needs real design time:
 
 - A first roster of skills beyond DamageAura + HealAura: base auras, passives
   (incl. item-flavored ones), cooldowns — count [PLACEHOLDER].
+- **Per-aura targeting config** (selector, initial target count, level-up
+  axes — see item 11) for every authored skill, including the balance pass on
+  the targets × damage multiplier.
 - First combination recipes (secret, curated).
 - Mob skill loadouts and kill-unlock/drop tables.
 - First real-values balancing pass over the placeholder numbers.
@@ -218,7 +289,10 @@ server today. The minimal subset for a playable prototype:
    → 6 → 7 → 8 → 9.
 2. **Items 1 + 2** — single resource, survival systems removed.
 3. ~~**Item 10** — participation XP (otherwise support roles can't level).~~ ✓
-4. **Item 11** — initial content pass.
+4. **Item 11** — aura targeting (selector + target cap + hit VFX); the
+   prototype should ship the decided base-aura feel, not the AoE-all interim
+   state.
+5. **Item 12** — initial content pass.
 
 The prototype runs on the existing procedurally assembled world, without
 accounts/persistence (session-based, like today). Everything else — zones,
