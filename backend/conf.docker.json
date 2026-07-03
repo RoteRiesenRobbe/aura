@@ -24,7 +24,8 @@
       "walkingSpeedPerTick": 0.05,
       "maxHealthLevelGainFraction": 0.1,
       "levelUpXPBase": 300,
-      "levelUpXPGrowthFactor": 1.2
+      "levelUpXPGrowthFactor": 1.2,
+      "skillPointsPerLevel": 1
     }
   }
 }

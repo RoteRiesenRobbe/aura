@@ -177,8 +177,54 @@ func (rcv *GameState) MutateActiveAuraSlot(n int8) bool {
 	return rcv._tab.MutateInt8Slot(18, n)
 }
 
+func (rcv *GameState) SpellbookLevels(j int) byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+	}
+	return 0
+}
+
+func (rcv *GameState) SpellbookLevelsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *GameState) SpellbookLevelsBytes() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *GameState) MutateSpellbookLevels(j int, n byte) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+	}
+	return false
+}
+
+func (rcv *GameState) SkillPoints() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateSkillPoints(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(22, n)
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(8)
+	builder.StartObject(10)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -215,6 +261,15 @@ func GameStateStartAuraSlotsVector(builder *flatbuffers.Builder, numElems int) f
 }
 func GameStateAddActiveAuraSlot(builder *flatbuffers.Builder, activeAuraSlot int8) {
 	builder.PrependInt8Slot(7, activeAuraSlot, -1)
+}
+func GameStateAddSpellbookLevels(builder *flatbuffers.Builder, spellbookLevels flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(spellbookLevels), 0)
+}
+func GameStateStartSpellbookLevelsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(1, numElems, 1)
+}
+func GameStateAddSkillPoints(builder *flatbuffers.Builder, skillPoints uint16) {
+	builder.PrependUint16Slot(9, skillPoints, 0)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

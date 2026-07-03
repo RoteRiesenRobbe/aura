@@ -106,6 +106,25 @@ func unmarshalEquip(e *BerryhunterApi.Equip) *model.EquipSkill {
 	}
 }
 
+func unwrapSpendSkillPoint(msg *BerryhunterApi.ClientMessage) *BerryhunterApi.SpendSkillPoint {
+	i := &BerryhunterApi.SpendSkillPoint{}
+	err := fbutil.UnwrapUnion[BerryhunterApi.ClientMessageBody](msg, i)
+	if err != nil {
+		return nil
+	}
+	return i
+}
+
+func unmarshalSpendSkillPoint(s *BerryhunterApi.SpendSkillPoint) *model.SpendSkillPoint {
+	if s == nil {
+		return nil
+	}
+	return &model.SpendSkillPoint{
+		SkillID: skills.SkillID(s.SkillId()),
+		Unspend: s.Unspend(),
+	}
+}
+
 func unwrapChatMessage(msg *BerryhunterApi.ClientMessage) *BerryhunterApi.ChatMessage {
 	i := &BerryhunterApi.ChatMessage{}
 	err := fbutil.UnwrapUnion[BerryhunterApi.ClientMessageBody](msg, i)
@@ -147,6 +166,11 @@ func ChatMessageFlatbufferUnmarshal(msg *BerryhunterApi.ClientMessage) *model.Ch
 func EquipMessageFlatbufferUnmarshal(msg *BerryhunterApi.ClientMessage) *model.EquipSkill {
 	fbutil.AssertBodyType[BerryhunterApi.ClientMessageBody](msg, BerryhunterApi.ClientMessageBodyEquip)
 	return unmarshalEquip(unwrapEquip(msg))
+}
+
+func SpendSkillPointMessageFlatbufferUnmarshal(msg *BerryhunterApi.ClientMessage) *model.SpendSkillPoint {
+	fbutil.AssertBodyType[BerryhunterApi.ClientMessageBody](msg, BerryhunterApi.ClientMessageBodySpendSkillPoint)
+	return unmarshalSpendSkillPoint(unwrapSpendSkillPoint(msg))
 }
 
 func ClientMessageFlatbufferUnmarshal(bytes []byte) *BerryhunterApi.ClientMessage {

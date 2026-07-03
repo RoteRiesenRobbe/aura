@@ -32,6 +32,50 @@ func TestSpellbookMarshalFlatbuf_RoundTrip(t *testing.T) {
 	assert.Equal(t, uint16(2), result.Spellbook(1))
 }
 
+func TestSpellbookLevelsMarshalFlatbuf_ParallelToSpellbook(t *testing.T) {
+	defA := &skills.SkillDefinition{ID: 1, Name: "A", MaxLevel: 5}
+	defC := &skills.SkillDefinition{ID: 3, Name: "C", MaxLevel: 5}
+	sc := skills.NewSkillComponent(true)
+	sc.Discover(defA.ID)
+	sc.Discover(defC.ID)
+	require.True(t, sc.RaiseSkillLevel(defC))
+	require.True(t, sc.RaiseSkillLevel(defC)) // A at 1, C at 3
+
+	b := flatbuffers.NewBuilder(128)
+
+	spellbook := SpellbookMarshalFlatbuf(sc, b)
+	levels := SpellbookLevelsMarshalFlatbuf(sc, b)
+
+	BerryhunterApi.GameStateStart(b)
+	BerryhunterApi.GameStateAddSpellbook(b, spellbook)
+	BerryhunterApi.GameStateAddSpellbookLevels(b, levels)
+	gs := BerryhunterApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
+
+	require.Equal(t, 2, result.SpellbookLength())
+	require.Equal(t, 2, result.SpellbookLevelsLength())
+	// Positionally parallel: index i of spellbook_levels belongs to spellbook[i].
+	assert.Equal(t, uint16(1), result.Spellbook(0))
+	assert.Equal(t, byte(1), result.SpellbookLevels(0))
+	assert.Equal(t, uint16(3), result.Spellbook(1))
+	assert.Equal(t, byte(3), result.SpellbookLevels(1))
+}
+
+func TestGameStateSkillPoints_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+
+	BerryhunterApi.GameStateStart(b)
+	BerryhunterApi.GameStateAddSkillPoints(b, 7)
+	gs := BerryhunterApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
+
+	assert.Equal(t, uint16(7), result.SkillPoints())
+}
+
 func TestSpellbookMarshalFlatbuf_Empty(t *testing.T) {
 	sc := skills.NewSkillComponent(true)
 

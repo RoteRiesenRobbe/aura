@@ -25,6 +25,10 @@ type Client interface {
 	// from the client. Returns nil if none available.
 	NextEquip() *EquipSkill
 
+	// NextSpendSkillPoint deques a SpendSkillPoint message received
+	// from the client. Returns nil if none available.
+	NextSpendSkillPoint() *SpendSkillPoint
+
 	// SendMessage enqueues a message in the outgoing
 	// messages queue
 	SendMessage([]byte) error

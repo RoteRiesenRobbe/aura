@@ -20,3 +20,11 @@ type EquipSkill struct {
 	SkillID skills.SkillID
 	Slot    int
 }
+
+// SpendSkillPoint is a one-shot request to spend (or, with Unspend, refund)
+// one skill point on a discovered skill, raising/lowering its spellbook level
+// by one. The server validates point availability and level bounds.
+type SpendSkillPoint struct {
+	SkillID skills.SkillID
+	Unspend bool
+}

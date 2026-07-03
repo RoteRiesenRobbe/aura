@@ -7,6 +7,7 @@ import { Cheat } from '../berryhunter-api/cheat.js';
 import { Equip } from '../berryhunter-api/equip.js';
 import { Input } from '../berryhunter-api/input.js';
 import { Join } from '../berryhunter-api/join.js';
+import { SpendSkillPoint } from '../berryhunter-api/spend-skill-point.js';
 
 
 export enum ClientMessageBody {
@@ -15,13 +16,14 @@ export enum ClientMessageBody {
   Join = 2,
   Cheat = 3,
   ChatMessage = 4,
-  Equip = 5
+  Equip = 5,
+  SpendSkillPoint = 6
 }
 
 export function unionToClientMessageBody(
   type: ClientMessageBody,
-  accessor: (obj:ChatMessage|Cheat|Equip|Input|Join) => ChatMessage|Cheat|Equip|Input|Join|null
-): ChatMessage|Cheat|Equip|Input|Join|null {
+  accessor: (obj:ChatMessage|Cheat|Equip|Input|Join|SpendSkillPoint) => ChatMessage|Cheat|Equip|Input|Join|SpendSkillPoint|null
+): ChatMessage|Cheat|Equip|Input|Join|SpendSkillPoint|null {
   switch(ClientMessageBody[type]) {
     case 'NONE': return null; 
     case 'Input': return accessor(new Input())! as Input;
@@ -29,15 +31,16 @@ export function unionToClientMessageBody(
     case 'Cheat': return accessor(new Cheat())! as Cheat;
     case 'ChatMessage': return accessor(new ChatMessage())! as ChatMessage;
     case 'Equip': return accessor(new Equip())! as Equip;
+    case 'SpendSkillPoint': return accessor(new SpendSkillPoint())! as SpendSkillPoint;
     default: return null;
   }
 }
 
 export function unionListToClientMessageBody(
   type: ClientMessageBody, 
-  accessor: (index: number, obj:ChatMessage|Cheat|Equip|Input|Join) => ChatMessage|Cheat|Equip|Input|Join|null, 
+  accessor: (index: number, obj:ChatMessage|Cheat|Equip|Input|Join|SpendSkillPoint) => ChatMessage|Cheat|Equip|Input|Join|SpendSkillPoint|null, 
   index: number
-): ChatMessage|Cheat|Equip|Input|Join|null {
+): ChatMessage|Cheat|Equip|Input|Join|SpendSkillPoint|null {
   switch(ClientMessageBody[type]) {
     case 'NONE': return null; 
     case 'Input': return accessor(index, new Input())! as Input;
@@ -45,6 +48,7 @@ export function unionListToClientMessageBody(
     case 'Cheat': return accessor(index, new Cheat())! as Cheat;
     case 'ChatMessage': return accessor(index, new ChatMessage())! as ChatMessage;
     case 'Equip': return accessor(index, new Equip())! as Equip;
+    case 'SpendSkillPoint': return accessor(index, new SpendSkillPoint())! as SpendSkillPoint;
     default: return null;
   }
 }

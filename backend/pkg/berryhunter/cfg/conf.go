@@ -45,6 +45,7 @@ type Config struct {
 			MaxHealthLevelGainFraction float32 `json:"maxHealthLevelGainFraction"`
 			LevelUpXPBase              uint32  `json:"levelUpXPBase"`
 			LevelUpXPGrowthFactor      float32 `json:"levelUpXPGrowthFactor"`
+			SkillPointsPerLevel        int     `json:"skillPointsPerLevel"`
 		} `json:"player"`
 	} `json:"game"`
 }

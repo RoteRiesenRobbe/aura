@@ -44,16 +44,16 @@ type SkillComponent struct {
 	AuraSlots      [MaxAuraSlots]*EquippedSkill
 	PassiveSlots   [MaxPassiveSlots]*EquippedSkill
 	CooldownSlots  [MaxCooldownSlots]*EquippedSkill
-	ActiveAuraSlot int              // index into AuraSlots; -1 = none active
-	Spellbook      map[SkillID]bool // nil for mobs
+	ActiveAuraSlot int             // index into AuraSlots; -1 = none active
+	Spellbook      map[SkillID]int // discovered skill → current level (≥ 1); nil for mobs
 }
 
 // NewSkillComponent creates a SkillComponent with no skills equipped.
 // Pass withSpellbook=true for players, false for mobs.
 func NewSkillComponent(withSpellbook bool) *SkillComponent {
-	var spellbook map[SkillID]bool
+	var spellbook map[SkillID]int
 	if withSpellbook {
-		spellbook = make(map[SkillID]bool)
+		spellbook = make(map[SkillID]int)
 	}
 	return &SkillComponent{
 		ActiveAuraSlot: -1,
@@ -89,16 +89,80 @@ func (sc *SkillComponent) SetActiveAura(slot int) {
 	}
 }
 
-// Discover marks a skill as discovered in the spellbook. No-op for mobs (nil spellbook).
+// Discover marks a skill as discovered at level 1. Re-discovering (idempotent
+// kill unlocks, milestone replays) never downgrades an already-raised level.
+// No-op for mobs (nil spellbook).
 func (sc *SkillComponent) Discover(id SkillID) {
-	if sc.Spellbook != nil {
-		sc.Spellbook[id] = true
+	if sc.Spellbook != nil && sc.Spellbook[id] == 0 {
+		sc.Spellbook[id] = 1
 	}
 }
 
 // HasDiscovered reports whether a skill has been discovered. Always false for mobs.
 func (sc *SkillComponent) HasDiscovered(id SkillID) bool {
+	return sc.Spellbook[id] > 0
+}
+
+// SkillLevel returns the spellbook level of a skill; 0 = not discovered.
+func (sc *SkillComponent) SkillLevel(id SkillID) int {
 	return sc.Spellbook[id]
+}
+
+// RaiseSkillLevel spends one skill point: the skill's spellbook level rises by
+// one, capped at the definition's MaxLevel, and every equipped instance is
+// synced. It does NOT check point availability — that needs the player level
+// and is the caller's job. Returns false if nothing changed.
+func (sc *SkillComponent) RaiseSkillLevel(def *SkillDefinition) bool {
+	level := sc.Spellbook[def.ID]
+	if level == 0 || level >= def.MaxLevel {
+		return false
+	}
+	sc.setSkillLevel(def.ID, level+1)
+	return true
+}
+
+// LowerSkillLevel refunds one skill point (free respec): the skill's spellbook
+// level drops by one, floored at 1 (discovery level is never refundable), and
+// every equipped instance is synced. Returns false if nothing changed.
+func (sc *SkillComponent) LowerSkillLevel(def *SkillDefinition) bool {
+	level := sc.Spellbook[def.ID]
+	if level <= 1 {
+		return false
+	}
+	sc.setSkillLevel(def.ID, level-1)
+	return true
+}
+
+func (sc *SkillComponent) setSkillLevel(id SkillID, level int) {
+	sc.Spellbook[id] = level
+	for _, slots := range [][]*EquippedSkill{sc.AuraSlots[:], sc.PassiveSlots[:], sc.CooldownSlots[:]} {
+		for _, es := range slots {
+			if es != nil && es.Def.ID == id {
+				es.Level = level
+			}
+		}
+	}
+}
+
+// SpentPoints is the number of skill points bound in the spellbook. Derived,
+// never stored: level 1 is free on discovery, so each skill binds level−1
+// points (flat cost of 1 per level). Deriving makes free respec drift-proof.
+func (sc *SkillComponent) SpentPoints() int {
+	spent := 0
+	for _, level := range sc.Spellbook {
+		spent += level - 1
+	}
+	return spent
+}
+
+// TotalSkillPoints is the point budget a player of the given level has earned:
+// (level−1) × pointsPerLevel. Derived from the level rather than awarded per
+// level-up event, so budgets are retroactive and cannot drift under respec.
+func TotalSkillPoints(playerLevel uint32, pointsPerLevel int) int {
+	if playerLevel < 1 {
+		return 0
+	}
+	return int(playerLevel-1) * pointsPerLevel
 }
 
 // Discovered returns all discovered skill IDs in ascending order. Returns nil for mobs.

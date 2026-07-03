@@ -150,6 +150,12 @@ table GameState {
   // -1 = none active (Nothing). Server→client: absent reads as the default -1,
   // which is semantically identical — no sentinel needed in this direction.
   active_aura_slot:byte = -1;
+
+  // per-entry skill level, positionally parallel to `spellbook`
+  spellbook_levels:[ubyte];
+
+  // unspent skill points available to the owning player
+  skill_points:ushort;
 }
 
 table Welcome {

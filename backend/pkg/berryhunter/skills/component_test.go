@@ -156,3 +156,150 @@ func TestSpellbook(t *testing.T) {
 		assert.Empty(t, sc.Discovered())
 	})
 }
+
+func TestSkillLevel(t *testing.T) {
+	t.Run("discover grants level 1", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testDef.ID)
+
+		assert.Equal(t, 1, sc.SkillLevel(testDef.ID))
+	})
+
+	t.Run("undiscovered skill is level 0", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+
+		assert.Equal(t, 0, sc.SkillLevel(SkillID(99)))
+	})
+
+	t.Run("nil spellbook is level 0", func(t *testing.T) {
+		sc := NewSkillComponent(false)
+
+		assert.Equal(t, 0, sc.SkillLevel(testDef.ID))
+	})
+
+	t.Run("re-discover never downgrades", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testDef.ID)
+		require.True(t, sc.RaiseSkillLevel(testDef))
+		require.True(t, sc.RaiseSkillLevel(testDef))
+
+		sc.Discover(testDef.ID)
+
+		assert.Equal(t, 3, sc.SkillLevel(testDef.ID))
+	})
+}
+
+func TestRaiseSkillLevel(t *testing.T) {
+	t.Run("raises by one", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testDef.ID)
+
+		assert.True(t, sc.RaiseSkillLevel(testDef))
+		assert.Equal(t, 2, sc.SkillLevel(testDef.ID))
+	})
+
+	t.Run("undiscovered skill fails", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+
+		assert.False(t, sc.RaiseSkillLevel(testDef))
+		assert.Equal(t, 0, sc.SkillLevel(testDef.ID))
+	})
+
+	t.Run("capped at maxLevel", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testDef.ID)
+		for i := 1; i < testDef.MaxLevel; i++ {
+			require.True(t, sc.RaiseSkillLevel(testDef))
+		}
+
+		assert.False(t, sc.RaiseSkillLevel(testDef))
+		assert.Equal(t, testDef.MaxLevel, sc.SkillLevel(testDef.ID))
+	})
+
+	t.Run("nil spellbook fails", func(t *testing.T) {
+		sc := NewSkillComponent(false)
+
+		assert.False(t, sc.RaiseSkillLevel(testDef))
+	})
+
+	t.Run("propagates to all equipped instances", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testDef.ID)
+		sc.EquipAura(0, testDef, 1)
+		sc.EquipAura(2, testDef, 1)
+
+		require.True(t, sc.RaiseSkillLevel(testDef))
+
+		assert.Equal(t, 2, sc.AuraSlots[0].Level)
+		assert.Equal(t, 2, sc.AuraSlots[2].Level)
+	})
+}
+
+func TestLowerSkillLevel(t *testing.T) {
+	t.Run("lowers by one", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testDef.ID)
+		require.True(t, sc.RaiseSkillLevel(testDef))
+
+		assert.True(t, sc.LowerSkillLevel(testDef))
+		assert.Equal(t, 1, sc.SkillLevel(testDef.ID))
+	})
+
+	t.Run("floor at level 1", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testDef.ID)
+
+		assert.False(t, sc.LowerSkillLevel(testDef))
+		assert.Equal(t, 1, sc.SkillLevel(testDef.ID))
+	})
+
+	t.Run("undiscovered skill fails", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+
+		assert.False(t, sc.LowerSkillLevel(testDef))
+	})
+
+	t.Run("propagates to equipped instances", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testDef.ID)
+		require.True(t, sc.RaiseSkillLevel(testDef))
+		sc.EquipAura(0, testDef, sc.SkillLevel(testDef.ID))
+
+		require.True(t, sc.LowerSkillLevel(testDef))
+
+		assert.Equal(t, 1, sc.AuraSlots[0].Level)
+	})
+}
+
+func TestSpentPoints(t *testing.T) {
+	t.Run("fresh spellbook has spent nothing", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testDef.ID)
+
+		assert.Equal(t, 0, sc.SpentPoints())
+	})
+
+	t.Run("sums level minus one across skills", func(t *testing.T) {
+		other := &SkillDefinition{ID: 2, Name: "Other", MaxLevel: 5}
+		sc := NewSkillComponent(true)
+		sc.Discover(testDef.ID)
+		sc.Discover(other.ID)
+		require.True(t, sc.RaiseSkillLevel(testDef)) // level 2 = 1 point
+		require.True(t, sc.RaiseSkillLevel(testDef)) // level 3 = 2 points
+		require.True(t, sc.RaiseSkillLevel(other))   // level 2 = 1 point
+
+		assert.Equal(t, 3, sc.SpentPoints())
+	})
+
+	t.Run("nil spellbook has spent nothing", func(t *testing.T) {
+		sc := NewSkillComponent(false)
+
+		assert.Equal(t, 0, sc.SpentPoints())
+	})
+}
+
+func TestTotalSkillPoints(t *testing.T) {
+	assert.Equal(t, 0, TotalSkillPoints(1, 1))
+	assert.Equal(t, 4, TotalSkillPoints(5, 1))
+	assert.Equal(t, 8, TotalSkillPoints(5, 2))
+}

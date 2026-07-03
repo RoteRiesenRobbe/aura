@@ -193,12 +193,28 @@ func SpellbookMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.Bui
 	return builder.EndVector(n)
 }
 
+// SpellbookLevelsMarshalFlatbuf serializes the per-skill levels as a [ubyte]
+// vector positionally parallel to the spellbook vector (same ascending-ID
+// order from Discovered()). Must be called before GameStateStart.
+func SpellbookLevelsMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	ids := sc.Discovered()
+	n := len(ids)
+	BerryhunterApi.GameStateStartSpellbookLevelsVector(builder, n)
+	// Prepend in reverse so index 0 lands at the lowest address (see
+	// SpellbookMarshalFlatbuf).
+	for i := n - 1; i >= 0; i-- {
+		builder.PrependByte(byte(sc.SkillLevel(ids[i])))
+	}
+	return builder.EndVector(n)
+}
+
 // MarshalFlatbuf implements FlatbufCodec for GameState
 func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	entities := EntitiesMarshalFlatbuf(gs.Entities, builder)
 	character := CharacterMarshalFlatbuf(gs.Player, builder)
 	inventory := InventoryMarshalFlatbuf(gs.Player.Inventory(), builder)
 	spellbook := SpellbookMarshalFlatbuf(gs.Player.SkillComponent(), builder)
+	spellbookLevels := SpellbookLevelsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	auraSlots := AuraSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 
 	BerryhunterApi.GameStateStart(builder)
@@ -210,8 +226,10 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	BerryhunterApi.GameStateAddEntities(builder, entities)
 	BerryhunterApi.GameStateAddInventory(builder, inventory)
 	BerryhunterApi.GameStateAddSpellbook(builder, spellbook)
+	BerryhunterApi.GameStateAddSpellbookLevels(builder, spellbookLevels)
 	BerryhunterApi.GameStateAddAuraSlots(builder, auraSlots)
 	BerryhunterApi.GameStateAddActiveAuraSlot(builder, int8(gs.Player.SkillComponent().ActiveAuraSlot))
+	BerryhunterApi.GameStateAddSkillPoints(builder, uint16(max(gs.Player.AvailableSkillPoints(), 0)))
 
 	return BerryhunterApi.GameStateEnd(builder)
 }

@@ -1,7 +1,7 @@
 import '../assets/HUD.less';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
-import {skillDisplayName} from '../../../../client-data/Skills';
+import {skillDisplayName, skillMaxLevel} from '../../../../client-data/Skills';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import {ClickableIcon} from './ClickableIcon';
 import {ClickableCountableIcon} from './ClickableCountableIcon';
@@ -11,6 +11,7 @@ import {UserInteraceDomReadyEvent} from '../../../core/logic/Events';
 import {VitalSign} from '../../../vital-signs/logic/VitalSigns';
 import {InputMessage, DEACTIVATE_AURA_SLOT} from '../../../backend/logic/messages/outgoing/InputMessage';
 import {EquipMessage} from '../../../backend/logic/messages/outgoing/EquipMessage';
+import {SpendSkillPointMessage} from '../../../backend/logic/messages/outgoing/SpendSkillPointMessage';
 
 let Game: IGame = null;
 
@@ -25,6 +26,9 @@ let auraLoadoutElement: HTMLElement;
 let auraSlotListElement: HTMLElement;
 
 let selectedSkillId: number | null = null;
+let skillPointsBadgeElement: HTMLElement;
+// Latest unspent-skill-point count from the server; gates the spend buttons.
+let currentSkillPoints = 0;
 
 // Latest positional aura-slot contents from the server (skill id per slot, 0 = empty).
 // Source of truth for the activate-vs-empty check in the slot pointerdown handler.
@@ -185,10 +189,30 @@ export function getScoreboard(): HTMLElement {
 
 function setupSpellbook() {
     spellbookListElement = document.getElementById('spellbookList');
+    skillPointsBadgeElement = document.getElementById('skillPointsBadge');
     spellbookListElement.addEventListener('pointerdown', (e) => {
-        const li = (e.target as HTMLElement).closest('li') as HTMLElement;
+        const target = e.target as HTMLElement;
+        const li = target.closest('li') as HTMLElement;
         if (!li || !li.dataset.skillId) return;
         const id = Number(li.dataset.skillId);
+
+        // Spend/unspend buttons take precedence over the select-for-equip
+        // logic below; the server re-validates every request.
+        const spendBtn = target.closest('.spendBtn');
+        if (spendBtn) {
+            if (currentSkillPoints > 0 && !spendBtn.classList.contains('inactive')) {
+                new SpendSkillPointMessage(id).send();
+            }
+            return;
+        }
+        const unspendBtn = target.closest('.unspendBtn');
+        if (unspendBtn) {
+            if (!unspendBtn.classList.contains('inactive')) {
+                new SpendSkillPointMessage(id, true).send();
+            }
+            return;
+        }
+
         if (selectedSkillId === id) {
             clearEquipSelection();
         } else {
@@ -266,28 +290,75 @@ function clearEquipSelection() {
 // the first non-empty list renders without glow. That never swallows a real
 // unlock, since players always spawn with DamageAura already discovered.
 let knownSpellbookIds: number[] = [];
+// Previous tick's per-skill levels, parallel to knownSpellbookIds; level
+// changes trigger a list rebuild but never the unlock glow.
+let knownSpellbookLevels: number[] = [];
 
 function sameIds(a: number[], b: number[]) {
     return a.length === b.length && a.every((id, i) => id === b[i]);
 }
 
+// updateSkillPointsDisplay keeps the header badge and the panel's hasPoints
+// class (which lights up the spend buttons) in sync with the server count.
+function updateSkillPointsDisplay(points: number) {
+    currentSkillPoints = points;
+    if (skillPointsBadgeElement) {
+        skillPointsBadgeElement.textContent = points === 1 ? '1 Point' : `${points} Points`;
+        skillPointsBadgeElement.classList.toggle('hidden', points <= 0);
+    }
+    document.getElementById('spellbook').classList.toggle('hasPoints', points > 0);
+}
+
 // updateSpellbook is called every tick in PLAYING state with the full list of
-// discovered skill IDs. An empty array clears the list. Rebuilds the DOM only
-// when the list actually changed, so the unlock animation is not restarted by
+// discovered skill IDs, their levels (positionally parallel), and the unspent
+// point count. An empty id array clears the list. Rebuilds the DOM only when
+// ids or levels actually changed, so the unlock animation is not restarted by
 // the per-tick calls.
-export function updateSpellbook(ids: number[]) {
+export function updateSpellbook(ids: number[], levels: number[], points: number) {
     if (!spellbookListElement) return;
-    if (sameIds(ids, knownSpellbookIds)) return;
+    updateSkillPointsDisplay(points);
+    if (sameIds(ids, knownSpellbookIds) && sameIds(levels, knownSpellbookLevels)) return;
 
     const isBaseline = knownSpellbookIds.length === 0;
     const known = new Set(knownSpellbookIds);
     let anyUnlock = false;
 
     spellbookListElement.innerHTML = '';
-    for (const id of ids) {
+    for (let i = 0; i < ids.length; i++) {
+        const id = ids[i];
+        const level = levels[i] ?? 1;
+        const maxLevel = skillMaxLevel(id);
+
         const li = document.createElement('li');
-        li.textContent = skillDisplayName(id);
         li.dataset.skillId = String(id);
+
+        const name = document.createElement('span');
+        name.className = 'skillName';
+        name.textContent = skillDisplayName(id);
+        li.appendChild(name);
+
+        const controls = document.createElement('span');
+        controls.className = 'skillControls';
+
+        const unspendBtn = document.createElement('button');
+        unspendBtn.className = 'unspendBtn';
+        unspendBtn.textContent = '−';
+        unspendBtn.classList.toggle('inactive', level <= 1);
+        controls.appendChild(unspendBtn);
+
+        const levelBadge = document.createElement('span');
+        levelBadge.className = 'skillLevel';
+        levelBadge.textContent = `${level}/${maxLevel}`;
+        controls.appendChild(levelBadge);
+
+        const spendBtn = document.createElement('button');
+        spendBtn.className = 'spendBtn';
+        spendBtn.textContent = '+';
+        spendBtn.classList.toggle('inactive', level >= maxLevel);
+        controls.appendChild(spendBtn);
+
+        li.appendChild(controls);
+
         if (selectedSkillId === id) {
             li.classList.add('selected');
         }
@@ -303,6 +374,7 @@ export function updateSpellbook(ids: number[]) {
     }
 
     knownSpellbookIds = ids.slice();
+    knownSpellbookLevels = levels.slice();
 }
 
 // updateActiveAuraSlot applies the server-authoritative active aura slot

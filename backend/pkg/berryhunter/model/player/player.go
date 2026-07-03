@@ -273,6 +273,13 @@ func (p *player) Progression() model.PlayerProgression {
 	return p.progression
 }
 
+// AvailableSkillPoints is the unspent point count: the budget the player level
+// earns minus the points bound in the spellbook. Derived on every call so free
+// respec can never make the numbers drift.
+func (p *player) AvailableSkillPoints() int {
+	return skills.TotalSkillPoints(p.progression.Level, p.config.SkillPointsPerLevel) - p.skills.SpentPoints()
+}
+
 func (p *player) SetProgression(progression model.PlayerProgression) {
 	if progression.Level < 1 {
 		progression.Level = 1

@@ -97,8 +97,28 @@ activeAuraSlot():number {
   return offset ? this.bb!.readInt8(this.bb_pos + offset) : -1;
 }
 
+spellbookLevels(index: number):number|null {
+  const offset = this.bb!.__offset(this.bb_pos, 20);
+  return offset ? this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index) : 0;
+}
+
+spellbookLevelsLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 20);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
+spellbookLevelsArray():Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 20);
+  return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+}
+
+skillPoints():number {
+  const offset = this.bb!.__offset(this.bb_pos, 22);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(8);
+  builder.startObject(10);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -183,12 +203,32 @@ static addActiveAuraSlot(builder:flatbuffers.Builder, activeAuraSlot:number) {
   builder.addFieldInt8(7, activeAuraSlot, -1);
 }
 
+static addSpellbookLevels(builder:flatbuffers.Builder, spellbookLevelsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(8, spellbookLevelsOffset, 0);
+}
+
+static createSpellbookLevelsVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset {
+  builder.startVector(1, data.length, 1);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addInt8(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startSpellbookLevelsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(1, numElems, 1);
+}
+
+static addSkillPoints(builder:flatbuffers.Builder, skillPoints:number) {
+  builder.addFieldInt16(9, skillPoints, 0);
+}
+
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, inventoryOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number):flatbuffers.Offset {
+static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, inventoryOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number, spellbookLevelsOffset:flatbuffers.Offset, skillPoints:number):flatbuffers.Offset {
   GameState.startGameState(builder);
   GameState.addTick(builder, tick);
   GameState.addPlayerType(builder, playerType);
@@ -198,6 +238,8 @@ static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Play
   GameState.addSpellbook(builder, spellbookOffset);
   GameState.addAuraSlots(builder, auraSlotsOffset);
   GameState.addActiveAuraSlot(builder, activeAuraSlot);
+  GameState.addSpellbookLevels(builder, spellbookLevelsOffset);
+  GameState.addSkillPoints(builder, skillPoints);
   return GameState.endGameState(builder);
 }
 }

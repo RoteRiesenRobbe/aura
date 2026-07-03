@@ -23,9 +23,11 @@ Already decided (do not re-open):
 - *Lean: (a)+(b) — they are the only events that can newly satisfy a recipe.*
 
 **Q2 — Must all ingredient levels be met simultaneously?**
-- (a) Simultaneous: all ingredients at required level at the same moment. With free respec this is a deliberate "configure your build into the recipe" act.
-- (b) High-water marks: a recipe triggers once each ingredient has *ever* reached its level. Sneaky-friendly (no need to hold the shape), but weakens the "aha" moment and makes farming trivial.
-- *Lean: (a) — simultaneity is what makes discovery feel earned, and it's cheaper to implement (no per-skill history).*
+- **DECIDED (2026-07-03, pulled forward into Phase 7 because it shapes the
+  leveling data model): (a) simultaneous.** All ingredients at required level
+  at the same moment — with free respec, configuring your build into the
+  recipe is the deliberate discovery act. The spellbook stores current levels
+  only; no per-skill high-water history.
 
 **Q3 — Do equip/active states matter, or only spellbook levels?**
 - (a) Spellbook levels only (what the migration-plan text currently implies).

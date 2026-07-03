@@ -176,6 +176,7 @@ func TestDeathRespawn_RetainsSpellbookAndProgression(t *testing.T) {
 	dying.skills.Discover(defWildAura.ID)
 	require.True(t, dying.skills.HasDiscovered(defHealAura.ID))
 	require.True(t, dying.skills.HasDiscovered(defWildAura.ID))
+	require.True(t, dying.skills.RaiseSkillLevel(defWildAura), "spend a point on the drop")
 
 	// Death: state.go keeps the level (partial-XP loss) and stashes the component.
 	dying.LoseCurrentLevelExperience()
@@ -193,6 +194,7 @@ func TestDeathRespawn_RetainsSpellbookAndProgression(t *testing.T) {
 	assert.Equal(t, uint32(2), respawned.progression.Level, "level retained")
 	assert.True(t, respawned.skills.HasDiscovered(defHealAura.ID), "milestone unlock retained")
 	assert.True(t, respawned.skills.HasDiscovered(defWildAura.ID), "drop unlock retained")
+	assert.Equal(t, 2, respawned.skills.SkillLevel(defWildAura.ID), "spent skill level retained")
 }
 
 func TestAddExperience_DiscoverIdempotent(t *testing.T) {

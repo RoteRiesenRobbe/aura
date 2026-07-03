@@ -56,14 +56,20 @@ type stubGame struct {
 
 func (g *stubGame) Skills() skills.Registry { return g.registry }
 
-// stubClient queues exactly one EquipSkill message, then returns nil.
+// stubClient queues at most one message per type, then returns nil.
 type stubClient struct {
-	msg *model.EquipSkill
+	msg   *model.EquipSkill
+	spend *model.SpendSkillPoint
 }
 
 func (c *stubClient) NextEquip() *model.EquipSkill {
 	m := c.msg
 	c.msg = nil
+	return m
+}
+func (c *stubClient) NextSpendSkillPoint() *model.SpendSkillPoint {
+	m := c.spend
+	c.spend = nil
 	return m
 }
 func (c *stubClient) NextInput() *model.PlayerInput       { return nil }
@@ -74,17 +80,19 @@ func (c *stubClient) SendMessage([]byte) error            { return nil }
 func (c *stubClient) Close()                              {}
 func (c *stubClient) UUID() uuid.UUID                     { return uuid.UUID{} }
 
-// stubEquipEntity satisfies the narrow equipEntity interface — 4 methods only.
+// stubEquipEntity satisfies the narrow equipEntity interface.
 type stubEquipEntity struct {
 	ecs.BasicEntity
-	sc     *skills.SkillComponent
-	client *stubClient
+	sc              *skills.SkillComponent
+	client          *stubClient
+	availablePoints int
 }
 
-func (e *stubEquipEntity) Basic() ecs.BasicEntity                { return e.BasicEntity }
-func (e *stubEquipEntity) Name() string                          { return "testPlayer" }
-func (e *stubEquipEntity) Client() model.Client                  { return e.client }
+func (e *stubEquipEntity) Basic() ecs.BasicEntity                 { return e.BasicEntity }
+func (e *stubEquipEntity) Name() string                           { return "testPlayer" }
+func (e *stubEquipEntity) Client() model.Client                   { return e.client }
 func (e *stubEquipEntity) SkillComponent() *skills.SkillComponent { return e.sc }
+func (e *stubEquipEntity) AvailableSkillPoints() int              { return e.availablePoints }
 
 // --- helpers ---
 
@@ -150,4 +158,97 @@ func TestEquipSystem_NotDiscovered(t *testing.T) {
 	es.Update(0)
 
 	assert.Nil(t, player.sc.AuraSlots[0])
+}
+
+func TestEquipSystem_EquipsAtStoredLevel(t *testing.T) {
+	es, player := newSystem(defHeal)
+	player.sc.Discover(defHeal.ID)
+	require.True(t, player.sc.RaiseSkillLevel(defHeal))
+	require.True(t, player.sc.RaiseSkillLevel(defHeal)) // spellbook level 3
+	player.client.msg = &model.EquipSkill{SkillID: defHeal.ID, Slot: 0}
+
+	es.Update(0)
+
+	require.NotNil(t, player.sc.AuraSlots[0])
+	assert.Equal(t, 3, player.sc.AuraSlots[0].Level)
+}
+
+func TestSpendSkillPoint_RaisesLevel(t *testing.T) {
+	es, player := newSystem(defDamage)
+	player.sc.Discover(defDamage.ID)
+	player.availablePoints = 1
+	player.client.spend = &model.SpendSkillPoint{SkillID: defDamage.ID}
+
+	es.Update(0)
+
+	assert.Equal(t, 2, player.sc.SkillLevel(defDamage.ID))
+}
+
+func TestSpendSkillPoint_NoPointsAvailable(t *testing.T) {
+	es, player := newSystem(defDamage)
+	player.sc.Discover(defDamage.ID)
+	player.availablePoints = 0
+	player.client.spend = &model.SpendSkillPoint{SkillID: defDamage.ID}
+
+	es.Update(0)
+
+	assert.Equal(t, 1, player.sc.SkillLevel(defDamage.ID))
+}
+
+func TestSpendSkillPoint_UnknownSkill(t *testing.T) {
+	es, player := newSystem() // empty registry
+	player.availablePoints = 1
+	player.client.spend = &model.SpendSkillPoint{SkillID: 99}
+
+	es.Update(0)
+
+	assert.Equal(t, 0, player.sc.SkillLevel(99))
+}
+
+func TestSpendSkillPoint_NotDiscovered(t *testing.T) {
+	es, player := newSystem(defDamage)
+	player.availablePoints = 1
+	player.client.spend = &model.SpendSkillPoint{SkillID: defDamage.ID}
+
+	es.Update(0)
+
+	assert.Equal(t, 0, player.sc.SkillLevel(defDamage.ID))
+}
+
+func TestSpendSkillPoint_AtMaxLevelIsRejected(t *testing.T) {
+	es, player := newSystem(defDamage)
+	player.sc.Discover(defDamage.ID)
+	for i := 1; i < defDamage.MaxLevel; i++ {
+		require.True(t, player.sc.RaiseSkillLevel(defDamage))
+	}
+	player.availablePoints = 1
+	player.client.spend = &model.SpendSkillPoint{SkillID: defDamage.ID}
+
+	es.Update(0)
+
+	assert.Equal(t, defDamage.MaxLevel, player.sc.SkillLevel(defDamage.ID))
+}
+
+func TestSpendSkillPoint_UnspendLowersLevelAndSyncsEquipped(t *testing.T) {
+	es, player := newSystem(defDamage)
+	player.sc.Discover(defDamage.ID)
+	require.True(t, player.sc.RaiseSkillLevel(defDamage)) // level 2
+	player.sc.EquipAura(0, defDamage, 2)
+	// Unspend needs no available points — it frees one.
+	player.client.spend = &model.SpendSkillPoint{SkillID: defDamage.ID, Unspend: true}
+
+	es.Update(0)
+
+	assert.Equal(t, 1, player.sc.SkillLevel(defDamage.ID))
+	assert.Equal(t, 1, player.sc.AuraSlots[0].Level)
+}
+
+func TestSpendSkillPoint_UnspendAtLevel1IsRejected(t *testing.T) {
+	es, player := newSystem(defDamage)
+	player.sc.Discover(defDamage.ID)
+	player.client.spend = &model.SpendSkillPoint{SkillID: defDamage.ID, Unspend: true}
+
+	es.Update(0)
+
+	assert.Equal(t, 1, player.sc.SkillLevel(defDamage.ID))
 }

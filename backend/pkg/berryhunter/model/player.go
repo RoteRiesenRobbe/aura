@@ -59,6 +59,10 @@ type PlayerEntity interface {
 	AddExperience(xp uint64)
 	Progression() PlayerProgression
 	SetProgression(progression PlayerProgression)
+	// AvailableSkillPoints is the unspent skill point count: the budget earned
+	// from the player level minus the points bound in the spellbook. Derived
+	// each call — free respec means it must always reconcile.
+	AvailableSkillPoints() int
 	LoseCurrentLevelExperience()
 	AuraRadius() float32
 	LevelProgressFraction() float32

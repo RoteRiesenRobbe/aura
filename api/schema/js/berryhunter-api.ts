@@ -32,6 +32,7 @@ export { ScoreboardPlayer } from './berryhunter-api/scoreboard-player.js';
 export { ServerMessage } from './berryhunter-api/server-message.js';
 export { ServerMessageBody } from './berryhunter-api/server-message-body.js';
 export { Spectator } from './berryhunter-api/spectator.js';
+export { SpendSkillPoint } from './berryhunter-api/spend-skill-point.js';
 export { StatusEffect } from './berryhunter-api/status-effect.js';
 export { Vec2f } from './berryhunter-api/vec2f.js';
 export { Vec3f } from './berryhunter-api/vec3f.js';

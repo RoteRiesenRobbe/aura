@@ -570,10 +570,25 @@ new mob / elite variant, the existing big mob becomes the boss)*
 Activates every `*PerLevel` parameter (currently dead weight) and closes the
 equip-at-level-1 gap.
 
-- Per-skill level storage: replace `Spellbook map[skills.SkillID]bool` with a
-  structure storing a level per discovered skill.
+- Per-skill level storage: replace `Spellbook map[skills.SkillID]bool` with
+  `map[skills.SkillID]int` — presence = discovered, value = current level ≥ 1.
 - Skill points awarded on player level-up; a spend mechanic raises a skill's
   level up to its `maxLevel`.
+- **Decided: flat cost.** Raising any skill by one level costs exactly 1 skill
+  point. Balance differences live in `maxLevel` per skill; escalating costs
+  could be added later as data if ever needed.
+- **Decided: discovery grants level 1 free.** Points buy levels 2..`maxLevel`.
+  Consistent with 6.2 ("an entry you can't use reads as a bug"): every
+  discovered skill is immediately usable.
+- **Decided: points are derived, not accumulated.**
+  `total(level) = (level−1) × pointsPerLevel` (`pointsPerLevel` = 1
+  [PLACEHOLDER], conf.json); `spent = Σ(skillLevel−1)` over the spellbook;
+  `available = total − spent`. No stored counter to drift under free respec,
+  and existing characters get their full budget retroactively for free.
+- **Decided (combo catalog Q2, pulled forward because it shapes this data
+  model): recipe ingredient levels must be met *simultaneously*.** High-water
+  marks rejected — so the spellbook stores current levels only, no per-skill
+  history.
 - Wire: spellbook entries carry levels; spend/unspend messages client→server;
   `EquipSystem` equips at the stored level.
 - **Decided: skill points buy skill levels only.** Slot counts are not
@@ -607,8 +622,13 @@ Phase 8 runs after Phase 7.
   equip, unequip, and level change (free respec means level *drops* too).
 - Passives run in parallel — all equipped passives are active at once (unlike
   auras).
-- Wire: `SkillCategory` enum added to `common.fbs`; passive slot contents
-  serialized to the client; passive slot display in the UI.
+- Wire: passive slot contents serialized to the client; passive slot display
+  in the UI. **Decided: no `SkillCategory` enum on the wire** — the server
+  derives the target slot array from the skill definition's own category, and
+  the client's `Skills.ts` mapping already knows each skill's category (KISS).
+- **Decided: the first passive and the first cooldown unlock via milestones**
+  (levels [PLACEHOLDER]) — every player reliably experiences both new
+  categories. Passive/cooldown mob drops remain a later pure-JSON edit (6.2).
 - Spellbook UI splits into its three category sections (active auras /
   passives / cooldowns). **The passives section doubles as the game's
   "inventory":** item-flavored passives (e.g. a "Dagger" passive adding flat
@@ -666,6 +686,8 @@ earlier phases build (skill levels, all three categories, the unlock event).
     spellbook:        [ushort];   // discovered skill IDs
     aura_slots:       [ushort];   // equipped aura slot contents, positional; 0 = empty
     active_aura_slot: byte = -1;  // active slot index for the panel highlight; -1 = Nothing
+    spellbook_levels: [ubyte];    // per-skill levels, positionally parallel to spellbook (Phase 7)
+    skill_points:     ushort;     // unspent skill points (Phase 7)
 
 // In table Character (visible to all clients):
     active_skill_id:  ushort = 0; // skill ID of the active aura; 0 = Nothing (no ring)
@@ -682,6 +704,7 @@ so existing field IDs stay stable.)
     active_aura_slot: byte = -1;   // requested active aura slot; -1 = no change
 
 table Equip { ... }                // equip a spellbook skill into an aura slot
+table SpendSkillPoint { skill_id: ushort; unspend: bool = false; }  // ±1 skill level (Phase 7)
 ```
 
 `active_aura_slot` is the client's requested active aura slot. The server

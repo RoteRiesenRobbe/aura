@@ -7,30 +7,33 @@ import "strconv"
 type ClientMessageBody byte
 
 const (
-	ClientMessageBodyNONE        ClientMessageBody = 0
-	ClientMessageBodyInput       ClientMessageBody = 1
-	ClientMessageBodyJoin        ClientMessageBody = 2
-	ClientMessageBodyCheat       ClientMessageBody = 3
-	ClientMessageBodyChatMessage ClientMessageBody = 4
-	ClientMessageBodyEquip       ClientMessageBody = 5
+	ClientMessageBodyNONE            ClientMessageBody = 0
+	ClientMessageBodyInput           ClientMessageBody = 1
+	ClientMessageBodyJoin            ClientMessageBody = 2
+	ClientMessageBodyCheat           ClientMessageBody = 3
+	ClientMessageBodyChatMessage     ClientMessageBody = 4
+	ClientMessageBodyEquip           ClientMessageBody = 5
+	ClientMessageBodySpendSkillPoint ClientMessageBody = 6
 )
 
 var EnumNamesClientMessageBody = map[ClientMessageBody]string{
-	ClientMessageBodyNONE:        "NONE",
-	ClientMessageBodyInput:       "Input",
-	ClientMessageBodyJoin:        "Join",
-	ClientMessageBodyCheat:       "Cheat",
-	ClientMessageBodyChatMessage: "ChatMessage",
-	ClientMessageBodyEquip:       "Equip",
+	ClientMessageBodyNONE:            "NONE",
+	ClientMessageBodyInput:           "Input",
+	ClientMessageBodyJoin:            "Join",
+	ClientMessageBodyCheat:           "Cheat",
+	ClientMessageBodyChatMessage:     "ChatMessage",
+	ClientMessageBodyEquip:           "Equip",
+	ClientMessageBodySpendSkillPoint: "SpendSkillPoint",
 }
 
 var EnumValuesClientMessageBody = map[string]ClientMessageBody{
-	"NONE":        ClientMessageBodyNONE,
-	"Input":       ClientMessageBodyInput,
-	"Join":        ClientMessageBodyJoin,
-	"Cheat":       ClientMessageBodyCheat,
-	"ChatMessage": ClientMessageBodyChatMessage,
-	"Equip":       ClientMessageBodyEquip,
+	"NONE":            ClientMessageBodyNONE,
+	"Input":           ClientMessageBodyInput,
+	"Join":            ClientMessageBodyJoin,
+	"Cheat":           ClientMessageBodyCheat,
+	"ChatMessage":     ClientMessageBodyChatMessage,
+	"Equip":           ClientMessageBodyEquip,
+	"SpendSkillPoint": ClientMessageBodySpendSkillPoint,
 }
 
 func (v ClientMessageBody) String() string {

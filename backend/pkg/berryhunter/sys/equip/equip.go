@@ -15,6 +15,7 @@ type equipEntity interface {
 	Name() string
 	Client() model.Client
 	SkillComponent() *skills.SkillComponent
+	AvailableSkillPoints() int
 }
 
 // equipGame is the minimal surface EquipSystem requires from the game.
@@ -52,48 +53,98 @@ func (es *EquipSystem) AddPlayer(p equipEntity) {
 
 func (es *EquipSystem) Update(dt float32) {
 	for _, player := range es.players {
-		msg := player.Client().NextEquip()
-		if msg == nil {
-			continue
-		}
+		es.handleEquip(player)
+		es.handleSpendSkillPoint(player)
+	}
+}
 
-		// Bounds check — slot comes from the client; an out-of-range value
-		// would panic the server via AuraSlots[slot] array access.
-		if msg.Slot < 0 || msg.Slot >= skills.MaxAuraSlots {
-			slog.Warn("equip: slot out of range",
+func (es *EquipSystem) handleEquip(player equipEntity) {
+	msg := player.Client().NextEquip()
+	if msg == nil {
+		return
+	}
+
+	// Bounds check — slot comes from the client; an out-of-range value
+	// would panic the server via AuraSlots[slot] array access.
+	if msg.Slot < 0 || msg.Slot >= skills.MaxAuraSlots {
+		slog.Warn("equip: slot out of range",
+			slog.String("player", player.Name()),
+			slog.Int("slot", msg.Slot),
+			slog.Int("maxSlots", skills.MaxAuraSlots))
+		return
+	}
+
+	// Registry lookup — verify the skill ID is known.
+	def, err := es.g.Skills().Get(msg.SkillID)
+	if err != nil {
+		slog.Warn("equip: unknown skill",
+			slog.String("player", player.Name()),
+			slog.Any("skillID", msg.SkillID))
+		return
+	}
+
+	// Discovery validation — prevent equipping skills not yet earned.
+	sc := player.SkillComponent()
+	if !sc.HasDiscovered(msg.SkillID) {
+		slog.Warn("equip: skill not discovered",
+			slog.String("player", player.Name()),
+			slog.String("skill", def.Name))
+		return
+	}
+
+	// Equip at the spellbook level — overwrite slot if occupied.
+	sc.UnequipAura(msg.Slot)
+	sc.EquipAura(msg.Slot, def, sc.SkillLevel(msg.SkillID))
+
+	slog.Info("equip",
+		slog.String("player", player.Name()),
+		slog.String("skill", def.Name),
+		slog.Int("slot", msg.Slot))
+}
+
+func (es *EquipSystem) handleSpendSkillPoint(player equipEntity) {
+	msg := player.Client().NextSpendSkillPoint()
+	if msg == nil {
+		return
+	}
+
+	def, err := es.g.Skills().Get(msg.SkillID)
+	if err != nil {
+		slog.Warn("spend: unknown skill",
+			slog.String("player", player.Name()),
+			slog.Any("skillID", msg.SkillID))
+		return
+	}
+
+	sc := player.SkillComponent()
+	if msg.Unspend {
+		// Free respec: refunding frees a point, so no availability check.
+		if !sc.LowerSkillLevel(def) {
+			slog.Warn("spend: cannot unspend",
 				slog.String("player", player.Name()),
-				slog.Int("slot", msg.Slot),
-				slog.Int("maxSlots", skills.MaxAuraSlots))
-			continue
+				slog.String("skill", def.Name),
+				slog.Int("level", sc.SkillLevel(def.ID)))
+			return
 		}
-
-		// Registry lookup — verify the skill ID is known.
-		def, err := es.g.Skills().Get(msg.SkillID)
-		if err != nil {
-			slog.Warn("equip: unknown skill",
-				slog.String("player", player.Name()),
-				slog.Any("skillID", msg.SkillID))
-			continue
-		}
-
-		// Discovery validation — prevent equipping skills not yet earned.
-		sc := player.SkillComponent()
-		if !sc.HasDiscovered(msg.SkillID) {
-			slog.Warn("equip: skill not discovered",
+	} else {
+		if player.AvailableSkillPoints() <= 0 {
+			slog.Warn("spend: no skill points available",
 				slog.String("player", player.Name()),
 				slog.String("skill", def.Name))
-			continue
+			return
 		}
-
-		// Equip — overwrite slot if occupied.
-		// Level is always 1: Spellbook is map[SkillID]bool with no per-skill
-		// discovery level. Using 1 is correct until skill-leveling is built.
-		sc.UnequipAura(msg.Slot)
-		sc.EquipAura(msg.Slot, def, 1)
-
-		slog.Info("equip",
-			slog.String("player", player.Name()),
-			slog.String("skill", def.Name),
-			slog.Int("slot", msg.Slot))
+		if !sc.RaiseSkillLevel(def) {
+			slog.Warn("spend: cannot raise",
+				slog.String("player", player.Name()),
+				slog.String("skill", def.Name),
+				slog.Int("level", sc.SkillLevel(def.ID)))
+			return
+		}
 	}
+
+	slog.Info("spend",
+		slog.String("player", player.Name()),
+		slog.String("skill", def.Name),
+		slog.Bool("unspend", msg.Unspend),
+		slog.Int("newLevel", sc.SkillLevel(def.ID)))
 }

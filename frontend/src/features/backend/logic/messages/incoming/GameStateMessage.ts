@@ -28,6 +28,10 @@ export class GameStateMessage {
     inventory;
     entities;
     spellbook: number[];
+    // per-skill levels, positionally parallel to spellbook
+    spellbookLevels: number[];
+    // unspent skill points of the owning player
+    skillPoints: number;
     auraSlots: number[];
     // index of the active aura slot for the owning player; -1 = Nothing
     activeAuraSlot: number;
@@ -61,6 +65,13 @@ export class GameStateMessage {
         for (let i = 0; i < gameState.spellbookLength(); ++i) {
             this.spellbook.push(gameState.spellbook(i));
         }
+
+        this.spellbookLevels = [];
+        for (let i = 0; i < gameState.spellbookLevelsLength(); ++i) {
+            this.spellbookLevels.push(gameState.spellbookLevels(i));
+        }
+
+        this.skillPoints = gameState.skillPoints();
 
         this.auraSlots = [];
         for (let i = 0; i < gameState.auraSlotsLength(); ++i) {

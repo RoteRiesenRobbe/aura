@@ -460,12 +460,28 @@
 	font-size: @panel-font-size;
 
 	> .spellbookTitle {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 0.6rem;
 		font-weight: 700;
 		letter-spacing: 0.04em;
 		margin-bottom: 0.8rem;
 		color: @panel-title-color;
 		font-size: @panel-title-size;
 		text-transform: uppercase;
+
+		> #skillPointsBadge {
+			color: fade(gold, 90%);
+			text-transform: none;
+			letter-spacing: normal;
+			font-size: @panel-font-size;
+			white-space: nowrap;
+
+			&.hidden {
+				display: none;
+			}
+		}
 	}
 
 	> #spellbookList {
@@ -474,6 +490,10 @@
 		padding: 0;
 
 		> li {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 0.5rem;
 			padding: 0.4rem 0;
 			border-bottom: 1px solid @panel-row-divider;
 
@@ -493,6 +513,58 @@
 				animation: skill-unlock-glow 2.5s ease-out;
 				border-radius: 0.4rem;
 			}
+
+			> .skillControls {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.3rem;
+
+				> .skillLevel {
+					color: @panel-title-color;
+					min-width: 2.4em;
+					text-align: center;
+				}
+
+				> button {
+					width: 1.6em;
+					height: 1.6em;
+					padding: 0;
+					line-height: 1;
+					background: fade(white, 10%);
+					border: 1px solid @panel-border;
+					border-radius: 0.3rem;
+					color: @panel-color;
+					font: inherit;
+					cursor: pointer;
+
+					&:hover {
+						background: fade(white, 22%);
+						color: white;
+					}
+
+					&.inactive {
+						opacity: 0.25;
+						cursor: default;
+
+						&:hover {
+							background: fade(white, 10%);
+							color: @panel-color;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Without unspent points there is nothing to spend: dim the + buttons.
+	// (The pointerdown handler additionally guards on the actual count.)
+	&:not(.hasPoints) > #spellbookList .spendBtn {
+		opacity: 0.25;
+		cursor: default;
+
+		&:hover {
+			background: fade(white, 10%);
+			color: @panel-color;
 		}
 	}
 

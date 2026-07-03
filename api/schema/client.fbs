@@ -33,7 +33,15 @@ table Equip {
     slot:     byte;
 }
 
-union ClientMessageBody { Input, Join, Cheat, ChatMessage, Equip }
+// Spend (or, with unspend=true, refund) one skill point on a discovered
+// skill: its spellbook level rises/drops by one. Free respec — the server
+// validates point availability and level bounds.
+table SpendSkillPoint {
+    skill_id: ushort;
+    unspend:  bool = false;
+}
+
+union ClientMessageBody { Input, Join, Cheat, ChatMessage, Equip, SpendSkillPoint }
 table ClientMessage { body:ClientMessageBody; }
 
 root_type ClientMessage;

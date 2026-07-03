@@ -72,4 +72,7 @@ type PlayerConfig struct {
 
 	LevelUpXPBase         uint32
 	LevelUpXPGrowthFactor float32
+
+	// skill points earned per player level beyond 1 [PLACEHOLDER]
+	SkillPointsPerLevel int
 }

@@ -258,7 +258,7 @@ export class Backend implements IBackend {
             // snapshot.spellbook is always defined ([] for empty); isDefined guard
             // matches inventory pattern and is safe against the first-tick edge case.
             if (Utils.isDefined(snapshot.spellbook)) {
-                HUD.updateSpellbook(snapshot.spellbook);
+                HUD.updateSpellbook(snapshot.spellbook, snapshot.spellbookLevels ?? [], snapshot.skillPoints ?? 0);
             }
 
             if (Utils.isDefined(snapshot.auraSlots)) {
