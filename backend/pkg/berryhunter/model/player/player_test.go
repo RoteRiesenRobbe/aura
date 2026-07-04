@@ -120,6 +120,21 @@ func TestUpdateVitalSigns_RegeneratesHealthOnly(t *testing.T) {
 	assert.Contains(t, p.StatusEffects().Effects(), model.StatusEffectRegenerating)
 }
 
+// A player at Health 0 is dead; passive regen must not revive them. Guards the
+// KILL-revive bug (one-shot zeroing reverted by regen before the death check).
+func TestUpdateVitalSigns_DeadPlayerDoesNotRegenerate(t *testing.T) {
+	p := &player{
+		config:           &cfg.PlayerConfig{HealthGainTick: 0.1},
+		statusEffects:    model.NewStatusEffects(),
+		PlayerVitalSigns: model.PlayerVitalSigns{Health: 0},
+	}
+
+	p.updateVitalSigns(0)
+
+	assert.Equal(t, vitals.VitalSign(0), p.VitalSigns().Health, "dead player (health 0) must stay dead")
+	assert.NotContains(t, p.StatusEffects().Effects(), model.StatusEffectRegenerating)
+}
+
 // --- recent healers (participation XP, v1-roadmap item 10) ---
 
 func TestRecentHealers_RecordedAfterHeal(t *testing.T) {

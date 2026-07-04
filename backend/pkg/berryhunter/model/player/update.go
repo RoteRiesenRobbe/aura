@@ -27,8 +27,10 @@ func (p *player) Update(dt float32) {
 }
 
 func (p *player) updateVitalSigns(dt float32) {
-	// Health is the single resource (Aura). Regenerate it out of combat.
-	if p.VitalSigns().Health != vitals.Max {
+	// Health is the single resource (Aura). Regenerate it out of combat, but
+	// never from 0 — 0 is death, and reviving it before the death check runs
+	// would undo one-shot kills (e.g. the KILL cheat).
+	if h := p.VitalSigns().Health; h != 0 && h != vitals.Max {
 		p.addHealthFraction(p.config.HealthGainTick)
 		p.statusEffects.Add(model.StatusEffectRegenerating)
 	}
