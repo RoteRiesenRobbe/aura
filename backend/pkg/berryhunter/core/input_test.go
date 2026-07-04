@@ -95,6 +95,39 @@ func TestUpdateInput_OutOfRangeSlotFromClientIsIgnored(t *testing.T) {
 	assert.Equal(t, 0, p.sc.ActiveAuraSlot)
 }
 
+// pickInput bridges a single starved tick (client/server clock drift drops one
+// input every ~30 s) with the last movement, so walking doesn't hitch — but
+// only for one tick, so a disconnected client's character halts instead of
+// sliding forever. See docs deferred-bug note "Movement micro-stutter".
+func TestPickInput_BridgesOneStarvedTick(t *testing.T) {
+	sys := &PlayerInputSystem{lastMove: map[uint64]*model.PlayerInput{}}
+	move := &phy.Vec2f{X: 1, Y: 0}
+	fresh := &model.PlayerInput{
+		Movement:            move,
+		Rotation:            0.5,
+		ActiveAuraSlot:      3,
+		CooldownActivations: []int{1},
+	}
+
+	// A fresh input is applied as-is (full command, incl. one-shots).
+	assert.Same(t, fresh, sys.pickInput(7, fresh))
+
+	// First starved tick: bridged with a movement-only copy — the one-shot
+	// commands must NOT be replayed.
+	got := sys.pickInput(7, nil)
+	if assert.NotNil(t, got) {
+		assert.Equal(t, move, got.Movement)
+		assert.Equal(t, float32(0.5), got.Rotation)
+		assert.Equal(t, model.ActiveAuraSlotNoChange, got.ActiveAuraSlot,
+			"bridged input must not replay an aura switch")
+		assert.Empty(t, got.CooldownActivations,
+			"bridged input must not replay cooldown activations")
+	}
+
+	// Second consecutive starved tick: nil → the player halts.
+	assert.Nil(t, sys.pickInput(7, nil))
+}
+
 func TestUpdateInput_NilInputIsNoop(t *testing.T) {
 	sys := &PlayerInputSystem{}
 	p := newFakeInputPlayer()

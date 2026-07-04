@@ -23,6 +23,10 @@ type PlayerInputSystem struct {
 	game    *game
 	// currently two, one to read and one to fill
 	ibufs [inputBuffererCount]InputBufferer
+	// lastMove holds a movement-only copy of each player's last applied input,
+	// used to bridge a single input-starved tick (client/server clock drift).
+	// See pickInput.
+	lastMove map[uint64]*model.PlayerInput
 }
 
 func NewInputSystem(g *game) *PlayerInputSystem {
@@ -38,6 +42,7 @@ func (i *PlayerInputSystem) New(w *ecs.World) {
 	for idx := range i.ibufs {
 		i.ibufs[idx] = NewInputBufferer()
 	}
+	i.lastMove = make(map[uint64]*model.PlayerInput)
 	log.Println("PlayerInputSystem nominal")
 }
 
@@ -60,17 +65,40 @@ func (i *PlayerInputSystem) Update(dt float32) {
 
 	// freeze input, concurrent reads are fine
 	ibuf := i.ibufs[i.game.Tick%inputBuffererCount]
-	lastBuf := i.ibufs[(i.game.Tick+inputBuffererCount-1)%inputBuffererCount]
 
 	// apply inputs to player
 	for _, p := range i.players {
-		inputs, _ := ibuf[p.Basic().ID()]
-		last, _ := lastBuf[p.Basic().ID()]
-		i.updateInput(p, inputs, last)
+		id := p.Basic().ID()
+		i.updateInput(p, i.pickInput(id, ibuf[id]), nil)
 	}
 
 	// clear out buffer
 	i.ibufs[i.game.Tick%inputBuffererCount] = NewInputBufferer()
+}
+
+// pickInput chooses the input to apply for a player this tick. fresh is the
+// input received this tick, or nil if the input queue was starved.
+//
+// The client sends inputs on its own free-running 33 ms timer while the server
+// consumes one per 33 ms tick; ~0.1% clock drift starves the queue of an input
+// roughly once every 30 s, which shows up as a one-tick movement hitch. To hide
+// it, a starved tick is bridged with the last applied movement — but only once
+// (the entry is consumed on use), so a genuinely disconnected client's
+// character halts after one tick instead of sliding forever. The bridged copy
+// carries movement only: it must never replay one-shot commands (aura switch,
+// cooldown activation).
+func (i *PlayerInputSystem) pickInput(id uint64, fresh *model.PlayerInput) *model.PlayerInput {
+	if fresh != nil {
+		i.lastMove[id] = &model.PlayerInput{
+			Movement:       fresh.Movement,
+			Rotation:       fresh.Rotation,
+			ActiveAuraSlot: model.ActiveAuraSlotNoChange,
+		}
+		return fresh
+	}
+	bridged := i.lastMove[id]
+	delete(i.lastMove, id)
+	return bridged
 }
 
 // applies the inputs to a player
