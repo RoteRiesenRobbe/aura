@@ -173,10 +173,10 @@ ally was healed and `selfDamageFraction > 0`, the caster takes that much damage.
 > see `v1-roadmap.md` item 7):** `heal_aura` has no target flags yet — it
 > implicitly targets players only. And mob entities cannot *cast* heal auras:
 > the SkillSystem's `healCaster` capability split skips heal effects on
-> casters without player vitals. Both block the planned "mob moves to allied
-> mobs with a mob-only heal aura" support behavior; lifting them means target
-> flags on `heal_aura` (like `damage_aura`) plus a vitals abstraction for the
-> self-damage bookkeeping.
+> casters without player vitals (`self_heal` shares this limitation). Both
+> block the planned "mob moves to allied mobs with a mob-only heal aura"
+> support behavior; lifting them means target flags on `heal_aura` (like
+> `damage_aura`) plus a vitals abstraction for the self-damage bookkeeping.
 
 | Parameter | Type | Description |
 |---|---|---|
@@ -192,24 +192,34 @@ ally was healed and `selfDamageFraction > 0`, the caster takes that much damage.
 Additive bonus to a named stat. Applied on equip and re-applied on level-up;
 not computed per tick.
 
-Supported stat names (initial set, extensible):
+Supported stat names (extensible; unknown names hard-fail at load, because an
+accepted-but-unapplied stat would be a silent no-op):
 
-- `movementSpeed`
-- `maxHealth`
+- `movementSpeed` — applied in `core/input.go`: `base × (1 + bonus)`
+- `maxHealth` — applied in `player.maxHealthFactor()`; health is stored
+  normalized, so a max-health change preserves the current health *percentage*
+- `damageReduction` — applied in `player.takeDamage`: `damage × (1 − bonus)`,
+  capped at 100%
 
 | Parameter | Type | Description |
 |---|---|---|
 | `stat` | string | Stat name (see above) |
 | `additivePerLevel` | float | Bonus per level, stacks linearly [PLACEHOLDER] |
 
+Per skill the contribution is `additivePerLevel × level`.
+
 **Passive stacking**: if two `stat_multiplier` effects target `movementSpeed` with
 values A and B, the total modifier is `A + B`. No multiplicative stacking.
+**One slot per passive** (decided 8.1): the same passive cannot occupy two
+slots — equipping it elsewhere moves it.
 
 ### `instant_damage`
 
 Single burst of damage in a radius, applied once when a cooldown skill is
-activated. Creates a temporary `*phy.Circle` sensor, reads collisions on that same
-tick, then releases it.
+activated. Implemented via `phy.Space.QueryCircle`: a one-shot mask-filtered
+query against the last broadphase grid — the query circle is never added to
+the space (this superseded the original "temporary sensor" sketch of Open
+Question 3). The caster's own shapes are excluded.
 
 | Parameter | Type | Description |
 |---|---|---|
@@ -219,6 +229,35 @@ tick, then releases it.
 | `damageFractionPerLevel` | float | Added per skill level [PLACEHOLDER] |
 | `targetsMobs` | bool | |
 | `targetsPlayers` | bool | |
+
+### `slow_aura`
+
+Reduces the movement speed of every matching target in range while the aura is
+active. Targets carry a *transient* debuff (`Mob.ApplySlow`): it is re-applied
+every tick the target stays in range and wears off within 2 ticks of leaving —
+no permanent state. Overlapping slows don't stack; the strongest wins.
+Currently only mobs are slowable (players have no `ApplySlow`).
+
+| Parameter | Type | Description |
+|---|---|---|
+| `radius` | float | Aura radius [PLACEHOLDER] |
+| `radiusPerLevel` | float | Added per skill level [PLACEHOLDER] |
+| `slowFraction` | float | Speed reduction at level 1 [PLACEHOLDER] |
+| `slowFractionPerLevel` | float | Added per skill level; total capped at 100% [PLACEHOLDER] |
+| `targetsMobs` | bool | |
+| `targetsPlayers` | bool | Accepted but inert until players are slowable |
+
+### `self_heal`
+
+Cooldown-only: instantly heals the *caster* by a fraction of their max health
+when the skill is activated. No radius, no targets. Mob entities cannot cast
+it (needs player vitals — the same deliberate limitation as heal_aura
+casting). Fires the burst VFX with a radiusless (fallback-size) ring.
+
+| Parameter | Type | Description |
+|---|---|---|
+| `healFraction` | float | Heal as fraction of caster max-health [PLACEHOLDER] |
+| `healFractionPerLevel` | float | Added per skill level [PLACEHOLDER] |
 
 ---
 
@@ -732,12 +771,14 @@ equip-at-level-1 gap.
 - Points-per-level budget: mechanism built (`skillPointsPerLevel` in
   conf.json), the number itself stays 1 [PLACEHOLDER] (Open Question 1).
 
-### Phase 8 — Passives & cooldowns (~2–3 days)
+### Phase 8 — Passives & cooldowns ✓ Done
 
-Implements the two designed-but-unbuilt skill categories (see Effect Types).
-**Decided: passives first, then cooldowns** (8.1 has no input path and no new
-wire field — the simpler half informs the harder one). Phase order is settled:
-Phase 8 runs after Phase 7.
+*Both halves implemented and verified in-game (8.1: 2026-07-04; 8.2 incl.
+refinements + content batch: 2026-07-04). All three skill categories are live.*
+
+Implements the two formerly designed-but-unbuilt skill categories (see Effect
+Types). **Decided: passives first, then cooldowns** (8.1 has no input path and
+no new wire field — the simpler half informs the harder one).
 
 **8.1 — Passives ✓ Done** *(implemented + verified in-game 2026-07-04)*
 
@@ -778,19 +819,64 @@ Phase 8 runs after Phase 7.
   damage per tick) act as gear — there is no separate item/inventory system
   (see `v1-roadmap.md`, survival-system removal).
 
-**8.2 — Cooldowns**
+**8.2 — Cooldowns ✓ Done** *(implemented + verified in-game 2026-07-04,
+including one refinement round and a content batch)*
 
-- Add `cooldown_activations: [ubyte]` to `client.fbs Input` (see Wire Protocol
-  Changes → Planned); `instant_damage` via temporary `*phy.Circle` sensor;
-  `CdTicks` bookkeeping in `SkillSystem`; cooldown slot contents + remaining
-  ticks serialized to the client.
-- **Decided: input is hotkeys + ability-bar click.** Keys (e.g. 1–4,
-  [PLACEHOLDER]) and clicking the ability bar both send the same
-  `cooldown_activations` entry.
-- **Decided: mobs use cooldown skills in this phase too.** Simple AI rule to
-  start: fire as soon as ready and a valid target is in range. Smarter timing
-  (boss mechanics) belongs to mob-tiers/boss design later.
-- UI: ability bar (v1.0 scope) with cooldown state per slot.
+- ✓ `cooldown_activations: [ubyte]` on `client.fbs Input`; activations are
+  queued on the `SkillComponent` at input time and fired by the SkillSystem
+  in the same tick (update runs before skills). `CdTicks` bookkeeping in
+  `SkillSystem`; `cooldown_slots` + `cooldown_remaining_ticks` serialized.
+- ✓ **`instant_damage` implementation deviates from the original sensor
+  sketch (Open Question 3):** instead of adding a temporary sensor to the
+  space, the new `phy.Space.QueryCircle` runs a one-shot mask-filtered query
+  against the *last* broadphase grid — the circle is never added, nothing
+  records collisions, no lifecycle. Damage application reuses the aura
+  dispatch (`PlayerTouches` → participation XP / `MobTouches`), with explicit
+  caster self-exclusion. `model.InstantDamageMask` maps target flags to
+  layers.
+- ✓ **Decided: whiff rule.** A player activation always consumes the cooldown,
+  even with nothing in range — aiming is the player's responsibility.
+- ✓ **Decided: mobs use cooldowns, fire-when-ready-and-target-in-range.** A
+  mob-cast burst only consumes the cooldown when it actually hit something,
+  so it stays ready until a target wanders into range. Smarter timing (boss
+  mechanics) belongs to mob-tiers/boss design later.
+- ✓ **Decided: cooldown slots get the same one-slot-per-skill move semantics
+  as passives** — the same skill in both slots would be two independent
+  charges (only aura slots allow duplicates).
+- ✓ **Decided: UI is a panel, not a bottom bar *style* yet.** The "ability
+  bar" ships as bottom-center action bars (aura slots as a 2×2 grid — column
+  1 = slots 1+2, column 2 = slots 3+4 — cooldowns to their right); spellbook
+  + passives panels sit top-left. Same panel styling as everything else; the
+  full UI pass restyles later.
+- ✓ **Decided: hotkeys** [PLACEHOLDER until a keybinding UI]: **1–4 toggle
+  the aura slots** (press active slot's key again = deactivate), **Q/E fire
+  the cooldown slots**. Edge-triggered; keyboard and slot clicks share the
+  same HUD handlers/guards. Q was removed from the legacy alt-action binding
+  (SHIFT remains).
+- ✓ **Burst VFX:** new `BurstFired` wire status effect, derived per tick from
+  `CdTicks` (flagged for `skills.BurstVFXTicks` ≈ 1.5 s after firing — no
+  extra state); works for players *and* mobs through the existing status
+  pipeline. `burst_radius` (px) on `Character` + `Mob` carries the true
+  effective burst radius so the client draws the gold fade-out ring at exact
+  size (0 = radiusless burst, e.g. self_heal → small fallback ring). Rendered
+  outside the one-effect-at-a-time status pipeline so damage flashes don't
+  cancel it.
+- ✓ **Unlock glow intensified** (refinement): double pulse over 5 s at full
+  gold intensity (entry background + panel box-shadow).
+- ✓ First content: `NovaBurst` (id 20, milestone level 4) and the
+  `AngryMammothStomp` (id 105) on the boss.
+- ✓ **Content batch (same session):** three skills, each introducing a new
+  mechanic —
+  - `SlowAura` (id 4, **new effect type `slow_aura`**): mobs in range move
+    10% slower +10%/level; transient `ApplySlow` debuff on mobs (re-applied
+    per tick in range, wears off within 2 ticks, strongest slow wins).
+    Mammoth drop, 20%.
+  - `Heal` (id 21, **new effect type `self_heal`**): instant 20% max-HP heal
+    +5%/level, 30 s cooldown, milestone level 2 (two milestones on one level
+    work). Mobs cannot cast it (same deliberate limitation as heal_aura).
+  - `ToughPassive` (id 11, **new stat `damageReduction`**): incoming damage
+    ×(1 − 2%×level), applied in `player.takeDamage`. Dodo drop, 5%.
+  - All numbers [PLACEHOLDER]. Skill registry: 13 definitions, 4 milestones.
 
 ### Phase 9 — Combinations (size unknown) — requires 7 & 8
 
@@ -834,6 +920,15 @@ Implementation steps when this phase runs:
     active_aura_slot: byte = -1;  // active slot index for the panel highlight; -1 = Nothing
     spellbook_levels: [ubyte];    // per-skill levels, positionally parallel to spellbook (Phase 7)
     skill_points:     ushort;     // unspent skill points (Phase 7)
+    passive_slots:    [ushort];   // equipped passive slot contents, positional; 0 = empty (8.1)
+    cooldown_slots:   [ushort];   // equipped cooldown slot contents, positional; 0 = empty (8.2)
+    cooldown_remaining_ticks: [ushort]; // parallel to cooldown_slots; 0 = ready (8.2)
+
+// In table Character AND table Mob (visible to all clients, Phase 8.2):
+    burst_radius: ushort = 0;     // px radius of the burst fired within ~1.5 s; 0 = none
+
+// enum StatusEffect (Phase 8.2):
+    BurstFired                    // cooldown fired within ~1.5 s — burst ring VFX
 
 // In table Character (visible to all clients):
     active_skill_id:  ushort = 0; // skill ID of the active aura; 0 = Nothing (no ring)
@@ -849,8 +944,12 @@ so existing field IDs stay stable.)
 // In table Input:
     active_aura_slot: byte = -1;   // requested active aura slot; -1 = no change
 
-table Equip { ... }                // equip a spellbook skill into an aura slot
+table Equip { ... }                // equip a spellbook skill into a slot of its category
 table SpendSkillPoint { skill_id: ushort; unspend: bool = false; }  // ±1 skill level (Phase 7)
+
+// In table Input (Phase 8.2):
+    cooldown_activations: [ubyte]; // cooldown slot indices to activate this tick;
+                                   // the server ignores empty or still-cooling slots
 ```
 
 `active_aura_slot` is the client's requested active aura slot. The server
@@ -873,18 +972,12 @@ on `Input`, the `AuraType` enum) were removed in Phase 5. `aura_radius` on
 
 ### Planned
 
-**With the cooldown-skill implementation (not yet scheduled) —
-`client.fbs Input`:**
-
-```flatbuffers
-    cooldown_activations: [ubyte];  // cooldown slot indices to activate this tick
-```
-
-The server ignores any listed slot that is still on cooldown.
-
-**`common.fbs` `SkillCategory` enum** — designed (`ActiveAura` / `Passive` /
-`Cooldown`) but not added; not needed while only aura slots cross the wire. Add
-when passive/cooldown slots are serialized.
+Nothing skill-system-related is currently planned on the wire. The
+`common.fbs` `SkillCategory` enum, once sketched here, was **rejected in
+Phase 8.1**: the server derives the target slot array from the skill
+definition's own category, and the client's `Skills.ts` metadata map knows
+each skill's category — no enum needed even with all three slot types
+serialized.
 
 ### Rejected — `SkillSlot` table
 
@@ -910,8 +1003,10 @@ be added when something consumes them.
    `active_aura_slot`. Build variation comes from slot composition, combination
    unlocks, and switch timing, not simultaneous stacking.
 
-3. **[Resolved] `instant_damage` sensor lifetime**: Use a temporary `*phy.Circle`
-   per activation — create, read collisions, release within the same tick.
+3. **[Resolved] `instant_damage` sensor lifetime**: Originally "temporary
+   sensor, create/read/release within one tick"; implemented (8.2) as
+   `phy.Space.QueryCircle` — a one-shot query against the last broadphase
+   grid, the circle is never added to the space at all.
 
 4. **[Resolved] Passive stat application**: `SkillComponent` computes a
    `DerivedStats` struct that overrides `cfg.PlayerConfig` values on equip and

@@ -190,9 +190,12 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
 
 - Already present: health bar (red) and XP/level-progress bar (purple,
   repurposed second vital bar), minimap (`mini-map` feature), chat (`chat`
-  feature), aura panel (`#auraLoadout`), spellbook panel.
-- Remaining net-new: **ability bar only** (comes with skill-system Phase 8).
-  The health bar becomes the resource bar via item 1.
+  feature), spellbook panel (with skill-point spend controls) + passives
+  panel (top-left), and the **ability bar** (skill-system Phase 8.2):
+  bottom-center action bars — aura slots as a 2×2 grid (hotkeys 1–4) and
+  cooldown slots with remaining-time display (hotkeys Q/E).
+- No net-new UI elements remain; what's left is a **styling/UX pass** over
+  the interim panel look. The health bar becomes the resource bar via item 1.
 - **Decided: zone chat is one channel per zone** (broadcast filtered by the
   sender's zone). The existing global chat stays as-is until zones exist.
 
@@ -286,7 +289,7 @@ Multiplayer itself already works — the game runs as a shared-world WebSocket
 server today. The minimal subset for a playable prototype:
 
 1. **Skill system complete** — `skill-system-design.md` Phases ~~3.7 → 1b →
-   5 → 6~~ → **7 → 8 → 9 (remaining)**.
+   5 → 6 → 7 → 8~~ → **9 (remaining; design done, implementation open)**.
 2. **Items 1 + 2** — single resource, survival systems removed.
 3. ~~**Item 10** — participation XP (otherwise support roles can't level).~~ ✓
 4. **Item 11** — aura targeting (selector + target cap + hit VFX); the
