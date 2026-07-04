@@ -12,7 +12,9 @@
       "damageFraction": 0.006,
       "damageFractionPerLevel": 0.0015,
       "targetsMobs": true,
-      "targetsPlayers": false
+      "targetsPlayers": false,
+      "selector": "nearest",
+      "maxTargets": 1
     }
   ]
 }

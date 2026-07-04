@@ -11,7 +11,9 @@
       "radiusPerLevel": 0.0,
       "healFraction": 0.001,
       "healFractionPerLevel": 0.0005,
-      "selfDamageFraction": 0.0015
+      "selfDamageFraction": 0.0015,
+      "selector": "nearest",
+      "maxTargets": 1
     }
   ]
 }
