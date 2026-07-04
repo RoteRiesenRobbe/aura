@@ -122,6 +122,10 @@ type player struct {
 	damageTaken  vitals.VitalSign
 	healReceived vitals.VitalSign
 	xpGained     uint64
+
+	// auraHitStyle is the aura-hit VFX a damage aura stamped on this player this
+	// tick (item 11 Step 4); reset each tick alongside the accumulators above.
+	auraHitStyle model.AuraHitStyle
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {
@@ -179,12 +183,21 @@ func (p *player) NoteHealReceived(delta vitals.VitalSign) {
 	p.healReceived += delta
 }
 
+// AuraHitStyle is the aura-hit VFX stamped on this player this tick (item 11
+// Step 4); serialized as the Character aura_hit_style wire field.
+func (p *player) AuraHitStyle() model.AuraHitStyle { return p.auraHitStyle }
+
+// NoteAuraHit records the aura-hit VFX style for this tick; the SkillSystem
+// calls it when a damage aura strikes this player.
+func (p *player) NoteAuraHit(style model.AuraHitStyle) { p.auraHitStyle = style }
+
 // ResetTickNumbers clears the per-tick floating-number accumulators; called by
 // the StatusEffectsSystem at the start of each tick.
 func (p *player) ResetTickNumbers() {
 	p.damageTaken = 0
 	p.healReceived = 0
 	p.xpGained = 0
+	p.auraHitStyle = model.AuraHitStyleNone
 }
 
 func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {

@@ -156,6 +156,10 @@ type Mob struct {
 	// floating damage number (v1-roadmap item 11); reset every tick.
 	damageTaken vitals.VitalSign
 
+	// auraHitStyle is the aura-hit VFX a damage aura stamped on this mob this
+	// tick (item 11 Step 4); reset every tick alongside damageTaken.
+	auraHitStyle model.AuraHitStyle
+
 	// combat participants for the death rewards (v1-roadmap item 10),
 	// keyed by entity ID; cleared when the mob fully regenerates out of
 	// combat (combat reset). Lazily initialized by noteParticipant.
@@ -374,10 +378,23 @@ func (m *Mob) DamageTaken() vitals.VitalSign {
 	return m.damageTaken
 }
 
+// AuraHitStyle is the aura-hit VFX stamped on this mob this tick (item 11
+// Step 4); serialized as the mob's aura_hit_style wire field.
+func (m *Mob) AuraHitStyle() model.AuraHitStyle {
+	return m.auraHitStyle
+}
+
+// NoteAuraHit records the aura-hit VFX style for this tick; called by the
+// SkillSystem when a damage aura strikes this mob.
+func (m *Mob) NoteAuraHit(style model.AuraHitStyle) {
+	m.auraHitStyle = style
+}
+
 // ResetTickNumbers clears the per-tick floating-number accumulators; called by
 // the StatusEffectsSystem at the start of each tick.
 func (m *Mob) ResetTickNumbers() {
 	m.damageTaken = 0
+	m.auraHitStyle = model.AuraHitStyleNone
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {

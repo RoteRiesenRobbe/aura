@@ -84,6 +84,10 @@ export class Player {
         if (entity.xpGained > 0) {
             this.character.showFloatingNumber(entity.xpGained, 'xp');
         }
+        // Aura-hit VFX (item 11 Step 4): slash / fire stamped by a damage aura.
+        if (entity.auraHitStyle > 0) {
+            this.character.showAuraHit(entity.auraHitStyle);
+        }
     }
 
     remove() {

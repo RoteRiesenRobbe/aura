@@ -168,6 +168,7 @@ function unmarshalEntity(entity, eType) {
         damageTaken: undefined,
         healReceived: undefined,
         xpGained: undefined,
+        auraHitStyle: undefined,
     };
 
     if (eType === BerryhunterApi.AnyEntity.Resource) {
@@ -184,6 +185,7 @@ function unmarshalEntity(entity, eType) {
         result.health = entity.health();
         result.burstRadius = entity.burstRadius();
         result.damageTaken = entity.damageTaken();
+        result.auraHitStyle = entity.auraHitStyle();
     }
 
     if (eType === BerryhunterApi.AnyEntity.Character) {
@@ -203,6 +205,7 @@ function unmarshalEntity(entity, eType) {
         result.damageTaken = entity.damageTaken();
         result.healReceived = entity.healReceived();
         result.xpGained = entity.xpGained();
+        result.auraHitStyle = entity.auraHitStyle();
     }
 
     if (isFunction(entity.statusEffectsLength) &&

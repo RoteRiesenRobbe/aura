@@ -50,6 +50,7 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddDamageTaken(builder, p.DamageTaken().UInt32())
 	BerryhunterApi.CharacterAddHealReceived(builder, p.HealReceived().UInt32())
 	BerryhunterApi.CharacterAddXpGained(builder, u64ToU32Clamped(p.XpGained()))
+	BerryhunterApi.CharacterAddAuraHitStyle(builder, byte(p.AuraHitStyle()))
 }
 
 // u64ToU32Clamped narrows a uint64 to uint32 for the wire, saturating rather

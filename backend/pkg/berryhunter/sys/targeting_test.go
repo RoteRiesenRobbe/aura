@@ -205,3 +205,29 @@ func TestApplyDamageAura_CapGrowsWithLevel(t *testing.T) {
 	assert.Len(t, mid.touches, 1)
 	assert.Empty(t, far.touches)
 }
+// --- aura-hit style resolution (item 11 Step 4) ---
+
+func TestAuraHitStyleFor_AutoDerivesFromCadence(t *testing.T) {
+	slow := skills.EffectDef{Type: skills.EffectTypeDamageAura, TickInterval: auraSlashTickThreshold}
+	fast := skills.EffectDef{Type: skills.EffectTypeDamageAura, TickInterval: 1}
+
+	assert.Equal(t, model.AuraHitStyleSlash, auraHitStyleFor(slow, 1),
+		"a slow-tick aura reads as slash under HitStyleAuto")
+	assert.Equal(t, model.AuraHitStyleFire, auraHitStyleFor(fast, 1),
+		"a fast-tick aura reads as fire under HitStyleAuto")
+}
+
+func TestAuraHitStyleFor_ExplicitOverrideBeatsCadence(t *testing.T) {
+	// A fast-tick aura that pins slash, and a slow-tick aura that pins fire:
+	// the explicit hitStyle must win over the cadence default.
+	pinnedSlash := skills.EffectDef{Type: skills.EffectTypeDamageAura, TickInterval: 1, HitStyle: skills.HitStyleSlash}
+	pinnedFire := skills.EffectDef{Type: skills.EffectTypeDamageAura, TickInterval: auraSlashTickThreshold, HitStyle: skills.HitStyleFire}
+
+	assert.Equal(t, model.AuraHitStyleSlash, auraHitStyleFor(pinnedSlash, 1))
+	assert.Equal(t, model.AuraHitStyleFire, auraHitStyleFor(pinnedFire, 1))
+}
+
+func TestAuraHitStyleFor_NoneSuppressesVFX(t *testing.T) {
+	effect := skills.EffectDef{Type: skills.EffectTypeDamageAura, TickInterval: 1, HitStyle: skills.HitStyleNone}
+	assert.Equal(t, model.AuraHitStyleNone, auraHitStyleFor(effect, 1))
+}

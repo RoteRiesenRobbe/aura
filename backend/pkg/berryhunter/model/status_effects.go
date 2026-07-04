@@ -56,3 +56,27 @@ type StatusEntity interface {
 type TickAccumulators interface {
 	ResetTickNumbers()
 }
+
+// AuraHitStyle is the per-tick aura-hit VFX a damage aura stamps on the target
+// it strikes (v1-roadmap item 11 Step 4). The SkillSystem picks the style from
+// the source aura's effective tick cadence (slow → discrete slash, fast →
+// sustained fire) so the aura circle reads as range, not a hit zone. It is a
+// transient wire field (ubyte on Mob/Character), reset every tick on the same
+// TickAccumulators lifecycle as the floating numbers.
+type AuraHitStyle uint8
+
+const (
+	AuraHitStyleNone  AuraHitStyle = 0 // not struck this tick
+	AuraHitStyleSlash AuraHitStyle = 1 // slow-tick aura → discrete slash
+	AuraHitStyleFire  AuraHitStyle = 2 // fast-tick aura → sustained fire/spark
+)
+
+// AuraHitNotifier is the minimal interface the SkillSystem needs at the strike
+// site to stamp an AuraHitStyle on a struck target for this tick. Kept separate
+// from the Interacter damage path on purpose: the SkillSystem knows the source
+// aura's cadence, whereas takeDamage knows the post-mitigation amount (the
+// floating damage number). The paired AuraHitStyle() getter lives on the
+// Mob/Player entity interfaces, where the codec reads it.
+type AuraHitNotifier interface {
+	NoteAuraHit(style AuraHitStyle)
+}

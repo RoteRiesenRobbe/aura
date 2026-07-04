@@ -111,6 +111,11 @@ type MobEntity interface {
 	// the floating damage number (v1-roadmap item 11) and reset each tick via
 	// ResetTickNumbers (TickAccumulators).
 	DamageTaken() vitals.VitalSign
+
+	// AuraHitStyle is the per-tick aura-hit VFX stamped on this entity by a
+	// damage aura (item 11 Step 4); serialized as the aura_hit_style wire field
+	// and reset each tick via ResetTickNumbers.
+	AuraHitStyle() AuraHitStyle
 }
 
 // AABB is an alias to not expose transitive dependencies

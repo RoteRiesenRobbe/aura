@@ -206,7 +206,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
         return {
             Damaged: StatusEffect.forDamaged(this.actualShape),
-            DamagedAmbient: StatusEffect.forDamagedOverTime(this.actualShape),
             Freezing: StatusEffect.forFreezing(this.actualShape),
         };
     }
@@ -424,7 +423,9 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         const borderWidth = 1;
 
         const bar = new Container();
-        bar.y = -Math.max(48, this.size * 1.7);
+        // Below the avatar (positive y is down); item-11 VFX pass moved the
+        // overhead bar under. The HUD health bar (bottom-right) is separate.
+        bar.y = Math.max(48, this.size * 1.7);
 
         bar.addChild(
             new Graphics()

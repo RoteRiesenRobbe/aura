@@ -67,6 +67,30 @@ var selectorMap = map[string]Selector{
 	"all":           SelectorAll,
 }
 
+// HitStyle is a per-effect override for the aura-hit VFX (item 11 Step 4). The
+// default, HitStyleAuto, derives the style from the effect's tick cadence (see
+// sys.auraHitStyleFor); the explicit values pin a style regardless of cadence so
+// each aura is individually configurable via its JSON `hitStyle` field. Kept in
+// this package (not model) to avoid the skills↔model import cycle; sys maps it
+// to model.AuraHitStyle.
+type HitStyle int
+
+const (
+	HitStyleAuto  HitStyle = iota // default: derive from tick cadence
+	HitStyleSlash                 // always a discrete slash
+	HitStyleFire                  // always a sustained fire/spark
+	HitStyleNone                  // never show a hit VFX
+)
+
+// hitStyleMap parses the JSON `hitStyle` field. Absent/"auto" → cadence-derived.
+var hitStyleMap = map[string]HitStyle{
+	"":      HitStyleAuto,
+	"auto":  HitStyleAuto,
+	"slash": HitStyleSlash,
+	"fire":  HitStyleFire,
+	"none":  HitStyleNone,
+}
+
 // Supported stat_multiplier stat names. A stat listed here must actually be
 // applied somewhere (movementSpeed: core/input.go; maxHealth:
 // player.MaxHealthFactor) — accepting an unapplied stat would be a silent
@@ -127,6 +151,10 @@ type EffectDef struct {
 	// levels). Effective interval is floored at 1.
 	TickIntervalPerLevel int
 
+	// damage_aura, instant_damage — per-effect aura-hit VFX override
+	// (item 11 Step 4). HitStyleAuto (default) derives it from the tick cadence.
+	HitStyle HitStyle
+
 	// stat_multiplier
 	Stat             string
 	AdditivePerLevel float32
@@ -174,6 +202,8 @@ type effectDef struct {
 
 	TickInterval         *int `json:"tickInterval"` // nil → default 1
 	TickIntervalPerLevel int  `json:"tickIntervalPerLevel"`
+
+	HitStyle string `json:"hitStyle"` // "" → auto (cadence-derived)
 
 	Stat             string  `json:"stat"`
 	AdditivePerLevel float32 `json:"additivePerLevel"`
@@ -245,6 +275,11 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		tickInterval = *e.TickInterval
 	}
 
+	hitStyle, ok := hitStyleMap[e.HitStyle]
+	if !ok {
+		return EffectDef{}, fmt.Errorf("unknown hitStyle: %q", e.HitStyle)
+	}
+
 	return EffectDef{
 		Type:                    effectType,
 		Radius:                  e.Radius,
@@ -265,6 +300,7 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		SlowFractionPerLevel:    e.SlowFractionPerLevel,
 		TickInterval:            tickInterval,
 		TickIntervalPerLevel:    e.TickIntervalPerLevel,
+		HitStyle:                hitStyle,
 		Stat:                    e.Stat,
 		AdditivePerLevel:        e.AdditivePerLevel,
 	}, nil

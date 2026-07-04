@@ -103,7 +103,6 @@ export abstract class Mob extends GameObject {
     protected override createStatusEffects() {
         return {
             Damaged: StatusEffect.forDamaged(this.actualShape),
-            DamagedAmbient: StatusEffect.forDamagedOverTime(this.actualShape),
         };
     }
 
@@ -113,7 +112,8 @@ export abstract class Mob extends GameObject {
         const borderWidth = 1;
 
         const bar = new PIXI.Container();
-        bar.y = -Math.max(30, this.size * 0.9);
+        // Below the mob (positive y is down); item-11 VFX pass moved it under.
+        bar.y = Math.max(30, this.size * 0.9);
 
         bar.addChild(
             new PIXI.Graphics()
@@ -159,7 +159,6 @@ export class Dodo extends Mob {
                     },
                     chanceToPlay: 0.3,
                 }]),
-            DamagedAmbient: StatusEffect.forDamagedOverTime(this.actualShape),
         };
     }
 }
@@ -189,7 +188,6 @@ export class SaberToothCat extends Mob {
                     },
                     chanceToPlay: 0.3,
                 }]),
-            DamagedAmbient: StatusEffect.forDamagedOverTime(this.actualShape),
         };
     }
 }
@@ -220,7 +218,6 @@ export class Mammoth extends Mob {
                     },
                     chanceToPlay: 0.3,
                 }]),
-            DamagedAmbient: StatusEffect.forDamagedOverTime(this.actualShape),
         };
     }
 }
@@ -250,7 +247,6 @@ export class AngryMammoth extends Mob {
                     },
                     chanceToPlay: 0.3,
                 }]),
-            DamagedAmbient: StatusEffect.forDamagedOverTime(this.actualShape),
         };
     }
 }

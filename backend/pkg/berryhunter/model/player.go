@@ -79,6 +79,11 @@ type PlayerEntity interface {
 	HealReceived() vitals.VitalSign
 	XpGained() uint64
 	NoteHealReceived(delta vitals.VitalSign)
+	// AuraHitStyle / NoteAuraHit carry the per-tick aura-hit VFX (item 11
+	// Step 4); NoteAuraHit is called by the SkillSystem when a damage aura
+	// strikes this player, AuraHitStyle is serialized as aura_hit_style.
+	AuraHitStyle() AuraHitStyle
+	NoteAuraHit(style AuraHitStyle)
 	SkillComponent() *skills.SkillComponent
 	// SetSkillComponent replaces the player's skill component wholesale.
 	// Used on respawn to restore the spellbook + loadout the player died with.

@@ -158,9 +158,11 @@ func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level
 		return ok
 	}
 
+	style := auraHitStyleFor(effect, level)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, fraction)
+		noteAuraHit(c, style)
 	}
 }
 
@@ -179,9 +181,20 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, 
 		return ok
 	}
 
+	style := auraHitStyleFor(effect, level)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		c.Shape().UserData.(model.Interacter).MobTouches(caster, factors)
+		noteAuraHit(c, style)
+	}
+}
+
+// noteAuraHit stamps the per-tick aura-hit VFX style on a struck target if it
+// supports it (item 11 Step 4). Targets that are not AuraHitNotifiers (e.g.
+// resources/structures) simply get no hit VFX.
+func noteAuraHit(c phy.Collider, style model.AuraHitStyle) {
+	if n, ok := c.Shape().UserData.(model.AuraHitNotifier); ok {
+		n.NoteAuraHit(style)
 	}
 }
 

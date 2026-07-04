@@ -150,6 +150,10 @@ export class EntityManager {
         if (entity.xpGained > 0) {
             gameObject.showFloatingNumber(entity.xpGained, 'xp');
         }
+        // Aura-hit VFX (item 11 Step 4): slash / fire stamped by a damage aura.
+        if (entity.auraHitStyle > 0) {
+            gameObject.showAuraHit(entity.auraHitStyle);
+        }
     };
 
     newSnapshot(entities) {

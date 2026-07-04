@@ -304,6 +304,112 @@ export abstract class GameObject {
         Ticker.shared.add(animate);
     }
 
+    // Per-tick aura-hit VFX (item 11 Step 4): a single-instance sprite refreshed
+    // on every hit tick. A fast-tick aura re-arms it every tick so it reads as a
+    // sustained fire; a slow-tick aura lets it fade out between ticks so each hit
+    // reads as a discrete slash. Which one is chosen is purely the server's
+    // aura_hit_style (1 = slash, 2 = fire), driven by the aura's tickInterval.
+    // This replaces the old white damage flash (former DamagedAmbient tint).
+    private auraHitFx: Graphics = null;
+    private auraHitFxStyle = 0;
+    private auraHitFxExpiry = 0;
+    private auraHitFxLifeMs = 200;
+    // Horizontal sweep endpoints for the slash (style 1); unused for fire.
+    private auraHitFxSweepFrom = 0;
+    private auraHitFxSweepTo = 0;
+
+    private static readonly AURA_HIT_LIFE_MS = {1: 220, 2: 240};
+
+    showAuraHit(style: number) {
+        if (style <= 0 || this.shape == null) return;
+
+        const lifeMs = GameObject.AURA_HIT_LIFE_MS[style] ?? 200;
+
+        // Same style still showing → just refresh its lifetime (sustained fire).
+        if (this.auraHitFx !== null && this.auraHitFxStyle === style) {
+            this.auraHitFxExpiry = performance.now() + lifeMs;
+            return;
+        }
+
+        // New or changed style → rebuild the sprite.
+        if (this.auraHitFx !== null && !this.auraHitFx.destroyed) {
+            this.shape.removeChild(this.auraHitFx);
+            this.auraHitFx.destroy();
+        }
+        const fx = this.buildAuraHitFx(style);
+        this.auraHitFx = fx;
+        this.auraHitFxStyle = style;
+        this.auraHitFxLifeMs = lifeMs;
+        this.auraHitFxExpiry = performance.now() + lifeMs;
+
+        // The slash sweeps fully across the model, entering from a random side.
+        if (style === 1) {
+            const dir = Math.random() < 0.5 ? -1 : 1;
+            this.auraHitFxSweepFrom = -dir * this.size * 1.2;
+            this.auraHitFxSweepTo = dir * this.size * 1.2;
+            fx.position.x = this.auraHitFxSweepFrom;
+        } else {
+            fx.position.x = 0;
+        }
+        this.shape.addChild(fx);
+
+        const fade = () => {
+            if (fx.destroyed) {
+                Ticker.shared.remove(fade);
+                return;
+            }
+            const remaining = this.auraHitFxExpiry - performance.now();
+            if (remaining <= 0) {
+                Ticker.shared.remove(fade);
+                this.shape.removeChild(fx);
+                fx.destroy();
+                if (this.auraHitFx === fx) {
+                    this.auraHitFx = null;
+                    this.auraHitFxStyle = 0;
+                }
+                return;
+            }
+            const progress = Math.min(1, 1 - remaining / this.auraHitFxLifeMs);
+            if (this.auraHitFxStyle === 1) {
+                // Sweep across and fade symmetrically (bright mid-swing).
+                fx.position.x = this.auraHitFxSweepFrom +
+                    (this.auraHitFxSweepTo - this.auraHitFxSweepFrom) * progress;
+                fx.alpha = Math.sin(progress * Math.PI);
+            } else {
+                fx.alpha = Math.min(1, remaining / this.auraHitFxLifeMs);
+            }
+        };
+        Ticker.shared.add(fade);
+    }
+
+    // Placeholder aura-hit art: a bright slash streak that sweeps across the
+    // model, or a cluster of orange fire sparks over the avatar. Both are
+    // intentionally simple Graphics — real art is a later content/art pass.
+    private buildAuraHitFx(style: number): Graphics {
+        const s = this.size;
+        const g = new Graphics();
+        if (style === 1) {
+            // Near-vertical streak taller than the model; the ticker sweeps its
+            // x across, so it reads as a slash crossing the whole avatar.
+            const w = Math.max(3, s * 0.14);
+            g.moveTo(0, -s * 1.1).lineTo(0, s * 1.1)
+                .stroke({color: 0xff5a4d, width: w * 2.4, alpha: 0.35}); // red glow
+            g.moveTo(0, -s * 1.1).lineTo(0, s * 1.1)
+                .stroke({color: 0xffffff, width: w, alpha: 0.95});       // white core
+            g.rotation = (Math.random() * 0.4) - 0.2; // slight random tilt
+        } else {
+            // Sustained fire: jittered flame blobs centered low over the avatar.
+            const colors = [0xffd24a, 0xff8c1a, 0xff3b1a];
+            for (let i = 0; i < 5; i++) {
+                const jx = (Math.random() - 0.5) * s * 0.8;
+                const jy = s * (-0.05 + Math.random() * 0.4); // over the avatar body
+                g.circle(jx, jy, s * (0.14 + Math.random() * 0.12))
+                    .fill({color: colors[i % colors.length], alpha: 0.85});
+            }
+        }
+        return g;
+    }
+
     private showStatusEffect(statusEffectid: string) {
         this.activeStatusEffect = this.statusEffects[statusEffectid];
         this.activeStatusEffect.show();

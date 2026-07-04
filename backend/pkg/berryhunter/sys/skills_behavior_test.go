@@ -28,7 +28,8 @@ import (
 // touchRecorder implements model.Interacter and records PlayerTouches calls.
 // It stands in for a mob-like target of a damage aura.
 type touchRecorder struct {
-	touches []float32
+	touches   []float32
+	hitStyles []model.AuraHitStyle
 }
 
 func (r *touchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item)  {}
@@ -36,8 +37,14 @@ func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)    {
 func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damageFraction float32) {
 	r.touches = append(r.touches, damageFraction)
 }
+func (r *touchRecorder) NoteAuraHit(style model.AuraHitStyle) {
+	r.hitStyles = append(r.hitStyles, style)
+}
 
-var _ model.Interacter = (*touchRecorder)(nil)
+var (
+	_ model.Interacter      = (*touchRecorder)(nil)
+	_ model.AuraHitNotifier = (*touchRecorder)(nil)
+)
 
 // fakePlayer satisfies both skillEntity and model.PlayerEntity. The embedded
 // nil PlayerEntity provides all interface methods; any method that is not
@@ -153,6 +160,44 @@ func TestApplyDamageAura_DealsLevelScaledDamage(t *testing.T) {
 	applyDamageAura(caster, 3, damageEffect(1), set)
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.014, target.touches[0], 1e-6, "level 3 = base + 2*perLevel")
+}
+
+func TestApplyDamageAura_TagsFireStyleForFastTick(t *testing.T) {
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+	set := colliderSetOf(target)
+
+	// A fast-tick aura (interval below the slash threshold) reads as sustained fire.
+	applyDamageAura(caster, 1, damageEffect(1), set)
+
+	require.Len(t, target.hitStyles, 1)
+	assert.Equal(t, model.AuraHitStyleFire, target.hitStyles[0])
+}
+
+func TestApplyDamageAura_TagsSlashStyleForSlowTick(t *testing.T) {
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+	set := colliderSetOf(target)
+
+	// A slow-tick aura (interval at/above the slash threshold) reads as a discrete slash.
+	applyDamageAura(caster, 1, damageEffect(auraSlashTickThreshold), set)
+
+	require.Len(t, target.hitStyles, 1)
+	assert.Equal(t, model.AuraHitStyleSlash, target.hitStyles[0])
+}
+
+func TestApplyDamageAura_MobCaster_TagsHitStyle(t *testing.T) {
+	caster := newFakeMob()
+	target := &mobTouchRecorder{}
+	effect := skills.EffectDef{
+		Type: skills.EffectTypeDamageAura, DamageFraction: 0.004,
+		TargetsPlayers: true, TickInterval: auraSlashTickThreshold,
+	}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target))
+
+	require.Len(t, target.hitStyles, 1)
+	assert.Equal(t, model.AuraHitStyleSlash, target.hitStyles[0])
 }
 
 func TestApplyDamageAura_NoFriendlyFire(t *testing.T) {
@@ -335,7 +380,8 @@ func activeAuraPlayer(t *testing.T, effects ...skills.EffectDef) (*fakePlayer, *
 // mobTouchRecorder implements model.Interacter and records MobTouches calls —
 // it stands in for a player or structure hit by a mob's aura.
 type mobTouchRecorder struct {
-	factors []mobs.Factors
+	factors   []mobs.Factors
+	hitStyles []model.AuraHitStyle
 }
 
 func (r *mobTouchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item)       {}
@@ -343,8 +389,14 @@ func (r *mobTouchRecorder) PlayerTouches(p model.PlayerEntity, damageFraction fl
 func (r *mobTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
 	r.factors = append(r.factors, factors)
 }
+func (r *mobTouchRecorder) NoteAuraHit(style model.AuraHitStyle) {
+	r.hitStyles = append(r.hitStyles, style)
+}
 
-var _ model.Interacter = (*mobTouchRecorder)(nil)
+var (
+	_ model.Interacter      = (*mobTouchRecorder)(nil)
+	_ model.AuraHitNotifier = (*mobTouchRecorder)(nil)
+)
 
 // fakeMob satisfies skillEntity and model.MobEntity via the embedded nil
 // interface (panics loudly on any method the test did not anticipate).

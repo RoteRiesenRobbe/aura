@@ -89,6 +89,10 @@ table Mob {
   // health lost this tick, in VitalSign units (same scale as `health`); 0 = none.
   // Drives the floating damage number (item 11). Reset every tick.
   damage_taken:uint = 0;
+
+  // aura-hit VFX stamped by a damage aura this tick (item 11 Step 4):
+  // 0 = none, 1 = slash (slow-tick), 2 = fire (fast-tick). Reset every tick.
+  aura_hit_style:ubyte = 0;
 }
 
 table Character {
@@ -129,6 +133,10 @@ table Character {
   damage_taken:uint = 0;
   heal_received:uint = 0;
   xp_gained:uint = 0;
+
+  // aura-hit VFX stamped by a damage aura this tick (item 11 Step 4):
+  // 0 = none, 1 = slash (slow-tick), 2 = fire (fast-tick). Reset every tick.
+  aura_hit_style:ubyte = 0;
 }
 
 table Spectator {
