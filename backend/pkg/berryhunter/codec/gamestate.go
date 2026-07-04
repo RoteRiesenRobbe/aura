@@ -193,6 +193,23 @@ func SpellbookMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.Bui
 	return builder.EndVector(n)
 }
 
+// PassiveSlotsMarshalFlatbuf serializes the passive slot contents as a
+// positional [ushort] vector: index i = PassiveSlots[i], 0 = empty slot.
+// Must be called before GameStateStart (FlatBuffers rule).
+func PassiveSlotsMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	n := skills.MaxPassiveSlots
+	BerryhunterApi.GameStateStartPassiveSlotsVector(builder, n)
+	// Prepend in reverse so index 0 lands at the lowest address.
+	for i := n - 1; i >= 0; i-- {
+		var id uint16
+		if sc.PassiveSlots[i] != nil {
+			id = uint16(sc.PassiveSlots[i].Def.ID)
+		}
+		builder.PrependUint16(id)
+	}
+	return builder.EndVector(n)
+}
+
 // SpellbookLevelsMarshalFlatbuf serializes the per-skill levels as a [ubyte]
 // vector positionally parallel to the spellbook vector (same ascending-ID
 // order from Discovered()). Must be called before GameStateStart.
@@ -216,6 +233,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	spellbook := SpellbookMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	spellbookLevels := SpellbookLevelsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	auraSlots := AuraSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
+	passiveSlots := PassiveSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 
 	BerryhunterApi.GameStateStart(builder)
 	BerryhunterApi.GameStateAddTick(builder, gs.Tick)
@@ -228,6 +246,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	BerryhunterApi.GameStateAddSpellbook(builder, spellbook)
 	BerryhunterApi.GameStateAddSpellbookLevels(builder, spellbookLevels)
 	BerryhunterApi.GameStateAddAuraSlots(builder, auraSlots)
+	BerryhunterApi.GameStateAddPassiveSlots(builder, passiveSlots)
 	BerryhunterApi.GameStateAddActiveAuraSlot(builder, int8(gs.Player.SkillComponent().ActiveAuraSlot))
 	BerryhunterApi.GameStateAddSkillPoints(builder, uint16(max(gs.Player.AvailableSkillPoints(), 0)))
 

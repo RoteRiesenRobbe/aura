@@ -156,6 +156,9 @@ table GameState {
 
   // unspent skill points available to the owning player
   skill_points:ushort;
+
+  // equipped passive slot contents — positional: index i = PassiveSlots[i], 0 = empty slot
+  passive_slots:[ushort];
 }
 
 table Welcome {

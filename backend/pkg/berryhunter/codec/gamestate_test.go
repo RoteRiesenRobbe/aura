@@ -63,6 +63,32 @@ func TestSpellbookLevelsMarshalFlatbuf_ParallelToSpellbook(t *testing.T) {
 	assert.Equal(t, byte(3), result.SpellbookLevels(1))
 }
 
+func TestPassiveSlotsMarshalFlatbuf_PositionalOrder(t *testing.T) {
+	// Equip passive slots 0 and 2; wire must read [id0, 0, id2, 0].
+	sc := skills.NewSkillComponent(true)
+	def0 := &skills.SkillDefinition{ID: 10, Name: "SwiftPassive"}
+	def2 := &skills.SkillDefinition{ID: 11, Name: "TankPassive"}
+	sc.EquipPassive(0, def0, 1)
+	sc.EquipPassive(2, def2, 1)
+
+	b := flatbuffers.NewBuilder(128)
+
+	passiveSlots := PassiveSlotsMarshalFlatbuf(sc, b)
+
+	BerryhunterApi.GameStateStart(b)
+	BerryhunterApi.GameStateAddPassiveSlots(b, passiveSlots)
+	gs := BerryhunterApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
+
+	require.Equal(t, skills.MaxPassiveSlots, result.PassiveSlotsLength())
+	assert.Equal(t, uint16(10), result.PassiveSlots(0))
+	assert.Equal(t, uint16(0), result.PassiveSlots(1))
+	assert.Equal(t, uint16(11), result.PassiveSlots(2))
+	assert.Equal(t, uint16(0), result.PassiveSlots(3))
+}
+
 func TestGameStateSkillPoints_RoundTrip(t *testing.T) {
 	b := flatbuffers.NewBuilder(64)
 

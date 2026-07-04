@@ -739,21 +739,41 @@ Implements the two designed-but-unbuilt skill categories (see Effect Types).
 wire field — the simpler half informs the harder one). Phase order is settled:
 Phase 8 runs after Phase 7.
 
-**8.1 — Passives**
+**8.1 — Passives ✓ Done** *(implemented + verified in-game 2026-07-04)*
 
-- Equip into `PassiveSlots`; `stat_multiplier` applied via `DerivedStats` on
-  equip, unequip, and level change (free respec means level *drops* too).
-- Passives run in parallel — all equipped passives are active at once (unlike
-  auras).
-- Wire: passive slot contents serialized to the client; passive slot display
-  in the UI. **Decided: no `SkillCategory` enum on the wire** — the server
-  derives the target slot array from the skill definition's own category, and
-  the client's `Skills.ts` mapping already knows each skill's category (KISS).
-- **Decided: the first passive and the first cooldown unlock via milestones**
-  (levels [PLACEHOLDER]) — every player reliably experiences both new
-  categories. Passive/cooldown mob drops remain a later pure-JSON edit (6.2).
-- Spellbook UI splits into its three category sections (active auras /
-  passives / cooldowns). **The passives section doubles as the game's
+- ✓ Equip into `PassiveSlots`; `stat_multiplier` applied via `DerivedStats`
+  (a struct on `SkillComponent`) recomputed on equip, unequip, and level
+  change (free respec level *drops* included). Per skill the bonus is
+  `additivePerLevel × level`; across passives it stacks linearly; applied as
+  `base × (1 + bonus)` — movementSpeed in `core/input.go`, maxHealth in
+  `player.maxHealthFactor()` (health is stored normalized, so a maxHealth
+  bonus preserves the current health *percentage*). Unknown stat names
+  hard-fail at load (an accepted-but-unapplied stat would be a silent no-op).
+- ✓ Passives run in parallel — all equipped passives are active at once
+  (unlike auras).
+- ✓ **Decided: a passive occupies only one slot.** The same skill in two
+  passive slots would stack its own buff (4× SwiftPassive was possible) —
+  not intended, ruins balancing. Equipping a passive already slotted
+  elsewhere *moves* it (old slot cleared). Aura slots deliberately keep
+  allowing duplicates: only one aura is active at a time, nothing stacks.
+- ✓ `EquipSystem` routes by the skill's own category with per-category
+  bounds; cooldown equips are rejected until 8.2. The mob loadout also
+  routes by category (a passive in a mob JSON previously would have landed
+  in an aura slot and become the active aura).
+- ✓ Wire: `passive_slots: [ushort]` on `GameState` (positional, 0 = empty);
+  passive slots panel in the UI. **Decided: no `SkillCategory` enum on the
+  wire** — the server derives the target slot array from the skill
+  definition's own category, and the client's `Skills.ts` mapping already
+  knows each skill's category (KISS). Equip clicks are category-guarded
+  client-side (only the matching panel accepts a pending skill).
+- ✓ **Decided: the first passive and the first cooldown unlock via
+  milestones** (levels [PLACEHOLDER]) — every player reliably experiences
+  both new categories. Passive/cooldown mob drops remain a later pure-JSON
+  edit (6.2). *First content shipped: `SwiftPassive` (id 10, +5% movement
+  speed per level, maxLevel 3, all [PLACEHOLDER]) via milestone at level 3.*
+- ✓ Spellbook UI splits into its three category sections (active auras /
+  passives / cooldowns) — empty sections stay invisible (also keeps the
+  zero-hint policy safe). **The passives section doubles as the game's
   "inventory":** item-flavored passives (e.g. a "Dagger" passive adding flat
   damage per tick) act as gear — there is no separate item/inventory system
   (see `v1-roadmap.md`, survival-system removal).

@@ -43,18 +43,33 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 		mobBody.Shape().Mask = d.Body.CollisionMask
 	}
 
-	// Skill loadout: equip every declared skill into consecutive aura slots
-	// (the whole loadout is available so future AI/boss scripts can switch),
-	// slot 0 starts active. Mobs have no spellbook.
+	// Skill loadout: equip every declared skill into consecutive slots of its
+	// category (the whole loadout is available so future AI/boss scripts can
+	// switch), first aura slot starts active. Mobs have no spellbook.
 	sc := skills.NewSkillComponent(false)
-	for i, s := range d.Skills {
-		if i >= skills.MaxAuraSlots {
-			log.Printf("mob %s declares more skills than aura slots (%d); ignoring the rest", d.Name, skills.MaxAuraSlots)
-			break
+	auraCount, passiveCount := 0, 0
+	for _, s := range d.Skills {
+		switch s.Def.Category {
+		case skills.SkillCategoryPassive:
+			if passiveCount >= skills.MaxPassiveSlots {
+				log.Printf("mob %s declares more passives than slots (%d); ignoring the rest", d.Name, skills.MaxPassiveSlots)
+				continue
+			}
+			sc.EquipPassive(passiveCount, s.Def, s.Level)
+			passiveCount++
+		case skills.SkillCategoryActiveAura:
+			if auraCount >= skills.MaxAuraSlots {
+				log.Printf("mob %s declares more auras than slots (%d); ignoring the rest", d.Name, skills.MaxAuraSlots)
+				continue
+			}
+			sc.EquipAura(auraCount, s.Def, s.Level)
+			auraCount++
+		default:
+			// Mob cooldown skills ship with Phase 8.2.
+			log.Printf("mob %s declares skill %s of an unsupported category; ignored", d.Name, s.Def.Name)
 		}
-		sc.EquipAura(i, s.Def, s.Level)
 	}
-	if len(d.Skills) > 0 {
+	if auraCount > 0 {
 		sc.SetActiveAura(0)
 	}
 

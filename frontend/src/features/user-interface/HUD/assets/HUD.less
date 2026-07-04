@@ -514,6 +514,17 @@
 				border-radius: 0.4rem;
 			}
 
+			&.sectionHeader {
+				display: block;
+				padding: 0.6rem 0 0.2rem;
+				color: @panel-title-color;
+				font-size: 0.85em;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.04em;
+				cursor: default;
+			}
+
 			> .skillControls {
 				display: inline-flex;
 				align-items: center;
@@ -592,7 +603,8 @@
 	}
 }
 
-#auraLoadout {
+#auraLoadout,
+#passiveLoadout {
 	background: @panel-bg;
 	border: 1px solid @panel-border;
 	border-radius: @panel-border-radius;
@@ -611,7 +623,7 @@
 		text-transform: uppercase;
 	}
 
-	> #auraSlotList {
+	> ul {
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -627,7 +639,7 @@
 		}
 	}
 
-	&.hasPendingSkill > #auraSlotList > .auraSlot {
+	&.hasPendingSkill > ul > .auraSlot {
 		cursor: pointer;
 		color: @panel-color;
 		background: fade(white, 5%);
@@ -635,7 +647,7 @@
 		padding-left: 0.4rem;
 	}
 
-	> #auraSlotList > .auraSlot.activeSlot {
+	> ul > .auraSlot.activeSlot {
 		color: white;
 		font-weight: 700;
 		background: fade(white, 12%);

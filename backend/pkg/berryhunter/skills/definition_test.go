@@ -215,6 +215,14 @@ func TestMap_UnknownEffectType(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestMap_UnknownStat(t *testing.T) {
+	// An unapplied stat would be a silent no-op — unknown names must fail loud.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"luck","additivePerLevel":0.1}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "unknown stat")
+}
+
 func TestMap_ExplicitTickInterval(t *testing.T) {
 	data := []byte(`{
       "id": 99, "name": "SlowAura", "category": "active_aura", "maxLevel": 1,

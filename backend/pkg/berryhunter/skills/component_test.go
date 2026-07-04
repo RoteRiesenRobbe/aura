@@ -303,3 +303,121 @@ func TestTotalSkillPoints(t *testing.T) {
 	assert.Equal(t, 4, TotalSkillPoints(5, 1))
 	assert.Equal(t, 8, TotalSkillPoints(5, 2))
 }
+
+var testSwift = &SkillDefinition{
+	ID:       10,
+	Name:     "SwiftPassive",
+	Category: SkillCategoryPassive,
+	MaxLevel: 3,
+	Effects: []EffectDef{
+		{Type: EffectTypeStatMultiplier, Stat: StatMovementSpeed, AdditivePerLevel: 0.05},
+	},
+}
+
+func TestDerivedStats(t *testing.T) {
+	t.Run("zero without passives", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+
+		assert.Equal(t, float32(0), sc.Derived.MovementSpeedBonus)
+		assert.Equal(t, float32(0), sc.Derived.MaxHealthBonus)
+	})
+
+	t.Run("equip applies additivePerLevel times level", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, testSwift, 2)
+
+		assert.InDelta(t, 0.10, sc.Derived.MovementSpeedBonus, 1e-6)
+	})
+
+	t.Run("unequip removes the bonus", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, testSwift, 2)
+		sc.UnequipPassive(0)
+
+		assert.Equal(t, float32(0), sc.Derived.MovementSpeedBonus)
+	})
+
+	t.Run("passives stack additively", func(t *testing.T) {
+		other := &SkillDefinition{
+			ID: 11, Name: "OtherSwift", Category: SkillCategoryPassive, MaxLevel: 3,
+			Effects: []EffectDef{
+				{Type: EffectTypeStatMultiplier, Stat: StatMovementSpeed, AdditivePerLevel: 0.02},
+			},
+		}
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, testSwift, 1)
+		sc.EquipPassive(1, other, 1)
+
+		assert.InDelta(t, 0.07, sc.Derived.MovementSpeedBonus, 1e-6)
+	})
+
+	t.Run("stats sum independently", func(t *testing.T) {
+		tank := &SkillDefinition{
+			ID: 12, Name: "TankPassive", Category: SkillCategoryPassive, MaxLevel: 3,
+			Effects: []EffectDef{
+				{Type: EffectTypeStatMultiplier, Stat: StatMaxHealth, AdditivePerLevel: 0.1},
+			},
+		}
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, testSwift, 1)
+		sc.EquipPassive(1, tank, 2)
+
+		assert.InDelta(t, 0.05, sc.Derived.MovementSpeedBonus, 1e-6)
+		assert.InDelta(t, 0.20, sc.Derived.MaxHealthBonus, 1e-6)
+	})
+
+	t.Run("level raise recomputes equipped passive", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testSwift.ID)
+		sc.EquipPassive(0, testSwift, 1)
+
+		require.True(t, sc.RaiseSkillLevel(testSwift))
+
+		assert.Equal(t, 2, sc.PassiveSlots[0].Level)
+		assert.InDelta(t, 0.10, sc.Derived.MovementSpeedBonus, 1e-6)
+	})
+
+	t.Run("level drop recomputes equipped passive (free respec)", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.Discover(testSwift.ID)
+		require.True(t, sc.RaiseSkillLevel(testSwift))
+		sc.EquipPassive(0, testSwift, 2)
+
+		require.True(t, sc.LowerSkillLevel(testSwift))
+
+		assert.InDelta(t, 0.05, sc.Derived.MovementSpeedBonus, 1e-6)
+	})
+
+	t.Run("equipping the same passive again moves it, never duplicates", func(t *testing.T) {
+		// The same buff in two slots would stack (0.05 + 0.05); equipping a
+		// passive already present elsewhere must clear the old slot instead.
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, testSwift, 1)
+
+		sc.EquipPassive(2, testSwift, 1)
+
+		assert.Nil(t, sc.PassiveSlots[0], "old slot must be cleared")
+		require.NotNil(t, sc.PassiveSlots[2])
+		assert.InDelta(t, 0.05, sc.Derived.MovementSpeedBonus, 1e-6, "bonus must count once")
+	})
+
+	t.Run("re-equipping into the same slot is a plain overwrite", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(1, testSwift, 1)
+
+		sc.EquipPassive(1, testSwift, 2)
+
+		require.NotNil(t, sc.PassiveSlots[1])
+		assert.Equal(t, 2, sc.PassiveSlots[1].Level)
+		assert.InDelta(t, 0.10, sc.Derived.MovementSpeedBonus, 1e-6)
+	})
+
+	t.Run("non-passive-slot skills do not contribute", func(t *testing.T) {
+		// A stat effect on an aura-slotted skill must not leak into DerivedStats:
+		// only PassiveSlots are read (passives run in parallel, auras don't).
+		sc := NewSkillComponent(true)
+		sc.EquipAura(0, testSwift, 1)
+
+		assert.Equal(t, float32(0), sc.Derived.MovementSpeedBonus)
+	})
+}

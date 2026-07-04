@@ -15,6 +15,7 @@ export class Snapshot {
     spellbookLevels: number[]; // per-skill levels, positionally parallel to spellbook
     skillPoints: number; // unspent skill points, owning player only
     auraSlots: number[]; // equipped aura slot contents, positional (index i = slot i, 0 = empty)
+    passiveSlots: number[]; // equipped passive slot contents, positional (index i = slot i, 0 = empty)
     activeAuraSlot: number; // active aura slot index, owning player only; -1 = Nothing
 }
 
@@ -44,8 +45,9 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         snapshot.spellbookLevels = gameState.spellbookLevels;
         snapshot.skillPoints = gameState.skillPoints;
 
-        // Aura slots: positional, always carry the full array
+        // Aura/passive slots: positional, always carry the full arrays
         snapshot.auraSlots = gameState.auraSlots;
+        snapshot.passiveSlots = gameState.passiveSlots;
 
         // Active aura slot: scalar, always carried (server-authoritative highlight)
         snapshot.activeAuraSlot = gameState.activeAuraSlot;

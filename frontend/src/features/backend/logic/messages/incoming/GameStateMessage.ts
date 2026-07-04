@@ -33,6 +33,8 @@ export class GameStateMessage {
     // unspent skill points of the owning player
     skillPoints: number;
     auraSlots: number[];
+    // equipped passive slot contents, positional (index i = slot i, 0 = empty)
+    passiveSlots: number[];
     // index of the active aura slot for the owning player; -1 = Nothing
     activeAuraSlot: number;
 
@@ -76,6 +78,11 @@ export class GameStateMessage {
         this.auraSlots = [];
         for (let i = 0; i < gameState.auraSlotsLength(); ++i) {
             this.auraSlots.push(gameState.auraSlots(i));
+        }
+
+        this.passiveSlots = [];
+        for (let i = 0; i < gameState.passiveSlotsLength(); ++i) {
+            this.passiveSlots.push(gameState.passiveSlots(i));
         }
 
         this.activeAuraSlot = gameState.activeAuraSlot();

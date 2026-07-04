@@ -223,8 +223,34 @@ func (rcv *GameState) MutateSkillPoints(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(22, n)
 }
 
+func (rcv *GameState) PassiveSlots(j int) uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
+	}
+	return 0
+}
+
+func (rcv *GameState) PassiveSlotsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutatePassiveSlots(j int, n uint16) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
+	}
+	return false
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(10)
+	builder.StartObject(11)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -270,6 +296,12 @@ func GameStateStartSpellbookLevelsVector(builder *flatbuffers.Builder, numElems 
 }
 func GameStateAddSkillPoints(builder *flatbuffers.Builder, skillPoints uint16) {
 	builder.PrependUint16Slot(9, skillPoints, 0)
+}
+func GameStateAddPassiveSlots(builder *flatbuffers.Builder, passiveSlots flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(passiveSlots), 0)
+}
+func GameStateStartPassiveSlotsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(2, numElems, 2)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

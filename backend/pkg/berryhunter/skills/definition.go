@@ -43,6 +43,20 @@ var effectTypeMap = map[string]EffectType{
 	"instant_damage":  EffectTypeInstantDamage,
 }
 
+// Supported stat_multiplier stat names. A stat listed here must actually be
+// applied somewhere (movementSpeed: core/input.go; maxHealth:
+// player.MaxHealthFactor) — accepting an unapplied stat would be a silent
+// no-op, which is why unknown names hard-fail at load.
+const (
+	StatMovementSpeed = "movementSpeed"
+	StatMaxHealth     = "maxHealth"
+)
+
+var validStats = map[string]bool{
+	StatMovementSpeed: true,
+	StatMaxHealth:     true,
+}
+
 // EffectDef holds parameters for one effect within a skill. All effect-type-specific
 // fields live in this struct (fat struct pattern). Fields that do not apply to a given
 // EffectType are zero. When the number of effect types grows substantially, consider
@@ -167,6 +181,10 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 	effectType, ok := effectTypeMap[e.Type]
 	if !ok {
 		return EffectDef{}, fmt.Errorf("unknown effect type: %q", e.Type)
+	}
+
+	if effectType == EffectTypeStatMultiplier && !validStats[e.Stat] {
+		return EffectDef{}, fmt.Errorf("stat_multiplier: unknown stat %q", e.Stat)
 	}
 
 	tickInterval := 1

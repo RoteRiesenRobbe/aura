@@ -1,3 +1,4 @@
 [
-  { "level": 2, "skillName": "HealAura" }
+  { "level": 2, "skillName": "HealAura" },
+  { "level": 3, "skillName": "SwiftPassive" }
 ]

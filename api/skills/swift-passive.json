@@ -1,0 +1,13 @@
+{
+  "id": 10,
+  "name": "SwiftPassive",
+  "category": "passive",
+  "maxLevel": 3,
+  "effects": [
+    {
+      "type": "stat_multiplier",
+      "stat": "movementSpeed",
+      "additivePerLevel": 0.05
+    }
+  ]
+}

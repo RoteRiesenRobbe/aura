@@ -155,7 +155,9 @@ func (p *player) maxHealthFactor() float32 {
 	if level < 1 {
 		level = 1
 	}
-	return 1 + float32(level-1)*p.config.MaxHealthLevelGainFraction
+	// Health is stored normalized (fraction of max), so a passive maxHealth
+	// bonus preserves the current health *percentage* by construction.
+	return 1 + float32(level-1)*p.config.MaxHealthLevelGainFraction + p.skills.Derived.MaxHealthBonus
 }
 
 func (p *player) takeDamage(damage float32, s model.StatusEffect) {

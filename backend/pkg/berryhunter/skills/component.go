@@ -46,6 +46,20 @@ type SkillComponent struct {
 	CooldownSlots  [MaxCooldownSlots]*EquippedSkill
 	ActiveAuraSlot int             // index into AuraSlots; -1 = none active
 	Spellbook      map[SkillID]int // discovered skill → current level (≥ 1); nil for mobs
+
+	// Derived is the sum of all stat_multiplier effects on equipped passives.
+	// Recomputed on passive equip/unequip and on skill level changes — never
+	// read config values are mutated (resolved Open Question 4).
+	Derived DerivedStats
+}
+
+// DerivedStats accumulates stat_multiplier bonuses from equipped passives.
+// Bonuses are additive multipliers on the base value: effective = base × (1 + bonus).
+// Per skill, the contribution is AdditivePerLevel × level; across skills and
+// effects, contributions to the same stat stack linearly.
+type DerivedStats struct {
+	MovementSpeedBonus float32
+	MaxHealthBonus     float32
 }
 
 // NewSkillComponent creates a SkillComponent with no skills equipped.
@@ -73,6 +87,53 @@ func (sc *SkillComponent) UnequipAura(slot int) {
 	if sc.ActiveAuraSlot == slot {
 		sc.ActiveAuraSlot = -1
 	}
+}
+
+// EquipPassive installs a skill into the given passive slot. All equipped
+// passives are active in parallel (unlike auras), so DerivedStats updates
+// immediately.
+//
+// A passive may occupy only one slot: the same skill twice would stack its
+// stat bonus, which is not intended (aura slots deliberately allow duplicates
+// — only one aura is active at a time, so nothing stacks there). Equipping a
+// passive that is already slotted elsewhere *moves* it: the old slot is
+// cleared.
+func (sc *SkillComponent) EquipPassive(slot int, def *SkillDefinition, level int) {
+	for i, es := range sc.PassiveSlots {
+		if i != slot && es != nil && es.Def.ID == def.ID {
+			sc.PassiveSlots[i] = nil
+		}
+	}
+	sc.PassiveSlots[slot] = &EquippedSkill{Def: def, Level: level}
+	sc.recomputeDerived()
+}
+
+// UnequipPassive removes the skill from the given passive slot.
+func (sc *SkillComponent) UnequipPassive(slot int) {
+	sc.PassiveSlots[slot] = nil
+	sc.recomputeDerived()
+}
+
+func (sc *SkillComponent) recomputeDerived() {
+	var d DerivedStats
+	for _, es := range sc.PassiveSlots {
+		if es == nil {
+			continue
+		}
+		for _, e := range es.Def.Effects {
+			if e.Type != EffectTypeStatMultiplier {
+				continue
+			}
+			bonus := e.AdditivePerLevel * float32(es.Level)
+			switch e.Stat {
+			case StatMovementSpeed:
+				d.MovementSpeedBonus += bonus
+			case StatMaxHealth:
+				d.MaxHealthBonus += bonus
+			}
+		}
+	}
+	sc.Derived = d
 }
 
 // SetActiveAura switches which aura slot is active and resets that slot's
@@ -142,6 +203,9 @@ func (sc *SkillComponent) setSkillLevel(id SkillID, level int) {
 			}
 		}
 	}
+	// Passive stat bonuses scale with level; keep them in sync (free respec
+	// means level drops arrive here too).
+	sc.recomputeDerived()
 }
 
 // SpentPoints is the number of skill points bound in the spellbook. Derived,

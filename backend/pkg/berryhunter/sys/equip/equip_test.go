@@ -99,6 +99,9 @@ func (e *stubEquipEntity) AvailableSkillPoints() int              { return e.ava
 var (
 	defDamage = &skills.SkillDefinition{ID: 1, Name: "DamageAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 	defHeal   = &skills.SkillDefinition{ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	defSwift  = &skills.SkillDefinition{ID: 10, Name: "SwiftPassive", Category: skills.SkillCategoryPassive, MaxLevel: 3,
+		Effects: []skills.EffectDef{{Type: skills.EffectTypeStatMultiplier, Stat: skills.StatMovementSpeed, AdditivePerLevel: 0.05}}}
+	defNova = &skills.SkillDefinition{ID: 20, Name: "NovaBurst", Category: skills.SkillCategoryCooldown, MaxLevel: 3}
 )
 
 func newSystem(defs ...*skills.SkillDefinition) (*EquipSystem, *stubEquipEntity) {
@@ -157,6 +160,45 @@ func TestEquipSystem_NotDiscovered(t *testing.T) {
 
 	es.Update(0)
 
+	assert.Nil(t, player.sc.AuraSlots[0])
+}
+
+func TestEquipSystem_PassiveEquipsIntoPassiveSlot(t *testing.T) {
+	es, player := newSystem(defSwift)
+	player.sc.Discover(defSwift.ID)
+	require.True(t, player.sc.RaiseSkillLevel(defSwift)) // level 2
+	player.client.msg = &model.EquipSkill{SkillID: defSwift.ID, Slot: 1}
+
+	es.Update(0)
+
+	require.NotNil(t, player.sc.PassiveSlots[1])
+	assert.Equal(t, defSwift.ID, player.sc.PassiveSlots[1].Def.ID)
+	assert.Equal(t, 2, player.sc.PassiveSlots[1].Level)
+	assert.Nil(t, player.sc.AuraSlots[1], "must not land in the aura slots")
+	assert.InDelta(t, 0.10, player.sc.Derived.MovementSpeedBonus, 1e-6, "stat bonus applied on equip")
+}
+
+func TestEquipSystem_PassiveSlotOutOfRange(t *testing.T) {
+	es, player := newSystem(defSwift)
+	player.sc.Discover(defSwift.ID)
+	player.client.msg = &model.EquipSkill{SkillID: defSwift.ID, Slot: skills.MaxPassiveSlots}
+
+	es.Update(0)
+
+	for i := 0; i < skills.MaxPassiveSlots; i++ {
+		assert.Nil(t, player.sc.PassiveSlots[i], "slot %d should be empty", i)
+	}
+}
+
+func TestEquipSystem_CooldownRejectedUntilBuilt(t *testing.T) {
+	// Cooldown slots exist in the component but their equip path ships with 8.2.
+	es, player := newSystem(defNova)
+	player.sc.Discover(defNova.ID)
+	player.client.msg = &model.EquipSkill{SkillID: defNova.ID, Slot: 0}
+
+	es.Update(0)
+
+	assert.Nil(t, player.sc.CooldownSlots[0])
 	assert.Nil(t, player.sc.AuraSlots[0])
 }
 

@@ -1,7 +1,7 @@
 import '../assets/HUD.less';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
-import {skillDisplayName, skillMaxLevel} from '../../../../client-data/Skills';
+import {skillDisplayName, skillMaxLevel, skillCategory} from '../../../../client-data/Skills';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import {ClickableIcon} from './ClickableIcon';
 import {ClickableCountableIcon} from './ClickableCountableIcon';
@@ -24,6 +24,8 @@ let inventorySlots: ClickableCountableIcon[];
 let spellbookListElement: HTMLElement;
 let auraLoadoutElement: HTMLElement;
 let auraSlotListElement: HTMLElement;
+let passiveLoadoutElement: HTMLElement;
+let passiveSlotListElement: HTMLElement;
 
 let selectedSkillId: number | null = null;
 let skillPointsBadgeElement: HTMLElement;
@@ -53,6 +55,7 @@ export function setup(game) {
     setupVitalSigns();
     setupSpellbook();
     setupAuraLoadout();
+    setupPassiveLoadout();
 }
 
 function setupCrafting() {
@@ -219,7 +222,9 @@ function setupSpellbook() {
             selectedSkillId = id;
             spellbookListElement.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
             li.classList.add('selected');
-            auraLoadoutElement.classList.add('hasPendingSkill');
+            // Only the panel matching the skill's category invites the equip click.
+            auraLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'aura');
+            passiveLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'passive');
         }
     });
 }
@@ -233,9 +238,13 @@ function setupAuraLoadout() {
         const slot = Number(li.dataset.slot);
 
         if (selectedSkillId !== null) {
-            // Equip branch: a spellbook skill is pending — install it into this slot.
-            new EquipMessage(selectedSkillId, slot).send();
-            clearEquipSelection();
+            // Equip branch: a pending skill installs into this slot — but only
+            // if its category matches (the server derives the target slot array
+            // from the skill, so a mismatched send would equip elsewhere).
+            if (skillCategory(selectedSkillId) === 'aura') {
+                new EquipMessage(selectedSkillId, slot).send();
+                clearEquipSelection();
+            }
             return;
         }
 
@@ -263,6 +272,23 @@ function setupAuraLoadout() {
     });
 }
 
+function setupPassiveLoadout() {
+    passiveLoadoutElement = document.getElementById('passiveLoadout');
+    passiveSlotListElement = document.getElementById('passiveSlotList');
+    passiveSlotListElement.addEventListener('pointerdown', (e) => {
+        const li = (e.target as HTMLElement).closest('li') as HTMLElement;
+        if (!li || li.dataset.slot === undefined) return;
+        const slot = Number(li.dataset.slot);
+
+        // Passives have no activate branch — all equipped passives are always
+        // on. The only interaction is equipping a pending passive skill.
+        if (selectedSkillId !== null && skillCategory(selectedSkillId) === 'passive') {
+            new EquipMessage(selectedSkillId, slot).send();
+            clearEquipSelection();
+        }
+    });
+}
+
 // setActiveSlotHighlight marks one slot active in the panel (optimistic, client-side).
 function setActiveSlotHighlight(slot: number) {
     activeSlotIndex = slot;
@@ -283,6 +309,7 @@ function clearEquipSelection() {
     selectedSkillId = null;
     spellbookListElement.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
     auraLoadoutElement.classList.remove('hasPendingSkill');
+    passiveLoadoutElement.classList.remove('hasPendingSkill');
 }
 
 // Previous tick's spellbook contents, used to detect fresh unlocks for the
@@ -323,50 +350,67 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
     const known = new Set(knownSpellbookIds);
     let anyUnlock = false;
 
+    const entries = ids.map((id, i) => ({id, level: levels[i] ?? 1}));
+    const sections: { category: string, title: string }[] = [
+        {category: 'aura', title: 'Auras'},
+        {category: 'passive', title: 'Passives'},
+        {category: 'cooldown', title: 'Cooldowns'},
+    ];
+
     spellbookListElement.innerHTML = '';
-    for (let i = 0; i < ids.length; i++) {
-        const id = ids[i];
-        const level = levels[i] ?? 1;
-        const maxLevel = skillMaxLevel(id);
+    for (const section of sections) {
+        const sectionEntries = entries.filter(e => skillCategory(e.id) === section.category);
+        // Empty sections stay invisible — among other things this avoids
+        // hinting at not-yet-discovered content (zero-hint policy).
+        if (sectionEntries.length === 0) continue;
 
-        const li = document.createElement('li');
-        li.dataset.skillId = String(id);
+        const header = document.createElement('li');
+        header.className = 'sectionHeader';
+        header.textContent = section.title;
+        spellbookListElement.appendChild(header);
 
-        const name = document.createElement('span');
-        name.className = 'skillName';
-        name.textContent = skillDisplayName(id);
-        li.appendChild(name);
+        for (const {id, level} of sectionEntries) {
+            const maxLevel = skillMaxLevel(id);
 
-        const controls = document.createElement('span');
-        controls.className = 'skillControls';
+            const li = document.createElement('li');
+            li.dataset.skillId = String(id);
 
-        const unspendBtn = document.createElement('button');
-        unspendBtn.className = 'unspendBtn';
-        unspendBtn.textContent = '−';
-        unspendBtn.classList.toggle('inactive', level <= 1);
-        controls.appendChild(unspendBtn);
+            const name = document.createElement('span');
+            name.className = 'skillName';
+            name.textContent = skillDisplayName(id);
+            li.appendChild(name);
 
-        const levelBadge = document.createElement('span');
-        levelBadge.className = 'skillLevel';
-        levelBadge.textContent = `${level}/${maxLevel}`;
-        controls.appendChild(levelBadge);
+            const controls = document.createElement('span');
+            controls.className = 'skillControls';
 
-        const spendBtn = document.createElement('button');
-        spendBtn.className = 'spendBtn';
-        spendBtn.textContent = '+';
-        spendBtn.classList.toggle('inactive', level >= maxLevel);
-        controls.appendChild(spendBtn);
+            const unspendBtn = document.createElement('button');
+            unspendBtn.className = 'unspendBtn';
+            unspendBtn.textContent = '−';
+            unspendBtn.classList.toggle('inactive', level <= 1);
+            controls.appendChild(unspendBtn);
 
-        li.appendChild(controls);
+            const levelBadge = document.createElement('span');
+            levelBadge.className = 'skillLevel';
+            levelBadge.textContent = `${level}/${maxLevel}`;
+            controls.appendChild(levelBadge);
 
-        if (selectedSkillId === id) {
-            li.classList.add('selected');
+            const spendBtn = document.createElement('button');
+            spendBtn.className = 'spendBtn';
+            spendBtn.textContent = '+';
+            spendBtn.classList.toggle('inactive', level >= maxLevel);
+            controls.appendChild(spendBtn);
+
+            li.appendChild(controls);
+
+            if (selectedSkillId === id) {
+                li.classList.add('selected');
+            }
+            if (!isBaseline && !known.has(id)) {
+                li.classList.add('unlocked');
+                anyUnlock = true;
+            }
+            spellbookListElement.appendChild(li);
         }
-        if (!isBaseline && !known.has(id)) {
-            li.classList.add('unlocked');
-            anyUnlock = true;
-        }
-        spellbookListElement.appendChild(li);
     }
 
     if (anyUnlock) {
@@ -399,6 +443,17 @@ export function updateAuraLoadout(slots: number[]) {
         // Re-apply the optimistic highlight after the per-tick text re-render.
         // Never highlight an empty slot (guards against a slot emptied while active).
         li.classList.toggle('activeSlot', activeSlotIndex === i && slots[i] !== 0);
+    }
+}
+
+// updatePassiveLoadout renders the server-authoritative passive slot contents.
+// No active state — all equipped passives are always on.
+export function updatePassiveLoadout(slots: number[]) {
+    if (!passiveSlotListElement) return;
+    for (let i = 0; i < slots.length; i++) {
+        const li = passiveSlotListElement.querySelector(`.passiveSlot[data-slot="${i}"]`) as HTMLElement;
+        if (!li) continue;
+        li.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
     }
 }
 

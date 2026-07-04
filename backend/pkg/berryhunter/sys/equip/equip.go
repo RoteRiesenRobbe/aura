@@ -64,22 +64,36 @@ func (es *EquipSystem) handleEquip(player equipEntity) {
 		return
 	}
 
-	// Bounds check — slot comes from the client; an out-of-range value
-	// would panic the server via AuraSlots[slot] array access.
-	if msg.Slot < 0 || msg.Slot >= skills.MaxAuraSlots {
-		slog.Warn("equip: slot out of range",
-			slog.String("player", player.Name()),
-			slog.Int("slot", msg.Slot),
-			slog.Int("maxSlots", skills.MaxAuraSlots))
-		return
-	}
-
 	// Registry lookup — verify the skill ID is known.
 	def, err := es.g.Skills().Get(msg.SkillID)
 	if err != nil {
 		slog.Warn("equip: unknown skill",
 			slog.String("player", player.Name()),
 			slog.Any("skillID", msg.SkillID))
+		return
+	}
+
+	// The skill's own category picks the slot array (decided: no category on
+	// the wire). Bounds check per category — slot comes from the client; an
+	// out-of-range value would panic the server via array access.
+	var maxSlots int
+	switch def.Category {
+	case skills.SkillCategoryActiveAura:
+		maxSlots = skills.MaxAuraSlots
+	case skills.SkillCategoryPassive:
+		maxSlots = skills.MaxPassiveSlots
+	default:
+		// Cooldown equipping ships with Phase 8.2.
+		slog.Warn("equip: category not equippable yet",
+			slog.String("player", player.Name()),
+			slog.String("skill", def.Name))
+		return
+	}
+	if msg.Slot < 0 || msg.Slot >= maxSlots {
+		slog.Warn("equip: slot out of range",
+			slog.String("player", player.Name()),
+			slog.Int("slot", msg.Slot),
+			slog.Int("maxSlots", maxSlots))
 		return
 	}
 
@@ -93,8 +107,14 @@ func (es *EquipSystem) handleEquip(player equipEntity) {
 	}
 
 	// Equip at the spellbook level — overwrite slot if occupied.
-	sc.UnequipAura(msg.Slot)
-	sc.EquipAura(msg.Slot, def, sc.SkillLevel(msg.SkillID))
+	level := sc.SkillLevel(msg.SkillID)
+	switch def.Category {
+	case skills.SkillCategoryActiveAura:
+		sc.UnequipAura(msg.Slot)
+		sc.EquipAura(msg.Slot, def, level)
+	case skills.SkillCategoryPassive:
+		sc.EquipPassive(msg.Slot, def, level)
+	}
 
 	slog.Info("equip",
 		slog.String("player", player.Name()),
