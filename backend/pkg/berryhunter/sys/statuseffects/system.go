@@ -30,6 +30,11 @@ func (p *StatusEffectsSystem) Add(b model.BasicEntity, s model.StatusEntity) {
 func (p *StatusEffectsSystem) Update(dt float32) {
 	for _, e := range p.entities {
 		e.s.StatusEffects().Clear()
+		// Floating-number accumulators share the status-effect tick lifecycle:
+		// set during the tick, serialized by NetSystem, reset here (item 11).
+		if r, ok := e.s.(model.TickAccumulators); ok {
+			r.ResetTickNumbers()
+		}
 	}
 }
 

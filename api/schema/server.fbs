@@ -85,6 +85,10 @@ table Mob {
   // effective radius (px) of the instant_damage burst fired within the last
   // ~1.5 s; 0 = none. Drives the exact-size burst ring VFX.
   burst_radius:ushort = 0;
+
+  // health lost this tick, in VitalSign units (same scale as `health`); 0 = none.
+  // Drives the floating damage number (item 11). Reset every tick.
+  damage_taken:uint = 0;
 }
 
 table Character {
@@ -118,6 +122,13 @@ table Character {
   // effective radius (px) of the instant_damage burst fired within the last
   // ~1.5 s; 0 = none. Drives the exact-size burst ring VFX.
   burst_radius:ushort = 0;
+
+  // per-tick floating-number sources (item 11), all reset each tick.
+  // damage_taken / heal_received are in VitalSign units (same scale as
+  // `health`); xp_gained is raw experience points.
+  damage_taken:uint = 0;
+  heal_received:uint = 0;
+  xp_gained:uint = 0;
 }
 
 table Spectator {

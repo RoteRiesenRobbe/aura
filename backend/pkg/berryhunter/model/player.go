@@ -70,6 +70,15 @@ type PlayerEntity interface {
 	// of their combat participants.
 	NoteHealedBy(healer PlayerEntity)
 	RecentHealers() []PlayerEntity
+
+	// Per-tick floating-number sources (v1-roadmap item 11): health lost, and
+	// healing / XP received this tick. Serialized once per tick, then reset via
+	// ResetTickNumbers (TickAccumulators). NoteHealReceived is called by the
+	// SkillSystem when a heal aura lands on this player.
+	DamageTaken() vitals.VitalSign
+	HealReceived() vitals.VitalSign
+	XpGained() uint64
+	NoteHealReceived(delta vitals.VitalSign)
 	SkillComponent() *skills.SkillComponent
 	// SetSkillComponent replaces the player's skill component wholesale.
 	// Used on respawn to restore the spellbook + loadout the player died with.

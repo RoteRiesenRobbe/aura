@@ -1,7 +1,7 @@
 import _clone = require('lodash/clone');
 import {isDefined, isFunction, removeElement} from '../../common/logic/Utils';
 import {DebugCircle} from '../../internal-tools/develop/logic/DebugCircle';
-import {GameObject} from '../../game-objects/logic/_GameObject';
+import {GameObject, vitalUnitsToDisplay} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Character} from '../../game-objects/logic/Character';
 import {Placeable} from '../../game-objects/logic/Placeable';
@@ -137,6 +137,18 @@ export class EntityManager {
 
         if (isDefined(entity.health) && isFunction(gameObject['setHealth'])) {
             gameObject['setHealth'](entity.health);
+        }
+
+        // Floating combat numbers (item 11): damage on mobs + other players,
+        // heal/XP on other players (own player is handled in Player.ts).
+        if (entity.damageTaken > 0) {
+            gameObject.showFloatingNumber(vitalUnitsToDisplay(entity.damageTaken), 'damage');
+        }
+        if (entity.healReceived > 0) {
+            gameObject.showFloatingNumber(vitalUnitsToDisplay(entity.healReceived), 'heal');
+        }
+        if (entity.xpGained > 0) {
+            gameObject.showFloatingNumber(entity.xpGained, 'xp');
         }
     };
 

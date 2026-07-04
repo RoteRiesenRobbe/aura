@@ -175,6 +175,20 @@ func TestApplyHealAura_LowestHealthHealsMostWounded(t *testing.T) {
 		"the healthier ally is left untouched by the single-target cap")
 }
 
+func TestApplyHealAura_RecordsHealReceivedNumber(t *testing.T) {
+	// The healed ally accumulates the exact heal delta for its floating heal
+	// number (item 11).
+	caster := newFakePlayer()
+	ally := newFakePlayer()
+	ally.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	before := ally.vitalSigns.Health
+
+	applyHealAura(caster, 1, healEffect(), setOf(colliderAt(vec(1, 0), model.PlayerEntity(ally))))
+
+	assert.Equal(t, ally.vitalSigns.Health-before, ally.healReceived)
+	assert.NotZero(t, ally.healReceived)
+}
+
 func TestApplyDamageAura_CapGrowsWithLevel(t *testing.T) {
 	caster := newFakePlayer()
 	near := &touchRecorder{}

@@ -150,6 +150,9 @@ export class Game implements IGame {
             characterAdditions: {
                 craftProgress: createNamedContainer('craftProgress'),
                 chatMessages: createNamedContainer('chatMessages'),
+                // Floating damage/heal/XP numbers (item 11): topmost world layer
+                // so they read above every entity.
+                floatingNumbers: createNamedContainer('floatingNumbers'),
             },
             overlays: {
                 vitalSignIndicators: createNamedContainer('vitalSignIndicators'),
@@ -209,6 +212,7 @@ export class Game implements IGame {
         this.cameraGroup.addChild(
             this.layers.characterAdditions.craftProgress,
             this.layers.characterAdditions.chatMessages,
+            this.layers.characterAdditions.floatingNumbers,
         );
 
         // Vital Sign Indicators on top of everything

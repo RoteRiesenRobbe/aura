@@ -24,6 +24,7 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	BerryhunterApi.MobAddPos(builder, pos)
 
 	BerryhunterApi.MobAddBurstRadius(builder, f32ToU16Px(m.BurstRadius()))
+	BerryhunterApi.MobAddDamageTaken(builder, m.DamageTaken().UInt32())
 
 	return BerryhunterApi.MobEnd(builder)
 }

@@ -233,8 +233,44 @@ func (rcv *Character) MutateBurstRadius(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(32, n)
 }
 
+func (rcv *Character) DamageTaken() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateDamageTaken(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(34, n)
+}
+
+func (rcv *Character) HealReceived() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateHealReceived(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(36, n)
+}
+
+func (rcv *Character) XpGained() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateXpGained(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(38, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(15)
+	builder.StartObject(18)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -283,6 +319,15 @@ func CharacterAddActiveSkillId(builder *flatbuffers.Builder, activeSkillId uint1
 }
 func CharacterAddBurstRadius(builder *flatbuffers.Builder, burstRadius uint16) {
 	builder.PrependUint16Slot(14, burstRadius, 0)
+}
+func CharacterAddDamageTaken(builder *flatbuffers.Builder, damageTaken uint32) {
+	builder.PrependUint32Slot(15, damageTaken, 0)
+}
+func CharacterAddHealReceived(builder *flatbuffers.Builder, healReceived uint32) {
+	builder.PrependUint32Slot(16, healReceived, 0)
+}
+func CharacterAddXpGained(builder *flatbuffers.Builder, xpGained uint32) {
+	builder.PrependUint32Slot(17, xpGained, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

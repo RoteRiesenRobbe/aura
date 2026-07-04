@@ -115,8 +115,23 @@ burstRadius():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
+damageTaken():number {
+  const offset = this.bb!.__offset(this.bb_pos, 34);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
+healReceived():number {
+  const offset = this.bb!.__offset(this.bb_pos, 36);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
+xpGained():number {
+  const offset = this.bb!.__offset(this.bb_pos, 38);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(15);
+  builder.startObject(18);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -189,6 +204,18 @@ static addActiveSkillId(builder:flatbuffers.Builder, activeSkillId:number) {
 
 static addBurstRadius(builder:flatbuffers.Builder, burstRadius:number) {
   builder.addFieldInt16(14, burstRadius, 0);
+}
+
+static addDamageTaken(builder:flatbuffers.Builder, damageTaken:number) {
+  builder.addFieldInt32(15, damageTaken, 0);
+}
+
+static addHealReceived(builder:flatbuffers.Builder, healReceived:number) {
+  builder.addFieldInt32(16, healReceived, 0);
+}
+
+static addXpGained(builder:flatbuffers.Builder, xpGained:number) {
+  builder.addFieldInt32(17, xpGained, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

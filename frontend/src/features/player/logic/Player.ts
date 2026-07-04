@@ -1,4 +1,5 @@
 import {Character} from '../../game-objects/logic/Character';
+import {vitalUnitsToDisplay} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Controls} from '../../controls/logic/Controls';
 import {Camera} from '../../camera/logic/Camera';
@@ -71,6 +72,17 @@ export class Player {
         }
         if (isDefined(entity.level)) {
             this.character.setLevel(entity.level);
+        }
+
+        // Floating combat numbers over the own character (item 11).
+        if (entity.damageTaken > 0) {
+            this.character.showFloatingNumber(vitalUnitsToDisplay(entity.damageTaken), 'damage');
+        }
+        if (entity.healReceived > 0) {
+            this.character.showFloatingNumber(vitalUnitsToDisplay(entity.healReceived), 'heal');
+        }
+        if (entity.xpGained > 0) {
+            this.character.showFloatingNumber(entity.xpGained, 'xp');
         }
     }
 

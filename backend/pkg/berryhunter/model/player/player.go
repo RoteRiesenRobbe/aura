@@ -115,6 +115,13 @@ type player struct {
 	// healers inside the participation window (v1-roadmap item 10);
 	// lazily initialized by NoteHealedBy
 	recentHealers map[uint64]*healerEntry
+
+	// per-tick floating-number accumulators (v1-roadmap item 11): health lost,
+	// healing received (VitalSign units), and XP gained this tick; reset each
+	// tick by ResetTickNumbers.
+	damageTaken  vitals.VitalSign
+	healReceived vitals.VitalSign
+	xpGained     uint64
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {
@@ -155,8 +162,29 @@ func (p *player) takeDamage(damage float32, s model.StatusEffect) {
 	if dmgFraction > 0 {
 		h := p.PlayerVitalSigns.Health
 		p.PlayerVitalSigns.Health = h.SubFraction(dmgFraction)
+		p.damageTaken += h - p.PlayerVitalSigns.Health // actual loss after clamping
 		p.StatusEffects().Add(s)
 	}
+}
+
+// DamageTaken / HealReceived / XpGained expose the per-tick floating-number
+// accumulators (v1-roadmap item 11).
+func (p *player) DamageTaken() vitals.VitalSign  { return p.damageTaken }
+func (p *player) HealReceived() vitals.VitalSign { return p.healReceived }
+func (p *player) XpGained() uint64               { return p.xpGained }
+
+// NoteHealReceived records healing applied to this player this tick; the
+// SkillSystem calls it when a heal aura lands.
+func (p *player) NoteHealReceived(delta vitals.VitalSign) {
+	p.healReceived += delta
+}
+
+// ResetTickNumbers clears the per-tick floating-number accumulators; called by
+// the StatusEffectsSystem at the start of each tick.
+func (p *player) ResetTickNumbers() {
+	p.damageTaken = 0
+	p.healReceived = 0
+	p.xpGained = 0
 }
 
 func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
@@ -233,6 +261,7 @@ func (p *player) AddExperience(xp uint64) {
 		previousLevel = 1
 	}
 	p.progression.Experience += xp
+	p.xpGained += xp // floating XP number (v1-roadmap item 11)
 
 	level := p.levelForExperience(p.progression.Experience)
 	if level < 1 {

@@ -106,6 +106,11 @@ type MobEntity interface {
 	// BurstRadius is the effective radius of a recently fired instant_damage
 	// burst (wire burst_radius, drives the burst ring VFX); 0 = none.
 	BurstRadius() float32
+
+	// DamageTaken is the health lost this tick (VitalSign units), serialized as
+	// the floating damage number (v1-roadmap item 11) and reset each tick via
+	// ResetTickNumbers (TickAccumulators).
+	DamageTaken() vitals.VitalSign
 }
 
 // AABB is an alias to not expose transitive dependencies

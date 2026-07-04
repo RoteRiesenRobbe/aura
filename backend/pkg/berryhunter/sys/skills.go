@@ -215,7 +215,9 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 	for _, c := range targets {
 		other := c.Shape().UserData.(model.PlayerEntity)
 		vs := other.VitalSigns()
+		before := vs.Health
 		vs.Health = vs.Health.AddFraction(healFrac)
+		other.NoteHealReceived(vs.Health - before) // floating heal number (item 11)
 		healedSomeone = true
 
 		// Participation XP (v1-roadmap item 10): a successful heal makes the

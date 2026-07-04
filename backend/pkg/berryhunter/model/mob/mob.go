@@ -152,6 +152,10 @@ type Mob struct {
 	deathRewardGiven    bool
 	chaseIntoAuraMargin float32
 
+	// damageTaken accumulates health lost this tick (VitalSign units) for the
+	// floating damage number (v1-roadmap item 11); reset every tick.
+	damageTaken vitals.VitalSign
+
 	// combat participants for the death rewards (v1-roadmap item 10),
 	// keyed by entity ID; cleared when the mob fully regenerates out of
 	// combat (combat reset). Lazily initialized by noteParticipant.
@@ -357,9 +361,23 @@ func (m *Mob) takeDamage(damage float32, s model.StatusEffect) {
 
 	dmgFraction := damage * vulnerability
 	if dmgFraction > 0 {
+		before := m.health
 		m.health = m.health.SubFraction(dmgFraction)
+		m.damageTaken += before - m.health // actual loss after clamping at 0
 		m.StatusEffects().Add(s)
 	}
+}
+
+// DamageTaken is the health lost this tick (VitalSign units); floating damage
+// number source (v1-roadmap item 11).
+func (m *Mob) DamageTaken() vitals.VitalSign {
+	return m.damageTaken
+}
+
+// ResetTickNumbers clears the per-tick floating-number accumulators; called by
+// the StatusEffectsSystem at the start of each tick.
+func (m *Mob) ResetTickNumbers() {
+	m.damageTaken = 0
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {

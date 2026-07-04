@@ -48,3 +48,11 @@ func (s *StatusEffects) Effects() []StatusEffect {
 type StatusEntity interface {
 	StatusEffects() *StatusEffects
 }
+
+// TickAccumulators is implemented by entities that accumulate per-tick
+// floating-number values (damage taken, heal / XP received) for the client's
+// floating-number VFX (v1-roadmap item 11). The values are serialized once per
+// tick, then reset at the start of the next tick alongside status effects.
+type TickAccumulators interface {
+	ResetTickNumbers()
+}

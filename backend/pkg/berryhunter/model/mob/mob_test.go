@@ -106,6 +106,20 @@ func TestMob_PlayerTouches_ZeroVulnerabilityDefaultsToOne(t *testing.T) {
 	assert.Equal(t, vitals.Max.SubFraction(0.1), m.Health())
 }
 
+func TestMob_DamageTaken_AccumulatesAndResets(t *testing.T) {
+	m := newTestMob() // vulnerability 2.0, starts at full health
+
+	m.PlayerTouches(newFakeAuraPlayer(), 0.1)
+	m.PlayerTouches(newFakeAuraPlayer(), 0.05)
+
+	assert.Equal(t, vitals.Max-m.Health(), m.DamageTaken(),
+		"DamageTaken sums the actual health lost this tick")
+	assert.NotZero(t, m.DamageTaken())
+
+	m.ResetTickNumbers()
+	assert.Zero(t, m.DamageTaken(), "reset clears the per-tick accumulator")
+}
+
 // --- kill rewards (participation XP, v1-roadmap item 10) ---
 
 func TestMob_Kill_AllDamagersGetFullXP(t *testing.T) {

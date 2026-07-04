@@ -53,6 +53,7 @@ type fakePlayer struct {
 	god             bool
 	maxHealthFactor float32
 	healedBy        []model.PlayerEntity
+	healReceived    vitals.VitalSign
 }
 
 func (f *fakePlayer) Basic() ecs.BasicEntity                 { return f.basic }
@@ -64,6 +65,7 @@ func (f *fakePlayer) MaxHealthFactor() float32               { return f.maxHealt
 func (f *fakePlayer) IsGod() bool                            { return f.god }
 func (f *fakePlayer) NoteHealedBy(h model.PlayerEntity)      { f.healedBy = append(f.healedBy, h) }
 func (f *fakePlayer) HealthRatio() float32                   { return f.vitalSigns.Health.Fraction() }
+func (f *fakePlayer) NoteHealReceived(d vitals.VitalSign)    { f.healReceived += d }
 
 var (
 	_ skillEntity        = (*fakePlayer)(nil)

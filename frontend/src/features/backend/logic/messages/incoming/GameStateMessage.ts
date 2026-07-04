@@ -165,6 +165,9 @@ function unmarshalEntity(entity, eType) {
         activeSkillId: undefined,
         statusEffects: undefined,
         burstRadius: undefined,
+        damageTaken: undefined,
+        healReceived: undefined,
+        xpGained: undefined,
     };
 
     if (eType === BerryhunterApi.AnyEntity.Resource) {
@@ -180,6 +183,7 @@ function unmarshalEntity(entity, eType) {
         result.rotation = entity.rotation();
         result.health = entity.health();
         result.burstRadius = entity.burstRadius();
+        result.damageTaken = entity.damageTaken();
     }
 
     if (eType === BerryhunterApi.AnyEntity.Character) {
@@ -196,6 +200,9 @@ function unmarshalEntity(entity, eType) {
         result.auraRadius = entity.auraRadius();
         result.activeSkillId = entity.activeSkillId();
         result.burstRadius = entity.burstRadius();
+        result.damageTaken = entity.damageTaken();
+        result.healReceived = entity.healReceived();
+        result.xpGained = entity.xpGained();
     }
 
     if (isFunction(entity.statusEffectsLength) &&

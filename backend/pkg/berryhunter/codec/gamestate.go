@@ -46,6 +46,19 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddAuraRadius(builder, f32ToU16Px(p.AuraRadius()))
 	BerryhunterApi.CharacterAddBurstRadius(builder, f32ToU16Px(p.BurstRadius()))
 	BerryhunterApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
+	// Floating-number sources (item 11): damage/heal in VitalSign units, XP raw.
+	BerryhunterApi.CharacterAddDamageTaken(builder, p.DamageTaken().UInt32())
+	BerryhunterApi.CharacterAddHealReceived(builder, p.HealReceived().UInt32())
+	BerryhunterApi.CharacterAddXpGained(builder, u64ToU32Clamped(p.XpGained()))
+}
+
+// u64ToU32Clamped narrows a uint64 to uint32 for the wire, saturating rather
+// than wrapping — the floating XP number only needs display precision.
+func u64ToU32Clamped(v uint64) uint32 {
+	if v > 0xffffffff {
+		return 0xffffffff
+	}
+	return uint32(v)
 }
 
 // ActiveSkillID returns the skill ID of the currently active aura, or 0 if no

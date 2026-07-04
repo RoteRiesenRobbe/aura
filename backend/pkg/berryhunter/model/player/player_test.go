@@ -97,6 +97,47 @@ func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
 	}
 }
 
+// --- floating-number accumulators (v1-roadmap item 11) ---
+
+func TestPlayer_DamageTaken_AccumulatesAndResets(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+
+	p.takeDamage(0.1, model.StatusEffectDamagedAmbient)
+	p.takeDamage(0.05, model.StatusEffectDamagedAmbient)
+
+	assert.Equal(t, vitals.Max-p.VitalSigns().Health, p.DamageTaken(),
+		"DamageTaken sums the actual health lost this tick")
+	assert.NotZero(t, p.DamageTaken())
+
+	p.ResetTickNumbers()
+	assert.Zero(t, p.DamageTaken())
+}
+
+func TestPlayer_XpGained_AccumulatesAndResets(t *testing.T) {
+	p := newTestPlayer(nil)
+
+	p.AddExperience(30)
+	p.AddExperience(20) // stays level 1 (needs 100)
+
+	assert.Equal(t, uint64(50), p.XpGained())
+
+	p.ResetTickNumbers()
+	assert.Zero(t, p.XpGained())
+}
+
+func TestPlayer_HealReceived_AccumulatesAndResets(t *testing.T) {
+	p := newTestPlayer(nil)
+
+	p.NoteHealReceived(100)
+	p.NoteHealReceived(50)
+
+	assert.Equal(t, vitals.VitalSign(150), p.HealReceived())
+
+	p.ResetTickNumbers()
+	assert.Zero(t, p.HealReceived())
+}
+
 // --- resource unification (v1-roadmap Block 2, Stage 1) ---
 
 // updateVitalSigns must regenerate only Health (the single resource) and must
