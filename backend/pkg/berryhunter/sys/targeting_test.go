@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
@@ -144,6 +146,33 @@ func TestApplyDamageAura_UncappedHitsAll(t *testing.T) {
 
 	assert.Len(t, a.touches, 1)
 	assert.Len(t, b.touches, 1)
+}
+
+func TestApplyHealAura_LowestHealthHealsMostWounded(t *testing.T) {
+	// HealAura ships with selector lowest_health + maxTargets 1: the single
+	// most-wounded ally (by percentage) is healed, even if farther away than a
+	// less-wounded one.
+	caster := newFakePlayer()
+	nearHealthy := newFakePlayer()
+	nearHealthy.vitalSigns.Health = vitals.Max.SubFraction(0.1) // 90%, close
+	farWounded := newFakePlayer()
+	farWounded.vitalSigns.Health = vitals.Max.SubFraction(0.7) // 30%, far
+	farWoundedStart := farWounded.vitalSigns.Health
+
+	effect := healEffect()
+	effect.Selector = skills.SelectorLowestHealth
+	effect.MaxTargets = 1
+	set := setOf(
+		colliderAt(vec(1, 0), model.PlayerEntity(nearHealthy)),
+		colliderAt(vec(20, 0), model.PlayerEntity(farWounded)),
+	)
+
+	applyHealAura(caster, 1, effect, set)
+
+	assert.Equal(t, farWoundedStart.AddFraction(0.1), farWounded.vitalSigns.Health,
+		"the most-wounded ally is healed")
+	assert.Equal(t, vitals.Max.SubFraction(0.1), nearHealthy.vitalSigns.Health,
+		"the healthier ally is left untouched by the single-target cap")
 }
 
 func TestApplyDamageAura_CapGrowsWithLevel(t *testing.T) {

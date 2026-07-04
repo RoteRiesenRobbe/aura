@@ -63,6 +63,7 @@ func (f *fakePlayer) StatusEffects() *model.StatusEffects    { return &f.statusE
 func (f *fakePlayer) MaxHealthFactor() float32               { return f.maxHealthFactor }
 func (f *fakePlayer) IsGod() bool                            { return f.god }
 func (f *fakePlayer) NoteHealedBy(h model.PlayerEntity)      { f.healedBy = append(f.healedBy, h) }
+func (f *fakePlayer) HealthRatio() float32                   { return f.vitalSigns.Health.Fraction() }
 
 var (
 	_ skillEntity        = (*fakePlayer)(nil)

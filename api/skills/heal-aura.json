@@ -12,7 +12,7 @@
       "healFraction": 0.001,
       "healFractionPerLevel": 0.0005,
       "selfDamageFraction": 0.0015,
-      "selector": "nearest",
+      "selector": "lowest_health",
       "maxTargets": 1
     }
   ]
