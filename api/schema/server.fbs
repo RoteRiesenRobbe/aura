@@ -38,18 +38,6 @@ struct AABB {
   upper:Vec2f;
 }
 
-struct ItemStack {
-  item:ubyte;
-  count:uint;
-  slot:ubyte;
-}
-
-struct OngoingAction {
-    ticks_remaining:ushort;
-    action_type:ActionType;
-    item:ubyte;
-}
-
 // Workaround to make vector of union possible
 union AnyEntity { Character, Mob, Resource, Placeable }
 table Entity { e:AnyEntity; }
@@ -110,11 +98,7 @@ table Character {
   rotation:float;
   is_hit:bool = false;
 
-  current_action:OngoingAction;
-
   name:string;
-
-  equipment:[ubyte];
 
   health:uint;
   // NOTE: level_progress and level reuse the wire slots formerly named
@@ -148,8 +132,6 @@ table GameState {
 
   // character or spectator
   player:Player;
-
-  inventory:[ItemStack];
 
   entities:[Entity];
 

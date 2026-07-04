@@ -7,7 +7,6 @@ import (
 	"github.com/google/flatbuffers/go"
 
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -21,19 +20,8 @@ func AabbMarshalFlatbuf(aabb model.AABB, builder *flatbuffers.Builder) flatbuffe
 	return BerryhunterApi.CreateAABB(builder, f32ToPx(aabb.Left), f32ToPx(aabb.Bottom), f32ToPx(aabb.Right), f32ToPx(aabb.Upper))
 }
 
-func EquipmentMarshalFlatbuf(items []items.Item, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	n := len(items)
-	BerryhunterApi.CharacterStartEquipmentVector(builder, n)
-	for _, i := range items {
-		builder.PrependByte(byte(i.ID))
-	}
-
-	return builder.EndVector(n)
-}
-
 func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerEntity) {
 	// prepend entity specific things
-	equipment := EquipmentMarshalFlatbuf(p.Equipment().Equipped(), builder)
 	name := builder.CreateString(p.Name())
 	statusEffects := StatusEffectsMarshal(builder, p)
 
@@ -42,10 +30,6 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddId(builder, p.Basic().ID())
 	BerryhunterApi.CharacterAddName(builder, name)
 	BerryhunterApi.CharacterAddStatusEffects(builder, statusEffects)
-	ca := p.CurrentAction()
-	if ca != nil {
-		BerryhunterApi.CharacterAddCurrentAction(builder, ongoingActionMarshalFlatbuf(builder, ca))
-	}
 
 	pos := Vec2fMarshalFlatbuf(builder, p.Position())
 	BerryhunterApi.CharacterAddPos(builder, pos)
@@ -62,8 +46,6 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddAuraRadius(builder, f32ToU16Px(p.AuraRadius()))
 	BerryhunterApi.CharacterAddBurstRadius(builder, f32ToU16Px(p.BurstRadius()))
 	BerryhunterApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
-
-	BerryhunterApi.CharacterAddEquipment(builder, equipment)
 }
 
 // ActiveSkillID returns the skill ID of the currently active aura, or 0 if no
@@ -75,17 +57,6 @@ func ActiveSkillID(sc *skills.SkillComponent) uint16 {
 		return 0
 	}
 	return uint16(sc.AuraSlots[slot].Def.ID)
-}
-
-func playerActionTypeMarshal(action model.PlayerActionType) BerryhunterApi.ActionType {
-	return BerryhunterApi.ActionType(action) // for now the enums ordinals match exactly
-}
-
-func ongoingActionMarshalFlatbuf(builder *flatbuffers.Builder, action model.PlayerAction) flatbuffers.UOffsetT {
-	tr := uint16(action.TicksRemaining())
-	item := action.Item()
-	itemId := byte(item.ItemDefinition.ID)
-	return BerryhunterApi.CreateOngoingAction(builder, tr, playerActionTypeMarshal(action.Type()), itemId)
 }
 
 func StatusEffectsMarshal(builder *flatbuffers.Builder, e model.StatusEntity) flatbuffers.UOffsetT {
@@ -135,30 +106,6 @@ func SpectatorMarshalFlatbuf(b *flatbuffers.Builder, s model.Spectator) flatbuff
 	pos := Vec2fMarshalFlatbuf(b, s.Position())
 	BerryhunterApi.SpectatorAddPos(b, pos)
 	return BerryhunterApi.SpectatorEnd(b)
-}
-
-func ItemStackMarshalFlatbuf(i *items.ItemStack, builder *flatbuffers.Builder, slot uint8) flatbuffers.UOffsetT {
-	return BerryhunterApi.CreateItemStack(builder, byte(i.Item.ID), uint32(i.Count), slot)
-}
-
-func InventoryMarshalFlatbuf(inventory *items.Inventory, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	inventoryItems := inventory.Items()
-
-	// only serialize non-nil elements
-	n := 0
-	for _, item := range inventoryItems {
-		if item != nil {
-			n++
-		}
-	}
-
-	BerryhunterApi.GameStateStartInventoryVector(builder, n)
-	for idx, item := range inventoryItems {
-		if item != nil {
-			ItemStackMarshalFlatbuf(item, builder, uint8(idx))
-		}
-	}
-	return builder.EndVector(n)
 }
 
 // AuraSlotsMarshalFlatbuf serializes the 4 aura slot contents as a positional
@@ -262,7 +209,6 @@ func SpellbookLevelsMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffe
 func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	entities := EntitiesMarshalFlatbuf(gs.Entities, builder)
 	character := CharacterMarshalFlatbuf(gs.Player, builder)
-	inventory := InventoryMarshalFlatbuf(gs.Player.Inventory(), builder)
 	spellbook := SpellbookMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	spellbookLevels := SpellbookLevelsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	auraSlots := AuraSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
@@ -277,7 +223,6 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	BerryhunterApi.GameStateAddPlayer(builder, character)
 
 	BerryhunterApi.GameStateAddEntities(builder, entities)
-	BerryhunterApi.GameStateAddInventory(builder, inventory)
 	BerryhunterApi.GameStateAddSpellbook(builder, spellbook)
 	BerryhunterApi.GameStateAddSpellbookLevels(builder, spellbookLevels)
 	BerryhunterApi.GameStateAddAuraSlots(builder, auraSlots)

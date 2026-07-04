@@ -115,31 +115,6 @@ export class EntityManager {
                 character.unequipItem(slot);
             });
 
-            /**
-             * Handle Actions
-             */
-            if (entity.currentAction) {
-                switch (entity.currentAction.actionType) {
-                    case BerryhunterApi.ActionType.Primary:
-                        character.action(entity.currentAction.ticksRemaining);
-                        break;
-                    default:
-                        let actionTypeKnown = false;
-                        for (let actionType in BerryhunterApi.ActionType) {
-                            if (BerryhunterApi.ActionType.hasOwnProperty(actionType)) {
-                                if (entity.currentAction.actionType === BerryhunterApi.ActionType[actionType]) {
-                                    actionTypeKnown = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (!actionTypeKnown) {
-                            console.warn("Unknown Action by " + entity.name + ": " + entity.currentAction.actionType + " (" + entity.currentAction.ticksRemaining + " Ticks remaining)");
-                        }
-                        break;
-                }
-            }
-
             if (isDefined(entity.level) && isFunction(character['setLevel'])) {
                 character['setLevel'](entity.level);
             }

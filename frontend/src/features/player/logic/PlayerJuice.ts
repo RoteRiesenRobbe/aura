@@ -73,17 +73,6 @@ PlaceablePlacedEvent.subscribe((payload) => {
     }
 });
 
-ControlsActionEvent.subscribe((payload) => {
-    switch (payload.actionType) {
-        case BerryhunterApi.ActionType.ConsumeItem:
-            sound.play('eat', {
-                speed: random(0.9, 1.11),
-                volume: random(0.8, 1),
-            });
-            break;
-    }
-});
-
 PlayerDamagedEvent.subscribe((payload) => {
     const soundId = 'hurt';
     const delayInterval = 5000;

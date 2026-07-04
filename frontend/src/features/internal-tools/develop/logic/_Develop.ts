@@ -412,45 +412,6 @@ export class Develop implements IDevelop {
             document.getElementById('develop_input_rotation').textContent = '';
         }
 
-        if (inputObj.action !== null) {
-            if (inputObj.action.item === null) {
-                document.getElementById('develop_input_action_item').textContent = 'None';
-            } else {
-                document.getElementById('develop_input_action_item').textContent = inputObj.action.item.name;
-            }
-            let actionType;
-            let actionTypeId = ' [' + inputObj.action.actionType + ']';
-            switch (inputObj.action.actionType) {
-                case BerryhunterApi.ActionType.Primary:
-                    actionType = 'Primary' + actionTypeId + ' with';
-                    break;
-                case BerryhunterApi.ActionType.CraftItem:
-                    actionType = 'Craft' + actionTypeId;
-                    break;
-                case BerryhunterApi.ActionType.EquipItem:
-                    actionType = 'Equip' + actionTypeId;
-                    break;
-                case BerryhunterApi.ActionType.UnequipItem:
-                    actionType = 'Unequip' + actionTypeId;
-                    break;
-                case BerryhunterApi.ActionType.DropItem:
-                    actionType = 'Drop' + actionTypeId;
-                    break;
-                case BerryhunterApi.ActionType.PlaceItem:
-                    actionType = 'Place' + actionTypeId;
-                    break;
-                case BerryhunterApi.ActionType.ConsumeItem:
-                    actionType = 'Consume' + actionTypeId;
-                    break;
-                default:
-                    actionType = 'Unmapped' + actionTypeId;
-                    break;
-            }
-            document.getElementById('develop_input_action_type').textContent = actionType;
-        } else {
-            document.getElementById('develop_input_action_item').textContent = '';
-            document.getElementById('develop_input_action_type').textContent = '';
-        }
     }
 
     public logClientTickRate(timeSinceLast): void {

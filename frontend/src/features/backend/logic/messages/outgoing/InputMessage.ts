@@ -8,9 +8,11 @@ import {isDefined} from "../../../../common/logic/Utils";
 import * as SnapshotFactory from "../../SnapshotFactory";
 import {Develop} from "../../../../internal-tools/develop/logic/_Develop";
 
+// The wire action was removed with the item system (Block 2); this interface
+// stays only to type the now-inert ControlsActionEvent.
 export interface InputAction {
     item,
-    actionType: BerryhunterApi.ActionType
+    actionType: number
 }
 
 // Wire-only sentinel for "explicitly deactivate the active aura" (Nothing).
@@ -24,7 +26,6 @@ export const DEACTIVATE_AURA_SLOT = -2;
 export class InputMessage extends ClientMessage {
     rotation: radians = undefined;
     movement: Vector = null;
-    action: InputAction = null;
     activeAuraSlot: number = -1;
     // cooldown slot indices to activate this tick (hotkey or panel click)
     cooldownActivations: number[] = [];
@@ -37,23 +38,7 @@ export class InputMessage extends ClientMessage {
             cooldownActivations = BerryhunterApi.Input.createCooldownActivationsVector(this.builder, this.cooldownActivations);
         }
 
-        let action = null;
-        if (this.action !== null) {
-            BerryhunterApi.Action.startAction(this.builder);
-            if (this.action.item === null) {
-                BerryhunterApi.Action.addItem(this.builder, BackendConstants.NONE_ITEM_ID);
-            } else {
-                BerryhunterApi.Action.addItem(this.builder, BackendConstants.itemLookupTable.indexOf(this.action.item));
-            }
-            BerryhunterApi.Action.addActionType(this.builder, this.action.actionType);
-            action = BerryhunterApi.Action.endAction(this.builder);
-        }
-
         BerryhunterApi.Input.startInput(this.builder);
-
-        if (action !== null) {
-            BerryhunterApi.Input.addAction(this.builder, action);
-        }
 
         if (this.movement !== null) {
             BerryhunterApi.Input.addMovement(this.builder,

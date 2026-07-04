@@ -11,12 +11,3 @@ struct Vec2f {
   y:float;
 }
 
-enum ActionType: ubyte {
-    Primary = 0,
-    CraftItem,
-    EquipItem,
-    UnequipItem,
-    DropItem,
-    PlaceItem,
-    ConsumeItem
-}

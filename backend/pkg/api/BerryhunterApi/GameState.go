@@ -74,27 +74,8 @@ func (rcv *GameState) Player(obj *flatbuffers.Table) bool {
 	return false
 }
 
-func (rcv *GameState) Inventory(obj *ItemStack, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 12
-		obj.Init(rcv._tab.Bytes, x)
-		return true
-	}
-	return false
-}
-
-func (rcv *GameState) InventoryLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
-	}
-	return 0
-}
-
 func (rcv *GameState) Entities(obj *Entity, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
 		x += flatbuffers.UOffsetT(j) * 4
@@ -106,7 +87,7 @@ func (rcv *GameState) Entities(obj *Entity, j int) bool {
 }
 
 func (rcv *GameState) EntitiesLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -114,7 +95,7 @@ func (rcv *GameState) EntitiesLength() int {
 }
 
 func (rcv *GameState) Spellbook(j int) uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
@@ -123,7 +104,7 @@ func (rcv *GameState) Spellbook(j int) uint16 {
 }
 
 func (rcv *GameState) SpellbookLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -131,7 +112,7 @@ func (rcv *GameState) SpellbookLength() int {
 }
 
 func (rcv *GameState) MutateSpellbook(j int, n uint16) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
@@ -140,7 +121,7 @@ func (rcv *GameState) MutateSpellbook(j int, n uint16) bool {
 }
 
 func (rcv *GameState) AuraSlots(j int) uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
@@ -149,7 +130,7 @@ func (rcv *GameState) AuraSlots(j int) uint16 {
 }
 
 func (rcv *GameState) AuraSlotsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -157,7 +138,7 @@ func (rcv *GameState) AuraSlotsLength() int {
 }
 
 func (rcv *GameState) MutateAuraSlots(j int, n uint16) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
@@ -166,7 +147,7 @@ func (rcv *GameState) MutateAuraSlots(j int, n uint16) bool {
 }
 
 func (rcv *GameState) ActiveAuraSlot() int8 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
 	if o != 0 {
 		return rcv._tab.GetInt8(o + rcv._tab.Pos)
 	}
@@ -174,11 +155,11 @@ func (rcv *GameState) ActiveAuraSlot() int8 {
 }
 
 func (rcv *GameState) MutateActiveAuraSlot(n int8) bool {
-	return rcv._tab.MutateInt8Slot(18, n)
+	return rcv._tab.MutateInt8Slot(16, n)
 }
 
 func (rcv *GameState) SpellbookLevels(j int) byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
@@ -187,7 +168,7 @@ func (rcv *GameState) SpellbookLevels(j int) byte {
 }
 
 func (rcv *GameState) SpellbookLevelsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -195,7 +176,7 @@ func (rcv *GameState) SpellbookLevelsLength() int {
 }
 
 func (rcv *GameState) SpellbookLevelsBytes() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -203,7 +184,7 @@ func (rcv *GameState) SpellbookLevelsBytes() []byte {
 }
 
 func (rcv *GameState) MutateSpellbookLevels(j int, n byte) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
@@ -212,7 +193,7 @@ func (rcv *GameState) MutateSpellbookLevels(j int, n byte) bool {
 }
 
 func (rcv *GameState) SkillPoints() uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
 	if o != 0 {
 		return rcv._tab.GetUint16(o + rcv._tab.Pos)
 	}
@@ -220,11 +201,11 @@ func (rcv *GameState) SkillPoints() uint16 {
 }
 
 func (rcv *GameState) MutateSkillPoints(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(22, n)
+	return rcv._tab.MutateUint16Slot(20, n)
 }
 
 func (rcv *GameState) PassiveSlots(j int) uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
@@ -233,7 +214,7 @@ func (rcv *GameState) PassiveSlots(j int) uint16 {
 }
 
 func (rcv *GameState) PassiveSlotsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -241,7 +222,7 @@ func (rcv *GameState) PassiveSlotsLength() int {
 }
 
 func (rcv *GameState) MutatePassiveSlots(j int, n uint16) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
@@ -250,7 +231,7 @@ func (rcv *GameState) MutatePassiveSlots(j int, n uint16) bool {
 }
 
 func (rcv *GameState) CooldownSlots(j int) uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
@@ -259,7 +240,7 @@ func (rcv *GameState) CooldownSlots(j int) uint16 {
 }
 
 func (rcv *GameState) CooldownSlotsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -267,7 +248,7 @@ func (rcv *GameState) CooldownSlotsLength() int {
 }
 
 func (rcv *GameState) MutateCooldownSlots(j int, n uint16) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
@@ -276,7 +257,7 @@ func (rcv *GameState) MutateCooldownSlots(j int, n uint16) bool {
 }
 
 func (rcv *GameState) CooldownRemainingTicks(j int) uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
@@ -285,7 +266,7 @@ func (rcv *GameState) CooldownRemainingTicks(j int) uint16 {
 }
 
 func (rcv *GameState) CooldownRemainingTicksLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -293,7 +274,7 @@ func (rcv *GameState) CooldownRemainingTicksLength() int {
 }
 
 func (rcv *GameState) MutateCooldownRemainingTicks(j int, n uint16) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
@@ -302,7 +283,7 @@ func (rcv *GameState) MutateCooldownRemainingTicks(j int, n uint16) bool {
 }
 
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(13)
+	builder.StartObject(12)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -313,56 +294,50 @@ func GameStateAddPlayerType(builder *flatbuffers.Builder, playerType Player) {
 func GameStateAddPlayer(builder *flatbuffers.Builder, player flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(player), 0)
 }
-func GameStateAddInventory(builder *flatbuffers.Builder, inventory flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(inventory), 0)
-}
-func GameStateStartInventoryVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(12, numElems, 4)
-}
 func GameStateAddEntities(builder *flatbuffers.Builder, entities flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(entities), 0)
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(entities), 0)
 }
 func GameStateStartEntitiesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func GameStateAddSpellbook(builder *flatbuffers.Builder, spellbook flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(spellbook), 0)
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(spellbook), 0)
 }
 func GameStateStartSpellbookVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)
 }
 func GameStateAddAuraSlots(builder *flatbuffers.Builder, auraSlots flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(auraSlots), 0)
+	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(auraSlots), 0)
 }
 func GameStateStartAuraSlotsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)
 }
 func GameStateAddActiveAuraSlot(builder *flatbuffers.Builder, activeAuraSlot int8) {
-	builder.PrependInt8Slot(7, activeAuraSlot, -1)
+	builder.PrependInt8Slot(6, activeAuraSlot, -1)
 }
 func GameStateAddSpellbookLevels(builder *flatbuffers.Builder, spellbookLevels flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(spellbookLevels), 0)
+	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(spellbookLevels), 0)
 }
 func GameStateStartSpellbookLevelsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(1, numElems, 1)
 }
 func GameStateAddSkillPoints(builder *flatbuffers.Builder, skillPoints uint16) {
-	builder.PrependUint16Slot(9, skillPoints, 0)
+	builder.PrependUint16Slot(8, skillPoints, 0)
 }
 func GameStateAddPassiveSlots(builder *flatbuffers.Builder, passiveSlots flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(passiveSlots), 0)
+	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(passiveSlots), 0)
 }
 func GameStateStartPassiveSlotsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)
 }
 func GameStateAddCooldownSlots(builder *flatbuffers.Builder, cooldownSlots flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(cooldownSlots), 0)
+	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(cooldownSlots), 0)
 }
 func GameStateStartCooldownSlotsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)
 }
 func GameStateAddCooldownRemainingTicks(builder *flatbuffers.Builder, cooldownRemainingTicks flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(cooldownRemainingTicks), 0)
+	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(cooldownRemainingTicks), 0)
 }
 func GameStateStartCooldownRemainingTicksVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)

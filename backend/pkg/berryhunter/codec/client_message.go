@@ -2,7 +2,6 @@ package codec
 
 import (
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -35,15 +34,6 @@ func unmarshalInput(fbInput *BerryhunterApi.Input) *model.PlayerInput {
 		i.Movement = &phy.Vec2f{
 			X: m.X(),
 			Y: m.Y(),
-		}
-	}
-
-	// parse Action if existent
-	a := fbInput.Action(nil)
-	if a != nil {
-		i.Action = &model.Action{
-			Item: items.ItemID(a.Item()),
-			Type: model.ActionType(a.ActionType()),
 		}
 	}
 

@@ -2,16 +2,10 @@ include "common.fbs";
 
 namespace BerryhunterApi;
 
-table Action {
-	item:ubyte;
-	actionType:ActionType = Primary;
-}
-
 table Input {
     tick:ulong;
     movement:Vec2f;
     rotation:float;
-    action:Action;
     active_aura_slot:byte = -1;
 
     // cooldown slot indices to activate this tick; the server ignores any

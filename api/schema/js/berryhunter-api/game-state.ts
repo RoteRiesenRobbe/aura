@@ -5,7 +5,6 @@
 import * as flatbuffers from 'flatbuffers';
 
 import { Entity } from '../berryhunter-api/entity.js';
-import { ItemStack } from '../berryhunter-api/item-stack.js';
 import { Player, unionToPlayer, unionListToPlayer } from '../berryhunter-api/player.js';
 
 
@@ -42,128 +41,118 @@ player<T extends flatbuffers.Table>(obj:any):any|null {
   return offset ? this.bb!.__union(obj, this.bb_pos + offset) : null;
 }
 
-inventory(index: number, obj?:ItemStack):ItemStack|null {
-  const offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? (obj || new ItemStack()).__init(this.bb!.__vector(this.bb_pos + offset) + index * 12, this.bb!) : null;
-}
-
-inventoryLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-}
-
 entities(index: number, obj?:Entity):Entity|null {
-  const offset = this.bb!.__offset(this.bb_pos, 12);
+  const offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? (obj || new Entity()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
 }
 
 entitiesLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 12);
+  const offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
 spellbook(index: number):number|null {
-  const offset = this.bb!.__offset(this.bb_pos, 14);
+  const offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.readUint16(this.bb!.__vector(this.bb_pos + offset) + index * 2) : 0;
 }
 
 spellbookLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 14);
+  const offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
 spellbookArray():Uint16Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 14);
+  const offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
 auraSlots(index: number):number|null {
-  const offset = this.bb!.__offset(this.bb_pos, 16);
+  const offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? this.bb!.readUint16(this.bb!.__vector(this.bb_pos + offset) + index * 2) : 0;
 }
 
 auraSlotsLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 16);
+  const offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
 auraSlotsArray():Uint16Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 16);
+  const offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
 activeAuraSlot():number {
-  const offset = this.bb!.__offset(this.bb_pos, 18);
+  const offset = this.bb!.__offset(this.bb_pos, 16);
   return offset ? this.bb!.readInt8(this.bb_pos + offset) : -1;
 }
 
 spellbookLevels(index: number):number|null {
-  const offset = this.bb!.__offset(this.bb_pos, 20);
+  const offset = this.bb!.__offset(this.bb_pos, 18);
   return offset ? this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index) : 0;
 }
 
 spellbookLevelsLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 20);
+  const offset = this.bb!.__offset(this.bb_pos, 18);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
 spellbookLevelsArray():Uint8Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 20);
+  const offset = this.bb!.__offset(this.bb_pos, 18);
   return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
 skillPoints():number {
-  const offset = this.bb!.__offset(this.bb_pos, 22);
+  const offset = this.bb!.__offset(this.bb_pos, 20);
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
 passiveSlots(index: number):number|null {
-  const offset = this.bb!.__offset(this.bb_pos, 24);
+  const offset = this.bb!.__offset(this.bb_pos, 22);
   return offset ? this.bb!.readUint16(this.bb!.__vector(this.bb_pos + offset) + index * 2) : 0;
 }
 
 passiveSlotsLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 24);
+  const offset = this.bb!.__offset(this.bb_pos, 22);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
 passiveSlotsArray():Uint16Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 24);
+  const offset = this.bb!.__offset(this.bb_pos, 22);
   return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
 cooldownSlots(index: number):number|null {
-  const offset = this.bb!.__offset(this.bb_pos, 26);
+  const offset = this.bb!.__offset(this.bb_pos, 24);
   return offset ? this.bb!.readUint16(this.bb!.__vector(this.bb_pos + offset) + index * 2) : 0;
 }
 
 cooldownSlotsLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 26);
+  const offset = this.bb!.__offset(this.bb_pos, 24);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
 cooldownSlotsArray():Uint16Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 26);
+  const offset = this.bb!.__offset(this.bb_pos, 24);
   return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
 cooldownRemainingTicks(index: number):number|null {
-  const offset = this.bb!.__offset(this.bb_pos, 28);
+  const offset = this.bb!.__offset(this.bb_pos, 26);
   return offset ? this.bb!.readUint16(this.bb!.__vector(this.bb_pos + offset) + index * 2) : 0;
 }
 
 cooldownRemainingTicksLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 28);
+  const offset = this.bb!.__offset(this.bb_pos, 26);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
 cooldownRemainingTicksArray():Uint16Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 28);
+  const offset = this.bb!.__offset(this.bb_pos, 26);
   return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(13);
+  builder.startObject(12);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -178,16 +167,8 @@ static addPlayer(builder:flatbuffers.Builder, playerOffset:flatbuffers.Offset) {
   builder.addFieldOffset(2, playerOffset, 0);
 }
 
-static addInventory(builder:flatbuffers.Builder, inventoryOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, inventoryOffset, 0);
-}
-
-static startInventoryVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(12, numElems, 4);
-}
-
 static addEntities(builder:flatbuffers.Builder, entitiesOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(4, entitiesOffset, 0);
+  builder.addFieldOffset(3, entitiesOffset, 0);
 }
 
 static createEntitiesVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
@@ -203,7 +184,7 @@ static startEntitiesVector(builder:flatbuffers.Builder, numElems:number) {
 }
 
 static addSpellbook(builder:flatbuffers.Builder, spellbookOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(5, spellbookOffset, 0);
+  builder.addFieldOffset(4, spellbookOffset, 0);
 }
 
 static createSpellbookVector(builder:flatbuffers.Builder, data:number[]|Uint16Array):flatbuffers.Offset;
@@ -224,7 +205,7 @@ static startSpellbookVector(builder:flatbuffers.Builder, numElems:number) {
 }
 
 static addAuraSlots(builder:flatbuffers.Builder, auraSlotsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(6, auraSlotsOffset, 0);
+  builder.addFieldOffset(5, auraSlotsOffset, 0);
 }
 
 static createAuraSlotsVector(builder:flatbuffers.Builder, data:number[]|Uint16Array):flatbuffers.Offset;
@@ -245,11 +226,11 @@ static startAuraSlotsVector(builder:flatbuffers.Builder, numElems:number) {
 }
 
 static addActiveAuraSlot(builder:flatbuffers.Builder, activeAuraSlot:number) {
-  builder.addFieldInt8(7, activeAuraSlot, -1);
+  builder.addFieldInt8(6, activeAuraSlot, -1);
 }
 
 static addSpellbookLevels(builder:flatbuffers.Builder, spellbookLevelsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(8, spellbookLevelsOffset, 0);
+  builder.addFieldOffset(7, spellbookLevelsOffset, 0);
 }
 
 static createSpellbookLevelsVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset {
@@ -265,11 +246,11 @@ static startSpellbookLevelsVector(builder:flatbuffers.Builder, numElems:number) 
 }
 
 static addSkillPoints(builder:flatbuffers.Builder, skillPoints:number) {
-  builder.addFieldInt16(9, skillPoints, 0);
+  builder.addFieldInt16(8, skillPoints, 0);
 }
 
 static addPassiveSlots(builder:flatbuffers.Builder, passiveSlotsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(10, passiveSlotsOffset, 0);
+  builder.addFieldOffset(9, passiveSlotsOffset, 0);
 }
 
 static createPassiveSlotsVector(builder:flatbuffers.Builder, data:number[]|Uint16Array):flatbuffers.Offset;
@@ -290,7 +271,7 @@ static startPassiveSlotsVector(builder:flatbuffers.Builder, numElems:number) {
 }
 
 static addCooldownSlots(builder:flatbuffers.Builder, cooldownSlotsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(11, cooldownSlotsOffset, 0);
+  builder.addFieldOffset(10, cooldownSlotsOffset, 0);
 }
 
 static createCooldownSlotsVector(builder:flatbuffers.Builder, data:number[]|Uint16Array):flatbuffers.Offset;
@@ -311,7 +292,7 @@ static startCooldownSlotsVector(builder:flatbuffers.Builder, numElems:number) {
 }
 
 static addCooldownRemainingTicks(builder:flatbuffers.Builder, cooldownRemainingTicksOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(12, cooldownRemainingTicksOffset, 0);
+  builder.addFieldOffset(11, cooldownRemainingTicksOffset, 0);
 }
 
 static createCooldownRemainingTicksVector(builder:flatbuffers.Builder, data:number[]|Uint16Array):flatbuffers.Offset;
@@ -336,12 +317,11 @@ static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 }
 
-static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, inventoryOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number, spellbookLevelsOffset:flatbuffers.Offset, skillPoints:number, passiveSlotsOffset:flatbuffers.Offset, cooldownSlotsOffset:flatbuffers.Offset, cooldownRemainingTicksOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number, spellbookLevelsOffset:flatbuffers.Offset, skillPoints:number, passiveSlotsOffset:flatbuffers.Offset, cooldownSlotsOffset:flatbuffers.Offset, cooldownRemainingTicksOffset:flatbuffers.Offset):flatbuffers.Offset {
   GameState.startGameState(builder);
   GameState.addTick(builder, tick);
   GameState.addPlayerType(builder, playerType);
   GameState.addPlayer(builder, playerOffset);
-  GameState.addInventory(builder, inventoryOffset);
   GameState.addEntities(builder, entitiesOffset);
   GameState.addSpellbook(builder, spellbookOffset);
   GameState.addAuraSlots(builder, auraSlotsOffset);

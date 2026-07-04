@@ -4,8 +4,6 @@
 
 export { AABB } from './berryhunter-api/aabb.js';
 export { Accept } from './berryhunter-api/accept.js';
-export { Action } from './berryhunter-api/action.js';
-export { ActionType } from './berryhunter-api/action-type.js';
 export { AnyEntity } from './berryhunter-api/any-entity.js';
 export { Character } from './berryhunter-api/character.js';
 export { ChatMessage } from './berryhunter-api/chat-message.js';
@@ -18,11 +16,9 @@ export { EntityType } from './berryhunter-api/entity-type.js';
 export { Equip } from './berryhunter-api/equip.js';
 export { GameState } from './berryhunter-api/game-state.js';
 export { Input } from './berryhunter-api/input.js';
-export { ItemStack } from './berryhunter-api/item-stack.js';
 export { Join } from './berryhunter-api/join.js';
 export { Mob } from './berryhunter-api/mob.js';
 export { Obituary } from './berryhunter-api/obituary.js';
-export { OngoingAction } from './berryhunter-api/ongoing-action.js';
 export { Placeable } from './berryhunter-api/placeable.js';
 export { Player } from './berryhunter-api/player.js';
 export { Pong } from './berryhunter-api/pong.js';

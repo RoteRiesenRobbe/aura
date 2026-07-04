@@ -4,7 +4,6 @@
 
 import * as flatbuffers from 'flatbuffers';
 
-import { Action } from '../berryhunter-api/action.js';
 import { Vec2f } from '../berryhunter-api/vec2f.js';
 
 
@@ -41,33 +40,28 @@ rotation():number {
   return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 0.0;
 }
 
-action(obj?:Action):Action|null {
-  const offset = this.bb!.__offset(this.bb_pos, 10);
-  return offset ? (obj || new Action()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
-}
-
 activeAuraSlot():number {
-  const offset = this.bb!.__offset(this.bb_pos, 12);
+  const offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? this.bb!.readInt8(this.bb_pos + offset) : -1;
 }
 
 cooldownActivations(index: number):number|null {
-  const offset = this.bb!.__offset(this.bb_pos, 14);
+  const offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index) : 0;
 }
 
 cooldownActivationsLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 14);
+  const offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
 cooldownActivationsArray():Uint8Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 14);
+  const offset = this.bb!.__offset(this.bb_pos, 12);
   return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
 static startInput(builder:flatbuffers.Builder) {
-  builder.startObject(6);
+  builder.startObject(5);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -82,16 +76,12 @@ static addRotation(builder:flatbuffers.Builder, rotation:number) {
   builder.addFieldFloat32(2, rotation, 0.0);
 }
 
-static addAction(builder:flatbuffers.Builder, actionOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(3, actionOffset, 0);
-}
-
 static addActiveAuraSlot(builder:flatbuffers.Builder, activeAuraSlot:number) {
-  builder.addFieldInt8(4, activeAuraSlot, -1);
+  builder.addFieldInt8(3, activeAuraSlot, -1);
 }
 
 static addCooldownActivations(builder:flatbuffers.Builder, cooldownActivationsOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(5, cooldownActivationsOffset, 0);
+  builder.addFieldOffset(4, cooldownActivationsOffset, 0);
 }
 
 static createCooldownActivationsVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset {

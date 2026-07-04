@@ -140,63 +140,16 @@ func (rcv *Character) MutateIsHit(n bool) bool {
 	return rcv._tab.MutateBoolSlot(16, n)
 }
 
-func (rcv *Character) CurrentAction(obj *OngoingAction) *OngoingAction {
+func (rcv *Character) Name() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
-		x := o + rcv._tab.Pos
-		if obj == nil {
-			obj = new(OngoingAction)
-		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
-	}
-	return nil
-}
-
-func (rcv *Character) Name() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
-	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
 	return nil
-}
-
-func (rcv *Character) Equipment(j int) byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
-	}
-	return 0
-}
-
-func (rcv *Character) EquipmentLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
-	}
-	return 0
-}
-
-func (rcv *Character) EquipmentBytes() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
-	}
-	return nil
-}
-
-func (rcv *Character) MutateEquipment(j int, n byte) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
-	if o != 0 {
-		a := rcv._tab.Vector(o)
-		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
-	}
-	return false
 }
 
 func (rcv *Character) Health() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
 	if o != 0 {
 		return rcv._tab.GetUint32(o + rcv._tab.Pos)
 	}
@@ -204,11 +157,11 @@ func (rcv *Character) Health() uint32 {
 }
 
 func (rcv *Character) MutateHealth(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(24, n)
+	return rcv._tab.MutateUint32Slot(20, n)
 }
 
 func (rcv *Character) LevelProgress() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		return rcv._tab.GetUint32(o + rcv._tab.Pos)
 	}
@@ -216,11 +169,11 @@ func (rcv *Character) LevelProgress() uint32 {
 }
 
 func (rcv *Character) MutateLevelProgress(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(26, n)
+	return rcv._tab.MutateUint32Slot(22, n)
 }
 
 func (rcv *Character) Level() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		return rcv._tab.GetUint32(o + rcv._tab.Pos)
 	}
@@ -228,11 +181,11 @@ func (rcv *Character) Level() uint32 {
 }
 
 func (rcv *Character) MutateLevel(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(28, n)
+	return rcv._tab.MutateUint32Slot(24, n)
 }
 
 func (rcv *Character) AuraRadius() uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		return rcv._tab.GetUint16(o + rcv._tab.Pos)
 	}
@@ -240,11 +193,11 @@ func (rcv *Character) AuraRadius() uint16 {
 }
 
 func (rcv *Character) MutateAuraRadius(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(30, n)
+	return rcv._tab.MutateUint16Slot(26, n)
 }
 
 func (rcv *Character) Aabb(obj *AABB) *AABB {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
 		x := o + rcv._tab.Pos
 		if obj == nil {
@@ -257,7 +210,7 @@ func (rcv *Character) Aabb(obj *AABB) *AABB {
 }
 
 func (rcv *Character) ActiveSkillId() uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
 	if o != 0 {
 		return rcv._tab.GetUint16(o + rcv._tab.Pos)
 	}
@@ -265,11 +218,11 @@ func (rcv *Character) ActiveSkillId() uint16 {
 }
 
 func (rcv *Character) MutateActiveSkillId(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(34, n)
+	return rcv._tab.MutateUint16Slot(30, n)
 }
 
 func (rcv *Character) BurstRadius() uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
 	if o != 0 {
 		return rcv._tab.GetUint16(o + rcv._tab.Pos)
 	}
@@ -277,11 +230,11 @@ func (rcv *Character) BurstRadius() uint16 {
 }
 
 func (rcv *Character) MutateBurstRadius(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(36, n)
+	return rcv._tab.MutateUint16Slot(32, n)
 }
 
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(17)
+	builder.StartObject(15)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -307,38 +260,29 @@ func CharacterAddRotation(builder *flatbuffers.Builder, rotation float32) {
 func CharacterAddIsHit(builder *flatbuffers.Builder, isHit bool) {
 	builder.PrependBoolSlot(6, isHit, false)
 }
-func CharacterAddCurrentAction(builder *flatbuffers.Builder, currentAction flatbuffers.UOffsetT) {
-	builder.PrependStructSlot(7, flatbuffers.UOffsetT(currentAction), 0)
-}
 func CharacterAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(name), 0)
-}
-func CharacterAddEquipment(builder *flatbuffers.Builder, equipment flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(equipment), 0)
-}
-func CharacterStartEquipmentVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(1, numElems, 1)
+	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(name), 0)
 }
 func CharacterAddHealth(builder *flatbuffers.Builder, health uint32) {
-	builder.PrependUint32Slot(10, health, 0)
+	builder.PrependUint32Slot(8, health, 0)
 }
 func CharacterAddLevelProgress(builder *flatbuffers.Builder, levelProgress uint32) {
-	builder.PrependUint32Slot(11, levelProgress, 0)
+	builder.PrependUint32Slot(9, levelProgress, 0)
 }
 func CharacterAddLevel(builder *flatbuffers.Builder, level uint32) {
-	builder.PrependUint32Slot(12, level, 0)
+	builder.PrependUint32Slot(10, level, 0)
 }
 func CharacterAddAuraRadius(builder *flatbuffers.Builder, auraRadius uint16) {
-	builder.PrependUint16Slot(13, auraRadius, 0)
+	builder.PrependUint16Slot(11, auraRadius, 0)
 }
 func CharacterAddAabb(builder *flatbuffers.Builder, aabb flatbuffers.UOffsetT) {
-	builder.PrependStructSlot(14, flatbuffers.UOffsetT(aabb), 0)
+	builder.PrependStructSlot(12, flatbuffers.UOffsetT(aabb), 0)
 }
 func CharacterAddActiveSkillId(builder *flatbuffers.Builder, activeSkillId uint16) {
-	builder.PrependUint16Slot(15, activeSkillId, 0)
+	builder.PrependUint16Slot(13, activeSkillId, 0)
 }
 func CharacterAddBurstRadius(builder *flatbuffers.Builder, burstRadius uint16) {
-	builder.PrependUint16Slot(16, burstRadius, 0)
+	builder.PrependUint16Slot(14, burstRadius, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

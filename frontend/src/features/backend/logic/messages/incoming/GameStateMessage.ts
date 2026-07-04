@@ -56,12 +56,6 @@ export class GameStateMessage {
                 break;
         }
 
-        this.inventory = [];
-        for (let i = 0; i < gameState.inventoryLength(); ++i) {
-            let itemStack = unmarshalItemStack(gameState.inventory(i));
-            this.inventory[itemStack.slot] = itemStack;
-        }
-
         this.entities = [];
         for (let i = 0; i < gameState.entitiesLength(); ++i) {
             this.entities.push(unmarshalWrappedEntity(gameState.entities(i)));
@@ -193,14 +187,6 @@ function unmarshalEntity(entity, eType) {
 
         result.rotation = entity.rotation();
         result.isHit = entity.isHit();
-        let currentAction = entity.currentAction();
-        if (currentAction) {
-            result.currentAction = {
-                ticksRemaining: currentAction.ticksRemaining(),
-                actionType: currentAction.actionType(),
-                item: unmarshalItem(currentAction.item()),
-            };
-        }
 
         result.name = entity.name();
 
@@ -210,11 +196,6 @@ function unmarshalEntity(entity, eType) {
         result.auraRadius = entity.auraRadius();
         result.activeSkillId = entity.activeSkillId();
         result.burstRadius = entity.burstRadius();
-
-        result.equipment = [];
-        for (let i = 0; i < entity.equipmentLength(); ++i) {
-            result.equipment.push(unmarshalItem(entity.equipment(i)));
-        }
     }
 
     if (isFunction(entity.statusEffectsLength) &&
@@ -264,19 +245,6 @@ function unmarshalAABB(aabb) {
         UpperY: aabb.upper().y(),
     };
 }
-
-/**
- *
- * @param {BerryhunterApi.ItemStack} itemStack
- */
-function unmarshalItemStack(itemStack) {
-    return {
-        item: unmarshalItem(itemStack.item()),
-        count: itemStack.count(),
-        slot: itemStack.slot(),
-    };
-}
-
 
 /**
  * @param {number} itemId

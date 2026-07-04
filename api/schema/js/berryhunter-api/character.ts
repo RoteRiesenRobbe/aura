@@ -6,7 +6,6 @@ import * as flatbuffers from 'flatbuffers';
 
 import { AABB } from '../berryhunter-api/aabb.js';
 import { EntityType } from '../berryhunter-api/entity-type.js';
-import { OngoingAction } from '../berryhunter-api/ongoing-action.js';
 import { StatusEffect } from '../berryhunter-api/status-effect.js';
 import { Vec2f } from '../berryhunter-api/vec2f.js';
 
@@ -74,70 +73,50 @@ isHit():boolean {
   return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
 }
 
-currentAction(obj?:OngoingAction):OngoingAction|null {
-  const offset = this.bb!.__offset(this.bb_pos, 18);
-  return offset ? (obj || new OngoingAction()).__init(this.bb_pos + offset, this.bb!) : null;
-}
-
 name():string|null
 name(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
 name(optionalEncoding?:any):string|Uint8Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 20);
+  const offset = this.bb!.__offset(this.bb_pos, 18);
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
-equipment(index: number):number|null {
-  const offset = this.bb!.__offset(this.bb_pos, 22);
-  return offset ? this.bb!.readUint8(this.bb!.__vector(this.bb_pos + offset) + index) : 0;
-}
-
-equipmentLength():number {
-  const offset = this.bb!.__offset(this.bb_pos, 22);
-  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
-}
-
-equipmentArray():Uint8Array|null {
-  const offset = this.bb!.__offset(this.bb_pos, 22);
-  return offset ? new Uint8Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
-}
-
 health():number {
-  const offset = this.bb!.__offset(this.bb_pos, 24);
+  const offset = this.bb!.__offset(this.bb_pos, 20);
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
 levelProgress():number {
-  const offset = this.bb!.__offset(this.bb_pos, 26);
+  const offset = this.bb!.__offset(this.bb_pos, 22);
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
 level():number {
-  const offset = this.bb!.__offset(this.bb_pos, 28);
+  const offset = this.bb!.__offset(this.bb_pos, 24);
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
 auraRadius():number {
-  const offset = this.bb!.__offset(this.bb_pos, 30);
+  const offset = this.bb!.__offset(this.bb_pos, 26);
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
 aabb(obj?:AABB):AABB|null {
-  const offset = this.bb!.__offset(this.bb_pos, 32);
+  const offset = this.bb!.__offset(this.bb_pos, 28);
   return offset ? (obj || new AABB()).__init(this.bb_pos + offset, this.bb!) : null;
 }
 
 activeSkillId():number {
-  const offset = this.bb!.__offset(this.bb_pos, 34);
+  const offset = this.bb!.__offset(this.bb_pos, 30);
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
 burstRadius():number {
-  const offset = this.bb!.__offset(this.bb_pos, 36);
+  const offset = this.bb!.__offset(this.bb_pos, 32);
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(17);
+  builder.startObject(15);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -180,56 +159,36 @@ static addIsHit(builder:flatbuffers.Builder, isHit:boolean) {
   builder.addFieldInt8(6, +isHit, +false);
 }
 
-static addCurrentAction(builder:flatbuffers.Builder, currentActionOffset:flatbuffers.Offset) {
-  builder.addFieldStruct(7, currentActionOffset, 0);
-}
-
 static addName(builder:flatbuffers.Builder, nameOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(8, nameOffset, 0);
-}
-
-static addEquipment(builder:flatbuffers.Builder, equipmentOffset:flatbuffers.Offset) {
-  builder.addFieldOffset(9, equipmentOffset, 0);
-}
-
-static createEquipmentVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset {
-  builder.startVector(1, data.length, 1);
-  for (let i = data.length - 1; i >= 0; i--) {
-    builder.addInt8(data[i]!);
-  }
-  return builder.endVector();
-}
-
-static startEquipmentVector(builder:flatbuffers.Builder, numElems:number) {
-  builder.startVector(1, numElems, 1);
+  builder.addFieldOffset(7, nameOffset, 0);
 }
 
 static addHealth(builder:flatbuffers.Builder, health:number) {
-  builder.addFieldInt32(10, health, 0);
+  builder.addFieldInt32(8, health, 0);
 }
 
 static addLevelProgress(builder:flatbuffers.Builder, levelProgress:number) {
-  builder.addFieldInt32(11, levelProgress, 0);
+  builder.addFieldInt32(9, levelProgress, 0);
 }
 
 static addLevel(builder:flatbuffers.Builder, level:number) {
-  builder.addFieldInt32(12, level, 0);
+  builder.addFieldInt32(10, level, 0);
 }
 
 static addAuraRadius(builder:flatbuffers.Builder, auraRadius:number) {
-  builder.addFieldInt16(13, auraRadius, 0);
+  builder.addFieldInt16(11, auraRadius, 0);
 }
 
 static addAabb(builder:flatbuffers.Builder, aabbOffset:flatbuffers.Offset) {
-  builder.addFieldStruct(14, aabbOffset, 0);
+  builder.addFieldStruct(12, aabbOffset, 0);
 }
 
 static addActiveSkillId(builder:flatbuffers.Builder, activeSkillId:number) {
-  builder.addFieldInt16(15, activeSkillId, 0);
+  builder.addFieldInt16(13, activeSkillId, 0);
 }
 
 static addBurstRadius(builder:flatbuffers.Builder, burstRadius:number) {
-  builder.addFieldInt16(16, burstRadius, 0);
+  builder.addFieldInt16(14, burstRadius, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

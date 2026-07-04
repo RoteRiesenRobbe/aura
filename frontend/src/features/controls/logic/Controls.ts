@@ -226,7 +226,7 @@ export class Controls {
                         case 'ALT':
                             action = {
                                 item: Game.player.character.getEquippedItem(Equipment.EquipmentSlot.HAND),
-                                actionType: BerryhunterApi.ActionType.Primary,
+                                actionType: 0, // was ActionType.Primary; wire action removed (Block 2)
                             };
                             break;
                         // PLACING removed with the item system (Block 2): no
@@ -264,7 +264,8 @@ export class Controls {
         }
 
         if (action !== null) {
-            input.action = action;
+            // Wire action removed with the item system (Block 2); the event stays
+            // for inert subscribers (juice/dev), but nothing is sent to the server.
             ControlsActionEvent.trigger(action);
             hasInput = true;
         }

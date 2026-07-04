@@ -78,21 +78,8 @@ func (rcv *Input) MutateRotation(n float32) bool {
 	return rcv._tab.MutateFloat32Slot(8, n)
 }
 
-func (rcv *Input) Action(obj *Action) *Action {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
-	if o != 0 {
-		x := rcv._tab.Indirect(o + rcv._tab.Pos)
-		if obj == nil {
-			obj = new(Action)
-		}
-		obj.Init(rcv._tab.Bytes, x)
-		return obj
-	}
-	return nil
-}
-
 func (rcv *Input) ActiveAuraSlot() int8 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.GetInt8(o + rcv._tab.Pos)
 	}
@@ -100,11 +87,11 @@ func (rcv *Input) ActiveAuraSlot() int8 {
 }
 
 func (rcv *Input) MutateActiveAuraSlot(n int8) bool {
-	return rcv._tab.MutateInt8Slot(12, n)
+	return rcv._tab.MutateInt8Slot(10, n)
 }
 
 func (rcv *Input) CooldownActivations(j int) byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
@@ -113,7 +100,7 @@ func (rcv *Input) CooldownActivations(j int) byte {
 }
 
 func (rcv *Input) CooldownActivationsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -121,7 +108,7 @@ func (rcv *Input) CooldownActivationsLength() int {
 }
 
 func (rcv *Input) CooldownActivationsBytes() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -129,7 +116,7 @@ func (rcv *Input) CooldownActivationsBytes() []byte {
 }
 
 func (rcv *Input) MutateCooldownActivations(j int, n byte) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
@@ -138,7 +125,7 @@ func (rcv *Input) MutateCooldownActivations(j int, n byte) bool {
 }
 
 func InputStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(5)
 }
 func InputAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -149,14 +136,11 @@ func InputAddMovement(builder *flatbuffers.Builder, movement flatbuffers.UOffset
 func InputAddRotation(builder *flatbuffers.Builder, rotation float32) {
 	builder.PrependFloat32Slot(2, rotation, 0.0)
 }
-func InputAddAction(builder *flatbuffers.Builder, action flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(action), 0)
-}
 func InputAddActiveAuraSlot(builder *flatbuffers.Builder, activeAuraSlot int8) {
-	builder.PrependInt8Slot(4, activeAuraSlot, -1)
+	builder.PrependInt8Slot(3, activeAuraSlot, -1)
 }
 func InputAddCooldownActivations(builder *flatbuffers.Builder, cooldownActivations flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(cooldownActivations), 0)
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(cooldownActivations), 0)
 }
 func InputStartCooldownActivationsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(1, numElems, 1)
