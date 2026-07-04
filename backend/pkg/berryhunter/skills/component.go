@@ -22,6 +22,22 @@ type EquippedSkill struct {
 	TickAccumulator int // active_aura only: ticks since last effect application
 }
 
+// BurstVFXTicks is how long the burst VFX (BurstFired status effect + wire
+// burst_radius) stays on after a cooldown fires — ~1.5 s [PLACEHOLDER].
+// Derived from CdTicks, so no extra state is needed anywhere.
+const BurstVFXTicks = 45
+
+// EffectiveCooldownTicks is the level-scaled cooldown: base plus
+// (level−1)×perLevel (negative perLevel = shorter at higher levels),
+// floored at one tick.
+func (es *EquippedSkill) EffectiveCooldownTicks() int {
+	cd := es.Def.CooldownTicks + (es.Level-1)*es.Def.CooldownTicksPerLevel
+	if cd < 1 {
+		cd = 1
+	}
+	return cd
+}
+
 // EffectiveRadius is the level-scaled aura radius: the maximum over all
 // effects of radius + (level-1)*radiusPerLevel. The maximum matters only for
 // hypothetical multi-effect skills with differing radii — the single sensor
@@ -51,6 +67,12 @@ type SkillComponent struct {
 	// Recomputed on passive equip/unequip and on skill level changes — never
 	// read config values are mutated (resolved Open Question 4).
 	Derived DerivedStats
+
+	// PendingCooldowns holds cooldown slot indices the owner requested to
+	// activate. Filled at input time, consumed (and cleared) by the
+	// SkillSystem in the same tick. Mobs don't use it — their AI fires
+	// ready cooldowns directly.
+	PendingCooldowns []int
 }
 
 // DerivedStats accumulates stat_multiplier bonuses from equipped passives.
@@ -60,6 +82,9 @@ type SkillComponent struct {
 type DerivedStats struct {
 	MovementSpeedBonus float32
 	MaxHealthBonus     float32
+	// DamageReductionBonus is subtractive: incoming damage × (1 − bonus),
+	// applied in player.takeDamage.
+	DamageReductionBonus float32
 }
 
 // NewSkillComponent creates a SkillComponent with no skills equipped.
@@ -114,6 +139,51 @@ func (sc *SkillComponent) UnequipPassive(slot int) {
 	sc.recomputeDerived()
 }
 
+// EquipCooldown installs a skill into the given cooldown slot, ready to fire.
+// Like passives, a cooldown may occupy only one slot — the same skill twice
+// would be two independent charges. Equipping moves it: the old slot clears.
+func (sc *SkillComponent) EquipCooldown(slot int, def *SkillDefinition, level int) {
+	for i, es := range sc.CooldownSlots {
+		if i != slot && es != nil && es.Def.ID == def.ID {
+			sc.CooldownSlots[i] = nil
+		}
+	}
+	sc.CooldownSlots[slot] = &EquippedSkill{Def: def, Level: level}
+}
+
+// BurstRadius is the effective radius of the largest instant_damage effect
+// among cooldowns fired within the last `window` ticks; 0 = none. Serialized
+// as the wire burst_radius so clients can draw the burst ring at its true
+// size — for every entity, including mobs.
+func (sc *SkillComponent) BurstRadius(window int) float32 {
+	var max float32
+	for _, es := range sc.CooldownSlots {
+		if es == nil || es.CdTicks == 0 || es.EffectiveCooldownTicks()-es.CdTicks >= window {
+			continue
+		}
+		for _, e := range es.Def.Effects {
+			if e.Type != EffectTypeInstantDamage {
+				continue
+			}
+			r := e.Radius + float32(es.Level-1)*e.RadiusPerLevel
+			if r > max {
+				max = r
+			}
+		}
+	}
+	return max
+}
+
+// RequestCooldownActivation queues a cooldown slot for activation; the
+// SkillSystem fires it this tick if the slot is equipped and ready.
+// Out-of-range indices (client-supplied) are dropped.
+func (sc *SkillComponent) RequestCooldownActivation(slot int) {
+	if slot < 0 || slot >= MaxCooldownSlots {
+		return
+	}
+	sc.PendingCooldowns = append(sc.PendingCooldowns, slot)
+}
+
 func (sc *SkillComponent) recomputeDerived() {
 	var d DerivedStats
 	for _, es := range sc.PassiveSlots {
@@ -130,6 +200,8 @@ func (sc *SkillComponent) recomputeDerived() {
 				d.MovementSpeedBonus += bonus
 			case StatMaxHealth:
 				d.MaxHealthBonus += bonus
+			case StatDamageReduction:
+				d.DamageReductionBonus += bonus
 			}
 		}
 	}

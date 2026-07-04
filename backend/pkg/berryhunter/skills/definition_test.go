@@ -215,6 +215,47 @@ func TestMap_UnknownEffectType(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestParse_SlowAura(t *testing.T) {
+	data := []byte(`{
+      "id": 4, "name": "SlowAura", "category": "active_aura", "maxLevel": 5,
+      "effects": [{"type": "slow_aura", "radius": 1.5, "slowFraction": 0.1, "slowFractionPerLevel": 0.1, "targetsMobs": true}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeSlowAura, e.Type)
+	assert.InDelta(t, 1.5, e.Radius, 1e-6)
+	assert.InDelta(t, 0.1, e.SlowFraction, 1e-6)
+	assert.InDelta(t, 0.1, e.SlowFractionPerLevel, 1e-6)
+	assert.True(t, e.TargetsMobs)
+}
+
+func TestParse_SelfHeal(t *testing.T) {
+	data := []byte(`{
+      "id": 21, "name": "Heal", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 900,
+      "effects": [{"type": "self_heal", "healFraction": 0.20, "healFractionPerLevel": 0.05}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeSelfHeal, e.Type)
+	assert.InDelta(t, 0.20, e.HealFraction, 1e-6)
+	assert.InDelta(t, 0.05, e.HealFractionPerLevel, 1e-6)
+}
+
+func TestParse_DamageReductionStat(t *testing.T) {
+	data := []byte(`{
+      "id": 11, "name": "ToughPassive", "category": "passive", "maxLevel": 3,
+      "effects": [{"type": "stat_multiplier", "stat": "damageReduction", "additivePerLevel": 0.02}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	assert.Equal(t, StatDamageReduction, def.Effects[0].Stat)
+}
+
 func TestMap_UnknownStat(t *testing.T) {
 	// An unapplied stat would be a silent no-op — unknown names must fail loud.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"luck","additivePerLevel":0.1}]}`))

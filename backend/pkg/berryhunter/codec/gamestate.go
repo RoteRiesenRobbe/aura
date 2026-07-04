@@ -60,6 +60,7 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddSatiety(builder, fracToUint32(p.LevelProgressFraction()))
 	BerryhunterApi.CharacterAddBodyTemperature(builder, p.Progression().Level)
 	BerryhunterApi.CharacterAddAuraRadius(builder, f32ToU16Px(p.AuraRadius()))
+	BerryhunterApi.CharacterAddBurstRadius(builder, f32ToU16Px(p.BurstRadius()))
 	BerryhunterApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
 
 	BerryhunterApi.CharacterAddEquipment(builder, equipment)
@@ -210,6 +211,38 @@ func PassiveSlotsMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.
 	return builder.EndVector(n)
 }
 
+// CooldownSlotsMarshalFlatbuf serializes the cooldown slot contents as a
+// positional [ushort] vector: index i = CooldownSlots[i], 0 = empty slot.
+// Must be called before GameStateStart (FlatBuffers rule).
+func CooldownSlotsMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	n := skills.MaxCooldownSlots
+	BerryhunterApi.GameStateStartCooldownSlotsVector(builder, n)
+	// Prepend in reverse so index 0 lands at the lowest address.
+	for i := n - 1; i >= 0; i-- {
+		var id uint16
+		if sc.CooldownSlots[i] != nil {
+			id = uint16(sc.CooldownSlots[i].Def.ID)
+		}
+		builder.PrependUint16(id)
+	}
+	return builder.EndVector(n)
+}
+
+// CooldownRemainingMarshalFlatbuf serializes the remaining cooldown ticks per
+// slot, positionally parallel to cooldown_slots; 0 = ready (or empty slot).
+func CooldownRemainingMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	n := skills.MaxCooldownSlots
+	BerryhunterApi.GameStateStartCooldownRemainingTicksVector(builder, n)
+	for i := n - 1; i >= 0; i-- {
+		var cd uint16
+		if sc.CooldownSlots[i] != nil {
+			cd = uint16(sc.CooldownSlots[i].CdTicks)
+		}
+		builder.PrependUint16(cd)
+	}
+	return builder.EndVector(n)
+}
+
 // SpellbookLevelsMarshalFlatbuf serializes the per-skill levels as a [ubyte]
 // vector positionally parallel to the spellbook vector (same ascending-ID
 // order from Discovered()). Must be called before GameStateStart.
@@ -234,6 +267,8 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	spellbookLevels := SpellbookLevelsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	auraSlots := AuraSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	passiveSlots := PassiveSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
+	cooldownSlots := CooldownSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
+	cooldownRemaining := CooldownRemainingMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 
 	BerryhunterApi.GameStateStart(builder)
 	BerryhunterApi.GameStateAddTick(builder, gs.Tick)
@@ -247,6 +282,8 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	BerryhunterApi.GameStateAddSpellbookLevels(builder, spellbookLevels)
 	BerryhunterApi.GameStateAddAuraSlots(builder, auraSlots)
 	BerryhunterApi.GameStateAddPassiveSlots(builder, passiveSlots)
+	BerryhunterApi.GameStateAddCooldownSlots(builder, cooldownSlots)
+	BerryhunterApi.GameStateAddCooldownRemainingTicks(builder, cooldownRemaining)
 	BerryhunterApi.GameStateAddActiveAuraSlot(builder, int8(gs.Player.SkillComponent().ActiveAuraSlot))
 	BerryhunterApi.GameStateAddSkillPoints(builder, uint16(max(gs.Player.AvailableSkillPoints(), 0)))
 

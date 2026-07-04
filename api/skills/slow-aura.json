@@ -1,0 +1,17 @@
+{
+  "id": 4,
+  "name": "SlowAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "slow_aura",
+      "radius": 1.5,
+      "radiusPerLevel": 0.0,
+      "slowFraction": 0.1,
+      "slowFractionPerLevel": 0.1,
+      "targetsMobs": true,
+      "targetsPlayers": false
+    }
+  ]
+}

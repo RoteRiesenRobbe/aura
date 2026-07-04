@@ -23,5 +23,7 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	pos := Vec2fMarshalFlatbuf(builder, m.Position())
 	BerryhunterApi.MobAddPos(builder, pos)
 
+	BerryhunterApi.MobAddBurstRadius(builder, f32ToU16Px(m.BurstRadius()))
+
 	return BerryhunterApi.MobEnd(builder)
 }

@@ -131,8 +131,13 @@ activeSkillId():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
+burstRadius():number {
+  const offset = this.bb!.__offset(this.bb_pos, 36);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(16);
+  builder.startObject(17);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -221,6 +226,10 @@ static addAabb(builder:flatbuffers.Builder, aabbOffset:flatbuffers.Offset) {
 
 static addActiveSkillId(builder:flatbuffers.Builder, activeSkillId:number) {
   builder.addFieldInt16(15, activeSkillId, 0);
+}
+
+static addBurstRadius(builder:flatbuffers.Builder, burstRadius:number) {
+  builder.addFieldInt16(16, burstRadius, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

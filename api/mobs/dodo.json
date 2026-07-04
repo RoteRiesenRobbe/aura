@@ -27,6 +27,15 @@
     "weight": 100
   },
   "skills": [
-    { "skillName": "DodoAura", "level": 1 }
+    {
+      "skillName": "DodoAura",
+      "level": 1
+    }
+  ],
+  "unlocks": [
+    {
+      "skillName": "ToughPassive",
+      "chance": 0.05
+    }
   ]
 }

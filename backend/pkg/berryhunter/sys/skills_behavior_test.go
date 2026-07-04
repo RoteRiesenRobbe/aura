@@ -344,14 +344,16 @@ var _ model.Interacter = (*mobTouchRecorder)(nil)
 // interface (panics loudly on any method the test did not anticipate).
 type fakeMob struct {
 	model.MobEntity
-	basic ecs.BasicEntity
-	sc    *skills.SkillComponent
-	aura  *phy.Circle
+	basic         ecs.BasicEntity
+	sc            *skills.SkillComponent
+	aura          *phy.Circle
+	statusEffects model.StatusEffects
 }
 
 func (f *fakeMob) Basic() ecs.BasicEntity                 { return f.basic }
 func (f *fakeMob) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeMob) AuraCollider() *phy.Circle              { return f.aura }
+func (f *fakeMob) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
 
 var (
 	_ skillEntity     = (*fakeMob)(nil)
@@ -431,7 +433,7 @@ func TestProcessEntity_MobWithHealEffectIsNoop(t *testing.T) {
 	// a heal effect on a mob must be skipped, not panic.
 	caster := newFakeMob(healEffect())
 
-	s := NewSkillSystem()
+	s := NewSkillSystem(phy.NewSpace())
 	s.AddEntity(caster)
 
 	assert.NotPanics(t, func() { s.Update(0) })
@@ -444,7 +446,7 @@ func TestProcessEntity_DerivesSensorMaskFromActiveSkill(t *testing.T) {
 	})
 	caster.aura.Shape().Mask = 0
 
-	s := NewSkillSystem()
+	s := NewSkillSystem(phy.NewSpace())
 	s.AddEntity(caster)
 	s.Update(0)
 
@@ -486,7 +488,7 @@ func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
 	space.Update()
 	require.NotEmpty(t, m.AuraCollider().Collisions(), "physics setup must produce a collision")
 
-	s := NewSkillSystem()
+	s := NewSkillSystem(phy.NewSpace())
 	s.AddEntity(m)
 	s.Update(0)
 
@@ -511,7 +513,7 @@ func TestSkillSystem_ResizesColliderToEffectiveRadius(t *testing.T) {
 	caster.sc.EquipAura(0, auraDefWithRadius(7, 2.0, 0.25), 3) // effective: 2.0 + 2*0.25
 	caster.sc.SetActiveAura(0)
 
-	s := NewSkillSystem()
+	s := NewSkillSystem(phy.NewSpace())
 	s.AddEntity(caster)
 	s.Update(0)
 
@@ -524,7 +526,7 @@ func TestSkillSystem_SwitchingSlotsResizesCollider(t *testing.T) {
 	caster.sc.EquipAura(0, auraDefWithRadius(7, 2.0, 0), 1)
 	caster.sc.EquipAura(1, auraDefWithRadius(8, 3.5, 0), 1)
 
-	s := NewSkillSystem()
+	s := NewSkillSystem(phy.NewSpace())
 	s.AddEntity(caster)
 
 	caster.sc.SetActiveAura(0)
@@ -542,7 +544,7 @@ func TestSkillSystem_NothingActive_LeavesColliderUntouched(t *testing.T) {
 	caster.sc.EquipAura(0, auraDefWithRadius(7, 2.0, 0), 1)
 	// no SetActiveAura — Nothing is active
 
-	s := NewSkillSystem()
+	s := NewSkillSystem(phy.NewSpace())
 	s.AddEntity(caster)
 	s.Update(0)
 
@@ -551,7 +553,7 @@ func TestSkillSystem_NothingActive_LeavesColliderUntouched(t *testing.T) {
 
 func TestSkillSystem_EndToEnd_DamageAuraHitsTarget(t *testing.T) {
 	caster, target := activeAuraPlayer(t, damageEffect(1))
-	sk := NewSkillSystem()
+	sk := NewSkillSystem(phy.NewSpace())
 	sk.AddEntity(caster)
 
 	sk.Update(33.0)
@@ -564,7 +566,7 @@ func TestSkillSystem_EndToEnd_DamageAuraHitsTarget(t *testing.T) {
 
 func TestSkillSystem_TickInterval_FiresEveryNthTick(t *testing.T) {
 	caster, target := activeAuraPlayer(t, damageEffect(3))
-	sk := NewSkillSystem()
+	sk := NewSkillSystem(phy.NewSpace())
 	sk.AddEntity(caster)
 
 	var touchesPerTick []int
@@ -587,7 +589,7 @@ func TestSkillSystem_TickInterval_FiresEveryNthTick(t *testing.T) {
 // expectation with the corrected cadence.
 func TestSkillSystem_MultiEffectIntervalQuirk(t *testing.T) {
 	caster, target := activeAuraPlayer(t, damageEffect(2), damageEffect(3))
-	sk := NewSkillSystem()
+	sk := NewSkillSystem(phy.NewSpace())
 	sk.AddEntity(caster)
 
 	var touchesPerTick []int
@@ -604,7 +606,7 @@ func TestSkillSystem_MultiEffectIntervalQuirk(t *testing.T) {
 
 func TestSkillSystem_SwitchingResetsFireCycle(t *testing.T) {
 	caster, target := activeAuraPlayer(t, damageEffect(3))
-	sk := NewSkillSystem()
+	sk := NewSkillSystem(phy.NewSpace())
 	sk.AddEntity(caster)
 
 	sk.Update(33.0)
@@ -627,7 +629,7 @@ func TestSkillSystem_ActiveButEmptySlotIsNoop(t *testing.T) {
 	e := newFakeEntity()
 	e.sc.ActiveAuraSlot = 2 // nothing equipped there; collider is nil
 
-	sk := NewSkillSystem()
+	sk := NewSkillSystem(phy.NewSpace())
 	sk.AddEntity(e)
 
 	assert.NotPanics(t, func() { sk.Update(33.0) })
@@ -648,10 +650,236 @@ func TestSkillSystem_EndToEnd_HealAuraHealsAndCosts(t *testing.T) {
 	caster.sc.EquipAura(1, def, 1)
 	caster.sc.SetActiveAura(1)
 
-	sk := NewSkillSystem()
+	sk := NewSkillSystem(phy.NewSpace())
 	sk.AddEntity(caster)
 	sk.Update(33.0)
 
 	assert.Equal(t, allyStart.AddFraction(0.1), ally.vitalSigns.Health)
 	assert.Equal(t, vitals.Max.SubFraction(0.02), caster.vitalSigns.Health)
+}
+
+// --- cooldown skills (Phase 8.2) ---
+
+func novaDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 20, Name: "NovaBurst", Category: skills.SkillCategoryCooldown, MaxLevel: 3,
+		CooldownTicks: 300, CooldownTicksPerLevel: -20,
+		Effects: []skills.EffectDef{{
+			Type:           skills.EffectTypeInstantDamage,
+			Radius:         1.5,
+			RadiusPerLevel: 0.1,
+			DamageFraction: 0.15, DamageFractionPerLevel: 0.03,
+			TargetsMobs: true,
+		}},
+	}
+}
+
+// spaceWithBurstTarget builds a space containing one target circle at the
+// origin and resolves one physics step, so the broadphase grid the burst
+// query reuses is populated exactly like in the running game.
+func spaceWithBurstTarget(layer int, userData any) *phy.Space {
+	target := phy.NewCircle(phy.VEC2F_ZERO, 0.25)
+	target.Shape().IsSensor = true
+	target.Shape().Layer = layer
+	target.Shape().UserData = userData
+
+	space := phy.NewSpace()
+	space.AddShape(target)
+	space.Update()
+	return space
+}
+
+func cooldownCaster(space *phy.Space) (*fakePlayer, *SkillSystem) {
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0) // position source for the burst
+	caster.sc.EquipCooldown(0, novaDef(), 1)
+
+	sk := NewSkillSystem(space)
+	sk.AddEntity(caster)
+	return caster, sk
+}
+
+func TestCooldown_PlayerActivationFiresBurst(t *testing.T) {
+	target := &touchRecorder{}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 0.15, target.touches[0], 1e-6)
+	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Empty(t, caster.sc.PendingCooldowns, "pending activations are consumed")
+}
+
+func TestCooldown_ActivationWhileOnCooldownIsIgnored(t *testing.T) {
+	target := &touchRecorder{}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
+	caster.sc.CooldownSlots[0].CdTicks = 5
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.Empty(t, target.touches)
+	assert.Equal(t, 4, caster.sc.CooldownSlots[0].CdTicks, "still ticking down")
+	assert.Empty(t, caster.sc.PendingCooldowns, "request is consumed, not queued")
+}
+
+func TestCooldown_PlayerWhiffConsumesCooldown(t *testing.T) {
+	// Nothing in range: the burst hits nothing, the cooldown still starts —
+	// aiming is the player's responsibility.
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks)
+}
+
+func TestCooldown_LevelScalesDamageAndCooldown(t *testing.T) {
+	target := &touchRecorder{}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
+	caster.sc.EquipCooldown(0, novaDef(), 3)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 0.21, target.touches[0], 1e-6) // 0.15 + 2×0.03
+	assert.Equal(t, 260, caster.sc.CooldownSlots[0].CdTicks, "300 − 2×20")
+}
+
+func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
+	stomp := &skills.SkillDefinition{
+		ID: 105, Name: "Stomp", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 450,
+		Effects: []skills.EffectDef{{
+			Type:           skills.EffectTypeInstantDamage,
+			Radius:         2.0,
+			DamageFraction: 0.2,
+			TargetsPlayers: true,
+		}},
+	}
+	target := &mobTouchRecorder{}
+	space := spaceWithBurstTarget(int(model.LayerPlayerCollision), target)
+
+	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects()}
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipCooldown(0, stomp, 1)
+
+	sk := NewSkillSystem(space)
+	sk.AddEntity(caster)
+	sk.Update(33.0)
+
+	require.Len(t, target.factors, 1)
+	assert.InDelta(t, 0.2, target.factors[0].DamageFraction, 1e-6)
+	assert.Equal(t, 450, caster.sc.CooldownSlots[0].CdTicks)
+}
+
+func TestCooldown_MobHoldsFireWithoutTarget(t *testing.T) {
+	stomp := &skills.SkillDefinition{
+		ID: 105, Name: "Stomp", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 450,
+		Effects: []skills.EffectDef{{
+			Type:           skills.EffectTypeInstantDamage,
+			Radius:         2.0,
+			DamageFraction: 0.2,
+			TargetsPlayers: true,
+		}},
+	}
+	empty := phy.NewSpace()
+	empty.Update()
+
+	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects()}
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipCooldown(0, stomp, 1)
+
+	sk := NewSkillSystem(empty)
+	sk.AddEntity(caster)
+	sk.Update(33.0)
+	sk.Update(33.0)
+
+	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "cooldown not consumed on a whiff — stays ready")
+}
+
+func TestCooldown_BurstFiredStatusEffect(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.Contains(t, caster.statusEffects.Effects(), model.StatusEffectBurstFired,
+		"burst VFX flag set right after firing")
+
+	// Simulate the per-tick clear + the VFX window running out.
+	caster.statusEffects.Clear()
+	caster.sc.CooldownSlots[0].CdTicks = caster.sc.CooldownSlots[0].EffectiveCooldownTicks() - skills.BurstVFXTicks
+	sk.Update(33.0)
+
+	assert.NotContains(t, caster.statusEffects.Effects(), model.StatusEffectBurstFired,
+		"flag expires after BurstVFXTicks")
+}
+
+func TestCooldown_SelfHealHealsCaster(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+
+	healDef := &skills.SkillDefinition{
+		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+		Effects: []skills.EffectDef{{
+			Type:                 skills.EffectTypeSelfHeal,
+			HealFraction:         0.20,
+			HealFractionPerLevel: 0.05,
+		}},
+	}
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	start := caster.vitalSigns.Health
+	caster.sc.EquipCooldown(0, healDef, 2)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk := NewSkillSystem(empty)
+	sk.AddEntity(caster)
+	sk.Update(33.0)
+
+	assert.Equal(t, start.AddFraction(0.25), caster.vitalSigns.Health, "20% + 1×5% at level 2")
+	assert.Equal(t, 900, caster.sc.CooldownSlots[0].CdTicks, "self-heal always consumes the cooldown")
+}
+
+// slowRecorder implements the slowable interface for slow_aura tests.
+type slowRecorder struct {
+	fractions []float32
+}
+
+func (r *slowRecorder) ApplySlow(fraction float32) { r.fractions = append(r.fractions, fraction) }
+
+func TestSlowAura_AppliesLevelScaledSlow(t *testing.T) {
+	target := &slowRecorder{}
+	set := colliderSetOf(target)
+
+	effect := skills.EffectDef{
+		Type:                 skills.EffectTypeSlowAura,
+		SlowFraction:         0.1,
+		SlowFractionPerLevel: 0.1,
+		TargetsMobs:          true,
+	}
+
+	applySlowAura(3, effect, set)
+
+	require.Len(t, target.fractions, 1)
+	assert.InDelta(t, 0.3, target.fractions[0], 1e-6) // 0.1 + 2×0.1
+}
+
+func TestSlowAura_SkipsNonSlowableTargets(t *testing.T) {
+	// A player (no ApplySlow) in the collision set must simply be skipped.
+	set := colliderSetOf(&touchRecorder{})
+
+	effect := skills.EffectDef{Type: skills.EffectTypeSlowAura, SlowFraction: 0.1, TargetsMobs: true}
+
+	assert.NotPanics(t, func() { applySlowAura(1, effect, set) })
 }

@@ -2,6 +2,7 @@ import _clone = require('lodash/clone');
 import {isDefined, isFunction, removeElement} from '../../common/logic/Utils';
 import {DebugCircle} from '../../internal-tools/develop/logic/DebugCircle';
 import {GameObject} from '../../game-objects/logic/_GameObject';
+import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Character} from '../../game-objects/logic/Character';
 import {Placeable} from '../../game-objects/logic/Placeable';
 import {Resource} from '../../game-objects/logic/Resources';
@@ -154,6 +155,9 @@ export class EntityManager {
 
         if (Array.isArray(entity.statusEffects)) {
             gameObject.updateStatusEffects(entity.statusEffects);
+            if (entity.statusEffects.includes(StatusEffect.BurstFired)) {
+                gameObject.showBurstRing(entity.burstRadius);
+            }
         }
 
         if (isDefined(entity.health) && isFunction(gameObject['setHealth'])) {

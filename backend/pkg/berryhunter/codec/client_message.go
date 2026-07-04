@@ -48,6 +48,13 @@ func unmarshalInput(fbInput *BerryhunterApi.Input) *model.PlayerInput {
 	}
 
 	i.ActiveAuraSlot = int(fbInput.ActiveAuraSlot())
+
+	if n := fbInput.CooldownActivationsLength(); n > 0 {
+		i.CooldownActivations = make([]int, 0, n)
+		for j := 0; j < n; j++ {
+			i.CooldownActivations = append(i.CooldownActivations, int(fbInput.CooldownActivations(j)))
+		}
+	}
 	return i
 }
 

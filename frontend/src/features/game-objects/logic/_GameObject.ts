@@ -1,4 +1,4 @@
-import {Container, Graphics, Texture} from 'pixi.js';
+import {Container, Graphics, Texture, Ticker} from 'pixi.js';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {IVector, Vector} from '../../core/logic/Vector';
@@ -195,6 +195,42 @@ export abstract class GameObject {
             this.activeStatusEffect.hide();
             this.activeStatusEffect = null;
         }
+    }
+
+    // Gold burst ring shown when this entity fires a cooldown skill
+    // (BurstFired status effect). Fades out over the server's VFX window
+    // (~1.5 s); re-triggers are merged while a ring is showing.
+    private burstRing: Graphics = null;
+
+    showBurstRing(radiusPx?: number) {
+        if (this.burstRing !== null) return;
+
+        // burst_radius (px) from the wire is the true effect radius; radiusless
+        // bursts (e.g. self-heal) fall back to a small ring around the entity.
+        const radius = radiusPx > 0 ? radiusPx : this.size * 1.2;
+        const ring = new Graphics()
+            .circle(0, 0, radius)
+            .fill({color: 0xFFD700, alpha: 0.18})
+            .stroke({color: 0xFFD700, width: 5, alpha: 1});
+        this.burstRing = ring;
+        this.shape.addChild(ring);
+
+        const durationMs = 1500;
+        const start = performance.now();
+        const fade = () => {
+            const t = (performance.now() - start) / durationMs;
+            if (t >= 1 || ring.destroyed) {
+                Ticker.shared.remove(fade);
+                if (!ring.destroyed) {
+                    this.shape.removeChild(ring);
+                    ring.destroy();
+                }
+                this.burstRing = null;
+                return;
+            }
+            ring.alpha = 1 - t;
+        };
+        Ticker.shared.add(fade);
     }
 
     private showStatusEffect(statusEffectid: string) {

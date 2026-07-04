@@ -1,0 +1,16 @@
+{
+  "id": 105,
+  "name": "AngryMammothStomp",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 450,
+  "effects": [
+    {
+      "type": "instant_damage",
+      "radius": 2.5,
+      "damageFraction": 0.2,
+      "targetsMobs": false,
+      "targetsPlayers": true
+    }
+  ]
+}

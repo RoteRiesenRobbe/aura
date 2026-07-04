@@ -89,6 +89,33 @@ func TestPassiveSlotsMarshalFlatbuf_PositionalOrder(t *testing.T) {
 	assert.Equal(t, uint16(0), result.PassiveSlots(3))
 }
 
+func TestCooldownSlotsMarshalFlatbuf_ContentsAndRemaining(t *testing.T) {
+	sc := skills.NewSkillComponent(true)
+	nova := &skills.SkillDefinition{ID: 20, Name: "NovaBurst", CooldownTicks: 300}
+	sc.EquipCooldown(1, nova, 1)
+	sc.CooldownSlots[1].CdTicks = 120
+
+	b := flatbuffers.NewBuilder(128)
+
+	slots := CooldownSlotsMarshalFlatbuf(sc, b)
+	remaining := CooldownRemainingMarshalFlatbuf(sc, b)
+
+	BerryhunterApi.GameStateStart(b)
+	BerryhunterApi.GameStateAddCooldownSlots(b, slots)
+	BerryhunterApi.GameStateAddCooldownRemainingTicks(b, remaining)
+	gs := BerryhunterApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
+
+	require.Equal(t, skills.MaxCooldownSlots, result.CooldownSlotsLength())
+	require.Equal(t, skills.MaxCooldownSlots, result.CooldownRemainingTicksLength())
+	assert.Equal(t, uint16(0), result.CooldownSlots(0), "empty slot")
+	assert.Equal(t, uint16(0), result.CooldownRemainingTicks(0))
+	assert.Equal(t, uint16(20), result.CooldownSlots(1))
+	assert.Equal(t, uint16(120), result.CooldownRemainingTicks(1))
+}
+
 func TestGameStateSkillPoints_RoundTrip(t *testing.T) {
 	b := flatbuffers.NewBuilder(64)
 

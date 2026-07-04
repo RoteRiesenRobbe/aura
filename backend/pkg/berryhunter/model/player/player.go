@@ -161,6 +161,13 @@ func (p *player) maxHealthFactor() float32 {
 }
 
 func (p *player) takeDamage(damage float32, s model.StatusEffect) {
+	// Passive damage reduction (DerivedStats); 100% is the natural cap.
+	if r := p.skills.Derived.DamageReductionBonus; r > 0 {
+		if r > 1 {
+			r = 1
+		}
+		damage *= 1 - r
+	}
 	if p.IsGod() {
 		return
 	}
@@ -306,6 +313,11 @@ func (p *player) AuraRadius() float32 {
 		return 0
 	}
 	return p.skills.AuraSlots[slot].EffectiveRadius()
+}
+
+// BurstRadius feeds the Character.burst_radius wire field (burst ring VFX).
+func (p *player) BurstRadius() float32 {
+	return p.skills.BurstRadius(skills.BurstVFXTicks)
 }
 
 func (p *player) LevelProgressFraction() float32 {

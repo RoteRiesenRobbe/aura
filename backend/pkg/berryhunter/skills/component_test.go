@@ -304,6 +304,117 @@ func TestTotalSkillPoints(t *testing.T) {
 	assert.Equal(t, 8, TotalSkillPoints(5, 2))
 }
 
+var testNova = &SkillDefinition{
+	ID:                    20,
+	Name:                  "NovaBurst",
+	Category:              SkillCategoryCooldown,
+	MaxLevel:              3,
+	CooldownTicks:         300,
+	CooldownTicksPerLevel: -20,
+	Effects: []EffectDef{
+		{Type: EffectTypeInstantDamage, Radius: 1.5, RadiusPerLevel: 0.1, DamageFraction: 0.15, DamageFractionPerLevel: 0.03, TargetsMobs: true},
+	},
+}
+
+func TestEquipCooldown(t *testing.T) {
+	t.Run("populates the slot", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(1, testNova, 2)
+
+		require.NotNil(t, sc.CooldownSlots[1])
+		assert.Equal(t, testNova.ID, sc.CooldownSlots[1].Def.ID)
+		assert.Equal(t, 2, sc.CooldownSlots[1].Level)
+		assert.Equal(t, 0, sc.CooldownSlots[1].CdTicks, "equips ready to fire")
+	})
+
+	t.Run("equipping the same cooldown again moves it", func(t *testing.T) {
+		// Two slots of the same cooldown would be two independent charges —
+		// the same stacking trap as duplicate passives.
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(0, testNova, 1)
+
+		sc.EquipCooldown(1, testNova, 1)
+
+		assert.Nil(t, sc.CooldownSlots[0], "old slot must be cleared")
+		require.NotNil(t, sc.CooldownSlots[1])
+	})
+}
+
+func TestEffectiveCooldownTicks(t *testing.T) {
+	t.Run("level 1 uses the base cooldown", func(t *testing.T) {
+		es := &EquippedSkill{Def: testNova, Level: 1}
+		assert.Equal(t, 300, es.EffectiveCooldownTicks())
+	})
+
+	t.Run("scales per level (negative = shorter)", func(t *testing.T) {
+		es := &EquippedSkill{Def: testNova, Level: 3}
+		assert.Equal(t, 260, es.EffectiveCooldownTicks())
+	})
+
+	t.Run("never drops below one tick", func(t *testing.T) {
+		fast := &SkillDefinition{CooldownTicks: 10, CooldownTicksPerLevel: -20}
+		es := &EquippedSkill{Def: fast, Level: 2}
+		assert.Equal(t, 1, es.EffectiveCooldownTicks())
+	})
+}
+
+func TestBurstRadius(t *testing.T) {
+	t.Run("zero without recent burst", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(0, testNova, 1)
+
+		assert.Equal(t, float32(0), sc.BurstRadius(BurstVFXTicks))
+	})
+
+	t.Run("level-scaled radius while within the window", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(0, testNova, 3)
+		es := sc.CooldownSlots[0]
+		es.CdTicks = es.EffectiveCooldownTicks() // just fired
+
+		assert.InDelta(t, 1.7, sc.BurstRadius(BurstVFXTicks), 1e-6) // 1.5 + 2×0.1
+	})
+
+	t.Run("zero once the window has passed", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(0, testNova, 1)
+		es := sc.CooldownSlots[0]
+		es.CdTicks = es.EffectiveCooldownTicks() - BurstVFXTicks
+
+		assert.Equal(t, float32(0), sc.BurstRadius(BurstVFXTicks))
+	})
+
+	t.Run("radiusless bursts (self_heal) stay zero", func(t *testing.T) {
+		selfHeal := &SkillDefinition{
+			ID: 21, Name: "Heal", Category: SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+			Effects: []EffectDef{{Type: EffectTypeSelfHeal, HealFraction: 0.2}},
+		}
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(0, selfHeal, 1)
+		sc.CooldownSlots[0].CdTicks = 900 // just fired
+
+		assert.Equal(t, float32(0), sc.BurstRadius(BurstVFXTicks))
+	})
+}
+
+func TestRequestCooldownActivation(t *testing.T) {
+	t.Run("queues valid slot indices", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.RequestCooldownActivation(0)
+		sc.RequestCooldownActivation(1)
+
+		assert.Equal(t, []int{0, 1}, sc.PendingCooldowns)
+	})
+
+	t.Run("ignores out-of-range slots", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.RequestCooldownActivation(-1)
+		sc.RequestCooldownActivation(MaxCooldownSlots)
+
+		assert.Empty(t, sc.PendingCooldowns)
+	})
+}
+
 var testSwift = &SkillDefinition{
 	ID:       10,
 	Name:     "SwiftPassive",

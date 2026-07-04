@@ -117,7 +117,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	pl := sys.NewUpdateSystem()
 	g.AddSystem(pl)
 
-	sk := sys.NewSkillSystem()
+	sk := sys.NewSkillSystem(p.Space())
 	g.AddSystem(sk)
 
 	postu := sys.NewPostUpdateSystem()

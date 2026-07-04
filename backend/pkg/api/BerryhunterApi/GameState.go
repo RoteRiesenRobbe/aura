@@ -249,8 +249,60 @@ func (rcv *GameState) MutatePassiveSlots(j int, n uint16) bool {
 	return false
 }
 
+func (rcv *GameState) CooldownSlots(j int) uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
+	}
+	return 0
+}
+
+func (rcv *GameState) CooldownSlotsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateCooldownSlots(j int, n uint16) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
+	}
+	return false
+}
+
+func (rcv *GameState) CooldownRemainingTicks(j int) uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
+	}
+	return 0
+}
+
+func (rcv *GameState) CooldownRemainingTicksLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateCooldownRemainingTicks(j int, n uint16) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
+	}
+	return false
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(11)
+	builder.StartObject(13)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -301,6 +353,18 @@ func GameStateAddPassiveSlots(builder *flatbuffers.Builder, passiveSlots flatbuf
 	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(passiveSlots), 0)
 }
 func GameStateStartPassiveSlotsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(2, numElems, 2)
+}
+func GameStateAddCooldownSlots(builder *flatbuffers.Builder, cooldownSlots flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(cooldownSlots), 0)
+}
+func GameStateStartCooldownSlotsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(2, numElems, 2)
+}
+func GameStateAddCooldownRemainingTicks(builder *flatbuffers.Builder, cooldownRemainingTicks flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(cooldownRemainingTicks), 0)
+}
+func GameStateStartCooldownRemainingTicksVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {

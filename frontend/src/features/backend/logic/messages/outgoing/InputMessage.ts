@@ -26,9 +26,17 @@ export class InputMessage extends ClientMessage {
     movement: Vector = null;
     action: InputAction = null;
     activeAuraSlot: number = -1;
+    // cooldown slot indices to activate this tick (hotkey or panel click)
+    cooldownActivations: number[] = [];
     tick: number;
 
     private marshal(): flatbuffers.Offset {
+        // Vectors must be built before startInput (FlatBuffers rule).
+        let cooldownActivations: flatbuffers.Offset = null;
+        if (this.cooldownActivations.length > 0) {
+            cooldownActivations = BerryhunterApi.Input.createCooldownActivationsVector(this.builder, this.cooldownActivations);
+        }
+
         let action = null;
         if (this.action !== null) {
             BerryhunterApi.Action.startAction(this.builder);
@@ -60,6 +68,10 @@ export class InputMessage extends ClientMessage {
         // The default -1 ("no change") stays omitted so it reads as absent on the wire.
         if (this.activeAuraSlot !== -1) {
             BerryhunterApi.Input.addActiveAuraSlot(this.builder, this.activeAuraSlot);
+        }
+
+        if (cooldownActivations !== null) {
+            BerryhunterApi.Input.addCooldownActivations(this.builder, cooldownActivations);
         }
 
         BerryhunterApi.Input.addTick(this.builder, BigInt(this.tick));

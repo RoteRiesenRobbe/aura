@@ -41,6 +41,38 @@ func TestSpace_AddShape(t *testing.T) {
 	}
 }
 
+func TestSpace_QueryCircle(t *testing.T) {
+	s := NewSpace()
+
+	inRange := NewCircle(Vec2f{1, 0}, 1)
+	inRange.Shape().Layer = 0b01
+	outOfRange := NewCircle(Vec2f{50, 50}, 1)
+	outOfRange.Shape().Layer = 0b01
+	wrongLayer := NewCircle(Vec2f{0, 1}, 1)
+	wrongLayer.Shape().Layer = 0b10
+
+	s.AddShape(inRange)
+	s.AddShape(outOfRange)
+	s.AddShape(wrongLayer)
+	s.Update() // builds the broadphase grid the query reuses
+
+	query := NewCircle(Vec2f{0, 0}, 2)
+	query.Shape().Mask = 0b01
+
+	hits := s.QueryCircle(query)
+
+	assert.Len(t, hits, 1)
+	assert.Contains(t, hits, DynamicCollider(inRange))
+}
+
+func TestSpace_QueryCircle_BeforeFirstUpdate(t *testing.T) {
+	s := NewSpace()
+	query := NewCircle(Vec2f{0, 0}, 2)
+	query.Shape().Mask = 0b01
+
+	assert.Empty(t, s.QueryCircle(query))
+}
+
 func BenchmarkSpace_Update(b *testing.B) {
 	s := NewSpace()
 	for i := 0; i < b.N; i++ {

@@ -9,6 +9,7 @@ const (
 	StatusEffectStarving       = StatusEffect(BerryhunterApi.StatusEffectStarving)
 	StatusEffectRegenerating   = StatusEffect(BerryhunterApi.StatusEffectRegenerating)
 	StatusEffectDamagedAmbient = StatusEffect(BerryhunterApi.StatusEffectDamagedAmbient)
+	StatusEffectBurstFired     = StatusEffect(BerryhunterApi.StatusEffectBurstFired)
 )
 
 type (

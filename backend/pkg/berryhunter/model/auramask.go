@@ -22,9 +22,33 @@ func AuraMaskFor(def *skills.SkillDefinition) int {
 			if e.TargetsStructures {
 				mask |= LayerPlaceableCollision
 			}
+		case skills.EffectTypeSlowAura:
+			if e.TargetsMobs {
+				mask |= LayerActionCollision
+			}
+			if e.TargetsPlayers {
+				mask |= LayerPlayerCollision
+			}
 		case skills.EffectTypeHealAura:
 			mask |= LayerPlayerCollision
 		}
+	}
+	return int(mask)
+}
+
+// InstantDamageMask derives the one-shot query mask for a single
+// instant_damage effect from its target flags — the same layer mapping the
+// aura sensor uses for damage_aura targets.
+func InstantDamageMask(e skills.EffectDef) int {
+	mask := LayerNoneCollision
+	if e.TargetsPlayers {
+		mask |= LayerPlayerCollision
+	}
+	if e.TargetsMobs {
+		mask |= LayerActionCollision
+	}
+	if e.TargetsStructures {
+		mask |= LayerPlaceableCollision
 	}
 	return int(mask)
 }

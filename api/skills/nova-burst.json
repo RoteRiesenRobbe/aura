@@ -1,0 +1,19 @@
+{
+  "id": 20,
+  "name": "NovaBurst",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 300,
+  "cooldownTicksPerLevel": -20,
+  "effects": [
+    {
+      "type": "instant_damage",
+      "radius": 1.5,
+      "radiusPerLevel": 0.1,
+      "damageFraction": 0.15,
+      "damageFractionPerLevel": 0.03,
+      "targetsMobs": true,
+      "targetsPlayers": false
+    }
+  ]
+}

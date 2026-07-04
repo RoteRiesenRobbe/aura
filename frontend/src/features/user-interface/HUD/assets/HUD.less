@@ -429,13 +429,39 @@
 
 #leftColumn {
 	position: absolute;
-	top: 50%;
+	top: 1rem;
 	left: 1rem;
-	transform: translateY(-50%);
 
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
+}
+
+// Bottom-center action bars (aura slots | cooldowns). Interim placement
+// until the full UI pass.
+#actionBars {
+	position: absolute;
+	bottom: 1rem;
+	left: 50%;
+	transform: translateX(-50%);
+
+	display: flex;
+	align-items: flex-end;
+	gap: 1rem;
+}
+
+// Aura slots as a 2×2 grid: column 1 = slots 1+2, column 2 = slots 3+4
+// (column-first fill matches the hotkey order 1/2 left, 3/4 right).
+#auraLoadout > #auraSlotList {
+	display: grid;
+	grid-template-rows: repeat(2, auto);
+	grid-auto-flow: column;
+	column-gap: 1.5rem;
+
+	// Grid rows replace the list flow: only the top row keeps a divider.
+	> .auraSlot:nth-child(even) {
+		border-bottom: none;
+	}
 }
 
 @panel-bg:           fade(black, 50%);
@@ -510,7 +536,7 @@
 			}
 
 			&.unlocked {
-				animation: skill-unlock-glow 2.5s ease-out;
+				animation: skill-unlock-glow 5s ease-out;
 				border-radius: 0.4rem;
 			}
 
@@ -580,14 +606,24 @@
 	}
 
 	&.unlockPulse {
-		animation: spellbook-unlock-pulse 2.5s ease-out;
+		animation: spellbook-unlock-pulse 5s ease-out;
 	}
 }
 
+// Double pulse: full-intensity gold flash, ebb, second flash, long fade-out.
 @keyframes skill-unlock-glow {
 	0% {
-		background: fade(gold, 45%);
+		background: fade(gold, 100%);
+		color: black;
+		text-shadow: 0 0 0.6rem white;
+	}
+	40% {
+		background: fade(gold, 15%);
 		color: white;
+	}
+	55% {
+		background: fade(gold, 90%);
+		color: black;
 	}
 	100% {
 		background: transparent;
@@ -596,15 +632,22 @@
 
 @keyframes spellbook-unlock-pulse {
 	0% {
-		box-shadow: 0 0 0 0 fade(gold, 70%);
+		box-shadow: 0 0 0 0 fade(gold, 100%);
+	}
+	40% {
+		box-shadow: 0 0 2.6rem 1.4rem fade(gold, 0%);
+	}
+	50% {
+		box-shadow: 0 0 0.4rem 0.2rem fade(gold, 95%);
 	}
 	100% {
-		box-shadow: 0 0 1.2rem 0.6rem fade(gold, 0%);
+		box-shadow: 0 0 2.6rem 1.4rem fade(gold, 0%);
 	}
 }
 
 #auraLoadout,
-#passiveLoadout {
+#passiveLoadout,
+#cooldownLoadout {
 	background: @panel-bg;
 	border: 1px solid @panel-border;
 	border-radius: @panel-border-radius;
@@ -654,5 +697,39 @@
 		border-left: 3px solid fade(white, 70%);
 		border-radius: 0.4rem;
 		padding-left: 0.4rem;
+	}
+
+	// Slot rows with a hotkey badge (aura slots + cooldowns).
+	> ul > .hotkeySlot {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+
+		> .hotkey {
+			flex: none;
+			width: 1.4em;
+			height: 1.4em;
+			line-height: 1.4em;
+			text-align: center;
+			background: fade(white, 10%);
+			border: 1px solid @panel-border;
+			border-radius: 0.3rem;
+			font-size: 0.85em;
+			color: @panel-title-color;
+		}
+
+		> .slotLabel {
+			flex: 1;
+		}
+
+		> .cdRemaining {
+			flex: none;
+			color: fade(gold, 90%);
+			font-variant-numeric: tabular-nums;
+		}
+
+		&.onCooldown > .slotLabel {
+			opacity: 0.45;
+		}
 	}
 }

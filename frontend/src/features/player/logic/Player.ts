@@ -77,6 +77,10 @@ export class Player {
             PlayerDamagedEvent.trigger({player: this, damageState: damageState});
         }
 
+        if (entity.statusEffects.includes(StatusEffect.BurstFired)) {
+            this.character.showBurstRing(entity.burstRadius);
+        }
+
         let newVitalSigns: VitalSignValues = {
             health: entity.health,
             satiety: Math.round((entity.levelProgress || 0) * VitalSigns.MAXIMUM_VALUES.satiety),

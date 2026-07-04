@@ -15,6 +15,7 @@ import {BerryhunterApi} from '../../backend/logic/BerryhunterApi';
 import {Character} from '../../game-objects/logic/Character';
 import {GameState, IGame} from '../../core/logic/IGame';
 import {InputAction, InputMessage} from '../../backend/logic/messages/outgoing/InputMessage';
+import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {Vector} from '../../core/logic/Vector';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
 
@@ -54,8 +55,15 @@ export class Controls {
     leftKeys = new Keys(KeyCodes.A, KeyCodes.LEFT);
     rightKeys = new Keys(KeyCodes.D, KeyCodes.RIGHT);
     actionKeys = new Keys();
-    altActionKeys = new Keys(KeyCodes.Q, KeyCodes.SHIFT);
+    // Q moved to the cooldown hotkeys; SHIFT keeps the (legacy) alt action.
+    altActionKeys = new Keys(KeyCodes.SHIFT);
     pauseKeys = new Keys(KeyCodes.P);
+    // Hotkeys [PLACEHOLDER bindings until a keybinding UI exists]:
+    // 1–4 toggle the aura slots, Q/E fire the cooldown slots.
+    auraHotkeys = [new Keys(KeyCodes.ONE), new Keys(KeyCodes.TWO), new Keys(KeyCodes.THREE), new Keys(KeyCodes.FOUR)];
+    cooldownHotkeys = [new Keys(KeyCodes.Q), new Keys(KeyCodes.E)];
+    private auraHotkeysWereDown: boolean[] = [false, false, false, false];
+    private cooldownHotkeysWereDown: boolean[] = [false, false];
     hitAnimationTick: number = 0;
     clock: Tock;
     inventoryAction: InputAction;
@@ -270,6 +278,24 @@ export class Controls {
             ControlsActionEvent.trigger(action);
             hasInput = true;
         }
+
+        // Edge-triggered slot hotkeys: one action per key press, not per tick
+        // held. Both delegate to the HUD handlers so keyboard and slot clicks
+        // share the exact same guards and optimistic highlights.
+        this.auraHotkeys.forEach((keys, slot) => {
+            const down = keys.isDown;
+            if (down && !this.auraHotkeysWereDown[slot]) {
+                HUD.hotkeyAuraSlot(slot);
+            }
+            this.auraHotkeysWereDown[slot] = down;
+        });
+        this.cooldownHotkeys.forEach((keys, slot) => {
+            const down = keys.isDown;
+            if (down && !this.cooldownHotkeysWereDown[slot]) {
+                HUD.hotkeyCooldownSlot(slot);
+            }
+            this.cooldownHotkeysWereDown[slot] = down;
+        });
 
         if (hasInput) {
             if (isUndefined(input.rotation)) {

@@ -82,9 +82,10 @@ func (es *EquipSystem) handleEquip(player equipEntity) {
 		maxSlots = skills.MaxAuraSlots
 	case skills.SkillCategoryPassive:
 		maxSlots = skills.MaxPassiveSlots
+	case skills.SkillCategoryCooldown:
+		maxSlots = skills.MaxCooldownSlots
 	default:
-		// Cooldown equipping ships with Phase 8.2.
-		slog.Warn("equip: category not equippable yet",
+		slog.Warn("equip: category not equippable",
 			slog.String("player", player.Name()),
 			slog.String("skill", def.Name))
 		return
@@ -114,6 +115,8 @@ func (es *EquipSystem) handleEquip(player equipEntity) {
 		sc.EquipAura(msg.Slot, def, level)
 	case skills.SkillCategoryPassive:
 		sc.EquipPassive(msg.Slot, def, level)
+	case skills.SkillCategoryCooldown:
+		sc.EquipCooldown(msg.Slot, def, level)
 	}
 
 	slog.Info("equip",

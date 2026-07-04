@@ -95,6 +95,13 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 		p.SkillComponent().SetActiveAura(-1)
 	}
 
+	// Cooldown activations: queued here, fired by the SkillSystem later in
+	// this same tick (update runs before skills). Invalid indices are dropped
+	// by RequestCooldownActivation.
+	for _, slot := range next.CooldownActivations {
+		p.SkillComponent().RequestCooldownActivation(slot)
+	}
+
 	// do we even have inputs?
 	if next.Movement != nil {
 		// we can only move if we are still alive!

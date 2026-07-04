@@ -269,6 +269,10 @@ export class Backend implements IBackend {
                 HUD.updatePassiveLoadout(snapshot.passiveSlots);
             }
 
+            if (Utils.isDefined(snapshot.cooldownSlots)) {
+                HUD.updateCooldownLoadout(snapshot.cooldownSlots, snapshot.cooldownRemainingTicks ?? []);
+            }
+
             if (Utils.isDefined(snapshot.activeAuraSlot)) {
                 HUD.updateActiveAuraSlot(snapshot.activeAuraSlot);
             }

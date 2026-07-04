@@ -8,5 +8,6 @@ export enum StatusEffect {
   Freezing = 2,
   Starving = 3,
   Regenerating = 4,
-  DamagedAmbient = 5
+  DamagedAmbient = 5,
+  BurstFired = 6
 }

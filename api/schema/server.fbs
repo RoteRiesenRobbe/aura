@@ -28,7 +28,9 @@ enum StatusEffect : ushort {
   Freezing,
   Starving,
   Regenerating,
-  DamagedAmbient
+  DamagedAmbient,
+  // a cooldown skill fired within the last ~1.5 s — drives the burst VFX
+  BurstFired
 }
 
 struct AABB {
@@ -91,6 +93,10 @@ table Mob {
   health:uint;
 
   mob_id:ushort;
+
+  // effective radius (px) of the instant_damage burst fired within the last
+  // ~1.5 s; 0 = none. Drives the exact-size burst ring VFX.
+  burst_radius:ushort = 0;
 }
 
 table Character {
@@ -121,6 +127,10 @@ table Character {
   // skill ID of the currently active aura; 0 = none active (Nothing).
   // Appended at the table end so existing field IDs stay stable.
   active_skill_id:ushort = 0;
+
+  // effective radius (px) of the instant_damage burst fired within the last
+  // ~1.5 s; 0 = none. Drives the exact-size burst ring VFX.
+  burst_radius:ushort = 0;
 }
 
 table Spectator {
@@ -159,6 +169,12 @@ table GameState {
 
   // equipped passive slot contents — positional: index i = PassiveSlots[i], 0 = empty slot
   passive_slots:[ushort];
+
+  // equipped cooldown slot contents — positional: index i = CooldownSlots[i], 0 = empty slot
+  cooldown_slots:[ushort];
+
+  // remaining cooldown ticks per slot, positionally parallel to cooldown_slots; 0 = ready
+  cooldown_remaining_ticks:[ushort];
 }
 
 table Welcome {

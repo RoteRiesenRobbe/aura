@@ -71,16 +71,6 @@
             <ul id="spellbookList"></ul>
         </div>
 
-        <div id="auraLoadout">
-            <div class="auraLoadoutTitle">Aura Slots</div>
-            <ul id="auraSlotList">
-                <li class="auraSlot" data-slot="0">— Empty —</li>
-                <li class="auraSlot" data-slot="1">— Empty —</li>
-                <li class="auraSlot" data-slot="2">— Empty —</li>
-                <li class="auraSlot" data-slot="3">— Empty —</li>
-            </ul>
-        </div>
-
         <div id="passiveLoadout">
             <div class="auraLoadoutTitle">Passives</div>
             <ul id="passiveSlotList">
@@ -88,6 +78,28 @@
                 <li class="auraSlot passiveSlot" data-slot="1">— Empty —</li>
                 <li class="auraSlot passiveSlot" data-slot="2">— Empty —</li>
                 <li class="auraSlot passiveSlot" data-slot="3">— Empty —</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bottom-center action bars: aura slots left, cooldowns right.
+         Interim placement until the full UI pass. -->
+    <div id="actionBars">
+        <div id="auraLoadout">
+            <div class="auraLoadoutTitle">Aura Slots</div>
+            <ul id="auraSlotList">
+                <li class="auraSlot hotkeySlot" data-slot="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span></li>
+                <li class="auraSlot hotkeySlot" data-slot="1"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span></li>
+                <li class="auraSlot hotkeySlot" data-slot="2"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span></li>
+                <li class="auraSlot hotkeySlot" data-slot="3"><span class="hotkey">4</span><span class="slotLabel">— Empty —</span></li>
+            </ul>
+        </div>
+
+        <div id="cooldownLoadout">
+            <div class="auraLoadoutTitle">Cooldowns</div>
+            <ul id="cooldownSlotList">
+                <li class="auraSlot hotkeySlot cooldownSlot" data-slot="0"><span class="hotkey">Q</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
+                <li class="auraSlot hotkeySlot cooldownSlot" data-slot="1"><span class="hotkey">E</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
             </ul>
         </div>
     </div>

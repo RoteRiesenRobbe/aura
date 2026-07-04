@@ -47,7 +47,7 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 	// category (the whole loadout is available so future AI/boss scripts can
 	// switch), first aura slot starts active. Mobs have no spellbook.
 	sc := skills.NewSkillComponent(false)
-	auraCount, passiveCount := 0, 0
+	auraCount, passiveCount, cooldownCount := 0, 0, 0
 	for _, s := range d.Skills {
 		switch s.Def.Category {
 		case skills.SkillCategoryPassive:
@@ -64,8 +64,15 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 			}
 			sc.EquipAura(auraCount, s.Def, s.Level)
 			auraCount++
+		case skills.SkillCategoryCooldown:
+			if cooldownCount >= skills.MaxCooldownSlots {
+				log.Printf("mob %s declares more cooldowns than slots (%d); ignoring the rest", d.Name, skills.MaxCooldownSlots)
+				continue
+			}
+			// Mob AI fires ready cooldowns as soon as a target is in range.
+			sc.EquipCooldown(cooldownCount, s.Def, s.Level)
+			cooldownCount++
 		default:
-			// Mob cooldown skills ship with Phase 8.2.
 			log.Printf("mob %s declares skill %s of an unsupported category; ignored", d.Name, s.Def.Name)
 		}
 	}
@@ -136,6 +143,8 @@ type Mob struct {
 	aggroAura *phy.Circle
 
 	velocity         float32
+	slowFraction     float32 // transient slow_aura debuff (see ApplySlow)
+	slowTicks        int
 	aggroTarget      model.PlayerEntity
 	spawnPosition    phy.Vec2f
 	spawnInitialized bool
@@ -157,6 +166,11 @@ func (m *Mob) StatusEffects() *model.StatusEffects {
 func (m *Mob) Bodies() model.Bodies {
 	b := m.BaseEntity.Bodies()
 	return append(b, m.aura, m.aggroAura)
+}
+
+// BurstRadius feeds the Mob.burst_radius wire field (burst ring VFX).
+func (m *Mob) BurstRadius() float32 {
+	return m.skills.BurstRadius(skills.BurstVFXTicks)
 }
 
 func (m *Mob) SkillComponent() *skills.SkillComponent {
@@ -182,6 +196,12 @@ func (m *Mob) Update(dt float32) bool {
 	// never granting XP or drops again).
 	if m.health == 0 {
 		return false
+	}
+
+	// Slow debuffs are transient: the SkillSystem re-applies them each tick
+	// the mob stays inside a slow aura; otherwise they wear off here.
+	if m.slowTicks > 0 {
+		m.slowTicks--
 	}
 
 	// Aura damage is applied by the SkillSystem (Phase 6.1); Update only
@@ -251,6 +271,17 @@ func (m *Mob) SetAngle(a float32) {
 	m.heading = phy.NewRotMat2f(a).Mult(phy.Vec2f{-1, 0})
 }
 
+// ApplySlow slows the mob's movement by the given fraction for the next two
+// ticks (SkillSystem runs after mob movement, so the debuff needs to survive
+// exactly one movement step; re-application keeps it alive). Stronger slows
+// win over weaker ones.
+func (m *Mob) ApplySlow(fraction float32) {
+	if m.slowTicks == 0 || fraction > m.slowFraction {
+		m.slowFraction = fraction
+	}
+	m.slowTicks = 2
+}
+
 func (m *Mob) moveTowards(target phy.Vec2f) {
 	if m.velocity <= 0 {
 		return
@@ -264,6 +295,9 @@ func (m *Mob) moveTowards(target phy.Vec2f) {
 	}
 
 	step := m.velocity
+	if m.slowTicks > 0 {
+		step *= 1 - m.slowFraction
+	}
 	if distance < step {
 		step = distance
 	}

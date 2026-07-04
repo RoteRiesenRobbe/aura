@@ -165,8 +165,20 @@ func (rcv *Mob) MutateMobId(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(20, n)
 }
 
+func (rcv *Mob) BurstRadius() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Mob) MutateBurstRadius(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(22, n)
+}
+
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(9)
+	builder.StartObject(10)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -197,6 +209,9 @@ func MobAddHealth(builder *flatbuffers.Builder, health uint32) {
 }
 func MobAddMobId(builder *flatbuffers.Builder, mobId uint16) {
 	builder.PrependUint16Slot(8, mobId, 0)
+}
+func MobAddBurstRadius(builder *flatbuffers.Builder, burstRadius uint16) {
+	builder.PrependUint16Slot(9, burstRadius, 0)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

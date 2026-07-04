@@ -39,13 +39,17 @@ type healCaster interface {
 	IsGod() bool
 }
 
-// SkillSystem applies active-aura effects for every tracked entity each tick.
+// SkillSystem applies active-aura effects and cooldown-skill bursts for every
+// tracked entity each tick. The space reference serves the one-shot
+// instant_damage queries (resolved Open Question 3: temporary circle, query
+// against the last broadphase, drop — never added to the space).
 type SkillSystem struct {
 	entities []skillEntity
+	space    *phy.Space
 }
 
-func NewSkillSystem() *SkillSystem {
-	return &SkillSystem{}
+func NewSkillSystem(space *phy.Space) *SkillSystem {
+	return &SkillSystem{space: space}
 }
 
 func (*SkillSystem) Priority() int {
@@ -68,6 +72,8 @@ func (s *SkillSystem) Update(dt float32) {
 
 func (s *SkillSystem) processEntity(e skillEntity) {
 	sc := e.SkillComponent()
+	s.processCooldowns(e, sc)
+
 	slot := sc.ActiveAuraSlot
 	if slot < 0 {
 		return
@@ -100,6 +106,8 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 				applyDamageAura(e, equip.Level, effect, collisions)
 			case skills.EffectTypeHealAura:
 				applyHealAura(e, equip.Level, effect, collisions)
+			case skills.EffectTypeSlowAura:
+				applySlowAura(equip.Level, effect, collisions)
 			}
 		}
 	}
@@ -219,6 +227,133 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		vs := caster.VitalSigns()
 		vs.Health = vs.Health.SubFraction(selfFrac)
 		caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
+	}
+}
+
+// slowable is implemented by entities whose movement can be slowed by a
+// slow_aura (mobs). The slow is transient: it must be re-applied every tick
+// the target stays in range, and wears off on its own shortly after.
+type slowable interface {
+	ApplySlow(fraction float32)
+}
+
+// processCooldowns ticks all cooldown slots down and fires cooldown skills:
+// players fire on explicit activation requests (input path), mobs fire as
+// soon as a cooldown is ready and a valid target is in range (decided 8.2 —
+// simple AI; smarter timing belongs to boss scripting later).
+func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent) {
+	// Status effects are cleared and re-added every tick; keep the burst VFX
+	// flag alive while any cooldown fired within the last burstVFXTicks.
+	defer func() {
+		se, ok := e.(model.StatusEntity)
+		if !ok {
+			return
+		}
+		for _, es := range sc.CooldownSlots {
+			if es != nil && es.CdTicks > 0 && es.EffectiveCooldownTicks()-es.CdTicks < skills.BurstVFXTicks {
+				se.StatusEffects().Add(model.StatusEffectBurstFired)
+				return
+			}
+		}
+	}()
+
+	for _, es := range sc.CooldownSlots {
+		if es != nil && es.CdTicks > 0 {
+			es.CdTicks--
+		}
+	}
+
+	if _, isMob := e.(model.MobEntity); isMob {
+		for _, es := range sc.CooldownSlots {
+			if es == nil || es.CdTicks > 0 {
+				continue
+			}
+			// Only consume the cooldown when the burst actually hit something,
+			// so the mob keeps it ready until a target wanders into range.
+			if s.fireCooldown(e, es) {
+				es.CdTicks = es.EffectiveCooldownTicks()
+			}
+		}
+		return
+	}
+
+	// Player path: explicit activations only. Firing into thin air consumes
+	// the cooldown — aiming the burst is the player's responsibility.
+	for _, slot := range sc.PendingCooldowns {
+		es := sc.CooldownSlots[slot]
+		if es == nil || es.CdTicks > 0 {
+			continue
+		}
+		s.fireCooldown(e, es)
+		es.CdTicks = es.EffectiveCooldownTicks()
+	}
+	sc.PendingCooldowns = sc.PendingCooldowns[:0]
+}
+
+// fireCooldown applies a cooldown skill's effects: instant_damage via a
+// temporary query circle at the caster's position, self_heal directly on the
+// caster. Reports whether anything was affected.
+func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool {
+	hitAny := false
+	for _, effect := range es.Def.Effects {
+		if effect.Type == skills.EffectTypeSelfHeal {
+			// Needs player vitals — mobs cannot self-heal (same deliberate
+			// limitation as heal_aura casting).
+			caster, ok := e.(healCaster)
+			if !ok {
+				continue
+			}
+			healFrac := effectHealFraction(effect, es.Level)
+			vs := caster.VitalSigns()
+			vs.Health = vs.Health.AddFraction(healFrac)
+			hitAny = true
+			continue
+		}
+		if effect.Type != skills.EffectTypeInstantDamage {
+			continue
+		}
+
+		radius := effect.Radius + float32(es.Level-1)*effect.RadiusPerLevel
+		query := phy.NewCircle(e.AuraCollider().Position(), radius)
+		query.Shape().Mask = model.InstantDamageMask(effect)
+
+		hits := s.space.QueryCircle(query)
+		targets := make(phy.ColliderSet, len(hits))
+		for _, h := range hits {
+			// Never hit the caster's own shapes (a self-targeting flag combo
+			// would otherwise burst the caster).
+			if usr, ok := h.Shape().UserData.(model.BasicEntity); ok && usr.Basic().ID() == e.Basic().ID() {
+				continue
+			}
+			targets[h] = struct{}{}
+		}
+		if len(targets) == 0 {
+			continue
+		}
+		hitAny = true
+
+		// Same dispatch and target-flag filtering as the per-tick auras —
+		// PlayerTouches feeds participation XP, MobTouches the double dispatch.
+		applyDamageAura(e, es.Level, effect, targets)
+	}
+	return hitAny
+}
+
+// applySlowAura slows every slowable target in range. The sensor mask
+// pre-filters layers per the target flags; entities that cannot be slowed
+// (players — no ApplySlow) are skipped.
+func applySlowAura(level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+	fraction := effect.SlowFraction + float32(level-1)*effect.SlowFractionPerLevel
+	if fraction <= 0 {
+		return
+	}
+	if fraction > 1 {
+		fraction = 1
+	}
+	for c := range collisions {
+		if target, ok := c.Shape().UserData.(slowable); ok {
+			target.ApplySlow(fraction)
+		}
 	}
 }
 

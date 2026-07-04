@@ -35,6 +35,12 @@ type PhysicsSystem struct {
 	space    *phy.Space
 }
 
+// Space exposes the physics space for systems that run ad-hoc spatial
+// queries (SkillSystem: instant_damage bursts).
+func (p *PhysicsSystem) Space() *phy.Space {
+	return p.space
+}
+
 func (p *PhysicsSystem) New(w *ecs.World) {
 	// do nothing for now
 }

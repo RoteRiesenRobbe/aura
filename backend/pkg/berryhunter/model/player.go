@@ -65,6 +65,9 @@ type PlayerEntity interface {
 	AvailableSkillPoints() int
 	LoseCurrentLevelExperience()
 	AuraRadius() float32
+	// BurstRadius is the effective radius of a recently fired instant_damage
+	// burst (wire burst_radius, drives the burst ring VFX); 0 = none.
+	BurstRadius() float32
 	LevelProgressFraction() float32
 
 	// Participation XP (v1-roadmap item 10): healing a player registers the

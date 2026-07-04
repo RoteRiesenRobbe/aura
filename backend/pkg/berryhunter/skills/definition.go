@@ -34,6 +34,8 @@ const (
 	EffectTypeHealAura
 	EffectTypeStatMultiplier
 	EffectTypeInstantDamage
+	EffectTypeSlowAura
+	EffectTypeSelfHeal
 )
 
 var effectTypeMap = map[string]EffectType{
@@ -41,6 +43,8 @@ var effectTypeMap = map[string]EffectType{
 	"heal_aura":       EffectTypeHealAura,
 	"stat_multiplier": EffectTypeStatMultiplier,
 	"instant_damage":  EffectTypeInstantDamage,
+	"slow_aura":       EffectTypeSlowAura,
+	"self_heal":       EffectTypeSelfHeal,
 }
 
 // Supported stat_multiplier stat names. A stat listed here must actually be
@@ -48,13 +52,15 @@ var effectTypeMap = map[string]EffectType{
 // player.MaxHealthFactor) — accepting an unapplied stat would be a silent
 // no-op, which is why unknown names hard-fail at load.
 const (
-	StatMovementSpeed = "movementSpeed"
-	StatMaxHealth     = "maxHealth"
+	StatMovementSpeed   = "movementSpeed"
+	StatMaxHealth       = "maxHealth"
+	StatDamageReduction = "damageReduction" // applied in player.takeDamage
 )
 
 var validStats = map[string]bool{
-	StatMovementSpeed: true,
-	StatMaxHealth:     true,
+	StatMovementSpeed:   true,
+	StatMaxHealth:       true,
+	StatDamageReduction: true,
 }
 
 // EffectDef holds parameters for one effect within a skill. All effect-type-specific
@@ -79,10 +85,14 @@ type EffectDef struct {
 	StructureDamageFraction float32
 	TargetsStructures       bool
 
-	// heal_aura
+	// heal_aura, self_heal
 	HealFraction         float32
 	HealFractionPerLevel float32
 	SelfDamageFraction   float32
+
+	// slow_aura: movement-speed reduction applied to targets in range
+	SlowFraction         float32
+	SlowFractionPerLevel float32
 
 	// damage_aura, heal_aura — always >= 1 after parsing (absent in JSON → 1)
 	TickInterval int
@@ -124,6 +134,9 @@ type effectDef struct {
 	HealFraction         float32 `json:"healFraction"`
 	HealFractionPerLevel float32 `json:"healFractionPerLevel"`
 	SelfDamageFraction   float32 `json:"selfDamageFraction"`
+
+	SlowFraction         float32 `json:"slowFraction"`
+	SlowFractionPerLevel float32 `json:"slowFractionPerLevel"`
 
 	TickInterval *int `json:"tickInterval"` // nil → default 1
 
@@ -205,6 +218,8 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		HealFraction:            e.HealFraction,
 		HealFractionPerLevel:    e.HealFractionPerLevel,
 		SelfDamageFraction:      e.SelfDamageFraction,
+		SlowFraction:            e.SlowFraction,
+		SlowFractionPerLevel:    e.SlowFractionPerLevel,
 		TickInterval:            tickInterval,
 		Stat:                    e.Stat,
 		AdditivePerLevel:        e.AdditivePerLevel,

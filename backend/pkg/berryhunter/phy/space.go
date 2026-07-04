@@ -132,6 +132,43 @@ func (s *Space) bruteIntersectShapes(statics []Collider, shapes []DynamicCollide
 	}
 }
 
+// QueryCircle returns all dynamic colliders that intersect the given circle
+// and whose layer matches the circle's mask. It reuses the broadphase grid of
+// the last Update — the query circle itself is never added to the space, and
+// no collider records a collision. Intended for one-shot area effects
+// (instant_damage skills): create a circle, query, drop it.
+func (s *Space) QueryCircle(c *Circle) []DynamicCollider {
+	c.updateBB()
+	bb := c.BoundingBox()
+
+	seen := make(map[DynamicCollider]struct{})
+	var hits []DynamicCollider
+
+	for x := floor32f(bb.Left / gridWidth); x <= floor32f(bb.Right/gridWidth); x++ {
+		for y := floor32f(bb.Bottom / gridWidth); y <= floor32f(bb.Upper/gridWidth); y++ {
+			for _, other := range s.grid[Vec2i{x, y}] {
+				if _, ok := seen[other]; ok {
+					continue
+				}
+				seen[other] = struct{}{}
+
+				obb := other.BoundingBox()
+				if !IntersectAabb(&bb, &obb) {
+					continue
+				}
+				if !ArbiterShapes(c, other) {
+					continue
+				}
+				if !c.IntersectWith(other) {
+					continue
+				}
+				hits = append(hits, other)
+			}
+		}
+	}
+	return hits
+}
+
 // AddShape appends a new shape to the existing ones
 func (s *Space) AddShape(c DynamicCollider) {
 	s.shapes[c] = struct{}{}

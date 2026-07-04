@@ -1,0 +1,13 @@
+{
+  "id": 11,
+  "name": "ToughPassive",
+  "category": "passive",
+  "maxLevel": 3,
+  "effects": [
+    {
+      "type": "stat_multiplier",
+      "stat": "damageReduction",
+      "additivePerLevel": 0.02
+    }
+  ]
+}

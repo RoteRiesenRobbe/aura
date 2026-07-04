@@ -1,0 +1,15 @@
+{
+  "id": 21,
+  "name": "Heal",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 900,
+  "cooldownTicksPerLevel": 0,
+  "effects": [
+    {
+      "type": "self_heal",
+      "healFraction": 0.20,
+      "healFractionPerLevel": 0.05
+    }
+  ]
+}

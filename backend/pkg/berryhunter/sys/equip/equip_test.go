@@ -190,16 +190,30 @@ func TestEquipSystem_PassiveSlotOutOfRange(t *testing.T) {
 	}
 }
 
-func TestEquipSystem_CooldownRejectedUntilBuilt(t *testing.T) {
-	// Cooldown slots exist in the component but their equip path ships with 8.2.
+func TestEquipSystem_CooldownEquipsIntoCooldownSlot(t *testing.T) {
 	es, player := newSystem(defNova)
 	player.sc.Discover(defNova.ID)
-	player.client.msg = &model.EquipSkill{SkillID: defNova.ID, Slot: 0}
+	require.True(t, player.sc.RaiseSkillLevel(defNova)) // level 2
+	player.client.msg = &model.EquipSkill{SkillID: defNova.ID, Slot: 1}
 
 	es.Update(0)
 
-	assert.Nil(t, player.sc.CooldownSlots[0])
-	assert.Nil(t, player.sc.AuraSlots[0])
+	require.NotNil(t, player.sc.CooldownSlots[1])
+	assert.Equal(t, defNova.ID, player.sc.CooldownSlots[1].Def.ID)
+	assert.Equal(t, 2, player.sc.CooldownSlots[1].Level)
+	assert.Nil(t, player.sc.AuraSlots[1], "must not land in the aura slots")
+}
+
+func TestEquipSystem_CooldownSlotOutOfRange(t *testing.T) {
+	es, player := newSystem(defNova)
+	player.sc.Discover(defNova.ID)
+	player.client.msg = &model.EquipSkill{SkillID: defNova.ID, Slot: skills.MaxCooldownSlots}
+
+	es.Update(0)
+
+	for i := 0; i < skills.MaxCooldownSlots; i++ {
+		assert.Nil(t, player.sc.CooldownSlots[i], "slot %d should be empty", i)
+	}
 }
 
 func TestEquipSystem_EquipsAtStoredLevel(t *testing.T) {

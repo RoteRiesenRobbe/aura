@@ -23,6 +23,15 @@
     "weight": 20
   },
   "skills": [
-    { "skillName": "MammothAura", "level": 1 }
+    {
+      "skillName": "MammothAura",
+      "level": 1
+    }
+  ],
+  "unlocks": [
+    {
+      "skillName": "SlowAura",
+      "chance": 0.2
+    }
   ]
 }

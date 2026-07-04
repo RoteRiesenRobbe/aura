@@ -35,6 +35,10 @@ export class GameStateMessage {
     auraSlots: number[];
     // equipped passive slot contents, positional (index i = slot i, 0 = empty)
     passiveSlots: number[];
+    // equipped cooldown slot contents, positional (index i = slot i, 0 = empty)
+    cooldownSlots: number[];
+    // remaining cooldown ticks, positionally parallel to cooldownSlots; 0 = ready
+    cooldownRemainingTicks: number[];
     // index of the active aura slot for the owning player; -1 = Nothing
     activeAuraSlot: number;
 
@@ -83,6 +87,16 @@ export class GameStateMessage {
         this.passiveSlots = [];
         for (let i = 0; i < gameState.passiveSlotsLength(); ++i) {
             this.passiveSlots.push(gameState.passiveSlots(i));
+        }
+
+        this.cooldownSlots = [];
+        for (let i = 0; i < gameState.cooldownSlotsLength(); ++i) {
+            this.cooldownSlots.push(gameState.cooldownSlots(i));
+        }
+
+        this.cooldownRemainingTicks = [];
+        for (let i = 0; i < gameState.cooldownRemainingTicksLength(); ++i) {
+            this.cooldownRemainingTicks.push(gameState.cooldownRemainingTicks(i));
         }
 
         this.activeAuraSlot = gameState.activeAuraSlot();
@@ -156,6 +170,7 @@ function unmarshalEntity(entity, eType) {
         auraRadius: undefined,
         activeSkillId: undefined,
         statusEffects: undefined,
+        burstRadius: undefined,
     };
 
     if (eType === BerryhunterApi.AnyEntity.Resource) {
@@ -170,6 +185,7 @@ function unmarshalEntity(entity, eType) {
     if (eType === BerryhunterApi.AnyEntity.Mob) {
         result.rotation = entity.rotation();
         result.health = entity.health();
+        result.burstRadius = entity.burstRadius();
     }
 
     if (eType === BerryhunterApi.AnyEntity.Character) {
@@ -195,6 +211,7 @@ function unmarshalEntity(entity, eType) {
         result.levelProgress = entity.satiety() / 0xffffffff;
         result.auraRadius = entity.auraRadius();
         result.activeSkillId = entity.activeSkillId();
+        result.burstRadius = entity.burstRadius();
 
         result.equipment = [];
         for (let i = 0; i < entity.equipmentLength(); ++i) {

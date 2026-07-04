@@ -13,6 +13,7 @@ const (
 	StatusEffectStarving       StatusEffect = 3
 	StatusEffectRegenerating   StatusEffect = 4
 	StatusEffectDamagedAmbient StatusEffect = 5
+	StatusEffectBurstFired     StatusEffect = 6
 )
 
 var EnumNamesStatusEffect = map[StatusEffect]string{
@@ -22,6 +23,7 @@ var EnumNamesStatusEffect = map[StatusEffect]string{
 	StatusEffectStarving:       "Starving",
 	StatusEffectRegenerating:   "Regenerating",
 	StatusEffectDamagedAmbient: "DamagedAmbient",
+	StatusEffectBurstFired:     "BurstFired",
 }
 
 var EnumValuesStatusEffect = map[string]StatusEffect{
@@ -31,6 +33,7 @@ var EnumValuesStatusEffect = map[string]StatusEffect{
 	"Starving":       StatusEffectStarving,
 	"Regenerating":   StatusEffectRegenerating,
 	"DamagedAmbient": StatusEffectDamagedAmbient,
+	"BurstFired":     StatusEffectBurstFired,
 }
 
 func (v StatusEffect) String() string {

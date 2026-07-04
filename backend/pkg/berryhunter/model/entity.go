@@ -103,6 +103,9 @@ type MobEntity interface {
 	// Skill loadout (Phase 6.1): mobs run on the same SkillSystem as players.
 	SkillComponent() *skills.SkillComponent
 	AuraCollider() *phy.Circle
+	// BurstRadius is the effective radius of a recently fired instant_damage
+	// burst (wire burst_radius, drives the burst ring VFX); 0 = none.
+	BurstRadius() float32
 }
 
 // AABB is an alias to not expose transitive dependencies

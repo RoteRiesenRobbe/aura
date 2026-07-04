@@ -30,7 +30,8 @@
     "fixed": 1
   },
   "skills": [
-    { "skillName": "AngryMammothAura", "level": 3 }
+    { "skillName": "AngryMammothAura", "level": 3 },
+    { "skillName": "AngryMammothStomp", "level": 1 }
   ],
   "unlocks": [
     { "skillName": "WildAura", "chance": 1.0 }

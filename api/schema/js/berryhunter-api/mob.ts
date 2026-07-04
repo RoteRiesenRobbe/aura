@@ -83,8 +83,13 @@ mobId():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
+burstRadius():number {
+  const offset = this.bb!.__offset(this.bb_pos, 22);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(9);
+  builder.startObject(10);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -133,6 +138,10 @@ static addHealth(builder:flatbuffers.Builder, health:number) {
 
 static addMobId(builder:flatbuffers.Builder, mobId:number) {
   builder.addFieldInt16(8, mobId, 0);
+}
+
+static addBurstRadius(builder:flatbuffers.Builder, burstRadius:number) {
+  builder.addFieldInt16(9, burstRadius, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

@@ -132,8 +132,38 @@ passiveSlotsArray():Uint16Array|null {
   return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
+cooldownSlots(index: number):number|null {
+  const offset = this.bb!.__offset(this.bb_pos, 26);
+  return offset ? this.bb!.readUint16(this.bb!.__vector(this.bb_pos + offset) + index * 2) : 0;
+}
+
+cooldownSlotsLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 26);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
+cooldownSlotsArray():Uint16Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 26);
+  return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+}
+
+cooldownRemainingTicks(index: number):number|null {
+  const offset = this.bb!.__offset(this.bb_pos, 28);
+  return offset ? this.bb!.readUint16(this.bb!.__vector(this.bb_pos + offset) + index * 2) : 0;
+}
+
+cooldownRemainingTicksLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 28);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
+cooldownRemainingTicksArray():Uint16Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 28);
+  return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(11);
+  builder.startObject(13);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -259,12 +289,54 @@ static startPassiveSlotsVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(2, numElems, 2);
 }
 
+static addCooldownSlots(builder:flatbuffers.Builder, cooldownSlotsOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(11, cooldownSlotsOffset, 0);
+}
+
+static createCooldownSlotsVector(builder:flatbuffers.Builder, data:number[]|Uint16Array):flatbuffers.Offset;
+/**
+ * @deprecated This Uint8Array overload will be removed in the future.
+ */
+static createCooldownSlotsVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
+static createCooldownSlotsVector(builder:flatbuffers.Builder, data:number[]|Uint16Array|Uint8Array):flatbuffers.Offset {
+  builder.startVector(2, data.length, 2);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addInt16(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startCooldownSlotsVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(2, numElems, 2);
+}
+
+static addCooldownRemainingTicks(builder:flatbuffers.Builder, cooldownRemainingTicksOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(12, cooldownRemainingTicksOffset, 0);
+}
+
+static createCooldownRemainingTicksVector(builder:flatbuffers.Builder, data:number[]|Uint16Array):flatbuffers.Offset;
+/**
+ * @deprecated This Uint8Array overload will be removed in the future.
+ */
+static createCooldownRemainingTicksVector(builder:flatbuffers.Builder, data:number[]|Uint8Array):flatbuffers.Offset;
+static createCooldownRemainingTicksVector(builder:flatbuffers.Builder, data:number[]|Uint16Array|Uint8Array):flatbuffers.Offset {
+  builder.startVector(2, data.length, 2);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addInt16(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startCooldownRemainingTicksVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(2, numElems, 2);
+}
+
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, inventoryOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number, spellbookLevelsOffset:flatbuffers.Offset, skillPoints:number, passiveSlotsOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, inventoryOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number, spellbookLevelsOffset:flatbuffers.Offset, skillPoints:number, passiveSlotsOffset:flatbuffers.Offset, cooldownSlotsOffset:flatbuffers.Offset, cooldownRemainingTicksOffset:flatbuffers.Offset):flatbuffers.Offset {
   GameState.startGameState(builder);
   GameState.addTick(builder, tick);
   GameState.addPlayerType(builder, playerType);
@@ -277,6 +349,8 @@ static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Play
   GameState.addSpellbookLevels(builder, spellbookLevelsOffset);
   GameState.addSkillPoints(builder, skillPoints);
   GameState.addPassiveSlots(builder, passiveSlotsOffset);
+  GameState.addCooldownSlots(builder, cooldownSlotsOffset);
+  GameState.addCooldownRemainingTicks(builder, cooldownRemainingTicksOffset);
   return GameState.endGameState(builder);
 }
 }

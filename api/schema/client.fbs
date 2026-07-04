@@ -13,6 +13,10 @@ table Input {
     rotation:float;
     action:Action;
     active_aura_slot:byte = -1;
+
+    // cooldown slot indices to activate this tick; the server ignores any
+    // slot that is empty or still on cooldown
+    cooldown_activations:[ubyte];
 }
 
 table Join {

@@ -26,6 +26,12 @@ let auraLoadoutElement: HTMLElement;
 let auraSlotListElement: HTMLElement;
 let passiveLoadoutElement: HTMLElement;
 let passiveSlotListElement: HTMLElement;
+let cooldownLoadoutElement: HTMLElement;
+let cooldownSlotListElement: HTMLElement;
+
+// Latest cooldown slot state from the server; gates the activate-on-click.
+let currentCooldownSlots: number[] = [];
+let currentCooldownRemaining: number[] = [];
 
 let selectedSkillId: number | null = null;
 let skillPointsBadgeElement: HTMLElement;
@@ -56,6 +62,7 @@ export function setup(game) {
     setupSpellbook();
     setupAuraLoadout();
     setupPassiveLoadout();
+    setupCooldownLoadout();
 }
 
 function setupCrafting() {
@@ -225,6 +232,7 @@ function setupSpellbook() {
             // Only the panel matching the skill's category invites the equip click.
             auraLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'aura');
             passiveLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'passive');
+            cooldownLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'cooldown');
         }
     });
 }
@@ -248,28 +256,41 @@ function setupAuraLoadout() {
             return;
         }
 
-        // Activate branch: nothing pending — toggle this slot's aura.
-        // Empty slots (skill id 0) do nothing. The highlight set here is
-        // optimistic (instant feedback); the server-authoritative
-        // active_aura_slot overwrites it every tick (updateActiveAuraSlot),
-        // and the on-character ring follows Character.active_skill_id.
-        if (currentAuraSlots[slot] === 0 || currentAuraSlots[slot] === undefined) {
-            return;
-        }
-
-        const input = new InputMessage();
-        if (activeSlotIndex === slot) {
-            // Clicking the already-active slot deactivates it → Nothing.
-            input.activeAuraSlot = DEACTIVATE_AURA_SLOT;
-            input.send();
-            clearActiveSlotHighlight();
-        } else {
-            // Switch the active aura to this slot.
-            input.activeAuraSlot = slot;
-            input.send();
-            setActiveSlotHighlight(slot);
-        }
+        toggleAuraSlot(slot);
     });
+}
+
+// toggleAuraSlot activates the given aura slot, or deactivates the aura when
+// the slot is already active (→ Nothing). Empty slots (skill id 0) do
+// nothing. The highlight set here is optimistic (instant feedback); the
+// server-authoritative active_aura_slot overwrites it every tick
+// (updateActiveAuraSlot), and the on-character ring follows
+// Character.active_skill_id. Shared by slot clicks and hotkeys 1–4.
+function toggleAuraSlot(slot: number) {
+    if (currentAuraSlots[slot] === 0 || currentAuraSlots[slot] === undefined) {
+        return;
+    }
+
+    const input = new InputMessage();
+    if (activeSlotIndex === slot) {
+        input.activeAuraSlot = DEACTIVATE_AURA_SLOT;
+        input.send();
+        clearActiveSlotHighlight();
+    } else {
+        input.activeAuraSlot = slot;
+        input.send();
+        setActiveSlotHighlight(slot);
+    }
+}
+
+// hotkeyAuraSlot is the keyboard entry point (Controls, keys 1–4).
+export function hotkeyAuraSlot(slot: number) {
+    toggleAuraSlot(slot);
+}
+
+// hotkeyCooldownSlot is the keyboard entry point (Controls, Q/E).
+export function hotkeyCooldownSlot(slot: number) {
+    activateCooldownSlot(slot);
 }
 
 function setupPassiveLoadout() {
@@ -287,6 +308,39 @@ function setupPassiveLoadout() {
             clearEquipSelection();
         }
     });
+}
+
+function setupCooldownLoadout() {
+    cooldownLoadoutElement = document.getElementById('cooldownLoadout');
+    cooldownSlotListElement = document.getElementById('cooldownSlotList');
+    cooldownSlotListElement.addEventListener('pointerdown', (e) => {
+        const li = (e.target as HTMLElement).closest('li') as HTMLElement;
+        if (!li || li.dataset.slot === undefined) return;
+        const slot = Number(li.dataset.slot);
+
+        // Equip branch: a pending cooldown skill installs into this slot.
+        if (selectedSkillId !== null) {
+            if (skillCategory(selectedSkillId) === 'cooldown') {
+                new EquipMessage(selectedSkillId, slot).send();
+                clearEquipSelection();
+            }
+            return;
+        }
+
+        // Activate branch: clicking an occupied, ready slot fires it — the
+        // same wire signal as the hotkeys. The server re-validates anyway.
+        activateCooldownSlot(slot);
+    });
+}
+
+// activateCooldownSlot fires an occupied, ready cooldown slot. Shared by
+// slot clicks and the Q/E hotkeys; the server re-validates every request.
+function activateCooldownSlot(slot: number) {
+    if ((currentCooldownSlots[slot] ?? 0) === 0) return;
+    if ((currentCooldownRemaining[slot] ?? 0) > 0) return;
+    const input = new InputMessage();
+    input.cooldownActivations = [slot];
+    input.send();
 }
 
 // setActiveSlotHighlight marks one slot active in the panel (optimistic, client-side).
@@ -310,6 +364,7 @@ function clearEquipSelection() {
     spellbookListElement.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
     auraLoadoutElement.classList.remove('hasPendingSkill');
     passiveLoadoutElement.classList.remove('hasPendingSkill');
+    cooldownLoadoutElement.classList.remove('hasPendingSkill');
 }
 
 // Previous tick's spellbook contents, used to detect fresh unlocks for the
@@ -439,7 +494,8 @@ export function updateAuraLoadout(slots: number[]) {
     for (let i = 0; i < slots.length; i++) {
         const li = auraSlotListElement.querySelector(`.auraSlot[data-slot="${i}"]`) as HTMLElement;
         if (!li) continue;
-        li.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
+        const label = li.querySelector('.slotLabel') as HTMLElement;
+        label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
         // Re-apply the optimistic highlight after the per-tick text re-render.
         // Never highlight an empty slot (guards against a slot emptied while active).
         li.classList.toggle('activeSlot', activeSlotIndex === i && slots[i] !== 0);
@@ -454,6 +510,24 @@ export function updatePassiveLoadout(slots: number[]) {
         const li = passiveSlotListElement.querySelector(`.passiveSlot[data-slot="${i}"]`) as HTMLElement;
         if (!li) continue;
         li.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
+    }
+}
+
+// updateCooldownLoadout renders the server-authoritative cooldown slots and
+// their remaining time (ticks × 33 ms), which doubles as the fired/ready state.
+export function updateCooldownLoadout(slots: number[], remainingTicks: number[]) {
+    if (!cooldownSlotListElement) return;
+    currentCooldownSlots = slots;
+    currentCooldownRemaining = remainingTicks;
+    for (let i = 0; i < slots.length; i++) {
+        const li = cooldownSlotListElement.querySelector(`.cooldownSlot[data-slot="${i}"]`) as HTMLElement;
+        if (!li) continue;
+        const label = li.querySelector('.slotLabel') as HTMLElement;
+        const cd = li.querySelector('.cdRemaining') as HTMLElement;
+        label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
+        const remaining = remainingTicks[i] ?? 0;
+        cd.textContent = remaining > 0 ? `${(remaining * 33 / 1000).toFixed(1)}s` : '';
+        li.classList.toggle('onCooldown', remaining > 0);
     }
 }
 
