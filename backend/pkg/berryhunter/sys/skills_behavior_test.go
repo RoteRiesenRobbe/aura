@@ -618,8 +618,8 @@ func TestSkillSystem_EndToEnd_DamageAuraHitsTarget(t *testing.T) {
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.01, target.touches[0], 1e-6)
-	assert.Equal(t, 0, caster.sc.AuraSlots[0].TickAccumulator,
-		"accumulator resets after the effect fired (interval 1)")
+	assert.Equal(t, 1, caster.sc.AuraSlots[0].TickAccumulator,
+		"accumulator grows monotonically (interval 1 fires every tick via modulo)")
 }
 
 func TestSkillSystem_TickInterval_FiresEveryNthTick(t *testing.T) {
@@ -638,14 +638,13 @@ func TestSkillSystem_TickInterval_FiresEveryNthTick(t *testing.T) {
 		"a tickInterval of 3 fires exactly on every third tick")
 }
 
-// TestSkillSystem_MultiEffectIntervalQuirk pins down the documented limitation
-// (docs/skill-system-design.md, "Known limitation"): the accumulator is shared
-// per equipped skill and only resets at the maximum interval, so an effect with
-// a shorter interval re-fires on every tick between reaching its own threshold
-// and the shared reset. If this test starts failing because the quirk was fixed
-// (per-effect accumulators), update docs/skill-system-design.md and replace the
-// expectation with the corrected cadence.
-func TestSkillSystem_MultiEffectIntervalQuirk(t *testing.T) {
+// TestSkillSystem_MultiEffect_EachEffectOnOwnCadence pins the multi-effect tick
+// behavior: with a shared but monotonic accumulator and per-effect modulo, each
+// effect fires exactly on multiples of its own interval, independent of the
+// others (this replaced the earlier shared-max-interval-reset quirk, which made
+// a shorter-interval effect re-fire every tick). PaladinAura relies on this to
+// run its fast damage and slow heal on separate cadences.
+func TestSkillSystem_MultiEffect_EachEffectOnOwnCadence(t *testing.T) {
 	caster, target := activeAuraPlayer(t, damageEffect(2), damageEffect(3))
 	sk := NewSkillSystem(phy.NewSpace())
 	sk.AddEntity(caster)
@@ -657,9 +656,8 @@ func TestSkillSystem_MultiEffectIntervalQuirk(t *testing.T) {
 		touchesPerTick = append(touchesPerTick, len(target.touches)-before)
 	}
 
-	// Tick 2: interval-2 effect fires. Tick 3: interval-2 fires AGAIN (quirk)
-	// plus interval-3 fires; shared reset. Then the pattern repeats.
-	assert.Equal(t, []int{0, 1, 2, 0, 1, 2}, touchesPerTick)
+	// interval-2 fires on ticks 2,4,6; interval-3 on ticks 3,6 (both on tick 6).
+	assert.Equal(t, []int{0, 1, 1, 1, 0, 2}, touchesPerTick)
 }
 
 func TestSkillSystem_SwitchingResetsFireCycle(t *testing.T) {

@@ -74,6 +74,7 @@ func (f *fakeAuraPlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vs 
 func (f *fakeAuraPlayer) AddExperience(xp uint64)                { f.xp = append(f.xp, xp) }
 func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity    { return f.healers }
 func (f *fakeAuraPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
+func (f *fakeAuraPlayer) ApplyRecipeCascade()                    {}
 
 func newFakeAuraPlayer() *fakeAuraPlayer {
 	return &fakeAuraPlayer{

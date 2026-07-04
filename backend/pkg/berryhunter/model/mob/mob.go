@@ -453,4 +453,6 @@ func (m *Mob) rewardPlayer(p model.PlayerEntity, xp uint64) {
 			p.SkillComponent().Discover(u.Skill.ID)
 		}
 	}
+	// A kill-drop discovery can newly satisfy a recipe (Phase 9).
+	p.ApplyRecipeCascade()
 }

@@ -16,6 +16,9 @@ type equipEntity interface {
 	Client() model.Client
 	SkillComponent() *skills.SkillComponent
 	AvailableSkillPoints() int
+	// ApplyRecipeCascade discovers any combination recipes newly satisfied by a
+	// skill-level raise (Phase 9).
+	ApplyRecipeCascade()
 }
 
 // equipGame is the minimal surface EquipSystem requires from the game.
@@ -163,6 +166,8 @@ func (es *EquipSystem) handleSpendSkillPoint(player equipEntity) {
 				slog.Int("level", sc.SkillLevel(def.ID)))
 			return
 		}
+		// Only a level *raise* can newly satisfy a recipe; unspend never can.
+		player.ApplyRecipeCascade()
 	}
 
 	slog.Info("spend",

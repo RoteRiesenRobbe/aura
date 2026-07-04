@@ -3,6 +3,7 @@ package equip
 import (
 	"fmt"
 	"testing"
+	"testing/fstest"
 
 	"github.com/EngoEngine/ecs"
 	"github.com/google/uuid"
@@ -86,6 +87,7 @@ type stubEquipEntity struct {
 	sc              *skills.SkillComponent
 	client          *stubClient
 	availablePoints int
+	recipes         skills.RecipeRegistry
 }
 
 func (e *stubEquipEntity) Basic() ecs.BasicEntity                 { return e.BasicEntity }
@@ -93,6 +95,11 @@ func (e *stubEquipEntity) Name() string                           { return "test
 func (e *stubEquipEntity) Client() model.Client                   { return e.client }
 func (e *stubEquipEntity) SkillComponent() *skills.SkillComponent { return e.sc }
 func (e *stubEquipEntity) AvailableSkillPoints() int              { return e.availablePoints }
+func (e *stubEquipEntity) ApplyRecipeCascade() {
+	if e.recipes != nil {
+		skills.ApplyRecipes(e.sc, e.recipes)
+	}
+}
 
 // --- helpers ---
 
@@ -307,4 +314,49 @@ func TestSpendSkillPoint_UnspendAtLevel1IsRejected(t *testing.T) {
 	es.Update(0)
 
 	assert.Equal(t, 1, player.sc.SkillLevel(defDamage.ID))
+}
+
+// A skill-level raise that satisfies a recipe unlocks the result (Phase 9);
+// the trigger fires from the EquipSystem spend handler.
+func TestSpendSkillPoint_RaiseTriggersRecipeCascade(t *testing.T) {
+	es, player := newSystem(defDamage, defNova)
+	// Recipe: DamageAura@2 -> NovaBurst.
+	fsys := fstest.MapFS{"r.json": {Data: []byte(`{
+      "id": 1, "result": "NovaBurst",
+      "ingredients": [{ "skill": "DamageAura", "level": 2 }]
+    }`)}}
+	recipes, err := skills.RecipesFromFS(fsys, es.g.(*stubGame).registry)
+	require.NoError(t, err)
+	player.recipes = recipes
+
+	player.sc.Discover(defDamage.ID)
+	require.False(t, player.sc.HasDiscovered(defNova.ID))
+	player.availablePoints = 1
+	player.client.spend = &model.SpendSkillPoint{SkillID: defDamage.ID}
+
+	es.Update(0)
+
+	assert.Equal(t, 2, player.sc.SkillLevel(defDamage.ID))
+	assert.True(t, player.sc.HasDiscovered(defNova.ID), "combo result unlocked by the raise")
+}
+
+// Unspend must never trigger a recipe: it can only lower a level.
+func TestSpendSkillPoint_UnspendDoesNotTriggerRecipe(t *testing.T) {
+	es, player := newSystem(defDamage, defNova)
+	fsys := fstest.MapFS{"r.json": {Data: []byte(`{
+      "id": 1, "result": "NovaBurst",
+      "ingredients": [{ "skill": "DamageAura", "level": 2 }]
+    }`)}}
+	recipes, err := skills.RecipesFromFS(fsys, es.g.(*stubGame).registry)
+	require.NoError(t, err)
+	player.recipes = recipes
+
+	player.sc.Discover(defDamage.ID)
+	require.True(t, player.sc.RaiseSkillLevel(defDamage)) // level 2, but no cascade run here
+	player.client.spend = &model.SpendSkillPoint{SkillID: defDamage.ID, Unspend: true}
+
+	es.Update(0)
+
+	assert.Equal(t, 1, player.sc.SkillLevel(defDamage.ID))
+	assert.False(t, player.sc.HasDiscovered(defNova.ID), "unspend must not fire a recipe")
 }

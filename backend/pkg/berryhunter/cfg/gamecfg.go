@@ -16,6 +16,7 @@ type GameConfig struct {
 	MobRegistry      mobs.Registry
 	SkillRegistry    skills.Registry
 	MilestoneUnlocks []skills.MilestoneUnlock
+	Recipes          skills.RecipeRegistry
 
 	TotalDayCycleSeconds   uint64
 	DayTimeSeconds         uint64

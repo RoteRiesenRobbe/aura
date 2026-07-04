@@ -1,0 +1,32 @@
+{
+  "_comment": "Phase 9 combination result (DamageAura L5 + HealAura L5). Damages the nearest enemy and heals the lowest-HP ally in range each on its own cadence. Values are a constant 70% of DamageAura/HealAura at every level; no heal self-cost. All [PLACEHOLDER] pending balance pass.",
+  "id": 30,
+  "name": "PaladinAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageFraction": 0.126,
+      "damageFractionPerLevel": 0.028,
+      "targetsMobs": true,
+      "targetsPlayers": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 20
+    },
+    {
+      "type": "heal_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "healFraction": 0.042,
+      "healFractionPerLevel": 0.021,
+      "selfDamageFraction": 0.0,
+      "selector": "lowest_health",
+      "maxTargets": 1,
+      "tickInterval": 60
+    }
+  ]
+}

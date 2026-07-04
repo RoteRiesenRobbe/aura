@@ -76,6 +76,13 @@ func MilestoneUnlocks(unlocks []skills.MilestoneUnlock) Configuration {
 	}
 }
 
+func Recipes(r skills.RecipeRegistry) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.Recipes = r
+		return nil
+	}
+}
+
 func Tokens(t []string) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.Tokens = t

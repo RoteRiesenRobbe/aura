@@ -1,0 +1,163 @@
+package skills
+
+import (
+	"os"
+	"testing"
+	"testing/fstest"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// testSkillRegistry builds a skill registry from the shared fixtures so recipe
+// tests can resolve ingredient/result names. DamageAura (ID 1, maxLevel 5),
+// SwiftPassive (ID 10, maxLevel 3), HealAura (ID 2, maxLevel 5).
+func testSkillRegistry(t *testing.T) Registry {
+	t.Helper()
+	fsys := fstest.MapFS{
+		"damage-aura.json":   {Data: damageAuraJSON},
+		"heal-aura.json":     {Data: healAuraJSON},
+		"swift-passive.json": {Data: swiftPassiveJSON},
+	}
+	r, err := RegistryFromFS(fsys)
+	require.NoError(t, err)
+	return r
+}
+
+var frostfireRecipeJSON = []byte(`{
+  "id": 100,
+  "result": "HealAura",
+  "ingredients": [
+    { "skill": "DamageAura", "level": 3 },
+    { "skill": "SwiftPassive", "level": 2 }
+  ]
+}`)
+
+func TestRecipes_LoadsAndResolves(t *testing.T) {
+	sr := testSkillRegistry(t)
+	fsys := fstest.MapFS{"frostfire.json": {Data: frostfireRecipeJSON}}
+
+	rr, err := RecipesFromFS(fsys, sr)
+	require.NoError(t, err)
+	require.Len(t, rr.All(), 1)
+
+	rec := rr.All()[0]
+	assert.Equal(t, RecipeID(100), rec.ID)
+	assert.Equal(t, "HealAura", rec.Result.Name)
+	require.Len(t, rec.Ingredients, 2)
+	assert.Equal(t, "DamageAura", rec.Ingredients[0].Skill.Name)
+	assert.Equal(t, 3, rec.Ingredients[0].Level)
+	assert.Equal(t, "SwiftPassive", rec.Ingredients[1].Skill.Name)
+	assert.Equal(t, 2, rec.Ingredients[1].Level)
+}
+
+func TestRecipes_EmptyDirectory(t *testing.T) {
+	rr, err := RecipesFromFS(fstest.MapFS{}, testSkillRegistry(t))
+	require.NoError(t, err)
+	assert.Empty(t, rr.All())
+}
+
+func TestRecipes_MalformedJSON(t *testing.T) {
+	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{invalid`)}}
+	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
+	assert.Error(t, err)
+}
+
+func TestRecipes_UnknownResult(t *testing.T) {
+	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{
+      "id": 1, "result": "NoSuchSkill",
+      "ingredients": [{ "skill": "DamageAura", "level": 1 }]
+    }`)}}
+	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
+	assert.Error(t, err)
+}
+
+func TestRecipes_UnknownIngredient(t *testing.T) {
+	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{
+      "id": 1, "result": "HealAura",
+      "ingredients": [{ "skill": "NoSuchSkill", "level": 1 }]
+    }`)}}
+	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
+	assert.Error(t, err)
+}
+
+func TestRecipes_IngredientLevelTooHigh(t *testing.T) {
+	// DamageAura maxLevel is 5.
+	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{
+      "id": 1, "result": "HealAura",
+      "ingredients": [{ "skill": "DamageAura", "level": 6 }]
+    }`)}}
+	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
+	assert.Error(t, err)
+}
+
+func TestRecipes_IngredientLevelZero(t *testing.T) {
+	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{
+      "id": 1, "result": "HealAura",
+      "ingredients": [{ "skill": "DamageAura", "level": 0 }]
+    }`)}}
+	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
+	assert.Error(t, err)
+}
+
+func TestRecipes_EmptyIngredients(t *testing.T) {
+	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{
+      "id": 1, "result": "HealAura", "ingredients": []
+    }`)}}
+	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
+	assert.Error(t, err)
+}
+
+func TestRecipes_DuplicateID(t *testing.T) {
+	recA := []byte(`{"id": 5, "result": "HealAura",
+      "ingredients": [{ "skill": "DamageAura", "level": 1 }]}`)
+	recB := []byte(`{"id": 5, "result": "DamageAura",
+      "ingredients": [{ "skill": "SwiftPassive", "level": 1 }]}`)
+	fsys := fstest.MapFS{"a.json": {Data: recA}, "b.json": {Data: recB}}
+	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
+	assert.Error(t, err)
+}
+
+// Two recipes with the exact same ingredient set are allowed (both fire) — not
+// a validation error, unlike duplicate IDs.
+// TestRecipes_LoadsRealContent pins the shipped Phase 9 content: the real
+// recipe JSONs resolve against the real skill registry, and the Paladin Aura
+// combination (DamageAura L5 + HealAura L5 -> PaladinAura) both loads and fires.
+func TestRecipes_LoadsRealContent(t *testing.T) {
+	sr, err := RegistryFromFS(os.DirFS("../../../../api/skills"))
+	require.NoError(t, err)
+	rr, err := RecipesFromFS(os.DirFS("../../../../api/recipes"), sr)
+	require.NoError(t, err)
+	require.NotEmpty(t, rr.All())
+
+	paladin, err := sr.GetByName("PaladinAura")
+	require.NoError(t, err)
+
+	// End-to-end: a spellbook with both ingredients maxed unlocks PaladinAura.
+	dmg, _ := sr.GetByName("DamageAura")
+	heal, _ := sr.GetByName("HealAura")
+	sc := NewSkillComponent(true)
+	sc.Spellbook[dmg.ID] = 5
+	sc.Spellbook[heal.ID] = 5
+
+	unlocked := ApplyRecipes(sc, rr)
+	assert.Contains(t, unlocked, paladin.ID, "PaladinAura unlocks from DamageAura+HealAura maxed")
+	assert.True(t, sc.HasDiscovered(paladin.ID))
+
+	// One ingredient below the threshold must not unlock it.
+	sc2 := NewSkillComponent(true)
+	sc2.Spellbook[dmg.ID] = 5
+	sc2.Spellbook[heal.ID] = 4
+	assert.NotContains(t, ApplyRecipes(sc2, rr), paladin.ID)
+}
+
+func TestRecipes_DuplicateIngredientSetAllowed(t *testing.T) {
+	recA := []byte(`{"id": 1, "result": "HealAura",
+      "ingredients": [{ "skill": "DamageAura", "level": 2 }]}`)
+	recB := []byte(`{"id": 2, "result": "SwiftPassive",
+      "ingredients": [{ "skill": "DamageAura", "level": 2 }]}`)
+	fsys := fstest.MapFS{"a.json": {Data: recA}, "b.json": {Data: recB}}
+	rr, err := RecipesFromFS(fsys, testSkillRegistry(t))
+	require.NoError(t, err)
+	assert.Len(t, rr.All(), 2)
+}

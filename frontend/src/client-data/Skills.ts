@@ -10,6 +10,7 @@ export const SkillNames: { [id: number]: string } = {
     11: 'Tough',
     20: 'Nova Burst',
     21: 'Heal',
+    30: 'Paladin Aura',
 };
 
 export function skillDisplayName(id: number): string {
@@ -27,6 +28,7 @@ export const SkillMaxLevels: { [id: number]: number } = {
     11: 3,
     20: 3,
     21: 3,
+    30: 5,
 };
 
 export function skillMaxLevel(id: number): number {
@@ -46,6 +48,7 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     11: 'passive',
     20: 'cooldown',
     21: 'cooldown',
+    30: 'aura',
 };
 
 // Unknown IDs default to 'aura' — the most common category; keeps a missing
@@ -58,3 +61,5 @@ export function skillCategory(id: number): SkillCategory {
 // Skill IDs referenced by the client-side ring-style mapping (Character.setActiveSkill).
 export const DAMAGE_AURA_SKILL_ID = 1;
 export const HEAL_AURA_SKILL_ID = 2;
+// PaladinAura damages and heals at once — it shows both rings (Phase 9).
+export const PALADIN_AURA_SKILL_ID = 30;

@@ -30,7 +30,7 @@ import {spatialAudio} from '../../audio/logic/SpatialAudio';
 import {swingLightAudioCues} from '../../player/logic/PlayerJuice';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
-import {HEAL_AURA_SKILL_ID} from '../../../client-data/Skills';
+import {HEAL_AURA_SKILL_ID, PALADIN_AURA_SKILL_ID} from '../../../client-data/Skills';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -318,8 +318,11 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     // Character.active_skill_id wire field. 0 = Nothing → no ring.
     // Ring style per skill ID is a client-side mapping (resolved question 6).
     setActiveSkill(skillId: number) {
+        // PaladinAura both damages and heals, so it shows both rings; a pure
+        // heal shows only the heal ring; everything else shows the damage ring.
+        const isPaladin = skillId === PALADIN_AURA_SKILL_ID;
         this.damageAuraSprite.visible = skillId !== 0 && skillId !== HEAL_AURA_SKILL_ID;
-        this.healAuraSprite.visible = skillId === HEAL_AURA_SKILL_ID;
+        this.healAuraSprite.visible = skillId === HEAL_AURA_SKILL_ID || isPaladin;
     }
 
     setAuraRadius(radiusPx: number) {

@@ -336,18 +336,20 @@ type skillEntity interface {
 Per-tick behavior:
 
 1. **Active aura slot**: Read `sc.ActiveAuraSlot` (−1 = none active). For that
-   slot, increment `slot.TickAccumulator`. Each `EffectDef` whose `TickInterval`
-   the accumulator has reached fires: read `slot.Collider.Collisions()` and apply
+   slot, increment `slot.TickAccumulator`. Each `EffectDef` fires on the ticks
+   where the accumulator is an exact multiple of that effect's `TickInterval`
+   (`accumulator % interval == 0`): read `slot.Collider.Collisions()` and apply
    the effect (scaling fractions by level). There is a **single accumulator per
-   equipped skill**, not one per effect; it resets to 0 only once it reaches the
-   maximum `TickInterval` across the skill's effects.
+   equipped skill**, not one per effect, but it grows **monotonically** — equip
+   and `SetActiveAura` reset it to 0; it is otherwise never reset.
 
-   > **Known limitation:** with multiple effects of *different* intervals on one
-   > skill, a shorter-interval effect re-fires on every tick between reaching its
-   > own threshold and the shared reset (e.g. intervals 2 and 3 → the interval-2
-   > effect fires on ticks 2 *and* 3, then again on 5 and 6). Correct for all
-   > current skills (each has a single effect). Move the accumulator per-effect
-   > before shipping a multi-effect skill with differing intervals.
+   > **Multi-effect cadence (Phase 9, PaladinAura):** because each effect uses
+   > `accumulator % interval == 0` against the same monotonic counter, effects
+   > with *different* intervals each fire on their own cadence, independent of
+   > one another (e.g. intervals 20 and 60 → the 20-effect fires on 20/40/60,
+   > the 60-effect on 60). This replaced the earlier shared-max-interval-reset
+   > scheme, which incorrectly re-fired a shorter-interval effect every tick
+   > until the reset. Pinned by `TestSkillSystem_MultiEffect_EachEffectOnOwnCadence`.
 2. **Cooldown slots**: Decrement `CdTicks` by 1 if `> 0`. A cooldown skill fires
    (apply `instant_damage` effects) only when the game loop receives an explicit
    activation input for that slot index, and `CdTicks == 0`. After firing,
@@ -512,7 +514,7 @@ registry pattern:
 The goal is no build break longer than a few hours at any step. Old and new code
 run in parallel until Phase 5.
 
-**Execution order:** ~~3.7~~ → ~~1b~~ → ~~Phase 5~~ → ~~6~~ → 7 → 8 → 9.
+**Execution order:** ~~3.7~~ → ~~1b~~ → ~~Phase 5~~ → ~~6~~ → ~~7~~ → ~~8~~ → ~~9~~. **All phases complete.**
 **⚑** marks open decision points to resolve before (or during) the phase.
 
 ### Phase 1 — Skill package and registry (~1 day) ✓ Done
@@ -878,31 +880,51 @@ including one refinement round and a content batch)*
     ×(1 − 2%×level), applied in `player.takeDamage`. Dodo drop, 5%.
   - All numbers [PLACEHOLDER]. Skill registry: 13 definitions, 4 milestones.
 
-### Phase 9 — Combinations (size unknown) — requires 7 & 8
+### Phase 9 — Combinations ✓ Done (tested in-game + committed 2026-07-05)
 
 The curated recipe system. Deliberately last: it consumes everything the
 earlier phases build (skill levels, all three categories, the unlock event).
+**This completes the skill-system migration (Phases 1–9).**
 
-**The design is fully written — see the Combination System section above**
-(all 16 catalog questions decided, 2026-07-04). Standing decisions: unlocks
-are **permanent** once triggered (free respec cannot revoke them; discovery is
-the gate, not maintaining the levels); recipes are curated, secret, cross-
-category; results can be ingredients of higher recipes.
+Design fully written — see the Combination System section above (all 16 catalog
+questions decided, 2026-07-04). Standing decisions: unlocks are **permanent**
+once triggered (free respec cannot revoke them; discovery is the gate, not
+maintaining the levels); recipes are curated, secret, cross-category; results
+can be ingredients of higher recipes.
 
-Implementation steps when this phase runs:
+**Implementation status:**
 
-- `RecipeDefinition` + recipe registry in `pkg/berryhunter/skills/` (mirror
-  the skill registry; load order items → skills → recipes → mobs; hard-fail
-  validation per the design).
-- Trigger hook on the two events (discovery, level increase) at their call
-  sites — `Discover` itself has no registry access, so the check lives beside
-  the EquipSystem spend handler and the unlock paths; cascade until no recipe
-  fires (bounded, see design).
-- Tests: trigger on discovery / on raise, ≥ semantics, threshold (nothing
-  consumed), chain cascade incl. cycle termination, idempotent re-trigger,
-  two recipes with identical ingredients both firing, validation failures.
-- First content: 1–2 secret starter recipes [PLACEHOLDER], e.g. requiring the
-  Phase 8 passive/cooldown — exercises the cross-category path.
+- ✓ `RecipeDefinition` + `RecipeRegistry` + `RecipesFromFS` in
+  `pkg/berryhunter/skills/recipe.go` (mirrors the skill registry; `api/recipes/`
+  JSON, embedded via `pkg/api/recipes`; hard-fail validation — unknown
+  result/ingredient names, level `<1`/`>maxLevel`, empty ingredients, duplicate
+  recipe IDs; duplicate *ingredient sets* allowed). `cp-defs` bundles
+  `../api/recipes`; `GameConfig.Recipes` + `core.Recipes(...)` +
+  `loadRecipes()`.
+- ✓ `skills.ApplyRecipes(sc, recipes) []SkillID` (`recipe_apply.go`) — monotonic
+  fixpoint cascade, `≥` threshold, pure (nothing consumed), idempotent +
+  cycle-safe (skips discovered results), no-op for mobs. Single seam
+  `player.ApplyRecipeCascade()` called at all three trigger sites:
+  `applyMilestoneUnlocks`, `mob.rewardPlayer` (kill drop), and the EquipSystem
+  spend handler after a **raise** (not unspend). No wire changes — combo
+  results reach clients via the normal spellbook stream + the 3.7 glow.
+- ✓ Tests: trigger on discovery / on raise, `≥` semantics, threshold (nothing
+  consumed), chain cascade incl. cycle termination, idempotent re-trigger, two
+  recipes with identical ingredients both firing, validation failures,
+  nil-spellbook mob, EquipSystem raise-triggers / unspend-doesn't, and
+  `TestRecipes_LoadsRealContent` (real registries, Paladin end-to-end).
+- ✓ **First content: PaladinAura** (`DamageAura L5 + HealAura L5`), a two-effect
+  aura (damage + heal). Note: both ingredients are auras, so this doesn't
+  exercise the cross-category path — that stays available for the next recipe
+  and is a pure JSON edit.
+- ✓ **Tick-cadence fix (prereq for multi-effect auras):** `sys/skills.go` now
+  fires each effect on `accumulator % interval == 0` against a monotonic
+  accumulator (equip/`SetActiveAura` reset to 0), replacing the shared
+  max-interval reset. See "Multi-effect cadence" under ECS Integration.
+
+**Adding more recipes/combos is now content-only** — drop a JSON in
+`api/recipes/` (+ a new result skill in `api/skills/` and its `Skills.ts` entry
+if the result is new), rebuild. No code changes.
 
 ---
 
@@ -1072,11 +1094,12 @@ Known issues to address in a future cleanup pass — not blocking current work.
   radii (or reusing the skill-id → radius mapping) — becomes pressing when
   mobs switch auras mid-fight (boss scripts) or radii scale dynamically.
 
-- **Single tick accumulator per equipped skill** — a multi-effect skill with
-  differing `tickInterval` values would fire its shorter-interval effects on
-  consecutive ticks near the shared reset (see ECS Integration, Known
-  limitation). Move `TickAccumulator` per-effect before shipping such a skill.
-  Pinned by `sys/skills_behavior_test.go` `TestSkillSystem_MultiEffectIntervalQuirk`.
+- **Single tick accumulator per equipped skill (RESOLVED, Phase 9)** — the
+  accumulator now grows monotonically and each effect fires on
+  `accumulator % interval == 0`, so multi-effect skills with differing
+  `tickInterval` values (PaladinAura) run each effect on its own cadence
+  correctly (see ECS Integration). Pinned by `sys/skills_behavior_test.go`
+  `TestSkillSystem_MultiEffect_EachEffectOnOwnCadence`.
 
 - ~~**Zombie-mob bug**~~ — fixed at the start of the Phase 6 chapter:
   `mob.Update()` now checks for death before out-of-combat regeneration.

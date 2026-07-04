@@ -96,31 +96,27 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 		collider.Shape().Mask = m
 	}
 
+	// The accumulator counts ticks since the aura became active and grows
+	// monotonically (equip and SetActiveAura reset it to 0). Each effect fires
+	// independently whenever the count is a multiple of its own interval, so a
+	// multi-effect aura (e.g. PaladinAura's fast damage + slow heal) runs each
+	// effect on its own cadence — unlike a shared max-interval reset, this is
+	// correct regardless of how the intervals relate.
 	equip.TickAccumulator++
 
 	collisions := collider.Collisions()
 	for _, effect := range equip.Def.Effects {
-		if equip.TickAccumulator >= effectiveTickInterval(effect, equip.Level) {
-			switch effect.Type {
-			case skills.EffectTypeDamageAura:
-				applyDamageAura(e, equip.Level, effect, collisions)
-			case skills.EffectTypeHealAura:
-				applyHealAura(e, equip.Level, effect, collisions)
-			case skills.EffectTypeSlowAura:
-				applySlowAura(equip.Level, effect, collisions)
-			}
+		if equip.TickAccumulator%effectiveTickInterval(effect, equip.Level) != 0 {
+			continue
 		}
-	}
-
-	// Reset after all effects have been checked for this tick.
-	maxInterval := 1
-	for _, effect := range equip.Def.Effects {
-		if iv := effectiveTickInterval(effect, equip.Level); iv > maxInterval {
-			maxInterval = iv
+		switch effect.Type {
+		case skills.EffectTypeDamageAura:
+			applyDamageAura(e, equip.Level, effect, collisions)
+		case skills.EffectTypeHealAura:
+			applyHealAura(e, equip.Level, effect, collisions)
+		case skills.EffectTypeSlowAura:
+			applySlowAura(equip.Level, effect, collisions)
 		}
-	}
-	if equip.TickAccumulator >= maxInterval {
-		equip.TickAccumulator = 0
 	}
 }
 

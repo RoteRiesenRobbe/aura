@@ -15,6 +15,7 @@ import (
 
 	aitems "github.com/trichner/berryhunter/pkg/api/items"
 	amobs "github.com/trichner/berryhunter/pkg/api/mobs"
+	arecipes "github.com/trichner/berryhunter/pkg/api/recipes"
 	askills "github.com/trichner/berryhunter/pkg/api/skills"
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
@@ -69,6 +70,19 @@ func loadSkills() skills.Registry {
 		panic(err)
 	}
 	slog.Info("Loaded skill definitions", slog.Int("count", len(registry.All())))
+	return registry
+}
+
+// loadRecipes parses the embedded combination recipes, resolving result and
+// ingredient skill names against the provided registry. Curated content: any
+// validation failure aborts startup.
+func loadRecipes(r skills.Registry) skills.RecipeRegistry {
+	registry, err := skills.RecipesFromFS(arecipes.Recipes, r)
+	if err != nil {
+		slog.Error("failed to load recipes", slog.Any("err", err))
+		panic(err)
+	}
+	slog.Info("Loaded recipe definitions", slog.Int("count", len(registry.All())))
 	return registry
 }
 

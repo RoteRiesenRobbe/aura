@@ -40,6 +40,7 @@ func main() {
 	skillsRegistry := loadSkills()
 	mobsRegistry := loadMobs(itemsRegistry, skillsRegistry)
 	milestoneUnlocks := loadMilestoneUnlocks(skillsRegistry)
+	recipeRegistry := loadRecipes(skillsRegistry)
 
 	tokens := loadOrCreateTokens("./tokens.list")
 	slog.Info("👮‍♀️ read tokens", slog.Int("token_count", len(tokens)))
@@ -84,6 +85,7 @@ func main() {
 		core.Registries(itemsRegistry, mobsRegistry),
 		core.SkillRegistry(skillsRegistry),
 		core.MilestoneUnlocks(milestoneUnlocks),
+		core.Recipes(recipeRegistry),
 		core.Tokens(tokens),
 		core.Radius(radius),
 	)

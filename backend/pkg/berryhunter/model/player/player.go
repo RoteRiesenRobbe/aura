@@ -54,6 +54,11 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	}
 	p.skills = sc
 	p.milestoneUnlocks = g.Config().MilestoneUnlocks
+	p.recipes = g.Config().Recipes
+	// A fresh spawn only has DamageAura at level 1, but run the cascade anyway
+	// so a starter recipe keyed on that would still fire — keeps discovery paths
+	// uniform.
+	p.ApplyRecipeCascade()
 
 	//--- setup vital signs
 	p.PlayerVitalSigns.Health = vitals.Max
@@ -111,6 +116,7 @@ type player struct {
 
 	skills           *skills.SkillComponent
 	milestoneUnlocks []skills.MilestoneUnlock
+	recipes          skills.RecipeRegistry
 
 	// healers inside the participation window (v1-roadmap item 10);
 	// lazily initialized by NoteHealedBy
@@ -357,6 +363,22 @@ func (p *player) applyMilestoneUnlocks(from, to uint32) {
 			p.skills.Discover(u.Skill.ID)
 			slog.Info("milestone unlock", slog.String("player", p.name), slog.String("skill", u.Skill.Name), slog.Uint64("level", uint64(u.Level)))
 		}
+	}
+	// A milestone discovery can newly satisfy a recipe (Phase 9).
+	p.ApplyRecipeCascade()
+}
+
+// ApplyRecipeCascade runs the combination recipes against the current spellbook
+// and discovers any newly-satisfied results (Phase 9). Call it after any event
+// that can newly satisfy a recipe — a milestone/kill discovery or a skill-level
+// raise. The client turns each fresh discovery into the unlock glow via its
+// spellbook diff, so no wire event is needed.
+func (p *player) ApplyRecipeCascade() {
+	if p.recipes == nil {
+		return
+	}
+	for _, id := range skills.ApplyRecipes(p.skills, p.recipes) {
+		slog.Info("combination unlock", slog.String("player", p.name), slog.Int("skillID", int(id)))
 	}
 }
 

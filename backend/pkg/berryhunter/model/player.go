@@ -88,6 +88,10 @@ type PlayerEntity interface {
 	// SetSkillComponent replaces the player's skill component wholesale.
 	// Used on respawn to restore the spellbook + loadout the player died with.
 	SetSkillComponent(sc *skills.SkillComponent)
+	// ApplyRecipeCascade runs combination recipes against the spellbook and
+	// discovers any newly-satisfied results (Phase 9). Call after any discovery
+	// or skill-level raise.
+	ApplyRecipeCascade()
 	AuraCollider() *phy.Circle
 	MaxHealthFactor() float32
 }
