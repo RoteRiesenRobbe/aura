@@ -90,8 +90,11 @@ storytelling.
   instances** (fixed spawn points, per-instance respawn timer + variance) and
   **patrol waypoints/routes** — see item 7 (mob behavior, tiers & spawning),
   which owns the behavior side of these. The map format must also carry the
-  **LoS occluder layer** (see item 6): a per-object blocks-LoS flag, curated —
-  walls/rocks/cliffs block, decorative trees don't.
+  **occluder layer** as **two independent per-object flags**, not one:
+  `blocks-movement` (physical collision) and `blocks-aura` (LoS occlusion, see
+  item 6). They are orthogonal — a **fence** blocks movement but not auras; a
+  **large rock/wall** blocks both; a **bush/decoration** blocks neither.
+  Curated per object — walls/rocks/cliffs block LoS, decorative trees don't.
 - ⚑ Authoring tooling: external editor (e.g. Tiled) vs. custom JSON — biggest
   unknown in this item. *Deliberately left open (2026-07); decide when this
   item starts. Suggested first step: a Tiled spike (build one test zone, load
@@ -145,9 +148,11 @@ Aura effects blocked by walls/obstacles.
 - **Decided: occlusion is separate from darkness/vision.** This item is only
   the server-authoritative, combat-relevant part (does a wall block the
   effect?). Vision/darkness is client-side rendering (item 5).
-- **Decided: occluders are curated.** A blocks-LoS flag on large objects
+- **Decided: occluders are curated.** A `blocks-aura` flag on large objects
   (walls, rocks, cliffs); decorative trees do *not* block — otherwise forest
-  combat gets chopped up and feels random. The flag lives in map data (item 4).
+  combat gets chopped up and feels random. This is the aura-occlusion flag; it
+  is **independent from `blocks-movement`** (a fence blocks movement but not
+  auras; a rock blocks both) — both flags live in map data (item 4).
 - **Approach (direction, to be validated by a spike):** occluder layer as a
   grid/tilemap + integer raycast (DDA); LoS result caching (recompute every K
   ticks or on movement [PLACEHOLDER]); with capped targets (item 11), raycast
@@ -293,6 +298,12 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
   the interim panel look. The health bar becomes the resource bar via item 1.
 - **Decided: zone chat is one channel per zone** (broadcast filtered by the
   sender's zone). The existing global chat stays as-is until zones exist.
+- **Avatar selection (new-mode).** Start-screen portrait picker; choice
+  persisted via `accounts` (item 3) and made multiplayer-visible with one
+  `avatar_id` wire field on `Character` + a frontend id→SVG map. Easier than
+  the old Berryhunter system because new-mode rendering is one SVG texture per
+  character (no hair/hand/beard assembly). Depends on removing the dead variant
+  code (see CLAUDE.md tech-debt). Portrait art [PLACEHOLDER].
 
 ## 9. Remaining unlock sources
 
@@ -516,6 +527,13 @@ needs real design time:
   the targets × damage multiplier.
 - First combination recipes (secret, curated).
 - Mob skill loadouts and kill-unlock/drop tables.
+- **Full mob roster (design + replace legacy).** Design the actual Aura
+  creature list (name, art, aura loadout, tier). **Remove the legacy
+  Berryhunter mobs** (`Dodo`/`SaberToothCat`/`Mammoth`/`AngryMammoth` — whose
+  names already don't match their art: dodo→boar, mammoth→skeleton,
+  saberToothCat→lion, angryMammoth→demon) and replace with the new roster.
+  Rename once, here — touches the `MobType` enum (`server.fbs`) + generated
+  bindings + `api/mobs/*.json` + frontend `Mobs.ts`/`Graphics.ts`.
 - First real-values balancing pass over the placeholder numbers.
 
 ---
