@@ -11,22 +11,12 @@ type Configuration func(g *cfg.GameConfig) error
 
 func Config(conf *cfg.Config) Configuration {
 	return func(g *cfg.GameConfig) error {
-		g.ColdFractionNightPerS = conf.Game.ColdFractionNightPerS
-		g.ColdFractionDayPerS = conf.Game.ColdFractionDayPerS
-
 		g.TotalDayCycleSeconds = conf.Game.TotalDayCycleSeconds
 		g.DayTimeSeconds = conf.Game.DayTimeSeconds
 		g.InitialMobCount = conf.Game.InitialMobCount
 		g.MobChaseIntoAuraMargin = conf.Game.MobChaseIntoAuraMargin
 
-		g.PlayerConfig.FreezingDamageTickFraction = conf.Game.Player.FreezingDamageTickFraction
-		g.PlayerConfig.HealthGainSatietyLossTickFraction = conf.Game.Player.HealthGainSatietyLossTickFraction
-		g.PlayerConfig.HealthGainSatietyThreshold = conf.Game.Player.HealthGainSatietyThreshold
-		g.PlayerConfig.HealthGainTemperatureThreshold = conf.Game.Player.HealthGainTemperatureThreshold
 		g.PlayerConfig.HealthGainTick = conf.Game.Player.HealthGainTick
-		g.PlayerConfig.SatietyLossTickFraction = conf.Game.Player.SatietyLossTickFraction
-		g.PlayerConfig.StarveDamageTickFraction = conf.Game.Player.StarveDamageTickFraction
-		g.PlayerConfig.FreezingStarveDamageTickFraction = conf.Game.Player.FreezingStarveDamageTickFraction
 		g.PlayerConfig.WalkingSpeedPerTick = conf.Game.Player.WalkingSpeedPerTick
 		g.PlayerConfig.MaxHealthLevelGainFraction = conf.Game.Player.MaxHealthLevelGainFraction
 		g.PlayerConfig.LevelUpXPBase = conf.Game.Player.LevelUpXPBase

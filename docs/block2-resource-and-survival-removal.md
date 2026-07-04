@@ -69,7 +69,18 @@ client stops consuming) but present, so each stage compiles and runs.
 - *Deferred to 3d:* dormant `Inventory`/`Equipment` Go types + their wire
   fields; orphan `EntityTypeFlower`/`EntityTypeBerryBush` enum entries.
 
-### Stage 3c — Frontend item-system teardown ⏳ Next (frontend only)
+### Stage 3c — Frontend item-system teardown ✓ Done (frontend only)
+
+**Executed pragmatically (decided during 3c):** the item *registry*
+(`Items`/`Item`/`ItemType`/`client-data/Items.ts`/`BackendConstants` lookup +
+`unmarshalItem`) **stays** — placeable/campfire rendering is built from it. The
+equipment-slot rendering in `Character.ts` was **left inert** (never fed, so the
+avatar shows no held item) rather than surgically excised. Removed: the
+inventory/crafting `logic` modules, the HUD crafting/inventory panels + DOM, the
+icon widgets (`ClickableIcon`/`ClickableCountableIcon`/`SubIcon`), and the item
+usage in Player/Game/Controls/Events/`_Develop`, plus 18 unused item-icon SVGs.
+*Leftover (harmless):* the crafting/inventory CSS in `HUD.less`.
+
 
 The backend teardown surfaced a substantial, cross-cutting frontend item
 system. Remove it; keep the wire dormant until 3d.
@@ -105,7 +116,27 @@ the entire skill/spellbook/action-bar UI (Phase 8), vitals/level HUD.
    `EntityType`-based, not `ItemType`) — confirm before deleting.
 3. Character equipment rendering touches the live avatar — isolate + verify.
 
-### Stage 3d — Wire cleanup ⏳ (final: backend schema + both regen)
+### Stage 3d — Wire cleanup ✓ Done (backend schema + both regen)
+
+Removed from the schema: `ActionType` enum, `Action`/`OngoingAction`/`ItemStack`
+structs, and the `Character.current_action`/`Character.equipment`/
+`GameState.inventory`/`Input.action` fields. Regenerated both bindings (4 binding
+files deleted each side). Backend codec + frontend consumers updated.
+
+> **Runtime-bug caught after 3d (compile-green ≠ runtime-safe):**
+> `GameStateMessage.unmarshalEntity` still called `entity.currentAction()` /
+> `entity.equipment()` — removed bindings that TS didn't flag because `entity`
+> is loosely typed there. It threw only when a real GameState arrived. Fixed by
+> removing those decode blocks. Lesson: run the game, not just the build.
+
+**Closeout dead-code sweep (done):** deleted the dormant Go types —
+`items.Inventory`/`Equipment`, `PlayerAction`/`ongoingAction`/`AddAction`/
+`CurrentAction`, `model.Action`/`ActionType`, `PlayerInput.Action`,
+`player.Inventory()`/`Equipment()`, `startAction` (kept `ItemID`/`ItemStack`,
+still used by mob defs + registry). Stripped the dead survival config
+(`ColdFraction*`/`Freezing*`/`Starve*`/`Satiety*`/`HealthGain{Satiety,Temperature}*`)
+from `gamecfg.go`/`conf.go`/`gameconf.go` + all `conf*.json`.
+
 
 Nothing produces or consumes them by now. In one pass remove:
 `GameState.inventory`, `Character.equipment`, `Input.action` + `Action` table +
@@ -114,9 +145,19 @@ backend dormant Go types (`Inventory`, `Equipment`, `PlayerAction`/
 `ongoingAction`/`CurrentAction`) + codec marshalers; delete dead frontend
 wire-read stubs. Optionally drop orphan `EntityTypeFlower`/`EntityTypeBerryBush`.
 
-### Docs — final
-Update `CLAUDE.md` (status + tech-debt), mark roadmap §1 + §2 ✓ Done, and strip
-the leftover dead `conf.json` survival config.
+### Docs — final ✓ Done
+`CLAUDE.md` status + tech-debt updated, roadmap §1 + §2 marked ✓ Done, dead
+`conf.json` survival config stripped.
+
+---
+
+## ✅ Block 2 complete (2026-07-04)
+
+Single unified resource (`Health`); all Berryhunter survival systems, crafting,
+inventory, equipment, and item wire protocol removed. World keeps decorative
+resources + inert campfire stubs. Game verified end-to-end (backend boots clean,
+frontend runs, no runtime errors). Only cosmetic leftovers remain (HUD item CSS;
+unused equipment-item icons kept alive by the inert equipment rendering).
 
 ## Verification standard (tightened after the 3b miss)
 

@@ -36,9 +36,7 @@ type PlayerEntity interface {
 	StatusEntity
 
 	Name() string
-	Equipment() *items.Equipment
 	VitalSigns() *PlayerVitalSigns
-	Inventory() *items.Inventory
 	Viewport() phy.DynamicCollider
 	Hand() *Hand
 	Client() Client
@@ -46,9 +44,6 @@ type PlayerEntity interface {
 
 	Update(dt float32)
 	OwnedEntities() BasicEntities
-
-	AddAction(a PlayerAction)
-	CurrentAction() PlayerAction
 
 	SetGodmode(on bool)
 	IsGod() bool

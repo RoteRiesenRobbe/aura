@@ -8,17 +8,6 @@ import (
 func (p *player) Update(dt float32) {
 	// Aura effects are now applied by SkillSystem. Old calls removed in Phase 2.4.
 
-	// update time based tings
-
-	// action
-	if p.ongoingAction != nil {
-		a := p.ongoingAction
-		a.Update(dt)
-		if a.TicksRemaining() < 0 {
-			p.ongoingAction = nil
-		}
-	}
-
 	p.tickRecentHealers()
 
 	if !p.isGod {

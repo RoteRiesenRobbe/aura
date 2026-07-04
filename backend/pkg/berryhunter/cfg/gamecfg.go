@@ -17,9 +17,6 @@ type GameConfig struct {
 	SkillRegistry    skills.Registry
 	MilestoneUnlocks []skills.MilestoneUnlock
 
-	ColdFractionNightPerS float32
-	ColdFractionDayPerS   float32
-
 	TotalDayCycleSeconds   uint64
 	DayTimeSeconds         uint64
 	InitialMobCount        int
@@ -54,17 +51,8 @@ type ChieftainConfig struct {
 }
 
 type PlayerConfig struct {
-	// tickwise loss
-	FreezingDamageTickFraction       float32
-	StarveDamageTickFraction         float32
-	FreezingStarveDamageTickFraction float32
-	SatietyLossTickFraction          float32
-
-	// constants for gaining health
-	HealthGainTick                    float32
-	HealthGainSatietyThreshold        float32
-	HealthGainTemperatureThreshold    float32
-	HealthGainSatietyLossTickFraction float32
+	// constant for out-of-combat health regen
+	HealthGainTick float32
 
 	WalkingSpeedPerTick float32
 

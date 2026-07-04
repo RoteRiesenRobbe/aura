@@ -10,12 +10,10 @@ Ordering below is a first guess, not a decision. All numbers [PLACEHOLDER].
 
 ---
 
-## 1. The Resource (single unified stat)
+## 1. The Resource (single unified stat) ✓ Done
 
-> **In progress — see `block2-resource-and-survival-removal.md`** for the full
-> staged plan + status. Items 1 + 2 are being executed together as "Block 2."
-> Stages 1, 2, 3a, 3b done; 3c (frontend item teardown) + 3d (wire cleanup)
-> remaining.
+> **Done (Block 2, 2026-07-04) — see `block2-resource-and-survival-removal.md`.**
+> `Health` is now the single resource; items 1 + 2 were executed together.
 
 Every player and NPC has exactly one resource — HP, mana, everything at once;
 0 = death.
@@ -29,10 +27,11 @@ Every player and NPC has exactly one resource — HP, mana, everything at once;
   (HealAura already does). No separate cost system; costs stay curatable per
   skill, no new code.
 
-## 2. Survival-system removal
+## 2. Survival-system removal ✓ Done
 
-> **In progress — see `block2-resource-and-survival-removal.md`** (executed
-> jointly with item 1 as "Block 2").
+> **Done (Block 2, 2026-07-04) — see `block2-resource-and-survival-removal.md`.**
+> Survival systems, crafting, inventory, equipment, and the item wire protocol
+> removed; resources kept as decorative, campfires as inert stubs.
 
 Remove or heavily reduce: satiety/hunger, body temperature, crafting,
 food/tool items.

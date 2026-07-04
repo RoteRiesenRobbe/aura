@@ -3,13 +3,11 @@ package player
 import (
 	"fmt"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
-	"log"
 	"log/slog"
 	"math"
 
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/minions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/constant"
@@ -27,7 +25,6 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p := &player{
 		BaseEntity:     e,
 		client:         c,
-		equipment:      items.NewEquipment(),
 		name:           name,
 		ownedEntitites: model.NewBasicEntities(),
 		config:         &g.Config().PlayerConfig,
@@ -49,13 +46,6 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.viewport.Shape().IsSensor = true
 	p.viewport.Shape().Mask = int(model.LayerViewportCollision)
 	p.viewport.Shape().Group = shapeGroup
-
-	//--- initialize inventory
-	inventory, err := initializePlayerInventory(g.Items())
-	if err != nil {
-		panic(err)
-	}
-	p.inventory = inventory
 
 	//--- initialize skill component
 	sc, err := initializePlayerSkills(g.Skills())
@@ -105,17 +95,13 @@ type player struct {
 	viewport *phy.Box
 	aura     *phy.Circle
 
-	hand      model.Hand
-	inventory items.Inventory
-	equipment *items.Equipment
+	hand model.Hand
 
 	model.PlayerVitalSigns
 
 	config *cfg.PlayerConfig
 
 	ownedEntitites model.BasicEntities
-
-	ongoingAction model.PlayerAction
 
 	isGod  bool
 	wasGod bool
@@ -135,20 +121,6 @@ func (p *player) StatusEffects() *model.StatusEffects {
 	return &p.statusEffects
 }
 
-func (p *player) AddAction(a model.PlayerAction) {
-	if p.ongoingAction != nil && p.ongoingAction.TicksRemaining() > 0 {
-
-		log.Printf("😧 Already action going on.")
-		return
-	}
-
-	a.Start()
-	p.ongoingAction = a
-}
-
-func (p *player) CurrentAction() model.PlayerAction {
-	return p.ongoingAction
-}
 
 func (p *player) maxHealthFactor() float32 {
 	level := p.progression.Level
@@ -192,10 +164,6 @@ func (p *player) Name() string {
 	return p.name
 }
 
-func (p *player) Equipment() *items.Equipment {
-	return p.equipment
-}
-
 func (p *player) Bodies() model.Bodies {
 	b := make(model.Bodies, 4)
 	b[0] = p.Body
@@ -207,10 +175,6 @@ func (p *player) Bodies() model.Bodies {
 
 func (p *player) VitalSigns() *model.PlayerVitalSigns {
 	return &p.PlayerVitalSigns
-}
-
-func (p *player) Inventory() *items.Inventory {
-	return &p.inventory
 }
 
 func (p *player) Viewport() phy.DynamicCollider {
@@ -360,39 +324,6 @@ func initializePlayerSkills(r skills.Registry) (*skills.SkillComponent, error) {
 	return sc, nil
 }
 
-func initializePlayerInventory(r items.Registry) (items.Inventory, error) {
-	type startItem struct {
-		name  string
-		count int
-	}
-	inventory := items.NewInventory()
-
-	// This is the inventory a new player starts with
-	startItems := []startItem{
-		//		{"IronTool", 1},
-		//		{"BronzeSword", 1},
-		//		{"Workbench", 1},
-		//		{"BigCampfire", 3},
-	}
-
-	//--- initialize inventory
-	var item items.Item
-	var err error
-	for _, i := range startItems {
-		item, err = r.GetByName(i.name)
-		if err != nil {
-			return inventory, err
-		}
-		inventory.AddItem(items.NewItemStack(item, i.count))
-	}
-
-	return inventory, nil
-}
-
-func (p *player) startAction(tool items.Item) {
-	p.hand.Item = tool
-	p.hand.Collider.Shape().Mask = int(model.LayerRessourceCollision | model.LayerActionCollision)
-}
 
 func (p *player) experienceForNextLevel(level uint32) uint64 {
 	if level < 1 {

@@ -22,23 +22,13 @@ type Config struct {
 		ClientKeyFile  string `json:"clientKeyFile"`
 	} `json:"chieftain,omitempty"`
 	Game struct {
-		ColdFractionDayPerS    float32 `json:"coldFractionDayPerSecond"`
-		ColdFractionNightPerS  float32 `json:"coldFractionNightPerSecond"`
 		TotalDayCycleSeconds   uint64  `json:"totalDayCycleSeconds"`
 		DayTimeSeconds         uint64  `json:"dayTimeSeconds"`
 		InitialMobCount        int     `json:"initialMobCount"`
 		MobChaseIntoAuraMargin float32 `json:"mobChaseIntoAuraMargin"`
 		Player                 struct {
-			FreezingDamageTickFraction       float32 `json:"freezingDamageTickFraction"`
-			StarveDamageTickFraction         float32 `json:"starveDamageTickFraction"`
-			FreezingStarveDamageTickFraction float32 `json:"freezingStarveDamageTickFraction"`
-			SatietyLossTickFraction          float32 `json:"satietyLossTickFraction"`
-
-			// constants for gaining health
-			HealthGainTick                    float32 `json:"healthGainTick"`
-			HealthGainSatietyThreshold        float32 `json:"healthGainSatietyThreshold"`
-			HealthGainTemperatureThreshold    float32 `json:"healthGainTemperatureThreshold"`
-			HealthGainSatietyLossTickFraction float32 `json:"healthGainSatietyLossTickFraction"`
+			// constant for out-of-combat health regen
+			HealthGainTick float32 `json:"healthGainTick"`
 
 			//
 			WalkingSpeedPerTick        float32 `json:"walkingSpeedPerTick"`

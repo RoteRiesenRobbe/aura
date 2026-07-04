@@ -1,7 +1,6 @@
 package model
 
 import (
-	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 )
 
@@ -20,17 +19,9 @@ type PlayerInput struct {
 	Tick           uint64
 	Movement       *phy.Vec2f
 	Rotation       float32
-	Action         *Action
 	ActiveAuraSlot int // ActiveAuraSlotNoChange / ActiveAuraSlotDeactivate / >= 0 = switch to that slot
 
 	// CooldownActivations holds cooldown slot indices to activate this tick;
 	// empty for most inputs. Out-of-range values are dropped downstream.
 	CooldownActivations []int
-}
-
-type ActionType int
-
-type Action struct {
-	Item items.ItemID
-	Type ActionType
 }
