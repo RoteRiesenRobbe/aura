@@ -313,30 +313,89 @@ Executed as Steps 1–3 in a dedicated session; each committed separately.
   Note: `xp_gained` rides on *every* `Character`, so a nearby player's XP number
   also shows — harmless; restrict to self if it reads as noise.
 
-### Remaining steps (future session)
+- ✓ **Step 4 — per-tick hit VFX on the struck target (slash vs fire).** The
+  SkillSystem stamps an *aura-hit style* on each struck damage-aura target via
+  `model.AuraHitNotifier.NoteAuraHit(style)`, kept **separate** from the
+  `takeDamage` number recording (the SkillSystem knows cadence; `takeDamage`
+  knows the post-mitigation amount). Carried on a transient `aura_hit_style:ubyte`
+  wire field on `Mob`/`Character` (0 = none / 1 = slash / 2 = fire), reset each
+  tick on the `TickAccumulators` lifecycle. Style resolution in
+  `sys.auraHitStyleFor`: a **per-effect `hitStyle` override** (`slash`/`fire`/
+  `none`) wins; `auto` (default) derives from the tick cadence — interval ≥
+  `auraSlashTickThreshold` **[PLACEHOLDER 15]** → slash, else fire — so each aura
+  is individually configurable in JSON while cadence remains the default.
+  Frontend `GameObject.showAuraHit(style)`: single-instance sprite refreshed per
+  hit tick, so a fast-tick aura reads as **sustained fire** (cluster over the
+  avatar) and a slow-tick aura as a **discrete slash** (bright streak sweeping
+  fully across the model from a random side). Triggered where the floating
+  numbers already are. The old `DamagedAmbient` white-flash was removed from mobs
+  + characters (this VFX replaces it). Pinned by `sys` tests (`auraHitStyleFor`
+  auto/override/none; `applyDamageAura` tagging) + `model` reset tests.
+- ✓ **Step 5 — tick-interval verified in-game.** No new code — confirmed
+  `tickInterval` cadence + `tickIntervalPerLevel` scaling end-to-end.
+- ✓ **Content compensation (with Step 4).** Base auras retuned so a slower tick
+  keeps its DPS/HPS (all were interval 1; per-tick fraction scaled by the new
+  interval, 30 ticks/s): DamageAura interval 20 (0.009→0.18), MammothAura 20
+  (0.0033→0.066), HealAura 60 / 2 s (0.001→0.06, self-dmg 0.0015→0.09), DodoAura
+  24 / 0.8 s (0.001→0.024), SaberToothCatAura 10 / 0.33 s (0.004→0.04). Resulting
+  auto-styles: DamageAura/Mammoth/Dodo → slash, SaberTooth → fire. `angry-mammoth`
+  intentionally left fast/default for now. **All still [PLACEHOLDER].**
+- ✓ **Overhead health bars moved below** the avatar (mobs + the player's
+  in-world bar); the bottom-right HUD bar is unchanged.
 
-- **Step 4 — per-tick hit VFX on the struck target (slash vs fire by cadence).**
-  Decided design: the SkillSystem, which knows the applied effect's
-  `TickInterval`, notes an *aura-hit style* on each struck target via a small
-  new interface (e.g. `NoteAuraHit(style)`), kept **separate** from the damage-
-  number recording that lives in `takeDamage` (the SkillSystem knows the source
-  aura's cadence; `takeDamage` knows the post-mitigation amount). Threshold
-  **[PLACEHOLDER ~15 ticks]**: slow-tick auras → a discrete **slash** sprite;
-  fast-tick auras → a sustained **fire/spark** effect. Carry the style on a new
-  transient `ubyte` wire field on `Mob`/`Character` (0 = none), reset each tick
-  on the same `TickAccumulators` lifecycle as the number accumulators. Frontend
-  renders it where the floating numbers are already triggered
-  (`EntityManager.addOrUpdate` + `Player.updateFromBackend`), distinct from the
-  existing `DamagedAmbient` white-flash. Purpose: make the aura circle read as
-  *range*, not a hit zone — the feel half of capped targeting.
-- **Step 5 — tick-interval verify-only.** The interval mechanism already exists
-  (`EffectDef.TickInterval` + the `equip.TickAccumulator` gate in
-  `sys/skills.go`) and Step 1 added level scaling
-  (`effectiveTickInterval = TickInterval + (level-1)*TickIntervalPerLevel`,
-  floored at 1). No new code expected — just confirm end-to-end in-game that a
-  high-`tickInterval` aura ticks on cadence and that `tickIntervalPerLevel`
-  shifts it with level. Ship Step 4's slash/fire distinction against these
-  cadences.
+### Deferred from item 11 — HP system, resistances, stat variance/ranges
+
+These emerged while balancing Step 4 and are **not in the current scope**; record
+here so they aren't re-derived. They share one root: today "HP" is a single
+normalized `Health` fraction (0..1) identical for every entity, and damage is a
+flat per-tick *fraction* of that. The floating numbers are therefore scaled by a
+frontend placeholder (`HEALTH_DISPLAY_SCALE`, full health ≈ 1000), so they are
+**approximate and inconsistent**, not real hit values.
+
+1. **Exact, consistent overhead damage numbers → a real HP system.** To show
+   truthful numbers, mobs (and players) need an **individually settable max HP**
+   in absolute points, with damage computed and serialized in those same units
+   (not a re-scaled fraction). This is the enabling change for everything below.
+2. **Resistances / damage types** (already in the design doc — restated as it
+   lands here): once damage carries a type, per-mob resistances scale the applied
+   amount, and the overhead number must reflect the *post-resistance* value.
+3. **Stat variance & damage ranges (scaling instead of always-identical).** Mobs
+   of the same type should spawn within an **HP range** (not one fixed value),
+   and auras/abilities should roll damage in a **range X–Z** per hit rather than
+   a constant. This is the "no two encounters feel identical" axis and also the
+   hook for later level/elite scaling.
+
+**Open questions to resolve at implementation time:**
+
+- **HP units:** what is 1 HP? Pick an absolute integer scale (e.g. base mob ≈
+  100, or ≈ 1000 to match the current display placeholder) and make max HP a
+  per-mob-definition field. Do players use the same scale?
+- **Wire change:** switch `health` / `damage_taken` from normalized VitalSign
+  units to absolute HP, or add absolute fields alongside? (Regen, the aura
+  fractions, and `HealthRatio()` selectors all currently assume the 0..1 model.)
+- **Damage model:** do auras keep dealing a *fraction* of the target's max HP
+  (current model — scales automatically with mob HP) or switch to **flat HP**
+  damage (needs per-aura absolute values, and interacts differently with the HP
+  range)? This decision drives whether the "range X–Z" is a fraction range or an
+  HP range.
+- **Variance source & determinism:** is a mob's rolled HP fixed at spawn (server
+  authoritative, sent once) and each hit's damage rolled per-tick? Seeded/
+  reproducible or free RNG? Does variance apply to players too, or mobs only?
+- **Resistance representation:** per-damage-type multipliers on the mob
+  definition (e.g. `{fire: 0.5, physical: 1.2}`), and what the default/uncapped
+  bounds are. How does a resisted-to-near-zero hit read in the overhead number?
+- **Range display:** show the exact rolled number (current intent) — confirm
+  crits/high rolls don't need distinct styling yet.
+- **Balance surface:** every existing placeholder fraction must be re-expressed
+  once units change; plan a single balancing pass (ties into item 12).
+
+**Rough cost (see the chat rundown 2026-07-04):** items 1–2 are a *medium*
+backend+wire change (HP becomes absolute, one FlatBuffers field migration, regen
+both bindings, rework regen/heal/selector math, update the display path) —
+roughly the size of one Step, mostly mechanical but touches balance everywhere.
+Item 3 (variance/ranges) is *small-to-medium* and cheap **once** 1–2 land (a roll
+at spawn + a roll per hit), but near-pointless before them because fractional HP
+hides the effect. Sequence: HP units → resistances/types → variance.
 
 ## 12. Initial content pass (prototype gate)
 
