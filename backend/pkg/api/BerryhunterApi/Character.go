@@ -207,7 +207,7 @@ func (rcv *Character) MutateHealth(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(24, n)
 }
 
-func (rcv *Character) Satiety() uint32 {
+func (rcv *Character) LevelProgress() uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		return rcv._tab.GetUint32(o + rcv._tab.Pos)
@@ -215,11 +215,11 @@ func (rcv *Character) Satiety() uint32 {
 	return 0
 }
 
-func (rcv *Character) MutateSatiety(n uint32) bool {
+func (rcv *Character) MutateLevelProgress(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(26, n)
 }
 
-func (rcv *Character) BodyTemperature() uint32 {
+func (rcv *Character) Level() uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
 		return rcv._tab.GetUint32(o + rcv._tab.Pos)
@@ -227,7 +227,7 @@ func (rcv *Character) BodyTemperature() uint32 {
 	return 0
 }
 
-func (rcv *Character) MutateBodyTemperature(n uint32) bool {
+func (rcv *Character) MutateLevel(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(28, n)
 }
 
@@ -322,11 +322,11 @@ func CharacterStartEquipmentVector(builder *flatbuffers.Builder, numElems int) f
 func CharacterAddHealth(builder *flatbuffers.Builder, health uint32) {
 	builder.PrependUint32Slot(10, health, 0)
 }
-func CharacterAddSatiety(builder *flatbuffers.Builder, satiety uint32) {
-	builder.PrependUint32Slot(11, satiety, 0)
+func CharacterAddLevelProgress(builder *flatbuffers.Builder, levelProgress uint32) {
+	builder.PrependUint32Slot(11, levelProgress, 0)
 }
-func CharacterAddBodyTemperature(builder *flatbuffers.Builder, bodyTemperature uint32) {
-	builder.PrependUint32Slot(12, bodyTemperature, 0)
+func CharacterAddLevel(builder *flatbuffers.Builder, level uint32) {
+	builder.PrependUint32Slot(12, level, 0)
 }
 func CharacterAddAuraRadius(builder *flatbuffers.Builder, auraRadius uint16) {
 	builder.PrependUint16Slot(13, auraRadius, 0)

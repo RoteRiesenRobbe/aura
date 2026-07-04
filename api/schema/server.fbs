@@ -117,8 +117,11 @@ table Character {
   equipment:[ubyte];
 
   health:uint;
-  satiety:uint;
-  body_temperature:uint;
+  // NOTE: level_progress and level reuse the wire slots formerly named
+  // satiety / body_temperature (survival vitals, removed in Block 2). Field IDs
+  // are positional, so this is a codegen-only, wire-compatible rename.
+  level_progress:uint; // fraction of the way to the next level, scaled to uint32
+  level:uint;          // current player level
   // effective radius of the active aura in px; 0 = none active
   aura_radius:ushort;
 

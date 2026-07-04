@@ -205,10 +205,8 @@ function unmarshalEntity(entity, eType) {
         result.name = entity.name();
 
         result.health = entity.health();
-        result.satiety = entity.satiety();
-        result.bodyHeat = entity.bodyTemperature();
-        result.level = entity.bodyTemperature();
-        result.levelProgress = entity.satiety() / 0xffffffff;
+        result.level = entity.level();
+        result.levelProgress = entity.levelProgress() / 0xffffffff;
         result.auraRadius = entity.auraRadius();
         result.activeSkillId = entity.activeSkillId();
         result.burstRadius = entity.burstRadius();

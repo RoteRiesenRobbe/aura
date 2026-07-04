@@ -106,12 +106,12 @@ health():number {
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
-satiety():number {
+levelProgress():number {
   const offset = this.bb!.__offset(this.bb_pos, 26);
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
-bodyTemperature():number {
+level():number {
   const offset = this.bb!.__offset(this.bb_pos, 28);
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
@@ -208,12 +208,12 @@ static addHealth(builder:flatbuffers.Builder, health:number) {
   builder.addFieldInt32(10, health, 0);
 }
 
-static addSatiety(builder:flatbuffers.Builder, satiety:number) {
-  builder.addFieldInt32(11, satiety, 0);
+static addLevelProgress(builder:flatbuffers.Builder, levelProgress:number) {
+  builder.addFieldInt32(11, levelProgress, 0);
 }
 
-static addBodyTemperature(builder:flatbuffers.Builder, bodyTemperature:number) {
-  builder.addFieldInt32(12, bodyTemperature, 0);
+static addLevel(builder:flatbuffers.Builder, level:number) {
+  builder.addFieldInt32(12, level, 0);
 }
 
 static addAuraRadius(builder:flatbuffers.Builder, auraRadius:number) {

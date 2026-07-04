@@ -57,8 +57,8 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddRotation(builder, p.Angle())
 	BerryhunterApi.CharacterAddEntityType(builder, BerryhunterApi.EntityType(p.Type()))
 	BerryhunterApi.CharacterAddHealth(builder, p.VitalSigns().Health.UInt32())
-	BerryhunterApi.CharacterAddSatiety(builder, fracToUint32(p.LevelProgressFraction()))
-	BerryhunterApi.CharacterAddBodyTemperature(builder, p.Progression().Level)
+	BerryhunterApi.CharacterAddLevelProgress(builder, fracToUint32(p.LevelProgressFraction()))
+	BerryhunterApi.CharacterAddLevel(builder, p.Progression().Level)
 	BerryhunterApi.CharacterAddAuraRadius(builder, f32ToU16Px(p.AuraRadius()))
 	BerryhunterApi.CharacterAddBurstRadius(builder, f32ToU16Px(p.BurstRadius()))
 	BerryhunterApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
@@ -113,8 +113,8 @@ func CharacterEntityFlatbufMarshal(p model.PlayerEntity, builder *flatbuffers.Bu
 func CharacterMarshalFlatbuf(p model.PlayerEntity, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	characterCommonMarshalFlatbuf(builder, p)
 	// other stuffz
-	BerryhunterApi.CharacterAddSatiety(builder, fracToUint32(p.LevelProgressFraction()))
-	BerryhunterApi.CharacterAddBodyTemperature(builder, p.Progression().Level)
+	BerryhunterApi.CharacterAddLevelProgress(builder, fracToUint32(p.LevelProgressFraction()))
+	BerryhunterApi.CharacterAddLevel(builder, p.Progression().Level)
 
 	return BerryhunterApi.CharacterEnd(builder)
 }
