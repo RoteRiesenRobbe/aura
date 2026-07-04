@@ -9,39 +9,12 @@ import (
 	"github.com/EngoEngine/ecs"
 	"github.com/google/flatbuffers/go"
 	"github.com/trichner/berryhunter/pkg/berryhunter/codec"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/minions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 )
 
 var commands = map[string]Command{
-	"GIVE": func(g model.Game, p model.PlayerEntity, arg *string) error {
-		argv := strings.Split(*arg, " ")
-		args := len(argv)
-		if args < 1 {
-			return fmt.Errorf("no arguments provided")
-		}
-
-		var err error
-		count := 1
-		if len(argv) >= 2 {
-			i, err := strconv.ParseInt(argv[1], 10, 32)
-			if err != nil {
-				return err
-			}
-			count = int(i)
-		}
-		item, err := g.Items().GetByName(argv[0])
-		if err != nil {
-			return err
-		}
-
-		stack := items.NewItemStack(item, count)
-		p.Inventory().AddItem(stack)
-
-		return nil
-	},
 	"PING": func(g model.Game, p model.PlayerEntity, arg *string) error {
 		msg := "PONG"
 		if arg != nil && len(*arg) > 0 {
@@ -111,18 +84,6 @@ var commands = map[string]Command{
 		} else {
 			p.SetGodmode(true)
 		}
-
-		return nil
-	},
-	"STARVE": func(g model.Game, p model.PlayerEntity, arg *string) error {
-		h := p.VitalSigns().Satiety
-		p.VitalSigns().Satiety = h.SubFraction(1.0)
-
-		return nil
-	},
-	"FREEZE": func(g model.Game, p model.PlayerEntity, arg *string) error {
-		h := p.VitalSigns().BodyTemperature
-		p.VitalSigns().BodyTemperature = h.SubFraction(1.0)
 
 		return nil
 	},

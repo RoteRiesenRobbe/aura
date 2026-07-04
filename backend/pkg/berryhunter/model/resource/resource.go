@@ -3,7 +3,6 @@ package resource
 import (
 	"fmt"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
-	"log"
 	"math"
 	"math/rand"
 
@@ -43,25 +42,6 @@ func (r *Resource) StatusEffects() *model.StatusEffects {
 
 func (r *Resource) Stock() *model.ResourceStock {
 	return &r.stock
-}
-
-func (r *Resource) yield(i int) (yielded int) {
-	i -= r.stock.Item.ItemDefinition.Factors.MinYield
-	if i < 1 {
-		return 0
-	}
-
-	r.StatusEffects().Add(model.StatusEffectYielded)
-
-	res := &r.stock
-	if res.Available < i {
-		yielded = res.Available
-		res.Available = 0
-	} else {
-		res.Available -= i
-		yielded = i
-	}
-	return
 }
 
 func (r *Resource) Update(dt float32) {
@@ -150,21 +130,6 @@ func NewResource(body *phy.Circle, rand *rand.Rand, resource items.Item, entityT
 	}
 	r.Body.Shape().UserData = r
 	return r, nil
-}
-
-func (r *Resource) PlayerHitsWith(p model.PlayerEntity, item items.Item) {
-	yield := item.Factors.Yield
-	if yield <= 0 {
-		log.Printf("😕 %s has no yield for %s.", item.Name, r.stock.Item.Name)
-		return
-	}
-
-	// resistance might be too high
-	y := r.yield(yield)
-	if y <= 0 {
-		return
-	}
-	p.Inventory().AddItem(items.NewItemStack(r.stock.Item, y))
 }
 
 func (r *Resource) MobTouches(e model.MobEntity, factors mobs.Factors) {

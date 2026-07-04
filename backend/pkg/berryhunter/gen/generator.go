@@ -114,14 +114,6 @@ var trees = []StaticEntityBody{
 
 var resources = []StaticEntityBody{
 	{
-		entityType:   model.EntityType(BerryhunterApi.EntityTypeFlower),
-		resourceName: "Flower",
-	},
-	{
-		entityType:   model.EntityType(BerryhunterApi.EntityTypeBerryBush),
-		resourceName: "Berry",
-	},
-	{
 		entityType:   model.EntityType(BerryhunterApi.EntityTypeStone),
 		resourceName: "Stone",
 	},

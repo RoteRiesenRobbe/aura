@@ -74,11 +74,6 @@ func (pr *PlaceableResource) StatusEffects() *model.StatusEffects {
 	return &combinedEffects
 }
 
-func (pr *PlaceableResource) PlayerHitsWith(player model.PlayerEntity, item items.Item) {
-	pr.Placeable.PlayerHitsWith(player, item)
-	pr.EmbeddedResource.PlayerHitsWith(player, item)
-}
-
 func (pr *PlaceableResource) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	pr.Placeable.MobTouches(e, factors)
 	pr.EmbeddedResource.MobTouches(e, factors)

@@ -54,7 +54,9 @@ GamePlayingEvent.subscribe((game: IGame) => {
     }, this);
 
     Game.domElement.addEventListener('click', function (event) {
-        if (Game.player.character.getEquippedItem(Equipment.EquipmentSlot.HAND) === Items.MysticWand) {
+        // MysticWand was removed with the item system (Block 2); this dev
+        // painter's hand-equip gate is defunct and never matches now.
+        if (Game.player.character.getEquippedItem(Equipment.EquipmentSlot.HAND) === (Items as any).MysticWand) {
             let x = Game.player.camera.getMapX(event.pageX);
             let y = Game.player.camera.getMapY(event.pageY);
             placeTexture({x, y});

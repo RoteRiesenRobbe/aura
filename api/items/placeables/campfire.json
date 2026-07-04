@@ -8,19 +8,6 @@
     "heatRadius": 0.8333,
     "vulnerability": 0.01
   },
-  "recipe": {
-    "craftTimeInSeconds": 5,
-    "materials": [
-      {
-        "item": "Wood",
-        "count": 30
-      },
-      {
-        "item": "Stone",
-        "count": 5
-      }
-    ]
-  },
   "body": {
     "solid": false,
     "radius": 0.8333

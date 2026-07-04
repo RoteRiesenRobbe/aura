@@ -9,12 +9,6 @@
     "deltaPhi": 0.1,
     "turnRate": 0.04
   },
-  "drops": [
-    {
-      "item": "RawMeat",
-      "count": 3
-    }
-  ],
   "body": {
     "radius": 0.5,
     "aggroRadius": 4

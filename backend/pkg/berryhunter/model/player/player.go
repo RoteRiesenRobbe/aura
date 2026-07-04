@@ -180,10 +180,6 @@ func (p *player) takeDamage(damage float32, s model.StatusEffect) {
 	}
 }
 
-func (p *player) PlayerHitsWith(player model.PlayerEntity, item items.Item) {
-	p.takeDamage(item.Factors.Damage, model.StatusEffectDamaged)
-}
-
 func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	p.takeDamage(factors.DamageFraction, model.StatusEffectDamagedAmbient)
 }

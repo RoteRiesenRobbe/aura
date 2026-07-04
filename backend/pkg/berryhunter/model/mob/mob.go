@@ -6,7 +6,6 @@ import (
 
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 	"github.com/trichner/berryhunter/pkg/berryhunter/gen"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/constant"
@@ -357,14 +356,6 @@ func (m *Mob) takeDamage(damage float32, s model.StatusEffect) {
 	}
 }
 
-func (m *Mob) PlayerHitsWith(p model.PlayerEntity, item items.Item) {
-	log.Printf("🎯")
-
-	m.noteParticipant(p)
-	m.takeDamage(item.Factors.Damage, model.StatusEffectDamaged)
-	m.tryGrantKillRewards(p)
-}
-
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	m.takeDamage(factors.DamageFraction, model.StatusEffectDamagedAmbient)
 }
@@ -372,7 +363,7 @@ func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
 func (m *Mob) PlayerTouches(p model.PlayerEntity, damageFraction float32) {
 	m.noteParticipant(p)
 	m.takeDamage(damageFraction, model.StatusEffectDamagedAmbient)
-	m.tryGrantKillRewards(p)
+	m.tryGrantKillRewards()
 }
 
 // noteParticipant records a damage contributor for the death rewards.
@@ -387,15 +378,11 @@ func (m *Mob) noteParticipant(p model.PlayerEntity) {
 // every combat participant — damage contributors plus their recent healers —
 // receives the full XP amount; drops go to the last toucher only (the item
 // system is scheduled for removal, so no investment there).
-func (m *Mob) tryGrantKillRewards(lastToucher model.PlayerEntity) {
+func (m *Mob) tryGrantKillRewards() {
 	if m.health > 0 || m.deathRewardGiven {
 		return
 	}
 	m.deathRewardGiven = true
-
-	for _, i := range m.definition.Drops {
-		lastToucher.Inventory().AddItem(i)
-	}
 
 	xp := uint64(m.definition.Factors.Experience)
 	rewarded := make(map[uint64]bool, len(m.participants))

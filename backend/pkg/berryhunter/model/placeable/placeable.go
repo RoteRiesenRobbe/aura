@@ -3,7 +3,6 @@ package placeable
 import (
 	"fmt"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
-	"log"
 	"math"
 
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
@@ -136,12 +135,6 @@ func (p *Placeable) takeDamage(damage float32, s model.StatusEffect) {
 		p.health = p.health.SubFraction(dmgFraction)
 		p.StatusEffects().Add(s)
 	}
-}
-
-func (p *Placeable) PlayerHitsWith(player model.PlayerEntity, item items.Item) {
-	log.Printf("💥")
-
-	p.takeDamage(item.Factors.StructureDamage, model.StatusEffectDamaged)
 }
 
 func (p *Placeable) MobTouches(e model.MobEntity, factors mobs.Factors) {
