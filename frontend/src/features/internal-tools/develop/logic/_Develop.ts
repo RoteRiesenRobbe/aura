@@ -11,9 +11,7 @@ import {
     resetFocus,
 } from '../../../common/logic/Utils';
 import * as Console from '../../console/logic/Console';
-import {ItemType} from '../../../items/logic/ItemType';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
-import {Items} from '../../../items/logic/Items';
 import {BerryhunterApi} from '../../../backend/logic/BerryhunterApi';
 import {IGame} from "../../../core/logic/IGame";
 import {InputMessage} from "../../../backend/logic/messages/outgoing/InputMessage";
@@ -173,8 +171,6 @@ export class Develop implements IDevelop {
 
             this.setupToggleButtons();
 
-            this.setupItemAdding();
-
             this.setupTickSampler();
         });
 
@@ -210,57 +206,6 @@ export class Develop implements IDevelop {
                 this.onSettingToggle(setting, newValue);
             });
         }
-    }
-
-    private setupItemAdding() {
-        let select = document.getElementById('develop_itemSelect');
-
-        let optionGroups = {};
-        for (let itemType in ItemType) {
-            optionGroups[itemType] = htmlToElement('<optgroup label="' + itemType + '"></optgroup>');
-            select.appendChild(optionGroups[itemType]);
-        }
-
-        for (let item in Items) {
-            if (!Items.hasOwnProperty(item)) {
-                continue;
-            }
-            if (!Items[item].icon) {
-                continue;
-            }
-            if (!Items[item].icon.file) {
-                continue;
-            }
-            if (Items[item].graphic && !Items[item].graphic.file) {
-                continue;
-            }
-
-            optionGroups[Items[item].type].appendChild(htmlToElement('<option value="' + item + '">' + item + '</option>'));
-        }
-
-        let itemAdd = document.getElementById('develop_itemAdd');
-        let itemCount = document.getElementById('develop_itemCount') as HTMLInputElement;
-        itemCount.addEventListener('input', () => {
-            itemCount.style.width = Math.max(1.6, (1 + (itemCount.value.length * 0.6))) + 'em';
-            let step: number;
-            if (parseInt(itemCount.value, 10) < 10) {
-                step = 1;
-            } else {
-                step = Math.pow(10, itemCount.value.length - 2) * 5;
-            }
-            itemCount.setAttribute('step', String(step));
-            itemCount.setAttribute('min', String(step)); // otherwise steps will be 11, 16, ...
-
-            itemAdd.classList.toggle('plural', itemCount.value !== '1');
-        });
-        itemCount.style.width = (1 + (itemCount.value.length * 0.6)) + 'em';
-
-
-        itemAdd.addEventListener('click', () => {
-            let item = (document.getElementById('develop_itemSelect') as HTMLInputElement).value;
-            let count = itemCount.value;
-            Console.run('GIVE ' + item + ' ' + count);
-        });
     }
 
     private onSettingToggle(setting, newValue) {
