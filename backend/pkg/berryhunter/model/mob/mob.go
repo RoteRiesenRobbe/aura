@@ -343,6 +343,12 @@ func (m *Mob) Health() vitals.VitalSign {
 	return m.health
 }
 
+// HealthRatio is the current/max health fraction (0..1), read by the
+// lowest_health aura selector (v1-roadmap.md item 11).
+func (m *Mob) HealthRatio() float32 {
+	return m.health.Fraction()
+}
+
 func (m *Mob) takeDamage(damage float32, s model.StatusEffect) {
 	vulnerability := m.definition.Factors.Vulnerability
 	if vulnerability == 0 {

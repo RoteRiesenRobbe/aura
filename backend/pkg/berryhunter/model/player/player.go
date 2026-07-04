@@ -132,6 +132,13 @@ func (p *player) maxHealthFactor() float32 {
 	return 1 + float32(level-1)*p.config.MaxHealthLevelGainFraction + p.skills.Derived.MaxHealthBonus
 }
 
+// HealthRatio is the current/max health fraction (0..1), read by the
+// lowest_health aura selector (v1-roadmap.md item 11). Health is stored
+// normalized, so the raw fraction already is the ratio.
+func (p *player) HealthRatio() float32 {
+	return p.PlayerVitalSigns.Health.Fraction()
+}
+
 func (p *player) takeDamage(damage float32, s model.StatusEffect) {
 	// Passive damage reduction (DerivedStats); 100% is the natural cap.
 	if r := p.skills.Derived.DamageReductionBonus; r > 0 {

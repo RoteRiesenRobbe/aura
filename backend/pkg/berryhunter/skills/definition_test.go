@@ -215,6 +215,38 @@ func TestMap_UnknownEffectType(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestMap_UnknownSelector(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"selector":"no_such_selector"}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
+func TestParse_SelectorAndCap(t *testing.T) {
+	data := []byte(`{
+      "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
+      "effects": [{"type": "damage_aura", "targetsMobs": true, "selector": "lowest_health", "maxTargets": 2, "maxTargetsPerLevel": 1, "tickIntervalPerLevel": -1}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, SelectorLowestHealth, e.Selector)
+	assert.Equal(t, 2, e.MaxTargets)
+	assert.Equal(t, 1, e.MaxTargetsPerLevel)
+	assert.Equal(t, -1, e.TickIntervalPerLevel)
+}
+
+func TestParse_SelectorDefaultsToNearest(t *testing.T) {
+	// Absent selector must default to nearest, MaxTargets 0 = uncapped.
+	data := []byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true}]}`)
+	def := mustParse(t, data)
+
+	e := def.Effects[0]
+	assert.Equal(t, SelectorNearest, e.Selector)
+	assert.Equal(t, 0, e.MaxTargets)
+}
+
 func TestParse_SlowAura(t *testing.T) {
 	data := []byte(`{
       "id": 4, "name": "SlowAura", "category": "active_aura", "maxLevel": 5,

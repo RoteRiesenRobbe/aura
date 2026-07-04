@@ -47,6 +47,26 @@ var effectTypeMap = map[string]EffectType{
 	"self_heal":       EffectTypeSelfHeal,
 }
 
+// Selector decides which of the in-range candidates a capped effect actually
+// affects (v1-roadmap.md item 11). It only matters once maxTargets caps the
+// set — an uncapped effect hits everything in range regardless of selector.
+type Selector int
+
+const (
+	SelectorNearest      Selector = iota // default: closest to the caster
+	SelectorLowestHealth                 // most-wounded by current/max ratio
+	SelectorAll                          // explicit AoE-all, ignores maxTargets
+)
+
+// selectorMap parses the JSON `selector` field. Absent → nearest (the default
+// for every aura and heal — positioning steers the single target).
+var selectorMap = map[string]Selector{
+	"":              SelectorNearest,
+	"nearest":       SelectorNearest,
+	"lowest_health": SelectorLowestHealth,
+	"all":           SelectorAll,
+}
+
 // Supported stat_multiplier stat names. A stat listed here must actually be
 // applied somewhere (movementSpeed: core/input.go; maxHealth:
 // player.MaxHealthFactor) — accepting an unapplied stat would be a silent
@@ -80,6 +100,13 @@ type EffectDef struct {
 	TargetsMobs            bool
 	TargetsPlayers         bool
 
+	// damage_aura, heal_aura, instant_damage — capped targeting (item 11).
+	// MaxTargets 0 = uncapped (AoE-all). Selector orders the candidates when
+	// capped; MaxTargetsPerLevel grows the cap with skill level.
+	Selector           Selector
+	MaxTargets         int
+	MaxTargetsPerLevel int
+
 	// damage_aura, mob casters only: damage dealt to structures (placeables)
 	// per tick. Structures read this via MobTouches double dispatch.
 	StructureDamageFraction float32
@@ -96,6 +123,9 @@ type EffectDef struct {
 
 	// damage_aura, heal_aura — always >= 1 after parsing (absent in JSON → 1)
 	TickInterval int
+	// per-level change to the tick interval (negative = faster at higher
+	// levels). Effective interval is floored at 1.
+	TickIntervalPerLevel int
 
 	// stat_multiplier
 	Stat             string
@@ -128,6 +158,10 @@ type effectDef struct {
 	TargetsMobs            bool    `json:"targetsMobs"`
 	TargetsPlayers         bool    `json:"targetsPlayers"`
 
+	Selector           string `json:"selector"`
+	MaxTargets         int    `json:"maxTargets"`
+	MaxTargetsPerLevel int    `json:"maxTargetsPerLevel"`
+
 	StructureDamageFraction float32 `json:"structureDamageFraction"`
 	TargetsStructures       bool    `json:"targetsStructures"`
 
@@ -138,7 +172,8 @@ type effectDef struct {
 	SlowFraction         float32 `json:"slowFraction"`
 	SlowFractionPerLevel float32 `json:"slowFractionPerLevel"`
 
-	TickInterval *int `json:"tickInterval"` // nil → default 1
+	TickInterval         *int `json:"tickInterval"` // nil → default 1
+	TickIntervalPerLevel int  `json:"tickIntervalPerLevel"`
 
 	Stat             string  `json:"stat"`
 	AdditivePerLevel float32 `json:"additivePerLevel"`
@@ -200,6 +235,11 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		return EffectDef{}, fmt.Errorf("stat_multiplier: unknown stat %q", e.Stat)
 	}
 
+	selector, ok := selectorMap[e.Selector]
+	if !ok {
+		return EffectDef{}, fmt.Errorf("unknown selector: %q", e.Selector)
+	}
+
 	tickInterval := 1
 	if e.TickInterval != nil && *e.TickInterval > 0 {
 		tickInterval = *e.TickInterval
@@ -213,6 +253,9 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		DamageFractionPerLevel:  e.DamageFractionPerLevel,
 		TargetsMobs:             e.TargetsMobs,
 		TargetsPlayers:          e.TargetsPlayers,
+		Selector:                selector,
+		MaxTargets:              e.MaxTargets,
+		MaxTargetsPerLevel:      e.MaxTargetsPerLevel,
 		StructureDamageFraction: e.StructureDamageFraction,
 		TargetsStructures:       e.TargetsStructures,
 		HealFraction:            e.HealFraction,
@@ -221,6 +264,7 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		SlowFraction:            e.SlowFraction,
 		SlowFractionPerLevel:    e.SlowFractionPerLevel,
 		TickInterval:            tickInterval,
+		TickIntervalPerLevel:    e.TickIntervalPerLevel,
 		Stat:                    e.Stat,
 		AdditivePerLevel:        e.AdditivePerLevel,
 	}, nil

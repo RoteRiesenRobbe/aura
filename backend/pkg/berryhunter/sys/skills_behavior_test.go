@@ -76,6 +76,9 @@ func newFakePlayer() *fakePlayer {
 		vitalSigns:      model.PlayerVitalSigns{Health: vitals.Max},
 		statusEffects:   model.NewStatusEffects(),
 		maxHealthFactor: 1.0,
+		// Non-nil so applyDamageAura/applyHealAura can read the caster position
+		// for selector ordering; tests that need a real space overwrite it.
+		aura: phy.NewCircle(phy.VEC2F_ZERO, 1.0),
 	}
 }
 

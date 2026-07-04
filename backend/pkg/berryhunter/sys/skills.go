@@ -100,7 +100,7 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 
 	collisions := collider.Collisions()
 	for _, effect := range equip.Def.Effects {
-		if equip.TickAccumulator >= effect.TickInterval {
+		if equip.TickAccumulator >= effectiveTickInterval(effect, equip.Level) {
 			switch effect.Type {
 			case skills.EffectTypeDamageAura:
 				applyDamageAura(e, equip.Level, effect, collisions)
@@ -115,8 +115,8 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	// Reset after all effects have been checked for this tick.
 	maxInterval := 1
 	for _, effect := range equip.Def.Effects {
-		if effect.TickInterval > maxInterval {
-			maxInterval = effect.TickInterval
+		if iv := effectiveTickInterval(effect, equip.Level); iv > maxInterval {
+			maxInterval = iv
 		}
 	}
 	if equip.TickAccumulator >= maxInterval {
@@ -130,58 +130,58 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	switch caster := e.(type) {
 	case model.PlayerEntity:
-		applyPlayerDamageAura(caster, level, effect, collisions)
+		applyPlayerDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions)
 	case model.MobEntity:
-		applyMobDamageAura(caster, level, effect, collisions)
+		applyMobDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions)
 	}
 }
 
-func applyPlayerDamageAura(caster model.PlayerEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	fraction := effectDamageFraction(effect, level)
 
-	for c := range collisions {
+	// Declarative targeting: the sensor mask pre-filters layers, the flags
+	// decide per target class. targetsPlayers=false is the no-friendly-fire
+	// rule; everything non-player (mobs, resources) is gated by targetsMobs.
+	eligible := func(c phy.Collider) bool {
 		usr := c.Shape().UserData
 		if usr == nil {
-			continue
+			return false
 		}
-		// Declarative targeting: the sensor mask pre-filters layers, the flags
-		// decide per target class. targetsPlayers=false is the no-friendly-fire
-		// rule; everything non-player (mobs, resources) is gated by targetsMobs.
 		if _, isPlayer := usr.(model.PlayerEntity); isPlayer {
 			if !effect.TargetsPlayers {
-				continue
+				return false
 			}
 		} else if !effect.TargetsMobs {
-			continue
+			return false
 		}
-		r, ok := usr.(model.Interacter)
-		if !ok {
-			continue
-		}
-		r.PlayerTouches(caster, fraction)
+		_, ok := usr.(model.Interacter)
+		return ok
+	}
+
+	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, fraction)
 	}
 }
 
-// applyMobDamageAura applies a mob's aura to everything in the (mask-filtered)
-// collision set via MobTouches. Target discrimination is purely the sensor
-// mask, exactly like the legacy mob damage loop; the Factors payload carries
-// both fractions and each target picks the one that applies to it.
-func applyMobDamageAura(caster model.MobEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+// applyMobDamageAura applies a mob's aura to the (mask-filtered) collision set
+// via MobTouches. Target discrimination is purely the sensor mask, exactly like
+// the legacy mob damage loop; the Factors payload carries both fractions and
+// each target picks the one that applies to it. Selector/cap ride on top.
+func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	factors := mobs.Factors{
 		DamageFraction:          effectDamageFraction(effect, level),
 		StructureDamageFraction: effect.StructureDamageFraction,
 	}
 
-	for c := range collisions {
-		usr := c.Shape().UserData
-		if usr == nil {
-			continue
-		}
-		r, ok := usr.(model.Interacter)
-		if !ok {
-			continue
-		}
-		r.MobTouches(caster, factors)
+	eligible := func(c phy.Collider) bool {
+		_, ok := c.Shape().UserData.(model.Interacter)
+		return ok
+	}
+
+	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(model.Interacter).MobTouches(caster, factors)
 	}
 }
 
@@ -194,24 +194,27 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 	}
 
 	healFrac := effectHealFraction(effect, level)
+	casterPos := e.AuraCollider().Position()
+	casterID := e.Basic().ID()
 	healedSomeone := false
 
-	for c := range collisions {
-		usr := c.Shape().UserData
-		if usr == nil {
-			continue
-		}
-		other, ok := usr.(model.PlayerEntity)
+	// Eligible = a wounded ally that isn't the caster; the cap then counts only
+	// heal-worthy targets (never a slot wasted on a full-health or self entry).
+	eligible := func(c phy.Collider) bool {
+		other, ok := c.Shape().UserData.(model.PlayerEntity)
 		if !ok {
-			continue
+			return false
 		}
-		if other.Basic().ID() == e.Basic().ID() {
-			continue // skip self
+		if other.Basic().ID() == casterID {
+			return false // skip self
 		}
+		return other.VitalSigns().Health != vitals.Max
+	}
+
+	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		other := c.Shape().UserData.(model.PlayerEntity)
 		vs := other.VitalSigns()
-		if vs.Health == vitals.Max {
-			continue
-		}
 		vs.Health = vs.Health.AddFraction(healFrac)
 		healedSomeone = true
 
