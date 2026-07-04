@@ -5,9 +5,7 @@ import (
 
 	"github.com/EngoEngine/ecs"
 
-	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
-	"github.com/trichner/berryhunter/pkg/berryhunter/model/actions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 )
 
@@ -77,11 +75,6 @@ func (i *PlayerInputSystem) Update(dt float32) {
 
 // applies the inputs to a player
 func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.PlayerInput) {
-	resolveHandCollisions(p)
-
-	// reset
-	p.Hand().Collider.Shape().Mask = 0
-
 	if next == nil {
 		return
 	}
@@ -113,78 +106,6 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 			next := p.Position().Add(v)
 			p.SetPosition(next)
 		}
-	}
-
-	// process actions if available
-	i.applyAction(p, next.Action)
-}
-
-func resolveHandCollisions(player model.PlayerEntity) {
-	hand := player.Hand()
-	if hand.Item.ItemDefinition == nil {
-		return
-	}
-
-	for v := range hand.Collider.Collisions() {
-		usr := v.Shape().UserData
-		if usr == nil {
-			log.Printf("Missing UserData!")
-			continue
-		}
-
-		r, ok := usr.(model.Interacter)
-		if !ok {
-			log.Printf("Non conformant UserData: %T", usr)
-			continue
-		}
-		r.PlayerHitsWith(player, hand.Item)
-	}
-}
-
-func (i *PlayerInputSystem) applyAction(p model.PlayerEntity, action *model.Action) {
-	if action == nil {
-		return
-	}
-
-	item, err := i.game.itemRegistry.Get(action.Item)
-	if err != nil {
-		log.Printf("😩 Unknown Action Item: %s", err)
-		return
-	}
-
-	actionType := BerryhunterApi.ActionType(action.Type)
-	log.Printf("✊ Action going on: %s(%s)", BerryhunterApi.EnumNamesActionType[actionType], item.Name)
-	var newAction model.PlayerAction = nil
-	switch actionType {
-	case BerryhunterApi.ActionTypePrimary:
-		newAction = actions.NewPrimary(item, p)
-		break
-	case BerryhunterApi.ActionTypeCraftItem:
-		newAction = actions.NewCraft(item, p)
-		break
-
-	case BerryhunterApi.ActionTypeDropItem:
-		newAction = actions.NewDrop(item, p)
-		break
-
-	case BerryhunterApi.ActionTypeConsumeItem:
-		newAction = actions.NewConsume(item, p)
-		break
-
-	case BerryhunterApi.ActionTypeEquipItem:
-		newAction = actions.NewEquip(item, p)
-		break
-
-	case BerryhunterApi.ActionTypeUnequipItem:
-		newAction = actions.NewUnequip(item, p)
-		break
-
-	case BerryhunterApi.ActionTypePlaceItem:
-		newAction = actions.NewPlace(item, p, i.game)
-		break
-	}
-	if newAction != nil {
-		p.AddAction(newAction)
 	}
 }
 
