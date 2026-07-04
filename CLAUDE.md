@@ -19,8 +19,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - ⚠️ Testing gotcha: `go:embed` patterns don't include subdirectories (`*.json **/*.json`!), and disk-based registry tests can't catch embed gaps — pinned by `pkg/api/skills/skills_test.go`. Before manual tests: `pkill berryhunterd`, rebuild, and check the boot log (`Loaded skill definitions count=13` as of the Phase 8.2 content batch) — a stale server process silently masks new behavior.
   - **FIXED — `KILL` cheat no longer killed (found + fixed 2026-07-04, Block 2 testing):** one-shot zeroing of `Health` was reverted before death was detected. `KILL` sets `Health = 0` in `CommandSystem` (prio −50); `UpdateSystem` (also −50, runs after) regenerated any `Health != Max` via `updateVitalSigns`, bumping it to a tiny positive value the same tick, before `ConnectionStateSystem` (prio 10, `sys/state.go`) checked `Health == 0` next tick. **Fix:** `updateVitalSigns` now regenerates only when `0 < Health < Max` (0 = dead, no revive). Pinned by `TestUpdateVitalSigns_DeadPlayerDoesNotRegenerate`.
 - Full plan: docs/skill-system-design.md (skill system, Phases 1–9)
-- v1.0 scope outside the skill system: docs/v1-roadmap.md (skeleton)
+- v1.0 scope outside the skill system: docs/v1-roadmap.md (skeleton) — incl. item 7 boss-encounter feasibility audit, item 11 deferred HP/resist/damage-tag work
 - Block 2 (items 1+2) execution plan + status: docs/block2-resource-and-survival-removal.md
+- Runtime cost model, scaling limits, zones-as-Spaces & fluid transitions, hazard/encounter runtime cost: docs/architecture-and-scaling.md
 
 
 ## Development Principles

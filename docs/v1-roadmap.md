@@ -97,6 +97,23 @@ storytelling.
   item starts. Suggested first step: a Tiled spike (build one test zone, load
   it through the existing entity pipeline).*
 
+### Zones as runtime physics Spaces & fluid transitions
+
+A `phy.Space` is the unit of everything that can interact (collision, AOI
+viewport queries, aura overlap) — entities in different Spaces cannot see or
+touch each other, so a Space boundary is a **hard simulation wall**. Whether a
+zone is its own Space is a *performance* decision that becomes a *gameplay* one.
+Today the whole world is one Space; splitting per zone is the horizontal-scale
+path (and the escape from the single-thread ceiling). Fluid, WoW-style
+transitions are possible three ways — one big Space per contiguous landmass
+(fluid by construction), separate Spaces with **hidden seams at chokepoints**
+(the design's tunnels — the recommended cheap path; the light/dark zone-1↔2
+tunnel *is* this seam), or border ghosting (true seamless sharding, hard, later).
+A transition is a **handoff** (move the entity between Spaces, reset the client
+snapshot; connection stays put — the `carriedState` respawn pattern is its
+shape), not a teleport. **Full analysis, per-count scaling estimates, and handoff
+mechanics: `docs/architecture-and-scaling.md`.**
+
 ## 5. Darkness & light
 
 Dark areas (caves, the zone-1↔2 tunnel) as the natural tutorial for role
@@ -190,6 +207,77 @@ Aura effects blocked by walls/obstacles.
 - A brand-new mob *name* still requires an `EntityType` (schema + frontend
   rendering class); a small JSON `entityType` override (reuse an existing
   look) is the known ~5-line addition when this item introduces variants.
+
+### Boss encounters — feasibility audit & the encounter-controller gap
+
+Stress-tested against a concrete reference encounter (2026-07): a lava-bridge
+approach → boss on a rock in a lava pool, connected by 4 bridges; boss immune
+until 3 mini-mobs (one per outer platform, 60 s respawn) die simultaneously;
+boss leashes to the rock, targets by **threat**, spawns adds; on death a 5th
+(safe) bridge opens for 20 min to a water pool where the **first** player to
+dwell 10 s gets a unique unlock, then the pool drains (one-shot ascension VFX).
+
+**Verdict: feasible, no rewrite, no hard architectural blocker.** Every hard
+part reduces to *one* missing system plus the already-deferred resist work.
+Status of each mechanic:
+
+- ✅ **Now:** static geometry (rock/bridges/pool) = static colliders; mob
+  spawning primitives; mob-death events (rewards already fire on death); unlock
+  granting (spellbook kill/milestone unlocks already grant auras).
+- 🟡 **Planned/partial:** lava DoT + tag-specific resist aura = the deferred
+  resist/damage-**tag** system + a *buff-aura* effect type (grants a transient
+  stat like `slow_aura`) — see item 11 deferred. Boss leash to the rock =
+  tighten existing `spawnPosition`/aggro-territory leashing. Ascension VFX =
+  frontend + a world-state wire bit.
+- 🔴 **Missing (all the same gap):** encounter start/lock, conditional damage
+  **immunity** (the flag is trivial; the *condition* is not), **event-driven
+  scripted spawns** (there is no "spawn" effect), sub-objective state tracking
+  ("all 3 dead this window" + 60 s timers), boss-death → **timed world-state**
+  (open a passage for 20 min), and the **dwell-capture** trigger (first player,
+  10 s, one-shot, consume).
+
+**The single missing spine: an encounter/boss scripting layer.** Mobs have
+autonomous AI (aggro nearest, fire auras/cooldowns, leash) but nothing owns
+*encounter state*: phases, sub-objective tracking, event-driven spawns, immunity
+gating, timed world changes. This is the system to build — **medium, not huge**,
+because the events it reacts to mostly already fire (proximity, mob death, boss
+death, ticks/timers). It is an ECS system holding per-encounter state objects
+with lifecycle hooks (`OnPlayerEnter` / `OnMobDeath` / `OnTick` / `OnBossDeath` /
+`OnDwellComplete`) that drive spawns / immunity / world-state.
+
+> **Recommendation: build it code-defined in Go (one struct per boss behind an
+> interface), NOT a data-driven scripting DSL.** With one boss to author, a DSL
+> is YAGNI. Revisit when there are many encounters and a non-engineer author.
+> This aligns with the "bosses get scripted mechanics" decision above — the
+> encounter controller *is* that scripting layer.
+
+**Threat table** (needed for "attack the highest-threat player from damage /
+aura ticks / cooldowns / heals"): targeting today is **nearest player**
+(`mob.findAggroTarget`). A weighted per-player threat table is new — but
+**seeded** by the existing combat `participants` + `recentHealers` tracking (XP
+attribution). Extend that into accumulated threat and target the max. Moderate.
+Cleanest as a table owned by the boss/encounter (heals land on allies, not the
+boss, so the boss must *observe* heal/aura/cooldown events to credit threat —
+per-mob nearest-target can't express that).
+
+**Two technical gotchas the encounter surfaces:**
+- **One Space required.** The controller iterates boss + 3 sub-mobs + players,
+  which must share collision/visibility → the whole arena is a single
+  `phy.Space` (perf-trivial at ~20 players + adds; see
+  `docs/architecture-and-scaling.md` §7). A boss arena is a natural per-zone
+  Space reached through a seam.
+- **Timed / one-shot world states must be wire-visible.** The 20-min bridge and
+  the already-claimed pool are persistent states clients must see (passable?
+  full/drained?) → a couple of small wire fields on a placeable/bridge, with the
+  controller owning the timers.
+
+**Rough cost of the reference encounter:** 1 new medium system (encounter
+controller — the spine), 1 new medium system (threat table, seeded by existing
+tracking), the already-planned HP/resist/damage-tag work (buff auras, immunity,
+lava tag), 2 small additions (timed world-state objects; dwell-capture trigger),
+1 small AI tweak (leash to the rock), reuse of geometry / spawning / death
+events / unlock granting, plus content + frontend feedback. It is a *showcase*
+for systems already wanted, not a demand for exotic ones.
 
 ## 8. UI chrome
 
@@ -396,6 +484,24 @@ roughly the size of one Step, mostly mechanical but touches balance everywhere.
 Item 3 (variance/ranges) is *small-to-medium* and cheap **once** 1–2 land (a roll
 at spawn + a roll per hit), but near-pointless before them because fractional HP
 hides the effect. Sequence: HP units → resistances/types → variance.
+
+4. **Damage/resistance types must be arbitrary named TAGS, not a fixed enum.**
+   Forced by bespoke content like "resistance to *this specific lava*, not
+   general fire": a rigid `fire/ice/physical` enum can't express a per-encounter
+   damage tag, so every such hazard would need a code change. Build the type key
+   as a set/map of string tags from day one — cheap now, painful to retrofit.
+   General resist ("fire") and bespoke resist ("boss_x_lava") then compose: a
+   hazard deals a tag, a resist source lists the tags it covers.
+5. **Buff / resist auras** — a `heal_aura`-shaped effect type that grants a
+   *transient* stat (resistance, etc.) to allies in range instead of healing;
+   modeled like `slow_aura` (re-applied each tick, short fade) so it sidesteps
+   system-ordering races (a hazard tick landing before the buff was applied) and
+   gives the right feel (step out of the aura → start taking damage ~1 s later).
+   This is the enabler for environmental-hazard encounters (lava-bridge / carrier
+   role) — the same design pattern as the light-tunnel role (item 5), and the
+   runtime cost is ~0 (`docs/architecture-and-scaling.md` §7). "Current
+   resistance" becomes an **aggregated** value at damage time (base + passive +
+   aura-granted), extending the existing `skills.Derived` aggregation.
 
 ## 12. Initial content pass (prototype gate)
 
