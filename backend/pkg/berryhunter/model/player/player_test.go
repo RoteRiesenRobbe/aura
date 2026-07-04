@@ -97,6 +97,29 @@ func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
 	}
 }
 
+// --- resource unification (v1-roadmap Block 2, Stage 1) ---
+
+// updateVitalSigns must regenerate only Health (the single resource) and must
+// no longer force satiety/temperature to Max — those survival vitals are gone.
+func TestUpdateVitalSigns_RegeneratesHealthOnly(t *testing.T) {
+	p := &player{
+		config:        &cfg.PlayerConfig{HealthGainTick: 0.1},
+		statusEffects: model.NewStatusEffects(),
+		PlayerVitalSigns: model.PlayerVitalSigns{
+			Health:          vitals.Max / 2,
+			Satiety:         0,
+			BodyTemperature: 0,
+		},
+	}
+
+	p.updateVitalSigns(0)
+
+	assert.Greater(t, p.VitalSigns().Health, vitals.Max/2, "wounded player regenerates health")
+	assert.Equal(t, vitals.VitalSign(0), p.VitalSigns().Satiety, "satiety is no longer maintained")
+	assert.Equal(t, vitals.VitalSign(0), p.VitalSigns().BodyTemperature, "body temperature is no longer maintained")
+	assert.Contains(t, p.StatusEffects().Effects(), model.StatusEffectRegenerating)
+}
+
 // --- recent healers (participation XP, v1-roadmap item 10) ---
 
 func TestRecentHealers_RecordedAfterHeal(t *testing.T) {

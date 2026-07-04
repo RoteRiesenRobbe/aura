@@ -27,18 +27,9 @@ func (p *player) Update(dt float32) {
 }
 
 func (p *player) updateVitalSigns(dt float32) {
-	vitalSigns := p.VitalSigns()
-	c := p.config
-
-	// Hunger and cold are disabled: keep both vital signs maxed to prevent
-	// starving/freezing damage and related status effects.
-	vitalSigns.Satiety = vitals.Max
-	vitalSigns.BodyTemperature = vitals.Max
-
-	// Keep normal health regeneration behavior.
-	if vitalSigns.Health != vitals.Max {
-		healthFraction := c.HealthGainTick
-		p.addHealthFraction(healthFraction)
+	// Health is the single resource (Aura). Regenerate it out of combat.
+	if p.VitalSigns().Health != vitals.Max {
+		p.addHealthFraction(p.config.HealthGainTick)
 		p.statusEffects.Add(model.StatusEffectRegenerating)
 	}
 }

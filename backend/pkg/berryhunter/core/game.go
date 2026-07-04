@@ -27,7 +27,6 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/sys/chat"
 	"github.com/trichner/berryhunter/pkg/berryhunter/sys/cmd"
 	"github.com/trichner/berryhunter/pkg/berryhunter/sys/equip"
-	"github.com/trichner/berryhunter/pkg/berryhunter/sys/heater"
 	"github.com/trichner/berryhunter/pkg/berryhunter/sys/statuseffects"
 )
 
@@ -108,9 +107,6 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	m := sys.NewMobSystem(g, rnd.Int63())
 	g.AddSystem(m)
 
-	f := heater.New()
-	g.AddSystem(f)
-
 	preu := sys.NewPreUpdateSystem()
 	g.AddSystem(preu)
 
@@ -143,9 +139,6 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 
 	r := sys.NewRespawnSystem(g)
 	g.AddSystem(r)
-
-	dayCycle := sys.NewDayCycleSystem(g, g.config.TotalDayCycleSeconds*constant.TicksPerSecond, g.config.DayTimeSeconds*constant.TicksPerSecond, gc.ColdFractionNightPerS, gc.ColdFractionDayPerS)
-	g.AddSystem(dayCycle)
 
 	sb := sys.NewScoreboardSystem(g)
 	g.AddSystem(sb)
@@ -297,10 +290,6 @@ func (g *game) addPlaceableEntity(p model.PlaceableEntity) {
 			s.AddUpdateable(p)
 		case *sys.DecaySystem:
 			s.AddDecayable(p)
-		case *heater.HeaterSystem:
-			if p.HeatRadiation() != nil {
-				s.AddHeater(p)
-			}
 		}
 	}
 }
@@ -367,10 +356,6 @@ func (g *game) addPlaceableResourceEntity(p model.PlaceableResourceEntity) {
 			s.AddUpdateable(p)
 		case *sys.DecaySystem:
 			s.AddDecayable(p)
-		case *heater.HeaterSystem:
-			if p.HeatRadiation() != nil {
-				s.AddHeater(p)
-			}
 		}
 	}
 }
@@ -395,10 +380,6 @@ func (g *game) addPlayer(p model.PlayerEntity) {
 		case *chat.ChatSystem:
 			s.AddPlayer(p)
 		case *sys.ConnectionStateSystem:
-			s.AddPlayer(p)
-		case *heater.HeaterSystem:
-			s.AddPlayer(p)
-		case *sys.DayCycleSystem:
 			s.AddPlayer(p)
 		case *sys.ScoreboardSystem:
 			s.AddPlayer(p)
