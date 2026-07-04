@@ -12,6 +12,11 @@ Ordering below is a first guess, not a decision. All numbers [PLACEHOLDER].
 
 ## 1. The Resource (single unified stat)
 
+> **In progress — see `block2-resource-and-survival-removal.md`** for the full
+> staged plan + status. Items 1 + 2 are being executed together as "Block 2."
+> Stages 1, 2, 3a, 3b done; 3c (frontend item teardown) + 3d (wire cleanup)
+> remaining.
+
 Every player and NPC has exactly one resource — HP, mana, everything at once;
 0 = death.
 
@@ -25,6 +30,9 @@ Every player and NPC has exactly one resource — HP, mana, everything at once;
   skill, no new code.
 
 ## 2. Survival-system removal
+
+> **In progress — see `block2-resource-and-survival-removal.md`** (executed
+> jointly with item 1 as "Block 2").
 
 Remove or heavily reduce: satiety/hunger, body temperature, crafting,
 food/tool items.
