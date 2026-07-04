@@ -229,18 +229,8 @@ export class Controls {
                                 actionType: BerryhunterApi.ActionType.Primary,
                             };
                             break;
-                        case 'PLACING':
-                            let placedItem = this.character.getEquippedItem(Equipment.EquipmentSlot.PLACEABLE);
-
-                            if (!placedItem.placeable.multiPlacing) {
-                                Game.player.inventory.unequipItem(placedItem, Equipment.EquipmentSlot.PLACEABLE);
-                            }
-
-                            action = {
-                                item: placedItem,
-                                actionType: BerryhunterApi.ActionType.PlaceItem,
-                            };
-                            break;
+                        // PLACING removed with the item system (Block 2): no
+                        // inventory to unequip a placeable from.
                     }
                 } else if (this.altActionKeys.isDown || inputManager.activePointer.rightButtonDown()) {
                     // Alt Action is only cancelling an equipped placeable - not need to report to backend

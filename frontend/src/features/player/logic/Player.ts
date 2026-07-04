@@ -2,33 +2,19 @@ import {Character} from '../../game-objects/logic/Character';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Controls} from '../../controls/logic/Controls';
 import {Camera} from '../../camera/logic/Camera';
-import {Inventory} from '../../items/logic/Inventory';
 import {DamageState, VitalSigns, VitalSignValues} from '../../vital-signs/logic/VitalSigns';
 import {isDefined} from '../../common/logic/Utils';
-import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
-import {BerryhunterApi} from '../../backend/logic/BerryhunterApi';
 import {MiniMap} from '../../mini-map/logic/MiniMap';
-import {PlayerCraftingStateChangedEvent, PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
-import * as HUD from '../../user-interface/HUD/logic/HUD';
+import {PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
 import './PlayerJuice';
 
 export class Player {
-    craftProgress;
     character: Character;
     controls: Controls;
     camera: Camera;
-    inventory: Inventory;
     vitalSigns: VitalSigns;
-    craftableItems;
 
     constructor(id: number, x: number, y: number, name: string, miniMap: MiniMap) {
-        /**
-         * Either <code>null</code> or number of seconds
-         * remaining until the current craft is done.
-         * @type {boolean|number}
-         */
-        this.craftProgress = null;
-
         this.character = new Character(id, x, y, name, true);
         this.character.visibleOnMinimap = true;
 
@@ -38,29 +24,16 @@ export class Player {
         miniMap.add(this.character);
         miniMap.setPlayerCharacter(this.character);
 
-        this.inventory = new Inventory(this.character, this.isCraftInProgress.bind(this));
-
         this.vitalSigns = new VitalSigns();
-
-        this.craftableItems = [];
     }
 
     init() {
-        this.inventory.init();
         PlayerCreatedEvent.trigger(this);
     }
 
+    // Crafting was removed with the item system (Block 2); never in progress.
     isCraftInProgress() {
-        return this.craftProgress !== null;
-    }
-
-    startCraftProgress(craftingTime) {
-        this.craftProgress = {
-            requiredTicks: craftingTime * 1000 / Constants.SERVER_TICKRATE
-        };
-        this.craftProgress.remainingTicks = this.craftProgress.requiredTicks;
-        this.character.craftingIndicator.visible = true;
-        PlayerCraftingStateChangedEvent.trigger(true);
+        return false;
     }
 
     updateFromBackend(entity) {
@@ -99,33 +72,12 @@ export class Player {
         if (isDefined(entity.level)) {
             this.character.setLevel(entity.level);
         }
-
-        /**
-         * Handle Actions
-         */
-        if (entity.currentAction) {
-            switch (entity.currentAction.actionType) {
-                case BerryhunterApi.ActionType.CraftItem:
-                    let recipe = entity.currentAction.item.recipe;
-                    let craftIcon = recipe.clickableIcon;
-                    if (this.isCraftInProgress()) {
-                        let ticksRemaining = entity.currentAction.ticksRemaining;
-                        this.craftProgress.remainingTicks = ticksRemaining;
-                        craftIcon.updateProgress(ticksRemaining);
-                    } else {
-                        craftIcon.startProgress(recipe.craftingTime);
-                        this.startCraftProgress(recipe.craftingTime);
-                    }
-                    break;
-            }
-        }
     }
 
     remove() {
         this.character.remove();
         this.controls.destroy();
         this.camera.destroy();
-        this.inventory.clear();
         this.vitalSigns.destroy();
     }
 }

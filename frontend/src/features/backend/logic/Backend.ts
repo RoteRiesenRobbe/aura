@@ -251,10 +251,6 @@ export class Backend implements IBackend {
                     snapshot.player.name);
             }
 
-            if (Utils.isDefined(snapshot.inventory)) {
-                this.game.player.inventory.updateFromBackend(snapshot.inventory);
-            }
-
             // snapshot.spellbook is always defined ([] for empty); isDefined guard
             // matches inventory pattern and is safe against the first-tick edge case.
             if (Utils.isDefined(snapshot.spellbook)) {

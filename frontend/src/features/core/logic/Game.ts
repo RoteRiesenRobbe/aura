@@ -16,7 +16,6 @@ import {isDefined, resetFocus} from '../../common/logic/Utils';
 import {WelcomeMessage} from '../../backend/logic/messages/incoming/WelcomeMessage';
 import * as Console from '../../internal-tools/console/logic/Console';
 import {Camera} from '../../camera/logic/Camera';
-import * as Recipes from '../../items/logic/Recipes';
 import * as Scoreboard from '../../scoreboard/logic/Scoreboard';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import {GameState, IGame, IGameLayers} from './IGame';
@@ -219,7 +218,6 @@ export class Game implements IGame {
         this.createBackground();
 
         Camera.setup(this);
-        Recipes.setup(this);
         Scoreboard.setup();
         GroundTextureManager.setup(this);
 

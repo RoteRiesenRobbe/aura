@@ -470,27 +470,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     }
 
     updatePlayerCharacter() {
-        if (Game.player.isCraftInProgress()) {
-            const craftProgress = Game.player.craftProgress;
-            let progress = 1 - (craftProgress.remainingTicks / craftProgress.requiredTicks);
-            if (progress >= 1) {
-                Game.player.craftProgress = null;
-                progress = 1;
-                this.craftingIndicator.visible = false;
-            }
-
-            const craftingIndicatorCircle = this.craftingIndicator.getChildByLabel('circle') as Graphics;
-            craftingIndicatorCircle
-                .clear()
-                .arc(0, 0, 27, 0, progress * 2 * Math.PI)
-                .stroke({
-                    width: GraphicsConfig.character.craftingIndicator.lineWidth,
-                    color: GraphicsConfig.character.craftingIndicator.lineColor,
-                });
-        } else {
-            //TODO: this triggers all the time now, preventing audio loop from sticking when the window is not focused
-            PlayerCraftingStateChangedEvent.trigger(false);
-        }
+        // Crafting indicator removed with the item system (Block 2).
     }
 
     isSlotEquipped(equipmentSlot: EquipmentSlot) {

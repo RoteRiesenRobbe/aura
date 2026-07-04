@@ -16,21 +16,15 @@ import './features/game-objects/logic/Resources';
 import './features/game-settings/logic/GameSettingsUI';
 import './features/ground-textures/logic/GroundTexture';
 import './features/ground-textures/logic/_GroundTexturesPanel';
-import './features/items/logic/Crafting';
-import './features/items/logic/Inventory';
-import './features/items/logic/InventoryShortcuts';
-import './features/items/logic/InventorySlot';
 import './features/items/logic/Items';
 import './features/scoreboard/logic/HighScores';
 // Tutorial temporarily disabled.
 // import './features/tutorial/logic/Tutorial';
 import './features/user-interface/logic/UserInterface';
-import './features/user-interface/HUD/logic/ClickableIcon';
 import './features/user-interface/changelog/logic/Changelog';
 import './features/user-interface/end-screen/logic/EndScreen';
 import './features/user-interface/start-screen/logic/StartScreen';
 
-import './features/items/logic/AutoFeed';
 import './features/internal-tools/browser-console-integration/logic/BrowserConsole';
 import './features/controls/logic/Controls';
 import './features/full-screen/logic/FullScreen';

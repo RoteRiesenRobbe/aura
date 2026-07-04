@@ -127,21 +127,22 @@ Every stage boundary runs **both**:
 The 3b regression happened because only the backend boot was checked; the
 frontend has build-time `require()` dependencies on item JSON.
 
-## Known bug (found during 3b testing) — KILL revive
+## Known bug (found during 3b testing) — KILL revive ✓ FIXED
 
-The `KILL` cheat (and any one-shot zeroing of `Health`) no longer kills; the
-player is revived to the smallest value above 0 and keeps regenerating.
+The `KILL` cheat (and any one-shot zeroing of `Health`) no longer killed; the
+player was revived to the smallest value above 0 and kept regenerating.
 
 **Root cause:** `KILL` sets `Health = 0` in `CommandSystem` (priority −50).
 `UpdateSystem` (also −50, registered after Command) runs `updateVitalSigns`,
-which regenerates any `Health != Max` back up by `HealthGainTick` — turning the
+which regenerated any `Health != Max` back up by `HealthGainTick` — turning the
 0 into a tiny positive value **within the same tick**, before the next tick's
 `ConnectionStateSystem` (priority 10) death check at `sys/state.go` ever
-observes `Health == 0`. Continuous-damage deaths still work because
+observed `Health == 0`. Continuous-damage deaths still worked because
 `SkillSystem` (−65) re-applies damage after regen each tick, pinning `Health` at
 0 when the check runs.
 
-Essentially pre-existing (the regen predates Block 2), surfaced now. **Fix
-candidate:** don't regenerate a player at `Health == 0` (0 = dead; passive
-regen only heals the living) — one-line guard in `updateVitalSigns`. Add a test
-that `KILL` → dead. To fix in a dedicated commit, not folded into a stage.
+Essentially pre-existing (the regen predates Block 2), surfaced now.
+
+**Fix (committed 2026-07-04):** `updateVitalSigns` now regenerates only when
+`0 < Health < Max` — a player at 0 is dead and is not revived. Pinned by
+`TestUpdateVitalSigns_DeadPlayerDoesNotRegenerate`.

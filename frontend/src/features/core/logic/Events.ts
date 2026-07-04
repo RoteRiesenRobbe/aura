@@ -2,7 +2,6 @@ import {isDefined, removeElement} from "../../common/logic/Utils";
 import {IGame} from "./IGame";
 import {BackendState, IBackend} from "../../backend/logic/IBackend";
 import {Player} from "../../player/logic/Player";
-import {InventorySlot} from "../../items/logic/InventorySlot";
 import {Vector} from "./Vector";
 import {integer, radians} from "../../common/logic/Types";
 import {InputAction} from "../../backend/logic/messages/outgoing/InputMessage";
@@ -219,7 +218,7 @@ export const EndScreenShownEvent: SimpleEvent = new SimpleEvent();
 
 export interface AutoFeedMsg {
     index: number;
-    inventorySlot: InventorySlot;
+    inventorySlot: any; // InventorySlot type removed with the item system (Block 2)
 }
 
 export const AutoFeedActivateEvent: PayloadEvent<AutoFeedMsg> = new PayloadEvent<AutoFeedMsg>(true);
