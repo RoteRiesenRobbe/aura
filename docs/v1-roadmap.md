@@ -273,6 +273,71 @@ changes shipped base-aura behavior and is its own step.
   since the content pass authors per-aura selectors/caps and the prototype
   should ship the decided base-aura feel.
 
+### Implementation status (2026-07-04)
+
+Executed as Steps 1–3 in a dedicated session; each committed separately.
+
+- ✓ **Step 1 — selector & target-cap machinery (backend).** `EffectDef` gained
+  `selector` (`nearest` default / `lowest_health` / `all`), `maxTargets`
+  (**0 = uncapped**), plus level scaling `maxTargetsPerLevel` and
+  `tickIntervalPerLevel`. Targeting pipeline in `backend/pkg/berryhunter/sys/targeting.go`:
+  eligibility filter → selector sort → take N. Applied uniformly to
+  `damage_aura` / `heal_aura` / `instant_damage`, so **every ability is
+  target-cappable via config** (bursts just leave `maxTargets:0`).
+  `lowest_health` ranks by current/max **percentage** (`HealthRatio()` on mob +
+  player). `nearest` sorts by distance from the caster's aura collider. Tests:
+  `sys/targeting_test.go`, `skills/definition_test.go`.
+- ✓ **Step 2 — shipped base auras flipped to single-target.** DamageAura /
+  HealAura / WildAura → `selector:nearest` + `maxTargets:1`. NovaBurst +
+  AngryMammothStomp stay uncapped AoE bursts. `slow_aura` and mob damage auras
+  unchanged (still AoE-all). Edited `api/skills/*.json` source + synced the
+  `backend/pkg/api/skills/` embed via `make cp-defs`.
+- ✓ **Step 2b — HealAura targets the lowest-%-HP ally** (`selector:lowest_health`,
+  still `maxTargets:1`) — heals the single most-wounded ally in range by
+  percentage, not absolute HP.
+- ✓ **Step 3 — floating damage / heal / XP numbers.** Per-tick accumulators on
+  mob + player (`model.TickAccumulators.ResetTickNumbers()`, reset by
+  `StatusEffectsSystem` prio 101 which runs first each tick; recorded values
+  survive to `NetSystem` prio −100 which serializes last). Recorded at the
+  **accurate source**: `mob.takeDamage` / `player.takeDamage` (actual
+  post-vulnerability/reduction delta), `applyHealAura` → `NoteHealReceived`,
+  `AddExperience`. Wire fields (appended at table end, wire-compatible):
+  `Mob.damage_taken`; `Character.damage_taken` / `heal_received` / `xp_gained`
+  (VitalSign units for damage/heal, raw for XP; `u64ToU32Clamped` for XP).
+  Frontend `GameObject.showFloatingNumber(value, kind)` rises + fades on a new
+  topmost `characterAdditions.floatingNumbers` world layer (red damage / green
+  heal / gold XP), triggered in `EntityManager.addOrUpdate` (mobs + other
+  players) and `Player.updateFromBackend` (own character). Display-scale
+  **[PLACEHOLDER]**: full health ≈ 1000 points (`HEALTH_DISPLAY_SCALE` /
+  `vitalUnitsToDisplay` in `_GameObject.ts`), never rounds a real hit to 0.
+  Note: `xp_gained` rides on *every* `Character`, so a nearby player's XP number
+  also shows — harmless; restrict to self if it reads as noise.
+
+### Remaining steps (future session)
+
+- **Step 4 — per-tick hit VFX on the struck target (slash vs fire by cadence).**
+  Decided design: the SkillSystem, which knows the applied effect's
+  `TickInterval`, notes an *aura-hit style* on each struck target via a small
+  new interface (e.g. `NoteAuraHit(style)`), kept **separate** from the damage-
+  number recording that lives in `takeDamage` (the SkillSystem knows the source
+  aura's cadence; `takeDamage` knows the post-mitigation amount). Threshold
+  **[PLACEHOLDER ~15 ticks]**: slow-tick auras → a discrete **slash** sprite;
+  fast-tick auras → a sustained **fire/spark** effect. Carry the style on a new
+  transient `ubyte` wire field on `Mob`/`Character` (0 = none), reset each tick
+  on the same `TickAccumulators` lifecycle as the number accumulators. Frontend
+  renders it where the floating numbers are already triggered
+  (`EntityManager.addOrUpdate` + `Player.updateFromBackend`), distinct from the
+  existing `DamagedAmbient` white-flash. Purpose: make the aura circle read as
+  *range*, not a hit zone — the feel half of capped targeting.
+- **Step 5 — tick-interval verify-only.** The interval mechanism already exists
+  (`EffectDef.TickInterval` + the `equip.TickAccumulator` gate in
+  `sys/skills.go`) and Step 1 added level scaling
+  (`effectiveTickInterval = TickInterval + (level-1)*TickIntervalPerLevel`,
+  floored at 1). No new code expected — just confirm end-to-end in-game that a
+  high-`tickInterval` aura ticks on cadence and that `tickIntervalPerLevel`
+  shifts it with level. Ship Step 4's slash/fire distinction against these
+  cadences.
+
 ## 12. Initial content pass (prototype gate)
 
 Systems alone aren't a game. Before the prototype is *playable*, a curated
