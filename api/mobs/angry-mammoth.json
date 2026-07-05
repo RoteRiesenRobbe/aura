@@ -3,7 +3,6 @@
   "name": "AngryMammoth",
   "type": "MOB",
   "factors": {
-    "vulnerability": 1,
     "maxHealth": 400,
     "experience": 1000,
     "speed": 0.1,

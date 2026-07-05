@@ -139,3 +139,65 @@ func TestMapMobDefinition_UnknownSkillFails(t *testing.T) {
 	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t))
 	assert.Error(t, err)
 }
+
+// --- resistances (item 11 Phase 2) ---
+
+func TestMapMobDefinition_ParsesResistances(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "factors": {"maxHealth": 40, "resistances": {"fire": 0.5, "physical": 0.8}},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	require.NoError(t, err)
+
+	require.NotNil(t, def.Factors.Resistances)
+	assert.InDelta(t, 0.5, def.Factors.Resistances["fire"], 1e-6)
+	assert.InDelta(t, 0.8, def.Factors.Resistances["physical"], 1e-6)
+}
+
+func TestMapMobDefinition_NoResistancesIsNil(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	require.NoError(t, err)
+	assert.Nil(t, def.Factors.Resistances)
+}
+
+func TestMapMobDefinition_NegativeResistanceFails(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "factors": {"resistances": {"fire": -0.1}},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	assert.Error(t, err)
+}
+
+func TestMapMobDefinition_EmptyResistanceTagFails(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "factors": {"resistances": {"": 0.5}},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	assert.Error(t, err)
+}

@@ -85,6 +85,12 @@ type DerivedStats struct {
 	// DamageReductionBonus is subtractive: incoming damage × (1 − bonus),
 	// applied in player.takeDamage.
 	DamageReductionBonus float32
+	// Resistances aggregates resist_passive effects into one tag → multiplier
+	// source map (item 11 Phase 2): per tag, the product across equipped
+	// passives (each passive is a distinct resist source). nil when no resist
+	// passives are equipped. Fed to ResistMultiplier in takeDamage alongside
+	// the transient ResistBuffs.
+	Resistances map[string]float32
 }
 
 // NewSkillComponent creates a SkillComponent with no skills equipped.
@@ -191,17 +197,34 @@ func (sc *SkillComponent) recomputeDerived() {
 			continue
 		}
 		for _, e := range es.Def.Effects {
-			if e.Type != EffectTypeStatMultiplier {
-				continue
-			}
-			bonus := e.AdditivePerLevel * float32(es.Level)
-			switch e.Stat {
-			case StatMovementSpeed:
-				d.MovementSpeedBonus += bonus
-			case StatMaxHealth:
-				d.MaxHealthBonus += bonus
-			case StatDamageReduction:
-				d.DamageReductionBonus += bonus
+			switch e.Type {
+			case EffectTypeStatMultiplier:
+				bonus := e.AdditivePerLevel * float32(es.Level)
+				switch e.Stat {
+				case StatMovementSpeed:
+					d.MovementSpeedBonus += bonus
+				case StatMaxHealth:
+					d.MaxHealthBonus += bonus
+				case StatDamageReduction:
+					d.DamageReductionBonus += bonus
+				}
+			case EffectTypeResistPassive:
+				// Level scaling mirrors the aura fields (base + (L−1)×perLevel),
+				// floored at 0; per tag the factors of distinct passives multiply.
+				factor := e.ResistFactor + float32(es.Level-1)*e.ResistFactorPerLevel
+				if factor < 0 {
+					factor = 0
+				}
+				if d.Resistances == nil {
+					d.Resistances = make(map[string]float32, len(e.ResistTags))
+				}
+				for _, tag := range e.ResistTags {
+					current, ok := d.Resistances[tag]
+					if !ok {
+						current = 1
+					}
+					d.Resistances[tag] = current * factor
+				}
 			}
 		}
 	}

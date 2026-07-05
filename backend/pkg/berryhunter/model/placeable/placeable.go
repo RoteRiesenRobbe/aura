@@ -141,6 +141,6 @@ func (p *Placeable) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	p.takeDamage(factors.StructureDamageFraction, model.StatusEffectDamagedAmbient)
 }
 
-func (p *Placeable) PlayerTouches(player model.PlayerEntity, damageFraction float32) {
+func (p *Placeable) PlayerTouches(player model.PlayerEntity, damage model.Damage) {
 	// Players do not deal ambient damage to structures.
 }

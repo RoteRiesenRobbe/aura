@@ -118,8 +118,8 @@ func TestPlayer_DamageTaken_AccumulatesAndResets(t *testing.T) {
 	p := newTestPlayer(nil)
 	p.statusEffects = model.NewStatusEffects()
 
-	p.takeDamage(0.1, model.StatusEffectDamagedAmbient)
-	p.takeDamage(0.05, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 0.1}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 0.05}, model.StatusEffectDamagedAmbient)
 
 	assert.Equal(t, vitals.Max-p.VitalSigns().Health, p.DamageTaken(),
 		"DamageTaken sums the actual health lost this tick")
@@ -304,4 +304,38 @@ func TestAddExperience_DiscoverIdempotent(t *testing.T) {
 
 	assert.Equal(t, uint32(2), p.progression.Level)
 	assert.Len(t, p.skills.Discovered(), 2, "spellbook must not grow on second XP grant at same level")
+}
+
+// --- tag resistances (item 11 Phase 2 Step 3) ---
+
+func TestPlayer_TakeDamage_ResistBuffAndPassiveStack(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+
+	// Passive source (Derived) and transient aura buff always stack —
+	// different sources: 40 × 0.5 × 0.5 = 10.
+	p.skills.Derived.Resistances = map[string]float32{"fire": 0.5}
+	p.ApplyResist(40, []string{"fire"}, 0.5, 2)
+
+	before := p.VitalSigns().Health
+	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+	assert.Equal(t, vitals.VitalSign(10), before-p.VitalSigns().Health)
+
+	// Two tick boundaries later the transient buff is gone; the passive stays.
+	p.ResetTickNumbers()
+	p.ResetTickNumbers()
+	before = p.VitalSigns().Health
+	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+	assert.Equal(t, vitals.VitalSign(20), before-p.VitalSigns().Health)
+}
+
+func TestPlayer_TakeDamage_ImmuneIsANonEvent(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	p.ApplyResist(40, []string{"fire"}, 0, 2) // immunity from a single source
+
+	p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+
+	assert.Equal(t, vitals.Max, p.VitalSigns().Health)
+	assert.Zero(t, p.DamageTaken(), "no floating number for a fully resisted hit")
 }

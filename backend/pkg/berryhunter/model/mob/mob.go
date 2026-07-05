@@ -158,6 +158,7 @@ type Mob struct {
 	velocity         float32
 	slowFraction     float32 // transient slow_aura debuff (see ApplySlow)
 	slowTicks        int
+	resistBuffs      skills.ResistBuffs // transient resist_aura buffs (item 11 Phase 2)
 	aggroTarget      model.PlayerEntity
 	spawnPosition    phy.Vec2f
 	spawnInitialized bool
@@ -381,15 +382,15 @@ func (m *Mob) HealthRatio() float32 {
 	return float32(m.health) / float32(m.maxHealth)
 }
 
-// takeDamage subtracts absolute HP (item 11 Phase 1). Vulnerability stays a
-// per-mob damage-taken multiplier (folds into resistances in Phase 2).
-func (m *Mob) takeDamage(damage float32, s model.StatusEffect) {
-	vulnerability := m.definition.Factors.Vulnerability
-	if vulnerability == 0 {
-		vulnerability = 1
-	}
+// takeDamage subtracts absolute HP (item 11 Phase 1), scaled by the mob's base
+// resistances against the hit's damage tags (Phase 2). A fully resisted hit
+// (multiplier 0) does not exist for the mob: no HP loss, no floating number,
+// no status effect and thus no hit VFX.
+func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) {
+	multiplier := skills.ResistMultiplier(damage.Tags, m.definition.Factors.Resistances) *
+		m.resistBuffs.Multiplier(damage.Tags)
 
-	hp := vitals.HP(damage * vulnerability)
+	hp := vitals.HP(damage.HP * multiplier)
 	if hp > 0 {
 		before := m.health
 		m.health = m.health.Sub(hp)
@@ -416,18 +417,27 @@ func (m *Mob) NoteAuraHit(style model.AuraHitStyle) {
 	m.auraHitStyle = style
 }
 
-// ResetTickNumbers clears the per-tick floating-number accumulators; called by
-// the StatusEffectsSystem at the start of each tick.
+// ApplyResist grants a transient tag-resistance buff from a resist aura
+// (item 11 Phase 2); re-applied each aura tick, it expires on the same
+// per-tick lifecycle as the floating-number accumulators.
+func (m *Mob) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+	m.resistBuffs.Apply(source, tags, factor, ticks)
+}
+
+// ResetTickNumbers clears the per-tick floating-number accumulators and ages
+// the transient resist buffs; called by the StatusEffectsSystem at the start
+// of each tick.
 func (m *Mob) ResetTickNumbers() {
 	m.damageTaken = 0
 	m.auraHitStyle = model.AuraHitStyleNone
+	m.resistBuffs.Tick()
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	m.takeDamage(factors.Damage, model.StatusEffectDamagedAmbient)
+	m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags}, model.StatusEffectDamagedAmbient)
 }
 
-func (m *Mob) PlayerTouches(p model.PlayerEntity, damage float32) {
+func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	m.noteParticipant(p)
 	m.takeDamage(damage, model.StatusEffectDamagedAmbient)
 	m.tryGrantKillRewards()

@@ -44,3 +44,18 @@ func TestAuraMaskFor_NoEffectsYieldsNone(t *testing.T) {
 
 	assert.Equal(t, int(LayerNoneCollision), AuraMaskFor(def))
 }
+
+// A resist aura must collect its allies via the sensor mask like any other
+// aura — without this case the sensor mask is empty and only the targetsSelf
+// self-buff ever lands (found in the FireWard in-game check, item 11 Phase 2).
+func TestAuraMaskFor_ResistAura(t *testing.T) {
+	players := &skills.SkillDefinition{Effects: []skills.EffectDef{
+		{Type: skills.EffectTypeResistAura, TargetsPlayers: true},
+	}}
+	assert.Equal(t, int(LayerPlayerCollision), AuraMaskFor(players))
+
+	mobs := &skills.SkillDefinition{Effects: []skills.EffectDef{
+		{Type: skills.EffectTypeResistAura, TargetsMobs: true},
+	}}
+	assert.Equal(t, int(LayerActionCollision), AuraMaskFor(mobs))
+}

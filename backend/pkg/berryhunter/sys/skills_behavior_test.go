@@ -28,14 +28,16 @@ import (
 // touchRecorder implements model.Interacter and records PlayerTouches calls.
 // It stands in for a mob-like target of a damage aura.
 type touchRecorder struct {
-	touches   []float32
+	touches   []float32 // damage HP per hit
+	touchTags [][]string
 	hitStyles []model.AuraHitStyle
 }
 
 func (r *touchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item) {}
 func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)   {}
-func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damageFraction float32) {
-	r.touches = append(r.touches, damageFraction)
+func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
+	r.touches = append(r.touches, damage.HP)
+	r.touchTags = append(r.touchTags, damage.Tags)
 }
 func (r *touchRecorder) NoteAuraHit(style model.AuraHitStyle) {
 	r.hitStyles = append(r.hitStyles, style)
@@ -62,6 +64,15 @@ type fakePlayer struct {
 	maxHealth       vitals.VitalSign
 	healedBy        []model.PlayerEntity
 	healReceived    vitals.VitalSign
+	resists         []appliedResist
+}
+
+// appliedResist records one ApplyResist call on a test double.
+type appliedResist struct {
+	source skills.SkillID
+	tags   []string
+	factor float32
+	ticks  int
 }
 
 func (f *fakePlayer) Basic() ecs.BasicEntity                 { return f.basic }
@@ -80,6 +91,10 @@ func (f *fakePlayer) HealthRatio() float32 {
 	return float32(f.vitalSigns.Health) / float32(f.maxHealth)
 }
 func (f *fakePlayer) NoteHealReceived(d vitals.VitalSign) { f.healReceived += d }
+
+func (f *fakePlayer) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+	f.resists = append(f.resists, appliedResist{source, tags, factor, ticks})
+}
 
 var (
 	_ skillEntity        = (*fakePlayer)(nil)
@@ -112,8 +127,8 @@ type playerTouchRecorder struct {
 func (p *playerTouchRecorder) Basic() ecs.BasicEntity                                { return p.basic }
 func (p *playerTouchRecorder) PlayerHitsWith(pl model.PlayerEntity, item items.Item) {}
 func (p *playerTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)    {}
-func (p *playerTouchRecorder) PlayerTouches(pl model.PlayerEntity, damageFraction float32) {
-	p.rec.PlayerTouches(pl, damageFraction)
+func (p *playerTouchRecorder) PlayerTouches(pl model.PlayerEntity, damage model.Damage) {
+	p.rec.PlayerTouches(pl, damage)
 }
 
 var (
@@ -168,6 +183,29 @@ func TestApplyDamageAura_DealsLevelScaledDamage(t *testing.T) {
 	applyDamageAura(caster, 3, damageEffect(1), set)
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.014, target.touches[0], 1e-6, "level 3 = base + 2*perLevel")
+}
+
+func TestApplyDamageAura_CarriesDamageTags(t *testing.T) {
+	// Player path: the effect's damage tags ride on the Damage payload so the
+	// target can match its resistances (item 11 Phase 2).
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+	effect := damageEffect(1)
+	effect.DamageTags = []string{"fire", "boss_x_lava"}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target))
+
+	require.Len(t, target.touchTags, 1)
+	assert.Equal(t, []string{"fire", "boss_x_lava"}, target.touchTags[0])
+
+	// Mob path: same tags travel in the Factors payload via MobTouches.
+	mobCaster := newFakeMob()
+	mobTarget := &mobTouchRecorder{}
+
+	applyDamageAura(mobCaster, 1, effect, colliderSetOf(mobTarget))
+
+	require.Len(t, mobTarget.factors, 1)
+	assert.Equal(t, []string{"fire", "boss_x_lava"}, mobTarget.factors[0].DamageTags)
 }
 
 func TestApplyDamageAura_TagsFireStyleForFastTick(t *testing.T) {
@@ -392,8 +430,8 @@ type mobTouchRecorder struct {
 	hitStyles []model.AuraHitStyle
 }
 
-func (r *mobTouchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item)       {}
-func (r *mobTouchRecorder) PlayerTouches(p model.PlayerEntity, damageFraction float32) {}
+func (r *mobTouchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item)    {}
+func (r *mobTouchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {}
 func (r *mobTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
 	r.factors = append(r.factors, factors)
 }
@@ -975,4 +1013,70 @@ func TestSlowAura_SkipsNonSlowableTargets(t *testing.T) {
 	effect := skills.EffectDef{Type: skills.EffectTypeSlowAura, SlowFraction: 0.1, TargetsMobs: true}
 
 	assert.NotPanics(t, func() { applySlowAura(1, effect, set) })
+}
+
+// --- applyResistAura (item 11 Phase 2 Step 3) ---
+
+// resistTargetRecorder is a PlayerEntity ally that records ApplyResist calls.
+type resistTargetRecorder struct {
+	model.PlayerEntity
+	basic   ecs.BasicEntity
+	resists []appliedResist
+}
+
+func (r *resistTargetRecorder) Basic() ecs.BasicEntity { return r.basic }
+func (r *resistTargetRecorder) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+	r.resists = append(r.resists, appliedResist{source, tags, factor, ticks})
+}
+
+func resistEffect() skills.EffectDef {
+	return skills.EffectDef{
+		Type:                 skills.EffectTypeResistAura,
+		ResistTags:           []string{"fire"},
+		ResistFactor:         0.6,
+		ResistFactorPerLevel: -0.1,
+		TargetsPlayers:       true,
+		TickInterval:         20,
+	}
+}
+
+func TestApplyResistAura_BuffsAlliesWithLevelScaledFactor(t *testing.T) {
+	caster := newFakePlayer()
+	ally := &resistTargetRecorder{basic: ecs.NewBasic()}
+
+	applyResistAura(caster, 40, 2, resistEffect(), colliderSetOf(ally))
+
+	require.Len(t, ally.resists, 1)
+	got := ally.resists[0]
+	assert.Equal(t, skills.SkillID(40), got.source)
+	assert.Equal(t, []string{"fire"}, got.tags)
+	assert.InDelta(t, 0.5, got.factor, 1e-6, "level 2 = 0.6 + 1×(−0.1)")
+	assert.Equal(t, 21, got.ticks, "lifetime = tick interval + 1 sustains any cadence")
+
+	assert.Empty(t, caster.resists, "no self-buff without targetsSelf")
+}
+
+func TestApplyResistAura_TargetsSelfIncludesCaster(t *testing.T) {
+	caster := newFakePlayer()
+	ally := &resistTargetRecorder{basic: ecs.NewBasic()}
+	effect := resistEffect()
+	effect.TargetsSelf = true
+
+	applyResistAura(caster, 40, 1, effect, colliderSetOf(ally))
+
+	require.Len(t, caster.resists, 1, "targetsSelf buffs the caster")
+	assert.InDelta(t, 0.6, caster.resists[0].factor, 1e-6)
+	require.Len(t, ally.resists, 1, "allies in range are buffed as well")
+}
+
+func TestApplyResistAura_RespectsTargetCap(t *testing.T) {
+	caster := newFakePlayer()
+	a := &resistTargetRecorder{basic: ecs.NewBasic()}
+	b := &resistTargetRecorder{basic: ecs.NewBasic()}
+	effect := resistEffect()
+	effect.MaxTargets = 1
+
+	applyResistAura(caster, 40, 1, effect, colliderSetOf(a, b))
+
+	assert.Equal(t, 1, len(a.resists)+len(b.resists), "the cap limits buffed allies")
 }

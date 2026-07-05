@@ -3,7 +3,6 @@
   "name": "Dodo",
   "type": "MOB",
   "factors": {
-    "vulnerability": 1,
     "maxHealth": 40,
     "experience": 15,
     "speed": 0.4,

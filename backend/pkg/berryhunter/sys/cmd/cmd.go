@@ -101,6 +101,25 @@ var commands = map[string]Command{
 
 		return nil
 	},
+	// SKILL <name> adds a skill to the player's spellbook by registry name
+	// (e.g. 'SKILL FireWard') — the dev/testing shortcut past the unlock
+	// sources. Discovery is idempotent and runs the recipe cascade, exactly
+	// like the real milestone/kill-drop paths.
+	"SKILL": func(g model.Game, p model.PlayerEntity, arg *string) error {
+		if arg == nil || len(*arg) == 0 {
+			return fmt.Errorf("no argument, usage: 'SKILL <name>'")
+		}
+
+		def, err := g.Skills().GetByName(*arg)
+		if err != nil {
+			return err
+		}
+
+		p.SkillComponent().Discover(def.ID)
+		p.ApplyRecipeCascade()
+
+		return nil
+	},
 	"DAMAGE": func(g model.Game, p model.PlayerEntity, arg *string) error {
 		if arg == nil || len(*arg) == 0 {
 			return fmt.Errorf("no argument, usage: 'DAMAGE <percentage>'")

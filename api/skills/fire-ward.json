@@ -1,0 +1,19 @@
+{
+  "_comment": "First resist aura (item 11 Phase 2 Step 4): grants allies in range AND the caster (targetsSelf) a fire-damage multiplier of 0.6/0.5/0.4 at L1/2/3. Verification pair for the AngryMammothAura fire tag. All values [PLACEHOLDER]. Obtainable in dev via the SKILL FireWard cheat; no unlock source yet — real placement comes with the item 12 content pass.",
+  "id": 40,
+  "name": "FireWard",
+  "category": "active_aura",
+  "maxLevel": 3,
+  "effects": [
+    {
+      "type": "resist_aura",
+      "radius": 1.5,
+      "resistTags": ["fire"],
+      "resistFactor": 0.6,
+      "resistFactorPerLevel": -0.1,
+      "targetsPlayers": true,
+      "targetsSelf": true,
+      "tickInterval": 1
+    }
+  ]
+}

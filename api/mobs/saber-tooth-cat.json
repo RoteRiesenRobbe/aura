@@ -3,7 +3,6 @@
   "name": "SaberToothCat",
   "type": "MOB",
   "factors": {
-    "vulnerability": 1,
     "maxHealth": 60,
     "experience": 40,
     "speed": 0.5,

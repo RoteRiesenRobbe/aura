@@ -38,9 +38,8 @@ func testMobDefinition() *mobs.MobDefinition {
 		ID:   1,
 		Name: "Dodo", // must be a valid BerryhunterApi entity type name
 		Factors: mobs.Factors{
-			Vulnerability: 2.0,
-			Speed:         1.0,
-			Experience:    42,
+			Speed:      1.0,
+			Experience: 42,
 		},
 		Body: mobs.Body{
 			Radius:      0.3,
@@ -87,41 +86,81 @@ func newFakeAuraPlayer() *fakeAuraPlayer {
 
 // --- damage intake (what player auras do to the mob) ---
 
-func TestMob_PlayerTouches_AppliesVulnerability(t *testing.T) {
-	m := newTestMob() // maxHealth 100 (default), vulnerability 2.0
+func TestMob_PlayerTouches_UnresistedFullDamage(t *testing.T) {
+	m := newTestMob() // maxHealth 100 (default), no resistances
 
-	m.PlayerTouches(newFakeAuraPlayer(), 10) // 10 HP × vulnerability 2.0 = 20 HP
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"physical"}})
 
-	assert.Equal(t, m.MaxHealth()-20, m.Health(),
-		"incoming damage (absolute HP) is scaled by Factors.Vulnerability")
+	assert.Equal(t, m.MaxHealth()-10, m.Health(),
+		"a tag without a resistance entry lands at full value")
 	assert.Contains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)
 }
 
-func TestMob_PlayerTouches_ZeroVulnerabilityDefaultsToOne(t *testing.T) {
+func TestMob_PlayerTouches_AppliesTagResistance(t *testing.T) {
 	def := testMobDefinition()
-	def.Factors.Vulnerability = 0
+	def.Factors.Resistances = map[string]float32{"fire": 0.5}
 	m := NewMob(def, false, 0, 0)
 
-	m.PlayerTouches(newFakeAuraPlayer(), 10) // vulnerability defaults to 1 → 10 HP
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}})
 
-	assert.Equal(t, m.MaxHealth()-10, m.Health())
+	assert.Equal(t, m.MaxHealth()-5, m.Health(),
+		"incoming damage is scaled by the matching tag's resistance multiplier")
+}
+
+func TestMob_PlayerTouches_ResistancesMultiplyAcrossTags(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"fire": 0.5, "boss_x_lava": 0.5}
+	m := NewMob(def, false, 0, 0)
+
+	// General + bespoke resistance compose multiplicatively: 10 × 0.5 × 0.5 = 2.5 → 3 (rounded).
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire", "boss_x_lava"}})
+
+	assert.Equal(t, m.MaxHealth()-3, m.Health())
+}
+
+func TestMob_PlayerTouches_ImmuneTagNoHit(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"fire": 0}
+	m := NewMob(def, false, 0, 0)
+
+	// Multiplier 0 = immune: no health loss, no floating number, no status effect
+	// (and therefore no hit VFX) — the hit simply does not exist for the target.
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}})
+
+	assert.Equal(t, m.MaxHealth(), m.Health())
+	assert.Zero(t, m.DamageTaken())
+	assert.NotContains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)
+}
+
+func TestMob_PlayerTouches_VulnerabilityTagAboveOne(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"fire": 1.5}
+	m := NewMob(def, false, 0, 0)
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}})
+
+	assert.Equal(t, m.MaxHealth()-15, m.Health(),
+		"a multiplier above 1 is a vulnerability to that tag")
 }
 
 func TestMob_PlayerTouches_MinOneHP(t *testing.T) {
-	m := newTestMob() // maxHealth 100
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"fire": 0.01}
+	m := NewMob(def, false, 0, 0)
 
 	// A sub-1-HP hit still removes at least 1 HP (min-1 rule, item 11 Phase 1) —
-	// a real hit never rounds away to nothing.
-	m.PlayerTouches(newFakeAuraPlayer(), 0.001)
+	// a real hit never rounds away to nothing, including heavily resisted ones.
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 0.001})
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}})
 
-	assert.Equal(t, m.MaxHealth()-1, m.Health())
+	assert.Equal(t, m.MaxHealth()-2, m.Health())
 }
 
 func TestMob_DamageTaken_AccumulatesAndResets(t *testing.T) {
-	m := newTestMob() // vulnerability 2.0, starts at full health
+	m := newTestMob() // starts at full health
 
-	m.PlayerTouches(newFakeAuraPlayer(), 10)
-	m.PlayerTouches(newFakeAuraPlayer(), 5)
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10})
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 5})
 
 	assert.Equal(t, m.MaxHealth()-m.Health(), m.DamageTaken(),
 		"DamageTaken sums the actual health lost this tick")
@@ -152,8 +191,8 @@ func TestMob_Kill_AllDamagersGetFullXP(t *testing.T) {
 	attacker := newFakeAuraPlayer()
 	finisher := newFakeAuraPlayer()
 
-	m.PlayerTouches(attacker, 5)    // participates, doesn't kill
-	m.PlayerTouches(finisher, 1000) // kill (overkill vs. 100 HP)
+	m.PlayerTouches(attacker, model.Damage{HP: 5})    // participates, doesn't kill
+	m.PlayerTouches(finisher, model.Damage{HP: 1000}) // kill (overkill vs. 100 HP)
 
 	assert.Equal(t, []uint64{42}, attacker.xp, "every damage participant gets the full XP")
 	assert.Equal(t, []uint64{42}, finisher.xp)
@@ -165,7 +204,7 @@ func TestMob_Kill_RecentHealerOfParticipantGetsXP(t *testing.T) {
 	healer := newFakeAuraPlayer()
 	damager.healers = []model.PlayerEntity{healer}
 
-	m.PlayerTouches(damager, 1000) // kill
+	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
 
 	assert.Equal(t, []uint64{42}, healer.xp,
 		"healing a participant within the window counts as participating")
@@ -178,8 +217,8 @@ func TestMob_Kill_HealerWhoAlsoDamagedGetsXPOnce(t *testing.T) {
 	hybrid := newFakeAuraPlayer() // damages AND heals the other damager
 	damager.healers = []model.PlayerEntity{hybrid}
 
-	m.PlayerTouches(hybrid, 5)
-	m.PlayerTouches(damager, 1000) // kill
+	m.PlayerTouches(hybrid, model.Damage{HP: 5})
+	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
 
 	assert.Equal(t, []uint64{42}, hybrid.xp, "no double grant for damager+healer")
 }
@@ -197,8 +236,8 @@ func TestMob_Kill_GuaranteedUnlockGoesToAllRewardedPlayers(t *testing.T) {
 	damager.healers = []model.PlayerEntity{healer}
 	finisher := newFakeAuraPlayer()
 
-	m.PlayerTouches(damager, 5)
-	m.PlayerTouches(finisher, 1000) // kill
+	m.PlayerTouches(damager, model.Damage{HP: 5})
+	m.PlayerTouches(finisher, model.Damage{HP: 1000}) // kill
 
 	for name, p := range map[string]*fakeAuraPlayer{"damager": damager, "healer": healer, "finisher": finisher} {
 		assert.True(t, p.sc.HasDiscovered(unlockSkill.ID),
@@ -210,7 +249,7 @@ func TestMob_Kill_NoUnlocksDeclared_NoDiscovery(t *testing.T) {
 	m := newTestMob()
 	p := newFakeAuraPlayer()
 
-	m.PlayerTouches(p, 1000)
+	m.PlayerTouches(p, model.Damage{HP: 1000})
 
 	assert.Empty(t, p.sc.Discovered())
 }
@@ -218,7 +257,7 @@ func TestMob_Kill_NoUnlocksDeclared_NoDiscovery(t *testing.T) {
 func TestMob_FullOutOfCombatRegenClearsParticipants(t *testing.T) {
 	m := newTestMob()
 	early := newFakeAuraPlayer()
-	m.PlayerTouches(early, 5) // 10 HP after vulnerability 2.0
+	m.PlayerTouches(early, model.Damage{HP: 5})
 
 	// No aggro target → out-of-combat regen runs; let it reach full health.
 	for i := 0; i < 3*constant.TicksPerSecond && m.Health() < m.MaxHealth(); i++ {
@@ -227,7 +266,7 @@ func TestMob_FullOutOfCombatRegenClearsParticipants(t *testing.T) {
 	require.Equal(t, m.MaxHealth(), m.Health(), "mob must fully regenerate")
 
 	killer := newFakeAuraPlayer()
-	m.PlayerTouches(killer, 1000)
+	m.PlayerTouches(killer, model.Damage{HP: 1000})
 
 	assert.Empty(t, early.xp, "full regen is a combat reset — earlier participants are cleared")
 	assert.Equal(t, []uint64{42}, killer.xp)
@@ -237,13 +276,13 @@ func TestMob_KillGrantsExperienceExactlyOnce(t *testing.T) {
 	m := newTestMob()
 	p := newFakeAuraPlayer()
 
-	m.PlayerTouches(p, 1000) // overkill vs. 100 HP, health clamps to 0
+	m.PlayerTouches(p, model.Damage{HP: 1000}) // overkill vs. 100 HP, health clamps to 0
 
 	require.Equal(t, vitals.VitalSign(0), m.Health())
 	require.Equal(t, []uint64{42}, p.xp, "killer receives Factors.Experience")
 
 	// A second touch on the corpse must not grant rewards again.
-	m.PlayerTouches(p, 1000)
+	m.PlayerTouches(p, model.Damage{HP: 1000})
 	assert.Equal(t, []uint64{42}, p.xp)
 }
 
@@ -373,4 +412,26 @@ func TestMob_RegeneratesOutOfCombat(t *testing.T) {
 	regenPerTick := vitals.HP(float32(m.maxHealth) / (2 * constant.TicksPerSecond))
 	assert.Equal(t, start.AddCapped(regenPerTick, m.maxHealth), m.Health(),
 		"heals to full over ~2 seconds of ticks while out of combat")
+}
+
+// --- transient resist buffs (item 11 Phase 2 Step 3) ---
+
+func TestMob_ResistBuff_ComposesWithBaseAndExpires(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"fire": 0.5}
+	m := NewMob(def, false, 0, 0)
+
+	m.ApplyResist(40, []string{"fire"}, 0.5, 2)
+
+	// One tick boundary later the buff still holds (decision 7: a hazard tick
+	// landing before the aura re-applies must still be resisted).
+	m.ResetTickNumbers()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 40, Tags: []string{"fire"}})
+	assert.Equal(t, m.MaxHealth()-10, m.Health(),
+		"base 0.5 × buff 0.5 → 40 HP hit lands as 10")
+
+	// Second boundary without re-application → expired, only base remains.
+	m.ResetTickNumbers()
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 40, Tags: []string{"fire"}})
+	assert.Equal(t, m.MaxHealth()-30, m.Health(), "expired buff: 40 × base 0.5 = 20 more")
 }

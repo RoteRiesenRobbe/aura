@@ -3,8 +3,8 @@
 Graduates the "Deferred from item 11" block of `v1-roadmap.md` into an execution
 doc. Three phases, in the mandated sequence. **All numbers [PLACEHOLDER].**
 
-- **Phase 1 — Absolute HP.** *In progress / implementing.*
-- **Phase 2 — Resistances & damage tags.** *Documented below, NOT scheduled.*
+- **Phase 1 — Absolute HP.** *DONE (committed, verified in-game).*
+- **Phase 2 — Resistances & damage tags.** *DONE (implemented 2026-07-06; in-game verify pending).*
 - **Phase 3 — Stat variance & damage ranges.** *Documented below, NOT scheduled.*
 
 Root problem shared by all three: today "HP" is a single normalized `Health`
@@ -15,7 +15,7 @@ across mobs. Phase 1 makes HP absolute; Phases 2–3 build on it.
 
 ---
 
-## Phase 1 — Absolute HP (implementing)
+## Phase 1 — Absolute HP (DONE)
 
 ### Confirmed decisions (A1–A3)
 
@@ -116,50 +116,85 @@ before Phase 2.
 
 ---
 
-## Phase 2 — Resistances & damage tags (TODO, not scheduled)
+## Phase 2 — Resistances & damage tags (DONE)
 
+Implemented 2026-07-06 (Steps 1–4 in one session; in-game verify pending).
 Roadmap-decided: damage/resist types are **arbitrary named string TAGS, not a
 fixed enum** (so a bespoke `boss_x_lava` composes with general `fire`).
+**Zero wire footprint, zero FlatBuffers changes** — the only frontend change is
+cosmetic (FireWard ring style + `Skills.ts` entry).
 
-### Sketch
+### Resolved decisions (B1–B7, session 2026-07-05)
 
-- **Damage carries tags.** `EffectDef.DamageTags []string` (JSON `damageTags`),
-  e.g. `["physical"]`, `["fire","boss_x_lava"]`. Untyped default TBD (see Q).
-- **Mob resistances.** `factors.resistances map[string]float32` (per-tag
-  multiplier; default 1.0). Applied damage = base × aggregate of matching-tag
-  multipliers; the overhead number reflects the **post-resistance** value.
-- **`Vulnerability` folds in** as the untyped/default multiplier (or is removed).
-- **Buff / resist auras.** A `heal_aura`-shaped effect that grants a *transient*
-  resistance to allies in range, modeled like `slow_aura` (re-applied each tick,
-  short fade → step out of the aura, start taking damage ~1 s later). Enables the
-  lava-bridge / carrier role (roadmap item 7). "Current resistance" becomes an
-  **aggregated** value at damage time (base + passive + aura-granted), extending
-  `skills.Derived`.
+1. **B1 — Stacking by source.** Resist contributions are keyed by **source
+   skill**: the same skill from two casters does NOT stack (strongest wins,
+   mirroring `ApplySlow`); **distinct sources always stack multiplicatively**
+   (two different skills, or a passive + an aura: 0.5 × 0.5 = 0.25). Across the
+   tags of one hit, matching multipliers also multiply (general `fire` composes
+   with bespoke `boss_x_lava`). Multiplicative stacking makes immunity
+   unreachable by stacking alone — the result is 0 only if a *single source*
+   grants 0 outright. Keeping immunities impossible-or-deliberate is a
+   **content-design responsibility** from here on.
+2. **B2 — Reserved default tag `physical`.** Untagged damage effects are
+   normalized to `["physical"]` at parse time (`skills.DamageTagPhysical`), so
+   armor-style resistance works against untyped damage (WoW-armor equivalent).
+   There is no "matches nothing" damage.
+3. **B3 — `Vulnerability` deleted.** Struct field, JSON key, and takeDamage
+   fallback removed (all content was at 1 since Phase 1). A per-mob global
+   damage-taken multiplier can come back later as a reserved `"*"` resist key
+   if ever needed.
+4. **B4 — Effect types.** `resist_aura` (active aura: `resistTags`,
+   `resistFactor` + `resistFactorPerLevel`, `targetsSelf`, plus the usual
+   radius/tickInterval/selector/maxTargets) and `resist_passive` (permanent
+   self-resistance on passives, folded into `DerivedStats.Resistances`).
+   Resistance only in v1 — no general transient-stat buffs. Auras may include
+   the caster (`targetsSelf`, outside the target cap) or be allies-only —
+   per-effect content choice.
+5. **B5 — Bounds & display.** Multiplier per tag: 1 normal, 0.5 half, **0 =
+   immune**, **> 1 = vulnerability**, no artificial cap (validation only
+   requires ≥ 0). Post-resistance damage goes through the min-1 rule (a heavily
+   resisted hit shows 1); a fully immune hit is a **non-event** (no HP loss, no
+   floating number, no status effect, no hit VFX).
+6. **B6 — "RESIST" styling deferred.** An immune hit currently produces no wire
+   traffic at all. When content ships a real immunity, add a transient
+   per-tick flag on `Mob`/`Character` (same lifecycle as `aura_hit_style`) and
+   render "RESIST" — small, known change; do it then, not now.
+7. **B7 — Ordering race accepted + pinned.** Buff lifetime = aura tick
+   interval + 1, so a buff always survives one full tick boundary — a hazard
+   tick landing before the aura re-applies is still resisted (pinned by
+   `TestMob_ResistBuff_ComposesWithBaseAndExpires`). Worst case remains the
+   very first tick after stepping into the aura; accepted, matches the
+   "step out → damage resumes ~1 s later" feel.
 
-### Open questions (answer before implementing)
+### Implementation map
 
-1. **Aggregation across sources.** Multiple resist sources for the same tag —
-   multiply (0.5 × 0.5 = 0.25) or add-then-clamp? What is the floor (immunity =
-   0?) and can a value exceed 1 (a *vulnerability* to a tag)?
-2. **Untyped damage.** Is damage with no tag treated as a reserved `physical`
-   tag, or as "matches nothing / always full damage"? Do all existing auras get
-   an explicit default tag in the content pass?
-3. **`Vulnerability` fate.** Fold today's per-mob `vulnerability` into the
-   untyped resistance multiplier, or drop it entirely once maxHealth exists?
-4. **Buff-aura effect type.** New `EffectType` (e.g. `resist_aura` / `buff_aura`)
-   or a flag on `heal_aura`? What stat(s) can it grant in v1 (resistance only, or
-   general transient stat)? How is the granted resist stored on the target — a
-   transient tag→multiplier map with a fade counter, mirroring `slowFraction` /
-   `slowTicks`?
-5. **Resist bounds & representation.** Multiplier per tag (`{fire:0.5}`) vs.
-   percentage; default/uncapped bounds; how a resisted-to-near-zero hit reads in
-   the overhead number (show 0? show 1 via the min-1 rule? special "resisted"
-   styling?).
-6. **Wire visibility.** Does the client need to distinguish resisted hits (tint /
-   "RESIST" text), or is the smaller number enough for v1? (Likely defer.)
-7. **System ordering.** Confirm the transient-buff model fully sidesteps the
-   race where a hazard tick lands before the resist aura re-applies (the reason
-   for modeling it like `slow_aura`).
+- **Hit payload:** `model.Damage{HP, Tags}` through `Interacter.PlayerTouches`;
+  mob-cast hits carry tags in the payload-only `mobs.Factors.DamageTags`. Both
+  `applyPlayerDamageAura` / `applyMobDamageAura` fill tags from the effect; the
+  cooldown path reuses the same functions (NovaBurst is taggable).
+- **Aggregation:** `skills.ResistMultiplier(tags, sources...)` — product over
+  matching tags within a source, product across sources.
+- **Transient buffs:** `skills.ResistBuffs` on mob + player (keyed by source
+  skill; per skill the strongest **currently active** application wins, and
+  applications of different strengths age as independent streams — a weaker
+  ward's per-tick refresh never keeps a departed stronger ward's factor alive
+  (in-game-found bug, pinned by
+  `TestResistBuffs_StrongerApplicationFadesBackToWeaker`); `Tick()` on the
+  `ResetTickNumbers` lifecycle); granted by `sys.applyResistAura` via the
+  local `resistBuffable` interface (reuses the full targeting pipeline).
+- **Damage time:** mob = base `factors.resistances` × buffs; player =
+  `Derived.Resistances` (resist passives) × buffs; the untyped
+  `damageReduction` passive stays as-is on top.
+- **Dev/testing:** new **`SKILL <name>` cheat** (spellbook discovery + recipe
+  cascade, same seam as real unlocks). Verification content [PLACEHOLDER]:
+  `AngryMammothAura` now deals `["fire"]`; new **FireWard** aura (ID 40,
+  `api/skills/fire-ward.json`): fire multiplier 0.6/0.5/0.4 at L1–3, allies +
+  self, shows the heal-style ring.
+
+### In-game verification (pending)
+
+`SKILL FireWard` → equip → stand in the boss aura: floating numbers drop from
+4 to ~2–3 (L1); step out of the ward → full damage resumes after ~1 tick.
 
 ---
 

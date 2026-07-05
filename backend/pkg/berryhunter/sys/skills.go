@@ -117,6 +117,8 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 			applyHealAura(e, equip.Level, effect, collisions)
 		case skills.EffectTypeSlowAura:
 			applySlowAura(equip.Level, effect, collisions)
+		case skills.EffectTypeResistAura:
+			applyResistAura(e, equip.Def.ID, equip.Level, effect, collisions)
 		}
 	}
 }
@@ -134,7 +136,7 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 }
 
 func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
-	damage := effectDamageHP(effect, level)
+	damage := model.Damage{HP: effectDamageHP(effect, level), Tags: effect.DamageTags}
 
 	// Declarative targeting: the sensor mask pre-filters layers, the flags
 	// decide per target class. targetsPlayers=false is the no-friendly-fire
@@ -170,6 +172,7 @@ func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level
 func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	factors := mobs.Factors{
 		Damage:                  effectDamageHP(effect, level),
+		DamageTags:              effect.DamageTags,
 		StructureDamageFraction: effect.StructureDamageFraction,
 	}
 
@@ -243,6 +246,69 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		vs.Health = vs.Health.Sub(selfHP)
 		caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
 	}
+}
+
+// resistBuffable is implemented by entities that can receive transient
+// tag-resistance buffs from a resist_aura (mobs and players; item 11 Phase 2).
+type resistBuffable interface {
+	ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int)
+}
+
+// applyResistAura grants the effect's tag-resistance buff to eligible targets
+// in range — and, with targetsSelf, to the caster (outside the target cap).
+// The buff lifetime is the effect's tick interval + 1, so it always survives
+// to the next re-application regardless of cadence, and fades roughly one
+// aura cycle after leaving the aura (see skills.ResistBuffs).
+func applyResistAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+	factor := effectResistFactor(effect, level)
+	ticks := effectiveTickInterval(effect, level) + 1
+
+	if effect.TargetsSelf {
+		if self, ok := e.(resistBuffable); ok {
+			self.ApplyResist(source, effect.ResistTags, factor, ticks)
+		}
+	}
+
+	casterPos := e.AuraCollider().Position()
+	casterID := e.Basic().ID()
+
+	// Eligibility mirrors the damage aura's target flags; the caster is never
+	// part of the in-range set (targetsSelf above is the only self path).
+	eligible := func(c phy.Collider) bool {
+		usr := c.Shape().UserData
+		if usr == nil {
+			return false
+		}
+		if _, isPlayer := usr.(model.PlayerEntity); isPlayer {
+			if !effect.TargetsPlayers {
+				return false
+			}
+		} else if !effect.TargetsMobs {
+			return false
+		}
+		if _, ok := usr.(resistBuffable); !ok {
+			return false
+		}
+		if be, ok := usr.(model.BasicEntity); ok && be.Basic().ID() == casterID {
+			return false // skip self
+		}
+		return true
+	}
+
+	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(resistBuffable).ApplyResist(source, effect.ResistTags, factor, ticks)
+	}
+}
+
+// effectResistFactor scales the granted resistance factor by skill level
+// (negative perLevel = stronger resistance at higher levels), floored at 0.
+func effectResistFactor(e skills.EffectDef, level int) float32 {
+	factor := e.ResistFactor + float32(level-1)*e.ResistFactorPerLevel
+	if factor < 0 {
+		factor = 0
+	}
+	return factor
 }
 
 // slowable is implemented by entities whose movement can be slowed by a

@@ -31,6 +31,13 @@ func AuraMaskFor(def *skills.SkillDefinition) int {
 			}
 		case skills.EffectTypeHealAura:
 			mask |= LayerPlayerCollision
+		case skills.EffectTypeResistAura:
+			if e.TargetsPlayers {
+				mask |= LayerPlayerCollision
+			}
+			if e.TargetsMobs {
+				mask |= LayerActionCollision
+			}
 		}
 	}
 	return int(mask)

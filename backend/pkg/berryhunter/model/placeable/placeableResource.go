@@ -79,9 +79,9 @@ func (pr *PlaceableResource) MobTouches(e model.MobEntity, factors mobs.Factors)
 	pr.EmbeddedResource.MobTouches(e, factors)
 }
 
-func (pr *PlaceableResource) PlayerTouches(player model.PlayerEntity, damageFraction float32) {
-	pr.Placeable.PlayerTouches(player, damageFraction)
-	pr.EmbeddedResource.PlayerTouches(player, damageFraction)
+func (pr *PlaceableResource) PlayerTouches(player model.PlayerEntity, damage model.Damage) {
+	pr.Placeable.PlayerTouches(player, damage)
+	pr.EmbeddedResource.PlayerTouches(player, damage)
 }
 
 func (pr *PlaceableResource) Item() items.Item {

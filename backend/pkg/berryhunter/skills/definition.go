@@ -36,6 +36,8 @@ const (
 	EffectTypeInstantDamage
 	EffectTypeSlowAura
 	EffectTypeSelfHeal
+	EffectTypeResistAura
+	EffectTypeResistPassive
 )
 
 var effectTypeMap = map[string]EffectType{
@@ -45,6 +47,8 @@ var effectTypeMap = map[string]EffectType{
 	"instant_damage":  EffectTypeInstantDamage,
 	"slow_aura":       EffectTypeSlowAura,
 	"self_heal":       EffectTypeSelfHeal,
+	"resist_aura":     EffectTypeResistAura,
+	"resist_passive":  EffectTypeResistPassive,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -91,6 +95,12 @@ var hitStyleMap = map[string]HitStyle{
 	"none":  HitStyleNone,
 }
 
+// DamageTagPhysical is the reserved default damage tag (item 11 Phase 2).
+// Damage effects with no explicit `damageTags` are normalized to it at parse
+// time, so armor-style resistance (a "physical" entry in a resistance map)
+// applies to untyped damage like any other tag.
+const DamageTagPhysical = "physical"
+
 // Supported stat_multiplier stat names. A stat listed here must actually be
 // applied somewhere (movementSpeed: core/input.go; maxHealth:
 // player.MaxHealthFactor) — accepting an unapplied stat would be a silent
@@ -124,6 +134,12 @@ type EffectDef struct {
 	TargetsMobs      bool
 	TargetsPlayers   bool
 
+	// damage_aura, instant_damage — damage tags for resistances (item 11
+	// Phase 2). Arbitrary strings by design (bespoke tags like "boss_x_lava"
+	// compose with general ones like "fire"). Always non-empty after parsing:
+	// absent in JSON → [DamageTagPhysical].
+	DamageTags []string
+
 	// damage_aura, heal_aura, instant_damage — capped targeting (item 11).
 	// MaxTargets 0 = uncapped (AoE-all). Selector orders the candidates when
 	// capped; MaxTargetsPerLevel grows the cap with skill level.
@@ -147,6 +163,17 @@ type EffectDef struct {
 	// by HealFractionOfMaxPerLevel per level (absolute, e.g. 0.20 → 0.25 → 0.30).
 	HealFractionOfMax         float32
 	HealFractionOfMaxPerLevel float32
+
+	// resist_aura, resist_passive — tag resistance granted to targets (item 11
+	// Phase 2). ResistFactor is the incoming-damage multiplier for each covered
+	// tag (0.5 = takes half, 0 = immune); effective factor at level L is
+	// ResistFactor + (L−1) × ResistFactorPerLevel, floored at 0 (negative
+	// PerLevel = stronger per level). TargetsSelf (resist_aura only) also buffs
+	// the caster — without consuming a MaxTargets slot.
+	ResistTags           []string
+	ResistFactor         float32
+	ResistFactorPerLevel float32
+	TargetsSelf          bool
 
 	// slow_aura: movement-speed reduction applied to targets in range
 	SlowFraction         float32
@@ -188,10 +215,11 @@ type effectDef struct {
 	Radius         float32 `json:"radius"`
 	RadiusPerLevel float32 `json:"radiusPerLevel"`
 
-	DamageHP         float32 `json:"damageHP"`
-	DamageHPPerLevel float32 `json:"damageHPPerLevel"`
-	TargetsMobs      bool    `json:"targetsMobs"`
-	TargetsPlayers   bool    `json:"targetsPlayers"`
+	DamageHP         float32  `json:"damageHP"`
+	DamageHPPerLevel float32  `json:"damageHPPerLevel"`
+	TargetsMobs      bool     `json:"targetsMobs"`
+	TargetsPlayers   bool     `json:"targetsPlayers"`
+	DamageTags       []string `json:"damageTags"` // absent → [physical] on damage effects
 
 	Selector           string `json:"selector"`
 	MaxTargets         int    `json:"maxTargets"`
@@ -206,6 +234,11 @@ type effectDef struct {
 
 	HealFractionOfMax         float32 `json:"healFractionOfMax"`
 	HealFractionOfMaxPerLevel float32 `json:"healFractionOfMaxPerLevel"`
+
+	ResistTags           []string `json:"resistTags"`
+	ResistFactor         float32  `json:"resistFactor"`
+	ResistFactorPerLevel float32  `json:"resistFactorPerLevel"`
+	TargetsSelf          bool     `json:"targetsSelf"`
 
 	SlowFraction         float32 `json:"slowFraction"`
 	SlowFractionPerLevel float32 `json:"slowFractionPerLevel"`
@@ -265,6 +298,70 @@ func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
 	}, nil
 }
 
+// mapDamageTags validates and normalizes an effect's damage tags (item 11
+// Phase 2). Damage-dealing effects always end up with at least one tag
+// (absent → [DamageTagPhysical]); non-damage effects must not declare any —
+// a tag there would be a silent no-op, which is why it hard-fails at load.
+func mapDamageTags(effectType EffectType, tags []string) ([]string, error) {
+	isDamageEffect := effectType == EffectTypeDamageAura || effectType == EffectTypeInstantDamage
+
+	if !isDamageEffect {
+		if len(tags) > 0 {
+			return nil, fmt.Errorf("damageTags: only valid on damage_aura/instant_damage effects")
+		}
+		return nil, nil
+	}
+
+	if len(tags) == 0 {
+		return []string{DamageTagPhysical}, nil
+	}
+
+	seen := make(map[string]bool, len(tags))
+	for _, tag := range tags {
+		if tag == "" {
+			return nil, fmt.Errorf("damageTags: empty tag")
+		}
+		if seen[tag] {
+			return nil, fmt.Errorf("damageTags: duplicate tag %q", tag)
+		}
+		seen[tag] = true
+	}
+	return tags, nil
+}
+
+// mapResistFields validates the resist_aura/resist_passive fields (item 11
+// Phase 2 Step 3). Resist effects require at least one covered tag (empty or
+// duplicate tags hard-fail, like damageTags) and a non-negative factor;
+// non-resist effects must not declare resist fields (silent no-ops otherwise).
+func mapResistFields(effectType EffectType, e *effectDef) error {
+	isResistEffect := effectType == EffectTypeResistAura || effectType == EffectTypeResistPassive
+
+	if !isResistEffect {
+		if len(e.ResistTags) > 0 || e.ResistFactor != 0 || e.ResistFactorPerLevel != 0 || e.TargetsSelf {
+			return fmt.Errorf("resist fields are only valid on resist_aura/resist_passive effects")
+		}
+		return nil
+	}
+
+	if len(e.ResistTags) == 0 {
+		return fmt.Errorf("resistTags: required on resist effects")
+	}
+	seen := make(map[string]bool, len(e.ResistTags))
+	for _, tag := range e.ResistTags {
+		if tag == "" {
+			return fmt.Errorf("resistTags: empty tag")
+		}
+		if seen[tag] {
+			return fmt.Errorf("resistTags: duplicate tag %q", tag)
+		}
+		seen[tag] = true
+	}
+	if e.ResistFactor < 0 {
+		return fmt.Errorf("resistFactor: must be >= 0, got %v", e.ResistFactor)
+	}
+	return nil
+}
+
 func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 	effectType, ok := effectTypeMap[e.Type]
 	if !ok {
@@ -290,6 +387,15 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		return EffectDef{}, fmt.Errorf("unknown hitStyle: %q", e.HitStyle)
 	}
 
+	damageTags, err := mapDamageTags(effectType, e.DamageTags)
+	if err != nil {
+		return EffectDef{}, err
+	}
+
+	if err := mapResistFields(effectType, e); err != nil {
+		return EffectDef{}, err
+	}
+
 	return EffectDef{
 		Type:                      effectType,
 		Radius:                    e.Radius,
@@ -298,6 +404,7 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		DamageHPPerLevel:          e.DamageHPPerLevel,
 		TargetsMobs:               e.TargetsMobs,
 		TargetsPlayers:            e.TargetsPlayers,
+		DamageTags:                damageTags,
 		Selector:                  selector,
 		MaxTargets:                e.MaxTargets,
 		MaxTargetsPerLevel:        e.MaxTargetsPerLevel,
@@ -308,6 +415,10 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		SelfDamageHP:              e.SelfDamageHP,
 		HealFractionOfMax:         e.HealFractionOfMax,
 		HealFractionOfMaxPerLevel: e.HealFractionOfMaxPerLevel,
+		ResistTags:                e.ResistTags,
+		ResistFactor:              e.ResistFactor,
+		ResistFactorPerLevel:      e.ResistFactorPerLevel,
+		TargetsSelf:               e.TargetsSelf,
 		SlowFraction:              e.SlowFraction,
 		SlowFractionPerLevel:      e.SlowFractionPerLevel,
 		TickInterval:              tickInterval,

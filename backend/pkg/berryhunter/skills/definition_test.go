@@ -196,6 +196,114 @@ func TestParse_NovaBurst(t *testing.T) {
 	assert.False(t, e.TargetsPlayers)
 }
 
+// --- damage tags (item 11 Phase 2) ---
+
+func TestParse_DamageTags(t *testing.T) {
+	data := []byte(`{
+      "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
+      "effects": [{"type": "damage_aura", "targetsMobs": true, "damageTags": ["fire", "boss_x_lava"]}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	assert.Equal(t, []string{"fire", "boss_x_lava"}, def.Effects[0].DamageTags)
+}
+
+func TestParse_DamageTagsDefaultToPhysical(t *testing.T) {
+	// Untagged damage is normalized to the reserved default tag at parse time,
+	// so armor-style resistance applies to everything (Phase 2 decision).
+	damage := mustParse(t, damageAuraJSON)
+	require.Len(t, damage.Effects, 1)
+	assert.Equal(t, []string{DamageTagPhysical}, damage.Effects[0].DamageTags)
+
+	burst := mustParse(t, novaBurstJSON)
+	require.Len(t, burst.Effects, 1)
+	assert.Equal(t, []string{DamageTagPhysical}, burst.Effects[0].DamageTags)
+}
+
+func TestParse_DamageTagsAbsentOnNonDamageEffects(t *testing.T) {
+	heal := mustParse(t, healAuraJSON)
+	require.Len(t, heal.Effects, 1)
+	assert.Nil(t, heal.Effects[0].DamageTags)
+}
+
+func TestMap_EmptyDamageTagFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"damageTags":[""]}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
+func TestMap_DuplicateDamageTagFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"damageTags":["fire","fire"]}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
+func TestMap_DamageTagsOnNonDamageEffectFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"heal_aura","targetsPlayers":true,"damageTags":["fire"]}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
+// --- resist aura / resist passive (item 11 Phase 2) ---
+
+func TestParse_ResistAura(t *testing.T) {
+	data := []byte(`{
+      "id": 40, "name": "FireWard", "category": "active_aura", "maxLevel": 3,
+      "effects": [{"type": "resist_aura", "radius": 1.5, "resistTags": ["fire", "boss_x_lava"],
+                   "resistFactor": 0.6, "resistFactorPerLevel": -0.1,
+                   "targetsPlayers": true, "targetsSelf": true, "tickInterval": 1}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeResistAura, e.Type)
+	assert.Equal(t, []string{"fire", "boss_x_lava"}, e.ResistTags)
+	assert.InDelta(t, 0.6, e.ResistFactor, 1e-6)
+	assert.InDelta(t, -0.1, e.ResistFactorPerLevel, 1e-6)
+	assert.True(t, e.TargetsPlayers)
+	assert.True(t, e.TargetsSelf)
+}
+
+func TestParse_ResistPassive(t *testing.T) {
+	data := []byte(`{
+      "id": 41, "name": "FireSkin", "category": "passive", "maxLevel": 3,
+      "effects": [{"type": "resist_passive", "resistTags": ["fire"], "resistFactor": 0.8, "resistFactorPerLevel": -0.05}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeResistPassive, e.Type)
+	assert.Equal(t, []string{"fire"}, e.ResistTags)
+	assert.InDelta(t, 0.8, e.ResistFactor, 1e-6)
+}
+
+func TestMap_ResistAuraWithoutTagsFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"resist_aura","radius":1,"resistFactor":0.5,"targetsPlayers":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
+func TestMap_NegativeResistFactorFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"resist_aura","radius":1,"resistTags":["fire"],"resistFactor":-0.1,"targetsPlayers":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
+func TestMap_ResistTagsOnNonResistEffectFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"resistTags":["fire"]}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
 func TestParse_InvalidJSON(t *testing.T) {
 	_, err := parseSkillDefinition([]byte(`{invalid`))
 	assert.Error(t, err)

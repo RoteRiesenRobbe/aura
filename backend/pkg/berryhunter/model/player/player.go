@@ -137,6 +137,10 @@ type player struct {
 	// with absolute integer HP the per-tick regen is often < 1 HP, so it is
 	// carried here and applied once a whole HP has built up.
 	healthRegen float32
+
+	// resistBuffs holds transient resist_aura buffs (item 11 Phase 2); aged on
+	// the same per-tick lifecycle as the accumulators above.
+	resistBuffs skills.ResistBuffs
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {
@@ -171,19 +175,26 @@ func (p *player) HealthRatio() float32 {
 
 // takeDamage subtracts absolute HP (item 11 Phase 1). Damage no longer scales
 // by maxHealthFactor — a hit removes flat HP regardless of the player's pool.
-func (p *player) takeDamage(damage float32, s model.StatusEffect) {
+// The hit's damage tags are carried for tag resistances (Phase 2); players
+// have no base resistances, transient resist-aura buffs land in Step 3.
+func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) {
+	// Tag resistances (Phase 2): resist passives (Derived) and transient
+	// resist-aura buffs are distinct sources and stack multiplicatively.
+	hp32 := damage.HP *
+		skills.ResistMultiplier(damage.Tags, p.skills.Derived.Resistances) *
+		p.resistBuffs.Multiplier(damage.Tags)
 	// Passive damage reduction (DerivedStats); 100% is the natural cap.
 	if r := p.skills.Derived.DamageReductionBonus; r > 0 {
 		if r > 1 {
 			r = 1
 		}
-		damage *= 1 - r
+		hp32 *= 1 - r
 	}
 	if p.IsGod() {
 		return
 	}
 
-	hp := vitals.HP(damage)
+	hp := vitals.HP(hp32)
 	if hp > 0 {
 		h := p.PlayerVitalSigns.Health
 		p.PlayerVitalSigns.Health = h.Sub(hp)
@@ -212,20 +223,29 @@ func (p *player) AuraHitStyle() model.AuraHitStyle { return p.auraHitStyle }
 // calls it when a damage aura strikes this player.
 func (p *player) NoteAuraHit(style model.AuraHitStyle) { p.auraHitStyle = style }
 
-// ResetTickNumbers clears the per-tick floating-number accumulators; called by
-// the StatusEffectsSystem at the start of each tick.
+// ApplyResist grants a transient tag-resistance buff from a resist aura
+// (item 11 Phase 2); re-applied each aura tick, it expires on the same
+// per-tick lifecycle as the floating-number accumulators.
+func (p *player) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+	p.resistBuffs.Apply(source, tags, factor, ticks)
+}
+
+// ResetTickNumbers clears the per-tick floating-number accumulators and ages
+// the transient resist buffs; called by the StatusEffectsSystem at the start
+// of each tick.
 func (p *player) ResetTickNumbers() {
 	p.damageTaken = 0
 	p.healReceived = 0
 	p.xpGained = 0
 	p.auraHitStyle = model.AuraHitStyleNone
+	p.resistBuffs.Tick()
 }
 
 func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	p.takeDamage(factors.Damage, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags}, model.StatusEffectDamagedAmbient)
 }
 
-func (p *player) PlayerTouches(other model.PlayerEntity, damage float32) {
+func (p *player) PlayerTouches(other model.PlayerEntity, damage model.Damage) {
 	p.takeDamage(damage, model.StatusEffectDamagedAmbient)
 }
 

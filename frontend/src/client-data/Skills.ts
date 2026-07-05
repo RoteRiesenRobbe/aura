@@ -11,6 +11,7 @@ export const SkillNames: { [id: number]: string } = {
     20: 'Nova Burst',
     21: 'Heal',
     30: 'Paladin Aura',
+    40: 'Fire Ward',
 };
 
 export function skillDisplayName(id: number): string {
@@ -29,6 +30,7 @@ export const SkillMaxLevels: { [id: number]: number } = {
     20: 3,
     21: 3,
     30: 5,
+    40: 3,
 };
 
 export function skillMaxLevel(id: number): number {
@@ -49,6 +51,7 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     20: 'cooldown',
     21: 'cooldown',
     30: 'aura',
+    40: 'aura',
 };
 
 // Unknown IDs default to 'aura' — the most common category; keeps a missing
@@ -63,3 +66,5 @@ export const DAMAGE_AURA_SKILL_ID = 1;
 export const HEAL_AURA_SKILL_ID = 2;
 // PaladinAura damages and heals at once — it shows both rings (Phase 9).
 export const PALADIN_AURA_SKILL_ID = 30;
+// FireWard is a support (resist) aura — it shows the heal-style ring (item 11 Phase 2).
+export const FIRE_WARD_SKILL_ID = 40;

@@ -532,3 +532,56 @@ func TestDerivedStats(t *testing.T) {
 		assert.Equal(t, float32(0), sc.Derived.MovementSpeedBonus)
 	})
 }
+
+// --- resist passives → Derived.Resistances (item 11 Phase 2 Step 3) ---
+
+func TestDerivedStats_Resistances(t *testing.T) {
+	fireSkin := &SkillDefinition{
+		ID: 41, Name: "FireSkin", Category: SkillCategoryPassive, MaxLevel: 3,
+		Effects: []EffectDef{
+			{Type: EffectTypeResistPassive, ResistTags: []string{"fire"}, ResistFactor: 0.8, ResistFactorPerLevel: -0.1},
+		},
+	}
+
+	t.Run("nil without resist passives", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, testSwift, 1)
+		assert.Nil(t, sc.Derived.Resistances)
+	})
+
+	t.Run("equip grants the level-scaled factor", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, fireSkin, 2) // 0.8 + 1×(-0.1) = 0.7
+
+		assert.InDelta(t, 0.7, sc.Derived.Resistances["fire"], 1e-6)
+	})
+
+	t.Run("distinct passives stack multiplicatively per tag", func(t *testing.T) {
+		emberSkin := &SkillDefinition{
+			ID: 42, Name: "EmberSkin", Category: SkillCategoryPassive, MaxLevel: 3,
+			Effects: []EffectDef{
+				{Type: EffectTypeResistPassive, ResistTags: []string{"fire"}, ResistFactor: 0.5},
+			},
+		}
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, fireSkin, 1) // 0.8
+		sc.EquipPassive(1, emberSkin, 1)
+
+		assert.InDelta(t, 0.4, sc.Derived.Resistances["fire"], 1e-6)
+	})
+
+	t.Run("unequip removes the resistance", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, fireSkin, 1)
+		sc.UnequipPassive(0)
+
+		assert.Nil(t, sc.Derived.Resistances)
+	})
+
+	t.Run("factor floors at zero", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, fireSkin, 3+7) // over-leveled on purpose: 0.8 − 9×0.1 < 0 → clamp 0
+
+		assert.InDelta(t, 0.0, sc.Derived.Resistances["fire"], 1e-6)
+	})
+}

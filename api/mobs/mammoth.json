@@ -3,7 +3,6 @@
   "name": "Mammoth",
   "type": "MOB",
   "factors": {
-    "vulnerability": 1,
     "maxHealth": 120,
     "experience": 90,
     "speed": 0.2,

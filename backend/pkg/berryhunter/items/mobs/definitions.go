@@ -32,14 +32,21 @@ type MobID uint64
 // parameters and each target picks the value that applies to it (players/mobs:
 // Damage in absolute HP, structures: StructureDamageFraction as a fraction).
 //
-// MaxHealth is the mob's absolute HP pool (item 11 Phase 1); Vulnerability
-// stays as a per-mob damage-taken multiplier (kept at 1 for now, folds into
-// resistances in Phase 2). A definition with MaxHealth <= 0 falls back to a
-// default at mob construction.
+// MaxHealth is the mob's absolute HP pool (item 11 Phase 1); a definition with
+// MaxHealth <= 0 falls back to a default at mob construction.
+//
+// Resistances maps damage tags to incoming-damage multipliers (item 11
+// Phase 2): 1 = normal, 0.5 = takes half, 0 = immune, > 1 = vulnerable.
+// Tags absent from the map are unresisted; nil = no base resistances. It
+// replaced the former all-damage Vulnerability multiplier.
+// DamageTags is payload-only (like Damage): the SkillSystem fills it from the
+// active skill's effect so living targets can match their resistances against
+// the mob's hit; it is not part of the mob JSON.
 type Factors struct {
-	Vulnerability           float32
 	MaxHealth               uint32
+	Resistances             map[string]float32
 	Damage                  float32
+	DamageTags              []string
 	Speed                   float32
 	DeltaPhi                float32
 	TurnRate                float32
@@ -107,12 +114,12 @@ type mobDefinition struct {
 	Type string `json:"type"`
 
 	Factors struct {
-		Vulnerability float32 `json:"vulnerability"`
-		MaxHealth     uint32  `json:"maxHealth"`
-		Speed         float32 `json:"speed"`
-		DeltaPhi      float32 `json:"deltaPhi"`
-		TurnRate      float32 `json:"turnRate"`
-		Experience    uint32  `json:"experience"`
+		MaxHealth   uint32             `json:"maxHealth"`
+		Resistances map[string]float32 `json:"resistances"`
+		Speed       float32            `json:"speed"`
+		DeltaPhi    float32            `json:"deltaPhi"`
+		TurnRate    float32            `json:"turnRate"`
+		Experience  uint32             `json:"experience"`
 	} `json:"factors"`
 
 	Drops []struct {
@@ -168,17 +175,27 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 		return nil, fmt.Errorf("mob %q: body.aggroRadius is required and must be > 0", m.Name)
 	}
 
+	// Resistances: 0 = immune is valid, negative would heal on hit.
+	for tag, multiplier := range m.Factors.Resistances {
+		if tag == "" {
+			return nil, fmt.Errorf("mob %q: resistances: empty tag", m.Name)
+		}
+		if multiplier < 0 {
+			return nil, fmt.Errorf("mob %q: resistances[%q]: must be >= 0, got %v", m.Name, tag, multiplier)
+		}
+	}
+
 	mob := &MobDefinition{
 		ID:   MobID(m.Id),
 		Name: m.Name,
 		Type: m.Type,
 		Factors: Factors{
-			Vulnerability: m.Factors.Vulnerability,
-			MaxHealth:     m.Factors.MaxHealth,
-			Speed:         m.Factors.Speed,
-			DeltaPhi:      m.Factors.DeltaPhi,
-			TurnRate:      m.Factors.TurnRate,
-			Experience:    m.Factors.Experience,
+			MaxHealth:   m.Factors.MaxHealth,
+			Resistances: m.Factors.Resistances,
+			Speed:       m.Factors.Speed,
+			DeltaPhi:    m.Factors.DeltaPhi,
+			TurnRate:    m.Factors.TurnRate,
+			Experience:  m.Factors.Experience,
 		},
 		Drops: make(Drops, 0, 1),
 		Body: Body{

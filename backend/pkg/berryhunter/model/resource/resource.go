@@ -136,7 +136,7 @@ func (r *Resource) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	// Nothing yet
 }
 
-func (r *Resource) PlayerTouches(p model.PlayerEntity, damageFraction float32) {
+func (r *Resource) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	// Nothing yet
 }
 
