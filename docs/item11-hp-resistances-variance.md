@@ -4,7 +4,7 @@ Graduates the "Deferred from item 11" block of `v1-roadmap.md` into an execution
 doc. Three phases, in the mandated sequence. **All numbers [PLACEHOLDER].**
 
 - **Phase 1 — Absolute HP.** *DONE (committed, verified in-game).*
-- **Phase 2 — Resistances & damage tags.** *DONE (implemented 2026-07-06; in-game verify pending).*
+- **Phase 2 — Resistances & damage tags.** *DONE (committed c0426e35, verified in-game 2026-07-06).*
 - **Phase 3 — Stat variance & damage ranges.** *Documented below, NOT scheduled.*
 
 Root problem shared by all three: today "HP" is a single normalized `Health`
@@ -191,10 +191,13 @@ cosmetic (FireWard ring style + `Skills.ts` entry).
   `api/skills/fire-ward.json`): fire multiplier 0.6/0.5/0.4 at L1–3, allies +
   self, shows the heal-style ring.
 
-### In-game verification (pending)
+### In-game verification (done 2026-07-06)
 
-`SKILL FireWard` → equip → stand in the boss aura: floating numbers drop from
-4 to ~2–3 (L1); step out of the ward → full damage resumes after ~1 tick.
+`SKILL FireWard` → equip → boss aura numbers drop as expected per level; ward
+off → full damage resumes after ~1 tick. Two bugs found and fixed during the
+check: `AuraMaskFor` lacked the resist_aura case (only the self-buff landed),
+and a weaker same-skill ward's refresh kept a departed stronger ward's factor
+alive (fixed via per-strength buff streams).
 
 ---
 
