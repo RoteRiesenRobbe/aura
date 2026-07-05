@@ -8,6 +8,9 @@ when its work approaches. The skill system has its own plan:
 Ordering below is a first guess, not a decision. All numbers [PLACEHOLDER].
 **⚑** marks open decision points.
 
+Unscoped ideas that haven't graduated into a roadmap item live in
+`feature-ideas.md`.
+
 ---
 
 ## 1. The Resource (single unified stat) ✓ Done

@@ -24,6 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - v1.0 scope outside the skill system: docs/v1-roadmap.md (skeleton) — incl. item 7 boss-encounter feasibility audit, item 11 deferred HP/resist/damage-tag work
 - Block 2 (items 1+2) execution plan + status: docs/block2-resource-and-survival-removal.md
 - Runtime cost model, scaling limits, zones-as-Spaces & fluid transitions, hazard/encounter runtime cost: docs/architecture-and-scaling.md
+- Feature ideas / backlog (unscoped, with open-question catalogs; captured from planning sessions): docs/feature-ideas.md
 
 
 ## Development Principles
