@@ -312,7 +312,7 @@ var testNova = &SkillDefinition{
 	CooldownTicks:         300,
 	CooldownTicksPerLevel: -20,
 	Effects: []EffectDef{
-		{Type: EffectTypeInstantDamage, Radius: 1.5, RadiusPerLevel: 0.1, DamageFraction: 0.15, DamageFractionPerLevel: 0.03, TargetsMobs: true},
+		{Type: EffectTypeInstantDamage, Radius: 1.5, RadiusPerLevel: 0.1, DamageHP: 0.15, DamageHPPerLevel: 0.03, TargetsMobs: true},
 	},
 }
 
@@ -387,7 +387,7 @@ func TestBurstRadius(t *testing.T) {
 	t.Run("radiusless bursts (self_heal) stay zero", func(t *testing.T) {
 		selfHeal := &SkillDefinition{
 			ID: 21, Name: "Heal", Category: SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
-			Effects: []EffectDef{{Type: EffectTypeSelfHeal, HealFraction: 0.2}},
+			Effects: []EffectDef{{Type: EffectTypeSelfHeal, HealHP: 0.2}},
 		}
 		sc := NewSkillComponent(true)
 		sc.EquipCooldown(0, selfHeal, 1)

@@ -154,9 +154,9 @@ func TestApplyHealAura_LowestHealthHealsMostWounded(t *testing.T) {
 	// less-wounded one.
 	caster := newFakePlayer()
 	nearHealthy := newFakePlayer()
-	nearHealthy.vitalSigns.Health = vitals.Max.SubFraction(0.1) // 90%, close
+	nearHealthy.vitalSigns.Health = 90 // 90% of maxHealth 100, close
 	farWounded := newFakePlayer()
-	farWounded.vitalSigns.Health = vitals.Max.SubFraction(0.7) // 30%, far
+	farWounded.vitalSigns.Health = 30 // 30% of maxHealth 100, far
 	farWoundedStart := farWounded.vitalSigns.Health
 
 	effect := healEffect()
@@ -169,9 +169,9 @@ func TestApplyHealAura_LowestHealthHealsMostWounded(t *testing.T) {
 
 	applyHealAura(caster, 1, effect, set)
 
-	assert.Equal(t, farWoundedStart.AddFraction(0.1), farWounded.vitalSigns.Health,
+	assert.Equal(t, farWoundedStart.Add(10), farWounded.vitalSigns.Health,
 		"the most-wounded ally is healed")
-	assert.Equal(t, vitals.Max.SubFraction(0.1), nearHealthy.vitalSigns.Health,
+	assert.Equal(t, vitals.VitalSign(90), nearHealthy.vitalSigns.Health,
 		"the healthier ally is left untouched by the single-target cap")
 }
 
@@ -180,7 +180,7 @@ func TestApplyHealAura_RecordsHealReceivedNumber(t *testing.T) {
 	// number (item 11).
 	caster := newFakePlayer()
 	ally := newFakePlayer()
-	ally.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	ally.vitalSigns.Health = 50
 	before := ally.vitalSigns.Health
 
 	applyHealAura(caster, 1, healEffect(), setOf(colliderAt(vec(1, 0), model.PlayerEntity(ally))))
@@ -205,6 +205,7 @@ func TestApplyDamageAura_CapGrowsWithLevel(t *testing.T) {
 	assert.Len(t, mid.touches, 1)
 	assert.Empty(t, far.touches)
 }
+
 // --- aura-hit style resolution (item 11 Step 4) ---
 
 func TestAuraHitStyleFor_AutoDerivesFromCadence(t *testing.T) {

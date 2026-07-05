@@ -135,8 +135,13 @@ auraHitStyle():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+maxHealth():number {
+  const offset = this.bb!.__offset(this.bb_pos, 42);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(19);
+  builder.startObject(20);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -225,6 +230,10 @@ static addXpGained(builder:flatbuffers.Builder, xpGained:number) {
 
 static addAuraHitStyle(builder:flatbuffers.Builder, auraHitStyle:number) {
   builder.addFieldInt8(18, auraHitStyle, 0);
+}
+
+static addMaxHealth(builder:flatbuffers.Builder, maxHealth:number) {
+  builder.addFieldInt32(19, maxHealth, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

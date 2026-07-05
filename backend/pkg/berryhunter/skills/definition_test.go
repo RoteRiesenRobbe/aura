@@ -19,8 +19,8 @@ var damageAuraJSON = []byte(`{
       "type": "damage_aura",
       "radius": 1.0,
       "radiusPerLevel": 0.0,
-      "damageFraction": 0.009,
-      "damageFractionPerLevel": 0.002,
+      "damageHP": 0.009,
+      "damageHPPerLevel": 0.002,
       "targetsMobs": true,
       "targetsPlayers": false
     }
@@ -37,9 +37,9 @@ var healAuraJSON = []byte(`{
       "type": "heal_aura",
       "radius": 1.0,
       "radiusPerLevel": 0.05,
-      "healFraction": 0.001,
-      "healFractionPerLevel": 0.0005,
-      "selfDamageFraction": 0.0015
+      "healHP": 0.001,
+      "healHPPerLevel": 0.0005,
+      "selfDamageHP": 0.0015
     }
   ]
 }`)
@@ -70,8 +70,8 @@ var novaBurstJSON = []byte(`{
       "type": "instant_damage",
       "radius": 1.5,
       "radiusPerLevel": 0.1,
-      "damageFraction": 0.15,
-      "damageFractionPerLevel": 0.03,
+      "damageHP": 0.15,
+      "damageHPPerLevel": 0.03,
       "targetsMobs": true,
       "targetsPlayers": false
     }
@@ -101,8 +101,8 @@ func TestParse_DamageAura(t *testing.T) {
 	assert.Equal(t, EffectTypeDamageAura, e.Type)
 	assert.InDelta(t, 1.0, e.Radius, 1e-6)
 	assert.InDelta(t, 0.0, e.RadiusPerLevel, 1e-6)
-	assert.InDelta(t, 0.009, e.DamageFraction, 1e-6)
-	assert.InDelta(t, 0.002, e.DamageFractionPerLevel, 1e-6)
+	assert.InDelta(t, 0.009, e.DamageHP, 1e-6)
+	assert.InDelta(t, 0.002, e.DamageHPPerLevel, 1e-6)
 	assert.True(t, e.TargetsMobs)
 	assert.False(t, e.TargetsPlayers)
 	assert.Equal(t, 1, e.TickInterval) // absent in JSON → normalized to default 1
@@ -119,7 +119,7 @@ var mobAuraJSON = []byte(`{
     {
       "type": "damage_aura",
       "radius": 3.0,
-      "damageFraction": 0.0067,
+      "damageHP": 0.0067,
       "structureDamageFraction": 0.67,
       "targetsMobs": false,
       "targetsPlayers": true,
@@ -134,7 +134,7 @@ func TestParse_MobAuraWithStructureDamage(t *testing.T) {
 	require.Len(t, def.Effects, 1)
 	e := def.Effects[0]
 	assert.Equal(t, EffectTypeDamageAura, e.Type)
-	assert.InDelta(t, 0.0067, e.DamageFraction, 1e-6)
+	assert.InDelta(t, 0.0067, e.DamageHP, 1e-6)
 	assert.InDelta(t, 0.67, e.StructureDamageFraction, 1e-6)
 	assert.False(t, e.TargetsMobs)
 	assert.True(t, e.TargetsPlayers)
@@ -154,9 +154,9 @@ func TestParse_HealAura(t *testing.T) {
 	assert.Equal(t, EffectTypeHealAura, e.Type)
 	assert.InDelta(t, 1.0, e.Radius, 1e-6)
 	assert.InDelta(t, 0.05, e.RadiusPerLevel, 1e-6)
-	assert.InDelta(t, 0.001, e.HealFraction, 1e-6)
-	assert.InDelta(t, 0.0005, e.HealFractionPerLevel, 1e-6)
-	assert.InDelta(t, 0.0015, e.SelfDamageFraction, 1e-6)
+	assert.InDelta(t, 0.001, e.HealHP, 1e-6)
+	assert.InDelta(t, 0.0005, e.HealHPPerLevel, 1e-6)
+	assert.InDelta(t, 0.0015, e.SelfDamageHP, 1e-6)
 	assert.Equal(t, 1, e.TickInterval)
 }
 
@@ -190,8 +190,8 @@ func TestParse_NovaBurst(t *testing.T) {
 	assert.Equal(t, EffectTypeInstantDamage, e.Type)
 	assert.InDelta(t, 1.5, e.Radius, 1e-6)
 	assert.InDelta(t, 0.1, e.RadiusPerLevel, 1e-6)
-	assert.InDelta(t, 0.15, e.DamageFraction, 1e-6)
-	assert.InDelta(t, 0.03, e.DamageFractionPerLevel, 1e-6)
+	assert.InDelta(t, 0.15, e.DamageHP, 1e-6)
+	assert.InDelta(t, 0.03, e.DamageHPPerLevel, 1e-6)
 	assert.True(t, e.TargetsMobs)
 	assert.False(t, e.TargetsPlayers)
 }
@@ -266,15 +266,15 @@ func TestParse_SlowAura(t *testing.T) {
 func TestParse_SelfHeal(t *testing.T) {
 	data := []byte(`{
       "id": 21, "name": "Heal", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 900,
-      "effects": [{"type": "self_heal", "healFraction": 0.20, "healFractionPerLevel": 0.05}]
+      "effects": [{"type": "self_heal", "healHP": 0.20, "healHPPerLevel": 0.05}]
     }`)
 	def := mustParse(t, data)
 
 	require.Len(t, def.Effects, 1)
 	e := def.Effects[0]
 	assert.Equal(t, EffectTypeSelfHeal, e.Type)
-	assert.InDelta(t, 0.20, e.HealFraction, 1e-6)
-	assert.InDelta(t, 0.05, e.HealFractionPerLevel, 1e-6)
+	assert.InDelta(t, 0.20, e.HealHP, 1e-6)
+	assert.InDelta(t, 0.05, e.HealHPPerLevel, 1e-6)
 }
 
 func TestParse_DamageReductionStat(t *testing.T) {

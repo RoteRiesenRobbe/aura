@@ -157,6 +157,7 @@ function unmarshalEntity(entity, eType) {
         name: undefined,
         equipment: undefined,
         health: undefined,
+        maxHealth: undefined,
         satiety: undefined,
         bodyHeat: undefined,
         level: undefined,
@@ -183,6 +184,7 @@ function unmarshalEntity(entity, eType) {
     if (eType === BerryhunterApi.AnyEntity.Mob) {
         result.rotation = entity.rotation();
         result.health = entity.health();
+        result.maxHealth = entity.maxHealth();
         result.burstRadius = entity.burstRadius();
         result.damageTaken = entity.damageTaken();
         result.auraHitStyle = entity.auraHitStyle();
@@ -197,6 +199,7 @@ function unmarshalEntity(entity, eType) {
         result.name = entity.name();
 
         result.health = entity.health();
+        result.maxHealth = entity.maxHealth();
         result.level = entity.level();
         result.levelProgress = entity.levelProgress() / 0xffffffff;
         result.auraRadius = entity.auraRadius();

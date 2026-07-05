@@ -118,11 +118,11 @@ type EffectDef struct {
 	Radius         float32
 	RadiusPerLevel float32
 
-	// damage_aura, instant_damage
-	DamageFraction         float32
-	DamageFractionPerLevel float32
-	TargetsMobs            bool
-	TargetsPlayers         bool
+	// damage_aura, instant_damage — absolute HP dealt per hit (item 11 Phase 1).
+	DamageHP         float32
+	DamageHPPerLevel float32
+	TargetsMobs      bool
+	TargetsPlayers   bool
 
 	// damage_aura, heal_aura, instant_damage — capped targeting (item 11).
 	// MaxTargets 0 = uncapped (AoE-all). Selector orders the candidates when
@@ -136,10 +136,17 @@ type EffectDef struct {
 	StructureDamageFraction float32
 	TargetsStructures       bool
 
-	// heal_aura, self_heal
-	HealFraction         float32
-	HealFractionPerLevel float32
-	SelfDamageFraction   float32
+	// heal_aura, self_heal — absolute HP (item 11 Phase 1). SelfDamageHP is the
+	// caster's HP cost per heal tick (HealAura self-cost).
+	HealHP         float32
+	HealHPPerLevel float32
+	SelfDamageHP   float32
+
+	// self_heal only: heal a fraction of the caster's MAX HP instead of a flat
+	// amount (heal cooldown). When > 0 it overrides HealHP; the fraction grows
+	// by HealFractionOfMaxPerLevel per level (absolute, e.g. 0.20 → 0.25 → 0.30).
+	HealFractionOfMax         float32
+	HealFractionOfMaxPerLevel float32
 
 	// slow_aura: movement-speed reduction applied to targets in range
 	SlowFraction         float32
@@ -181,10 +188,10 @@ type effectDef struct {
 	Radius         float32 `json:"radius"`
 	RadiusPerLevel float32 `json:"radiusPerLevel"`
 
-	DamageFraction         float32 `json:"damageFraction"`
-	DamageFractionPerLevel float32 `json:"damageFractionPerLevel"`
-	TargetsMobs            bool    `json:"targetsMobs"`
-	TargetsPlayers         bool    `json:"targetsPlayers"`
+	DamageHP         float32 `json:"damageHP"`
+	DamageHPPerLevel float32 `json:"damageHPPerLevel"`
+	TargetsMobs      bool    `json:"targetsMobs"`
+	TargetsPlayers   bool    `json:"targetsPlayers"`
 
 	Selector           string `json:"selector"`
 	MaxTargets         int    `json:"maxTargets"`
@@ -193,9 +200,12 @@ type effectDef struct {
 	StructureDamageFraction float32 `json:"structureDamageFraction"`
 	TargetsStructures       bool    `json:"targetsStructures"`
 
-	HealFraction         float32 `json:"healFraction"`
-	HealFractionPerLevel float32 `json:"healFractionPerLevel"`
-	SelfDamageFraction   float32 `json:"selfDamageFraction"`
+	HealHP         float32 `json:"healHP"`
+	HealHPPerLevel float32 `json:"healHPPerLevel"`
+	SelfDamageHP   float32 `json:"selfDamageHP"`
+
+	HealFractionOfMax         float32 `json:"healFractionOfMax"`
+	HealFractionOfMaxPerLevel float32 `json:"healFractionOfMaxPerLevel"`
 
 	SlowFraction         float32 `json:"slowFraction"`
 	SlowFractionPerLevel float32 `json:"slowFractionPerLevel"`
@@ -281,27 +291,29 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 	}
 
 	return EffectDef{
-		Type:                    effectType,
-		Radius:                  e.Radius,
-		RadiusPerLevel:          e.RadiusPerLevel,
-		DamageFraction:          e.DamageFraction,
-		DamageFractionPerLevel:  e.DamageFractionPerLevel,
-		TargetsMobs:             e.TargetsMobs,
-		TargetsPlayers:          e.TargetsPlayers,
-		Selector:                selector,
-		MaxTargets:              e.MaxTargets,
-		MaxTargetsPerLevel:      e.MaxTargetsPerLevel,
-		StructureDamageFraction: e.StructureDamageFraction,
-		TargetsStructures:       e.TargetsStructures,
-		HealFraction:            e.HealFraction,
-		HealFractionPerLevel:    e.HealFractionPerLevel,
-		SelfDamageFraction:      e.SelfDamageFraction,
-		SlowFraction:            e.SlowFraction,
-		SlowFractionPerLevel:    e.SlowFractionPerLevel,
-		TickInterval:            tickInterval,
-		TickIntervalPerLevel:    e.TickIntervalPerLevel,
-		HitStyle:                hitStyle,
-		Stat:                    e.Stat,
-		AdditivePerLevel:        e.AdditivePerLevel,
+		Type:                      effectType,
+		Radius:                    e.Radius,
+		RadiusPerLevel:            e.RadiusPerLevel,
+		DamageHP:                  e.DamageHP,
+		DamageHPPerLevel:          e.DamageHPPerLevel,
+		TargetsMobs:               e.TargetsMobs,
+		TargetsPlayers:            e.TargetsPlayers,
+		Selector:                  selector,
+		MaxTargets:                e.MaxTargets,
+		MaxTargetsPerLevel:        e.MaxTargetsPerLevel,
+		StructureDamageFraction:   e.StructureDamageFraction,
+		TargetsStructures:         e.TargetsStructures,
+		HealHP:                    e.HealHP,
+		HealHPPerLevel:            e.HealHPPerLevel,
+		SelfDamageHP:              e.SelfDamageHP,
+		HealFractionOfMax:         e.HealFractionOfMax,
+		HealFractionOfMaxPerLevel: e.HealFractionOfMaxPerLevel,
+		SlowFraction:              e.SlowFraction,
+		SlowFractionPerLevel:      e.SlowFractionPerLevel,
+		TickInterval:              tickInterval,
+		TickIntervalPerLevel:      e.TickIntervalPerLevel,
+		HitStyle:                  hitStyle,
+		Stat:                      e.Stat,
+		AdditivePerLevel:          e.AdditivePerLevel,
 	}, nil
 }

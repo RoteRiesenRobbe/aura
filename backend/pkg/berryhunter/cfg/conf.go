@@ -32,6 +32,7 @@ type Config struct {
 
 			//
 			WalkingSpeedPerTick        float32 `json:"walkingSpeedPerTick"`
+			BaseHealth                 int     `json:"baseHealth"`
 			MaxHealthLevelGainFraction float32 `json:"maxHealthLevelGainFraction"`
 			LevelUpXPBase              uint32  `json:"levelUpXPBase"`
 			LevelUpXPGrowthFactor      float32 `json:"levelUpXPGrowthFactor"`

@@ -41,12 +41,13 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddRotation(builder, p.Angle())
 	BerryhunterApi.CharacterAddEntityType(builder, BerryhunterApi.EntityType(p.Type()))
 	BerryhunterApi.CharacterAddHealth(builder, p.VitalSigns().Health.UInt32())
+	BerryhunterApi.CharacterAddMaxHealth(builder, p.MaxHealth().UInt32())
 	BerryhunterApi.CharacterAddLevelProgress(builder, fracToUint32(p.LevelProgressFraction()))
 	BerryhunterApi.CharacterAddLevel(builder, p.Progression().Level)
 	BerryhunterApi.CharacterAddAuraRadius(builder, f32ToU16Px(p.AuraRadius()))
 	BerryhunterApi.CharacterAddBurstRadius(builder, f32ToU16Px(p.BurstRadius()))
 	BerryhunterApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
-	// Floating-number sources (item 11): damage/heal in VitalSign units, XP raw.
+	// Floating-number sources (item 11): damage/heal in absolute HP, XP raw.
 	BerryhunterApi.CharacterAddDamageTaken(builder, p.DamageTaken().UInt32())
 	BerryhunterApi.CharacterAddHealReceived(builder, p.HealReceived().UInt32())
 	BerryhunterApi.CharacterAddXpGained(builder, u64ToU32Clamped(p.XpGained()))

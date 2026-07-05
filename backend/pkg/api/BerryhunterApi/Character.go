@@ -281,8 +281,20 @@ func (rcv *Character) MutateAuraHitStyle(n byte) bool {
 	return rcv._tab.MutateByteSlot(40, n)
 }
 
+func (rcv *Character) MaxHealth() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateMaxHealth(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(42, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(19)
+	builder.StartObject(20)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -343,6 +355,9 @@ func CharacterAddXpGained(builder *flatbuffers.Builder, xpGained uint32) {
 }
 func CharacterAddAuraHitStyle(builder *flatbuffers.Builder, auraHitStyle byte) {
 	builder.PrependByteSlot(18, auraHitStyle, 0)
+}
+func CharacterAddMaxHealth(builder *flatbuffers.Builder, maxHealth uint32) {
+	builder.PrependUint32Slot(19, maxHealth, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

@@ -20,13 +20,14 @@ type fakeSkillEntity struct {
 	statusEffects model.StatusEffects
 }
 
-func (f *fakeSkillEntity) Basic() ecs.BasicEntity        { return f.BasicEntity }
+func (f *fakeSkillEntity) Basic() ecs.BasicEntity                 { return f.BasicEntity }
 func (f *fakeSkillEntity) SkillComponent() *skills.SkillComponent { return f.sc }
-func (f *fakeSkillEntity) AuraCollider() *phy.Circle { return nil }
-func (f *fakeSkillEntity) VitalSigns() *model.PlayerVitalSigns { return &f.vitalSigns }
-func (f *fakeSkillEntity) StatusEffects() *model.StatusEffects { return &f.statusEffects }
-func (f *fakeSkillEntity) MaxHealthFactor() float32 { return 1.0 }
-func (f *fakeSkillEntity) IsGod() bool              { return false }
+func (f *fakeSkillEntity) AuraCollider() *phy.Circle              { return nil }
+func (f *fakeSkillEntity) VitalSigns() *model.PlayerVitalSigns    { return &f.vitalSigns }
+func (f *fakeSkillEntity) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
+func (f *fakeSkillEntity) MaxHealthFactor() float32               { return 1.0 }
+func (f *fakeSkillEntity) MaxHealth() vitals.VitalSign            { return vitals.Max }
+func (f *fakeSkillEntity) IsGod() bool                            { return false }
 
 func newFakeEntity() *fakeSkillEntity {
 	se := model.NewStatusEffects()
@@ -80,7 +81,7 @@ func TestSkillSystem_NoActiveAura_TicksNothing(t *testing.T) {
 	def := &skills.SkillDefinition{
 		ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
 		Effects: []skills.EffectDef{{
-			Type: skills.EffectTypeHealAura, HealFraction: 0.5, SelfDamageFraction: 0.5,
+			Type: skills.EffectTypeHealAura, HealHP: 0.5, SelfDamageHP: 0.5,
 		}},
 	}
 	e.sc.EquipAura(0, def, 1)
@@ -98,27 +99,27 @@ func TestSkillSystem_NoActiveAura_TicksNothing(t *testing.T) {
 
 // --- effect math tests ---
 
-func TestEffectDamageFraction_Level1(t *testing.T) {
-	e := skills.EffectDef{DamageFraction: 0.009, DamageFractionPerLevel: 0.002}
-	assert.InDelta(t, 0.009, effectDamageFraction(e, 1), 1e-6)
+func TestEffectDamageHP_Level1(t *testing.T) {
+	e := skills.EffectDef{DamageHP: 0.009, DamageHPPerLevel: 0.002}
+	assert.InDelta(t, 0.009, effectDamageHP(e, 1), 1e-6)
 }
 
-func TestEffectDamageFraction_Level2(t *testing.T) {
-	e := skills.EffectDef{DamageFraction: 0.009, DamageFractionPerLevel: 0.002}
-	assert.InDelta(t, 0.011, effectDamageFraction(e, 2), 1e-6)
+func TestEffectDamageHP_Level2(t *testing.T) {
+	e := skills.EffectDef{DamageHP: 0.009, DamageHPPerLevel: 0.002}
+	assert.InDelta(t, 0.011, effectDamageHP(e, 2), 1e-6)
 }
 
-func TestEffectDamageFraction_Level5(t *testing.T) {
-	e := skills.EffectDef{DamageFraction: 0.009, DamageFractionPerLevel: 0.002}
-	assert.InDelta(t, 0.017, effectDamageFraction(e, 5), 1e-6)
+func TestEffectDamageHP_Level5(t *testing.T) {
+	e := skills.EffectDef{DamageHP: 0.009, DamageHPPerLevel: 0.002}
+	assert.InDelta(t, 0.017, effectDamageHP(e, 5), 1e-6)
 }
 
-func TestEffectHealFraction_Level1(t *testing.T) {
-	e := skills.EffectDef{HealFraction: 0.001, HealFractionPerLevel: 0.0005}
-	assert.InDelta(t, 0.001, effectHealFraction(e, 1), 1e-7)
+func TestEffectHealHP_Level1(t *testing.T) {
+	e := skills.EffectDef{HealHP: 0.001, HealHPPerLevel: 0.0005}
+	assert.InDelta(t, 0.001, effectHealHP(e, 1), 1e-7)
 }
 
-func TestEffectHealFraction_Level2(t *testing.T) {
-	e := skills.EffectDef{HealFraction: 0.001, HealFractionPerLevel: 0.0005}
-	assert.InDelta(t, 0.0015, effectHealFraction(e, 2), 1e-7)
+func TestEffectHealHP_Level2(t *testing.T) {
+	e := skills.EffectDef{HealHP: 0.001, HealHPPerLevel: 0.0005}
+	assert.InDelta(t, 0.0015, effectHealHP(e, 2), 1e-7)
 }

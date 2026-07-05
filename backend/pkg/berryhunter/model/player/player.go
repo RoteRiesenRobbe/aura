@@ -61,7 +61,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.ApplyRecipeCascade()
 
 	//--- setup vital signs
-	p.PlayerVitalSigns.Health = vitals.Max
+	p.PlayerVitalSigns.Health = p.MaxHealth() // absolute HP (item 11 Phase 1)
 	p.PlayerVitalSigns.Satiety = vitals.Max
 	p.PlayerVitalSigns.BodyTemperature = vitals.Max
 
@@ -132,30 +132,45 @@ type player struct {
 	// auraHitStyle is the aura-hit VFX a damage aura stamped on this player this
 	// tick (item 11 Step 4); reset each tick alongside the accumulators above.
 	auraHitStyle model.AuraHitStyle
+
+	// healthRegen accumulates sub-1-HP out-of-combat regen (item 11 Phase 1):
+	// with absolute integer HP the per-tick regen is often < 1 HP, so it is
+	// carried here and applied once a whole HP has built up.
+	healthRegen float32
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {
 	return &p.statusEffects
 }
 
-
 func (p *player) maxHealthFactor() float32 {
 	level := p.progression.Level
 	if level < 1 {
 		level = 1
 	}
-	// Health is stored normalized (fraction of max), so a passive maxHealth
-	// bonus preserves the current health *percentage* by construction.
+	// Multiplier on baseHealth from level + passive bonuses (item 11 Phase 1).
+	// Leveling raises maxHealth; current HP stays and regenerates up.
 	return 1 + float32(level-1)*p.config.MaxHealthLevelGainFraction + p.skills.Derived.MaxHealthBonus
 }
 
-// HealthRatio is the current/max health fraction (0..1), read by the
-// lowest_health aura selector (v1-roadmap.md item 11). Health is stored
-// normalized, so the raw fraction already is the ratio.
-func (p *player) HealthRatio() float32 {
-	return p.PlayerVitalSigns.Health.Fraction()
+// MaxHealth is the player's absolute HP pool (item 11 Phase 1):
+// round(baseHealth × maxHealthFactor). Serialized as the max_health wire field.
+func (p *player) MaxHealth() vitals.VitalSign {
+	return vitals.VitalSign(vitals.HP(float32(p.config.BaseHealth) * p.maxHealthFactor()))
 }
 
+// HealthRatio is the current/max health fraction (0..1), read by the
+// lowest_health aura selector (v1-roadmap.md item 11).
+func (p *player) HealthRatio() float32 {
+	maxHP := p.MaxHealth()
+	if maxHP == 0 {
+		return 0
+	}
+	return float32(p.PlayerVitalSigns.Health) / float32(maxHP)
+}
+
+// takeDamage subtracts absolute HP (item 11 Phase 1). Damage no longer scales
+// by maxHealthFactor — a hit removes flat HP regardless of the player's pool.
 func (p *player) takeDamage(damage float32, s model.StatusEffect) {
 	// Passive damage reduction (DerivedStats); 100% is the natural cap.
 	if r := p.skills.Derived.DamageReductionBonus; r > 0 {
@@ -168,10 +183,10 @@ func (p *player) takeDamage(damage float32, s model.StatusEffect) {
 		return
 	}
 
-	dmgFraction := damage / p.maxHealthFactor()
-	if dmgFraction > 0 {
+	hp := vitals.HP(damage)
+	if hp > 0 {
 		h := p.PlayerVitalSigns.Health
-		p.PlayerVitalSigns.Health = h.SubFraction(dmgFraction)
+		p.PlayerVitalSigns.Health = h.Sub(hp)
 		p.damageTaken += h - p.PlayerVitalSigns.Health // actual loss after clamping
 		p.StatusEffects().Add(s)
 	}
@@ -207,11 +222,11 @@ func (p *player) ResetTickNumbers() {
 }
 
 func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	p.takeDamage(factors.DamageFraction, model.StatusEffectDamagedAmbient)
+	p.takeDamage(factors.Damage, model.StatusEffectDamagedAmbient)
 }
 
-func (p *player) PlayerTouches(other model.PlayerEntity, damageFraction float32) {
-	p.takeDamage(damageFraction, model.StatusEffectDamagedAmbient)
+func (p *player) PlayerTouches(other model.PlayerEntity, damage float32) {
+	p.takeDamage(damage, model.StatusEffectDamagedAmbient)
 }
 
 func (p *player) Name() string {
@@ -288,7 +303,7 @@ func (p *player) AddExperience(xp uint64) {
 	}
 	p.progression.Level = level
 	if level > previousLevel {
-		p.PlayerVitalSigns.Health = vitals.Max
+		p.PlayerVitalSigns.Health = p.MaxHealth() // heal to (new) full on level-up
 		p.applyMilestoneUnlocks(previousLevel+1, level)
 	}
 }
@@ -394,7 +409,6 @@ func initializePlayerSkills(r skills.Registry) (*skills.SkillComponent, error) {
 	sc.SetActiveAura(0)
 	return sc, nil
 }
-
 
 func (p *player) experienceForNextLevel(level uint32) uint64 {
 	if level < 1 {

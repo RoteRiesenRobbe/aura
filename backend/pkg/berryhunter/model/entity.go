@@ -95,6 +95,9 @@ type MobEntity interface {
 	MobID() mobs.MobID
 	MobDefinition() *mobs.MobDefinition
 	Health() vitals.VitalSign
+	// MaxHealth is the mob's absolute HP pool (item 11 Phase 1), serialized as
+	// the max_health wire field so the client draws health/maxHealth.
+	MaxHealth() vitals.VitalSign
 	// Velocity() phy.Vec2f
 	// SetVelocity(v phy.Vec2f)
 	Update(dt float32) bool

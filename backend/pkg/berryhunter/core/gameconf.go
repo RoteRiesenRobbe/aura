@@ -18,6 +18,7 @@ func Config(conf *cfg.Config) Configuration {
 
 		g.PlayerConfig.HealthGainTick = conf.Game.Player.HealthGainTick
 		g.PlayerConfig.WalkingSpeedPerTick = conf.Game.Player.WalkingSpeedPerTick
+		g.PlayerConfig.BaseHealth = conf.Game.Player.BaseHealth
 		g.PlayerConfig.MaxHealthLevelGainFraction = conf.Game.Player.MaxHealthLevelGainFraction
 		g.PlayerConfig.LevelUpXPBase = conf.Game.Player.LevelUpXPBase
 		g.PlayerConfig.LevelUpXPGrowthFactor = conf.Game.Player.LevelUpXPGrowthFactor
@@ -27,6 +28,9 @@ func Config(conf *cfg.Config) Configuration {
 		}
 		if g.PlayerConfig.MaxHealthLevelGainFraction <= 0 {
 			g.PlayerConfig.MaxHealthLevelGainFraction = 0.1
+		}
+		if g.PlayerConfig.BaseHealth <= 0 {
+			g.PlayerConfig.BaseHealth = 100 // [PLACEHOLDER] item 11 Phase 1
 		}
 		if g.PlayerConfig.LevelUpXPBase == 0 {
 			g.PlayerConfig.LevelUpXPBase = 300

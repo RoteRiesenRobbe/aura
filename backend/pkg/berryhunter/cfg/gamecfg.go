@@ -57,6 +57,10 @@ type PlayerConfig struct {
 
 	WalkingSpeedPerTick float32
 
+	// BaseHealth is the player's absolute HP pool at level 1 (item 11 Phase 1)
+	// [PLACEHOLDER]; scaled by MaxHealthLevelGainFraction + passive bonuses.
+	BaseHealth int
+
 	MaxHealthLevelGainFraction float32
 
 	LevelUpXPBase         uint32

@@ -25,15 +25,21 @@ import (
 
 type MobID uint64
 
-// Factors carries a mob's tuning values. DamageFraction and
-// StructureDamageFraction are no longer part of the mob JSON — mob damage
-// lives in the skill loadout (Phase 6.1). The fields remain because Factors
-// doubles as the MobTouches payload: the SkillSystem fills them from the
-// active skill's effect parameters and each target picks the fraction that
-// applies to it (players: DamageFraction, structures: StructureDamageFraction).
+// Factors carries a mob's tuning values. Damage and StructureDamageFraction
+// are no longer part of the mob JSON — mob damage lives in the skill loadout
+// (Phase 6.1). Those two fields remain because Factors doubles as the
+// MobTouches payload: the SkillSystem fills them from the active skill's effect
+// parameters and each target picks the value that applies to it (players/mobs:
+// Damage in absolute HP, structures: StructureDamageFraction as a fraction).
+//
+// MaxHealth is the mob's absolute HP pool (item 11 Phase 1); Vulnerability
+// stays as a per-mob damage-taken multiplier (kept at 1 for now, folds into
+// resistances in Phase 2). A definition with MaxHealth <= 0 falls back to a
+// default at mob construction.
 type Factors struct {
 	Vulnerability           float32
-	DamageFraction          float32
+	MaxHealth               uint32
+	Damage                  float32
 	Speed                   float32
 	DeltaPhi                float32
 	TurnRate                float32
@@ -102,6 +108,7 @@ type mobDefinition struct {
 
 	Factors struct {
 		Vulnerability float32 `json:"vulnerability"`
+		MaxHealth     uint32  `json:"maxHealth"`
 		Speed         float32 `json:"speed"`
 		DeltaPhi      float32 `json:"deltaPhi"`
 		TurnRate      float32 `json:"turnRate"`
@@ -167,6 +174,7 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 		Type: m.Type,
 		Factors: Factors{
 			Vulnerability: m.Factors.Vulnerability,
+			MaxHealth:     m.Factors.MaxHealth,
 			Speed:         m.Factors.Speed,
 			DeltaPhi:      m.Factors.DeltaPhi,
 			TurnRate:      m.Factors.TurnRate,

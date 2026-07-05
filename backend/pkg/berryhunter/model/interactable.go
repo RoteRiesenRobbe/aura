@@ -6,5 +6,8 @@ import (
 
 type Interacter interface {
 	MobTouches(m MobEntity, factors mobs.Factors)
-	PlayerTouches(p PlayerEntity, damageFraction float32)
+	// PlayerTouches applies a player-sourced hit; damage is absolute HP for
+	// living targets (item 11 Phase 1). Structures instead read the fractional
+	// StructureDamageFraction from their own path.
+	PlayerTouches(p PlayerEntity, damage float32)
 }

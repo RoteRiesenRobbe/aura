@@ -18,6 +18,7 @@
     "player": {
       "healthGainTick": 0.00033,
       "walkingSpeedPerTick": 0.05,
+      "baseHealth": 100,
       "maxHealthLevelGainFraction": 0.1,
       "levelUpXPBase": 300,
       "levelUpXPGrowthFactor": 1.2,

@@ -8,8 +8,8 @@
   "effects": [
     {
       "type": "self_heal",
-      "healFraction": 0.20,
-      "healFractionPerLevel": 0.05
+      "healFractionOfMax": 0.20,
+      "healFractionOfMaxPerLevel": 0.05
     }
   ]
 }

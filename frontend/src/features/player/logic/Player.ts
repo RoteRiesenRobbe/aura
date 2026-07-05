@@ -1,5 +1,5 @@
 import {Character} from '../../game-objects/logic/Character';
-import {vitalUnitsToDisplay} from '../../game-objects/logic/_GameObject';
+import {hpToDisplay} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Controls} from '../../controls/logic/Controls';
 import {Camera} from '../../camera/logic/Camera';
@@ -55,14 +55,17 @@ export class Player {
             this.character.showBurstRing(entity.burstRadius);
         }
 
+        // Health is absolute HP now (item 11 Phase 1); the HUD bar works in a
+        // 0..MAXIMUM_VALUES.health scale, so feed it the health/maxHealth fraction.
+        const healthFraction = entity.maxHealth > 0 ? (entity.health / entity.maxHealth) : 0;
         let newVitalSigns: VitalSignValues = {
-            health: entity.health,
+            health: Math.round(healthFraction * VitalSigns.MAXIMUM_VALUES.health),
             satiety: Math.round((entity.levelProgress || 0) * VitalSigns.MAXIMUM_VALUES.satiety),
             bodyHeat: VitalSigns.MAXIMUM_VALUES.bodyHeat
         };
         this.vitalSigns.updateFromBackend(newVitalSigns, damageState);
         if (isDefined(entity.health)) {
-            this.character.setHealth(entity.health);
+            this.character.setHealth(entity.health, entity.maxHealth);
         }
         if (isDefined(entity.activeSkillId)) {
             this.character.setActiveSkill(entity.activeSkillId);
@@ -76,10 +79,10 @@ export class Player {
 
         // Floating combat numbers over the own character (item 11).
         if (entity.damageTaken > 0) {
-            this.character.showFloatingNumber(vitalUnitsToDisplay(entity.damageTaken), 'damage');
+            this.character.showFloatingNumber(hpToDisplay(entity.damageTaken), 'damage');
         }
         if (entity.healReceived > 0) {
-            this.character.showFloatingNumber(vitalUnitsToDisplay(entity.healReceived), 'heal');
+            this.character.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');
         }
         if (entity.xpGained > 0) {
             this.character.showFloatingNumber(entity.xpGained, 'xp');

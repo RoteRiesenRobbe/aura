@@ -8,7 +8,7 @@
     {
       "type": "instant_damage",
       "radius": 2.5,
-      "damageFraction": 0.2,
+      "damageHP": 20,
       "targetsMobs": false,
       "targetsPlayers": true
     }

@@ -92,8 +92,8 @@ func TestRegistry_DuplicateID(t *testing.T) {
 
 func TestRegistry_DuplicateName(t *testing.T) {
 	fsys := fstest.MapFS{
-		"damage-aura.json":      {Data: damageAuraJSON},
-		"duplicate-name.json":   {Data: duplicateNameJSON},
+		"damage-aura.json":    {Data: damageAuraJSON},
+		"duplicate-name.json": {Data: duplicateNameJSON},
 	}
 	_, err := RegistryFromFS(fsys)
 	assert.Error(t, err)
@@ -110,10 +110,10 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	fsys := os.DirFS("../../../../api/skills")
 	r, err := RegistryFromFS(fsys)
 	require.NoError(t, err)
-	// 8 player skills (incl. SwiftPassive/ToughPassive, NovaBurst/Heal,
-	// SlowAura) + 5 mob skills (mobs/ subdirectory: 4 auras + the
-	// AngryMammothStomp cooldown)
-	assert.Len(t, r.All(), 13)
+	// 9 player skills (incl. SwiftPassive/ToughPassive, NovaBurst/Heal,
+	// SlowAura, and the PaladinAura combination result) + 5 mob skills (mobs/
+	// subdirectory: 4 auras + the AngryMammothStomp cooldown)
+	assert.Len(t, r.All(), 14)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura"} {
 		_, err := r.GetByName(name)

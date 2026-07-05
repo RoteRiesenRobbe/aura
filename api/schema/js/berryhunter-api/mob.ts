@@ -98,8 +98,13 @@ auraHitStyle():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+maxHealth():number {
+  const offset = this.bb!.__offset(this.bb_pos, 28);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(12);
+  builder.startObject(13);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -160,6 +165,10 @@ static addDamageTaken(builder:flatbuffers.Builder, damageTaken:number) {
 
 static addAuraHitStyle(builder:flatbuffers.Builder, auraHitStyle:number) {
   builder.addFieldInt8(11, auraHitStyle, 0);
+}
+
+static addMaxHealth(builder:flatbuffers.Builder, maxHealth:number) {
+  builder.addFieldInt32(12, maxHealth, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

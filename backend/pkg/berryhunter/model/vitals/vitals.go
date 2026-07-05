@@ -74,3 +74,29 @@ func (v VitalSign) Sub(n uint32) VitalSign {
 func (v VitalSign) UInt32() uint32 {
 	return uint32(v)
 }
+
+// HP rounds an absolute health amount (in HP points) to an integer, returning
+// at least 1 whenever the raw amount is positive so a real hit or heal never
+// rounds away to nothing (item 11 Phase 1 min-1 rule). A non-positive amount
+// yields 0.
+func HP(amount float32) uint32 {
+	if amount <= 0 {
+		return 0
+	}
+	n := uint32(amount + 0.5)
+	if n < 1 {
+		n = 1
+	}
+	return n
+}
+
+// AddCapped adds n HP points but never exceeds maxHP (an entity's maxHealth).
+// Health is stored as absolute HP (item 11 Phase 1), so heals clamp at the
+// entity's own maximum rather than the VitalSign type ceiling.
+func (v VitalSign) AddCapped(n uint32, maxHP VitalSign) VitalSign {
+	nv := v.Add(n)
+	if nv > maxHP {
+		return maxHP
+	}
+	return nv
+}

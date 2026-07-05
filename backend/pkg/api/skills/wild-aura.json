@@ -9,12 +9,13 @@
       "type": "damage_aura",
       "radius": 1.4,
       "radiusPerLevel": 0.05,
-      "damageFraction": 0.006,
-      "damageFractionPerLevel": 0.0015,
+      "damageHP": 5,
+      "damageHPPerLevel": 1.2,
       "targetsMobs": true,
       "targetsPlayers": false,
       "selector": "nearest",
-      "maxTargets": 1
+      "maxTargets": 1,
+      "tickInterval": 20
     }
   ]
 }

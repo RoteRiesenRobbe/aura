@@ -94,6 +94,10 @@ type PlayerEntity interface {
 	ApplyRecipeCascade()
 	AuraCollider() *phy.Circle
 	MaxHealthFactor() float32
+	// MaxHealth is the player's absolute HP pool (item 11 Phase 1) =
+	// round(baseHealth × MaxHealthFactor); serialized as the max_health wire
+	// field so the client draws health/maxHealth.
+	MaxHealth() vitals.VitalSign
 }
 
 type BasicEntities map[uint64]ecs.BasicEntity

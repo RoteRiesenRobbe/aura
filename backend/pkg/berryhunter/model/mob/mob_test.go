@@ -26,7 +26,7 @@ func testAuraSkill() *skills.SkillDefinition {
 		Effects: []skills.EffectDef{{
 			Type:           skills.EffectTypeDamageAura,
 			Radius:         0.5,
-			DamageFraction: 0.05,
+			DamageHP:       0.05,
 			TargetsPlayers: true,
 			TickInterval:   1,
 		}},
@@ -88,12 +88,12 @@ func newFakeAuraPlayer() *fakeAuraPlayer {
 // --- damage intake (what player auras do to the mob) ---
 
 func TestMob_PlayerTouches_AppliesVulnerability(t *testing.T) {
-	m := newTestMob()
+	m := newTestMob() // maxHealth 100 (default), vulnerability 2.0
 
-	m.PlayerTouches(newFakeAuraPlayer(), 0.1)
+	m.PlayerTouches(newFakeAuraPlayer(), 10) // 10 HP × vulnerability 2.0 = 20 HP
 
-	assert.Equal(t, vitals.Max.SubFraction(0.1*2.0), m.Health(),
-		"incoming damage is scaled by Factors.Vulnerability")
+	assert.Equal(t, m.MaxHealth()-20, m.Health(),
+		"incoming damage (absolute HP) is scaled by Factors.Vulnerability")
 	assert.Contains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)
 }
 
@@ -102,18 +102,28 @@ func TestMob_PlayerTouches_ZeroVulnerabilityDefaultsToOne(t *testing.T) {
 	def.Factors.Vulnerability = 0
 	m := NewMob(def, false, 0, 0)
 
-	m.PlayerTouches(newFakeAuraPlayer(), 0.1)
+	m.PlayerTouches(newFakeAuraPlayer(), 10) // vulnerability defaults to 1 → 10 HP
 
-	assert.Equal(t, vitals.Max.SubFraction(0.1), m.Health())
+	assert.Equal(t, m.MaxHealth()-10, m.Health())
+}
+
+func TestMob_PlayerTouches_MinOneHP(t *testing.T) {
+	m := newTestMob() // maxHealth 100
+
+	// A sub-1-HP hit still removes at least 1 HP (min-1 rule, item 11 Phase 1) —
+	// a real hit never rounds away to nothing.
+	m.PlayerTouches(newFakeAuraPlayer(), 0.001)
+
+	assert.Equal(t, m.MaxHealth()-1, m.Health())
 }
 
 func TestMob_DamageTaken_AccumulatesAndResets(t *testing.T) {
 	m := newTestMob() // vulnerability 2.0, starts at full health
 
-	m.PlayerTouches(newFakeAuraPlayer(), 0.1)
-	m.PlayerTouches(newFakeAuraPlayer(), 0.05)
+	m.PlayerTouches(newFakeAuraPlayer(), 10)
+	m.PlayerTouches(newFakeAuraPlayer(), 5)
 
-	assert.Equal(t, vitals.Max-m.Health(), m.DamageTaken(),
+	assert.Equal(t, m.MaxHealth()-m.Health(), m.DamageTaken(),
 		"DamageTaken sums the actual health lost this tick")
 	assert.NotZero(t, m.DamageTaken())
 
@@ -142,8 +152,8 @@ func TestMob_Kill_AllDamagersGetFullXP(t *testing.T) {
 	attacker := newFakeAuraPlayer()
 	finisher := newFakeAuraPlayer()
 
-	m.PlayerTouches(attacker, 0.2) // participates, doesn't kill
-	m.PlayerTouches(finisher, 1.0) // kill
+	m.PlayerTouches(attacker, 5)    // participates, doesn't kill
+	m.PlayerTouches(finisher, 1000) // kill (overkill vs. 100 HP)
 
 	assert.Equal(t, []uint64{42}, attacker.xp, "every damage participant gets the full XP")
 	assert.Equal(t, []uint64{42}, finisher.xp)
@@ -155,7 +165,7 @@ func TestMob_Kill_RecentHealerOfParticipantGetsXP(t *testing.T) {
 	healer := newFakeAuraPlayer()
 	damager.healers = []model.PlayerEntity{healer}
 
-	m.PlayerTouches(damager, 1.0) // kill
+	m.PlayerTouches(damager, 1000) // kill
 
 	assert.Equal(t, []uint64{42}, healer.xp,
 		"healing a participant within the window counts as participating")
@@ -168,8 +178,8 @@ func TestMob_Kill_HealerWhoAlsoDamagedGetsXPOnce(t *testing.T) {
 	hybrid := newFakeAuraPlayer() // damages AND heals the other damager
 	damager.healers = []model.PlayerEntity{hybrid}
 
-	m.PlayerTouches(hybrid, 0.2)
-	m.PlayerTouches(damager, 1.0) // kill
+	m.PlayerTouches(hybrid, 5)
+	m.PlayerTouches(damager, 1000) // kill
 
 	assert.Equal(t, []uint64{42}, hybrid.xp, "no double grant for damager+healer")
 }
@@ -187,8 +197,8 @@ func TestMob_Kill_GuaranteedUnlockGoesToAllRewardedPlayers(t *testing.T) {
 	damager.healers = []model.PlayerEntity{healer}
 	finisher := newFakeAuraPlayer()
 
-	m.PlayerTouches(damager, 0.2)
-	m.PlayerTouches(finisher, 1.0) // kill
+	m.PlayerTouches(damager, 5)
+	m.PlayerTouches(finisher, 1000) // kill
 
 	for name, p := range map[string]*fakeAuraPlayer{"damager": damager, "healer": healer, "finisher": finisher} {
 		assert.True(t, p.sc.HasDiscovered(unlockSkill.ID),
@@ -200,7 +210,7 @@ func TestMob_Kill_NoUnlocksDeclared_NoDiscovery(t *testing.T) {
 	m := newTestMob()
 	p := newFakeAuraPlayer()
 
-	m.PlayerTouches(p, 1.0)
+	m.PlayerTouches(p, 1000)
 
 	assert.Empty(t, p.sc.Discovered())
 }
@@ -208,16 +218,16 @@ func TestMob_Kill_NoUnlocksDeclared_NoDiscovery(t *testing.T) {
 func TestMob_FullOutOfCombatRegenClearsParticipants(t *testing.T) {
 	m := newTestMob()
 	early := newFakeAuraPlayer()
-	m.PlayerTouches(early, 0.05) // 0.1 damage after vulnerability 2.0
+	m.PlayerTouches(early, 5) // 10 HP after vulnerability 2.0
 
 	// No aggro target → out-of-combat regen runs; let it reach full health.
-	for i := 0; i < 3*constant.TicksPerSecond && m.Health() < vitals.Max; i++ {
+	for i := 0; i < 3*constant.TicksPerSecond && m.Health() < m.MaxHealth(); i++ {
 		m.Update(0)
 	}
-	require.Equal(t, vitals.Max, m.Health(), "mob must fully regenerate")
+	require.Equal(t, m.MaxHealth(), m.Health(), "mob must fully regenerate")
 
 	killer := newFakeAuraPlayer()
-	m.PlayerTouches(killer, 1.0)
+	m.PlayerTouches(killer, 1000)
 
 	assert.Empty(t, early.xp, "full regen is a combat reset — earlier participants are cleared")
 	assert.Equal(t, []uint64{42}, killer.xp)
@@ -227,13 +237,13 @@ func TestMob_KillGrantsExperienceExactlyOnce(t *testing.T) {
 	m := newTestMob()
 	p := newFakeAuraPlayer()
 
-	m.PlayerTouches(p, 1.0) // 1.0 * vulnerability 2.0 → overkill, health clamps to 0
+	m.PlayerTouches(p, 1000) // overkill vs. 100 HP, health clamps to 0
 
 	require.Equal(t, vitals.VitalSign(0), m.Health())
 	require.Equal(t, []uint64{42}, p.xp, "killer receives Factors.Experience")
 
 	// A second touch on the corpse must not grant rewards again.
-	m.PlayerTouches(p, 1.0)
+	m.PlayerTouches(p, 1000)
 	assert.Equal(t, []uint64{42}, p.xp)
 }
 
@@ -265,7 +275,6 @@ func TestMob_Update_DeadMobWithoutAggro_Dies(t *testing.T) {
 	assert.Equal(t, uint32(0), uint32(m.Health()),
 		"out-of-combat regen must not run on a dead mob")
 }
-
 
 // --- skill loadout wiring (Phase 6.1: damage application itself lives in the
 // SkillSystem; see sys/skills_behavior_test.go for the mob-caster path) ---
@@ -354,13 +363,14 @@ func TestMob_FindAggroTarget_PicksNearestLivingPlayer(t *testing.T) {
 // --- out-of-combat regeneration ---
 
 func TestMob_RegeneratesOutOfCombat(t *testing.T) {
-	m := newTestMob()
-	m.health = vitals.Max.SubFraction(0.5)
+	m := newTestMob() // maxHealth 100 (default)
+	m.health = m.maxHealth / 2
 	start := m.health
 
 	alive := m.Update(0) // no aggro target, nothing in range
 
 	assert.True(t, alive)
-	assert.Equal(t, start.AddFraction(1.0/(2*constant.TicksPerSecond)), m.Health(),
+	regenPerTick := vitals.HP(float32(m.maxHealth) / (2 * constant.TicksPerSecond))
+	assert.Equal(t, start.AddCapped(regenPerTick, m.maxHealth), m.Health(),
 		"heals to full over ~2 seconds of ticks while out of combat")
 }

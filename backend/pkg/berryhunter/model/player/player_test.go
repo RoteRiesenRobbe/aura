@@ -90,11 +90,26 @@ func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
 	sc, _ := initializePlayerSkills(r)
 	return &player{
 		progression:      model.PlayerProgression{Level: 1},
-		config:           &cfg.PlayerConfig{LevelUpXPBase: 100, LevelUpXPGrowthFactor: 2.0},
+		config:           &cfg.PlayerConfig{LevelUpXPBase: 100, LevelUpXPGrowthFactor: 2.0, BaseHealth: 100},
 		skills:           sc,
 		milestoneUnlocks: milestones,
 		PlayerVitalSigns: model.PlayerVitalSigns{Health: vitals.Max},
 	}
+}
+
+// --- absolute HP (v1-roadmap item 11 Phase 1) ---
+
+func TestPlayer_MaxHealth_FromBaseAndFactor(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.config.BaseHealth = 100
+	p.config.MaxHealthLevelGainFraction = 0.1
+
+	p.progression.Level = 1
+	assert.Equal(t, vitals.VitalSign(100), p.MaxHealth(), "level 1 = base health")
+
+	p.progression.Level = 3
+	assert.Equal(t, vitals.VitalSign(120), p.MaxHealth(),
+		"level 3 = base × (1 + 2×0.1)")
 }
 
 // --- floating-number accumulators (v1-roadmap item 11) ---
@@ -144,10 +159,12 @@ func TestPlayer_HealReceived_AccumulatesAndResets(t *testing.T) {
 // no longer force satiety/temperature to Max — those survival vitals are gone.
 func TestUpdateVitalSigns_RegeneratesHealthOnly(t *testing.T) {
 	p := &player{
-		config:        &cfg.PlayerConfig{HealthGainTick: 0.1},
+		config:        &cfg.PlayerConfig{HealthGainTick: 0.1, BaseHealth: 100},
+		skills:        skills.NewSkillComponent(true),
+		progression:   model.PlayerProgression{Level: 1},
 		statusEffects: model.NewStatusEffects(),
 		PlayerVitalSigns: model.PlayerVitalSigns{
-			Health:          vitals.Max / 2,
+			Health:          50, // half of maxHealth 100 (absolute HP, item 11)
 			Satiety:         0,
 			BodyTemperature: 0,
 		},
@@ -155,7 +172,7 @@ func TestUpdateVitalSigns_RegeneratesHealthOnly(t *testing.T) {
 
 	p.updateVitalSigns(0)
 
-	assert.Greater(t, p.VitalSigns().Health, vitals.Max/2, "wounded player regenerates health")
+	assert.Greater(t, p.VitalSigns().Health, vitals.VitalSign(50), "wounded player regenerates health")
 	assert.Equal(t, vitals.VitalSign(0), p.VitalSigns().Satiety, "satiety is no longer maintained")
 	assert.Equal(t, vitals.VitalSign(0), p.VitalSigns().BodyTemperature, "body temperature is no longer maintained")
 	assert.Contains(t, p.StatusEffects().Effects(), model.StatusEffectRegenerating)
@@ -165,7 +182,9 @@ func TestUpdateVitalSigns_RegeneratesHealthOnly(t *testing.T) {
 // KILL-revive bug (one-shot zeroing reverted by regen before the death check).
 func TestUpdateVitalSigns_DeadPlayerDoesNotRegenerate(t *testing.T) {
 	p := &player{
-		config:           &cfg.PlayerConfig{HealthGainTick: 0.1},
+		config:           &cfg.PlayerConfig{HealthGainTick: 0.1, BaseHealth: 100},
+		skills:           skills.NewSkillComponent(true),
+		progression:      model.PlayerProgression{Level: 1},
 		statusEffects:    model.NewStatusEffects(),
 		PlayerVitalSigns: model.PlayerVitalSigns{Health: 0},
 	}
@@ -286,4 +305,3 @@ func TestAddExperience_DiscoverIdempotent(t *testing.T) {
 	assert.Equal(t, uint32(2), p.progression.Level)
 	assert.Len(t, p.skills.Discovered(), 2, "spellbook must not grow on second XP grant at same level")
 }
-

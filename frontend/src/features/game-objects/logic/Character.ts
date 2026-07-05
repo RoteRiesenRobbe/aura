@@ -51,7 +51,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     static healAura: ISvgContainer = {svg: undefined};
     static hitAnimationFrameDuration: number = GraphicsConfig.character.actionAnimation.backendTicks;
     static readonly DOWNWARD_FACING_ROTATION = Math.PI / 2;
-    private static readonly MAX_HEALTH = 0xffffffff;
 
 
     name: string;
@@ -309,8 +308,8 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         this.levelElement.text = String(level);
     }
 
-    setHealth(health: number) {
-        const relativeHealth = Math.max(0, Math.min(1, health / Character.MAX_HEALTH));
+    setHealth(health: number, maxHealth: number) {
+        const relativeHealth = maxHealth > 0 ? Math.max(0, Math.min(1, health / maxHealth)) : 0;
         this.healthFillGroup.scale.x = relativeHealth;
     }
 
@@ -449,7 +448,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         bar.addChild(this.healthFillGroup);
 
         this.shape.addChild(bar);
-        this.setHealth(Character.MAX_HEALTH);
+        this.setHealth(1, 1); // full until the first snapshot
     }
 
     update() {

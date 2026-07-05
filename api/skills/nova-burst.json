@@ -10,8 +10,8 @@
       "type": "instant_damage",
       "radius": 1.5,
       "radiusPerLevel": 0.1,
-      "damageFraction": 0.15,
-      "damageFractionPerLevel": 0.03,
+      "damageHP": 25,
+      "damageHPPerLevel": 6,
       "targetsMobs": true,
       "targetsPlayers": false
     }

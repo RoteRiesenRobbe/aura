@@ -32,8 +32,8 @@ type touchRecorder struct {
 	hitStyles []model.AuraHitStyle
 }
 
-func (r *touchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item)  {}
-func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)    {}
+func (r *touchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item) {}
+func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)   {}
 func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damageFraction float32) {
 	r.touches = append(r.touches, damageFraction)
 }
@@ -59,6 +59,7 @@ type fakePlayer struct {
 	aura            *phy.Circle
 	god             bool
 	maxHealthFactor float32
+	maxHealth       vitals.VitalSign
 	healedBy        []model.PlayerEntity
 	healReceived    vitals.VitalSign
 }
@@ -70,9 +71,15 @@ func (f *fakePlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vitalSi
 func (f *fakePlayer) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
 func (f *fakePlayer) MaxHealthFactor() float32               { return f.maxHealthFactor }
 func (f *fakePlayer) IsGod() bool                            { return f.god }
+func (f *fakePlayer) MaxHealth() vitals.VitalSign            { return f.maxHealth }
 func (f *fakePlayer) NoteHealedBy(h model.PlayerEntity)      { f.healedBy = append(f.healedBy, h) }
-func (f *fakePlayer) HealthRatio() float32                   { return f.vitalSigns.Health.Fraction() }
-func (f *fakePlayer) NoteHealReceived(d vitals.VitalSign)    { f.healReceived += d }
+func (f *fakePlayer) HealthRatio() float32 {
+	if f.maxHealth == 0 {
+		return 0
+	}
+	return float32(f.vitalSigns.Health) / float32(f.maxHealth)
+}
+func (f *fakePlayer) NoteHealReceived(d vitals.VitalSign) { f.healReceived += d }
 
 var (
 	_ skillEntity        = (*fakePlayer)(nil)
@@ -83,9 +90,10 @@ func newFakePlayer() *fakePlayer {
 	return &fakePlayer{
 		basic:           ecs.NewBasic(),
 		sc:              skills.NewSkillComponent(true),
-		vitalSigns:      model.PlayerVitalSigns{Health: vitals.Max},
+		vitalSigns:      model.PlayerVitalSigns{Health: 100}, // full = maxHealth (absolute HP, item 11)
 		statusEffects:   model.NewStatusEffects(),
 		maxHealthFactor: 1.0,
+		maxHealth:       100,
 		// Non-nil so applyDamageAura/applyHealAura can read the caster position
 		// for selector ordering; tests that need a real space overwrite it.
 		aura: phy.NewCircle(phy.VEC2F_ZERO, 1.0),
@@ -101,7 +109,7 @@ type playerTouchRecorder struct {
 	rec   touchRecorder
 }
 
-func (p *playerTouchRecorder) Basic() ecs.BasicEntity { return p.basic }
+func (p *playerTouchRecorder) Basic() ecs.BasicEntity                                { return p.basic }
 func (p *playerTouchRecorder) PlayerHitsWith(pl model.PlayerEntity, item items.Item) {}
 func (p *playerTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)    {}
 func (p *playerTouchRecorder) PlayerTouches(pl model.PlayerEntity, damageFraction float32) {
@@ -128,20 +136,20 @@ func colliderSetOf(userData ...any) phy.ColliderSet {
 
 func damageEffect(interval int) skills.EffectDef {
 	return skills.EffectDef{
-		Type:                   skills.EffectTypeDamageAura,
-		DamageFraction:         0.01,
-		DamageFractionPerLevel: 0.002,
-		TargetsMobs:            true, // mirrors the real DamageAura JSON
-		TickInterval:           interval,
+		Type:             skills.EffectTypeDamageAura,
+		DamageHP:         0.01,
+		DamageHPPerLevel: 0.002,
+		TargetsMobs:      true, // mirrors the real DamageAura JSON
+		TickInterval:     interval,
 	}
 }
 
 func healEffect() skills.EffectDef {
 	return skills.EffectDef{
-		Type:               skills.EffectTypeHealAura,
-		HealFraction:       0.1,
-		SelfDamageFraction: 0.02,
-		TickInterval:       1,
+		Type:         skills.EffectTypeHealAura,
+		HealHP:       10,
+		SelfDamageHP: 2,
+		TickInterval: 1,
 	}
 }
 
@@ -190,7 +198,7 @@ func TestApplyDamageAura_MobCaster_TagsHitStyle(t *testing.T) {
 	caster := newFakeMob()
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageFraction: 0.004,
+		Type: skills.EffectTypeDamageAura, DamageHP: 0.004,
 		TargetsPlayers: true, TickInterval: auraSlashTickThreshold,
 	}
 
@@ -236,13 +244,13 @@ func TestApplyDamageAura_NonPlayerCasterIsNoop(t *testing.T) {
 func TestApplyHealAura_HealsHurtAllyByExactFraction(t *testing.T) {
 	caster := newFakePlayer()
 	ally := newFakePlayer()
-	ally.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	ally.vitalSigns.Health = 50
 	start := ally.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
 	applyHealAura(caster, 1, healEffect(), set)
 
-	assert.Equal(t, start.AddFraction(0.1), ally.vitalSigns.Health)
+	assert.Equal(t, start.Add(10), ally.vitalSigns.Health)
 }
 
 func TestApplyHealAura_NotesHealerOnTarget(t *testing.T) {
@@ -251,7 +259,7 @@ func TestApplyHealAura_NotesHealerOnTarget(t *testing.T) {
 	// participates in also reward the healer.
 	caster := newFakePlayer()
 	ally := newFakePlayer()
-	ally.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	ally.vitalSigns.Health = 50
 
 	applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
 
@@ -275,15 +283,15 @@ func TestApplyHealAura_SkipsAllyAtFullHealth_NoSelfDamage(t *testing.T) {
 
 	applyHealAura(caster, 1, healEffect(), set)
 
-	assert.Equal(t, vitals.Max, ally.vitalSigns.Health)
-	assert.Equal(t, vitals.Max, caster.vitalSigns.Health,
+	assert.Equal(t, ally.MaxHealth(), ally.vitalSigns.Health)
+	assert.Equal(t, caster.MaxHealth(), caster.vitalSigns.Health,
 		"no one was healed, so the caster must not pay the self-damage cost")
 	assert.Empty(t, caster.statusEffects.Effects())
 }
 
 func TestApplyHealAura_SkipsSelf(t *testing.T) {
 	caster := newFakePlayer()
-	caster.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	caster.vitalSigns.Health = 50
 	start := caster.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(caster))
 
@@ -296,40 +304,40 @@ func TestApplyHealAura_SkipsSelf(t *testing.T) {
 func TestApplyHealAura_SelfDamageOnSuccessfulHeal(t *testing.T) {
 	caster := newFakePlayer()
 	ally := newFakePlayer()
-	ally.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
 	applyHealAura(caster, 1, healEffect(), set)
 
-	assert.Equal(t, vitals.Max.SubFraction(0.02), caster.vitalSigns.Health)
+	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health)
 	assert.Contains(t, caster.statusEffects.Effects(), model.StatusEffectDamagedAmbient)
 }
 
-func TestApplyHealAura_SelfDamageScalesWithMaxHealthFactor(t *testing.T) {
+func TestApplyHealAura_SelfDamageIsFlatHP(t *testing.T) {
 	caster := newFakePlayer()
-	caster.maxHealthFactor = 2.0
+	caster.maxHealthFactor = 2.0 // no longer affects the self-cost (item 11 Phase 1)
 	ally := newFakePlayer()
-	ally.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
 	applyHealAura(caster, 1, healEffect(), set)
 
-	assert.Equal(t, vitals.Max.SubFraction(0.01), caster.vitalSigns.Health,
-		"self-damage fraction is divided by MaxHealthFactor")
+	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health,
+		"self-damage is a flat HP cost, independent of MaxHealthFactor")
 }
 
 func TestApplyHealAura_GodModePaysNoSelfDamage(t *testing.T) {
 	caster := newFakePlayer()
 	caster.god = true
 	ally := newFakePlayer()
-	ally.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	ally.vitalSigns.Health = 50
 	start := ally.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
 	applyHealAura(caster, 1, healEffect(), set)
 
-	assert.Equal(t, start.AddFraction(0.1), ally.vitalSigns.Health, "ally is still healed")
-	assert.Equal(t, vitals.Max, caster.vitalSigns.Health, "god pays nothing")
+	assert.Equal(t, start.Add(10), ally.vitalSigns.Health, "ally is still healed")
+	assert.Equal(t, caster.MaxHealth(), caster.vitalSigns.Health, "god pays nothing")
 }
 
 // --- processEntity through a real phy.Space ---
@@ -437,34 +445,34 @@ func TestApplyDamageAura_MobCaster_DamagesViaMobTouches(t *testing.T) {
 	caster := newFakeMob()
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageFraction: 0.004, TargetsPlayers: true,
+		Type: skills.EffectTypeDamageAura, DamageHP: 0.004, TargetsPlayers: true,
 	}
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target))
 
 	require.Len(t, target.factors, 1)
-	assert.InDelta(t, 0.004, target.factors[0].DamageFraction, 1e-6)
+	assert.InDelta(t, 0.004, target.factors[0].Damage, 1e-6)
 }
 
 func TestApplyDamageAura_MobCaster_LevelScalesDamage(t *testing.T) {
 	caster := newFakeMob()
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageFraction: 0.004,
-		DamageFractionPerLevel: 0.001, TargetsPlayers: true,
+		Type: skills.EffectTypeDamageAura, DamageHP: 0.004,
+		DamageHPPerLevel: 0.001, TargetsPlayers: true,
 	}
 
 	applyDamageAura(caster, 3, effect, colliderSetOf(target))
 
 	require.Len(t, target.factors, 1)
-	assert.InDelta(t, 0.006, target.factors[0].DamageFraction, 1e-6)
+	assert.InDelta(t, 0.006, target.factors[0].Damage, 1e-6)
 }
 
 func TestApplyDamageAura_MobCaster_CarriesStructureDamage(t *testing.T) {
 	caster := newFakeMob()
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageFraction: 0.0067,
+		Type: skills.EffectTypeDamageAura, DamageHP: 0.0067,
 		StructureDamageFraction: 0.67, TargetsPlayers: true, TargetsStructures: true,
 	}
 
@@ -478,7 +486,7 @@ func TestApplyDamageAura_PlayerCaster_RespectsTargetsMobsFlag(t *testing.T) {
 	caster := newFakePlayer()
 	target := &touchRecorder{}
 	effect := skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageFraction: 0.01, TargetsMobs: false,
+		Type: skills.EffectTypeDamageAura, DamageHP: 0.01, TargetsMobs: false,
 	}
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target))
@@ -499,7 +507,7 @@ func TestProcessEntity_MobWithHealEffectIsNoop(t *testing.T) {
 
 func TestProcessEntity_DerivesSensorMaskFromActiveSkill(t *testing.T) {
 	caster := newFakeMob(skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageFraction: 0.0067, TickInterval: 1,
+		Type: skills.EffectTypeDamageAura, DamageHP: 0.0067, TickInterval: 1,
 		TargetsPlayers: true, TargetsStructures: true,
 	})
 	caster.aura.Shape().Mask = 0
@@ -526,7 +534,7 @@ func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
 				ID: 199, Name: "TestMobAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
 				Effects: []skills.EffectDef{{
 					Type: skills.EffectTypeDamageAura, Radius: 0.5,
-					DamageFraction: 0.05, TargetsPlayers: true, TickInterval: 1,
+					DamageHP: 0.05, TargetsPlayers: true, TickInterval: 1,
 				}},
 			},
 			Level: 1,
@@ -551,7 +559,7 @@ func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
 	s.Update(0)
 
 	require.Len(t, target.factors, 1, "one MobTouches per tick per target in range")
-	assert.InDelta(t, 0.05, target.factors[0].DamageFraction, 1e-6)
+	assert.InDelta(t, 0.05, target.factors[0].Damage, 1e-6)
 }
 
 // --- collider sizing (single aura sensor, resized from the active skill) ---
@@ -693,7 +701,7 @@ func TestSkillSystem_ActiveButEmptySlotIsNoop(t *testing.T) {
 
 func TestSkillSystem_EndToEnd_HealAuraHealsAndCosts(t *testing.T) {
 	ally := newFakePlayer()
-	ally.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	ally.vitalSigns.Health = 50
 	allyStart := ally.vitalSigns.Health
 
 	caster := newFakePlayer()
@@ -710,8 +718,8 @@ func TestSkillSystem_EndToEnd_HealAuraHealsAndCosts(t *testing.T) {
 	sk.AddEntity(caster)
 	sk.Update(33.0)
 
-	assert.Equal(t, allyStart.AddFraction(0.1), ally.vitalSigns.Health)
-	assert.Equal(t, vitals.Max.SubFraction(0.02), caster.vitalSigns.Health)
+	assert.Equal(t, allyStart.Add(10), ally.vitalSigns.Health)
+	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health)
 }
 
 // --- cooldown skills (Phase 8.2) ---
@@ -724,7 +732,7 @@ func novaDef() *skills.SkillDefinition {
 			Type:           skills.EffectTypeInstantDamage,
 			Radius:         1.5,
 			RadiusPerLevel: 0.1,
-			DamageFraction: 0.15, DamageFractionPerLevel: 0.03,
+			DamageHP:       0.15, DamageHPPerLevel: 0.03,
 			TargetsMobs: true,
 		}},
 	}
@@ -814,7 +822,7 @@ func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
 		Effects: []skills.EffectDef{{
 			Type:           skills.EffectTypeInstantDamage,
 			Radius:         2.0,
-			DamageFraction: 0.2,
+			DamageHP:       0.2,
 			TargetsPlayers: true,
 		}},
 	}
@@ -830,7 +838,7 @@ func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
 	sk.Update(33.0)
 
 	require.Len(t, target.factors, 1)
-	assert.InDelta(t, 0.2, target.factors[0].DamageFraction, 1e-6)
+	assert.InDelta(t, 0.2, target.factors[0].Damage, 1e-6)
 	assert.Equal(t, 450, caster.sc.CooldownSlots[0].CdTicks)
 }
 
@@ -841,7 +849,7 @@ func TestCooldown_MobHoldsFireWithoutTarget(t *testing.T) {
 		Effects: []skills.EffectDef{{
 			Type:           skills.EffectTypeInstantDamage,
 			Radius:         2.0,
-			DamageFraction: 0.2,
+			DamageHP:       0.2,
 			TargetsPlayers: true,
 		}},
 	}
@@ -887,14 +895,14 @@ func TestCooldown_SelfHealHealsCaster(t *testing.T) {
 	healDef := &skills.SkillDefinition{
 		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
 		Effects: []skills.EffectDef{{
-			Type:                 skills.EffectTypeSelfHeal,
-			HealFraction:         0.20,
-			HealFractionPerLevel: 0.05,
+			Type:           skills.EffectTypeSelfHeal,
+			HealHP:         20,
+			HealHPPerLevel: 5,
 		}},
 	}
 	caster := newFakePlayer()
 	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
-	caster.vitalSigns.Health = vitals.Max.SubFraction(0.5)
+	caster.vitalSigns.Health = 50
 	start := caster.vitalSigns.Health
 	caster.sc.EquipCooldown(0, healDef, 2)
 	caster.sc.RequestCooldownActivation(0)
@@ -903,8 +911,37 @@ func TestCooldown_SelfHealHealsCaster(t *testing.T) {
 	sk.AddEntity(caster)
 	sk.Update(33.0)
 
-	assert.Equal(t, start.AddFraction(0.25), caster.vitalSigns.Health, "20% + 1×5% at level 2")
+	assert.Equal(t, start.Add(25), caster.vitalSigns.Health, "20 + 1×5 HP at level 2")
 	assert.Equal(t, 900, caster.sc.CooldownSlots[0].CdTicks, "self-heal always consumes the cooldown")
+}
+
+func TestCooldown_SelfHealFractionOfMaxAndNumber(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+
+	// Heal cooldown: heals a fraction of MAX HP (20% + 5% absolute per level),
+	// unlike the flat-HP heal aura.
+	healDef := &skills.SkillDefinition{
+		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+		Effects: []skills.EffectDef{{
+			Type:                      skills.EffectTypeSelfHeal,
+			HealFractionOfMax:         0.20,
+			HealFractionOfMaxPerLevel: 0.05,
+		}},
+	}
+	caster := newFakePlayer() // maxHealth 100
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.vitalSigns.Health = 40
+	caster.sc.EquipCooldown(0, healDef, 2) // level 2 → 25% of 100 = 25 HP
+	caster.sc.RequestCooldownActivation(0)
+
+	sk := NewSkillSystem(empty)
+	sk.AddEntity(caster)
+	sk.Update(33.0)
+
+	assert.Equal(t, vitals.VitalSign(65), caster.vitalSigns.Health, "40 + 25% of max 100 (level 2)")
+	assert.Equal(t, vitals.VitalSign(25), caster.healReceived,
+		"self-heal records the floating heal number")
 }
 
 // slowRecorder implements the slowable interface for slow_aura tests.

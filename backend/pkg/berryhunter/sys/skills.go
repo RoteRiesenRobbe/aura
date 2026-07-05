@@ -36,6 +36,7 @@ type healCaster interface {
 	VitalSigns() *model.PlayerVitalSigns
 	StatusEffects() *model.StatusEffects
 	MaxHealthFactor() float32
+	MaxHealth() vitals.VitalSign
 	IsGod() bool
 }
 
@@ -133,7 +134,7 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 }
 
 func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
-	fraction := effectDamageFraction(effect, level)
+	damage := effectDamageHP(effect, level)
 
 	// Declarative targeting: the sensor mask pre-filters layers, the flags
 	// decide per target class. targetsPlayers=false is the no-friendly-fire
@@ -157,7 +158,7 @@ func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level
 	style := auraHitStyleFor(effect, level)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
-		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, fraction)
+		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
 		noteAuraHit(c, style)
 	}
 }
@@ -168,7 +169,7 @@ func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level
 // each target picks the one that applies to it. Selector/cap ride on top.
 func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	factors := mobs.Factors{
-		DamageFraction:          effectDamageFraction(effect, level),
+		Damage:                  effectDamageHP(effect, level),
 		StructureDamageFraction: effect.StructureDamageFraction,
 	}
 
@@ -202,7 +203,7 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		return
 	}
 
-	healFrac := effectHealFraction(effect, level)
+	healHP := vitals.HP(effectHealHP(effect, level))
 	casterPos := e.AuraCollider().Position()
 	casterID := e.Basic().ID()
 	healedSomeone := false
@@ -217,7 +218,7 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		if other.Basic().ID() == casterID {
 			return false // skip self
 		}
-		return other.VitalSigns().Health != vitals.Max
+		return other.VitalSigns().Health != other.MaxHealth()
 	}
 
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
@@ -225,7 +226,7 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		other := c.Shape().UserData.(model.PlayerEntity)
 		vs := other.VitalSigns()
 		before := vs.Health
-		vs.Health = vs.Health.AddFraction(healFrac)
+		vs.Health = vs.Health.AddCapped(healHP, other.MaxHealth())
 		other.NoteHealReceived(vs.Health - before) // floating heal number (item 11)
 		healedSomeone = true
 
@@ -237,9 +238,9 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 	}
 
 	if healedSomeone && !caster.IsGod() {
-		selfFrac := effect.SelfDamageFraction / caster.MaxHealthFactor()
+		selfHP := vitals.HP(effect.SelfDamageHP)
 		vs := caster.VitalSigns()
-		vs.Health = vs.Health.SubFraction(selfFrac)
+		vs.Health = vs.Health.Sub(selfHP)
 		caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
 	}
 }
@@ -317,9 +318,16 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			if !ok {
 				continue
 			}
-			healFrac := effectHealFraction(effect, es.Level)
+			healHP := selfHealHP(effect, es.Level, caster.MaxHealth())
 			vs := caster.VitalSigns()
-			vs.Health = vs.Health.AddFraction(healFrac)
+			before := vs.Health
+			vs.Health = vs.Health.AddCapped(healHP, caster.MaxHealth())
+			// Floating heal number (item 11): the aura path records this via
+			// NoteHealReceived; the self-heal cooldown must too. Only players
+			// self-heal, so a PlayerEntity is the expected caster.
+			if pe, ok := e.(model.PlayerEntity); ok {
+				pe.NoteHealReceived(vs.Health - before)
+			}
 			hitAny = true
 			continue
 		}
@@ -371,14 +379,26 @@ func applySlowAura(level int, effect skills.EffectDef, collisions phy.ColliderSe
 	}
 }
 
-// effectDamageFraction scales the base damage fraction by skill level.
-func effectDamageFraction(e skills.EffectDef, level int) float32 {
-	return e.DamageFraction + float32(level-1)*e.DamageFractionPerLevel
+// effectDamageHP scales the base damage (absolute HP) by skill level.
+func effectDamageHP(e skills.EffectDef, level int) float32 {
+	return e.DamageHP + float32(level-1)*e.DamageHPPerLevel
 }
 
-// effectHealFraction scales the base heal fraction by skill level.
-func effectHealFraction(e skills.EffectDef, level int) float32 {
-	return e.HealFraction + float32(level-1)*e.HealFractionPerLevel
+// effectHealHP scales the base heal (absolute HP) by skill level.
+func effectHealHP(e skills.EffectDef, level int) float32 {
+	return e.HealHP + float32(level-1)*e.HealHPPerLevel
+}
+
+// selfHealHP is the self_heal amount in absolute HP: a fraction of the caster's
+// max HP when HealFractionOfMax is set (the heal cooldown scales with max HP),
+// otherwise the flat HealHP. The fraction grows by HealFractionOfMaxPerLevel
+// (absolute) per level.
+func selfHealHP(e skills.EffectDef, level int, maxHP vitals.VitalSign) uint32 {
+	if e.HealFractionOfMax > 0 {
+		frac := e.HealFractionOfMax + float32(level-1)*e.HealFractionOfMaxPerLevel
+		return vitals.HP(frac * float32(maxHP))
+	}
+	return vitals.HP(effectHealHP(e, level))
 }
 
 func (s *SkillSystem) Remove(e ecs.BasicEntity) {

@@ -101,11 +101,19 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 
 	base := model.NewBaseEntity(mobBody, entityType)
 	rnd := rand.New(rand.NewSource(int64(base.Basic().ID())))
+
+	// Absolute HP pool (item 11 Phase 1). A definition without maxHealth falls
+	// back to a default so directly-constructed mobs (tests) are never born dead.
+	maxHealth := vitals.VitalSign(d.Factors.MaxHealth)
+	if maxHealth == 0 {
+		maxHealth = defaultMobMaxHealth
+	}
 	m := &Mob{
 		BaseEntity:       base,
 		rand:             rnd,
 		heading:          phy.Vec2f{-1, 0},
-		health:           vitals.Max,
+		health:           maxHealth,
+		maxHealth:        maxHealth,
 		definition:       d,
 		skills:           sc,
 		aura:             aura,
@@ -128,14 +136,20 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 	return m
 }
 
+// defaultMobMaxHealth is the fallback HP pool for a mob whose definition omits
+// factors.maxHealth (item 11 Phase 1). All shipped mobs set an explicit value;
+// this guards direct construction (tests) from a 0-HP (instantly dead) mob.
+const defaultMobMaxHealth vitals.VitalSign = 100
+
 type Mob struct {
 	model.BaseEntity
 
 	definition *mobs.MobDefinition
 
-	health  vitals.VitalSign
-	heading phy.Vec2f
-	rand    *rand.Rand
+	health    vitals.VitalSign
+	maxHealth vitals.VitalSign
+	heading   phy.Vec2f
+	rand      *rand.Rand
 
 	skills    *skills.SkillComponent
 	aura      *phy.Circle
@@ -230,13 +244,14 @@ func (m *Mob) Update(dt float32) bool {
 		if m.spawnInitialized {
 			m.moveTowards(m.spawnPosition)
 		}
-		// Heal to full in ~2 seconds while out of combat.
-		if m.health < vitals.Max {
-			m.health = m.health.AddFraction(1.0 / (2 * constant.TicksPerSecond))
+		// Heal to full in ~2 seconds while out of combat (absolute HP, item 11).
+		if m.health < m.maxHealth {
+			regen := vitals.HP(float32(m.maxHealth) / (2 * constant.TicksPerSecond))
+			m.health = m.health.AddCapped(regen, m.maxHealth)
 		}
 		// Back at full health with no aggro = combat over; earlier
 		// contributors no longer count as participants for the next fight.
-		if m.health == vitals.Max && len(m.participants) > 0 {
+		if m.health == m.maxHealth && len(m.participants) > 0 {
 			m.participants = nil
 		}
 	}
@@ -351,22 +366,33 @@ func (m *Mob) Health() vitals.VitalSign {
 	return m.health
 }
 
+// MaxHealth is the mob's absolute HP pool (item 11 Phase 1); serialized as the
+// max_health wire field so the client draws health/maxHealth.
+func (m *Mob) MaxHealth() vitals.VitalSign {
+	return m.maxHealth
+}
+
 // HealthRatio is the current/max health fraction (0..1), read by the
 // lowest_health aura selector (v1-roadmap.md item 11).
 func (m *Mob) HealthRatio() float32 {
-	return m.health.Fraction()
+	if m.maxHealth == 0 {
+		return 0
+	}
+	return float32(m.health) / float32(m.maxHealth)
 }
 
+// takeDamage subtracts absolute HP (item 11 Phase 1). Vulnerability stays a
+// per-mob damage-taken multiplier (folds into resistances in Phase 2).
 func (m *Mob) takeDamage(damage float32, s model.StatusEffect) {
 	vulnerability := m.definition.Factors.Vulnerability
 	if vulnerability == 0 {
 		vulnerability = 1
 	}
 
-	dmgFraction := damage * vulnerability
-	if dmgFraction > 0 {
+	hp := vitals.HP(damage * vulnerability)
+	if hp > 0 {
 		before := m.health
-		m.health = m.health.SubFraction(dmgFraction)
+		m.health = m.health.Sub(hp)
 		m.damageTaken += before - m.health // actual loss after clamping at 0
 		m.StatusEffects().Add(s)
 	}
@@ -398,12 +424,12 @@ func (m *Mob) ResetTickNumbers() {
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	m.takeDamage(factors.DamageFraction, model.StatusEffectDamagedAmbient)
+	m.takeDamage(factors.Damage, model.StatusEffectDamagedAmbient)
 }
 
-func (m *Mob) PlayerTouches(p model.PlayerEntity, damageFraction float32) {
+func (m *Mob) PlayerTouches(p model.PlayerEntity, damage float32) {
 	m.noteParticipant(p)
-	m.takeDamage(damageFraction, model.StatusEffectDamagedAmbient)
+	m.takeDamage(damage, model.StatusEffectDamagedAmbient)
 	m.tryGrantKillRewards()
 }
 

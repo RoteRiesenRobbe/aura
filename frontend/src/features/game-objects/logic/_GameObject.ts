@@ -24,15 +24,10 @@ const FLOATING_NUMBER_COLORS: Record<FloatingNumberKind, number> = {
     xp: 0xFFD700,
 };
 
-// Damage/heal arrive in VitalSign wire units (full health = 0xffffffff). This
-// placeholder scale turns them into readable points (full health ≈ this many).
-const HEALTH_DISPLAY_SCALE = 1000;
-const MAX_VITAL_UNITS = 0xffffffff;
-
-// vitalUnitsToDisplay converts a wire VitalSign delta to a display integer,
-// never rounding a real hit down to 0.
-export function vitalUnitsToDisplay(units: number): number {
-    return Math.max(1, Math.round(units / MAX_VITAL_UNITS * HEALTH_DISPLAY_SCALE));
+// Damage/heal arrive in absolute HP (item 11 Phase 1) — the floating number is
+// the literal HP dealt. Kept as a helper so a tiny hit still shows at least 1.
+export function hpToDisplay(hp: number): number {
+    return Math.max(1, Math.round(hp));
 }
 
 export abstract class GameObject {

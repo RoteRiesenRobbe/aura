@@ -39,7 +39,6 @@ function damageAuraRadius(mob: keyof typeof GraphicsConfig.mobs) {
 
 export abstract class Mob extends GameObject {
     static damageAura: ISvgContainer = {svg: undefined};
-    private static readonly MAX_HEALTH = 0xffffffff;
 
     protected actualShape: PIXI.Container;
     private healthFillGroup: PIXI.Container;
@@ -95,8 +94,8 @@ export abstract class Mob extends GameObject {
         return this.actualShape;
     }
 
-    setHealth(health: number) {
-        const relativeHealth = Math.max(0, Math.min(1, health / Mob.MAX_HEALTH));
+    setHealth(health: number, maxHealth: number) {
+        const relativeHealth = maxHealth > 0 ? Math.max(0, Math.min(1, health / maxHealth)) : 0;
         this.healthFillGroup.scale.x = relativeHealth;
     }
 
@@ -134,7 +133,7 @@ export abstract class Mob extends GameObject {
         bar.addChild(this.healthFillGroup);
 
         this.shape.addChild(bar);
-        this.setHealth(Mob.MAX_HEALTH);
+        this.setHealth(1, 1); // full until the first snapshot
     }
 }
 
