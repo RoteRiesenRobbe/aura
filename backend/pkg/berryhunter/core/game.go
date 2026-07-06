@@ -410,12 +410,17 @@ func (g *game) update() {
 	nowMillis := time.Now().UnixNano() / 1000000
 	dtMillis := nowMillis - beforeMillis
 	if dtMillis > stepMillis {
-		load := dtMillis / stepMillis * 100
-		fmt.Printf("Overload! Systems at: %d%%\n", load)
+		fmt.Printf("Overload! Systems at: %d%%\n", overloadPercent(dtMillis))
 	}
 
 	// needs to be atomic to prevent race conditions
 	atomic.AddUint64(&g.Tick, 1)
+}
+
+func overloadPercent(dtMillis int64) int64 {
+	// multiply before dividing — integer division first truncates any
+	// overload down to 100%
+	return dtMillis * 100 / stepMillis
 }
 
 func (g *game) sendWelcomeMessage(c model.Client) {
@@ -449,7 +454,7 @@ func (b ByPriority) Less(i, j int) bool {
 	}
 
 	pj := 0
-	if p, ok := b[i].(ecs.Prioritizer); ok {
+	if p, ok := b[j].(ecs.Prioritizer); ok {
 		pj = p.Priority()
 	}
 	return pi < pj
