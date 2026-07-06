@@ -112,6 +112,32 @@ func TestPlayer_MaxHealth_FromBaseAndFactor(t *testing.T) {
 		"level 3 = base × (1 + 2×0.1)")
 }
 
+// LevelProgressXP feeds the HUD's absolute xpInLevel/xpForNextLevel text: the
+// pair must track level-ups (gained resets, required grows) and the death XP
+// penalty (gained back to 0 within the kept level).
+func TestPlayer_LevelProgressXP_TracksLevelUpAndDeathPenalty(t *testing.T) {
+	p := newTestPlayer(nil)
+
+	gained, required := p.LevelProgressXP()
+	assert.Equal(t, uint64(0), gained, "fresh level 1 player starts at 0")
+	assert.Equal(t, uint64(100), required, "level 1→2 costs 100")
+
+	p.AddExperience(50)
+	gained, required = p.LevelProgressXP()
+	assert.Equal(t, uint64(50), gained)
+	assert.Equal(t, uint64(100), required)
+
+	p.AddExperience(100) // total 150 → level 2 with 50 into it
+	gained, required = p.LevelProgressXP()
+	assert.Equal(t, uint64(50), gained, "level-up resets the within-level XP")
+	assert.Equal(t, uint64(200), required, "level 2→3 costs 200")
+
+	p.LoseCurrentLevelExperience() // death penalty: keep level, drop progress
+	gained, required = p.LevelProgressXP()
+	assert.Equal(t, uint64(0), gained, "death drops within-level XP to 0")
+	assert.Equal(t, uint64(200), required)
+}
+
 // --- floating-number accumulators (roadmap item 11) ---
 
 func TestPlayer_DamageTaken_AccumulatesAndResets(t *testing.T) {
@@ -293,6 +319,12 @@ func TestDeathRespawn_RetainsSpellbookAndProgression(t *testing.T) {
 	assert.True(t, respawned.skills.HasDiscovered(defHealAura.ID), "milestone unlock retained")
 	assert.True(t, respawned.skills.HasDiscovered(defWildAura.ID), "drop unlock retained")
 	assert.Equal(t, 2, respawned.skills.SkillLevel(defWildAura.ID), "spent skill level retained")
+
+	// The HUD XP-bar text must read 0/needed after respawn: the death penalty
+	// dropped the within-level XP, and the wire values come from this pair.
+	gained, required := respawned.LevelProgressXP()
+	assert.Equal(t, uint64(0), gained, "within-level XP resets on death")
+	assert.Equal(t, uint64(200), required, "level 2→3 span unchanged")
 }
 
 func TestAddExperience_DiscoverIdempotent(t *testing.T) {

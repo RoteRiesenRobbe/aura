@@ -371,23 +371,38 @@ func (p *player) BurstRadius() float32 {
 }
 
 func (p *player) LevelProgressFraction() float32 {
-	level := p.progression.Level
-	levelStartXP := p.totalXPForLevel(level)
-	levelEndXP := p.totalXPForLevel(level + 1)
-	if levelEndXP <= levelStartXP {
+	gained, required := p.LevelProgressXP()
+	if required == 0 {
 		return 1
 	}
 
-	gained := p.progression.Experience - levelStartXP
-	required := levelEndXP - levelStartXP
 	fraction := float32(gained) / float32(required)
-	if fraction < 0 {
-		return 0
-	}
 	if fraction > 1 {
 		return 1
 	}
 	return fraction
+}
+
+// LevelProgressXP is the absolute counterpart of LevelProgressFraction: XP
+// gained within the current level and the level's total span. Serialized as
+// Character.xp_in_level / xp_for_next_level for the HUD's XP-bar text.
+func (p *player) LevelProgressXP() (gained, required uint64) {
+	level := p.progression.Level
+	levelStartXP := p.totalXPForLevel(level)
+	levelEndXP := p.totalXPForLevel(level + 1)
+	if levelEndXP <= levelStartXP {
+		return 0, 0
+	}
+
+	required = levelEndXP - levelStartXP
+	if p.progression.Experience < levelStartXP {
+		return 0, required
+	}
+	gained = p.progression.Experience - levelStartXP
+	if gained > required {
+		gained = required
+	}
+	return gained, required
 }
 
 // applyMilestoneUnlocks discovers any skills whose unlock level falls in [from, to].

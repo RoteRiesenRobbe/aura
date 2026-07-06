@@ -170,6 +170,8 @@ function unmarshalEntity(entity, eType) {
         healReceived: undefined,
         xpGained: undefined,
         auraHitStyle: undefined,
+        xpInLevel: undefined,
+        xpForNextLevel: undefined,
     };
 
     if (eType === BerryhunterApi.AnyEntity.Resource) {
@@ -209,6 +211,8 @@ function unmarshalEntity(entity, eType) {
         result.healReceived = entity.healReceived();
         result.xpGained = entity.xpGained();
         result.auraHitStyle = entity.auraHitStyle();
+        result.xpInLevel = entity.xpInLevel();
+        result.xpForNextLevel = entity.xpForNextLevel();
     }
 
     if (isFunction(entity.statusEffectsLength) &&

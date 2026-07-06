@@ -40,6 +40,8 @@ let currentAuraSlots: number[] = [];
 let activeSlotIndex: number | null = null;
 
 let vitalSignsBars: { [key: string]: VitalSignBar };
+let healthBarTextElement: HTMLElement;
+let xpBarTextElement: HTMLElement;
 
 Preloading.renderPartial(require('../assets/HUD.html'), () => {
     rootElement = document.getElementById('gameUI');
@@ -63,6 +65,21 @@ function setupVitalSigns() {
         satiety: new VitalSignBar(document.getElementById('satietyBar'), VitalSign.satiety),
         bodyHeat: new VitalSignBar(document.getElementById('bodyHeatBar'), VitalSign.bodyHeat),
     };
+    healthBarTextElement = document.querySelector('#healthBar .barText');
+    xpBarTextElement = document.querySelector('#satietyBar .barText');
+}
+
+// updateBarTexts renders the absolute numbers over the HUD bars each tick:
+// health as currentHP/maxHP, XP as within-level progress toward the next
+// level (server-authoritative — resets to 0/needed on level-up and on the
+// death XP penalty).
+export function updateBarTexts(health: number, maxHealth: number, xpInLevel: number, xpForNextLevel: number) {
+    if (healthBarTextElement) {
+        healthBarTextElement.textContent = `${health}/${maxHealth}`;
+    }
+    if (xpBarTextElement) {
+        xpBarTextElement.textContent = `${xpInLevel}/${xpForNextLevel}`;
+    }
 }
 
 export function show() {

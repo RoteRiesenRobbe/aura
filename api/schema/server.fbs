@@ -147,6 +147,13 @@ table Character {
   // the client draws the bar as health/max_health. Appended at the table end so
   // existing field IDs stay stable.
   max_health:uint = 0;
+
+  // absolute XP within the current level (resets to 0 on level-up and on the
+  // death XP penalty) and the level's total span — the HUD XP bar renders
+  // xp_in_level/xp_for_next_level. level_progress stays for the bar fraction.
+  // Appended at the table end so existing field IDs stay stable.
+  xp_in_level:uint = 0;
+  xp_for_next_level:uint = 0;
 }
 
 table Spectator {

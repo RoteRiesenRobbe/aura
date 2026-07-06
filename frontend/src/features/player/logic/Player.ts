@@ -5,6 +5,7 @@ import {Controls} from '../../controls/logic/Controls';
 import {Camera} from '../../camera/logic/Camera';
 import {DamageState, VitalSigns, VitalSignValues} from '../../vital-signs/logic/VitalSigns';
 import {isDefined} from '../../common/logic/Utils';
+import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {MiniMap} from '../../mini-map/logic/MiniMap';
 import {PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
 import './PlayerJuice';
@@ -64,6 +65,13 @@ export class Player {
             bodyHeat: VitalSigns.MAXIMUM_VALUES.bodyHeat
         };
         this.vitalSigns.updateFromBackend(newVitalSigns, damageState);
+        // Absolute numbers over the HUD bars (health + XP toward next level).
+        HUD.updateBarTexts(
+            entity.health ?? 0,
+            entity.maxHealth ?? 0,
+            entity.xpInLevel ?? 0,
+            entity.xpForNextLevel ?? 0,
+        );
         if (isDefined(entity.health)) {
             this.character.setHealth(entity.health, entity.maxHealth);
         }

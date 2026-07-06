@@ -52,6 +52,10 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddHealReceived(builder, p.HealReceived().UInt32())
 	BerryhunterApi.CharacterAddXpGained(builder, u64ToU32Clamped(p.XpGained()))
 	BerryhunterApi.CharacterAddAuraHitStyle(builder, byte(p.AuraHitStyle()))
+	// Absolute XP progress for the HUD XP-bar text (xpInLevel/xpForNextLevel).
+	xpInLevel, xpForNextLevel := p.LevelProgressXP()
+	BerryhunterApi.CharacterAddXpInLevel(builder, u64ToU32Clamped(xpInLevel))
+	BerryhunterApi.CharacterAddXpForNextLevel(builder, u64ToU32Clamped(xpForNextLevel))
 }
 
 // u64ToU32Clamped narrows a uint64 to uint32 for the wire, saturating rather

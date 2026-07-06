@@ -293,8 +293,32 @@ func (rcv *Character) MutateMaxHealth(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(42, n)
 }
 
+func (rcv *Character) XpInLevel() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateXpInLevel(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(44, n)
+}
+
+func (rcv *Character) XpForNextLevel() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateXpForNextLevel(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(46, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(20)
+	builder.StartObject(22)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -358,6 +382,12 @@ func CharacterAddAuraHitStyle(builder *flatbuffers.Builder, auraHitStyle byte) {
 }
 func CharacterAddMaxHealth(builder *flatbuffers.Builder, maxHealth uint32) {
 	builder.PrependUint32Slot(19, maxHealth, 0)
+}
+func CharacterAddXpInLevel(builder *flatbuffers.Builder, xpInLevel uint32) {
+	builder.PrependUint32Slot(20, xpInLevel, 0)
+}
+func CharacterAddXpForNextLevel(builder *flatbuffers.Builder, xpForNextLevel uint32) {
+	builder.PrependUint32Slot(21, xpForNextLevel, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

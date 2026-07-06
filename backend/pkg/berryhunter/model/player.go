@@ -64,6 +64,10 @@ type PlayerEntity interface {
 	// burst (wire burst_radius, drives the burst ring VFX); 0 = none.
 	BurstRadius() float32
 	LevelProgressFraction() float32
+	// LevelProgressXP is the absolute counterpart of LevelProgressFraction:
+	// XP gained within the current level and the level's total span (wire
+	// xp_in_level / xp_for_next_level, the HUD XP-bar text).
+	LevelProgressXP() (gained, required uint64)
 
 	// Participation XP (roadmap item 10): healing a player registers the
 	// healer for a limited window; mobs read this on death to reward healers
