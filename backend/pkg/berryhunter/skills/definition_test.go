@@ -248,6 +248,63 @@ func TestMap_DamageTagsOnNonDamageEffectFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// --- per-hit variance (item 11 Phase 3) ---
+
+func TestParse_Variance(t *testing.T) {
+	data := []byte(`{
+      "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
+      "effects": [{"type": "damage_aura", "targetsMobs": true, "damageHP": 7, "variance": 0.15}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	assert.InDelta(t, 0.15, def.Effects[0].Variance, 1e-6)
+}
+
+func TestParse_VarianceDefaultsToZero(t *testing.T) {
+	def := mustParse(t, damageAuraJSON)
+	require.Len(t, def.Effects, 1)
+	assert.Zero(t, def.Effects[0].Variance, "absent variance → static value")
+}
+
+func TestParse_VarianceValidOnAllRollingEffects(t *testing.T) {
+	// Damage and heal amounts both roll (decision C1): damage_aura,
+	// instant_damage, heal_aura and self_heal all accept a variance band.
+	for _, effect := range []string{
+		`{"type": "instant_damage", "targetsMobs": true, "damageHP": 25, "variance": 0.1}`,
+		`{"type": "heal_aura", "healHP": 6, "variance": 0.1}`,
+		`{"type": "self_heal", "healHP": 20, "variance": 0.1}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		def, err := raw.mapToSkillDefinition()
+		require.NoError(t, err, "variance must be accepted on %s", effect)
+		assert.InDelta(t, 0.1, def.Effects[0].Variance, 1e-6)
+	}
+}
+
+func TestMap_VarianceOutOfBoundsFails(t *testing.T) {
+	for _, variance := range []string{"-0.1", "1", "1.5"} {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"damageHP":7,"variance":` + variance + `}]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		assert.Error(t, err, "variance %s must be rejected (valid: 0 <= v < 1)", variance)
+	}
+}
+
+func TestMap_VarianceOnNonRollingEffectFails(t *testing.T) {
+	// On an effect without a rolled amount, variance would be a silent no-op.
+	for _, effect := range []string{
+		`{"type": "slow_aura", "targetsMobs": true, "slowFraction": 0.5, "variance": 0.1}`,
+		`{"type": "stat_multiplier", "stat": "movementSpeed", "additivePerLevel": 0.1, "variance": 0.1}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		assert.Error(t, err, "variance must be rejected on %s", effect)
+	}
+}
+
 // --- resist aura / resist passive (item 11 Phase 2) ---
 
 func TestParse_ResistAura(t *testing.T) {

@@ -2,6 +2,8 @@ package sys
 
 import (
 	"log"
+	"math/rand"
+	"time"
 
 	"github.com/EngoEngine/ecs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
@@ -47,10 +49,18 @@ type healCaster interface {
 type SkillSystem struct {
 	entities []skillEntity
 	space    *phy.Space
+
+	// rng feeds the per-hit variance rolls (item 11 Phase 3, decision C4).
+	// Free-running by design — reproducibility only matters in tests, which
+	// overwrite it with a seeded source.
+	rng *rand.Rand
 }
 
 func NewSkillSystem(space *phy.Space) *SkillSystem {
-	return &SkillSystem{space: space}
+	return &SkillSystem{
+		space: space,
+		rng:   rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
 }
 
 func (*SkillSystem) Priority() int {
@@ -112,9 +122,9 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 		}
 		switch effect.Type {
 		case skills.EffectTypeDamageAura:
-			applyDamageAura(e, equip.Level, effect, collisions)
+			applyDamageAura(e, equip.Level, effect, collisions, s.rng)
 		case skills.EffectTypeHealAura:
-			applyHealAura(e, equip.Level, effect, collisions)
+			applyHealAura(e, equip.Level, effect, collisions, s.rng)
 		case skills.EffectTypeSlowAura:
 			applySlowAura(equip.Level, effect, collisions)
 		case skills.EffectTypeResistAura:
@@ -126,17 +136,17 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 // applyDamageAura dispatches on the caster type: player and mob auras use
 // different Interacter entry points (PlayerTouches vs. MobTouches double
 // dispatch), mirroring the two legacy damage paths 1:1.
-func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
 	switch caster := e.(type) {
 	case model.PlayerEntity:
-		applyPlayerDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions)
+		applyPlayerDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions, rng)
 	case model.MobEntity:
-		applyMobDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions)
+		applyMobDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions, rng)
 	}
 }
 
-func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
-	damage := model.Damage{HP: effectDamageHP(effect, level), Tags: effect.DamageTags}
+func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
+	damageHP := effectDamageHP(effect, level)
 
 	// Declarative targeting: the sensor mask pre-filters layers, the flags
 	// decide per target class. targetsPlayers=false is the no-friendly-fire
@@ -160,6 +170,9 @@ func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level
 	style := auraHitStyleFor(effect, level)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
+		// Every hit rolls its own variance (item 11 Phase 3); the target's
+		// resistance then multiplies the rolled value (decision C3).
+		damage := model.Damage{HP: vitals.RollVariance(damageHP, effect.Variance, rng), Tags: effect.DamageTags}
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
 		noteAuraHit(c, style)
 	}
@@ -169,9 +182,9 @@ func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level
 // via MobTouches. Target discrimination is purely the sensor mask, exactly like
 // the legacy mob damage loop; the Factors payload carries both fractions and
 // each target picks the one that applies to it. Selector/cap ride on top.
-func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
+	damageHP := effectDamageHP(effect, level)
 	factors := mobs.Factors{
-		Damage:                  effectDamageHP(effect, level),
 		DamageTags:              effect.DamageTags,
 		StructureDamageFraction: effect.StructureDamageFraction,
 	}
@@ -184,6 +197,8 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, 
 	style := auraHitStyleFor(effect, level)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
+		// Per-hit variance roll, same as the player path (item 11 Phase 3).
+		factors.Damage = vitals.RollVariance(damageHP, effect.Variance, rng)
 		c.Shape().UserData.(model.Interacter).MobTouches(caster, factors)
 		noteAuraHit(c, style)
 	}
@@ -198,7 +213,7 @@ func noteAuraHit(c phy.Collider, style model.AuraHitStyle) {
 	}
 }
 
-func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
 	// The self-damage bookkeeping needs player vitals; entities without them
 	// (mobs) cannot cast heal auras — skip rather than panic.
 	caster, ok := e.(healCaster)
@@ -206,7 +221,7 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		return
 	}
 
-	healHP := vitals.HP(effectHealHP(effect, level))
+	healCenterHP := effectHealHP(effect, level)
 	casterPos := e.AuraCollider().Position()
 	casterID := e.Basic().ID()
 	healedSomeone := false
@@ -226,6 +241,8 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
+		// Heals roll per hit like damage does (item 11 Phase 3, decision C1).
+		healHP := vitals.HP(vitals.RollVariance(healCenterHP, effect.Variance, rng))
 		other := c.Shape().UserData.(model.PlayerEntity)
 		vs := other.VitalSigns()
 		before := vs.Health
@@ -384,7 +401,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			if !ok {
 				continue
 			}
-			healHP := selfHealHP(effect, es.Level, caster.MaxHealth())
+			healHP := vitals.HP(vitals.RollVariance(selfHealHP(effect, es.Level, caster.MaxHealth()), effect.Variance, s.rng))
 			vs := caster.VitalSigns()
 			before := vs.Health
 			vs.Health = vs.Health.AddCapped(healHP, caster.MaxHealth())
@@ -422,7 +439,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 
 		// Same dispatch and target-flag filtering as the per-tick auras —
 		// PlayerTouches feeds participation XP, MobTouches the double dispatch.
-		applyDamageAura(e, es.Level, effect, targets)
+		applyDamageAura(e, es.Level, effect, targets, s.rng)
 	}
 	return hitAny
 }
@@ -455,16 +472,16 @@ func effectHealHP(e skills.EffectDef, level int) float32 {
 	return e.HealHP + float32(level-1)*e.HealHPPerLevel
 }
 
-// selfHealHP is the self_heal amount in absolute HP: a fraction of the caster's
-// max HP when HealFractionOfMax is set (the heal cooldown scales with max HP),
-// otherwise the flat HealHP. The fraction grows by HealFractionOfMaxPerLevel
-// (absolute) per level.
-func selfHealHP(e skills.EffectDef, level int, maxHP vitals.VitalSign) uint32 {
+// selfHealHP is the self_heal center amount in HP (pre-variance-roll): a
+// fraction of the caster's max HP when HealFractionOfMax is set (the heal
+// cooldown scales with max HP), otherwise the flat HealHP. The fraction grows
+// by HealFractionOfMaxPerLevel (absolute) per level.
+func selfHealHP(e skills.EffectDef, level int, maxHP vitals.VitalSign) float32 {
 	if e.HealFractionOfMax > 0 {
 		frac := e.HealFractionOfMax + float32(level-1)*e.HealFractionOfMaxPerLevel
-		return vitals.HP(frac * float32(maxHP))
+		return frac * float32(maxHP)
 	}
-	return vitals.HP(effectHealHP(e, level))
+	return effectHealHP(e, level)
 }
 
 func (s *SkillSystem) Remove(e ecs.BasicEntity) {

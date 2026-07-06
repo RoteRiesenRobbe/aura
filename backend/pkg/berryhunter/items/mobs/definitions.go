@@ -33,7 +33,10 @@ type MobID uint64
 // Damage in absolute HP, structures: StructureDamageFraction as a fraction).
 //
 // MaxHealth is the mob's absolute HP pool (item 11 Phase 1); a definition with
-// MaxHealth <= 0 falls back to a default at mob construction.
+// MaxHealth <= 0 falls back to a default at mob construction. MaxHealthVariance
+// (item 11 Phase 3) is a percentage band rolled once at spawn: the mob's actual
+// pool is uniform in [MaxHealth×(1−v), MaxHealth×(1+v)]. 0 = every spawn
+// identical; valid range 0 <= v < 1 (players never get HP variance, C1).
 //
 // Resistances maps damage tags to incoming-damage multipliers (item 11
 // Phase 2): 1 = normal, 0.5 = takes half, 0 = immune, > 1 = vulnerable.
@@ -44,6 +47,7 @@ type MobID uint64
 // the mob's hit; it is not part of the mob JSON.
 type Factors struct {
 	MaxHealth               uint32
+	MaxHealthVariance       float32
 	Resistances             map[string]float32
 	Damage                  float32
 	DamageTags              []string
@@ -114,8 +118,9 @@ type mobDefinition struct {
 	Type string `json:"type"`
 
 	Factors struct {
-		MaxHealth   uint32             `json:"maxHealth"`
-		Resistances map[string]float32 `json:"resistances"`
+		MaxHealth         uint32             `json:"maxHealth"`
+		MaxHealthVariance float32            `json:"maxHealthVariance"`
+		Resistances       map[string]float32 `json:"resistances"`
 		Speed       float32            `json:"speed"`
 		DeltaPhi    float32            `json:"deltaPhi"`
 		TurnRate    float32            `json:"turnRate"`
@@ -175,6 +180,11 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 		return nil, fmt.Errorf("mob %q: body.aggroRadius is required and must be > 0", m.Name)
 	}
 
+	// Variance ≥ 1 would allow a 0-HP (born dead) roll; negative is nonsense.
+	if v := m.Factors.MaxHealthVariance; v < 0 || v >= 1 {
+		return nil, fmt.Errorf("mob %q: factors.maxHealthVariance %v must be in [0, 1)", m.Name, v)
+	}
+
 	// Resistances: 0 = immune is valid, negative would heal on hit.
 	for tag, multiplier := range m.Factors.Resistances {
 		if tag == "" {
@@ -190,12 +200,13 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 		Name: m.Name,
 		Type: m.Type,
 		Factors: Factors{
-			MaxHealth:   m.Factors.MaxHealth,
-			Resistances: m.Factors.Resistances,
-			Speed:       m.Factors.Speed,
-			DeltaPhi:    m.Factors.DeltaPhi,
-			TurnRate:    m.Factors.TurnRate,
-			Experience:  m.Factors.Experience,
+			MaxHealth:         m.Factors.MaxHealth,
+			MaxHealthVariance: m.Factors.MaxHealthVariance,
+			Resistances:       m.Factors.Resistances,
+			Speed:             m.Factors.Speed,
+			DeltaPhi:          m.Factors.DeltaPhi,
+			TurnRate:          m.Factors.TurnRate,
+			Experience:        m.Factors.Experience,
 		},
 		Drops: make(Drops, 0, 1),
 		Body: Body{

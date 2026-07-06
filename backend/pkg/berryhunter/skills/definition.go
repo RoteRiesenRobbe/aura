@@ -140,6 +140,14 @@ type EffectDef struct {
 	// absent in JSON → [DamageTagPhysical].
 	DamageTags []string
 
+	// damage_aura, instant_damage, heal_aura, self_heal — per-hit percentage
+	// variance band (item 11 Phase 3, decision C2): each hit rolls uniform in
+	// [amount×(1−v), amount×(1+v)] around the level-scaled amount. 0 = static
+	// (the default); valid range 0 <= v < 1. The roll happens before the
+	// target's mitigation (C3) and is invalid on effects without a rolled
+	// amount (silent no-op otherwise).
+	Variance float32
+
 	// damage_aura, heal_aura, instant_damage — capped targeting (item 11).
 	// MaxTargets 0 = uncapped (AoE-all). Selector orders the candidates when
 	// capped; MaxTargetsPerLevel grows the cap with skill level.
@@ -220,6 +228,8 @@ type effectDef struct {
 	TargetsMobs      bool     `json:"targetsMobs"`
 	TargetsPlayers   bool     `json:"targetsPlayers"`
 	DamageTags       []string `json:"damageTags"` // absent → [physical] on damage effects
+
+	Variance float32 `json:"variance"` // 0 = static; only on damage/heal amounts
 
 	Selector           string `json:"selector"`
 	MaxTargets         int    `json:"maxTargets"`
@@ -329,6 +339,26 @@ func mapDamageTags(effectType EffectType, tags []string) ([]string, error) {
 	return tags, nil
 }
 
+// mapVariance validates the per-hit variance band (item 11 Phase 3). Only
+// effects with a rolled amount (damage or heal) may declare one — anywhere
+// else it would be a silent no-op, which is why it hard-fails at load — and
+// v >= 1 would allow a 0-or-negative roll.
+func mapVariance(effectType EffectType, variance float32) error {
+	rollingEffect := effectType == EffectTypeDamageAura || effectType == EffectTypeInstantDamage ||
+		effectType == EffectTypeHealAura || effectType == EffectTypeSelfHeal
+
+	if !rollingEffect {
+		if variance != 0 {
+			return fmt.Errorf("variance: only valid on effects with a rolled amount (damage/heal)")
+		}
+		return nil
+	}
+	if variance < 0 || variance >= 1 {
+		return fmt.Errorf("variance: must be in [0, 1), got %v", variance)
+	}
+	return nil
+}
+
 // mapResistFields validates the resist_aura/resist_passive fields (item 11
 // Phase 2 Step 3). Resist effects require at least one covered tag (empty or
 // duplicate tags hard-fail, like damageTags) and a non-negative factor;
@@ -396,6 +426,10 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		return EffectDef{}, err
 	}
 
+	if err := mapVariance(effectType, e.Variance); err != nil {
+		return EffectDef{}, err
+	}
+
 	return EffectDef{
 		Type:                      effectType,
 		Radius:                    e.Radius,
@@ -405,6 +439,7 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		TargetsMobs:               e.TargetsMobs,
 		TargetsPlayers:            e.TargetsPlayers,
 		DamageTags:                damageTags,
+		Variance:                  e.Variance,
 		Selector:                  selector,
 		MaxTargets:                e.MaxTargets,
 		MaxTargetsPerLevel:        e.MaxTargetsPerLevel,

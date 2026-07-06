@@ -1,6 +1,8 @@
 package vitals
 
 import (
+	"math/rand"
+
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/constant"
 )
 
@@ -73,6 +75,18 @@ func (v VitalSign) Sub(n uint32) VitalSign {
 
 func (v VitalSign) UInt32() uint32 {
 	return uint32(v)
+}
+
+// RollVariance rolls a percentage variance band around a center value
+// (item 11 Phase 3, decision C2): uniform in [center×(1−variance),
+// center×(1+variance)]. variance 0 returns the center exactly and consumes no
+// RNG draw, so seeded sequences (mob drop rolls) are unchanged for
+// variance-free definitions.
+func RollVariance(center, variance float32, rnd *rand.Rand) float32 {
+	if variance == 0 {
+		return center
+	}
+	return center * (1 + (2*rnd.Float32()-1)*variance)
 }
 
 // HP rounds an absolute health amount (in HP points) to an integer, returning

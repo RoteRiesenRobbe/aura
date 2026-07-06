@@ -130,7 +130,7 @@ func TestApplyDamageAura_CapHitsOnlyNearest(t *testing.T) {
 	far := &touchRecorder{}
 	set := setOf(colliderAt(vec(1, 0), near), colliderAt(vec(20, 0), far))
 
-	applyDamageAura(caster, 1, cappedDamageEffect(skills.SelectorNearest, 1), set)
+	applyDamageAura(caster, 1, cappedDamageEffect(skills.SelectorNearest, 1), set, testRNG())
 
 	assert.Len(t, near.touches, 1, "the closest target is hit")
 	assert.Empty(t, far.touches, "the capped-out target is spared")
@@ -142,7 +142,7 @@ func TestApplyDamageAura_UncappedHitsAll(t *testing.T) {
 	b := &touchRecorder{}
 	set := setOf(colliderAt(vec(1, 0), a), colliderAt(vec(20, 0), b))
 
-	applyDamageAura(caster, 1, cappedDamageEffect(skills.SelectorNearest, 0), set)
+	applyDamageAura(caster, 1, cappedDamageEffect(skills.SelectorNearest, 0), set, testRNG())
 
 	assert.Len(t, a.touches, 1)
 	assert.Len(t, b.touches, 1)
@@ -167,7 +167,7 @@ func TestApplyHealAura_LowestHealthHealsMostWounded(t *testing.T) {
 		colliderAt(vec(20, 0), model.PlayerEntity(farWounded)),
 	)
 
-	applyHealAura(caster, 1, effect, set)
+	applyHealAura(caster, 1, effect, set, testRNG())
 
 	assert.Equal(t, farWoundedStart.Add(10), farWounded.vitalSigns.Health,
 		"the most-wounded ally is healed")
@@ -183,7 +183,7 @@ func TestApplyHealAura_RecordsHealReceivedNumber(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	before := ally.vitalSigns.Health
 
-	applyHealAura(caster, 1, healEffect(), setOf(colliderAt(vec(1, 0), model.PlayerEntity(ally))))
+	applyHealAura(caster, 1, healEffect(), setOf(colliderAt(vec(1, 0), model.PlayerEntity(ally))), testRNG())
 
 	assert.Equal(t, ally.vitalSigns.Health-before, ally.healReceived)
 	assert.NotZero(t, ally.healReceived)
@@ -199,7 +199,7 @@ func TestApplyDamageAura_CapGrowsWithLevel(t *testing.T) {
 	// maxTargets 1 at L1, +1 per level → 2 targets at L2.
 	effect := cappedDamageEffect(skills.SelectorNearest, 1)
 	effect.MaxTargetsPerLevel = 1
-	applyDamageAura(caster, 2, effect, set)
+	applyDamageAura(caster, 2, effect, set, testRNG())
 
 	assert.Len(t, near.touches, 1)
 	assert.Len(t, mid.touches, 1)

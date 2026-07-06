@@ -188,6 +188,52 @@ func TestMapMobDefinition_NegativeResistanceFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestMapMobDefinition_ParsesMaxHealthVariance(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "factors": {"maxHealth": 40, "maxHealthVariance": 0.1},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	require.NoError(t, err)
+	assert.InDelta(t, 0.1, def.Factors.MaxHealthVariance, 1e-6)
+}
+
+func TestMapMobDefinition_MaxHealthVarianceDefaultsToZero(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "factors": {"maxHealth": 40},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	require.NoError(t, err)
+	assert.Zero(t, def.Factors.MaxHealthVariance)
+}
+
+func TestMapMobDefinition_MaxHealthVarianceOutOfBoundsFails(t *testing.T) {
+	for _, variance := range []string{"-0.1", "1", "1.5"} {
+		raw, err := parseMobDefinition([]byte(`{
+		  "id": 1,
+		  "name": "Dodo",
+		  "type": "MOB",
+		  "factors": {"maxHealth": 40, "maxHealthVariance": ` + variance + `},
+		  "body": {"radius": 0.2, "aggroRadius": 2.4}
+		}`))
+		require.NoError(t, err)
+
+		_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t))
+		assert.Error(t, err, "maxHealthVariance %s must be rejected (valid: 0 <= v < 1)", variance)
+	}
+}
+
 func TestMapMobDefinition_EmptyResistanceTagFails(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,

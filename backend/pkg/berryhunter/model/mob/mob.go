@@ -108,6 +108,12 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 	if maxHealth == 0 {
 		maxHealth = defaultMobMaxHealth
 	}
+	// Spawn HP roll (item 11 Phase 3): variance is a percentage band around the
+	// authored pool, fixed for the mob's lifetime. vitals.HP's min-1 keeps even
+	// a 1-HP base alive.
+	if v := d.Factors.MaxHealthVariance; v > 0 {
+		maxHealth = vitals.VitalSign(vitals.HP(vitals.RollVariance(float32(maxHealth), v, rnd)))
+	}
 	m := &Mob{
 		BaseEntity:       base,
 		rand:             rnd,

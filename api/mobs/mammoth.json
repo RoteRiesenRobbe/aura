@@ -4,6 +4,7 @@
   "type": "MOB",
   "factors": {
     "maxHealth": 120,
+    "maxHealthVariance": 0.1,
     "experience": 90,
     "speed": 0.2,
     "deltaPhi": 0.1,

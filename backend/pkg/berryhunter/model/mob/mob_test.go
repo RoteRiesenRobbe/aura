@@ -84,6 +84,48 @@ func newFakeAuraPlayer() *fakeAuraPlayer {
 	}
 }
 
+// --- spawn HP roll (item 11 Phase 3, decision C1/C2) ---
+
+func TestNewMob_MaxHealthVarianceRollsWithinBand(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.MaxHealth = 1000
+	def.Factors.MaxHealthVariance = 0.1
+
+	seen := map[vitals.VitalSign]bool{}
+	for i := 0; i < 16; i++ {
+		m := NewMob(def, false, 0, 0)
+		hp := m.MaxHealth()
+		if hp < 900 || hp > 1100 {
+			t.Fatalf("rolled maxHealth %d outside band [900, 1100]", hp)
+		}
+		assert.Equal(t, hp, m.Health(), "mob must spawn at its rolled full HP")
+		seen[hp] = true
+	}
+	assert.Greater(t, len(seen), 1,
+		"16 spawns with a ±10%% band on 1000 HP must not all roll identical")
+}
+
+func TestNewMob_ZeroVarianceIsExactBase(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.MaxHealth = 1000
+
+	m := NewMob(def, false, 0, 0)
+	assert.Equal(t, vitals.VitalSign(1000), m.MaxHealth(),
+		"no variance → maxHealth is exactly the authored base")
+}
+
+func TestNewMob_VarianceRollNeverBelowOneHP(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.MaxHealth = 1
+	def.Factors.MaxHealthVariance = 0.9
+
+	for i := 0; i < 16; i++ {
+		m := NewMob(def, false, 0, 0)
+		assert.GreaterOrEqual(t, m.MaxHealth(), vitals.VitalSign(1),
+			"a rolled HP pool must never reach 0 (min-1)")
+	}
+}
+
 // --- damage intake (what player auras do to the mob) ---
 
 func TestMob_PlayerTouches_UnresistedFullDamage(t *testing.T) {

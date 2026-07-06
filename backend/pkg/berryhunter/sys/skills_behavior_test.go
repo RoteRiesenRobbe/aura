@@ -9,6 +9,7 @@ package sys
 // interval quirk (docs/plan-skill-system.md, "Known limitation").
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/EngoEngine/ecs"
@@ -168,6 +169,12 @@ func healEffect() skills.EffectDef {
 	}
 }
 
+// testRNG is the seeded roll source for variance tests (item 11 Phase 3);
+// production call sites use the SkillSystem's own time-seeded rng.
+func testRNG() *rand.Rand {
+	return rand.New(rand.NewSource(7))
+}
+
 // --- applyDamageAura ---
 
 func TestApplyDamageAura_DealsLevelScaledDamage(t *testing.T) {
@@ -175,12 +182,12 @@ func TestApplyDamageAura_DealsLevelScaledDamage(t *testing.T) {
 	target := &touchRecorder{}
 	set := colliderSetOf(target)
 
-	applyDamageAura(caster, 1, damageEffect(1), set)
+	applyDamageAura(caster, 1, damageEffect(1), set, testRNG())
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.01, target.touches[0], 1e-6, "level 1 = base fraction")
 
 	target.touches = nil
-	applyDamageAura(caster, 3, damageEffect(1), set)
+	applyDamageAura(caster, 3, damageEffect(1), set, testRNG())
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.014, target.touches[0], 1e-6, "level 3 = base + 2*perLevel")
 }
@@ -193,7 +200,7 @@ func TestApplyDamageAura_CarriesDamageTags(t *testing.T) {
 	effect := damageEffect(1)
 	effect.DamageTags = []string{"fire", "boss_x_lava"}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target))
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touchTags, 1)
 	assert.Equal(t, []string{"fire", "boss_x_lava"}, target.touchTags[0])
@@ -202,7 +209,7 @@ func TestApplyDamageAura_CarriesDamageTags(t *testing.T) {
 	mobCaster := newFakeMob()
 	mobTarget := &mobTouchRecorder{}
 
-	applyDamageAura(mobCaster, 1, effect, colliderSetOf(mobTarget))
+	applyDamageAura(mobCaster, 1, effect, colliderSetOf(mobTarget), testRNG())
 
 	require.Len(t, mobTarget.factors, 1)
 	assert.Equal(t, []string{"fire", "boss_x_lava"}, mobTarget.factors[0].DamageTags)
@@ -214,7 +221,7 @@ func TestApplyDamageAura_TagsFireStyleForFastTick(t *testing.T) {
 	set := colliderSetOf(target)
 
 	// A fast-tick aura (interval below the slash threshold) reads as sustained fire.
-	applyDamageAura(caster, 1, damageEffect(1), set)
+	applyDamageAura(caster, 1, damageEffect(1), set, testRNG())
 
 	require.Len(t, target.hitStyles, 1)
 	assert.Equal(t, model.AuraHitStyleFire, target.hitStyles[0])
@@ -226,7 +233,7 @@ func TestApplyDamageAura_TagsSlashStyleForSlowTick(t *testing.T) {
 	set := colliderSetOf(target)
 
 	// A slow-tick aura (interval at/above the slash threshold) reads as a discrete slash.
-	applyDamageAura(caster, 1, damageEffect(auraSlashTickThreshold), set)
+	applyDamageAura(caster, 1, damageEffect(auraSlashTickThreshold), set, testRNG())
 
 	require.Len(t, target.hitStyles, 1)
 	assert.Equal(t, model.AuraHitStyleSlash, target.hitStyles[0])
@@ -240,7 +247,7 @@ func TestApplyDamageAura_MobCaster_TagsHitStyle(t *testing.T) {
 		TargetsPlayers: true, TickInterval: auraSlashTickThreshold,
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target))
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.hitStyles, 1)
 	assert.Equal(t, model.AuraHitStyleSlash, target.hitStyles[0])
@@ -251,7 +258,7 @@ func TestApplyDamageAura_NoFriendlyFire(t *testing.T) {
 	otherPlayer := &playerTouchRecorder{basic: ecs.NewBasic()}
 	set := colliderSetOf(otherPlayer)
 
-	applyDamageAura(caster, 1, damageEffect(1), set)
+	applyDamageAura(caster, 1, damageEffect(1), set, testRNG())
 
 	assert.Empty(t, otherPlayer.rec.touches, "players must never be damaged by a damage aura")
 }
@@ -261,7 +268,7 @@ func TestApplyDamageAura_IgnoresNilAndNonInteracterUserData(t *testing.T) {
 	set := colliderSetOf(nil, "just a string")
 
 	assert.NotPanics(t, func() {
-		applyDamageAura(caster, 1, damageEffect(1), set)
+		applyDamageAura(caster, 1, damageEffect(1), set, testRNG())
 	})
 }
 
@@ -272,7 +279,7 @@ func TestApplyDamageAura_NonPlayerCasterIsNoop(t *testing.T) {
 	target := &touchRecorder{}
 	set := colliderSetOf(target)
 
-	applyDamageAura(caster, 1, damageEffect(1), set)
+	applyDamageAura(caster, 1, damageEffect(1), set, testRNG())
 
 	assert.Empty(t, target.touches)
 }
@@ -286,7 +293,7 @@ func TestApplyHealAura_HealsHurtAllyByExactFraction(t *testing.T) {
 	start := ally.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	applyHealAura(caster, 1, healEffect(), set)
+	applyHealAura(caster, 1, healEffect(), set, testRNG())
 
 	assert.Equal(t, start.Add(10), ally.vitalSigns.Health)
 }
@@ -299,7 +306,7 @@ func TestApplyHealAura_NotesHealerOnTarget(t *testing.T) {
 	ally := newFakePlayer()
 	ally.vitalSigns.Health = 50
 
-	applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+	applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)), testRNG())
 
 	require.Len(t, ally.healedBy, 1)
 	assert.Equal(t, model.PlayerEntity(caster), ally.healedBy[0])
@@ -309,7 +316,7 @@ func TestApplyHealAura_FullHealthTargetNotesNothing(t *testing.T) {
 	caster := newFakePlayer()
 	ally := newFakePlayer() // full health — no heal happens
 
-	applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+	applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)), testRNG())
 
 	assert.Empty(t, ally.healedBy)
 }
@@ -319,7 +326,7 @@ func TestApplyHealAura_SkipsAllyAtFullHealth_NoSelfDamage(t *testing.T) {
 	ally := newFakePlayer() // full health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	applyHealAura(caster, 1, healEffect(), set)
+	applyHealAura(caster, 1, healEffect(), set, testRNG())
 
 	assert.Equal(t, ally.MaxHealth(), ally.vitalSigns.Health)
 	assert.Equal(t, caster.MaxHealth(), caster.vitalSigns.Health,
@@ -333,7 +340,7 @@ func TestApplyHealAura_SkipsSelf(t *testing.T) {
 	start := caster.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(caster))
 
-	applyHealAura(caster, 1, healEffect(), set)
+	applyHealAura(caster, 1, healEffect(), set, testRNG())
 
 	assert.Equal(t, start, caster.vitalSigns.Health,
 		"the caster's own collider entry must neither heal nor cost anything")
@@ -345,7 +352,7 @@ func TestApplyHealAura_SelfDamageOnSuccessfulHeal(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	applyHealAura(caster, 1, healEffect(), set)
+	applyHealAura(caster, 1, healEffect(), set, testRNG())
 
 	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health)
 	assert.Contains(t, caster.statusEffects.Effects(), model.StatusEffectDamagedAmbient)
@@ -358,7 +365,7 @@ func TestApplyHealAura_SelfDamageIsFlatHP(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	applyHealAura(caster, 1, healEffect(), set)
+	applyHealAura(caster, 1, healEffect(), set, testRNG())
 
 	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health,
 		"self-damage is a flat HP cost, independent of MaxHealthFactor")
@@ -372,7 +379,7 @@ func TestApplyHealAura_GodModePaysNoSelfDamage(t *testing.T) {
 	start := ally.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	applyHealAura(caster, 1, healEffect(), set)
+	applyHealAura(caster, 1, healEffect(), set, testRNG())
 
 	assert.Equal(t, start.Add(10), ally.vitalSigns.Health, "ally is still healed")
 	assert.Equal(t, caster.MaxHealth(), caster.vitalSigns.Health, "god pays nothing")
@@ -486,7 +493,7 @@ func TestApplyDamageAura_MobCaster_DamagesViaMobTouches(t *testing.T) {
 		Type: skills.EffectTypeDamageAura, DamageHP: 0.004, TargetsPlayers: true,
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target))
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.factors, 1)
 	assert.InDelta(t, 0.004, target.factors[0].Damage, 1e-6)
@@ -500,7 +507,7 @@ func TestApplyDamageAura_MobCaster_LevelScalesDamage(t *testing.T) {
 		DamageHPPerLevel: 0.001, TargetsPlayers: true,
 	}
 
-	applyDamageAura(caster, 3, effect, colliderSetOf(target))
+	applyDamageAura(caster, 3, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.factors, 1)
 	assert.InDelta(t, 0.006, target.factors[0].Damage, 1e-6)
@@ -514,7 +521,7 @@ func TestApplyDamageAura_MobCaster_CarriesStructureDamage(t *testing.T) {
 		StructureDamageFraction: 0.67, TargetsPlayers: true, TargetsStructures: true,
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target))
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.factors, 1)
 	assert.InDelta(t, 0.67, target.factors[0].StructureDamageFraction, 1e-6)
@@ -527,7 +534,7 @@ func TestApplyDamageAura_PlayerCaster_RespectsTargetsMobsFlag(t *testing.T) {
 		Type: skills.EffectTypeDamageAura, DamageHP: 0.01, TargetsMobs: false,
 	}
 
-	applyDamageAura(caster, 1, effect, colliderSetOf(target))
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
 	assert.Empty(t, target.touches, "targetsMobs=false must not hit mob-like targets")
 }
@@ -758,6 +765,126 @@ func TestSkillSystem_EndToEnd_HealAuraHealsAndCosts(t *testing.T) {
 
 	assert.Equal(t, allyStart.Add(10), ally.vitalSigns.Health)
 	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health)
+}
+
+// --- per-hit variance (item 11 Phase 3) ---
+
+func TestApplyDamageAura_VarianceRollsPerHitWithinBand(t *testing.T) {
+	caster := newFakePlayer()
+	effect := damageEffect(1)
+	effect.DamageHP = 100
+	effect.Variance = 0.1
+
+	targets := make([]*touchRecorder, 20)
+	userData := make([]any, len(targets))
+	for i := range targets {
+		targets[i] = &touchRecorder{}
+		userData[i] = targets[i]
+	}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(userData...), testRNG())
+
+	distinct := map[float32]bool{}
+	for _, target := range targets {
+		require.Len(t, target.touches, 1)
+		hp := target.touches[0]
+		assert.GreaterOrEqual(t, hp, float32(90), "roll below the variance band")
+		assert.LessOrEqual(t, hp, float32(110), "roll above the variance band")
+		distinct[hp] = true
+	}
+	assert.Greater(t, len(distinct), 1,
+		"each hit rolls independently — 20 targets must not all take identical damage")
+}
+
+func TestApplyDamageAura_ZeroVarianceStaysExact(t *testing.T) {
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+	effect := damageEffect(1)
+	effect.DamageHP = 100
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.Equal(t, float32(100), target.touches[0], "no variance → exact authored damage")
+}
+
+func TestApplyDamageAura_VarianceComposesWithResistance(t *testing.T) {
+	// Roll order (decision C3): the attacker rolls the raw damage, the target's
+	// resistance multiplies the ROLLED value — so a ±10% band under a ×0.5
+	// resist lands in the halved band.
+	def := &mobs.MobDefinition{
+		ID:   1,
+		Name: "Dodo",
+		Factors: mobs.Factors{
+			MaxHealth:   1000,
+			Resistances: map[string]float32{"fire": 0.5},
+		},
+		Body: mobs.Body{Radius: 0.3, AggroRadius: 2.0},
+	}
+	m := mob.NewMob(def, false, 0, 0)
+
+	caster := newFakePlayer()
+	effect := damageEffect(1)
+	effect.DamageHP = 100
+	effect.Variance = 0.1
+	effect.DamageTags = []string{"fire"}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(m), testRNG())
+
+	loss := m.MaxHealth() - m.Health()
+	assert.GreaterOrEqual(t, loss, vitals.VitalSign(45), "below the resisted variance band")
+	assert.LessOrEqual(t, loss, vitals.VitalSign(55), "above the resisted variance band")
+}
+
+func TestApplyHealAura_VarianceRollsWithinBand(t *testing.T) {
+	caster := newFakePlayer()
+	effect := healEffect()
+	effect.HealHP = 50
+	effect.SelfDamageHP = 0
+	effect.Variance = 0.2
+
+	rng := testRNG()
+	distinct := map[vitals.VitalSign]bool{}
+	for i := 0; i < 20; i++ {
+		ally := newFakePlayer()
+		ally.maxHealth = 1000
+		ally.vitalSigns.Health = 100
+
+		applyHealAura(caster, 1, effect, colliderSetOf(model.PlayerEntity(ally)), rng)
+
+		assert.GreaterOrEqual(t, ally.healReceived, vitals.VitalSign(40), "roll below the variance band")
+		assert.LessOrEqual(t, ally.healReceived, vitals.VitalSign(60), "roll above the variance band")
+		distinct[ally.healReceived] = true
+	}
+	assert.Greater(t, len(distinct), 1, "heal rolls must vary across hits")
+}
+
+func TestCooldown_SelfHealVarianceRollsWithinBand(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+
+	healDef := &skills.SkillDefinition{
+		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+		Effects: []skills.EffectDef{{
+			Type:     skills.EffectTypeSelfHeal,
+			HealHP:   50,
+			Variance: 0.2,
+		}},
+	}
+	caster := newFakePlayer()
+	caster.maxHealth = 1000
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.vitalSigns.Health = 100
+	caster.sc.EquipCooldown(0, healDef, 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk := NewSkillSystem(empty)
+	sk.rng = testRNG()
+	sk.AddEntity(caster)
+	sk.Update(33.0)
+
+	assert.GreaterOrEqual(t, caster.healReceived, vitals.VitalSign(40), "roll below the variance band")
+	assert.LessOrEqual(t, caster.healReceived, vitals.VitalSign(60), "roll above the variance band")
 }
 
 // --- cooldown skills (Phase 8.2) ---

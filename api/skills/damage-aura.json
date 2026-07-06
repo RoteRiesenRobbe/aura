@@ -11,6 +11,7 @@
       "radiusPerLevel": 0.0,
       "damageHP": 7,
       "damageHPPerLevel": 1.6,
+      "variance": 0.15,
       "targetsMobs": true,
       "targetsPlayers": false,
       "selector": "nearest",

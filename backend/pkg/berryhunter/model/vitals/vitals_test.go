@@ -1,6 +1,9 @@
 package vitals
 
-import "testing"
+import (
+	"math/rand"
+	"testing"
+)
 
 func TestHP_RoundsWithMinOneRule(t *testing.T) {
 	cases := []struct {
@@ -21,6 +24,42 @@ func TestHP_RoundsWithMinOneRule(t *testing.T) {
 		if got := HP(c.in); got != c.want {
 			t.Errorf("HP(%v) = %d, want %d", c.in, got, c.want)
 		}
+	}
+}
+
+func TestRollVariance_ZeroIsExactAndDrawsNothing(t *testing.T) {
+	rnd := rand.New(rand.NewSource(1))
+	before := rnd.Float32()
+	rnd = rand.New(rand.NewSource(1))
+
+	if got := RollVariance(42, 0, rnd); got != 42 {
+		t.Errorf("variance 0 must return the exact center: got %v", got)
+	}
+	// A zero-variance roll must not consume from the RNG, so seeded sequences
+	// (mob drop rolls) stay unchanged for variance-free definitions.
+	if got := rnd.Float32(); got != before {
+		t.Errorf("variance 0 consumed an RNG draw: next value %v, want %v", got, before)
+	}
+}
+
+func TestRollVariance_StaysInBandAndHitsBothHalves(t *testing.T) {
+	rnd := rand.New(rand.NewSource(7))
+	const center, variance = 100.0, 0.1
+	low, high := false, false
+	for i := 0; i < 1000; i++ {
+		got := RollVariance(center, variance, rnd)
+		if got < center*(1-variance) || got > center*(1+variance) {
+			t.Fatalf("roll %v outside band [%v, %v]", got, center*(1-variance), center*(1+variance))
+		}
+		if got < center {
+			low = true
+		}
+		if got > center {
+			high = true
+		}
+	}
+	if !low || !high {
+		t.Errorf("1000 rolls never left one half of the band (low=%v high=%v)", low, high)
 	}
 }
 

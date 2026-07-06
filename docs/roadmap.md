@@ -339,8 +339,8 @@ Vision: **all combat participants receive XP** (no formal groups in v1).
 ## 11. Aura targeting: selector & target cap ✓ Done
 
 > **Done (2026-07-04, Steps 1–5 below); the deferred HP/resistance follow-up
-> graduated to `plan-item11-hp-resist-variance.md` (Phases 1+2 done, Phase 3
-> open).**
+> graduated to `plan-item11-hp-resist-variance.md` (all three phases done —
+> absolute HP, resistances & damage tags, stat variance).**
 
 **Decided (targeting session): base auras get capped targeting.** The design
 pitch changes from "no targeting" to "**no manual aiming**": every aura picks
@@ -457,11 +457,13 @@ Executed as Steps 1–3 in a dedicated session; each committed separately.
 The "deferred from item 11" block (absolute HP, resistances as arbitrary string
 tags, resist auras/passives, stat variance) **graduated to its own execution
 doc: `plan-item11-hp-resist-variance.md`**, which holds all decisions (A1–A3,
-B1–B7), the implementation map, and the remaining open questions.
+B1–B7, C1–C6) and the implementation map.
 
-Status: **Phase 1 (absolute HP) ✓ and Phase 2 (resistances & damage tags) ✓**
-are implemented and verified in-game; **Phase 3 (stat variance & damage
-ranges)** is documented there but not scheduled. Runtime-cost reasoning for
+Status: **all three phases ✓** implemented and verified in-game — Phase 1
+(absolute HP), Phase 2 (resistances & damage tags), Phase 3 (stat variance &
+damage ranges: mob spawn-HP bands, per-hit damage/heal variance). The item-12
+content pass assigns real variance values across the roster (currently only
+DamageAura + Dodo/Mammoth carry placeholder bands). Runtime-cost reasoning for
 hazards/resist auras: `docs/architecture.md` §7.
 
 ## 12. Initial content pass (prototype gate)

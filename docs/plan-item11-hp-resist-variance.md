@@ -5,7 +5,7 @@ doc. Three phases, in the mandated sequence. **All numbers [PLACEHOLDER].**
 
 - **Phase 1 — Absolute HP.** *DONE (committed, verified in-game).*
 - **Phase 2 — Resistances & damage tags.** *DONE (committed c0426e35, verified in-game 2026-07-06).*
-- **Phase 3 — Stat variance & damage ranges.** *Documented below, NOT scheduled.*
+- **Phase 3 — Stat variance & damage ranges.** *DONE (verified in-game 2026-07-06).*
 
 Root problem shared by all three: today "HP" is a single normalized `Health`
 fraction (0..1 of `vitals.Max`), identical for every entity, and damage is a
@@ -202,36 +202,82 @@ alive (fixed via per-strength buff streams).
 
 ---
 
-## Phase 3 — Stat variance & damage ranges (TODO, not scheduled)
+## Phase 3 — Stat variance & damage ranges (DONE)
 
-Cheap once Phases 1–2 land; near-pointless before them (fractional HP hides the
-effect). The "no two encounters feel identical" axis + the hook for elite/level
-scaling.
+The "no two encounters feel identical" axis. Verified in-game 2026-07-06
+(DamageAura numbers fluctuate, individual Dodos/Mammoths take different time
+to kill, no-variance heals stay constant).
 
-### Sketch
+### Confirmed decisions (C1–C6)
 
-- **Mob HP range.** `factors.maxHealth` becomes a range (min/max or
-  base + variance); rolled **at spawn**, server-authoritative, sent once via
-  `max_health`. Same mob type no longer identical.
-- **Damage ranges.** `damageHP` becomes a range (`damageHPMin` / `damageHPMax`),
-  rolled **per hit**.
-- **No crit styling** yet (confirm not needed).
+Resolve the former open-questions list 1:1:
 
-### Open questions (answer before implementing)
+- **C1 — Scope.** Mob `maxHealth` is a spawn-rolled range (**mobs only** —
+  player max HP stays fully deterministic, influenced only through level-ups,
+  auras, cooldowns, passives). Damage **and** heal amounts on every effect
+  (player or mob; aura, cooldown, or a future damage passive) can roll per hit
+  — WoW-classic model. Static values remain available: variance is opt-in per
+  effect, absent/0 = exact.
+- **C2 — Representation: percentage band around the programmatic center.**
+  The center stays the existing computed value (`damageHP + (L−1)×perLevel`,
+  mob `factors.maxHealth`); one field rolls uniform in
+  `[center×(1−v), center×(1+v)]`. No absolute min/max fields — a percentage
+  scales automatically with per-level growth, and the uniform in-band roll
+  inherently guarantees a fitting min/max per mob type. Crit, mitigation, and
+  multipliers stay separate deterministic steps.
+- **C3 — Roll order: roll first, then mitigate.** The attacker rolls the raw
+  amount; the target's resistance multiplies the ROLLED value; min-1 rounding
+  last. Equivalent in distribution for today's linear multipliers, but pinned
+  for the overhead number and any future non-linear resist. Falls out
+  structurally: the hit payload carries the rolled HP, `takeDamage` untouched.
+- **C4 — RNG source.** Mob spawn HP rolls from the mob's existing
+  entity-ID-seeded `m.rand`; a **zero variance consumes no draw**, so seeded
+  drop sequences of variance-free definitions are unchanged. Per-hit rolls come
+  from one time-seeded `*rand.Rand` owned by the SkillSystem (test-injectable).
+  Pure implementation detail — nothing persistent depends on it; swapping seeds
+  later blocks no mob changes.
+- **C5 — Flat variance for all mobs.** No tier-scaled (elite/boss) widening in
+  v1; a later content pass can simply author bigger values.
+- **C6 — Display.** Overhead numbers show the exact post-mitigation rolled HP
+  (already the pipeline's behavior); **no crit/high-roll styling**.
 
-1. **Variance source & determinism.** Free RNG or seeded/reproducible? Mob HP
-   fixed at spawn (mob already has `m.rand` seeded by entity ID — reuse for HP)
-   and each hit rolled per-tick from the caster's/target's RNG?
-2. **Scope.** Mobs only initially, or players too? (Proposal: mobs only.)
-3. **Range representation.** Absolute min/max, or base ± percentage variance?
-   Same choice for HP and for damage, or independent?
-4. **Interaction with resistances.** Roll damage first then apply resistance, or
-   vice-versa (equivalent for a linear multiplier, but fix the order for the
-   overhead number and any future non-linear resist).
-5. **Balance surface.** Do ranges widen for elites/bosses (tier-scaled variance),
-   or is variance a flat ± for all mobs in v1?
-6. **Display.** Show the exact rolled number (current intent); confirm high rolls
-   don't need distinct styling.
+### Mechanics
+
+- **Shared roll primitive:** `vitals.RollVariance(center, variance, rnd)` —
+  uniform in the band, returns the center exactly (no RNG draw) at variance 0.
+- **Mob HP:** `mobs.Factors.MaxHealthVariance` (JSON
+  `factors.maxHealthVariance`, validated `0 <= v < 1` at load); rolled once in
+  `NewMob` after the default-100 fallback, `vitals.HP` min-1 guarded. Sent via
+  the existing `max_health` wire field — **no wire changes**.
+- **Per-hit:** `skills.EffectDef.Variance` (JSON `variance`, validated
+  `0 <= v < 1`; **hard-fails on effects without a rolled amount** — only
+  `damage_aura`, `instant_damage`, `heal_aura`, `self_heal` accept it).
+  `sys.SkillSystem.rng` feeds the rolls; each target in a tick rolls
+  **independently** (roll inside the target loop): player damage path
+  (`model.Damage.HP`), mob path (`mobs.Factors.Damage` payload), heal aura
+  (pre-`vitals.HP` rounding, clamps at maxHealth as before), self-heal cooldown
+  (`selfHealHP` now returns the float center — incl. fraction-of-max — and the
+  roll wraps it). Heal-aura **self-cost** (`selfDamageHP`) stays static by
+  design (a build cost should be predictable).
+- **Frontend:** nothing — numbers were already literal per-hit HP.
+
+### Content [PLACEHOLDER]
+
+Verification-only; the real spread assignment belongs to the item-12 content
+pass: DamageAura `variance: 0.15`; Dodo + Mammoth `maxHealthVariance: 0.1`
+(SaberToothCat/AngryMammoth deliberately left exact as the control group).
+
+### Tests
+
+`TestRollVariance_*` (exactness at 0 + no draw consumed, band bounds, both
+halves hit); `TestMapMobDefinition_*MaxHealthVariance*` + `TestNewMob_*`
+(parse/bounds, spawn roll in band, spawn-at-full-rolled-HP, min-1);
+`TestParse_Variance*`/`TestMap_Variance*` (parse, defaults, bounds,
+non-rolling-effect rejection); `TestApplyDamageAura_VarianceRollsPerHitWithinBand`
+(20 targets, independent rolls), `_ZeroVarianceStaysExact`,
+`_VarianceComposesWithResistance` (±10% band × 0.5 resist → halved band, pins
+C3), `TestApplyHealAura_VarianceRollsWithinBand`,
+`TestCooldown_SelfHealVarianceRollsWithinBand`.
 
 ---
 
