@@ -1099,10 +1099,11 @@ be added when something consumes them.
 
 Known issues to address in a future cleanup pass — not blocking current work.
 
-- **`backend/pkg/berryhunter/net/net_test.go`** — not a real test; a manual
-  `ListenAndServe` script with no timeout or teardown that hangs `go test ./...`.
-  Fix via `t.Skip` or convert to a proper integration test. Safe test scope in
-  the meantime: `go test -timeout 30s ./pkg/berryhunter/skills/... ./pkg/berryhunter/codec/... ./pkg/berryhunter/sys/...`
+- **`backend/pkg/berryhunter/net/net_test.go` (FIXED)** — was not a real test: a
+  manual `ListenAndServe` script with no timeout or teardown that hung
+  `go test ./...`. Now skipped via `t.Skip` (kept for manual WebSocket
+  debugging — remove the skip to run it explicitly), so the full
+  `go test ./...` suite runs and passes.
 
 - **Respawn loses spellbook unlocks (FIXED)** — on death, `sys/state.go` now
   stashes the player's progression *and* the whole `SkillComponent`

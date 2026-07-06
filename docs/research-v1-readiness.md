@@ -15,9 +15,10 @@
 
 - **`net_test.go` hangs `go test ./...`** — a `t.Skip` one-liner. Worth doing
   *soon* despite being trivial, because it is the thing blocking CI from
-  running tests at all (see §2).
+  running tests at all (see §2). *(Done 2026-07-06 — full suite runs.)*
 - **Dead character-variant code** (`Character.variants`, ~13 unreferenced
   SVGs) — documented, removal already scheduled with the avatar-selector work.
+  *(Done 2026-07-06.)*
 - **Debug logging** — cleaner than flagged: ~9 `console.log`s in the frontend,
   mostly in `SpatialAudio` and the dev panel; backend uses `log`/`slog`
   consistently. Not a risk, a grep-and-tidy.
@@ -32,6 +33,8 @@
   someone remembers to run the safe scope locally. For live-service iteration
   this is the first structural gap to close: fix `net_test.go`, then wire the
   safe test scope (or full `./...`) into CI. Cheap, high leverage.
+  *(Update 2026-07-06: `net_test.go` is fixed — full `go test ./...` passes
+  locally. Wiring it into CI is still open.)*
 - **No migration framework — but also no database yet.** Current persistence
   is chieftain's scoreboard SQLite (`CREATE TABLE IF NOT EXISTS`, no
   versioning). The real obligation lands with roadmap item 3 (accounts): the

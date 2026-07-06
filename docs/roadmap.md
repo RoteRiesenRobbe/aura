@@ -305,8 +305,9 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
   persisted via `accounts` (item 3) and made multiplayer-visible with one
   `avatar_id` wire field on `Character` + a frontend id→SVG map. Easier than
   the old Berryhunter system because new-mode rendering is one SVG texture per
-  character (no hair/hand/beard assembly). Depends on removing the dead variant
-  code (see CLAUDE.md tech-debt). Portrait art [PLACEHOLDER].
+  character (no hair/hand/beard assembly). The dead Berryhunter variant code
+  was removed 2026-07-06 (`Character` renders a single `avatar` SVG), so this
+  item starts clean. Portrait art [PLACEHOLDER].
 
 ## 9. Remaining unlock sources
 
