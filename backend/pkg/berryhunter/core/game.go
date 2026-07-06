@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"math/rand"
 	"net/http"
-	"sort"
 	"sync/atomic"
 	"time"
 
@@ -428,8 +427,10 @@ func (g *game) sendWelcomeMessage(c model.Client) {
 }
 
 func (g *game) printSystems() {
+	// Systems() returns the world's live slice, already in execution order
+	// (descending priority) — must not be sorted or otherwise mutated here,
+	// or the tick order itself changes.
 	systems := g.World.Systems()
-	sort.Sort(ByPriority(systems))
 
 	slog.Debug("enabled systems", slog.Int("count", len(systems)))
 	for _, s := range systems {
@@ -439,27 +440,4 @@ func (g *game) printSystems() {
 		}
 		slog.Debug(fmt.Sprintf("%4d %T", p, s))
 	}
-}
-
-type ByPriority []ecs.System
-
-func (b ByPriority) Len() int {
-	return len(b)
-}
-
-func (b ByPriority) Less(i, j int) bool {
-	pi := 0
-	if p, ok := b[i].(ecs.Prioritizer); ok {
-		pi = p.Priority()
-	}
-
-	pj := 0
-	if p, ok := b[j].(ecs.Prioritizer); ok {
-		pj = p.Priority()
-	}
-	return pi < pj
-}
-
-func (b ByPriority) Swap(i, j int) {
-	b[i], b[j] = b[j], b[i]
 }

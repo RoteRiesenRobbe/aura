@@ -17,7 +17,8 @@ data-driven with hard-fail validation, derived-not-stored state, small
 purpose-built interfaces, tests pinning the tricky invariants. The **legacy
 Berryhunter substrate is rough** — not vet-clean, no TS strict mode, and
 carrying a growing layer of half-dead survival/item code. One actual
-copy-paste bug was found (diagnostics-only, no gameplay impact).
+copy-paste bug was found (diagnostics-only, no gameplay impact; both §2
+findings fixed 2026-07-06).
 
 Grading roughly: skills/targeting/model layer **A−** (deductions: the
 `EffectDef` triple bookkeeping and the two-convention level scaling); legacy
@@ -44,16 +45,31 @@ vestigial systems). Nothing is architecturally scary; the risks are all of the
 
 ## 2. Actual bugs (diagnostics-only, but they lie exactly when debugging)
 
-- **`core/game.go:452` — `ByPriority.Less` compares `b[i]` against itself**
-  (the second `Prioritizer` type-assert reads `b[i]` where it must read
-  `b[j]`). Every comparison is `pi < pi` = false → the sort is a no-op. Only
-  used by `printSystems()`, so no gameplay impact — but the "systems by
-  priority" boot log one would trust when debugging tick ordering is in fact
-  unsorted.
-- **`core/game.go:413` — overload percentage is integer division.**
-  `dtMillis / stepMillis * 100` truncates (`dtMillis` is `int64`, `33.0`
-  converts to it), so a 60 ms tick prints "100%" instead of ~180%. The
-  overload warning systematically understates load.
+- **FIXED (2026-07-06, second attempt)** — **`core/game.go:452` —
+  `ByPriority.Less` compared `b[i]` against itself** (the second
+  `Prioritizer` type-assert read `b[i]` where it must read `b[j]`). Every
+  comparison was `pi < pi` = false → the sort was a no-op. ⚠️ **The original
+  "diagnostics-only, no gameplay impact" assessment was wrong**, and the
+  first fix (correcting the comparator) caused an in-game regression:
+  `ecs.World.Systems()` returns the world's **live** internal slice — the
+  exact slice `World.Update` iterates, kept sorted **descending** by priority
+  (engine execution order). While `Less` was broken, `printSystems()`'s
+  `sort.Sort` on that slice was a harmless no-op; with a working comparator
+  it re-sorted the live execution order **ascending at boot, reversing the
+  tick order** — observed in-game as floating damage numbers and aura-hit
+  VFX rendering only intermittently (transient per-tick state reset/encoded
+  in the wrong order relative to SkillSystem). **Actual fix:** `printSystems`
+  logs `Systems()` as-is (the engine already maintains execution order) and
+  `ByPriority` is deleted — it was only ever a broken, wrong-direction
+  duplicate of the engine's own sort. Pinned by
+  `TestPrintSystems_DoesNotChangeExecutionOrder` (`core/game_test.go`), which
+  fails on any future mutation of the live slice.
+- **FIXED (2026-07-06)** — **`core/game.go:413` — overload percentage was
+  integer division.** `dtMillis / stepMillis * 100` truncated (`dtMillis` is
+  `int64`, `33.0` converts to it), so a 60 ms tick printed "100%" instead of
+  ~180%. The overload warning systematically understated load. Extracted to
+  `overloadPercent()` with multiply-before-divide; pinned by
+  `TestOverloadPercent_NoTruncationTo100`.
 
 ## 3. Avoidable redundancies (DRY findings)
 
@@ -149,7 +165,7 @@ sweep; until then it is the main source of unclear paths.
 
 | Finding | Effort | When |
 |---|---|---|
-| `ByPriority.Less` bug + overload division | minutes | anytime (zero design questions) |
+| `ByPriority.Less` bug + overload division | minutes | ~~anytime~~ **DONE 2026-07-06** (test-first, `core/game_test.go`; NB the naive comparator fix regressed tick order in-game — `ByPriority` deleted instead, see §2) |
 | `go vet` findings (unreachable code, unkeyed literals) | ~1 h | anytime; ideally wire `go vet` into CI with the test run |
 | Level-scaling helper (`scaled(...)`) | ~1 h | opportunistic, next time the formula is touched |
 | Two scaling conventions in `recomputeDerived` | decision needed | **before/with item 12** (authoring trap) |

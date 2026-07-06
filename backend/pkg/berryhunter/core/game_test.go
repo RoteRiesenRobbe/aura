@@ -2,15 +2,18 @@ package core
 
 // Tests for two diagnostics helpers in game.go:
 //
-//   - ByPriority: sorts systems ascending by ecs.Prioritizer priority for the
-//     "enabled systems" boot log (printSystems).
+//   - printSystems: logs the world's systems in execution order. It must NOT
+//     mutate ecs.World's internal slice — Systems() returns the live slice the
+//     engine iterates in Update(), already sorted descending by priority
+//     (higher priority runs first). A previous ByPriority re-sort here
+//     reversed the tick execution order at boot (broke damage numbers and
+//     aura-hit VFX).
 //   - overloadPercent: tick-load percentage for the overload warning; must not
 //     truncate to 100% for any dt > stepMillis (integer division order).
 //
 // See docs/research-code-quality.md §2.
 
 import (
-	"sort"
 	"testing"
 
 	"github.com/EngoEngine/ecs"
@@ -26,20 +29,26 @@ func (s *prioritizedSystem) Update(dt float32)        {}
 func (s *prioritizedSystem) Remove(e ecs.BasicEntity) {}
 func (s *prioritizedSystem) Priority() int            { return s.priority }
 
-func TestByPriority_SortsAscending(t *testing.T) {
-	systems := ByPriority{
-		&prioritizedSystem{priority: 10},
-		&prioritizedSystem{priority: -50},
-		&prioritizedSystem{priority: 0},
+func TestPrintSystems_DoesNotChangeExecutionOrder(t *testing.T) {
+	g := &game{}
+	// Added out of order; the engine sorts descending by priority on add.
+	g.World.AddSystem(&prioritizedSystem{priority: -50})
+	g.World.AddSystem(&prioritizedSystem{priority: 10})
+	g.World.AddSystem(&prioritizedSystem{priority: 0})
+
+	order := func() []int {
+		got := make([]int, 0, 3)
+		for _, s := range g.World.Systems() {
+			got = append(got, s.(*prioritizedSystem).priority)
+		}
+		return got
 	}
 
-	sort.Sort(systems)
+	assert.Equal(t, []int{10, 0, -50}, order(), "engine execution order is descending priority")
 
-	got := make([]int, 0, len(systems))
-	for _, s := range systems {
-		got = append(got, s.(*prioritizedSystem).priority)
-	}
-	assert.Equal(t, []int{-50, 0, 10}, got)
+	g.printSystems()
+
+	assert.Equal(t, []int{10, 0, -50}, order(), "printSystems must not reorder the live systems slice")
 }
 
 func TestOverloadPercent_NoTruncationTo100(t *testing.T) {
