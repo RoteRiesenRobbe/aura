@@ -555,20 +555,6 @@ export function roundToNearestPowOfTwo(value: number): number {
     return Math.pow(2, Math.round(Math.log2(value)));
 }
 
-/**
- * Produces an evenly distributed hash code of a string, ensuring positive numbers.
- * @param value
- */
-export function hashCode(value: string): number {
-    let hash = 2166136261; // FNV offset basis
-    for (let i = 0; i < value.length; i++) {
-        hash ^= value.charCodeAt(i); // XOR with character code
-        hash *= 16777619; // FNV prime
-        hash >>>= 0; // Ensure unsigned 32-bit integer
-    }
-    return hash;
-}
-
 export function logCallers(numberOfCallers: number = 3) {
     const stack = new Error().stack;
     const lines = stack.split('\n').slice(2, 2 + numberOfCallers); // Skip 'Error' and get next n callers

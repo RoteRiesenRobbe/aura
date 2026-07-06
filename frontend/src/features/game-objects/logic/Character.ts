@@ -1,6 +1,6 @@
 import {GameObject} from './_GameObject';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
-import {hashCode, isDefined, random, randomFrom} from '../../common/logic/Utils';
+import {isDefined, random, randomFrom} from '../../common/logic/Utils';
 import * as Equipment from '../../items/logic/Equipment';
 import {EquipmentSlot} from '../../items/logic/Equipment';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
@@ -44,8 +44,7 @@ export interface Hand {
 }
 
 export class Character extends GameObject implements ICharacterLike, IMiniMapRendered {
-    static variants: ISvgContainer[] = [];
-    static svg: Texture;
+    static avatar: ISvgContainer = {svg: undefined};
     static craftingIndicator: ISvgContainer = {svg: undefined};
     static damageAura: ISvgContainer = {svg: undefined};
     static healAura: ISvgContainer = {svg: undefined};
@@ -83,7 +82,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     private prerenderSubToken: ISubscriptionToken;
 
     constructor(id: number, x: number, y: number, name: string, isPlayerCharacter: boolean) {
-        super(id, Game.layers.characters, x, y, GraphicsConfig.character.size, Character.DOWNWARD_FACING_ROTATION, Character.pickVariant(name).svg);
+        super(id, Game.layers.characters, x, y, GraphicsConfig.character.size, Character.DOWNWARD_FACING_ROTATION, Character.avatar.svg);
         this.name = name;
         this.isPlayerCharacter = isPlayerCharacter;
         this.movementSpeed = Constants.BASE_MOVEMENT_SPEED;
@@ -161,13 +160,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         }, this);
 
         this.prerenderSubToken = PrerenderEvent.subscribe(this.update, this);
-    }
-
-    /**
-     * Picks a character variant based on the name. Same name = same look, by the magic of hash codes.
-     */
-    private static pickVariant(name: string): ISvgContainer {
-        return Character.variants[hashCode(name) % Character.variants.length];
     }
 
     initShape(svg: Texture, x: number, y: number, size: number, rotation: number) {
@@ -592,12 +584,8 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     }
 }
 
-Character.variants = new Array(GraphicsConfig.character.files.length);
-GraphicsConfig.character.files.forEach((file: string | { default: string }, index: number) => {
-    Character.variants[index] = {svg: undefined};
 // noinspection JSIgnoredPromiseFromCall
-    Preloading.registerGameObjectSVG(Character.variants[index], file, GraphicsConfig.character.size);
-});
+Preloading.registerGameObjectSVG(Character.avatar, GraphicsConfig.character.file, GraphicsConfig.character.size);
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(

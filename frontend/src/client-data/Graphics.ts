@@ -27,7 +27,7 @@ export const GraphicsConfig = {
          * SYNCED WITH BACKEND
          */
         size: <number> 30,
-        files: [require('../features/game-objects/assets/characters/player.svg')],
+        file: require('../features/game-objects/assets/characters/player.svg'),
         damageAuraFile: require('../features/game-objects/assets/effects/damageAura.svg'),
         healAuraFile: require('../features/game-objects/assets/effects/healAura.svg'),
         damageAuraRadiusMeters: <number> 1,
