@@ -321,7 +321,7 @@ func applyResistAura(e skillEntity, source skills.SkillID, level int, effect ski
 // effectResistFactor scales the granted resistance factor by skill level
 // (negative perLevel = stronger resistance at higher levels), floored at 0.
 func effectResistFactor(e skills.EffectDef, level int) float32 {
-	factor := e.ResistFactor + float32(level-1)*e.ResistFactorPerLevel
+	factor := skills.Scaled(e.ResistFactor, e.ResistFactorPerLevel, level)
 	if factor < 0 {
 		factor = 0
 	}
@@ -418,7 +418,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			continue
 		}
 
-		radius := effect.Radius + float32(es.Level-1)*effect.RadiusPerLevel
+		radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, es.Level)
 		query := phy.NewCircle(e.AuraCollider().Position(), radius)
 		query.Shape().Mask = model.InstantDamageMask(effect)
 
@@ -448,7 +448,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 // pre-filters layers per the target flags; entities that cannot be slowed
 // (players — no ApplySlow) are skipped.
 func applySlowAura(level int, effect skills.EffectDef, collisions phy.ColliderSet) {
-	fraction := effect.SlowFraction + float32(level-1)*effect.SlowFractionPerLevel
+	fraction := skills.Scaled(effect.SlowFraction, effect.SlowFractionPerLevel, level)
 	if fraction <= 0 {
 		return
 	}
@@ -464,12 +464,12 @@ func applySlowAura(level int, effect skills.EffectDef, collisions phy.ColliderSe
 
 // effectDamageHP scales the base damage (absolute HP) by skill level.
 func effectDamageHP(e skills.EffectDef, level int) float32 {
-	return e.DamageHP + float32(level-1)*e.DamageHPPerLevel
+	return skills.Scaled(e.DamageHP, e.DamageHPPerLevel, level)
 }
 
 // effectHealHP scales the base heal (absolute HP) by skill level.
 func effectHealHP(e skills.EffectDef, level int) float32 {
-	return e.HealHP + float32(level-1)*e.HealHPPerLevel
+	return skills.Scaled(e.HealHP, e.HealHPPerLevel, level)
 }
 
 // selfHealHP is the self_heal center amount in HP (pre-variance-roll): a
@@ -478,7 +478,7 @@ func effectHealHP(e skills.EffectDef, level int) float32 {
 // by HealFractionOfMaxPerLevel (absolute) per level.
 func selfHealHP(e skills.EffectDef, level int, maxHP vitals.VitalSign) float32 {
 	if e.HealFractionOfMax > 0 {
-		frac := e.HealFractionOfMax + float32(level-1)*e.HealFractionOfMaxPerLevel
+		frac := skills.Scaled(e.HealFractionOfMax, e.HealFractionOfMaxPerLevel, level)
 		return frac * float32(maxHP)
 	}
 	return effectHealHP(e, level)

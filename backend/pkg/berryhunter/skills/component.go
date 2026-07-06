@@ -31,7 +31,7 @@ const BurstVFXTicks = 45
 // (level−1)×perLevel (negative perLevel = shorter at higher levels),
 // floored at one tick.
 func (es *EquippedSkill) EffectiveCooldownTicks() int {
-	cd := es.Def.CooldownTicks + (es.Level-1)*es.Def.CooldownTicksPerLevel
+	cd := Scaled(es.Def.CooldownTicks, es.Def.CooldownTicksPerLevel, es.Level)
 	if cd < 1 {
 		cd = 1
 	}
@@ -46,7 +46,7 @@ func (es *EquippedSkill) EffectiveCooldownTicks() int {
 func (es *EquippedSkill) EffectiveRadius() float32 {
 	var max float32
 	for _, e := range es.Def.Effects {
-		r := e.Radius + float32(es.Level-1)*e.RadiusPerLevel
+		r := Scaled(e.Radius, e.RadiusPerLevel, es.Level)
 		if r > max {
 			max = r
 		}
@@ -77,8 +77,8 @@ type SkillComponent struct {
 
 // DerivedStats accumulates stat_multiplier bonuses from equipped passives.
 // Bonuses are additive multipliers on the base value: effective = base × (1 + bonus).
-// Per skill, the contribution is AdditivePerLevel × level; across skills and
-// effects, contributions to the same stat stack linearly.
+// Per skill, the contribution is Scaled(StatBonus, StatBonusPerLevel, level);
+// across skills and effects, contributions to the same stat stack linearly.
 type DerivedStats struct {
 	MovementSpeedBonus float32
 	MaxHealthBonus     float32
@@ -171,7 +171,7 @@ func (sc *SkillComponent) BurstRadius(window int) float32 {
 			if e.Type != EffectTypeInstantDamage {
 				continue
 			}
-			r := e.Radius + float32(es.Level-1)*e.RadiusPerLevel
+			r := Scaled(e.Radius, e.RadiusPerLevel, es.Level)
 			if r > max {
 				max = r
 			}
@@ -199,7 +199,7 @@ func (sc *SkillComponent) recomputeDerived() {
 		for _, e := range es.Def.Effects {
 			switch e.Type {
 			case EffectTypeStatMultiplier:
-				bonus := e.AdditivePerLevel * float32(es.Level)
+				bonus := Scaled(e.StatBonus, e.StatBonusPerLevel, es.Level)
 				switch e.Stat {
 				case StatMovementSpeed:
 					d.MovementSpeedBonus += bonus
@@ -211,7 +211,7 @@ func (sc *SkillComponent) recomputeDerived() {
 			case EffectTypeResistPassive:
 				// Level scaling mirrors the aura fields (base + (L−1)×perLevel),
 				// floored at 0; per tag the factors of distinct passives multiply.
-				factor := e.ResistFactor + float32(es.Level-1)*e.ResistFactorPerLevel
+				factor := Scaled(e.ResistFactor, e.ResistFactorPerLevel, es.Level)
 				if factor < 0 {
 					factor = 0
 				}

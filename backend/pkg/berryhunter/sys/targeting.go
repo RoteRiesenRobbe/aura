@@ -21,7 +21,7 @@ func effectiveMaxTargets(e skills.EffectDef, level int) int {
 	if e.MaxTargets <= 0 {
 		return 0
 	}
-	n := e.MaxTargets + (level-1)*e.MaxTargetsPerLevel
+	n := skills.Scaled(e.MaxTargets, e.MaxTargetsPerLevel, level)
 	if n < 1 {
 		n = 1
 	}
@@ -30,7 +30,7 @@ func effectiveMaxTargets(e skills.EffectDef, level int) int {
 
 // effectiveTickInterval is the level-scaled tick interval, floored at 1.
 func effectiveTickInterval(e skills.EffectDef, level int) int {
-	n := e.TickInterval + (level-1)*e.TickIntervalPerLevel
+	n := skills.Scaled(e.TickInterval, e.TickIntervalPerLevel, level)
 	if n < 1 {
 		n = 1
 	}

@@ -107,7 +107,7 @@ var (
 	defDamage = &skills.SkillDefinition{ID: 1, Name: "DamageAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 	defHeal   = &skills.SkillDefinition{ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 	defSwift  = &skills.SkillDefinition{ID: 10, Name: "SwiftPassive", Category: skills.SkillCategoryPassive, MaxLevel: 3,
-		Effects: []skills.EffectDef{{Type: skills.EffectTypeStatMultiplier, Stat: skills.StatMovementSpeed, AdditivePerLevel: 0.05}}}
+		Effects: []skills.EffectDef{{Type: skills.EffectTypeStatMultiplier, Stat: skills.StatMovementSpeed, StatBonus: 0.05, StatBonusPerLevel: 0.05}}}
 	defNova = &skills.SkillDefinition{ID: 20, Name: "NovaBurst", Category: skills.SkillCategoryCooldown, MaxLevel: 3}
 )
 

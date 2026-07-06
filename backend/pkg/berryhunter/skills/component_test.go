@@ -421,7 +421,7 @@ var testSwift = &SkillDefinition{
 	Category: SkillCategoryPassive,
 	MaxLevel: 3,
 	Effects: []EffectDef{
-		{Type: EffectTypeStatMultiplier, Stat: StatMovementSpeed, AdditivePerLevel: 0.05},
+		{Type: EffectTypeStatMultiplier, Stat: StatMovementSpeed, StatBonus: 0.05, StatBonusPerLevel: 0.05},
 	},
 }
 
@@ -433,11 +433,26 @@ func TestDerivedStats(t *testing.T) {
 		assert.Equal(t, float32(0), sc.Derived.MaxHealthBonus)
 	})
 
-	t.Run("equip applies additivePerLevel times level", func(t *testing.T) {
+	t.Run("equip applies statBonus plus (level-1) times perLevel", func(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.EquipPassive(0, testSwift, 2)
 
 		assert.InDelta(t, 0.10, sc.Derived.MovementSpeedBonus, 1e-6)
+	})
+
+	t.Run("base and perLevel scale independently", func(t *testing.T) {
+		// Pins the unified convention: NOT perLevel×level (0.06) and NOT
+		// base×level (0.30) — base + (L−1)×perLevel.
+		frontloaded := &SkillDefinition{
+			ID: 13, Name: "Frontloaded", Category: SkillCategoryPassive, MaxLevel: 3,
+			Effects: []EffectDef{
+				{Type: EffectTypeStatMultiplier, Stat: StatMovementSpeed, StatBonus: 0.10, StatBonusPerLevel: 0.02},
+			},
+		}
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, frontloaded, 3)
+
+		assert.InDelta(t, 0.14, sc.Derived.MovementSpeedBonus, 1e-6)
 	})
 
 	t.Run("unequip removes the bonus", func(t *testing.T) {
@@ -452,7 +467,7 @@ func TestDerivedStats(t *testing.T) {
 		other := &SkillDefinition{
 			ID: 11, Name: "OtherSwift", Category: SkillCategoryPassive, MaxLevel: 3,
 			Effects: []EffectDef{
-				{Type: EffectTypeStatMultiplier, Stat: StatMovementSpeed, AdditivePerLevel: 0.02},
+				{Type: EffectTypeStatMultiplier, Stat: StatMovementSpeed, StatBonus: 0.02, StatBonusPerLevel: 0.02},
 			},
 		}
 		sc := NewSkillComponent(true)
@@ -466,7 +481,7 @@ func TestDerivedStats(t *testing.T) {
 		tank := &SkillDefinition{
 			ID: 12, Name: "TankPassive", Category: SkillCategoryPassive, MaxLevel: 3,
 			Effects: []EffectDef{
-				{Type: EffectTypeStatMultiplier, Stat: StatMaxHealth, AdditivePerLevel: 0.1},
+				{Type: EffectTypeStatMultiplier, Stat: StatMaxHealth, StatBonus: 0.1, StatBonusPerLevel: 0.1},
 			},
 		}
 		sc := NewSkillComponent(true)

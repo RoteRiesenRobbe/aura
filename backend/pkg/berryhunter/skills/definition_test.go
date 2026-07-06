@@ -53,7 +53,8 @@ var swiftPassiveJSON = []byte(`{
     {
       "type": "stat_multiplier",
       "stat": "movementSpeed",
-      "additivePerLevel": 0.05
+      "statBonus": 0.05,
+      "statBonusPerLevel": 0.05
     }
   ]
 }`)
@@ -172,7 +173,8 @@ func TestParse_SwiftPassive(t *testing.T) {
 	e := def.Effects[0]
 	assert.Equal(t, EffectTypeStatMultiplier, e.Type)
 	assert.Equal(t, "movementSpeed", e.Stat)
-	assert.InDelta(t, 0.05, e.AdditivePerLevel, 1e-6)
+	assert.InDelta(t, 0.05, e.StatBonus, 1e-6)
+	assert.InDelta(t, 0.05, e.StatBonusPerLevel, 1e-6)
 }
 
 func TestParse_NovaBurst(t *testing.T) {
@@ -296,7 +298,7 @@ func TestMap_VarianceOnNonRollingEffectFails(t *testing.T) {
 	// On an effect without a rolled amount, variance would be a silent no-op.
 	for _, effect := range []string{
 		`{"type": "slow_aura", "targetsMobs": true, "slowFraction": 0.5, "variance": 0.1}`,
-		`{"type": "stat_multiplier", "stat": "movementSpeed", "additivePerLevel": 0.1, "variance": 0.1}`,
+		`{"type": "stat_multiplier", "stat": "movementSpeed", "statBonus": 0.1, "statBonusPerLevel": 0.1, "variance": 0.1}`,
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
@@ -445,7 +447,7 @@ func TestParse_SelfHeal(t *testing.T) {
 func TestParse_DamageReductionStat(t *testing.T) {
 	data := []byte(`{
       "id": 11, "name": "ToughPassive", "category": "passive", "maxLevel": 3,
-      "effects": [{"type": "stat_multiplier", "stat": "damageReduction", "additivePerLevel": 0.02}]
+      "effects": [{"type": "stat_multiplier", "stat": "damageReduction", "statBonus": 0.02, "statBonusPerLevel": 0.02}]
     }`)
 	def := mustParse(t, data)
 
@@ -455,10 +457,33 @@ func TestParse_DamageReductionStat(t *testing.T) {
 
 func TestMap_UnknownStat(t *testing.T) {
 	// An unapplied stat would be a silent no-op — unknown names must fail loud.
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"luck","additivePerLevel":0.1}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"luck","statBonus":0.1}]}`))
 	require.NoError(t, err)
 	_, err = raw.mapToSkillDefinition()
 	assert.ErrorContains(t, err, "unknown stat")
+}
+
+func TestMap_StatMultiplierNoScalingFails(t *testing.T) {
+	// Both statBonus and statBonusPerLevel zero would be a do-nothing passive.
+	// This also catches a stale pre-rename "additivePerLevel" key, which
+	// json.Unmarshal silently drops.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"movementSpeed","additivePerLevel":0.05}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "no scaling")
+}
+
+func TestMap_StatFieldsOnNonStatEffectFails(t *testing.T) {
+	// stat/statBonus on other effect types would be a silent no-op.
+	for _, effect := range []string{
+		`{"type": "damage_aura", "targetsMobs": true, "damageHP": 7, "statBonus": 0.1}`,
+		`{"type": "slow_aura", "targetsMobs": true, "slowFraction": 0.5, "stat": "movementSpeed"}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		assert.Error(t, err, "stat fields must be rejected on %s", effect)
+	}
 }
 
 func TestMap_ExplicitTickInterval(t *testing.T) {

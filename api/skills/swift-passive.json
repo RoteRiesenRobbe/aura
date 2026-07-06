@@ -7,7 +7,8 @@
     {
       "type": "stat_multiplier",
       "stat": "movementSpeed",
-      "additivePerLevel": 0.05
+      "statBonus": 0.05,
+      "statBonusPerLevel": 0.05
     }
   ]
 }

@@ -197,9 +197,11 @@ type EffectDef struct {
 	// (item 11 Step 4). HitStyleAuto (default) derives it from the tick cadence.
 	HitStyle HitStyle
 
-	// stat_multiplier
-	Stat             string
-	AdditivePerLevel float32
+	// stat_multiplier — additive bonus to the named stat, scaled like every
+	// other paired field: StatBonus + (L−1) × StatBonusPerLevel.
+	Stat              string
+	StatBonus         float32
+	StatBonusPerLevel float32
 }
 
 type SkillDefinition struct {
@@ -258,8 +260,9 @@ type effectDef struct {
 
 	HitStyle string `json:"hitStyle"` // "" → auto (cadence-derived)
 
-	Stat             string  `json:"stat"`
-	AdditivePerLevel float32 `json:"additivePerLevel"`
+	Stat              string  `json:"stat"`
+	StatBonus         float32 `json:"statBonus"`
+	StatBonusPerLevel float32 `json:"statBonusPerLevel"`
 }
 
 type skillDefinition struct {
@@ -392,14 +395,33 @@ func mapResistFields(effectType EffectType, e *effectDef) error {
 	return nil
 }
 
+// mapStatFields validates the stat_multiplier fields. The stat name must be
+// known (an unapplied stat would be a silent no-op) and at least one of
+// statBonus/statBonusPerLevel must be non-zero — a both-zero effect does
+// nothing, and hard-failing it also catches the pre-rename "additivePerLevel"
+// key, which json.Unmarshal silently drops. Non-stat effects must not declare
+// stat fields (silent no-ops otherwise).
+func mapStatFields(effectType EffectType, e *effectDef) error {
+	if effectType != EffectTypeStatMultiplier {
+		if e.Stat != "" || e.StatBonus != 0 || e.StatBonusPerLevel != 0 {
+			return fmt.Errorf("stat fields are only valid on stat_multiplier effects")
+		}
+		return nil
+	}
+
+	if !validStats[e.Stat] {
+		return fmt.Errorf("stat_multiplier: unknown stat %q", e.Stat)
+	}
+	if e.StatBonus == 0 && e.StatBonusPerLevel == 0 {
+		return fmt.Errorf("stat_multiplier: no scaling authored (statBonus and statBonusPerLevel both 0; note additivePerLevel was renamed to this pair)")
+	}
+	return nil
+}
+
 func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 	effectType, ok := effectTypeMap[e.Type]
 	if !ok {
 		return EffectDef{}, fmt.Errorf("unknown effect type: %q", e.Type)
-	}
-
-	if effectType == EffectTypeStatMultiplier && !validStats[e.Stat] {
-		return EffectDef{}, fmt.Errorf("stat_multiplier: unknown stat %q", e.Stat)
 	}
 
 	selector, ok := selectorMap[e.Selector]
@@ -427,6 +449,10 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 	}
 
 	if err := mapVariance(effectType, e.Variance); err != nil {
+		return EffectDef{}, err
+	}
+
+	if err := mapStatFields(effectType, e); err != nil {
 		return EffectDef{}, err
 	}
 
@@ -460,6 +486,7 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		TickIntervalPerLevel:      e.TickIntervalPerLevel,
 		HitStyle:                  hitStyle,
 		Stat:                      e.Stat,
-		AdditivePerLevel:          e.AdditivePerLevel,
+		StatBonus:                 e.StatBonus,
+		StatBonusPerLevel:         e.StatBonusPerLevel,
 	}, nil
 }

@@ -83,21 +83,27 @@ vestigial systems). Nothing is architecturally scary; the risks are all of the
    JSON form equals the domain form would collapse the mapping to only the
    fields that genuinely transform (Type, Selector, HitStyle, TickInterval,
    DamageTags).
-2. **The level-scaling formula is written out ~8 times**: `effectDamageHP`,
-   `effectHealHP`, `effectResistFactor` (`sys/skills.go`),
-   `effectiveTickInterval`, `effectiveMaxTargets` (`sys/targeting.go`),
-   `EffectiveCooldownTicks`, `EffectiveRadius` (`skills/component.go`), and
-   inline in `applySlowAura`. Each is `base + (level−1)×perLevel` with a
-   per-case floor. One `scaled(base, perLevel, level)` helper would make the
-   convention un-divergeable.
-3. **Two level-scaling conventions inside `recomputeDerived`**
-   (`skills/component.go:202` vs `:214`): `stat_multiplier` scales as
-   `AdditivePerLevel × level`, while `resist_passive` directly below uses
-   `base + (L−1)×perLevel` like every other effect. Both are documented, but
-   a designer authoring JSON must know which formula applies per effect type.
-   **This is a content-authoring trap for item 12** — worth either unifying
-   or calling out loudly in whatever authoring reference the content pass
-   uses.
+2. **FIXED (2026-07-07)** — **The level-scaling formula was written out 13
+   times** (the original count of ~8 missed the three radius sites, the
+   `recomputeDerived` resist arm, and `selfHealHP`'s fraction). All now go
+   through generic `skills.Scaled(base, perLevel, level)`
+   (`skills/scaling.go`); per-field floors stay at the call sites since they
+   differ (none / 0 / 1 / uncapped-sentinel). Pure refactor, pinned by
+   `TestScaled`; the full suite was the regression net.
+3. **FIXED (2026-07-07)** — **Two level-scaling conventions inside
+   `recomputeDerived`** unified on the standard formula (plan Option A):
+   `stat_multiplier`'s single `additivePerLevel` field (× level) became the
+   paired `statBonus` + `statBonusPerLevel` (`base + (L−1)×perLevel`), the
+   tenth `Scaled` caller. Value-preserving content migration (`0.05` →
+   `0.05/0.05` in swift/tough-passive.json). Because `json.Unmarshal` drops
+   unknown keys silently, a `stat_multiplier` with no scaling authored (both
+   fields 0) now hard-fails at load — that guard catches any stale
+   `additivePerLevel` key. Stat fields on non-stat effects hard-fail too
+   (mirrors the variance/resist guards). Pinned by
+   `TestDerivedStats/base_and_perLevel_scale_independently`,
+   `TestMap_StatMultiplierNoScalingFails`,
+   `TestMap_StatFieldsOnNonStatEffectFails`. **The item-12 authoring rule is
+   now one sentence: every leveled value is `base + (level−1) × perLevel`.**
 4. **Duplicated eligibility closures in `sys/skills.go`** — the
    `targetsPlayers`/`targetsMobs` filter appears nearly identically in
    `applyPlayerDamageAura` (line 154) and `applyResistAura` (line 294). Same
@@ -167,8 +173,8 @@ sweep; until then it is the main source of unclear paths.
 |---|---|---|
 | `ByPriority.Less` bug + overload division | minutes | ~~anytime~~ **DONE 2026-07-06** (test-first, `core/game_test.go`; NB the naive comparator fix regressed tick order in-game — `ByPriority` deleted instead, see §2) |
 | `go vet` findings (unreachable code, unkeyed literals) | ~1 h | anytime; ideally wire `go vet` into CI with the test run |
-| Level-scaling helper (`scaled(...)`) | ~1 h | opportunistic, next time the formula is touched |
-| Two scaling conventions in `recomputeDerived` | decision needed | **before/with item 12** (authoring trap) |
+| Level-scaling helper (`scaled(...)`) | ~1 h | ~~opportunistic~~ **DONE 2026-07-07** (`skills.Scaled`, see §3.2) |
+| Two scaling conventions in `recomputeDerived` | decision needed | ~~before/with item 12~~ **DONE 2026-07-07** (unified on `base + (L−1)×perLevel`, see §3.3) |
 | `EffectDef` embedded-struct refactor | ~half day | next time an effect field is added |
 | Eligibility-closure dedup | ~1 h | opportunistic |
 | `addXxx` registration table | design sketch first | when the next entity type is added |
