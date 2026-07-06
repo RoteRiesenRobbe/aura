@@ -7,8 +7,8 @@
     {
       "type": "stat_multiplier",
       "stat": "damageReduction",
-      "statBonus": 0.02,
-      "statBonusPerLevel": 0.02
+      "statBonus": 0.1,
+      "statBonusPerLevel": 0.1
     }
   ]
 }
