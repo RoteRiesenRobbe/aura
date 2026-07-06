@@ -1,175 +1,180 @@
 # Aura — Game Design Document
 
-**Version:** 0.8
+**Version:** 1.0
 **Status:** Living document
-**Letzte Aktualisierung:** Planungssession 6 (Targeting & Line-of-Sight)
+**Last updated:** 2026-07-06 (doc consolidation; translated to English)
+
+> This document is the **game-design truth** (vision, mechanic intent, open
+> design questions). Technology belongs in the [Technical Design Document](./tdd.md),
+> implementation scope and status in `roadmap.md`, unscoped feature ideas in
+> `backlog.md`. All concrete numbers are [PLACEHOLDER] until explicitly final.
 
 ---
 
 ## 1. Vision & Pitch
 
-**Tagline:** MMO lite — Resource vs. Resource, so simplified as possible.
+**Tagline:** MMO lite — resource vs. resource, as simplified as possible.
 
-**Kernprinzip:** Spieler und NPCs interagieren ausschließlich über **Auren** — kreisförmige Effektfelder. **Kein manuelles Zielen:** jede Aura wählt ihre Ziele selbst, nach einer festen, pro Aura definierten Regel (Default: das nächste gültige Ziel in Reichweite). Positionierung und Cooldown-/Wechsel-Timing sind die einzigen Skill-Ausdrucksformen — *wer* getroffen wird, steuert man über die eigene Position.
+**Core principle:** Players and NPCs interact exclusively through **auras** — circular effect fields. **No manual aiming:** every aura picks its own targets by a fixed, per-aura rule (default: the nearest valid target in range). Positioning and cooldown/switch timing are the only skill expressions — *who* gets hit is controlled through your own position.
 
 **Inspiration:**
-- WoW Classic — Progression, Worldbuilding, Environmental Storytelling, langsame Steigerung im Ton
-- Gothic 1 & 2 — Low-Poly Look, dichte organische Welt
-- Hotline Miami / Monaco / Rimworld — Top-Down Art Direction (nicht isometrisch, nicht Pixel Art)
+- WoW Classic — progression, worldbuilding, environmental storytelling, slow escalation in tone
+- Gothic 1 & 2 — low-poly look, dense organic world
+- Hotline Miami / Monaco / Rimworld — top-down art direction (not isometric, not pixel art)
 
-**Plattform:** Browser-basiert.
+**Platform:** Browser-based.
 
 ---
 
 ## 2. Core Loop
 
-1. Spieler bewegt sich durch eine persistente shared Open World
-2. Trifft auf Mobs / andere Spieler — eigene Aura wählt automatisch nach ihrer Regel Ziele in Reichweite und tickt auf sie
-3. Schaden, Heilung, Buffs entstehen durch Auren-Overlap; Cooldown-Abilities modifizieren temporär
-4. Kampf endet → XP für alle Beteiligten → ggf. Aura-Unlock
-5. Level-Up → Skill-Punkte → bestehende Auren stärken oder Kombinationen freischalten
-6. Welt erkunden → Hinweise finden → neue Auren / Passives / Cooldowns freischalten
-7. Slots neu belegen, Build anpassen, schwierigere Inhalte angehen
+1. Player moves through a persistent shared open world
+2. Encounters mobs / other players — their own aura automatically picks targets in range by its rule and ticks on them
+3. Damage, healing, buffs emerge from aura overlap; cooldown abilities modify temporarily
+4. Combat ends → XP for all participants → possibly an aura unlock
+5. Level up → skill points → strengthen existing auras or unlock combinations
+6. Explore the world → find clues → unlock new auras / passives / cooldowns
+7. Rearrange slots, adjust the build, tackle harder content
 
-Alles dreht sich um die Resource (Sektion 3) und die Auren (Sektion 4).
+Everything revolves around the Resource (section 3) and the auras (section 4).
 
 ---
 
-## 3. Resource
+## 3. The Resource
 
-Jeder Spieler und jeder NPC hat genau **eine Resource**. Sie repräsentiert HP, Mana und alles andere gleichzeitig. Fällt sie auf 0 → Tod.
+Every player and every NPC has exactly **one resource**. It represents HP, mana, and everything else at once. Drops to 0 → death.
 
-### Verbrauch
-- Schaden durch Gegner-Auren reduziert die Resource
-- Eigene Heilauren auf andere Spieler kosten regelmäßig Resource
-- Mächtigere Auren kosten mehr Resource pro Tick
+### Consumption
+- Damage from enemy auras reduces the resource
+- Your own heal auras on other players cost resource continuously
+- More powerful auras cost more resource per tick
 
 ### Regeneration
-- Langsame passive Regeneration außerhalb von Kämpfen
-- Durch eigene Cooldown-Abilities
-- Durch Heilauren anderer Spieler
-- Durch Campfires (Environmental)
+- Slow passive regeneration outside of combat
+- Through your own cooldown abilities
+- Through other players' heal auras
+- Through campfires (environmental)
 
-### Tod
-Bei Resource = 0:
-- **Respawn** am zuletzt besuchten Lagerfeuer
-- **XP-Verlust** des aktuellen Levels (zurück auf 0 XP innerhalb des aktuellen Levels — kein Level-Down)
-- Kein Hardcore-Death, kein Gear-Loss
+### Death
+At resource = 0:
+- **Respawn** at the last visited campfire
+- **XP loss** within the current level (back to 0 XP inside the current level — no level-down)
+- No hardcore death, no gear loss
 
-Da Tod denselben Effekt auf den XP-Fortschritt hat wie ein Respec, kann nach dem Tod direkt kostenfrei umgeskillt werden (siehe Sektion 5).
+Since death has the same effect on XP progress as a respec, you can respec for free right after dying (see section 5).
 
 ---
 
-## 4. Auren
+## 4. Auras
 
 ### Definition
 
-Eine Aura ist ein kreisförmiges Effektfeld um einen Spieler oder NPC. Der Kreis ist die **Reichweite**, aus der die Aura ihre Ziele schlägt — nicht zwingend eine Trefferzone für alles darin. **Line-of-Sight-basiert** — Auren gehen nicht durch Wände oder große Umgebungsobjekte (Occluder sind kuratiert, siehe Tech-Dokument).
+An aura is a circular effect field around a player or NPC. The circle is the **range** from which the aura strikes its targets — not necessarily a hit zone for everything inside it. **Line-of-sight based** — auras don't pass through walls or large environment objects (occluders are curated, see the tech document).
 
 ```
        . . . . .
      .           .
-    .   M         .          P  = Spieler (Caster)
-    .       ###   .          M  = nächstes gültiges Ziel → wird getroffen
-    .   P   ###   .          M2 = Mob hinter Wand        → safe (LoS blockt)
-    .       ###   .          M3 = Mob außerhalb          → safe (zu weit)
-    .         M2  .          ### = Wand
+    .   M         .          P  = player (caster)
+    .       ###   .          M  = nearest valid target → gets hit
+    .   P   ###   .          M2 = mob behind wall       → safe (LoS blocks)
+    .       ###   .          M3 = mob out of range      → safe (too far)
+    .         M2  .          ### = wall
      .           .
        . . . . .       M3
 ```
 
 ### Targeting
 
-Jede Aura hat einen **Selector** (nach welcher Regel Ziele gewählt werden) und eine **Zielanzahl** — beides pro Aura festgelegt, als Daten, nicht als Code.
+Every aura has a **selector** (the rule by which targets are picked) and a **target count** — both defined per aura, as data, not as code.
 
-- **Default-Selector für alles (Damage und Heal): nearest** — das nächstgelegene gültige Ziel. Positionierung steuert damit direkt, wer getroffen bzw. geheilt wird: ein Schritt Richtung Boss = triff den Boss.
-- **lowest_health** (spezielle Auren): das prozentual am stärksten verwundete Ziel — niedrigste aktuelle Resource *relativ zur Max-Resource*, nicht absolut. Damit trifft/heilt es den relativ Angeschlagensten statt in gemischten Kämpfen immer den Add mit kleiner Max-Resource.
-- **Zielanzahl:** Basis-Auren treffen wenige Ziele (Startwert 1 [PLACEHOLDER]). Mehr Ziele gibt es über Level-ups (pro Aura definiert) oder als eigene Unlocks. Auren, die *alle* Ziele in Reichweite treffen, sind späte Unlocks.
-- **Auswahl-Pipeline:** Reichweite filtern → Line-of-Sight filtern → nach Selector sortieren → die ersten N nehmen.
+- **Default selector for everything (damage and heal): nearest** — the closest valid target. Positioning thereby directly controls who gets hit or healed: one step toward the boss = hit the boss.
+- **lowest_health** (special auras): the proportionally most wounded target — lowest current resource *relative to max resource*, not absolute. It thus hits/heals whoever is relatively worst off, instead of always picking the small-max-resource add in mixed fights.
+- **Target count:** base auras hit few targets (starting value 1 [PLACEHOLDER]). More targets come via level-ups (defined per aura) or as dedicated unlocks. Auras that hit *all* targets in range are late unlocks.
+- **Selection pipeline:** filter by range → filter by line-of-sight → sort by selector → take the first N.
 
-Heilauren heilen andere Spieler, **nie den Caster**. Selbstheilung ist konzeptionell ein Cooldown (siehe Anhang A, Heilmagie-Cooldown).
+Heal auras heal other players, **never the caster**. Self-healing is conceptually a cooldown (see Appendix A, Heal Magic cooldown).
 
-### Slot-System
+### Slot System
 
-Spieler haben drei Slot-Kategorien, alle wachsen mit Level:
+Players have three slot categories, all growing with level:
 
-- **Aktiv-Slots** — Auren die man aktiv wechseln und einsetzen kann (~4 initial, Tastatur 1–4)
-- **Passiv-Slots** — dauerhaft wirkende Effekte
-- **Cooldown-Slots** — aktive Abilities mit Cooldown, separate Buttons (Q, E, ...)
+- **Active slots** — auras you can actively switch and use (~4 initially, keyboard 1–4)
+- **Passive slots** — permanently active effects
+- **Cooldown slots** — active abilities with cooldowns, separate buttons (Q, E, ...)
 
-Alle Slots zusammen bilden den **Build**. Man kann mehr Auren im Zauberbuch haben als Slots — man wählt aktiv aus.
+All slots together form the **build**. You can have more auras in the spellbook than slots — you actively choose.
 
 ```
-  ZAUBERBUCH (alles gefunden)            BUILD (aktiv ausgewählt)
+  SPELLBOOK (everything found)           BUILD (actively selected)
   +-----------------------+              +-----------------------+
-  | Damage Aura     Lv 4  |              | Aktiv-Slots:          |
+  | Damage Aura     Lv 4  |              | Active slots:         |
   | Heal Aura       Lv 2  |   ------>    |   [1] Damage Aura     |
   | Tank Aura       Lv 1  |              |   [2] Heal Aura       |
-  | Speed Aura      Lv 3  |              |   [3] Licht           |
-  | Licht           Lv 1  |              |   [4] —               |
-  | Fackel (Pass.)  Lv 2  |              |                       |
-  | Schnell (Pass.) Lv 5  |              | Passiv-Slots:         |
-  | Attack (CD)     Lv 3  |              |   - Schnell           |
+  | Speed Aura      Lv 3  |              |   [3] Light           |
+  | Light           Lv 1  |              |   [4] —               |
+  | Torch (pass.)   Lv 2  |              |                       |
+  | Swift (pass.)   Lv 5  |              | Passive slots:        |
+  | Attack (CD)     Lv 3  |              |   - Swift             |
   | Flee   (CD)     Lv 1  |              |                       |
-  | ...                   |              | Cooldown-Slots:       |
+  | ...                   |              | Cooldown slots:       |
   +-----------------------+              |   [Q] Attack          |
                                          |   [E] Flee            |
                                          +-----------------------+
 ```
 
-### Aura-Verhalten
+### Aura Behavior
 
-- Immer genau **eine** Aktiv-Aura aktiv, mid-fight wechselbar
-- **Schaden und Heilung:** tick-basiert (Intervall variiert je Aura), Ziel-Wahl per Selector + Zielanzahl (siehe Targeting)
-- **Buffs/Debuffs** (Tank, Speed, ...): konstant, nicht tick-basiert
+- Always exactly **one** active aura on at a time, switchable mid-fight
+- **Damage and healing:** tick-based (interval varies per aura), target picking via selector + target count (see Targeting)
+- **Buffs/debuffs** (Tank, Speed, ...): constant, not tick-based
 
-### Basis-Auren
+### Base Auras
 
-Einfache Einzeleffekt-Auren. Beispiele: Damage, Heal, Tank (Damage Reduction), Speed, Cooldown Reduction, XP-Boost, Revive, Campfire-Build, Licht.
+Simple single-effect auras. Examples: Damage, Heal, Tank (damage reduction), Speed, Cooldown Reduction, XP Boost, Revive, Campfire-Build, Light.
 
-Jede Basis-Aura wird separat mit Skill-Punkten gelevelt. **Was ein Level-up verbessert, ist pro Aura individuell festgelegt** — mehr Schaden/Heilung, größere Reichweite, mehr Ziele, schnellere Tick-Rate; auch mehrere Achsen zugleich sind möglich. *Balance-Notiz für den Content-Pass: „mehr Ziele × mehr Schaden pro Ziel" auf derselben Aura ist der gefährlichste Multiplikator — bewusst einsetzen.*
+Each base aura is leveled separately with skill points. **What a level-up improves is defined individually per aura** — more damage/healing, larger range, more targets, faster tick rate; multiple axes at once are also possible. *Balance note for the content pass: "more targets × more damage per target" on the same aura is the most dangerous multiplier — use deliberately.*
 
-> Vollständige Liste der Basis-Auren noch TBD. Siehe Anhang A für gesammelte Spell-Ideen.
+> The complete list of base auras is still TBD. See Appendix A for collected spell ideas.
 
-### Kombinationen
+### Combinations
 
-Bestimmte Kombinationen aus freigeschalteten Auren, Passives und Cooldowns — jeweils auf bestimmten Leveln — schalten neue Auren, Passives oder Cooldowns frei.
+Specific combinations of unlocked auras, passives, and cooldowns — each at specific levels — unlock new auras, passives, or cooldowns.
 
-Drei wichtige Eigenschaften:
+Three important properties:
 
-- **Kategorien-übergreifend:** Eine Kombination kann beliebig Auren, Passives und Cooldowns mischen.
-- **Beliebige Level:** Komponenten können auf unterschiedlichen Leveln verlangt sein — eine Aura auf Level 7 kombiniert mit einem Passive auf Level 3.
-- **Beliebige Unlock-Art:** Das Ergebnis kann eine neue Aura, ein neuer Passive oder ein neuer Cooldown sein — unabhängig von den Komponenten.
+- **Cross-category:** a combination can mix auras, passives, and cooldowns arbitrarily.
+- **Arbitrary levels:** components can be required at different levels — an aura at level 7 combined with a passive at level 3.
+- **Arbitrary unlock type:** the result can be a new aura, a new passive, or a new cooldown — independent of the components.
 
-**Beispiele:**
+**Examples:**
 
-- Damage(5) + Heal(5) → "Damage+Heal" Aura
-- Schnell-Passive(3) + Heal-Aura(7) → neue Aura
-- Feuer-Schlag-Aura(8) + Eis-Aura(2) → neuer Cooldown
-- Feuer-Schlag-Aura(5) + Feuer-Schild-Cooldown(5) + Schnell-Passive(5) → Pyromancer-Aura
+- Damage(5) + Heal(5) → "Damage+Heal" aura
+- Swift passive(3) + Heal aura(7) → new aura
+- Fire Strike aura(8) + Ice aura(2) → new cooldown
+- Fire Strike aura(5) + Fire Shield cooldown(5) + Swift passive(5) → Pyromancer aura
 
-Kombinationen können auch andere Kombinations-Unlocks als Zutaten haben (wenige, manuell designed).
+Combinations can also have other combination unlocks as ingredients (few, manually designed).
 
-Kombinations-Rezepte sind **fest und kuratiert** — nicht algorithmisch. Sie stehen nirgendwo im Spiel dokumentiert; Spieler experimentieren und teilen die Funde online. Alle Unlocks aus Kombinationen werden separat gelevelt.
+Combination recipes are **fixed and curated** — not algorithmic. They are documented nowhere in-game; players experiment and share their findings online. All unlocks from combinations are leveled separately.
 
-### Cooldown-Abilities
+### Cooldown Abilities
 
-Modifizieren temporär den nächsten Tick oder die aktive Aura. Beispiele:
-- **Attack:** Nächster Tick 2× Schaden. CD 10s
-- **Flee:** Radius −80%, Speed +80%. CD 60s
-- **Ultimate:** Massiver Einzel-Burst, stark reduzierter Radius. CD 60min
+Temporarily modify the next tick or the active aura. Examples:
+- **Attack:** next tick deals 2× damage. CD 10 s
+- **Flee:** radius −80%, speed +80%. CD 60 s
+- **Ultimate:** massive single burst, heavily reduced radius. CD 60 min
 
-### Schadenstypen
+### Damage Types
 
-Schadenstypen ermöglichen thematische Kombi-Auren und interessante Mob-Resistances. Mobs haben Resistances gegen bestimmte Typen und machen selbst Schaden eines bestimmten Typs. Beispiel: eine Feuer-Schlag-Aura macht Feuer-Schaden, gegen den Feuer-resistente Mobs weniger anfällig sind.
+Damage types enable thematic combo auras and interesting mob resistances. Mobs have resistances against certain types and deal damage of a certain type themselves. Example: a Fire Strike aura deals fire damage, which fire-resistant mobs are less vulnerable to.
 
-Konkrete Typen TBD — Feuer, Eis, Physisch als Ausgangspunkt.
+**Mechanic built** (item 11 Phase 2, see `plan-item11-hp-resist-variance.md`): types are **arbitrary string tags** (no fixed enum — bespoke tags like "this one specific lava" are possible too), default tag `physical`, resistances are multipliers (0 = immune, >1 = vulnerable). The concrete type list is content ([PLACEHOLDER]) — fire, ice, physical as the starting point; assignment happens in the content pass (roadmap item 12).
 
-### Visuelle Darstellung
+### Visual Representation
 
-Kreise die sich im Uhrzeigersinn füllen, Tick wenn voll. Der Kreis liest sich als **Reichweiten-Indikator**, nicht als Trefferzone: pro Tick zeigt ein **Hit-Effekt auf dem tatsächlich getroffenen Ziel**, wen die Aura schlägt — bei langsam tickenden Auren z.B. ein Schwert-Slash über dem Ziel, bei schnell tickenden (Feuer) ein konstanter Effekt auf dem Ziel. So bleibt Single-/Wenig-Target im großen Kreis intuitiv lesbar.
+Circles that fill clockwise, tick when full. The circle reads as a **range indicator**, not as a hit zone: each tick, a **hit effect on the actually struck target** shows who the aura is hitting — for slow-ticking auras e.g. a sword slash over the target, for fast-ticking ones (fire) a constant effect on the target. This keeps single-/few-target inside the big circle intuitively readable.
 
-*Deferred:* Sticky-Targeting gegen Ziel-Zappeln bei nearest (Ziel behalten bis es stirbt oder die Reichweite verlässt) — erst bauen, wenn das Zappeln real stört. Overlaps mehrerer Spieler-Auren visuell noch zu lösen.
+*Deferred:* sticky targeting against target flicker with nearest (keep the target until it dies or leaves range) — build only when the flicker actually bothers. Visualizing overlaps of multiple player auras is also still unsolved.
 
 ---
 
@@ -177,207 +182,212 @@ Kreise die sich im Uhrzeigersinn füllen, Tick wenn voll. Der Kreis liest sich a
 
 ### Level & XP
 
-- Start bei Level 1 in der Startzone
-- XP für alle Beteiligten am Kampf (Schaden, Heilung, Buff)
-- Niedrig-Level-Mobs geben ab einem Abstand keine XP mehr
-- Höheres Mob-Level → mehr XP
-- Jedes Level: mehr Slots, mehr Skill-Punkte
+- Start at level 1 in the starting zone
+- XP for everyone involved in a fight (damage, healing, buffing)
+- Low-level mobs stop giving XP beyond a certain level gap
+- Higher mob level → more XP
+- Every level: more slots, more skill points
 
-### Milestone-Unlocks
+### Milestone Unlocks
 
-Bei bestimmten Levels garantierte Unlocks. Entwurf:
+Guaranteed unlocks at certain levels. Draft:
 
 | Level | Unlock |
 |---|---|
 | 1 | Damage Aura |
 | 2 | Heal Aura |
 | 3 | Tank Aura |
-| 4 | Cooldown-Ability (erste) |
-| 5 | Erster Skill-Punkt |
-| 5+ | Skill-Punkte bei Level-Up |
+| 4 | Cooldown ability (first) |
+| 5 | First skill point |
+| 5+ | Skill points on level-up |
 
-### Skill-System
+*(The currently implemented [PLACEHOLDER] assignment differs and lives in the
+`api/skills/` milestone data / CLAUDE.md → Current state; this draft remains
+the design intent for the content pass.)*
 
-- Skill-Punkte bei jedem Level-Up (ca. 30 bei Maxlevel — Balancing TBD)
-- Punkte investierbar in jede freigeschaltete Aura, jeden Passive, jeden Cooldown
-- Nur skillbar was bereits gefunden ist — neue Unlocks starten auf Level 1
-- Was ein Level-up konkret verbessert (Schaden/Heilung, Reichweite, Zielanzahl, Tick-Rate), ist pro Aura definiert (siehe Sektion 4)
-- Bestimmte Level-Kombinationen freigeschalteter Auren/Passives/Cooldowns schalten neue Inhalte frei (siehe Sektion 4)
-- Kein fester Klassenweg
+### Skill System
+
+- Skill points on every level-up (roughly 30 at max level — balancing TBD)
+- Points can be invested in any unlocked aura, any passive, any cooldown
+- Only what has already been found can be skilled — new unlocks start at level 1
+- What a level-up concretely improves (damage/healing, range, target count, tick rate) is defined per aura (see section 4)
+- Certain level combinations of unlocked auras/passives/cooldowns unlock new content (see section 4)
+- No fixed class path
 
 ### Respec
 
-Möglich. **Kosten:** der gesamte aktuelle Level-Fortschritt (XP des aktuellen Levels zurück auf 0).
+Possible. **Cost:** the entire current level progress (XP within the current level back to 0).
 
-Da der Tod denselben Effekt hat, kann man nach dem Tod direkt kostenfrei umskillen.
+Since death has the same effect, you can respec for free right after dying.
 
-### Meta-Progression: Character-Opfer
+### Meta-Progression: Character Sacrifice
 
-Einen Max-Level-Char "opfern" (Lore: Opfern vs. Fortschicken à la Arc Raiders, noch offen) schaltet **account-weit permanent** frei:
+"Sacrificing" a max-level character (lore: sacrifice vs. sending them away à la Arc Raiders, still open) permanently unlocks **account-wide**:
 
-- Neue Basis-Auren (z.B. Speed-Aura)
-- Einzigartige Auren/Effekte die sonst nicht erhältlich sind
-- Kosmetische Unlocks (Avatar-Portraits)
+- New base auras (e.g. Speed aura)
+- Unique auras/effects not obtainable any other way
+- Cosmetic unlocks (avatar portraits)
 
-Neue Chars profitieren von allen bisherigen Opfern.
-
----
-
-## 6. Zauberbuch & Unlocks
-
-Das **Zauberbuch** ist die Sammlung aller Auren, Passives und Cooldowns die ein Spieler gefunden hat. Daraus wählt man den aktiven Build.
-
-Es gibt fünf Wege an neue Einträge zu kommen:
-
-1. **Milestone-Unlocks** — Garantiert bei bestimmten Levels (siehe Sektion 5)
-2. **Monster-Kill-Unlocks** — Bestimmte (nicht alle) Gegner droppen beim Tod Auren oder Passives
-3. **Welt-Entdeckung** — Über Hinweis-Ankerpunkte in der Welt (siehe Sektion 7)
-4. **NPC-Teaching** — Friedliche NPCs lehren beim Annähern eine spezifische Aura. Oft thematisch verknüpft mit Mobs in der Nähe die nur durch genau diese Aura schädigbar sind (siehe Sektion 8 → Ernte-Mobs)
-5. **Meta-Progression** — Character-Opfer schalten account-weit neue Basis-Auren frei (siehe Sektion 5)
+New characters benefit from all previous sacrifices.
 
 ---
 
-## 7. Spielwelt
+## 6. Spellbook & Unlocks
 
-### Welt-Design
+The **spellbook** is the collection of all auras, passives, and cooldowns a player has found. The active build is chosen from it.
 
-Persistente shared Open World, mehrere verbundene Zonen für unterschiedliche Level-Bereiche. Inspiration WoW Classic: langsame Steigerung in Ton, Schwierigkeit und Story-Gewicht — vom kleinen Dulli im Wald zu Drachen und Untoten erst sehr spät.
+There are five ways to get new entries:
 
-Welt wird vom Designer skizziert und manuell umgesetzt — nicht algorithmisch generiert. Environmental Storytelling zentral.
+1. **Milestone unlocks** — guaranteed at certain levels (see section 5)
+2. **Monster kill unlocks** — certain (not all) enemies drop auras or passives on death
+3. **World exploration** — via clue anchor points in the world (see section 7)
+4. **NPC teaching** — peaceful NPCs teach a specific aura on approach. Often thematically tied to nearby mobs that can only be damaged by exactly that aura (see section 8 → harvest mobs)
+5. **Meta-progression** — character sacrifices unlock new base auras account-wide (see section 5)
 
-### Zonen
+---
 
-Jede Zone hat:
-- Eigenen Area-Chat (nur für Spieler in dieser Zone)
-- Eigenes Terrain: Gras, Wüste, Spinnweben, Lavaerde, etc.
-- Eigene Dekoration, Mobs, Geometrie (Höhlen, Flüsse, offene Flächen)
-- Eigene Sounds / Soundtrack (angestrebt)
+## 7. Game World
 
-### Open-World-Dungeons
+### World Design
 
-Keine Instanzen. WoW-Classic-Style Höhlen in der offenen Welt. Spieler kennen sie und kehren gemeinsam zurück.
+Persistent shared open world, multiple connected zones for different level ranges. Inspiration WoW Classic: slow escalation in tone, difficulty, and story weight — from a small nobody in the woods to dragons and undead only very late.
 
-### Dunkelheit & Licht
+The world is sketched by the designer and built by hand — not algorithmically generated. Environmental storytelling is central.
 
-Bestimmte Gebiete (Höhlen, Tunnel zwischen Zonen) sind dunkel — Sichtfeld stark eingeschränkt, ähnlich wie Höhlen in älteren Top-Down-Spielen. Der Tunnel zwischen Zone 1 und Zone 2 ist der erste solche Bereich und dient als natürliches Tutorial für das Rollen-Konzept.
+### Zones
 
-**Beschlossen: Dunkelheit ist rein visuell.** Sie schränkt die Sicht ein, hat aber keine Auswirkungen auf Schaden, Trefferchance oder Aura-Verhalten — im Dunkeln *kann* man getroffen werden, man *sieht* nur schlecht. Der Wert der Licht-Rolle ist Sicht für die Gruppe (positionieren, ausweichen, Ziele erkennen).
+Each zone has:
+- Its own area chat (only for players in this zone)
+- Its own terrain: grass, desert, cobwebs, lava soil, etc.
+- Its own decoration, mobs, geometry (caves, rivers, open spaces)
+- Its own sounds / soundtrack (aspirational)
 
-Lösungen für Dunkelheit:
-- **Licht-Aura** (Aktiv, früh erhältlich) — erzwingt Trade-off: Licht oder Schaden. Kann auf andere gerichtet werden (Support-Licht).
-- **Fackel-Passive** (später freischaltbar) — dauerhaftes Licht ohne Aktiv-Slot zu blockieren.
+### Open-World Dungeons
 
-Siehe Anhang A.
+No instances. WoW-Classic-style caves in the open world. Players know them and return together.
 
-### Welt-Entdeckungs-Hinweise
+### Darkness & Light
 
-Jede Zone hat 1–n **Hinweis-Ankerpunkte** die auf versteckte Belohnungen zeigen — immer obfuscated, kein Quest-Marker-Feeling.
+Certain areas (caves, tunnels between zones) are dark — field of view heavily restricted, similar to caves in older top-down games. The tunnel between zone 1 and zone 2 is the first such area and serves as a natural tutorial for the role concept.
 
-Hinweis-Typen:
-- Schilder / Inschriften (*"Weg des Kriegers"*)
-- NPC-Dialog (*"Da hinten sind Trolle die viel über Heilmagie verstehen"*)
-- Umgebungs-Details (Altar, Symbol, Geräusch)
+**Decided: darkness is purely visual.** It restricts vision but has no effect on damage, hit chance, or aura behavior — in the dark you *can* be hit, you just *see* poorly. The value of the light role is vision for the group (positioning, dodging, spotting targets).
 
-**Belohnungen** sind ausschließlich: Aktives, Passives, Cooldowns, XP. Kein Loot, keine Items.
+Solutions for darkness:
+- **Light aura** (active, obtainable early) — forces the trade-off: light or damage. Can be directed at others (support light).
+- **Torch passive** (unlockable later) — permanent light without blocking an active slot.
 
-Hinweis-Sprache und Belohnung müssen im Nachhinein logisch zusammenpassen — nicht offensichtlich, aber nachvollziehbar. Kein Quest-Log, kein Marker.
+See Appendix A.
+
+### World-Exploration Clues
+
+Every zone has 1–n **clue anchor points** pointing at hidden rewards — always obfuscated, no quest-marker feeling.
+
+Clue types:
+- Signs / inscriptions (*"Way of the Warrior"*)
+- NPC dialogue (*"Back there are trolls who know a lot about heal magic"*)
+- Environmental details (altar, symbol, sound)
+
+**Rewards** are exclusively: actives, passives, cooldowns, XP. No loot, no items.
+
+The clue's wording and the reward must fit together logically in hindsight — not obvious, but comprehensible. No quest log, no markers.
 
 ```
-   Schild im Wald                NPC im Dorf
-   +-----------+                 "Da hinten sind Trolle,
-   | Weg des   |                  die viel über Heilmagie
-   | Kriegers  |                  verstehen..."
-   +-----+-----+                       |
+   Sign in the woods              NPC in the village
+   +-----------+                 "Back there are trolls
+   | Way of    |                  who know a lot about
+   | the       |                  heal magic..."
+   | Warrior   |                        |
+   +-----+-----+                        |
          |                              |
          v                              v
-   kurzer Dungeon                Troll-Gebiet
+   short dungeon                  troll territory
          |                              |
          v                              v
-   DPS-Aura unlock              Heilmagie-Cooldown unlock
+   DPS aura unlock              Heal Magic cooldown unlock
 ```
 
 ### Special Events
 
-Endgame-Boss-Kill löst einmaliges Welt-Event aus. Beispiel: Pfütze spawnt, 10 Sekunden drinstehen = seltene Aura unlock, danach weg. Kann "gestohlen" werden.
+An endgame boss kill triggers a one-time world event. Example: a puddle spawns, standing in it for 10 seconds = rare aura unlock, gone afterwards. Can be "stolen".
 
 ---
 
 ## 8. NPCs & Mobs
 
-- Feste Spawn-Punkte, designte Welt (kein procedural)
-- Patrollierende Mobs mit Max-Chase-Distanz
-- Mobs haben eigene Auren — Line-of-Sight und Targeting-Regeln gelten auch für sie
-- Mobs haben Resistances und einen eigenen Schadens-Typ (siehe Sektion 4)
-- Keine Item-Drops — nur XP und gelegentlich Aura-Unlocks
+- Fixed spawn points, designed world (no procedural generation)
+- Patrolling mobs with a max chase distance
+- Mobs have their own auras — line-of-sight and targeting rules apply to them too
+- Mobs have resistances and their own damage type (see section 4)
+- No item drops — only XP and occasionally aura unlocks
 
-### Mob-Typen
+### Mob Types
 
-| Typ | Beschreibung |
+| Type | Description |
 |---|---|
-| Normal | Solo machbar für Level-appropriaten Spieler |
-| Elite | Für Gruppen, mehr XP |
-| Boss | Starke Elite in besonderen Orten |
-| Endgame Boss | Raid-Level, löst Special Event aus |
-| Ernte-Mob | Stationär, friedlich oder passiv. Nur durch eine spezifische Aura schädigbar (oft via NPC-Teaching gelernt, siehe Sektion 6). Gibt viel XP, langsamer Respawn. Beispiel: Rüben auf einem Bauernhof-Feld, die nur die "Rüben-Ziehen"-Aura schädigt. |
+| Normal | Solo-doable for a level-appropriate player |
+| Elite | For groups, more XP |
+| Boss | Strong elite in special places |
+| Endgame boss | Raid-level, triggers a special event |
+| Harvest mob | Stationary, peaceful or passive. Only damageable by one specific aura (often learned via NPC teaching, see section 6). Gives lots of XP, slow respawn. Example: turnips on a farm field that only the "Turnip-Pull" aura can damage. |
 
-### Quest-artige Inhalte über bestehende Systeme
+### Quest-like Content Through Existing Systems
 
-Aura + Mob-Resistance + NPC-Teaching ergibt zusammen ein implizites Quest-System ohne dass ein dediziertes Quest-System nötig ist. Schema:
+Aura + mob resistance + NPC teaching together yield an implicit quest system without needing a dedicated one. Schema:
 
 ```
-  Friedlicher NPC  ───── lehrt ─────►  Spezifische Aura
+  Peaceful NPC  ───── teaches ─────►  Specific aura
         │                                     │
-        │ steht thematisch                    │ ist einzige Quelle
-        │ in der Nähe von                     │ von Schaden gegen
+        │ thematically stands                 │ is the only source
+        │ near                                │ of damage against
         ▼                                     ▼
-   Ernte-Mob-Population  ◄── nur damit zu ernten ──┘
-   (gibt viel XP)
+   Harvest-mob population  ◄── only harvestable with it ──┘
+   (gives lots of XP)
 ```
 
-Beispiele für mögliche Varianten:
-- Bauer + Rüben-Ziehen-Aura + Rüben-Feld
-- Fischer + Angel-Aura + Fische im See
-- Holzfäller + Holz-Hau-Aura + Bäume
-- Bergmann + Schürf-Aura + Erz-Adern
+Examples of possible variants:
+- Farmer + Turnip-Pull aura + turnip field
+- Fisherman + Fishing aura + fish in the lake
+- Lumberjack + Wood-Chop aura + trees
+- Miner + Prospecting aura + ore veins
 
-Effekt: Weiche "Berufs"-Identität ohne Klassen-System, plus Anreiz die Welt zu erkunden um spezielle NPCs zu finden.
+Effect: a soft "profession" identity without a class system, plus an incentive to explore the world to find special NPCs.
 
 ---
 
-## 9. Multiplayer & Kooperation
+## 9. Multiplayer & Cooperation
 
-- Persistente shared Welt — alles sichtbar, alles geteilt
-- Keine formalen Gruppen in v1 — jeder am Kampf Beteiligte kriegt XP
-- Kein PvP initial (frühestens nach 5 Jahren)
-- Kein Griefing möglich by design
+- Persistent shared world — everything visible, everything shared
+- No formal groups in v1 — everyone involved in a fight gets XP
+- No PvP initially (5 years out at the earliest)
+- No griefing possible by design
 
-### Rollen-Design
+### Role Design
 
-**Spieler gleichen gegenseitig Lücken aus und füllen Rollen — das ist für alle größeren Challenges essenziell, nicht optional.** Das Slot-System zwingt Spezialisierung; Kooperation füllt die Lücken.
+**Players cover each other's gaps and fill roles — for all larger challenges this is essential, not optional.** The slot system forces specialization; cooperation fills the gaps.
 
-Beispiele:
-- Licht-Support im Tunnel — ein Spieler trägt Licht-Aura, andere Damage
-- Heal-Support beim Boss — klassischer Tank/DD/Heal-Tanz
-- Speed-Buff während Flucht — siehe "Fly, You Fools!" in Anhang A
+Examples:
+- Light support in the tunnel — one player carries the Light aura, others damage
+- Heal support at the boss — the classic tank/DPS/heal dance
+- Speed buff while fleeing — see "Fly, You Fools!" in Appendix A
 
 ---
 
 ## 10. Art Direction & UI
 
 ### Art Direction
-- **No Pixel Art**
-- **Fully Top-Down** — exakt von oben, nicht 2,5D, nicht isometrisch
-- Low-Poly mit Icons für Abilities, Portraits für Spieler/NPCs
-- Referenzen: Hotline Miami, Gods Trigger, Monaco, Rimworld, Gothic 1+2
+- **No pixel art**
+- **Fully top-down** — exactly from above, not 2.5D, not isometric
+- Low-poly with icons for abilities, portraits for players/NPCs
+- References: Hotline Miami, Gods Trigger, Monaco, Rimworld, Gothic 1+2
 - System first, not presentation first
 
-### UI-Elemente (v1.0)
-- Resource-Bar
-- XP-Bar
-- Ability-Leiste (Aktiv-Slots 1–4, Cooldowns Q/E/...)
-- Aura-Panel (aktuell gewählter Build aus Zauberbuch)
+### UI Elements (v1.0)
+- Resource bar
+- XP bar
+- Ability bar (active slots 1–4, cooldowns Q/E/...)
+- Aura panel (currently selected build from the spellbook)
 - Minimap
-- Zone-Chat
+- Zone chat
 
 ```
   +-------------------------------------------------------+
@@ -394,111 +404,111 @@ Beispiele:
   |                                          +----------+ |
   |  [1][2][3][4]    Q   E                   | Chat ... | |
   +-------------------------------------------------------+
-       Aktiv-Slots   Cooldowns
+       Active slots   Cooldowns
 ```
 
-### Bewegungssteuerung
-Maus oder WASD — noch offen.
+### Movement Controls
+Mouse or WASD — still open.
 
 ---
 
 ## 11. Scope v1.0
 
-**Muss drin:**
-- [ ] Accounts (Register/Login)
-- [ ] Aura-System (Basis-Auren, Cooldowns, erste Kombis, Targeting: Selector + Zielanzahl)
-- [ ] Zauberbuch mit Milestone- und Monster-Unlocks
-- [ ] Progression (Level, Skill-System, Slots)
-- [ ] Persistente Welt
-- [ ] 2–3 Zonen
-- [ ] Mob-Typen: Normal, Elite, Boss
-- [ ] UI: Resource-Bar, XP-Bar, Ability-Leiste, Aura-Panel, Minimap, Zone-Chat
-- [ ] Line-of-Sight für Auren
+**Must have:**
+- [ ] Accounts (register/login)
+- [ ] Aura system (base auras, cooldowns, first combos, targeting: selector + target count)
+- [ ] Spellbook with milestone and monster unlocks
+- [ ] Progression (level, skill system, slots)
+- [ ] Persistent world
+- [ ] 2–3 zones
+- [ ] Mob types: normal, elite, boss
+- [ ] UI: resource bar, XP bar, ability bar, aura panel, minimap, zone chat
+- [ ] Line-of-sight for auras
 - [ ] Campfire
 
-**Nicht in v1.0:**
-PvP, formales Gruppen-System, Economy, Mobile, Endgame-Raid-Events, Character-Opfer (nice to have)
+**Not in v1.0:**
+PvP, formal group system, economy, mobile, endgame raid events, character sacrifice (nice to have)
 
 ---
 
-## 12. Offene Design-Fragen
+## 12. Open Design Questions
 
-*(Technische Fragen siehe separates Tech-Dokument.)*
+*(Technical questions: see the separate tech document.)*
 
-### Mechanik
-- [ ] Name der Resource (Essence / Focus / Power?)
-- [ ] Genaue Slot-Anzahl pro Kategorie und Wachstum per Level
-- [ ] Sind Passiv- und Cooldown-Slots dasselbe?
-- [ ] Skill-Punkte pro Level final (aktuell ~30 bei Maxlevel angedacht)
-- [ ] Max-Level konkret
-- [x] ~~Trifft jede Aura alle in Reichweite?~~ → **Beschlossen:** Selector + Zielanzahl pro Aura; Default nearest, Basis-Auren gecappt; AoE-alle als später Unlock (siehe Sektion 4, Targeting)
-- [x] ~~lowest-HP absolut oder prozentual?~~ → **Beschlossen:** prozentual (relativ zur Max-Resource)
+### Mechanics
+- [ ] Name of the resource (Essence / Focus / Power?)
+- [ ] Exact slot count per category and growth per level
+- [ ] Are passive and cooldown slots the same thing?
+- [ ] Skill points per level final (currently ~30 at max level envisioned)
+- [ ] Concrete max level
+- [x] ~~Does every aura hit everything in range?~~ → **Decided:** selector + target count per aura; default nearest, base auras capped; AoE-all as a late unlock (see section 4, Targeting)
+- [x] ~~lowest-HP absolute or percentage?~~ → **Decided:** percentage (relative to max resource)
 
-### Welt & Inhalte
-- [ ] Welche Basis-Auren gibt es konkret (vollständige Liste)
-- [ ] Pro Aura: Selector, Start-Zielanzahl und Level-up-Achsen festlegen (Content-Pass)
-- [ ] Feste Kombinations-Rezepte ausarbeiten
-- [ ] Schadenstypen definieren (Feuer, Eis, Physisch, ...)
+### World & Content
+- [ ] Which base auras exist concretely (complete list)
+- [ ] Per aura: define selector, initial target count, and level-up axes (content pass)
+- [ ] Work out the fixed combination recipes (mechanic built — Phase 9; first recipe: PaladinAura)
+- [ ] Define the damage-type *list* (fire, ice, physical, ...) — the *mechanic* (string tags, resist multipliers) is decided + built (see section 4, Damage Types)
 
-### Steuerung & UI
-- [ ] Bewegungssteuerung: Maus oder WASD?
-- [ ] Aura-Visualisierung bei Overlaps
+### Controls & UI
+- [ ] Movement controls: mouse or WASD?
+- [ ] Aura visualization on overlaps
 
 ### Meta
-- [ ] Saisonal vs. Permanent-Server?
-- [ ] Lore: Opfern vs. Fortschicken?
+- [ ] Seasonal vs. permanent servers?
+- [ ] Lore: sacrifice vs. sending away?
 
 ---
 
-## Anhang A — Spell / Aura / Cooldown Ideen (Sammlung)
+## Appendix A — Spell / Aura / Cooldown Ideas (Collection)
 
-Unsortierte Ideen-Liste, gruppiert nach Kategorie. Noch nicht final — zum Experimentieren und Iterieren.
+Unsorted idea list, grouped by category. Not final — for experimenting and iterating.
 
-### A.1 Aktive Auren
+### A.1 Active Auras
 
-| Name | Effekt | Notiz |
+| Name | Effect | Note |
 |---|---|---|
-| Fly, You Fools! | Erhöht Movespeed aller Verbündeten im Radius. Caster wird nicht gebufft / bleibt zurück. | LotR-Ref, Risk/Reward für Support |
-| Purple Rain | Färbt alle im Umkreis lila. Kein Kampf-Nutzen. | Reines Flavor/Meme |
-| Licht | Erzeugt Licht in dunklen Gebieten. Kann auf andere gerichtet werden (Support-Licht). | Frühes Spiel, Zone 1 → 2, kein Kampfeffekt |
-| Feuer-Schlag | Feuer-Schaden auf das lowest_health-Target (prozentual) im Umkreis. | Komponente Pyromancer-Kombi, Beispiel für lowest_health-Selector |
-| Long Range Execute *(Arbeitsname)* | Sehr großer Radius, sehr langsamer Tick, hoher Schaden auf das prozentual niedrigste Ziel. **Hartes Single-Target-Cap** — trifft nie mehrere Ziele, egal welches Level. | Beispiel für per-Aura-Selector + festes Cap |
-| Rüben-Ziehen | Schädigt ausschließlich Rüben-Mobs auf einem Feld. Keine Wirkung auf andere Mobs. | NPC-Teaching (Bauer), Ernte-Mob-Beispiel |
+| Fly, You Fools! | Increases move speed of all allies in radius. The caster is not buffed / stays behind. | LotR ref, risk/reward for support |
+| Purple Rain | Colors everyone in range purple. No combat use. | Pure flavor/meme |
+| Light | Creates light in dark areas. Can be directed at others (support light). | Early game, zone 1 → 2, no combat effect |
+| Fire Strike | Fire damage to the lowest_health target (percentage) in range. | Pyromancer combo component, example of the lowest_health selector |
+| Long Range Execute *(working title)* | Very large radius, very slow tick, high damage to the proportionally lowest target. **Hard single-target cap** — never hits multiple targets, regardless of level. | Example of a per-aura selector + fixed cap |
+| Turnip-Pull | Damages exclusively turnip mobs on a field. No effect on other mobs. | NPC teaching (farmer), harvest-mob example |
 
 ### A.2 Passives
 
-| Name | Effekt | Notiz |
+| Name | Effect | Note |
 |---|---|---|
-| Fackel | Dauerhaftes Licht um den Caster. | Löst Licht-Trade-off, Zone 2+ |
-| Schnell | +5% Movespeed. | Komponente Pyromancer-Kombi |
+| Torch | Permanent light around the caster. | Resolves the light trade-off, zone 2+ |
+| Swift | +5% move speed. | Pyromancer combo component |
 
 ### A.3 Cooldowns
 
-| Name | Effekt | Notiz |
+| Name | Effect | Note |
 |---|---|---|
-| Feuer-Schild | 30s lang reflektiert 20% des eingehenden Schadens. | Komponente Pyromancer-Kombi |
-| Heilmagie-Cooldown *(Arbeitsname)* | Stellt eigene Resource wieder her. | Reward aus Troll-Gebiet (Hinweis-Ankerpunkt); **einziger Weg zur Selbstheilung** — Heilauren heilen nie den Caster |
+| Fire Shield | For 30 s, reflects 20% of incoming damage. | Pyromancer combo component |
+| Heal Magic cooldown *(working title)* | Restores the caster's own resource. | Reward from the troll territory (clue anchor point); **the only path to self-healing** — heal auras never heal the caster |
 
-### A.4 Kombinations-Rezepte
+### A.4 Combination Recipes
 
-| Ergebnis | Rezept | Notiz |
+| Result | Recipe | Note |
 |---|---|---|
-| Paladin-Aura | Damage(3) + Heal(3) | Macht beides, aber schwächer als einzeln |
-| Pyromancer-Aura | Feuer-Schlag(5) + Feuer-Schild(5) + Schnell(5) | Cross-Category-Beispiel |
+| Paladin aura | Damage(3) + Heal(3) | Does both, but weaker than each alone. **Shipped** (Phase 9) as Damage(5) + Heal(5) [PLACEHOLDER], values 70% of the base auras |
+| Pyromancer aura | Fire Strike(5) + Fire Shield(5) + Swift(5) | Cross-category example |
 
-### A.5 Mob-Ideen
+### A.5 Mob Ideas
 
-| Name | Notiz |
+| Name | Note |
 |---|---|
-| Trolle | "Viel über Heilmagie versiert" — ermöglichen Heilmagie-Cooldown-Unlock |
-| Rüben | Stationäre Ernte-Mobs auf Bauernhof-Feldern. Nur durch Rüben-Ziehen-Aura schädigbar. Viel XP, langsamer Respawn. |
+| Trolls | "Well versed in heal magic" — enable the Heal Magic cooldown unlock |
+| Turnips | Stationary harvest mobs on farm fields. Only damageable by the Turnip-Pull aura. Lots of XP, slow respawn. |
 
-### A.6 Zonen / Welt-Locations
+### A.6 Zones / World Locations
 
-| Ort | Notiz |
+| Place | Note |
 |---|---|
-| Tunnel Zone 1 → Zone 2 | Erster dunkler Bereich, natürliches Licht-Tutorial |
-| Höhlen allgemein | Dunkel, Pokemon-Höhlen-Stil |
-| "Weg des Kriegers"-Schild | Hinweis-Ort, führt zu kurzem Dungeon mit DPS-Aura-Reward |
-| Troll-Gebiet | Hinweis-NPC führt hin, Reward = Heilmagie-Cooldown |
-| Bauernhof mit Rüben-Feld | Friedlicher Bauer-NPC lehrt Rüben-Ziehen-Aura. Feld nebenan = stationäre Rüben-Mobs. Ernte-Mob-Beispiel. |
+| Tunnel zone 1 → zone 2 | First dark area, natural light tutorial |
+| Caves in general | Dark, Pokémon-cave style |
+| "Way of the Warrior" sign | Clue location, leads to a short dungeon with a DPS-aura reward |
+| Troll territory | A clue NPC leads there, reward = Heal Magic cooldown |
+| Farm with turnip field | Peaceful farmer NPC teaches the Turnip-Pull aura. The field next door = stationary turnip mobs. Harvest-mob example. |

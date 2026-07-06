@@ -97,7 +97,7 @@ func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
 	}
 }
 
-// --- absolute HP (v1-roadmap item 11 Phase 1) ---
+// --- absolute HP (roadmap item 11 Phase 1) ---
 
 func TestPlayer_MaxHealth_FromBaseAndFactor(t *testing.T) {
 	p := newTestPlayer(nil)
@@ -112,7 +112,7 @@ func TestPlayer_MaxHealth_FromBaseAndFactor(t *testing.T) {
 		"level 3 = base × (1 + 2×0.1)")
 }
 
-// --- floating-number accumulators (v1-roadmap item 11) ---
+// --- floating-number accumulators (roadmap item 11) ---
 
 func TestPlayer_DamageTaken_AccumulatesAndResets(t *testing.T) {
 	p := newTestPlayer(nil)
@@ -153,7 +153,7 @@ func TestPlayer_HealReceived_AccumulatesAndResets(t *testing.T) {
 	assert.Zero(t, p.HealReceived())
 }
 
-// --- resource unification (v1-roadmap Block 2, Stage 1) ---
+// --- resource unification (roadmap Block 2, Stage 1) ---
 
 // updateVitalSigns must regenerate only Health (the single resource) and must
 // no longer force satiety/temperature to Max — those survival vitals are gone.
@@ -195,7 +195,7 @@ func TestUpdateVitalSigns_DeadPlayerDoesNotRegenerate(t *testing.T) {
 	assert.NotContains(t, p.StatusEffects().Effects(), model.StatusEffectRegenerating)
 }
 
-// --- recent healers (participation XP, v1-roadmap item 10) ---
+// --- recent healers (participation XP, roadmap item 10) ---
 
 func TestRecentHealers_RecordedAfterHeal(t *testing.T) {
 	p := newTestPlayer(nil)

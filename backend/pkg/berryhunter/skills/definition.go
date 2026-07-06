@@ -52,7 +52,7 @@ var effectTypeMap = map[string]EffectType{
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
-// affects (v1-roadmap.md item 11). It only matters once maxTargets caps the
+// affects (roadmap.md item 11). It only matters once maxTargets caps the
 // set — an uncapped effect hits everything in range regardless of selector.
 type Selector int
 

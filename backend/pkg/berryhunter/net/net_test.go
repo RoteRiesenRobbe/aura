@@ -28,7 +28,7 @@ func OnConnected(c *Client) {
 func TestClient_Run(t *testing.T) {
 	// Not a real test: a manual ListenAndServe script with no timeout or teardown
 	// that blocks `go test ./...` forever. Kept for manual WebSocket debugging;
-	// run explicitly by removing the skip. See docs/skill-system-design.md,
+	// run explicitly by removing the skip. See docs/plan-skill-system.md,
 	// Deferred Tech Debt.
 	t.Skip("manual WebSocket smoke script, blocks forever — not part of the automated suite")
 

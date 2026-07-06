@@ -30,7 +30,7 @@ type skillEntity interface {
 // bookkeeping needs. Players satisfy it; mobs do not (no PlayerVitalSigns) —
 // a heal effect on an entity without these capabilities is skipped. This is a
 // deliberate limitation: mob support behaviors ("move to allied mobs with a
-// mob-only heal aura", v1-roadmap.md item 7) will need heal_aura target flags
+// mob-only heal aura", roadmap.md item 7) will need heal_aura target flags
 // plus a vitals abstraction here.
 type healCaster interface {
 	VitalSigns() *model.PlayerVitalSigns
@@ -233,7 +233,7 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		other.NoteHealReceived(vs.Health - before) // floating heal number (item 11)
 		healedSomeone = true
 
-		// Participation XP (v1-roadmap item 10): a successful heal makes the
+		// Participation XP (roadmap item 10): a successful heal makes the
 		// caster a recent healer of the target for a limited window.
 		if healerPE, isPlayer := e.(model.PlayerEntity); isPlayer {
 			other.NoteHealedBy(healerPE)

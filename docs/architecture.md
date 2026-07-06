@@ -165,11 +165,10 @@ hypothetical open vista straddling two Spaces — which the tunnel topology avoi
   length. Same "apply a fraction of damage to overlapping entities" as an aura,
   sourced from a stationary shape.
 - **Buff / resist aura:** one more aura; same broadphase-overlap + apply cost,
-  granting a transient stat instead of dealing damage (mechanically like
-  `slow_aura`; granting to allies in range is how `heal_aura` already writes to
-  other players).
+  granting a transient stat instead of dealing damage. *(Since shipped as
+  `resist_aura`, item 11 Phase 2 — the cost model held.)*
 - **Resistance check at damage time:** a map lookup + a multiply. Nothing new to
-  iterate per tick.
+  iterate per tick. *(Shipped: `skills.ResistMultiplier`.)*
 - **A 20-player boss arena with adds:** trivial on one core — this is exactly the
   spread-tens-of-players regime from §4, and it must live in a single Space (the
   encounter controller iterates boss + adds + players, which requires shared
@@ -177,14 +176,15 @@ hypothetical open vista straddling two Spaces — which the tunnel topology avoi
   a seam (§6).
 
 So hazards and encounters add ~0 to the per-tick budget. Their real cost is
-*implementation* (new systems), not runtime — see v1-roadmap.md item 7 (boss
-encounters / encounter controller / threat) and item 11's deferred HP,
-resistances & damage-tag work.
+*implementation* (new systems), not runtime — see roadmap.md item 7 (boss
+encounters / encounter controller / threat). The HP/resistance/damage-tag
+substrate has since shipped (`plan-item11-hp-resist-variance.md`, Phases 1+2).
 
 ### Design implication for the damage/resistance system
 
 "Resistance to **this specific lava**, not general fire" means the
 damage/resistance types must be **arbitrary named tags** (a set/map), **not a
 fixed enum**. A rigid `fire/ice/physical` enum makes bespoke hazards impossible
-without a code change each time. Cheap to build tag-based from day one, painful
-to retrofit — decide it when the resistance system is built (item 11 deferred).
+without a code change each time. **Decided and built exactly this way** (item 11
+Phase 2): damage effects carry string tags, resist sources list the tags they
+cover, general (`fire`) and bespoke (`boss_x_lava`) multipliers compose.

@@ -51,14 +51,14 @@ type StatusEntity interface {
 
 // TickAccumulators is implemented by entities that accumulate per-tick
 // floating-number values (damage taken, heal / XP received) for the client's
-// floating-number VFX (v1-roadmap item 11). The values are serialized once per
+// floating-number VFX (roadmap item 11). The values are serialized once per
 // tick, then reset at the start of the next tick alongside status effects.
 type TickAccumulators interface {
 	ResetTickNumbers()
 }
 
 // AuraHitStyle is the per-tick aura-hit VFX a damage aura stamps on the target
-// it strikes (v1-roadmap item 11 Step 4). The SkillSystem picks the style from
+// it strikes (roadmap item 11 Step 4). The SkillSystem picks the style from
 // the source aura's effective tick cadence (slow → discrete slash, fast →
 // sustained fire) so the aura circle reads as range, not a hit zone. It is a
 // transient wire field (ubyte on Mob/Character), reset every tick on the same

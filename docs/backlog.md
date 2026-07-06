@@ -2,7 +2,7 @@
 
 Captured from the 2026-07-06 planning session. **Nothing here is scoped or
 decided** — these are ideas awaiting a design pass. An idea graduates into
-`v1-roadmap.md`, the GDD, or its own design doc when it's picked up; until
+`roadmap.md`, the GDD, or its own design doc when it's picked up; until
 then this file is the single place to collect and refine them.
 
 Conventions:
@@ -16,7 +16,7 @@ Conventions:
 - All numbers are [PLACEHOLDER], per the project-wide rule.
 
 Skill *content* ideas (specific auras, passives, cooldowns, recipes) belong
-in GDD Anhang A, not here — this file is for features and systems.
+in GDD Appendix A, not here — this file is for features and systems.
 
 ---
 
@@ -56,10 +56,10 @@ existing Zone-Chat concept.
 
 Context from current state:
 
-- The GDD's principle is explicit: "Kein Quest-Log, kein Marker" (GDD §7 →
-  Welt-Entdeckungs-Hinweise) and quest-like content is built implicitly from
-  existing systems, no dedicated quest system (GDD §8 → "Quest-artige
-  Inhalte über bestehende Systeme"). Whether a dialogue system fits inside
+- The GDD's principle is explicit: "no quest log, no markers" (GDD §7 →
+  World-Exploration Clues) and quest-like content is built implicitly from
+  existing systems, no dedicated quest system (GDD §8 → "Quest-like Content
+  Through Existing Systems"). Whether a dialogue system fits inside
   that principle is the open design question below — the principle itself is
   decided.
 - NPC teaching (unlock path #4) is currently designed as teach **on
@@ -195,7 +195,7 @@ the player to make that Resource cost visible.
 Answered by current state:
 
 - *Does a floating-number system already exist?* — **Yes.** Floating
-  damage/heal/XP numbers over mobs and players are live (v1-roadmap item 11
+  damage/heal/XP numbers over mobs and players are live (roadmap item 11
   step 3): per-tick `DamageTaken` / `HealReceived` / `XpGained` fields on
   entities, serialized on the wire, rendered by the frontend as literal HP
   since item 11 Phase 1. This idea is an extension, not net new.
@@ -227,7 +227,7 @@ Answered by current state:
 
 - *Should tooltips hide "how to obtain" for combo skills?* — **Decided:**
   combo recipes leave **zero in-game traces** (combo Q10,
-  `combo-design-questions.md`). A tooltip may show a combo-unlocked skill's
+  `archive-combo-questions.md`). A tooltip may show a combo-unlocked skill's
   own values like any other skill, but must never show acquisition/recipe
   info.
 

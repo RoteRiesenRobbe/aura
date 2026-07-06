@@ -1,17 +1,27 @@
-# Skill System Design
+# Skill System — Design & Migration Plan
+
+> **Status: migration COMPLETE (Phases 1–9, 2026-07-05).** This doc is the
+> design + execution record of the skill-system migration and the reference for
+> its architecture decisions (data model, ECS integration, combination system,
+> wire protocol). Post-migration changes to the effect schema (absolute HP,
+> damage tags, resist effect types) are recorded in
+> `plan-item11-hp-resist-variance.md`; the schema below reflects the current
+> state. The **authoritative field list is the code**
+> (`backend/pkg/berryhunter/skills/definition.go`) — a current data-vs-Go map
+> lives in `research-scripting-audit.md` §1.
 
 ## Overview
 
-The current aura implementation is hardcoded: two aura types (Damage, Heal) are
-baked into `model/player/player.go` as concrete methods, with their parameters
-living in `cfg.PlayerConfig`. This cannot support a spellbook, skill leveling, or
+*(Written before the migration — describes the starting point.)* The original
+aura implementation was hardcoded: two aura types (Damage, Heal) baked into
+`model/player/player.go` as concrete methods, with their parameters living in
+`cfg.PlayerConfig`. That could not support a spellbook, skill leveling, or
 mob parity without growing into a wall of special cases.
 
-This document describes a generic skill system that replaces that hardcoded logic.
-Skills are defined in JSON (mirroring how items and mobs are already defined),
-loaded into a registry at startup, and applied per-entity by a new `SkillSystem`
-in the ECS game loop. Players and mobs use the same system. The two current auras
-become the first two entries in `api/skills/`.
+This document describes the generic skill system that replaced that hardcoded
+logic. Skills are defined in JSON (mirroring how items and mobs are already
+defined), loaded into a registry at startup, and applied per-entity by a
+`SkillSystem` in the ECS game loop. Players and mobs use the same system.
 
 Scope: backend data model, ECS integration, wire protocol additions, and migration
 path. Frontend rendering and unlock delivery (milestones, drops) are out of scope
@@ -60,17 +70,22 @@ Top-level fields:
       "type": "damage_aura",
       "radius": 1.0,
       "radiusPerLevel": 0.0,
-      "damageFraction": 0.009,
-      "damageFractionPerLevel": 0.002,
+      "damageHP": 7,
+      "damageHPPerLevel": 1.6,
       "targetsMobs": true,
-      "targetsPlayers": false
+      "targetsPlayers": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 20
     }
   ]
 }
 ```
 
 All values marked [PLACEHOLDER]. `targetsPlayers: false` enforces the existing
-no-friendly-fire rule declaratively rather than in code.
+no-friendly-fire rule declaratively rather than in code. (Damage/heal amounts
+are absolute HP since item 11 Phase 1; `selector`/`maxTargets`/`tickInterval`
+landed with roadmap item 11.)
 
 ### Example 2 — Active Aura: Heal (with self-damage cost)
 
@@ -84,17 +99,20 @@ no-friendly-fire rule declaratively rather than in code.
     {
       "type": "heal_aura",
       "radius": 1.0,
-      "radiusPerLevel": 0.05,
-      "healFraction": 0.001,
-      "healFractionPerLevel": 0.0005,
-      "selfDamageFraction": 0.0015
+      "radiusPerLevel": 0.0,
+      "healHP": 6,
+      "healHPPerLevel": 3,
+      "selfDamageHP": 9,
+      "selector": "lowest_health",
+      "maxTargets": 1,
+      "tickInterval": 60
     }
   ]
 }
 ```
 
-`selfDamageFraction` is applied to the caster per tick that at least one ally was
-healed, matching the existing behavior. [PLACEHOLDER] on all numbers.
+`selfDamageHP` is applied to the caster per tick that at least one ally was
+healed. [PLACEHOLDER] on all numbers.
 
 ### Example 3 — Passive: Movement Speed
 
@@ -133,8 +151,8 @@ Stacking below). [PLACEHOLDER] on all numbers.
       "type": "instant_damage",
       "radius": 1.5,
       "radiusPerLevel": 0.1,
-      "damageFraction": 0.15,
-      "damageFractionPerLevel": 0.03,
+      "damageHP": 25,
+      "damageHPPerLevel": 6,
       "targetsMobs": true,
       "targetsPlayers": false
     }
@@ -149,17 +167,26 @@ shorter cooldown than level 1.
 
 ## Effect Types
 
+> **Schema currency note:** the tables below were updated for the post-migration
+> field renames (item 11: fractions → absolute HP, damage tags) and list the
+> gameplay-relevant fields, not every knob. Common to the targeted effect types
+> since roadmap item 11: `selector` (`nearest` default / `lowest_health` /
+> `all`), `maxTargets` (+`maxTargetsPerLevel`, 0 = uncapped),
+> `tickIntervalPerLevel`, and `hitStyle` (`auto`/`slash`/`fire`/`none`) on
+> damage auras. Authoritative source: `skills/definition.go`.
+
 ### `damage_aura`
 
-Deals damage per tick to every entity in range that matches the target flags.
-Applied while the aura slot is toggled **on**.
+Deals damage per tick to the selected targets in range that match the target
+flags. Applied while the aura slot is toggled **on**.
 
 | Parameter | Type | Description |
 |---|---|---|
 | `radius` | float | Base collision circle radius [PLACEHOLDER] |
 | `radiusPerLevel` | float | Added per skill level [PLACEHOLDER] |
-| `damageFraction` | float | Damage as fraction of target max-health per tick [PLACEHOLDER] |
-| `damageFractionPerLevel` | float | Added per skill level [PLACEHOLDER] |
+| `damageHP` | float | Absolute HP damage per hit [PLACEHOLDER] |
+| `damageHPPerLevel` | float | Added per skill level [PLACEHOLDER] |
+| `damageTags` | []string | Damage tags for resistance matching; default `["physical"]` |
 | `targetsMobs` | bool | Whether this hits mobs |
 | `targetsPlayers` | bool | Whether this hits other players |
 | `tickInterval` | int | Ticks between effect applications; default 1 [PLACEHOLDER] |
@@ -170,7 +197,7 @@ Heals nearby allies per tick while the aura slot is toggled on. If at least one
 ally was healed and `selfDamageFraction > 0`, the caster takes that much damage.
 
 > **Known, deliberate limitations (to be lifted for mob support behaviors,
-> see `v1-roadmap.md` item 7):** `heal_aura` has no target flags yet — it
+> see `roadmap.md` item 7):** `heal_aura` has no target flags yet — it
 > implicitly targets players only. And mob entities cannot *cast* heal auras:
 > the SkillSystem's `healCaster` capability split skips heal effects on
 > casters without player vitals (`self_heal` shares this limitation). Both
@@ -182,9 +209,9 @@ ally was healed and `selfDamageFraction > 0`, the caster takes that much damage.
 |---|---|---|
 | `radius` | float | Base collision radius [PLACEHOLDER] |
 | `radiusPerLevel` | float | Added per skill level [PLACEHOLDER] |
-| `healFraction` | float | Heal as fraction of target max-health per tick [PLACEHOLDER] |
-| `healFractionPerLevel` | float | Added per skill level [PLACEHOLDER] |
-| `selfDamageFraction` | float | Self-damage fraction per tick when healing occurred [PLACEHOLDER] |
+| `healHP` | float | Absolute HP healed per hit, clamped at target maxHealth [PLACEHOLDER] |
+| `healHPPerLevel` | float | Added per skill level [PLACEHOLDER] |
+| `selfDamageHP` | float | Self-damage in HP per tick when healing occurred [PLACEHOLDER] |
 | `tickInterval` | int | Ticks between effect applications; default 1 [PLACEHOLDER] |
 
 ### `stat_multiplier`
@@ -196,8 +223,9 @@ Supported stat names (extensible; unknown names hard-fail at load, because an
 accepted-but-unapplied stat would be a silent no-op):
 
 - `movementSpeed` — applied in `core/input.go`: `base × (1 + bonus)`
-- `maxHealth` — applied in `player.maxHealthFactor()`; health is stored
-  normalized, so a max-health change preserves the current health *percentage*
+- `maxHealth` — applied in `player.MaxHealthFactor()`; since absolute HP
+  (item 11 Phase 1) a max-health change raises the cap, current HP stays and
+  regens up
 - `damageReduction` — applied in `player.takeDamage`: `damage × (1 − bonus)`,
   capped at 100%
 
@@ -225,8 +253,9 @@ Question 3). The caster's own shapes are excluded.
 |---|---|---|
 | `radius` | float | Burst radius [PLACEHOLDER] |
 | `radiusPerLevel` | float | Added per skill level [PLACEHOLDER] |
-| `damageFraction` | float | Damage fraction per target hit [PLACEHOLDER] |
-| `damageFractionPerLevel` | float | Added per skill level [PLACEHOLDER] |
+| `damageHP` | float | Absolute HP damage per target hit [PLACEHOLDER] |
+| `damageHPPerLevel` | float | Added per skill level [PLACEHOLDER] |
+| `damageTags` | []string | Damage tags; default `["physical"]` |
 | `targetsMobs` | bool | |
 | `targetsPlayers` | bool | |
 
@@ -249,15 +278,27 @@ Currently only mobs are slowable (players have no `ApplySlow`).
 
 ### `self_heal`
 
-Cooldown-only: instantly heals the *caster* by a fraction of their max health
-when the skill is activated. No radius, no targets. Mob entities cannot cast
-it (needs player vitals — the same deliberate limitation as heal_aura
-casting). Fires the burst VFX with a radiusless (fallback-size) ring.
+Cooldown-only: instantly heals the *caster* when the skill is activated. No
+radius, no targets. Mob entities cannot cast it (needs player vitals — the
+same deliberate limitation as heal_aura casting). Fires the burst VFX with a
+radiusless (fallback-size) ring. Records the floating heal number
+(`NoteHealReceived`).
 
 | Parameter | Type | Description |
 |---|---|---|
-| `healFraction` | float | Heal as fraction of caster max-health [PLACEHOLDER] |
-| `healFractionPerLevel` | float | Added per skill level [PLACEHOLDER] |
+| `healHP` | float | Flat HP healed [PLACEHOLDER] |
+| `healHPPerLevel` | float | Added per skill level [PLACEHOLDER] |
+| `healFractionOfMax` | float | Heal as fraction of caster max HP; **overrides** flat `healHP` when set (the Heal cooldown uses this; heal *auras* stay flat by design) [PLACEHOLDER] |
+| `healFractionOfMaxPerLevel` | float | Added per skill level (absolute, e.g. 0.05 → +5 percentage points) [PLACEHOLDER] |
+
+### `resist_aura` / `resist_passive`
+
+Added in item 11 Phase 2 (post-migration). `resist_aura` grants allies in range
+(optionally the caster via `targetsSelf`, outside the target cap) a transient
+per-tag damage multiplier; `resist_passive` folds permanent self-resistance
+into `DerivedStats.Resistances`. Full design (decisions B1–B7: stacking keyed
+by source skill, `physical` default tag, 0 = immune non-event, buff lifetime =
+tick interval + 1) and field tables: **`plan-item11-hp-resist-variance.md`**.
 
 ---
 
@@ -394,8 +435,9 @@ startup failure; load order is items → skills → mobs). `Body.DamageRadius`,
 `Body.Damages`, `Factors.DamageFraction` and `Factors.StructureDamageFraction`
 were removed from the JSON shape. The `mobs.Factors` struct keeps the two
 damage fields as the **MobTouches payload**: the SkillSystem fills them from
-the active skill's effect parameters and each target picks its fraction
-(players: `DamageFraction`, structures: `StructureDamageFraction`) — the
+the active skill's effect parameters and each target picks its value
+(players: `Damage` — absolute HP since item 11 Phase 1, with tags in the
+payload-only `DamageTags`; structures: `StructureDamageFraction`) — the
 legacy double dispatch is preserved 1:1. `body.aggroRadius` is now required
 (the 4x-damage-radius fallback died with `DamageRadius`).
 
@@ -414,7 +456,7 @@ same per-tick frequency, collisions one physics step fresher.
 
 *Design written 2026-07-04 (Phase 7.4, as decided in Phase 7). Implementation
 is Phase 9. Question catalog with per-option rationale:
-`docs/combo-design-questions.md` — all 16 questions decided.*
+`docs/archive-combo-questions.md` — all 16 questions decided.*
 
 Curated, secret recipes: when a player's spellbook levels line up with a
 recipe's ingredients, the result skill unlocks. Recipes are never documented
@@ -669,7 +711,7 @@ refactor with monster-kill unlocks so the chapter has player-visible payoff.*
   behaviors) are deliberately not possible yet — see the `heal_aura`
   limitation note under Effect Types. Mob behavior requirements (base
   behavior, the three idle archetypes, individual placement/respawn) are
-  owned by `v1-roadmap.md` item 7.
+  owned by `roadmap.md` item 7.
 
 **6.2 — Monster-kill unlocks ✓ Done** (unlock source #2 from the vision)
 
@@ -769,7 +811,7 @@ equip-at-level-1 gap.
   written during this phase** — design only, no code. Recipes trigger on
   "skills X, Y at levels A, B", so the leveling data model must be shaped
   around the recipe check from the start. *(= step 7.4, the remaining part of
-  this phase; question catalog: `docs/combo-design-questions.md`.)*
+  this phase; question catalog: `docs/archive-combo-questions.md`.)*
 - Points-per-level budget: mechanism built (`skillPointsPerLevel` in
   conf.json), the number itself stays 1 [PLACEHOLDER] (Open Question 1).
 
@@ -819,7 +861,7 @@ no new wire field — the simpler half informs the harder one).
   zero-hint policy safe). **The passives section doubles as the game's
   "inventory":** item-flavored passives (e.g. a "Dagger" passive adding flat
   damage per tick) act as gear — there is no separate item/inventory system
-  (see `v1-roadmap.md`, survival-system removal).
+  (see `roadmap.md`, survival-system removal).
 
 **8.2 — Cooldowns ✓ Done** *(implemented + verified in-game 2026-07-04,
 including one refinement round and a content batch)*

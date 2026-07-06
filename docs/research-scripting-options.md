@@ -1,14 +1,14 @@
 # Scripting/Expression Layer — Parts 2–4: Options, Draft Plan, Open Decisions
 
 > **Status: options for discussion, deliberately no recommendation.** Written
-> 2026-07-06, companion to `scripting-system-investigation.md` (Part 1 audit).
+> 2026-07-06, companion to `research-scripting-audit.md` (Part 1 audit).
 > The call is made chat-side (Robert + Claude); this doc's job is to make the
 > trade-offs and the decision points explicit. All performance numbers are
 > order-of-magnitude **[PLACEHOLDER]** estimates, not measurements.
 >
 > The *pipeline* around designer-authored content (rebuild wall, frontend
 > dual-write, validation gates, persistence rules) is a separate, mostly
-> scripting-independent problem set — see `designer-content-pipeline.md`.
+> scripting-independent problem set — see `research-content-pipeline.md`.
 
 ---
 
@@ -22,7 +22,7 @@ Shared context for all options:
   already gate most effects (DamageAura fires every 20 ticks, HealAura every
   60), so "evaluations per tick" is far below "casters × targets". The
   documented stress case is the **blob** (low hundreds of co-located casters,
-  `architecture-and-scaling.md` §4).
+  `architecture.md` §4).
 - **Determinism:** single authoritative server, no lockstep — determinism means
   *reproducibility and auditability*, not cross-machine float identity. The
   risks are the same for every option: exposing wall clock, unseeded RNG, or

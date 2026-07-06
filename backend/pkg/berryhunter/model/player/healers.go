@@ -6,7 +6,7 @@ import (
 )
 
 // healParticipationWindowTicks is how long a heal counts as combat
-// participation (v1-roadmap item 10): a healer of a mob's damage participant
+// participation (roadmap item 10): a healer of a mob's damage participant
 // is rewarded on the mob's death if their last heal is at most this old.
 // [PLACEHOLDER]
 const healParticipationWindowTicks = 10 * constant.TicksPerSecond

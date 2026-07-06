@@ -6,7 +6,7 @@ package sys
 // that exercise applyDamageAura / applyHealAura against hand-built collision
 // sets, and processEntity against a real phy.Space so the accumulator and
 // TickInterval behavior is pinned down — including the documented multi-effect
-// interval quirk (docs/skill-system-design.md, "Known limitation").
+// interval quirk (docs/plan-skill-system.md, "Known limitation").
 
 import (
 	"testing"
@@ -292,7 +292,7 @@ func TestApplyHealAura_HealsHurtAllyByExactFraction(t *testing.T) {
 }
 
 func TestApplyHealAura_NotesHealerOnTarget(t *testing.T) {
-	// Participation XP (v1-roadmap item 10): a successful heal registers the
+	// Participation XP (roadmap item 10): a successful heal registers the
 	// caster as a recent healer on the target, so mob kills the target
 	// participates in also reward the healer.
 	caster := newFakePlayer()

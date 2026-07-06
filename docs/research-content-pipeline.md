@@ -2,7 +2,7 @@
 
 > **Status: informational / planning input, no implementation.** Written
 > 2026-07-06 as a follow-up to the scripting-layer investigation
-> (`scripting-system-investigation.md`, `scripting-system-options.md`).
+> (`research-scripting-audit.md`, `research-scripting-options.md`).
 > Question addressed: when this goes live and **designers** (not Go
 > engineers) author spells/skills without rebuilds — what breaks, and what do
 > we do now so it doesn't? All effort estimates are rough
@@ -72,7 +72,7 @@ The load validator catches shape errors, not semantic ones — a designer will
 author confidently wrong content and only find out in play. Behind all of
 this sits the **vocabulary ceiling**: anything outside the 8 effect types is
 an engineering ticket. That is the scripting-layer decision
-(`scripting-system-options.md`); if designers author, the calculus there
+(`research-scripting-options.md`); if designers author, the calculus there
 shifts toward at least the expression layer (Option B).
 
 ---
@@ -161,7 +161,7 @@ cleanup. Cross-reference recorded there when item 3 starts.
 - **Balance telemetry** — damage/heal dealt per skill, skill pick/equip
   rates, kill participation. Designers can't tune what they can't see;
   blind live balancing is its own class of nasty. (Fits the broader
-  observability gap flagged in `prototype-to-v1-readiness.md` §3.)
+  observability gap flagged in `research-v1-readiness.md` §3.)
 
 ---
 

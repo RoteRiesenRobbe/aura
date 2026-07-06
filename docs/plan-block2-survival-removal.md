@@ -1,11 +1,11 @@
 # Block 2 — Resource Unification & Survival-System Removal
 
-Execution plan and running status for **v1-roadmap items 1 + 2** (single unified
+Execution plan and running status for **roadmap items 1 + 2** (single unified
 resource; removal of the Berryhunter survival systems, crafting, and items).
 Graduated to its own doc per the roadmap convention once the work started
 (2026-07-04).
 
-Parent scope: `v1-roadmap.md` §1 (The Resource) and §2 (Survival-system removal).
+Parent scope: `roadmap.md` §1 (The Resource) and §2 (Survival-system removal).
 
 ## Locked decisions
 

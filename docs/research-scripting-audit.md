@@ -2,7 +2,7 @@
 
 > **Status: investigation only, no decision, no implementation.** Written
 > 2026-07-06. Factual map of where gameplay logic lives as Go code vs. as data
-> today. Options and trade-offs live in `scripting-system-options.md`; the
+> today. Options and trade-offs live in `research-scripting-options.md`; the
 > decisions this needs from us are listed at the end of that doc.
 >
 > One premise correction against the investigation brief: **Phase 9 (combos) is
@@ -153,7 +153,7 @@ another Go round trip even when the primitives already exist.
 was the same hardcoded chase loop; there is no interpreter, DSL, or behavior
 tree anywhere in the codebase or its history.
 
-**What's planned** (v1-roadmap item 7, already designed in outline):
+**What's planned** (roadmap item 7, already designed in outline):
 
 - Three idle archetypes (stationary / local patrol / route patrol) —
   parameterized data + waypoints in map data, *not* scripting-shaped.

@@ -7,7 +7,7 @@ package core
 //	  -1  (wire default / absent field) no change
 //	  -2  deactivate sentinel → component slot -1 (Nothing)
 //
-// See docs/skill-system-design.md, Wire Protocol Changes.
+// See docs/plan-skill-system.md, Wire Protocol Changes.
 
 import (
 	"testing"

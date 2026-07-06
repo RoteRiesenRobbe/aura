@@ -168,14 +168,14 @@ type Mob struct {
 	chaseIntoAuraMargin float32
 
 	// damageTaken accumulates health lost this tick (VitalSign units) for the
-	// floating damage number (v1-roadmap item 11); reset every tick.
+	// floating damage number (roadmap item 11); reset every tick.
 	damageTaken vitals.VitalSign
 
 	// auraHitStyle is the aura-hit VFX a damage aura stamped on this mob this
 	// tick (item 11 Step 4); reset every tick alongside damageTaken.
 	auraHitStyle model.AuraHitStyle
 
-	// combat participants for the death rewards (v1-roadmap item 10),
+	// combat participants for the death rewards (roadmap item 10),
 	// keyed by entity ID; cleared when the mob fully regenerates out of
 	// combat (combat reset). Lazily initialized by noteParticipant.
 	participants map[uint64]model.PlayerEntity
@@ -374,7 +374,7 @@ func (m *Mob) MaxHealth() vitals.VitalSign {
 }
 
 // HealthRatio is the current/max health fraction (0..1), read by the
-// lowest_health aura selector (v1-roadmap.md item 11).
+// lowest_health aura selector (roadmap.md item 11).
 func (m *Mob) HealthRatio() float32 {
 	if m.maxHealth == 0 {
 		return 0
@@ -400,7 +400,7 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) {
 }
 
 // DamageTaken is the health lost this tick (VitalSign units); floating damage
-// number source (v1-roadmap item 11).
+// number source (roadmap item 11).
 func (m *Mob) DamageTaken() vitals.VitalSign {
 	return m.damageTaken
 }
@@ -451,7 +451,7 @@ func (m *Mob) noteParticipant(p model.PlayerEntity) {
 	m.participants[p.Basic().ID()] = p
 }
 
-// tryGrantKillRewards distributes the death rewards once (v1-roadmap item 10):
+// tryGrantKillRewards distributes the death rewards once (roadmap item 10):
 // every combat participant — damage contributors plus their recent healers —
 // receives the full XP amount; drops go to the last toucher only (the item
 // system is scheduled for removal, so no investment there).

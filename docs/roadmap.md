@@ -3,19 +3,19 @@
 Very rough skeletons of the v1.0 scope items **outside** the skill system.
 Each item graduates to its own design doc (or a section here grows into one)
 when its work approaches. The skill system has its own plan:
-`skill-system-design.md`.
+`plan-skill-system.md`.
 
 Ordering below is a first guess, not a decision. All numbers [PLACEHOLDER].
 **⚑** marks open decision points.
 
 Unscoped ideas that haven't graduated into a roadmap item live in
-`feature-ideas.md`.
+`backlog.md`.
 
 ---
 
 ## 1. The Resource (single unified stat) ✓ Done
 
-> **Done (Block 2, 2026-07-04) — see `block2-resource-and-survival-removal.md`.**
+> **Done (Block 2, 2026-07-04) — see `plan-block2-survival-removal.md`.**
 > `Health` is now the single resource; items 1 + 2 were executed together.
 
 Every player and NPC has exactly one resource — HP, mana, everything at once;
@@ -32,7 +32,7 @@ Every player and NPC has exactly one resource — HP, mana, everything at once;
 
 ## 2. Survival-system removal ✓ Done
 
-> **Done (Block 2, 2026-07-04) — see `block2-resource-and-survival-removal.md`.**
+> **Done (Block 2, 2026-07-04) — see `plan-block2-survival-removal.md`.**
 > Survival systems, crafting, inventory, equipment, and the item wire protocol
 > removed; resources kept as decorative, campfires as inert stubs.
 
@@ -118,7 +118,7 @@ tunnel *is* this seam), or border ghosting (true seamless sharding, hard, later)
 A transition is a **handoff** (move the entity between Spaces, reset the client
 snapshot; connection stays put — the `carriedState` respawn pattern is its
 shape), not a teleport. **Full analysis, per-count scaling estimates, and handoff
-mechanics: `docs/architecture-and-scaling.md`.**
+mechanics: `docs/architecture.md`.**
 
 ## 5. Darkness & light
 
@@ -193,7 +193,7 @@ Aura effects blocked by walls/obstacles.
 - **Support behaviors:** mobs must be able to run behaviors like "move toward
   allied mobs with a mob-only heal aura active". Two known, deliberate Phase-6
   limitations must be lifted for this (both flagged in
-  `skill-system-design.md`): `heal_aura` has no target flags yet (implicitly
+  `plan-skill-system.md`): `heal_aura` has no target flags yet (implicitly
   players-only), and mob entities cannot cast heal auras (the SkillSystem's
   `healCaster` split — mobs lack player vitals). **Confirmed (targeting
   session): this stays here — no earlier lift, YAGNI.**
@@ -226,15 +226,15 @@ boss leashes to the rock, targets by **threat**, spawns adds; on death a 5th
 dwell 10 s gets a unique unlock, then the pool drains (one-shot ascension VFX).
 
 **Verdict: feasible, no rewrite, no hard architectural blocker.** Every hard
-part reduces to *one* missing system plus the already-deferred resist work.
-Status of each mechanic:
+part reduces to *one* missing system. Status of each mechanic:
 
 - ✅ **Now:** static geometry (rock/bridges/pool) = static colliders; mob
   spawning primitives; mob-death events (rewards already fire on death); unlock
-  granting (spellbook kill/milestone unlocks already grant auras).
-- 🟡 **Planned/partial:** lava DoT + tag-specific resist aura = the deferred
-  resist/damage-**tag** system + a *buff-aura* effect type (grants a transient
-  stat like `slow_aura`) — see item 11 deferred. Boss leash to the rock =
+  granting (spellbook kill/milestone unlocks already grant auras); **tag-based
+  damage/resistances + resist auras** (item 11 Phase 2 shipped:
+  `plan-item11-hp-resist-variance.md` — a lava DoT with a bespoke tag and a
+  matching ward aura are now pure content).
+- 🟡 **Planned/partial:** boss leash to the rock =
   tighten existing `spawnPosition`/aggro-territory leashing. Ascension VFX =
   frontend + a world-state wire bit.
 - 🔴 **Missing (all the same gap):** encounter start/lock, conditional damage
@@ -272,7 +272,7 @@ per-mob nearest-target can't express that).
 - **One Space required.** The controller iterates boss + 3 sub-mobs + players,
   which must share collision/visibility → the whole arena is a single
   `phy.Space` (perf-trivial at ~20 players + adds; see
-  `docs/architecture-and-scaling.md` §7). A boss arena is a natural per-zone
+  `docs/architecture.md` §7). A boss arena is a natural per-zone
   Space reached through a seam.
 - **Timed / one-shot world states must be wire-visible.** The 20-min bridge and
   the already-claimed pool are persistent states clients must see (passable?
@@ -335,13 +335,17 @@ Vision: **all combat participants receive XP** (no formal groups in v1).
 - ✓ **Decided: drops stay with the last toucher.** The item system is removed
   with the survival systems (item 2); no investment there.
 
-## 11. Aura targeting: selector & target cap
+## 11. Aura targeting: selector & target cap ✓ Done
+
+> **Done (2026-07-04, Steps 1–5 below); the deferred HP/resistance follow-up
+> graduated to `plan-item11-hp-resist-variance.md` (Phases 1+2 done, Phase 3
+> open).**
 
 **Decided (targeting session): base auras get capped targeting.** The design
 pitch changes from "no targeting" to "**no manual aiming**": every aura picks
 its own targets by a per-aura rule; positioning controls *who* gets hit.
-Current implementation is AoE-all (every matching entity in range) — this item
-changes shipped base-aura behavior and is its own step.
+The pre-item implementation was AoE-all (every matching entity in range) —
+this item changed shipped base-aura behavior and was its own step.
 
 - **Effect data fields** (analogous to `tickInterval`): `selector` and
   `maxTargets` on `damage_aura`, `heal_aura`, `instant_damage`.
@@ -412,6 +416,8 @@ Executed as Steps 1–3 in a dedicated session; each committed separately.
   players) and `Player.updateFromBackend` (own character). Display-scale
   **[PLACEHOLDER]**: full health ≈ 1000 points (`HEALTH_DISPLAY_SCALE` /
   `vitalUnitsToDisplay` in `_GameObject.ts`), never rounds a real hit to 0.
+  *(Superseded: since item 11 Phase 1 the numbers are literal absolute HP and
+  `HEALTH_DISPLAY_SCALE` is deleted — see `plan-item11-hp-resist-variance.md`.)*
   Note: `xp_gained` rides on *every* `Character`, so a nearby player's XP number
   also shows — harmless; restrict to self if it reads as noise.
 
@@ -445,77 +451,17 @@ Executed as Steps 1–3 in a dedicated session; each committed separately.
 - ✓ **Overhead health bars moved below** the avatar (mobs + the player's
   in-world bar); the bottom-right HUD bar is unchanged.
 
-### Deferred from item 11 — HP system, resistances, stat variance/ranges
+### Graduated from item 11 — HP system, resistances, stat variance/ranges
 
-These emerged while balancing Step 4 and are **not in the current scope**; record
-here so they aren't re-derived. They share one root: today "HP" is a single
-normalized `Health` fraction (0..1) identical for every entity, and damage is a
-flat per-tick *fraction* of that. The floating numbers are therefore scaled by a
-frontend placeholder (`HEALTH_DISPLAY_SCALE`, full health ≈ 1000), so they are
-**approximate and inconsistent**, not real hit values.
+The "deferred from item 11" block (absolute HP, resistances as arbitrary string
+tags, resist auras/passives, stat variance) **graduated to its own execution
+doc: `plan-item11-hp-resist-variance.md`**, which holds all decisions (A1–A3,
+B1–B7), the implementation map, and the remaining open questions.
 
-1. **Exact, consistent overhead damage numbers → a real HP system.** To show
-   truthful numbers, mobs (and players) need an **individually settable max HP**
-   in absolute points, with damage computed and serialized in those same units
-   (not a re-scaled fraction). This is the enabling change for everything below.
-2. **Resistances / damage types** (already in the design doc — restated as it
-   lands here): once damage carries a type, per-mob resistances scale the applied
-   amount, and the overhead number must reflect the *post-resistance* value.
-3. **Stat variance & damage ranges (scaling instead of always-identical).** Mobs
-   of the same type should spawn within an **HP range** (not one fixed value),
-   and auras/abilities should roll damage in a **range X–Z** per hit rather than
-   a constant. This is the "no two encounters feel identical" axis and also the
-   hook for later level/elite scaling.
-
-**Open questions to resolve at implementation time:**
-
-- **HP units:** what is 1 HP? Pick an absolute integer scale (e.g. base mob ≈
-  100, or ≈ 1000 to match the current display placeholder) and make max HP a
-  per-mob-definition field. Do players use the same scale?
-- **Wire change:** switch `health` / `damage_taken` from normalized VitalSign
-  units to absolute HP, or add absolute fields alongside? (Regen, the aura
-  fractions, and `HealthRatio()` selectors all currently assume the 0..1 model.)
-- **Damage model:** do auras keep dealing a *fraction* of the target's max HP
-  (current model — scales automatically with mob HP) or switch to **flat HP**
-  damage (needs per-aura absolute values, and interacts differently with the HP
-  range)? This decision drives whether the "range X–Z" is a fraction range or an
-  HP range.
-- **Variance source & determinism:** is a mob's rolled HP fixed at spawn (server
-  authoritative, sent once) and each hit's damage rolled per-tick? Seeded/
-  reproducible or free RNG? Does variance apply to players too, or mobs only?
-- **Resistance representation:** per-damage-type multipliers on the mob
-  definition (e.g. `{fire: 0.5, physical: 1.2}`), and what the default/uncapped
-  bounds are. How does a resisted-to-near-zero hit read in the overhead number?
-- **Range display:** show the exact rolled number (current intent) — confirm
-  crits/high rolls don't need distinct styling yet.
-- **Balance surface:** every existing placeholder fraction must be re-expressed
-  once units change; plan a single balancing pass (ties into item 12).
-
-**Rough cost (see the chat rundown 2026-07-04):** items 1–2 are a *medium*
-backend+wire change (HP becomes absolute, one FlatBuffers field migration, regen
-both bindings, rework regen/heal/selector math, update the display path) —
-roughly the size of one Step, mostly mechanical but touches balance everywhere.
-Item 3 (variance/ranges) is *small-to-medium* and cheap **once** 1–2 land (a roll
-at spawn + a roll per hit), but near-pointless before them because fractional HP
-hides the effect. Sequence: HP units → resistances/types → variance.
-
-4. **Damage/resistance types must be arbitrary named TAGS, not a fixed enum.**
-   Forced by bespoke content like "resistance to *this specific lava*, not
-   general fire": a rigid `fire/ice/physical` enum can't express a per-encounter
-   damage tag, so every such hazard would need a code change. Build the type key
-   as a set/map of string tags from day one — cheap now, painful to retrofit.
-   General resist ("fire") and bespoke resist ("boss_x_lava") then compose: a
-   hazard deals a tag, a resist source lists the tags it covers.
-5. **Buff / resist auras** — a `heal_aura`-shaped effect type that grants a
-   *transient* stat (resistance, etc.) to allies in range instead of healing;
-   modeled like `slow_aura` (re-applied each tick, short fade) so it sidesteps
-   system-ordering races (a hazard tick landing before the buff was applied) and
-   gives the right feel (step out of the aura → start taking damage ~1 s later).
-   This is the enabler for environmental-hazard encounters (lava-bridge / carrier
-   role) — the same design pattern as the light-tunnel role (item 5), and the
-   runtime cost is ~0 (`docs/architecture-and-scaling.md` §7). "Current
-   resistance" becomes an **aggregated** value at damage time (base + passive +
-   aura-granted), extending the existing `skills.Derived` aggregation.
+Status: **Phase 1 (absolute HP) ✓ and Phase 2 (resistances & damage tags) ✓**
+are implemented and verified in-game; **Phase 3 (stat variance & damage
+ranges)** is documented there but not scheduled. Runtime-cost reasoning for
+hazards/resist auras: `docs/architecture.md` §7.
 
 ## 12. Initial content pass (prototype gate)
 
@@ -546,14 +492,12 @@ needs real design time:
 Multiplayer itself already works — the game runs as a shared-world WebSocket
 server today. The minimal subset for a playable prototype:
 
-1. **Skill system complete** — `skill-system-design.md` Phases ~~3.7 → 1b →
-   5 → 6 → 7 → 8~~ → **9 (remaining; design done, implementation open)**.
-2. **Items 1 + 2** — single resource, survival systems removed.
+1. ~~**Skill system complete** — `plan-skill-system.md` Phases 1–9.~~ ✓
+2. ~~**Items 1 + 2** — single resource, survival systems removed.~~ ✓
 3. ~~**Item 10** — participation XP (otherwise support roles can't level).~~ ✓
-4. **Item 11** — aura targeting (selector + target cap + hit VFX); the
-   prototype should ship the decided base-aura feel, not the AoE-all interim
-   state.
-5. **Item 12** — initial content pass.
+4. ~~**Item 11** — aura targeting (selector + target cap + hit VFX), plus the
+   graduated HP/resistance phases 1+2.~~ ✓
+5. **Item 12** — initial content pass. ← **the only remaining prototype gate**
 
 The prototype runs on the existing procedurally assembled world, without
 accounts/persistence (session-based, like today). Everything else — zones,

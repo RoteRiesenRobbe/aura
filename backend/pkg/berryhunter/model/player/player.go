@@ -118,11 +118,11 @@ type player struct {
 	milestoneUnlocks []skills.MilestoneUnlock
 	recipes          skills.RecipeRegistry
 
-	// healers inside the participation window (v1-roadmap item 10);
+	// healers inside the participation window (roadmap item 10);
 	// lazily initialized by NoteHealedBy
 	recentHealers map[uint64]*healerEntry
 
-	// per-tick floating-number accumulators (v1-roadmap item 11): health lost,
+	// per-tick floating-number accumulators (roadmap item 11): health lost,
 	// healing received (VitalSign units), and XP gained this tick; reset each
 	// tick by ResetTickNumbers.
 	damageTaken  vitals.VitalSign
@@ -164,7 +164,7 @@ func (p *player) MaxHealth() vitals.VitalSign {
 }
 
 // HealthRatio is the current/max health fraction (0..1), read by the
-// lowest_health aura selector (v1-roadmap.md item 11).
+// lowest_health aura selector (roadmap.md item 11).
 func (p *player) HealthRatio() float32 {
 	maxHP := p.MaxHealth()
 	if maxHP == 0 {
@@ -204,7 +204,7 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) {
 }
 
 // DamageTaken / HealReceived / XpGained expose the per-tick floating-number
-// accumulators (v1-roadmap item 11).
+// accumulators (roadmap item 11).
 func (p *player) DamageTaken() vitals.VitalSign  { return p.damageTaken }
 func (p *player) HealReceived() vitals.VitalSign { return p.healReceived }
 func (p *player) XpGained() uint64               { return p.xpGained }
@@ -315,7 +315,7 @@ func (p *player) AddExperience(xp uint64) {
 		previousLevel = 1
 	}
 	p.progression.Experience += xp
-	p.xpGained += xp // floating XP number (v1-roadmap item 11)
+	p.xpGained += xp // floating XP number (roadmap item 11)
 
 	level := p.levelForExperience(p.progression.Experience)
 	if level < 1 {

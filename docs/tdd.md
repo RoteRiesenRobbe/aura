@@ -1,238 +1,208 @@
 # Aura — Technical Design Document
 
-**Version:** 0.3
+**Version:** 0.5
 **Status:** Living document
-**Letzte Aktualisierung:** nach Phase 6.3 (Mob-Kapitel / Block 3 abgeschlossen) + Targeting-/LoS-Design-Session
+**Last updated:** 2026-07-06 (doc consolidation + English translation; state: skill system Phases 1–9 ✓, Block 2 ✓, roadmap item 11 incl. HP/resistances Phases 1+2 ✓)
 
-> Begleitdokument zum [Game Design Document](./aura-gdd.md). Hier stehen ausschließlich technische Entscheidungen, Architektur und Implementierungs-Themen. Spielmechanik gehört ins GDD.
+> Companion document to the [Game Design Document](./gdd.md). This holds only technical decisions, architecture, and implementation topics. Game mechanics belong in the GDD.
 >
-> Der konkrete, schrittweise Migrationsplan für das Skill-System lebt in `docs/skill-system-design.md` im Repo, der v1.0-Scope außerhalb des Skill-Systems in `docs/v1-roadmap.md`. Dieses TDD ist das übergeordnete technische Gesamtbild; bei Konflikten im Detail gelten die Repo-Docs.
+> This TDD is the overarching technical big picture — **not a status tracker**. The current state lives in `CLAUDE.md` (migration status) and `docs/roadmap.md`; the skill-system migration plan in `docs/plan-skill-system.md`; runtime cost & scaling in `docs/architecture.md`. On detail conflicts, those repo docs win.
 
 ---
 
-## 1. Bestehender Prototype
+## 1. Existing Prototype
 
-- **Unser Fork (aktiv):** https://github.com/RoteRiesenRobbe/aura
-- **Ursprünglicher Prototype (`upstream`):** https://github.com/Nullformed/aurahunter
-- **Fork von:** https://github.com/trichner/berryhunter
-- **Stack (vererbt):** Go-Server, WebSockets, Browser-Client (TypeScript/PixiJS)
-- **Lokal:** WSL unter `/root/workspaces/aurahunter`
-- **Server-Tick-Rate:** 30 ticks/s (33 ms/tick)
+- **Our fork (active):** https://github.com/RoteRiesenRobbe/aura
+- **Original prototype (`upstream`):** https://github.com/Nullformed/aurahunter
+- **Forked from:** https://github.com/trichner/berryhunter
+- **Stack (inherited):** Go server, WebSockets, browser client (TypeScript/PixiJS)
+- **Local:** WSL at `/root/workspaces/aurahunter`
+- **Server tick rate:** 30 ticks/s (33 ms/tick)
 
-### Was bereits funktioniert
-- Multiplayer-Sync via WebSockets
-- Top-Down-Rendering im Browser
-- Spieler-Movement
-- Server-Client-Architektur (ECS-basiert, `github.com/EngoEngine/ecs`)
-- **Datengetriebenes Skill-/Aura-System** (Phasen 1–6 der Migration): Skill-JSONs + Registry, `SkillComponent` an Spielern *und* Mobs, generisches `SkillSystem`, Toggle/Wechsel server-authoritative, Milestone-Unlocks, Spellbook + Equip-UI
-- **Mob-Kapitel (Phase 6) komplett:** alle Mobs auf dem SkillSystem, Kill-Unlocks (per-Participant-Rolls), Participation-XP (alle Kampfbeteiligten inkl. Healer), Boss-Designation (AngryMammoth)
+### What already works
+- Multiplayer sync via WebSockets, top-down rendering, player movement, server-client architecture (ECS-based, `github.com/EngoEngine/ecs`)
+- **Skill-system migration complete (Phases 1–9,** see `docs/plan-skill-system.md`**):** data-driven skills (JSON + registry), `SkillComponent` on players *and* mobs, all three categories playable (auras / passives / cooldowns), skill leveling + free respec, milestone & kill unlocks, spellbook + equip UI, curated secret combination recipes (PaladinAura)
+- **Aura targeting (roadmap item 11):** selector + target cap per effect, base auras single-target, floating numbers, per-tick hit VFX (slash/fire)
+- **Single resource + survival removal (Block 2,** see `docs/plan-block2-survival-removal.md`**):** `Health` is the one resource; crafting/items/vitals removed
+- **Absolute HP system + resistances/damage tags (item 11 Phases 1+2,** see `docs/plan-item11-hp-resist-variance.md`**):** integer HP per entity, string-tag-based resistances, `resist_aura`/`resist_passive`
 
-### Was fehlt für v1.0
-- Accounts (Register / Login) und Persistenz (Spielerdaten, Welt-State)
-- Skill-Leveling & Skill-Punkte-Verteilung (Phase 7)
-- Passives & Cooldowns als spielbare Kategorien (Phase 8; Datenmodell vorbereitet)
-- Kombinationen (Phase 9; Frage-Katalog liegt in `docs/combo-design-questions.md`)
-- **Aura-Targeting: Selector + Zielanzahl** (neuer Schritt, siehe 4.1 — aktuell trifft jede Aura alle in Reichweite)
-- Survival-Removal + Resource-Unifikation (Roadmap Items 1+2)
-- Line-of-Sight für Auren (2D Raycast; bewusst deferred bis Zonen/Wände existieren)
-- Zone-Chat (Berryhunter-Chat existiert, Zonen-Scoping fehlt)
-- Handgebaute Welt & Zonen (aktuell prozedural assembliert)
-- Minimap (Berryhunter-Minimap existiert, ggf. anpassen)
+### What's missing for v1.0
+*(Authoritative: `docs/roadmap.md` — headlines only here.)*
+- **Initial content pass** (roadmap item 12 — prototype gate)
+- Accounts (register / login) and persistence (player data, world state) — item 3
+- Handcrafted world & zones (currently procedurally assembled) — item 4
+- Darkness & light (`light_aura`) — item 5
+- Line-of-sight for auras (2D raycast; deliberately deferred until zones/walls exist) — item 6
+- Mob behavior, tiers, boss scripting/encounter controller — item 7
+- Zone chat (Berryhunter chat exists, zone scoping missing) — item 8
+- Remaining unlock sources (world exploration, NPC teaching) — item 9
 
-*(Meta-Progression / Character-Opfer ist explizit **nicht** v1.0 — siehe GDD §11 und Roadmap.)*
+*(Meta-progression / character sacrifice is explicitly **not** v1.0 — see GDD §11 and the roadmap.)*
 
 ---
 
-## 2. Tech-Entscheidung: Weiterentwickeln vs. Clean-Start
+## 2. Tech Decision: Continue vs. Clean Start
 
-**Entscheidung (getroffen):** Weiterentwickeln (Berryhunter-Fork ausbauen).
+**Decision (made):** continue (build out the Berryhunter fork).
 
-**Begründung:** Die schwersten Teile (Multiplayer-Netcode, Movement, Top-Down-Rendering, Server-Client-Architektur) sind schon da. Alles was Aura braucht (Aura-System, Accounts, Persistenz, Line-of-Sight) kommt obendrauf — nicht statt was bestehendem. Der Code wurde inzwischen gemeinsam analysiert; die Struktur trägt die Aura-Features (das datengetriebene Skill-System inkl. Mob-Parität wurde sauber auf die bestehende ECS-Architektur aufgesetzt).
+**Rationale:** the hardest parts (multiplayer netcode, movement, top-down rendering, server-client architecture) are already there. Everything Aura needs (aura system, accounts, persistence, line-of-sight) goes on top — not in place of something existing. The code has since been analyzed together; the structure carries the Aura features (the data-driven skill system incl. mob parity was layered cleanly onto the existing ECS architecture).
 
-Clean-Start bleibt nur theoretische Rückfalloption, falls sich später herausstellt, dass die Code-Struktur ein Feature aktiv blockiert. Bisher kein Anzeichen dafür.
+A clean start remains only a theoretical fallback in case the code structure ever turns out to actively block a feature. No sign of that so far.
 
 ---
 
 ## 3. Stack
 
-### Aktuell
+### Current
 - **Server:** Go (≥ 1.22)
 - **Transport:** WebSockets
-- **Protokoll:** FlatBuffers (flatc v24.3.25, Toolchain modernisiert)
-- **Client:** Browser, TypeScript + webpack + PixiJS (aus Berryhunter)
+- **Protocol:** FlatBuffers (flatc v24.3.25, toolchain modernized)
+- **Client:** browser, TypeScript + webpack + PixiJS (from Berryhunter)
 
-### Offene Entscheidungen
-- [ ] Datenbank (Accounts, Level, Skills, Zauberbuch, Meta-Progression)
-- [ ] Hosting-Strategie für Production
-- [ ] Auth-System (Richtung beschlossen: anonymous-first mit Upgrade-Pfad, siehe Roadmap Item 3; konkrete Umsetzung offen)
-- [ ] Client-Build-Pipeline (aktuell webpack aus Berryhunter)
-- [ ] Map-Format / Authoring-Tooling (Tiled vs. custom JSON — Roadmap Item 4)
+### Open decisions
+- [ ] Database (accounts, level, skills, spellbook, meta-progression)
+- [ ] Hosting strategy for production
+- [ ] Auth system (direction decided: anonymous-first with upgrade path, see roadmap item 3; concrete implementation open)
+- [ ] Client build pipeline (currently webpack from Berryhunter)
+- [ ] Map format / authoring tooling (Tiled vs. custom JSON — roadmap item 4)
 
 ---
 
-## 4. Architektur — Neue Systeme
+## 4. Architecture — New Systems
 
-Die folgenden Systeme müssen geplant werden bevor implementiert wird. Jeweils eigene Spec-Diskussion nötig.
+Each system below gets its own spec discussion before it is implemented; sections already built are marked as such.
 
-### 4.1 Skill-/Aura-System
+### 4.1 Skill/Aura System
 
-**Status:** Kern steht (Phasen 1–6). Skill-Leveling (7), Passives/Cooldowns (8), Kombinationen (9) und der Targeting-Schritt sind offen. Details: `docs/skill-system-design.md`.
+**Status: built and live** — migration Phases 1–9 complete (`docs/plan-skill-system.md`), targeting incl. hit VFX (roadmap item 11), absolute HP + resistances/tags (`docs/plan-item11-hp-resist-variance.md`). The factual current state (which effect types exist, what is data vs. Go) is mapped in `docs/research-scripting-audit.md` §1; here only the architectural big picture:
 
-**Was bereits gebaut ist:**
-- Skill-Definitionen als JSON (`api/skills/`), geladen über eine Registry (analog zu Items/Mobs)
-- `SkillComponent` an Spielern und Mobs (gleiche Mechanik für beide; Mobs seit Phase 6 vollständig migriert, eigene Aura-Skills pro Mob, Aura-Wechsel per `SetActiveAura` technisch möglich)
-- Generisches `SkillSystem` (ECS), verarbeitet die aktive Aura pro Tick
-- Effekt-Typen: `damage_aura`, `heal_aura`, `stat_multiplier`, `instant_damage`
-- Tick-Intervalle pro Effekt (`tickInterval` im JSON, `TickAccumulator` pro EquippedSkill); Reset beim Aura-Wechsel verhindert Rapid-Switch-DPS-Exploit
-- Milestone-Unlocks und Kill-Unlocks datengetrieben; Spellbook über Wire + UI (Panel, Equip, Unlock-Glow)
-- Fraktions-Logik deklarativ über Target-Flags pro Effekt (`targetsMobs` / `targetsPlayers` / `targetsStructures`) — kein Friendly Fire, Mob-Auren treffen Spieler, Mob-vs-Mob ausgeschlossen
+- Skill definitions as JSON (`api/skills/`), registry analogous to items/mobs, hard-fail validation at load
+- `SkillComponent` on players and mobs (same mechanics; per-mob aura skills, aura switching via `SetActiveAura` possible)
+- Generic `SkillSystem` (ECS) processes the active aura per tick; 8 effect types (`damage_aura`, `heal_aura`, `stat_multiplier`, `instant_damage`, `slow_aura`, `self_heal`, `resist_aura`, `resist_passive`)
+- **Targeting pipeline per effect:** range filter (aura sensor) → *(later, item 6)* LoS filter → selector sort (`nearest` default, `lowest_health` percentage-based, `all`) → first `maxTargets`. Heal auras never heal the caster; self-healing is a cooldown (`self_heal`).
+- Tick intervals per effect, monotonic accumulator per equipped skill (multi-effect skills run each effect on its own cadence); reset on aura switch prevents the rapid-switch DPS exploit
+- Unlocks are data-driven (milestones, kill drops, recipe cascade); spellbook over the wire + UI (panel, equip, unlock glow)
+- Faction logic declarative via target flags per effect (`targetsMobs` / `targetsPlayers` / `targetsStructures` / `targetsSelf`) — no friendly fire, mob auras hit players, mob-vs-mob excluded
+- Resource consumption as an effect parameter (`selfDamageHP` — no separate cost system); damage/healing in absolute integer HP with the min-1 rule; resistances as string-tag multipliers
+- Per-tick **hit VFX on the struck target** (slash for slow ticks, fire for fast ones), so the aura circle reads as range rather than hit zone
 
-**Targeting (beschlossen, noch nicht gebaut):**
-- Jede Aura bekommt einen **Selector** und ein **maxTargets** als Effekt-Daten (analog zu `tickInterval`): `nearest` (Default für Damage *und* Heal) | `lowest_health` (**prozentual**: niedrigste current/max-Ratio, nicht absolute Werte).
-- **Auswahl-Pipeline:** Reichweiten-Filter (Aura-Sensor, existiert) → *(später)* LoS-Filter → Selector-Sortierung → erste N. „Alle in Reichweite" ist der Spezialfall ohne Cap (späte Unlock-Auren).
-- **Level-up-Achsen pro Aura frei kombinierbar** (Schaden/Heal, Radius, Zielanzahl, Tick-Rate) — d.h. neben den vorhandenen `*PerLevel`-Feldern kommen perspektivisch `maxTargetsPerLevel` und `tickIntervalPerLevel` [PLACEHOLDER] dazu. Balance-Notiz: Ziele × Schaden gleichzeitig zu skalieren ist der gefährlichste Multiplikator.
-- **Heal:** Selector-Default ebenfalls nearest (auf Allies); heilt nie den Caster. Selbstheilung ist konzeptionell ein Cooldown.
-- **Ehrlicher Ist-Zustand:** die implementierten `damage_aura`/`heal_aura` treffen heute **alle** passenden Entities in Reichweite (AoE-all). Die Umstellung ist ein eigener Migrationsschritt und ändert das shipped Verhalten der Basis-Auren — siehe Roadmap Item 11.
-- **Frontend-Teil:** Per-Tick-**Hit-VFX auf dem getroffenen Ziel** (Slash bei langsamen Ticks, konstanter Effekt bei schnellen), damit der Kreis als Reichweite statt Trefferzone lesbar ist. *Deferred:* Sticky-Targeting gegen Ziel-Zappeln bei nearest.
-
-**Anforderungen (Gesamtbild):**
-- **Genau eine aktive Aura zur Zeit.** Slots sind ein Loadout (mehrere Auren ausgerüstet, eine aktiv), keine gleichzeitig wirkenden Auren. Passives wirken dauerhaft parallel; Cooldowns sind einzeln triggerbar.
-- Tick-basierte Schaden-/Heilauren mit unterschiedlichen Intervallen, Ziel-Wahl per Selector + Cap
-- Konstante Buffs/Debuffs (Tank, Speed) über Passives — nicht tick-basiert
-- Auren wirken nur auf Ziele mit Line-of-Sight (LoS noch nicht gebaut, bewusst deferred)
-- Resource-Verbrauch als Effekt-Parameter (`selfDamageFraction`-Muster; Roadmap Item 1 — kein separates Kosten-System)
-- Sichtbarkeit / Sync zu allen Clients in Reichweite
-
-**Beantwortete Fragen:**
-- Server-Tick-Rate: **30 ticks/s** (aus Berryhunter geerbt)
-- Unterschiedliche Tick-Intervalle pro Aura: über `tickInterval` pro Effekt (Default 1), akkumuliert pro EquippedSkill
-- Passives-Stacking auf demselben Stat: **linear additiv** (`stat_multiplier`, `DerivedStats`)
-- Targeting: **Selector + maxTargets pro Effekt** (siehe oben)
-- Mob-Heal / heal_aura-Target-Flags: **bewusst später** — dort wo es geplant ist (Roadmap Item 7, Mob-Support-Behaviors); die zwei bekannten Limitierungen sind in `skill-system-design.md` dokumentiert
-
-**Offene Fragen:**
-- Wie syncen wir Aura-Visualisierung (Kreise, Hit-VFX) zu Clients ohne pro Frame zu spammen?
-- Wie greifen Kombinationen technisch ineinander (→ Phase-9-Design, Frage-Katalog liegt vor)
+**Deliberately open / deferred:**
+- Auras only affect targets with line-of-sight — LoS not built yet (see 4.2, roadmap item 6)
+- Mob heal / heal_aura target flags: **deliberately later**, with roadmap item 7 (mob support behaviors); the two known limitations are documented in `plan-skill-system.md` (Effect Types → heal_aura)
+- Sticky targeting against target flicker with `nearest` — only when it actually bothers in practice
+- Whether effect behavior eventually becomes authorable as expressions/scripts instead of Go effect types: open decision, see `docs/research-scripting-options.md`
 
 ### 4.2 Line-of-Sight (2D Raycast)
 
-**Beschlossen: LoS bleibt im Scope** — es trägt zwei Pillars (Deckung/Positionstaktik, Licht-Support-Rolle). Aber es zerfällt in **zwei getrennte Probleme** mit völlig unterschiedlichen Kosten:
+**Decided: LoS stays in scope** — it carries two pillars (cover/positional tactics, the light-support role). But it splits into **two separate problems** with completely different costs:
 
-1. **Aura-Occlusion** — blockt eine Wand den Effekt? Kampfrelevant, muss server-authoritative sein. Das ist das eigentliche Hochrisiko-Item.
-2. **Sicht/Dunkelheit** — was der Spieler *sieht* (Lichtkegel in Höhlen). **Beschlossen: rein Client-Rendering, keine mechanischen Auswirkungen** (kein Schaden-/Trefferchance-Malus im Dunkeln). Damit ist die Höhlen-Atmosphäre und das Zone-1→2-Tutorial billig und vom riskanten Teil entkoppelt (Roadmap Item 5; dort wird auch der `light_aura`-Effekt-Typ designed).
+1. **Aura occlusion** — does a wall block the effect? Combat-relevant, must be server-authoritative. This is the actual high-risk item.
+2. **Vision/darkness** — what the player *sees* (light cones in caves). **Decided: purely client rendering, no mechanical effects** (no damage/hit-chance penalty in the dark). This makes the cave atmosphere and the zone-1→2 tutorial cheap and decoupled from the risky part (roadmap item 5; the `light_aura` effect type is designed there too).
 
-**Beschlossene Design-Punkte für die Occlusion:**
-- **Occluder sind kuratiert:** ein blockt-LoS-Flag auf großen Objekten (Wände, Felsen, Klippen) — Deko-Bäume blocken *nicht*, sonst wird Waldkampf zerhackt und fühlt sich zufällig an.
-- **Ansatz:** Occluder-Layer als Grid/Tilemap + Integer-Raycast (DDA) — schnell, Kosten ≈ Radius/Tile-Größe. Polygone nur falls das Map-Format es erzwingt.
-- **LoS-Cache:** nicht jeden Tick neu rechnen — Recompute alle K Ticks oder bei Bewegung [PLACEHOLDER]; viele Auren ticken ohnehin seltener (`tickInterval`).
-- **Synergie mit Targeting:** dank Ziel-Cap wird nach Selector *sortiert* geraycastet mit Early-Out — sobald N Ziele durchgekommen sind, ist Schluss. Im Normalfall N Raycasts statt „alle Kandidaten".
+**Decided design points for the occlusion:**
+- **Occluders are curated:** a blocks-LoS flag on large objects (walls, rocks, cliffs) — decorative trees do *not* block, otherwise forest combat gets chopped up and feels random.
+- **Approach:** occluder layer as a grid/tilemap + integer raycast (DDA) — fast, cost ≈ radius/tile size. Polygons only if the map format forces them.
+- **LoS cache:** don't recompute every tick — recompute every K ticks or on movement [PLACEHOLDER]; many auras tick less often anyway (`tickInterval`).
+- **Synergy with targeting:** thanks to the target cap, raycasting happens in selector-sorted order with early-out — once N targets have passed, stop. Normally N raycasts instead of "all candidates".
 
-**Performance-Modell:** Die Last skaliert nicht mit Gesamt-Entities, sondern mit **ko-lokalisierten Aura-Castern** (der Blob: Boss-Event, Special-Event-Pfütze). Teuer ist die Broadphase („wer ist in Reichweite"), nicht der Raycast — und Berryhunter bringt Spatial Hashing in `phy` bereits mit. Grobe Erwartung: niedrige Hunderte gleichzeitig überlappende Caster pro Core tragbar; das ist eine Kurvenform-Schätzung, keine Zahl — **der Spike misst es** (Blob-Benchmark: X synthetische Caster, Tick-Zeit muss unter 33 ms bleiben).
+**Performance model:** the load doesn't scale with total entities but with **co-located aura casters** (the blob: boss event, special-event puddle). The broadphase ("who is in range") is the expensive part, not the raycast — and Berryhunter already ships spatial hashing in `phy`. Rough expectation: low hundreds of simultaneously overlapping casters per core sustainable; that is a curve-shape estimate, not a number — **the spike measures it** (blob benchmark: X synthetic casters, tick time must stay under 33 ms).
 
-**Timing (beschlossen):** LoS ist **kein Teil des Prototype-Pfads** — es hängt an Zonen/Wänden, die es zu blocken lohnt (Roadmap Item 6, abhängig von Item 4 Map-Format). Der Spike passiert, wenn das Map-Format ansteht.
+**Timing (decided):** LoS is **not part of the prototype path** — it depends on zones/walls worth blocking (roadmap item 6, dependent on item 4 map format). The spike happens when the map format comes up.
 
-**Offene Fragen:**
-- Welt-Repräsentation der Occluder (hängt am Map-Format-Entscheid, Roadmap Item 4)
-- Occluder statisch (vorbackbar) vs. Entities (Berryhunter-Ressourcen sind abbaubar → potenziell dynamisch)
-- Recompute-Cadence des Caches (Tuning)
-- LoS-Sampling: center-to-center zuerst; Ecken-Artefakte später
+**Open questions:**
+- World representation of the occluders (depends on the map-format decision, roadmap item 4)
+- Occluders static (pre-bakeable) vs. entities (Berryhunter resources are harvestable → potentially dynamic)
+- Recompute cadence of the cache (tuning)
+- LoS sampling: center-to-center first; corner artifacts later
 
-### 4.3 Persistenz
+### 4.3 Persistence
 
-**Was muss persistent gespeichert werden:**
-- Account (anonymous-first: Server-issued Secret in localStorage, optionales E-Mail/OAuth-Linking später — Richtung beschlossen, Roadmap Item 3)
-- Charaktere pro Account (Name, Level, Position, Resource)
-- Zauberbuch pro Charakter (welche Auren freigeschaltet, welche Level)
-- Skill-Punkte-Verteilung pro Charakter
-- Aktiver Build pro Charakter (welche Auren in welchen Slots)
-- Meta-Progression pro Account (post-v1)
-- Welt-State? (Campfires, Special-Event-Trigger, ...)
+**What must be stored persistently:**
+- Account (anonymous-first: server-issued secret in localStorage, optional email/OAuth linking later — direction decided, roadmap item 3)
+- Characters per account (name, level, position, resource)
+- Spellbook per character (which auras unlocked, at which levels)
+- Skill-point distribution per character
+- Active build per character (which auras in which slots)
+- Meta-progression per account (post-v1)
+- World state? (campfires, special-event triggers, ...)
 
-**Offene Fragen:**
-- Datenbank-Wahl (SQL vs. Document vs. KV)
-- Snapshot-Strategie bei Server-Crash
-- Wie wird Welt-State persistiert ohne jeden Frame zu schreiben?
-- Wächst der `chieftain`-Service (Scoreboard, SQLite) zum Account-Service oder kommt ein neuer Service?
+**Open questions:**
+- Database choice (SQL vs. document vs. KV)
+- Snapshot strategy on server crash
+- How is world state persisted without writing every frame?
+- Does the `chieftain` service (scoreboard, SQLite) grow into the account service, or does a new service get added?
 
 ### 4.4 Accounts & Auth
 
-**Anforderungen:**
-- Anonymous-first (spielen ohne Registrierung), Upgrade-Pfad für Geräte-übergreifende Sicherung
-- Mehrere Charaktere pro Account
-- Session-Management über WebSocket-Reconnects hinweg
+**Requirements:**
+- Anonymous-first (play without registration), upgrade path for cross-device safety
+- Multiple characters per account
+- Session management across WebSocket reconnects
 
-**Offene Fragen:**
-- E-Mail/OAuth-Linking konkret?
-- Anti-Bot / Anti-Abuse?
+**Open questions:**
+- Email/OAuth linking concretely?
+- Anti-bot / anti-abuse?
 
-### 4.5 Cooldown-System
+### 4.5 Cooldown System
 
-- Pro-Spieler-Cooldowns für Q/E-Abilities
-- Server-authoritative
-- Client-Vorhersage für UI-Feedback
-- **Status:** Datenmodell vorbereitet (`cooldown`-Kategorie, `CdTicks`, `instant_damage`-Effekt); Input-Weg beschlossen (Hotkeys + Ability-Bar-Klick, `cooldown_activations` auf `Input`); Umsetzung in Phase 8.2. Selbstheilung läuft über einen Cooldown (nicht über Heilauren).
+- Per-player cooldowns for Q/E abilities, server-authoritative
+- **Status: built (Phase 8.2)** — hotkeys + ability bar, `cooldown_activations` on `Input`, `CdTicks` bookkeeping in the SkillSystem, burst VFX through the status pipeline. Self-healing runs through a cooldown (not through heal auras). Details: `docs/plan-skill-system.md` → Phase 8.2.
 
-### 4.6 Zonen & Zone-Chat
+### 4.6 Zones & Zone Chat
 
-- Spieler sind in genau einer Zone
-- Auren / Sichtbarkeit nur innerhalb Zone
-- Zone-Chat: ein Channel pro Zone (Broadcast gefiltert nach Sender-Zone — beschlossen, Roadmap Item 8); globaler Chat bleibt bis Zonen existieren
-- Zone-Übergänge (z.B. Tunnel zwischen Zone 1 und 2) — wie?
+- Players are in exactly one zone
+- Auras / visibility only within the zone
+- Zone chat: one channel per zone (broadcast filtered by sender zone — decided, roadmap item 8); global chat stays until zones exist
+- Zone transitions (e.g. the tunnel between zone 1 and 2) — how?
 
 ---
 
-## 5. Bekannte technische Risiken
+## 5. Known Technical Risks
 
-| Risiko | Schwere | Mitigation |
+| Risk | Severity | Mitigation |
 |---|---|---|
-| Line-of-Sight Performance (Blob-Fall) | Hoch | Bewusst deferred bis Map-Format steht; dann Spike mit Blob-Benchmark; Grid-DDA + Cache + Ziel-Cap-Early-Out; nicht im Prototype-Pfad |
-| Aura-Tick-Sync zwischen Clients | Mittel | Server-authoritative, delta-updates |
-| Targeting-Umstellung ändert shipped Verhalten | Niedrig | Eigener Schritt, testgetrieben (TDD-Prinzip), Basis-Auren-Werte sind ohnehin [PLACEHOLDER] |
-| DB-Schema-Migration während Live-Betrieb | Mittel | Migrations-Framework von Anfang an |
-| Cheat-Resistenz | Niedrig (v1.0) | Server-authoritative für alles Kampfrelevante; Anti-Cheat erst später wichtig |
+| Line-of-sight performance (blob case) | High | Deliberately deferred until the map format stands; then a spike with the blob benchmark; grid DDA + cache + target-cap early-out; not on the prototype path |
+| Aura tick sync between clients | Medium | Server-authoritative, delta updates |
+| DB schema migration during live operation | Medium | Migrations framework from day one |
+| Cheat resistance | Low (v1.0) | Server-authoritative for everything combat-relevant; anti-cheat only matters later |
 
-> Das frühere Risiko "Berryhunter-Code blockiert Aura-Features" hat sich nicht
-> materialisiert — Skill-System inkl. Mob-Parität ließ sich sauber auf die
-> bestehende ECS-Architektur aufsetzen.
-
----
-
-## 6. Roadmap (technisch, grob)
-
-Erste Skizze; die maßgeblichen Pläne sind `docs/skill-system-design.md` (Skill-System) und `docs/v1-roadmap.md` (Rest). Aktueller Fortschritt markiert:
-
-1. ✅ **Repo-Setup & Onboarding** — Berryhunter lokal lauffähig, Claude Code aufgesetzt, Build-Pipeline verstanden
-2. 🔄 **Skill-System-Migration** — Phasen 1–6 fertig (Tick-Engine, Damage-/Heal-Aura, Toggle, Unlocks, Spellbook+Equip, Mob-Parität, Kill-Unlocks, Participation-XP, Boss). Offen: Skill-Leveling (7), Passives/Cooldowns (8), Kombinationen (9)
-3. ⬜ **Survival-Removal + Resource-Unifikation** — Roadmap Items 1+2 (Block 2)
-4. ⬜ **Aura-Targeting: Selector + Zielanzahl** — eigener Schritt, spätestens vor dem Content-Pass (Roadmap Item 11)
-5. ⬜ **Initial Content Pass** — erste echte Skill-/Mob-/Rezept-Inhalte (Prototype-Gate)
-6. ⬜ **Accounts & Persistenz** — anonymous-first
-7. ⬜ **Welt & Zonen** — Map-Format-Entscheid (Tiled-Spike), handgebaute Zonen, Zone-Chat
-8. ⬜ **Line-of-Sight** — Spike (Blob-Benchmark), dann Occlusion ins Aura-System
-9. ⬜ **Dunkelheit & Licht** — rein Rendering, `light_aura`-Effekt-Typ
-10. ⬜ **Mob-Verhalten & Tiers** — Patrouillen-Archetypen, Spawn-Punkte in Map-Daten, Boss-Scripting, Mob-Heal
-11. ⬜ **Polish & Closed Alpha**
+> The earlier risk "Berryhunter code blocks Aura features" did not
+> materialize — the skill system incl. mob parity layered cleanly onto the
+> existing ECS architecture.
 
 ---
 
-## 7. Offene Tech-Entscheidungen (Sammelpunkt)
+## 6. Roadmap (technical, rough)
 
-- [ ] Datenbank-Wahl
-- [ ] Hosting-Strategie (Production)
-- [ ] Auth-Umsetzung (Richtung: anonymous-first, beschlossen)
-- [ ] Map-Format / Authoring-Tooling (Tiled vs. custom JSON) — größte Unbekannte in Item 4, bestimmt auch die Occluder-Repräsentation
-- [ ] Client-Build-Pipeline
-- [ ] Logging / Monitoring von Anfang an?
-- [ ] Migrations-Framework für DB
-- [ ] Saisonale vs. Permanent-Server (Infrastruktur-Frage zusätzlich zur Design-Frage)
+First sketch; the authoritative plans are `docs/plan-skill-system.md` (skill system) and `docs/roadmap.md` (rest — current progress lives there too, not duplicated here):
+
+1. ✅ **Repo setup & onboarding** — Berryhunter running locally, Claude Code set up, build pipeline understood
+2. ✅ **Skill-system migration** — Phases 1–9 complete (tick engine, all three categories, leveling, unlocks, combinations)
+3. ✅ **Survival removal + resource unification** — roadmap items 1+2 (Block 2)
+4. ✅ **Aura targeting: selector + target count** — roadmap item 11, incl. hit VFX; then absolute HP + resistances/tags (item 11 Phases 1+2)
+5. ⬜ **Initial content pass** — first real skill/mob/recipe content (prototype gate, roadmap item 12) ← **we are here**
+6. ⬜ **Accounts & persistence** — anonymous-first
+7. ⬜ **World & zones** — map-format decision (Tiled spike), handcrafted zones, zone chat
+8. ⬜ **Line-of-sight** — spike (blob benchmark), then occlusion into the aura system
+9. ⬜ **Darkness & light** — rendering only, `light_aura` effect type
+10. ⬜ **Mob behavior & tiers** — patrol archetypes, spawn points in map data, boss scripting/encounter controller, mob heal
+11. ⬜ **Polish & closed alpha** — ops gaps (CI tests, crash isolation, observability): see `docs/research-v1-readiness.md`
 
 ---
 
-## 8. Aufgeschobene technische Schuld
+## 7. Open Tech Decisions (collection point)
 
-Die maßgebliche, aktuelle Liste lebt in `CLAUDE.md` (Migration-Status) und `docs/skill-system-design.md` (Deferred Tech Debt) im Repo — dieses TDD wiederholt sie nicht. Aktuelle Highlights zur Orientierung:
+- [ ] Database choice
+- [ ] Hosting strategy (production)
+- [ ] Auth implementation (direction: anonymous-first, decided)
+- [ ] Map format / authoring tooling (Tiled vs. custom JSON) — biggest unknown in item 4, also determines the occluder representation
+- [ ] Client build pipeline
+- [ ] Logging / monitoring from the start?
+- [ ] Migrations framework for the DB
+- [ ] Seasonal vs. permanent servers (infrastructure question on top of the design question)
 
-- `net_test.go` hängt `go test ./...` (kein echter Test) — safe Test-Scope nutzen
-- Equip-Level=1-Lücke (Spellbook speichert nur Discovery, keine Level) — löst sich mit Phase 7
-- Mob-Aura-Ring-Radius ist eine Frontend-Konstante (manuell synchron halten, bis wire-driven)
-- Ein Tick-Accumulator pro EquippedSkill (Multi-Effekt-Skills mit verschiedenen Intervallen brauchen per-Effekt-Accumulator, bevor so ein Skill shipped)
+---
+
+## 8. Deferred Technical Debt
+
+The authoritative, current list lives in `CLAUDE.md` (migration status → "Deferred tech debt / known bugs") and `docs/plan-skill-system.md` (Deferred Tech Debt) — this TDD does not repeat it. For the live-operations perspective (CI, observability, crash story) see `docs/research-v1-readiness.md`; for the content-pipeline debt (Skills.ts duplication, `go:embed` rebuild loop) `docs/research-content-pipeline.md`.

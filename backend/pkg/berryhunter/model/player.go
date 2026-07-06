@@ -65,13 +65,13 @@ type PlayerEntity interface {
 	BurstRadius() float32
 	LevelProgressFraction() float32
 
-	// Participation XP (v1-roadmap item 10): healing a player registers the
+	// Participation XP (roadmap item 10): healing a player registers the
 	// healer for a limited window; mobs read this on death to reward healers
 	// of their combat participants.
 	NoteHealedBy(healer PlayerEntity)
 	RecentHealers() []PlayerEntity
 
-	// Per-tick floating-number sources (v1-roadmap item 11): health lost, and
+	// Per-tick floating-number sources (roadmap item 11): health lost, and
 	// healing / XP received this tick. Serialized once per tick, then reset via
 	// ResetTickNumbers (TickAccumulators). NoteHealReceived is called by the
 	// SkillSystem when a heal aura lands on this player.

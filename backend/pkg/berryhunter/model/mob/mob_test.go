@@ -2,7 +2,7 @@ package mob
 
 // Characterization tests pinning the CURRENT hardcoded mob aura behavior.
 // They are the "old" side of the Phase 6 strict 1:1 migration comparison
-// (docs/skill-system-design.md, Phase 6): once mobs move onto the SkillSystem,
+// (docs/plan-skill-system.md, Phase 6): once mobs move onto the SkillSystem,
 // the new path must reproduce exactly these numbers and rules. Any deviation
 // from these tests during the migration is a bug, not a design change.
 
@@ -184,7 +184,7 @@ func TestMob_AuraHitStyle_SetAndReset(t *testing.T) {
 		"reset clears the per-tick aura-hit style")
 }
 
-// --- kill rewards (participation XP, v1-roadmap item 10) ---
+// --- kill rewards (participation XP, roadmap item 10) ---
 
 func TestMob_Kill_AllDamagersGetFullXP(t *testing.T) {
 	m := newTestMob()

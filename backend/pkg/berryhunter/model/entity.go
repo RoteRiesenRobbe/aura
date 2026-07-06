@@ -111,7 +111,7 @@ type MobEntity interface {
 	BurstRadius() float32
 
 	// DamageTaken is the health lost this tick (VitalSign units), serialized as
-	// the floating damage number (v1-roadmap item 11) and reset each tick via
+	// the floating damage number (roadmap item 11) and reset each tick via
 	// ResetTickNumbers (TickAccumulators).
 	DamageTaken() vitals.VitalSign
 

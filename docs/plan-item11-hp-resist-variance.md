@@ -1,6 +1,6 @@
 # Item 11 (deferred) — HP system, resistances, stat variance
 
-Graduates the "Deferred from item 11" block of `v1-roadmap.md` into an execution
+Graduates the "Deferred from item 11" block of `roadmap.md` into an execution
 doc. Three phases, in the mandated sequence. **All numbers [PLACEHOLDER].**
 
 - **Phase 1 — Absolute HP.** *DONE (committed, verified in-game).*
@@ -118,7 +118,8 @@ before Phase 2.
 
 ## Phase 2 — Resistances & damage tags (DONE)
 
-Implemented 2026-07-06 (Steps 1–4 in one session; in-game verify pending).
+Implemented 2026-07-06 (Steps 1–4 in one session; verified in-game the same
+day — see "In-game verification" below).
 Roadmap-decided: damage/resist types are **arbitrary named string TAGS, not a
 fixed enum** (so a bespoke `boss_x_lava` composes with general `fire`).
 **Zero wire footprint, zero FlatBuffers changes** — the only frontend change is

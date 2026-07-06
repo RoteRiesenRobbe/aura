@@ -2,7 +2,7 @@
 
 > **RESOLVED (2026-07-04).** All 16 questions were decided in the Phase 7.4
 > design session; the resulting design lives in
-> `skill-system-design.md → Combination System`. This catalog is kept for the
+> `plan-skill-system.md → Combination System`. This catalog is kept for the
 > per-option rationale. Decisions in short:
 >
 > - **Q1** level-up AND discovery trigger the check · **Q2** simultaneous
