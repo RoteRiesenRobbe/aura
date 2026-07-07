@@ -12,8 +12,8 @@
       "radiusPerLevel": 0.1,
       "damageHP": 25,
       "damageHPPerLevel": 6,
-      "targetsMobs": true,
-      "targetsPlayers": false
+      "targetsEnemies": true,
+      "targetsAllies": false
     }
   ]
 }

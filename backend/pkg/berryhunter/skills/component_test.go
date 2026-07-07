@@ -312,7 +312,7 @@ var testNova = &SkillDefinition{
 	CooldownTicks:         300,
 	CooldownTicksPerLevel: -20,
 	Effects: []EffectDef{
-		{Type: EffectTypeInstantDamage, Radius: 1.5, RadiusPerLevel: 0.1, TargetsMobs: true, Damage: &DamageParams{HP: 0.15, HPPerLevel: 0.03}},
+		{Type: EffectTypeInstantDamage, Radius: 1.5, RadiusPerLevel: 0.1, TargetsEnemies: true, Damage: &DamageParams{HP: 0.15, HPPerLevel: 0.03}},
 	},
 }
 

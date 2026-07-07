@@ -27,7 +27,7 @@ import (
 // --- test doubles ---
 
 // touchRecorder implements model.Interacter and records PlayerTouches calls.
-// It stands in for a mob-like target of a damage aura.
+// It stands in for a mob-like (hostile) target of a player's damage aura.
 type touchRecorder struct {
 	touches   []float32 // damage HP per hit
 	touchTags [][]string
@@ -43,6 +43,7 @@ func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage)
 func (r *touchRecorder) NoteAuraHit(style model.AuraHitStyle) {
 	r.hitStyles = append(r.hitStyles, style)
 }
+func (r *touchRecorder) Faction() model.Faction { return model.FactionHostile }
 
 var (
 	_ model.Interacter      = (*touchRecorder)(nil)
@@ -77,6 +78,7 @@ type appliedResist struct {
 }
 
 func (f *fakePlayer) Basic() ecs.BasicEntity                 { return f.basic }
+func (f *fakePlayer) Faction() model.Faction                 { return model.FactionAligned }
 func (f *fakePlayer) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakePlayer) AuraCollider() *phy.Circle              { return f.aura }
 func (f *fakePlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vitalSigns }
@@ -126,6 +128,7 @@ type playerTouchRecorder struct {
 }
 
 func (p *playerTouchRecorder) Basic() ecs.BasicEntity                                { return p.basic }
+func (p *playerTouchRecorder) Faction() model.Faction                                { return model.FactionAligned }
 func (p *playerTouchRecorder) PlayerHitsWith(pl model.PlayerEntity, item items.Item) {}
 func (p *playerTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)    {}
 func (p *playerTouchRecorder) PlayerTouches(pl model.PlayerEntity, damage model.Damage) {
@@ -152,11 +155,10 @@ func colliderSetOf(userData ...any) phy.ColliderSet {
 
 func damageEffect(interval int) skills.EffectDef {
 	return skills.EffectDef{
-		Type:        skills.EffectTypeDamageAura,
-		TargetsMobs: true,
-		// mirrors the real DamageAura JSON
-		TickInterval: interval,
-		Damage:       &skills.DamageParams{HP: 0.01, HPPerLevel: 0.002},
+		Type:           skills.EffectTypeDamageAura,
+		TargetsEnemies: true, // mirrors the real DamageAura JSON
+		TickInterval:   interval,
+		Damage:         &skills.DamageParams{HP: 0.01, HPPerLevel: 0.002},
 	}
 }
 
@@ -243,7 +245,7 @@ func TestApplyDamageAura_MobCaster_TagsHitStyle(t *testing.T) {
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
 		Type:           skills.EffectTypeDamageAura,
-		TargetsPlayers: true,
+		TargetsEnemies: true,
 		TickInterval:   auraSlashTickThreshold,
 		Damage:         &skills.DamageParams{HP: 0.004},
 	}
@@ -463,6 +465,7 @@ type fakeMob struct {
 }
 
 func (f *fakeMob) Basic() ecs.BasicEntity                 { return f.basic }
+func (f *fakeMob) Faction() model.Faction                 { return model.FactionHostile }
 func (f *fakeMob) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeMob) AuraCollider() *phy.Circle              { return f.aura }
 func (f *fakeMob) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
@@ -492,7 +495,7 @@ func TestApplyDamageAura_MobCaster_DamagesViaMobTouches(t *testing.T) {
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
 		Type:           skills.EffectTypeDamageAura,
-		TargetsPlayers: true,
+		TargetsEnemies: true,
 		Damage:         &skills.DamageParams{HP: 0.004},
 	}
 
@@ -507,7 +510,7 @@ func TestApplyDamageAura_MobCaster_LevelScalesDamage(t *testing.T) {
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
 		Type:           skills.EffectTypeDamageAura,
-		TargetsPlayers: true,
+		TargetsEnemies: true,
 		Damage:         &skills.DamageParams{HP: 0.004, HPPerLevel: 0.001},
 	}
 
@@ -522,7 +525,7 @@ func TestApplyDamageAura_MobCaster_CarriesStructureDamage(t *testing.T) {
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
 		Type:              skills.EffectTypeDamageAura,
-		TargetsPlayers:    true,
+		TargetsEnemies:    true,
 		TargetsStructures: true,
 		Damage:            &skills.DamageParams{HP: 0.0067, StructureDamageFraction: 0.67},
 	}
@@ -533,18 +536,79 @@ func TestApplyDamageAura_MobCaster_CarriesStructureDamage(t *testing.T) {
 	assert.InDelta(t, 0.67, target.factors[0].StructureDamageFraction, 1e-6)
 }
 
-func TestApplyDamageAura_PlayerCaster_RespectsTargetsMobsFlag(t *testing.T) {
+func TestApplyDamageAura_PlayerCaster_RespectsTargetsEnemiesFlag(t *testing.T) {
 	caster := newFakePlayer()
 	target := &touchRecorder{}
 	effect := skills.EffectDef{
-		Type:        skills.EffectTypeDamageAura,
-		TargetsMobs: false,
-		Damage:      &skills.DamageParams{HP: 0.01},
+		Type:           skills.EffectTypeDamageAura,
+		TargetsEnemies: false,
+		Damage:         &skills.DamageParams{HP: 0.01},
 	}
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
 	assert.Empty(t, target.touches, "targetsMobs=false must not hit mob-like targets")
+}
+
+// --- faction eligibility (effect foundations Step 1) ---
+
+// alignedTouchRecorder is a mob-like Interacter on the PLAYER's faction — the
+// shape of a future charmed/summoned ally.
+type alignedTouchRecorder struct{ touchRecorder }
+
+func (r *alignedTouchRecorder) Faction() model.Faction { return model.FactionAligned }
+
+// structureRecorder is an Interacter WITHOUT a faction — the shape of a
+// placeable. Flag-gated effects must skip it entirely (structures are reached
+// only via targetsStructures/MobTouches).
+type structureRecorder struct {
+	touches []float32
+}
+
+func (r *structureRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item) {}
+func (r *structureRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)   {}
+func (r *structureRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
+	r.touches = append(r.touches, damage.HP)
+}
+
+var _ model.Interacter = (*structureRecorder)(nil)
+
+func TestApplyDamageAura_SameFactionTargetExcluded(t *testing.T) {
+	// Eligibility is faction-relative, not kind-relative: a mob-like target on
+	// the caster's own faction (charmed/summoned ally) is protected by the
+	// no-friendly-fire rule exactly like a player.
+	caster := newFakePlayer()
+	ally := &alignedTouchRecorder{}
+
+	applyDamageAura(caster, 1, damageEffect(1), colliderSetOf(ally), testRNG())
+
+	assert.Empty(t, ally.touches, "targetsEnemies must not hit a same-faction target")
+}
+
+func TestApplyDamageAura_UnfactionedTargetNeverEatsTargetSlot(t *testing.T) {
+	// Placeables satisfy Interacter but have no faction; before Step 1 a capped
+	// damage aura could waste its maxTargets slot on a nearer structure (a no-op
+	// hit — Placeable.PlayerTouches deals nothing). Now the structure is not
+	// eligible at all and the slot goes to the mob behind it.
+	caster := newFakePlayer()
+	structure := &structureRecorder{}
+	mobTarget := &touchRecorder{}
+
+	set := make(phy.ColliderSet)
+	near := phy.NewCircle(phy.Vec2f{X: 0.1, Y: 0}, 0.25)
+	near.Shape().UserData = structure
+	set[near] = struct{}{}
+	far := phy.NewCircle(phy.Vec2f{X: 0.5, Y: 0}, 0.25)
+	far.Shape().UserData = mobTarget
+	set[far] = struct{}{}
+
+	effect := damageEffect(1)
+	effect.MaxTargets = 1 // nearest-1, the base-aura shape
+
+	applyDamageAura(caster, 1, effect, set, testRNG())
+
+	assert.Empty(t, structure.touches, "unfactioned targets are not flag-eligible")
+	require.Len(t, mobTarget.touches, 1, "the slot must go to the factioned enemy")
 }
 
 func TestProcessEntity_MobWithHealEffectIsNoop(t *testing.T) {
@@ -562,7 +626,7 @@ func TestProcessEntity_DerivesSensorMaskFromActiveSkill(t *testing.T) {
 	caster := newFakeMob(skills.EffectDef{
 		Type:              skills.EffectTypeDamageAura,
 		TickInterval:      1,
-		TargetsPlayers:    true,
+		TargetsEnemies:    true,
 		TargetsStructures: true,
 		Damage:            &skills.DamageParams{HP: 0.0067},
 	})
@@ -591,7 +655,7 @@ func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
 				Effects: []skills.EffectDef{{
 					Type:           skills.EffectTypeDamageAura,
 					Radius:         0.5,
-					TargetsPlayers: true,
+					TargetsEnemies: true,
 					TickInterval:   1,
 					Damage:         &skills.DamageParams{HP: 0.05},
 				}},
@@ -911,7 +975,7 @@ func novaDef() *skills.SkillDefinition {
 			Type:           skills.EffectTypeInstantDamage,
 			Radius:         1.5,
 			RadiusPerLevel: 0.1,
-			TargetsMobs:    true,
+			TargetsEnemies: true,
 			Damage:         &skills.DamageParams{HP: 0.15, HPPerLevel: 0.03},
 		}},
 	}
@@ -1001,7 +1065,7 @@ func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
 		Effects: []skills.EffectDef{{
 			Type:           skills.EffectTypeInstantDamage,
 			Radius:         2.0,
-			TargetsPlayers: true,
+			TargetsEnemies: true,
 			Damage:         &skills.DamageParams{HP: 0.2},
 		}},
 	}
@@ -1028,7 +1092,7 @@ func TestCooldown_MobHoldsFireWithoutTarget(t *testing.T) {
 		Effects: []skills.EffectDef{{
 			Type:           skills.EffectTypeInstantDamage,
 			Radius:         2.0,
-			TargetsPlayers: true,
+			TargetsEnemies: true,
 			Damage:         &skills.DamageParams{HP: 0.2},
 		}},
 	}
@@ -1133,9 +1197,9 @@ func TestSlowAura_AppliesLevelScaledSlow(t *testing.T) {
 	set := colliderSetOf(target)
 
 	effect := skills.EffectDef{
-		Type:        skills.EffectTypeSlowAura,
-		TargetsMobs: true,
-		Slow:        &skills.SlowParams{Fraction: 0.1, FractionPerLevel: 0.1},
+		Type:           skills.EffectTypeSlowAura,
+		TargetsEnemies: true,
+		Slow:           &skills.SlowParams{Fraction: 0.1, FractionPerLevel: 0.1},
 	}
 
 	applySlowAura(3, effect, set)
@@ -1148,7 +1212,7 @@ func TestSlowAura_SkipsNonSlowableTargets(t *testing.T) {
 	// A player (no ApplySlow) in the collision set must simply be skipped.
 	set := colliderSetOf(&touchRecorder{})
 
-	effect := skills.EffectDef{Type: skills.EffectTypeSlowAura, TargetsMobs: true, Slow: &skills.SlowParams{Fraction: 0.1}}
+	effect := skills.EffectDef{Type: skills.EffectTypeSlowAura, TargetsEnemies: true, Slow: &skills.SlowParams{Fraction: 0.1}}
 
 	assert.NotPanics(t, func() { applySlowAura(1, effect, set) })
 }
@@ -1163,16 +1227,17 @@ type resistTargetRecorder struct {
 }
 
 func (r *resistTargetRecorder) Basic() ecs.BasicEntity { return r.basic }
+func (r *resistTargetRecorder) Faction() model.Faction { return model.FactionAligned }
 func (r *resistTargetRecorder) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
 	r.resists = append(r.resists, appliedResist{source, tags, factor, ticks})
 }
 
 func resistEffect() skills.EffectDef {
 	return skills.EffectDef{
-		Type:           skills.EffectTypeResistAura,
-		TargetsPlayers: true,
-		TickInterval:   20,
-		Resist:         &skills.ResistParams{Tags: []string{"fire"}, Factor: 0.6, FactorPerLevel: -0.1},
+		Type:          skills.EffectTypeResistAura,
+		TargetsAllies: true, // FireWard shape: buff same-faction targets
+		TickInterval:  20,
+		Resist:        &skills.ResistParams{Tags: []string{"fire"}, Factor: 0.6, FactorPerLevel: -0.1},
 	}
 }
 

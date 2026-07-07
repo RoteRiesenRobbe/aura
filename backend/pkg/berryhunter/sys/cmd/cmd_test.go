@@ -96,7 +96,7 @@ func skillTestGame(t *testing.T) *fakeSkillGame {
 	r, err := skills.RegistryFromFS(fstest.MapFS{
 		"fire-ward.json": {Data: []byte(`{
 		  "id": 40, "name": "FireWard", "category": "active_aura", "maxLevel": 3,
-		  "effects": [{"type": "resist_aura", "radius": 1.5, "resistTags": ["fire"], "resistFactor": 0.6, "targetsPlayers": true, "targetsSelf": true}]
+		  "effects": [{"type": "resist_aura", "radius": 1.5, "resistTags": ["fire"], "resistFactor": 0.6, "targetsAllies": true, "targetsSelf": true}]
 		}`)},
 	})
 	require.NoError(t, err)

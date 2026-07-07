@@ -86,7 +86,9 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 	auraMask := int(model.LayerNoneCollision)
 	if active := sc.AuraSlots[0]; sc.ActiveAuraSlot == 0 && active != nil {
 		auraRadius = active.EffectiveRadius()
-		auraMask = model.AuraMaskFor(active.Def)
+		// FactionHostile literal: the Mob struct (with its faction field)
+		// is only constructed below; mobs always spawn hostile.
+		auraMask = model.AuraMaskFor(active.Def, model.FactionHostile)
 	}
 	aura := phy.NewCircle(phy.VEC2F_ZERO, auraRadius)
 	aura.Shape().Layer = int(model.LayerNoneCollision)
@@ -130,6 +132,9 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 		velocity:            0.055 * d.Factors.Speed,
 		chaseIntoAuraMargin: chaseIntoAuraMargin,
 		statusEffects:       model.NewStatusEffects(),
+		// Explicit: FactionHostile is not the zero value (FactionAligned is,
+		// so players need no stored field).
+		faction: model.FactionHostile,
 	}
 	if m.chaseIntoAuraMargin <= 0 {
 		m.chaseIntoAuraMargin = 0.05
@@ -173,6 +178,10 @@ type Mob struct {
 	deathRewardGiven    bool
 	chaseIntoAuraMargin float32
 
+	// faction is the mob's allegiance (plan-effect-foundations F8): hostile by
+	// default; future content (charm, player-owned summons) flips it at runtime.
+	faction model.Faction
+
 	// damageTaken accumulates health lost this tick (VitalSign units) for the
 	// floating damage number (roadmap item 11); reset every tick.
 	damageTaken vitals.VitalSign
@@ -211,6 +220,11 @@ func (m *Mob) AuraCollider() *phy.Circle {
 
 func (m *Mob) MobID() mobs.MobID {
 	return m.definition.ID
+}
+
+// Faction is the mob's current allegiance (hostile unless flipped by content).
+func (m *Mob) Faction() model.Faction {
+	return m.faction
 }
 
 func (m *Mob) MobDefinition() *mobs.MobDefinition {

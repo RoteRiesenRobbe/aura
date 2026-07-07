@@ -13,8 +13,8 @@
       "damageHPPerLevel": 1,
       "damageTags": ["fire"],
       "structureDamageFraction": 0.67,
-      "targetsMobs": false,
-      "targetsPlayers": true,
+      "targetsAllies": false,
+      "targetsEnemies": true,
       "targetsStructures": true,
       "tickInterval": 10
     }

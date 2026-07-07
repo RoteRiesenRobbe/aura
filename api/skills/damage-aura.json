@@ -12,8 +12,8 @@
       "damageHP": 7,
       "damageHPPerLevel": 1.6,
       "variance": 0.15,
-      "targetsMobs": true,
-      "targetsPlayers": false,
+      "targetsEnemies": true,
+      "targetsAllies": false,
       "selector": "nearest",
       "maxTargets": 1,
       "tickInterval": 20

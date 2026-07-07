@@ -1,6 +1,8 @@
 # Effect-System Foundations — Scaling the Effect-Type Vocabulary
 
-> **Status: decided 2026-07-07, execution pending.** Decision record + plan for
+> **Status: decided 2026-07-07; execution in progress — Steps 0+1 ✓ done
+> (2026-07-07), next is Step 2 (status-effect framework): start at the §7
+> briefing.** Decision record + plan for
 > growing the effect vocabulary from 8 to ~25+ types. Closes the scripting
 > question left open in `archive-scripting-options.md` (decision F1/F2 below);
 > the factual data-vs-Go audit behind it lives in `archive-scripting-audit.md`.
@@ -148,14 +150,22 @@ code), TDD'd, and independently shippable. Steps 1–4 are the F4 order.
   `eligibleByTargetFlags` builder; `-content <dir>` flag loads the repo api/
   from disk (skips cp-defs + rebuild, boot log states the source). JSON
   format unchanged, gameplay identical, full suite green.
-- **Step 1 — faction/allegiance (F8):** binary property on entities;
-  eligibility predicates and the no-friendly-fire rule read it instead of
-  type-asserting `PlayerEntity`. Behavior-preserving for all current content.
-- **Step 2 — status-effect framework (F7, F10):** generalize `ResistBuffs`
-  into a typed-payload buff/debuff store (stat mod, DoT tick, control flag,
-  absorb pool), same source-keying/stacking/aging semantics, cleanse API via
-  entry enumeration. Control payloads apply to mobs only. First consumer
-  candidates: DoT, root-as-debuff, mark.
+- **Step 1 — faction/allegiance (F8): ✓ DONE 2026-07-07.** `model.Faction`
+  (Aligned/Hostile) on players + mobs; **JSON flags became faction-relative**
+  — `targetsEnemies`/`targetsAllies` replaced `targetsMobs`/`targetsPlayers`
+  (value-preserving per-caster-kind rename across all 11 flag-carrying skill
+  files; stale keys hard-fail with a rename hint) — masks derive per caster
+  faction (`AuraMaskFor(def, faction)`), eligibility gates on faction equality
+  and requires a Factioned target (fixing the latent quirk where a capped
+  damage aura could waste its maxTargets slot on a no-op placeable hit).
+  Mob-vs-mob exclusion and no-friendly-fire are now the same faction rule.
+  Deferred to their consumers: faction setter (charm), enemy-mask widening
+  across layers (charm/summons), faction-aware mob aggro (item 7).
+- **Step 2 — status-effect framework (F7, F10): NEXT — full briefing in §7.**
+  Generalize `ResistBuffs` into a typed-payload buff/debuff store (stat mod,
+  DoT tick, control flag, absorb pool), same source-keying/stacking/aging
+  semantics, cleanse API via entry enumeration. Control payloads apply to
+  mobs only. First consumer candidates: DoT, root-as-debuff, mark.
 - **Step 3 — spawned-entity lifecycle:** totem first (closest to expressible
   today: stationary mob + aura skill + `Decayer`-style TTL), then ownership/
   XP attribution; pets/clones/swarm build on it later.
@@ -196,3 +206,89 @@ interleave with it. New types widen what item 12+ content can author.
   movement has no impulse concept) — parked until one is scheduled.
 - ⚑ Does a charmed mob's aura credit the owning player XP (attribution rule
   shared with pets)?
+
+## 7. Step 2 briefing — status-effect framework (start here next session)
+
+Everything below was verified against the code on 2026-07-07 (post Steps
+0+1). Goal: ONE generic entity-attached buff/debuff store with typed
+payloads, replacing the per-mechanic containers before a third and fourth
+copy appear (DoT, root, mark, shield all need one).
+
+### Prior art to generalize (file references current)
+
+- **`skills.ResistBuffs`** (`skills/resist.go`) is ~80% of the design and the
+  semantics to inherit: entries keyed by **source skill**; within one skill,
+  per-strength streams that age independently (a weaker refresh must never
+  keep a departed stronger application alive); refresh = same factor bumps
+  the stream's remaining ticks; **strongest active application wins within a
+  skill, distinct skills stack**; `Tick()` ages and drops expired entries.
+  Lifetime convention for aura-applied buffs: **effect tick interval + 1**
+  (survives one tick boundary, fades ~one aura cycle after leaving range).
+- **Lifecycle hook already wired on both entity kinds:** `ResetTickNumbers`
+  calls `resistBuffs.Tick()` in `model/player/player.go` (~line 241) and
+  `model/mob/mob.go` (~line 439). The framework's aging rides the same hook —
+  but see open sub-decision 3 for payloads that *act* on tick.
+- **Mob slow** (`mob.go`: `slowFraction`/`slowTicks` fields, `ApplySlow`,
+  consumed in `moveTowards`) is the degenerate hand-rolled form: 2-tick
+  lifetime, strongest wins, re-applied per tick. Folding it into the
+  framework deletes the fields and the `slowable` special case.
+- **Naming trap:** `model.StatusEffects` is the per-tick **VFX flag set** for
+  the wire (cleared every tick, e.g. `DamagedAmbient`, `BurstFired`) — NOT
+  this framework. The framework may *feed* it for client feedback; do not
+  unify them.
+- **Mark is nearly free:** "more vulnerable to everyone" is expressible as a
+  resist-style buff with factor > 1 (vulnerability multiplier) — the resist
+  payload generalized, plus a wire-visible flag for the "visible to everyone"
+  half.
+
+### Constraints already decided (do not re-litigate)
+
+- **F7:** control payloads (root, fear, …) apply to **mobs only** in v1 —
+  no player input suppression; mob consult points are `moveTowards`/AI.
+- **F10:** everything cleansable; cleanse = enumerate entries + remove, no
+  dispel classes in v1 (entry enumeration keeps the retrofit cheap).
+- **F6:** before the absorb-pool payload coexists with armor pen / thorns /
+  lifesteal, the damage-pipeline composition order needs its own decision
+  record. Shield alone on top of today's pipeline is fine.
+- Faction is live (Step 1): buff targeting via the existing
+  `eligibleByTargetFlags`; new debuff-applying effect types get payload
+  structs + allowlist entries per the Step-0 pattern (cheap).
+- The defining upgrade over ResistBuffs: durations **independent of
+  re-application** (a DoT keeps ticking after the target leaves the aura /
+  the caster dies) — today's interval+1 convention is just one duration
+  policy among several.
+
+### Open sub-decisions to settle in the plan-first discussion
+
+1. **Migration scope:** build the generic store and migrate `ResistBuffs`
+   into it as the first payload (proves the design, deletes the special
+   case), then slow, then DoT as the first NEW payload — or keep resist/slow
+   parallel initially? (Lean: migrate resist at least; slow is trivial.)
+2. **DoT attribution:** a DoT that outlives the caster's presence must carry
+   the source player for XP participation (`mob.participants`), floating
+   damage numbers, kill credit, and damage tags through the existing
+   `takeDamage` paths. Decide the payload's source reference shape (player
+   entity ref vs ID) and its behavior when the caster disconnects.
+3. **Where acting payloads tick:** `ResetTickNumbers` is
+   serialization-adjacent (it clears the floating-number accumulators) —
+   a DoT dealing damage there would land in the wrong spot of the tick
+   relative to SkillSystem (-65) and the accumulator reset. Likely answer: a
+   dedicated tick site (in or next to SkillSystem) for payloads that *act*,
+   while pure aging stays on `ResetTickNumbers`; verify the system priority
+   chain (`printSystems` boot log) before deciding.
+4. **Buff visibility (open question in §6):** v1 feedback via existing
+   `model.StatusEffects` VFX flags only, or icons/timers (wire footprint:
+   per-entity buff list — decide how much the client needs to see).
+5. **Death/respawn:** do buffs/debuffs clear on death? (`carriedState` in
+   `sys/state.go` stashes the SkillComponent — the buff store presumably
+   does NOT carry over; make it explicit.)
+6. **Where the store lives:** `skills` package like `ResistBuffs` (avoids
+   the model↔skills import cycle); one store per player + mob replacing the
+   `resistBuffs` field if sub-decision 1 says migrate.
+
+### Definition of done (mirrors Steps 0/1)
+
+Plan-first discussion → TDD (ResistBuffs' `resist_test.go` is the template;
+behavior-test fakes already carry factions) → full suite green → boot smoke
+via `-content ../api` → CLAUDE.md status + this doc updated → in-game check
+of the first consumer (DoT or root on a mob).

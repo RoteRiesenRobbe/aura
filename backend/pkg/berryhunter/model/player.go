@@ -34,6 +34,7 @@ type Players []PlayerEntity
 type PlayerEntity interface {
 	Entity
 	StatusEntity
+	Factioned
 
 	Name() string
 	VitalSigns() *PlayerVitalSigns

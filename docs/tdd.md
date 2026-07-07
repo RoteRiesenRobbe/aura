@@ -82,7 +82,7 @@ Each system below gets its own spec discussion before it is implemented; section
 - **Targeting pipeline per effect:** range filter (aura sensor) → *(later, item 6)* LoS filter → selector sort (`nearest` default, `lowest_health` percentage-based, `all`) → first `maxTargets`. Heal auras never heal the caster; self-healing is a cooldown (`self_heal`).
 - Tick intervals per effect, monotonic accumulator per equipped skill (multi-effect skills run each effect on its own cadence); reset on aura switch prevents the rapid-switch DPS exploit
 - Unlocks are data-driven (milestones, kill drops, recipe cascade); spellbook over the wire + UI (panel, equip, unlock glow)
-- Faction logic declarative via target flags per effect (`targetsMobs` / `targetsPlayers` / `targetsStructures` / `targetsSelf`) — no friendly fire, mob auras hit players, mob-vs-mob excluded
+- Faction logic: binary `model.Faction` on players (aligned) and mobs (hostile, runtime-flippable for future charm/summons) + faction-relative target flags per effect (`targetsEnemies` / `targetsAllies` / `targetsStructures` / `targetsSelf`, effect foundations Step 1) — no friendly fire = `targetsAllies: false`, mob-vs-mob excluded as same-faction, masks derived per caster faction
 - Resource consumption as an effect parameter (`selfDamageHP` — no separate cost system); damage/healing in absolute integer HP with the min-1 rule; resistances as string-tag multipliers
 - Per-tick **hit VFX on the struck target** (slash for slow ticks, fire for fast ones), so the aura circle reads as range rather than hit zone
 

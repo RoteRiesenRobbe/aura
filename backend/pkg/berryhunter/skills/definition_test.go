@@ -21,8 +21,8 @@ var damageAuraJSON = []byte(`{
       "radiusPerLevel": 0.0,
       "damageHP": 0.009,
       "damageHPPerLevel": 0.002,
-      "targetsMobs": true,
-      "targetsPlayers": false
+      "targetsEnemies": true,
+      "targetsAllies": false
     }
   ]
 }`)
@@ -73,8 +73,8 @@ var novaBurstJSON = []byte(`{
       "radiusPerLevel": 0.1,
       "damageHP": 0.15,
       "damageHPPerLevel": 0.03,
-      "targetsMobs": true,
-      "targetsPlayers": false
+      "targetsEnemies": true,
+      "targetsAllies": false
     }
   ]
 }`)
@@ -104,8 +104,8 @@ func TestParse_DamageAura(t *testing.T) {
 	assert.InDelta(t, 0.0, e.RadiusPerLevel, 1e-6)
 	assert.InDelta(t, 0.009, e.Damage.HP, 1e-6)
 	assert.InDelta(t, 0.002, e.Damage.HPPerLevel, 1e-6)
-	assert.True(t, e.TargetsMobs)
-	assert.False(t, e.TargetsPlayers)
+	assert.True(t, e.TargetsEnemies)
+	assert.False(t, e.TargetsAllies)
 	assert.Equal(t, 1, e.TickInterval) // absent in JSON → normalized to default 1
 }
 
@@ -122,8 +122,8 @@ var mobAuraJSON = []byte(`{
       "radius": 3.0,
       "damageHP": 0.0067,
       "structureDamageFraction": 0.67,
-      "targetsMobs": false,
-      "targetsPlayers": true,
+      "targetsAllies": false,
+      "targetsEnemies": true,
       "targetsStructures": true
     }
   ]
@@ -137,8 +137,8 @@ func TestParse_MobAuraWithStructureDamage(t *testing.T) {
 	assert.Equal(t, EffectTypeDamageAura, e.Type)
 	assert.InDelta(t, 0.0067, e.Damage.HP, 1e-6)
 	assert.InDelta(t, 0.67, e.Damage.StructureDamageFraction, 1e-6)
-	assert.False(t, e.TargetsMobs)
-	assert.True(t, e.TargetsPlayers)
+	assert.False(t, e.TargetsAllies)
+	assert.True(t, e.TargetsEnemies)
 	assert.True(t, e.TargetsStructures)
 }
 
@@ -194,8 +194,8 @@ func TestParse_NovaBurst(t *testing.T) {
 	assert.InDelta(t, 0.1, e.RadiusPerLevel, 1e-6)
 	assert.InDelta(t, 0.15, e.Damage.HP, 1e-6)
 	assert.InDelta(t, 0.03, e.Damage.HPPerLevel, 1e-6)
-	assert.True(t, e.TargetsMobs)
-	assert.False(t, e.TargetsPlayers)
+	assert.True(t, e.TargetsEnemies)
+	assert.False(t, e.TargetsAllies)
 }
 
 // --- damage tags (item 11 Phase 2) ---
@@ -203,7 +203,7 @@ func TestParse_NovaBurst(t *testing.T) {
 func TestParse_DamageTags(t *testing.T) {
 	data := []byte(`{
       "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
-      "effects": [{"type": "damage_aura", "targetsMobs": true, "damageTags": ["fire", "boss_x_lava"]}]
+      "effects": [{"type": "damage_aura", "targetsEnemies": true, "damageTags": ["fire", "boss_x_lava"]}]
     }`)
 	def := mustParse(t, data)
 
@@ -230,21 +230,21 @@ func TestParse_DamageTagsAbsentOnNonDamageEffects(t *testing.T) {
 }
 
 func TestMap_EmptyDamageTagFails(t *testing.T) {
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"damageTags":[""]}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageTags":[""]}]}`))
 	require.NoError(t, err)
 	_, err = raw.mapToSkillDefinition()
 	assert.Error(t, err)
 }
 
 func TestMap_DuplicateDamageTagFails(t *testing.T) {
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"damageTags":["fire","fire"]}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageTags":["fire","fire"]}]}`))
 	require.NoError(t, err)
 	_, err = raw.mapToSkillDefinition()
 	assert.Error(t, err)
 }
 
 func TestMap_DamageTagsOnNonDamageEffectFails(t *testing.T) {
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"heal_aura","targetsPlayers":true,"damageTags":["fire"]}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"heal_aura","damageTags":["fire"]}]}`))
 	require.NoError(t, err)
 	_, err = raw.mapToSkillDefinition()
 	assert.Error(t, err)
@@ -255,7 +255,7 @@ func TestMap_DamageTagsOnNonDamageEffectFails(t *testing.T) {
 func TestParse_Variance(t *testing.T) {
 	data := []byte(`{
       "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
-      "effects": [{"type": "damage_aura", "targetsMobs": true, "damageHP": 7, "variance": 0.15}]
+      "effects": [{"type": "damage_aura", "targetsEnemies": true, "damageHP": 7, "variance": 0.15}]
     }`)
 	def := mustParse(t, data)
 
@@ -273,7 +273,7 @@ func TestParse_VarianceValidOnAllRollingEffects(t *testing.T) {
 	// Damage and heal amounts both roll (decision C1): damage_aura,
 	// instant_damage, heal_aura and self_heal all accept a variance band.
 	for _, effect := range []string{
-		`{"type": "instant_damage", "targetsMobs": true, "damageHP": 25, "variance": 0.1}`,
+		`{"type": "instant_damage", "targetsEnemies": true, "damageHP": 25, "variance": 0.1}`,
 		`{"type": "heal_aura", "healHP": 6, "variance": 0.1}`,
 		`{"type": "self_heal", "healHP": 20, "variance": 0.1}`,
 	} {
@@ -297,7 +297,7 @@ func TestParse_VarianceValidOnAllRollingEffects(t *testing.T) {
 
 func TestMap_VarianceOutOfBoundsFails(t *testing.T) {
 	for _, variance := range []string{"-0.1", "1", "1.5"} {
-		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"damageHP":7,"variance":` + variance + `}]}`))
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":7,"variance":` + variance + `}]}`))
 		require.NoError(t, err)
 		_, err = raw.mapToSkillDefinition()
 		assert.Error(t, err, "variance %s must be rejected (valid: 0 <= v < 1)", variance)
@@ -307,7 +307,7 @@ func TestMap_VarianceOutOfBoundsFails(t *testing.T) {
 func TestMap_VarianceOnNonRollingEffectFails(t *testing.T) {
 	// On an effect without a rolled amount, variance would be a silent no-op.
 	for _, effect := range []string{
-		`{"type": "slow_aura", "targetsMobs": true, "slowFraction": 0.5, "variance": 0.1}`,
+		`{"type": "slow_aura", "targetsEnemies": true, "slowFraction": 0.5, "variance": 0.1}`,
 		`{"type": "stat_multiplier", "stat": "movementSpeed", "statBonus": 0.1, "statBonusPerLevel": 0.1, "variance": 0.1}`,
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[` + effect + `]}`))
@@ -324,7 +324,7 @@ func TestParse_ResistAura(t *testing.T) {
       "id": 40, "name": "FireWard", "category": "active_aura", "maxLevel": 3,
       "effects": [{"type": "resist_aura", "radius": 1.5, "resistTags": ["fire", "boss_x_lava"],
                    "resistFactor": 0.6, "resistFactorPerLevel": -0.1,
-                   "targetsPlayers": true, "targetsSelf": true, "tickInterval": 1}]
+                   "targetsAllies": true, "targetsSelf": true, "tickInterval": 1}]
     }`)
 	def := mustParse(t, data)
 
@@ -334,7 +334,7 @@ func TestParse_ResistAura(t *testing.T) {
 	assert.Equal(t, []string{"fire", "boss_x_lava"}, e.Resist.Tags)
 	assert.InDelta(t, 0.6, e.Resist.Factor, 1e-6)
 	assert.InDelta(t, -0.1, e.Resist.FactorPerLevel, 1e-6)
-	assert.True(t, e.TargetsPlayers)
+	assert.True(t, e.TargetsAllies)
 	assert.True(t, e.Resist.TargetsSelf)
 }
 
@@ -353,21 +353,21 @@ func TestParse_ResistPassive(t *testing.T) {
 }
 
 func TestMap_ResistAuraWithoutTagsFails(t *testing.T) {
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"resist_aura","radius":1,"resistFactor":0.5,"targetsPlayers":true}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"resist_aura","radius":1,"resistFactor":0.5,"targetsAllies":true}]}`))
 	require.NoError(t, err)
 	_, err = raw.mapToSkillDefinition()
 	assert.Error(t, err)
 }
 
 func TestMap_NegativeResistFactorFails(t *testing.T) {
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"resist_aura","radius":1,"resistTags":["fire"],"resistFactor":-0.1,"targetsPlayers":true}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"resist_aura","radius":1,"resistTags":["fire"],"resistFactor":-0.1,"targetsAllies":true}]}`))
 	require.NoError(t, err)
 	_, err = raw.mapToSkillDefinition()
 	assert.Error(t, err)
 }
 
 func TestMap_ResistTagsOnNonResistEffectFails(t *testing.T) {
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"resistTags":["fire"]}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"resistTags":["fire"]}]}`))
 	require.NoError(t, err)
 	_, err = raw.mapToSkillDefinition()
 	assert.Error(t, err)
@@ -393,7 +393,7 @@ func TestMap_UnknownEffectType(t *testing.T) {
 }
 
 func TestMap_UnknownSelector(t *testing.T) {
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"selector":"no_such_selector"}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"selector":"no_such_selector"}]}`))
 	require.NoError(t, err)
 	_, err = raw.mapToSkillDefinition()
 	assert.Error(t, err)
@@ -402,7 +402,7 @@ func TestMap_UnknownSelector(t *testing.T) {
 func TestParse_SelectorAndCap(t *testing.T) {
 	data := []byte(`{
       "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
-      "effects": [{"type": "damage_aura", "targetsMobs": true, "selector": "lowest_health", "maxTargets": 2, "maxTargetsPerLevel": 1, "tickIntervalPerLevel": -1}]
+      "effects": [{"type": "damage_aura", "targetsEnemies": true, "selector": "lowest_health", "maxTargets": 2, "maxTargetsPerLevel": 1, "tickIntervalPerLevel": -1}]
     }`)
 	def := mustParse(t, data)
 
@@ -416,7 +416,7 @@ func TestParse_SelectorAndCap(t *testing.T) {
 
 func TestParse_SelectorDefaultsToNearest(t *testing.T) {
 	// Absent selector must default to nearest, MaxTargets 0 = uncapped.
-	data := []byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true}]}`)
+	data := []byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true}]}`)
 	def := mustParse(t, data)
 
 	e := def.Effects[0]
@@ -427,7 +427,7 @@ func TestParse_SelectorDefaultsToNearest(t *testing.T) {
 func TestParse_SlowAura(t *testing.T) {
 	data := []byte(`{
       "id": 4, "name": "SlowAura", "category": "active_aura", "maxLevel": 5,
-      "effects": [{"type": "slow_aura", "radius": 1.5, "slowFraction": 0.1, "slowFractionPerLevel": 0.1, "targetsMobs": true}]
+      "effects": [{"type": "slow_aura", "radius": 1.5, "slowFraction": 0.1, "slowFractionPerLevel": 0.1, "targetsEnemies": true}]
     }`)
 	def := mustParse(t, data)
 
@@ -437,7 +437,7 @@ func TestParse_SlowAura(t *testing.T) {
 	assert.InDelta(t, 1.5, e.Radius, 1e-6)
 	assert.InDelta(t, 0.1, e.Slow.Fraction, 1e-6)
 	assert.InDelta(t, 0.1, e.Slow.FractionPerLevel, 1e-6)
-	assert.True(t, e.TargetsMobs)
+	assert.True(t, e.TargetsEnemies)
 }
 
 func TestParse_SelfHeal(t *testing.T) {
@@ -491,10 +491,24 @@ func TestMap_StaleAdditivePerLevelKeyFails(t *testing.T) {
 	assert.ErrorContains(t, err, "additivePerLevel")
 }
 
+func TestMap_RetiredTargetFlagKeysFailWithHint(t *testing.T) {
+	// The pre-faction targetsMobs/targetsPlayers keys (effect foundations
+	// Step 1) hard-fail with a pointer to the faction-relative successors.
+	for _, effect := range []string{
+		`{"type":"damage_aura","targetsMobs":true}`,
+		`{"type":"damage_aura","targetsPlayers":false}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		assert.ErrorContains(t, err, "targetsEnemies", "stale flag must name the successor: %s", effect)
+	}
+}
+
 func TestMap_UnknownEffectKeyFails(t *testing.T) {
 	// Typos hard-fail on every effect type — json.Unmarshal alone would drop
 	// the key and load a silently mis-tuned effect.
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"radiusPerLvl":0.5}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"radiusPerLvl":0.5}]}`))
 	require.NoError(t, err)
 	_, err = raw.mapToSkillDefinition()
 	assert.ErrorContains(t, err, "radiusPerLvl")
@@ -524,8 +538,8 @@ func TestParse_ExactlyOnePayload(t *testing.T) {
 func TestMap_StatFieldsOnNonStatEffectFails(t *testing.T) {
 	// stat/statBonus on other effect types would be a silent no-op.
 	for _, effect := range []string{
-		`{"type": "damage_aura", "targetsMobs": true, "damageHP": 7, "statBonus": 0.1}`,
-		`{"type": "slow_aura", "targetsMobs": true, "slowFraction": 0.5, "stat": "movementSpeed"}`,
+		`{"type": "damage_aura", "targetsEnemies": true, "damageHP": 7, "statBonus": 0.1}`,
+		`{"type": "slow_aura", "targetsEnemies": true, "slowFraction": 0.5, "stat": "movementSpeed"}`,
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
@@ -537,7 +551,7 @@ func TestMap_StatFieldsOnNonStatEffectFails(t *testing.T) {
 func TestMap_ExplicitTickInterval(t *testing.T) {
 	data := []byte(`{
       "id": 99, "name": "SlowAura", "category": "active_aura", "maxLevel": 1,
-      "effects": [{"type": "damage_aura", "tickInterval": 3, "targetsMobs": true}]
+      "effects": [{"type": "damage_aura", "tickInterval": 3, "targetsEnemies": true}]
     }`)
 	def := mustParse(t, data)
 	assert.Equal(t, 3, def.Effects[0].TickInterval)

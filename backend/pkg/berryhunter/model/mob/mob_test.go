@@ -26,7 +26,7 @@ func testAuraSkill() *skills.SkillDefinition {
 		Effects: []skills.EffectDef{{
 			Type:           skills.EffectTypeDamageAura,
 			Radius:         0.5,
-			TargetsPlayers: true,
+			TargetsEnemies: true,
 			TickInterval:   1,
 			Damage:         &skills.DamageParams{HP: 0.05},
 		}},
@@ -476,4 +476,11 @@ func TestMob_ResistBuff_ComposesWithBaseAndExpires(t *testing.T) {
 	m.ResetTickNumbers()
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 40, Tags: []string{"fire"}})
 	assert.Equal(t, m.MaxHealth()-30, m.Health(), "expired buff: 40 × base 0.5 = 20 more")
+}
+
+func TestNewMob_SpawnsHostile(t *testing.T) {
+	// FactionHostile is not the zero value — a missed initialization would
+	// silently spawn player-aligned mobs (effect foundations Step 1).
+	m := NewMob(testMobDefinition(), false, 0, 0)
+	assert.Equal(t, model.FactionHostile, m.Faction())
 }

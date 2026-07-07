@@ -253,6 +253,11 @@ func (p *player) Name() string {
 	return p.name
 }
 
+// Faction: players are always player-aligned (plan-effect-foundations F8).
+func (p *player) Faction() model.Faction {
+	return model.FactionAligned
+}
+
 func (p *player) Bodies() model.Bodies {
 	b := make(model.Bodies, 4)
 	b[0] = p.Body

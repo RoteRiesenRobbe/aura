@@ -72,8 +72,8 @@ Top-level fields:
       "radiusPerLevel": 0.0,
       "damageHP": 7,
       "damageHPPerLevel": 1.6,
-      "targetsMobs": true,
-      "targetsPlayers": false,
+      "targetsEnemies": true,
+      "targetsAllies": false,
       "selector": "nearest",
       "maxTargets": 1,
       "tickInterval": 20
@@ -82,8 +82,10 @@ Top-level fields:
 }
 ```
 
-All values marked [PLACEHOLDER]. `targetsPlayers: false` enforces the existing
-no-friendly-fire rule declaratively rather than in code. (Damage/heal amounts
+All values marked [PLACEHOLDER]. `targetsAllies: false` enforces the existing
+no-friendly-fire rule declaratively rather than in code — the flags are
+relative to the caster's faction (effect foundations Step 1), so the same
+skill retargets correctly on a mob or a future charmed ally. (Damage/heal amounts
 are absolute HP since item 11 Phase 1; `selector`/`maxTargets`/`tickInterval`
 landed with roadmap item 11.)
 
@@ -153,8 +155,8 @@ Stacking below). [PLACEHOLDER] on all numbers.
       "radiusPerLevel": 0.1,
       "damageHP": 25,
       "damageHPPerLevel": 6,
-      "targetsMobs": true,
-      "targetsPlayers": false
+      "targetsEnemies": true,
+      "targetsAllies": false
     }
   ]
 }
@@ -187,8 +189,8 @@ flags. Applied while the aura slot is toggled **on**.
 | `damageHP` | float | Absolute HP damage per hit [PLACEHOLDER] |
 | `damageHPPerLevel` | float | Added per skill level [PLACEHOLDER] |
 | `damageTags` | []string | Damage tags for resistance matching; default `["physical"]` |
-| `targetsMobs` | bool | Whether this hits mobs |
-| `targetsPlayers` | bool | Whether this hits other players |
+| `targetsEnemies` | bool | Whether this hits the opposing faction (relative to the caster) |
+| `targetsAllies` | bool | Whether this hits the caster's own faction (false = no friendly fire) |
 | `tickInterval` | int | Ticks between effect applications; default 1 [PLACEHOLDER] |
 
 ### `heal_aura`

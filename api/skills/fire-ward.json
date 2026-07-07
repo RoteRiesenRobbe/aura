@@ -11,7 +11,7 @@
       "resistTags": ["fire"],
       "resistFactor": 0.6,
       "resistFactorPerLevel": -0.1,
-      "targetsPlayers": true,
+      "targetsAllies": true,
       "targetsSelf": true,
       "tickInterval": 1
     }

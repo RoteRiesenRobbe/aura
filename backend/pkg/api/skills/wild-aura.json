@@ -11,8 +11,8 @@
       "radiusPerLevel": 0.05,
       "damageHP": 5,
       "damageHPPerLevel": 1.2,
-      "targetsMobs": true,
-      "targetsPlayers": false,
+      "targetsEnemies": true,
+      "targetsAllies": false,
       "selector": "nearest",
       "maxTargets": 1,
       "tickInterval": 20

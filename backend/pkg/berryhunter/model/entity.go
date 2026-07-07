@@ -91,6 +91,7 @@ type PlaceableResourceEntity interface {
 type MobEntity interface {
 	Entity
 	StatusEntity
+	Factioned
 
 	MobID() mobs.MobID
 	MobDefinition() *mobs.MobDefinition

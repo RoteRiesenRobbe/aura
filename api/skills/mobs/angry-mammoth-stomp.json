@@ -9,8 +9,8 @@
       "type": "instant_damage",
       "radius": 2.5,
       "damageHP": 20,
-      "targetsMobs": false,
-      "targetsPlayers": true
+      "targetsAllies": false,
+      "targetsEnemies": true
     }
   ]
 }

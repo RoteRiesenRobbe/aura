@@ -21,6 +21,7 @@ type fakeSkillEntity struct {
 }
 
 func (f *fakeSkillEntity) Basic() ecs.BasicEntity                 { return f.BasicEntity }
+func (f *fakeSkillEntity) Faction() model.Faction                 { return model.FactionAligned }
 func (f *fakeSkillEntity) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeSkillEntity) AuraCollider() *phy.Circle              { return nil }
 func (f *fakeSkillEntity) VitalSigns() *model.PlayerVitalSigns    { return &f.vitalSigns }

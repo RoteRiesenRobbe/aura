@@ -10,8 +10,8 @@
       "radiusPerLevel": 0.0,
       "slowFraction": 0.1,
       "slowFractionPerLevel": 0.1,
-      "targetsMobs": true,
-      "targetsPlayers": false
+      "targetsEnemies": true,
+      "targetsAllies": false
     }
   ]
 }

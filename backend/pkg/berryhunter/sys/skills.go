@@ -24,6 +24,7 @@ import (
 // since exactly one aura is active at a time.
 type skillEntity interface {
 	model.BasicEntity
+	model.Factioned
 	SkillComponent() *skills.SkillComponent
 	AuraCollider() *phy.Circle
 }
@@ -103,7 +104,7 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	if r := equip.EffectiveRadius(); collider.Radius != r {
 		collider.SetRadius(r)
 	}
-	if m := model.AuraMaskFor(equip.Def); collider.Shape().Mask != m {
+	if m := model.AuraMaskFor(equip.Def, e.Faction()); collider.Shape().Mask != m {
 		collider.Shape().Mask = m
 	}
 
@@ -134,23 +135,29 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 }
 
 // eligibleByTargetFlags builds the standard eligibility predicate shared by
-// flag-gated targeted effects (damage_aura/instant_damage, resist_aura): a
-// player target is gated by targetsPlayers, every non-player target by
-// targetsMobs, and the target must implement Capability (the effect's apply
-// interface). skipCaster excludes the caster itself (resist auras reach the
-// caster only via targetsSelf). Heal auras keep their own predicate — they
-// follow different rules (wounded allies only, never self), not these.
-func eligibleByTargetFlags[Capability any](effect skills.EffectDef, casterID uint64, skipCaster bool) func(phy.Collider) bool {
+// flag-gated targeted effects (damage_aura/instant_damage, resist_aura): the
+// target must be Factioned — players and mobs; structures/resources have no
+// allegiance and are reached only through their dedicated paths — with
+// same-faction targets gated by targetsAllies and opposing ones by
+// targetsEnemies (effect foundations Step 1). The target must also implement
+// Capability (the effect's apply interface); skipCaster excludes the caster
+// itself (resist auras reach the caster only via targetsSelf). Heal auras
+// keep their own predicate — implicit allies with wounded/never-self rules.
+func eligibleByTargetFlags[Capability any](effect skills.EffectDef, casterFaction model.Faction, casterID uint64, skipCaster bool) func(phy.Collider) bool {
 	return func(c phy.Collider) bool {
 		usr := c.Shape().UserData
 		if usr == nil {
 			return false
 		}
-		if _, isPlayer := usr.(model.PlayerEntity); isPlayer {
-			if !effect.TargetsPlayers {
+		target, ok := usr.(model.Factioned)
+		if !ok {
+			return false
+		}
+		if target.Faction() == casterFaction {
+			if !effect.TargetsAllies {
 				return false
 			}
-		} else if !effect.TargetsMobs {
+		} else if !effect.TargetsEnemies {
 			return false
 		}
 		if _, ok := usr.(Capability); !ok {
@@ -171,22 +178,21 @@ func eligibleByTargetFlags[Capability any](effect skills.EffectDef, casterID uin
 func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
 	switch caster := e.(type) {
 	case model.PlayerEntity:
-		applyPlayerDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions, rng)
+		applyPlayerDamageAura(caster, e.Faction(), e.AuraCollider().Position(), level, effect, collisions, rng)
 	case model.MobEntity:
 		applyMobDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions, rng)
 	}
 }
 
-func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
+func applyPlayerDamageAura(caster model.PlayerEntity, casterFaction model.Faction, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
 	damageHP := effect.Damage.HPAt(level)
 
-	// Declarative targeting: the sensor mask pre-filters layers, the flags
-	// decide per target class. targetsPlayers=false is the no-friendly-fire
-	// rule; everything non-player (mobs, resources) is gated by targetsMobs.
-	// No caster skip, matching the damage path's long-standing semantics
-	// (heal and resist auras skip self explicitly; damage never did — only
-	// relevant if player content ever sets targetsPlayers).
-	eligible := eligibleByTargetFlags[model.Interacter](effect, 0, false)
+	// Declarative targeting: the sensor mask pre-filters layers, the faction
+	// flags decide per target. targetsAllies=false is the no-friendly-fire
+	// rule. No caster skip, matching the damage path's long-standing
+	// semantics (heal and resist auras skip self explicitly; damage never
+	// did — only relevant if content ever sets targetsAllies on damage).
+	eligible := eligibleByTargetFlags[model.Interacter](effect, casterFaction, 0, false)
 
 	style := auraHitStyleFor(effect, level)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
@@ -200,9 +206,11 @@ func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level
 }
 
 // applyMobDamageAura applies a mob's aura to the (mask-filtered) collision set
-// via MobTouches. Target discrimination is purely the sensor mask, exactly like
-// the legacy mob damage loop; the Factors payload carries both fractions and
-// each target picks the one that applies to it. Selector/cap ride on top.
+// via MobTouches. Target discrimination is purely the sensor mask — the
+// faction-relative layers plus the placeable layer for targetsStructures —
+// NOT eligibleByTargetFlags: structures are unfactioned but must stay
+// reachable by mob structure damage. The Factors payload carries both values
+// and each target picks the one that applies to it. Selector/cap ride on top.
 func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
 	damageHP := effect.Damage.HPAt(level)
 	factors := mobs.Factors{
@@ -244,14 +252,22 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 
 	healCenterHP := effect.Heal.HPAt(level)
 	casterPos := e.AuraCollider().Position()
+	casterFaction := e.Faction()
 	casterID := e.Basic().ID()
 	healedSomeone := false
 
-	// Eligible = a wounded ally that isn't the caster; the cap then counts only
-	// heal-worthy targets (never a slot wasted on a full-health or self entry).
+	// Eligible = a wounded ally (same faction, Step 1) that isn't the caster;
+	// the cap then counts only heal-worthy targets (never a slot wasted on a
+	// full-health or self entry). The PlayerEntity capability is the vitals
+	// access — mob allies need the item-7 vitals abstraction before heals can
+	// reach them.
 	eligible := func(c phy.Collider) bool {
-		other, ok := c.Shape().UserData.(model.PlayerEntity)
+		usr := c.Shape().UserData
+		other, ok := usr.(model.PlayerEntity)
 		if !ok {
+			return false
+		}
+		if f, ok := usr.(model.Factioned); !ok || f.Faction() != casterFaction {
 			return false
 		}
 		if other.Basic().ID() == casterID {
@@ -312,7 +328,7 @@ func applyResistAura(e skillEntity, source skills.SkillID, level int, effect ski
 
 	// The caster is never part of the in-range set (targetsSelf above is the
 	// only self path).
-	eligible := eligibleByTargetFlags[resistBuffable](effect, casterID, true)
+	eligible := eligibleByTargetFlags[resistBuffable](effect, e.Faction(), casterID, true)
 
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
@@ -412,7 +428,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 
 		radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, es.Level)
 		query := phy.NewCircle(e.AuraCollider().Position(), radius)
-		query.Shape().Mask = model.InstantDamageMask(effect)
+		query.Shape().Mask = model.InstantDamageMask(effect, e.Faction())
 
 		hits := s.space.QueryCircle(query)
 		targets := make(phy.ColliderSet, len(hits))

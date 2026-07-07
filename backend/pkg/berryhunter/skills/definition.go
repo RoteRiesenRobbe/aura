@@ -141,14 +141,17 @@ type EffectDef struct {
 	TickIntervalPerLevel int
 
 	// Targeting: Selector orders candidates when MaxTargets caps the set
-	// (0 = uncapped AoE-all); the flags gate per target class — players by
-	// TargetsPlayers, everything else by TargetsMobs, placeables by
-	// TargetsStructures (damage effects only, via the sensor/query masks).
+	// (0 = uncapped AoE-all); the flags gate RELATIVE to the caster's faction
+	// (plan-effect-foundations F8/Step 1) — same faction by TargetsAllies,
+	// other faction by TargetsEnemies — so the same skill retargets correctly
+	// when its caster's faction differs or flips (mob loadouts, future charm/
+	// summons). Placeables have no faction; damage effects reach them via
+	// TargetsStructures only. Flags also drive the sensor/query masks.
 	Selector           Selector
 	MaxTargets         int
 	MaxTargetsPerLevel int
-	TargetsMobs        bool
-	TargetsPlayers     bool
+	TargetsEnemies     bool
+	TargetsAllies      bool
 	TargetsStructures  bool
 
 	// Per-type payloads — exactly one non-nil, matching Type.
@@ -291,8 +294,8 @@ type effectDef struct {
 
 	DamageHP         float32  `json:"damageHP"`
 	DamageHPPerLevel float32  `json:"damageHPPerLevel"`
-	TargetsMobs      bool     `json:"targetsMobs"`
-	TargetsPlayers   bool     `json:"targetsPlayers"`
+	TargetsEnemies   bool     `json:"targetsEnemies"`
+	TargetsAllies    bool     `json:"targetsAllies"`
 	DamageTags       []string `json:"damageTags"` // absent → [physical] on damage effects
 
 	Variance float32 `json:"variance"` // 0 = static; only on damage/heal amounts
@@ -348,7 +351,7 @@ var (
 	keysGeometry      = []string{"radius", "radiusPerLevel"}
 	keysCadence       = []string{"tickInterval", "tickIntervalPerLevel"}
 	keysCapped        = []string{"selector", "maxTargets", "maxTargetsPerLevel"}
-	keysTargetFlags   = []string{"targetsMobs", "targetsPlayers"}
+	keysTargetFlags   = []string{"targetsEnemies", "targetsAllies"}
 	keysDamagePayload = []string{"damageHP", "damageHPPerLevel", "damageTags", "variance", "hitStyle", "targetsStructures", "structureDamageFraction"}
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
 )
@@ -363,8 +366,8 @@ var effectKeys = map[EffectType][]string{
 	EffectTypeDamageAura: mergeKeys(keysGeometry, keysCadence, keysCapped, keysTargetFlags, keysDamagePayload),
 	// No cadence: instant_damage fires on cooldown activation, not per tick.
 	EffectTypeInstantDamage: mergeKeys(keysGeometry, keysCapped, keysTargetFlags, keysDamagePayload),
-	// No target flags: heal auras target players implicitly (mob support
-	// behaviors lift this with roadmap item 7).
+	// No target flags: heal auras target allies implicitly (mob support
+	// behaviors lift the player-only capability with roadmap item 7).
 	EffectTypeHealAura: mergeKeys(keysGeometry, keysCadence, keysCapped,
 		[]string{"healHP", "healHPPerLevel", "selfDamageHP", "variance"}),
 	EffectTypeSelfHeal: {"healHP", "healHPPerLevel", "healFractionOfMax", "healFractionOfMaxPerLevel", "variance"},
@@ -386,6 +389,16 @@ func mergeKeys(groups ...[]string) []string {
 	return merged
 }
 
+// renamedEffectKeys maps retired JSON keys to a hint naming their successor,
+// so a stale key fails with the migration target instead of a bare rejection.
+var renamedEffectKeys = map[string]string{
+	"targetsMobs":      "targetsEnemies/targetsAllies (faction-relative since effect foundations Step 1)",
+	"targetsPlayers":   "targetsEnemies/targetsAllies (faction-relative since effect foundations Step 1)",
+	"additivePerLevel": "statBonus/statBonusPerLevel (level-scaling unification)",
+	"damageFraction":   "damageHP (absolute HP, item 11 Phase 1)",
+	"healFraction":     "healHP (absolute HP, item 11 Phase 1)",
+}
+
 // validateEffectKeys hard-fails any JSON key outside the effect type's
 // allowlist. Keys are checked in sorted order so the first error is
 // deterministic.
@@ -400,6 +413,9 @@ func validateEffectKeys(typeName string, effectType EffectType, raw map[string]j
 	for _, k := range keys {
 		if k == "type" || slices.Contains(allowed, k) {
 			continue
+		}
+		if hint, ok := renamedEffectKeys[k]; ok {
+			return fmt.Errorf("effect %q: field %q was renamed to %s", typeName, k, hint)
 		}
 		return fmt.Errorf("effect %q: field %q is not valid on this effect type", typeName, k)
 	}
@@ -485,8 +501,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		Selector:             selector,
 		MaxTargets:           e.MaxTargets,
 		MaxTargetsPerLevel:   e.MaxTargetsPerLevel,
-		TargetsMobs:          e.TargetsMobs,
-		TargetsPlayers:       e.TargetsPlayers,
+		TargetsEnemies:       e.TargetsEnemies,
+		TargetsAllies:        e.TargetsAllies,
 		TargetsStructures:    e.TargetsStructures,
 	}
 
