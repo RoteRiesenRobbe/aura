@@ -3,6 +3,8 @@ package skills
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
+	"sort"
 )
 
 type SkillID int
@@ -117,91 +119,153 @@ var validStats = map[string]bool{
 	StatDamageReduction: true,
 }
 
-// EffectDef holds parameters for one effect within a skill. All effect-type-specific
-// fields live in this struct (fat struct pattern). Fields that do not apply to a given
-// EffectType are zero. When the number of effect types grows substantially, consider
-// splitting into per-type structs behind an interface.
+// EffectDef holds the parameters of one effect within a skill: the shared
+// core (geometry, cadence, targeting) plus exactly ONE per-type payload —
+// the pointer matching Type is non-nil, every other one nil. Parsing
+// enforces the invariant and hard-fails any JSON key the effect type does
+// not read (see effectKeys); code constructing an EffectDef directly (tests)
+// must uphold it too.
 type EffectDef struct {
 	Type EffectType
 
-	// damage_aura, heal_aura, instant_damage
+	// Geometry: effect radius — the aura sensor size, or the one-shot query
+	// circle of an instant_damage burst.
 	Radius         float32
 	RadiusPerLevel float32
 
-	// damage_aura, instant_damage — absolute HP dealt per hit (item 11 Phase 1).
-	DamageHP         float32
-	DamageHPPerLevel float32
-	TargetsMobs      bool
-	TargetsPlayers   bool
+	// Cadence: every how many ticks an active-aura effect fires. Always >= 1
+	// after parsing (absent → 1); negative PerLevel = faster at higher
+	// levels, effective interval floored at 1. Not valid on cooldown-fired
+	// or equip-time effects — they have no tick cadence.
+	TickInterval         int
+	TickIntervalPerLevel int
 
-	// damage_aura, instant_damage — damage tags for resistances (item 11
-	// Phase 2). Arbitrary strings by design (bespoke tags like "boss_x_lava"
-	// compose with general ones like "fire"). Always non-empty after parsing:
-	// absent in JSON → [DamageTagPhysical].
-	DamageTags []string
-
-	// damage_aura, instant_damage, heal_aura, self_heal — per-hit percentage
-	// variance band (item 11 Phase 3, decision C2): each hit rolls uniform in
-	// [amount×(1−v), amount×(1+v)] around the level-scaled amount. 0 = static
-	// (the default); valid range 0 <= v < 1. The roll happens before the
-	// target's mitigation (C3) and is invalid on effects without a rolled
-	// amount (silent no-op otherwise).
-	Variance float32
-
-	// damage_aura, heal_aura, instant_damage — capped targeting (item 11).
-	// MaxTargets 0 = uncapped (AoE-all). Selector orders the candidates when
-	// capped; MaxTargetsPerLevel grows the cap with skill level.
+	// Targeting: Selector orders candidates when MaxTargets caps the set
+	// (0 = uncapped AoE-all); the flags gate per target class — players by
+	// TargetsPlayers, everything else by TargetsMobs, placeables by
+	// TargetsStructures (damage effects only, via the sensor/query masks).
 	Selector           Selector
 	MaxTargets         int
 	MaxTargetsPerLevel int
+	TargetsMobs        bool
+	TargetsPlayers     bool
+	TargetsStructures  bool
 
-	// damage_aura, mob casters only: damage dealt to structures (placeables)
-	// per tick. Structures read this via MobTouches double dispatch.
-	StructureDamageFraction float32
-	TargetsStructures       bool
+	// Per-type payloads — exactly one non-nil, matching Type.
+	Damage   *DamageParams   // damage_aura, instant_damage
+	Heal     *HealParams     // heal_aura
+	SelfHeal *SelfHealParams // self_heal
+	Slow     *SlowParams     // slow_aura
+	Resist   *ResistParams   // resist_aura, resist_passive
+	Stat     *StatParams     // stat_multiplier
+}
 
-	// heal_aura, self_heal — absolute HP (item 11 Phase 1). SelfDamageHP is the
-	// caster's HP cost per heal tick (HealAura self-cost).
-	HealHP         float32
-	HealHPPerLevel float32
-	SelfDamageHP   float32
+// DamageParams is the damage_aura / instant_damage payload: absolute HP
+// dealt per hit (item 11 Phase 1).
+type DamageParams struct {
+	HP         float32
+	HPPerLevel float32
 
-	// self_heal only: heal a fraction of the caster's MAX HP instead of a flat
-	// amount (heal cooldown). When > 0 it overrides HealHP; the fraction grows
-	// by HealFractionOfMaxPerLevel per level (absolute, e.g. 0.20 → 0.25 → 0.30).
-	HealFractionOfMax         float32
-	HealFractionOfMaxPerLevel float32
+	// Damage tags for resistances (item 11 Phase 2). Arbitrary strings by
+	// design (bespoke tags like "boss_x_lava" compose with general ones like
+	// "fire"). Always non-empty after parsing: absent → [DamageTagPhysical].
+	Tags []string
 
-	// resist_aura, resist_passive — tag resistance granted to targets (item 11
-	// Phase 2). ResistFactor is the incoming-damage multiplier for each covered
-	// tag (0.5 = takes half, 0 = immune); effective factor at level L is
-	// ResistFactor + (L−1) × ResistFactorPerLevel, floored at 0 (negative
-	// PerLevel = stronger per level). TargetsSelf (resist_aura only) also buffs
-	// the caster — without consuming a MaxTargets slot.
-	ResistTags           []string
-	ResistFactor         float32
-	ResistFactorPerLevel float32
-	TargetsSelf          bool
+	// Per-hit percentage variance band (item 11 Phase 3): each hit rolls
+	// uniform in [center×(1−v), center×(1+v)] around the level-scaled
+	// amount. 0 = static (the default); valid range 0 <= v < 1. The roll
+	// happens before the target's mitigation (decision C3).
+	Variance float32
 
-	// slow_aura: movement-speed reduction applied to targets in range
-	SlowFraction         float32
-	SlowFractionPerLevel float32
-
-	// damage_aura, heal_aura — always >= 1 after parsing (absent in JSON → 1)
-	TickInterval int
-	// per-level change to the tick interval (negative = faster at higher
-	// levels). Effective interval is floored at 1.
-	TickIntervalPerLevel int
-
-	// damage_aura, instant_damage — per-effect aura-hit VFX override
-	// (item 11 Step 4). HitStyleAuto (default) derives it from the tick cadence.
+	// Per-effect aura-hit VFX override (item 11 Step 4). HitStyleAuto
+	// (default) derives the style from the tick cadence.
 	HitStyle HitStyle
 
-	// stat_multiplier — additive bonus to the named stat, scaled like every
-	// other paired field: StatBonus + (L−1) × StatBonusPerLevel.
-	Stat              string
-	StatBonus         float32
-	StatBonusPerLevel float32
+	// Mob casters only: damage dealt to structures (placeables) per tick.
+	// Structures read this via MobTouches double dispatch.
+	StructureDamageFraction float32
+}
+
+// HPAt is the level-scaled damage center in absolute HP (pre-variance-roll).
+func (p *DamageParams) HPAt(level int) float32 {
+	return Scaled(p.HP, p.HPPerLevel, level)
+}
+
+// HealParams is the heal_aura payload: absolute HP healed per tick (item 11
+// Phase 1) plus the caster's flat HP cost per heal tick. Heals roll their
+// variance per hit like damage does (decision C1); the self-cost stays
+// static by design (predictable build cost).
+type HealParams struct {
+	HP           float32
+	HPPerLevel   float32
+	SelfDamageHP float32
+	Variance     float32
+}
+
+// HPAt is the level-scaled heal center in absolute HP (pre-variance-roll).
+func (p *HealParams) HPAt(level int) float32 {
+	return Scaled(p.HP, p.HPPerLevel, level)
+}
+
+// SelfHealParams is the self_heal payload (cooldown heal on the caster).
+// FractionOfMax > 0 heals that fraction of the caster's max HP, overriding
+// the flat HealHP (the heal cooldown scales with max HP); the fraction grows
+// by FractionOfMaxPerLevel per level (absolute, e.g. 0.20 → 0.25 → 0.30).
+type SelfHealParams struct {
+	HealHP         float32
+	HealHPPerLevel float32
+
+	FractionOfMax         float32
+	FractionOfMaxPerLevel float32
+
+	Variance float32
+}
+
+// SlowParams is the slow_aura payload: movement-speed reduction applied to
+// every slowable target in range (no selector/cap — a slow aura is a zone).
+type SlowParams struct {
+	Fraction         float32
+	FractionPerLevel float32
+}
+
+// FractionAt is the level-scaled slow fraction; the apply site clamps it to
+// [0, 1].
+func (p *SlowParams) FractionAt(level int) float32 {
+	return Scaled(p.Fraction, p.FractionPerLevel, level)
+}
+
+// ResistParams is the resist_aura / resist_passive payload: tag resistance
+// granted to targets (item 11 Phase 2). Factor is the incoming-damage
+// multiplier for each covered tag (0.5 = takes half, 0 = immune);
+// negative FactorPerLevel = stronger per level. TargetsSelf (resist_aura
+// only) also buffs the caster — without consuming a MaxTargets slot.
+type ResistParams struct {
+	Tags           []string
+	Factor         float32
+	FactorPerLevel float32
+	TargetsSelf    bool
+}
+
+// FactorAt is the level-scaled resistance multiplier, floored at 0.
+func (p *ResistParams) FactorAt(level int) float32 {
+	factor := Scaled(p.Factor, p.FactorPerLevel, level)
+	if factor < 0 {
+		factor = 0
+	}
+	return factor
+}
+
+// StatParams is the stat_multiplier payload: an additive bonus to the named
+// stat (see validStats — every stat needs a hand-placed application site).
+type StatParams struct {
+	Name          string
+	Bonus         float32
+	BonusPerLevel float32
+}
+
+// BonusAt is the level-scaled additive stat bonus.
+func (p *StatParams) BonusAt(level int) float32 {
+	return Scaled(p.Bonus, p.BonusPerLevel, level)
 }
 
 type SkillDefinition struct {
@@ -274,7 +338,72 @@ type skillDefinition struct {
 	CooldownTicks         int `json:"cooldownTicks"`
 	CooldownTicksPerLevel int `json:"cooldownTicksPerLevel"`
 
-	Effects []effectDef `json:"effects"`
+	// Kept raw so mapping can hard-fail keys the effect type does not read
+	// (see effectKeys).
+	Effects []json.RawMessage `json:"effects"`
+}
+
+// Shared key groups for the effectKeys allowlist.
+var (
+	keysGeometry      = []string{"radius", "radiusPerLevel"}
+	keysCadence       = []string{"tickInterval", "tickIntervalPerLevel"}
+	keysCapped        = []string{"selector", "maxTargets", "maxTargetsPerLevel"}
+	keysTargetFlags   = []string{"targetsMobs", "targetsPlayers"}
+	keysDamagePayload = []string{"damageHP", "damageHPPerLevel", "damageTags", "variance", "hitStyle", "targetsStructures", "structureDamageFraction"}
+	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
+)
+
+// effectKeys lists every JSON key each effect type actually reads (besides
+// "type"). Parsing hard-fails on any other key: unknown keys (typos, stale
+// renames like the pre-unification "additivePerLevel", which json.Unmarshal
+// would silently drop) and known keys on a type whose behavior ignores them
+// (silent no-ops otherwise) fail identically. Adding an effect type means
+// adding its entry here — no other type's list changes.
+var effectKeys = map[EffectType][]string{
+	EffectTypeDamageAura: mergeKeys(keysGeometry, keysCadence, keysCapped, keysTargetFlags, keysDamagePayload),
+	// No cadence: instant_damage fires on cooldown activation, not per tick.
+	EffectTypeInstantDamage: mergeKeys(keysGeometry, keysCapped, keysTargetFlags, keysDamagePayload),
+	// No target flags: heal auras target players implicitly (mob support
+	// behaviors lift this with roadmap item 7).
+	EffectTypeHealAura: mergeKeys(keysGeometry, keysCadence, keysCapped,
+		[]string{"healHP", "healHPPerLevel", "selfDamageHP", "variance"}),
+	EffectTypeSelfHeal: {"healHP", "healHPPerLevel", "healFractionOfMax", "healFractionOfMaxPerLevel", "variance"},
+	// No selector/cap: a slow aura is a zone — it slows everything in range.
+	EffectTypeSlowAura: mergeKeys(keysGeometry, keysCadence, keysTargetFlags,
+		[]string{"slowFraction", "slowFractionPerLevel"}),
+	EffectTypeResistAura: mergeKeys(keysGeometry, keysCadence, keysCapped, keysTargetFlags,
+		keysResistPayload, []string{"targetsSelf"}),
+	// Equip-time folds into DerivedStats — no geometry, cadence, or targeting.
+	EffectTypeResistPassive:  keysResistPayload,
+	EffectTypeStatMultiplier: {"stat", "statBonus", "statBonusPerLevel"},
+}
+
+func mergeKeys(groups ...[]string) []string {
+	var merged []string
+	for _, g := range groups {
+		merged = append(merged, g...)
+	}
+	return merged
+}
+
+// validateEffectKeys hard-fails any JSON key outside the effect type's
+// allowlist. Keys are checked in sorted order so the first error is
+// deterministic.
+func validateEffectKeys(typeName string, effectType EffectType, raw map[string]json.RawMessage) error {
+	keys := make([]string, 0, len(raw))
+	for k := range raw {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	allowed := effectKeys[effectType]
+	for _, k := range keys {
+		if k == "type" || slices.Contains(allowed, k) {
+			continue
+		}
+		return fmt.Errorf("effect %q: field %q is not valid on this effect type", typeName, k)
+	}
+	return nil
 }
 
 func parseSkillDefinition(data []byte) (*skillDefinition, error) {
@@ -292,8 +421,8 @@ func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
 	}
 
 	effects := make([]EffectDef, 0, len(s.Effects))
-	for _, e := range s.Effects {
-		effect, err := e.mapToEffectDef()
+	for _, rawEffect := range s.Effects {
+		effect, err := mapEffect(rawEffect)
 		if err != nil {
 			return nil, fmt.Errorf("skill %q: %w", s.Name, err)
 		}
@@ -311,119 +440,32 @@ func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
 	}, nil
 }
 
-// mapDamageTags validates and normalizes an effect's damage tags (item 11
-// Phase 2). Damage-dealing effects always end up with at least one tag
-// (absent → [DamageTagPhysical]); non-damage effects must not declare any —
-// a tag there would be a silent no-op, which is why it hard-fails at load.
-func mapDamageTags(effectType EffectType, tags []string) ([]string, error) {
-	isDamageEffect := effectType == EffectTypeDamageAura || effectType == EffectTypeInstantDamage
-
-	if !isDamageEffect {
-		if len(tags) > 0 {
-			return nil, fmt.Errorf("damageTags: only valid on damage_aura/instant_damage effects")
-		}
-		return nil, nil
+// mapEffect parses one effect object: resolve the type, hard-fail any JSON
+// key the type does not read, then build the shared core + the type's payload.
+func mapEffect(raw json.RawMessage) (EffectDef, error) {
+	var e effectDef
+	if err := json.Unmarshal(raw, &e); err != nil {
+		return EffectDef{}, err
 	}
-
-	if len(tags) == 0 {
-		return []string{DamageTagPhysical}, nil
-	}
-
-	seen := make(map[string]bool, len(tags))
-	for _, tag := range tags {
-		if tag == "" {
-			return nil, fmt.Errorf("damageTags: empty tag")
-		}
-		if seen[tag] {
-			return nil, fmt.Errorf("damageTags: duplicate tag %q", tag)
-		}
-		seen[tag] = true
-	}
-	return tags, nil
-}
-
-// mapVariance validates the per-hit variance band (item 11 Phase 3). Only
-// effects with a rolled amount (damage or heal) may declare one — anywhere
-// else it would be a silent no-op, which is why it hard-fails at load — and
-// v >= 1 would allow a 0-or-negative roll.
-func mapVariance(effectType EffectType, variance float32) error {
-	rollingEffect := effectType == EffectTypeDamageAura || effectType == EffectTypeInstantDamage ||
-		effectType == EffectTypeHealAura || effectType == EffectTypeSelfHeal
-
-	if !rollingEffect {
-		if variance != 0 {
-			return fmt.Errorf("variance: only valid on effects with a rolled amount (damage/heal)")
-		}
-		return nil
-	}
-	if variance < 0 || variance >= 1 {
-		return fmt.Errorf("variance: must be in [0, 1), got %v", variance)
-	}
-	return nil
-}
-
-// mapResistFields validates the resist_aura/resist_passive fields (item 11
-// Phase 2 Step 3). Resist effects require at least one covered tag (empty or
-// duplicate tags hard-fail, like damageTags) and a non-negative factor;
-// non-resist effects must not declare resist fields (silent no-ops otherwise).
-func mapResistFields(effectType EffectType, e *effectDef) error {
-	isResistEffect := effectType == EffectTypeResistAura || effectType == EffectTypeResistPassive
-
-	if !isResistEffect {
-		if len(e.ResistTags) > 0 || e.ResistFactor != 0 || e.ResistFactorPerLevel != 0 || e.TargetsSelf {
-			return fmt.Errorf("resist fields are only valid on resist_aura/resist_passive effects")
-		}
-		return nil
-	}
-
-	if len(e.ResistTags) == 0 {
-		return fmt.Errorf("resistTags: required on resist effects")
-	}
-	seen := make(map[string]bool, len(e.ResistTags))
-	for _, tag := range e.ResistTags {
-		if tag == "" {
-			return fmt.Errorf("resistTags: empty tag")
-		}
-		if seen[tag] {
-			return fmt.Errorf("resistTags: duplicate tag %q", tag)
-		}
-		seen[tag] = true
-	}
-	if e.ResistFactor < 0 {
-		return fmt.Errorf("resistFactor: must be >= 0, got %v", e.ResistFactor)
-	}
-	return nil
-}
-
-// mapStatFields validates the stat_multiplier fields. The stat name must be
-// known (an unapplied stat would be a silent no-op) and at least one of
-// statBonus/statBonusPerLevel must be non-zero — a both-zero effect does
-// nothing, and hard-failing it also catches the pre-rename "additivePerLevel"
-// key, which json.Unmarshal silently drops. Non-stat effects must not declare
-// stat fields (silent no-ops otherwise).
-func mapStatFields(effectType EffectType, e *effectDef) error {
-	if effectType != EffectTypeStatMultiplier {
-		if e.Stat != "" || e.StatBonus != 0 || e.StatBonusPerLevel != 0 {
-			return fmt.Errorf("stat fields are only valid on stat_multiplier effects")
-		}
-		return nil
-	}
-
-	if !validStats[e.Stat] {
-		return fmt.Errorf("stat_multiplier: unknown stat %q", e.Stat)
-	}
-	if e.StatBonus == 0 && e.StatBonusPerLevel == 0 {
-		return fmt.Errorf("stat_multiplier: no scaling authored (statBonus and statBonusPerLevel both 0; note additivePerLevel was renamed to this pair)")
-	}
-	return nil
-}
-
-func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 	effectType, ok := effectTypeMap[e.Type]
 	if !ok {
 		return EffectDef{}, fmt.Errorf("unknown effect type: %q", e.Type)
 	}
 
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &keys); err != nil {
+		return EffectDef{}, err
+	}
+	if err := validateEffectKeys(e.Type, effectType, keys); err != nil {
+		return EffectDef{}, err
+	}
+
+	return e.mapToEffectDef(effectType)
+}
+
+// mapToEffectDef builds the public EffectDef: the shared core plus exactly
+// one per-type payload.
+func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 	selector, ok := selectorMap[e.Selector]
 	if !ok {
 		return EffectDef{}, fmt.Errorf("unknown selector: %q", e.Selector)
@@ -434,59 +476,149 @@ func (e *effectDef) mapToEffectDef() (EffectDef, error) {
 		tickInterval = *e.TickInterval
 	}
 
-	hitStyle, ok := hitStyleMap[e.HitStyle]
-	if !ok {
-		return EffectDef{}, fmt.Errorf("unknown hitStyle: %q", e.HitStyle)
+	def := EffectDef{
+		Type:                 effectType,
+		Radius:               e.Radius,
+		RadiusPerLevel:       e.RadiusPerLevel,
+		TickInterval:         tickInterval,
+		TickIntervalPerLevel: e.TickIntervalPerLevel,
+		Selector:             selector,
+		MaxTargets:           e.MaxTargets,
+		MaxTargetsPerLevel:   e.MaxTargetsPerLevel,
+		TargetsMobs:          e.TargetsMobs,
+		TargetsPlayers:       e.TargetsPlayers,
+		TargetsStructures:    e.TargetsStructures,
 	}
 
-	damageTags, err := mapDamageTags(effectType, e.DamageTags)
+	var err error
+	switch effectType {
+	case EffectTypeDamageAura, EffectTypeInstantDamage:
+		def.Damage, err = e.damageParams()
+	case EffectTypeHealAura:
+		def.Heal, err = e.healParams()
+	case EffectTypeSelfHeal:
+		def.SelfHeal, err = e.selfHealParams()
+	case EffectTypeSlowAura:
+		def.Slow = &SlowParams{Fraction: e.SlowFraction, FractionPerLevel: e.SlowFractionPerLevel}
+	case EffectTypeResistAura, EffectTypeResistPassive:
+		def.Resist, err = e.resistParams()
+	case EffectTypeStatMultiplier:
+		def.Stat, err = e.statParams()
+	}
 	if err != nil {
 		return EffectDef{}, err
 	}
+	return def, nil
+}
 
-	if err := mapResistFields(effectType, e); err != nil {
-		return EffectDef{}, err
+// damageParams builds the damage payload, normalizing absent tags to
+// [DamageTagPhysical] (Phase 2: no "matches nothing" damage).
+func (e *effectDef) damageParams() (*DamageParams, error) {
+	tags := e.DamageTags
+	if len(tags) == 0 {
+		tags = []string{DamageTagPhysical}
+	} else if err := validateTags("damageTags", tags); err != nil {
+		return nil, err
 	}
 
-	if err := mapVariance(effectType, e.Variance); err != nil {
-		return EffectDef{}, err
+	hitStyle, ok := hitStyleMap[e.HitStyle]
+	if !ok {
+		return nil, fmt.Errorf("unknown hitStyle: %q", e.HitStyle)
+	}
+	if err := validateVariance(e.Variance); err != nil {
+		return nil, err
 	}
 
-	if err := mapStatFields(effectType, e); err != nil {
-		return EffectDef{}, err
-	}
-
-	return EffectDef{
-		Type:                      effectType,
-		Radius:                    e.Radius,
-		RadiusPerLevel:            e.RadiusPerLevel,
-		DamageHP:                  e.DamageHP,
-		DamageHPPerLevel:          e.DamageHPPerLevel,
-		TargetsMobs:               e.TargetsMobs,
-		TargetsPlayers:            e.TargetsPlayers,
-		DamageTags:                damageTags,
-		Variance:                  e.Variance,
-		Selector:                  selector,
-		MaxTargets:                e.MaxTargets,
-		MaxTargetsPerLevel:        e.MaxTargetsPerLevel,
-		StructureDamageFraction:   e.StructureDamageFraction,
-		TargetsStructures:         e.TargetsStructures,
-		HealHP:                    e.HealHP,
-		HealHPPerLevel:            e.HealHPPerLevel,
-		SelfDamageHP:              e.SelfDamageHP,
-		HealFractionOfMax:         e.HealFractionOfMax,
-		HealFractionOfMaxPerLevel: e.HealFractionOfMaxPerLevel,
-		ResistTags:                e.ResistTags,
-		ResistFactor:              e.ResistFactor,
-		ResistFactorPerLevel:      e.ResistFactorPerLevel,
-		TargetsSelf:               e.TargetsSelf,
-		SlowFraction:              e.SlowFraction,
-		SlowFractionPerLevel:      e.SlowFractionPerLevel,
-		TickInterval:              tickInterval,
-		TickIntervalPerLevel:      e.TickIntervalPerLevel,
-		HitStyle:                  hitStyle,
-		Stat:                      e.Stat,
-		StatBonus:                 e.StatBonus,
-		StatBonusPerLevel:         e.StatBonusPerLevel,
+	return &DamageParams{
+		HP:                      e.DamageHP,
+		HPPerLevel:              e.DamageHPPerLevel,
+		Tags:                    tags,
+		Variance:                e.Variance,
+		HitStyle:                hitStyle,
+		StructureDamageFraction: e.StructureDamageFraction,
 	}, nil
+}
+
+func (e *effectDef) healParams() (*HealParams, error) {
+	if err := validateVariance(e.Variance); err != nil {
+		return nil, err
+	}
+	return &HealParams{
+		HP:           e.HealHP,
+		HPPerLevel:   e.HealHPPerLevel,
+		SelfDamageHP: e.SelfDamageHP,
+		Variance:     e.Variance,
+	}, nil
+}
+
+func (e *effectDef) selfHealParams() (*SelfHealParams, error) {
+	if err := validateVariance(e.Variance); err != nil {
+		return nil, err
+	}
+	return &SelfHealParams{
+		HealHP:                e.HealHP,
+		HealHPPerLevel:        e.HealHPPerLevel,
+		FractionOfMax:         e.HealFractionOfMax,
+		FractionOfMaxPerLevel: e.HealFractionOfMaxPerLevel,
+		Variance:              e.Variance,
+	}, nil
+}
+
+func (e *effectDef) resistParams() (*ResistParams, error) {
+	if len(e.ResistTags) == 0 {
+		return nil, fmt.Errorf("resistTags: required on resist effects")
+	}
+	if err := validateTags("resistTags", e.ResistTags); err != nil {
+		return nil, err
+	}
+	if e.ResistFactor < 0 {
+		return nil, fmt.Errorf("resistFactor: must be >= 0, got %v", e.ResistFactor)
+	}
+	return &ResistParams{
+		Tags:           e.ResistTags,
+		Factor:         e.ResistFactor,
+		FactorPerLevel: e.ResistFactorPerLevel,
+		TargetsSelf:    e.TargetsSelf,
+	}, nil
+}
+
+func (e *effectDef) statParams() (*StatParams, error) {
+	if !validStats[e.Stat] {
+		return nil, fmt.Errorf("stat_multiplier: unknown stat %q", e.Stat)
+	}
+	// A both-zero stat_multiplier does nothing — hard-fail rather than load a
+	// do-nothing passive.
+	if e.StatBonus == 0 && e.StatBonusPerLevel == 0 {
+		return nil, fmt.Errorf("stat_multiplier: no scaling authored (statBonus and statBonusPerLevel both 0)")
+	}
+	return &StatParams{
+		Name:          e.Stat,
+		Bonus:         e.StatBonus,
+		BonusPerLevel: e.StatBonusPerLevel,
+	}, nil
+}
+
+// validateTags rejects empty and duplicate tag entries (shared by damageTags
+// and resistTags).
+func validateTags(field string, tags []string) error {
+	seen := make(map[string]bool, len(tags))
+	for _, tag := range tags {
+		if tag == "" {
+			return fmt.Errorf("%s: empty tag", field)
+		}
+		if seen[tag] {
+			return fmt.Errorf("%s: duplicate tag %q", field, tag)
+		}
+		seen[tag] = true
+	}
+	return nil
+}
+
+// validateVariance bounds the per-hit variance band (item 11 Phase 3):
+// v >= 1 would allow a zero-or-negative roll.
+func validateVariance(v float32) error {
+	if v < 0 || v >= 1 {
+		return fmt.Errorf("variance: must be in [0, 1), got %v", v)
+	}
+	return nil
 }

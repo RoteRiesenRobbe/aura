@@ -26,9 +26,9 @@ func testAuraSkill() *skills.SkillDefinition {
 		Effects: []skills.EffectDef{{
 			Type:           skills.EffectTypeDamageAura,
 			Radius:         0.5,
-			DamageHP:       0.05,
 			TargetsPlayers: true,
 			TickInterval:   1,
+			Damage:         &skills.DamageParams{HP: 0.05},
 		}},
 	}
 }

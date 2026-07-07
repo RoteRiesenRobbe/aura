@@ -312,7 +312,7 @@ var testNova = &SkillDefinition{
 	CooldownTicks:         300,
 	CooldownTicksPerLevel: -20,
 	Effects: []EffectDef{
-		{Type: EffectTypeInstantDamage, Radius: 1.5, RadiusPerLevel: 0.1, DamageHP: 0.15, DamageHPPerLevel: 0.03, TargetsMobs: true},
+		{Type: EffectTypeInstantDamage, Radius: 1.5, RadiusPerLevel: 0.1, TargetsMobs: true, Damage: &DamageParams{HP: 0.15, HPPerLevel: 0.03}},
 	},
 }
 
@@ -387,7 +387,7 @@ func TestBurstRadius(t *testing.T) {
 	t.Run("radiusless bursts (self_heal) stay zero", func(t *testing.T) {
 		selfHeal := &SkillDefinition{
 			ID: 21, Name: "Heal", Category: SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
-			Effects: []EffectDef{{Type: EffectTypeSelfHeal, HealHP: 0.2}},
+			Effects: []EffectDef{{Type: EffectTypeSelfHeal, SelfHeal: &SelfHealParams{HealHP: 0.2}}},
 		}
 		sc := NewSkillComponent(true)
 		sc.EquipCooldown(0, selfHeal, 1)
@@ -421,7 +421,7 @@ var testSwift = &SkillDefinition{
 	Category: SkillCategoryPassive,
 	MaxLevel: 3,
 	Effects: []EffectDef{
-		{Type: EffectTypeStatMultiplier, Stat: StatMovementSpeed, StatBonus: 0.05, StatBonusPerLevel: 0.05},
+		{Type: EffectTypeStatMultiplier, Stat: &StatParams{Name: StatMovementSpeed, Bonus: 0.05, BonusPerLevel: 0.05}},
 	},
 }
 
@@ -446,7 +446,7 @@ func TestDerivedStats(t *testing.T) {
 		frontloaded := &SkillDefinition{
 			ID: 13, Name: "Frontloaded", Category: SkillCategoryPassive, MaxLevel: 3,
 			Effects: []EffectDef{
-				{Type: EffectTypeStatMultiplier, Stat: StatMovementSpeed, StatBonus: 0.10, StatBonusPerLevel: 0.02},
+				{Type: EffectTypeStatMultiplier, Stat: &StatParams{Name: StatMovementSpeed, Bonus: 0.10, BonusPerLevel: 0.02}},
 			},
 		}
 		sc := NewSkillComponent(true)
@@ -467,7 +467,7 @@ func TestDerivedStats(t *testing.T) {
 		other := &SkillDefinition{
 			ID: 11, Name: "OtherSwift", Category: SkillCategoryPassive, MaxLevel: 3,
 			Effects: []EffectDef{
-				{Type: EffectTypeStatMultiplier, Stat: StatMovementSpeed, StatBonus: 0.02, StatBonusPerLevel: 0.02},
+				{Type: EffectTypeStatMultiplier, Stat: &StatParams{Name: StatMovementSpeed, Bonus: 0.02, BonusPerLevel: 0.02}},
 			},
 		}
 		sc := NewSkillComponent(true)
@@ -481,7 +481,7 @@ func TestDerivedStats(t *testing.T) {
 		tank := &SkillDefinition{
 			ID: 12, Name: "TankPassive", Category: SkillCategoryPassive, MaxLevel: 3,
 			Effects: []EffectDef{
-				{Type: EffectTypeStatMultiplier, Stat: StatMaxHealth, StatBonus: 0.1, StatBonusPerLevel: 0.1},
+				{Type: EffectTypeStatMultiplier, Stat: &StatParams{Name: StatMaxHealth, Bonus: 0.1, BonusPerLevel: 0.1}},
 			},
 		}
 		sc := NewSkillComponent(true)
@@ -554,7 +554,7 @@ func TestDerivedStats_Resistances(t *testing.T) {
 	fireSkin := &SkillDefinition{
 		ID: 41, Name: "FireSkin", Category: SkillCategoryPassive, MaxLevel: 3,
 		Effects: []EffectDef{
-			{Type: EffectTypeResistPassive, ResistTags: []string{"fire"}, ResistFactor: 0.8, ResistFactorPerLevel: -0.1},
+			{Type: EffectTypeResistPassive, Resist: &ResistParams{Tags: []string{"fire"}, Factor: 0.8, FactorPerLevel: -0.1}},
 		},
 	}
 
@@ -575,7 +575,7 @@ func TestDerivedStats_Resistances(t *testing.T) {
 		emberSkin := &SkillDefinition{
 			ID: 42, Name: "EmberSkin", Category: SkillCategoryPassive, MaxLevel: 3,
 			Effects: []EffectDef{
-				{Type: EffectTypeResistPassive, ResistTags: []string{"fire"}, ResistFactor: 0.5},
+				{Type: EffectTypeResistPassive, Resist: &ResistParams{Tags: []string{"fire"}, Factor: 0.5}},
 			},
 		}
 		sc := NewSkillComponent(true)

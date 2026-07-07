@@ -152,20 +152,19 @@ func colliderSetOf(userData ...any) phy.ColliderSet {
 
 func damageEffect(interval int) skills.EffectDef {
 	return skills.EffectDef{
-		Type:             skills.EffectTypeDamageAura,
-		DamageHP:         0.01,
-		DamageHPPerLevel: 0.002,
-		TargetsMobs:      true, // mirrors the real DamageAura JSON
-		TickInterval:     interval,
+		Type:        skills.EffectTypeDamageAura,
+		TargetsMobs: true,
+		// mirrors the real DamageAura JSON
+		TickInterval: interval,
+		Damage:       &skills.DamageParams{HP: 0.01, HPPerLevel: 0.002},
 	}
 }
 
 func healEffect() skills.EffectDef {
 	return skills.EffectDef{
 		Type:         skills.EffectTypeHealAura,
-		HealHP:       10,
-		SelfDamageHP: 2,
 		TickInterval: 1,
+		Heal:         &skills.HealParams{HP: 10, SelfDamageHP: 2},
 	}
 }
 
@@ -198,7 +197,7 @@ func TestApplyDamageAura_CarriesDamageTags(t *testing.T) {
 	caster := newFakePlayer()
 	target := &touchRecorder{}
 	effect := damageEffect(1)
-	effect.DamageTags = []string{"fire", "boss_x_lava"}
+	effect.Damage.Tags = []string{"fire", "boss_x_lava"}
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
@@ -243,8 +242,10 @@ func TestApplyDamageAura_MobCaster_TagsHitStyle(t *testing.T) {
 	caster := newFakeMob()
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageHP: 0.004,
-		TargetsPlayers: true, TickInterval: auraSlashTickThreshold,
+		Type:           skills.EffectTypeDamageAura,
+		TargetsPlayers: true,
+		TickInterval:   auraSlashTickThreshold,
+		Damage:         &skills.DamageParams{HP: 0.004},
 	}
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
@@ -490,7 +491,9 @@ func TestApplyDamageAura_MobCaster_DamagesViaMobTouches(t *testing.T) {
 	caster := newFakeMob()
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageHP: 0.004, TargetsPlayers: true,
+		Type:           skills.EffectTypeDamageAura,
+		TargetsPlayers: true,
+		Damage:         &skills.DamageParams{HP: 0.004},
 	}
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
@@ -503,8 +506,9 @@ func TestApplyDamageAura_MobCaster_LevelScalesDamage(t *testing.T) {
 	caster := newFakeMob()
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageHP: 0.004,
-		DamageHPPerLevel: 0.001, TargetsPlayers: true,
+		Type:           skills.EffectTypeDamageAura,
+		TargetsPlayers: true,
+		Damage:         &skills.DamageParams{HP: 0.004, HPPerLevel: 0.001},
 	}
 
 	applyDamageAura(caster, 3, effect, colliderSetOf(target), testRNG())
@@ -517,8 +521,10 @@ func TestApplyDamageAura_MobCaster_CarriesStructureDamage(t *testing.T) {
 	caster := newFakeMob()
 	target := &mobTouchRecorder{}
 	effect := skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageHP: 0.0067,
-		StructureDamageFraction: 0.67, TargetsPlayers: true, TargetsStructures: true,
+		Type:              skills.EffectTypeDamageAura,
+		TargetsPlayers:    true,
+		TargetsStructures: true,
+		Damage:            &skills.DamageParams{HP: 0.0067, StructureDamageFraction: 0.67},
 	}
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
@@ -531,7 +537,9 @@ func TestApplyDamageAura_PlayerCaster_RespectsTargetsMobsFlag(t *testing.T) {
 	caster := newFakePlayer()
 	target := &touchRecorder{}
 	effect := skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageHP: 0.01, TargetsMobs: false,
+		Type:        skills.EffectTypeDamageAura,
+		TargetsMobs: false,
+		Damage:      &skills.DamageParams{HP: 0.01},
 	}
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
@@ -552,8 +560,11 @@ func TestProcessEntity_MobWithHealEffectIsNoop(t *testing.T) {
 
 func TestProcessEntity_DerivesSensorMaskFromActiveSkill(t *testing.T) {
 	caster := newFakeMob(skills.EffectDef{
-		Type: skills.EffectTypeDamageAura, DamageHP: 0.0067, TickInterval: 1,
-		TargetsPlayers: true, TargetsStructures: true,
+		Type:              skills.EffectTypeDamageAura,
+		TickInterval:      1,
+		TargetsPlayers:    true,
+		TargetsStructures: true,
+		Damage:            &skills.DamageParams{HP: 0.0067},
 	})
 	caster.aura.Shape().Mask = 0
 
@@ -568,7 +579,7 @@ func TestProcessEntity_DerivesSensorMaskFromActiveSkill(t *testing.T) {
 // TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget replaces the retired
 // mob.Update characterization test: a real Mob built from a definition with a
 // skill loadout, wired through a real phy.Space, damages a player-layer
-// target with exactly the skill's damageFraction via MobTouches.
+// target with exactly the skill's damage via MobTouches.
 func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
 	def := &mobs.MobDefinition{
 		ID:   1,
@@ -578,8 +589,11 @@ func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
 			Def: &skills.SkillDefinition{
 				ID: 199, Name: "TestMobAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
 				Effects: []skills.EffectDef{{
-					Type: skills.EffectTypeDamageAura, Radius: 0.5,
-					DamageHP: 0.05, TargetsPlayers: true, TickInterval: 1,
+					Type:           skills.EffectTypeDamageAura,
+					Radius:         0.5,
+					TargetsPlayers: true,
+					TickInterval:   1,
+					Damage:         &skills.DamageParams{HP: 0.05},
 				}},
 			},
 			Level: 1,
@@ -614,6 +628,7 @@ func auraDefWithRadius(id int, radius, radiusPerLevel float32) *skills.SkillDefi
 		ID: skills.SkillID(id), Name: "SizedAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
 		Effects: []skills.EffectDef{{
 			Type: skills.EffectTypeDamageAura, Radius: radius, RadiusPerLevel: radiusPerLevel, TickInterval: 1,
+			Damage: &skills.DamageParams{},
 		}},
 	}
 }
@@ -772,8 +787,8 @@ func TestSkillSystem_EndToEnd_HealAuraHealsAndCosts(t *testing.T) {
 func TestApplyDamageAura_VarianceRollsPerHitWithinBand(t *testing.T) {
 	caster := newFakePlayer()
 	effect := damageEffect(1)
-	effect.DamageHP = 100
-	effect.Variance = 0.1
+	effect.Damage.HP = 100
+	effect.Damage.Variance = 0.1
 
 	targets := make([]*touchRecorder, 20)
 	userData := make([]any, len(targets))
@@ -800,7 +815,7 @@ func TestApplyDamageAura_ZeroVarianceStaysExact(t *testing.T) {
 	caster := newFakePlayer()
 	target := &touchRecorder{}
 	effect := damageEffect(1)
-	effect.DamageHP = 100
+	effect.Damage.HP = 100
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
@@ -825,9 +840,9 @@ func TestApplyDamageAura_VarianceComposesWithResistance(t *testing.T) {
 
 	caster := newFakePlayer()
 	effect := damageEffect(1)
-	effect.DamageHP = 100
-	effect.Variance = 0.1
-	effect.DamageTags = []string{"fire"}
+	effect.Damage.HP = 100
+	effect.Damage.Variance = 0.1
+	effect.Damage.Tags = []string{"fire"}
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(m), testRNG())
 
@@ -839,9 +854,9 @@ func TestApplyDamageAura_VarianceComposesWithResistance(t *testing.T) {
 func TestApplyHealAura_VarianceRollsWithinBand(t *testing.T) {
 	caster := newFakePlayer()
 	effect := healEffect()
-	effect.HealHP = 50
-	effect.SelfDamageHP = 0
-	effect.Variance = 0.2
+	effect.Heal.HP = 50
+	effect.Heal.SelfDamageHP = 0
+	effect.Heal.Variance = 0.2
 
 	rng := testRNG()
 	distinct := map[vitals.VitalSign]bool{}
@@ -867,8 +882,7 @@ func TestCooldown_SelfHealVarianceRollsWithinBand(t *testing.T) {
 		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
 		Effects: []skills.EffectDef{{
 			Type:     skills.EffectTypeSelfHeal,
-			HealHP:   50,
-			Variance: 0.2,
+			SelfHeal: &skills.SelfHealParams{HealHP: 50, Variance: 0.2},
 		}},
 	}
 	caster := newFakePlayer()
@@ -897,8 +911,8 @@ func novaDef() *skills.SkillDefinition {
 			Type:           skills.EffectTypeInstantDamage,
 			Radius:         1.5,
 			RadiusPerLevel: 0.1,
-			DamageHP:       0.15, DamageHPPerLevel: 0.03,
-			TargetsMobs: true,
+			TargetsMobs:    true,
+			Damage:         &skills.DamageParams{HP: 0.15, HPPerLevel: 0.03},
 		}},
 	}
 }
@@ -987,8 +1001,8 @@ func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
 		Effects: []skills.EffectDef{{
 			Type:           skills.EffectTypeInstantDamage,
 			Radius:         2.0,
-			DamageHP:       0.2,
 			TargetsPlayers: true,
+			Damage:         &skills.DamageParams{HP: 0.2},
 		}},
 	}
 	target := &mobTouchRecorder{}
@@ -1014,8 +1028,8 @@ func TestCooldown_MobHoldsFireWithoutTarget(t *testing.T) {
 		Effects: []skills.EffectDef{{
 			Type:           skills.EffectTypeInstantDamage,
 			Radius:         2.0,
-			DamageHP:       0.2,
 			TargetsPlayers: true,
+			Damage:         &skills.DamageParams{HP: 0.2},
 		}},
 	}
 	empty := phy.NewSpace()
@@ -1060,9 +1074,8 @@ func TestCooldown_SelfHealHealsCaster(t *testing.T) {
 	healDef := &skills.SkillDefinition{
 		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
 		Effects: []skills.EffectDef{{
-			Type:           skills.EffectTypeSelfHeal,
-			HealHP:         20,
-			HealHPPerLevel: 5,
+			Type:     skills.EffectTypeSelfHeal,
+			SelfHeal: &skills.SelfHealParams{HealHP: 20, HealHPPerLevel: 5},
 		}},
 	}
 	caster := newFakePlayer()
@@ -1089,9 +1102,8 @@ func TestCooldown_SelfHealFractionOfMaxAndNumber(t *testing.T) {
 	healDef := &skills.SkillDefinition{
 		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
 		Effects: []skills.EffectDef{{
-			Type:                      skills.EffectTypeSelfHeal,
-			HealFractionOfMax:         0.20,
-			HealFractionOfMaxPerLevel: 0.05,
+			Type:     skills.EffectTypeSelfHeal,
+			SelfHeal: &skills.SelfHealParams{FractionOfMax: 0.20, FractionOfMaxPerLevel: 0.05},
 		}},
 	}
 	caster := newFakePlayer() // maxHealth 100
@@ -1121,10 +1133,9 @@ func TestSlowAura_AppliesLevelScaledSlow(t *testing.T) {
 	set := colliderSetOf(target)
 
 	effect := skills.EffectDef{
-		Type:                 skills.EffectTypeSlowAura,
-		SlowFraction:         0.1,
-		SlowFractionPerLevel: 0.1,
-		TargetsMobs:          true,
+		Type:        skills.EffectTypeSlowAura,
+		TargetsMobs: true,
+		Slow:        &skills.SlowParams{Fraction: 0.1, FractionPerLevel: 0.1},
 	}
 
 	applySlowAura(3, effect, set)
@@ -1137,7 +1148,7 @@ func TestSlowAura_SkipsNonSlowableTargets(t *testing.T) {
 	// A player (no ApplySlow) in the collision set must simply be skipped.
 	set := colliderSetOf(&touchRecorder{})
 
-	effect := skills.EffectDef{Type: skills.EffectTypeSlowAura, SlowFraction: 0.1, TargetsMobs: true}
+	effect := skills.EffectDef{Type: skills.EffectTypeSlowAura, TargetsMobs: true, Slow: &skills.SlowParams{Fraction: 0.1}}
 
 	assert.NotPanics(t, func() { applySlowAura(1, effect, set) })
 }
@@ -1158,12 +1169,10 @@ func (r *resistTargetRecorder) ApplyResist(source skills.SkillID, tags []string,
 
 func resistEffect() skills.EffectDef {
 	return skills.EffectDef{
-		Type:                 skills.EffectTypeResistAura,
-		ResistTags:           []string{"fire"},
-		ResistFactor:         0.6,
-		ResistFactorPerLevel: -0.1,
-		TargetsPlayers:       true,
-		TickInterval:         20,
+		Type:           skills.EffectTypeResistAura,
+		TargetsPlayers: true,
+		TickInterval:   20,
+		Resist:         &skills.ResistParams{Tags: []string{"fire"}, Factor: 0.6, FactorPerLevel: -0.1},
 	}
 }
 
@@ -1187,7 +1196,7 @@ func TestApplyResistAura_TargetsSelfIncludesCaster(t *testing.T) {
 	caster := newFakePlayer()
 	ally := &resistTargetRecorder{basic: ecs.NewBasic()}
 	effect := resistEffect()
-	effect.TargetsSelf = true
+	effect.Resist.TargetsSelf = true
 
 	applyResistAura(caster, 40, 1, effect, colliderSetOf(ally))
 

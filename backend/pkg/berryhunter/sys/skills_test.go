@@ -81,7 +81,8 @@ func TestSkillSystem_NoActiveAura_TicksNothing(t *testing.T) {
 	def := &skills.SkillDefinition{
 		ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
 		Effects: []skills.EffectDef{{
-			Type: skills.EffectTypeHealAura, HealHP: 0.5, SelfDamageHP: 0.5,
+			Type: skills.EffectTypeHealAura,
+			Heal: &skills.HealParams{HP: 0.5, SelfDamageHP: 0.5},
 		}},
 	}
 	e.sc.EquipAura(0, def, 1)
@@ -99,27 +100,27 @@ func TestSkillSystem_NoActiveAura_TicksNothing(t *testing.T) {
 
 // --- effect math tests ---
 
-func TestEffectDamageHP_Level1(t *testing.T) {
-	e := skills.EffectDef{DamageHP: 0.009, DamageHPPerLevel: 0.002}
-	assert.InDelta(t, 0.009, effectDamageHP(e, 1), 1e-6)
+func TestDamageParamsHPAt_Level1(t *testing.T) {
+	p := skills.DamageParams{HP: 0.009, HPPerLevel: 0.002}
+	assert.InDelta(t, 0.009, p.HPAt(1), 1e-6)
 }
 
-func TestEffectDamageHP_Level2(t *testing.T) {
-	e := skills.EffectDef{DamageHP: 0.009, DamageHPPerLevel: 0.002}
-	assert.InDelta(t, 0.011, effectDamageHP(e, 2), 1e-6)
+func TestDamageParamsHPAt_Level2(t *testing.T) {
+	p := skills.DamageParams{HP: 0.009, HPPerLevel: 0.002}
+	assert.InDelta(t, 0.011, p.HPAt(2), 1e-6)
 }
 
-func TestEffectDamageHP_Level5(t *testing.T) {
-	e := skills.EffectDef{DamageHP: 0.009, DamageHPPerLevel: 0.002}
-	assert.InDelta(t, 0.017, effectDamageHP(e, 5), 1e-6)
+func TestDamageParamsHPAt_Level5(t *testing.T) {
+	p := skills.DamageParams{HP: 0.009, HPPerLevel: 0.002}
+	assert.InDelta(t, 0.017, p.HPAt(5), 1e-6)
 }
 
-func TestEffectHealHP_Level1(t *testing.T) {
-	e := skills.EffectDef{HealHP: 0.001, HealHPPerLevel: 0.0005}
-	assert.InDelta(t, 0.001, effectHealHP(e, 1), 1e-7)
+func TestHealParamsHPAt_Level1(t *testing.T) {
+	p := skills.HealParams{HP: 0.001, HPPerLevel: 0.0005}
+	assert.InDelta(t, 0.001, p.HPAt(1), 1e-7)
 }
 
-func TestEffectHealHP_Level2(t *testing.T) {
-	e := skills.EffectDef{HealHP: 0.001, HealHPPerLevel: 0.0005}
-	assert.InDelta(t, 0.0015, effectHealHP(e, 2), 1e-7)
+func TestHealParamsHPAt_Level2(t *testing.T) {
+	p := skills.HealParams{HP: 0.001, HPPerLevel: 0.0005}
+	assert.InDelta(t, 0.0015, p.HPAt(2), 1e-7)
 }

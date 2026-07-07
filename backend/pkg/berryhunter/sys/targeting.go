@@ -49,7 +49,7 @@ const auraSlashTickThreshold = 15
 // fire/spark. This keeps the cadence default while letting each aura pin its own
 // style in content.
 func auraHitStyleFor(e skills.EffectDef, level int) model.AuraHitStyle {
-	switch e.HitStyle {
+	switch e.Damage.HitStyle {
 	case skills.HitStyleSlash:
 		return model.AuraHitStyleSlash
 	case skills.HitStyleFire:

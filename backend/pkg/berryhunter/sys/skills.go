@@ -133,6 +133,38 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	}
 }
 
+// eligibleByTargetFlags builds the standard eligibility predicate shared by
+// flag-gated targeted effects (damage_aura/instant_damage, resist_aura): a
+// player target is gated by targetsPlayers, every non-player target by
+// targetsMobs, and the target must implement Capability (the effect's apply
+// interface). skipCaster excludes the caster itself (resist auras reach the
+// caster only via targetsSelf). Heal auras keep their own predicate — they
+// follow different rules (wounded allies only, never self), not these.
+func eligibleByTargetFlags[Capability any](effect skills.EffectDef, casterID uint64, skipCaster bool) func(phy.Collider) bool {
+	return func(c phy.Collider) bool {
+		usr := c.Shape().UserData
+		if usr == nil {
+			return false
+		}
+		if _, isPlayer := usr.(model.PlayerEntity); isPlayer {
+			if !effect.TargetsPlayers {
+				return false
+			}
+		} else if !effect.TargetsMobs {
+			return false
+		}
+		if _, ok := usr.(Capability); !ok {
+			return false
+		}
+		if skipCaster {
+			if be, ok := usr.(model.BasicEntity); ok && be.Basic().ID() == casterID {
+				return false
+			}
+		}
+		return true
+	}
+}
+
 // applyDamageAura dispatches on the caster type: player and mob auras use
 // different Interacter entry points (PlayerTouches vs. MobTouches double
 // dispatch), mirroring the two legacy damage paths 1:1.
@@ -146,33 +178,22 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 }
 
 func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
-	damageHP := effectDamageHP(effect, level)
+	damageHP := effect.Damage.HPAt(level)
 
 	// Declarative targeting: the sensor mask pre-filters layers, the flags
 	// decide per target class. targetsPlayers=false is the no-friendly-fire
 	// rule; everything non-player (mobs, resources) is gated by targetsMobs.
-	eligible := func(c phy.Collider) bool {
-		usr := c.Shape().UserData
-		if usr == nil {
-			return false
-		}
-		if _, isPlayer := usr.(model.PlayerEntity); isPlayer {
-			if !effect.TargetsPlayers {
-				return false
-			}
-		} else if !effect.TargetsMobs {
-			return false
-		}
-		_, ok := usr.(model.Interacter)
-		return ok
-	}
+	// No caster skip, matching the damage path's long-standing semantics
+	// (heal and resist auras skip self explicitly; damage never did — only
+	// relevant if player content ever sets targetsPlayers).
+	eligible := eligibleByTargetFlags[model.Interacter](effect, 0, false)
 
 	style := auraHitStyleFor(effect, level)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		// Every hit rolls its own variance (item 11 Phase 3); the target's
 		// resistance then multiplies the rolled value (decision C3).
-		damage := model.Damage{HP: vitals.RollVariance(damageHP, effect.Variance, rng), Tags: effect.DamageTags}
+		damage := model.Damage{HP: vitals.RollVariance(damageHP, effect.Damage.Variance, rng), Tags: effect.Damage.Tags}
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
 		noteAuraHit(c, style)
 	}
@@ -183,10 +204,10 @@ func applyPlayerDamageAura(caster model.PlayerEntity, casterPos phy.Vec2f, level
 // the legacy mob damage loop; the Factors payload carries both fractions and
 // each target picks the one that applies to it. Selector/cap ride on top.
 func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
-	damageHP := effectDamageHP(effect, level)
+	damageHP := effect.Damage.HPAt(level)
 	factors := mobs.Factors{
-		DamageTags:              effect.DamageTags,
-		StructureDamageFraction: effect.StructureDamageFraction,
+		DamageTags:              effect.Damage.Tags,
+		StructureDamageFraction: effect.Damage.StructureDamageFraction,
 	}
 
 	eligible := func(c phy.Collider) bool {
@@ -198,7 +219,7 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, 
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		// Per-hit variance roll, same as the player path (item 11 Phase 3).
-		factors.Damage = vitals.RollVariance(damageHP, effect.Variance, rng)
+		factors.Damage = vitals.RollVariance(damageHP, effect.Damage.Variance, rng)
 		c.Shape().UserData.(model.Interacter).MobTouches(caster, factors)
 		noteAuraHit(c, style)
 	}
@@ -221,7 +242,7 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		return
 	}
 
-	healCenterHP := effectHealHP(effect, level)
+	healCenterHP := effect.Heal.HPAt(level)
 	casterPos := e.AuraCollider().Position()
 	casterID := e.Basic().ID()
 	healedSomeone := false
@@ -242,7 +263,7 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		// Heals roll per hit like damage does (item 11 Phase 3, decision C1).
-		healHP := vitals.HP(vitals.RollVariance(healCenterHP, effect.Variance, rng))
+		healHP := vitals.HP(vitals.RollVariance(healCenterHP, effect.Heal.Variance, rng))
 		other := c.Shape().UserData.(model.PlayerEntity)
 		vs := other.VitalSigns()
 		before := vs.Health
@@ -258,7 +279,7 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 	}
 
 	if healedSomeone && !caster.IsGod() {
-		selfHP := vitals.HP(effect.SelfDamageHP)
+		selfHP := vitals.HP(effect.Heal.SelfDamageHP)
 		vs := caster.VitalSigns()
 		vs.Health = vs.Health.Sub(selfHP)
 		caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
@@ -277,55 +298,26 @@ type resistBuffable interface {
 // to the next re-application regardless of cadence, and fades roughly one
 // aura cycle after leaving the aura (see skills.ResistBuffs).
 func applyResistAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
-	factor := effectResistFactor(effect, level)
+	factor := effect.Resist.FactorAt(level)
 	ticks := effectiveTickInterval(effect, level) + 1
 
-	if effect.TargetsSelf {
+	if effect.Resist.TargetsSelf {
 		if self, ok := e.(resistBuffable); ok {
-			self.ApplyResist(source, effect.ResistTags, factor, ticks)
+			self.ApplyResist(source, effect.Resist.Tags, factor, ticks)
 		}
 	}
 
 	casterPos := e.AuraCollider().Position()
 	casterID := e.Basic().ID()
 
-	// Eligibility mirrors the damage aura's target flags; the caster is never
-	// part of the in-range set (targetsSelf above is the only self path).
-	eligible := func(c phy.Collider) bool {
-		usr := c.Shape().UserData
-		if usr == nil {
-			return false
-		}
-		if _, isPlayer := usr.(model.PlayerEntity); isPlayer {
-			if !effect.TargetsPlayers {
-				return false
-			}
-		} else if !effect.TargetsMobs {
-			return false
-		}
-		if _, ok := usr.(resistBuffable); !ok {
-			return false
-		}
-		if be, ok := usr.(model.BasicEntity); ok && be.Basic().ID() == casterID {
-			return false // skip self
-		}
-		return true
-	}
+	// The caster is never part of the in-range set (targetsSelf above is the
+	// only self path).
+	eligible := eligibleByTargetFlags[resistBuffable](effect, casterID, true)
 
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
-		c.Shape().UserData.(resistBuffable).ApplyResist(source, effect.ResistTags, factor, ticks)
+		c.Shape().UserData.(resistBuffable).ApplyResist(source, effect.Resist.Tags, factor, ticks)
 	}
-}
-
-// effectResistFactor scales the granted resistance factor by skill level
-// (negative perLevel = stronger resistance at higher levels), floored at 0.
-func effectResistFactor(e skills.EffectDef, level int) float32 {
-	factor := skills.Scaled(e.ResistFactor, e.ResistFactorPerLevel, level)
-	if factor < 0 {
-		factor = 0
-	}
-	return factor
 }
 
 // slowable is implemented by entities whose movement can be slowed by a
@@ -401,7 +393,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			if !ok {
 				continue
 			}
-			healHP := vitals.HP(vitals.RollVariance(selfHealHP(effect, es.Level, caster.MaxHealth()), effect.Variance, s.rng))
+			healHP := vitals.HP(vitals.RollVariance(selfHealHP(effect.SelfHeal, es.Level, caster.MaxHealth()), effect.SelfHeal.Variance, s.rng))
 			vs := caster.VitalSigns()
 			before := vs.Health
 			vs.Health = vs.Health.AddCapped(healHP, caster.MaxHealth())
@@ -448,7 +440,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 // pre-filters layers per the target flags; entities that cannot be slowed
 // (players — no ApplySlow) are skipped.
 func applySlowAura(level int, effect skills.EffectDef, collisions phy.ColliderSet) {
-	fraction := skills.Scaled(effect.SlowFraction, effect.SlowFractionPerLevel, level)
+	fraction := effect.Slow.FractionAt(level)
 	if fraction <= 0 {
 		return
 	}
@@ -462,26 +454,16 @@ func applySlowAura(level int, effect skills.EffectDef, collisions phy.ColliderSe
 	}
 }
 
-// effectDamageHP scales the base damage (absolute HP) by skill level.
-func effectDamageHP(e skills.EffectDef, level int) float32 {
-	return skills.Scaled(e.DamageHP, e.DamageHPPerLevel, level)
-}
-
-// effectHealHP scales the base heal (absolute HP) by skill level.
-func effectHealHP(e skills.EffectDef, level int) float32 {
-	return skills.Scaled(e.HealHP, e.HealHPPerLevel, level)
-}
-
 // selfHealHP is the self_heal center amount in HP (pre-variance-roll): a
-// fraction of the caster's max HP when HealFractionOfMax is set (the heal
+// fraction of the caster's max HP when FractionOfMax is set (the heal
 // cooldown scales with max HP), otherwise the flat HealHP. The fraction grows
-// by HealFractionOfMaxPerLevel (absolute) per level.
-func selfHealHP(e skills.EffectDef, level int, maxHP vitals.VitalSign) float32 {
-	if e.HealFractionOfMax > 0 {
-		frac := skills.Scaled(e.HealFractionOfMax, e.HealFractionOfMaxPerLevel, level)
+// by FractionOfMaxPerLevel (absolute) per level.
+func selfHealHP(p *skills.SelfHealParams, level int, maxHP vitals.VitalSign) float32 {
+	if p.FractionOfMax > 0 {
+		frac := skills.Scaled(p.FractionOfMax, p.FractionOfMaxPerLevel, level)
 		return frac * float32(maxHP)
 	}
-	return effectHealHP(e, level)
+	return skills.Scaled(p.HealHP, p.HealHPPerLevel, level)
 }
 
 func (s *SkillSystem) Remove(e ecs.BasicEntity) {

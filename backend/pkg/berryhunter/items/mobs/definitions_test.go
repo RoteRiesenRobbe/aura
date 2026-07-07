@@ -14,7 +14,7 @@ var testAuraSkillJSON = []byte(`{
   "name": "DodoAura",
   "category": "active_aura",
   "maxLevel": 5,
-  "effects": [{"type": "damage_aura", "radius": 0.6, "damageFraction": 0.001, "targetsPlayers": true}]
+  "effects": [{"type": "damage_aura", "radius": 0.6, "damageHP": 2, "targetsPlayers": true}]
 }`)
 
 func testSkillRegistry(t *testing.T) skills.Registry {

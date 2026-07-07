@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -23,13 +24,64 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
+// contentSources bundles the definition-file systems the loaders consume.
+// The default is the go:embed copies under pkg/api (synced from the repo's
+// api/ via `make cp-defs`); the -content flag swaps in a live disk directory
+// with the api/ layout, so content edits need neither cp-defs nor a rebuild —
+// only a server restart. (skills/milestone-unlocks.json is code-adjacent
+// config, not api/ content, and stays embedded either way.)
+type contentSources struct {
+	items   fs.FS
+	mobs    fs.FS
+	skills  fs.FS
+	recipes fs.FS
+}
+
+func embeddedContent() contentSources {
+	return contentSources{
+		items:   aitems.Items,
+		mobs:    amobs.Mobs,
+		skills:  askills.Skills,
+		recipes: arecipes.Recipes,
+	}
+}
+
+// diskContent loads content from dir, which must have the repo api/ layout
+// (items/, mobs/, skills/, recipes/). Missing subdirectories hard-fail here —
+// content errors are loud, matching the registry ethos.
+func diskContent(dir string) (contentSources, error) {
+	root := os.DirFS(dir)
+	sub := func(name string) (fs.FS, error) {
+		if _, err := fs.Stat(root, name); err != nil {
+			return nil, fmt.Errorf("content dir %q: %w", dir, err)
+		}
+		return fs.Sub(root, name)
+	}
+
+	var c contentSources
+	var err error
+	if c.items, err = sub("items"); err != nil {
+		return contentSources{}, err
+	}
+	if c.mobs, err = sub("mobs"); err != nil {
+		return contentSources{}, err
+	}
+	if c.skills, err = sub("skills"); err != nil {
+		return contentSources{}, err
+	}
+	if c.recipes, err = sub("recipes"); err != nil {
+		return contentSources{}, err
+	}
+	return c, nil
+}
+
 //go:embed conf.default.json
 var defaultConfig []byte
 
 // loadMobs parses the mob definitions from the definition files, resolving
 // drops against the item registry and skill loadouts against the skill registry.
-func loadMobs(r items.Registry, sr skills.Registry) mobs.Registry {
-	registry, err := mobs.RegistryFromFS(r, sr, amobs.Mobs)
+func loadMobs(r items.Registry, sr skills.Registry, fsys fs.FS) mobs.Registry {
+	registry, err := mobs.RegistryFromFS(r, sr, fsys)
 	if err != nil {
 		slog.Error("failed to load mobs", slog.Any("err", err))
 		panic(err)
@@ -45,9 +97,8 @@ func loadMobs(r items.Registry, sr skills.Registry) mobs.Registry {
 }
 
 // loadItems parses the item definitions from the definition files
-func loadItems() items.Registry {
-	// registry, err := items.RegistryFromPaths(path)
-	registry, err := items.RegistryFromFS(aitems.Items)
+func loadItems(fsys fs.FS) items.Registry {
+	registry, err := items.RegistryFromFS(fsys)
 	if err != nil {
 		slog.Error("failed to load items", slog.Any("err", err))
 		panic(err)
@@ -63,8 +114,8 @@ func loadItems() items.Registry {
 }
 
 // loadSkills parses the skill definitions from the definition files
-func loadSkills() skills.Registry {
-	registry, err := skills.RegistryFromFS(askills.Skills)
+func loadSkills(fsys fs.FS) skills.Registry {
+	registry, err := skills.RegistryFromFS(fsys)
 	if err != nil {
 		slog.Error("failed to load skills", slog.Any("err", err))
 		panic(err)
@@ -73,11 +124,11 @@ func loadSkills() skills.Registry {
 	return registry
 }
 
-// loadRecipes parses the embedded combination recipes, resolving result and
+// loadRecipes parses the combination recipes, resolving result and
 // ingredient skill names against the provided registry. Curated content: any
 // validation failure aborts startup.
-func loadRecipes(r skills.Registry) skills.RecipeRegistry {
-	registry, err := skills.RecipesFromFS(arecipes.Recipes, r)
+func loadRecipes(fsys fs.FS, r skills.Registry) skills.RecipeRegistry {
+	registry, err := skills.RecipesFromFS(fsys, r)
 	if err != nil {
 		slog.Error("failed to load recipes", slog.Any("err", err))
 		panic(err)

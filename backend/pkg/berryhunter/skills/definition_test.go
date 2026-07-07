@@ -102,8 +102,8 @@ func TestParse_DamageAura(t *testing.T) {
 	assert.Equal(t, EffectTypeDamageAura, e.Type)
 	assert.InDelta(t, 1.0, e.Radius, 1e-6)
 	assert.InDelta(t, 0.0, e.RadiusPerLevel, 1e-6)
-	assert.InDelta(t, 0.009, e.DamageHP, 1e-6)
-	assert.InDelta(t, 0.002, e.DamageHPPerLevel, 1e-6)
+	assert.InDelta(t, 0.009, e.Damage.HP, 1e-6)
+	assert.InDelta(t, 0.002, e.Damage.HPPerLevel, 1e-6)
 	assert.True(t, e.TargetsMobs)
 	assert.False(t, e.TargetsPlayers)
 	assert.Equal(t, 1, e.TickInterval) // absent in JSON → normalized to default 1
@@ -135,8 +135,8 @@ func TestParse_MobAuraWithStructureDamage(t *testing.T) {
 	require.Len(t, def.Effects, 1)
 	e := def.Effects[0]
 	assert.Equal(t, EffectTypeDamageAura, e.Type)
-	assert.InDelta(t, 0.0067, e.DamageHP, 1e-6)
-	assert.InDelta(t, 0.67, e.StructureDamageFraction, 1e-6)
+	assert.InDelta(t, 0.0067, e.Damage.HP, 1e-6)
+	assert.InDelta(t, 0.67, e.Damage.StructureDamageFraction, 1e-6)
 	assert.False(t, e.TargetsMobs)
 	assert.True(t, e.TargetsPlayers)
 	assert.True(t, e.TargetsStructures)
@@ -155,9 +155,9 @@ func TestParse_HealAura(t *testing.T) {
 	assert.Equal(t, EffectTypeHealAura, e.Type)
 	assert.InDelta(t, 1.0, e.Radius, 1e-6)
 	assert.InDelta(t, 0.05, e.RadiusPerLevel, 1e-6)
-	assert.InDelta(t, 0.001, e.HealHP, 1e-6)
-	assert.InDelta(t, 0.0005, e.HealHPPerLevel, 1e-6)
-	assert.InDelta(t, 0.0015, e.SelfDamageHP, 1e-6)
+	assert.InDelta(t, 0.001, e.Heal.HP, 1e-6)
+	assert.InDelta(t, 0.0005, e.Heal.HPPerLevel, 1e-6)
+	assert.InDelta(t, 0.0015, e.Heal.SelfDamageHP, 1e-6)
 	assert.Equal(t, 1, e.TickInterval)
 }
 
@@ -172,9 +172,9 @@ func TestParse_SwiftPassive(t *testing.T) {
 	require.Len(t, def.Effects, 1)
 	e := def.Effects[0]
 	assert.Equal(t, EffectTypeStatMultiplier, e.Type)
-	assert.Equal(t, "movementSpeed", e.Stat)
-	assert.InDelta(t, 0.05, e.StatBonus, 1e-6)
-	assert.InDelta(t, 0.05, e.StatBonusPerLevel, 1e-6)
+	assert.Equal(t, "movementSpeed", e.Stat.Name)
+	assert.InDelta(t, 0.05, e.Stat.Bonus, 1e-6)
+	assert.InDelta(t, 0.05, e.Stat.BonusPerLevel, 1e-6)
 }
 
 func TestParse_NovaBurst(t *testing.T) {
@@ -192,8 +192,8 @@ func TestParse_NovaBurst(t *testing.T) {
 	assert.Equal(t, EffectTypeInstantDamage, e.Type)
 	assert.InDelta(t, 1.5, e.Radius, 1e-6)
 	assert.InDelta(t, 0.1, e.RadiusPerLevel, 1e-6)
-	assert.InDelta(t, 0.15, e.DamageHP, 1e-6)
-	assert.InDelta(t, 0.03, e.DamageHPPerLevel, 1e-6)
+	assert.InDelta(t, 0.15, e.Damage.HP, 1e-6)
+	assert.InDelta(t, 0.03, e.Damage.HPPerLevel, 1e-6)
 	assert.True(t, e.TargetsMobs)
 	assert.False(t, e.TargetsPlayers)
 }
@@ -208,7 +208,7 @@ func TestParse_DamageTags(t *testing.T) {
 	def := mustParse(t, data)
 
 	require.Len(t, def.Effects, 1)
-	assert.Equal(t, []string{"fire", "boss_x_lava"}, def.Effects[0].DamageTags)
+	assert.Equal(t, []string{"fire", "boss_x_lava"}, def.Effects[0].Damage.Tags)
 }
 
 func TestParse_DamageTagsDefaultToPhysical(t *testing.T) {
@@ -216,17 +216,17 @@ func TestParse_DamageTagsDefaultToPhysical(t *testing.T) {
 	// so armor-style resistance applies to everything (Phase 2 decision).
 	damage := mustParse(t, damageAuraJSON)
 	require.Len(t, damage.Effects, 1)
-	assert.Equal(t, []string{DamageTagPhysical}, damage.Effects[0].DamageTags)
+	assert.Equal(t, []string{DamageTagPhysical}, damage.Effects[0].Damage.Tags)
 
 	burst := mustParse(t, novaBurstJSON)
 	require.Len(t, burst.Effects, 1)
-	assert.Equal(t, []string{DamageTagPhysical}, burst.Effects[0].DamageTags)
+	assert.Equal(t, []string{DamageTagPhysical}, burst.Effects[0].Damage.Tags)
 }
 
 func TestParse_DamageTagsAbsentOnNonDamageEffects(t *testing.T) {
 	heal := mustParse(t, healAuraJSON)
 	require.Len(t, heal.Effects, 1)
-	assert.Nil(t, heal.Effects[0].DamageTags)
+	assert.Nil(t, heal.Effects[0].Damage)
 }
 
 func TestMap_EmptyDamageTagFails(t *testing.T) {
@@ -260,13 +260,13 @@ func TestParse_Variance(t *testing.T) {
 	def := mustParse(t, data)
 
 	require.Len(t, def.Effects, 1)
-	assert.InDelta(t, 0.15, def.Effects[0].Variance, 1e-6)
+	assert.InDelta(t, 0.15, def.Effects[0].Damage.Variance, 1e-6)
 }
 
 func TestParse_VarianceDefaultsToZero(t *testing.T) {
 	def := mustParse(t, damageAuraJSON)
 	require.Len(t, def.Effects, 1)
-	assert.Zero(t, def.Effects[0].Variance, "absent variance → static value")
+	assert.Zero(t, def.Effects[0].Damage.Variance, "absent variance → static value")
 }
 
 func TestParse_VarianceValidOnAllRollingEffects(t *testing.T) {
@@ -281,7 +281,17 @@ func TestParse_VarianceValidOnAllRollingEffects(t *testing.T) {
 		require.NoError(t, err)
 		def, err := raw.mapToSkillDefinition()
 		require.NoError(t, err, "variance must be accepted on %s", effect)
-		assert.InDelta(t, 0.1, def.Effects[0].Variance, 1e-6)
+		e := def.Effects[0]
+		var variance float32
+		switch {
+		case e.Damage != nil:
+			variance = e.Damage.Variance
+		case e.Heal != nil:
+			variance = e.Heal.Variance
+		case e.SelfHeal != nil:
+			variance = e.SelfHeal.Variance
+		}
+		assert.InDelta(t, 0.1, variance, 1e-6)
 	}
 }
 
@@ -321,11 +331,11 @@ func TestParse_ResistAura(t *testing.T) {
 	require.Len(t, def.Effects, 1)
 	e := def.Effects[0]
 	assert.Equal(t, EffectTypeResistAura, e.Type)
-	assert.Equal(t, []string{"fire", "boss_x_lava"}, e.ResistTags)
-	assert.InDelta(t, 0.6, e.ResistFactor, 1e-6)
-	assert.InDelta(t, -0.1, e.ResistFactorPerLevel, 1e-6)
+	assert.Equal(t, []string{"fire", "boss_x_lava"}, e.Resist.Tags)
+	assert.InDelta(t, 0.6, e.Resist.Factor, 1e-6)
+	assert.InDelta(t, -0.1, e.Resist.FactorPerLevel, 1e-6)
 	assert.True(t, e.TargetsPlayers)
-	assert.True(t, e.TargetsSelf)
+	assert.True(t, e.Resist.TargetsSelf)
 }
 
 func TestParse_ResistPassive(t *testing.T) {
@@ -338,8 +348,8 @@ func TestParse_ResistPassive(t *testing.T) {
 	require.Len(t, def.Effects, 1)
 	e := def.Effects[0]
 	assert.Equal(t, EffectTypeResistPassive, e.Type)
-	assert.Equal(t, []string{"fire"}, e.ResistTags)
-	assert.InDelta(t, 0.8, e.ResistFactor, 1e-6)
+	assert.Equal(t, []string{"fire"}, e.Resist.Tags)
+	assert.InDelta(t, 0.8, e.Resist.Factor, 1e-6)
 }
 
 func TestMap_ResistAuraWithoutTagsFails(t *testing.T) {
@@ -425,8 +435,8 @@ func TestParse_SlowAura(t *testing.T) {
 	e := def.Effects[0]
 	assert.Equal(t, EffectTypeSlowAura, e.Type)
 	assert.InDelta(t, 1.5, e.Radius, 1e-6)
-	assert.InDelta(t, 0.1, e.SlowFraction, 1e-6)
-	assert.InDelta(t, 0.1, e.SlowFractionPerLevel, 1e-6)
+	assert.InDelta(t, 0.1, e.Slow.Fraction, 1e-6)
+	assert.InDelta(t, 0.1, e.Slow.FractionPerLevel, 1e-6)
 	assert.True(t, e.TargetsMobs)
 }
 
@@ -440,8 +450,8 @@ func TestParse_SelfHeal(t *testing.T) {
 	require.Len(t, def.Effects, 1)
 	e := def.Effects[0]
 	assert.Equal(t, EffectTypeSelfHeal, e.Type)
-	assert.InDelta(t, 0.20, e.HealHP, 1e-6)
-	assert.InDelta(t, 0.05, e.HealHPPerLevel, 1e-6)
+	assert.InDelta(t, 0.20, e.SelfHeal.HealHP, 1e-6)
+	assert.InDelta(t, 0.05, e.SelfHeal.HealHPPerLevel, 1e-6)
 }
 
 func TestParse_DamageReductionStat(t *testing.T) {
@@ -452,7 +462,7 @@ func TestParse_DamageReductionStat(t *testing.T) {
 	def := mustParse(t, data)
 
 	require.Len(t, def.Effects, 1)
-	assert.Equal(t, StatDamageReduction, def.Effects[0].Stat)
+	assert.Equal(t, StatDamageReduction, def.Effects[0].Stat.Name)
 }
 
 func TestMap_UnknownStat(t *testing.T) {
@@ -465,12 +475,50 @@ func TestMap_UnknownStat(t *testing.T) {
 
 func TestMap_StatMultiplierNoScalingFails(t *testing.T) {
 	// Both statBonus and statBonusPerLevel zero would be a do-nothing passive.
-	// This also catches a stale pre-rename "additivePerLevel" key, which
-	// json.Unmarshal silently drops.
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"movementSpeed","additivePerLevel":0.05}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"movementSpeed"}]}`))
 	require.NoError(t, err)
 	_, err = raw.mapToSkillDefinition()
 	assert.ErrorContains(t, err, "no scaling")
+}
+
+func TestMap_StaleAdditivePerLevelKeyFails(t *testing.T) {
+	// The pre-unification "additivePerLevel" key (or any typo) is not on the
+	// stat_multiplier allowlist — the key check fails it by name instead of
+	// json.Unmarshal silently dropping it.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"movementSpeed","additivePerLevel":0.05}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "additivePerLevel")
+}
+
+func TestMap_UnknownEffectKeyFails(t *testing.T) {
+	// Typos hard-fail on every effect type — json.Unmarshal alone would drop
+	// the key and load a silently mis-tuned effect.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsMobs":true,"radiusPerLvl":0.5}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "radiusPerLvl")
+}
+
+func TestParse_ExactlyOnePayload(t *testing.T) {
+	// The EffectDef invariant: the payload matching Type is non-nil, all
+	// others nil.
+	def := mustParse(t, damageAuraJSON)
+	e := def.Effects[0]
+	assert.NotNil(t, e.Damage)
+	assert.Nil(t, e.Heal)
+	assert.Nil(t, e.SelfHeal)
+	assert.Nil(t, e.Slow)
+	assert.Nil(t, e.Resist)
+	assert.Nil(t, e.Stat)
+
+	heal := mustParse(t, healAuraJSON)
+	assert.NotNil(t, heal.Effects[0].Heal)
+	assert.Nil(t, heal.Effects[0].Damage)
+
+	passive := mustParse(t, swiftPassiveJSON)
+	assert.NotNil(t, passive.Effects[0].Stat)
+	assert.Nil(t, passive.Effects[0].Damage)
 }
 
 func TestMap_StatFieldsOnNonStatEffectFails(t *testing.T) {

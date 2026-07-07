@@ -26,21 +26,37 @@ func main() {
 	logging.SetupLogging()
 
 	var dev, help, chieftain bool
+	var contentDir string
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
 	flag.BoolVar(&chieftain, "chieftain", false, "Also boot embedded chieftain")
+	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
 	flag.Parse()
 	if help {
 		flag.Usage()
 		os.Exit(1)
 	}
 
+	content := embeddedContent()
+	contentSource := "embedded"
+	if contentDir != "" {
+		var err error
+		if content, err = diskContent(contentDir); err != nil {
+			slog.Error("failed to open content directory", slog.Any("err", err))
+			panic(err)
+		}
+		contentSource = contentDir
+	}
+	// The boot log states the content source so a stale-server/stale-content
+	// mixup is visible at a glance (see the testing gotcha in CLAUDE.md).
+	slog.Info("Loading content", slog.String("source", contentSource))
+
 	config := loadConf()
-	itemsRegistry := loadItems()
-	skillsRegistry := loadSkills()
-	mobsRegistry := loadMobs(itemsRegistry, skillsRegistry)
+	itemsRegistry := loadItems(content.items)
+	skillsRegistry := loadSkills(content.skills)
+	mobsRegistry := loadMobs(itemsRegistry, skillsRegistry, content.mobs)
 	milestoneUnlocks := loadMilestoneUnlocks(skillsRegistry)
-	recipeRegistry := loadRecipes(skillsRegistry)
+	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
 
 	tokens := loadOrCreateTokens("./tokens.list")
 	slog.Info("👮‍♀️ read tokens", slog.Int("token_count", len(tokens)))

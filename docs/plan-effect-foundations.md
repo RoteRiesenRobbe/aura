@@ -141,9 +141,13 @@ stealth is cosmetic), which removes the expensive variant from scope.
 Each step is plan-first per the working style (state the plan, confirm, then
 code), TDD'd, and independently shippable. Steps 1–4 are the F4 order.
 
-- **Step 0 — pre-refactors (F5):** `EffectDef` per-type split, shared
-  eligibility builder, dev disk-load flag. Pure refactor + tooling; existing
-  suite must pass unchanged (except tests touching the struct shape).
+- **Step 0 — pre-refactors (F5): ✓ DONE 2026-07-07.** `EffectDef` split into
+  shared core + exactly-one per-type payload pointer with a per-type JSON key
+  allowlist (unknown AND inapplicable keys hard-fail by name — the net caught
+  a real stale `damageFraction` fixture on landing); shared
+  `eligibleByTargetFlags` builder; `-content <dir>` flag loads the repo api/
+  from disk (skips cp-defs + rebuild, boot log states the source). JSON
+  format unchanged, gameplay identical, full suite green.
 - **Step 1 — faction/allegiance (F8):** binary property on entities;
   eligibility predicates and the no-friendly-fire rule read it instead of
   type-asserting `PlayerEntity`. Behavior-preserving for all current content.

@@ -199,8 +199,8 @@ func (sc *SkillComponent) recomputeDerived() {
 		for _, e := range es.Def.Effects {
 			switch e.Type {
 			case EffectTypeStatMultiplier:
-				bonus := Scaled(e.StatBonus, e.StatBonusPerLevel, es.Level)
-				switch e.Stat {
+				bonus := e.Stat.BonusAt(es.Level)
+				switch e.Stat.Name {
 				case StatMovementSpeed:
 					d.MovementSpeedBonus += bonus
 				case StatMaxHealth:
@@ -209,16 +209,14 @@ func (sc *SkillComponent) recomputeDerived() {
 					d.DamageReductionBonus += bonus
 				}
 			case EffectTypeResistPassive:
-				// Level scaling mirrors the aura fields (base + (L−1)×perLevel),
-				// floored at 0; per tag the factors of distinct passives multiply.
-				factor := Scaled(e.ResistFactor, e.ResistFactorPerLevel, es.Level)
-				if factor < 0 {
-					factor = 0
-				}
+				// Level scaling mirrors the aura fields (FactorAt: base +
+				// (L−1)×perLevel, floored at 0); per tag the factors of
+				// distinct passives multiply.
+				factor := e.Resist.FactorAt(es.Level)
 				if d.Resistances == nil {
-					d.Resistances = make(map[string]float32, len(e.ResistTags))
+					d.Resistances = make(map[string]float32, len(e.Resist.Tags))
 				}
-				for _, tag := range e.ResistTags {
+				for _, tag := range e.Resist.Tags {
 					current, ok := d.Resistances[tag]
 					if !ok {
 						current = 1

@@ -9,7 +9,7 @@ import (
 
 func TestAuraMaskFor_PlayerDamageAura(t *testing.T) {
 	def := &skills.SkillDefinition{Effects: []skills.EffectDef{
-		{Type: skills.EffectTypeDamageAura, TargetsMobs: true},
+		{Type: skills.EffectTypeDamageAura, TargetsMobs: true, Damage: &skills.DamageParams{}},
 	}}
 
 	assert.Equal(t, int(LayerActionCollision), AuraMaskFor(def))
@@ -17,7 +17,7 @@ func TestAuraMaskFor_PlayerDamageAura(t *testing.T) {
 
 func TestAuraMaskFor_MobDamageAura_PlayersOnly(t *testing.T) {
 	def := &skills.SkillDefinition{Effects: []skills.EffectDef{
-		{Type: skills.EffectTypeDamageAura, TargetsPlayers: true},
+		{Type: skills.EffectTypeDamageAura, TargetsPlayers: true, Damage: &skills.DamageParams{}},
 	}}
 
 	assert.Equal(t, int(LayerPlayerCollision), AuraMaskFor(def))
@@ -25,7 +25,7 @@ func TestAuraMaskFor_MobDamageAura_PlayersOnly(t *testing.T) {
 
 func TestAuraMaskFor_MobDamageAura_PlayersAndStructures(t *testing.T) {
 	def := &skills.SkillDefinition{Effects: []skills.EffectDef{
-		{Type: skills.EffectTypeDamageAura, TargetsPlayers: true, TargetsStructures: true},
+		{Type: skills.EffectTypeDamageAura, TargetsPlayers: true, TargetsStructures: true, Damage: &skills.DamageParams{}},
 	}}
 
 	assert.Equal(t, int(LayerPlayerCollision|LayerPlaceableCollision), AuraMaskFor(def))
@@ -33,7 +33,7 @@ func TestAuraMaskFor_MobDamageAura_PlayersAndStructures(t *testing.T) {
 
 func TestAuraMaskFor_HealAuraImpliesPlayers(t *testing.T) {
 	def := &skills.SkillDefinition{Effects: []skills.EffectDef{
-		{Type: skills.EffectTypeHealAura},
+		{Type: skills.EffectTypeHealAura, Heal: &skills.HealParams{}},
 	}}
 
 	assert.Equal(t, int(LayerPlayerCollision), AuraMaskFor(def))
@@ -50,12 +50,12 @@ func TestAuraMaskFor_NoEffectsYieldsNone(t *testing.T) {
 // self-buff ever lands (found in the FireWard in-game check, item 11 Phase 2).
 func TestAuraMaskFor_ResistAura(t *testing.T) {
 	players := &skills.SkillDefinition{Effects: []skills.EffectDef{
-		{Type: skills.EffectTypeResistAura, TargetsPlayers: true},
+		{Type: skills.EffectTypeResistAura, TargetsPlayers: true, Resist: &skills.ResistParams{}},
 	}}
 	assert.Equal(t, int(LayerPlayerCollision), AuraMaskFor(players))
 
 	mobs := &skills.SkillDefinition{Effects: []skills.EffectDef{
-		{Type: skills.EffectTypeResistAura, TargetsMobs: true},
+		{Type: skills.EffectTypeResistAura, TargetsMobs: true, Resist: &skills.ResistParams{}},
 	}}
 	assert.Equal(t, int(LayerActionCollision), AuraMaskFor(mobs))
 }
