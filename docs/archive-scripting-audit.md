@@ -1,9 +1,16 @@
 # Scripting/Expression Layer — Part 1: Current-State Audit
 
-> **Status: investigation only, no decision, no implementation.** Written
-> 2026-07-06. Factual map of where gameplay logic lives as Go code vs. as data
-> today. Options and trade-offs live in `research-scripting-options.md`; the
-> decisions this needs from us are listed at the end of that doc.
+> **ARCHIVED — question decided 2026-07-07, kept for the factual map.** The
+> decision (stay on Go effect types; no scripting for effects) and the plan
+> that follows from it live in `plan-effect-foundations.md`. §1's data-vs-Go
+> map and §2's expressibility list remain accurate as of archiving and are
+> referenced from there.
+
+> **Original status: investigation only, no decision, no implementation.**
+> Written 2026-07-06. Factual map of where gameplay logic lives as Go code vs.
+> as data today. Options and trade-offs live in
+> `archive-scripting-options.md`; the decisions that doc listed at its end
+> were answered in `plan-effect-foundations.md` §3.
 >
 > One premise correction against the investigation brief: **Phase 9 (combos) is
 > already built and shipped** (PaladinAura, committed 53d6c571, in-game

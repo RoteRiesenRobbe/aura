@@ -74,7 +74,7 @@ Each system below gets its own spec discussion before it is implemented; section
 
 ### 4.1 Skill/Aura System
 
-**Status: built and live** — migration Phases 1–9 complete (`docs/plan-skill-system.md`), targeting incl. hit VFX (roadmap item 11), absolute HP + resistances/tags (`docs/plan-item11-hp-resist-variance.md`). The factual current state (which effect types exist, what is data vs. Go) is mapped in `docs/research-scripting-audit.md` §1; here only the architectural big picture:
+**Status: built and live** — migration Phases 1–9 complete (`docs/plan-skill-system.md`), targeting incl. hit VFX (roadmap item 11), absolute HP + resistances/tags (`docs/plan-item11-hp-resist-variance.md`). The factual current state (which effect types exist, what is data vs. Go) is mapped in `docs/archive-scripting-audit.md` §1; here only the architectural big picture:
 
 - Skill definitions as JSON (`api/skills/`), registry analogous to items/mobs, hard-fail validation at load
 - `SkillComponent` on players and mobs (same mechanics; per-mob aura skills, aura switching via `SetActiveAura` possible)
@@ -90,7 +90,7 @@ Each system below gets its own spec discussion before it is implemented; section
 - Auras only affect targets with line-of-sight — LoS not built yet (see 4.2, roadmap item 6)
 - Mob heal / heal_aura target flags: **deliberately later**, with roadmap item 7 (mob support behaviors); the two known limitations are documented in `plan-skill-system.md` (Effect Types → heal_aura)
 - Sticky targeting against target flicker with `nearest` — only when it actually bothers in practice
-- Whether effect behavior eventually becomes authorable as expressions/scripts instead of Go effect types: open decision, see `docs/research-scripting-options.md`
+- ~~Whether effect behavior eventually becomes authorable as expressions/scripts instead of Go effect types~~ — **decided 2026-07-07: effect semantics stay Go effect types, no scripting engine for effects; a constrained expression layer stays parked behind an explicit trigger.** Rationale + the primitive-first growth plan: `docs/plan-effect-foundations.md` (archived options record: `docs/archive-scripting-options.md`)
 
 ### 4.2 Line-of-Sight (2D Raycast)
 

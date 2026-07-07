@@ -1,7 +1,15 @@
 # Scripting/Expression Layer — Parts 2–4: Options, Draft Plan, Open Decisions
 
-> **Status: options for discussion, deliberately no recommendation.** Written
-> 2026-07-06, companion to `research-scripting-audit.md` (Part 1 audit).
+> **ARCHIVED — decided 2026-07-07, kept for rationale.** Outcome
+> (`plan-effect-foundations.md` F1–F3): effect semantics stay Go effect types
+> — Option C (scripting) is off the table, not parked; Option B (constrained
+> expressions) is parked behind an explicit trigger; Option D territory (the
+> encounter controller) keeps the roadmap's Go-structs lean. The Part 4
+> decision inputs were answered by the concrete candidate-effect list, which
+> proved primitive-heavy (see the plan doc §2.2).
+
+> **Original status: options for discussion, deliberately no recommendation.**
+> Written 2026-07-06, companion to `archive-scripting-audit.md` (Part 1 audit).
 > The call is made chat-side (Robert + Claude); this doc's job is to make the
 > trade-offs and the decision points explicit. All performance numbers are
 > order-of-magnitude **[PLACEHOLDER]** estimates, not measurements.

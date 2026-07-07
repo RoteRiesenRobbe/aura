@@ -8,7 +8,7 @@
 > `plan-item11-hp-resist-variance.md`; the schema below reflects the current
 > state. The **authoritative field list is the code**
 > (`backend/pkg/berryhunter/skills/definition.go`) — a current data-vs-Go map
-> lives in `research-scripting-audit.md` §1.
+> lives in `archive-scripting-audit.md` §1.
 
 ## Overview
 

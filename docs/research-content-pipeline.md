@@ -2,7 +2,7 @@
 
 > **Status: informational / planning input, no implementation.** Written
 > 2026-07-06 as a follow-up to the scripting-layer investigation
-> (`research-scripting-audit.md`, `research-scripting-options.md`).
+> (`archive-scripting-audit.md`, `archive-scripting-options.md`).
 > Question addressed: when this goes live and **designers** (not Go
 > engineers) author spells/skills without rebuilds — what breaks, and what do
 > we do now so it doesn't? All effort estimates are rough
@@ -70,10 +70,12 @@ authoring-facing document:
 
 The load validator catches shape errors, not semantic ones — a designer will
 author confidently wrong content and only find out in play. Behind all of
-this sits the **vocabulary ceiling**: anything outside the 8 effect types is
-an engineering ticket. That is the scripting-layer decision
-(`research-scripting-options.md`); if designers author, the calculus there
-shifts toward at least the expression layer (Option B).
+this sits the **vocabulary ceiling**: anything outside the fixed effect types
+is an engineering ticket. The scripting-layer question was decided 2026-07-07
+(`plan-effect-foundations.md`: effect semantics stay Go; expression layer
+parked, F2) — a designer joining the authoring side is exactly the kind of
+trigger that would reopen the F2 expression-layer call (Option B in
+`archive-scripting-options.md`).
 
 ---
 
