@@ -100,3 +100,10 @@ func Radius(r float32) Configuration {
 		return nil
 	}
 }
+
+func Bounds(width, height float32) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.Bounds = cfg.Bounds{Width: width, Height: height}
+		return nil
+	}
+}

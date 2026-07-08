@@ -17,17 +17,15 @@ import {MiniMap} from '../../mini-map/logic/MiniMap';
 
 
 export class EntityManager {
-    radius: number;
     width: number;
     height: number;
 
     objects: {[key: gameObjectId]: GameObject} = {};
     private miniMap: MiniMap;
 
-    constructor(radius: number, miniMap: MiniMap) {
-        this.radius = radius;
-        this.width = 2 * radius;
-        this.height = 2 * radius;
+    constructor(width: number, height: number, miniMap: MiniMap) {
+        this.width = width;
+        this.height = height;
 
         this.miniMap = miniMap;
     }

@@ -45,6 +45,9 @@ type game struct {
 
 	joinQueue chan model.Client
 	radius    float32
+
+	boundsWidth  float32
+	boundsHeight float32
 }
 
 // assert game implements its interface
@@ -53,6 +56,10 @@ var _ = model.Game(&game{})
 func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	gc := &cfg.GameConfig{
 		Radius: 20,
+		// [PLACEHOLDER] rectangular world; comfortably contains the radius-20
+		// spawn circle so nothing spawns outside the wall while the circular
+		// spawn paths migrate (chunks 2/4). Tuned in-game.
+		Bounds: cfg.Bounds{Width: 60, Height: 40},
 		Tokens: []string{},
 	}
 
@@ -71,13 +78,16 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 		itemRegistry:  gc.ItemRegistry,
 		skillRegistry: gc.SkillRegistry,
 		radius:        gc.Radius,
+		boundsWidth:   gc.Bounds.Width,
+		boundsHeight:  gc.Bounds.Height,
 		config:        gc,
 	}
 
 	// Prepare welcome message. Its static anyways.
 	msg := &codec.Welcome{
 		ServerName:         "berryhunter.io [Alpha] rza, n1b, xyckno & co.",
-		Radius:             gc.Radius * codec.Points2px,
+		Width:              gc.Bounds.Width * codec.Points2px,
+		Height:             gc.Bounds.Height * codec.Points2px,
 		TotalDayCycleTicks: g.config.TotalDayCycleSeconds * constant.TicksPerSecond,
 		DayTimeTicks:       g.config.DayTimeSeconds * constant.TicksPerSecond,
 	}
@@ -93,7 +103,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	p := sys.NewPhysicsSystem()
 	g.AddSystem(p)
 
-	wall := phy.NewInvCircle(phy.VEC2F_ZERO, gc.Radius)
+	wall := phy.NewInvAABB(phy.VEC2F_ZERO, gc.Bounds.Width, gc.Bounds.Height)
 	wall.Shape().Layer = int(model.LayerBorderCollision)
 	p.AddStaticBody(ecs.NewBasic(), wall)
 
@@ -152,6 +162,10 @@ func (g *game) Ticks() uint64 {
 
 func (g *game) Radius() float32 {
 	return g.radius
+}
+
+func (g *game) Bounds() (width, height float32) {
+	return g.boundsWidth, g.boundsHeight
 }
 
 func (g *game) Items() items.Registry {

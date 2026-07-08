@@ -91,6 +91,10 @@ func main() {
 
 	// new game
 	var radius float32 = 20
+	// [PLACEHOLDER] rectangular world (world foundation chunk 1); contains the
+	// radius-20 spawn circle. Radius still drives the circular spawn/gen paths
+	// below until chunks 2/4 replace them.
+	var boundsWidth, boundsHeight float32 = 60, 40
 	// For different seeds see:
 	// https://docs.google.com/spreadsheets/d/13EbpERJ05GpjUUXOp2zU4Od2FGqymeMV0F278_eBIcQ/edit#gid=0
 	var seed int64 = 0xDEADBEEF + 4
@@ -104,6 +108,7 @@ func main() {
 		core.Recipes(recipeRegistry),
 		core.Tokens(tokens),
 		core.Radius(radius),
+		core.Bounds(boundsWidth, boundsHeight),
 	)
 	if err != nil {
 		panic(err)

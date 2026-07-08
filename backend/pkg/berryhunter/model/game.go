@@ -39,8 +39,14 @@ type Game interface {
 	// Ticks returns the number of ticks
 	Ticks() uint64
 
-	// Radius returns the radius of the map
+	// Radius returns the radius of the map.
+	//
+	// Deprecated: the world is a rectangle (world foundation chunk 1); use
+	// Bounds. Radius still drives the circular spawn/gen paths until chunks 2/4.
 	Radius() float32
+
+	// Bounds returns the rectangular world size in server units.
+	Bounds() (width, height float32)
 
 	Config() *cfg.GameConfig
 }

@@ -8,7 +8,6 @@ import {ICharacterLike} from "../../game-objects/logic/ICharacter";
 let Game: IGame = null;
 
 let Corners = [];
-let extraBoundary: number;
 
 export class Camera {
     character: ICharacterLike;
@@ -35,8 +34,6 @@ export class Camera {
 
     static setup(game: IGame) {
         Game = game;
-
-        extraBoundary = Math.min(Game.width, Game.height) / 2;
 
         for (let x = -1; x <= 1; x += 2) {
             for (let y = -1; y <= 1; y += 2) {
@@ -104,22 +101,12 @@ export class Camera {
 }
 
 function keepWithinMapBoundaries(vehicle: Vehicle) {
-    let corners = Corners.map(function (corner) {
-        return vehicle.position.clone().add(corner);
-    });
+    // Rectangular world (world foundation chunk 1): clamp the camera so the
+    // viewport stays inside the world bounds. If the world is smaller than the
+    // viewport on an axis, lock that axis to centre (whole world visible).
+    let maxX = Math.max(0, Game.map.width / 2 - Game.width / 2);
+    let maxY = Math.max(0, Game.map.height / 2 - Game.height / 2);
 
-    let r = new Vector();
-    corners.forEach(function (corner) {
-        let length = corner.length();
-        let d = length - extraBoundary - Game.map.radius;
-        if (d < 0) {
-            return;
-        }
-
-        corner.divideScalar(length).multiplyScalar(-d);
-
-        r.add(corner);
-    });
-
-    vehicle.position.add(r);
+    vehicle.position.x = Math.min(maxX, Math.max(-maxX, vehicle.position.x));
+    vehicle.position.y = Math.min(maxY, Math.max(-maxY, vehicle.position.y));
 }

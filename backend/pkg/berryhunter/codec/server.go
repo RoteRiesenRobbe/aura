@@ -17,7 +17,8 @@ func WelcomeMessageFlatbufMarshal(builder *flatbuffers.Builder, w *Welcome) flat
 
 	BerryhunterApi.WelcomeStart(builder)
 	BerryhunterApi.WelcomeAddServerName(builder, serverName)
-	BerryhunterApi.WelcomeAddMapRadius(builder, w.Radius)
+	BerryhunterApi.WelcomeAddMapWidth(builder, w.Width)
+	BerryhunterApi.WelcomeAddMapHeight(builder, w.Height)
 	BerryhunterApi.WelcomeAddTotalDaycycleTicks(builder, w.TotalDayCycleTicks)
 	BerryhunterApi.WelcomeAddDayTimeTicks(builder, w.DayTimeTicks)
 
@@ -28,7 +29,8 @@ func WelcomeMessageFlatbufMarshal(builder *flatbuffers.Builder, w *Welcome) flat
 
 type Welcome struct {
 	ServerName         string
-	Radius             float32
+	Width              float32
+	Height             float32
 	TotalDayCycleTicks uint64
 	DayTimeTicks       uint64
 }

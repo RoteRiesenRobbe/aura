@@ -3,7 +3,8 @@ import {BerryhunterApi} from '../../BerryhunterApi';
 export class WelcomeMessage {
 
     serverName: string;
-    mapRadius: number;
+    mapWidth: number;
+    mapHeight: number;
     totalDayCycleTicks: number;
     dayTimeTicks: number;
 
@@ -13,7 +14,8 @@ export class WelcomeMessage {
      */
     constructor(welcome) {
         this.serverName = welcome.serverName();
-        this.mapRadius = welcome.mapRadius();
+        this.mapWidth = welcome.mapWidth();
+        this.mapHeight = welcome.mapHeight();
         this.totalDayCycleTicks = Number(welcome.totalDaycycleTicks());
         this.dayTimeTicks = Number(welcome.dayTimeTicks());
     }

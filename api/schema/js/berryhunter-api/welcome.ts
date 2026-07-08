@@ -29,39 +29,48 @@ serverName(optionalEncoding?:any):string|Uint8Array|null {
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
-mapRadius():number {
+mapWidth():number {
   const offset = this.bb!.__offset(this.bb_pos, 6);
   return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 0.0;
 }
 
-totalDaycycleTicks():bigint {
+mapHeight():number {
   const offset = this.bb!.__offset(this.bb_pos, 8);
-  return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
+  return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 0.0;
 }
 
-dayTimeTicks():bigint {
+totalDaycycleTicks():bigint {
   const offset = this.bb!.__offset(this.bb_pos, 10);
   return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
 }
 
+dayTimeTicks():bigint {
+  const offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
+}
+
 static startWelcome(builder:flatbuffers.Builder) {
-  builder.startObject(4);
+  builder.startObject(5);
 }
 
 static addServerName(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset) {
   builder.addFieldOffset(0, serverNameOffset, 0);
 }
 
-static addMapRadius(builder:flatbuffers.Builder, mapRadius:number) {
-  builder.addFieldFloat32(1, mapRadius, 0.0);
+static addMapWidth(builder:flatbuffers.Builder, mapWidth:number) {
+  builder.addFieldFloat32(1, mapWidth, 0.0);
+}
+
+static addMapHeight(builder:flatbuffers.Builder, mapHeight:number) {
+  builder.addFieldFloat32(2, mapHeight, 0.0);
 }
 
 static addTotalDaycycleTicks(builder:flatbuffers.Builder, totalDaycycleTicks:bigint) {
-  builder.addFieldInt64(2, totalDaycycleTicks, BigInt('0'));
+  builder.addFieldInt64(3, totalDaycycleTicks, BigInt('0'));
 }
 
 static addDayTimeTicks(builder:flatbuffers.Builder, dayTimeTicks:bigint) {
-  builder.addFieldInt64(3, dayTimeTicks, BigInt('0'));
+  builder.addFieldInt64(4, dayTimeTicks, BigInt('0'));
 }
 
 static endWelcome(builder:flatbuffers.Builder):flatbuffers.Offset {
@@ -69,10 +78,11 @@ static endWelcome(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 }
 
-static createWelcome(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset, mapRadius:number, totalDaycycleTicks:bigint, dayTimeTicks:bigint):flatbuffers.Offset {
+static createWelcome(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset, mapWidth:number, mapHeight:number, totalDaycycleTicks:bigint, dayTimeTicks:bigint):flatbuffers.Offset {
   Welcome.startWelcome(builder);
   Welcome.addServerName(builder, serverNameOffset);
-  Welcome.addMapRadius(builder, mapRadius);
+  Welcome.addMapWidth(builder, mapWidth);
+  Welcome.addMapHeight(builder, mapHeight);
   Welcome.addTotalDaycycleTicks(builder, totalDaycycleTicks);
   Welcome.addDayTimeTicks(builder, dayTimeTicks);
   return Welcome.endWelcome(builder);

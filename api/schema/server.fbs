@@ -200,7 +200,8 @@ table GameState {
 
 table Welcome {
   server_name:string;
-  map_radius:float;
+  map_width:float;
+  map_height:float;
   total_daycycle_ticks:ulong;
   day_time_ticks:ulong;
 }

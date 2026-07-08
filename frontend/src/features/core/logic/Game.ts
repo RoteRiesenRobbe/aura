@@ -352,15 +352,19 @@ export class Game implements IGame {
 
     startRendering(gameInformation: WelcomeMessage): void {
         Console.log('Joined Server "' + gameInformation.serverName + '"');
+        const mapWidth = gameInformation.mapWidth;
+        const mapHeight = gameInformation.mapHeight;
+        const waterMargin = 240; // shallow-water ring inset from each edge
         this.layers.terrain.ground.addChild(new Graphics()
-            .circle(0, 0, gameInformation.mapRadius)
+            .rect(-mapWidth / 2, -mapHeight / 2, mapWidth, mapHeight)
             .fill(GraphicsConfig.shallowWaterColor));
         this.layers.terrain.ground.addChild(new Graphics()
-            .circle(0, 0, gameInformation.mapRadius - 240) // deduct a bit of radius to allow movement in "shallow" water
+            .rect(-mapWidth / 2 + waterMargin, -mapHeight / 2 + waterMargin,
+                mapWidth - 2 * waterMargin, mapHeight - 2 * waterMargin)
             .fill(GraphicsConfig.landColor));
 
-        this.miniMap.setup(gameInformation.mapRadius * 2, gameInformation.mapRadius * 2);
-        this.map = new EntityManager(gameInformation.mapRadius, this.miniMap);
+        this.miniMap.setup(mapWidth, mapHeight);
+        this.map = new EntityManager(mapWidth, mapHeight, this.miniMap);
         DayCycle.setup(
             gameInformation.totalDayCycleTicks,
             gameInformation.dayTimeTicks,

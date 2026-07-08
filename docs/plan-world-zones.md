@@ -298,7 +298,7 @@ Each chunk is independently buildable, testable, and small enough to land + get
 confirmed on its own (per the working-style: plan → confirm → build → sanity
 check, pause between chunks).
 
-### Chunk 1 — Rectangular world boundary (backend / `phy`)
+### Chunk 1 — Rectangular world boundary (backend / `phy`) — ✅ DONE + verified in-game 2026-07-08
 - **Goal:** the world is a rectangle with a working physical wall.
 - **Do:** add `phy.InvAABB` (mirror `InvCircle`; circle-vs-InvAABB resolution +
   tests); add `GameConfig.Bounds{Width,Height}` (keep `Radius` temporarily);
@@ -308,6 +308,47 @@ check, pause between chunks).
 - **Tests:** `phy` unit tests (a circle pushed back inside each edge/corner);
   boot test (world constructs, player can't leave the rectangle).
 - **Gotchas:** #1, #2, #3, #4. **Front-loads the biggest risk.**
+- **Record (2026-07-08, full suite green, tsc green, boot- + in-game-verified —
+  walked all 4 corners/edges, wall holds):**
+  - `phy.InvAABB` (`phy/inv_aabb.go`) mirrors `InvCircle` structurally: static
+    wall, embeds `dynamicColliderShape` + nil `CollisionResolver`, only
+    `intersectWithCircle`/`resolveCollisionWithCircle` do real work (box/inv-circle
+    dispatchers panic — a static wall only ever meets circles and is never the
+    querying shape; `IntersectWith` panics for the same reason). Resolution
+    (`resolveInvAABB`) clamps the circle centre per-axis into the box shrunk by
+    the radius, so edges and corners fall out of the same three lines; a
+    box-narrower-than-circle guard mirrors InvCircle. `updateBB` doubles the
+    half-extents (the InvCircle broadphase-overrun hack) so a body that drifts
+    just past a boundary still shares a grid cell with the wall. **No change to
+    `Circle`/`Box`/`InvCircle` or the double-dispatch interfaces** — exactly how
+    InvCircle was originally added. Pins: per-edge/corner push-back, interior =
+    zero force, narrow-box guard, and an **end-to-end confinement test** that
+    drives a dynamic circle outside each edge through the real `Space.Update()`
+    broadphase+resolution pipeline (`phy/inv_aabb_test.go`).
+  - Config: `cfg.Bounds{Width,Height}` + `GameConfig.Bounds` (keep `Radius`);
+    `core.Bounds(w,h)` option; `game.Bounds() (w,h)` + `model.Game.Bounds`
+    (`Radius()` marked Deprecated — still drives the circular `NewRandomPos`
+    spawn/gen paths until chunks 2/4). Wall swapped to
+    `NewInvAABB(VEC2F_ZERO, gc.Bounds.Width, gc.Bounds.Height)`.
+  - **§7.3 wire = REPLACE:** `Welcome.map_radius` retired → `map_width` +
+    `map_height` (float, ×`Points2px`). Regenerated Go + TS FlatBuffers (flatc
+    v24.3.25). Consumers migrated: `codec.Welcome`, `WelcomeMessage.ts`,
+    `Game.ts` backdrop, `EntityManager(width,height,…)`, `MiniMap.setup(w,h)`.
+  - Frontend backdrop: circle→rect (full-bounds `shallowWaterColor` + 240px-inset
+    `landColor` land rect — the water ring preserved rectangularly). **Camera
+    clamp rewritten circular→rectangular** (`camera/logic/Camera.ts`
+    `keepWithinMapBoundaries`: clamp camera centre to `worldHalf − screenHalf`,
+    lock to centre if the world is smaller than the viewport) — a circular clamp
+    would have fought the rectangular wall at the corners; dead `extraBoundary`
+    removed.
+  - **§7.5 bounds = [PLACEHOLDER] 60×40 server units** (7200×4800 px), chosen to
+    comfortably contain the still-circular radius-20 spawn area so nothing spawns
+    outside the wall during the temporary circle-spawn/rect-wall overlap. Set in
+    both `core/game.go` (default literal) and `cmd/berryhunterd/berryhunterd.go`.
+  - Expected-and-intended leftovers for later chunks: mobs still spawn in the old
+    radius-20 circle (chunk 4 replaces with authored spawn points); the 240px
+    blue water ring frames the green world (cosmetic; drop or restyle in the
+    terrain/content pass if desired).
 
 ### Chunk 2 — Zone file schema + loader; stop generating resources (backend)
 - **Goal:** the server loads `zone.json` (bounds + empty props/spawns ok) via
@@ -377,14 +418,19 @@ check, pause between chunks).
 - **§7.2 — Prop registry: new registry vs reuse item/resource defs.** Lean: a
   small dedicated prop registry (type → sprite + body), since props aren't items
   anymore. Decide in chunk 3.
-- **§7.3 — World-size on the wire.** New `Welcome`/`GameState` field for
-  rectangular bounds (width/height) vs reusing/retiring the radius field. Decide
-  in chunk 1.
+- **§7.3 — World-size on the wire. DECIDED 2026-07-08 → REPLACE.** `Welcome.map_radius`
+  is retired; new `map_width`/`map_height` floats (server units → px like the old
+  radius). Rationale: frontend + backend ship together and every consumer is rewritten
+  in this chunk anyway, so a wire-break costs nothing and keeps one honest source of
+  truth (an appended width/height leaves `map_radius` a meaningless field with no
+  remaining consumer). All `map_radius` consumers migrate: `WelcomeMessage.ts`,
+  `Game.ts` water-circle + MiniMap setup, `EntityManager` bounds.
 - **§7.4 — Editor load path.** Bundle `zone.json` like `ground-textures.json`
   (build-time) vs a dev-only GET endpoint. Lean: bundle first (zero new server
   surface). Decide in chunk 5.
-- **§7.5 — Placeholder numbers.** Bounds (120×80?), `respawnTicks`,
-  `respawnVariancePct`, prop body radii — all **[PLACEHOLDER]**, tuned in-game.
+- **§7.5 — Placeholder numbers.** Bounds set to **[PLACEHOLDER] 60×40 server
+  units** in chunk 1 (contains the radius-20 spawn circle); `respawnTicks`,
+  `respawnVariancePct`, prop body radii still **[PLACEHOLDER]**, tuned in-game.
 
 ---
 

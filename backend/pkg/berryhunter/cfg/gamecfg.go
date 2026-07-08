@@ -9,9 +9,18 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
+// Bounds is the rectangular world size in server units (world foundation
+// chunk 1). Radius is being phased out in favour of this; both coexist while
+// the circular spawn/gen paths migrate (chunks 2/4).
+type Bounds struct {
+	Width  float32
+	Height float32
+}
+
 type GameConfig struct {
 	Tokens           []string
 	Radius           float32
+	Bounds           Bounds
 	ItemRegistry     items.Registry
 	MobRegistry      mobs.Registry
 	SkillRegistry    skills.Registry
