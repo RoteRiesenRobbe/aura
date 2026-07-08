@@ -49,7 +49,6 @@ func (g *fakeGame) RemoveEntity(e ecs.BasicEntity) {
 }
 
 func (g *fakeGame) Ticks() uint64                               { return g.tick }
-func (g *fakeGame) Radius() float32                             { return 20 }
 func (g *fakeGame) Bounds() (float32, float32)                  { return 60, 40 }
 func (g *fakeGame) Config() *cfg.GameConfig                     { return g.cfg }
 func (g *fakeGame) Handler() http.Handler                       { panic("unused") }
@@ -150,7 +149,7 @@ func TestSpawnPoint_NoSpawnPointNoRespawn(t *testing.T) {
 	ms.Update(0)
 	require.Empty(t, g.added, "no points means no initial spawn")
 
-	orphan := mob.NewMob(testMobDef(), false, 0, 0)
+	orphan := mob.NewMob(testMobDef(), 0)
 	orphan.SetPosition(phy.Vec2f{X: 1, Y: 1})
 	ms.AddEntity(orphan) // routed in without an owning point
 

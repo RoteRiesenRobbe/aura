@@ -65,24 +65,6 @@ type Body struct {
 	AggroRadius    float32
 }
 
-type RespawnBehavior int
-
-const (
-	RespawnBehaviorRandomLocation RespawnBehavior = iota
-	RespawnBehaviorProcreation
-)
-
-var namesEnumRespawnBehavior = map[string]RespawnBehavior{
-	"RandomLocation": RespawnBehaviorRandomLocation,
-	"Procreation":    RespawnBehaviorProcreation,
-}
-
-type Generator struct {
-	Weight          int
-	Fixed           int
-	RespawnBehavior RespawnBehavior
-}
-
 type Drops []*items.ItemStack
 
 // MobSkill is one entry of a mob's skill loadout, resolved against the skill
@@ -101,15 +83,14 @@ type MobUnlock struct {
 }
 
 type MobDefinition struct {
-	ID        MobID
-	Name      string
-	Type      string
-	Factors   Factors
-	Drops     Drops
-	Body      Body
-	Generator Generator
-	Skills    []MobSkill
-	Unlocks   []MobUnlock
+	ID      MobID
+	Name    string
+	Type    string
+	Factors Factors
+	Drops   Drops
+	Body    Body
+	Skills  []MobSkill
+	Unlocks []MobUnlock
 }
 
 type mobDefinition struct {
@@ -139,12 +120,6 @@ type mobDefinition struct {
 		AggroRadius    float32 `json:"aggroRadius"`
 	} `json:"body"`
 
-	Generator struct {
-		Weight          int    `json:"weight"`
-		Fixed           int    `json:"fixed"`
-		RespawnBehavior string `json:"respawnBehavior"`
-	} `json:"generator"`
-
 	Skills []struct {
 		SkillName string `json:"skillName"`
 		Level     int    `json:"level"` // absent → 1
@@ -169,11 +144,6 @@ func parseMobDefinition(data []byte) (*mobDefinition, error) {
 }
 
 func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry) (*MobDefinition, error) {
-	respawnBehavior := RespawnBehaviorRandomLocation
-	if m.Generator.RespawnBehavior != "" {
-		respawnBehavior = namesEnumRespawnBehavior[m.Generator.RespawnBehavior]
-	}
-
 	// Mobs need an aggro territory; the former 4x-damage-radius fallback died
 	// with Body.DamageRadius (Phase 6.1), so the value is now required.
 	if m.Body.AggroRadius <= 0 {
@@ -214,11 +184,6 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 			CollisionLayer: m.Body.CollisionLayer,
 			CollisionMask:  m.Body.CollisionMask,
 			AggroRadius:    m.Body.AggroRadius,
-		},
-		Generator: Generator{
-			Weight:          m.Generator.Weight,
-			Fixed:           m.Generator.Fixed,
-			RespawnBehavior: respawnBehavior,
 		},
 	}
 

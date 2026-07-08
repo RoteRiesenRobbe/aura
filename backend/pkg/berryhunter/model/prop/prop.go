@@ -19,8 +19,7 @@ type Prop struct {
 var _ = model.PropEntity(&Prop{})
 
 // New builds a static prop entity at pos. blocksMovement puts the body on the
-// player/mob static-collision layers (the same bits solid resources use,
-// minus the generation-spacing LayerRessourceCollision nothing masks anymore);
+// player/mob static-collision layers (the same bits solid resources use);
 // a decorative prop keeps only the viewport layer, so it streams to clients
 // but never collides. blocksAura is stored inert until aura LoS (item 6).
 func New(entityType model.EntityType, pos phy.Vec2f, radius float32, blocksMovement, blocksAura bool) *Prop {

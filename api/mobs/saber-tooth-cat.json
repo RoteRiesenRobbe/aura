@@ -13,9 +13,6 @@
     "radius": 0.35,
     "aggroRadius": 4
   },
-  "generator": {
-    "weight": 15
-  },
   "skills": [
     { "skillName": "SaberToothCatAura", "level": 1 }
   ],

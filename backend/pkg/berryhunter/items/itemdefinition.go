@@ -61,34 +61,15 @@ type Body struct {
 	MaxRadius float32
 }
 
-type DepletionBehavior int
-
-const (
-	DepletionBehaviorNone DepletionBehavior = iota
-	DepletionBehaviorRespawn
-)
-
-var namesEnumDepletionBehavior = map[string]DepletionBehavior{
-	"None":    DepletionBehaviorNone,
-	"Respawn": DepletionBehaviorRespawn,
-}
-
-type Generator struct {
-	Weight      int
-	Fixed       int
-	OnDepletion DepletionBehavior
-}
-
 type ItemDefinition struct {
-	ID        ItemID
-	Type      ItemType
-	Name      string
-	Slot      EquipSlot
-	Factors   Factors
-	Resource  *Item
-	Recipe    *Recipe
-	Body      *Body
-	Generator *Generator
+	ID       ItemID
+	Type     ItemType
+	Name     string
+	Slot     EquipSlot
+	Factors  Factors
+	Resource *Item
+	Recipe   *Recipe
+	Body     *Body
 }
 
 type ByID []*ItemDefinition
@@ -143,12 +124,6 @@ type itemDefinition struct {
 		MinRadius float32 `json:"minRadius"`
 		MaxRadius float32 `json:"maxRadius"`
 	} `json:"body"`
-
-	Generator *struct {
-		Weight      int    `json:"weight"`
-		Fixed       int    `json:"fixed"`
-		OnDepletion string `json:"onDepletion"`
-	} `json:"generator"`
 }
 
 // parseItemDefinition parses a json string from a byte array into the
@@ -217,20 +192,6 @@ func (i *itemDefinition) mapToItemDefinition() (*ItemDefinition, error) {
 		recipe = &Recipe{craftTicks, materials, tools}
 	}
 
-	// parse body
-	var generator *Generator = nil
-	if i.Generator != nil {
-		depletionBehavior := DepletionBehaviorNone
-		if i.Generator.OnDepletion != "" {
-			depletionBehavior = namesEnumDepletionBehavior[i.Generator.OnDepletion]
-		}
-		generator = &Generator{
-			Weight:      i.Generator.Weight,
-			Fixed:       i.Generator.Fixed,
-			OnDepletion: depletionBehavior,
-		}
-	}
-
 	itemType, ok := ItemTypeMap[i.Type]
 	if !ok {
 		itemType = ItemTypeNone
@@ -260,9 +221,8 @@ func (i *itemDefinition) mapToItemDefinition() (*ItemDefinition, error) {
 			Capacity:             i.Factors.Capacity,
 			StartStock:           i.Factors.StartStock,
 		},
-		Resource:  res,
-		Recipe:    recipe,
-		Body:      body,
-		Generator: generator,
+		Resource: res,
+		Recipe:   recipe,
+		Body:     body,
 	}, nil
 }

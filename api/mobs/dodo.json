@@ -14,9 +14,6 @@
     "radius": 0.2,
     "aggroRadius": 2.4
   },
-  "generator": {
-    "weight": 100
-  },
   "skills": [
     {
       "skillName": "DodoAura",

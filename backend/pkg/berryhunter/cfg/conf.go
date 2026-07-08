@@ -21,7 +21,6 @@ type Config struct {
 		Zone                   string  `json:"zone"`
 		TotalDayCycleSeconds   uint64  `json:"totalDayCycleSeconds"`
 		DayTimeSeconds         uint64  `json:"dayTimeSeconds"`
-		InitialMobCount        int     `json:"initialMobCount"`
 		MobChaseIntoAuraMargin float32 `json:"mobChaseIntoAuraMargin"`
 		Player                 struct {
 			// constant for out-of-combat health regen
@@ -59,9 +58,6 @@ func ReadConfig(filename string) (*Config, error) {
 	}
 	if config.Game.DayTimeSeconds <= 0 {
 		config.Game.DayTimeSeconds = 400
-	}
-	if config.Game.InitialMobCount <= 0 {
-		config.Game.InitialMobCount = 70
 	}
 	// Validate
 	if config.Game.DayTimeSeconds > config.Game.TotalDayCycleSeconds {

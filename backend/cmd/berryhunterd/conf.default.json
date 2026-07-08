@@ -5,7 +5,6 @@
   },
   "game": {
     "heatFractionPerSecond": 0.04,
-    "initialMobCount": 50,
     "mobChaseIntoAuraMargin": 0.2,
     "player": {
       "healthGainTick": 0.00033,

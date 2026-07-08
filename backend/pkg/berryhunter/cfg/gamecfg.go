@@ -11,21 +11,19 @@ import (
 )
 
 // Bounds is the rectangular world size in server units (world foundation
-// chunk 1). Radius is being phased out in favour of this; both coexist while
-// the circular spawn/gen paths migrate (chunks 2/4).
+// chunk 1).
 type Bounds struct {
 	Width  float32
 	Height float32
 }
 
 type GameConfig struct {
-	Tokens           []string
-	Radius           float32
-	Bounds           Bounds
+	Tokens []string
+	Bounds Bounds
 
 	// ZoneName is the active zone's identity (its file stem), sent to the
 	// client in the Welcome so it renders the matching terrain (chunk 6).
-	ZoneName string
+	ZoneName         string
 	ItemRegistry     items.Registry
 	MobRegistry      mobs.Registry
 	SkillRegistry    skills.Registry
@@ -39,7 +37,6 @@ type GameConfig struct {
 
 	TotalDayCycleSeconds   uint64
 	DayTimeSeconds         uint64
-	InitialMobCount        int
 	MobChaseIntoAuraMargin float32
 
 	PlayerConfig PlayerConfig

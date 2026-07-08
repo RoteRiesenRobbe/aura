@@ -50,7 +50,7 @@ func testMobDefinition() *mobs.MobDefinition {
 }
 
 func newTestMob() *Mob {
-	return NewMob(testMobDefinition(), false, 0, 0)
+	return NewMob(testMobDefinition(), 0)
 }
 
 // fakeAuraPlayer implements the slices of model.PlayerEntity that the mob
@@ -93,7 +93,7 @@ func TestNewMob_MaxHealthVarianceRollsWithinBand(t *testing.T) {
 
 	seen := map[vitals.VitalSign]bool{}
 	for i := 0; i < 16; i++ {
-		m := NewMob(def, false, 0, 0)
+		m := NewMob(def, 0)
 		hp := m.MaxHealth()
 		if hp < 900 || hp > 1100 {
 			t.Fatalf("rolled maxHealth %d outside band [900, 1100]", hp)
@@ -109,7 +109,7 @@ func TestNewMob_ZeroVarianceIsExactBase(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.MaxHealth = 1000
 
-	m := NewMob(def, false, 0, 0)
+	m := NewMob(def, 0)
 	assert.Equal(t, vitals.VitalSign(1000), m.MaxHealth(),
 		"no variance → maxHealth is exactly the authored base")
 }
@@ -120,7 +120,7 @@ func TestNewMob_VarianceRollNeverBelowOneHP(t *testing.T) {
 	def.Factors.MaxHealthVariance = 0.9
 
 	for i := 0; i < 16; i++ {
-		m := NewMob(def, false, 0, 0)
+		m := NewMob(def, 0)
 		assert.GreaterOrEqual(t, m.MaxHealth(), vitals.VitalSign(1),
 			"a rolled HP pool must never reach 0 (min-1)")
 	}
@@ -141,7 +141,7 @@ func TestMob_PlayerTouches_UnresistedFullDamage(t *testing.T) {
 func TestMob_PlayerTouches_AppliesTagResistance(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0.5}
-	m := NewMob(def, false, 0, 0)
+	m := NewMob(def, 0)
 
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}})
 
@@ -152,7 +152,7 @@ func TestMob_PlayerTouches_AppliesTagResistance(t *testing.T) {
 func TestMob_PlayerTouches_ResistancesMultiplyAcrossTags(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0.5, "boss_x_lava": 0.5}
-	m := NewMob(def, false, 0, 0)
+	m := NewMob(def, 0)
 
 	// General + bespoke resistance compose multiplicatively: 10 × 0.5 × 0.5 = 2.5 → 3 (rounded).
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire", "boss_x_lava"}})
@@ -163,7 +163,7 @@ func TestMob_PlayerTouches_ResistancesMultiplyAcrossTags(t *testing.T) {
 func TestMob_PlayerTouches_ImmuneTagNoHit(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0}
-	m := NewMob(def, false, 0, 0)
+	m := NewMob(def, 0)
 
 	// Multiplier 0 = immune: no health loss, no floating number, no status effect
 	// (and therefore no hit VFX) — the hit simply does not exist for the target.
@@ -177,7 +177,7 @@ func TestMob_PlayerTouches_ImmuneTagNoHit(t *testing.T) {
 func TestMob_PlayerTouches_VulnerabilityTagAboveOne(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 1.5}
-	m := NewMob(def, false, 0, 0)
+	m := NewMob(def, 0)
 
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}})
 
@@ -188,7 +188,7 @@ func TestMob_PlayerTouches_VulnerabilityTagAboveOne(t *testing.T) {
 func TestMob_PlayerTouches_MinOneHP(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0.01}
-	m := NewMob(def, false, 0, 0)
+	m := NewMob(def, 0)
 
 	// A sub-1-HP hit still removes at least 1 HP (min-1 rule, item 11 Phase 1) —
 	// a real hit never rounds away to nothing, including heavily resisted ones.
@@ -271,7 +271,7 @@ func TestMob_Kill_GuaranteedUnlockGoesToAllRewardedPlayers(t *testing.T) {
 	unlockSkill := &skills.SkillDefinition{ID: 3, Name: "WildAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 	d := testMobDefinition()
 	d.Unlocks = []mobs.MobUnlock{{Skill: unlockSkill, Chance: 1.0}}
-	m := NewMob(d, false, 0, 0)
+	m := NewMob(d, 0)
 
 	damager := newFakeAuraPlayer()
 	healer := newFakeAuraPlayer()
@@ -384,7 +384,7 @@ func TestNewMob_AuraSensorWiring(t *testing.T) {
 func TestNewMob_NoSkills_InertSensor(t *testing.T) {
 	d := testMobDefinition()
 	d.Skills = nil
-	m := NewMob(d, false, 0, 0)
+	m := NewMob(d, 0)
 
 	assert.Equal(t, -1, m.SkillComponent().ActiveAuraSlot)
 	assert.InDelta(t, 0.0, m.AuraCollider().Radius, 1e-6)
@@ -461,7 +461,7 @@ func TestMob_RegeneratesOutOfCombat(t *testing.T) {
 func TestMob_ResistBuff_ComposesWithBaseAndExpires(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0.5}
-	m := NewMob(def, false, 0, 0)
+	m := NewMob(def, 0)
 
 	m.ApplyResist(40, []string{"fire"}, 0.5, 2)
 
@@ -481,6 +481,6 @@ func TestMob_ResistBuff_ComposesWithBaseAndExpires(t *testing.T) {
 func TestNewMob_SpawnsHostile(t *testing.T) {
 	// FactionHostile is not the zero value — a missed initialization would
 	// silently spawn player-aligned mobs (effect foundations Step 1).
-	m := NewMob(testMobDefinition(), false, 0, 0)
+	m := NewMob(testMobDefinition(), 0)
 	assert.Equal(t, model.FactionHostile, m.Faction())
 }

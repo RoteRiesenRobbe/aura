@@ -2,7 +2,6 @@ package sys
 
 import (
 	"log"
-	"math"
 	"math/rand"
 
 	"github.com/EngoEngine/ecs"
@@ -70,10 +69,15 @@ func (s *ConnectionStateSystem) AddPlayer(player model.PlayerEntity) {
 	s.names.add(player.Name())
 }
 
-func randomVectorInCirlce(rmax float32) phy.Vec2f {
-	r := rand.Float32() * rmax
-	a := rand.Float32() * 2 * math.Pi
-	return phy.NewPolarVec2f(r, a)
+// spawnAreaFactor keeps spawns off the border wall. Interim rule until zones
+// author explicit player spawn points.
+const spawnAreaFactor = 0.8
+
+func randomSpawnPosition(width, height float32) phy.Vec2f {
+	return phy.Vec2f{
+		X: (rand.Float32() - 0.5) * spawnAreaFactor * width,
+		Y: (rand.Float32() - 0.5) * spawnAreaFactor * height,
+	}
 }
 
 func (s *ConnectionStateSystem) Update(dt float32) {
@@ -101,9 +105,7 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 			}
 
 			// spawn the player at a random location
-			rmax := s.game.Radius() * 0.8
-			pos := randomVectorInCirlce(rmax)
-			p.SetPosition(pos)
+			p.SetPosition(randomSpawnPosition(s.game.Bounds()))
 
 			s.game.AddEntity(p)
 		}

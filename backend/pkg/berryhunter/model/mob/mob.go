@@ -5,7 +5,6 @@ import (
 	"math/rand"
 
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
-	"github.com/trichner/berryhunter/pkg/berryhunter/gen"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/constant"
@@ -24,7 +23,7 @@ var types = func() map[string]model.EntityType {
 	return t
 }()
 
-func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMargin float32) *Mob {
+func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32) *Mob {
 	entityType, ok := types[d.Name]
 	if !ok {
 		log.Fatalf("Mob type not found: %d/%s", d.ID, d.Name)
@@ -140,10 +139,6 @@ func NewMob(d *mobs.MobDefinition, rndPos bool, radius float32, chaseIntoAuraMar
 		m.chaseIntoAuraMargin = 0.05
 	}
 	m.Body.Shape().UserData = m
-	if rndPos {
-		m.SetPosition(gen.NewRandomPos(radius))
-		m.SetAngle(0)
-	}
 	return m
 }
 

@@ -8,20 +8,18 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/resource"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
-	"github.com/trichner/berryhunter/pkg/berryhunter/wrand"
 )
 
 var _ = model.Interacter(&resource.Resource{})
 
-func NewRandomEntityFrom(p phy.Vec2f, bodies []StaticEntityBody, rnd *rand.Rand) (model.ResourceEntity, error) {
-	choices := []wrand.Choice{}
-	for _, b := range bodies {
-		choices = append(choices, wrand.Choice{Weight: b.resourceItem.Generator.Weight, Choice: b})
-	}
+type StaticEntityBody struct {
+	entityType   model.EntityType
+	resourceName string
+	resourceItem *items.Item
+}
 
-	wc := wrand.NewWeightedChoice(choices)
-	selected := wc.Choose(rnd).(StaticEntityBody)
-	return NewStaticEntityWithBody(p, &selected, rnd)
+func NewStaticEntityBody(entityType model.EntityType, resourceName string, resourceItem *items.Item) *StaticEntityBody {
+	return &StaticEntityBody{entityType: entityType, resourceName: resourceName, resourceItem: resourceItem}
 }
 
 func NewStaticEntityWithBody(p phy.Vec2f, body *StaticEntityBody, rnd *rand.Rand) (model.ResourceEntity, error) {
@@ -38,9 +36,9 @@ func NewStaticEntityWithBody(p phy.Vec2f, body *StaticEntityBody, rnd *rand.Rand
 
 	ball := phy.NewCircle(p, radius)
 	if resourceItem.Body.Solid {
-		ball.Shape().Layer = int(model.LayerPlayerStaticCollision | model.LayerMobStaticCollision | model.LayerRessourceCollision | model.LayerViewportCollision)
+		ball.Shape().Layer = int(model.LayerPlayerStaticCollision | model.LayerMobStaticCollision | model.LayerViewportCollision)
 	} else {
-		ball.Shape().Layer = int(model.LayerRessourceCollision | model.LayerViewportCollision)
+		ball.Shape().Layer = int(model.LayerViewportCollision)
 	}
 
 	r, err := resource.NewResource(ball, splitRandom(rnd, p), resourceItem, body.entityType)

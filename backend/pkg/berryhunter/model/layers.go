@@ -10,7 +10,6 @@ const (
 
 	LayerActionCollision
 	LayerWeaponCollision
-	LayerRessourceCollision
 	LayerHeatCollision
 	LayerBorderCollision
 	LayerViewportCollision

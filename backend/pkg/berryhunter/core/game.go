@@ -44,7 +44,6 @@ type game struct {
 	welcomeMsg []byte
 
 	joinQueue chan model.Client
-	radius    float32
 
 	boundsWidth  float32
 	boundsHeight float32
@@ -55,10 +54,8 @@ var _ = model.Game(&game{})
 
 func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	gc := &cfg.GameConfig{
-		Radius: 20,
-		// [PLACEHOLDER] rectangular world; comfortably contains the radius-20
-		// spawn circle so nothing spawns outside the wall while the circular
-		// spawn paths migrate (chunks 2/4). Tuned in-game.
+		// [PLACEHOLDER] rectangular world size fallback; the authored zone's
+		// bounds override this via core.Bounds. Tuned in-game.
 		Bounds: cfg.Bounds{Width: 60, Height: 40},
 		Tokens: []string{},
 	}
@@ -77,7 +74,6 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 		mobRegistry:   gc.MobRegistry,
 		itemRegistry:  gc.ItemRegistry,
 		skillRegistry: gc.SkillRegistry,
-		radius:        gc.Radius,
 		boundsWidth:   gc.Bounds.Width,
 		boundsHeight:  gc.Bounds.Height,
 		config:        gc,
@@ -147,19 +143,12 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	d := sys.NewDecaySystem(g)
 	g.AddSystem(d)
 
-	r := sys.NewRespawnSystem(g)
-	g.AddSystem(r)
-
 	g.printSystems()
 	return g, nil
 }
 
 func (g *game) Ticks() uint64 {
 	return g.Tick
-}
-
-func (g *game) Radius() float32 {
-	return g.radius
 }
 
 func (g *game) Bounds() (width, height float32) {
@@ -233,8 +222,6 @@ func (g *game) AddEntity(e model.BasicEntity) {
 		g.addMobEntity(v)
 	case model.PlaceableResourceEntity:
 		g.addPlaceableResourceEntity(v)
-	case model.ResourceEntity:
-		g.addResourceEntity(v)
 	case model.PlaceableEntity:
 		g.addPlaceableEntity(v)
 	case model.Spectator:
@@ -314,33 +301,6 @@ func (g *game) addEntity(e model.Entity) {
 			s.AddStaticBody(e.Basic(), e.Bodies()[0])
 		case *NetSystem:
 			s.AddEntity(e)
-		}
-	}
-}
-
-func (g *game) addResourceEntity(e model.ResourceEntity) {
-	// Loop over all Systems
-	for _, system := range g.Systems() {
-		// Use a type-switch to figure out which System is which
-		switch s := system.(type) {
-
-		// Create a case for each System you want to use
-		case *sys.PhysicsSystem:
-			if e.Resource().Generator.OnDepletion == items.DepletionBehaviorRespawn {
-				s.AddEntity(e)
-			} else {
-				s.AddStaticBody(e.Basic(), e.Bodies()[0])
-			}
-		case *statuseffects.StatusEffectsSystem:
-			s.Add(e, e)
-		case *NetSystem:
-			s.AddEntity(e)
-		case *sys.UpdateSystem:
-			s.AddUpdateable(e)
-		case *sys.RespawnSystem:
-			if e.Resource().Generator.OnDepletion == items.DepletionBehaviorRespawn {
-				s.AddRespawnable(e)
-			}
 		}
 	}
 }

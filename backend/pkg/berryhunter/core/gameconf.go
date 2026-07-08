@@ -14,7 +14,6 @@ func Config(conf *cfg.Config) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.TotalDayCycleSeconds = conf.Game.TotalDayCycleSeconds
 		g.DayTimeSeconds = conf.Game.DayTimeSeconds
-		g.InitialMobCount = conf.Game.InitialMobCount
 		g.MobChaseIntoAuraMargin = conf.Game.MobChaseIntoAuraMargin
 
 		g.PlayerConfig.HealthGainTick = conf.Game.Player.HealthGainTick
@@ -41,9 +40,6 @@ func Config(conf *cfg.Config) Configuration {
 		}
 		if g.MobChaseIntoAuraMargin <= 0 {
 			g.MobChaseIntoAuraMargin = 0.2
-		}
-		if g.InitialMobCount <= 0 {
-			g.InitialMobCount = 50
 		}
 
 		return nil
@@ -82,13 +78,6 @@ func Recipes(r skills.RecipeRegistry) Configuration {
 func Tokens(t []string) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.Tokens = t
-		return nil
-	}
-}
-
-func Radius(r float32) Configuration {
-	return func(g *cfg.GameConfig) error {
-		g.Radius = r
 		return nil
 	}
 }

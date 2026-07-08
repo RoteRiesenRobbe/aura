@@ -663,7 +663,7 @@ func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
 			Level: 1,
 		}},
 	}
-	m := mob.NewMob(def, false, 0, 0)
+	m := mob.NewMob(def, 0)
 
 	target := &mobTouchRecorder{}
 	targetCircle := phy.NewCircle(phy.VEC2F_ZERO, 0.25)
@@ -900,7 +900,7 @@ func TestApplyDamageAura_VarianceComposesWithResistance(t *testing.T) {
 		},
 		Body: mobs.Body{Radius: 0.3, AggroRadius: 2.0},
 	}
-	m := mob.NewMob(def, false, 0, 0)
+	m := mob.NewMob(def, 0)
 
 	caster := newFakePlayer()
 	effect := damageEffect(1)

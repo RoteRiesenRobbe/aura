@@ -74,7 +74,6 @@ type ResourceEntity interface {
 	Entity
 	Interacter
 	StatusEntity
-	Respawnee
 
 	Update(dt float32)
 	Stock() *ResourceStock

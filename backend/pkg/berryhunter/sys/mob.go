@@ -124,7 +124,7 @@ func (n *MobSystem) rollDelay(p *spawnPoint) int {
 // registers it with the game. Each NewMob seeds its own entity-ID RNG, so HP
 // variance rolls per spawn (item 11 Phase 3).
 func (n *MobSystem) spawnAt(p *spawnPoint) {
-	m := mob.NewMob(p.def, false, n.game.Radius(), n.game.Config().MobChaseIntoAuraMargin)
+	m := mob.NewMob(p.def, n.game.Config().MobChaseIntoAuraMargin)
 	m.SetPosition(p.pos)
 	m.SetAngle(p.angle)
 	p.liveMobID = m.Basic().ID()

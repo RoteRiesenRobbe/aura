@@ -12,7 +12,6 @@ import (
 )
 
 var _ = model.ResourceEntity(&Resource{})
-var _ = model.Respawnee(&Resource{})
 
 type Resource struct {
 	model.BaseEntity
@@ -138,11 +137,4 @@ func (r *Resource) MobTouches(e model.MobEntity, factors mobs.Factors) {
 
 func (r *Resource) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	// Nothing yet
-}
-
-func (r *Resource) NeedsRespawn() bool {
-	return r.stock.Available == 0 && r.resource.Generator.OnDepletion == items.DepletionBehaviorRespawn
-}
-func (r *Resource) ToRespawn() model.ResourceEntity {
-	return r
 }

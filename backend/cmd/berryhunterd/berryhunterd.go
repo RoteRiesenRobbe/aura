@@ -65,9 +65,6 @@ func main() {
 	slog.Info("👮‍♀️ read tokens", slog.Int("token_count", len(tokens)))
 
 	// new game
-	// radius still drives the circular mob respawn paths in sys/mob.go +
-	// sys/respawn.go until chunk 4 replaces them with authored spawn points.
-	var radius float32 = 20
 	// For different seeds see:
 	// https://docs.google.com/spreadsheets/d/13EbpERJ05GpjUUXOp2zU4Od2FGqymeMV0F278_eBIcQ/edit#gid=0
 	var seed int64 = 0xDEADBEEF + 4
@@ -80,7 +77,6 @@ func main() {
 		core.MilestoneUnlocks(milestoneUnlocks),
 		core.Recipes(recipeRegistry),
 		core.Tokens(tokens),
-		core.Radius(radius),
 		core.Bounds(zone.Bounds.Width, zone.Bounds.Height),
 		core.ZoneName(zone.ID),
 		core.Spawns(zone.Spawns),
