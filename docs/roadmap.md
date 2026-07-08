@@ -69,21 +69,24 @@ food/tool items.
 ## 3. Accounts & persistence
 
 > **Sequenced after the content pass (see "Execution order").** The game proves
-> out session-based first; persistence + the account service are step 7, not a
+> out session-based first; persistence + the account service are step 8, not a
 > content prerequisite.
 
 - Current state: frontend `accounts` feature exists but is localStorage-only
   (player name, tutorial progress, settings) — its own comment says "as long as
-  accounts are not persisted in the backend". Join is token-based; the
-  chieftain service persists scoreboards (SQLite).
+  accounts are not persisted in the backend". Join is token-based. (The
+  chieftain scoreboard service used to be the only persistence; the scoreboard
+  was removed 2026-07-08 and chieftain is orphaned pending deletion — see
+  `plan-rebrand-cleanup.md`.)
 - Work: backend account identity + persisting spellbook / skill levels / slots /
   player level across sessions.
 - Depends on: skill-system Phases 3–7 defining *what* needs persisting.
 - **Decided: anonymous-first with upgrade path.** The server issues an account
   secret on first visit (stored in localStorage) — play without registration.
   Optional email/OAuth linking later secures the account across devices.
-- ⚑ Whether chieftain grows into the account service or a new service is
-  added.
+- **Decided (2026-07-08, `plan-rebrand-cleanup.md` §4 A.3):** chieftain does
+  NOT grow into the account service — its scoreboard-shaped code is deleted in
+  the rebrand sweep; the account service starts fresh.
 
 ## 4. World & zones
 
@@ -560,11 +563,19 @@ system ships blind.
    corridors built from props. No new zone-transition/sharding tech is
    scheduled before this step; if the content pass finds it needs separate
    Spaces after all, that's a scope change to surface, not to absorb silently.
-7. **Accounts & persistence** (item 3) **+ UI polish / avatar** (item 8) —
+7. **Rebrand to Aura & Berryhunter cleanup** (`plan-rebrand-cleanup.md`) —
+   dead-feature removal (rating popup, chieftain service, survival/item
+   scaffolding; the **scoreboard was pulled forward and removed 2026-07-08**),
+   then the structural rename in one atomic commit (Go module + `pkg/berryhunter`
+   dir + `berryhunterd` binary + `BerryhunterApi` FlatBuffers namespace) +
+   branding. Sits here because the content pass (step 6) has just replaced the
+   legacy mobs/sprites/enums ("rename once"), and everything must be final
+   before ops tooling (step 9) hardcodes names.
+8. **Accounts & persistence** (item 3) **+ UI polish / avatar** (item 8) —
    deliberately **after** content: the game proves out session-based first, then
-   we invest in persistence, the anonymous-first account service, the styling
-   pass, and avatar selection.
-8. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
+   we invest in persistence, the anonymous-first account service (built fresh —
+   chieftain deleted in step 7), the styling pass, and avatar selection.
+9. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
    DB / hosting decisions (`research-v1-readiness.md`).
 
 > **Superseded framing:** earlier drafts called item 12 "the only remaining

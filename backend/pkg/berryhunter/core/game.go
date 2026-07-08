@@ -149,9 +149,6 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	r := sys.NewRespawnSystem(g)
 	g.AddSystem(r)
 
-	sb := sys.NewScoreboardSystem(g)
-	g.AddSystem(sb)
-
 	g.printSystems()
 	return g, nil
 }
@@ -258,8 +255,6 @@ func (g *game) addSpectator(e model.Spectator) {
 		case *NetSystem:
 			s.AddSpectator(e)
 		case *sys.ConnectionStateSystem:
-			s.AddSpectator(e)
-		case *sys.ScoreboardSystem:
 			s.AddSpectator(e)
 		}
 	}
@@ -393,8 +388,6 @@ func (g *game) addPlayer(p model.PlayerEntity) {
 		case *chat.ChatSystem:
 			s.AddPlayer(p)
 		case *sys.ConnectionStateSystem:
-			s.AddPlayer(p)
-		case *sys.ScoreboardSystem:
 			s.AddPlayer(p)
 		case *sys.SkillSystem:
 			s.AddEntity(p)

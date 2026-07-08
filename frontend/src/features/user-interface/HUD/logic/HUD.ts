@@ -110,10 +110,6 @@ export function getChat(): HTMLElement {
     return document.getElementById('chat');
 }
 
-export function getScoreboard(): HTMLElement {
-    return document.getElementById('scoreboard');
-}
-
 function setupSpellbook() {
     spellbookListElement = document.getElementById('spellbookList');
     skillPointsBadgeElement = document.getElementById('skillPointsBadge');

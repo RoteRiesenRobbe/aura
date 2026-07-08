@@ -3,9 +3,6 @@
     "port": 80,
     "path": "/game"
   },
-  "chieftain": {
-    "addr":"chieftaind:3443"
-  },
   "game": {
     "heatFractionPerSecond": 0.04,
     "totalDayCycleSeconds": 600,

@@ -38,8 +38,7 @@ type GameConfig struct {
 	InitialMobCount        int
 	MobChaseIntoAuraMargin float32
 
-	PlayerConfig    PlayerConfig
-	ChieftainConfig *ChieftainConfig
+	PlayerConfig PlayerConfig
 }
 
 func (g *GameConfig) LogValue() slog.Value {
@@ -57,13 +56,6 @@ func (g *GameConfig) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("raw", asMap),
 	)
-}
-
-type ChieftainConfig struct {
-	Addr           string
-	CaCertFile     string
-	ClientCertFile string
-	ClientKeyFile  string
 }
 
 type PlayerConfig struct {

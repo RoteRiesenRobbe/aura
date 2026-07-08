@@ -13,8 +13,7 @@ const (
 	ServerMessageBodyAccept        ServerMessageBody = 3
 	ServerMessageBodyObituary      ServerMessageBody = 4
 	ServerMessageBodyEntityMessage ServerMessageBody = 5
-	ServerMessageBodyScoreboard    ServerMessageBody = 6
-	ServerMessageBodyPong          ServerMessageBody = 7
+	ServerMessageBodyPong          ServerMessageBody = 6
 )
 
 var EnumNamesServerMessageBody = map[ServerMessageBody]string{
@@ -24,7 +23,6 @@ var EnumNamesServerMessageBody = map[ServerMessageBody]string{
 	ServerMessageBodyAccept:        "Accept",
 	ServerMessageBodyObituary:      "Obituary",
 	ServerMessageBodyEntityMessage: "EntityMessage",
-	ServerMessageBodyScoreboard:    "Scoreboard",
 	ServerMessageBodyPong:          "Pong",
 }
 
@@ -35,7 +33,6 @@ var EnumValuesServerMessageBody = map[string]ServerMessageBody{
 	"Accept":        ServerMessageBodyAccept,
 	"Obituary":      ServerMessageBodyObituary,
 	"EntityMessage": ServerMessageBodyEntityMessage,
-	"Scoreboard":    ServerMessageBodyScoreboard,
 	"Pong":          ServerMessageBodyPong,
 }
 

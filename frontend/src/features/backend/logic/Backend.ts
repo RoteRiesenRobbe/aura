@@ -5,9 +5,7 @@ import * as SnapshotFactory from './SnapshotFactory';
 import {Snapshot} from './SnapshotFactory';
 import {GameStateMessage} from './messages/incoming/GameStateMessage';
 import {WelcomeMessage} from './messages/incoming/WelcomeMessage';
-import {ScoreboardMessage} from './messages/incoming/ScoreboardMessage';
 import * as Chat from '../../chat/logic/Chat';
-import * as Scoreboard from '../../scoreboard/logic/Scoreboard';
 import * as DayCycle from '../../day-cycle/logic/DayCycle';
 import * as StartScreen from '../../user-interface/start-screen/logic/StartScreen';
 import * as EndScreen from '../../user-interface/end-screen/logic/EndScreen';
@@ -212,10 +210,6 @@ export class Backend implements IBackend {
                 GameLateSetupEvent.subscribe(() => {
                     this.receiveSnapshot(SnapshotFactory.newSnapshot(this.state, gameState));
                 });
-                break;
-            case BerryhunterApi.ServerMessageBody.Scoreboard:
-                let scoreboardMessage = new ScoreboardMessage(serverMessage.body(new BerryhunterApi.Scoreboard()));
-                Scoreboard.updateFromBackend(scoreboardMessage);
                 break;
             case BerryhunterApi.ServerMessageBody.Pong:
                 PongReceivedEvent.trigger();

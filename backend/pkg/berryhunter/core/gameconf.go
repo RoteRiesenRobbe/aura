@@ -46,15 +46,6 @@ func Config(conf *cfg.Config) Configuration {
 			g.InitialMobCount = 50
 		}
 
-		if conf.Chieftain.Addr != "" {
-			ctn := &cfg.ChieftainConfig{}
-			ctn.Addr = conf.Chieftain.Addr
-			ctn.CaCertFile = conf.Chieftain.CaCertFile
-			ctn.ClientCertFile = conf.Chieftain.ClientCertFile
-			ctn.ClientKeyFile = conf.Chieftain.ClientKeyFile
-			g.ChieftainConfig = ctn
-		}
-
 		return nil
 	}
 }

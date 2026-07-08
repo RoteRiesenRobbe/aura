@@ -43,21 +43,14 @@ function getUrl(protocol: string, path: string) {
 }
 
 let _gameServer: string;
-let _database: string;
 
 if (QueryParameters.get().has(Constants.MODE_PARAMETERS.NO_DOCKER)) {
     _gameServer = 'ws://localhost:2000/game';
-    _database = '/chieftain';
 } else {
     _gameServer = getUrl('ws', 'game');
-    _database = getUrl('http', 'chieftain');
 }
-QueryParameters.get().tryGetString(Constants.VALUE_PARAMETERS.DATABASE_URL, (dbUrl) => {
-    _database = dbUrl;
-});
 QueryParameters.get().tryGetString(Constants.VALUE_PARAMETERS.WEBSOCKET_URL, (wsUrl) => {
     _gameServer = wsUrl;
 });
 
 export const gameServer = _gameServer;
-export const database = _database;

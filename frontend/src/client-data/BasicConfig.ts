@@ -25,7 +25,6 @@ export const BasicConfig = {
     },
 
     VALUE_PARAMETERS: <{[key: string]: string}> {
-        DATABASE_URL: 'dbUrl',
         WEBSOCKET_URL: 'wsUrl',
         TOKEN: 'token',
         START_COMMANDS: 'start-cmds',

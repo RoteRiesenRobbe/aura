@@ -13,15 +13,8 @@ type Server struct {
 }
 
 type Config struct {
-	Server    Server `json:"server"`
-	Chieftain struct {
-		Addr string `json:"addr"`
-
-		CaCertFile     string `json:"caCertFile"`
-		ClientCertFile string `json:"clientCertFile"`
-		ClientKeyFile  string `json:"clientKeyFile"`
-	} `json:"chieftain,omitempty"`
-	Game struct {
+	Server Server `json:"server"`
+	Game   struct {
 		TotalDayCycleSeconds   uint64  `json:"totalDayCycleSeconds"`
 		DayTimeSeconds         uint64  `json:"dayTimeSeconds"`
 		InitialMobCount        int     `json:"initialMobCount"`

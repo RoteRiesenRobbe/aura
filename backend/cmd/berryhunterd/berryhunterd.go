@@ -22,11 +22,10 @@ import (
 func main() {
 	logging.SetupLogging()
 
-	var dev, help, chieftain bool
+	var dev, help bool
 	var contentDir string
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
-	flag.BoolVar(&chieftain, "chieftain", false, "Also boot embedded chieftain")
 	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
 	flag.Parse()
 	if help {
@@ -59,34 +58,6 @@ func main() {
 
 	tokens := loadOrCreateTokens("./tokens.list")
 	slog.Info("👮‍♀️ read tokens", slog.Int("token_count", len(tokens)))
-
-	// boot embedded chieftain
-	var err error
-	var chieftainHandler http.Handler
-	if chieftain {
-		port := 3443
-		addr := fmt.Sprintf("127.0.0.1:%d", port)
-		config.Chieftain.Addr = addr
-		slog.Info("booting embedded chieftain", slog.String("server_addr", addr))
-
-		dir, err := determineStateDir()
-		if err != nil {
-			slog.Error("cannot determine state directory for chieftain", slog.Any("error", err))
-			panic(err)
-		}
-		chieftainServer, err := bootChieftain(dir, port)
-		if err != nil {
-			slog.Error("failed to boot HTTP server", slog.Any("error", err))
-			panic(err)
-		}
-		defer chieftainServer.Close()
-
-		config.Chieftain.CaCertFile = chieftainServer.Certificates.CACertFile
-		config.Chieftain.ClientCertFile = chieftainServer.Certificates.ClientCertFile
-		config.Chieftain.ClientKeyFile = chieftainServer.Certificates.ClientKeyFile
-
-		chieftainHandler = chieftainServer.ScoreHandler
-	}
 
 	// new game
 	// radius still drives the circular mob respawn paths in sys/mob.go +
@@ -127,7 +98,7 @@ func main() {
 
 	//---- set up server
 
-	if err := bootHttp(g.Handler(), chieftainHandler, config.Server, dev); err != nil {
+	if err := bootHttp(g.Handler(), config.Server, dev); err != nil {
 		slog.Error("failed to boot HTTP server", slog.Any("error", err))
 		panic(err)
 	}
@@ -135,16 +106,16 @@ func main() {
 	g.Loop()
 }
 
-func bootHttp(gameHandler, chieftainHandler http.Handler, cfg cfg.Server, dev bool) error {
+func bootHttp(gameHandler http.Handler, cfg cfg.Server, dev bool) error {
 	if cfg.TlsHost != "" {
-		return bootTlsServer(gameHandler, chieftainHandler, cfg, dev)
+		return bootTlsServer(gameHandler, cfg, dev)
 	} else {
-		bootServer(gameHandler, chieftainHandler, cfg, dev)
+		bootServer(gameHandler, cfg, dev)
 	}
 	return nil
 }
 
-func bootTlsServer(gameHandler, chieftainHandler http.Handler, cfg cfg.Server, dev bool) error {
+func bootTlsServer(gameHandler http.Handler, cfg cfg.Server, dev bool) error {
 	host := cfg.TlsHost
 
 	port := cfg.Port
@@ -175,12 +146,6 @@ func bootTlsServer(gameHandler, chieftainHandler http.Handler, cfg cfg.Server, d
 	mux := http.NewServeMux()
 
 	mux.Handle("/game", gameHandler)
-
-	const chieftainPath = "/chieftain"
-	if chieftainHandler != nil {
-		slog.Info("Serving chieftain", slog.String("addr", fmt.Sprintf(":%d/%s", port, chieftainPath)))
-		mux.Handle(chieftainPath+"/", http.StripPrefix(chieftainPath, chieftainHandler))
-	}
 
 	if dev {
 		slog.Info("🔥 dev server running", slog.String("url", fmt.Sprintf("https://%s?wsUrl=wss://%s/game", host, host)))
@@ -218,17 +183,7 @@ func determineCacheDir() (string, error) {
 	return os.UserCacheDir()
 }
 
-func determineStateDir() (string, error) {
-	// explicit systemd state directory
-	stateDir := os.Getenv("STATE_DIRECTORY")
-	if stateDir != "" {
-		return stateDir, nil
-	}
-
-	return os.UserCacheDir()
-}
-
-func bootServer(gameHandler, chieftainHandler http.Handler, cfg cfg.Server, dev bool) {
+func bootServer(gameHandler http.Handler, cfg cfg.Server, dev bool) {
 	port := cfg.Port
 
 	slog.Info("🦄 Booting game-server", slog.String("addr", fmt.Sprintf(":%d/game", port)))
@@ -237,18 +192,8 @@ func bootServer(gameHandler, chieftainHandler http.Handler, cfg cfg.Server, dev 
 	mux := http.NewServeMux()
 	mux.Handle("/game", gameHandler)
 
-	const chieftainPath = "/chieftain"
-	if chieftainHandler != nil {
-		slog.Info("Serving chieftain", slog.String("addr", fmt.Sprintf(":%d/%s", port, chieftainPath)))
-		mux.Handle(chieftainPath+"/", http.StripPrefix(chieftainPath, chieftainHandler))
-	}
-
 	if dev {
-		dbUrl := ""
-		if chieftainHandler != nil {
-			dbUrl = fmt.Sprintf("&dbUrl=http://localhost:%d%s", port, chieftainPath)
-		}
-		slog.Info("🔥 dev server running", slog.String("url", fmt.Sprintf("http://localhost:%d?wsUrl=ws://localhost:%d/game%s", port, port, dbUrl)))
+		slog.Info("🔥 dev server running", slog.String("url", fmt.Sprintf("http://localhost:%d?wsUrl=ws://localhost:%d/game", port, port)))
 		mux.Handle("/", frontendHandler(cfg.FrontendDir))
 	} else {
 		// 'ping' endpoint for liveness probe
