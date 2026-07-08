@@ -37,10 +37,18 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, recipeRegistry.All())
 
-	zone, err := world.LoadZoneFS(content.zones, mobsRegistry)
+	propsRegistry, err := world.PropRegistryFromFS(content.props)
+	require.NoError(t, err)
+	assert.NotEmpty(t, propsRegistry.Props())
+
+	zone, err := world.LoadZoneFS(content.zones, mobsRegistry, propsRegistry)
 	require.NoError(t, err)
 	assert.Positive(t, zone.Bounds.Width)
 	assert.Positive(t, zone.Bounds.Height)
+	// every zone prop resolved against the prop registry at load time
+	for _, p := range zone.Props {
+		assert.NotNil(t, p.Def)
+	}
 }
 
 // TestDiskContent_MissingSubdirFails pins the loud-failure contract: a

@@ -45,6 +45,36 @@ func (r *fakeMobRegistry) Mobs() []*mobs.MobDefinition {
 	return out
 }
 
+// fakePropRegistry resolves only the names it was given, so an unknown prop
+// type surfaces as a load error.
+type fakePropRegistry struct {
+	byName map[string]*PropDefinition
+}
+
+func newFakePropRegistry(names ...string) *fakePropRegistry {
+	r := &fakePropRegistry{byName: map[string]*PropDefinition{}}
+	for _, n := range names {
+		r.byName[n] = &PropDefinition{Name: n, Body: PropBody{Radius: 0.5}}
+	}
+	return r
+}
+
+func (r *fakePropRegistry) GetByName(name string) (*PropDefinition, error) {
+	p, ok := r.byName[name]
+	if !ok {
+		return nil, fmt.Errorf("prop %q not found", name)
+	}
+	return p, nil
+}
+
+func (r *fakePropRegistry) Props() []*PropDefinition {
+	out := make([]*PropDefinition, 0, len(r.byName))
+	for _, p := range r.byName {
+		out = append(out, p)
+	}
+	return out
+}
+
 func mapFS(json string) fstest.MapFS {
 	return fstest.MapFS{"zone.json": {Data: []byte(json)}}
 }
@@ -63,7 +93,7 @@ func TestZone_LoadsValid(t *testing.T) {
 		]
 	}`
 
-	z, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry("Dodo"))
+	z, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry("Dodo"), newFakePropRegistry("Rock"))
 	require.NoError(t, err)
 
 	assert.Equal(t, "Scaffold", z.Name)
@@ -72,6 +102,9 @@ func TestZone_LoadsValid(t *testing.T) {
 	require.Len(t, z.Props, 1)
 	assert.Equal(t, "Rock", z.Props[0].Type)
 	assert.True(t, z.Props[0].BlocksMovement)
+	// prop type names are resolved at load time
+	require.NotNil(t, z.Props[0].Def)
+	assert.Equal(t, "Rock", z.Props[0].Def.Name)
 	require.Len(t, z.Spawns, 1)
 	// spawn mob names are resolved at load time
 	require.NotNil(t, z.Spawns[0].Def)
@@ -81,7 +114,7 @@ func TestZone_LoadsValid(t *testing.T) {
 func TestZone_LoadsEmptyPropsAndSpawns(t *testing.T) {
 	const doc = `{ "name": "Empty", "bounds": { "width": 60, "height": 40 } }`
 
-	z, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry())
+	z, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	assert.Empty(t, z.Props)
 	assert.Empty(t, z.Spawns)
@@ -90,7 +123,7 @@ func TestZone_LoadsEmptyPropsAndSpawns(t *testing.T) {
 func TestZone_RejectsUnknownKey(t *testing.T) {
 	const doc = `{ "name": "X", "bounds": { "width": 60, "height": 40 }, "radius": 20 }`
 
-	_, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry())
+	_, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "radius")
 }
@@ -101,7 +134,7 @@ func TestZone_RejectsNonPositiveBounds(t *testing.T) {
 		`{ "name": "X", "bounds": { "width": 60, "height": -1 } }`,
 		`{ "name": "X" }`,
 	} {
-		_, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry())
+		_, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry(), newFakePropRegistry())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "bounds")
 	}
@@ -110,7 +143,7 @@ func TestZone_RejectsNonPositiveBounds(t *testing.T) {
 func TestZone_RejectsMissingName(t *testing.T) {
 	const doc = `{ "bounds": { "width": 60, "height": 40 } }`
 
-	_, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry())
+	_, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "name")
 }
@@ -121,7 +154,18 @@ func TestZone_RejectsUnknownSpawnMob(t *testing.T) {
 		"spawns": [ { "mob": "Nonexistent", "x": 0, "y": 0 } ]
 	}`
 
-	_, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry("Dodo"))
+	_, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry("Dodo"), newFakePropRegistry("Rock"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Nonexistent")
+}
+
+func TestZone_RejectsUnknownPropType(t *testing.T) {
+	const doc = `{
+		"name": "X", "bounds": { "width": 60, "height": 40 },
+		"props": [ { "type": "Nonexistent", "x": 0, "y": 0 } ]
+	}`
+
+	_, err := LoadZoneFS(mapFS(doc), newFakeMobRegistry(), newFakePropRegistry("Rock"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Nonexistent")
 }
@@ -131,13 +175,13 @@ func TestZone_RejectsMultipleZones(t *testing.T) {
 		"a.json": {Data: []byte(`{ "name": "A", "bounds": { "width": 60, "height": 40 } }`)},
 		"b.json": {Data: []byte(`{ "name": "B", "bounds": { "width": 60, "height": 40 } }`)},
 	}
-	_, err := LoadZoneFS(fsys, newFakeMobRegistry())
+	_, err := LoadZoneFS(fsys, newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "multiple zone")
 }
 
 func TestZone_RejectsNoZone(t *testing.T) {
-	_, err := LoadZoneFS(fstest.MapFS{}, newFakeMobRegistry())
+	_, err := LoadZoneFS(fstest.MapFS{}, newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no zone file")
 }

@@ -405,7 +405,7 @@ check, pause between chunks).
     bounded empty rectangle until chunk 3 (props) + chunk 4 (spawn points). The
     branch stays **uncommitted** until the world is playable again (mobs, chunk 4).
 
-### Chunk 3 — Props as static entities (backend + minimal wire)
+### Chunk 3 — Props as static entities (backend + minimal wire) — ✅ DONE + verified in-game 2026-07-08
 - **Goal:** authored props spawn, collide (`blocksMovement`), render, and stream.
 - **Do:** prop registry (type → sprite + body); build prop entities from
   `zone.props` reusing `resource_entity.go` plumbing minus harvest; occluder
@@ -414,6 +414,65 @@ check, pause between chunks).
 - **Tests:** `TestZone_PropsBecomeCollidableEntities`,
   `TestProp_BlocksMovementFlagSetsBodyLayer`, a non-colliding decoration case.
 - **Gotchas:** #6, EntityType/wire coverage.
+- **Record (2026-07-08, full backend suite green (28 pkgs), embedded +
+  `-content ../api` boot-verified — 2 prop defs, zone loads 5 props/7 spawns
+  both modes; **verified in-game 2026-07-08** — props render at authored
+  spots, blockers stop movement, the decorative rock walks through):**
+  - **§7.2 DECIDED → dedicated prop registry as a JSON content dir**
+    (`api/props/*.json`, mirroring mobs): `world.PropDefinition` (name →
+    `entityType` + `body.radius`) + `world.PropRegistryFromFS` in
+    `world/props.go`. Hard-fails by name: unknown JSON keys
+    (`DisallowUnknownFields`), empty name, unknown `entityType`, non-positive
+    radius, duplicate prop names. `entityType` is a **name resolved against the
+    FlatBuffers enum** (`BerryhunterApi.EnumValuesEntityType`); the definition
+    stores the FlatBuffers type because `world` can't import `model`
+    (`model → cfg → world` would cycle) — the boot seam converts, like `gen`'s
+    tables always did.
+  - **Prop entity = new lean type, NOT `resource.Resource`** (decision B's
+    "new entity type only if reuse fights us" clause triggered: reuse would
+    need a synthetic `items.Item`, its `Solid` flag is def-level while
+    `blocksMovement` is per-instance, stock/replenish semantics are dead
+    weight, and `blocksAura` has no home). `model/prop.Prop` =
+    `model.BaseEntity` + `blocksAura` field; `prop.New(entityType, pos, radius,
+    blocksMovement, blocksAura)` sets `Shape().UserData` (viewport streaming)
+    and layers: blocking → `PlayerStatic|MobStatic|Viewport` (the solid-resource
+    bits minus the generation-spacing `LayerRessourceCollision` nothing masks
+    anymore), decorative → `Viewport` only (streams, never collides). New
+    `model.PropEntity` interface (`Entity` + `BlocksAura()`).
+  - **Routing needed zero `core/game.go` changes** — props fall through
+    `AddEntity`'s existing `case model.Entity` → `addEntity` (PhysicsSystem
+    `AddStaticBody` + NetSystem). No respawn/update/status/decay systems
+    involved; `sys/respawn.go` never sees props.
+  - **Wire + frontend: zero changes.** New codec case `model.PropEntity` →
+    `PropEntityFlatbufMarshal` rides the existing `Resource` table with
+    **capacity=1/stock=1** (the client's resource classes scale sprites by
+    stock/capacity, so 1/1 renders full size) and an empty status-effects
+    vector. Scaffold prop types map onto existing EntityTypes
+    (**Rock→Stone, Tree→RoundTree**), so the frontend's `gameObjectClasses`
+    array already covers them; dedicated prop art/EntityTypes are content work
+    (the known 5-file path: server.fbs + regen, class, `gameObjectClasses`,
+    `Graphics.ts`, SVG).
+  - **Rotation deferred:** parsed + stored on `world.Prop`, but the `Resource`
+    wire table has no rotation field and circle props don't need one —
+    revisit in chunk 5/6 if the editor places rotated props.
+  - **Wiring:** `zone.resolve` binds `Prop.Def` (unknown type fails at boot);
+    `LoadZoneFS(fsys, mobs.Registry, world.PropRegistry)`; `contentSources.props`
+    (embedded `pkg/api/props` + disk `sub("props")`, missing subdir hard-fails);
+    `loadProps` boot-log line; `Makefile cp-defs` copies `../api/props`;
+    `berryhunterd.go` places props once after `NewGameWith` via
+    `g.AddEntity(prop.New(...))`.
+  - **Content [PLACEHOLDER]:** `api/props/rock.json` (Stone, r 0.5) +
+    `tree.json` (RoundTree, r 1.0); `api/zones/zone.json` authors **5 props**
+    near the origin — 2 blocking Trees, 2 blocking Rocks, 1 **decorative**
+    walk-through Rock at (2, 5) — to exercise both layer paths in-game.
+  - **Pins:** `world/props_test.go` (valid load, unknown key/entityType/name,
+    non-positive radius, duplicate name); `zone_test.go` prop resolution +
+    `TestZone_RejectsUnknownPropType`; `model/prop/prop_test.go` — layer flags
+    per occluder flag, UserData, and **end-to-end through the real
+    `Space.Update()`**: a player-masked circle overlapping a blocking prop is
+    pushed out, a decorative prop leaves it unmoved;
+    `TestDiskContent_RepoApiLoadsEndToEnd` extended (props registry + every
+    zone prop resolved).
 
 ### Chunk 4 — Spawn-point system (backend) — ✅ DONE + verified in-game + committed 2026-07-08
 - **Goal:** mobs spawn at authored points and respawn at the same spot on a
@@ -501,9 +560,13 @@ check, pause between chunks).
   system is free-form and already looks like terrain. Lean: **keep free-form**
   (KISS; satisfies "authored floor"). Decide before chunk 6. *(This softens the
   "tile-based" choice into "authored textured floor" — confirm that's acceptable.)*
-- **§7.2 — Prop registry: new registry vs reuse item/resource defs.** Lean: a
-  small dedicated prop registry (type → sprite + body), since props aren't items
-  anymore. Decide in chunk 3.
+- **§7.2 — Prop registry. DECIDED 2026-07-08 → dedicated registry as JSON
+  content** (`api/props/*.json` → `world.PropRegistryFromFS`), not item/resource
+  defs — props aren't items. The prop entity is likewise a new lean
+  `model/prop.Prop`, not a reused `resource.Resource` (decision B's escape
+  hatch: reuse fights us — synthetic `items.Item`, def-level `Solid` vs
+  per-instance `blocksMovement`, dead stock semantics, no home for
+  `blocksAura`). See the chunk 3 record.
 - **§7.3 — World-size on the wire. DECIDED 2026-07-08 → REPLACE.** `Welcome.map_radius`
   is retired; new `map_width`/`map_height` floats (server units → px like the old
   radius). Rationale: frontend + backend ship together and every consumer is rewritten

@@ -2,10 +2,9 @@
 // the hand-authored zone that replaces the old procedural resource/mob
 // generation (world foundation, plan-world-zones.md).
 //
-// Chunk 2 loads and validates the zone file and applies its bounds. Props and
-// spawns are parsed and (for spawns) name-resolved, but not yet turned into
-// live entities — props become collidable entities in chunk 3, spawns drive the
-// spawn-point system in chunk 4.
+// Chunk 2 loads and validates the zone file and applies its bounds; chunk 3
+// resolves props against the prop registry (props.go) so they can be placed as
+// static entities at boot; spawns drive the spawn-point system (chunk 4).
 package world
 
 import (
@@ -25,9 +24,12 @@ type Bounds struct {
 	Height float32 `json:"height"`
 }
 
-// Prop is a hand-placed static object. Occluder flags are carried now;
-// blocksMovement goes live in chunk 3, blocksAura stays inert until item 6.
-// The type is resolved against the prop registry in chunk 3, not here.
+// Prop is a hand-placed static object. blocksMovement puts the body on the
+// static-collision layers; blocksAura is carried but stays inert until item 6.
+// Rotation is parsed and stored, but not yet rendered — the Resource wire
+// table has no rotation field and circle-bodied props don't need one yet
+// (revisit when the editor places rotated props, chunk 5/6). Def is resolved
+// at load time so an unknown prop type fails loudly at boot.
 type Prop struct {
 	Type           string  `json:"type"`
 	X              float32 `json:"x"`
@@ -35,6 +37,9 @@ type Prop struct {
 	Rotation       float32 `json:"rotation"`
 	BlocksMovement bool    `json:"blocksMovement"`
 	BlocksAura     bool    `json:"blocksAura"`
+
+	// Def is the prop definition resolved from Type; not part of the JSON.
+	Def *PropDefinition `json:"-"`
 }
 
 // Spawn is an authored mob spawn point. The mob respawns at the same spot after
@@ -61,11 +66,12 @@ type Zone struct {
 }
 
 // LoadZoneFS walks fileSystem for a single .json zone file, parses, validates
-// and resolves spawn mob names against mr. Zones are curated content, so every
-// anomaly aborts at boot (mirrors RecipesFromFS): malformed or unknown-key
-// JSON, non-positive bounds, empty name, an unknown spawn mob, zero zone files,
-// or more than one (multiple zones are not supported yet — plan §1.2).
-func LoadZoneFS(fileSystem fs.FS, mr mobs.Registry) (*Zone, error) {
+// and resolves spawn mob names against mr and prop type names against pr.
+// Zones are curated content, so every anomaly aborts at boot (mirrors
+// RecipesFromFS): malformed or unknown-key JSON, non-positive bounds, empty
+// name, an unknown spawn mob, an unknown prop type, zero zone files, or more
+// than one (multiple zones are not supported yet — plan §1.2).
+func LoadZoneFS(fileSystem fs.FS, mr mobs.Registry, pr PropRegistry) (*Zone, error) {
 	var found *Zone
 	var foundPath string
 
@@ -88,7 +94,7 @@ func LoadZoneFS(fileSystem fs.FS, mr mobs.Registry) (*Zone, error) {
 		if err != nil {
 			return fmt.Errorf("zone %q: %w", path, err)
 		}
-		if err := z.resolve(mr); err != nil {
+		if err := z.resolve(mr, pr); err != nil {
 			return fmt.Errorf("zone %q: %w", path, err)
 		}
 		found, foundPath = z, path
@@ -129,9 +135,9 @@ func (z *Zone) validate() error {
 	return nil
 }
 
-// resolve binds each spawn's mob name to its definition. Prop types are
-// resolved later (chunk 3), when the prop registry exists.
-func (z *Zone) resolve(mr mobs.Registry) error {
+// resolve binds each spawn's mob name and each prop's type name to their
+// definitions.
+func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 	for i := range z.Spawns {
 		s := &z.Spawns[i]
 		def, err := mr.GetByName(s.Mob)
@@ -139,6 +145,14 @@ func (z *Zone) resolve(mr mobs.Registry) error {
 			return fmt.Errorf("spawn %d: unknown mob %q", i, s.Mob)
 		}
 		s.Def = def
+	}
+	for i := range z.Props {
+		p := &z.Props[i]
+		def, err := pr.GetByName(p.Type)
+		if err != nil {
+			return fmt.Errorf("prop %d: unknown type %q", i, p.Type)
+		}
+		p.Def = def
 	}
 	return nil
 }

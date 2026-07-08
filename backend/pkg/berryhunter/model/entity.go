@@ -86,6 +86,16 @@ type PlaceableResourceEntity interface {
 	ResourceEntity
 }
 
+// PropEntity is a hand-placed static world object from the authored zone
+// (world foundation chunk 3): a static body + sprite, no gameplay behavior.
+type PropEntity interface {
+	Entity
+
+	// BlocksAura is authored occluder data for aura line-of-sight (item 6);
+	// carried on the entity but inert until that lands.
+	BlocksAura() bool
+}
+
 // MobEnity is a mob that usually comes with a mob definition
 // and also needs constant updates since it might move/have an AI
 type MobEntity interface {

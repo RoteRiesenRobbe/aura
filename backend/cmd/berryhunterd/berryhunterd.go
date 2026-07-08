@@ -12,6 +12,9 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/core"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/prop"
+	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/logging"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -24,7 +27,7 @@ func main() {
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
 	flag.BoolVar(&chieftain, "chieftain", false, "Also boot embedded chieftain")
-	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
+	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
 	flag.Parse()
 	if help {
 		flag.Usage()
@@ -51,7 +54,8 @@ func main() {
 	mobsRegistry := loadMobs(itemsRegistry, skillsRegistry, content.mobs)
 	milestoneUnlocks := loadMilestoneUnlocks(skillsRegistry)
 	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
-	zone := loadZone(content.zones, mobsRegistry)
+	propsRegistry := loadProps(content.props)
+	zone := loadZone(content.zones, mobsRegistry, propsRegistry)
 
 	tokens := loadOrCreateTokens("./tokens.list")
 	slog.Info("👮‍♀️ read tokens", slog.Int("token_count", len(tokens)))
@@ -109,8 +113,17 @@ func main() {
 	}
 
 	// The world is populated from the authored zone: mob spawn points flow to
-	// the MobSystem via core.Spawns (chunk 4); props follow in chunk 3.
-	// Procedural resource + random-mob generation is gone.
+	// the MobSystem via core.Spawns (chunk 4); props are placed once here as
+	// static entities (chunk 3). Procedural generation is gone.
+	for _, p := range zone.Props {
+		g.AddEntity(prop.New(
+			model.EntityType(p.Def.EntityType),
+			phy.Vec2f{X: p.X, Y: p.Y},
+			p.Def.Body.Radius,
+			p.BlocksMovement,
+			p.BlocksAura,
+		))
+	}
 
 	//---- set up server
 
@@ -260,4 +273,3 @@ func frontendHandler(fsPath string) http.Handler {
 	slog.Info("🕸️ serving frontend", slog.String("path", frontendPath))
 	return http.FileServer(http.Dir(frontendPath))
 }
-

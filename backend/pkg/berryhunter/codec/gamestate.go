@@ -304,6 +304,11 @@ func EntitiesMarshalFlatbuf(entities []model.Entity, builder *flatbuffers.Builde
 		case model.ResourceEntity:
 			marshalled = ResourceEntityFlatbufMarshal(v, builder)
 			eType = BerryhunterApi.AnyEntityResource
+		case model.PropEntity:
+			// Props ride the resource streaming path to the client (decision B,
+			// plan-world-zones.md §3.2).
+			marshalled = PropEntityFlatbufMarshal(v, builder)
+			eType = BerryhunterApi.AnyEntityResource
 		default:
 			slog.Error("unknown entity", slog.Any("entity", e))
 			panic(fmt.Sprintf("unknown entity: %+v", e))
@@ -341,6 +346,33 @@ func ResourceEntityFlatbufMarshal(e model.ResourceEntity, builder *flatbuffers.B
 
 	BerryhunterApi.ResourceAddCapacity(builder, byte(e.Stock().Capacity))
 	BerryhunterApi.ResourceAddStock(builder, byte(e.Stock().Available))
+
+	return BerryhunterApi.ResourceEnd(builder)
+}
+
+// PropEntityFlatbufMarshal marshals a static prop through the Resource wire
+// table. The client's resource classes scale their sprite by stock/capacity,
+// so a constant 1/1 renders the prop at full size; props carry no status
+// effects, so the vector is always empty.
+func PropEntityFlatbufMarshal(e model.PropEntity, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	builder.StartVector(1, 0, 0)
+	statusEffects := builder.EndVector(0)
+
+	BerryhunterApi.ResourceStart(builder)
+	BerryhunterApi.ResourceAddId(builder, e.Basic().ID())
+	BerryhunterApi.ResourceAddStatusEffects(builder, statusEffects)
+
+	pos := Vec2fMarshalFlatbuf(builder, e.Position())
+	BerryhunterApi.ResourceAddPos(builder, pos)
+
+	aabb := AabbMarshalFlatbuf(e.AABB(), builder)
+	BerryhunterApi.ResourceAddAabb(builder, aabb)
+
+	BerryhunterApi.ResourceAddRadius(builder, f32ToU16Px(e.Radius()))
+	BerryhunterApi.ResourceAddEntityType(builder, BerryhunterApi.EntityType(e.Type()))
+
+	BerryhunterApi.ResourceAddCapacity(builder, 1)
+	BerryhunterApi.ResourceAddStock(builder, 1)
 
 	return BerryhunterApi.ResourceEnd(builder)
 }

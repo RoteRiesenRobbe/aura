@@ -1,0 +1,5 @@
+{
+  "name": "Rock",
+  "entityType": "Stone",
+  "body": { "radius": 0.5 }
+}

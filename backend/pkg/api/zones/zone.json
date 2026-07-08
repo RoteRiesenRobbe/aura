@@ -1,7 +1,13 @@
 {
   "name": "Scaffold",
   "bounds": { "width": 60, "height": 40 },
-  "props": [],
+  "props": [
+    { "type": "Tree", "x": -6.0, "y": -2.0, "rotation": 0.0, "blocksMovement": true, "blocksAura": true },
+    { "type": "Tree", "x": -4.0, "y": 2.5, "rotation": 0.0, "blocksMovement": true, "blocksAura": true },
+    { "type": "Rock", "x": 5.0, "y": -3.0, "rotation": 0.0, "blocksMovement": true, "blocksAura": false },
+    { "type": "Rock", "x": 10.0, "y": 7.0, "rotation": 0.0, "blocksMovement": true, "blocksAura": false },
+    { "type": "Rock", "x": 2.0, "y": 5.0, "rotation": 0.0, "blocksMovement": false, "blocksAura": false }
+  ],
   "spawns": [
     { "mob": "Dodo", "x": -18.0, "y": -8.0, "angle": 0.0, "respawnTicks": 900, "respawnVariancePct": 0.2 },
     { "mob": "Dodo", "x": -14.0, "y": -12.0, "angle": 0.0, "respawnTicks": 900, "respawnVariancePct": 0.2 },

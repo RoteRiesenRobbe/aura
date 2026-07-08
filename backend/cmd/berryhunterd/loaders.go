@@ -16,6 +16,7 @@ import (
 
 	aitems "github.com/trichner/berryhunter/pkg/api/items"
 	amobs "github.com/trichner/berryhunter/pkg/api/mobs"
+	aprops "github.com/trichner/berryhunter/pkg/api/props"
 	arecipes "github.com/trichner/berryhunter/pkg/api/recipes"
 	askills "github.com/trichner/berryhunter/pkg/api/skills"
 	azones "github.com/trichner/berryhunter/pkg/api/zones"
@@ -38,6 +39,7 @@ type contentSources struct {
 	skills  fs.FS
 	recipes fs.FS
 	zones   fs.FS
+	props   fs.FS
 }
 
 func embeddedContent() contentSources {
@@ -47,12 +49,13 @@ func embeddedContent() contentSources {
 		skills:  askills.Skills,
 		recipes: arecipes.Recipes,
 		zones:   azones.Zones,
+		props:   aprops.Props,
 	}
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
-// (items/, mobs/, skills/, recipes/). Missing subdirectories hard-fail here —
-// content errors are loud, matching the registry ethos.
+// (items/, mobs/, skills/, recipes/, zones/, props/). Missing subdirectories
+// hard-fail here — content errors are loud, matching the registry ethos.
 func diskContent(dir string) (contentSources, error) {
 	root := os.DirFS(dir)
 	sub := func(name string) (fs.FS, error) {
@@ -77,6 +80,9 @@ func diskContent(dir string) (contentSources, error) {
 		return contentSources{}, err
 	}
 	if c.zones, err = sub("zones"); err != nil {
+		return contentSources{}, err
+	}
+	if c.props, err = sub("props"); err != nil {
 		return contentSources{}, err
 	}
 	return c, nil
@@ -144,11 +150,23 @@ func loadRecipes(fsys fs.FS, r skills.Registry) skills.RecipeRegistry {
 	return registry
 }
 
+// loadProps parses the prop definitions the zone's props resolve against.
+// Curated content: any validation failure aborts startup.
+func loadProps(fsys fs.FS) world.PropRegistry {
+	registry, err := world.PropRegistryFromFS(fsys)
+	if err != nil {
+		slog.Error("failed to load props", slog.Any("err", err))
+		panic(err)
+	}
+	slog.Info("Loaded prop definitions", slog.Int("count", len(registry.Props())))
+	return registry
+}
+
 // loadZone parses the server-authoritative zone file, resolving spawn mob
-// names against the mob registry. Curated content: any validation failure
-// aborts startup.
-func loadZone(fsys fs.FS, mr mobs.Registry) *world.Zone {
-	zone, err := world.LoadZoneFS(fsys, mr)
+// names against the mob registry and prop types against the prop registry.
+// Curated content: any validation failure aborts startup.
+func loadZone(fsys fs.FS, mr mobs.Registry, pr world.PropRegistry) *world.Zone {
+	zone, err := world.LoadZoneFS(fsys, mr, pr)
 	if err != nil {
 		slog.Error("failed to load zone", slog.Any("err", err))
 		panic(err)
