@@ -99,9 +99,10 @@ storytelling.
 > (fixed spawn points + respawn timers, no patrols). Defers Tiled, multi-zone,
 > zone transitions, sharding, and items 5/6. Six-chunk breakdown in the plan doc.
 > **Progress:** Chunk 1 (rectangular `phy.InvAABB` boundary) + Chunk 2 (`zone.json`
-> schema/loader, procedural resource + random-mob generation removed) ✅ DONE +
-> in-game-verified 2026-07-08. NEXT = Chunk 3 (props as static entities), then
-> Chunk 4 (authored mob spawn points — mobs return, world playable again).
+> schema/loader, procedural generation removed) + Chunk 4 (authored mob spawn points +
+> same-spot respawn — taken out of order to reach a playable/commit point) ✅ DONE +
+> in-game-verified + committed 2026-07-08. NEXT = Chunk 3 (props as static entities),
+> then Chunks 5 (in-game editor) + 6 (terrain floor + scaffold zone).
 
 - Current state: single world assembled procedurally at startup (deterministic
   seeds) — the opposite of the hand-authored target.

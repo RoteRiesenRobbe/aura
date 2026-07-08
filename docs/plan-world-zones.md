@@ -415,7 +415,7 @@ check, pause between chunks).
   `TestProp_BlocksMovementFlagSetsBodyLayer`, a non-colliding decoration case.
 - **Gotchas:** #6, EntityType/wire coverage.
 
-### Chunk 4 — Spawn-point system (backend)
+### Chunk 4 — Spawn-point system (backend) — ✅ DONE + verified in-game + committed 2026-07-08
 - **Goal:** mobs spawn at authored points and respawn at the same spot on a
   timer.
 - **Do:** per-spawn-point state in `MobSystem`; boot spawns one mob per point;
@@ -426,6 +426,49 @@ check, pause between chunks).
   `TestSpawnPoint_RespawnVarianceWithinBand`, `TestSpawnPoint_NoSpawnPointNoRespawn`
   (the totem cross-link, #7).
 - **Gotchas:** #7 (totem coordination), #9 (seed).
+- **Note (jumped ahead of Chunk 3):** taken next after Chunk 2 (out of order) to
+  get mobs back and reach a playable/committable state sooner. Props (Chunk 3)
+  follow after.
+- **Record (2026-07-08, full suite green, embedded + `-content ../api` boot-verified,
+  **verified in-game + committed 2026-07-08**):**
+  - **`sys/mob.go` rewritten.** The random/procreation population is gone
+    (`respawnMob`, `findMobSpawnPosition`, `findNearbySpawnPosition`, `randomMob`
+    + the `gen`/`wrand` imports deleted). New `spawnPoint` struct (def, pos,
+    angle, respawnTicks, variancePct, `liveMobID`, `respawnAt`); `MobSystem` holds
+    `points []spawnPoint` + an `initialized` flag.
+  - **Initial spawn on the first `Update` tick, not `New()`** — `game.AddEntity`
+    routes a mob only to systems registered *before* the call, and SkillSystem is
+    added *after* MobSystem in `core.NewGameWith`; by the first `Update` the world
+    is fully wired. `spawnAt` keeps calling `mob.NewMob`, so each spawn re-seeds
+    its entity-ID RNG and rolls HP variance (#9 handled for free).
+  - **Death → `onMobDeath`** links the dead mob to its point by `liveMobID` and
+    sets `respawnAt = Ticks() + rollDelay`; the respawn loop spawns each due point
+    (`liveMobID == 0 && Ticks() >= respawnAt`). **A dead mob owned by no point (a
+    future totem/owned entity) matches nothing → stays dead** — gotcha #7's totem
+    guard falls out of the design for free, no special case.
+  - **`rollDelay`** reuses `vitals.RollVariance` for the `ticks × [1−pct, 1+pct]`
+    band (absent/0 = exact), clamped ≥ 0.
+  - **Wiring:** `GameConfig.Spawns []world.Spawn` + `core.Spawns(...)` option →
+    `NewMobSystem(g, seed, spawns)` at `game.go:116`; `berryhunterd.go` passes
+    `core.Spawns(zone.Spawns)`. No import cycles (`cfg → world → mobs`,
+    `sys → world → mobs`; both already import `mobs`). **`radius`/`core.Radius`
+    kept** — `sys/mob.go`'s `spawnAt` passes `game.Radius()` to the unused
+    `rndPos=false` NewMob path, and `sys/respawn.go` (resources) still reads it;
+    full Radius retirement waits.
+  - **Content [PLACEHOLDER]:** `api/zones/zone.json` now authors **7 spawns**
+    (4 Dodo @900t, 2 SaberToothCat @1800t, 1 Mammoth @2700t, all 0.2 variance)
+    inside the 60×40 bounds — scaffold to exercise the chunk; real placement is
+    Chunk 6 / content.
+  - **Pins:** `sys/mob_test.go` — a minimal `fakeGame` implementing `model.Game`
+    (records add/remove, forwards to the system, settable tick); spawns-at-position
+    (+ init-runs-once), respawns-at-same-spot-after-timer (not before), variance-
+    within-band, exact-delay-without-variance, no-point-no-respawn (totem guard).
+    `MobTouches(nil, Factors{Damage: 1e6})` is the lethal path (no player needed).
+  - **Obsolete-but-kept:** the mob-def `Generator` block (`Weight`/`Fixed`/
+    `RespawnBehavior`) and `cfg.InitialMobCount` no longer drive anything; left as
+    struct fields for a later cleanup (plan §3.3).
+  - **This is the playable/commit point** — world bounded, loaded from
+    `zone.json`, mobs live at authored spots with same-spot respawns. Committed.
 
 ### Chunk 5 — Editor: props + spawns placement + zone export (frontend)
 - **Goal:** author a full `zone.json` in-game.
