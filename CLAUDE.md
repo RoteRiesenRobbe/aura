@@ -180,7 +180,6 @@ The game server uses an **Entity-Component-System** architecture via `github.com
 - `backend/pkg/berryhunter/items/` — item and mob definitions loaded from `api/items/` and `api/mobs/` JSON files at startup
 - `backend/pkg/berryhunter/codec/` — FlatBuffers encode/decode for the WebSocket protocol
 - `backend/pkg/berryhunter/phy/` — 2D physics (circle/AABB collision, spatial hashing)
-- `backend/pkg/chieftain/` — separate HTTP service for scoreboard persistence (SQLite + optional GCP Pub/Sub)
 
 **Adding a new system:** implement `ecs.System`, register it in `core/game.go:NewGameWith()`, and add entity registration cases in the relevant `addXxx()` methods.
 
@@ -349,8 +348,8 @@ PvP, formal group system, economy, mobile, endgame raid events, character sacrif
 - **Always ask before modifying files or running commands.** Show the plan first.
 - Keep changes small and confirm individually.
 - For architectural decisions, propose options first — don't implement directly.
-- Treat existing Berryhunter physics, collision, WebSocket/FlatBuffers protocol,
-  and the chieftain scoreboard service as stable foundations. Extend, don't rewrite.
+- Treat existing Berryhunter physics, collision, and the WebSocket/FlatBuffers
+  protocol as stable foundations. Extend, don't rewrite.
 - When in doubt about game design intent, ask — don't infer from the codebase.
 
 

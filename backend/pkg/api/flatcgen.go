@@ -76,10 +76,6 @@ func cleanOutputFolders() {
 	for _, f := range generatedFiles {
 		_ = os.Remove(f)
 	}
-	generatedFiles, _ = filepath.Glob("./ChieftainApi/*.go")
-	for _, f := range generatedFiles {
-		_ = os.Remove(f)
-	}
 }
 
 func downloadCompilerTo(path string, version string, artifactName string, compilerPathPrefix string) error {

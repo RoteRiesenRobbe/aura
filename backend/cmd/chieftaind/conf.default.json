@@ -1,7 +1,0 @@
-{
-  "apiTlsHost": "",
-  "apiAddr": ":3443",
-  "restTlsHost": "",
-  "restAddr": ":3080",
-  "dataDir": "./"
-}

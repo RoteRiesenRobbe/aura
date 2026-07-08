@@ -76,8 +76,8 @@ food/tool items.
   (player name, tutorial progress, settings) — its own comment says "as long as
   accounts are not persisted in the backend". Join is token-based. (The
   chieftain scoreboard service used to be the only persistence; the scoreboard
-  was removed 2026-07-08 and chieftain is orphaned pending deletion — see
-  `plan-rebrand-cleanup.md`.)
+  was removed 2026-07-08 and chieftain itself was deleted 2026-07-09 — see
+  `plan-rebrand-cleanup.md` §4 A.3.)
 - Work: backend account identity + persisting spellbook / skill levels / slots /
   player level across sessions.
 - Depends on: skill-system Phases 3–7 defining *what* needs persisting.
@@ -85,8 +85,9 @@ food/tool items.
   secret on first visit (stored in localStorage) — play without registration.
   Optional email/OAuth linking later secures the account across devices.
 - **Decided (2026-07-08, `plan-rebrand-cleanup.md` §4 A.3):** chieftain does
-  NOT grow into the account service — its scoreboard-shaped code is deleted in
-  the rebrand sweep; the account service starts fresh.
+  NOT grow into the account service — the account service starts fresh. Its
+  scoreboard-shaped code was **deleted 2026-07-09** (pulled forward from the
+  rebrand sweep).
 
 ## 4. World & zones
 
@@ -746,8 +747,9 @@ system ships blind.
    scheduled before this step; if the content pass finds it needs separate
    Spaces after all, that's a scope change to surface, not to absorb silently.
 7. **Rebrand to Aura & Berryhunter cleanup** (`plan-rebrand-cleanup.md`) —
-   dead-feature removal (rating popup, chieftain service, survival/item
-   scaffolding; the **scoreboard was pulled forward and removed 2026-07-08**),
+   dead-feature removal (rating popup, survival/item scaffolding; the
+   **scoreboard was pulled forward and removed 2026-07-08**, the **chieftain
+   service likewise deleted 2026-07-09**),
    then the structural rename in one atomic commit (Go module + `pkg/berryhunter`
    dir + `berryhunterd` binary + `BerryhunterApi` FlatBuffers namespace) +
    branding. Sits here because the content pass (step 6) has just replaced the
@@ -756,7 +758,7 @@ system ships blind.
 8. **Accounts & persistence** (item 3) **+ UI polish / avatar / audio** (item 8) —
    deliberately **after** content: the game proves out session-based first, then
    we invest in persistence, the anonymous-first account service (built fresh —
-   chieftain deleted in step 7), the styling pass, and avatar selection.
+   chieftain deleted 2026-07-09), the styling pass, and avatar selection.
    **Audio (added 2026-07-09 — needs a go/no-go review when reached; may still be
    cut):** a frontend audio subsystem — location-based background music (forest
    vs. cave *within* a zone), hit/ability SFX, music crossfade between areas,

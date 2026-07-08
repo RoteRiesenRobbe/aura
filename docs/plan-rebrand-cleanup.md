@@ -56,10 +56,9 @@ Backend:
   plumbing + `dbUrl` print in `berryhunterd.go`, `cfg.Config.Chieftain`
   (conf.go), `cfg.ChieftainConfig` + mapping (gamecfg.go, gameconf.go),
   `chieftain` blocks in all `conf*.json`.
-- `pkg/chieftain/` + `cmd/chieftaind/` + `chieftain.fbs` are now **fully
-  orphaned** (nothing in the game imports them); they still compile and keep
-  their own test suite. Deleted in Phase A.3, not here — keeps this commit
-  focused on the game.
+- `pkg/chieftain/` + `cmd/chieftaind/` + `chieftain.fbs` were left **fully
+  orphaned** (nothing in the game imports them) to keep this commit focused
+  on the game. Since deleted — A.3 was pulled forward too (2026-07-09).
 
 Wire (`server.fbs`): removed tables `ScoreboardPlayer` + `Scoreboard` and the
 `Scoreboard` member of `ServerMessageBody` (shifts `Pong`'s union ordinal —
@@ -82,17 +81,27 @@ end-screen popup). Pure frontend delete; check `SocialMedia` module for other
 consumers before removing it too (it currently has at least the rating popup
 and possibly start-screen usages).
 
-### A.3 Chieftain service — decision: DELETE
+### A.3 Chieftain service — DONE (2026-07-09, pulled forward)
 
 **Decision (2026-07-08): chieftain does NOT grow into the account service.**
 Its SQLite/DAO/TLS-socket code is scoreboard-shaped, not account-shaped;
 keeping it as a "skeleton" is YAGNI. The account service (execution-order
 step 8) starts fresh. Resolves the ⚑ in `roadmap.md` item 3 / `tdd.md` §4.3.
 
-Delete `pkg/chieftain/`, `cmd/chieftaind/`, `api/schema/chieftain.fbs`
-(+ `ChieftainApi` generated bindings), chieftain targets in Makefiles /
-Docker files. Can happen any time after A.1 (already orphaned); scheduled
-with the step-7 sweep.
+**Executed 2026-07-09** (pulled forward from the step-7 sweep like A.1;
+safe because the code was already fully orphaned). Deleted `pkg/chieftain/`,
+`cmd/chieftaind/`, `api/schema/chieftain.fbs` + `pkg/api/ChieftainApi/`
+generated bindings (28 files); un-wired the `ChieftainApi` glob in
+`flatcgen.go`, `chieftaind` in the root Makefile `TARGET`/`.PHONY`, the dead
+commented chieftain block in `update.sh`, and the vestigial `"chieftain": {}`
+stubs in `conf.default.json`/`devops/conf.json`. `go mod tidy` dropped
+`go-sqlite3`/`sqlx`/`x/sync`/`alecthomas/assert` + the ChieftainApi module dep.
+**Gotcha caught in verification:** tidy also evicted `dmarkham/enumer` (it was
+only anchored via the chieftain dep chain), breaking
+`go:generate go run github.com/dmarkham/enumer` in `model/layers.go` — fixed
+with a canonical build-tagged `backend/tools.go` anchor (pinned v1.5.10).
+Verified: `go build ./...`, `go generate ./...`, full `go test ./...` green;
+`server.fbs` untouched, zero wire/frontend impact.
 
 ### A.4 Survival/item scaffolding sweep (research-code-quality.md §4)
 

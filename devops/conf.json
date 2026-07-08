@@ -4,7 +4,6 @@
     "tlsHost": "dev.berryhunter.io",
     "frontendDir": "./frontend"
   },
-  "chieftain": {},
   "game": {
     "heatFractionPerSecond": 0.04,
     "mobChaseIntoAuraMargin": 0.2,

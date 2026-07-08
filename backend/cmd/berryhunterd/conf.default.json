@@ -3,7 +3,6 @@
     "port": 2000,
     "frontendDir": "../frontend/dist"
   },
-  "chieftain": {},
   "game": {
     "heatFractionPerSecond": 0.04,
     "initialMobCount": 50,

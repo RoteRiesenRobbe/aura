@@ -10,15 +10,6 @@ set -e
 # Get changes
 git pull
 
-# Rebuild chieftain binary
-#pushd ./chieftaind/
-#
-#export GOPATH="/home/ubuntu/go"
-#go get
-#go build -a
-#
-#popd
-
 # Rebuild backend binary
 pushd ./berryhunterd/
 

@@ -131,7 +131,7 @@ Each system below gets its own spec discussion before it is implemented; section
 - Database choice (SQL vs. document vs. KV)
 - Snapshot strategy on server crash
 - How is world state persisted without writing every frame?
-- ~~Does the `chieftain` service (scoreboard, SQLite) grow into the account service, or does a new service get added?~~ **Decided 2026-07-08 (`plan-rebrand-cleanup.md` §4 A.3): no — the scoreboard was removed, chieftain gets deleted in the rebrand sweep, the account service starts fresh.**
+- ~~Does the `chieftain` service (scoreboard, SQLite) grow into the account service, or does a new service get added?~~ **Decided 2026-07-08 (`plan-rebrand-cleanup.md` §4 A.3): no — the scoreboard was removed, the account service starts fresh. Chieftain was deleted 2026-07-09 (pulled forward from the step-7 sweep).**
 
 ### 4.4 Accounts & Auth
 
