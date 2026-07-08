@@ -34,6 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - docs/manual-zone-editor.md — step-by-step user manual for the in-game zone editor (`manual-` = how-to prefix, first of its kind): setup, modes, placing/editing props+spawns, export→server round-trip
   - docs/manual-content-authoring.md — how-to for adding/replacing content by hand: new mobs (5-file EntityType path), new abilities (auras/passives/cooldowns), ability VFX (rings + programmatic hit fx), mob/player icons; wire-touch table + hand-sync points
   - docs/plan-rebrand-cleanup.md — rebrand to "Aura" + Berryhunter cleanup: footprint tiers, phased plan (dead features → structural rename → branding), scheduled as execution-order step 7; scoreboard removal pulled forward (2026-07-08); chieftain-deletion decision (does NOT become the account service)
+  - docs/plan-content-zone1.md — CAPTURED (not scoped) content for Zone 1 + the 21-zone progression + mob-category taxonomy (content-pass / step 6 material): Zone 1 flow (farmer/turnip/wolves → tunnel guard/light → Zone 2/City), NPC/mob drafts, the two resolved conflicts (turnips=harvest-mobs, peasant onboarding), open content questions
   - docs/archive-scripting-audit.md + docs/archive-scripting-options.md — data-vs-Go audit and scripting/expression-layer options (decided 2026-07-07 → plan-effect-foundations.md)
   - docs/research-content-pipeline.md — designer-authoring pipeline gaps + preventive steps
   - docs/research-v1-readiness.md — prototype→live readiness assessment (ops/CI/observability gaps)

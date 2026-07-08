@@ -189,6 +189,14 @@ code), TDD'd, and independently shippable. Steps 1–4 are the F4 order.
 - **Then — cheap effect-type batch** (any time after Step 0, primitives
   permitting): life steal, execute, berserker, crit, resource theft, regen
   stat variants, bonus-vs-type. Each ≈ the resist-pair cost or less.
+  **⚠ `crit` is mechanically cheap but design-gated** — it reintroduces
+  per-tick combat RNG, which the GDD (§12) deliberately rejected for
+  misses/resists (RNG clashes with the positioning/timing skill expression and
+  hits slow-ticking auras hardest). Left explicitly open, **undecided as of
+  2026-07-09** (user lean (a): accept as a *sanctioned upside-only* RNG with a
+  special crit number; alt (c): make it deterministic — every-Nth /
+  cooldown-burst / positional). Resolve the RNG-consistency question (§6)
+  before it ships.
 
 Relationship to **item 12 (content pass)**: independent — item 12 needs no
 new effect types to proceed and remains the prototype gate; these steps can
@@ -220,6 +228,13 @@ interleave with it. New types widen what item 12+ content can author.
   movement has no impulse concept) — parked until one is scheduled.
 - ⚑ Does a charmed mob's aura credit the owning player XP (attribution rule
   shared with pets)?
+- ⚑ **Crit's RNG-consistency gate** (new 2026-07-09): crit is cheap to build
+  but reintroduces the per-tick combat RNG the GDD deliberately rejected for
+  misses/resists (`gdd.md` §12). Decide before shipping crit — accept it as the
+  *one* sanctioned (upside-only) RNG, reject it for consistency (lean on the
+  shipped ±variance band), or make "crit" deterministic (every-Nth /
+  cooldown-burst / positional). User lean = accept-with-nice-VFX (option a); the
+  slow-tick swinginess is the open cost. Deferred to execution step 4.
 
 ## 7. Step 2 briefing — status-effect framework
 

@@ -2,7 +2,7 @@
 
 **Version:** 0.5
 **Status:** Living document
-**Last updated:** 2026-07-08 (§6 re-sequenced to the decided systems-first execution order; state: skill system Phases 1–9 ✓, Block 2 ✓, item 11 all phases ✓, effect foundations Steps 0+1+2 ✓)
+**Last updated:** 2026-07-09 (power-curve technical shape §4.1 + zone sub-regions known-future note §4.6; state: skill system Phases 1–9 ✓, Block 2 ✓, item 11 all phases ✓, effect foundations Steps 0+1+2 ✓)
 
 > Companion document to the [Game Design Document](./gdd.md). This holds only technical decisions, architecture, and implementation topics. Game mechanics belong in the GDD.
 >
@@ -85,6 +85,7 @@ Each system below gets its own spec discussion before it is implemented; section
 - Faction logic: binary `model.Faction` on players (aligned) and mobs (hostile, runtime-flippable for future charm/summons) + faction-relative target flags per effect (`targetsEnemies` / `targetsAllies` / `targetsStructures` / `targetsSelf`, effect foundations Step 1) — no friendly fire = `targetsAllies: false`, mob-vs-mob excluded as same-faction, masks derived per caster faction
 - Resource consumption as an effect parameter (`selfDamageHP` — no separate cost system); damage/healing in absolute integer HP with the min-1 rule; resistances as string-tag multipliers
 - Per-tick **hit VFX on the struck target** (slash for slow ticks, fire for fast ones), so the aura circle reads as range rather than hit zone
+- **Value scaling — two multiplicative axes (GDD §5, Power Source & Curve):** the per-skill level rule `base + (level−1)×perLevel` (`skills.Scaled`) is shipped — the *specialization* axis. The *inflation* axis `f(character level)` — a global multiplier on **HP values only** (damage / heal / self-HP / player max HP, **never** radius, tick rate, or target count) — is **decided but not yet implemented**; it lands as a cheap multiplier just before the content pass (§6 step 10), preceded by a **simulation harness** (TTK / survival / kills-per-level + a **1-vs-N target-count × pack-size matrix**) that tunes the curve before any content numbers exist. **Mobs carry no level multiplier** — per-tier hand-authored `maxHealth` + aura values place them on the curve (zone number = curve position)
 
 **Deliberately open / deferred:**
 - Auras only affect targets with line-of-sight — LoS not built yet (see 4.2, roadmap item 6)
@@ -154,6 +155,7 @@ Each system below gets its own spec discussion before it is implemented; section
 - Auras / visibility only within the zone
 - Zone chat: one channel per zone (broadcast filtered by sender zone — decided, roadmap item 8); global chat stays until zones exist
 - Zone transitions (e.g. the tunnel between zone 1 and 2) — how?
+- **Named sub-regions (known-future, build nothing now):** three later features — per-area music (forest vs. cave *within* one zone), darkness patches (caves, the zone-1→2 tunnel, see 4.2), and per-area terrain/biome — all reduce to the same primitive: *a named region inside a zone carrying its own properties*. Today `zone.json` is `bounds` / `props` / `spawns` only. **Decision (2026-07-09):** don't build regions yet, but don't design them out — world-foundation chunk 6 authors terrain as the zone's **default** floor (not "the zone has *exactly one* floor"), and the loader's `DisallowUnknownFields` makes a later `regions: [...]` a one-line additive change. One shared region primitive then underpins music + darkness + terrain.
 
 ---
 
@@ -180,8 +182,8 @@ First sketch; the authoritative plans are `docs/plan-skill-system.md` (skill sys
 2. ✅ **Skill-system migration** — Phases 1–9 complete (tick engine, all three categories, leveling, unlocks, combinations)
 3. ✅ **Survival removal + resource unification** — roadmap items 1+2 (Block 2)
 4. ✅ **Aura targeting: selector + target count** — roadmap item 11, incl. hit VFX; then absolute HP + resistances/tags/variance (item 11 Phases 1–3)
-5. ⬜ **World foundation** — roadmap item 4; in-game editor + `zone.json` loader + rectangular boundary + scaffold zone (`plan-world-zones.md`, 6 chunks) ← **we are here**
-6. ⬜ **Mob depth + totems** — roadmap item 7 remainder (patrol archetypes, support mob-heal, **encounter-controller spine + threat table** built early) + effect-foundations Step 3 (spawned-entity/totem lifecycle)
+5. ✅ **World foundation** — roadmap item 4; in-game editor + `zone.json` loader + rectangular boundary + zone-owned free-form terrain + multi-zone save/select + scaffold zone (`plan-world-zones.md`, 6 chunks) — **COMPLETE + in-game-verified 2026-07-09**
+6. ⬜ **Mob depth + totems** — roadmap item 7 remainder (patrol archetypes, support mob-heal, **encounter-controller spine + threat table** built early) + effect-foundations Step 3 (spawned-entity/totem lifecycle) ← **we are here**
 7. ⬜ **Line-of-sight + darkness/light** — roadmap items 6 + 5; LoS spike (blob benchmark) → occlusion into the aura pipeline; darkness rendering + `light_aura` effect type + campfires (both consume item-4 map data)
 8. ⬜ **Skill-vocabulary fill** — effect-foundations Step 4 (shield-as-buff-payload) + cheap effect types (life steal, execute, crit, berserker)
 9. ⬜ **Unlock-source systems** — roadmap item 9; world clue-anchor entities + NPC-teaching behavior

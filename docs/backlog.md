@@ -26,6 +26,11 @@ A per-character currency, separate from the existing combat Resource. Mobs
 drop both XP and Gold on death. Gold can be spent to buy unique auras /
 passives / cooldowns.
 
+**Status (2026-07-09): parked — reviewed and kept parked.** Confirmed it stays a
+backlog idea; the **one-resource / no-economy / no-item-drops** pillars are
+**not** reopened for it. Revisit post-v1 if ever. The tensions below stand
+(buying is a would-be 6th unlock path against the play-the-world five).
+
 Context from current state:
 
 - The five spellbook unlock paths (Milestone / Monster-Kill /
@@ -49,10 +54,12 @@ Context from current state:
   (decided in the same item). Which of the two rules does Gold follow —
   or a third (split)?
 
-## 2. NPC dialogue system
+## 2. Friendly NPCs & the dialogue system
 
-Player-selectable dialogue options with NPCs (branching), distinct from the
-existing Zone-Chat concept.
+Peaceful, hand-placed NPCs — the entity behavior behind unlock path #4 (NPC
+teaching) — and the open question of whether their interaction is bare
+teach-on-approach or player-selectable **branching dialogue** (contextual to
+the approaching player), distinct from the existing Zone-Chat concept.
 
 Context from current state:
 
@@ -67,14 +74,60 @@ Context from current state:
   interaction model.
 - Dependency: peaceful NPCs don't exist yet as an entity behavior (roadmap
   item 9), and there is no dialogue UI.
+- **Most of the substrate already exists** (roadmap item 9 → "Friendly NPCs —
+  reuse map"): "peaceful" is `model.Faction` (`FactionAligned`), "on approach"
+  is the mob aggro sensor circle (`Collisions()` yields the exact approaching
+  `PlayerEntity`, so contextual branching is a server-side `if` over state we
+  already hold), "static hand-placed streaming entity" is `model/prop.Prop`,
+  and the teaching payoff rides the existing 3.7 unlock event. **The only
+  genuinely new part is the interaction surface** — a server→client dialogue
+  message, a client→server choice message (shaped like `Cheat`/`ChatMessage`
+  in `client.fbs`), a client dialogue panel, and a dialogue-tree content
+  format (JSON, like `api/skills`/`api/zones`). None of those exist.
 
-⚑ Open questions:
+⚑ The scoping fork (decide first — it sets everything below):
 
-- Should dialogue choices affect gameplay outcomes (e.g. which aura an NPC
-  teaches), or is it flavor/lore only with no mechanical effect?
-- Does branching dialogue conflict with the "no quest log, no markers"
-  principle (see context above), or is it meant to stay within that
+- Are v1 NPCs **teach-on-approach only** (proximity → unlock, no wire/UI/content
+  subsystem, rides existing seams almost for free) **or full branching
+  dialogue** (a real new subsystem)? A middle tier also exists: **one-shot
+  non-branching lines** (barks/flavor on approach) — text but no choices, so a
+  server→client message but no choice channel.
+
+⚑ Open design questions — these dictate what the NPC entity must be able to do:
+
+- **Interaction trigger:** auto-fire on entering the proximity circle (matches
+  GDD "on approach"), or an explicit interact key while in range? Auto-fire
+  needs a per-player "already greeted" latch so it doesn't re-trigger every
+  tick; an interact key needs a new client→server input.
+- **Contextuality — what may an NPC branch on?** Just the approaching player's
+  progression/spellbook (already server-side), or also world/quest state,
+  faction, time-of-day, prior choices with *this* NPC (→ needs per-player
+  per-NPC persistent memory → depends on accounts, item 3)?
+- **Statefulness / memory:** are NPCs stateless (same reaction every time) or do
+  they remember a given player across visits/sessions? Memory is the dividing
+  line between "flavor entity" and "persistent quest-giver" and pulls in the
+  accounts/persistence dependency.
+- **Do dialogue choices affect gameplay outcomes** (e.g. *which* aura is taught,
+  or gating an unlock behind a choice), or is it flavor/lore only? If outcomes
+  branch, the choice channel must be authoritative and validated server-side.
+- **Concurrency / multiplayer:** is a dialogue a private per-player interaction
+  (the shared-world default) or can several players converse with one NPC at
+  once? Private is simpler and matches "no formal groups in v1".
+- **Movement:** are peaceful NPCs strictly stationary (prop-like, simplest) or
+  can they wander/patrol (→ needs the mob movement path, not the prop path)?
+- **Combat interaction:** can a "peaceful" NPC ever be attacked or become
+  hostile (turn-on-attack, faction flip), or is it permanently untargetable?
+  The faction primitive supports a live flip; deciding no-flip keeps it simple.
+- **Reuse vs. bespoke entity:** build NPCs as a velocity-0 mob variant (shares
+  the aggro-sensor + tick + the effect-foundations §8 totem "static active
+  entity" seam) or as an extended `Prop` with an attached sensor+behavior?
+- **Does branching dialogue conflict with the "no quest log, no markers"
+  principle** (see context above), or is it meant to stay within that
   constraint?
+- **Authoring & placement:** NPCs placed via an `npcs: [...]` array in
+  `zone.json` + a zone-editor mode (consistent with props/spawns), and dialogue
+  trees authored as JSON content — confirm this is the pipeline, or is dialogue
+  content owned elsewhere?
 
 ## 3. Skill tiers
 
@@ -84,6 +137,15 @@ player's spellbook. Two possible acquisition models: **(A)**
 re-rolling/finding the same skill again upgrades it automatically to the
 next tier, or **(B)** higher tiers are obtained independently via their own
 separate unlock, not contingent on owning the lower tier.
+
+**Status (2026-07-09): resolved → superseded by unlock-gated cap-raises.** The
+replacing-tier model was set aside as overlapping the existing per-skill level
+system (a "tier" added nothing a level didn't). Instead, an unlock can **raise a
+skill's `maxLevel`** (e.g. Swift 3 → 6) — **world/kill/NPC-gated,
+skill-point-costed, never an automatic milestone**, extending the specialization
+axis, not the `f(character level)` keep-pace axis. Moved to **roadmap item 9 /
+execution step 5** + `gdd.md §5`. The open questions below are retained only as
+rationale.
 
 Context from current state:
 
@@ -153,6 +215,14 @@ Two variants:
 - **(B)** A damage aura where, each time a mob dies inside the aura's
   radius, the player spawns a friendly temporary copy of that dead mob,
   which fights alongside the player for a limited duration.
+
+**Status (2026-07-09): placed → execution step 2 (mob depth + totems).** Both
+variants are **consumers of the effect-foundations Step-3 spawned-entity/totem
+machinery**: (A) a companion = a totem with velocity + owner attribution; (B) the
+friendly-copy is charm, needing the parked faction setter. The faction concept
+the open questions below ask about **now exists** (effect-foundations Step 1).
+Recorded in roadmap item 7; no new spine — extends the totem build
+(`plan-effect-foundations.md §8`).
 
 Context from current state:
 
@@ -294,6 +364,13 @@ Teleport back to the last visited safe place (campfire, town, or other
 designed safe point), with a 10-second cast time [PLACEHOLDER] during which
 the player cannot take damage, or the cast is interrupted.
 
+**Status (2026-07-09): placed.** The shared "last safe place" tracker +
+death-respawn land at **execution step 3** (campfire death-respawn; the respawn
+point is set by dwelling N s [PLACEHOLDER] in the fire aura, not an instant
+walk-through). Recall itself lands at **step 4** — it is the first consumer of a
+new **cast-time + interrupt** primitive and reuses that step-3 tracker; it is a
+Cooldown-category spellbook entry. Recorded in roadmap.
+
 Context from current state:
 
 - GDD §3 defines death-respawn at the **last visited campfire** — but that
@@ -321,3 +398,104 @@ Context from current state:
   category (a spellbook entry occupying a Q/E slot) or an innate ability
   every character always has? Cast time + interruption would be new
   mechanics either way (current cooldowns fire instantly).
+
+## 10. Social minigames (campfire-anchored)
+
+Purely social/flavor minigames with **no XP and no progression hooks**, isolated
+from the core aura loop. Two kinds: **solo highscore games** (darts, spinning
+wheel) and **PvP-style duels** (a coin-flip wager vs. another player). Tied to
+**campfires** as the existing social/gathering anchor rather than inventing a
+new world mechanic.
+
+**Status (2026-07-09): parked, split into two — solo vs. duels** (they share no
+technical substrate, so they are tracked separately):
+
+- **Solo highscore games** — zero netcode, trivial content, far-future; a pure
+  client feature hung off the campfire.
+- **PvP duels** — even a non-combat wager is the **first player-vs-player
+  surface**: needs client sync + a consent/anti-grief model, and brushes the
+  *no PvP until ~5 years out* line (GDD §9) and *no griefing by design*.
+  **Revisit with the PvP decision, not before.**
+
+⚑ Open questions:
+
+- Does a non-combat wagered duel count as "PvP" for the 5-year rule, or is it
+  exempt (no resource/combat interaction)?
+- Solo games shippable independently, duels deferred to the PvP era?
+- What exactly is the campfire hook — an interact prompt, a placed minigame
+  object, a dedicated UI?
+
+## 11. Personal zone (housing / hideout / island)
+
+A per-player instanced space (house, island, hideout) with limitable access for
+other players.
+
+**Status (2026-07-09): parked — flagged as conflicting with a core pillar.**
+"Instanced per player" contradicts the **persistent shared world, no instances**
+pillar (GDD §7 — even dungeons are open-world). It also needs
+accounts/persistence (item 3) as a hard prerequisite (per-player world state).
+Far-future; do not build until the no-instances stance is explicitly revisited.
+
+⚑ Open questions:
+
+- Is a personal instance an accepted **exception** to the no-instances pillar,
+  or does the pillar hold (→ this idea dies)?
+- If accepted: what persists (layout, placed objects), and how is per-player
+  world state stored without writing every frame (TDD §4.3 open question)?
+- Access-control model (open / friends / private)?
+
+## 12. Völker / races — different starts
+
+Selectable races with different **start locations / spawn points**, a lore hook,
+and different **starting skill selections**.
+
+**Status (2026-07-09): parked, but mechanically seeded.** The **peasant
+onboarding** (GDD §5) is the seed: a race = a different starting utility aura +
+chore-mob + start location. Multi-spawn is already supported (world foundation)
+and a per-race starting loadout is cheap; the weight is **content + lore**. Not
+in v1 scope (a large identity feature). Don't-block: nothing should foreclose
+per-race starts.
+
+⚑ Open questions:
+
+- How many races, and do they differ only in cosmetics/lore + start, or in
+  ongoing mechanics (racial passives)?
+- Interaction with meta-progression (character sacrifice unlocks account-wide
+  base auras — do races gate/modify that)?
+- Does race choice ever change the mid/late game, or only the first ~level?
+
+## 13. Mounts
+
+Rideable mounts granting a **speed buff**, possibly with their own
+abilities/auras.
+
+**Status (2026-07-09): parked — backlog, not v1.** A speed-buff-only mount is
+trivial (a buff/passive); a mount with its own kit is a **loadout swap**
+(mechanically the cousin of the transformation cooldown, #14). Not in v1 scope.
+
+⚑ Open questions:
+
+- Speed-buff only, or mounts with their own abilities/auras (→ loadout-swap
+  machinery)?
+- How obtained (unlock / meta-progression / world)?
+- Combat while mounted, or dismount-on-combat?
+
+## 14. Transformation cooldown (e.g. bear form)
+
+A cooldown ability that temporarily transforms the player (e.g. into a bear),
+**swapping the active auras/passives** for a preset loadout for the duration.
+
+**Status (2026-07-09): parked — a step-4-or-later flourish.** Mechanically a
+**temporary loadout override + timer + revert**; interacts with the
+exactly-one-active-aura loadout, the token/avatar-state art (roadmap item 8), and
+is a cousin of Mounts (#13) and the Ultimate cooldown (GDD §4 — itself a tagged
+cooldown, not a new category). Doesn't block anything.
+
+⚑ Open questions:
+
+- Does the transform preset come from the player's own equipped skills, or is it
+  a fixed themed kit?
+- Can the player act normally (move/switch) while transformed, or is it a
+  constrained state?
+- Cooldown-vs-duration relationship (and does it share the ultimate's
+  reserved-slot idea)?

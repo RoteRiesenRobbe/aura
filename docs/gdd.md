@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Status:** Living document
-**Last updated:** 2026-07-06 (doc consolidation; translated to English)
+**Last updated:** 2026-07-09 (power curve + peasant onboarding + RNG-rejection decisions)
 
 > This document is the **game-design truth** (vision, mechanic intent, open
 > design questions). Technology belongs in the [Technical Design Document](./tdd.md),
@@ -89,7 +89,7 @@ Every aura has a **selector** (the rule by which targets are picked) and a **tar
 
 - **Default selector for everything (damage and heal): nearest** — the closest valid target. Positioning thereby directly controls who gets hit or healed: one step toward the boss = hit the boss.
 - **lowest_health** (special auras): the proportionally most wounded target — lowest current resource *relative to max resource*, not absolute. It thus hits/heals whoever is relatively worst off, instead of always picking the small-max-resource add in mixed fights.
-- **Target count:** base auras hit few targets (starting value 1 [PLACEHOLDER]). More targets come via level-ups (defined per aura) or as dedicated unlocks. Auras that hit *all* targets in range are late unlocks.
+- **Target count:** base auras hit few targets (starting value 1 [PLACEHOLDER]). Target count is a **specialization axis** — it grows via level-ups (defined per aura), dedicated unlocks, or cap-raises, **never via character level** (see section 5, Power Source & Curve). Rough intended cadence [PLACEHOLDER]: 2 targets fairly early, 3 noticeably later, 4+ very late; auras that hit *all* targets in range stay reserved for cooldowns and specific purpose-built auras.
 - **Selection pipeline:** filter by range → filter by line-of-sight → sort by selector → take the first N.
 
 Heal auras heal other players, **never the caster**. Self-healing is conceptually a cooldown (see Appendix A, Heal Magic cooldown).
@@ -164,6 +164,8 @@ Temporarily modify the next tick or the active aura. Examples:
 - **Flee:** radius −80%, speed +80%. CD 60 s
 - **Ultimate:** massive single burst, heavily reduced radius. CD 60 min
 
+**Ultimate is a cooldown, not a separate category.** A signature "ultimate" is modeled as a cooldown carrying an `ultimate` tag plus a dedicated reserved slot on the ability bar — *not* a fourth skill category. The three categories (auras / passives / cooldowns) are fixed; a long-cooldown signature ability needs only the tag + a reserved slot the loadout enforces. Promote it to its own model only if a fundamentally different *activation* model (e.g. a charge meter instead of a cooldown clock) ever becomes the point.
+
 ### Damage Types
 
 Damage types enable thematic combo auras and interesting mob resistances. Mobs have resistances against certain types and deal damage of a certain type themselves. Example: a Fire Strike aura deals fire damage, which fire-resistant mobs are less vulnerable to.
@@ -187,6 +189,36 @@ Circles that fill clockwise, tick when full. The circle reads as a **range indic
 - Low-level mobs stop giving XP beyond a certain level gap
 - Higher mob level → more XP
 - Every level: more slots, more skill points
+
+### Power Source & Curve
+
+**Decided (Option A):** an effect's value is `base(skill level) × f(character level)` — two orthogonal axes.
+
+- **Skill level = specialization.** The per-aura `base + (skill level − 1) × perLevel` rule (already shipped) is *relative* build depth: where you choose to spend points.
+- **Character level = number inflation.** `f(character level)` is a global multiplier carrying the raw growth of the numbers.
+
+**Invariants** (all [PLACEHOLDER], working values for the first balance pass):
+
+- `f(character level)` applies **only to HP values** — damage, heal, self-damage/self-heal HP, and player max HP. It does **not** touch radius, tick rate, or target count. Geometry and cadence stay pure specialization/content knobs, out of the inflation treadmill.
+- Working **max level 60**, total inflation **~50×** across the span (~6.9% compounding per level).
+- **TTK** against a same-tier normal mob **~8 s**; an idle player's **time-to-die ~20–25 s** (ratio ~1:3) in a 1-vs-1.
+- **Level gaps** are handled by the numbers alone for now; an explicit level-gap damage multiplier stays an available, isolated retrofit — not built.
+
+**Mobs do not use `f(character level)`.** Mobs have no level. A "same-tier normal mob" is one whose `maxHealth` + aura values were *hand-authored* to sit on the curve at its zone. **Zone number = position on the progression curve** (see section 7). This asymmetry is deliberate: a max-level player *outlevels and trivializes* starter zones (WoW-Classic-intended), and nobody should later give mobs a level multiplier.
+
+**Combat RNG is deliberately rejected** (random misses/resists) — see section 12. The deterministic tag-resist system + the ±variance band (item 11 Phase 3, already shipped) provide combat texture without the RNG that would clash with the positioning/timing skill expression and punish slow-ticking auras. *Crit is the one explicitly-open exception* (a possible sanctioned upside-only RNG — see roadmap step 4).
+
+**First building block:** before any content numbers exist, a **simulation harness** — TTK, survival time, and kills-per-level across the level span, plus a **1-vs-N matrix** (player target count × pack size), since single-/few-target base auras make pack fights, not duels, the real balance question. Pack sizes per zone are then authored against the target count a player is *expected* to have reached at that tier.
+
+### Onboarding: The Peasant Start
+
+New characters begin as a "poor peasant" holding a **mundane utility aura** (e.g. *Turnip-Pull*, *Molehill-Close*) — not a combat aura.
+
+- The utility aura is *mechanically* a damage aura with a **unique tag**; the passive chore-mobs it works on (turnips, molehills — stationary harvest-mobs, see section 8) **resist every tag except that one**. So the gate is fully **deterministic** (the tag-resist system, item 11 Phase 2): the peasant aura pops chores and does *nothing* to wolves, and — conversely — a combat Damage Aura does *nothing* to chores.
+- "Defeating" chore-mobs yields **XP only** (no drops — this resolves the turnip / "no item drops" tension: chores are harvest-mobs). Reaching **level 1 milestone-unlocks the Damage Aura**, at which point the player can fight wolves — mobs that fight back. The level-1 Damage Aura milestone thus becomes a *genuine narrative unlock*, not a spawn freebie.
+- **Generalizes to per-race / per-start-area variation:** a different starting utility aura + chore-mob + start location per race (see `backlog.md`, Races). This onboarding is the mechanical seed for that, not a bolt-on.
+
+> **Dev note:** the current build spawns new players *with* the Damage Aura for testing convenience. The peasant start is authored in the content pass (roadmap step 6); the spawn default flips then. It needs no new systems — a starting-loadout swap, a level-1 milestone for Damage Aura, and chore-mob content.
 
 ### Milestone Unlocks
 
@@ -241,7 +273,7 @@ There are five ways to get new entries:
 1. **Milestone unlocks** — guaranteed at certain levels (see section 5)
 2. **Monster kill unlocks** — certain (not all) enemies drop auras or passives on death
 3. **World exploration** — via clue anchor points in the world (see section 7)
-4. **NPC teaching** — peaceful NPCs teach a specific aura on approach. Often thematically tied to nearby mobs that can only be damaged by exactly that aura (see section 8 → harvest mobs)
+4. **NPC teaching** — peaceful NPCs teach a specific aura on approach. Often thematically tied to nearby mobs that can only be damaged by exactly that aura (see section 8 → harvest mobs). ⚑ The interaction model — bare teach-on-approach vs. player-selectable branching dialogue, and what these NPCs must be able to do — is open; see `backlog.md` item 2 (Friendly NPCs & the dialogue system) and `roadmap.md` item 9 (reuse map).
 5. **Meta-progression** — character sacrifices unlock new base auras account-wide (see section 5)
 
 ---
@@ -352,6 +384,8 @@ Examples of possible variants:
 
 Effect: a soft "profession" identity without a class system, plus an incentive to explore the world to find special NPCs.
 
+⚑ Peaceful NPCs do not yet exist as an entity behavior. The behavior scope (interaction trigger, contextual/stateful dialogue, whether choices affect outcomes) is captured in `backlog.md` item 2; the implementation reuse map (faction = peaceful, mob aggro-sensor = on-approach, `Prop` = static placement, 3.7 event = teaching payoff) is in `roadmap.md` item 9.
+
 ---
 
 ## 9. Multiplayer & Cooperation
@@ -440,9 +474,11 @@ PvP, formal group system, economy, mobile, endgame raid events, character sacrif
 - [ ] Exact slot count per category and growth per level
 - [ ] Are passive and cooldown slots the same thing?
 - [ ] Skill points per level final (currently ~30 at max level envisioned)
-- [ ] Concrete max level
+- [ ] Concrete max level (working [PLACEHOLDER]: 60 — see section 5, Power Source & Curve)
 - [x] ~~Does every aura hit everything in range?~~ → **Decided:** selector + target count per aura; default nearest, base auras capped; AoE-all as a late unlock (see section 4, Targeting)
 - [x] ~~lowest-HP absolute or percentage?~~ → **Decided:** percentage (relative to max resource)
+- [x] ~~Power source: rank system vs. level scaling?~~ → **Decided:** Option A — `effectValue = base(skill level) × f(character level)`; character level carries number inflation (HP values only), skill points stay relative specialization (see section 5, Power Source & Curve)
+- [x] ~~Combat RNG (random misses / resists)?~~ → **Deliberately rejected** (not deferred): clashes with the positioning+timing skill expression and punishes slow-ticking auras; the deterministic tag-resist system + ±variance band fill the role. **Crit left explicitly open** — a possible sanctioned upside-only RNG (roadmap step 4 / skill-vocabulary fill)
 
 ### World & Content
 - [ ] Which base auras exist concretely (complete list)

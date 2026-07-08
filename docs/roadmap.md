@@ -101,13 +101,15 @@ storytelling.
 > movement blocking is built now. Includes the placement+respawn half of item 7
 > (fixed spawn points + respawn timers, no patrols). Defers Tiled, multi-zone,
 > zone transitions, sharding, and items 5/6. Six-chunk breakdown in the plan doc.
-> **Progress:** Chunk 1 (rectangular `phy.InvAABB` boundary) + Chunk 2 (`zone.json`
-> schema/loader, procedural generation removed) + Chunk 4 (authored mob spawn points +
-> same-spot respawn — taken out of order to reach a playable/commit point) + Chunk 3
-> (props as static entities — dedicated `api/props/` registry, lean `model/prop.Prop`,
-> zero wire/frontend changes) ✅ DONE + in-game-verified + committed 2026-07-08.
-> NEXT = Chunk 5 (in-game editor: prop+spawn placement + zone export),
-> then Chunk 6 (terrain floor + scaffold zone).
+> **✅ COMPLETE (2026-07-09) — all 6 chunks done + in-game-verified:** Chunk 1
+> (rectangular `phy.InvAABB` boundary) + Chunk 2 (`zone.json` schema/loader,
+> procedural generation removed) + Chunk 4 (authored mob spawn points + same-spot
+> respawn) + Chunk 3 (props as static entities — dedicated `api/props/` registry,
+> lean `model/prop.Prop`) + Chunk 5 (in-game editor: prop+spawn placement + zone
+> export) + Chunk 6 (zone-owned free-form terrain §7.1 + multi-zone save/select;
+> `Welcome.zone_name`; scaffold zone). Full record: `plan-world-zones.md` §5.
+> **NEXT in the execution order = Mob depth + totems** (item 7 remainder +
+> effect-foundations Step 3; briefing in `plan-effect-foundations.md` §8).
 
 - Current state: single world assembled procedurally at startup (deterministic
   seeds) — the opposite of the hand-authored target.
@@ -163,6 +165,10 @@ trade-offs (light aura vs. damage aura).
   It would be the first effect type whose effect is *rendering* (light radius
   counteracting darkness) rather than damage/heal/stats — design it here, as
   an extension of the skill system's effect types.
+- **Campfire = large light + small heal (captured 2026-07-09).** A campfire is
+  one entity carrying a **large `light_aura`** plus a **much smaller `heal_aura`**
+  (multi-effect entity — PaladinAura is the precedent), so its light reaches far
+  wider than its healing/safety radius.
 
 ## 6. Line-of-sight for auras
 
@@ -222,6 +228,12 @@ Aura effects blocked by walls/obstacles.
      spawn anchor until aggroed.
   3. **Route patrol** — patrols between fixed waypoints on the map.
   Waypoints are map data → depends on item 4 (world & zones authoring format).
+- **Per-spawn wander radius + wander-range respawn (captured 2026-07-09).** The
+  local-patrol radius is **authored per spawn point** (a `wanderRadius` on the
+  `zone.json` spawn + an editor control — item 4), so two bridge guards stay put
+  (radius 0) while a wild boar roams (radius > 0). On death, respawn rolls a
+  **random position within the wander range**, not the exact spot — refining
+  world chunk 4's same-spot respawn (`plan-world-zones.md`).
 - **Support behaviors:** mobs must be able to **heal each other and buff each
   other**, not only act on players — e.g. "move toward allied mobs with a
   mob-only heal aura active", or hold a resist/stat-buff aura over its pack.
@@ -236,6 +248,13 @@ Aura effects blocked by walls/obstacles.
   `skills.Buffs` store (effect-foundations Step 2), so mob→mob buffing mainly
   needs the ally-targeting to point at mobs. **Confirmed (targeting session):
   this stays here — no earlier lift, YAGNI.**
+- **Player companions & friendly-copy summons (captured 2026-07-09).** Temporary
+  player-summoned companion mobs (a wolf, a heal-pet) and an aura variant that
+  **respawns a killed mob in range as a friendly copy** are **consumers of the
+  effect-foundations Step-3 spawned-entity/totem machinery** (folded into
+  execution step 2): a companion = a totem with velocity + owner attribution; the
+  friendly-copy is charm, which needs the parked faction setter
+  (`plan-effect-foundations.md §8`). No new spine — they extend the totem build.
 - **Pathfinding around obstacles:** mobs must **path around movement-blocking
   obstacles**, not walk straight into them and stick. Current movement is
   straight-line `moveTowards` (steer toward the target vector) — since world
@@ -333,6 +352,9 @@ numbers below are [PLACEHOLDER].
   switch the active aura **on** on aggro (and off again on leash/reset). Mob
   aura switching is already technically possible since Phase 6.1 — this wires it
   to aggro state. Keeps idle zones quiet and makes aggro visible.
+  **Frontend consequence (captured 2026-07-09):** the aura *ring* renders only
+  while the aura is active, so mobs visibly show their aura **only in combat** —
+  no separate "hide ring" mechanic needed.
 - **Per-character threat table (individual aggro).** Threat is accumulated
   **per player**, not shared "am I aggroed" state. The mob targets the
   highest-threat player. Threat is credited from observed combat events —
@@ -403,6 +425,15 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
   - [ ] Minimap restyle (rectangular world since world-foundation chunk 1)
   - [ ] Panel chrome: consistent frame/background/typography across
         spellbook, passives, dev-adjacent HUD panels
+  - [ ] Buff/debuff display — on the HUD **and** on the entity tokens; **gated
+        on the buff-visibility wire decision** (`plan-effect-foundations.md §6`;
+        v1 is VFX-only today, no per-entity buff list on the wire)
+  - [ ] Hover info on spellbook / ability entries (name, targeting rule, effects)
+  - [ ] Avatar state reactions (damaged / happy / dead) + on-token effect display
+        (current damage VFX, DoTs, and other states on the token)
+  - [ ] Icon-unlock track — character/token icons unlocked at milestones,
+        level-ups, mob kills, aura unlocks (a cosmetic lane parallel to the
+        spellbook unlocks)
   - Note: **skill icons + spellbook pagination may want to land earlier**, in
     the content pass (step 6) — that's when the roster grows past the flat
     list. Decide when step 6 starts; the rest stays here in step 8.
@@ -423,6 +454,51 @@ World-exploration clue anchors (source #3) and NPC teaching incl. harvest-mobs
 
 - Depends on: world & zones, skill-system unlock event (3.7), mob chapter (6).
 - NPC teaching needs peaceful NPCs — a new entity behavior.
+
+### Friendly NPCs — reuse map (three of four hard parts already exist)
+
+Peaceful NPCs (teachers, and later dialogue-givers) do **not** need a new
+subsystem from scratch — most of the substrate is already built:
+
+- **"Peaceful" = `model.Faction`.** An NPC is `FactionAligned`
+  (`model/faction.go`, effect-foundations Step 1): hostile-targeting player
+  auras skip it and mobs ignore it, with no new invulnerability flag. This is
+  the "no griefing by design" guarantee, already in place.
+- **"On approach" = the mob aggro sensor pattern.** `model/mob/mob.go` detects
+  nearby players with a sensor `phy.Circle` (`IsSensor=true`,
+  `Mask=LayerPlayerCollision`), read via `.Collisions()` each tick. A friendly
+  NPC's proximity trigger is the **same** shape; `Collisions()` hands back the
+  exact `PlayerEntity` in range — which is what makes the interaction
+  **contextual to the approaching player** (their progression/spellbook/faction
+  are already server-side, so "have they learned Heal yet?" is a pure `if`).
+- **"Static, hand-placed, streams" = `model/prop.Prop`.** Placed once at boot,
+  routes through `AddEntity`'s plain-entity case (static body + net streaming,
+  no update/decay/respawn). An NPC ≈ a prop that also carries a sensor + a
+  per-tick behavior — the same "static active entity" shape as the
+  effect-foundations §8 totem, so they will likely share a lightweight seam.
+- **The teaching payoff = the 3.7 unlock event** (same seam milestones and
+  kill-drops use). No new delivery path for the unlock itself.
+
+**The one genuinely new part is the interaction surface.** Auras deliver
+effects; conversation does not. Anything past bare teach-on-approach needs a
+server→client dialogue message, a client→server choice message (shaped like the
+existing `Cheat`/`ChatMessage` in `client.fbs`), a client dialogue panel, and a
+dialogue-tree content format — none of which exist. That whole surface is
+captured as **backlog item 2 (Friendly NPCs & the dialogue system)**.
+
+**The scoping fork to resolve before building** (also in backlog item 2): are
+v1 NPCs **teach-on-approach only** (proximity → unlock, no wire/UI work, rides
+existing seams almost for free) **or full branching dialogue** (a real
+wire + UI + content subsystem)? This determines whether item 9's NPC half is a
+small feature or a new subsystem. See backlog item 2 for the open questions that
+dictate what these NPCs must be able to do.
+
+**Placement authoring note (for the world pass, not now):** the natural home
+for NPC placement is an `npcs: [...]` array in `zone.json`, authored in the
+zone editor (a fourth mode beside Off/Terrain/Props/Spawns). Adding the array
+later is a cheap schema edit; **do not build the editor mode now** (YAGNI —
+real NPCs are step 5/content), but keeping the `zone.json` schema open to an
+`npcs` sibling of `props`/`spawns` avoids a later reshape.
 
 ## 10. XP & participation ✓ Done
 
@@ -594,6 +670,16 @@ needs real design time:
   Rename once, here — touches the `MobType` enum (`server.fbs`) + generated
   bindings + `api/mobs/*.json` + frontend `Mobs.ts`/`Graphics.ts`.
 - First real-values balancing pass over the placeholder numbers.
+- **Peasant onboarding (decided 2026-07-09, `gdd.md §5`).** Flip the starting
+  loadout from Damage Aura to a **utility aura** (Turnip-Pull / Molehill-Close),
+  author the passive **chore harvest-mobs** it tag-gates against, and move the
+  **Damage Aura milestone to level 1** so chore-farming to level 1 unlocks combat.
+  Content + two config moves, no new systems (tag-resist + milestones already
+  ship). Generalizes to per-race starts (backlog).
+- **Tutorial overlays.** Trigger-based popups/overlays (first death → death
+  tutorial: how death works, where you respawn; plus other first-time beats).
+  Needs a small client trigger→overlay system + the overlay content; hooks the
+  existing death flow (Obituary kept).
 
 ---
 
@@ -611,11 +697,14 @@ system ships blind.
 
 **Remaining, in order:**
 
-1. **World foundation** (item 4) — `plan-world-zones.md`, 6 chunks. Ships the
-   in-game editor + `zone.json` loader + rectangular boundary + a **scaffold**
-   zone that proves the pipeline end-to-end. The **real designed zones are
-   authored in the content pass** (step 6), not here — keeps content-last honest.
-2. **Mob depth** (item 7 remainder) **+ totems** (effect-foundations Step 3) —
+1. **World foundation** (item 4) — ✅ **COMPLETE (2026-07-09)**, all 6 chunks
+   in-game-verified: in-game editor + `zone.json` loader + rectangular boundary +
+   zone-owned free-form terrain + multi-zone save/select + a **scaffold** zone
+   proving the pipeline end-to-end. The **real designed zones are authored in the
+   content pass** (step 6), not here — keeps content-last honest. Record:
+   `plan-world-zones.md` §5.
+2. **Mob depth** (item 7 remainder) **+ totems** (effect-foundations Step 3) — ← **NEXT**
+
    patrol archetypes, support mob-heal behaviors, spawned-entity/totem lifecycle,
    and the **encounter-controller spine + threat table**, built here (**early**),
    shaped by the documented lava-bridge reference encounter below (boss *scripts*
@@ -627,9 +716,23 @@ system ships blind.
    (`blocksAura`, carried inert since step 1); item 5 **extends** the zone
    schema with dark-area definitions itself (the World phase does not ship
    them — item 5 owns "dark-area definition in map data").
+   **+ Campfire death-respawn** (GDD §3; backlog item 9): once campfires are
+   real stateful entities here, add the "last visited campfire" tracker — the
+   respawn point is set by **dwelling N seconds [PLACEHOLDER] in the campfire's
+   fire aura**, not by an instant walk-through — and switch `sys/state.go` from
+   random-position respawn to the stored point.
+   In-memory only (same shape as the existing `carriedState` pattern) — needs
+   **no** accounts/persistence, so it does not wait for step 8. Scope note:
+   this builds the tracker + death-respawn; the separate *Recall* cooldown
+   ability (backlog item 9) reuses the same tracker but is left to the
+   skill-vocabulary/content work.
 4. **Skill-vocabulary fill** (effect-foundations Step 4 + cheap effect types) —
-   shield-as-buff-payload, life steal, execute, crit, berserker, … so the content
-   pass authors builds against the full effect palette.
+   shield-as-buff-payload, life steal, execute, crit, berserker, **dash/blink**
+   (position set + collision sanity — can't cross `blocksMovement`), … so the
+   content pass authors builds against the full effect palette. **New primitive
+   here: cast-time + interrupt** — first consumer is the **Recall** ability (10 s
+   cast, interrupted by damage/movement; reuses step 3's campfire tracker), so
+   recall lands with this step.
 5. **Unlock-source systems** (item 9) — world clue-anchor entities + NPC-teaching
    behavior (needs world **and** mobs).
 6. **Initial content pass** (item 12) — **the prove-it gate.** Real zones, full
@@ -650,10 +753,19 @@ system ships blind.
    branding. Sits here because the content pass (step 6) has just replaced the
    legacy mobs/sprites/enums ("rename once"), and everything must be final
    before ops tooling (step 9) hardcodes names.
-8. **Accounts & persistence** (item 3) **+ UI polish / avatar** (item 8) —
+8. **Accounts & persistence** (item 3) **+ UI polish / avatar / audio** (item 8) —
    deliberately **after** content: the game proves out session-based first, then
    we invest in persistence, the anonymous-first account service (built fresh —
    chieftain deleted in step 7), the styling pass, and avatar selection.
+   **Audio (added 2026-07-09 — needs a go/no-go review when reached; may still be
+   cut):** a frontend audio subsystem — location-based background music (forest
+   vs. cave *within* a zone), hit/ability SFX, music crossfade between areas,
+   combat-music blend in/out, level-up cue, mob death sounds. Placed here because
+   it is presentation polish that wants the **real zones + abilities from the
+   content pass** to score against (author-once), and its location-music half
+   depends on the **named sub-regions** primitive (known-future — `tdd.md §4.6` /
+   `plan-world-zones.md §7.6`). Could pull **earlier** if combat *feel* is wanted
+   during the content-pass balance work — decide at the review.
 9. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
    DB / hosting decisions (`research-v1-readiness.md`).
 
