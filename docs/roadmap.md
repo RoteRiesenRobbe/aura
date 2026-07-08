@@ -211,6 +211,10 @@ Aura effects blocked by walls/obstacles.
   from its spawn anchor (per-mob **max chase distance**); walk back home;
   regenerate out of combat. No mob flees; differences between mobs are purely
   values (speed, radii, aura), not behavior.
+  > **Superseded by "Aggro & threat" below** on two points: (a) the fixed
+  > max-chase leash becomes **state-dependent** (in-combat mobs chase far
+  > longer); (b) **"No mob flees" is dropped** — flee is a required capability.
+  > The idle/chase/hold/regen skeleton itself stays the shared foundation.
 - **Behavior archetypes (WoW-Classic-style, required):** on top of the shared
   base, three idle-movement archetypes must exist:
   1. **Stationary** — stands at its spot until aggroed (today's behavior).
@@ -218,14 +222,31 @@ Aura effects blocked by walls/obstacles.
      spawn anchor until aggroed.
   3. **Route patrol** — patrols between fixed waypoints on the map.
   Waypoints are map data → depends on item 4 (world & zones authoring format).
-- **Support behaviors:** mobs must be able to run behaviors like "move toward
-  allied mobs with a mob-only heal aura active". Two known, deliberate Phase-6
-  limitations must be lifted for this (both flagged in
-  `plan-skill-system.md`): `heal_aura` has no target flags yet (implicitly
-  players-only), and mob entities cannot cast heal auras (the SkillSystem's
-  `healCaster` split — mobs lack player vitals). **Confirmed (targeting
-  session): this stays here — no earlier lift, YAGNI.**
-- **Placement & respawn (level design / environmental storytelling):**
+- **Support behaviors:** mobs must be able to **heal each other and buff each
+  other**, not only act on players — e.g. "move toward allied mobs with a
+  mob-only heal aura active", or hold a resist/stat-buff aura over its pack.
+  Both ride the faction/ally targeting from effect-foundations Step 1
+  (`targetsAllies`, relative to the caster's faction) — a healer or buffer mob
+  targets allied (same-faction) mobs. Two known, deliberate Phase-6 limitations
+  must be lifted for the heal case (both flagged in `plan-skill-system.md`):
+  `heal_aura` was implicitly players-only, and mob entities cannot cast heal
+  auras (the SkillSystem's `healCaster` split — mobs lack player vitals; healing
+  a mob targets its resource, not player vitals). Buff auras
+  (`resist_aura`/stat buffs) are lighter — mobs already carry the shared
+  `skills.Buffs` store (effect-foundations Step 2), so mob→mob buffing mainly
+  needs the ally-targeting to point at mobs. **Confirmed (targeting session):
+  this stays here — no earlier lift, YAGNI.**
+- **Pathfinding around obstacles:** mobs must **path around movement-blocking
+  obstacles**, not walk straight into them and stick. Current movement is
+  straight-line `moveTowards` (steer toward the target vector) — since world
+  chunk 3, zones contain `blocksMovement` props (and the rectangular boundary
+  wall), so a naive chase can jam a mob against a rock/tree between it and its
+  target. Applies to every movement mode: chase, flee, patrol routes, and
+  leash-walk-home. Scope of the solution is [PLACEHOLDER] and its own design
+  task — from cheapest to richest: local obstacle avoidance / steering (deflect
+  around the blocker), vs. a real navmesh/grid A* over the zone's static
+  colliders. Depends on the zone/collider data from item 4 (world & zones);
+  interacts with patrol routes above (waypoints must be reachable).
   individually configured mob instances, placed by hand at fixed spawn points,
   with per-instance respawn time **at the same spot** plus a random respawn
   variance. This is essential for hand-built zones and environmental
@@ -295,6 +316,47 @@ attribution). Extend that into accumulated threat and target the max. Moderate.
 Cleanest as a table owned by the boss/encounter (heals land on allies, not the
 boss, so the boss must *observe* heal/aura/cooldown events to credit threat —
 per-mob nearest-target can't express that).
+
+### Aggro & threat — design intent (captured 2026-07-08)
+
+The nearest-player targeting above is a placeholder. The real system is a
+**concrete, per-character aggro/threat model**, not a proximity check. All
+numbers below are [PLACEHOLDER].
+
+- **State-dependent leash (aggro persistence).** A mob's give-up condition is
+  not a fixed `aggroRadius` from its anchor. While it is **in combat** — anyone
+  inside its aura range **or** it is currently taking damage — it chases *much*
+  longer (extended leash / no reset). The mob only starts counting down toward
+  leash-home once combat state clears. This replaces the single fixed
+  max-chase-distance rule in the base behavior above.
+- **Auras off until aggroed.** Idle mobs run with their aura loadout **off** and
+  switch the active aura **on** on aggro (and off again on leash/reset). Mob
+  aura switching is already technically possible since Phase 6.1 — this wires it
+  to aggro state. Keeps idle zones quiet and makes aggro visible.
+- **Per-character threat table (individual aggro).** Threat is accumulated
+  **per player**, not shared "am I aggroed" state. The mob targets the
+  highest-threat player. Threat is credited from observed combat events —
+  damage dealt, aura ticks, cooldowns, and **heals** (a healer builds threat
+  without ever touching the mob) — which is why the table is owned by the
+  mob/encounter and seeded by the existing `participants` + `recentHealers`
+  tracking (see Threat table above).
+- **Taunts / anti-taunt.** The threat model must accommodate **taunt** effects
+  (force-target / large temporary threat) and their inverse. This is the home
+  for the taunt/anti-taunt effect types parked here from
+  `plan-effect-foundations.md` — they are threat-table operations, so they
+  cannot land before this system exists.
+- **Flee capability.** Mobs must be able to actively **run away from a player**,
+  not just chase or hold. This drops the "No mob flees" limitation in the base
+  behavior. Flee is a movement mode on the shared behavior (invert the
+  chase-toward vector, respect the same collision/leash plumbing), usable by
+  both autonomous archetypes and the encounter controller.
+- **Scripted-flee reference (boss).** Concrete encounter behavior the above must
+  support, feeding the encounter-controller section below: a boss that **flees
+  from players while spawning adds** for X seconds and refuses to engage until
+  all its spawned adds are dead. Crucially, **the flee phase does not reset its
+  aggro/threat range** — players stay on its threat table the whole time, so the
+  moment it flips to engage it already targets correctly. Requires flee +
+  auras-off-until-engage + the controller spine + the threat table together.
 
 **Two technical gotchas the encounter surfaces:**
 - **One Space required.** The controller iterates boss + 3 sub-mobs + players,
