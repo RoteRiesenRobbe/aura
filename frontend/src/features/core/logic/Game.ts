@@ -41,6 +41,9 @@ export class Game implements IGame {
 
     public state = GameState.INITIALIZING;
 
+    // The active zone's id, delivered in Welcome (chunk 6). Empty until then.
+    public zoneName = '';
+
     private application: Application;
     private readonly renderResolution: number;
     public layers: IGameLayers;
@@ -350,6 +353,10 @@ export class Game implements IGame {
 
     startRendering(gameInformation: WelcomeMessage): void {
         Console.log('Joined Server "' + gameInformation.serverName + '"');
+        // Render the terrain of the zone the server selected (chunk 6). setup()
+        // has already run during construction, so placed textures render now.
+        this.zoneName = gameInformation.zoneName;
+        GroundTextureManager.loadZone(gameInformation.zoneName);
         const mapWidth = gameInformation.mapWidth;
         const mapHeight = gameInformation.mapHeight;
         const waterMargin = 240; // shallow-water ring inset from each edge

@@ -4,6 +4,7 @@
     "path": "/game"
   },
   "game": {
+    "zone": "scaffold",
     "heatFractionPerSecond": 0.04,
     "totalDayCycleSeconds": 600,
     "dayTimeSeconds": 400,

@@ -12,6 +12,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"path"
+	"sort"
 	"strings"
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
@@ -57,56 +59,99 @@ type Spawn struct {
 	Def *mobs.MobDefinition `json:"-"`
 }
 
-// Zone is the whole authored world description loaded from zone.json.
-type Zone struct {
-	Name   string  `json:"name"`
-	Bounds Bounds  `json:"bounds"`
-	Props  []Prop  `json:"props"`
-	Spawns []Spawn `json:"spawns"`
+// TerrainTexture is a hand-placed free-form ground texture. It is purely
+// client-visual: the server parses it (so DisallowUnknownFields accepts the
+// key and typos fail by name) but never uses it — the client loads the active
+// zone's terrain from its bundled copy and renders it (chunk 6, §7.1). Stored
+// in server units like everything else in the zone; the client multiplies by
+// Points2px on load.
+type TerrainTexture struct {
+	Type     string  `json:"type"`
+	X        float32 `json:"x"`
+	Y        float32 `json:"y"`
+	Size     float32 `json:"size"`
+	Rotation float32 `json:"rotation"`
+	Flipped  string  `json:"flipped"`
 }
 
-// LoadZoneFS walks fileSystem for a single .json zone file, parses, validates
-// and resolves spawn mob names against mr and prop type names against pr.
-// Zones are curated content, so every anomaly aborts at boot (mirrors
-// RecipesFromFS): malformed or unknown-key JSON, non-positive bounds, empty
-// name, an unknown spawn mob, an unknown prop type, zero zone files, or more
-// than one (multiple zones are not supported yet — plan §1.2).
-func LoadZoneFS(fileSystem fs.FS, mr mobs.Registry, pr PropRegistry) (*Zone, error) {
-	var found *Zone
-	var foundPath string
+// Zone is the whole authored world description loaded from a zone file. One
+// file = one complete zone (bounds + terrain + props + spawns).
+type Zone struct {
+	Name    string           `json:"name"`
+	Bounds  Bounds           `json:"bounds"`
+	Terrain []TerrainTexture `json:"terrain"`
+	Props   []Prop           `json:"props"`
+	Spawns  []Spawn          `json:"spawns"`
 
-	err := fs.WalkDir(fileSystem, ".", func(path string, d fs.DirEntry, err error) error {
+	// ID is the file stem the zone was loaded from — the -zone selection key
+	// and the identity sent to the client so it renders the matching terrain.
+	// Not part of the JSON; set at load time. Distinct from Name, which is a
+	// human-readable label that may differ.
+	ID string `json:"-"`
+}
+
+// LoadZoneFS loads the zone selected by name (its file stem, e.g. "scaffold"
+// for scaffold.json), then parses, validates and resolves it. Candidate files
+// are enumerated without parsing, so a half-authored WIP zone only breaks boot
+// when it is the one being loaded. Selection rules: name != "" must match a
+// stem (else error listing the available zones); name == "" loads the sole
+// zone when exactly one exists (backward-compatible with the single-zone
+// world) and otherwise errors asking for a -zone. Zones are curated content,
+// so every anomaly aborts at boot (mirrors RecipesFromFS): malformed or
+// unknown-key JSON, non-positive bounds, empty name, an unknown spawn mob, or
+// an unknown prop type.
+func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry) (*Zone, error) {
+	// Enumerate candidate zone files by stem without parsing them.
+	paths := map[string]string{} // stem -> path
+	var stems []string
+	err := fs.WalkDir(fileSystem, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("cannot read %q: %w", path, err)
+			return fmt.Errorf("cannot read %q: %w", p, err)
 		}
-		if d.IsDir() || !strings.HasSuffix(path, ".json") {
+		if d.IsDir() || !strings.HasSuffix(p, ".json") {
 			return nil
 		}
-		if found != nil {
-			return fmt.Errorf("multiple zone files: %q and %q (multiple zones not supported yet)", foundPath, path)
+		stem := strings.TrimSuffix(path.Base(p), ".json")
+		if other, dup := paths[stem]; dup {
+			return fmt.Errorf("duplicate zone name %q: %q and %q", stem, other, p)
 		}
-
-		data, err := fs.ReadFile(fileSystem, path)
-		if err != nil {
-			return fmt.Errorf("cannot read %q: %w", path, err)
-		}
-		z, err := parseZone(data)
-		if err != nil {
-			return fmt.Errorf("zone %q: %w", path, err)
-		}
-		if err := z.resolve(mr, pr); err != nil {
-			return fmt.Errorf("zone %q: %w", path, err)
-		}
-		found, foundPath = z, path
+		paths[stem] = p
+		stems = append(stems, stem)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	if found == nil {
+	if len(stems) == 0 {
 		return nil, fmt.Errorf("no zone file found")
 	}
-	return found, nil
+	sort.Strings(stems)
+
+	target := name
+	if target == "" {
+		if len(stems) > 1 {
+			return nil, fmt.Errorf("multiple zones found (%s); select one with -zone", strings.Join(stems, ", "))
+		}
+		target = stems[0]
+	}
+	p, ok := paths[target]
+	if !ok {
+		return nil, fmt.Errorf("zone %q not found (available: %s)", target, strings.Join(stems, ", "))
+	}
+
+	data, err := fs.ReadFile(fileSystem, p)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read %q: %w", p, err)
+	}
+	z, err := parseZone(data)
+	if err != nil {
+		return nil, fmt.Errorf("zone %q: %w", p, err)
+	}
+	if err := z.resolve(mr, pr); err != nil {
+		return nil, fmt.Errorf("zone %q: %w", p, err)
+	}
+	z.ID = target
+	return z, nil
 }
 
 // parseZone decodes and validates a single zone document. Unknown keys are

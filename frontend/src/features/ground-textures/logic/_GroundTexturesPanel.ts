@@ -13,7 +13,6 @@ import {
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {GroundTextureType, groundTextureTypes} from './GroundTextureTypes';
 import * as GroundTextureManager from './GroundTextureManager';
-import {saveAs} from 'file-saver';
 import * as Console from '../../internal-tools/console/logic/Console';
 import {GameState, IGame} from "../../core/logic/IGame";
 import {BackendValidTokenEvent, GamePlayingEvent, PrerenderEvent} from '../../core/logic/Events';
@@ -173,13 +172,9 @@ function setupPanel() {
 
         popup.classList.add('hidden');
     });
-
-    document.getElementById('groundTexture_download').addEventListener('click', function (event) {
-        event.preventDefault();
-
-        let blob = new Blob([GroundTextureManager.getTexturesAsJSON()], {type: 'application/json;charset=utf-8'});
-        saveAs(blob, 'ground-textures.json');
-    });
+    // Terrain no longer has its own download — it exports as part of the unified
+    // zone.json via the zone editor's Download button (chunk 6). This popup is a
+    // px preview of what's currently placed.
 }
 
 export function placeTexture(position) {

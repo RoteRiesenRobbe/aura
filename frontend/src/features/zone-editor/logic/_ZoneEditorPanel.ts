@@ -15,8 +15,11 @@ import {GameState, IGame} from '../../core/logic/IGame';
 import {GamePlayingEvent, PrerenderEvent} from '../../core/logic/Events';
 import {saveAs} from 'file-saver';
 import * as Console from '../../internal-tools/console/logic/Console';
+import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as ZoneEditor from './ZoneEditor';
 import {ZoneProp, ZoneSpawn} from './ZoneModel';
+
+const NEW_ZONE_OPTION = '__new__';
 
 export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn';
 
@@ -60,9 +63,12 @@ export function isMapPointerEvent(event: PointerEvent, canvas: HTMLElement): boo
 
 let textureSection: HTMLElement;
 let zoneControls: HTMLElement;
+let loadZoneSelect: HTMLSelectElement;
+let idInput: HTMLInputElement;
 let nameInput: HTMLInputElement;
 let boundsWidthInput: HTMLInputElement;
 let boundsHeightInput: HTMLInputElement;
+let hideMarkersToggle: HTMLInputElement;
 let mouseXLabel: HTMLElement;
 let mouseYLabel: HTMLElement;
 let currentXLabel: HTMLElement;
@@ -95,9 +101,12 @@ let spawnCountLabel: HTMLElement;
 export function setupPanel() {
     textureSection = document.getElementById('groundTexture_section');
     zoneControls = document.getElementById('zoneEditor_zoneControls');
+    loadZoneSelect = document.getElementById('zoneEditor_loadZone') as HTMLSelectElement;
+    idInput = document.getElementById('zoneEditor_id') as HTMLInputElement;
     nameInput = document.getElementById('zoneEditor_name') as HTMLInputElement;
     boundsWidthInput = document.getElementById('zoneEditor_boundsWidth') as HTMLInputElement;
     boundsHeightInput = document.getElementById('zoneEditor_boundsHeight') as HTMLInputElement;
+    hideMarkersToggle = document.getElementById('zoneEditor_hideMarkers') as HTMLInputElement;
     mouseXLabel = document.getElementById('zoneEditor_mouseX');
     mouseYLabel = document.getElementById('zoneEditor_mouseY');
     currentXLabel = document.getElementById('zoneEditor_currentX');
@@ -143,16 +152,40 @@ export function setupPanel() {
         spawnMobSelect.appendChild(option);
     });
 
-    nameInput.value = ZoneEditor.model.name;
-    boundsWidthInput.value = String(ZoneEditor.model.bounds.width);
-    boundsHeightInput.value = String(ZoneEditor.model.bounds.height);
-    updateCounts();
+    // The zone controls (load/id/name/bounds/export) are zone-wide, so they
+    // stay visible in every mode — not just prop/spawn.
+    zoneControls.classList.remove('hidden');
 
+    // Populate the load-zone picker: every bundled zone + a blank "new zone".
+    ZoneEditor.zoneStems.forEach(stem => {
+        let option = document.createElement('option');
+        option.value = stem;
+        option.textContent = stem;
+        loadZoneSelect.appendChild(option);
+    });
+    let newOption = document.createElement('option');
+    newOption.value = NEW_ZONE_OPTION;
+    newOption.textContent = '＋ New zone';
+    loadZoneSelect.appendChild(newOption);
+
+    refreshPanelFromModel();
+
+    loadZoneSelect.addEventListener('change', () => {
+        if (loadZoneSelect.value === NEW_ZONE_OPTION) {
+            ZoneEditor.newZone();
+        } else {
+            ZoneEditor.loadZone(loadZoneSelect.value);
+        }
+        refreshPanelFromModel();
+    });
     nameInput.addEventListener('change', () => {
         ZoneEditor.model.name = nameInput.value;
     });
     boundsWidthInput.addEventListener('change', onBoundsChanged);
     boundsHeightInput.addEventListener('change', onBoundsChanged);
+    hideMarkersToggle.addEventListener('change', () => {
+        ZoneEditor.setMarkersVisible(!hideMarkersToggle.checked);
+    });
 
     document.getElementsByName('zoneEditor_mode').forEach(element => {
         let radio = element as HTMLInputElement;
@@ -196,7 +229,7 @@ export function setupPanel() {
     document.getElementById('zoneEditor_showPopup').addEventListener('click', event => {
         event.preventDefault();
         popup.classList.remove('hidden');
-        output.textContent = ZoneEditor.model.getZoneAsJSON();
+        output.textContent = currentZoneJSON();
     });
     document.getElementById('zoneEditor_closePopup').addEventListener('click', event => {
         event.preventDefault();
@@ -204,9 +237,30 @@ export function setupPanel() {
     });
     document.getElementById('zoneEditor_download').addEventListener('click', event => {
         event.preventDefault();
-        let blob = new Blob([ZoneEditor.model.getZoneAsJSON()], {type: 'application/json;charset=utf-8'});
-        saveAs(blob, 'zone.json');
+        let filename = (idInput.value.trim() || 'zone') + '.json';
+        let blob = new Blob([currentZoneJSON()], {type: 'application/json;charset=utf-8'});
+        saveAs(blob, filename);
     });
+}
+
+/**
+ * Syncs the live terrain (edited in pixels in the GroundTextureManager) into the
+ * model as server units, then serializes the whole zone. The single export path.
+ */
+function currentZoneJSON(): string {
+    ZoneEditor.model.terrain = GroundTextureManager.getTerrainServerUnits();
+    return ZoneEditor.model.getZoneAsJSON();
+}
+
+/** Refreshes the panel inputs after a zone load / new-zone. */
+function refreshPanelFromModel() {
+    idInput.value = ZoneEditor.currentStem;
+    nameInput.value = ZoneEditor.model.name;
+    boundsWidthInput.value = String(ZoneEditor.model.bounds.width);
+    boundsHeightInput.value = String(ZoneEditor.model.bounds.height);
+    loadZoneSelect.value = ZoneEditor.currentStem !== '' ? ZoneEditor.currentStem : NEW_ZONE_OPTION;
+    updateCounts();
+    updateSelectionDisplay();
 }
 
 GamePlayingEvent.subscribe((game: IGame) => {
@@ -216,7 +270,13 @@ GamePlayingEvent.subscribe((game: IGame) => {
     }
     wired = true;
 
+    // Default to the zone the server actually loaded, so the editor's markers
+    // line up with the terrain the server rendered (chunk 6). The dropdown is
+    // then only for switching to author a different zone. refreshPanelFromModel
+    // resyncs the inputs (setupPanel already ran on BackendValidTokenEvent).
+    ZoneEditor.selectInitialZone(game.zoneName);
     ZoneEditor.attach(game);
+    refreshPanelFromModel();
     Console.log('Zone editor ready - loaded zone "' + ZoneEditor.model.name +
         '" (' + ZoneEditor.model.props.length + ' props, ' +
         ZoneEditor.model.spawns.length + ' spawns). Pick a mode in the panel.');
@@ -246,7 +306,7 @@ function setMode(newMode: EditorMode) {
     deselect();
 
     textureSection.classList.toggle('hidden', mode !== 'terrain');
-    zoneControls.classList.toggle('hidden', mode !== 'prop' && mode !== 'spawn');
+    // zoneControls stays visible in every mode (unhidden in setupPanel).
     propControls.classList.toggle('hidden', mode !== 'prop');
     spawnControls.classList.toggle('hidden', mode !== 'spawn');
 }

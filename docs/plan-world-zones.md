@@ -1,9 +1,11 @@
 # Plan — World & Zones (roadmap item 4, first slice)
 
-**Status:** PLANNED (2026-07-08). No code yet. This is the execution plan +
-decision record for the first world/level-design pass — the work that unblocks
-the item-12 content pass by giving us a **hand-authored world** instead of the
-procedurally-assembled one.
+**Status:** COMPLETE (all six chunks landed + verified in-game, 2026-07-08 →
+2026-07-09). This was the execution plan + decision record for the first
+world/level-design pass — the work that unblocks the item-12 content pass by
+giving us a **hand-authored world** instead of the procedurally-assembled one.
+It now stands as the **record** of that pass; the real designed zones are still
+content-pass work (step 6 / roadmap item 12).
 
 > **This is step 1 of the decided systems-first execution order** (roadmap.md
 > "Execution order (decided 2026-07-08)"). It ships the **editor + loader +
@@ -587,15 +589,102 @@ check, pause between chunks).
 - **Scope guard:** do not over-invest in this zone's *design* — it exists to
   exercise the tooling. Real zone layout, environmental storytelling, and mob
   placement are content work.
+- **Record (2026-07-09, full backend suite green, tsc + webpack green, verified
+  in-game via the checklist 2026-07-09):** the whole pipeline is proven and the
+  world foundation is **complete**. **§7.1 DECIDED → keep free-form terrain**
+  (no snapped grid). **Scope expanded during the chunk** (user call): terrain is
+  no longer a client-only `ground-textures.json` — it is **owned by the zone**
+  (server-authoritative, one artifact per zone), and the editor gained
+  **multi-zone save/select** so different zones carry different terrain/spawns.
+  Built in six sub-steps:
+  - **6a — zone schema + selection (backend):** `world.Zone` gained
+    `Terrain []TerrainTexture` (**parse-and-ignore** — the server declares it so
+    `DisallowUnknownFields` accepts the key and terrain typos fail by name, but
+    never *uses* it: terrain is client-visual) and `ID` (the file stem = the
+    selection key + wire identity, distinct from the human `Name`).
+    `LoadZoneFS(fsys, name, mr, pr)` now **selects by stem**: candidates are
+    enumerated *without parsing* (a half-authored WIP zone only breaks boot if
+    it is the one selected); `name==""` loads the sole zone (backward-compat) or
+    errors asking for `-zone`; unknown name errors listing the available zones.
+    `-zone <stem>` flag overrides a `game.zone` conf default.
+  - **6b — wire:** appended `Welcome.zone_name:string` (append-only), regen Go +
+    TS FlatBuffers; `codec.Welcome.ZoneName` carries `zone.ID` via
+    `GameConfig.ZoneName` + `core.ZoneName(...)`. Only the *name* crosses the
+    wire — the ~visual data never does.
+  - **6c — client renders the active zone's terrain:** `GroundTextureManager`
+    stopped eagerly loading `client-data/ground-textures.json` (deleted) and now
+    `require.context('api/zones', …)` bundles every zone by stem;
+    `loadZone(zoneName)` places the **server-selected** zone's terrain (× the
+    frontend's `meter2px`=120, which matches backend `Points2px` → aligns with
+    wire-positioned entities), called from `Game.startRendering(welcome.zoneName)`.
+  - **6d — editor: named zones + unified export:** `ZoneModel` gained a `terrain`
+    slot (filled at export from the live `GroundTextureManager`, which keeps
+    owning terrain edit/render state in px — no bidirectional state migration);
+    `getZoneAsJSON` emits **name → bounds → terrain → props → spawns** (Go field
+    order), terrain in server units. `GroundTextureManager` gained
+    `getTerrainServerUnits()` (px ÷ meter2px) + `clear()`. `ZoneEditor` bundles
+    all zones by stem, `loadZone(stem)`/`newZone()`/`rebuildMarkers()`; panel got
+    a **Load-zone picker** (+ "＋ New zone") and a **Zone id** field, one unified
+    **Download `<id>.json`**, and the standalone `ground-textures.json` export
+    was removed (its popup is now a px preview). Zone controls are visible in all
+    modes. Manual (`docs/manual-zone-editor.md`) rewritten for the single-file
+    flow + the two reload loops (backend restart for bounds/props/spawns; **plus
+    a frontend rebuild for terrain**, since the client bundles each zone's
+    terrain).
+  - **6e — content:** hand-authored **`api/zones/scaffold.json`** (11 free-form
+    terrain textures + 5 props (2 Tree/2 Rock blocking, 1 walk-through Rock) + 4
+    spawns, all server units in 60×40); kept the Chunk-5 `zone.json` ("Test",
+    no terrain) so **two zones prove selection**; `conf.default.json`
+    `game.zone` set to `scaffold`.
+  - **Follow-up fix (same day):** the editor defaulted to a hardcoded `"zone"`
+    regardless of what the server loaded, so on `-zone scaffold` you saw
+    scaffold's terrain under Test's markers. Fixed: `IGame.zoneName` (set from
+    `Welcome` in `startRendering`) + `ZoneEditor.selectInitialZone(stem)` (aligns
+    the editor to the server's zone **before** markers build, without touching
+    the already-rendered terrain); the panel's `GamePlayingEvent` handler calls
+    it then `refreshPanelFromModel()`. Markers + terrain now agree on join; the
+    dropdown is only for switching to author a different zone.
+  - **Follow-up 2 (marker/entity clarification + toggle):** the editor renders
+    **three layers from two sources** — real props/mobs are **server-streamed**
+    (from `-zone`, the client can't move them), while the editor **markers** and
+    the **terrain** follow the **Load-zone dropdown**. So a dropdown ≠ server
+    `-zone` shows one zone's markers+terrain over another's real entities, and a
+    match shows each prop/spawn twice (real sprite + marker). This is inherent to
+    a client-side editor over a server-streamed world (no bug — `clear()`
+    detaches correctly). Added a **"Hide editor markers"** panel checkbox →
+    `ZoneEditor.setMarkersVisible` toggles a dedicated `markersLayer` sub-Container
+    (bounds outline stays; visibility persists across zone switches). Manual §2
+    documents the three-layer model + the toggle.
+  - **Follow-up 3 (panel overflow):** the shared dev panel (`#groundTexturePanel`,
+    fixed top-right) had no height cap, so tall mode combinations (Terrain
+    controls + always-visible zone controls) ran off the bottom edge at 100 %
+    zoom. Fixed in `groundTexturePanel.less`: `box-sizing: border-box` +
+    `max-height: 100vh` + `overflow-y: auto` → the panel caps at the viewport and
+    scrolls internally (the `:target` minimize state still overrides).
+  - **Pins:** `world/zone_test.go` (select-by-name, unknown-name-lists-available,
+    requires-name-when-multiple, ignores-unselected-malformed, terrain-parses,
+    unknown-terrain-key-fails, ID-is-stem); `codec/server_test.go`
+    (`Welcome` wire round-trip incl. `zone_name`); `loaders_test.go`
+    (`TestDiskContent_RepoApiLoadsEndToEnd` now selects `scaffold` and asserts
+    terrain + every prop/spawn resolves). No frontend test runner → the editor
+    changes are pinned by tsc + webpack + the in-game checklist.
+  - **Note (sandbox):** live boot smoke tests aren't possible in the dev sandbox
+    (it kills `berryhunterd` when it binds its port); the `Welcome` wire behavior
+    is covered by the marshal round-trip test instead, and the browser paths by
+    the in-game checklist.
 
 ---
 
 ## 6. Open sub-decisions (pin before the relevant chunk)
 
-- **§7.1 — Terrain: free-form textures vs a snapped tile grid.** The existing
-  system is free-form and already looks like terrain. Lean: **keep free-form**
-  (KISS; satisfies "authored floor"). Decide before chunk 6. *(This softens the
-  "tile-based" choice into "authored textured floor" — confirm that's acceptable.)*
+- **§7.1 — Terrain: free-form textures vs a snapped tile grid. DECIDED
+  2026-07-09 (chunk 6) → keep free-form** (no grid; KISS). **And a second call
+  the same chunk: terrain moved INTO the zone** (server-authoritative, one
+  `zone.json` per zone carries bounds + terrain + props + spawns), reversing the
+  earlier "terrain stays a client-only `ground-textures.json`" assumption — the
+  server parse-and-ignores it (client-visual), the client renders the
+  server-selected zone's terrain, and the editor saves/selects multiple named
+  zones. See the chunk 6 record for the full six-step landing.
 - **§7.2 — Prop registry. DECIDED 2026-07-08 → dedicated registry as JSON
   content** (`api/props/*.json` → `world.PropRegistryFromFS`), not item/resource
   defs — props aren't items. The prop entity is likewise a new lean
@@ -621,6 +710,20 @@ check, pause between chunks).
 - **§7.5 — Placeholder numbers.** Bounds set to **[PLACEHOLDER] 60×40 server
   units** in chunk 1 (contains the radius-20 spawn circle); `respawnTicks`,
   `respawnVariancePct`, prop body radii still **[PLACEHOLDER]**, tuned in-game.
+- **§7.6 — Named sub-regions within a zone. DEFERRED / known-future (2026-07-09)
+  → build nothing now, but don't design them out.** Three later features — per-area
+  music (forest vs. cave *within* one zone), darkness patches (caves, the
+  zone-1→2 tunnel), and per-area terrain/biome overrides — all reduce to one
+  primitive: *a named region inside a zone carrying its own properties*. The
+  chunk-6 schema is **flat** (`terrain`/`props`/`spawns` apply to the whole zone
+  = the zone's **default** floor); a later `regions: [...]` array is a **one-line
+  additive** change (the loader's `DisallowUnknownFields` accepts it the moment
+  the struct declares it — exactly how `terrain` was added parse-and-ignore in
+  6a). No region concept is built until a concrete consumer needs it (item 5
+  darkness, the audio pass, or per-area biome terrain); when one does, a single
+  shared region primitive underpins all three. Mirrored in `tdd.md` §4.6. **KISS
+  guard:** "stay open" means *not foreclosing* it — no schema field, no editor
+  mode, no logic ships now.
 
 ---
 

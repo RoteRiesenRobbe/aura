@@ -2,6 +2,7 @@ import {isDefined} from '../../common/logic/Utils';
 import {GroundTexture, Parameters} from './GroundTexture';
 import {groundTextureTypes} from './GroundTextureTypes';
 import {IGame} from "../../core/logic/IGame";
+import {meter2px} from '../../../client-data/BasicConfig';
 import { Container } from 'pixi.js';
 
 
@@ -44,6 +45,20 @@ export function removeLatestTexture() {
     }
 }
 
+/**
+ * Removes every placed texture from the map and resets the store. Used by the
+ * zone editor when switching to a different zone (chunk 6).
+ */
+export function clear() {
+    textures.forEach(texture => {
+        if (renderingStarted) {
+            texture.remove();
+        }
+    });
+    textures.length = 0;
+    latestTextureIndex = undefined;
+}
+
 interface GroundTextureDefinition {
     type: string;
     x: number;
@@ -71,34 +86,68 @@ export function getTextureCount() {
     return textures.length;
 }
 
-const groundTextures = require('../../../client-data/ground-textures.json');
+const PX_PER_UNIT = meter2px(1);
 
-groundTextures.forEach(function (groundTexture: GroundTextureDefinition) {
-    // Migration to move certain textures towards center
-    // if (groundTexture.type === 'Sand') {
-    //     const units = 240;
-    //     const { x, y } = groundTexture;
-    //     const distance = Math.sqrt(x * x + y * y);
-    //
-    //     // Calculate the new distance
-    //     const newDistance = distance - units;
-    //     const scale = newDistance / distance;
-    //
-    //     // Update the coordinates based on the scale
-    //     const newX = x * scale;
-    //     const newY = y * scale;
-    //
-    //     groundTexture.x = Math.round(newX);
-    //     groundTexture.y = Math.round(newY);
-    // }
+function round(value: number, digits: number): number {
+    const factor = Math.pow(10, digits);
+    return Math.round(value * factor) / factor;
+}
 
-    placeTexture({
-        type: groundTextureTypes[groundTexture.type],
-        x: groundTexture.x,
-        y: groundTexture.y,
-        size: groundTexture.size,
-        rotation: groundTexture.rotation,
-        flipped: groundTexture.flipped,
-        stacking: 'top'
+/**
+ * Returns the placed terrain in SERVER UNITS (px ÷ meter2px), matching the
+ * zone.json terrain schema. The editor stores/edits terrain in pixels; the
+ * unified zone export syncs from this (chunk 6). x/y/size rounded to 2, angle
+ * to 3 — same convention as ZoneModel.
+ */
+export function getTerrainServerUnits(): GroundTextureDefinition[] {
+    return textures.map(texture => {
+        const p = texture.parameters;
+        return {
+            type: p.type.name,
+            x: round(p.x / PX_PER_UNIT, 2),
+            y: round(p.y / PX_PER_UNIT, 2),
+            size: round(p.size / PX_PER_UNIT, 2),
+            rotation: round(p.rotation, 3),
+            flipped: p.flipped,
+        };
     });
+}
+
+interface ZoneJSON {
+    terrain?: GroundTextureDefinition[];
+}
+
+// Bundle every zone's data straight from the repo api/ (chunk 6, §7.4) — same
+// convention as the zone editor. Keyed by file stem so the client can render
+// the terrain of whichever zone the server selected (Welcome.zoneName).
+const zonesContext = require.context('../../../../../api/zones', false, /\.json$/);
+const zonesByStem: { [stem: string]: ZoneJSON } = {};
+zonesContext.keys().forEach((key: string) => {
+    const stem = key.replace(/^\.\//, '').replace(/\.json$/, '');
+    zonesByStem[stem] = zonesContext(key) as ZoneJSON;
 });
+
+/**
+ * Loads the active zone's terrain (chosen by the server, delivered in
+ * Welcome.zoneName) and places it. Terrain is authored in server units; the
+ * client scales x/y/size to pixels via meter2px. Called after setup(), so
+ * placed textures render immediately.
+ */
+export function loadZone(zoneName: string) {
+    const zone = zonesByStem[zoneName];
+    if (!isDefined(zone)) {
+        console.warn(`No bundled zone data for "${zoneName}"; rendering no terrain.`);
+        return;
+    }
+    (zone.terrain || []).forEach(function (t: GroundTextureDefinition) {
+        placeTexture({
+            type: groundTextureTypes[t.type],
+            x: meter2px(t.x),
+            y: meter2px(t.y),
+            size: meter2px(t.size),
+            rotation: t.rotation,
+            flipped: t.flipped,
+            stacking: 'top',
+        });
+    });
+}

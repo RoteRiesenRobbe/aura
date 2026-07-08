@@ -7,6 +7,7 @@ export class WelcomeMessage {
     mapHeight: number;
     totalDayCycleTicks: number;
     dayTimeTicks: number;
+    zoneName: string;
 
     /**
      *
@@ -18,5 +19,6 @@ export class WelcomeMessage {
         this.mapHeight = welcome.mapHeight();
         this.totalDayCycleTicks = Number(welcome.totalDaycycleTicks());
         this.dayTimeTicks = Number(welcome.dayTimeTicks());
+        this.zoneName = welcome.zoneName();
     }
 }

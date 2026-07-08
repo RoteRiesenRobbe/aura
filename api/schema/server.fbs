@@ -204,6 +204,9 @@ table Welcome {
   map_height:float;
   total_daycycle_ticks:ulong;
   day_time_ticks:ulong;
+  // Identity of the active zone (its file stem). The client uses it to render
+  // the matching bundled terrain (world foundation chunk 6).
+  zone_name:string;
 }
 
 table Accept {

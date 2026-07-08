@@ -97,8 +97,16 @@ func (rcv *Welcome) MutateDayTimeTicks(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(12, n)
 }
 
+func (rcv *Welcome) ZoneName() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func WelcomeStart(builder *flatbuffers.Builder) {
-	builder.StartObject(5)
+	builder.StartObject(6)
 }
 func WelcomeAddServerName(builder *flatbuffers.Builder, serverName flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(serverName), 0)
@@ -114,6 +122,9 @@ func WelcomeAddTotalDaycycleTicks(builder *flatbuffers.Builder, totalDaycycleTic
 }
 func WelcomeAddDayTimeTicks(builder *flatbuffers.Builder, dayTimeTicks uint64) {
 	builder.PrependUint64Slot(4, dayTimeTicks, 0)
+}
+func WelcomeAddZoneName(builder *flatbuffers.Builder, zoneName flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(zoneName), 0)
 }
 func WelcomeEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

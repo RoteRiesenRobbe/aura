@@ -52,17 +52,38 @@ normally. You get:
 > The markers show what's **authored**, not what's live: a mob wanders away
 > from its diamond, and a dead mob's diamond stays until it respawns there.
 
+**Markers vs. the real world — important.** Three things render, from two
+different sources:
+
+- **Real props & mobs** (solid Tree/Rock sprites, actual Dodos/etc.) are
+  **streamed by the server** from whichever zone it booted with (`-zone <id>`).
+  The editor **cannot** move these — only a server restart can.
+- **Editor markers** (red circles / green diamonds) and the **terrain** follow
+  the **Load-zone dropdown** — i.e. the zone you're *authoring*.
+
+So if the dropdown ≠ the server's `-zone`, you'll see one zone's markers +
+terrain layered over another zone's real sprites/mobs ("content from both").
+When they match (the default on join), every prop/spawn shows up **twice** — its
+real sprite *and* its marker on top. Tick **"Hide editor markers (show real
+world)"** to drop the overlay and see just the live world. To make the real
+world actually match a zone, export it and restart the server with
+`-zone <id>` (§7).
+
 ## 3. Pick a mode
 
 Top of the panel: **Off / Terrain / Props / Spawns**.
 
 - **Off** — clicking does nothing special (default, so you can play normally).
-- **Terrain** — the old ground-texture painter (see §8).
+- **Terrain** — paint ground textures; they are now part of the zone (see §8).
 - **Props** — place/edit props.
 - **Spawns** — place/edit mob spawn points.
 
 Only the active mode reacts to clicks. The "Mouse (units)" readout shows where
 your cursor is in **server units** — the same numbers that end up in the JSON.
+
+The zone-wide controls (**Load zone**, **Zone id**, **Zone name**, **Bounds**,
+and the export link) are visible in every mode, since they apply to the whole
+zone rather than a single prop or spawn.
 
 ## 4. Place and edit props (Props mode)
 
@@ -99,40 +120,62 @@ to select, **Update**/**Delete** as above.
 Each spawn point = exactly one mob alive at a time: it spawns there, and after
 dying respawns at the same spot once the timer elapses.
 
-## 6. Zone name and bounds
+## 6. Choose a zone, or start a new one
 
-The *Zone name* and *Bounds* fields (visible in Props/Spawns mode) edit the
-zone header. Changing bounds redraws the yellow rectangle immediately so you
-can see the new world edge — but the **physical wall only moves after the
-server restart** in step 7. Keep all props/spawns inside the rectangle; the
-wall is centered on the origin (a 60×40 zone spans x −30..+30, y −20..+20).
+A world can have several zones now — one file each in `api/zones/`, named by
+its **file stem** (`scaffold.json` → the id `scaffold`).
+
+- **Load zone** dropdown — pick any existing zone to open it for editing, or
+  **＋ New zone** to start a blank one (default bounds, no terrain/props/spawns).
+  Loading a zone swaps everything: markers, terrain, name, bounds.
+- **Zone id (filename)** — the operational identity. This is what the server's
+  `-zone` flag selects and what the download is named (`<id>.json`). Set it
+  before exporting a new zone.
+- **Zone name** — a human-readable label stored inside the file; it can differ
+  from the id and is not used to select the zone.
+- **Bounds** — changing them redraws the yellow rectangle immediately so you can
+  see the new world edge, but the **physical wall only moves after the server
+  restart** (§7). Keep props/spawns inside; the wall is centered on the origin
+  (a 60×40 zone spans x −30..+30, y −20..+20).
 
 ## 7. Export and load into the server
 
 1. Click the **"Zone: N props / M spawns"** link at the bottom of the panel.
-   A popup shows the complete `zone.json`.
-2. Press **Download** — you get a `zone.json` file.
-3. Replace the repo file with it: `api/zones/zone.json`.
-4. **Restart the backend** (`Ctrl+C`, then `./berryhunterd -dev -content ../api`).
-   The boot log prints the loaded zone (name, bounds, prop/spawn counts) — if
-   you made a typo by hand-editing, the server refuses to boot and names the
-   problem.
-5. Reload the browser. The webpack dev server picks the new file up
-   automatically (the editor bundles the same `api/zones/zone.json` the server
-   reads), so the editor markers now match the new state — you can keep
-   iterating: edit → download → replace → restart → edit …
+   A popup shows the complete zone file (bounds + terrain + props + spawns).
+2. Press **Download** — you get `<id>.json` (from the *Zone id* field).
+3. Copy it into the repo: `api/zones/<id>.json`.
+4. **Restart the backend**, selecting your zone by id:
+
+   ```bash
+   ./berryhunterd -dev -content ../api -zone <id>
+   ```
+
+   (Or set `game.zone` in `conf.json`. With only one zone file and no `-zone`,
+   the server just loads it.) The boot log prints the loaded zone (id, name,
+   bounds, prop/spawn counts) — a hand-edit typo makes the server refuse to boot
+   and name the problem.
+5. **If you changed terrain**, also let the frontend rebuild: the client bundles
+   each zone's terrain, so a terrain edit needs the webpack dev server to pick up
+   the changed `api/zones/<id>.json` (it does so automatically under
+   `npm run start`; hard-reload the browser). Bounds/props/spawns are streamed
+   from the server, so those only need the backend restart.
+
+Iterate: edit → download → copy → restart backend (→ frontend rebuild for
+terrain) → reload → edit …
 
 > If you run the server **without** `-content ../api` (embedded content), your
 > new zone only takes effect after `make -C backend build` (which copies and
 > embeds `api/` into the binary).
 
-## 8. Terrain mode (the old texture painter)
+## 8. Terrain mode
 
-Terrain mode is the pre-existing ground-texture painter: pick a texture type,
-click the ground to paint. Its export is **separate** from the zone: use the
-"N Textures on the Map" link → Download → replace
-`frontend/src/client-data/ground-textures.json`. Textures are client-only
-cosmetics; the server never sees them.
+Terrain mode is the ground-texture painter: pick a texture type, click the
+ground to paint. Terrain is now **part of the zone** — it exports inside
+`<id>.json` (in server units) alongside props and spawns, and the client renders
+whichever zone's terrain the server selected. There is **no** separate terrain
+download anymore; the "N Textures on the Map" link is just a preview of what's
+currently placed (shown in pixels). Save terrain the same way as everything
+else: the zone editor's **Download** (§7).
 
 ## Quick reference
 
@@ -143,6 +186,10 @@ cosmetics; the server never sees them.
 | Edit one                         | Click its marker, change controls, **Update**      |
 | Move one                         | **Delete**, then click the new spot                |
 | Remove one                       | Click its marker, **Delete**                       |
-| Save my work                     | Bottom link → **Download** → `api/zones/zone.json` |
-| Make the server use it           | Restart backend with `-content ../api`             |
+| Open a different zone            | **Load zone** dropdown → pick it                   |
+| Start a fresh zone               | **Load zone** → **＋ New zone**, then set *Zone id* |
+| Paint terrain                    | Terrain mode, click the ground (exports with the zone) |
+| See just the real world          | Tick **"Hide editor markers"**                     |
+| Save my work                     | Bottom link → **Download** → `api/zones/<id>.json` |
+| Make the server use it           | Restart backend with `-content ../api -zone <id>`  |
 | See where I am / the cursor is   | "Mouse (units)" readout in the panel               |

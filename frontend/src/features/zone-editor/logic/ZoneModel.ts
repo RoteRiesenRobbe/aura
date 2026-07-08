@@ -13,6 +13,15 @@ export interface ZoneBounds {
     height: number;
 }
 
+export interface ZoneTerrain {
+    type: string;
+    x: number;
+    y: number;
+    size: number;
+    rotation: number; // radians
+    flipped: 'none' | 'horizontal' | 'vertical';
+}
+
 export interface ZoneProp {
     type: string;
     x: number;
@@ -34,6 +43,7 @@ export interface ZoneSpawn {
 export interface ZoneData {
     name: string;
     bounds: ZoneBounds;
+    terrain: ZoneTerrain[];
     props: ZoneProp[];
     spawns: ZoneSpawn[];
 }
@@ -46,12 +56,17 @@ function round(value: number, digits: number): number {
 export class ZoneModel {
     name: string;
     bounds: ZoneBounds;
+    // terrain is a serialization slot filled at export time from the live
+    // GroundTextureManager store (the editor renders/edits terrain there, in
+    // pixels). Kept here so getZoneAsJSON is the single whole-zone serializer.
+    terrain: ZoneTerrain[];
     props: ZoneProp[];
     spawns: ZoneSpawn[];
 
-    constructor(name: string, bounds: ZoneBounds, props: ZoneProp[], spawns: ZoneSpawn[]) {
+    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[]) {
         this.name = name;
         this.bounds = bounds;
+        this.terrain = terrain;
         this.props = props;
         this.spawns = spawns;
     }
@@ -60,6 +75,7 @@ export class ZoneModel {
         return new ZoneModel(
             data.name,
             {width: data.bounds.width, height: data.bounds.height},
+            (data.terrain || []).map(t => ({...t})),
             (data.props || []).map(p => ({...p})),
             (data.spawns || []).map(s => ({...s})),
         );
@@ -97,6 +113,14 @@ export class ZoneModel {
         const data: ZoneData = {
             name: this.name,
             bounds: {width: this.bounds.width, height: this.bounds.height},
+            terrain: this.terrain.map(t => ({
+                type: t.type,
+                x: round(t.x, 2),
+                y: round(t.y, 2),
+                size: round(t.size, 2),
+                rotation: round(t.rotation, 3),
+                flipped: t.flipped,
+            })),
             props: this.props.map(p => ({
                 type: p.type,
                 x: round(p.x, 2),

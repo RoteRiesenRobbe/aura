@@ -15,6 +15,10 @@ type Server struct {
 type Config struct {
 	Server Server `json:"server"`
 	Game   struct {
+		// Zone selects which zone file (by file stem, e.g. "scaffold" for
+		// scaffold.json) to load. Empty loads the sole zone when only one
+		// exists; the -zone flag overrides this.
+		Zone                   string  `json:"zone"`
 		TotalDayCycleSeconds   uint64  `json:"totalDayCycleSeconds"`
 		DayTimeSeconds         uint64  `json:"dayTimeSeconds"`
 		InitialMobCount        int     `json:"initialMobCount"`

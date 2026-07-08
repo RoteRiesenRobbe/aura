@@ -9,6 +9,12 @@
 	max-width: 190px;
 	z-index: 1000;
 
+	// Cap to the viewport and scroll internally so tall mode combinations
+	// (e.g. Terrain controls + zone controls) don't run off the bottom edge.
+	box-sizing: border-box;
+	max-height: 100vh;
+	overflow-y: auto;
+
 	font-size: 14px;
 	font-family: 'Menlo', 'Noto Mono', 'Consolas', monospace;
 	font-variant: normal;

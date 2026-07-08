@@ -49,8 +49,15 @@ dayTimeTicks():bigint {
   return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
 }
 
+zoneName():string|null
+zoneName(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+zoneName(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 14);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
 static startWelcome(builder:flatbuffers.Builder) {
-  builder.startObject(5);
+  builder.startObject(6);
 }
 
 static addServerName(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset) {
@@ -73,18 +80,23 @@ static addDayTimeTicks(builder:flatbuffers.Builder, dayTimeTicks:bigint) {
   builder.addFieldInt64(4, dayTimeTicks, BigInt('0'));
 }
 
+static addZoneName(builder:flatbuffers.Builder, zoneNameOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(5, zoneNameOffset, 0);
+}
+
 static endWelcome(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createWelcome(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset, mapWidth:number, mapHeight:number, totalDaycycleTicks:bigint, dayTimeTicks:bigint):flatbuffers.Offset {
+static createWelcome(builder:flatbuffers.Builder, serverNameOffset:flatbuffers.Offset, mapWidth:number, mapHeight:number, totalDaycycleTicks:bigint, dayTimeTicks:bigint, zoneNameOffset:flatbuffers.Offset):flatbuffers.Offset {
   Welcome.startWelcome(builder);
   Welcome.addServerName(builder, serverNameOffset);
   Welcome.addMapWidth(builder, mapWidth);
   Welcome.addMapHeight(builder, mapHeight);
   Welcome.addTotalDaycycleTicks(builder, totalDaycycleTicks);
   Welcome.addDayTimeTicks(builder, dayTimeTicks);
+  Welcome.addZoneName(builder, zoneNameOffset);
   return Welcome.endWelcome(builder);
 }
 }

@@ -14,6 +14,7 @@ func ServerMessageWrapFlatbufMarshal(builder *flatbuffers.Builder, body flatbuff
 
 func WelcomeMessageFlatbufMarshal(builder *flatbuffers.Builder, w *Welcome) flatbuffers.UOffsetT {
 	serverName := builder.CreateString(w.ServerName)
+	zoneName := builder.CreateString(w.ZoneName)
 
 	BerryhunterApi.WelcomeStart(builder)
 	BerryhunterApi.WelcomeAddServerName(builder, serverName)
@@ -21,6 +22,7 @@ func WelcomeMessageFlatbufMarshal(builder *flatbuffers.Builder, w *Welcome) flat
 	BerryhunterApi.WelcomeAddMapHeight(builder, w.Height)
 	BerryhunterApi.WelcomeAddTotalDaycycleTicks(builder, w.TotalDayCycleTicks)
 	BerryhunterApi.WelcomeAddDayTimeTicks(builder, w.DayTimeTicks)
+	BerryhunterApi.WelcomeAddZoneName(builder, zoneName)
 
 	welcome := BerryhunterApi.WelcomeEnd(builder)
 
@@ -33,6 +35,9 @@ type Welcome struct {
 	Height             float32
 	TotalDayCycleTicks uint64
 	DayTimeTicks       uint64
+	// ZoneName is the active zone's identity (its file stem); the client uses
+	// it to render the matching bundled terrain (world foundation chunk 6).
+	ZoneName string
 }
 
 func AcceptMessageFlatbufMarshal(builder *flatbuffers.Builder) flatbuffers.UOffsetT {

@@ -29,6 +29,10 @@ export interface IGameLayers {
 export interface IGame {
     readonly state: GameState;
 
+    // The active zone's id (Welcome.zone_name), set once the server sends it.
+    // Used by the zone editor to default to the zone the server actually loaded.
+    readonly zoneName: string;
+
     readonly width: number;
     readonly height: number;
     readonly centerX: number;

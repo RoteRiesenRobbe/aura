@@ -23,10 +23,11 @@ func main() {
 	logging.SetupLogging()
 
 	var dev, help bool
-	var contentDir string
+	var contentDir, zoneName string
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
 	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
+	flag.StringVar(&zoneName, "zone", "", "Select which zone to load by file stem (e.g. 'scaffold' for scaffold.json); overrides game.zone in conf.json. Empty loads the sole zone when only one exists")
 	flag.Parse()
 	if help {
 		flag.Usage()
@@ -54,7 +55,11 @@ func main() {
 	milestoneUnlocks := loadMilestoneUnlocks(skillsRegistry)
 	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
 	propsRegistry := loadProps(content.props)
-	zone := loadZone(content.zones, mobsRegistry, propsRegistry)
+	// -zone flag overrides the game.zone config default.
+	if zoneName == "" {
+		zoneName = config.Game.Zone
+	}
+	zone := loadZone(content.zones, zoneName, mobsRegistry, propsRegistry)
 
 	tokens := loadOrCreateTokens("./tokens.list")
 	slog.Info("👮‍♀️ read tokens", slog.Int("token_count", len(tokens)))
@@ -77,6 +82,7 @@ func main() {
 		core.Tokens(tokens),
 		core.Radius(radius),
 		core.Bounds(zone.Bounds.Width, zone.Bounds.Height),
+		core.ZoneName(zone.ID),
 		core.Spawns(zone.Spawns),
 	)
 	if err != nil {

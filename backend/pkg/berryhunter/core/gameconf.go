@@ -100,6 +100,13 @@ func Bounds(width, height float32) Configuration {
 	}
 }
 
+func ZoneName(name string) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.ZoneName = name
+		return nil
+	}
+}
+
 func Spawns(spawns []world.Spawn) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.Spawns = spawns

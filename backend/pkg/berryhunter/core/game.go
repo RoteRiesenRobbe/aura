@@ -90,6 +90,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 		Height:             gc.Bounds.Height * codec.Points2px,
 		TotalDayCycleTicks: g.config.TotalDayCycleSeconds * constant.TicksPerSecond,
 		DayTimeTicks:       g.config.DayTimeSeconds * constant.TicksPerSecond,
+		ZoneName:           gc.ZoneName,
 	}
 	builder := flatbuffers.NewBuilder(32)
 	welcomeMsg := codec.WelcomeMessageFlatbufMarshal(builder, msg)

@@ -13,6 +13,7 @@ import {meter2px} from '../../../client-data/BasicConfig';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {requireAll} from '../../common/logic/Utils';
 import {IGame} from '../../core/logic/IGame';
+import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import {ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
 
 export interface PropTypeDef {
@@ -34,7 +35,17 @@ interface MobDefJSON {
 // Bundled straight from the repo api/ — the same files the server reads.
 const propDefJSONs = requireAll(require.context('../../../../../api/props', false, /\.json$/)) as unknown as PropDefJSON[];
 const mobDefJSONs = requireAll(require.context('../../../../../api/mobs', false, /\.json$/)) as unknown as MobDefJSON[];
-const zoneJSON = require('../../../../../api/zones/zone.json') as ZoneData;
+
+// Every zone bundled by file stem — the load picker can open any of them (or a
+// blank one), and the editor exports the stem as <id>.json (chunk 6).
+const zonesContext = require.context('../../../../../api/zones', false, /\.json$/);
+const zonesByStem: { [stem: string]: ZoneData } = {};
+zonesContext.keys().forEach((key: string) => {
+    const stem = key.replace(/^\.\//, '').replace(/\.json$/, '');
+    zonesByStem[stem] = zonesContext(key) as ZoneData;
+});
+
+export const zoneStems: string[] = Object.keys(zonesByStem).sort((a, b) => a.localeCompare(b));
 
 export const propTypes: PropTypeDef[] = propDefJSONs
     .map(def => ({name: def.name, entityType: def.entityType, radius: def.body.radius}))
@@ -44,7 +55,13 @@ export const mobNames: string[] = mobDefJSONs
     .map(def => def.name)
     .sort((a, b) => a.localeCompare(b));
 
-export const model = ZoneModel.fromJSON(zoneJSON);
+const DEFAULT_STEM = zonesByStem['zone'] ? 'zone' : zoneStems[0];
+const NEW_ZONE_BOUNDS = {width: 60, height: 40};
+
+// currentStem is the loaded zone's file stem — the -zone key and download name.
+// Empty for an unsaved new zone until the user names it in the panel.
+export let currentStem: string = DEFAULT_STEM;
+export let model: ZoneModel = ZoneModel.fromJSON(zonesByStem[DEFAULT_STEM]);
 
 export function propTypeByName(name: string): PropTypeDef {
     return propTypes.find(type => type.name === name);
@@ -68,6 +85,11 @@ const SPAWN_MARKER_RADIUS = 0.5; // server units
 const MIN_HIT_RADIUS = 0.4; // server units, so tiny props stay clickable
 
 let container: Container = null;
+// markersLayer holds only the prop/spawn markers, so "Hide markers" can toggle
+// them (and their labels) without hiding the bounds outline, which lives
+// directly on container. It persists across zone switches, so its visibility
+// survives rebuildMarkers.
+let markersLayer: Container = null;
 let boundsGraphic: Graphics = null;
 let propMarkers: Container[] = [];
 let spawnMarkers: Container[] = [];
@@ -76,21 +98,87 @@ export function isAttached(): boolean {
     return container !== null;
 }
 
+/** Shows/hides the prop+spawn marker overlay (bounds outline stays visible). */
+export function setMarkersVisible(visible: boolean) {
+    if (markersLayer !== null) {
+        markersLayer.visible = visible;
+    }
+}
+
 export function attach(game: IGame) {
     if (container !== null) {
         return;
     }
 
     container = new Container();
+    markersLayer = new Container();
+    container.addChild(markersLayer);
     game.cameraGroup.addChild(container);
 
+    rebuildMarkers();
+}
+
+/**
+ * Tears down and rebuilds all prop/spawn markers + the bounds outline from the
+ * current model. Used on attach and after switching zones. No-op before attach.
+ */
+function rebuildMarkers() {
+    if (container === null) {
+        return;
+    }
+    propMarkers.forEach(marker => marker.destroy({children: true}));
+    spawnMarkers.forEach(marker => marker.destroy({children: true}));
+    propMarkers = [];
+    spawnMarkers = [];
+    selection = null;
+
     redrawBounds();
-    propMarkers = model.props.map((prop, index) => addMarkerToStage(drawPropMarker(prop, isSelected('prop', index))));
-    spawnMarkers = model.spawns.map((spawn, index) => addMarkerToStage(drawSpawnMarker(spawn, isSelected('spawn', index))));
+    propMarkers = model.props.map(prop => addMarkerToStage(drawPropMarker(prop, false)));
+    spawnMarkers = model.spawns.map(spawn => addMarkerToStage(drawSpawnMarker(spawn, false)));
+}
+
+/**
+ * Loads a bundled zone by file stem: swaps the model, rebuilds markers, and
+ * reloads its terrain into the GroundTextureManager (chunk 6).
+ */
+export function loadZone(stem: string) {
+    if (!zonesByStem[stem]) {
+        return;
+    }
+    currentStem = stem;
+    model = ZoneModel.fromJSON(zonesByStem[stem]);
+    rebuildMarkers();
+    GroundTextureManager.clear();
+    GroundTextureManager.loadZone(stem);
+}
+
+/**
+ * Aligns the editor to the zone the server actually loaded (Welcome.zone_name),
+ * before markers are built. Unlike loadZone it does NOT touch the terrain — the
+ * server already rendered this zone's terrain — and does not rebuild markers
+ * (attach does that next). No-op if the stem is unknown or already current.
+ */
+export function selectInitialZone(stem: string) {
+    if (!stem || stem === currentStem || !zonesByStem[stem]) {
+        return;
+    }
+    currentStem = stem;
+    model = ZoneModel.fromJSON(zonesByStem[stem]);
+}
+
+/**
+ * Starts a blank zone (default bounds, no terrain/props/spawns). The user names
+ * it via the panel's id field before exporting.
+ */
+export function newZone() {
+    currentStem = '';
+    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], []);
+    rebuildMarkers();
+    GroundTextureManager.clear();
 }
 
 function addMarkerToStage(marker: Container): Container {
-    container.addChild(marker);
+    markersLayer.addChild(marker);
     return marker;
 }
 

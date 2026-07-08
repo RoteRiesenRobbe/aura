@@ -22,6 +22,10 @@ type GameConfig struct {
 	Tokens           []string
 	Radius           float32
 	Bounds           Bounds
+
+	// ZoneName is the active zone's identity (its file stem), sent to the
+	// client in the Welcome so it renders the matching terrain (chunk 6).
+	ZoneName string
 	ItemRegistry     items.Registry
 	MobRegistry      mobs.Registry
 	SkillRegistry    skills.Registry

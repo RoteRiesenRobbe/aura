@@ -41,13 +41,21 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, propsRegistry.Props())
 
-	zone, err := world.LoadZoneFS(content.zones, mobsRegistry, propsRegistry)
+	// The scaffold zone exercises the full pipeline: terrain + props + spawns.
+	// Selecting by stem also proves multi-zone selection against real content.
+	zone, err := world.LoadZoneFS(content.zones, "scaffold", mobsRegistry, propsRegistry)
 	require.NoError(t, err)
+	assert.Equal(t, "scaffold", zone.ID)
 	assert.Positive(t, zone.Bounds.Width)
 	assert.Positive(t, zone.Bounds.Height)
-	// every zone prop resolved against the prop registry at load time
+	assert.NotEmpty(t, zone.Terrain, "scaffold zone should carry hand-authored terrain")
+	// every zone prop resolves against the prop registry at load time
 	for _, p := range zone.Props {
 		assert.NotNil(t, p.Def)
+	}
+	// every spawn resolves against the mob registry at load time
+	for _, s := range zone.Spawns {
+		assert.NotNil(t, s.Def)
 	}
 }
 
