@@ -173,7 +173,12 @@ Aura effects blocked by walls/obstacles.
   grid/tilemap + integer raycast (DDA); LoS result caching (recompute every K
   ticks or on movement [PLACEHOLDER]); with capped targets (item 11), raycast
   candidates in selector order with early-out once N targets pass — normally N
-  raycasts, not all candidates.
+  raycasts, not all candidates. **Note for the spike:** the world plan
+  (`plan-world-zones.md`) made occluders **free-placed prop entities** with
+  circle/box bodies, not a tile grid — so the spike must either rasterize
+  props into an occluder grid at zone load (props are static, so pre-bake
+  once) or raycast against the shapes directly. Neither invalidates the
+  direction; pick in the spike.
 - **Performance model:** cost scales with *co-located* aura casters (the blob:
   boss events, special-event puddle), not total entities; the broadphase is
   the expensive part and `phy` already has spatial hashing. The spike is a
@@ -529,8 +534,10 @@ system ships blind.
    path the World phase (chunk 4) rewrites — see `plan-world-zones.md` §4 gotcha #7.
 3. **Spatial combat & atmosphere** (items 6 + 5) — line-of-sight occlusion (perf
    spike → occlusion into the aura pipeline) and darkness/light (the `light_aura`
-   effect type, campfires). Both consume the World phase's map data (occluders,
-   dark-area flags).
+   effect type, campfires). Item 6 consumes the World phase's occluder flags
+   (`blocksAura`, carried inert since step 1); item 5 **extends** the zone
+   schema with dark-area definitions itself (the World phase does not ship
+   them — item 5 owns "dark-area definition in map data").
 4. **Skill-vocabulary fill** (effect-foundations Step 4 + cheap effect types) —
    shield-as-buff-payload, life steal, execute, crit, berserker, … so the content
    pass authors builds against the full effect palette.
@@ -540,6 +547,12 @@ system ships blind.
    mob roster (replace the legacy Berryhunter mobs), boss scripts, skills,
    passives, cooldowns, combination recipes, first real balance pass. **This is
    where the game is validated as fun**, session-based (no accounts yet).
+   **Multi-zone assumption:** the v1 "2–3 zones" are authored as **regions of
+   the one rectangular Space** (per `architecture.md` — one Space per
+   contiguous landmass, don't split until forced), connected by tunnel
+   corridors built from props. No new zone-transition/sharding tech is
+   scheduled before this step; if the content pass finds it needs separate
+   Spaces after all, that's a scope change to surface, not to absorb silently.
 7. **Accounts & persistence** (item 3) **+ UI polish / avatar** (item 8) —
    deliberately **after** content: the game proves out session-based first, then
    we invest in persistence, the anonymous-first account service, the styling

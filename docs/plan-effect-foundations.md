@@ -1,8 +1,12 @@
 # Effect-System Foundations — Scaling the Effect-Type Vocabulary
 
 > **Status: decided 2026-07-07; execution in progress — Steps 0+1+2 ✓ done
-> and verified in-game (2026-07-08), next is Step 3 (spawned-entity
-> lifecycle): start at the §8 briefing.** Decision record + plan for
+> and verified in-game (2026-07-08). Step 3 (spawned-entity lifecycle) is
+> NOT next in the build queue: per the decided execution order
+> (roadmap.md "Execution order", 2026-07-08) it folds into execution step 2
+> (mob depth) and must run AFTER World foundation chunk 4 rewrites the
+> `MobSystem` respawn path (`plan-world-zones.md` §5 gotcha #7). When it
+> comes up, start at the §8 briefing.** Decision record + plan for
 > growing the effect vocabulary from 8 to ~25+ types. Closes the scripting
 > question left open in `archive-scripting-options.md` (decision F1/F2 below);
 > the factual data-vs-Go audit behind it lives in `archive-scripting-audit.md`.
@@ -358,6 +362,15 @@ Almost everything already exists, because mobs run on the one SkillSystem:
   `Mob.Update`, expiry returns false → the existing single removal path
   serves both TTL death and HP death, no rewards on either (kill rewards
   only flow through `PlayerTouches` → `tryGrantKillRewards`).
+  **⚠ World-foundation cross-link (`plan-world-zones.md` §5 gotcha #7):**
+  World chunk 4 REPLACES this exact respawn path with per-spawn-point
+  respawn ("respawn only mobs that belong to a spawn point"). If that has
+  landed by the time this step runs (it should — the decided execution
+  order puts World first), a totem simply has **no spawn point → dies and
+  stays dead**, and the `respawnBehavior: "None"` guard described here
+  shrinks or disappears. Re-check `sys/mob.go` against this briefing
+  before coding; the mob-JSON `generator` block may also be obsolete for
+  world population by then (weight-0/fixed-0 below likewise).
 
 New engine pieces, in dependency order:
 

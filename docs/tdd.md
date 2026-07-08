@@ -2,7 +2,7 @@
 
 **Version:** 0.5
 **Status:** Living document
-**Last updated:** 2026-07-06 (doc consolidation + English translation; state: skill system Phases 1–9 ✓, Block 2 ✓, roadmap item 11 incl. HP/resistances Phases 1+2 ✓)
+**Last updated:** 2026-07-08 (§6 re-sequenced to the decided systems-first execution order; state: skill system Phases 1–9 ✓, Block 2 ✓, item 11 all phases ✓, effect foundations Steps 0+1+2 ✓)
 
 > Companion document to the [Game Design Document](./gdd.md). This holds only technical decisions, architecture, and implementation topics. Game mechanics belong in the GDD.
 >
