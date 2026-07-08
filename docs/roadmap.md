@@ -102,8 +102,8 @@ storytelling.
 > schema/loader, procedural generation removed) + Chunk 4 (authored mob spawn points +
 > same-spot respawn — taken out of order to reach a playable/commit point) + Chunk 3
 > (props as static entities — dedicated `api/props/` registry, lean `model/prop.Prop`,
-> zero wire/frontend changes) ✅ DONE + in-game-verified 2026-07-08 (1/2/4 committed,
-> 3 uncommitted). NEXT = Chunk 5 (in-game editor: prop+spawn placement + zone export),
+> zero wire/frontend changes) ✅ DONE + in-game-verified + committed 2026-07-08.
+> NEXT = Chunk 5 (in-game editor: prop+spawn placement + zone export),
 > then Chunk 6 (terrain floor + scaffold zone).
 
 - Current state: single world assembled procedurally at startup (deterministic

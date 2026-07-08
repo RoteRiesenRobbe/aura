@@ -405,7 +405,7 @@ check, pause between chunks).
     bounded empty rectangle until chunk 3 (props) + chunk 4 (spawn points). The
     branch stays **uncommitted** until the world is playable again (mobs, chunk 4).
 
-### Chunk 3 — Props as static entities (backend + minimal wire) — ✅ DONE + verified in-game 2026-07-08
+### Chunk 3 — Props as static entities (backend + minimal wire) — ✅ DONE + verified in-game + committed 2026-07-08
 - **Goal:** authored props spawn, collide (`blocksMovement`), render, and stream.
 - **Do:** prop registry (type → sprite + body); build prop entities from
   `zone.props` reusing `resource_entity.go` plumbing minus harvest; occluder
@@ -416,8 +416,8 @@ check, pause between chunks).
 - **Gotchas:** #6, EntityType/wire coverage.
 - **Record (2026-07-08, full backend suite green (28 pkgs), embedded +
   `-content ../api` boot-verified — 2 prop defs, zone loads 5 props/7 spawns
-  both modes; **verified in-game 2026-07-08** — props render at authored
-  spots, blockers stop movement, the decorative rock walks through):**
+  both modes; **verified in-game + committed 2026-07-08** — props render at
+  authored spots, blockers stop movement, the decorative rock walks through):**
   - **§7.2 DECIDED → dedicated prop registry as a JSON content dir**
     (`api/props/*.json`, mirroring mobs): `world.PropDefinition` (name →
     `entityType` + `body.radius`) + `world.PropRegistryFromFS` in
