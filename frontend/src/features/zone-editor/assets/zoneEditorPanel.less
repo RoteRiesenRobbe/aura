@@ -1,0 +1,48 @@
+// Zone editor sections live inside #groundTexturePanel (shared editor panel).
+
+#groundTexturePanel {
+	.zoneEditor-inline {
+		width: 4.5em;
+	}
+
+	#zoneEditor_name {
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.zoneEditor-radius {
+		color: #666;
+	}
+}
+
+// Same look as #groundTexturePopup.
+#zoneEditorPopup {
+	position: fixed;
+	z-index: 2000;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	max-height: 95vh;
+	max-width: 40em;
+
+	background-color: white;
+
+	h2 {
+		margin: 0;
+	}
+
+	> pre {
+		white-space: pre-wrap;
+		overflow-y: auto;
+		padding: 0.7em;
+		margin: 0;
+	}
+
+	> header, footer {
+		padding: 0.7em;
+	}
+}
+
+#zoneEditor_closePopup {
+	float: right;
+}

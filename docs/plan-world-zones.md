@@ -529,7 +529,7 @@ check, pause between chunks).
   - **This is the playable/commit point** — world bounded, loaded from
     `zone.json`, mobs live at authored spots with same-spot respawns. Committed.
 
-### Chunk 5 — Editor: props + spawns placement + zone export (frontend)
+### Chunk 5 — Editor: props + spawns placement + zone export (frontend) — ✅ DONE + verified in-game 2026-07-08 (terrain/prop/spawn placement AND full export→server round-trip: downloaded zone.json → api/zones/ → `-content ../api` restart → world matches)
 - **Goal:** author a full `zone.json` in-game.
 - **Do:** extend the MysticWand panel with prop + spawn modes; place/rotate/flag
   props; place spawn markers with respawn settings; `getZoneAsJSON()` +
@@ -538,6 +538,42 @@ check, pause between chunks).
 - **Tests:** manual (in-game authoring round-trip); light unit tests on the
   JSON (de)serialization if factored out.
 - **Gotchas:** #4 (units), #8 (dev-only).
+- **Record (2026-07-08, tsc + webpack prod build green; in-game round-trip
+  pending):** new feature module `frontend/src/features/zone-editor/` —
+  `ZoneModel.ts` (pure, DOM/PIXI-free data model mirroring `world.Zone`;
+  **server units only**; `getZoneAsJSON()` serializes in the hand-written
+  file's field order, coords rounded to 2 decimals, angles to 3),
+  `ZoneEditor.ts` (marker overlay + registries + px↔unit conversion via
+  `meter2px`), `_ZoneEditorPanel.ts` (DOM wiring + editor mode). **§7.4
+  decided → bundle from repo `api/`** (zone + prop + mob registries; editor
+  dropdowns can't drift from the server). **One shared panel** (extends
+  `groundTexturePanel.html`) with an **Off / Terrain / Props / Spawns mode
+  selector**; Off is default so clicks play normally. Placement: click places
+  with current control values and selects the new marker; clicking an existing
+  marker selects it (Update/Delete/Deselect); move = delete + re-place (no
+  drag, KISS). Markers are editor-only PIXI graphics on top of the
+  `cameraGroup` — props: circle at true registry radius (red = blocking, blue
+  = decorative, inner ring = `blocksAura`, tick = rotation), spawns: green
+  diamond + mob label; zone bounds drawn as a yellow rectangle (live preview
+  on bounds edit; the physical wall still needs the server restart). **Fixed
+  in passing: ground-texture click placement was triply broken** — gated on a
+  MysticWand hand-equip that Block 2's item-system removal made unsatisfiable;
+  registered as a `click` listener, which `MouseManager`'s mousedown
+  `preventDefault()` suppresses; and attached to the canvas, which the
+  full-screen `#inputAreas` joystick overlay sits above, so map presses never
+  target the canvas at all. Now: `pointerdown` on `document.documentElement`
+  + Terrain-mode gate + `isMapPointerEvent` target filter (accepts only
+  canvas/`#inputAreas` targets, so panel/HUD presses can't place); the `give
+  MysticWand` grant + `CharacterEquippedItemEvent` handler deleted. Prop +
+  spawn modes also got a **"Place at my position"** button + a "You (units)"
+  readout, consistent with the terrain painter's at-feet button.
+  `preventShortcutPropagation` gained the missing `text`-input case (zone
+  name field: all keys swallowed).
+  UI-in-degrees, JSON-in-radians for rotation/angle. No frontend test runner
+  exists, so `ZoneModel` is factored pure but pinned only by tsc + the manual
+  round-trip (backend's `DisallowUnknownFields` loader is the real schema
+  gate). Zero backend/wire changes. **User manual:
+  `docs/manual-zone-editor.md`.**
 
 ### Chunk 6 — Terrain floor + a scaffold zone (frontend + pipeline proof)
 - **Goal:** prove the whole pipeline end-to-end with a **throwaway scaffold
@@ -574,9 +610,14 @@ check, pause between chunks).
   truth (an appended width/height leaves `map_radius` a meaningless field with no
   remaining consumer). All `map_radius` consumers migrate: `WelcomeMessage.ts`,
   `Game.ts` water-circle + MiniMap setup, `EntityManager` bounds.
-- **§7.4 — Editor load path.** Bundle `zone.json` like `ground-textures.json`
-  (build-time) vs a dev-only GET endpoint. Lean: bundle first (zero new server
-  surface). Decide in chunk 5.
+- **§7.4 — Editor load path. DECIDED 2026-07-08 → bundle, directly from the
+  repo `api/`.** The editor `require`s `api/zones/zone.json` + the
+  `api/props/*.json` / `api/mobs/*.json` registries straight from the repo
+  (webpack bundles outside `src/` fine — precedent: `Changelog.ts`). Unlike
+  `ground-textures.json` there is NO duplicated copy under `client-data/`, so
+  the editor can never drift from what the server loads with `-content ../api`;
+  zero new server surface. Trade-off accepted: the prod bundle carries ~2 KB of
+  zone/prop/mob JSON (same as the ground-texture precedent).
 - **§7.5 — Placeholder numbers.** Bounds set to **[PLACEHOLDER] 60×40 server
   units** in chunk 1 (contains the radius-20 spawn circle); `respawnTicks`,
   `respawnVariancePct`, prop body radii still **[PLACEHOLDER]**, tuned in-game.

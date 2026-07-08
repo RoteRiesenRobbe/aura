@@ -411,6 +411,10 @@ export function preventShortcutPropagation(element: Element) {
             case 'radio':
                 preventInputPropagation(element, {notPropagated: ['Space', 'Tab']});
                 return;
+            case 'text':
+                // Free text input: no key may reach the game shortcuts.
+                preventInputPropagation(element);
+                return;
             default:
                 console.warn(`Unsupported InputElement of type '${element.type}'.`, element);
                 return;

@@ -1,6 +1,4 @@
 import '../assets/groundTexturePanel.less';
-import {Items} from '../../items/logic/Items';
-import * as Equipment from '../../items/logic/Equipment';
 import * as Preloading from '../../core/logic/Preloading';
 import {
     deg2rad,
@@ -18,8 +16,9 @@ import * as GroundTextureManager from './GroundTextureManager';
 import {saveAs} from 'file-saver';
 import * as Console from '../../internal-tools/console/logic/Console';
 import {GameState, IGame} from "../../core/logic/IGame";
-import {BackendValidTokenEvent, CharacterEquippedItemEvent, GamePlayingEvent, PrerenderEvent} from '../../core/logic/Events';
+import {BackendValidTokenEvent, GamePlayingEvent, PrerenderEvent} from '../../core/logic/Events';
 import {QueryParameters} from '../../internal-tools/logic/QueryParameters';
+import * as ZoneEditorPanel from '../../zone-editor/logic/_ZoneEditorPanel';
 
 let Game: IGame = null;
 
@@ -37,8 +36,6 @@ GamePlayingEvent.subscribe((game: IGame) => {
 
     Console.log('GroundTexturePanel activated - try to activate GODMODE now.');
     Console.run('GOD');
-    Console.log('GroundTexturePanel activated - try to grant MysticWand');
-    Console.run('give MysticWand');
 
     PrerenderEvent.subscribe( () => {
         if (Game.state === GameState.PLAYING) {
@@ -53,24 +50,20 @@ GamePlayingEvent.subscribe((game: IGame) => {
         }
     }, this);
 
-    Game.domElement.addEventListener('click', function (event) {
-        // MysticWand was removed with the item system (Block 2); this dev
-        // painter's hand-equip gate is defunct and never matches now.
-        if (Game.player.character.getEquippedItem(Equipment.EquipmentSlot.HAND) === (Items as any).MysticWand) {
-            let x = Game.player.camera.getMapX(event.pageX);
-            let y = Game.player.camera.getMapY(event.pageY);
-            placeTexture({x, y});
-        }
+    // On documentElement, NOT the canvas (the full-screen #inputAreas overlay
+    // swallows map presses — see ZoneEditorPanel.isMapPointerEvent). And
+    // pointerdown, not click: MouseManager preventDefault()s mousedown, which
+    // suppresses synthetic click events.
+    document.documentElement.addEventListener('pointerdown', function (event: PointerEvent) {
+        if (event.button !== 0) return;
+        if (ZoneEditorPanel.getMode() !== 'terrain') return;
+        if (!ZoneEditorPanel.isMapPointerEvent(event, Game.domElement)) return;
+
+        let x = Game.player.camera.getMapX(event.pageX);
+        let y = Game.player.camera.getMapY(event.pageY);
+        placeTexture({x, y});
     });
 });
-
-CharacterEquippedItemEvent.subscribe((payload) => {
-    if (!active) return;
-
-    if (payload.item.name !== 'MysticWand') return;
-
-    Game.player.character.say('You can now click the ground anywhere to place a texture!');
-})
 
 let typeSelect;
 let xLabel;
@@ -292,7 +285,11 @@ function randomizeInputs() {
 BackendValidTokenEvent.subscribe( function () {
     if (QueryParameters.get().has(Constants.MODE_PARAMETERS.GROUND_TEXTURE_EDITOR)) {
         active = true;
+        ZoneEditorPanel.activate();
 
-        Preloading.renderPartial(require('../assets/groundTexturePanel.html'), setupPanel);
+        Preloading.renderPartial(require('../assets/groundTexturePanel.html'), () => {
+            setupPanel();
+            ZoneEditorPanel.setupPanel();
+        });
     }
 });

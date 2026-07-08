@@ -6,6 +6,29 @@
         </div>
 
         <div class="group">
+            <label>Editor mode</label>
+            <div class="radioGroup">
+                <label>
+                    <input type="radio" name="zoneEditor_mode" value="off" checked>
+                    Off
+                </label>
+                <label>
+                    <input type="radio" name="zoneEditor_mode" value="terrain">
+                    Terrain
+                </label>
+                <label>
+                    <input type="radio" name="zoneEditor_mode" value="prop">
+                    Props
+                </label>
+                <label>
+                    <input type="radio" name="zoneEditor_mode" value="spawn">
+                    Spawns
+                </label>
+            </div>
+        </div>
+
+        <div id="groundTexture_section" class="hidden">
+        <div class="group">
             <label for="groundTexture_type">
                 Ground Texture Type to be placed
             </label>
@@ -98,6 +121,106 @@
                 Textures on the Map
             </a>
         </div>
+        </div>
+
+        <div id="zoneEditor_zoneControls" class="hidden">
+            <div class="group">
+                <label for="zoneEditor_name">Zone name</label>
+                <input type="text" id="zoneEditor_name"/>
+            </div>
+
+            <div class="group">
+                <label>Bounds (units)</label>
+                W <input type="number" id="zoneEditor_boundsWidth" class="zoneEditor-inline" step="1" min="1"/>
+                H <input type="number" id="zoneEditor_boundsHeight" class="zoneEditor-inline" step="1" min="1"/>
+            </div>
+
+            <div class="group">
+                <span>Mouse (units):</span>
+                <div><code>X: <span id="zoneEditor_mouseX"></span> / Y: <span id="zoneEditor_mouseY"></span></code></div>
+                <span>You (units):</span>
+                <div><code>X: <span id="zoneEditor_currentX"></span> / Y: <span id="zoneEditor_currentY"></span></code></div>
+            </div>
+
+            <div id="zoneEditor_propControls" class="hidden">
+                <div class="group">
+                    <label for="zoneEditor_propType">Prop type</label>
+                    <select id="zoneEditor_propType">
+                        <option value="" selected disabled>Choose one</option>
+                    </select>
+                    <span id="zoneEditor_propRadius" class="zoneEditor-radius"></span>
+                </div>
+
+                <div class="group">
+                    <label for="zoneEditor_propRotation">Rotation (deg)</label>
+                    <input type="number" id="zoneEditor_propRotation" class="zoneEditor-inline" step="1" value="0"/>
+                </div>
+
+                <div class="group">
+                    <label>
+                        <input type="checkbox" id="zoneEditor_blocksMovement" checked/>
+                        blocks movement
+                    </label>
+                    <label>
+                        <input type="checkbox" id="zoneEditor_blocksAura"/>
+                        blocks aura
+                    </label>
+                </div>
+
+                <div class="group">
+                    <button id="zoneEditor_propPlaceButton" class="actionButton">Place at my position</button>
+                </div>
+
+                <div class="group hidden" id="zoneEditor_propSelection">
+                    <div>Selected prop #<span id="zoneEditor_propSelectedIndex"></span></div>
+                    <button id="zoneEditor_propUpdate" class="actionButton">Update</button>
+                    <button id="zoneEditor_propDelete" class="secondaryButton">Delete</button>
+                    <button id="zoneEditor_propDeselect">Deselect</button>
+                </div>
+            </div>
+
+            <div id="zoneEditor_spawnControls" class="hidden">
+                <div class="group">
+                    <label for="zoneEditor_spawnMob">Mob</label>
+                    <select id="zoneEditor_spawnMob">
+                        <option value="" selected disabled>Choose one</option>
+                    </select>
+                </div>
+
+                <div class="group">
+                    <label for="zoneEditor_respawnTicks">Respawn ticks</label>
+                    <input type="number" id="zoneEditor_respawnTicks" class="zoneEditor-inline" step="100" min="0" value="900"/>
+                </div>
+
+                <div class="group">
+                    <label for="zoneEditor_respawnVariance">Respawn variance (0..1)</label>
+                    <input type="number" id="zoneEditor_respawnVariance" class="zoneEditor-inline" step="0.05" min="0" value="0.2"/>
+                </div>
+
+                <div class="group">
+                    <label for="zoneEditor_spawnAngle">Angle (deg)</label>
+                    <input type="number" id="zoneEditor_spawnAngle" class="zoneEditor-inline" step="1" value="0"/>
+                </div>
+
+                <div class="group">
+                    <button id="zoneEditor_spawnPlaceButton" class="actionButton">Place at my position</button>
+                </div>
+
+                <div class="group hidden" id="zoneEditor_spawnSelection">
+                    <div>Selected spawn #<span id="zoneEditor_spawnSelectedIndex"></span></div>
+                    <button id="zoneEditor_spawnUpdate" class="actionButton">Update</button>
+                    <button id="zoneEditor_spawnDelete" class="secondaryButton">Delete</button>
+                    <button id="zoneEditor_spawnDeselect">Deselect</button>
+                </div>
+            </div>
+
+            <div class="group">
+                <a href="#" id="zoneEditor_showPopup">
+                    Zone: <span id="zoneEditor_propCount"></span> props /
+                    <span id="zoneEditor_spawnCount"></span> spawns
+                </a>
+            </div>
+        </div>
     </div>
 
     <div id="groundTexturePopup" class="hidden layout-column">
@@ -110,6 +233,21 @@
                 Download
             </button>
             <button id="groundTexture_closePopup" class="right">
+                Close
+            </button>
+        </footer>
+    </div>
+
+    <div id="zoneEditorPopup" class="hidden layout-column">
+        <header>
+            <h2>Zone (zone.json)</h2>
+        </header>
+        <pre class="flex"><code id="zoneEditorOutput"></code></pre>
+        <footer>
+            <button id="zoneEditor_download" class="actionButton right">
+                Download
+            </button>
+            <button id="zoneEditor_closePopup" class="right">
                 Close
             </button>
         </footer>

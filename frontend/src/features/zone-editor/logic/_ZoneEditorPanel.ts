@@ -1,0 +1,447 @@
+/**
+ * Zone editor panel (world foundation chunk 5): prop + spawn placement modes
+ * and zone.json export, sharing the ground-texture panel DOM. Owns the editor
+ * mode ('off' | 'terrain' | 'prop' | 'spawn') that also gates ground-texture
+ * click placement — the old MysticWand hand-equip gate is gone (defunct since
+ * Block 2 removed the item system).
+ *
+ * Dev-only: activated together with the ground-texture panel via the
+ * ?textures query parameter (+ valid token).
+ */
+import '../assets/zoneEditorPanel.less';
+import {deg2rad, preventShortcutPropagation} from '../../common/logic/Utils';
+import {meter2px} from '../../../client-data/BasicConfig';
+import {GameState, IGame} from '../../core/logic/IGame';
+import {GamePlayingEvent, PrerenderEvent} from '../../core/logic/Events';
+import {saveAs} from 'file-saver';
+import * as Console from '../../internal-tools/console/logic/Console';
+import * as ZoneEditor from './ZoneEditor';
+import {ZoneProp, ZoneSpawn} from './ZoneModel';
+
+export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn';
+
+const PX_PER_UNIT = meter2px(1);
+
+let Game: IGame = null;
+
+let active = false;
+let wired = false;
+let mode: EditorMode = 'off';
+
+export function activate() {
+    active = true;
+}
+
+export function isActive(): boolean {
+    return active;
+}
+
+export function getMode(): EditorMode {
+    return mode;
+}
+
+/**
+ * True if a pointer event pressed the game world rather than a UI panel.
+ *
+ * The full-screen #inputAreas overlay (virtual joystick) sits ABOVE the game
+ * canvas, so map presses target it and NEVER reach a listener on the canvas
+ * itself — world-click listeners must sit on document.documentElement (like
+ * the game's own MouseManager) and filter with this predicate. UI panels and
+ * popups render above the overlay, so presses on them target neither the
+ * canvas nor the overlay.
+ */
+export function isMapPointerEvent(event: PointerEvent, canvas: HTMLElement): boolean {
+    let target = event.target as Element;
+    if (target === canvas) {
+        return true;
+    }
+    return target !== null && target.closest('#inputAreas') !== null;
+}
+
+let textureSection: HTMLElement;
+let zoneControls: HTMLElement;
+let nameInput: HTMLInputElement;
+let boundsWidthInput: HTMLInputElement;
+let boundsHeightInput: HTMLInputElement;
+let mouseXLabel: HTMLElement;
+let mouseYLabel: HTMLElement;
+let currentXLabel: HTMLElement;
+let currentYLabel: HTMLElement;
+
+let propControls: HTMLElement;
+let propTypeSelect: HTMLSelectElement;
+let propRadiusLabel: HTMLElement;
+let propRotationInput: HTMLInputElement;
+let blocksMovementToggle: HTMLInputElement;
+let blocksAuraToggle: HTMLInputElement;
+let propSelectionGroup: HTMLElement;
+let propSelectedIndexLabel: HTMLElement;
+
+let spawnControls: HTMLElement;
+let spawnMobSelect: HTMLSelectElement;
+let respawnTicksInput: HTMLInputElement;
+let respawnVarianceInput: HTMLInputElement;
+let spawnAngleInput: HTMLInputElement;
+let spawnSelectionGroup: HTMLElement;
+let spawnSelectedIndexLabel: HTMLElement;
+
+let propCountLabel: HTMLElement;
+let spawnCountLabel: HTMLElement;
+
+/**
+ * Wires the zone-editor sections of the shared panel. Called by
+ * _GroundTexturesPanel after the panel partial is rendered.
+ */
+export function setupPanel() {
+    textureSection = document.getElementById('groundTexture_section');
+    zoneControls = document.getElementById('zoneEditor_zoneControls');
+    nameInput = document.getElementById('zoneEditor_name') as HTMLInputElement;
+    boundsWidthInput = document.getElementById('zoneEditor_boundsWidth') as HTMLInputElement;
+    boundsHeightInput = document.getElementById('zoneEditor_boundsHeight') as HTMLInputElement;
+    mouseXLabel = document.getElementById('zoneEditor_mouseX');
+    mouseYLabel = document.getElementById('zoneEditor_mouseY');
+    currentXLabel = document.getElementById('zoneEditor_currentX');
+    currentYLabel = document.getElementById('zoneEditor_currentY');
+
+    propControls = document.getElementById('zoneEditor_propControls');
+    propTypeSelect = document.getElementById('zoneEditor_propType') as HTMLSelectElement;
+    propRadiusLabel = document.getElementById('zoneEditor_propRadius');
+    propRotationInput = document.getElementById('zoneEditor_propRotation') as HTMLInputElement;
+    blocksMovementToggle = document.getElementById('zoneEditor_blocksMovement') as HTMLInputElement;
+    blocksAuraToggle = document.getElementById('zoneEditor_blocksAura') as HTMLInputElement;
+    propSelectionGroup = document.getElementById('zoneEditor_propSelection');
+    propSelectedIndexLabel = document.getElementById('zoneEditor_propSelectedIndex');
+
+    spawnControls = document.getElementById('zoneEditor_spawnControls');
+    spawnMobSelect = document.getElementById('zoneEditor_spawnMob') as HTMLSelectElement;
+    respawnTicksInput = document.getElementById('zoneEditor_respawnTicks') as HTMLInputElement;
+    respawnVarianceInput = document.getElementById('zoneEditor_respawnVariance') as HTMLInputElement;
+    spawnAngleInput = document.getElementById('zoneEditor_spawnAngle') as HTMLInputElement;
+    spawnSelectionGroup = document.getElementById('zoneEditor_spawnSelection');
+    spawnSelectedIndexLabel = document.getElementById('zoneEditor_spawnSelectedIndex');
+
+    propCountLabel = document.getElementById('zoneEditor_propCount');
+    spawnCountLabel = document.getElementById('zoneEditor_spawnCount');
+
+    let popup = document.getElementById('zoneEditorPopup');
+    popup.querySelectorAll('input, button, a, select')
+        .forEach(preventShortcutPropagation);
+
+    ZoneEditor.propTypes.forEach(type => {
+        let option = document.createElement('option');
+        option.value = type.name;
+        option.textContent = type.name;
+        propTypeSelect.appendChild(option);
+    });
+    propTypeSelect.addEventListener('change', updatePropRadiusLabel);
+    updatePropRadiusLabel();
+
+    ZoneEditor.mobNames.forEach(name => {
+        let option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        spawnMobSelect.appendChild(option);
+    });
+
+    nameInput.value = ZoneEditor.model.name;
+    boundsWidthInput.value = String(ZoneEditor.model.bounds.width);
+    boundsHeightInput.value = String(ZoneEditor.model.bounds.height);
+    updateCounts();
+
+    nameInput.addEventListener('change', () => {
+        ZoneEditor.model.name = nameInput.value;
+    });
+    boundsWidthInput.addEventListener('change', onBoundsChanged);
+    boundsHeightInput.addEventListener('change', onBoundsChanged);
+
+    document.getElementsByName('zoneEditor_mode').forEach(element => {
+        let radio = element as HTMLInputElement;
+        radio.addEventListener('change', () => setMode(radio.value as EditorMode));
+    });
+
+    document.getElementById('zoneEditor_propPlaceButton').addEventListener('click', event => {
+        event.preventDefault();
+        placeAtPlayer();
+    });
+    document.getElementById('zoneEditor_spawnPlaceButton').addEventListener('click', event => {
+        event.preventDefault();
+        placeAtPlayer();
+    });
+    document.getElementById('zoneEditor_propUpdate').addEventListener('click', event => {
+        event.preventDefault();
+        applyControlsToSelection();
+    });
+    document.getElementById('zoneEditor_propDelete').addEventListener('click', event => {
+        event.preventDefault();
+        deleteSelection();
+    });
+    document.getElementById('zoneEditor_propDeselect').addEventListener('click', event => {
+        event.preventDefault();
+        deselect();
+    });
+    document.getElementById('zoneEditor_spawnUpdate').addEventListener('click', event => {
+        event.preventDefault();
+        applyControlsToSelection();
+    });
+    document.getElementById('zoneEditor_spawnDelete').addEventListener('click', event => {
+        event.preventDefault();
+        deleteSelection();
+    });
+    document.getElementById('zoneEditor_spawnDeselect').addEventListener('click', event => {
+        event.preventDefault();
+        deselect();
+    });
+
+    let output = document.getElementById('zoneEditorOutput');
+    document.getElementById('zoneEditor_showPopup').addEventListener('click', event => {
+        event.preventDefault();
+        popup.classList.remove('hidden');
+        output.textContent = ZoneEditor.model.getZoneAsJSON();
+    });
+    document.getElementById('zoneEditor_closePopup').addEventListener('click', event => {
+        event.preventDefault();
+        popup.classList.add('hidden');
+    });
+    document.getElementById('zoneEditor_download').addEventListener('click', event => {
+        event.preventDefault();
+        let blob = new Blob([ZoneEditor.model.getZoneAsJSON()], {type: 'application/json;charset=utf-8'});
+        saveAs(blob, 'zone.json');
+    });
+}
+
+GamePlayingEvent.subscribe((game: IGame) => {
+    Game = game;
+    if (!active || wired) {
+        return;
+    }
+    wired = true;
+
+    ZoneEditor.attach(game);
+    Console.log('Zone editor ready - loaded zone "' + ZoneEditor.model.name +
+        '" (' + ZoneEditor.model.props.length + ' props, ' +
+        ZoneEditor.model.spawns.length + ' spawns). Pick a mode in the panel.');
+
+    PrerenderEvent.subscribe(() => {
+        if (Game.state !== GameState.PLAYING) {
+            return;
+        }
+        let x = Game.player.camera.getMapX(Game.inputManager.activePointer.x) / PX_PER_UNIT;
+        let y = Game.player.camera.getMapY(Game.inputManager.activePointer.y) / PX_PER_UNIT;
+        mouseXLabel.textContent = x.toFixed(2);
+        mouseYLabel.textContent = y.toFixed(2);
+
+        let position = Game.player.character.getPosition();
+        currentXLabel.textContent = (position.x / PX_PER_UNIT).toFixed(2);
+        currentYLabel.textContent = (position.y / PX_PER_UNIT).toFixed(2);
+    }, this);
+
+    // On documentElement, NOT the canvas — see isMapPointerEvent. pointerdown,
+    // not click: MouseManager preventDefault()s mousedown, which suppresses
+    // synthetic click events.
+    document.documentElement.addEventListener('pointerdown', onMapPointerDown);
+});
+
+function setMode(newMode: EditorMode) {
+    mode = newMode;
+    deselect();
+
+    textureSection.classList.toggle('hidden', mode !== 'terrain');
+    zoneControls.classList.toggle('hidden', mode !== 'prop' && mode !== 'spawn');
+    propControls.classList.toggle('hidden', mode !== 'prop');
+    spawnControls.classList.toggle('hidden', mode !== 'spawn');
+}
+
+function onBoundsChanged() {
+    let width = parseFloat(boundsWidthInput.value);
+    let height = parseFloat(boundsHeightInput.value);
+    if (isNaN(width) || width <= 0 || isNaN(height) || height <= 0) {
+        return;
+    }
+    ZoneEditor.setBounds(width, height);
+}
+
+function onMapPointerDown(event: PointerEvent) {
+    if (event.button !== 0) {
+        return;
+    }
+    if (mode !== 'prop' && mode !== 'spawn') {
+        return;
+    }
+    if (Game.state !== GameState.PLAYING) {
+        return;
+    }
+    if (!isMapPointerEvent(event, Game.domElement)) {
+        return;
+    }
+
+    let x = Game.player.camera.getMapX(event.pageX) / PX_PER_UNIT;
+    let y = Game.player.camera.getMapY(event.pageY) / PX_PER_UNIT;
+
+    if (mode === 'prop') {
+        let hit = ZoneEditor.hitTestProp(x, y);
+        if (hit >= 0) {
+            ZoneEditor.setSelection({kind: 'prop', index: hit});
+            populatePropControls(ZoneEditor.model.props[hit]);
+            updateSelectionDisplay();
+            return;
+        }
+    } else {
+        let hit = ZoneEditor.hitTestSpawn(x, y);
+        if (hit >= 0) {
+            ZoneEditor.setSelection({kind: 'spawn', index: hit});
+            populateSpawnControls(ZoneEditor.model.spawns[hit]);
+            updateSelectionDisplay();
+            return;
+        }
+    }
+
+    placeAt(x, y);
+}
+
+function placeAtPlayer() {
+    if (Game === null || Game.state !== GameState.PLAYING) {
+        return;
+    }
+    let position = Game.player.character.getPosition();
+    placeAt(position.x / PX_PER_UNIT, position.y / PX_PER_UNIT);
+}
+
+function placeAt(x: number, y: number) {
+    if (mode === 'prop') {
+        let prop = readPropControls(x, y);
+        if (prop === null) {
+            return;
+        }
+        ZoneEditor.placeProp(prop);
+    } else if (mode === 'spawn') {
+        let spawn = readSpawnControls(x, y);
+        if (spawn === null) {
+            return;
+        }
+        ZoneEditor.placeSpawn(spawn);
+    }
+
+    updateCounts();
+    updateSelectionDisplay();
+}
+
+function readPropControls(x: number, y: number): ZoneProp {
+    if (propTypeSelect.value === '') {
+        Game.player.character.say('No prop type selected');
+        return null;
+    }
+    return {
+        type: propTypeSelect.value,
+        x,
+        y,
+        rotation: deg2rad(parseFloat(propRotationInput.value) || 0),
+        blocksMovement: blocksMovementToggle.checked,
+        blocksAura: blocksAuraToggle.checked,
+    };
+}
+
+function readSpawnControls(x: number, y: number): ZoneSpawn {
+    if (spawnMobSelect.value === '') {
+        Game.player.character.say('No mob selected');
+        return null;
+    }
+    let respawnTicks = parseInt(respawnTicksInput.value);
+    if (isNaN(respawnTicks) || respawnTicks < 0) {
+        Game.player.character.say('Invalid respawn ticks');
+        return null;
+    }
+    let variance = parseFloat(respawnVarianceInput.value);
+    if (isNaN(variance) || variance < 0) {
+        variance = 0;
+    }
+    return {
+        mob: spawnMobSelect.value,
+        x,
+        y,
+        angle: deg2rad(parseFloat(spawnAngleInput.value) || 0),
+        respawnTicks,
+        respawnVariancePct: variance,
+    };
+}
+
+function populatePropControls(prop: ZoneProp) {
+    propTypeSelect.value = prop.type;
+    updatePropRadiusLabel();
+    propRotationInput.value = String(Math.round(prop.rotation * 180 / Math.PI));
+    blocksMovementToggle.checked = prop.blocksMovement;
+    blocksAuraToggle.checked = prop.blocksAura;
+}
+
+function populateSpawnControls(spawn: ZoneSpawn) {
+    spawnMobSelect.value = spawn.mob;
+    respawnTicksInput.value = String(spawn.respawnTicks);
+    respawnVarianceInput.value = String(spawn.respawnVariancePct);
+    spawnAngleInput.value = String(Math.round(spawn.angle * 180 / Math.PI));
+}
+
+function applyControlsToSelection() {
+    let selection = ZoneEditor.getSelection();
+    if (selection === null) {
+        return;
+    }
+
+    if (selection.kind === 'prop') {
+        let current = ZoneEditor.model.props[selection.index];
+        let updated = readPropControls(current.x, current.y);
+        if (updated !== null) {
+            ZoneEditor.updateProp(selection.index, updated);
+        }
+    } else {
+        let current = ZoneEditor.model.spawns[selection.index];
+        let updated = readSpawnControls(current.x, current.y);
+        if (updated !== null) {
+            ZoneEditor.updateSpawn(selection.index, updated);
+        }
+    }
+}
+
+function deleteSelection() {
+    let selection = ZoneEditor.getSelection();
+    if (selection === null) {
+        return;
+    }
+
+    if (selection.kind === 'prop') {
+        ZoneEditor.removeProp(selection.index);
+    } else {
+        ZoneEditor.removeSpawn(selection.index);
+    }
+
+    updateCounts();
+    updateSelectionDisplay();
+}
+
+function deselect() {
+    ZoneEditor.setSelection(null);
+    updateSelectionDisplay();
+}
+
+function updateSelectionDisplay() {
+    let selection = ZoneEditor.getSelection();
+    let propSelected = selection !== null && selection.kind === 'prop';
+    let spawnSelected = selection !== null && selection.kind === 'spawn';
+
+    propSelectionGroup.classList.toggle('hidden', !propSelected);
+    spawnSelectionGroup.classList.toggle('hidden', !spawnSelected);
+    if (propSelected) {
+        propSelectedIndexLabel.textContent = String(selection.index);
+    }
+    if (spawnSelected) {
+        spawnSelectedIndexLabel.textContent = String(selection.index);
+    }
+}
+
+function updatePropRadiusLabel() {
+    let type = ZoneEditor.propTypeByName(propTypeSelect.value);
+    propRadiusLabel.textContent = type ? 'r ' + type.radius + 'u' : '';
+}
+
+function updateCounts() {
+    propCountLabel.textContent = String(ZoneEditor.model.props.length);
+    spawnCountLabel.textContent = String(ZoneEditor.model.spawns.length);
+}
