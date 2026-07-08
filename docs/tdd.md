@@ -174,19 +174,20 @@ Each system below gets its own spec discussion before it is implemented; section
 
 ## 6. Roadmap (technical, rough)
 
-First sketch; the authoritative plans are `docs/plan-skill-system.md` (skill system) and `docs/roadmap.md` (rest — current progress lives there too, not duplicated here):
+First sketch; the authoritative plans are `docs/plan-skill-system.md` (skill system) and `docs/roadmap.md` (rest — current progress + the **decided execution order** live there, not duplicated here). **Build order decided 2026-07-08: systems-first, content-last** — see roadmap.md "Execution order". Re-sequenced to match (numbering below now reflects the build order, not the roadmap item numbers):
 
 1. ✅ **Repo setup & onboarding** — Berryhunter running locally, Claude Code set up, build pipeline understood
 2. ✅ **Skill-system migration** — Phases 1–9 complete (tick engine, all three categories, leveling, unlocks, combinations)
 3. ✅ **Survival removal + resource unification** — roadmap items 1+2 (Block 2)
-4. ✅ **Aura targeting: selector + target count** — roadmap item 11, incl. hit VFX; then absolute HP + resistances/tags (item 11 Phases 1+2)
-5. ⬜ **Initial content pass** — first real skill/mob/recipe content (prototype gate, roadmap item 12) ← **we are here**
-6. ⬜ **Accounts & persistence** — anonymous-first
-7. ⬜ **World & zones** — map-format decision (Tiled spike), handcrafted zones, zone chat
-8. ⬜ **Line-of-sight** — spike (blob benchmark), then occlusion into the aura system
-9. ⬜ **Darkness & light** — rendering only, `light_aura` effect type
-10. ⬜ **Mob behavior & tiers** — patrol archetypes, spawn points in map data, boss scripting/encounter controller, mob heal
-11. ⬜ **Polish & closed alpha** — ops gaps (CI tests, crash isolation, observability): see `docs/research-v1-readiness.md`
+4. ✅ **Aura targeting: selector + target count** — roadmap item 11, incl. hit VFX; then absolute HP + resistances/tags/variance (item 11 Phases 1–3)
+5. ⬜ **World foundation** — roadmap item 4; in-game editor + `zone.json` loader + rectangular boundary + scaffold zone (`plan-world-zones.md`, 6 chunks) ← **we are here**
+6. ⬜ **Mob depth + totems** — roadmap item 7 remainder (patrol archetypes, support mob-heal, **encounter-controller spine + threat table** built early) + effect-foundations Step 3 (spawned-entity/totem lifecycle)
+7. ⬜ **Line-of-sight + darkness/light** — roadmap items 6 + 5; LoS spike (blob benchmark) → occlusion into the aura pipeline; darkness rendering + `light_aura` effect type + campfires (both consume item-4 map data)
+8. ⬜ **Skill-vocabulary fill** — effect-foundations Step 4 (shield-as-buff-payload) + cheap effect types (life steal, execute, crit, berserker)
+9. ⬜ **Unlock-source systems** — roadmap item 9; world clue-anchor entities + NPC-teaching behavior
+10. ⬜ **Initial content pass** — roadmap item 12; first real skill/mob/recipe/boss/zone content + legacy-mob replacement + balance (**the prove-it gate**)
+11. ⬜ **Accounts & persistence** — roadmap item 3; anonymous-first (**after** content) + UI polish / avatar (item 8)
+12. ⬜ **Polish & closed alpha** — ops gaps (CI tests, crash isolation, observability): see `docs/research-v1-readiness.md`
 
 ---
 

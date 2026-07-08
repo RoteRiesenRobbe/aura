@@ -5,8 +5,9 @@ Each item graduates to its own design doc (or a section here grows into one)
 when its work approaches. The skill system has its own plan:
 `plan-skill-system.md`.
 
-Ordering below is a first guess, not a decision. All numbers [PLACEHOLDER].
-**⚑** marks open decision points.
+The item **numbering below is an enumeration, not the build order**. The decided
+build sequence lives in **"Execution order (decided 2026-07-08)"** near the end
+of this file. All numbers [PLACEHOLDER]. **⚑** marks open decision points.
 
 Unscoped ideas that haven't graduated into a roadmap item live in
 `backlog.md`.
@@ -67,6 +68,10 @@ food/tool items.
 
 ## 3. Accounts & persistence
 
+> **Sequenced after the content pass (see "Execution order").** The game proves
+> out session-based first; persistence + the account service are step 7, not a
+> content prerequisite.
+
 - Current state: frontend `accounts` feature exists but is localStorage-only
   (player name, tutorial progress, settings) — its own comment says "as long as
   accounts are not persisted in the backend". Join is token-based; the
@@ -85,6 +90,14 @@ food/tool items.
 2–3 handcrafted connected zones for different level ranges; persistent shared
 open world; open-world dungeons (caves, no instances); environmental
 storytelling.
+
+> **First slice PLANNED (2026-07-08) → `docs/plan-world-zones.md`.** Decided:
+> in-game editor (extend the MysticWand tool), rectangular single-`Space` world,
+> server-authoritative `zone.json` (bounds + props + mob spawn points), resources
+> demoted to dead weight, occluders carry `blocksMovement`/`blocksAura` but only
+> movement blocking is built now. Includes the placement+respawn half of item 7
+> (fixed spawn points + respawn timers, no patrols). Defers Tiled, multi-zone,
+> zone transitions, sharding, and items 5/6. Six-chunk breakdown in the plan doc.
 
 - Current state: single world assembled procedurally at startup (deterministic
   seeds) — the opposite of the hand-authored target.
@@ -490,22 +503,56 @@ needs real design time:
 
 ---
 
-## Path to a multiplayer-playable prototype
+## Execution order (decided 2026-07-08)
 
-Multiplayer itself already works — the game runs as a shared-world WebSocket
-server today. The minimal subset for a playable prototype:
+The item numbering above is an enumeration, not a sequence. The **decided build
+order is systems-first**: build every system the content pass depends on, then
+author content **once** against finished systems, and only then productionize.
+This consciously **trades a fast playable build for author-once content** — real
+fun/balance feedback waits for the content pass (item 12). Accepted deliberately;
+mitigated by per-chunk in-game verification and throwaway smoke-content so no
+system ships blind.
 
-1. ~~**Skill system complete** — `plan-skill-system.md` Phases 1–9.~~ ✓
-2. ~~**Items 1 + 2** — single resource, survival systems removed.~~ ✓
-3. ~~**Item 10** — participation XP (otherwise support roles can't level).~~ ✓
-4. ~~**Item 11** — aura targeting (selector + target cap + hit VFX), plus the
-   graduated HP/resistance phases 1+2.~~ ✓
-5. **Item 12** — initial content pass. ← **the only remaining prototype gate**
+**Done (prototype systems):** items 1, 2, 10, 11 + skill-system Phases 1–9.
 
-The prototype runs on the existing procedurally assembled world, without
-accounts/persistence (session-based, like today). Everything else — zones,
-darkness & light, line-of-sight, accounts, mob tiers, chat scoping, remaining
-unlock sources — turns the prototype into *v1*.
+**Remaining, in order:**
+
+1. **World foundation** (item 4) — `plan-world-zones.md`, 6 chunks. Ships the
+   in-game editor + `zone.json` loader + rectangular boundary + a **scaffold**
+   zone that proves the pipeline end-to-end. The **real designed zones are
+   authored in the content pass** (step 6), not here — keeps content-last honest.
+2. **Mob depth** (item 7 remainder) **+ totems** (effect-foundations Step 3) —
+   patrol archetypes, support mob-heal behaviors, spawned-entity/totem lifecycle,
+   and the **encounter-controller spine + threat table**, built here (**early**),
+   shaped by the documented lava-bridge reference encounter below (boss *scripts*
+   are content). Totems fold in here because they reuse the `MobSystem` respawn
+   path the World phase (chunk 4) rewrites — see `plan-world-zones.md` §4 gotcha #7.
+3. **Spatial combat & atmosphere** (items 6 + 5) — line-of-sight occlusion (perf
+   spike → occlusion into the aura pipeline) and darkness/light (the `light_aura`
+   effect type, campfires). Both consume the World phase's map data (occluders,
+   dark-area flags).
+4. **Skill-vocabulary fill** (effect-foundations Step 4 + cheap effect types) —
+   shield-as-buff-payload, life steal, execute, crit, berserker, … so the content
+   pass authors builds against the full effect palette.
+5. **Unlock-source systems** (item 9) — world clue-anchor entities + NPC-teaching
+   behavior (needs world **and** mobs).
+6. **Initial content pass** (item 12) — **the prove-it gate.** Real zones, full
+   mob roster (replace the legacy Berryhunter mobs), boss scripts, skills,
+   passives, cooldowns, combination recipes, first real balance pass. **This is
+   where the game is validated as fun**, session-based (no accounts yet).
+7. **Accounts & persistence** (item 3) **+ UI polish / avatar** (item 8) —
+   deliberately **after** content: the game proves out session-based first, then
+   we invest in persistence, the anonymous-first account service, the styling
+   pass, and avatar selection.
+8. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
+   DB / hosting decisions (`research-v1-readiness.md`).
+
+> **Superseded framing:** earlier drafts called item 12 "the only remaining
+> prototype gate" and everything else "turns the prototype into v1." That
+> minimal-content-first path was consciously rejected (2026-07-08) in favor of
+> the systems-first order above. Multiplayer already works (shared-world
+> WebSocket server); the sequence still runs session-based through the content
+> pass — persistence and productionization come only once content validates the game.
 
 ---
 
