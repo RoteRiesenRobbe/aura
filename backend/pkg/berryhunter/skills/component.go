@@ -89,7 +89,7 @@ type DerivedStats struct {
 	// source map (item 11 Phase 2): per tag, the product across equipped
 	// passives (each passive is a distinct resist source). nil when no resist
 	// passives are equipped. Fed to ResistMultiplier in takeDamage alongside
-	// the transient ResistBuffs.
+	// the transient resist buffs in the entity's Buffs store.
 	Resistances map[string]float32
 }
 

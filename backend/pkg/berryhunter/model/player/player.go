@@ -138,9 +138,11 @@ type player struct {
 	// carried here and applied once a whole HP has built up.
 	healthRegen float32
 
-	// resistBuffs holds transient resist_aura buffs (item 11 Phase 2); aged on
-	// the same per-tick lifecycle as the accumulators above.
-	resistBuffs skills.ResistBuffs
+	// buffs is the transient status-effect store (effect foundations Step 2):
+	// resist_aura buffs and dot debuffs. Aged on the same per-tick lifecycle
+	// as the accumulators above; dies with the entity — respawn starts clean
+	// (carriedState stashes only progression + SkillComponent).
+	buffs skills.Buffs
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {
@@ -182,7 +184,7 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) {
 	// resist-aura buffs are distinct sources and stack multiplicatively.
 	hp32 := damage.HP *
 		skills.ResistMultiplier(damage.Tags, p.skills.Derived.Resistances) *
-		p.resistBuffs.Multiplier(damage.Tags)
+		p.buffs.ResistMultiplier(damage.Tags)
 	// Passive damage reduction (DerivedStats); 100% is the natural cap.
 	if r := p.skills.Derived.DamageReductionBonus; r > 0 {
 		if r > 1 {
@@ -227,18 +229,31 @@ func (p *player) NoteAuraHit(style model.AuraHitStyle) { p.auraHitStyle = style 
 // (item 11 Phase 2); re-applied each aura tick, it expires on the same
 // per-tick lifecycle as the floating-number accumulators.
 func (p *player) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
-	p.resistBuffs.Apply(source, tags, factor, ticks)
+	p.buffs.ApplyResist(source, tags, factor, ticks)
+}
+
+// ApplyDot grants a damage-over-time debuff (effect foundations Step 2); it
+// runs its full authored duration independent of re-application, ticked by
+// the SkillSystem via DueDotHits.
+func (p *player) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
+	p.buffs.ApplyDot(source, dot, ticks)
+}
+
+// DueDotHits advances and drains this tick's due dot damage events; called
+// once per tick by the SkillSystem's acting site.
+func (p *player) DueDotHits() []skills.DotHit {
+	return p.buffs.DueDotHits()
 }
 
 // ResetTickNumbers clears the per-tick floating-number accumulators and ages
-// the transient resist buffs; called by the StatusEffectsSystem at the start
+// the transient buff store; called by the StatusEffectsSystem at the start
 // of each tick.
 func (p *player) ResetTickNumbers() {
 	p.damageTaken = 0
 	p.healReceived = 0
 	p.xpGained = 0
 	p.auraHitStyle = model.AuraHitStyleNone
-	p.resistBuffs.Tick()
+	p.buffs.Tick()
 }
 
 func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {

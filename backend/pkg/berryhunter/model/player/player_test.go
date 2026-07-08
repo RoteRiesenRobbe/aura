@@ -302,6 +302,12 @@ func TestDeathRespawn_RetainsSpellbookAndProgression(t *testing.T) {
 	require.True(t, dying.skills.HasDiscovered(defWildAura.ID))
 	require.True(t, dying.skills.RaiseSkillLevel(defWildAura), "spend a point on the drop")
 
+	// Active buffs/debuffs at the moment of death must NOT carry over: the
+	// store lives on the entity, and carriedState stashes only progression +
+	// SkillComponent (effect foundations Step 2, sub-decision 5).
+	dying.ApplyResist(40, []string{"fire"}, 0.5, 100)
+	dying.ApplyDot(5, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1}, 100)
+
 	// Death: state.go keeps the level (partial-XP loss) and stashes the component.
 	dying.LoseCurrentLevelExperience()
 	stashedProgression := dying.Progression()
@@ -325,6 +331,11 @@ func TestDeathRespawn_RetainsSpellbookAndProgression(t *testing.T) {
 	gained, required := respawned.LevelProgressXP()
 	assert.Equal(t, uint64(0), gained, "within-level XP resets on death")
 	assert.Equal(t, uint64(200), required, "level 2→3 span unchanged")
+
+	// Death cleared the buff store: no resist, no still-burning dot.
+	assert.InDelta(t, 1.0, respawned.buffs.ResistMultiplier([]string{"fire"}), 1e-6,
+		"resist buffs do not survive respawn")
+	assert.Empty(t, respawned.buffs.DueDotHits(), "dot debuffs do not survive respawn")
 }
 
 func TestAddExperience_DiscoverIdempotent(t *testing.T) {

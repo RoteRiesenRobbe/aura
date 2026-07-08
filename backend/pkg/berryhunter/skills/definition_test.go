@@ -525,6 +525,7 @@ func TestParse_ExactlyOnePayload(t *testing.T) {
 	assert.Nil(t, e.Slow)
 	assert.Nil(t, e.Resist)
 	assert.Nil(t, e.Stat)
+	assert.Nil(t, e.Dot)
 
 	heal := mustParse(t, healAuraJSON)
 	assert.NotNil(t, heal.Effects[0].Heal)
@@ -533,6 +534,60 @@ func TestParse_ExactlyOnePayload(t *testing.T) {
 	passive := mustParse(t, swiftPassiveJSON)
 	assert.NotNil(t, passive.Effects[0].Stat)
 	assert.Nil(t, passive.Effects[0].Damage)
+}
+
+// --- dot_aura / instant_dot (effect foundations Step 2) ---
+
+func TestMap_DotAura(t *testing.T) {
+	data := []byte(`{
+      "id": 5, "name": "ImmolationAura", "category": "active_aura", "maxLevel": 5,
+      "effects": [{
+        "type": "dot_aura", "radius": 1.0, "tickInterval": 20,
+        "damageHP": 5, "damageHPPerLevel": 1, "damageTags": ["fire"], "variance": 0.1,
+        "dotTicks": 3, "dotTickInterval": 30,
+        "targetsEnemies": true, "selector": "nearest", "maxTargets": 1
+      }]
+    }`)
+	def := mustParse(t, data)
+	e := def.Effects[0]
+	require.NotNil(t, e.Dot)
+	assert.Nil(t, e.Damage, "dot payload, not damage payload")
+	assert.InDelta(t, 7, e.Dot.HPAt(3), 1e-6)
+	assert.Equal(t, []string{"fire"}, e.Dot.Tags)
+	assert.InDelta(t, 0.1, e.Dot.Variance, 1e-6)
+	assert.Equal(t, 3*30+1, e.Dot.DurationTicks(), "all events + the tick-boundary grace")
+}
+
+func TestMap_DotDefaultsToPhysicalTag(t *testing.T) {
+	data := []byte(`{
+      "id": 22, "name": "Ignite", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 300,
+      "effects": [{"type": "instant_dot", "radius": 1.5, "damageHP": 6, "dotTicks": 3, "dotTickInterval": 30, "targetsEnemies": true}]
+    }`)
+	def := mustParse(t, data)
+	assert.Equal(t, []string{DamageTagPhysical}, def.Effects[0].Dot.Tags)
+}
+
+func TestMap_DotMissingCadenceOrDamageFails(t *testing.T) {
+	// A dot without events, spacing, or damage is a silent no-op — hard-fail
+	// like the stat_multiplier no-scaling guard.
+	for _, effect := range []string{
+		`{"type": "dot_aura", "targetsEnemies": true, "damageHP": 5, "dotTickInterval": 30}`,
+		`{"type": "dot_aura", "targetsEnemies": true, "damageHP": 5, "dotTicks": 3}`,
+		`{"type": "instant_dot", "targetsEnemies": true, "dotTicks": 3, "dotTickInterval": 30}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		assert.Error(t, err, "underspecified dot must be rejected: %s", effect)
+	}
+}
+
+func TestMap_DotKeysOnOtherEffectsFail(t *testing.T) {
+	// dotTicks on a plain damage_aura would be silently ignored.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":7,"dotTicks":3}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "dotTicks")
 }
 
 func TestMap_StatFieldsOnNonStatEffectFails(t *testing.T) {

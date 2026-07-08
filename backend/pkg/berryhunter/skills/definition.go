@@ -40,6 +40,8 @@ const (
 	EffectTypeSelfHeal
 	EffectTypeResistAura
 	EffectTypeResistPassive
+	EffectTypeDotAura
+	EffectTypeInstantDot
 )
 
 var effectTypeMap = map[string]EffectType{
@@ -51,6 +53,8 @@ var effectTypeMap = map[string]EffectType{
 	"self_heal":       EffectTypeSelfHeal,
 	"resist_aura":     EffectTypeResistAura,
 	"resist_passive":  EffectTypeResistPassive,
+	"dot_aura":        EffectTypeDotAura,
+	"instant_dot":     EffectTypeInstantDot,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -161,6 +165,7 @@ type EffectDef struct {
 	Slow     *SlowParams     // slow_aura
 	Resist   *ResistParams   // resist_aura, resist_passive
 	Stat     *StatParams     // stat_multiplier
+	Dot      *DotParams      // dot_aura, instant_dot
 }
 
 // DamageParams is the damage_aura / instant_damage payload: absolute HP
@@ -258,6 +263,39 @@ func (p *ResistParams) FactorAt(level int) float32 {
 	return factor
 }
 
+// DotParams is the dot_aura / instant_dot payload (effect foundations
+// Step 2): a damage-over-time debuff applied to eligible targets. dot_aura
+// re-applies it every effect tick (refresh — continuous burn while in
+// range); instant_dot applies it once on cooldown activation via a one-shot
+// query circle (the instant_damage delivery). Either way the debuff then
+// runs on the TARGET, independent of the aura or the caster's presence:
+// TickCount damage events of HP each, one every Interval game ticks.
+type DotParams struct {
+	HP         float32
+	HPPerLevel float32
+
+	// Same semantics as DamageParams: tags for resistances (absent →
+	// [DamageTagPhysical]) and a per-event variance roll before mitigation.
+	Tags     []string
+	Variance float32
+
+	TickCount int // number of damage events per application
+	Interval  int // game ticks between events
+}
+
+// HPAt is the level-scaled per-event damage center in absolute HP
+// (pre-variance-roll).
+func (p *DotParams) HPAt(level int) float32 {
+	return Scaled(p.HP, p.HPPerLevel, level)
+}
+
+// DurationTicks is the buff lifetime of one application: long enough for all
+// TickCount events at Interval cadence, +1 to survive the tick boundary (the
+// aura lifetime convention — aging runs at tick start, acting mid-tick).
+func (p *DotParams) DurationTicks() int {
+	return p.TickCount*p.Interval + 1
+}
+
 // StatParams is the stat_multiplier payload: an additive bonus to the named
 // stat (see validStats — every stat needs a hand-placed application site).
 type StatParams struct {
@@ -330,6 +368,9 @@ type effectDef struct {
 	Stat              string  `json:"stat"`
 	StatBonus         float32 `json:"statBonus"`
 	StatBonusPerLevel float32 `json:"statBonusPerLevel"`
+
+	DotTicks        int `json:"dotTicks"`        // damage events per application
+	DotTickInterval int `json:"dotTickInterval"` // game ticks between events
 }
 
 type skillDefinition struct {
@@ -354,6 +395,7 @@ var (
 	keysTargetFlags   = []string{"targetsEnemies", "targetsAllies"}
 	keysDamagePayload = []string{"damageHP", "damageHPPerLevel", "damageTags", "variance", "hitStyle", "targetsStructures", "structureDamageFraction"}
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
+	keysDotPayload    = []string{"damageHP", "damageHPPerLevel", "damageTags", "variance", "dotTicks", "dotTickInterval"}
 )
 
 // effectKeys lists every JSON key each effect type actually reads (besides
@@ -379,6 +421,9 @@ var effectKeys = map[EffectType][]string{
 	// Equip-time folds into DerivedStats — no geometry, cadence, or targeting.
 	EffectTypeResistPassive:  keysResistPayload,
 	EffectTypeStatMultiplier: {"stat", "statBonus", "statBonusPerLevel"},
+	EffectTypeDotAura:        mergeKeys(keysGeometry, keysCadence, keysCapped, keysTargetFlags, keysDotPayload),
+	// No cadence: instant_dot applies once on cooldown activation.
+	EffectTypeInstantDot: mergeKeys(keysGeometry, keysCapped, keysTargetFlags, keysDotPayload),
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -520,6 +565,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Resist, err = e.resistParams()
 	case EffectTypeStatMultiplier:
 		def.Stat, err = e.statParams()
+	case EffectTypeDotAura, EffectTypeInstantDot:
+		def.Dot, err = e.dotParams()
 	}
 	if err != nil {
 		return EffectDef{}, err
@@ -595,6 +642,38 @@ func (e *effectDef) resistParams() (*ResistParams, error) {
 		Factor:         e.ResistFactor,
 		FactorPerLevel: e.ResistFactorPerLevel,
 		TargetsSelf:    e.TargetsSelf,
+	}, nil
+}
+
+// dotParams builds the dot payload. Tags normalize like damage tags; the
+// cadence fields are required — a dot with no events (or no spacing) is
+// unauthorable rather than a silent no-op, mirroring the stat guard.
+func (e *effectDef) dotParams() (*DotParams, error) {
+	tags := e.DamageTags
+	if len(tags) == 0 {
+		tags = []string{DamageTagPhysical}
+	} else if err := validateTags("damageTags", tags); err != nil {
+		return nil, err
+	}
+	if err := validateVariance(e.Variance); err != nil {
+		return nil, err
+	}
+	if e.DamageHP == 0 && e.DamageHPPerLevel == 0 {
+		return nil, fmt.Errorf("dot: no damage authored (damageHP and damageHPPerLevel both 0)")
+	}
+	if e.DotTicks < 1 {
+		return nil, fmt.Errorf("dotTicks: must be >= 1, got %v", e.DotTicks)
+	}
+	if e.DotTickInterval < 1 {
+		return nil, fmt.Errorf("dotTickInterval: must be >= 1, got %v", e.DotTickInterval)
+	}
+	return &DotParams{
+		HP:         e.DamageHP,
+		HPPerLevel: e.DamageHPPerLevel,
+		Tags:       tags,
+		Variance:   e.Variance,
+		TickCount:  e.DotTicks,
+		Interval:   e.DotTickInterval,
 	}, nil
 }
 

@@ -167,9 +167,7 @@ type Mob struct {
 	aggroAura *phy.Circle
 
 	velocity         float32
-	slowFraction     float32 // transient slow_aura debuff (see ApplySlow)
-	slowTicks        int
-	resistBuffs      skills.ResistBuffs // transient resist_aura buffs (item 11 Phase 2)
+	buffs            skills.Buffs // transient status-effect store: resist/slow/dot (effect foundations Step 2)
 	aggroTarget      model.PlayerEntity
 	spawnPosition    phy.Vec2f
 	spawnInitialized bool
@@ -240,12 +238,6 @@ func (m *Mob) Update(dt float32) bool {
 		return false
 	}
 
-	// Slow debuffs are transient: the SkillSystem re-applies them each tick
-	// the mob stays inside a slow aura; otherwise they wear off here.
-	if m.slowTicks > 0 {
-		m.slowTicks--
-	}
-
 	// Aura damage is applied by the SkillSystem (Phase 6.1); Update only
 	// handles aggro, movement, regeneration and death.
 
@@ -314,15 +306,13 @@ func (m *Mob) SetAngle(a float32) {
 	m.heading = phy.NewRotMat2f(a).Mult(phy.Vec2f{-1, 0})
 }
 
-// ApplySlow slows the mob's movement by the given fraction for the next two
-// ticks (SkillSystem runs after mob movement, so the debuff needs to survive
-// exactly one movement step; re-application keeps it alive). Stronger slows
-// win over weaker ones.
-func (m *Mob) ApplySlow(fraction float32) {
-	if m.slowTicks == 0 || fraction > m.slowFraction {
-		m.slowFraction = fraction
-	}
-	m.slowTicks = 2
+// ApplySlow slows the mob's movement by the given fraction (effect
+// foundations Step 2: lives in the generic buff store; strongest active slow
+// wins in moveTowards). The SkillSystem runs after mob movement, so the
+// aura-convention lifetime of tick interval + 1 makes the debuff survive
+// exactly one movement step past its last re-application.
+func (m *Mob) ApplySlow(source skills.SkillID, fraction float32, ticks int) {
+	m.buffs.ApplySlow(source, fraction, ticks)
 }
 
 func (m *Mob) moveTowards(target phy.Vec2f) {
@@ -338,8 +328,8 @@ func (m *Mob) moveTowards(target phy.Vec2f) {
 	}
 
 	step := m.velocity
-	if m.slowTicks > 0 {
-		step *= 1 - m.slowFraction
+	if slow := m.buffs.SlowFraction(); slow > 0 {
+		step *= 1 - slow
 	}
 	if distance < step {
 		step = distance
@@ -408,7 +398,7 @@ func (m *Mob) HealthRatio() float32 {
 // no status effect and thus no hit VFX.
 func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) {
 	multiplier := skills.ResistMultiplier(damage.Tags, m.definition.Factors.Resistances) *
-		m.resistBuffs.Multiplier(damage.Tags)
+		m.buffs.ResistMultiplier(damage.Tags)
 
 	hp := vitals.HP(damage.HP * multiplier)
 	if hp > 0 {
@@ -441,16 +431,29 @@ func (m *Mob) NoteAuraHit(style model.AuraHitStyle) {
 // (item 11 Phase 2); re-applied each aura tick, it expires on the same
 // per-tick lifecycle as the floating-number accumulators.
 func (m *Mob) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
-	m.resistBuffs.Apply(source, tags, factor, ticks)
+	m.buffs.ApplyResist(source, tags, factor, ticks)
+}
+
+// ApplyDot grants a damage-over-time debuff (effect foundations Step 2); it
+// runs its full authored duration independent of re-application, ticked by
+// the SkillSystem via DueDotHits.
+func (m *Mob) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
+	m.buffs.ApplyDot(source, dot, ticks)
+}
+
+// DueDotHits advances and drains this tick's due dot damage events; called
+// once per tick by the SkillSystem's acting site.
+func (m *Mob) DueDotHits() []skills.DotHit {
+	return m.buffs.DueDotHits()
 }
 
 // ResetTickNumbers clears the per-tick floating-number accumulators and ages
-// the transient resist buffs; called by the StatusEffectsSystem at the start
+// the transient buff store; called by the StatusEffectsSystem at the start
 // of each tick.
 func (m *Mob) ResetTickNumbers() {
 	m.damageTaken = 0
 	m.auraHitStyle = model.AuraHitStyleNone
-	m.resistBuffs.Tick()
+	m.buffs.Tick()
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {

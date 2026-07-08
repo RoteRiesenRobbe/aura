@@ -1,0 +1,23 @@
+{
+  "_comment": "Effect foundations Step 2 placeholder content: NovaBurst-shaped cooldown that applies a 3-second fire dot (3 events, 1/s) to everyone hostile in range. All values [PLACEHOLDER].",
+  "id": 22,
+  "name": "Ignite",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 300,
+  "cooldownTicksPerLevel": -20,
+  "effects": [
+    {
+      "type": "instant_dot",
+      "radius": 1.5,
+      "radiusPerLevel": 0.1,
+      "damageHP": 6,
+      "damageHPPerLevel": 1.5,
+      "damageTags": ["fire"],
+      "dotTicks": 3,
+      "dotTickInterval": 30,
+      "targetsEnemies": true,
+      "targetsAllies": false
+    }
+  ]
+}

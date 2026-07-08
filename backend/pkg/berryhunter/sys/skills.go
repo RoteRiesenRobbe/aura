@@ -83,6 +83,12 @@ func (s *SkillSystem) Update(dt float32) {
 }
 
 func (s *SkillSystem) processEntity(e skillEntity) {
+	// Acting buff payloads first: dots on this entity deal their due damage
+	// (effect foundations Step 2). Pure buff AGING stays on ResetTickNumbers
+	// at tick start; acting lives here so the damage lands in the combat
+	// slice of the tick, before serialization.
+	s.tickDots(e)
+
 	sc := e.SkillComponent()
 	s.processCooldowns(e, sc)
 
@@ -127,9 +133,79 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 		case skills.EffectTypeHealAura:
 			applyHealAura(e, equip.Level, effect, collisions, s.rng)
 		case skills.EffectTypeSlowAura:
-			applySlowAura(equip.Level, effect, collisions)
+			applySlowAura(equip.Def.ID, equip.Level, effect, collisions)
 		case skills.EffectTypeResistAura:
 			applyResistAura(e, equip.Def.ID, equip.Level, effect, collisions)
+		case skills.EffectTypeDotAura:
+			applyDotEffect(e, equip.Def.ID, equip.Level, effect, collisions)
+		}
+	}
+}
+
+// dotBuffable is implemented by entities that can carry a damage-over-time
+// debuff (players and mobs — the generic buff store).
+type dotBuffable interface {
+	ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int)
+}
+
+// dotCarrier is the entity-side seam the acting site drains each tick.
+type dotCarrier interface {
+	DueDotHits() []skills.DotHit
+}
+
+// applyDotEffect applies the effect's damage-over-time debuff to eligible
+// targets; shared by the per-tick dot_aura path (re-application refreshes the
+// duration — continuous burn while in range) and the one-shot instant_dot
+// cooldown path. Either way the debuff then runs on the target independent
+// of the delivery and the caster's presence (skills.Buffs).
+func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+	dot := skills.DotBuff{
+		HP:       effect.Dot.HPAt(level),
+		Tags:     effect.Dot.Tags,
+		Variance: effect.Dot.Variance,
+		Interval: effect.Dot.Interval,
+		Caster:   e,
+	}
+	ticks := effect.Dot.DurationTicks()
+
+	// No caster skip, matching the damage path's long-standing semantics
+	// (only relevant if content ever sets targetsAllies on a dot).
+	eligible := eligibleByTargetFlags[dotBuffable](effect, e.Faction(), 0, false)
+	targets := selectTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(dotBuffable).ApplyDot(source, dot, ticks)
+	}
+}
+
+// tickDots deals every dot damage event due on this entity this tick. The
+// damage flows through the same Interacter entry points as direct hits, so
+// attribution (XP participation, kill credit), damage tags, mitigation,
+// floating numbers and death all ride the existing paths. Each event also
+// stamps the fire aura-hit VFX — the sustained-burn look; make it
+// content-configurable when a non-fire dot ships.
+func (s *SkillSystem) tickDots(e skillEntity) {
+	carrier, ok := e.(dotCarrier)
+	if !ok {
+		return
+	}
+	target, ok := e.(model.Interacter)
+	if !ok {
+		return
+	}
+	for _, hit := range carrier.DueDotHits() {
+		// Every event rolls its own variance and is mitigated by the
+		// target's CURRENT resistances (roll-then-mitigate, per hit).
+		damageHP := vitals.RollVariance(hit.HP, hit.Variance, s.rng)
+		switch caster := hit.Caster.(type) {
+		case model.PlayerEntity:
+			target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags})
+		case model.MobEntity:
+			target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags})
+		default:
+			continue
+		}
+		if n, ok := e.(model.AuraHitNotifier); ok {
+			n.NoteAuraHit(model.AuraHitStyleFire)
 		}
 	}
 }
@@ -338,9 +414,10 @@ func applyResistAura(e skillEntity, source skills.SkillID, level int, effect ski
 
 // slowable is implemented by entities whose movement can be slowed by a
 // slow_aura (mobs). The slow is transient: it must be re-applied every tick
-// the target stays in range, and wears off on its own shortly after.
+// the target stays in range, and wears off on its own shortly after (buff
+// lifetime = effect tick interval + 1, the aura convention).
 type slowable interface {
-	ApplySlow(fraction float32)
+	ApplySlow(source skills.SkillID, fraction float32, ticks int)
 }
 
 // processCooldowns ticks all cooldown slots down and fires cooldown skills:
@@ -422,7 +499,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			hitAny = true
 			continue
 		}
-		if effect.Type != skills.EffectTypeInstantDamage {
+		if effect.Type != skills.EffectTypeInstantDamage && effect.Type != skills.EffectTypeInstantDot {
 			continue
 		}
 
@@ -447,7 +524,12 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 
 		// Same dispatch and target-flag filtering as the per-tick auras —
 		// PlayerTouches feeds participation XP, MobTouches the double dispatch.
-		applyDamageAura(e, es.Level, effect, targets, s.rng)
+		switch effect.Type {
+		case skills.EffectTypeInstantDamage:
+			applyDamageAura(e, es.Level, effect, targets, s.rng)
+		case skills.EffectTypeInstantDot:
+			applyDotEffect(e, es.Def.ID, es.Level, effect, targets)
+		}
 	}
 	return hitAny
 }
@@ -455,7 +537,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 // applySlowAura slows every slowable target in range. The sensor mask
 // pre-filters layers per the target flags; entities that cannot be slowed
 // (players — no ApplySlow) are skipped.
-func applySlowAura(level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+func applySlowAura(source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	fraction := effect.Slow.FractionAt(level)
 	if fraction <= 0 {
 		return
@@ -463,9 +545,10 @@ func applySlowAura(level int, effect skills.EffectDef, collisions phy.ColliderSe
 	if fraction > 1 {
 		fraction = 1
 	}
+	ticks := effectiveTickInterval(effect, level) + 1
 	for c := range collisions {
 		if target, ok := c.Shape().UserData.(slowable); ok {
-			target.ApplySlow(fraction)
+			target.ApplySlow(source, fraction, ticks)
 		}
 	}
 }

@@ -1,0 +1,24 @@
+{
+  "_comment": "Effect foundations Step 2 placeholder content: an aura that leaves a fire dot on the nearest enemy. All values [PLACEHOLDER].",
+  "id": 5,
+  "name": "ImmolationAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "dot_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 5,
+      "damageHPPerLevel": 1,
+      "damageTags": ["fire"],
+      "dotTicks": 3,
+      "dotTickInterval": 30,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 20
+    }
+  ]
+}

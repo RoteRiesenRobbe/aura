@@ -161,11 +161,21 @@ code), TDD'd, and independently shippable. Steps 1–4 are the F4 order.
   Mob-vs-mob exclusion and no-friendly-fire are now the same faction rule.
   Deferred to their consumers: faction setter (charm), enemy-mask widening
   across layers (charm/summons), faction-aware mob aggro (item 7).
-- **Step 2 — status-effect framework (F7, F10): NEXT — full briefing in §7.**
-  Generalize `ResistBuffs` into a typed-payload buff/debuff store (stat mod,
-  DoT tick, control flag, absorb pool), same source-keying/stacking/aging
-  semantics, cleanse API via entry enumeration. Control payloads apply to
-  mobs only. First consumer candidates: DoT, root-as-debuff, mark.
+- **Step 2 — status-effect framework (F7, F10): ✓ DONE 2026-07-08.**
+  `skills.Buffs` (buffs.go) — ONE generic per-entity store with typed
+  payloads (resist, slow, dot), inheriting ResistBuffs' source-keying/
+  per-strength-stream/strongest-active-wins semantics; `ResistBuffs` deleted,
+  the hand-rolled mob `slowFraction`/`slowTicks` folded in (slow now keyed by
+  source skill, lifetime = tick interval + 1 — same convention, and the
+  weaker-refresh-extends-stronger quirk is gone). First NEW payload: **dot**
+  (`dot_aura`/`instant_dot` effect types) — duration independent of
+  re-application, acting site at the top of `SkillSystem.processEntity`
+  (aging stays on ResetTickNumbers), damage delivered through
+  `PlayerTouches`/`MobTouches` so attribution/mitigation/floating numbers
+  ride existing paths. `Cleanse()` in place (F10). Buffs die with the entity
+  on death (pinned). Root/mark deliberately skipped — root is a slow-1.0
+  payload when a consumer exists, mark needs the visibility decision (§6).
+  Sub-decision record in §7.
 - **Step 3 — spawned-entity lifecycle:** totem first (closest to expressible
   today: stationary mob + aura skill + `Decayer`-style TTL), then ownership/
   XP attribution; pets/clones/swarm build on it later.
@@ -207,7 +217,34 @@ interleave with it. New types widen what item 12+ content can author.
 - ⚑ Does a charmed mob's aura credit the owning player XP (attribution rule
   shared with pets)?
 
-## 7. Step 2 briefing — status-effect framework (start here next session)
+## 7. Step 2 briefing — status-effect framework
+
+> **RESOLVED 2026-07-08 — Step 2 shipped.** The six open sub-decisions below
+> were settled as follows (the briefing is kept for rationale):
+> 1. **Migration scope:** resist AND slow migrated into the store, dot as the
+>    first new payload; root/mark skipped (no consumer / needs visibility).
+> 2. **DoT attribution:** the payload carries the caster entity ref (`any` in
+>    the skills package; `sys` type-switches) and the acting site replays it
+>    through `PlayerTouches`/`MobTouches` — XP participation, kill credit,
+>    tags, mitigation and floating numbers all come from the existing paths.
+>    Disconnect policy = same as `mob.participants` (ref stays valid).
+> 3. **Acting site:** top of `SkillSystem.processEntity` (runs for every
+>    tracked entity, before serialization); pure aging stays on
+>    `ResetTickNumbers` at tick start. Dots keep two counters: remaining
+>    duration (aged at tick start) + acting accumulator (advanced at the
+>    acting site, deliberately NOT reset on refresh).
+> 4. **Visibility:** v1 is VFX-only — dot events stamp the fire
+>    `aura_hit_style` and floating damage numbers come for free; **zero wire
+>    changes**. Icons/timers stay an open §6 question.
+> 5. **Death/respawn:** buffs die with the entity (store is an entity field,
+>    not part of the carried SkillComponent) — pinned in
+>    `TestDeathRespawn_RetainsSpellbookAndProgression`.
+> 6. **Location:** `skills.Buffs`, one per player + mob, replacing the
+>    `resistBuffs` fields.
+>
+> Duration authoring: `dotTicks` (event count) × `dotTickInterval` (cadence),
+> buff lifetime = count×interval+1 — chosen over a raw duration so "3 events
+> over 3 s" is exact at the expiry boundary.
 
 Everything below was verified against the code on 2026-07-07 (post Steps
 0+1). Goal: ONE generic entity-attached buff/debuff store with typed

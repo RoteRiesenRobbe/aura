@@ -234,9 +234,11 @@ accepted-but-unapplied stat would be a silent no-op):
 | Parameter | Type | Description |
 |---|---|---|
 | `stat` | string | Stat name (see above) |
-| `additivePerLevel` | float | Bonus per level, stacks linearly [PLACEHOLDER] |
+| `statBonus` | float | Additive bonus at level 1 [PLACEHOLDER] |
+| `statBonusPerLevel` | float | Added per skill level [PLACEHOLDER] |
 
-Per skill the contribution is `additivePerLevel × level`.
+Per skill the contribution is `statBonus + statBonusPerLevel × (level − 1)`
+(the unified scaling convention); a both-zero pair hard-fails at load.
 
 **Passive stacking**: if two `stat_multiplier` effects target `movementSpeed` with
 values A and B, the total modifier is `A + B`. No multiplicative stacking.
@@ -258,16 +260,18 @@ Question 3). The caster's own shapes are excluded.
 | `damageHP` | float | Absolute HP damage per target hit [PLACEHOLDER] |
 | `damageHPPerLevel` | float | Added per skill level [PLACEHOLDER] |
 | `damageTags` | []string | Damage tags; default `["physical"]` |
-| `targetsMobs` | bool | |
-| `targetsPlayers` | bool | |
+| `targetsEnemies` | bool | Faction-relative (effect foundations Step 1) |
+| `targetsAllies` | bool | |
 
 ### `slow_aura`
 
 Reduces the movement speed of every matching target in range while the aura is
-active. Targets carry a *transient* debuff (`Mob.ApplySlow`): it is re-applied
-every tick the target stays in range and wears off within 2 ticks of leaving —
-no permanent state. Overlapping slows don't stack; the strongest wins.
-Currently only mobs are slowable (players have no `ApplySlow`).
+active. Targets carry a *transient* debuff in the generic buff store
+(`skills.Buffs`, effect foundations Step 2): re-applied every effect tick the
+target stays in range, lifetime = tick interval + 1 (the aura buff
+convention), so it wears off ~one aura cycle after leaving. Overlapping slows
+don't stack; the strongest active fraction wins. Currently only mobs are
+slowable (players have no `ApplySlow`).
 
 | Parameter | Type | Description |
 |---|---|---|
@@ -275,8 +279,8 @@ Currently only mobs are slowable (players have no `ApplySlow`).
 | `radiusPerLevel` | float | Added per skill level [PLACEHOLDER] |
 | `slowFraction` | float | Speed reduction at level 1 [PLACEHOLDER] |
 | `slowFractionPerLevel` | float | Added per skill level; total capped at 100% [PLACEHOLDER] |
-| `targetsMobs` | bool | |
-| `targetsPlayers` | bool | Accepted but inert until players are slowable |
+| `targetsEnemies` | bool | Faction-relative (effect foundations Step 1) |
+| `targetsAllies` | bool | Accepted but inert until players are slowable |
 
 ### `self_heal`
 
@@ -301,6 +305,40 @@ per-tag damage multiplier; `resist_passive` folds permanent self-resistance
 into `DerivedStats.Resistances`. Full design (decisions B1–B7: stacking keyed
 by source skill, `physical` default tag, 0 = immune non-event, buff lifetime =
 tick interval + 1) and field tables: **`plan-item11-hp-resist-variance.md`**.
+
+### `dot_aura` / `instant_dot`
+
+Added in effect foundations Step 2 (post-migration). Both apply a
+**damage-over-time debuff** to eligible targets — the first acting payload of
+the generic buff store (`skills.Buffs`). `dot_aura` re-applies it every effect
+tick (refresh: duration resets, the dot burns continuously while in range);
+`instant_dot` applies it once on cooldown activation via the one-shot
+`instant_damage` query. Either way the debuff then runs **on the target**,
+independent of the aura and the caster's presence: `dotTicks` damage events,
+one every `dotTickInterval` game ticks, each rolled (variance) and mitigated
+(tags/resistances) like any hit and delivered through
+`PlayerTouches`/`MobTouches` — so XP participation, kill credit and floating
+numbers ride the existing paths. Within one source skill only the strongest
+active application deals damage; distinct skills burn in parallel. Each event
+stamps the fire aura-hit VFX.
+
+| Parameter | Type | Description |
+|---|---|---|
+| `radius` | float | `instant_dot`: burst query radius; `dot_aura`: aura radius [PLACEHOLDER] |
+| `radiusPerLevel` | float | Added per skill level [PLACEHOLDER] |
+| `damageHP` | float | Absolute HP per damage event [PLACEHOLDER] |
+| `damageHPPerLevel` | float | Added per skill level [PLACEHOLDER] |
+| `damageTags` | []string | Damage tags; default `["physical"]` |
+| `variance` | float | Per-event roll band, like damage effects |
+| `dotTicks` | int | Damage events per application (≥ 1, hard-fails otherwise) |
+| `dotTickInterval` | int | Game ticks between events (≥ 1) |
+| `targetsEnemies` / `targetsAllies` | bool | Faction-relative flags |
+| `tickInterval` | int | `dot_aura` only: re-application cadence |
+
+First content (both [PLACEHOLDER], milestone-unlocked at level 5):
+**ImmolationAura** (id 5, aura, nearest-1 enemy, dot 5 HP +1/lvl × 3 events @
+1 s) and **Ignite** (id 22, NovaBurst-shaped cooldown, uncapped radius 1.5,
+dot 6 HP +1.5/lvl × 3 events @ 1 s ≈ "3 seconds of burn").
 
 ---
 

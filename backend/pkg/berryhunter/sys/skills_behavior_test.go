@@ -1187,10 +1187,16 @@ func TestCooldown_SelfHealFractionOfMaxAndNumber(t *testing.T) {
 
 // slowRecorder implements the slowable interface for slow_aura tests.
 type slowRecorder struct {
+	sources   []skills.SkillID
 	fractions []float32
+	ticks     []int
 }
 
-func (r *slowRecorder) ApplySlow(fraction float32) { r.fractions = append(r.fractions, fraction) }
+func (r *slowRecorder) ApplySlow(source skills.SkillID, fraction float32, ticks int) {
+	r.sources = append(r.sources, source)
+	r.fractions = append(r.fractions, fraction)
+	r.ticks = append(r.ticks, ticks)
+}
 
 func TestSlowAura_AppliesLevelScaledSlow(t *testing.T) {
 	target := &slowRecorder{}
@@ -1199,22 +1205,25 @@ func TestSlowAura_AppliesLevelScaledSlow(t *testing.T) {
 	effect := skills.EffectDef{
 		Type:           skills.EffectTypeSlowAura,
 		TargetsEnemies: true,
+		TickInterval:   1,
 		Slow:           &skills.SlowParams{Fraction: 0.1, FractionPerLevel: 0.1},
 	}
 
-	applySlowAura(3, effect, set)
+	applySlowAura(4, 3, effect, set)
 
 	require.Len(t, target.fractions, 1)
 	assert.InDelta(t, 0.3, target.fractions[0], 1e-6) // 0.1 + 2×0.1
+	assert.Equal(t, skills.SkillID(4), target.sources[0], "slow is keyed by its source skill in the buff store")
+	assert.Equal(t, 2, target.ticks[0], "aura lifetime convention: tick interval + 1")
 }
 
 func TestSlowAura_SkipsNonSlowableTargets(t *testing.T) {
 	// A player (no ApplySlow) in the collision set must simply be skipped.
 	set := colliderSetOf(&touchRecorder{})
 
-	effect := skills.EffectDef{Type: skills.EffectTypeSlowAura, TargetsEnemies: true, Slow: &skills.SlowParams{Fraction: 0.1}}
+	effect := skills.EffectDef{Type: skills.EffectTypeSlowAura, TargetsEnemies: true, TickInterval: 1, Slow: &skills.SlowParams{Fraction: 0.1}}
 
-	assert.NotPanics(t, func() { applySlowAura(1, effect, set) })
+	assert.NotPanics(t, func() { applySlowAura(4, 1, effect, set) })
 }
 
 // --- applyResistAura (item 11 Phase 2 Step 3) ---
@@ -1280,4 +1289,184 @@ func TestApplyResistAura_RespectsTargetCap(t *testing.T) {
 	applyResistAura(caster, 40, 1, effect, colliderSetOf(a, b))
 
 	assert.Equal(t, 1, len(a.resists)+len(b.resists), "the cap limits buffed allies")
+}
+
+// --- dot_aura / instant_dot + the tickDots acting site (effect foundations Step 2) ---
+
+// dotRecorder is a mob-like (hostile) target that records ApplyDot calls.
+type dotRecorder struct {
+	basic ecs.BasicEntity
+	dots  []skills.DotBuff
+	ticks []int
+}
+
+func (r *dotRecorder) Basic() ecs.BasicEntity { return r.basic }
+func (r *dotRecorder) Faction() model.Faction { return model.FactionHostile }
+func (r *dotRecorder) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
+	r.dots = append(r.dots, dot)
+	r.ticks = append(r.ticks, ticks)
+}
+
+func dotEffect() skills.EffectDef {
+	return skills.EffectDef{
+		Type:           skills.EffectTypeDotAura,
+		TargetsEnemies: true,
+		TickInterval:   20,
+		Dot:            &skills.DotParams{HP: 5, HPPerLevel: 1, Tags: []string{"fire"}, TickCount: 3, Interval: 30},
+	}
+}
+
+func TestApplyDotEffect_AppliesLevelScaledDotWithCasterRef(t *testing.T) {
+	caster := newFakePlayer()
+	target := &dotRecorder{basic: ecs.NewBasic()}
+
+	applyDotEffect(caster, 5, 3, dotEffect(), colliderSetOf(target))
+
+	require.Len(t, target.dots, 1)
+	dot := target.dots[0]
+	assert.InDelta(t, 7, dot.HP, 1e-6, "5 + 2×1")
+	assert.Equal(t, []string{"fire"}, dot.Tags)
+	assert.Equal(t, 30, dot.Interval)
+	assert.Same(t, any(caster), dot.Caster, "caster rides the payload for attribution")
+	assert.Equal(t, 3*30+1, target.ticks[0], "full authored duration, not the aura re-application lifetime")
+}
+
+func TestApplyDotEffect_SameFactionTargetExcluded(t *testing.T) {
+	// No friendly fire: a targetsEnemies dot never lands on an ally.
+	caster := newFakePlayer()
+	ally := &resistTargetRecorder{basic: ecs.NewBasic()}
+
+	applyDotEffect(caster, 5, 1, dotEffect(), colliderSetOf(ally))
+
+	assert.Empty(t, ally.resists, "nothing applied to the ally")
+}
+
+// dotVictim carries a real skills.Buffs store and satisfies skillEntity +
+// dotCarrier + Interacter + AuraHitNotifier, so tickDots runs end-to-end
+// against the real store lifecycle.
+type dotVictim struct {
+	basic      ecs.BasicEntity
+	sc         *skills.SkillComponent
+	aura       *phy.Circle
+	buffs      skills.Buffs
+	playerHits []model.Damage
+	mobHits    []mobs.Factors
+	hitStyles  []model.AuraHitStyle
+}
+
+func newDotVictim() *dotVictim {
+	return &dotVictim{
+		basic: ecs.NewBasic(),
+		sc:    skills.NewSkillComponent(false),
+		aura:  phy.NewCircle(phy.VEC2F_ZERO, 1.0),
+	}
+}
+
+func (v *dotVictim) Basic() ecs.BasicEntity                 { return v.basic }
+func (v *dotVictim) Faction() model.Faction                 { return model.FactionHostile }
+func (v *dotVictim) SkillComponent() *skills.SkillComponent { return v.sc }
+func (v *dotVictim) AuraCollider() *phy.Circle              { return v.aura }
+func (v *dotVictim) DueDotHits() []skills.DotHit            { return v.buffs.DueDotHits() }
+func (v *dotVictim) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
+	v.playerHits = append(v.playerHits, damage)
+}
+func (v *dotVictim) MobTouches(m model.MobEntity, factors mobs.Factors) {
+	v.mobHits = append(v.mobHits, factors)
+}
+func (v *dotVictim) NoteAuraHit(style model.AuraHitStyle) { v.hitStyles = append(v.hitStyles, style) }
+
+// fakeMobCaster is a mob-typed caster reference for mob-sourced dots; only
+// its type identity is used (tickDots type-switches on the caster).
+type fakeMobCaster struct{ model.MobEntity }
+
+func TestTickDots_PlayerSourcedDamageRidesPlayerTouches(t *testing.T) {
+	sk := NewSkillSystem(phy.NewSpace())
+	sk.rng = testRNG()
+	caster := newFakePlayer()
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(5, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 2, Caster: model.PlayerEntity(caster)}, 7)
+
+	// Real per-tick lifecycle: age at tick start, act at SkillSystem time.
+	for i := 0; i < 10; i++ {
+		v.buffs.Tick()
+		sk.tickDots(v)
+	}
+
+	require.Len(t, v.playerHits, 3, "3 events at ages 2/4/6 within the 7-tick duration")
+	for _, hit := range v.playerHits {
+		assert.InDelta(t, 4, hit.HP, 1e-6, "no variance authored → exact center")
+		assert.Equal(t, []string{"fire"}, hit.Tags, "damage tags reach the target's mitigation")
+	}
+	assert.Equal(t, []model.AuraHitStyle{model.AuraHitStyleFire, model.AuraHitStyleFire, model.AuraHitStyleFire},
+		v.hitStyles, "every dot event stamps the fire hit VFX")
+	assert.Empty(t, v.mobHits)
+}
+
+func TestTickDots_MobSourcedDamageRidesMobTouches(t *testing.T) {
+	sk := NewSkillSystem(phy.NewSpace())
+	sk.rng = testRNG()
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(104, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: &fakeMobCaster{}}, 2)
+
+	v.buffs.Tick()
+	sk.tickDots(v)
+
+	require.Len(t, v.mobHits, 1, "mob-sourced dots use the MobTouches double dispatch")
+	assert.InDelta(t, 4, v.mobHits[0].Damage, 1e-6)
+	assert.Equal(t, []string{"fire"}, v.mobHits[0].DamageTags)
+	assert.Empty(t, v.playerHits)
+}
+
+func TestTickDots_VarianceRollsPerEvent(t *testing.T) {
+	sk := NewSkillSystem(phy.NewSpace())
+	sk.rng = testRNG()
+	caster := newFakePlayer()
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(5, skills.DotBuff{HP: 10, Variance: 0.5, Interval: 1, Caster: model.PlayerEntity(caster)}, 100)
+
+	for i := 0; i < 20; i++ {
+		v.buffs.Tick()
+		sk.tickDots(v)
+	}
+
+	require.Len(t, v.playerHits, 20)
+	distinct := map[float32]bool{}
+	for _, hit := range v.playerHits {
+		assert.GreaterOrEqual(t, hit.HP, float32(5), "roll below the variance band")
+		assert.LessOrEqual(t, hit.HP, float32(15), "roll above the variance band")
+		distinct[hit.HP] = true
+	}
+	assert.Greater(t, len(distinct), 1, "every event rolls independently")
+}
+
+func instantDotDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 22, Name: "Ignite", Category: skills.SkillCategoryCooldown, MaxLevel: 3,
+		CooldownTicks: 300,
+		Effects: []skills.EffectDef{{
+			Type:           skills.EffectTypeInstantDot,
+			Radius:         1.5,
+			TargetsEnemies: true,
+			Dot:            &skills.DotParams{HP: 6, HPPerLevel: 1.5, Tags: []string{"fire"}, TickCount: 3, Interval: 30},
+		}},
+	}
+}
+
+func TestCooldown_InstantDotAppliesDotOnce(t *testing.T) {
+	// Ignite shape: a NovaBurst-style activation that applies the dot to
+	// everything hostile in the one-shot query circle.
+	target := &dotRecorder{basic: ecs.NewBasic()}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
+	caster.sc.EquipCooldown(0, instantDotDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.Len(t, target.dots, 1, "one activation applies the dot once")
+	assert.InDelta(t, 6, target.dots[0].HP, 1e-6)
+	assert.Equal(t, 3*30+1, target.ticks[0])
+	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
 }

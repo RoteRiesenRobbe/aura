@@ -1,0 +1,244 @@
+package skills
+
+// Buffs is the generic per-entity status-effect store (effect foundations
+// Step 2) — ONE transient buff/debuff container carried by every mob and
+// player, replacing the per-mechanic ResistBuffs and the hand-rolled mob
+// slow fields before further copies (dot, root, mark, shield) appear.
+//
+// Semantics inherited from ResistBuffs: entries are keyed by the granting
+// skill — the same skill never stacks with itself, distinct skills are
+// distinct sources. Within one skill, applications of different strengths
+// (levels/casters) are tracked as separate streams that each age on their own
+// lifetime: a weaker application's per-tick refresh must never keep a
+// departed stronger application alive; a refresh with the identical strength
+// bumps the stream's remaining ticks instead. How streams COMBINE is a
+// per-payload query rule (resists stack multiplicatively across skills, slows
+// never stack, only a skill's strongest dot deals damage — see the queries).
+//
+// Lifecycle: Tick() ages every entry once per game tick, called on the
+// ResetTickNumbers hook (StatusEffectsSystem, tick start) — pure aging only.
+// Payloads that ACT (dot damage) are driven separately by the SkillSystem via
+// DueDotHits, so acting stays in the combat slice of the tick, before
+// serialization. Aura-applied buffs use the lifetime convention "effect tick
+// interval + 1" (survives one tick boundary, fades ~one aura cycle after
+// leaving range); dots carry their full authored duration instead — the
+// framework's defining upgrade: a dot keeps ticking after the target leaves
+// the aura or the caster is gone.
+//
+// The zero value is ready to use.
+type Buffs struct {
+	entries map[SkillID][]*buffEntry
+}
+
+type buffEntry struct {
+	payload buffPayload
+	ticks   int
+}
+
+// buffPayload is the closed set of typed payloads the store carries.
+type buffPayload interface {
+	isBuffPayload()
+}
+
+type resistPayload struct {
+	tags   []string
+	factor float32
+}
+
+type slowPayload struct {
+	fraction float32
+}
+
+type dotPayload struct {
+	dot DotBuff
+	// age is the acting accumulator: game ticks since application, advanced
+	// by DueDotHits (NOT by Tick, and deliberately NOT reset on refresh — an
+	// aura refreshing every tick must not starve a slower dot cadence). An
+	// event is due every full Interval.
+	age int
+}
+
+func (*resistPayload) isBuffPayload() {}
+func (*slowPayload) isBuffPayload()   {}
+func (*dotPayload) isBuffPayload()    {}
+
+// DotBuff is one damage-over-time application: HP dealt per dot event, every
+// Interval game ticks, mitigated per event by the target's CURRENT
+// resistances (roll-then-mitigate, per hit — like any other hit). Caster is
+// the applying entity (model.PlayerEntity or model.MobEntity — typed `any`
+// because model imports skills, not vice versa); the acting site dispatches
+// on it so attribution (XP participation, kill credit, floating numbers)
+// rides the existing PlayerTouches/MobTouches paths. A departed caster's ref
+// stays valid, same as mob combat participants.
+type DotBuff struct {
+	HP       float32
+	Tags     []string
+	Variance float32
+	Interval int
+	Caster   any
+}
+
+// DotHit is one due damage event, returned to the acting site. HP is the
+// pre-variance center; the acting site rolls per event.
+type DotHit struct {
+	HP       float32
+	Tags     []string
+	Variance float32
+	Caster   any
+}
+
+func (b *Buffs) apply(source SkillID, payload buffPayload, ticks int) {
+	if b.entries == nil {
+		b.entries = make(map[SkillID][]*buffEntry, 1)
+	}
+	b.entries[source] = append(b.entries[source], &buffEntry{payload: payload, ticks: ticks})
+}
+
+// ApplyResist grants (or refreshes) a tag-resistance buff from the given
+// source skill: an identical factor refreshes that stream, a different factor
+// opens its own.
+func (b *Buffs) ApplyResist(source SkillID, tags []string, factor float32, ticks int) {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*resistPayload); ok && p.factor == factor {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			p.tags = tags
+			return
+		}
+	}
+	b.apply(source, &resistPayload{tags: tags, factor: factor}, ticks)
+}
+
+// ApplySlow grants (or refreshes) a movement-slow debuff from the given
+// source skill; same stream rules as resist, keyed by fraction.
+func (b *Buffs) ApplySlow(source SkillID, fraction float32, ticks int) {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*slowPayload); ok && p.fraction == fraction {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			return
+		}
+	}
+	b.apply(source, &slowPayload{fraction: fraction}, ticks)
+}
+
+// ApplyDot grants (or refreshes) a damage-over-time debuff from the given
+// source skill; streams are keyed by per-event damage. A refresh resets the
+// remaining duration and hands the stream to the latest application (caster,
+// tags, cadence) but keeps the acting accumulator running.
+func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*dotPayload); ok && p.dot.HP == dot.HP {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			p.dot = dot
+			return
+		}
+	}
+	b.apply(source, &dotPayload{dot: dot}, ticks)
+}
+
+// Tick advances the per-tick lifecycle: applications not refreshed within
+// their lifetime expire. Called once per game tick on the ResetTickNumbers
+// hook. Pure aging — acting payloads are driven by DueDotHits.
+func (b *Buffs) Tick() {
+	for source, list := range b.entries {
+		kept := list[:0]
+		for _, e := range list {
+			e.ticks--
+			if e.ticks > 0 {
+				kept = append(kept, e)
+			}
+		}
+		if len(kept) == 0 {
+			delete(b.entries, source)
+		} else {
+			b.entries[source] = kept
+		}
+	}
+}
+
+// Cleanse removes every active buff and debuff (plan-effect-foundations F10:
+// everything is cleansable, no dispel classes in v1).
+func (b *Buffs) Cleanse() {
+	b.entries = nil
+}
+
+// ResistMultiplier is the combined incoming-damage multiplier of all active
+// resist buffs for a hit's damage tags. Per skill only the strongest active
+// application counts; within it, each covered hit tag multiplies once; across
+// skills the factors multiply — same semantics as one ResistMultiplier source
+// per skill.
+func (b *Buffs) ResistMultiplier(hitTags []string) float32 {
+	multiplier := float32(1)
+	for _, list := range b.entries {
+		var strongest *resistPayload
+		for _, e := range list {
+			if p, ok := e.payload.(*resistPayload); ok && (strongest == nil || p.factor < strongest.factor) {
+				strongest = p
+			}
+		}
+		if strongest == nil {
+			continue
+		}
+		for _, hitTag := range hitTags {
+			for _, covered := range strongest.tags {
+				if hitTag == covered {
+					multiplier *= strongest.factor
+					break
+				}
+			}
+		}
+	}
+	return multiplier
+}
+
+// SlowFraction is the movement-speed reduction currently in effect: slows
+// never stack — the strongest active fraction wins across all streams and
+// skills (unchanged from the pre-store rule).
+func (b *Buffs) SlowFraction() float32 {
+	var strongest float32
+	for _, list := range b.entries {
+		for _, e := range list {
+			if p, ok := e.payload.(*slowPayload); ok && p.fraction > strongest {
+				strongest = p.fraction
+			}
+		}
+	}
+	return strongest
+}
+
+// DueDotHits advances every dot's acting accumulator by one game tick and
+// returns the damage events due now. Per source skill only the strongest
+// active dot deals damage (same skill never stacks with itself); suppressed
+// weaker streams keep aging and acting on their own cadence once the stronger
+// one expires. Called once per tick per entity by the SkillSystem.
+func (b *Buffs) DueDotHits() []DotHit {
+	var hits []DotHit
+	for _, list := range b.entries {
+		var strongest *dotPayload
+		for _, e := range list {
+			p, ok := e.payload.(*dotPayload)
+			if !ok {
+				continue
+			}
+			p.age++
+			if strongest == nil || p.dot.HP > strongest.dot.HP {
+				strongest = p
+			}
+		}
+		if strongest == nil || strongest.age%strongest.dot.Interval != 0 {
+			continue
+		}
+		hits = append(hits, DotHit{
+			HP:       strongest.dot.HP,
+			Tags:     strongest.dot.Tags,
+			Variance: strongest.dot.Variance,
+			Caster:   strongest.dot.Caster,
+		})
+	}
+	return hits
+}
