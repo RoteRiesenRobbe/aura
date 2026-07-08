@@ -1,8 +1,8 @@
 # Effect-System Foundations — Scaling the Effect-Type Vocabulary
 
-> **Status: decided 2026-07-07; execution in progress — Steps 0+1 ✓ done
-> (2026-07-07), next is Step 2 (status-effect framework): start at the §7
-> briefing.** Decision record + plan for
+> **Status: decided 2026-07-07; execution in progress — Steps 0+1+2 ✓ done
+> and verified in-game (2026-07-08), next is Step 3 (spawned-entity
+> lifecycle): start at the §8 briefing.** Decision record + plan for
 > growing the effect vocabulary from 8 to ~25+ types. Closes the scripting
 > question left open in `archive-scripting-options.md` (decision F1/F2 below);
 > the factual data-vs-Go audit behind it lives in `archive-scripting-audit.md`.
@@ -161,7 +161,7 @@ code), TDD'd, and independently shippable. Steps 1–4 are the F4 order.
   Mob-vs-mob exclusion and no-friendly-fire are now the same faction rule.
   Deferred to their consumers: faction setter (charm), enemy-mask widening
   across layers (charm/summons), faction-aware mob aggro (item 7).
-- **Step 2 — status-effect framework (F7, F10): ✓ DONE 2026-07-08.**
+- **Step 2 — status-effect framework (F7, F10): ✓ DONE 2026-07-08, verified in-game 2026-07-08.**
   `skills.Buffs` (buffs.go) — ONE generic per-entity store with typed
   payloads (resist, slow, dot), inheriting ResistBuffs' source-keying/
   per-strength-stream/strongest-active-wins semantics; `ResistBuffs` deleted,
@@ -178,7 +178,7 @@ code), TDD'd, and independently shippable. Steps 1–4 are the F4 order.
   Sub-decision record in §7.
 - **Step 3 — spawned-entity lifecycle:** totem first (closest to expressible
   today: stationary mob + aura skill + `Decayer`-style TTL), then ownership/
-  XP attribution; pets/clones/swarm build on it later.
+  XP attribution; pets/clones/swarm build on it later. Briefing in §8.
 - **Step 4 — shield layer:** absorb-pool buff payload + the absorb step in
   the two `takeDamage` sites; F6 decision record beforehand if armor
   pen/thorns/lifesteal are already in by then; wire field + HUD.
@@ -329,3 +329,246 @@ Plan-first discussion → TDD (ResistBuffs' `resist_test.go` is the template;
 behavior-test fakes already carry factions) → full suite green → boot smoke
 via `-content ../api` → CLAUDE.md status + this doc updated → in-game check
 of the first consumer (DoT or root on a mob).
+
+## 8. Step 3 briefing — spawned-entity lifecycle
+
+Written 2026-07-08 (expanded same day into a full implementation record for
+a future session), verified against the code post Steps 0+1+2. Goal: the
+FIRST spawned entity — a player-summoned **totem** (stationary aura carrier
+with a TTL). Pets/clones/swarm/decoys build on the ownership machinery
+later; they are explicitly out of scope here. All numbers [PLACEHOLDER].
+
+### 8.1 Shape of the build — the totem is a mob
+
+Almost everything already exists, because mobs run on the one SkillSystem:
+
+- **Aura:** mob JSONs declare skill loadouts (Phase 6.1) — the totem's aura
+  is one more mob-skill JSON, equipped and ticked by the existing machinery
+  (`mob.NewMob` equips declared skills, first aura slot active).
+- **Stationary:** `factors.speed: 0` → velocity `0.055 × speed` = 0 →
+  `moveTowards` no-ops (`model/mob/mob.go`). Aggro scanning still runs but
+  moves nothing; harmless.
+- **Never spawns naturally:** `generator.weight: 0` — `wrand.NewWeightedChoice`
+  skips weight-0 choices (`wrand/weighted.go:19`) — plus `fixed: 0` (the boot
+  fixed-spawn loop in `cmd/berryhunterd/berryhunterd.go:136` iterates 0×).
+- **The one new lifecycle piece — TTL + don't respawn:** `MobSystem.Update`
+  (`sys/mob.go:40`) respawns ANY mob whose `Update` returns false via
+  `respawnMob`. Needs a new `respawnBehavior: "None"` enum value as the
+  guard; the TTL is a mob field set by the spawn site, decremented in
+  `Mob.Update`, expiry returns false → the existing single removal path
+  serves both TTL death and HP death, no rewards on either (kill rewards
+  only flow through `PlayerTouches` → `tryGrantKillRewards`).
+
+New engine pieces, in dependency order:
+
+1. **`spawn` effect type** (cooldown-fired; Step-0 payload pattern in
+   `skills/definition.go`): `SpawnParams{MobName string, TTLTicks int,
+   TTLTicksPerLevel float32}` — new payload struct + `effectKeys` allowlist
+   entry (`spawnMob`, `ttlTicks`, `ttlTicksPerLevel`) + validator (empty
+   name / non-positive base TTL hard-fail) + the exactly-one-payload rule.
+   Dispatched from `fireCooldown` (`sys/skills.go`, next to
+   instant_damage/instant_dot); a spawn always counts as "hit" (mob AI only
+   consumes a cooldown when `fireCooldown` returns true — a spawn has no
+   whiff). TTL at level = `skills.Scaled(ttlTicks, ttlTicksPerLevel, level)`
+   (the one scaling convention).
+2. **Spawn site plumbing:** `SkillSystem` gains a `model.Game` reference
+   (`NewSkillSystem` signature change; constructed in `core/game.go`) for
+   `AddEntity` + `Mobs()` + `Radius()` + `Config()`. The spawn case looks up
+   the mob definition, `mob.NewMob(def, false, radius, margin)`,
+   `SetPosition(e.AuraCollider().Position())` (caster position — decision
+   8.4/6), sets faction/owner/TTL (below), `game.AddEntity(m)`. `sys`
+   already imports `model/mob` (see `sys/mob.go`) — no new import cycle.
+3. **Cross-validation of spawn→mob names:** skills load BEFORE mobs (mobs
+   resolve their loadouts against the skill registry —
+   `cmd/berryhunterd/loaders.go`, order items→skills→recipes→mobs), so a
+   spawn effect cannot resolve its mob at skill-parse time. Validate in
+   `mobs.RegistryFromFS` (it already receives the `skills.Registry`): after
+   building the mob registry, iterate all skill definitions' spawn effects —
+   unknown mob name hard-fails at boot naming skill + mob.
+4. **Ownership — THE new work (§4):** `owner model.PlayerEntity` field on
+   `Mob` + setter, plus a `model.Owned` interface (`Owner() PlayerEntity`).
+   The two caster dispatch sites — `applyDamageAura`'s type-switch
+   (`sys/skills.go:254`) and `tickDots`' caster replay (`sys/skills.go:199`)
+   — check Owned FIRST: an owned mob's damage routes through
+   **`PlayerTouches(owner)`** (i.e. `applyPlayerDamageAura(owner, …)` with
+   the totem's faction + position), so XP participation, kill credit,
+   kill-drop rolls, recipe cascade, floating numbers and damage tags all
+   ride the existing player path unchanged. Owner nil → falls through to
+   the mob path (mob-cast spawn, e.g. future boss adds, comes nearly free).
+   This resolves the §6 attribution question for summons (charm stays open).
+5. **Faction setter's first caller** (deferred in Step 1): add
+   `Mob.SetFaction` — the spawn site sets `FactionAligned` when the caster
+   is a player (in general: the caster's faction).
+
+**Faction/layer — no mask widening needed yet:** author the totem's body
+onto the **player layer** via the mob JSON's existing `collisionLayer`
+field, and the 1:1 faction↔layer mapping (`model/auramask.go
+factionLayers`) survives: hostile mob auras (enemy = player layer) can hit
+the totem; the owner's own damage aura (enemy = action layer) can't; ally
+auras (FireWard) buff it for free (it carries the generic `skills.Buffs`
+store); heal auras skip it (eligibility requires `PlayerEntity` vitals —
+the known item-7 gap, so **no heal totem in v1**, and mobs can't CAST heal
+auras either, `healCaster` in sys/skills.go); mob aggro ignores it
+(`findAggroTarget` filters `model.PlayerEntity`). The Step-1 mask-widening
+note only triggers when an ALIGNED entity stays on the ACTION layer (charm).
+
+**Wire footprint:** ONE appended `EntityType` enum value (`Totem`) in
+`api/schema/common.fbs` + regenerated Go/TS bindings (append =
+wire-compatible; regen via `api/schema/make.sh`, flatc v24.3.25). No new
+fields, no new messages. **Frontend:** `Skills.ts` entry (SummonTotem —
+ringless like Ignite), Totem entry in the mob rendering path
+(`game-objects/logic/Mobs.ts` + GraphicsConfig) + placeholder SVG; if the
+totem's aura should show a ring, the known `damageAuraRadiusMeters`
+frontend-constant sync applies (CLAUDE.md tech-debt list).
+
+### 8.2 Gotcha inventory (why past sessions got burned — read before coding)
+
+- **`mob.NewMob` fatals on an unknown EntityType name** (`types[d.Name]`
+  lookup → `log.Fatalf`, `model/mob/mob.go:28`). The FlatBuffers regen must
+  land BEFORE `api/mobs/totem.json` exists in the embedded content, or the
+  server won't boot. Do the schema/regen step first.
+- **`respawnBehavior` parsing silently defaults**: `mapToMobDefinition`
+  (`items/mobs/definitions.go:172`) does a map lookup without an ok-check —
+  a typo'd `"none"` becomes RandomLocation silently. When adding the None
+  value, ALSO add the missing ok-check hard-fail (project style; pin with a
+  test). Keep `RespawnBehaviorNone` appended after the existing iota values
+  (RandomLocation is the zero value and the implicit default).
+- **`Mob.Update(dt) bool` does not satisfy `model.Updater`/`model.Decayer`**
+  (those want `Update(dt)` without return) — that's why the TTL lives in
+  MobSystem's existing removal path, NOT DecaySystem. Don't "fix" this by
+  changing signatures; a second removal path would still need the
+  no-respawn guard.
+- **`Mob.Update` order matters:** the `health == 0` death check must stay
+  FIRST (zombie-bug regression guard); decrement TTL after it. Note the
+  out-of-combat regen (health < max, no aggro) also applies to the totem —
+  harmless, TTL bounds its life; don't special-case it.
+- **Owned-check order in type-switches:** a totem IS a `model.MobEntity`,
+  so both dispatch sites must test `model.Owned` (with non-nil owner)
+  BEFORE the MobEntity case, or attribution silently falls into
+  `MobTouches` (no XP, no kill credit — mob-vs-mob damage has no
+  participant tracking).
+- **Embedded content:** `api/` JSONs are embedded via cp-defs
+  (`make -C backend cp-defs`, included in `make build`); `go:embed` patterns
+  need `*.json **/*.json` for subdirs (pinned by `pkg/api/skills` test —
+  `api/skills/mobs/` is a subdir, TotemAura lives there).
+  `TestDiskContent_RepoApiLoadsEndToEnd` validates repo `api/` directly.
+  **`skills/milestone-unlocks.json` is code-adjacent and ALWAYS embedded**
+  — even under `-content ../api`, a milestone edit needs cp-defs + rebuild.
+- **Stale-server trap:** before any manual test `pkill berryhunterd`,
+  rebuild (`go build ./...` does NOT refresh `./berryhunterd` — use
+  `make -C backend build`), and check the boot log count pins
+  (**19 skills / 7 milestone entries / 5 mobs** after this step).
+- **Count pins to update:** `registry_test` (17→19 skills),
+  milestone-unlocks pin (6→7), any mob-count assertions (4→5), and the
+  CLAUDE.md boot-log gotcha line (`count=17`→`count=19`).
+- **Collision layer arithmetic** (`model/layers.go`, 1<<iota from 0x1):
+  PlayerStatic 1, Action 2, Weapon 4, Ressource 8, Heat 16, Border 32,
+  Viewport 64, MobStatic 128, Player 256, Placeable 512. Default mob body
+  layer = Viewport|Action = 66 (AngryMammoth authors 67 = +PlayerStatic to
+  block players; mask 544 = Placeable|Border). **Totem: `collisionLayer`
+  320 = Viewport(64)|Player(256)** — Viewport is required or clients never
+  see it; Player is the faction-layer trick above. `collisionMask` 32 =
+  Border only (non-blocking, nothing pushes it; NewMob's <=0 default would
+  give it mob masks — author it explicitly).
+- **`body.aggroRadius` is validated > 0** (`definitions.go:179`) even
+  though the totem never moves — author a small dummy (0.1).
+- **Skill ID conventions:** player auras 1–5, passives 10–11, cooldowns
+  20–22 (NovaBurst/Heal/Ignite), combos 30 (PaladinAura), 40 (FireWard),
+  mob skills 101–105. → **SummonTotem id 23, TotemAura id 106.**
+- **`Skills.ts` duplication tech debt:** every new player-facing skill needs
+  its id/name/maxLevel/category duplicated in the frontend `Skills.ts`.
+  TotemAura is mob-only → no entry needed (mob skills aren't listed there —
+  verify against how 101–105 are handled before assuming).
+- **Owner ref goes stale on owner death/respawn** — the respawned player is
+  a NEW entity; the totem keeps crediting the old ref. Accepted (decision
+  8.4/2), same policy as `DotBuff.Caster` and `mob.participants`; TTLs are
+  short. Don't build owner-liveness tracking.
+- **Testing cheats:** `SKILL SummonTotem` grants the skill directly;
+  `XP <amount>` levels; commands need `backend/tokens.list` + `?token=plz`.
+
+### 8.3 Constraints already decided (do not re-litigate)
+
+- F4 sequencing; F8 faction as runtime property. B/C damage semantics
+  untouched — totem damage rides the existing roll-then-mitigate paths.
+- **No cap system:** one-totem-at-a-time is a content convention
+  (cooldownTicks ≥ TTL) — zero code (KISS/YAGNI). Revisit only if content
+  wants deliberate multi-totem overlap.
+- Working style: plan-first per sub-step, TDD, sanity checks
+  (`go build ./...` + targeted `go test`) after every step, no autonomous
+  commits.
+
+### 8.4 Open sub-decisions to settle in the plan-first discussion
+
+Leans presented 2026-07-08, not yet confirmed by Robert:
+
+1. **Attribution scope:** owner credit = the full `PlayerTouches` path (XP +
+   kill-unlock rolls + recipe cascade + participants) vs. XP only. Lean:
+   full path — one code path, and the totem is an extension of the player.
+2. **Owner lifecycle:** owner dies/disconnects → totem ticks out its TTL
+   with the stale ref. Lean: accept (see gotcha above).
+3. **Killable vs. invulnerable:** lean killable (player-layer body, HP
+   pool; exercises the aligned-mob-as-target path charm will need — the
+   mirror of `TestApplyDamageAura_SameFactionTargetExcluded`).
+4. **Level scaling:** what does the summoning skill's level scale? Lean:
+   TTL only in v1; the totem's aura level stays authored in the mob JSON
+   (aura-follows-summoner-level is pets-era work).
+5. **Content shape:** dedicated TotemAura mob-skill JSON vs. reusing
+   DamageAura in the loadout. Lean: dedicated (independent tuning, follows
+   the mob-skill convention).
+6. **Spawn position:** at caster position vs. offset in heading direction.
+   Lean: caster position (auras are radial; body non-blocking). Note
+   `Mob.SetPosition`'s first call also initializes `spawnPosition` +
+   the aggro sensor — call it exactly once at spawn.
+
+### 8.5 Implementation sequence (TDD, each sub-step plan-first + green)
+
+1. **Wire:** append `Totem` to `EntityType` in `api/schema/common.fbs`;
+   regenerate Go (`pkg/api/BerryhunterApi`) + TS bindings. No behavior yet.
+2. **skills parse:** `EffectTypeSpawn` + `SpawnParams` + allowlist +
+   validator. Tests: `TestMap_SpawnEffect` (fields land, TTL scaling),
+   `TestMap_SpawnEffectInvalid` (empty mob name / zero ttlTicks fail); the
+   Step-0 allowlist net auto-covers unknown/misplaced keys.
+3. **mobs:** `RespawnBehaviorNone` + unknown-string hard-fail; spawn→mob
+   cross-validation in `RegistryFromFS`. Tests:
+   `TestRegistry_UnknownRespawnBehaviorFails`,
+   `TestRegistry_SpawnEffectUnknownMobFails`.
+4. **Mob model:** `owner`/`SetOwner`/`Owner`, `SetFaction`, `ttl` +
+   `SetTTLTicks` + Update decrement→false. `model.Owned` interface. Tests:
+   `TestMob_TTLExpiryKills` (and death check still first),
+   `TestMob_SetFactionAndOwner`.
+5. **MobSystem:** respawn guard on `RespawnBehaviorNone`. Test:
+   `TestMobSystem_NoneBehaviorDoesNotRespawn` (TTL death AND HP death).
+6. **SkillSystem spawn:** game ref + `fireCooldown` spawn case (position,
+   faction, owner, TTL, AddEntity, returns hit). Test:
+   `TestCooldown_SpawnAddsOwnedAlignedMobWithTTL`.
+7. **Attribution:** Owned checks in `applyDamageAura` + `tickDots`. Tests:
+   `TestTotemAuraDamage_CreditsOwnerXPAndKillRewards` (participants, XP,
+   drop roll, floating number via PlayerTouches),
+   `TestTickDots_OwnedCasterCreditsOwner`,
+   `TestTotem_KillableByHostileMobAura` (layer + eligibility end-to-end),
+   `TestOwnedMobWithNilOwner_UsesMobPath`.
+8. **Content [ALL PLACEHOLDER]:** `api/mobs/totem.json` (Totem: maxHealth
+   ~50, speed 0, aggroRadius 0.1, weight/fixed 0, respawnBehavior "None",
+   experience 0, no drops/unlocks, collisionLayer 320 / collisionMask 32,
+   loadout TotemAura L1); `api/skills/mobs/totem-aura.json` (id 106,
+   damage_aura or dot_aura, fire or physical — pick dot for a second dot
+   consumer, nearest-1, interval ~30); `api/skills/summon-totem.json`
+   (id 23, cooldown category, `spawn` effect, ttlTicks 300 ≈ 10 s,
+   cooldownTicks 450 ≥ TTL); milestone level 6 in
+   `skills/milestone-unlocks.json` (embedded! cp-defs + rebuild). Update
+   count pins + `Skills.ts`.
+9. **Frontend:** Totem rendering entry + SVG placeholder; Skills.ts;
+   tsc + webpack green.
+10. **Docs:** CLAUDE.md status + this §8 resolution banner (à la §7),
+    `plan-skill-system.md` schema table row for `spawn`, memory update.
+
+### 8.6 Definition of done (mirrors Steps 0–2)
+
+Full suite green (`go test -timeout 60s ./...` from `backend/`) → tsc green
+→ boot smoke embedded AND `-content ../api` (count pins 19/7/5, content
+source line) → CLAUDE.md + this doc updated → in-game check:
+`SKILL SummonTotem` → summon: totem appears at the caster with the right
+look, its aura burns a nearby mob with floating numbers, **the OWNER gains
+XP on the kill** (the defining assertion), FireWard-style ally auras can
+buff it, a hostile mob aura can destroy it early, it expires after ~10 s,
+and it never respawns. Then flip the §4 Step 3 line to DONE.
