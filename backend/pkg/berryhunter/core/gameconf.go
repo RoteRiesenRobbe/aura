@@ -5,6 +5,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
+	"github.com/trichner/berryhunter/pkg/berryhunter/world"
 )
 
 type Configuration func(g *cfg.GameConfig) error
@@ -104,6 +105,13 @@ func Radius(r float32) Configuration {
 func Bounds(width, height float32) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.Bounds = cfg.Bounds{Width: width, Height: height}
+		return nil
+	}
+}
+
+func Spawns(spawns []world.Spawn) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.Spawns = spawns
 		return nil
 	}
 }

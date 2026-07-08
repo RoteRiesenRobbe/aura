@@ -18,10 +18,12 @@ import (
 	amobs "github.com/trichner/berryhunter/pkg/api/mobs"
 	arecipes "github.com/trichner/berryhunter/pkg/api/recipes"
 	askills "github.com/trichner/berryhunter/pkg/api/skills"
+	azones "github.com/trichner/berryhunter/pkg/api/zones"
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
+	"github.com/trichner/berryhunter/pkg/berryhunter/world"
 )
 
 // contentSources bundles the definition-file systems the loaders consume.
@@ -35,6 +37,7 @@ type contentSources struct {
 	mobs    fs.FS
 	skills  fs.FS
 	recipes fs.FS
+	zones   fs.FS
 }
 
 func embeddedContent() contentSources {
@@ -43,6 +46,7 @@ func embeddedContent() contentSources {
 		mobs:    amobs.Mobs,
 		skills:  askills.Skills,
 		recipes: arecipes.Recipes,
+		zones:   azones.Zones,
 	}
 }
 
@@ -70,6 +74,9 @@ func diskContent(dir string) (contentSources, error) {
 		return contentSources{}, err
 	}
 	if c.recipes, err = sub("recipes"); err != nil {
+		return contentSources{}, err
+	}
+	if c.zones, err = sub("zones"); err != nil {
 		return contentSources{}, err
 	}
 	return c, nil
@@ -135,6 +142,24 @@ func loadRecipes(fsys fs.FS, r skills.Registry) skills.RecipeRegistry {
 	}
 	slog.Info("Loaded recipe definitions", slog.Int("count", len(registry.All())))
 	return registry
+}
+
+// loadZone parses the server-authoritative zone file, resolving spawn mob
+// names against the mob registry. Curated content: any validation failure
+// aborts startup.
+func loadZone(fsys fs.FS, mr mobs.Registry) *world.Zone {
+	zone, err := world.LoadZoneFS(fsys, mr)
+	if err != nil {
+		slog.Error("failed to load zone", slog.Any("err", err))
+		panic(err)
+	}
+	slog.Info("Loaded zone",
+		slog.String("name", zone.Name),
+		slog.Float64("width", float64(zone.Bounds.Width)),
+		slog.Float64("height", float64(zone.Bounds.Height)),
+		slog.Int("props", len(zone.Props)),
+		slog.Int("spawns", len(zone.Spawns)))
+	return zone
 }
 
 // loadMilestoneUnlocks parses the embedded milestone-unlock table and resolves

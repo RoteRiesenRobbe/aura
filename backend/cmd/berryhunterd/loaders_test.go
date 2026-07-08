@@ -9,6 +9,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
+	"github.com/trichner/berryhunter/pkg/berryhunter/world"
 )
 
 // TestDiskContent_RepoApiLoadsEndToEnd pins the -content disk-load path over
@@ -35,6 +36,11 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	recipeRegistry, err := skills.RecipesFromFS(content.recipes, skillsRegistry)
 	require.NoError(t, err)
 	assert.NotEmpty(t, recipeRegistry.All())
+
+	zone, err := world.LoadZoneFS(content.zones, mobsRegistry)
+	require.NoError(t, err)
+	assert.Positive(t, zone.Bounds.Width)
+	assert.Positive(t, zone.Bounds.Height)
 }
 
 // TestDiskContent_MissingSubdirFails pins the loud-failure contract: a

@@ -98,6 +98,10 @@ storytelling.
 > movement blocking is built now. Includes the placement+respawn half of item 7
 > (fixed spawn points + respawn timers, no patrols). Defers Tiled, multi-zone,
 > zone transitions, sharding, and items 5/6. Six-chunk breakdown in the plan doc.
+> **Progress:** Chunk 1 (rectangular `phy.InvAABB` boundary) + Chunk 2 (`zone.json`
+> schema/loader, procedural resource + random-mob generation removed) ✅ DONE +
+> in-game-verified 2026-07-08. NEXT = Chunk 3 (props as static entities), then
+> Chunk 4 (authored mob spawn points — mobs return, world playable again).
 
 - Current state: single world assembled procedurally at startup (deterministic
   seeds) — the opposite of the hand-authored target.

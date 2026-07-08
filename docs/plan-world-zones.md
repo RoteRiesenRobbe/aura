@@ -350,7 +350,7 @@ check, pause between chunks).
     blue water ring frames the green world (cosmetic; drop or restyle in the
     terrain/content pass if desired).
 
-### Chunk 2 — Zone file schema + loader; stop generating resources (backend)
+### Chunk 2 — Zone file schema + loader; stop generating resources (backend) — ✅ DONE + verified in-game 2026-07-08
 - **Goal:** the server loads `zone.json` (bounds + empty props/spawns ok) via
   `-content`; procedural resources are gone.
 - **Do:** `zone.json` schema + parser + hard-fail validation (mirror the
@@ -361,6 +361,49 @@ check, pause between chunks).
 - **Tests:** `TestZone_LoadsValid`, hard-fail cases, `-content` disk-load test
   (mirror `TestDiskContent_RepoApiLoadsEndToEnd`); boot with an empty-ish zone.
 - **Gotchas:** #6 (dangling resource refs).
+- **Sub-decisions taken:** **(a)** loader walks `*.json` and **requires exactly
+  one** zone (byte-identical to `RecipesFromFS`; lifting the "exactly one" guard
+  is all multi-zone later needs) — not a fixed filename. **(b)** spawn `mob`
+  names **are resolved against the mob registry at load time** (registry is
+  available; catches typos at boot, resolved `*MobDefinition` stashed on the
+  `Spawn` for chunk 4); prop `type` resolution **defers to chunk 3** (no prop
+  registry yet).
+- **Record (2026-07-08, full suite green, embedded + `-content ../api` boot-verified,
+  **verified in-game 2026-07-08** — walked the empty bounded rectangle):**
+  - **New `pkg/berryhunter/world` package** (`zone.go`): `Zone`/`Bounds`/`Prop`/
+    `Spawn` types + `LoadZoneFS(fsys, mobs.Registry)`, mirroring `RecipesFromFS`.
+    `parseZone` uses `json.Decoder.DisallowUnknownFields()` so typos/stale keys
+    fail **by name**; `validate()` pins non-empty name + strictly-positive bounds;
+    `resolve()` binds each spawn's mob name to its `*MobDefinition`. Walk requires
+    exactly one zone (0 → "no zone file", ≥2 → "multiple zone files … not
+    supported yet"). Props parse structurally; type resolution is chunk 3.
+  - **Content + embed:** `api/zones/zone.json` ([PLACEHOLDER] `Scaffold` 60×40,
+    empty props/spawns — the real scaffold layout is chunk 6); `pkg/api/zones/
+    zones.go` (`//go:embed *.json`, flat like `recipes.go`); `Makefile` `cp-defs`
+    now also copies `../api/zones`.
+  - **Loader wiring** (`cmd/berryhunterd/loaders.go`): `zones fs.FS` on
+    `contentSources`; `embeddedContent()` returns `azones.Zones`; `diskContent`
+    adds `sub("zones")` so a missing `zones/` hard-fails like the other subdirs;
+    new `loadZone(fsys, mr)` helper (panic-on-error + a count/bounds boot-log line).
+  - **Population removed** (`cmd/berryhunterd/berryhunterd.go`): deleted the
+    `gen.Generate` resource loop, the `initialMobCount` random-mob loop, the
+    `Generator.Fixed` loop, and the now-dead `newRandomMobEntity`/
+    `findMobSpawnPosition` helpers (+ 6 dead imports: gen, mobs, model, model/mob,
+    phy, wrand). Bounds now come from `zone.Bounds` via `core.Bounds(...)` instead
+    of the hardcoded `60×40` literal. **`radius` / `core.Radius` kept** —
+    `sys/mob.go` + `sys/respawn.go` still read `game.Radius()` for the circular
+    respawn paths until chunk 4 retires them.
+  - **Gotcha #6 swept:** no `gen.Generate` callers remain; the `gen` package
+    stays (props reuse `resource_entity.go` in chunk 3; `NewRandomPos` still feeds
+    the kept-but-now-inert resource/mob respawn paths). `cfg.InitialMobCount`
+    lingers unused (harmless; removal is out of scope).
+  - **Pins:** `world/zone_test.go` (valid load, empty props/spawns, unknown-key,
+    non-positive bounds, missing name, unknown spawn mob, multiple/no zones);
+    extended `TestDiskContent_RepoApiLoadsEndToEnd` asserts the repo `api/zones`
+    zone loads with positive bounds.
+  - **Intended leftovers:** no mobs / resources / props spawn — the world is a
+    bounded empty rectangle until chunk 3 (props) + chunk 4 (spawn points). The
+    branch stays **uncommitted** until the world is playable again (mobs, chunk 4).
 
 ### Chunk 3 — Props as static entities (backend + minimal wire)
 - **Goal:** authored props spawn, collide (`blocksMovement`), render, and stream.

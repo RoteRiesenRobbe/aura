@@ -12,12 +12,6 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/core"
-	"github.com/trichner/berryhunter/pkg/berryhunter/gen"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
-	"github.com/trichner/berryhunter/pkg/berryhunter/model"
-	"github.com/trichner/berryhunter/pkg/berryhunter/model/mob"
-	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
-	"github.com/trichner/berryhunter/pkg/berryhunter/wrand"
 	"github.com/trichner/berryhunter/pkg/logging"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -57,6 +51,7 @@ func main() {
 	mobsRegistry := loadMobs(itemsRegistry, skillsRegistry, content.mobs)
 	milestoneUnlocks := loadMilestoneUnlocks(skillsRegistry)
 	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
+	zone := loadZone(content.zones, mobsRegistry)
 
 	tokens := loadOrCreateTokens("./tokens.list")
 	slog.Info("👮‍♀️ read tokens", slog.Int("token_count", len(tokens)))
@@ -90,11 +85,9 @@ func main() {
 	}
 
 	// new game
+	// radius still drives the circular mob respawn paths in sys/mob.go +
+	// sys/respawn.go until chunk 4 replaces them with authored spawn points.
 	var radius float32 = 20
-	// [PLACEHOLDER] rectangular world (world foundation chunk 1); contains the
-	// radius-20 spawn circle. Radius still drives the circular spawn/gen paths
-	// below until chunks 2/4 replace them.
-	var boundsWidth, boundsHeight float32 = 60, 40
 	// For different seeds see:
 	// https://docs.google.com/spreadsheets/d/13EbpERJ05GpjUUXOp2zU4Od2FGqymeMV0F278_eBIcQ/edit#gid=0
 	var seed int64 = 0xDEADBEEF + 4
@@ -108,51 +101,16 @@ func main() {
 		core.Recipes(recipeRegistry),
 		core.Tokens(tokens),
 		core.Radius(radius),
-		core.Bounds(boundsWidth, boundsHeight),
+		core.Bounds(zone.Bounds.Width, zone.Bounds.Height),
+		core.Spawns(zone.Spawns),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	// populate game
-	entities := gen.Generate(g.Items(), rnd, radius)
-	for _, e := range entities {
-		g.AddEntity(e)
-	}
-
-	mobList := mobsRegistry.Mobs()
-	spawnedMobs := make(map[string]int)
-	initialMobCount := g.Config().InitialMobCount
-
-	if len(mobList) > 0 {
-		spawned := make([]model.MobEntity, 0, initialMobCount)
-		// add some mobsRegistry
-		for i := 0; i < initialMobCount; i++ {
-			m := newRandomMobEntity(mobList, rnd, radius, g.Config().MobChaseIntoAuraMargin, spawned)
-
-			g.AddEntity(m)
-			spawned = append(spawned, m)
-
-			spawnedMobs[m.MobDefinition().Name]++
-		}
-	}
-
-	fixedSpawned := make([]model.MobEntity, 0)
-	for _, md := range mobList {
-		for range md.Generator.Fixed {
-			m := mob.NewMob(md, false, radius, g.Config().MobChaseIntoAuraMargin)
-			m.SetPosition(findMobSpawnPosition(radius, m, fixedSpawned))
-			fixedSpawned = append(fixedSpawned, m)
-
-			g.AddEntity(m)
-
-			spawnedMobs[m.MobDefinition().Name]++
-		}
-	}
-
-	for mobName, count := range spawnedMobs {
-		slog.Debug(fmt.Sprintf("Spawned: %4d %s", count, mobName))
-	}
+	// The world is populated from the authored zone: mob spawn points flow to
+	// the MobSystem via core.Spawns (chunk 4); props follow in chunk 3.
+	// Procedural resource + random-mob generation is gone.
 
 	//---- set up server
 
@@ -303,48 +261,3 @@ func frontendHandler(fsPath string) http.Handler {
 	return http.FileServer(http.Dir(frontendPath))
 }
 
-func newRandomMobEntity(mobList []*mobs.MobDefinition, rnd *rand.Rand, radius float32, chaseIntoAuraMargin float32, existing []model.MobEntity) model.MobEntity {
-	choices := []wrand.Choice{}
-	for _, m := range mobList {
-		choices = append(choices, wrand.Choice{Weight: m.Generator.Weight, Choice: m})
-	}
-	wc := wrand.NewWeightedChoice(choices)
-	selected := wc.Choose(rnd).(*mobs.MobDefinition)
-
-	m := mob.NewMob(selected, false, radius, chaseIntoAuraMargin)
-	m.SetPosition(findMobSpawnPosition(radius, m, existing))
-
-	return m
-}
-
-func findMobSpawnPosition(worldRadius float32, spawned model.MobEntity, existing []model.MobEntity) phy.Vec2f {
-	const maxTries = 64
-	const minDistancePadding = 0.05
-
-	best := gen.NewRandomPos(worldRadius)
-	bestPenalty := float32(1e9)
-
-	for i := 0; i < maxTries; i++ {
-		candidate := gen.NewRandomPos(worldRadius)
-		penalty := float32(0)
-		isOverlapping := false
-		for _, other := range existing {
-			needed := spawned.Radius() + other.Radius() + minDistancePadding
-			d2 := candidate.Sub(other.Position()).AbsSq()
-			if d2 < needed*needed {
-				isOverlapping = true
-				penalty += needed*needed - d2
-			}
-		}
-		if !isOverlapping {
-			return candidate
-		}
-		if penalty < bestPenalty {
-			best = candidate
-			bestPenalty = penalty
-		}
-	}
-
-	// fallback: least-overlapping sampled candidate
-	return best
-}

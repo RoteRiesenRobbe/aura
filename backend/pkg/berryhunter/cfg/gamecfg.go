@@ -7,6 +7,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
+	"github.com/trichner/berryhunter/pkg/berryhunter/world"
 )
 
 // Bounds is the rectangular world size in server units (world foundation
@@ -26,6 +27,11 @@ type GameConfig struct {
 	SkillRegistry    skills.Registry
 	MilestoneUnlocks []skills.MilestoneUnlock
 	Recipes          skills.RecipeRegistry
+
+	// Spawns are the authored mob spawn points from the zone (world foundation
+	// chunk 4). The MobSystem spawns one mob per point and respawns it at the
+	// same spot on death.
+	Spawns []world.Spawn
 
 	TotalDayCycleSeconds   uint64
 	DayTimeSeconds         uint64

@@ -113,7 +113,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	i := NewInputSystem(g)
 	g.AddSystem(i)
 
-	m := sys.NewMobSystem(g, rnd.Int63())
+	m := sys.NewMobSystem(g, rnd.Int63(), gc.Spawns)
 	g.AddSystem(m)
 
 	preu := sys.NewPreUpdateSystem()
