@@ -327,6 +327,23 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
   cooldown slots with remaining-time display (hotkeys Q/E).
 - No net-new UI elements remain; what's left is a **styling/UX pass** over
   the interim panel look. The health bar becomes the resource bar via item 1.
+- **Polish-pass checklist** (concrete items so the scope is pinned, not
+  implied — collected 2026-07-08):
+  - [ ] Spellbook: proper panel icon (currently placeholder/none)
+  - [ ] Spellbook: pagination or scrolling once the skill roster outgrows the
+        flat list (17 entries today; the item-12 content pass will exceed it)
+  - [ ] Per-skill icons — ability bar, spellbook, and passives panel currently
+        have no real skill iconography
+  - [ ] Bars: visual styling for the resource (health) + XP bars, including
+        the absolute-number text overlays added 2026-07-07
+  - [ ] Ability bar: styling for aura 2×2 grid + cooldown slots (hotkey
+        labels, cooldown sweep, active-aura highlight)
+  - [ ] Minimap restyle (rectangular world since world-foundation chunk 1)
+  - [ ] Panel chrome: consistent frame/background/typography across
+        spellbook, passives, dev-adjacent HUD panels
+  - Note: **skill icons + spellbook pagination may want to land earlier**, in
+    the content pass (step 6) — that's when the roster grows past the flat
+    list. Decide when step 6 starts; the rest stays here in step 8.
 - **Decided: zone chat is one channel per zone** (broadcast filtered by the
   sender's zone). The existing global chat stays as-is until zones exist.
 - **Avatar selection (new-mode).** Start-screen portrait picker; choice
