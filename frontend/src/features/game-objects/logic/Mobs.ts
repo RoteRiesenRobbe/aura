@@ -253,6 +253,22 @@ export class AngryMammoth extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(AngryMammoth, file('angryMammoth'), maxSize('angryMammoth'));
 
+// The player-summoned totem (mob-depth chunk 1): stationary, fixed size, no
+// hit sound — the base Damaged flash suffices for the placeholder art.
+export class Totem extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.totem, x, y,
+            randomInt(minSize('totem'), maxSize('totem')),
+            Totem.svg,
+            damageAuraRadius('totem'));
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Totem, file('totem'), maxSize('totem'));
+
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(
     Mob.damageAura,

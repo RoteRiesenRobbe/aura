@@ -244,6 +244,7 @@ const gameObjectClasses = [
     Resources.Flower,
     Mobs.AngryMammoth,
     Resources.TitaniumShard,
+    Mobs.Totem,
 ];
 
 function unmarshalEntityType(entityType) {

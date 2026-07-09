@@ -26,6 +26,7 @@ type fakeGame struct {
 	ms      *MobSystem
 	tick    uint64
 	cfg     *cfg.GameConfig
+	mobReg  mobs.Registry
 	added   []model.MobEntity
 	removed []uint64
 }
@@ -40,7 +41,9 @@ func (g *fakeGame) AddEntity(e model.BasicEntity) {
 		return
 	}
 	g.added = append(g.added, m)
-	g.ms.AddEntity(m) // the real game routes mobs to MobSystem.AddEntity
+	if g.ms != nil {
+		g.ms.AddEntity(m) // the real game routes mobs to MobSystem.AddEntity
+	}
 }
 
 func (g *fakeGame) RemoveEntity(e ecs.BasicEntity) {
@@ -55,7 +58,12 @@ func (g *fakeGame) Handler() http.Handler                       { panic("unused"
 func (g *fakeGame) Loop()                                       { panic("unused") }
 func (g *fakeGame) GetEntity(uint64) (model.BasicEntity, error) { panic("unused") }
 func (g *fakeGame) Items() items.Registry                       { panic("unused") }
-func (g *fakeGame) Mobs() mobs.Registry                         { panic("unused") }
+func (g *fakeGame) Mobs() mobs.Registry {
+	if g.mobReg == nil {
+		panic("unused")
+	}
+	return g.mobReg
+}
 func (g *fakeGame) Skills() skills.Registry                     { panic("unused") }
 
 // testMobDef is a minimal Dodo-shaped definition — enough for NewMob (a full HP
@@ -158,4 +166,24 @@ func TestSpawnPoint_NoSpawnPointNoRespawn(t *testing.T) {
 		ms.Update(0)
 	}
 	assert.Empty(t, g.added, "an orphan mob is never respawned")
+}
+
+func TestSpawnPoint_TTLExpiredOrphanStaysDead(t *testing.T) {
+	// The totem's actual death mode (mob-depth chunk 1): TTL expiry reports
+	// death through the same Update-returns-false path as an HP death — the
+	// respawn loop must ignore it identically.
+	ms, g := newMobSystemWith(nil)
+	ms.Update(0)
+
+	totem := mob.NewMob(testMobDef(), 0)
+	totem.SetPosition(phy.Vec2f{X: 1, Y: 1})
+	totem.SetTTLTicks(5)
+	ms.AddEntity(totem)
+
+	for g.tick = 0; g.tick < 50; g.tick++ {
+		ms.Update(0)
+	}
+	require.Len(t, g.removed, 1, "the expired summon is removed")
+	assert.Equal(t, totem.Basic().ID(), g.removed[0])
+	assert.Empty(t, g.added, "a TTL-expired summon is never respawned")
 }

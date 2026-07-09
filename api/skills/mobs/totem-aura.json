@@ -1,0 +1,22 @@
+{
+  "_comment": "Mob-depth chunk 1 placeholder content: the totem's fire dot on the nearest enemy (third dot consumer). Its level follows the SummonTotem skill level at spawn (RaiseLoadoutLevels), so maxLevel matches SummonTotem's. All values [PLACEHOLDER].",
+  "id": 106,
+  "name": "TotemAura",
+  "category": "active_aura",
+  "maxLevel": 3,
+  "effects": [
+    {
+      "type": "dot_aura",
+      "radius": 1.5,
+      "damageHP": 4,
+      "damageHPPerLevel": 1,
+      "damageTags": ["fire"],
+      "dotTicks": 3,
+      "dotTickInterval": 30,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 30
+    }
+  ]
+}

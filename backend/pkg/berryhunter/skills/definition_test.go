@@ -526,6 +526,7 @@ func TestParse_ExactlyOnePayload(t *testing.T) {
 	assert.Nil(t, e.Resist)
 	assert.Nil(t, e.Stat)
 	assert.Nil(t, e.Dot)
+	assert.Nil(t, e.Spawn)
 
 	heal := mustParse(t, healAuraJSON)
 	assert.NotNil(t, heal.Effects[0].Heal)
@@ -610,4 +611,67 @@ func TestMap_ExplicitTickInterval(t *testing.T) {
     }`)
 	def := mustParse(t, data)
 	assert.Equal(t, 3, def.Effects[0].TickInterval)
+}
+
+// --- spawn (effect foundations Step 3 / mob-depth chunk 1) ---
+
+func TestMap_SpawnEffect(t *testing.T) {
+	data := []byte(`{
+      "id": 23, "name": "SummonTotem", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 450,
+      "effects": [{
+        "type": "spawn", "spawnMob": "Totem",
+        "ttlTicks": 300, "ttlTicksPerLevel": 60,
+        "maxHealthPerOwnerLevel": 2, "powerPerOwnerLevel": 0.05
+      }]
+    }`)
+	def := mustParse(t, data)
+	e := def.Effects[0]
+	require.NotNil(t, e.Spawn)
+	assert.Nil(t, e.Damage, "spawn payload, not damage payload")
+	assert.Equal(t, "Totem", e.Spawn.MobName)
+	assert.Equal(t, 300, e.Spawn.TTLAt(1))
+	assert.Equal(t, 420, e.Spawn.TTLAt(3), "skill level scales the TTL")
+	assert.InDelta(t, 0, e.Spawn.MaxHealthBonusAt(1), 1e-6, "level-1 owner gets no bonus")
+	assert.InDelta(t, 8, e.Spawn.MaxHealthBonusAt(5), 1e-6)
+	assert.InDelta(t, 1, e.Spawn.PowerAt(1), 1e-6, "level-1 owner has neutral power")
+	assert.InDelta(t, 1.2, e.Spawn.PowerAt(5), 1e-6)
+}
+
+func TestMap_SpawnEffectDefaultsScalingToOff(t *testing.T) {
+	data := []byte(`{
+      "id": 23, "name": "SummonTotem", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 450,
+      "effects": [{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300}]
+    }`)
+	def := mustParse(t, data)
+	e := def.Effects[0].Spawn
+	require.NotNil(t, e)
+	assert.Equal(t, 300, e.TTLAt(5), "absent per-level = static TTL")
+	assert.InDelta(t, 0, e.MaxHealthBonusAt(10), 1e-6)
+	assert.InDelta(t, 1, e.PowerAt(10), 1e-6)
+}
+
+func TestMap_SpawnEffectInvalid(t *testing.T) {
+	for _, effect := range []string{
+		// missing mob name
+		`{"type": "spawn", "ttlTicks": 300}`,
+		// missing/zero TTL — an instantly-expiring summon is unauthorable
+		`{"type": "spawn", "spawnMob": "Totem"}`,
+		`{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 0}`,
+		// negative owner-level scaling — these fields are buffs by design
+		`{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300, "maxHealthPerOwnerLevel": -1}`,
+		`{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300, "powerPerOwnerLevel": -0.1}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":23,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		assert.Error(t, err, "invalid spawn must be rejected: %s", effect)
+	}
+}
+
+func TestMap_SpawnKeysOnOtherEffectsFail(t *testing.T) {
+	// spawnMob/ttlTicks on a non-spawn effect would be silently ignored.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":7,"spawnMob":"Totem"}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "spawnMob")
 }

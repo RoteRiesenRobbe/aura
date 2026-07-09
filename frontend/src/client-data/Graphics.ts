@@ -112,6 +112,15 @@ export const GraphicsConfig = {
             // mob ring is a client constant, not wire-driven like player rings.
             damageAuraRadiusMeters: <number> 3.5
         },
+
+        totem: {
+            file: require('../features/game-objects/assets/mobs/totem.svg'),
+            minSize: <number> 50,
+            maxSize: <number> 50,
+            // Must match TotemAura's effective radius (skill radius 1.5, no
+            // per-level growth) — same hand-synced constant as the other mobs.
+            damageAuraRadiusMeters: <number> 1.5,
+        },
     },
 
     resources: {

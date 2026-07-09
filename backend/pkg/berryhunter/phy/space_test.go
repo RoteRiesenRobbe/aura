@@ -89,3 +89,45 @@ func BenchmarkSpace_Update(b *testing.B) {
 
 func TestSpace_AddStaticShape(t *testing.T) {
 }
+
+func TestSpace_QueryCircleStatics(t *testing.T) {
+	// The static grid is filled at AddStaticShape time, so — unlike
+	// QueryCircle — no Update is needed before querying.
+	s := NewSpace()
+
+	inRange := NewCircle(Vec2f{1, 0}, 1)
+	inRange.Shape().Layer = 0b01
+	outOfRange := NewCircle(Vec2f{50, 50}, 1)
+	outOfRange.Shape().Layer = 0b01
+	wrongLayer := NewCircle(Vec2f{0, 1}, 1)
+	wrongLayer.Shape().Layer = 0b10
+
+	s.AddStaticShape(inRange)
+	s.AddStaticShape(outOfRange)
+	s.AddStaticShape(wrongLayer)
+
+	query := NewCircle(Vec2f{0, 0}, 2)
+	query.Shape().Mask = 0b01
+
+	hits := s.QueryCircleStatics(query)
+
+	assert.Len(t, hits, 1)
+	assert.Contains(t, hits, Collider(inRange))
+}
+
+func TestSpace_QueryCircleStatics_InvAABBBorder(t *testing.T) {
+	// The border wall intersects a circle only when it pokes OUTSIDE the box,
+	// so a Border-masked query doubles as an out-of-bounds check for free.
+	s := NewSpace()
+	wall := NewInvAABB(VEC2F_ZERO, 60, 40)
+	wall.Shape().Layer = 0b01
+	s.AddStaticShape(wall)
+
+	inside := NewCircle(Vec2f{0, 0}, 1)
+	inside.Shape().Mask = 0b01
+	assert.Empty(t, s.QueryCircleStatics(inside), "fully inside the bounds = no wall overlap")
+
+	poking := NewCircle(Vec2f{29.5, 0}, 1) // right edge at x=30; the circle reaches 30.5
+	poking.Shape().Mask = 0b01
+	assert.Len(t, s.QueryCircleStatics(poking), 1, "poking past the boundary hits the wall")
+}

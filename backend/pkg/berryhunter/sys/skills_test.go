@@ -43,7 +43,7 @@ func newFakeEntity() *fakeSkillEntity {
 // --- entity tracking tests ---
 
 func TestSkillSystem_TracksAddedEntity(t *testing.T) {
-	sk := NewSkillSystem(phy.NewSpace())
+	sk := NewSkillSystem(phy.NewSpace(), nil)
 	e := newFakeEntity()
 	sk.AddEntity(e)
 
@@ -52,7 +52,7 @@ func TestSkillSystem_TracksAddedEntity(t *testing.T) {
 }
 
 func TestSkillSystem_UpdateDoesNotPanic(t *testing.T) {
-	sk := NewSkillSystem(phy.NewSpace())
+	sk := NewSkillSystem(phy.NewSpace(), nil)
 	e := newFakeEntity()
 	sk.AddEntity(e)
 
@@ -60,7 +60,7 @@ func TestSkillSystem_UpdateDoesNotPanic(t *testing.T) {
 }
 
 func TestSkillSystem_RemoveDropsEntity(t *testing.T) {
-	sk := NewSkillSystem(phy.NewSpace())
+	sk := NewSkillSystem(phy.NewSpace(), nil)
 	e1 := newFakeEntity()
 	e2 := newFakeEntity()
 	sk.AddEntity(e1)
@@ -75,7 +75,7 @@ func TestSkillSystem_RemoveDropsEntity(t *testing.T) {
 // --- "Nothing" (no active aura) ticks nothing ---
 
 func TestSkillSystem_NoActiveAura_TicksNothing(t *testing.T) {
-	sk := NewSkillSystem(phy.NewSpace())
+	sk := NewSkillSystem(phy.NewSpace(), nil)
 	e := newFakeEntity()
 
 	// Equip a heal aura but leave the active slot at Nothing (-1).

@@ -180,12 +180,13 @@ code), TDD'd, and independently shippable. Steps 1–4 are the F4 order.
   on death (pinned). Root/mark deliberately skipped — root is a slow-1.0
   payload when a consumer exists, mark needs the visibility decision (§6).
   Sub-decision record in §7.
-- **Step 3 — spawned-entity lifecycle:** totem first (closest to expressible
-  today: stationary mob + aura skill + `Decayer`-style TTL), then ownership/
-  XP attribution; pets/clones/swarm build on it later. Briefing in §8.
-  **Execution scheduled (2026-07-09): `plan-mob-depth.md` chunk 1** (the
-  companion cooldown, chunk 6 there, is the second consumer); apply the §8
-  banner's adaptations.
+- **Step 3 — spawned-entity lifecycle: ✓ DONE (implemented + verified
+  in-game 2026-07-09 as `plan-mob-depth.md` chunk 1; suite + tsc + webpack
+  green).** Totem shipped: `spawn` effect payload, `Mob`
+  owner/faction/TTL/power, `model.Owned` + owned-first attribution through
+  `PlayerTouches(owner)`, offset placement via `Space.QueryCircleStatics`,
+  §8.4 decisions recorded (4 and 6 amended). Pets/clones/swarm build on it
+  later; the companion cooldown (mob-depth chunk 6) is the second consumer.
 - **Step 4 — shield layer:** absorb-pool buff payload + the absorb step in
   the two `takeDamage` sites; F6 decision record beforehand if armor
   pen/thorns/lifesteal are already in by then; wire field + HUD.
@@ -354,6 +355,11 @@ of the first consumer (DoT or root on a mob).
 
 ## 8. Step 3 briefing — spawned-entity lifecycle
 
+> **✓ IMPLEMENTED + VERIFIED IN-GAME 2026-07-09 as `plan-mob-depth.md`
+> chunk 1** (suite + tsc + webpack green). §8.4 records the final decisions
+> (4 and 6 amended from the leans). Kept as the implementation record.
+> Original pre-execution banner below.
+>
 > **EXECUTION SCHEDULED (2026-07-09) → `plan-mob-depth.md` chunk 1.** Read
 > this briefing **with `plan-mob-depth.md` §3.1's three adaptations** — it
 > predates the 2026-07-09 dead-code sweep: (1) **no respawn-guard is needed
@@ -543,28 +549,42 @@ frontend-constant sync applies (CLAUDE.md tech-debt list).
   (`go build ./...` + targeted `go test`) after every step, no autonomous
   commits.
 
-### 8.4 Open sub-decisions to settle in the plan-first discussion
+### 8.4 Sub-decisions — DECIDED 2026-07-09 (chunk-1 plan-first discussion)
 
-Leans presented 2026-07-08, not yet confirmed by Robert:
+Leans presented 2026-07-08; 1/2/3/5 confirmed as leaned, 4 and 6 amended:
 
-1. **Attribution scope:** owner credit = the full `PlayerTouches` path (XP +
-   kill-unlock rolls + recipe cascade + participants) vs. XP only. Lean:
-   full path — one code path, and the totem is an extension of the player.
-2. **Owner lifecycle:** owner dies/disconnects → totem ticks out its TTL
-   with the stale ref. Lean: accept (see gotcha above).
-3. **Killable vs. invulnerable:** lean killable (player-layer body, HP
-   pool; exercises the aligned-mob-as-target path charm will need — the
-   mirror of `TestApplyDamageAura_SameFactionTargetExcluded`).
-4. **Level scaling:** what does the summoning skill's level scale? Lean:
-   TTL only in v1; the totem's aura level stays authored in the mob JSON
-   (aura-follows-summoner-level is pets-era work).
-5. **Content shape:** dedicated TotemAura mob-skill JSON vs. reusing
-   DamageAura in the loadout. Lean: dedicated (independent tuning, follows
-   the mob-skill convention).
-6. **Spawn position:** at caster position vs. offset in heading direction.
-   Lean: caster position (auras are radial; body non-blocking). Note
-   `Mob.SetPosition`'s first call also initializes `spawnPosition` +
-   the aggro sensor — call it exactly once at spawn.
+1. **Attribution scope: DECIDED full `PlayerTouches` path** (XP + kill-unlock
+   rolls + recipe cascade + participants) — one code path, the totem is an
+   extension of the player.
+2. **Owner lifecycle: DECIDED accept the stale ref** — owner dies/disconnects
+   → totem ticks out its TTL crediting the old ref (see gotcha above).
+3. **Killable: DECIDED killable** (player-layer body, HP pool; exercises the
+   aligned-mob-as-target path charm will need — pinned by
+   `TestTotem_KillableByHostileMobAura`).
+4. **Level scaling: DECIDED (amended from the lean) — two scaling sources.**
+   The SUMMON SKILL's level scales the TTL (`ttlTicks`+`ttlTicksPerLevel`)
+   AND the summon's loadout level (`SkillComponent.RaiseLoadoutLevels`:
+   raised to the summon level, clamped per skill's own maxLevel, never
+   lowered below an authored level). The OWNER's player level scales the
+   summon's body and output: flat bonus max HP (`maxHealthPerOwnerLevel`)
+   plus a damage/heal power multiplier (`powerPerOwnerLevel` →
+   `Mob.SummonPower`, frozen at spawn) — **power applies to damage/heal
+   AMOUNTS only, never to CC parameters** (slow fraction/duration ride only
+   the skill's own level; structurally guaranteed — `applySlowAura` never
+   sees the caster). Both knobs live on the spawn payload; mob casters have
+   no owner level → no HP/power bonus (loadout+TTL scaling still apply).
+5. **Content shape: DECIDED dedicated TotemAura** mob-skill JSON (id 106,
+   a `dot_aura` — third dot consumer; maxLevel matches SummonTotem's).
+6. **Spawn position: DECIDED (amended from the lean) — offset, not under
+   the caster.** Random direction on the ring at caster radius + summon
+   radius + gap [PLACEHOLDER 0.3]; up to 8 candidates, a candidate is
+   blocked when the summon's body would overlap a blocking static or poke
+   past the border (`Space.QueryCircleStatics`, mask PlayerStatic|Border —
+   the InvAABB only intersects circles leaving the bounds, so out-of-bounds
+   rejection is free); all blocked → caster position. Rationale: the player
+   must instantly SEE the spawn — never covered by the avatar.
+   `Mob.SetPosition`'s first call also initializes `spawnPosition` + the
+   aggro sensor — called exactly once at spawn.
 
 ### 8.5 Implementation sequence (TDD, each sub-step plan-first + green)
 

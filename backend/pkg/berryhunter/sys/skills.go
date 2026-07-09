@@ -2,6 +2,7 @@ package sys
 
 import (
 	"log"
+	"math"
 	"math/rand"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/minions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/mob"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -51,15 +53,20 @@ type SkillSystem struct {
 	entities []skillEntity
 	space    *phy.Space
 
-	// rng feeds the per-hit variance rolls (item 11 Phase 3, decision C4).
-	// Free-running by design — reproducibility only matters in tests, which
-	// overwrite it with a seeded source.
+	// game serves the spawn effect (mob-depth chunk 1): mob-definition lookup,
+	// config, and AddEntity for the summoned mob.
+	game model.Game
+
+	// rng feeds the per-hit variance rolls (item 11 Phase 3, decision C4) and
+	// the summon-placement direction. Free-running by design — reproducibility
+	// only matters in tests, which overwrite it with a seeded source.
 	rng *rand.Rand
 }
 
-func NewSkillSystem(space *phy.Space) *SkillSystem {
+func NewSkillSystem(space *phy.Space, g model.Game) *SkillSystem {
 	return &SkillSystem{
 		space: space,
+		game:  g,
 		rng:   rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
@@ -159,8 +166,14 @@ type dotCarrier interface {
 // cooldown path. Either way the debuff then runs on the target independent
 // of the delivery and the caster's presence (skills.Buffs).
 func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+	// Owner-level power is frozen into the dot at application time, like the
+	// level (mob-depth chunk 1). A world mob's SummonPower is neutral 1.
+	hp := effect.Dot.HPAt(level)
+	if owned, ok := e.(model.Owned); ok {
+		hp *= owned.SummonPower()
+	}
 	dot := skills.DotBuff{
-		HP:       effect.Dot.HPAt(level),
+		HP:       hp,
 		Tags:     effect.Dot.Tags,
 		Variance: effect.Dot.Variance,
 		Interval: effect.Dot.Interval,
@@ -196,7 +209,14 @@ func (s *SkillSystem) tickDots(e skillEntity) {
 		// Every event rolls its own variance and is mitigated by the
 		// target's CURRENT resistances (roll-then-mitigate, per hit).
 		damageHP := vitals.RollVariance(hit.HP, hit.Variance, s.rng)
-		switch caster := hit.Caster.(type) {
+		// An owned summon's dot replays through its owner — checked before
+		// the MobEntity case (a totem IS a mob), so burn damage keeps
+		// crediting the owner even after the summon is gone.
+		storedCaster := hit.Caster
+		if owned, ok := storedCaster.(model.Owned); ok && owned.Owner() != nil {
+			storedCaster = owned.Owner()
+		}
+		switch caster := storedCaster.(type) {
 		case model.PlayerEntity:
 			target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags})
 		case model.MobEntity:
@@ -250,18 +270,28 @@ func eligibleByTargetFlags[Capability any](effect skills.EffectDef, casterFactio
 
 // applyDamageAura dispatches on the caster type: player and mob auras use
 // different Interacter entry points (PlayerTouches vs. MobTouches double
-// dispatch), mirroring the two legacy damage paths 1:1.
+// dispatch), mirroring the two legacy damage paths 1:1. An owned summon is
+// checked FIRST — it IS a MobEntity, and falling into the mob case would
+// silently drop attribution (no XP, no kill credit, no participants): its
+// damage routes through PlayerTouches(owner) with the summon's own faction
+// and position, scaled by the owner-level power (mob-depth chunk 1).
 func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
+	if owned, ok := e.(model.Owned); ok && owned.Owner() != nil {
+		applyPlayerDamageAura(owned.Owner(), e.Faction(), e.AuraCollider().Position(), level, effect, collisions, rng, owned.SummonPower())
+		return
+	}
 	switch caster := e.(type) {
 	case model.PlayerEntity:
-		applyPlayerDamageAura(caster, e.Faction(), e.AuraCollider().Position(), level, effect, collisions, rng)
+		applyPlayerDamageAura(caster, e.Faction(), e.AuraCollider().Position(), level, effect, collisions, rng, 1)
 	case model.MobEntity:
 		applyMobDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions, rng)
 	}
 }
 
-func applyPlayerDamageAura(caster model.PlayerEntity, casterFaction model.Faction, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
-	damageHP := effect.Damage.HPAt(level)
+// outputScale is 1 for a direct player cast and the summon's power for an
+// owned cast — it multiplies the damage amount only (never CC parameters).
+func applyPlayerDamageAura(caster model.PlayerEntity, casterFaction model.Faction, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand, outputScale float32) {
+	damageHP := effect.Damage.HPAt(level) * outputScale
 
 	// Declarative targeting: the sensor mask pre-filters layers, the faction
 	// flags decide per target. targetsAllies=false is the no-friendly-fire
@@ -499,6 +529,12 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			hitAny = true
 			continue
 		}
+		if effect.Type == skills.EffectTypeSpawn {
+			if s.spawnSummon(e, es, effect.Spawn) {
+				hitAny = true
+			}
+			continue
+		}
 		if effect.Type != skills.EffectTypeInstantDamage && effect.Type != skills.EffectTypeInstantDot {
 			continue
 		}
@@ -532,6 +568,72 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 		}
 	}
 	return hitAny
+}
+
+// Summon placement (mob-depth chunk 1, decision §8.4/6): offset from the
+// caster so the spawn is instantly visible (never under the avatar), in a
+// random direction, skipping spots blocked by static blockers or the world
+// border. All numbers [PLACEHOLDER].
+const (
+	summonPlacementGap   float32 = 0.3 // clearance between caster and summon bodies
+	summonPlacementTries         = 8
+)
+
+// spawnSummon fires a spawn effect: builds the referenced mob, aligns it with
+// its caster, arms the TTL, applies the two scaling sources (summon-skill
+// level → TTL + loadout level; owner player level → bonus HP + power), places
+// it offset from the caster and hands it to the game. A spawn always counts
+// as a hit — it has no whiff.
+func (s *SkillSystem) spawnSummon(e skillEntity, es *skills.EquippedSkill, p *skills.SpawnParams) bool {
+	def, err := s.game.Mobs().GetByName(p.MobName)
+	if err != nil {
+		// Unreachable for loaded content — mobs.RegistryFromFS hard-fails
+		// unresolved spawnMob names at boot. Guards direct construction.
+		log.Printf("spawn effect: mob %q not found", p.MobName)
+		return false
+	}
+
+	m := mob.NewMob(def, s.game.Config().MobChaseIntoAuraMargin)
+	m.SetFaction(e.Faction())
+	m.SetTTLTicks(p.TTLAt(es.Level))
+	m.SkillComponent().RaiseLoadoutLevels(es.Level)
+	if owner, ok := e.(model.PlayerEntity); ok {
+		m.SetOwner(owner)
+		ownerLevel := int(owner.Progression().Level)
+		if bonus := vitals.HP(p.MaxHealthBonusAt(ownerLevel)); bonus > 0 {
+			m.RaiseMaxHealth(bonus)
+		}
+		m.SetSummonPower(p.PowerAt(ownerLevel))
+	}
+	m.SetPosition(s.summonPosition(e, m.Radius()))
+	s.game.AddEntity(m)
+	return true
+}
+
+// summonPosition picks the summon's spawn point: up to summonPlacementTries
+// random directions on the offset ring (caster radius + summon radius + gap);
+// a candidate is blocked when the summon's body would overlap a blocking
+// static or poke past the border wall (the InvAABB only intersects circles
+// leaving the bounds, so the Border mask doubles as the in-bounds check).
+// Everything blocked → the caster's position: visible beats unplaceable.
+func (s *SkillSystem) summonPosition(e skillEntity, summonRadius float32) phy.Vec2f {
+	casterPos := e.AuraCollider().Position()
+	dist := summonRadius + summonPlacementGap
+	if ent, ok := e.(model.Entity); ok {
+		dist += ent.Radius()
+	}
+
+	probe := phy.NewCircle(phy.VEC2F_ZERO, summonRadius)
+	probe.Shape().Mask = int(model.LayerPlayerStaticCollision | model.LayerBorderCollision)
+	for try := 0; try < summonPlacementTries; try++ {
+		angle := s.rng.Float64() * 2 * math.Pi
+		offset := phy.Vec2f{X: float32(math.Cos(angle)), Y: float32(math.Sin(angle))}.Mult(dist)
+		probe.SetPosition(casterPos.Add(offset))
+		if len(s.space.QueryCircleStatics(probe)) == 0 {
+			return probe.Position()
+		}
+	}
+	return casterPos
 }
 
 // applySlowAura slows every slowable target in range. The sensor mask

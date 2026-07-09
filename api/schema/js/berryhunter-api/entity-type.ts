@@ -19,5 +19,6 @@ export enum EntityType {
   Titanium = 13,
   Flower = 14,
   AngryMammoth = 15,
-  TitaniumShard = 16
+  TitaniumShard = 16,
+  Totem = 17
 }

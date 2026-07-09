@@ -484,3 +484,64 @@ func TestNewMob_SpawnsHostile(t *testing.T) {
 	m := NewMob(testMobDefinition(), 0)
 	assert.Equal(t, model.FactionHostile, m.Faction())
 }
+
+// --- spawned-entity lifecycle (effect foundations Step 3 / mob-depth chunk 1) ---
+
+func TestMob_TTLExpiryKills(t *testing.T) {
+	m := newTestMob()
+	m.SetTTLTicks(3)
+	participant := newFakeAuraPlayer()
+	m.PlayerTouches(participant, model.Damage{HP: 5})
+
+	assert.True(t, m.Update(0), "tick 1: still alive")
+	assert.True(t, m.Update(0), "tick 2: still alive")
+	assert.False(t, m.Update(0), "tick 3: TTL expired → removed via the normal death path")
+	assert.Greater(t, uint32(m.Health()), uint32(0), "TTL expiry is not an HP death")
+	assert.Empty(t, participant.xp, "TTL expiry grants no kill rewards")
+}
+
+func TestMob_NoTTLNeverExpires(t *testing.T) {
+	m := newTestMob()
+	for i := 0; i < 100; i++ {
+		require.True(t, m.Update(0), "a mob without a TTL lives indefinitely")
+	}
+}
+
+func TestMob_TTLDeathCheckStaysFirst(t *testing.T) {
+	// Regression guard (zombie bug family): the HP death check must run before
+	// the TTL decrement — a dead mob reports death immediately.
+	m := newTestMob()
+	m.SetTTLTicks(1000)
+	m.health = 0
+
+	assert.False(t, m.Update(0))
+}
+
+func TestMob_SetFactionAndOwner(t *testing.T) {
+	m := newTestMob()
+	owner := newFakeAuraPlayer()
+
+	require.Nil(t, m.Owner(), "an unowned mob has no owner")
+	assert.InDelta(t, 1.0, m.SummonPower(), 1e-6, "unowned/unset power is neutral")
+
+	m.SetFaction(model.FactionAligned)
+	m.SetOwner(owner)
+	m.SetSummonPower(1.2)
+
+	assert.Equal(t, model.FactionAligned, m.Faction())
+	assert.Same(t, model.PlayerEntity(owner), m.Owner())
+	assert.InDelta(t, 1.2, m.SummonPower(), 1e-6)
+
+	var _ model.Owned = m
+}
+
+func TestMob_RaiseMaxHealth(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.MaxHealth = 100
+	m := NewMob(def, 0)
+
+	m.RaiseMaxHealth(20)
+
+	assert.Equal(t, vitals.VitalSign(120), m.MaxHealth())
+	assert.Equal(t, vitals.VitalSign(120), m.Health(), "the bonus raises current HP too — summons spawn at full health")
+}

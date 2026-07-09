@@ -142,6 +142,7 @@ export class Game implements IGame {
                 dodo: createNamedContainer('dodo'),
                 saberToothCat: createNamedContainer('saberToothCat'),
                 mammoth: createNamedContainer('mammoth'),
+                totem: createNamedContainer('totem'),
             },
             resources: {
                 berryBush: createNamedContainer('berryBush'),
@@ -192,6 +193,7 @@ export class Game implements IGame {
             this.layers.mobs.dodo,
             this.layers.mobs.saberToothCat,
             this.layers.mobs.mammoth,
+            this.layers.mobs.totem,
         );
 
         // Higher Placeables

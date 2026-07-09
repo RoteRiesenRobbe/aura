@@ -247,3 +247,39 @@ func TestMapMobDefinition_EmptyResistanceTagFails(t *testing.T) {
 	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t))
 	assert.Error(t, err)
 }
+
+func TestRegistry_SpawnEffectUnknownMobFails(t *testing.T) {
+	// Skills load before mobs, so a spawn effect's mob name can only resolve
+	// once the mob registry exists — RegistryFromFS is the validation seam.
+	summonSkillJSON := []byte(`{
+	  "id": 23, "name": "SummonTotem", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 450,
+	  "effects": [{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300}]
+	}`)
+	sr, err := skills.RegistryFromFS(fstest.MapFS{
+		"summon-totem.json": {Data: summonSkillJSON},
+	})
+	require.NoError(t, err)
+
+	totemMobJSON := []byte(`{
+	  "id": 9, "name": "Totem", "type": "MOB",
+	  "body": {"radius": 0.25, "aggroRadius": 0.1}
+	}`)
+	otherMobJSON := []byte(`{
+	  "id": 1, "name": "Dodo", "type": "MOB",
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`)
+
+	// The referenced mob exists → loads fine.
+	_, err = RegistryFromFS(nil, sr, fstest.MapFS{
+		"totem.json": {Data: totemMobJSON},
+	})
+	require.NoError(t, err)
+
+	// The referenced mob is missing → hard-fail naming skill and mob.
+	_, err = RegistryFromFS(nil, sr, fstest.MapFS{
+		"dodo.json": {Data: otherMobJSON},
+	})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "SummonTotem")
+	assert.ErrorContains(t, err, "Totem")
+}

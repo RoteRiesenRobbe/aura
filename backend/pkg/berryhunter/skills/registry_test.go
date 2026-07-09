@@ -110,11 +110,12 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	fsys := os.DirFS("../../../../api/skills")
 	r, err := RegistryFromFS(fsys)
 	require.NoError(t, err)
-	// 12 player skills (incl. SwiftPassive/ToughPassive, NovaBurst/Heal,
+	// 13 player skills (incl. SwiftPassive/ToughPassive, NovaBurst/Heal,
 	// SlowAura, the PaladinAura combination result, the FireWard resist
-	// aura, and the ImmolationAura/Ignite dot pair) + 5 mob skills (mobs/
-	// subdirectory: 4 auras + the AngryMammothStomp cooldown)
-	assert.Len(t, r.All(), 17)
+	// aura, the ImmolationAura/Ignite dot pair, and SummonTotem) + 6 mob
+	// skills (mobs/ subdirectory: 5 auras incl. TotemAura + the
+	// AngryMammothStomp cooldown)
+	assert.Len(t, r.All(), 19)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura"} {
 		_, err := r.GetByName(name)

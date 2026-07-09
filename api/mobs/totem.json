@@ -1,0 +1,23 @@
+{
+  "_comment": "Mob-depth chunk 1 placeholder content: the player-summoned totem — a stationary aura carrier created only by the SummonTotem spawn effect (never referenced by any zone spawn). collisionLayer 160 = Viewport|Player (the player-layer trick: hostile enemy-masks can hit it; ally auras buff it), collisionMask 16 = Border only (non-blocking, nothing pushes it). aggroRadius is a dummy — validated > 0 but speed 0 means it never moves. All values [PLACEHOLDER].",
+  "id": 5,
+  "name": "Totem",
+  "type": "MOB",
+  "factors": {
+    "maxHealth": 50,
+    "experience": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.25,
+    "aggroRadius": 0.1,
+    "collisionLayer": 160,
+    "collisionMask": 16
+  },
+  "skills": [
+    {
+      "skillName": "TotemAura",
+      "level": 1
+    }
+  ]
+}

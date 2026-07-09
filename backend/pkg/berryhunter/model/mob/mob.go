@@ -175,6 +175,16 @@ type Mob struct {
 	// default; future content (charm, player-owned summons) flips it at runtime.
 	faction model.Faction
 
+	// Spawned-entity lifecycle (mob-depth chunk 1). owner is the summoning
+	// player — nil for world mobs; the ref may go stale on owner death
+	// (accepted, §8.4/2). ttlTicks counts down in Update (0 = no TTL);
+	// expiry reports death through the normal removal path, granting no kill
+	// rewards. summonPower is the owner-level output multiplier (see
+	// model.Owned); 0 means "unset" and reads as neutral 1.
+	owner       model.PlayerEntity
+	ttlTicks    int
+	summonPower float32
+
 	// damageTaken accumulates health lost this tick (VitalSign units) for the
 	// floating damage number (roadmap item 11); reset every tick.
 	damageTaken vitals.VitalSign
@@ -220,6 +230,50 @@ func (m *Mob) Faction() model.Faction {
 	return m.faction
 }
 
+// SetFaction flips the mob's allegiance at runtime — first caller: the spawn
+// effect aligning a summon with its caster.
+func (m *Mob) SetFaction(f model.Faction) {
+	m.faction = f
+}
+
+// SetOwner binds the summoning player (spawn site only).
+func (m *Mob) SetOwner(o model.PlayerEntity) {
+	m.owner = o
+}
+
+// Owner is the summoning player, nil for world mobs (model.Owned).
+func (m *Mob) Owner() model.PlayerEntity {
+	return m.owner
+}
+
+// SetTTLTicks arms the spawned-entity lifetime (spawn site only; 0 = none).
+func (m *Mob) SetTTLTicks(t int) {
+	m.ttlTicks = t
+}
+
+// SetSummonPower sets the owner-level output multiplier (spawn site only).
+func (m *Mob) SetSummonPower(p float32) {
+	m.summonPower = p
+}
+
+// SummonPower is the owner-level damage/heal multiplier (model.Owned). The
+// zero value reads as neutral so directly-constructed mobs (tests, world
+// spawns) deal authored damage.
+func (m *Mob) SummonPower() float32 {
+	if m.summonPower <= 0 {
+		return 1
+	}
+	return m.summonPower
+}
+
+// RaiseMaxHealth grants flat bonus HP on top of the (possibly variance-rolled)
+// authored pool — the owner-level body scaling of summons. Current health
+// rises with it: summons spawn at full health.
+func (m *Mob) RaiseMaxHealth(bonusHP uint32) {
+	m.maxHealth = m.maxHealth.Add(bonusHP)
+	m.health = m.health.Add(bonusHP)
+}
+
 func (m *Mob) MobDefinition() *mobs.MobDefinition {
 	return m.definition
 }
@@ -231,6 +285,16 @@ func (m *Mob) Update(dt float32) bool {
 	// never granting XP or drops again).
 	if m.health == 0 {
 		return false
+	}
+
+	// TTL countdown for spawned entities (after the death check — an HP death
+	// must keep reporting as one). Expiry rides the same removal path as HP
+	// death; kill rewards only flow through PlayerTouches, so none are granted.
+	if m.ttlTicks > 0 {
+		m.ttlTicks--
+		if m.ttlTicks == 0 {
+			return false
+		}
 	}
 
 	// Aura damage is applied by the SkillSystem (Phase 6.1); Update only

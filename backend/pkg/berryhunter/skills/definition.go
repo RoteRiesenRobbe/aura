@@ -42,6 +42,7 @@ const (
 	EffectTypeResistPassive
 	EffectTypeDotAura
 	EffectTypeInstantDot
+	EffectTypeSpawn
 )
 
 var effectTypeMap = map[string]EffectType{
@@ -55,6 +56,7 @@ var effectTypeMap = map[string]EffectType{
 	"resist_passive":  EffectTypeResistPassive,
 	"dot_aura":        EffectTypeDotAura,
 	"instant_dot":     EffectTypeInstantDot,
+	"spawn":           EffectTypeSpawn,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -166,6 +168,7 @@ type EffectDef struct {
 	Resist   *ResistParams   // resist_aura, resist_passive
 	Stat     *StatParams     // stat_multiplier
 	Dot      *DotParams      // dot_aura, instant_dot
+	Spawn    *SpawnParams    // spawn
 }
 
 // DamageParams is the damage_aura / instant_damage payload: absolute HP
@@ -296,6 +299,43 @@ func (p *DotParams) DurationTicks() int {
 	return p.TickCount*p.Interval + 1
 }
 
+// SpawnParams is the spawn payload (effect foundations Step 3 / mob-depth
+// chunk 1): a cooldown-fired summon of an owned, caster-aligned mob. Two
+// scaling sources compose (chunk-1 decision): the SUMMON SKILL's level scales
+// the TTL (and the spawn site equips the summon's loadout at that level);
+// the OWNER's player level scales body and output — bonus max HP plus a
+// damage/heal power multiplier. Power never touches CC parameters (slow
+// fraction/duration ride only the summon's own skill levels).
+type SpawnParams struct {
+	MobName string
+
+	TTLTicks         int
+	TTLTicksPerLevel int
+
+	MaxHealthPerOwnerLevel float32
+	PowerPerOwnerLevel     float32
+}
+
+// TTLAt is the summon lifetime in ticks at the given SKILL level, floored at 1.
+func (p *SpawnParams) TTLAt(level int) int {
+	ttl := Scaled(p.TTLTicks, p.TTLTicksPerLevel, level)
+	if ttl < 1 {
+		ttl = 1
+	}
+	return ttl
+}
+
+// MaxHealthBonusAt is the flat bonus HP granted by the OWNER's player level.
+func (p *SpawnParams) MaxHealthBonusAt(ownerLevel int) float32 {
+	return Scaled(0, p.MaxHealthPerOwnerLevel, ownerLevel)
+}
+
+// PowerAt is the damage/heal output multiplier granted by the OWNER's player
+// level (1 = neutral).
+func (p *SpawnParams) PowerAt(ownerLevel int) float32 {
+	return Scaled(1, p.PowerPerOwnerLevel, ownerLevel)
+}
+
 // StatParams is the stat_multiplier payload: an additive bonus to the named
 // stat (see validStats — every stat needs a hand-placed application site).
 type StatParams struct {
@@ -371,6 +411,12 @@ type effectDef struct {
 
 	DotTicks        int `json:"dotTicks"`        // damage events per application
 	DotTickInterval int `json:"dotTickInterval"` // game ticks between events
+
+	SpawnMob               string  `json:"spawnMob"`
+	TTLTicks               int     `json:"ttlTicks"`
+	TTLTicksPerLevel       int     `json:"ttlTicksPerLevel"`
+	MaxHealthPerOwnerLevel float32 `json:"maxHealthPerOwnerLevel"`
+	PowerPerOwnerLevel     float32 `json:"powerPerOwnerLevel"`
 }
 
 type skillDefinition struct {
@@ -424,6 +470,9 @@ var effectKeys = map[EffectType][]string{
 	EffectTypeDotAura:        mergeKeys(keysGeometry, keysCadence, keysCapped, keysTargetFlags, keysDotPayload),
 	// No cadence: instant_dot applies once on cooldown activation.
 	EffectTypeInstantDot: mergeKeys(keysGeometry, keysCapped, keysTargetFlags, keysDotPayload),
+	// No geometry/cadence/targeting: a spawn fires at the caster's position on
+	// cooldown activation — placement is the spawn site's business.
+	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "maxHealthPerOwnerLevel", "powerPerOwnerLevel"},
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -567,6 +616,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Stat, err = e.statParams()
 	case EffectTypeDotAura, EffectTypeInstantDot:
 		def.Dot, err = e.dotParams()
+	case EffectTypeSpawn:
+		def.Spawn, err = e.spawnParams()
 	}
 	if err != nil {
 		return EffectDef{}, err
@@ -674,6 +725,32 @@ func (e *effectDef) dotParams() (*DotParams, error) {
 		Variance:   e.Variance,
 		TickCount:  e.DotTicks,
 		Interval:   e.DotTickInterval,
+	}, nil
+}
+
+// spawnParams builds the spawn payload. The mob name resolves against the mob
+// registry at boot (mobs load after skills — see mobs.RegistryFromFS); here we
+// only reject the unauthorable: no mob, a non-positive base TTL (an instantly
+// expiring summon), or negative owner-level scaling (the fields are buffs).
+func (e *effectDef) spawnParams() (*SpawnParams, error) {
+	if e.SpawnMob == "" {
+		return nil, fmt.Errorf("spawn: spawnMob is required")
+	}
+	if e.TTLTicks < 1 {
+		return nil, fmt.Errorf("ttlTicks: must be >= 1, got %v", e.TTLTicks)
+	}
+	if e.MaxHealthPerOwnerLevel < 0 {
+		return nil, fmt.Errorf("maxHealthPerOwnerLevel: must be >= 0, got %v", e.MaxHealthPerOwnerLevel)
+	}
+	if e.PowerPerOwnerLevel < 0 {
+		return nil, fmt.Errorf("powerPerOwnerLevel: must be >= 0, got %v", e.PowerPerOwnerLevel)
+	}
+	return &SpawnParams{
+		MobName:                e.SpawnMob,
+		TTLTicks:               e.TTLTicks,
+		TTLTicksPerLevel:       e.TTLTicksPerLevel,
+		MaxHealthPerOwnerLevel: e.MaxHealthPerOwnerLevel,
+		PowerPerOwnerLevel:     e.PowerPerOwnerLevel,
 	}, nil
 }
 

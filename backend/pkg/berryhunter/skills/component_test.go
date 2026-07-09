@@ -600,3 +600,28 @@ func TestDerivedStats_Resistances(t *testing.T) {
 		assert.InDelta(t, 0.0, sc.Derived.Resistances["fire"], 1e-6)
 	})
 }
+
+func TestRaiseLoadoutLevels(t *testing.T) {
+	// Spawn-site consumer (mob-depth chunk 1): a summon's whole loadout follows
+	// the summon skill's level — clamped per skill, never lowering an authored
+	// higher level, and re-deriving passive stats.
+	aura := &SkillDefinition{ID: 1, Name: "A", Category: SkillCategoryActiveAura, MaxLevel: 3}
+	authoredHigh := &SkillDefinition{ID: 4, Name: "H", Category: SkillCategoryActiveAura, MaxLevel: 5}
+	passive := &SkillDefinition{ID: 2, Name: "P", Category: SkillCategoryPassive, MaxLevel: 5,
+		Effects: []EffectDef{{Type: EffectTypeStatMultiplier, Stat: &StatParams{Name: StatMovementSpeed, Bonus: 0.1, BonusPerLevel: 0.1}}}}
+	cooldown := &SkillDefinition{ID: 3, Name: "C", Category: SkillCategoryCooldown, MaxLevel: 2}
+
+	sc := NewSkillComponent(false)
+	sc.EquipAura(0, aura, 1)
+	sc.EquipAura(1, authoredHigh, 5)
+	sc.EquipPassive(0, passive, 1)
+	sc.EquipCooldown(0, cooldown, 1)
+
+	sc.RaiseLoadoutLevels(4)
+
+	assert.Equal(t, 3, sc.AuraSlots[0].Level, "clamped to the skill's own MaxLevel")
+	assert.Equal(t, 5, sc.AuraSlots[1].Level, "an authored higher level is never lowered")
+	assert.Equal(t, 4, sc.PassiveSlots[0].Level)
+	assert.InDelta(t, 0.4, sc.Derived.MovementSpeedBonus, 1e-6, "raising a passive re-derives stats")
+	assert.Equal(t, 2, sc.CooldownSlots[0].Level, "cooldowns clamp too")
+}

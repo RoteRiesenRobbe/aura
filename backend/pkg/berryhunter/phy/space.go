@@ -169,6 +169,43 @@ func (s *Space) QueryCircle(c *Circle) []DynamicCollider {
 	return hits
 }
 
+// QueryCircleStatics is QueryCircle's static-side twin: all static colliders
+// (blocking props, the border wall) that intersect the given circle and whose
+// layer matches the circle's mask. The static grid is built at AddStaticShape
+// time, so no Update is required first. Intended for one-shot placement
+// checks (spawn-effect offset placement): create a circle, query, drop it.
+func (s *Space) QueryCircleStatics(c *Circle) []Collider {
+	c.updateBB()
+	bb := c.BoundingBox()
+
+	seen := make(map[Collider]struct{})
+	var hits []Collider
+
+	for x := floor32f(bb.Left / gridWidth); x <= floor32f(bb.Right/gridWidth); x++ {
+		for y := floor32f(bb.Bottom / gridWidth); y <= floor32f(bb.Upper/gridWidth); y++ {
+			for _, other := range s.gridStatic[Vec2i{x, y}] {
+				if _, ok := seen[other]; ok {
+					continue
+				}
+				seen[other] = struct{}{}
+
+				obb := other.BoundingBox()
+				if !IntersectAabb(&bb, &obb) {
+					continue
+				}
+				if !ArbiterShapes(c, other) {
+					continue
+				}
+				if !c.IntersectWith(other) {
+					continue
+				}
+				hits = append(hits, other)
+			}
+		}
+	}
+	return hits
+}
+
 // AddShape appends a new shape to the existing ones
 func (s *Space) AddShape(c DynamicCollider) {
 	s.shapes[c] = struct{}{}

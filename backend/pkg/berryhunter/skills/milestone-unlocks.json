@@ -4,5 +4,6 @@
   { "level": 3, "skillName": "SwiftPassive" },
   { "level": 4, "skillName": "NovaBurst" },
   { "level": 5, "skillName": "ImmolationAura" },
-  { "level": 5, "skillName": "Ignite" }
+  { "level": 5, "skillName": "Ignite" },
+  { "level": 6, "skillName": "SummonTotem" }
 ]

@@ -346,6 +346,32 @@ head order; 4–9 are the proposed tail (steering deliberately parked
 directly before patrol).
 
 ### Chunk 1 — Totem: spawned-entity lifecycle (backend + wire + content)
+
+> **✓ DONE — implemented + VERIFIED IN-GAME 2026-07-09** (full backend suite
+> green after `go clean -testcache`, tsc + webpack green; in-game: offset
+> spawn, owner XP on totem kills, TTL expiry, totem renders + burns).
+> One bug found during verification: the totem was invisible — a new mob
+> layer in `Game.ts` is a TWO-step edit (`createNamedContainer` AND
+> `cameraGroup.addChild`); the second was missing. Recorded in
+> `manual-content-authoring.md` step 9.
+> §8.4 decisions settled — 1/2/3/5 as leaned, **4 amended: two scaling
+> sources** (summon-skill level → TTL + loadout level via
+> `RaiseLoadoutLevels`; owner player level → bonus max HP + damage/heal
+> power multiplier, **never CC**), **6 amended: offset spawn** (random
+> unblocked point on the caster ring via new `phy.Space.QueryCircleStatics`,
+> fallback caster position) — record in `plan-effect-foundations.md` §8.4.
+> Landed: `Totem` EntityType (wire), `spawn` effect payload
+> (`spawnMob`/`ttlTicks`(+PerLevel)/`maxHealthPerOwnerLevel`/
+> `powerPerOwnerLevel`) with boot-time spawnMob cross-validation in
+> `mobs.RegistryFromFS`, `Mob` owner/faction/TTL/`SummonPower`/
+> `RaiseMaxHealth`, `model.Owned`, `NewSkillSystem(space, game)` +
+> `fireCooldown` spawn case, owned-first dispatch in `applyDamageAura` +
+> `tickDots` (dot power frozen at application; caster stays the summon,
+> owner resolved at tick time), content totem.json (mob id 5, layer
+> 160/mask 16) + totem-aura.json (id 106, dot) + summon-totem.json (id 23)
+> + milestone L6, frontend Totem class/layer/SVG/`gameObjectClasses`[17] +
+> Skills.ts id 23. Count pins now **19 skills / 5 mobs / 7 milestones**.
+
 - **Goal:** `SKILL SummonTotem` → cooldown spawns an owned, aligned,
   stationary, TTL'd aura carrier; **the owner gains XP on its kills** (the
   defining assertion); it can be buffed by ally auras, killed by hostile
@@ -356,9 +382,8 @@ directly before patrol).
   SkillSystem game ref + `fireCooldown` spawn case → owned-first
   attribution → content (totem.json, totem-aura.json, summon-totem.json,
   milestone L6) → frontend (rendering entry, SVG placeholder, Skills.ts).
-- **Settle first (⚑ §6.1):** the §8.4 sub-decisions 1–6 (attribution scope,
-  owner-death policy, killable, TTL-only scaling, dedicated TotemAura,
-  spawn position) — leans exist, none confirmed.
+- **Settle first (⚑ §6.1):** the §8.4 sub-decisions 1–6 — ✓ settled
+  2026-07-09, see the banner above.
 - **Tests:** §8.5's list (minus the RespawnBehavior ones), plus
   unowned-mob-never-respawns in `sys/mob_test.go`.
 - **Known interim:** hostile mobs don't *aggro* the totem yet (their auras
@@ -485,12 +510,14 @@ directly before patrol).
 
 ## 6. Open sub-decisions (pin before the relevant chunk)
 
-- **§6.1 — Totem sub-decisions (chunk 1):** the §8.4/1–6 set — attribution
-  scope (lean: full `PlayerTouches` path), owner death/disconnect policy
-  (lean: totem ticks out with the stale ref), killable vs invulnerable
-  (lean: killable), what the skill level scales (lean: TTL only), dedicated
-  TotemAura JSON (lean: yes), spawn position (lean: caster position).
-  **User call: present these at chunk-1 start** — none are pre-decided.
+- **§6.1 — Totem sub-decisions (chunk 1): ✓ DECIDED 2026-07-09** — 1/2/3/5
+  as leaned (full `PlayerTouches` path, stale-ref accepted, killable,
+  dedicated TotemAura). **4 amended:** summon-skill level scales TTL AND
+  loadout level; owner player level scales bonus max HP + a damage/heal
+  power multiplier — **never CC parameters**. **6 amended:** offset spawn
+  at a random unblocked point on the caster ring (fallback: caster
+  position) — the spawn must be instantly visible, never covered by the
+  avatar. Full record: `plan-effect-foundations.md` §8.4.
 - **§6.2 — Aura-ring visibility wire (chunk 3c):** how the client learns a
   mob's aura is off. Lean: wire-driven effective aura radius on the Mob
   table (0 = off) — one appended field, retires the

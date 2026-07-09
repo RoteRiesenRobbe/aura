@@ -64,6 +64,12 @@ mob's art means reusing its name/EntityType.
 9. **`frontend/src/features/game-objects/logic/Mobs.ts`** — a new `Mob`
    subclass (constructor picks a `Game.layers.mobs.*` / `bossMobs` layer), plus a
    `Preloading.registerGameObjectSVG(...)` line. Mirror `Dodo`.
+   **⚠ A new layer is a TWO-step edit in `core/logic/Game.ts`:** the
+   `createNamedContainer(...)` entry in the `layers.mobs` block AND the
+   matching `this.cameraGroup.addChild(...)` in the "// Mobs" block below it.
+   Miss the second and the mob is fully functional but **invisible** — its
+   sprite renders into a container that is never on stage (bit the Totem,
+   2026-07-09). Reusing an existing layer needs neither.
 10. **`frontend/src/features/backend/logic/messages/incoming/GameStateMessage.ts`**
     — insert the new class into the `gameObjectClasses` array **at the index
     matching its `EntityType` ordinal**. The array is positional and must stay in

@@ -1,0 +1,18 @@
+{
+  "_comment": "Mob-depth chunk 1 placeholder content: cooldown that summons an owned, player-aligned Totem offset from the caster. The SKILL level scales the TTL and the totem's loadout level; the OWNER's player level adds max HP and a damage/heal power multiplier (never CC — chunk-1 decision 4). cooldownTicks ≥ the max-level TTL (420) keeps it one-totem-at-a-time by content convention (§8.3, no cap system). All values [PLACEHOLDER].",
+  "id": 23,
+  "name": "SummonTotem",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 450,
+  "effects": [
+    {
+      "type": "spawn",
+      "spawnMob": "Totem",
+      "ttlTicks": 300,
+      "ttlTicksPerLevel": 60,
+      "maxHealthPerOwnerLevel": 2,
+      "powerPerOwnerLevel": 0.05
+    }
+  ]
+}

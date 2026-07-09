@@ -84,8 +84,32 @@ func RegistryFromFS(r items.Registry, sr skills.Registry, fileSystem fs.FS) (*re
 		mobs.add(mob)
 		return nil
 	})
+	if err != nil {
+		return mobs, err
+	}
 
-	return mobs, err
+	return mobs, validateSpawnEffects(mobs, sr)
+}
+
+// validateSpawnEffects resolves every spawn effect's mob name against the
+// freshly built mob registry. Skills load before mobs (mob loadouts resolve
+// against the skill registry), so this is the earliest moment a spawnMob typo
+// can hard-fail at boot instead of at cast time.
+func validateSpawnEffects(mobs *registry, sr skills.Registry) error {
+	if sr == nil {
+		return nil
+	}
+	for _, skill := range sr.All() {
+		for _, effect := range skill.Effects {
+			if effect.Spawn == nil {
+				continue
+			}
+			if _, err := mobs.GetByName(effect.Spawn.MobName); err != nil {
+				return fmt.Errorf("skill %q: spawnMob %q does not match any mob definition", skill.Name, effect.Spawn.MobName)
+			}
+		}
+	}
+	return nil
 }
 
 func RegistryFromPaths(r items.Registry, sr skills.Registry, f ...string) (*registry, error) {
@@ -123,5 +147,5 @@ func RegistryFromPaths(r items.Registry, sr skills.Registry, f ...string) (*regi
 		}
 	}
 
-	return mobs, nil
+	return mobs, validateSpawnEffects(mobs, sr)
 }

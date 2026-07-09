@@ -183,6 +183,36 @@ func (sc *SkillComponent) BurstRadius(window int) float32 {
 // RequestCooldownActivation queues a cooldown slot for activation; the
 // SkillSystem fires it this tick if the slot is equipped and ready.
 // Out-of-range indices (client-supplied) are dropped.
+// RaiseLoadoutLevels raises every slotted skill to the given level where that
+// is higher than its current one, clamped to each skill's own MaxLevel — an
+// authored higher level is never lowered. Spawn-site consumer (mob-depth
+// chunk 1): a summon's loadout follows the summon skill's level. Passive
+// raises re-derive stats.
+func (sc *SkillComponent) RaiseLoadoutLevels(level int) {
+	raise := func(es *EquippedSkill) {
+		l := level
+		if es == nil || l <= es.Level {
+			return
+		}
+		if l > es.Def.MaxLevel {
+			l = es.Def.MaxLevel
+		}
+		if l > es.Level {
+			es.Level = l
+		}
+	}
+	for _, es := range sc.AuraSlots {
+		raise(es)
+	}
+	for _, es := range sc.PassiveSlots {
+		raise(es)
+	}
+	for _, es := range sc.CooldownSlots {
+		raise(es)
+	}
+	sc.recomputeDerived()
+}
+
 func (sc *SkillComponent) RequestCooldownActivation(slot int) {
 	if slot < 0 || slot >= MaxCooldownSlots {
 		return

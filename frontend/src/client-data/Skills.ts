@@ -12,6 +12,7 @@ export const SkillNames: { [id: number]: string } = {
     20: 'Nova Burst',
     21: 'Heal',
     22: 'Ignite',
+    23: 'Summon Totem',
     30: 'Paladin Aura',
     40: 'Fire Ward',
 };
@@ -33,6 +34,7 @@ export const SkillMaxLevels: { [id: number]: number } = {
     20: 3,
     21: 3,
     22: 3,
+    23: 3,
     30: 5,
     40: 3,
 };
@@ -56,6 +58,7 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     20: 'cooldown',
     21: 'cooldown',
     22: 'cooldown',
+    23: 'cooldown',
     30: 'aura',
     40: 'aura',
 };
