@@ -1,0 +1,25 @@
+{
+  "_comment": "Mob-depth chunk 2 smoke content: the cowardly critter — chases and nips like a Dodo while healthy, flees its aggro target once below half health (factors.fleeBelowHealthRatio). Speed 0.8 → 0.044/tick, deliberately just under the player's 0.05/tick so a fleeing rabbit stays catchable. All values [PLACEHOLDER].",
+  "id": 6,
+  "name": "Rabbit",
+  "type": "MOB",
+  "factors": {
+    "maxHealth": 20,
+    "maxHealthVariance": 0.1,
+    "fleeBelowHealthRatio": 0.5,
+    "experience": 8,
+    "speed": 0.8,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1
+  },
+  "body": {
+    "radius": 0.15,
+    "aggroRadius": 2.4
+  },
+  "skills": [
+    {
+      "skillName": "DodoAura",
+      "level": 1
+    }
+  ]
+}

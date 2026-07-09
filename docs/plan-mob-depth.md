@@ -391,6 +391,44 @@ directly before patrol).
   this (#9).
 
 ### Chunk 2 — Flee movement mode (backend + smoke content)
+
+> **✓ IMPLEMENTED 2026-07-09; standalone smoke VERIFIED IN-GAME same day**
+> (full backend suite green, tsc + webpack green; the **full** verification —
+> chase + flee against the threat table — still rides with chunk 3 per
+> §1.3/§5). User-observed and confirmed-as-designed: the rabbit flees at
+> half HP until it crosses its territory edge, then the existing leash drops
+> aggro → out-of-combat regen snaps it to full (~2 s, shared placeholder
+> constant) → it re-aggros healthy. That regen reset IS the flee exit (no
+> hysteresis field); the abrupt leash feel is chunk 3b's job
+> (state-dependent leash) and flee re-points at the threat table in 3d.
+> Landed: `Mob.moveAwayFrom` (inverse chase vector, shared `stepLength`
+> slow/velocity handling, zero-distance threat falls back to the current
+> heading), `shouldFlee` on new mob-def **`factors.fleeBelowHealthRatio`**
+> (strictly-below trigger; 0/absent = never, 1 = flees whenever damaged,
+> hard-fail outside [0, 1]); in `Update`, flee wins over approach while the
+> trigger holds. **No exit hysteresis needed:** a fleeing mob leaves its
+> territory → existing leash drops aggro → walk-home regen recovers it above
+> the threshold. **v1 wall handling confirmed free:** the InvAABB per-axis
+> clamp makes an angled flee *slide* along the boundary and a perpendicular
+> one pin stationary — pinned through the real `Space.Update()` (corner
+> convergence + wall slide, gotcha #10), zero new wall code.
+> **Smoke consumer (user call: full new-EntityType path, not a Dodo flag):**
+> new **`Rabbit`** EntityType (ordinal 18, `server.fbs` + Go/TS regen) +
+> `api/mobs/rabbit.json` (id 6, DodoAura L1, fleeBelowHealthRatio 0.5,
+> maxHealth 20, speed 0.8 → 0.044/tick, just under the player's 0.05 so it
+> stays catchable — all [PLACEHOLDER]) + 2 scaffold spawns (8,4)/(10,−3)
+> @600t + the 5-file frontend path (rabbit.svg, Graphics.ts 22–30/ring 0.6 =
+> DodoAura, Mobs.Rabbit, BOTH Game.ts layer steps, gameObjectClasses[18]).
+> Mob registry now **6 mobs** (boot log; no hard count pin exists for mobs).
+> Pins: `TestMob_Flees*`/`TestMob_AtThreshold*`/`TestMob_FleeRespectsSlow`/
+> `TestMob_NoFleeThreshold*`/`TestMob_FleeFromThreatAtOwnPosition*`/
+> `TestMob_FleePinnedInBoundaryCornerConverges`/`TestMob_FleeAlongWallSlides`
+> + `TestMapMobDefinition_*FleeBelowHealthRatio*`.
+> **In-game smoke checklist (works today, formally due with chunk 3):** find
+> a Rabbit in scaffold → it chases/nips like a Dodo → damage it below half →
+> it turns and runs from you, sliding along walls it hits; break chase → it
+> leashes home, regens, and chases normally again on the next aggro.
+
 - **Goal:** a mob can actively run away from an enemy — the inverse of
   chase — visible in-game.
 - **Do:** flee as a movement mode on the shared behavior (§3.2): invert

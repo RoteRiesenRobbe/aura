@@ -192,6 +192,22 @@
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Rabbit",
+      "x": 8,
+      "y": 4,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Rabbit",
+      "x": 10,
+      "y": -3,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2
     }
   ]
 }

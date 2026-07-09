@@ -269,6 +269,23 @@ export class Totem extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Totem, file('totem'), maxSize('totem'));
 
+// The cowardly critter (mob-depth chunk 2): chases like a Dodo while healthy,
+// flees below half health. No hit sound — base Damaged flash suffices for the
+// placeholder art.
+export class Rabbit extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.rabbit, x, y,
+            randomInt(minSize('rabbit'), maxSize('rabbit')),
+            Rabbit.svg,
+            damageAuraRadius('rabbit'));
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Rabbit, file('rabbit'), maxSize('rabbit'));
+
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(
     Mob.damageAura,

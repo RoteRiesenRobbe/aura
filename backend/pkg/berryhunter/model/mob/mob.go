@@ -309,7 +309,9 @@ func (m *Mob) Update(dt float32) bool {
 	}
 
 	if m.aggroTarget != nil {
-		if m.shouldApproachAggroTarget() {
+		if m.shouldFlee() {
+			m.moveAwayFrom(m.aggroTarget.Position())
+		} else if m.shouldApproachAggroTarget() {
 			m.moveTowards(m.aggroTarget.Position())
 		}
 	} else {
@@ -386,16 +388,61 @@ func (m *Mob) moveTowards(target phy.Vec2f) {
 		return
 	}
 
-	step := m.velocity
-	if slow := m.buffs.SlowFraction(); slow > 0 {
-		step *= 1 - slow
-	}
+	step := m.stepLength()
 	if distance < step {
 		step = distance
 	}
 
 	next := current.Add(delta.Div(distance).Mult(step))
 	m.SetPosition(next)
+}
+
+// moveAwayFrom is the flee movement mode (mob-depth chunk 2): the inverse of
+// the chase vector, same step length. No arrival clamp — there is no "arriving"
+// at away. Wall handling is left to the physics resolution: the InvAABB's
+// per-axis clamp makes an angled flee slide along the boundary and a
+// perpendicular one pin stationary (full blocker repulsion is chunk 4).
+func (m *Mob) moveAwayFrom(threat phy.Vec2f) {
+	if m.velocity <= 0 {
+		return
+	}
+
+	current := m.Position()
+	delta := current.Sub(threat)
+	distance := delta.Abs()
+
+	var dir phy.Vec2f
+	if distance < 1e-4 {
+		// Threat exactly on top of the mob: no away direction exists — keep
+		// running along the current heading (a unit vector) instead of freezing.
+		dir = m.heading
+	} else {
+		dir = delta.Div(distance)
+	}
+
+	m.SetPosition(current.Add(dir.Mult(m.stepLength())))
+}
+
+// stepLength is this tick's movement distance: base velocity reduced by the
+// strongest active slow (shared by chase, walk-home and flee).
+func (m *Mob) stepLength() float32 {
+	step := m.velocity
+	if slow := m.buffs.SlowFraction(); slow > 0 {
+		step *= 1 - slow
+	}
+	return step
+}
+
+// shouldFlee reports the flee trigger (mob-depth chunk 2): a definition-level
+// cowardice threshold (factors.fleeBelowHealthRatio, 0 = never) with health
+// strictly below it. The trigger stays generic — chunk 3d re-points the flee
+// *direction* at the threat table without touching it. There is no explicit
+// exit hysteresis: a fleeing mob leaves its territory, loses aggro and
+// regenerates on the walk home, so the next acquisition starts above the
+// threshold.
+func (m *Mob) shouldFlee() bool {
+	threshold := m.definition.Factors.FleeBelowHealthRatio
+	return threshold > 0 && m.HealthRatio() < threshold
 }
 
 func (m *Mob) findAggroTarget() model.PlayerEntity {

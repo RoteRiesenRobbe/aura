@@ -45,9 +45,14 @@ type MobID uint64
 // DamageTags is payload-only (like Damage): the SkillSystem fills it from the
 // active skill's effect so living targets can match their resistances against
 // the mob's hit; it is not part of the mob JSON.
+// FleeBelowHealthRatio is the cowardice threshold (mob-depth chunk 2): while
+// the mob's health ratio is strictly below it, the mob flees its aggro target
+// instead of chasing. 0/absent = never flees; 1 = flees whenever damaged;
+// valid range [0, 1].
 type Factors struct {
 	MaxHealth               uint32
 	MaxHealthVariance       float32
+	FleeBelowHealthRatio    float32
 	Resistances             map[string]float32
 	Damage                  float32
 	DamageTags              []string
@@ -99,13 +104,14 @@ type mobDefinition struct {
 	Type string `json:"type"`
 
 	Factors struct {
-		MaxHealth         uint32             `json:"maxHealth"`
-		MaxHealthVariance float32            `json:"maxHealthVariance"`
-		Resistances       map[string]float32 `json:"resistances"`
-		Speed       float32            `json:"speed"`
-		DeltaPhi    float32            `json:"deltaPhi"`
-		TurnRate    float32            `json:"turnRate"`
-		Experience  uint32             `json:"experience"`
+		MaxHealth            uint32             `json:"maxHealth"`
+		MaxHealthVariance    float32            `json:"maxHealthVariance"`
+		FleeBelowHealthRatio float32            `json:"fleeBelowHealthRatio"`
+		Resistances          map[string]float32 `json:"resistances"`
+		Speed                float32            `json:"speed"`
+		DeltaPhi             float32            `json:"deltaPhi"`
+		TurnRate             float32            `json:"turnRate"`
+		Experience           uint32             `json:"experience"`
 	} `json:"factors"`
 
 	Drops []struct {
@@ -155,6 +161,11 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 		return nil, fmt.Errorf("mob %q: factors.maxHealthVariance %v must be in [0, 1)", m.Name, v)
 	}
 
+	// A health ratio lives in [0, 1]; 1 itself is valid (flees whenever damaged).
+	if ratio := m.Factors.FleeBelowHealthRatio; ratio < 0 || ratio > 1 {
+		return nil, fmt.Errorf("mob %q: factors.fleeBelowHealthRatio %v must be in [0, 1]", m.Name, ratio)
+	}
+
 	// Resistances: 0 = immune is valid, negative would heal on hit.
 	for tag, multiplier := range m.Factors.Resistances {
 		if tag == "" {
@@ -170,13 +181,14 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 		Name: m.Name,
 		Type: m.Type,
 		Factors: Factors{
-			MaxHealth:         m.Factors.MaxHealth,
-			MaxHealthVariance: m.Factors.MaxHealthVariance,
-			Resistances:       m.Factors.Resistances,
-			Speed:             m.Factors.Speed,
-			DeltaPhi:          m.Factors.DeltaPhi,
-			TurnRate:          m.Factors.TurnRate,
-			Experience:        m.Factors.Experience,
+			MaxHealth:            m.Factors.MaxHealth,
+			MaxHealthVariance:    m.Factors.MaxHealthVariance,
+			FleeBelowHealthRatio: m.Factors.FleeBelowHealthRatio,
+			Resistances:          m.Factors.Resistances,
+			Speed:                m.Factors.Speed,
+			DeltaPhi:             m.Factors.DeltaPhi,
+			TurnRate:             m.Factors.TurnRate,
+			Experience:           m.Factors.Experience,
 		},
 		Drops: make(Drops, 0, 1),
 		Body: Body{

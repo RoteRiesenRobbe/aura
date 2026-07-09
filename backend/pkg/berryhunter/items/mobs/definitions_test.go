@@ -248,6 +248,55 @@ func TestMapMobDefinition_EmptyResistanceTagFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// --- flee threshold (mob-depth chunk 2) ---
+
+func TestMapMobDefinition_ParsesFleeBelowHealthRatio(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 6,
+	  "name": "Rabbit",
+	  "type": "MOB",
+	  "factors": {"maxHealth": 20, "fleeBelowHealthRatio": 0.5},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	require.NoError(t, err)
+	assert.InDelta(t, 0.5, def.Factors.FleeBelowHealthRatio, 1e-6)
+}
+
+func TestMapMobDefinition_FleeBelowHealthRatioDefaultsToZero(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "factors": {"maxHealth": 40},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	require.NoError(t, err)
+	assert.Zero(t, def.Factors.FleeBelowHealthRatio, "absent = never flees")
+}
+
+func TestMapMobDefinition_FleeBelowHealthRatioOutOfBoundsFails(t *testing.T) {
+	// 1.0 itself is valid ("flees whenever damaged"); outside [0, 1] is not.
+	for _, ratio := range []string{"-0.1", "1.5"} {
+		raw, err := parseMobDefinition([]byte(`{
+		  "id": 1,
+		  "name": "Dodo",
+		  "type": "MOB",
+		  "factors": {"fleeBelowHealthRatio": ` + ratio + `},
+		  "body": {"radius": 0.2, "aggroRadius": 2.4}
+		}`))
+		require.NoError(t, err)
+
+		_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t))
+		assert.Error(t, err, "fleeBelowHealthRatio %s must be rejected (valid: 0 <= r <= 1)", ratio)
+	}
+}
+
 func TestRegistry_SpawnEffectUnknownMobFails(t *testing.T) {
 	// Skills load before mobs, so a spawn effect's mob name can only resolve
 	// once the mob registry exists — RegistryFromFS is the validation seam.

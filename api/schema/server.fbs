@@ -20,7 +20,8 @@ enum EntityType : ushort {
   Flower,
   AngryMammoth,
   TitaniumShard,
-  Totem
+  Totem,
+  Rabbit
 }
 
 enum StatusEffect : ushort {

@@ -535,6 +535,151 @@ func TestMob_SetFactionAndOwner(t *testing.T) {
 	var _ model.Owned = m
 }
 
+// --- flee movement mode (mob-depth chunk 2) ---
+
+func cowardMobDefinition() *mobs.MobDefinition {
+	def := testMobDefinition()
+	def.Factors.FleeBelowHealthRatio = 0.5
+	return def
+}
+
+func TestMob_FleesBelowThreshold_MovesExactlyAway(t *testing.T) {
+	m := NewMob(cowardMobDefinition(), 0)
+	m.SetPosition(phy.Vec2f{X: 1, Y: 1})
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 1, Y: 0.5} // due south of the mob
+	m.aggroTarget = p
+	m.health = 49 // ratio 0.49 < threshold 0.5
+
+	require.True(t, m.Update(0))
+
+	// Away from the threat = due north, exactly one velocity step (the
+	// inverse of the chase vector, same step length).
+	assert.InDelta(t, 1, m.Position().X, 1e-5)
+	assert.InDelta(t, float64(1+m.velocity), float64(m.Position().Y), 1e-5)
+}
+
+func TestMob_AtThresholdChasesAgain(t *testing.T) {
+	m := NewMob(cowardMobDefinition(), 0)
+	m.SetPosition(phy.VEC2F_ZERO)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 1.5, Y: 0} // outside the aura stop distance (0.7)
+	m.aggroTarget = p
+	m.health = 50 // ratio == threshold: flee requires strictly below
+
+	before := m.Position().Sub(p.pos).Abs()
+	require.True(t, m.Update(0))
+	after := m.Position().Sub(p.pos).Abs()
+
+	assert.Less(t, after, before, "at/above the threshold the mob chases normally")
+}
+
+func TestMob_FleeRespectsSlow(t *testing.T) {
+	m := NewMob(cowardMobDefinition(), 0)
+	m.SetPosition(phy.VEC2F_ZERO)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: -1, Y: 0} // flee direction: +x
+	m.aggroTarget = p
+	m.health = 10
+	m.ApplySlow(2, 0.5, 5)
+
+	require.True(t, m.Update(0))
+
+	assert.InDelta(t, float64(m.velocity)*0.5, float64(m.Position().X), 1e-5,
+		"the flee step is scaled by the strongest active slow, like the chase step")
+	assert.InDelta(t, 0, m.Position().Y, 1e-5)
+}
+
+func TestMob_NoFleeThresholdChasesAtAnyHealth(t *testing.T) {
+	m := newTestMob() // fleeBelowHealthRatio absent → never flees
+	m.SetPosition(phy.VEC2F_ZERO)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 1.5, Y: 0}
+	m.aggroTarget = p
+	m.health = 1
+
+	before := m.Position().Sub(p.pos).Abs()
+	require.True(t, m.Update(0))
+	after := m.Position().Sub(p.pos).Abs()
+
+	assert.Less(t, after, before,
+		"without a threshold, low health never triggers flee — chase unchanged")
+}
+
+func TestMob_FleeFromThreatAtOwnPositionUsesHeading(t *testing.T) {
+	m := NewMob(cowardMobDefinition(), 0)
+	m.SetPosition(phy.Vec2f{X: 2, Y: 2})
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 2, Y: 2} // exactly on top: no away direction exists
+	m.aggroTarget = p
+	m.health = 10
+
+	require.True(t, m.Update(0))
+
+	moved := m.Position().Sub(phy.Vec2f{X: 2, Y: 2}).Abs()
+	assert.InDelta(t, float64(m.velocity), float64(moved), 1e-5,
+		"zero-distance threat: flee falls back to the current heading instead of freezing")
+}
+
+// TestMob_FleePinnedInBoundaryCornerConverges pins gotcha #10 (plan-mob-depth):
+// a fleeing mob pushed into an InvAABB corner must settle there via the
+// existing per-axis clamp — no oscillation — through the real Space pipeline.
+func TestMob_FleePinnedInBoundaryCornerConverges(t *testing.T) {
+	m := NewMob(cowardMobDefinition(), 0)
+	m.SetPosition(phy.Vec2f{X: 4, Y: 4})
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 3, Y: 3} // flee direction: diagonally into the (5,5) corner
+	m.aggroTarget = p
+	m.health = 10
+
+	space := phy.NewSpace()
+	wall := phy.NewInvAABB(phy.VEC2F_ZERO, 10, 10)
+	wall.Shape().Layer = int(model.LayerBorderCollision)
+	space.AddStaticShape(wall)
+	space.AddShape(m.Body)
+
+	var prev phy.Vec2f
+	for i := 0; i < 60; i++ {
+		require.True(t, m.Update(0))
+		space.Update()
+		pos := m.Body.Position()
+		assert.LessOrEqual(t, pos.X, 5-m.Body.Radius+1e-3, "wall holds on x")
+		assert.LessOrEqual(t, pos.Y, 5-m.Body.Radius+1e-3, "wall holds on y")
+		if i >= 50 {
+			assert.InDelta(t, float64(prev.X), float64(pos.X), 1e-4, "converged: no x jitter (tick %d)", i)
+			assert.InDelta(t, float64(prev.Y), float64(pos.Y), 1e-4, "converged: no y jitter (tick %d)", i)
+		}
+		prev = pos
+	}
+}
+
+// A flee vector angled into a wall keeps its tangential component: the mob
+// slides along the boundary instead of jamming (plan-mob-depth §3.2 v1 wall
+// handling — falls out of the per-axis clamp, pinned here).
+func TestMob_FleeAlongWallSlides(t *testing.T) {
+	m := NewMob(cowardMobDefinition(), 0)
+	m.SetPosition(phy.Vec2f{X: 4.6, Y: 0})
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 3.6, Y: -1} // flee direction (1,1)/√2: into the right wall, northward
+	m.aggroTarget = p
+	m.health = 10
+
+	space := phy.NewSpace()
+	wall := phy.NewInvAABB(phy.VEC2F_ZERO, 10, 10)
+	wall.Shape().Layer = int(model.LayerBorderCollision)
+	space.AddStaticShape(wall)
+	space.AddShape(m.Body)
+
+	for i := 0; i < 20; i++ {
+		require.True(t, m.Update(0))
+		space.Update()
+	}
+
+	pos := m.Body.Position()
+	assert.InDelta(t, float64(5-m.Body.Radius), float64(pos.X), 1e-3, "pinned on the right wall")
+	assert.Greater(t, pos.Y, float32(0.5), "tangential component keeps the mob sliding along the wall")
+}
+
 func TestMob_RaiseMaxHealth(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.MaxHealth = 100

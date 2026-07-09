@@ -121,6 +121,14 @@ export const GraphicsConfig = {
             // per-level growth) — same hand-synced constant as the other mobs.
             damageAuraRadiusMeters: <number> 1.5,
         },
+
+        rabbit: {
+            file: require('../features/game-objects/assets/mobs/rabbit.svg'),
+            minSize: <number> 22,
+            maxSize: <number> 30,
+            // DodoAura's effective radius, same as the dodo (hand-synced).
+            damageAuraRadiusMeters: <number> 0.6,
+        },
     },
 
     resources: {
