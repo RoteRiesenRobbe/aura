@@ -208,6 +208,14 @@ Aura effects blocked by walls/obstacles.
 
 ## 7. Mob behavior, tiers & spawning — normal / elite / boss
 
+> **PLANNED (2026-07-09) → `docs/plan-mob-depth.md`** (execution step 2, with
+> effect-foundations Step 3 totems + a companion cooldown folded in). 9 chunks:
+> totem → flee → aggro & threat → obstacle steering → patrol → companion →
+> taunt → support mobs → encounter-controller spine. Key decisions there:
+> mobs aggro summons (faction-aware acquisition), entity-keyed threat that
+> diverges from owner-XP attribution, route validity = level-designer
+> responsibility. Boss *scripts* remain content (item 12).
+
 - Builds directly on skill-system Phase 6 (data-driven mobs): tiers are largely
   JSON loadouts (skills, levels, resource pool) + spawn placement.
 - **Current base behavior (Phase 6 state — this stays the shared foundation):**
@@ -704,13 +712,18 @@ system ships blind.
    proving the pipeline end-to-end. The **real designed zones are authored in the
    content pass** (step 6), not here — keeps content-last honest. Record:
    `plan-world-zones.md` §5.
-2. **Mob depth** (item 7 remainder) **+ totems** (effect-foundations Step 3) — ← **NEXT**
+2. **Mob depth** (item 7 remainder) **+ totems** (effect-foundations Step 3) — ← **NEXT, PLANNED (2026-07-09) → `docs/plan-mob-depth.md`**
 
    patrol archetypes, support mob-heal behaviors, spawned-entity/totem lifecycle,
-   and the **encounter-controller spine + threat table**, built here (**early**),
-   shaped by the documented lava-bridge reference encounter below (boss *scripts*
-   are content). Totems fold in here because they reuse the `MobSystem` respawn
-   path the World phase (chunk 4) rewrites — see `plan-world-zones.md` §4 gotcha #7.
+   a **companion cooldown** (added to scope), and the **encounter-controller
+   spine + threat table**, built here (**early**), shaped by the documented
+   lava-bridge reference encounter below (boss *scripts* are content). Totems
+   fold in here because they reuse the `MobSystem` respawn path the World phase
+   (chunk 4) rewrote — the per-spawn-point respawn already leaves unowned mobs
+   dead, so no respawn-guard field is needed (see `plan-mob-depth.md` §3.1).
+   Plan: 9 chunks (totem → flee → aggro & threat → steering → patrol →
+   companion → taunt → support mobs → encounter controller); next action =
+   chunk 1 with the §8.4 totem decisions.
 3. **Spatial combat & atmosphere** (items 6 + 5) — line-of-sight occlusion (perf
    spike → occlusion into the aura pipeline) and darkness/light (the `light_aura`
    effect type, campfires). Item 6 consumes the World phase's occluder flags

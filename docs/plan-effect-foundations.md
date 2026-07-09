@@ -183,6 +183,9 @@ code), TDD'd, and independently shippable. Steps 1–4 are the F4 order.
 - **Step 3 — spawned-entity lifecycle:** totem first (closest to expressible
   today: stationary mob + aura skill + `Decayer`-style TTL), then ownership/
   XP attribution; pets/clones/swarm build on it later. Briefing in §8.
+  **Execution scheduled (2026-07-09): `plan-mob-depth.md` chunk 1** (the
+  companion cooldown, chunk 6 there, is the second consumer); apply the §8
+  banner's adaptations.
 - **Step 4 — shield layer:** absorb-pool buff payload + the absorb step in
   the two `takeDamage` sites; F6 decision record beforehand if armor
   pen/thorns/lifesteal are already in by then; wire field + HUD.
@@ -350,6 +353,21 @@ via `-content ../api` → CLAUDE.md status + this doc updated → in-game check
 of the first consumer (DoT or root on a mob).
 
 ## 8. Step 3 briefing — spawned-entity lifecycle
+
+> **EXECUTION SCHEDULED (2026-07-09) → `plan-mob-depth.md` chunk 1.** Read
+> this briefing **with `plan-mob-depth.md` §3.1's three adaptations** — it
+> predates the 2026-07-09 dead-code sweep: (1) **no respawn-guard is needed
+> at all** — the `generator` block/`RespawnBehavior` enum were deleted and
+> the spawn-point `MobSystem` only respawns point-owned mobs, so a totem
+> dies and stays dead (§8.1 item 4's `respawnBehavior:"None"` + §8.5 step 3
+> are obsolete; replace with a pinned test); (2) "never spawns naturally"
+> (weight/fixed 0) is automatic — only `zone.spawns` and the new `spawn`
+> effect create mobs; (3) `NewMob` is now `NewMob(def, chaseIntoAuraMargin)`.
+> The §8.4 sub-decisions remain open and are presented at chunk-1 start.
+> Also decided in the mob-depth plan: **hostile mobs WILL aggro the totem**
+> from its chunk 3 (faction-aware acquisition; entity-keyed threat credits
+> the summon, XP the owner) — chunk 1 ships with mobs ignoring it as a
+> known interim.
 
 Written 2026-07-08 (expanded same day into a full implementation record for
 a future session), verified against the code post Steps 0+1+2. Goal: the
