@@ -734,6 +734,12 @@ system ships blind.
    here: cast-time + interrupt** — first consumer is the **Recall** ability (10 s
    cast, interrupted by damage/movement; reuses step 3's campfire tracker), so
    recall lands with this step.
+   **+ `"*"` wildcard resist key (decided 2026-07-09):** resistance maps accept
+   a wildcard default multiplier (`{"*": 0, "key_x": 1}` = "resists everything
+   except…") — a small `skills.ResistMultiplier` extension, needed twice by the
+   content pass (GDD §5 peasant chore-mobs; backlog item 8 key-aura gates).
+   Placed here as the last systems step touching the damage pipeline before
+   step 6. Multi-tag semantics pinned at implementation (backlog item 8).
 5. **Unlock-source systems** (item 9) — world clue-anchor entities + NPC-teaching
    behavior (needs world **and** mobs).
 6. **Initial content pass** (item 12) — **the prove-it gate.** Real zones, full

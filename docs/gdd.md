@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Status:** Living document
-**Last updated:** 2026-07-09 (character-sacrifice meta-progression expanded; power curve + peasant onboarding + RNG-rejection decisions)
+**Last updated:** 2026-07-09 (character-sacrifice meta-progression expanded; power curve + peasant onboarding + RNG-rejection decisions; Tone & Writing idea captured in §10)
 
 > This document is the **game-design truth** (vision, mechanic intent, open
 > design questions). Technology belongs in the [Technical Design Document](./tdd.md),
@@ -430,6 +430,36 @@ Examples:
 - Low-poly with icons for abilities, portraits for players/NPCs
 - References: Hotline Miami, Gods Trigger, Monaco, Rimworld, Gothic 1+2
 - System first, not presentation first
+
+### Tone & Writing (captured idea — proposed authoring guideline)
+
+*(Captured 2026-07-09 — a style-direction **idea**, not a feature and not yet
+binding. To be confirmed (and refined with examples) when the content pass,
+roadmap item 12, starts authoring real text.)*
+
+**Gritty, grounded, unglamorous — the Gothic 1+2 register.** The world is
+dirty and matter-of-fact, not high-fantasy pathos. Gothic is already listed as
+inspiration (§1); this sharpens it into an explicit authoring guideline. It
+applies to every authored surface: NPC dialogue (including clue NPCs and
+barks), sign texts and inscriptions, zone and place naming, and environmental
+storytelling.
+
+- NPCs talk like workers, guards, and scoundrels — terse, dry,
+  self-interested; nobody proclaims destiny.
+- Signs and inscriptions are practical or worn, not ornate ("Way of the
+  Warrior" scrawled on a plank beats an engraved prophecy).
+- Zone and place names are local and mundane before they are epic — named
+  after what's there or who died there, not after abstract grandeur.
+- Environmental storytelling favors the shabby and specific (a collapsed
+  fence, a poacher's camp, a fresh grave) over the mythic.
+
+This **sharpens the §7 escalation principle rather than competing with it**:
+escalation governs *what* appears when — stakes and story weight (a small
+nobody in the woods first, dragons and undead only very late); the register
+governs *how everything speaks* at every stage. Even late, epic content keeps
+the grounded voice — the dragon lands harder because the world around it
+stayed mundane. (Reading note: §7's "escalation in tone" means stakes/story
+weight escalating, not the writing voice — the voice stays constant.)
 
 ### UI Elements (v1.0)
 - Resource bar
