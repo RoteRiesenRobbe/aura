@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io/fs"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,22 +43,34 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, propsRegistry.Props())
 
-	// The scaffold zone exercises the full pipeline: terrain + props + spawns.
-	// Selecting by stem also proves multi-zone selection against real content.
+	// EVERY shipped zone must load by stem — a zone that only breaks when
+	// selected would otherwise ship broken. Selecting by stem also proves
+	// multi-zone selection against real content.
+	stems, err := fs.Glob(content.zones, "*.json")
+	require.NoError(t, err)
+	require.NotEmpty(t, stems)
+	for _, file := range stems {
+		stem := strings.TrimSuffix(file, ".json")
+		zone, err := world.LoadZoneFS(content.zones, stem, mobsRegistry, propsRegistry)
+		require.NoError(t, err, "zone %q must load", stem)
+		assert.Equal(t, stem, zone.ID)
+		assert.Positive(t, zone.Bounds.Width)
+		assert.Positive(t, zone.Bounds.Height)
+		// every zone prop resolves against the prop registry at load time
+		for _, p := range zone.Props {
+			assert.NotNil(t, p.Def)
+		}
+		// every spawn resolves against the mob registry at load time
+		for _, s := range zone.Spawns {
+			assert.NotNil(t, s.Def)
+		}
+	}
+
+	// The scaffold zone specifically carries hand-authored terrain — keep the
+	// terrain-parsing pipeline pinned against real content.
 	zone, err := world.LoadZoneFS(content.zones, "scaffold", mobsRegistry, propsRegistry)
 	require.NoError(t, err)
-	assert.Equal(t, "scaffold", zone.ID)
-	assert.Positive(t, zone.Bounds.Width)
-	assert.Positive(t, zone.Bounds.Height)
 	assert.NotEmpty(t, zone.Terrain, "scaffold zone should carry hand-authored terrain")
-	// every zone prop resolves against the prop registry at load time
-	for _, p := range zone.Props {
-		assert.NotNil(t, p.Def)
-	}
-	// every spawn resolves against the mob registry at load time
-	for _, s := range zone.Spawns {
-		assert.NotNil(t, s.Def)
-	}
 }
 
 // TestDiskContent_MissingSubdirFails pins the loud-failure contract: a
