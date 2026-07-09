@@ -460,8 +460,9 @@ per-race starts.
 
 - How many races, and do they differ only in cosmetics/lore + start, or in
   ongoing mechanics (racial passives)?
-- Interaction with meta-progression (character sacrifice unlocks account-wide
-  base auras — do races gate/modify that)?
+- Interaction with meta-progression (races are themselves a sanctioned
+  sacrifice-reward category — "new start options", GDD §5; which races are
+  available without sacrificing, and do races gate/modify other rewards)?
 - Does race choice ever change the mid/late game, or only the first ~level?
 
 ## 13. Mounts

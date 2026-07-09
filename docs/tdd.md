@@ -124,7 +124,7 @@ Each system below gets its own spec discussion before it is implemented; section
 - Spellbook per character (which auras unlocked, at which levels)
 - Skill-point distribution per character
 - Active build per character (which auras in which slots)
-- Meta-progression per account (post-v1)
+- Meta-progression per account (post-v1; cosmetic avatar rewards are rendering-only — sprite scale, never the physics body — GDD §5)
 - World state? (campfires, special-event triggers, ...)
 
 **Open questions:**

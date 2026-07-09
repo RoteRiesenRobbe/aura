@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Status:** Living document
-**Last updated:** 2026-07-09 (power curve + peasant onboarding + RNG-rejection decisions)
+**Last updated:** 2026-07-09 (character-sacrifice meta-progression expanded; power curve + peasant onboarding + RNG-rejection decisions)
 
 > This document is the **game-design truth** (vision, mechanic intent, open
 > design questions). Technology belongs in the [Technical Design Document](./tdd.md),
@@ -254,13 +254,29 @@ Since death has the same effect, you can respec for free right after dying.
 
 ### Meta-Progression: Character Sacrifice
 
-"Sacrificing" a max-level character (lore: sacrifice vs. sending them away à la Arc Raiders, still open) permanently unlocks **account-wide**:
+*(Explicitly post-v1 — see section 11. The design below is decided; nothing is scheduled.)*
 
-- New base auras (e.g. Speed aura)
-- Unique auras/effects not obtainable any other way
-- Cosmetic unlocks (avatar portraits)
+"Sacrificing" a max-level character (lore framing — sacrifice vs. sending them away à la Arc Raiders — still open, see section 12) permanently retires that character and grants an **account-wide** reward. New characters benefit from all previous sacrifices.
 
-New characters benefit from all previous sacrifices.
+**Design goal — the living starting zone.** Recreate the Hardcore-WoW population effect — early zones stay alive because veterans keep restarting there — but through *voluntary, rewarding* restarts instead of involuntary death. The restart itself must remain worthwhile: the reward is the occasion, the journey is the value. Two structures already in the design support this: per-race peasant starts (each run can *start* differently — see `backlog.md`, Races) and secret combination recipes (each run can be *built* differently).
+
+**Repeatable, with a reward catalog.** Sacrificing is possible multiple times per account. Each sacrifice lets the player **choose one reward from a curated catalog** — not a fixed drop. Deliberate consequence: players who enjoy leveling and sacrifice alts repeatedly are a feature, not an exploit — they populate the early zones, and since rewards carry no power, it stays harmless.
+
+**Rewards are breadth, never power.** Three sanctioned categories:
+
+1. **Side-grade auras** with unique mechanics — something *different*, never something *better*. Calibration reference: Purple Rain (Appendix A) — unique, desirable, zero meta pressure.
+2. **Cosmetic trophies** on avatar/portrait (e.g. animated portrait wings, an avatar visual-size increase).
+3. **New start options** — races / starting utility auras / start locations (this is the mechanical seed noted in `backlog.md`, Races).
+
+Explicitly forbidden: anything granting more damage/healing, more or better slots, faster leveling, or any endgame advantage. The design rule, verbatim: **"Does a player who never sacrifices feel *weaker* in the endgame? If yes, the reward is miscalibrated."**
+
+*Rationale:* the SWG-Jedi "Hologrind" lesson — if sacrifice is a mandatory path to desired power, players optimize the fun out of the game (completing content instead of playing it). Sacrifice must therefore stay optional and power-neutral.
+
+*Constraint on avatar-flavor rewards:* avatar/cosmetic effects never touch the physics body — sprite/rendering scale only, no collision or targeting-distance changes.
+
+**Memorial in the starting zone.** Every sacrificed character's name is recorded on a monument in the starting zone. New players see the names of those who came before; veterans on their n-th run walk past their own former names. The memorial deliberately intertwines with the population goal at the same location (environmental storytelling).
+
+**Loss scope — decided in direction, details open.** A sacrifice loses essentially *everything* character-bound: spellbook, levels, skill points, combo discoveries. The new character must genuinely feel like a fresh start. Only the account-wide sacrifice unlocks persist, and those are immediately (or near-immediately) accessible on new characters. ⚑ The exact specification — what "essentially everything" and "immediate access" mean (edge cases, how account unlocks are delivered to a fresh character) — is still open (see section 12).
 
 ---
 
@@ -274,7 +290,7 @@ There are five ways to get new entries:
 2. **Monster kill unlocks** — certain (not all) enemies drop auras or passives on death
 3. **World exploration** — via clue anchor points in the world (see section 7)
 4. **NPC teaching** — peaceful NPCs teach a specific aura on approach. Often thematically tied to nearby mobs that can only be damaged by exactly that aura (see section 8 → harvest mobs). ⚑ The interaction model — bare teach-on-approach vs. player-selectable branching dialogue, and what these NPCs must be able to do — is open; see `backlog.md` item 2 (Friendly NPCs & the dialogue system) and `roadmap.md` item 9 (reuse map).
-5. **Meta-progression** — character sacrifices unlock new base auras account-wide (see section 5)
+5. **Meta-progression** — character sacrifice: choose one reward from a curated catalog (side-grade auras, cosmetics, new start options) — account-wide, repeatable, never power (see section 5)
 
 ---
 
@@ -493,6 +509,7 @@ PvP, formal group system, economy, mobile, endgame raid events, character sacrif
 ### Meta
 - [ ] Seasonal vs. permanent servers?
 - [ ] Lore: sacrifice vs. sending away?
+- [ ] Sacrifice loss scope in detail: what exactly counts as "essentially everything" lost, and how account-wide unlocks reach a fresh character (direction decided — see section 5)
 
 ---
 
