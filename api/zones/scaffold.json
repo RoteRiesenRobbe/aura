@@ -5,29 +5,193 @@
     "height": 40
   },
   "terrain": [
-    { "type": "Green Grass 1", "x": 0, "y": 0, "size": 2.2, "rotation": 0.4, "flipped": "none" },
-    { "type": "Green Grass 2", "x": 3, "y": 1, "size": 2, "rotation": 1.2, "flipped": "horizontal" },
-    { "type": "Dark Green Grass 2", "x": -3, "y": -1, "size": 2.2, "rotation": 2.7, "flipped": "vertical" },
-    { "type": "Green Grass 1", "x": 2, "y": -3, "size": 1.8, "rotation": 5.1, "flipped": "none" },
-    { "type": "Sand", "x": 6, "y": 4, "size": 1.6, "rotation": 0.9, "flipped": "none" },
-    { "type": "Sand", "x": 7.5, "y": 3, "size": 1.6, "rotation": 3.4, "flipped": "horizontal" },
-    { "type": "Pebble", "x": -5, "y": 3, "size": 1.2, "rotation": 0, "flipped": "none" },
-    { "type": "Dark Pebble", "x": -6, "y": 4, "size": 1.1, "rotation": 1.6, "flipped": "vertical" },
-    { "type": "Flowers", "x": 1, "y": 3, "size": 0.9, "rotation": 0, "flipped": "none" },
-    { "type": "Puddle", "x": -2, "y": 5, "size": 1.2, "rotation": 0, "flipped": "none" },
-    { "type": "Leaves", "x": 4, "y": -1, "size": 0.8, "rotation": 2.2, "flipped": "horizontal" }
+    {
+      "type": "Green Grass 1",
+      "x": 0,
+      "y": 0,
+      "size": 2.2,
+      "rotation": 0.4,
+      "flipped": "none"
+    },
+    {
+      "type": "Green Grass 2",
+      "x": 3,
+      "y": 1,
+      "size": 2,
+      "rotation": 1.2,
+      "flipped": "horizontal"
+    },
+    {
+      "type": "Dark Green Grass 2",
+      "x": -3,
+      "y": -1,
+      "size": 2.2,
+      "rotation": 2.7,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Green Grass 1",
+      "x": 2,
+      "y": -3,
+      "size": 1.8,
+      "rotation": 5.1,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 6,
+      "y": 4,
+      "size": 1.6,
+      "rotation": 0.9,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 7.5,
+      "y": 3,
+      "size": 1.6,
+      "rotation": 3.4,
+      "flipped": "horizontal"
+    },
+    {
+      "type": "Pebble",
+      "x": -5,
+      "y": 3,
+      "size": 1.2,
+      "rotation": 0,
+      "flipped": "none"
+    },
+    {
+      "type": "Dark Pebble",
+      "x": -6,
+      "y": 4,
+      "size": 1.1,
+      "rotation": 1.6,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Flowers",
+      "x": 1,
+      "y": 3,
+      "size": 0.9,
+      "rotation": 0,
+      "flipped": "none"
+    },
+    {
+      "type": "Puddle",
+      "x": -2,
+      "y": 5,
+      "size": 1.2,
+      "rotation": 0,
+      "flipped": "none"
+    },
+    {
+      "type": "Leaves",
+      "x": 4,
+      "y": -1,
+      "size": 0.8,
+      "rotation": 2.2,
+      "flipped": "horizontal"
+    }
   ],
   "props": [
-    { "type": "Tree", "x": 10, "y": 5, "rotation": 0, "blocksMovement": true, "blocksAura": false },
-    { "type": "Tree", "x": -10, "y": 6, "rotation": 0, "blocksMovement": true, "blocksAura": false },
-    { "type": "Rock", "x": 8, "y": -6, "rotation": 0, "blocksMovement": true, "blocksAura": false },
-    { "type": "Rock", "x": -8, "y": -5, "rotation": 0, "blocksMovement": true, "blocksAura": false },
-    { "type": "Rock", "x": 0, "y": 8, "rotation": 0, "blocksMovement": false, "blocksAura": false }
+    {
+      "type": "Tree",
+      "x": 10,
+      "y": 5,
+      "rotation": 0,
+      "blocksMovement": true,
+      "blocksAura": false
+    },
+    {
+      "type": "Tree",
+      "x": -10,
+      "y": 6,
+      "rotation": 0,
+      "blocksMovement": true,
+      "blocksAura": false
+    },
+    {
+      "type": "Rock",
+      "x": 8,
+      "y": -6,
+      "rotation": 0,
+      "blocksMovement": true,
+      "blocksAura": false
+    },
+    {
+      "type": "Rock",
+      "x": -8,
+      "y": -5,
+      "rotation": 0,
+      "blocksMovement": true,
+      "blocksAura": false
+    },
+    {
+      "type": "Rock",
+      "x": 0,
+      "y": 8,
+      "rotation": 0,
+      "blocksMovement": false,
+      "blocksAura": false
+    }
   ],
   "spawns": [
-    { "mob": "Dodo", "x": 15, "y": 8, "angle": 0, "respawnTicks": 900, "respawnVariancePct": 0.2 },
-    { "mob": "Dodo", "x": -15, "y": -8, "angle": 0, "respawnTicks": 900, "respawnVariancePct": 0.2 },
-    { "mob": "SaberToothCat", "x": 20, "y": -5, "angle": 0, "respawnTicks": 1800, "respawnVariancePct": 0.2 },
-    { "mob": "Mammoth", "x": -20, "y": 5, "angle": 0, "respawnTicks": 2700, "respawnVariancePct": 0.2 }
+    {
+      "mob": "Dodo",
+      "x": 15,
+      "y": 8,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Dodo",
+      "x": -15,
+      "y": -8,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": 20,
+      "y": -5,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Mammoth",
+      "x": -20,
+      "y": 5,
+      "angle": 0,
+      "respawnTicks": 2700,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "AngryMammoth",
+      "x": -4.37,
+      "y": -8.52,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "AngryMammoth",
+      "x": 0.64,
+      "y": -1.4,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "AngryMammoth",
+      "x": -13.7,
+      "y": -6.16,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    }
   ]
 }
