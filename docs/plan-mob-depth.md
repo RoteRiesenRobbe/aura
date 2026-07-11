@@ -990,6 +990,44 @@ directly before patrol).
 - **Gotchas:** #2, #9, #11.
 
 ### Chunk 7 — Taunt / anti-taunt effect types (backend + content)
+
+> **Handoff from chunk 6 (2026-07-11) — read before the plan-first start:**
+> - **The threat seams built for this chunk:** `Mob.NoteThreat(source,
+>   amount)` (exported in 3a explicitly for taunt) and `Mob.HasThreat(id)`.
+>   There is NO exported read of the table or its top entry — "force-to-top"
+>   needs either a new seam (e.g. set-to-max+delta inside the mob) or a
+>   large-credit semantic. Retention picks the highest LIVING threat with
+>   ties breaking toward the LOWER entity ID — a taunt that merely EQUALS
+>   the top entry loses the tie unpredictably; exceed, don't match.
+> - **`noteThreat` gates:** allied sources, dead sources and amounts ≤ 0 are
+>   dropped. A player/ally taunting a hostile mob passes (faction differs);
+>   an anti-taunt as "negative credit" does NOT work — there is no reduce
+>   path at all today. Full wipe exists only as `resetAggro` (clears target
+>   + WHOLE table + gates the aura off — almost certainly too blunt);
+>   partial reduction/single-entry removal needs a new mob method.
+> - **Chunk-6 caveat — followers never read their own threat table:**
+>   `updateAggro` branches to owner-signal targeting before retention, so
+>   taunt/anti-taunt on a COMPANION no-ops by design (decide at plan-first
+>   whether that's acceptable v1 — likely yes). Same for the leash: none on
+>   followers. And the chunk-6 owner combat stamps are a SEPARATE system
+>   from threat — taunt must operate on threat tables, not stamps.
+> - **Semantic gap to settle at plan-first:** taunt changes the AGGRO target
+>   (chase/movement), but mob AURA targeting is selector-based
+>   (`nearest`/`lowest_health`), NOT threat-based — a taunted mob walks to
+>   the taunter but its aura keeps hitting whoever is nearest en route.
+>   Usually converges once it closes; decide whether v1 accepts that.
+> - **New-effect-type checklist (Step-0 pattern):** payload struct +
+>   per-type key allowlist + validator + dispatch case in
+>   `skills/definition.go`, apply site in `sys/skills.go` — AND an
+>   **`AuraMaskFor` case** if it ships as an aura (the resist-gap lesson:
+>   a missing mask case = the aura sensor never sees its targets).
+> - **Attribution if summons can taunt:** credit the SUMMON's threat, not
+>   the owner (the `Damage.Source` precedent, gotcha #9) — or scope v1 to
+>   player casts only.
+> - **Count pins:** 21 skills (registry_test + boot log `count=21`), 8
+>   milestones, 7 mobs — smoke content bumps them again; trap #11 stays
+>   binding (pkill + `make -C backend build`, check the boot log).
+
 - **Goal:** the parked threat-table operations become effect types.
 - **Do:** payload structs per the Step-0 pattern (taunt = force-to-top /
   large threat credit; anti-taunt = threat wipe/reduction — exact semantics
