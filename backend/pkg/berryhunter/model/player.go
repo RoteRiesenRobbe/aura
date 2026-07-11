@@ -10,9 +10,7 @@ import (
 )
 
 type PlayerVitalSigns struct {
-	Satiety         vitals.VitalSign
-	BodyTemperature vitals.VitalSign
-	Health          vitals.VitalSign
+	Health vitals.VitalSign
 }
 
 type Hand struct {

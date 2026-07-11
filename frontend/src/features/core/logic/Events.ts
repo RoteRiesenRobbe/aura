@@ -3,7 +3,7 @@ import {IGame} from "./IGame";
 import {BackendState, IBackend} from "../../backend/logic/IBackend";
 import {Player} from "../../player/logic/Player";
 import {Vector} from "./Vector";
-import {integer, radians} from "../../common/logic/Types";
+import {radians} from "../../common/logic/Types";
 import {InputAction} from "../../backend/logic/messages/outgoing/InputMessage";
 import {EquipmentSlot} from "../../items/logic/Equipment";
 import {Placeable} from "../../game-objects/logic/Placeable";
@@ -189,10 +189,8 @@ export const GameLateSetupEvent: OneTimePayloadEvent<IGame> = new OneTimePayload
 export const GamePlayingEvent: PayloadEvent<IGame> = new PayloadEvent<IGame>();
 export const PlayerCreatedEvent: PayloadEvent<Player> = new PayloadEvent<Player>();
 export const PlayerDamagedEvent: PayloadEvent<{player: Player, damageState: DamageState}> = new PayloadEvent<{player: Player, damageState: DamageState}>();
-export const PlayerStartedFreezingEvent: SimpleEvent = new SimpleEvent();
 export const PlayerMoved: PayloadEvent<Vector> = new PayloadEvent<Vector>();
 export const CharacterMoved: PayloadEvent<Vector> = new PayloadEvent<Vector>();
-export const PlayerCraftingStateChangedEvent: PayloadEvent<boolean> = new PayloadEvent<boolean>();
 export const BeforeDeathEvent: PayloadEvent<IGame> = new PayloadEvent<IGame>();
 export type screen = 'start' | 'end';
 export const GameJoinEvent: PayloadEvent<screen> = new PayloadEvent<screen>();
@@ -265,16 +263,6 @@ export interface CharacterEquippedItemMsg {
     equipmentSlot: EquipmentSlot
 }
 export const CharacterEquippedItemEvent: PayloadEvent<CharacterEquippedItemMsg> = new PayloadEvent<CharacterEquippedItemMsg>();
-export interface InventoryChangeMsg {
-    itemName: string,
-    itemType: string,
-    change: integer,
-    newCount: integer,
-}
-export const InventoryAddEvent: PayloadEvent<InventoryChangeMsg> = new PayloadEvent<InventoryChangeMsg>();
-export const InventoryRemoveEvent: PayloadEvent<InventoryChangeMsg> = new PayloadEvent<InventoryChangeMsg>();
-export const InventorySlotChangedEvent: PayloadEvent<InventoryChangeMsg> = new PayloadEvent<InventoryChangeMsg>();
-export const InventoryChangedEvent: SimpleEvent = new SimpleEvent();
 export const ResourceStockChangedEvent: PayloadEvent<{ entityType: string, newStock: number, oldStock: number, position: Vector }> = new PayloadEvent();
 export const GameSettingChangedEvent: PayloadEvent<{ path: string, newValue: any, oldValue: any }> = new PayloadEvent();
 

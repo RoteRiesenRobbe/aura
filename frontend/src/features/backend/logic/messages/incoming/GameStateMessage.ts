@@ -158,8 +158,6 @@ function unmarshalEntity(entity, eType) {
         equipment: undefined,
         health: undefined,
         maxHealth: undefined,
-        satiety: undefined,
-        bodyHeat: undefined,
         level: undefined,
         levelProgress: undefined,
         auraRadius: undefined,

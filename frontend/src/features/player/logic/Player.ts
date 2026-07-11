@@ -61,8 +61,7 @@ export class Player {
         const healthFraction = entity.maxHealth > 0 ? (entity.health / entity.maxHealth) : 0;
         let newVitalSigns: VitalSignValues = {
             health: Math.round(healthFraction * VitalSigns.MAXIMUM_VALUES.health),
-            satiety: Math.round((entity.levelProgress || 0) * VitalSigns.MAXIMUM_VALUES.satiety),
-            bodyHeat: VitalSigns.MAXIMUM_VALUES.bodyHeat
+            xp: Math.round((entity.levelProgress || 0) * VitalSigns.MAXIMUM_VALUES.xp),
         };
         this.vitalSigns.updateFromBackend(newVitalSigns, damageState);
         // Absolute numbers over the HUD bars (health + XP toward next level).

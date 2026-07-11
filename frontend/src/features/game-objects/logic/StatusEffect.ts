@@ -48,8 +48,6 @@ export class StatusEffect implements StatusEffectDefinition {
     static Damaged: StatusEffectDefinition = { id: 'Damaged', priority: 1 };
     static DamagedAmbient: StatusEffectDefinition = { id: 'DamagedAmbient', priority: 2 };
     static Yielded: StatusEffectDefinition = { id: 'Yielded', priority: 3 };
-    static Freezing: StatusEffectDefinition = { id: 'Freezing', priority: 4 };
-    static Starving: StatusEffectDefinition = { id: 'Starving', priority: 5 };
     static ResourceHit: StatusEffectDefinition = { id: 'Hit', priority: 5 };
     static Regenerating: StatusEffectDefinition = { id: 'Regenerating', priority: 6 };
     // Not part of the one-at-a-time effect pipeline: rendered as a gold burst
@@ -148,24 +146,6 @@ export class StatusEffect implements StatusEffectDefinition {
             gameObjectShape,
             [new ColorMatrixTweenEffect(255, 255, 255, 0, 1, 200, false, 0, true)],
             soundData
-        );
-    }
-
-    static forFreezing(gameObjectShape: Container) {
-        // #125799
-        return new StatusEffect(
-            StatusEffect.Freezing,
-            gameObjectShape,
-            [new ColorMatrixTweenEffect(18, 87, 153, 0.4, 0.8, 200)]
-        );
-    }
-
-    static forStarving(gameObjectShape: Container) {
-        // #1E7A1E
-        return new StatusEffect(
-            StatusEffect.Starving,
-            gameObjectShape,
-            [new ColorMatrixTweenEffect(30, 120, 30, 0.2, 0.8, 200)]
         );
     }
 

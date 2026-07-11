@@ -184,8 +184,8 @@ func TestPlayer_HealReceived_AccumulatesAndResets(t *testing.T) {
 
 // --- resource unification (roadmap Block 2, Stage 1) ---
 
-// updateVitalSigns must regenerate only Health (the single resource) and must
-// no longer force satiety/temperature to Max — those survival vitals are gone.
+// updateVitalSigns regenerates Health, the single resource (the survival
+// vitals no longer exist as fields — the compiler is the pin for that).
 func TestUpdateVitalSigns_RegeneratesHealthOnly(t *testing.T) {
 	p := &player{
 		config:        &cfg.PlayerConfig{HealthGainTick: 0.1, BaseHealth: 100},
@@ -193,17 +193,13 @@ func TestUpdateVitalSigns_RegeneratesHealthOnly(t *testing.T) {
 		progression:   model.PlayerProgression{Level: 1},
 		statusEffects: model.NewStatusEffects(),
 		PlayerVitalSigns: model.PlayerVitalSigns{
-			Health:          50, // half of maxHealth 100 (absolute HP, item 11)
-			Satiety:         0,
-			BodyTemperature: 0,
+			Health: 50, // half of maxHealth 100 (absolute HP, item 11)
 		},
 	}
 
 	p.updateVitalSigns(0)
 
 	assert.Greater(t, p.VitalSigns().Health, vitals.VitalSign(50), "wounded player regenerates health")
-	assert.Equal(t, vitals.VitalSign(0), p.VitalSigns().Satiety, "satiety is no longer maintained")
-	assert.Equal(t, vitals.VitalSign(0), p.VitalSigns().BodyTemperature, "body temperature is no longer maintained")
 	assert.Contains(t, p.StatusEffects().Effects(), model.StatusEffectRegenerating)
 }
 

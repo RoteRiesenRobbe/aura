@@ -17,8 +17,6 @@ import './features/game-settings/logic/GameSettingsUI';
 import './features/ground-textures/logic/GroundTexture';
 import './features/ground-textures/logic/_GroundTexturesPanel';
 import './features/items/logic/Items';
-// Tutorial temporarily disabled.
-// import './features/tutorial/logic/Tutorial';
 import './features/user-interface/logic/UserInterface';
 import './features/user-interface/changelog/logic/Changelog';
 import './features/user-interface/end-screen/logic/EndScreen';

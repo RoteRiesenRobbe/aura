@@ -182,7 +182,6 @@ export class Game implements IGame {
             },
             bossMobs: createNamedContainer('bossMobs'),
             characterAdditions: {
-                craftProgress: createNamedContainer('craftProgress'),
                 chatMessages: createNamedContainer('chatMessages'),
                 // Floating damage/heal/XP numbers (item 11): topmost world layer
                 // so they read above every entity.
@@ -247,7 +246,6 @@ export class Game implements IGame {
 
         // Character Additions
         this.cameraGroup.addChild(
-            this.layers.characterAdditions.craftProgress,
             this.layers.characterAdditions.chatMessages,
             this.layers.characterAdditions.floatingNumbers,
         );

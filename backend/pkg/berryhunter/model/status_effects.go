@@ -2,11 +2,12 @@ package model
 
 import "github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 
+// Freezing / Starving still exist in the wire enum (server.fbs) for
+// compatibility, but the survival mechanics behind them are gone — no
+// constant, no emitter.
 const (
 	StatusEffectDamaged        = StatusEffect(BerryhunterApi.StatusEffectDamaged)
 	StatusEffectYielded        = StatusEffect(BerryhunterApi.StatusEffectYielded)
-	StatusEffectFreezing       = StatusEffect(BerryhunterApi.StatusEffectFreezing)
-	StatusEffectStarving       = StatusEffect(BerryhunterApi.StatusEffectStarving)
 	StatusEffectRegenerating   = StatusEffect(BerryhunterApi.StatusEffectRegenerating)
 	StatusEffectDamagedAmbient = StatusEffect(BerryhunterApi.StatusEffectDamagedAmbient)
 	StatusEffectBurstFired     = StatusEffect(BerryhunterApi.StatusEffectBurstFired)

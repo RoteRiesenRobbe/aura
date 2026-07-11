@@ -18,7 +18,6 @@ import {
     CharacterMoved,
     GameSetupEvent,
     ISubscriptionToken,
-    PlayerCraftingStateChangedEvent,
     PlayerMoved,
     PrerenderEvent,
 } from '../../core/logic/Events';
@@ -45,7 +44,6 @@ export interface Hand {
 
 export class Character extends GameObject implements ICharacterLike, IMiniMapRendered {
     static avatar: ISvgContainer = {svg: undefined};
-    static craftingIndicator: ISvgContainer = {svg: undefined};
     static damageAura: ISvgContainer = {svg: undefined};
     static healAura: ISvgContainer = {svg: undefined};
     static hitAnimationFrameDuration: number = GraphicsConfig.character.actionAnimation.backendTicks;
@@ -74,7 +72,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
     messages: Text[];
     messagesGroup: Container;
-    craftingIndicator: Container;
 
     leftHand: Hand;
     rightHand: Hand;
@@ -137,24 +134,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         messagesFollowGroup.addChild(this.messagesGroup);
         this.messagesGroup.position.y = -1.2 * (this.size + 24);
 
-        if (this.isPlayerCharacter) {
-            const craftProgressFollowGroup = new Container();
-            Game.layers.characterAdditions.craftProgress.addChild(craftProgressFollowGroup);
-            this.followGroups.push(craftProgressFollowGroup);
-
-            this.craftingIndicator = createNamedContainer('craftingIndicator');
-            craftProgressFollowGroup.addChild(this.craftingIndicator);
-            this.craftingIndicator.position.y = -1.2 * (this.size + 24) - 20;
-            this.craftingIndicator.addChild(createInjectedSVG(Character.craftingIndicator.svg, 0, 0, 20));
-            this.craftingIndicator.visible = false;
-
-            const circle = new Graphics();
-            circle.label = 'circle';
-            this.craftingIndicator.addChild(circle);
-            // Let the progress start at 12 o'clock
-            circle.rotation = -0.5 * Math.PI;
-        }
-
         this.followGroups.forEach(function (group: Container) {
             group.position.copyFrom(this.shape.position);
         }, this);
@@ -197,7 +176,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
         return {
             Damaged: StatusEffect.forDamaged(this.actualShape),
-            Freezing: StatusEffect.forFreezing(this.actualShape),
         };
     }
 
@@ -460,14 +438,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         this.followGroups.forEach((group) => {
             group.position.copyFrom(this.shape.position);
         }, this);
-
-        if (this.isPlayerCharacter) {
-            this.updatePlayerCharacter();
-        }
-    }
-
-    updatePlayerCharacter() {
-        // Crafting indicator removed with the item system (Block 2).
     }
 
     isSlotEquipped(equipmentSlot: EquipmentSlot) {
@@ -586,12 +556,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Character.avatar, GraphicsConfig.character.file, GraphicsConfig.character.size);
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(
-    Character.craftingIndicator,
-    GraphicsConfig.character.craftingIndicator.file,
-    GraphicsConfig.character.craftingIndicator.size);
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(

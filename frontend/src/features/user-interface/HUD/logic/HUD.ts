@@ -91,11 +91,10 @@ function setupZoomControl() {
 function setupVitalSigns() {
     vitalSignsBars = {
         health: new VitalSignBar(document.getElementById('healthBar'), VitalSign.health),
-        satiety: new VitalSignBar(document.getElementById('satietyBar'), VitalSign.satiety),
-        bodyHeat: new VitalSignBar(document.getElementById('bodyHeatBar'), VitalSign.bodyHeat),
+        xp: new VitalSignBar(document.getElementById('xpBar'), VitalSign.xp),
     };
     healthBarTextElement = document.querySelector('#healthBar .barText');
-    xpBarTextElement = document.querySelector('#satietyBar .barText');
+    xpBarTextElement = document.querySelector('#xpBar .barText');
 }
 
 // updateBarTexts renders the absolute numbers over the HUD bars each tick:

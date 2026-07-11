@@ -62,8 +62,6 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 
 	//--- setup vital signs
 	p.PlayerVitalSigns.Health = p.MaxHealth() // absolute HP (item 11 Phase 1)
-	p.PlayerVitalSigns.Satiety = vitals.Max
-	p.PlayerVitalSigns.BodyTemperature = vitals.Max
 
 	// setup hand sensor
 	hand := phy.NewCircle(e.Body.Position(), 0.25)

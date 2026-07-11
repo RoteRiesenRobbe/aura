@@ -43,13 +43,6 @@ export const GraphicsConfig = {
             lineColor: <color> 0x000000,
         },
 
-        craftingIndicator: {
-            file: require('../features/game-objects/assets/icons/crafting.svg'),
-            size: <number> 20,
-            lineColor: <color> 0xc9a741,
-            lineWidth: <number> 5, //px
-        },
-
         actionAnimation: {
             /**
              * Should be synchronized with the value below,
@@ -254,12 +247,6 @@ export const GraphicsConfig = {
     },
 
     vitalSigns: {
-        /**
-         * Determines below which relative value screen overlays for vital signs are shown
-         * and how low the satiety has be before auto feed kicks in.
-         */
-        overlayThreshold: <number> 0.3,
-
         /**
          * How many milliseconds old values are shown, after a vital sign has been reduced.
          */

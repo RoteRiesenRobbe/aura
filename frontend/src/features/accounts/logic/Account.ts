@@ -16,22 +16,6 @@ export class Account {
         setValue('playerName', playerName);
     }
 
-    static get tutorialActivated(): boolean | null {
-        return getBoolean('tutorialActivated', null);
-    }
-
-    static set tutorialActivated(active: boolean) {
-        setValue('tutorialActivated', String(active));
-    }
-
-    static get tutorialCompleted(): number | null {
-        return getInt('tutorialCompleted', null);
-    }
-
-    static set tutorialCompleted(timeStamp: number) {
-        setValue('tutorialCompleted', String(timeStamp));
-    }
-
     static get fullScreen(): boolean {
         return getBoolean('fullScreen', false);
     }

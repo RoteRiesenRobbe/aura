@@ -5,19 +5,17 @@ import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
 import {
-    PlayerStartedFreezingEvent,
     PreloadingStartedEvent,
     VitalSignChangedEvent,
 } from '../../core/logic/Events';
 import {StatusEffect, StatusEffectDefinition} from '../../game-objects/logic/StatusEffect';
 
+// health = the resource bar; xp = level progress toward the next level
+// (rides the vital-sign pipeline so the bar gets the delta indicators).
 export enum VitalSign {
     health = 'health',
-    satiety = 'satiety',
-    bodyHeat = 'bodyHeat'
+    xp = 'xp'
 }
-
-const OPACITY_STEPS: number = -1; // 32
 
 export type VitalSignValues = { [key in VitalSign]: number };
 
@@ -26,12 +24,11 @@ export class VitalSigns {
     /**
      * All values are 32bit.
      *
-     * @type {{health: number, satiety: number, bodyHeat: number}}
+     * @type {{health: number, xp: number}}
      */
     static MAXIMUM_VALUES: VitalSignValues = {
         health: 0xffffffff,
-        satiety: 0xffffffff,
-        bodyHeat: 0xffffffff,
+        xp: 0xffffffff,
     };
 
     private readonly currentValues: VitalSignValues;
@@ -46,28 +43,14 @@ export class VitalSigns {
     constructor() {
         this.currentValues = {
             health: VitalSigns.MAXIMUM_VALUES.health,
-            satiety: VitalSigns.MAXIMUM_VALUES.satiety,
-            bodyHeat: VitalSigns.MAXIMUM_VALUES.bodyHeat,
+            xp: VitalSigns.MAXIMUM_VALUES.xp,
         };
         this.previousValues = {
             health: [this.currentValues.health],
-            satiety: [this.currentValues.satiety],
-            bodyHeat: [this.currentValues.bodyHeat],
+            xp: [this.currentValues.xp],
         };
 
         this.overlayManager = new HtmlOverlayManager();
-    }
-
-    setHealth(health: number) {
-        this.setValue(VitalSign.health, health);
-    }
-
-    setSatiety(satiety: number) {
-        this.setValue(VitalSign.satiety, satiety);
-    }
-
-    setBodyHeat(bodyHeat: number) {
-        this.setValue(VitalSign.bodyHeat, bodyHeat);
     }
 
     setValue(valueIndex: VitalSign, newValue: number) {
@@ -105,10 +88,6 @@ export class VitalSigns {
                 absolute: newValue,
             },
         });
-
-        if (valueIndex == VitalSign.bodyHeat && newRelativeValue <= 0 && currentValue > 0) {
-            PlayerStartedFreezingEvent.trigger();
-        }
     }
 
     updateFromBackend(backendValues: VitalSignValues, damageState: DamageState) {
@@ -128,40 +107,12 @@ export class VitalSigns {
                 break;
         }
 
-        // Hunger/cold overlays are intentionally disabled. The second HUD bar is
-        // repurposed to show level progress, and body temperature gameplay is off.
-
         this.overlayManager.onUpdateFromBackend(displayedStatusEffects);
-
-
-    }
-
-    private showIndicatorBelowThreshold(relativeVitalSign: number, indicator: string) {
-        if (relativeVitalSign < GraphicsConfig.vitalSigns.overlayThreshold) {
-            // TODO apply opacity to overlays
-            // let opacity = 1 - (relativeVitalSign / GraphicsConfig.vitalSigns.overlayThreshold);
-            // this.overlayManager.showIndicator(indicator, opacity);
-            return true;
-        }
-
-        return false;
     }
 
     destroy() {
         // Nothing to do
     }
-}
-
-/**
- * Round opacity to 1 of X steps
- * @param opacity 0.0 - 1.0
- */
-function getSteppedOpacity(opacity: number) {
-    if (OPACITY_STEPS === -1) {
-        return opacity;
-    }
-
-    return Math.ceil(opacity * OPACITY_STEPS) / OPACITY_STEPS;
 }
 
 /*
@@ -191,10 +142,8 @@ enum OverlayState {
 }
 
 enum Indicators {
-    coldness = 'coldness',
     oneShotDamage = 'oneShotDamage',
-    continuousDamage = 'continuousDamage',
-    hunger = 'hunger'
+    continuousDamage = 'continuousDamage'
 }
 
 export enum DamageState {
@@ -208,19 +157,15 @@ class HtmlOverlayManager /*implements IVitalSignsOverlayManager*/ {
 
     constructor() {
         this.overlays = {
-            coldness: new TransitionedOverlay(rootElement.querySelector('.overlay.coldness')),
             oneShotDamage: new AnimatedOverlay(rootElement.querySelector('.overlay.damage')),
             continuousDamage: new TransitionedOverlay(rootElement.querySelector('.overlay.continuousDamage')),
-            hunger: new TransitionedOverlay(rootElement.querySelector('.overlay.hunger')),
         };
     }
 
     public onUpdateFromBackend(displayedStatusEffects: StatusEffectDefinition[]) {
         if (displayedStatusEffects.length === 0) {
-            this.overlays.coldness.hide();
             this.overlays.oneShotDamage.hide();
             this.overlays.continuousDamage.hide();
-            this.overlays.hunger.hide();
             return;
         }
 
@@ -229,33 +174,12 @@ class HtmlOverlayManager /*implements IVitalSignsOverlayManager*/ {
             this.overlays.continuousDamage.hideWithoutTransition();
             // Play animation for damage overlay // only starts if not already running
             this.overlays.oneShotDamage.show();
-            // else if states.contains(ContinuousDamage)
         } else if (displayedStatusEffects.includes(StatusEffect.DamagedAmbient)) {
-            // Fade out hunger overlay // only fades out if visible
-            this.overlays.hunger.hide();
-            // Fade out cold overlay
-            this.overlays.coldness.hide();
             // Fade in continuous damage overlay // only fades in if not already visible
             this.overlays.continuousDamage.show();
         } else {
             // Fade out continuous damage overlay
             this.overlays.continuousDamage.hide();
-            // if states.contains(Hunger)
-            if (displayedStatusEffects.includes(StatusEffect.Starving)) {
-                // Fade in hunger overlay
-                this.overlays.hunger.show();
-            } else {
-                // Fade out hunger overlay
-                this.overlays.hunger.hide();
-            }
-            // if states.contains(Cold)
-            if (displayedStatusEffects.includes(StatusEffect.Freezing)) {
-                // Fade in cold overlay
-                this.overlays.coldness.show();
-            } else {
-                // Fade out cold overlay
-                this.overlays.coldness.hide();
-            }
         }
     }
 }
