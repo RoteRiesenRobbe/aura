@@ -3,10 +3,8 @@ package mobs
 import (
 	"fmt"
 	"io/fs"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 
+	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
@@ -56,7 +54,7 @@ type Registry interface {
 	Mobs() []*MobDefinition
 }
 
-func RegistryFromFS(r items.Registry, sr skills.Registry, fileSystem fs.FS) (*registry, error) {
+func RegistryFromFS(r items.Registry, sr skills.Registry, fr factions.Registry, fileSystem fs.FS) (*registry, error) {
 	mobs := newRegistry()
 
 	err := fs.WalkDir(fileSystem, ".", func(path string, d fs.DirEntry, err error) error {
@@ -77,7 +75,7 @@ func RegistryFromFS(r items.Registry, sr skills.Registry, fileSystem fs.FS) (*re
 			return fmt.Errorf("cannot parse '%s': %w", path, err)
 		}
 
-		mob, err := mobParsed.mapToMobDefinition(r, sr)
+		mob, err := mobParsed.mapToMobDefinition(r, sr, fr)
 		if err != nil {
 			return fmt.Errorf("cannot map '%s': %w\n", path, err)
 		}
@@ -110,42 +108,4 @@ func validateSpawnEffects(mobs *registry, sr skills.Registry) error {
 		}
 	}
 	return nil
-}
-
-func RegistryFromPaths(r items.Registry, sr skills.Registry, f ...string) (*registry, error) {
-	mobs := newRegistry()
-
-	for _, path := range f {
-		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return fmt.Errorf("Cannot read '%s': %s", path, err)
-			}
-
-			if !info.Mode().IsRegular() {
-				return nil
-			}
-
-			data, err := ioutil.ReadFile(path)
-			if err != nil {
-				return fmt.Errorf("Cannot read '%s': %s", path, err)
-			}
-			mobParsed, err := parseMobDefinition(data)
-			if err != nil {
-				return fmt.Errorf("Cannot parse '%s': %s", path, err)
-			}
-
-			mob, err := mobParsed.mapToMobDefinition(r, sr)
-			if err != nil {
-				return fmt.Errorf("Cannot map '%s': %s\n", path, err)
-			}
-			mobs.add(mob)
-			return nil
-		})
-		// bail if there was an error
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return mobs, validateSpawnEffects(mobs, sr)
 }

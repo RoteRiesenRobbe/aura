@@ -386,8 +386,8 @@ func TestNewMob_AuraSensorWiring(t *testing.T) {
 	aura := m.AuraCollider()
 	assert.True(t, aura.Shape().IsSensor)
 	assert.InDelta(t, 0.5, aura.Radius, 1e-6, "radius = active skill's EffectiveRadius")
-	assert.Equal(t, int(model.LayerPlayerCollision), aura.Shape().Mask,
-		"mask derived from the active skill's target flags")
+	assert.Equal(t, int(model.LayerCombatants), aura.Shape().Mask,
+		"mask derived from the active skill's target flags — both combatant layers since chunk 6.6")
 	assert.Equal(t, int(model.LayerNoneCollision), aura.Shape().Layer)
 }
 

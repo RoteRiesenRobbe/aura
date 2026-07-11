@@ -2,6 +2,7 @@
   "id": 1,
   "name": "Dodo",
   "type": "MOB",
+  "faction": "prey",
   "factors": {
     "maxHealth": 40,
     "maxHealthVariance": 0.1,

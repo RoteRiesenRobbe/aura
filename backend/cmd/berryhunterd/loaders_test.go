@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -31,9 +32,28 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, skillsRegistry.All())
 
-	mobsRegistry, err := mobs.RegistryFromFS(itemsRegistry, skillsRegistry, content.mobs)
+	factionsRegistry, err := factions.RegistryFromFS(content.factions)
+	require.NoError(t, err)
+	assert.NotEmpty(t, factionsRegistry.All())
+
+	mobsRegistry, err := mobs.RegistryFromFS(itemsRegistry, skillsRegistry, factionsRegistry, content.mobs)
 	require.NoError(t, err)
 	assert.NotEmpty(t, mobsRegistry.Mobs())
+
+	// The chunk-6.6 smoke content must actually exercise mob factions: at
+	// least one predator (non-empty mob-faction aggro set) and one passive
+	// prey species ship in the repo roster.
+	var hasHunter, hasPassive bool
+	for _, m := range mobsRegistry.Mobs() {
+		if m.AggroMask&^uint64(1<<factions.Aligned) != 0 {
+			hasHunter = true
+		}
+		if m.Faction >= 2 && m.AggroMask == 0 {
+			hasPassive = true
+		}
+	}
+	assert.True(t, hasHunter, "repo content ships a mob-hunting faction")
+	assert.True(t, hasPassive, "repo content ships a passive faction")
 
 	recipeRegistry, err := skills.RecipesFromFS(content.recipes, skillsRegistry)
 	require.NoError(t, err)

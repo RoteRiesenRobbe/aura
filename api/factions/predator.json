@@ -1,0 +1,5 @@
+{
+  "_comment": "Hunters: attack players, prey and tuskers on sight — [PLACEHOLDER] chunk-6.6 smoke content",
+  "name": "predator",
+  "hostileTo": ["aligned", "prey", "tusker"]
+}

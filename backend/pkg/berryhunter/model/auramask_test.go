@@ -7,19 +7,18 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
-// Masks are faction-relative since effect foundations Step 1: the same skill
-// definition yields the opposing layer set for an aligned vs. a hostile
-// caster, so a future faction flip retargets without content changes.
+// Masks are kind-agnostic since mob factions (chunk 6.6): faction no longer
+// maps to a body layer in either direction, so every faction-flag mask spans
+// both combatant layers and eligibility does the exact faction check at apply
+// time. These pins keep the masks from silently narrowing again.
 
-func TestAuraMaskFor_DamageAura_EnemiesPerCasterFaction(t *testing.T) {
+func TestAuraMaskFor_DamageAura_SpansBothCombatantLayers(t *testing.T) {
 	def := &skills.SkillDefinition{Effects: []skills.EffectDef{
 		{Type: skills.EffectTypeDamageAura, TargetsEnemies: true, Damage: &skills.DamageParams{}},
 	}}
 
-	assert.Equal(t, int(LayerActionCollision), AuraMaskFor(def, FactionAligned),
-		"an aligned caster's enemies are on the action (mob) layer")
-	assert.Equal(t, int(LayerPlayerCollision), AuraMaskFor(def, FactionHostile),
-		"a hostile caster's enemies are on the player layer")
+	assert.Equal(t, int(LayerCombatants), AuraMaskFor(def),
+		"an enemy can sit on either body layer (mob factions vs the player-layer summon trick)")
 }
 
 func TestAuraMaskFor_MobDamageAura_EnemiesAndStructures(t *testing.T) {
@@ -27,7 +26,7 @@ func TestAuraMaskFor_MobDamageAura_EnemiesAndStructures(t *testing.T) {
 		{Type: skills.EffectTypeDamageAura, TargetsEnemies: true, TargetsStructures: true, Damage: &skills.DamageParams{}},
 	}}
 
-	assert.Equal(t, int(LayerPlayerCollision|LayerPlaceableCollision), AuraMaskFor(def, FactionHostile))
+	assert.Equal(t, int(LayerCombatants|LayerPlaceableCollision), AuraMaskFor(def))
 }
 
 func TestAuraMaskFor_HealAuraImpliesAllies(t *testing.T) {
@@ -35,15 +34,14 @@ func TestAuraMaskFor_HealAuraImpliesAllies(t *testing.T) {
 		{Type: skills.EffectTypeHealAura, Heal: &skills.HealParams{}},
 	}}
 
-	assert.Equal(t, int(LayerPlayerCollision), AuraMaskFor(def, FactionAligned))
-	assert.Equal(t, int(LayerActionCollision), AuraMaskFor(def, FactionHostile),
-		"a hostile healer's implicit allies are mobs (inert until item 7 lifts mob healing)")
+	assert.Equal(t, int(LayerCombatants), AuraMaskFor(def),
+		"allies cross body layers too — an aligned companion lives on the action layer")
 }
 
 func TestAuraMaskFor_NoEffectsYieldsNone(t *testing.T) {
 	def := &skills.SkillDefinition{}
 
-	assert.Equal(t, int(LayerNoneCollision), AuraMaskFor(def, FactionAligned))
+	assert.Equal(t, int(LayerNoneCollision), AuraMaskFor(def))
 }
 
 // A resist aura must collect its targets via the sensor mask like any other
@@ -53,17 +51,16 @@ func TestAuraMaskFor_ResistAura(t *testing.T) {
 	allies := &skills.SkillDefinition{Effects: []skills.EffectDef{
 		{Type: skills.EffectTypeResistAura, TargetsAllies: true, Resist: &skills.ResistParams{}},
 	}}
-	assert.Equal(t, int(LayerPlayerCollision), AuraMaskFor(allies, FactionAligned))
+	assert.Equal(t, int(LayerCombatants), AuraMaskFor(allies))
 
 	enemies := &skills.SkillDefinition{Effects: []skills.EffectDef{
 		{Type: skills.EffectTypeResistAura, TargetsEnemies: true, Resist: &skills.ResistParams{}},
 	}}
-	assert.Equal(t, int(LayerActionCollision), AuraMaskFor(enemies, FactionAligned))
+	assert.Equal(t, int(LayerCombatants), AuraMaskFor(enemies))
 }
 
-func TestInstantDamageMask_FactionRelative(t *testing.T) {
+func TestInstantDamageMask_SpansBothCombatantLayers(t *testing.T) {
 	e := skills.EffectDef{Type: skills.EffectTypeInstantDamage, TargetsEnemies: true, Damage: &skills.DamageParams{}}
 
-	assert.Equal(t, int(LayerActionCollision), InstantDamageMask(e, FactionAligned))
-	assert.Equal(t, int(LayerPlayerCollision), InstantDamageMask(e, FactionHostile))
+	assert.Equal(t, int(LayerCombatants), InstantDamageMask(e))
 }

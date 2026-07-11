@@ -1044,32 +1044,193 @@ directly before patrol).
 > assists/defends against normal mobs; (5) your own summoned totem is
 > unchanged (boss can still kill it, HealAura still reaches it).
 
-### Chunk 6.6 — Mob factions & mob-vs-mob hostility (NEW, plan-first) ← NEXT
+### Chunk 6.6 — Mob factions & mob-vs-mob hostility — DONE + FULLY VERIFIED IN-GAME 2026-07-11 (incl. the same-day HARM-GATE fix)
 
-> **Scheduled BEFORE chunk 7 (user, 2026-07-11): plan-first in its own
-> session.** Target design (user, verbatim intent): *mobs can be hostile
-> towards each other — a wolf starts chasing a rabbit when they enter each
-> other's aggro range; the rabbit flees (slowly) as it would from a
-> player; actual frontlines of battle where two factions of mobs spawn or
-> patrol and start attacking each other, one of which might also attack
-> the player; the same aggro rules apply between mobs.*
+> **Status: DONE. Round-1 verification 2026-07-11 ("works as described")
+> surfaced TWO findings — one shared root cause, FIXED same day red-first
+> (fix record below); fix RE-VERIFIED in-game same day: "honestly, its
+> perfect. groups fighting each other, killing each other, following me,
+> getting distracted … feels very organic. all tests passed." Full suite
+> green (22 pkgs — the new `factions` package is the 22nd), binary
+> rebuilt, tsc + webpack green; zero wire changes, zero frontend code
+> changes (frontend rebuilt only for the zone/mob JSON bundle).**
 >
-> **Known scope at capture time (settle at plan-first):**
-> - Faction model: binary Aligned/Hostile → N factions (per mob def,
->   per-spawn override?); "different faction = hostile" vs an explicit
->   hostility matrix.
-> - The layer≈faction assumption falls: **aggro sensor masks + enemy aura
->   masks widen to both body layers, eligibility everywhere does the exact
->   faction check** — this is where the deferred **mob-path faction gate**
->   (`applyMobDamageAura`, chunk-6.5 decision) structurally lands, exactly
->   as the `model/auramask.go` NOTE prescribes.
-> - Threat/aggro/flee are already `Combatant`-based and entity-keyed
->   (chunk 3a) → mob-vs-mob combat largely rides existing machinery.
-> - Verify NO player-reward leakage on mob-vs-mob kills (XP/drops ride
->   `PlayerTouches` only).
-> - Perf: sensors seeing all mobs = more broadphase pairs — measure at
->   proving-grounds scale (~380 spawns).
-> - Content: frontline spawns/patrols as the smoke consumer.
+> **In-game findings (user, 2026-07-11) + the HARM-GATE fix:**
+> - **Finding 1:** a tusker Mammoth chasing the player walked through a
+>   prey Dodo — its aura splashed it ("different faction = may harm"), the
+>   dodo's retaliation threat locked two NEUTRAL factions into a fight to
+>   the death neither could have started, both ignoring the player.
+> - **Finding 2:** the braziers (default `hostile` faction) legally dotted
+>   passing `predator` cats (different faction); the cats retaliated
+>   against a Viewport-only body no damage mask reaches — world mobs have
+>   no `auraCanReach` gate — and suicided in the burn.
+> - **Fix (user: "can't aggro → can't damage"; upgraded to a central seam
+>   after the scalability discussion): two-layer harm rule for mob
+>   casters.** `mayHarm(A,B) = B.faction ∈ A.aggroSet (STATIC layer) ∪
+>   A.hasThreat(B) (DYNAMIC layer)`. Retaliation keeps working (whoever
+>   hurt me is on my threat table — passive prey still bites back at cats
+>   and players); taunt (chunk 7) gets harm rights for free (taunt =
+>   threat credit); encounter scripts (chunk 9) ride the dynamic layer
+>   with zero config. Mammoth-vs-dodo can never START (neither lands the
+>   first hit); cats are never burned by the brazier (not in its {aligned}
+>   set, can never reach its threat table) → no threat → no suicide.
+>   Bonus semantic (pinned): a passive-faction mob no longer splashes
+>   BYSTANDER players it is not fighting. Players + owned summons
+>   unchanged (summons' all-others aggro set makes the gate a no-op).
+> - **Fix mechanics:** `model.HostilityGate` (`MayHarm(faction, id)`)
+>   implemented by `Mob` (`aggroMask ∪ HasThreat`); **ONE sys seam
+>   `mayHarm(caster, target)`**, consulted by `eligibleByTargetFlags`
+>   (now takes the ACTING entity instead of a faction —
+>   `applyPlayerDamageAura` derives it: the summon on owned casts, the
+>   player on direct ones) and by `applyMobDamageAura`'s bespoke
+>   predicate. Damage aura, dot aura, instant damage/dot and resist aura
+>   all route through it. **RULE: every NEW harmful effect type's enemy
+>   eligibility MUST go through `eligibleByTargetFlags`/`mayHarm`** — a
+>   per-site copy is how the gate gets forgotten (the AuraMaskFor
+>   resist-gap lesson). `applySlowAura` carries a NOTE: it has NO faction
+>   eligibility at all (pre-6.6 gap, harmless while no mob slow exists and
+>   players cannot be slowed) — route through the seam when one ships.
+> - **Fix pins (red-first):** `TestMob_MayHarm_DeclaredHostilityOrCombatLink`
+>   (set / neutral / bystander / threat-link); sys
+>   `TestApplyMobDamageAura_NeutralFactionNeverSplashed` (finding-1 repro,
+>   verified red), `_ThreatTableAttackerIsFairGame` (retaliation through
+>   real mobs), `TestApplyDotEffect_MobCasterRespectsHostility` (finding-2
+>   repro, verified red; the player still burns).
+> - **Scalability record (user discussion 2026-07-11, "will this bite
+>   us?"):** hostileTo is the sparse row-wise encoding of a full stance
+>   matrix — cross-faction alliances later = additive `friendlyTo` key, no
+>   migration. Known deferred friction: **62-faction bitmask cap**
+>   (internal only — content authors names; widening touches ~3 places),
+>   **global faction namespace** (content pass adopts naming discipline,
+>   e.g. `z1-farmers`), **social aggro** (guards assisting faction-mates =
+>   an acquisition-side dynamic-layer source, its own chunk someday), a
+>   **`THREAT <mob>` debug cheat** once fights get complex (chunk 7 wants
+>   it for taunt tuning anyway), and chunk 7's anti-taunt semantics should
+>   be decided knowing a full threat wipe also drops dynamic harm rights.
+>
+> Target design (user, verbatim intent): *mobs can be hostile towards each
+> other — a wolf starts chasing a rabbit when they enter each other's aggro
+> range; the rabbit flees (slowly) as it would from a player; actual
+> frontlines of battle where two factions of mobs spawn or patrol and start
+> attacking each other, one of which might also attack the player; the same
+> aggro rules apply between mobs.*
+>
+> **Decisions (user, plan-first 2026-07-11):**
+> - **Hostility model = per-faction hostility list** (not a flat
+>   different-=-hostile rule, not a stance matrix): each declared faction
+>   lists the factions it PROACTIVELY aggros (`hostileTo`, asymmetry legal —
+>   the wolf hunts the rabbit, the rabbit only retaliates). The list gates
+>   acquisition; **AMENDED by the in-game harm-gate fix (same day, see
+>   above):** mob-cast damage eligibility is now the two-layer rule
+>   (aggro set ∪ threat table) instead of "different faction = may harm" —
+>   a passive faction still fights back / flees per its own rules when hit
+>   (the attacker is on its threat table), exactly "the same aggro rules
+>   as vs players", but neutral factions can no longer splash each other.
+> - **Authoring = mob-def level only** (`"faction": "<name>"` top-level key;
+>   no per-spawn override — a frontline fields two different species).
+> - **Masks: ALL faction-flag masks widen** to both combatant layers
+>   (`model.LayerCombatants` = Player|Action); `factionLayers` + the
+>   auramask NOTE are deleted — eligibility does the exact faction check
+>   everywhere. Free fix: a player's ally auras (FireWard resist) finally
+>   reach their own companion (action-layer body; pinned).
+> - **Kill rewards trigger on ANY death**: `MobTouches` now calls
+>   `tryGrantKillRewards` like `PlayerTouches` — recorded player
+>   participants get full XP/drops when a frontline mob lands the killing
+>   blow. A pure mob-vs-mob kill settles the death with zero participants,
+>   which also CLOSED A LATENT LEAK: before, a player poking a mob-killed
+>   corpse collected full XP (the death was never settled; pinned).
+> - **Default rule (deliberate deviation from "hostile to all others"):**
+>   a def without `faction`/a faction without relevance = built-in
+>   `hostile` faction with aggro set **{aligned} ONLY** — the pre-factions
+>   behavior verbatim (attack players, proactively ignore every mob), so
+>   declaring new factions never silently changes legacy mobs, and
+>   mob-vs-mob hunting is always an explicit `hostileTo` entry.
+>
+> **Mechanics:** new **`pkg/berryhunter/factions`** registry (mirrors
+> props/recipes): `api/factions/*.json`, one file per faction
+> (`{name, hostileTo:[...]}`, `_comment` tolerated, otherwise
+> DisallowUnknownFields); reserved undeclarable built-ins **`aligned` (ID 0)
+> + `hostile` (ID 1)** (both referenceable in hostileTo); declared factions
+> get IDs 2+ in sorted-name order (deterministic); hard-fails: missing
+> hostileTo (`[]` = explicitly passive), dup/empty/reserved name,
+> unknown/self reference, >62 declared (uint64 bitmask cap). The numeric
+> `factions.Faction` mirrors `model.Faction` (model imports items/mobs
+> imports factions — the boot seam converts, like world's EntityType).
+> Factions load BEFORE mobs; `mobs.RegistryFromFS(r, sr, fr, fsys)` +
+> `mapToMobDefinition` resolve the def's faction name (absent → hostile
+> default; `"aligned"` hard-fails — summon-only via SetFaction; dead
+> `RegistryFromPaths` deleted while touching the file).
+> `MobDefinition.Faction/AggroMask` → `Mob.faction/aggroMask` (zero-value
+> def = hostile default, the defaultMobMaxHealth guard pattern —
+> FactionAligned is the zero value). **`findAggroTarget`** keeps the
+> equality+liveness skip and adds the aggro-set gate
+> (`aggroMask & target.Faction().Bit()`). **The aggro sensor mask follows
+> the aggro set** (`aggroSensorMask`): aligned bit → player layer, any mob
+> faction → action layer — legacy mobs keep player-only sensors (**zero new
+> broadphase pairs except opted-in factions = the perf knob**), a passive
+> faction's sensor sees nothing at all. `SetFaction` (summons) recomputes
+> aggroMask = all-others + updates the sensor mask. `AuraMaskFor(def)` /
+> `InstantDamageMask(e)` lost the faction param (masks are
+> faction-independent now). **`applyMobDamageAura` gained the exact-faction
+> gate** (the deferred chunk-6.5 item): Factioned targets — same faction
+> rejected unless targetsAllies, different requires targetsEnemies, and the
+> check runs BEFORE the target cap (a pack mate never eats the nearest-1
+> slot); unfactioned structures keep riding the mask (targetsStructures).
+> `noteThreat`/`MobTouches` threat crediting worked unchanged (equality
+> gates); brazier/boss mutual immunity is now faction-based AND layer-based;
+> `auraCanReach` still rejects Viewport-only brazier bodies after widening.
+>
+> **Content [ALL PLACEHOLDER]:** `api/factions/` — **`prey`** (hostileTo
+> `[]`), **`predator`** (`["aligned","prey","tusker"]`), **`tusker`**
+> (`["aligned","predator"]`); assignments: Rabbit + Dodo → prey,
+> SaberToothCat → predator, Mammoth → tusker (AngryMammoth, Totem,
+> Companion, Brazier stay default hostile/aligned). ⚠ Map-wide consequence
+> (accepted): cats hunt rabbits + dodos everywhere (the "3 cats hunting 2
+> Dodos" herds go live), cats and mammoths fight wherever they meet,
+> dodos/rabbits stop proactively attacking players (retaliate only).
+> **Frontline showcase:** 4 SaberToothCats (y 9) vs 4 Mammoths (y 13) at
+> x 41.5–48.5 east of the Sand Flats (clearance-checked ≥1.0 vs blockers;
+> lines 4 u apart = inside both 4-u aggro sensors → immediate engagement),
+> respawnTicks 300 ±30% → perpetual staggered battle next to 3 prey Dodos.
+> Proving-grounds spawns 381 → 389.
+>
+> **Count pins:** skills 21 / milestones 8 / mobs 8 unchanged; NEW boot-log
+> line `Loaded faction definitions count=5` (3 declared + 2 built-ins);
+> suite 21 → 22 packages.
+>
+> **Pins (red-first):** `factions/factions_test.go` (valid load + IDs
+> sorted-name-deterministic + built-ins + builtin refs + all 7 hard-fails);
+> `definitions_test.go` faction resolve / absent-default / explicit-hostile /
+> unknown-fails / aligned-fails / no-registry-fails;
+> `mob/factions_test.go` — sensor-mask-follows-aggro-set (legacy = player
+> layer only / predator = both / passive = none), bare-def hostile guard,
+> `_AcquiresFactionInAggroSet` (wolf-sees-rabbit, verified red — the old
+> player-only sensor mask), `_IgnoresFactionOutsideAggroSet` (seen ≠
+> acquired), `_PassiveFactionRetaliatesAndFleesWhenWounded` (threat
+> retention + flee vs a mob attacker), `_SameFactionHitNeverBuildsThreat`,
+> `_SetFactionRecomputesAggroSet`, `_MobKillingBlowGrantsRewardsToParticipants`
+> (verified red) + `_PureMobKillGrantsNothingEvenWhenPokedAfter` (the leak
+> pin, verified red); sys `TestApplyMobDamageAura_SameFactionNeverHitNorEatsTargetSlot`
+> (verified red) + `_DifferentFactionMobIsHit` + `_UnfactionedStructureStillHit`
+> + `TestApplyResistAura_ReachesAlignedMobAlly`; auramask pins rewritten to
+> `LayerCombatants`; `TestDiskContent_RepoApiLoadsEndToEnd` loads factions +
+> asserts the roster ships ≥1 hunter and ≥1 passive faction.
+>
+> **In-game checklist — round 1 PASSED 2026-07-11 ("works as described",
+> two findings → harm-gate fix); fix re-verify PASSED same day:**
+> 1. **Finding 1 repro:** lure a Mammoth through/past Dodos → dodos are
+>    NOT damaged, no tusker-vs-prey brawl erupts; the mammoth stays on you.
+> 2. **Finding 2 repro:** watch cats path near the Ember Ring braziers →
+>    they never take burn damage, never engage the braziers; the braziers
+>    still burn YOU.
+> 3. Controls: frontline still fights (declared hostility), prey still
+>    retaliates when a cat bites it (threat link), rabbit still flees,
+>    your totem still burns mobs and the boss still kills it.
+>
+> _Original round-1 checklist (all passed): boot counts, wolf-chases-
+> rabbit + retaliation/flee, perpetual frontline, no-XP-leakage +
+> participant-XP-on-mob-blow, FireWard-on-companion, brazier/totem
+> controls, perf feel._
 
 ### Chunk 7 — Taunt / anti-taunt effect types (backend + content)
 
@@ -1087,6 +1248,14 @@ directly before patrol).
 >   path at all today. Full wipe exists only as `resetAggro` (clears target
 >   + WHOLE table + gates the aura off — almost certainly too blunt);
 >   partial reduction/single-entry removal needs a new mob method.
+> - **Chunk-6.6 addendum — threat now also carries HARM RIGHTS:** mob-cast
+>   damage eligibility is `aggroSet ∪ HasThreat` (the `mayHarm` seam, §6.8
+>   amendment). Taunt-as-threat-credit therefore grants the mob the right
+>   to hit the taunter for free; an anti-taunt that WIPES threat also
+>   drops the mob's right to harm off-set attackers until they hit again —
+>   decide the wipe semantics knowing that. And if taunt ships as a new
+>   effect type: route its eligibility through
+>   `eligibleByTargetFlags`/`mayHarm`, never a per-site copy.
 > - **Chunk-6 caveat — followers never read their own threat table:**
 >   `updateAggro` branches to owner-signal targeting before retention, so
 >   taunt/anti-taunt on a COMPANION no-ops by design (decide at plan-first
@@ -1216,6 +1385,21 @@ directly before patrol).
   mob legitimately holding at the aura edge (that mob has reached its
   target). Steering (chunk 4) covers small convex blockers; this covers
   walls; navmesh stays the escalation (trigger: wall-cheese in playtests).
+- **§6.8 — Faction model (chunk 6.6) — ✓ DECIDED 2026-07-11 (chunk-6.6
+  plan-first, user), AMENDED same day (in-game harm-gate fix):**
+  per-faction **hostility list** (`hostileTo`, asymmetry legal); authoring
+  **def-level only** (no per-spawn override); **all faction masks widen**
+  to both combatant layers (`factionLayers` deleted, eligibility exact
+  everywhere); **kill rewards on any death** (mob killing blow rewards
+  recorded participants; also closed the poke-the-corpse XP leak).
+  Default = built-in `hostile` with aggro set {aligned} only — the
+  pre-factions behavior verbatim; mob hunting is always explicit content.
+  **Amendment (user, after in-game findings): mob-cast harm follows the
+  two-layer rule** — aggro set (static) ∪ threat table (dynamic) — via
+  the single `mayHarm` seam in sys; "different faction = may harm" now
+  applies to player-sourced damage only. Record: chunk-6.6 banner (§5),
+  incl. the scalability record (bitmask cap, friendlyTo extension path,
+  social aggro, THREAT cheat).
 - **Content-era movement vocabulary (captured 2026-07-10, not in this
   plan's scope):** telegraphed lunges, arc pursuit, ground-zone denial —
   the GDD §4 Combat Pacing countermeasures against boring ring-riding;

@@ -117,7 +117,7 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	if r := equip.EffectiveRadius(); collider.Radius != r {
 		collider.SetRadius(r)
 	}
-	if m := model.AuraMaskFor(equip.Def, e.Faction()); collider.Shape().Mask != m {
+	if m := model.AuraMaskFor(equip.Def); collider.Shape().Mask != m {
 		collider.Shape().Mask = m
 	}
 
@@ -183,7 +183,7 @@ func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skil
 
 	// No caster skip, matching the damage path's long-standing semantics
 	// (only relevant if content ever sets targetsAllies on a dot).
-	eligible := eligibleByTargetFlags[dotBuffable](effect, e.Faction(), 0, false)
+	eligible := eligibleByTargetFlags[dotBuffable](effect, e, 0, false)
 	targets := selectTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		c.Shape().UserData.(dotBuffable).ApplyDot(source, dot, ticks)
@@ -234,16 +234,39 @@ func (s *SkillSystem) tickDots(e skillEntity) {
 	}
 }
 
+// mayHarm is THE hostility seam for enemy-flagged harmful effects (chunk 6.6
+// in-game fix): a caster without a model.HostilityGate (players) may harm any
+// different-faction target; a gated caster (every mob, incl. owned summons —
+// whose SetFaction sets an all-others aggro set, so their behavior is
+// unchanged) needs declared hostility or an active combat link with the
+// target. Route EVERY new harmful effect type's enemy eligibility through
+// this — a per-site copy is how the gate gets forgotten (the AuraMaskFor
+// resist-gap lesson). Only called for different-faction targets.
+func mayHarm(caster any, target model.Factioned) bool {
+	gate, ok := caster.(model.HostilityGate)
+	if !ok {
+		return true
+	}
+	var id uint64
+	if be, ok := target.(model.BasicEntity); ok {
+		id = be.Basic().ID()
+	}
+	return gate.MayHarm(target.Faction(), id)
+}
+
 // eligibleByTargetFlags builds the standard eligibility predicate shared by
-// flag-gated targeted effects (damage_aura/instant_damage, resist_aura): the
-// target must be Factioned — players and mobs; structures/resources have no
-// allegiance and are reached only through their dedicated paths — with
-// same-faction targets gated by targetsAllies and opposing ones by
-// targetsEnemies (effect foundations Step 1). The target must also implement
-// Capability (the effect's apply interface); skipCaster excludes the caster
-// itself (resist auras reach the caster only via targetsSelf). Heal auras
-// keep their own predicate — implicit allies with wounded/never-self rules.
-func eligibleByTargetFlags[Capability any](effect skills.EffectDef, casterFaction model.Faction, casterID uint64, skipCaster bool) func(phy.Collider) bool {
+// flag-gated targeted effects (damage_aura/instant_damage, resist_aura,
+// dot_aura/instant_dot): the target must be Factioned — players and mobs;
+// structures/resources have no allegiance and are reached only through their
+// dedicated paths — with same-faction targets gated by targetsAllies and
+// opposing ones by targetsEnemies (effect foundations Step 1) plus the
+// mayHarm hostility gate (chunk 6.6; caster is the ACTING entity so mob
+// casters carry their gate in). The target must also implement Capability
+// (the effect's apply interface); skipCaster excludes the caster itself
+// (resist auras reach the caster only via targetsSelf). Heal auras keep
+// their own predicate — implicit allies with wounded/never-self rules.
+func eligibleByTargetFlags[Capability any](effect skills.EffectDef, caster model.Factioned, casterID uint64, skipCaster bool) func(phy.Collider) bool {
+	casterFaction := caster.Faction()
 	return func(c phy.Collider) bool {
 		usr := c.Shape().UserData
 		if usr == nil {
@@ -257,7 +280,7 @@ func eligibleByTargetFlags[Capability any](effect skills.EffectDef, casterFactio
 			if !effect.TargetsAllies {
 				return false
 			}
-		} else if !effect.TargetsEnemies {
+		} else if !effect.TargetsEnemies || !mayHarm(caster, target) {
 			return false
 		}
 		if _, ok := usr.(Capability); !ok {
@@ -284,12 +307,12 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 		// The summon rides along as the hit's Source: threat credits the
 		// summon itself, XP the owner (mob-depth chunk 3, gotcha #9).
 		source, _ := e.(model.Combatant)
-		applyPlayerDamageAura(owned.Owner(), source, e.Faction(), e.AuraCollider().Position(), level, effect, collisions, rng, owned.SummonPower())
+		applyPlayerDamageAura(owned.Owner(), source, e.AuraCollider().Position(), level, effect, collisions, rng, owned.SummonPower())
 		return
 	}
 	switch caster := e.(type) {
 	case model.PlayerEntity:
-		applyPlayerDamageAura(caster, nil, e.Faction(), e.AuraCollider().Position(), level, effect, collisions, rng, 1)
+		applyPlayerDamageAura(caster, nil, e.AuraCollider().Position(), level, effect, collisions, rng, 1)
 	case model.MobEntity:
 		applyMobDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions, rng)
 	}
@@ -299,7 +322,7 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 // owned cast — it multiplies the damage amount only (never CC parameters).
 // source is the summon entity on owned casts (threat attribution, chunk 3),
 // nil on direct casts — the target then treats the caster as the source.
-func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, casterFaction model.Faction, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand, outputScale float32) {
+func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand, outputScale float32) {
 	damageHP := effect.Damage.HPAt(level) * outputScale
 
 	// Declarative targeting: the sensor mask pre-filters layers, the faction
@@ -307,7 +330,13 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 	// rule. No caster skip, matching the damage path's long-standing
 	// semantics (heal and resist auras skip self explicitly; damage never
 	// did — only relevant if content ever sets targetsAllies on damage).
-	eligible := eligibleByTargetFlags[model.Interacter](effect, casterFaction, 0, false)
+	// The ACTING entity is the summon on owned casts (its all-others aggro
+	// set keeps owned behavior identical) and the player on direct ones.
+	var acting model.Factioned = caster
+	if source != nil {
+		acting = source
+	}
+	eligible := eligibleByTargetFlags[model.Interacter](effect, acting, 0, false)
 
 	style := auraHitStyleFor(effect, level)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
@@ -321,11 +350,13 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 }
 
 // applyMobDamageAura applies a mob's aura to the (mask-filtered) collision set
-// via MobTouches. Target discrimination is purely the sensor mask — the
-// faction-relative layers plus the placeable layer for targetsStructures —
-// NOT eligibleByTargetFlags: structures are unfactioned but must stay
-// reachable by mob structure damage. The Factors payload carries both values
-// and each target picks the one that applies to it. Selector/cap ride on top.
+// via MobTouches. Factioned targets get the exact faction check (mob-depth
+// chunk 6.6 — with masks spanning both combatant layers, a mob's sensor sees
+// same-faction mobs, and skipping them BEFORE the cap keeps a pack mate from
+// eating a nearest-1 slot); unfactioned structures stay reachable purely via
+// the sensor mask (targetsStructures), NOT eligibleByTargetFlags, which would
+// reject them. The Factors payload carries both damage values and each target
+// picks the one that applies to it. Selector/cap ride on top.
 func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
 	damageHP := effect.Damage.HPAt(level)
 	factors := mobs.Factors{
@@ -333,9 +364,19 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, 
 		StructureDamageFraction: effect.Damage.StructureDamageFraction,
 	}
 
+	casterFaction := caster.Faction()
 	eligible := func(c phy.Collider) bool {
-		_, ok := c.Shape().UserData.(model.Interacter)
-		return ok
+		usr := c.Shape().UserData
+		if _, ok := usr.(model.Interacter); !ok {
+			return false
+		}
+		if f, ok := usr.(model.Factioned); ok {
+			if f.Faction() == casterFaction {
+				return effect.TargetsAllies
+			}
+			return effect.TargetsEnemies && mayHarm(caster, f)
+		}
+		return true
 	}
 
 	style := auraHitStyleFor(effect, level)
@@ -481,7 +522,7 @@ func applyResistAura(e skillEntity, source skills.SkillID, level int, effect ski
 
 	// The caster is never part of the in-range set (targetsSelf above is the
 	// only self path).
-	eligible := eligibleByTargetFlags[resistBuffable](effect, e.Faction(), casterID, true)
+	eligible := eligibleByTargetFlags[resistBuffable](effect, e, casterID, true)
 
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
@@ -588,7 +629,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 
 		radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, es.Level)
 		query := phy.NewCircle(e.AuraCollider().Position(), radius)
-		query.Shape().Mask = model.InstantDamageMask(effect, e.Faction())
+		query.Shape().Mask = model.InstantDamageMask(effect)
 
 		hits := s.space.QueryCircle(query)
 		targets := make(phy.ColliderSet, len(hits))
@@ -685,7 +726,10 @@ func (s *SkillSystem) summonPosition(e skillEntity, summonRadius float32) phy.Ve
 
 // applySlowAura slows every slowable target in range. The sensor mask
 // pre-filters layers per the target flags; entities that cannot be slowed
-// (players — no ApplySlow) are skipped.
+// (players — no ApplySlow) are skipped. NOTE: this path has no faction
+// eligibility at all (pre-6.6 gap, harmless while no mob carries a slow aura
+// and players cannot be slowed) — when a mob slow ships, route it through
+// eligibleByTargetFlags so the mayHarm hostility gate applies.
 func applySlowAura(source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	fraction := effect.Slow.FractionAt(level)
 	if fraction <= 0 {

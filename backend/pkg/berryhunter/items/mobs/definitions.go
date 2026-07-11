@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
@@ -110,12 +111,22 @@ type MobDefinition struct {
 	Body    Body
 	Skills  []MobSkill
 	Unlocks []MobUnlock
+
+	// Faction is the species' allegiance, AggroMask the bitmask of faction IDs
+	// it proactively acquires in its aggro sensor (mob-depth chunk 6.6, both
+	// resolved against the factions registry at load time). A definition
+	// without a faction key gets the built-in hostile faction with its
+	// aggro-players-only mask — the pre-factions behavior. The numeric values
+	// mirror model.Faction (the boot seam converts in NewMob).
+	Faction   factions.Faction
+	AggroMask uint64
 }
 
 type mobDefinition struct {
-	Id   uint64 `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Id      uint64 `json:"id"`
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	Faction string `json:"faction"` // absent → the built-in hostile default
 
 	Factors struct {
 		MaxHealth            uint32             `json:"maxHealth"`
@@ -167,7 +178,7 @@ func parseMobDefinition(data []byte) (*mobDefinition, error) {
 	return &mob, nil
 }
 
-func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry) (*MobDefinition, error) {
+func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry, fr factions.Registry) (*MobDefinition, error) {
 	// Mobs need an aggro territory; the former 4x-damage-radius fallback died
 	// with Body.DamageRadius (Phase 6.1), so the value is now required.
 	if m.Body.AggroRadius <= 0 {
@@ -212,10 +223,32 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 		}
 	}
 
+	// Faction (chunk 6.6): absent = the built-in hostile default; an explicit
+	// name resolves against the factions registry ("aligned" is summon-only,
+	// set at spawn via SetFaction, never authored on a species).
+	faction := factions.Hostile
+	aggroMask := factions.Bit(factions.Aligned)
+	if m.Faction != "" {
+		if m.Faction == "aligned" {
+			return nil, fmt.Errorf("mob %q: faction \"aligned\" is summon-only and cannot be authored", m.Name)
+		}
+		if fr == nil {
+			return nil, fmt.Errorf("mob %q: declares faction %q but no factions are loaded", m.Name, m.Faction)
+		}
+		f, err := fr.GetByName(m.Faction)
+		if err != nil {
+			return nil, fmt.Errorf("mob %q: %w", m.Name, err)
+		}
+		faction = f.ID
+		aggroMask = f.AggroMask
+	}
+
 	mob := &MobDefinition{
-		ID:   MobID(m.Id),
-		Name: m.Name,
-		Type: m.Type,
+		ID:        MobID(m.Id),
+		Name:      m.Name,
+		Type:      m.Type,
+		Faction:   faction,
+		AggroMask: aggroMask,
 		Factors: Factors{
 			MaxHealth:            m.Factors.MaxHealth,
 			MaxHealthVariance:    m.Factors.MaxHealthVariance,

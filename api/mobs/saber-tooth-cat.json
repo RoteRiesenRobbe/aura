@@ -2,6 +2,7 @@
   "id": 3,
   "name": "SaberToothCat",
   "type": "MOB",
+  "faction": "predator",
   "factors": {
     "maxHealth": 60,
     "experience": 40,

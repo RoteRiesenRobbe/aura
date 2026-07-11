@@ -39,6 +39,9 @@ mob's art means reusing its name/EntityType.
 
 1. **`api/mobs/newmob.json`** — copy `api/mobs/dodo.json`:
    - `id`, `name` (must equal the enum name added in step 2), `type: "MOB"`
+   - optional `faction`: a faction name from `api/factions/` (see
+     "Factions" below; absent = the built-in `hostile` default — attacks
+     players, ignores all mobs)
    - `factors`: `maxHealth`, `maxHealthVariance`, `experience`, `speed`,
      `deltaPhi`, `turnRate`, optional `resistances` / `damageTags`
    - `body`: `radius`, `aggroRadius`
@@ -80,6 +83,36 @@ mob's art means reusing its name/EntityType.
 > (`.fbs` + regen) and the positional `gameObjectClasses` array.
 
 ---
+
+### Factions (mob-vs-mob hostility, chunk 6.6)
+
+Mob allegiances live in **`api/factions/*.json`**, one file per faction:
+
+```json
+{ "name": "predator", "hostileTo": ["aligned", "prey", "tusker"] }
+```
+
+- `hostileTo` is **required**: who this faction attacks on sight AND may
+  damage. Use `[]` for a passive faction (retaliates and flees per its own
+  rules when hit, like any mob). Asymmetry is legal: the wolf hunts the
+  rabbit, the rabbit lists nobody.
+- Two **built-in, undeclarable** names exist and may be referenced:
+  `aligned` (players + summons) and `hostile` (the default of every mob
+  without a `faction` key: attacks players, ignores all mobs). Declaring a
+  faction never changes mobs that don't opt in.
+- **Mob-cast harm is two-layered:** a mob's damaging effects only hit
+  factions in its `hostileTo` set (static) or entities on its threat table
+  (dynamic — whoever hurt it is fair game, so retaliation always works).
+  Neutral factions never splash each other into fights, and hazards never
+  burn mobs that couldn't hurt them back. Same faction = never harmed.
+  Player-sourced damage (including your summons) stays "different faction
+  = may harm".
+- Validation is boot-time hard-fail: unknown/self `hostileTo` references,
+  duplicate/reserved names, a mob `faction` that matches no file, or
+  `faction: "aligned"` (summon-only, set at spawn).
+- Kill rewards: players recorded as damage participants get full XP/drops
+  no matter who lands the killing blow; a pure mob-vs-mob kill grants
+  nothing.
 
 ## 2. New ability (aura / passive / cooldown)
 

@@ -3,6 +3,7 @@
   "id": 6,
   "name": "Rabbit",
   "type": "MOB",
+  "faction": "prey",
   "factors": {
     "maxHealth": 20,
     "maxHealthVariance": 0.1,

@@ -25881,6 +25881,70 @@
           "y": -23.45
         }
       ]
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": 39.5,
+      "y": 9.0,
+      "angle": 0.0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0.3
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": 42.5,
+      "y": 9.0,
+      "angle": 0.0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0.3
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": 45.5,
+      "y": 9.0,
+      "angle": 0.0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0.3
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": 48.5,
+      "y": 9.0,
+      "angle": 0.0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0.3
+    },
+    {
+      "mob": "Mammoth",
+      "x": 39.5,
+      "y": 13.0,
+      "angle": 0.0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0.3
+    },
+    {
+      "mob": "Mammoth",
+      "x": 42.5,
+      "y": 13.0,
+      "angle": 0.0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0.3
+    },
+    {
+      "mob": "Mammoth",
+      "x": 45.5,
+      "y": 13.0,
+      "angle": 0.0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0.3
+    },
+    {
+      "mob": "Mammoth",
+      "x": 48.5,
+      "y": 13.0,
+      "angle": 0.0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0.3
     }
   ]
 }

@@ -2,6 +2,7 @@
   "id": 2,
   "name": "Mammoth",
   "type": "MOB",
+  "faction": "tusker",
   "factors": {
     "maxHealth": 120,
     "maxHealthVariance": 0.1,

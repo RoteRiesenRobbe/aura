@@ -16,6 +16,7 @@ import (
 	"github.com/EngoEngine/ecs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
@@ -585,10 +586,13 @@ func (r *alignedTouchRecorder) Faction() model.Faction { return model.FactionAli
 // only via targetsStructures/MobTouches).
 type structureRecorder struct {
 	touches []float32
+	mobHits []mobs.Factors
 }
 
 func (r *structureRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item) {}
-func (r *structureRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)   {}
+func (r *structureRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
+	r.mobHits = append(r.mobHits, factors)
+}
 func (r *structureRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	r.touches = append(r.touches, damage.HP)
 }
@@ -658,8 +662,9 @@ func TestProcessEntity_DerivesSensorMaskFromActiveSkill(t *testing.T) {
 	s.AddEntity(caster)
 	s.Update(0)
 
-	assert.Equal(t, int(model.LayerPlayerCollision|model.LayerPlaceableCollision),
-		caster.aura.Shape().Mask)
+	assert.Equal(t, int(model.LayerCombatants|model.LayerPlaceableCollision),
+		caster.aura.Shape().Mask,
+		"both combatant layers since chunk 6.6 — eligibility does the faction check")
 }
 
 // TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget replaces the retired
@@ -1780,7 +1785,7 @@ func TestTotem_KillableByHostileMobAura(t *testing.T) {
 	effect := damageEffect(1)
 	effect.Damage = &skills.DamageParams{HP: 10}
 
-	mask := model.AuraMaskFor(&skills.SkillDefinition{Effects: []skills.EffectDef{effect}}, model.FactionHostile)
+	mask := model.AuraMaskFor(&skills.SkillDefinition{Effects: []skills.EffectDef{effect}})
 	assert.NotZero(t, mask&totem.Bodies()[0].Shape().Layer,
 		"a hostile enemy-targeting aura's mask matches the totem's player-layer body")
 
@@ -1885,4 +1890,183 @@ func TestApplyHealAura_CreditsHealerThreatOnSensorAggroMob(t *testing.T) {
 	require.Len(t, aggro.sources, 1,
 		"a mob whose aggro target is the heal target is in combat with it — the healer gets credited")
 	assert.Same(t, any(healer), any(aggro.sources[0]))
+}
+
+// --- mob-path faction gate (mob-depth chunk 6.6) ---
+
+// factionedMobTouchRecorder is a factioned Interacter recording MobTouches — the shape
+// of a combatant standing in a mob's damage aura.
+type factionedMobTouchRecorder struct {
+	faction model.Faction
+	hits    []mobs.Factors
+}
+
+func (r *factionedMobTouchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item)    {}
+func (r *factionedMobTouchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {}
+func (r *factionedMobTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
+	r.hits = append(r.hits, factors)
+}
+func (r *factionedMobTouchRecorder) Faction() model.Faction { return r.faction }
+
+var _ model.Interacter = (*factionedMobTouchRecorder)(nil)
+
+// factionedMobCaster is a mob-typed caster with just enough surface for
+// applyMobDamageAura; everything else panics via the embedded nil interface.
+type factionedMobCaster struct {
+	model.MobEntity
+	faction model.Faction
+}
+
+func (c *factionedMobCaster) Faction() model.Faction { return c.faction }
+
+func TestApplyMobDamageAura_SameFactionNeverHitNorEatsTargetSlot(t *testing.T) {
+	// With aura masks spanning both combatant layers (chunk 6.6), a mob's
+	// sensor sees same-faction mobs — eligibility must skip them BEFORE the
+	// target cap, or a nearer pack mate would eat the nearest-1 slot.
+	caster := &factionedMobCaster{faction: model.FactionHostile}
+	packMate := &factionedMobTouchRecorder{faction: model.FactionHostile}
+	enemy := &factionedMobTouchRecorder{faction: model.FactionAligned}
+
+	set := make(phy.ColliderSet)
+	near := phy.NewCircle(phy.Vec2f{X: 0.1, Y: 0}, 0.25)
+	near.Shape().UserData = packMate
+	set[near] = struct{}{}
+	far := phy.NewCircle(phy.Vec2f{X: 0.5, Y: 0}, 0.25)
+	far.Shape().UserData = enemy
+	set[far] = struct{}{}
+
+	effect := damageEffect(1)
+	effect.MaxTargets = 1 // nearest-1, the base-aura shape
+
+	applyMobDamageAura(caster, phy.VEC2F_ZERO, 1, effect, set, testRNG())
+
+	assert.Empty(t, packMate.hits, "no friendly fire between same-faction mobs")
+	require.Len(t, enemy.hits, 1, "the slot goes to the enemy behind the pack mate")
+}
+
+func TestApplyMobDamageAura_DifferentFactionMobIsHit(t *testing.T) {
+	// The wolf's aura burns the prey mob standing in it: different faction,
+	// targetsEnemies — the exact-faction check replaces the old mask-only
+	// discrimination.
+	caster := &factionedMobCaster{faction: 2} // a content faction
+	prey := &factionedMobTouchRecorder{faction: 3}
+
+	applyMobDamageAura(caster, phy.VEC2F_ZERO, 1, damageEffect(1), colliderSetOf(prey), testRNG())
+
+	require.Len(t, prey.hits, 1)
+}
+
+func TestApplyMobDamageAura_UnfactionedStructureStillHit(t *testing.T) {
+	// Structures have no faction and must stay reachable — the faction gate
+	// only applies to Factioned targets, discrimination for the rest remains
+	// the sensor mask (placeable layer via targetsStructures).
+	caster := &factionedMobCaster{faction: model.FactionHostile}
+	structure := &structureRecorder{}
+
+	effect := damageEffect(1)
+	effect.TargetsStructures = true
+	effect.Damage.StructureDamageFraction = 0.5
+
+	applyMobDamageAura(caster, phy.VEC2F_ZERO, 1, effect, colliderSetOf(structure), testRNG())
+
+	require.Len(t, structure.mobHits, 1, "unfactioned targets ride the mask, not the faction gate")
+}
+
+// alignedMobResistTarget is a mob-shaped ally: Factioned aligned + ApplyResist,
+// but NOT a PlayerEntity — the companion's shape under a player's ward.
+type alignedMobResistTarget struct {
+	model.MobEntity
+	basic   ecs.BasicEntity
+	resists []appliedResist
+}
+
+func (r *alignedMobResistTarget) Basic() ecs.BasicEntity { return r.basic }
+func (r *alignedMobResistTarget) Faction() model.Faction { return model.FactionAligned }
+func (r *alignedMobResistTarget) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+	r.resists = append(r.resists, appliedResist{source, tags, factor, ticks})
+}
+
+func TestApplyResistAura_ReachesAlignedMobAlly(t *testing.T) {
+	// Chunk 6.6: ally masks span both combatant layers, so a player's ward
+	// (FireWard) finally reaches their own companion — eligibility is the
+	// exact faction check, not the target's kind.
+	caster := newFakePlayer()
+	companion := &alignedMobResistTarget{basic: ecs.NewBasic()}
+
+	applyResistAura(caster, 40, 1, resistEffect(), colliderSetOf(companion))
+
+	require.Len(t, companion.resists, 1,
+		"an aligned mob is a legitimate targetsAllies recipient")
+}
+
+// --- two-layer harm gate (chunk 6.6 in-game findings, 2026-07-11) ---
+
+// harmGateMobDef builds a minimal definition for a REAL mob caster (fakes
+// bypass the gate — model.HostilityGate is what routes it).
+func harmGateMobDef(name string, faction factions.Faction, aggroMask uint64) *mobs.MobDefinition {
+	return &mobs.MobDefinition{
+		ID:        99,
+		Name:      name,
+		Faction:   faction,
+		AggroMask: aggroMask,
+		Factors:   mobs.Factors{Speed: 1, MaxHealth: 100},
+		Body:      mobs.Body{Radius: 0.3, AggroRadius: 2},
+	}
+}
+
+func TestApplyMobDamageAura_NeutralFactionNeverSplashed(t *testing.T) {
+	// In-game finding 1 (2026-07-11): a tusker Mammoth chasing a player
+	// walked through a prey Dodo — "different faction = may harm" let the
+	// splash land, and the retaliation locked two neutral factions into a
+	// fight neither could have started. Harm now needs declared hostility
+	// or an active combat link.
+	mammoth := mob.NewMob(harmGateMobDef("Mammoth", 4, model.FactionAligned.Bit()), 0, nil)
+	dodo := &factionedMobTouchRecorder{faction: 5} // neutral to the mammoth
+	player := &factionedMobTouchRecorder{faction: model.FactionAligned}
+
+	applyMobDamageAura(mammoth, phy.VEC2F_ZERO, 1, damageEffect(1), colliderSetOf(dodo, player), testRNG())
+
+	assert.Empty(t, dodo.hits, "no declared hostility, no combat link → no splash")
+	require.Len(t, player.hits, 1, "the declared enemy (aligned) is still hit")
+}
+
+func TestApplyMobDamageAura_ThreatTableAttackerIsFairGame(t *testing.T) {
+	// The dynamic layer: an attacker outside the aggro set (rabbit's set is
+	// empty) lands on the threat table and may be hit back — retaliation.
+	rabbit := mob.NewMob(harmGateMobDef("Rabbit", 5, 0), 0, nil)
+	wolf := mob.NewMob(harmGateMobDef("SaberToothCat", 6, model.FactionAligned.Bit()|uint64(1)<<5), 0, nil)
+
+	rabbit.MobTouches(wolf, mobs.Factors{Damage: 5}) // wolf hurts the rabbit
+
+	applyMobDamageAura(rabbit, phy.VEC2F_ZERO, 1, damageEffect(1), colliderSetOf(wolf), testRNG())
+
+	assert.Positive(t, int(wolf.DamageTaken()), "the rabbit bites back at its attacker")
+}
+
+// factionedDotRecorder is a dot-capable factioned target (the shape of a mob
+// standing in a dot aura).
+type factionedDotRecorder struct {
+	faction model.Faction
+	dots    []skills.SkillID
+}
+
+func (r *factionedDotRecorder) Faction() model.Faction { return r.faction }
+func (r *factionedDotRecorder) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
+	r.dots = append(r.dots, source)
+}
+
+func TestApplyDotEffect_MobCasterRespectsHostility(t *testing.T) {
+	// In-game finding 2 (2026-07-11): the brazier's TotemAura dotted passing
+	// predator cats (different faction), which retaliated against a body no
+	// damage mask can reach and burned to death in its aura. The brazier's
+	// set is {aligned}: players still burn, the cat is never touched — so it
+	// never builds threat and never suicides.
+	brazier := mob.NewMob(harmGateMobDef("Brazier", 0, 0), 0, nil) // zero-value → hostile default, set {aligned}
+	cat := &factionedDotRecorder{faction: 6}
+	player := &factionedDotRecorder{faction: model.FactionAligned}
+
+	applyDotEffect(brazier, 106, 1, dotEffect(), colliderSetOf(cat, player))
+
+	assert.Empty(t, cat.dots, "neutral-faction mob is never dotted by the hazard")
+	require.Len(t, player.dots, 1, "the declared enemy (aligned) still burns")
 }

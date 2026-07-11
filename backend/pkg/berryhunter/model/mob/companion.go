@@ -108,12 +108,11 @@ func (m *Mob) updateCompanionTargeting() {
 }
 
 // auraCanReach reports whether the companion's aura could ever hit t: the
-// prospective aura mask (slot 0 + own faction — the sensor's stored mask is
-// stale while the aura is gated) must intersect the target's body layer.
-// Only PROVEN unreachability rejects; a target without a physical body or a
-// mob without an aura passes unchanged. This keeps the companion off pure
-// hazards (e.g. the brazier, whose Viewport-only body no damage mask sees) —
-// acquiring one would just park it in the hazard's aura until it dies.
+// slot-0 aura mask must intersect the target's body layer. Only PROVEN
+// unreachability rejects; a target without a physical body or a mob without
+// an aura passes unchanged. This keeps the companion off pure hazards (e.g.
+// the brazier, whose Viewport-only body no damage mask sees) — acquiring one
+// would just park it in the hazard's aura until it dies.
 func (m *Mob) auraCanReach(t model.Combatant) bool {
 	first := m.skills.AuraSlots[0]
 	if first == nil {
@@ -129,7 +128,7 @@ func (m *Mob) auraCanReach(t model.Combatant) bool {
 	}
 	// Bodies()[0] is the main physical body by BaseEntity convention (sensors
 	// are appended after it).
-	return model.AuraMaskFor(first.Def, m.faction)&bodies[0].Shape().Layer != 0
+	return model.AuraMaskFor(first.Def)&bodies[0].Shape().Layer != 0
 }
 
 // withinOwnerTether reports whether t is inside the combat tether around the

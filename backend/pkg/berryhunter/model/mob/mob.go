@@ -96,19 +96,31 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	auraMask := int(model.LayerNoneCollision)
 	if first := sc.AuraSlots[0]; first != nil {
 		auraRadius = first.EffectiveRadius()
-		// FactionHostile literal: the Mob struct (with its faction field)
-		// is only constructed below; mobs always spawn hostile.
-		auraMask = model.AuraMaskFor(first.Def, model.FactionHostile)
+		auraMask = model.AuraMaskFor(first.Def)
 	}
 	aura := phy.NewCircle(phy.VEC2F_ZERO, auraRadius)
 	aura.Shape().Layer = int(model.LayerNoneCollision)
 	aura.Shape().Mask = auraMask
 	aura.Shape().IsSensor = true
 
-	// AggroRadius is validated > 0 at definition load time.
+	// Faction + aggro set from the definition (chunk 6.6). The loader always
+	// resolves both (absent key → hostile default); the zero-value guard
+	// catches directly-constructed definitions (tests) — FactionAligned is the
+	// zero value, and no authored species is ever aligned.
+	faction := model.Faction(d.Faction)
+	aggroMask := d.AggroMask
+	if faction == model.FactionAligned {
+		faction = model.FactionHostile
+		aggroMask = model.FactionAligned.Bit()
+	}
+
+	// AggroRadius is validated > 0 at definition load time. The sensor's mask
+	// follows the aggro set: no mob faction in the set = no action-layer bit =
+	// no new broadphase pairs (the chunk-6.6 perf knob); a passive faction's
+	// sensor sees nothing at all.
 	aggroAura := phy.NewCircle(phy.VEC2F_ZERO, d.Body.AggroRadius)
 	aggroAura.Shape().Layer = int(model.LayerNoneCollision)
-	aggroAura.Shape().Mask = int(model.LayerPlayerCollision)
+	aggroAura.Shape().Mask = aggroSensorMask(aggroMask)
 	aggroAura.Shape().IsSensor = true
 
 	base := model.NewBaseEntity(mobBody, entityType)
@@ -144,9 +156,8 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 		auraAlwaysOn:        auraAlwaysOn,
 		chaseIntoAuraMargin: chaseIntoAuraMargin,
 		statusEffects:       model.NewStatusEffects(),
-		// Explicit: FactionHostile is not the zero value (FactionAligned is,
-		// so players need no stored field).
-		faction: model.FactionHostile,
+		faction:             faction,
+		aggroMask:           aggroMask,
 	}
 	if m.chaseIntoAuraMargin <= 0 {
 		m.chaseIntoAuraMargin = 0.05
@@ -256,9 +267,13 @@ type Mob struct {
 	deathRewardGiven    bool
 	chaseIntoAuraMargin float32
 
-	// faction is the mob's allegiance (plan-effect-foundations F8): hostile by
-	// default; future content (charm, player-owned summons) flips it at runtime.
-	faction model.Faction
+	// faction is the mob's allegiance (plan-effect-foundations F8, widened to
+	// content factions in chunk 6.6): hostile by default; content declares
+	// species factions, and summoning flips it at runtime. aggroMask is the
+	// bitmask of faction IDs this mob PROACTIVELY acquires in its sensor —
+	// retaliation, flee and damage eligibility stay faction-inequality.
+	faction   model.Faction
+	aggroMask uint64
 
 	// Spawned-entity lifecycle (mob-depth chunk 1). owner is the summoning
 	// player — nil for world mobs; the ref may go stale on owner death
@@ -328,9 +343,27 @@ func (m *Mob) Faction() model.Faction {
 }
 
 // SetFaction flips the mob's allegiance at runtime — first caller: the spawn
-// effect aligning a summon with its caster.
+// effect aligning a summon with its caster. A flipped mob's aggro set becomes
+// hostile-to-all-others (findAggroTarget's equality skip still protects the
+// new own faction); the sensor mask follows.
 func (m *Mob) SetFaction(f model.Faction) {
 	m.faction = f
+	m.aggroMask = ^f.Bit()
+	m.aggroAura.Shape().Mask = aggroSensorMask(m.aggroMask)
+}
+
+// aggroSensorMask derives the aggro sensor's collision mask from the aggro
+// set: the aligned faction lives on the player body layer (players plus the
+// player-layer summon trick), every mob faction on the action layer.
+func aggroSensorMask(aggroMask uint64) int {
+	mask := model.LayerNoneCollision
+	if aggroMask&model.FactionAligned.Bit() != 0 {
+		mask |= model.LayerPlayerCollision
+	}
+	if aggroMask&^model.FactionAligned.Bit() != 0 {
+		mask |= model.LayerActionCollision
+	}
+	return int(mask)
 }
 
 // SetOwner binds the summoning player (spawn site only).
@@ -659,9 +692,11 @@ func (m *Mob) targetWithinSensor() bool {
 	return m.Position().Sub(m.aggroTarget.Position()).Abs() <= reach
 }
 
-// findAggroTarget acquires the nearest living enemy-faction entity in the
-// aggro sensor (chunk 3a: faction-aware — summons ride the player collision
-// layer, so totems/companions are acquired with no sensor/mask change).
+// findAggroTarget acquires the nearest living entity in the aggro sensor
+// whose faction is in the mob's aggro set (chunk 3a faction-aware acquisition,
+// gated per faction in chunk 6.6). A faction outside the set is seen but
+// never proactively acquired — it still retaliates through the threat table
+// when hit.
 func (m *Mob) findAggroTarget() model.Combatant {
 	var nearest model.Combatant
 	bestDistance := float32(0)
@@ -673,6 +708,9 @@ func (m *Mob) findAggroTarget() model.Combatant {
 			continue
 		}
 		if target.Faction() == m.faction || target.HealthRatio() == 0 {
+			continue
+		}
+		if m.aggroMask&target.Faction().Bit() == 0 {
 			continue
 		}
 		d := target.Position().Sub(m.Position()).AbsSq()
@@ -732,6 +770,18 @@ func (m *Mob) HasThreat(id uint64) bool {
 // hold aggro without any threat entry by never damaging the mob.
 func (m *Mob) TargetsEntity(id uint64) bool {
 	return m.aggroTarget != nil && m.aggroTarget.Basic().ID() == id
+}
+
+// MayHarm implements model.HostilityGate (chunk 6.6 in-game fix): a mob may
+// harm a different-faction target iff its faction is in the declared aggro
+// set (static layer) OR the target is on the threat table (dynamic layer —
+// whoever hurt me is fair game, which keeps retaliation working for passive
+// factions and gives taunt harm rights for free). Neutral factions can no
+// longer splash each other into fights neither could start, and a pure
+// hazard (brazier, set {aligned}) never burns mobs that could never hurt it
+// back — the two 2026-07-11 in-game findings.
+func (m *Mob) MayHarm(f model.Faction, id uint64) bool {
+	return m.aggroMask&f.Bit() != 0 || m.HasThreat(id)
 }
 
 // highestThreatTarget returns the living top-threat entity, pruning dead
@@ -849,10 +899,15 @@ func (m *Mob) ResetTickNumbers() {
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
 	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags}, model.StatusEffectDamagedAmbient)
 	// Mob-vs-mob hits build threat too; noteThreat's faction gate keeps
-	// hostile-vs-hostile splash (boss aura on a brazier) off the table.
+	// same-faction splash off the table.
 	if source, ok := e.(model.Combatant); ok {
 		m.noteThreat(source, float32(lost))
 	}
+	// A mob killing blow settles the death like a player one (chunk 6.6):
+	// recorded participants get their rewards even when a frontline mob
+	// strikes last, and a kill with NO participants latches deathRewardGiven
+	// so a player poking the corpse afterwards earns nothing.
+	m.tryGrantKillRewards()
 }
 
 func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {

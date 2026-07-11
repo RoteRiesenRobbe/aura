@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 
+	afactions "github.com/trichner/berryhunter/pkg/api/factions"
 	aitems "github.com/trichner/berryhunter/pkg/api/items"
 	amobs "github.com/trichner/berryhunter/pkg/api/mobs"
 	aprops "github.com/trichner/berryhunter/pkg/api/props"
@@ -21,6 +22,7 @@ import (
 	askills "github.com/trichner/berryhunter/pkg/api/skills"
 	azones "github.com/trichner/berryhunter/pkg/api/zones"
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
+	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -34,27 +36,29 @@ import (
 // only a server restart. (skills/milestone-unlocks.json is code-adjacent
 // config, not api/ content, and stays embedded either way.)
 type contentSources struct {
-	items   fs.FS
-	mobs    fs.FS
-	skills  fs.FS
-	recipes fs.FS
-	zones   fs.FS
-	props   fs.FS
+	items    fs.FS
+	mobs     fs.FS
+	skills   fs.FS
+	recipes  fs.FS
+	zones    fs.FS
+	props    fs.FS
+	factions fs.FS
 }
 
 func embeddedContent() contentSources {
 	return contentSources{
-		items:   aitems.Items,
-		mobs:    amobs.Mobs,
-		skills:  askills.Skills,
-		recipes: arecipes.Recipes,
-		zones:   azones.Zones,
-		props:   aprops.Props,
+		items:    aitems.Items,
+		mobs:     amobs.Mobs,
+		skills:   askills.Skills,
+		recipes:  arecipes.Recipes,
+		zones:    azones.Zones,
+		props:    aprops.Props,
+		factions: afactions.Factions,
 	}
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
-// (items/, mobs/, skills/, recipes/, zones/, props/). Missing subdirectories
+// (items/, mobs/, skills/, recipes/, zones/, props/, factions/). Missing subdirectories
 // hard-fail here — content errors are loud, matching the registry ethos.
 func diskContent(dir string) (contentSources, error) {
 	root := os.DirFS(dir)
@@ -85,16 +89,34 @@ func diskContent(dir string) (contentSources, error) {
 	if c.props, err = sub("props"); err != nil {
 		return contentSources{}, err
 	}
+	if c.factions, err = sub("factions"); err != nil {
+		return contentSources{}, err
+	}
 	return c, nil
 }
 
 //go:embed conf.default.json
 var defaultConfig []byte
 
+// loadFactions parses the faction definitions mob allegiances resolve
+// against (mob-depth chunk 6.6). Curated content: any validation failure
+// aborts startup.
+func loadFactions(fsys fs.FS) factions.Registry {
+	registry, err := factions.RegistryFromFS(fsys)
+	if err != nil {
+		slog.Error("failed to load factions", slog.Any("err", err))
+		panic(err)
+	}
+	// All() includes the two reserved built-ins (aligned, hostile).
+	slog.Info("Loaded faction definitions", slog.Int("count", len(registry.All())))
+	return registry
+}
+
 // loadMobs parses the mob definitions from the definition files, resolving
-// drops against the item registry and skill loadouts against the skill registry.
-func loadMobs(r items.Registry, sr skills.Registry, fsys fs.FS) mobs.Registry {
-	registry, err := mobs.RegistryFromFS(r, sr, fsys)
+// drops against the item registry, skill loadouts against the skill registry
+// and factions against the faction registry.
+func loadMobs(r items.Registry, sr skills.Registry, fr factions.Registry, fsys fs.FS) mobs.Registry {
+	registry, err := mobs.RegistryFromFS(r, sr, fr, fsys)
 	if err != nil {
 		slog.Error("failed to load mobs", slog.Any("err", err))
 		panic(err)
