@@ -443,6 +443,17 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
   - [ ] Icon-unlock track — character/token icons unlocked at milestones,
         level-ups, mob kills, aura unlocks (a cosmetic lane parallel to the
         spellbook unlocks)
+  - [ ] Unlock & level-up popups (collected 2026-07-11) — designed in-game
+        notification with actual text for skill unlocks and level-ups, with a
+        **queue** so several events (e.g. level-up + milestone unlock landing
+        the same tick) play nicely one after another instead of overlapping.
+        Today's only unlock feedback is the spellbook glow (skill-system Phase
+        3.7/Q9 — client diffs the spellbook stream, no dedicated wire event);
+        that diff is the natural trigger source. Build as **one**
+        trigger→overlay/notification system shared with the tutorial overlays
+        in the content pass (step 6), not two ad-hoc mechanisms — if step 6
+        builds the overlay system first, this item reuses it and only adds the
+        queue + the unlock/level-up content.
   - Note: **skill icons + spellbook pagination may want to land earlier**, in
     the content pass (step 6) — that's when the roster grows past the flat
     list. Decide when step 6 starts; the rest stays here in step 8.
