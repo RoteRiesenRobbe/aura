@@ -1,0 +1,23 @@
+{
+  "_comment": "Hazard fix (2026-07-11): the world-spawned environmental fire hazard — the Ember Ring 'braziers' that used to reuse the player-summon totem def. collisionLayer 32 = Viewport ONLY: no damage mask in the game includes that layer, so its body is structurally unkillable and interaction-free (the boss can't burn it, players/companions can't scratch it) while its own aura still burns the player layer (aura masks derive from the caster's faction, not its body layer). collisionMask 16 = Border only (non-blocking, nothing pushes it). maxHealth is moot (unreachable body) but kept sane for direct construction. aggroRadius is a dummy — speed 0 means it never moves and its aura is always-on. All values [PLACEHOLDER].",
+  "id": 8,
+  "name": "Brazier",
+  "type": "MOB",
+  "factors": {
+    "maxHealth": 50,
+    "experience": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.25,
+    "aggroRadius": 0.1,
+    "collisionLayer": 32,
+    "collisionMask": 16
+  },
+  "skills": [
+    {
+      "skillName": "TotemAura",
+      "level": 1
+    }
+  ]
+}

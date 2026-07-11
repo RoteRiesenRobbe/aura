@@ -1,0 +1,9 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder brazier art (hazard fix): stone fire bowl, top-down — an
+       environmental hazard, deliberately NOT the totem face. -->
+  <circle cx="50" cy="50" r="46" fill="#4a4a52" stroke="#2e2e34" stroke-width="6"/>
+  <circle cx="50" cy="50" r="32" fill="#7a2f12" stroke="#2e2e34" stroke-width="4"/>
+  <circle cx="50" cy="50" r="20" fill="#e2691e"/>
+  <circle cx="50" cy="47" r="10" fill="#f5b52e"/>
+  <path d="M 50 4 L 50 14 M 50 86 L 50 96 M 4 50 L 14 50 M 86 50 L 96 50" stroke="#2e2e34" stroke-width="5" stroke-linecap="round"/>
+</svg>

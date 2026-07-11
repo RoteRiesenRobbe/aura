@@ -22,7 +22,8 @@ enum EntityType : ushort {
   TitaniumShard,
   Totem,
   Rabbit,
-  Companion
+  Companion,
+  Brazier
 }
 
 enum StatusEffect : ushort {

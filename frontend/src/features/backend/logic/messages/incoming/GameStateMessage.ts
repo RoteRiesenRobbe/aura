@@ -248,6 +248,7 @@ const gameObjectClasses = [
     Mobs.Totem,
     Mobs.Rabbit,
     Mobs.Companion,
+    Mobs.Brazier,
 ];
 
 function unmarshalEntityType(entityType) {

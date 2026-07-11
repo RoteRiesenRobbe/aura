@@ -27,6 +27,7 @@ const (
 	EntityTypeTotem         EntityType = 17
 	EntityTypeRabbit        EntityType = 18
 	EntityTypeCompanion     EntityType = 19
+	EntityTypeBrazier       EntityType = 20
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -50,6 +51,7 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeTotem:         "Totem",
 	EntityTypeRabbit:        "Rabbit",
 	EntityTypeCompanion:     "Companion",
+	EntityTypeBrazier:       "Brazier",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -73,6 +75,7 @@ var EnumValuesEntityType = map[string]EntityType{
 	"Totem":         EntityTypeTotem,
 	"Rabbit":        EntityTypeRabbit,
 	"Companion":     EntityTypeCompanion,
+	"Brazier":       EntityTypeBrazier,
 }
 
 func (v EntityType) String() string {

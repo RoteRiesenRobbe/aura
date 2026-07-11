@@ -196,8 +196,10 @@ trade-offs (light aura vs. damage aura).
 ## 7. Mob behavior, tiers & spawning — normal / elite / boss
 
 > **PLANNED (2026-07-09) → `docs/plan-mob-depth.md`** (execution step 2, with
-> effect-foundations Step 3 totems + a companion cooldown folded in). 9 chunks:
+> effect-foundations Step 3 totems + a companion cooldown folded in). Chunks:
 > totem → flee → aggro & threat → obstacle steering → patrol → companion →
+> **6.5 hazard braziers + companion reachability (fix, 2026-07-11) → 6.6 mob
+> factions & mob-vs-mob hostility (NEW 2026-07-11, plan-first) ← NEXT** →
 > taunt → support mobs → encounter-controller spine. Key decisions there:
 > mobs aggro summons (faction-aware acquisition), entity-keyed threat that
 > diverges from owner-XP attribution, route validity = level-designer
@@ -744,9 +746,11 @@ system ships blind.
    fold in here because they reuse the `MobSystem` respawn path the World phase
    (chunk 4) rewrote — the per-spawn-point respawn already leaves unowned mobs
    dead, so no respawn-guard field is needed (see `plan-mob-depth.md` §3.1).
-   Plan: 9 chunks (totem → flee → aggro & threat → steering → patrol →
-   companion → taunt → support mobs → encounter controller); next action =
-   chunk 1 with the §8.4 totem decisions.
+   Plan: chunks 1–6 done (totem → flee → aggro & threat → steering → patrol →
+   companion) + fix chunk 6.5 (hazard braziers + companion reachability,
+   2026-07-11); **next = chunk 6.6 mob factions & mob-vs-mob hostility
+   (NEW, plan-first — user design: wolf-chases-rabbit, frontlines), then
+   chunk 7 taunt (plan-first)**, then support mobs → encounter controller.
 3. **Atmosphere & recovery** (item 5 + the 2026-07-10 recovery/death bundle;
    ~~item 6 cut 2026-07-10~~ — the LoS spike and occlusion work are gone) —
    darkness/light (the `light_aura` effect type, campfires); item 5

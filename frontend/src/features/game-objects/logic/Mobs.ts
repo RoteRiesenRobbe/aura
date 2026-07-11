@@ -306,6 +306,21 @@ export class Companion extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Companion, file('companion'), maxSize('companion'));
 
+// The world-spawned environmental fire hazard (hazard fix): stationary,
+// structurally unkillable (Viewport-only body layer), pure aura carrier.
+export class Brazier extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.brazier, x, y,
+            randomInt(minSize('brazier'), maxSize('brazier')),
+            Brazier.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Brazier, file('brazier'), maxSize('brazier'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.

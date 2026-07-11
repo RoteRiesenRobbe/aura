@@ -304,6 +304,57 @@ func TestMob_FollowerSkipsEvadeReturn(t *testing.T) {
 		"after the fight the companion moves toward the owner, not an evade point")
 }
 
+// --- aura-reachability gate (hazard fix) ---
+
+// bodiedCombatant is a hostile combatant that also exposes a physical body
+// (model.BodiedEntity), so acquisition can inspect its collision layer.
+type bodiedCombatant struct {
+	*fakeCombatant
+	body *phy.Circle
+}
+
+func (b *bodiedCombatant) Bodies() model.Bodies    { return model.Bodies{b.body} }
+func (b *bodiedCombatant) SetPosition(p phy.Vec2f) { b.pos = p }
+
+func newBodiedHostile(pos phy.Vec2f, layer model.CollisionLayer) *bodiedCombatant {
+	body := phy.NewCircle(pos, 0.25)
+	body.Shape().Layer = int(layer)
+	return &bodiedCombatant{fakeCombatant: newHostileCombatant(pos), body: body}
+}
+
+func TestMob_FollowerIgnoresAuraUnreachableTarget(t *testing.T) {
+	// A hazard whose body no damage mask sees (the brazier: Viewport-only
+	// layer) damages the owner and gets stamped — but the companion's aura
+	// could never hit it, so acquiring it would only park the companion in
+	// the hazard's aura until it dies.
+	owner := newFakeOwner()
+	owner.pos = phy.Vec2f{X: 1, Y: 0}
+	hazard := newBodiedHostile(phy.Vec2f{X: 3, Y: 0}, model.LayerViewportCollision)
+	owner.attacker = hazard
+	m := newTestCompanion(owner)
+
+	require.True(t, m.Update(0))
+
+	assert.Nil(t, m.aggroTarget,
+		"an aura-unreachable stamp target is never acquired")
+	assert.Equal(t, -1, m.skills.ActiveAuraSlot, "the aura stays gated")
+}
+
+func TestMob_FollowerAcquiresAuraReachableBodiedTarget(t *testing.T) {
+	// Control: a bodied target on the action layer (a regular hostile mob)
+	// intersects the aligned companion's enemy mask and is acquired as usual.
+	owner := newFakeOwner()
+	owner.pos = phy.Vec2f{X: 1, Y: 0}
+	target := newBodiedHostile(phy.Vec2f{X: 3, Y: 0}, model.LayerActionCollision)
+	owner.attacker = target
+	m := newTestCompanion(owner)
+
+	require.True(t, m.Update(0))
+
+	assert.Same(t, model.Combatant(target), m.aggroTarget,
+		"a reachable bodied target is acquired like any other")
+}
+
 // --- direct-hit stamping (Mob.PlayerTouches → AttackNotifier) ---
 
 func TestMob_PlayerTouches_StampsDirectHitOnToucher(t *testing.T) {

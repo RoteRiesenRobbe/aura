@@ -23286,7 +23286,7 @@
       "respawnVariancePct": 0.1
     },
     {
-      "mob": "Totem",
+      "mob": "Brazier",
       "x": -38.4,
       "y": -25.93,
       "angle": 0.0,
@@ -23294,7 +23294,7 @@
       "respawnVariancePct": 0
     },
     {
-      "mob": "Totem",
+      "mob": "Brazier",
       "x": -42.93,
       "y": -21.4,
       "angle": 0.0,

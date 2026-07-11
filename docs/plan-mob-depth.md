@@ -989,6 +989,88 @@ directly before patrol).
   conditions absent (pure follow).
 - **Gotchas:** #2, #9, #11.
 
+### Chunk 6.5 — Hazard braziers + companion reachability (fix chunk)
+
+> **STATUS: DONE — VERIFIED IN-GAME 2026-07-11 ("everything works"; full
+> backend suite green 21 pkgs, binary rebuilt, tsc + webpack green,
+> red-first; zero wire-FIELD changes — only the EntityType enum append;
+> committed same day).**
+>
+> **Origin (user report, screenshot session 2026-07-11):** at the Ember
+> Ring, (1) the boss burned the hostile "brazier" totems (which never hit
+> him back), and (2) the companion acquired a brazier that damaged its
+> owner, could not scratch it, and died in its aura. Root cause of both:
+> the braziers were **world-spawned instances of the player-summon totem
+> def**, whose player-layer body (the layer trick, correct for the ALIGNED
+> summon) breaks the faction≈layer assumption in both directions — the
+> hostile boss's enemy mask (player layer) sees the hostile brazier
+> (`applyMobDamageAura` is deliberately mask-only), while the aligned
+> companion's/players' enemy mask (action layer) never does. Exactly the
+> scenario the NOTE in `model/auramask.go` predicted.
+>
+> **Decisions (user):** (1) braziers = **unkillable pure hazards** — not
+> combatants; (2) companion **refuses aura-unreachable targets**;
+> (3) the mob-path faction gate is **deferred into the mob-factions chunk
+> (6.6)** — after this fix no same-faction friendly-fire path exists, and
+> the factions rework must rebuild eligibility anyway.
+>
+> **Mechanics:** new **`Brazier` EntityType (ordinal 20**, appended to
+> `server.fbs`, Go + TS regen) + `api/mobs/brazier.json` (id 8, hostile,
+> speed 0, TotemAura L1; the key line is **`collisionLayer 32` = Viewport
+> ONLY** — no damage mask in the game includes that layer, so its body is
+> structurally unkillable and interaction-free with zero special-case
+> code, while its own aura still burns the player layer since aura masks
+> derive from the caster's FACTION, not its body layer; mask 16 = Border).
+> Proving-grounds: the 2 Ember Ring Totem spawns → Brazier (the totem def
+> itself is untouched — the player summon keeps its layer trick).
+> Companion: **`Mob.auraCanReach(t)`** in `updateCompanionTargeting`
+> acquisition — the prospective aura mask (**slot 0 + own faction**, NOT
+> the stored sensor mask, which is stale/hostile-derived while the aura is
+> gated) must intersect the target's `Bodies()[0]` layer; only PROVEN
+> unreachability rejects (no body / no aura → acquire as before). Frontend:
+> the known 5-file path (`Mobs.Brazier`, BOTH `Game.ts` layer steps,
+> `gameObjectClasses[20]`, `Graphics.ts`, stone-fire-bowl `brazier.svg` —
+> deliberately not the totem face). **Count pins:** mobs 7 → 8 (boot-log
+> line only); skills/milestones unchanged (TotemAura reused).
+> **Pins:** `companion_test.go` `TestMob_FollowerIgnoresAuraUnreachableTarget`
+> (verified red pre-implementation) + `_FollowerAcquiresAuraReachableBodiedTarget`
+> (control; existing stamp fakes are bodiless and keep passing —
+> conservative gate).
+> **In-game checklist:** (1) Ember Ring braziers render as stone fire
+> bowls and still burn you (fire dot numbers); (2) the boss shows NO
+> damage stream on them and they never show damage numbers at all;
+> (3) stand in a brazier's aura with a companion out → it keeps following,
+> never engages, ring stays hidden; (4) control: companion still
+> assists/defends against normal mobs; (5) your own summoned totem is
+> unchanged (boss can still kill it, HealAura still reaches it).
+
+### Chunk 6.6 — Mob factions & mob-vs-mob hostility (NEW, plan-first) ← NEXT
+
+> **Scheduled BEFORE chunk 7 (user, 2026-07-11): plan-first in its own
+> session.** Target design (user, verbatim intent): *mobs can be hostile
+> towards each other — a wolf starts chasing a rabbit when they enter each
+> other's aggro range; the rabbit flees (slowly) as it would from a
+> player; actual frontlines of battle where two factions of mobs spawn or
+> patrol and start attacking each other, one of which might also attack
+> the player; the same aggro rules apply between mobs.*
+>
+> **Known scope at capture time (settle at plan-first):**
+> - Faction model: binary Aligned/Hostile → N factions (per mob def,
+>   per-spawn override?); "different faction = hostile" vs an explicit
+>   hostility matrix.
+> - The layer≈faction assumption falls: **aggro sensor masks + enemy aura
+>   masks widen to both body layers, eligibility everywhere does the exact
+>   faction check** — this is where the deferred **mob-path faction gate**
+>   (`applyMobDamageAura`, chunk-6.5 decision) structurally lands, exactly
+>   as the `model/auramask.go` NOTE prescribes.
+> - Threat/aggro/flee are already `Combatant`-based and entity-keyed
+>   (chunk 3a) → mob-vs-mob combat largely rides existing machinery.
+> - Verify NO player-reward leakage on mob-vs-mob kills (XP/drops ride
+>   `PlayerTouches` only).
+> - Perf: sensors seeing all mobs = more broadphase pairs — measure at
+>   proving-grounds scale (~380 spawns).
+> - Content: frontline spawns/patrols as the smoke consumer.
+
 ### Chunk 7 — Taunt / anti-taunt effect types (backend + content)
 
 > **Handoff from chunk 6 (2026-07-11) — read before the plan-first start:**

@@ -115,6 +115,12 @@ export const GraphicsConfig = {
             minSize: <number> 40,
             maxSize: <number> 40,
         },
+
+        brazier: {
+            file: require('../features/game-objects/assets/mobs/brazier.svg'),
+            minSize: <number> 50,
+            maxSize: <number> 50,
+        },
     },
 
     resources: {
