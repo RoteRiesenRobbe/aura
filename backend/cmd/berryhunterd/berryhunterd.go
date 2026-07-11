@@ -12,6 +12,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/core"
+	"github.com/trichner/berryhunter/pkg/berryhunter/encounter"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/prop"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
@@ -96,6 +97,18 @@ func main() {
 			p.Def.Body.Radius,
 			p.BlocksMovement,
 		))
+	}
+
+	// Encounters are Go-registered per zone (chunk 9 decision: no zone-schema
+	// field until the content pass needs designer-authored bindings). The
+	// smoke encounter is throwaway spine-verification content.
+	if zone.ID == "proving-grounds" {
+		r, ok := g.(encounter.Registrar)
+		if !ok {
+			panic("game does not accept encounters")
+		}
+		r.RegisterEncounter(encounter.NewSmokeEncounter())
+		slog.Info("registered smoke encounter", slog.String("zone", zone.ID))
 	}
 
 	//---- set up server

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -103,9 +104,17 @@ type MobUnlock struct {
 }
 
 type MobDefinition struct {
-	ID      MobID
-	Name    string
-	Type    string
+	ID   MobID
+	Name string
+	Type string
+
+	// EntityType optionally decouples the wire EntityType from the def name
+	// (chunk 9 content): a throwaway/variant def (e.g. an encounter boss)
+	// reuses an existing sprite without a FlatBuffers enum append or any
+	// frontend work. Empty = the def name IS the wire type (all legacy defs);
+	// validated against the FlatBuffers enum at load time.
+	EntityType string
+
 	Factors Factors
 	Drops   Drops
 	Body    Body
@@ -123,10 +132,11 @@ type MobDefinition struct {
 }
 
 type mobDefinition struct {
-	Id      uint64 `json:"id"`
-	Name    string `json:"name"`
-	Type    string `json:"type"`
-	Faction string `json:"faction"` // absent → the built-in hostile default
+	Id         uint64 `json:"id"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	EntityType string `json:"entityType"` // absent → the name resolves the wire type
+	Faction    string `json:"faction"`    // absent → the built-in hostile default
 
 	Factors struct {
 		MaxHealth            uint32             `json:"maxHealth"`
@@ -223,6 +233,14 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry,
 		}
 	}
 
+	// entityType override (chunk 9): must name a real FlatBuffers EntityType —
+	// failing here at load beats mob.NewMob's runtime fatal at first spawn.
+	if m.EntityType != "" {
+		if _, ok := BerryhunterApi.EnumValuesEntityType[m.EntityType]; !ok {
+			return nil, fmt.Errorf("mob %q: entityType %q is not a known EntityType", m.Name, m.EntityType)
+		}
+	}
+
 	// Faction (chunk 6.6): absent = the built-in hostile default; an explicit
 	// name resolves against the factions registry ("aligned" is summon-only,
 	// set at spawn via SetFaction, never authored on a species).
@@ -244,11 +262,12 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry,
 	}
 
 	mob := &MobDefinition{
-		ID:        MobID(m.Id),
-		Name:      m.Name,
-		Type:      m.Type,
-		Faction:   faction,
-		AggroMask: aggroMask,
+		ID:         MobID(m.Id),
+		Name:       m.Name,
+		Type:       m.Type,
+		EntityType: m.EntityType,
+		Faction:    faction,
+		AggroMask:  aggroMask,
 		Factors: Factors{
 			MaxHealth:            m.Factors.MaxHealth,
 			MaxHealthVariance:    m.Factors.MaxHealthVariance,

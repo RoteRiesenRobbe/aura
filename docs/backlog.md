@@ -906,3 +906,59 @@ Context from current state:
   radius in map data, or authored no-place zones?
 - Interaction with the Campfire-Build aura (GDD §4): same skill with a
   charge, or a separate rarer skill?
+
+## 17. Editor-configurable encounters & per-mob scripted behavior
+
+*(Captured 2026-07-12 at chunk-9 verification — user question: "how hard
+would it be to allow configuring [scripted boss fights] like that, even for
+mobs, in the editor tool?" Assessment recorded; NOT scheduled.)*
+
+Today an encounter is a hand-written Go struct (`encounter/smoke.go`)
+registered per zone in `berryhunterd.go`; the zone editor only authors
+props/spawns/terrain (+ per-spawn wander/waypoints). Two distinct asks hide
+in the question:
+
+**A. Placing/configuring encounter INSTANCES in the editor — moderate,
+the sanctioned path.** Keep behavior in Go, expose *parameters* as data:
+encounter Go structs become named, parameterized **templates** (e.g.
+`guarded-boss{boss, guards[], positions, respawnTicks, fleeRatio, adds}` —
+the smoke encounter is already exactly this shape as constants). Cost chain:
+a Go template registry (name → constructor taking a params struct) + a zone
+schema field (`encounters: [{type, params…}]`, additive/omittable —
+gotcha #8's four lockstep places: `world.Zone`, editor `ZoneModel` +
+serializer, manual, shipped zone) + resolve/validation at load (template
+name, mob names, positions) + an editor mode (place marker, params panel —
+the chunk-5 waypoint editor is the UX precedent and cost yardstick). Rough
+size: one mob-depth-style chunk. Prerequisite pull: nothing technical —
+mostly worth doing when the content pass authors the 2nd/3rd real encounter,
+NOT before there are ≥2 templates worth instancing.
+
+**B. Authoring encounter/mob BEHAVIOR itself in the editor — large, and
+decided against.** Free-form "when X do Y" configuration is a scripting
+DSL wearing an editor UI: triggers, conditions, actions, state — exactly
+the encounter-DSL question decided 2026-07-07 (plan-effect-foundations F3:
+Go structs, no DSL; revisit only with many encounters AND a non-engineer
+author). Everything F3 said about runtime-error domains and audited
+composition applies unchanged; the editor UI *adds* cost on top (schema,
+validation UX, versioning of behavior data in zone files).
+
+Per-MOB knobs are the middle ground already half-built: def/spawn-level
+data (`fleeBelowHealthRatio`, `entityType`, faction, wander/waypoints,
+idle pacing) is editor- or JSON-configurable today; adding more *named
+behaviors as flags/params* (e.g. a per-spawn "invulnerableWhile:
+<groupTag>") is cheap case-by-case Go + schema work and should stay
+flag-shaped, not script-shaped.
+
+⚑ Open questions (if ever picked up):
+
+- Template granularity: a few rich templates (guarded-boss, ambush,
+  wave-defense) vs many tiny composable ones (the composability slope ends
+  at the DSL — where's the line?)
+- Where do encounter params live — zone JSON (per-instance, editor-owned)
+  vs `api/encounters/*.json` (defs referenced by name from zones, mirrors
+  mobs/props)?
+- Editor verification loop: encounters are server-side state machines —
+  does the editor need a "dry-run/preview" story, or is
+  edit → download → restart (the existing loop) enough?
+- Does spawn-group tagging (mobs referencing an encounter group) replace
+  the encounter spawning its own mobs, or coexist?

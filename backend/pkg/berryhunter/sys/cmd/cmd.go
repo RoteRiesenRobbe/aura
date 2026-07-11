@@ -11,6 +11,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/codec"
 	"github.com/trichner/berryhunter/pkg/berryhunter/minions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/mob"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 )
 
@@ -147,8 +148,87 @@ type CommandSystem struct {
 	g        model.Game
 }
 
-func NewCommandSystem(g model.Game, tokens []string) *CommandSystem {
-	return &CommandSystem{tokens: tokens, g: g}
+// NewCommandSystem wires the cheat set: the static package commands plus the
+// space-bound THREAT closure (the space enables the query-nearby-mobs form).
+func NewCommandSystem(g model.Game, tokens []string, space *phy.Space) *CommandSystem {
+	cmds := make(map[string]Command, len(commands)+1)
+	for name, action := range commands {
+		cmds[name] = action
+	}
+	cmds["THREAT"] = threatCommand(space)
+	return &CommandSystem{tokens: tokens, g: g, commands: cmds}
+}
+
+// threatDumpRadius [PLACEHOLDER] is how far around the player the no-arg
+// THREAT form looks for mobs.
+const threatDumpRadius = 15
+
+// threatCommand builds THREAT — the threat-table debug dump (encounter-
+// controller chunk 9; wanted since the taunt chunk): no argument dumps every
+// mob within threatDumpRadius of the player to the server log, 'THREAT <id>'
+// dumps one mob by entity ID.
+func threatCommand(space *phy.Space) Command {
+	return func(g model.Game, p model.PlayerEntity, arg *string) error {
+		if arg != nil && len(*arg) > 0 {
+			id, err := strconv.ParseUint(*arg, 10, 64)
+			if err != nil {
+				return fmt.Errorf("usage: 'THREAT [<entityID>]': %w", err)
+			}
+			e, err := g.GetEntity(id)
+			if err != nil {
+				return err
+			}
+			m, ok := e.(*mob.Mob)
+			if !ok {
+				return fmt.Errorf("entity %d is not a mob", id)
+			}
+			log.Println(formatThreatReport(m))
+			return nil
+		}
+
+		found := mobsNearby(space, p.Position(), threatDumpRadius)
+		if len(found) == 0 {
+			log.Printf("THREAT: no mobs within %d units", threatDumpRadius)
+			return nil
+		}
+		for _, m := range found {
+			log.Println(formatThreatReport(m))
+		}
+		return nil
+	}
+}
+
+// mobsNearby returns the mobs whose bodies lie within radius of pos. The
+// probe's mask spans both combatant body layers plus Viewport-only bodies
+// (braziers), so every mob kind is found.
+func mobsNearby(space *phy.Space, pos phy.Vec2f, radius float32) []*mob.Mob {
+	probe := phy.NewCircle(pos, radius)
+	probe.Shape().Mask = int(model.LayerActionCollision | model.LayerPlayerCollision | model.LayerViewportCollision)
+	var found []*mob.Mob
+	for _, h := range space.QueryCircle(probe) {
+		if m, ok := h.Shape().UserData.(*mob.Mob); ok {
+			found = append(found, m)
+		}
+	}
+	return found
+}
+
+// formatThreatReport renders one mob's threat state as a single log line:
+// identity, immunity, current aggro target and the sorted threat rows
+// (player names resolved where the entity carries one).
+func formatThreatReport(m *mob.Mob) string {
+	rows, targetID := m.ThreatSnapshot()
+	var b strings.Builder
+	fmt.Fprintf(&b, "THREAT mob=%d def=%s invulnerable=%t target=%d rows=%d",
+		m.Basic().ID(), m.MobDefinition().Name, m.Invulnerable(), targetID, len(rows))
+	for _, row := range rows {
+		fmt.Fprintf(&b, " | %d", row.Entity.Basic().ID())
+		if named, ok := row.Entity.(interface{ Name() string }); ok {
+			fmt.Fprintf(&b, "(%s)", named.Name())
+		}
+		fmt.Fprintf(&b, "=%.1f", row.Threat)
+	}
+	return b.String()
 }
 
 func (*CommandSystem) New(w *ecs.World) {
@@ -181,7 +261,7 @@ func (c *CommandSystem) Update(dt float32) {
 			continue
 		}
 		cmd := strings.ToUpper(argv[0])
-		action, ok := commands[cmd]
+		action, ok := c.commands[cmd]
 		if action == nil || !ok {
 			log.Printf("⁉️ Invalid Action.")
 			continue

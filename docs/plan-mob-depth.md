@@ -1417,6 +1417,134 @@ directly before patrol).
 - **Gotchas:** #12.
 
 ### Chunk 9 — Encounter-controller spine (backend), sub-chunked (user call: break it down)
+
+> **✅ DONE + VERIFIED IN-GAME 2026-07-12 ("all ingame checks verified and
+> working as expected" — full checklist passed; full backend suite green —
+> 23 pkgs, the new `encounter` package is the 23rd —, binary rebuilt,
+> boot-log verified, TDD red-first; ZERO wire changes, zero frontend code;
+> no autonomous commit). Authoring guide written same day:
+> `manual-content-authoring.md` §5 (scripted encounter / boss fight).** **Decisions (user, plan-first):
+> (1) ⚑ §6.5 RESOLVED — 9f (timed world-state + dwell-capture) slides to the
+> content pass with the real lava-bridge boss (the only two pieces with wire
+> footprint, no smoke-test value); (2) all of 9a–9e in ONE session (chunk-3
+> precedent); (3) encounters bind Go-side only — NO zone-schema field until
+> the content pass needs designer-authored bindings; (4) the `THREAT` debug
+> cheat (wanted since 6.6/7) shipped with the chunk.**
+> **9a spine — new `pkg/berryhunter/encounter`** (statuseffects precedent):
+> `Encounter` interface with v1 hooks **`OnTick(s *System)` +
+> `OnMobDeath(s *System, mobID)` only** (proximity later = OnTick queries);
+> `encounter.System` (priority **15**, directly after MobSystem 20) tracks
+> every live mob via a new `addMobEntity` case in `core/game.go` and derives
+> the death signal from the existing removal fan-out — **`Remove(basic)` for a
+> tracked mob ID IS a mob death** (mobs are only removed dead, incl. TTL; no
+> new seam on Mob/MobSystem, no event bus). Deaths are queued in `Remove` and
+> drained at the top of `Update` (Remove fires mid-MobSystem-iteration), so
+> hooks get ONE well-defined execution point: deaths first, then `OnTick`
+> sees post-death state, same tick as the MobSystem detected them.
+> Registration: encounters can't ride `cfg.GameConfig` (`model → cfg` import
+> direction) → exported `game.RegisterEncounter` behind `encounter.Registrar`,
+> type-asserted in `berryhunterd.go` post-construction (the prop-placement
+> precedent), gated on `zone.ID == "proving-grounds"` + a boot-log line.
+> **The System itself is the hook parameter** — its exported surface
+> (`Ticks()`, `SpawnMob`) is the capability API (no context struct, YAGNI).
+> **9b immunity — `Mob.SetInvulnerable(on)` / `Invulnerable()`:** one gate at
+> the TOP of `takeDamage` returning 0 → an immune hit is a non-event exactly
+> like a fully-resisted tag (no HP loss, no floating number, no `tookDamage`
+> combat signal, no status-effect flash, no threat — threat = the returned
+> post-mitigation loss —, no kill settle; dots/instants funnel through the
+> same choke point). **Accepted v1 leaks (documented at the gate):** the sys
+> aura-hit VFX still stamps (a hit ring with NO number reads as "immune"
+> feedback), `noteParticipant` runs before the gate (hitters of an immune
+> boss stay XP participants), and zero threat accrues while immune →
+> post-lift targeting starts at sensor acquisition (fine for smoke; revisit
+> for the real boss). **9c scripted spawns — `System.SpawnMob(defName, pos)`:**
+> mirrors `spawnSummon` minus the summon-only parts (no owner/TTL/faction
+> flip/loadout raise): registry lookup → `mob.NewMob` → ONE `SetPosition`
+> (gotcha #5) → `game.AddEntity`; returns the `*mob.Mob` handle (the concrete
+> type carries the script seams). No spawn point ⇒ dies permanently (already
+> pinned); AddEntity routes back into the System ⇒ encounter spawns are
+> auto-tracked for death dispatch. **9e scripted flee —
+> `Mob.SetFleeOverride(on)`:** `shouldFlee()` returns true regardless of
+> health while set, AND the leash in-combat check gains `|| m.fleeOverride`
+> — without that, a scripted flee outruns sensor+aura, the ~90-tick countdown
+> expires and `resetAggro` WIPES the threat table (the roadmap requires threat
+> retained throughout). Re-engage costs zero code: retention re-targets the
+> highest living threat the tick the override drops. Accepted edge: all
+> threat holders die mid-flee → reset → idle (correct). **9d smoke encounter —
+> `encounter/smoke.go` (THROWAWAY proving-grounds content):** plain Go state
+> in the struct, no timer/objective framework (YAGNI — extract helpers when
+> the real boss is authored). Script: ProvingBoss at **(53, −22)**
+> [PLACEHOLDER] (low-traffic ESE pocket; far from the cat frontline ~(44,11)
+> and Ember Ring) is **invulnerable while any of 3 ProvingGuards lives**
+> (ring r 4 at 0°/120°/240°; immunity re-derived EVERY tick as an idempotent
+> flag write — no transition tracking); guards respawn on encounter-owned
+> timers (1800t ≈ 60 s [PLACEHOLDER]) — "kill all three inside the window"
+> emerges from the timers, zero window code; at ≤50% HP a ONE-SHOT flee
+> phase: `SetFleeOverride(true)` + 2 ProvingAdds spawned beside the boss;
+> both dead → override off → re-engages by retained threat; boss death →
+> `slog` "encounter complete" + full-arena reset after 900t ≈ 30 s
+> [PLACEHOLDER] (fresh boss + dead guards, `fled` cleared — repeatable
+> in-game; reset clears pending guard timers via `spawnGuard` zeroing its
+> slot). **Content — `entityType` mob-JSON override (the enabling schema
+> bit):** `NewMob` resolved the wire EntityType via `types[d.Name]`, so a
+> throwaway def named `ProvingBoss` would fatal → `MobDefinition.EntityType`
+> (JSON `entityType`, optional, validated against
+> `BerryhunterApi.EnumValuesEntityType` at LOAD time — the prop-registry
+> pattern; empty = the name resolves, all 9 legacy defs untouched); `NewMob`
+> falls back name→override. Three throwaway defs reusing existing sprites,
+> **zero wire/frontend changes**: `proving-boss.json` (id 10, entityType
+> AngryMammoth, 600 HP, speed 0.25, AngryMammothAura L1, NO
+> fleeBelowHealthRatio — flee is scripted only), `proving-guard.json` (id 11,
+> entityType SaberToothCat, 80 HP), `proving-add.json` (id 12, entityType
+> Rabbit, 40 HP) — all [PLACEHOLDER], all WITHOUT a `faction` key = built-in
+> hostile default, so roaming predators/tuskers ignore the arena and the
+> arena mobs never fight each other. **THREAT cheat (`sys/cmd`):**
+> `NewCommandSystem(g, tokens, space)` — the previously-dead `commands`
+> struct field now holds an instance map (package map + the space-bound
+> closure; `Update` reads `c.commands`); `THREAT` dumps every mob within 15 u
+> [PLACEHOLDER] of the player (probe mask spans Action|Player|Viewport body
+> layers — companions and braziers included), `THREAT <entityID>` one mob by
+> ID; output = one `log` line per mob via `formatThreatReport`: id, def name,
+> `Invulnerable()`, aggro-target ID, sorted rows (names where the entity has
+> one). Backing seam **`Mob.ThreatSnapshot() ([]ThreatRow, targetID)`** —
+> living entries sorted descending (ties: lower ID, matching retention),
+> read-only (dead entries skipped, NOT pruned). **Count pins: mobs 9→12**
+> (boot-log line only), skills 24 / milestones 10 unchanged, suite 22→23
+> pkgs; proving-grounds zone untouched (encounter mobs are not zone spawns —
+> boot spawns line stays 390). **Pins:** `encounter/system_test.go` (OnTick
+> per update / death dispatched exactly once / deaths-before-tick order /
+> non-mob Remove ignored / SpawnMob places+registers / unknown def errors /
+> spawned-mob death dispatches), `mob_test.go` (invulnerable player+mob hits
+> are non-events incl. no threat + toggle-off restores, VERIFIED RED;
+> flee-override flees at FULL health / suspends leash + retains threat past
+> 3× the countdown / re-engages top threat on drop, VERIFIED RED;
+> entityType-override resolves the wire type, VERIFIED RED; ThreatSnapshot
+> sorted-living-only, VERIFIED RED), `definitions_test.go` (entityType
+> parse / absent-empty / unknown-fails, VERIFIED RED), `smoke_test.go`
+> (6 integration tests through fakeGame + a stepWorld replica of the
+> MobSystem death loop: initial spawn immune / immunity lifts on 3 dead /
+> guard respawn restores it / half-health flees + spawns adds / adds dead →
+> re-engages retained threat / boss death resets arena after the delay),
+> `cmd_test.go` (formatThreatReport content / THREAT-by-ID incl. failures /
+> mobsNearby via a real `phy.Space`). **In-game checklist (PASSED
+> 2026-07-12):** warp
+> to ~(53,−22) (`WARP 6360 -2640`); boss (mammoth sprite) + 3 cats present;
+> hitting the boss shows hit VFX but NO damage numbers while any cat lives;
+> kill all 3 within ~60 s → numbers appear; wait for a cat respawn → immune
+> again; at ~half HP the boss runs while 2 rabbits appear — chase it and
+> confirm it never resets (no walk-home/regen); kill the rabbits → the boss
+> turns and beelines whoever hurt it most; `THREAT` prints tables to the
+> server log through all phases; kill the boss → completion log; arena back
+> fresh after ~30 s. **Chunk 9 is VERIFIED — plan-mob-depth's build-out is
+> COMPLETE (chunk 8's own healer checklist is the only marker still open).
+> Next: execution step 3 (atmosphere & recovery), plan-first in a NEW
+> session; 9f + real boss scripts (lava-bridge) land in the content pass
+> (item 12) against these seams — authoring guide:
+> `manual-content-authoring.md` §5. Captured 2026-07-12 (user question at
+> verification): editor-configurable encounters / per-mob scripted behavior
+> → backlog item 17 (assessment: parameterized encounter TEMPLATES are the
+> cheap path; a behavior DSL stays decided-against per F3).**
+
 - **9a — spine:** controller interface + lifecycle hooks + registration in
   `core/game.go`; a smoke encounter driven by `OnTick`/`OnMobDeath` proves
   the loop.
@@ -1477,10 +1605,11 @@ directly before patrol).
   that interaction; no code cap). (Whether hostile mobs can target it was
   already DECIDED: yes — it builds its own threat, §1.3.) Record: chunk-6
   banner (§5).
-- **§6.5 — Encounter 9f cut line:** timed world-state + dwell-capture now
-  (complete spine) vs with the real boss (content pass). Lean: slide to
-  content — they're the two pieces with wire footprint and no smoke-test
-  value.
+- **§6.5 — Encounter 9f cut line — ✓ DECIDED 2026-07-11 (chunk-9 plan-first,
+  user): slide to the content pass** as leaned — timed world-state +
+  dwell-capture land with the real lava-bridge boss (item 12); they're the
+  only two pieces with wire footprint and have no smoke-test value. Chunk 9
+  therefore shipped with ZERO wire changes. Record: chunk-9 banner (§5).
 - **§6.6 — Waypoint schema shape (chunk 5b) — DECIDED 2026-07-11 (chunk-5
   plan-first, user):** per-spawn inline waypoint list (the lean; no shared
   routes); traversal = **ping-pong only** (closed loops are authored as

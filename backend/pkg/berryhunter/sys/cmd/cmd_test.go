@@ -1,12 +1,17 @@
 package cmd
 
 import (
+	"fmt"
 	"testing"
 	"testing/fstest"
 
+	"github.com/EngoEngine/ecs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/mob"
+	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
@@ -130,4 +135,81 @@ func TestSkillCommand_MissingArgument(t *testing.T) {
 
 	assert.Error(t, commands["SKILL"](g, p, nil))
 	assert.Error(t, commands["SKILL"](g, p, strPtr("")))
+}
+
+// --- THREAT cheat (encounter-controller chunk 9) ---
+
+// fakeCombatant is a threat source for seeding a mob's table.
+type fakeCombatant struct {
+	basic ecs.BasicEntity
+}
+
+func (f *fakeCombatant) Basic() ecs.BasicEntity { return f.basic }
+func (f *fakeCombatant) Position() phy.Vec2f    { return phy.Vec2f{} }
+func (f *fakeCombatant) Radius() float32        { return 0.25 }
+func (f *fakeCombatant) Faction() model.Faction { return model.FactionAligned }
+func (f *fakeCombatant) HealthRatio() float32   { return 1 }
+
+func threatTestMob(t *testing.T) *mob.Mob {
+	t.Helper()
+	return mob.NewMob(&mobs.MobDefinition{
+		ID:      1,
+		Name:    "Dodo",
+		Body:    mobs.Body{Radius: 0.3, AggroRadius: 2.0},
+		Factors: mobs.Factors{MaxHealth: 40},
+	}, 0, nil)
+}
+
+func TestThreatCommand_FormatContainsTableAndState(t *testing.T) {
+	m := threatTestMob(t)
+	src := &fakeCombatant{basic: ecs.NewBasic()}
+	m.NoteThreat(src, 12.5)
+	m.SetInvulnerable(true)
+
+	report := formatThreatReport(m)
+
+	assert.Contains(t, report, "Dodo", "the def name identifies the mob")
+	assert.Contains(t, report, "invulnerable=true")
+	assert.Contains(t, report, fmt.Sprintf("%d", src.basic.ID()), "the threat holder's entity ID")
+	assert.Contains(t, report, "12.5", "the threat value")
+}
+
+// fakeThreatGame resolves entities by ID for the THREAT <id> form.
+type fakeThreatGame struct {
+	model.Game
+	entities map[uint64]model.BasicEntity
+}
+
+func (f *fakeThreatGame) GetEntity(id uint64) (model.BasicEntity, error) {
+	e, ok := f.entities[id]
+	if !ok {
+		return nil, fmt.Errorf("entity %d not found", id)
+	}
+	return e, nil
+}
+
+func TestThreatCommand_ByEntityID(t *testing.T) {
+	m := threatTestMob(t)
+	g := &fakeThreatGame{entities: map[uint64]model.BasicEntity{m.Basic().ID(): m}}
+	cmd := threatCommand(nil)
+
+	assert.NoError(t, cmd(g, nil, strPtr(fmt.Sprintf("%d", m.Basic().ID()))))
+	assert.Error(t, cmd(g, nil, strPtr("99999")), "unknown entity ID fails")
+	assert.Error(t, cmd(g, nil, strPtr("notanumber")))
+}
+
+func TestThreatCommand_MobsNearbyFindsMobBody(t *testing.T) {
+	m := threatTestMob(t)
+	m.SetPosition(phy.Vec2f{X: 3, Y: 0})
+
+	space := phy.NewSpace()
+	space.AddShape(m.Body)
+	space.Update()
+
+	found := mobsNearby(space, phy.Vec2f{X: 0, Y: 0}, 15)
+	require.Len(t, found, 1, "the mob body within the dump radius is found")
+	assert.Equal(t, m.Basic().ID(), found[0].Basic().ID())
+
+	assert.Empty(t, mobsNearby(space, phy.Vec2f{X: 100, Y: 100}, 5),
+		"nothing found far away")
 }

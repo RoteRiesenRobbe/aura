@@ -27,6 +27,56 @@ func testSkillRegistry(t *testing.T) skills.Registry {
 	return r
 }
 
+// --- entityType override (encounter-controller chunk 9 content) ---
+
+func TestMapMobDefinition_EntityTypeOverrideParsed(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 10,
+	  "name": "ProvingBoss",
+	  "type": "MOB",
+	  "entityType": "AngryMammoth",
+	  "body": {"radius": 1.7, "aggroRadius": 10}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil)
+	require.NoError(t, err)
+
+	assert.Equal(t, "AngryMammoth", def.EntityType,
+		"the override decouples the def name from the wire EntityType")
+}
+
+func TestMapMobDefinition_AbsentEntityTypeStaysEmpty(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil)
+	require.NoError(t, err)
+
+	assert.Empty(t, def.EntityType,
+		"absent override → empty; NewMob falls back to the def name (all pre-chunk-9 defs)")
+}
+
+func TestMapMobDefinition_UnknownEntityTypeFails(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 10,
+	  "name": "ProvingBoss",
+	  "type": "MOB",
+	  "entityType": "NoSuchWireType",
+	  "body": {"radius": 1.7, "aggroRadius": 10}
+	}`))
+	require.NoError(t, err)
+
+	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil)
+	require.Error(t, err, "an entityType that is no FlatBuffers EntityType name hard-fails at load")
+	assert.Contains(t, err.Error(), "NoSuchWireType")
+}
+
 func TestMapMobDefinition_ResolvesSkills(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,

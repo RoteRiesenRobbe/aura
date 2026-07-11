@@ -1,7 +1,8 @@
 # Content Authoring Manual
 
 How to add or replace content by hand: **new mobs**, **new abilities**
-(auras / passives / cooldowns), **ability VFX**, and **mob / player icons**.
+(auras / passives / cooldowns), **ability VFX**, **mob / player icons**, and
+**scripted encounters / boss fights**.
 
 This is a how-to reference (`manual-` prefix). It reflects the wiring as of the
 world-foundation work (2026-07-08). File paths and array orderings drift — if a
@@ -32,8 +33,15 @@ step doesn't match, trust the code.
 A mob's JSON `name` is resolved **directly against the `EntityType` enum**
 (`backend/pkg/berryhunter/model/mob/mob.go`, `types[d.Name]` — `log.Fatal` if the
 name has no matching enum entry). So a **genuinely new mob type requires a new
-`EntityType`** — the same "5-file path" the props work used. Reusing an existing
-mob's art means reusing its name/EntityType.
+`EntityType`** — the same "5-file path" the props work used.
+
+**Variant mobs reusing existing art need NO wire/frontend work (chunk 9):**
+give the def its own `name` plus an **`entityType`** key naming the sprite's
+enum entry (e.g. `"name": "ProvingBoss", "entityType": "AngryMammoth"`). The
+override is validated against the enum at load time; absent = the name
+resolves, as before. This is how encounter/boss variants get their own stats,
+faction and skills without a schema append (see §5 and
+`api/mobs/proving-boss.json`).
 
 ### Backend / data
 
@@ -195,6 +203,98 @@ Webpack picks up SVG changes on rebuild / HMR.
 
 ---
 
+## 5. Scripted encounter / boss fight (encounter controller)
+
+An encounter is **one Go struct behind the `Encounter` interface**
+(`backend/pkg/berryhunter/encounter/`) — deliberately code-defined, not a
+data/DSL format (roadmap decision F3; revisit only with many encounters + a
+non-engineer author). The `encounter.System` runs every registered encounter's
+lifecycle hooks each tick; everything the script *does* goes through exported
+seams. **Reference implementation: `encounter/smoke.go`** (the proving-grounds
+arena) — copy it, don't start blank. Zero wire changes are needed unless your
+encounter wants client-visible world state (bridges opening etc. — that wire
+work is deliberately deferred to the first real boss).
+
+### The moving parts
+
+| Piece | Where | What it gives you |
+|---|---|---|
+| `Encounter` interface | `encounter/system.go` | `Name()`, `OnTick(s *System)`, `OnMobDeath(s *System, mobID uint64)` — the only hooks in v1; proximity/phase triggers are conditions you check inside `OnTick` |
+| `System.SpawnMob(defName, pos)` | `encounter/system.go` | Scripted spawn; returns the concrete `*mob.Mob` handle; **no spawn point ⇒ never respawns** — the encounter owns any respawn via its own timers |
+| `System.Ticks()` | `encounter/system.go` | The game clock, for encounter-owned timers (`respawnAt = s.Ticks() + delay`) |
+| `Mob.SetInvulnerable(on)` | `model/mob/mob.go` | Conditional immunity: an immune hit is a **non-event** (no damage, no number, no threat). Hit VFX still stamps — that ring-without-numbers IS the "immune" feedback |
+| `Mob.SetFleeOverride(on)` | `model/mob/mob.go` | Scripted flee at any HP. Also counts as in-combat for the leash, so the **threat table survives the whole phase**; drop the override and retention re-targets the top threat automatically — no re-engage code |
+| Threat seams | `model/mob/mob.go` | `NoteThreat`, `ForceThreatToTop`, `DropThreat`, `TargetsEntity`, `ThreatSnapshot` — script-side threat manipulation (same seams Taunt/Fade use) |
+| Summon-era seams | `model/mob/mob.go` | `SetFaction`, `SetTTLTicks`, `RaiseMaxHealth`, `SetSummonPower` — usable on encounter spawns too if a phase wants them |
+| `game.RegisterEncounter(e)` | `core/game.go` | Registration, called from `berryhunterd.go` post-construction |
+
+### Step by step
+
+1. **Author the mobs** (`api/mobs/*.json`) as variant defs with the
+   `entityType` override (§1) — own `id` (keep ids unique by hand, the
+   registry silently overwrites duplicates), own stats/skills/faction. Two
+   deliberate choices in the smoke content worth copying:
+   - **No `faction` key** = built-in hostile default → the roaming faction
+     ecosystem (predators, tuskers) ignores your arena and your arena mobs
+     never fight each other.
+   - **No `fleeBelowHealthRatio`** on the boss — flee should be *scripted*
+     (the override), not autonomous, or the two will fight.
+2. **Write the encounter struct** in `backend/pkg/berryhunter/encounter/`
+   (or a subpackage later, when there are many). Patterns from `smoke.go`:
+   - **State is plain fields**: mob handles (`*mob.Mob`, nil = dead), per-slot
+     respawn ticks, one-shot phase latches (`fled bool`), a reset tick.
+     There is no timer/objective framework — deliberately (YAGNI; extract
+     helpers when the second real boss repeats a pattern).
+   - **First-tick spawn**: guard with a `spawned bool` in `OnTick`. The
+     system runs after the MobSystem, so zone mobs already exist on tick 1.
+   - **Re-derive conditions every tick, idempotently**:
+     `boss.SetInvulnerable(anyGuardAlive())` needs no transition tracking —
+     it's a flag write. Prefer this over "on guard death, check if last".
+   - **Track deaths by ID** in `OnMobDeath`: compare against your stored
+     handles' `Basic().ID()`; the hook fires for EVERY mob death in the
+     world, filter for yours. Deaths are dispatched before the same tick's
+     `OnTick`, so `OnTick` always sees post-death state.
+   - **Windows emerge from respawn timers**: "kill all 3 within 60 s" is
+     just per-slot `respawnAt` timestamps — no window bookkeeping.
+   - **Own your resets**: since encounter spawns never respawn themselves,
+     schedule an arena reset (`resetAt`) on boss death and clear pending
+     per-slot timers when you respawn a slot, or a stale timer double-spawns.
+3. **Register it** in `cmd/berryhunterd/berryhunterd.go` after prop
+   placement, gated on the zone:
+   ```go
+   if zone.ID == "my-zone" {
+       g.(encounter.Registrar).RegisterEncounter(encounter.NewMyBoss())
+   }
+   ```
+   (Registration is Go-side by decision — no zone-JSON field yet.)
+4. **Test it** with the `encounter/smoke_test.go` pattern: the package
+   `fakeGame` + a `step` helper that replicates the MobSystem death loop
+   (`m.Update(0)` false → `g.RemoveEntity` → `System.Update(0)` → `tick++`),
+   hand-built `mobs.MobDefinition`s in the `fakeRegistry` (tests never
+   depend on the JSON), damage via `PlayerTouches`/`MobTouches`. Same-package
+   tests may read your encounter struct's fields directly.
+5. **Verify in-game**: `make -C backend build`, restart, check the boot log
+   (`Loaded mob definitions count=…`, your registration line), warp over
+   (`WARP <x·120> <y·120>` — the cheat takes px), and use the **`THREAT`
+   cheat** (nearby mobs' threat tables, or `THREAT <entityID>`) to watch
+   targeting/immunity through the phases in the server log.
+
+### Gotchas
+
+- **`SpawnMob` positions once** — `SetPosition` latches the spawn anchor +
+  aggro sensor on the first call; never "correct" a position afterwards.
+- **Immunity leaks, accepted v1**: attackers of an immune boss still become
+  XP participants, and no threat accrues while immune (post-lift targeting
+  starts from sensor acquisition). Fine for now; revisit at the real boss.
+- **Clearance-check your arena** against props/spawn traffic (zone editor
+  markers): the smoke arena deliberately sits in a low-traffic pocket so
+  wandering factions don't wander in.
+- **9f is not built**: timed world-state (a bridge open for 20 min) and
+  dwell-capture triggers have no machinery yet — they land with the first
+  real boss (content pass), because both need wire fields.
+
+---
+
 ## Known hand-sync points
 
 These duplicate a single source of truth and must be updated together — easy to
@@ -213,7 +313,9 @@ forget:
 | Task | JSON | Go | `.fbs` + regen | Frontend |
 |------|------|-----|----------------|----------|
 | New mob (new art) | ✅ | — | ✅ | ✅ |
+| Mob variant (reused art via `entityType`) | ✅ | — | — | — |
 | New skill (existing effect types) | ✅ | — | — | ✅ (`Skills.ts`) |
 | New effect *type* | ✅ | ✅ | — | ✅ |
+| Scripted encounter (existing seams) | ✅ (mob defs) | ✅ (one struct + registration) | — | — |
 | Replace ability VFX | — | — | — | ✅ |
 | Replace mob / player icon | — | — | — | ✅ |

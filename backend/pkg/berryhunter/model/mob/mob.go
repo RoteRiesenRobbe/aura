@@ -3,6 +3,7 @@ package mob
 import (
 	"log"
 	"math/rand"
+	"sort"
 
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
@@ -29,9 +30,16 @@ var types = func() map[string]model.EntityType {
 // pure straight-line geometry, as before the chunk); every production spawn
 // site passes the real space.
 func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space) *Mob {
-	entityType, ok := types[d.Name]
+	// The wire EntityType comes from the def's optional entityType override
+	// (chunk 9: throwaway/variant defs reuse existing sprites), falling back
+	// to the def name — the pre-chunk-9 rule for all legacy defs.
+	lookup := d.EntityType
+	if lookup == "" {
+		lookup = d.Name
+	}
+	entityType, ok := types[lookup]
 	if !ok {
-		log.Fatalf("Mob type not found: %d/%s", d.ID, d.Name)
+		log.Fatalf("Mob type not found: %d/%s", d.ID, lookup)
 	}
 
 	mobBody := phy.NewCircle(phy.VEC2F_ZERO, d.Body.Radius)
@@ -285,6 +293,14 @@ type Mob struct {
 	// most-wounded ally in range as its aggro target, chases it at full speed
 	// and its heal aura gates on/off with that acquisition (updateHealerTargeting).
 	seekHealer bool
+
+	// Encounter-controller seams (chunk 9): invulnerable gates takeDamage
+	// into a non-event (9b); fleeOverride forces the flee movement mode
+	// regardless of health AND suspends the leash countdown so the threat
+	// table survives a scripted flee phase (9e). Both are toggled by an
+	// encounter script, never by autonomous mob behavior.
+	invulnerable bool
+	fleeOverride bool
 
 	statusEffects       model.StatusEffects
 	deathRewardGiven    bool
@@ -604,8 +620,23 @@ func (m *Mob) stepLength() float32 {
 // regenerates on the walk home, so the next acquisition starts above the
 // threshold.
 func (m *Mob) shouldFlee() bool {
+	if m.fleeOverride {
+		return true
+	}
 	threshold := m.definition.Factors.FleeBelowHealthRatio
 	return threshold > 0 && m.HealthRatio() < threshold
+}
+
+// SetFleeOverride forces the flee movement mode regardless of health
+// (encounter-controller chunk 9e) — the scripted-flee seam ("the boss runs
+// while spawning adds"). While on, the leash countdown is suspended too:
+// a scripted flee deliberately outruns sensor and aura range, and expiring
+// the leash there would resetAggro and wipe the threat table — the roadmap
+// requires threat retained throughout so the boss re-engages correctly the
+// moment the script drops the override (retention re-targets the highest
+// living threat every tick; no re-engage code needed).
+func (m *Mob) SetFleeOverride(on bool) {
+	m.fleeOverride = on
 }
 
 // leashCountdownTicks [PLACEHOLDER] is the out-of-combat grace before an
@@ -661,7 +692,9 @@ func (m *Mob) updateAggro() {
 	// runs while the target is unreachable, out of the sensor and not hitting
 	// back — expiring it while the sensor still sees the target would just
 	// re-acquire next tick (visible as a 1-tick aura flicker every ~3 s).
-	if tookDamage || m.targetWithinAuraReach() || m.targetWithinSensor() {
+	// A scripted flee (9e) counts as in combat for its whole duration — the
+	// encounter owns the disengage, see SetFleeOverride.
+	if tookDamage || m.fleeOverride || m.targetWithinAuraReach() || m.targetWithinSensor() {
 		m.leashTicks = 0
 		return
 	}
@@ -857,6 +890,38 @@ func (m *Mob) TargetsEntity(id uint64) bool {
 	return m.aggroTarget != nil && m.aggroTarget.Basic().ID() == id
 }
 
+// ThreatRow is one read-only threat-table row for the THREAT debug cheat
+// (chunk 9).
+type ThreatRow struct {
+	Entity model.Combatant
+	Threat float32
+}
+
+// ThreatSnapshot returns the living threat entries sorted descending (ties:
+// lower entity ID first, matching retention's tiebreak) plus the current
+// aggro target's entity ID (0 = none) — the THREAT debug cheat's read-only
+// dump. Dead entries are skipped, not pruned.
+func (m *Mob) ThreatSnapshot() ([]ThreatRow, uint64) {
+	rows := make([]ThreatRow, 0, len(m.threat))
+	for _, e := range m.threat {
+		if e.entity.HealthRatio() == 0 {
+			continue
+		}
+		rows = append(rows, ThreatRow{Entity: e.entity, Threat: e.threat})
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].Threat != rows[j].Threat {
+			return rows[i].Threat > rows[j].Threat
+		}
+		return rows[i].Entity.Basic().ID() < rows[j].Entity.Basic().ID()
+	})
+	var targetID uint64
+	if m.aggroTarget != nil {
+		targetID = m.aggroTarget.Basic().ID()
+	}
+	return rows, targetID
+}
+
 // MayHarm implements model.HostilityGate (chunk 6.6 in-game fix): a mob may
 // harm a different-faction target iff its faction is in the declared aggro
 // set (static layer) OR the target is on the threat table (dynamic layer —
@@ -910,12 +975,35 @@ func (m *Mob) HealthRatio() float32 {
 	return float32(m.health) / float32(m.maxHealth)
 }
 
+// SetInvulnerable toggles conditional damage immunity (encounter-controller
+// chunk 9b) — an encounter-script seam, e.g. "the boss is immune while its
+// guards live". See the takeDamage gate for the exact non-event semantics.
+func (m *Mob) SetInvulnerable(on bool) {
+	m.invulnerable = on
+}
+
+func (m *Mob) Invulnerable() bool {
+	return m.invulnerable
+}
+
 // takeDamage subtracts absolute HP (item 11 Phase 1), scaled by the mob's base
 // resistances against the hit's damage tags (Phase 2). A fully resisted hit
 // (multiplier 0) does not exist for the mob: no HP loss, no floating number,
 // no status effect and thus no hit VFX. Returns the actual HP lost after
 // clamping — the post-mitigation threat credit (chunk 3a).
 func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.VitalSign {
+	// Conditional immunity (encounter-controller chunk 9b): while set, every
+	// hit is a non-event exactly like a fully resisted tag — no HP loss, no
+	// floating number, no combat signal, no status effect, and no threat
+	// (credited from the returned loss). Accepted v1 leaks, deliberate:
+	// the sys aura-hit VFX still stamps at its call sites (a hit ring with
+	// no damage number reads as "immune" feedback), and PlayerTouches
+	// records the attacker as an XP participant before this gate (they did
+	// participate). Zero threat accrues while immune — post-lift targeting
+	// starts at sensor acquisition; revisit for the real boss content.
+	if m.invulnerable {
+		return 0
+	}
 	multiplier := skills.ResistMultiplier(damage.Tags, m.definition.Factors.Resistances) *
 		m.buffs.ResistMultiplier(damage.Tags)
 

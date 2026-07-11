@@ -176,6 +176,62 @@ func TestMob_PlayerTouches_ImmuneTagNoHit(t *testing.T) {
 	assert.NotContains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)
 }
 
+func TestNewMob_EntityTypeOverride(t *testing.T) {
+	def := testMobDefinition()
+	def.Name = "ProvingBoss" // no such wire type — would fatal without the override
+	def.EntityType = "Dodo"
+
+	m := NewMob(def, 0, nil)
+
+	assert.Equal(t, types["Dodo"], m.Type(),
+		"the wire EntityType comes from the override, not the def name")
+}
+
+// --- conditional immunity (encounter-controller chunk 9b) ---
+
+func TestMob_Invulnerable_PlayerHitIsNonEvent(t *testing.T) {
+	m := newTestMob()
+	p := newFakeAuraPlayer()
+	m.SetInvulnerable(true)
+
+	// Like a fully resisted tag, an invulnerable hit does not exist for the
+	// mob: no HP loss, no floating number, no status effect / hit flash, and
+	// no threat (credited from the actual post-mitigation loss).
+	m.PlayerTouches(p, model.Damage{HP: 10, Tags: []string{"physical"}})
+
+	assert.Equal(t, m.MaxHealth(), m.Health())
+	assert.Zero(t, m.DamageTaken())
+	assert.NotContains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)
+	assert.False(t, m.HasThreat(p.Basic().ID()),
+		"an immune hit builds no threat")
+}
+
+func TestMob_Invulnerable_MobHitIsNonEvent(t *testing.T) {
+	m := newTestMob()
+	m.SetInvulnerable(true)
+
+	m.MobTouches(nil, mobs.Factors{Damage: 1e6})
+
+	assert.Equal(t, m.MaxHealth(), m.Health(),
+		"overwhelming mob-path damage does not touch an invulnerable mob")
+}
+
+func TestMob_Invulnerable_ToggleOffRestoresDamage(t *testing.T) {
+	m := newTestMob()
+	p := newFakeAuraPlayer()
+
+	m.SetInvulnerable(true)
+	m.PlayerTouches(p, model.Damage{HP: 10})
+	require.Equal(t, m.MaxHealth(), m.Health())
+
+	m.SetInvulnerable(false)
+	m.PlayerTouches(p, model.Damage{HP: 10})
+
+	assert.Equal(t, m.MaxHealth()-10, m.Health(), "damage lands again after the toggle")
+	assert.True(t, m.HasThreat(p.Basic().ID()), "threat is credited again after the toggle")
+	assert.True(t, m.Invulnerable() == false)
+}
+
 func TestMob_PlayerTouches_VulnerabilityTagAboveOne(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 1.5}
@@ -921,6 +977,93 @@ func TestMob_ChasingTargetInsideSensorNeverLeashes(t *testing.T) {
 			"the aura must not flicker during the chase (tick %d)", i)
 	}
 	assert.True(t, m.HasThreat(p.basic.ID()), "threat survives the whole chase")
+}
+
+// --- scripted flee (encounter-controller chunk 9e) ---
+
+func TestMob_FleeOverride_FleesAtFullHealth(t *testing.T) {
+	m := newTestMob() // no fleeBelowHealthRatio — autonomous flee never triggers
+	m.SetPosition(phy.Vec2f{X: 1, Y: 1})
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 1, Y: 0.5} // due south of the mob
+	m.aggroTarget = p
+	m.SetFleeOverride(true)
+
+	require.True(t, m.Update(0))
+
+	// Away from the target = due north, exactly one velocity step — the same
+	// movement as the autonomous flee, forced regardless of health.
+	assert.InDelta(t, 1, m.Position().X, 1e-5)
+	assert.InDelta(t, float64(1+m.velocity), float64(m.Position().Y), 1e-5)
+}
+
+func TestMob_FleeOverride_SuspendsLeashRetainsThreat(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.VEC2F_ZERO)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 50, Y: 0} // far outside sensor + aura the whole time
+	m.PlayerTouches(p, model.Damage{HP: 5})
+	m.SetFleeOverride(true)
+
+	// Without the override this exact setup leashes after leashCountdownTicks
+	// (TestMob_LeashCountdownResetsAggroAndThreat). A scripted flee must hold
+	// the threat table for its whole duration (roadmap: the flee phase never
+	// resets aggro/threat).
+	for i := 0; i < leashCountdownTicks*3; i++ {
+		require.True(t, m.Update(0))
+		require.NotNil(t, m.aggroTarget, "no leash while the override is on (tick %d)", i)
+	}
+	assert.True(t, m.HasThreat(p.basic.ID()), "threat survives the scripted flee")
+}
+
+func TestMob_FleeOverride_OffReengagesTopThreat(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.VEC2F_ZERO)
+	top := newFakeAuraPlayer()
+	top.pos = phy.Vec2f{X: 3, Y: 0}
+	other := newFakeAuraPlayer()
+	other.pos = phy.Vec2f{X: -2, Y: 0}
+	m.PlayerTouches(top, model.Damage{HP: 20})
+	m.PlayerTouches(other, model.Damage{HP: 5})
+
+	m.SetFleeOverride(true)
+	for i := 0; i < 5; i++ {
+		require.True(t, m.Update(0))
+	}
+
+	m.SetFleeOverride(false)
+	before := m.Position().Sub(top.pos).Abs()
+	require.True(t, m.Update(0))
+
+	assert.True(t, m.TargetsEntity(top.basic.ID()),
+		"the retained top-threat holder is the target the moment the override drops")
+	assert.Less(t, m.Position().Sub(top.pos).Abs(), before,
+		"the mob chases again once the override is off")
+}
+
+func TestMob_ThreatSnapshot_SortedLivingOnly(t *testing.T) {
+	m := newTestMob()
+	low := newFakeAuraPlayer()
+	high := newFakeAuraPlayer()
+	dead := newFakeAuraPlayer()
+	m.PlayerTouches(low, model.Damage{HP: 5})
+	m.PlayerTouches(high, model.Damage{HP: 20})
+	m.PlayerTouches(dead, model.Damage{HP: 10})
+	dead.vs.Health = 0
+
+	rows, targetID := m.ThreatSnapshot()
+
+	require.Len(t, rows, 2, "dead entries are skipped")
+	assert.Equal(t, high.basic.ID(), rows[0].Entity.Basic().ID(), "descending threat order")
+	assert.InDelta(t, 20, float64(rows[0].Threat), 1e-3)
+	assert.Equal(t, low.basic.ID(), rows[1].Entity.Basic().ID())
+	assert.Zero(t, targetID, "no aggro target before the mob updates")
+	assert.True(t, m.HasThreat(dead.basic.ID()),
+		"the snapshot is read-only — dead entries are skipped, not pruned")
+
+	require.True(t, m.Update(0)) // retention picks the top threat
+	_, targetID = m.ThreatSnapshot()
+	assert.Equal(t, high.basic.ID(), targetID, "the aggro target ID reads through")
 }
 
 func TestMob_TargetsEntity(t *testing.T) {

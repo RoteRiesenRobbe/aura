@@ -195,15 +195,24 @@ trade-offs (light aura vs. damage aura).
 
 ## 7. Mob behavior, tiers & spawning — normal / elite / boss
 
-> **PLANNED (2026-07-09) → `docs/plan-mob-depth.md`** (execution step 2, with
-> effect-foundations Step 3 totems + a companion cooldown folded in). Chunks:
-> totem → flee → aggro & threat → obstacle steering → patrol → companion →
-> **6.5 hazard braziers + companion reachability (fix, 2026-07-11) → 6.6 mob
-> factions & mob-vs-mob hostility (NEW 2026-07-11, plan-first) ← NEXT** →
-> taunt → support mobs → encounter-controller spine. Key decisions there:
-> mobs aggro summons (faction-aware acquisition), entity-keyed threat that
-> diverges from owner-XP attribution, route validity = level-designer
-> responsibility. Boss *scripts* remain content (item 12).
+> **✅ BUILD-OUT COMPLETE (2026-07-12) → `docs/plan-mob-depth.md`** (execution
+> step 2, with effect-foundations Step 3 totems + a companion cooldown folded
+> in). All chunks done + in-game-verified: totem → flee → aggro & threat
+> (entity-keyed threat, state-dependent leash, auras-off-until-aggroed) →
+> obstacle steering → patrol archetypes → companion → 6.5 hazard braziers →
+> 6.6 mob factions & mob-vs-mob hostility (mayHarm two-layer gate) → 7 taunt/
+> Fade → 8 support mobs (seek-healer; own checklist still open) → **9
+> encounter-controller spine (verified 2026-07-12: `pkg/berryhunter/encounter`
+> lifecycle hooks, conditional immunity, scripted spawns, encounter-owned
+> timers, scripted flee with retained threat, THREAT cheat; smoke arena in
+> proving-grounds; authoring guide `manual-content-authoring.md` §5)**. Key
+> decisions: mobs aggro summons (faction-aware acquisition), entity-keyed
+> threat diverging from owner-XP attribution, route validity = level-designer
+> responsibility, encounters = Go structs registered per zone (no DSL, no
+> zone-schema field yet — backlog 17 captures the editor-template idea).
+> **9f (timed world-state + dwell-capture) deliberately slid to the content
+> pass** with the real lava-bridge boss (§6.5 resolved — the only two pieces
+> with wire footprint). Boss *scripts* remain content (item 12).
 
 - Builds directly on skill-system Phase 6 (data-driven mobs): tiers are largely
   JSON loadouts (skills, levels, resource pool) + spawn placement.
@@ -293,6 +302,15 @@ trade-offs (light aura vs. damage aura).
   levers; they do not grow the current `plan-mob-depth.md` 9-chunk scope.
 
 ### Boss encounters — feasibility audit & the encounter-controller gap
+
+> **Status 2026-07-12: the 🔴 gap below is CLOSED except its wire tail** —
+> mob-depth chunk 9 shipped the encounter controller (lifecycle hooks,
+> conditional immunity, event-driven scripted spawns, sub-objective state via
+> encounter-owned timers, scripted flee with retained threat), verified by a
+> throwaway smoke encounter in proving-grounds. Still open, deliberately with
+> the real boss (content pass): **timed world-state** (the 20-min bridge) and
+> **dwell-capture** — the two wire-visible pieces (§6.5 in
+> `plan-mob-depth.md`). Authoring guide: `manual-content-authoring.md` §5.
 
 Stress-tested against a concrete reference encounter (2026-07): a lava-bridge
 approach → boss on a rock in a lava pool, connected by 4 bridges; boss immune

@@ -13,6 +13,7 @@ import (
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 	"github.com/trichner/berryhunter/pkg/berryhunter/codec"
+	"github.com/trichner/berryhunter/pkg/berryhunter/encounter"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -40,6 +41,8 @@ type game struct {
 	skillRegistry skills.Registry
 
 	entities entitiesMap
+
+	encounters *encounter.System
 
 	welcomeMsg []byte
 
@@ -113,6 +116,10 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	m := sys.NewMobSystem(g, rnd.Int63(), gc.Spawns, p.Space())
 	g.AddSystem(m)
 
+	enc := encounter.NewSystem(g, p.Space())
+	g.AddSystem(enc)
+	g.encounters = enc
+
 	preu := sys.NewPreUpdateSystem()
 	g.AddSystem(preu)
 
@@ -131,7 +138,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	s := sys.NewConnectionStateSystem(g)
 	g.AddSystem(s)
 
-	c := cmd.NewCommandSystem(g, gc.Tokens)
+	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space())
 	g.AddSystem(c)
 
 	eq := equip.NewEquipSystem(g)
@@ -149,6 +156,13 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 
 func (g *game) Ticks() uint64 {
 	return g.Tick
+}
+
+// RegisterEncounter satisfies encounter.Registrar — encounters are wired
+// post-construction by berryhunterd (they cannot ride cfg.GameConfig, see
+// the Registrar doc).
+func (g *game) RegisterEncounter(e encounter.Encounter) {
+	g.encounters.Register(e)
 }
 
 func (g *game) Bounds() (width, height float32) {
@@ -264,6 +278,8 @@ func (g *game) addMobEntity(e model.MobEntity) {
 		case *sys.MobSystem:
 			s.AddEntity(e)
 		case *sys.SkillSystem:
+			s.AddEntity(e)
+		case *encounter.System:
 			s.AddEntity(e)
 		}
 	}
