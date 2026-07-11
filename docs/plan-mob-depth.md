@@ -1353,7 +1353,7 @@ directly before patrol).
 
 ### Chunk 8 — Support mobs (backend + content)
 
-> **✅ DONE (implemented 2026-07-11, in-game verify PENDING; full backend suite
+> **✅ DONE + VERIFIED IN-GAME 2026-07-12 (implemented 2026-07-11; full backend suite
 > green, binary rebuilt, tsc + webpack green, TDD red-first). Design pivot
 > mid-chunk (user steer): the healer reacts to a wounded ally in its AGGRO
 > range like a damage mob reacts to a player — NOT a separate seek system.**
