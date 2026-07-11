@@ -134,7 +134,7 @@ cooldown** (added to scope in this planning session). All numbers
   tech debt) — auras-off-until-aggroed collides with this (§6.2).
 - **Physics:** `phy` spatial hashing (broadphase) — steering queries for
   nearby static blockers ride it; all dynamic bodies are circles.
-- **Heal limitations to lift (chunk 7):** `sys/skills.go` `healCaster`
+- **Heal limitations to lift (chunk 8):** `sys/skills.go` `healCaster`
   (mobs can't cast heal auras) + heal eligibility requiring `PlayerEntity`
   vitals (mobs can't BE healed) — both flagged in `plan-skill-system.md`.
 
@@ -844,7 +844,7 @@ directly before patrol).
 - **5a — local wander:** `wanderRadius` on `world.Spawn` + zone loader
   validation; idle wander behavior anchored on the authored point; respawn
   position rolled within the radius; editor control + marker preview;
-  scaffold zone exercises it.
+  proving-grounds zone exercises it.
 - **5b — route patrol:** `waypoints` on the spawn (⚑ §6.6 schema shape);
   patrol movement (loop/ping-pong ⚑); editor waypoint authoring; route
   validity stays a level-design responsibility (decided).
@@ -1352,7 +1352,7 @@ directly before patrol).
 - **Goal:** a healer mob keeps its pack alive; a buffer mob's ward is
   visible on allies.
 - **Do:** lift `healCaster` + heal-target capability (§3.7); seek-wounded-
-  ally movement; smoke content (healer mob + pack in the scaffold zone).
+  ally movement; smoke content (healer mob + pack in the proving-grounds zone).
 - **Tests:** mob-cast heal aura heals a wounded allied mob (resource, not
   player vitals); no player-reward leakage (#12); healer steers to the
   wounded ally; faction gates hold (no healing players by accident).
@@ -1375,7 +1375,7 @@ directly before patrol).
   (bridge open 20 min) + first-player-dwell trigger. **⚑ §6.5: candidate
   to slide to the content pass** with the real lava-bridge boss.
 - **Tests:** per sub-chunk; the smoke encounter is throwaway content
-  (scaffold zone), not a designed boss.
+  (proving-grounds zone), not a designed boss.
 
 ---
 
