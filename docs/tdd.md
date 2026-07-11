@@ -173,6 +173,44 @@ now.
 - Zone transitions (e.g. the tunnel between zone 1 and 2) — how?
 - **Named sub-regions (known-future, build nothing now):** three later features — per-area music (forest vs. cave *within* one zone), darkness patches (caves, the zone-1→2 tunnel, see 4.2), and per-area terrain/biome — all reduce to the same primitive: *a named region inside a zone carrying its own properties*. Today `zone.json` is `bounds` / `props` / `spawns` only. **Decision (2026-07-09):** don't build regions yet, but don't design them out — world-foundation chunk 6 authors terrain as the zone's **default** floor (not "the zone has *exactly one* floor"), and the loader's `DisallowUnknownFields` makes a later `regions: [...]` a one-line additive change. One shared region primitive then underpins music + darkness + terrain.
 
+### 4.7 Client Rendering: Fixed Field of View & Zoom Levels (decided 2026-07-11)
+
+**Decision: the visible world area is a game constant (fixed FOV), never a
+browser artifact.** Browser zoom and window size only change render sharpness
+and aspect ratio — how much world a player sees is defined by the game
+(krunker.io model). This closes the fairness hole where zooming the browser
+out granted extra sight range, and it is what killed the "blue border" bug
+class for good (see below).
+
+- **Mechanics:** `frontend/.../camera/logic/Zoom.ts` defines zoom levels as
+  **visible world heights** ([PLACEHOLDER] 6 / 7.6 / 9.5 m; level 1 = nearest,
+  3 = furthest, default middle). The camera scales `cameraGroup` by
+  `s = max(screenH / visibleHeight, screenW / maxVisibleWidth)` every frame —
+  "cover" semantics. All screen↔world conversions (`Camera.getScreenX/getMapX`
+  etc.) and the rectangular camera clamp carry the scale, so the zone editor
+  and dev tools stay click-accurate at every level.
+- **Streaming cap:** the server streams entities in a fixed **20×12 m**
+  viewport (`model/constant/const.go` / `BasicConfig.VIEWPORT`). The visible
+  width is hard-capped at [PLACEHOLDER] **18 m** so ultrawide windows at max
+  zoom-out never outrun the stream (entity pop-in). If a further-out level is
+  ever wanted, the backend viewport must grow with it (wire-neutral, but
+  bandwidth/interest-management cost).
+- **Zoom control:** two buttons + level number on the right edge above the
+  vital bars (`#zoomControl` in HUD.html); no wheel/key binding for now.
+  Ctrl+wheel browser zoom is `preventDefault`ed in-game.
+- **Known caveat:** the DOM HUD still scales with browser zoom (only the
+  canvas world view is immune). Acceptable until the UI-polish pass; a
+  canvas-rendered or rem-recalibrated HUD would close it.
+- **Blue-border bug (root cause fixed 2026-07-11):** `Game.ts` snapshotted
+  `devicePixelRatio` once and Pixi's `resizeTo` never re-applied resolution —
+  a hard reload at ≠100% browser zoom left canvas buffer and early draw
+  batches (terrain) on different metrics. Now the game owns resizing:
+  `renderer.resize(innerWidth, innerHeight, devicePixelRatio)` on every
+  window resize AND DPR change (re-chained `matchMedia('(resolution: …dppx)')`
+  listener), plus one post-init rAF reconciliation; `Game.width/height` read
+  `renderer.screen` live; the screen-sized water backdrop redraws on the
+  renderer resize event; the camera's corner cache is gone.
+
 ---
 
 ## 5. Known Technical Risks

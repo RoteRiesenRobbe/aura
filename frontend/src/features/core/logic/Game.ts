@@ -45,7 +45,6 @@ export class Game implements IGame {
     public zoneName = '';
 
     private application: Application;
-    private readonly renderResolution: number;
     public layers: IGameLayers;
     public cameraGroup: Container;
 
@@ -67,13 +66,11 @@ export class Game implements IGame {
     private backend: IBackend;
 
     public get width(): number {
-        // FIXME Doesn't take browser zoom into consideration
-        return this.application.canvas.width / this.renderResolution;
+        return this.application.renderer.screen.width;
     }
 
     public get height(): number {
-        // FIXME Doesn't take browser zoom into consideration
-        return this.application.canvas.height / this.renderResolution;
+        return this.application.renderer.screen.height;
     }
 
     public get centerX(): number {
@@ -94,16 +91,48 @@ export class Game implements IGame {
 
     constructor() {
         this.application = new Application();
-        // Save this as it might change later on, but Pixi.js will still use the same.
-        this.renderResolution = window.devicePixelRatio;
 
         // noinspection JSIgnoredPromiseFromCall
         registerPreload(this.application.init({
-            resizeTo: window,
             antialias: true,
             autoDensity: true,
-            resolution: this.renderResolution,
-        }));
+            resolution: window.devicePixelRatio,
+        }).then(() => this.setupResizeHandling()));
+    }
+
+    /**
+     * Owns canvas sizing (replaces Pixi's resizeTo plugin): every window
+     * resize AND every devicePixelRatio change (browser zoom, monitor/DPI
+     * switch) re-applies size + resolution together. The previous init-time
+     * resolution snapshot left the canvas buffer and parts of the render
+     * state on different metrics after a hard reload at ≠100% browser zoom —
+     * the "blue border" clipping bug.
+     */
+    private setupResizeHandling(): void {
+        const resize = () => {
+            this.application.renderer.resize(
+                window.innerWidth,
+                window.innerHeight,
+                window.devicePixelRatio,
+            );
+        };
+        window.addEventListener('resize', resize);
+
+        // matchMedia is the only reliable DPR-change signal; a query matches
+        // one specific DPR value, so it re-registers after every change.
+        const watchDprChange = () => {
+            const query = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+            query.addEventListener('change', () => {
+                resize();
+                watchDprChange();
+            }, {once: true});
+        };
+        watchDprChange();
+
+        resize();
+        // A hard reload at ≠100% browser zoom can apply the zoom level after
+        // init took its measurements — reconcile once more on the next frame.
+        requestAnimationFrame(resize);
     }
 
     setup(): void {
@@ -252,6 +281,15 @@ export class Game implements IGame {
 
         this.joystickManager = new JoystickManager();
         this.joystickManager.setup();
+
+        // Browser zoom has no effect on the world view (fixed FOV, see
+        // camera/logic/Zoom.ts), but an accidental ctrl+wheel mid-fight would
+        // still rescale the DOM HUD — block it.
+        document.addEventListener('wheel', (event) => {
+            if (event.ctrlKey) {
+                event.preventDefault();
+            }
+        }, {passive: false});
 
         // Disable context menu on right click to use the right click in-game
         document.body.addEventListener('contextmenu', (event) => {
@@ -405,9 +443,16 @@ export class Game implements IGame {
 
     private createBackground() {
         this.application.renderer.background.color = GraphicsConfig.deepWaterColor;
-        const waterRect = new Graphics()
-            .rect(0, 0, this.width, this.height)
-            .fill(GraphicsConfig.deepWaterColor);
+        // Screen-sized deep-water backdrop (also carries the night tint, see
+        // DayCycle) — must follow every canvas resize.
+        const waterRect = new Graphics();
+        const redraw = () => {
+            waterRect.clear()
+                .rect(0, 0, this.width, this.height)
+                .fill(GraphicsConfig.deepWaterColor);
+        };
+        redraw();
+        this.application.renderer.on('resize', redraw);
         this.layers.terrain.water.addChild(waterRect);
     }
 }

@@ -10,6 +10,7 @@ import {VitalSign} from '../../../vital-signs/logic/VitalSigns';
 import {InputMessage, DEACTIVATE_AURA_SLOT} from '../../../backend/logic/messages/outgoing/InputMessage';
 import {EquipMessage} from '../../../backend/logic/messages/outgoing/EquipMessage';
 import {SpendSkillPointMessage} from '../../../backend/logic/messages/outgoing/SpendSkillPointMessage';
+import * as Zoom from '../../../camera/logic/Zoom';
 
 let Game: IGame = null;
 
@@ -52,10 +53,38 @@ export function setup(game) {
     Game = game;
 
     setupVitalSigns();
+    setupZoomControl();
     setupSpellbook();
     setupAuraLoadout();
     setupPassiveLoadout();
     setupCooldownLoadout();
+}
+
+// Zoom control: steps through the fixed-FOV zoom levels (camera/logic/Zoom.ts).
+// The camera reads the level every frame, so a click applies on the next frame.
+function setupZoomControl() {
+    const inButton = document.getElementById('zoomInButton');
+    const outButton = document.getElementById('zoomOutButton');
+    const levelDisplay = document.getElementById('zoomLevelDisplay');
+
+    const render = () => {
+        levelDisplay.textContent = String(Zoom.getLevelNumber());
+        inButton.classList.toggle('inactive', !Zoom.canZoomIn());
+        outButton.classList.toggle('inactive', !Zoom.canZoomOut());
+    };
+
+    // pointerdown, not click — MouseManager's mousedown preventDefault
+    // suppresses synthetic click events on HUD elements.
+    inButton.addEventListener('pointerdown', () => {
+        Zoom.zoomIn();
+        render();
+    });
+    outButton.addEventListener('pointerdown', () => {
+        Zoom.zoomOut();
+        render();
+    });
+
+    render();
 }
 
 

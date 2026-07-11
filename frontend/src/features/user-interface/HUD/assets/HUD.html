@@ -25,6 +25,19 @@
         </div>
     </div>
 
+    <!-- In-game zoom (fixed FOV, camera/logic/Zoom.ts): 1 = nearest, 3 = furthest -->
+    <div id="zoomControl">
+        <div class="zoomIcon">
+            <svg viewBox="0 0 24 24">
+                <circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                <line x1="15" y1="15" x2="21" y2="21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <button id="zoomInButton" class="zoomButton">+</button>
+        <div id="zoomLevelDisplay"></div>
+        <button id="zoomOutButton" class="zoomButton">&minus;</button>
+    </div>
+
     <div id="leftColumn">
         <div id="spellbook">
             <div class="spellbookTitle">Spellbook<span id="skillPointsBadge" class="hidden"></span></div>

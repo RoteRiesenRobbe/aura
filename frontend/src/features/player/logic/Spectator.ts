@@ -1,5 +1,6 @@
 import {Vector} from '../../core/logic/Vector';
 import {Camera} from '../../camera/logic/Camera';
+import * as Zoom from '../../camera/logic/Zoom';
 import {IGame} from "../../core/logic/IGame";
 import {ICharacterLike} from "../../game-objects/logic/ICharacter";
 
@@ -10,7 +11,9 @@ export class Spectator implements ICharacterLike {
 
     constructor(game: IGame, x: number, y: number) {
         this.position = new Vector(x, y);
-        this.movementSpeed = Math.max(game.width, game.height);
+        // Speed proportional to the visible world size (world px, zoom-aware).
+        this.movementSpeed = Math.max(game.width, game.height)
+            / Zoom.viewScale(game.width, game.height);
         this.camera = new Camera(this);
     }
 

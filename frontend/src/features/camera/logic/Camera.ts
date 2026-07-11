@@ -4,10 +4,18 @@ import {IGame} from "../../core/logic/IGame";
 import {Develop} from "../../internal-tools/develop/logic/_Develop";
 import {CameraUpdatedEvent, ISubscriptionToken, PrerenderEvent} from "../../core/logic/Events";
 import {ICharacterLike} from "../../game-objects/logic/ICharacter";
+import * as Zoom from './Zoom';
 
 let Game: IGame = null;
 
-let Corners = [];
+/**
+ * Screen px per world px for the current zoom level and canvas size.
+ * Read live everywhere so zoom level changes and window/DPR resizes
+ * apply on the next frame without any bookkeeping.
+ */
+function viewScale(): number {
+    return Zoom.viewScale(Game.width, Game.height);
+}
 
 export class Camera {
     character: ICharacterLike;
@@ -34,28 +42,22 @@ export class Camera {
 
     static setup(game: IGame) {
         Game = game;
-
-        for (let x = -1; x <= 1; x += 2) {
-            for (let y = -1; y <= 1; y += 2) {
-                Corners.push({x: x * Game.width / 2, y: y * Game.height / 2});
-            }
-        }
     };
 
     getScreenX(mapX: number): number {
-        return mapX - this.getX() + Game.centerX;
+        return (mapX - this.getX()) * viewScale() + Game.centerX;
     }
 
     getScreenY(mapY: number): number {
-        return mapY - this.getY() + Game.centerY;
+        return (mapY - this.getY()) * viewScale() + Game.centerY;
     }
 
     getMapX(screenX: number): number {
-        return screenX + this.getX() - Game.centerX;
+        return (screenX - Game.centerX) / viewScale() + this.getX();
     }
 
     getMapY(screenY: number): number {
-        return screenY + this.getY() - Game.centerY;
+        return (screenY - Game.centerY) / viewScale() + this.getY();
     }
 
     getX() {
@@ -75,10 +77,12 @@ export class Camera {
             keepWithinMapBoundaries(this.vehicle);
         }
 
-        let position = Vector.clone(this.position);
-        position.negate();
-        position.add(new Vector(Game.centerX, Game.centerY));
-        Game.cameraGroup.position.copyFrom(position);
+        const scale = viewScale();
+        Game.cameraGroup.scale.set(scale);
+        Game.cameraGroup.position.set(
+            Game.centerX - this.position.x * scale,
+            Game.centerY - this.position.y * scale,
+        );
 
         CameraUpdatedEvent.trigger(this.getCameraWorldCenter());
     }
@@ -88,15 +92,8 @@ export class Camera {
     }
 
     getCameraWorldCenter(): Vector {
-        let cornersWorldPosition = Corners.map(corner => {
-            return new Vector(corner.x, corner.y).add(this.position);
-        });
-        let center = new Vector(0, 0);
-        cornersWorldPosition.forEach(corner => {
-            center.add(corner);
-        });
-        center.divideScalar(Corners.length);
-        return center;
+        // The camera centers the viewport on its position.
+        return Vector.clone(this.position);
     }
 }
 
@@ -104,8 +101,9 @@ function keepWithinMapBoundaries(vehicle: Vehicle) {
     // Rectangular world (world foundation chunk 1): clamp the camera so the
     // viewport stays inside the world bounds. If the world is smaller than the
     // viewport on an axis, lock that axis to centre (whole world visible).
-    let maxX = Math.max(0, Game.map.width / 2 - Game.width / 2);
-    let maxY = Math.max(0, Game.map.height / 2 - Game.height / 2);
+    const scale = viewScale();
+    let maxX = Math.max(0, Game.map.width / 2 - Game.width / scale / 2);
+    let maxY = Math.max(0, Game.map.height / 2 - Game.height / scale / 2);
 
     vehicle.position.x = Math.min(maxX, Math.max(-maxX, vehicle.position.x));
     vehicle.position.y = Math.min(maxY, Math.max(-maxY, vehicle.position.y));

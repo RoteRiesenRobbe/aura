@@ -719,3 +719,68 @@
 		}
 	}
 }
+
+/* ============================================================================
+ * Zoom control — right edge above the vital-sign bars.
+ * Fixed FOV: buttons step the visible world area (camera/logic/Zoom.ts).
+ */
+
+#zoomControl {
+	position: absolute;
+	right: (0.1 * @uiElementHeight);
+	bottom: 13vh; // just above #vitalSigns (12vh) + its bar margin
+
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.6vh;
+
+	> .zoomIcon {
+		width: (0.32 * @uiElementHeight);
+		height: (0.32 * @uiElementHeight);
+		color: @panel-title-color;
+
+		> svg {
+			display: block;
+			width: 100%;
+			height: 100%;
+		}
+	}
+
+	> #zoomLevelDisplay {
+		min-width: 1.5em;
+		text-align: center;
+		color: white;
+		font-size: (0.3 * @uiElementHeight);
+		text-shadow: 0 0 2px black, 0 0 2px black;
+	}
+
+	> .zoomButton {
+		width: (0.45 * @uiElementHeight);
+		height: (0.45 * @uiElementHeight);
+		padding: 0;
+		line-height: 1;
+		background: fade(white, 10%);
+		border: 1px solid @panel-border;
+		border-radius: 0.3rem;
+		color: @panel-color;
+		font: inherit;
+		font-size: (0.3 * @uiElementHeight);
+		cursor: pointer;
+
+		&:hover {
+			background: fade(white, 22%);
+			color: white;
+		}
+
+		&.inactive {
+			opacity: 0.25;
+			cursor: default;
+
+			&:hover {
+				background: fade(white, 10%);
+				color: @panel-color;
+			}
+		}
+	}
+}

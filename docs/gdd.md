@@ -620,6 +620,10 @@ weight escalating, not the writing voice — the voice stays constant.)
 - Aura panel (currently selected build from the spellbook)
 - Minimap
 - Zone chat
+- Zoom control (built 2026-07-11): 3 fixed zoom steps (1 = nearest, 3 =
+  furthest), buttons on the right edge above the bars. The visible world area
+  is a **game constant per step** — browser zoom/window size never grant
+  extra sight range (fairness; tech record: TDD §4.7)
 
 ```
   +-------------------------------------------------------+
