@@ -87,8 +87,13 @@ let spawnMobSelect: HTMLSelectElement;
 let respawnTicksInput: HTMLInputElement;
 let respawnVarianceInput: HTMLInputElement;
 let spawnAngleInput: HTMLInputElement;
+let wanderRadiusInput: HTMLInputElement;
+let idleSpeedInput: HTMLInputElement;
+let patrolModeSelect: HTMLSelectElement;
 let spawnSelectionGroup: HTMLElement;
 let spawnSelectedIndexLabel: HTMLElement;
+let waypointModeToggle: HTMLInputElement;
+let waypointCountLabel: HTMLElement;
 
 let propCountLabel: HTMLElement;
 let spawnCountLabel: HTMLElement;
@@ -124,8 +129,13 @@ export function setupPanel() {
     respawnTicksInput = document.getElementById('zoneEditor_respawnTicks') as HTMLInputElement;
     respawnVarianceInput = document.getElementById('zoneEditor_respawnVariance') as HTMLInputElement;
     spawnAngleInput = document.getElementById('zoneEditor_spawnAngle') as HTMLInputElement;
+    wanderRadiusInput = document.getElementById('zoneEditor_wanderRadius') as HTMLInputElement;
+    idleSpeedInput = document.getElementById('zoneEditor_idleSpeed') as HTMLInputElement;
+    patrolModeSelect = document.getElementById('zoneEditor_patrolMode') as HTMLSelectElement;
     spawnSelectionGroup = document.getElementById('zoneEditor_spawnSelection');
     spawnSelectedIndexLabel = document.getElementById('zoneEditor_spawnSelectedIndex');
+    waypointModeToggle = document.getElementById('zoneEditor_waypointMode') as HTMLInputElement;
+    waypointCountLabel = document.getElementById('zoneEditor_waypointCount');
 
     propCountLabel = document.getElementById('zoneEditor_propCount');
     spawnCountLabel = document.getElementById('zoneEditor_spawnCount');
@@ -222,6 +232,14 @@ export function setupPanel() {
         event.preventDefault();
         deselect();
     });
+    document.getElementById('zoneEditor_waypointRemoveLast').addEventListener('click', event => {
+        event.preventDefault();
+        editSelectedWaypoints(waypoints => waypoints.slice(0, -1));
+    });
+    document.getElementById('zoneEditor_waypointClear').addEventListener('click', event => {
+        event.preventDefault();
+        editSelectedWaypoints(() => []);
+    });
 
     let output = document.getElementById('zoneEditorOutput');
     document.getElementById('zoneEditor_showPopup').addEventListener('click', event => {
@@ -301,7 +319,7 @@ GamePlayingEvent.subscribe((game: IGame) => {
 
 function setMode(newMode: EditorMode) {
     mode = newMode;
-    deselect();
+    deselect(); // also unchecks the waypoint toggle
 
     textureSection.classList.toggle('hidden', mode !== 'terrain');
     // zoneControls stays visible in every mode (unhidden in setupPanel).
@@ -344,6 +362,13 @@ function onMapPointerDown(event: PointerEvent) {
             return;
         }
     } else {
+        // Waypoint authoring (chunk 5b): while the toggle is on, map clicks
+        // append route points to the selected spawn instead of placing/
+        // selecting spawns.
+        if (waypointModeToggle.checked) {
+            appendWaypointToSelection(x, y);
+            return;
+        }
         let hit = ZoneEditor.hitTestSpawn(x, y);
         if (hit >= 0) {
             ZoneEditor.setSelection({kind: 'spawn', index: hit});
@@ -411,6 +436,22 @@ function readSpawnControls(x: number, y: number): ZoneSpawn {
     if (isNaN(variance) || variance < 0) {
         variance = 0;
     }
+    // Tri-state: empty input = inherit the mob type's default (undefined),
+    // 0 = explicit stationary, > 0 = explicit radius.
+    let wanderRadius: number = undefined;
+    if (wanderRadiusInput.value.trim() !== '') {
+        wanderRadius = Math.max(0, parseFloat(wanderRadiusInput.value) || 0);
+    }
+    let idleSpeedFactor: number = undefined;
+    if (idleSpeedInput.value.trim() !== '') {
+        let parsed = parseFloat(idleSpeedInput.value);
+        if (!isNaN(parsed) && parsed > 0 && parsed <= 1) {
+            idleSpeedFactor = parsed;
+        } else {
+            Game.player.character.say('Idle speed factor must be in (0, 1]');
+            return null;
+        }
+    }
     return {
         mob: spawnMobSelect.value,
         x,
@@ -418,6 +459,9 @@ function readSpawnControls(x: number, y: number): ZoneSpawn {
         angle: deg2rad(parseFloat(spawnAngleInput.value) || 0),
         respawnTicks,
         respawnVariancePct: variance,
+        wanderRadius,
+        idleSpeedFactor,
+        waypoints: [],
     };
 }
 
@@ -433,6 +477,9 @@ function populateSpawnControls(spawn: ZoneSpawn) {
     respawnTicksInput.value = String(spawn.respawnTicks);
     respawnVarianceInput.value = String(spawn.respawnVariancePct);
     spawnAngleInput.value = String(Math.round(spawn.angle * 180 / Math.PI));
+    wanderRadiusInput.value = spawn.wanderRadius !== undefined ? String(spawn.wanderRadius) : '';
+    idleSpeedInput.value = spawn.idleSpeedFactor !== undefined ? String(spawn.idleSpeedFactor) : '';
+    patrolModeSelect.value = spawn.patrolMode === 'loop' ? 'loop' : 'pingpong';
 }
 
 function applyControlsToSelection() {
@@ -451,6 +498,18 @@ function applyControlsToSelection() {
         let current = ZoneEditor.model.spawns[selection.index];
         let updated = readSpawnControls(current.x, current.y);
         if (updated !== null) {
+            // The waypoint list is edited via its own buttons, not the
+            // controls — carry it over. Mirror the backend loader's
+            // hard-fails (explicit radius + waypoints; mode without a route)
+            // before they bite at boot.
+            updated.waypoints = current.waypoints || [];
+            if (updated.wanderRadius > 0 && updated.waypoints.length > 0) {
+                Game.player.character.say('Wander radius and waypoints are mutually exclusive');
+                return;
+            }
+            if (updated.waypoints.length > 0 && patrolModeSelect.value === 'loop') {
+                updated.patrolMode = 'loop';
+            }
             ZoneEditor.updateSpawn(selection.index, updated);
         }
     }
@@ -474,6 +533,38 @@ function deleteSelection() {
 
 function deselect() {
     ZoneEditor.setSelection(null);
+    if (waypointModeToggle) {
+        waypointModeToggle.checked = false;
+    }
+    updateSelectionDisplay();
+}
+
+// appendWaypointToSelection adds a route point at the clicked map position
+// (chunk 5b). Requires a selected spawn without a wander radius — the backend
+// loader hard-fails on both being set.
+function appendWaypointToSelection(x: number, y: number) {
+    let selection = ZoneEditor.getSelection();
+    if (selection === null || selection.kind !== 'spawn') {
+        Game.player.character.say('Select a spawn to add waypoints to');
+        return;
+    }
+    let spawn = ZoneEditor.model.spawns[selection.index];
+    if (spawn.wanderRadius > 0) {
+        Game.player.character.say('Wander radius and waypoints are mutually exclusive');
+        return;
+    }
+    let waypoints = (spawn.waypoints || []).concat([{x, y}]);
+    ZoneEditor.updateSpawn(selection.index, {...spawn, waypoints});
+    updateSelectionDisplay();
+}
+
+function editSelectedWaypoints(edit: (waypoints: {x: number, y: number}[]) => {x: number, y: number}[]) {
+    let selection = ZoneEditor.getSelection();
+    if (selection === null || selection.kind !== 'spawn') {
+        return;
+    }
+    let spawn = ZoneEditor.model.spawns[selection.index];
+    ZoneEditor.updateSpawn(selection.index, {...spawn, waypoints: edit(spawn.waypoints || [])});
     updateSelectionDisplay();
 }
 
@@ -489,6 +580,8 @@ function updateSelectionDisplay() {
     }
     if (spawnSelected) {
         spawnSelectedIndexLabel.textContent = String(selection.index);
+        let spawn = ZoneEditor.model.spawns[selection.index];
+        waypointCountLabel.textContent = String((spawn.waypoints || []).length);
     }
 }
 

@@ -49,10 +49,24 @@ type MobID uint64
 // the mob's health ratio is strictly below it, the mob flees its aggro target
 // instead of chasing. 0/absent = never flees; 1 = flees whenever damaged;
 // valid range [0, 1].
+//
+// Idle-pacing fields (mob-depth chunk 5 pacing rework): WanderRadius is the
+// TYPE-level default wander archetype — a spawn point without its own
+// wanderRadius/waypoints inherits it (Dodos graze by default); applied only
+// by the spawn-point system, so summons/companions are unaffected.
+// IdleSpeedFactor scales chase speed down for all idle movement (wander legs
+// AND patrol marching; evade return and walk-home stay full speed by design);
+// 0/absent = the global default at mob construction, valid (0, 1].
+// IdleDwellMin/MaxTicks is the stand time rolled between wander legs;
+// 0/absent = global defaults.
 type Factors struct {
 	MaxHealth               uint32
 	MaxHealthVariance       float32
 	FleeBelowHealthRatio    float32
+	WanderRadius            float32
+	IdleSpeedFactor         float32
+	IdleDwellMinTicks       int
+	IdleDwellMaxTicks       int
 	Resistances             map[string]float32
 	Damage                  float32
 	DamageTags              []string
@@ -107,6 +121,10 @@ type mobDefinition struct {
 		MaxHealth            uint32             `json:"maxHealth"`
 		MaxHealthVariance    float32            `json:"maxHealthVariance"`
 		FleeBelowHealthRatio float32            `json:"fleeBelowHealthRatio"`
+		WanderRadius         float32            `json:"wanderRadius"`
+		IdleSpeedFactor      float32            `json:"idleSpeedFactor"`
+		IdleDwellMinTicks    int                `json:"idleDwellMinTicks"`
+		IdleDwellMaxTicks    int                `json:"idleDwellMaxTicks"`
 		Resistances          map[string]float32 `json:"resistances"`
 		Speed                float32            `json:"speed"`
 		DeltaPhi             float32            `json:"deltaPhi"`
@@ -166,6 +184,24 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 		return nil, fmt.Errorf("mob %q: factors.fleeBelowHealthRatio %v must be in [0, 1]", m.Name, ratio)
 	}
 
+	// Idle pacing (chunk 5): a stationary species cannot carry a default
+	// wander; the factor is a fraction of chase speed; dwell is a band.
+	if m.Factors.WanderRadius < 0 {
+		return nil, fmt.Errorf("mob %q: factors.wanderRadius %v must not be negative", m.Name, m.Factors.WanderRadius)
+	}
+	if m.Factors.WanderRadius > 0 && m.Factors.Speed <= 0 {
+		return nil, fmt.Errorf("mob %q: stationary mob (speed 0) cannot carry a default wanderRadius", m.Name)
+	}
+	if f := m.Factors.IdleSpeedFactor; f < 0 || f > 1 {
+		return nil, fmt.Errorf("mob %q: factors.idleSpeedFactor %v must be in (0, 1] (or absent)", m.Name, f)
+	}
+	if m.Factors.IdleDwellMinTicks < 0 || m.Factors.IdleDwellMaxTicks < 0 {
+		return nil, fmt.Errorf("mob %q: idle dwell ticks must not be negative", m.Name)
+	}
+	if m.Factors.IdleDwellMaxTicks > 0 && m.Factors.IdleDwellMinTicks > m.Factors.IdleDwellMaxTicks {
+		return nil, fmt.Errorf("mob %q: idleDwellMinTicks %d exceeds idleDwellMaxTicks %d", m.Name, m.Factors.IdleDwellMinTicks, m.Factors.IdleDwellMaxTicks)
+	}
+
 	// Resistances: 0 = immune is valid, negative would heal on hit.
 	for tag, multiplier := range m.Factors.Resistances {
 		if tag == "" {
@@ -184,6 +220,10 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry)
 			MaxHealth:            m.Factors.MaxHealth,
 			MaxHealthVariance:    m.Factors.MaxHealthVariance,
 			FleeBelowHealthRatio: m.Factors.FleeBelowHealthRatio,
+			WanderRadius:         m.Factors.WanderRadius,
+			IdleSpeedFactor:      m.Factors.IdleSpeedFactor,
+			IdleDwellMinTicks:    m.Factors.IdleDwellMinTicks,
+			IdleDwellMaxTicks:    m.Factors.IdleDwellMaxTicks,
 			Resistances:          m.Factors.Resistances,
 			Speed:                m.Factors.Speed,
 			DeltaPhi:             m.Factors.DeltaPhi,

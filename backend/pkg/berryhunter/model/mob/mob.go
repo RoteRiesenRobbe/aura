@@ -151,6 +151,18 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	if m.chaseIntoAuraMargin <= 0 {
 		m.chaseIntoAuraMargin = 0.05
 	}
+	// Idle pacing from the definition, global defaults when unset (validated
+	// at registry load: factor in (0, 1], min <= max).
+	m.idleSpeedFactor = d.Factors.IdleSpeedFactor
+	if m.idleSpeedFactor <= 0 {
+		m.idleSpeedFactor = defaultIdleSpeedFactor
+	}
+	m.dwellMinTicks = d.Factors.IdleDwellMinTicks
+	m.dwellMaxTicks = d.Factors.IdleDwellMaxTicks
+	if m.dwellMaxTicks <= 0 {
+		m.dwellMinTicks = defaultIdleDwellMinTicks
+		m.dwellMaxTicks = defaultIdleDwellMaxTicks
+	}
 	m.Body.Shape().UserData = m
 	return m
 }
@@ -189,6 +201,35 @@ type Mob struct {
 	aggroTarget      model.Combatant
 	spawnPosition    phy.Vec2f
 	spawnInitialized bool
+
+	// Idle-movement archetypes (mob-depth chunk 5, patrol.go). The wander
+	// anchor is the AUTHORED spawn point (gotcha #7), set via SetWander;
+	// waypoints is the ping-pong patrol route (SetWaypoints). returnPos is
+	// the evade point: the mob's position when it left idle for combat —
+	// after a combat reset it walks back there before resuming its archetype.
+	wanderAnchor    phy.Vec2f
+	wanderRadius    float32
+	wanderTarget    phy.Vec2f
+	wanderTargetSet bool
+	wanderLegTicks  int
+	dwellTicks      int
+
+	waypoints    []phy.Vec2f
+	waypointIdx  int
+	waypointDir  int
+	waypointLoop bool
+
+	// Idle pacing (chunk-5 pacing rework): idleSpeedFactor scales wander legs
+	// AND patrol marching (evade return / walk-home stay full speed);
+	// dwellMin/MaxTicks is the wander stand-time band. Seeded from the mob
+	// definition in NewMob (global defaults when unset); the speed factor is
+	// per-spawn overridable via SetIdleSpeedFactor.
+	idleSpeedFactor float32
+	dwellMinTicks   int
+	dwellMaxTicks   int
+
+	returnPos    phy.Vec2f
+	returnPosSet bool
 
 	// Threat table (mob-depth chunk 3a): entity-keyed combat targeting,
 	// credited with post-mitigation HP from observed hits (§6.3). Deliberately
@@ -368,9 +409,7 @@ func (m *Mob) Update(dt float32) bool {
 			m.moveTowards(m.aggroTarget.Position())
 		}
 	} else {
-		if m.spawnInitialized {
-			m.moveTowards(m.spawnPosition)
-		}
+		m.updateIdleMovement()
 		// Heal to full in ~2 seconds while out of combat (absolute HP, item 11).
 		if m.health < m.maxHealth {
 			regen := vitals.HP(float32(m.maxHealth) / (2 * constant.TicksPerSecond))
@@ -404,10 +443,14 @@ func (m *Mob) SetPosition(p phy.Vec2f) {
 	if !m.spawnInitialized {
 		m.spawnPosition = p
 		m.spawnInitialized = true
-		m.aggroAura.SetPosition(p)
 	}
 	m.Body.SetPosition(p)
 	m.aura.SetPosition(p)
+	// The acquisition sensor travels with the body (chunk 5): a patroller
+	// aggros whatever it walks past, matching the mob-centered leash check
+	// (targetWithinSensor). Before chunk 5 the sensor was latched to the
+	// spawn position (territorial acquisition).
+	m.aggroAura.SetPosition(p)
 }
 
 func (m *Mob) Angle() float32 {
@@ -430,6 +473,12 @@ func (m *Mob) ApplySlow(source skills.SkillID, fraction float32, ticks int) {
 }
 
 func (m *Mob) moveTowards(target phy.Vec2f) {
+	m.moveTowardsScaled(target, 1)
+}
+
+// moveTowardsScaled is moveTowards with a speed scale — wander ambles at a
+// fraction of chase speed (chunk 5); everything else passes 1.
+func (m *Mob) moveTowardsScaled(target phy.Vec2f, speedScale float32) {
 	if m.velocity <= 0 {
 		return
 	}
@@ -441,7 +490,7 @@ func (m *Mob) moveTowards(target phy.Vec2f) {
 		return
 	}
 
-	step := m.stepLength()
+	step := m.stepLength() * speedScale
 	if distance < step {
 		step = distance
 	}
@@ -545,6 +594,9 @@ func (m *Mob) updateAggro() {
 }
 
 func (m *Mob) setAggroTarget(t model.Combatant) {
+	if m.aggroTarget == nil {
+		m.noteCombatEntry()
+	}
 	m.aggroTarget = t
 	m.setAuraActive(true)
 }

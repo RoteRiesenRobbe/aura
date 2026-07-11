@@ -217,18 +217,22 @@ trade-offs (light aura vs. damage aura).
   > max-chase leash becomes **state-dependent** (in-combat mobs chase far
   > longer); (b) **"No mob flees" is dropped** — flee is a required capability.
   > The idle/chase/hold/regen skeleton itself stays the shared foundation.
-- **Behavior archetypes (WoW-Classic-style, required):** on top of the shared
-  base, three idle-movement archetypes must exist:
-  1. **Stationary** — stands at its spot until aggroed (today's behavior).
+- **Behavior archetypes (WoW-Classic-style, required) — ✓ DONE (mob-depth
+  chunk 5, 2026-07-11; in-game verify pending):** on top of the shared base,
+  three idle-movement archetypes exist:
+  1. **Stationary** — stands at its spot until aggroed (the default).
   2. **Local patrol** — wanders randomly within a small radius around its
-     spawn anchor until aggroed.
-  3. **Route patrol** — patrols between fixed waypoints on the map.
-  Waypoints are map data → depends on item 4 (world & zones authoring format).
-- **Per-spawn wander radius + wander-range respawn (captured 2026-07-09).** The
-  local-patrol radius is **authored per spawn point** (a `wanderRadius` on the
-  `zone.json` spawn + an editor control — item 4), so two bridge guards stay put
+     spawn anchor until aggroed (`wanderRadius` on the spawn).
+  3. **Route patrol** — patrols between fixed waypoints on the map
+     (`waypoints` on the spawn, ping-pong traversal).
+  Bonus (user decision at chunk-5 plan-first): **WoW-classic evade return** —
+  every mob walks back to the exact point where it aggroed before resuming,
+  and the aggro sensor follows the body (patrollers aggro mid-route).
+- **Per-spawn wander radius + wander-range respawn — ✓ DONE (chunk 5).** The
+  local-patrol radius is **authored per spawn point** (`wanderRadius` on the
+  `zone.json` spawn + an editor control), so two bridge guards stay put
   (radius 0) while a wild boar roams (radius > 0). On death, respawn rolls a
-  **random position within the wander range**, not the exact spot — refining
+  **random position within the wander range**, not the exact spot — refined
   world chunk 4's same-spot respawn (`plan-world-zones.md`).
 - **Support behaviors:** mobs must be able to **heal each other and buff each
   other**, not only act on players — e.g. "move toward allied mobs with a

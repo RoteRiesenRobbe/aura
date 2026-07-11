@@ -66,11 +66,23 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 		}
 	}
 
-	// The scaffold zone specifically carries hand-authored terrain — keep the
-	// terrain-parsing pipeline pinned against real content.
-	zone, err := world.LoadZoneFS(content.zones, "scaffold", mobsRegistry, propsRegistry)
+	// The proving-grounds zone (the default debug/test map since 2026-07-11)
+	// carries authored terrain and both chunk-5 movement archetypes — keep the
+	// terrain + wander/waypoint parsing pipelines pinned against real content.
+	zone, err := world.LoadZoneFS(content.zones, "proving-grounds", mobsRegistry, propsRegistry)
 	require.NoError(t, err)
-	assert.NotEmpty(t, zone.Terrain, "scaffold zone should carry hand-authored terrain")
+	assert.NotEmpty(t, zone.Terrain, "proving-grounds should carry authored terrain")
+	var wanderers, patrollers int
+	for _, s := range zone.Spawns {
+		if s.EffectiveWanderRadius() > 0 {
+			wanderers++
+		}
+		if len(s.Waypoints) > 0 {
+			patrollers++
+		}
+	}
+	assert.NotZero(t, wanderers, "proving-grounds should exercise local wander")
+	assert.NotZero(t, patrollers, "proving-grounds should exercise route patrol")
 }
 
 // TestDiskContent_MissingSubdirFails pins the loud-failure contract: a

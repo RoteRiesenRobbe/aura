@@ -20,7 +20,11 @@ type fakeMobRegistry struct {
 func newFakeMobRegistry(names ...string) *fakeMobRegistry {
 	r := &fakeMobRegistry{byName: map[string]*mobs.MobDefinition{}}
 	for _, n := range names {
-		r.byName[n] = &mobs.MobDefinition{Name: n}
+		// Speed 1 so patrol/wander spawns validate; the stationary-mob test
+		// overrides it to 0 explicitly.
+		def := &mobs.MobDefinition{Name: n}
+		def.Factors.Speed = 1
+		r.byName[n] = def
 	}
 	return r
 }
@@ -170,6 +174,147 @@ func TestZone_RejectsUnknownPropType(t *testing.T) {
 	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry("Rock"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Nonexistent")
+}
+
+func TestZone_ParsesWanderAndWaypoints(t *testing.T) {
+	const doc = `{
+		"name": "X", "bounds": { "width": 60, "height": 40 },
+		"spawns": [
+			{ "mob": "Dodo", "x": 30, "y": 12, "angle": 0,
+			  "respawnTicks": 900, "respawnVariancePct": 0.2,
+			  "wanderRadius": 3.0 },
+			{ "mob": "SaberToothCat", "x": -10, "y": 5, "angle": 0,
+			  "respawnTicks": 1800, "respawnVariancePct": 0,
+			  "waypoints": [ { "x": -5, "y": 5 }, { "x": -5, "y": 10 } ] }
+		]
+	}`
+
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo", "SaberToothCat"), newFakePropRegistry())
+	require.NoError(t, err)
+	require.Len(t, z.Spawns, 2)
+	require.NotNil(t, z.Spawns[0].WanderRadius)
+	assert.EqualValues(t, 3.0, *z.Spawns[0].WanderRadius)
+	assert.Empty(t, z.Spawns[0].Waypoints)
+	assert.Nil(t, z.Spawns[1].WanderRadius, "absent = inherit the mob-type default")
+	require.Len(t, z.Spawns[1].Waypoints, 2)
+	assert.EqualValues(t, -5, z.Spawns[1].Waypoints[0].X)
+	assert.EqualValues(t, 10, z.Spawns[1].Waypoints[1].Y)
+}
+
+func TestZone_ParsesIdleOverridesAndPatrolMode(t *testing.T) {
+	const doc = `{
+		"name": "X", "bounds": { "width": 60, "height": 40 },
+		"spawns": [
+			{ "mob": "Dodo", "x": 1, "y": 1, "wanderRadius": 0 },
+			{ "mob": "Dodo", "x": 2, "y": 2, "idleSpeedFactor": 0.7,
+			  "waypoints": [ { "x": 3, "y": 3 }, { "x": 4, "y": 4 } ],
+			  "patrolMode": "loop" }
+		]
+	}`
+
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
+	require.NoError(t, err)
+	// Explicit 0 = stationary override despite a wandering species (the
+	// "bridge guard" case) — distinct from absent.
+	require.NotNil(t, z.Spawns[0].WanderRadius)
+	assert.EqualValues(t, 0, *z.Spawns[0].WanderRadius)
+	require.NotNil(t, z.Spawns[1].IdleSpeedFactor)
+	assert.InDelta(t, 0.7, *z.Spawns[1].IdleSpeedFactor, 1e-6)
+	assert.Equal(t, "loop", z.Spawns[1].PatrolMode)
+}
+
+func TestZone_RejectsInvalidIdleSpeedFactor(t *testing.T) {
+	for _, factor := range []string{"0", "-0.5", "1.5"} {
+		doc := `{ "name": "X", "bounds": { "width": 60, "height": 40 },
+			"spawns": [ { "mob": "Dodo", "x": 0, "y": 0, "idleSpeedFactor": ` + factor + ` } ] }`
+
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
+		require.Error(t, err, "idleSpeedFactor %s must be rejected", factor)
+		assert.Contains(t, err.Error(), "idleSpeedFactor")
+	}
+}
+
+func TestZone_RejectsBadPatrolMode(t *testing.T) {
+	for _, spawn := range []string{
+		// unknown mode name
+		`{ "mob": "Dodo", "x": 0, "y": 0, "patrolMode": "circle",
+		   "waypoints": [ { "x": 1, "y": 1 }, { "x": 2, "y": 2 } ] }`,
+		// mode without a route
+		`{ "mob": "Dodo", "x": 0, "y": 0, "patrolMode": "loop" }`,
+	} {
+		doc := `{ "name": "X", "bounds": { "width": 60, "height": 40 },
+			"spawns": [ ` + spawn + ` ] }`
+
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "patrolMode")
+	}
+}
+
+func TestZone_RejectsNegativeWanderRadius(t *testing.T) {
+	const doc = `{
+		"name": "X", "bounds": { "width": 60, "height": 40 },
+		"spawns": [ { "mob": "Dodo", "x": 0, "y": 0, "wanderRadius": -1 } ]
+	}`
+
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "wanderRadius")
+}
+
+func TestZone_RejectsWanderAndWaypointsTogether(t *testing.T) {
+	const doc = `{
+		"name": "X", "bounds": { "width": 60, "height": 40 },
+		"spawns": [ { "mob": "Dodo", "x": 0, "y": 0, "wanderRadius": 2,
+		              "waypoints": [ { "x": 1, "y": 1 }, { "x": 2, "y": 2 } ] } ]
+	}`
+
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "wanderRadius")
+	assert.Contains(t, err.Error(), "waypoints")
+}
+
+func TestZone_RejectsSingleWaypoint(t *testing.T) {
+	const doc = `{
+		"name": "X", "bounds": { "width": 60, "height": 40 },
+		"spawns": [ { "mob": "Dodo", "x": 0, "y": 0,
+		              "waypoints": [ { "x": 1, "y": 1 } ] } ]
+	}`
+
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "waypoints")
+}
+
+func TestZone_RejectsPatrolOnStationaryMob(t *testing.T) {
+	for _, spawn := range []string{
+		`{ "mob": "Totem", "x": 0, "y": 0, "wanderRadius": 2 }`,
+		`{ "mob": "Totem", "x": 0, "y": 0,
+		   "waypoints": [ { "x": 1, "y": 1 }, { "x": 2, "y": 2 } ] }`,
+	} {
+		doc := `{ "name": "X", "bounds": { "width": 60, "height": 40 },
+			"spawns": [ ` + spawn + ` ] }`
+
+		mr := newFakeMobRegistry("Totem")
+		mr.byName["Totem"].Factors.Speed = 0
+
+		_, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry())
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "stationary")
+	}
+}
+
+func TestZone_RejectsUnknownWaypointKey(t *testing.T) {
+	const doc = `{
+		"name": "X", "bounds": { "width": 60, "height": 40 },
+		"spawns": [ { "mob": "Dodo", "x": 0, "y": 0,
+		              "waypoints": [ { "x": 1, "y": 1, "z": 3 }, { "x": 2, "y": 2 } ] } ]
+	}`
+
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "z")
 }
 
 // twoZoneFS holds two distinct named zones ("a" and "b").

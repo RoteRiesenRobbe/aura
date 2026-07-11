@@ -297,6 +297,63 @@ func TestMapMobDefinition_FleeBelowHealthRatioOutOfBoundsFails(t *testing.T) {
 	}
 }
 
+func TestMapMobDefinition_ParsesIdleFields(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "factors": {"maxHealth": 40, "speed": 0.4, "wanderRadius": 2.5,
+	              "idleSpeedFactor": 0.25,
+	              "idleDwellMinTicks": 240, "idleDwellMaxTicks": 900},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	require.NoError(t, err)
+	assert.InDelta(t, 2.5, def.Factors.WanderRadius, 1e-6)
+	assert.InDelta(t, 0.25, def.Factors.IdleSpeedFactor, 1e-6)
+	assert.Equal(t, 240, def.Factors.IdleDwellMinTicks)
+	assert.Equal(t, 900, def.Factors.IdleDwellMaxTicks)
+}
+
+func TestMapMobDefinition_IdleFieldsDefaultToZero(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1, "name": "Dodo", "type": "MOB",
+	  "factors": {"maxHealth": 40, "speed": 0.4},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t))
+	require.NoError(t, err)
+	assert.Zero(t, def.Factors.WanderRadius, "absent = no type-default wander")
+	assert.Zero(t, def.Factors.IdleSpeedFactor, "absent = global default at mob construction")
+	assert.Zero(t, def.Factors.IdleDwellMinTicks)
+	assert.Zero(t, def.Factors.IdleDwellMaxTicks)
+}
+
+func TestMapMobDefinition_InvalidIdleFieldsFail(t *testing.T) {
+	for _, factors := range []string{
+		`{"maxHealth": 40, "speed": 0.4, "wanderRadius": -1}`,
+		`{"maxHealth": 40, "speed": 0.4, "idleSpeedFactor": -0.1}`,
+		`{"maxHealth": 40, "speed": 0.4, "idleSpeedFactor": 1.5}`,
+		`{"maxHealth": 40, "speed": 0.4, "idleDwellMinTicks": -1}`,
+		`{"maxHealth": 40, "speed": 0.4, "idleDwellMinTicks": 300, "idleDwellMaxTicks": 90}`,
+		`{"maxHealth": 40, "speed": 0, "wanderRadius": 2}`,
+	} {
+		raw, err := parseMobDefinition([]byte(`{
+		  "id": 1, "name": "Dodo", "type": "MOB",
+		  "factors": ` + factors + `,
+		  "body": {"radius": 0.2, "aggroRadius": 2.4}
+		}`))
+		require.NoError(t, err)
+
+		_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t))
+		assert.Error(t, err, "factors %s must be rejected", factors)
+	}
+}
+
 func TestRegistry_SpawnEffectUnknownMobFails(t *testing.T) {
 	// Skills load before mobs, so a spawn effect's mob name can only resolve
 	// once the mob registry exists — RegistryFromFS is the validation seam.

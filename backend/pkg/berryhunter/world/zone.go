@@ -43,19 +43,52 @@ type Prop struct {
 	Def *PropDefinition `json:"-"`
 }
 
-// Spawn is an authored mob spawn point. The mob respawns at the same spot after
-// respawnTicks ± respawnVariancePct (chunk 4). Def is resolved at load time so
-// an unknown mob name fails loudly at boot.
+// Waypoint is one point of a spawn's patrol route, in server units.
+type Waypoint struct {
+	X float32 `json:"x"`
+	Y float32 `json:"y"`
+}
+
+// Spawn is an authored mob spawn point. The mob respawns after respawnTicks ±
+// respawnVariancePct (chunk 4) — at the same spot, or rolled within the
+// wander radius for wanderers (mob-depth chunk 5). Def is resolved at load
+// time so an unknown mob name fails loudly at boot.
+//
+// Movement archetype (mob-depth chunk 5, §3.5 + pacing rework): waypoints
+// non-empty → route patrol (patrolMode "pingpong" default, "loop" wraps
+// last→first — circling a landmark); else the wander radius decides — it is
+// tri-state: absent (nil) inherits the mob type's factors.wanderRadius,
+// explicit 0 forces stationary (a bridge guard of a wandering species),
+// > 0 overrides the radius. Explicit radius > 0 plus waypoints is an
+// authoring error. IdleSpeedFactor overrides the type's idle pace for this
+// spawn (nil = inherit; valid (0, 1]).
 type Spawn struct {
-	Mob                string  `json:"mob"`
-	X                  float32 `json:"x"`
-	Y                  float32 `json:"y"`
-	Angle              float32 `json:"angle"`
-	RespawnTicks       int     `json:"respawnTicks"`
-	RespawnVariancePct float32 `json:"respawnVariancePct"`
+	Mob                string     `json:"mob"`
+	X                  float32    `json:"x"`
+	Y                  float32    `json:"y"`
+	Angle              float32    `json:"angle"`
+	RespawnTicks       int        `json:"respawnTicks"`
+	RespawnVariancePct float32    `json:"respawnVariancePct"`
+	WanderRadius       *float32   `json:"wanderRadius"`
+	IdleSpeedFactor    *float32   `json:"idleSpeedFactor"`
+	Waypoints          []Waypoint `json:"waypoints"`
+	PatrolMode         string     `json:"patrolMode"`
 
 	// Def is the mob definition resolved from Mob; not part of the JSON.
 	Def *mobs.MobDefinition `json:"-"`
+}
+
+// EffectiveWanderRadius resolves the spawn's tri-state wander radius against
+// the mob type's default. Only meaningful once Def is resolved; waypoints
+// take precedence over any wander radius.
+func (s *Spawn) EffectiveWanderRadius() float32 {
+	if len(s.Waypoints) > 0 {
+		return 0
+	}
+	if s.WanderRadius != nil {
+		return *s.WanderRadius
+	}
+	return s.Def.Factors.WanderRadius
 }
 
 // TerrainTexture is a hand-placed free-form ground texture. It is purely
@@ -176,6 +209,29 @@ func (z *Zone) validate() error {
 	if z.Bounds.Width <= 0 || z.Bounds.Height <= 0 {
 		return fmt.Errorf("bounds must be positive, got %gx%g", z.Bounds.Width, z.Bounds.Height)
 	}
+	for i := range z.Spawns {
+		s := &z.Spawns[i]
+		if s.WanderRadius != nil && *s.WanderRadius < 0 {
+			return fmt.Errorf("spawn %d: wanderRadius must not be negative, got %g", i, *s.WanderRadius)
+		}
+		if s.WanderRadius != nil && *s.WanderRadius > 0 && len(s.Waypoints) > 0 {
+			return fmt.Errorf("spawn %d: wanderRadius and waypoints are mutually exclusive", i)
+		}
+		if f := s.IdleSpeedFactor; f != nil && (*f <= 0 || *f > 1) {
+			return fmt.Errorf("spawn %d: idleSpeedFactor %g must be in (0, 1]", i, *f)
+		}
+		if len(s.Waypoints) == 1 {
+			return fmt.Errorf("spawn %d: waypoints needs at least 2 points for a route", i)
+		}
+		switch s.PatrolMode {
+		case "", "pingpong", "loop":
+		default:
+			return fmt.Errorf("spawn %d: patrolMode %q must be \"pingpong\" or \"loop\"", i, s.PatrolMode)
+		}
+		if s.PatrolMode != "" && len(s.Waypoints) == 0 {
+			return fmt.Errorf("spawn %d: patrolMode without waypoints", i)
+		}
+	}
 	return nil
 }
 
@@ -187,6 +243,14 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 		def, err := mr.GetByName(s.Mob)
 		if err != nil {
 			return fmt.Errorf("spawn %d: unknown mob %q", i, s.Mob)
+		}
+		// Speed needs the resolved definition, so this check can't live in
+		// validate(): a mob that cannot walk cannot wander or patrol. (A
+		// speed-0 type carrying a DEFAULT wanderRadius already fails at mob
+		// registry load.)
+		wanders := s.WanderRadius != nil && *s.WanderRadius > 0
+		if (wanders || len(s.Waypoints) > 0) && def.Factors.Speed <= 0 {
+			return fmt.Errorf("spawn %d: stationary mob %q (speed 0) cannot wander or patrol", i, s.Mob)
 		}
 		s.Def = def
 	}

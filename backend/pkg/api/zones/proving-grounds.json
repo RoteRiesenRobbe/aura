@@ -25604,6 +25604,283 @@
       "angle": 0.0,
       "respawnTicks": 700,
       "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Rabbit",
+      "x": 4.0,
+      "y": 4.0,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "Rabbit",
+      "x": -4.0,
+      "y": -3.0,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "Rabbit",
+      "x": 3.0,
+      "y": -5.0,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "Rabbit",
+      "x": -3.0,
+      "y": 6.0,
+      "angle": 0,
+      "respawnTicks": 600,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "Dodo",
+      "x": 30.4,
+      "y": 4.0,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "Dodo",
+      "x": 36.0,
+      "y": -3.0,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "Dodo",
+      "x": 41.8,
+      "y": 5.0,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "Dodo",
+      "x": 46.0,
+      "y": -1.0,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "Dodo",
+      "x": 50.0,
+      "y": 6.0,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "Mammoth",
+      "x": -42.74,
+      "y": 14.69,
+      "angle": 0,
+      "respawnTicks": 2700,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 5
+    },
+    {
+      "mob": "Mammoth",
+      "x": -38.0,
+      "y": -3.0,
+      "angle": 0,
+      "respawnTicks": 2700,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 5
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": 34.8,
+      "y": 28.0,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 4
+    },
+    {
+      "mob": "Dodo",
+      "x": -2.0,
+      "y": -27.4,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "Dodo",
+      "x": 7.0,
+      "y": -30.0,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 3
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": -5.5,
+      "y": 5.5,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "waypoints": [
+        {
+          "x": 5.5,
+          "y": 5.5
+        },
+        {
+          "x": 5.5,
+          "y": -5.5
+        },
+        {
+          "x": -5.5,
+          "y": -5.5
+        },
+        {
+          "x": -5.5,
+          "y": 5.5
+        }
+      ]
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": 25.0,
+      "y": 19.6,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "waypoints": [
+        {
+          "x": 26,
+          "y": 19.6
+        },
+        {
+          "x": 44,
+          "y": 19.6
+        }
+      ]
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": -26.0,
+      "y": 28.5,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "waypoints": [
+        {
+          "x": -10,
+          "y": 28.5
+        },
+        {
+          "x": -8,
+          "y": 33.5
+        },
+        {
+          "x": 4.0,
+          "y": 33.2
+        }
+      ]
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": -40.0,
+      "y": 15.0,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "waypoints": [
+        {
+          "x": -22,
+          "y": 15
+        },
+        {
+          "x": -22,
+          "y": -1
+        },
+        {
+          "x": -40,
+          "y": -1
+        },
+        {
+          "x": -40,
+          "y": 13
+        }
+      ],
+      "patrolMode": "loop"
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": 9.0,
+      "y": 1.0,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "waypoints": [
+        {
+          "x": 19.13,
+          "y": -0.23
+        },
+        {
+          "x": 30.9,
+          "y": 3.0
+        },
+        {
+          "x": 42,
+          "y": -2
+        }
+      ]
+    },
+    {
+      "mob": "SaberToothCat",
+      "x": -46.0,
+      "y": -15.5,
+      "angle": 0,
+      "respawnTicks": 1800,
+      "respawnVariancePct": 0.2,
+      "waypoints": [
+        {
+          "x": -36.67,
+          "y": -17.0
+        },
+        {
+          "x": -31,
+          "y": -26
+        }
+      ]
+    },
+    {
+      "mob": "Mammoth",
+      "x": -4.0,
+      "y": -24.0,
+      "angle": 0,
+      "respawnTicks": 2700,
+      "respawnVariancePct": 0.2,
+      "waypoints": [
+        {
+          "x": 4,
+          "y": -28
+        },
+        {
+          "x": 10.23,
+          "y": -23.45
+        }
+      ]
     }
   ]
 }

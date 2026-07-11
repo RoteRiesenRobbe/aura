@@ -120,10 +120,45 @@ to select, **Update**/**Delete** as above.
 Each spawn point = exactly one mob alive at a time: it spawns there, and after
 dying respawns at the same spot once the timer elapses.
 
+### Movement archetypes: wander and patrol routes
+
+A spawn's archetype (mob-depth chunk 5): route patrol beats wander, wander
+beats stationary. Idle movement always runs at the mob's **idle pace** —
+a fraction of chase speed — so an aggroed mob visibly speeds up.
+
+- **Local wander** — the *Wander radius* input is tri-state: **empty =
+  inherit the mob type's default** (Dodos graze out of the box —
+  `factors.wanderRadius` in `api/mobs/`), **0 = force stationary** (a
+  "bridge guard" of a wandering species), **> 0 = this radius**. The marker
+  shows the effective disc (fainter when inherited); the mob ambles between
+  random points inside it with long pauses and **(re)spawns at a random spot
+  within the disc** instead of the exact point.
+- **Patrol route** — select a spawn, tick **"Add on map click"** in the
+  selection box, then click the route points in order on the map (numbered
+  dots + a line from the diamond appear). **Remove last** / **Clear** edit
+  the list; untick the box to go back to normal placing/selecting. The
+  **Traversal** select picks how the route repeats: **Ping-pong** (A→B→C→
+  B→A, the default — right for open lines like wall patrols) or **Loop**
+  (…→C→A→B→…, wraps around — right for circling a landmark/tower; the
+  preview closes the polygon). A route needs at least 2 points; making it
+  *walkable* is your job as the designer — obstacle steering only smooths
+  small blockers.
+- **Idle speed factor** — per-spawn pace override in (0, 1] (empty =
+  inherit the type's `factors.idleSpeedFactor`, which itself defaults
+  globally). Lets two spawns of the same species amble differently.
+
+Rules the editor enforces (the server refuses to boot otherwise): an
+explicit wander radius > 0 and waypoints never together, a traversal mode
+only with waypoints, and no wander/route on a mob that can't walk (speed 0,
+e.g. Totem). In every archetype a mob that aggros mid-route **runs back at
+full speed** to the exact point where it left its route once combat ends,
+then drops back into the amble.
+
 ## 6. Choose a zone, or start a new one
 
 A world can have several zones now — one file each in `api/zones/`, named by
-its **file stem** (`scaffold.json` → the id `scaffold`).
+its **file stem** (`proving-grounds.json` → the id `proving-grounds`; since
+2026-07-11 this is the only shipped zone — the canonical debug/test map).
 
 - **Load zone** dropdown — pick any existing zone to open it for editing, or
   **＋ New zone** to start a blank one (default bounds, no terrain/props/spawns).

@@ -230,7 +230,8 @@ route/wander movement lands on already-smart legs.
 
 - Archetype resolution: `waypoints` non-empty → route patrol; else
   `wanderRadius > 0` → local wander; else stationary (today). Both set →
-  hard-fail at load (curated content style).
+  hard-fail at load (curated content style). *(Implemented — decisions and
+  the WoW-classic evade-return amendment in the chunk-5 banner, §5.)*
 - **Wander anchor = the authored spawn point**, not the rolled respawn
   position — otherwise respawn-within-range + wander-around-respawn
   compounds into drift off the authored spot (§4.7).
@@ -699,6 +700,144 @@ directly before patrol).
 - **Gotchas:** #6, #10.
 
 ### Chunk 5 — Patrol archetypes + wander respawn (backend + editor + content)
+
+> **STATUS: DONE — VERIFIED IN-GAME 2026-07-11 ("everything works as
+> described"), followed same day by the PACING REWORK below (user findings
+> from the verification round; full backend suite green 21 pkgs, binary
+> rebuilt, tsc + webpack green, red-first; zero wire changes; pacing rework
+> RE-VERIFIED IN-GAME same day — "pacing feels right now"; committed).**
+>
+> **Pacing rework (2026-07-11, user findings at verification):** (1) full-
+> speed patrol + 0.5×/1–4 s wander read as frantic — wanted: "relaxed,
+> regular living". Fix: ONE idle pace for wander legs AND patrol marching,
+> slower defaults. (2) pace must be tunable per mob TYPE and per SPAWN.
+> (3) ping-pong-only killed the circle-a-landmark case — loop traversal
+> returned as a per-spawn mode. Confirmed by user: evade return + walk-home
+> stay FULL speed (the mob visibly runs back, then drops into the amble);
+> starting numbers as proposed. **Knobs:** mob-def `factors` gained
+> `idleSpeedFactor` ((0,1], absent → 0.4 [PLACEHOLDER]),
+> `idleDwellMin/MaxTicks` (wander stand band, absent → 90–300 ≈ 3–10 s
+> [PLACEHOLDER]) and `wanderRadius` (TYPE-default archetype — applied by
+> the spawn-point system only, summons unaffected; speed-0 type with a
+> default radius fails at registry load). **Dodo grazes by default:
+> wanderRadius 2.5, idleSpeedFactor 0.25, dwell 240–900 (8–30 s), all
+> [PLACEHOLDER]** — every proving-grounds Dodo wanders with no zone edits.
+> **Spawn overrides:** `wanderRadius` is now TRI-STATE (*float32: absent =
+> inherit type default, explicit 0 = stationary — the roadmap's
+> bridge-guard case —, >0 = override; explicit >0 + waypoints still
+> hard-fails), `idleSpeedFactor` per spawn ((0,1]), `patrolMode:
+> "pingpong"(default)|"loop"` (loop wraps last→first; mode without
+> waypoints hard-fails). `Spawn.EffectiveWanderRadius()` resolves the
+> tri-state; `SetWaypoints(points, loop)` + `SetIdleSpeedFactor` are the
+> mob seams; `rollDwell` reads the def band. Editor: wander input is
+> tri-state (empty = inherit — inherited discs render fainter), idle-speed
+> input, traversal select on the selected spawn, loop routes close the
+> polygon; serializer exports explicit 0 but omits inherited/default
+> values. Content: Henge route flipped to `patrolMode: "loop"` (the
+> circling example). New pins: `definitions_test.go` idle-field
+> parse/defaults/6 hard-fails; `zone_test.go` tri-state + idleSpeedFactor
+> bounds + patrolMode hard-fails; `patrol_test.go` patrol-at-idle-speed,
+> def pace, spawn override, dwell band, loop wrap (c→a without revisiting
+> b), evade-return-at-full-speed; `sys/mob_test.go` type-default wander
+> through the system + explicit-0 override.
+>
+> **Plan-first decisions (user, 2026-07-11):** (1) **⚑ §6.6 waypoint schema =
+> inline per-spawn list** (`waypoints: [{x,y},…]` on the spawn; no shared
+> routes — KISS). (2) **Traversal = ping-pong only** (A→B→C→B→A; a closed
+> loop is authored as a polygon with the last point near the first).
+> (3) **WoW-classic evade behavior (user amendment, replaced the plain
+> sensor question):** a mob leaving idle for combat records its position
+> (`Mob.returnPos`); after the combat reset it walks back to that exact
+> point FIRST, then resumes its archetype — next waypoint (index kept),
+> fresh wander pick, or stand-at-spawn. Re-aggro during the return walk
+> does NOT overwrite the point, so the mob always resumes from where it
+> left its route. This uniformly replaced walk-home-to-spawn for ALL mobs
+> (a classic mob's recorded point IS its spawn spot — behavior unchanged);
+> implied by the same decision: **the aggro sensor now follows the body**
+> (`SetPosition` moves `aggroAura` every call, not just the latching first
+> one) — acquisition is mob-centered like the chunk-3 `targetWithinSensor`
+> leash check already was; a patroller aggros whatever it walks past.
+> (4) **Wander pacing = walk–pause at reduced speed** — amble at
+> `wanderSpeedFactor` [PLACEHOLDER 0.5×] with dwells of 30–120 ticks
+> [PLACEHOLDER] between legs (chase speed stays a readable aggro signal).
+>
+> **Mechanics (`model/mob/patrol.go`):** `SetWander(anchor, radius)` /
+> `SetWaypoints(points)` are called by `MobSystem.spawnAt` AFTER `NewMob` —
+> the wander anchor is the AUTHORED point, never the rolled respawn
+> position (gotchas #5/#7; `spawnPosition` still latches on first
+> `SetPosition` and stays the stationary fallback home). Update's idle
+> branch became `updateIdleMovement()`: finish the evade return first, then
+> waypoints → wander → `moveTowards(spawnPosition)`. Wander picks a uniform
+> point in the anchor disc from the mob's entity-ID-seeded RNG and budgets
+> the leg at 2× straight-line ticks + slack — a point rolled against a
+> blocker (steering orbit) expires into a normal dwell + re-roll. Route
+> patrol marches at full speed and advances the ping-pong index inside
+> `waypointArrivalRadius` [PLACEHOLDER 0.3] (exact-point arrival could
+> orbit when steering deflects the last step; route validity stays the
+> level designer's responsibility). All movement rides
+> `moveTowards`/`moveTowardsScaled` (new speed-scale variant, scale 1 ==
+> bit-identical to the old path), so chunk-4 steering and slows apply for
+> free. **Schema (`world/zone.go`):** `Spawn.WanderRadius` +
+> `Spawn.Waypoints []Waypoint{x,y}`, absent = stationary (gotcha #8,
+> backward-compatible zeros); hard-fails: negative radius, both set,
+> single-waypoint route, wander/waypoints on a speed-0 mob (checked in
+> `resolve()` where Def is bound). **Respawn:** a wander point rolls the
+> (re)spawn position uniformly within its radius (`randomInDisc`, system
+> RNG); waypoint + stationary spawns keep the exact authored spot.
+> **Editor (chunk-5 UX for ⚑ §6.6):** spawn controls gained a wander-radius
+> input (disc preview on the marker); with a spawn selected, an
+> **"Add on map click" waypoint toggle** appends route points per map
+> click (+ Remove last / Clear buttons; numbered dots + polyline from the
+> spawn marker); serializer omits zero/empty fields so pre-chunk-5 zones
+> round-trip diff-clean; the mutual-exclusion rule is enforced in-panel
+> before the backend loader would hard-fail at boot.
+> **Content [PLACEHOLDER] — on proving-grounds (same-day zone consolidation,
+> user call: scaffold.json + zone.json DELETED, proving-grounds is the one
+> canonical debug/test map, `conf.default.json game.zone=proving-grounds`):**
+> 21 archetype spawns (360 → 381). Wanderers: 4 hub Rabbits r3 (flee+wander),
+> 5 Sand-Flats Dodos r3, 2 Stone-Fields Mammoths r5, 1 Grove cat r4 (disc
+> contains trees — wander × steering), 2 Marsh Dodos r3. Patrol routes (all
+> ping-pong): hub square loop (±5.5), Grove steering-corridor lane
+> (26,19.6)↔(44,19.6), North Tree Line front→gap→back
+> (−26,28.5)→(−10,28.5)→(−8,33.5)→(4,33.2), Henge polygon loop
+> (−40,15)→(−22,15)→(−22,−1)→(−40,−1)→(−40,13), long east-trail route
+> (9,1)→(19.1,−0.2)→(30.9,3)→(42,−2), Ember Ring arc
+> (−46,−15.5)→(−36.7,−17)→(−31,−26), slow Marsh Mammoth
+> (−4,−24)→(4,−28)→(10.2,−23.5). Every WAYPOINT clearance-checked ≥ 0.35
+> against blocking props (a blocked waypoint = eternal orbit outside the
+> 0.3 arrival band); mid-SEGMENT blockers deliberately left in — they
+> exercise chunk-4 steering en route.
+> **Pins:** `world/zone_test.go` (parse + all 4 hard-fails + nested
+> unknown-key), `model/mob/patrol_test.go` (wander stays in radius /
+> anchors on the given anchor not the rolled spot / dwells + reduced
+> speed; ping-pong traversal order; patrol full speed; evade return →
+> resumes route toward the KEPT waypoint; re-aggro keeps the original
+> return point; classic-mob walk-home unchanged; sensor follows body),
+> `sys/mob_test.go` (respawn-roll within band + varied, wanderer anchored
+> on authored point through the system, route spawn patrols; the
+> spawn-tick assertion allows one step — spawnAt + first mob Update run in
+> the same system tick).
+> **In-game checklist (proving-grounds — the default zone, no flag
+> needed):** (1) hub Rabbits amble-pause within ~3u of their markers,
+> visibly slower than flee speed; (2) hub sentry cat marches its ±5.5
+> square and reverses along it (ping-pong on a closed polygon); (3) aggro
+> the sentry, kite it off the square, break aggro (outrun ~3 s, or die) —
+> it runs back to the exact point it left the route and resumes toward the
+> SAME next corner; (4) Grove corridor cat threads the 3.2u lane both ways
+> without jamming (patrol × steering); (5) Tree Line cat walks the wall
+> front, turns through the gap, patrols the back — reversing cleanly at
+> both route ends; (6) Henge cat loops the rock ring, steering around
+> stray Stone-Fields rocks mid-segment; (7) east-trail cat covers the long
+> hub→Sand-Flats route; aggroing it far out and losing it shows the long
+> evade run home; (8) Sand-Flats wander-Dodos respawn at VARYING spots
+> inside their discs (kill one repeatedly); (9) a wandering Rabbit hit to
+> below half HP flees, then evade-returns to its aggro point and resumes
+> wandering; (10) Marsh Mammoth plods its 3-point route (slow-mob patrol);
+> (11) editor: select a route spawn → numbered polyline renders; wander
+> spawns show discs; add/remove/clear waypoints works; Download and diff —
+> untouched spawns byte-identical, no `wanderRadius: 0`/`waypoints: []`
+> noise.
+
 - **5a — local wander:** `wanderRadius` on `world.Spawn` + zone loader
   validation; idle wander behavior anchored on the authored point; respawn
   position rolled within the radius; editor control + marker preview;
@@ -805,9 +944,14 @@ directly before patrol).
   (complete spine) vs with the real boss (content pass). Lean: slide to
   content — they're the two pieces with wire footprint and no smoke-test
   value.
-- **§6.6 — Waypoint schema shape (chunk 5b):** per-spawn inline waypoint
-  list (lean — KISS, matches "one spawn = one mob") vs named shared routes;
-  loop vs ping-pong traversal; editor UX for placing an ordered point list.
+- **§6.6 — Waypoint schema shape (chunk 5b) — DECIDED 2026-07-11 (chunk-5
+  plan-first, user):** per-spawn inline waypoint list (the lean; no shared
+  routes); traversal = **ping-pong only** (closed loops are authored as
+  polygons); editor UX = waypoint toggle on the selected spawn ("Add on map
+  click" + Remove last / Clear, polyline + numbered dots). Bonus decision
+  the chunk surfaced: **WoW-classic evade return** — record the position on
+  leaving idle for combat, walk back there after the reset, resume the
+  archetype; sensor follows the body. Record: chunk-5 banner (§5).
 - **§6.7 — No-progress leash rule (PARKED 2026-07-10, user call: not
   scheduled — raise at chunk 4 plan-first or later).** With aura LoS cut
   (`tdd.md` §4.2), this is the **designated leash mechanic against

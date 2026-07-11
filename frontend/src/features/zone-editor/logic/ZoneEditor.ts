@@ -30,6 +30,7 @@ interface PropDefJSON {
 
 interface MobDefJSON {
     name: string;
+    factors?: { wanderRadius?: number };
 }
 
 // Bundled straight from the repo api/ — the same files the server reads.
@@ -54,6 +55,28 @@ export const propTypes: PropTypeDef[] = propDefJSONs
 export const mobNames: string[] = mobDefJSONs
     .map(def => def.name)
     .sort((a, b) => a.localeCompare(b));
+
+// Type-level default wander radii (factors.wanderRadius) — a spawn without
+// its own radius inherits these, so the marker previews the effective disc.
+const mobDefaultWanderRadius: { [name: string]: number } = {};
+mobDefJSONs.forEach(def => {
+    mobDefaultWanderRadius[def.name] = (def.factors && def.factors.wanderRadius) || 0;
+});
+
+/**
+ * The wander radius a spawn actually gets: its own tri-state value
+ * (undefined = inherit, 0 = stationary, > 0 = override) resolved against the
+ * mob type's default. Waypoints take precedence over any radius.
+ */
+export function effectiveWanderRadius(spawn: ZoneSpawn): number {
+    if (spawn.waypoints && spawn.waypoints.length > 0) {
+        return 0;
+    }
+    if (spawn.wanderRadius !== undefined) {
+        return spawn.wanderRadius;
+    }
+    return mobDefaultWanderRadius[spawn.mob] || 0;
+}
 
 const DEFAULT_STEM = zonesByStem['zone'] ? 'zone' : zoneStems[0];
 const NEW_ZONE_BOUNDS = {width: 60, height: 40};
@@ -359,6 +382,42 @@ function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
     let radiusPx = meter2px(SPAWN_MARKER_RADIUS);
 
     let marker = new Container();
+
+    // Wander-radius preview: the effective disc the mob ambles (and respawns)
+    // in — inherited type defaults render slightly fainter than explicit ones.
+    let wanderRadius = effectiveWanderRadius(spawn);
+    if (wanderRadius > 0) {
+        let inherited = spawn.wanderRadius === undefined;
+        marker.addChild(new Graphics()
+            .circle(0, 0, meter2px(wanderRadius))
+            .fill({color: COLOR_SPAWN, alpha: inherited ? 0.03 : 0.06})
+            .stroke({width: 2, color: COLOR_SPAWN, alpha: inherited ? 0.35 : 0.6}));
+    }
+
+    // Patrol-route preview: polyline from the spawn through the ordered
+    // waypoints (marker-local coordinates), each point numbered; loop mode
+    // closes the polygon back to the first point.
+    if (spawn.waypoints && spawn.waypoints.length > 0) {
+        let route = new Graphics().moveTo(0, 0);
+        spawn.waypoints.forEach(w => {
+            route.lineTo(meter2px(w.x - spawn.x), meter2px(w.y - spawn.y));
+        });
+        if (spawn.patrolMode === 'loop' && spawn.waypoints.length > 1) {
+            route.lineTo(meter2px(spawn.waypoints[0].x - spawn.x), meter2px(spawn.waypoints[0].y - spawn.y));
+        }
+        route.stroke({width: 3, color: COLOR_SPAWN, alpha: 0.6});
+        spawn.waypoints.forEach(w => {
+            route.circle(meter2px(w.x - spawn.x), meter2px(w.y - spawn.y), 10)
+                .fill({color: COLOR_SPAWN, alpha: 0.8});
+        });
+        marker.addChild(route);
+        spawn.waypoints.forEach((w, i) => {
+            let num = markerLabel(String(i + 1), 10);
+            num.position.set(meter2px(w.x - spawn.x), meter2px(w.y - spawn.y) - 14);
+            marker.addChild(num);
+        });
+    }
+
     let graphic = new Graphics()
         .poly([0, -radiusPx, radiusPx, 0, 0, radiusPx, -radiusPx, 0])
         .fill({color: COLOR_SPAWN, alpha: 0.25})

@@ -8,7 +8,11 @@
     "experience": 15,
     "speed": 0.4,
     "deltaPhi": 0.1,
-    "turnRate": 0.1
+    "turnRate": 0.1,
+    "wanderRadius": 2.5,
+    "idleSpeedFactor": 0.25,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
   },
   "body": {
     "radius": 0.2,

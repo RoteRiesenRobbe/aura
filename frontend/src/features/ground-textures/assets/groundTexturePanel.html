@@ -216,6 +216,16 @@
                 </div>
 
                 <div class="group">
+                    <label for="zoneEditor_wanderRadius">Wander radius (empty = mob default, 0 = stationary)</label>
+                    <input type="number" id="zoneEditor_wanderRadius" class="zoneEditor-inline" step="0.5" min="0" value=""/>
+                </div>
+
+                <div class="group">
+                    <label for="zoneEditor_idleSpeed">Idle speed factor (0..1, empty = mob default)</label>
+                    <input type="number" id="zoneEditor_idleSpeed" class="zoneEditor-inline" step="0.05" min="0.05" max="1" value=""/>
+                </div>
+
+                <div class="group">
                     <button id="zoneEditor_spawnPlaceButton" class="actionButton">Place at my position</button>
                 </div>
 
@@ -224,6 +234,22 @@
                     <button id="zoneEditor_spawnUpdate" class="actionButton">Update</button>
                     <button id="zoneEditor_spawnDelete" class="secondaryButton">Delete</button>
                     <button id="zoneEditor_spawnDeselect">Deselect</button>
+                    <div>
+                        Waypoints: <span id="zoneEditor_waypointCount"></span>
+                        <label>
+                            <input type="checkbox" id="zoneEditor_waypointMode"/>
+                            Add on map click
+                        </label>
+                        <button id="zoneEditor_waypointRemoveLast">Remove last</button>
+                        <button id="zoneEditor_waypointClear" class="secondaryButton">Clear</button>
+                    </div>
+                    <div>
+                        <label for="zoneEditor_patrolMode">Traversal</label>
+                        <select id="zoneEditor_patrolMode">
+                            <option value="pingpong" selected>Ping-pong (A→B→A)</option>
+                            <option value="loop">Loop (…→B→A→…)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 

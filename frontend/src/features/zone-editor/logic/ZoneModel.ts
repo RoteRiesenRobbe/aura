@@ -30,6 +30,11 @@ export interface ZoneProp {
     blocksMovement: boolean;
 }
 
+export interface ZoneWaypoint {
+    x: number;
+    y: number;
+}
+
 export interface ZoneSpawn {
     mob: string;
     x: number;
@@ -37,6 +42,19 @@ export interface ZoneSpawn {
     angle: number; // radians
     respawnTicks: number;
     respawnVariancePct: number;
+    // Idle-movement archetype (mob-depth chunk 5 + pacing rework).
+    // wanderRadius is TRI-STATE: undefined = inherit the mob type's default
+    // (factors.wanderRadius), explicit 0 = stationary override, > 0 = wander
+    // with that radius (mutually exclusive with waypoints). idleSpeedFactor
+    // overrides the type's idle pace (undefined = inherit; (0, 1]).
+    // waypoints non-empty = route patrol; patrolMode 'loop' wraps last→first
+    // (circling a landmark), undefined/'pingpong' reverses at the ends.
+    // The serializer omits undefined/default values so pre-chunk-5 zones
+    // round-trip diff-clean — but an explicit 0 radius IS exported.
+    wanderRadius?: number;
+    idleSpeedFactor?: number;
+    waypoints?: ZoneWaypoint[];
+    patrolMode?: 'pingpong' | 'loop';
 }
 
 export interface ZoneData {
@@ -76,7 +94,12 @@ export class ZoneModel {
             {width: data.bounds.width, height: data.bounds.height},
             (data.terrain || []).map(t => ({...t})),
             (data.props || []).map(p => ({...p})),
-            (data.spawns || []).map(s => ({...s})),
+            // wanderRadius/idleSpeedFactor/patrolMode keep their tri-state:
+            // absent stays undefined (= inherit), explicit values survive.
+            (data.spawns || []).map(s => ({
+                ...s,
+                waypoints: (s.waypoints || []).map(w => ({...w})),
+            })),
         );
     }
 
@@ -134,6 +157,15 @@ export class ZoneModel {
                 angle: round(s.angle, 3),
                 respawnTicks: s.respawnTicks,
                 respawnVariancePct: s.respawnVariancePct,
+                // undefined keys are dropped by JSON.stringify — inheriting
+                // spawns serialize exactly as before chunk 5. An explicit 0
+                // radius is a real value (stationary override) and exports.
+                wanderRadius: s.wanderRadius !== undefined ? round(s.wanderRadius, 2) : undefined,
+                idleSpeedFactor: s.idleSpeedFactor !== undefined ? round(s.idleSpeedFactor, 2) : undefined,
+                waypoints: s.waypoints && s.waypoints.length > 0
+                    ? s.waypoints.map(w => ({x: round(w.x, 2), y: round(w.y, 2)}))
+                    : undefined,
+                patrolMode: s.patrolMode === 'loop' ? 'loop' : undefined,
             })),
         };
         return JSON.stringify(data, null, 2);

@@ -2,6 +2,7 @@ package sys
 
 import (
 	"log"
+	"math"
 	"math/rand"
 
 	"github.com/EngoEngine/ecs"
@@ -24,6 +25,17 @@ type spawnPoint struct {
 	respawnTicks int
 	variancePct  float32
 
+	// Idle-movement archetype (mob-depth chunk 5): wanderRadius > 0 = local
+	// wander (spawn position rolled within the radius, anchor stays the
+	// authored pos) — already resolved against the mob type's default;
+	// waypoints non-empty = route patrol (patrolLoop wraps last→first,
+	// otherwise ping-pong). Mutually exclusive, enforced by the zone loader.
+	// idleSpeedFactor is the per-spawn pace override (nil = type default).
+	wanderRadius    float32
+	waypoints       []phy.Vec2f
+	patrolLoop      bool
+	idleSpeedFactor *float32
+
 	liveMobID uint64 // 0 = none live (respawn pending)
 	respawnAt uint64 // tick to respawn at; only meaningful while liveMobID == 0
 }
@@ -42,12 +54,20 @@ func NewMobSystem(g model.Game, seed int64, spawns []world.Spawn, space *phy.Spa
 	rnd := rand.New(rand.NewSource(seed))
 	points := make([]spawnPoint, 0, len(spawns))
 	for _, s := range spawns {
+		var waypoints []phy.Vec2f
+		for _, w := range s.Waypoints {
+			waypoints = append(waypoints, phy.Vec2f{w.X, w.Y})
+		}
 		points = append(points, spawnPoint{
-			def:          s.Def,
-			pos:          phy.Vec2f{s.X, s.Y},
-			angle:        s.Angle,
-			respawnTicks: s.RespawnTicks,
-			variancePct:  s.RespawnVariancePct,
+			def:             s.Def,
+			pos:             phy.Vec2f{s.X, s.Y},
+			angle:           s.Angle,
+			respawnTicks:    s.RespawnTicks,
+			variancePct:     s.RespawnVariancePct,
+			wanderRadius:    s.EffectiveWanderRadius(),
+			waypoints:       waypoints,
+			patrolLoop:      s.PatrolMode == "loop",
+			idleSpeedFactor: s.IdleSpeedFactor,
 		})
 	}
 	return &MobSystem{game: g, rnd: rnd, points: points, space: space}
@@ -121,15 +141,36 @@ func (n *MobSystem) rollDelay(p *spawnPoint) int {
 	return d
 }
 
-// spawnAt builds a fresh mob for the point at its authored position/angle and
-// registers it with the game. Each NewMob seeds its own entity-ID RNG, so HP
-// variance rolls per spawn (item 11 Phase 3).
+// spawnAt builds a fresh mob for the point and registers it with the game.
+// Each NewMob seeds its own entity-ID RNG, so HP variance rolls per spawn
+// (item 11 Phase 3). A wander point rolls the (re)spawn position uniformly
+// within its radius (chunk 5a); the wander anchor stays the AUTHORED point —
+// anchoring on the roll would drift the territory (gotcha #7). Waypoint and
+// stationary mobs spawn exactly at the authored spot.
 func (n *MobSystem) spawnAt(p *spawnPoint) {
 	m := mob.NewMob(p.def, n.game.Config().MobChaseIntoAuraMargin, n.space)
-	m.SetPosition(p.pos)
+	pos := p.pos
+	if p.wanderRadius > 0 {
+		pos = pos.Add(randomInDisc(n.rnd, p.wanderRadius))
+		m.SetWander(p.pos, p.wanderRadius)
+	}
+	if len(p.waypoints) > 0 {
+		m.SetWaypoints(p.waypoints, p.patrolLoop)
+	}
+	if p.idleSpeedFactor != nil {
+		m.SetIdleSpeedFactor(*p.idleSpeedFactor)
+	}
+	m.SetPosition(pos)
 	m.SetAngle(p.angle)
 	p.liveMobID = m.Basic().ID()
 	n.game.AddEntity(m)
+}
+
+// randomInDisc rolls a uniform offset within a disc of the given radius.
+func randomInDisc(rnd *rand.Rand, radius float32) phy.Vec2f {
+	r := radius * float32(math.Sqrt(rnd.Float64()))
+	theta := rnd.Float64() * 2 * math.Pi
+	return phy.Vec2f{X: r * float32(math.Cos(theta)), Y: r * float32(math.Sin(theta))}
 }
 
 func (n *MobSystem) Remove(b ecs.BasicEntity) {
