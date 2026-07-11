@@ -1,0 +1,18 @@
+{
+  "_comment": "Mob-depth chunk 6 placeholder content: cooldown that summons an owned, player-aligned Companion beside the caster — it follows the owner and attacks per §3.6 (what the owner attacks / what attacks the owner). The SKILL level scales the TTL and the companion's loadout level; the OWNER's player level adds max HP and a damage power multiplier. cooldownTicks ≥ the max-level TTL (2400) keeps it one-companion-at-a-time by content convention only — cooldown reduction beating the TTL legitimately yields multiple companions (chunk-6 decision). All values [PLACEHOLDER].",
+  "id": 24,
+  "name": "SummonCompanion",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 2400,
+  "effects": [
+    {
+      "type": "spawn",
+      "spawnMob": "Companion",
+      "ttlTicks": 1800,
+      "ttlTicksPerLevel": 300,
+      "maxHealthPerOwnerLevel": 2,
+      "powerPerOwnerLevel": 0.05
+    }
+  ]
+}

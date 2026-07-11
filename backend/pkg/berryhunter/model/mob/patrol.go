@@ -67,6 +67,12 @@ func (m *Mob) updateIdleMovement() {
 	if !m.spawnInitialized {
 		return
 	}
+	// Followers (chunk 6) trail their owner instead of any world archetype;
+	// they also never set returnPos (noteCombatEntry skips them).
+	if m.isFollower() {
+		m.updateFollow()
+		return
+	}
 	if m.returnPosSet {
 		if !m.arrivedAt(m.returnPos) {
 			m.moveTowards(m.returnPos)
@@ -88,7 +94,9 @@ func (m *Mob) updateIdleMovement() {
 // re-aggro during the return walk keeps the original point, so the mob always
 // resumes from where it left its route/territory.
 func (m *Mob) noteCombatEntry() {
-	if m.returnPosSet || !m.spawnInitialized {
+	// Followers record no evade point — follow IS their return behavior
+	// (chunk 6; the chunk-5 handoff trap).
+	if m.isFollower() || m.returnPosSet || !m.spawnInitialized {
 		return
 	}
 	m.returnPos = m.Position()

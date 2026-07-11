@@ -100,6 +100,7 @@ func (f *fakePlayer) HealthRatio() float32 {
 }
 func (f *fakePlayer) NoteHealReceived(d vitals.VitalSign) { f.healReceived += d }
 func (f *fakePlayer) Radius() float32                     { return 0.25 }
+func (f *fakePlayer) Position() phy.Vec2f                 { return f.aura.Position() }
 func (f *fakePlayer) Progression() model.PlayerProgression {
 	return model.PlayerProgression{Level: f.level}
 }
@@ -1581,6 +1582,45 @@ func TestCooldown_SpawnAddsOwnedAlignedMobWithTTL(t *testing.T) {
 		require.True(t, m.Update(0), "tick %d: summon still alive", i)
 	}
 	assert.False(t, m.Update(0), "TTL over → dies through the normal removal path")
+}
+
+func TestCooldown_SpawnMovingSummonFollowsOwner(t *testing.T) {
+	// The second spawn consumer (mob-depth chunk 6): a MOVING owned summon is
+	// a follower — spawnSummon's SetOwner plus the definition's speed > 0 are
+	// all it takes (no schema flag); after spawning offset beside the caster
+	// it trails the owner instead of standing or wandering.
+	companionDef := &mobs.MobDefinition{
+		ID: 10, Name: "Companion", // must be a valid BerryhunterApi entity type name
+		Body:    mobs.Body{Radius: 0.25, AggroRadius: 0.1},
+		Factors: mobs.Factors{MaxHealth: 60, Speed: 1.2},
+		Skills:  []mobs.MobSkill{{Def: totemAuraDef(), Level: 1}},
+	}
+	g := newFakeGame()
+	g.mobReg = fakeMobRegistry{"Companion": companionDef}
+	caster := newFakePlayer()
+	caster.level = 5
+	summonDef := summonTotemDef()
+	summonDef.Effects[0].Spawn.MobName = "Companion"
+	caster.sc.EquipCooldown(0, summonDef, 2)
+	sk := NewSkillSystem(phy.NewSpace(), g)
+	sk.rng = testRNG()
+	sk.AddEntity(caster)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.Len(t, g.added, 1, "a spawn never whiffs")
+	m := g.added[0].(*mob.Mob)
+	assert.Same(t, model.PlayerEntity(caster), m.Owner())
+
+	// The owner walks away; the companion must give chase at full speed.
+	caster.aura.SetPosition(phy.Vec2f{X: 6, Y: 0})
+	before := m.Position()
+	require.True(t, m.Update(0))
+	after := m.Position()
+	assert.Greater(t, after.X, before.X, "the companion moves toward its owner")
+	assert.InDelta(t, 1.2*0.055, after.Sub(before).Abs(), 1e-4,
+		"follow runs at the definition's full speed, not the idle amble")
 }
 
 func TestCooldown_SpawnPlacementSkipsBlockedSpots(t *testing.T) {

@@ -21,5 +21,6 @@ export enum EntityType {
   AngryMammoth = 15,
   TitaniumShard = 16,
   Totem = 17,
-  Rabbit = 18
+  Rabbit = 18,
+  Companion = 19
 }

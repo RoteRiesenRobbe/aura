@@ -566,6 +566,15 @@ func (m *Mob) updateAggro() {
 	tookDamage := m.tookDamage
 	m.tookDamage = false
 
+	// Followers (chunk 6) are owner-centric: acquisition from the owner's
+	// combat signals, stickiness bounded by the owner tether — no sensor
+	// (its mask sees the player layer), no threat retention (hits on the
+	// companion never re-target it, §3.6), no leash (the tether replaces it).
+	if m.isFollower() {
+		m.updateCompanionTargeting()
+		return
+	}
+
 	if target := m.highestThreatTarget(); target != nil {
 		m.setAggroTarget(target)
 	} else if m.aggroTarget != nil && m.aggroTarget.HealthRatio() == 0 {
@@ -858,6 +867,14 @@ func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 		source, _ = p.(model.Combatant)
 	}
 	m.noteThreat(source, float32(lost))
+	// Assist signal for the toucher's companion (chunk 6, §3.6): a direct
+	// player hit — Source nil, so summon damage replaying through the owner
+	// never counts as "the owner attacked".
+	if damage.Source == nil {
+		if n, ok := p.(model.AttackNotifier); ok {
+			n.NoteAttackDealt(m)
+		}
+	}
 	m.tryGrantKillRewards()
 }
 

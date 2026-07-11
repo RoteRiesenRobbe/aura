@@ -249,6 +249,7 @@ const gameObjectClasses = [
     Resources.TitaniumShard,
     Mobs.Totem,
     Mobs.Rabbit,
+    Mobs.Companion,
 ];
 
 function unmarshalEntityType(entityType) {

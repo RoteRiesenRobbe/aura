@@ -852,6 +852,91 @@ directly before patrol).
 
 ### Chunk 6 — Companion cooldown (backend + wire + content)
 
+> **STATUS: DONE — VERIFIED IN-GAME 2026-07-11 ("everything works"; full
+> backend suite green 21 pkgs, binary rebuilt, tsc + webpack green,
+> red-first; zero wire-field changes — only the EntityType enum append;
+> committed same day).**
+>
+> **Plan-first decisions (user, 2026-07-11 — ⚑ §6.4 closed):**
+> (1) **Lifetime = TTL, totem-style** (~60 s [PLACEHOLDER], scaling with the
+> summon-skill level; cooldown ≥ TTL). (2) **Catch-up = teleport beyond a
+> threshold** (~15 u [PLACEHOLDER]; hold ring ~1.5 u) — the sanctioned
+> exception to gotcha #6; steering only handles convex blockers, a wall could
+> otherwise strand the companion for its whole TTL. (3) **Max-one = TTL ≤
+> cooldown content convention ONLY, and deliberately unenforced: if cooldown
+> reduction ever beats the TTL, multiple simultaneous companions are the
+> REWARD for that interaction** — no code cap, no owner→summon back-reference.
+> (4) **New `Companion` EntityType** (ordinal 19, appended to `server.fbs`,
+> Go + TS regen) with placeholder wolf-pup SVG. Leans recorded at plan-first:
+> follower = **owned + moving** (`owner != nil && velocity > 0`, no schema
+> flag — YAGNI; the totem is speed 0, zone mobs have no owner); **defend
+> beats assist** at acquisition; the combat tether measures from the OWNER
+> (~10 u [PLACEHOLDER]); followers skip `returnPos` entirely (the chunk-5
+> handoff trap — follow IS their return behavior); a follower does NOT
+> retaliate for hits on itself (§3.6 is owner-centric; calibration point for
+> the in-game check).
+>
+> **Mechanics:** the §3.6 "owner attacked X" signal became **owner combat
+> stamps** — both acquisition conditions are O(1) reads off the owner, no
+> sensor/mask changes: `Mob.PlayerTouches` stamps the toucher via optional
+> `model.AttackNotifier` on hits with `Damage.Source == nil` (direct casts
+> only — summon damage replaying through the owner never counts as "the owner
+> attacked"), and `player.MobTouches` stamps the attacker; both age out over
+> `combatSignalWindowTicks` [PLACEHOLDER 90 ≈ 3 s] in `ResetTickNumbers`,
+> read via optional `model.CombatSignals` (nil when expired or dead).
+> **`model/mob/companion.go`** (mirrors patrol.go): `updateIdleMovement` got
+> a follower branch FIRST — `updateFollow()` walks at FULL speed toward the
+> nearest point on the follow ring (never the idle amble; the arrival clamp
+> stops ON the ring, not under the owner), snaps to that ring point beyond
+> the teleport threshold, stands inside the ring or when the owner is
+> dead/absent (TTL cleans up). `updateAggro` got a follower branch replacing
+> sensor acquisition, threat retention AND the leash:
+> `updateCompanionTargeting()` holds the sticky target while it lives inside
+> the owner tether, else acquires from the stamps (defend first), tether- and
+> faction-gated. `setAggroTarget`/`resetAggro` keep driving the chunk-3c aura
+> gate, so the ring shows in combat and hides on follow for free; hits on the
+> companion still build ITS threat on the attacker's table unchanged (mobs
+> turn on it), the companion just never reads its own. `noteCombatEntry`
+> skips followers. **Spawn side was free:** `spawnSummon` already handles
+> owner/faction/TTL/loadout-level/power/offset placement; owner XP + summon
+> threat attribution ride the chunk-1/3 `Owned` path (gotcha #9).
+> **Content [ALL PLACEHOLDER]:** `api/mobs/companion.json` (id 7, maxHealth
+> 60, speed 1.2 → 0.066/tick, deliberately above the player's 0.05; layer
+> 160 = Viewport|Player — the player-layer trick —, mask 17 =
+> PlayerStatic|Border so it collides like its owner; aggroRadius 0.1 dummy —
+> sensor bypassed); `api/skills/mobs/companion-aura.json` (id 107, physical
+> damage aura, nearest-1, 5+1/lvl, interval 20, r 0.8);
+> `api/skills/summon-companion.json` (id 24, spawn, ttl 1800+300/lvl ≤
+> cooldown 2400 — L3 TTL exactly equals the cooldown —, maxHealthPerOwnerLevel
+> 2, powerPerOwnerLevel 0.05); milestone **level 7**. Count pins now **21
+> skills** (registry_test + boot log `count=21`), 8 milestones, 7 mobs
+> (boot-log line only). **Frontend:** the known path (Companion class, BOTH
+> `Game.ts` layer steps, `gameObjectClasses[19]`, `Graphics.ts` entry,
+> `companion.svg`, `Skills.ts` id 24 ringless cooldown).
+> **Pins:** `companion_test.go` (follows at full speed / holds + converges on
+> the ring / teleports when hopelessly far / stands with dead owner; acquires
+> on owner-attacked + on-attacker-of-owner / defend-beats-assist / no signals
+> = pure follow + aura stays gated / dead- and beyond-tether stamps ignored;
+> sticky ignores new stamps / drops on death + beyond-tether → aura gates
+> off / own threat table never acquires; skips evade return; PlayerTouches
+> stamps direct hits only), `player_test.go` (stamp + window expiry /
+> re-stamp refresh / dead reads nil / MobTouches stamps attacker),
+> `skills_behavior_test.go` `TestCooldown_SpawnMovingSummonFollowsOwner`
+> (spawn → follower through the system).
+> **In-game checklist:** (1) `XP` to level 7 (or `SKILL SummonCompanion`),
+> equip, fire → wolf pup appears OFFSET beside you and trails you at ~1.5 u
+> at full speed (no amble); (2) walk far/behind props — it steers around
+> blockers; sprint-cheese it hopelessly far (>15 u) → it snaps beside you;
+> (3) attack a Dodo → the companion runs in and bites it (assist), its aura
+> ring shows only while fighting; (4) let a mob hit YOU while the companion
+> is free → it intercepts (defend); (5) mid-fight, attack a second mob — the
+> companion stays on its first target until that dies, then takes the next
+> signal or resumes follow; (6) kite a fight >10 u away from yourself → the
+> companion abandons the chase and returns; (7) kill via companion only →
+> YOU get the XP; a boss aura can kill the companion (it builds threat);
+> (8) it expires after ~60–80 s and stays gone; recast only after the
+> cooldown (~80 s).**
+
 > **Handoff from chunk 5 (2026-07-11) — read before the plan-first start:**
 > - **Idle-movement seam layout:** `Mob.updateIdleMovement()`
 >   (`model/mob/patrol.go`) is the no-aggro dispatch — evade return first,
@@ -975,10 +1060,15 @@ directly before patrol).
   if fights feel too sticky). Bonus decision the chunk surfaced:
   **stationary mobs (speed 0) are exempt from 3c aura gating** (always-on
   hazards; keeps totems/braziers functional with zero content edits).
-- **§6.4 — Companion specifics (chunk 6):** lifetime (TTL like the totem
-  vs until-death), follow distance + catch-up teleport, max one companion
-  (content convention like the totem, or enforced). (Whether hostile mobs
-  can target it is DECIDED: yes — it builds its own threat, §1.3.)
+- **§6.4 — Companion specifics (chunk 6) — ✓ DECIDED 2026-07-11 (chunk-6
+  plan-first, user):** lifetime = **TTL, totem-style** (~60 s [PLACEHOLDER],
+  skill-level-scaled, cooldown ≥ TTL); follow = hold ring ~1.5 u with
+  **catch-up teleport** beyond ~15 u [PLACEHOLDER]; max-one = **TTL ≤
+  cooldown convention only, deliberately unenforced** — cooldown reduction
+  beating the TTL legitimately yields multiple companions (the reward for
+  that interaction; no code cap). (Whether hostile mobs can target it was
+  already DECIDED: yes — it builds its own threat, §1.3.) Record: chunk-6
+  banner (§5).
 - **§6.5 — Encounter 9f cut line:** timed world-state + dwell-capture now
   (complete spine) vs with the real boss (content pass). Lean: slide to
   content — they're the two pieces with wire footprint and no smoke-test

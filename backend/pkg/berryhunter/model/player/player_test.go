@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/EngoEngine/ecs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
+	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
+	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
@@ -381,4 +384,88 @@ func TestPlayer_TakeDamage_ImmuneIsANonEvent(t *testing.T) {
 
 	assert.Equal(t, vitals.Max, p.VitalSigns().Health)
 	assert.Zero(t, p.DamageTaken(), "no floating number for a fully resisted hit")
+}
+
+// --- companion combat signals (mob-depth chunk 6, §3.6) ---
+
+// fakeAttackerMob is the minimal MobEntity+Combatant shape a companion's
+// acquisition signals carry; unimplemented methods panic via the embedded
+// nil interface.
+type fakeAttackerMob struct {
+	model.MobEntity
+	basic       ecs.BasicEntity
+	pos         phy.Vec2f
+	healthRatio float32
+}
+
+func (f *fakeAttackerMob) Basic() ecs.BasicEntity { return f.basic }
+func (f *fakeAttackerMob) Faction() model.Faction { return model.FactionHostile }
+func (f *fakeAttackerMob) Position() phy.Vec2f    { return f.pos }
+func (f *fakeAttackerMob) Radius() float32        { return 0.3 }
+func (f *fakeAttackerMob) HealthRatio() float32   { return f.healthRatio }
+
+func newFakeAttackerMob() *fakeAttackerMob {
+	return &fakeAttackerMob{basic: ecs.NewBasic(), healthRatio: 1}
+}
+
+func TestPlayer_CombatSignals_AttackStampAndExpiry(t *testing.T) {
+	p := newTestPlayer(nil)
+	target := newFakeAttackerMob()
+
+	require.Nil(t, p.RecentAttackTarget(), "fresh player has no attack signal")
+	p.NoteAttackDealt(target)
+	assert.Same(t, model.Combatant(target), p.RecentAttackTarget())
+
+	for i := 0; i < combatSignalWindowTicks-1; i++ {
+		p.ResetTickNumbers()
+	}
+	assert.Same(t, model.Combatant(target), p.RecentAttackTarget(),
+		"the stamp survives the whole window")
+	p.ResetTickNumbers()
+	assert.Nil(t, p.RecentAttackTarget(), "the stamp expires after the window")
+}
+
+func TestPlayer_CombatSignals_AttackerStampFromMobTouches(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	attacker := newFakeAttackerMob()
+
+	require.Nil(t, p.RecentAttacker(), "fresh player has no attacker signal")
+	p.MobTouches(attacker, mobs.Factors{Damage: 1})
+	assert.Same(t, model.Combatant(attacker), p.RecentAttacker(),
+		"a mob hit stamps the attacker signal")
+
+	for i := 0; i < combatSignalWindowTicks; i++ {
+		p.ResetTickNumbers()
+	}
+	assert.Nil(t, p.RecentAttacker(), "the attacker stamp expires after the window")
+}
+
+func TestPlayer_CombatSignals_ReStampRefreshesWindow(t *testing.T) {
+	p := newTestPlayer(nil)
+	target := newFakeAttackerMob()
+
+	p.NoteAttackDealt(target)
+	for i := 0; i < combatSignalWindowTicks-1; i++ {
+		p.ResetTickNumbers()
+	}
+	p.NoteAttackDealt(target) // re-stamp on the last tick
+	p.ResetTickNumbers()
+	assert.Same(t, model.Combatant(target), p.RecentAttackTarget(),
+		"a re-stamp restarts the window")
+}
+
+func TestPlayer_CombatSignals_DeadStampReadsNil(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	target := newFakeAttackerMob()
+	attacker := newFakeAttackerMob()
+
+	p.NoteAttackDealt(target)
+	p.MobTouches(attacker, mobs.Factors{Damage: 1})
+	target.healthRatio = 0
+	attacker.healthRatio = 0
+
+	assert.Nil(t, p.RecentAttackTarget(), "a dead stamp target reads nil")
+	assert.Nil(t, p.RecentAttacker(), "a dead attacker reads nil")
 }

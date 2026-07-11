@@ -1,0 +1,19 @@
+{
+  "_comment": "Mob-depth chunk 6 placeholder content: the companion's physical bite on the nearest enemy. Its level follows the SummonCompanion skill level at spawn (RaiseLoadoutLevels), so maxLevel matches SummonCompanion's. All values [PLACEHOLDER].",
+  "id": 107,
+  "name": "CompanionAura",
+  "category": "active_aura",
+  "maxLevel": 3,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 0.8,
+      "damageHP": 5,
+      "damageHPPerLevel": 1,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 20
+    }
+  ]
+}

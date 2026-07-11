@@ -116,6 +116,12 @@ export const GraphicsConfig = {
             minSize: <number> 22,
             maxSize: <number> 30,
         },
+
+        companion: {
+            file: require('../features/game-objects/assets/mobs/companion.svg'),
+            minSize: <number> 40,
+            maxSize: <number> 40,
+        },
     },
 
     resources: {

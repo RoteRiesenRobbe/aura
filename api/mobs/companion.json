@@ -1,0 +1,23 @@
+{
+  "_comment": "Mob-depth chunk 6 placeholder content: the player-summoned companion — an owned, aligned follower created only by the SummonCompanion spawn effect (never referenced by any zone spawn; owned + moving = follower behavior). Speed 1.2 → 0.066/tick, deliberately above the player's 0.05/tick so it keeps up. collisionLayer 160 = Viewport|Player (the player-layer trick: hostile enemy-masks can hit it; ally auras buff it), collisionMask 17 = PlayerStatic|Border (collides like its owner, goes wherever the owner goes). aggroRadius is a dummy — followers bypass the sensor (owner combat signals instead). All values [PLACEHOLDER].",
+  "id": 7,
+  "name": "Companion",
+  "type": "MOB",
+  "factors": {
+    "maxHealth": 60,
+    "experience": 0,
+    "speed": 1.2
+  },
+  "body": {
+    "radius": 0.25,
+    "aggroRadius": 0.1,
+    "collisionLayer": 160,
+    "collisionMask": 17
+  },
+  "skills": [
+    {
+      "skillName": "CompanionAura",
+      "level": 1
+    }
+  ]
+}

@@ -143,6 +143,46 @@ type player struct {
 	// as the accumulators above; dies with the entity — respawn starts clean
 	// (carriedState stashes only progression + SkillComponent).
 	buffs skills.Buffs
+
+	// Companion combat signals (mob-depth chunk 6, §3.6): the last mob this
+	// player directly damaged (assist) and the last mob that damaged this
+	// player (defend), each valid for combatSignalWindowTicks. Aged in
+	// ResetTickNumbers alongside the accumulators; die with the entity.
+	attackTarget      model.Combatant
+	attackTargetTicks int
+	attacker          model.Combatant
+	attackerTicks     int
+}
+
+// combatSignalWindowTicks [PLACEHOLDER] is how long a combat signal stays
+// readable by a companion (~3 s) — long enough to bridge aura tick cadences,
+// short enough that a companion doesn't chase stale grudges.
+const combatSignalWindowTicks = 90
+
+// NoteAttackDealt stamps the assist signal (model.AttackNotifier): called by
+// Mob.PlayerTouches on direct hits only (Damage.Source == nil).
+func (p *player) NoteAttackDealt(target model.Combatant) {
+	p.attackTarget = target
+	p.attackTargetTicks = combatSignalWindowTicks
+}
+
+// RecentAttackTarget is the assist half of model.CombatSignals: the last mob
+// this player directly damaged, nil once expired or dead.
+func (p *player) RecentAttackTarget() model.Combatant {
+	return liveSignal(p.attackTarget, p.attackTargetTicks)
+}
+
+// RecentAttacker is the defend half of model.CombatSignals: the last mob that
+// damaged this player, nil once expired or dead.
+func (p *player) RecentAttacker() model.Combatant {
+	return liveSignal(p.attacker, p.attackerTicks)
+}
+
+func liveSignal(c model.Combatant, ticks int) model.Combatant {
+	if c == nil || ticks <= 0 || c.HealthRatio() == 0 {
+		return nil
+	}
+	return c
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {
@@ -254,9 +294,23 @@ func (p *player) ResetTickNumbers() {
 	p.xpGained = 0
 	p.auraHitStyle = model.AuraHitStyleNone
 	p.buffs.Tick()
+	// Age the companion combat signals (chunk 6); the refs stay until
+	// re-stamped, the getters gate on the remaining window.
+	if p.attackTargetTicks > 0 {
+		p.attackTargetTicks--
+	}
+	if p.attackerTicks > 0 {
+		p.attackerTicks--
+	}
 }
 
 func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
+	// Defend signal (chunk 6): any mob hitting this player is "attacking the
+	// owner" for its companion, resisted or not.
+	if c, ok := e.(model.Combatant); ok {
+		p.attacker = c
+		p.attackerTicks = combatSignalWindowTicks
+	}
 	p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags}, model.StatusEffectDamagedAmbient)
 }
 

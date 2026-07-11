@@ -290,6 +290,22 @@ export class Rabbit extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Rabbit, file('rabbit'), maxSize('rabbit'));
 
+// The player-summoned companion (mob-depth chunk 6): follows its owner and
+// assists in combat. Fixed size, no hit sound — the base Damaged flash
+// suffices for the placeholder art.
+export class Companion extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.companion, x, y,
+            randomInt(minSize('companion'), maxSize('companion')),
+            Companion.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Companion, file('companion'), maxSize('companion'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.
