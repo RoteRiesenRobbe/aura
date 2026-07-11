@@ -45,11 +45,11 @@ func marshalledMob(t *testing.T, m *mob.Mob) *BerryhunterApi.Mob {
 // effective radius in px — 0 while the aura is gated — so the client draws
 // the ring only while the aura actually runs.
 func TestMobMarshalFlatbuf_AuraRadius(t *testing.T) {
-	stationary := mob.NewMob(testMobDef(0), 0) // speed 0 → aura always on
+	stationary := mob.NewMob(testMobDef(0), 0, nil) // speed 0 → aura always on
 	assert.Equal(t, uint16(0.5*Points2px), marshalledMob(t, stationary).AuraRadius(),
 		"active aura → effective radius in px on the wire")
 
-	gated := mob.NewMob(testMobDef(1), 0) // moving mob spawns with the aura off
+	gated := mob.NewMob(testMobDef(1), 0, nil) // moving mob spawns with the aura off
 	assert.Equal(t, uint16(0), marshalledMob(t, gated).AuraRadius(),
 		"gated aura → 0 on the wire, no ring on the client")
 }

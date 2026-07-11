@@ -50,7 +50,7 @@ func testMobDefinition() *mobs.MobDefinition {
 }
 
 func newTestMob() *Mob {
-	return NewMob(testMobDefinition(), 0)
+	return NewMob(testMobDefinition(), 0, nil)
 }
 
 // fakeAuraPlayer implements the slices of model.PlayerEntity that the mob
@@ -95,7 +95,7 @@ func TestNewMob_MaxHealthVarianceRollsWithinBand(t *testing.T) {
 
 	seen := map[vitals.VitalSign]bool{}
 	for i := 0; i < 16; i++ {
-		m := NewMob(def, 0)
+		m := NewMob(def, 0, nil)
 		hp := m.MaxHealth()
 		if hp < 900 || hp > 1100 {
 			t.Fatalf("rolled maxHealth %d outside band [900, 1100]", hp)
@@ -111,7 +111,7 @@ func TestNewMob_ZeroVarianceIsExactBase(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.MaxHealth = 1000
 
-	m := NewMob(def, 0)
+	m := NewMob(def, 0, nil)
 	assert.Equal(t, vitals.VitalSign(1000), m.MaxHealth(),
 		"no variance → maxHealth is exactly the authored base")
 }
@@ -122,7 +122,7 @@ func TestNewMob_VarianceRollNeverBelowOneHP(t *testing.T) {
 	def.Factors.MaxHealthVariance = 0.9
 
 	for i := 0; i < 16; i++ {
-		m := NewMob(def, 0)
+		m := NewMob(def, 0, nil)
 		assert.GreaterOrEqual(t, m.MaxHealth(), vitals.VitalSign(1),
 			"a rolled HP pool must never reach 0 (min-1)")
 	}
@@ -143,7 +143,7 @@ func TestMob_PlayerTouches_UnresistedFullDamage(t *testing.T) {
 func TestMob_PlayerTouches_AppliesTagResistance(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0.5}
-	m := NewMob(def, 0)
+	m := NewMob(def, 0, nil)
 
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}})
 
@@ -154,7 +154,7 @@ func TestMob_PlayerTouches_AppliesTagResistance(t *testing.T) {
 func TestMob_PlayerTouches_ResistancesMultiplyAcrossTags(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0.5, "boss_x_lava": 0.5}
-	m := NewMob(def, 0)
+	m := NewMob(def, 0, nil)
 
 	// General + bespoke resistance compose multiplicatively: 10 × 0.5 × 0.5 = 2.5 → 3 (rounded).
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire", "boss_x_lava"}})
@@ -165,7 +165,7 @@ func TestMob_PlayerTouches_ResistancesMultiplyAcrossTags(t *testing.T) {
 func TestMob_PlayerTouches_ImmuneTagNoHit(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0}
-	m := NewMob(def, 0)
+	m := NewMob(def, 0, nil)
 
 	// Multiplier 0 = immune: no health loss, no floating number, no status effect
 	// (and therefore no hit VFX) — the hit simply does not exist for the target.
@@ -179,7 +179,7 @@ func TestMob_PlayerTouches_ImmuneTagNoHit(t *testing.T) {
 func TestMob_PlayerTouches_VulnerabilityTagAboveOne(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 1.5}
-	m := NewMob(def, 0)
+	m := NewMob(def, 0, nil)
 
 	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"fire"}})
 
@@ -190,7 +190,7 @@ func TestMob_PlayerTouches_VulnerabilityTagAboveOne(t *testing.T) {
 func TestMob_PlayerTouches_MinOneHP(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0.01}
-	m := NewMob(def, 0)
+	m := NewMob(def, 0, nil)
 
 	// A sub-1-HP hit still removes at least 1 HP (min-1 rule, item 11 Phase 1) —
 	// a real hit never rounds away to nothing, including heavily resisted ones.
@@ -273,7 +273,7 @@ func TestMob_Kill_GuaranteedUnlockGoesToAllRewardedPlayers(t *testing.T) {
 	unlockSkill := &skills.SkillDefinition{ID: 3, Name: "WildAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 	d := testMobDefinition()
 	d.Unlocks = []mobs.MobUnlock{{Skill: unlockSkill, Chance: 1.0}}
-	m := NewMob(d, 0)
+	m := NewMob(d, 0, nil)
 
 	damager := newFakeAuraPlayer()
 	healer := newFakeAuraPlayer()
@@ -394,7 +394,7 @@ func TestNewMob_AuraSensorWiring(t *testing.T) {
 func TestNewMob_NoSkills_InertSensor(t *testing.T) {
 	d := testMobDefinition()
 	d.Skills = nil
-	m := NewMob(d, 0)
+	m := NewMob(d, 0, nil)
 
 	assert.Equal(t, -1, m.SkillComponent().ActiveAuraSlot)
 	assert.InDelta(t, 0.0, m.AuraCollider().Radius, 1e-6)
@@ -471,7 +471,7 @@ func TestMob_RegeneratesOutOfCombat(t *testing.T) {
 func TestMob_ResistBuff_ComposesWithBaseAndExpires(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0.5}
-	m := NewMob(def, 0)
+	m := NewMob(def, 0, nil)
 
 	m.ApplyResist(40, []string{"fire"}, 0.5, 2)
 
@@ -491,7 +491,7 @@ func TestMob_ResistBuff_ComposesWithBaseAndExpires(t *testing.T) {
 func TestNewMob_SpawnsHostile(t *testing.T) {
 	// FactionHostile is not the zero value — a missed initialization would
 	// silently spawn player-aligned mobs (effect foundations Step 1).
-	m := NewMob(testMobDefinition(), 0)
+	m := NewMob(testMobDefinition(), 0, nil)
 	assert.Equal(t, model.FactionHostile, m.Faction())
 }
 
@@ -555,7 +555,7 @@ func cowardMobDefinition() *mobs.MobDefinition {
 }
 
 func TestMob_FleesBelowThreshold_MovesExactlyAway(t *testing.T) {
-	m := NewMob(cowardMobDefinition(), 0)
+	m := NewMob(cowardMobDefinition(), 0, nil)
 	m.SetPosition(phy.Vec2f{X: 1, Y: 1})
 	p := newFakeAuraPlayer()
 	p.pos = phy.Vec2f{X: 1, Y: 0.5} // due south of the mob
@@ -571,7 +571,7 @@ func TestMob_FleesBelowThreshold_MovesExactlyAway(t *testing.T) {
 }
 
 func TestMob_AtThresholdChasesAgain(t *testing.T) {
-	m := NewMob(cowardMobDefinition(), 0)
+	m := NewMob(cowardMobDefinition(), 0, nil)
 	m.SetPosition(phy.VEC2F_ZERO)
 	p := newFakeAuraPlayer()
 	p.pos = phy.Vec2f{X: 1.5, Y: 0} // outside the aura stop distance (0.7)
@@ -586,7 +586,7 @@ func TestMob_AtThresholdChasesAgain(t *testing.T) {
 }
 
 func TestMob_FleeRespectsSlow(t *testing.T) {
-	m := NewMob(cowardMobDefinition(), 0)
+	m := NewMob(cowardMobDefinition(), 0, nil)
 	m.SetPosition(phy.VEC2F_ZERO)
 	p := newFakeAuraPlayer()
 	p.pos = phy.Vec2f{X: -1, Y: 0} // flee direction: +x
@@ -618,7 +618,7 @@ func TestMob_NoFleeThresholdChasesAtAnyHealth(t *testing.T) {
 }
 
 func TestMob_FleeFromThreatAtOwnPositionUsesHeading(t *testing.T) {
-	m := NewMob(cowardMobDefinition(), 0)
+	m := NewMob(cowardMobDefinition(), 0, nil)
 	m.SetPosition(phy.Vec2f{X: 2, Y: 2})
 	p := newFakeAuraPlayer()
 	p.pos = phy.Vec2f{X: 2, Y: 2} // exactly on top: no away direction exists
@@ -635,8 +635,10 @@ func TestMob_FleeFromThreatAtOwnPositionUsesHeading(t *testing.T) {
 // TestMob_FleePinnedInBoundaryCornerConverges pins gotcha #10 (plan-mob-depth):
 // a fleeing mob pushed into an InvAABB corner must settle there via the
 // existing per-axis clamp — no oscillation — through the real Space pipeline.
+// Since chunk 4 this is the NIL-SPACE fallback pin (no steering): a mob WITH
+// a space escapes the corner instead — see TestMob_FleeIntoCornerEscapesAlongEdge.
 func TestMob_FleePinnedInBoundaryCornerConverges(t *testing.T) {
-	m := NewMob(cowardMobDefinition(), 0)
+	m := NewMob(cowardMobDefinition(), 0, nil)
 	m.SetPosition(phy.Vec2f{X: 4, Y: 4})
 	p := newFakeAuraPlayer()
 	p.pos = phy.Vec2f{X: 3, Y: 3} // flee direction: diagonally into the (5,5) corner
@@ -668,7 +670,7 @@ func TestMob_FleePinnedInBoundaryCornerConverges(t *testing.T) {
 // slides along the boundary instead of jamming (plan-mob-depth §3.2 v1 wall
 // handling — falls out of the per-axis clamp, pinned here).
 func TestMob_FleeAlongWallSlides(t *testing.T) {
-	m := NewMob(cowardMobDefinition(), 0)
+	m := NewMob(cowardMobDefinition(), 0, nil)
 	m.SetPosition(phy.Vec2f{X: 4.6, Y: 0})
 	p := newFakeAuraPlayer()
 	p.pos = phy.Vec2f{X: 3.6, Y: -1} // flee direction (1,1)/√2: into the right wall, northward
@@ -694,7 +696,7 @@ func TestMob_FleeAlongWallSlides(t *testing.T) {
 func TestMob_RaiseMaxHealth(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.MaxHealth = 100
-	m := NewMob(def, 0)
+	m := NewMob(def, 0, nil)
 
 	m.RaiseMaxHealth(20)
 
@@ -727,7 +729,7 @@ func newFakeCombatant() *fakeCombatant {
 func TestMob_ThreatCreditsPostMitigationDamage(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Resistances = map[string]float32{"fire": 0.5}
-	m := NewMob(def, 0)
+	m := NewMob(def, 0, nil)
 	p := newFakeAuraPlayer()
 
 	m.PlayerTouches(p, model.Damage{HP: 40, Tags: []string{"fire"}})
@@ -944,7 +946,7 @@ func TestNewMob_MovingMobSpawnsAuraGated(t *testing.T) {
 func TestNewMob_StationaryMobAuraAlwaysOn(t *testing.T) {
 	def := testMobDefinition()
 	def.Factors.Speed = 0
-	m := NewMob(def, 0)
+	m := NewMob(def, 0, nil)
 
 	assert.Equal(t, 0, m.SkillComponent().ActiveAuraSlot,
 		"a stationary hazard (totem, brazier) cannot chase — its aura is its behavior, always on")
@@ -982,7 +984,7 @@ func TestMob_AuraActivatesOnAggroDeactivatesOnLeashReset(t *testing.T) {
 // --- flee re-point (chunk 3d): flee runs from the highest-threat enemy ---
 
 func TestMob_FleesFromHighestThreat(t *testing.T) {
-	m := NewMob(cowardMobDefinition(), 0)
+	m := NewMob(cowardMobDefinition(), 0, nil)
 	m.SetPosition(phy.Vec2f{X: 1, Y: 1})
 	nearLow := newFakeAuraPlayer()
 	nearLow.pos = phy.Vec2f{X: 1, Y: 1.4} // north, close, little threat

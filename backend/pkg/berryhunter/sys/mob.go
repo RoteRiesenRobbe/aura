@@ -33,11 +33,12 @@ type MobSystem struct {
 	game   model.Game
 	rnd    *rand.Rand
 	points []spawnPoint
+	space  *phy.Space // handed to every spawned mob for obstacle steering (chunk 4)
 
 	initialized bool
 }
 
-func NewMobSystem(g model.Game, seed int64, spawns []world.Spawn) *MobSystem {
+func NewMobSystem(g model.Game, seed int64, spawns []world.Spawn, space *phy.Space) *MobSystem {
 	rnd := rand.New(rand.NewSource(seed))
 	points := make([]spawnPoint, 0, len(spawns))
 	for _, s := range spawns {
@@ -49,7 +50,7 @@ func NewMobSystem(g model.Game, seed int64, spawns []world.Spawn) *MobSystem {
 			variancePct:  s.RespawnVariancePct,
 		})
 	}
-	return &MobSystem{game: g, rnd: rnd, points: points}
+	return &MobSystem{game: g, rnd: rnd, points: points, space: space}
 }
 
 func (n *MobSystem) Priority() int {
@@ -124,7 +125,7 @@ func (n *MobSystem) rollDelay(p *spawnPoint) int {
 // registers it with the game. Each NewMob seeds its own entity-ID RNG, so HP
 // variance rolls per spawn (item 11 Phase 3).
 func (n *MobSystem) spawnAt(p *spawnPoint) {
-	m := mob.NewMob(p.def, n.game.Config().MobChaseIntoAuraMargin)
+	m := mob.NewMob(p.def, n.game.Config().MobChaseIntoAuraMargin, n.space)
 	m.SetPosition(p.pos)
 	m.SetAngle(p.angle)
 	p.liveMobID = m.Basic().ID()

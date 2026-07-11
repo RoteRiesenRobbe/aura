@@ -85,7 +85,7 @@ func killMob(m model.MobEntity) {
 
 func newMobSystemWith(spawns []world.Spawn) (*MobSystem, *fakeGame) {
 	g := newFakeGame()
-	ms := NewMobSystem(g, 42, spawns)
+	ms := NewMobSystem(g, 42, spawns, nil)
 	g.ms = ms
 	return ms, g
 }
@@ -157,7 +157,7 @@ func TestSpawnPoint_NoSpawnPointNoRespawn(t *testing.T) {
 	ms.Update(0)
 	require.Empty(t, g.added, "no points means no initial spawn")
 
-	orphan := mob.NewMob(testMobDef(), 0)
+	orphan := mob.NewMob(testMobDef(), 0, nil)
 	orphan.SetPosition(phy.Vec2f{X: 1, Y: 1})
 	ms.AddEntity(orphan) // routed in without an owning point
 
@@ -175,7 +175,7 @@ func TestSpawnPoint_TTLExpiredOrphanStaysDead(t *testing.T) {
 	ms, g := newMobSystemWith(nil)
 	ms.Update(0)
 
-	totem := mob.NewMob(testMobDef(), 0)
+	totem := mob.NewMob(testMobDef(), 0, nil)
 	totem.SetPosition(phy.Vec2f{X: 1, Y: 1})
 	totem.SetTTLTicks(5)
 	ms.AddEntity(totem)

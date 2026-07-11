@@ -684,7 +684,7 @@ func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
 			Level: 1,
 		}},
 	}
-	m := mob.NewMob(def, 0)
+	m := mob.NewMob(def, 0, nil)
 
 	target := &mobTouchRecorder{}
 	targetCircle := phy.NewCircle(phy.VEC2F_ZERO, 0.25)
@@ -921,7 +921,7 @@ func TestApplyDamageAura_VarianceComposesWithResistance(t *testing.T) {
 		},
 		Body: mobs.Body{Radius: 0.3, AggroRadius: 2.0},
 	}
-	m := mob.NewMob(def, 0)
+	m := mob.NewMob(def, 0, nil)
 
 	caster := newFakePlayer()
 	effect := damageEffect(1)
@@ -1626,7 +1626,7 @@ func TestCooldown_MobCastSpawnHasNoOwner(t *testing.T) {
 
 	casterDef := testMobDef()
 	casterDef.Skills = []mobs.MobSkill{{Def: summonTotemDef(), Level: 1}}
-	caster := mob.NewMob(casterDef, 0)
+	caster := mob.NewMob(casterDef, 0, nil)
 	caster.SetPosition(phy.Vec2f{X: 5, Y: 5})
 
 	sk := NewSkillSystem(phy.NewSpace(), g)
@@ -1646,7 +1646,7 @@ func TestCooldown_MobCastSpawnHasNoOwner(t *testing.T) {
 
 // newTestTotem builds an owned, player-aligned summon around the given owner.
 func newTestTotem(owner *fakePlayer) *mob.Mob {
-	totem := mob.NewMob(totemMobDef(), 0)
+	totem := mob.NewMob(totemMobDef(), 0, nil)
 	totem.SetFaction(model.FactionAligned)
 	totem.SetOwner(owner)
 	totem.SetPosition(phy.Vec2f{X: 1, Y: 1})
@@ -1661,7 +1661,7 @@ func TestTotemAuraDamage_CreditsOwnerXPAndKillRewards(t *testing.T) {
 
 	targetDef := testMobDef()
 	targetDef.Factors.Experience = 42
-	target := mob.NewMob(targetDef, 0)
+	target := mob.NewMob(targetDef, 0, nil)
 
 	effect := damageEffect(1)
 	effect.Damage = &skills.DamageParams{HP: 1000} // overkill vs. 40 HP
@@ -1728,13 +1728,13 @@ func TestTickDots_OwnedCasterCreditsOwner(t *testing.T) {
 func TestTotem_KillableByHostileMobAura(t *testing.T) {
 	// Decision §8.4/3: the totem is killable. Its player-layer body is what a
 	// hostile aura's enemy mask matches, and the hit lands via MobTouches.
-	hostile := mob.NewMob(testMobDef(), 0)
+	hostile := mob.NewMob(testMobDef(), 0, nil)
 	hostile.SetPosition(phy.Vec2f{X: 1, Y: 1})
 
 	totemDef := totemMobDef()
 	totemDef.Body.CollisionLayer = int(model.LayerViewportCollision | model.LayerPlayerCollision)
 	totemDef.Body.CollisionMask = int(model.LayerBorderCollision)
-	totem := mob.NewMob(totemDef, 0)
+	totem := mob.NewMob(totemDef, 0, nil)
 	totem.SetFaction(model.FactionAligned)
 
 	effect := damageEffect(1)

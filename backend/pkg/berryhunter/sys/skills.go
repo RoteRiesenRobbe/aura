@@ -640,7 +640,7 @@ func (s *SkillSystem) spawnSummon(e skillEntity, es *skills.EquippedSkill, p *sk
 		return false
 	}
 
-	m := mob.NewMob(def, s.game.Config().MobChaseIntoAuraMargin)
+	m := mob.NewMob(def, s.game.Config().MobChaseIntoAuraMargin, s.space)
 	m.SetFaction(e.Faction())
 	m.SetTTLTicks(p.TTLAt(es.Level))
 	m.SkillComponent().RaiseLoadoutLevels(es.Level)

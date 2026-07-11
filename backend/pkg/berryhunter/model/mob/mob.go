@@ -23,7 +23,11 @@ var types = func() map[string]model.EntityType {
 	return t
 }()
 
-func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32) *Mob {
+// NewMob builds a mob from its definition. space is the physics space used for
+// obstacle steering (mob-depth chunk 4) — nil disables steering (movement is
+// pure straight-line geometry, as before the chunk); every production spawn
+// site passes the real space.
+func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space) *Mob {
 	entityType, ok := types[d.Name]
 	if !ok {
 		log.Fatalf("Mob type not found: %d/%s", d.ID, d.Name)
@@ -124,6 +128,7 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32) *Mob {
 	}
 	m := &Mob{
 		BaseEntity:       base,
+		space:            space,
 		rand:             rnd,
 		heading:          phy.Vec2f{-1, 0},
 		health:           maxHealth,
@@ -159,6 +164,16 @@ type Mob struct {
 	model.BaseEntity
 
 	definition *mobs.MobDefinition
+
+	// space enables obstacle steering (chunk 4): moveTowards/moveAwayFrom
+	// query it for nearby blocking statics and compose repulsion into the
+	// step direction. nil = no steering (tests, direct construction).
+	space *phy.Space
+
+	// steerSide latches the head-on deflection side (+1 left / -1 right,
+	// 0 = unset) while the mob is continuously within repulsion range —
+	// re-picking per tick flip-flops between two blockers (see steer).
+	steerSide float32
 
 	health    vitals.VitalSign
 	maxHealth vitals.VitalSign
@@ -431,15 +446,15 @@ func (m *Mob) moveTowards(target phy.Vec2f) {
 		step = distance
 	}
 
-	next := current.Add(delta.Div(distance).Mult(step))
-	m.SetPosition(next)
+	dir := m.steer(delta.Div(distance))
+	m.SetPosition(current.Add(dir.Mult(step)))
 }
 
 // moveAwayFrom is the flee movement mode (mob-depth chunk 2): the inverse of
 // the chase vector, same step length. No arrival clamp — there is no "arriving"
-// at away. Wall handling is left to the physics resolution: the InvAABB's
-// per-axis clamp makes an angled flee slide along the boundary and a
-// perpendicular one pin stationary (full blocker repulsion is chunk 4).
+// at away. Blockers and the border wall deflect the flee via steer (chunk 4);
+// without a space the InvAABB's per-axis clamp still makes an angled flee
+// slide along the boundary and a perpendicular one pin stationary.
 func (m *Mob) moveAwayFrom(threat phy.Vec2f) {
 	if m.velocity <= 0 {
 		return
@@ -458,7 +473,7 @@ func (m *Mob) moveAwayFrom(threat phy.Vec2f) {
 		dir = delta.Div(distance)
 	}
 
-	m.SetPosition(current.Add(dir.Mult(m.stepLength())))
+	m.SetPosition(current.Add(m.steer(dir).Mult(m.stepLength())))
 }
 
 // stepLength is this tick's movement distance: base velocity reduced by the

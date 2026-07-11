@@ -584,6 +584,86 @@ directly before patrol).
 
 ### Chunk 4 — Obstacle avoidance: steering (backend)
 
+> **STATUS: DONE — IMPLEMENTED + VERIFIED IN-GAME 2026-07-11 (full backend
+> suite green 21 pkgs, binary rebuilt; zero wire/frontend/content changes;
+> committed same day). Verification ran in two rounds: the first round
+> produced the 3 observations below (2 fixed same day), the second round
+> confirmed the fixes — curves tight, no stuck mobs.**
+>
+> **First in-game round (2026-07-11) — 3 observations, 2 fixes same day
+> (red-first; re-verified in-game same day):**
+> (1) **Wide curves** — mobs rounded props on aura-ring-sized arcs (user
+> screenshot): `steeringLookahead` 1.5 was simply too large →
+> **reduced to 0.6 [PLACEHOLDER]**; existing pins held. (2) **Perceived
+> slowdown** — no code change: step magnitude was never touched (steer
+> returns unit directions); the effect was pure path overhead from (1) —
+> at lookahead 1.5, almost every path in a prop-dense zone was curved.
+> (3) **Side-flip oscillation (real bug)** — a mob jittered in place
+> against a tree+rock pair, flipping its deflection side every tick: the
+> perpendicular-lean side pick is only stable against a SINGLE blocker;
+> between two, each sideways step makes the other blocker's repulsion
+> dominate and the lean flips back. The tighter lookahead of (1) also
+> exposed the same class in the wall corner
+> (`TestMob_FleeIntoCornerEscapesAlongEdge` went red — steeper falloff
+> gradient). **Fix: side latch** — `Mob.steerSide` (+1/−1, 0 unset) picks
+> the side on the first head-on tick (lean of the combined vector, exact
+> line → left) and holds it until the mob is FULLY clear of repulsion
+> (rep = 0 resets), committing it to one way around a cluster/corner.
+> Pinned by `TestMob_TwoBlockerPocketNoSideFlipOscillation` (reproduced
+> the report: mob frozen at the pocket mouth pre-fix).
+> Plan-first decisions (user, 2026-07-11): **space access = `NewMob`
+> parameter** — `NewMob(def, chaseIntoAuraMargin, space *phy.Space)`, nil =
+> no steering (movement stays the exact pre-chunk straight line; all ~34
+> test callsites nil-padded, both production spawn sites pass the real
+> space: `MobSystem` gained a `space` field via `NewMobSystem(g, seed,
+> spawns, space)` ← `p.Space()` in `core/game.go`, `spawnSummon` passes
+> `s.space`); **border wall (InvAABB) participates in repulsion** (gotcha
+> #10 closed as the plan described, not left to the clamp).
+> **Mechanics (`model/mob/steering.go`):** `steer(desired)` bends the unit
+> step direction of BOTH `moveTowards` and `moveAwayFrom` (chase, walk-home,
+> flee — later patrol/companion — all steer; `stepLength` stays the
+> magnitude home, physics resolution stays the non-penetration guarantee,
+> gotcha #6). Repulsion = `QueryCircleStatics` probe at
+> `m.Radius() + steeringLookahead` [PLACEHOLDER 0.6, was 1.5 — see the
+> in-game-round block above] **carrying the mob's
+> own body mask** — a mob that walks through a static is never repelled by
+> it (the AngryMammoth ignores rocks for free, the Border bit keeps wall
+> repulsion on for it). Per-blocker: circles push radially, the InvAABB
+> pushes axis-aligned inward per edge within lookahead (corners = both
+> axes, the steering twin of `resolveInvAABB`'s clamp); linear falloff 1 at
+> body contact/overlap → 0 at lookahead; dead-center-in-blocker falls back
+> to the heading (the flee convention). Compose: `desired +
+> repulsion × steeringRepulsionWeight` [PLACEHOLDER 1.5], normalized;
+> forward component ≤ 0 (head-on cancel/backward) → deflect along the
+> perpendicular component (leans to the freer side = tick-stable), exactly
+> on the line → always left (`Rot90`), deterministic. Emergent, by design:
+> a target INSIDE a blocker makes the mob orbit it ("holds nearby rather
+> than jitters", §3.4); a perpendicular flee into the wall slides along it;
+> the corner-pinned flee escapes along an edge (the chunk-2 clamp pins are
+> now the NIL-space fallback pins — comment updated on
+> `TestMob_FleePinnedInBoundaryCornerConverges`, behavior unchanged there).
+> **Pins (`steering_test.go`, all through the real `Space.Update()`):**
+> `TestMob_SteersAroundBlockerReachesTarget`, `TestMob_NoBlockersPath
+> Unchanged` (bit-identical step with an empty space),
+> `TestMob_HeadOnBlockerDeflectsConsistently` (side never flips),
+> `TestMob_SpawnedOverlappingBlockerEscapes`,
+> `TestMob_TargetInsideBlockerHoldsWithoutJitter` (distance band + keeps
+> moving + no teleport steps), `TestMob_FleeSteersAroundBlocker`,
+> `TestMob_FleePerpendicularIntoWallSlidesAlongIt`,
+> `TestMob_FleeIntoCornerEscapesAlongEdge`. All verified red at the exact
+> jam points pre-implementation. Perf note: one statics query per moving
+> mob per tick (idle mobs never query); fine at proving-grounds scale
+> (~360 mobs, most idle), revisit only if profiling says so.
+> **In-game checklist (PASSED 2026-07-11, second round):** proving-grounds (`-zone
+> proving-grounds`): (1) Grove steering corridor — aggro a cat through the
+> parallel tree rows, it threads the corridor instead of grinding on
+> trunks; (2) stand dead behind a tree/rock — the chaser rounds it (no
+> jamming, no side flip-flop); (3) rabbit fleeing through the Grove
+> deflects around trees; (4) flee/chase along the map edge slides smoothly;
+> (5) AngryMammoth still walks straight THROUGH the Henge rocks (mask
+> exemption) but respects the border; (6) walk-home after a leash rounds
+> props on the way back.
+
 > **Handoff from chunk 3 (2026-07-10) — read before the plan-first start:**
 > - **Seam layout after chunk 3:** `moveTowards` serves chase + walk-home,
 >   `moveAwayFrom` serves flee; both draw the tick distance from
