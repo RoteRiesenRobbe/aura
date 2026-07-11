@@ -851,6 +851,45 @@ directly before patrol).
 - **Gotchas:** #5, #7, #8.
 
 ### Chunk 6 — Companion cooldown (backend + wire + content)
+
+> **Handoff from chunk 5 (2026-07-11) — read before the plan-first start:**
+> - **Idle-movement seam layout:** `Mob.updateIdleMovement()`
+>   (`model/mob/patrol.go`) is the no-aggro dispatch — evade return first,
+>   then waypoints → wander → walk-home-to-spawn. **Companion FOLLOW is a
+>   new branch there** (likely checked before/instead of the others for
+>   owned mobs). `moveTowardsScaled(target, speedScale)` exists for pace
+>   control; steering + slows apply to all movement automatically
+>   (`spawnSummon` already passes `s.space` since chunk 4).
+> - **Evade-return trap for followers:** `setAggroTarget` →
+>   `noteCombatEntry` records `Mob.returnPos` on EVERY idle→combat
+>   transition, and `updateIdleMovement` walks back there before resuming.
+>   A companion that assists in a fight would "evade-return" to where the
+>   fight started instead of resuming follow — decide at plan-first:
+>   owned/following mobs probably skip returnPos entirely (follow IS their
+>   return behavior).
+> - **Idle pacing is for world mobs:** `idleSpeedFactor` (def default 0.4×
+>   [PLACEHOLDER]) scales wander/patrol ambling; a FOLLOWING companion must
+>   keep up with the owner (player 0.05/tick > every current mob speed) —
+>   follow speed is its own decision, not the idle amble.
+> - **Aggro sensor:** follows the body since chunk 5 (mob-centered
+>   acquisition), BUT `NewMob` hardcodes the sensor mask to the PLAYER
+>   layer — an ALIGNED companion's sensor would see players/summons, not
+>   hostile mobs. §3.6's assist/defend rules are event-shaped ("owner
+>   attacked X" / "X attacks owner"), so the companion likely bypasses
+>   `findAggroTarget` entirely; don't assume the sensor works for it.
+> - **Type-default wander (`factors.wanderRadius`) is applied only by
+>   `MobSystem.spawnAt`** — `spawnSummon` never applies it, so summons
+>   can't accidentally graze; the companion mob JSON should still leave the
+>   idle fields unset.
+> - **Count pins:** 19 skills (registry_test + boot log `count=19`) — the
+>   companion-summon cooldown bumps them; mob registry is 6 (boot-log line
+>   only, no hard pin). New-mob path incl. the two-step `Game.ts` layer
+>   trap: `manual-content-authoring.md`.
+> - Gotchas #2 (EntityType regen FIRST — `mob.NewMob` fatals on an unknown
+>   name), #9 (threat credits the summon, XP the owner — wired since chunk
+>   3; the companion inherits it via the `Owned` path) and #11 stay
+>   binding.
+
 - **Goal:** a cooldown spawns a friendly mob that follows the owner at a
   set distance and attacks per the §3.6 rule, crediting the owner.
 - **Do:** follow behavior (steer toward owner, hold distance); assist/
