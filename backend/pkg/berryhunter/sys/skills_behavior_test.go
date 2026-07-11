@@ -1498,6 +1498,88 @@ func TestCooldown_InstantDotAppliesDotOnce(t *testing.T) {
 	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
 }
 
+// --- taunt / detaunt cooldowns (mob-depth chunk 7) ---
+
+func tauntDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 25, Name: "Taunt", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 300,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeTaunt, Radius: 2.0, TargetsEnemies: true,
+			Threat: &skills.ThreatParams{Margin: 50},
+		}},
+	}
+}
+
+func fadeDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 26, Name: "Fade", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 300,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeDetaunt, Radius: 2.0, TargetsEnemies: true,
+			Threat: &skills.ThreatParams{},
+		}},
+	}
+}
+
+func hostileMobDef() *mobs.MobDefinition {
+	return &mobs.MobDefinition{
+		ID: 1, Name: "SaberToothCat", // valid BerryhunterApi entity type name
+		Body:    mobs.Body{Radius: 0.25, AggroRadius: 4},
+		Factors: mobs.Factors{MaxHealth: 60, Speed: 1},
+	}
+}
+
+// threatSourcePlayer is a second Aligned player used as a pre-existing threat
+// holder — a fakePlayer already satisfies model.Combatant.
+func threatSourcePlayer() *fakePlayer { return newFakePlayer() }
+
+func TestCooldown_TauntForcesCasterToTopOfThreat(t *testing.T) {
+	m := mob.NewMob(hostileMobDef(), 0, nil) // hostile
+	other := threatSourcePlayer()
+	m.NoteThreat(other, 100) // someone else holds the aggro
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), m))
+	caster.sc.EquipCooldown(0, tauntDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.True(t, m.Update(0))
+	assert.True(t, m.TargetsEntity(caster.basic.ID()),
+		"taunt forced the caster above the 100-threat holder → retention swings onto it")
+	assert.False(t, m.TargetsEntity(other.basic.ID()))
+	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed")
+}
+
+func TestCooldown_TauntSkipsAlliedTarget(t *testing.T) {
+	m := mob.NewMob(hostileMobDef(), 0, nil)
+	m.SetFaction(model.FactionAligned) // an aligned summon/companion — not an enemy
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerPlayerCollision), m))
+	caster.sc.EquipCooldown(0, tauntDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.False(t, m.HasThreat(caster.basic.ID()),
+		"targetsEnemies gates out same-faction targets — no friendly taunt")
+}
+
+func TestCooldown_FadeDropsCasterThreat(t *testing.T) {
+	m := mob.NewMob(hostileMobDef(), 0, nil)
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), m))
+	m.NoteThreat(caster, 50) // the caster is on the mob's table
+	require.True(t, m.HasThreat(caster.basic.ID()))
+
+	caster.sc.EquipCooldown(0, fadeDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.False(t, m.HasThreat(caster.basic.ID()),
+		"fade removes the caster's single threat entry (shed aggro)")
+}
+
 // --- spawn effect (effect foundations Step 3 / mob-depth chunk 1) ---
 
 // fakeMobRegistry is the minimal mobs.Registry the spawn site needs.

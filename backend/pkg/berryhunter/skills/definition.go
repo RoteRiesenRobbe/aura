@@ -43,6 +43,8 @@ const (
 	EffectTypeDotAura
 	EffectTypeInstantDot
 	EffectTypeSpawn
+	EffectTypeTaunt
+	EffectTypeDetaunt
 )
 
 var effectTypeMap = map[string]EffectType{
@@ -57,6 +59,8 @@ var effectTypeMap = map[string]EffectType{
 	"dot_aura":        EffectTypeDotAura,
 	"instant_dot":     EffectTypeInstantDot,
 	"spawn":           EffectTypeSpawn,
+	"taunt":           EffectTypeTaunt,
+	"detaunt":         EffectTypeDetaunt,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -169,6 +173,14 @@ type EffectDef struct {
 	Stat     *StatParams     // stat_multiplier
 	Dot      *DotParams      // dot_aura, instant_dot
 	Spawn    *SpawnParams    // spawn
+	Threat   *ThreatParams   // taunt, detaunt
+}
+
+// ThreatParams is the taunt / detaunt payload (mob-depth chunk 7). Margin is
+// the head start a taunt sets above the mob's current max threat (force-to-top,
+// decided v1); detaunt is a single-entry removal and ignores it.
+type ThreatParams struct {
+	Margin float32
 }
 
 // DamageParams is the damage_aura / instant_damage payload: absolute HP
@@ -417,6 +429,8 @@ type effectDef struct {
 	TTLTicksPerLevel       int     `json:"ttlTicksPerLevel"`
 	MaxHealthPerOwnerLevel float32 `json:"maxHealthPerOwnerLevel"`
 	PowerPerOwnerLevel     float32 `json:"powerPerOwnerLevel"`
+
+	ThreatMargin float32 `json:"threatMargin"` // taunt: head start above the current top
 }
 
 type skillDefinition struct {
@@ -473,6 +487,10 @@ var effectKeys = map[EffectType][]string{
 	// No geometry/cadence/targeting: a spawn fires at the caster's position on
 	// cooldown activation — placement is the spawn site's business.
 	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "maxHealthPerOwnerLevel", "powerPerOwnerLevel"},
+	// Threat ops (chunk 7): a query circle (geometry) of enemy mobs; taunt
+	// carries a threatMargin, detaunt is a bare single-entry removal.
+	EffectTypeTaunt:   mergeKeys(keysGeometry, keysTargetFlags, []string{"threatMargin"}),
+	EffectTypeDetaunt: mergeKeys(keysGeometry, keysTargetFlags),
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -618,6 +636,10 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Dot, err = e.dotParams()
 	case EffectTypeSpawn:
 		def.Spawn, err = e.spawnParams()
+	case EffectTypeTaunt:
+		def.Threat, err = e.tauntParams()
+	case EffectTypeDetaunt:
+		def.Threat = &ThreatParams{} // single-entry removal, no margin
 	}
 	if err != nil {
 		return EffectDef{}, err
@@ -752,6 +774,17 @@ func (e *effectDef) spawnParams() (*SpawnParams, error) {
 		MaxHealthPerOwnerLevel: e.MaxHealthPerOwnerLevel,
 		PowerPerOwnerLevel:     e.PowerPerOwnerLevel,
 	}, nil
+}
+
+// tauntParams builds the taunt payload. Margin must be strictly positive — a
+// force-to-top that merely equals the current top loses retention's lower-ID
+// tiebreak (the chunk-7 handoff: exceed, don't match), so a zero margin is a
+// silent no-op and hard-fails like the other no-scaling guards.
+func (e *effectDef) tauntParams() (*ThreatParams, error) {
+	if e.ThreatMargin <= 0 {
+		return nil, fmt.Errorf("threatMargin: must be > 0, got %v", e.ThreatMargin)
+	}
+	return &ThreatParams{Margin: e.ThreatMargin}, nil
 }
 
 func (e *effectDef) statParams() (*StatParams, error) {

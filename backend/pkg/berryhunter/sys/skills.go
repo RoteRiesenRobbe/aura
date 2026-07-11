@@ -623,6 +623,12 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			}
 			continue
 		}
+		if effect.Type == skills.EffectTypeTaunt || effect.Type == skills.EffectTypeDetaunt {
+			if s.applyThreatEffect(e, es.Level, effect) {
+				hitAny = true
+			}
+			continue
+		}
 		if effect.Type != skills.EffectTypeInstantDamage && effect.Type != skills.EffectTypeInstantDot {
 			continue
 		}
@@ -654,6 +660,49 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 		case skills.EffectTypeInstantDot:
 			applyDotEffect(e, es.Def.ID, es.Level, effect, targets)
 		}
+	}
+	return hitAny
+}
+
+// threatManipulable is the taunt/detaunt capability (mob-depth chunk 7): a mob
+// whose threat table can be forced-to-top (taunt) or have a single entry
+// removed (detaunt). Every mob implements both; the two ops share this
+// interface because both cooldowns target the same set (enemy mobs).
+type threatManipulable interface {
+	ForceThreatToTop(source model.Combatant, margin float32)
+	DropThreat(id uint64)
+}
+
+// applyThreatEffect fires a taunt or detaunt cooldown (mob-depth chunk 7): a
+// query circle of enemy mobs at the caster, each retargeted (taunt: forced to
+// the top of its threat table by the caster's own threat, granting the mob
+// harm rights for free via the chunk-6.6 MayHarm gate) or shed (detaunt: the
+// caster's threat entry removed). Eligibility rides eligibleByTargetFlags so
+// the faction/mayHarm gate applies — a player caster bypasses mayHarm and so
+// reaches any different-faction mob; the player is the threat source. Scoped
+// to player casts in v1 (attribution shortcut).
+func (s *SkillSystem) applyThreatEffect(e skillEntity, level int, effect skills.EffectDef) bool {
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	query := phy.NewCircle(e.AuraCollider().Position(), radius)
+	query.Shape().Mask = model.InstantDamageMask(effect)
+
+	casterID := e.Basic().ID()
+	source, _ := e.(model.Combatant)
+	eligible := eligibleByTargetFlags[threatManipulable](effect, e, casterID, true)
+
+	hitAny := false
+	for _, h := range s.space.QueryCircle(query) {
+		if !eligible(h) {
+			continue
+		}
+		target := h.Shape().UserData.(threatManipulable)
+		switch effect.Type {
+		case skills.EffectTypeTaunt:
+			target.ForceThreatToTop(source, effect.Threat.Margin)
+		case skills.EffectTypeDetaunt:
+			target.DropThreat(casterID)
+		}
+		hitAny = true
 	}
 	return hitAny
 }

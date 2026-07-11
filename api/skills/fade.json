@@ -1,0 +1,17 @@
+{
+  "_comment": "Mob-depth chunk 7 placeholder content: a cooldown that removes the caster's own threat entry on every enemy mob in range (single-entry removal), shedding aggro to the next-highest threat holder. Group utility — no-op solo. All values [PLACEHOLDER].",
+  "id": 26,
+  "name": "Fade",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 300,
+  "cooldownTicksPerLevel": -20,
+  "effects": [
+    {
+      "type": "detaunt",
+      "radius": 2.0,
+      "targetsEnemies": true,
+      "targetsAllies": false
+    }
+  ]
+}

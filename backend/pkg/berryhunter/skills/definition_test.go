@@ -591,6 +591,51 @@ func TestMap_DotKeysOnOtherEffectsFail(t *testing.T) {
 	assert.ErrorContains(t, err, "dotTicks")
 }
 
+// --- taunt / detaunt (mob-depth chunk 7) ---
+
+func TestMap_Taunt(t *testing.T) {
+	data := []byte(`{
+      "id": 25, "name": "Taunt", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 300,
+      "effects": [{"type": "taunt", "radius": 2.0, "targetsEnemies": true, "threatMargin": 50}]
+    }`)
+	def := mustParse(t, data)
+	e := def.Effects[0]
+	require.NotNil(t, e.Threat, "taunt payload")
+	assert.Nil(t, e.Damage)
+	assert.InDelta(t, 50, e.Threat.Margin, 1e-6)
+	assert.True(t, e.TargetsEnemies)
+}
+
+func TestMap_Detaunt(t *testing.T) {
+	data := []byte(`{
+      "id": 26, "name": "Fade", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 300,
+      "effects": [{"type": "detaunt", "radius": 2.0, "targetsEnemies": true}]
+    }`)
+	def := mustParse(t, data)
+	e := def.Effects[0]
+	require.NotNil(t, e.Threat, "detaunt still carries the (empty) threat payload")
+	assert.InDelta(t, 0, e.Threat.Margin, 1e-6, "detaunt ignores margin")
+}
+
+func TestMap_TauntZeroMarginFails(t *testing.T) {
+	// A margin that merely equals the current top loses the retention tiebreak
+	// (handoff: exceed, don't match) — a zero/negative margin is a no-op.
+	for _, margin := range []string{"0", "-5"} {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":100,"effects":[{"type":"taunt","radius":2,"targetsEnemies":true,"threatMargin":` + margin + `}]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		assert.ErrorContains(t, err, "threatMargin", "margin %s must be rejected", margin)
+	}
+}
+
+func TestMap_ThreatMarginOnDetauntFails(t *testing.T) {
+	// threatMargin on detaunt would be a silent no-op — the allowlist rejects it.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":100,"effects":[{"type":"detaunt","radius":2,"targetsEnemies":true,"threatMargin":50}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "threatMargin")
+}
+
 func TestMap_StatFieldsOnNonStatEffectFails(t *testing.T) {
 	// stat/statBonus on other effect types would be a silent no-op.
 	for _, effect := range []string{

@@ -43,8 +43,11 @@ cooldown** (added to scope in this planning session). All numbers
 6. **Companion cooldown** (decided this session) — a second spawn-effect
    consumer: a friendly mob that follows the owner at a set distance and
    attacks the first mob the owner attacks or that attacks the owner.
-7. **Taunt / anti-taunt effect types** — threat-table operations, parked
-   here from `plan-effect-foundations.md` §1 exactly for this moment.
+7. **Taunt / anti-taunt effect types** ✓ **DONE + VERIFIED IN-GAME
+   2026-07-11** — threat-table operations, parked here from
+   `plan-effect-foundations.md` §1 exactly for this moment. Force-to-top
+   Taunt + single-entry-removal Fade, both player cooldowns; two mob threat
+   seams; no wire changes (see the chunk-7 banner in §5).
 8. **Support mobs** — mobs heal/buff each other: lift the two flagged
    Phase-6 limitations (mobs can't cast heal auras; heals target player
    vitals only) + a seek-wounded-ally behavior.
@@ -1232,9 +1235,67 @@ directly before patrol).
 > participant-XP-on-mob-blow, FireWard-on-companion, brazier/totem
 > controls, perf feel._
 
-### Chunk 7 — Taunt / anti-taunt effect types (backend + content)
+### Chunk 7 — Taunt / anti-taunt effect types — DONE + VERIFIED IN-GAME 2026-07-11
 
-> **Handoff from chunk 6 (2026-07-11) — read before the plan-first start:**
+> **Status: DONE + VERIFIED IN-GAME 2026-07-11 ("works as intended").**
+> Full backend suite green (**22 pkgs**), binary rebuilt, tsc + webpack green,
+> TDD red-first (13 new tests), **ZERO wire changes**, one frontend file
+> touched (Skills.ts entries only). **Decisions (user, plan-first): (1)
+> taunt = force-to-top via a new seam (not a large fixed credit); (2) NO
+> separate target lock in v1 — pure threat manipulation, retention does the
+> rest; (3) anti-taunt = a player "Fade" cooldown that drops the caster's
+> OWN threat; (4) both delivered as cooldowns; (5) Fade = single-entry
+> removal.** Accepted-as-v1 caveats: the taunted mob's AURA keeps hitting
+> nearest en route (aura targeting is selector-based, not threat-based —
+> converges on close); taunt/anti-taunt on a COMPANION no-ops (followers
+> never read their own threat table); attribution scoped to **player casts
+> only** (no summon-taunt).
+>
+> **Mechanics — two mob threat seams (`model/mob/mob.go`):**
+> `ForceThreatToTop(source, margin)` reads the current max living threat and
+> sets `source = max + margin` (strictly exceeds → wins retention's lower-ID
+> tiebreak; the handoff's "exceed, don't match"); empty table → source
+> becomes the sole entry at `margin`; nil/allied/dead/`margin<=0` dropped
+> (the `noteThreat` gates). Because the taunter lands ON the table, the
+> chunk-6.6 `MayHarm` gate (`aggroSet ∪ HasThreat`) grants the mob the right
+> to hit the taunter **for free** (harm-rights record confirmed). `DropThreat(id)`
+> = `delete(m.threat, id)` — retention re-picks the next-highest next tick;
+> if the table empties, the current aggro target stays latched (Fade sheds
+> to a tank, **no-op solo** — accepted v1); dropping the entry also drops the
+> mob's dynamic harm right on that entity until it acts again (the point of
+> shedding). **Effect types (`skills/definition.go`, Step-0 pattern):**
+> `EffectTypeTaunt`/`EffectTypeDetaunt`, shared `ThreatParams{Margin}`
+> payload (detaunt sets an empty struct, ignores Margin); allowlist =
+> geometry + targetFlags (+ `threatMargin` for taunt only); validator
+> hard-fails `threatMargin <= 0` (a zero margin is a silent no-op — the
+> tiebreak lesson). **Apply-site (`sys/skills.go`):** new `fireCooldown`
+> early-continue branch → `applyThreatEffect` — a query circle
+> (`InstantDamageMask`) of enemy mobs at the caster, eligibility through
+> `eligibleByTargetFlags[threatManipulable]` so the faction/`mayHarm` gate
+> applies (a player caster bypasses `mayHarm` and reaches any
+> different-faction mob; the player is the threat source, itself a
+> `model.Combatant`), per mob calling `ForceThreatToTop`/`DropThreat`.
+> `threatManipulable` = one local capability interface with both methods
+> (every mob implements both). **Content [ALL PLACEHOLDER]:**
+> `api/skills/taunt.json` (id 25, cooldown 300 −20/lvl, `taunt` radius 2.0,
+> targetsEnemies, `threatMargin` 50, maxLevel 3) + `api/skills/fade.json`
+> (id 26, cooldown 300 −20/lvl, `detaunt` radius 2.0, targetsEnemies,
+> maxLevel 3); milestone **level 8** unlocks BOTH (mirrors L5 =
+> ImmolationAura+Ignite); cp-defs done; `Skills.ts` id 25/26 (ringless
+> cooldowns). **Count pins: skills 21→23** (`registry_test` len + boot log
+> `count=23`), **milestones 8→10** (no test pins milestone count — file/boot
+> only), mobs 8 unchanged. **Pins:** mob seams (`taunt_test.go`:
+> exceeds-max-and-becomes-target, empty-table-seeds-margin,
+> gates-allied/dead/nil, grants-harm-rights, drop-removes-entry,
+> drop-sheds-to-next-highest), definition parse (Taunt/Detaunt payload,
+> zero-margin-fails, threatMargin-on-detaunt-fails), sys
+> (`skills_behavior_test.go`: taunt-forces-caster-to-top, taunt-skips-allied,
+> fade-drops-caster-threat). **Next action: chunk 8 (support mobs), plan-first
+> in a NEW session — lift `healCaster`/heal-target capability (§3.7),
+> seek-wounded-ally movement, healer-mob smoke content; gotcha #12
+> (no player-reward leakage).**
+>
+> **Original handoff from chunk 6 (2026-07-11) — kept for the rationale trail:**
 > - **The threat seams built for this chunk:** `Mob.NoteThreat(source,
 >   amount)` (exported in 3a explicitly for taunt) and `Mob.HasThreat(id)`.
 >   There is NO exported read of the table or its top entry — "force-to-top"

@@ -765,6 +765,55 @@ func (m *Mob) HasThreat(id uint64) bool {
 	return ok
 }
 
+// ForceThreatToTop credits source above the current max living threat, so
+// retention (highestThreatTarget) swings the aggro target onto it next tick —
+// the taunt primitive (mob-depth chunk 7, decided: force-to-top, no separate
+// target lock). margin is the head start above the old top; because it lands
+// on the table, MayHarm grants the mob the right to hit the taunter for free
+// (chunk 6.6). Gates match noteThreat: nil, allied, dead and non-positive
+// sources are dropped.
+func (m *Mob) ForceThreatToTop(source model.Combatant, margin float32) {
+	if source == nil || margin <= 0 {
+		return
+	}
+	if source.Faction() == m.faction || source.HealthRatio() == 0 {
+		return
+	}
+	if m.threat == nil {
+		m.threat = make(map[uint64]*threatEntry)
+	}
+
+	// Current max over living entries (pruning dead on the way, like retention).
+	var max float32
+	for id, e := range m.threat {
+		if e.entity.HealthRatio() == 0 {
+			delete(m.threat, id)
+			continue
+		}
+		if e.threat > max {
+			max = e.threat
+		}
+	}
+
+	id := source.Basic().ID()
+	e := m.threat[id]
+	if e == nil {
+		e = &threatEntry{entity: source}
+		m.threat[id] = e
+	}
+	e.threat = max + margin
+}
+
+// DropThreat removes exactly one threat entry — the Fade / detaunt primitive
+// (mob-depth chunk 7, decided: single-entry removal). Retention re-picks the
+// next-highest threat holder next tick; if the table empties, the current
+// aggro target stays latched (Fade sheds to a tank, no-op solo — accepted v1).
+// Also drops the mob's dynamic harm right on that entity until it acts again
+// (chunk 6.6 MayHarm), which is the point of shedding aggro.
+func (m *Mob) DropThreat(id uint64) {
+	delete(m.threat, id)
+}
+
 // TargetsEntity reports whether this mob's current aggro target is the given
 // entity — the sensor-acquired half of "in combat with" (§6.3): a target can
 // hold aggro without any threat entry by never damaging the mob.

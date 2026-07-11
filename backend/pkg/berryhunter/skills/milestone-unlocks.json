@@ -6,5 +6,7 @@
   { "level": 5, "skillName": "ImmolationAura" },
   { "level": 5, "skillName": "Ignite" },
   { "level": 6, "skillName": "SummonTotem" },
-  { "level": 7, "skillName": "SummonCompanion" }
+  { "level": 7, "skillName": "SummonCompanion" },
+  { "level": 8, "skillName": "Taunt" },
+  { "level": 8, "skillName": "Fade" }
 ]
