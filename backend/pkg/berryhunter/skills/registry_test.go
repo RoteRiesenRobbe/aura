@@ -113,10 +113,10 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// 16 player skills (incl. SwiftPassive/ToughPassive, NovaBurst/Heal,
 	// SlowAura, the PaladinAura combination result, the FireWard resist
 	// aura, the ImmolationAura/Ignite dot pair, SummonTotem,
-	// SummonCompanion and the Taunt/Fade threat-op pair) + 7 mob skills
-	// (mobs/ subdirectory: 6 auras incl. TotemAura + CompanionAura + the
-	// AngryMammothStomp cooldown)
-	assert.Len(t, r.All(), 23)
+	// SummonCompanion and the Taunt/Fade threat-op pair) + 8 mob skills
+	// (mobs/ subdirectory: 7 auras incl. TotemAura + CompanionAura +
+	// HealerAura + the AngryMammothStomp cooldown)
+	assert.Len(t, r.All(), 24)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

@@ -269,9 +269,12 @@ A mob spawned by a player cooldown (`spawn` effect, second consumer), owned
   healing a mob targets its resource (`health`/`maxHealth`), not player
   vitals; eligibility becomes capability-based (has vitals) instead of
   `PlayerEntity`-asserted.
-- **Seek-wounded-ally:** a support mob steers toward the lowest-HP-ratio
-  allied mob in range while its heal aura ticks (the aura's
-  `lowest_health` selector already picks the target; movement follows it).
+- **Seek-wounded-ally [SHIPPED via the aggro machinery, not a stamp]:** a
+  seek-healer's aggro sensor senses allies (`LayerCombatants`) and
+  `updateHealerTargeting` acquires the most-wounded same-faction ally as its
+  aggro target — so the existing chase + aura-gate machinery move it to the
+  ally and turn its heal ring on/off, exactly like a damage mob reacting to a
+  player. (The chunk-8 DONE banner in §5 is the authoritative record.)
 - Pack buffs (resist/stat auras on allies) need no new machinery — mobs
   already carry `skills.Buffs`; it's `targetsAllies` content.
 
@@ -1349,6 +1352,61 @@ directly before patrol).
   eligibility/faction gates.
 
 ### Chunk 8 — Support mobs (backend + content)
+
+> **✅ DONE (implemented 2026-07-11, in-game verify PENDING; full backend suite
+> green, binary rebuilt, tsc + webpack green, TDD red-first). Design pivot
+> mid-chunk (user steer): the healer reacts to a wounded ally in its AGGRO
+> range like a damage mob reacts to a player — NOT a separate seek system.**
+> **Heal-lift (`sys/skills.go` `applyHealAura`):** the `!healCaster` early
+> return is gone (mobs cast heals); target eligibility retyped
+> `PlayerEntity → model.Healable` (new seam = `Combatant` + `Heal(hp) →
+> healed`, implemented by player + mob; player heals `PlayerVitalSigns.Health`,
+> mob heals its own `health`/`maxHealth` + records a `healReceived` accumulator
+> reset in `ResetTickNumbers`); wounded = `HealthRatio() < 1`; write via
+> `target.Heal()`. Heal keeps its bespoke implicit-same-faction predicate (NOT
+> routed through the shared faction seam — `heal_aura` carries no
+> `targetsAllies` flag). **Self-cost stays player-only** (`healCaster` gate);
+> mob healers pay none in v1. **Gotcha #12:** `NoteHealedBy` fires only when
+> caster AND target are players — a mob heal (even an aligned mob landing on a
+> player) creates no XP entitlement; `creditHealerThreat` stays `Combatant`-
+> gated (inert for mob→ally). **Seek-healer (`model/mob/healer.go` +
+> `mob.go`):** a moving mob whose slot-0 aura is a heal aura (inferred via
+> `firstAuraHeals`, no def flag) is a `seekHealer` — its aggro sensor mask
+> widens to `LayerCombatants` (senses allies; a passive faction would else be
+> blind), and `updateAggro` branches to `updateHealerTargeting` (like the
+> companion branch): acquire the most-wounded same-faction ally in the sensor
+> (`findWoundedAlly`, lowest ratio, 0<r<1), retain while wounded + in sensor,
+> release when full/dead/out-of-range. Everything downstream is the SHARED
+> aggro machinery — the heal aura gates on/off via `setAggroTarget`/
+> `resetAggro` (ring shows only while healing = "off while not seeking"), the
+> chase path moves it to the ally at full speed, the evade-return applies. **No
+> new stamp/window machinery, no wire-visible seek state** — an earlier
+> SkillSystem-stamp draft was deleted in favor of this. **Wire:** appended
+> `Mob.heal_received:uint` + EntityType `Healer` (ordinal 21); Go+TS regen; the
+> frontend heal-number render was already generic (`EntityManager` reads
+> `entity.healReceived`), only the mob deserializer line + the count. **Content
+> [ALL PLACEHOLDER]:** `api/skills/mobs/healer-aura.json` (HealerAura id 108,
+> heal_aura r2.0, 6+2/lvl, `lowest_health`, interval 30, no selfDamageHP) +
+> `api/mobs/healer.json` (mob id 9, EntityType Healer, faction **predator**,
+> speed 0.6, aggroRadius 6, NO damage aura → never attacks/retaliates/flees —
+> kill it to stop the healing); one Healer spawn at (45.5, 6.5) behind the cat
+> frontline (heals wounded cats; mammoth aggro 4 < 6.5 gap = screened).
+> Frontend 5-file path (Mobs.Healer / both Game.ts steps / gameObjectClasses[21]
+> / Graphics.ts / green-cross healer.svg). **Count pins: skills 23→24**
+> (`registry_test` len + boot `count=24`), **mobs 8→9** (boot-log line only),
+> milestones 10 unchanged (the healer is not a player unlock). **Pins:**
+> `model/healable.go`/player/mob `Heal` clamps+records+returns delta (both
+> types); `mob_test.go` seek-healer spawns-gated-with-ally-sensor /
+> acquires-wounded-ally-activates-aura-and-chases / releases-full-healed-ally /
+> ignores-wounded-non-ally / non-healer-not-seek-healer; `skills_behavior_test.go`
+> mob-heals-wounded-ally-resource / no-player-entitlement(#12) /
+> no-heal-across-factions / skips-full-health-ally. **v1 limitation (noted):**
+> the healer's `aggroTarget` is semantically a heal target (ally); it bypasses
+> threat, so it won't retaliate or flee when attacked — it stands and heals
+> until it dies. **Next action: chunk 9 (encounter-controller spine), plan-
+> first in a NEW session — sub-chunked 9a–9f; consumes the chunk-3 threat table
+> + chunk-1 spawn machinery.**
+
 - **Goal:** a healer mob keeps its pack alive; a buffer mob's ward is
   visible on allies.
 - **Do:** lift `healCaster` + heal-target capability (§3.7); seek-wounded-

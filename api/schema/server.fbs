@@ -23,7 +23,8 @@ enum EntityType : ushort {
   Totem,
   Rabbit,
   Companion,
-  Brazier
+  Brazier,
+  Healer
 }
 
 enum StatusEffect : ushort {
@@ -108,6 +109,12 @@ table Mob {
   // until the mob aggros (mob-depth chunk 3c). Mirrors Character.aura_radius
   // and retires the hand-synced frontend ring constant. Appended at table end.
   aura_radius:ushort = 0;
+
+  // health restored this tick, in absolute HP (same scale as `health`); 0 =
+  // none. Drives the floating heal number for mob-cast heals (mob-depth chunk
+  // 8). Mirrors Character.heal_received; reset every tick. Appended at table
+  // end so existing field IDs stay stable.
+  heal_received:uint = 0;
 }
 
 table Character {

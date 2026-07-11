@@ -17,6 +17,7 @@ import (
 )
 
 var _ = model.PlayerEntity(&player{})
+var _ = model.Healable(&player{})
 
 func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	e := minions.NewCircleEntity(0.25)
@@ -253,6 +254,18 @@ func (p *player) XpGained() uint64               { return p.xpGained }
 // SkillSystem calls it when a heal aura lands.
 func (p *player) NoteHealReceived(delta vitals.VitalSign) {
 	p.healReceived += delta
+}
+
+// Heal restores up to hp absolute HP, capped at MaxHealth, records the
+// floating heal number, and returns the HP actually restored (model.Healable;
+// mob-depth chunk 8). It centralizes the heal write the SkillSystem used to do
+// inline, so a heal aura can target players and mobs through one seam.
+func (p *player) Heal(hp uint32) vitals.VitalSign {
+	before := p.PlayerVitalSigns.Health
+	p.PlayerVitalSigns.Health = before.AddCapped(hp, p.MaxHealth())
+	healed := p.PlayerVitalSigns.Health - before
+	p.NoteHealReceived(healed)
+	return healed
 }
 
 // AuraHitStyle is the aura-hit VFX stamped on this player this tick (item 11

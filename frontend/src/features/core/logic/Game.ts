@@ -175,6 +175,7 @@ export class Game implements IGame {
                 rabbit: createNamedContainer('rabbit'),
                 companion: createNamedContainer('companion'),
                 brazier: createNamedContainer('brazier'),
+                healer: createNamedContainer('healer'),
             },
             resources: {
                 berryBush: createNamedContainer('berryBush'),
@@ -228,6 +229,7 @@ export class Game implements IGame {
             this.layers.mobs.rabbit,
             this.layers.mobs.companion,
             this.layers.mobs.brazier,
+            this.layers.mobs.healer,
         );
 
         // Higher Placeables

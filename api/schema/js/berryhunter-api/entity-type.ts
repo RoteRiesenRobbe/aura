@@ -23,5 +23,6 @@ export enum EntityType {
   Totem = 17,
   Rabbit = 18,
   Companion = 19,
-  Brazier = 20
+  Brazier = 20,
+  Healer = 21
 }

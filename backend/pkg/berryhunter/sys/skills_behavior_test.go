@@ -100,7 +100,14 @@ func (f *fakePlayer) HealthRatio() float32 {
 	return float32(f.vitalSigns.Health) / float32(f.maxHealth)
 }
 func (f *fakePlayer) NoteHealReceived(d vitals.VitalSign) { f.healReceived += d }
-func (f *fakePlayer) Radius() float32                     { return 0.25 }
+func (f *fakePlayer) Heal(hp uint32) vitals.VitalSign {
+	before := f.vitalSigns.Health
+	f.vitalSigns.Health = before.AddCapped(hp, f.maxHealth)
+	healed := f.vitalSigns.Health - before
+	f.NoteHealReceived(healed)
+	return healed
+}
+func (f *fakePlayer) Radius() float32 { return 0.25 }
 func (f *fakePlayer) Position() phy.Vec2f                 { return f.aura.Position() }
 func (f *fakePlayer) Progression() model.PlayerProgression {
 	return model.PlayerProgression{Level: f.level}
@@ -116,6 +123,7 @@ func (f *fakePlayer) ApplyResist(source skills.SkillID, tags []string, factor fl
 var (
 	_ skillEntity        = (*fakePlayer)(nil)
 	_ model.PlayerEntity = (*fakePlayer)(nil)
+	_ model.Healable     = (*fakePlayer)(nil)
 )
 
 func newFakePlayer() *fakePlayer {
@@ -485,10 +493,11 @@ type fakeMob struct {
 	sc            *skills.SkillComponent
 	aura          *phy.Circle
 	statusEffects model.StatusEffects
+	faction       model.Faction
 }
 
 func (f *fakeMob) Basic() ecs.BasicEntity                 { return f.basic }
-func (f *fakeMob) Faction() model.Faction                 { return model.FactionHostile }
+func (f *fakeMob) Faction() model.Faction                 { return f.faction }
 func (f *fakeMob) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeMob) AuraCollider() *phy.Circle              { return f.aura }
 func (f *fakeMob) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
@@ -507,11 +516,44 @@ func newFakeMob(effects ...skills.EffectDef) *fakeMob {
 	sc.EquipAura(0, def, 1)
 	sc.SetActiveAura(0)
 	return &fakeMob{
-		basic: ecs.NewBasic(),
-		sc:    sc,
-		aura:  phy.NewCircle(phy.VEC2F_ZERO, 1.0),
+		basic:   ecs.NewBasic(),
+		sc:      sc,
+		aura:    phy.NewCircle(phy.VEC2F_ZERO, 1.0),
+		faction: model.FactionHostile,
 	}
 }
+
+// fakeHealableMob is a minimal model.Healable target double (chunk 8): a mob
+// that can BE healed, with a settable faction and wounded resource. It exists
+// to prove a mob heal aura reaches a mob's own health pool (not player vitals)
+// and never touches player reward paths.
+type fakeHealableMob struct {
+	basic        ecs.BasicEntity
+	faction      model.Faction
+	health       vitals.VitalSign
+	maxHealth    vitals.VitalSign
+	healReceived vitals.VitalSign
+}
+
+func (f *fakeHealableMob) Basic() ecs.BasicEntity { return f.basic }
+func (f *fakeHealableMob) Faction() model.Faction { return f.faction }
+func (f *fakeHealableMob) Position() phy.Vec2f    { return phy.VEC2F_ZERO }
+func (f *fakeHealableMob) Radius() float32        { return 0.3 }
+func (f *fakeHealableMob) HealthRatio() float32 {
+	if f.maxHealth == 0 {
+		return 0
+	}
+	return float32(f.health) / float32(f.maxHealth)
+}
+func (f *fakeHealableMob) Heal(hp uint32) vitals.VitalSign {
+	before := f.health
+	f.health = before.AddCapped(hp, f.maxHealth)
+	healed := f.health - before
+	f.healReceived += healed
+	return healed
+}
+
+var _ model.Healable = (*fakeHealableMob)(nil)
 
 func TestApplyDamageAura_MobCaster_DamagesViaMobTouches(t *testing.T) {
 	caster := newFakeMob()
@@ -2151,4 +2193,72 @@ func TestApplyDotEffect_MobCasterRespectsHostility(t *testing.T) {
 
 	assert.Empty(t, cat.dots, "neutral-faction mob is never dotted by the hazard")
 	require.Len(t, player.dots, 1, "the declared enemy (aligned) still burns")
+}
+
+// --- support mobs: mob-cast heal aura (chunk 8) ---
+
+// A mob heal aura heals a wounded allied mob's own resource (its health pool),
+// not player vitals — the healCaster player-only split is lifted (chunk 8).
+func TestApplyHealAura_MobCaster_HealsWoundedAllyResource(t *testing.T) {
+	caster := newFakeMob() // FactionHostile
+	ally := &fakeHealableMob{
+		basic:     ecs.NewBasic(),
+		faction:   model.FactionHostile,
+		health:    50,
+		maxHealth: 100,
+	}
+	set := colliderSetOf(model.Healable(ally))
+
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+
+	assert.Equal(t, vitals.VitalSign(60), ally.health, "wounded ally healed by flat HP into its own pool")
+	assert.Equal(t, vitals.VitalSign(10), ally.healReceived, "records the mob floating heal number")
+}
+
+// Gotcha #12: a mob heal must never create a player XP entitlement. An aligned
+// mob healer (e.g. a companion) landing a heal on a wounded player heals them
+// but does NOT register as a recent healer — the participation-XP path is
+// player-caster-only.
+func TestApplyHealAura_MobCaster_NoPlayerEntitlement(t *testing.T) {
+	caster := newFakeMob()
+	caster.faction = model.FactionAligned // aligned mob, same faction as the player
+	player := newFakePlayer()             // FactionAligned
+	player.vitalSigns.Health = 50
+	set := colliderSetOf(model.PlayerEntity(player))
+
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+
+	assert.Equal(t, vitals.VitalSign(60), player.vitalSigns.Health, "player is still healed")
+	assert.Empty(t, player.healedBy, "a mob healer creates no recent-healer XP entitlement (#12)")
+}
+
+// Faction gate: a hostile mob healer does not heal an aligned target — "no
+// healing players by accident". Heal eligibility is same-faction only.
+func TestApplyHealAura_MobCaster_DoesNotHealAcrossFactions(t *testing.T) {
+	caster := newFakeMob() // FactionHostile
+	player := newFakePlayer()
+	player.vitalSigns.Health = 50
+	set := colliderSetOf(model.PlayerEntity(player))
+
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+
+	assert.Equal(t, vitals.VitalSign(50), player.vitalSigns.Health, "different-faction target is never healed")
+	assert.Empty(t, player.healedBy)
+}
+
+// A full-health ally is never selected: no heal lands (guards the eligibility
+// "wounded only" rule for mob casters too).
+func TestApplyHealAura_MobCaster_SkipsFullHealthAlly(t *testing.T) {
+	caster := newFakeMob()
+	healthy := &fakeHealableMob{
+		basic:     ecs.NewBasic(),
+		faction:   model.FactionHostile,
+		health:    100, // full — not eligible
+		maxHealth: 100,
+	}
+	set := colliderSetOf(model.Healable(healthy))
+
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+
+	assert.Equal(t, vitals.VitalSign(0), healthy.healReceived, "a full-health ally is never healed")
 }

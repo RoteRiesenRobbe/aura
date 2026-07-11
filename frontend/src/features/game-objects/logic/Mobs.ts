@@ -321,6 +321,23 @@ export class Brazier extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Brazier, file('brazier'), maxSize('brazier'));
 
+// The support mob (mob-depth chunk 8): a seek-healer that moves to and heals
+// the most-wounded ally of its faction. Its heal ring (aura_radius) shows only
+// while it is actively healing someone; floating green heal numbers appear on
+// the allies it tops up.
+export class Healer extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.healer, x, y,
+            randomInt(minSize('healer'), maxSize('healer')),
+            Healer.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Healer, file('healer'), maxSize('healer'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.

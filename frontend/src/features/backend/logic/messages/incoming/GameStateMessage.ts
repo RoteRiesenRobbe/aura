@@ -187,6 +187,7 @@ function unmarshalEntity(entity, eType) {
         result.maxHealth = entity.maxHealth();
         result.burstRadius = entity.burstRadius();
         result.damageTaken = entity.damageTaken();
+        result.healReceived = entity.healReceived();
         result.auraHitStyle = entity.auraHitStyle();
         // effective radius of the active aura in px, 0 while gated — drives
         // the ring visibility (mob-depth chunk 3c).
@@ -249,6 +250,7 @@ const gameObjectClasses = [
     Mobs.Rabbit,
     Mobs.Companion,
     Mobs.Brazier,
+    Mobs.Healer,
 ];
 
 function unmarshalEntityType(entityType) {

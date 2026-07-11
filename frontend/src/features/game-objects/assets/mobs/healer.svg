@@ -1,0 +1,10 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder healer art (mob-depth chunk 8): support mob, top-down. A
+       green cross reads as "medic" at a glance and stands apart from the
+       damage mobs. -->
+  <circle cx="50" cy="50" r="42" fill="#5fbf7a" stroke="#2f7346" stroke-width="6"/>
+  <circle cx="50" cy="50" r="27" fill="#8ee0a3" stroke="#2f7346" stroke-width="4"/>
+  <!-- heal cross -->
+  <rect x="43" y="30" width="14" height="40" rx="3" fill="#2f7346"/>
+  <rect x="30" y="43" width="40" height="14" rx="3" fill="#2f7346"/>
+</svg>

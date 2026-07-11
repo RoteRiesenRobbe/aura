@@ -121,6 +121,12 @@ export const GraphicsConfig = {
             minSize: <number> 50,
             maxSize: <number> 50,
         },
+
+        healer: {
+            file: require('../features/game-objects/assets/mobs/healer.svg'),
+            minSize: <number> 44,
+            maxSize: <number> 44,
+        },
     },
 
     resources: {

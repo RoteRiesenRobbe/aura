@@ -14,6 +14,7 @@ import (
 )
 
 var _ = model.MobEntity(&Mob{})
+var _ = model.Healable(&Mob{})
 
 var types = func() map[string]model.EntityType {
 	t := map[string]model.EntityType{}
@@ -86,6 +87,12 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	if auraCount > 0 && auraAlwaysOn {
 		sc.SetActiveAura(0)
 	}
+	// A moving mob whose primary aura is a heal aura is a seek-healer (chunk 8):
+	// it acquires wounded ALLIES the way a damage mob acquires enemies, so its
+	// aura gates on/off with that acquisition (updateHealerTargeting). It spawns
+	// aura-gated (moving mob) exactly like a damage mob; only the acquisition
+	// target and the sensor mask (below) differ.
+	seekHealer := !auraAlwaysOn && auraCount > 0 && firstAuraHeals(sc)
 
 	// The single aura sensor, pre-sized from slot 0 even while the aura
 	// starts gated: the chase stop distance is correct from the first aggro
@@ -120,7 +127,15 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	// sensor sees nothing at all.
 	aggroAura := phy.NewCircle(phy.VEC2F_ZERO, d.Body.AggroRadius)
 	aggroAura.Shape().Layer = int(model.LayerNoneCollision)
-	aggroAura.Shape().Mask = aggroSensorMask(aggroMask)
+	sensorMask := aggroSensorMask(aggroMask)
+	// A seek-healer senses fellow COMBATANTS (both body layers) so it can spot
+	// wounded allies at aggro range and move to them — its hostility set may be
+	// empty (a passive faction), which would otherwise blind its sensor.
+	// findWoundedAlly filters the collisions down to same-faction wounded.
+	if seekHealer {
+		sensorMask = int(model.LayerCombatants)
+	}
+	aggroAura.Shape().Mask = sensorMask
 	aggroAura.Shape().IsSensor = true
 
 	base := model.NewBaseEntity(mobBody, entityType)
@@ -154,6 +169,7 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 		// TODO use walkingSpeedPerTick from global config
 		velocity:            0.055 * d.Factors.Speed,
 		auraAlwaysOn:        auraAlwaysOn,
+		seekHealer:          seekHealer,
 		chaseIntoAuraMargin: chaseIntoAuraMargin,
 		statusEffects:       model.NewStatusEffects(),
 		faction:             faction,
@@ -263,6 +279,13 @@ type Mob struct {
 	// auraAlwaysOn exempts stationary mobs from aura gating (chunk 3c).
 	auraAlwaysOn bool
 
+	// seekHealer marks a moving mob whose primary aura is a heal aura (chunk 8).
+	// It reacts to wounded ALLIES the way a damage mob reacts to enemies: its
+	// aggro sensor senses fellow combatants (LayerCombatants), it acquires the
+	// most-wounded ally in range as its aggro target, chases it at full speed
+	// and its heal aura gates on/off with that acquisition (updateHealerTargeting).
+	seekHealer bool
+
 	statusEffects       model.StatusEffects
 	deathRewardGiven    bool
 	chaseIntoAuraMargin float32
@@ -288,6 +311,11 @@ type Mob struct {
 	// damageTaken accumulates health lost this tick (VitalSign units) for the
 	// floating damage number (roadmap item 11); reset every tick.
 	damageTaken vitals.VitalSign
+
+	// healReceived accumulates health restored this tick (VitalSign units) for
+	// the floating heal number of a mob-cast heal (mob-depth chunk 8); mirrors
+	// damageTaken and resets every tick alongside it.
+	healReceived vitals.VitalSign
 
 	// auraHitStyle is the aura-hit VFX a damage aura stamped on this mob this
 	// tick (item 11 Step 4); reset every tick alongside damageTaken.
@@ -608,6 +636,14 @@ func (m *Mob) updateAggro() {
 		return
 	}
 
+	// Seek-healers (chunk 8) acquire wounded ALLIES, not enemies: no threat
+	// table, no sensor-enemy acquisition — the ally-sensing sensor + a wounded-
+	// ally pick drive the same aggroTarget/aura-gate/chase machinery.
+	if m.seekHealer {
+		m.updateHealerTargeting()
+		return
+	}
+
 	if target := m.highestThreatTarget(); target != nil {
 		m.setAggroTarget(target)
 	} else if m.aggroTarget != nil && m.aggroTarget.HealthRatio() == 0 {
@@ -904,6 +940,26 @@ func (m *Mob) DamageTaken() vitals.VitalSign {
 	return m.damageTaken
 }
 
+// Heal restores up to hp absolute HP, capped at maxHealth, records the
+// floating heal number, and returns the HP actually restored (model.Healable;
+// mob-depth chunk 8) — the mob side of the heal-aura target lift, mirroring the
+// player's Heal. A dead mob (health 0) is not revived by a heal aura: the
+// eligibility predicate never selects a zero-ratio target, and AddCapped on a
+// live pool is the only path here.
+func (m *Mob) Heal(hp uint32) vitals.VitalSign {
+	before := m.health
+	m.health = m.health.AddCapped(hp, m.maxHealth)
+	healed := m.health - before
+	m.healReceived += healed
+	return healed
+}
+
+// HealReceived is the health restored this tick (VitalSign units); floating
+// heal number source for mob-cast heals (mob-depth chunk 8).
+func (m *Mob) HealReceived() vitals.VitalSign {
+	return m.healReceived
+}
+
 // AuraHitStyle is the aura-hit VFX stamped on this mob this tick (item 11
 // Step 4); serialized as the mob's aura_hit_style wire field.
 func (m *Mob) AuraHitStyle() model.AuraHitStyle {
@@ -941,6 +997,7 @@ func (m *Mob) DueDotHits() []skills.DotHit {
 // of each tick.
 func (m *Mob) ResetTickNumbers() {
 	m.damageTaken = 0
+	m.healReceived = 0
 	m.auraHitStyle = model.AuraHitStyleNone
 	m.buffs.Tick()
 }

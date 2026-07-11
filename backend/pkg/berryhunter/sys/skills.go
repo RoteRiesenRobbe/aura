@@ -400,13 +400,6 @@ func noteAuraHit(c phy.Collider, style model.AuraHitStyle) {
 
 func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	rng := s.rng
-	// The self-damage bookkeeping needs player vitals; entities without them
-	// (mobs) cannot cast heal auras — skip rather than panic.
-	caster, ok := e.(healCaster)
-	if !ok {
-		return
-	}
-
 	healCenterHP := effect.Heal.HPAt(level)
 	casterPos := e.AuraCollider().Position()
 	casterFaction := e.Faction()
@@ -415,53 +408,64 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 
 	// Eligible = a wounded ally (same faction, Step 1) that isn't the caster;
 	// the cap then counts only heal-worthy targets (never a slot wasted on a
-	// full-health or self entry). The PlayerEntity capability is the vitals
-	// access — mob allies need the item-7 vitals abstraction before heals can
-	// reach them.
+	// full-health or self entry). Healable is the vitals abstraction (chunk 8):
+	// players heal PlayerVitalSigns, mobs heal their own pool, both via Heal —
+	// so a mob healer now reaches its wounded allies. Heal auras keep this
+	// bespoke "implicit same-faction ally" predicate (they carry no
+	// targetsAllies flag, unlike damage/resist/dot); the shared faction seam is
+	// deliberately not routed through here.
 	eligible := func(c phy.Collider) bool {
-		usr := c.Shape().UserData
-		other, ok := usr.(model.PlayerEntity)
+		other, ok := c.Shape().UserData.(model.Healable)
 		if !ok {
 			return false
 		}
-		if f, ok := usr.(model.Factioned); !ok || f.Faction() != casterFaction {
+		if other.Faction() != casterFaction {
 			return false
 		}
 		if other.Basic().ID() == casterID {
 			return false // skip self
 		}
-		return other.VitalSigns().Health != other.MaxHealth()
+		return other.HealthRatio() < 1 // wounded only
 	}
 
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		// Heals roll per hit like damage does (item 11 Phase 3, decision C1).
 		healHP := vitals.HP(vitals.RollVariance(healCenterHP, effect.Heal.Variance, rng))
-		other := c.Shape().UserData.(model.PlayerEntity)
-		vs := other.VitalSigns()
-		before := vs.Health
-		vs.Health = vs.Health.AddCapped(healHP, other.MaxHealth())
-		other.NoteHealReceived(vs.Health - before) // floating heal number (item 11)
+		other := c.Shape().UserData.(model.Healable)
+		healed := other.Heal(healHP) // clamps at max, records the floating heal number
+
+		if healed <= 0 {
+			continue // fully healed between selection and application; not a hit
+		}
 		healedSomeone = true
 
-		// Participation XP (roadmap item 10): a successful heal makes the
-		// caster a recent healer of the target for a limited window.
-		if healerPE, isPlayer := e.(model.PlayerEntity); isPlayer {
-			other.NoteHealedBy(healerPE)
+		// Participation XP (roadmap item 10) is a PLAYER concept: only a player
+		// healing a player registers a recent healer. A mob healer — or a mob
+		// being healed — never routes into player reward paths (gotcha #12).
+		if healerPE, ok := e.(model.PlayerEntity); ok {
+			if targetPE, ok := c.Shape().UserData.(model.PlayerEntity); ok {
+				targetPE.NoteHealedBy(healerPE)
+			}
 		}
 
 		// Healer threat (mob-depth chunk 3, §6.3): the actually-healed HP,
-		// weighted, lands on every mob in combat with the heal target.
+		// weighted, lands on every mob in combat with the heal target. Inert
+		// for a mob healing an ally (no mob threatens an allied mob).
 		if healer, ok := e.(model.Combatant); ok {
-			s.creditHealerThreat(other.Basic().ID(), healer, float32(vs.Health-before))
+			s.creditHealerThreat(other.Basic().ID(), healer, float32(healed))
 		}
 	}
 
-	if healedSomeone && !caster.IsGod() {
-		selfHP := vitals.HP(effect.Heal.SelfDamageHP)
-		vs := caster.VitalSigns()
-		vs.Health = vs.Health.Sub(selfHP)
-		caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
+	// Self-cost is the player build-cost lever and needs player vitals; mob
+	// healers pay none in v1 (healCaster is satisfied by players only).
+	if healedSomeone {
+		if caster, ok := e.(healCaster); ok && !caster.IsGod() {
+			selfHP := vitals.HP(effect.Heal.SelfDamageHP)
+			vs := caster.VitalSigns()
+			vs.Health = vs.Health.Sub(selfHP)
+			caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
+		}
 	}
 }
 

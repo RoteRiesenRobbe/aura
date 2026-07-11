@@ -125,6 +125,11 @@ type MobEntity interface {
 	// ResetTickNumbers (TickAccumulators).
 	DamageTaken() vitals.VitalSign
 
+	// HealReceived is the health restored this tick (VitalSign units),
+	// serialized as the floating heal number for a mob-cast heal (mob-depth
+	// chunk 8) and reset each tick via ResetTickNumbers.
+	HealReceived() vitals.VitalSign
+
 	// AuraHitStyle is the per-tick aura-hit VFX stamped on this entity by a
 	// damage aura (item 11 Step 4); serialized as the aura_hit_style wire field
 	// and reset each tick via ResetTickNumbers.

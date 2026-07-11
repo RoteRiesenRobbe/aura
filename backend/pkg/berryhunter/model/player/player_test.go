@@ -465,3 +465,23 @@ func TestPlayer_CombatSignals_DeadStampReadsNil(t *testing.T) {
 	assert.Nil(t, p.RecentAttackTarget(), "a dead stamp target reads nil")
 	assert.Nil(t, p.RecentAttacker(), "a dead attacker reads nil")
 }
+
+// A player heals via model.Healable.Heal (mob-depth chunk 8): the SkillSystem
+// now routes heal writes through this seam for players and mobs alike. Clamps
+// at MaxHealth, records the floating heal number, returns the applied delta.
+func TestPlayer_Heal_ClampsRecordsAndReturnsDelta(t *testing.T) {
+	p := newTestPlayer(nil)
+	maxHP := p.MaxHealth()
+	p.PlayerVitalSigns.Health = maxHP.Sub(40)
+
+	healed := p.Heal(30)
+	assert.Equal(t, vitals.VitalSign(30), healed)
+	assert.Equal(t, maxHP.Sub(10), p.VitalSigns().Health)
+	assert.Equal(t, vitals.VitalSign(30), p.HealReceived())
+
+	// Over-heal clamps at MaxHealth; only the applied delta is recorded.
+	healed = p.Heal(50)
+	assert.Equal(t, vitals.VitalSign(10), healed)
+	assert.Equal(t, maxHP, p.VitalSigns().Health)
+	assert.Equal(t, vitals.VitalSign(40), p.HealReceived())
+}

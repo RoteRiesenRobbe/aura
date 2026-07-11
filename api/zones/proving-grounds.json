@@ -25899,6 +25899,14 @@
       "respawnVariancePct": 0.3
     },
     {
+      "mob": "Healer",
+      "x": 45.5,
+      "y": 6.5,
+      "angle": 0.0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0.3
+    },
+    {
       "mob": "SaberToothCat",
       "x": 45.5,
       "y": 9.0,

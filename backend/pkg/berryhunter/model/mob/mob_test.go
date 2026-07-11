@@ -1002,3 +1002,142 @@ func TestMob_FleesFromHighestThreat(t *testing.T) {
 	assert.Greater(t, m.Position().Y, float32(1),
 		"flee runs from the highest-threat enemy (south) — due north, not away from the nearest")
 }
+
+// --- support mobs: mob heal target (chunk 8) ---
+
+// A mob can BE healed via model.Healable: Heal clamps at maxHealth, records the
+// floating heal number, returns the actual delta, and resets each tick.
+func TestMob_Heal_ClampsRecordsAndReturnsDelta(t *testing.T) {
+	m := newTestMob() // maxHealth 100 (default), health 100
+	m.health = 60
+
+	healed := m.Heal(30)
+	assert.Equal(t, vitals.VitalSign(30), healed)
+	assert.Equal(t, vitals.VitalSign(90), m.Health())
+	assert.Equal(t, vitals.VitalSign(30), m.HealReceived())
+
+	// Over-heal clamps at maxHealth; only the applied delta accumulates.
+	healed = m.Heal(50)
+	assert.Equal(t, vitals.VitalSign(10), healed)
+	assert.Equal(t, vitals.VitalSign(100), m.Health())
+	assert.Equal(t, vitals.VitalSign(40), m.HealReceived())
+
+	m.ResetTickNumbers()
+	assert.Zero(t, m.HealReceived())
+}
+
+// --- support mobs: seek-healer aura gating + movement (chunk 8) ---
+
+func testHealAuraSkill() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 198, Name: "TestMobHealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
+		Effects: []skills.EffectDef{{
+			Type:          skills.EffectTypeHealAura,
+			Radius:        1.0,
+			TargetsAllies: true,
+			Selector:      skills.SelectorLowestHealth,
+			TickInterval:  1,
+			Heal:          &skills.HealParams{HP: 10},
+		}},
+	}
+}
+
+func newTestHealerMob() *Mob {
+	def := testMobDefinition() // speed 1.0 (moving)
+	def.Skills = []mobs.MobSkill{{Def: testHealAuraSkill(), Level: 1}}
+	return NewMob(def, 0, nil)
+}
+
+// A seek-healer spawns aura-gated like a damage mob (no ring until it acquires
+// a wounded ally), and its sensor spans both combatant layers so it can see
+// allies at aggro range (a passive-faction healer would otherwise be blind).
+func TestMob_SeekHealer_SpawnsGatedWithAllySensor(t *testing.T) {
+	m := newTestHealerMob()
+
+	assert.True(t, m.seekHealer)
+	assert.Equal(t, -1, m.skills.ActiveAuraSlot, "healer spawns aura-gated like a damage mob")
+	assert.Zero(t, m.AuraRadius(), "no ring until it acquires a wounded ally")
+	assert.Equal(t, int(model.LayerCombatants), m.aggroAura.Shape().Mask,
+		"healer sensor spans both combatant layers to see allies")
+}
+
+// The core symmetry (chunk 8): a healer acquires the wounded ally in its aggro
+// sensor the way a damage mob acquires an enemy — the heal aura activates on
+// acquisition (ring on) and it chases the ally at full speed.
+func TestMob_SeekHealer_AcquiresWoundedAllyActivatesAuraAndChases(t *testing.T) {
+	m := newTestHealerMob() // FactionHostile
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+	ally := newFakeCombatant()
+	ally.faction = model.FactionHostile // same faction as the healer
+	ally.healthRatio = 0.4              // wounded
+	ally.pos = phy.Vec2f{X: 1.5, Y: 0}  // inside aggroRadius 2.0, outside heal radius 1.0
+
+	space := phy.NewSpace()
+	space.AddShape(m.aggroAura)
+	c := phy.NewCircle(ally.pos, 0.25)
+	c.Shape().IsSensor = true
+	c.Shape().Layer = int(model.LayerActionCollision)
+	c.Shape().UserData = model.Combatant(ally)
+	space.AddShape(c)
+	space.Update()
+	require.NotEmpty(t, m.aggroAura.Collisions())
+
+	m.updateAggro()
+
+	require.Same(t, ally, m.aggroTarget, "healer acquires the wounded ally")
+	assert.Greater(t, m.AuraRadius(), float32(0), "heal aura activates on acquisition (ring on)")
+
+	before := m.Position()
+	require.True(t, m.shouldApproachAggroTarget(), "ally is outside heal range → approach")
+	m.moveTowards(m.aggroTarget.Position())
+	assert.Greater(t, m.Position().X, before.X, "healer chases the wounded ally")
+}
+
+// A healed-to-full ally is released, and the heal aura gates back off.
+func TestMob_SeekHealer_ReleasesFullHealedAlly(t *testing.T) {
+	m := newTestHealerMob()
+	ally := newFakeCombatant()
+	ally.faction = model.FactionHostile
+	ally.healthRatio = 0.4
+
+	m.setAggroTarget(ally)
+	require.NotNil(t, m.aggroTarget)
+	assert.Greater(t, m.AuraRadius(), float32(0))
+
+	ally.healthRatio = 1.0 // topped up
+	m.updateHealerTargeting()
+
+	assert.Nil(t, m.aggroTarget, "healer releases a full-health ally")
+	assert.Zero(t, m.AuraRadius(), "ring off after release")
+}
+
+// A different-faction wounded entity in the sensor is never acquired (no
+// healing players/enemies by accident, at the acquisition layer).
+func TestMob_SeekHealer_IgnoresWoundedNonAlly(t *testing.T) {
+	m := newTestHealerMob() // FactionHostile
+	enemy := newFakeCombatant()
+	enemy.faction = model.FactionAligned // different faction (e.g. a player)
+	enemy.healthRatio = 0.3
+	enemy.pos = phy.Vec2f{X: 1.0, Y: 0}
+
+	space := phy.NewSpace()
+	space.AddShape(m.aggroAura)
+	c := phy.NewCircle(enemy.pos, 0.25)
+	c.Shape().IsSensor = true
+	c.Shape().Layer = int(model.LayerPlayerCollision)
+	c.Shape().UserData = model.Combatant(enemy)
+	space.AddShape(c)
+	space.Update()
+	require.NotEmpty(t, m.aggroAura.Collisions())
+
+	m.updateAggro()
+
+	assert.Nil(t, m.aggroTarget, "a wounded non-ally is never acquired for healing")
+}
+
+// A non-healer moving mob is not a seek-healer: its aura stays aggro-gated.
+func TestMob_NonHealerMovingMobIsNotSeekHealer(t *testing.T) {
+	m := newTestMob() // damage aura, speed 1.0
+	assert.False(t, m.seekHealer)
+	assert.Equal(t, -1, m.skills.ActiveAuraSlot, "damage mob spawns aura-gated (chunk 3c)")
+}
