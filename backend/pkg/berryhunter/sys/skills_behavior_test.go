@@ -32,6 +32,7 @@ import (
 type touchRecorder struct {
 	touches   []float32 // damage HP per hit
 	touchTags [][]string
+	sources   []model.Combatant // Damage.Source per hit (threat attribution, chunk 3)
 	hitStyles []model.AuraHitStyle
 }
 
@@ -40,6 +41,7 @@ func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)   {}
 func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	r.touches = append(r.touches, damage.HP)
 	r.touchTags = append(r.touchTags, damage.Tags)
+	r.sources = append(r.sources, damage.Source)
 }
 func (r *touchRecorder) NoteAuraHit(style model.AuraHitStyle) {
 	r.hitStyles = append(r.hitStyles, style)
@@ -187,6 +189,14 @@ func testRNG() *rand.Rand {
 	return rand.New(rand.NewSource(7))
 }
 
+// testSkillSystem builds a SkillSystem with a seeded rng for calling
+// system-method effects (heal aura) directly; no game ref needed.
+func testSkillSystem() *SkillSystem {
+	s := NewSkillSystem(phy.NewSpace(), nil)
+	s.rng = testRNG()
+	return s
+}
+
 // --- applyDamageAura ---
 
 func TestApplyDamageAura_DealsLevelScaledDamage(t *testing.T) {
@@ -307,7 +317,7 @@ func TestApplyHealAura_HealsHurtAllyByExactFraction(t *testing.T) {
 	start := ally.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	applyHealAura(caster, 1, healEffect(), set, testRNG())
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
 
 	assert.Equal(t, start.Add(10), ally.vitalSigns.Health)
 }
@@ -320,7 +330,7 @@ func TestApplyHealAura_NotesHealerOnTarget(t *testing.T) {
 	ally := newFakePlayer()
 	ally.vitalSigns.Health = 50
 
-	applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)), testRNG())
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
 
 	require.Len(t, ally.healedBy, 1)
 	assert.Equal(t, model.PlayerEntity(caster), ally.healedBy[0])
@@ -330,7 +340,7 @@ func TestApplyHealAura_FullHealthTargetNotesNothing(t *testing.T) {
 	caster := newFakePlayer()
 	ally := newFakePlayer() // full health — no heal happens
 
-	applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)), testRNG())
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
 
 	assert.Empty(t, ally.healedBy)
 }
@@ -340,7 +350,7 @@ func TestApplyHealAura_SkipsAllyAtFullHealth_NoSelfDamage(t *testing.T) {
 	ally := newFakePlayer() // full health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	applyHealAura(caster, 1, healEffect(), set, testRNG())
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
 
 	assert.Equal(t, ally.MaxHealth(), ally.vitalSigns.Health)
 	assert.Equal(t, caster.MaxHealth(), caster.vitalSigns.Health,
@@ -354,7 +364,7 @@ func TestApplyHealAura_SkipsSelf(t *testing.T) {
 	start := caster.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(caster))
 
-	applyHealAura(caster, 1, healEffect(), set, testRNG())
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
 
 	assert.Equal(t, start, caster.vitalSigns.Health,
 		"the caster's own collider entry must neither heal nor cost anything")
@@ -366,7 +376,7 @@ func TestApplyHealAura_SelfDamageOnSuccessfulHeal(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	applyHealAura(caster, 1, healEffect(), set, testRNG())
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health)
 	assert.Contains(t, caster.statusEffects.Effects(), model.StatusEffectDamagedAmbient)
@@ -379,7 +389,7 @@ func TestApplyHealAura_SelfDamageIsFlatHP(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	applyHealAura(caster, 1, healEffect(), set, testRNG())
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health,
 		"self-damage is a flat HP cost, independent of MaxHealthFactor")
@@ -393,7 +403,7 @@ func TestApplyHealAura_GodModePaysNoSelfDamage(t *testing.T) {
 	start := ally.vitalSigns.Health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	applyHealAura(caster, 1, healEffect(), set, testRNG())
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
 
 	assert.Equal(t, start.Add(10), ally.vitalSigns.Health, "ally is still healed")
 	assert.Equal(t, caster.MaxHealth(), caster.vitalSigns.Health, "god pays nothing")
@@ -933,14 +943,14 @@ func TestApplyHealAura_VarianceRollsWithinBand(t *testing.T) {
 	effect.Heal.SelfDamageHP = 0
 	effect.Heal.Variance = 0.2
 
-	rng := testRNG()
+	s := testSkillSystem()
 	distinct := map[vitals.VitalSign]bool{}
 	for i := 0; i < 20; i++ {
 		ally := newFakePlayer()
 		ally.maxHealth = 1000
 		ally.vitalSigns.Health = 100
 
-		applyHealAura(caster, 1, effect, colliderSetOf(model.PlayerEntity(ally)), rng)
+		s.applyHealAura(caster, 1, effect, colliderSetOf(model.PlayerEntity(ally)))
 
 		assert.GreaterOrEqual(t, ally.healReceived, vitals.VitalSign(40), "roll below the variance band")
 		assert.LessOrEqual(t, ally.healReceived, vitals.VitalSign(60), "roll above the variance band")
@@ -1736,4 +1746,103 @@ func TestTotem_KillableByHostileMobAura(t *testing.T) {
 
 	applyDamageAura(hostile, 1, effect, colliderSetOf(totem), testRNG())
 	assert.Equal(t, totem.MaxHealth()-10, totem.Health(), "the hostile hit damages the totem")
+}
+
+// --- threat attribution + healer threat (mob-depth chunk 3) ---
+
+func TestApplyDamageAura_OwnedCasterStampsSummonSource(t *testing.T) {
+	// The hit's Source carries the summon so the struck mob credits threat
+	// against the totem while XP rides PlayerTouches(owner) — gotcha #9.
+	owner := newFakePlayer()
+	totem := newTestTotem(owner)
+
+	target := &touchRecorder{}
+	applyDamageAura(totem, 1, damageEffect(1), colliderSetOf(target), testRNG())
+
+	require.Len(t, target.sources, 1)
+	assert.Same(t, any(totem), any(target.sources[0]),
+		"owned cast: Damage.Source is the summon entity")
+}
+
+func TestApplyDamageAura_DirectPlayerCastHasNilSource(t *testing.T) {
+	caster, target := activeAuraPlayer(t, damageEffect(1))
+	applyDamageAura(caster, 1, damageEffect(1), colliderSetOf(target), testRNG())
+
+	require.Len(t, target.sources, 1)
+	assert.Nil(t, target.sources[0],
+		"direct cast: nil Source — the target treats the toucher as the source")
+}
+
+func TestTickDots_OwnedDotKeepsSummonAsSource(t *testing.T) {
+	// The owner replaces the stored caster for crediting, but the summon rides
+	// along as Damage.Source: threat sticks to the totem while it lives.
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	owner := newFakePlayer()
+	totem := newTestTotem(owner)
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(106, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: totem}, 2)
+
+	v.buffs.Tick()
+	sk.tickDots(v)
+
+	require.Len(t, v.playerHits, 1)
+	assert.Same(t, any(totem), any(v.playerHits[0].Source))
+}
+
+// threatRecordingMob observes the SkillSystem-side healer-threat crediting
+// seam (HasThreat filter + NoteThreat amounts); the mob-side table mechanics
+// are pinned in the mob package.
+type threatRecordingMob struct {
+	fakeMob
+	fighting  map[uint64]bool
+	targeting map[uint64]bool
+	sources   []model.Combatant
+	amounts   []float32
+}
+
+func (m *threatRecordingMob) HasThreat(id uint64) bool     { return m.fighting[id] }
+func (m *threatRecordingMob) TargetsEntity(id uint64) bool { return m.targeting[id] }
+func (m *threatRecordingMob) NoteThreat(source model.Combatant, amount float32) {
+	m.sources = append(m.sources, source)
+	m.amounts = append(m.amounts, amount)
+}
+
+func TestApplyHealAura_CreditsHealerThreatOnMobsFightingTarget(t *testing.T) {
+	s := testSkillSystem()
+	healer := newFakePlayer()
+	ally := newFakePlayer()
+	ally.vitalSigns.Health = 50
+
+	fighting := &threatRecordingMob{fakeMob: *newFakeMob(), fighting: map[uint64]bool{ally.basic.ID(): true}}
+	idle := &threatRecordingMob{fakeMob: *newFakeMob()}
+	s.AddEntity(fighting)
+	s.AddEntity(idle)
+
+	s.applyHealAura(healer, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+
+	require.Len(t, fighting.sources, 1, "a mob in combat with the heal target learns of the heal")
+	assert.Same(t, any(healer), any(fighting.sources[0]))
+	assert.InDelta(t, 10*healerThreatFactor, fighting.amounts[0], 1e-6,
+		"healer threat = actually-healed HP × factor (§6.3)")
+	assert.Empty(t, idle.sources, "a mob not fighting the target never learns of the heal")
+}
+
+func TestApplyHealAura_CreditsHealerThreatOnSensorAggroMob(t *testing.T) {
+	s := testSkillSystem()
+	healer := newFakePlayer()
+	ally := newFakePlayer()
+	ally.vitalSigns.Health = 50
+
+	// Sensor-acquired combat: the mob targets the ally, but the ally never
+	// damaged it — its threat table is empty (the no-damage-tank scenario).
+	aggro := &threatRecordingMob{fakeMob: *newFakeMob(), targeting: map[uint64]bool{ally.basic.ID(): true}}
+	s.AddEntity(aggro)
+
+	s.applyHealAura(healer, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+
+	require.Len(t, aggro.sources, 1,
+		"a mob whose aggro target is the heal target is in combat with it — the healer gets credited")
+	assert.Same(t, any(healer), any(aggro.sources[0]))
 }

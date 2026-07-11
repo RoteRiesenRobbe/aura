@@ -62,7 +62,7 @@ cooldown** (added to scope in this planning session). All numbers
 | Pets beyond the companion (swarm, clone, decoy) | later | Build on the same machinery when content wants them |
 | Timed world-state + dwell-capture (lava-bridge tail) | ⚑ §6.5 | Candidate to slide to the real boss (content pass); decide at chunk 9 |
 | Knockback / pull (physics impulse) | effect-foundations §6 | No impulse concept in per-tick velocity movement; parked |
-| Aura line-of-sight (`blocksAura` runtime) | item 6 / step 3 | Next execution step |
+| ~~Aura line-of-sight (`blocksAura` runtime)~~ | — | **CUT 2026-07-10** — auras never blocked (`tdd.md` §4.2); wall-cheese is owned by steering (chunk 4) + leash (§6.7); `blocksAura` sweep pending |
 | Player-affecting control effects | F7 | Mobs-only control in v1 |
 | Navmesh / A* pathfinding | only if steering fails | Decided: steering (§1.3) |
 
@@ -392,10 +392,10 @@ directly before patrol).
 
 ### Chunk 2 — Flee movement mode (backend + smoke content)
 
-> **✓ IMPLEMENTED 2026-07-09; standalone smoke VERIFIED IN-GAME same day**
-> (full backend suite green, tsc + webpack green; the **full** verification —
-> chase + flee against the threat table — still rides with chunk 3 per
-> §1.3/§5). User-observed and confirmed-as-designed: the rabbit flees at
+> **✓ IMPLEMENTED 2026-07-09; standalone smoke VERIFIED IN-GAME same day;
+> full verification — chase + flee against the threat table — VERIFIED
+> IN-GAME 2026-07-11 with chunk 3** (full backend suite green, tsc + webpack
+> green). User-observed and confirmed-as-designed: the rabbit flees at
 > half HP until it crosses its territory edge, then the existing leash drops
 > aggro → out-of-combat regen snaps it to full (~2 s, shared placeholder
 > constant) → it re-aggros healthy. That regen reset IS the flee exit (no
@@ -443,6 +443,123 @@ directly before patrol).
 - **Gotchas:** #10.
 
 ### Chunk 3 — Aggro & threat rework (backend + small wire), sub-chunked
+
+> **✓ DONE 2026-07-10 — VERIFIED IN-GAME 2026-07-11 (chunks 2+3 together):
+> checklist passed except two found issues, BOTH FIXED same day and the
+> fixes re-verified in-game same day:** (1) **chase
+> flicker** — the leash countdown ran whenever the target was out of *aura
+> reach*, so a chased-but-unreachable target inside the aggro sensor expired
+> the leash every ~3 s → resetAggro → sensor re-acquire next tick = 1-tick
+> aura/ring flicker + threat table wiped mid-chase; fix: in-combat also
+> includes **target within the aggro sensor** (`targetWithinSensor`,
+> geometric twin of the sensor overlap) — the countdown only runs with the
+> target unreachable AND out of sight; pinned by `TestMob_ChasingTarget
+> InsideSensorNeverLeashes` (red at exactly tick 91 pre-fix). (2) **healer
+> threat never fired on sensor-acquired combat** — crediting filtered on
+> `HasThreat(healedID)` only, but a tank who deals no damage has NO threat
+> entry (boss acquired them via sensor) → empty table → healer never
+> credited; fix **amends the §6.3 decision**: "in combat with the heal
+> target" = threat table holds the healed entity **OR the mob's current
+> aggro target is the healed entity** (new exported `Mob.TargetsEntity`,
+> `threatReceiver` widened); pinned by `TestApplyHealAura_CreditsHealer
+> ThreatOnSensorAggroMob` + `TestMob_TargetsEntity`. Note the calibration:
+> once the tank DOES deal damage, the healer only pulls when 0.5 × healed HP
+> out-threats the tank's damage — intended shape, `healerThreatFactor` is
+> the balance knob. (Full backend suite green —
+> 21 pkgs, binary rebuilt; tsc + webpack green.) All four §6.3/§6.2-adjacent
+> decisions settled at chunk start (user, 2026-07-10): **threat = post-
+> mitigation HP** actually lost (resists reduce threat); **healer threat =
+> heal-event crediting** — a landed heal credits the healer with healedHP ×
+> `healerThreatFactor` [PLACEHOLDER 0.5] on every mob **in combat with** the
+> healed entity — threat table holds it OR it is the current aggro target
+> (the OR-half amended 2026-07-11, see the fix note above;
+> `SkillSystem.creditHealerThreat` iterates
+> `s.entities`; self-heal cooldowns deliberately credit nothing);
+> **reset-only decay** (threat clears with the combat reset, no per-tick
+> bleed); **stationary mobs (speed 0) keep auras always-on** — 3c gating
+> would otherwise kill totems (dummy 0.1 aggro sensor; an aligned totem's
+> sensor masks the player layer and never sees a mob), and a hazard that
+> cannot chase has its aura as its entire behavior. Zero content edits.
+> **3a mechanics:** new **`model.Combatant`** (BasicEntity + Factioned +
+> Position/Radius/HealthRatio; "living" = HealthRatio() > 0) replaces the
+> `PlayerEntity` assertion in `findAggroTarget` (faction-aware: summons ride
+> the player layer, no mask change) and retypes `Mob.aggroTarget`. Per-mob
+> `threat map[entityID]*threatEntry` (ref + float), seeded in
+> `PlayerTouches`/`MobTouches` from `takeDamage`'s now-returned actual loss;
+> **`model.Damage` gained `Source Combatant`** — stamped by
+> `applyPlayerDamageAura` (owned casts) and `tickDots` (kept alongside the
+> owner replacement), so **threat credits the summon while XP rides the
+> toucher** (gotcha #9); dead/absent Source falls back to the toucher (an
+> expired totem's burn pulls threat to the owner). Retention rule in
+> `updateAggro`: table non-empty → target = highest living threat (ties →
+> lower ID; dead entries pruned on read), table empty → sensor acquires
+> nearest — **a hit from outside the sensor acquires via threat (snipers
+> get retaliated)**. **TTL expiry now zeroes health** so stale threat refs
+> to a removed summon read dead (rewards untouched — they only flow through
+> PlayerTouches). Exported seams `NoteThreat`/`HasThreat`/`TargetsEntity`
+> (healer threat now, taunt in chunk 7). **3b:** the fixed territory check
+> is GONE — in-combat (target within aura reach OR **inside the aggro
+> sensor** OR damage taken since last tick) has
+> no leash; combat clear starts `leashTicks`, expiry past
+> `leashCountdownTicks` [PLACEHOLDER 90 ≈ 3 s] runs `resetAggro` (target +
+> threat cleared, aura off, walk home + regen follow). A mob whose target
+> outruns it (leaves the sensor) gives up ~3 s later; the rabbit now flees
+> as long as it's chased instead of snapping at the territory edge. **3c:** moving mobs
+> spawn with the aura **gated** (`ActiveAuraSlot -1`; sensor still pre-sized
+> from slot 0 so the chase stop distance is right from the first aggro
+> tick), `setAuraActive` flips on aggro/reset transitions only (idempotent —
+> re-calling SetActiveAura would zero the tick accumulator and the aura
+> would never fire). Wire: **`Mob.aura_radius:ushort`** appended (px, 0 =
+> off; Go + TS regen), `Mob.AuraRadius()` mirrors the player's, codec sends
+> it; frontend `Mobs.Mob.setAuraRadius` builds/scales/hides the ring from
+> the wire via a new `EntityManager` mob branch — **`damageAuraRadiusMeters`
+> deleted from Graphics.ts/Mobs.ts (standing tech debt retired; ring
+> texture rasterizes at a fixed [PLACEHOLDER 4 m])**. **3d fell out of 3a:**
+> `aggroTarget` IS the highest-threat entity, so flee already runs from it —
+> pinned only. **Pins:** `TestMob_ThreatCreditsPostMitigationDamage`,
+> `TestMob_PlayerTouches_SummonSourceGetsThreatOwnerGetsXP`/
+> `_DeadSourceFallsBackToToucher`, `TestMob_MobTouches_OnlyEnemyFaction*`,
+> `TestMob_Update_RetargetsHighestThreat`/`_ThreatFromOutsideSensor*`/
+> `_DeadThreatEntryPruned*`, `TestMob_FindAggroTarget_AcquiresEnemyFaction
+> Summon`, `TestMob_LeashCountdown*`/`_InCombatHasNoLeash`/
+> `_DamageResetsLeashCountdown`/`_ChasingTargetInsideSensorNeverLeashes`,
+> `TestMob_TargetsEntity`, `TestNewMob_MovingMobSpawnsAuraGated`/
+> `_StationaryMobAuraAlwaysOn`, `TestMob_AuraActivatesOnAggroDeactivates*`,
+> `TestMob_FleesFromHighestThreat`, sys `TestApplyDamageAura_OwnedCaster
+> StampsSummonSource`/`_DirectPlayerCastHasNilSource`,
+> `TestTickDots_OwnedDotKeepsSummonAsSource`, `TestApplyHealAura_Credits
+> HealerThreatOnMobsFightingTarget`/`_OnSensorAggroMob`, codec
+> `TestMobMarshalFlatbuf_
+> AuraRadius`; TTL-zeroing folded into `TestMob_TTLExpiryKills`. **Adapted
+> existing pins (by design):** `TestNewMob_SkillLoadoutWiring` (slot -1 at
+> spawn), `TestMob_FullOutOfCombatRegenClearsParticipants` (damage seeds
+> threat → leash must reset before regen). `applyHealAura` became a
+> `SkillSystem` method (rng + entity list); ~11 test callsites moved to a
+> `testSkillSystem()` helper.
+>
+> **In-game checklist (chunks 2+3 — RUN 2026-07-11: passed except the two
+> findings fixed above; both fixes re-verified in-game 2026-07-11 — no ring
+> flicker while chased-but-unreachable, healer pull with a no-damage tank
+> works):** rebuild frontend too (ring
+> change); `pkill berryhunterd`, boot log `count=19` skills / 6 mobs.
+> 1. **Ring gating:** idle Dodo shows no ring; aggro it → ring appears at
+>    the exact aura size; leash it off → ring gone, walk home, regen.
+> 2. **Threat retention:** two damage sources — the mob chases the bigger
+>    total damage dealer, not the nearer one.
+> 3. **Sniper retaliation:** hit a mob from beyond its aggro radius
+>    (Ignite) → it comes for you.
+> 4. **Leash:** outrun a chaser without fighting back → it gives up after
+>    ~3 s; keep hitting it while kiting → it never gives up.
+> 5. **Rabbit:** flees below half HP *while chased* (no territory snap),
+>    wall-slides; escape → regen → healthy re-aggro.
+> 6. **Totem (closes gotcha #9):** summon next to a mob, let it burn —
+>    the mob turns on the totem once it out-threats you, kill XP still
+>    lands on you; proving-grounds braziers still burn passersby
+>    (stationary always-on exemption).
+> 7. **Healer threat:** healing someone a mob is fighting eventually draws
+>    the mob onto the healer (needs a second player, or fold into #6
+>    observationally).
+
 - **3a — threat table + faction-aware acquisition:** entity-keyed threat
   store (§3.3) seeded from the existing damage/heal seams; damage credits
   the source entity (summons build their own threat — decided); the
@@ -466,6 +583,29 @@ directly before patrol).
 - **Gotchas:** #3, #4, #9.
 
 ### Chunk 4 — Obstacle avoidance: steering (backend)
+
+> **Handoff from chunk 3 (2026-07-10) — read before the plan-first start:**
+> - **Seam layout after chunk 3:** `moveTowards` serves chase + walk-home,
+>   `moveAwayFrom` serves flee; both draw the tick distance from
+>   `stepLength()` (velocity × strongest slow). Repulsion composes into the
+>   *direction* those two build — `stepLength` stays the magnitude home.
+> - **`Mob` has NO `phy.Space` reference** — movement is pure geometry off
+>   entity refs today. The ready-made statics query is chunk 1's
+>   `phy.Space.QueryCircleStatics` (works pre-Update, mask-filtered), but
+>   getting the space (or a query closure) into the mob is a chunk-4
+>   design decision to settle plan-first (NewMob param vs. injection via
+>   MobSystem/GameConfig — note ~17+ NewMob callsites, mostly tests).
+> - **The mob's own body collision set is NOT a lookahead** — it only holds
+>   actual overlaps after resolution; repulsion-from-nearby-blockers needs
+>   the query above.
+> - **3b softened the failure mode:** a mob jammed behind a blocker, out of
+>   aura reach and taking no damage, now leashes home after ~3 s instead of
+>   jamming forever. Steering is about pursuit *quality*; the
+>   stuck-forever case is already gone.
+> - Gotchas #5 (SetPosition first-call latching) and #6 (steering stays
+>   inside per-tick velocity movement, resolution remains the hard
+>   guarantee) are unchanged and binding.
+
 - **Goal:** a mob chasing/fleeing/returning around a blocking prop
   deflects around it instead of jamming.
 - **Do:** repulsion-from-blockers composed into `moveTowards` (§3.4);
@@ -556,16 +696,27 @@ directly before patrol).
   at a random unblocked point on the caster ring (fallback: caster
   position) — the spawn must be instantly visible, never covered by the
   avatar. Full record: `plan-effect-foundations.md` §8.4.
-- **§6.2 — Aura-ring visibility wire (chunk 3c):** how the client learns a
-  mob's aura is off. Lean: wire-driven effective aura radius on the Mob
-  table (0 = off) — one appended field, retires the
-  `damageAuraRadiusMeters` constant (standing tech debt) in the same move.
-- **§6.3 — Threat semantics (chunk 3a):** **already decided (2026-07-09):**
-  the table keys entity IDs (any living enemy-faction entity) and summon
-  damage credits the summon itself, XP the owner. **Still open:** threat
-  per damage point vs flat per event; healer-threat crediting rule (which
-  mobs' tables does a heal land on, at what weight); decay over time vs
-  reset-only. All [PLACEHOLDER] pending the chunk's plan-first discussion.
+- **§6.2 — Aura-ring visibility wire (chunk 3c): ✓ DECIDED + SHIPPED
+  2026-07-10** as leaned — `Mob.aura_radius:ushort` appended (px, 0 = off),
+  mirroring `Character.aura_radius`; `damageAuraRadiusMeters` deleted
+  (tech debt retired). See the chunk-3 banner.
+- **§6.3 — Threat semantics (chunk 3a): ✓ DECIDED 2026-07-10, AMENDED
+  2026-07-11** (user, at
+  chunk start) on top of the 2026-07-09 keying/attribution decisions:
+  **threat = post-mitigation HP** actually lost per hit; **healer threat =
+  heal-event crediting** (healedHP × `healerThreatFactor` [PLACEHOLDER 0.5]
+  on every mob **in combat with** the healed entity; self-heals credit
+  nothing). **Amendment (in-game check 2026-07-11):** "in combat with" =
+  threat table holds the healed entity **OR the mob's current aggro target
+  is the healed entity** — the original table-only predicate never fired
+  for a tank holding sensor-acquired aggro without dealing damage (empty
+  table → the healer could heal forever and never pull; found on the
+  AngryMammoth). With the fix, the healer's first landed heal creates the
+  mob's only threat entry and retention swings it onto the healer;
+  **reset-only** (no decay over time — revisit as a tuning knob
+  if fights feel too sticky). Bonus decision the chunk surfaced:
+  **stationary mobs (speed 0) are exempt from 3c aura gating** (always-on
+  hazards; keeps totems/braziers functional with zero content edits).
 - **§6.4 — Companion specifics (chunk 6):** lifetime (TTL like the totem
   vs until-death), follow distance + catch-up teleport, max one companion
   (content convention like the totem, or enforced). (Whether hostile mobs
@@ -577,6 +728,26 @@ directly before patrol).
 - **§6.6 — Waypoint schema shape (chunk 5b):** per-spawn inline waypoint
   list (lean — KISS, matches "one spawn = one mob") vs named shared routes;
   loop vs ping-pong traversal; editor UX for placing an ordered point list.
+- **§6.7 — No-progress leash rule (PARKED 2026-07-10, user call: not
+  scheduled — raise at chunk 4 plan-first or later).** With aura LoS cut
+  (`tdd.md` §4.2), this is the **designated leash mechanic against
+  wall-cheese**: the chunk-3 combat state ("target within aura reach OR
+  inside the aggro sensor OR damage taken" — sensor half added by the
+  2026-07-11 flicker fix, and the sensor ignores walls too) means a
+  wall-stuck mob being shot through the wall never
+  starts its leash countdown — it stands pinned until dead. The rule: a mob
+  *trying to approach* its target with no progress for N ticks
+  [PLACEHOLDER] treats combat as cleared despite taking damage → normal
+  leash countdown → reset, walk home, full out-of-combat regen — the cheese
+  yields nothing. Few lines in the chunk-3 leash logic; must not fire on a
+  mob legitimately holding at the aura edge (that mob has reached its
+  target). Steering (chunk 4) covers small convex blockers; this covers
+  walls; navmesh stays the escalation (trigger: wall-cheese in playtests).
+- **Content-era movement vocabulary (captured 2026-07-10, not in this
+  plan's scope):** telegraphed lunges, arc pursuit, ground-zone denial —
+  the GDD §4 Combat Pacing countermeasures against boring ring-riding;
+  candidates for later chunks / the content pass (also noted in roadmap
+  item 7).
 
 ---
 

@@ -33,15 +33,12 @@ function file(mob: keyof typeof GraphicsConfig.mobs) {
     return GraphicsConfig.mobs[mob].file;
 }
 
-function damageAuraRadius(mob: keyof typeof GraphicsConfig.mobs) {
-    return GraphicsConfig.mobs[mob].damageAuraRadiusMeters || 0;
-}
-
 export abstract class Mob extends GameObject {
     static damageAura: ISvgContainer = {svg: undefined};
 
     protected actualShape: PIXI.Container;
     private healthFillGroup: PIXI.Container;
+    private auraSprite: PIXI.Container = null;
 
     protected constructor(
         id: number,
@@ -50,24 +47,37 @@ export abstract class Mob extends GameObject {
         y: number,
         size: number,
         svg: PIXI.Texture,
-        damageAuraRadiusMeters: number,
         anchor?: IVector
     ) {
         super(id, gameLayer, x, y, size, 0, svg, anchor);
-        if (damageAuraRadiusMeters > 0) {
-            this.shape.addChildAt(
-                createInjectedSVG(
-                    Mob.damageAura.svg,
-                    0,
-                    0,
-                    meter2px(damageAuraRadiusMeters + GraphicsConfig.character.colliderRadiusMeters),
-                ),
-                0,
-            );
-        }
         this.initHealthBar();
         this.isMovable = true;
         this.visibleOnMinimap = false;
+    }
+
+    /**
+     * Wire-driven aura ring (Mob.aura_radius, mob-depth chunk 3c): the
+     * backend sends the active aura's effective radius in px, 0 while the
+     * aura is gated — the ring only shows while the mob is aggroed.
+     * Replaces the hand-synced damageAuraRadiusMeters constant.
+     */
+    setAuraRadius(radiusPx: number) {
+        if (radiusPx <= 0) {
+            if (this.auraSprite !== null) {
+                this.auraSprite.visible = false;
+            }
+            return;
+        }
+        // Like hit reach, the visual ring extends by the player collider
+        // radius (collision is shape-vs-shape).
+        const ringRadius = radiusPx + meter2px(GraphicsConfig.character.colliderRadiusMeters);
+        if (this.auraSprite === null) {
+            this.auraSprite = createInjectedSVG(Mob.damageAura.svg, 0, 0, ringRadius);
+            this.shape.addChildAt(this.auraSprite, 0);
+        }
+        this.auraSprite.visible = true;
+        this.auraSprite.width = ringRadius * 2;
+        this.auraSprite.height = ringRadius * 2;
     }
 
     initShape(svg: PIXI.Texture, x: number, y: number, size: number, rotation: number, anchor?: IVector): PIXI.Container {
@@ -143,8 +153,7 @@ export class Dodo extends Mob {
     constructor(id: number, x: number, y: number) {
         super(id, Game.layers.mobs.dodo, x, y,
             randomInt(minSize('dodo'), maxSize('dodo')),
-            Dodo.svg,
-            damageAuraRadius('dodo'));
+            Dodo.svg);
     }
 
     protected override createStatusEffects() {
@@ -171,8 +180,7 @@ export class SaberToothCat extends Mob {
     constructor(id: number, x: number, y: number) {
         super(id, Game.layers.mobs.saberToothCat, x, y,
             randomInt(minSize('saberToothCat'), maxSize('saberToothCat')),
-            SaberToothCat.svg,
-            damageAuraRadius('saberToothCat'));
+            SaberToothCat.svg);
 
     }
 
@@ -202,7 +210,6 @@ export class Mammoth extends Mob {
         super(id, Game.layers.mobs.mammoth, x, y,
             randomInt(minSize('mammoth'), maxSize('mammoth')),
             Mammoth.svg,
-            damageAuraRadius('mammoth'),
             anchor('mammoth'));
     }
 
@@ -231,7 +238,6 @@ export class AngryMammoth extends Mob {
         super(id, Game.layers.bossMobs, x, y,
             randomInt(minSize('angryMammoth'), maxSize('angryMammoth')),
             AngryMammoth.svg,
-            damageAuraRadius('angryMammoth'),
             anchor('angryMammoth'));
     }
 
@@ -261,8 +267,7 @@ export class Totem extends Mob {
     constructor(id: number, x: number, y: number) {
         super(id, Game.layers.mobs.totem, x, y,
             randomInt(minSize('totem'), maxSize('totem')),
-            Totem.svg,
-            damageAuraRadius('totem'));
+            Totem.svg);
     }
 }
 
@@ -278,20 +283,19 @@ export class Rabbit extends Mob {
     constructor(id: number, x: number, y: number) {
         super(id, Game.layers.mobs.rabbit, x, y,
             randomInt(minSize('rabbit'), maxSize('rabbit')),
-            Rabbit.svg,
-            damageAuraRadius('rabbit'));
+            Rabbit.svg);
     }
 }
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Rabbit, file('rabbit'), maxSize('rabbit'));
 
+// Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
+// sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
+// bounds the texture resolution.
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(
     Mob.damageAura,
     GraphicsConfig.character.damageAuraFile,
-    meter2px(
-        Math.max(...Object.values(GraphicsConfig.mobs).map((mob) => mob.damageAuraRadiusMeters || 0)) +
-        GraphicsConfig.character.colliderRadiusMeters,
-    ),
+    meter2px(4),
 );

@@ -190,6 +190,9 @@ function unmarshalEntity(entity, eType) {
         result.burstRadius = entity.burstRadius();
         result.damageTaken = entity.damageTaken();
         result.auraHitStyle = entity.auraHitStyle();
+        // effective radius of the active aura in px, 0 while gated — drives
+        // the ring visibility (mob-depth chunk 3c).
+        result.auraRadius = entity.auraRadius();
     }
 
     if (eType === BerryhunterApi.AnyEntity.Character) {

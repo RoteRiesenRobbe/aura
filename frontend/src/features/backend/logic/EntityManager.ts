@@ -124,6 +124,10 @@ export class EntityManager {
             if (isDefined(entity.auraRadius) && isFunction(character['setAuraRadius'])) {
                 character['setAuraRadius'](entity.auraRadius);
             }
+        } else if (isDefined(entity.auraRadius) && isFunction(gameObject['setAuraRadius'])) {
+            // Mob aura ring (mob-depth chunk 3c): wire-driven effective
+            // radius in px, 0 while the aura is gated → ring hidden.
+            gameObject['setAuraRadius'](entity.auraRadius);
         }
 
         if (Array.isArray(entity.statusEffects)) {

@@ -167,7 +167,7 @@ func TestApplyHealAura_LowestHealthHealsMostWounded(t *testing.T) {
 		colliderAt(vec(20, 0), model.PlayerEntity(farWounded)),
 	)
 
-	applyHealAura(caster, 1, effect, set, testRNG())
+	testSkillSystem().applyHealAura(caster, 1, effect, set)
 
 	assert.Equal(t, farWoundedStart.Add(10), farWounded.vitalSigns.Health,
 		"the most-wounded ally is healed")
@@ -183,7 +183,7 @@ func TestApplyHealAura_RecordsHealReceivedNumber(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	before := ally.vitalSigns.Health
 
-	applyHealAura(caster, 1, healEffect(), setOf(colliderAt(vec(1, 0), model.PlayerEntity(ally))), testRNG())
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), setOf(colliderAt(vec(1, 0), model.PlayerEntity(ally))))
 
 	assert.Equal(t, ally.vitalSigns.Health-before, ally.healReceived)
 	assert.NotZero(t, ally.healReceived)

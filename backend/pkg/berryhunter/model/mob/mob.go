@@ -43,7 +43,7 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32) *Mob {
 
 	// Skill loadout: equip every declared skill into consecutive slots of its
 	// category (the whole loadout is available so future AI/boss scripts can
-	// switch), first aura slot starts active. Mobs have no spellbook.
+	// switch). Mobs have no spellbook.
 	sc := skills.NewSkillComponent(false)
 	auraCount, passiveCount, cooldownCount := 0, 0, 0
 	for _, s := range d.Skills {
@@ -74,20 +74,27 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32) *Mob {
 			log.Printf("mob %s declares skill %s of an unsupported category; ignored", d.Name, s.Def.Name)
 		}
 	}
-	if auraCount > 0 {
+	// Auras-off-until-aggroed (mob-depth chunk 3c): a moving mob's aura only
+	// runs while it has an aggro target (Update flips it on/off). Stationary
+	// mobs (speed 0 — totems, braziers) are exempt: a hazard that cannot
+	// chase has its aura as its entire behavior, so it stays always-on.
+	auraAlwaysOn := d.Factors.Speed <= 0
+	if auraCount > 0 && auraAlwaysOn {
 		sc.SetActiveAura(0)
 	}
 
-	// The single aura sensor. Initial radius/mask come from the active skill
-	// so aggro stop distance and the first tick are correct from spawn;
-	// SkillSystem re-derives both per tick (aura switching stays possible).
+	// The single aura sensor, pre-sized from slot 0 even while the aura
+	// starts gated: the chase stop distance is correct from the first aggro
+	// tick. SkillSystem re-derives radius/mask per tick while a slot is
+	// active (aura switching stays possible); an inactive slot applies no
+	// effects, so the sized sensor is inert until aggro.
 	var auraRadius float32
 	auraMask := int(model.LayerNoneCollision)
-	if active := sc.AuraSlots[0]; sc.ActiveAuraSlot == 0 && active != nil {
-		auraRadius = active.EffectiveRadius()
+	if first := sc.AuraSlots[0]; first != nil {
+		auraRadius = first.EffectiveRadius()
 		// FactionHostile literal: the Mob struct (with its faction field)
 		// is only constructed below; mobs always spawn hostile.
-		auraMask = model.AuraMaskFor(active.Def, model.FactionHostile)
+		auraMask = model.AuraMaskFor(first.Def, model.FactionHostile)
 	}
 	aura := phy.NewCircle(phy.VEC2F_ZERO, auraRadius)
 	aura.Shape().Layer = int(model.LayerNoneCollision)
@@ -129,6 +136,7 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32) *Mob {
 		spawnInitialized: false,
 		// TODO use walkingSpeedPerTick from global config
 		velocity:            0.055 * d.Factors.Speed,
+		auraAlwaysOn:        auraAlwaysOn,
 		chaseIntoAuraMargin: chaseIntoAuraMargin,
 		statusEffects:       model.NewStatusEffects(),
 		// Explicit: FactionHostile is not the zero value (FactionAligned is,
@@ -163,9 +171,30 @@ type Mob struct {
 
 	velocity         float32
 	buffs            skills.Buffs // transient status-effect store: resist/slow/dot (effect foundations Step 2)
-	aggroTarget      model.PlayerEntity
+	aggroTarget      model.Combatant
 	spawnPosition    phy.Vec2f
 	spawnInitialized bool
+
+	// Threat table (mob-depth chunk 3a): entity-keyed combat targeting,
+	// credited with post-mitigation HP from observed hits (§6.3). Deliberately
+	// separate from participants — threat is targeting (cleared on leash
+	// reset), participants is XP attribution (cleared on full regen);
+	// unifying them would couple XP rules to targeting rules (gotcha #4).
+	// Lazily initialized by noteThreat.
+	threat map[uint64]*threatEntry
+
+	// tookDamage marks a real HP loss since the last Update — set by
+	// takeDamage (which runs in the SkillSystem phase, after mob updates) and
+	// consumed by updateAggro's in-combat check one tick later (chunk 3b).
+	tookDamage bool
+
+	// leashTicks counts ticks with the target unreachable, out of the aggro
+	// sensor and dealing no damage; past leashCountdownTicks the mob resets
+	// (3b).
+	leashTicks int
+
+	// auraAlwaysOn exempts stationary mobs from aura gating (chunk 3c).
+	auraAlwaysOn bool
 
 	statusEffects       model.StatusEffects
 	deathRewardGiven    bool
@@ -211,6 +240,18 @@ func (m *Mob) Bodies() model.Bodies {
 // BurstRadius feeds the Mob.burst_radius wire field (burst ring VFX).
 func (m *Mob) BurstRadius() float32 {
 	return m.skills.BurstRadius(skills.BurstVFXTicks)
+}
+
+// AuraRadius is the effective radius of the active aura, 0 while nothing is
+// active — mirrors player.AuraRadius. Serialized as Mob.aura_radius so the
+// client draws the ring only while the aura runs (chunk 3c; retires the
+// hand-synced damageAuraRadiusMeters frontend constant).
+func (m *Mob) AuraRadius() float32 {
+	slot := m.skills.ActiveAuraSlot
+	if slot < 0 || m.skills.AuraSlots[slot] == nil {
+		return 0
+	}
+	return m.skills.AuraSlots[slot].EffectiveRadius()
 }
 
 func (m *Mob) SkillComponent() *skills.SkillComponent {
@@ -289,10 +330,13 @@ func (m *Mob) Update(dt float32) bool {
 
 	// TTL countdown for spawned entities (after the death check — an HP death
 	// must keep reporting as one). Expiry rides the same removal path as HP
-	// death; kill rewards only flow through PlayerTouches, so none are granted.
+	// death; kill rewards only flow through PlayerTouches, so none are
+	// granted. Health is zeroed so stale threat-table refs to the removed
+	// summon read as dead and get pruned (chunk 3a).
 	if m.ttlTicks > 0 {
 		m.ttlTicks--
 		if m.ttlTicks == 0 {
+			m.health = 0
 			return false
 		}
 	}
@@ -300,13 +344,7 @@ func (m *Mob) Update(dt float32) bool {
 	// Aura damage is applied by the SkillSystem (Phase 6.1); Update only
 	// handles aggro, movement, regeneration and death.
 
-	if m.aggroTarget == nil {
-		m.aggroTarget = m.findAggroTarget()
-	}
-
-	if m.aggroTarget != nil && m.shouldLoseAggro() {
-		m.aggroTarget = nil
-	}
+	m.updateAggro()
 
 	if m.aggroTarget != nil {
 		if m.shouldFlee() {
@@ -445,22 +483,125 @@ func (m *Mob) shouldFlee() bool {
 	return threshold > 0 && m.HealthRatio() < threshold
 }
 
-func (m *Mob) findAggroTarget() model.PlayerEntity {
-	var nearest model.PlayerEntity
+// leashCountdownTicks [PLACEHOLDER] is the out-of-combat grace before an
+// aggroed mob gives up (mob-depth chunk 3b): while in combat — target within
+// aura reach, still inside the aggro sensor, or damage taken — there is no
+// leash at all (replaces the fixed territory-radius check); the countdown
+// only runs once the target is unreachable AND out of sight, and expiry
+// resets aggro, threat and the active aura.
+const leashCountdownTicks = 90 // ~3 s
+
+// updateAggro drives acquisition, threat retention and the state-dependent
+// leash (mob-depth chunk 3). Retention: whenever the threat table holds a
+// living entry, the highest-threat entity IS the aggro target — the sensor
+// only acquires. Acquisition: with an empty table and no latched target, the
+// nearest living enemy-faction entity in the aggro sensor is picked; a hit
+// from outside the sensor seeds threat and acquires through retention, so
+// mobs retaliate against snipers.
+func (m *Mob) updateAggro() {
+	tookDamage := m.tookDamage
+	m.tookDamage = false
+
+	if target := m.highestThreatTarget(); target != nil {
+		m.setAggroTarget(target)
+	} else if m.aggroTarget != nil && m.aggroTarget.HealthRatio() == 0 {
+		m.resetAggro()
+	}
+
+	if m.aggroTarget == nil {
+		if target := m.findAggroTarget(); target != nil {
+			m.setAggroTarget(target)
+		}
+		return
+	}
+
+	// State-dependent leash (3b): in combat there is none; the countdown only
+	// runs while the target is unreachable, out of the sensor and not hitting
+	// back — expiring it while the sensor still sees the target would just
+	// re-acquire next tick (visible as a 1-tick aura flicker every ~3 s).
+	if tookDamage || m.targetWithinAuraReach() || m.targetWithinSensor() {
+		m.leashTicks = 0
+		return
+	}
+	m.leashTicks++
+	if m.leashTicks > leashCountdownTicks {
+		m.resetAggro()
+	}
+}
+
+func (m *Mob) setAggroTarget(t model.Combatant) {
+	m.aggroTarget = t
+	m.setAuraActive(true)
+}
+
+// resetAggro is the combat reset: target + threat cleared, countdown zeroed,
+// aura deactivated (3c) — walk-home and out-of-combat regen follow from
+// aggroTarget == nil in Update.
+func (m *Mob) resetAggro() {
+	m.aggroTarget = nil
+	m.threat = nil
+	m.leashTicks = 0
+	m.setAuraActive(false)
+}
+
+// setAuraActive flips the active aura with aggro (mob-depth chunk 3c).
+// Idempotent per state — SetActiveAura resets the tick accumulator, so it
+// must only run on an actual transition. auraAlwaysOn mobs never gate.
+func (m *Mob) setAuraActive(on bool) {
+	if m.auraAlwaysOn {
+		return
+	}
+	if on {
+		if m.skills.ActiveAuraSlot < 0 && m.skills.AuraSlots[0] != nil {
+			m.skills.SetActiveAura(0)
+		}
+	} else if m.skills.ActiveAuraSlot >= 0 {
+		m.skills.SetActiveAura(-1)
+	}
+}
+
+// targetWithinAuraReach reports whether the aggro target overlaps the mob's
+// aura circle — the "dealing damage" half of the in-combat definition (3b).
+// Raw reach, no chase margin: the stop distance sits just inside it.
+func (m *Mob) targetWithinAuraReach() bool {
+	if m.aggroTarget == nil {
+		return false
+	}
+	reach := m.aura.Radius + m.aggroTarget.Radius()
+	return m.Position().Sub(m.aggroTarget.Position()).Abs() <= reach
+}
+
+// targetWithinSensor reports whether the aggro target still overlaps the
+// aggro sensor — "can the mob see its target". Geometric twin of the sensor
+// overlap so it needs no physics step; the target is already faction- and
+// liveness-checked.
+func (m *Mob) targetWithinSensor() bool {
+	if m.aggroTarget == nil {
+		return false
+	}
+	reach := m.aggroAura.Radius + m.aggroTarget.Radius()
+	return m.Position().Sub(m.aggroTarget.Position()).Abs() <= reach
+}
+
+// findAggroTarget acquires the nearest living enemy-faction entity in the
+// aggro sensor (chunk 3a: faction-aware — summons ride the player collision
+// layer, so totems/companions are acquired with no sensor/mask change).
+func (m *Mob) findAggroTarget() model.Combatant {
+	var nearest model.Combatant
 	bestDistance := float32(0)
 
 	for c := range m.aggroAura.Collisions() {
 		usr := c.Shape().UserData
-		p, ok := usr.(model.PlayerEntity)
+		target, ok := usr.(model.Combatant)
 		if !ok {
 			continue
 		}
-		if p.VitalSigns().Health == 0 {
+		if target.Faction() == m.faction || target.HealthRatio() == 0 {
 			continue
 		}
-		d := p.Position().Sub(m.Position()).AbsSq()
+		d := target.Position().Sub(m.Position()).AbsSq()
 		if nearest == nil || d < bestDistance {
-			nearest = p
+			nearest = target
 			bestDistance = d
 		}
 	}
@@ -468,15 +609,75 @@ func (m *Mob) findAggroTarget() model.PlayerEntity {
 	return nearest
 }
 
-func (m *Mob) shouldLoseAggro() bool {
-	if m.aggroTarget == nil || !m.spawnInitialized {
-		return true
+// threatEntry holds one threat-table row: the accumulated threat plus the
+// entity ref for position/liveness reads.
+type threatEntry struct {
+	entity model.Combatant
+	threat float32
+}
+
+// noteThreat credits threat against source (chunk 3a). The amount is
+// post-mitigation HP (§6.3, decided 2026-07-10); allied, dead and empty
+// credits are dropped, so a faction gate never needs re-checking on read.
+func (m *Mob) noteThreat(source model.Combatant, amount float32) {
+	if source == nil || amount <= 0 {
+		return
 	}
-	if m.aggroTarget.VitalSigns().Health == 0 {
-		return true
+	if source.Faction() == m.faction || source.HealthRatio() == 0 {
+		return
 	}
-	// Lose aggro only after the mob itself has left its fixed aggro territory.
-	return m.Position().Sub(m.spawnPosition).Abs() > m.aggroAura.Radius
+	if m.threat == nil {
+		m.threat = make(map[uint64]*threatEntry)
+	}
+	id := source.Basic().ID()
+	e := m.threat[id]
+	if e == nil {
+		e = &threatEntry{entity: source}
+		m.threat[id] = e
+	}
+	e.threat += amount
+}
+
+// NoteThreat is the exported crediting seam for threat that does not arrive
+// as a hit on this mob: healer threat (§6.3), later taunt effects (chunk 7).
+func (m *Mob) NoteThreat(source model.Combatant, amount float32) {
+	m.noteThreat(source, amount)
+}
+
+// HasThreat reports whether the entity is on this mob's threat table — the
+// healer-crediting filter ("in combat with the healed target", §6.3).
+func (m *Mob) HasThreat(id uint64) bool {
+	_, ok := m.threat[id]
+	return ok
+}
+
+// TargetsEntity reports whether this mob's current aggro target is the given
+// entity — the sensor-acquired half of "in combat with" (§6.3): a target can
+// hold aggro without any threat entry by never damaging the mob.
+func (m *Mob) TargetsEntity(id uint64) bool {
+	return m.aggroTarget != nil && m.aggroTarget.Basic().ID() == id
+}
+
+// highestThreatTarget returns the living top-threat entity, pruning dead
+// entries on the way (a TTL-expired summon zeroes its health, so stale refs
+// read as dead). Ties break toward the lower entity ID for determinism.
+func (m *Mob) highestThreatTarget() model.Combatant {
+	var best *threatEntry
+	var bestID uint64
+	for id, e := range m.threat {
+		if e.entity.HealthRatio() == 0 {
+			delete(m.threat, id)
+			continue
+		}
+		if best == nil || e.threat > best.threat || (e.threat == best.threat && id < bestID) {
+			best = e
+			bestID = id
+		}
+	}
+	if best == nil {
+		return nil
+	}
+	return best.entity
 }
 
 func (m *Mob) Health() vitals.VitalSign {
@@ -501,18 +702,25 @@ func (m *Mob) HealthRatio() float32 {
 // takeDamage subtracts absolute HP (item 11 Phase 1), scaled by the mob's base
 // resistances against the hit's damage tags (Phase 2). A fully resisted hit
 // (multiplier 0) does not exist for the mob: no HP loss, no floating number,
-// no status effect and thus no hit VFX.
-func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) {
+// no status effect and thus no hit VFX. Returns the actual HP lost after
+// clamping — the post-mitigation threat credit (chunk 3a).
+func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.VitalSign {
 	multiplier := skills.ResistMultiplier(damage.Tags, m.definition.Factors.Resistances) *
 		m.buffs.ResistMultiplier(damage.Tags)
 
 	hp := vitals.HP(damage.HP * multiplier)
-	if hp > 0 {
-		before := m.health
-		m.health = m.health.Sub(hp)
-		m.damageTaken += before - m.health // actual loss after clamping at 0
-		m.StatusEffects().Add(s)
+	if hp <= 0 {
+		return 0
 	}
+	before := m.health
+	m.health = m.health.Sub(hp)
+	loss := before - m.health // actual loss after clamping at 0
+	m.damageTaken += loss
+	if loss > 0 {
+		m.tookDamage = true // in-combat signal for the leash (chunk 3b)
+	}
+	m.StatusEffects().Add(s)
+	return loss
 }
 
 // DamageTaken is the health lost this tick (VitalSign units); floating damage
@@ -563,12 +771,26 @@ func (m *Mob) ResetTickNumbers() {
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags}, model.StatusEffectDamagedAmbient)
+	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags}, model.StatusEffectDamagedAmbient)
+	// Mob-vs-mob hits build threat too; noteThreat's faction gate keeps
+	// hostile-vs-hostile splash (boss aura on a brazier) off the table.
+	if source, ok := e.(model.Combatant); ok {
+		m.noteThreat(source, float32(lost))
+	}
 }
 
 func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	m.noteParticipant(p)
-	m.takeDamage(damage, model.StatusEffectDamagedAmbient)
+	lost := m.takeDamage(damage, model.StatusEffectDamagedAmbient)
+	// Threat credits the hit's source entity — a summon builds its own threat
+	// while XP rides the toucher (chunk 3a, gotcha #9; the stores stay
+	// separate). A dot whose summon has expired falls back to the toucher:
+	// the burn keeps pulling threat somewhere real.
+	source := damage.Source
+	if source == nil || source.HealthRatio() == 0 {
+		source, _ = p.(model.Combatant)
+	}
+	m.noteThreat(source, float32(lost))
 	m.tryGrantKillRewards()
 }
 

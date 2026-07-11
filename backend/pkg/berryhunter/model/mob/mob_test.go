@@ -69,6 +69,8 @@ type fakeAuraPlayer struct {
 func (f *fakeAuraPlayer) Basic() ecs.BasicEntity                 { return f.basic }
 func (f *fakeAuraPlayer) Position() phy.Vec2f                    { return f.pos }
 func (f *fakeAuraPlayer) Radius() float32                        { return f.radius }
+func (f *fakeAuraPlayer) Faction() model.Faction                 { return model.FactionAligned }
+func (f *fakeAuraPlayer) HealthRatio() float32                   { return float32(f.vs.Health) / float32(vitals.Max) }
 func (f *fakeAuraPlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vs }
 func (f *fakeAuraPlayer) AddExperience(xp uint64)                { f.xp = append(f.xp, xp) }
 func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity    { return f.healers }
@@ -299,9 +301,16 @@ func TestMob_Kill_NoUnlocksDeclared_NoDiscovery(t *testing.T) {
 func TestMob_FullOutOfCombatRegenClearsParticipants(t *testing.T) {
 	m := newTestMob()
 	early := newFakeAuraPlayer()
+	early.pos = phy.Vec2f{X: 100, Y: 0} // far out of aura reach
 	m.PlayerTouches(early, model.Damage{HP: 5})
 
-	// No aggro target → out-of-combat regen runs; let it reach full health.
+	// The hit seeds threat and aggro (chunk 3); with the attacker out of
+	// reach the leash countdown expires and the combat reset lets the
+	// out-of-combat regen run to full health.
+	for i := 0; i < leashCountdownTicks+2; i++ {
+		m.Update(0)
+	}
+	require.Nil(t, m.aggroTarget, "leash must have reset before regen starts")
 	for i := 0; i < 3*constant.TicksPerSecond && m.Health() < m.MaxHealth(); i++ {
 		m.Update(0)
 	}
@@ -366,7 +375,8 @@ func TestNewMob_SkillLoadoutWiring(t *testing.T) {
 	sc := m.SkillComponent()
 	require.NotNil(t, sc.AuraSlots[0])
 	assert.Equal(t, "TestMobAura", sc.AuraSlots[0].Def.Name)
-	assert.Equal(t, 0, sc.ActiveAuraSlot, "slot 0 is active from spawn")
+	assert.Equal(t, -1, sc.ActiveAuraSlot,
+		"a moving mob spawns with its aura gated — on at aggro (chunk 3c)")
 	assert.Nil(t, sc.Spellbook, "mobs have no spellbook")
 }
 
@@ -496,7 +506,8 @@ func TestMob_TTLExpiryKills(t *testing.T) {
 	assert.True(t, m.Update(0), "tick 1: still alive")
 	assert.True(t, m.Update(0), "tick 2: still alive")
 	assert.False(t, m.Update(0), "tick 3: TTL expired → removed via the normal death path")
-	assert.Greater(t, uint32(m.Health()), uint32(0), "TTL expiry is not an HP death")
+	assert.Equal(t, vitals.VitalSign(0), m.Health(),
+		"expiry zeroes health so stale threat-table refs read the summon as dead (chunk 3a)")
 	assert.Empty(t, participant.xp, "TTL expiry grants no kill rewards")
 }
 
@@ -689,4 +700,303 @@ func TestMob_RaiseMaxHealth(t *testing.T) {
 
 	assert.Equal(t, vitals.VitalSign(120), m.MaxHealth())
 	assert.Equal(t, vitals.VitalSign(120), m.Health(), "the bonus raises current HP too — summons spawn at full health")
+}
+
+// --- threat table, faction-aware aggro, leash & aura gating (mob-depth chunk 3) ---
+
+// fakeCombatant is a minimal model.Combatant — the shape of a summon (totem,
+// companion) as the threat and acquisition paths see one.
+type fakeCombatant struct {
+	basic       ecs.BasicEntity
+	pos         phy.Vec2f
+	radius      float32
+	faction     model.Faction
+	healthRatio float32
+}
+
+func (f *fakeCombatant) Basic() ecs.BasicEntity { return f.basic }
+func (f *fakeCombatant) Faction() model.Faction { return f.faction }
+func (f *fakeCombatant) Position() phy.Vec2f    { return f.pos }
+func (f *fakeCombatant) Radius() float32        { return f.radius }
+func (f *fakeCombatant) HealthRatio() float32   { return f.healthRatio }
+
+func newFakeCombatant() *fakeCombatant {
+	return &fakeCombatant{basic: ecs.NewBasic(), radius: 0.25, faction: model.FactionAligned, healthRatio: 1}
+}
+
+func TestMob_ThreatCreditsPostMitigationDamage(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"fire": 0.5}
+	m := NewMob(def, 0)
+	p := newFakeAuraPlayer()
+
+	m.PlayerTouches(p, model.Damage{HP: 40, Tags: []string{"fire"}})
+
+	require.True(t, m.HasThreat(p.basic.ID()))
+	assert.InDelta(t, 20, m.threat[p.basic.ID()].threat, 1e-6,
+		"threat is the post-mitigation HP the mob actually lost (§6.3)")
+}
+
+func TestMob_PlayerTouches_SummonSourceGetsThreatOwnerGetsXP(t *testing.T) {
+	m := newTestMob()
+	owner := newFakeAuraPlayer()
+	summon := newFakeCombatant()
+
+	m.PlayerTouches(owner, model.Damage{HP: 10, Source: summon})
+
+	assert.True(t, m.HasThreat(summon.basic.ID()), "threat credits the summon itself (gotcha #9)")
+	assert.False(t, m.HasThreat(owner.basic.ID()), "…never the owner")
+	assert.Contains(t, m.participants, owner.basic.ID(), "XP attribution stays on the owner")
+}
+
+func TestMob_PlayerTouches_DeadSourceFallsBackToToucher(t *testing.T) {
+	m := newTestMob()
+	owner := newFakeAuraPlayer()
+	summon := newFakeCombatant()
+	summon.healthRatio = 0 // expired totem, its dot still burning
+
+	m.PlayerTouches(owner, model.Damage{HP: 10, Source: summon})
+
+	assert.False(t, m.HasThreat(summon.basic.ID()))
+	assert.True(t, m.HasThreat(owner.basic.ID()),
+		"a dead source falls back to the toucher — the burn keeps pulling threat somewhere real")
+}
+
+func TestMob_MobTouches_OnlyEnemyFactionBuildsThreat(t *testing.T) {
+	m := newTestMob() // hostile
+	aligned := newTestMob()
+	aligned.SetFaction(model.FactionAligned)
+	hostile := newTestMob()
+
+	m.MobTouches(aligned, mobs.Factors{Damage: 5})
+	m.MobTouches(hostile, mobs.Factors{Damage: 5})
+
+	assert.True(t, m.HasThreat(aligned.Basic().ID()),
+		"enemy-faction mob damage builds threat (mobs aggro summons)")
+	assert.False(t, m.HasThreat(hostile.Basic().ID()),
+		"same-faction splash (boss aura on a brazier) builds none")
+}
+
+func TestMob_Update_RetargetsHighestThreat(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.VEC2F_ZERO)
+	near := newFakeAuraPlayer()
+	near.pos = phy.Vec2f{X: 0.3, Y: 0}
+	far := newFakeAuraPlayer()
+	far.pos = phy.Vec2f{X: 5, Y: 0}
+
+	m.aggroTarget = near // earlier sensor pick
+	m.PlayerTouches(near, model.Damage{HP: 5})
+	m.PlayerTouches(far, model.Damage{HP: 20})
+
+	require.True(t, m.Update(0))
+
+	assert.Same(t, far, m.aggroTarget,
+		"retention: the highest-threat entity is the target, not the nearest (§3.3)")
+}
+
+func TestMob_Update_ThreatFromOutsideSensorAcquires(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.VEC2F_ZERO)
+	sniper := newFakeAuraPlayer()
+	sniper.pos = phy.Vec2f{X: 10, Y: 0} // far beyond the 2.0 aggro sensor
+
+	m.PlayerTouches(sniper, model.Damage{HP: 5})
+	require.True(t, m.Update(0))
+
+	assert.Same(t, sniper, m.aggroTarget,
+		"a hit from beyond the sensor seeds threat and acquires — mobs retaliate against snipers")
+}
+
+func TestMob_Update_DeadThreatEntryPrunedNextHighestWins(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.VEC2F_ZERO)
+	first := newFakeAuraPlayer()
+	second := newFakeAuraPlayer()
+	m.PlayerTouches(first, model.Damage{HP: 20})
+	m.PlayerTouches(second, model.Damage{HP: 5})
+
+	first.vs.Health = 0
+	require.True(t, m.Update(0))
+
+	assert.Same(t, second, m.aggroTarget, "dead top entry pruned; next highest becomes the target")
+	assert.False(t, m.HasThreat(first.basic.ID()))
+}
+
+func TestMob_FindAggroTarget_AcquiresEnemyFactionSummon(t *testing.T) {
+	m := newTestMob() // hostile
+	totem := newFakeCombatant() // aligned → enemy of the mob
+	totem.pos = phy.Vec2f{X: 0.5, Y: 0}
+	packMate := newFakeCombatant() // hostile → same faction, nearer
+	packMate.faction = model.FactionHostile
+	packMate.pos = phy.Vec2f{X: 0.2, Y: 0}
+
+	space := phy.NewSpace()
+	space.AddShape(m.aggroAura)
+	for _, f := range []*fakeCombatant{totem, packMate} {
+		c := phy.NewCircle(f.pos, 0.25)
+		c.Shape().IsSensor = true
+		c.Shape().Layer = int(model.LayerPlayerCollision)
+		c.Shape().UserData = model.Combatant(f)
+		space.AddShape(c)
+	}
+	space.Update()
+	require.NotEmpty(t, m.aggroAura.Collisions())
+
+	target := m.findAggroTarget()
+
+	require.NotNil(t, target)
+	assert.Same(t, totem, target,
+		"faction-aware acquisition: the aligned summon is acquired, the nearer same-faction entity ignored")
+}
+
+// --- state-dependent leash (chunk 3b) ---
+
+func TestMob_LeashCountdownResetsAggroAndThreat(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.VEC2F_ZERO)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 50, Y: 0} // far out of aura reach, mob never catches up
+	m.PlayerTouches(p, model.Damage{HP: 5})
+
+	for i := 0; i <= leashCountdownTicks; i++ {
+		require.True(t, m.Update(0))
+		require.NotNil(t, m.aggroTarget, "still chasing during the countdown (tick %d)", i)
+	}
+	require.True(t, m.Update(0))
+
+	assert.Nil(t, m.aggroTarget, "countdown expired → combat reset")
+	assert.False(t, m.HasThreat(p.basic.ID()), "threat clears with the reset (gotcha #4)")
+}
+
+func TestMob_InCombatHasNoLeash(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.VEC2F_ZERO)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 0.6, Y: 0} // inside aura reach (0.5 + 0.25)
+	m.PlayerTouches(p, model.Damage{HP: 5})
+
+	for i := 0; i < leashCountdownTicks*3; i++ {
+		require.True(t, m.Update(0))
+	}
+	assert.NotNil(t, m.aggroTarget,
+		"a target within aura reach means in combat — no leash, however long the fight")
+}
+
+func TestMob_DamageResetsLeashCountdown(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.VEC2F_ZERO)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 100, Y: 0} // far out of reach the whole time
+	m.PlayerTouches(p, model.Damage{HP: 1})
+
+	for i := 0; i < 3; i++ {
+		for j := 0; j < leashCountdownTicks; j++ {
+			require.True(t, m.Update(0))
+			require.NotNil(t, m.aggroTarget)
+		}
+		// Re-hit shortly before the countdown would expire.
+		m.PlayerTouches(p, model.Damage{HP: 1})
+	}
+	assert.NotNil(t, m.aggroTarget,
+		"each hit restarts the countdown — staying in combat holds aggro indefinitely")
+}
+
+func TestMob_ChasingTargetInsideSensorNeverLeashes(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.VEC2F_ZERO)
+	p := newFakeAuraPlayer()
+	m.PlayerTouches(p, model.Damage{HP: 5})
+
+	for i := 0; i < leashCountdownTicks*3; i++ {
+		// Kite: hold the target inside the 2.0 aggro sensor but beyond the
+		// 0.75 aura reach — the in-game "chasing but can't reach" state.
+		p.pos = phy.Vec2f{X: m.Position().X + 1.5, Y: m.Position().Y}
+		require.True(t, m.Update(0))
+		require.NotNil(t, m.aggroTarget,
+			"the chase must not leash while the target is inside the sensor (tick %d)", i)
+		require.Equal(t, 0, m.SkillComponent().ActiveAuraSlot,
+			"the aura must not flicker during the chase (tick %d)", i)
+	}
+	assert.True(t, m.HasThreat(p.basic.ID()), "threat survives the whole chase")
+}
+
+func TestMob_TargetsEntity(t *testing.T) {
+	m := newTestMob()
+	p := newFakeAuraPlayer()
+	assert.False(t, m.TargetsEntity(p.basic.ID()), "no target yet")
+
+	m.setAggroTarget(p)
+	assert.True(t, m.TargetsEntity(p.basic.ID()))
+	assert.False(t, m.TargetsEntity(p.basic.ID()+1), "only the current aggro target matches")
+}
+
+// --- auras-off-until-aggroed (chunk 3c) ---
+
+func TestNewMob_MovingMobSpawnsAuraGated(t *testing.T) {
+	m := newTestMob() // speed 1.0 → gated
+	assert.Equal(t, -1, m.SkillComponent().ActiveAuraSlot, "aura off until aggro")
+	assert.InDelta(t, 0.5, m.AuraCollider().Radius, 1e-6,
+		"sensor still pre-sized from slot 0 — chase stop distance correct from the first aggro tick")
+	assert.InDelta(t, 0, m.AuraRadius(), 1e-6, "wire radius 0 → no ring on the client")
+}
+
+func TestNewMob_StationaryMobAuraAlwaysOn(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.Speed = 0
+	m := NewMob(def, 0)
+
+	assert.Equal(t, 0, m.SkillComponent().ActiveAuraSlot,
+		"a stationary hazard (totem, brazier) cannot chase — its aura is its behavior, always on")
+	assert.InDelta(t, 0.5, m.AuraRadius(), 1e-6)
+
+	m.resetAggro()
+	assert.Equal(t, 0, m.SkillComponent().ActiveAuraSlot, "combat reset never gates a stationary aura")
+}
+
+func TestMob_AuraActivatesOnAggroDeactivatesOnLeashReset(t *testing.T) {
+	m := newTestMob()
+	m.SetPosition(phy.VEC2F_ZERO)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 60, Y: 0}
+	m.PlayerTouches(p, model.Damage{HP: 5})
+
+	require.True(t, m.Update(0))
+	require.Equal(t, 0, m.SkillComponent().ActiveAuraSlot, "aggro → aura on")
+	assert.InDelta(t, 0.5, m.AuraRadius(), 1e-6, "…and the ring radius goes on the wire")
+
+	// Staying aggroed must not re-trigger SetActiveAura — that would reset the
+	// tick accumulator every tick and the aura would never fire.
+	m.SkillComponent().AuraSlots[0].TickAccumulator = 7
+	require.True(t, m.Update(0))
+	assert.Equal(t, 7, m.SkillComponent().AuraSlots[0].TickAccumulator)
+
+	for i := 0; m.aggroTarget != nil && i < leashCountdownTicks*2; i++ {
+		require.True(t, m.Update(0))
+	}
+	require.Nil(t, m.aggroTarget, "leash must reset with the target far away")
+	assert.Equal(t, -1, m.SkillComponent().ActiveAuraSlot, "combat reset → aura off")
+	assert.InDelta(t, 0, m.AuraRadius(), 1e-6)
+}
+
+// --- flee re-point (chunk 3d): flee runs from the highest-threat enemy ---
+
+func TestMob_FleesFromHighestThreat(t *testing.T) {
+	m := NewMob(cowardMobDefinition(), 0)
+	m.SetPosition(phy.Vec2f{X: 1, Y: 1})
+	nearLow := newFakeAuraPlayer()
+	nearLow.pos = phy.Vec2f{X: 1, Y: 1.4} // north, close, little threat
+	farHigh := newFakeAuraPlayer()
+	farHigh.pos = phy.Vec2f{X: 1, Y: 0} // south, top threat
+
+	m.aggroTarget = nearLow // stale sensor pick
+	m.PlayerTouches(nearLow, model.Damage{HP: 2})
+	m.PlayerTouches(farHigh, model.Damage{HP: 30})
+	m.health = 10 // well below the 0.5 flee threshold
+
+	require.True(t, m.Update(0))
+
+	assert.InDelta(t, 1, m.Position().X, 1e-5)
+	assert.Greater(t, m.Position().Y, float32(1),
+		"flee runs from the highest-threat enemy (south) — due north, not away from the nearest")
 }

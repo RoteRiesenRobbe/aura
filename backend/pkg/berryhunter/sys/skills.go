@@ -138,7 +138,7 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 		case skills.EffectTypeDamageAura:
 			applyDamageAura(e, equip.Level, effect, collisions, s.rng)
 		case skills.EffectTypeHealAura:
-			applyHealAura(e, equip.Level, effect, collisions, s.rng)
+			s.applyHealAura(e, equip.Level, effect, collisions)
 		case skills.EffectTypeSlowAura:
 			applySlowAura(equip.Def.ID, equip.Level, effect, collisions)
 		case skills.EffectTypeResistAura:
@@ -211,14 +211,18 @@ func (s *SkillSystem) tickDots(e skillEntity) {
 		damageHP := vitals.RollVariance(hit.HP, hit.Variance, s.rng)
 		// An owned summon's dot replays through its owner — checked before
 		// the MobEntity case (a totem IS a mob), so burn damage keeps
-		// crediting the owner even after the summon is gone.
+		// crediting the owner even after the summon is gone. The summon
+		// itself rides along as the hit's Source: threat credits it while it
+		// lives, and falls back to the owner once it reads dead (chunk 3).
 		storedCaster := hit.Caster
+		var source model.Combatant
 		if owned, ok := storedCaster.(model.Owned); ok && owned.Owner() != nil {
+			source, _ = storedCaster.(model.Combatant)
 			storedCaster = owned.Owner()
 		}
 		switch caster := storedCaster.(type) {
 		case model.PlayerEntity:
-			target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags})
+			target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Source: source})
 		case model.MobEntity:
 			target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags})
 		default:
@@ -277,12 +281,15 @@ func eligibleByTargetFlags[Capability any](effect skills.EffectDef, casterFactio
 // and position, scaled by the owner-level power (mob-depth chunk 1).
 func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
 	if owned, ok := e.(model.Owned); ok && owned.Owner() != nil {
-		applyPlayerDamageAura(owned.Owner(), e.Faction(), e.AuraCollider().Position(), level, effect, collisions, rng, owned.SummonPower())
+		// The summon rides along as the hit's Source: threat credits the
+		// summon itself, XP the owner (mob-depth chunk 3, gotcha #9).
+		source, _ := e.(model.Combatant)
+		applyPlayerDamageAura(owned.Owner(), source, e.Faction(), e.AuraCollider().Position(), level, effect, collisions, rng, owned.SummonPower())
 		return
 	}
 	switch caster := e.(type) {
 	case model.PlayerEntity:
-		applyPlayerDamageAura(caster, e.Faction(), e.AuraCollider().Position(), level, effect, collisions, rng, 1)
+		applyPlayerDamageAura(caster, nil, e.Faction(), e.AuraCollider().Position(), level, effect, collisions, rng, 1)
 	case model.MobEntity:
 		applyMobDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions, rng)
 	}
@@ -290,7 +297,9 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 
 // outputScale is 1 for a direct player cast and the summon's power for an
 // owned cast — it multiplies the damage amount only (never CC parameters).
-func applyPlayerDamageAura(caster model.PlayerEntity, casterFaction model.Faction, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand, outputScale float32) {
+// source is the summon entity on owned casts (threat attribution, chunk 3),
+// nil on direct casts — the target then treats the caster as the source.
+func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, casterFaction model.Faction, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand, outputScale float32) {
 	damageHP := effect.Damage.HPAt(level) * outputScale
 
 	// Declarative targeting: the sensor mask pre-filters layers, the faction
@@ -305,7 +314,7 @@ func applyPlayerDamageAura(caster model.PlayerEntity, casterFaction model.Factio
 	for _, c := range targets {
 		// Every hit rolls its own variance (item 11 Phase 3); the target's
 		// resistance then multiplies the rolled value (decision C3).
-		damage := model.Damage{HP: vitals.RollVariance(damageHP, effect.Damage.Variance, rng), Tags: effect.Damage.Tags}
+		damage := model.Damage{HP: vitals.RollVariance(damageHP, effect.Damage.Variance, rng), Tags: effect.Damage.Tags, Source: source}
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
 		noteAuraHit(c, style)
 	}
@@ -348,7 +357,8 @@ func noteAuraHit(c phy.Collider, style model.AuraHitStyle) {
 	}
 }
 
-func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
+func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+	rng := s.rng
 	// The self-damage bookkeeping needs player vitals; entities without them
 	// (mobs) cannot cast heal auras — skip rather than panic.
 	caster, ok := e.(healCaster)
@@ -398,6 +408,12 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		if healerPE, isPlayer := e.(model.PlayerEntity); isPlayer {
 			other.NoteHealedBy(healerPE)
 		}
+
+		// Healer threat (mob-depth chunk 3, §6.3): the actually-healed HP,
+		// weighted, lands on every mob in combat with the heal target.
+		if healer, ok := e.(model.Combatant); ok {
+			s.creditHealerThreat(other.Basic().ID(), healer, float32(vs.Health-before))
+		}
 	}
 
 	if healedSomeone && !caster.IsGod() {
@@ -405,6 +421,37 @@ func applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions
 		vs := caster.VitalSigns()
 		vs.Health = vs.Health.Sub(selfHP)
 		caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
+	}
+}
+
+// healerThreatFactor [PLACEHOLDER] weights healing into threat (§6.3, decided
+// 2026-07-10): a landed heal credits the healer with healedHP × factor on
+// every mob currently in combat with the heal target.
+const healerThreatFactor = 0.5
+
+// threatReceiver is the mob-side crediting seam (concrete *mob.Mob; kept as a
+// local interface so fakes can observe the credit in tests).
+type threatReceiver interface {
+	HasThreat(id uint64) bool
+	TargetsEntity(id uint64) bool
+	NoteThreat(source model.Combatant, amount float32)
+}
+
+// creditHealerThreat lands healer threat (§6.3): every tracked mob in combat
+// with the heal target — its threat table holds the healed entity, OR its
+// current aggro target IS the healed entity (sensor-acquired combat: a tank
+// can hold aggro without ever damaging the mob) — credits the healer. Mobs
+// not fighting the target never learn of the heal. Cost is O(entities) per
+// heal event, on the heal aura's slow cadence.
+func (s *SkillSystem) creditHealerThreat(healedID uint64, healer model.Combatant, healedHP float32) {
+	if healedHP <= 0 {
+		return
+	}
+	amount := healedHP * healerThreatFactor
+	for _, e := range s.entities {
+		if t, ok := e.(threatReceiver); ok && (t.HasThreat(healedID) || t.TargetsEntity(healedID)) {
+			t.NoteThreat(healer, amount)
+		}
 	}
 }
 

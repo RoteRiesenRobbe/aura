@@ -11,6 +11,12 @@ import (
 type Damage struct {
 	HP   float32
 	Tags []string
+
+	// Source is the entity whose effect dealt the hit when that differs from
+	// the crediting player — an owned summon (mob-depth chunk 3): threat
+	// credits the source, XP the toucher (gotcha #9 — the stores stay
+	// separate). nil = the toucher itself is the source.
+	Source Combatant
 }
 
 type Interacter interface {

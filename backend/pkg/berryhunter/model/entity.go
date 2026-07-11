@@ -119,6 +119,10 @@ type MobEntity interface {
 	// BurstRadius is the effective radius of a recently fired instant_damage
 	// burst (wire burst_radius, drives the burst ring VFX); 0 = none.
 	BurstRadius() float32
+	// AuraRadius is the effective radius of the active aura, 0 while none is
+	// active (wire aura_radius — the client draws the mob's ring from it, so
+	// a gated aura is invisible until aggro; mob-depth chunk 3c).
+	AuraRadius() float32
 
 	// DamageTaken is the health lost this tick (VitalSign units), serialized as
 	// the floating damage number (roadmap item 11) and reset each tick via

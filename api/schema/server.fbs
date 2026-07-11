@@ -100,6 +100,12 @@ table Mob {
   // the client draws the bar as health/max_health. Appended at the table end so
   // existing field IDs stay stable.
   max_health:uint = 0;
+
+  // effective radius (px) of the active aura, 0 while none is active — the
+  // client draws the mob's aura ring from this, so a gated aura shows no ring
+  // until the mob aggros (mob-depth chunk 3c). Mirrors Character.aura_radius
+  // and retires the hand-synced frontend ring constant. Appended at table end.
+  aura_radius:ushort = 0;
 }
 
 table Character {

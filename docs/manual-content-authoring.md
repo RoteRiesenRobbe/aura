@@ -58,9 +58,10 @@ mob's art means reusing its name/EntityType.
 
 7. **Art:** `frontend/src/features/game-objects/assets/mobs/newmob.svg`.
 8. **`frontend/src/client-data/Graphics.ts`** — new entry in the `mobs:` block:
-   `file: require('.../mobs/newmob.svg')`, `minSize`/`maxSize`, `anchor`, and
-   optional `damageAuraRadiusMeters` (**must match the mob aura's effective
-   radius** — hand-synced; see Known sync points).
+   `file: require('.../mobs/newmob.svg')`, `minSize`/`maxSize`, `anchor`.
+   (The aura ring needs NO entry since mob-depth chunk 3c: it is wire-driven
+   via `Mob.aura_radius` — 0 while the aura is gated — and sized
+   automatically.)
 9. **`frontend/src/features/game-objects/logic/Mobs.ts`** — a new `Mob`
    subclass (constructor picks a `Game.layers.mobs.*` / `bossMobs` layer), plus a
    `Preloading.registerGameObjectSVG(...)` line. Mirror `Dodo`.
@@ -170,8 +171,9 @@ forget:
   `name`.
 - **`Skills.ts`** `SkillNames` / `SkillMaxLevels` / `SkillCategories` duplicate the
   backend skill registry.
-- **`Graphics.ts` `damageAuraRadiusMeters`** duplicates the mob aura's effective
-  radius (frontend ring size is not wire-driven yet).
+- ~~`Graphics.ts` `damageAuraRadiusMeters`~~ **retired 2026-07-10 (mob-depth
+  chunk 3c):** mob ring size is wire-driven (`Mob.aura_radius`, 0 = aura
+  gated/off) — no hand-sync remains.
 
 ## Quick reference: what touches the wire?
 

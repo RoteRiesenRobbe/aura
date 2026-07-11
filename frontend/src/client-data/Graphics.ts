@@ -78,7 +78,6 @@ export const GraphicsConfig = {
                 file: string,
                 minSize: number,
                 maxSize: number,
-                damageAuraRadiusMeters?: number,
                 anchor?: {x: number, y: number}
             }
     }>{
@@ -86,48 +85,36 @@ export const GraphicsConfig = {
             file: require('../features/game-objects/assets/mobs/boar.svg'),
             minSize: <number> 35,
             maxSize: <number> 45,
-            damageAuraRadiusMeters: <number> 0.6,
         },
 
         saberToothCat: {
             file: require('../features/game-objects/assets/mobs/lion.svg'),
             minSize: <number> 45,
             maxSize: <number> 60,
-            damageAuraRadiusMeters: <number> 1,
         },
 
         mammoth: {
             file: require('../features/game-objects/assets/mobs/skeleton.svg'),
             minSize: <number> 60,
             maxSize: <number> 80,
-            damageAuraRadiusMeters: <number> 1
         },
 
         angryMammoth: {
             file: require('../features/game-objects/assets/mobs/demon.svg'),
             minSize: <number> 180,
             maxSize: <number> 220,
-            // Must match the effective radius of AngryMammothAura at the
-            // equipped level (skill radius 3.0 + 2 * 0.25 at level 3) — the
-            // mob ring is a client constant, not wire-driven like player rings.
-            damageAuraRadiusMeters: <number> 3.5
         },
 
         totem: {
             file: require('../features/game-objects/assets/mobs/totem.svg'),
             minSize: <number> 50,
             maxSize: <number> 50,
-            // Must match TotemAura's effective radius (skill radius 1.5, no
-            // per-level growth) — same hand-synced constant as the other mobs.
-            damageAuraRadiusMeters: <number> 1.5,
         },
 
         rabbit: {
             file: require('../features/game-objects/assets/mobs/rabbit.svg'),
             minSize: <number> 22,
             maxSize: <number> 30,
-            // DodoAura's effective radius, same as the dodo (hand-synced).
-            damageAuraRadiusMeters: <number> 0.6,
         },
     },
 
