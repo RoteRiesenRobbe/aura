@@ -118,12 +118,11 @@ storytelling.
   spawn/respawn per zone. The map format must carry **individually placed mob
   instances** (fixed spawn points, per-instance respawn timer + variance) and
   **patrol waypoints/routes** — see item 7 (mob behavior, tiers & spawning),
-  which owns the behavior side of these. The map format must also carry the
-  **occluder layer** as **two independent per-object flags**, not one:
-  `blocks-movement` (physical collision) and `blocks-aura` (LoS occlusion, see
-  item 6). They are orthogonal — a **fence** blocks movement but not auras; a
-  **large rock/wall** blocks both; a **bush/decoration** blocks neither.
-  Curated per object — walls/rocks/cliffs block LoS, decorative trees don't.
+  which owns the behavior side of these. ~~The map format must also carry the
+  occluder layer as two independent per-object flags: `blocks-movement` and
+  `blocks-aura`.~~ **Superseded 2026-07-10:** aura LoS was cut (item 6) —
+  only `blocks-movement` remains meaningful; the shipped-but-inert
+  `blocksAura` flag is decided for deletion (sweep pending, see item 6).
 - ⚑ Authoring tooling: external editor (e.g. Tiled) vs. custom JSON — biggest
   unknown in this item. *Deliberately left open (2026-07); decide when this
   item starts. Suggested first step: a Tiled spike (build one test zone, load
@@ -160,8 +159,8 @@ trade-offs (light aura vs. damage aura).
   *sees* — no effect on damage, hit chance, aura behavior, or any other
   mechanic. You *can* be hit in the dark; you just can't see well. The value
   of the light-support role is vision for the group (positioning, spotting
-  targets). This deliberately decouples the cheap, atmospheric part from the
-  server-authoritative LoS occlusion work (item 6).
+  targets). *(Confirmed 2026-07-10: this item is **unaffected by the aura-LoS
+  cut** — darkness is area-based and never depended on wall occlusion.)*
 - **Gap owned by this item:** a `light_aura` effect type does not exist yet.
   It would be the first effect type whose effect is *rendering* (light radius
   counteracting darkness) rather than damage/heal/stats — design it here, as
@@ -171,40 +170,28 @@ trade-offs (light aura vs. damage aura).
   (multi-effect entity — PaladinAura is the precedent), so its light reaches far
   wider than its healing/safety radius.
 
-## 6. Line-of-sight for auras
+## 6. ~~Line-of-sight for auras~~ — CUT (2026-07-10)
 
-Aura effects blocked by walls/obstacles.
-
-- Work: occlusion check between aura owner and each target candidate, applied
-  in `SkillSystem` effect application (in the targeting pipeline: range filter
-  → **LoS filter** → selector sort → take N, see item 11).
-- **Decided: occlusion is separate from darkness/vision.** This item is only
-  the server-authoritative, combat-relevant part (does a wall block the
-  effect?). Vision/darkness is client-side rendering (item 5).
-- **Decided: occluders are curated.** A `blocks-aura` flag on large objects
-  (walls, rocks, cliffs); decorative trees do *not* block — otherwise forest
-  combat gets chopped up and feels random. This is the aura-occlusion flag; it
-  is **independent from `blocks-movement`** (a fence blocks movement but not
-  auras; a rock blocks both) — both flags live in map data (item 4).
-- **Approach (direction, to be validated by a spike):** occluder layer as a
-  grid/tilemap + integer raycast (DDA); LoS result caching (recompute every K
-  ticks or on movement [PLACEHOLDER]); with capped targets (item 11), raycast
-  candidates in selector order with early-out once N targets pass — normally N
-  raycasts, not all candidates. **Note for the spike:** the world plan
-  (`plan-world-zones.md`) made occluders **free-placed prop entities** with
-  circle/box bodies, not a tile grid — so the spike must either rasterize
-  props into an occluder grid at zone load (props are static, so pre-bake
-  once) or raycast against the shapes directly. Neither invalidates the
-  direction; pick in the spike.
-- **Performance model:** cost scales with *co-located* aura casters (the blob:
-  boss events, special-event puddle), not total entities; the broadphase is
-  the expensive part and `phy` already has spatial hashing. The spike is a
-  **blob benchmark**: X synthetic casters, tick time must stay under 33 ms.
-- ⚑ Occluder representation: static geometry (pre-bakeable) vs. entities
-  (Berryhunter resources are harvestable → potentially dynamic). Depends on
-  the map format (item 4).
-- Depends on: world & zones providing walls worth occluding; cheap to defer
-  until then. Not part of the prototype path.
+> **Cut entirely (2026-07-10).** Auras pass through walls and every
+> environment object; walls/props remain **movement** blockers (that
+> mechanic stays fully intact). Decision prep + full rationale:
+> `research-combat-pacing-recovery.md` §2.C; decision record: `tdd.md` §4.2
+> + `gdd.md` §12. Key points: solo LoS is symmetric (no positional value),
+> the cost was larger than documented (medium system + blob perf spike +
+> an undocumented LoS-aware mob-AI extension), and the light-support pillar
+> had already been decoupled by the darkness-is-visual decision.
+> **Wall-cheese is owned by mob AI instead:** obstacle steering (mob-depth
+> chunk 4) + leash mechanics (no-progress leash rule parked in
+> `plan-mob-depth.md` §6); navmesh/A* stays the escalation, with
+> wall-cheese in playtests as its explicit trigger. Stationary mobs are
+> protected by the GDD §8 placement rule. **Darkness/vision (item 5) is
+> unaffected** — it never depended on occlusion.
+>
+> **Pending sweep (small):** delete the inert `blocksAura` plumbing —
+> `world/zone.go` schema field, `model/prop.Prop` field + `PropEntity`
+> method, the zone-editor inner-ring marker, and the authored values in
+> `api/zones/*.json` / prop content. Re-adding later is a one-line additive
+> schema change.
 
 ## 7. Mob behavior, tiers & spawning — normal / elite / boss
 
@@ -292,6 +279,12 @@ Aura effects blocked by walls/obstacles.
 - A brand-new mob *name* still requires an `EntityType` (schema + frontend
   rendering class); a small JSON `entityType` override (reuse an existing
   look) is the known ~5-line addition when this item introduces variants.
+- **Content-era movement vocabulary (captured 2026-07-10, not scheduled):**
+  the GDD §4 Combat Pacing analysis names the countermeasures against
+  boring ring-riding — **telegraphed lunges, arc pursuit, ground zones
+  blocking the retreat corridor**. These are candidate mob capabilities for
+  the content pass / later chunks, recorded so the boredom fix has named
+  levers; they do not grow the current `plan-mob-depth.md` 9-chunk scope.
 
 ### Boss encounters — feasibility audit & the encounter-controller gap
 
@@ -440,6 +433,13 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
   - [ ] Hover info on spellbook / ability entries (name, targeting rule, effects)
   - [ ] Avatar state reactions (damaged / happy / dead) + on-token effect display
         (current damage VFX, DoTs, and other states on the token)
+  - [ ] **Aura VFX/animation/polish pass** (named 2026-07-10 — previously no
+        step owned it): full visual treatment for auras incl. the **tick-timing
+        indicator** (GDD §4 — readable for own AND mob auras; a *minimal*
+        functional indicator + its small wire addition land earlier, before
+        content-pass balancing; the wire design should be solved together
+        with the ⚑ buff-visibility question and the `Skills.ts` metadata
+        debt — one design, not three ad-hoc fields)
   - [ ] Icon-unlock track — character/token icons unlocked at milestones,
         level-ups, mob kills, aura unlocks (a cosmetic lane parallel to the
         spellbook unlocks)
@@ -547,9 +547,9 @@ this item changed shipped base-aura behavior and was its own step.
   - `selector: lowest_health` — special auras only; **percentual** (lowest
     current/max ratio, not absolute values), so it picks the most-wounded
     target relative to its pool, not always the small add.
-- **Target selection pipeline:** range filter (aura sensor, exists) → LoS
-  filter (item 6, later) → selector sort → take first N. "All in range" is
-  the uncapped special case, reserved for late unlock auras.
+- **Target selection pipeline:** range filter (aura sensor, exists) → ~~LoS
+  filter (item 6, later)~~ *(cut 2026-07-10)* → selector sort → take first N.
+  "All in range" is the uncapped special case, reserved for late unlock auras.
 - **Base auras start with few targets** (initial 1 [PLACEHOLDER]); more
   targets come via per-aura level-ups or dedicated unlocks.
 - **Per-aura level-up axes:** what a level-up improves is defined per aura —
@@ -689,6 +689,14 @@ needs real design time:
   tutorial: how death works, where you respawn; plus other first-time beats).
   Needs a small client trigger→overlay system + the overlay content; hooks the
   existing death flow (Obituary kept).
+- **Combat-pacing authoring rules (2026-07-10, GDD §4 Combat Pacing / §8):**
+  mob tick rates slow + readable (tick-dodging rewarding, never mandatory);
+  per-tier facetank thresholds as acceptance criteria (harness stand-still
+  bot: normal ~90% / elite ≤ ~60% / boss kills the bot [ALL PLACEHOLDER]);
+  stationary mobs never placed in wall pockets covering their aura radius
+  (auras ignore walls); two-zone auras as special-occasion content
+  candidates; feast content pending the GDD §12 aftereffect question;
+  personal recovery cooldown theme picked here.
 
 ---
 
@@ -724,17 +732,28 @@ system ships blind.
    Plan: 9 chunks (totem → flee → aggro & threat → steering → patrol →
    companion → taunt → support mobs → encounter controller); next action =
    chunk 1 with the §8.4 totem decisions.
-3. **Spatial combat & atmosphere** (items 6 + 5) — line-of-sight occlusion (perf
-   spike → occlusion into the aura pipeline) and darkness/light (the `light_aura`
-   effect type, campfires). Item 6 consumes the World phase's occluder flags
-   (`blocksAura`, carried inert since step 1); item 5 **extends** the zone
-   schema with dark-area definitions itself (the World phase does not ship
-   them — item 5 owns "dark-area definition in map data").
+3. **Atmosphere & recovery** (item 5 + the 2026-07-10 recovery/death bundle;
+   ~~item 6 cut 2026-07-10~~ — the LoS spike and occlusion work are gone) —
+   darkness/light (the `light_aura` effect type, campfires); item 5
+   **extends** the zone schema with dark-area definitions itself (the World
+   phase does not ship them — item 5 owns "dark-area definition in map data").
    **+ Campfire death-respawn** (GDD §3; backlog item 9): once campfires are
    real stateful entities here, add the "last visited campfire" tracker — the
    respawn point is set by **dwelling N seconds [PLACEHOLDER] in the campfire's
    fire aura**, not by an instant walk-through — and switch `sys/state.go` from
-   random-position respawn to the stored point.
+   random-position respawn to the stored point. **Only fixed world campfires
+   qualify (2026-07-10)** — player-placed recovery points are never respawn
+   points (GDD §3).
+   **+ Death state (2026-07-10, GDD §3):** players persist as a body until
+   they actively press Respawn (an explicit client→server message replacing
+   the implicit re-join; the revive window), mobs leave a brief corpse
+   [PLACEHOLDER; client-only fade may suffice for mobs — decide when
+   scoping]. Same `sys/state.go` death-flow surgery as the respawn tracker —
+   one pass, not two.
+   **+ Combat-gate player passive regen (2026-07-10, GDD §3):** player regen
+   currently runs mid-combat (`model/player/update.go`); introduce the player
+   in-combat flag (recent-damage window) and gate regen on it — also the
+   prerequisite for the harness stand-still thresholds.
    In-memory only (same shape as the existing `carriedState` pattern) — needs
    **no** accounts/persistence, so it does not wait for step 8. Scope note:
    this builds the tracker + death-respawn; the separate *Recall* cooldown
@@ -753,8 +772,34 @@ system ships blind.
    content pass (GDD §5 peasant chore-mobs; backlog item 8 key-aura gates).
    Placed here as the last systems step touching the damage pipeline before
    step 6. Multi-tag semantics pinned at implementation (backlog item 8).
+   **+ Recovery-over-time payloads (2026-07-10, GDD §3):** a heal-over-time
+   buff payload (the inverse of the shipped dot, rides `skills.Buffs`) and/or
+   a channel shape on the cast-time primitive above — the E1-compliant
+   building blocks for the personal recovery cooldown and campfire-adjacent
+   recovery (instant self-heals stay capped-partial per the GDD §3 boundary).
+   **+ Revive effect type (2026-07-10, GDD §3/Appendix A):** an effect
+   targeting a *dead* player (consumer of step 3's death state) — no current
+   effect type can express it; the Revive *ability* itself is content
+   (step 6).
+   **+ Minimal aura tick-timing indicator (2026-07-10, GDD §4):** the bare
+   readable version + its small wire addition (tick phase/interval) must
+   exist **before content-pass balancing** — tuning mob tick rates for
+   dodge-ability while players can't see ticks tunes blind. Solve the wire
+   design together with the ⚑ buff-visibility question + `Skills.ts`
+   metadata debt; the polished VFX lands in step 8's aura pass.
 5. **Unlock-source systems** (item 9) — world clue-anchor entities + NPC-teaching
    behavior (needs world **and** mobs).
+
+   > **Pre-step-6 gate: the simulation harness** (GDD §5 "First building
+   > block"; made an explicit bullet 2026-07-10 — it previously hid inside
+   > the tdd.md §4.1 `f(character level)` note). Metrics: TTK / survival /
+   > kills-per-level + the 1-vs-N matrix **+ the stand-still bot test with
+   > per-mob-type thresholds, measured as sustainable kills/hour over a
+   > chain incl. modeled regen + downtime, run per level bracket** (GDD §5).
+   > Prerequisite: the step-3 regen combat gate; recovery models (personal
+   > cooldown, time-at-fire) enter the chain model as placeholders and are
+   > tuned here.
+
 6. **Initial content pass** (item 12) — **the prove-it gate.** Real zones, full
    mob roster (replace the legacy Berryhunter mobs), boss scripts, skills,
    passives, cooldowns, combination recipes, first real balance pass. **This is

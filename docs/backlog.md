@@ -414,20 +414,19 @@ Context from current state:
 
 ## 8. Destructible/respawning movement obstacles via aura hits
 
-World objects that block movement (and likely line-of-sight) can be removed
-when hit by an aura. They can reappear either **(a)** once the aura is no
+World objects that block movement (~~and likely line-of-sight~~ — aura LoS
+cut 2026-07-10) can be removed when hit by an aura. They can reappear either **(a)** once the aura is no
 longer active/present, or **(b)** via a respawn timer independent of aura
 state.
 
 Answered by current state:
 
 - *Should this be designed together with the LoS world representation?* —
-  Largely settled by existing decisions: the map format already carries the
-  occluder layer as **two independent per-object flags**,
-  `blocks-movement` and `blocks-aura` (roadmap item 4; LoS mechanics owned
-  by item 6, TDD §4.2). Destructible obstacles are occluder-layer objects
-  that gain **runtime removal/restore** of those flags — this idea should
-  extend that map format rather than invent a parallel object type.
+  **Moot since 2026-07-10: aura LoS was cut** (roadmap item 6, TDD §4.2);
+  only `blocks-movement` remains meaningful (`blocks-aura` is pending
+  deletion). Destructible obstacles are objects that gain **runtime
+  removal/restore** of movement blocking — this idea should extend the
+  existing map format rather than invent a parallel object type.
 
 ⚑ Open questions:
 
@@ -470,9 +469,11 @@ Context from current state *(added during capture)*:
   variant **(b)** machinery exists end-to-end on the mob path. (Caveat: raw
   collision-layer ints in mob JSON are a standing hand-sync hazard whenever
   `model/layers.go` changes — CLAUDE.md, 2026-07-09 dead-code sweep.)
-- `blocksAura` on props is parsed but **inert until item 6** (LoS) — if a
-  sealed gate should also block auras, that half doesn't exist yet on any
-  substrate.
+- ~~`blocksAura` on props is parsed but inert until item 6 (LoS)~~ —
+  **superseded 2026-07-10: aura LoS was cut** (roadmap item 6, `tdd.md`
+  §4.2). Gates can never block auras; only the movement-blocking +
+  tag-resist halves of this idea survive. The inert `blocksAura` plumbing
+  is decided for deletion (sweep pending).
 
 ⚑ Open questions (gate variant):
 
@@ -662,6 +663,12 @@ point is set by dwelling N s [PLACEHOLDER] in the fire aura, not an instant
 walk-through). Recall itself lands at **step 4** — it is the first consumer of a
 new **cast-time + interrupt** primitive and reuses that step-3 tracker; it is a
 Cooldown-category spellbook entry. Recorded in roadmap.
+
+**Update (2026-07-10):** the respawn-point set is decided — **fixed world
+campfires only** (GDD §3); player-placed recovery points are never respawn
+points. This partially answers the "safe place set" question below: for
+*death-respawn* the set is world campfires; whether *Recall* targets the
+same set or a broader one remains open.
 
 Context from current state:
 
@@ -875,3 +882,27 @@ Context from current state:
 - How many camps, at what point does a character join (level gate? a zone-2
   beat?), and can a character remain campless indefinitely (keeping access to
   the non-exclusive teaching pool)?
+
+## 16. Single-charge respawn campfire
+
+*(Captured 2026-07-10 — explicitly **not** a current decision; a potential
+future content idea only.)* A player-placed campfire that allows **one**
+respawn and then goes out; banned near boss/elite areas.
+
+Context from current state:
+
+- Deliberately in tension with the 2026-07-10 respawn decision (GDD §3:
+  respawn only at fixed world campfires; player-placed recovery points are
+  never respawn points — protects the walk-back penalty and prevents boss
+  corpse-zerging). This idea is the sanctioned-exception shape: the single
+  charge self-limits the corpse-zerg, and the boss/elite-area ban guards the
+  encounter case explicitly.
+
+⚑ Open questions (if ever picked up):
+
+- Does even a single free respawn-in-place erode the walk-back penalty too
+  much (one death per fire placement is still one free deep-world retry)?
+- How is "near boss/elite areas" defined and enforced — placement rejection
+  radius in map data, or authored no-place zones?
+- Interaction with the Campfire-Build aura (GDD §4): same skill with a
+  charge, or a separate rarer skill?

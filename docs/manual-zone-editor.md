@@ -104,7 +104,8 @@ right spot (your control values are still set, so it's one click).
 Notes:
 - *blocks movement* = players and mobs collide with it. Unticked = purely
   decorative, you can walk through it.
-- *blocks aura* is stored but does nothing yet (line-of-sight comes later).
+- *blocks aura* does nothing — aura line-of-sight was **cut 2026-07-10**; the
+  checkbox + inner-ring marker + JSON field are pending deletion (small sweep).
 - Placing a new prop while another is selected: clicking empty ground places,
   clicking a marker selects — if you want to place *overlapping* an existing
   marker, delete or move the old one first.

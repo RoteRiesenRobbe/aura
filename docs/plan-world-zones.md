@@ -15,8 +15,8 @@ content-pass work (step 6 / roadmap item 12).
 
 > Scope note: this is roadmap **item 4** (world & zones) plus the **placement +
 > respawn half of item 7** (mob spawn points). It deliberately does **not** pull
-> in item 5 (darkness), item 6 (aura line-of-sight), or item 7's patrol
-> archetypes — see §1.2 for the exact line.
+> in item 5 (darkness), item 6 (aura line-of-sight — *since cut entirely,
+> 2026-07-10*), or item 7's patrol archetypes — see §1.2 for the exact line.
 
 ---
 
@@ -48,7 +48,7 @@ Replace the procedural world with a **hand-authored single zone**, authored in a
 
 | Deferred | Belongs to | Why now-not |
 |---|---|---|
-| Aura line-of-sight occlusion (`blocksAura` runtime) | item 6 | Gated on a blob perf spike; we only carry the flag |
+| Aura line-of-sight occlusion (`blocksAura` runtime) | ~~item 6~~ **cut 2026-07-10** | ~~Gated on a blob perf spike; we only carry the flag~~ — LoS cut entirely; the carried flag is pending deletion |
 | Darkness / light rendering / `light_aura` | item 5 | Needs the effect-type work; decoupled by design |
 | Mob patrol archetypes (local / route patrol) | item 7 | Mobs stay stationary-idle in this pass |
 | Multiple zones + zone transitions | item 4 later | One zone now; single `phy.Space` |
@@ -67,7 +67,8 @@ Replace the procedural world with a **hand-authored single zone**, authored in a
 - **In-game editor** (extend the existing MysticWand tool) — not Tiled, not
   hand-written JSON.
 - **Occluders: data flags now, movement-blocking implemented, LoS/darkness
-  deferred.**
+  deferred.** *(Since superseded: aura LoS was cut 2026-07-10 — `blocksAura`
+  is pending deletion; darkness (item 5) unaffected.)*
 - **Mobs: spawns + respawn only**, no patrols.
 - **Tile-based terrain** floor.
 
@@ -186,7 +187,7 @@ the resource/static-entity path (`gen/resource_entity.go`,
 Adding:
 - `blocksMovement` → body on `LayerMobStaticCollision | LayerBorderCollision`
   (collidable) vs a non-colliding decorative body / no body.
-- `blocksAura` → stored, **inert this pass** (item 6 reads it later).
+- `blocksAura` → stored, **inert this pass** (~~item 6 reads it later~~ — item 6 was cut 2026-07-10; the flag is pending deletion).
 
 **Wire:** props ride the existing entity-streaming path (they render like
 resources do). Minimal-to-zero new wire if we map prop types onto existing

@@ -75,10 +75,12 @@ better than typical prototype hygiene.
    play. `net_test.go` was presumably once an attempt at this; a proper
    version (spin up server on a random port, scripted client, assertions,
    teardown) is the single highest-value new test.
-3. **A tick/perf benchmark** — the blob benchmark is already planned (LoS
-   spike) but nothing measures tick time today, so perf regressions land
-   silently. Even a crude benchmark test (N synthetic casters, assert
-   update() < budget) would hold the line until the real spike.
+3. **A tick/perf benchmark** — ~~the blob benchmark is already planned (LoS
+   spike)~~ *(the LoS spike died with the 2026-07-10 aura-LoS cut — no spike
+   is planned anymore, which makes this gap bigger, not smaller)*: nothing
+   measures tick time today, so perf regressions land silently. Even a crude
+   benchmark test (N synthetic casters, assert update() < budget) would hold
+   the line.
 4. **Frontend: zero tests, no lint, no typecheck script.** The webpack build
    is the only gate (it does type-check via ts-loader). Full frontend test
    coverage is not the ask; a lint + `tsc --noEmit` CI step and a handful of

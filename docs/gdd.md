@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Status:** Living document
-**Last updated:** 2026-07-09 (character-sacrifice meta-progression expanded; power curve + peasant onboarding + RNG-rejection decisions; Tone & Writing idea captured in §10)
+**Last updated:** 2026-07-10 (combat pacing & recovery session: design-pillars list added to §1; aura line-of-sight **cut**; recovery rhythm + death state in §3; tick readability, two-zone auras + Combat Pacing subsection in §4 — decision prep/record: `research-combat-pacing-recovery.md`)
 
 > This document is the **game-design truth** (vision, mechanic intent, open
 > design questions). Technology belongs in the [Technical Design Document](./tdd.md),
@@ -23,6 +23,31 @@
 - Hotline Miami / Monaco / Rimworld — top-down art direction (not isometric, not pixel art)
 
 **Platform:** Browser-based.
+
+### Design Pillars
+
+*(Recorded as an explicit list 2026-07-10 — previously scattered; other docs
+cite these by name. The referenced sections are the elaboration.)*
+
+1. **No manual aiming.** Auras pick their own targets by fixed per-aura rules;
+   positioning and cooldown/switch timing are the only skill expressions (§4).
+2. **One resource.** HP, mana, everything as a single value; 0 = death (§3).
+3. **Circle readability.** An aura is a legible circle with binary edges — a
+   range indicator plus per-target hit feedback, never fuzzy gradients (§4).
+4. **Readable, relaxed combat — except top-tier content.** Fights are legible
+   and unhurried by default; only elite/boss content demands execution
+   (first written record 2026-07-10; see §4 Combat Pacing).
+5. **No items, no economy, no drops.** Rewards are XP and spellbook entries;
+   item-like gear is expressed as passives (§8; roadmap item 2).
+6. **Cooperation without formal groups.** Role-filling is essential, not
+   optional; all combat participants get XP (§9).
+7. **Persistent shared hand-built world.** No instances, no procedural
+   generation; environmental storytelling is central (§7).
+8. **No griefing possible by design** (§9).
+9. **System first, not presentation first** (§10).
+10. **Combat RNG rejected.** Deterministic tag-resists + variance bands; crit
+    is the one explicitly open exception (§5, §12).
+11. **Numbers are always placeholders** until explicitly marked final.
 
 ---
 
@@ -49,15 +74,60 @@ Every player and every NPC has exactly **one resource**. It represents HP, mana,
 - Your own heal auras on other players cost resource continuously
 - More powerful auras cost more resource per tick
 
-### Regeneration
-- Slow passive regeneration outside of combat
-- Through your own cooldown abilities
-- Through other players' heal auras
-- Through campfires (environmental)
+### Regeneration & Recovery
+
+Sources: slow passive regeneration outside of combat, your own cooldown
+abilities, other players' heal auras, campfires (environmental).
+
+**Recovery rhythm (decided 2026-07-10).** The recovery currency is
+**time-at-the-campfire, not cooldown availability**. Recovery over time
+(~15–20 s standing at a fire [PLACEHOLDER]) *is* the intended rhythm beat —
+tension → recovery → tension — replacing classic MMO sit-and-eat.
+
+- **Nothing instant may fully or near-fully restore the resource.** A capped
+  partial instant heal (the shipped L2 Heal cooldown, ~20–30% [PLACEHOLDER])
+  is a *combat sustain* tool, not recovery; the out-of-combat resource reset
+  is always time-based. An instant full restore would collapse the rhythm
+  regardless of its cooldown length.
+- **Group cooldown rotation is sanctioned** — even the intended reward for
+  group play: rotating recovery cooldowns saves waiting on cooldowns, never
+  the time-at-fire itself.
+- **Personal recovery cooldown (decided, theme open):** every player gets a
+  single-target recovery-over-time cooldown early — the solo substitute for
+  sit-and-eat. Theme [PLACEHOLDER]; the mini-campfire is the cheapest
+  candidate (a totem-shaped owned summon with a heal aura legally heals its
+  owner — the *totem* is the caster; depends on the mob-heal lifts,
+  mob-depth chunks 7–8). Larger group recovery (big campfires, feasts)
+  comes later and stronger.
+- **Passive out-of-combat regeneration** follows the classic model:
+  relatively meaningful early, declining proportionally with level. Two
+  cautions on record: the single resource is HP *and* mana in one, so this
+  one knob steers everything; and passive regen is the only solo downtime
+  mechanism besides the personal cooldown — slow enough to keep active
+  recovery attractive, never so slow that solo players idle past the ~20 s
+  sit-and-eat pain threshold [PLACEHOLDER]. *(Implementation note: player
+  regen is currently not combat-gated — the gate is scheduled with the
+  step-3 recovery bundle.)*
+- ⚑ **Feast aftereffect buff — open** (§12), with one constraint already
+  decided: no regeneration that persists into combat — that is pre-fight
+  healing, stacks with heal auras, and eats the attrition model.
 
 ### Death
 At resource = 0:
-- **Respawn** at the last visited campfire
+- **Death state (decided 2026-07-10):** the character does not vanish — the
+  body stays in the world until the player actively presses **Respawn**.
+  This window is what makes the Revive ability possible. Killed mobs
+  likewise leave a brief corpse [PLACEHOLDER duration] for readability.
+- **Respawn** at the last visited **fixed world campfire** (the graveyard
+  equivalent, part of world design — sharpened 2026-07-10). Player-placed
+  recovery points are **never** respawn points: the walk-back is a core
+  death penalty (alongside the XP loss below), and player respawn points
+  would make boss encounters corpse-zergable.
+- **Revive** is a rare, high-level ability (§4 Base Auras, Appendix A):
+  dying deep in the world means walking back from the last world campfire —
+  or a player with Revive brings you back. That makes Revive one of the most
+  valuable social abilities instead of devaluing it with player respawn
+  points.
 - **XP loss** within the current level (back to 0 XP inside the current level — no level-down)
 - No hardcore death, no gear loss
 
@@ -69,17 +139,17 @@ Since death has the same effect on XP progress as a respec, you can respec for f
 
 ### Definition
 
-An aura is a circular effect field around a player or NPC. The circle is the **range** from which the aura strikes its targets — not necessarily a hit zone for everything inside it. **Line-of-sight based** — auras don't pass through walls or large environment objects (occluders are curated, see the tech document).
+An aura is a circular effect field around a player or NPC. The circle is the **range** from which the aura strikes its targets — not necessarily a hit zone for everything inside it. **Deliberately not line-of-sight blocked (decided 2026-07-10):** auras pass through walls and every environment object — walls and props block *movement*, never effects. Wall-exploits are handled on the mob-AI side (leash behavior + obstacle steering), not by occlusion. Decision record: `research-combat-pacing-recovery.md` §2.C.
 
 ```
        . . . . .
      .           .
     .   M         .          P  = player (caster)
     .       ###   .          M  = nearest valid target → gets hit
-    .   P   ###   .          M2 = mob behind wall       → safe (LoS blocks)
-    .       ###   .          M3 = mob out of range      → safe (too far)
-    .         M2  .          ### = wall
-     .           .
+    .   P   ###   .          M2 = mob behind wall → valid target (walls
+    .       ###   .               block movement, not auras)
+    .         M2  .          M3 = mob out of range → safe (too far)
+     .           .           ### = wall (blocks movement only)
        . . . . .       M3
 ```
 
@@ -90,7 +160,7 @@ Every aura has a **selector** (the rule by which targets are picked) and a **tar
 - **Default selector for everything (damage and heal): nearest** — the closest valid target. Positioning thereby directly controls who gets hit or healed: one step toward the boss = hit the boss.
 - **lowest_health** (special auras): the proportionally most wounded target — lowest current resource *relative to max resource*, not absolute. It thus hits/heals whoever is relatively worst off, instead of always picking the small-max-resource add in mixed fights.
 - **Target count:** base auras hit few targets (starting value 1 [PLACEHOLDER]). Target count is a **specialization axis** — it grows via level-ups (defined per aura), dedicated unlocks, or cap-raises, **never via character level** (see section 5, Power Source & Curve). Rough intended cadence [PLACEHOLDER]: 2 targets fairly early, 3 noticeably later, 4+ very late; auras that hit *all* targets in range stay reserved for cooldowns and specific purpose-built auras.
-- **Selection pipeline:** filter by range → filter by line-of-sight → sort by selector → take the first N.
+- **Selection pipeline:** filter by range → sort by selector → take the first N. *(There is deliberately no line-of-sight filter — cut 2026-07-10.)*
 
 Heal auras heal other players, **never the caster**. Self-healing is conceptually a cooldown (see Appendix A, Heal Magic cooldown).
 
@@ -127,6 +197,15 @@ All slots together form the **build**. You can have more auras in the spellbook 
 - Always exactly **one** active aura on at a time, switchable mid-fight
 - **Damage and healing:** tick-based (interval varies per aura), target picking via selector + target count (see Targeting)
 - **Buffs/debuffs** (Tank, Speed, ...): constant, not tick-based
+- **Two-zone auras (decided 2026-07-10):** a sanctioned *special-occasion*
+  pattern — strong inner ring, weaker outer ring, both visible as distinct
+  edges. Creates positional depth (go deep for effect, stay shallow for
+  safety) while keeping the binary readability of circles. Explicitly **not**
+  a global distance-falloff system — falloff would sacrifice the circle
+  system's core readability. Reserved for particular mobs and particular
+  player auras. *(Mechanically: one skill, two effects at different radii —
+  per-effect radius already exists; see `research-combat-pacing-recovery.md`
+  §2.B.)*
 
 ### Base Auras
 
@@ -174,9 +253,62 @@ Damage types enable thematic combo auras and interesting mob resistances. Mobs h
 
 ### Visual Representation
 
-Circles that fill clockwise, tick when full. The circle reads as a **range indicator**, not as a hit zone: each tick, a **hit effect on the actually struck target** shows who the aura is hitting — for slow-ticking auras e.g. a sword slash over the target, for fast-ticking ones (fire) a constant effect on the target. This keeps single-/few-target inside the big circle intuitively readable.
+**Aura tick timing must be readable (re-affirmed 2026-07-10)** — for the
+player's own aura **and** for mob auras. The exact visual mechanism is open
+(a circle filling toward the tick is one option, but anything readable
+qualifies); it belongs to the aura VFX/animation/polish pass, with a
+**minimal functional indicator landing before content-pass balancing** —
+tuning mob tick rates for dodge-ability while players can't see ticks tunes
+blind. Visible tick timing turns pure geometry into a timing layer for free:
+players will self-optimize (step out of a mob's aura just before its tick,
+step back in; time their own aura's ticks). Recorded caution:
+**tick-dodging must be rewarding, not mandatory** — constant hokey-pokey
+every tick would be exhausting; it only works with slow, readable mob tick
+rates (content-pass authoring rule).
+
+The circle reads as a **range indicator**, not as a hit zone: each tick, a **hit effect on the actually struck target** shows who the aura is hitting — for slow-ticking auras e.g. a sword slash over the target, for fast-ticking ones (fire) a constant effect on the target. This keeps single-/few-target inside the big circle intuitively readable.
+
+*(History note: a forward-looking tick indicator has never been implemented —
+the ring has always been a static sprite; the pre-2026-07 continuous damage
+flash was replaced by per-hit landing VFX (item 11 Step 4). Forensics:
+`research-combat-pacing-recovery.md` §2.A.)*
 
 *Deferred:* sticky targeting against target flicker with nearest (keep the target until it dies or leaves range) — build only when the flicker actually bothers. Visualizing overlaps of multiple player auras is also still unsolved.
+
+### Combat Pacing: The Ring
+
+*(Recorded 2026-07-10 — the durable rationale behind the tick-readability
+requirement, two-zone auras, and the mob-movement vocabulary. Full analysis:
+`research-combat-pacing-recovery.md`.)*
+
+Not every fight must be exciting — **standing still is acceptable only as a
+held decision** (the player found and keeps a good position), never as the
+absence of one (every position works equally well). This game has no
+targeting, no rotations, no direct abilities: a static fight in a classic
+MMO is still an RPG without movement; a static fight here is an idle game.
+This is the **#1 design risk ("Tempo/Fun")** — combat degenerating into a
+parking lot.
+
+**The solo geometry problem:** with two center-anchored circles, every solo
+encounter reduces to one variable — center distance. If the player's radius
+exceeds the mob's, a ring exists where the player hits and the mob doesn't;
+**inside that ring, every point is equivalent**. Earned stillness requires
+distinguishable positions, which raw geometry doesn't provide solo.
+
+**Differentiation must come from things that move, narrow, or texture the
+ring:**
+
+1. **Mob movement patterns** — with the recorded caution that a slower,
+   straight-chasing mob makes ring-riding = walking backwards, which is
+   *correct and boring*. Countermeasures (content-era mob vocabulary, not
+   yet scheduled): telegraphed lunges, arc pursuit, ground zones blocking
+   the retreat corridor.
+2. **Tick timing** (see Visual Representation above).
+3. **Two-zone auras** (see Aura Behavior above).
+
+The simulation harness measures the failure mode: stand-still bot efficiency
+tiered per mob type on sustainable kill chains including downtime, per level
+bracket (see §5, First building block).
 
 ---
 
@@ -209,6 +341,20 @@ Circles that fill clockwise, tick when full. The circle reads as a **range indic
 **Combat RNG is deliberately rejected** (random misses/resists) — see section 12. The deterministic tag-resist system + the ±variance band (item 11 Phase 3, already shipped) provide combat texture without the RNG that would clash with the positioning/timing skill expression and punish slow-ticking auras. *Crit is the one explicitly-open exception* (a possible sanctioned upside-only RNG — see roadmap step 4).
 
 **First building block:** before any content numbers exist, a **simulation harness** — TTK, survival time, and kills-per-level across the level span, plus a **1-vs-N matrix** (player target count × pack size), since single-/few-target base auras make pack fights, not duels, the real balance question. Pack sizes per zone are then authored against the target count a player is *expected* to have reached at that tier.
+
+**Harness metrics extended (2026-07-10):** the harness also runs the
+**stand-still bot test** with thresholds **tiered by mob type** — a
+starter-zone normal may be facetankable at ~90% efficiency, an elite at no
+more than ~60%, a boss simply kills the stand-still bot [ALL PLACEHOLDER].
+The correct metric is **sustainable kills per hour over a chain including
+modeled regeneration and downtime**, *not* per-fight efficiency — a facetank
+bot may nearly tie a single fight but loses far more resource per kill and
+pays through downtime over the chain (that *is* the attrition model,
+measured). Tests run **per level bracket** with level-typical builds against
+level-typical mobs: because auras scale with skill points, facetanking can
+become optimal again at higher levels even if it isn't at level 5 — that
+regression must be caught automatically. Prerequisite: player passive regen
+must be combat-gated first (§3).
 
 ### Onboarding: The Peasant Start
 
@@ -364,9 +510,15 @@ An endgame boss kill triggers a one-time world event. Example: a puddle spawns, 
 
 - Fixed spawn points, designed world (no procedural generation)
 - Patrolling mobs with a max chase distance
-- Mobs have their own auras — line-of-sight and targeting rules apply to them too
+- Mobs have their own auras — the same targeting rules apply to them (and
+  their auras pass through walls too, per the §4 LoS cut)
 - Mobs have resistances and their own damage type (see section 4)
 - No item drops — only XP and occasionally aura unlocks
+- **Stationary-mob placement rule (2026-07-10):** auras ignore walls and a
+  stationary mob can neither chase nor leash — so never place stationary
+  mobs/hazards where a wall pocket fully covers their aura radius (they
+  would be killable at zero risk). Level-design responsibility, same
+  posture as patrol-route validity.
 
 ### Mob Types
 
@@ -503,7 +655,7 @@ Mouse or WASD — still open.
 - [ ] 2–3 zones
 - [ ] Mob types: normal, elite, boss
 - [ ] UI: resource bar, XP bar, ability bar, aura panel, minimap, zone chat
-- [ ] Line-of-sight for auras
+- ~~Line-of-sight for auras~~ — **cut 2026-07-10** (§4)
 - [ ] Campfire
 
 **Not in v1.0:**
@@ -525,6 +677,9 @@ PvP, formal group system, economy, mobile, endgame raid events, character sacrif
 - [x] ~~lowest-HP absolute or percentage?~~ → **Decided:** percentage (relative to max resource)
 - [x] ~~Power source: rank system vs. level scaling?~~ → **Decided:** Option A — `effectValue = base(skill level) × f(character level)`; character level carries number inflation (HP values only), skill points stay relative specialization (see section 5, Power Source & Curve)
 - [x] ~~Combat RNG (random misses / resists)?~~ → **Deliberately rejected** (not deferred): clashes with the positioning+timing skill expression and punishes slow-ticking auras; the deterministic tag-resist system + ±variance band fill the role. **Crit left explicitly open** — a possible sanctioned upside-only RNG (roadmap step 4 / skill-vocabulary fill)
+- [x] ~~Line-of-sight blocking for auras?~~ → **Cut (2026-07-10):** auras pass through everything; walls block movement only. Solo LoS is symmetric (no positional value — an obstacle between two centers blocks both auras); the pack/group value was judged not worth a medium system + perf spike + LoS-aware mob AI. Wall-cheese is handled by mob-AI leash/steering (navmesh stays the escalation if steering demonstrably fails); stationary mobs are protected by the §8 placement rule. Darkness/light unaffected (area-based, purely visual). Decision prep + record: `research-combat-pacing-recovery.md` §2.C
+- [ ] Feast aftereffect buff shape — constraint decided 2026-07-10 (no regeneration persisting into combat, see §3); open options: breaks on taking damage / works only out of combat / a non-healing buff entirely
+- [ ] Personal recovery cooldown theme (mini-campfire vs other — mechanics decided in §3, theme is content)
 
 ### World & Content
 - [ ] Which base auras exist concretely (complete list)
@@ -557,6 +712,7 @@ Unsorted idea list, grouped by category. Not final — for experimenting and ite
 | Fire Strike | Fire damage to the lowest_health target (percentage) in range. | Pyromancer combo component, example of the lowest_health selector |
 | Long Range Execute *(working title)* | Very large radius, very slow tick, high damage to the proportionally lowest target. **Hard single-target cap** — never hits multiple targets, regardless of level. | Example of a per-aura selector + fixed cap |
 | Turnip-Pull | Damages exclusively turnip mobs on a field. No effect on other mobs. | NPC teaching (farmer), harvest-mob example |
+| Revive *(sketch, 2026-07-10)* | Brings a dead player back at their body (requires the §3 death state). Rare, high-level. | One of the most valuable social abilities — the answer to "died deep in the world", deliberately protected by the no-player-respawn-points rule (§3) |
 
 ### A.2 Passives
 
@@ -570,7 +726,8 @@ Unsorted idea list, grouped by category. Not final — for experimenting and ite
 | Name | Effect | Note |
 |---|---|---|
 | Fire Shield | For 30 s, reflects 20% of incoming damage. | Pyromancer combo component |
-| Heal Magic cooldown *(working title)* | Restores the caster's own resource. | Reward from the troll territory (clue anchor point); **the only path to self-healing** — heal auras never heal the caster |
+| Heal Magic cooldown *(working title)* | Restores the caster's own resource. | Reward from the troll territory (clue anchor point); **the only path to self-healing** — heal auras never heal the caster. Instant restores stay capped-partial per the §3 recovery boundary |
+| Personal recovery cooldown *(working title, 2026-07-10)* | Restores the caster's own resource **over time** (~15–20 s [PLACEHOLDER]), out-of-combat-flavored. | The solo sit-and-eat substitute (§3, decided); theme open — mini-campfire is the cheapest candidate (totem machinery) |
 
 ### A.4 Combination Recipes
 

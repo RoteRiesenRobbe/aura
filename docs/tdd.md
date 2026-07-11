@@ -2,7 +2,7 @@
 
 **Version:** 0.5
 **Status:** Living document
-**Last updated:** 2026-07-09 (power-curve technical shape §4.1 + zone sub-regions known-future note §4.6; state: skill system Phases 1–9 ✓, Block 2 ✓, item 11 all phases ✓, effect foundations Steps 0+1+2 ✓)
+**Last updated:** 2026-07-10 (aura line-of-sight **CUT** — §4.2 rewritten as decision record; harness metrics extended §4.1; step 7 reshaped §6; state: skill system Phases 1–9 ✓, Block 2 ✓, item 11 all phases ✓, effect foundations Steps 0+1+2 ✓, mob depth chunks 1–3 implemented)
 
 > Companion document to the [Game Design Document](./gdd.md). This holds only technical decisions, architecture, and implementation topics. Game mechanics belong in the GDD.
 >
@@ -32,7 +32,7 @@
 - Accounts (register / login) and persistence (player data, world state) — item 3
 - Handcrafted world & zones (currently procedurally assembled) — item 4
 - Darkness & light (`light_aura`) — item 5
-- Line-of-sight for auras (2D raycast; deliberately deferred until zones/walls exist) — item 6
+- ~~Line-of-sight for auras~~ — **cut 2026-07-10** (see §4.2)
 - Mob behavior, tiers, boss scripting/encounter controller — item 7
 - Zone chat (Berryhunter chat exists, zone scoping missing) — item 8
 - Remaining unlock sources (world exploration, NPC teaching) — item 9
@@ -45,7 +45,7 @@
 
 **Decision (made):** continue (build out the Berryhunter fork).
 
-**Rationale:** the hardest parts (multiplayer netcode, movement, top-down rendering, server-client architecture) are already there. Everything Aura needs (aura system, accounts, persistence, line-of-sight) goes on top — not in place of something existing. The code has since been analyzed together; the structure carries the Aura features (the data-driven skill system incl. mob parity was layered cleanly onto the existing ECS architecture).
+**Rationale:** the hardest parts (multiplayer netcode, movement, top-down rendering, server-client architecture) are already there. Everything Aura needs (aura system, accounts, persistence) goes on top — not in place of something existing. The code has since been analyzed together; the structure carries the Aura features (the data-driven skill system incl. mob parity was layered cleanly onto the existing ECS architecture).
 
 A clean start remains only a theoretical fallback in case the code structure ever turns out to actively block a feature. No sign of that so far.
 
@@ -79,42 +79,59 @@ Each system below gets its own spec discussion before it is implemented; section
 - Skill definitions as JSON (`api/skills/`), registry analogous to items/mobs, hard-fail validation at load
 - `SkillComponent` on players and mobs (same mechanics; per-mob aura skills, aura switching via `SetActiveAura` possible)
 - Generic `SkillSystem` (ECS) processes the active aura per tick; 8 effect types (`damage_aura`, `heal_aura`, `stat_multiplier`, `instant_damage`, `slow_aura`, `self_heal`, `resist_aura`, `resist_passive`)
-- **Targeting pipeline per effect:** range filter (aura sensor) → *(later, item 6)* LoS filter → selector sort (`nearest` default, `lowest_health` percentage-based, `all`) → first `maxTargets`. Heal auras never heal the caster; self-healing is a cooldown (`self_heal`).
+- **Targeting pipeline per effect:** range filter (aura sensor) → selector sort (`nearest` default, `lowest_health` percentage-based, `all`) → first `maxTargets`. There is deliberately **no LoS filter** (cut 2026-07-10, §4.2). Heal auras never heal the caster; self-healing is a cooldown (`self_heal`).
 - Tick intervals per effect, monotonic accumulator per equipped skill (multi-effect skills run each effect on its own cadence); reset on aura switch prevents the rapid-switch DPS exploit
 - Unlocks are data-driven (milestones, kill drops, recipe cascade); spellbook over the wire + UI (panel, equip, unlock glow)
 - Faction logic: binary `model.Faction` on players (aligned) and mobs (hostile, runtime-flippable for future charm/summons) + faction-relative target flags per effect (`targetsEnemies` / `targetsAllies` / `targetsStructures` / `targetsSelf`, effect foundations Step 1) — no friendly fire = `targetsAllies: false`, mob-vs-mob excluded as same-faction, masks derived per caster faction
 - Resource consumption as an effect parameter (`selfDamageHP` — no separate cost system); damage/healing in absolute integer HP with the min-1 rule; resistances as string-tag multipliers
 - Per-tick **hit VFX on the struck target** (slash for slow ticks, fire for fast ones), so the aura circle reads as range rather than hit zone
-- **Value scaling — two multiplicative axes (GDD §5, Power Source & Curve):** the per-skill level rule `base + (level−1)×perLevel` (`skills.Scaled`) is shipped — the *specialization* axis. The *inflation* axis `f(character level)` — a global multiplier on **HP values only** (damage / heal / self-HP / player max HP, **never** radius, tick rate, or target count) — is **decided but not yet implemented**; it lands as a cheap multiplier just before the content pass (§6 step 10), preceded by a **simulation harness** (TTK / survival / kills-per-level + a **1-vs-N target-count × pack-size matrix**) that tunes the curve before any content numbers exist. **Mobs carry no level multiplier** — per-tier hand-authored `maxHealth` + aura values place them on the curve (zone number = curve position)
+- **Value scaling — two multiplicative axes (GDD §5, Power Source & Curve):** the per-skill level rule `base + (level−1)×perLevel` (`skills.Scaled`) is shipped — the *specialization* axis. The *inflation* axis `f(character level)` — a global multiplier on **HP values only** (damage / heal / self-HP / player max HP, **never** radius, tick rate, or target count) — is **decided but not yet implemented**; it lands as a cheap multiplier just before the content pass (§6 step 10), preceded by a **simulation harness** (TTK / survival / kills-per-level + a **1-vs-N target-count × pack-size matrix**; **extended 2026-07-10** with the stand-still bot test — thresholds tiered per mob type, measured as **sustainable kills/hour over a chain incl. modeled regen + downtime**, run **per level bracket** — see GDD §5; prerequisite: combat-gate player passive regen) that tunes the curve before any content numbers exist. **Mobs carry no level multiplier** — per-tier hand-authored `maxHealth` + aura values place them on the curve (zone number = curve position)
 
 **Deliberately open / deferred:**
-- Auras only affect targets with line-of-sight — LoS not built yet (see 4.2, roadmap item 6)
 - Mob heal / heal_aura target flags: **deliberately later**, with roadmap item 7 (mob support behaviors); the two known limitations are documented in `plan-skill-system.md` (Effect Types → heal_aura)
 - Sticky targeting against target flicker with `nearest` — only when it actually bothers in practice
 - ~~Whether effect behavior eventually becomes authorable as expressions/scripts instead of Go effect types~~ — **decided 2026-07-07: effect semantics stay Go effect types, no scripting engine for effects; a constrained expression layer stays parked behind an explicit trigger.** Rationale + the primitive-first growth plan: `docs/plan-effect-foundations.md` (archived options record: `docs/archive-scripting-options.md`)
 
-### 4.2 Line-of-Sight (2D Raycast)
+### 4.2 Line-of-Sight — CUT (decision record)
 
-**Decided: LoS stays in scope** — it carries two pillars (cover/positional tactics, the light-support role). But it splits into **two separate problems** with completely different costs:
+**Decided 2026-07-10: aura line-of-sight is cut.** Auras pass through walls
+and every environment object; walls and props remain **movement** blockers
+(that mechanic stays fully intact — `blocksMovement`, the `InvAABB`
+boundary). Full decision prep + rationale:
+`research-combat-pacing-recovery.md` §2.C. The load-bearing points:
 
-1. **Aura occlusion** — does a wall block the effect? Combat-relevant, must be server-authoritative. This is the actual high-risk item.
-2. **Vision/darkness** — what the player *sees* (light cones in caves). **Decided: purely client rendering, no mechanical effects** (no damage/hit-chance penalty in the dark). This makes the cave atmosphere and the zone-1→2 tutorial cheap and decoupled from the risky part (roadmap item 5; the `light_aura` effect type is designed there too).
+- **Solo, LoS is symmetric** — an obstacle between two centers blocks *both*
+  auras, so it grants no positional advantage in 1v1, only a disengage tool.
+  Its real value (pack-fight occlusion, group heal positioning) was judged
+  not worth the cost.
+- **The cost was larger than documented:** a medium system (occluder bake +
+  DDA raycast + cache + pipeline filter) + the blob perf spike (the former
+  §5 high-risk item) + an *undocumented* mob-AI extension — chase/hold and
+  combat-state checks are distance-based, so mobs would have needed
+  reposition-until-LoS behavior or they'd get cheesed worse.
+- **The earlier "carries two pillars" justification had already aged:** the
+  light-support role was decoupled when darkness was decided as purely
+  visual — only cover tactics still rode on occlusion.
+- **Wall-cheese is handled on the mob-AI side instead:** obstacle steering
+  (mob-depth chunk 4) + leash mechanics (a no-progress leash rule is parked
+  in `plan-mob-depth.md` §6 as the designated mechanism — a stuck mob
+  disengages and fully regens, so shooting through walls yields nothing).
+  Navmesh/A* remains the recorded escalation if steering demonstrably fails;
+  wall-cheese appearing in playtests is now its explicit trigger.
+- **Stationary mobs** (can't path, can't leash) are protected by an
+  authoring rule instead (GDD §8: no wall pockets covering their aura
+  radius).
+- **`blocksAura` plumbing is decided for deletion** (schema field in
+  `world/zone.go`, `model/prop.Prop` field + `PropEntity` method, editor
+  inner-ring marker, authored values in zone/prop JSONs) — a small sweep,
+  pending. Re-adding later is a one-line additive schema change
+  (`DisallowUnknownFields`).
 
-**Decided design points for the occlusion:**
-- **Occluders are curated:** a blocks-LoS flag on large objects (walls, rocks, cliffs) — decorative trees do *not* block, otherwise forest combat gets chopped up and feels random.
-- **Approach:** occluder layer as a grid/tilemap + integer raycast (DDA) — fast, cost ≈ radius/tile size. Polygons only if the map format forces them.
-- **LoS cache:** don't recompute every tick — recompute every K ticks or on movement [PLACEHOLDER]; many auras tick less often anyway (`tickInterval`).
-- **Synergy with targeting:** thanks to the target cap, raycasting happens in selector-sorted order with early-out — once N targets have passed, stop. Normally N raycasts instead of "all candidates".
-
-**Performance model:** the load doesn't scale with total entities but with **co-located aura casters** (the blob: boss event, special-event puddle). The broadphase ("who is in range") is the expensive part, not the raycast — and Berryhunter already ships spatial hashing in `phy`. Rough expectation: low hundreds of simultaneously overlapping casters per core sustainable; that is a curve-shape estimate, not a number — **the spike measures it** (blob benchmark: X synthetic casters, tick time must stay under 33 ms).
-
-**Timing (decided):** LoS is **not part of the prototype path** — it depends on zones/walls worth blocking (roadmap item 6, dependent on item 4 map format). The spike happens when the map format comes up.
-
-**Open questions:**
-- World representation of the occluders (depends on the map-format decision, roadmap item 4)
-- Occluders static (pre-bakeable) vs. entities (Berryhunter resources are harvestable → potentially dynamic)
-- Recompute cadence of the cache (tuning)
-- LoS sampling: center-to-center first; corner artifacts later
+**Unaffected:** **vision/darkness** (what the player *sees* — dark caves,
+the zone-1→2 tunnel, light auras/campfires) was always a separate,
+area-based, purely client-visual feature and **stays in scope** (roadmap
+item 5). No wall-based sight occlusion was ever planned there, and none is
+now.
 
 ### 4.3 Persistence
 
@@ -163,7 +180,8 @@ Each system below gets its own spec discussion before it is implemented; section
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| Line-of-sight performance (blob case) | High | Deliberately deferred until the map format stands; then a spike with the blob benchmark; grid DDA + cache + target-cap early-out; not on the prototype path |
+| ~~Line-of-sight performance (blob case)~~ | ~~High~~ | **Resolved by cut (2026-07-10, §4.2)** — no raycasting exists to be slow |
+| Combat degenerates into standing still ("Tempo/Fun") | High (design) | GDD §4 Combat Pacing: tick readability + two-zone auras + mob movement vocabulary; measured by the harness stand-still bot tiers (GDD §5) |
 | Aura tick sync between clients | Medium | Server-authoritative, delta updates |
 | DB schema migration during live operation | Medium | Migrations framework from day one |
 | Cheat resistance | Low (v1.0) | Server-authoritative for everything combat-relevant; anti-cheat only matters later |
@@ -184,7 +202,7 @@ First sketch; the authoritative plans are `docs/plan-skill-system.md` (skill sys
 4. ✅ **Aura targeting: selector + target count** — roadmap item 11, incl. hit VFX; then absolute HP + resistances/tags/variance (item 11 Phases 1–3)
 5. ✅ **World foundation** — roadmap item 4; in-game editor + `zone.json` loader + rectangular boundary + zone-owned free-form terrain + multi-zone save/select + scaffold zone (`plan-world-zones.md`, 6 chunks) — **COMPLETE + in-game-verified 2026-07-09**
 6. ⬜ **Mob depth + totems** — roadmap item 7 remainder (patrol archetypes, support mob-heal, **encounter-controller spine + threat table** built early) + effect-foundations Step 3 (spawned-entity/totem lifecycle) ← **we are here**
-7. ⬜ **Line-of-sight + darkness/light** — roadmap items 6 + 5; LoS spike (blob benchmark) → occlusion into the aura pipeline; darkness rendering + `light_aura` effect type + campfires (both consume item-4 map data)
+7. ⬜ **Darkness/light + campfires + death & recovery** — roadmap item 5 (~~item 6 cut 2026-07-10~~, §4.2): darkness rendering + `light_aura` effect type + campfires (consumes item-4 map data), plus the 2026-07-10 recovery/death bundle — campfire death-respawn (world campfires only), the death state (corpses + respawn button), combat-gating player passive regen
 8. ⬜ **Skill-vocabulary fill** — effect-foundations Step 4 (shield-as-buff-payload) + cheap effect types (life steal, execute, crit, berserker)
 9. ⬜ **Unlock-source systems** — roadmap item 9; world clue-anchor entities + NPC-teaching behavior
 10. ⬜ **Initial content pass** — roadmap item 12; first real skill/mob/recipe/boss/zone content + legacy-mob replacement + balance (**the prove-it gate**)

@@ -38,7 +38,8 @@ absorb. Cost clustering (which engine primitive each needs) is in §5.
 - **Crowd control:** charm (mob fights for the player for X s); fear (target
   flees uncontrolled).
 - **World interaction:** ground effects (burning ground); temporary
-  wall/barrier (interacts with planned LoS); blind debuff.
+  wall/barrier (movement-blocking only — aura LoS cut 2026-07-10, `tdd.md`
+  §4.2); blind debuff.
 - **Team-utility debuffs:** mark target (visible / more vulnerable to
   everyone); taunt/anti-taunt (**parked to roadmap item 7** — needs the threat
   system that belongs to mob behavior).
@@ -213,7 +214,7 @@ interleave with it. New types widen what item 12+ content can author.
 | Cheap now (math + existing primitives) | life steal, execute, berserker, crit, resource theft, regen variants (new `validStats` entries + application sites), bonus damage vs type (needs creature-type tags on `mobs.Factors` — small) | Step 0 recommended first |
 | Armor penetration | thread a pen parameter through `model.Damage` into `ResistMultiplier` composition | F6 record |
 | Status-effect framework | DoT, root, fear*, blind, mark, charm*, ramp-up (per-target stack buff), burning-ground debuff half | Step 2 (*and Step 1) |
-| Spawned entities | totem, pet, clone*, swarm, decoy*, burning-ground entity half, wall/barrier (also: LoS interaction, roadmap item 6) | Step 3 (*and Step 1) |
+| Spawned entities | totem, pet, clone*, swarm, decoy*, burning-ground entity half, wall/barrier (~~LoS interaction~~ — aura LoS cut 2026-07-10; movement-blocking only) | Step 3 (*and Step 1) |
 | Shield | overheal-as-shield | Step 4 |
 | Own primitive each | on-death explosion + regen-on-kill (event hook), thorns (attacker-feedback + F6), chain damage (targeting topology), knockback/pull (physics impulse; mobs-only per F7), dash/blink + teleport-to-ally (position set + collision sanity + frontend interpolation check) | when scheduled |
 | Cosmetic | size/color randomization (wire fields, trivial gameplay), stealth-as-transparency (F9) | cheap, any time |
