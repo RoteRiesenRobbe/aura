@@ -44,10 +44,9 @@ normally. You get:
 - The editor panel in the **top-right corner**.
 - GOD mode (auto-activated, so mobs can't interrupt your editing).
 - The current `zone.json` already loaded: yellow rectangle = world bounds,
-  circles = props (red = blocks movement, blue = decorative, inner ring =
-  blocks aura), green diamonds = spawn points. Labels show the prop type / mob
-  name. These markers are editor-only overlays — the real props and mobs are
-  still there underneath.
+  circles = props (red = blocks movement, blue = decorative), green diamonds =
+  spawn points. Labels show the prop type / mob name. These markers are
+  editor-only overlays — the real props and mobs are still there underneath.
 
 > The markers show what's **authored**, not what's live: a mob wanders away
 > from its diamond, and a dead mob's diamond stays until it respawns there.
@@ -88,7 +87,7 @@ zone rather than a single prop or spawn.
 ## 4. Place and edit props (Props mode)
 
 **To place:** choose a *Prop type* (the list comes from `api/props/`), set
-*Rotation* if you care, tick/untick *blocks movement* and *blocks aura*, then
+*Rotation* if you care, tick/untick *blocks movement*, then
 **click on the ground** where the prop should stand — or press **"Place at my
 position"** to drop it exactly where your character stands (the "You (units)"
 readout shows that spot). A circle marker appears and is automatically
@@ -103,9 +102,9 @@ right spot (your control values are still set, so it's one click).
 
 Notes:
 - *blocks movement* = players and mobs collide with it. Unticked = purely
-  decorative, you can walk through it.
-- *blocks aura* does nothing — aura line-of-sight was **cut 2026-07-10**; the
-  checkbox + inner-ring marker + JSON field are pending deletion (small sweep).
+  decorative, you can walk through it. (Auras always pass through props —
+  aura line-of-sight was cut 2026-07-10 and the old `blocksAura` flag was
+  deleted 2026-07-11.)
 - Placing a new prop while another is selected: clicking empty ground places,
   clicking a marker selects — if you want to place *overlapping* an existing
   marker, delete or move the old one first.

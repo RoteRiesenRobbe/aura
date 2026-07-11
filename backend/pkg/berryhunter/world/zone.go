@@ -27,18 +27,17 @@ type Bounds struct {
 }
 
 // Prop is a hand-placed static object. blocksMovement puts the body on the
-// static-collision layers; blocksAura is carried but stays inert until item 6.
-// Rotation is parsed and stored, but not yet rendered — the Resource wire
-// table has no rotation field and circle-bodied props don't need one yet
-// (revisit when the editor places rotated props, chunk 5/6). Def is resolved
-// at load time so an unknown prop type fails loudly at boot.
+// static-collision layers. Rotation is parsed and stored, but not yet
+// rendered — the Resource wire table has no rotation field and circle-bodied
+// props don't need one yet (revisit when the editor places rotated props,
+// chunk 5/6). Def is resolved at load time so an unknown prop type fails
+// loudly at boot.
 type Prop struct {
 	Type           string  `json:"type"`
 	X              float32 `json:"x"`
 	Y              float32 `json:"y"`
 	Rotation       float32 `json:"rotation"`
 	BlocksMovement bool    `json:"blocksMovement"`
-	BlocksAura     bool    `json:"blocksAura"`
 
 	// Def is the prop definition resolved from Type; not part of the JSON.
 	Def *PropDefinition `json:"-"`

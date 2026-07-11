@@ -89,10 +89,6 @@ type PlaceableResourceEntity interface {
 // (world foundation chunk 3): a static body + sprite, no gameplay behavior.
 type PropEntity interface {
 	Entity
-
-	// BlocksAura is authored occluder data for aura line-of-sight (item 6);
-	// carried on the entity but inert until that lands.
-	BlocksAura() bool
 }
 
 // MobEnity is a mob that usually comes with a mob definition

@@ -79,7 +79,6 @@ let propTypeSelect: HTMLSelectElement;
 let propRadiusLabel: HTMLElement;
 let propRotationInput: HTMLInputElement;
 let blocksMovementToggle: HTMLInputElement;
-let blocksAuraToggle: HTMLInputElement;
 let propSelectionGroup: HTMLElement;
 let propSelectedIndexLabel: HTMLElement;
 
@@ -117,7 +116,6 @@ export function setupPanel() {
     propRadiusLabel = document.getElementById('zoneEditor_propRadius');
     propRotationInput = document.getElementById('zoneEditor_propRotation') as HTMLInputElement;
     blocksMovementToggle = document.getElementById('zoneEditor_blocksMovement') as HTMLInputElement;
-    blocksAuraToggle = document.getElementById('zoneEditor_blocksAura') as HTMLInputElement;
     propSelectionGroup = document.getElementById('zoneEditor_propSelection');
     propSelectedIndexLabel = document.getElementById('zoneEditor_propSelectedIndex');
 
@@ -396,7 +394,6 @@ function readPropControls(x: number, y: number): ZoneProp {
         y,
         rotation: deg2rad(parseFloat(propRotationInput.value) || 0),
         blocksMovement: blocksMovementToggle.checked,
-        blocksAura: blocksAuraToggle.checked,
     };
 }
 
@@ -429,7 +426,6 @@ function populatePropControls(prop: ZoneProp) {
     updatePropRadiusLabel();
     propRotationInput.value = String(Math.round(prop.rotation * 180 / Math.PI));
     blocksMovementToggle.checked = prop.blocksMovement;
-    blocksAuraToggle.checked = prop.blocksAura;
 }
 
 function populateSpawnControls(spawn: ZoneSpawn) {

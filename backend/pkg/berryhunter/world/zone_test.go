@@ -85,7 +85,7 @@ func TestZone_LoadsValid(t *testing.T) {
 		"bounds": { "width": 60, "height": 40 },
 		"props": [
 			{ "type": "Rock", "x": 12, "y": -5, "rotation": 0,
-			  "blocksMovement": true, "blocksAura": true }
+			  "blocksMovement": true }
 		],
 		"spawns": [
 			{ "mob": "Dodo", "x": 30, "y": 12, "angle": 0,

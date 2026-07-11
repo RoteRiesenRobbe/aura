@@ -122,7 +122,7 @@ storytelling.
   occluder layer as two independent per-object flags: `blocks-movement` and
   `blocks-aura`.~~ **Superseded 2026-07-10:** aura LoS was cut (item 6) —
   only `blocks-movement` remains meaningful; the shipped-but-inert
-  `blocksAura` flag is decided for deletion (sweep pending, see item 6).
+  `blocksAura` flag was deleted 2026-07-11 (see item 6).
 - ⚑ Authoring tooling: external editor (e.g. Tiled) vs. custom JSON — biggest
   unknown in this item. *Deliberately left open (2026-07); decide when this
   item starts. Suggested first step: a Tiled spike (build one test zone, load
@@ -187,10 +187,10 @@ trade-offs (light aura vs. damage aura).
 > protected by the GDD §8 placement rule. **Darkness/vision (item 5) is
 > unaffected** — it never depended on occlusion.
 >
-> **Pending sweep (small):** delete the inert `blocksAura` plumbing —
+> **Sweep DONE (2026-07-11):** the inert `blocksAura` plumbing is deleted —
 > `world/zone.go` schema field, `model/prop.Prop` field + `PropEntity`
-> method, the zone-editor inner-ring marker, and the authored values in
-> `api/zones/*.json` / prop content. Re-adding later is a one-line additive
+> method, the zone-editor checkbox + inner-ring marker, and the authored
+> values in `api/zones/*.json`. Re-adding later is a one-line additive
 > schema change.
 
 ## 7. Mob behavior, tiers & spawning — normal / elite / boss

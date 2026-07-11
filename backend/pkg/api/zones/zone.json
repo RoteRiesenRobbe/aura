@@ -10,152 +10,133 @@
       "x": -6,
       "y": -2,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": true
+      "blocksMovement": true
     },
     {
       "type": "Tree",
       "x": -4,
       "y": 2.5,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": true
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 5,
       "y": -3,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 10,
       "y": 7,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 2,
       "y": 5,
       "rotation": 0,
-      "blocksMovement": false,
-      "blocksAura": false
+      "blocksMovement": false
     },
     {
       "type": "Rock",
       "x": 6.51,
       "y": 3.2,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 4.42,
       "y": 2.9,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 8.32,
       "y": 3.63,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 9.82,
       "y": 6.02,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 8.98,
       "y": 5.15,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 7.3,
       "y": 3.3,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 5.53,
       "y": 3,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 3.78,
       "y": 2.98,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 3.01,
       "y": 3.3,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 2.52,
       "y": 4.07,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Rock",
       "x": 8.61,
       "y": 4.38,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Tree",
       "x": 4.44,
       "y": 4.6,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Tree",
       "x": 7.32,
       "y": 5.91,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     },
     {
       "type": "Tree",
       "x": 10.04,
       "y": 8.99,
       "rotation": 0,
-      "blocksMovement": true,
-      "blocksAura": false
+      "blocksMovement": true
     }
   ],
   "spawns": [

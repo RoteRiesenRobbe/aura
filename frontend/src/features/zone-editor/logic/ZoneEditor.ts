@@ -348,10 +348,6 @@ function drawPropMarker(prop: ZoneProp, selected: boolean): Container {
         .moveTo(0, 0)
         .lineTo(radiusPx, 0)
         .stroke({width: 2, color});
-    if (prop.blocksAura) {
-        graphic.circle(0, 0, radiusPx * 0.6)
-            .stroke({width: 2, color, alpha: 0.8});
-    }
     graphic.rotation = prop.rotation;
     marker.addChild(graphic);
     marker.addChild(markerLabel(prop.type, radiusPx));

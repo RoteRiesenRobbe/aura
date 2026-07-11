@@ -121,11 +121,10 @@ boundary). Full decision prep + rationale:
 - **Stationary mobs** (can't path, can't leash) are protected by an
   authoring rule instead (GDD §8: no wall pockets covering their aura
   radius).
-- **`blocksAura` plumbing is decided for deletion** (schema field in
+- **`blocksAura` plumbing deleted (sweep done 2026-07-11):** schema field in
   `world/zone.go`, `model/prop.Prop` field + `PropEntity` method, editor
-  inner-ring marker, authored values in zone/prop JSONs) — a small sweep,
-  pending. Re-adding later is a one-line additive schema change
-  (`DisallowUnknownFields`).
+  checkbox + inner-ring marker, authored values in the zone JSONs. Re-adding
+  later is a one-line additive schema change (`DisallowUnknownFields`).
 
 **Unaffected:** **vision/darkness** (what the player *sees* — dark caves,
 the zone-1→2 tunnel, light auras/campfires) was always a separate,

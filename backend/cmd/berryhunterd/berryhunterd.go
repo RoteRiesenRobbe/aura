@@ -94,7 +94,6 @@ func main() {
 			phy.Vec2f{X: p.X, Y: p.Y},
 			p.Def.Body.Radius,
 			p.BlocksMovement,
-			p.BlocksAura,
 		))
 	}
 

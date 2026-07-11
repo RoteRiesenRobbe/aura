@@ -28,7 +28,6 @@ export interface ZoneProp {
     y: number;
     rotation: number; // radians
     blocksMovement: boolean;
-    blocksAura: boolean;
 }
 
 export interface ZoneSpawn {
@@ -127,7 +126,6 @@ export class ZoneModel {
                 y: round(p.y, 2),
                 rotation: round(p.rotation, 3),
                 blocksMovement: p.blocksMovement,
-                blocksAura: p.blocksAura,
             })),
             spawns: this.spawns.map(s => ({
                 mob: s.mob,
