@@ -261,6 +261,16 @@ First sketch; the authoritative plans are `docs/plan-skill-system.md` (skill sys
 
 ---
 
-## 8. Deferred Technical Debt
+## 8. Deferred Technical Debt / known bugs
 
-The authoritative, current list lives in `CLAUDE.md` (migration status → "Deferred tech debt / known bugs") and `docs/plan-skill-system.md` (Deferred Tech Debt) — this TDD does not repeat it. For the live-operations perspective (CI, observability, crash story) see `docs/research-v1-readiness.md`; for the content-pipeline debt (Skills.ts duplication, `go:embed` rebuild loop) `docs/research-content-pipeline.md`.
+This is the authoritative list of open, cross-cutting debt. (Fixed items are recorded in
+`docs/archive-session-log.md` + git; per-item debt also lives in the relevant `plan-*.md`.)
+
+- **Player passive regen is not combat-gated** (`model/player/update.go` regenerates whenever `0 < Health < max`, in combat too — GDD §3 says out-of-combat only). Gate scheduled as execution step 3 chunk 1 (needs a player in-combat flag / recent-damage window); prerequisite for the harness stand-still thresholds. See `plan-atmosphere-recovery.md`.
+- **Frontend `Skills.ts` hardcodes skill ID → name, maxLevel *and* category**, duplicating the backend registry — sync manually when skills change; revisit (wire or generated file) when the skill list grows.
+- **`-2` `active_aura_slot` deactivate sentinel** is a workaround for FlatBuffers omitting the `-1` default (an explicit `-1` is indistinguishable from an absent field). Decided in Phase 5: it stays. Paired constants: `model.ActiveAuraSlotDeactivate` (Go) / `DEACTIVATE_AURA_SLOT` (InputMessage.ts).
+- ⚠️ **`go:embed` testing gotcha:** patterns don't include subdirectories (`*.json **/*.json`!), and disk-based registry tests can't catch embed gaps — pinned by `pkg/api/skills/skills_test.go`. Before manual tests: `pkill berryhunterd`, rebuild, and check the boot log (`Loaded skill definitions count=…`) — a stale server process silently masks new behavior.
+- **`backend/pkg/berryhunter/net/net_test.go`** is a manual `ListenAndServe` WebSocket smoke script (not a real test); it starts with `t.Skip` so the full suite runs. Remove the skip to run it explicitly.
+- Frontend FlatBuffers toolchain is on **flatc v24.3.25**.
+
+For the live-operations perspective (CI, observability, crash story) see `docs/research-v1-readiness.md`; for the content-pipeline debt (Skills.ts duplication, `go:embed` rebuild loop) `docs/research-content-pipeline.md`.
