@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
      Full execution order + per-item status: docs/roadmap.md. Doc index: docs/README.md.
      Plans and records live in the plan docs. -->
 
-- **Last completed:** Atmosphere & recovery chunk 2 (campfires) — verified in-game — `docs/plan-atmosphere-recovery.md` §3.2 (per-effect aura range check + healer-threat gate; 25 skills / 13 mobs / 3 campfires)
-- **Next:** Atmosphere & recovery chunk 3 = darkness & light (`zone.darkAreas` + client overlay + `light_aura` + Light skill + campfire light + editor mode) — `docs/plan-atmosphere-recovery.md` §3.3; pin ⚑ §6.3/§6.4/§6.5 at plan-first start
+- **Last completed:** Atmosphere & recovery chunk 3 (darkness & light) — verified in-game — `docs/plan-atmosphere-recovery.md` §3.3 (`light_aura` effect type + `light_radius` wire + `zone.darkAreas` + client DarknessOverlay + Light skill L4 + campfire light + editor dark mode; 26 skills / 11 milestones / 13 mobs)
+- **Next:** Atmosphere & recovery chunk 4 = death state + campfire respawn (corpse entity + `Respawn` message + dwell tracker + mob corpse fade) — `docs/plan-atmosphere-recovery.md` §3.4; pin ⚑ §6.6/§6.7 at plan-first start
 
 ## Development Principles
 

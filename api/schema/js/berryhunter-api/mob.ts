@@ -113,8 +113,13 @@ healReceived():number {
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
+lightRadius():number {
+  const offset = this.bb!.__offset(this.bb_pos, 34);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(15);
+  builder.startObject(16);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -187,6 +192,10 @@ static addAuraRadius(builder:flatbuffers.Builder, auraRadius:number) {
 
 static addHealReceived(builder:flatbuffers.Builder, healReceived:number) {
   builder.addFieldInt32(14, healReceived, 0);
+}
+
+static addLightRadius(builder:flatbuffers.Builder, lightRadius:number) {
+  builder.addFieldInt16(15, lightRadius, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

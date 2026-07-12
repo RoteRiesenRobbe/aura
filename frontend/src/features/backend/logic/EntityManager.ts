@@ -14,6 +14,7 @@ import {gameObjectId} from '../../common/logic/Types';
 import {Vector} from '../../core/logic/Vector';
 import {IMiniMapRendered} from '../../mini-map/logic/MiniMapInterfaces';
 import {MiniMap} from '../../mini-map/logic/MiniMap';
+import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 
 
 export class EntityManager {
@@ -128,6 +129,12 @@ export class EntityManager {
             // Mob aura ring (mob-depth chunk 3c): wire-driven effective
             // radius in px, 0 while the aura is gated → ring hidden.
             gameObject['setAuraRadius'](entity.auraRadius);
+        }
+
+        // Light hole in the darkness overlay (chunk 3): characters and mobs
+        // alike; 0 removes the hole. No-op while the zone has no dark areas.
+        if (isDefined(entity.lightRadius)) {
+            DarknessOverlay.setLightRadius(gameObject, entity.lightRadius);
         }
 
         if (Array.isArray(entity.statusEffects)) {

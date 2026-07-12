@@ -720,3 +720,43 @@ func TestMap_SpawnKeysOnOtherEffectsFail(t *testing.T) {
 	_, err = raw.mapToSkillDefinition()
 	assert.ErrorContains(t, err, "spawnMob")
 }
+
+// light_aura (atmosphere & recovery chunk 3): the first rendering-only effect
+// type — geometry only, no payload, no targeting, no cadence, no apply path.
+
+func TestParse_LightAura(t *testing.T) {
+	def := mustParse(t, []byte(`{
+	  "id": 6,
+	  "name": "Light",
+	  "category": "active_aura",
+	  "maxLevel": 3,
+	  "effects": [
+	    {"type": "light_aura", "radius": 4.0, "radiusPerLevel": 1.0}
+	  ]
+	}`))
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeLightAura, e.Type)
+	assert.InDelta(t, 4.0, e.Radius, 1e-6)
+	assert.InDelta(t, 1.0, e.RadiusPerLevel, 1e-6)
+	// Rendering-only: no payload, no target flags.
+	assert.Nil(t, e.Damage)
+	assert.Nil(t, e.Heal)
+	assert.False(t, e.TargetsEnemies)
+	assert.False(t, e.TargetsAllies)
+}
+
+func TestMap_LightAuraRejectsNonGeometryKeys(t *testing.T) {
+	for _, effect := range []string{
+		`{"type": "light_aura", "radius": 4, "healHP": 6}`,
+		`{"type": "light_aura", "radius": 4, "targetsEnemies": true}`,
+		`{"type": "light_aura", "radius": 4, "tickInterval": 30}`,
+		`{"type": "light_aura", "radius": 4, "maxTargets": 1}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":6,"name":"Light","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		assert.ErrorContains(t, err, "not valid on this effect type", "light_aura must reject: %s", effect)
+	}
+}

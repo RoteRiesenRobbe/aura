@@ -45,6 +45,8 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddLevelProgress(builder, fracToUint32(p.LevelProgressFraction()))
 	BerryhunterApi.CharacterAddLevel(builder, p.Progression().Level)
 	BerryhunterApi.CharacterAddAuraRadius(builder, f32ToU16Px(p.AuraRadius()))
+	// 0 = no light; the client hole-punches the darkness overlay (chunk 3).
+	BerryhunterApi.CharacterAddLightRadius(builder, f32ToU16Px(p.LightRadius()))
 	BerryhunterApi.CharacterAddBurstRadius(builder, f32ToU16Px(p.BurstRadius()))
 	BerryhunterApi.CharacterAddActiveSkillId(builder, ActiveSkillID(p.SkillComponent()))
 	// Floating-number sources (item 11): damage/heal in absolute HP, XP raw.

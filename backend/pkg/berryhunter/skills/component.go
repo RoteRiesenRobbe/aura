@@ -38,14 +38,35 @@ func (es *EquippedSkill) EffectiveCooldownTicks() int {
 	return cd
 }
 
-// EffectiveRadius is the level-scaled aura radius: the maximum over all
-// effects of radius + (level-1)*radiusPerLevel. The maximum matters only for
-// hypothetical multi-effect skills with differing radii — the single sensor
-// must reach the largest one (effects with smaller radii would then need
-// per-effect range checks; no such skill exists yet).
+// EffectiveRadius is the level-scaled combat aura radius: the maximum over
+// all effects of radius + (level-1)*radiusPerLevel. The single sensor must
+// reach the largest effect; smaller ones are narrowed per tick by the
+// per-effect range check (sys.effectCollisions). light_aura is excluded —
+// it is rendering-only and must size neither the sensor nor the aura_radius
+// wire (its radius streams separately, see LightRadius).
 func (es *EquippedSkill) EffectiveRadius() float32 {
 	var max float32
 	for _, e := range es.Def.Effects {
+		if e.Type == EffectTypeLightAura {
+			continue
+		}
+		r := Scaled(e.Radius, e.RadiusPerLevel, es.Level)
+		if r > max {
+			max = r
+		}
+	}
+	return max
+}
+
+// LightRadius is the level-scaled light radius: the maximum over the skill's
+// light_aura effects; 0 = the skill emits no light. Streams as the wire
+// light_radius so the client can hole-punch the darkness overlay.
+func (es *EquippedSkill) LightRadius() float32 {
+	var max float32
+	for _, e := range es.Def.Effects {
+		if e.Type != EffectTypeLightAura {
+			continue
+		}
 		r := Scaled(e.Radius, e.RadiusPerLevel, es.Level)
 		if r > max {
 			max = r

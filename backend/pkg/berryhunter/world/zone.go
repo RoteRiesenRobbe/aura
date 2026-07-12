@@ -116,8 +116,20 @@ type Campfire struct {
 	Y float32 `json:"y"`
 }
 
+// DarkArea is a hand-placed circle of constant darkness (atmosphere &
+// recovery chunk 3, §6.4: circles only, §6.5: independent of the day cycle).
+// Purely client-visual like TerrainTexture: the server parses and validates
+// it but never uses it — the client renders the darkness overlay from its
+// bundled zone copy and light sources punch holes into it.
+type DarkArea struct {
+	X      float32 `json:"x"`
+	Y      float32 `json:"y"`
+	Radius float32 `json:"radius"`
+}
+
 // Zone is the whole authored world description loaded from a zone file. One
-// file = one complete zone (bounds + terrain + props + spawns + campfires).
+// file = one complete zone (bounds + terrain + props + spawns + campfires +
+// dark areas).
 type Zone struct {
 	Name      string           `json:"name"`
 	Bounds    Bounds           `json:"bounds"`
@@ -125,6 +137,7 @@ type Zone struct {
 	Props     []Prop           `json:"props"`
 	Spawns    []Spawn          `json:"spawns"`
 	Campfires []Campfire       `json:"campfires"`
+	DarkAreas []DarkArea       `json:"darkAreas"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
 	// and the identity sent to the client so it renders the matching terrain.
@@ -241,6 +254,11 @@ func (z *Zone) validate() error {
 		}
 		if s.PatrolMode != "" && len(s.Waypoints) == 0 {
 			return fmt.Errorf("spawn %d: patrolMode without waypoints", i)
+		}
+	}
+	for i := range z.DarkAreas {
+		if z.DarkAreas[i].Radius <= 0 {
+			return fmt.Errorf("darkArea %d: radius must be positive, got %g", i, z.DarkAreas[i].Radius)
 		}
 	}
 	return nil

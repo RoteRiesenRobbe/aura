@@ -22,6 +22,8 @@ export interface IGameLayers {
     mobs: Record<string, Container>,
     resources: Record<string, Container>,
     bossMobs: Container,
+    // Darkness overlay (chunk 3): dark areas + erase-blend light holes.
+    darkness: Container,
     characterAdditions: Record<string, Container>,
     overlays: Record<string, Container>,
 }

@@ -366,6 +366,25 @@ Order = code first, content second, cp-defs + regen after:
 
 ### 3.3 Chunk 3 — darkness & light
 
+**STATUS: DONE + VERIFIED IN-GAME 2026-07-12** ("all in-game checks
+verified and working"), committed. One verify finding, fixed same day: the
+HUD showed "Skill #6" — the hand-synced `client-data/Skills.ts` tables
+(names/maxLevels/categories, the documented tech debt) needed the id-6
+entry; display name pinned **"Light Aura"** (user). ⚑ §6.3/§6.4/
+§6.5 resolved at plan-first start (see §6); Light milestone level = 4
+[PLACEHOLDER]. Landed: `light_aura` = 14th effect type (geometry-only
+`effectKeys`, no payload/mask/apply case), `EffectiveRadius()` excludes it +
+new `LightRadius()` (component → player/mob → codec), wire `light_radius`
+appended to Character+Mob (Go+TS regen), `zone.darkAreas` parse-and-ignore
+(radius > 0 validated), Light skill id 6 / campfire light r7 [PLACEHOLDER] /
+4 proving-grounds dark pockets, client `features/darkness/DarknessOverlay.ts`
+(AlphaFilter-isolated layer between bossMobs and characterAdditions, canvas
+radial texture, erase-blend light holes glued to entities per frame,
+self-cleaning via shape.parent), editor `dark` mode (place/select/delete +
+radius input, true-radius marker, serialized after campfires omit-when-empty).
+Fixed in passing: the chunk-2 registry count pin (24→26 with CampfireAura +
+Light).
+
 - **Schema:** `zone.darkAreas` — parse-and-ignore server-side
   (TerrainTexture precedent), client-visual. Shape lean: circles
   (`{x,y,radius}`) first — simplest schema + editor authoring; polygons
@@ -519,14 +538,20 @@ commits.
     (Viewport-only 32 — no aggro/damage mask reaches it, so the threat is
     dead weight). Principled + generalizes to future safe-haven fixtures;
     no per-caster opt-out flag (rejected as a narrow single-use seam).
-- **§6.3 (chunk 3)** — light-radius wire shape: dedicated `light_radius`
-  on Character+Mob (lean) vs zero-wire client mapping
-  (active_skill_id/EntityType → radius constants — rejected-lean: revives
-  the hand-sync debt the `aura_radius` work just retired).
-- **§6.4 (chunk 3)** — dark-area shape: circles only (lean) vs polygons
-  vs terrain-style stamps; soft-edge rendering approach.
-- **§6.5 (chunk 3)** — dark areas vs day/night: constant darkness
-  independent of the cycle (lean) vs stacking rules.
+- **§6.3 (chunk 3) — RESOLVED 2026-07-12 (user), plan-first start.**
+  Dedicated `light_radius:ushort` appended to Character AND Mob (the lean).
+  Implementation implication found at recon: `EffectiveRadius()` had no
+  type filter, so light would have bled into `aura_radius`/sensor sizing —
+  chunk 3 excludes `light_aura` there and adds a parallel
+  `LightRadius()` accessor chain (component → player/mob → codec).
+- **§6.4 (chunk 3) — RESOLVED 2026-07-12 (user), plan-first start.**
+  Circles only (`{x,y,radius}`); soft edges via one canvas-generated
+  radial-gradient texture shared by dark circles and light holes.
+  Polygons/stamps only if the content pass proves the need.
+- **§6.5 (chunk 3) — RESOLVED 2026-07-12 (user), plan-first start.**
+  Constant darkness, independent of the day cycle — the overlay never
+  reads the clock; the night ColorMatrixFilter keeps tinting the world
+  beneath as before.
 - **§6.6 (chunk 4)** — corpse representation: dedicated lean entity via
   the plain-entity add-path riding an existing wire table (lean) vs a
   new wire table vs a dead-flag on Character. Corpse sprite/readability.

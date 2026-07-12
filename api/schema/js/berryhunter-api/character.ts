@@ -150,8 +150,13 @@ xpForNextLevel():number {
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
+lightRadius():number {
+  const offset = this.bb!.__offset(this.bb_pos, 48);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(22);
+  builder.startObject(23);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -252,6 +257,10 @@ static addXpInLevel(builder:flatbuffers.Builder, xpInLevel:number) {
 
 static addXpForNextLevel(builder:flatbuffers.Builder, xpForNextLevel:number) {
   builder.addFieldInt32(21, xpForNextLevel, 0);
+}
+
+static addLightRadius(builder:flatbuffers.Builder, lightRadius:number) {
+  builder.addFieldInt16(22, lightRadius, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

@@ -113,8 +113,15 @@ export function getTerrainServerUnits(): GroundTextureDefinition[] {
     });
 }
 
+interface DarkAreaDefinition {
+    x: number;
+    y: number;
+    radius: number;
+}
+
 interface ZoneJSON {
     terrain?: GroundTextureDefinition[];
+    darkAreas?: DarkAreaDefinition[];
 }
 
 // Bundle every zone's data straight from the repo api/ (chunk 6, §7.4) — same
@@ -126,6 +133,15 @@ zonesContext.keys().forEach((key: string) => {
     const stem = key.replace(/^\.\//, '').replace(/\.json$/, '');
     zonesByStem[stem] = zonesContext(key) as ZoneJSON;
 });
+
+/**
+ * Bundled zone data by file stem — other client-visual zone consumers (the
+ * darkness overlay) read their arrays through this instead of bundling the
+ * zone directory a third time.
+ */
+export function getZoneData(zoneName: string): ZoneJSON | undefined {
+    return zonesByStem[zoneName];
+}
 
 /**
  * Loads the active zone's terrain (chosen by the server, delivered in

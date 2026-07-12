@@ -59,6 +59,10 @@ type PlayerEntity interface {
 	AvailableSkillPoints() int
 	LoseCurrentLevelExperience()
 	AuraRadius() float32
+	// LightRadius is the light emitted by the active aura's light_aura effect,
+	// 0 = no light (wire light_radius — the client hole-punches the darkness
+	// overlay; atmosphere & recovery chunk 3).
+	LightRadius() float32
 	// BurstRadius is the effective radius of a recently fired instant_damage
 	// burst (wire burst_radius, drives the burst ring VFX); 0 = none.
 	BurstRadius() float32

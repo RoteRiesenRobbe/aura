@@ -237,8 +237,20 @@ func (rcv *Mob) MutateHealReceived(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(32, n)
 }
 
+func (rcv *Mob) LightRadius() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Mob) MutateLightRadius(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(34, n)
+}
+
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(15)
+	builder.StartObject(16)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -287,6 +299,9 @@ func MobAddAuraRadius(builder *flatbuffers.Builder, auraRadius uint16) {
 }
 func MobAddHealReceived(builder *flatbuffers.Builder, healReceived uint32) {
 	builder.PrependUint32Slot(14, healReceived, 0)
+}
+func MobAddLightRadius(builder *flatbuffers.Builder, lightRadius uint16) {
+	builder.PrependUint16Slot(15, lightRadius, 0)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

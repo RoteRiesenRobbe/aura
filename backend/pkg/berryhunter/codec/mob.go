@@ -30,6 +30,8 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	BerryhunterApi.MobAddAuraHitStyle(builder, byte(m.AuraHitStyle()))
 	// 0 while the aura is gated — the client hides the ring (chunk 3c).
 	BerryhunterApi.MobAddAuraRadius(builder, f32ToU16Px(m.AuraRadius()))
+	// 0 = no light; the client hole-punches the darkness overlay (chunk 3).
+	BerryhunterApi.MobAddLightRadius(builder, f32ToU16Px(m.LightRadius()))
 
 	return BerryhunterApi.MobEnd(builder)
 }

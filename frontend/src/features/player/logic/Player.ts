@@ -8,6 +8,7 @@ import {isDefined} from '../../common/logic/Utils';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {MiniMap} from '../../mini-map/logic/MiniMap';
 import {PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
+import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import './PlayerJuice';
 
 export class Player {
@@ -79,6 +80,10 @@ export class Player {
         }
         if (isDefined(entity.auraRadius)) {
             this.character.setAuraRadius(entity.auraRadius);
+        }
+        // Own light hole in the darkness overlay (chunk 3); 0 removes it.
+        if (isDefined(entity.lightRadius)) {
+            DarknessOverlay.setLightRadius(this.character, entity.lightRadius);
         }
         if (isDefined(entity.level)) {
             this.character.setLevel(entity.level);

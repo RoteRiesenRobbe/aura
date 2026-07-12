@@ -14,7 +14,7 @@ import * as TextDisplay from '../../../client-data/TextDisplay';
 import {requireAll} from '../../common/logic/Utils';
 import {IGame} from '../../core/logic/IGame';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
-import {ZoneCampfire, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
+import {ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
 
 export interface PropTypeDef {
     name: string;
@@ -90,7 +90,7 @@ export function propTypeByName(name: string): PropTypeDef {
     return propTypes.find(type => type.name === name);
 }
 
-export type SelectionKind = 'prop' | 'spawn' | 'campfire';
+export type SelectionKind = 'prop' | 'spawn' | 'campfire' | 'dark';
 
 export interface Selection {
     kind: SelectionKind;
@@ -103,6 +103,7 @@ const COLOR_BLOCKING = 0xF44336;
 const COLOR_DECORATIVE = 0x03A9F4;
 const COLOR_SPAWN = 0x4CAF50;
 const COLOR_CAMPFIRE = 0xFF9800;
+const COLOR_DARK = 0x673AB7;
 const COLOR_SELECTED = 0xFFEB3B;
 const COLOR_BOUNDS = 0xFFEB3B;
 const SPAWN_MARKER_RADIUS = 0.5; // server units
@@ -119,6 +120,7 @@ let boundsGraphic: Graphics = null;
 let propMarkers: Container[] = [];
 let spawnMarkers: Container[] = [];
 let campfireMarkers: Container[] = [];
+let darkAreaMarkers: Container[] = [];
 
 export function isAttached(): boolean {
     return container !== null;
@@ -155,15 +157,18 @@ function rebuildMarkers() {
     propMarkers.forEach(marker => marker.destroy({children: true}));
     spawnMarkers.forEach(marker => marker.destroy({children: true}));
     campfireMarkers.forEach(marker => marker.destroy({children: true}));
+    darkAreaMarkers.forEach(marker => marker.destroy({children: true}));
     propMarkers = [];
     spawnMarkers = [];
     campfireMarkers = [];
+    darkAreaMarkers = [];
     selection = null;
 
     redrawBounds();
     propMarkers = model.props.map(prop => addMarkerToStage(drawPropMarker(prop, false)));
     spawnMarkers = model.spawns.map(spawn => addMarkerToStage(drawSpawnMarker(spawn, false)));
     campfireMarkers = model.campfires.map(campfire => addMarkerToStage(drawCampfireMarker(campfire, false)));
+    darkAreaMarkers = model.darkAreas.map(darkArea => addMarkerToStage(drawDarkAreaMarker(darkArea, false)));
 }
 
 /**
@@ -201,7 +206,7 @@ export function selectInitialZone(stem: string) {
  */
 export function newZone() {
     currentStem = '';
-    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], [], []);
+    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], [], [], []);
     rebuildMarkers();
     GroundTextureManager.clear();
 }
@@ -255,6 +260,17 @@ export function hitTestCampfire(x: number, y: number): number {
     for (let i = model.campfires.length - 1; i >= 0; i--) {
         let campfire = model.campfires[i];
         if (distance(x, y, campfire.x, campfire.y) <= CAMPFIRE_MARKER_RADIUS) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Hit-tests the full authored radius — the marker circle IS the dark area.
+export function hitTestDarkArea(x: number, y: number): number {
+    for (let i = model.darkAreas.length - 1; i >= 0; i--) {
+        let darkArea = model.darkAreas[i];
+        if (distance(x, y, darkArea.x, darkArea.y) <= darkArea.radius) {
             return i;
         }
     }
@@ -322,6 +338,26 @@ export function removeCampfire(index: number) {
     adjustSelectionAfterRemove('campfire', index);
 }
 
+export function placeDarkArea(darkArea: ZoneDarkArea): number {
+    let index = model.addDarkArea(darkArea);
+    if (container !== null) {
+        darkAreaMarkers.push(addMarkerToStage(drawDarkAreaMarker(darkArea, false)));
+    }
+    setSelection({kind: 'dark', index});
+    return index;
+}
+
+export function updateDarkArea(index: number, darkArea: ZoneDarkArea) {
+    model.updateDarkArea(index, darkArea);
+    redrawMarker('dark', index);
+}
+
+export function removeDarkArea(index: number) {
+    model.removeDarkArea(index);
+    removeMarker(darkAreaMarkers, index);
+    adjustSelectionAfterRemove('dark', index);
+}
+
 function adjustSelectionAfterRemove(kind: SelectionKind, removedIndex: number) {
     if (selection === null || selection.kind !== kind) {
         return;
@@ -365,12 +401,18 @@ function redrawMarker(kind: SelectionKind, index: number) {
         }
         spawnMarkers[index].destroy({children: true});
         spawnMarkers[index] = addMarkerToStage(drawSpawnMarker(model.spawns[index], selected));
-    } else {
+    } else if (kind === 'campfire') {
         if (index >= model.campfires.length) {
             return;
         }
         campfireMarkers[index].destroy({children: true});
         campfireMarkers[index] = addMarkerToStage(drawCampfireMarker(model.campfires[index], selected));
+    } else {
+        if (index >= model.darkAreas.length) {
+            return;
+        }
+        darkAreaMarkers[index].destroy({children: true});
+        darkAreaMarkers[index] = addMarkerToStage(drawDarkAreaMarker(model.darkAreas[index], selected));
     }
 }
 
@@ -480,6 +522,22 @@ function drawCampfireMarker(campfire: ZoneCampfire, selected: boolean): Containe
     marker.addChild(graphic);
     marker.addChild(markerLabel('Campfire', radiusPx));
     marker.position.set(meter2px(campfire.x), meter2px(campfire.y));
+    return marker;
+}
+
+// The marker circle doubles as the darkness preview: drawn at the TRUE
+// authored radius (unlike the fixed-size campfire/spawn markers).
+function drawDarkAreaMarker(darkArea: ZoneDarkArea, selected: boolean): Container {
+    let radiusPx = meter2px(darkArea.radius);
+
+    let marker = new Container();
+    let graphic = new Graphics()
+        .circle(0, 0, radiusPx)
+        .fill({color: COLOR_DARK, alpha: 0.25})
+        .stroke({width: selected ? 6 : 3, color: selected ? COLOR_SELECTED : COLOR_DARK});
+    marker.addChild(graphic);
+    marker.addChild(markerLabel('Dark', radiusPx));
+    marker.position.set(meter2px(darkArea.x), meter2px(darkArea.y));
     return marker;
 }
 

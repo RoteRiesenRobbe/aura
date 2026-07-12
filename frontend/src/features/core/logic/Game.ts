@@ -17,6 +17,7 @@ import {WelcomeMessage} from '../../backend/logic/messages/incoming/WelcomeMessa
 import * as Console from '../../internal-tools/console/logic/Console';
 import {Camera} from '../../camera/logic/Camera';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
+import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {GameState, IGame, IGameLayers} from './IGame';
 import {gameObjectId} from '../../common/logic/Types';
 import {GraphicsConfig} from '../../../client-data/Graphics';
@@ -184,6 +185,10 @@ export class Game implements IGame {
                 trees: createNamedContainer('trees'),
             },
             bossMobs: createNamedContainer('bossMobs'),
+            // Darkness overlay (chunk 3): above all entities, below the
+            // floating numbers; deliberately NOT in the DayCycle filtered
+            // set — dark areas are dark independent of the cycle (§6.5).
+            darkness: createNamedContainer('darkness'),
             characterAdditions: {
                 chatMessages: createNamedContainer('chatMessages'),
                 // Floating damage/heal/XP numbers (item 11): topmost world layer
@@ -250,6 +255,9 @@ export class Game implements IGame {
         // Boss mobs overlaying resources
         this.cameraGroup.addChild(this.layers.bossMobs);
 
+        // Darkness overlay above every entity
+        this.cameraGroup.addChild(this.layers.darkness);
+
         // Character Additions
         this.cameraGroup.addChild(
             this.layers.characterAdditions.chatMessages,
@@ -264,6 +272,7 @@ export class Game implements IGame {
 
         Camera.setup(this);
         GroundTextureManager.setup(this);
+        DarknessOverlay.setup(this.layers.darkness);
 
         GameObject.setup();
 
@@ -405,6 +414,7 @@ export class Game implements IGame {
         // has already run during construction, so placed textures render now.
         this.zoneName = gameInformation.zoneName;
         GroundTextureManager.loadZone(gameInformation.zoneName);
+        DarknessOverlay.loadZone(gameInformation.zoneName);
         const mapWidth = gameInformation.mapWidth;
         const mapHeight = gameInformation.mapHeight;
         const waterMargin = 240; // shallow-water ring inset from each edge

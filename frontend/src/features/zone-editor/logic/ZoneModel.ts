@@ -64,6 +64,14 @@ export interface ZoneCampfire {
     y: number;
 }
 
+// A circle of constant darkness (atmosphere & recovery chunk 3) — purely
+// client-visual; the radius is the outer (soft) edge of the dark pocket.
+export interface ZoneDarkArea {
+    x: number;
+    y: number;
+    radius: number;
+}
+
 export interface ZoneData {
     name: string;
     bounds: ZoneBounds;
@@ -72,6 +80,7 @@ export interface ZoneData {
     spawns: ZoneSpawn[];
     // Omitted when empty so pre-step-3 zones round-trip diff-clean.
     campfires?: ZoneCampfire[];
+    darkAreas?: ZoneDarkArea[];
 }
 
 function round(value: number, digits: number): number {
@@ -89,14 +98,16 @@ export class ZoneModel {
     props: ZoneProp[];
     spawns: ZoneSpawn[];
     campfires: ZoneCampfire[];
+    darkAreas: ZoneDarkArea[];
 
-    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[]) {
+    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[], darkAreas: ZoneDarkArea[]) {
         this.name = name;
         this.bounds = bounds;
         this.terrain = terrain;
         this.props = props;
         this.spawns = spawns;
         this.campfires = campfires;
+        this.darkAreas = darkAreas;
     }
 
     static fromJSON(data: ZoneData): ZoneModel {
@@ -112,6 +123,7 @@ export class ZoneModel {
                 waypoints: (s.waypoints || []).map(w => ({...w})),
             })),
             (data.campfires || []).map(c => ({...c})),
+            (data.darkAreas || []).map(d => ({...d})),
         );
     }
 
@@ -145,6 +157,18 @@ export class ZoneModel {
 
     removeCampfire(index: number) {
         this.campfires.splice(index, 1);
+    }
+
+    addDarkArea(darkArea: ZoneDarkArea): number {
+        return this.darkAreas.push(darkArea) - 1;
+    }
+
+    updateDarkArea(index: number, darkArea: ZoneDarkArea) {
+        this.darkAreas[index] = darkArea;
+    }
+
+    removeDarkArea(index: number) {
+        this.darkAreas.splice(index, 1);
     }
 
     /**
@@ -191,6 +215,9 @@ export class ZoneModel {
             // round-trip diff-clean — the chunk-5 array precedent.
             campfires: this.campfires.length > 0
                 ? this.campfires.map(c => ({x: round(c.x, 2), y: round(c.y, 2)}))
+                : undefined,
+            darkAreas: this.darkAreas.length > 0
+                ? this.darkAreas.map(d => ({x: round(d.x, 2), y: round(d.y, 2), radius: round(d.radius, 2)}))
                 : undefined,
         };
         return JSON.stringify(data, null, 2);

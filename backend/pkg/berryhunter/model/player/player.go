@@ -487,6 +487,16 @@ func (p *player) AuraRadius() float32 {
 	return p.skills.AuraSlots[slot].EffectiveRadius()
 }
 
+// LightRadius is the light emitted by the active aura, 0 = no light.
+// Serialized as Character.light_radius (darkness hole-punch, chunk 3).
+func (p *player) LightRadius() float32 {
+	slot := p.skills.ActiveAuraSlot
+	if slot < 0 || p.skills.AuraSlots[slot] == nil {
+		return 0
+	}
+	return p.skills.AuraSlots[slot].LightRadius()
+}
+
 // BurstRadius feeds the Character.burst_radius wire field (burst ring VFX).
 func (p *player) BurstRadius() float32 {
 	return p.skills.BurstRadius(skills.BurstVFXTicks)

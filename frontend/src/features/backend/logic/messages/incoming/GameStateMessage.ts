@@ -161,6 +161,7 @@ function unmarshalEntity(entity, eType) {
         level: undefined,
         levelProgress: undefined,
         auraRadius: undefined,
+        lightRadius: undefined,
         activeSkillId: undefined,
         statusEffects: undefined,
         burstRadius: undefined,
@@ -192,6 +193,8 @@ function unmarshalEntity(entity, eType) {
         // effective radius of the active aura in px, 0 while gated — drives
         // the ring visibility (mob-depth chunk 3c).
         result.auraRadius = entity.auraRadius();
+        // light emitted in px, 0 = none — hole-punches the darkness overlay.
+        result.lightRadius = entity.lightRadius();
     }
 
     if (eType === BerryhunterApi.AnyEntity.Character) {
@@ -207,6 +210,8 @@ function unmarshalEntity(entity, eType) {
         result.level = entity.level();
         result.levelProgress = entity.levelProgress() / 0xffffffff;
         result.auraRadius = entity.auraRadius();
+        // light emitted in px, 0 = none — hole-punches the darkness overlay.
+        result.lightRadius = entity.lightRadius();
         result.activeSkillId = entity.activeSkillId();
         result.burstRadius = entity.burstRadius();
         result.damageTaken = entity.damageTaken();

@@ -45,6 +45,7 @@ const (
 	EffectTypeSpawn
 	EffectTypeTaunt
 	EffectTypeDetaunt
+	EffectTypeLightAura
 )
 
 var effectTypeMap = map[string]EffectType{
@@ -61,6 +62,7 @@ var effectTypeMap = map[string]EffectType{
 	"spawn":           EffectTypeSpawn,
 	"taunt":           EffectTypeTaunt,
 	"detaunt":         EffectTypeDetaunt,
+	"light_aura":      EffectTypeLightAura,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -491,6 +493,9 @@ var effectKeys = map[EffectType][]string{
 	// carries a threatMargin, detaunt is a bare single-entry removal.
 	EffectTypeTaunt:   mergeKeys(keysGeometry, keysTargetFlags, []string{"threatMargin"}),
 	EffectTypeDetaunt: mergeKeys(keysGeometry, keysTargetFlags),
+	// Rendering-only (chunk 3): pure geometry — no payload, no targeting, no
+	// cadence, no apply path. The radius streams as the wire light_radius.
+	EffectTypeLightAura: keysGeometry,
 }
 
 func mergeKeys(groups ...[]string) []string {

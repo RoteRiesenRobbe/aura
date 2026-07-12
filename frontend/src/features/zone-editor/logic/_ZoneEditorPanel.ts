@@ -21,7 +21,7 @@ import {ZoneProp, ZoneSpawn} from './ZoneModel';
 
 const NEW_ZONE_OPTION = '__new__';
 
-export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire';
+export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark';
 
 const PX_PER_UNIT = meter2px(1);
 
@@ -99,9 +99,15 @@ let campfireControls: HTMLElement;
 let campfireSelectionGroup: HTMLElement;
 let campfireSelectedIndexLabel: HTMLElement;
 
+let darkControls: HTMLElement;
+let darkRadiusInput: HTMLInputElement;
+let darkSelectionGroup: HTMLElement;
+let darkSelectedIndexLabel: HTMLElement;
+
 let propCountLabel: HTMLElement;
 let spawnCountLabel: HTMLElement;
 let campfireCountLabel: HTMLElement;
+let darkCountLabel: HTMLElement;
 
 /**
  * Wires the zone-editor sections of the shared panel. Called by
@@ -146,9 +152,15 @@ export function setupPanel() {
     campfireSelectionGroup = document.getElementById('zoneEditor_campfireSelection');
     campfireSelectedIndexLabel = document.getElementById('zoneEditor_campfireSelectedIndex');
 
+    darkControls = document.getElementById('zoneEditor_darkControls');
+    darkRadiusInput = document.getElementById('zoneEditor_darkRadius') as HTMLInputElement;
+    darkSelectionGroup = document.getElementById('zoneEditor_darkSelection');
+    darkSelectedIndexLabel = document.getElementById('zoneEditor_darkSelectedIndex');
+
     propCountLabel = document.getElementById('zoneEditor_propCount');
     spawnCountLabel = document.getElementById('zoneEditor_spawnCount');
     campfireCountLabel = document.getElementById('zoneEditor_campfireCount');
+    darkCountLabel = document.getElementById('zoneEditor_darkCount');
 
     let popup = document.getElementById('zoneEditorPopup');
     popup.querySelectorAll('input, button, a, select')
@@ -227,6 +239,22 @@ export function setupPanel() {
         deleteSelection();
     });
     document.getElementById('zoneEditor_campfireDeselect').addEventListener('click', event => {
+        event.preventDefault();
+        deselect();
+    });
+    document.getElementById('zoneEditor_darkPlaceButton').addEventListener('click', event => {
+        event.preventDefault();
+        placeAtPlayer();
+    });
+    document.getElementById('zoneEditor_darkUpdate').addEventListener('click', event => {
+        event.preventDefault();
+        applyControlsToSelection();
+    });
+    document.getElementById('zoneEditor_darkDelete').addEventListener('click', event => {
+        event.preventDefault();
+        deleteSelection();
+    });
+    document.getElementById('zoneEditor_darkDeselect').addEventListener('click', event => {
         event.preventDefault();
         deselect();
     });
@@ -348,6 +376,7 @@ function setMode(newMode: EditorMode) {
     propControls.classList.toggle('hidden', mode !== 'prop');
     spawnControls.classList.toggle('hidden', mode !== 'spawn');
     campfireControls.classList.toggle('hidden', mode !== 'campfire');
+    darkControls.classList.toggle('hidden', mode !== 'dark');
 }
 
 function onBoundsChanged() {
@@ -363,7 +392,7 @@ function onMapPointerDown(event: PointerEvent) {
     if (event.button !== 0) {
         return;
     }
-    if (mode !== 'prop' && mode !== 'spawn' && mode !== 'campfire') {
+    if (mode !== 'prop' && mode !== 'spawn' && mode !== 'campfire' && mode !== 'dark') {
         return;
     }
     if (Game.state !== GameState.PLAYING) {
@@ -388,6 +417,14 @@ function onMapPointerDown(event: PointerEvent) {
         let hit = ZoneEditor.hitTestCampfire(x, y);
         if (hit >= 0) {
             ZoneEditor.setSelection({kind: 'campfire', index: hit});
+            updateSelectionDisplay();
+            return;
+        }
+    } else if (mode === 'dark') {
+        let hit = ZoneEditor.hitTestDarkArea(x, y);
+        if (hit >= 0) {
+            ZoneEditor.setSelection({kind: 'dark', index: hit});
+            populateDarkControls(ZoneEditor.model.darkAreas[hit]);
             updateSelectionDisplay();
             return;
         }
@@ -434,10 +471,30 @@ function placeAt(x: number, y: number) {
         ZoneEditor.placeSpawn(spawn);
     } else if (mode === 'campfire') {
         ZoneEditor.placeCampfire({x, y});
+    } else if (mode === 'dark') {
+        let radius = readDarkRadius();
+        if (radius === null) {
+            return;
+        }
+        ZoneEditor.placeDarkArea({x, y, radius});
     }
 
     updateCounts();
     updateSelectionDisplay();
+}
+
+// Mirrors the backend loader's hard-fail: a dark area needs a positive radius.
+function readDarkRadius(): number {
+    let radius = parseFloat(darkRadiusInput.value);
+    if (isNaN(radius) || radius <= 0) {
+        Game.player.character.say('Dark area radius must be positive');
+        return null;
+    }
+    return radius;
+}
+
+function populateDarkControls(darkArea: {radius: number}) {
+    darkRadiusInput.value = String(darkArea.radius);
 }
 
 function readPropControls(x: number, y: number): ZoneProp {
@@ -544,6 +601,12 @@ function applyControlsToSelection() {
             }
             ZoneEditor.updateSpawn(selection.index, updated);
         }
+    } else if (selection.kind === 'dark') {
+        let current = ZoneEditor.model.darkAreas[selection.index];
+        let radius = readDarkRadius();
+        if (radius !== null) {
+            ZoneEditor.updateDarkArea(selection.index, {...current, radius});
+        }
     }
 }
 
@@ -557,8 +620,10 @@ function deleteSelection() {
         ZoneEditor.removeProp(selection.index);
     } else if (selection.kind === 'spawn') {
         ZoneEditor.removeSpawn(selection.index);
-    } else {
+    } else if (selection.kind === 'campfire') {
         ZoneEditor.removeCampfire(selection.index);
+    } else {
+        ZoneEditor.removeDarkArea(selection.index);
     }
 
     updateCounts();
@@ -607,10 +672,12 @@ function updateSelectionDisplay() {
     let propSelected = selection !== null && selection.kind === 'prop';
     let spawnSelected = selection !== null && selection.kind === 'spawn';
     let campfireSelected = selection !== null && selection.kind === 'campfire';
+    let darkSelected = selection !== null && selection.kind === 'dark';
 
     propSelectionGroup.classList.toggle('hidden', !propSelected);
     spawnSelectionGroup.classList.toggle('hidden', !spawnSelected);
     campfireSelectionGroup.classList.toggle('hidden', !campfireSelected);
+    darkSelectionGroup.classList.toggle('hidden', !darkSelected);
     if (propSelected) {
         propSelectedIndexLabel.textContent = String(selection.index);
     }
@@ -621,6 +688,9 @@ function updateSelectionDisplay() {
     }
     if (campfireSelected) {
         campfireSelectedIndexLabel.textContent = String(selection.index);
+    }
+    if (darkSelected) {
+        darkSelectedIndexLabel.textContent = String(selection.index);
     }
 }
 
@@ -633,4 +703,5 @@ function updateCounts() {
     propCountLabel.textContent = String(ZoneEditor.model.props.length);
     spawnCountLabel.textContent = String(ZoneEditor.model.spawns.length);
     campfireCountLabel.textContent = String(ZoneEditor.model.campfires.length);
+    darkCountLabel.textContent = String(ZoneEditor.model.darkAreas.length);
 }

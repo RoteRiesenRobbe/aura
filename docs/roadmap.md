@@ -145,7 +145,14 @@ snapshot; connection stays put — the `carriedState` respawn pattern is its
 shape), not a teleport. **Full analysis, per-count scaling estimates, and handoff
 mechanics: `docs/architecture.md`.**
 
-## 5. Darkness & light
+## 5. Darkness & light ✓ Done
+
+> **Done (atmosphere & recovery chunk 3, 2026-07-12, verified in-game) —
+> see `plan-atmosphere-recovery.md` §3.3.** `light_aura` effect type
+> (rendering-only), `light_radius` wire, `zone.darkAreas` circles, client
+> darkness overlay with light hole-punch, Light Aura skill (milestone L4),
+> campfire light r7 + editor dark mode. Real dark-zone content (the
+> zone-1↔2 tunnel) stays with the content pass.
 
 Dark areas (caves, the zone-1↔2 tunnel) as the natural tutorial for role
 trade-offs (light aura vs. damage aura).
@@ -764,9 +771,10 @@ system ships blind.
    deliberately slid to the content pass with the real lava-bridge boss.
    Record: `plan-mob-depth.md` §5; authoring guide:
    `manual-content-authoring.md` §5.
-3. **Atmosphere & recovery** — ← **NEXT, PLANNED (2026-07-12) →
-   `docs/plan-atmosphere-recovery.md`** (4 chunks: regen combat gate →
-   campfires → darkness & light → death state + campfire respawn; minimal
+3. **Atmosphere & recovery** — ← **CURRENT, IN PROGRESS →
+   `docs/plan-atmosphere-recovery.md`** (chunks 1 regen combat gate ✓ +
+   2 campfires ✓ + 3 darkness & light ✓ all DONE + verified in-game
+   2026-07-12; **next = chunk 4** death state + campfire respawn; minimal
    zone-editor support in-step; mob corpses = client-only fade)
 
    Scope = item 5 + the 2026-07-10 recovery/death bundle

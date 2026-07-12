@@ -369,6 +369,18 @@ func (m *Mob) AuraRadius() float32 {
 	return m.skills.AuraSlots[slot].EffectiveRadius()
 }
 
+// LightRadius is the light emitted by the active aura, 0 = no light — mirrors
+// player.LightRadius. Serialized as Mob.light_radius (darkness hole-punch,
+// chunk 3; the campfire's big light coexisting with its small heal ring is
+// why this is not folded into AuraRadius).
+func (m *Mob) LightRadius() float32 {
+	slot := m.skills.ActiveAuraSlot
+	if slot < 0 || m.skills.AuraSlots[slot] == nil {
+		return 0
+	}
+	return m.skills.AuraSlots[slot].LightRadius()
+}
+
 func (m *Mob) SkillComponent() *skills.SkillComponent {
 	return m.skills
 }

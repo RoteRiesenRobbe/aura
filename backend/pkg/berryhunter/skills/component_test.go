@@ -86,6 +86,44 @@ func TestEffectiveRadius_NoEffectsYieldsZero(t *testing.T) {
 	assert.Equal(t, float32(0), es.EffectiveRadius())
 }
 
+// light_aura is rendering-only: its radius must not size the combat sensor or
+// the aura_radius wire (chunk 3 §6.3 — the campfire's big light would
+// otherwise become its sensor/heal ring).
+func TestEffectiveRadius_ExcludesLightAura(t *testing.T) {
+	es := &EquippedSkill{
+		Def: &SkillDefinition{Effects: []EffectDef{
+			{Type: EffectTypeHealAura, Radius: 1.5},
+			{Type: EffectTypeLightAura, Radius: 7.0},
+		}},
+		Level: 1,
+	}
+
+	assert.Equal(t, float32(1.5), es.EffectiveRadius())
+}
+
+func TestLightRadius_MaxOverLightEffectsScaled(t *testing.T) {
+	es := &EquippedSkill{
+		Def: &SkillDefinition{Effects: []EffectDef{
+			{Type: EffectTypeHealAura, Radius: 1.5},
+			{Type: EffectTypeLightAura, Radius: 4.0, RadiusPerLevel: 1.0},
+		}},
+		Level: 3,
+	}
+
+	assert.Equal(t, float32(6.0), es.LightRadius())
+}
+
+func TestLightRadius_NoLightEffectYieldsZero(t *testing.T) {
+	es := &EquippedSkill{
+		Def: &SkillDefinition{Effects: []EffectDef{
+			{Type: EffectTypeDamageAura, Radius: 2.0},
+		}},
+		Level: 1,
+	}
+
+	assert.Equal(t, float32(0), es.LightRadius())
+}
+
 func TestUnequipAura_ClearsSlot(t *testing.T) {
 	sc := NewSkillComponent(true)
 	sc.EquipAura(0, testDef, 1)

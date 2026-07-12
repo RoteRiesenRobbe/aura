@@ -152,6 +152,35 @@ func TestZone_RejectsUnknownCampfireKey(t *testing.T) {
 	assert.Contains(t, err.Error(), "radius")
 }
 
+func TestZone_ParsesDarkAreas(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"darkAreas": [ { "x": 3, "y": -4.5, "radius": 6 } ]
+	}`
+
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+	require.NoError(t, err)
+	require.Len(t, z.DarkAreas, 1)
+	assert.EqualValues(t, 3, z.DarkAreas[0].X)
+	assert.EqualValues(t, -4.5, z.DarkAreas[0].Y)
+	assert.EqualValues(t, 6, z.DarkAreas[0].Radius)
+}
+
+func TestZone_RejectsNonPositiveDarkAreaRadius(t *testing.T) {
+	for _, radius := range []string{"0", "-2"} {
+		doc := `{
+			"name": "X",
+			"bounds": { "width": 60, "height": 40 },
+			"darkAreas": [ { "x": 3, "y": -4.5, "radius": ` + radius + ` } ]
+		}`
+
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+		require.Error(t, err, "radius %s must be rejected", radius)
+		assert.Contains(t, err.Error(), "radius")
+	}
+}
+
 func TestZone_RejectsUnknownKey(t *testing.T) {
 	const doc = `{ "name": "X", "bounds": { "width": 60, "height": 40 }, "radius": 20 }`
 

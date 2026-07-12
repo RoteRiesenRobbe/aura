@@ -116,6 +116,13 @@ table Mob {
   // 8). Mirrors Character.heal_received; reset every tick. Appended at table
   // end so existing field IDs stay stable.
   heal_received:uint = 0;
+
+  // light radius (px) emitted by the active aura's light_aura effect; 0 = no
+  // light. The client punches a hole of this size into the darkness overlay
+  // (atmosphere & recovery chunk 3). Kept separate from aura_radius so a
+  // mixed skill (campfire: small heal + big light) keeps its combat-ring
+  // semantics. Appended at table end so existing field IDs stay stable.
+  light_radius:ushort = 0;
 }
 
 table Character {
@@ -172,6 +179,12 @@ table Character {
   // Appended at the table end so existing field IDs stay stable.
   xp_in_level:uint = 0;
   xp_for_next_level:uint = 0;
+
+  // light radius (px) emitted by the active aura's light_aura effect; 0 = no
+  // light. The client punches a hole of this size into the darkness overlay
+  // (atmosphere & recovery chunk 3). Mirrors Mob.light_radius. Appended at
+  // the table end so existing field IDs stay stable.
+  light_radius:ushort = 0;
 }
 
 table Spectator {

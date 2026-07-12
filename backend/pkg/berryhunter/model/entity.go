@@ -119,6 +119,10 @@ type MobEntity interface {
 	// active (wire aura_radius — the client draws the mob's ring from it, so
 	// a gated aura is invisible until aggro; mob-depth chunk 3c).
 	AuraRadius() float32
+	// LightRadius is the light emitted by the active aura's light_aura effect,
+	// 0 = no light (wire light_radius — the client hole-punches the darkness
+	// overlay; atmosphere & recovery chunk 3).
+	LightRadius() float32
 
 	// DamageTaken is the health lost this tick (VitalSign units), serialized as
 	// the floating damage number (roadmap item 11) and reset each tick via
