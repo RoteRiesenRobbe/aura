@@ -755,22 +755,22 @@ system ships blind.
    proving the pipeline end-to-end. The **real designed zones are authored in the
    content pass** (step 6), not here — keeps content-last honest. Record:
    `plan-world-zones.md` §5.
-2. **Mob depth** (item 7 remainder) **+ totems** (effect-foundations Step 3) — ← **NEXT, PLANNED (2026-07-09) → `docs/plan-mob-depth.md`**
+2. **Mob depth** (item 7 remainder) **+ totems** (effect-foundations Step 3) —
+   ✅ **COMPLETE (2026-07-12)**, all chunks in-game-verified: totem → flee →
+   aggro & threat → obstacle steering → patrol → companion → 6.5 hazard
+   braziers/companion reachability → 6.6 mob factions & mob-vs-mob hostility →
+   7 taunt/fade → 8 support mobs (healer) → 9 encounter-controller spine +
+   `THREAT` cheat. Boss *scripts* and 9f (timed world-state + dwell-capture)
+   deliberately slid to the content pass with the real lava-bridge boss.
+   Record: `plan-mob-depth.md` §5; authoring guide:
+   `manual-content-authoring.md` §5.
+3. **Atmosphere & recovery** — ← **NEXT, PLANNED (2026-07-12) →
+   `docs/plan-atmosphere-recovery.md`** (4 chunks: regen combat gate →
+   campfires → darkness & light → death state + campfire respawn; minimal
+   zone-editor support in-step; mob corpses = client-only fade)
 
-   patrol archetypes, support mob-heal behaviors, spawned-entity/totem lifecycle,
-   a **companion cooldown** (added to scope), and the **encounter-controller
-   spine + threat table**, built here (**early**), shaped by the documented
-   lava-bridge reference encounter below (boss *scripts* are content). Totems
-   fold in here because they reuse the `MobSystem` respawn path the World phase
-   (chunk 4) rewrote — the per-spawn-point respawn already leaves unowned mobs
-   dead, so no respawn-guard field is needed (see `plan-mob-depth.md` §3.1).
-   Plan: chunks 1–6 done (totem → flee → aggro & threat → steering → patrol →
-   companion) + fix chunk 6.5 (hazard braziers + companion reachability,
-   2026-07-11); **next = chunk 6.6 mob factions & mob-vs-mob hostility
-   (NEW, plan-first — user design: wolf-chases-rabbit, frontlines), then
-   chunk 7 taunt (plan-first)**, then support mobs → encounter controller.
-3. **Atmosphere & recovery** (item 5 + the 2026-07-10 recovery/death bundle;
-   ~~item 6 cut 2026-07-10~~ — the LoS spike and occlusion work are gone) —
+   Scope = item 5 + the 2026-07-10 recovery/death bundle
+   (~~item 6 cut 2026-07-10~~ — the LoS spike and occlusion work are gone):
    darkness/light (the `light_aura` effect type, campfires); item 5
    **extends** the zone schema with dark-area definitions itself (the World
    phase does not ship them — item 5 owns "dark-area definition in map data").
@@ -784,9 +784,9 @@ system ships blind.
    **+ Death state (2026-07-10, GDD §3):** players persist as a body until
    they actively press Respawn (an explicit client→server message replacing
    the implicit re-join; the revive window), mobs leave a brief corpse
-   [PLACEHOLDER; client-only fade may suffice for mobs — decide when
-   scoping]. Same `sys/state.go` death-flow surgery as the respawn tracker —
-   one pass, not two.
+   [PLACEHOLDER duration; **decided 2026-07-12: client-only fade** — zero
+   server state/wire]. Same `sys/state.go` death-flow surgery as the respawn
+   tracker — one pass, not two.
    **+ Combat-gate player passive regen (2026-07-10, GDD §3):** player regen
    currently runs mid-combat (`model/player/update.go`); introduce the player
    in-combat flag (recent-damage window) and gate regen on it — also the

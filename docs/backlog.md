@@ -670,6 +670,10 @@ points. This partially answers the "safe place set" question below: for
 *death-respawn* the set is world campfires; whether *Recall* targets the
 same set or a broader one remains open.
 
+**Update (2026-07-12):** the tracker + death-respawn are scoped —
+`plan-atmosphere-recovery.md` chunk 4 (campfires themselves are its
+chunk 2). Recall stays step 4, consuming that tracker.
+
 Context from current state:
 
 - GDD §3 defines death-respawn at the **last visited campfire** — but that
