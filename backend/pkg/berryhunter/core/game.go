@@ -378,7 +378,9 @@ const stepMillis = 33.0
 
 func (g *game) update() {
 	// fixed 33ms steps
-	beforeMillis := time.Now().UnixNano() / 1000000
+	// monotonic clock — wall time jumps (e.g. WSL2 host-sleep resync) must
+	// not register as overload
+	before := time.Now()
 
 	// accept at most one player per tick
 	select {
@@ -390,8 +392,7 @@ func (g *game) update() {
 
 	g.World.Update(stepMillis)
 
-	nowMillis := time.Now().UnixNano() / 1000000
-	dtMillis := nowMillis - beforeMillis
+	dtMillis := time.Since(before).Milliseconds()
 	if dtMillis > stepMillis {
 		fmt.Printf("Overload! Systems at: %d%%\n", overloadPercent(dtMillis))
 	}
