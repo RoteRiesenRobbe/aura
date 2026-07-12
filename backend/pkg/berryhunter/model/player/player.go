@@ -151,7 +151,22 @@ type player struct {
 	attackTargetTicks int
 	attacker          model.Combatant
 	attackerTicks     int
+
+	// inCombatTicks is the time-gated in-combat window (atmosphere & recovery
+	// chunk 1): stamped to combatRegenGraceTicks by any combat action — taking
+	// harm (takeDamage), dealing a harmful effect, or supporting an in-combat
+	// ally (both via the SkillSystem's NoteCombatAction) — and aged one per tick
+	// in ResetTickNumbers. Passive regen is gated on it being zero. Exit is
+	// purely time-based: no proximity/target scan (deliberate WoW divergence —
+	// regen may resume while still chased). Dies with the entity.
+	inCombatTicks int
 }
+
+// combatRegenGraceTicks [PLACEHOLDER] is how long after its last combat action
+// a player stays in combat, gating passive regen (~5 s @ 30 TPS). Deliberately
+// its own constant, not the shorter combatSignalWindowTicks (3 s) — a regen
+// grace that short would let regen flicker on between hits.
+const combatRegenGraceTicks = 5 * constant.TicksPerSecond
 
 // combatSignalWindowTicks [PLACEHOLDER] is how long a combat signal stays
 // readable by a companion (~3 s) — long enough to bridge aura tick cadences,
@@ -182,6 +197,20 @@ func liveSignal(c model.Combatant, ticks int) model.Combatant {
 		return nil
 	}
 	return c
+}
+
+// NoteCombatAction stamps the in-combat window (model.CombatActor; atmosphere
+// & recovery chunk 1): called on any combat engagement — from takeDamage on
+// taking harm, and from the SkillSystem when this player's harmful effect lands
+// or it supports an in-combat ally.
+func (p *player) NoteCombatAction() {
+	p.inCombatTicks = combatRegenGraceTicks
+}
+
+// InCombat reports whether the recent-action window is still open
+// (model.Combatant); passive regen is gated on it.
+func (p *player) InCombat() bool {
+	return p.inCombatTicks > 0
 }
 
 func (p *player) StatusEffects() *model.StatusEffects {
@@ -241,6 +270,10 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) {
 		p.PlayerVitalSigns.Health = h.Sub(hp)
 		p.damageTaken += h - p.PlayerVitalSigns.Health // actual loss after clamping
 		p.StatusEffects().Add(s)
+		// Taking harm enters combat (chunk 1): the take-harm direction, stamped
+		// at the single damage choke point so every damage-aura and dot tick,
+		// mob or PvP, gates regen uniformly.
+		p.NoteCombatAction()
 	}
 }
 
@@ -312,6 +345,10 @@ func (p *player) ResetTickNumbers() {
 	}
 	if p.attackerTicks > 0 {
 		p.attackerTicks--
+	}
+	// Age the in-combat window (chunk 1); regen resumes when it hits zero.
+	if p.inCombatTicks > 0 {
+		p.inCombatTicks--
 	}
 }
 

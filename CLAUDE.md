@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
      Full execution order + per-item status: docs/roadmap.md. Doc index: docs/README.md.
      Plans and records live in the plan docs. -->
 
-- **Last completed:** Mob depth + totems (execution step 2, all chunks verified in-game) — `docs/plan-mob-depth.md`
-- **Next:** Atmosphere & recovery (execution step 3, chunk 1 = regen combat gate) — `docs/plan-atmosphere-recovery.md`
+- **Last completed:** Atmosphere & recovery chunk 1 (regen combat gate) — verified in-game — `docs/plan-atmosphere-recovery.md` §3.1
+- **Next:** Atmosphere & recovery chunk 2 = campfires (heal aura + `zone.campfires` field + per-effect range check + editor markers) — `docs/plan-atmosphere-recovery.md` §3.2; pin the ⚑ §6.2 sub-decisions at plan-first start
 
 ## Development Principles
 

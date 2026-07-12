@@ -201,14 +201,76 @@ vestige (incl. the legacy placeable campfire items and the existing
 
 ### 3.1 Chunk 1 — in-combat flag + regen gate
 
-- Stamp a recent-damage window in `takeDamage` (covers mob auras, dots,
-  future PvP in one place); age it in `ResetTickNumbers` exactly like
-  `attackerTicks`; exported `InCombat() bool`.
-- Gate `updateVitalSigns`: passive regen only when `!InCombat()`.
-  Dead-player (0-HP) and god-mode behavior unchanged;
+**STATUS: DONE + VERIFIED IN-GAME 2026-07-12** (backend suite green, binary
+rebuilt, boot clean, in-game checklist passed — "tested and works"). Window
+length pinned:
+`combatRegenGraceTicks = 5 × constant.TicksPerSecond` (= 150 ticks / 5 s)
+[PLACEHOLDER], its own constant (not the 3 s `combatSignalWindowTicks`). Seams
+landed exactly as below: `InCombat()` on `model.Combatant` (player = the new
+window, mob = `aggroTarget != nil`); new player-only `model.CombatActor`
+(`NoteCombatAction`); `takeDamage` stamps the take-harm direction; the
+`sys/skills.go` `noteHarmDealt(caster)` helper (type-asserts `CombatActor`, so
+mob casters skip free) stamps the caster from `applyPlayerDamageAura` (direct
+casts only, `source==nil`), `applyDotEffect`, `applySlowAura` (now takes `e`),
+and `applyHealAura` (only when a healed target was itself `InCombat()`);
+`updateVitalSigns` returns early while `InCombat()`. Get-CC'd + summon-owner
+directions confirmed inert-but-wired. Zero wire/frontend changes.
+
+**Combat model (decided 2026-07-12, user): WoW-style *symmetric* combat
+state.** Any combat interaction enters combat, from four directions:
+
+1. **Taking harm (HP)** — hit by a mob aura / dot.
+2. **Taking CC** — slowed/CC'd by a hostile (no HP loss; does **not**
+   flow through `takeDamage`).
+3. **Dealing harm** — the player's own harmful effect (damage / dot / CC,
+   aura *or* cooldown) lands on ≥1 hostile.
+4. **Supporting an engaged ally** — the player heals/buffs a friendly
+   who is *itself currently in combat*.
+
+**Time-gated exit (decided): combat drops purely on "no combat action in
+N ticks."** No proximity/target scan on exit — regen may resume *while
+still being chased*. This is a deliberate divergence from real WoW (which
+also requires nothing hostile engaged with you) and is the *simpler*
+implementation: a stamp-and-decay window, no exit-side scan.
+
+**Seams** (the flag `effect.TargetsEnemies`/`TargetsAllies` already marks
+hostile-vs-support actions, so 2–4 collapse into one helper, matching the
+existing `mayHarm` one-seam ethos):
+
+- **Taking harm (HP)** → `player.takeDamage` (`player.go:221`). The true
+  HP convergence — every damage-aura tick and every dot tick already
+  routes here. (Original lean; keep.)
+- **Dealing harm / taking CC / supporting** → one
+  `noteCombatEngagement(caster, effect, affectedTargets)` helper called at
+  the end of each player-cast apply site in `sys/skills.go`
+  (`applyPlayerDamageAura`, `applyDotEffect`, `applySlowAura`,
+  `applyHealAura`). Stamps: the **caster** when a `TargetsEnemies` effect
+  hits ≥1 target, or a support effect hits ≥1 **in-combat** ally; and a
+  **player target** of a CC/harmful effect that skipped `takeDamage`.
+  Cooldown instants reuse these same functions, so they ride along free.
+- Window aged in `ResetTickNumbers` exactly like `attackerTicks`;
+  exported `InCombat() bool`. Gate `updateVitalSigns`: passive regen only
+  when `!InCombat()`. Dead-player (0-HP) and god-mode behavior unchanged;
   `StatusEffectRegenerating` only while actually regenerating.
-- Window length [PLACEHOLDER — candidate: reuse
-  `combatSignalWindowTicks = 90 ≈ 3 s`, or a longer dedicated constant].
+
+**New seam this requires:** "ally in combat" needs a readable combat
+state on *allies* — add `InCombat() bool` to the shared `model.Combatant`
+interface, implemented by both player (the new flag) and mob
+(`aggroTarget != nil`). Don't special-case players.
+
+- Window length [PLACEHOLDER — `combatSignalWindowTicks = 90 ≈ 3 s` is
+  likely too short for a WoW-feel drop; propose a dedicated ~150-tick /
+  5 s constant at chunk start].
+- **Known divergence (accepted):** caster-side combat decays on the
+  caster's *own* last action, not the debuff's lifetime — land a dot and
+  walk away and you drop combat while it still ticks on the enemy (the
+  *victim* stays in combat, re-stamped each dot tick via `takeDamage`).
+  This is exactly the pre-approved time-gating; recorded as a decision,
+  not a bug.
+- **Test matrix:** deal-damage→combat, take-damage→combat,
+  CC-a-hostile→combat, get-CC'd→combat, heal-in-combat-ally→combat,
+  heal-*safe*-ally→**not** combat, window-expiry→regen-resumes-with-
+  enemy-present.
 - Declining-with-level regen **tuning** is NOT this chunk — that's
   harness-era (pre-step-6). This chunk only makes the gate true to GDD §3.
 
@@ -358,11 +420,14 @@ commits.
 
 ## 6. Open ⚑ sub-decisions (pin at the relevant chunk's plan-first start)
 
-- **§6.1 (chunk 1)** — does *dealing* damage also hold the player in
-  combat? The chunk-6 owner combat stamps already track "player attacked
-  a mob" (assist signal) — potential reuse. Lean: yes (took OR dealt),
-  else whittling a mob from range regens mid-fight. Window length
-  [PLACEHOLDER].
+- **§6.1 (chunk 1) — RESOLVED + BROADENED 2026-07-12 (user).** Not just
+  "took OR dealt": full **WoW-style symmetric combat state** — enters on
+  taking harm, taking CC, dealing any harmful effect (damage/dot/CC) to a
+  hostile, *or* supporting an in-combat ally. Exit is purely time-gated
+  (no exit-side proximity scan; regen may resume while still chased —
+  deliberate WoW divergence). Design + seams folded into §3.1. Remaining
+  open sub-item: window length [PLACEHOLDER ≈ 5 s / 150 ticks, pin at
+  chunk start].
 - **§6.2 (chunk 2)** — campfire heal semantics: uncapped targets vs
   capped? heals-in-combat allowed (lean: yes in v1 — attrition rides the
   regen gate; revisit if fires become combat pillars)? heal cadence/rate

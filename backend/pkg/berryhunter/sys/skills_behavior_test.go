@@ -73,6 +73,8 @@ type fakePlayer struct {
 	healedBy        []model.PlayerEntity
 	healReceived    vitals.VitalSign
 	resists         []appliedResist
+	inCombat        bool // reported by InCombat (chunk 1 combat-gate tests)
+	combatActions   int  // NoteCombatAction call count (chunk 1)
 }
 
 // appliedResist records one ApplyResist call on a test double.
@@ -119,6 +121,8 @@ func (f *fakePlayer) ApplyRecipeCascade()                 {}
 func (f *fakePlayer) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
 	f.resists = append(f.resists, appliedResist{source, tags, factor, ticks})
 }
+func (f *fakePlayer) InCombat() bool      { return f.inCombat }
+func (f *fakePlayer) NoteCombatAction()   { f.combatActions++ }
 
 var (
 	_ skillEntity        = (*fakePlayer)(nil)
@@ -419,6 +423,36 @@ func TestApplyHealAura_GodModePaysNoSelfDamage(t *testing.T) {
 	assert.Equal(t, caster.MaxHealth(), caster.vitalSigns.Health, "god pays nothing")
 }
 
+// --- in-combat gate: supporting an engaged ally (atmosphere & recovery chunk 1) ---
+
+// Healing an ally who is itself in combat puts the healer in combat too.
+func TestApplyHealAura_HealingEngagedAlly_EntersCombat(t *testing.T) {
+	caster := newFakePlayer()
+	ally := newFakePlayer()
+	ally.vitalSigns.Health = 50
+	ally.inCombat = true
+	set := colliderSetOf(model.PlayerEntity(ally))
+
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+
+	assert.Equal(t, 1, caster.combatActions, "supporting an engaged ally enters combat")
+}
+
+// Healing a safe ally (out of combat) does not drag the healer into combat —
+// out-of-combat attrition healing stays out of combat.
+func TestApplyHealAura_HealingSafeAlly_StaysOutOfCombat(t *testing.T) {
+	caster := newFakePlayer()
+	ally := newFakePlayer()
+	ally.vitalSigns.Health = 50
+	ally.inCombat = false
+	set := colliderSetOf(model.PlayerEntity(ally))
+
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+
+	require.Equal(t, vitals.VitalSign(60), ally.vitalSigns.Health, "the ally was actually healed")
+	assert.Equal(t, 0, caster.combatActions, "healing a safe ally is not a combat action")
+}
+
 // --- processEntity through a real phy.Space ---
 
 // spaceWithAuraAndTarget wires an aura sensor and a target circle at the same
@@ -533,6 +567,7 @@ type fakeHealableMob struct {
 	health       vitals.VitalSign
 	maxHealth    vitals.VitalSign
 	healReceived vitals.VitalSign
+	inCombat     bool // reported by InCombat (chunk 1: heal-an-engaged-ally test)
 }
 
 func (f *fakeHealableMob) Basic() ecs.BasicEntity { return f.basic }
@@ -552,6 +587,7 @@ func (f *fakeHealableMob) Heal(hp uint32) vitals.VitalSign {
 	f.healReceived += healed
 	return healed
 }
+func (f *fakeHealableMob) InCombat() bool { return f.inCombat }
 
 var _ model.Healable = (*fakeHealableMob)(nil)
 
@@ -613,6 +649,40 @@ func TestApplyDamageAura_PlayerCaster_RespectsTargetsEnemiesFlag(t *testing.T) {
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
 	assert.Empty(t, target.touches, "targetsMobs=false must not hit mob-like targets")
+}
+
+// --- in-combat gate: dealing harm (atmosphere & recovery chunk 1) ---
+
+// A player whose damage aura lands on a hostile enters combat.
+func TestApplyDamageAura_PlayerCaster_EntersCombatOnHit(t *testing.T) {
+	caster := newFakePlayer()
+	target := &touchRecorder{} // FactionHostile
+	effect := skills.EffectDef{
+		Type:           skills.EffectTypeDamageAura,
+		TargetsEnemies: true,
+		Damage:         &skills.DamageParams{HP: 0.01},
+	}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.NotEmpty(t, target.touches, "the hostile was hit")
+	assert.Equal(t, 1, caster.combatActions, "dealing harm enters combat")
+}
+
+// A player whose damage aura connects with nothing (no eligible target) stays
+// out of combat — combat is entered on a landed hit, not on merely casting.
+func TestApplyDamageAura_PlayerCaster_NoHitNoCombat(t *testing.T) {
+	caster := newFakePlayer()
+	target := &touchRecorder{} // FactionHostile
+	effect := skills.EffectDef{
+		Type:           skills.EffectTypeDamageAura,
+		TargetsEnemies: false, // hits nothing
+		Damage:         &skills.DamageParams{HP: 0.01},
+	}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	assert.Equal(t, 0, caster.combatActions, "a cast that hits nothing is not a combat action")
 }
 
 // --- faction eligibility (effect foundations Step 1) ---
@@ -1278,7 +1348,7 @@ func TestSlowAura_AppliesLevelScaledSlow(t *testing.T) {
 		Slow:           &skills.SlowParams{Fraction: 0.1, FractionPerLevel: 0.1},
 	}
 
-	applySlowAura(4, 3, effect, set)
+	applySlowAura(newFakePlayer(), 4, 3, effect, set)
 
 	require.Len(t, target.fractions, 1)
 	assert.InDelta(t, 0.3, target.fractions[0], 1e-6) // 0.1 + 2×0.1
@@ -1292,7 +1362,25 @@ func TestSlowAura_SkipsNonSlowableTargets(t *testing.T) {
 
 	effect := skills.EffectDef{Type: skills.EffectTypeSlowAura, TargetsEnemies: true, TickInterval: 1, Slow: &skills.SlowParams{Fraction: 0.1}}
 
-	assert.NotPanics(t, func() { applySlowAura(4, 1, effect, set) })
+	assert.NotPanics(t, func() { applySlowAura(newFakePlayer(), 4, 1, effect, set) })
+}
+
+// A player casting a slow that lands on a slowable hostile enters combat
+// (CC-a-hostile direction, atmosphere & recovery chunk 1).
+func TestSlowAura_CasterEntersCombatOnSlow(t *testing.T) {
+	caster := newFakePlayer()
+	target := &slowRecorder{}
+	effect := skills.EffectDef{
+		Type:           skills.EffectTypeSlowAura,
+		TargetsEnemies: true,
+		TickInterval:   1,
+		Slow:           &skills.SlowParams{Fraction: 0.1},
+	}
+
+	applySlowAura(caster, 4, 1, effect, colliderSetOf(target))
+
+	require.Len(t, target.fractions, 1, "the target was slowed")
+	assert.Equal(t, 1, caster.combatActions, "CC'ing a hostile enters combat")
 }
 
 // --- applyResistAura (item 11 Phase 2 Step 3) ---

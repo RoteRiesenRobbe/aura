@@ -140,7 +140,7 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 		case skills.EffectTypeHealAura:
 			s.applyHealAura(e, equip.Level, effect, collisions)
 		case skills.EffectTypeSlowAura:
-			applySlowAura(equip.Def.ID, equip.Level, effect, collisions)
+			applySlowAura(e, equip.Def.ID, equip.Level, effect, collisions)
 		case skills.EffectTypeResistAura:
 			applyResistAura(e, equip.Def.ID, equip.Level, effect, collisions)
 		case skills.EffectTypeDotAura:
@@ -188,6 +188,13 @@ func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skil
 	for _, c := range targets {
 		c.Shape().UserData.(dotBuffable).ApplyDot(source, dot, ticks)
 	}
+	// Applying a dot enters combat (chunk 1). e is the direct caster (player on
+	// a player cast, the summon on an owned cast — the latter is not a
+	// CombatActor and is skipped). Combat decays on the caster's own last
+	// action, not the dot's lifetime — the accepted divergence (§3.1).
+	if len(targets) > 0 {
+		noteHarmDealt(e)
+	}
 }
 
 // tickDots deals every dot damage event due on this entity this tick. The
@@ -231,6 +238,19 @@ func (s *SkillSystem) tickDots(e skillEntity) {
 		if n, ok := e.(model.AuraHitNotifier); ok {
 			n.NoteAuraHit(model.AuraHitStyleFire)
 		}
+	}
+}
+
+// noteHarmDealt puts a player caster into combat (atmosphere & recovery
+// chunk 1) when its own harmful or supporting action connects: a mob caster has
+// no regen gate (its combat is aggroTarget-driven) so it is skipped for free
+// via the model.CombatActor assertion. The take-harm direction is stamped in
+// takeDamage on the target; this is only the caster side. Direct casts only —
+// an owned summon's hits belong to the summon (its entity is passed here, not
+// the owner), mirroring NoteAttackDealt's Damage.Source==nil rule.
+func noteHarmDealt(caster any) {
+	if a, ok := caster.(model.CombatActor); ok {
+		a.NoteCombatAction()
 	}
 }
 
@@ -347,6 +367,12 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
 		noteAuraHit(c, style)
 	}
+	// Dealing harm enters combat (chunk 1); direct casts only — a summon's hits
+	// belong to the summon, not the owner (source != nil), so the owner does
+	// not enter combat through its summon (consistent with attribution).
+	if source == nil && len(targets) > 0 {
+		noteHarmDealt(caster)
+	}
 }
 
 // applyMobDamageAura applies a mob's aura to the (mask-filtered) collision set
@@ -405,6 +431,7 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 	casterFaction := e.Faction()
 	casterID := e.Basic().ID()
 	healedSomeone := false
+	supportedEngagedAlly := false
 
 	// Eligible = a wounded ally (same faction, Step 1) that isn't the caster;
 	// the cap then counts only heal-worthy targets (never a slot wasted on a
@@ -439,6 +466,11 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 			continue // fully healed between selection and application; not a hit
 		}
 		healedSomeone = true
+		// Supporting an in-combat ally enters combat (chunk 1). Healing a safe
+		// ally does not — attrition healing out of combat stays out of combat.
+		if other.InCombat() {
+			supportedEngagedAlly = true
+		}
 
 		// Participation XP (roadmap item 10) is a PLAYER concept: only a player
 		// healing a player registers a recent healer. A mob healer — or a mob
@@ -455,6 +487,12 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 		if healer, ok := e.(model.Combatant); ok {
 			s.creditHealerThreat(other.Basic().ID(), healer, float32(healed))
 		}
+	}
+
+	// Supporting an ally already in combat puts the healer in combat too
+	// (chunk 1); a mob healer is skipped by noteHarmDealt.
+	if supportedEngagedAlly {
+		noteHarmDealt(e)
 	}
 
 	// Self-cost is the player build-cost lever and needs player vitals; mob
@@ -783,7 +821,7 @@ func (s *SkillSystem) summonPosition(e skillEntity, summonRadius float32) phy.Ve
 // eligibility at all (pre-6.6 gap, harmless while no mob carries a slow aura
 // and players cannot be slowed) — when a mob slow ships, route it through
 // eligibleByTargetFlags so the mayHarm hostility gate applies.
-func applySlowAura(source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+func applySlowAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	fraction := effect.Slow.FractionAt(level)
 	if fraction <= 0 {
 		return
@@ -792,10 +830,19 @@ func applySlowAura(source skills.SkillID, level int, effect skills.EffectDef, co
 		fraction = 1
 	}
 	ticks := effectiveTickInterval(effect, level) + 1
+	slowedAny := false
 	for c := range collisions {
 		if target, ok := c.Shape().UserData.(slowable); ok {
 			target.ApplySlow(source, fraction, ticks)
+			slowedAny = true
 		}
+	}
+	// CC'ing a hostile enters combat (chunk 1); a mob caster is skipped by
+	// noteHarmDealt. The player TARGET of a slow would also enter combat, but
+	// players carry no ApplySlow today (the get-CC'd direction stays inert —
+	// §3.1), so only the caster side is stamped here.
+	if slowedAny {
+		noteHarmDealt(e)
 	}
 }
 

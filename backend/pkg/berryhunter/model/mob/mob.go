@@ -890,6 +890,14 @@ func (m *Mob) TargetsEntity(id uint64) bool {
 	return m.aggroTarget != nil && m.aggroTarget.Basic().ID() == id
 }
 
+// InCombat reports whether this mob is currently engaged (model.Combatant;
+// atmosphere & recovery chunk 1). A mob's combat state is simply "has an aggro
+// target" — read by a healer deciding whether an allied mob it heals counts as
+// an in-combat ally.
+func (m *Mob) InCombat() bool {
+	return m.aggroTarget != nil
+}
+
 // ThreatRow is one read-only threat-table row for the THREAT debug cheat
 // (chunk 9).
 type ThreatRow struct {

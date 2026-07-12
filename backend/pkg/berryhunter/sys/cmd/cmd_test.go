@@ -149,6 +149,7 @@ func (f *fakeCombatant) Position() phy.Vec2f    { return phy.Vec2f{} }
 func (f *fakeCombatant) Radius() float32        { return 0.25 }
 func (f *fakeCombatant) Faction() model.Faction { return model.FactionAligned }
 func (f *fakeCombatant) HealthRatio() float32   { return 1 }
+func (f *fakeCombatant) InCombat() bool         { return false }
 
 func threatTestMob(t *testing.T) *mob.Mob {
 	t.Helper()

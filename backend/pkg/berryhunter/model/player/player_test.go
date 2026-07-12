@@ -220,6 +220,62 @@ func TestUpdateVitalSigns_DeadPlayerDoesNotRegenerate(t *testing.T) {
 	assert.NotContains(t, p.StatusEffects().Effects(), model.StatusEffectRegenerating)
 }
 
+// --- in-combat regen gate (atmosphere & recovery chunk 1) ---
+
+// A fresh player is out of combat and regenerates normally.
+func TestPlayer_InCombat_FalseInitially(t *testing.T) {
+	p := newTestPlayer(nil)
+	assert.False(t, p.InCombat(), "a fresh player is not in combat")
+}
+
+// Taking HP damage enters combat (the take-harm direction, stamped in
+// takeDamage — the single damage choke point).
+func TestPlayer_TakeDamage_EntersCombat(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	require.False(t, p.InCombat())
+
+	p.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+
+	assert.True(t, p.InCombat(), "taking HP damage puts the player in combat")
+}
+
+// While in combat, passive regen is suppressed and no Regenerating status is
+// stamped (GDD §3 recovery gate).
+func TestPlayer_InCombat_GatesRegen(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.config.HealthGainTick = 0.1
+	p.statusEffects = model.NewStatusEffects()
+	p.PlayerVitalSigns.Health = 50
+
+	p.NoteCombatAction()
+	p.updateVitalSigns(0)
+
+	assert.Equal(t, vitals.VitalSign(50), p.VitalSigns().Health, "no regen while in combat")
+	assert.NotContains(t, p.StatusEffects().Effects(), model.StatusEffectRegenerating)
+}
+
+// Combat is purely time-gated: after the grace window ages out (via
+// ResetTickNumbers), the player leaves combat and regen resumes — even with an
+// enemy still present (no exit-side scan; the deliberate WoW divergence).
+func TestPlayer_CombatWindow_ExpiresAndRegenResumes(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.config.HealthGainTick = 0.1
+	p.statusEffects = model.NewStatusEffects()
+	p.PlayerVitalSigns.Health = 50
+
+	p.NoteCombatAction()
+	require.True(t, p.InCombat())
+
+	for i := 0; i < combatRegenGraceTicks; i++ {
+		p.ResetTickNumbers()
+	}
+	assert.False(t, p.InCombat(), "combat drops after the grace window")
+
+	p.updateVitalSigns(0)
+	assert.Greater(t, p.VitalSigns().Health, vitals.VitalSign(50), "regen resumes once out of combat")
+}
+
 // --- recent healers (participation XP, roadmap item 10) ---
 
 func TestRecentHealers_RecordedAfterHeal(t *testing.T) {
@@ -399,6 +455,7 @@ func (f *fakeAttackerMob) Faction() model.Faction { return model.FactionHostile 
 func (f *fakeAttackerMob) Position() phy.Vec2f    { return f.pos }
 func (f *fakeAttackerMob) Radius() float32        { return 0.3 }
 func (f *fakeAttackerMob) HealthRatio() float32   { return f.healthRatio }
+func (f *fakeAttackerMob) InCombat() bool         { return false }
 
 func newFakeAttackerMob() *fakeAttackerMob {
 	return &fakeAttackerMob{basic: ecs.NewBasic(), healthRatio: 1}

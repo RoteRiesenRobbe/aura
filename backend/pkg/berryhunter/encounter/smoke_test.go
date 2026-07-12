@@ -26,6 +26,7 @@ func (f *fakePlayer) Position() phy.Vec2f                 { return f.pos }
 func (f *fakePlayer) Radius() float32                     { return 0.25 }
 func (f *fakePlayer) Faction() model.Faction              { return model.FactionAligned }
 func (f *fakePlayer) HealthRatio() float32                { return 1 }
+func (f *fakePlayer) InCombat() bool                      { return false }
 func (f *fakePlayer) AddExperience(xp uint64)             {}
 func (f *fakePlayer) RecentHealers() []model.PlayerEntity { return nil }
 

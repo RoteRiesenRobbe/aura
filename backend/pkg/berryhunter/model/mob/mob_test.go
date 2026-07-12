@@ -71,6 +71,7 @@ func (f *fakeAuraPlayer) Position() phy.Vec2f                    { return f.pos 
 func (f *fakeAuraPlayer) Radius() float32                        { return f.radius }
 func (f *fakeAuraPlayer) Faction() model.Faction                 { return model.FactionAligned }
 func (f *fakeAuraPlayer) HealthRatio() float32                   { return float32(f.vs.Health) / float32(vitals.Max) }
+func (f *fakeAuraPlayer) InCombat() bool                         { return false }
 func (f *fakeAuraPlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vs }
 func (f *fakeAuraPlayer) AddExperience(xp uint64)                { f.xp = append(f.xp, xp) }
 func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity    { return f.healers }
@@ -777,6 +778,7 @@ func (f *fakeCombatant) Faction() model.Faction { return f.faction }
 func (f *fakeCombatant) Position() phy.Vec2f    { return f.pos }
 func (f *fakeCombatant) Radius() float32        { return f.radius }
 func (f *fakeCombatant) HealthRatio() float32   { return f.healthRatio }
+func (f *fakeCombatant) InCombat() bool         { return false }
 
 func newFakeCombatant() *fakeCombatant {
 	return &fakeCombatant{basic: ecs.NewBasic(), radius: 0.25, faction: model.FactionAligned, healthRatio: 1}
