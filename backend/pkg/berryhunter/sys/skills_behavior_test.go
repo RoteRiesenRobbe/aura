@@ -65,6 +65,7 @@ type fakePlayer struct {
 	vitalSigns      model.PlayerVitalSigns
 	statusEffects   model.StatusEffects
 	aura            *phy.Circle
+	body            *phy.Circle // main physical body (Bodies()[0], player layer)
 	god             bool
 	maxHealthFactor float32
 	maxHealth       vitals.VitalSign
@@ -124,6 +125,10 @@ func (f *fakePlayer) ApplyResist(source skills.SkillID, tags []string, factor fl
 func (f *fakePlayer) InCombat() bool      { return f.inCombat }
 func (f *fakePlayer) NoteCombatAction()   { f.combatActions++ }
 
+// Bodies mirrors the real player: Bodies()[0] is the main physical body on
+// the player layer (healerTargetable reads its layer, chunk 2).
+func (f *fakePlayer) Bodies() model.Bodies { return model.Bodies{f.body} }
+
 var (
 	_ skillEntity        = (*fakePlayer)(nil)
 	_ model.PlayerEntity = (*fakePlayer)(nil)
@@ -142,7 +147,16 @@ func newFakePlayer() *fakePlayer {
 		// Non-nil so applyDamageAura/applyHealAura can read the caster position
 		// for selector ordering; tests that need a real space overwrite it.
 		aura: phy.NewCircle(phy.VEC2F_ZERO, 1.0),
+		body: playerLayerBody(),
 	}
+}
+
+// playerLayerBody builds a main-body circle on the real player's body layer
+// (player.go:41) so healerTargetable reads a player-shaped Bodies()[0].
+func playerLayerBody() *phy.Circle {
+	b := phy.NewCircle(phy.VEC2F_ZERO, 0.25)
+	b.Shape().Layer = int(model.LayerViewportCollision | model.LayerHeatCollision | model.LayerPlayerCollision)
+	return b
 }
 
 // playerTouchRecorder is a PlayerEntity that also implements Interacter. Used
@@ -460,13 +474,20 @@ func TestApplyHealAura_HealingSafeAlly_StaysOutOfCombat(t *testing.T) {
 // collision set is populated exactly like in the running game.
 func spaceWithAuraAndTarget(t *testing.T, targetUserData any) *phy.Circle {
 	t.Helper()
+	return spaceWithAuraAndTargetAt(t, phy.VEC2F_ZERO, targetUserData)
+}
+
+// spaceWithAuraAndTargetAt is spaceWithAuraAndTarget with the target placed at
+// an explicit position inside the sensor (per-effect range-check tests).
+func spaceWithAuraAndTargetAt(t *testing.T, targetPos phy.Vec2f, targetUserData any) *phy.Circle {
+	t.Helper()
 
 	aura := phy.NewCircle(phy.VEC2F_ZERO, 1.0)
 	aura.Shape().IsSensor = true
 	aura.Shape().Layer = int(model.LayerNoneCollision)
 	aura.Shape().Mask = int(model.LayerPlayerCollision | model.LayerActionCollision)
 
-	target := phy.NewCircle(phy.VEC2F_ZERO, 0.25)
+	target := phy.NewCircle(targetPos, 0.25)
 	target.Shape().IsSensor = true
 	target.Shape().Layer = int(model.LayerActionCollision)
 	target.Shape().UserData = targetUserData
@@ -494,6 +515,38 @@ func activeAuraPlayer(t *testing.T, effects ...skills.EffectDef) (*fakePlayer, *
 	caster.sc.EquipAura(0, def, 1)
 	caster.sc.SetActiveAura(0)
 	return caster, target
+}
+
+// --- per-effect range check (atmosphere & recovery chunk 2) ---
+
+func TestProcessEntity_SubMaxRadiusEffectSkipsMidSensorTarget(t *testing.T) {
+	// A multi-effect aura with unequal radii: the sensor sizes to the max
+	// (1.0), so a target at 0.6 sits inside the sensor but outside the small
+	// effect's reach (0.3 + body 0.25 = 0.55). Only the large effect may land —
+	// the campfire scenario (small heal + chunk-3 large light).
+	target := &touchRecorder{}
+	caster := newFakePlayer()
+	caster.aura = spaceWithAuraAndTargetAt(t, phy.Vec2f{X: 0.6, Y: 0}, target)
+
+	large := skills.EffectDef{
+		Type: skills.EffectTypeDamageAura, TargetsEnemies: true, Radius: 1.0, TickInterval: 1,
+		Damage: &skills.DamageParams{HP: 10},
+	}
+	small := skills.EffectDef{
+		Type: skills.EffectTypeDamageAura, TargetsEnemies: true, Radius: 0.3, TickInterval: 1,
+		Damage: &skills.DamageParams{HP: 999},
+	}
+	def := &skills.SkillDefinition{
+		ID: 99, Name: "TestAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
+		Effects: []skills.EffectDef{large, small},
+	}
+	caster.sc.EquipAura(0, def, 1)
+	caster.sc.SetActiveAura(0)
+
+	testSkillSystem().processEntity(caster)
+
+	require.Len(t, target.touches, 1, "only the large effect reaches the mid-sensor target")
+	assert.InDelta(t, 10, target.touches[0], 1e-6, "the hit is the large effect's, not the over-reaching small one")
 }
 
 // --- mob casters (Phase 6.1) ---
@@ -2102,6 +2155,58 @@ func TestApplyHealAura_CreditsHealerThreatOnSensorAggroMob(t *testing.T) {
 	require.Len(t, aggro.sources, 1,
 		"a mob whose aggro target is the heal target is in combat with it — the healer gets credited")
 	assert.Same(t, any(healer), any(aggro.sources[0]))
+}
+
+// campfireAuraDef mirrors the CampfireAura content def: an uncapped small heal
+// aura on a stationary world fixture (atmosphere & recovery chunk 2, §6.2).
+func campfireAuraDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 109, Name: "CampfireAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 1,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeHealAura, Radius: 1.5, TickInterval: 30,
+			Heal: &skills.HealParams{HP: 6},
+		}},
+	}
+}
+
+// campfireMobDef mirrors the Campfire content def: speed 0 (aura always-on)
+// with a Viewport-only body — structurally untargetable, the brazier layer
+// trick. Name reuses the Brazier entity type; the real def switches to the
+// Campfire EntityType with the wire step.
+func campfireMobDef() *mobs.MobDefinition {
+	return &mobs.MobDefinition{
+		ID: 13, Name: "Brazier",
+		Body: mobs.Body{
+			Radius: 0.25, AggroRadius: 0.1,
+			CollisionLayer: int(model.LayerViewportCollision),
+			CollisionMask:  int(model.LayerBorderCollision),
+		},
+		Factors: mobs.Factors{MaxHealth: 50, Speed: 0},
+		Skills:  []mobs.MobSkill{{Def: campfireAuraDef(), Level: 1}},
+	}
+}
+
+func TestApplyHealAura_UntargetableHealerDrawsNoThreat(t *testing.T) {
+	// Gotcha #1 / §6.2: an aligned campfire healing an in-combat player is a
+	// different faction from the hostile mob, so noteThreat would accept it —
+	// pulling the mob onto a structurally unreachable Viewport-only body
+	// forever. Design rule: aligned world fixtures never draw mob threat.
+	s := testSkillSystem()
+	campfire := mob.NewMob(campfireMobDef(), 0, nil)
+	campfire.SetFaction(model.FactionAligned)
+
+	ally := newFakePlayer()
+	ally.vitalSigns.Health = 50
+	ally.inCombat = true
+
+	fighting := &threatRecordingMob{fakeMob: *newFakeMob(), fighting: map[uint64]bool{ally.basic.ID(): true}}
+	s.AddEntity(fighting)
+
+	s.applyHealAura(campfire, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+
+	require.Equal(t, vitals.VitalSign(60), ally.vitalSigns.Health, "the campfire heal itself lands")
+	assert.Empty(t, fighting.sources,
+		"a healer with no combatant-layer body never lands on a threat table (§6.2: aligned world fixtures never draw mob threat)")
 }
 
 // --- mob-path faction gate (mob-depth chunk 6.6) ---

@@ -24,7 +24,8 @@ enum EntityType : ushort {
   Rabbit,
   Companion,
   Brazier,
-  Healer
+  Healer,
+  Campfire
 }
 
 enum StatusEffect : ushort {

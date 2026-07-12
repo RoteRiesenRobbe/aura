@@ -64,6 +64,37 @@ func auraHitStyleFor(e skills.EffectDef, level int) model.AuraHitStyle {
 	return model.AuraHitStyleFire
 }
 
+// effectCollisions narrows the shared aura sensor's collision set to the
+// targets one effect can actually reach (atmosphere & recovery chunk 2). The
+// sensor sizes to the MAX effect radius over the skill (component.go), so a
+// sub-max-radius effect must re-check range or it over-reaches — the campfire
+// (small heal + chunk-3 large light) is the first such skill. The check
+// mirrors the sensor's own circle-circle overlap (phy.IntersectCircles) at
+// the effect's scaled radius; an effect at the sensor radius returns the set
+// untouched, so equal-radii skills stay bit-identical.
+func effectCollisions(collisions phy.ColliderSet, casterPos phy.Vec2f, sensorRadius float32, effect skills.EffectDef, level int) phy.ColliderSet {
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	if radius >= sensorRadius {
+		return collisions
+	}
+	filtered := make(phy.ColliderSet, len(collisions))
+	for c := range collisions {
+		circle, ok := c.(*phy.Circle)
+		if !ok {
+			// Non-circle bodies don't occur on aura layers today; keep them —
+			// the sensor already matched them, and dropping silently would be
+			// the worse failure mode.
+			filtered[c] = struct{}{}
+			continue
+		}
+		r := radius + circle.Radius
+		if casterPos.DistanceToSquared(circle.Position()) < r*r {
+			filtered[c] = struct{}{}
+		}
+	}
+	return filtered
+}
+
 // selectTargets runs the item-11 targeting pipeline over a raw collision set:
 // eligibility filter → selector ordering → target cap. It returns the colliders
 // to affect, in application order.

@@ -251,6 +251,7 @@ const gameObjectClasses = [
     Mobs.Companion,
     Mobs.Brazier,
     Mobs.Healer,
+    Mobs.Campfire,
 ];
 
 function unmarshalEntityType(entityType) {

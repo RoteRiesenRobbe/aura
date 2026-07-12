@@ -126,6 +126,32 @@ func TestZone_LoadsEmptyPropsAndSpawns(t *testing.T) {
 	assert.Empty(t, z.Spawns)
 }
 
+func TestZone_ParsesCampfires(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"campfires": [ { "x": 3, "y": -4.5 }, { "x": 0, "y": 0 } ]
+	}`
+
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+	require.NoError(t, err)
+	require.Len(t, z.Campfires, 2)
+	assert.EqualValues(t, 3, z.Campfires[0].X)
+	assert.EqualValues(t, -4.5, z.Campfires[0].Y)
+}
+
+func TestZone_RejectsUnknownCampfireKey(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"campfires": [ { "x": 3, "y": -4.5, "radius": 2 } ]
+	}`
+
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "radius")
+}
+
 func TestZone_RejectsUnknownKey(t *testing.T) {
 	const doc = `{ "name": "X", "bounds": { "width": 60, "height": 40 }, "radius": 20 }`
 

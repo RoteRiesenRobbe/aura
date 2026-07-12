@@ -106,14 +106,25 @@ type TerrainTexture struct {
 	Flipped  string  `json:"flipped"`
 }
 
+// Campfire is a fixed world campfire position (atmosphere & recovery
+// chunk 2): a permanent aligned heal-aura fixture placed at boot. Campfires
+// are deliberately NOT zone spawns — they never die, need no respawn
+// machinery, and chunk 4 consumes them as a first-class list of respawn
+// anchors.
+type Campfire struct {
+	X float32 `json:"x"`
+	Y float32 `json:"y"`
+}
+
 // Zone is the whole authored world description loaded from a zone file. One
-// file = one complete zone (bounds + terrain + props + spawns).
+// file = one complete zone (bounds + terrain + props + spawns + campfires).
 type Zone struct {
-	Name    string           `json:"name"`
-	Bounds  Bounds           `json:"bounds"`
-	Terrain []TerrainTexture `json:"terrain"`
-	Props   []Prop           `json:"props"`
-	Spawns  []Spawn          `json:"spawns"`
+	Name      string           `json:"name"`
+	Bounds    Bounds           `json:"bounds"`
+	Terrain   []TerrainTexture `json:"terrain"`
+	Props     []Prop           `json:"props"`
+	Spawns    []Spawn          `json:"spawns"`
+	Campfires []Campfire       `json:"campfires"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
 	// and the identity sent to the client so it renders the matching terrain.

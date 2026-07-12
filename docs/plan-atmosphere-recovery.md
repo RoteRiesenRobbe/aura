@@ -276,6 +276,27 @@ interface, implemented by both player (the new flag) and mob
 
 ### 3.2 Chunk 2 — campfires
 
+**STATUS: DONE + VERIFIED IN-GAME 2026-07-12** ("all in-game checks
+verified and working"), committed. Backend suite 23 pkgs + tsc + webpack
+green, binary rebuilt, boot log clean (25 skills / 13 mobs /
+`placed campfires count=3 zone=proving-grounds`).
+Landed exactly per the execution sequence below, red-first: per-effect range
+filter = `effectCollisions` (`sys/targeting.go`) wired into `processEntity`
+for all five aura effect types — radius ≥ sensor returns the set untouched
+(equal-radii bit-identical, pinned); gotcha-#1 threat gate =
+`healerTargetable` (`Bodies()[0]` layer vs `LayerCombatants`, the
+auraCanReach convention) at the top of `creditHealerThreat`, regression test
+uses a real Viewport-only-body mob. Campfire mob id 13 / CampfireAura id 109
+(uncapped, 6 HP per 30t at r 1.5 ≈ 17 s zero-to-full [PLACEHOLDER]);
+EntityType `Campfire` appended; campfire.svg = copy of the legacy
+`fireCamp.svg`; mobs layer deliberately NOT in the DayCycle filtered list
+(chunk-3 light source); editor campfire mode (place/select/delete,
+`campfires` serialized after spawns, omitted when empty); fires at (0,0),
+(−46,−25) Ember Ring, (30,18) east staging. In-game checklist: heal at fire
+(wounded only, uncapped, also mid-combat), hostile mob does NOT path to /
+park at a fire that heals its combat target, campfire renders with heal
+ring, editor round-trip diff-clean.
+
 - **Entity: brazier-pattern mob.** `api/mobs/campfire.json` — speed 0
   (aura always-on), body `collisionLayer 32` (Viewport only — unkillable,
   non-colliding, interaction-free), mask 16 (Border). New `Campfire`
@@ -300,6 +321,48 @@ interface, implemented by both player (the new flag) and mob
   + serializer round-trip).
 - **Content [PLACEHOLDER]:** a few proving-grounds campfires (hub +
   outlying regions) — also the chunk-4 test anchors.
+
+**Plan-first execution sequence (settled 2026-07-12, code-grounded).**
+⚑ §6.2 resolved (uncapped, heals-in-combat, cadence, no-fixture-threat).
+Order = code first, content second, cp-defs + regen after:
+1. `Zone.Campfires []Vec2f` on the `world.Zone` struct
+   (`world/zone.go:111-123`, after `Spawns`) — lands BEFORE any zone
+   JSON carries the key (gotcha #4). Serializes in field order, omitted
+   when empty → pre-step-3 zones round-trip diff-clean (gotcha #5).
+2. Go placement in `berryhunterd.go` (prop-loop precedent `:93-100`):
+   `for _, c := range zone.Campfires { m := mob.NewMob(campfireDef, …);
+   m.SetPosition(c); m.SetFaction(model.FactionAligned); g.AddEntity(m) }`
+   — the `spawnSummon` post-construction faction pattern
+   (`sys/skills.go:737-750`), NOT a zone spawn (never dies, no respawn).
+3. Content defs: `api/mobs/campfire.json` (brazier clone — speed 0,
+   body `collisionLayer 32`/mask 16, name `"Campfire"` auto-maps to the
+   new EntityType) + `api/skills/mobs/campfire-aura.json` (`heal_aura`,
+   `maxTargets: 0`, `radius 1.5`, `tickInterval 30`, `healHP 6` — all
+   [PLACEHOLDER]).
+4. **Per-effect range filter** — fold a caster-distance check
+   (`casterPos` + `Scaled(effect.Radius, effect.RadiusPerLevel, level)`)
+   into the aura target path so a sub-max-radius effect stops
+   over-reaching the shared sensor (`component.go:41-55`). Pinned test:
+   equal-radii skills stay bit-identical (no-op); the campfire's smaller
+   radius drops a mid-sensor target.
+5. **Gotcha #1 fix** — untargetable-body gate in `creditHealerThreat`
+   (`skills.go:529`) + regression test (§6.2 / pitfall #1).
+6. Wire: append `Campfire` to `EntityType` (`server.fbs:5-27`, after
+   `Healer`); regen Go+TS together (flatc v24.3.25).
+7. Frontend (mob path, Healer/Brazier precedent — 5 edit sites): (a)
+   `Game.ts` mob layer — `createNamedContainer('campfire')` at
+   `:170-178` **and** the `cameraGroup.addChild` orderings at `:225-232`
+   *and* `:431`; (b) `Mobs.ts` `Campfire extends Mob` subclass +
+   `registerGameObjectSVG`; (c) `GameStateMessage.ts` factory array
+   (`:252-253`, enum order); (d) `Graphics.ts` file+sizes; (e) SVG asset
+   (reuse `brazier.svg` initially or add `campfire.svg`).
+8. **Editor:** campfire markers (spawn-marker pattern in
+   `zone-editor/logic/` — `ZoneModel`/`ZoneEditor`/`_ZoneEditorPanel`:
+   place/select/delete + serializer round-trip of `campfires`).
+9. Sanity: `go build ./...`, `go test` (targeting + heal-threat pkgs),
+   `cp-defs`/rebuild, `pkill berryhunterd` + boot-log check (gotcha #10),
+   in-game checklist (heal at fire, uncapped, in-combat top-up, mob does
+   NOT path to the fire).
 
 ### 3.3 Chunk 3 — darkness & light
 
@@ -361,14 +424,19 @@ interface, implemented by both player (the new flag) and mob
 
 ## 4. Pitfalls & gotchas (found at planning; check at chunk start)
 
-1. **Campfire healer threat / aggro magnet.** `creditHealerThreat`
-   credits a healer with threat on mobs in combat with the heal target.
-   A campfire healing a fighting player must NOT accrue threat: mobs
-   could latch onto an **unreachable** Viewport-only body (the inverse
-   of the chunk-6.5 brazier suicide) and stand at the fire forever.
-   Chunk 8 recorded the crediting as Combatant-gated/inert for mob
-   casters — **verify and pin** for the campfire (aligned mob caster,
-   player target) at chunk-2 start.
+1. **Campfire healer threat / aggro magnet — CONFIRMED LIVE + RESOLVED
+   2026-07-12.** `creditHealerThreat` credits any `Combatant` healer
+   (`skills.go:487`); `noteThreat` drops only *same-faction* sources
+   (`mob.go:809`). The chunk-8 "inert for mob casters" note does NOT
+   cover this case: an aligned campfire healing an in-combat player is a
+   *different* faction from the hostile mob, so it lands on that mob's
+   threat table and can become its aggro target — pulling it onto the
+   unreachable Viewport body forever (inverse of the 6.5 brazier
+   suicide). **Fix (⚑ §6.2):** minimal untargetable-body gate in
+   `creditHealerThreat` — skip crediting when the healer's body is on a
+   structurally untargetable layer (Viewport-only). Ship a regression
+   test (aligned campfire heals in-combat player → hostile mob threat
+   table unchanged).
 2. **Proactive aggro on an aligned campfire:** hostile mobs' aggro sets
    include {aligned} — but sensors only see Player/Action layers and the
    campfire's body is Viewport-only, so sensor acquisition never fires.
@@ -428,10 +496,29 @@ commits.
   deliberate WoW divergence). Design + seams folded into §3.1. Remaining
   open sub-item: window length [PLACEHOLDER ≈ 5 s / 150 ticks, pin at
   chunk start].
-- **§6.2 (chunk 2)** — campfire heal semantics: uncapped targets vs
-  capped? heals-in-combat allowed (lean: yes in v1 — attrition rides the
-  regen gate; revisit if fires become combat pillars)? heal cadence/rate
-  [PLACEHOLDER ≈ full in 15–20 s].
+- **§6.2 (chunk 2) — RESOLVED 2026-07-12 (user), plan-first start.**
+  Campfire heal semantics:
+  - **Uncapped targets** — `maxTargets: 0`; a campfire heals *every*
+    wounded aligned entity in range (players + summons/companions), not a
+    lowest-health pick.
+  - **Heals in combat: yes** (v1) — attrition rides the chunk-1 regen
+    gate, not a campfire proximity scan. Revisit only if fires become
+    combat pillars.
+  - **Cadence [PLACEHOLDER]** — `radius ≈ 1.5`, `tickInterval ≈ 20–30`
+    (~1 s), `healHP ≈ 6` (the healer-aura unit) → zero-to-full ≈ 15–20 s
+    (GDD §3 rhythm).
+  - **Threat magnet (gotcha #1) — RESOLVED: design rule "aligned world
+    fixtures never draw mob threat."** Confirmed LIVE at planning (not
+    inert): `applyHealAura` credits any `Combatant` healer
+    (`skills.go:487`); `noteThreat` drops only *same-faction* sources
+    (`mob.go:809`), so an aligned campfire healing an in-combat player
+    lands on the hostile mob's threat table and can pull it onto the
+    unreachable Viewport body. Fix = minimal untargetable-body gate in
+    `creditHealerThreat` (or its call site): skip crediting when the
+    healer's body sits on a structurally untargetable layer
+    (Viewport-only 32 — no aggro/damage mask reaches it, so the threat is
+    dead weight). Principled + generalizes to future safe-haven fixtures;
+    no per-caster opt-out flag (rejected as a narrow single-use seam).
 - **§6.3 (chunk 3)** — light-radius wire shape: dedicated `light_radius`
   on Character+Mob (lean) vs zero-wire client mapping
   (active_skill_id/EntityType → radius constants — rejected-lean: revives

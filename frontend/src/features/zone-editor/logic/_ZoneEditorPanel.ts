@@ -21,7 +21,7 @@ import {ZoneProp, ZoneSpawn} from './ZoneModel';
 
 const NEW_ZONE_OPTION = '__new__';
 
-export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn';
+export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire';
 
 const PX_PER_UNIT = meter2px(1);
 
@@ -95,8 +95,13 @@ let spawnSelectedIndexLabel: HTMLElement;
 let waypointModeToggle: HTMLInputElement;
 let waypointCountLabel: HTMLElement;
 
+let campfireControls: HTMLElement;
+let campfireSelectionGroup: HTMLElement;
+let campfireSelectedIndexLabel: HTMLElement;
+
 let propCountLabel: HTMLElement;
 let spawnCountLabel: HTMLElement;
+let campfireCountLabel: HTMLElement;
 
 /**
  * Wires the zone-editor sections of the shared panel. Called by
@@ -137,8 +142,13 @@ export function setupPanel() {
     waypointModeToggle = document.getElementById('zoneEditor_waypointMode') as HTMLInputElement;
     waypointCountLabel = document.getElementById('zoneEditor_waypointCount');
 
+    campfireControls = document.getElementById('zoneEditor_campfireControls');
+    campfireSelectionGroup = document.getElementById('zoneEditor_campfireSelection');
+    campfireSelectedIndexLabel = document.getElementById('zoneEditor_campfireSelectedIndex');
+
     propCountLabel = document.getElementById('zoneEditor_propCount');
     spawnCountLabel = document.getElementById('zoneEditor_spawnCount');
+    campfireCountLabel = document.getElementById('zoneEditor_campfireCount');
 
     let popup = document.getElementById('zoneEditorPopup');
     popup.querySelectorAll('input, button, a, select')
@@ -207,6 +217,18 @@ export function setupPanel() {
     document.getElementById('zoneEditor_spawnPlaceButton').addEventListener('click', event => {
         event.preventDefault();
         placeAtPlayer();
+    });
+    document.getElementById('zoneEditor_campfirePlaceButton').addEventListener('click', event => {
+        event.preventDefault();
+        placeAtPlayer();
+    });
+    document.getElementById('zoneEditor_campfireDelete').addEventListener('click', event => {
+        event.preventDefault();
+        deleteSelection();
+    });
+    document.getElementById('zoneEditor_campfireDeselect').addEventListener('click', event => {
+        event.preventDefault();
+        deselect();
     });
     document.getElementById('zoneEditor_propUpdate').addEventListener('click', event => {
         event.preventDefault();
@@ -325,6 +347,7 @@ function setMode(newMode: EditorMode) {
     // zoneControls stays visible in every mode (unhidden in setupPanel).
     propControls.classList.toggle('hidden', mode !== 'prop');
     spawnControls.classList.toggle('hidden', mode !== 'spawn');
+    campfireControls.classList.toggle('hidden', mode !== 'campfire');
 }
 
 function onBoundsChanged() {
@@ -340,7 +363,7 @@ function onMapPointerDown(event: PointerEvent) {
     if (event.button !== 0) {
         return;
     }
-    if (mode !== 'prop' && mode !== 'spawn') {
+    if (mode !== 'prop' && mode !== 'spawn' && mode !== 'campfire') {
         return;
     }
     if (Game.state !== GameState.PLAYING) {
@@ -358,6 +381,13 @@ function onMapPointerDown(event: PointerEvent) {
         if (hit >= 0) {
             ZoneEditor.setSelection({kind: 'prop', index: hit});
             populatePropControls(ZoneEditor.model.props[hit]);
+            updateSelectionDisplay();
+            return;
+        }
+    } else if (mode === 'campfire') {
+        let hit = ZoneEditor.hitTestCampfire(x, y);
+        if (hit >= 0) {
+            ZoneEditor.setSelection({kind: 'campfire', index: hit});
             updateSelectionDisplay();
             return;
         }
@@ -402,6 +432,8 @@ function placeAt(x: number, y: number) {
             return;
         }
         ZoneEditor.placeSpawn(spawn);
+    } else if (mode === 'campfire') {
+        ZoneEditor.placeCampfire({x, y});
     }
 
     updateCounts();
@@ -494,7 +526,7 @@ function applyControlsToSelection() {
         if (updated !== null) {
             ZoneEditor.updateProp(selection.index, updated);
         }
-    } else {
+    } else if (selection.kind === 'spawn') {
         let current = ZoneEditor.model.spawns[selection.index];
         let updated = readSpawnControls(current.x, current.y);
         if (updated !== null) {
@@ -523,8 +555,10 @@ function deleteSelection() {
 
     if (selection.kind === 'prop') {
         ZoneEditor.removeProp(selection.index);
-    } else {
+    } else if (selection.kind === 'spawn') {
         ZoneEditor.removeSpawn(selection.index);
+    } else {
+        ZoneEditor.removeCampfire(selection.index);
     }
 
     updateCounts();
@@ -572,9 +606,11 @@ function updateSelectionDisplay() {
     let selection = ZoneEditor.getSelection();
     let propSelected = selection !== null && selection.kind === 'prop';
     let spawnSelected = selection !== null && selection.kind === 'spawn';
+    let campfireSelected = selection !== null && selection.kind === 'campfire';
 
     propSelectionGroup.classList.toggle('hidden', !propSelected);
     spawnSelectionGroup.classList.toggle('hidden', !spawnSelected);
+    campfireSelectionGroup.classList.toggle('hidden', !campfireSelected);
     if (propSelected) {
         propSelectedIndexLabel.textContent = String(selection.index);
     }
@@ -582,6 +618,9 @@ function updateSelectionDisplay() {
         spawnSelectedIndexLabel.textContent = String(selection.index);
         let spawn = ZoneEditor.model.spawns[selection.index];
         waypointCountLabel.textContent = String((spawn.waypoints || []).length);
+    }
+    if (campfireSelected) {
+        campfireSelectedIndexLabel.textContent = String(selection.index);
     }
 }
 
@@ -593,4 +632,5 @@ function updatePropRadiusLabel() {
 function updateCounts() {
     propCountLabel.textContent = String(ZoneEditor.model.props.length);
     spawnCountLabel.textContent = String(ZoneEditor.model.spawns.length);
+    campfireCountLabel.textContent = String(ZoneEditor.model.campfires.length);
 }

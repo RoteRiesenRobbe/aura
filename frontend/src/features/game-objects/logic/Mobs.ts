@@ -338,6 +338,22 @@ export class Healer extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Healer, file('healer'), maxSize('healer'));
 
+// The fixed world campfire (atmosphere & recovery chunk 2): a permanent
+// aligned heal fixture. Brazier pattern — stationary, structurally unkillable
+// (Viewport-only body layer), pure aura carrier. Fixed size.
+export class Campfire extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.campfire, x, y,
+            randomInt(minSize('campfire'), maxSize('campfire')),
+            Campfire.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Campfire, file('campfire'), maxSize('campfire'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.

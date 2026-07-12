@@ -57,12 +57,21 @@ export interface ZoneSpawn {
     patrolMode?: 'pingpong' | 'loop';
 }
 
+// A fixed world campfire position (atmosphere & recovery chunk 2) — a plain
+// point; the heal fixture itself is defined by the Campfire mob def.
+export interface ZoneCampfire {
+    x: number;
+    y: number;
+}
+
 export interface ZoneData {
     name: string;
     bounds: ZoneBounds;
     terrain: ZoneTerrain[];
     props: ZoneProp[];
     spawns: ZoneSpawn[];
+    // Omitted when empty so pre-step-3 zones round-trip diff-clean.
+    campfires?: ZoneCampfire[];
 }
 
 function round(value: number, digits: number): number {
@@ -79,13 +88,15 @@ export class ZoneModel {
     terrain: ZoneTerrain[];
     props: ZoneProp[];
     spawns: ZoneSpawn[];
+    campfires: ZoneCampfire[];
 
-    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[]) {
+    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[]) {
         this.name = name;
         this.bounds = bounds;
         this.terrain = terrain;
         this.props = props;
         this.spawns = spawns;
+        this.campfires = campfires;
     }
 
     static fromJSON(data: ZoneData): ZoneModel {
@@ -100,6 +111,7 @@ export class ZoneModel {
                 ...s,
                 waypoints: (s.waypoints || []).map(w => ({...w})),
             })),
+            (data.campfires || []).map(c => ({...c})),
         );
     }
 
@@ -125,6 +137,14 @@ export class ZoneModel {
 
     removeSpawn(index: number) {
         this.spawns.splice(index, 1);
+    }
+
+    addCampfire(campfire: ZoneCampfire): number {
+        return this.campfires.push(campfire) - 1;
+    }
+
+    removeCampfire(index: number) {
+        this.campfires.splice(index, 1);
     }
 
     /**
@@ -167,6 +187,11 @@ export class ZoneModel {
                     : undefined,
                 patrolMode: s.patrolMode === 'loop' ? 'loop' : undefined,
             })),
+            // Omitted (undefined key) while empty, so pre-step-3 zones
+            // round-trip diff-clean — the chunk-5 array precedent.
+            campfires: this.campfires.length > 0
+                ? this.campfires.map(c => ({x: round(c.x, 2), y: round(c.y, 2)}))
+                : undefined,
         };
         return JSON.stringify(data, null, 2);
     }

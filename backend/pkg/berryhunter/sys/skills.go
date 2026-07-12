@@ -134,17 +134,21 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 		if equip.TickAccumulator%effectiveTickInterval(effect, equip.Level) != 0 {
 			continue
 		}
+		// The shared sensor sizes to the MAX effect radius; a sub-max effect
+		// gets its collision set narrowed to its own reach (chunk 2). For the
+		// common equal-radii case this is the untouched set.
+		targets := effectCollisions(collisions, collider.Position(), collider.Radius, effect, equip.Level)
 		switch effect.Type {
 		case skills.EffectTypeDamageAura:
-			applyDamageAura(e, equip.Level, effect, collisions, s.rng)
+			applyDamageAura(e, equip.Level, effect, targets, s.rng)
 		case skills.EffectTypeHealAura:
-			s.applyHealAura(e, equip.Level, effect, collisions)
+			s.applyHealAura(e, equip.Level, effect, targets)
 		case skills.EffectTypeSlowAura:
-			applySlowAura(e, equip.Def.ID, equip.Level, effect, collisions)
+			applySlowAura(e, equip.Def.ID, equip.Level, effect, targets)
 		case skills.EffectTypeResistAura:
-			applyResistAura(e, equip.Def.ID, equip.Level, effect, collisions)
+			applyResistAura(e, equip.Def.ID, equip.Level, effect, targets)
 		case skills.EffectTypeDotAura:
-			applyDotEffect(e, equip.Def.ID, equip.Level, effect, collisions)
+			applyDotEffect(e, equip.Def.ID, equip.Level, effect, targets)
 		}
 	}
 }
@@ -526,8 +530,14 @@ type threatReceiver interface {
 // can hold aggro without ever damaging the mob) — credits the healer. Mobs
 // not fighting the target never learn of the heal. Cost is O(entities) per
 // heal event, on the heal aura's slow cadence.
+//
+// Structurally untargetable healers draw no threat (atmosphere & recovery
+// chunk 2, §6.2 "aligned world fixtures never draw mob threat"): a healer
+// whose main body sits on no combatant layer (the campfire's Viewport-only
+// brazier trick) can never be reached by any aggro or damage mask — crediting
+// it would park mobs on an unkillable target forever.
 func (s *SkillSystem) creditHealerThreat(healedID uint64, healer model.Combatant, healedHP float32) {
-	if healedHP <= 0 {
+	if healedHP <= 0 || !healerTargetable(healer) {
 		return
 	}
 	amount := healedHP * healerThreatFactor
@@ -536,6 +546,22 @@ func (s *SkillSystem) creditHealerThreat(healedID uint64, healer model.Combatant
 			t.NoteThreat(healer, amount)
 		}
 	}
+}
+
+// healerTargetable reports whether a healer's main body can ever be reached
+// by a mob: Bodies()[0] (the physical body by BaseEntity convention, the
+// auraCanReach precedent) must sit on a combatant layer. Only PROVEN
+// unreachability rejects — a healer without a physical body passes unchanged.
+func healerTargetable(healer model.Combatant) bool {
+	bodied, ok := healer.(model.BodiedEntity)
+	if !ok {
+		return true
+	}
+	bodies := bodied.Bodies()
+	if len(bodies) == 0 {
+		return true
+	}
+	return bodies[0].Shape().Layer&int(model.LayerCombatants) != 0
 }
 
 // resistBuffable is implemented by entities that can receive transient

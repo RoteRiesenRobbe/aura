@@ -14,6 +14,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/core"
 	"github.com/trichner/berryhunter/pkg/berryhunter/encounter"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/mob"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/prop"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/logging"
@@ -97,6 +98,27 @@ func main() {
 			p.Def.Body.Radius,
 			p.BlocksMovement,
 		))
+	}
+
+	// Fixed world campfires (atmosphere & recovery chunk 2): permanent aligned
+	// heal fixtures placed Go-side like props — NOT zone spawns (they never
+	// die, need no respawn machinery, and chunk 4 reads them as respawn
+	// anchors). Def-level aligned authoring is impossible by design (the mob
+	// loader rewrites aligned→hostile), so the faction is set
+	// post-construction — the spawnSummon pattern.
+	if len(zone.Campfires) > 0 {
+		campfireDef, err := mobsRegistry.GetByName("Campfire")
+		if err != nil {
+			slog.Error("zone places campfires but no Campfire mob is defined", slog.String("zone", zone.ID), slog.Any("err", err))
+			panic(err)
+		}
+		for _, c := range zone.Campfires {
+			m := mob.NewMob(campfireDef, g.Config().MobChaseIntoAuraMargin, nil)
+			m.SetPosition(phy.Vec2f{X: c.X, Y: c.Y})
+			m.SetFaction(model.FactionAligned)
+			g.AddEntity(m)
+		}
+		slog.Info("placed campfires", slog.Int("count", len(zone.Campfires)), slog.String("zone", zone.ID))
 	}
 
 	// Encounters are Go-registered per zone (chunk 9 decision: no zone-schema

@@ -127,6 +127,12 @@ export const GraphicsConfig = {
             minSize: <number> 44,
             maxSize: <number> 44,
         },
+
+        campfire: {
+            file: require('../features/game-objects/assets/mobs/campfire.svg'),
+            minSize: <number> 60,
+            maxSize: <number> 60,
+        },
     },
 
     resources: {

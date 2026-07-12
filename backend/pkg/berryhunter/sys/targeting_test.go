@@ -115,6 +115,49 @@ func TestSelectTargets_AllSelectorIgnoresCap(t *testing.T) {
 	assert.Len(t, got, 3, "selector all is the explicit AoE-all case, cap ignored")
 }
 
+// --- effectCollisions (per-effect range check, atmosphere & recovery chunk 2) ---
+
+func TestEffectCollisions_SubSensorRadiusDropsOutOfRangeTarget(t *testing.T) {
+	// Sensor radius 1.0, effect radius 0.3, target bodies radius 0.25: the
+	// overlap rule mirrors the sensor's own circle-circle test, so the effect
+	// reaches out to centerDist < 0.3 + 0.25 = 0.55.
+	inRange := colliderAt(vec(0.5, 0), "in")
+	outOfRange := colliderAt(vec(0.6, 0), "out")
+	set := setOf(inRange, outOfRange)
+
+	effect := skills.EffectDef{Radius: 0.3}
+	got := effectCollisions(set, phy.VEC2F_ZERO, 1.0, effect, 1)
+
+	assert.Contains(t, got, inRange, "a target overlapping the effect circle is kept")
+	assert.NotContains(t, got, outOfRange, "a mid-sensor target beyond the effect radius is dropped")
+}
+
+func TestEffectCollisions_EqualRadiiPassSetThroughUntouched(t *testing.T) {
+	// The sensor produced this set; an effect at the full sensor radius must
+	// not second-guess it (bit-identical no-op) — even for an entry that has
+	// since drifted beyond the radius.
+	drifted := colliderAt(vec(5, 0), "drifted")
+	set := setOf(drifted)
+
+	effect := skills.EffectDef{Radius: 1.0}
+	got := effectCollisions(set, phy.VEC2F_ZERO, 1.0, effect, 1)
+
+	assert.Contains(t, got, drifted, "equal radii: no distance check runs, the sensor's set is authoritative")
+}
+
+func TestEffectCollisions_LevelScalesEffectRadius(t *testing.T) {
+	// Radius 0.3 + 0.35/level: at L1 the 0.6-distant target is out of range
+	// (0.6 ≥ 0.55), at L2 the scaled radius 0.65 reaches it (0.6 < 0.9).
+	target := colliderAt(vec(0.6, 0), "t")
+	set := setOf(target)
+	effect := skills.EffectDef{Radius: 0.3, RadiusPerLevel: 0.35}
+
+	assert.NotContains(t, effectCollisions(set, phy.VEC2F_ZERO, 1.0, effect, 1), target,
+		"level 1: base radius misses")
+	assert.Contains(t, effectCollisions(set, phy.VEC2F_ZERO, 1.0, effect, 2), target,
+		"level 2: the per-level radius growth reaches the target")
+}
+
 // --- wiring through applyDamageAura / applyHealAura ---
 
 func cappedDamageEffect(sel skills.Selector, maxTargets int) skills.EffectDef {

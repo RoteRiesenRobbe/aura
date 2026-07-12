@@ -14,7 +14,7 @@ import * as TextDisplay from '../../../client-data/TextDisplay';
 import {requireAll} from '../../common/logic/Utils';
 import {IGame} from '../../core/logic/IGame';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
-import {ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
+import {ZoneCampfire, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
 
 export interface PropTypeDef {
     name: string;
@@ -90,7 +90,7 @@ export function propTypeByName(name: string): PropTypeDef {
     return propTypes.find(type => type.name === name);
 }
 
-export type SelectionKind = 'prop' | 'spawn';
+export type SelectionKind = 'prop' | 'spawn' | 'campfire';
 
 export interface Selection {
     kind: SelectionKind;
@@ -102,9 +102,11 @@ let selection: Selection = null;
 const COLOR_BLOCKING = 0xF44336;
 const COLOR_DECORATIVE = 0x03A9F4;
 const COLOR_SPAWN = 0x4CAF50;
+const COLOR_CAMPFIRE = 0xFF9800;
 const COLOR_SELECTED = 0xFFEB3B;
 const COLOR_BOUNDS = 0xFFEB3B;
 const SPAWN_MARKER_RADIUS = 0.5; // server units
+const CAMPFIRE_MARKER_RADIUS = 0.5; // server units
 const MIN_HIT_RADIUS = 0.4; // server units, so tiny props stay clickable
 
 let container: Container = null;
@@ -116,6 +118,7 @@ let markersLayer: Container = null;
 let boundsGraphic: Graphics = null;
 let propMarkers: Container[] = [];
 let spawnMarkers: Container[] = [];
+let campfireMarkers: Container[] = [];
 
 export function isAttached(): boolean {
     return container !== null;
@@ -151,13 +154,16 @@ function rebuildMarkers() {
     }
     propMarkers.forEach(marker => marker.destroy({children: true}));
     spawnMarkers.forEach(marker => marker.destroy({children: true}));
+    campfireMarkers.forEach(marker => marker.destroy({children: true}));
     propMarkers = [];
     spawnMarkers = [];
+    campfireMarkers = [];
     selection = null;
 
     redrawBounds();
     propMarkers = model.props.map(prop => addMarkerToStage(drawPropMarker(prop, false)));
     spawnMarkers = model.spawns.map(spawn => addMarkerToStage(drawSpawnMarker(spawn, false)));
+    campfireMarkers = model.campfires.map(campfire => addMarkerToStage(drawCampfireMarker(campfire, false)));
 }
 
 /**
@@ -195,7 +201,7 @@ export function selectInitialZone(stem: string) {
  */
 export function newZone() {
     currentStem = '';
-    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], []);
+    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], [], []);
     rebuildMarkers();
     GroundTextureManager.clear();
 }
@@ -239,6 +245,16 @@ export function hitTestSpawn(x: number, y: number): number {
     for (let i = model.spawns.length - 1; i >= 0; i--) {
         let spawn = model.spawns[i];
         if (distance(x, y, spawn.x, spawn.y) <= SPAWN_MARKER_RADIUS) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+export function hitTestCampfire(x: number, y: number): number {
+    for (let i = model.campfires.length - 1; i >= 0; i--) {
+        let campfire = model.campfires[i];
+        if (distance(x, y, campfire.x, campfire.y) <= CAMPFIRE_MARKER_RADIUS) {
             return i;
         }
     }
@@ -291,6 +307,21 @@ export function removeSpawn(index: number) {
     adjustSelectionAfterRemove('spawn', index);
 }
 
+export function placeCampfire(campfire: ZoneCampfire): number {
+    let index = model.addCampfire(campfire);
+    if (container !== null) {
+        campfireMarkers.push(addMarkerToStage(drawCampfireMarker(campfire, false)));
+    }
+    setSelection({kind: 'campfire', index});
+    return index;
+}
+
+export function removeCampfire(index: number) {
+    model.removeCampfire(index);
+    removeMarker(campfireMarkers, index);
+    adjustSelectionAfterRemove('campfire', index);
+}
+
 function adjustSelectionAfterRemove(kind: SelectionKind, removedIndex: number) {
     if (selection === null || selection.kind !== kind) {
         return;
@@ -328,12 +359,18 @@ function redrawMarker(kind: SelectionKind, index: number) {
         }
         propMarkers[index].destroy({children: true});
         propMarkers[index] = addMarkerToStage(drawPropMarker(model.props[index], selected));
-    } else {
+    } else if (kind === 'spawn') {
         if (index >= model.spawns.length) {
             return;
         }
         spawnMarkers[index].destroy({children: true});
         spawnMarkers[index] = addMarkerToStage(drawSpawnMarker(model.spawns[index], selected));
+    } else {
+        if (index >= model.campfires.length) {
+            return;
+        }
+        campfireMarkers[index].destroy({children: true});
+        campfireMarkers[index] = addMarkerToStage(drawCampfireMarker(model.campfires[index], selected));
     }
 }
 
@@ -429,6 +466,20 @@ function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
     marker.addChild(graphic);
     marker.addChild(markerLabel(spawn.mob, radiusPx));
     marker.position.set(meter2px(spawn.x), meter2px(spawn.y));
+    return marker;
+}
+
+function drawCampfireMarker(campfire: ZoneCampfire, selected: boolean): Container {
+    let radiusPx = meter2px(CAMPFIRE_MARKER_RADIUS);
+
+    let marker = new Container();
+    let graphic = new Graphics()
+        .circle(0, 0, radiusPx)
+        .fill({color: COLOR_CAMPFIRE, alpha: 0.25})
+        .stroke({width: selected ? 6 : 3, color: selected ? COLOR_SELECTED : COLOR_CAMPFIRE});
+    marker.addChild(graphic);
+    marker.addChild(markerLabel('Campfire', radiusPx));
+    marker.position.set(meter2px(campfire.x), meter2px(campfire.y));
     return marker;
 }
 

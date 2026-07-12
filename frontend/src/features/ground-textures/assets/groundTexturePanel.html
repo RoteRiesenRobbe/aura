@@ -24,6 +24,10 @@
                     <input type="radio" name="zoneEditor_mode" value="spawn">
                     Spawns
                 </label>
+                <label>
+                    <input type="radio" name="zoneEditor_mode" value="campfire">
+                    Campfires
+                </label>
             </div>
         </div>
 
@@ -253,10 +257,27 @@
                 </div>
             </div>
 
+            <div id="zoneEditor_campfireControls" class="hidden">
+                <div class="group">
+                    <span>Click the map to place a campfire, click a marker to select it.</span>
+                </div>
+
+                <div class="group">
+                    <button id="zoneEditor_campfirePlaceButton" class="actionButton">Place at my position</button>
+                </div>
+
+                <div class="group hidden" id="zoneEditor_campfireSelection">
+                    <div>Selected campfire #<span id="zoneEditor_campfireSelectedIndex"></span></div>
+                    <button id="zoneEditor_campfireDelete" class="secondaryButton">Delete</button>
+                    <button id="zoneEditor_campfireDeselect">Deselect</button>
+                </div>
+            </div>
+
             <div class="group">
                 <a href="#" id="zoneEditor_showPopup">
                     Zone: <span id="zoneEditor_propCount"></span> props /
-                    <span id="zoneEditor_spawnCount"></span> spawns
+                    <span id="zoneEditor_spawnCount"></span> spawns /
+                    <span id="zoneEditor_campfireCount"></span> campfires
                 </a>
             </div>
         </div>
