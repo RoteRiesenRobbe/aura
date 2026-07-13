@@ -24,9 +24,14 @@ const DarknessVisuals = {
     // Overall darkness opacity — how much of the world stays visible inside
     // a dark area. [PLACEHOLDER]
     MAX_ALPHA: 0.94,
-    // Fraction of the radius that is fully dark / fully lit before the soft
-    // edge starts. [PLACEHOLDER]
-    CORE_FRACTION: 0.55,
+    // Width (world units) of the soft edge appended OUTSIDE the authored
+    // radius — the authored circle itself is guaranteed fully dark, so
+    // overlapping circles chain without bright seams. [PLACEHOLDER]
+    EDGE_FADE: 2,
+    // Fraction of a light hole's radius that is fully lit before its soft
+    // edge starts (light fades inside its radius, unlike dark areas).
+    // [PLACEHOLDER]
+    LIGHT_CORE_FRACTION: 0.55,
     TEXTURE_SIZE: 256,
 };
 
@@ -49,7 +54,7 @@ interface LightSource {
 }
 
 let layer: Container = null;
-let radialTexture: Texture = null;
+const radialTextures = new Map<number, Texture>();
 let active = false;
 const lights = new Map<gameObjectId, LightSource>();
 
@@ -72,10 +77,12 @@ export function loadZone(zoneName: string) {
     layer.visible = active;
 
     darkAreas.forEach((area) => {
-        const sprite = new Sprite(texture());
+        // Fully dark up to the authored radius; the fade lives outside it.
+        const fadeRadius = area.radius + DarknessVisuals.EDGE_FADE;
+        const sprite = new Sprite(texture(area.radius / fadeRadius));
         sprite.anchor.set(0.5);
         sprite.position.set(meter2px(area.x), meter2px(area.y));
-        sprite.width = sprite.height = 2 * meter2px(area.radius);
+        sprite.width = sprite.height = 2 * meter2px(fadeRadius);
         layer.addChild(sprite);
     });
 
@@ -86,7 +93,7 @@ export function loadZone(zoneName: string) {
     if (active) {
         const campfires = getZoneData(zoneName)?.campfires || [];
         campfires.forEach((fire) => {
-            const sprite = new Sprite(texture());
+            const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION));
             sprite.anchor.set(0.5);
             sprite.blendMode = 'erase';
             sprite.position.set(meter2px(fire.x), meter2px(fire.y));
@@ -114,7 +121,7 @@ export function setLightRadius(object: { id: gameObjectId, shape: Container }, r
         return;
     }
     if (!light) {
-        const sprite = new Sprite(texture());
+        const sprite = new Sprite(texture(DarknessVisuals.LIGHT_CORE_FRACTION));
         sprite.anchor.set(0.5);
         sprite.blendMode = 'erase';
         layer.addChild(sprite);
@@ -157,25 +164,31 @@ function clear() {
 }
 
 /**
- * One shared soft radial gradient (opaque core, transparent rim), generated
- * once on a canvas — used for the dark circles (normal blend) and the light
- * holes (erase blend, alpha = erase strength → soft light edge).
+ * Soft radial gradient textures (opaque up to `coreFraction` of the radius,
+ * transparent rim), generated on a canvas and cached per fraction — used for
+ * the dark circles (normal blend, fraction depends on the authored radius so
+ * the fade width stays constant in world units) and the light holes (erase
+ * blend, alpha = erase strength → soft light edge).
  */
-function texture(): Texture {
-    if (radialTexture === null) {
+function texture(coreFraction: number): Texture {
+    // Round the cache key so near-identical fractions share a texture.
+    const key = Math.round(coreFraction * 100) / 100;
+    let cached = radialTextures.get(key);
+    if (!cached) {
         const size = DarknessVisuals.TEXTURE_SIZE;
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = size;
         const ctx = canvas.getContext('2d');
         const gradient = ctx.createRadialGradient(
-            size / 2, size / 2, (size / 2) * DarknessVisuals.CORE_FRACTION,
+            size / 2, size / 2, (size / 2) * key,
             size / 2, size / 2, size / 2,
         );
         gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
-        radialTexture = Texture.from(canvas);
+        cached = Texture.from(canvas);
+        radialTextures.set(key, cached);
     }
-    return radialTexture;
+    return cached;
 }
