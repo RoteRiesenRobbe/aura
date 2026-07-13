@@ -125,6 +125,7 @@ type player struct {
 	// healing received (VitalSign units), and XP gained this tick; reset each
 	// tick by ResetTickNumbers.
 	damageTaken  vitals.VitalSign
+	critTaken    vitals.VitalSign // crit-flagged share of damageTaken (chunk 1)
 	healReceived vitals.VitalSign
 	xpGained     uint64
 
@@ -252,7 +253,10 @@ func (p *player) HealthRatio() float32 {
 // by maxHealthFactor — a hit removes flat HP regardless of the player's pool.
 // The hit's damage tags are carried for tag resistances (Phase 2); players
 // have no base resistances, transient resist-aura buffs land in Step 3.
-func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) {
+// Returns the actual HP lost after clamping — the "damage dealt" that feeds
+// lifesteal (plan-skill-vocab chunk 1; mirrors the mob site; shield absorbs
+// widen it in chunk 2).
+func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.VitalSign {
 	// Tag resistances (Phase 2): resist passives (Derived) and transient
 	// resist-aura buffs are distinct sources and stack multiplicatively.
 	hp32 := damage.HP *
@@ -266,25 +270,34 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) {
 		hp32 *= 1 - r
 	}
 	if p.IsGod() {
-		return
+		return 0
 	}
 
 	hp := vitals.HP(hp32)
-	if hp > 0 {
-		h := p.PlayerVitalSigns.Health
-		p.PlayerVitalSigns.Health = h.Sub(hp)
-		p.damageTaken += h - p.PlayerVitalSigns.Health // actual loss after clamping
-		p.StatusEffects().Add(s)
-		// Taking harm enters combat (chunk 1): the take-harm direction, stamped
-		// at the single damage choke point so every damage-aura and dot tick,
-		// mob or PvP, gates regen uniformly.
-		p.NoteCombatAction()
+	if hp <= 0 {
+		return 0
 	}
+	h := p.PlayerVitalSigns.Health
+	p.PlayerVitalSigns.Health = h.Sub(hp)
+	loss := h - p.PlayerVitalSigns.Health // actual loss after clamping
+	p.damageTaken += loss
+	if damage.Crit {
+		p.critTaken += loss // crit_taken wire accumulator (chunk 1, §4.3)
+	}
+	p.StatusEffects().Add(s)
+	// Taking harm enters combat (chunk 1): the take-harm direction, stamped
+	// at the single damage choke point so every damage-aura and dot tick,
+	// mob or PvP, gates regen uniformly.
+	p.NoteCombatAction()
+	return loss
 }
 
 // DamageTaken / HealReceived / XpGained expose the per-tick floating-number
 // accumulators (roadmap item 11).
 func (p *player) DamageTaken() vitals.VitalSign  { return p.damageTaken }
+// CritTaken is the crit-flagged share of this tick's damage taken (chunk 1,
+// §4.3); serialized as the crit_taken wire field so the client pops it big.
+func (p *player) CritTaken() vitals.VitalSign    { return p.critTaken }
 func (p *player) HealReceived() vitals.VitalSign { return p.healReceived }
 func (p *player) XpGained() uint64               { return p.xpGained }
 
@@ -347,6 +360,7 @@ func (p *player) DueDotHits() []skills.DotHit {
 // of each tick.
 func (p *player) ResetTickNumbers() {
 	p.damageTaken = 0
+	p.critTaken = 0
 	p.healReceived = 0
 	p.xpGained = 0
 	p.auraHitStyle = model.AuraHitStyleNone
@@ -373,11 +387,15 @@ func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 		p.attacker = c
 		p.attackerTicks = combatSignalWindowTicks
 	}
-	p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags}, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
+	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
+	// always its own recipient.
+	model.ApplyLifesteal(dealt, factors.Lifesteal, nil, e)
 }
 
 func (p *player) PlayerTouches(other model.PlayerEntity, damage model.Damage) {
-	p.takeDamage(damage, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(damage, model.StatusEffectDamagedAmbient)
+	model.ApplyLifesteal(dealt, damage.Lifesteal, damage.Source, other)
 }
 
 func (p *player) Name() string {

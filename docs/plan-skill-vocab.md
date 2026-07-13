@@ -4,7 +4,33 @@
 > (crit = sanctioned upside-only RNG; activation preconditions with
 > rejection feedback replace whiff-on-no-anchor/no-corpse; tick wire =
 > per-entity effective fields + interval must be manipulable → haste seam;
-> chunk order 1 → 2 → 4 → 3 → 5 → 6). Planning doc for
+> chunk order 1 → 2 → 4 → 3 → 5 → 6).
+>
+> **CHUNK 1 (damage-vocabulary batch) DONE + VERIFIED IN-GAME 2026-07-13**
+> ("all in-game checks verified and working"). Chunk-start confirmations: §4.1 wildcard per-tag
+> semantics CONFIRMED **with rider: immunity must stay temporarily
+> strippable by content** (multiplicative buffs cannot undo a ×0 — needs a
+> dedicated seam when content demands it: per-mob resistance override for
+> encounter scripts, a sunder-style override buff for skills/cooldowns;
+> demand-driven, recorded in skills/resist.go); §4.2 (a)+(b) CONFIRMED
+> (threat = damage dealt incl. future shield absorbs; summon lifesteal
+> heals the summon); NEW: **berserker reads the ACTING entity's HP**
+> (a wounded summon rages, owner HP irrelevant — the §4.2(b) parallel).
+> **The F6 §3.1 composition order is now the shipped decision record**,
+> pinned executable by TestApplyDamageAura_CompositionOrderF6 (chunk-2
+> extends it with the shield step). Shipped: `"*"` wildcard resist
+> (skills.ResistWildcard, explicit-beats-wildcard, multi-tag pin; buff-list
+> resists deliberately not wildcarded), DamageParams
+> execute/berserker/crit/lifesteal pairs + validators (damage_aura +
+> instant_damage only, dots excluded §3.3), caster-side composition in
+> both apply sites via berserkerMultiplier/rollHitDamage (zero
+> chance/variance consume no RNG draw — seeded sequences of vocab-free
+> effects unchanged), `Damage.Lifesteal/Crit` + `Factors.Lifesteal/Crit`,
+> `player.takeDamage` now returns dealt loss, `model.ApplyLifesteal`
+> (living-Source-else-toucher, dead-recipient guard) in all four *Touches,
+> `crit_taken:uint` on Character + Mob (codec + both client branches,
+> crit share pops 1.8× in warm orange, remainder normal), smoke skill
+> ReaperAura id 7 (cheat-grant `SKILL ReaperAura`), count pin 26→27.
 > execution-order step 4 (`roadmap.md`): effect-foundations Step 4 (shield)
 > + the cheap effect-type batch (lifesteal, execute, crit, berserker) + dash
 > + the cast-time/interrupt primitive with **Recall** as first consumer +
@@ -179,6 +205,9 @@ content wants a burning execute — cheap, but YAGNI now):
   per-target, evaluated against the target's `HealthRatio()` at hit time.
 - **Berserker**: `berserkerMaxBonusFactor` — outgoing damage ×
   `1 + maxBonus × (1 − casterHealthRatio)`. Caster-side, per application.
+  Decided at chunk-1 start (2026-07-13): the **acting** entity's ratio — an
+  owned summon rages on ITS wounds, the owner's HP is irrelevant (§4.2(b)
+  parallel).
 - **Crit** (§4.3 decided): `critChance` + `critFactor`, rolled per hit
   after execute/berserker, before variance.
 
@@ -333,7 +362,7 @@ Proposal, resolving the backlog's open questions:
 
 ## 4. Plan-review decisions — RESOLVED 2026-07-13 (4.3–4.6), 4.1/4.2 to confirm at chunk-1 start
 
-### 4.1 Wildcard resist multi-tag semantics — CONFIRM
+### 4.1 Wildcard resist multi-tag semantics — ✔ CONFIRMED at chunk-1 start (2026-07-13), with the immunity-strip rider (see banner)
 
 `{"*": 0, "key_x": 1}` with per-tag multiplication: a hit tagged
 `[key_x, fire]` multiplies 1 × 0 = 0 — **only the pure key works**.
@@ -346,7 +375,7 @@ get it for free). The tag-list-shaped transient resist BUFFS deliberately
 do NOT learn `"*"` (no consumer; one line when content wants a
 resist-everything bubble — recorded, not built).
 
-### 4.2 Lifesteal recipient + threat widening — CONFIRM §3.1/9
+### 4.2 Lifesteal recipient + threat widening — ✔ CONFIRMED (a)+(b) at chunk-1 start (2026-07-13)
 
 Two player-observable calls buried in the F6 proposal worth flagging:
 (a) "damage dealt" includes shield-absorbed damage for **threat** — a mob

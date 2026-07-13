@@ -83,6 +83,9 @@ type PlayerEntity interface {
 	// ResetTickNumbers (TickAccumulators). NoteHealReceived is called by the
 	// SkillSystem when a heal aura lands on this player.
 	DamageTaken() vitals.VitalSign
+	// CritTaken is the crit-flagged share of DamageTaken (plan-skill-vocab
+	// chunk 1, §4.3), serialized as crit_taken so the client pops it big.
+	CritTaken() vitals.VitalSign
 	HealReceived() vitals.VitalSign
 	XpGained() uint64
 	NoteHealReceived(delta vitals.VitalSign)

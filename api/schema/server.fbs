@@ -131,6 +131,12 @@ table Mob {
   // retiring the hand-synced client constant (the aura_radius precedent).
   // Appended at table end so existing field IDs stay stable.
   dwell_radius:ushort = 0;
+
+  // crit-flagged share of damage_taken this tick (skill-vocab chunk 1): the
+  // one sanctioned, upside-only RNG — the client pops this portion big.
+  // Same absolute-HP scale; reset every tick. Appended at table end so
+  // existing field IDs stay stable.
+  crit_taken:uint = 0;
 }
 
 table Character {
@@ -199,6 +205,12 @@ table Character {
   // own character; per-tick one-shot like damage_taken. Appended at the table
   // end so existing field IDs stay stable.
   campfire_bound:bool = false;
+
+  // crit-flagged share of damage_taken this tick (skill-vocab chunk 1): the
+  // one sanctioned, upside-only RNG — the client pops this portion big.
+  // Same absolute-HP scale; reset every tick. Appended at the table end so
+  // existing field IDs stay stable.
+  crit_taken:uint = 0;
 }
 
 table Spectator {

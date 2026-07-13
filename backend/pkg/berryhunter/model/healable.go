@@ -13,3 +13,26 @@ type Healable interface {
 	Combatant
 	Heal(hp uint32) vitals.VitalSign
 }
+
+// ApplyLifesteal heals a hit's recipient from the damage actually dealt
+// (plan-skill-vocab chunk 1, F6 §3.1/9): recipient = the hit's living Source
+// — an owned summon leeches for itself (§4.2, confirmed 2026-07-13) — else
+// the toucher. dealt is the post-clamp loss, so overkill never counts. The
+// heal rides Healable.Heal (max-clamp + floating number for free); it is
+// damage-side sustain, not support — deliberately NO healer threat and no
+// participation registration. A dead recipient is never healed (a leech-back
+// must not revive an expired summon or a same-tick-killed caster). Called
+// from all four *Touches damage entry points.
+func ApplyLifesteal(dealt vitals.VitalSign, fraction float32, source Combatant, toucher any) {
+	if fraction <= 0 || dealt <= 0 {
+		return
+	}
+	recipient, _ := source.(Healable)
+	if recipient == nil || recipient.HealthRatio() == 0 {
+		recipient, _ = toucher.(Healable)
+	}
+	if recipient == nil || recipient.HealthRatio() == 0 {
+		return
+	}
+	recipient.Heal(vitals.HP(float32(dealt) * fraction))
+}

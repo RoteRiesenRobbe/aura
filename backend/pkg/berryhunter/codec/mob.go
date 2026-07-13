@@ -26,6 +26,8 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 
 	BerryhunterApi.MobAddBurstRadius(builder, f32ToU16Px(m.BurstRadius()))
 	BerryhunterApi.MobAddDamageTaken(builder, m.DamageTaken().UInt32())
+	// Crit-flagged share of damage taken (skill-vocab chunk 1, §4.3).
+	BerryhunterApi.MobAddCritTaken(builder, m.CritTaken().UInt32())
 	BerryhunterApi.MobAddHealReceived(builder, m.HealReceived().UInt32())
 	BerryhunterApi.MobAddAuraHitStyle(builder, byte(m.AuraHitStyle()))
 	// 0 while the aura is gated — the client hides the ring (chunk 3c).

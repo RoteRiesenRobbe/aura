@@ -16,13 +16,20 @@ GameSetupEvent.subscribe((game: IGame) => {
     Game = game;
 });
 
-// Floating-number kinds (item 11) and their colors.
-export type FloatingNumberKind = 'damage' | 'heal' | 'xp';
+// Floating-number kinds (item 11) and their colors. 'crit' is the
+// crit-flagged share of damage (skill-vocab chunk 1): same '-' semantics as
+// damage, rendered bigger and warmer so the one sanctioned RNG pops.
+export type FloatingNumberKind = 'damage' | 'crit' | 'heal' | 'xp';
 const FLOATING_NUMBER_COLORS: Record<FloatingNumberKind, number> = {
     damage: 0xFF4D4D,
+    crit: 0xFFB84D,
     heal: 0x4DFF88,
     xp: 0xFFD700,
 };
+
+// Crit numbers render this much larger than regular floating numbers
+// (bare styling — the step-8 UI pass polishes it).
+const CRIT_SIZE_FACTOR = 1.8;
 
 // Damage/heal arrive in absolute HP (item 11 Phase 1) — the floating number is
 // the literal HP dealt. Kept as a helper so a tiny hit still shows at least 1.
@@ -259,14 +266,15 @@ export abstract class GameObject {
     // inherits the shape's rotation.
     showFloatingNumber(value: number, kind: FloatingNumberKind) {
         if (value <= 0) return;
-        const label = (kind === 'damage' ? '-' : '+') + value + (kind === 'xp' ? ' XP' : '');
-        this.showFloatingText(label, FLOATING_NUMBER_COLORS[kind]);
+        const sign = (kind === 'damage' || kind === 'crit') ? '-' : '+';
+        const label = sign + value + (kind === 'xp' ? ' XP' : '');
+        this.showFloatingText(label, FLOATING_NUMBER_COLORS[kind], kind === 'crit' ? CRIT_SIZE_FACTOR : 1);
     }
 
     // General rising, fading text over the entity — the floating-number
     // animation with a free label/color (first non-number use: the campfire
     // "bound" feedback, chunk 4).
-    showFloatingText(label: string, color: number) {
+    showFloatingText(label: string, color: number, sizeFactor: number = 1) {
         if (Game === null) return;
 
         const layer = Game.layers.characterAdditions.floatingNumbers;
@@ -274,7 +282,7 @@ export abstract class GameObject {
             text: label,
             style: {
                 fontFamily: 'Arial',
-                fontSize: Math.max(14, this.size * 0.9),
+                fontSize: Math.max(14, this.size * 0.9) * sizeFactor,
                 fontWeight: 'bold',
                 fill: color,
                 stroke: {color: 0x000000, width: 4},

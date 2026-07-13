@@ -42,8 +42,10 @@ type MobID uint64
 //
 // Resistances maps damage tags to incoming-damage multipliers (item 11
 // Phase 2): 1 = normal, 0.5 = takes half, 0 = immune, > 1 = vulnerable.
-// Tags absent from the map are unresisted; nil = no base resistances. It
-// replaced the former all-damage Vulnerability multiplier.
+// Tags absent from the map fall back to a "*" entry if present (per tag —
+// skills.ResistWildcard, plan-skill-vocab chunk 1), else are unresisted;
+// nil = no base resistances. It replaced the former all-damage Vulnerability
+// multiplier.
 // DamageTags is payload-only (like Damage): the SkillSystem fills it from the
 // active skill's effect so living targets can match their resistances against
 // the mob's hit; it is not part of the mob JSON.
@@ -72,6 +74,11 @@ type Factors struct {
 	Resistances             map[string]float32
 	Damage                  float32
 	DamageTags              []string
+	// Lifesteal / Crit are payload-only like DamageTags (plan-skill-vocab
+	// chunk 1): the SkillSystem fills them per hit from the casting effect;
+	// they are not part of the mob JSON.
+	Lifesteal float32
+	Crit      bool
 	Speed                   float32
 	DeltaPhi                float32
 	TurnRate                float32

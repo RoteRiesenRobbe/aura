@@ -261,8 +261,20 @@ func (rcv *Mob) MutateDwellRadius(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(36, n)
 }
 
+func (rcv *Mob) CritTaken() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Mob) MutateCritTaken(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(38, n)
+}
+
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(17)
+	builder.StartObject(18)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -317,6 +329,9 @@ func MobAddLightRadius(builder *flatbuffers.Builder, lightRadius uint16) {
 }
 func MobAddDwellRadius(builder *flatbuffers.Builder, dwellRadius uint16) {
 	builder.PrependUint16Slot(16, dwellRadius, 0)
+}
+func MobAddCritTaken(builder *flatbuffers.Builder, critTaken uint32) {
+	builder.PrependUint32Slot(17, critTaken, 0)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

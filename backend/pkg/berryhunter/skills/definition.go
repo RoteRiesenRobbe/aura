@@ -209,11 +209,64 @@ type DamageParams struct {
 	// Mob casters only: damage dealt to structures (placeables) per tick.
 	// Structures read this via MobTouches double dispatch.
 	StructureDamageFraction float32
+
+	// Damage vocabulary (plan-skill-vocab chunk 1) — all optional (F2), zero =
+	// inert. Composition order is F6 §3.1: base × berserker × execute × crit,
+	// then the variance roll, then the target's mitigation.
+	//
+	// Execute: hits on targets whose health ratio is strictly below
+	// ExecuteBelowFraction are multiplied by ExecuteBonusFactor. Deterministic,
+	// per target, evaluated at hit time. Authored as a pair.
+	ExecuteBelowFraction float32
+	ExecuteBonusFactor   float32
+
+	// Berserker: outgoing damage × (1 + max × (1 − casterHealthRatio)) — the
+	// caster's missing HP scales the whole application. The acting entity's own
+	// HP counts (a summon rages on ITS wounds, not the owner's; §4.2 parallel).
+	BerserkerMaxBonusFactor float32
+
+	// Crit: the ONE sanctioned, upside-only combat RNG (§4.3 decided
+	// 2026-07-13): each hit rolls CritChance to multiply by CritFactor, after
+	// execute/berserker and before variance. Crit-flagged damage lands on the
+	// target's crit_taken wire accumulator. Authored as a pair.
+	CritChance float32
+	CritFactor float32
+
+	// Lifesteal: the hit's recipient (the living Source, else the toucher)
+	// heals LifestealFraction × damage DEALT — shield-absorbed included,
+	// overkill excluded (F6 §3.1/9).
+	LifestealFraction float32
 }
 
 // HPAt is the level-scaled damage center in absolute HP (pre-variance-roll).
 func (p *DamageParams) HPAt(level int) float32 {
 	return Scaled(p.HP, p.HPPerLevel, level)
+}
+
+// ExecuteMultiplier is the per-target execute bonus: ExecuteBonusFactor while
+// the target's health ratio is strictly below the threshold, else 1. Neutral
+// when execute is not authored.
+func (p *DamageParams) ExecuteMultiplier(targetHealthRatio float32) float32 {
+	if p.ExecuteBonusFactor == 0 || targetHealthRatio >= p.ExecuteBelowFraction {
+		return 1
+	}
+	return p.ExecuteBonusFactor
+}
+
+// BerserkerMultiplier is the caster-side missing-HP bonus:
+// 1 + max × (1 − casterHealthRatio), ratio clamped to [0, 1]. Neutral when
+// berserker is not authored.
+func (p *DamageParams) BerserkerMultiplier(casterHealthRatio float32) float32 {
+	if p.BerserkerMaxBonusFactor == 0 {
+		return 1
+	}
+	if casterHealthRatio > 1 {
+		casterHealthRatio = 1
+	}
+	if casterHealthRatio < 0 {
+		casterHealthRatio = 0
+	}
+	return 1 + p.BerserkerMaxBonusFactor*(1-casterHealthRatio)
 }
 
 // HealParams is the heal_aura payload: absolute HP healed per tick (item 11
@@ -426,6 +479,13 @@ type effectDef struct {
 	DotTicks        int `json:"dotTicks"`        // damage events per application
 	DotTickInterval int `json:"dotTickInterval"` // game ticks between events
 
+	ExecuteBelowFraction    float32 `json:"executeBelowFraction"`
+	ExecuteBonusFactor      float32 `json:"executeBonusFactor"`
+	BerserkerMaxBonusFactor float32 `json:"berserkerMaxBonusFactor"`
+	CritChance              float32 `json:"critChance"`
+	CritFactor              float32 `json:"critFactor"`
+	LifestealFraction       float32 `json:"lifestealFraction"`
+
 	SpawnMob               string  `json:"spawnMob"`
 	TTLTicks               int     `json:"ttlTicks"`
 	TTLTicksPerLevel       int     `json:"ttlTicksPerLevel"`
@@ -455,7 +515,13 @@ var (
 	keysCadence       = []string{"tickInterval", "tickIntervalPerLevel"}
 	keysCapped        = []string{"selector", "maxTargets", "maxTargetsPerLevel"}
 	keysTargetFlags   = []string{"targetsEnemies", "targetsAllies"}
-	keysDamagePayload = []string{"damageHP", "damageHPPerLevel", "damageTags", "variance", "hitStyle", "targetsStructures", "structureDamageFraction"}
+	// The damage-vocabulary keys (execute/berserker/crit/lifesteal, chunk 1)
+	// ride only here — dots are deliberately excluded in v1 (§3.3; add to
+	// keysDotPayload + DotParams when content wants a burning execute).
+	keysDamagePayload = []string{
+		"damageHP", "damageHPPerLevel", "damageTags", "variance", "hitStyle", "targetsStructures", "structureDamageFraction",
+		"executeBelowFraction", "executeBonusFactor", "berserkerMaxBonusFactor", "critChance", "critFactor", "lifestealFraction",
+	}
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
 	keysDotPayload    = []string{"damageHP", "damageHPPerLevel", "damageTags", "variance", "dotTicks", "dotTickInterval"}
 )
@@ -670,6 +736,34 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 		return nil, err
 	}
 
+	// Damage vocabulary (chunk 1). Execute and crit are authored as pairs — a
+	// lone threshold/chance is a silent no-op, a lone factor is unanchored;
+	// both hard-fail like the other no-scaling guards.
+	if (e.ExecuteBelowFraction != 0) != (e.ExecuteBonusFactor != 0) {
+		return nil, fmt.Errorf("execute: executeBelowFraction and executeBonusFactor must be authored together")
+	}
+	if e.ExecuteBelowFraction < 0 || e.ExecuteBelowFraction > 1 {
+		return nil, fmt.Errorf("executeBelowFraction: must be in [0, 1], got %v", e.ExecuteBelowFraction)
+	}
+	if e.ExecuteBonusFactor < 0 {
+		return nil, fmt.Errorf("executeBonusFactor: must be >= 0, got %v", e.ExecuteBonusFactor)
+	}
+	if e.BerserkerMaxBonusFactor < 0 {
+		return nil, fmt.Errorf("berserkerMaxBonusFactor: must be >= 0, got %v", e.BerserkerMaxBonusFactor)
+	}
+	if (e.CritChance != 0) != (e.CritFactor != 0) {
+		return nil, fmt.Errorf("crit: critChance and critFactor must be authored together")
+	}
+	if e.CritChance < 0 || e.CritChance > 1 {
+		return nil, fmt.Errorf("critChance: must be in [0, 1], got %v", e.CritChance)
+	}
+	if e.CritFactor < 0 {
+		return nil, fmt.Errorf("critFactor: must be >= 0, got %v", e.CritFactor)
+	}
+	if e.LifestealFraction < 0 {
+		return nil, fmt.Errorf("lifestealFraction: must be >= 0, got %v", e.LifestealFraction)
+	}
+
 	return &DamageParams{
 		HP:                      e.DamageHP,
 		HPPerLevel:              e.DamageHPPerLevel,
@@ -677,6 +771,12 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 		Variance:                e.Variance,
 		HitStyle:                hitStyle,
 		StructureDamageFraction: e.StructureDamageFraction,
+		ExecuteBelowFraction:    e.ExecuteBelowFraction,
+		ExecuteBonusFactor:      e.ExecuteBonusFactor,
+		BerserkerMaxBonusFactor: e.BerserkerMaxBonusFactor,
+		CritChance:              e.CritChance,
+		CritFactor:              e.CritFactor,
+		LifestealFraction:       e.LifestealFraction,
 	}, nil
 }
 

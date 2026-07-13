@@ -144,6 +144,10 @@ type MobEntity interface {
 	// ResetTickNumbers (TickAccumulators).
 	DamageTaken() vitals.VitalSign
 
+	// CritTaken is the crit-flagged share of DamageTaken (plan-skill-vocab
+	// chunk 1, §4.3), serialized as crit_taken so the client pops it big.
+	CritTaken() vitals.VitalSign
+
 	// HealReceived is the health restored this tick (VitalSign units),
 	// serialized as the floating heal number for a mob-cast heal (mob-depth
 	// chunk 8) and reset each tick via ResetTickNumbers.

@@ -1,0 +1,27 @@
+{
+  "_comment": "Skill-vocab chunk 1 smoke content: one aura exercising execute + berserker + crit + lifesteal together. Cheat-granted (SKILL ReaperAura), no milestone; throwaway until the content pass authors the real build skills. All values [PLACEHOLDER].",
+  "id": 7,
+  "name": "ReaperAura",
+  "category": "active_aura",
+  "maxLevel": 3,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 2.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 6,
+      "damageHPPerLevel": 1.5,
+      "executeBelowFraction": 0.35,
+      "executeBonusFactor": 2,
+      "berserkerMaxBonusFactor": 1,
+      "critChance": 0.25,
+      "critFactor": 2,
+      "lifestealFraction": 0.5,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 20
+    }
+  ]
+}

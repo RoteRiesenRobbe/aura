@@ -347,8 +347,6 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 // source is the summon entity on owned casts (threat attribution, chunk 3),
 // nil on direct casts — the target then treats the caster as the source.
 func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand, outputScale float32) {
-	damageHP := effect.Damage.HPAt(level) * outputScale
-
 	// Declarative targeting: the sensor mask pre-filters layers, the faction
 	// flags decide per target. targetsAllies=false is the no-friendly-fire
 	// rule. No caster skip, matching the damage path's long-standing
@@ -362,12 +360,18 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 	}
 	eligible := eligibleByTargetFlags[model.Interacter](effect, acting, 0, false)
 
+	// F6 §3.1 steps 1–2: level-scaled base × summon power × berserker. The
+	// ACTING entity's missing HP drives berserker (chunk-1 decision: a wounded
+	// summon rages; the owner's HP is irrelevant — the §4.2 parallel).
+	damageHP := effect.Damage.HPAt(level) * outputScale * berserkerMultiplier(effect.Damage, acting)
+
 	style := auraHitStyleFor(effect, level)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
-		// Every hit rolls its own variance (item 11 Phase 3); the target's
-		// resistance then multiplies the rolled value (decision C3).
-		damage := model.Damage{HP: vitals.RollVariance(damageHP, effect.Damage.Variance, rng), Tags: effect.Damage.Tags, Source: source}
+		// F6 §3.1 steps 3–5 per hit: execute × crit roll × variance roll; the
+		// target's resistance then multiplies the rolled value (decision C3).
+		hitHP, crit := rollHitDamage(damageHP, effect.Damage, c, rng)
+		damage := model.Damage{HP: hitHP, Tags: effect.Damage.Tags, Source: source, Lifesteal: effect.Damage.LifestealFraction, Crit: crit}
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
 		noteAuraHit(c, style)
 	}
@@ -388,10 +392,13 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 // reject them. The Factors payload carries both damage values and each target
 // picks the one that applies to it. Selector/cap ride on top.
 func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
-	damageHP := effect.Damage.HPAt(level)
+	// Same F6 §3.1 composition as the player path: base × berserker (the
+	// caster's own missing HP), then per-hit execute × crit × variance below.
+	damageHP := effect.Damage.HPAt(level) * berserkerMultiplier(effect.Damage, caster)
 	factors := mobs.Factors{
 		DamageTags:              effect.Damage.Tags,
 		StructureDamageFraction: effect.Damage.StructureDamageFraction,
+		Lifesteal:               effect.Damage.LifestealFraction,
 	}
 
 	casterFaction := caster.Faction()
@@ -412,11 +419,45 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, 
 	style := auraHitStyleFor(effect, level)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
-		// Per-hit variance roll, same as the player path (item 11 Phase 3).
-		factors.Damage = vitals.RollVariance(damageHP, effect.Damage.Variance, rng)
+		// Per-hit execute × crit × variance, same as the player path.
+		factors.Damage, factors.Crit = rollHitDamage(damageHP, effect.Damage, c, rng)
 		c.Shape().UserData.(model.Interacter).MobTouches(caster, factors)
 		noteAuraHit(c, style)
 	}
+}
+
+// berserkerMultiplier reads the acting caster's health ratio only when
+// berserker is authored (the ratio is a narrow assertion — every production
+// caster has one; test doubles without it simply cast unenraged).
+func berserkerMultiplier(d *skills.DamageParams, acting any) float32 {
+	if d.BerserkerMaxBonusFactor == 0 {
+		return 1
+	}
+	h, ok := acting.(healthRatioer)
+	if !ok {
+		return 1
+	}
+	return d.BerserkerMultiplier(h.HealthRatio())
+}
+
+// rollHitDamage composes one hit's final outgoing HP (F6 §3.1 steps 3–5):
+// the application-level base (level-scaled × output × berserker) × the
+// per-target execute bonus × the per-hit crit roll (§4.3: the one sanctioned,
+// upside-only RNG), then the variance roll (C4). Targets without a health
+// ratio (structures) take no execute bonus. Zero chance/variance consume no
+// RNG draw, so seeded sequences of vocabulary-free effects are unchanged.
+func rollHitDamage(base float32, d *skills.DamageParams, c phy.Collider, rng *rand.Rand) (hp float32, crit bool) {
+	hp = base
+	if d.ExecuteBonusFactor != 0 {
+		if h, ok := c.Shape().UserData.(healthRatioer); ok {
+			hp *= d.ExecuteMultiplier(h.HealthRatio())
+		}
+	}
+	if d.CritChance > 0 && rng.Float32() < d.CritChance {
+		crit = true
+		hp *= d.CritFactor
+	}
+	return vitals.RollVariance(hp, d.Variance, rng), crit
 }
 
 // noteAuraHit stamps the per-tick aura-hit VFX style on a struck target if it

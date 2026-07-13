@@ -1286,3 +1286,130 @@ func TestMob_NonHealerMovingMobIsNotSeekHealer(t *testing.T) {
 	assert.False(t, m.seekHealer)
 	assert.Equal(t, -1, m.skills.ActiveAuraSlot, "damage mob spawns aura-gated (chunk 3c)")
 }
+
+// --- lifesteal + crit accumulator (plan-skill-vocab chunk 1, F6 §3.1) ---
+
+// leechHealed adds a Heal recorder to fakeAuraPlayer so lifesteal heal-back
+// is observable without a full vitals implementation.
+type leechPlayer struct {
+	fakeAuraPlayer
+	healed []uint32
+}
+
+func (l *leechPlayer) Heal(hp uint32) vitals.VitalSign {
+	l.healed = append(l.healed, hp)
+	return vitals.VitalSign(hp)
+}
+
+func newLeechPlayer() *leechPlayer {
+	return &leechPlayer{fakeAuraPlayer: *newFakeAuraPlayer()}
+}
+
+// fakeLeechSource is a minimal Healable Combatant standing in for an owned
+// summon riding a hit as Damage.Source (noteThreat also reads it).
+type fakeLeechSource struct {
+	model.Combatant
+	basic  ecs.BasicEntity
+	ratio  float32
+	healed []uint32
+}
+
+func (f *fakeLeechSource) Basic() ecs.BasicEntity { return f.basic }
+func (f *fakeLeechSource) Faction() model.Faction { return model.FactionAligned }
+func (f *fakeLeechSource) HealthRatio() float32   { return f.ratio }
+func (f *fakeLeechSource) Heal(hp uint32) vitals.VitalSign {
+	f.healed = append(f.healed, hp)
+	return vitals.VitalSign(hp)
+}
+
+func TestMob_PlayerTouches_LifestealHealsToucher(t *testing.T) {
+	m := newTestMob()
+	p := newLeechPlayer()
+
+	m.PlayerTouches(p, model.Damage{HP: 10, Lifesteal: 0.5})
+
+	require.Len(t, p.healed, 1)
+	assert.Equal(t, uint32(5), p.healed[0], "heal = damage dealt × fraction")
+}
+
+func TestMob_PlayerTouches_SummonSourceLifestealHealsSummon(t *testing.T) {
+	// §4.2 (b), confirmed 2026-07-13: an owned summon's lifesteal heals the
+	// SUMMON (the hit's Source), never the crediting owner.
+	m := newTestMob()
+	p := newLeechPlayer()
+	summon := &fakeLeechSource{ratio: 1}
+
+	m.PlayerTouches(p, model.Damage{HP: 10, Lifesteal: 0.5, Source: summon})
+
+	require.Len(t, summon.healed, 1)
+	assert.Equal(t, uint32(5), summon.healed[0])
+	assert.Empty(t, p.healed, "the owner gets nothing")
+}
+
+func TestMob_PlayerTouches_DeadSourceLifestealFallsBackToToucher(t *testing.T) {
+	m := newTestMob()
+	p := newLeechPlayer()
+	summon := &fakeLeechSource{ratio: 0} // expired summon reads dead
+
+	m.PlayerTouches(p, model.Damage{HP: 10, Lifesteal: 0.5, Source: summon})
+
+	assert.Empty(t, summon.healed, "a dead source cannot be leech-healed back up")
+	require.Len(t, p.healed, 1)
+	assert.Equal(t, uint32(5), p.healed[0])
+}
+
+func TestMob_Lifesteal_OverkillExcluded(t *testing.T) {
+	m := newTestMob()
+	m.health = 4 // nearly dead: a 100-HP hit deals only 4
+	p := newLeechPlayer()
+
+	m.PlayerTouches(p, model.Damage{HP: 100, Lifesteal: 1})
+
+	require.Len(t, p.healed, 1)
+	assert.Equal(t, uint32(4), p.healed[0], "overkill never counts (F6 §3.1/9)")
+}
+
+func TestMob_Lifesteal_ZeroFractionNoHeal(t *testing.T) {
+	m := newTestMob()
+	p := newLeechPlayer()
+
+	m.PlayerTouches(p, model.Damage{HP: 10})
+
+	assert.Empty(t, p.healed)
+}
+
+func TestMob_Invulnerable_NoLifesteal(t *testing.T) {
+	m := newTestMob()
+	m.SetInvulnerable(true)
+	p := newLeechPlayer()
+
+	m.PlayerTouches(p, model.Damage{HP: 10, Lifesteal: 1})
+
+	assert.Empty(t, p.healed, "zero dealt = zero leech")
+}
+
+func TestMob_MobTouches_LifestealHealsAttackingMob(t *testing.T) {
+	m := newTestMob()
+	attacker := newTestMob()
+	attacker.health = 50 // wounded so the heal is visible
+
+	m.MobTouches(attacker, mobs.Factors{Damage: 10, Lifesteal: 0.5})
+
+	assert.Equal(t, vitals.VitalSign(55), attacker.Health(),
+		"a mob-cast hit leeches back through the same seam")
+}
+
+func TestMob_CritTaken_AccumulatesAndResets(t *testing.T) {
+	m := newTestMob()
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Crit: true})
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 5})
+
+	assert.Equal(t, vitals.VitalSign(10), m.CritTaken(),
+		"only crit-flagged hits land on the crit accumulator")
+	assert.Equal(t, vitals.VitalSign(15), m.DamageTaken(),
+		"crit damage still counts as damage taken")
+
+	m.ResetTickNumbers()
+	assert.Zero(t, m.CritTaken())
+}

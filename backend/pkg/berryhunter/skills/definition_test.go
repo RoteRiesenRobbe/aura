@@ -760,3 +760,118 @@ func TestMap_LightAuraRejectsNonGeometryKeys(t *testing.T) {
 		assert.ErrorContains(t, err, "not valid on this effect type", "light_aura must reject: %s", effect)
 	}
 }
+
+// --- damage vocabulary: execute / berserker / crit / lifesteal (plan-skill-vocab chunk 1) ---
+
+func TestParse_DamageVocabularyFields(t *testing.T) {
+	def := mustParse(t, []byte(`{
+	  "id": 7, "name": "ReaperAura", "category": "active_aura", "maxLevel": 3,
+	  "effects": [{
+	    "type": "damage_aura", "targetsEnemies": true, "radius": 3, "damageHP": 6,
+	    "executeBelowFraction": 0.35, "executeBonusFactor": 2,
+	    "berserkerMaxBonusFactor": 1,
+	    "critChance": 0.25, "critFactor": 2,
+	    "lifestealFraction": 0.5
+	  }]
+	}`))
+
+	require.Len(t, def.Effects, 1)
+	d := def.Effects[0].Damage
+	assert.InDelta(t, 0.35, d.ExecuteBelowFraction, 1e-6)
+	assert.InDelta(t, 2.0, d.ExecuteBonusFactor, 1e-6)
+	assert.InDelta(t, 1.0, d.BerserkerMaxBonusFactor, 1e-6)
+	assert.InDelta(t, 0.25, d.CritChance, 1e-6)
+	assert.InDelta(t, 2.0, d.CritFactor, 1e-6)
+	assert.InDelta(t, 0.5, d.LifestealFraction, 1e-6)
+}
+
+func TestParse_DamageVocabularyDefaultsInert(t *testing.T) {
+	def := mustParse(t, damageAuraJSON)
+	d := def.Effects[0].Damage
+	assert.Zero(t, d.ExecuteBelowFraction)
+	assert.Zero(t, d.ExecuteBonusFactor)
+	assert.Zero(t, d.BerserkerMaxBonusFactor)
+	assert.Zero(t, d.CritChance)
+	assert.Zero(t, d.CritFactor)
+	assert.Zero(t, d.LifestealFraction)
+}
+
+func TestParse_DamageVocabularyValidOnInstantDamage(t *testing.T) {
+	def := mustParse(t, []byte(`{
+	  "id": 7, "name": "X", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 100,
+	  "effects": [{
+	    "type": "instant_damage", "targetsEnemies": true, "radius": 3, "damageHP": 20,
+	    "executeBelowFraction": 0.2, "executeBonusFactor": 3, "lifestealFraction": 1.0
+	  }]
+	}`))
+	d := def.Effects[0].Damage
+	assert.InDelta(t, 0.2, d.ExecuteBelowFraction, 1e-6)
+	assert.InDelta(t, 1.0, d.LifestealFraction, 1e-6)
+}
+
+// mustFailMap asserts that a single-effect skill JSON fails at mapping.
+func mustFailMap(t *testing.T, effect string, wantErr string) {
+	t.Helper()
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, wantErr, "effect: %s", effect)
+}
+
+func TestMap_ExecutePairIncompleteFails(t *testing.T) {
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"executeBelowFraction":0.35}`, "execute")
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"executeBonusFactor":2}`, "execute")
+}
+
+func TestMap_ExecuteBoundsFail(t *testing.T) {
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"executeBelowFraction":1.2,"executeBonusFactor":2}`, "executeBelowFraction")
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"executeBelowFraction":-0.1,"executeBonusFactor":2}`, "executeBelowFraction")
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"executeBelowFraction":0.35,"executeBonusFactor":-1}`, "executeBonusFactor")
+}
+
+func TestMap_CritPairIncompleteFails(t *testing.T) {
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":0.25}`, "crit")
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critFactor":2}`, "crit")
+}
+
+func TestMap_CritBoundsFail(t *testing.T) {
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":1.5,"critFactor":2}`, "critChance")
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":-0.1,"critFactor":2}`, "critChance")
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":0.25,"critFactor":-2}`, "critFactor")
+}
+
+func TestMap_NegativeBerserkerFails(t *testing.T) {
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"berserkerMaxBonusFactor":-1}`, "berserkerMaxBonusFactor")
+}
+
+func TestMap_NegativeLifestealFails(t *testing.T) {
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"lifestealFraction":-0.5}`, "lifestealFraction")
+}
+
+func TestMap_DamageVocabularyOnDotsFails(t *testing.T) {
+	// Dots are excluded in v1 (§3.3): the allowlist rejects the keys outright.
+	mustFailMap(t, `{"type":"dot_aura","targetsEnemies":true,"damageHP":2,"dotTicks":3,"dotTickInterval":10,"executeBelowFraction":0.35,"executeBonusFactor":2}`, "not valid on this effect type")
+	mustFailMap(t, `{"type":"instant_dot","targetsEnemies":true,"damageHP":2,"dotTicks":3,"dotTickInterval":10,"lifestealFraction":0.5}`, "not valid on this effect type")
+	mustFailMap(t, `{"type":"dot_aura","targetsEnemies":true,"damageHP":2,"dotTicks":3,"dotTickInterval":10,"critChance":0.25,"critFactor":2}`, "not valid on this effect type")
+}
+
+func TestDamageParams_ExecuteMultiplier(t *testing.T) {
+	d := &DamageParams{ExecuteBelowFraction: 0.35, ExecuteBonusFactor: 2}
+	assert.InDelta(t, 2.0, d.ExecuteMultiplier(0.2), 1e-6, "below threshold")
+	assert.InDelta(t, 1.0, d.ExecuteMultiplier(0.35), 1e-6, "AT threshold is not below (strict)")
+	assert.InDelta(t, 1.0, d.ExecuteMultiplier(0.9), 1e-6, "above threshold")
+
+	unset := &DamageParams{}
+	assert.InDelta(t, 1.0, unset.ExecuteMultiplier(0.1), 1e-6, "unset execute is neutral")
+}
+
+func TestDamageParams_BerserkerMultiplier(t *testing.T) {
+	d := &DamageParams{BerserkerMaxBonusFactor: 1}
+	assert.InDelta(t, 1.0, d.BerserkerMultiplier(1.0), 1e-6, "full HP = no bonus")
+	assert.InDelta(t, 1.5, d.BerserkerMultiplier(0.5), 1e-6, "half HP = half the max bonus")
+	assert.InDelta(t, 2.0, d.BerserkerMultiplier(0.0), 1e-6, "zero HP = full bonus")
+	assert.InDelta(t, 1.0, d.BerserkerMultiplier(1.5), 1e-6, "ratio clamped at 1")
+
+	unset := &DamageParams{}
+	assert.InDelta(t, 1.0, unset.BerserkerMultiplier(0.0), 1e-6, "unset berserker is neutral")
+}

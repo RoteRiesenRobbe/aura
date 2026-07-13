@@ -89,9 +89,15 @@ export class Player {
             this.character.setLevel(entity.level);
         }
 
-        // Floating combat numbers over the own character (item 11).
-        if (entity.damageTaken > 0) {
-            this.character.showFloatingNumber(hpToDisplay(entity.damageTaken), 'damage');
+        // Floating combat numbers over the own character (item 11). The
+        // crit-flagged share pops big (skill-vocab chunk 1); the remainder
+        // shows as a regular damage number.
+        const critTaken = entity.critTaken > 0 ? entity.critTaken : 0;
+        if (critTaken > 0) {
+            this.character.showFloatingNumber(hpToDisplay(critTaken), 'crit');
+        }
+        if (entity.damageTaken > critTaken) {
+            this.character.showFloatingNumber(hpToDisplay(entity.damageTaken - critTaken), 'damage');
         }
         if (entity.healReceived > 0) {
             this.character.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');

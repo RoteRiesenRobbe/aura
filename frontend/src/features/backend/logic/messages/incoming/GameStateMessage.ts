@@ -167,6 +167,7 @@ function unmarshalEntity(entity, eType) {
         statusEffects: undefined,
         burstRadius: undefined,
         damageTaken: undefined,
+        critTaken: undefined,
         healReceived: undefined,
         xpGained: undefined,
         auraHitStyle: undefined,
@@ -191,6 +192,8 @@ function unmarshalEntity(entity, eType) {
         result.maxHealth = entity.maxHealth();
         result.burstRadius = entity.burstRadius();
         result.damageTaken = entity.damageTaken();
+        // crit-flagged share of damageTaken — rendered big (skill-vocab chunk 1)
+        result.critTaken = entity.critTaken();
         result.healReceived = entity.healReceived();
         result.auraHitStyle = entity.auraHitStyle();
         // effective radius of the active aura in px, 0 while gated — drives
@@ -221,6 +224,8 @@ function unmarshalEntity(entity, eType) {
         result.activeSkillId = entity.activeSkillId();
         result.burstRadius = entity.burstRadius();
         result.damageTaken = entity.damageTaken();
+        // crit-flagged share of damageTaken — rendered big (skill-vocab chunk 1)
+        result.critTaken = entity.critTaken();
         result.healReceived = entity.healReceived();
         result.xpGained = entity.xpGained();
         result.auraHitStyle = entity.auraHitStyle();

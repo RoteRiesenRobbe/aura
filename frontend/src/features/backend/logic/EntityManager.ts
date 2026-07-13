@@ -158,8 +158,14 @@ export class EntityManager {
 
         // Floating combat numbers (item 11): damage on mobs + other players,
         // heal/XP on other players (own player is handled in Player.ts).
-        if (entity.damageTaken > 0) {
-            gameObject.showFloatingNumber(hpToDisplay(entity.damageTaken), 'damage');
+        // The crit-flagged share pops big (skill-vocab chunk 1); the
+        // remainder shows as a regular damage number.
+        const critTaken = entity.critTaken > 0 ? entity.critTaken : 0;
+        if (critTaken > 0) {
+            gameObject.showFloatingNumber(hpToDisplay(critTaken), 'crit');
+        }
+        if (entity.damageTaken > critTaken) {
+            gameObject.showFloatingNumber(hpToDisplay(entity.damageTaken - critTaken), 'damage');
         }
         if (entity.healReceived > 0) {
             gameObject.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');

@@ -328,6 +328,10 @@ type Mob struct {
 	// floating damage number (roadmap item 11); reset every tick.
 	damageTaken vitals.VitalSign
 
+	// critTaken is the crit-flagged share of damageTaken (plan-skill-vocab
+	// chunk 1, §4.3), wire crit_taken; reset every tick alongside it.
+	critTaken vitals.VitalSign
+
 	// healReceived accumulates health restored this tick (VitalSign units) for
 	// the floating heal number of a mob-cast heal (mob-depth chunk 8); mirrors
 	// damageTaken and resets every tick alongside it.
@@ -1052,6 +1056,9 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	m.health = m.health.Sub(hp)
 	loss := before - m.health // actual loss after clamping at 0
 	m.damageTaken += loss
+	if damage.Crit {
+		m.critTaken += loss // crit_taken wire accumulator (chunk 1, §4.3)
+	}
 	if loss > 0 {
 		m.tookDamage = true // in-combat signal for the leash (chunk 3b)
 	}
@@ -1063,6 +1070,12 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 // number source (roadmap item 11).
 func (m *Mob) DamageTaken() vitals.VitalSign {
 	return m.damageTaken
+}
+
+// CritTaken is the crit-flagged share of this tick's damage taken (chunk 1,
+// §4.3); serialized as the crit_taken wire field so the client pops it big.
+func (m *Mob) CritTaken() vitals.VitalSign {
+	return m.critTaken
 }
 
 // Heal restores up to hp absolute HP, capped at maxHealth, records the
@@ -1122,13 +1135,17 @@ func (m *Mob) DueDotHits() []skills.DotHit {
 // of each tick.
 func (m *Mob) ResetTickNumbers() {
 	m.damageTaken = 0
+	m.critTaken = 0
 	m.healReceived = 0
 	m.auraHitStyle = model.AuraHitStyleNone
 	m.buffs.Tick()
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags}, model.StatusEffectDamagedAmbient)
+	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
+	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
+	// always its own recipient.
+	model.ApplyLifesteal(lost, factors.Lifesteal, nil, e)
 	// Mob-vs-mob hits build threat too; noteThreat's faction gate keeps
 	// same-faction splash off the table.
 	if source, ok := e.(model.Combatant); ok {
@@ -1144,6 +1161,9 @@ func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
 func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	m.noteParticipant(p)
 	lost := m.takeDamage(damage, model.StatusEffectDamagedAmbient)
+	// Lifesteal heal-back (chunk 1, F6 §3.1/9): the living Source (a summon
+	// leeches for itself, §4.2) else the toucher, from the dealt amount.
+	model.ApplyLifesteal(lost, damage.Lifesteal, damage.Source, p)
 	// Threat credits the hit's source entity — a summon builds its own threat
 	// while XP rides the toucher (chunk 3a, gotcha #9; the stores stay
 	// separate). A dot whose summon has expired falls back to the toucher:

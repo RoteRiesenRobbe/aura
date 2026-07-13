@@ -31,10 +31,12 @@ import (
 // touchRecorder implements model.Interacter and records PlayerTouches calls.
 // It stands in for a mob-like (hostile) target of a player's damage aura.
 type touchRecorder struct {
-	touches   []float32 // damage HP per hit
-	touchTags [][]string
-	sources   []model.Combatant // Damage.Source per hit (threat attribution, chunk 3)
-	hitStyles []model.AuraHitStyle
+	touches    []float32 // damage HP per hit
+	touchTags  [][]string
+	sources    []model.Combatant // Damage.Source per hit (threat attribution, chunk 3)
+	crits      []bool            // Damage.Crit per hit (chunk 1)
+	lifesteals []float32         // Damage.Lifesteal per hit (chunk 1)
+	hitStyles  []model.AuraHitStyle
 }
 
 func (r *touchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item) {}
@@ -43,6 +45,8 @@ func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage)
 	r.touches = append(r.touches, damage.HP)
 	r.touchTags = append(r.touchTags, damage.Tags)
 	r.sources = append(r.sources, damage.Source)
+	r.crits = append(r.crits, damage.Crit)
+	r.lifesteals = append(r.lifesteals, damage.Lifesteal)
 }
 func (r *touchRecorder) NoteAuraHit(style model.AuraHitStyle) {
 	r.hitStyles = append(r.hitStyles, style)
@@ -581,6 +585,7 @@ type fakeMob struct {
 	aura          *phy.Circle
 	statusEffects model.StatusEffects
 	faction       model.Faction
+	healthRatio   float32
 }
 
 func (f *fakeMob) Basic() ecs.BasicEntity                 { return f.basic }
@@ -588,6 +593,7 @@ func (f *fakeMob) Faction() model.Faction                 { return f.faction }
 func (f *fakeMob) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeMob) AuraCollider() *phy.Circle              { return f.aura }
 func (f *fakeMob) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
+func (f *fakeMob) HealthRatio() float32                   { return f.healthRatio }
 
 var (
 	_ skillEntity     = (*fakeMob)(nil)
@@ -603,10 +609,11 @@ func newFakeMob(effects ...skills.EffectDef) *fakeMob {
 	sc.EquipAura(0, def, 1)
 	sc.SetActiveAura(0)
 	return &fakeMob{
-		basic:   ecs.NewBasic(),
-		sc:      sc,
-		aura:    phy.NewCircle(phy.VEC2F_ZERO, 1.0),
-		faction: model.FactionHostile,
+		basic:       ecs.NewBasic(),
+		sc:          sc,
+		aura:        phy.NewCircle(phy.VEC2F_ZERO, 1.0),
+		faction:     model.FactionHostile,
+		healthRatio: 1,
 	}
 }
 
@@ -2454,4 +2461,216 @@ func TestApplyHealAura_MobCaster_SkipsFullHealthAlly(t *testing.T) {
 	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(0), healthy.healReceived, "a full-health ally is never healed")
+}
+
+// --- damage vocabulary: berserker / execute / crit / lifesteal (plan-skill-vocab chunk 1, F6 §3.1) ---
+
+// ratioTouchRecorder is a touchRecorder with a health ratio, so execute can
+// rank it (production targets are players/mobs and always have one).
+type ratioTouchRecorder struct {
+	touchRecorder
+	ratio float32
+}
+
+func (r *ratioTouchRecorder) HealthRatio() float32 { return r.ratio }
+
+// ratioMobTouchRecorder is the mob-path equivalent.
+type ratioMobTouchRecorder struct {
+	mobTouchRecorder
+	ratio float32
+}
+
+func (r *ratioMobTouchRecorder) HealthRatio() float32 { return r.ratio }
+
+// vocabEffect is a variance-free damage aura carrying the given vocabulary
+// fields on a base of 10 HP.
+func vocabEffect(mutate func(*skills.DamageParams)) skills.EffectDef {
+	e := skills.EffectDef{
+		Type:           skills.EffectTypeDamageAura,
+		TargetsEnemies: true,
+		TickInterval:   1,
+		Damage:         &skills.DamageParams{HP: 10},
+	}
+	mutate(e.Damage)
+	return e
+}
+
+func TestApplyDamageAura_BerserkerScalesWithCasterMissingHP(t *testing.T) {
+	effect := vocabEffect(func(d *skills.DamageParams) { d.BerserkerMaxBonusFactor = 1 })
+	caster := newFakePlayer() // 100/100 HP
+	target := &touchRecorder{}
+	set := colliderSetOf(target)
+
+	applyDamageAura(caster, 1, effect, set, testRNG())
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 10.0, target.touches[0], 1e-4, "full HP = no bonus")
+
+	caster.vitalSigns.Health = 50
+	applyDamageAura(caster, 1, effect, set, testRNG())
+	assert.InDelta(t, 15.0, target.touches[1], 1e-4, "half HP = half the max bonus")
+
+	caster.vitalSigns.Health = 0
+	applyDamageAura(caster, 1, effect, set, testRNG())
+	assert.InDelta(t, 20.0, target.touches[2], 1e-4, "zero HP = full bonus")
+}
+
+func TestApplyDamageAura_ExecuteBonusBelowThresholdOnly(t *testing.T) {
+	effect := vocabEffect(func(d *skills.DamageParams) {
+		d.ExecuteBelowFraction = 0.35
+		d.ExecuteBonusFactor = 2
+	})
+	caster := newFakePlayer()
+	healthy := &ratioTouchRecorder{ratio: 0.5}
+	boundary := &ratioTouchRecorder{ratio: 0.35}
+	wounded := &ratioTouchRecorder{ratio: 0.2}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(healthy, boundary, wounded), testRNG())
+
+	require.Len(t, healthy.touches, 1)
+	assert.InDelta(t, 10.0, healthy.touches[0], 1e-4, "above threshold = base")
+	require.Len(t, boundary.touches, 1)
+	assert.InDelta(t, 10.0, boundary.touches[0], 1e-4, "AT threshold is not below (strict)")
+	require.Len(t, wounded.touches, 1)
+	assert.InDelta(t, 20.0, wounded.touches[0], 1e-4, "below threshold = bonus")
+}
+
+func TestApplyDamageAura_ExecuteSkipsRatiolessTargets(t *testing.T) {
+	effect := vocabEffect(func(d *skills.DamageParams) {
+		d.ExecuteBelowFraction = 0.35
+		d.ExecuteBonusFactor = 2
+	})
+	caster := newFakePlayer()
+	target := &touchRecorder{} // no HealthRatio
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 10.0, target.touches[0], 1e-4, "no ratio = no execute, base damage")
+}
+
+func TestApplyDamageAura_CritAlwaysAtChanceOne(t *testing.T) {
+	effect := vocabEffect(func(d *skills.DamageParams) {
+		d.CritChance = 1
+		d.CritFactor = 2
+	})
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 20.0, target.touches[0], 1e-4)
+	require.Len(t, target.crits, 1)
+	assert.True(t, target.crits[0], "the crit flag rides the Damage payload")
+}
+
+func TestApplyDamageAura_CritSeededMixAtHalfChance(t *testing.T) {
+	effect := vocabEffect(func(d *skills.DamageParams) {
+		d.CritChance = 0.5
+		d.CritFactor = 2
+	})
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+	set := colliderSetOf(target)
+
+	rng := testRNG()
+	for i := 0; i < 100; i++ {
+		applyDamageAura(caster, 1, effect, set, rng)
+	}
+
+	require.Len(t, target.touches, 100)
+	crits, normals := 0, 0
+	for i, hp := range target.touches {
+		if target.crits[i] {
+			crits++
+			assert.InDelta(t, 20.0, hp, 1e-4, "a crit hit is exactly ×factor")
+		} else {
+			normals++
+			assert.InDelta(t, 10.0, hp, 1e-4, "a normal hit is the base")
+		}
+	}
+	assert.Greater(t, crits, 0, "seeded half chance must crit sometimes")
+	assert.Greater(t, normals, 0, "…and miss sometimes")
+}
+
+func TestApplyDamageAura_LifestealRidesDamagePayload(t *testing.T) {
+	effect := vocabEffect(func(d *skills.DamageParams) { d.LifestealFraction = 0.5 })
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.lifesteals, 1)
+	assert.InDelta(t, 0.5, target.lifesteals[0], 1e-6)
+}
+
+// The F6 §3.1 composition-order pin (chunk-1 half; shields join in chunk 2):
+// one hit walked through berserker × execute × crit with hand-computed values.
+// base 10 × berserker(half HP, max 1 → 1.5) × execute(0.2 < 0.35 → 2) ×
+// crit(chance 1 → 2) = 60.
+func TestApplyDamageAura_CompositionOrderF6(t *testing.T) {
+	effect := vocabEffect(func(d *skills.DamageParams) {
+		d.BerserkerMaxBonusFactor = 1
+		d.ExecuteBelowFraction = 0.35
+		d.ExecuteBonusFactor = 2
+		d.CritChance = 1
+		d.CritFactor = 2
+		d.LifestealFraction = 0.25
+	})
+	caster := newFakePlayer()
+	caster.vitalSigns.Health = 50
+	target := &ratioTouchRecorder{ratio: 0.2}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 60.0, target.touches[0], 1e-3)
+	assert.True(t, target.crits[0])
+	assert.InDelta(t, 0.25, target.lifesteals[0], 1e-6)
+}
+
+// fakeActingSource is a minimal Factioned Combatant with a health ratio,
+// standing in for an owned summon as the acting entity of an owned cast.
+type fakeActingSource struct {
+	model.Combatant
+	ratio float32
+}
+
+func (f *fakeActingSource) Faction() model.Faction { return model.FactionAligned }
+func (f *fakeActingSource) HealthRatio() float32   { return f.ratio }
+
+func TestApplyPlayerDamageAura_BerserkerReadsActingSummonHP(t *testing.T) {
+	// Decided at chunk-1 start (2026-07-13): the ACTING entity's missing HP
+	// drives berserker — a wounded summon rages, the owner's HP is irrelevant.
+	effect := vocabEffect(func(d *skills.DamageParams) { d.BerserkerMaxBonusFactor = 1 })
+	owner := newFakePlayer() // full HP
+	summon := &fakeActingSource{ratio: 0.5}
+	target := &touchRecorder{}
+
+	applyPlayerDamageAura(owner, summon, phy.VEC2F_ZERO, 1, effect, colliderSetOf(target), testRNG(), 1)
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 15.0, target.touches[0], 1e-4, "summon at half HP rages; owner HP ignored")
+}
+
+func TestApplyDamageAura_MobCaster_VocabularyRidesFactors(t *testing.T) {
+	effect := vocabEffect(func(d *skills.DamageParams) {
+		d.BerserkerMaxBonusFactor = 1
+		d.ExecuteBelowFraction = 0.35
+		d.ExecuteBonusFactor = 2
+		d.CritChance = 1
+		d.CritFactor = 2
+		d.LifestealFraction = 0.75
+	})
+	caster := newFakeMob()
+	caster.healthRatio = 0.5
+	target := &ratioMobTouchRecorder{ratio: 0.2}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.factors, 1)
+	f := target.factors[0]
+	assert.InDelta(t, 60.0, f.Damage, 1e-3, "10 × 1.5 × 2 × 2, same pipeline as players")
+	assert.True(t, f.Crit)
+	assert.InDelta(t, 0.75, f.Lifesteal, 1e-6)
 }

@@ -341,8 +341,20 @@ func (rcv *Character) MutateCampfireBound(n bool) bool {
 	return rcv._tab.MutateBoolSlot(50, n)
 }
 
+func (rcv *Character) CritTaken() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateCritTaken(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(52, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(24)
+	builder.StartObject(25)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -418,6 +430,9 @@ func CharacterAddLightRadius(builder *flatbuffers.Builder, lightRadius uint16) {
 }
 func CharacterAddCampfireBound(builder *flatbuffers.Builder, campfireBound bool) {
 	builder.PrependBoolSlot(23, campfireBound, false)
+}
+func CharacterAddCritTaken(builder *flatbuffers.Builder, critTaken uint32) {
+	builder.PrependUint32Slot(24, critTaken, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

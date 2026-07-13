@@ -542,3 +542,64 @@ func TestPlayer_Heal_ClampsRecordsAndReturnsDelta(t *testing.T) {
 	assert.Equal(t, maxHP, p.VitalSigns().Health)
 	assert.Equal(t, vitals.VitalSign(40), p.HealReceived())
 }
+
+// --- damage dealt return + lifesteal + crit accumulator (plan-skill-vocab chunk 1) ---
+
+func TestPlayer_TakeDamage_ReturnsDealtLoss(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+
+	dealt := p.takeDamage(model.Damage{HP: 7}, model.StatusEffectDamagedAmbient)
+	assert.Equal(t, vitals.VitalSign(7), dealt, "mirrors the mob site: post-mitigation loss")
+
+	p.PlayerVitalSigns.Health = 3
+	dealt = p.takeDamage(model.Damage{HP: 100}, model.StatusEffectDamagedAmbient)
+	assert.Equal(t, vitals.VitalSign(3), dealt, "overkill never counts (F6 §3.1/9)")
+}
+
+func TestPlayer_CritTaken_AccumulatesAndResets(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+
+	p.takeDamage(model.Damage{HP: 5, Crit: true}, model.StatusEffectDamagedAmbient)
+	p.takeDamage(model.Damage{HP: 3}, model.StatusEffectDamagedAmbient)
+
+	assert.Equal(t, vitals.VitalSign(5), p.CritTaken(),
+		"only crit-flagged hits land on the crit accumulator")
+	assert.Equal(t, vitals.VitalSign(8), p.DamageTaken())
+
+	p.ResetTickNumbers()
+	assert.Zero(t, p.CritTaken())
+}
+
+// fakeLeechMob adds a Heal recorder to fakeAttackerMob so a mob-cast hit's
+// lifesteal heal-back is observable.
+type fakeLeechMob struct {
+	fakeAttackerMob
+	healed []uint32
+}
+
+func (f *fakeLeechMob) Heal(hp uint32) vitals.VitalSign {
+	f.healed = append(f.healed, hp)
+	return vitals.VitalSign(hp)
+}
+
+func TestPlayer_MobTouches_LifestealHealsMob(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	attacker := &fakeLeechMob{fakeAttackerMob: *newFakeAttackerMob()}
+
+	p.MobTouches(attacker, mobs.Factors{Damage: 10, Lifesteal: 0.5})
+
+	require.Len(t, attacker.healed, 1)
+	assert.Equal(t, uint32(5), attacker.healed[0], "a mob-cast hit leeches off the player")
+}
+
+func TestPlayer_MobTouches_CritLandsOnCritTaken(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+
+	p.MobTouches(newFakeAttackerMob(), mobs.Factors{Damage: 10, Crit: true})
+
+	assert.Equal(t, vitals.VitalSign(10), p.CritTaken(), "Factors.Crit rides into the accumulator")
+}

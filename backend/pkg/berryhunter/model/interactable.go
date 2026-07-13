@@ -17,6 +17,17 @@ type Damage struct {
 	// credits the source, XP the toucher (gotcha #9 — the stores stay
 	// separate). nil = the toucher itself is the source.
 	Source Combatant
+
+	// Lifesteal is the fraction of the damage actually DEALT (post-mitigation,
+	// overkill excluded) healed back to the hit's recipient — the living
+	// Source, else the toucher (plan-skill-vocab chunk 1, F6 §3.1/9). 0 = none.
+	Lifesteal float32
+
+	// Crit marks a hit whose crit roll landed (§4.3): the target adds its
+	// post-mitigation loss to the crit_taken wire accumulator so the client
+	// renders it big. Presentational at the target — the multiplier was
+	// applied caster-side.
+	Crit bool
 }
 
 type Interacter interface {
