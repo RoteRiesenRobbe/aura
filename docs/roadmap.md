@@ -807,7 +807,11 @@ system ships blind.
    this builds the tracker + death-respawn; the separate *Recall* cooldown
    ability (backlog item 9) reuses the same tracker but is left to the
    skill-vocabulary/content work.
-4. **Skill-vocabulary fill** — ← **NEXT (plan-first)** (effect-foundations
+4. **Skill-vocabulary fill** — ← **CURRENT — PLANNED 2026-07-13 →
+   `docs/plan-skill-vocab.md`** (6 chunks, execution order 1 → 2 → 4 → 3 →
+   5 → 6; review decisions: crit = sanctioned upside-only RNG,
+   activation preconditions + rejection feedback, per-entity tick wire +
+   tick-rate manipulability) — (effect-foundations
    Step 4 + cheap effect types) —
    shield-as-buff-payload, life steal, execute, crit, berserker, **dash/blink**
    (position set + collision sanity — can't cross `blocksMovement`), … so the

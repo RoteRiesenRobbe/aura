@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
      Full execution order + per-item status: docs/roadmap.md. Doc index: docs/README.md.
      Plans and records live in the plan docs. -->
 
-- **Last completed:** Atmosphere & recovery chunk 4 (death state + campfire respawn) — verified in-game incl. feedback + review fixes → **execution step 3 COMPLETE** — `docs/plan-atmosphere-recovery.md` §3.4 outcome banner (Corpse entity + `Respawn` message + reserved-name dead state + campfire dwell anchors w/ `dwell_radius`/`campfire_bound` wire + death overlay + client-only mob fade + static campfire light holes; 26 skills / 11 milestones / 13 mobs)
-- **Next:** Execution step 4 = skill-vocabulary fill (effect-foundations Step 4: shield/lifesteal/execute/crit/berserker/dash + cast-time+interrupt → Recall + HoT payloads + revive effect type + `"*"` wildcard resist + minimal tick-indicator wire) — plan-first planning session, NEW session — `roadmap.md` execution order step 4
+- **Last completed:** Execution step 4 (skill-vocabulary fill) PLANNED 2026-07-13 → `docs/plan-skill-vocab.md` — planning session, review decisions resolved same day (crit = sanctioned upside-only RNG w/ `crit_taken` wire; activation-precondition + rejection-feedback primitive replaces whiff for recall/revive; tick wire = per-entity effective `aura_tick_interval`/`aura_tick_phase` + tick-rate manipulability seam w/ `tick_rate` buff payload; F6 composition order proposed §3.1, confirm at chunk-1 start). 6 chunks, execution order **1 → 2 → 4 → 3 → 5 → 6** (damage batch → shield → cast+Recall → HoT+revive → dash → tick indicator)
+- **Next:** Step-4 chunk 1 = damage-vocabulary batch (`"*"` wildcard resist + execute + berserker + lifesteal + crit + F6 record; §4.1/§4.2 confirmations at chunk start) — execution session, NEW session — `docs/plan-skill-vocab.md` §5
 
 ## Development Principles
 
