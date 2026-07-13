@@ -253,9 +253,9 @@ func (p *player) HealthRatio() float32 {
 // by maxHealthFactor — a hit removes flat HP regardless of the player's pool.
 // The hit's damage tags are carried for tag resistances (Phase 2); players
 // have no base resistances, transient resist-aura buffs land in Step 3.
-// Returns the actual HP lost after clamping — the "damage dealt" that feeds
-// lifesteal (plan-skill-vocab chunk 1; mirrors the mob site; shield absorbs
-// widen it in chunk 2).
+// Returns the "damage dealt" that feeds lifesteal and threat: shield-absorbed
+// damage + actual HP lost after clamping — overkill never counts
+// (plan-skill-vocab chunk 2, F6 §3.1/9; mirrors the mob site).
 func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.VitalSign {
 	// Tag resistances (Phase 2): resist passives (Derived) and transient
 	// resist-aura buffs are distinct sources and stack multiplicatively.
@@ -269,17 +269,26 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vi
 		}
 		hp32 *= 1 - r
 	}
+	// God short-circuits before the absorb step — god never drains a shield.
 	if p.IsGod() {
 		return 0
 	}
-
-	hp := vitals.HP(hp32)
-	if hp <= 0 {
+	// A fully resisted hit stays a non-event: no combat stamp, no absorb.
+	if vitals.HP(hp32) <= 0 {
 		return 0
 	}
+
+	// Shield absorb (chunk 2, F6 §3.1/8): post-mitigation damage drains the
+	// absorb pools first, the leftover hits HP. The ≤1-point rounding drift
+	// between HP(absorbed)+HP(rest) and HP(hp32) is accepted.
+	absorbed := vitals.VitalSign(vitals.HP(p.buffs.AbsorbShield(hp32)))
+	hp := vitals.HP(hp32 - float32(absorbed))
+
 	h := p.PlayerVitalSigns.Health
 	p.PlayerVitalSigns.Health = h.Sub(hp)
 	loss := h - p.PlayerVitalSigns.Health // actual loss after clamping
+	// The floating-number accumulators show real HP loss only; absorbed
+	// damage reads as the shield bar dropping.
 	p.damageTaken += loss
 	if damage.Crit {
 		p.critTaken += loss // crit_taken wire accumulator (chunk 1, §4.3)
@@ -287,9 +296,10 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vi
 	p.StatusEffects().Add(s)
 	// Taking harm enters combat (chunk 1): the take-harm direction, stamped
 	// at the single damage choke point so every damage-aura and dot tick,
-	// mob or PvP, gates regen uniformly.
+	// mob or PvP, gates regen uniformly. Fully absorbed hits count — being
+	// beaten on your shield is combat (§3.1).
 	p.NoteCombatAction()
-	return loss
+	return absorbed + loss
 }
 
 // DamageTaken / HealReceived / XpGained expose the per-tick floating-number
@@ -347,6 +357,19 @@ func (p *player) ApplyResist(source skills.SkillID, tags []string, factor float3
 // the SkillSystem via DueDotHits.
 func (p *player) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
 	p.buffs.ApplyDot(source, dot, ticks)
+}
+
+// ApplyShield grants (or tops up) an absorb pool from a shield effect
+// (plan-skill-vocab chunk 2); drained by takeDamage before HP.
+func (p *player) ApplyShield(source skills.SkillID, hp float32, ticks int) {
+	p.buffs.ApplyShield(source, hp, ticks)
+}
+
+// ShieldHP is the current total absorb capacity across all active pools;
+// serialized as the shield_hp wire field. A live value, not a per-tick
+// accumulator — no ResetTickNumbers involvement.
+func (p *player) ShieldHP() vitals.VitalSign {
+	return vitals.VitalSign(vitals.HP(p.buffs.ShieldTotal()))
 }
 
 // DueDotHits advances and drains this tick's due dot damage events; called

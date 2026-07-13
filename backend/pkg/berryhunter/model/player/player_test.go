@@ -603,3 +603,96 @@ func TestPlayer_MobTouches_CritLandsOnCritTaken(t *testing.T) {
 
 	assert.Equal(t, vitals.VitalSign(10), p.CritTaken(), "Factors.Crit rides into the accumulator")
 }
+
+// --- shield absorb step (plan-skill-vocab chunk 2, F6 §3.1/8-9) ---
+
+func TestPlayer_TakeDamage_ShieldAbsorbsBeforeHP(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	p.ApplyShield(27, 20, 300)
+
+	dealt := p.takeDamage(model.Damage{HP: 8, Crit: true}, model.StatusEffectDamagedAmbient)
+
+	assert.Equal(t, vitals.VitalSign(8), dealt, "a fully absorbed hit still counts as dealt")
+	assert.Equal(t, vitals.Max, p.VitalSigns().Health, "HP untouched while the shield holds")
+	assert.Zero(t, p.DamageTaken(), "damage numbers show real HP loss only")
+	assert.Zero(t, p.CritTaken(), "crit accumulator follows the same loss-only rule")
+	assert.Equal(t, vitals.VitalSign(12), p.ShieldHP(), "the pool drained by the absorbed amount")
+	assert.True(t, p.InCombat(), "being beaten on your shield is combat (§3.1)")
+}
+
+func TestPlayer_TakeDamage_PartialAbsorbSpillsToHP(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	p.ApplyShield(27, 5, 300)
+
+	before := p.VitalSigns().Health
+	dealt := p.takeDamage(model.Damage{HP: 8}, model.StatusEffectDamagedAmbient)
+
+	assert.Equal(t, vitals.VitalSign(8), dealt, "dealt = absorbed + HP lost")
+	assert.Equal(t, before-3, p.VitalSigns().Health, "the spill hits HP")
+	assert.Equal(t, vitals.VitalSign(3), p.DamageTaken())
+	assert.Zero(t, p.ShieldHP(), "the broken pool is gone")
+}
+
+func TestPlayer_TakeDamage_ShieldAfterResistAndDR(t *testing.T) {
+	// Composition pin, incoming side of F6 §3.1: resist buffs × passive DR
+	// mitigate first, the shield absorbs the post-mitigation amount.
+	// Hand-computed: 40 × 0.5 resist × (1 − 0.25 DR) = 15 → shield absorbs
+	// 12 → 3 hit HP; dealt = 12 + 3 = 15.
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	p.skills.Derived.DamageReductionBonus = 0.25
+	p.ApplyResist(40, []string{"fire"}, 0.5, 100)
+	p.ApplyShield(27, 12, 300)
+
+	before := p.VitalSigns().Health
+	dealt := p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+
+	assert.Equal(t, vitals.VitalSign(15), dealt)
+	assert.Equal(t, before-3, p.VitalSigns().Health)
+	assert.Zero(t, p.ShieldHP())
+	assert.Equal(t, vitals.VitalSign(3), p.DamageTaken())
+}
+
+func TestPlayer_TakeDamage_FullyResistedHitLeavesShieldUntouched(t *testing.T) {
+	// A fully resisted hit stays a non-event (no combat stamp, chunk-1 rule)
+	// and must not drain absorb capacity either.
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	p.ApplyResist(40, []string{"fire"}, 0, 100) // immune
+	p.ApplyShield(27, 20, 300)
+
+	dealt := p.takeDamage(model.Damage{HP: 40, Tags: []string{"fire"}}, model.StatusEffectDamagedAmbient)
+
+	assert.Zero(t, dealt)
+	assert.Equal(t, vitals.VitalSign(20), p.ShieldHP(), "resisted-away damage never reaches the shield")
+	assert.False(t, p.InCombat())
+}
+
+func TestPlayer_TakeDamage_GodLeavesShieldUntouched(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	p.SetGodmode(true)
+	p.ApplyShield(27, 20, 300)
+
+	dealt := p.takeDamage(model.Damage{HP: 8}, model.StatusEffectDamagedAmbient)
+
+	assert.Zero(t, dealt)
+	assert.Equal(t, vitals.VitalSign(20), p.ShieldHP(), "god mode short-circuits before the absorb step")
+}
+
+func TestPlayer_MobTouches_LifestealCountsAbsorbedDamage(t *testing.T) {
+	// §4.2 (a) interplay pin: "damage dealt" includes the shield-absorbed
+	// share — leeching off a shielded target still heals.
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	p.ApplyShield(27, 20, 300)
+	attacker := &fakeLeechMob{fakeAttackerMob: *newFakeAttackerMob()}
+
+	p.MobTouches(attacker, mobs.Factors{Damage: 10, Lifesteal: 0.5})
+
+	require.Len(t, attacker.healed, 1)
+	assert.Equal(t, uint32(5), attacker.healed[0], "heal = dealt (absorbed + lost) × fraction")
+	assert.Equal(t, vitals.Max, p.VitalSigns().Health, "the hit itself was fully absorbed")
+}

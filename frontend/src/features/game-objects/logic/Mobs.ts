@@ -38,6 +38,12 @@ export abstract class Mob extends GameObject {
 
     protected actualShape: PIXI.Container;
     private healthFillGroup: PIXI.Container;
+    // Absorb segment on the overhead bar (skill-vocab chunk 2, bare).
+    private shieldFillGroup: PIXI.Container;
+    private healthFraction: number = 1;
+    private shieldFraction: number = 0;
+    private barInnerX: number = 0;
+    private barInnerWidth: number = 0;
     private auraSprite: PIXI.Container = null;
 
     protected constructor(
@@ -107,6 +113,28 @@ export abstract class Mob extends GameObject {
     setHealth(health: number, maxHealth: number) {
         const relativeHealth = maxHealth > 0 ? Math.max(0, Math.min(1, health / maxHealth)) : 0;
         this.healthFillGroup.scale.x = relativeHealth;
+        this.healthFraction = relativeHealth;
+        this.layoutShieldFill();
+    }
+
+    // setShield renders the absorb segment (skill-vocab chunk 2, bare):
+    // width per shieldHp/maxHealth, anchored at the end of the HP fill —
+    // sliding left over it when the bar is too full to fit, so an active
+    // shield is always visible. 0 hides it. Mirrors Character.setShield (the
+    // two overhead bars share no base).
+    setShield(shieldHp: number, maxHealth: number) {
+        this.shieldFraction = maxHealth > 0 ? Math.max(0, Math.min(1, shieldHp / maxHealth)) : 0;
+        this.layoutShieldFill();
+    }
+
+    private layoutShieldFill() {
+        if (!this.shieldFillGroup) {
+            return;
+        }
+        this.shieldFillGroup.visible = this.shieldFraction > 0;
+        this.shieldFillGroup.scale.x = this.shieldFraction;
+        this.shieldFillGroup.position.x = this.barInnerX +
+            Math.min(this.healthFraction, 1 - this.shieldFraction) * this.barInnerWidth;
     }
 
     protected override createStatusEffects() {
@@ -141,6 +169,19 @@ export abstract class Mob extends GameObject {
                 .fill({color: 0xaa3b3b, alpha: 0.9}),
         );
         bar.addChild(this.healthFillGroup);
+
+        // Absorb segment (skill-vocab chunk 2); laid out by layoutShieldFill.
+        this.barInnerX = -innerWidth / 2;
+        this.barInnerWidth = innerWidth;
+        this.shieldFillGroup = new PIXI.Container();
+        this.shieldFillGroup.position.set(-innerWidth / 2, -innerHeight / 2);
+        this.shieldFillGroup.addChild(
+            new PIXI.Graphics()
+                .rect(0, 0, innerWidth, innerHeight)
+                .fill({color: 0x7dc3ff, alpha: 0.75}),
+        );
+        this.shieldFillGroup.visible = false;
+        bar.addChild(this.shieldFillGroup);
 
         this.shape.addChild(bar);
         this.setHealth(1, 1); // full until the first snapshot

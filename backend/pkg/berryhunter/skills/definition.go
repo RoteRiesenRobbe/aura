@@ -46,6 +46,8 @@ const (
 	EffectTypeTaunt
 	EffectTypeDetaunt
 	EffectTypeLightAura
+	EffectTypeShieldAura
+	EffectTypeInstantShield
 )
 
 var effectTypeMap = map[string]EffectType{
@@ -63,6 +65,8 @@ var effectTypeMap = map[string]EffectType{
 	"taunt":           EffectTypeTaunt,
 	"detaunt":         EffectTypeDetaunt,
 	"light_aura":      EffectTypeLightAura,
+	"shield_aura":     EffectTypeShieldAura,
+	"instant_shield":  EffectTypeInstantShield,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -176,6 +180,7 @@ type EffectDef struct {
 	Dot      *DotParams      // dot_aura, instant_dot
 	Spawn    *SpawnParams    // spawn
 	Threat   *ThreatParams   // taunt, detaunt
+	Shield   *ShieldParams   // shield_aura, instant_shield
 }
 
 // ThreatParams is the taunt / detaunt payload (mob-depth chunk 7). Margin is
@@ -331,6 +336,29 @@ func (p *ResistParams) FactorAt(level int) float32 {
 		factor = 0
 	}
 	return factor
+}
+
+// ShieldParams is the shield_aura / instant_shield payload (plan-skill-vocab
+// chunk 2): an absorb pool granted to eligible targets, drained by incoming
+// post-mitigation damage before HP. shield_aura re-applies it every effect
+// tick (lifetime interval + 1, the aura convention — a top-up while in
+// range); instant_shield applies it once on cooldown activation with its own
+// DurationTicks lifetime. TargetsSelf also buffs the caster — without
+// consuming a MaxTargets slot (the resist_aura convention).
+type ShieldParams struct {
+	HP            float32
+	HPPerLevel    float32
+	DurationTicks int // instant_shield only; 0 on shield_aura
+	TargetsSelf   bool
+}
+
+// HPAt is the level-scaled absorb pool size, floored at 0.
+func (p *ShieldParams) HPAt(level int) float32 {
+	hp := Scaled(p.HP, p.HPPerLevel, level)
+	if hp < 0 {
+		hp = 0
+	}
+	return hp
 }
 
 // DotParams is the dot_aura / instant_dot payload (effect foundations
@@ -493,6 +521,10 @@ type effectDef struct {
 	PowerPerOwnerLevel     float32 `json:"powerPerOwnerLevel"`
 
 	ThreatMargin float32 `json:"threatMargin"` // taunt: head start above the current top
+
+	ShieldHP            float32 `json:"shieldHP"`
+	ShieldHPPerLevel    float32 `json:"shieldHPPerLevel"`
+	ShieldDurationTicks int     `json:"shieldDurationTicks"` // instant_shield only
 }
 
 type skillDefinition struct {
@@ -524,6 +556,7 @@ var (
 	}
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
 	keysDotPayload    = []string{"damageHP", "damageHPPerLevel", "damageTags", "variance", "dotTicks", "dotTickInterval"}
+	keysShieldPayload = []string{"shieldHP", "shieldHPPerLevel"}
 )
 
 // effectKeys lists every JSON key each effect type actually reads (besides
@@ -562,6 +595,13 @@ var effectKeys = map[EffectType][]string{
 	// Rendering-only (chunk 3): pure geometry — no payload, no targeting, no
 	// cadence, no apply path. The radius streams as the wire light_radius.
 	EffectTypeLightAura: keysGeometry,
+	// Shield pair (chunk 2), mirroring resist_aura's shape. The aura form
+	// derives its buff lifetime from the cadence (interval + 1); only the
+	// instant form carries an authored shieldDurationTicks.
+	EffectTypeShieldAura: mergeKeys(keysGeometry, keysCadence, keysCapped, keysTargetFlags,
+		keysShieldPayload, []string{"targetsSelf"}),
+	EffectTypeInstantShield: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
+		keysShieldPayload, []string{"shieldDurationTicks", "targetsSelf"}),
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -711,6 +751,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Threat, err = e.tauntParams()
 	case EffectTypeDetaunt:
 		def.Threat = &ThreatParams{} // single-entry removal, no margin
+	case EffectTypeShieldAura, EffectTypeInstantShield:
+		def.Shield, err = e.shieldParams(effectType)
 	}
 	if err != nil {
 		return EffectDef{}, err
@@ -878,6 +920,28 @@ func (e *effectDef) spawnParams() (*SpawnParams, error) {
 		TTLTicksPerLevel:       e.TTLTicksPerLevel,
 		MaxHealthPerOwnerLevel: e.MaxHealthPerOwnerLevel,
 		PowerPerOwnerLevel:     e.PowerPerOwnerLevel,
+	}, nil
+}
+
+// shieldParams builds the shield payload. A both-zero pool is a do-nothing
+// buff and hard-fails like the dot/stat no-scaling guards; the instant form
+// requires its authored buff lifetime (the aura form derives it from the
+// cadence, and the allowlist already rejects the key there).
+func (e *effectDef) shieldParams(effectType EffectType) (*ShieldParams, error) {
+	if e.ShieldHP < 0 {
+		return nil, fmt.Errorf("shieldHP: must be >= 0, got %v", e.ShieldHP)
+	}
+	if e.ShieldHP == 0 && e.ShieldHPPerLevel == 0 {
+		return nil, fmt.Errorf("shield: no pool authored (shieldHP and shieldHPPerLevel both 0)")
+	}
+	if effectType == EffectTypeInstantShield && e.ShieldDurationTicks < 1 {
+		return nil, fmt.Errorf("shieldDurationTicks: must be >= 1, got %v", e.ShieldDurationTicks)
+	}
+	return &ShieldParams{
+		HP:            e.ShieldHP,
+		HPPerLevel:    e.ShieldHPPerLevel,
+		DurationTicks: e.ShieldDurationTicks,
+		TargetsSelf:   e.TargetsSelf,
 	}, nil
 }
 

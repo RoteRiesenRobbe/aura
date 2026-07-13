@@ -18,6 +18,7 @@ export const SkillNames: { [id: number]: string } = {
     24: 'Summon Companion',
     25: 'Taunt',
     26: 'Fade',
+    27: 'Barrier',
     30: 'Paladin Aura',
     40: 'Fire Ward',
 };
@@ -45,6 +46,7 @@ export const SkillMaxLevels: { [id: number]: number } = {
     24: 3,
     25: 3,
     26: 3,
+    27: 3,
     30: 5,
     40: 3,
 };
@@ -74,6 +76,7 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     24: 'cooldown',
     25: 'cooldown',
     26: 'cooldown',
+    27: 'cooldown',
     30: 'aura',
     40: 'aura',
 };

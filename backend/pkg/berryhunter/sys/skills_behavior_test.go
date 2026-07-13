@@ -78,6 +78,7 @@ type fakePlayer struct {
 	healedBy        []model.PlayerEntity
 	healReceived    vitals.VitalSign
 	resists         []appliedResist
+	shields         []appliedShield
 	inCombat        bool // reported by InCombat (chunk 1 combat-gate tests)
 	combatActions   int  // NoteCombatAction call count (chunk 1)
 }
@@ -87,6 +88,13 @@ type appliedResist struct {
 	source skills.SkillID
 	tags   []string
 	factor float32
+	ticks  int
+}
+
+// appliedShield records one ApplyShield call on a test double.
+type appliedShield struct {
+	source skills.SkillID
+	hp     float32
 	ticks  int
 }
 
@@ -125,6 +133,9 @@ func (f *fakePlayer) ApplyRecipeCascade()                 {}
 
 func (f *fakePlayer) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
 	f.resists = append(f.resists, appliedResist{source, tags, factor, ticks})
+}
+func (f *fakePlayer) ApplyShield(source skills.SkillID, hp float32, ticks int) {
+	f.shields = append(f.shields, appliedShield{source, hp, ticks})
 }
 func (f *fakePlayer) InCombat() bool      { return f.inCombat }
 func (f *fakePlayer) NoteCombatAction()   { f.combatActions++ }
@@ -1506,6 +1517,114 @@ func TestApplyResistAura_RespectsTargetCap(t *testing.T) {
 	applyResistAura(caster, 40, 1, effect, colliderSetOf(a, b))
 
 	assert.Equal(t, 1, len(a.resists)+len(b.resists), "the cap limits buffed allies")
+}
+
+// --- applyShieldAura / instant_shield (plan-skill-vocab chunk 2) ---
+
+// shieldTargetRecorder is a PlayerEntity ally that records ApplyShield calls.
+type shieldTargetRecorder struct {
+	model.PlayerEntity
+	basic   ecs.BasicEntity
+	shields []appliedShield
+}
+
+func (r *shieldTargetRecorder) Basic() ecs.BasicEntity { return r.basic }
+func (r *shieldTargetRecorder) Faction() model.Faction { return model.FactionAligned }
+func (r *shieldTargetRecorder) ApplyShield(source skills.SkillID, hp float32, ticks int) {
+	r.shields = append(r.shields, appliedShield{source, hp, ticks})
+}
+
+func shieldEffect() skills.EffectDef {
+	return skills.EffectDef{
+		Type:          skills.EffectTypeShieldAura,
+		TargetsAllies: true,
+		TickInterval:  20,
+		Shield:        &skills.ShieldParams{HP: 20, HPPerLevel: 5},
+	}
+}
+
+func TestApplyShieldAura_BuffsAlliesWithLevelScaledPool(t *testing.T) {
+	caster := newFakePlayer()
+	ally := &shieldTargetRecorder{basic: ecs.NewBasic()}
+
+	applyShieldAura(caster, 27, 2, shieldEffect(), colliderSetOf(ally))
+
+	require.Len(t, ally.shields, 1)
+	got := ally.shields[0]
+	assert.Equal(t, skills.SkillID(27), got.source)
+	assert.InDelta(t, 25, got.hp, 1e-6, "level 2 = 20 + 1×5")
+	assert.Equal(t, 21, got.ticks, "lifetime = tick interval + 1 sustains any cadence")
+
+	assert.Empty(t, caster.shields, "no self-buff without targetsSelf")
+}
+
+func TestApplyShieldAura_TargetsSelfIncludesCaster(t *testing.T) {
+	caster := newFakePlayer()
+	ally := &shieldTargetRecorder{basic: ecs.NewBasic()}
+	effect := shieldEffect()
+	effect.Shield.TargetsSelf = true
+
+	applyShieldAura(caster, 27, 1, effect, colliderSetOf(ally))
+
+	require.Len(t, caster.shields, 1, "targetsSelf buffs the caster")
+	assert.InDelta(t, 20, caster.shields[0].hp, 1e-6)
+	require.Len(t, ally.shields, 1, "allies in range are buffed as well")
+}
+
+func TestApplyShieldAura_RespectsTargetCap(t *testing.T) {
+	caster := newFakePlayer()
+	a := &shieldTargetRecorder{basic: ecs.NewBasic()}
+	b := &shieldTargetRecorder{basic: ecs.NewBasic()}
+	effect := shieldEffect()
+	effect.MaxTargets = 1
+
+	applyShieldAura(caster, 27, 1, effect, colliderSetOf(a, b))
+
+	assert.Equal(t, 1, len(a.shields)+len(b.shields), "the cap limits buffed allies")
+}
+
+func barrierDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 27, Name: "Barrier", Category: skills.SkillCategoryCooldown, MaxLevel: 3,
+		CooldownTicks: 300,
+		Effects: []skills.EffectDef{{
+			Type:          skills.EffectTypeInstantShield,
+			Radius:        1.5,
+			TargetsAllies: true,
+			Shield:        &skills.ShieldParams{HP: 20, HPPerLevel: 5, DurationTicks: 300, TargetsSelf: true},
+		}},
+	}
+}
+
+func TestCooldown_InstantShieldBuffsSelfAndAllies(t *testing.T) {
+	// Barrier shape: one activation grants the absorb pool to the caster
+	// (targetsSelf) and every same-faction target in the one-shot circle.
+	ally := &shieldTargetRecorder{basic: ecs.NewBasic()}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerPlayerCollision), ally))
+	caster.sc.EquipCooldown(0, barrierDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.Len(t, caster.shields, 1, "targetsSelf grants the caster its pool")
+	assert.InDelta(t, 20, caster.shields[0].hp, 1e-6)
+	assert.Equal(t, 300+1, caster.shields[0].ticks,
+		"instant lifetime = authored duration + 1 (the dot convention)")
+	require.Len(t, ally.shields, 1, "allies in the circle are shielded too")
+	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+}
+
+func TestCooldown_InstantShieldSelfOnlyStillFires(t *testing.T) {
+	// A Barrier cast with nobody around must still shield the caster and
+	// consume the cooldown (the self-apply is a hit, not a whiff).
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerPlayerCollision), "not shieldable"))
+	caster.sc.EquipCooldown(0, barrierDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.Len(t, caster.shields, 1)
+	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks)
 }
 
 // --- dot_aura / instant_dot + the tickDots acting site (effect foundations Step 2) ---

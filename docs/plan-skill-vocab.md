@@ -6,6 +6,42 @@
 > per-entity effective fields + interval must be manipulable → haste seam;
 > chunk order 1 → 2 → 4 → 3 → 5 → 6).
 >
+> **CHUNK 2 (shield layer) DONE 2026-07-13 + VERIFIED IN-GAME 2026-07-14.**
+> Shipped: `shieldPayload{authored, remaining}` in `skills.Buffs` —
+> `ApplyShield` (same-strength refresh renews lifetime AND tops the pool
+> back up to authored, never past it), `AbsorbShield` (expiring-soonest
+> drains first across sources, SkillID tie-break for determinism, depleted
+> pools removed), `ShieldTotal`; absorb step in BOTH `takeDamage` sites
+> after resist (× DR on players), before HP — **the return widens to
+> dealt = absorbed + HP lost (§3.1/8-9 executable)**, so lifesteal and mob
+> threat count absorbs through the untouched chunk-1 callers (§4.2(a)
+> pinned); floating-number accumulators (damage_taken/crit_taken) show
+> real HP loss ONLY — absorption reads as the shield bar dropping, no new
+> wire beyond shield_hp; mob leash `tookDamage` widened to dealt > 0 and
+> player NoteCombatAction covers fully-absorbed hits ("beaten on your
+> shield is combat"); god/invulnerable short-circuit BEFORE the absorb,
+> fully-resisted hits never drain a pool. Effect types 14 → 16:
+> `shield_aura` (lifetime interval + 1) + `instant_shield` (authored
+> **`shieldDurationTicks`** — payload-prefix convention over §3.2's
+> `durationTicks` shorthand — applied + 1, the dot convention; rejected on
+> the aura form by the allowlist); `ShieldParams.HPAt` floored at 0;
+> both-zero pool hard-fails. Dispatch: `applyShieldAura` mirrors resist
+> (targetsSelf outside the cap, ally-side eligibility, no mayHarm);
+> `applyInstantShield` in fireCooldown — **the self-apply counts as a hit**
+> (a Barrier with nobody around is not a whiff); `AuraMaskFor` covers
+> shield_aura. Wire: `shield_hp:uint` Character slot 25 / Mob slot 18,
+> both codec sites, both client GameState branches — a LIVE value, not a
+> per-tick accumulator. Frontend bare rendering: HUD `.shieldIndicator`
+> (translucent light-blue, anchored at the HP fill's end, slides left over
+> the fill when the bar is too full so an active shield is always
+> visible) + the same segment on BOTH overhead-bar implementations
+> (Character.ts + Mobs.ts, no shared base); Skills.ts × 3 maps. Content:
+> **Barrier id 27** (next free; the "~29" placeholder), cheat-grant
+> `SKILL Barrier`, no milestone; count pin 27 → 28. 26 new tests
+> red-first incl. the takeDamage-side composition pins (resist × DR →
+> absorb, hand-computed), threat-on-absorbed, lifesteal-on-absorbed and
+> the top-up/drain-order/expiry store pins.
+>
 > **CHUNK 1 (damage-vocabulary batch) DONE + VERIFIED IN-GAME 2026-07-13**
 > ("all in-game checks verified and working"). Chunk-start confirmations: §4.1 wildcard per-tag
 > semantics CONFIRMED **with rider: immunity must stay temporarily

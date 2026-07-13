@@ -273,8 +273,20 @@ func (rcv *Mob) MutateCritTaken(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(38, n)
 }
 
+func (rcv *Mob) ShieldHp() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Mob) MutateShieldHp(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(40, n)
+}
+
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(18)
+	builder.StartObject(19)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -332,6 +344,9 @@ func MobAddDwellRadius(builder *flatbuffers.Builder, dwellRadius uint16) {
 }
 func MobAddCritTaken(builder *flatbuffers.Builder, critTaken uint32) {
 	builder.PrependUint32Slot(17, critTaken, 0)
+}
+func MobAddShieldHp(builder *flatbuffers.Builder, shieldHp uint32) {
+	builder.PrependUint32Slot(18, shieldHp, 0)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

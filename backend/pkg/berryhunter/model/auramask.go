@@ -21,7 +21,7 @@ func AuraMaskFor(def *skills.SkillDefinition) int {
 	mask := LayerNoneCollision
 	for _, e := range def.Effects {
 		switch e.Type {
-		case skills.EffectTypeDamageAura, skills.EffectTypeSlowAura, skills.EffectTypeResistAura, skills.EffectTypeDotAura:
+		case skills.EffectTypeDamageAura, skills.EffectTypeSlowAura, skills.EffectTypeResistAura, skills.EffectTypeDotAura, skills.EffectTypeShieldAura:
 			if e.TargetsEnemies || e.TargetsAllies {
 				mask |= LayerCombatants
 			}

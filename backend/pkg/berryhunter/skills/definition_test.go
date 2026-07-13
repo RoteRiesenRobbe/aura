@@ -875,3 +875,82 @@ func TestDamageParams_BerserkerMultiplier(t *testing.T) {
 	unset := &DamageParams{}
 	assert.InDelta(t, 1.0, unset.BerserkerMultiplier(0.0), 1e-6, "unset berserker is neutral")
 }
+
+// --- shield_aura / instant_shield (plan-skill-vocab chunk 2) ---
+
+func TestParse_ShieldAura(t *testing.T) {
+	data := []byte(`{
+      "id": 8, "name": "WardingAura", "category": "active_aura", "maxLevel": 3,
+      "effects": [{"type": "shield_aura", "radius": 1.5, "shieldHP": 20, "shieldHPPerLevel": 5,
+                   "targetsAllies": true, "targetsSelf": true, "tickInterval": 1}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeShieldAura, e.Type)
+	require.NotNil(t, e.Shield)
+	assert.InDelta(t, 20, e.Shield.HP, 1e-6)
+	assert.InDelta(t, 5, e.Shield.HPPerLevel, 1e-6)
+	assert.True(t, e.TargetsAllies)
+	assert.True(t, e.Shield.TargetsSelf)
+	assert.InDelta(t, 30, e.Shield.HPAt(3), 1e-6, "level-scaled pool size")
+}
+
+func TestParse_InstantShield(t *testing.T) {
+	data := []byte(`{
+      "id": 27, "name": "Barrier", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 300,
+      "effects": [{"type": "instant_shield", "radius": 1.5, "shieldHP": 20,
+                   "shieldDurationTicks": 300, "targetsAllies": true, "targetsSelf": true}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeInstantShield, e.Type)
+	require.NotNil(t, e.Shield)
+	assert.InDelta(t, 20, e.Shield.HP, 1e-6)
+	assert.Equal(t, 300, e.Shield.DurationTicks)
+	assert.True(t, e.Shield.TargetsSelf)
+}
+
+func TestMap_ShieldNoPoolAuthoredFails(t *testing.T) {
+	// A both-zero shield is a do-nothing buff — hard-fail like the dot/stat
+	// no-scaling guards.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"shield_aura","radius":1,"targetsAllies":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
+func TestMap_NegativeShieldHPFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"shield_aura","radius":1,"shieldHP":-5,"targetsAllies":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
+func TestMap_InstantShieldWithoutDurationFails(t *testing.T) {
+	// The instant form carries its own buff lifetime; an absent/zero duration
+	// would expire on application — unauthorable rather than a silent no-op.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":10,"effects":[{"type":"instant_shield","radius":1,"shieldHP":20,"targetsAllies":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "shieldDurationTicks")
+}
+
+func TestMap_ShieldDurationOnShieldAuraFails(t *testing.T) {
+	// The aura form derives its buff lifetime from the tick cadence
+	// (interval + 1); an authored duration would be a silent no-op.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"shield_aura","radius":1,"shieldHP":20,"shieldDurationTicks":300,"targetsAllies":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "shieldDurationTicks")
+}
+
+func TestMap_ShieldKeysOnNonShieldEffectFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"shieldHP":20}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "shieldHP")
+}

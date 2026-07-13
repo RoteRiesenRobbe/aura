@@ -148,6 +148,11 @@ type MobEntity interface {
 	// chunk 1, §4.3), serialized as crit_taken so the client pops it big.
 	CritTaken() vitals.VitalSign
 
+	// ShieldHP is the current total absorb capacity (plan-skill-vocab
+	// chunk 2), serialized as shield_hp — a live value, not a per-tick
+	// accumulator.
+	ShieldHP() vitals.VitalSign
+
 	// HealReceived is the health restored this tick (VitalSign units),
 	// serialized as the floating heal number for a mob-cast heal (mob-depth
 	// chunk 8) and reset each tick via ResetTickNumbers.

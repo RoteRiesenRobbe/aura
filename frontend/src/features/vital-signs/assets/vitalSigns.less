@@ -74,6 +74,19 @@
   > .indicator {
     background-color: crimson;
   }
+
+  // Absorb segment (skill-vocab chunk 2, bare rendering): sized/positioned
+  // inline by HUD.updateShield — sits after the HP fill, slides left over it
+  // when the bar is (nearly) full, hence the translucency.
+  > .shieldIndicator {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    display: none;
+
+    z-index: 1; // with the delta indicators, below the text
+    background-color: rgba(125, 195, 255, 0.75);
+  }
 }
 
 #xpBar {

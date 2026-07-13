@@ -227,6 +227,95 @@ func TestBuffs_DotCarriesCasterThroughRefresh(t *testing.T) {
 	assert.Equal(t, "bob", hits[0].Caster)
 }
 
+// --- shield payload (absorb pool, plan-skill-vocab chunk 2 §3.2) ---
+
+func TestBuffs_ShieldApplyAndTotal(t *testing.T) {
+	var b Buffs
+	assert.InDelta(t, 0.0, b.ShieldTotal(), 1e-6, "no shield active")
+
+	b.ApplyShield(27, 20, 300)
+	assert.InDelta(t, 20, b.ShieldTotal(), 1e-6)
+}
+
+func TestBuffs_ShieldDistinctSkillsStackAdditively(t *testing.T) {
+	// Distinct source skills are distinct pools; the total absorb is their sum.
+	var b Buffs
+	b.ApplyShield(27, 20, 300)
+	b.ApplyShield(28, 15, 300)
+	assert.InDelta(t, 35, b.ShieldTotal(), 1e-6)
+}
+
+func TestBuffs_ShieldPartialAbsorbSpills(t *testing.T) {
+	var b Buffs
+	b.ApplyShield(27, 20, 300)
+
+	absorbed := b.AbsorbShield(8)
+	assert.InDelta(t, 8, absorbed, 1e-6, "fully covered hit is fully absorbed")
+	assert.InDelta(t, 12, b.ShieldTotal(), 1e-6)
+
+	absorbed = b.AbsorbShield(30)
+	assert.InDelta(t, 12, absorbed, 1e-6, "only the remaining pool absorbs; the rest spills to HP")
+	assert.InDelta(t, 0.0, b.ShieldTotal(), 1e-6, "depleted pool is gone")
+}
+
+func TestBuffs_ShieldExpiringSoonestDrainsFirst(t *testing.T) {
+	// Use it before you lose it: damage drains the pool closest to expiry
+	// first, across sources.
+	var b Buffs
+	b.ApplyShield(27, 20, 300) // expires late
+	b.ApplyShield(28, 10, 50)  // expires soon
+
+	b.AbsorbShield(6)
+	assert.InDelta(t, 24, b.ShieldTotal(), 1e-6)
+
+	// The soon-expiring pool took the drain: after it lapses, the long pool
+	// must still be untouched.
+	for i := 0; i < 50; i++ {
+		b.Tick()
+	}
+	assert.InDelta(t, 20, b.ShieldTotal(), 1e-6,
+		"the 50-tick pool absorbed the hit and expired; the 300-tick pool is full")
+}
+
+func TestBuffs_ShieldTopUpRefresh(t *testing.T) {
+	// Same-skill re-application at identical strength refreshes the lifetime
+	// and tops the pool back up to the authored amount — never past it.
+	var b Buffs
+	b.ApplyShield(27, 20, 3)
+	b.AbsorbShield(15)
+	assert.InDelta(t, 5, b.ShieldTotal(), 1e-6)
+
+	b.ApplyShield(27, 20, 3)
+	assert.InDelta(t, 20, b.ShieldTotal(), 1e-6, "topped back up to authored, not 25")
+
+	// The refresh also renewed the lifetime.
+	b.Tick()
+	b.Tick()
+	assert.InDelta(t, 20, b.ShieldTotal(), 1e-6, "refreshed stream survives its original lifetime")
+}
+
+func TestBuffs_ShieldDifferentStrengthIsSeparateStream(t *testing.T) {
+	// A different authored amount (level/caster) opens its own stream instead
+	// of topping up the existing one — store convention.
+	var b Buffs
+	b.ApplyShield(27, 20, 300)
+	b.ApplyShield(27, 30, 300)
+	assert.InDelta(t, 50, b.ShieldTotal(), 1e-6)
+}
+
+func TestBuffs_ShieldExpiryMidPool(t *testing.T) {
+	// An un-refreshed pool expires with absorb capacity left.
+	var b Buffs
+	b.ApplyShield(27, 20, 2)
+
+	b.Tick()
+	assert.InDelta(t, 20, b.ShieldTotal(), 1e-6, "survives one tick boundary")
+
+	b.Tick()
+	assert.InDelta(t, 0.0, b.ShieldTotal(), 1e-6, "expired without re-application")
+	assert.InDelta(t, 0.0, b.AbsorbShield(10), 1e-6, "expired pool absorbs nothing")
+}
+
 // --- shared lifecycle ---
 
 func TestBuffs_CleanseRemovesEverything(t *testing.T) {
@@ -236,10 +325,12 @@ func TestBuffs_CleanseRemovesEverything(t *testing.T) {
 	b.ApplyResist(40, []string{"fire"}, 0.5, 100)
 	b.ApplySlow(4, 0.5, 100)
 	b.ApplyDot(5, DotBuff{HP: 4, Interval: 1}, 100)
+	b.ApplyShield(27, 20, 100)
 
 	b.Cleanse()
 
 	assert.InDelta(t, 1.0, b.ResistMultiplier([]string{"fire"}), 1e-6)
 	assert.InDelta(t, 0.0, b.SlowFraction(), 1e-6)
+	assert.InDelta(t, 0.0, b.ShieldTotal(), 1e-6)
 	assert.Empty(t, cycleDot(&b))
 }

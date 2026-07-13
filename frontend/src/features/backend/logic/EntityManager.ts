@@ -156,6 +156,11 @@ export class EntityManager {
             gameObject['setHealth'](entity.health, entity.maxHealth);
         }
 
+        // Shield segment on the overhead bar (skill-vocab chunk 2); 0 hides it.
+        if (isDefined(entity.shieldHp) && isFunction(gameObject['setShield'])) {
+            gameObject['setShield'](entity.shieldHp, entity.maxHealth);
+        }
+
         // Floating combat numbers (item 11): damage on mobs + other players,
         // heal/XP on other players (own player is handled in Player.ts).
         // The crit-flagged share pops big (skill-vocab chunk 1); the

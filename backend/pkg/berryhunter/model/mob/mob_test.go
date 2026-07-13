@@ -1413,3 +1413,84 @@ func TestMob_CritTaken_AccumulatesAndResets(t *testing.T) {
 	m.ResetTickNumbers()
 	assert.Zero(t, m.CritTaken())
 }
+
+// --- shield absorb step (plan-skill-vocab chunk 2, F6 §3.1/8-9) ---
+
+func TestMob_TakeDamage_ShieldAbsorbsBeforeHP(t *testing.T) {
+	m := newTestMob() // maxHealth 100 (default)
+	m.ApplyShield(27, 20, 300)
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 8, Crit: true})
+
+	assert.Equal(t, vitals.VitalSign(100), m.Health(), "HP untouched while the shield holds")
+	assert.Zero(t, m.DamageTaken(), "damage numbers show real HP loss only")
+	assert.Zero(t, m.CritTaken())
+	assert.Equal(t, vitals.VitalSign(12), m.ShieldHP(), "the pool drained by the absorbed amount")
+	assert.True(t, m.tookDamage, "being beaten on your shield is combat — the leash signal widens to dealt (§3.1)")
+}
+
+func TestMob_TakeDamage_PartialAbsorbSpillsToHP(t *testing.T) {
+	m := newTestMob()
+	m.ApplyShield(27, 5, 300)
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 8})
+
+	assert.Equal(t, vitals.VitalSign(97), m.Health(), "the spill hits HP")
+	assert.Equal(t, vitals.VitalSign(3), m.DamageTaken())
+	assert.Zero(t, m.ShieldHP(), "the broken pool is gone")
+}
+
+func TestMob_TakeDamage_ShieldAfterResist(t *testing.T) {
+	// Composition pin, incoming side of F6 §3.1: base resistances mitigate
+	// first, the shield absorbs the post-mitigation amount. Hand-computed:
+	// 40 × 0.5 resist = 20 → shield absorbs 12 → 8 hit HP.
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"fire": 0.5}
+	m := NewMob(def, 0, nil)
+	m.ApplyShield(27, 12, 300)
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 40, Tags: []string{"fire"}})
+
+	assert.Equal(t, vitals.VitalSign(92), m.Health())
+	assert.Zero(t, m.ShieldHP())
+	assert.Equal(t, vitals.VitalSign(8), m.DamageTaken())
+}
+
+func TestMob_ThreatCountsAbsorbedDamage(t *testing.T) {
+	// §4.2 (a), confirmed: a mob whose shield eats your hits still hates you —
+	// threat credits dealt (absorbed + lost), not just HP loss.
+	m := newTestMob()
+	m.ApplyShield(27, 20, 300)
+	p := newFakeAuraPlayer()
+
+	m.PlayerTouches(p, model.Damage{HP: 8})
+
+	require.True(t, m.HasThreat(p.basic.ID()))
+	assert.InDelta(t, 8, m.threat[p.basic.ID()].threat, 1e-6,
+		"the fully absorbed hit generates full threat")
+}
+
+func TestMob_Lifesteal_CountsAbsorbedDamage(t *testing.T) {
+	// §4.2 (a) interplay pin: leeching off a shielded mob still heals.
+	m := newTestMob()
+	m.ApplyShield(27, 20, 300)
+	p := newLeechPlayer()
+
+	m.PlayerTouches(p, model.Damage{HP: 10, Lifesteal: 0.5})
+
+	require.Len(t, p.healed, 1)
+	assert.Equal(t, uint32(5), p.healed[0], "heal = dealt (absorbed + lost) × fraction")
+	assert.Equal(t, vitals.VitalSign(100), m.Health(), "the hit itself was fully absorbed")
+}
+
+func TestMob_Invulnerable_ShieldUntouched(t *testing.T) {
+	m := newTestMob()
+	m.SetInvulnerable(true)
+	m.ApplyShield(27, 20, 300)
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 8})
+
+	assert.Equal(t, vitals.VitalSign(20), m.ShieldHP(),
+		"invulnerability short-circuits before the absorb step — a non-event drains nothing")
+	assert.False(t, m.tookDamage)
+}

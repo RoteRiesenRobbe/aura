@@ -137,6 +137,11 @@ table Mob {
   // Same absolute-HP scale; reset every tick. Appended at table end so
   // existing field IDs stay stable.
   crit_taken:uint = 0;
+
+  // current total absorb capacity (skill-vocab chunk 2); 0 = unshielded.
+  // Same absolute-HP scale as health; a live value, NOT a per-tick
+  // accumulator. Appended at table end so existing field IDs stay stable.
+  shield_hp:uint = 0;
 }
 
 table Character {
@@ -211,6 +216,12 @@ table Character {
   // Same absolute-HP scale; reset every tick. Appended at the table end so
   // existing field IDs stay stable.
   crit_taken:uint = 0;
+
+  // current total absorb capacity (skill-vocab chunk 2); 0 = unshielded.
+  // Same absolute-HP scale as health; a live value, NOT a per-tick
+  // accumulator. Mirrors Mob.shield_hp. Appended at the table end so
+  // existing field IDs stay stable.
+  shield_hp:uint = 0;
 }
 
 table Spectator {

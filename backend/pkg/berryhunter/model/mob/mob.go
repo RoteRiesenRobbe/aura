@@ -1030,8 +1030,10 @@ func (m *Mob) Invulnerable() bool {
 // takeDamage subtracts absolute HP (item 11 Phase 1), scaled by the mob's base
 // resistances against the hit's damage tags (Phase 2). A fully resisted hit
 // (multiplier 0) does not exist for the mob: no HP loss, no floating number,
-// no status effect and thus no hit VFX. Returns the actual HP lost after
-// clamping — the post-mitigation threat credit (chunk 3a).
+// no status effect and thus no hit VFX. Returns the "damage dealt":
+// shield-absorbed damage + actual HP lost after clamping — the
+// post-mitigation threat credit (chunk 3a, widened to absorbs per §4.2(a))
+// and the lifesteal base (F6 §3.1/9).
 func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.VitalSign {
 	// Conditional immunity (encounter-controller chunk 9b): while set, every
 	// hit is a non-event exactly like a fully resisted tag — no HP loss, no
@@ -1048,22 +1050,34 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	multiplier := skills.ResistMultiplier(damage.Tags, m.definition.Factors.Resistances) *
 		m.buffs.ResistMultiplier(damage.Tags)
 
-	hp := vitals.HP(damage.HP * multiplier)
-	if hp <= 0 {
+	hp32 := damage.HP * multiplier
+	// A fully resisted hit stays a non-event: no combat signal, no absorb.
+	if vitals.HP(hp32) <= 0 {
 		return 0
 	}
+	// Shield absorb (chunk 2, F6 §3.1/8): post-mitigation damage drains the
+	// absorb pools first, the leftover hits HP. The ≤1-point rounding drift
+	// between HP(absorbed)+HP(rest) and HP(hp32) is accepted.
+	absorbed := vitals.VitalSign(vitals.HP(m.buffs.AbsorbShield(hp32)))
+	hp := vitals.HP(hp32 - float32(absorbed))
+
 	before := m.health
 	m.health = m.health.Sub(hp)
 	loss := before - m.health // actual loss after clamping at 0
+	// The floating-number accumulators show real HP loss only; absorbed
+	// damage reads as the shield bar dropping.
 	m.damageTaken += loss
 	if damage.Crit {
 		m.critTaken += loss // crit_taken wire accumulator (chunk 1, §4.3)
 	}
-	if loss > 0 {
-		m.tookDamage = true // in-combat signal for the leash (chunk 3b)
+	dealt := absorbed + loss // "damage dealt", F6 §3.1/9 — feeds threat + lifesteal
+	if dealt > 0 {
+		// In-combat signal for the leash (chunk 3b); widened to dealt in
+		// chunk 2 — being beaten on your shield is combat (§3.1).
+		m.tookDamage = true
 	}
 	m.StatusEffects().Add(s)
-	return loss
+	return dealt
 }
 
 // DamageTaken is the health lost this tick (VitalSign units); floating damage
@@ -1122,6 +1136,20 @@ func (m *Mob) ApplyResist(source skills.SkillID, tags []string, factor float32, 
 // the SkillSystem via DueDotHits.
 func (m *Mob) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
 	m.buffs.ApplyDot(source, dot, ticks)
+}
+
+// ApplyShield grants (or tops up) an absorb pool from a shield effect
+// (plan-skill-vocab chunk 2) — mobs can be shielded by content, the machinery
+// is entity-agnostic; drained by takeDamage before HP.
+func (m *Mob) ApplyShield(source skills.SkillID, hp float32, ticks int) {
+	m.buffs.ApplyShield(source, hp, ticks)
+}
+
+// ShieldHP is the current total absorb capacity across all active pools;
+// serialized as the shield_hp wire field. A live value, not a per-tick
+// accumulator — no ResetTickNumbers involvement.
+func (m *Mob) ShieldHP() vitals.VitalSign {
+	return vitals.VitalSign(vitals.HP(m.buffs.ShieldTotal()))
 }
 
 // DueDotHits advances and drains this tick's due dot damage events; called

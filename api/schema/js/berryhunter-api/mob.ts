@@ -128,8 +128,13 @@ critTaken():number {
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
+shieldHp():number {
+  const offset = this.bb!.__offset(this.bb_pos, 40);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(18);
+  builder.startObject(19);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -214,6 +219,10 @@ static addDwellRadius(builder:flatbuffers.Builder, dwellRadius:number) {
 
 static addCritTaken(builder:flatbuffers.Builder, critTaken:number) {
   builder.addFieldInt32(17, critTaken, 0);
+}
+
+static addShieldHp(builder:flatbuffers.Builder, shieldHp:number) {
+  builder.addFieldInt32(18, shieldHp, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

@@ -1,5 +1,7 @@
 package skills
 
+import "sort"
+
 // Buffs is the generic per-entity status-effect store (effect foundations
 // Step 2) — ONE transient buff/debuff container carried by every mob and
 // player, replacing the per-mechanic ResistBuffs and the hand-rolled mob
@@ -58,9 +60,18 @@ type dotPayload struct {
 	age int
 }
 
+type shieldPayload struct {
+	// authored is the stream key AND the top-up ceiling (skill-def HP units,
+	// level-scaled): a same-strength refresh restores remaining to authored,
+	// never past it — drains are the only way down (plan-skill-vocab §3.2).
+	authored  float32
+	remaining float32
+}
+
 func (*resistPayload) isBuffPayload() {}
 func (*slowPayload) isBuffPayload()   {}
 func (*dotPayload) isBuffPayload()    {}
+func (*shieldPayload) isBuffPayload() {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -141,6 +152,23 @@ func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) {
 	b.apply(source, &dotPayload{dot: dot}, ticks)
 }
 
+// ApplyShield grants (or refreshes) an absorb pool from the given source
+// skill; streams are keyed by the authored pool size. A refresh with the
+// identical strength renews the remaining lifetime AND tops the pool back up
+// to the authored amount (plan-skill-vocab chunk 2, §3.2).
+func (b *Buffs) ApplyShield(source SkillID, hp float32, ticks int) {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*shieldPayload); ok && p.authored == hp {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			p.remaining = p.authored
+			return
+		}
+	}
+	b.apply(source, &shieldPayload{authored: hp, remaining: hp}, ticks)
+}
+
 // Tick advances the per-tick lifecycle: applications not refreshed within
 // their lifetime expire. Called once per game tick on the ResetTickNumbers
 // hook. Pure aging — acting payloads are driven by DueDotHits.
@@ -209,6 +237,82 @@ func (b *Buffs) SlowFraction() float32 {
 		}
 	}
 	return strongest
+}
+
+// ShieldTotal is the combined absorb capacity of all active shield pools —
+// distinct skills stack additively (§3.2); the shield_hp wire source.
+func (b *Buffs) ShieldTotal() float32 {
+	var total float32
+	for _, list := range b.entries {
+		for _, e := range list {
+			if p, ok := e.payload.(*shieldPayload); ok {
+				total += p.remaining
+			}
+		}
+	}
+	return total
+}
+
+// AbsorbShield drains incoming post-mitigation damage from the active shield
+// pools and returns the amount absorbed; the caller applies the rest to HP.
+// Pools drain in expiring-soonest order across all sources ("use it before
+// you lose it", §3.2); depleted pools are removed. Ties break by source
+// SkillID so the drain order is deterministic.
+func (b *Buffs) AbsorbShield(hp float32) float32 {
+	type pool struct {
+		source  SkillID
+		ticks   int
+		payload *shieldPayload
+	}
+	var pools []pool
+	for source, list := range b.entries {
+		for _, e := range list {
+			if p, ok := e.payload.(*shieldPayload); ok {
+				pools = append(pools, pool{source: source, ticks: e.ticks, payload: p})
+			}
+		}
+	}
+	sort.Slice(pools, func(i, j int) bool {
+		if pools[i].ticks != pools[j].ticks {
+			return pools[i].ticks < pools[j].ticks
+		}
+		return pools[i].source < pools[j].source
+	})
+
+	var absorbed float32
+	rest := hp
+	for _, p := range pools {
+		if rest <= 0 {
+			break
+		}
+		drain := min(rest, p.payload.remaining)
+		p.payload.remaining -= drain
+		absorbed += drain
+		rest -= drain
+	}
+	if absorbed > 0 {
+		b.dropDepletedShields()
+	}
+	return absorbed
+}
+
+// dropDepletedShields removes shield streams whose pool hit zero: a broken
+// shield is gone, not a zero-capacity entry idling until expiry.
+func (b *Buffs) dropDepletedShields() {
+	for source, list := range b.entries {
+		kept := list[:0]
+		for _, e := range list {
+			if p, ok := e.payload.(*shieldPayload); ok && p.remaining <= 0 {
+				continue
+			}
+			kept = append(kept, e)
+		}
+		if len(kept) == 0 {
+			delete(b.entries, source)
+		} else {
+			b.entries[source] = kept
+		}
+	}
 }
 
 // DueDotHits advances every dot's acting accumulator by one game tick and

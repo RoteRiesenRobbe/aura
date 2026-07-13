@@ -75,6 +75,12 @@ export class Player {
         if (isDefined(entity.health)) {
             this.character.setHealth(entity.health, entity.maxHealth);
         }
+        // Shield segment on the HUD bar + own overhead bar (skill-vocab
+        // chunk 2); 0 hides both.
+        if (isDefined(entity.shieldHp)) {
+            HUD.updateShield(entity.shieldHp, entity.maxHealth, healthFraction);
+            this.character.setShield(entity.shieldHp, entity.maxHealth);
+        }
         if (isDefined(entity.activeSkillId)) {
             this.character.setActiveSkill(entity.activeSkillId);
         }

@@ -43,6 +43,7 @@ let activeSlotIndex: number | null = null;
 let vitalSignsBars: { [key: string]: VitalSignBar };
 let healthBarTextElement: HTMLElement;
 let xpBarTextElement: HTMLElement;
+let shieldIndicatorElement: HTMLElement;
 
 Preloading.renderPartial(require('../assets/HUD.html'), () => {
     rootElement = document.getElementById('gameUI');
@@ -95,6 +96,26 @@ function setupVitalSigns() {
     };
     healthBarTextElement = document.querySelector('#healthBar .barText');
     xpBarTextElement = document.querySelector('#xpBar .barText');
+    shieldIndicatorElement = document.querySelector('#healthBar .shieldIndicator');
+}
+
+// updateShield renders the absorb segment on the health bar (skill-vocab
+// chunk 2, bare rendering): width proportional to shieldHp/maxHealth,
+// anchored at the end of the HP fill — sliding left over it when the bar is
+// too full to fit, so an active shield is always visible.
+export function updateShield(shieldHp: number, maxHealth: number, healthFraction: number) {
+    if (!shieldIndicatorElement) {
+        return;
+    }
+    if (!(shieldHp > 0) || !(maxHealth > 0)) {
+        shieldIndicatorElement.style.display = 'none';
+        return;
+    }
+    const width = Math.min(shieldHp / maxHealth, 1);
+    const left = Math.min(healthFraction, 1 - width);
+    shieldIndicatorElement.style.display = 'block';
+    shieldIndicatorElement.style.left = `${left * 100}%`;
+    shieldIndicatorElement.style.width = `${width * 100}%`;
 }
 
 // updateBarTexts renders the absolute numbers over the HUD bars each tick:

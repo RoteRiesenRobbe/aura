@@ -149,6 +149,8 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 			applyResistAura(e, equip.Def.ID, equip.Level, effect, targets)
 		case skills.EffectTypeDotAura:
 			applyDotEffect(e, equip.Def.ID, equip.Level, effect, targets)
+		case skills.EffectTypeShieldAura:
+			applyShieldAura(e, equip.Def.ID, equip.Level, effect, targets)
 		}
 	}
 }
@@ -639,6 +641,80 @@ func applyResistAura(e skillEntity, source skills.SkillID, level int, effect ski
 	}
 }
 
+// shieldBuffable is implemented by entities that can carry an absorb pool
+// from a shield effect (players and mobs — the generic buff store;
+// plan-skill-vocab chunk 2).
+type shieldBuffable interface {
+	ApplyShield(source skills.SkillID, hp float32, ticks int)
+}
+
+// applyShieldAura grants the effect's absorb pool to eligible targets in
+// range — and, with targetsSelf, to the caster (outside the target cap).
+// Support effect: ally-side eligibility only, no mayHarm involvement. The
+// buff lifetime is the effect's tick interval + 1 (the aura convention), so
+// staying in range keeps topping the pool up.
+func applyShieldAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+	hp := effect.Shield.HPAt(level)
+	ticks := effectiveTickInterval(effect, level) + 1
+
+	if effect.Shield.TargetsSelf {
+		if self, ok := e.(shieldBuffable); ok {
+			self.ApplyShield(source, hp, ticks)
+		}
+	}
+
+	casterPos := e.AuraCollider().Position()
+	casterID := e.Basic().ID()
+
+	// The caster is never part of the in-range set (targetsSelf above is the
+	// only self path).
+	eligible := eligibleByTargetFlags[shieldBuffable](effect, e, casterID, true)
+
+	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(shieldBuffable).ApplyShield(source, hp, ticks)
+	}
+}
+
+// applyInstantShield fires an instant_shield cooldown (plan-skill-vocab
+// chunk 2): the caster's pool on targetsSelf plus a one-shot query circle of
+// eligible allies, each granted the pool with the effect's own authored
+// lifetime (+1 to survive the tick boundary, the dot convention). The
+// self-apply counts as a hit — a Barrier cast with nobody around is not a
+// whiff.
+func (s *SkillSystem) applyInstantShield(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	hp := effect.Shield.HPAt(level)
+	ticks := effect.Shield.DurationTicks + 1
+
+	hitAny := false
+	if effect.Shield.TargetsSelf {
+		if self, ok := e.(shieldBuffable); ok {
+			self.ApplyShield(source, hp, ticks)
+			hitAny = true
+		}
+	}
+
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	query := phy.NewCircle(e.AuraCollider().Position(), radius)
+	query.Shape().Mask = model.InstantDamageMask(effect)
+
+	casterPos := e.AuraCollider().Position()
+	casterID := e.Basic().ID()
+	eligible := eligibleByTargetFlags[shieldBuffable](effect, e, casterID, true)
+
+	hits := s.space.QueryCircle(query)
+	candidates := make(phy.ColliderSet, len(hits))
+	for _, h := range hits {
+		candidates[h] = struct{}{}
+	}
+	targets := selectTargets(candidates, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(shieldBuffable).ApplyShield(source, hp, ticks)
+		hitAny = true
+	}
+	return hitAny
+}
+
 // slowable is implemented by entities whose movement can be slowed by a
 // slow_aura (mobs). The slow is transient: it must be re-applied every tick
 // the target stays in range, and wears off on its own shortly after (buff
@@ -734,6 +810,12 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 		}
 		if effect.Type == skills.EffectTypeTaunt || effect.Type == skills.EffectTypeDetaunt {
 			if s.applyThreatEffect(e, es.Level, effect) {
+				hitAny = true
+			}
+			continue
+		}
+		if effect.Type == skills.EffectTypeInstantShield {
+			if s.applyInstantShield(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
 			}
 			continue

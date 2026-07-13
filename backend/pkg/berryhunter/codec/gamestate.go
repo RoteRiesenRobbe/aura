@@ -53,6 +53,8 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddDamageTaken(builder, p.DamageTaken().UInt32())
 	// Crit-flagged share of damage taken (skill-vocab chunk 1, §4.3).
 	BerryhunterApi.CharacterAddCritTaken(builder, p.CritTaken().UInt32())
+	// Current total absorb capacity — a live value (skill-vocab chunk 2).
+	BerryhunterApi.CharacterAddShieldHp(builder, p.ShieldHP().UInt32())
 	BerryhunterApi.CharacterAddHealReceived(builder, p.HealReceived().UInt32())
 	BerryhunterApi.CharacterAddXpGained(builder, u64ToU32Clamped(p.XpGained()))
 	BerryhunterApi.CharacterAddAuraHitStyle(builder, byte(p.AuraHitStyle()))

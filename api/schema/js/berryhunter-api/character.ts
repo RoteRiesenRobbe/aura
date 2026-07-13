@@ -165,8 +165,13 @@ critTaken():number {
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
+shieldHp():number {
+  const offset = this.bb!.__offset(this.bb_pos, 54);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(25);
+  builder.startObject(26);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -279,6 +284,10 @@ static addCampfireBound(builder:flatbuffers.Builder, campfireBound:boolean) {
 
 static addCritTaken(builder:flatbuffers.Builder, critTaken:number) {
   builder.addFieldInt32(24, critTaken, 0);
+}
+
+static addShieldHp(builder:flatbuffers.Builder, shieldHp:number) {
+  builder.addFieldInt32(25, shieldHp, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {
