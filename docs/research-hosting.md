@@ -72,6 +72,9 @@ sketched in `plan-world-zones.md`.
 
 ### Phase 0 — first internet playtest (~20 friends)
 
+*Planned in detail → `plan-phase0-deploy.md` (2026-07-14; join stays open =
+Option A decided there).*
+
 Goal: a URL friends can open. Session-based world; a crash restarts the
 session — acceptable, even desirable (loud failures).
 

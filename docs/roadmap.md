@@ -888,7 +888,8 @@ system ships blind.
 9. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
    DB / hosting decisions (`research-v1-readiness.md`; hosting phases + load
    math + persistent-servers decision: `research-hosting.md` — Phase 0 "friends
-   playtest" deploy may pull earlier, into the content pass).
+   playtest" deploy may pull earlier, into the content pass; Phase 0 planned →
+   `plan-phase0-deploy.md`).
 
 > **Superseded framing:** earlier drafts called item 12 "the only remaining
 > prototype gate" and everything else "turns the prototype into v1." That
