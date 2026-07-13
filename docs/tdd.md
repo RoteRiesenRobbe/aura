@@ -61,7 +61,7 @@ A clean start remains only a theoretical fallback in case the code structure eve
 
 ### Open decisions
 - [ ] Database (accounts, level, skills, spellbook, meta-progression)
-- [ ] Hosting strategy for production
+- [ ] Hosting strategy for production (phased outline + load math recorded: `research-hosting.md`; provider/DB still open)
 - [ ] Auth system (direction decided: anonymous-first with upgrade path, see roadmap item 3; concrete implementation open)
 - [ ] Client build pipeline (currently webpack from Berryhunter)
 - [ ] Map format / authoring tooling (Tiled vs. custom JSON — roadmap item 4)
@@ -251,13 +251,13 @@ First sketch; the authoritative plans are `docs/plan-skill-system.md` (skill sys
 ## 7. Open Tech Decisions (collection point)
 
 - [ ] Database choice
-- [ ] Hosting strategy (production)
+- [ ] Hosting strategy (production) — phased outline + load math: `research-hosting.md`
 - [ ] Auth implementation (direction: anonymous-first, decided)
 - [ ] Map format / authoring tooling (Tiled vs. custom JSON) — biggest unknown in item 4, also determines the occluder representation
 - [ ] Client build pipeline
 - [ ] Logging / monitoring from the start?
 - [ ] Migrations framework for the DB
-- [ ] Seasonal vs. permanent servers (infrastructure question on top of the design question)
+- [x] Seasonal vs. permanent servers — **decided 2026-07-13: persistent servers** (no seasonal wipes; consequences recorded in `research-hosting.md` §1)
 
 ---
 

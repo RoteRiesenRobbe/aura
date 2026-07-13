@@ -886,7 +886,9 @@ system ships blind.
    `plan-world-zones.md §7.6`). Could pull **earlier** if combat *feel* is wanted
    during the content-pass balance work — decide at the review.
 9. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
-   DB / hosting decisions (`research-v1-readiness.md`).
+   DB / hosting decisions (`research-v1-readiness.md`; hosting phases + load
+   math + persistent-servers decision: `research-hosting.md` — Phase 0 "friends
+   playtest" deploy may pull earlier, into the content pass).
 
 > **Superseded framing:** earlier drafts called item 12 "the only remaining
 > prototype gate" and everything else "turns the prototype into v1." That
