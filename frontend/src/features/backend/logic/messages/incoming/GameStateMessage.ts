@@ -42,6 +42,14 @@ export class GameStateMessage {
     cooldownRemainingTicks: number[];
     // index of the active aura slot for the owning player; -1 = Nothing
     activeAuraSlot: number;
+    // running cast of the owning player (skill-vocab chunk 4); all zero = no cast
+    castSkillId: number;
+    castTicksLeft: number;
+    castTicksTotal: number;
+    // one-tick rejection feedback: a cooldown activation refused by its
+    // precondition — which skill and why (0 = none)
+    activationRejectedSkillId: number;
+    activationRejectedReason: number;
 
     constructor(gameState: BerryhunterApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -95,6 +103,13 @@ export class GameStateMessage {
         }
 
         this.activeAuraSlot = gameState.activeAuraSlot();
+
+        this.castSkillId = gameState.castSkillId();
+        this.castTicksLeft = gameState.castTicksLeft();
+        this.castTicksTotal = gameState.castTicksTotal();
+
+        this.activationRejectedSkillId = gameState.activationRejectedSkillId();
+        this.activationRejectedReason = gameState.activationRejectedReason();
     }
 }
 

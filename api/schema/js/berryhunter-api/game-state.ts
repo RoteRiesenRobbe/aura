@@ -151,8 +151,33 @@ cooldownRemainingTicksArray():Uint16Array|null {
   return offset ? new Uint16Array(this.bb!.bytes().buffer, this.bb!.bytes().byteOffset + this.bb!.__vector(this.bb_pos + offset), this.bb!.__vector_len(this.bb_pos + offset)) : null;
 }
 
+castSkillId():number {
+  const offset = this.bb!.__offset(this.bb_pos, 28);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
+castTicksLeft():number {
+  const offset = this.bb!.__offset(this.bb_pos, 30);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
+castTicksTotal():number {
+  const offset = this.bb!.__offset(this.bb_pos, 32);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
+activationRejectedSkillId():number {
+  const offset = this.bb!.__offset(this.bb_pos, 34);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
+activationRejectedReason():number {
+  const offset = this.bb!.__offset(this.bb_pos, 36);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(12);
+  builder.startObject(17);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -312,12 +337,32 @@ static startCooldownRemainingTicksVector(builder:flatbuffers.Builder, numElems:n
   builder.startVector(2, numElems, 2);
 }
 
+static addCastSkillId(builder:flatbuffers.Builder, castSkillId:number) {
+  builder.addFieldInt16(12, castSkillId, 0);
+}
+
+static addCastTicksLeft(builder:flatbuffers.Builder, castTicksLeft:number) {
+  builder.addFieldInt16(13, castTicksLeft, 0);
+}
+
+static addCastTicksTotal(builder:flatbuffers.Builder, castTicksTotal:number) {
+  builder.addFieldInt16(14, castTicksTotal, 0);
+}
+
+static addActivationRejectedSkillId(builder:flatbuffers.Builder, activationRejectedSkillId:number) {
+  builder.addFieldInt16(15, activationRejectedSkillId, 0);
+}
+
+static addActivationRejectedReason(builder:flatbuffers.Builder, activationRejectedReason:number) {
+  builder.addFieldInt8(16, activationRejectedReason, 0);
+}
+
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number, spellbookLevelsOffset:flatbuffers.Offset, skillPoints:number, passiveSlotsOffset:flatbuffers.Offset, cooldownSlotsOffset:flatbuffers.Offset, cooldownRemainingTicksOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number, spellbookLevelsOffset:flatbuffers.Offset, skillPoints:number, passiveSlotsOffset:flatbuffers.Offset, cooldownSlotsOffset:flatbuffers.Offset, cooldownRemainingTicksOffset:flatbuffers.Offset, castSkillId:number, castTicksLeft:number, castTicksTotal:number, activationRejectedSkillId:number, activationRejectedReason:number):flatbuffers.Offset {
   GameState.startGameState(builder);
   GameState.addTick(builder, tick);
   GameState.addPlayerType(builder, playerType);
@@ -331,6 +376,11 @@ static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Play
   GameState.addPassiveSlots(builder, passiveSlotsOffset);
   GameState.addCooldownSlots(builder, cooldownSlotsOffset);
   GameState.addCooldownRemainingTicks(builder, cooldownRemainingTicksOffset);
+  GameState.addCastSkillId(builder, castSkillId);
+  GameState.addCastTicksLeft(builder, castTicksLeft);
+  GameState.addCastTicksTotal(builder, castTicksTotal);
+  GameState.addActivationRejectedSkillId(builder, activationRejectedSkillId);
+  GameState.addActivationRejectedReason(builder, activationRejectedReason);
   return GameState.endGameState(builder);
 }
 }

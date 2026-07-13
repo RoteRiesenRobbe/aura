@@ -48,6 +48,7 @@ const (
 	EffectTypeLightAura
 	EffectTypeShieldAura
 	EffectTypeInstantShield
+	EffectTypeRecall
 )
 
 var effectTypeMap = map[string]EffectType{
@@ -67,6 +68,7 @@ var effectTypeMap = map[string]EffectType{
 	"light_aura":      EffectTypeLightAura,
 	"shield_aura":     EffectTypeShieldAura,
 	"instant_shield":  EffectTypeInstantShield,
+	"recall":          EffectTypeRecall,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -454,6 +456,18 @@ type SkillDefinition struct {
 	CooldownTicks         int
 	CooldownTicksPerLevel int
 
+	// Cast time (plan-skill-vocab chunk 4): ticks the activation winds up
+	// before the skill fires and the cooldown is consumed. 0 (the default) =
+	// today's instant behavior. Deliberate acts (movement, aura switch,
+	// another cooldown) always cancel a cast; damage cancels ONLY when
+	// CastInterruptedByDamage is set — casts are combat vocabulary, the
+	// damage-interrupt is Recall-style opt-in (chunk-4 start decision).
+	// NOTE: the mob fire path ignores cast time — mobs never author castTicks;
+	// hard-fail is cheap to add when a boss wants telegraphed casts.
+	CastTicks               int
+	CastTicksPerLevel       int
+	CastInterruptedByDamage bool
+
 	Effects []EffectDef
 }
 
@@ -536,6 +550,10 @@ type skillDefinition struct {
 	CooldownTicks         int `json:"cooldownTicks"`
 	CooldownTicksPerLevel int `json:"cooldownTicksPerLevel"`
 
+	CastTicks               int  `json:"castTicks"`
+	CastTicksPerLevel       int  `json:"castTicksPerLevel"`
+	CastInterruptedByDamage bool `json:"castInterruptedByDamage"`
+
 	// Kept raw so mapping can hard-fail keys the effect type does not read
 	// (see effectKeys).
 	Effects []json.RawMessage `json:"effects"`
@@ -602,6 +620,10 @@ var effectKeys = map[EffectType][]string{
 		keysShieldPayload, []string{"targetsSelf"}),
 	EffectTypeInstantShield: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
 		keysShieldPayload, []string{"shieldDurationTicks", "targetsSelf"}),
+	// Recall (chunk 4): no payload at all — the destination is the caster's
+	// campfire anchor (ConnectionStateSystem), the cast time is a skill-def
+	// field. Any key beyond "type" hard-fails.
+	EffectTypeRecall: {},
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -659,6 +681,15 @@ func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
 		return nil, fmt.Errorf("unknown skill category: %q", s.Category)
 	}
 
+	if s.CastTicks < 0 {
+		return nil, fmt.Errorf("skill %q: castTicks must be >= 0, got %v", s.Name, s.CastTicks)
+	}
+	// The flag on an instant skill would silently never apply — hard-fail
+	// like the no-scaling guards.
+	if s.CastInterruptedByDamage && s.CastTicks == 0 {
+		return nil, fmt.Errorf("skill %q: castInterruptedByDamage requires castTicks > 0", s.Name)
+	}
+
 	effects := make([]EffectDef, 0, len(s.Effects))
 	for _, rawEffect := range s.Effects {
 		effect, err := mapEffect(rawEffect)
@@ -669,13 +700,16 @@ func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
 	}
 
 	return &SkillDefinition{
-		ID:                    SkillID(s.ID),
-		Name:                  s.Name,
-		Category:              category,
-		MaxLevel:              s.MaxLevel,
-		CooldownTicks:         s.CooldownTicks,
-		CooldownTicksPerLevel: s.CooldownTicksPerLevel,
-		Effects:               effects,
+		ID:                      SkillID(s.ID),
+		Name:                    s.Name,
+		Category:                category,
+		MaxLevel:                s.MaxLevel,
+		CooldownTicks:           s.CooldownTicks,
+		CooldownTicksPerLevel:   s.CooldownTicksPerLevel,
+		CastTicks:               s.CastTicks,
+		CastTicksPerLevel:       s.CastTicksPerLevel,
+		CastInterruptedByDamage: s.CastInterruptedByDamage,
+		Effects:                 effects,
 	}, nil
 }
 

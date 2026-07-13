@@ -19,6 +19,11 @@ export class Snapshot {
     cooldownSlots: number[]; // equipped cooldown slot contents, positional (index i = slot i, 0 = empty)
     cooldownRemainingTicks: number[]; // remaining ticks per cooldown slot; 0 = ready
     activeAuraSlot: number; // active aura slot index, owning player only; -1 = Nothing
+    castSkillId: number; // running cast (chunk 4); 0 = no cast
+    castTicksLeft: number;
+    castTicksTotal: number;
+    activationRejectedSkillId: number; // one-tick rejection feedback; 0 = none
+    activationRejectedReason: number;
 }
 
 export function newSnapshot(backendState: BackendState, gameState: GameStateMessage) {
@@ -55,6 +60,13 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
 
         // Active aura slot: scalar, always carried (server-authoritative highlight)
         snapshot.activeAuraSlot = gameState.activeAuraSlot;
+
+        // Cast bar scalars + one-tick rejection feedback: always carried
+        snapshot.castSkillId = gameState.castSkillId;
+        snapshot.castTicksLeft = gameState.castTicksLeft;
+        snapshot.castTicksTotal = gameState.castTicksTotal;
+        snapshot.activationRejectedSkillId = gameState.activationRejectedSkillId;
+        snapshot.activationRejectedReason = gameState.activationRejectedReason;
     } else {
         // First snapshot: assign the whole GameStateMessage, which already carries spellbook.
         snapshot = gameState;

@@ -259,6 +259,21 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	BerryhunterApi.GameStateAddActiveAuraSlot(builder, int8(gs.Player.SkillComponent().ActiveAuraSlot))
 	BerryhunterApi.GameStateAddSkillPoints(builder, uint16(max(gs.Player.AvailableSkillPoints(), 0)))
 
+	// Cast bar (skill-vocab chunk 4): the running cast, read live off the
+	// component each tick; absent fields read as 0 = no cast.
+	sc := gs.Player.SkillComponent()
+	if es := sc.CastingSkill(); es != nil {
+		BerryhunterApi.GameStateAddCastSkillId(builder, uint16(es.Def.ID))
+		BerryhunterApi.GameStateAddCastTicksLeft(builder, uint16(sc.CastTicksLeft))
+		BerryhunterApi.GameStateAddCastTicksTotal(builder, uint16(es.EffectiveCastTicks()))
+	}
+	// Rejection feedback (chunk 4, §3.5): per-tick one-shot, campfire_bound
+	// lifecycle — stamped by the SkillSystem, cleared in ResetTickNumbers.
+	if id, reason := gs.Player.ActivationRejected(); reason != model.ActivationRejectedNone {
+		BerryhunterApi.GameStateAddActivationRejectedSkillId(builder, uint16(id))
+		BerryhunterApi.GameStateAddActivationRejectedReason(builder, byte(reason))
+	}
+
 	return BerryhunterApi.GameStateEnd(builder)
 }
 

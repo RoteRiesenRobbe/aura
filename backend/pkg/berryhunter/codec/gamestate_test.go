@@ -270,3 +270,39 @@ func TestSpellbookMarshalFlatbuf_NilSpellbook(t *testing.T) {
 
 	assert.Equal(t, 0, result.SpellbookLength())
 }
+
+// --- cast bar + rejection feedback wire (plan-skill-vocab chunk 4) ---
+
+func TestGameStateCastAndRejection_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	BerryhunterApi.GameStateStart(b)
+	BerryhunterApi.GameStateAddCastSkillId(b, 28)
+	BerryhunterApi.GameStateAddCastTicksLeft(b, 120)
+	BerryhunterApi.GameStateAddCastTicksTotal(b, 300)
+	BerryhunterApi.GameStateAddActivationRejectedSkillId(b, 28)
+	BerryhunterApi.GameStateAddActivationRejectedReason(b, 1)
+	gs := BerryhunterApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	assert.Equal(t, uint16(28), result.CastSkillId())
+	assert.Equal(t, uint16(120), result.CastTicksLeft())
+	assert.Equal(t, uint16(300), result.CastTicksTotal())
+	assert.Equal(t, uint16(28), result.ActivationRejectedSkillId())
+	assert.Equal(t, byte(1), result.ActivationRejectedReason())
+}
+
+func TestGameStateCastAndRejection_AbsentReadsZero(t *testing.T) {
+	// The codec omits the fields when idle; old and new clients read 0 = none.
+	b := flatbuffers.NewBuilder(64)
+	BerryhunterApi.GameStateStart(b)
+	gs := BerryhunterApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	assert.Zero(t, result.CastSkillId())
+	assert.Zero(t, result.CastTicksLeft())
+	assert.Zero(t, result.CastTicksTotal())
+	assert.Zero(t, result.ActivationRejectedSkillId())
+	assert.Zero(t, result.ActivationRejectedReason())
+}

@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,4 +56,25 @@ func TestMilestoneUnlocksFromJSON_UnknownSkill(t *testing.T) {
 func TestMilestoneUnlocksFromJSON_InvalidJSON(t *testing.T) {
 	_, err := milestoneUnlocksFromJSON([]byte(`not json`), stubReg())
 	require.Error(t, err)
+}
+
+// Pins the embedded milestone table (plan-skill-vocab chunk 4): 12 entries,
+// with Recall granted early ([PLACEHOLDER L2] — every character gets the
+// hearthstone-style escape, GDD §3). Resolves against the real content in
+// api/skills so a renamed skill fails here, not at boot.
+func TestDefaultMilestoneUnlocks_PinnedTable(t *testing.T) {
+	r, err := RegistryFromFS(os.DirFS("../../../../api/skills"))
+	require.NoError(t, err)
+
+	unlocks, err := DefaultMilestoneUnlocks(r)
+	require.NoError(t, err)
+	assert.Len(t, unlocks, 12)
+
+	var recallLevel uint32
+	for _, u := range unlocks {
+		if u.Skill.Name == "Recall" {
+			recallLevel = u.Level
+		}
+	}
+	assert.Equal(t, uint32(2), recallLevel, "Recall rides the L2 milestone")
 }

@@ -6,6 +6,46 @@
 > per-entity effective fields + interval must be manipulable → haste seam;
 > chunk order 1 → 2 → 4 → 3 → 5 → 6).
 >
+> **CHUNK 4 (cast-time + interrupt + Recall) DONE + VERIFIED IN-GAME
+> 2026-07-14** ("successfully tested, works as intended" — full checklist
+> passed incl. no-smear teleport). Chunk-start decisions (supersede §3.4/§3.5 where they
+> differ): same-slot re-request while casting is **ignored**; any OTHER
+> deliberate input cancels — a different cooldown activation (which then
+> **fires normally**), aura switch incl. deactivate, movement ≠ 0 (zero
+> vector/bridged packets don't flicker the cast); **damage-interrupt is
+> OPT-IN per skill** via new skill-def bool `castInterruptedByDamage`
+> (default: casts survive damage — cast-time is combat vocabulary; only
+> Recall opts in; flag without castTicks hard-fails). Shipped: skill-def
+> `castTicks`/`castTicksPerLevel`/`castInterruptedByDamage` +
+> `EffectiveCastTicks` (floor 0 = instant); `SkillComponent`
+> CastingSlot/CastTicksLeft + StartCast/CancelCast/**CancelCastOnDamage**
+> (flag check lives on the component)/CastingSkill; `advanceCast` in
+> processCooldowns — fire AND cooldown-consume move to completion (interrupt
+> = no cost), precondition RE-CHECKED at completion (refund automatic);
+> **activation-precondition + rejection-feedback primitive**
+> (`model.ActivationRejection`: 1 = no anchor, 2 reserved for revive) with
+> player one-shots (campfire_bound lifecycle); interrupt hooks:
+> `takeDamage` dealt > 0 → CancelCastOnDamage (dots + fully-absorbed hits
+> interrupt flagged casts, chunk-2 interplay pinned), input path,
+> `SetSkillComponent` clears cast on respawn (covers self-cost deaths);
+> `recall` effect type (16 → 17, empty allowlist) + **ConnState seam**
+> (`AnchorOf(uuid)`, `SetConnState` wired post-construction in game.go —
+> revive extends it in chunk 3; the fake IS the anchor-lost-mid-cast test
+> seam) + `jitterAround` extracted from respawnPosition; mob fire path
+> ignores castTicks (NOTE + test). Wire: GameState appends
+> `cast_skill_id/cast_ticks_left/cast_ticks_total` (live) +
+> `activation_rejected_skill_id/activation_rejected_reason` (one-shot), own
+> player only; codec + round-trip pins; Go + TS regen. Frontend: `#castBar`
+> bottom-center above the action bars (name + remaining s, bare); rejection
+> floating text via Skills.ts reason table; **teleport snap threshold 600 px
+> [PLACEHOLDER] in _GameObject.setPosition** (no threshold existed — Recall
+> WOULD have smeared; answers §3.8 for dash); Skills.ts Recall × 3 maps.
+> Content: **Recall id 28** (castTicks 300 ≈ 10 s, cooldownTicks 9000 ≈
+> 5 min, both [PLACEHOLDER]), L2 milestone → **12 entries + NEW pinned-table
+> test** (no count pin existed); registry pin 28 → 29. ~30 new tests
+> red-first; suite + build + tsc/webpack + boot smoke both content sources
+> green.
+>
 > **CHUNK 2 (shield layer) DONE 2026-07-13 + VERIFIED IN-GAME 2026-07-14.**
 > Shipped: `shieldPayload{authored, remaining}` in `skills.Buffs` —
 > `ApplyShield` (same-strength refresh renews lifetime AND tops the pool

@@ -38,6 +38,16 @@ func (es *EquippedSkill) EffectiveCooldownTicks() int {
 	return cd
 }
 
+// EffectiveCastTicks is the level-scaled cast time, floored at zero —
+// 0 = instant (the default for every skill without authored castTicks).
+func (es *EquippedSkill) EffectiveCastTicks() int {
+	ct := Scaled(es.Def.CastTicks, es.Def.CastTicksPerLevel, es.Level)
+	if ct < 0 {
+		ct = 0
+	}
+	return ct
+}
+
 // EffectiveRadius is the level-scaled combat aura radius: the maximum over
 // all effects of radius + (level-1)*radiusPerLevel. The single sensor must
 // reach the largest effect; smaller ones are narrowed per tick by the
@@ -94,6 +104,13 @@ type SkillComponent struct {
 	// SkillSystem in the same tick. Mobs don't use it — their AI fires
 	// ready cooldowns directly.
 	PendingCooldowns []int
+
+	// Casting state (plan-skill-vocab chunk 4): the cooldown slot currently
+	// winding up (-1 = idle) and the ticks left until it fires. One cast at a
+	// time; the cooldown is consumed only at successful completion. Player-only
+	// in v1 — the mob fire path ignores cast time.
+	CastingSlot   int
+	CastTicksLeft int
 }
 
 // DerivedStats accumulates stat_multiplier bonuses from equipped passives.
@@ -123,7 +140,48 @@ func NewSkillComponent(withSpellbook bool) *SkillComponent {
 	}
 	return &SkillComponent{
 		ActiveAuraSlot: -1,
+		CastingSlot:    -1,
 		Spellbook:      spellbook,
+	}
+}
+
+// IsCasting reports whether a cooldown skill is currently winding up.
+func (sc *SkillComponent) IsCasting() bool {
+	return sc.CastingSlot >= 0
+}
+
+// CastingSkill is the equipped skill in the casting slot; nil when idle.
+func (sc *SkillComponent) CastingSkill() *EquippedSkill {
+	if sc.CastingSlot < 0 || sc.CastingSlot >= MaxCooldownSlots {
+		return nil
+	}
+	return sc.CooldownSlots[sc.CastingSlot]
+}
+
+// StartCast begins winding up the given cooldown slot for its effective cast
+// time. Invalid or empty slots are ignored (client-supplied indices).
+func (sc *SkillComponent) StartCast(slot int) {
+	if slot < 0 || slot >= MaxCooldownSlots || sc.CooldownSlots[slot] == nil {
+		return
+	}
+	sc.CastingSlot = slot
+	sc.CastTicksLeft = sc.CooldownSlots[slot].EffectiveCastTicks()
+}
+
+// CancelCast aborts a running cast: no fire, no cooldown consumed — the risk
+// window is the cost. No-op when idle.
+func (sc *SkillComponent) CancelCast() {
+	sc.CastingSlot = -1
+	sc.CastTicksLeft = 0
+}
+
+// CancelCastOnDamage aborts a running cast only if the casting skill opted
+// into the damage interrupt (castInterruptedByDamage — Recall-style; regular
+// combat casts survive being hit). Called from the takeDamage choke point on
+// dealt > 0, keeping the flag check out of player.go.
+func (sc *SkillComponent) CancelCastOnDamage() {
+	if es := sc.CastingSkill(); es != nil && es.Def.CastInterruptedByDamage {
+		sc.CancelCast()
 	}
 }
 

@@ -696,3 +696,69 @@ func TestPlayer_MobTouches_LifestealCountsAbsorbedDamage(t *testing.T) {
 	assert.Equal(t, uint32(5), attacker.healed[0], "heal = dealt (absorbed + lost) × fraction")
 	assert.Equal(t, vitals.Max, p.VitalSigns().Health, "the hit itself was fully absorbed")
 }
+
+// --- cast interrupt hooks (plan-skill-vocab chunk 4) ---
+
+// equipCastingSkill puts a cast-time cooldown in slot 0 and starts the cast.
+func equipCastingSkill(p *player, interruptedByDamage bool) {
+	def := &skills.SkillDefinition{
+		ID: 28, Name: "Recall", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 9000, CastTicks: 300, CastInterruptedByDamage: interruptedByDamage,
+	}
+	p.skills.EquipCooldown(0, def, 1)
+	p.skills.StartCast(0)
+}
+
+func TestPlayer_TakeDamage_CancelsFlaggedCast(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	equipCastingSkill(p, true)
+
+	p.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+
+	assert.False(t, p.skills.IsCasting(), "castInterruptedByDamage: dealt > 0 cancels")
+}
+
+func TestPlayer_TakeDamage_UnflaggedCastSurvives(t *testing.T) {
+	// Damage-interrupt is opt-in (chunk-4 start decision): regular combat
+	// casts keep winding up while being hit.
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	equipCastingSkill(p, false)
+
+	p.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+
+	assert.True(t, p.skills.IsCasting(), "unflagged cast survives damage")
+}
+
+func TestPlayer_TakeDamage_FullyAbsorbedHitCancelsFlaggedCast(t *testing.T) {
+	// Consistent with §3.1's "beaten on your shield is combat": dealt counts
+	// absorbs, so a fully shielded hit still interrupts a Recall.
+	p := newTestPlayer(nil)
+	p.statusEffects = model.NewStatusEffects()
+	p.ApplyShield(27, 20, 300)
+	equipCastingSkill(p, true)
+
+	p.takeDamage(model.Damage{HP: 8}, model.StatusEffectDamagedAmbient)
+
+	assert.Equal(t, vitals.Max, p.VitalSigns().Health, "hit fully absorbed")
+	assert.False(t, p.skills.IsCasting(), "absorbed damage still interrupts")
+}
+
+func TestPlayer_SetSkillComponent_ClearsCastState(t *testing.T) {
+	// The component is carried across death (deadState.skills); an in-flight
+	// cast must never survive into the respawned player — this also covers
+	// deaths that bypass takeDamage (heal-aura self-cost).
+	p := newTestPlayer(nil)
+	sc := skills.NewSkillComponent(true)
+	def := &skills.SkillDefinition{
+		ID: 28, Name: "Recall", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 9000, CastTicks: 300, CastInterruptedByDamage: true,
+	}
+	sc.EquipCooldown(0, def, 1)
+	sc.StartCast(0)
+
+	p.SetSkillComponent(sc)
+
+	assert.False(t, p.SkillComponent().IsCasting(), "respawn starts with no cast in flight")
+}

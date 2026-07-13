@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/EngoEngine/ecs"
+	"github.com/google/uuid"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/minions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
@@ -45,6 +46,16 @@ type healCaster interface {
 	IsGod() bool
 }
 
+// ConnState is the ConnectionStateSystem capability the SkillSystem needs
+// (plan-skill-vocab chunk 4): the campfire-anchor lookup behind recall.
+// Chunk 3 extends it with ReviveAtCorpse. Wired post-construction via
+// SetConnState in core/game.go — the SkillSystem is constructed before the
+// ConnectionStateSystem (the CampfireAnchorSink precedent: Go-side wiring,
+// no model interface bloat).
+type ConnState interface {
+	AnchorOf(id uuid.UUID) (phy.Vec2f, bool)
+}
+
 // SkillSystem applies active-aura effects and cooldown-skill bursts for every
 // tracked entity each tick. The space reference serves the one-shot
 // instant_damage queries (resolved Open Question 3: temporary circle, query
@@ -57,10 +68,20 @@ type SkillSystem struct {
 	// config, and AddEntity for the summoned mob.
 	game model.Game
 
+	// connState serves recall's anchor precondition + destination (chunk 4);
+	// nil until wired, which reads as "nothing bound".
+	connState ConnState
+
 	// rng feeds the per-hit variance rolls (item 11 Phase 3, decision C4) and
 	// the summon-placement direction. Free-running by design — reproducibility
 	// only matters in tests, which overwrite it with a seeded source.
 	rng *rand.Rand
+}
+
+// SetConnState wires the ConnectionStateSystem seam (chunk 4); called from
+// core/game.go after both systems exist.
+func (s *SkillSystem) SetConnState(cs ConnState) {
+	s.connState = cs
 }
 
 func NewSkillSystem(space *phy.Space, g model.Game) *SkillSystem {
@@ -764,16 +785,95 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 	}
 
 	// Player path: explicit activations only. Firing into thin air consumes
-	// the cooldown — aiming the burst is the player's responsibility.
+	// the cooldown — aiming the burst is the player's responsibility. A skill
+	// with authored cast time winds up first (chunk 4): fire AND
+	// cooldown-consume both move to cast completion, so an interrupted cast
+	// costs nothing but the risk window.
+	s.advanceCast(e, sc)
 	for _, slot := range sc.PendingCooldowns {
 		es := sc.CooldownSlots[slot]
 		if es == nil || es.CdTicks > 0 {
+			continue
+		}
+		if sc.IsCasting() {
+			// Re-pressing the casting skill is ignored — spamming your own
+			// key must not kill your cast. Any OTHER activation is a
+			// deliberate act: it cancels the cast and then fires normally
+			// (chunk-4 start decision, resolving §3.4 vs §3.5).
+			if slot == sc.CastingSlot {
+				continue
+			}
+			sc.CancelCast()
+		}
+		if reason := s.activationPrecondition(e, es); reason != model.ActivationRejectedNone {
+			noteActivationRejected(e, es.Def.ID, reason)
+			continue
+		}
+		if es.EffectiveCastTicks() > 0 {
+			sc.StartCast(slot)
 			continue
 		}
 		s.fireCooldown(e, es)
 		es.CdTicks = es.EffectiveCooldownTicks()
 	}
 	sc.PendingCooldowns = sc.PendingCooldowns[:0]
+}
+
+// advanceCast ticks a running cast down and fires it at zero. The
+// precondition is re-checked at completion — the world moved during the
+// wind-up (§3.5): failure rejects exactly like at activation, and since the
+// cooldown is only consumed on a successful fire, "refund" is automatic.
+func (s *SkillSystem) advanceCast(e skillEntity, sc *skills.SkillComponent) {
+	if !sc.IsCasting() {
+		return
+	}
+	es := sc.CastingSkill()
+	if es == nil {
+		// The casting slot was unequipped mid-cast; nothing left to fire.
+		sc.CancelCast()
+		return
+	}
+	sc.CastTicksLeft--
+	if sc.CastTicksLeft > 0 {
+		return
+	}
+	sc.CancelCast()
+	if reason := s.activationPrecondition(e, es); reason != model.ActivationRejectedNone {
+		noteActivationRejected(e, es.Def.ID, reason)
+		return
+	}
+	s.fireCooldown(e, es)
+	es.CdTicks = es.EffectiveCooldownTicks()
+}
+
+// activationPrecondition checks the per-effect-type requirements a cooldown
+// skill declares (§3.5): recall needs a bound campfire anchor; revive will
+// need a corpse in range (chunk 3). Go checks per dispatch site, not a JSON
+// DSL. Skills without preconditions keep the whiff-consume semantics
+// verbatim — firing a NovaBurst into thin air stays the player's aim problem.
+func (s *SkillSystem) activationPrecondition(e skillEntity, es *skills.EquippedSkill) model.ActivationRejection {
+	for _, effect := range es.Def.Effects {
+		if effect.Type != skills.EffectTypeRecall {
+			continue
+		}
+		p, ok := e.(model.PlayerEntity)
+		if !ok || s.connState == nil {
+			// Mobs cannot recall; an unwired seam reads as nothing bound.
+			return model.ActivationRejectedNoAnchor
+		}
+		if _, bound := s.connState.AnchorOf(p.Client().UUID()); !bound {
+			return model.ActivationRejectedNoAnchor
+		}
+	}
+	return model.ActivationRejectedNone
+}
+
+// noteActivationRejected stamps the one-tick rejection feedback on players;
+// mobs have no client to inform.
+func noteActivationRejected(e skillEntity, id skills.SkillID, reason model.ActivationRejection) {
+	if p, ok := e.(model.PlayerEntity); ok {
+		p.NoteActivationRejected(id, reason)
+	}
 }
 
 // fireCooldown applies a cooldown skill's effects: instant_damage via a
@@ -820,6 +920,12 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			}
 			continue
 		}
+		if effect.Type == skills.EffectTypeRecall {
+			if s.applyRecall(e) {
+				hitAny = true
+			}
+			continue
+		}
 		if effect.Type != skills.EffectTypeInstantDamage && effect.Type != skills.EffectTypeInstantDot {
 			continue
 		}
@@ -853,6 +959,24 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 		}
 	}
 	return hitAny
+}
+
+// applyRecall teleports the caster to their bound campfire anchor with the
+// respawn jitter (chunk 4). The activation precondition guarantees an anchor
+// at start AND completion, so a miss here is a benign race, not a whiff. The
+// phy space rebuilds its dynamic grid every tick — a position jump needs no
+// re-registration (the respawn precedent).
+func (s *SkillSystem) applyRecall(e skillEntity) bool {
+	p, ok := e.(model.PlayerEntity)
+	if !ok || s.connState == nil {
+		return false
+	}
+	anchor, bound := s.connState.AnchorOf(p.Client().UUID())
+	if !bound {
+		return false
+	}
+	p.SetPosition(jitterAround(anchor, respawnJitterRadius))
+	return true
 }
 
 // threatManipulable is the taunt/detaunt capability (mob-depth chunk 7): a mob

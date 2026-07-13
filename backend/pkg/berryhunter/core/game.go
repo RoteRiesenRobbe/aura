@@ -139,6 +139,10 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	s := sys.NewConnectionStateSystem(g)
 	g.AddSystem(s)
 	g.connState = s
+	// Recall's anchor seam (plan-skill-vocab chunk 4): the SkillSystem is
+	// constructed before the ConnectionStateSystem, so the reference is wired
+	// post-construction (the CampfireAnchorSink precedent).
+	sk.SetConnState(s)
 
 	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space())
 	g.AddSystem(c)

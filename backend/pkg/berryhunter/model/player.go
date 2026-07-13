@@ -27,6 +27,18 @@ type PlayerProgression struct {
 	Experience uint64
 }
 
+// ActivationRejection is the reason a cooldown activation was refused by its
+// precondition (plan-skill-vocab chunk 4, §3.5): no cast starts, no cooldown
+// is consumed, and the client renders feedback keyed by this value. Grows one
+// entry per precondition; serialized as activation_rejected_reason.
+type ActivationRejection byte
+
+const (
+	ActivationRejectedNone     ActivationRejection = iota
+	ActivationRejectedNoAnchor                     // recall: no campfire anchor bound
+	ActivationRejectedNoTarget                     // reserved: revive with no corpse in range (chunk 3)
+)
+
 type Players []PlayerEntity
 
 type PlayerEntity interface {
@@ -103,6 +115,12 @@ type PlayerEntity interface {
 	// the tick a dwell completes, serialized as campfire_bound.
 	CampfireBound() bool
 	NoteCampfireBound()
+	// ActivationRejected / NoteActivationRejected carry the per-tick "a
+	// cooldown activation was refused by its precondition" stamp
+	// (plan-skill-vocab chunk 4, §3.5): the SkillSystem notes it, serialized
+	// as activation_rejected_skill_id + activation_rejected_reason.
+	ActivationRejected() (skills.SkillID, ActivationRejection)
+	NoteActivationRejected(skill skills.SkillID, reason ActivationRejection)
 	SkillComponent() *skills.SkillComponent
 	// SetSkillComponent replaces the player's skill component wholesale.
 	// Used on respawn to restore the spellbook + loadout the player died with.

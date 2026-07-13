@@ -436,6 +436,47 @@
 	gap: 1rem;
 }
 
+// Cast bar (skill-vocab chunk 4, bare rendering): bottom-center just above
+// the action bars; hidden while no cast runs. Fill width is set inline by
+// HUD.updateCastBar. Polish belongs to the step-8 UI pass.
+#castBar {
+	position: absolute;
+	bottom: 13vh;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 18vw;
+	height: (0.5 * @uiElementHeight);
+	background-color: rgba(20, 24, 28, 0.75);
+	visibility: hidden;
+
+	&.casting {
+		visibility: visible;
+	}
+
+	> .indicator {
+		height: 100%;
+		width: 0;
+		background-color: #E0B23C;
+	}
+
+	> .barText {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+
+		color: white;
+		font-size: (0.3 * @uiElementHeight);
+		text-shadow: 0 0 2px black, 0 0 2px black;
+	}
+}
+
 // Aura slots as a 2×2 grid: column 1 = slots 1+2, column 2 = slots 3+4
 // (column-first fill matches the hotkey order 1/2 left, 3/4 right).
 #auraLoadout > #auraSlotList {

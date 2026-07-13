@@ -278,12 +278,25 @@ func (s *ConnectionStateSystem) respawnPosition(id uuid.UUID) phy.Vec2f {
 	if !ok {
 		return randomSpawnPosition(s.game.Bounds())
 	}
+	return jitterAround(anchor, respawnJitterRadius)
+}
+
+// jitterAround spreads positions in a small disc around pos so simultaneous
+// arrivals (respawns, recalls) don't stack on one point.
+func jitterAround(pos phy.Vec2f, radius float32) phy.Vec2f {
 	angle := rand.Float64() * 2 * math.Pi
-	r := rand.Float32() * respawnJitterRadius
+	r := rand.Float32() * radius
 	return phy.Vec2f{
-		X: anchor.X + r*float32(math.Cos(angle)),
-		Y: anchor.Y + r*float32(math.Sin(angle)),
+		X: pos.X + r*float32(math.Cos(angle)),
+		Y: pos.Y + r*float32(math.Sin(angle)),
 	}
+}
+
+// AnchorOf is the ConnState seam (plan-skill-vocab chunk 4): the campfire
+// anchor a client last bound to, feeding recall's precondition + destination.
+func (s *ConnectionStateSystem) AnchorOf(id uuid.UUID) (phy.Vec2f, bool) {
+	anchor, ok := s.anchors[id]
+	return anchor, ok
 }
 
 // trackCampfireDwell advances each player's bind progress: campfireDwellTicks

@@ -44,6 +44,9 @@ let vitalSignsBars: { [key: string]: VitalSignBar };
 let healthBarTextElement: HTMLElement;
 let xpBarTextElement: HTMLElement;
 let shieldIndicatorElement: HTMLElement;
+let castBarElement: HTMLElement;
+let castBarIndicatorElement: HTMLElement;
+let castBarTextElement: HTMLElement;
 
 Preloading.renderPartial(require('../assets/HUD.html'), () => {
     rootElement = document.getElementById('gameUI');
@@ -97,6 +100,28 @@ function setupVitalSigns() {
     healthBarTextElement = document.querySelector('#healthBar .barText');
     xpBarTextElement = document.querySelector('#xpBar .barText');
     shieldIndicatorElement = document.querySelector('#healthBar .shieldIndicator');
+    castBarElement = document.getElementById('castBar');
+    castBarIndicatorElement = castBarElement?.querySelector('.indicator');
+    castBarTextElement = castBarElement?.querySelector('.barText');
+}
+
+// updateCastBar renders the owning player's running cast (skill-vocab
+// chunk 4, bare rendering): fill = elapsed fraction, text = skill name +
+// remaining seconds (ticks × 33 ms, the cooldown convention). All-zero
+// hides the bar — no cast, or the cast was canceled/completed.
+export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: number) {
+    if (!castBarElement) {
+        return;
+    }
+    const casting = skillId > 0 && ticksTotal > 0;
+    castBarElement.classList.toggle('casting', casting);
+    if (!casting) {
+        return;
+    }
+    const progress = Math.min(Math.max(1 - ticksLeft / ticksTotal, 0), 1);
+    castBarIndicatorElement.style.width = `${progress * 100}%`;
+    castBarTextElement.textContent =
+        `${skillDisplayName(skillId)} ${(ticksLeft * 33 / 1000).toFixed(1)}s`;
 }
 
 // updateShield renders the absorb segment on the health bar (skill-vocab

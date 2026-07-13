@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/EngoEngine/ecs"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
@@ -81,6 +82,8 @@ type fakePlayer struct {
 	shields         []appliedShield
 	inCombat        bool // reported by InCombat (chunk 1 combat-gate tests)
 	combatActions   int  // NoteCombatAction call count (chunk 1)
+	client          model.Client          // recall reads Client().UUID() (chunk 4)
+	rejections      []rejectedActivation  // NoteActivationRejected calls (chunk 4)
 }
 
 // appliedResist records one ApplyResist call on a test double.
@@ -140,6 +143,18 @@ func (f *fakePlayer) ApplyShield(source skills.SkillID, hp float32, ticks int) {
 func (f *fakePlayer) InCombat() bool      { return f.inCombat }
 func (f *fakePlayer) NoteCombatAction()   { f.combatActions++ }
 
+func (f *fakePlayer) Client() model.Client       { return f.client }
+func (f *fakePlayer) SetPosition(v phy.Vec2f)    { f.aura.SetPosition(v) }
+func (f *fakePlayer) NoteActivationRejected(id skills.SkillID, reason model.ActivationRejection) {
+	f.rejections = append(f.rejections, rejectedActivation{id, reason})
+}
+
+// rejectedActivation records one NoteActivationRejected call (chunk 4).
+type rejectedActivation struct {
+	skill  skills.SkillID
+	reason model.ActivationRejection
+}
+
 // Bodies mirrors the real player: Bodies()[0] is the main physical body on
 // the player layer (healerTargetable reads its layer, chunk 2).
 func (f *fakePlayer) Bodies() model.Bodies { return model.Bodies{f.body} }
@@ -161,8 +176,9 @@ func newFakePlayer() *fakePlayer {
 		level:           1,
 		// Non-nil so applyDamageAura/applyHealAura can read the caster position
 		// for selector ordering; tests that need a real space overwrite it.
-		aura: phy.NewCircle(phy.VEC2F_ZERO, 1.0),
-		body: playerLayerBody(),
+		aura:   phy.NewCircle(phy.VEC2F_ZERO, 1.0),
+		body:   playerLayerBody(),
+		client: newFakeClient(),
 	}
 }
 
@@ -2792,4 +2808,207 @@ func TestApplyDamageAura_MobCaster_VocabularyRidesFactors(t *testing.T) {
 	assert.InDelta(t, 60.0, f.Damage, 1e-3, "10 × 1.5 × 2 × 2, same pipeline as players")
 	assert.True(t, f.Crit)
 	assert.InDelta(t, 0.75, f.Lifesteal, 1e-6)
+}
+
+// --- cast-time primitive + recall (plan-skill-vocab chunk 4) ---
+
+// castNovaDef is novaDef with an authored wind-up: 3 ticks, damage-interrupt
+// deliberately OFF (the default posture — casts are combat vocabulary).
+// Distinct ID: EquipCooldown's move rule would otherwise clear a plain nova
+// equipped alongside it.
+func castNovaDef() *skills.SkillDefinition {
+	def := novaDef()
+	def.ID = 99
+	def.Name = "CastNova"
+	def.CastTicks = 3
+	return def
+}
+
+func recallTestDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 28, Name: "Recall", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 9000, CastTicks: 3, CastInterruptedByDamage: true,
+		Effects: []skills.EffectDef{{Type: skills.EffectTypeRecall}},
+	}
+}
+
+// fakeConnState stubs the ConnectionStateSystem seam: a switchable anchor,
+// which doubles as the test seam for the completion re-check (anchor lost
+// mid-cast is unbindable through gameplay today).
+type fakeConnState struct {
+	anchor phy.Vec2f
+	bound  bool
+}
+
+func (f *fakeConnState) AnchorOf(id uuid.UUID) (phy.Vec2f, bool) { return f.anchor, f.bound }
+
+func TestCast_ActivationStartsCastNotFire(t *testing.T) {
+	target := &touchRecorder{}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
+	caster.sc.EquipCooldown(0, castNovaDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.Empty(t, target.touches, "cast winds up, nothing fires yet")
+	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed only at completion")
+	assert.True(t, caster.sc.IsCasting())
+	assert.Equal(t, 0, caster.sc.CastingSlot)
+}
+
+func TestCast_CompletionFiresAndConsumesCooldown(t *testing.T) {
+	target := &touchRecorder{}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
+	caster.sc.EquipCooldown(0, castNovaDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	for i := 0; i < 4; i++ { // activation + 3 wind-up ticks
+		sk.Update(33.0)
+	}
+
+	require.Len(t, target.touches, 1, "cast completed → burst fired")
+	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts at completion")
+	assert.False(t, caster.sc.IsCasting())
+}
+
+func TestCast_SameSlotRerequestIgnored(t *testing.T) {
+	target := &touchRecorder{}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
+	caster.sc.EquipCooldown(0, castNovaDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+
+	// Spamming the same key mid-cast neither cancels nor restarts.
+	before := caster.sc.CastTicksLeft
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+
+	assert.True(t, caster.sc.IsCasting(), "same-slot re-request is ignored")
+	assert.Equal(t, before-1, caster.sc.CastTicksLeft, "wind-up keeps ticking, no restart")
+	assert.Empty(t, target.touches)
+}
+
+func TestCast_DifferentSlotActivationCancelsAndFires(t *testing.T) {
+	target := &touchRecorder{}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
+	caster.sc.EquipCooldown(0, castNovaDef(), 1)
+	caster.sc.EquipCooldown(1, novaDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+	require.True(t, caster.sc.IsCasting())
+
+	// A different cooldown is a deliberate act: the cast dies, the burst fires.
+	caster.sc.RequestCooldownActivation(1)
+	sk.Update(33.0)
+
+	assert.False(t, caster.sc.IsCasting(), "different-slot activation cancels the cast")
+	require.Len(t, target.touches, 1, "the canceling cooldown still fires normally")
+	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "interrupted cast consumes no cooldown")
+	assert.Equal(t, 300, caster.sc.CooldownSlots[1].CdTicks)
+}
+
+func TestCast_UnequipMidCastCancelsSafely(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	caster.sc.EquipCooldown(0, castNovaDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+	require.True(t, caster.sc.IsCasting())
+
+	caster.sc.CooldownSlots[0] = nil
+	sk.Update(33.0)
+
+	assert.False(t, caster.sc.IsCasting(), "empty casting slot cancels, no panic")
+}
+
+func TestRecall_NoAnchorRejectsActivation(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	caster.sc.EquipCooldown(0, recallTestDef(), 1)
+	sk.SetConnState(&fakeConnState{bound: false})
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.False(t, caster.sc.IsCasting(), "precondition fails → no cast starts")
+	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "no cooldown consumed")
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, skills.SkillID(28), caster.rejections[0].skill)
+	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
+}
+
+func TestRecall_CompletionTeleportsToAnchorWithJitter(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	caster.sc.EquipCooldown(0, recallTestDef(), 1)
+	anchor := phy.Vec2f{X: 25, Y: -13}
+	sk.SetConnState(&fakeConnState{anchor: anchor, bound: true})
+	caster.sc.RequestCooldownActivation(0)
+
+	for i := 0; i < 4; i++ {
+		sk.Update(33.0)
+	}
+
+	assert.False(t, caster.sc.IsCasting())
+	dist := caster.Position().DistanceToSquared(anchor)
+	assert.LessOrEqual(t, dist, float32(respawnJitterRadius*respawnJitterRadius),
+		"teleported into the jitter disc around the anchor")
+	assert.Equal(t, 9000, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed on success")
+	assert.Empty(t, caster.rejections)
+}
+
+func TestRecall_AnchorLostMidCastRejectsAtCompletion(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	caster.sc.EquipCooldown(0, recallTestDef(), 1)
+	cs := &fakeConnState{anchor: phy.Vec2f{X: 25, Y: -13}, bound: true}
+	sk.SetConnState(cs)
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+	require.True(t, caster.sc.IsCasting())
+
+	// The world moved during the wind-up: the completion re-check must reject
+	// exactly like the activation check — no teleport, no cooldown.
+	cs.bound = false
+	for i := 0; i < 3; i++ {
+		sk.Update(33.0)
+	}
+
+	assert.False(t, caster.sc.IsCasting())
+	assert.Equal(t, phy.VEC2F_ZERO, caster.Position(), "no teleport")
+	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "cooldown refunded (never consumed)")
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
+}
+
+func TestCast_MobFirePathIgnoresCastTime(t *testing.T) {
+	// Mobs never author castTicks; if content does anyway, the mob path fires
+	// instantly (the documented NOTE) instead of dead-locking the AI.
+	stomp := &skills.SkillDefinition{
+		ID: 105, Name: "Stomp", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 450, CastTicks: 10,
+		Effects: []skills.EffectDef{{
+			Type:           skills.EffectTypeInstantDamage,
+			Radius:         2.0,
+			TargetsEnemies: true,
+			Damage:         &skills.DamageParams{HP: 0.2},
+		}},
+	}
+	target := &mobTouchRecorder{}
+	space := spaceWithBurstTarget(int(model.LayerPlayerCollision), target)
+
+	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects()}
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipCooldown(0, stomp, 1)
+
+	sk := NewSkillSystem(space, nil)
+	sk.AddEntity(caster)
+	sk.Update(33.0)
+
+	assert.NotEmpty(t, target.factors, "mob fires instantly despite castTicks")
+	assert.False(t, caster.sc.IsCasting())
 }

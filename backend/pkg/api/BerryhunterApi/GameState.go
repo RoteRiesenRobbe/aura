@@ -282,8 +282,68 @@ func (rcv *GameState) MutateCooldownRemainingTicks(j int, n uint16) bool {
 	return false
 }
 
+func (rcv *GameState) CastSkillId() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateCastSkillId(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(28, n)
+}
+
+func (rcv *GameState) CastTicksLeft() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateCastTicksLeft(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(30, n)
+}
+
+func (rcv *GameState) CastTicksTotal() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateCastTicksTotal(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(32, n)
+}
+
+func (rcv *GameState) ActivationRejectedSkillId() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateActivationRejectedSkillId(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(34, n)
+}
+
+func (rcv *GameState) ActivationRejectedReason() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateActivationRejectedReason(n byte) bool {
+	return rcv._tab.MutateByteSlot(36, n)
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(12)
+	builder.StartObject(17)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -341,6 +401,21 @@ func GameStateAddCooldownRemainingTicks(builder *flatbuffers.Builder, cooldownRe
 }
 func GameStateStartCooldownRemainingTicksVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)
+}
+func GameStateAddCastSkillId(builder *flatbuffers.Builder, castSkillId uint16) {
+	builder.PrependUint16Slot(12, castSkillId, 0)
+}
+func GameStateAddCastTicksLeft(builder *flatbuffers.Builder, castTicksLeft uint16) {
+	builder.PrependUint16Slot(13, castTicksLeft, 0)
+}
+func GameStateAddCastTicksTotal(builder *flatbuffers.Builder, castTicksTotal uint16) {
+	builder.PrependUint16Slot(14, castTicksTotal, 0)
+}
+func GameStateAddActivationRejectedSkillId(builder *flatbuffers.Builder, activationRejectedSkillId uint16) {
+	builder.PrependUint16Slot(15, activationRejectedSkillId, 0)
+}
+func GameStateAddActivationRejectedReason(builder *flatbuffers.Builder, activationRejectedReason byte) {
+	builder.PrependByteSlot(16, activationRejectedReason, 0)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

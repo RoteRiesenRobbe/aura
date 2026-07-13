@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -23,8 +24,11 @@ import (
 // the test did not anticipate — a loud signal that updateInput grew.
 type fakeInputPlayer struct {
 	model.PlayerEntity
-	sc   *skills.SkillComponent
-	hand model.Hand
+	sc         *skills.SkillComponent
+	hand       model.Hand
+	vitalSigns model.PlayerVitalSigns
+	config     cfg.PlayerConfig
+	pos        phy.Vec2f
 }
 
 func (f *fakeInputPlayer) Hand() *model.Hand                     { return &f.hand }
@@ -137,4 +141,102 @@ func TestUpdateInput_NilInputIsNoop(t *testing.T) {
 		sys.updateInput(p, nil, nil)
 	})
 	assert.Equal(t, 0, p.sc.ActiveAuraSlot)
+}
+
+// --- cast interrupts from the input path (plan-skill-vocab chunk 4) ---
+//
+// Any deliberate act cancels a running cast: an aura switch (incl. the
+// deactivate sentinel) and actual movement. A no-change aura byte and a
+// zero movement vector are NOT deliberate acts. (Damage interrupts live in
+// player.takeDamage; a different cooldown activation in the SkillSystem.)
+
+func (f *fakeInputPlayer) VitalSigns() *model.PlayerVitalSigns { return &f.vitalSigns }
+func (f *fakeInputPlayer) Config() *cfg.PlayerConfig           { return &f.config }
+func (f *fakeInputPlayer) Position() phy.Vec2f                 { return f.pos }
+func (f *fakeInputPlayer) SetPosition(v phy.Vec2f)             { f.pos = v }
+
+func startCast(p *fakeInputPlayer) {
+	def := &skills.SkillDefinition{
+		ID: 28, Name: "Recall", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 9000, CastTicks: 300, CastInterruptedByDamage: true,
+	}
+	p.sc.EquipCooldown(0, def, 1)
+	p.sc.StartCast(0)
+}
+
+func TestUpdateInput_AuraSwitchCancelsCast(t *testing.T) {
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	startCast(p)
+
+	sys.updateInput(p, inputWithAuraSlot(2), nil)
+
+	assert.False(t, p.sc.IsCasting(), "an aura switch is a deliberate act")
+}
+
+func TestUpdateInput_AuraDeactivateCancelsCast(t *testing.T) {
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	p.sc.SetActiveAura(0)
+	startCast(p)
+
+	sys.updateInput(p, inputWithAuraSlot(model.ActiveAuraSlotDeactivate), nil)
+
+	assert.False(t, p.sc.IsCasting(), "deactivating the aura is a deliberate act")
+}
+
+func TestUpdateInput_AuraNoChangeKeepsCast(t *testing.T) {
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	startCast(p)
+
+	sys.updateInput(p, inputWithAuraSlot(model.ActiveAuraSlotNoChange), nil)
+
+	assert.True(t, p.sc.IsCasting(), "the wire default is not a command")
+}
+
+func TestUpdateInput_MovementCancelsCast(t *testing.T) {
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	p.vitalSigns.Health = 100
+	startCast(p)
+
+	sys.updateInput(p, &model.PlayerInput{
+		ActiveAuraSlot: model.ActiveAuraSlotNoChange,
+		Movement:       &phy.Vec2f{X: 1, Y: 0},
+	}, nil)
+
+	assert.False(t, p.sc.IsCasting(), "moving cancels the cast")
+}
+
+func TestUpdateInput_ZeroMovementVectorKeepsCast(t *testing.T) {
+	// A present-but-zero movement (idle packet / bridged tick) is not a
+	// deliberate act — standing still must not flicker the cast.
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	p.vitalSigns.Health = 100
+	startCast(p)
+
+	sys.updateInput(p, &model.PlayerInput{
+		ActiveAuraSlot: model.ActiveAuraSlotNoChange,
+		Movement:       &phy.Vec2f{},
+	}, nil)
+
+	assert.True(t, p.sc.IsCasting())
+}
+
+func TestUpdateInput_DeadPlayerMovementKeepsCast(t *testing.T) {
+	// Dead players cannot move; the cast state is cleared on respawn via
+	// SetSkillComponent, not by ghost input.
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	p.vitalSigns.Health = 0
+	startCast(p)
+
+	sys.updateInput(p, &model.PlayerInput{
+		ActiveAuraSlot: model.ActiveAuraSlotNoChange,
+		Movement:       &phy.Vec2f{X: 1, Y: 0},
+	}, nil)
+
+	assert.True(t, p.sc.IsCasting())
 }

@@ -954,3 +954,64 @@ func TestMap_ShieldKeysOnNonShieldEffectFails(t *testing.T) {
 	_, err = raw.mapToSkillDefinition()
 	assert.ErrorContains(t, err, "shieldHP")
 }
+
+// --- cast-time skill-def fields (plan-skill-vocab chunk 4) ---
+
+func TestParse_CastTicks(t *testing.T) {
+	def := mustParse(t, []byte(`{
+	  "id": 28, "name": "Recall", "category": "cooldown", "maxLevel": 1,
+	  "cooldownTicks": 9000, "castTicks": 300, "castTicksPerLevel": -30,
+	  "castInterruptedByDamage": true,
+	  "effects": [{"type": "recall"}]
+	}`))
+
+	assert.Equal(t, 300, def.CastTicks)
+	assert.Equal(t, -30, def.CastTicksPerLevel)
+	assert.True(t, def.CastInterruptedByDamage)
+}
+
+func TestParse_CastTicksAbsentDefaultsToInstant(t *testing.T) {
+	def := mustParse(t, novaBurstJSON)
+
+	assert.Equal(t, 0, def.CastTicks)
+	assert.False(t, def.CastInterruptedByDamage)
+}
+
+func TestMap_NegativeCastTicksFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{
+	  "id": 28, "name": "Recall", "category": "cooldown", "maxLevel": 1,
+	  "cooldownTicks": 9000, "castTicks": -5,
+	  "effects": [{"type": "recall"}]
+	}`))
+	require.NoError(t, err)
+
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "castTicks")
+}
+
+func TestMap_CastInterruptedByDamageWithoutCastTicksFails(t *testing.T) {
+	// The flag on an instant skill is an authoring error — it would silently
+	// never apply (mirrors the no-scaling hard-fail guards).
+	raw, err := parseSkillDefinition([]byte(`{
+	  "id": 20, "name": "NovaBurst", "category": "cooldown", "maxLevel": 1,
+	  "cooldownTicks": 300, "castInterruptedByDamage": true,
+	  "effects": [{"type": "instant_damage", "radius": 1, "damageHP": 5, "targetsEnemies": true}]
+	}`))
+	require.NoError(t, err)
+
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "castInterruptedByDamage")
+}
+
+func TestParse_RecallEffectRejectsPayloadKeys(t *testing.T) {
+	// recall has no payload — any key beyond "type" hard-fails via effectKeys.
+	raw, err := parseSkillDefinition([]byte(`{
+	  "id": 28, "name": "Recall", "category": "cooldown", "maxLevel": 1,
+	  "cooldownTicks": 9000, "castTicks": 300,
+	  "effects": [{"type": "recall", "radius": 2}]
+	}`))
+	require.NoError(t, err)
+
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "radius")
+}

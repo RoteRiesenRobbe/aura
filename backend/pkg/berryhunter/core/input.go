@@ -110,9 +110,12 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 	// Active-aura command. >= 0 switches to that slot; the -2 wire sentinel means
 	// "explicitly deactivate" (maps to component slot -1 = Nothing); -1 (the wire
 	// default) means the client said nothing, so we leave the active aura untouched.
+	// An aura command is a deliberate act: it cancels a running cast (chunk 4).
 	if next.ActiveAuraSlot >= 0 {
+		p.SkillComponent().CancelCast()
 		p.SkillComponent().SetActiveAura(next.ActiveAuraSlot)
 	} else if next.ActiveAuraSlot == model.ActiveAuraSlotDeactivate {
+		p.SkillComponent().CancelCast()
 		p.SkillComponent().SetActiveAura(-1)
 	}
 
@@ -128,6 +131,12 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 		// we can only move if we are still alive!
 		if p.VitalSigns().Health != 0 {
 			v := input2vec(next)
+			// Moving is a deliberate act: it cancels a running cast (chunk 4).
+			// Only an actual vector counts — an idle/bridged movement packet
+			// must not flicker the cast.
+			if v != (phy.Vec2f{}) {
+				p.SkillComponent().CancelCast()
+			}
 			// Passive movement-speed bonus (DerivedStats); config stays untouched.
 			speed := p.Config().WalkingSpeedPerTick * (1 + p.SkillComponent().Derived.MovementSpeedBonus)
 			v = v.Mult(speed)

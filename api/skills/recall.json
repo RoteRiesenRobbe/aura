@@ -1,0 +1,12 @@
+{
+  "id": 28,
+  "name": "Recall",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 9000,
+  "castTicks": 300,
+  "castInterruptedByDamage": true,
+  "effects": [
+    { "type": "recall" }
+  ]
+}

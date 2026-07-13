@@ -10,6 +10,7 @@ import * as DayCycle from '../../day-cycle/logic/DayCycle';
 import * as StartScreen from '../../user-interface/start-screen/logic/StartScreen';
 import * as EndScreen from '../../user-interface/end-screen/logic/EndScreen';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
+import {activationRejectionMessage} from '../../../client-data/Skills';
 import {BerryhunterApi} from './BerryhunterApi';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
@@ -265,6 +266,19 @@ export class Backend implements IBackend {
 
             if (Utils.isDefined(snapshot.activeAuraSlot)) {
                 HUD.updateActiveAuraSlot(snapshot.activeAuraSlot);
+            }
+
+            // Cast bar (skill-vocab chunk 4): all-zero = no cast, hides the bar.
+            HUD.updateCastBar(
+                snapshot.castSkillId ?? 0,
+                snapshot.castTicksLeft ?? 0,
+                snapshot.castTicksTotal ?? 0);
+
+            // Rejection feedback (chunk 4, §3.5): one-tick stamp → floating
+            // text over the own character (the campfire-bound rendering path).
+            if ((snapshot.activationRejectedReason ?? 0) > 0) {
+                this.game.player.character.showFloatingText(
+                    activationRejectionMessage(snapshot.activationRejectedReason), 0xE05252);
             }
 
             if (Develop.isActive()) {

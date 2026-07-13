@@ -19,6 +19,7 @@ export const SkillNames: { [id: number]: string } = {
     25: 'Taunt',
     26: 'Fade',
     27: 'Barrier',
+    28: 'Recall',
     30: 'Paladin Aura',
     40: 'Fire Ward',
 };
@@ -47,6 +48,7 @@ export const SkillMaxLevels: { [id: number]: number } = {
     25: 3,
     26: 3,
     27: 3,
+    28: 1,
     30: 5,
     40: 3,
 };
@@ -77,6 +79,7 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     25: 'cooldown',
     26: 'cooldown',
     27: 'cooldown',
+    28: 'cooldown',
     30: 'aura',
     40: 'aura',
 };
@@ -86,6 +89,18 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
 // instead of hiding the skill entirely.
 export function skillCategory(id: number): SkillCategory {
     return SkillCategories[id] ?? 'aura';
+}
+
+// Static rejection-reason → feedback text map (skill-vocab chunk 4, §3.5):
+// keyed by the wire activation_rejected_reason; rendered as floating text
+// over the own character. Hand-synced with model.ActivationRejection.
+export const ActivationRejectionMessages: { [reason: number]: string } = {
+    1: 'No campfire bound',
+    2: 'No valid target',
+};
+
+export function activationRejectionMessage(reason: number): string {
+    return ActivationRejectionMessages[reason] ?? 'Cannot use that now';
 }
 
 // Skill IDs referenced by the client-side ring-style mapping (Character.setActiveSkill).

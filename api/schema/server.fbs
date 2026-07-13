@@ -264,6 +264,22 @@ table GameState {
 
   // remaining cooldown ticks per slot, positionally parallel to cooldown_slots; 0 = ready
   cooldown_remaining_ticks:[ushort];
+
+  // Cast-time primitive (skill-vocab chunk 4): the owning player's running
+  // cast — skill ID, ticks left and the level-scaled total, driving the cast
+  // bar. All zero = no cast. Own player only: other clients do NOT see casts
+  // in v1. Appended at the table end so existing field IDs stay stable.
+  cast_skill_id:ushort = 0;
+  cast_ticks_left:ushort = 0;
+  cast_ticks_total:ushort = 0;
+
+  // One-tick rejection feedback (skill-vocab chunk 4, §3.5): a cooldown
+  // activation refused by its precondition — which skill and why (1 = no
+  // campfire anchor bound, 2 = no valid target [chunk 3]). Per-tick one-shot
+  // like campfire_bound. Appended at the table end so existing field IDs
+  // stay stable.
+  activation_rejected_skill_id:ushort = 0;
+  activation_rejected_reason:ubyte = 0;
 }
 
 table Welcome {

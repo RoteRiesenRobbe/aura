@@ -11,6 +11,12 @@ import {IGame} from "../../core/logic/IGame";
 let movementInterpolatedObjects = new Set();
 let rotatingObjects = new Set();
 
+// Position deltas beyond this snap instead of interpolating (skill-vocab
+// chunk 4): 5 world units × 120 px — far above any per-tick movement
+// (~6 px), far below a Recall teleport. [PLACEHOLDER]
+const TELEPORT_SNAP_DISTANCE_PX = 600;
+const TELEPORT_SNAP_DISTANCE_PX_SQUARED = TELEPORT_SNAP_DISTANCE_PX * TELEPORT_SNAP_DISTANCE_PX;
+
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
     Game = game;
@@ -125,6 +131,17 @@ export abstract class GameObject {
         }
 
         if (Constants.MOVEMENT_INTERPOLATION) {
+            // Teleport snap (skill-vocab chunk 4): a delta far beyond any
+            // per-tick movement (Recall, dash) must jump, not glide — the
+            // lerp would smear the character across the distance for a tick.
+            const dx = x - this.shape.position.x;
+            const dy = y - this.shape.position.y;
+            if (dx * dx + dy * dy > TELEPORT_SNAP_DISTANCE_PX_SQUARED) {
+                this.shape.position.set(x, y);
+                this.desiredPosition = new Vector(x, y);
+                movementInterpolatedObjects.delete(this);
+                return true;
+            }
             this.desiredPosition = new Vector(x, y); //.sub(this.shape.position);
             this.desireTimestamp = performance.now();
             movementInterpolatedObjects.add(this);

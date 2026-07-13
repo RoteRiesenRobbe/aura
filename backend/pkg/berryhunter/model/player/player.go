@@ -138,6 +138,13 @@ type player struct {
 	// the accumulators above; drives the client's "bound" feedback.
 	campfireBound bool
 
+	// rejectedSkill/rejectedReason are stamped the tick a cooldown activation
+	// is refused by its precondition (plan-skill-vocab chunk 4, §3.5): the
+	// SkillSystem notes it, the wire carries it once, reset each tick
+	// alongside the accumulators above.
+	rejectedSkill  skills.SkillID
+	rejectedReason model.ActivationRejection
+
 	// healthRegen accumulates sub-1-HP out-of-combat regen (item 11 Phase 1):
 	// with absolute integer HP the per-tick regen is often < 1 HP, so it is
 	// carried here and applied once a whole HP has built up.
@@ -299,7 +306,14 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vi
 	// mob or PvP, gates regen uniformly. Fully absorbed hits count — being
 	// beaten on your shield is combat (§3.1).
 	p.NoteCombatAction()
-	return absorbed + loss
+	dealt := absorbed + loss
+	// Damage interrupt (chunk 4): dealt > 0 — absorbed hits included —
+	// cancels a running cast, but only for skills that opted in
+	// (castInterruptedByDamage; the flag check lives on the component).
+	if dealt > 0 {
+		p.skills.CancelCastOnDamage()
+	}
+	return dealt
 }
 
 // DamageTaken / HealReceived / XpGained expose the per-tick floating-number
@@ -340,6 +354,20 @@ func (p *player) CampfireBound() bool { return p.campfireBound }
 // NoteCampfireBound records that a campfire became this player's respawn
 // anchor this tick; the ConnectionStateSystem's dwell tracker calls it.
 func (p *player) NoteCampfireBound() { p.campfireBound = true }
+
+// ActivationRejected reports the cooldown activation refused this tick
+// (chunk 4, §3.5); zero values = none. Serialized as
+// activation_rejected_skill_id + activation_rejected_reason.
+func (p *player) ActivationRejected() (skills.SkillID, model.ActivationRejection) {
+	return p.rejectedSkill, p.rejectedReason
+}
+
+// NoteActivationRejected records a precondition-refused cooldown activation
+// this tick; the SkillSystem calls it.
+func (p *player) NoteActivationRejected(skill skills.SkillID, reason model.ActivationRejection) {
+	p.rejectedSkill = skill
+	p.rejectedReason = reason
+}
 
 // NoteAuraHit records the aura-hit VFX style for this tick; the SkillSystem
 // calls it when a damage aura strikes this player.
@@ -388,6 +416,8 @@ func (p *player) ResetTickNumbers() {
 	p.xpGained = 0
 	p.auraHitStyle = model.AuraHitStyleNone
 	p.campfireBound = false
+	p.rejectedSkill = 0
+	p.rejectedReason = model.ActivationRejectedNone
 	p.buffs.Tick()
 	// Age the companion combat signals (chunk 6); the refs stay until
 	// re-stamped, the getters gate on the remaining window.
@@ -695,9 +725,13 @@ func (p *player) SkillComponent() *skills.SkillComponent {
 // SetSkillComponent replaces the freshly-initialized skill component with a
 // restored one (respawn), preserving the spellbook, equipped loadout and active
 // aura the player had at death. The aura sensor created in New is resized to the
-// active skill's radius by the SkillSystem on the next tick.
+// active skill's radius by the SkillSystem on the next tick. An in-flight cast
+// is cleared (chunk 4): the component is carried across death, and a cast must
+// never survive into the respawned player — this also covers deaths that
+// bypass takeDamage (heal-aura self-cost).
 func (p *player) SetSkillComponent(sc *skills.SkillComponent) {
 	if sc != nil {
+		sc.CancelCast()
 		p.skills = sc
 	}
 }

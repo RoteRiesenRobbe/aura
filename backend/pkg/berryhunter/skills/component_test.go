@@ -663,3 +663,107 @@ func TestRaiseLoadoutLevels(t *testing.T) {
 	assert.InDelta(t, 0.4, sc.Derived.MovementSpeedBonus, 1e-6, "raising a passive re-derives stats")
 	assert.Equal(t, 2, sc.CooldownSlots[0].Level, "cooldowns clamp too")
 }
+
+// --- cast-time primitive (plan-skill-vocab chunk 4) ---
+
+func castDef(interruptedByDamage bool) *SkillDefinition {
+	return &SkillDefinition{
+		ID: 28, Name: "Recall", Category: SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks:           9000,
+		CastTicks:               300,
+		CastTicksPerLevel:       -30,
+		CastInterruptedByDamage: interruptedByDamage,
+	}
+}
+
+func TestEffectiveCastTicks_LevelScaled(t *testing.T) {
+	es := &EquippedSkill{Def: castDef(true), Level: 1}
+	assert.Equal(t, 300, es.EffectiveCastTicks())
+
+	es.Level = 3
+	assert.Equal(t, 240, es.EffectiveCastTicks(), "300 − 2×30")
+}
+
+func TestEffectiveCastTicks_FlooredAtZero(t *testing.T) {
+	// 0 = instant is the default for every existing skill; heavy negative
+	// per-level scaling must not go below it.
+	es := &EquippedSkill{Def: castDef(true), Level: 20}
+	assert.Equal(t, 0, es.EffectiveCastTicks())
+
+	instant := &EquippedSkill{Def: testDef, Level: 1}
+	assert.Equal(t, 0, instant.EffectiveCastTicks(), "no castTicks authored → instant")
+}
+
+func TestNewSkillComponent_NotCasting(t *testing.T) {
+	sc := NewSkillComponent(true)
+
+	assert.False(t, sc.IsCasting())
+	assert.Equal(t, -1, sc.CastingSlot)
+}
+
+func TestStartCast_SetsSlotAndTicks(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipCooldown(1, castDef(true), 1)
+
+	sc.StartCast(1)
+
+	assert.True(t, sc.IsCasting())
+	assert.Equal(t, 1, sc.CastingSlot)
+	assert.Equal(t, 300, sc.CastTicksLeft)
+}
+
+func TestStartCast_InvalidOrEmptySlotIgnored(t *testing.T) {
+	sc := NewSkillComponent(true)
+
+	sc.StartCast(-1)
+	assert.False(t, sc.IsCasting())
+	sc.StartCast(MaxCooldownSlots)
+	assert.False(t, sc.IsCasting())
+	sc.StartCast(0) // equipped nothing
+	assert.False(t, sc.IsCasting())
+}
+
+func TestCancelCast_ClearsState(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipCooldown(0, castDef(true), 1)
+	sc.StartCast(0)
+
+	sc.CancelCast()
+
+	assert.False(t, sc.IsCasting())
+	assert.Equal(t, -1, sc.CastingSlot)
+	assert.Equal(t, 0, sc.CastTicksLeft)
+}
+
+func TestCastingSkill_ReturnsCastingSlotSkill(t *testing.T) {
+	sc := NewSkillComponent(true)
+	assert.Nil(t, sc.CastingSkill(), "idle → nil")
+
+	sc.EquipCooldown(0, castDef(true), 1)
+	sc.StartCast(0)
+	require.NotNil(t, sc.CastingSkill())
+	assert.Equal(t, SkillID(28), sc.CastingSkill().Def.ID)
+}
+
+func TestCancelCastOnDamage_FlaggedSkillCancels(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipCooldown(0, castDef(true), 1)
+	sc.StartCast(0)
+
+	sc.CancelCastOnDamage()
+
+	assert.False(t, sc.IsCasting(), "castInterruptedByDamage → damage cancels")
+}
+
+func TestCancelCastOnDamage_UnflaggedSkillKeepsCasting(t *testing.T) {
+	// Damage-interrupt is opt-in (chunk-4 start decision 2026-07-14): casts
+	// are combat vocabulary; only skills like Recall break on damage.
+	sc := NewSkillComponent(true)
+	sc.EquipCooldown(0, castDef(false), 1)
+	sc.StartCast(0)
+
+	sc.CancelCastOnDamage()
+
+	assert.True(t, sc.IsCasting(), "unflagged cast survives damage")
+	assert.Equal(t, 300, sc.CastTicksLeft)
+}
