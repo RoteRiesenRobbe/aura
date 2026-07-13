@@ -43,6 +43,7 @@ type game struct {
 	entities entitiesMap
 
 	encounters *encounter.System
+	connState  *sys.ConnectionStateSystem
 
 	welcomeMsg []byte
 
@@ -137,6 +138,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 
 	s := sys.NewConnectionStateSystem(g)
 	g.AddSystem(s)
+	g.connState = s
 
 	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space())
 	g.AddSystem(c)
@@ -163,6 +165,12 @@ func (g *game) Ticks() uint64 {
 // the Registrar doc).
 func (g *game) RegisterEncounter(e encounter.Encounter) {
 	g.encounters.Register(e)
+}
+
+// SetCampfireAnchors satisfies sys.CampfireAnchorSink: cmd/berryhunterd hands
+// the placed world campfires to the respawn tracker (chunk 4).
+func (g *game) SetCampfireAnchors(campfires []sys.CampfireAnchor) {
+	g.connState.SetCampfireAnchors(campfires)
 }
 
 func (g *game) Bounds() (width, height float32) {
@@ -240,6 +248,8 @@ func (g *game) AddEntity(e model.BasicEntity) {
 		g.addPlaceableEntity(v)
 	case model.Spectator:
 		g.addSpectator(v)
+	case model.CorpseEntity:
+		g.addCorpse(v)
 	case model.Entity:
 		g.addEntity(v)
 	}
@@ -302,6 +312,21 @@ func (g *game) addPlaceableEntity(p model.PlaceableEntity) {
 			s.AddUpdateable(p)
 		case *sys.DecaySystem:
 			s.AddDecayable(p)
+		}
+	}
+}
+
+// addCorpse registers a corpse (atmosphere & recovery chunk 4). Same streaming
+// as the plain-entity path, but the body goes in as DYNAMIC so the corpse can
+// be removed again on respawn/disconnect — PhysicsSystem.Remove panics on
+// static bodies.
+func (g *game) addCorpse(e model.CorpseEntity) {
+	for _, system := range g.Systems() {
+		switch s := system.(type) {
+		case *sys.PhysicsSystem:
+			s.AddEntity(e)
+		case *NetSystem:
+			s.AddEntity(e)
 		}
 	}
 }

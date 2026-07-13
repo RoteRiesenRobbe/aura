@@ -21,6 +21,12 @@ type EquipSkill struct {
 	Slot    int
 }
 
+// Respawn is a dead client's request to come back, sent from the death
+// overlay instead of a fresh Join: the server reuses the reserved name and
+// carried progression and spawns at the campfire anchor. Only honored while
+// the client is a dead spectator.
+type Respawn struct{}
+
 // SpendSkillPoint is a one-shot request to spend (or, with Unspend, refund)
 // one skill point on a discovered skill, raising/lowering its spellbook level
 // by one. The server validates point availability and level bounds.

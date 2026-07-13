@@ -32,6 +32,8 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	BerryhunterApi.MobAddAuraRadius(builder, f32ToU16Px(m.AuraRadius()))
 	// 0 = no light; the client hole-punches the darkness overlay (chunk 3).
 	BerryhunterApi.MobAddLightRadius(builder, f32ToU16Px(m.LightRadius()))
+	// 0 = not a respawn anchor; the client draws the bind circle (chunk 4).
+	BerryhunterApi.MobAddDwellRadius(builder, f32ToU16Px(m.DwellRadius()))
 
 	return BerryhunterApi.MobEnd(builder)
 }

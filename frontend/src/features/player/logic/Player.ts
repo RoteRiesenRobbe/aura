@@ -103,6 +103,11 @@ export class Player {
         if (entity.auraHitStyle > 0) {
             this.character.showAuraHit(entity.auraHitStyle);
         }
+        // Campfire became the respawn anchor (chunk 4): confirm the bind.
+        // Own player only — nobody else needs to see it.
+        if (entity.campfireBound) {
+            this.character.showFloatingText('Bound to campfire', 0xE37313);
+        }
     }
 
     remove() {

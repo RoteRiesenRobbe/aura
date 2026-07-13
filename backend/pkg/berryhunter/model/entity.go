@@ -91,6 +91,16 @@ type PropEntity interface {
 	Entity
 }
 
+// CorpseEntity is a dead player's corpse (atmosphere & recovery chunk 4): a
+// non-colliding world marker that persists until the player respawns or their
+// dead client disconnects. It rides its own add-path because, unlike props,
+// it must be removable — PhysicsSystem.Remove panics on static bodies, so the
+// corpse's body registers as dynamic.
+type CorpseEntity interface {
+	Entity
+	IsCorpse()
+}
+
 // MobEnity is a mob that usually comes with a mob definition
 // and also needs constant updates since it might move/have an AI
 type MobEntity interface {
@@ -123,6 +133,11 @@ type MobEntity interface {
 	// 0 = no light (wire light_radius — the client hole-punches the darkness
 	// overlay; atmosphere & recovery chunk 3).
 	LightRadius() float32
+	// DwellRadius is the bind radius of a campfire respawn anchor, 0 for
+	// everything that is not one (wire dwell_radius — the client draws the
+	// inner dwell circle from it, so the server's bind factor is the single
+	// source; atmosphere & recovery chunk 4).
+	DwellRadius() float32
 
 	// DamageTaken is the health lost this tick (VitalSign units), serialized as
 	// the floating damage number (roadmap item 11) and reset each tick via

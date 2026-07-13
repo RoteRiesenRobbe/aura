@@ -119,9 +119,17 @@ interface DarkAreaDefinition {
     radius: number;
 }
 
+interface CampfireDefinition {
+    x: number;
+    y: number;
+}
+
 interface ZoneJSON {
     terrain?: GroundTextureDefinition[];
     darkAreas?: DarkAreaDefinition[];
+    // World campfires (chunk 2): read by the darkness overlay for their
+    // static glow (chunk 4 follow-up).
+    campfires?: CampfireDefinition[];
 }
 
 // Bundle every zone's data straight from the repo api/ (chunk 6, §7.4) — same

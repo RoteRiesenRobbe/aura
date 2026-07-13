@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
      Full execution order + per-item status: docs/roadmap.md. Doc index: docs/README.md.
      Plans and records live in the plan docs. -->
 
-- **Last completed:** Atmosphere & recovery chunk 3 (darkness & light) — verified in-game — `docs/plan-atmosphere-recovery.md` §3.3 (`light_aura` effect type + `light_radius` wire + `zone.darkAreas` + client DarknessOverlay + Light skill L4 + campfire light + editor dark mode; 26 skills / 11 milestones / 13 mobs)
-- **Next:** Atmosphere & recovery chunk 4 = death state + campfire respawn (corpse entity + `Respawn` message + dwell tracker + mob corpse fade) — `docs/plan-atmosphere-recovery.md` §3.4; pin ⚑ §6.6/§6.7 at plan-first start
+- **Last completed:** Atmosphere & recovery chunk 4 (death state + campfire respawn) — verified in-game incl. feedback + review fixes → **execution step 3 COMPLETE** — `docs/plan-atmosphere-recovery.md` §3.4 outcome banner (Corpse entity + `Respawn` message + reserved-name dead state + campfire dwell anchors w/ `dwell_radius`/`campfire_bound` wire + death overlay + client-only mob fade + static campfire light holes; 26 skills / 11 milestones / 13 mobs)
+- **Next:** Execution step 4 = skill-vocabulary fill (effect-foundations Step 4: shield/lifesteal/execute/crit/berserker/dash + cast-time+interrupt → Recall + HoT payloads + revive effect type + `"*"` wildcard resist + minimal tick-indicator wire) — plan-first planning session, NEW session — `roadmap.md` execution order step 4
 
 ## Development Principles
 

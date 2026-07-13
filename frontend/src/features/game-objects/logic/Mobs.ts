@@ -344,10 +344,49 @@ Preloading.registerGameObjectSVG(Healer, file('healer'), maxSize('healer'));
 export class Campfire extends Mob {
     static svg: PIXI.Texture;
 
+    private dwellRing: PIXI.Graphics = null;
+    private dwellRingRadius = 0;
+
     constructor(id: number, x: number, y: number) {
         super(id, Game.layers.mobs.campfire, x, y,
             randomInt(minSize('campfire'), maxSize('campfire')),
             Campfire.svg);
+    }
+
+    // The darker orange bind circle inside the heal-range ring, drawn from
+    // the wire dwell_radius (chunk 4) — the server's bind factor is the
+    // single source of truth. True-radius: the server checks the player's
+    // center, so the circle gets NO collider-radius extension (unlike the
+    // outer ring). Snapshots repeat the value 30×/s; redraw only on change.
+    setDwellRadius(radiusPx: number) {
+        if (radiusPx === this.dwellRingRadius) {
+            return;
+        }
+        this.dwellRingRadius = radiusPx;
+        if (radiusPx <= 0) {
+            if (this.dwellRing !== null) {
+                this.dwellRing.visible = false;
+            }
+            return;
+        }
+        if (this.dwellRing === null) {
+            this.dwellRing = new PIXI.Graphics();
+            // above the aura ring sprite (child 0), below the fire itself
+            this.shape.addChildAt(this.dwellRing, Math.min(1, this.shape.children.length));
+        }
+        this.dwellRing.clear()
+            .circle(0, 0, radiusPx)
+            .fill({color: 0xB84A00, alpha: 0.25})
+            .stroke({color: 0xB84A00, width: 3, alpha: 0.8});
+        this.dwellRing.visible = true;
+    }
+
+    // A hidden aura (fade-out sets 0) hides the bind circle with it.
+    override setAuraRadius(radiusPx: number) {
+        super.setAuraRadius(radiusPx);
+        if (radiusPx <= 0) {
+            this.setDwellRadius(0);
+        }
     }
 }
 

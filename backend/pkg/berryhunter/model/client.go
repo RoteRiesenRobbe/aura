@@ -29,6 +29,10 @@ type Client interface {
 	// from the client. Returns nil if none available.
 	NextSpendSkillPoint() *SpendSkillPoint
 
+	// NextRespawn deques a Respawn message received
+	// from the client. Returns nil if none available.
+	NextRespawn() *Respawn
+
 	// SendMessage enqueues a message in the outgoing
 	// messages queue
 	SendMessage([]byte) error

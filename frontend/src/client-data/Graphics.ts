@@ -135,6 +135,12 @@ export const GraphicsConfig = {
         },
     },
 
+    // Player corpse (chunk 4): gravestone placeholder at the deathspot.
+    corpse: {
+        file: require('../features/game-objects/assets/corpse.svg'),
+        size: <number> 50,
+    },
+
     resources: {
         tree: {
             spotFile: require('../features/game-objects/assets/resources/treeSpot.svg'),

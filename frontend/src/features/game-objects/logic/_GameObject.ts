@@ -258,17 +258,25 @@ export abstract class GameObject {
     // floatingNumbers layer so it keeps rising as the entity moves and never
     // inherits the shape's rotation.
     showFloatingNumber(value: number, kind: FloatingNumberKind) {
-        if (value <= 0 || Game === null) return;
+        if (value <= 0) return;
+        const label = (kind === 'damage' ? '-' : '+') + value + (kind === 'xp' ? ' XP' : '');
+        this.showFloatingText(label, FLOATING_NUMBER_COLORS[kind]);
+    }
+
+    // General rising, fading text over the entity — the floating-number
+    // animation with a free label/color (first non-number use: the campfire
+    // "bound" feedback, chunk 4).
+    showFloatingText(label: string, color: number) {
+        if (Game === null) return;
 
         const layer = Game.layers.characterAdditions.floatingNumbers;
-        const label = (kind === 'damage' ? '-' : '+') + value + (kind === 'xp' ? ' XP' : '');
         const text = new Text({
             text: label,
             style: {
                 fontFamily: 'Arial',
                 fontSize: Math.max(14, this.size * 0.9),
                 fontWeight: 'bold',
-                fill: FLOATING_NUMBER_COLORS[kind],
+                fill: color,
                 stroke: {color: 0x000000, width: 4},
             },
         });

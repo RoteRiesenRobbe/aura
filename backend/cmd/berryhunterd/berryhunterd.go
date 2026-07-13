@@ -17,6 +17,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/mob"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/prop"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
+	"github.com/trichner/berryhunter/pkg/berryhunter/sys"
 	"github.com/trichner/berryhunter/pkg/logging"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -112,12 +113,27 @@ func main() {
 			slog.Error("zone places campfires but no Campfire mob is defined", slog.String("zone", zone.ID), slog.Any("err", err))
 			panic(err)
 		}
+		anchors := make([]sys.CampfireAnchor, 0, len(zone.Campfires))
 		for _, c := range zone.Campfires {
 			m := mob.NewMob(campfireDef, g.Config().MobChaseIntoAuraMargin, nil)
 			m.SetPosition(phy.Vec2f{X: c.X, Y: c.Y})
 			m.SetFaction(model.FactionAligned)
+			// Respawn anchor (chunk 4): bind radius = heal radius × factor, so
+			// players can heal at the edge of the fire without binding to it.
+			// Streamed as Mob.dwell_radius — the client draws the bind circle
+			// from the wire, keeping the factor server-side only.
+			m.SetDwellRadius(m.AuraRadius() * sys.CampfireDwellRadiusFactor)
 			g.AddEntity(m)
+			anchors = append(anchors, sys.CampfireAnchor{
+				Pos:         m.Position(),
+				DwellRadius: m.DwellRadius(),
+			})
 		}
+		sink, ok := g.(sys.CampfireAnchorSink)
+		if !ok {
+			panic("game does not accept campfire anchors")
+		}
+		sink.SetCampfireAnchors(anchors)
 		slog.Info("placed campfires", slog.Int("count", len(zone.Campfires)), slog.String("zone", zone.ID))
 	}
 

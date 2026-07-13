@@ -118,8 +118,13 @@ lightRadius():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
+dwellRadius():number {
+  const offset = this.bb!.__offset(this.bb_pos, 36);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(16);
+  builder.startObject(17);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -196,6 +201,10 @@ static addHealReceived(builder:flatbuffers.Builder, healReceived:number) {
 
 static addLightRadius(builder:flatbuffers.Builder, lightRadius:number) {
   builder.addFieldInt16(15, lightRadius, 0);
+}
+
+static addDwellRadius(builder:flatbuffers.Builder, dwellRadius:number) {
+  builder.addFieldInt16(16, dwellRadius, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

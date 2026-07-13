@@ -1,4 +1,5 @@
 import _clone = require('lodash/clone');
+import {Ticker} from 'pixi.js';
 import {isDefined, isFunction, removeElement} from '../../common/logic/Utils';
 import {DebugCircle} from '../../internal-tools/develop/logic/DebugCircle';
 import {GameObject, hpToDisplay} from '../../game-objects/logic/_GameObject';
@@ -6,6 +7,7 @@ import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Character} from '../../game-objects/logic/Character';
 import {Placeable} from '../../game-objects/logic/Placeable';
 import {Resource} from '../../game-objects/logic/Resources';
+import {Mob} from '../../game-objects/logic/Mobs';
 import * as Equipment from '../../items/logic/Equipment';
 import {EquipmentSlot} from '../../items/logic/Equipment';
 import {BerryhunterApi} from './BerryhunterApi';
@@ -131,6 +133,12 @@ export class EntityManager {
             gameObject['setAuraRadius'](entity.auraRadius);
         }
 
+        // Campfire bind circle (chunk 4): wire-driven dwell radius in px,
+        // 0 for everything that is not a respawn anchor.
+        if (isDefined(entity.dwellRadius) && isFunction(gameObject['setDwellRadius'])) {
+            gameObject['setDwellRadius'](entity.dwellRadius);
+        }
+
         // Light hole in the darkness overlay (chunk 3): characters and mobs
         // alike; 0 removes the hole. No-op while the zone has no dark areas.
         if (isDefined(entity.lightRadius)) {
@@ -172,7 +180,15 @@ export class EntityManager {
         });
 
         Object.values(removedObjects).forEach((gameObject: GameObject) => {
-            this.objects[gameObject.id].hide();
+            // Mob pseudo-corpses (chunk 4): a removed mob briefly renders and
+            // fades instead of popping out — client-only, zero wire. The
+            // removal signal doesn't distinguish death from leaving the
+            // viewport; out-of-view removals fade off-screen (accepted v1).
+            if (gameObject instanceof Mob) {
+                fadeOutAndHide(gameObject);
+            } else {
+                gameObject.hide();
+            }
             if (gameObject.visibleOnMinimap) {
                 this.miniMap.remove(gameObject as unknown as IMiniMapRendered);
             }
@@ -194,4 +210,33 @@ export class EntityManager {
         });
         this.objects = {};
     }
+}
+
+// Corpse-fade duration for removed mobs. [PLACEHOLDER]
+const MOB_FADE_DURATION_MS = 1500;
+
+// Alpha-fades the (already unmanaged) game object's shape in place, then
+// hides it — the showBurstRing ticker pattern. If the mob re-enters the
+// viewport a fresh game object is built; the fading shape is independent.
+function fadeOutAndHide(gameObject: GameObject) {
+    const shape = gameObject.shape;
+    // A fading corpse must read as harmless: hide the aura ring immediately
+    // (its glow suggests damage is still ticking).
+    if (isFunction(gameObject['setAuraRadius'])) {
+        gameObject['setAuraRadius'](0);
+    }
+    const start = performance.now();
+    const fade = () => {
+        const t = (performance.now() - start) / MOB_FADE_DURATION_MS;
+        if (t >= 1 || shape.destroyed) {
+            Ticker.shared.remove(fade);
+            if (!shape.destroyed) {
+                gameObject.hide();
+                shape.alpha = 1;
+            }
+            return;
+        }
+        shape.alpha = 1 - t;
+    };
+    Ticker.shared.add(fade);
 }

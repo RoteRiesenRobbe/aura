@@ -54,6 +54,8 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddHealReceived(builder, p.HealReceived().UInt32())
 	BerryhunterApi.CharacterAddXpGained(builder, u64ToU32Clamped(p.XpGained()))
 	BerryhunterApi.CharacterAddAuraHitStyle(builder, byte(p.AuraHitStyle()))
+	// One-tick stamp: a campfire became the respawn anchor (chunk 4).
+	BerryhunterApi.CharacterAddCampfireBound(builder, p.CampfireBound())
 	// Absolute XP progress for the HUD XP-bar text (xpInLevel/xpForNextLevel).
 	xpInLevel, xpForNextLevel := p.LevelProgressXP()
 	BerryhunterApi.CharacterAddXpInLevel(builder, u64ToU32Clamped(xpInLevel))

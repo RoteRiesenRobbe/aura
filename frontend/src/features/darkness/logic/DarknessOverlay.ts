@@ -30,6 +30,18 @@ const DarknessVisuals = {
     TEXTURE_SIZE: 256,
 };
 
+// World campfires glow permanently (chunk 4 follow-up): their wire
+// light_radius only streams while the fire is inside the interest range,
+// which made a dark pocket "pop" lit the moment its fire entered the
+// viewport. The fires are static and authored in the same bundled zone JSON
+// as the dark areas, so their holes are punched at load. The radius (server
+// units) comes straight from the bundled skill definition — the same repo-api
+// bundling the zone data uses — so retuning the content value cannot desync
+// the static glow from the wire-driven hole.
+const campfireAura = require('../../../../../api/skills/mobs/campfire-aura.json');
+const CAMPFIRE_LIGHT_RADIUS: number =
+    campfireAura.effects.find((e) => e.type === 'light_aura')?.radius ?? 0;
+
 interface LightSource {
     // Minimal structural slice of GameObject — id + world-positioned shape.
     object: { id: gameObjectId, shape: Container };
@@ -66,6 +78,22 @@ export function loadZone(zoneName: string) {
         sprite.width = sprite.height = 2 * meter2px(area.radius);
         layer.addChild(sprite);
     });
+
+    // Static campfire glow — erase sprites appended after the dark sprites so
+    // they render on top within this layer's own texture. The wire-driven
+    // hole for an in-range fire overlaps this one; double-erase clamps, the
+    // result is identical.
+    if (active) {
+        const campfires = getZoneData(zoneName)?.campfires || [];
+        campfires.forEach((fire) => {
+            const sprite = new Sprite(texture());
+            sprite.anchor.set(0.5);
+            sprite.blendMode = 'erase';
+            sprite.position.set(meter2px(fire.x), meter2px(fire.y));
+            sprite.width = sprite.height = 2 * meter2px(CAMPFIRE_LIGHT_RADIUS);
+            layer.addChild(sprite);
+        });
+    }
 }
 
 /**

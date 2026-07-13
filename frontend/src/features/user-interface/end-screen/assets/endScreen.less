@@ -25,12 +25,10 @@
 			endScreen-title (@fadeInTitleDuration / 2) (@fadeInScreenDuration / 2) forwards ease-in-out;
 		}
 
-		> .obituary {
-			animation: endScreen-fadeIn 2s ((@fadeInTitleDuration + @fadeInScreenDuration) / 3) forwards ease-in-out;
-		}
-
+		// Respawn button appears once the screen has faded in — the old
+		// 2.75 s obituary pacing retired with the obituary (chunk 4).
 		> .playerForm {
-			animation: endScreen-fadeIn 0.18s ((@fadeInTitleDuration + @fadeInScreenDuration) / 2) forwards ease-in-out;
+			animation: endScreen-fadeIn 0.18s @fadeInScreenDuration forwards ease-in-out;
 		}
 	}
 
@@ -56,27 +54,12 @@
 		opacity: 0;
 	}
 
-	> .obituary {
-		margin: 2rem 0;
-
-		color: white;
-		font-size: 2rem;
-		text-align: center;
-
-		opacity: 0;
-	}
-
 	> .playerForm {
 		opacity: 0;
 	}
 
 	.playerNameSubmit {
 		background-color: #e37313;
-	}
-
-	.userRating {
-		box-sizing: border-box;
-		margin-top: 1rem;
 	}
 }
 

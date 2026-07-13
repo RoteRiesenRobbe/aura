@@ -132,6 +132,11 @@ type player struct {
 	// tick (item 11 Step 4); reset each tick alongside the accumulators above.
 	auraHitStyle model.AuraHitStyle
 
+	// campfireBound is stamped the tick a campfire dwell completes (chunk 4):
+	// the fire became this player's respawn anchor. Reset each tick alongside
+	// the accumulators above; drives the client's "bound" feedback.
+	campfireBound bool
+
 	// healthRegen accumulates sub-1-HP out-of-combat regen (item 11 Phase 1):
 	// with absolute integer HP the per-tick regen is often < 1 HP, so it is
 	// carried here and applied once a whole HP has built up.
@@ -305,6 +310,14 @@ func (p *player) Heal(hp uint32) vitals.VitalSign {
 // Step 4); serialized as the Character aura_hit_style wire field.
 func (p *player) AuraHitStyle() model.AuraHitStyle { return p.auraHitStyle }
 
+// CampfireBound reports whether a campfire dwell completed this tick
+// (chunk 4); serialized as the Character campfire_bound wire field.
+func (p *player) CampfireBound() bool { return p.campfireBound }
+
+// NoteCampfireBound records that a campfire became this player's respawn
+// anchor this tick; the ConnectionStateSystem's dwell tracker calls it.
+func (p *player) NoteCampfireBound() { p.campfireBound = true }
+
 // NoteAuraHit records the aura-hit VFX style for this tick; the SkillSystem
 // calls it when a damage aura strikes this player.
 func (p *player) NoteAuraHit(style model.AuraHitStyle) { p.auraHitStyle = style }
@@ -337,6 +350,7 @@ func (p *player) ResetTickNumbers() {
 	p.healReceived = 0
 	p.xpGained = 0
 	p.auraHitStyle = model.AuraHitStyleNone
+	p.campfireBound = false
 	p.buffs.Tick()
 	// Age the companion combat signals (chunk 6); the refs stay until
 	// re-stamped, the getters gate on the remaining window.

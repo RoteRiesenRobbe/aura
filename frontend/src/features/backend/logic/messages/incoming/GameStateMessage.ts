@@ -3,6 +3,7 @@ import * as Resources from '../../../../game-objects/logic/Resources';
 import * as Mobs from '../../../../game-objects/logic/Mobs';
 import {DebugCircle} from '../../../../internal-tools/develop/logic/DebugCircle';
 import {Character} from '../../../../game-objects/logic/Character';
+import {Corpse} from '../../../../game-objects/logic/Corpse';
 import {Placeable} from '../../../../game-objects/logic/Placeable';
 import {isFunction} from '../../../../common/logic/Utils';
 import {StatusEffectDefinition} from '../../../../game-objects/logic/StatusEffect'
@@ -171,6 +172,8 @@ function unmarshalEntity(entity, eType) {
         auraHitStyle: undefined,
         xpInLevel: undefined,
         xpForNextLevel: undefined,
+        campfireBound: undefined,
+        dwellRadius: undefined,
     };
 
     if (eType === BerryhunterApi.AnyEntity.Resource) {
@@ -195,6 +198,9 @@ function unmarshalEntity(entity, eType) {
         result.auraRadius = entity.auraRadius();
         // light emitted in px, 0 = none — hole-punches the darkness overlay.
         result.lightRadius = entity.lightRadius();
+        // campfire bind radius in px, 0 = not a respawn anchor — drives the
+        // inner dwell circle (chunk 4).
+        result.dwellRadius = entity.dwellRadius();
     }
 
     if (eType === BerryhunterApi.AnyEntity.Character) {
@@ -220,6 +226,8 @@ function unmarshalEntity(entity, eType) {
         result.auraHitStyle = entity.auraHitStyle();
         result.xpInLevel = entity.xpInLevel();
         result.xpForNextLevel = entity.xpForNextLevel();
+        // one-tick stamp: a campfire became the respawn anchor (chunk 4)
+        result.campfireBound = entity.campfireBound();
     }
 
     if (isFunction(entity.statusEffectsLength) &&
@@ -257,6 +265,7 @@ const gameObjectClasses = [
     Mobs.Brazier,
     Mobs.Healer,
     Mobs.Campfire,
+    Corpse,
 ];
 
 function unmarshalEntityType(entityType) {

@@ -167,6 +167,8 @@ export class Game implements IGame {
                 walls: createNamedContainer('walls'),
                 spikyWalls: createNamedContainer('spikyWalls'),
             },
+            // Player corpses (chunk 4): under the living.
+            corpses: createNamedContainer('corpses'),
             characters: createNamedContainer('characters'),
             mobs: {
                 dodo: createNamedContainer('dodo'),
@@ -222,6 +224,9 @@ export class Game implements IGame {
             this.layers.placeables.furnace,
             this.layers.resources.berryBush,
         );
+
+        // Corpses below the living
+        this.cameraGroup.addChild(this.layers.corpses);
 
         // Characters
         this.cameraGroup.addChild(this.layers.characters);
@@ -439,6 +444,7 @@ export class Game implements IGame {
                 this.layers.placeables.chest,
                 this.layers.placeables.workbench,
                 this.layers.resources.berryBush,
+                this.layers.corpses,
                 this.layers.characters,
                 this.layers.mobs.dodo,
                 this.layers.mobs.saberToothCat,

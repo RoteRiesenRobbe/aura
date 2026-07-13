@@ -155,8 +155,13 @@ lightRadius():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
+campfireBound():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 50);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(23);
+  builder.startObject(24);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -261,6 +266,10 @@ static addXpForNextLevel(builder:flatbuffers.Builder, xpForNextLevel:number) {
 
 static addLightRadius(builder:flatbuffers.Builder, lightRadius:number) {
   builder.addFieldInt16(22, lightRadius, 0);
+}
+
+static addCampfireBound(builder:flatbuffers.Builder, campfireBound:boolean) {
+  builder.addFieldInt8(23, +campfireBound, +false);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

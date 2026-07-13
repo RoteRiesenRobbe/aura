@@ -81,6 +81,12 @@ end-screen popup). Pure frontend delete; check `SocialMedia` module for other
 consumers before removing it too (it currently has at least the rating popup
 and possibly start-screen usages).
 
+**Update 2026-07-13 (atmosphere & recovery chunk 4):** the end-screen rework
+(death overlay) removed the module's last consumer (`new Rating(...)` in
+`EndScreen.ts`), so `features/rating/` is now fully ORPHANED but still
+webpack-bundled — dead code shipping to every client until this phase deletes
+it. Grep hits on `Rating` no longer indicate a live widget.
+
 ### A.3 Chieftain service — DONE (2026-07-09, pulled forward)
 
 **Decision (2026-07-08): chieftain does NOT grow into the account service.**

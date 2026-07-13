@@ -25,5 +25,6 @@ export enum EntityType {
   Companion = 19,
   Brazier = 20,
   Healer = 21,
-  Campfire = 22
+  Campfire = 22,
+  Corpse = 23
 }

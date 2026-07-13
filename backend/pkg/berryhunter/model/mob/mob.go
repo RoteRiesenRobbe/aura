@@ -337,6 +337,10 @@ type Mob struct {
 	// tick (item 11 Step 4); reset every tick alongside damageTaken.
 	auraHitStyle model.AuraHitStyle
 
+	// dwellRadius is the campfire bind radius (chunk 4), 0 for every mob that
+	// is not a respawn anchor; set post-construction by cmd/berryhunterd.
+	dwellRadius float32
+
 	// combat participants for the death rewards (roadmap item 10),
 	// keyed by entity ID; cleared when the mob fully regenerates out of
 	// combat (combat reset). Lazily initialized by noteParticipant.
@@ -379,6 +383,19 @@ func (m *Mob) LightRadius() float32 {
 		return 0
 	}
 	return m.skills.AuraSlots[slot].LightRadius()
+}
+
+// DwellRadius is the bind radius of a campfire respawn anchor, 0 for every
+// other mob. Set post-construction by cmd/berryhunterd (heal radius ×
+// sys.CampfireDwellRadiusFactor) and serialized as Mob.dwell_radius — the
+// client draws the inner dwell circle from it, so the bind factor lives
+// server-side only (chunk 4).
+func (m *Mob) DwellRadius() float32 {
+	return m.dwellRadius
+}
+
+func (m *Mob) SetDwellRadius(r float32) {
+	m.dwellRadius = r
 }
 
 func (m *Mob) SkillComponent() *skills.SkillComponent {

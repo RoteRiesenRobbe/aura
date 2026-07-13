@@ -39,7 +39,14 @@ table SpendSkillPoint {
     unspend:  bool = false;
 }
 
-union ClientMessageBody { Input, Join, Cheat, ChatMessage, Equip, SpendSkillPoint }
+// Respawn a dead player: sent from the death overlay instead of a fresh
+// Join — the server reuses the reserved name and carried progression and
+// spawns at the client's campfire anchor (atmosphere & recovery chunk 4).
+// Only honored while the client is a dead spectator.
+table Respawn {
+}
+
+union ClientMessageBody { Input, Join, Cheat, ChatMessage, Equip, SpendSkillPoint, Respawn }
 table ClientMessage { body:ClientMessageBody; }
 
 root_type ClientMessage;

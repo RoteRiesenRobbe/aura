@@ -25,7 +25,8 @@ enum EntityType : ushort {
   Companion,
   Brazier,
   Healer,
-  Campfire
+  Campfire,
+  Corpse
 }
 
 enum StatusEffect : ushort {
@@ -123,6 +124,13 @@ table Mob {
   // mixed skill (campfire: small heal + big light) keeps its combat-ring
   // semantics. Appended at table end so existing field IDs stay stable.
   light_radius:ushort = 0;
+
+  // bind radius (px) of a campfire respawn anchor (chunk 4); 0 = not an
+  // anchor. The client draws the inner dwell circle from this — the server's
+  // CampfireDwellRadiusFactor is the single source of the bind factor,
+  // retiring the hand-synced client constant (the aura_radius precedent).
+  // Appended at table end so existing field IDs stay stable.
+  dwell_radius:ushort = 0;
 }
 
 table Character {
@@ -185,6 +193,12 @@ table Character {
   // (atmosphere & recovery chunk 3). Mirrors Mob.light_radius. Appended at
   // the table end so existing field IDs stay stable.
   light_radius:ushort = 0;
+
+  // stamped true on the tick a campfire dwell completes (chunk 4): the fire
+  // became this player's respawn anchor. Drives the "bound" feedback over the
+  // own character; per-tick one-shot like damage_taken. Appended at the table
+  // end so existing field IDs stay stable.
+  campfire_bound:bool = false;
 }
 
 table Spectator {

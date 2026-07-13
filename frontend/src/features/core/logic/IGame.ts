@@ -18,6 +18,8 @@ export enum GameState {
 export interface IGameLayers {
     terrain: Record<string, Container>,
     placeables: Record<string, Container>,
+    // Player corpses (chunk 4): below characters, above lower placeables.
+    corpses: Container,
     characters: Container,
     mobs: Record<string, Container>,
     resources: Record<string, Container>,

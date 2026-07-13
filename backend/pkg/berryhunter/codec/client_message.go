@@ -165,6 +165,13 @@ func EquipMessageFlatbufferUnmarshal(msg *BerryhunterApi.ClientMessage) *model.E
 	return unmarshalEquip(unwrapEquip(msg))
 }
 
+// Respawn carries no fields, so there is no unwrap/unmarshal pair — the
+// asserted body type is the whole payload.
+func RespawnMessageFlatbufferUnmarshal(msg *BerryhunterApi.ClientMessage) *model.Respawn {
+	fbutil.AssertBodyType[BerryhunterApi.ClientMessageBody](msg, BerryhunterApi.ClientMessageBodyRespawn)
+	return &model.Respawn{}
+}
+
 func SpendSkillPointMessageFlatbufferUnmarshal(msg *BerryhunterApi.ClientMessage) *model.SpendSkillPoint {
 	fbutil.AssertBodyType[BerryhunterApi.ClientMessageBody](msg, BerryhunterApi.ClientMessageBodySpendSkillPoint)
 	return unmarshalSpendSkillPoint(unwrapSpendSkillPoint(msg))

@@ -771,11 +771,14 @@ system ships blind.
    deliberately slid to the content pass with the real lava-bridge boss.
    Record: `plan-mob-depth.md` §5; authoring guide:
    `manual-content-authoring.md` §5.
-3. **Atmosphere & recovery** — ← **CURRENT, IN PROGRESS →
-   `docs/plan-atmosphere-recovery.md`** (chunks 1 regen combat gate ✓ +
-   2 campfires ✓ + 3 darkness & light ✓ all DONE + verified in-game
-   2026-07-12; **next = chunk 4** death state + campfire respawn; minimal
-   zone-editor support in-step; mob corpses = client-only fade)
+3. **Atmosphere & recovery** — ✅ **COMPLETE (2026-07-13)**, all 4 chunks
+   in-game-verified: regen combat gate → campfires → darkness & light →
+   death state + campfire respawn (corpse entity + explicit `Respawn`
+   message + name reserved while dead + dwell-bound campfire anchors +
+   client-only mob corpse fade). Record: `plan-atmosphere-recovery.md`
+   (§3.4 outcome banner: wire appends `Corpse`/`Respawn`/`campfire_bound`/
+   `dwell_radius`, latent state.go bugs fixed in passing, open review
+   findings listed there).
 
    Scope = item 5 + the 2026-07-10 recovery/death bundle
    (~~item 6 cut 2026-07-10~~ — the LoS spike and occlusion work are gone):
@@ -804,7 +807,8 @@ system ships blind.
    this builds the tracker + death-respawn; the separate *Recall* cooldown
    ability (backlog item 9) reuses the same tracker but is left to the
    skill-vocabulary/content work.
-4. **Skill-vocabulary fill** (effect-foundations Step 4 + cheap effect types) —
+4. **Skill-vocabulary fill** — ← **NEXT (plan-first)** (effect-foundations
+   Step 4 + cheap effect types) —
    shield-as-buff-payload, life steal, execute, crit, berserker, **dash/blink**
    (position set + collision sanity — can't cross `blocksMovement`), … so the
    content pass authors builds against the full effect palette. **New primitive

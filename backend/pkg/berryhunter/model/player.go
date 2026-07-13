@@ -91,6 +91,11 @@ type PlayerEntity interface {
 	// strikes this player, AuraHitStyle is serialized as aura_hit_style.
 	AuraHitStyle() AuraHitStyle
 	NoteAuraHit(style AuraHitStyle)
+	// CampfireBound / NoteCampfireBound carry the per-tick "campfire became
+	// the respawn anchor" stamp (chunk 4): the ConnectionStateSystem notes it
+	// the tick a dwell completes, serialized as campfire_bound.
+	CampfireBound() bool
+	NoteCampfireBound()
 	SkillComponent() *skills.SkillComponent
 	// SetSkillComponent replaces the player's skill component wholesale.
 	// Used on respawn to restore the spellbook + loadout the player died with.

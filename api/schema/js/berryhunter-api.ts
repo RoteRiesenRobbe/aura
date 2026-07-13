@@ -23,6 +23,7 @@ export { Placeable } from './berryhunter-api/placeable.js';
 export { Player } from './berryhunter-api/player.js';
 export { Pong } from './berryhunter-api/pong.js';
 export { Resource } from './berryhunter-api/resource.js';
+export { Respawn } from './berryhunter-api/respawn.js';
 export { ServerMessage } from './berryhunter-api/server-message.js';
 export { ServerMessageBody } from './berryhunter-api/server-message-body.js';
 export { Spectator } from './berryhunter-api/spectator.js';

@@ -1,6 +1,8 @@
 # Plan — Atmosphere & recovery (execution step 3)
 
-**Status:** PLANNED (2026-07-12). Execution plan + decision record for
+**Status:** ✅ COMPLETE (2026-07-13) — all 4 chunks implemented + verified
+in-game (chunk 1+2+3: 2026-07-12; chunk 4: 2026-07-13, outcome banner in
+§3.4). Execution plan + decision record for
 execution-order step 3 (roadmap.md "Execution order"): **roadmap item 5**
 (darkness & light) **+ the 2026-07-10 recovery/death bundle**
 (`research-combat-pacing-recovery.md`: campfire death-respawn E5, death state
@@ -415,6 +417,28 @@ Light).
 
 ### 3.4 Chunk 4 — death state + campfire respawn (one `sys/state.go` surgery)
 
+> **DONE + VERIFIED IN-GAME 2026-07-13 (incl. feedback + review fixes;
+> suite 23 pkgs, tsc + webpack green, red-first — 10 tests in
+> `sys/state_test.go` incl. the first `model.Client` fake).** As planned
+> plus: wire appends `EntityType Corpse`, `Respawn {}`,
+> `Character.campfire_bound` (one-tick bind confirmation → floating
+> text) and `Mob.dwell_radius` (bind-circle radius, single-source
+> factor); `deadByClient` is the ONE dead-marker (carriedState folded
+> in, delete-on-consume); the death path re-adds name+anchor after the
+> removal fan-out (keeps `removeFromPlayers` unconditional); stale
+> Join/Respawn drained at death; corpse body is DYNAMIC (§6.6);
+> `DarknessOverlay` punches static light holes for zone campfires from
+> the bundled zone+skill JSON (kills the light pop-in at interest
+> range). **Latent bugs fixed in passing:** same-tick double-death
+> slice corruption in `Update`, banked-Join auto-revive, carried-state
+> map leak. **Open review findings (accepted for now):** mob-fade ghost
+> duplicate on re-entry within 1.5 s; dwell-counter fire-switch hole
+> (live only if two fires are authored ≤ ~1.5 u apart — content-pass
+> constraint); Enter-key respawn (nothing focused; Enter reaches Chat);
+> join-while-dead keeps the campfire anchor (asymmetric vs disconnect).
+> `features/rating/` orphaned by the overlay rework → pinned in
+> `plan-rebrand-cleanup.md` §A.2.
+
 - **Player corpse:** spawned at the `deathspot` hook — lean: a dedicated
   lean corpse entity (new `Corpse` EntityType) riding the **plain
   `model.Entity` add-path** (static Viewport-only body, Net streaming, no
@@ -552,14 +576,29 @@ commits.
   Constant darkness, independent of the day cycle — the overlay never
   reads the clock; the night ColorMatrixFilter keeps tinting the world
   beneath as before.
-- **§6.6 (chunk 4)** — corpse representation: dedicated lean entity via
-  the plain-entity add-path riding an existing wire table (lean) vs a
-  new wire table vs a dead-flag on Character. Corpse sprite/readability.
-- **§6.7 (chunk 4)** — dwell duration [PLACEHOLDER]; dwell radius = heal
-  radius or light radius or its own value; disconnect-while-dead cleanup
-  (lean: remove corpse + free name on disconnect); does a corpse block
-  the name for other joiners until then (lean: yes, trivially via
-  existing mangling).
+- **§6.6 (chunk 4) — RESOLVED 2026-07-13 (user), plan-first start.**
+  Corpse = the lean: dedicated entity, new `EntityType Corpse`, streamed
+  over the existing Resource wire table (`PropEntityFlatbufMarshal`
+  path, zero new tables/codec cases). **Critical deviation found at
+  design review:** the plain-entity add-path registers a STATIC body and
+  `PhysicsSystem.Remove` panics on statics — the corpse is the first
+  removable prop-shaped entity, so `model/corpse` rides its own
+  `addCorpse` path with a DYNAMIC viewport-only body
+  (`model.CorpseEntity` marker interface, matched before `model.Entity`
+  in the `AddEntity` switch). Sprite = gravestone placeholder SVG.
+- **§6.7 (chunk 4) — RESOLVED 2026-07-13 (user), plan-first start +
+  post-verify amendment.** Dwell radius = **half the heal radius**
+  (heal r1.5 → bind r0.75) so players can heal at a fire without
+  binding; duration 3 s = 90 t [PLACEHOLDER]; the bind circle renders
+  as a darker orange circle inside the heal ring (user requirement).
+  Post-verify amendment: the bind radius streams as **`Mob.dwell_radius`**
+  (the aura_radius precedent) so `sys.CampfireDwellRadiusFactor` is the
+  single source — no hand-synced client factor; a one-tick
+  **`Character.campfire_bound`** stamp drives the floating "Bound to
+  campfire" confirmation. Disconnect-while-dead = cleanup on the
+  spectator-removal fan-out (corpse removed + name freed + anchor
+  dropped), NO corpse timeout (YAGNI); the name stays blocked for other
+  joiners while dead (existing mangling).
 
 ---
 
