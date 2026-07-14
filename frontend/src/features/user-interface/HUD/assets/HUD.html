@@ -21,6 +21,19 @@
         </div>
     </div>
 
+    <!-- Combat indicator: red sword, visible only while the player is in
+         combat (Character.in_combat) — the window during which loadout
+         editing is locked server-side. Shown/hidden by HUD.updateCombatIndicator. -->
+    <div id="combatIndicator" class="hidden" title="In combat — loadout editing locked">
+        <svg viewBox="0 0 24 24">
+            <path d="M14.5 3 L21 3 L21 9.5 L11 19.5 L4.5 19.5 L4.5 13 Z M14.5 3 L21 9.5"
+                  fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="4.5" y1="19.5" x2="8.5" y2="15.5" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </div>
+
     <!-- In-game zoom (fixed FOV, camera/logic/Zoom.ts): 1 = nearest, 3 = furthest -->
     <div id="zoomControl">
         <div class="zoomIcon">

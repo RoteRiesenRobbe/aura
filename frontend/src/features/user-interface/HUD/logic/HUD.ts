@@ -41,6 +41,7 @@ let currentAuraSlots: number[] = [];
 let activeSlotIndex: number | null = null;
 
 let vitalSignsBars: { [key: string]: VitalSignBar };
+let combatIndicatorElement: HTMLElement;
 let healthBarTextElement: HTMLElement;
 let xpBarTextElement: HTMLElement;
 let shieldIndicatorElement: HTMLElement;
@@ -97,6 +98,7 @@ function setupVitalSigns() {
         health: new VitalSignBar(document.getElementById('healthBar'), VitalSign.health),
         xp: new VitalSignBar(document.getElementById('xpBar'), VitalSign.xp),
     };
+    combatIndicatorElement = document.getElementById('combatIndicator');
     healthBarTextElement = document.querySelector('#healthBar .barText');
     xpBarTextElement = document.querySelector('#xpBar .barText');
     shieldIndicatorElement = document.querySelector('#healthBar .shieldIndicator');
@@ -122,6 +124,16 @@ export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: nu
     castBarIndicatorElement.style.width = `${progress * 100}%`;
     castBarTextElement.textContent =
         `${skillDisplayName(skillId)} ${(ticksLeft * 33 / 1000).toFixed(1)}s`;
+}
+
+// updateCombatIndicator shows/hides the red sword next to the zoom control
+// while the own player is in combat (Character.in_combat) — the same window
+// during which the server locks loadout editing.
+export function updateCombatIndicator(inCombat: boolean) {
+    if (!combatIndicatorElement) {
+        return;
+    }
+    combatIndicatorElement.classList.toggle('hidden', !inCombat);
 }
 
 // updateShield renders the absorb segment on the health bar (skill-vocab

@@ -129,6 +129,10 @@ type PlayerEntity interface {
 	// as activation_rejected_skill_id + activation_rejected_reason.
 	ActivationRejected() (skills.SkillID, ActivationRejection)
 	NoteActivationRejected(skill skills.SkillID, reason ActivationRejection)
+	// InCombat reports whether the player is inside the recent-combat window
+	// (the same flag that gates out-of-combat regen). The EquipSystem reads it
+	// to lock loadout editing in combat.
+	InCombat() bool
 	SkillComponent() *skills.SkillComponent
 	// SetSkillComponent replaces the player's skill component wholesale.
 	// Used on respawn to restore the spellbook + loadout the player died with.

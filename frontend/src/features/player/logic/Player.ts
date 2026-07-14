@@ -120,6 +120,9 @@ export class Player {
         if (entity.campfireBound) {
             this.character.showFloatingText('Bound to campfire', 0xE37313);
         }
+        // In-combat indicator: shown while the recent-combat window is open
+        // (also the window during which loadout editing is locked server-side).
+        HUD.updateCombatIndicator(!!entity.inCombat);
     }
 
     remove() {

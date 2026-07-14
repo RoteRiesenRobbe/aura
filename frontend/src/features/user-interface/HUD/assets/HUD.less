@@ -766,6 +766,36 @@
  * Fixed FOV: buttons step the visible world area (camera/logic/Zoom.ts).
  */
 
+// Combat indicator: red sword shown while Character.in_combat is set — sits
+// just left of the zoom column, above the health bar. Hidden when not in combat.
+#combatIndicator {
+	position: absolute;
+	right: (0.75 * @uiElementHeight); // left of #zoomControl's column
+	bottom: 13vh;                     // same band as the zoom, above #vitalSigns
+
+	width: (0.5 * @uiElementHeight);
+	height: (0.5 * @uiElementHeight);
+	color: #e5423b;
+	filter: drop-shadow(0 0 3px fade(#e5423b, 55%));
+	animation: combatIndicatorPulse 1.1s ease-in-out infinite;
+	pointer-events: none;
+
+	&.hidden {
+		display: none;
+	}
+
+	> svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+}
+
+@keyframes combatIndicatorPulse {
+	0%, 100% { opacity: 1; }
+	50%      { opacity: 0.55; }
+}
+
 #zoomControl {
 	position: absolute;
 	right: (0.1 * @uiElementHeight);

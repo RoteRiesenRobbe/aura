@@ -170,8 +170,13 @@ shieldHp():number {
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
+inCombat():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 56);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(26);
+  builder.startObject(27);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -288,6 +293,10 @@ static addCritTaken(builder:flatbuffers.Builder, critTaken:number) {
 
 static addShieldHp(builder:flatbuffers.Builder, shieldHp:number) {
   builder.addFieldInt32(25, shieldHp, 0);
+}
+
+static addInCombat(builder:flatbuffers.Builder, inCombat:boolean) {
+  builder.addFieldInt8(26, +inCombat, +false);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

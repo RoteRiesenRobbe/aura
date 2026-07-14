@@ -14,6 +14,7 @@ type equipEntity interface {
 	Basic() ecs.BasicEntity
 	Name() string
 	Client() model.Client
+	InCombat() bool
 	SkillComponent() *skills.SkillComponent
 	AvailableSkillPoints() int
 	// ApplyRecipeCascade discovers any combination recipes newly satisfied by a
@@ -64,6 +65,17 @@ func (es *EquipSystem) Update(dt float32) {
 func (es *EquipSystem) handleEquip(player equipEntity) {
 	msg := player.Client().NextEquip()
 	if msg == nil {
+		return
+	}
+
+	// Loadout editing is an out-of-combat build activity: reject any equip
+	// while the player is in combat. This closes the cooldown-refresh exploit
+	// (re-slotting mints a fresh, ready EquippedSkill) without touching the
+	// mid-fight lever — switching the active aura is a separate input path.
+	if player.InCombat() {
+		slog.Info("equip: rejected in combat",
+			slog.String("player", player.Name()),
+			slog.Any("skillID", msg.SkillID))
 		return
 	}
 

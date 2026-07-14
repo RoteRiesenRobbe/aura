@@ -222,6 +222,12 @@ table Character {
   // accumulator. Mirrors Mob.shield_hp. Appended at the table end so
   // existing field IDs stay stable.
   shield_hp:uint = 0;
+
+  // true while the player is inside the recent-combat window (the same flag
+  // that gates out-of-combat regen and locks loadout editing). Own player
+  // only; drives the HUD combat indicator. Appended at the table end so
+  // existing field IDs stay stable.
+  in_combat:bool = false;
 }
 
 table Spectator {

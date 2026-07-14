@@ -190,6 +190,7 @@ function unmarshalEntity(entity, eType) {
         xpInLevel: undefined,
         xpForNextLevel: undefined,
         campfireBound: undefined,
+        inCombat: undefined,
         dwellRadius: undefined,
     };
 
@@ -253,6 +254,8 @@ function unmarshalEntity(entity, eType) {
         result.xpForNextLevel = entity.xpForNextLevel();
         // one-tick stamp: a campfire became the respawn anchor (chunk 4)
         result.campfireBound = entity.campfireBound();
+        // true while inside the recent-combat window — drives the HUD combat indicator
+        result.inCombat = entity.inCombat();
     }
 
     if (isFunction(entity.statusEffectsLength) &&

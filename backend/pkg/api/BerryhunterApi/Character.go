@@ -365,8 +365,20 @@ func (rcv *Character) MutateShieldHp(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(54, n)
 }
 
+func (rcv *Character) InCombat() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(56))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Character) MutateInCombat(n bool) bool {
+	return rcv._tab.MutateBoolSlot(56, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(26)
+	builder.StartObject(27)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -448,6 +460,9 @@ func CharacterAddCritTaken(builder *flatbuffers.Builder, critTaken uint32) {
 }
 func CharacterAddShieldHp(builder *flatbuffers.Builder, shieldHp uint32) {
 	builder.PrependUint32Slot(25, shieldHp, 0)
+}
+func CharacterAddInCombat(builder *flatbuffers.Builder, inCombat bool) {
+	builder.PrependBoolSlot(26, inCombat, false)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

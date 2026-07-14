@@ -88,12 +88,14 @@ type stubEquipEntity struct {
 	sc              *skills.SkillComponent
 	client          *stubClient
 	availablePoints int
+	inCombat        bool
 	recipes         skills.RecipeRegistry
 }
 
 func (e *stubEquipEntity) Basic() ecs.BasicEntity                 { return e.BasicEntity }
 func (e *stubEquipEntity) Name() string                           { return "testPlayer" }
 func (e *stubEquipEntity) Client() model.Client                   { return e.client }
+func (e *stubEquipEntity) InCombat() bool                         { return e.inCombat }
 func (e *stubEquipEntity) SkillComponent() *skills.SkillComponent { return e.sc }
 func (e *stubEquipEntity) AvailableSkillPoints() int              { return e.availablePoints }
 func (e *stubEquipEntity) ApplyRecipeCascade() {
@@ -235,6 +237,53 @@ func TestEquipSystem_EquipsAtStoredLevel(t *testing.T) {
 
 	require.NotNil(t, player.sc.AuraSlots[0])
 	assert.Equal(t, 3, player.sc.AuraSlots[0].Level)
+}
+
+// Loadout editing is out-of-combat only: an equip requested while in combat is
+// dropped, leaving every slot untouched.
+func TestEquipSystem_RejectedInCombat(t *testing.T) {
+	es, player := newSystem(defNova)
+	player.sc.Discover(defNova.ID)
+	player.inCombat = true
+	player.client.msg = &model.EquipSkill{SkillID: defNova.ID, Slot: 0}
+
+	es.Update(0)
+
+	assert.Nil(t, player.sc.CooldownSlots[0], "equip must be dropped while in combat")
+}
+
+// The reported abuse case: re-slotting a cooldown mints a fresh, ready
+// EquippedSkill (CdTicks 0). Combat-locking the equip closes it — a mid-combat
+// re-equip is dropped, so the running cooldown survives and no slot is refreshed.
+func TestEquipSystem_InCombatDoesNotRefreshCooldown(t *testing.T) {
+	es, player := newSystem(defNova)
+	player.sc.Discover(defNova.ID)
+	player.sc.EquipCooldown(0, defNova, 1)
+	player.sc.CooldownSlots[0].CdTicks = 42 // mid-cooldown
+
+	// Player fired the cooldown, then tries to dodge it by re-slotting mid-fight.
+	player.inCombat = true
+	player.client.msg = &model.EquipSkill{SkillID: defNova.ID, Slot: 1}
+
+	es.Update(0)
+
+	require.NotNil(t, player.sc.CooldownSlots[0], "original slot must be untouched")
+	assert.Equal(t, 42, player.sc.CooldownSlots[0].CdTicks, "cooldown must not be refreshed")
+	assert.Nil(t, player.sc.CooldownSlots[1], "no fresh, ready copy in the new slot")
+}
+
+// Out of combat the same edit goes through unchanged — build tweaks between
+// fights are the intended use.
+func TestEquipSystem_AllowedOutOfCombat(t *testing.T) {
+	es, player := newSystem(defNova)
+	player.sc.Discover(defNova.ID)
+	player.inCombat = false
+	player.client.msg = &model.EquipSkill{SkillID: defNova.ID, Slot: 0}
+
+	es.Update(0)
+
+	require.NotNil(t, player.sc.CooldownSlots[0])
+	assert.Equal(t, defNova.ID, player.sc.CooldownSlots[0].Def.ID)
 }
 
 func TestSpendSkillPoint_RaisesLevel(t *testing.T) {

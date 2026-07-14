@@ -60,6 +60,8 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	BerryhunterApi.CharacterAddAuraHitStyle(builder, byte(p.AuraHitStyle()))
 	// One-tick stamp: a campfire became the respawn anchor (chunk 4).
 	BerryhunterApi.CharacterAddCampfireBound(builder, p.CampfireBound())
+	// In-combat flag — drives the HUD combat indicator.
+	BerryhunterApi.CharacterAddInCombat(builder, p.InCombat())
 	// Absolute XP progress for the HUD XP-bar text (xpInLevel/xpForNextLevel).
 	xpInLevel, xpForNextLevel := p.LevelProgressXP()
 	BerryhunterApi.CharacterAddXpInLevel(builder, u64ToU32Clamped(xpInLevel))
