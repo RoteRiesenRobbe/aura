@@ -71,7 +71,7 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	require.NotEmpty(t, stems)
 	for _, file := range stems {
 		stem := strings.TrimSuffix(file, ".json")
-		zone, err := world.LoadZoneFS(content.zones, stem, mobsRegistry, propsRegistry)
+		zone, err := world.LoadZoneFS(content.zones, stem, mobsRegistry, propsRegistry, skillsRegistry)
 		require.NoError(t, err, "zone %q must load", stem)
 		assert.Equal(t, stem, zone.ID)
 		assert.Positive(t, zone.Bounds.Width)
@@ -89,7 +89,7 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	// The proving-grounds zone (the default debug/test map since 2026-07-11)
 	// carries authored terrain and both chunk-5 movement archetypes — keep the
 	// terrain + wander/waypoint parsing pipelines pinned against real content.
-	zone, err := world.LoadZoneFS(content.zones, "proving-grounds", mobsRegistry, propsRegistry)
+	zone, err := world.LoadZoneFS(content.zones, "proving-grounds", mobsRegistry, propsRegistry, skillsRegistry)
 	require.NoError(t, err)
 	assert.NotEmpty(t, zone.Terrain, "proving-grounds should carry authored terrain")
 	var wanderers, patrollers int

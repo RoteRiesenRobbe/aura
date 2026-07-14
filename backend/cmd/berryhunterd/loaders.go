@@ -187,8 +187,8 @@ func loadProps(fsys fs.FS) world.PropRegistry {
 // loadZone parses the server-authoritative zone file, resolving spawn mob
 // names against the mob registry and prop types against the prop registry.
 // Curated content: any validation failure aborts startup.
-func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry) *world.Zone {
-	zone, err := world.LoadZoneFS(fsys, name, mr, pr)
+func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry, sr skills.Registry) *world.Zone {
+	zone, err := world.LoadZoneFS(fsys, name, mr, pr, sr)
 	if err != nil {
 		slog.Error("failed to load zone", slog.Any("err", err))
 		panic(err)

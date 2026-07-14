@@ -72,6 +72,26 @@ export interface ZoneDarkArea {
     radius: number;
 }
 
+// One ordered skill a teaching NPC grants on approach (plan-npc-teaching.md).
+export interface ZoneTeaching {
+    skill: string;
+    requiredLevel: number;
+    line: string;
+}
+
+// A peaceful, hand-placed teaching/lore NPC (plan-npc-teaching.md). A teaching
+// NPC has teachings + a tooLowLine; a pure lore/sign-post NPC has only lines.
+// Both may coexist on one NPC (lore is the fallback when nothing is taught).
+export interface ZoneNpc {
+    type: string;
+    x: number;
+    y: number;
+    radius: number;
+    tooLowLine?: string;
+    teachings?: ZoneTeaching[];
+    lines?: string[];
+}
+
 export interface ZoneData {
     name: string;
     bounds: ZoneBounds;
@@ -81,6 +101,8 @@ export interface ZoneData {
     // Omitted when empty so pre-step-3 zones round-trip diff-clean.
     campfires?: ZoneCampfire[];
     darkAreas?: ZoneDarkArea[];
+    // Omitted when empty so pre-step-5 zones round-trip diff-clean.
+    npcs?: ZoneNpc[];
 }
 
 function round(value: number, digits: number): number {
@@ -99,8 +121,9 @@ export class ZoneModel {
     spawns: ZoneSpawn[];
     campfires: ZoneCampfire[];
     darkAreas: ZoneDarkArea[];
+    npcs: ZoneNpc[];
 
-    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[], darkAreas: ZoneDarkArea[]) {
+    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[], darkAreas: ZoneDarkArea[], npcs: ZoneNpc[]) {
         this.name = name;
         this.bounds = bounds;
         this.terrain = terrain;
@@ -108,6 +131,7 @@ export class ZoneModel {
         this.spawns = spawns;
         this.campfires = campfires;
         this.darkAreas = darkAreas;
+        this.npcs = npcs;
     }
 
     static fromJSON(data: ZoneData): ZoneModel {
@@ -124,6 +148,11 @@ export class ZoneModel {
             })),
             (data.campfires || []).map(c => ({...c})),
             (data.darkAreas || []).map(d => ({...d})),
+            (data.npcs || []).map(n => ({
+                ...n,
+                teachings: (n.teachings || []).map(t => ({...t})),
+                lines: (n.lines || []).slice(),
+            })),
         );
     }
 
@@ -218,6 +247,22 @@ export class ZoneModel {
                 : undefined,
             darkAreas: this.darkAreas.length > 0
                 ? this.darkAreas.map(d => ({x: round(d.x, 2), y: round(d.y, 2), radius: round(d.radius, 2)}))
+                : undefined,
+            // Omitted (undefined key) while empty, so pre-step-5 zones
+            // round-trip diff-clean. Teachings/lines are content strings kept
+            // verbatim; only positions round.
+            npcs: this.npcs.length > 0
+                ? this.npcs.map(n => ({
+                    type: n.type,
+                    x: round(n.x, 2),
+                    y: round(n.y, 2),
+                    radius: round(n.radius, 2),
+                    tooLowLine: n.teachings && n.teachings.length > 0 ? n.tooLowLine : undefined,
+                    teachings: n.teachings && n.teachings.length > 0
+                        ? n.teachings.map(t => ({skill: t.skill, requiredLevel: t.requiredLevel, line: t.line}))
+                        : undefined,
+                    lines: n.lines && n.lines.length > 0 ? n.lines.slice() : undefined,
+                }))
                 : undefined,
         };
         return JSON.stringify(data, null, 2);

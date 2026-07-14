@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 // Bounds is the rectangular world size in server units ("Points"), a rectangle
@@ -127,9 +128,43 @@ type DarkArea struct {
 	Radius float32 `json:"radius"`
 }
 
+// Teaching is one ordered skill a teaching NPC grants on approach once the
+// player is at least RequiredLevel and does not already know the skill
+// (unlock-source systems, plan-npc-teaching.md chunk 1). Line is spoken when
+// the grant happens. Def is resolved from Skill at load time so an unknown
+// skill fails loudly at boot, like Spawn.Mob and Prop.Type.
+type Teaching struct {
+	Skill         string `json:"skill"`
+	RequiredLevel uint32 `json:"requiredLevel"`
+	Line          string `json:"line"`
+
+	// Def is the skill definition resolved from Skill; not part of the JSON.
+	Def *skills.SkillDefinition `json:"-"`
+}
+
+// Npc is a peaceful, hand-placed, static teaching/lore NPC — the first
+// non-hostile interactive entity (plan-npc-teaching.md). It is unattackable by
+// construction (no HP, not a Combatant). Type maps to a placeholder EntityType
+// sprite. A proximity sensor of Radius drives approach detection (chunk 2/3).
+//
+// Two roles, combinable on one NPC:
+//   - Teaching: Teachings are granted in order on approach; a player too low
+//     for the next teaching hears TooLowLine and nothing further is granted.
+//   - Lore / sign-post: Lines are spoken when nothing is taught (an all-learned
+//     sage's idle lore, or a pure guard/sign-post with no Teachings at all).
+type Npc struct {
+	Type       string     `json:"type"`
+	X          float32    `json:"x"`
+	Y          float32    `json:"y"`
+	Radius     float32    `json:"radius"`
+	TooLowLine string     `json:"tooLowLine"`
+	Teachings  []Teaching `json:"teachings"`
+	Lines      []string   `json:"lines"`
+}
+
 // Zone is the whole authored world description loaded from a zone file. One
 // file = one complete zone (bounds + terrain + props + spawns + campfires +
-// dark areas).
+// dark areas + npcs).
 type Zone struct {
 	Name      string           `json:"name"`
 	Bounds    Bounds           `json:"bounds"`
@@ -138,6 +173,7 @@ type Zone struct {
 	Spawns    []Spawn          `json:"spawns"`
 	Campfires []Campfire       `json:"campfires"`
 	DarkAreas []DarkArea       `json:"darkAreas"`
+	Npcs      []Npc            `json:"npcs"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
 	// and the identity sent to the client so it renders the matching terrain.
@@ -156,7 +192,7 @@ type Zone struct {
 // so every anomaly aborts at boot (mirrors RecipesFromFS): malformed or
 // unknown-key JSON, non-positive bounds, empty name, an unknown spawn mob, or
 // an unknown prop type.
-func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry) (*Zone, error) {
+func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry, sr skills.Registry) (*Zone, error) {
 	// Enumerate candidate zone files by stem without parsing them.
 	paths := map[string]string{} // stem -> path
 	var stems []string
@@ -203,7 +239,7 @@ func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry
 	if err != nil {
 		return nil, fmt.Errorf("zone %q: %w", p, err)
 	}
-	if err := z.resolve(mr, pr); err != nil {
+	if err := z.resolve(mr, pr, sr); err != nil {
 		return nil, fmt.Errorf("zone %q: %w", p, err)
 	}
 	z.ID = target
@@ -261,12 +297,33 @@ func (z *Zone) validate() error {
 			return fmt.Errorf("darkArea %d: radius must be positive, got %g", i, z.DarkAreas[i].Radius)
 		}
 	}
+	for i := range z.Npcs {
+		n := &z.Npcs[i]
+		if n.Radius <= 0 {
+			return fmt.Errorf("npc %d: radius must be positive, got %g", i, n.Radius)
+		}
+		if len(n.Teachings) == 0 && len(n.Lines) == 0 {
+			return fmt.Errorf("npc %d: must have teachings or lore lines", i)
+		}
+		if len(n.Teachings) > 0 && strings.TrimSpace(n.TooLowLine) == "" {
+			return fmt.Errorf("npc %d: teaching NPC must have a tooLowLine", i)
+		}
+		for j := range n.Teachings {
+			t := &n.Teachings[j]
+			if strings.TrimSpace(t.Skill) == "" {
+				return fmt.Errorf("npc %d teaching %d: skill must not be empty", i, j)
+			}
+			if strings.TrimSpace(t.Line) == "" {
+				return fmt.Errorf("npc %d teaching %d: line must not be empty", i, j)
+			}
+		}
+	}
 	return nil
 }
 
-// resolve binds each spawn's mob name and each prop's type name to their
-// definitions.
-func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
+// resolve binds each spawn's mob name, each prop's type name, and each NPC
+// teaching's skill name to their definitions.
+func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry, sr skills.Registry) error {
 	for i := range z.Spawns {
 		s := &z.Spawns[i]
 		def, err := mr.GetByName(s.Mob)
@@ -290,6 +347,17 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 			return fmt.Errorf("prop %d: unknown type %q", i, p.Type)
 		}
 		p.Def = def
+	}
+	for i := range z.Npcs {
+		n := &z.Npcs[i]
+		for j := range n.Teachings {
+			t := &n.Teachings[j]
+			def, err := sr.GetByName(t.Skill)
+			if err != nil {
+				return fmt.Errorf("npc %d teaching %d: unknown skill %q", i, j, t.Skill)
+			}
+			t.Def = def
+		}
 	}
 	return nil
 }

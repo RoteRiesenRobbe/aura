@@ -206,7 +206,7 @@ export function selectInitialZone(stem: string) {
  */
 export function newZone() {
     currentStem = '';
-    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], [], [], []);
+    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], [], [], [], []);
     rebuildMarkers();
     GroundTextureManager.clear();
 }

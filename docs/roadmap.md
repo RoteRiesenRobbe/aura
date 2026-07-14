@@ -861,7 +861,16 @@ system ships blind.
    design together with the ⚑ buff-visibility question + `Skills.ts`
    metadata debt; the polished VFX lands in step 8's aura pass.
 5. **Unlock-source systems** (item 9) — world clue-anchor entities + NPC-teaching
-   behavior (needs world **and** mobs).
+   behavior (needs world **and** mobs). ← **CURRENT — PLANNED 2026-07-14 →
+   `docs/plan-npc-teaching.md`** (6 chunks; order 1 → 2 → 3 → 4 → 5 → 6). Scope
+   locked with PO: **teaching/lore NPC with one-way speech only** (NOT branching
+   dialogue — deferred, backlog item 2); **clue anchors deferred** but the entity
+   doubles as a lore-only **sign post**; multi-unlock → one combined bubble;
+   **zone-editor `npc` placement mode IN scope** (consciously overrides the
+   §9 "don't build the editor mode now" note); reuse existing sprite, no wire-enum
+   change. Key finding: chat is already an entity-anchored speech-bubble
+   (`EntityMessage`) + the grant primitive is zero-wire, so this is a small
+   high-reuse extension.
 
    > **Pre-step-6 gate: the simulation harness** (GDD §5 "First building
    > block"; made an explicit bullet 2026-07-10 — it previously hid inside
