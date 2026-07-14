@@ -15,6 +15,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/encounter"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/mob"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/npc"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/prop"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/sys"
@@ -135,6 +136,21 @@ func main() {
 		}
 		sink.SetCampfireAnchors(anchors)
 		slog.Info("placed campfires", slog.Int("count", len(zone.Campfires)), slog.String("zone", zone.ID))
+	}
+
+	// Teaching / lore NPCs (plan-npc-teaching.md): peaceful, static,
+	// hand-placed. Like props they are built once here and route through
+	// game.AddEntity — but via a dedicated addNpcEntity case, because the
+	// approach sensor must be registered as a dynamic shape (chunk 2). The
+	// teaching/lore payload rides in from chunk 3.
+	for _, n := range zone.Npcs {
+		g.AddEntity(npc.New(
+			phy.Vec2f{X: n.X, Y: n.Y},
+			n.Radius,
+		))
+	}
+	if len(zone.Npcs) > 0 {
+		slog.Info("placed npcs", slog.Int("count", len(zone.Npcs)), slog.String("zone", zone.ID))
 	}
 
 	// Encounters are Go-registered per zone (chunk 9 decision: no zone-schema

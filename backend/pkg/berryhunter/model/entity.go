@@ -91,6 +91,17 @@ type PropEntity interface {
 	Entity
 }
 
+// NpcEntity is a peaceful, hand-placed teaching/lore NPC (plan-npc-teaching.md):
+// a static visual body that rides the PropEntity/Resource wire path plus a
+// DYNAMIC proximity sensor. It is unattackable by construction (no HP, not a
+// Combatant). Its dedicated game.addNpcEntity registration adds the visual body
+// as static and the sensor as dynamic — Sensor() exposes the latter so the
+// plain-Entity path (which registers only Bodies()[0]) never silently drops it.
+type NpcEntity interface {
+	Entity
+	Sensor() phy.DynamicCollider
+}
+
 // CorpseEntity is a dead player's corpse (atmosphere & recovery chunk 4): a
 // non-colliding world marker that persists until the player respawns or their
 // dead client disconnects. It rides its own add-path because, unlike props,
