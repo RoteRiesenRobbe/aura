@@ -200,6 +200,18 @@ export class ZoneModel {
         this.darkAreas.splice(index, 1);
     }
 
+    addNpc(npc: ZoneNpc): number {
+        return this.npcs.push(npc) - 1;
+    }
+
+    updateNpc(index: number, npc: ZoneNpc) {
+        this.npcs[index] = npc;
+    }
+
+    removeNpc(index: number) {
+        this.npcs.splice(index, 1);
+    }
+
     /**
      * Serializes in the exact field order of the hand-written api/zones/zone.json.
      * Coordinates are rounded to 2 decimals (~1.2 px), angles to 3.

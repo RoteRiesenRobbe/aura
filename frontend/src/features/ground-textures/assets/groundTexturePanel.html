@@ -32,6 +32,10 @@
                     <input type="radio" name="zoneEditor_mode" value="dark">
                     Dark
                 </label>
+                <label>
+                    <input type="radio" name="zoneEditor_mode" value="npc">
+                    NPCs
+                </label>
             </div>
         </div>
 
@@ -299,12 +303,61 @@
                 </div>
             </div>
 
+            <div id="zoneEditor_npcControls" class="hidden">
+                <div class="group">
+                    <span>Click the map to place an NPC, click inside one to select it. Add teachings after selecting.</span>
+                </div>
+
+                <div class="group">
+                    <label for="zoneEditor_npcType">Type</label>
+                    <input type="text" id="zoneEditor_npcType" value="Sage"/>
+                </div>
+
+                <div class="group">
+                    <label for="zoneEditor_npcRadius">Approach radius (units)</label>
+                    <input type="number" id="zoneEditor_npcRadius" value="3" step="0.5" min="0.5">
+                </div>
+
+                <div class="group">
+                    <label for="zoneEditor_npcTooLowLine">Too-low line (required if it teaches)</label>
+                    <input type="text" id="zoneEditor_npcTooLowLine" value=""/>
+                </div>
+
+                <div class="group">
+                    <label for="zoneEditor_npcLines">Lore lines (one per line, spoken when nothing is taught)</label>
+                    <textarea id="zoneEditor_npcLines" rows="2"></textarea>
+                </div>
+
+                <div class="group">
+                    <button id="zoneEditor_npcPlaceButton" class="actionButton">Place at my position</button>
+                </div>
+
+                <div class="group hidden" id="zoneEditor_npcSelection">
+                    <div>Selected NPC #<span id="zoneEditor_npcSelectedIndex"></span></div>
+                    <button id="zoneEditor_npcUpdate" class="actionButton">Update</button>
+                    <button id="zoneEditor_npcDelete" class="secondaryButton">Delete</button>
+                    <button id="zoneEditor_npcDeselect">Deselect</button>
+
+                    <div class="group">
+                        <label>Teachings (granted in order on approach)</label>
+                        <ol id="zoneEditor_npcTeachingList"></ol>
+                        <select id="zoneEditor_npcTeachSkill">
+                            <option value="" selected disabled>Choose skill</option>
+                        </select>
+                        L <input type="number" id="zoneEditor_npcTeachLevel" class="zoneEditor-inline" step="1" min="1" value="1"/>
+                        <input type="text" id="zoneEditor_npcTeachLine" placeholder="You learned ..."/>
+                        <button id="zoneEditor_npcTeachAdd">Add teaching</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="group">
                 <a href="#" id="zoneEditor_showPopup">
                     Zone: <span id="zoneEditor_propCount"></span> props /
                     <span id="zoneEditor_spawnCount"></span> spawns /
                     <span id="zoneEditor_campfireCount"></span> campfires /
-                    <span id="zoneEditor_darkCount"></span> dark
+                    <span id="zoneEditor_darkCount"></span> dark /
+                    <span id="zoneEditor_npcCount"></span> npcs
                 </a>
             </div>
         </div>

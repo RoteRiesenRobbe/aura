@@ -17,11 +17,11 @@ import {saveAs} from 'file-saver';
 import * as Console from '../../internal-tools/console/logic/Console';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as ZoneEditor from './ZoneEditor';
-import {ZoneProp, ZoneSpawn} from './ZoneModel';
+import {ZoneNpc, ZoneProp, ZoneSpawn, ZoneTeaching} from './ZoneModel';
 
 const NEW_ZONE_OPTION = '__new__';
 
-export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark';
+export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark' | 'npc';
 
 const PX_PER_UNIT = meter2px(1);
 
@@ -104,10 +104,23 @@ let darkRadiusInput: HTMLInputElement;
 let darkSelectionGroup: HTMLElement;
 let darkSelectedIndexLabel: HTMLElement;
 
+let npcControls: HTMLElement;
+let npcTypeInput: HTMLInputElement;
+let npcRadiusInput: HTMLInputElement;
+let npcTooLowLineInput: HTMLInputElement;
+let npcLinesInput: HTMLTextAreaElement;
+let npcSelectionGroup: HTMLElement;
+let npcSelectedIndexLabel: HTMLElement;
+let npcTeachingList: HTMLElement;
+let npcTeachSkillSelect: HTMLSelectElement;
+let npcTeachLevelInput: HTMLInputElement;
+let npcTeachLineInput: HTMLInputElement;
+
 let propCountLabel: HTMLElement;
 let spawnCountLabel: HTMLElement;
 let campfireCountLabel: HTMLElement;
 let darkCountLabel: HTMLElement;
+let npcCountLabel: HTMLElement;
 
 /**
  * Wires the zone-editor sections of the shared panel. Called by
@@ -157,10 +170,23 @@ export function setupPanel() {
     darkSelectionGroup = document.getElementById('zoneEditor_darkSelection');
     darkSelectedIndexLabel = document.getElementById('zoneEditor_darkSelectedIndex');
 
+    npcControls = document.getElementById('zoneEditor_npcControls');
+    npcTypeInput = document.getElementById('zoneEditor_npcType') as HTMLInputElement;
+    npcRadiusInput = document.getElementById('zoneEditor_npcRadius') as HTMLInputElement;
+    npcTooLowLineInput = document.getElementById('zoneEditor_npcTooLowLine') as HTMLInputElement;
+    npcLinesInput = document.getElementById('zoneEditor_npcLines') as HTMLTextAreaElement;
+    npcSelectionGroup = document.getElementById('zoneEditor_npcSelection');
+    npcSelectedIndexLabel = document.getElementById('zoneEditor_npcSelectedIndex');
+    npcTeachingList = document.getElementById('zoneEditor_npcTeachingList');
+    npcTeachSkillSelect = document.getElementById('zoneEditor_npcTeachSkill') as HTMLSelectElement;
+    npcTeachLevelInput = document.getElementById('zoneEditor_npcTeachLevel') as HTMLInputElement;
+    npcTeachLineInput = document.getElementById('zoneEditor_npcTeachLine') as HTMLInputElement;
+
     propCountLabel = document.getElementById('zoneEditor_propCount');
     spawnCountLabel = document.getElementById('zoneEditor_spawnCount');
     campfireCountLabel = document.getElementById('zoneEditor_campfireCount');
     darkCountLabel = document.getElementById('zoneEditor_darkCount');
+    npcCountLabel = document.getElementById('zoneEditor_npcCount');
 
     let popup = document.getElementById('zoneEditorPopup');
     popup.querySelectorAll('input, button, a, select')
@@ -180,6 +206,13 @@ export function setupPanel() {
         option.value = name;
         option.textContent = name;
         spawnMobSelect.appendChild(option);
+    });
+
+    ZoneEditor.skillNames.forEach(name => {
+        let option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        npcTeachSkillSelect.appendChild(option);
     });
 
     // The zone controls (load/id/name/bounds/export) are zone-wide, so they
@@ -257,6 +290,26 @@ export function setupPanel() {
     document.getElementById('zoneEditor_darkDeselect').addEventListener('click', event => {
         event.preventDefault();
         deselect();
+    });
+    document.getElementById('zoneEditor_npcPlaceButton').addEventListener('click', event => {
+        event.preventDefault();
+        placeAtPlayer();
+    });
+    document.getElementById('zoneEditor_npcUpdate').addEventListener('click', event => {
+        event.preventDefault();
+        applyControlsToSelection();
+    });
+    document.getElementById('zoneEditor_npcDelete').addEventListener('click', event => {
+        event.preventDefault();
+        deleteSelection();
+    });
+    document.getElementById('zoneEditor_npcDeselect').addEventListener('click', event => {
+        event.preventDefault();
+        deselect();
+    });
+    document.getElementById('zoneEditor_npcTeachAdd').addEventListener('click', event => {
+        event.preventDefault();
+        addTeachingToSelection();
     });
     document.getElementById('zoneEditor_propUpdate').addEventListener('click', event => {
         event.preventDefault();
@@ -377,6 +430,7 @@ function setMode(newMode: EditorMode) {
     spawnControls.classList.toggle('hidden', mode !== 'spawn');
     campfireControls.classList.toggle('hidden', mode !== 'campfire');
     darkControls.classList.toggle('hidden', mode !== 'dark');
+    npcControls.classList.toggle('hidden', mode !== 'npc');
 }
 
 function onBoundsChanged() {
@@ -392,7 +446,7 @@ function onMapPointerDown(event: PointerEvent) {
     if (event.button !== 0) {
         return;
     }
-    if (mode !== 'prop' && mode !== 'spawn' && mode !== 'campfire' && mode !== 'dark') {
+    if (mode !== 'prop' && mode !== 'spawn' && mode !== 'campfire' && mode !== 'dark' && mode !== 'npc') {
         return;
     }
     if (Game.state !== GameState.PLAYING) {
@@ -425,6 +479,14 @@ function onMapPointerDown(event: PointerEvent) {
         if (hit >= 0) {
             ZoneEditor.setSelection({kind: 'dark', index: hit});
             populateDarkControls(ZoneEditor.model.darkAreas[hit]);
+            updateSelectionDisplay();
+            return;
+        }
+    } else if (mode === 'npc') {
+        let hit = ZoneEditor.hitTestNpc(x, y);
+        if (hit >= 0) {
+            ZoneEditor.setSelection({kind: 'npc', index: hit});
+            populateNpcControls(ZoneEditor.model.npcs[hit]);
             updateSelectionDisplay();
             return;
         }
@@ -477,6 +539,13 @@ function placeAt(x: number, y: number) {
             return;
         }
         ZoneEditor.placeDarkArea({x, y, radius});
+    } else if (mode === 'npc') {
+        let npc = readNpcControls(x, y, []);
+        if (npc === null) {
+            return;
+        }
+        ZoneEditor.placeNpc(npc);
+        populateNpcControls(npc);
     }
 
     updateCounts();
@@ -571,6 +640,108 @@ function populateSpawnControls(spawn: ZoneSpawn) {
     patrolModeSelect.value = spawn.patrolMode === 'loop' ? 'loop' : 'pingpong';
 }
 
+// Builds an NPC from the panel fields. Teachings aren't authored here — they're
+// added to the selected NPC via the teaching sub-list — so the caller passes
+// the list to carry ([] when placing fresh, the existing list when updating).
+// Mirrors the backend loader's hard-fails so they don't bite only at boot.
+function readNpcControls(x: number, y: number, teachings: ZoneTeaching[]): ZoneNpc {
+    let type = npcTypeInput.value.trim();
+    if (type === '') {
+        Game.player.character.say('NPC type must not be empty');
+        return null;
+    }
+    let radius = parseFloat(npcRadiusInput.value);
+    if (isNaN(radius) || radius <= 0) {
+        Game.player.character.say('NPC radius must be positive');
+        return null;
+    }
+    let lines = npcLinesInput.value.split('\n').map(l => l.trim()).filter(l => l !== '');
+    let tooLowLine = npcTooLowLineInput.value.trim();
+    if (teachings.length > 0 && tooLowLine === '') {
+        Game.player.character.say('A teaching NPC needs a too-low line');
+        return null;
+    }
+    // "Teachings or lore lines" is NOT enforced here: a teaching NPC is placed
+    // first (teachings empty) and gets its teachings added while selected, so a
+    // fresh NPC legitimately has neither yet. The backend zone loader fails loud
+    // at boot on an NPC empty of both — that's the source of truth.
+    return {
+        type,
+        x,
+        y,
+        radius,
+        tooLowLine: tooLowLine !== '' ? tooLowLine : undefined,
+        teachings,
+        lines,
+    };
+}
+
+function populateNpcControls(npc: ZoneNpc) {
+    npcTypeInput.value = npc.type;
+    npcRadiusInput.value = String(npc.radius);
+    npcTooLowLineInput.value = npc.tooLowLine || '';
+    npcLinesInput.value = (npc.lines || []).join('\n');
+    renderTeachingList(npc.teachings || []);
+}
+
+// Renders the selected NPC's ordered teachings, each with a remove button.
+function renderTeachingList(teachings: ZoneTeaching[]) {
+    npcTeachingList.textContent = '';
+    teachings.forEach((teaching, i) => {
+        let item = document.createElement('li');
+        item.textContent = teaching.skill + ' @L' + teaching.requiredLevel + ' "' + teaching.line + '" ';
+        let remove = document.createElement('button');
+        remove.textContent = '✕';
+        remove.addEventListener('click', event => {
+            event.preventDefault();
+            removeTeachingFromSelection(i);
+        });
+        item.appendChild(remove);
+        npcTeachingList.appendChild(item);
+    });
+}
+
+// Appends the teaching authored in the sub-row to the selected NPC (rising-edge
+// order matters — grants are applied top-to-bottom by the backend).
+function addTeachingToSelection() {
+    let selection = ZoneEditor.getSelection();
+    if (selection === null || selection.kind !== 'npc') {
+        return;
+    }
+    if (npcTeachSkillSelect.value === '') {
+        Game.player.character.say('Choose a skill to teach');
+        return;
+    }
+    let level = parseInt(npcTeachLevelInput.value);
+    if (isNaN(level) || level < 1) {
+        Game.player.character.say('Required level must be at least 1');
+        return;
+    }
+    let line = npcTeachLineInput.value.trim();
+    if (line === '') {
+        Game.player.character.say('Teaching needs a line');
+        return;
+    }
+    let npc = ZoneEditor.model.npcs[selection.index];
+    let teachings = (npc.teachings || []).concat([{skill: npcTeachSkillSelect.value, requiredLevel: level, line}]);
+    ZoneEditor.updateNpc(selection.index, {...npc, teachings});
+    npcTeachLineInput.value = '';
+    renderTeachingList(teachings);
+    updateSelectionDisplay();
+}
+
+function removeTeachingFromSelection(teachingIndex: number) {
+    let selection = ZoneEditor.getSelection();
+    if (selection === null || selection.kind !== 'npc') {
+        return;
+    }
+    let npc = ZoneEditor.model.npcs[selection.index];
+    let teachings = (npc.teachings || []).filter((_, i) => i !== teachingIndex);
+    ZoneEditor.updateNpc(selection.index, {...npc, teachings});
+    renderTeachingList(teachings);
+    updateSelectionDisplay();
+}
+
 function applyControlsToSelection() {
     let selection = ZoneEditor.getSelection();
     if (selection === null) {
@@ -607,6 +778,13 @@ function applyControlsToSelection() {
         if (radius !== null) {
             ZoneEditor.updateDarkArea(selection.index, {...current, radius});
         }
+    } else if (selection.kind === 'npc') {
+        let current = ZoneEditor.model.npcs[selection.index];
+        // Teachings are edited via the sub-list, not these controls — carry them.
+        let updated = readNpcControls(current.x, current.y, current.teachings || []);
+        if (updated !== null) {
+            ZoneEditor.updateNpc(selection.index, updated);
+        }
     }
 }
 
@@ -622,8 +800,10 @@ function deleteSelection() {
         ZoneEditor.removeSpawn(selection.index);
     } else if (selection.kind === 'campfire') {
         ZoneEditor.removeCampfire(selection.index);
-    } else {
+    } else if (selection.kind === 'dark') {
         ZoneEditor.removeDarkArea(selection.index);
+    } else {
+        ZoneEditor.removeNpc(selection.index);
     }
 
     updateCounts();
@@ -673,11 +853,13 @@ function updateSelectionDisplay() {
     let spawnSelected = selection !== null && selection.kind === 'spawn';
     let campfireSelected = selection !== null && selection.kind === 'campfire';
     let darkSelected = selection !== null && selection.kind === 'dark';
+    let npcSelected = selection !== null && selection.kind === 'npc';
 
     propSelectionGroup.classList.toggle('hidden', !propSelected);
     spawnSelectionGroup.classList.toggle('hidden', !spawnSelected);
     campfireSelectionGroup.classList.toggle('hidden', !campfireSelected);
     darkSelectionGroup.classList.toggle('hidden', !darkSelected);
+    npcSelectionGroup.classList.toggle('hidden', !npcSelected);
     if (propSelected) {
         propSelectedIndexLabel.textContent = String(selection.index);
     }
@@ -692,6 +874,9 @@ function updateSelectionDisplay() {
     if (darkSelected) {
         darkSelectedIndexLabel.textContent = String(selection.index);
     }
+    if (npcSelected) {
+        npcSelectedIndexLabel.textContent = String(selection.index);
+    }
 }
 
 function updatePropRadiusLabel() {
@@ -704,4 +889,5 @@ function updateCounts() {
     spawnCountLabel.textContent = String(ZoneEditor.model.spawns.length);
     campfireCountLabel.textContent = String(ZoneEditor.model.campfires.length);
     darkCountLabel.textContent = String(ZoneEditor.model.darkAreas.length);
+    npcCountLabel.textContent = String(ZoneEditor.model.npcs.length);
 }
