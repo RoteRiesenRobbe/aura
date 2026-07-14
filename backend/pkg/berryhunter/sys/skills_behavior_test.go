@@ -82,10 +82,11 @@ type fakePlayer struct {
 	resists         []appliedResist
 	shields         []appliedShield
 	hots            []appliedHot
-	inCombat        bool // reported by InCombat (chunk 1 combat-gate tests)
-	combatActions   int  // NoteCombatAction call count (chunk 1)
-	client          model.Client          // recall reads Client().UUID() (chunk 4)
-	rejections      []rejectedActivation  // NoteActivationRejected calls (chunk 4)
+	inCombat        bool                 // reported by InCombat (chunk 1 combat-gate tests)
+	combatActions   int                  // NoteCombatAction call count (chunk 1)
+	client          model.Client         // recall reads Client().UUID() (chunk 4)
+	rejections      []rejectedActivation // NoteActivationRejected calls (chunk 4)
+	lastMoveDir     phy.Vec2f            // dash aim source (chunk 5)
 }
 
 // appliedResist records one ApplyResist call on a test double.
@@ -134,8 +135,10 @@ func (f *fakePlayer) Heal(hp uint32) vitals.VitalSign {
 	f.NoteHealReceived(healed)
 	return healed
 }
-func (f *fakePlayer) Radius() float32 { return 0.25 }
-func (f *fakePlayer) Position() phy.Vec2f                 { return f.aura.Position() }
+func (f *fakePlayer) Radius() float32            { return 0.25 }
+func (f *fakePlayer) Position() phy.Vec2f        { return f.aura.Position() }
+func (f *fakePlayer) LastMoveDir() phy.Vec2f     { return f.lastMoveDir }
+func (f *fakePlayer) SetLastMoveDir(v phy.Vec2f) { f.lastMoveDir = v }
 func (f *fakePlayer) Progression() model.PlayerProgression {
 	return model.PlayerProgression{Level: f.level}
 }
@@ -152,11 +155,11 @@ func (f *fakePlayer) ApplyShield(source skills.SkillID, hp float32, ticks int) {
 func (f *fakePlayer) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
 	f.hots = append(f.hots, appliedHot{source, hot, ticks})
 }
-func (f *fakePlayer) InCombat() bool      { return f.inCombat }
-func (f *fakePlayer) NoteCombatAction()   { f.combatActions++ }
+func (f *fakePlayer) InCombat() bool    { return f.inCombat }
+func (f *fakePlayer) NoteCombatAction() { f.combatActions++ }
 
-func (f *fakePlayer) Client() model.Client       { return f.client }
-func (f *fakePlayer) SetPosition(v phy.Vec2f)    { f.aura.SetPosition(v) }
+func (f *fakePlayer) Client() model.Client    { return f.client }
+func (f *fakePlayer) SetPosition(v phy.Vec2f) { f.aura.SetPosition(v) }
 func (f *fakePlayer) NoteActivationRejected(id skills.SkillID, reason model.ActivationRejection) {
 	f.rejections = append(f.rejections, rejectedActivation{id, reason})
 }
@@ -1661,9 +1664,9 @@ func TestCooldown_InstantShieldSelfOnlyStillFires(t *testing.T) {
 // shieldTargetRecorder twin. HealthRatio is wounded so the hot_aura's
 // wounded-only predicate selects it.
 type hotTargetRecorder struct {
-	basic  ecs.BasicEntity
-	hots   []appliedHot
-	ratio  float32
+	basic ecs.BasicEntity
+	hots  []appliedHot
+	ratio float32
 }
 
 func (r *hotTargetRecorder) Basic() ecs.BasicEntity          { return r.basic }
@@ -3234,4 +3237,135 @@ func TestRevive_FiresReviveAtNearestCorpse(t *testing.T) {
 	assert.InDelta(t, 0.3, cs.revivedFraction, 1e-6, "the authored health fraction is passed through")
 	assert.Equal(t, 600, caster.sc.CooldownSlots[0].CdTicks, "a landed revive consumes the cooldown")
 	assert.Empty(t, caster.rejections)
+}
+
+// --- dash (plan-skill-vocab chunk 5) ---
+
+func dashEffect(distance, perLevel float32) skills.EffectDef {
+	return skills.EffectDef{
+		Type: skills.EffectTypeDash,
+		Dash: &skills.DashParams{Distance: distance, DistancePerLevel: perLevel},
+	}
+}
+
+func dashDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 33, Name: "Dash", Category: skills.SkillCategoryCooldown, MaxLevel: 3,
+		CooldownTicks: 300,
+		Effects:       []skills.EffectDef{dashEffect(2.5, 0.5)},
+	}
+}
+
+// dashPlayer builds a player at the origin aiming along +X in the given space.
+func dashPlayer(space *phy.Space) (*fakePlayer, *SkillSystem) {
+	p := newFakePlayer()
+	p.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	p.lastMoveDir = phy.Vec2f{X: 1, Y: 0}
+	return p, NewSkillSystem(space, nil)
+}
+
+func TestApplyDash_FullDistanceInOpenSpace(t *testing.T) {
+	p, s := dashPlayer(phy.NewSpace())
+
+	ok := s.applyDash(p, dashEffect(2.5, 0), 1)
+
+	assert.True(t, ok)
+	assert.InDelta(t, 2.5, p.Position().X, 1e-4)
+	assert.InDelta(t, 0, p.Position().Y, 1e-4)
+}
+
+func TestApplyDash_DistanceScalesWithLevel(t *testing.T) {
+	p, s := dashPlayer(phy.NewSpace())
+
+	s.applyDash(p, dashEffect(2.0, 0.5), 3) // 2.0 + 2×0.5 = 3.0
+
+	assert.InDelta(t, 3.0, p.Position().X, 1e-4)
+}
+
+func TestApplyDash_DirectionFollowsLastMove(t *testing.T) {
+	// Standing still: the dash uses the last recorded movement direction (+Y),
+	// not a facing (Aura characters have none).
+	p, s := dashPlayer(phy.NewSpace())
+	p.lastMoveDir = phy.Vec2f{X: 0, Y: 1}
+
+	s.applyDash(p, dashEffect(2.0, 0), 1)
+
+	assert.InDelta(t, 0, p.Position().X, 1e-4)
+	assert.InDelta(t, 2.0, p.Position().Y, 1e-4)
+}
+
+func TestApplyDash_ClampedAtBlockingStatic(t *testing.T) {
+	space := phy.NewSpace()
+	// A blocking prop straddling the dash path at x=1.5.
+	wall := phy.NewCircle(phy.Vec2f{X: 1.5, Y: 0}, 0.25)
+	wall.Shape().Layer = int(model.LayerPlayerStaticCollision)
+	space.AddStaticShape(wall)
+	p, s := dashPlayer(space)
+
+	ok := s.applyDash(p, dashEffect(2.5, 0), 1)
+
+	assert.True(t, ok)
+	// Stopped short of the wall — the stepped probe never tunneled to 2.5.
+	assert.Less(t, p.Position().X, float32(1.5), "clamped before the blocker")
+	assert.Greater(t, p.Position().X, float32(0), "still advanced up to the wall")
+}
+
+func TestApplyDash_ZeroDistanceFlushAgainstWall(t *testing.T) {
+	space := phy.NewSpace()
+	// A wall inside the very first probe step: no room to move.
+	wall := phy.NewCircle(phy.Vec2f{X: 0.3, Y: 0}, 0.25)
+	wall.Shape().Layer = int(model.LayerPlayerStaticCollision)
+	space.AddStaticShape(wall)
+	p, s := dashPlayer(space)
+
+	ok := s.applyDash(p, dashEffect(2.5, 0), 1)
+
+	assert.True(t, ok, "a dash still fires flush against a wall (no whiff)")
+	assert.InDelta(t, 0, p.Position().X, 1e-4, "but displaces nowhere")
+}
+
+func TestApplyDash_StopsAtBorder(t *testing.T) {
+	space := phy.NewSpace()
+	// The InvAABB border wall: the probe hits it only when poking outside.
+	wall := phy.NewInvAABB(phy.VEC2F_ZERO, 4, 4) // half-extents 2×2
+	wall.Shape().Layer = int(model.LayerBorderCollision)
+	space.AddStaticShape(wall)
+	p, s := dashPlayer(space)
+
+	s.applyDash(p, dashEffect(5.0, 0), 1) // would overshoot the +X border at 2
+
+	assert.Less(t, p.Position().X, float32(2), "never dashes out of bounds")
+}
+
+func TestApplyDash_NonPlayerCasterIsNoop(t *testing.T) {
+	s := NewSkillSystem(phy.NewSpace(), nil)
+	mob := newFakeMob()
+
+	assert.False(t, s.applyDash(mob, dashEffect(2.5, 0), 1), "mobs cannot dash in v1")
+}
+
+func TestDash_CancelsRunningCast(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.lastMoveDir = phy.Vec2f{X: 1, Y: 0}
+	caster.sc.EquipCooldown(0, castNovaDef(), 1) // a 3-tick cast
+	caster.sc.EquipCooldown(1, dashDef(), 1)
+
+	sk := NewSkillSystem(empty, nil)
+	sk.AddEntity(caster)
+
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+	require.True(t, caster.sc.IsCasting())
+
+	// Dash mid-cast: the cast dies for free, the dash fires and displaces.
+	caster.sc.RequestCooldownActivation(1)
+	sk.Update(33.0)
+
+	assert.False(t, caster.sc.IsCasting(), "dash cancels the running cast")
+	assert.InDelta(t, 2.5, caster.Position().X, 1e-4, "dash displaced the caster")
+	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "interrupted cast consumes no cooldown")
+	assert.Equal(t, 300, caster.sc.CooldownSlots[1].CdTicks, "dash consumed its own cooldown")
 }

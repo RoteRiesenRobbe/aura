@@ -1137,6 +1137,12 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			}
 			continue
 		}
+		if effect.Type == skills.EffectTypeDash {
+			if s.applyDash(e, effect, es.Level) {
+				hitAny = true
+			}
+			continue
+		}
 		if effect.Type != skills.EffectTypeInstantDamage && effect.Type != skills.EffectTypeInstantDot {
 			continue
 		}
@@ -1187,6 +1193,63 @@ func (s *SkillSystem) applyRecall(e skillEntity) bool {
 		return false
 	}
 	p.SetPosition(jitterAround(anchor, respawnJitterRadius))
+	return true
+}
+
+// applyDash displaces a player caster along their last movement direction up to
+// the effect's (level-scaled) distance (plan-skill-vocab chunk 5). There is no
+// swept-circle in phy, so a stepped probe marches the ray in radius-sized steps
+// with QueryCircleStatics (mask PlayerStatic|Border — the summonPosition
+// precedent) and stops at the last free point: cheap (≤ ~distance/radius
+// one-shot queries), it cannot tunnel a blocking prop or poke past the border,
+// and it naturally clamps to "dash up to the wall". Landing inside a mob body is
+// fine — mobs are dynamic, so physics resolves the overlap next tick (the summon
+// precedent). Mobs cannot dash in v1 (no last-movement seam); a non-player
+// caster is a no-op.
+func (s *SkillSystem) applyDash(e skillEntity, effect skills.EffectDef, level int) bool {
+	p, ok := e.(model.PlayerEntity)
+	if !ok || effect.Dash == nil {
+		return false
+	}
+	dir := p.LastMoveDir()
+	if dir == (phy.Vec2f{}) {
+		// Never moved — no aim. Defensive: the player defaults to a unit vector.
+		return false
+	}
+	dist := skills.Scaled(effect.Dash.Distance, effect.Dash.DistancePerLevel, level)
+	if dist <= 0 {
+		return false
+	}
+
+	start := e.AuraCollider().Position()
+	step := p.Radius()
+	if step <= 0 {
+		// A zero-radius caster can't be probed; players always have a radius.
+		return false
+	}
+
+	probe := phy.NewCircle(phy.VEC2F_ZERO, p.Radius())
+	probe.Shape().Mask = int(model.LayerPlayerStaticCollision | model.LayerBorderCollision)
+
+	landing := start
+	for travelled := step; ; travelled += step {
+		if travelled > dist {
+			travelled = dist
+		}
+		candidate := start.Add(dir.Mult(travelled))
+		probe.SetPosition(candidate)
+		if len(s.space.QueryCircleStatics(probe)) != 0 {
+			break // blocked: keep the last free point ("dash up to the wall")
+		}
+		landing = candidate
+		if travelled >= dist {
+			break // reached full distance in the clear
+		}
+	}
+
+	p.SetPosition(landing)
+	// A dash always "fires" (like spawn — no whiff); even a wall-flush zero-
+	// distance dash consumes the cooldown by the player path's own rule.
 	return true
 }
 

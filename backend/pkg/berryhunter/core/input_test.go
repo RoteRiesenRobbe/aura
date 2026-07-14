@@ -24,15 +24,18 @@ import (
 // the test did not anticipate — a loud signal that updateInput grew.
 type fakeInputPlayer struct {
 	model.PlayerEntity
-	sc         *skills.SkillComponent
-	hand       model.Hand
-	vitalSigns model.PlayerVitalSigns
-	config     cfg.PlayerConfig
-	pos        phy.Vec2f
+	sc          *skills.SkillComponent
+	hand        model.Hand
+	vitalSigns  model.PlayerVitalSigns
+	config      cfg.PlayerConfig
+	pos         phy.Vec2f
+	lastMoveDir phy.Vec2f
 }
 
-func (f *fakeInputPlayer) Hand() *model.Hand                     { return &f.hand }
+func (f *fakeInputPlayer) Hand() *model.Hand                      { return &f.hand }
 func (f *fakeInputPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
+func (f *fakeInputPlayer) LastMoveDir() phy.Vec2f                 { return f.lastMoveDir }
+func (f *fakeInputPlayer) SetLastMoveDir(v phy.Vec2f)             { f.lastMoveDir = v }
 
 func newFakeInputPlayer() *fakeInputPlayer {
 	def := &skills.SkillDefinition{ID: 1, Name: "DamageAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
@@ -207,6 +210,38 @@ func TestUpdateInput_MovementCancelsCast(t *testing.T) {
 	}, nil)
 
 	assert.False(t, p.sc.IsCasting(), "moving cancels the cast")
+}
+
+func TestUpdateInput_MovementRecordsDashDirection(t *testing.T) {
+	// The dash aim (chunk 5) is the last non-zero movement direction, recorded
+	// as a unit vector. A diagonal (3,4) normalizes to (0.6,0.8).
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	p.vitalSigns.Health = 100
+
+	sys.updateInput(p, &model.PlayerInput{
+		ActiveAuraSlot: model.ActiveAuraSlotNoChange,
+		Movement:       &phy.Vec2f{X: 3, Y: 4},
+	}, nil)
+
+	assert.InDelta(t, 0.6, p.lastMoveDir.X, 1e-6)
+	assert.InDelta(t, 0.8, p.lastMoveDir.Y, 1e-6)
+}
+
+func TestUpdateInput_ZeroMovementKeepsLastDashDirection(t *testing.T) {
+	// Standing still (zero/idle packet) must not overwrite the recorded dash
+	// direction — a stationary player still dashes where they last walked.
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	p.vitalSigns.Health = 100
+	p.lastMoveDir = phy.Vec2f{X: 0, Y: 1}
+
+	sys.updateInput(p, &model.PlayerInput{
+		ActiveAuraSlot: model.ActiveAuraSlotNoChange,
+		Movement:       &phy.Vec2f{},
+	}, nil)
+
+	assert.Equal(t, phy.Vec2f{X: 0, Y: 1}, p.lastMoveDir, "zero movement leaves the last direction intact")
 }
 
 func TestUpdateInput_ZeroMovementVectorKeepsCast(t *testing.T) {

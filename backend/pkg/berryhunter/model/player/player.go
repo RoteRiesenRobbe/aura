@@ -32,6 +32,9 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 		stats:          model.Stats{BirthTick: g.Ticks()},
 		progression:    model.PlayerProgression{Level: 1, Experience: 0},
 		statusEffects:  model.NewStatusEffects(),
+		// Dash aims along the last movement direction (chunk 5); default to a
+		// unit vector so a never-moved player still has a valid dash direction.
+		lastMoveDir: phy.Vec2f{X: 1, Y: 0},
 	}
 
 	// setup body
@@ -93,8 +96,9 @@ type player struct {
 	statusEffects    model.StatusEffects
 	newStatusEffects model.StatusEffects
 
-	angle  float32
-	client model.Client
+	angle       float32
+	lastMoveDir phy.Vec2f
+	client      model.Client
 
 	viewport *phy.Box
 	aura     *phy.Circle
@@ -318,7 +322,8 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vi
 
 // DamageTaken / HealReceived / XpGained expose the per-tick floating-number
 // accumulators (roadmap item 11).
-func (p *player) DamageTaken() vitals.VitalSign  { return p.damageTaken }
+func (p *player) DamageTaken() vitals.VitalSign { return p.damageTaken }
+
 // CritTaken is the crit-flagged share of this tick's damage taken (chunk 1,
 // §4.3); serialized as the crit_taken wire field so the client pops it big.
 func (p *player) CritTaken() vitals.VitalSign    { return p.critTaken }
@@ -507,6 +512,16 @@ func (p *player) SetAngle(a float32) {
 
 func (p *player) Angle() float32 {
 	return p.angle
+}
+
+// LastMoveDir returns the last non-zero movement direction (a unit vector), the
+// aim source for dash (chunk 5). SetLastMoveDir records it from the input path.
+func (p *player) LastMoveDir() phy.Vec2f {
+	return p.lastMoveDir
+}
+
+func (p *player) SetLastMoveDir(v phy.Vec2f) {
+	p.lastMoveDir = v
 }
 
 func (p *player) Hand() *model.Hand {

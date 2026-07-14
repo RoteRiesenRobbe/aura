@@ -52,6 +52,7 @@ const (
 	EffectTypeHotAura
 	EffectTypeInstantHot
 	EffectTypeRevive
+	EffectTypeDash
 )
 
 var effectTypeMap = map[string]EffectType{
@@ -75,6 +76,7 @@ var effectTypeMap = map[string]EffectType{
 	"hot_aura":        EffectTypeHotAura,
 	"instant_hot":     EffectTypeInstantHot,
 	"revive":          EffectTypeRevive,
+	"dash":            EffectTypeDash,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -191,6 +193,7 @@ type EffectDef struct {
 	Shield   *ShieldParams   // shield_aura, instant_shield
 	Hot      *HotParams      // hot_aura, instant_hot
 	Revive   *ReviveParams   // revive
+	Dash     *DashParams     // dash
 }
 
 // ThreatParams is the taunt / detaunt payload (mob-depth chunk 7). Margin is
@@ -443,6 +446,19 @@ type ReviveParams struct {
 	HealthFraction float32
 }
 
+// DashParams is the dash payload (plan-skill-vocab §3.8). Direction was decided
+// at chunk-5 start to be the caster's last movement vector, superseding the
+// doc's original "facing direction" — Aura characters are non-turning icons
+// with no facing/camera rotation, so the movement vector (current if pressed,
+// else the last recorded one) is the only aim available. Distance is the
+// world-unit displacement (scaled per level); the actual travel is clamped by a
+// stepped static-collision probe so a dash never tunnels a blocking prop or the
+// border.
+type DashParams struct {
+	Distance         float32
+	DistancePerLevel float32
+}
+
 // SpawnParams is the spawn payload (effect foundations Step 3 / mob-depth
 // chunk 1): a cooldown-fired summon of an owned, caster-aligned mob. Two
 // scaling sources compose (chunk-1 decision): the SUMMON SKILL's level scales
@@ -591,6 +607,9 @@ type effectDef struct {
 	HotTickInterval int `json:"hotTickInterval"` // game ticks between hot events
 
 	ReviveHealthFraction float32 `json:"reviveHealthFraction"` // revive: fraction of max HP restored
+
+	DashDistance         float32 `json:"dashDistance"`         // dash: world-unit displacement
+	DashDistancePerLevel float32 `json:"dashDistancePerLevel"` // dash: displacement added per level
 }
 
 type skillDefinition struct {
@@ -613,10 +632,10 @@ type skillDefinition struct {
 
 // Shared key groups for the effectKeys allowlist.
 var (
-	keysGeometry      = []string{"radius", "radiusPerLevel"}
-	keysCadence       = []string{"tickInterval", "tickIntervalPerLevel"}
-	keysCapped        = []string{"selector", "maxTargets", "maxTargetsPerLevel"}
-	keysTargetFlags   = []string{"targetsEnemies", "targetsAllies"}
+	keysGeometry    = []string{"radius", "radiusPerLevel"}
+	keysCadence     = []string{"tickInterval", "tickIntervalPerLevel"}
+	keysCapped      = []string{"selector", "maxTargets", "maxTargetsPerLevel"}
+	keysTargetFlags = []string{"targetsEnemies", "targetsAllies"}
 	// The damage-vocabulary keys (execute/berserker/crit/lifesteal, chunk 1)
 	// ride only here — dots are deliberately excluded in v1 (§3.3; add to
 	// keysDotPayload + DotParams when content wants a burning execute).
@@ -691,6 +710,11 @@ var effectKeys = map[EffectType][]string{
 	// fraction of max HP the revived player returns with. Corpses carry no
 	// faction, so no target flags.
 	EffectTypeRevive: mergeKeys(keysGeometry, []string{"reviveHealthFraction"}),
+	// Dash (chunk 5): a bare displacement — no geometry (the collision query is
+	// a stepped probe, not an authored radius), no targeting, no cadence.
+	// Distance is the only payload; direction is the caster's movement vector,
+	// read at fire time.
+	EffectTypeDash: {"dashDistance", "dashDistancePerLevel"},
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -858,6 +882,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Hot, err = e.hotParams()
 	case EffectTypeRevive:
 		def.Revive, err = e.reviveParams()
+	case EffectTypeDash:
+		def.Dash, err = e.dashParams()
 	}
 	if err != nil {
 		return EffectDef{}, err
@@ -1085,6 +1111,16 @@ func (e *effectDef) reviveParams() (*ReviveParams, error) {
 		return nil, fmt.Errorf("reviveHealthFraction: must be in (0, 1], got %v", e.ReviveHealthFraction)
 	}
 	return &ReviveParams{HealthFraction: e.ReviveHealthFraction}, nil
+}
+
+// dashParams builds the dash payload. Distance must be strictly positive — a
+// zero-distance dash is a do-nothing cooldown. DistancePerLevel may be zero for
+// a flat dash.
+func (e *effectDef) dashParams() (*DashParams, error) {
+	if e.DashDistance <= 0 {
+		return nil, fmt.Errorf("dashDistance: must be > 0, got %v", e.DashDistance)
+	}
+	return &DashParams{Distance: e.DashDistance, DistancePerLevel: e.DashDistancePerLevel}, nil
 }
 
 // tauntParams builds the taunt payload. Margin must be strictly positive — a

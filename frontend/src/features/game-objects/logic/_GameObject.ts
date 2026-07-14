@@ -12,9 +12,11 @@ let movementInterpolatedObjects = new Set();
 let rotatingObjects = new Set();
 
 // Position deltas beyond this snap instead of interpolating (skill-vocab
-// chunk 4): 5 world units × 120 px — far above any per-tick movement
-// (~6 px), far below a Recall teleport. [PLACEHOLDER]
-const TELEPORT_SNAP_DISTANCE_PX = 600;
+// chunk 4, lowered chunk 5): 1.5 world units × 120 px = 180 px. Above any
+// per-tick movement (~6 px, walk 0.05 units) but below the shortest dash
+// (2.5 units / 300 px, chunk 5) so a dash snaps instead of smearing; a Recall
+// teleport is far larger still. [PLACEHOLDER]
+const TELEPORT_SNAP_DISTANCE_PX = 180;
 const TELEPORT_SNAP_DISTANCE_PX_SQUARED = TELEPORT_SNAP_DISTANCE_PX * TELEPORT_SNAP_DISTANCE_PX;
 
 let Game: IGame = null;

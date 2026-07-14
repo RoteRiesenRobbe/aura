@@ -133,9 +133,13 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 			v := input2vec(next)
 			// Moving is a deliberate act: it cancels a running cast (chunk 4).
 			// Only an actual vector counts — an idle/bridged movement packet
-			// must not flicker the cast.
+			// must not flicker the cast. The same non-zero vector is the dash
+			// aim (chunk 5): record it as the last movement direction (already
+			// unit-normalized) so a standing player dashes where they last
+			// walked.
 			if v != (phy.Vec2f{}) {
 				p.SkillComponent().CancelCast()
+				p.SetLastMoveDir(v)
 			}
 			// Passive movement-speed bonus (DerivedStats); config stays untouched.
 			speed := p.Config().WalkingSpeedPerTick * (1 + p.SkillComponent().Derived.MovementSpeedBonus)

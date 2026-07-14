@@ -454,6 +454,44 @@ func TestParse_SelfHeal(t *testing.T) {
 	assert.InDelta(t, 0.05, e.SelfHeal.HealHPPerLevel, 1e-6)
 }
 
+func TestParse_Dash(t *testing.T) {
+	data := []byte(`{
+      "id": 33, "name": "Dash", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 300,
+      "effects": [{"type": "dash", "dashDistance": 2.5, "dashDistancePerLevel": 0.5}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeDash, e.Type)
+	require.NotNil(t, e.Dash)
+	assert.InDelta(t, 2.5, e.Dash.Distance, 1e-6)
+	assert.InDelta(t, 0.5, e.Dash.DistancePerLevel, 1e-6)
+}
+
+func TestParse_DashDistanceScalesPerLevel(t *testing.T) {
+	// Distance is a plain Scaled() base+perLevel pair; L1 = base, higher levels
+	// add DistancePerLevel each.
+	assert.InDelta(t, 2.5, Scaled(float32(2.5), 0.5, 1), 1e-6)
+	assert.InDelta(t, 3.5, Scaled(float32(2.5), 0.5, 3), 1e-6)
+}
+
+func TestMap_DashZeroDistanceFails(t *testing.T) {
+	// A zero-distance dash is a do-nothing cooldown — reject it loud.
+	raw, err := parseSkillDefinition([]byte(`{"id":33,"name":"Dash","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"dash","dashDistance":0}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "dashDistance")
+}
+
+func TestMap_DashKeyOnOtherEffectFails(t *testing.T) {
+	// dashDistance on a non-dash effect is a silent no-op — the allowlist rejects it.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"self_heal","healHP":0.2,"dashDistance":2.5}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
 func TestParse_DamageReductionStat(t *testing.T) {
 	data := []byte(`{
       "id": 11, "name": "ToughPassive", "category": "passive", "maxLevel": 3,

@@ -6,6 +6,42 @@
 > per-entity effective fields + interval must be manipulable → haste seam;
 > chunk order 1 → 2 → 4 → 3 → 5 → 6).
 >
+> **CHUNK 5 (dash) DONE + VERIFIED IN-GAME 2026-07-14.**
+> **Chunk-start decision SUPERSEDES §3.8's "facing direction":** Aura
+> characters are non-turning 2D icons — no facing, no camera rotation — so a
+> dash aims along the caster's **last non-zero movement direction** (current if
+> a key is pressed this tick, else the last recorded one). The server never
+> tracked player facing (`Angle()` is always 0, input `Rotation` dropped), so
+> nothing was wired for rotation; instead the player gained `LastMoveDir()`/
+> `SetLastMoveDir()` (concrete `player.lastMoveDir`, default unit `{1,0}` so a
+> never-moved player still has an aim), recorded in `core/input.go` from the
+> normalized non-zero movement vector — the same branch that cancels a running
+> cast. Shipped: `dash` effect type (20 → 21) + `DashParams{Distance,
+> DistancePerLevel}` (dashDistance > 0, +PerLevel optional), effectKeys
+> allowlist (bare distance — no geometry/targeting/cadence), `dashParams()`
+> validator, parse-switch case; `applyDash` (player-only; mob = no-op) walks a
+> **stepped `QueryCircleStatics` probe** from the caster along the movement
+> vector in radius-sized steps (mask PlayerStatic|Border, the summonPosition
+> precedent), landing at the last free point — cannot tunnel a `blocksMovement`
+> prop or poke past the border, naturally clamps "up to the wall"; a wall-flush
+> zero-distance dash still fires (no whiff — the player cooldown path consumes
+> unconditionally); landing inside a mob body is fine (dynamic, resolves next
+> tick). Interrupt interplay inherited FREE from chunk 4: Dash has `castTicks`
+> 0, so a mid-cast activation hits the different-slot cancel-then-fire hook and
+> displaces the same tick. NO new wire (position rides the existing snapshot).
+> Frontend: **teleport snap threshold lowered 600 → 180 px** (1.5 world units ×
+> 120) in `_GameObject` — above per-tick walk (~6 px) but below the shortest
+> dash (2.5 units / 300 px) so a dash snaps instead of smearing; Skills.ts id
+> 33 (name/maxLevel/category). Content: **Dash id 33** (cooldown category,
+> cooldownTicks 300 ≈ 10 s, dashDistance 2.5 + 0.5/level, all [PLACEHOLDER]),
+> cheat-granted via `SKILL Dash` + spellbook-equip, no milestone; registry pin
+> 32 → 33. 13 new tests (parse/scale/zero-distance-fail/key-on-other-effect;
+> applyDash full-distance/level-scale/direction/prop-clamp/wall-flush/border-
+> stop/non-player-noop; dash-cancels-cast integration; input records-dir/zero-
+> keeps-dir). Suite + `go build` + tsc/webpack + boot smoke both content
+> sources (33 skills) + gofmt all green; in-game pass confirmed ("verified
+> in-game").
+>
 > **CHUNK 3 (HoT payloads + revive) DONE + VERIFIED IN-GAME 2026-07-14.**
 > HoT scope resolved to three
 > triggers via TWO effect types (⚑ §3.7): `hot_aura` (case 1, lingering heal

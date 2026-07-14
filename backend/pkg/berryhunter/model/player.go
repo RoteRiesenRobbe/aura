@@ -53,6 +53,14 @@ type PlayerEntity interface {
 	Client() Client
 	SetAngle(a float32)
 
+	// LastMoveDir is the caster's last non-zero movement direction (a unit
+	// vector), the aim source for dash (plan-skill-vocab chunk 5) — Aura
+	// characters have no facing, so movement direction is the only aim. The
+	// input path records it; it defaults to a unit vector so a never-moved
+	// player still has a dash direction.
+	LastMoveDir() phy.Vec2f
+	SetLastMoveDir(v phy.Vec2f)
+
 	Update(dt float32)
 	OwnedEntities() BasicEntities
 
