@@ -3,7 +3,10 @@ package sys
 import (
 	"testing"
 
+	"github.com/google/flatbuffers/go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/npc"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
@@ -231,4 +234,72 @@ func TestNpcSystem_RisingEdgeAntiSpamAndReTrigger(t *testing.T) {
 	player.SetPosition(phy.Vec2f{X: 1, Y: 0})
 	step()
 	assert.Equal(t, 2, n.teachCalls, "leave + re-enter re-triggers")
+}
+
+// --- speech: EntityMessage fan-out to the sensor's players (chunk 4) ---
+
+func addPlayerCollider(space *phy.Space, p *fakePlayer, pos phy.Vec2f) *phy.Circle {
+	body := phy.NewCircle(pos, 0.5)
+	body.Shape().Layer = int(model.LayerPlayerCollision)
+	body.Shape().UserData = model.PlayerEntity(p)
+	space.AddShape(body)
+	return body
+}
+
+func sentOf(p *fakePlayer) [][]byte { return p.client.(*fakeClient).sent }
+
+// decodeEntityMessage unwraps the wire bytes NpcSystem.speak produces back into
+// the anchored entity id + text, verifying it is really an EntityMessage.
+func decodeEntityMessage(t *testing.T, b []byte) (uint64, string) {
+	t.Helper()
+	sm := BerryhunterApi.GetRootAsServerMessage(b, 0)
+	require.Equal(t, BerryhunterApi.ServerMessageBodyEntityMessage, sm.BodyType())
+	var tbl flatbuffers.Table
+	require.True(t, sm.Body(&tbl))
+	var em BerryhunterApi.EntityMessage
+	em.Init(tbl.Bytes, tbl.Pos)
+	return em.EntityId(), string(em.Message())
+}
+
+func TestNpcSystem_SpeechReachesAllSensorPlayers(t *testing.T) {
+	space := phy.NewSpace()
+
+	// A lore NPC speaks its (multi-line) lore on every approach, independent of
+	// level or grants — the cleanest way to exercise the speech path.
+	n := npc.New(phy.Vec2f{X: 0, Y: 0}, 3, nil, "",
+		[]string{"Welcome, traveler.", "Trolls up north."})
+	space.AddStaticShape(n.Bodies()[0])
+	space.AddShape(n.Sensor())
+
+	sysN := NewNpcSystem()
+	sysN.AddEntity(n)
+
+	// A bystander already standing in range; a newcomer waiting out of range.
+	bystander := newFakePlayer()
+	bystander.level = 10
+	addPlayerCollider(space, bystander, phy.Vec2f{X: 1, Y: 0})
+	newcomer := newFakePlayer()
+	newcomer.level = 10
+	newcomerBody := addPlayerCollider(space, newcomer, phy.Vec2f{X: 50, Y: 0})
+
+	step := func() { space.Update(); sysN.Update(33.0) }
+
+	// Tick 1: the bystander alone approaches -> one bubble reaches it.
+	step()
+	require.Len(t, sentOf(bystander), 1, "bystander hears the NPC on its own approach")
+	bystanderBefore := len(sentOf(bystander))
+
+	// Tick 2: the newcomer crosses in. It is the only rising edge, yet the
+	// bubble it triggers fans out to EVERY player in the sensor.
+	newcomerBody.SetPosition(phy.Vec2f{X: 2, Y: 0})
+	step()
+
+	assert.Len(t, sentOf(newcomer), 1, "newcomer hears the NPC it approached")
+	assert.Equal(t, bystanderBefore+1, len(sentOf(bystander)),
+		"bystander who did not move also hears the newcomer's bubble (fan-out to all)")
+
+	// Content: anchored on the NPC, lines newline-joined into one bubble.
+	id, msg := decodeEntityMessage(t, sentOf(newcomer)[0])
+	assert.Equal(t, n.Basic().ID(), id, "bubble anchored on the NPC entity")
+	assert.Equal(t, "Welcome, traveler.\nTrolls up north.", msg, "lines joined into one bubble")
 }

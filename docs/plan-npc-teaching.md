@@ -1,11 +1,11 @@
 # Teaching / Lore NPCs — Execution Step 5 (roadmap item 9, unlock sources)
 
 > **Status: IN PROGRESS.** Plan approved 2026-07-14. **Chunks 1–3 DONE +
-> VERIFIED + COMMITTED 2026-07-14** — chunk 1 (schema + loader + TS mirror),
-> chunk 2 (entity + placement), chunk 3 (NpcSystem grant + edge-trigger) — see
-> the chunk notes below. Execution is per-chunk in its own session, order
-> 1 → 2 → 3 → 4 → 5 → 6; **NEXT = chunk 4 (speech origination, backend) in a
-> new session.**
+> VERIFIED + COMMITTED 2026-07-14**; **chunk 4 (speech origination, backend)
+> DONE + backend-verified + COMMITTED 2026-07-14** (visible bubble deferred to
+> chunk 5 — see the chunk-4 note). Execution is per-chunk in its own session,
+> order 1 → 2 → 3 → 4 → 5 → 6; **NEXT = chunk 5 (frontend bubble hoist +
+> latest-wins + `Chat.showMessage` guard) in a new session.**
 >
 > **Scope locked with PO:** teaching/lore NPC with one-way speech only (NOT
 > branching dialogue — that stays deferred, backlog item 2). Clue anchors (#3)
@@ -220,9 +220,29 @@ if len(lines)>0: speak(npc, sensor-players, join(lines, "\n"))          // ONE c
    **VERIFIED IN-GAME 2026-07-14 by PO:** approach the Sage (4,3) → HealAura in
    spellbook + unlock glow; Dash gated (L5) → nothing; no re-grant while standing;
    walk out+back → no re-grant of known skills.
-4. **Speech origination (backend, reuses `EntityMessage`).** Fan-out to sensor
-   players; combined multi-line message; lore fallback. Verify: two nearby
-   players both see the bubble; low-level player triggers the too-low line.
+4. **Speech origination (backend, reuses `EntityMessage`). ✅ DONE +
+   BACKEND-VERIFIED + COMMITTED 2026-07-14.** The temp chunk-3 `slog
+   "npc onApproach"` in `NpcSystem.Update` is replaced by a `speak(n, lines)`
+   call. New `speak()` (`sys/npc.go`) builds ONE
+   `codec.EntityMessageFlatbufMarshal(builder, n.Basic().ID(),
+   strings.Join(lines,"\n"))` and fans it out via `p.Client().SendMessage(bytes)`
+   to every player in `n.Sensor().Collisions()` — reuses the existing chat wire
+   (no `server.fbs` change). Latest-wins is automatic (one shared `entity_id`,
+   newest `say`); the sensor ⊆ each player's viewport so the client already
+   tracks the NPC. Imports swapped `log/slog`→`flatbuffers`+`codec`.
+   **Sanity:** `go build ./...` clean; full `go test ./...` 0 fail; new
+   `sys/npc_test.go` test `TestNpcSystem_SpeechReachesAllSensorPlayers` green
+   (bystander already in range + newcomer crossing in a later tick → the
+   newcomer's bubble ALSO reaches the non-moving bystander [fan-out to all,
+   req 5]; decodes the wire back to NPC-anchored id + newline-joined text; added
+   `addPlayerCollider`/`sentOf`/`decodeEntityMessage` helpers). Booted
+   `-content ../api`: no panic, `20 *sys.NpcSystem` registered,
+   `placed npcs count=1`. **NOT YET VISIBLE IN-GAME (by design):** the NPC
+   renders as a `Resource`, which has no `say()`, so `Chat.showMessage`'s
+   `isFunction(gameObject.say)` guard silently drops the message (no crash) —
+   **the visible bubble requires chunk 5's frontend hoist.** Backend origination
+   is done, unit-verified, wire-confirmed; PO in-game verification is deferred
+   to after chunk 5 (backend-only boundary: chunks 1–4).
 5. **Frontend bubble hoist + latest-wins + `Chat.showMessage` guard.** Verify:
    bubble over the NPC's head; concurrent triggers show only newest; lore
    guard/sign-post speaks its lines.

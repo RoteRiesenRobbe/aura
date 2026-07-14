@@ -1,10 +1,11 @@
 package sys
 
 import (
-	"log/slog"
 	"strings"
 
 	"github.com/EngoEngine/ecs"
+	"github.com/google/flatbuffers/go"
+	"github.com/trichner/berryhunter/pkg/berryhunter/codec"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
@@ -14,9 +15,9 @@ import (
 // On the rising edge of a player entering an NPC's proximity sensor it runs
 // onApproach: ordered skill grants gated by player level, with a lore fallback.
 // Grants mutate the player's spellbook instantly (the client renders the unlock
-// glow from the spellbook diff — no wire event). The spoken lines are computed
-// here but not yet fanned out — chunk 4 replaces the temporary log with the
-// EntityMessage speech fan-out.
+// glow from the spellbook diff — no wire event). The returned lines are spoken
+// as one EntityMessage anchored on the NPC, fanned out to every player in its
+// sensor (reusing the existing chat wire — see speak).
 //
 // It runs at the same priority as MobSystem (20), which likewise reads its
 // aggro sensor's Collisions(): both act on the previous tick's physics
@@ -62,16 +63,35 @@ func (s *NpcSystem) Update(dt float32) {
 			}
 			lines := onApproach(n, p)
 			if len(lines) > 0 {
-				// TEMP (chunk 3 verification): grants have already landed in the
-				// player's spellbook; chunk 4 replaces this log with the
-				// EntityMessage speech fan-out to the sensor's players.
-				slog.Info("npc onApproach",
-					slog.Uint64("npc", id),
-					slog.Uint64("player", pid),
-					slog.String("lines", strings.Join(lines, " | ")))
+				// Grants have already landed in p's spellbook; now let the NPC
+				// speak the combined lines to everyone standing around it.
+				speak(n, lines)
 			}
 		}
 		s.seen[id] = current
+	}
+}
+
+// speak fans one EntityMessage anchored on the NPC out to every player currently
+// in its sensor, reusing the existing chat wire (codec.EntityMessageFlatbufMarshal
+// → Chat.showMessage → a floating bubble above the entity). The sensor is a
+// subset of each of those players' viewports, so the client already tracks the
+// NPC entity and can render the bubble (this also sidesteps the
+// Chat.showMessage throw-on-untracked bug). All near players see the same
+// message; latest-wins is automatic — every line shares the one NPC entity_id,
+// and the client shows the newest say.
+func speak(n model.NpcEntity, lines []string) {
+	builder := flatbuffers.NewBuilder(64)
+	entityMessage := codec.EntityMessageFlatbufMarshal(builder, n.Basic().ID(), strings.Join(lines, "\n"))
+	builder.Finish(entityMessage)
+	bytes := builder.FinishedBytes()
+
+	for c := range n.Sensor().Collisions() {
+		p, ok := c.Shape().UserData.(model.PlayerEntity)
+		if !ok {
+			continue
+		}
+		p.Client().SendMessage(bytes)
 	}
 }
 
