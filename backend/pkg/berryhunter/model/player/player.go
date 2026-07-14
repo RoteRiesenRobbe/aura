@@ -382,9 +382,17 @@ func (p *player) ApplyResist(source skills.SkillID, tags []string, factor float3
 
 // ApplyDot grants a damage-over-time debuff (effect foundations Step 2); it
 // runs its full authored duration independent of re-application, ticked by
-// the SkillSystem via DueDotHits.
+// the SkillSystem via DueBuffEvents.
 func (p *player) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
 	p.buffs.ApplyDot(source, dot, ticks)
+}
+
+// ApplyHot grants a heal-over-time buff (plan-skill-vocab chunk 3); it runs its
+// full authored duration independent of re-application (the linger that makes a
+// hot_aura keep healing after leaving range), ticked by the SkillSystem via
+// DueBuffEvents.
+func (p *player) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
+	p.buffs.ApplyHot(source, hot, ticks)
 }
 
 // ApplyShield grants (or tops up) an absorb pool from a shield effect
@@ -400,10 +408,10 @@ func (p *player) ShieldHP() vitals.VitalSign {
 	return vitals.VitalSign(vitals.HP(p.buffs.ShieldTotal()))
 }
 
-// DueDotHits advances and drains this tick's due dot damage events; called
-// once per tick by the SkillSystem's acting site.
-func (p *player) DueDotHits() []skills.DotHit {
-	return p.buffs.DueDotHits()
+// DueBuffEvents advances and drains this tick's due dot damage and hot heal
+// events; called once per tick by the SkillSystem's acting site.
+func (p *player) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {
+	return p.buffs.DueBuffEvents()
 }
 
 // ResetTickNumbers clears the per-tick floating-number accumulators and ages

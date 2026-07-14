@@ -955,6 +955,87 @@ func TestMap_ShieldKeysOnNonShieldEffectFails(t *testing.T) {
 	assert.ErrorContains(t, err, "shieldHP")
 }
 
+// --- hot pair + revive (plan-skill-vocab chunk 3) ---
+
+func TestParse_HotAura(t *testing.T) {
+	data := []byte(`{
+      "id": 30, "name": "Rejuvenation", "category": "active_aura", "maxLevel": 3,
+      "effects": [{"type": "hot_aura", "radius": 2, "healHP": 3, "healHPPerLevel": 1,
+                   "hotTicks": 5, "hotTickInterval": 30, "tickInterval": 10}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeHotAura, e.Type)
+	require.NotNil(t, e.Hot)
+	assert.InDelta(t, 3, e.Hot.HP, 1e-6)
+	assert.Equal(t, 5, e.Hot.TickCount)
+	assert.Equal(t, 30, e.Hot.Interval)
+	assert.InDelta(t, 5, e.Hot.HPAt(3), 1e-6, "level-scaled per-event heal")
+	assert.Equal(t, 5*30+1, e.Hot.DurationTicks(), "buff lifetime outlasts the aura cadence → lingers")
+	assert.False(t, e.Hot.TargetsSelf, "hot_aura is allies-implicit, never self")
+}
+
+func TestParse_InstantHot(t *testing.T) {
+	data := []byte(`{
+      "id": 31, "name": "Recover", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 300,
+      "effects": [{"type": "instant_hot", "radius": 2, "healHP": 4,
+                   "hotTicks": 6, "hotTickInterval": 20, "targetsSelf": true, "targetsAllies": true}]
+    }`)
+	def := mustParse(t, data)
+
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeInstantHot, e.Type)
+	require.NotNil(t, e.Hot)
+	assert.True(t, e.Hot.TargetsSelf)
+	assert.True(t, e.TargetsAllies)
+	assert.Equal(t, 6*20+1, e.Hot.DurationTicks())
+}
+
+func TestMap_HotNoHealAuthoredFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"hot_aura","radius":1,"hotTicks":3,"hotTickInterval":10}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "no heal authored")
+}
+
+func TestMap_HotWithoutCadenceFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"hot_aura","radius":1,"healHP":5}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "hotTicks")
+}
+
+func TestMap_HotKeysOnNonHotEffectFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"hotTicks":3}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "hotTicks")
+}
+
+func TestParse_Revive(t *testing.T) {
+	data := []byte(`{
+      "id": 32, "name": "Revive", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 600,
+      "effects": [{"type": "revive", "radius": 3, "reviveHealthFraction": 0.3}]
+    }`)
+	def := mustParse(t, data)
+
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeRevive, e.Type)
+	require.NotNil(t, e.Revive)
+	assert.InDelta(t, 0.3, e.Revive.HealthFraction, 1e-6)
+}
+
+func TestMap_ReviveFractionOutOfBoundsFails(t *testing.T) {
+	for _, frac := range []string{"0", "-0.1", "1.5"} {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":10,"effects":[{"type":"revive","radius":3,"reviveHealthFraction":` + frac + `}]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		assert.ErrorContains(t, err, "reviveHealthFraction", "fraction %s must fail", frac)
+	}
+}
+
 // --- cast-time skill-def fields (plan-skill-vocab chunk 4) ---
 
 func TestParse_CastTicks(t *testing.T) {

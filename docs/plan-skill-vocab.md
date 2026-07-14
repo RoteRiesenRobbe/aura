@@ -6,6 +6,43 @@
 > per-entity effective fields + interval must be manipulable → haste seam;
 > chunk order 1 → 2 → 4 → 3 → 5 → 6).
 >
+> **CHUNK 3 (HoT payloads + revive) DONE + VERIFIED IN-GAME 2026-07-14.**
+> HoT scope resolved to three
+> triggers via TWO effect types (⚑ §3.7): `hot_aura` (case 1, lingering heal
+> after leaving range — reuses the dot-linger machinery: buff duration
+> outlasts the aura re-apply cadence) + `instant_hot` (cases 2+3, self via
+> `targetsSelf` / gift-to-allies via `targetsAllies`, mirrors instant_shield).
+> Shipped: buff store `hotPayload`/`HotBuff`/`HotEvent` + `ApplyHot` (dot twin,
+> keyed by HP, refresh keeps the acting accumulator); drain generalized
+> `DueDotHits` → `DueBuffEvents() ([]DotHit, []HotEvent)` and
+> `SkillSystem.tickDots` → `tickBuffEvents` (one pass, dots then hots — the
+> single tick-order story); `tickHotEvents` heals `e` via `model.Healable.Heal`
+> with heal-aura-style attribution from the buff POV (NoteHealedBy,
+> creditHealerThreat, combat-gate on in-combat target); effect types
+> `hot_aura`+`instant_hot`+`revive` (17 → 20) with `HotParams`/`ReviveParams`,
+> effectKeys (`keysHotPayload` reuses healHP/variance + hotTicks/hotTickInterval;
+> revive = geometry + reviveHealthFraction), validators; `applyHotAura`
+> (wounded-ally implicit predicate, no self-cost, buff lingers) + `applyInstantHot`
+> (instant_shield twin) + `hotBuffable` seam; `revive` effect: Viewport-mask
+> `nearestCorpseID` query → precondition (no corpse = `ActivationRejectedNoTarget`,
+> reason 2, no cd) at activation AND cast completion → `applyRevive` →
+> **ConnState extended with `ReviveAtCorpse(corpseID, healthFraction)`**
+> (state.go: reverse-lookup dead marker by corpse ID, consume like tryRespawn but
+> destination = corpse + partial HP; disconnect/respawn race no-ops). AuraMaskFor
+> covers hot_aura. NO new wire (heals ride floating numbers; rejection reason 2
+> already reserved chunk 4; death overlay dismiss is FREE — revive sends the same
+> Accept as respawn → `EndScreen.hide()`). Content: **Rejuvenation** (hot_aura, id
+> 29, active_aura), **Recover** (instant_hot self+allies, id 31, cooldown ~18 s),
+> **Revive** (revive, id 32, cooldown, castTicks 150 = second cast-time consumer +
+> castInterruptedByDamage) — all cheat-granted, no milestone; registry pin 29 → 32.
+> Frontend: Skills.ts × 3 (+ `REJUVENATION_AURA_SKILL_ID` heal-ring in Character.ts).
+> ~20 new tests (buff store hot cadence/linger/refresh/drain-together; parse+validate;
+> applyHotAura wounded/self/linger-duration; instant_hot self+ally; tickHotEvents
+> heal+participation+combat; revive state consume/partial-HP/unknown/disconnect-race;
+> revive dispatch no-corpse-rejects/fires-at-nearest). Suite + `go build` +
+> tsc/webpack + boot smoke both content sources (32 skills) all green;
+> in-game pass confirmed ("verified ingame and working").
+>
 > **CHUNK 4 (cast-time + interrupt + Recall) DONE + VERIFIED IN-GAME
 > 2026-07-14** ("successfully tested, works as intended" — full checklist
 > passed incl. no-smear teleport). Chunk-start decisions (supersede §3.4/§3.5 where they
@@ -133,7 +170,7 @@
 | Execute, berserker | damage-payload fields (F2: plain optional fields) | none |
 | Crit | damage-payload fields | RNG gate resolved at review (§4.3): sanctioned upside-only RNG |
 | Shield layer | buff payload + absorb step in both `takeDamage` sites + wire + HUD | F6 record (§4.2) — effect-foundations Step 4 |
-| Heal-over-time | buff payload (inverse of the shipped dot) + cooldown consumer | none — E1-compliant recovery building block (GDD §3) |
+| Heal-over-time | buff payload (inverse of the shipped dot) + aura & cooldown consumers (leaving-aura linger / self / gift — §3.7) | none — E1-compliant recovery building block (GDD §3) |
 | Revive effect type | new effect targeting a DEAD player | consumes step 3's death state |
 | Cast-time + interrupt | new activation primitive on cooldown skills | none — **Recall** is the first consumer |
 | Recall | cooldown skill: teleport to campfire anchor | reuses step 3's anchor tracker (backlog item 9) |
@@ -394,27 +431,71 @@ Proposal, resolving the backlog's open questions:
   `castTicks`, as the second cast-time consumer (chunk 4 lands first per
   the §4.6 order decision).
 
-### 3.7 HoT payload shape (chunk 3 detail)
+### 3.7 HoT payload shape (chunk 3 detail) — ⚑ SCOPE RESOLVED 2026-07-14
 
-- `hotPayload` in `skills.Buffs`, mirroring dot 1:1: HP per event ×
-  interval × duration, caster ref for attribution, acting accumulator
-  advanced by the same drain site (rename `tickDots` →
-  `tickBuffEvents`; one drain returning dot hits + hot hits keeps the
-  tick-order story single). Per-source strongest-wins like dot.
-- Heals apply via `model.Healable.Heal` → floating numbers + clamping
-  free. Attribution mirrors the heal aura: player-healer × player-target →
-  `NoteHealedBy` (participation); healer threat via `creditHealerThreat`
-  per landed event (the campfire-threat gate already guards fixtures).
-  Combat gate: a hot EVENT on an in-combat target stamps the caster only
-  if the caster is a `CombatActor` — same divergence-accepting rule as
-  dot.
-- Effect types: `hot_aura` (cadenced applier, heal-aura-style implicit
-  ally targeting + wounded-only) and `self_hot` (cooldown, self-target —
-  **the personal recovery cooldown's mechanical form**, GDD §3: recovery
-  over ~15–20 s, nothing instant). Both are thin over the payload.
-  ⚑ Confirm both ship, or `self_hot` only (the named consumer) — lean:
-  both; `hot_aura` is ~30 lines given the applier templates and campfires
-  may want it in the content pass.
+HoT covers **three trigger cases** (2026-07-14 decision), all delivering the
+**same** heal-over-time buff — they differ only in how it is applied:
+
+1. **HoT when leaving an aura** — a `hot_aura` re-applies the buff each aura
+   tick to allies in range; the buff's duration outlasts the aura's tick
+   interval, so it keeps ticking after the target walks out. This is the
+   shipped dot-linger machinery inverted (`dot_aura` already "keeps ticking
+   after the target leaves the aura or the caster is gone") — no exit
+   detection needed; leaving simply stops the refresh and the remaining
+   duration counts down.
+2. **HoT on yourself** — `instant_hot` with `targetsSelf` (the GDD §3 personal
+   recovery cooldown: recovery over ~15–20 s, nothing instant).
+3. **HoT on others via a one-time cooldown** — the **same** `instant_hot` with
+   `targetsAllies` (allies in range get the buff once).
+
+Cases 2 + 3 collapse into ONE `instant_hot` effect type via the
+`targetsSelf` / `targetsAllies` flags — the exact parallel to the shipped
+`instant_shield` (decided 2026-07-14, ⚑ resolved). Two new HoT effect types
+total: `hot_aura` + `instant_hot` (was `hot_aura` + `self_hot`).
+
+**Buff store (`skills/buffs.go`), mirroring dot 1:1:**
+
+- `hotPayload{hot HotBuff, age int}` — `HotBuff{HP, Variance, Interval,
+  Caster}` (**no Tags** — heals are not mitigated by resistances). Streams
+  keyed by per-event HP; same per-source strongest-wins + refresh rules as
+  `ApplyDot` — a refresh resets remaining duration but does **not** reset the
+  acting `age` accumulator, so an aura refreshing every tick can't starve a
+  slower heal cadence (case 1 relies on exactly this).
+- Drain generalization: `DueDotHits` → `DueBuffEvents() ([]DotHit, []HotEvent)`
+  — one pass advances BOTH dot and hot accumulators, keeping the tick-order
+  story single. `SkillSystem.tickDots` → `tickBuffEvents` accordingly.
+- `HotEvent{HP, Variance, Caster}` returned to the acting site.
+
+**Acting (`tickBuffEvents`):** dot events keep the `PlayerTouches` /
+`MobTouches` damage path; hot events heal `e` via `model.Healable.Heal`
+(clamp + floating heal number free) with the buff's `Caster` as healer.
+Attribution mirrors the heal aura from the buff's POV (target = `e`, healer =
+`Caster`): player-healer × player-target → `NoteHealedBy`;
+`creditHealerThreat(e.ID, healer, healed)` per landed event (the
+campfire-threat gate already guards fixtures); combat gate stamps the caster
+only if `e.InCombat()` AND the caster is a `CombatActor` — the same
+divergence-accepting rule as dot.
+
+**Effect types + params:**
+
+- `HotParams{HP, HPPerLevel, Variance, TickCount, Interval, TargetsSelf}` +
+  `DurationTicks() = TickCount*Interval + 1` (the dot lifetime convention).
+- `hot_aura` (`applyHotAura`): cadenced applier reusing heal_aura's implicit
+  same-faction, wounded-only, never-self predicate (allies only — self-HoT is
+  case 2's cooldown). No self-cost on the smoke skill (self-cost is a build
+  lever, authored in step 6). NOTE: while a target sits at full HP in range
+  the wounded-only gate skips re-application, so its buff can begin counting
+  down before it leaves — accepted v1 behavior (mirrors heal_aura's
+  wounded-only cadence).
+- `instant_hot` (`applyInstantHot`): cooldown burst mirroring
+  `applyInstantShield` — `targetsSelf` self-apply (counts as a hit, like
+  Barrier) plus an ally query circle gated by `targetsAllies` /
+  `eligibleByTargetFlags`. Self-only recovery = `targetsSelf` alone;
+  gift-to-others = `targetsAllies`.
+
+**No new wire** — heals ride `Heal` → floating numbers; buff visibility
+(icons/timers) stays deferred to step 8. `hotBuffable` (`ApplyHot`) on both
+players and mobs, like `dotBuffable`.
 
 ### 3.8 Dash shape (chunk 5 detail)
 
@@ -624,28 +705,38 @@ doc's banner on completion.
 
 ### Chunk 3 — HoT payloads + revive
 
-- `hotPayload` + `ApplyHot` + drain-site generalization (`tickDots` →
-  `tickBuffEvents`) per §3.7; effect types `hot_aura` + `self_hot` (⚑
-  §3.7 scope confirm).
+- `hotPayload` + `HotBuff` / `HotEvent` + `ApplyHot` in `skills.Buffs`
+  mirroring dot; drain-site generalization `DueDotHits` → `DueBuffEvents()
+  ([]DotHit, []HotEvent)` and `tickDots` → `tickBuffEvents` (§3.7);
+  `hotBuffable` seam.
+- Effect types `hot_aura` (`applyHotAura`, reuses heal_aura's wounded-ally
+  predicate) + `instant_hot` (`applyInstantHot`, mirrors `applyInstantShield`
+  — `targetsSelf` + `targetsAllies`) + `HotParams` + effectKeys / validators /
+  parse. Covers all three HoT cases (§3.7): leaving-aura linger,
+  self-recovery, gift-to-others (⚑ RESOLVED 2026-07-14).
 - `revive` effect type per §3.6: Viewport-mask corpse query, nearest-1;
-  `ReviveAtCorpse` on the chunk-4 seam; player rebuilt at corpse with
-  [PLACEHOLDER 30%] HP.
-- Content (smoke): `Recover` self_hot cooldown (the personal recovery
-  cooldown's mechanical placeholder — theme lands in step 6) +
-  throwaway `Revive` cooldown (optionally with castTicks — second
-  cast-time consumer).
+  `ReviveAtCorpse` on the chunk-4 `ConnState` seam; player rebuilt at corpse
+  with [PLACEHOLDER 30%] HP; no-corpse-in-range → rejected activation
+  (reason enum 2 = no valid target, already reserved in chunk 4).
+- Content (smoke): `Rejuvenation` hot_aura (case 1 — lingering heal) +
+  `Recover` instant_hot `targetsSelf`+`targetsAllies` (cases 2+3 in one
+  cheat-granted skill — the personal recovery cooldown's mechanical
+  placeholder; the REAL one in step 6 is self-only) + throwaway `Revive`
+  cooldown (optionally with castTicks — second cast-time consumer).
+  [PLACEHOLDER ids; count pin 29 → 32.]
 - Frontend: death-overlay dismissal on server-initiated revive (§3.6 —
-  verify-first, may be free); Skills.ts entries.
-- Tests: hot event cadence/duration/strongest-wins; Heal-clamping +
-  floating numbers; healer-threat + NoteHealedBy on hot events; revive
-  consumes the dead marker (name kept, progression restored, corpse +
-  spectator removed, position = corpse, HP fraction); no corpse in range
-  → rejected activation (no cd consumed, reason on the wire — §3.6);
-  disconnect race no-ops.
-- In-game: Recover visibly ticks health over ~15–20 s and stops when
-  re-entering combat is irrelevant (hot persists — verify GDD E1 posture
-  reads OK); second client dies → revive → overlay dismisses, corpse
-  gone, name kept.
+  verify-first, may be free); Skills.ts entries per new skill.
+- Tests: hot event cadence/duration/strongest-wins + refresh-keeps-accumulator;
+  Heal-clamping + floating numbers; healer-threat + NoteHealedBy on hot events;
+  **hot_aura lingers after leaving range** (buff outlives the aura tick);
+  instant_hot self + ally application; revive consumes the dead marker (name
+  kept, progression restored, corpse + spectator removed, position = corpse, HP
+  fraction); no corpse in range → rejected activation (no cd consumed, reason on
+  the wire — §3.6); disconnect race no-ops.
+- In-game: stand in Rejuvenation while wounded → heal ticks; walk out → the HoT
+  keeps ticking a few seconds, then fades (case 1); Recover ticks own health
+  over ~15–20 s and also heals a nearby wounded ally (cases 2+3); second client
+  dies → Revive → overlay dismisses, corpse gone, name kept.
 
 ### Chunk 5 — dash
 
@@ -712,7 +803,7 @@ untouched — cast activation rides the existing cooldown activation).
 | GameState | `activation_rejected_skill_id:ushort`, `activation_rejected_reason:ubyte` | 4 |
 | Character + Mob | `aura_tick_interval:ushort`, `aura_tick_phase:ushort` | 6 |
 
-New effect types: `shield_aura`, `instant_shield`, `hot_aura`, `self_hot`,
+New effect types: `shield_aura`, `instant_shield`, `hot_aura`, `instant_hot`,
 `revive`, `recall`, `dash` (14 → 21; +1 if chunk 6's smoke haste needs its
 own type). New skill-def field: `castTicks`. New buff payloads: shield,
 hot, tick_rate (3 → 6). New model fields: `Damage.Lifesteal`,

@@ -29,7 +29,7 @@ func AuraMaskFor(def *skills.SkillDefinition) int {
 			if e.TargetsStructures {
 				mask |= LayerPlaceableCollision
 			}
-		case skills.EffectTypeHealAura:
+		case skills.EffectTypeHealAura, skills.EffectTypeHotAura:
 			mask |= LayerCombatants
 		}
 	}

@@ -49,6 +49,9 @@ const (
 	EffectTypeShieldAura
 	EffectTypeInstantShield
 	EffectTypeRecall
+	EffectTypeHotAura
+	EffectTypeInstantHot
+	EffectTypeRevive
 )
 
 var effectTypeMap = map[string]EffectType{
@@ -69,6 +72,9 @@ var effectTypeMap = map[string]EffectType{
 	"shield_aura":     EffectTypeShieldAura,
 	"instant_shield":  EffectTypeInstantShield,
 	"recall":          EffectTypeRecall,
+	"hot_aura":        EffectTypeHotAura,
+	"instant_hot":     EffectTypeInstantHot,
+	"revive":          EffectTypeRevive,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -183,6 +189,8 @@ type EffectDef struct {
 	Spawn    *SpawnParams    // spawn
 	Threat   *ThreatParams   // taunt, detaunt
 	Shield   *ShieldParams   // shield_aura, instant_shield
+	Hot      *HotParams      // hot_aura, instant_hot
+	Revive   *ReviveParams   // revive
 }
 
 // ThreatParams is the taunt / detaunt payload (mob-depth chunk 7). Margin is
@@ -396,6 +404,45 @@ func (p *DotParams) DurationTicks() int {
 	return p.TickCount*p.Interval + 1
 }
 
+// HotParams is the hot_aura / instant_hot payload (plan-skill-vocab chunk 3):
+// the DotParams twin, but restoring HP instead of dealing it and carrying no
+// damage tags (heals are not mitigated). hot_aura re-applies it every effect
+// tick to wounded allies in range — the buff's own duration outlasts the aura
+// cadence, so it keeps healing after the target leaves range (case 1). The
+// instant_hot cooldown applies it once to the caster (TargetsSelf) and/or
+// allies in range (TargetsAllies) — cases 2 and 3.
+type HotParams struct {
+	HP         float32
+	HPPerLevel float32
+
+	Variance float32
+
+	TickCount int // number of heal events per application
+	Interval  int // game ticks between events
+
+	TargetsSelf bool // instant_hot: also heals the caster (aura form is allies-implicit)
+}
+
+// HPAt is the level-scaled per-event heal center in absolute HP
+// (pre-variance-roll).
+func (p *HotParams) HPAt(level int) float32 {
+	return Scaled(p.HP, p.HPPerLevel, level)
+}
+
+// DurationTicks is the buff lifetime of one application (the DotParams rule).
+func (p *HotParams) DurationTicks() int {
+	return p.TickCount*p.Interval + 1
+}
+
+// ReviveParams is the revive payload (plan-skill-vocab §3.6): a cooldown-fired
+// query circle (Radius/RadiusPerLevel on the effect) that collects the nearest
+// player corpse and rebuilds its owner at the corpse with HealthFraction of max
+// HP. No target flags — corpses sit on the Viewport layer, reached by a
+// dedicated mask.
+type ReviveParams struct {
+	HealthFraction float32
+}
+
 // SpawnParams is the spawn payload (effect foundations Step 3 / mob-depth
 // chunk 1): a cooldown-fired summon of an owned, caster-aligned mob. Two
 // scaling sources compose (chunk-1 decision): the SUMMON SKILL's level scales
@@ -539,6 +586,11 @@ type effectDef struct {
 	ShieldHP            float32 `json:"shieldHP"`
 	ShieldHPPerLevel    float32 `json:"shieldHPPerLevel"`
 	ShieldDurationTicks int     `json:"shieldDurationTicks"` // instant_shield only
+
+	HotTicks        int `json:"hotTicks"`        // heal events per hot application
+	HotTickInterval int `json:"hotTickInterval"` // game ticks between hot events
+
+	ReviveHealthFraction float32 `json:"reviveHealthFraction"` // revive: fraction of max HP restored
 }
 
 type skillDefinition struct {
@@ -575,6 +627,9 @@ var (
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
 	keysDotPayload    = []string{"damageHP", "damageHPPerLevel", "damageTags", "variance", "dotTicks", "dotTickInterval"}
 	keysShieldPayload = []string{"shieldHP", "shieldHPPerLevel"}
+	// Hot reuses the heal HP/variance keys (heal HP is heal HP) plus its own
+	// cadence, the dot twin (plan-skill-vocab chunk 3).
+	keysHotPayload = []string{"healHP", "healHPPerLevel", "variance", "hotTicks", "hotTickInterval"}
 )
 
 // effectKeys lists every JSON key each effect type actually reads (besides
@@ -624,6 +679,18 @@ var effectKeys = map[EffectType][]string{
 	// campfire anchor (ConnectionStateSystem), the cast time is a skill-def
 	// field. Any key beyond "type" hard-fails.
 	EffectTypeRecall: {},
+	// Hot pair (chunk 3), mirroring the shield pair's shape. The aura form is
+	// allies-implicit (no target flags, like heal_aura) and derives its
+	// re-apply cadence from keysCadence; the instant form carries the target
+	// flags + targetsSelf like instant_shield. Both author the buff's own
+	// heal cadence (hotTicks/hotTickInterval).
+	EffectTypeHotAura: mergeKeys(keysGeometry, keysCadence, keysCapped, keysHotPayload),
+	EffectTypeInstantHot: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
+		keysHotPayload, []string{"targetsSelf"}),
+	// Revive (chunk 3): a query circle (geometry) of player corpses + the
+	// fraction of max HP the revived player returns with. Corpses carry no
+	// faction, so no target flags.
+	EffectTypeRevive: mergeKeys(keysGeometry, []string{"reviveHealthFraction"}),
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -787,6 +854,10 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Threat = &ThreatParams{} // single-entry removal, no margin
 	case EffectTypeShieldAura, EffectTypeInstantShield:
 		def.Shield, err = e.shieldParams(effectType)
+	case EffectTypeHotAura, EffectTypeInstantHot:
+		def.Hot, err = e.hotParams()
+	case EffectTypeRevive:
+		def.Revive, err = e.reviveParams()
 	}
 	if err != nil {
 		return EffectDef{}, err
@@ -977,6 +1048,43 @@ func (e *effectDef) shieldParams(effectType EffectType) (*ShieldParams, error) {
 		DurationTicks: e.ShieldDurationTicks,
 		TargetsSelf:   e.TargetsSelf,
 	}, nil
+}
+
+// hotParams builds the hot payload, the dotParams twin: the cadence fields are
+// required (a hot with no events or no spacing is unauthorable rather than a
+// silent no-op) and some heal must be authored. No tags — heals aren't
+// mitigated.
+func (e *effectDef) hotParams() (*HotParams, error) {
+	if err := validateVariance(e.Variance); err != nil {
+		return nil, err
+	}
+	if e.HealHP == 0 && e.HealHPPerLevel == 0 {
+		return nil, fmt.Errorf("hot: no heal authored (healHP and healHPPerLevel both 0)")
+	}
+	if e.HotTicks < 1 {
+		return nil, fmt.Errorf("hotTicks: must be >= 1, got %v", e.HotTicks)
+	}
+	if e.HotTickInterval < 1 {
+		return nil, fmt.Errorf("hotTickInterval: must be >= 1, got %v", e.HotTickInterval)
+	}
+	return &HotParams{
+		HP:          e.HealHP,
+		HPPerLevel:  e.HealHPPerLevel,
+		Variance:    e.Variance,
+		TickCount:   e.HotTicks,
+		Interval:    e.HotTickInterval,
+		TargetsSelf: e.TargetsSelf,
+	}, nil
+}
+
+// reviveParams builds the revive payload. The health fraction is required and
+// must land in (0, 1] — a 0 revive spawns an instantly-dead player, a > 1 one
+// overheals past max.
+func (e *effectDef) reviveParams() (*ReviveParams, error) {
+	if e.ReviveHealthFraction <= 0 || e.ReviveHealthFraction > 1 {
+		return nil, fmt.Errorf("reviveHealthFraction: must be in (0, 1], got %v", e.ReviveHealthFraction)
+	}
+	return &ReviveParams{HealthFraction: e.ReviveHealthFraction}, nil
 }
 
 // tauntParams builds the taunt payload. Margin must be strictly positive — a

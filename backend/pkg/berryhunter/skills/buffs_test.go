@@ -128,10 +128,18 @@ func TestBuffs_SlowExpiresOnItsOwnLifetime(t *testing.T) {
 
 // cycleDot advances one game tick like the real loop: aging at tick start
 // (StatusEffectsSystem → ResetTickNumbers → Tick), acting at SkillSystem time
-// (DueDotHits). Returns the hits due this tick.
+// (DueBuffEvents). Returns the dot hits due this tick.
 func cycleDot(b *Buffs) []DotHit {
 	b.Tick()
-	return b.DueDotHits()
+	dots, _ := b.DueBuffEvents()
+	return dots
+}
+
+// cycleHot is cycleDot's twin for heal-over-time events.
+func cycleHot(b *Buffs) []HotEvent {
+	b.Tick()
+	_, hots := b.DueBuffEvents()
+	return hots
 }
 
 func TestBuffs_DotFiresPerIntervalForItsTickCount(t *testing.T) {
@@ -225,6 +233,110 @@ func TestBuffs_DotCarriesCasterThroughRefresh(t *testing.T) {
 	hits := cycleDot(&b)
 	assert.Len(t, hits, 1)
 	assert.Equal(t, "bob", hits[0].Caster)
+}
+
+// --- hot payload (heal-over-time, the dot twin — plan-skill-vocab §3.7) ---
+
+func TestBuffs_HotFiresPerIntervalForItsTickCount(t *testing.T) {
+	var b Buffs
+	// 3 heal events, one every 10 game ticks; lifetime 3*10+1 covers the tick
+	// boundary like every aura-applied buff.
+	b.ApplyHot(5, HotBuff{HP: 4, Interval: 10}, 31)
+
+	var events []HotEvent
+	for i := 0; i < 40; i++ {
+		events = append(events, cycleHot(&b)...)
+	}
+	assert.Len(t, events, 3, "exactly the authored number of hot ticks, then expiry")
+	assert.InDelta(t, 4, events[0].HP, 1e-6)
+}
+
+func TestBuffs_HotOutlivesReapplication(t *testing.T) {
+	// Case 1 (HoT when leaving an aura): a hot_aura re-applies every tick while
+	// in range, but once the target leaves, the un-refreshed hot keeps ticking
+	// down its remaining duration.
+	var b Buffs
+	b.ApplyHot(5, HotBuff{HP: 4, Interval: 10}, 31)
+
+	var events []HotEvent
+	for i := 0; i < 5; i++ {
+		events = append(events, cycleHot(&b)...)
+		b.ApplyHot(5, HotBuff{HP: 4, Interval: 10}, 31) // still in range
+	}
+	for i := 0; i < 40; i++ { // left the aura
+		events = append(events, cycleHot(&b)...)
+	}
+	assert.Len(t, events, 3, "full hot ran after leaving the aura")
+}
+
+func TestBuffs_HotRefreshKeepsAccumulatorRunning(t *testing.T) {
+	// Re-application within the hot's interval must not reset the acting
+	// accumulator — otherwise an aura refreshing every tick would starve a
+	// slower heal cadence forever (the dot invariant, mirrored).
+	var b Buffs
+	b.ApplyHot(5, HotBuff{HP: 4, Interval: 10}, 31)
+
+	var events []HotEvent
+	for i := 0; i < 10; i++ {
+		events = append(events, cycleHot(&b)...)
+		b.ApplyHot(5, HotBuff{HP: 4, Interval: 10}, 31)
+	}
+	assert.Len(t, events, 1, "first event fires one full interval after application despite per-tick refreshes")
+}
+
+func TestBuffs_HotSameSkillStrongestActs(t *testing.T) {
+	// Same skill never stacks with itself: only the strongest active hot heals;
+	// when it expires the weaker one takes over on its own cadence.
+	var b Buffs
+	b.ApplyHot(5, HotBuff{HP: 8, Interval: 10}, 11) // stronger, 1 event left
+	b.ApplyHot(5, HotBuff{HP: 4, Interval: 10}, 31) // weaker, full duration
+
+	var events []HotEvent
+	for i := 0; i < 40; i++ {
+		events = append(events, cycleHot(&b)...)
+	}
+	assert.Len(t, events, 3)
+	assert.InDelta(t, 8, events[0].HP, 1e-6, "strongest active stream heals first")
+	assert.InDelta(t, 4, events[1].HP, 1e-6, "weaker stream takes over after the stronger expired")
+}
+
+func TestBuffs_HotDistinctSkillsBothAct(t *testing.T) {
+	var b Buffs
+	b.ApplyHot(5, HotBuff{HP: 4, Interval: 10}, 11)
+	b.ApplyHot(22, HotBuff{HP: 6, Interval: 10}, 11)
+
+	var events []HotEvent
+	for i := 0; i < 15; i++ {
+		events = append(events, cycleHot(&b)...)
+	}
+	assert.Len(t, events, 2, "distinct source skills are distinct hots")
+}
+
+func TestBuffs_HotCarriesCasterThroughRefresh(t *testing.T) {
+	// The caster reference rides the payload for attribution (healer threat,
+	// participation); a refresh hands the stream to the latest caster.
+	var b Buffs
+	b.ApplyHot(5, HotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2)
+	b.ApplyHot(5, HotBuff{HP: 4, Interval: 1, Caster: "bob"}, 2)
+
+	events := cycleHot(&b)
+	assert.Len(t, events, 1)
+	assert.Equal(t, "bob", events[0].Caster)
+}
+
+func TestBuffs_DotAndHotDrainTogether(t *testing.T) {
+	// One drain returns both a due dot and a due hot (the single tick-order
+	// story, §3.7): distinct source skills, same interval.
+	var b Buffs
+	b.ApplyDot(5, DotBuff{HP: 4, Interval: 1}, 3)
+	b.ApplyHot(6, HotBuff{HP: 7, Interval: 1}, 3)
+
+	b.Tick()
+	dots, hots := b.DueBuffEvents()
+	assert.Len(t, dots, 1)
+	assert.Len(t, hots, 1)
+	assert.InDelta(t, 4, dots[0].HP, 1e-6)
+	assert.InDelta(t, 7, hots[0].HP, 1e-6)
 }
 
 // --- shield payload (absorb pool, plan-skill-vocab chunk 2 §3.2) ---

@@ -390,7 +390,8 @@ func TestDeathRespawn_RetainsSpellbookAndProgression(t *testing.T) {
 	// Death cleared the buff store: no resist, no still-burning dot.
 	assert.InDelta(t, 1.0, respawned.buffs.ResistMultiplier([]string{"fire"}), 1e-6,
 		"resist buffs do not survive respawn")
-	assert.Empty(t, respawned.buffs.DueDotHits(), "dot debuffs do not survive respawn")
+	respawnedDots, _ := respawned.buffs.DueBuffEvents()
+	assert.Empty(t, respawnedDots, "dot debuffs do not survive respawn")
 }
 
 func TestAddExperience_DiscoverIdempotent(t *testing.T) {

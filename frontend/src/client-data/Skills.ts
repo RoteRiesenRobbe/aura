@@ -20,7 +20,10 @@ export const SkillNames: { [id: number]: string } = {
     26: 'Fade',
     27: 'Barrier',
     28: 'Recall',
+    29: 'Rejuvenation',
     30: 'Paladin Aura',
+    31: 'Recover',
+    32: 'Revive',
     40: 'Fire Ward',
 };
 
@@ -49,7 +52,10 @@ export const SkillMaxLevels: { [id: number]: number } = {
     26: 3,
     27: 3,
     28: 1,
+    29: 3,
     30: 5,
+    31: 1,
+    32: 1,
     40: 3,
 };
 
@@ -80,7 +86,10 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     26: 'cooldown',
     27: 'cooldown',
     28: 'cooldown',
+    29: 'aura',
     30: 'aura',
+    31: 'cooldown',
+    32: 'cooldown',
     40: 'aura',
 };
 
@@ -110,3 +119,5 @@ export const HEAL_AURA_SKILL_ID = 2;
 export const PALADIN_AURA_SKILL_ID = 30;
 // FireWard is a support (resist) aura — it shows the heal-style ring (item 11 Phase 2).
 export const FIRE_WARD_SKILL_ID = 40;
+// Rejuvenation is a support (heal-over-time) aura — heal-style ring (chunk 3).
+export const REJUVENATION_AURA_SKILL_ID = 29;

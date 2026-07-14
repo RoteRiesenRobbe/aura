@@ -29,7 +29,7 @@ import {spatialAudio} from '../../audio/logic/SpatialAudio';
 import {swingLightAudioCues} from '../../player/logic/PlayerJuice';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
-import {FIRE_WARD_SKILL_ID, HEAL_AURA_SKILL_ID, PALADIN_AURA_SKILL_ID} from '../../../client-data/Skills';
+import {FIRE_WARD_SKILL_ID, HEAL_AURA_SKILL_ID, PALADIN_AURA_SKILL_ID, REJUVENATION_AURA_SKILL_ID} from '../../../client-data/Skills';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -318,7 +318,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         // support auras (heal, FireWard resist) show only the heal-style ring;
         // everything else shows the damage ring.
         const isPaladin = skillId === PALADIN_AURA_SKILL_ID;
-        const isSupport = skillId === HEAL_AURA_SKILL_ID || skillId === FIRE_WARD_SKILL_ID;
+        const isSupport = skillId === HEAL_AURA_SKILL_ID || skillId === FIRE_WARD_SKILL_ID || skillId === REJUVENATION_AURA_SKILL_ID;
         this.damageAuraSprite.visible = skillId !== 0 && !isSupport;
         this.healAuraSprite.visible = isSupport || isPaladin;
     }

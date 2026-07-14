@@ -1,0 +1,19 @@
+{
+  "_comment": "Skill-vocab chunk 3 smoke content (HoT case 1): a healing AURA whose heal-over-time lingers on allies after they leave range. The buff duration (hotTicks*hotTickInterval) outlasts the aura re-apply cadence (tickInterval), so walking out keeps the HoT ticking. Cheat-granted (SKILL Rejuvenation), no milestone. All values [PLACEHOLDER].",
+  "id": 29,
+  "name": "Rejuvenation",
+  "category": "active_aura",
+  "maxLevel": 3,
+  "effects": [
+    {
+      "type": "hot_aura",
+      "radius": 2.5,
+      "radiusPerLevel": 0.2,
+      "healHP": 2,
+      "healHPPerLevel": 1,
+      "hotTicks": 6,
+      "hotTickInterval": 30,
+      "tickInterval": 30
+    }
+  ]
+}

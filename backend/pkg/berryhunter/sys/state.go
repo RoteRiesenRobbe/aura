@@ -15,6 +15,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/corpse"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/player"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/spectator"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
@@ -297,6 +298,65 @@ func jitterAround(pos phy.Vec2f, radius float32) phy.Vec2f {
 func (s *ConnectionStateSystem) AnchorOf(id uuid.UUID) (phy.Vec2f, bool) {
 	anchor, ok := s.anchors[id]
 	return anchor, ok
+}
+
+// ReviveAtCorpse is the ConnState seam behind the revive effect (plan-skill-vocab
+// §3.6): it consumes the dead marker whose corpse has the given entity ID —
+// exactly like tryRespawn, but the destination is the corpse (that is the whole
+// point of a revive, not the campfire) and the player returns at healthFraction
+// of max HP instead of full. Reports false when no such corpse is waiting: the
+// dead client already respawned or disconnected between the caster's query and
+// this call (a benign same-tick race; the losing path no-ops).
+func (s *ConnectionStateSystem) ReviveAtCorpse(corpseID uint64, healthFraction float32) bool {
+	var clientUUID uuid.UUID
+	var dead deadState
+	found := false
+	for id, d := range s.deadByClient {
+		if d.corpse.Basic().ID() == corpseID {
+			clientUUID, dead, found = id, d, true
+			break
+		}
+	}
+	if !found {
+		return false
+	}
+	sp := s.spectatorByClient(clientUUID)
+	if sp == nil {
+		return false // corpse without a waiting spectator — mid-teardown, no-op
+	}
+	client := sp.Client()
+
+	// Consume the marker BEFORE removing the spectator (the tryRespawn ordering
+	// rule): the removal fan-out's disconnect-while-dead cleanup must find
+	// nothing, or it would free the name and corpse mid-revive.
+	delete(s.deadByClient, clientUUID)
+
+	corpsePos := dead.corpse.Position()
+	s.game.RemoveEntity(sp.Basic())
+	s.game.RemoveEntity(dead.corpse.Basic())
+
+	log.Printf("✨ '%s' was revived!", dead.name)
+	sendAcceptMessage(client)
+
+	p := player.New(s.game, client, dead.name)
+	p.SetProgression(dead.progression)
+	p.SetSkillComponent(dead.skills)
+	p.SetPosition(corpsePos)
+	// Partial revive: set health AFTER progression/skills so MaxHealth reflects
+	// the restored loadout.
+	p.VitalSigns().Health = vitals.VitalSign(float32(p.MaxHealth()) * healthFraction)
+	s.game.AddEntity(p)
+	return true
+}
+
+// spectatorByClient finds the waiting spectator for a client UUID, or nil.
+func (s *ConnectionStateSystem) spectatorByClient(id uuid.UUID) model.Spectator {
+	for _, sp := range s.spectators {
+		if sp.Client().UUID() == id {
+			return sp
+		}
+	}
+	return nil
 }
 
 // trackCampfireDwell advances each player's bind progress: campfireDwellTicks

@@ -20,7 +20,7 @@ import "sort"
 // Lifecycle: Tick() ages every entry once per game tick, called on the
 // ResetTickNumbers hook (StatusEffectsSystem, tick start) — pure aging only.
 // Payloads that ACT (dot damage) are driven separately by the SkillSystem via
-// DueDotHits, so acting stays in the combat slice of the tick, before
+// DueBuffEvents, so acting stays in the combat slice of the tick, before
 // serialization. Aura-applied buffs use the lifetime convention "effect tick
 // interval + 1" (survives one tick boundary, fades ~one aura cycle after
 // leaving range); dots carry their full authored duration instead — the
@@ -54,7 +54,7 @@ type slowPayload struct {
 type dotPayload struct {
 	dot DotBuff
 	// age is the acting accumulator: game ticks since application, advanced
-	// by DueDotHits (NOT by Tick, and deliberately NOT reset on refresh — an
+	// by DueBuffEvents (NOT by Tick, and deliberately NOT reset on refresh — an
 	// aura refreshing every tick must not starve a slower dot cadence). An
 	// event is due every full Interval.
 	age int
@@ -68,10 +68,21 @@ type shieldPayload struct {
 	remaining float32
 }
 
+type hotPayload struct {
+	hot HotBuff
+	// age is the acting accumulator, the dotPayload twin: game ticks since
+	// application, advanced by DueBuffEvents and deliberately NOT reset on
+	// refresh — an aura re-applying every tick must not starve a slower heal
+	// cadence, and this is exactly what makes "HoT lingers after leaving the
+	// aura" work (plan-skill-vocab §3.7). An event is due every full Interval.
+	age int
+}
+
 func (*resistPayload) isBuffPayload() {}
 func (*slowPayload) isBuffPayload()   {}
 func (*dotPayload) isBuffPayload()    {}
 func (*shieldPayload) isBuffPayload() {}
+func (*hotPayload) isBuffPayload()    {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -94,6 +105,29 @@ type DotBuff struct {
 type DotHit struct {
 	HP       float32
 	Tags     []string
+	Variance float32
+	Caster   any
+}
+
+// HotBuff is one heal-over-time application (plan-skill-vocab §3.7): the dot
+// twin, HP RESTORED per event every Interval game ticks, but with no Tags —
+// heals are not mitigated by resistances. Caster is the applying entity (typed
+// `any`, like DotBuff.Caster, because model imports skills); the acting site
+// dispatches on it for attribution (healer threat, participation). A departed
+// caster's ref stays valid — the buff keeps healing after the aura or caster is
+// gone, which is the whole point of case 1 (HoT lingers after leaving range).
+type HotBuff struct {
+	HP       float32
+	Variance float32
+	Interval int
+	Caster   any
+}
+
+// HotEvent is one due heal event, returned to the acting site. HP is the
+// pre-variance center; the acting site rolls per event, then heals via
+// model.Healable.Heal.
+type HotEvent struct {
+	HP       float32
 	Variance float32
 	Caster   any
 }
@@ -152,6 +186,25 @@ func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) {
 	b.apply(source, &dotPayload{dot: dot}, ticks)
 }
 
+// ApplyHot grants (or refreshes) a heal-over-time buff from the given source
+// skill, the ApplyDot twin: streams are keyed by per-event HP. A refresh resets
+// the remaining duration and hands the stream to the latest application (caster,
+// cadence) but keeps the acting accumulator running — so a hot_aura re-applying
+// every tick tops the duration up while in range, and the buff keeps ticking
+// down once the target leaves (plan-skill-vocab §3.7).
+func (b *Buffs) ApplyHot(source SkillID, hot HotBuff, ticks int) {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*hotPayload); ok && p.hot.HP == hot.HP {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			p.hot = hot
+			return
+		}
+	}
+	b.apply(source, &hotPayload{hot: hot}, ticks)
+}
+
 // ApplyShield grants (or refreshes) an absorb pool from the given source
 // skill; streams are keyed by the authored pool size. A refresh with the
 // identical strength renews the remaining lifetime AND tops the pool back up
@@ -171,7 +224,7 @@ func (b *Buffs) ApplyShield(source SkillID, hp float32, ticks int) {
 
 // Tick advances the per-tick lifecycle: applications not refreshed within
 // their lifetime expire. Called once per game tick on the ResetTickNumbers
-// hook. Pure aging — acting payloads are driven by DueDotHits.
+// hook. Pure aging — acting payloads are driven by DueBuffEvents.
 func (b *Buffs) Tick() {
 	for source, list := range b.entries {
 		kept := list[:0]
@@ -315,34 +368,48 @@ func (b *Buffs) dropDepletedShields() {
 	}
 }
 
-// DueDotHits advances every dot's acting accumulator by one game tick and
-// returns the damage events due now. Per source skill only the strongest
-// active dot deals damage (same skill never stacks with itself); suppressed
-// weaker streams keep aging and acting on their own cadence once the stronger
-// one expires. Called once per tick per entity by the SkillSystem.
-func (b *Buffs) DueDotHits() []DotHit {
-	var hits []DotHit
+// DueBuffEvents advances every acting payload's accumulator by one game tick
+// and returns the events due now — damage (dots) and healing (hots) in one
+// drain, so the SkillSystem's tick-order story stays single (plan-skill-vocab
+// §3.7). Per source skill only the strongest active dot deals damage and only
+// the strongest active hot heals (same skill never stacks with itself);
+// suppressed weaker streams keep aging and acting on their own cadence once the
+// stronger one expires. Called once per tick per entity by the SkillSystem.
+func (b *Buffs) DueBuffEvents() ([]DotHit, []HotEvent) {
+	var dots []DotHit
+	var hots []HotEvent
 	for _, list := range b.entries {
-		var strongest *dotPayload
+		var strongestDot *dotPayload
+		var strongestHot *hotPayload
 		for _, e := range list {
-			p, ok := e.payload.(*dotPayload)
-			if !ok {
-				continue
-			}
-			p.age++
-			if strongest == nil || p.dot.HP > strongest.dot.HP {
-				strongest = p
+			switch p := e.payload.(type) {
+			case *dotPayload:
+				p.age++
+				if strongestDot == nil || p.dot.HP > strongestDot.dot.HP {
+					strongestDot = p
+				}
+			case *hotPayload:
+				p.age++
+				if strongestHot == nil || p.hot.HP > strongestHot.hot.HP {
+					strongestHot = p
+				}
 			}
 		}
-		if strongest == nil || strongest.age%strongest.dot.Interval != 0 {
-			continue
+		if strongestDot != nil && strongestDot.age%strongestDot.dot.Interval == 0 {
+			dots = append(dots, DotHit{
+				HP:       strongestDot.dot.HP,
+				Tags:     strongestDot.dot.Tags,
+				Variance: strongestDot.dot.Variance,
+				Caster:   strongestDot.dot.Caster,
+			})
 		}
-		hits = append(hits, DotHit{
-			HP:       strongest.dot.HP,
-			Tags:     strongest.dot.Tags,
-			Variance: strongest.dot.Variance,
-			Caster:   strongest.dot.Caster,
-		})
+		if strongestHot != nil && strongestHot.age%strongestHot.hot.Interval == 0 {
+			hots = append(hots, HotEvent{
+				HP:       strongestHot.hot.HP,
+				Variance: strongestHot.hot.Variance,
+				Caster:   strongestHot.hot.Caster,
+			})
+		}
 	}
-	return hits
+	return dots, hots
 }

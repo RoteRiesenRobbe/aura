@@ -21,6 +21,7 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/corpse"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/mob"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
@@ -80,6 +81,7 @@ type fakePlayer struct {
 	healReceived    vitals.VitalSign
 	resists         []appliedResist
 	shields         []appliedShield
+	hots            []appliedHot
 	inCombat        bool // reported by InCombat (chunk 1 combat-gate tests)
 	combatActions   int  // NoteCombatAction call count (chunk 1)
 	client          model.Client          // recall reads Client().UUID() (chunk 4)
@@ -98,6 +100,13 @@ type appliedResist struct {
 type appliedShield struct {
 	source skills.SkillID
 	hp     float32
+	ticks  int
+}
+
+// appliedHot records one ApplyHot call on a test double.
+type appliedHot struct {
+	source skills.SkillID
+	hot    skills.HotBuff
 	ticks  int
 }
 
@@ -139,6 +148,9 @@ func (f *fakePlayer) ApplyResist(source skills.SkillID, tags []string, factor fl
 }
 func (f *fakePlayer) ApplyShield(source skills.SkillID, hp float32, ticks int) {
 	f.shields = append(f.shields, appliedShield{source, hp, ticks})
+}
+func (f *fakePlayer) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
+	f.hots = append(f.hots, appliedHot{source, hot, ticks})
 }
 func (f *fakePlayer) InCombat() bool      { return f.inCombat }
 func (f *fakePlayer) NoteCombatAction()   { f.combatActions++ }
@@ -1643,6 +1655,157 @@ func TestCooldown_InstantShieldSelfOnlyStillFires(t *testing.T) {
 	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks)
 }
 
+// --- hot_aura / instant_hot + tickHotEvents (plan-skill-vocab chunk 3) ---
+
+// hotTargetRecorder is an aligned ally that records ApplyHot calls, the
+// shieldTargetRecorder twin. HealthRatio is wounded so the hot_aura's
+// wounded-only predicate selects it.
+type hotTargetRecorder struct {
+	basic  ecs.BasicEntity
+	hots   []appliedHot
+	ratio  float32
+}
+
+func (r *hotTargetRecorder) Basic() ecs.BasicEntity          { return r.basic }
+func (r *hotTargetRecorder) Faction() model.Faction          { return model.FactionAligned }
+func (r *hotTargetRecorder) HealthRatio() float32            { return r.ratio }
+func (r *hotTargetRecorder) InCombat() bool                  { return false }
+func (r *hotTargetRecorder) Position() phy.Vec2f             { return phy.VEC2F_ZERO }
+func (r *hotTargetRecorder) Radius() float32                 { return 0.25 }
+func (r *hotTargetRecorder) Heal(hp uint32) vitals.VitalSign { return vitals.VitalSign(hp) }
+func (r *hotTargetRecorder) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
+	r.hots = append(r.hots, appliedHot{source, hot, ticks})
+}
+
+var _ model.Healable = (*hotTargetRecorder)(nil)
+
+func hotAuraEffect() skills.EffectDef {
+	return skills.EffectDef{
+		Type:         skills.EffectTypeHotAura,
+		TickInterval: 10,
+		Hot:          &skills.HotParams{HP: 3, HPPerLevel: 1, TickCount: 5, Interval: 30},
+	}
+}
+
+func woundedHotTarget() *hotTargetRecorder {
+	return &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5}
+}
+
+func TestApplyHotAura_AppliesLingeringBuffToWoundedAlly(t *testing.T) {
+	caster := newFakePlayer()
+	ally := woundedHotTarget()
+
+	applyHotAura(caster, 30, 2, hotAuraEffect(), colliderSetOf(model.Healable(ally)))
+
+	require.Len(t, ally.hots, 1)
+	got := ally.hots[0]
+	assert.Equal(t, skills.SkillID(30), got.source)
+	assert.InDelta(t, 4, got.hot.HP, 1e-6, "level 2 = 3 + 1×1 per-event heal")
+	assert.Equal(t, 30, got.hot.Interval)
+	assert.Equal(t, 5*30+1, got.ticks,
+		"buff lifetime is the authored hot duration (outlasts the aura cadence → lingers)")
+	assert.Equal(t, model.PlayerEntity(caster), got.hot.Caster)
+}
+
+func TestApplyHotAura_SkipsFullHealthAlly(t *testing.T) {
+	caster := newFakePlayer()
+	full := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 1.0}
+
+	applyHotAura(caster, 30, 1, hotAuraEffect(), colliderSetOf(model.Healable(full)))
+
+	assert.Empty(t, full.hots, "wounded-only: a full-health ally gets no HoT")
+}
+
+func TestApplyHotAura_SkipsSelf(t *testing.T) {
+	caster := newFakePlayer()
+	caster.vitalSigns.Health = 50 // wounded, but self is excluded
+
+	applyHotAura(caster, 30, 1, hotAuraEffect(), colliderSetOf(model.PlayerEntity(caster)))
+
+	assert.Empty(t, caster.hots, "hot_aura never targets the caster (self is the instant_hot's job)")
+}
+
+func recoverDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 31, Name: "Recover", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 300,
+		Effects: []skills.EffectDef{{
+			Type:          skills.EffectTypeInstantHot,
+			Radius:        1.5,
+			TargetsAllies: true,
+			Hot:           &skills.HotParams{HP: 4, TickCount: 6, Interval: 20, TargetsSelf: true},
+		}},
+	}
+}
+
+func TestCooldown_InstantHotBuffsSelfAndAllies(t *testing.T) {
+	ally := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 1.0}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerPlayerCollision), ally))
+	caster.sc.EquipCooldown(0, recoverDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.Len(t, caster.hots, 1, "targetsSelf grants the caster its HoT")
+	assert.InDelta(t, 4, caster.hots[0].hot.HP, 1e-6)
+	assert.Equal(t, 6*20+1, caster.hots[0].ticks, "instant lifetime = authored duration + 1")
+	require.Len(t, ally.hots, 1, "allies in the circle are HoT'd too, regardless of full health")
+	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+}
+
+func TestCooldown_InstantHotSelfOnlyStillFires(t *testing.T) {
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerPlayerCollision), "not hotable"))
+	caster.sc.EquipCooldown(0, recoverDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	require.Len(t, caster.hots, 1, "the self-apply is a hit, not a whiff")
+	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks)
+}
+
+// hotCarrier is a real-Buffs-backed PlayerEntity heal target for the
+// tickHotEvents acting site: it embeds fakePlayer (Healable, NoteHealedBy,
+// PlayerEntity) and drains a genuine store.
+type hotCarrier struct {
+	*fakePlayer
+	buffs skills.Buffs
+}
+
+func (h *hotCarrier) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {
+	return h.buffs.DueBuffEvents()
+}
+
+func TestTickHotEvents_HealsCarrierAndNotesHealer(t *testing.T) {
+	sk := testSkillSystem()
+	healer := newFakePlayer()
+	target := &hotCarrier{fakePlayer: newFakePlayer()}
+	target.vitalSigns.Health = 50
+	target.inCombat = true // supporting an engaged ally enters combat
+
+	// One heal event due this tick, caster = the healer player.
+	target.buffs.ApplyHot(31, skills.HotBuff{HP: 7, Interval: 1, Caster: model.PlayerEntity(healer)}, 3)
+	target.buffs.Tick()
+	sk.tickBuffEvents(target)
+
+	assert.Equal(t, vitals.VitalSign(57), target.vitalSigns.Health, "the hot event healed the carrier")
+	require.Len(t, target.healedBy, 1, "player-healer × player-target registers participation")
+	assert.Equal(t, model.PlayerEntity(healer), target.healedBy[0])
+	assert.Equal(t, 1, healer.combatActions, "supporting an in-combat target puts the healer in combat")
+}
+
+func TestTickHotEvents_FullHealthTargetNoParticipation(t *testing.T) {
+	sk := testSkillSystem()
+	healer := newFakePlayer()
+	target := &hotCarrier{fakePlayer: newFakePlayer()} // full health
+
+	target.buffs.ApplyHot(31, skills.HotBuff{HP: 7, Interval: 1, Caster: model.PlayerEntity(healer)}, 3)
+	target.buffs.Tick()
+	sk.tickBuffEvents(target)
+
+	assert.Empty(t, target.healedBy, "no HP actually restored → not a heal, no participation")
+}
+
 // --- dot_aura / instant_dot + the tickDots acting site (effect foundations Step 2) ---
 
 // dotRecorder is a mob-like (hostile) target that records ApplyDot calls.
@@ -1718,7 +1881,9 @@ func (v *dotVictim) Basic() ecs.BasicEntity                 { return v.basic }
 func (v *dotVictim) Faction() model.Faction                 { return model.FactionHostile }
 func (v *dotVictim) SkillComponent() *skills.SkillComponent { return v.sc }
 func (v *dotVictim) AuraCollider() *phy.Circle              { return v.aura }
-func (v *dotVictim) DueDotHits() []skills.DotHit            { return v.buffs.DueDotHits() }
+func (v *dotVictim) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {
+	return v.buffs.DueBuffEvents()
+}
 func (v *dotVictim) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	v.playerHits = append(v.playerHits, damage)
 }
@@ -1742,7 +1907,7 @@ func TestTickDots_PlayerSourcedDamageRidesPlayerTouches(t *testing.T) {
 	// Real per-tick lifecycle: age at tick start, act at SkillSystem time.
 	for i := 0; i < 10; i++ {
 		v.buffs.Tick()
-		sk.tickDots(v)
+		sk.tickBuffEvents(v)
 	}
 
 	require.Len(t, v.playerHits, 3, "3 events at ages 2/4/6 within the 7-tick duration")
@@ -1763,7 +1928,7 @@ func TestTickDots_MobSourcedDamageRidesMobTouches(t *testing.T) {
 	v.buffs.ApplyDot(104, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: &fakeMobCaster{}}, 2)
 
 	v.buffs.Tick()
-	sk.tickDots(v)
+	sk.tickBuffEvents(v)
 
 	require.Len(t, v.mobHits, 1, "mob-sourced dots use the MobTouches double dispatch")
 	assert.InDelta(t, 4, v.mobHits[0].Damage, 1e-6)
@@ -1781,7 +1946,7 @@ func TestTickDots_VarianceRollsPerEvent(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		v.buffs.Tick()
-		sk.tickDots(v)
+		sk.tickBuffEvents(v)
 	}
 
 	require.Len(t, v.playerHits, 20)
@@ -2170,7 +2335,7 @@ func TestTickDots_OwnedCasterCreditsOwner(t *testing.T) {
 	v.buffs.ApplyDot(106, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: totem}, 2)
 
 	v.buffs.Tick()
-	sk.tickDots(v)
+	sk.tickBuffEvents(v)
 
 	require.Len(t, v.playerHits, 1, "owned-summon dots ride the player path")
 	assert.InDelta(t, 4, v.playerHits[0].HP, 1e-6)
@@ -2237,7 +2402,7 @@ func TestTickDots_OwnedDotKeepsSummonAsSource(t *testing.T) {
 	v.buffs.ApplyDot(106, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: totem}, 2)
 
 	v.buffs.Tick()
-	sk.tickDots(v)
+	sk.tickBuffEvents(v)
 
 	require.Len(t, v.playerHits, 1)
 	assert.Same(t, any(totem), any(v.playerHits[0].Source))
@@ -2838,9 +3003,20 @@ func recallTestDef() *skills.SkillDefinition {
 type fakeConnState struct {
 	anchor phy.Vec2f
 	bound  bool
+
+	// revive stubs (chunk 3): records the last revive request and what to return.
+	revivedCorpseID uint64
+	revivedFraction float32
+	reviveResult    bool
 }
 
 func (f *fakeConnState) AnchorOf(id uuid.UUID) (phy.Vec2f, bool) { return f.anchor, f.bound }
+
+func (f *fakeConnState) ReviveAtCorpse(corpseID uint64, healthFraction float32) bool {
+	f.revivedCorpseID = corpseID
+	f.revivedFraction = healthFraction
+	return f.reviveResult
+}
 
 func TestCast_ActivationStartsCastNotFire(t *testing.T) {
 	target := &touchRecorder{}
@@ -3011,4 +3187,51 @@ func TestCast_MobFirePathIgnoresCastTime(t *testing.T) {
 
 	assert.NotEmpty(t, target.factors, "mob fires instantly despite castTicks")
 	assert.False(t, caster.sc.IsCasting())
+}
+
+// --- revive dispatch (plan-skill-vocab chunk 3, §3.6) ---
+
+func reviveTestDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 33, Name: "Revive", Category: skills.SkillCategoryCooldown, MaxLevel: 1,
+		CooldownTicks: 600,
+		Effects: []skills.EffectDef{{
+			Type:   skills.EffectTypeRevive,
+			Radius: 3,
+			Revive: &skills.ReviveParams{HealthFraction: 0.3},
+		}},
+	}
+}
+
+func TestRevive_NoCorpseRejectsActivation(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	caster.sc.EquipCooldown(0, reviveTestDef(), 1)
+	sk.SetConnState(&fakeConnState{})
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "no corpse in range → no cooldown consumed")
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, skills.SkillID(33), caster.rejections[0].skill)
+	assert.Equal(t, model.ActivationRejectedNoTarget, caster.rejections[0].reason)
+}
+
+func TestRevive_FiresReviveAtNearestCorpse(t *testing.T) {
+	c := corpse.New(phy.VEC2F_ZERO)
+	space := spaceWithBurstTarget(int(model.LayerViewportCollision), c)
+	caster, sk := cooldownCaster(space)
+	caster.sc.EquipCooldown(0, reviveTestDef(), 1)
+	cs := &fakeConnState{reviveResult: true}
+	sk.SetConnState(cs)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.Equal(t, c.Basic().ID(), cs.revivedCorpseID, "revive targets the corpse in range")
+	assert.InDelta(t, 0.3, cs.revivedFraction, 1e-6, "the authored health fraction is passed through")
+	assert.Equal(t, 600, caster.sc.CooldownSlots[0].CdTicks, "a landed revive consumes the cooldown")
+	assert.Empty(t, caster.rejections)
 }

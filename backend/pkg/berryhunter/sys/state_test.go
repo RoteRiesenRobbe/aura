@@ -399,6 +399,65 @@ func TestDisconnectAliveAfterRespawn_FreesName(t *testing.T) {
 		"disconnect-while-alive after a respawn must free the name")
 }
 
+// --- revive (plan-skill-vocab chunk 3, §3.6) ---
+
+func TestReviveAtCorpse_RestoresStateAtCorpseWithPartialHP(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	p.SetProgression(model.PlayerProgression{Level: 5})
+	deathspot := phy.Vec2f{X: 12, Y: -8}
+	p.SetPosition(deathspot)
+	kill(t, s, p)
+	corpse := g.livingCorpses()[0]
+	spec := g.livingSpectators()[0]
+
+	ok := s.ReviveAtCorpse(corpse.Basic().ID(), 0.3)
+	require.True(t, ok, "reviving a waiting corpse must succeed")
+
+	require.Len(t, g.players, 2, "revive rebuilds the player entity")
+	np := g.players[1]
+	assert.Equal(t, "Alice", np.Name(), "revive reuses the reserved name verbatim")
+	assert.Equal(t, uint32(5), np.Progression().Level, "revive restores carried progression")
+	assert.InDelta(t, deathspot.X, np.Position().X, 1e-5, "revive spawns at the corpse, not the anchor")
+	assert.InDelta(t, deathspot.Y, np.Position().Y, 1e-5)
+	assert.InDelta(t, float32(np.MaxHealth())*0.3, float32(np.VitalSigns().Health), 1e-3,
+		"revived at the authored fraction of max HP")
+	assert.True(t, g.wasRemoved(corpse.Basic().ID()), "revive removes the corpse")
+	assert.True(t, g.wasRemoved(spec.Basic().ID()), "revive removes the dead client's spectator")
+	assert.Empty(t, s.deadByClient, "the dead marker is consumed")
+}
+
+func TestReviveAtCorpse_UnknownCorpseNoOps(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	kill(t, s, p)
+
+	ok := s.ReviveAtCorpse(9999, 0.3)
+	assert.False(t, ok, "no corpse with that id → no revive")
+	assert.Len(t, g.players, 1, "no new player built")
+	assert.Len(t, s.deadByClient, 1, "the untouched dead marker stays")
+}
+
+func TestReviveAtCorpse_DisconnectRaceNoOps(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	kill(t, s, p)
+	corpse := g.livingCorpses()[0]
+	spec := g.livingSpectators()[0]
+
+	// The dead client disconnects (spectator removed) before the revive lands:
+	// removeFromSpectators consumes the marker, so the revive finds nothing.
+	g.RemoveEntity(spec.Basic())
+	assert.Empty(t, s.deadByClient, "disconnect-while-dead consumed the marker")
+
+	ok := s.ReviveAtCorpse(corpse.Basic().ID(), 0.3)
+	assert.False(t, ok, "a revive racing a disconnect must no-op")
+	assert.Len(t, g.players, 1)
+}
+
 // spectatorFor builds a real spectator for a client at the origin.
 func spectatorFor(c model.Client) model.Spectator {
 	return spectator.NewSpectator(phy.VEC2F_ZERO, c)

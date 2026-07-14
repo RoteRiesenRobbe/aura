@@ -1,0 +1,17 @@
+{
+  "_comment": "Skill-vocab chunk 3 smoke content: a channeled cooldown that revives the nearest downed player at their corpse with 30% HP. Second cast-time consumer (castTicks) — the precondition (a corpse in range) is re-checked at cast completion; castInterruptedByDamage means being attacked mid-channel breaks it. No corpse in range = rejected activation, no cooldown burned. The REAL Revive (rarity, cost) is step-6 content. Cheat-granted (SKILL Revive), no milestone. All values [PLACEHOLDER].",
+  "id": 32,
+  "name": "Revive",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 600,
+  "castTicks": 150,
+  "castInterruptedByDamage": true,
+  "effects": [
+    {
+      "type": "revive",
+      "radius": 3,
+      "reviveHealthFraction": 0.3
+    }
+  ]
+}

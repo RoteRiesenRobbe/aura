@@ -46,14 +46,19 @@ type healCaster interface {
 	IsGod() bool
 }
 
-// ConnState is the ConnectionStateSystem capability the SkillSystem needs
-// (plan-skill-vocab chunk 4): the campfire-anchor lookup behind recall.
-// Chunk 3 extends it with ReviveAtCorpse. Wired post-construction via
-// SetConnState in core/game.go — the SkillSystem is constructed before the
+// ConnState is the ConnectionStateSystem capability the SkillSystem needs:
+// recall's campfire-anchor lookup (chunk 4) and revive's dead-marker
+// consumption (chunk 3). Wired post-construction via SetConnState in
+// core/game.go — the SkillSystem is constructed before the
 // ConnectionStateSystem (the CampfireAnchorSink precedent: Go-side wiring,
 // no model interface bloat).
 type ConnState interface {
 	AnchorOf(id uuid.UUID) (phy.Vec2f, bool)
+	// ReviveAtCorpse rebuilds the dead player whose corpse has the given
+	// entity ID at that corpse with healthFraction of max HP, consuming the
+	// dead marker (name, progression, skills restored). Reports false if no
+	// such corpse is waiting (a race with respawn/disconnect).
+	ReviveAtCorpse(corpseID uint64, healthFraction float32) bool
 }
 
 // SkillSystem applies active-aura effects and cooldown-skill bursts for every
@@ -111,11 +116,11 @@ func (s *SkillSystem) Update(dt float32) {
 }
 
 func (s *SkillSystem) processEntity(e skillEntity) {
-	// Acting buff payloads first: dots on this entity deal their due damage
-	// (effect foundations Step 2). Pure buff AGING stays on ResetTickNumbers
-	// at tick start; acting lives here so the damage lands in the combat
-	// slice of the tick, before serialization.
-	s.tickDots(e)
+	// Acting buff payloads first: dots on this entity deal their due damage and
+	// hots restore their due healing (effect foundations Step 2, HoT chunk 3).
+	// Pure buff AGING stays on ResetTickNumbers at tick start; acting lives here
+	// so it lands in the combat slice of the tick, before serialization.
+	s.tickBuffEvents(e)
 
 	sc := e.SkillComponent()
 	s.processCooldowns(e, sc)
@@ -172,6 +177,8 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 			applyDotEffect(e, equip.Def.ID, equip.Level, effect, targets)
 		case skills.EffectTypeShieldAura:
 			applyShieldAura(e, equip.Def.ID, equip.Level, effect, targets)
+		case skills.EffectTypeHotAura:
+			applyHotAura(e, equip.Def.ID, equip.Level, effect, targets)
 		}
 	}
 }
@@ -182,9 +189,16 @@ type dotBuffable interface {
 	ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int)
 }
 
-// dotCarrier is the entity-side seam the acting site drains each tick.
-type dotCarrier interface {
-	DueDotHits() []skills.DotHit
+// hotBuffable is implemented by entities that can carry a heal-over-time buff
+// (players and mobs — the generic buff store), the dotBuffable twin.
+type hotBuffable interface {
+	ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int)
+}
+
+// buffEventCarrier is the entity-side seam the acting site drains each tick —
+// dot damage events and hot heal events in one drain (plan-skill-vocab §3.7).
+type buffEventCarrier interface {
+	DueBuffEvents() ([]skills.DotHit, []skills.HotEvent)
 }
 
 // applyDotEffect applies the effect's damage-over-time debuff to eligible
@@ -224,46 +238,94 @@ func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skil
 	}
 }
 
-// tickDots deals every dot damage event due on this entity this tick. The
-// damage flows through the same Interacter entry points as direct hits, so
-// attribution (XP participation, kill credit), damage tags, mitigation,
-// floating numbers and death all ride the existing paths. Each event also
-// stamps the fire aura-hit VFX — the sustained-burn look; make it
-// content-configurable when a non-fire dot ships.
-func (s *SkillSystem) tickDots(e skillEntity) {
-	carrier, ok := e.(dotCarrier)
+// tickBuffEvents drains this entity's due acting-buff events for the tick —
+// dot damage AND hot healing in one pass (plan-skill-vocab §3.7), so the
+// acting order stays a single story. Dot damage flows through the same
+// Interacter entry points as direct hits (attribution, tags, mitigation,
+// floating numbers, death all ride the existing paths); hot healing flows
+// through model.Healable.Heal on this same entity, with attribution mirroring
+// the heal aura from the buff's point of view (target = e, healer = the buff's
+// caster). Damage is applied before healing — the combat slice, then recovery.
+func (s *SkillSystem) tickBuffEvents(e skillEntity) {
+	carrier, ok := e.(buffEventCarrier)
 	if !ok {
 		return
 	}
-	target, ok := e.(model.Interacter)
+	dots, hots := carrier.DueBuffEvents()
+
+	if target, ok := e.(model.Interacter); ok {
+		for _, hit := range dots {
+			// Every event rolls its own variance and is mitigated by the
+			// target's CURRENT resistances (roll-then-mitigate, per hit).
+			damageHP := vitals.RollVariance(hit.HP, hit.Variance, s.rng)
+			// An owned summon's dot replays through its owner — checked before
+			// the MobEntity case (a totem IS a mob), so burn damage keeps
+			// crediting the owner even after the summon is gone. The summon
+			// itself rides along as the hit's Source: threat credits it while it
+			// lives, and falls back to the owner once it reads dead (chunk 3).
+			storedCaster := hit.Caster
+			var source model.Combatant
+			if owned, ok := storedCaster.(model.Owned); ok && owned.Owner() != nil {
+				source, _ = storedCaster.(model.Combatant)
+				storedCaster = owned.Owner()
+			}
+			switch caster := storedCaster.(type) {
+			case model.PlayerEntity:
+				target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Source: source})
+			case model.MobEntity:
+				target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags})
+			default:
+				continue
+			}
+			if n, ok := e.(model.AuraHitNotifier); ok {
+				n.NoteAuraHit(model.AuraHitStyleFire)
+			}
+		}
+	}
+
+	if len(hots) > 0 {
+		s.tickHotEvents(e, hots)
+	}
+}
+
+// tickHotEvents applies this tick's due heal-over-time events to e (the buff
+// carrier is the heal target). Each event rolls its own variance and heals via
+// model.Healable.Heal — max-clamp + floating heal number free. Attribution
+// mirrors applyHealAura from the buff's POV: player-healer × player-target
+// registers participation (NoteHealedBy), any Combatant healer draws healer
+// threat on mobs fighting the target, and supporting an in-combat target puts a
+// CombatActor healer into combat. Unlike a dot, a hot does no owned-summon
+// owner-replay — the heal aura credits its direct caster too (a summon heals
+// for itself; no participation as a non-player).
+func (s *SkillSystem) tickHotEvents(e skillEntity, hots []skills.HotEvent) {
+	target, ok := e.(model.Healable)
 	if !ok {
 		return
 	}
-	for _, hit := range carrier.DueDotHits() {
-		// Every event rolls its own variance and is mitigated by the
-		// target's CURRENT resistances (roll-then-mitigate, per hit).
-		damageHP := vitals.RollVariance(hit.HP, hit.Variance, s.rng)
-		// An owned summon's dot replays through its owner — checked before
-		// the MobEntity case (a totem IS a mob), so burn damage keeps
-		// crediting the owner even after the summon is gone. The summon
-		// itself rides along as the hit's Source: threat credits it while it
-		// lives, and falls back to the owner once it reads dead (chunk 3).
-		storedCaster := hit.Caster
-		var source model.Combatant
-		if owned, ok := storedCaster.(model.Owned); ok && owned.Owner() != nil {
-			source, _ = storedCaster.(model.Combatant)
-			storedCaster = owned.Owner()
+	for _, hit := range hots {
+		healHP := vitals.HP(vitals.RollVariance(hit.HP, hit.Variance, s.rng))
+		healed := target.Heal(healHP)
+		if healed <= 0 {
+			continue // already full, or a dead target this tick — not a heal
 		}
-		switch caster := storedCaster.(type) {
-		case model.PlayerEntity:
-			target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Source: source})
-		case model.MobEntity:
-			target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags})
-		default:
-			continue
+
+		// Participation XP is a PLAYER concept: only a player healing a player
+		// registers a recent healer (gotcha #12).
+		if targetPE, ok := e.(model.PlayerEntity); ok {
+			if healerPE, ok := hit.Caster.(model.PlayerEntity); ok {
+				targetPE.NoteHealedBy(healerPE)
+			}
 		}
-		if n, ok := e.(model.AuraHitNotifier); ok {
-			n.NoteAuraHit(model.AuraHitStyleFire)
+		// Healer threat (mob-depth §6.3): the actually-healed HP, weighted,
+		// lands on every mob in combat with the heal target. Inert for a mob
+		// healing an ally.
+		if healer, ok := hit.Caster.(model.Combatant); ok {
+			s.creditHealerThreat(e.Basic().ID(), healer, float32(healed))
+		}
+		// Supporting an in-combat target enters combat (chunk 1); a mob healer
+		// is skipped for free by noteHarmDealt's CombatActor assertion.
+		if target.InCombat() {
+			noteHarmDealt(hit.Caster)
 		}
 	}
 }
@@ -575,6 +637,49 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 	}
 }
 
+// applyHotAura re-applies the effect's heal-over-time buff to every wounded
+// ally in range each aura tick (plan-skill-vocab §3.7, case 1). It is a thin
+// applier — the actual healing, participation and healer threat happen later,
+// when the buff ticks in tickHotEvents; unlike the heal aura this pays no
+// self-cost (a build lever authored in step 6). The buff's authored duration
+// outlasts the aura cadence, so it keeps ticking after the target leaves range.
+// Reuses the heal aura's implicit same-faction, wounded-only, never-self
+// predicate (no target flags).
+func applyHotAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
+	hp := effect.Hot.HPAt(level)
+	if owned, ok := e.(model.Owned); ok {
+		hp *= owned.SummonPower()
+	}
+	hot := skills.HotBuff{
+		HP:       hp,
+		Variance: effect.Hot.Variance,
+		Interval: effect.Hot.Interval,
+		Caster:   e,
+	}
+	ticks := effect.Hot.DurationTicks()
+
+	casterFaction := e.Faction()
+	casterID := e.Basic().ID()
+	eligible := func(c phy.Collider) bool {
+		other, ok := c.Shape().UserData.(model.Healable)
+		if !ok {
+			return false
+		}
+		if other.Faction() != casterFaction {
+			return false
+		}
+		if other.Basic().ID() == casterID {
+			return false // skip self — self-HoT is the instant_hot cooldown's job
+		}
+		return other.HealthRatio() < 1 // wounded only
+	}
+
+	targets := selectTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(hotBuffable).ApplyHot(source, hot, ticks)
+	}
+}
+
 // healerThreatFactor [PLACEHOLDER] weights healing into threat (§6.3, decided
 // 2026-07-10): a landed heal credits the healer with healedHP × factor on
 // every mob currently in combat with the heal target.
@@ -736,6 +841,54 @@ func (s *SkillSystem) applyInstantShield(e skillEntity, source skills.SkillID, l
 	return hitAny
 }
 
+// applyInstantHot fires an instant_hot cooldown (plan-skill-vocab §3.7, cases
+// 2 + 3), the applyInstantShield twin: the caster's own heal-over-time buff on
+// targetsSelf plus a one-shot query circle of eligible allies (targetsAllies).
+// The self-apply counts as a hit — a self-recovery cast with nobody around is
+// not a whiff. Applies the buff regardless of the target's current health (a
+// preemptive HoT is legitimate); the healing itself runs later in tickHotEvents.
+func (s *SkillSystem) applyInstantHot(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	hp := effect.Hot.HPAt(level)
+	if owned, ok := e.(model.Owned); ok {
+		hp *= owned.SummonPower()
+	}
+	hot := skills.HotBuff{
+		HP:       hp,
+		Variance: effect.Hot.Variance,
+		Interval: effect.Hot.Interval,
+		Caster:   e,
+	}
+	ticks := effect.Hot.DurationTicks()
+
+	hitAny := false
+	if effect.Hot.TargetsSelf {
+		if self, ok := e.(hotBuffable); ok {
+			self.ApplyHot(source, hot, ticks)
+			hitAny = true
+		}
+	}
+
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	query := phy.NewCircle(e.AuraCollider().Position(), radius)
+	query.Shape().Mask = model.InstantDamageMask(effect)
+
+	casterPos := e.AuraCollider().Position()
+	casterID := e.Basic().ID()
+	eligible := eligibleByTargetFlags[hotBuffable](effect, e, casterID, true)
+
+	hits := s.space.QueryCircle(query)
+	candidates := make(phy.ColliderSet, len(hits))
+	for _, h := range hits {
+		candidates[h] = struct{}{}
+	}
+	targets := selectTargets(candidates, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	for _, c := range targets {
+		c.Shape().UserData.(hotBuffable).ApplyHot(source, hot, ticks)
+		hitAny = true
+	}
+	return hitAny
+}
+
 // slowable is implemented by entities whose movement can be slowed by a
 // slow_aura (mobs). The slow is transient: it must be re-applied every tick
 // the target stays in range, and wears off on its own shortly after (buff
@@ -853,19 +1006,65 @@ func (s *SkillSystem) advanceCast(e skillEntity, sc *skills.SkillComponent) {
 // verbatim — firing a NovaBurst into thin air stays the player's aim problem.
 func (s *SkillSystem) activationPrecondition(e skillEntity, es *skills.EquippedSkill) model.ActivationRejection {
 	for _, effect := range es.Def.Effects {
-		if effect.Type != skills.EffectTypeRecall {
-			continue
-		}
-		p, ok := e.(model.PlayerEntity)
-		if !ok || s.connState == nil {
-			// Mobs cannot recall; an unwired seam reads as nothing bound.
-			return model.ActivationRejectedNoAnchor
-		}
-		if _, bound := s.connState.AnchorOf(p.Client().UUID()); !bound {
-			return model.ActivationRejectedNoAnchor
+		switch effect.Type {
+		case skills.EffectTypeRecall:
+			p, ok := e.(model.PlayerEntity)
+			if !ok || s.connState == nil {
+				// Mobs cannot recall; an unwired seam reads as nothing bound.
+				return model.ActivationRejectedNoAnchor
+			}
+			if _, bound := s.connState.AnchorOf(p.Client().UUID()); !bound {
+				return model.ActivationRejectedNoAnchor
+			}
+		case skills.EffectTypeRevive:
+			// A revive with no corpse in range is a rejected activation, not a
+			// whiff-consume (§3.6): no cooldown burned, feedback on the wire.
+			if _, ok := s.nearestCorpseID(e, effect, es.Level); !ok {
+				return model.ActivationRejectedNoTarget
+			}
 		}
 	}
 	return model.ActivationRejectedNone
+}
+
+// nearestCorpseID finds the closest player corpse within the revive effect's
+// query circle (plan-skill-vocab §3.6). Corpses sit on the Viewport layer —
+// their only layer — so the query uses a dedicated mask, not the target-flag
+// masks. Reports the corpse entity ID and whether one was found.
+func (s *SkillSystem) nearestCorpseID(e skillEntity, effect skills.EffectDef, level int) (uint64, bool) {
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	casterPos := e.AuraCollider().Position()
+	query := phy.NewCircle(casterPos, radius)
+	query.Shape().Mask = int(model.LayerViewportCollision)
+
+	var bestID uint64
+	var bestDist float32
+	found := false
+	for _, h := range s.space.QueryCircle(query) {
+		corpse, ok := h.Shape().UserData.(model.CorpseEntity)
+		if !ok {
+			continue
+		}
+		d := casterPos.DistanceToSquared(h.Position())
+		if !found || d < bestDist {
+			found, bestDist, bestID = true, d, corpse.Basic().ID()
+		}
+	}
+	return bestID, found
+}
+
+// applyRevive rebuilds the nearest downed player at their corpse (§3.6). The
+// activation precondition guarantees a corpse at start AND cast completion, so
+// a miss here is a benign race (respawned/disconnected in between), not a whiff.
+func (s *SkillSystem) applyRevive(e skillEntity, effect skills.EffectDef, level int) bool {
+	if s.connState == nil {
+		return false
+	}
+	corpseID, ok := s.nearestCorpseID(e, effect, level)
+	if !ok {
+		return false
+	}
+	return s.connState.ReviveAtCorpse(corpseID, effect.Revive.HealthFraction)
 }
 
 // noteActivationRejected stamps the one-tick rejection feedback on players;
@@ -922,6 +1121,18 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 		}
 		if effect.Type == skills.EffectTypeRecall {
 			if s.applyRecall(e) {
+				hitAny = true
+			}
+			continue
+		}
+		if effect.Type == skills.EffectTypeInstantHot {
+			if s.applyInstantHot(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+			continue
+		}
+		if effect.Type == skills.EffectTypeRevive {
+			if s.applyRevive(e, effect, es.Level) {
 				hitAny = true
 			}
 			continue

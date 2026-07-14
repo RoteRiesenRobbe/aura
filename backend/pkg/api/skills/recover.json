@@ -1,0 +1,19 @@
+{
+  "_comment": "Skill-vocab chunk 3 smoke content (HoT cases 2+3): a cooldown that heals the caster over ~18 s (GDD personal recovery cooldown, nothing instant) AND gifts the same HoT to nearby allies. One instant_hot with targetsSelf+targetsAllies (the instant_shield structure). The REAL personal recovery cooldown in step 6 is self-only. Cheat-granted (SKILL Recover), no milestone. All values [PLACEHOLDER].",
+  "id": 31,
+  "name": "Recover",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 1200,
+  "effects": [
+    {
+      "type": "instant_hot",
+      "radius": 2,
+      "healHP": 4,
+      "hotTicks": 9,
+      "hotTickInterval": 60,
+      "targetsSelf": true,
+      "targetsAllies": true
+    }
+  ]
+}
