@@ -133,6 +133,13 @@ export class EntityManager {
             gameObject['setAuraRadius'](entity.auraRadius);
         }
 
+        // Bare aura tick indicator (skill-vocab chunk 6): the wire cadence +
+        // phase drive a dot orbiting the ring; characters and mobs alike, 0
+        // interval hides it. Fed after setAuraRadius so the ring radius is set.
+        if (isDefined(entity.auraTickInterval) && isFunction(gameObject['setAuraTick'])) {
+            gameObject['setAuraTick'](entity.auraTickInterval, entity.auraTickPhase);
+        }
+
         // Campfire bind circle (chunk 4): wire-driven dwell radius in px,
         // 0 for everything that is not a respawn anchor.
         if (isDefined(entity.dwellRadius) && isFunction(gameObject['setDwellRadius'])) {

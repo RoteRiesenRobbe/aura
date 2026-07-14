@@ -8,11 +8,11 @@
     {
       "type": "heal_aura",
       "radius": 2.0,
-      "healHP": 6,
-      "healHPPerLevel": 2,
+      "healHP": 12,
+      "healHPPerLevel": 4,
       "selector": "lowest_health",
       "maxTargets": 1,
-      "tickInterval": 30
+      "tickInterval": 60
     }
   ]
 }

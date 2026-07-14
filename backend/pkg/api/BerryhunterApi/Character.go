@@ -377,8 +377,32 @@ func (rcv *Character) MutateInCombat(n bool) bool {
 	return rcv._tab.MutateBoolSlot(56, n)
 }
 
+func (rcv *Character) AuraTickInterval() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(58))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateAuraTickInterval(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(58, n)
+}
+
+func (rcv *Character) AuraTickPhase() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(60))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateAuraTickPhase(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(60, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(27)
+	builder.StartObject(29)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -463,6 +487,12 @@ func CharacterAddShieldHp(builder *flatbuffers.Builder, shieldHp uint32) {
 }
 func CharacterAddInCombat(builder *flatbuffers.Builder, inCombat bool) {
 	builder.PrependBoolSlot(26, inCombat, false)
+}
+func CharacterAddAuraTickInterval(builder *flatbuffers.Builder, auraTickInterval uint16) {
+	builder.PrependUint16Slot(27, auraTickInterval, 0)
+}
+func CharacterAddAuraTickPhase(builder *flatbuffers.Builder, auraTickPhase uint16) {
+	builder.PrependUint16Slot(28, auraTickPhase, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

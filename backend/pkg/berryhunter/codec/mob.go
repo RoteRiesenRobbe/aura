@@ -38,6 +38,10 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	BerryhunterApi.MobAddLightRadius(builder, f32ToU16Px(m.LightRadius()))
 	// 0 = not a respawn anchor; the client draws the bind circle (chunk 4).
 	BerryhunterApi.MobAddDwellRadius(builder, f32ToU16Px(m.DwellRadius()))
+	// Aura tick cadence + phase; both 0 while no aura is active. The client
+	// draws the tick indicator and reads the beat to dodge ticks (chunk 6).
+	BerryhunterApi.MobAddAuraTickInterval(builder, uint16(m.AuraTickInterval()))
+	BerryhunterApi.MobAddAuraTickPhase(builder, uint16(m.AuraTickPhase()))
 
 	return BerryhunterApi.MobEnd(builder)
 }

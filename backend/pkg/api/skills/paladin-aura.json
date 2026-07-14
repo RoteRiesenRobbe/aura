@@ -9,24 +9,24 @@
       "type": "damage_aura",
       "radius": 1.0,
       "radiusPerLevel": 0.0,
-      "damageHP": 5,
-      "damageHPPerLevel": 1.1,
+      "damageHP": 10,
+      "damageHPPerLevel": 2.2,
       "targetsEnemies": true,
       "targetsAllies": false,
       "selector": "nearest",
       "maxTargets": 1,
-      "tickInterval": 20
+      "tickInterval": 40
     },
     {
       "type": "heal_aura",
       "radius": 1.0,
       "radiusPerLevel": 0.0,
-      "healHP": 4,
-      "healHPPerLevel": 2,
+      "healHP": 8,
+      "healHPPerLevel": 4,
       "selfDamageHP": 0.0,
       "selector": "lowest_health",
       "maxTargets": 1,
-      "tickInterval": 60
+      "tickInterval": 120
     }
   ]
 }

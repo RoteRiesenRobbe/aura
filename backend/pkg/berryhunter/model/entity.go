@@ -129,6 +129,13 @@ type MobEntity interface {
 	// active (wire aura_radius — the client draws the mob's ring from it, so
 	// a gated aura is invisible until aggro; mob-depth chunk 3c).
 	AuraRadius() float32
+	// AuraTickInterval / AuraTickPhase are the active aura's first-effect
+	// effective cadence (game ticks) and the accumulator's position within it,
+	// both 0 while none is active (wire aura_tick_interval/aura_tick_phase — the
+	// client draws the tick indicator; reading a mob's beat to dodge its ticks
+	// is the design-critical case; skill-vocab chunk 6).
+	AuraTickInterval() int
+	AuraTickPhase() int
 	// LightRadius is the light emitted by the active aura's light_aura effect,
 	// 0 = no light (wire light_radius — the client hole-punches the darkness
 	// overlay; atmosphere & recovery chunk 3).

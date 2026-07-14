@@ -285,8 +285,32 @@ func (rcv *Mob) MutateShieldHp(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(40, n)
 }
 
+func (rcv *Mob) AuraTickInterval() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Mob) MutateAuraTickInterval(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(42, n)
+}
+
+func (rcv *Mob) AuraTickPhase() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Mob) MutateAuraTickPhase(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(44, n)
+}
+
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(19)
+	builder.StartObject(21)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -347,6 +371,12 @@ func MobAddCritTaken(builder *flatbuffers.Builder, critTaken uint32) {
 }
 func MobAddShieldHp(builder *flatbuffers.Builder, shieldHp uint32) {
 	builder.PrependUint32Slot(18, shieldHp, 0)
+}
+func MobAddAuraTickInterval(builder *flatbuffers.Builder, auraTickInterval uint16) {
+	builder.PrependUint16Slot(19, auraTickInterval, 0)
+}
+func MobAddAuraTickPhase(builder *flatbuffers.Builder, auraTickPhase uint16) {
+	builder.PrependUint16Slot(20, auraTickPhase, 0)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

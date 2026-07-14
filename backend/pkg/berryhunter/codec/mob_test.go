@@ -53,3 +53,31 @@ func TestMobMarshalFlatbuf_AuraRadius(t *testing.T) {
 	assert.Equal(t, uint16(0), marshalledMob(t, gated).AuraRadius(),
 		"gated aura → 0 on the wire, no ring on the client")
 }
+
+// Mob.aura_tick_interval/aura_tick_phase (skill-vocab chunk 6): the wire carries
+// the active aura's first-effect effective cadence and the accumulator phase;
+// both 0 while the aura is gated, so the client shows no tick indicator.
+func TestMobMarshalFlatbuf_AuraTick(t *testing.T) {
+	def := testMobDef(0) // speed 0 → aura always on
+	def.Skills[0].Def.Effects[0].TickInterval = 8
+
+	m := mob.NewMob(def, 0, nil)
+	marshalled := marshalledMob(t, m)
+	assert.Equal(t, uint16(8), marshalled.AuraTickInterval(),
+		"active aura → first-effect effective interval on the wire")
+	assert.Equal(t, uint16(0), marshalled.AuraTickPhase(),
+		"a freshly-spawned mob's accumulator is at phase 0")
+
+	gated := mob.NewMob(testMobDef(1), 0, nil) // moving mob spawns with the aura off
+	assert.Equal(t, uint16(0), marshalledMob(t, gated).AuraTickInterval(),
+		"gated aura → interval 0, no tick indicator")
+	assert.Equal(t, uint16(0), marshalledMob(t, gated).AuraTickPhase())
+
+	// A state/visual first effect (here light_aura) re-applies silently — no
+	// per-tick hit — so it reports interval 0 and shows no indicator, even
+	// though the aura is active (skill-vocab chunk 6 tick-cadence gate).
+	stateDef := testMobDef(0)
+	stateDef.Skills[0].Def.Effects[0] = skills.EffectDef{Type: skills.EffectTypeLightAura, Radius: 0.5, TickInterval: 1}
+	assert.Equal(t, uint16(0), marshalledMob(t, mob.NewMob(stateDef, 0, nil)).AuraTickInterval(),
+		"a non-hit first effect → no tick indicator")
+}

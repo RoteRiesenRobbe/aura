@@ -9,11 +9,11 @@
       "type": "hot_aura",
       "radius": 2.5,
       "radiusPerLevel": 0.2,
-      "healHP": 2,
-      "healHPPerLevel": 1,
+      "healHP": 4,
+      "healHPPerLevel": 2,
       "hotTicks": 6,
-      "hotTickInterval": 30,
-      "tickInterval": 30
+      "hotTickInterval": 60,
+      "tickInterval": 60
     }
   ]
 }

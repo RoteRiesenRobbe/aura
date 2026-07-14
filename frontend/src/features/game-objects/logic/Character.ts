@@ -9,6 +9,7 @@ import {IVector, Vector} from '../../core/logic/Vector';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {meter2px} from "../../../client-data/BasicConfig";
 import {animateAction} from './AnimateAction';
+import {AuraTickIndicator} from './AuraTickIndicator';
 import {StatusEffect} from './StatusEffect';
 import {Animation} from '../../animations/logic/Animation';
 import {Items} from '../../items/logic/Items';
@@ -72,6 +73,9 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     private barInnerWidth: number = 0;
     private damageAuraSprite: Sprite;
     private healAuraSprite: Sprite;
+    // Bare tick indicator (skill-vocab chunk 6): a dot orbiting the aura ring
+    // once per effective tick interval, so the beat is visible.
+    private auraTickIndicator: AuraTickIndicator = null;
 
     // Contains Containers that will mirror this characters position
     followGroups: Container[];
@@ -330,6 +334,23 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         this.damageAuraSprite.height = diameter;
         this.healAuraSprite.width = diameter;
         this.healAuraSprite.height = diameter;
+        this.ensureAuraTickIndicator().setRadius(radiusPx);
+    }
+
+    // setAuraTick drives the bare tick indicator from the wire
+    // aura_tick_interval / aura_tick_phase fields (skill-vocab chunk 6).
+    setAuraTick(interval: number, phase: number) {
+        this.ensureAuraTickIndicator().setTick(interval, phase);
+    }
+
+    // Lazily create the indicator on this.shape (the container that holds the
+    // aura sprites). NOT built in initShape: that runs during super(), before
+    // this class's field initializers, so a `= null` field would clobber it.
+    private ensureAuraTickIndicator(): AuraTickIndicator {
+        if (this.auraTickIndicator === null) {
+            this.auraTickIndicator = new AuraTickIndicator(this.shape);
+        }
+        return this.auraTickIndicator;
     }
 
     createMinimapIcon() {

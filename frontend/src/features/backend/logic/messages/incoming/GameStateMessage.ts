@@ -192,6 +192,8 @@ function unmarshalEntity(entity, eType) {
         campfireBound: undefined,
         inCombat: undefined,
         dwellRadius: undefined,
+        auraTickInterval: undefined,
+        auraTickPhase: undefined,
     };
 
     if (eType === BerryhunterApi.AnyEntity.Resource) {
@@ -223,6 +225,11 @@ function unmarshalEntity(entity, eType) {
         // campfire bind radius in px, 0 = not a respawn anchor — drives the
         // inner dwell circle (chunk 4).
         result.dwellRadius = entity.dwellRadius();
+        // active aura's tick cadence + phase (game ticks), 0 while gated —
+        // drives the tick indicator; reading a mob's beat to dodge its ticks
+        // is the design-critical use case (skill-vocab chunk 6).
+        result.auraTickInterval = entity.auraTickInterval();
+        result.auraTickPhase = entity.auraTickPhase();
     }
 
     if (eType === BerryhunterApi.AnyEntity.Character) {
@@ -256,6 +263,10 @@ function unmarshalEntity(entity, eType) {
         result.campfireBound = entity.campfireBound();
         // true while inside the recent-combat window — drives the HUD combat indicator
         result.inCombat = entity.inCombat();
+        // active aura's tick cadence + phase (game ticks), 0 while none active —
+        // drives the tick indicator on the own player + other players (chunk 6).
+        result.auraTickInterval = entity.auraTickInterval();
+        result.auraTickPhase = entity.auraTickPhase();
     }
 
     if (isFunction(entity.statusEffectsLength) &&

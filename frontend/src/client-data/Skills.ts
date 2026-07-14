@@ -25,6 +25,7 @@ export const SkillNames: { [id: number]: string } = {
     31: 'Recover',
     32: 'Revive',
     33: 'Dash',
+    34: 'Haste',
     40: 'Fire Ward',
 };
 
@@ -58,6 +59,7 @@ export const SkillMaxLevels: { [id: number]: number } = {
     31: 1,
     32: 1,
     33: 3,
+    34: 1,
     40: 3,
 };
 
@@ -93,6 +95,7 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     31: 'cooldown',
     32: 'cooldown',
     33: 'cooldown',
+    34: 'cooldown',
     40: 'aura',
 };
 

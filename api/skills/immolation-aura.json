@@ -9,16 +9,16 @@
       "type": "dot_aura",
       "radius": 1.0,
       "radiusPerLevel": 0.0,
-      "damageHP": 5,
-      "damageHPPerLevel": 1,
+      "damageHP": 10,
+      "damageHPPerLevel": 2,
       "damageTags": ["fire"],
       "dotTicks": 3,
-      "dotTickInterval": 30,
+      "dotTickInterval": 60,
       "targetsEnemies": true,
       "targetsAllies": false,
       "selector": "nearest",
       "maxTargets": 1,
-      "tickInterval": 20
+      "tickInterval": 40
     }
   ]
 }

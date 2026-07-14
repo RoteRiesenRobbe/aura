@@ -87,6 +87,7 @@ type fakePlayer struct {
 	client          model.Client         // recall reads Client().UUID() (chunk 4)
 	rejections      []rejectedActivation // NoteActivationRejected calls (chunk 4)
 	lastMoveDir     phy.Vec2f            // dash aim source (chunk 5)
+	buffs           skills.Buffs         // real store for tick_rate (chunk 6); zero value = factor 1.0
 }
 
 // appliedResist records one ApplyResist call on a test double.
@@ -155,8 +156,12 @@ func (f *fakePlayer) ApplyShield(source skills.SkillID, hp float32, ticks int) {
 func (f *fakePlayer) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
 	f.hots = append(f.hots, appliedHot{source, hot, ticks})
 }
-func (f *fakePlayer) InCombat() bool    { return f.inCombat }
-func (f *fakePlayer) NoteCombatAction() { f.combatActions++ }
+func (f *fakePlayer) ApplyTickRate(source skills.SkillID, factor float32, ticks int) {
+	f.buffs.ApplyTickRate(source, factor, ticks)
+}
+func (f *fakePlayer) TickRateFactor() float32 { return f.buffs.TickRateFactor() }
+func (f *fakePlayer) InCombat() bool          { return f.inCombat }
+func (f *fakePlayer) NoteCombatAction()       { f.combatActions++ }
 
 func (f *fakePlayer) Client() model.Client    { return f.client }
 func (f *fakePlayer) SetPosition(v phy.Vec2f) { f.aura.SetPosition(v) }
@@ -178,6 +183,7 @@ var (
 	_ skillEntity        = (*fakePlayer)(nil)
 	_ model.PlayerEntity = (*fakePlayer)(nil)
 	_ model.Healable     = (*fakePlayer)(nil)
+	_ tickRateBuffed     = (*fakePlayer)(nil)
 )
 
 func newFakePlayer() *fakePlayer {
@@ -1031,6 +1037,27 @@ func TestSkillSystem_MultiEffect_EachEffectOnOwnCadence(t *testing.T) {
 
 	// interval-2 fires on ticks 2,4,6; interval-3 on ticks 3,6 (both on tick 6).
 	assert.Equal(t, []int{0, 1, 1, 1, 0, 2}, touchesPerTick)
+}
+
+// TestSkillSystem_TickRateHasteFiresFaster pins the caster-aware firing loop
+// (skill-vocab chunk 6): a tick_rate haste buff on the caster shortens the
+// effective interval end-to-end, so an interval-4 aura under a 0.5 haste fires
+// on every 2nd tick instead of every 4th.
+func TestSkillSystem_TickRateHasteFiresFaster(t *testing.T) {
+	caster, target := activeAuraPlayer(t, damageEffect(4))
+	caster.ApplyTickRate(50, 0.5, 1000) // long-lived haste
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.AddEntity(caster)
+
+	var touchesPerTick []int
+	for i := 0; i < 6; i++ {
+		before := len(target.touches)
+		sk.Update(33.0)
+		touchesPerTick = append(touchesPerTick, len(target.touches)-before)
+	}
+
+	assert.Equal(t, []int{0, 1, 0, 1, 0, 1}, touchesPerTick,
+		"interval 4 × 0.5 haste = effective 2, fires on ticks 2,4,6")
 }
 
 func TestSkillSystem_SwitchingResetsFireCycle(t *testing.T) {

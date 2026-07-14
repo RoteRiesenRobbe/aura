@@ -28,13 +28,13 @@ func effectiveMaxTargets(e skills.EffectDef, level int) int {
 	return n
 }
 
-// effectiveTickInterval is the level-scaled tick interval, floored at 1.
+// effectiveTickInterval is the level-scaled tick interval, floored at 1 — the
+// BASE cadence with no tick_rate factor (factor 1.0). The VFX-style and
+// buff-lifetime callers use this: haste must not flip an aura's hit style or
+// change an instant effect's buff duration. The firing loop applies the
+// caster's factor directly via skills.EffectiveTickInterval.
 func effectiveTickInterval(e skills.EffectDef, level int) int {
-	n := skills.Scaled(e.TickInterval, e.TickIntervalPerLevel, level)
-	if n < 1 {
-		n = 1
-	}
-	return n
+	return skills.EffectiveTickInterval(e, level, 1.0)
 }
 
 // auraSlashTickThreshold is the effective tick interval at or above which a

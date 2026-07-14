@@ -8,12 +8,12 @@
     {
       "type": "damage_aura",
       "radius": 0.8,
-      "damageHP": 5,
-      "damageHPPerLevel": 1,
+      "damageHP": 10,
+      "damageHPPerLevel": 2,
       "targetsEnemies": true,
       "selector": "nearest",
       "maxTargets": 1,
-      "tickInterval": 20
+      "tickInterval": 40
     }
   ]
 }

@@ -51,6 +51,13 @@ type slowPayload struct {
 	fraction float32
 }
 
+type tickRatePayload struct {
+	// factor scales the caster's own aura tick interval: < 1 = haste (faster
+	// ticks), > 1 = tick-slow. Streams are keyed by factor, like slow. The
+	// >= 1-tick floor lives at EffectiveTickInterval, not here.
+	factor float32
+}
+
 type dotPayload struct {
 	dot DotBuff
 	// age is the acting accumulator: game ticks since application, advanced
@@ -78,11 +85,12 @@ type hotPayload struct {
 	age int
 }
 
-func (*resistPayload) isBuffPayload() {}
-func (*slowPayload) isBuffPayload()   {}
-func (*dotPayload) isBuffPayload()    {}
-func (*shieldPayload) isBuffPayload() {}
-func (*hotPayload) isBuffPayload()    {}
+func (*resistPayload) isBuffPayload()   {}
+func (*slowPayload) isBuffPayload()     {}
+func (*tickRatePayload) isBuffPayload() {}
+func (*dotPayload) isBuffPayload()      {}
+func (*shieldPayload) isBuffPayload()   {}
+func (*hotPayload) isBuffPayload()      {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -167,6 +175,22 @@ func (b *Buffs) ApplySlow(source SkillID, fraction float32, ticks int) {
 		}
 	}
 	b.apply(source, &slowPayload{fraction: fraction}, ticks)
+}
+
+// ApplyTickRate grants (or refreshes) a tick-rate buff from the given source
+// skill (skill-vocab chunk 6): factor < 1 hastes the caster's own aura cadence,
+// > 1 slows it. Same stream rules as slow, keyed by factor — an identical
+// factor refreshes that stream, a different factor opens its own.
+func (b *Buffs) ApplyTickRate(source SkillID, factor float32, ticks int) {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*tickRatePayload); ok && p.factor == factor {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			return
+		}
+	}
+	b.apply(source, &tickRatePayload{factor: factor}, ticks)
 }
 
 // ApplyDot grants (or refreshes) a damage-over-time debuff from the given
@@ -290,6 +314,40 @@ func (b *Buffs) SlowFraction() float32 {
 		}
 	}
 	return strongest
+}
+
+// TickRateFactor is the combined tick-rate multiplier currently in effect on
+// the caster's own aura cadence (skill-vocab chunk 6). Per skill only the most
+// extreme active application counts (furthest from unity — the resist-style
+// per-skill rule, so a skill never self-stacks); across skills the factors
+// multiply, so a haste and a tick-slow net out. No active buff = 1.0.
+func (b *Buffs) TickRateFactor() float32 {
+	factor := float32(1)
+	for _, list := range b.entries {
+		var strongest *tickRatePayload
+		for _, e := range list {
+			p, ok := e.payload.(*tickRatePayload)
+			if !ok {
+				continue
+			}
+			if strongest == nil || tickRateDistance(p.factor) > tickRateDistance(strongest.factor) {
+				strongest = p
+			}
+		}
+		if strongest != nil {
+			factor *= strongest.factor
+		}
+	}
+	return factor
+}
+
+// tickRateDistance ranks tick-rate factors by how far they pull from unity, so
+// "strongest" is well-defined for both hastes (< 1) and tick-slows (> 1).
+func tickRateDistance(factor float32) float32 {
+	if factor < 1 {
+		return 1 - factor
+	}
+	return factor - 1
 }
 
 // ShieldTotal is the combined absorb capacity of all active shield pools —

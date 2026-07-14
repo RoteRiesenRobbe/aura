@@ -9,11 +9,11 @@
       "type": "damage_aura",
       "radius": 1.0,
       "radiusPerLevel": 0.0,
-      "damageHP": 6,
+      "damageHP": 12,
       "damageHPPerLevel": 0.0,
       "targetsAllies": false,
       "targetsEnemies": true,
-      "tickInterval": 20
+      "tickInterval": 40
     }
   ]
 }

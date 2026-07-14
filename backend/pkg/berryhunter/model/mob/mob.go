@@ -377,6 +377,40 @@ func (m *Mob) AuraRadius() float32 {
 	return m.skills.AuraSlots[slot].EffectiveRadius()
 }
 
+// AuraTickInterval is the active aura's first-effect effective tick interval in
+// game ticks (level scaling × this mob's tick_rate factor, floored at 1), 0
+// while nothing is active — mirrors player.AuraTickInterval. Serialized as
+// Mob.aura_tick_interval; reading a mob's beat to dodge its ticks is the
+// design-critical use case (skill-vocab chunk 6).
+func (m *Mob) AuraTickInterval() int {
+	slot := m.skills.ActiveAuraSlot
+	if slot < 0 || m.skills.AuraSlots[slot] == nil {
+		return 0
+	}
+	equip := m.skills.AuraSlots[slot]
+	if len(equip.Def.Effects) == 0 || !skills.HasVisibleTickCadence(equip.Def.Effects[0].Type) {
+		return 0
+	}
+	return skills.EffectiveTickInterval(equip.Def.Effects[0], equip.Level, m.buffs.TickRateFactor())
+}
+
+// AuraTickPhase is the accumulator's position within the current effective
+// interval — mirrors player.AuraTickPhase (skill-vocab chunk 6). Serialized as
+// Mob.aura_tick_phase; 0 while nothing is active.
+func (m *Mob) AuraTickPhase() int {
+	interval := m.AuraTickInterval()
+	if interval <= 0 {
+		return 0
+	}
+	return m.skills.AuraSlots[m.skills.ActiveAuraSlot].TickAccumulator % interval
+}
+
+// TickRateFactor is the combined tick_rate multiplier on this mob's own aura
+// cadence (skill-vocab chunk 6); 1.0 = no haste/slow active.
+func (m *Mob) TickRateFactor() float32 {
+	return m.buffs.TickRateFactor()
+}
+
 // LightRadius is the light emitted by the active aura, 0 = no light — mirrors
 // player.LightRadius. Serialized as Mob.light_radius (darkness hole-punch,
 // chunk 3; the campfire's big light coexisting with its small heal ring is
@@ -1150,6 +1184,14 @@ func (m *Mob) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
 // is entity-agnostic; drained by takeDamage before HP.
 func (m *Mob) ApplyShield(source skills.SkillID, hp float32, ticks int) {
 	m.buffs.ApplyShield(source, hp, ticks)
+}
+
+// ApplyTickRate grants a haste / tick-slow buff scaling this mob's own aura
+// cadence (skill-vocab chunk 6) — mobs can be hasted/slowed by content, the
+// machinery is entity-agnostic; the SkillSystem reads the composed factor each
+// tick via TickRateFactor.
+func (m *Mob) ApplyTickRate(source skills.SkillID, factor float32, ticks int) {
+	m.buffs.ApplyTickRate(source, factor, ticks)
 }
 
 // ShieldHP is the current total absorb capacity across all active pools;

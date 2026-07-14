@@ -6,6 +6,89 @@
 > per-entity effective fields + interval must be manipulable → haste seam;
 > chunk order 1 → 2 → 4 → 3 → 5 → 6).
 >
+> **CHUNK 6 (tick-indicator wire + tick-rate seam) CODE COMPLETE 2026-07-14 —
+> pending in-game verify + commit. LAST chunk of Step 4.**
+> **Two chunk-start decisions locked (options laid out, user chose):**
+> **(1) Accumulator semantics = RAW MODULO (option A).** The single monotonic
+> `equip.TickAccumulator` stays; each effect fires when `acc % effectiveInterval
+> == 0` evaluated with the CURRENT interval, and the wire phase is the same
+> `acc % interval` — so the indicator beat and the actual ticks stay in lockstep
+> by construction (the in-game "ticks land on the beat" check passes for free).
+> Zero new state, keeps the shared counter serving all effects. Known edge: a
+> large abrupt tick-SLOW can re-anchor the grid and cancel an almost-due tick —
+> no content triggers it yet, and A→B (rescale, preserve fractional progress) is
+> a NON-BREAKING future upgrade because §4.5 already fixes that the wire carries
+> the effective value. Foreclosed by A until then: precise timing-based haste
+> play + smoothly-ramping tempo (both fine to defer). **(2) tick_rate combination
+> = MULTIPLICATIVE (the resist model).** Strongest-per-skill (furthest from
+> unity — a skill never self-stacks) × across skills, so a haste (0.5) and a
+> tick-slow (2.0) net out and two hastes stack; the ≥ 1-tick floor at
+> `EffectiveTickInterval` is the ceiling. Chosen over strongest-wins because it
+> is the only rule where haste can COUNTER an enemy tempo debuff (the co-op role
+> play), and it reuses `ResistMultiplier`'s shape.
+> Shipped: `skills.EffectiveTickInterval(e, level, factor)` in `scaling.go` =
+> THE cadence source of truth (`round(Scaled(interval)×factor)`, floor 1),
+> called by BOTH the firing loop (caster factor) and the model wire accessors
+> (own factor, effect[0]); the old `sys.effectiveTickInterval(e, level)` is now a
+> factor-1.0 wrapper kept for the VFX-style + instant-buff-lifetime callers
+> (haste must not flip an aura's hit style or an instant effect's duration).
+> `tickRatePayload` + `ApplyTickRate` + `TickRateFactor()` in `skills.Buffs`
+> (mirrors slow; buff payloads 5 → 6). Firing loop reads the caster factor via a
+> `tickRateBuffed` capability assert (default 1.0 for a caster with no store).
+> `tick_rate` effect type (21 → 22) + `TickRateParams{Factor, DurationTicks}`
+> (factor > 0 and ≠ 1, duration > 0) + effectKeys allowlist + `tickRateParams()`
+> validator + parse-switch case; **self-targeted** — `applyTickRate` applies the
+> buff straight to the caster (no query circle, `tickRateApplier` capability, mob
+> content can self-haste too). Model: `AuraTickInterval()`/`AuraTickPhase()` on
+> player + mob (mirror `AuraRadius`, 0 while no active aura; phase = `equip.
+> TickAccumulator % interval` for effect[0]) + `TickRateFactor()`/`ApplyTickRate`
+> delegates; both accessors added to the `MobEntity` + `PlayerEntity` interfaces.
+> Wire: `aura_tick_interval:ushort` + `aura_tick_phase:ushort` appended at the
+> end of Character AND Mob; codec both branches; Go + TS flatbuffers regen.
+> Frontend: bare `AuraTickIndicator` — a thin **ring-glow ramp** (a stroked ring
+> at the aura edge, alpha = `phase/interval × 0.45`, brightening toward each tick
+> then discharging at the beat; the full ring stays drawn via the aura sprite,
+> the hit keeps its existing slash/fire aura-hit VFX). **Iterated in-game over
+> two rejected cuts:** a single orbiting dot ("didn't look good") → a translucent
+> disc filling centre-to-edge ("just looks like constant alarms going off all
+> over the screen") → the edge-only glow, which lights just the ring line so a
+> screenful of auras reads as a calm rhythm. Wired on the own player
+> (`Player.ts`), other players + mobs (`EntityManager.ts`), fed after
+> `setAuraRadius`; created LAZILY on `this.shape` — NOT in `initShape`, which
+> runs during `super()` before the subclass `= null` field initializer that
+> would otherwise clobber it (the "Cannot read setRadius of null" crash the disc
+> cut hit in-game). Explicitly NOT the step-8 polish pass.
+> **Two calming changes shipped alongside the glow (post-first-verify):**
+> **(a) tick-cadence GATE** — new `skills.HasVisibleTickCadence(EffectType)`
+> gates `AuraTickInterval`/`AuraTickPhase` to the four HIT auras (damage / heal /
+> dot / hot). State + visual auras (slow, resist, light — often `tickInterval 1`,
+> i.e. re-applied every tick) produced no visible per-tick hit yet strobed the
+> indicator every frame; they now report wire 0 = no indicator. Pinned by a
+> predicate unit test + a Mob codec case (light-first-effect → interval 0).
+> **(b) global cadence pass (user call — "everything is just too fast"):** every
+> hit-aura's `tickInterval` (and the dot/hot event interval) AND its per-tick
+> output (`damageHP` / `healHP` / `selfDamageHP`, incl. their PerLevel) were
+> DOUBLED — DPS-neutral (same output/second, half as many, twice as chunky
+> ticks), which also halves the indicator's pulse rate. 16 skill JSONs touched
+> (10 damage: DamageAura/Reaper/Wild/Paladin-dmg + mob Dodo/Saber/Mammoth/
+> AngryMammoth/Companion; 4 heal: HealAura/Paladin-heal + mob Healer/Campfire;
+> 2 dot/hot: Immolation + mob Totem, Rejuvenation), all [PLACEHOLDER]. Instant
+> cooldowns (Nova/Ignite/Recover/Stomp) untouched — not auras, no constant
+> pulse. Suite + build + tsc/webpack + boot both sources (34 skills) re-green. **Deferred to step 8
+> (recorded per §4.5):** buff visibility (icons/timers) — the per-entity scalars
+> here don't foreclose a per-entity buff list there; the skill-metadata catalog
+> message stays the direction for the Skills.ts names/maxLevels hand-sync debt
+> (static data only, never intervals). Content: **Haste id 34** (cooldown,
+> cooldownTicks 300, tickRateFactor 0.5 for tickRateDurationTicks 90, all
+> [PLACEHOLDER]), cheat-granted `SKILL Haste`, no milestone; registry pin
+> 33 → 34. 14 new tests (7 tick_rate buff semantics + 4 EffectiveTickInterval +
+> caster-aware haste-fires-faster integration + 5 parse/validate + Mob codec
+> round-trip). Suite + `go build` + tsc/webpack + boot smoke both content
+> sources (34 skills) green. In-game checklist (before commit): mob ring damage
+> ticks land on the orbiting-dot beat; dodging between beats avoids damage; with
+> `SKILL Haste` on a damage aura, own ring dot + actual ticks visibly double
+> together for 90 ticks.
+>
 > **CHUNK 5 (dash) DONE + VERIFIED IN-GAME 2026-07-14.**
 > **Chunk-start decision SUPERSEDES §3.8's "facing direction":** Aura
 > characters are non-turning 2D icons — no facing, no camera rotation — so a

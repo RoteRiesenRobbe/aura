@@ -492,6 +492,51 @@ func TestMap_DashKeyOnOtherEffectFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestParse_TickRate(t *testing.T) {
+	data := []byte(`{
+      "id": 34, "name": "Haste", "category": "cooldown", "maxLevel": 1, "cooldownTicks": 300,
+      "effects": [{"type": "tick_rate", "tickRateFactor": 0.5, "tickRateDurationTicks": 90}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeTickRate, e.Type)
+	require.NotNil(t, e.TickRate)
+	assert.InDelta(t, 0.5, e.TickRate.Factor, 1e-6)
+	assert.Equal(t, 90, e.TickRate.DurationTicks)
+}
+
+func TestMap_TickRateNonPositiveFactorFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":34,"name":"Haste","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"tick_rate","tickRateFactor":0,"tickRateDurationTicks":90}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "tickRateFactor")
+}
+
+func TestMap_TickRateUnityFactorFails(t *testing.T) {
+	// A factor of 1 is neither haste nor slow — a silent no-op cooldown.
+	raw, err := parseSkillDefinition([]byte(`{"id":34,"name":"Haste","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"tick_rate","tickRateFactor":1,"tickRateDurationTicks":90}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "tickRateFactor")
+}
+
+func TestMap_TickRateZeroDurationFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":34,"name":"Haste","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"tick_rate","tickRateFactor":0.5,"tickRateDurationTicks":0}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "tickRateDurationTicks")
+}
+
+func TestMap_TickRateKeyOnOtherEffectFails(t *testing.T) {
+	// tickRateFactor on a non-tick_rate effect is a silent no-op — the allowlist rejects it.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"self_heal","healHP":0.2,"tickRateFactor":0.5}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.Error(t, err)
+}
+
 func TestParse_DamageReductionStat(t *testing.T) {
 	data := []byte(`{
       "id": 11, "name": "ToughPassive", "category": "passive", "maxLevel": 3,

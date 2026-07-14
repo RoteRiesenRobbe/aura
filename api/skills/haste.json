@@ -1,0 +1,10 @@
+{
+  "id": 34,
+  "name": "Haste",
+  "category": "cooldown",
+  "maxLevel": 1,
+  "cooldownTicks": 300,
+  "effects": [
+    { "type": "tick_rate", "tickRateFactor": 0.5, "tickRateDurationTicks": 90 }
+  ]
+}

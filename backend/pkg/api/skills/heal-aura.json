@@ -9,12 +9,12 @@
       "type": "heal_aura",
       "radius": 1.0,
       "radiusPerLevel": 0.0,
-      "healHP": 6,
-      "healHPPerLevel": 3,
-      "selfDamageHP": 9,
+      "healHP": 12,
+      "healHPPerLevel": 6,
+      "selfDamageHP": 18,
       "selector": "lowest_health",
       "maxTargets": 1,
-      "tickInterval": 60
+      "tickInterval": 120
     }
   ]
 }

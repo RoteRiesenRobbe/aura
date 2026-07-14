@@ -8,6 +8,7 @@ import {IGame} from '../../core/logic/IGame';
 import {GameSetupEvent} from '../../core/logic/Events';
 import * as PIXI from 'pixi.js';
 import {createInjectedSVG} from "../../core/logic/InjectedSVG";
+import {AuraTickIndicator} from './AuraTickIndicator';
 import {meter2px} from "../../../client-data/BasicConfig";
 import {ISvgContainer} from "../../core/logic/ISvgContainer";
 import './MobJuice';
@@ -45,6 +46,10 @@ export abstract class Mob extends GameObject {
     private barInnerX: number = 0;
     private barInnerWidth: number = 0;
     private auraSprite: PIXI.Container = null;
+    // Bare tick indicator (skill-vocab chunk 6): a dot orbiting the aura ring
+    // once per effective tick interval — reading a mob's beat to dodge its
+    // ticks is the design-critical use case.
+    private auraTickIndicator: AuraTickIndicator = null;
 
     protected constructor(
         id: number,
@@ -72,6 +77,9 @@ export abstract class Mob extends GameObject {
             if (this.auraSprite !== null) {
                 this.auraSprite.visible = false;
             }
+            if (this.auraTickIndicator !== null) {
+                this.auraTickIndicator.setRadius(0);
+            }
             return;
         }
         // Like hit reach, the visual ring extends by the player collider
@@ -84,6 +92,19 @@ export abstract class Mob extends GameObject {
         this.auraSprite.visible = true;
         this.auraSprite.width = ringRadius * 2;
         this.auraSprite.height = ringRadius * 2;
+        if (this.auraTickIndicator === null) {
+            this.auraTickIndicator = new AuraTickIndicator(this.shape);
+        }
+        this.auraTickIndicator.setRadius(ringRadius);
+    }
+
+    // setAuraTick drives the bare tick indicator from the wire
+    // aura_tick_interval / aura_tick_phase fields (skill-vocab chunk 6).
+    setAuraTick(interval: number, phase: number) {
+        if (this.auraTickIndicator === null) {
+            this.auraTickIndicator = new AuraTickIndicator(this.shape);
+        }
+        this.auraTickIndicator.setTick(interval, phase);
     }
 
     initShape(svg: PIXI.Texture, x: number, y: number, size: number, rotation: number, anchor?: IVector): PIXI.Container {

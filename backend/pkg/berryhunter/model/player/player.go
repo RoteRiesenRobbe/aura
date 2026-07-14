@@ -406,6 +406,19 @@ func (p *player) ApplyShield(source skills.SkillID, hp float32, ticks int) {
 	p.buffs.ApplyShield(source, hp, ticks)
 }
 
+// ApplyTickRate grants a haste / tick-slow buff scaling this player's own aura
+// cadence (skill-vocab chunk 6); the SkillSystem reads the composed factor each
+// tick via TickRateFactor.
+func (p *player) ApplyTickRate(source skills.SkillID, factor float32, ticks int) {
+	p.buffs.ApplyTickRate(source, factor, ticks)
+}
+
+// TickRateFactor is the combined tick_rate multiplier on this player's aura
+// cadence (skill-vocab chunk 6); 1.0 = no haste/slow active.
+func (p *player) TickRateFactor() float32 {
+	return p.buffs.TickRateFactor()
+}
+
 // ShieldHP is the current total absorb capacity across all active pools;
 // serialized as the shield_hp wire field. A live value, not a per-tick
 // accumulator — no ResetTickNumbers involvement.
@@ -593,6 +606,35 @@ func (p *player) AuraRadius() float32 {
 		return 0
 	}
 	return p.skills.AuraSlots[slot].EffectiveRadius()
+}
+
+// AuraTickInterval is the active aura's first-effect effective tick interval in
+// game ticks (level scaling × this player's tick_rate factor, floored at 1), 0
+// while nothing is active. Serialized as Character.aura_tick_interval — the
+// client draws the tick indicator from it (skill-vocab chunk 6). First effect =
+// the authoring convention for "the defining cadence".
+func (p *player) AuraTickInterval() int {
+	slot := p.skills.ActiveAuraSlot
+	if slot < 0 || p.skills.AuraSlots[slot] == nil {
+		return 0
+	}
+	equip := p.skills.AuraSlots[slot]
+	if len(equip.Def.Effects) == 0 || !skills.HasVisibleTickCadence(equip.Def.Effects[0].Type) {
+		return 0
+	}
+	return skills.EffectiveTickInterval(equip.Def.Effects[0], equip.Level, p.buffs.TickRateFactor())
+}
+
+// AuraTickPhase is the accumulator's position within the current effective
+// interval (skill-vocab chunk 6): the same acc % interval the firing loop uses
+// for effect[0], so the indicator beat lands on the actual ticks. 0 while
+// nothing is active. Serialized as Character.aura_tick_phase.
+func (p *player) AuraTickPhase() int {
+	interval := p.AuraTickInterval()
+	if interval <= 0 {
+		return 0
+	}
+	return p.skills.AuraSlots[p.skills.ActiveAuraSlot].TickAccumulator % interval
 }
 
 // LightRadius is the light emitted by the active aura, 0 = no light.

@@ -155,9 +155,19 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	// correct regardless of how the intervals relate.
 	equip.TickAccumulator++
 
+	// The caster's tick_rate buffs (haste / tick-slow) scale every effect's
+	// cadence for this tick (skill-vocab chunk 6). Read once; entities without
+	// a buff store (none today) fall back to the neutral 1.0. The wire fields
+	// (model.AuraTickInterval/Phase) apply this same factor to effect[0], so
+	// the indicator beat and the actual ticks stay in lockstep.
+	factor := float32(1)
+	if tr, ok := e.(tickRateBuffed); ok {
+		factor = tr.TickRateFactor()
+	}
+
 	collisions := collider.Collisions()
 	for _, effect := range equip.Def.Effects {
-		if equip.TickAccumulator%effectiveTickInterval(effect, equip.Level) != 0 {
+		if equip.TickAccumulator%skills.EffectiveTickInterval(effect, equip.Level, factor) != 0 {
 			continue
 		}
 		// The shared sensor sizes to the MAX effect radius; a sub-max effect
@@ -199,6 +209,13 @@ type hotBuffable interface {
 // dot damage events and hot heal events in one drain (plan-skill-vocab §3.7).
 type buffEventCarrier interface {
 	DueBuffEvents() ([]skills.DotHit, []skills.HotEvent)
+}
+
+// tickRateBuffed is the caster-side seam for haste / tick-slow (skill-vocab
+// chunk 6): the combined tick_rate factor scaling this entity's own aura
+// cadence. Players and mobs implement it via their Buffs store.
+type tickRateBuffed interface {
+	TickRateFactor() float32
 }
 
 // applyDotEffect applies the effect's damage-over-time debuff to eligible
@@ -1143,6 +1160,12 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			}
 			continue
 		}
+		if effect.Type == skills.EffectTypeTickRate {
+			if s.applyTickRate(e, es.Def.ID, effect) {
+				hitAny = true
+			}
+			continue
+		}
 		if effect.Type != skills.EffectTypeInstantDamage && effect.Type != skills.EffectTypeInstantDot {
 			continue
 		}
@@ -1250,6 +1273,27 @@ func (s *SkillSystem) applyDash(e skillEntity, effect skills.EffectDef, level in
 	p.SetPosition(landing)
 	// A dash always "fires" (like spawn — no whiff); even a wall-flush zero-
 	// distance dash consumes the cooldown by the player path's own rule.
+	return true
+}
+
+// tickRateApplier is the self-buff capability for the haste / tick-slow cooldown
+// (skill-vocab chunk 6). Players and mobs both implement it via their Buffs
+// store, so mob content can carry a self-haste too.
+type tickRateApplier interface {
+	ApplyTickRate(source skills.SkillID, factor float32, ticks int)
+}
+
+// applyTickRate fires a tick_rate cooldown: a self-targeted haste / tick-slow.
+// Unlike the other cooldowns there is no query circle — a tick_rate buff scales
+// the CASTER's own aura cadence, so it applies straight to e for the authored
+// duration. Always "fires" for a capable caster (no whiff — the buff lands even
+// with no aura equipped, taking effect the moment one is switched on).
+func (s *SkillSystem) applyTickRate(e skillEntity, source skills.SkillID, effect skills.EffectDef) bool {
+	self, ok := e.(tickRateApplier)
+	if !ok || effect.TickRate == nil {
+		return false
+	}
+	self.ApplyTickRate(source, effect.TickRate.Factor, effect.TickRate.DurationTicks)
 	return true
 }
 

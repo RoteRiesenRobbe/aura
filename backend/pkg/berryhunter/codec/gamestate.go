@@ -66,6 +66,10 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	xpInLevel, xpForNextLevel := p.LevelProgressXP()
 	BerryhunterApi.CharacterAddXpInLevel(builder, u64ToU32Clamped(xpInLevel))
 	BerryhunterApi.CharacterAddXpForNextLevel(builder, u64ToU32Clamped(xpForNextLevel))
+	// Aura tick cadence + phase; both 0 while no aura is active. The client
+	// draws the tick indicator from these (own player + other players; chunk 6).
+	BerryhunterApi.CharacterAddAuraTickInterval(builder, uint16(p.AuraTickInterval()))
+	BerryhunterApi.CharacterAddAuraTickPhase(builder, uint16(p.AuraTickPhase()))
 }
 
 // u64ToU32Clamped narrows a uint64 to uint32 for the wire, saturating rather

@@ -87,6 +87,12 @@ export class Player {
         if (isDefined(entity.auraRadius)) {
             this.character.setAuraRadius(entity.auraRadius);
         }
+        // Own bare aura tick indicator (skill-vocab chunk 6): the wire cadence
+        // + phase drive the orbiting dot, so a haste visibly speeds up your own
+        // ring. Fed after setAuraRadius so the ring radius is set.
+        if (isDefined(entity.auraTickInterval)) {
+            this.character.setAuraTick(entity.auraTickInterval, entity.auraTickPhase);
+        }
         // Own light hole in the darkness overlay (chunk 3); 0 removes it.
         if (isDefined(entity.lightRadius)) {
             DarknessOverlay.setLightRadius(this.character, entity.lightRadius);

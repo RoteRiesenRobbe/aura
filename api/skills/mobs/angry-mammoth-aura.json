@@ -9,14 +9,14 @@
       "type": "damage_aura",
       "radius": 3.0,
       "radiusPerLevel": 0.25,
-      "damageHP": 4,
-      "damageHPPerLevel": 1,
+      "damageHP": 8,
+      "damageHPPerLevel": 2,
       "damageTags": ["fire"],
       "structureDamageFraction": 0.67,
       "targetsAllies": false,
       "targetsEnemies": true,
       "targetsStructures": true,
-      "tickInterval": 10
+      "tickInterval": 20
     }
   ]
 }

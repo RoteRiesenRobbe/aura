@@ -133,8 +133,18 @@ shieldHp():number {
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
+auraTickInterval():number {
+  const offset = this.bb!.__offset(this.bb_pos, 42);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
+auraTickPhase():number {
+  const offset = this.bb!.__offset(this.bb_pos, 44);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(19);
+  builder.startObject(21);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -223,6 +233,14 @@ static addCritTaken(builder:flatbuffers.Builder, critTaken:number) {
 
 static addShieldHp(builder:flatbuffers.Builder, shieldHp:number) {
   builder.addFieldInt32(18, shieldHp, 0);
+}
+
+static addAuraTickInterval(builder:flatbuffers.Builder, auraTickInterval:number) {
+  builder.addFieldInt16(19, auraTickInterval, 0);
+}
+
+static addAuraTickPhase(builder:flatbuffers.Builder, auraTickPhase:number) {
+  builder.addFieldInt16(20, auraTickPhase, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

@@ -8,9 +8,9 @@
     {
       "type": "heal_aura",
       "radius": 1.5,
-      "healHP": 6,
+      "healHP": 12,
       "maxTargets": 0,
-      "tickInterval": 30
+      "tickInterval": 60
     },
     {
       "type": "light_aura",

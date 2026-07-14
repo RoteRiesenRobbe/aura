@@ -53,7 +53,24 @@ const (
 	EffectTypeInstantHot
 	EffectTypeRevive
 	EffectTypeDash
+	EffectTypeTickRate
 )
+
+// HasVisibleTickCadence reports whether an active-aura effect produces a
+// periodic on-ring HIT worth drawing a tick indicator for (skill-vocab chunk
+// 6). Only the four output auras qualify: damage/heal land a visible event each
+// tick, and dot/hot re-apply on their authored cadence. State + visual effects
+// (slow, resist, light) re-apply too — often at interval 1 — but show no
+// per-tick hit, so an indicator would just strobe; those report the wire 0 (no
+// indicator) instead.
+func HasVisibleTickCadence(t EffectType) bool {
+	switch t {
+	case EffectTypeDamageAura, EffectTypeHealAura, EffectTypeDotAura, EffectTypeHotAura:
+		return true
+	default:
+		return false
+	}
+}
 
 var effectTypeMap = map[string]EffectType{
 	"damage_aura":     EffectTypeDamageAura,
@@ -77,6 +94,7 @@ var effectTypeMap = map[string]EffectType{
 	"instant_hot":     EffectTypeInstantHot,
 	"revive":          EffectTypeRevive,
 	"dash":            EffectTypeDash,
+	"tick_rate":       EffectTypeTickRate,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -194,6 +212,7 @@ type EffectDef struct {
 	Hot      *HotParams      // hot_aura, instant_hot
 	Revive   *ReviveParams   // revive
 	Dash     *DashParams     // dash
+	TickRate *TickRateParams // tick_rate
 }
 
 // ThreatParams is the taunt / detaunt payload (mob-depth chunk 7). Margin is
@@ -459,6 +478,16 @@ type DashParams struct {
 	DistancePerLevel float32
 }
 
+// TickRateParams is the tick_rate payload (plan-skill-vocab chunk 6): a
+// cooldown-fired, self-targeted haste / tick-slow. Factor scales the caster's
+// OWN aura cadence for DurationTicks game ticks — < 1 hastes, > 1 slows. The
+// buff composes multiplicatively with any other tick_rate source and is floored
+// at 1 tick at EffectiveTickInterval. Self-only: no target flags, no radius.
+type TickRateParams struct {
+	Factor        float32
+	DurationTicks int
+}
+
 // SpawnParams is the spawn payload (effect foundations Step 3 / mob-depth
 // chunk 1): a cooldown-fired summon of an owned, caster-aligned mob. Two
 // scaling sources compose (chunk-1 decision): the SUMMON SKILL's level scales
@@ -610,6 +639,9 @@ type effectDef struct {
 
 	DashDistance         float32 `json:"dashDistance"`         // dash: world-unit displacement
 	DashDistancePerLevel float32 `json:"dashDistancePerLevel"` // dash: displacement added per level
+
+	TickRateFactor        float32 `json:"tickRateFactor"`        // tick_rate: cadence multiplier (<1 haste, >1 slow)
+	TickRateDurationTicks int     `json:"tickRateDurationTicks"` // tick_rate: buff lifetime in game ticks
 }
 
 type skillDefinition struct {
@@ -715,6 +747,10 @@ var effectKeys = map[EffectType][]string{
 	// Distance is the only payload; direction is the caster's movement vector,
 	// read at fire time.
 	EffectTypeDash: {"dashDistance", "dashDistancePerLevel"},
+	// Tick-rate (chunk 6): a self-targeted haste / tick-slow — a bare scalar
+	// factor plus a lifetime. No geometry, no targeting, no cadence (it MODIFIES
+	// cadence rather than having one).
+	EffectTypeTickRate: {"tickRateFactor", "tickRateDurationTicks"},
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -884,6 +920,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Revive, err = e.reviveParams()
 	case EffectTypeDash:
 		def.Dash, err = e.dashParams()
+	case EffectTypeTickRate:
+		def.TickRate, err = e.tickRateParams()
 	}
 	if err != nil {
 		return EffectDef{}, err
@@ -1121,6 +1159,23 @@ func (e *effectDef) dashParams() (*DashParams, error) {
 		return nil, fmt.Errorf("dashDistance: must be > 0, got %v", e.DashDistance)
 	}
 	return &DashParams{Distance: e.DashDistance, DistancePerLevel: e.DashDistancePerLevel}, nil
+}
+
+// tickRateParams builds the tick_rate payload. Factor must be strictly positive
+// and not 1 (a factor of 1 is a no-op cooldown; 0 or negative is nonsensical for
+// a cadence multiplier). DurationTicks must be positive — a zero-lifetime buff
+// expires before it can act.
+func (e *effectDef) tickRateParams() (*TickRateParams, error) {
+	if e.TickRateFactor <= 0 {
+		return nil, fmt.Errorf("tickRateFactor: must be > 0, got %v", e.TickRateFactor)
+	}
+	if e.TickRateFactor == 1 {
+		return nil, fmt.Errorf("tickRateFactor: 1 is a no-op (neither haste nor slow)")
+	}
+	if e.TickRateDurationTicks <= 0 {
+		return nil, fmt.Errorf("tickRateDurationTicks: must be > 0, got %v", e.TickRateDurationTicks)
+	}
+	return &TickRateParams{Factor: e.TickRateFactor, DurationTicks: e.TickRateDurationTicks}, nil
 }
 
 // tauntParams builds the taunt payload. Margin must be strictly positive — a

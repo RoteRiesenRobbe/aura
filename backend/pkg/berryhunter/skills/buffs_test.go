@@ -438,11 +438,127 @@ func TestBuffs_CleanseRemovesEverything(t *testing.T) {
 	b.ApplySlow(4, 0.5, 100)
 	b.ApplyDot(5, DotBuff{HP: 4, Interval: 1}, 100)
 	b.ApplyShield(27, 20, 100)
+	b.ApplyTickRate(50, 0.5, 100)
 
 	b.Cleanse()
 
 	assert.InDelta(t, 1.0, b.ResistMultiplier([]string{"fire"}), 1e-6)
 	assert.InDelta(t, 0.0, b.SlowFraction(), 1e-6)
 	assert.InDelta(t, 0.0, b.ShieldTotal(), 1e-6)
+	assert.InDelta(t, 1.0, b.TickRateFactor(), 1e-6)
 	assert.Empty(t, cycleDot(&b))
+}
+
+// --- tick_rate payload (skill-vocab chunk 6): a scalar factor on the caster's
+// own aura cadence. factor < 1 = haste, > 1 = tick-slow. Combination rule =
+// multiplicative across skills (the Resist model, minus tags), clamped by the
+// >= 1-tick floor at the interval site. Default (no buff) = 1.0. ---
+
+func TestBuffs_TickRateDefaultIsUnity(t *testing.T) {
+	var b Buffs
+	assert.InDelta(t, 1.0, b.TickRateFactor(), 1e-6, "no tick_rate buff = no change")
+}
+
+func TestBuffs_TickRateSingleFactor(t *testing.T) {
+	var b Buffs
+	b.ApplyTickRate(50, 0.5, 2)
+	assert.InDelta(t, 0.5, b.TickRateFactor(), 1e-6)
+}
+
+func TestBuffs_TickRateDifferentSkillsMultiply(t *testing.T) {
+	// Distinct source skills compose multiplicatively: two hastes stack.
+	var b Buffs
+	b.ApplyTickRate(50, 0.5, 2)
+	b.ApplyTickRate(51, 0.5, 2)
+	assert.InDelta(t, 0.25, b.TickRateFactor(), 1e-6)
+}
+
+func TestBuffs_TickRateHasteAndSlowCancel(t *testing.T) {
+	// A haste (0.5) and a tick-slow (2.0) from distinct skills net out — the
+	// whole point of the multiplicative rule over strongest-wins.
+	var b Buffs
+	b.ApplyTickRate(50, 0.5, 2)
+	b.ApplyTickRate(51, 2.0, 2)
+	assert.InDelta(t, 1.0, b.TickRateFactor(), 1e-6)
+}
+
+func TestBuffs_TickRateSameSkillStrongestWins(t *testing.T) {
+	// The same skill does not stack with itself — the most extreme active
+	// factor (furthest from unity) applies, mirroring resist's per-skill rule.
+	var b Buffs
+	b.ApplyTickRate(50, 0.8, 2)
+	b.ApplyTickRate(50, 0.5, 2)
+	assert.InDelta(t, 0.5, b.TickRateFactor(), 1e-6, "0.5 is further from unity than 0.8")
+
+	// A weaker (closer-to-unity) application neither overwrites the stronger
+	// one nor keeps it alive past its own lifetime.
+	b.ApplyTickRate(50, 0.9, 3)
+	assert.InDelta(t, 0.5, b.TickRateFactor(), 1e-6)
+	b.Tick()
+	b.Tick()
+	assert.InDelta(t, 0.9, b.TickRateFactor(), 1e-6, "0.8/0.5 expired; the 3-tick 0.9 remains")
+}
+
+func TestBuffs_TickRateExpiry(t *testing.T) {
+	var b Buffs
+	b.ApplyTickRate(50, 0.5, 2)
+
+	b.Tick()
+	assert.InDelta(t, 0.5, b.TickRateFactor(), 1e-6, "survives one tick boundary")
+
+	b.Tick()
+	assert.InDelta(t, 1.0, b.TickRateFactor(), 1e-6, "expired without re-application")
+}
+
+func TestBuffs_TickRateSameFactorRefreshes(t *testing.T) {
+	// An identical factor refreshes the one stream's lifetime (keyed by factor,
+	// like the other payloads) rather than opening a second stream.
+	var b Buffs
+	b.ApplyTickRate(50, 0.5, 2)
+	b.Tick()
+	b.ApplyTickRate(50, 0.5, 2) // refresh
+	assert.InDelta(t, 0.5, b.TickRateFactor(), 1e-6)
+	b.Tick()
+	assert.InDelta(t, 0.5, b.TickRateFactor(), 1e-6, "refreshed stream still alive")
+}
+
+// --- EffectiveTickInterval: the single source of truth for an effect's fired
+// cadence — level scaling composed with a tick_rate factor, floored at 1. ---
+
+func TestEffectiveTickInterval_LevelScalingUnaffectedFactor(t *testing.T) {
+	e := EffectDef{TickInterval: 10, TickIntervalPerLevel: -2}
+	assert.Equal(t, 10, EffectiveTickInterval(e, 1, 1.0))
+	assert.Equal(t, 8, EffectiveTickInterval(e, 2, 1.0), "level 2: 10 + 1*-2")
+}
+
+func TestEffectiveTickInterval_FactorScales(t *testing.T) {
+	e := EffectDef{TickInterval: 10}
+	assert.Equal(t, 5, EffectiveTickInterval(e, 1, 0.5), "haste halves the interval")
+	assert.Equal(t, 20, EffectiveTickInterval(e, 1, 2.0), "tick-slow doubles it")
+}
+
+func TestEffectiveTickInterval_FlooredAtOne(t *testing.T) {
+	e := EffectDef{TickInterval: 3}
+	assert.Equal(t, 1, EffectiveTickInterval(e, 1, 0.01), "extreme haste cannot go below 1 tick")
+
+	// Base-level scaling can also drive it below 1 without any factor.
+	fast := EffectDef{TickInterval: 2, TickIntervalPerLevel: -5}
+	assert.Equal(t, 1, EffectiveTickInterval(fast, 5, 1.0))
+}
+
+func TestHasVisibleTickCadence(t *testing.T) {
+	// The four output auras land a visible per-tick event; state + visual
+	// effects re-apply silently (often at interval 1) so they get no indicator.
+	for _, tt := range []EffectType{EffectTypeDamageAura, EffectTypeHealAura, EffectTypeDotAura, EffectTypeHotAura} {
+		assert.True(t, HasVisibleTickCadence(tt), tt)
+	}
+	for _, tt := range []EffectType{EffectTypeSlowAura, EffectTypeResistAura, EffectTypeLightAura, EffectTypeResistPassive, EffectTypeStatMultiplier} {
+		assert.False(t, HasVisibleTickCadence(tt), tt)
+	}
+}
+
+func TestEffectiveTickInterval_Rounds(t *testing.T) {
+	e := EffectDef{TickInterval: 10}
+	assert.Equal(t, 3, EffectiveTickInterval(e, 1, 0.33), "3.3 rounds to 3")
+	assert.Equal(t, 4, EffectiveTickInterval(e, 1, 0.36), "3.6 rounds to 4")
 }
