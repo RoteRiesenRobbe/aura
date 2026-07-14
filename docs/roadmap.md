@@ -451,6 +451,22 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
         flat list (17 entries today; the item-12 content pass will exceed it)
   - [ ] Per-skill icons — ability bar, spellbook, and passives panel currently
         have no real skill iconography
+  - [ ] **Retire the `Skills.ts` hand-sync — KNOWN TECH DEBT.** A skill is
+        defined once in `api/skills/*.json` (the source of truth: category,
+        effects, damage, cadence, maxLevel), but its **name + maxLevel +
+        category** must ALSO be hand-copied into three parallel maps in
+        `frontend/src/client-data/Skills.ts`. Miss the copy and the client
+        falls back to `Skill #<id>` + the default `'aura'` category — the skill
+        mis-lists and highlights the wrong loadout slots (hit in skill-vocab
+        chunk 6: Haste id 34 showed under Auras while the backend equipped it as
+        the cooldown it is). **Fix:** the server sends a skill-metadata catalog
+        message on connect (it already owns every skill's name/maxLevel/
+        category), so the three static maps are deleted and a new skill is
+        configured in ONE place. Design as ONE metadata wire together with the
+        tick-indicator + buff-visibility questions above (not three ad-hoc
+        fields). The file's own "revisit when the skill list grows" trigger is
+        already met (34 skills); sequenced after the content pass so the catalog
+        is built against the final roster rather than churned twice.
   - [ ] Bars: visual styling for the resource (health) + XP bars, including
         the absolute-number text overlays added 2026-07-07
   - [ ] Ability bar: styling for aura 2×2 grid + cooldown slots (hotkey

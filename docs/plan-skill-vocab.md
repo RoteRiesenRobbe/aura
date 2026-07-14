@@ -6,8 +6,15 @@
 > per-entity effective fields + interval must be manipulable → haste seam;
 > chunk order 1 → 2 → 4 → 3 → 5 → 6).
 >
-> **CHUNK 6 (tick-indicator wire + tick-rate seam) CODE COMPLETE 2026-07-14 —
-> pending in-game verify + commit. LAST chunk of Step 4.**
+> **CHUNK 6 (tick-indicator wire + tick-rate seam) DONE + VERIFIED IN-GAME
+> 2026-07-14, committed 3e9ab8e4. LAST chunk of Step 4 → STEP 4 COMPLETE.**
+> Post-verify fixes folded into the same commit: the ring-glow indicator (below,
+> over two rejected cuts), the tick-cadence gate + global cadence-doubling pass
+> (below), and Skills.ts Haste registration — id 34 had no entry so it defaulted
+> to `Skill #34` + the `'aura'` fallback category, listing under Auras and
+> highlighting aura slots while the backend correctly equipped it as a cooldown;
+> adding id 34 (name Haste, maxLevel 1, cooldown) to the three Skills.ts maps
+> resolved the mismatch.
 > **Two chunk-start decisions locked (options laid out, user chose):**
 > **(1) Accumulator semantics = RAW MODULO (option A).** The single monotonic
 > `equip.TickAccumulator` stays; each effect fires when `acc % effectiveInterval
