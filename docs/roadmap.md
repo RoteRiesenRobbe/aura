@@ -473,7 +473,8 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
         debt — one design, not three ad-hoc fields)
   - [ ] Icon-unlock track — character/token icons unlocked at milestones,
         level-ups, mob kills, aura unlocks (a cosmetic lane parallel to the
-        spellbook unlocks)
+        spellbook unlocks). **Designed together with the avatar picker below as
+        one system — see `plan-avatar-system.md` (design sketch 2026-07-14).**
   - [ ] Unlock & level-up popups (collected 2026-07-11) — designed in-game
         notification with actual text for skill unlocks and level-ups, with a
         **queue** so several events (e.g. level-up + milestone unlock landing
@@ -496,7 +497,10 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
   the old Berryhunter system because new-mode rendering is one SVG texture per
   character (no hair/hand/beard assembly). The dead Berryhunter variant code
   was removed 2026-07-06 (`Character` renders a single `avatar` SVG), so this
-  item starts clean. Portrait art [PLACEHOLDER].
+  item starts clean. Portrait art [PLACEHOLDER]. **Design sketch fusing this
+  with the icon-unlock track above (unlock gating, per-account ownership,
+  mid-game re-selection, wire + build order): `plan-avatar-system.md`
+  (2026-07-14).**
 
 ## 9. Remaining unlock sources
 
@@ -863,6 +867,19 @@ system ships blind.
    corridors built from props. No new zone-transition/sharding tech is
    scheduled before this step; if the content pass finds it needs separate
    Spaces after all, that's a scope change to surface, not to absorb silently.
+   **Combat-feel SFX ride with this pass (split out of step-8 audio 2026-07-14):**
+   hit / ability / mob-death / level-up sounds are a core fun-*input*, not polish —
+   validating "is combat fun?" on a silent build gives a misleading read at the
+   prove-it gate (and at the Phase-0 friends playtest, which may pull into this
+   pass, `plan-phase0-deploy.md`). No regions dependency; these are tied to
+   *abilities*, which exist by now, so they can be authored once alongside the real
+   abilities. **Reuse the existing `frontend/src/features/audio/` scaffold**
+   (`@pixi/sound`): `SpatialAudio.ts` (positional playback, listener from the camera),
+   `TriggerIntervalMap.ts` (per-trigger throttle for aura-tick / hit spam),
+   `SoundData.ts`, and `Audio.ts` (master mute/volume via `GameSettings`) already
+   exist — the gap is a sound registry + asset load and the trigger hooks off
+   ability/hit/death events, not new infrastructure. The location-music half stays
+   at step 8.
 7. **Rebrand to Aura & Berryhunter cleanup** (`plan-rebrand-cleanup.md`) —
    dead-feature removal (rating popup, survival/item scaffolding; the
    **scoreboard was pulled forward and removed 2026-07-08**, the **chieftain
@@ -876,15 +893,18 @@ system ships blind.
    deliberately **after** content: the game proves out session-based first, then
    we invest in persistence, the anonymous-first account service (built fresh —
    chieftain deleted 2026-07-09), the styling pass, and avatar selection.
-   **Audio (added 2026-07-09 — needs a go/no-go review when reached; may still be
-   cut):** a frontend audio subsystem — location-based background music (forest
-   vs. cave *within* a zone), hit/ability SFX, music crossfade between areas,
-   combat-music blend in/out, level-up cue, mob death sounds. Placed here because
-   it is presentation polish that wants the **real zones + abilities from the
-   content pass** to score against (author-once), and its location-music half
-   depends on the **named sub-regions** primitive (known-future — `tdd.md §4.6` /
-   `plan-world-zones.md §7.6`). Could pull **earlier** if combat *feel* is wanted
-   during the content-pass balance work — decide at the review.
+   **Audio — location-music half only (added 2026-07-09; combat SFX split to
+   step 6 on 2026-07-14; needs a go/no-go review when reached; may still be cut):**
+   location-based background music (forest vs. cave *within* a zone), music
+   crossfade between areas, and combat-music blend in/out. Kept here because this
+   half genuinely depends on the **named sub-regions** primitive (known-future —
+   `tdd.md §4.6` / `plan-world-zones.md §7.6`) and wants the **real zones from the
+   content pass** to score against (author-once). Extends the existing `Music.ts`
+   (single background-loop track today) to be region-aware. **Don't
+   bundle-and-forget:** as a cuttable rider on must-have infra (accounts /
+   persistence) this half is first off the truck under time pressure — the
+   combat-SFX slice pulled into step 6 is what guarantees the game isn't silent
+   even if this half slips or is cut.
 9. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
    DB / hosting decisions (`research-v1-readiness.md`; hosting phases + load
    math + persistent-servers decision: `research-hosting.md` — Phase 0 "friends
