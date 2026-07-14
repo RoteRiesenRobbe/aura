@@ -142,11 +142,23 @@ func main() {
 	// hand-placed. Like props they are built once here and route through
 	// game.AddEntity — but via a dedicated addNpcEntity case, because the
 	// approach sensor must be registered as a dynamic shape (chunk 2). The
-	// teaching/lore payload rides in from chunk 3.
+	// zone's teaching payload (skill resolved at load) is decomposed into
+	// model.Teaching here so model/npc need not import world (chunk 3).
 	for _, n := range zone.Npcs {
+		teachings := make([]model.Teaching, len(n.Teachings))
+		for i, t := range n.Teachings {
+			teachings[i] = model.Teaching{
+				Def:           t.Def,
+				RequiredLevel: t.RequiredLevel,
+				Line:          t.Line,
+			}
+		}
 		g.AddEntity(npc.New(
 			phy.Vec2f{X: n.X, Y: n.Y},
 			n.Radius,
+			teachings,
+			n.TooLowLine,
+			n.Lines,
 		))
 	}
 	if len(zone.Npcs) > 0 {

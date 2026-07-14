@@ -2,18 +2,21 @@ package sys
 
 import (
 	"log/slog"
+	"strings"
 
 	"github.com/EngoEngine/ecs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
 // NpcSystem drives the peaceful teaching/lore NPCs (plan-npc-teaching.md).
 //
-// Chunk 2 (this file) is a placeholder: it holds the NPCs and, purely to
-// verify the entity/placement wiring, logs on the rising edge when a player
-// enters an NPC's proximity sensor — the static-body-vs-dynamic-sensor
-// checkpoint. Chunk 3 replaces Update with the real grant + ordered
-// level-gate + edge-triggered speech.
+// On the rising edge of a player entering an NPC's proximity sensor it runs
+// onApproach: ordered skill grants gated by player level, with a lore fallback.
+// Grants mutate the player's spellbook instantly (the client renders the unlock
+// glow from the spellbook diff — no wire event). The spoken lines are computed
+// here but not yet fanned out — chunk 4 replaces the temporary log with the
+// EntityMessage speech fan-out.
 //
 // It runs at the same priority as MobSystem (20), which likewise reads its
 // aggro sensor's Collisions(): both act on the previous tick's physics
@@ -22,8 +25,9 @@ type NpcSystem struct {
 	npcs []model.NpcEntity
 
 	// seen tracks, per NPC id, the set of player ids currently in the sensor,
-	// so the temporary log fires only on change (a rising/falling edge) instead
-	// of every one of the ~30 ticks/second a player stands in range.
+	// so onApproach fires only on the rising edge (a player entering) instead of
+	// every one of the ~30 ticks/second a player stands in range. A player who
+	// leaves and returns re-triggers (already-known teachings are simply skipped).
 	seen map[uint64]map[uint64]bool
 }
 
@@ -44,27 +48,78 @@ func (s *NpcSystem) AddEntity(e model.NpcEntity) {
 func (s *NpcSystem) Update(dt float32) {
 	for _, n := range s.npcs {
 		id := n.Basic().ID()
+		prev := s.seen[id]
 		current := map[uint64]bool{}
 		for c := range n.Sensor().Collisions() {
 			p, ok := c.Shape().UserData.(model.PlayerEntity)
 			if !ok {
 				continue
 			}
-			current[p.Basic().ID()] = true
-		}
-		prev := s.seen[id]
-		for pid := range current {
-			if !prev[pid] {
-				// TEMP (chunk 2 verification): a static NPC's dynamic sensor
-				// reports a dynamic player — the checkpoint. Removed in chunk 3.
-				slog.Info("npc sensor: player entered range",
+			pid := p.Basic().ID()
+			current[pid] = true
+			if prev[pid] {
+				continue // still in range since last tick — not a rising edge
+			}
+			lines := onApproach(n, p)
+			if len(lines) > 0 {
+				// TEMP (chunk 3 verification): grants have already landed in the
+				// player's spellbook; chunk 4 replaces this log with the
+				// EntityMessage speech fan-out to the sensor's players.
+				slog.Info("npc onApproach",
 					slog.Uint64("npc", id),
 					slog.Uint64("player", pid),
-					slog.Any("pos", n.Position()))
+					slog.String("lines", strings.Join(lines, " | ")))
 			}
 		}
 		s.seen[id] = current
 	}
+}
+
+// teacher is the NPC surface onApproach reads — a subset of model.NpcEntity kept
+// narrow so the unit test's fake supplies only the teaching payload.
+type teacher interface {
+	Teachings() []model.Teaching
+	TooLowLine() string
+	Lines() []string
+}
+
+// learner is the player surface onApproach mutates/reads — a subset of
+// model.PlayerEntity kept narrow so the unit test's fake stays small (the same
+// pattern as skillEntity). model.PlayerEntity satisfies it.
+type learner interface {
+	SkillComponent() *skills.SkillComponent
+	Progression() model.PlayerProgression
+	ApplyRecipeCascade()
+}
+
+// onApproach grants p every qualifying not-yet-known teaching in order and
+// returns the lines to speak (chunk 4 fans them out). The level gate is ordered:
+// the first teaching p is too low for stops the walk with TooLowLine and grants
+// nothing further, so a level-skipper meeting the NPC for the first time gets
+// every unlock up to their level at once. When nothing is taught (a pure-lore
+// guard/sign-post, or a sage whose teachings are all already known) the NPC's
+// Lines are the fallback so it still speaks.
+func onApproach(n teacher, p learner) []string {
+	var lines []string
+	sc := p.SkillComponent()
+	level := p.Progression().Level
+	for _, t := range n.Teachings() {
+		if sc.HasDiscovered(t.Def.ID) {
+			continue
+		}
+		if level >= t.RequiredLevel {
+			sc.Discover(t.Def.ID)
+			p.ApplyRecipeCascade()
+			lines = append(lines, t.Line)
+		} else {
+			lines = append(lines, n.TooLowLine())
+			break
+		}
+	}
+	if len(lines) == 0 && len(n.Lines()) > 0 {
+		lines = n.Lines()
+	}
+	return lines
 }
 
 // Remove is a no-op: NPCs are placed once at boot and never removed.

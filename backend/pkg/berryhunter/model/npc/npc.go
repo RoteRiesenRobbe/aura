@@ -33,17 +33,24 @@ const placeholderVisualRadius float32 = 1.0
 
 // Npc is a static teaching/lore NPC. The embedded BaseEntity holds the visual
 // body (also what Bodies(), Position(), Radius() and the Resource marshal read);
-// sensor is the separate dynamic proximity circle.
+// sensor is the separate dynamic proximity circle. teachings/tooLowLine/lines
+// are the approach payload the NpcSystem reads (chunk 3) — decomposed model
+// types built in the boot loop, so model/npc never imports world.
 type Npc struct {
 	model.BaseEntity
-	sensor *phy.Circle
+	sensor     *phy.Circle
+	teachings  []model.Teaching
+	tooLowLine string
+	lines      []string
 }
 
 var _ = model.NpcEntity(&Npc{})
 
 // New builds a static teaching/lore NPC at pos: a solid visual body plus a
 // proximity sensor of sensorRadius that detects players (LayerPlayerCollision).
-func New(pos phy.Vec2f, sensorRadius float32) *Npc {
+// teachings/tooLowLine/lines are the approach payload (chunk 3); a pure-lore
+// NPC passes nil teachings + empty tooLowLine.
+func New(pos phy.Vec2f, sensorRadius float32, teachings []model.Teaching, tooLowLine string, lines []string) *Npc {
 	// Solid like a prop: players and mobs bump into the NPC, and it streams to
 	// clients via the viewport layer.
 	body := phy.NewCircle(pos, placeholderVisualRadius)
@@ -59,6 +66,9 @@ func New(pos phy.Vec2f, sensorRadius float32) *Npc {
 	n := &Npc{
 		BaseEntity: model.NewBaseEntity(body, placeholderSprite),
 		sensor:     sensor,
+		teachings:  teachings,
+		tooLowLine: tooLowLine,
+		lines:      lines,
 	}
 	// UserData is how viewport queries (streaming) and the sensor's collision
 	// readers find the entity behind a shape.
@@ -72,3 +82,13 @@ func New(pos phy.Vec2f, sensorRadius float32) *Npc {
 func (n *Npc) Sensor() phy.DynamicCollider {
 	return n.sensor
 }
+
+// Teachings are the ordered skill grants this NPC offers on approach (chunk 3).
+func (n *Npc) Teachings() []model.Teaching { return n.teachings }
+
+// TooLowLine is spoken (nothing granted) when a player is below the required
+// level of the next ungranted teaching.
+func (n *Npc) TooLowLine() string { return n.tooLowLine }
+
+// Lines are the lore/sign-post fallback, spoken when nothing is taught.
+func (n *Npc) Lines() []string { return n.lines }

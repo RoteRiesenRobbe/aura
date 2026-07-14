@@ -91,15 +91,35 @@ type PropEntity interface {
 	Entity
 }
 
+// Teaching is one ordered skill an NPC grants on approach once the player is at
+// least RequiredLevel and does not already know it (plan-npc-teaching.md chunk
+// 3). Line is spoken when the grant happens. Def is the skill resolved at zone
+// load (world.Teaching.Def) — carrying the resolved definition here, rather than
+// re-resolving a name, keeps model/npc from importing world. This mirrors how
+// prop.New takes decomposed params instead of the whole zone struct.
+type Teaching struct {
+	Def           *skills.SkillDefinition
+	RequiredLevel uint32
+	Line          string
+}
+
 // NpcEntity is a peaceful, hand-placed teaching/lore NPC (plan-npc-teaching.md):
 // a static visual body that rides the PropEntity/Resource wire path plus a
 // DYNAMIC proximity sensor. It is unattackable by construction (no HP, not a
 // Combatant). Its dedicated game.addNpcEntity registration adds the visual body
 // as static and the sensor as dynamic — Sensor() exposes the latter so the
 // plain-Entity path (which registers only Bodies()[0]) never silently drops it.
+//
+// Teachings/TooLowLine/Lines are the approach payload the NpcSystem reads
+// (chunk 3): Teachings are granted in order; a player too low for the next one
+// hears TooLowLine and gets nothing further; Lines are the lore/sign-post
+// fallback spoken when nothing is taught (a pure guard, or an all-learned sage).
 type NpcEntity interface {
 	Entity
 	Sensor() phy.DynamicCollider
+	Teachings() []Teaching
+	TooLowLine() string
+	Lines() []string
 }
 
 // CorpseEntity is a dead player's corpse (atmosphere & recovery chunk 4): a

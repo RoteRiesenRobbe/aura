@@ -13,7 +13,7 @@ import (
 func TestSensorReportsOverlappingPlayer(t *testing.T) {
 	space := phy.NewSpace()
 
-	n := New(phy.Vec2f{X: 0, Y: 0}, 3)
+	n := New(phy.Vec2f{X: 0, Y: 0}, 3, nil, "", nil)
 	// Mirror addNpcEntity: visual body static, sensor dynamic.
 	space.AddStaticShape(n.Bodies()[0])
 	space.AddShape(n.Sensor())
@@ -36,7 +36,7 @@ func TestSensorReportsOverlappingPlayer(t *testing.T) {
 func TestSensorIgnoresPlayerOutOfRange(t *testing.T) {
 	space := phy.NewSpace()
 
-	n := New(phy.Vec2f{X: 0, Y: 0}, 3)
+	n := New(phy.Vec2f{X: 0, Y: 0}, 3, nil, "", nil)
 	space.AddStaticShape(n.Bodies()[0])
 	space.AddShape(n.Sensor())
 

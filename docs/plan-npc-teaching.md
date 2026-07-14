@@ -1,10 +1,11 @@
 # Teaching / Lore NPCs — Execution Step 5 (roadmap item 9, unlock sources)
 
-> **Status: IN PROGRESS.** Plan approved 2026-07-14. **Chunks 1–2 DONE +
-> VERIFIED 2026-07-14** (not yet committed) — chunk 1 (schema + loader + TS
-> mirror) and chunk 2 (entity + placement) — see the chunk notes below.
-> Execution is per-chunk in its own session, order 1 → 2 → 3 → 4 → 5 → 6;
-> **NEXT = chunk 3 (NpcSystem grant + edge-trigger) in a new session.**
+> **Status: IN PROGRESS.** Plan approved 2026-07-14. **Chunks 1–3 DONE +
+> VERIFIED + COMMITTED 2026-07-14** — chunk 1 (schema + loader + TS mirror),
+> chunk 2 (entity + placement), chunk 3 (NpcSystem grant + edge-trigger) — see
+> the chunk notes below. Execution is per-chunk in its own session, order
+> 1 → 2 → 3 → 4 → 5 → 6; **NEXT = chunk 4 (speech origination, backend) in a
+> new session.**
 >
 > **Scope locked with PO:** teaching/lore NPC with one-way speech only (NOT
 > branching dialogue — that stays deferred, backlog item 2). Clue anchors (#3)
@@ -190,21 +191,35 @@ if len(lines)>0: speak(npc, sensor-players, join(lines, "\n"))          // ONE c
    leave+re-enter (no per-tick spam). **Temp Sage staged for chunk 3** in SOURCE
    `api/zones/proving-grounds.json` at (4,3), radius 3, teaches `HealAura`@L1 +
    `Dash`@L5 (uncommitted; boot `-content ../api`). **Not committed.**
-3. **`NpcSystem` grant + edge-trigger (backend). ← NEXT.** Replace the temp
-   `NpcSystem.Update` log with the real `onApproach`: Discover + cascade +
-   ordered level gate + lore fallback, driven by the existing `seen`
-   rising-edge. **First: thread the teaching/lore payload onto the `Npc` entity**
-   (deferred from chunk 2 — it carries only render+sensor today). Do it via
-   npc-local types built in the boot loop (`skills.SkillDefinition`+level+line;
-   `model/npc` already imports `skills` transitively via `model`), mirroring
-   `prop.New`'s decomposed params — do NOT import `world` into `model/npc`. Then
-   `onApproach(npc, p)` per plan §"Server behavior": ordered teachings,
-   `HasDiscovered` skip, `Level >= RequiredLevel` grant-all-qualifying
-   (`Discover`+`ApplyRecipeCascade`) else `TooLowLine` + stop, lore `Lines`
-   fallback. Whole core unit-tested with a fake player/sensor (`sys/npc_test.go`,
-   cases in §Test strategy). Verify with the staged Sage at (4,3): fresh char →
-   HealAura granted (spellbook + glow), Dash gated → nothing; no re-grant while
-   standing; walk out+back → no re-grant of known skills.
+3. **`NpcSystem` grant + edge-trigger (backend). ✅ DONE + VERIFIED IN-GAME +
+   COMMITTED 2026-07-14.** The chunk-2 temp `NpcSystem.Update` log is replaced by
+   `onApproach(n, p)` (free func in `sys/npc.go`), driven by the unchanged chunk-2
+   `seen` rising-edge: ordered `n.Teachings()`, `HasDiscovered` skip,
+   `Level >= RequiredLevel` grant-all-qualifying (`sc.Discover(id)` +
+   `p.ApplyRecipeCascade()` once per grant), else `TooLowLine` + **stop**, else
+   lore `Lines` fallback when nothing is taught. It **returns `[]string` but does
+   not speak** — a temp `slog "npc onApproach"` records the lines; **chunk 4
+   replaces that log with the `EntityMessage` fan-out.** **Payload threaded onto
+   the entity:** new `model.Teaching{Def *skills.SkillDefinition; RequiredLevel;
+   Line}` + `model.NpcEntity` gains `Teachings()/TooLowLine()/Lines()`;
+   `npc.New(pos, radius, teachings []model.Teaching, tooLowLine, lines)` stores +
+   exposes; boot loop maps `zone.Npc.Teachings`→`[]model.Teaching`. **PLAN
+   DEVIATION (documented):** `Teaching` lives in **`model`**, not `model/npc` —
+   an "npc-local" type would make `model.NpcEntity` cycle, and the plan also puts
+   grant logic + tests in `NpcSystem`/`sys/npc_test.go`. The real constraints are
+   honored: `model/npc` does NOT import `world`, and `Teaching` carries the
+   *resolved* `*skills.SkillDefinition` (no name re-resolution). `onApproach`
+   reads via narrow local `teacher`/`learner` interfaces (the `skillEntity`
+   precedent) so the core is fake-testable. **8 `sys/npc_test.go` tests** green
+   (multi-teaching ordered grant, level-gate stop, first-too-low, back-to-back
+   multi-unlock, idempotent re-approach, lore fallback ×2, and a rising-edge
+   `Update` test against a real `phy.Space`: enter→grant+one `onApproach`;
+   stand→no re-fire; leave→nothing; re-enter→re-trigger). **Sanity:**
+   `go build ./...` + full `go test ./...` (0 fail) green; booted `-content
+   ../api`, no panic, `20 *sys.NpcSystem` registered, `placed npcs count=1`.
+   **VERIFIED IN-GAME 2026-07-14 by PO:** approach the Sage (4,3) → HealAura in
+   spellbook + unlock glow; Dash gated (L5) → nothing; no re-grant while standing;
+   walk out+back → no re-grant of known skills.
 4. **Speech origination (backend, reuses `EntityMessage`).** Fan-out to sensor
    players; combined multi-line message; lore fallback. Verify: two nearby
    players both see the bubble; low-level player triggers the too-low line.
