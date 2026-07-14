@@ -18,9 +18,7 @@ import {
     CharacterEquippedItemEvent,
     CharacterMoved,
     GameSetupEvent,
-    ISubscriptionToken,
     PlayerMoved,
-    PrerenderEvent,
 } from '../../core/logic/Events';
 import {ICharacterLike} from './ICharacter';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
@@ -77,16 +75,8 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     // once per effective tick interval, so the beat is visible.
     private auraTickIndicator: AuraTickIndicator = null;
 
-    // Contains Containers that will mirror this characters position
-    followGroups: Container[];
-
-    messages: Text[];
-    messagesGroup: Container;
-
     leftHand: Hand;
     rightHand: Hand;
-
-    private prerenderSubToken: ISubscriptionToken;
 
     constructor(id: number, x: number, y: number, name: string, isPlayerCharacter: boolean) {
         super(id, Game.layers.characters, x, y, GraphicsConfig.character.size, Character.DOWNWARD_FACING_ROTATION, Character.avatar.svg);
@@ -132,23 +122,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         this.initHealthBar();
         this.createName();
         this.setLevel(1);
-
-        this.followGroups = [];
-
-        const messagesFollowGroup = new Container();
-        Game.layers.characterAdditions.chatMessages.addChild(messagesFollowGroup);
-        this.followGroups.push(messagesFollowGroup);
-
-        this.messages = [];
-        this.messagesGroup = new Container();
-        messagesFollowGroup.addChild(this.messagesGroup);
-        this.messagesGroup.position.y = -1.2 * (this.size + 24);
-
-        this.followGroups.forEach(function (group: Container) {
-            group.position.copyFrom(this.shape.position);
-        }, this);
-
-        this.prerenderSubToken = PrerenderEvent.subscribe(this.update, this);
     }
 
     initShape(svg: Texture, x: number, y: number, size: number, rotation: number) {
@@ -484,23 +457,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         this.setHealth(1, 1); // full until the first snapshot
     }
 
-    update() {
-        const timeDelta = Game.timeDelta;
-
-        this.messages = this.messages.filter((message) => {
-            message['timeToLife'] -= timeDelta;
-            if (message['timeToLife'] <= 0) {
-                this.messagesGroup.removeChild(message);
-                return false;
-            }
-            return true;
-        });
-
-        this.followGroups.forEach((group) => {
-            group.position.copyFrom(this.shape.position);
-        }, this);
-    }
-
     isSlotEquipped(equipmentSlot: EquipmentSlot) {
         return this.equippedItems[equipmentSlot] !== null;
     }
@@ -565,45 +521,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
     getEquippedItem(equipmentSlot) {
         return this.equippedItems[equipmentSlot];
-    }
-
-    say(message: string) {
-        const textStyle = TextDisplay.style({
-            fill: '#E37313',
-            stroke: {color: '#000000', width: 3},
-            wordWrap: true,
-            wordWrapWidth: 14 * 16, // no idea why, but it fits the 14em in HTML
-            breakWords: true,
-            lineHeight: 22,
-        });
-        const fontSize = textStyle.fontSize as number;
-
-        // Move all currently displayed messages up
-        this.messages.forEach((message) => {
-            message.position.y -= fontSize * 1.1;
-        });
-
-        const messageShape = new Text({
-            text: message,
-            style: textStyle,
-        });
-        messageShape.anchor.set(0.5, 1);
-        messageShape['timeToLife'] = Constants.CHAT_MESSAGE_DURATION;
-        this.messagesGroup.addChild(messageShape);
-
-        this.messages.push(messageShape);
-    }
-
-    hide() {
-        super.hide();
-        this.followGroups.forEach(function (followGroup) {
-            followGroup.parent.removeChild(followGroup);
-        });
-    }
-
-    remove() {
-        this.hide();
-        this.prerenderSubToken.unsubscribe();
     }
 
     override onMove(): void {

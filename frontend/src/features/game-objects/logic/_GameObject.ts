@@ -5,8 +5,9 @@ import {IVector, Vector} from '../../core/logic/Vector';
 import {isDefined, isUndefined, nearlyEqual, TwoDimensional} from '../../common/logic/Utils';
 import {StatusEffect, StatusEffectDefinition} from './StatusEffect';
 import {radians} from "../../common/logic/Types";
-import {GameSetupEvent, PrerenderEvent} from "../../core/logic/Events";
+import {GameSetupEvent, ISubscriptionToken, PrerenderEvent} from "../../core/logic/Events";
 import {IGame} from "../../core/logic/IGame";
+import * as TextDisplay from '../../../client-data/TextDisplay';
 
 let movementInterpolatedObjects = new Set();
 let rotatingObjects = new Set();
@@ -58,6 +59,16 @@ export abstract class GameObject {
     shape: Container;
     statusEffects: { [key: string]: StatusEffect };
     activeStatusEffect: StatusEffect = null;
+
+    // Floating speech-bubble state, hoisted from Character so ANY game object
+    // (players, NPCs) can speak. Lazily initialized on the first say() call —
+    // an object that never speaks pays nothing. The bubble renders in the
+    // world-space chatMessages overlay (not on `shape`, which may be rotated)
+    // via a follow-group that mirrors this object's position each frame.
+    messages: Text[] = [];
+    messagesGroup: Container = null;
+    private messagesFollowGroup: Container = null;
+    private messagesSubToken: ISubscriptionToken = null;
 
     desiredPosition: Vector;
     desireTimestamp: number;
@@ -211,6 +222,95 @@ export abstract class GameObject {
 
     hide() {
         this.layer.removeChild(this.shape);
+        this.hideMessages();
+    }
+
+    // Terminal cleanup for objects that are explicitly torn down (the player on
+    // death). EntityManager only ever calls hide() on viewport removals; both
+    // paths release the speech bubble, so this simply routes through hide().
+    remove() {
+        this.hide();
+    }
+
+    // Floating speech bubble above this object (chat, NPC lines). Player chat
+    // stacks (latestWins=false); NPC lines pass latestWins=true so only the
+    // newest line shows (req 6, latest-wins). Lazily builds the bubble group +
+    // per-frame updater on the first call.
+    say(message: string, latestWins: boolean = false) {
+        this.ensureMessagesGroup();
+
+        const textStyle = TextDisplay.style({
+            fill: '#E37313',
+            stroke: {color: '#000000', width: 3},
+            wordWrap: true,
+            wordWrapWidth: 14 * 16, // no idea why, but it fits the 14em in HTML
+            breakWords: true,
+            lineHeight: 22,
+        });
+        const fontSize = textStyle.fontSize as number;
+
+        if (latestWins) {
+            // Single-slot: drop any bubble(s) still showing before the new line.
+            this.messagesGroup.removeChildren();
+            this.messages.length = 0;
+        } else {
+            // Move all currently displayed messages up to stack the new one below.
+            this.messages.forEach((displayed) => {
+                displayed.position.y -= fontSize * 1.1;
+            });
+        }
+
+        const messageShape = new Text({
+            text: message,
+            style: textStyle,
+        });
+        messageShape.anchor.set(0.5, 1);
+        messageShape['timeToLife'] = Constants.CHAT_MESSAGE_DURATION;
+        this.messagesGroup.addChild(messageShape);
+        this.messages.push(messageShape);
+    }
+
+    private ensureMessagesGroup() {
+        if (this.messagesGroup !== null) {
+            return;
+        }
+        const followGroup = new Container();
+        Game.layers.characterAdditions.chatMessages.addChild(followGroup);
+        this.messagesGroup = new Container();
+        followGroup.addChild(this.messagesGroup);
+        this.messagesGroup.position.y = -1.2 * (this.size + 24);
+        followGroup.position.copyFrom(this.shape.position);
+        this.messagesFollowGroup = followGroup;
+        this.messagesSubToken = PrerenderEvent.subscribe(this.updateMessages, this);
+    }
+
+    // Per-frame while something is showing: expire timed-out bubbles and mirror
+    // the follow-group onto this object's (possibly moving) position.
+    private updateMessages() {
+        const timeDelta = Game.timeDelta;
+        this.messages = this.messages.filter((message) => {
+            message['timeToLife'] -= timeDelta;
+            if (message['timeToLife'] <= 0) {
+                this.messagesGroup.removeChild(message);
+                return false;
+            }
+            return true;
+        });
+        this.messagesFollowGroup.position.copyFrom(this.shape.position);
+    }
+
+    private hideMessages() {
+        if (this.messagesSubToken !== null) {
+            this.messagesSubToken.unsubscribe();
+            this.messagesSubToken = null;
+        }
+        if (this.messagesFollowGroup !== null) {
+            this.messagesFollowGroup.parent?.removeChild(this.messagesFollowGroup);
+            this.messagesFollowGroup = null;
+        }
+        // Reset so a later say() (e.g. a re-shown object) rebuilds cleanly.
+        this.messagesGroup = null;
+        this.messages = [];
     }
 
     updateStatusEffects(newStatusEffects: StatusEffectDefinition[]) {

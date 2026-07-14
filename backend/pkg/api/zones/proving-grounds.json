@@ -26189,6 +26189,7 @@
       "y": 3,
       "radius": 3,
       "tooLowLine": "Come back when you are stronger.",
+      "lines": ["Nice to see you again, traveller."],
       "teachings": [
         {
           "skill": "HealAura",

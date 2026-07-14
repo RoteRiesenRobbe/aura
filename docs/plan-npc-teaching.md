@@ -1,11 +1,11 @@
 # Teaching / Lore NPCs — Execution Step 5 (roadmap item 9, unlock sources)
 
-> **Status: IN PROGRESS.** Plan approved 2026-07-14. **Chunks 1–3 DONE +
-> VERIFIED + COMMITTED 2026-07-14**; **chunk 4 (speech origination, backend)
-> DONE + backend-verified + COMMITTED 2026-07-14** (visible bubble deferred to
-> chunk 5 — see the chunk-4 note). Execution is per-chunk in its own session,
-> order 1 → 2 → 3 → 4 → 5 → 6; **NEXT = chunk 5 (frontend bubble hoist +
-> latest-wins + `Chat.showMessage` guard) in a new session.**
+> **Status: IN PROGRESS.** Plan approved 2026-07-14. **Chunks 1–4 DONE +
+> COMMITTED**; **chunk 5 (frontend bubble hoist + latest-wins +
+> `Chat.showMessage` guard) DONE + VERIFIED IN-GAME by PO + COMMITTED
+> 2026-07-15.** Execution is per-chunk in its own session, order
+> 1 → 2 → 3 → 4 → 5 → 6; **NEXT = chunk 6 (zone-editor `npc` placement mode) in
+> a new session** — the final chunk of Step 5.
 >
 > **Scope locked with PO:** teaching/lore NPC with one-way speech only (NOT
 > branching dialogue — that stays deferred, backlog item 2). Clue anchors (#3)
@@ -243,9 +243,25 @@ if len(lines)>0: speak(npc, sensor-players, join(lines, "\n"))          // ONE c
    **the visible bubble requires chunk 5's frontend hoist.** Backend origination
    is done, unit-verified, wire-confirmed; PO in-game verification is deferred
    to after chunk 5 (backend-only boundary: chunks 1–4).
-5. **Frontend bubble hoist + latest-wins + `Chat.showMessage` guard.** Verify:
-   bubble over the NPC's head; concurrent triggers show only newest; lore
-   guard/sign-post speaks its lines.
+5. **Frontend bubble hoist + latest-wins + `Chat.showMessage` guard. ✅ DONE +
+   VERIFIED IN-GAME by PO + COMMITTED 2026-07-15.** Hoisted the speech-bubble
+   machinery (`messages[]`/`messagesGroup`/`say`/expiry + follow-group
+   position-mirror) from `Character` to the shared base `GameObject`
+   (`_GameObject.ts`), made **lazy** (built on first `say()` — a silent object
+   pays nothing) and self-cleaning (released in `hide()`, which also backs a new
+   `GameObject.remove()`; `Character` lost its duplicates + its `update()`/
+   `prerenderSubToken`/`remove()`). `say(message, latestWins=false)` gained a
+   **single-slot latest-wins branch** (`removeChildren()` before pushing the new
+   `Text`); player chat keeps stacking. `Chat.showMessage` hardened with an
+   `isDefined` guard (latent throw-on-untracked fix) and
+   `latestWins = !(gameObject instanceof Character)` so NPCs (Flower/Resource)
+   are single-slot, players stack. **Sanity:** `tsc --noEmit` clean;
+   `npm run build` 0 errors. **Also (content, no code change):** Sage idle-lore
+   fallback `"lines":["Nice to see you again, traveller."]` — the chunk-3
+   `onApproach` already speaks `Lines` when neither grant nor too-low gate
+   applies (`sys/npc.go:139`); boot `-content ../api` → `placed npcs count=1`,
+   no panic. **VERIFIED IN-GAME by PO:** bubble over the Sage's head; too-low
+   line; latest-wins; lore/greeting fallback.
 6. **Zone-editor `npc` placement mode.** New `EditorMode` `'npc'`, marker draw +
    hit-test + place/select, a nested teachings/lore config panel, export via
    `getZoneAsJSON`. Precedent: the campfire/dark modes in

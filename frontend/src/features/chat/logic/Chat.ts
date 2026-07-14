@@ -1,4 +1,4 @@
-import {isFunction} from '../../common/logic/Utils';
+import {isDefined, isFunction} from '../../common/logic/Utils';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import * as Console from '../../internal-tools/console/logic/Console';
 import {BackendValidTokenEvent, BeforeDeathEvent} from '../../core/logic/Events';
@@ -56,9 +56,13 @@ export function setup(game: IGame, backend) {
 }
 
 export function showMessage(entityId, message) {
+    // getObject returns undefined for an entity the client isn't tracking (a
+    // speaker just outside the viewport) — guard before touching .say to avoid
+    // a throw. NPC bubbles (any non-Character speaker) are single-slot
+    // latest-wins; player chat keeps stacking.
     let gameObject = Game.map.getObject(entityId) as Character;
-    if (isFunction(gameObject.say)) {
-        gameObject.say(message);
+    if (isDefined(gameObject) && isFunction(gameObject.say)) {
+        gameObject.say(message, !(gameObject instanceof Character));
     }
 }
 
