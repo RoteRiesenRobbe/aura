@@ -131,6 +131,19 @@ func randomSpawnPosition(width, height float32) phy.Vec2f {
 	}
 }
 
+// defaultSpawnPosition places a first-time / unbound arrival at a random
+// campfire, jittered within that campfire's bind radius so they land inside the
+// binding ring but never exactly on the fire. Campfires are the default spawn.
+// Falls back to a random world position only when a zone has no campfires
+// (bare test zones).
+func (s *ConnectionStateSystem) defaultSpawnPosition() phy.Vec2f {
+	if len(s.campfires) == 0 {
+		return randomSpawnPosition(s.game.Bounds())
+	}
+	c := s.campfires[rand.Intn(len(s.campfires))]
+	return jitterAround(c.Pos, c.DwellRadius)
+}
+
 func (s *ConnectionStateSystem) Update(dt float32) {
 	// Both loops iterate SNAPSHOT copies: RemoveEntity fans out synchronously
 	// into removeFromPlayers/removeFromSpectators, which shift the live slices
@@ -221,8 +234,8 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 		p.SetSkillComponent(dead.skills)
 	}
 
-	// spawn the player at a random location
-	p.SetPosition(randomSpawnPosition(s.game.Bounds()))
+	// spawn the player at a random campfire (default spawn)
+	p.SetPosition(s.defaultSpawnPosition())
 
 	s.game.AddEntity(p)
 }
@@ -277,7 +290,7 @@ const respawnJitterRadius = 1.0
 func (s *ConnectionStateSystem) respawnPosition(id uuid.UUID) phy.Vec2f {
 	anchor, ok := s.anchors[id]
 	if !ok {
-		return randomSpawnPosition(s.game.Bounds())
+		return s.defaultSpawnPosition()
 	}
 	return jitterAround(anchor, respawnJitterRadius)
 }

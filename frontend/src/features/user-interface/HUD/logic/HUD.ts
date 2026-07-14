@@ -130,10 +130,29 @@ export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: nu
 // while the own player is in combat (Character.in_combat) — the same window
 // during which the server locks loadout editing.
 export function updateCombatIndicator(inCombat: boolean) {
+    combatLocked = inCombat;
     if (!combatIndicatorElement) {
         return;
     }
     combatIndicatorElement.classList.toggle('hidden', !inCombat);
+}
+
+// combatLocked mirrors Character.in_combat — the window during which the server
+// rejects loadout edits. Client-side we short-circuit equip clicks with an
+// over-the-head message (same feedback channel as the campfire bind) instead of
+// letting the request travel and get silently dropped.
+let combatLocked = false;
+
+// rejectEquipInCombat blocks a loadout edit while in combat, showing the reason
+// over the local character. Returns true when the edit was blocked. Only equip
+// (re-slotting) is locked — switching the active aura and firing cooldowns stay
+// available mid-fight.
+function rejectEquipInCombat(): boolean {
+    if (!combatLocked) {
+        return false;
+    }
+    Game.player?.character?.showFloatingText("Can't change loadout in combat", 0xE05038);
+    return true;
 }
 
 // updateShield renders the absorb segment on the health bar (skill-vocab
@@ -249,6 +268,7 @@ function setupAuraLoadout() {
             // if its category matches (the server derives the target slot array
             // from the skill, so a mismatched send would equip elsewhere).
             if (skillCategory(selectedSkillId) === 'aura') {
+                if (rejectEquipInCombat()) return;
                 new EquipMessage(selectedSkillId, slot).send();
                 clearEquipSelection();
             }
@@ -303,6 +323,7 @@ function setupPassiveLoadout() {
         // Passives have no activate branch — all equipped passives are always
         // on. The only interaction is equipping a pending passive skill.
         if (selectedSkillId !== null && skillCategory(selectedSkillId) === 'passive') {
+            if (rejectEquipInCombat()) return;
             new EquipMessage(selectedSkillId, slot).send();
             clearEquipSelection();
         }
@@ -320,6 +341,7 @@ function setupCooldownLoadout() {
         // Equip branch: a pending cooldown skill installs into this slot.
         if (selectedSkillId !== null) {
             if (skillCategory(selectedSkillId) === 'cooldown') {
+                if (rejectEquipInCombat()) return;
                 new EquipMessage(selectedSkillId, slot).send();
                 clearEquipSelection();
             }

@@ -236,10 +236,11 @@ func (sc *SkillComponent) EquipCooldown(slot int, def *SkillDefinition, level in
 	sc.CooldownSlots[slot] = &EquippedSkill{Def: def, Level: level}
 }
 
-// BurstRadius is the effective radius of the largest instant_damage effect
-// among cooldowns fired within the last `window` ticks; 0 = none. Serialized
-// as the wire burst_radius so clients can draw the burst ring at its true
-// size — for every entity, including mobs.
+// BurstRadius is the effective radius of the largest instant-AoE effect
+// (instant_damage or instant_dot — e.g. Ignite) among cooldowns fired within
+// the last `window` ticks; 0 = none. Serialized as the wire burst_radius so
+// clients can draw the burst ring at its true size — for every entity,
+// including mobs.
 func (sc *SkillComponent) BurstRadius(window int) float32 {
 	var max float32
 	for _, es := range sc.CooldownSlots {
@@ -247,7 +248,7 @@ func (sc *SkillComponent) BurstRadius(window int) float32 {
 			continue
 		}
 		for _, e := range es.Def.Effects {
-			if e.Type != EffectTypeInstantDamage {
+			if e.Type != EffectTypeInstantDamage && e.Type != EffectTypeInstantDot {
 				continue
 			}
 			r := Scaled(e.Radius, e.RadiusPerLevel, es.Level)

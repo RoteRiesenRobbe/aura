@@ -422,6 +422,22 @@ func TestBurstRadius(t *testing.T) {
 		assert.Equal(t, float32(0), sc.BurstRadius(BurstVFXTicks))
 	})
 
+	t.Run("instant_dot burst (Ignite) reports its radius", func(t *testing.T) {
+		ignite := &SkillDefinition{
+			ID: 22, Name: "Ignite", Category: SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 300,
+			Effects: []EffectDef{{
+				Type: EffectTypeInstantDot, Radius: 1.5, RadiusPerLevel: 0.1, TargetsEnemies: true,
+				Dot: &DotParams{HP: 6, HPPerLevel: 1.5, TickCount: 3, Interval: 30},
+			}},
+		}
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(0, ignite, 3)
+		es := sc.CooldownSlots[0]
+		es.CdTicks = es.EffectiveCooldownTicks() // just fired
+
+		assert.InDelta(t, 1.7, sc.BurstRadius(BurstVFXTicks), 1e-6) // 1.5 + 2×0.1
+	})
+
 	t.Run("radiusless bursts (self_heal) stay zero", func(t *testing.T) {
 		selfHeal := &SkillDefinition{
 			ID: 21, Name: "Heal", Category: SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
