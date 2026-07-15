@@ -97,6 +97,14 @@ func NewSkillSystem(space *phy.Space, g model.Game) *SkillSystem {
 	}
 }
 
+// SeedRNG replaces the free-running roll source with a seeded one. The sim
+// harness (pkg/berryhunter/sim, plan-sim-harness chunk 1) needs reproducible
+// variance/crit rolls per run; in-package tests overwrite s.rng directly.
+// Never called in the live game — combat rolls there stay time-seeded.
+func (s *SkillSystem) SeedRNG(seed int64) {
+	s.rng = rand.New(rand.NewSource(seed))
+}
+
 func (*SkillSystem) Priority() int {
 	return -65
 }

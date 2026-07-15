@@ -1,10 +1,24 @@
 # Plan: Simulation Harness — the balancing / what-if explorer
 
-> **Status banner (keep current):** APPROVED — design settled with PO 2026-07-15,
-> ready to execute **Chunk 1** in a fresh session. Roadmap position: the **pre-step-6
-> simulation-harness gate** (`docs/roadmap.md` item 5 → gate blockquote; `gdd.md`
-> §5 "First building block"; `tdd.md` §4.1). Prerequisite already met: player
-> passive regen is combat-gated (`plan-atmosphere-recovery.md` chunk 1).
+> **Status banner (keep current):** APPROVED — design settled with PO 2026-07-15.
+> **Chunk 1 IMPLEMENTED 2026-07-15 (pending PO review):** `pkg/berryhunter/sim/`
+> (world/scenario/runner/report) + `cmd/simharness` + `sys.SkillSystem.SeedRNG`
+> seam; 7 sanity tests green (exact TTK/TTD cadence pins, fixed-seed
+> reproducibility, variance spread), full suite + build green, CLI smoke-run OK
+> (first finding: current content numbers give TTD ≈ 8.7 s vs the ~20–25 s
+> working target). **Plus (PO-requested, same session): `-serve` local web
+> explorer** — embedded single-file HTML (vanilla JS, no npm), `POST /run`
+> reuses the sim spec structs, live knobs → histogram + percentiles, artifact
+> download; `Distribution.Values` (sorted raw seconds) added so artifacts carry
+> the full shape. **Plus a mob-preset dropdown**: `GET /mobs` serves the real
+> authored mob registry mapped onto MobSpecs (embedded `pkg/api` by default,
+> `-content ../api` for live content — the first "point the tool at real
+> content" bridge from §4; mobs without a damage aura map to harmless
+> turrets). **Next: PO review, then Chunk 2.** Roadmap position: the
+> **pre-step-6 simulation-harness gate** (`docs/roadmap.md` item 5 → gate
+> blockquote; `gdd.md` §5 "First building block"; `tdd.md` §4.1). Prerequisite
+> already met: player passive regen is combat-gated
+> (`plan-atmosphere-recovery.md` chunk 1).
 >
 > **All open questions resolved with PO 2026-07-15:** (1) synthetic-fixtures framing —
 > **yes**; (4) output — **standalone cmd + saved artifact**, not just test logs;

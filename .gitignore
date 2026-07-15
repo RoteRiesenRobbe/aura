@@ -5,6 +5,8 @@
 /backend/berryhunterd
 /backend/berryhunterd.exe
 /backend/conf.json
+/backend/simharness
+simharness-report*.json
 id_berryhunter-ci
 node_modules/
 berryhunter.sublime-project

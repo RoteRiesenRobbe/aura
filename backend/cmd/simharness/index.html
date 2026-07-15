@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>simharness — 1v1 TTK/TTD explorer</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font: 14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+         background: #14161a; color: #d6dae0; margin: 0; padding: 1.5rem; }
+  h1 { font-size: 1.1rem; margin: 0 0 1rem; color: #9ecbff; }
+  h1 small { color: #6b7280; font-weight: normal; }
+  .knobs { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  fieldset { border: 1px solid #2b313a; border-radius: 6px; padding: .6rem .9rem;
+             min-width: 15rem; margin: 0; }
+  legend { color: #9ecbff; padding: 0 .35rem; }
+  label { display: flex; justify-content: space-between; align-items: center;
+          gap: .8rem; margin: .18rem 0; }
+  input[type=number] { width: 5.5rem; background: #1d2127; color: #e8ecf1;
+          border: 1px solid #2b313a; border-radius: 4px; padding: .15rem .35rem; }
+  input:focus { outline: 1px solid #4f8cc9; }
+  .preset-bar { margin: 0 0 1rem; color: #9aa3ad; }
+  select { background: #1d2127; color: #e8ecf1; border: 1px solid #2b313a;
+           border-radius: 4px; padding: .2rem .4rem; font: inherit; }
+  .actions { margin: .25rem 0 1.25rem; display: flex; gap: .75rem; align-items: center; }
+  button { background: #24466b; color: #e8ecf1; border: 1px solid #35618f;
+           border-radius: 5px; padding: .3rem .9rem; cursor: pointer; font: inherit; }
+  button:hover { background: #2c557f; }
+  #status { color: #6b7280; }
+  #status.err { color: #ff8a80; }
+  .scenario { border: 1px solid #2b313a; border-radius: 6px; padding: .75rem .9rem;
+              margin-bottom: 1rem; max-width: 46rem; }
+  .scenario h2 { font-size: 1rem; margin: 0 0 .4rem; }
+  .scenario h2 .primary { color: #6b7280; font-weight: normal; font-size: .85rem; }
+  .stats { display: flex; gap: 1.4rem; flex-wrap: wrap; margin: .3rem 0 .55rem; }
+  .stat b { display: block; color: #ffd479; font-size: 1.05rem; }
+  .stat span { color: #6b7280; font-size: .8rem; }
+  .hist { display: flex; align-items: flex-end; gap: 1px; height: 64px;
+          background: #1a1e24; border-radius: 4px; padding: 3px; }
+  .hist div { flex: 1; background: #4f8cc9; border-radius: 1px 1px 0 0; min-height: 1px; }
+  .axis { display: flex; justify-content: space-between; color: #6b7280;
+          font-size: .75rem; margin-top: .15rem; }
+  .outcomes { margin-top: .45rem; font-size: .85rem; color: #9aa3ad; }
+  .outcomes .warn { color: #ffb35c; }
+</style>
+</head>
+<body>
+<h1>simharness <small>— 1v1 TTK / TTD explorer (numbers → outcomes, all values [PLACEHOLDER])</small></h1>
+
+<div class="preset-bar">
+  Mob preset: <select id="mobPreset"><option value="-1">custom</option></select>
+  <small>(authored mobs; picking one fills the Mob knobs — editing them switches back to custom)</small>
+</div>
+
+<div class="knobs" id="knobs"></div>
+
+<div class="actions">
+  <button id="runBtn">Run</button>
+  <button id="saveBtn" disabled>Save artifact</button>
+  <span id="status"></span>
+</div>
+
+<div id="results"></div>
+
+<script>
+// One entry per knob: [fieldset, label, path-in-request, default, step].
+// Auras stay MaxTargets=1 (the base-aura shape); packs are a chunk-3 topic.
+const KNOBS = [
+  ['Player', 'max health',        'player.maxHealth',          100, 1],
+  ['Player', 'aura dmg / hit',    'player.aura.damageHP',      14, 1],
+  ['Player', 'aura tick (ticks)', 'player.aura.tickInterval',  40, 1],
+  ['Player', 'aura radius',       'player.aura.radius',        1.0, 0.1],
+  ['Player', 'variance ±',        'player.aura.variance',      0.15, 0.05],
+  ['Player', 'crit chance',       'player.aura.critChance',    0, 0.05],
+  ['Player', 'crit factor',       'player.aura.critFactor',    0, 0.1],
+
+  ['Mob', 'max health',           'mob.maxHealth',             60, 1],
+  ['Mob', 'spawn HP variance ±',  'mob.maxHealthVariance',     0, 0.05],
+  ['Mob', 'aura dmg / hit',       'mob.aura.damageHP',         8, 1],
+  ['Mob', 'aura tick (ticks)',    'mob.aura.tickInterval',     20, 1],
+  ['Mob', 'aura radius',          'mob.aura.radius',           1.0, 0.1],
+  ['Mob', 'variance ±',           'mob.aura.variance',         0, 0.05],
+  ['Mob', 'speed (0=turret)',     'mob.speed',                 0.5, 0.1],
+  ['Mob', 'body radius',          'mob.bodyRadius',            0.35, 0.05],
+  ['Mob', 'aggro radius',         'mob.aggroRadius',           4.0, 0.5],
+  ['Mob', 'flees below HP ratio', 'mob.fleeBelowHealthRatio',  0, 0.05],
+
+  ['Battery', 'runs',             'runs',                      200, 50],
+  ['Battery', 'base seed',        'seed',                      1, 1],
+  ['Battery', 'start distance',   'distance',                  0.5, 0.1],
+  ['Battery', 'timeout (sim s)',  'maxSeconds',                120, 10],
+];
+
+const knobsEl = document.getElementById('knobs');
+const inputs = {}; // path -> input element
+for (const [group, label, path, def, step] of KNOBS) {
+  let fs = knobsEl.querySelector(`fieldset[data-group="${group}"]`);
+  if (!fs) {
+    fs = document.createElement('fieldset');
+    fs.dataset.group = group;
+    fs.innerHTML = `<legend>${group}</legend>`;
+    knobsEl.appendChild(fs);
+  }
+  const lab = document.createElement('label');
+  lab.innerHTML = `<span>${label}</span>`;
+  const inp = document.createElement('input');
+  inp.type = 'number';
+  inp.value = def;
+  inp.step = step;
+  inp.addEventListener('input', scheduleRun);
+  if (path.startsWith('mob.')) {
+    // hand-editing a mob knob diverges from the selected preset
+    inp.addEventListener('input', () => { document.getElementById('mobPreset').value = '-1'; });
+  }
+  lab.appendChild(inp);
+  fs.appendChild(lab);
+  inputs[path] = inp;
+}
+
+// --- mob presets (authored mobs, served from the real content registry) ---
+const presetSel = document.getElementById('mobPreset');
+let mobPresets = [];
+fetch('/mobs')
+  .then(r => r.ok ? r.json() : [])
+  .then(list => {
+    mobPresets = list || [];
+    mobPresets.forEach((p, i) => {
+      const o = document.createElement('option');
+      o.value = i;
+      o.textContent = p.name;
+      presetSel.appendChild(o);
+    });
+  })
+  .catch(() => { /* roster unavailable — dropdown stays custom-only */ });
+
+presetSel.addEventListener('change', () => {
+  const p = mobPresets[parseInt(presetSel.value, 10)];
+  if (!p) return;
+  for (const path of Object.keys(inputs)) {
+    if (!path.startsWith('mob.')) continue;
+    let v = p.spec;
+    for (const part of path.split('.').slice(1)) v = (v ?? {})[part];
+    inputs[path].value = Math.round((v ?? 0) * 1000) / 1000;
+  }
+  run();
+});
+
+function buildRequest() {
+  const req = { player: { aura: { maxTargets: 1 } }, mob: { aura: { maxTargets: 1 } } };
+  for (const path of Object.keys(inputs)) {
+    const v = parseFloat(inputs[path].value);
+    if (Number.isNaN(v)) return null;
+    const parts = path.split('.');
+    let obj = req;
+    for (const p of parts.slice(0, -1)) obj = obj[p] = obj[p] || {};
+    obj[parts.at(-1)] = v;
+  }
+  // integer fields must arrive as ints
+  for (const p of ['player.maxHealth', 'player.aura.tickInterval',
+                   'mob.aura.tickInterval', 'runs', 'seed']) {
+    const parts = p.split('.');
+    let obj = req;
+    for (const q of parts.slice(0, -1)) obj = obj[q];
+    obj[parts.at(-1)] = Math.round(obj[parts.at(-1)]);
+  }
+  return req;
+}
+
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+const saveBtn = document.getElementById('saveBtn');
+let lastReport = null;
+let timer = null;
+
+function scheduleRun() { clearTimeout(timer); timer = setTimeout(run, 300); }
+document.getElementById('runBtn').addEventListener('click', run);
+
+async function run() {
+  const req = buildRequest();
+  if (!req) { statusEl.textContent = 'incomplete input'; return; }
+  statusEl.className = ''; statusEl.textContent = 'running…';
+  const t0 = performance.now();
+  try {
+    const resp = await fetch('/run', { method: 'POST', body: JSON.stringify(req) });
+    if (!resp.ok) throw new Error(await resp.text());
+    lastReport = await resp.json();
+    saveBtn.disabled = false;
+    render(lastReport);
+    statusEl.textContent = `${req.runs}×2 fights in ${Math.round(performance.now() - t0)} ms`;
+  } catch (e) {
+    statusEl.className = 'err';
+    statusEl.textContent = String(e.message || e).trim();
+  }
+}
+
+function render(report) {
+  resultsEl.innerHTML = '';
+  for (const res of report.results) {
+    const d = res.distribution;
+    const el = document.createElement('div');
+    el.className = 'scenario';
+    const stats = d.samples > 0
+      ? ['p10', 'p50', 'p90', 'mean'].map(k =>
+          `<div class="stat"><b>${d[k].toFixed(2)}s</b><span>${k}</span></div>`).join('') +
+        `<div class="stat"><b>${d.samples}/${d.runs}</b><span>samples</span></div>`
+      : `<div class="stat"><b>—</b><span>no ${res.scenario.primary} runs</span></div>`;
+    el.innerHTML = `
+      <h2>${res.scenario.name} <span class="primary">(${res.scenario.primary})</span></h2>
+      <div class="stats">${stats}</div>
+      ${histogram(d.values)}
+      <div class="outcomes">${outcomes(res.scenario.primary, d)}</div>`;
+    resultsEl.appendChild(el);
+  }
+}
+
+function histogram(values) {
+  if (!values || values.length === 0) return '';
+  const lo = values[0], hi = values.at(-1);
+  const bins = new Array(28).fill(0);
+  const span = hi - lo;
+  for (const v of values) {
+    const i = span === 0 ? 0 : Math.min(bins.length - 1, Math.floor((v - lo) / span * bins.length));
+    bins[i]++;
+  }
+  const max = Math.max(...bins);
+  const bars = bins.map(n => `<div style="height:${n === 0 ? 0 : Math.max(4, n / max * 100)}%"></div>`).join('');
+  return `<div class="hist">${bars}</div>
+          <div class="axis"><span>${lo.toFixed(2)}s</span><span>${hi.toFixed(2)}s</span></div>`;
+}
+
+function outcomes(primary, d) {
+  return Object.entries(d.outcomes)
+    .map(([k, n]) => `<span class="${k === primary ? '' : 'warn'}">${k}=${n}</span>`)
+    .join(' · ');
+}
+
+saveBtn.addEventListener('click', () => {
+  if (!lastReport) return;
+  const blob = new Blob([JSON.stringify(lastReport, null, 2) + '\n'], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `simharness-report-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+run(); // first render with defaults
+</script>
+</body>
+</html>

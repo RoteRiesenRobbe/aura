@@ -1,0 +1,252 @@
+package sim
+
+import (
+	"fmt"
+	"math/rand"
+	"net/http"
+
+	"github.com/EngoEngine/ecs"
+	"github.com/google/uuid"
+
+	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
+	"github.com/trichner/berryhunter/pkg/berryhunter/items"
+	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/constant"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/mob"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/player"
+	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
+	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
+	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
+	"github.com/trichner/berryhunter/pkg/berryhunter/sys"
+	"github.com/trichner/berryhunter/pkg/berryhunter/sys/statuseffects"
+)
+
+// TicksPerSecond re-exports the game's tick rate for metric conversion.
+const TicksPerSecond = constant.TicksPerSecond
+
+// stepMillis is one fixed tick, mirroring core/game.go.
+const stepMillis = 33.0
+
+// World is one deterministic 1v1 fight world: the real ECS systems in their
+// real priority order (StatusEffects → Mob → Physics → Update → Skill), a
+// real player and a real mob, no net/websocket/scoreboard layer.
+type World struct {
+	game   *simGame
+	Player model.PlayerEntity
+	Mob    *mob.Mob
+}
+
+// NewWorld builds the world for a scenario. All chunk-1-relevant RNG (the
+// mob's spawn-HP roll and the SkillSystem's variance/crit rolls) derives from
+// seed, so the same (scenario, seed) pair replays the same fight. The mob's
+// own entity-ID-seeded rng only drives behaviors a 1v1 never reaches (idle
+// wander rolls, kill-unlock rolls — no unlocks are declared).
+func NewWorld(sc Scenario, seed int64) *World {
+	rng := rand.New(rand.NewSource(seed))
+	// Fixed draw order — reordering these would silently change every result
+	// under a given seed.
+	mobSysSeed := rng.Int63()
+	skillSeed := rng.Int63()
+	mobHP := vitals.VitalSign(vitals.HP(vitals.RollVariance(sc.Mob.MaxHealth, sc.Mob.MaxHealthVariance, rng)))
+
+	g := &simGame{
+		entities: make(map[uint64]model.BasicEntity),
+		config: &cfg.GameConfig{
+			// [PLACEHOLDER] arena size; only the border wall reads it, and a
+			// 1v1 at the center never touches the wall.
+			Bounds:                 cfg.Bounds{Width: 60, Height: 40},
+			MobChaseIntoAuraMargin: 0.05, // conf.default.json value
+			PlayerConfig: cfg.PlayerConfig{
+				// Out-of-combat regen [PLACEHOLDER, conf.default.json]. Gated
+				// off during combat, so it never moves a chunk-1 fight; the
+				// chunk-4 chain runner will expose it as a knob.
+				HealthGainTick: 0.00033,
+				BaseHealth:     sc.Player.MaxHealth,
+				// f(character level) enters in chunk 2; the synthetic player
+				// is level 1 and stays there (mob XP is 0), so all level
+				// scaling is inert here.
+				MaxHealthLevelGainFraction: 0,
+				LevelUpXPBase:              300,
+				LevelUpXPGrowthFactor:      1.2,
+			},
+		},
+		registry: soloRegistry{sc.Player.Aura.definition(1, "DamageAura")},
+	}
+
+	// The minimal real system set, added exactly like core.NewGameWith —
+	// ecs.World orders them by priority (StatusEffects 101 → Mob 20 →
+	// Physics 0 → Update -50 → Skill -65).
+	p := sys.NewPhysicsSystem()
+	g.AddSystem(p)
+
+	wall := phy.NewInvAABB(phy.VEC2F_ZERO, g.config.Bounds.Width, g.config.Bounds.Height)
+	wall.Shape().Layer = int(model.LayerBorderCollision)
+	p.AddStaticBody(ecs.NewBasic(), wall)
+
+	g.AddSystem(sys.NewMobSystem(g, mobSysSeed, nil, p.Space()))
+	g.AddSystem(sys.NewUpdateSystem())
+
+	sk := sys.NewSkillSystem(p.Space(), g)
+	sk.SeedRNG(skillSeed)
+	g.AddSystem(sk)
+
+	g.AddSystem(statuseffects.NewStatusEffectsSystem())
+
+	// The real player. Its skill registry holds exactly the synthetic aura
+	// (under the name player.New requires); TTD switches the loadout to
+	// "nothing active" — an idle player does not fight back.
+	pl := player.New(g, nopClient{}, "sim-player")
+	pl.SetPosition(phy.VEC2F_ZERO)
+	if !sc.PlayerAuraActive {
+		pl.SkillComponent().ActiveAuraSlot = -1
+	}
+	g.AddEntity(pl)
+
+	// The real mob, from a synthetic definition. EntityType "Dodo" only
+	// satisfies the wire-type lookup — nothing in a headless run reads it.
+	// The spawn-HP variance was already rolled above with the run rng, so
+	// the def carries the rolled pool and variance 0.
+	def := &mobs.MobDefinition{
+		ID:         1000,
+		Name:       "SimMob",
+		EntityType: "Dodo",
+		Factors: mobs.Factors{
+			MaxHealth:            uint32(mobHP),
+			Speed:                sc.Mob.Speed,
+			FleeBelowHealthRatio: sc.Mob.FleeBelowHealthRatio,
+			Experience:           0, // no XP: the player must not level mid-measurement
+		},
+		Body:   mobs.Body{Radius: sc.Mob.BodyRadius, AggroRadius: sc.Mob.AggroRadius},
+		Skills: []mobs.MobSkill{{Def: sc.Mob.Aura.definition(2, "SimMobAura"), Level: 1}},
+	}
+	mb := mob.NewMob(def, g.config.MobChaseIntoAuraMargin, p.Space())
+	mb.SetPosition(phy.Vec2f{X: sc.StartDistance, Y: 0})
+	g.AddEntity(mb)
+
+	return &World{game: g, Player: pl, Mob: mb}
+}
+
+// Step advances the world one fixed 33 ms tick.
+func (w *World) Step() {
+	w.game.World.Update(stepMillis)
+	w.game.tick++
+}
+
+// simGame is the sim's model.Game: just enough for the systems and entity
+// constructors the harness drives. No net layer, no join queue, no loop.
+type simGame struct {
+	ecs.World
+	tick     uint64
+	config   *cfg.GameConfig
+	registry skills.Registry
+	entities map[uint64]model.BasicEntity
+}
+
+var _ model.Game = (*simGame)(nil)
+
+func (g *simGame) Ticks() uint64           { return g.tick }
+func (g *simGame) Config() *cfg.GameConfig { return g.config }
+func (g *simGame) Skills() skills.Registry { return g.registry }
+func (g *simGame) Bounds() (float32, float32) {
+	return g.config.Bounds.Width, g.config.Bounds.Height
+}
+
+// Items / Mobs are unused by the sim's system set (no crafting, no spawn
+// effect in chunk 1); nil keeps an accidental dependency loud.
+func (g *simGame) Items() items.Registry { return nil }
+func (g *simGame) Mobs() mobs.Registry   { return nil }
+
+// Handler / Loop belong to the net layer the sim deliberately does not
+// stand up (plan §2).
+func (g *simGame) Handler() http.Handler { panic("sim: no net layer") }
+func (g *simGame) Loop()                 { panic("sim: the runner drives ticks via World.Step") }
+
+func (g *simGame) GetEntity(id uint64) (model.BasicEntity, error) {
+	e, ok := g.entities[id]
+	if !ok {
+		return nil, fmt.Errorf("entity with id %d not found", id)
+	}
+	return e, nil
+}
+
+// AddEntity mirrors core/game.go's routing for the two entity kinds a
+// chunk-1 world contains.
+func (g *simGame) AddEntity(e model.BasicEntity) {
+	g.entities[e.Basic().ID()] = e
+
+	switch v := e.(type) {
+	case model.PlayerEntity:
+		for _, system := range g.Systems() {
+			switch s := system.(type) {
+			case *sys.PhysicsSystem:
+				s.AddEntity(v)
+			case *sys.UpdateSystem:
+				s.AddUpdateable(v)
+			case *statuseffects.StatusEffectsSystem:
+				s.Add(v, v)
+			case *sys.SkillSystem:
+				s.AddEntity(v)
+			}
+		}
+	case model.MobEntity:
+		for _, system := range g.Systems() {
+			switch s := system.(type) {
+			case *sys.PhysicsSystem:
+				s.AddEntity(v)
+			case *sys.MobSystem:
+				s.AddEntity(v)
+			case *statuseffects.StatusEffectsSystem:
+				s.Add(v, v)
+			case *sys.SkillSystem:
+				s.AddEntity(v)
+			}
+		}
+	default:
+		panic(fmt.Sprintf("sim: unsupported entity type %T", e))
+	}
+}
+
+func (g *simGame) RemoveEntity(e ecs.BasicEntity) {
+	delete(g.entities, e.ID())
+	g.World.RemoveEntity(e)
+}
+
+// soloRegistry is a skills.Registry over exactly one definition — the
+// synthetic player aura, registered under the name player.New looks up.
+type soloRegistry struct {
+	def *skills.SkillDefinition
+}
+
+func (r soloRegistry) Get(id skills.SkillID) (*skills.SkillDefinition, error) {
+	if id == r.def.ID {
+		return r.def, nil
+	}
+	return nil, fmt.Errorf("skill ID %d not found", id)
+}
+
+func (r soloRegistry) GetByName(name string) (*skills.SkillDefinition, error) {
+	if name == r.def.Name {
+		return r.def, nil
+	}
+	return nil, fmt.Errorf("skill %q not found", name)
+}
+
+func (r soloRegistry) All() []*skills.SkillDefinition {
+	return []*skills.SkillDefinition{r.def}
+}
+
+// nopClient satisfies model.Client for the headless player: no queued
+// messages, sends vanish.
+type nopClient struct{}
+
+func (nopClient) NextInput() *model.PlayerInput               { return nil }
+func (nopClient) NextJoin() *model.Join                       { return nil }
+func (nopClient) NextCheat() *model.Cheat                     { return nil }
+func (nopClient) NextChatMessage() *model.ChatMessage         { return nil }
+func (nopClient) NextEquip() *model.EquipSkill                { return nil }
+func (nopClient) NextSpendSkillPoint() *model.SpendSkillPoint { return nil }
+func (nopClient) NextRespawn() *model.Respawn                 { return nil }
+func (nopClient) SendMessage([]byte) error                    { return nil }
+func (nopClient) Close()                                      {}
+func (nopClient) UUID() uuid.UUID                             { return uuid.Nil }
