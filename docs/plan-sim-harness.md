@@ -1,7 +1,7 @@
 # Plan: Simulation Harness — the balancing / what-if explorer
 
 > **Status banner (keep current):** APPROVED — design settled with PO 2026-07-15.
-> **Chunk 1 IMPLEMENTED 2026-07-15 (pending PO review):** `pkg/berryhunter/sim/`
+> **Chunk 1 DONE — PO-reviewed ("it works") + COMMITTED `5faf7aa6` 2026-07-15:** `pkg/berryhunter/sim/`
 > (world/scenario/runner/report) + `cmd/simharness` + `sys.SkillSystem.SeedRNG`
 > seam; 7 sanity tests green (exact TTK/TTD cadence pins, fixed-seed
 > reproducibility, variance spread), full suite + build green, CLI smoke-run OK
@@ -14,7 +14,7 @@
 > authored mob registry mapped onto MobSpecs (embedded `pkg/api` by default,
 > `-content ../api` for live content — the first "point the tool at real
 > content" bridge from §4; mobs without a damage aura map to harmless
-> turrets). **Next: PO review, then Chunk 2.** Roadmap position: the
+> turrets). **Next: execute Chunk 2 in a fresh session.** Roadmap position: the
 > **pre-step-6 simulation-harness gate** (`docs/roadmap.md` item 5 → gate
 > blockquote; `gdd.md` §5 "First building block"; `tdd.md` §4.1). Prerequisite
 > already met: player passive regen is combat-gated
