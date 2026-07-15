@@ -329,12 +329,16 @@ bracket (see §5, First building block).
 - **Skill level = specialization.** The per-aura `base + (skill level − 1) × perLevel` rule (already shipped) is *relative* build depth: where you choose to spend points.
 - **Character level = number inflation.** `f(character level)` is a global multiplier carrying the raw growth of the numbers.
 
+**Role of `f` decided (Philosophy A, PO 2026-07-15 — `plan-sim-harness.md` §5):** a **same-tier fight is scale-invariant.** Player damage *and* player max-HP both scale by `f`, and same-tier mobs are hand-authored at their zone's `f`, so a same-tier fight feels **identical at every level** (TTK/TTD constant). Leveling does *not* make same-tier content easier. Therefore `f` is **not a same-tier balance knob** — it is (1) progression *feel* (numbers grow), (2) **baseline relevance** (a newly-found aura = `base(1) × f(currentLevel)` is *instantly usable* at any level, even an early aura found late; skill points then push it *above* baseline), and (3) **uniform outleveling**. Directed power growth is carried by skill points (specialization), slots + unlocks (new capability), and zone progression (the challenge ladder); felt power comes from climbing with better tools and *returning to trivialize old zones*, not from same-tier drift.
+
 **Invariants** (all [PLACEHOLDER], working values for the first balance pass):
 
 - `f(character level)` applies **only to HP values** — damage, heal, self-damage/self-heal HP, and player max HP. It does **not** touch radius, tick rate, or target count. Geometry and cadence stay pure specialization/content knobs, out of the inflation treadmill.
-- Working **max level 60**, total inflation **~50×** across the span (~6.9% compounding per level).
+- **The curve is STEEP (WoW-Classic-punishing, PO 2026-07-15).** `f`'s rate is same-tier-neutral but **cross-tier-defining** — it sets how many levels of gap turn a fight from doable → wall → steamroll. Target a **narrow doable band ≈ 4 levels**, i.e. **~12%/level** [PLACEHOLDER] (this *supersedes* the earlier ~6.9%/level, 50×-over-60 placeholder). Feel: enter a zone ~2–3 levels under its floor → wall; grind a few levels → doable → comfortable; ~4 levels over → steamroll, move on.
+- **Linked triple — band width ↔ max level ↔ total inflation** (pick two). Working: **max level ~25–35** now (maybe ~20 for the first content pass; true max is higher but the full game is not completed in one content pass) → total inflation ~15–30× at ~12%/level. The **simulation harness visualizes all three** so exact `growth`/max-level are picked from data.
 - **TTK** against a same-tier normal mob **~8 s**; an idle player's **time-to-die ~20–25 s** (ratio ~1:3) in a 1-vs-1.
-- **Level gaps** are handled by the numbers alone for now; an explicit level-gap damage multiplier stays an available, isolated retrofit — not built.
+- **Level gaps** are handled by the numbers alone (the steep `f` gap *is* the gating mechanism); an explicit level-gap damage multiplier stays an available, isolated retrofit — not built.
+- **Intra-zone difficulty variation is a free authoring pattern** — author a zone across a small level span (entrance corner at a lower tier, deep corner at a higher tier); no new mechanic.
 
 **Mobs do not use `f(character level)`.** Mobs have no level. A "same-tier normal mob" is one whose `maxHealth` + aura values were *hand-authored* to sit on the curve at its zone. **Zone number = position on the progression curve** (see section 7). This asymmetry is deliberate: a max-level player *outlevels and trivializes* starter zones (WoW-Classic-intended), and nobody should later give mobs a level multiplier.
 

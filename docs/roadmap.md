@@ -876,13 +876,19 @@ system ships blind.
 
    > **Pre-step-6 gate: the simulation harness** (GDD §5 "First building
    > block"; made an explicit bullet 2026-07-10 — it previously hid inside
-   > the tdd.md §4.1 `f(character level)` note). Metrics: TTK / survival /
+   > the tdd.md §4.1 `f(character level)` note). **PLANNED + APPROVED
+   > 2026-07-15 → `docs/plan-sim-harness.md`** (a balancing / what-if
+   > *explorer* that drives the real ECS headlessly and reports distributions;
+   > 4 chunks; **next session = execute Chunk 1**). Metrics: TTK / survival /
    > kills-per-level + the 1-vs-N matrix **+ the stand-still bot test with
    > per-mob-type thresholds, measured as sustainable kills/hour over a
    > chain incl. modeled regen + downtime, run per level bracket** (GDD §5).
    > Prerequisite: the step-3 regen combat gate; recovery models (personal
    > cooldown, time-at-fire) enter the chain model as placeholders and are
-   > tuned here.
+   > tuned here. **`f(character level)` design settled this session** (GDD §5:
+   > Philosophy A same-tier scale-invariant, steep ~12%/level, max level
+   > ~25–35 — supersedes the old 60/50×/6.9% placeholders); live-game wiring
+   > stays a step-6 task.
 
 6. **Initial content pass** (item 12) — **the prove-it gate.** Real zones, full
    mob roster (replace the legacy Berryhunter mobs), boss scripts, skills,
