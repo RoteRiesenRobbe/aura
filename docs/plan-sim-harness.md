@@ -14,7 +14,28 @@
 > authored mob registry mapped onto MobSpecs (embedded `pkg/api` by default,
 > `-content ../api` for live content — the first "point the tool at real
 > content" bridge from §4; mobs without a damage aura map to harmless
-> turrets). **Next: execute Chunk 2 in a fresh session.** Roadmap position: the
+> turrets).
+>
+> **Chunk 2 DONE — PO-verified ("the tool works") + COMMITTED `eed434f5` 2026-07-15:**
+> `sim/curve.go` (Curve `f(L)=growth^(L-1)`; XPModel mirrors the game's level-up
+> rule, modeled kill XP → kills-per-level; Fixture PlayerAt/MobAt scale **HP
+> values only** — pinned by tests) + `sim/sweep.go` (level sweep, gap sweep
+> TTK/TTD/win-rate vs Δ, linked-triple table with measured wall Δ = first Δ≥0
+> at TTK win-rate <50% [PLACEHOLDER definition]; CurveReport artifact; sweep
+> points parallel across NumCPU, race-clean, reproducibility contract kept) +
+> table renderers + CLI `-levels` mode + web-explorer "level curve" panel
+> (`POST /curve`, SVG charts + win-rate bars + triple table). 12 sim + 2 handler
+> tests green; browser-verified headlessly (see `.claude/skills/run-simharness/`,
+> committed `920c8bf2`). **Findings:** (1) same-tier TTK/TTD perfectly flat
+> across 30 levels — Philosophy A holds in the real systems; (2) with current
+> content baselines (TTD/TTK ≈ 8.7/6.7 ≈ 1.3) the wall sits at Δ≈+2 for EVERY
+> growth candidate — the doable band is set by growth AND the TTK:TTD ratio,
+> and the compressed ratio dominates; (3) at a target-shaped ratio (mob dmg
+> 8→4 → TTD ≈ 2.5×TTK) the wall spreads by growth: 1.08→>6, 1.10→+6, 1.12→+5,
+> **1.15→+4** — the ~4-level band at ratio ~1:2.5 points at growth ≈ 1.15.
+> **⚑ OPEN (PO): lock exact `growth` + max level from the tool** — not locked
+> yet; the tool itself is verified. **Next: Chunk 3 (1-vs-N matrix) in a fresh
+> session.** Roadmap position: the
 > **pre-step-6 simulation-harness gate** (`docs/roadmap.md` item 5 → gate
 > blockquote; `gdd.md` §5 "First building block"; `tdd.md` §4.1). Prerequisite
 > already met: player passive regen is combat-gated
