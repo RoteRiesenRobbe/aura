@@ -189,7 +189,7 @@ export function setupPanel() {
     npcCountLabel = document.getElementById('zoneEditor_npcCount');
 
     let popup = document.getElementById('zoneEditorPopup');
-    popup.querySelectorAll('input, button, a, select')
+    popup.querySelectorAll('input, textarea, button, a, select')
         .forEach(preventShortcutPropagation);
 
     ZoneEditor.propTypes.forEach(type => {

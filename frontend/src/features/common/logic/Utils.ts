@@ -421,6 +421,13 @@ export function preventShortcutPropagation(element: Element) {
         }
     }
 
+    if (element instanceof HTMLTextAreaElement) {
+        // Free multi-line text: no key may reach the game shortcuts (Enter must
+        // stay in the textarea to insert a newline, not trigger a shortcut).
+        preventInputPropagation(element);
+        return;
+    }
+
     if (element instanceof HTMLButtonElement) {
         preventInputPropagation(element, {notPropagated: ['Enter', 'Tab']});
         return;

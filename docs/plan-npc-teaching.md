@@ -1,11 +1,13 @@
 # Teaching / Lore NPCs — Execution Step 5 (roadmap item 9, unlock sources)
 
-> **Status: IN PROGRESS.** Plan approved 2026-07-14. **Chunks 1–4 DONE +
-> COMMITTED**; **chunk 5 (frontend bubble hoist + latest-wins +
-> `Chat.showMessage` guard) DONE + VERIFIED IN-GAME by PO + COMMITTED
-> 2026-07-15.** Execution is per-chunk in its own session, order
-> 1 → 2 → 3 → 4 → 5 → 6; **NEXT = chunk 6 (zone-editor `npc` placement mode) in
-> a new session** — the final chunk of Step 5.
+> **Status: COMPLETE.** Plan approved 2026-07-14. **All 6 chunks DONE +
+> VERIFIED IN-GAME by PO + COMMITTED.** Chunks 1–4 backend; chunk 5 (frontend
+> bubble hoist) `2984b447`; **chunk 6 (zone-editor `npc` placement mode)
+> committed `00574d4c`, VERIFIED IN-GAME 2026-07-15** (place→export→reload→
+> teaches). A follow-up textarea keyboard-capture fix (Lore-lines field; see
+> chunk 6 below) landed in the working tree, `tsc` clean, verified in-game.
+> **Step 5 is done → next per `docs/roadmap.md` is the pre-step-6 simulation
+> harness, then Step 6 (content pass).**
 >
 > **Scope locked with PO:** teaching/lore NPC with one-way speech only (NOT
 > branching dialogue — that stays deferred, backlog item 2). Clue anchors (#3)
@@ -262,11 +264,26 @@ if len(lines)>0: speak(npc, sensor-players, join(lines, "\n"))          // ONE c
    applies (`sys/npc.go:139`); boot `-content ../api` → `placed npcs count=1`,
    no panic. **VERIFIED IN-GAME by PO:** bubble over the Sage's head; too-low
    line; latest-wins; lore/greeting fallback.
-6. **Zone-editor `npc` placement mode.** New `EditorMode` `'npc'`, marker draw +
-   hit-test + place/select, a nested teachings/lore config panel, export via
-   `getZoneAsJSON`. Precedent: the campfire/dark modes in
-   `zone-editor/logic/_ZoneEditorPanel.ts` + `ZoneEditor.ts`. Verify: place an
-   NPC in-game, export, reload, it teaches.
+6. **Zone-editor `npc` placement mode. ✅ DONE + VERIFIED IN-GAME by PO +
+   COMMITTED (`00574d4c`) 2026-07-15.** New `EditorMode` `'npc'` + mode radio,
+   `drawNpcMarker` (sensor-radius disc + centre dot + `Type (n)` label),
+   `hitTestNpc`, `place/update/removeNpc`; an ordered **teaching sub-list**
+   (skill dropdown sourced from the bundled `api/skills` registry, add/remove),
+   `tooLowLine`/lore-lines fields, update/delete/deselect, count label; serialized
+   via `getZoneAsJSON` (omit-when-empty, teachings only when non-empty →
+   `DisallowUnknownFields` round-trips). Client-side mirrors of the backend
+   loader's hard-fails (type non-empty, radius > 0, teaching NPC needs a
+   too-low line) so they don't bite only at boot. Precedent followed: the
+   campfire/dark modes in `_ZoneEditorPanel.ts` + `ZoneEditor.ts`.
+   **Follow-up fix (uncommitted, `tsc` clean, verified in-game):** the Lore-lines
+   `<textarea>` swallowed keystrokes — two coupled defects: the
+   `preventShortcutPropagation` guard's `querySelectorAll` selector omitted
+   `textarea` (`_GroundTexturesPanel.ts` ×2, `_ZoneEditorPanel.ts` ×1), **and**
+   `preventShortcutPropagation` (`common/logic/Utils.ts`) had no
+   `HTMLTextAreaElement` branch (fell through to a `console.warn` no-op). Added
+   `textarea` to the 3 selectors + a textarea case (full free-text capture; Enter
+   stays in the field for newlines). **VERIFIED IN-GAME:** place an NPC, add
+   teachings, type lore lines, export, reload → it teaches.
 
 Backend-only: 1–4. Frontend/wire: 5–6.
 

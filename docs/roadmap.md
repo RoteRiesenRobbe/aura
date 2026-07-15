@@ -861,8 +861,10 @@ system ships blind.
    design together with the ⚑ buff-visibility question + `Skills.ts`
    metadata debt; the polished VFX lands in step 8's aura pass.
 5. **Unlock-source systems** (item 9) — world clue-anchor entities + NPC-teaching
-   behavior (needs world **and** mobs). ← **CURRENT — PLANNED 2026-07-14 →
-   `docs/plan-npc-teaching.md`** (6 chunks; order 1 → 2 → 3 → 4 → 5 → 6). Scope
+   behavior (needs world **and** mobs). ✅ **DONE — all 6 chunks committed +
+   VERIFIED IN-GAME by PO 2026-07-15 → `docs/plan-npc-teaching.md`** (6 chunks;
+   order 1 → 2 → 3 → 4 → 5 → 6; editor mode = `00574d4c`). **NEXT = the
+   pre-step-6 simulation-harness gate below, then item 6 (content pass).** Scope
    locked with PO: **teaching/lore NPC with one-way speech only** (NOT branching
    dialogue — deferred, backlog item 2); **clue anchors deferred** but the entity
    doubles as a lore-only **sign post**; multi-unlock → one combined bubble;

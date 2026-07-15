@@ -90,10 +90,10 @@ function setupPanel() {
     let groundTexturePopup = document.getElementById('groundTexturePopup');
     // Capture inputs to prevent game actions while acting in develop panel
     groundTexturePanel
-        .querySelectorAll('input, button, a, select')
+        .querySelectorAll('input, textarea, button, a, select')
         .forEach(preventShortcutPropagation);
     groundTexturePopup
-        .querySelectorAll('input, button, a, select')
+        .querySelectorAll('input, textarea, button, a, select')
         .forEach(preventShortcutPropagation);
 
     typeSelect = document.getElementById('groundTexture_type');
