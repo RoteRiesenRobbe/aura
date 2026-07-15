@@ -70,9 +70,99 @@ func outcomesSummary(d Distribution) string {
 
 // WriteJSON saves the artifact.
 func (r *Report) WriteJSON(path string) error {
-	data, err := json.MarshalIndent(r, "", "  ")
+	return writeJSON(r, path)
+}
+
+// WriteJSON saves the chunk-2 curve artifact.
+func (r *CurveReport) WriteJSON(path string) error {
+	return writeJSON(r, path)
+}
+
+func writeJSON(v any, path string) error {
+	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return err
 	}
 	return os.WriteFile(path, append(data, '\n'), 0o644)
+}
+
+// LevelTable renders the same-tier sweep. Under Philosophy A (§5) the TTK
+// and TTD columns must read flat top to bottom — drift is a finding.
+func (r *CurveReport) LevelTable() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%5s %8s %10s  %-22s %-22s %s\n",
+		"LEVEL", "f", "kills/lvl", "TTK p50 [p10-p90]", "TTD p50 [p10-p90]", "NOTES")
+	for _, pt := range r.Levels {
+		fmt.Fprintf(&b, "%5d %8.2f %10.1f  %-22s %-22s %s\n",
+			pt.Level, pt.F, pt.KillsPerLevel, distCell(pt.TTK), distCell(pt.TTD),
+			sweepNotes(pt.TTK, pt.TTD))
+	}
+	return b.String()
+}
+
+// GapTable renders the cross-tier band at the reference level: the
+// wall/steamroll picture TTK/TTD/win-rate vs Δlevel.
+func (r *CurveReport) GapTable() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "player level %d, mob tier = level + Δ\n", r.RefLevel)
+	fmt.Fprintf(&b, "%5s %5s %6s  %-22s %-22s %s\n",
+		"Δ", "TIER", "WIN%", "TTK p50 [p10-p90]", "TTD p50 [p10-p90]", "NOTES")
+	for _, pt := range r.Gaps {
+		fmt.Fprintf(&b, "%+5d %5d %5.0f%%  %-22s %-22s %s\n",
+			pt.Delta, pt.MobTier, pt.WinRate*100, distCell(pt.TTK), distCell(pt.TTD),
+			sweepNotes(pt.TTK, pt.TTD))
+	}
+	return b.String()
+}
+
+// TripleTable renders the linked triple (§5 Decision 4): per growth
+// candidate the measured wall Δ (win-rate < 50% [PLACEHOLDER definition])
+// and the total inflation each max-level candidate would produce.
+func (r *CurveReport) TripleTable() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%6s %7s", "GROWTH", "WALL Δ")
+	if len(r.Triple) > 0 {
+		for _, inf := range r.Triple[0].Inflation {
+			fmt.Fprintf(&b, " %9s", fmt.Sprintf("×@L%d", inf.MaxLevel))
+		}
+	}
+	b.WriteString("\n")
+	for _, row := range r.Triple {
+		wall := fmt.Sprintf(">%d", r.MaxDelta)
+		if row.WallDelta >= 0 {
+			wall = fmt.Sprintf("+%d", row.WallDelta)
+		}
+		fmt.Fprintf(&b, "%6.2f %7s", row.Growth, wall)
+		for _, inf := range row.Inflation {
+			fmt.Fprintf(&b, " %8.1fx", inf.TotalInflation)
+		}
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+// distCell is one distribution as a compact table cell.
+func distCell(d Distribution) string {
+	if d.Samples == 0 {
+		return "-"
+	}
+	return fmt.Sprintf("%6.2f [%5.2f-%6.2f]", d.P50, d.P10, d.P90)
+}
+
+// sweepNotes surfaces the endings that are NOT the scenario's metric —
+// silent in the percentile columns, loud here (a timing-out TTD on the
+// steamroll side, a dying player mid-TTK on the wall side).
+func sweepNotes(ttk, ttd Distribution) string {
+	var parts []string
+	for _, o := range []Outcome{OutcomePlayerDied, OutcomeTimeout} {
+		if n := ttk.Outcomes[o]; n > 0 {
+			parts = append(parts, fmt.Sprintf("ttk:%s=%d", o, n))
+		}
+	}
+	for _, o := range []Outcome{OutcomeMobDied, OutcomeTimeout} {
+		if n := ttd.Outcomes[o]; n > 0 {
+			parts = append(parts, fmt.Sprintf("ttd:%s=%d", o, n))
+		}
+	}
+	return strings.Join(parts, " ")
 }

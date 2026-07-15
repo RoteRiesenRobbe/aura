@@ -42,6 +42,26 @@
           font-size: .75rem; margin-top: .15rem; }
   .outcomes { margin-top: .45rem; font-size: .85rem; color: #9aa3ad; }
   .outcomes .warn { color: #ffb35c; }
+  .section-title { font-size: 1.1rem; margin: 2.2rem 0 1rem; color: #9ecbff;
+                   border-top: 1px solid #2b313a; padding-top: 1.2rem; }
+  .section-title small { color: #6b7280; font-weight: normal; }
+  input[type=text] { width: 11rem; background: #1d2127; color: #e8ecf1;
+          border: 1px solid #2b313a; border-radius: 4px; padding: .15rem .35rem; font: inherit; }
+  .chart-block { border: 1px solid #2b313a; border-radius: 6px; padding: .75rem .9rem;
+                 margin-bottom: 1rem; max-width: 46rem; }
+  .chart-block h2 { font-size: 1rem; margin: 0 0 .5rem; }
+  .chart-block h2 small { color: #6b7280; font-weight: normal; font-size: .8rem; }
+  .legend { font-size: .8rem; color: #9aa3ad; margin: .2rem 0 .4rem; }
+  .legend b { font-weight: normal; }
+  table.res { border-collapse: collapse; font-size: .82rem; margin-top: .6rem; }
+  table.res th, table.res td { padding: .12rem .6rem; text-align: right;
+                               border-bottom: 1px solid #23272e; }
+  table.res th { color: #6b7280; font-weight: normal; }
+  table.res td.warn { color: #ffb35c; text-align: left; }
+  .winbars { display: flex; gap: 2px; align-items: flex-end; height: 46px; margin-top: .5rem; }
+  .winbars div { flex: 1; background: #ffd479; border-radius: 1px 1px 0 0; min-height: 1px; }
+  .winlabels { display: flex; gap: 2px; font-size: .7rem; color: #6b7280; }
+  .winlabels span { flex: 1; text-align: center; }
 </style>
 </head>
 <body>
@@ -61,6 +81,19 @@
 </div>
 
 <div id="results"></div>
+
+<h1 class="section-title">level curve <small>— f(character level) = growth^(L−1), HP values only (chunk 2;
+uses the Player/Mob knobs above as the level-1 / tier-1 baselines and the Battery runs/seed/distance)</small></h1>
+
+<div class="knobs" id="curveKnobs"></div>
+
+<div class="actions">
+  <button id="curveRunBtn">Run curve</button>
+  <button id="curveSaveBtn" disabled>Save artifact</button>
+  <span id="curveStatus"></span>
+</div>
+
+<div id="curveResults"></div>
 
 <script>
 // One entry per knob: [fieldset, label, path-in-request, default, step].
@@ -245,6 +278,203 @@ saveBtn.addEventListener('click', () => {
 });
 
 run(); // first render with defaults
+
+// ---------- level curve (chunk 2) ----------
+// The Player/Mob knobs above are the level-1 / tier-1 baselines; these knobs
+// are the curve itself. Defaults = the §5 working frame, all [PLACEHOLDER].
+const CURVE_KNOBS = [
+  ['Curve', 'growth / level',      'growth',        1.12, 0.01],
+  ['Curve', 'max level',           'maxLevel',      30, 1],
+  ['Curve', 'ref level (0 = mid)', 'refLevel',      0, 1],
+  ['Curve', 'gap range ±Δ',        'maxDelta',      6, 1],
+  ['XP', 'level-up base XP',       'levelUpBase',   300, 10],
+  ['XP', 'level-up XP growth',     'levelUpGrowth', 1.2, 0.01],
+  ['XP', 'kill XP @ tier 1',       'killBase',      40, 1],
+  ['XP', 'kill XP growth / tier',  'killGrowth',    1.2, 0.01],
+];
+const curveKnobsEl = document.getElementById('curveKnobs');
+const curveInputs = {};
+for (const [group, label, key, def, step] of CURVE_KNOBS) {
+  let fs = curveKnobsEl.querySelector(`fieldset[data-group="${group}"]`);
+  if (!fs) {
+    fs = document.createElement('fieldset');
+    fs.dataset.group = group;
+    fs.innerHTML = `<legend>${group}</legend>`;
+    curveKnobsEl.appendChild(fs);
+  }
+  const lab = document.createElement('label');
+  lab.innerHTML = `<span>${label}</span>`;
+  const inp = document.createElement('input');
+  inp.type = 'number';
+  inp.value = def;
+  inp.step = step;
+  lab.appendChild(inp);
+  fs.appendChild(lab);
+  curveInputs[key] = inp;
+}
+// Candidate lists for the linked-triple table (comma-separated).
+const tripleFs = document.createElement('fieldset');
+tripleFs.innerHTML = `<legend>Triple table</legend>
+  <label><span>growth candidates</span><input type="text" id="growthCands" value="1.08,1.10,1.12,1.15"></label>
+  <label><span>max-level candidates</span><input type="text" id="maxLevelCands" value="20,25,30,35"></label>`;
+curveKnobsEl.appendChild(tripleFs);
+
+const curveStatusEl = document.getElementById('curveStatus');
+const curveResultsEl = document.getElementById('curveResults');
+const curveSaveBtn = document.getElementById('curveSaveBtn');
+let lastCurveReport = null;
+
+function buildCurveRequest() {
+  const base = buildRequest();
+  if (!base) return null;
+  const num = key => parseFloat(curveInputs[key].value);
+  const int = key => Math.round(num(key));
+  const list = id => document.getElementById(id).value.split(',')
+    .map(s => s.trim()).filter(s => s !== '').map(Number);
+  const req = {
+    fixture: {
+      curve: { growth: num('growth'), maxLevel: int('maxLevel') },
+      player: base.player,
+      mob: base.mob,
+      xp: { levelUpBase: num('levelUpBase'), levelUpGrowth: num('levelUpGrowth'),
+            killBase: num('killBase'), killGrowth: num('killGrowth') },
+    },
+    baseSeed: base.seed,
+    runs: base.runs,
+    distance: base.distance,
+    refLevel: int('refLevel'),
+    maxDelta: int('maxDelta'),
+    growthCandidates: list('growthCands'),
+    maxLevelCandidates: list('maxLevelCands').map(Math.round),
+  };
+  for (const v of [...Object.values(req.fixture.curve), ...Object.values(req.fixture.xp),
+                   req.refLevel, req.maxDelta, ...req.growthCandidates, ...req.maxLevelCandidates]) {
+    if (Number.isNaN(v)) return null;
+  }
+  return req;
+}
+
+document.getElementById('curveRunBtn').addEventListener('click', runCurve);
+
+async function runCurve() {
+  const req = buildCurveRequest();
+  if (!req) { curveStatusEl.textContent = 'incomplete input'; return; }
+  curveStatusEl.className = ''; curveStatusEl.textContent = 'running…';
+  const t0 = performance.now();
+  try {
+    const resp = await fetch('/curve', { method: 'POST', body: JSON.stringify(req) });
+    if (!resp.ok) throw new Error(await resp.text());
+    lastCurveReport = await resp.json();
+    curveSaveBtn.disabled = false;
+    renderCurve(lastCurveReport);
+    curveStatusEl.textContent = `done in ${Math.round(performance.now() - t0)} ms`;
+  } catch (e) {
+    curveStatusEl.className = 'err';
+    curveStatusEl.textContent = String(e.message || e).trim();
+  }
+}
+
+const distCell = d => d.samples > 0
+  ? `${d.p50.toFixed(2)} <span style="color:#6b7280">[${d.p10.toFixed(2)}–${d.p90.toFixed(2)}]</span>`
+  : '—';
+
+// Endings that are not the scenario's metric — the wall (player dies
+// mid-TTK) and the steamroll (TTD times out) show up here.
+function sweepNotes(ttk, ttd) {
+  const parts = [];
+  for (const [k, n] of Object.entries(ttk.outcomes)) {
+    if (k !== 'mob_died' && n > 0) parts.push(`ttk:${k}=${n}`);
+  }
+  for (const [k, n] of Object.entries(ttd.outcomes)) {
+    if (k !== 'player_died' && n > 0) parts.push(`ttd:${k}=${n}`);
+  }
+  return parts.join(' ');
+}
+
+function lineChart(series, xLabel, yLabel) {
+  const all = series.flatMap(s => s.pts);
+  if (all.length === 0) return '<div class="legend">no resolvable fights</div>';
+  const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const y1 = (Math.max(...ys) || 1) * 1.08;
+  const W = 640, H = 150, L = 40, R = 10, T = 8, B = 20;
+  const sx = x => L + (x1 === x0 ? 0.5 : (x - x0) / (x1 - x0)) * (W - L - R);
+  const sy = y => T + (1 - y / y1) * (H - T - B);
+  const lines = series.map(s =>
+    `<polyline fill="none" stroke="${s.color}" stroke-width="1.5" points="${
+      s.pts.map(p => `${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join(' ')}"/>` +
+    s.pts.map(p => `<circle cx="${sx(p[0]).toFixed(1)}" cy="${sy(p[1]).toFixed(1)}" r="2" fill="${s.color}"/>`).join('')
+  ).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;background:#1a1e24;border-radius:4px">
+    <line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="#2b313a"/>
+    <line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="#2b313a"/>
+    <text x="${L - 4}" y="${T + 8}" fill="#6b7280" font-size="9" text-anchor="end">${y1.toFixed(1)}${yLabel}</text>
+    <text x="${L - 4}" y="${H - B}" fill="#6b7280" font-size="9" text-anchor="end">0</text>
+    <text x="${L}" y="${H - 6}" fill="#6b7280" font-size="9">${x0}</text>
+    <text x="${W - R}" y="${H - 6}" fill="#6b7280" font-size="9" text-anchor="end">${x1} ${xLabel}</text>
+    ${lines}</svg>`;
+}
+
+function renderCurve(rep) {
+  curveResultsEl.innerHTML = '';
+  const legend = `<div class="legend"><b style="color:#4f8cc9">— TTK p50</b> · <b style="color:#ff8a80">— TTD p50</b></div>`;
+  const ttkPts = pts => pts.filter(p => p.ttk.samples > 0);
+  const ttdPts = pts => pts.filter(p => p.ttd.samples > 0);
+
+  const lvl = document.createElement('div');
+  lvl.className = 'chart-block';
+  lvl.innerHTML = `<h2>Same-tier level sweep <small>(Philosophy A: the lines must be flat)</small></h2>
+    ${legend}
+    ${lineChart([
+      { color: '#4f8cc9', pts: ttkPts(rep.levels).map(p => [p.level, p.ttk.p50]) },
+      { color: '#ff8a80', pts: ttdPts(rep.levels).map(p => [p.level, p.ttd.p50]) },
+    ], 'level', 's')}
+    <table class="res"><tr><th>level</th><th>f</th><th>kills/lvl</th><th>TTK p50 [p10–p90]</th><th>TTD p50 [p10–p90]</th><th></th></tr>
+    ${rep.levels.map(p => `<tr><td>${p.level}</td><td>${p.f.toFixed(2)}×</td><td>${p.killsPerLevel.toFixed(1)}</td>
+      <td>${distCell(p.ttk)}</td><td>${distCell(p.ttd)}</td><td class="warn">${sweepNotes(p.ttk, p.ttd)}</td></tr>`).join('')}
+    </table>`;
+  curveResultsEl.appendChild(lvl);
+
+  const gap = document.createElement('div');
+  gap.className = 'chart-block';
+  gap.innerHTML = `<h2>Cross-tier gap band <small>(player level ${rep.refLevel}, mob tier = level + Δ — the wall/steamroll picture)</small></h2>
+    ${legend}
+    ${lineChart([
+      { color: '#4f8cc9', pts: ttkPts(rep.gaps).map(p => [p.delta, p.ttk.p50]) },
+      { color: '#ff8a80', pts: ttdPts(rep.gaps).map(p => [p.delta, p.ttd.p50]) },
+    ], 'Δ', 's')}
+    <div class="legend"><b style="color:#ffd479">▮ win-rate per Δ</b></div>
+    <div class="winbars">${rep.gaps.map(p =>
+      `<div style="height:${Math.max(2, p.winRate * 100)}%" title="Δ${p.delta >= 0 ? '+' + p.delta : p.delta}: ${(p.winRate * 100).toFixed(0)}%"></div>`).join('')}</div>
+    <div class="winlabels">${rep.gaps.map(p => `<span>${p.delta >= 0 ? '+' + p.delta : p.delta}</span>`).join('')}</div>
+    <table class="res"><tr><th>Δ</th><th>tier</th><th>win%</th><th>TTK p50 [p10–p90]</th><th>TTD p50 [p10–p90]</th><th></th></tr>
+    ${rep.gaps.map(p => `<tr><td>${p.delta >= 0 ? '+' + p.delta : p.delta}</td><td>${p.mobTier}</td><td>${(p.winRate * 100).toFixed(0)}%</td>
+      <td>${distCell(p.ttk)}</td><td>${distCell(p.ttd)}</td><td class="warn">${sweepNotes(p.ttk, p.ttd)}</td></tr>`).join('')}
+    </table>`;
+  curveResultsEl.appendChild(gap);
+
+  if (rep.triple && rep.triple.length > 0) {
+    const tri = document.createElement('div');
+    tri.className = 'chart-block';
+    tri.innerHTML = `<h2>Linked triple <small>(wall Δ measured at win-rate &lt; 50% [PLACEHOLDER]; inflation = growth^(maxLevel−1))</small></h2>
+      <table class="res"><tr><th>growth</th><th>wall Δ</th>${
+        rep.triple[0].inflation.map(i => `<th>×@L${i.maxLevel}</th>`).join('')}</tr>
+      ${rep.triple.map(r => `<tr><td>${r.growth.toFixed(2)}</td><td>${r.wallDelta >= 0 ? '+' + r.wallDelta : '>' + rep.maxDelta}</td>${
+        r.inflation.map(i => `<td>${i.totalInflation.toFixed(1)}×</td>`).join('')}</tr>`).join('')}
+      </table>`;
+    curveResultsEl.appendChild(tri);
+  }
+}
+
+curveSaveBtn.addEventListener('click', () => {
+  if (!lastCurveReport) return;
+  const blob = new Blob([JSON.stringify(lastCurveReport, null, 2) + '\n'], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `simharness-curve-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
 </script>
 </body>
 </html>

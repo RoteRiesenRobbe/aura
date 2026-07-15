@@ -18,9 +18,36 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/sim"
 )
+
+// parseFloats / parseInts parse the comma-separated candidate-list flags.
+func parseFloats(s string) ([]float64, error) {
+	var out []float64
+	for _, part := range strings.Split(s, ",") {
+		v, err := strconv.ParseFloat(strings.TrimSpace(part), 64)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+func parseInts(s string) ([]int, error) {
+	var out []int
+	for _, part := range strings.Split(s, ",") {
+		v, err := strconv.Atoi(strings.TrimSpace(part))
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
 
 func main() {
 	// Every seeded run builds a fresh world, and the game systems announce
@@ -34,6 +61,22 @@ func main() {
 	// page has its own inputs).
 	serveAddr := flag.String("serve", "", "serve the web explorer on this address (e.g. localhost:8081) instead of running once")
 	contentDir := flag.String("content", "", "api/-layout content dir for the explorer's mob presets (default: embedded copies; e.g. ../api)")
+
+	// Curve battery (chunk 2): -levels sweeps the f(character level) curve
+	// instead of the single 1v1; the player/mob flags below become the
+	// level-1 / tier-1 baselines. All curve defaults are the §5 working
+	// frame, [PLACEHOLDER] until the PO locks them from this tool's output.
+	levels := flag.Bool("levels", false, "run the f(character-level) curve battery (level sweep + gap band + linked-triple table)")
+	growth := flag.Float64("growth", 1.12, "f growth per level: f(L) = growth^(L-1)")
+	maxLevel := flag.Int("max-level", 30, "level span to sweep")
+	refLevel := flag.Int("ref-level", 0, "player level anchoring the gap sweep (0 = mid-span)")
+	gap := flag.Int("gap", 6, "gap sweep range: Δ = -gap..+gap")
+	growths := flag.String("growths", "1.08,1.10,1.12,1.15", "triple-table growth candidates (comma-separated)")
+	maxLevels := flag.String("max-levels", "20,25,30,35", "triple-table max-level candidates (comma-separated)")
+	xpBase := flag.Float64("xp-base", 300, "XP required level 1→2 (mirrors conf levelUpXPBase)")
+	xpGrowth := flag.Float64("xp-growth", 1.2, "level-up XP growth per level (mirrors conf levelUpXPGrowthFactor)")
+	xpKill := flag.Float64("xp-kill", 40, "XP per same-tier kill at tier 1")
+	xpKillGrowth := flag.Float64("xp-kill-growth", 1.2, "kill-XP growth per tier (= xp-growth → flat kills-per-level)")
 
 	// Battery controls.
 	runs := flag.Int("runs", 200, "seeded runs per scenario")
@@ -106,6 +149,50 @@ func main() {
 			Variance:     float32(*mobVariance),
 			MaxTargets:   1,
 		},
+	}
+
+	if *levels {
+		growthList, err := parseFloats(*growths)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "-growths: %v\n", err)
+			os.Exit(1)
+		}
+		maxLevelList, err := parseInts(*maxLevels)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "-max-levels: %v\n", err)
+			os.Exit(1)
+		}
+		report := sim.RunCurve(sim.CurveConfig{
+			Fixture: sim.Fixture{
+				Curve:  sim.Curve{Growth: *growth, MaxLevel: *maxLevel},
+				Player: player,
+				Mob:    mob,
+				XP:     sim.XPModel{LevelUpBase: *xpBase, LevelUpGrowth: *xpGrowth, KillBase: *xpKill, KillGrowth: *xpKillGrowth},
+			},
+			BaseSeed:           *seed,
+			Runs:               *runs,
+			Distance:           float32(*distance),
+			RefLevel:           *refLevel,
+			MaxDelta:           *gap,
+			GrowthCandidates:   growthList,
+			MaxLevelCandidates: maxLevelList,
+		})
+
+		fmt.Printf("SAME-TIER LEVEL SWEEP (growth %.2f — Philosophy A: columns must read flat)\n%s\n",
+			*growth, report.LevelTable())
+		fmt.Printf("CROSS-TIER GAP BAND (growth %.2f — the wall/steamroll picture)\n%s\n",
+			*growth, report.GapTable())
+		fmt.Printf("LINKED TRIPLE (wall Δ measured at win-rate < 50%% [PLACEHOLDER]; inflation = growth^(maxLevel-1))\n%s",
+			report.TripleTable())
+
+		if *out != "" {
+			if err := report.WriteJSON(*out); err != nil {
+				fmt.Fprintf(os.Stderr, "writing artifact: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("\nartifact written to %s\n", *out)
+		}
+		return
 	}
 
 	maxTicks := int(*maxSeconds * sim.TicksPerSecond)

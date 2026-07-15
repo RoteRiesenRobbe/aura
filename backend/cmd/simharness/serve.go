@@ -53,6 +53,7 @@ func serve(addr string, presets []mobPreset) error {
 		w.Write(indexHTML)
 	})
 	mux.HandleFunc("/run", handleRun)
+	mux.HandleFunc("/curve", handleCurve)
 	mux.HandleFunc("/mobs", handleMobs(presets))
 
 	fmt.Printf("simharness explorer on http://%s (%d mob presets)\n", addr, len(presets))
@@ -66,6 +67,60 @@ func handleMobs(presets []mobPreset) http.HandlerFunc {
 		if err := json.NewEncoder(w).Encode(presets); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
+	}
+}
+
+// validateCurve bounds the chunk-2 battery the same way runRequest.validate
+// bounds the 1v1: generous local-tool limits plus a total-fight budget so a
+// fat-fingered span×runs cannot pin the machine for minutes.
+func validateCurve(cfg *sim.CurveConfig) error {
+	if cfg.Runs < 1 || cfg.Runs > 2000 {
+		return fmt.Errorf("runs must be in [1, 2000], got %d", cfg.Runs)
+	}
+	c := cfg.Fixture.Curve
+	if c.MaxLevel < 1 || c.MaxLevel > 60 {
+		return fmt.Errorf("curve.maxLevel must be in [1, 60], got %d", c.MaxLevel)
+	}
+	if c.Growth <= 0 {
+		return fmt.Errorf("curve.growth must be > 0, got %v", c.Growth)
+	}
+	if cfg.MaxDelta < 0 || cfg.MaxDelta > 12 {
+		return fmt.Errorf("maxDelta must be in [0, 12], got %d", cfg.MaxDelta)
+	}
+	if len(cfg.GrowthCandidates) > 8 || len(cfg.MaxLevelCandidates) > 8 {
+		return fmt.Errorf("at most 8 growth / max-level candidates")
+	}
+	if cfg.Distance < 0 {
+		return fmt.Errorf("distance must be >= 0, got %v", cfg.Distance)
+	}
+	fights := cfg.Runs * (2*c.MaxLevel + 2*(2*cfg.MaxDelta+1) + len(cfg.GrowthCandidates)*(cfg.MaxDelta+1))
+	if fights > 100_000 {
+		return fmt.Errorf("battery too large: %d fights (max 100000) — lower runs, the level span or the gap range", fights)
+	}
+	return nil
+}
+
+// handleCurve is the chunk-2 endpoint: a sim.CurveConfig in, the full curve
+// report (level sweep + gap band + triple table) out — the same artifact the
+// CLI's -levels mode saves.
+func handleCurve(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var cfg sim.CurveConfig
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		http.Error(w, fmt.Sprintf("bad request: %v", err), http.StatusBadRequest)
+		return
+	}
+	if err := validateCurve(&cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(sim.RunCurve(cfg)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 

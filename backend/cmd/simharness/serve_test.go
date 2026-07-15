@@ -77,6 +77,53 @@ func TestHandleMobs_ServesRoster(t *testing.T) {
 	assert.EqualValues(t, 40, got[0].Spec.MaxHealth)
 }
 
+func postCurve(t *testing.T, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/curve", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	handleCurve(w, req)
+	return w
+}
+
+// The chunk-2 endpoint: a CurveConfig in, the full curve report out — level
+// sweep, gap band and triple table in one response.
+func TestHandleCurve_RunsCurveBattery(t *testing.T) {
+	w := postCurve(t, `{
+		"fixture": {
+			"curve": {"growth": 1.3, "maxLevel": 4},
+			"player": {"maxHealth": 100, "aura": {"damageHP": 10, "tickInterval": 3, "radius": 1.0, "maxTargets": 1}},
+			"mob": {"maxHealth": 40, "speed": 0, "bodyRadius": 0.2, "aggroRadius": 2.4,
+			        "aura": {"damageHP": 5, "tickInterval": 2, "radius": 1.0, "maxTargets": 1}},
+			"xp": {"levelUpBase": 300, "levelUpGrowth": 1.2, "killBase": 40, "killGrowth": 1.2}
+		},
+		"baseSeed": 1, "runs": 3, "distance": 0.3, "refLevel": 2, "maxDelta": 1,
+		"growthCandidates": [1.3], "maxLevelCandidates": [4]
+	}`)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var report sim.CurveReport
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &report))
+	require.Len(t, report.Levels, 4)
+	require.Len(t, report.Gaps, 3, "Δ = -1..+1")
+	require.Len(t, report.Triple, 1)
+	assert.Equal(t, 2, report.RefLevel)
+	assert.Equal(t, 3, report.Levels[0].TTK.Runs)
+}
+
+func TestHandleCurve_RejectsBadInput(t *testing.T) {
+	assert.Equal(t, http.StatusBadRequest, postCurve(t, `{"runs": 0}`).Code, "runs below bounds")
+	assert.Equal(t, http.StatusBadRequest, postCurve(t,
+		`{"fixture": {"curve": {"growth": 1.1, "maxLevel": 0}}, "runs": 5}`).Code, "level span missing")
+	assert.Equal(t, http.StatusBadRequest, postCurve(t,
+		`{"fixture": {"curve": {"growth": 1.1, "maxLevel": 60}}, "runs": 2000, "maxDelta": 12}`).Code, "fight budget exceeded")
+	assert.Equal(t, http.StatusBadRequest, postCurve(t, `not json`).Code, "malformed body")
+
+	req := httptest.NewRequest(http.MethodGet, "/curve", nil)
+	w := httptest.NewRecorder()
+	handleCurve(w, req)
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code, "GET is not a run")
+}
+
 func TestHandleRun_RejectsBadInput(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, postRun(t, `{"runs": 0}`).Code, "runs below bounds")
 	assert.Equal(t, http.StatusBadRequest, postRun(t, `{"runs": 999999, "maxSeconds": 60}`).Code, "runs above bounds")
