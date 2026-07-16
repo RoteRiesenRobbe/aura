@@ -335,7 +335,7 @@ bracket (see §5, First building block).
 
 - `f(character level)` applies **only to HP values** — damage, heal, self-damage/self-heal HP, and player max HP. It does **not** touch radius, tick rate, or target count. Geometry and cadence stay pure specialization/content knobs, out of the inflation treadmill.
 - **The curve is STEEP (WoW-Classic-punishing, PO 2026-07-15).** `f`'s rate is same-tier-neutral but **cross-tier-defining** — it sets how many levels of gap turn a fight from doable → wall → steamroll. Target a **narrow doable band ≈ 4 levels**, i.e. **~12%/level** [PLACEHOLDER] (this *supersedes* the earlier ~6.9%/level, 50×-over-60 placeholder). Feel: enter a zone ~2–3 levels under its floor → wall; grind a few levels → doable → comfortable; ~4 levels over → steamroll, move on.
-- **Linked triple — band width ↔ max level ↔ total inflation** (pick two). Working: **max level ~25–35** now (maybe ~20 for the first content pass; true max is higher but the full game is not completed in one content pass) → total inflation ~15–30× at ~12%/level. The **simulation harness visualizes all three** so exact `growth`/max-level are picked from data.
+- **Linked triple — band width ↔ max level ↔ total inflation** (pick two). **WORKING LOCK (PO, 2026-07-16, from the harness data): `growth` = 1.12 (~12%/level, doable band ≈ +5 at the target TTK:TTD ratio) × max level = 30 → total inflation ≈ 27×.** Deliberately lower-first (PO): scaling growth UP later is cheap as long as mobs are authored as *tier + baseline* (HP = base × f(tier), derived — a one-knob re-derivation), not raw numbers — the content pass must author that way. Still [PLACEHOLDER]-class until content proves it; the harness visualizes all three axes for re-reads.
 - **TTK** against a same-tier normal mob **~8 s**; an idle player's **time-to-die ~20–25 s** (ratio ~1:3) in a 1-vs-1.
 - **Level gaps** are handled by the numbers alone (the steep `f` gap *is* the gating mechanism); an explicit level-gap damage multiplier stays an available, isolated retrofit — not built.
 - **Intra-zone difficulty variation is a free authoring pattern** — author a zone across a small level span (entrance corner at a lower tier, deep corner at a higher tier); no new mechanic.
@@ -348,8 +348,15 @@ bracket (see §5, First building block).
 
 **Harness metrics extended (2026-07-10):** the harness also runs the
 **stand-still bot test** with thresholds **tiered by mob type** — a
-starter-zone normal may be facetankable at ~90% efficiency, an elite at no
-more than ~60%, a boss simply kills the stand-still bot [ALL PLACEHOLDER].
+starter-zone normal may be facetankable at up to ~50% efficiency, an elite
+at no more than ~25%, a boss simply kills the stand-still bot [ALL
+PLACEHOLDER — re-anchored 2026-07-16 from the chunk-4 chain measurements;
+the original ~90%/~60% frame is superseded: **PO decision 2026-07-16 —
+passive regen stays slow (~1%/s [PLACEHOLDER]) and positioning is rewarded
+everywhere**; recovery-dominated attrition is the intended model (measured:
+a starter normal facetanks at ~0.22–0.35 efficiency depending on the
+TTK:TTD ratio), with self-heal cooldowns and campfires as the deliberate
+recovery accelerators].
 The correct metric is **sustainable kills per hour over a chain including
 modeled regeneration and downtime**, *not* per-fight efficiency — a facetank
 bot may nearly tie a single fight but loses far more resource per kill and

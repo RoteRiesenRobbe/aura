@@ -83,6 +83,11 @@ func (r *MatrixReport) WriteJSON(path string) error {
 	return writeJSON(r, path)
 }
 
+// WriteJSON saves the chunk-4 chain artifact.
+func (r *ChainReport) WriteJSON(path string) error {
+	return writeJSON(r, path)
+}
+
 func writeJSON(v any, path string) error {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -193,6 +198,58 @@ func (r *MatrixReport) KillsTable() string {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// ChainTable renders the chunk-4 chain grid: per level bracket one line per
+// stance — survival, sustainable kills/hour over the surviving chains, the
+// per-fight time split, kills-before-death over the dying chains — plus the
+// efficiency verdict on the facetank line.
+func (r *ChainReport) ChainTable() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%5s %-9s %5s  %-24s %7s %7s %7s  %s\n",
+		"LEVEL", "STANCE", "SURV%", "KILLS/H p50 [p10-p90]", "FIGHT", "RECOV", "KILLS†", "EFF (facetank ÷ kite)")
+	for _, row := range r.Rows {
+		level := "-"
+		if row.Level > 0 {
+			level = fmt.Sprintf("%d", row.Level)
+		}
+		fmt.Fprintf(&b, "%5s %-9s %4.0f%%  %-24s %6.1fs %6.1fs %7s  %s\n",
+			level, StanceFacetank, row.Facetank.SurviveRate*100, distCell(row.Facetank.KillsPerHour),
+			row.Facetank.MeanFightSeconds, row.Facetank.MeanRecoverySeconds,
+			killsCell(row.Facetank.Kills), efficiencyLabel(row))
+		if !row.Kite.Feasible {
+			fmt.Fprintf(&b, "%5s %-9s %s\n", "", StanceKite, "n/a — mob outranges player, no kite ring")
+			continue
+		}
+		fmt.Fprintf(&b, "%5s %-9s %4.0f%%  %-24s %6.1fs %6.1fs %7s  @d=%.2f\n",
+			"", StanceKite, row.Kite.SurviveRate*100, distCell(row.Kite.KillsPerHour),
+			row.Kite.MeanFightSeconds, row.Kite.MeanRecoverySeconds,
+			killsCell(row.Kite.Kills), row.Kite.KiteDistance)
+	}
+	b.WriteString("† kills-before-death p50 over the dying chains\n")
+	return b.String()
+}
+
+// efficiencyLabel renders the parking-lot verdict: the ratio, or why it is 0.
+func efficiencyLabel(row ChainRow) string {
+	if !row.Kite.Feasible {
+		return "n/a (no kite ring)"
+	}
+	if row.Facetank.SurviveRate < surviveThreshold {
+		return "dies"
+	}
+	if row.Efficiency == 0 {
+		return "-"
+	}
+	return fmt.Sprintf("%.2f", row.Efficiency)
+}
+
+// killsCell renders a kills-before-death distribution ("-" = no deaths).
+func killsCell(d Distribution) string {
+	if d.Samples == 0 {
+		return "-"
+	}
+	return fmt.Sprintf("%.1f", d.P50)
 }
 
 // maxTargetsLabel renders a MaxTargets candidate (0 = uncapped).

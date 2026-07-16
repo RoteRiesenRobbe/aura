@@ -120,6 +120,20 @@ with win-rate &lt; 50% [PLACEHOLDER])</small></h1>
 
 <div id="matrixResults"></div>
 
+<h1 class="section-title">kills/hour chain <small>— facetank vs kite over [fight → real regen to full →
+modeled downtime] (chunk 4; uses the Player/Mob knobs above and the Battery runs/seed/timeout;
+efficiency = facetank ÷ kite kills/hour, "dies" = facetank survives &lt; 50% of chains [PLACEHOLDER])</small></h1>
+
+<div class="knobs" id="chainKnobs"></div>
+
+<div class="actions">
+  <button id="chainRunBtn">Run chain</button>
+  <button id="chainSaveBtn" disabled>Save artifact</button>
+  <span id="chainStatus"></span>
+</div>
+
+<div id="chainResults"></div>
+
 <script>
 // One entry per knob: [fieldset, label, path-in-request, default, step].
 // Auras default to MaxTargets=1 (the base-aura shape); the matrix panel
@@ -619,6 +633,127 @@ matrixSaveBtn.addEventListener('click', () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `simharness-matrix-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// ---------- kills/hour chain (chunk 4) ----------
+// The Player/Mob knobs above are the combatants; these are the chain's
+// recovery/downtime placeholders. Stances own the geometry (facetank = mob
+// centre, kite = the out-of-reach ring), so the Battery distance is unused.
+const chainKnobsEl = document.getElementById('chainKnobs');
+const chainFs = document.createElement('fieldset');
+chainFs.innerHTML = `<legend>Chain</legend>
+  <label><span>fights / chain</span><input type="number" id="chainFightsInp" value="20" step="1"></label>
+  <label><span>downtime gap (s)</span><input type="number" id="chainDowntimeInp" value="15" step="1"></label>
+  <label><span>regen / tick (0 = default)</span><input type="number" id="chainRegenInp" value="0" step="0.0001"></label>
+  <label><span>self-heal level (0 = off)</span><input type="number" id="chainSelfHealInp" value="0" step="1"></label>
+  <label><span>level brackets (empty = as-is)</span><input type="text" id="chainLevelsInp" value="" placeholder="1,10,20"></label>
+  <label><span>bracket growth</span><input type="number" id="chainGrowthInp" value="1.15" step="0.01"></label>`;
+chainKnobsEl.appendChild(chainFs);
+
+const chainStatusEl = document.getElementById('chainStatus');
+const chainResultsEl = document.getElementById('chainResults');
+const chainSaveBtn = document.getElementById('chainSaveBtn');
+let lastChainReport = null;
+
+function buildChainRequest() {
+  const base = buildRequest();
+  if (!base) return null;
+  const num = id => parseFloat(document.getElementById(id).value);
+  const levelsRaw = document.getElementById('chainLevelsInp').value.split(',')
+    .map(s => s.trim()).filter(s => s !== '').map(Number).map(Math.round);
+  const fights = Math.round(num('chainFightsInp'));
+  if (levelsRaw.some(Number.isNaN) || Number.isNaN(fights)) return null;
+  return {
+    player: base.player,
+    mob: base.mob,
+    curve: { growth: num('chainGrowthInp'), maxLevel: 60 },
+    levels: levelsRaw,
+    chainFights: fights,
+    downtimeSeconds: num('chainDowntimeInp'),
+    regenTick: num('chainRegenInp'),
+    selfHealLevel: Math.round(num('chainSelfHealInp')),
+    baseSeed: base.seed,
+    runs: base.runs,
+    maxSecondsPerFight: base.maxSeconds,
+  };
+}
+
+document.getElementById('chainRunBtn').addEventListener('click', runChain);
+
+async function runChain() {
+  const req = buildChainRequest();
+  if (!req) { chainStatusEl.textContent = 'incomplete input'; return; }
+  chainStatusEl.className = ''; chainStatusEl.textContent = 'running…';
+  const t0 = performance.now();
+  try {
+    const resp = await fetch('/chain', { method: 'POST', body: JSON.stringify(req) });
+    if (!resp.ok) throw new Error(await resp.text());
+    lastChainReport = await resp.json();
+    chainSaveBtn.disabled = false;
+    renderChain(lastChainReport);
+    chainStatusEl.textContent = `done in ${Math.round(performance.now() - t0)} ms`;
+  } catch (e) {
+    chainStatusEl.className = 'err';
+    chainStatusEl.textContent = String(e.message || e).trim();
+  }
+}
+
+// One chain cell: kph p50 + the per-fight time split; the survive badge
+// turns loud when the stance dies.
+function chainCell(c) {
+  if (!c.feasible) {
+    return `<td style="background:#1a1e24;color:#6b7280">n/a<small>mob outranges player</small></td>`;
+  }
+  const kph = c.killsPerHour.samples > 0 ? c.killsPerHour.p50.toFixed(1) : '—';
+  const surv = c.surviveRate < 1
+    ? `<small>survives ${(c.surviveRate * 100).toFixed(0)}%${
+        c.killsBeforeDeath.samples > 0 ? `, †kills ${c.killsBeforeDeath.p50.toFixed(1)}` : ''}</small>`
+    : `<small>fight ${c.meanFightSeconds.toFixed(1)}s + recov ${c.meanRecoverySeconds.toFixed(1)}s</small>`;
+  const tip = `${c.stance}: survives ${(c.surviveRate * 100).toFixed(0)}% of ${c.killsPerHour.runs} chains`
+    + (c.killsPerHour.samples > 0
+        ? `, kills/h p50 ${c.killsPerHour.p50.toFixed(1)} [${c.killsPerHour.p10.toFixed(1)}–${c.killsPerHour.p90.toFixed(1)}]` : '')
+    + (c.stance === 'kite' ? `, ring distance ${c.kiteDistance.toFixed(2)}` : '');
+  const style = c.surviveRate < 0.5 ? 'background:#3d1f24;color:#ffb3a7' : 'background:#1f2833;color:#d6dae0';
+  return `<td style="${style}" title="${tip}"><b>${kph}</b> kills/h ${surv}</td>`;
+}
+
+function renderChain(rep) {
+  chainResultsEl.innerHTML = '';
+  const block = document.createElement('div');
+  block.className = 'chart-block';
+
+  const head = `<tr><th class="rowhead">level</th><th>facetank</th><th>kite</th><th>efficiency</th></tr>`;
+  const body = rep.rows.map(row => {
+    const level = row.level > 0 ? `L${row.level}` : '—';
+    let eff;
+    if (!row.kite.feasible) {
+      eff = `<td class="ow none">n/a</td>`;
+    } else if (row.facetank.surviveRate < 0.5) {
+      eff = `<td style="background:#3d1f24;color:#ffb3a7"><b>dies</b></td>`;
+    } else {
+      eff = `<td style="${winStyle(row.efficiency)}" title="facetank ÷ kite kills/h p50"><b>${
+        (row.efficiency * 100).toFixed(0)}%</b></td>`;
+    }
+    return `<tr><td class="rowhead">${level}</td>${chainCell(row.facetank)}${chainCell(row.kite)}${eff}</tr>`;
+  }).join('');
+
+  const legend = `<div class="ramp-legend">efficiency = facetank ÷ kite kills/h —
+    low = positioning pays, high = parking-lot risk, "dies" = the GDD boss case ·
+    † kills-before-death p50 over the dying chains</div>`;
+
+  block.innerHTML = `<h2>Sustainable kills/hour <small>(hover a cell for the full distribution read)</small></h2>
+    <table class="matrix">${head}${body}</table>${legend}`;
+  chainResultsEl.appendChild(block);
+}
+
+chainSaveBtn.addEventListener('click', () => {
+  if (!lastChainReport) return;
+  const blob = new Blob([JSON.stringify(lastChainReport, null, 2) + '\n'], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `simharness-chain-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
 });

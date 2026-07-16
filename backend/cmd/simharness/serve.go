@@ -55,6 +55,7 @@ func serve(addr string, presets []mobPreset) error {
 	mux.HandleFunc("/run", handleRun)
 	mux.HandleFunc("/curve", handleCurve)
 	mux.HandleFunc("/matrix", handleMatrix)
+	mux.HandleFunc("/chain", handleChain)
 	mux.HandleFunc("/mobs", handleMobs(presets))
 
 	fmt.Printf("simharness explorer on http://%s (%d mob presets)\n", addr, len(presets))
@@ -172,6 +173,70 @@ func handleMatrix(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(sim.RunMatrix(cfg)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// validateChain bounds the chunk-4 battery. The budget counts chain cycles;
+// a cycle costs roughly 14 fight-equivalents at the default regen (the
+// recovery phase is ~3200 empty-world ticks vs ~240 fight ticks), so 25 000
+// cycles [PLACEHOLDER] lands near the other endpoints' budgets.
+func validateChain(cfg *sim.ChainConfig) error {
+	if cfg.Runs < 1 || cfg.Runs > 1000 {
+		return fmt.Errorf("runs must be in [1, 1000], got %d", cfg.Runs)
+	}
+	if cfg.ChainFights < 1 || cfg.ChainFights > 100 {
+		return fmt.Errorf("chainFights must be in [1, 100], got %d", cfg.ChainFights)
+	}
+	if len(cfg.Levels) > 12 {
+		return fmt.Errorf("at most 12 level brackets, got %d", len(cfg.Levels))
+	}
+	if len(cfg.Levels) > 0 && cfg.Curve.Growth <= 0 {
+		return fmt.Errorf("curve.growth must be > 0 with level brackets, got %v", cfg.Curve.Growth)
+	}
+	if cfg.DowntimeSeconds < 0 || cfg.DowntimeSeconds > 3600 {
+		return fmt.Errorf("downtimeSeconds must be in [0, 3600], got %v", cfg.DowntimeSeconds)
+	}
+	if cfg.RegenTick < 0 || cfg.RegenTick > 1 {
+		return fmt.Errorf("regenTick must be in [0, 1], got %v", cfg.RegenTick)
+	}
+	if cfg.SelfHealLevel < 0 || cfg.SelfHealLevel > 10 {
+		return fmt.Errorf("selfHealLevel must be in [0, 10], got %d", cfg.SelfHealLevel)
+	}
+	if cfg.MaxSecondsPerFight < 0 || cfg.MaxSecondsPerFight > 600 {
+		return fmt.Errorf("maxSecondsPerFight must be in [0, 600], got %v", cfg.MaxSecondsPerFight)
+	}
+	brackets := len(cfg.Levels)
+	if brackets == 0 {
+		brackets = 1
+	}
+	cycles := brackets * 2 * cfg.Runs * cfg.ChainFights
+	if cycles > 25_000 {
+		return fmt.Errorf("battery too large: %d chain cycles (max 25000) — lower runs, chainFights or the brackets", cycles)
+	}
+	return nil
+}
+
+// handleChain is the chunk-4 endpoint: a sim.ChainConfig in, the chain
+// report (facetank vs kite kills/hour + efficiency) out — the same artifact
+// the CLI's -chain mode saves.
+func handleChain(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var cfg sim.ChainConfig
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		http.Error(w, fmt.Sprintf("bad request: %v", err), http.StatusBadRequest)
+		return
+	}
+	if err := validateChain(&cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(sim.RunChain(cfg)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

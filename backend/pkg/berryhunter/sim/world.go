@@ -61,6 +61,11 @@ func NewWorld(sc Scenario, seed int64) *World {
 		mobHPs[i] = vitals.VitalSign(vitals.HP(vitals.RollVariance(sc.Mob.MaxHealth, sc.Mob.MaxHealthVariance, rng)))
 	}
 
+	regenTick := sc.RegenTick
+	if regenTick <= 0 {
+		regenTick = DefaultRegenTick
+	}
+
 	g := &simGame{
 		entities: make(map[uint64]model.BasicEntity),
 		config: &cfg.GameConfig{
@@ -69,10 +74,9 @@ func NewWorld(sc Scenario, seed int64) *World {
 			Bounds:                 cfg.Bounds{Width: 60, Height: 40},
 			MobChaseIntoAuraMargin: 0.05, // conf.default.json value
 			PlayerConfig: cfg.PlayerConfig{
-				// Out-of-combat regen [PLACEHOLDER, conf.default.json]. Gated
-				// off during combat, so it never moves a chunk-1 fight; the
-				// chunk-4 chain runner will expose it as a knob.
-				HealthGainTick: 0.00033,
+				// Out-of-combat regen, gated off during combat so it never
+				// moves a fight — the chunk-4 chain runner's recovery knob.
+				HealthGainTick: regenTick,
 				BaseHealth:     sc.Player.MaxHealth,
 				// f(character level) enters in chunk 2; the synthetic player
 				// is level 1 and stays there (mob XP is 0), so all level

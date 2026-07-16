@@ -86,6 +86,19 @@ func main() {
 	maxTargetsCands := flag.String("max-targets", "1,2,3,0", "matrix build rows: MaxTargets candidates, 0 = uncapped (comma-separated)")
 	maxPack := flag.Int("max-pack", 8, "matrix sweeps pack sizes 1..N")
 
+	// Chain battery (chunk 4): -chain runs the sustainable-kills/hour chain
+	// (fight → real out-of-combat regen to full → modeled downtime), facetank
+	// vs kite — the stances own the geometry, so -distance is ignored. A mob
+	// whose aura interval exceeds ~3 s can leash mid-kite and time the fight
+	// out — that is real behavior, reported as timeouts. Defaults
+	// [PLACEHOLDER].
+	chain := flag.Bool("chain", false, "run the kills/hour chain battery (facetank vs kite; ignores -distance)")
+	chainFights := flag.Int("chain-fights", 20, "fights per chain")
+	downtime := flag.Float64("downtime", 15, "modeled walk-to-the-next-pack gap in seconds")
+	regenTick := flag.Float64("regen-tick", 0, "out-of-combat regen fraction of max HP per tick (0 = game default; raise it to model time-at-fire)")
+	selfHeal := flag.Int("self-heal", 0, "self-heal cooldown level, 0 = none (20%+5%/lvl of max HP, 30s cd — mirrors Heal)")
+	chainLevels := flag.String("chain-levels", "", "level brackets, comma-separated (scaled same-tier by -growth; empty = the explicit numbers)")
+
 	// Battery controls.
 	runs := flag.Int("runs", 200, "seeded runs per scenario")
 	seed := flag.Int64("seed", 1, "base seed; run i uses seed+i")
@@ -223,6 +236,43 @@ func main() {
 			report.MatrixTable())
 		fmt.Printf("KILLS BEFORE DEATH (p50 over the losing runs — how close the losses were)\n%s",
 			report.KillsTable())
+
+		if *out != "" {
+			if err := report.WriteJSON(*out); err != nil {
+				fmt.Fprintf(os.Stderr, "writing artifact: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("\nartifact written to %s\n", *out)
+		}
+		return
+	}
+
+	if *chain {
+		var levelList []int
+		if *chainLevels != "" {
+			var err error
+			levelList, err = parseInts(*chainLevels)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "-chain-levels: %v\n", err)
+				os.Exit(1)
+			}
+		}
+		report := sim.RunChain(sim.ChainConfig{
+			Player:             player,
+			Mob:                mob,
+			Curve:              sim.Curve{Growth: *growth, MaxLevel: *maxLevel},
+			Levels:             levelList,
+			ChainFights:        *chainFights,
+			DowntimeSeconds:    *downtime,
+			RegenTick:          float32(*regenTick),
+			SelfHealLevel:      *selfHeal,
+			BaseSeed:           *seed,
+			Runs:               *runs,
+			MaxSecondsPerFight: *maxSeconds,
+		})
+
+		fmt.Printf("KILLS/HOUR CHAIN (%d fights/chain, %.0fs downtime — facetank vs kite; efficiency < 1 = positioning pays [PLACEHOLDER cuts])\n%s",
+			*chainFights, *downtime, report.ChainTable())
 
 		if *out != "" {
 			if err := report.WriteJSON(*out); err != nil {

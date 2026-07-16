@@ -6,9 +6,9 @@
 //     outdir  default ./simharness-shots
 //
 // Drives the page end-to-end: waits for the 1v1 auto-run, fires the
-// level-curve battery and the pack-matrix battery, screenshots all three
-// states, exits non-zero on any console/page error. Requires
-// setup-browser.sh to have run once.
+// level-curve battery, the pack-matrix battery and the kills/hour chain
+// battery, screenshots all four states, exits non-zero on any console/page
+// error. Requires setup-browser.sh to have run once.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -49,9 +49,16 @@ await page.click('#matrixRunBtn');
 await page.waitForSelector('#matrixStatus:has-text("done")', { timeout: 120_000 });
 await page.screenshot({ path: join(outdir, 'matrix.png'), fullPage: true });
 
+// The kills/hour chain (chunk 4), with level brackets on. Recovery ticks
+// make chains slower than fights — give it a longer leash.
+await page.fill('#chainLevelsInp', '1,10');
+await page.click('#chainRunBtn');
+await page.waitForSelector('#chainStatus:has-text("done")', { timeout: 180_000 });
+await page.screenshot({ path: join(outdir, 'chain.png'), fullPage: true });
+
 await browser.close();
 if (errors.length > 0) {
   console.error('console errors:', errors);
   process.exit(1);
 }
-console.log(`ok — screenshots in ${outdir}/ (1v1.png, level-curve.png, matrix.png)`);
+console.log(`ok — screenshots in ${outdir}/ (1v1.png, level-curve.png, matrix.png, chain.png)`);

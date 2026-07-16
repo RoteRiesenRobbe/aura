@@ -61,12 +61,58 @@
 > overwhelm point moves with the cap (cap 1 → pack 2, cap ≥2 → pack 3) and
 > multi-target caps clear the packs they cover in flat time (parallel kill);
 > (3) the overwhelm cliff is sharp — win rate collapses 100%→~0% within one
-> pack size at these variance levels. **Next: Chunk 4 (chain runner) in a fresh
-> session.** Roadmap position: the
+> pack size at these variance levels. Roadmap position: the
 > **pre-step-6 simulation-harness gate** (`docs/roadmap.md` item 5 → gate
 > blockquote; `gdd.md` §5 "First building block"; `tdd.md` §4.1). Prerequisite
 > already met: player passive regen is combat-gated
 > (`plan-atmosphere-recovery.md` chunk 1).
+>
+> **Chunk 4 IMPLEMENTED + VERIFIED 2026-07-16 — PO review pending (not committed):**
+> the kills/hour chain, facetank vs kite. Design refinement over §8's sketch:
+> **per-cycle worlds** — each cycle runs its fight in a fresh `NewWorld` (every
+> chain fight is byte-identical to `RunFight` under its per-fight seed, pinned),
+> then keeps ticking the SAME world through recovery so the real combat grace
+> (5 s) + real regen accumulator (+ the real `self_heal` fire) set the recovery
+> time; the downtime gap is pure chain-clock time. Stances are scenario data:
+> facetank = `StartDistance 0` (body layers never collide), kite = ring-centre
+> distance `[mobAura+0.25, playerAura+mobBody)/2` with the mob pinned (speed 0
+> ⇒ `auraAlwaysOn`, still fights back); empty ring ⇒ cell `Feasible:false`.
+> `sim/chain.go` = `ChainConfig/ChainCell/ChainRow/ChainReport`, `KiteDistance`,
+> `runChain`, `RunChain` (brackets × stance × run flat-parallel; chain i shares
+> seed across cells); `Scenario.RegenTick` knob threaded into `NewWorld`
+> (0 = old default, chunks 1–3 byte-identical); synthetic self-heal cooldown
+> (20%+5%/lvl, 30 s cd on the chain clock [PLACEHOLDER], fired headlessly via
+> `RequestCooldownActivation` — verified it does not stamp combat); optional
+> level brackets reuse the chunk-2 Fixture. Surfaces: CLI `-chain` (+`-chain-fights
+> -downtime -regen-tick -self-heal -chain-levels`), `POST /chain`, explorer
+> chain panel; driver.mjs drives + screenshots it. 13 sim + 2 handler tests
+> (incl. an exact recovery pin: 149 grace steps + regen ticks, hand-derived);
+> full suite + race + browser green. Threshold guardrails (§1/§9) stay
+> deferred until the numbers are read with the PO. **Findings:** (1) recovery
+> dominates the chain — at current baselines facetank efficiency ≈ 0.22 (76 s
+> recovery per 6.6 s fight); target-shaped ratio (mob dmg 4) ≈ 0.35; the GDD's
+> "~90% facetankable starter normal" [PLACEHOLDER] is far away at the current
+> regen (~1%/s) — regen/downtime are the knobs that move it, flag to PO;
+> (2) self-heal L1 lifts facetank 0.22 → 0.28; (3) a boss-shaped mob (dmg 30,
+> tick 10, HP 300) kills the facetank bot with 0 kills banked — the GDD boss
+> case reproduces; (4) efficiency is flat across level brackets — Philosophy A
+> holds on the chain metric too.
+>
+> **Chunk 4 PO-APPROVED + COMMITTED 2026-07-16 → SIM-HARNESS PLAN COMPLETE.**
+> Decisions locked with the PO from the tool's output (2026-07-16):
+> (1) **`growth` = 1.12 × max level = 30 (WORKING LOCK)** — ≈27× total
+> inflation, band ≈ +5; deliberately lower-first, cheap to steepen later iff
+> step 6 authors mobs as tier + baseline (derived), which is now a content-pass
+> requirement (GDD §5); (2) **passive regen stays slow** (~1%/s [PLACEHOLDER])
+> — the ~90% facetankable-normal frame is superseded, positioning is rewarded
+> everywhere, recovery-dominated attrition is intended, self-heal/campfires are
+> the recovery accelerators; (3) **stand-still tier thresholds re-anchored
+> [PLACEHOLDER]: normal ≤ ~50%, elite ≤ ~25%, boss dies** (GDD §5); (4)
+> downtime default 15 s (zone-density-dependent, tuned by feel in step 6) and
+> chain length 20 confirmed; (5) guardrail asserts stay deferred to step 6 —
+> pinned against real mobs, not synthetic placeholders. **Next: Step 6, the
+> initial content pass** (plan-first planning session; live `f` wiring at the
+> top, per §5 Decision 5).
 >
 > **All open questions resolved with PO 2026-07-15:** (1) synthetic-fixtures framing —
 > **yes**; (4) output — **standalone cmd + saved artifact**, not just test logs;

@@ -94,7 +94,14 @@ type Scenario struct {
 	// PackSize is the number of identical mobs (0/1 = single); OutcomeMobDied
 	// then means the WHOLE pack died.
 	PackSize int `json:"packSize,omitempty"`
+	// RegenTick is the player's out-of-combat regen as a fraction of max HP
+	// per tick; 0 = the game default. Combat-gated, so it never moves a
+	// fight — it is the chunk-4 recovery knob.
+	RegenTick float32 `json:"regenTick,omitempty"`
 }
+
+// DefaultRegenTick mirrors conf.default.json's healthGainTick [PLACEHOLDER].
+const DefaultRegenTick = 0.00033
 
 // DefaultMaxTicks caps a fight at 120 simulated seconds [PLACEHOLDER] —
 // far above the GDD working targets (TTK ~8 s, TTD ~20-25 s), so a timeout

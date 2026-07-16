@@ -177,6 +177,57 @@ func TestHandleMatrix_RejectsBadInput(t *testing.T) {
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code, "GET is not a run")
 }
 
+func postChain(t *testing.T, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/chain", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	handleChain(w, req)
+	return w
+}
+
+// The chunk-4 endpoint: a ChainConfig in, the facetank-vs-kite chain report
+// out. Exact-cadence fixture (the chain_test.go pin): both stances survive,
+// the kite bot pays no recovery, efficiency lands strictly inside (0, 1).
+func TestHandleChain_RunsChainBattery(t *testing.T) {
+	w := postChain(t, `{
+		"player": {"maxHealth": 128, "aura": {"damageHP": 10, "tickInterval": 3, "radius": 2.0, "maxTargets": 1}},
+		"mob": {"maxHealth": 40, "speed": 0, "bodyRadius": 0.2, "aggroRadius": 2.4,
+		        "aura": {"damageHP": 16, "tickInterval": 5, "radius": 1.0, "maxTargets": 1}},
+		"chainFights": 3, "downtimeSeconds": 10, "regenTick": 0.03125,
+		"baseSeed": 1, "runs": 2
+	}`)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var report sim.ChainReport
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &report))
+	require.Len(t, report.Rows, 1)
+	row := report.Rows[0]
+	assert.Equal(t, 1.0, row.Facetank.SurviveRate)
+	assert.True(t, row.Kite.Feasible)
+	assert.Zero(t, row.Kite.MeanRecoverySeconds)
+	assert.Greater(t, row.Efficiency, 0.0)
+	assert.Less(t, row.Efficiency, 1.0)
+}
+
+func TestHandleChain_RejectsBadInput(t *testing.T) {
+	assert.Equal(t, http.StatusBadRequest, postChain(t,
+		`{"chainFights": 3, "runs": 0}`).Code, "runs below bounds")
+	assert.Equal(t, http.StatusBadRequest, postChain(t,
+		`{"chainFights": 0, "runs": 3}`).Code, "chainFights below bounds")
+	assert.Equal(t, http.StatusBadRequest, postChain(t,
+		`{"chainFights": 100, "runs": 1000}`).Code, "cycle budget exceeded")
+	assert.Equal(t, http.StatusBadRequest, postChain(t,
+		`{"chainFights": 3, "runs": 3, "levels": [1,2], "curve": {"growth": 0}}`).Code, "brackets without a curve")
+	assert.Equal(t, http.StatusBadRequest, postChain(t,
+		`{"chainFights": 3, "runs": 3, "regenTick": 2}`).Code, "regenTick above bounds")
+	assert.Equal(t, http.StatusBadRequest, postChain(t, `not json`).Code, "malformed body")
+
+	req := httptest.NewRequest(http.MethodGet, "/chain", nil)
+	w := httptest.NewRecorder()
+	handleChain(w, req)
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code, "GET is not a run")
+}
+
 func TestHandleRun_RejectsBadInput(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, postRun(t, `{"runs": 0}`).Code, "runs below bounds")
 	assert.Equal(t, http.StatusBadRequest, postRun(t, `{"runs": 999999, "maxSeconds": 60}`).Code, "runs above bounds")
