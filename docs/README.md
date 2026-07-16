@@ -26,6 +26,7 @@ status. CLAUDE.md carries only a two-line pointer to the last-completed and next
 - **plan-mob-depth.md** — mob depth & totems (execution step 2): 9-chunk plan + records (totem → flee → aggro/threat → steering → patrol → companion → taunt → support mobs → encounter-controller spine); decisions in §1.3/§3.1; open ⚑ in §6
 - **plan-atmosphere-recovery.md** — atmosphere & recovery (execution step 3): 4-chunk plan (regen combat gate → campfires → darkness & light → death state + campfire respawn); decisions, recon anchors in §2, gotchas in §4, open ⚑ in §6
 - **plan-rebrand-cleanup.md** — rebrand to "Aura" + Berryhunter cleanup: phased plan, scheduled as execution-order step 7; chieftain-deletion decision
+- **plan-content-zones12.md** — content pass (step 6) working plan for Zones 1+2: code-verified capability baseline, geography/story/mob/ability plan, required code lifts, systems-coverage table, Front-Aura + Ork-boss tickets (§A/§B)
 
 ## Content (catalogs + zone design intent)
 
