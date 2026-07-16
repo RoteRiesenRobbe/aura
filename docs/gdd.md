@@ -736,6 +736,7 @@ Unsorted idea list, grouped by category. Not final — for experimenting and ite
 | Fire Shield | For 30 s, reflects 20% of incoming damage. | Pyromancer combo component |
 | Heal Magic cooldown *(working title)* | Restores the caster's own resource. | Reward from the troll territory (clue anchor point); **the only path to self-healing** — heal auras never heal the caster. Instant restores stay capped-partial per the §3 recovery boundary |
 | Personal recovery cooldown *(working title, 2026-07-10)* | Restores the caster's own resource **over time** (~15–20 s [PLACEHOLDER]), out-of-combat-flavored. | The solo sit-and-eat substitute (§3, decided); theme open — mini-campfire is the cheapest candidate (totem machinery) |
+| Summon Companion *(working title, 2026-07-16)* | Summons a temporary dog companion that fights alongside the player (uses the existing dog SVG). | Taught by the dog NPC in the dark forest (A.6). Concrete instance of backlog §5 variant (A) — companion = totem with velocity + owner attribution; §5's open questions (XP credit, cap, category) apply |
 
 ### A.4 Combination Recipes
 
@@ -760,3 +761,4 @@ Unsorted idea list, grouped by category. Not final — for experimenting and ite
 | "Way of the Warrior" sign | Clue location, leads to a short dungeon with a DPS-aura reward |
 | Troll territory | A clue NPC leads there, reward = Heal Magic cooldown |
 | Farm with turnip field | Peaceful farmer NPC teaches the Turnip-Pull aura. The field next door = stationary turnip mobs. Harvest-mob example. |
+| Dark forest with the dog *(2026-07-16)* | In a dark forest you meet a dog NPC. On approach it says "Woof" and teaches the Summon Companion cooldown (A.3). Simple, self-contained NPC-teaching beat; the summon reuses the dog SVG. |

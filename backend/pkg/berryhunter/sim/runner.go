@@ -19,7 +19,13 @@ type FightResult struct {
 // replays the same fight — the debugging entry point the plan (§3) keeps
 // available.
 func RunFight(sc Scenario, seed int64) FightResult {
-	w := NewWorld(sc, seed)
+	return runFightWorld(NewWorld(sc, seed), sc)
+}
+
+// runFightWorld runs the fight loop on an already-built world. The chunk-4
+// chain runner keeps the world afterwards to tick real out-of-combat
+// recovery on it.
+func runFightWorld(w *World, sc Scenario) FightResult {
 	kills := 0
 	for t := 1; t <= sc.MaxTicks; t++ {
 		w.Step()

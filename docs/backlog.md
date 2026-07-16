@@ -310,6 +310,9 @@ the open questions below ask about **now exists** (effect-foundations Step 1).
 Recorded in roadmap item 7; no new spine — extends the totem build
 (`plan-effect-foundations.md §8`).
 
+First concrete content instance of (A): the **Summon Companion** cooldown
+taught by the dark-forest dog NPC — see GDD Appendix A.3 / A.6 (2026-07-16).
+
 Context from current state:
 
 - Mobs already run the full skill system (`SkillComponent` parity, Phase 6),
