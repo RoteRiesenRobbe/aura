@@ -971,3 +971,32 @@ flag-shaped, not script-shaped.
   edit → download → restart (the existing loop) enough?
 - Does spawn-group tagging (mobs referencing an encounter group) replace
   the encounter spawning its own mobs, or coexist?
+
+## 18. Timed stat-buff effect (movement speed first)
+
+Cut from the step-6 content pass (PO 2026-07-16, `plan-content-zones12.md`
+§9 lift 1 + §13): a new effect type that applies a **timed stat buff** —
+movement speed first — via the existing transient-buff plumbing (which today
+carries resists and shields, not stat folds). Scope sketch from the content
+plan: new effect type + buff fold into movement speed + expiry.
+
+Consumers that were cut with it (revive as content when this lands):
+
+- **Rally** (cooldown, was: Bandit-ranged drop) — timed ally move-speed buff.
+- **Flee** (cooldown, was: Stag drop) — speed+ self buff; its radius− half
+  additionally rode the aura-radius-modifier lift (§9 lift 4, also dropped).
+
+Answered by current state:
+
+- The Rally-Drum drummer does NOT wait on this — it was rescoped to
+  `shield_aura` ("war drums embolden") and ships in the content pass.
+- Speed/shield coverage has other homes (Swift `stat_multiplier`, drummer
+  `shield_aura`), so nothing in the Zones-1+2 coverage table depends on this.
+
+⚑ Open questions (if ever picked up):
+
+- Buff stacking/refresh semantics (re-cast while active: extend, refresh,
+  or reject?).
+- Does the same effect type cover debuffs (slow-on-players is the known
+  eligibility gap noted in `plan-content-zones12.md` §10), or stay
+  buff-only?

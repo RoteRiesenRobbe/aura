@@ -1,6 +1,6 @@
 # Plan — Content Pass: Zones 1 + 2 (execution step 6, roadmap item 12)
 
-**Status: PLANNING (2026-07-16), outline PO-approved, content not started.**
+**Status: PLANNED (2026-07-16) — chunked (§13), execution not started.**
 Basis: PO design session (external prompt + `zones12-mockup` map image) +
 a full code-verification pass (4 parallel audits, this doc's §1). Where the
 design session's assumptions differed from code, this doc records the
@@ -28,6 +28,22 @@ PO rulings already taken (2026-07-16):
   Turnip-Pull + a tunnel rockfall (gate TBD), implemented as stationary
   solid mobs with wildcard resists (zero code, see §4); **totem** →
   "Lantern Post" (plantable light totem).
+
+Structural rulings from the chunking session (2026-07-16, interactive):
+
+- **Vertical journey slices** — execution chunks follow the player journey
+  west→east; every chunk ends playable + in-game-verifiable (§13).
+- **Map workflow: Claude blocks out, PO polishes** — each chunk lands rough
+  functional geometry programmatically (bounds, walls, thickets, darkness,
+  spawns); the PO does beauty passes in the zone editor anytime (the editor
+  round-trips the zone JSON).
+- **Lift 1 CUT from v1** — the timed stat-buff effect goes to the backlog;
+  **Rally + Flee cooldowns are cut** (Stag / Bandit-ranged replacement drops
+  TBD §11 or none). Rally-Drum drummer was already rescoped to `shield_aura`.
+- **Recipe net = its own chunk (C7), before the balance pass** — the power
+  ceiling is known before calibration.
+- **Art: Claude-authored placeholder SVGs per chunk**, PO replaces later
+  (swapping an SVG file touches nothing else).
 
 Decided content flows into the `content-*.md` catalogs and
 `content-zone1.md`/`content-zone2.md` as sessions land it; this doc is the
@@ -164,14 +180,14 @@ orc hostile to `aligned` + `human_army`.
 | Wolf | forests Z1+Z2 | aggressive, packs, hunts boar/stag (faction predation) | bite, mid radius | physical | Swift | ✓ today |
 | Bear | forests Z1+Z2 | aggressive, tanky | slow heavy swipe; **berserker-modified damage aura** ("wounded animal rages") | physical | Thick Hide + Berserker-aura | ✓ today — berserker rescoped from cooldown to aura modifier (§5 note) |
 | Boar | forests | passive until attacked (prey faction, threat retaliation) | charge (flavor: aggro chase; mob cooldown-AI unverified — §12) | physical + bleed | Hardy + Dash | ✓ today (charge = flavor) |
-| Stag | forests | passive, flees | weak kick | physical | Flee | ⚑ Flee needs machinery (§9) |
+| Stag | forests | passive, flees | weak kick | physical | TBD §11 (was Flee — cut 2026-07-16) | ✓ today (flee-always = prey behavior) |
 | Elite Wolf | Z1 dark forest | aggressive, stronger; carries **execute + lifesteal** modifiers (feeds on wounded prey — coverage homes) | large-radius aura | physical | Long-Range Strike | ✓ today ("telegraphs" = larger radius + slow tick, no telegraph system exists) |
 | Spider (normal) | Z1 tunnel + mouth | aggressive; bite carries **lifesteal** (drains prey — feeding, PO 2026-07-16) | damage aura | physical | Antivenom (low %) | ✓ today. Note: lifesteal rides damage payloads only — dots can't carry it, hence the normal spider, not the venom dot |
 | Spider (venom) | Z1 tunnel | aggressive | `dot_aura` leaving a DoT | poison | Antivenom | ✓ today — first `poison` tag |
 | Bandit (melee) | Z2 horde + camp | aggressive | blades | physical + bleed | — | ✓ today |
-| Bandit (ranged) | Z2 horde + camp | aggressive | volley, large radius | physical | Rally | ⚑ Rally needs machinery (§9) |
+| Bandit (ranged) | Z2 horde + camp | aggressive | volley, large radius | physical | TBD §11 (was Rally — cut 2026-07-16) | ✓ today |
 | Bandit (healer) | Z2 horde + camp | heals allies (same-faction heal_aura, `lowest_health` selector — coverage home) | heal aura | — | — | ✓ today (support-mob precedent exists) |
-| Bandit Horde | Z2 middle gate | encounter group; healer makes it a gate | "Rally-Drum" drummer buffing allies | physical | Taunt | ⚑ buff aura needs machinery; rescope option: `shield_aura` drummer ("war drums embolden") — exercises the unauthored shield_aura (§9) |
+| Bandit Horde | Z2 middle gate | encounter group; healer makes it a gate | "Rally-Drum" drummer: `shield_aura` on allies ("war drums embolden") — first authored shield_aura (rescope adopted with the lift-1 cut, 2026-07-16) | physical | Taunt | ✓ today |
 | Elite Bandit | Z2 camp | aggressive, stronger; **crit** modifier candidate (coverage home) | large physical aura | physical | Damage-Burst | ✓ today |
 | Human Army | Z2 front | allied-vs-orc mob faction; not player-hostile; XP 0 | physical | physical | — | ✓ today (rescope) |
 | Orc | Z2 front | very strong, tanky, **XP very low** | high dmg, large radius | physical | — | ✓ today (XP per-mob configurable) |
@@ -215,7 +231,7 @@ exists; "content-only" = new JSON, no code; "⚑ lift" = §9 code work.
 | Antivenom | Spider drop | resist_passive `[poison]` | content-only |
 | Torch | Hermit NPC (approach) | light from a **passive** slot | ⚑ lift (§9) — light only streams from the active-aura slot today |
 
-### Cooldowns (10 base — PO ruling: both self-heals stay)
+### Cooldowns (PO rulings: both self-heals stay; Rally + Flee CUT 2026-07-16)
 
 | Name | Origin | Building block | Status |
 |---|---|---|---|
@@ -223,10 +239,10 @@ exists; "content-only" = new JSON, no code; "⚑ lift" = §9 code work.
 | Personal Recovery | early milestone | instant_hot (shipped Recover; make self-only per its own note) | today |
 | Haste | milestone (first cooldown) | tick_rate (shipped) | today |
 | Recall | Farmer @L2 | cast-time + interrupt (shipped) | today |
-| Flee | Stag drop | speed+ self buff & radius− | ⚑ lift ×2 (§9) — no timed stat-buff, no radius modifier |
+| ~~Flee~~ | ~~Stag drop~~ | speed+ self buff & radius− | **CUT from v1 (PO 2026-07-16)** — rode lift 1 (+ the radius− half rode lift 4); Stag replacement drop TBD §11 |
 | Dash | Boar drop | dash (shipped) | today |
 | Taunt | Bandit-Horde reward (kill-drop) | taunt (shipped) | today |
-| Rally | Bandit (ranged) drop | timed ally move-speed buff | ⚑ lift (§9) |
+| ~~Rally~~ | ~~Bandit (ranged) drop~~ | timed ally move-speed buff | **CUT from v1 (PO 2026-07-16)** — rode lift 1, now backlogged; Bandit-ranged replacement drop TBD §11 |
 | Damage-Burst | Elite Bandit drop | instant_damage (shipped NovaBurst pattern); candidate `bleed` tag → exercises multi-tag hits | today |
 | ~~Berserker~~ → Berserker-aura | Bear drop | **rescoped**: berserker is a damage-payload modifier, not a state cooldown → Bear drops a berserker-modified damage AURA instead | content-only |
 | **Lantern Post** (11th, PO 2026-07-16) | Hermit (2nd teaching) or milestone — origin TBD §11 | SummonTotem spawn effect; totem def carries a **light-aura loadout** — deployable light support without giving up the active damage aura | content-only (totem + spawn shipped) |
@@ -274,10 +290,10 @@ possible (sign SVG as the NPC's entity type — minor content/asset work).
 
 | # | Lift | Needed by | Scope sketch | Alternative |
 |---|---|---|---|---|
-| 1 | **Timed stat-buff effect** (speed first) — a buffs-plumbing extension (transient buff system exists for resists/shields) | Rally, Flee (speed+), Rally-Drum option A | new effect type + buff fold into movement speed + expiry | cut Rally + Flee from v1; Rally-Drum → shield_aura drummer (works today, gives shield_aura its first content) |
+| 1 | **Timed stat-buff effect** (speed first) — a buffs-plumbing extension (transient buff system exists for resists/shields) | Rally, Flee (speed+), Rally-Drum option A | new effect type + buff fold into movement speed + expiry | **ALTERNATIVE CHOSEN (PO 2026-07-16):** Rally + Flee cut from v1, lift backlogged; Rally-Drum → shield_aura drummer (works today, gives shield_aura its first content) |
 | 2 | **Passive light** — fold LightRadius from passive slots, stream on wire | Torch | small | Hermit teaches the Light *aura* variant instead (worse: loses the trade-off resolution GDD §7 wants) |
 | 3 | **Wildcard `*` in transient buff resists** | Tank aura as true wildcard | small (parser accepts, buffs don't consume) | Tank = resist_aura over `[physical, poison, bleed]` — equivalent within these zones, works today (chosen default) |
-| 4 | Aura radius modifier | Flee (radius−) | new mechanism | drop the radius− half (recommended) |
+| 4 | Aura radius modifier | Flee (radius−) | new mechanism | **MOOT (2026-07-16):** Flee itself cut with lift 1 — no consumer remains |
 | 5 | Enrage seam (timed damage multiplier for encounters) | §B boss, if enrage wanted | small seam on mob + encounter verb | design the boss without enrage (phases/adds/invuln suffice) |
 | 6 | "Friendly-to-players" faction flag (player damage skips faction) — **ADOPTED (PO 2026-07-16, ideal)** | Human Army | small: flag + player-damage eligibility check | interim until it lands: collateral tolerated, army XP 0 |
 
@@ -296,7 +312,7 @@ mob-owned spawns (boss adds via encounter SpawnMob), pity drops (§11).
 | slow_aura | — | **no home** (PO-accepted exemption): mob-cast slow on players doesn't work today (players have no ApplySlow; known eligibility gap). Defer + backlog the lift. A spider web-slow is the natural future home |
 | resist_aura | Tank aura (tag-set form) | — |
 | resist_passive | Thick Hide, Antivenom (first authored) | — |
-| shield_aura | **Rally-Drum drummer** ("war drums embolden" — shields bandit allies) — adopted; first authored shield_aura | Rally/Flee cooldowns still ride ⚑ lift 1 independently |
+| shield_aura | **Rally-Drum drummer** ("war drums embolden" — shields bandit allies) — adopted; first authored shield_aura | Rally/Flee cooldowns cut from v1 with lift 1 (backlogged, 2026-07-16) |
 | light_aura | Light aura, campfires, Torch (post-lift) | — |
 | stat_multiplier | Swift (speed), Hardy (maxHealth), ToughPassive (damageReduction) — third home TBD in the rewrite/drops (§11; coverage maximalism) | — |
 | instant_damage | Damage-Burst | — |
@@ -343,9 +359,12 @@ mob-owned spawns (boss adds via encounter SpawnMob), pity drops (§11).
 ## 11. Deliberately TBD (do not decide here)
 
 - **Milestone reordering** — full rewrite of `milestone-unlocks.json` against
-  this plan's origins; all levels placeholder.
+  this plan's origins; all levels placeholder. (First cut in C1, final in C8.)
 - **Recipe net** — Front-Aura + Boss-Aura combinations (≥6 total, incl.
-  whether they combine with each other) — own session.
+  whether they combine with each other) — **chunk C7** (own session, before
+  the balance pass).
+- **Stag + Bandit-ranged replacement drops** (or none) — open since the
+  Rally/Flee cut (2026-07-16).
 - **Front-NPC level anchor** — compute against the v1 level curve once
   `growth` + max level are locked (⚑ open sim-harness PO item).
 - **Village healer purpose + village purpose** — Zone 2 session.
@@ -423,3 +442,167 @@ does not violate the no-items pillar (GDD §1 pillar 5).
   curated combo ingredient, ≥3 recipes — net TBD §11).
 - Killing it = the v1 completion beat. Session-local only — no persistence
   before accounts (step 8).
+
+---
+
+## 13. Execution chunks (decided 2026-07-16)
+
+One chunk = one execution session (per working style). Slicing is
+**vertical journey slices** west→east: every chunk ends playable and
+in-game-verifiable. Ordering facts: the live `f(L)` multiplier must land at
+the top of step 6 (tdd §4.1, plan-sim-harness §5 Decision 5), and every mob
+must be authored **tier + baseline** (numbers derived, never raw) so the
+growth working-lock (1.12 × 30) stays a one-knob change — hence C0 before
+any content.
+
+### Cross-cutting rules (apply to every chunk)
+
+- **Mobs are authored tier + baseline** via the C0 mechanism — raw stat
+  numbers in mob/mob-skill JSON are a review reject.
+- **Geometry:** the chunk lands rough functional block-out programmatically
+  (bounds, walls, thickets, darkness circles, spawn points); the PO
+  polishes in the zone editor at leisure — the editor round-trips the zone
+  JSON, so polish never blocks or conflicts with a chunk.
+- **Art:** placeholder SVGs (recolors/variants of existing assets, distinct
+  silhouettes, correct sizing) authored in-chunk; real art replaces files
+  later without touching anything else.
+- **Sim honesty:** each content chunk adds its mobs/skills to the
+  sim-harness presets when it lands; the full calibration is C8.
+- All numbers stay [PLACEHOLDER] until C8.
+- `content-*.md` catalogs + `content-zone1.md`/`content-zone2.md` are
+  updated as chunks land (placement truth = zone JSON).
+- C2/C4 are the biggest chunks and **may split at execution time** if a
+  session runs long; the split point is pre-marked in their scope.
+- Per-chunk in-game verification checklists are written in each execution
+  session's plan statement (the lists below are the acceptance beats).
+
+### C0 — Scaling & authoring foundation (code only, TDD, no content)
+
+- Live `f(L)`: conf-driven `growth` (1.12) + `maxLevel` (30) [WORKING LOCK];
+  global multiplier on HP-side **player** values only — skill damage / heal /
+  self-HP + player maxHealth; never radius, tick rate, or target count
+  (tdd §4.1).
+- Tier+baseline mob authoring: mob definitions gain `tier` + baseline
+  values; derived numbers cover `maxHealth` AND the mob's skill damage
+  values (both must derive, or a growth change still re-authors damage —
+  design point resolved in this chunk's plan).
+- Check the sim-harness batteries/pins stay coherent after live wiring
+  (the harness drives the real ECS — player-side scaling now flows in).
+- Verify: `go test ./...`, harness spot-run, in-game level-up shows scaled
+  values.
+
+### C1 — Z1 farm start beat (story §3 beats 1–4)
+
+- New playfield zone JSON in `api/zones/` (full Z1+Z2 bounds; farm-area
+  block-out: 2 houses, turnip field, Rübenfeld campfire, path stubs N + E).
+- Turnip mob (first authored `resistances` + `{"*":0,"turnip":1}` wildcard);
+  Turnip-Pull aura; **start-loadout flip** to Turnip-Pull only (dev
+  DamageAura default retired, per `archive-content-zone1-capture.md`).
+- Farmer NPC: start line + ordered teachings **Damage + Recall @L2** with
+  `TooLowLine`. The **GDD §5 amendment** (Damage moves from L1 milestone to
+  farmer-taught@L2) lands here, not silently.
+- Milestone-table first cut: de-fire the shipped table, remove skills this
+  plan reassigns to drops/teachings (full rewrite continues over chunks,
+  final in C8).
+- Verify: fresh spawn → only Turnip-Pull → pull turnips → XP → L2 → Farmer
+  teaches → Recall works → sent east.
+
+### C2 — Z1 wildlife + dark forest
+
+- Factions `wildlife_predator` / `wildlife_prey` (matrix values authored).
+- Mobs: Wolf (packs, hunts prey; Swift), Bear (berserker-modified damage
+  aura; Thick Hide + Berserker-aura), Boar (bleed; Hardy + Dash), Stag
+  (prey flee-always; drop TBD §11), Elite Wolf (execute + lifesteal;
+  Long-Range Strike).
+- Dark forest NW: thicket block-out (`blocksMovement` trees) + `darkAreas`;
+  **§9 lift 2 (passive light)** + Hermit teaching **Torch** deep inside;
+  Dog NPC (SummonCompanion, exact spot TBD §11); bramble walls
+  (Turnip-Pull-gated shortcut, solid-mob pattern); forest clue signpost
+  ("something big prowls").
+- Pre-marked split point if needed: wildlife+factions / forest interior
+  (Hermit, Dog, brambles, lift 2).
+- Verify: predation visible + participation XP rule, drops roll, Torch
+  lights from a passive slot, dog summons, bramble falls only to
+  Turnip-Pull.
+
+### C3 — Kobold hideout + Dark Tunnel (the solo path)
+
+- `kobold` + `spider` factions; Kobold melee (small radius, fast tick,
+  flees low HP) + ranged (large radius, slow tick, uncapped `all`); Light
+  kill-drop (low %); hideout block-out SE-center; kobold clue signpost
+  ("shiny stuff").
+- Tunnel N: geometry + darkness; lit spider staging area at the mouth;
+  Spider normal (lifesteal bite) + venom (`dot_aura`, first `poison` tag);
+  Antivenom drops; poison pools (brazier pattern, XP 0); rockfall side
+  passage (solid mob, gate aura TBD §11); tunnel-warning signpost ("the
+  middle road is suicide").
+- Verify: solo tunnel run at level, light = advantage never requirement,
+  poison DoT vs Antivenom, pools hurt but grant nothing.
+
+### C4 — Z2 village + bandit gate (the group path)
+
+- Z2 east block-out: 4-house village + campfire, City Gates + blocked
+  roads N/S, bandit camp in the NE dark forest.
+- City-guard NPC (lore-only: quest completion + Zone 3 teaser).
+  Village-healer NPC purpose stays OPEN (§11) — do not invent.
+- `bandit` faction; Bandit melee (bleed) / ranged (volley; drop TBD §11) /
+  healer (`lowest_health` heal_aura or hot_aura — pick while authoring) /
+  Elite Bandit (crit; Damage-Burst) / **Rally-Drum drummer = first authored
+  `shield_aura`**.
+- Bandit Horde middle-gate group (healer makes it the group gate) + Taunt
+  kill-drop reward.
+- Pre-marked split point if needed: village+gates+camp / horde-gate
+  encounter group.
+- Verify: horde un-soloable at level (punishes facetank), trivializes
+  over-levelled, healer + drummer visibly change the fight, Taunt drops.
+
+### C5 — The front + Front-Aura
+
+- `human_army` + `orc` factions (army NOT hostile to `aligned`; orc hostile
+  to `aligned` + `human_army`); army soldier (XP 0) + Orc (very strong,
+  XP very low).
+- **§9 lift 6** (adopted): friendly-to-players faction flag — player damage
+  skips the faction; orcs still aggro the player.
+- Spike barricades (physical + bleed hazard fixtures) shaping the boss
+  approach; S blocked road + S exit past the orcs.
+- Front NPC (level-gated teaching + TooLowLine; level anchor computed from
+  the locked curve — closes that §11 item); **Front-Aura (§A ticket)**:
+  multi-effect, deliberately overstrong; added to sim-harness presets on
+  landing; GDD §4 + §5 amendments per §A.
+- Verify: war ambience runs unattended, player cannot damage the army,
+  orcs fight both, Front NPC gates correctly, Front-Aura grants.
+
+### C6 — Ork World Boss (§B ticket)
+
+- First designed Go encounter script on the spine: phases / adds
+  (`SpawnMob`) / invuln gates / reset; always present, ~30 min [PLACEHOLDER]
+  respawn via encounter timers. Enrage = in-chunk design decision (§9
+  lift 5 or design without).
+- Boss-Aura kill-drop (chance 1.0 → all participants + recent healers).
+- On adoption: remove roadmap 9f from v1 scope (per §B); session-local
+  completion messaging only.
+- Verify: full group fight end-to-end, wipe → reset, respawn timer,
+  Boss-Aura reaches all participants + healers.
+
+### C7 — Recipe net
+
+- Design + author the Front-Aura / Boss-Aura combination net (≥6 recipes:
+  Front-Aura × Damage / Heal / Burst per §A, Boss-Aura ≥3, incl. whether
+  the two combine with each other) + a coverage check over base-skill
+  combos. Sits before C8 so the balance pass calibrates against the true
+  power ceiling.
+- Verify: recipes discover + cascade in-game (Discover/ApplyRecipeCascade),
+  sim presets updated with the combo results.
+
+### C8 — Balance & guardrail pass
+
+- Full-roster sim-harness presets; kills/hour chain per level bracket vs
+  the tier placeholders (normal ≤ ~50 % facetankable, elite ≤ ~25 %, boss
+  kills the facetank bot); **regen/downtime knob settlement** (the open PO
+  item from the chunk-4 findings — the kobold/wolf tier is what the target
+  applies to).
+- Guardrail asserts vs real mobs (deferred here from the sim-harness plan);
+  drop-rate feel pass (decides the §11 pity question); milestone-table
+  final; Front-Aura ceiling calibration (§A).
+- Verify: harness batteries + asserts green, suite green, PO in-game feel
+  pass over the full journey.
