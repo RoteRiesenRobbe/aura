@@ -708,57 +708,17 @@ PvP, formal group system, economy, mobile, endgame raid events, character sacrif
 
 ## Appendix A — Spell / Aura / Cooldown Ideas (Collection)
 
-Unsorted idea list, grouped by category. Not final — for experimenting and iterating.
+**Moved (2026-07-16):** the collection now lives in the `content-*.md` doc
+set (see `docs/README.md` → Content) — one catalog per category, each entry
+with a status (idea / designed / in-game):
 
-### A.1 Active Auras
+- Active auras → `content-auras.md`
+- Passives → `content-passives.md`
+- Cooldowns → `content-cooldowns.md`
+- Combination recipes → `content-recipes.md`
+- Mobs → `content-mobs.md`
+- Zones / world locations → `content-world.md` + per-zone `content-zone<N>.md`
+- NPCs → `content-npcs.md`; lore → `content-lore.md`; story → `content-story.md`
 
-| Name | Effect | Note |
-|---|---|---|
-| Fly, You Fools! | Increases move speed of all allies in radius. The caster is not buffed / stays behind. | LotR ref, risk/reward for support |
-| Purple Rain | Colors everyone in range purple. No combat use. | Pure flavor/meme |
-| Light | Creates light in dark areas. Can be directed at others (support light). | Early game, zone 1 → 2, no combat effect |
-| Fire Strike | Fire damage to the lowest_health target (percentage) in range. | Pyromancer combo component, example of the lowest_health selector |
-| Long Range Execute *(working title)* | Very large radius, very slow tick, high damage to the proportionally lowest target. **Hard single-target cap** — never hits multiple targets, regardless of level. | Example of a per-aura selector + fixed cap |
-| Turnip-Pull | Damages exclusively turnip mobs on a field. No effect on other mobs. | NPC teaching (farmer), harvest-mob example |
-| Revive *(sketch, 2026-07-10)* | Brings a dead player back at their body (requires the §3 death state). Rare, high-level. | One of the most valuable social abilities — the answer to "died deep in the world", deliberately protected by the no-player-respawn-points rule (§3) |
-
-### A.2 Passives
-
-| Name | Effect | Note |
-|---|---|---|
-| Torch | Permanent light around the caster. | Resolves the light trade-off, zone 2+ |
-| Swift | +5% move speed. | Pyromancer combo component |
-
-### A.3 Cooldowns
-
-| Name | Effect | Note |
-|---|---|---|
-| Fire Shield | For 30 s, reflects 20% of incoming damage. | Pyromancer combo component |
-| Heal Magic cooldown *(working title)* | Restores the caster's own resource. | Reward from the troll territory (clue anchor point); **the only path to self-healing** — heal auras never heal the caster. Instant restores stay capped-partial per the §3 recovery boundary |
-| Personal recovery cooldown *(working title, 2026-07-10)* | Restores the caster's own resource **over time** (~15–20 s [PLACEHOLDER]), out-of-combat-flavored. | The solo sit-and-eat substitute (§3, decided); theme open — mini-campfire is the cheapest candidate (totem machinery) |
-| Summon Companion *(working title, 2026-07-16)* | Summons a temporary dog companion that fights alongside the player (uses the existing dog SVG). | Taught by the dog NPC in the dark forest (A.6). Concrete instance of backlog §5 variant (A) — companion = totem with velocity + owner attribution; §5's open questions (XP credit, cap, category) apply |
-
-### A.4 Combination Recipes
-
-| Result | Recipe | Note |
-|---|---|---|
-| Paladin aura | Damage(3) + Heal(3) | Does both, but weaker than each alone. **Shipped** (Phase 9) as Damage(5) + Heal(5) [PLACEHOLDER], values 70% of the base auras |
-| Pyromancer aura | Fire Strike(5) + Fire Shield(5) + Swift(5) | Cross-category example |
-
-### A.5 Mob Ideas
-
-| Name | Note |
-|---|---|
-| Trolls | "Well versed in heal magic" — enable the Heal Magic cooldown unlock |
-| Turnips | Stationary harvest mobs on farm fields. Only damageable by the Turnip-Pull aura. Lots of XP, slow respawn. |
-
-### A.6 Zones / World Locations
-
-| Place | Note |
-|---|---|
-| Tunnel zone 1 → zone 2 | First dark area, natural light tutorial |
-| Caves in general | Dark, Pokémon-cave style |
-| "Way of the Warrior" sign | Clue location, leads to a short dungeon with a DPS-aura reward |
-| Troll territory | A clue NPC leads there, reward = Heal Magic cooldown |
-| Farm with turnip field | Peaceful farmer NPC teaches the Turnip-Pull aura. The field next door = stationary turnip mobs. Harvest-mob example. |
-| Dark forest with the dog *(2026-07-16)* | In a dark forest you meet a dog NPC. On approach it says "Woof" and teaches the Summon Companion cooldown (A.3). Simple, self-contained NPC-teaching beat; the summon reuses the dog SVG. |
+References elsewhere in this doc (Purple Rain, Fly You Fools!, Heal Magic
+cooldown = `Heal`, Revive, …) resolve into those catalogs.
