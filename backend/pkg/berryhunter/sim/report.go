@@ -78,6 +78,11 @@ func (r *CurveReport) WriteJSON(path string) error {
 	return writeJSON(r, path)
 }
 
+// WriteJSON saves the chunk-3 matrix artifact.
+func (r *MatrixReport) WriteJSON(path string) error {
+	return writeJSON(r, path)
+}
+
 func writeJSON(v any, path string) error {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -139,6 +144,72 @@ func (r *CurveReport) TripleTable() string {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// MatrixTable renders the build × pack-size grid: per cell the win rate and
+// the clear-time p50 over the winning runs ("-" = no clears), plus each
+// build's overwhelm point (mirrors TripleTable's wall rendering: ">N" = not
+// overwhelmed within the swept range).
+func (r *MatrixReport) MatrixTable() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%6s %9s", "MAXTGT", "OVERWHELM")
+	for p := 1; p <= r.MaxPackSize; p++ {
+		fmt.Fprintf(&b, "  %-12s", fmt.Sprintf("pack %d", p))
+	}
+	b.WriteString("\n")
+	for _, row := range r.Rows {
+		fmt.Fprintf(&b, "%6s %9s", maxTargetsLabel(row.MaxTargets), overwhelmLabel(row.OverwhelmPack, r.MaxPackSize))
+		for _, cell := range row.Cells {
+			clear := "-"
+			if cell.ClearTime.Samples > 0 {
+				clear = fmt.Sprintf("%.2fs", cell.ClearTime.P50)
+			}
+			fmt.Fprintf(&b, "  %-12s", fmt.Sprintf("%3.0f%% %s", cell.WinRate*100, clear))
+		}
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+// KillsTable is the companion grid over the LOSING runs: kills-before-death
+// p50 per cell ("-" = the build never lost there) — how close the losing
+// fights were.
+func (r *MatrixReport) KillsTable() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "%6s", "MAXTGT")
+	for p := 1; p <= r.MaxPackSize; p++ {
+		fmt.Fprintf(&b, "  %-7s", fmt.Sprintf("pack %d", p))
+	}
+	b.WriteString("\n")
+	for _, row := range r.Rows {
+		fmt.Fprintf(&b, "%6s", maxTargetsLabel(row.MaxTargets))
+		for _, cell := range row.Cells {
+			kills := "-"
+			if cell.Kills.Samples > 0 {
+				kills = fmt.Sprintf("%.1f", cell.Kills.P50)
+			}
+			fmt.Fprintf(&b, "  %-7s", kills)
+		}
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+// maxTargetsLabel renders a MaxTargets candidate (0 = uncapped).
+func maxTargetsLabel(n int) string {
+	if n == 0 {
+		return "all"
+	}
+	return fmt.Sprintf("%d", n)
+}
+
+// overwhelmLabel renders a build's overwhelm point; -1 (never overwhelmed)
+// reads as ">maxPack", like the triple table's wall.
+func overwhelmLabel(overwhelm, maxPack int) string {
+	if overwhelm < 0 {
+		return fmt.Sprintf(">%d", maxPack)
+	}
+	return fmt.Sprintf("%d", overwhelm)
 }
 
 // distCell is one distribution as a compact table cell.

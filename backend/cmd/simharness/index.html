@@ -62,6 +62,17 @@
   .winbars div { flex: 1; background: #ffd479; border-radius: 1px 1px 0 0; min-height: 1px; }
   .winlabels { display: flex; gap: 2px; font-size: .7rem; color: #6b7280; }
   .winlabels span { flex: 1; text-align: center; }
+  table.matrix { border-collapse: separate; border-spacing: 2px; font-size: .8rem; margin-top: .6rem; }
+  table.matrix th { color: #6b7280; font-weight: normal; padding: .1rem .45rem; text-align: center; }
+  table.matrix th.rowhead { text-align: right; }
+  table.matrix td { padding: .3rem .55rem; border-radius: 3px; text-align: center; min-width: 4.6rem; }
+  table.matrix td.rowhead { color: #9aa3ad; text-align: right; min-width: 0; }
+  table.matrix td.ow { color: #ffb35c; min-width: 0; }
+  table.matrix td.ow.none { color: #6b7280; }
+  table.matrix td small { display: block; opacity: .75; font-size: .7rem; }
+  .ramp-legend { display: flex; align-items: center; gap: .35rem; font-size: .75rem;
+                 color: #6b7280; margin-top: .5rem; }
+  .ramp-legend i { width: 1.6rem; height: .8rem; border-radius: 2px; display: inline-block; }
 </style>
 </head>
 <body>
@@ -95,9 +106,24 @@ uses the Player/Mob knobs above as the level-1 / tier-1 baselines and the Batter
 
 <div id="curveResults"></div>
 
+<h1 class="section-title">1-vs-N pack matrix <small>— player MaxTargets builds × pack size (chunk 3;
+uses the Player/Mob knobs above and the Battery runs/seed/distance; overwhelm = first pack size
+with win-rate &lt; 50% [PLACEHOLDER])</small></h1>
+
+<div class="knobs" id="matrixKnobs"></div>
+
+<div class="actions">
+  <button id="matrixRunBtn">Run matrix</button>
+  <button id="matrixSaveBtn" disabled>Save artifact</button>
+  <span id="matrixStatus"></span>
+</div>
+
+<div id="matrixResults"></div>
+
 <script>
 // One entry per knob: [fieldset, label, path-in-request, default, step].
-// Auras stay MaxTargets=1 (the base-aura shape); packs are a chunk-3 topic.
+// Auras default to MaxTargets=1 (the base-aura shape); the matrix panel
+// below overrides the player's cap per build row.
 const KNOBS = [
   ['Player', 'max health',        'player.maxHealth',          100, 1],
   ['Player', 'aura dmg / hit',    'player.aura.damageHP',      14, 1],
@@ -472,6 +498,127 @@ curveSaveBtn.addEventListener('click', () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `simharness-curve-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// ---------- 1-vs-N pack matrix (chunk 3) ----------
+// The Player/Mob knobs above are the combatants (the player's MaxTargets is
+// overridden per build row); these knobs are the matrix axes. [PLACEHOLDER]
+const matrixKnobsEl = document.getElementById('matrixKnobs');
+const matrixFs = document.createElement('fieldset');
+matrixFs.innerHTML = `<legend>Matrix</legend>
+  <label><span>max pack size</span><input type="number" id="maxPackInp" value="8" step="1"></label>
+  <label><span>max-targets candidates (0 = uncapped)</span><input type="text" id="maxTargetsCands" value="1,2,3,0"></label>`;
+matrixKnobsEl.appendChild(matrixFs);
+
+const matrixStatusEl = document.getElementById('matrixStatus');
+const matrixResultsEl = document.getElementById('matrixResults');
+const matrixSaveBtn = document.getElementById('matrixSaveBtn');
+let lastMatrixReport = null;
+
+function buildMatrixRequest() {
+  const base = buildRequest();
+  if (!base) return null;
+  const cands = document.getElementById('maxTargetsCands').value.split(',')
+    .map(s => s.trim()).filter(s => s !== '').map(Number).map(Math.round);
+  const maxPack = Math.round(parseFloat(document.getElementById('maxPackInp').value));
+  if (cands.length === 0 || cands.some(Number.isNaN) || Number.isNaN(maxPack)) return null;
+  return {
+    player: base.player,
+    mob: base.mob,
+    maxTargetsCandidates: cands,
+    maxPackSize: maxPack,
+    baseSeed: base.seed,
+    runs: base.runs,
+    distance: base.distance,
+  };
+}
+
+document.getElementById('matrixRunBtn').addEventListener('click', runMatrix);
+
+async function runMatrix() {
+  const req = buildMatrixRequest();
+  if (!req) { matrixStatusEl.textContent = 'incomplete input'; return; }
+  matrixStatusEl.className = ''; matrixStatusEl.textContent = 'running…';
+  const t0 = performance.now();
+  try {
+    const resp = await fetch('/matrix', { method: 'POST', body: JSON.stringify(req) });
+    if (!resp.ok) throw new Error(await resp.text());
+    lastMatrixReport = await resp.json();
+    matrixSaveBtn.disabled = false;
+    renderMatrix(lastMatrixReport);
+    matrixStatusEl.textContent = `done in ${Math.round(performance.now() - t0)} ms`;
+  } catch (e) {
+    matrixStatusEl.className = 'err';
+    matrixStatusEl.textContent = String(e.message || e).trim();
+  }
+}
+
+// Sequential win-rate ramp (one hue, dark→light with magnitude; validated
+// against the page surface): [threshold, background, ink]. Exactly-0% cells
+// drop to the surface tone so "never wins" reads as empty.
+const WIN_STEPS = [
+  [0.0001, '#1a1e24', '#d6dae0'],
+  [0.2,    '#27507d', '#e8ecf1'],
+  [0.4,    '#35659c', '#e8ecf1'],
+  [0.6,    '#4f85c1', '#10151c'],
+  [0.8,    '#68a0d6', '#10151c'],
+  [1.01,   '#8fc0ef', '#10151c'],
+];
+function winStyle(w) {
+  for (const [t, bg, ink] of WIN_STEPS) {
+    if (w < t) return `background:${bg};color:${ink}`;
+  }
+  return `background:${WIN_STEPS.at(-1)[1]};color:${WIN_STEPS.at(-1)[2]}`;
+}
+
+const capLabel = n => n === 0 ? 'all' : String(n);
+
+function renderMatrix(rep) {
+  matrixResultsEl.innerHTML = '';
+  const block = document.createElement('div');
+  block.className = 'chart-block';
+
+  const head = `<tr><th class="rowhead">max targets</th><th>overwhelm</th>${
+    rep.rows[0].cells.map(c => `<th>pack ${c.packSize}</th>`).join('')}</tr>`;
+  const body = rep.rows.map(row => {
+    const ow = row.overwhelmPack >= 0
+      ? `<td class="ow">@${row.overwhelmPack}</td>`
+      : `<td class="ow none">&gt;${rep.maxPackSize}</td>`;
+    const cells = row.cells.map(c => {
+      const clear = c.clearTime.samples > 0 ? `${c.clearTime.p50.toFixed(2)}s` : '—';
+      const kills = c.killsBeforeDeath.samples > 0
+        ? `<small>kills ${c.killsBeforeDeath.p50.toFixed(1)}</small>` : '';
+      const tip = `cap ${capLabel(row.maxTargets)}, pack ${c.packSize}: `
+        + `win ${(c.winRate * 100).toFixed(0)}% of ${c.clearTime.runs} runs`
+        + (c.clearTime.samples > 0
+            ? `, clear p50 ${c.clearTime.p50.toFixed(2)}s [${c.clearTime.p10.toFixed(2)}–${c.clearTime.p90.toFixed(2)}]` : '')
+        + (c.killsBeforeDeath.samples > 0
+            ? `, kills-before-death p50 ${c.killsBeforeDeath.p50.toFixed(1)}` : '');
+      return `<td style="${winStyle(c.winRate)}" title="${tip}">`
+        + `<b>${(c.winRate * 100).toFixed(0)}%</b> ${clear}${kills}</td>`;
+    }).join('');
+    return `<tr><td class="rowhead">${capLabel(row.maxTargets)}</td>${ow}${cells}</tr>`;
+  }).join('');
+
+  const legend = `<div class="ramp-legend">win rate:
+    <i style="background:#1a1e24;border:1px solid #2b313a"></i>0%
+    ${WIN_STEPS.slice(1).map(([t, bg]) =>
+      `<i style="background:${bg}"></i>≤${Math.min(100, Math.round(t * 100))}%`).join(' ')}
+    · cell = win% + clear p50; losing cells note kills-before-death p50</div>`;
+
+  block.innerHTML = `<h2>Build × pack size <small>(hover a cell for the full distribution read)</small></h2>
+    <table class="matrix">${head}${body}</table>${legend}`;
+  matrixResultsEl.appendChild(block);
+}
+
+matrixSaveBtn.addEventListener('click', () => {
+  if (!lastMatrixReport) return;
+  const blob = new Blob([JSON.stringify(lastMatrixReport, null, 2) + '\n'], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `simharness-matrix-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
 });

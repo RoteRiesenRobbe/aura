@@ -6,8 +6,9 @@
 //     outdir  default ./simharness-shots
 //
 // Drives the page end-to-end: waits for the 1v1 auto-run, fires the
-// level-curve battery, screenshots both states, exits non-zero on any
-// console/page error. Requires setup-browser.sh to have run once.
+// level-curve battery and the pack-matrix battery, screenshots all three
+// states, exits non-zero on any console/page error. Requires
+// setup-browser.sh to have run once.
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -43,9 +44,14 @@ await page.click('#curveRunBtn');
 await page.waitForSelector('#curveStatus:has-text("done")', { timeout: 120_000 });
 await page.screenshot({ path: join(outdir, 'level-curve.png'), fullPage: true });
 
+// The pack matrix (chunk 3), at its default 8-pack / 4-candidate grid.
+await page.click('#matrixRunBtn');
+await page.waitForSelector('#matrixStatus:has-text("done")', { timeout: 120_000 });
+await page.screenshot({ path: join(outdir, 'matrix.png'), fullPage: true });
+
 await browser.close();
 if (errors.length > 0) {
   console.error('console errors:', errors);
   process.exit(1);
 }
-console.log(`ok — screenshots in ${outdir}/ (1v1.png, level-curve.png)`);
+console.log(`ok — screenshots in ${outdir}/ (1v1.png, level-curve.png, matrix.png)`);

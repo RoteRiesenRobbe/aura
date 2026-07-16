@@ -16,7 +16,7 @@ type AuraSpec struct {
 	Variance     float32 `json:"variance"`     // per-hit ± band, 0 = static
 	CritChance   float32 `json:"critChance"`   // per-hit crit roll, 0 = never
 	CritFactor   float32 `json:"critFactor"`   // crit damage multiplier (pair with CritChance)
-	MaxTargets   int     `json:"maxTargets"`   // nearest-N cap; 0 = uncapped (irrelevant in 1v1)
+	MaxTargets   int     `json:"maxTargets"`   // nearest-N cap; 0 = uncapped (the chunk-3 matrix axis)
 }
 
 // definition builds the real skill definition the ECS runs. Direct
@@ -80,17 +80,20 @@ const (
 	OutcomeTimeout    Outcome = "timeout"
 )
 
-// Scenario is one 1v1 arrangement: two explicit combatants, their starting
+// Scenario is one fight arrangement: explicit combatants, their starting
 // distance, and which ending is the measured metric. TTK and TTD are the two
-// chunk-1 instances; later chunks add their own arrangements.
+// chunk-1 instances; Pack is the chunk-3 one.
 type Scenario struct {
 	Name             string     `json:"name"`
 	Player           PlayerSpec `json:"player"`
 	Mob              MobSpec    `json:"mob"`
 	PlayerAuraActive bool       `json:"playerAuraActive"` // false = idle player (TTD)
-	StartDistance    float32    `json:"startDistance"`    // player at origin, mob at (d, 0)
+	StartDistance    float32    `json:"startDistance"`    // player at origin, mobs on a ring of radius d (mob 0 at (d, 0))
 	MaxTicks         int        `json:"maxTicks"`         // timeout guard
 	Primary          Outcome    `json:"primary"`          // the metric-defining ending
+	// PackSize is the number of identical mobs (0/1 = single); OutcomeMobDied
+	// then means the WHOLE pack died.
+	PackSize int `json:"packSize,omitempty"`
 }
 
 // DefaultMaxTicks caps a fight at 120 simulated seconds [PLACEHOLDER] —
@@ -124,5 +127,23 @@ func TTD(p PlayerSpec, m MobSpec, startDistance float32) Scenario {
 		StartDistance:    startDistance,
 		MaxTicks:         DefaultMaxTicks,
 		Primary:          OutcomePlayerDied,
+	}
+}
+
+// Pack is the "player clears a homogeneous pack" scenario: packSize copies
+// of one mob on a ring at startDistance, player at origin fighting back; the
+// metric is the whole pack's death. Reproducibility keeps the chunk-1/2
+// contract: mobs must aggro (startDistance ≤ AggroRadius) or have speed 0 —
+// idle wander draws from the mobs' own entity-ID-seeded rngs.
+func Pack(p PlayerSpec, m MobSpec, packSize int, startDistance float32) Scenario {
+	return Scenario{
+		Name:             "PACK",
+		Player:           p,
+		Mob:              m,
+		PlayerAuraActive: true,
+		StartDistance:    startDistance,
+		MaxTicks:         DefaultMaxTicks,
+		Primary:          OutcomeMobDied,
+		PackSize:         packSize,
 	}
 }

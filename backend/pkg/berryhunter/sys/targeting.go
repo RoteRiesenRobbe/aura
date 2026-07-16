@@ -96,12 +96,15 @@ func effectCollisions(collisions phy.ColliderSet, casterPos phy.Vec2f, sensorRad
 }
 
 // selectTargets runs the item-11 targeting pipeline over a raw collision set:
-// eligibility filter → selector ordering → target cap. It returns the colliders
-// to affect, in application order.
+// eligibility filter → deterministic base order → selector ordering → target
+// cap. It returns the colliders to affect, in application order.
 //
-// The uncapped case (maxTargets 0, selector all, or fewer candidates than the
-// cap) short-circuits without sorting: everyone eligible is returned, since
-// ordering can't change who is hit when nobody is dropped.
+// The collision set is a map: without a fixed base order, capped-selector
+// ties AND the per-target application order (each target's damage roll draws
+// from the caster's rng in slice order) would ride on Go's randomized map
+// iteration. Entity-ID order (creation order) makes both deterministic —
+// required for fixed-seed reproducibility in the sim harness
+// (plan-sim-harness §3, chunk 3) and harmless in-game.
 func selectTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.Selector, maxTargets int, eligible func(phy.Collider) bool) []phy.Collider {
 	candidates := make([]phy.Collider, 0, len(collisions))
 	for c := range collisions {
@@ -110,6 +113,13 @@ func selectTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.S
 		}
 	}
 
+	sort.Slice(candidates, func(i, j int) bool {
+		return stableOrderKey(candidates[i]) < stableOrderKey(candidates[j])
+	})
+
+	// The uncapped case (maxTargets 0, selector all, or fewer candidates than
+	// the cap) skips the selector sort: everyone eligible is returned, since
+	// preference can't change who is hit when nobody is dropped.
 	if sel == skills.SelectorAll || maxTargets <= 0 || len(candidates) <= maxTargets {
 		return candidates
 	}
@@ -118,9 +128,20 @@ func selectTargets(collisions phy.ColliderSet, casterPos phy.Vec2f, sel skills.S
 	return candidates[:maxTargets]
 }
 
+// stableOrderKey is a collider's deterministic sort key: the entity ID behind
+// its shape (creation order, unique). Colliders without an entity UserData
+// (statics — never on aura layers today) key as 0 and keep an arbitrary
+// relative order among themselves.
+func stableOrderKey(c phy.Collider) uint64 {
+	if e, ok := c.Shape().UserData.(model.BasicEntity); ok {
+		return e.Basic().ID()
+	}
+	return 0
+}
+
 // sortBySelector orders candidates so the first maxTargets are the ones the
-// selector prefers. Ties are resolved arbitrarily (stable over the pre-sort
-// order, which itself comes from unordered map iteration).
+// selector prefers. Ties keep the deterministic base order (entity ID) the
+// caller established — the sorts are stable.
 func sortBySelector(candidates []phy.Collider, casterPos phy.Vec2f, sel skills.Selector) {
 	switch sel {
 	case skills.SelectorLowestHealth:

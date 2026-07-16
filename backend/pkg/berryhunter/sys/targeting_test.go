@@ -7,6 +7,7 @@ package sys
 import (
 	"testing"
 
+	"github.com/EngoEngine/ecs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
@@ -105,6 +106,46 @@ func TestSelectTargets_LowestHealthCapTakesMostWounded(t *testing.T) {
 
 	require.Len(t, got, 1)
 	assert.InDelta(t, 0.1, got[0].Shape().UserData.(ratioStub).r, 1e-6)
+}
+
+// idStub is UserData that exposes an entity ID for the stable-order tests.
+type idStub struct{ basic ecs.BasicEntity }
+
+func (s *idStub) Basic() ecs.BasicEntity { return s.basic }
+
+// Equidistant candidates under a cap: the pick must not ride on Go's
+// randomized map iteration — ties resolve to the lowest entity ID (creation
+// order) every time. Pack fights in the sim harness replay under a fixed
+// seed only if this holds (plan-sim-harness §3, chunk 3).
+func TestSelectTargets_EquidistantTieIsDeterministic(t *testing.T) {
+	first := &idStub{ecs.NewBasic()}
+	second := &idStub{ecs.NewBasic()}
+	third := &idStub{ecs.NewBasic()}
+	set := setOf(colliderAt(vec(1, 0), first), colliderAt(vec(-1, 0), second), colliderAt(vec(0, 1), third))
+
+	for i := 0; i < 50; i++ {
+		got := selectTargets(set, phy.VEC2F_ZERO, skills.SelectorNearest, 1, alwaysEligible)
+		require.Len(t, got, 1)
+		assert.Same(t, first, got[0].Shape().UserData, "ties resolve to the oldest entity, run %d", i)
+	}
+}
+
+// The uncapped path needs a deterministic APPLICATION order too: per-target
+// damage rolls draw from the caster's rng in slice order, so map order
+// leaking through would randomize which target gets which roll.
+func TestSelectTargets_UncappedOrderIsDeterministic(t *testing.T) {
+	a := &idStub{ecs.NewBasic()}
+	b := &idStub{ecs.NewBasic()}
+	c := &idStub{ecs.NewBasic()}
+	set := setOf(colliderAt(vec(2, 0), b), colliderAt(vec(1, 0), a), colliderAt(vec(3, 0), c))
+
+	for i := 0; i < 50; i++ {
+		got := selectTargets(set, phy.VEC2F_ZERO, skills.SelectorNearest, 0, alwaysEligible)
+		require.Len(t, got, 3)
+		assert.Same(t, a, got[0].Shape().UserData, "run %d", i)
+		assert.Same(t, b, got[1].Shape().UserData, "run %d", i)
+		assert.Same(t, c, got[2].Shape().UserData, "run %d", i)
+	}
 }
 
 func TestSelectTargets_AllSelectorIgnoresCap(t *testing.T) {

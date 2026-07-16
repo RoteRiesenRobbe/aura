@@ -34,7 +34,34 @@
 > 8→4 → TTD ≈ 2.5×TTK) the wall spreads by growth: 1.08→>6, 1.10→+6, 1.12→+5,
 > **1.15→+4** — the ~4-level band at ratio ~1:2.5 points at growth ≈ 1.15.
 > **⚑ OPEN (PO): lock exact `growth` + max level from the tool** — not locked
-> yet; the tool itself is verified. **Next: Chunk 3 (1-vs-N matrix) in a fresh
+> yet; the tool itself is verified.
+>
+> **Chunk 3 DONE — implemented + verified + PO-approved 2026-07-16 (committed):**
+> the 1-vs-N matrix. Sim core generalized to N mobs — `Scenario.PackSize` +
+> `Pack()` constructor, `World.Mobs` (ring spawn at StartDistance, per-mob
+> spawn-HP rolls in index order; N=1 stays byte-identical to chunks 1–2, pinned
+> by a seed-sweep regression test), `FightResult.Kills`. `sim/matrix.go` =
+> `RunMatrix` (MaxTargets-candidate build rows × pack sizes 1..N, cells parallel
+> via the chunk-2 pool): per cell win rate + clear-time distribution (wins) +
+> kills-before-death distribution (losses); per build `OverwhelmPack` = first
+> pack size with win-rate <50% [PLACEHOLDER, mirrors chunk-2 WallDelta].
+> Surfaces: CLI `-matrix -max-targets 1,2,3,0 -max-pack 8` (heat table + kills
+> table + artifact), `POST /matrix`, web-explorer heatmap panel (validated
+> sequential win-rate ramp, overwhelm column, per-cell tooltips); driver.mjs
+> extended to drive+screenshot it. **Required real-system fix (`sys/targeting.go`):
+> `selectTargets` now sorts candidates by entity ID before capping — the collision
+> set is a map, so capped-tie picks AND per-target damage-roll assignment rode on
+> Go's randomized map iteration (chunks 1–2 never saw it: 1v1 has one candidate).
+> In-game effect: equidistant ties now resolve to the oldest entity instead of
+> flickering; 2 new sys tests pin it.** 10 new sim tests + 2 handler tests; full
+> suite + race green; browser-verified. **Findings:** (1) at current content
+> baselines (TTD/TTK≈1.3) EVERY build — even uncapped — is overwhelmed at pack 2
+> with 0 kills banked: the duel is too tight to survive any second mob, same
+> root cause chunk 2 flagged; (2) at the target-shaped ratio (mob dmg 4) the
+> overwhelm point moves with the cap (cap 1 → pack 2, cap ≥2 → pack 3) and
+> multi-target caps clear the packs they cover in flat time (parallel kill);
+> (3) the overwhelm cliff is sharp — win rate collapses 100%→~0% within one
+> pack size at these variance levels. **Next: Chunk 4 (chain runner) in a fresh
 > session.** Roadmap position: the
 > **pre-step-6 simulation-harness gate** (`docs/roadmap.md` item 5 → gate
 > blockquote; `gdd.md` §5 "First building block"; `tdd.md` §4.1). Prerequisite

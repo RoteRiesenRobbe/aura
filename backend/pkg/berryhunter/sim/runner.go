@@ -5,31 +5,41 @@ import (
 	"sort"
 )
 
-// FightResult is one fight, run to a death or the timeout.
+// FightResult is one fight, run to a death or the timeout. Kills is the
+// dead-mob count at fight end — how far through the pack the player got.
 type FightResult struct {
 	Outcome Outcome `json:"outcome"`
 	Ticks   int     `json:"ticks"`
 	Seconds float64 `json:"seconds"`
+	Kills   int     `json:"kills"`
 }
 
-// RunFight plays a single seeded fight tick by tick until someone dies or
-// the scenario times out. Deterministic: the same (scenario, seed) replays
-// the same fight — the debugging entry point the plan (§3) keeps available.
+// RunFight plays a single seeded fight tick by tick until one side is dead
+// or the scenario times out. Deterministic: the same (scenario, seed)
+// replays the same fight — the debugging entry point the plan (§3) keeps
+// available.
 func RunFight(sc Scenario, seed int64) FightResult {
 	w := NewWorld(sc, seed)
+	kills := 0
 	for t := 1; t <= sc.MaxTicks; t++ {
 		w.Step()
-		// The mob's death check runs first: mob HP hits zero in the
+		// The mobs' death check runs first: a mob's HP hits zero in the
 		// SkillSystem phase of this tick, the MobSystem removes it next
-		// tick — the held reference stays readable throughout.
-		if w.Mob.Health() == 0 {
-			return FightResult{OutcomeMobDied, t, seconds(t)}
+		// tick — the held references stay readable throughout.
+		kills = 0
+		for _, m := range w.Mobs {
+			if m.Health() == 0 {
+				kills++
+			}
+		}
+		if kills == len(w.Mobs) {
+			return FightResult{OutcomeMobDied, t, seconds(t), kills}
 		}
 		if w.Player.VitalSigns().Health == 0 {
-			return FightResult{OutcomePlayerDied, t, seconds(t)}
+			return FightResult{OutcomePlayerDied, t, seconds(t), kills}
 		}
 	}
-	return FightResult{OutcomeTimeout, sc.MaxTicks, seconds(sc.MaxTicks)}
+	return FightResult{OutcomeTimeout, sc.MaxTicks, seconds(sc.MaxTicks), kills}
 }
 
 // Distribution aggregates N seeded runs of one scenario (plan §3): outcome
@@ -59,15 +69,23 @@ type Distribution struct {
 // and aggregates. The same (scenario, baseSeed, n) reproduces the same
 // distribution exactly.
 func RunDistribution(sc Scenario, baseSeed int64, n int) Distribution {
-	d := Distribution{Runs: n, Outcomes: make(map[Outcome]int)}
+	outcomes := make(map[Outcome]int)
 	var samples []float64
 	for i := 0; i < n; i++ {
 		r := RunFight(sc, baseSeed+int64(i))
-		d.Outcomes[r.Outcome]++
+		outcomes[r.Outcome]++
 		if r.Outcome == sc.Primary {
 			samples = append(samples, r.Seconds)
 		}
 	}
+	return summarize(n, outcomes, samples)
+}
+
+// summarize builds a Distribution from outcome counts and the metric
+// samples (sorted in place). The chunk-3 matrix reuses it to aggregate two
+// sample sets — clear times and kill counts — out of one fight pass.
+func summarize(runs int, outcomes map[Outcome]int, samples []float64) Distribution {
+	d := Distribution{Runs: runs, Outcomes: outcomes}
 	d.Samples = len(samples)
 	if d.Samples == 0 {
 		return d

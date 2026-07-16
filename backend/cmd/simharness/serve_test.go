@@ -124,6 +124,59 @@ func TestHandleCurve_RejectsBadInput(t *testing.T) {
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code, "GET is not a run")
 }
 
+func postMatrix(t *testing.T, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/matrix", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	handleMatrix(w, req)
+	return w
+}
+
+// The chunk-3 endpoint: a MatrixConfig in, the build × pack-size report out.
+// Exact-cadence fixture: the capped player clears pack 1 on tick 12 (0.4 s)
+// and pack 2 sequentially on tick 24 (0.8 s), surviving both — no overwhelm.
+func TestHandleMatrix_RunsMatrix(t *testing.T) {
+	w := postMatrix(t, `{
+		"player": {"maxHealth": 100, "aura": {"damageHP": 10, "tickInterval": 3, "radius": 1.0, "maxTargets": 1}},
+		"mob": {"maxHealth": 40, "speed": 0, "bodyRadius": 0.2, "aggroRadius": 2.4,
+		        "aura": {"damageHP": 5, "tickInterval": 2, "radius": 1.0, "maxTargets": 1}},
+		"maxTargetsCandidates": [1], "maxPackSize": 2,
+		"baseSeed": 1, "runs": 3, "distance": 0.3
+	}`)
+
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var report sim.MatrixReport
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &report))
+	require.Len(t, report.Rows, 1)
+	row := report.Rows[0]
+	assert.Equal(t, 1, row.MaxTargets)
+	assert.Equal(t, -1, row.OverwhelmPack)
+	require.Len(t, row.Cells, 2)
+	assert.Equal(t, 1.0, row.Cells[0].WinRate)
+	assert.InDelta(t, 0.4, row.Cells[0].ClearTime.P50, 1e-9)
+	assert.Equal(t, 1.0, row.Cells[1].WinRate)
+	assert.InDelta(t, 0.8, row.Cells[1].ClearTime.P50, 1e-9)
+}
+
+func TestHandleMatrix_RejectsBadInput(t *testing.T) {
+	assert.Equal(t, http.StatusBadRequest, postMatrix(t,
+		`{"maxTargetsCandidates": [1], "maxPackSize": 2, "runs": 0}`).Code, "runs below bounds")
+	assert.Equal(t, http.StatusBadRequest, postMatrix(t,
+		`{"maxTargetsCandidates": [1], "maxPackSize": 0, "runs": 3}`).Code, "pack size below bounds")
+	assert.Equal(t, http.StatusBadRequest, postMatrix(t,
+		`{"maxTargetsCandidates": [], "maxPackSize": 2, "runs": 3}`).Code, "no build candidates")
+	assert.Equal(t, http.StatusBadRequest, postMatrix(t,
+		`{"maxTargetsCandidates": [-1], "maxPackSize": 2, "runs": 3}`).Code, "negative candidate")
+	assert.Equal(t, http.StatusBadRequest, postMatrix(t,
+		`{"maxTargetsCandidates": [1,2,3,0], "maxPackSize": 12, "runs": 2000}`).Code, "fight budget exceeded")
+	assert.Equal(t, http.StatusBadRequest, postMatrix(t, `not json`).Code, "malformed body")
+
+	req := httptest.NewRequest(http.MethodGet, "/matrix", nil)
+	w := httptest.NewRecorder()
+	handleMatrix(w, req)
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code, "GET is not a run")
+}
+
 func TestHandleRun_RejectsBadInput(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, postRun(t, `{"runs": 0}`).Code, "runs below bounds")
 	assert.Equal(t, http.StatusBadRequest, postRun(t, `{"runs": 999999, "maxSeconds": 60}`).Code, "runs above bounds")

@@ -78,6 +78,14 @@ func main() {
 	xpKill := flag.Float64("xp-kill", 40, "XP per same-tier kill at tier 1")
 	xpKillGrowth := flag.Float64("xp-kill-growth", 1.2, "kill-XP growth per tier (= xp-growth → flat kills-per-level)")
 
+	// Matrix battery (chunk 3): -matrix sweeps player MaxTargets builds ×
+	// pack size instead of the single 1v1; the player/mob flags below are the
+	// combatants (the player's MaxTargets is overridden per row). Defaults
+	// [PLACEHOLDER].
+	matrix := flag.Bool("matrix", false, "run the 1-vs-N pack matrix (MaxTargets builds × pack size)")
+	maxTargetsCands := flag.String("max-targets", "1,2,3,0", "matrix build rows: MaxTargets candidates, 0 = uncapped (comma-separated)")
+	maxPack := flag.Int("max-pack", 8, "matrix sweeps pack sizes 1..N")
+
 	// Battery controls.
 	runs := flag.Int("runs", 200, "seeded runs per scenario")
 	seed := flag.Int64("seed", 1, "base seed; run i uses seed+i")
@@ -184,6 +192,37 @@ func main() {
 			*growth, report.GapTable())
 		fmt.Printf("LINKED TRIPLE (wall Δ measured at win-rate < 50%% [PLACEHOLDER]; inflation = growth^(maxLevel-1))\n%s",
 			report.TripleTable())
+
+		if *out != "" {
+			if err := report.WriteJSON(*out); err != nil {
+				fmt.Fprintf(os.Stderr, "writing artifact: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("\nartifact written to %s\n", *out)
+		}
+		return
+	}
+
+	if *matrix {
+		cands, err := parseInts(*maxTargetsCands)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "-max-targets: %v\n", err)
+			os.Exit(1)
+		}
+		report := sim.RunMatrix(sim.MatrixConfig{
+			Player:               player,
+			Mob:                  mob,
+			MaxTargetsCandidates: cands,
+			MaxPackSize:          *maxPack,
+			BaseSeed:             *seed,
+			Runs:                 *runs,
+			Distance:             float32(*distance),
+		})
+
+		fmt.Printf("1-vs-N PACK MATRIX (cell = win%% + clear p50; overwhelm = first pack size with win-rate < 50%% [PLACEHOLDER])\n%s\n",
+			report.MatrixTable())
+		fmt.Printf("KILLS BEFORE DEATH (p50 over the losing runs — how close the losses were)\n%s",
+			report.KillsTable())
 
 		if *out != "" {
 			if err := report.WriteJSON(*out); err != nil {

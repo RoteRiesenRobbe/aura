@@ -54,6 +54,7 @@ func serve(addr string, presets []mobPreset) error {
 	})
 	mux.HandleFunc("/run", handleRun)
 	mux.HandleFunc("/curve", handleCurve)
+	mux.HandleFunc("/matrix", handleMatrix)
 	mux.HandleFunc("/mobs", handleMobs(presets))
 
 	fmt.Printf("simharness explorer on http://%s (%d mob presets)\n", addr, len(presets))
@@ -120,6 +121,57 @@ func handleCurve(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(sim.RunCurve(cfg)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// validateMatrix bounds the chunk-3 battery like validateCurve does the
+// chunk-2 one. The fight budget is pack-weighted — an n-mob fight costs
+// roughly n 1v1s, so a row sums to maxPack·(maxPack+1)/2 fight-equivalents.
+func validateMatrix(cfg *sim.MatrixConfig) error {
+	if cfg.Runs < 1 || cfg.Runs > 2000 {
+		return fmt.Errorf("runs must be in [1, 2000], got %d", cfg.Runs)
+	}
+	if cfg.MaxPackSize < 1 || cfg.MaxPackSize > 12 {
+		return fmt.Errorf("maxPackSize must be in [1, 12], got %d", cfg.MaxPackSize)
+	}
+	if len(cfg.MaxTargetsCandidates) < 1 || len(cfg.MaxTargetsCandidates) > 6 {
+		return fmt.Errorf("need 1-6 maxTargets candidates, got %d", len(cfg.MaxTargetsCandidates))
+	}
+	for _, c := range cfg.MaxTargetsCandidates {
+		if c < 0 {
+			return fmt.Errorf("maxTargets candidates must be >= 0 (0 = uncapped), got %d", c)
+		}
+	}
+	if cfg.Distance < 0 {
+		return fmt.Errorf("distance must be >= 0, got %v", cfg.Distance)
+	}
+	fights := cfg.Runs * len(cfg.MaxTargetsCandidates) * cfg.MaxPackSize * (cfg.MaxPackSize + 1) / 2
+	if fights > 100_000 {
+		return fmt.Errorf("battery too large: %d fight-equivalents (max 100000) — lower runs, candidates or the pack range", fights)
+	}
+	return nil
+}
+
+// handleMatrix is the chunk-3 endpoint: a sim.MatrixConfig in, the build ×
+// pack-size report out — the same artifact the CLI's -matrix mode saves.
+func handleMatrix(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	var cfg sim.MatrixConfig
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		http.Error(w, fmt.Sprintf("bad request: %v", err), http.StatusBadRequest)
+		return
+	}
+	if err := validateMatrix(&cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(sim.RunMatrix(cfg)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

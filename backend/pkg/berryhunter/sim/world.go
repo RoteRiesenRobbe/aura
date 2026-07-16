@@ -2,6 +2,7 @@ package sim
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 
@@ -28,27 +29,37 @@ const TicksPerSecond = constant.TicksPerSecond
 // stepMillis is one fixed tick, mirroring core/game.go.
 const stepMillis = 33.0
 
-// World is one deterministic 1v1 fight world: the real ECS systems in their
+// World is one deterministic fight world: the real ECS systems in their
 // real priority order (StatusEffects → Mob → Physics → Update → Skill), a
-// real player and a real mob, no net/websocket/scoreboard layer.
+// real player and one or more real mobs, no net/websocket/scoreboard layer.
 type World struct {
 	game   *simGame
 	Player model.PlayerEntity
-	Mob    *mob.Mob
+	Mob    *mob.Mob // = Mobs[0]; the 1v1 read the chunk-1/2 call sites use
+	Mobs   []*mob.Mob
 }
 
-// NewWorld builds the world for a scenario. All chunk-1-relevant RNG (the
-// mob's spawn-HP roll and the SkillSystem's variance/crit rolls) derives from
-// seed, so the same (scenario, seed) pair replays the same fight. The mob's
-// own entity-ID-seeded rng only drives behaviors a 1v1 never reaches (idle
-// wander rolls, kill-unlock rolls — no unlocks are declared).
+// NewWorld builds the world for a scenario. All fight-relevant RNG (the
+// mobs' spawn-HP rolls and the SkillSystem's variance/crit rolls) derives
+// from seed, so the same (scenario, seed) pair replays the same fight. The
+// mobs' own entity-ID-seeded rngs only drive behaviors a fight never reaches
+// (idle wander rolls, kill-unlock rolls — no unlocks are declared).
 func NewWorld(sc Scenario, seed int64) *World {
+	packSize := sc.PackSize
+	if packSize < 1 {
+		packSize = 1
+	}
+
 	rng := rand.New(rand.NewSource(seed))
 	// Fixed draw order — reordering these would silently change every result
-	// under a given seed.
+	// under a given seed: mobSysSeed, skillSeed, then one spawn-HP roll per
+	// mob in index order (a pack of 1 replays the chunk-1 sequence exactly).
 	mobSysSeed := rng.Int63()
 	skillSeed := rng.Int63()
-	mobHP := vitals.VitalSign(vitals.HP(vitals.RollVariance(sc.Mob.MaxHealth, sc.Mob.MaxHealthVariance, rng)))
+	mobHPs := make([]vitals.VitalSign, packSize)
+	for i := range mobHPs {
+		mobHPs[i] = vitals.VitalSign(vitals.HP(vitals.RollVariance(sc.Mob.MaxHealth, sc.Mob.MaxHealthVariance, rng)))
+	}
 
 	g := &simGame{
 		entities: make(map[uint64]model.BasicEntity),
@@ -103,28 +114,38 @@ func NewWorld(sc Scenario, seed int64) *World {
 	}
 	g.AddEntity(pl)
 
-	// The real mob, from a synthetic definition. EntityType "Dodo" only
-	// satisfies the wire-type lookup — nothing in a headless run reads it.
-	// The spawn-HP variance was already rolled above with the run rng, so
-	// the def carries the rolled pool and variance 0.
-	def := &mobs.MobDefinition{
-		ID:         1000,
-		Name:       "SimMob",
-		EntityType: "Dodo",
-		Factors: mobs.Factors{
-			MaxHealth:            uint32(mobHP),
-			Speed:                sc.Mob.Speed,
-			FleeBelowHealthRatio: sc.Mob.FleeBelowHealthRatio,
-			Experience:           0, // no XP: the player must not level mid-measurement
-		},
-		Body:   mobs.Body{Radius: sc.Mob.BodyRadius, AggroRadius: sc.Mob.AggroRadius},
-		Skills: []mobs.MobSkill{{Def: sc.Mob.Aura.definition(2, "SimMobAura"), Level: 1}},
+	// The real mobs, from synthetic definitions (one per mob — each def
+	// carries that mob's rolled spawn-HP pool and variance 0). EntityType
+	// "Dodo" only satisfies the wire-type lookup — nothing in a headless run
+	// reads it. The pack spawns on an evenly-spaced ring of radius
+	// StartDistance; mob 0 lands at (d, 0), exactly the 1v1 spawn. Mobs have
+	// no mob-vs-mob collision, so the ring mainly synchronizes arrival.
+	pack := make([]*mob.Mob, packSize)
+	for i := range pack {
+		def := &mobs.MobDefinition{
+			ID:         mobs.MobID(1000 + i),
+			Name:       "SimMob",
+			EntityType: "Dodo",
+			Factors: mobs.Factors{
+				MaxHealth:            uint32(mobHPs[i]),
+				Speed:                sc.Mob.Speed,
+				FleeBelowHealthRatio: sc.Mob.FleeBelowHealthRatio,
+				Experience:           0, // no XP: the player must not level mid-measurement
+			},
+			Body:   mobs.Body{Radius: sc.Mob.BodyRadius, AggroRadius: sc.Mob.AggroRadius},
+			Skills: []mobs.MobSkill{{Def: sc.Mob.Aura.definition(skills.SkillID(2+i), "SimMobAura"), Level: 1}},
+		}
+		mb := mob.NewMob(def, g.config.MobChaseIntoAuraMargin, p.Space())
+		angle := 2 * math.Pi * float64(i) / float64(packSize)
+		mb.SetPosition(phy.Vec2f{
+			X: sc.StartDistance * float32(math.Cos(angle)),
+			Y: sc.StartDistance * float32(math.Sin(angle)),
+		})
+		g.AddEntity(mb)
+		pack[i] = mb
 	}
-	mb := mob.NewMob(def, g.config.MobChaseIntoAuraMargin, p.Space())
-	mb.SetPosition(phy.Vec2f{X: sc.StartDistance, Y: 0})
-	g.AddEntity(mb)
 
-	return &World{game: g, Player: pl, Mob: mb}
+	return &World{game: g, Player: pl, Mob: pack[0], Mobs: pack}
 }
 
 // Step advances the world one fixed 33 ms tick.
