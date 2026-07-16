@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 
 	"github.com/trichner/berryhunter/pkg/berryhunter/core"
 	"github.com/trichner/berryhunter/pkg/berryhunter/encounter"
@@ -56,7 +57,8 @@ func main() {
 	itemsRegistry := loadItems(content.items)
 	skillsRegistry := loadSkills(content.skills)
 	factionsRegistry := loadFactions(content.factions)
-	mobsRegistry := loadMobs(itemsRegistry, skillsRegistry, factionsRegistry, content.mobs)
+	levelCurve := curve.Curve{Growth: config.Game.Player.LevelGrowth, MaxLevel: config.Game.Player.MaxLevel}
+	mobsRegistry := loadMobs(itemsRegistry, skillsRegistry, factionsRegistry, levelCurve, content.mobs)
 	milestoneUnlocks := loadMilestoneUnlocks(skillsRegistry)
 	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
 	propsRegistry := loadProps(content.props)

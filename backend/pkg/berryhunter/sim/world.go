@@ -78,12 +78,13 @@ func NewWorld(sc Scenario, seed int64) *World {
 				// moves a fight — the chunk-4 chain runner's recovery knob.
 				HealthGainTick: regenTick,
 				BaseHealth:     sc.Player.MaxHealth,
-				// f(character level) enters in chunk 2; the synthetic player
-				// is level 1 and stays there (mob XP is 0), so all level
-				// scaling is inert here.
-				MaxHealthLevelGainFraction: 0,
-				LevelUpXPBase:              300,
-				LevelUpXPGrowthFactor:      1.2,
+				// The zero-value LevelCurve is neutral (f = 1 everywhere,
+				// curve.F): the synthetic player is level 1 and stays there
+				// (mob XP is 0), and the fixture generator (PlayerAt/MobAt)
+				// models f by scaling the explicit numbers instead — the live
+				// multiplier must not double-apply on top.
+				LevelUpXPBase:         300,
+				LevelUpXPGrowthFactor: 1.2,
 			},
 		},
 		registry: soloRegistry{sc.Player.Aura.definition(1, "DamageAura")},

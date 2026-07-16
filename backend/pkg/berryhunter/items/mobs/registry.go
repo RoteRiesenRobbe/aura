@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -54,7 +55,10 @@ type Registry interface {
 	Mobs() []*MobDefinition
 }
 
-func RegistryFromFS(r items.Registry, sr skills.Registry, fr factions.Registry, fileSystem fs.FS) (*registry, error) {
+// RegistryFromFS loads every mob definition and derives its tier+baseline
+// numbers against c — the SAME f(L) curve the players ride (C0, GDD §5: one
+// growth knob), taken from the game conf at boot.
+func RegistryFromFS(r items.Registry, sr skills.Registry, fr factions.Registry, c curve.Curve, fileSystem fs.FS) (*registry, error) {
 	mobs := newRegistry()
 
 	err := fs.WalkDir(fileSystem, ".", func(path string, d fs.DirEntry, err error) error {
@@ -75,7 +79,7 @@ func RegistryFromFS(r items.Registry, sr skills.Registry, fr factions.Registry, 
 			return fmt.Errorf("cannot parse '%s': %w", path, err)
 		}
 
-		mob, err := mobParsed.mapToMobDefinition(r, sr, fr)
+		mob, err := mobParsed.mapToMobDefinition(r, sr, fr, c)
 		if err != nil {
 			return fmt.Errorf("cannot map '%s': %w\n", path, err)
 		}

@@ -3,9 +3,11 @@
   "id": 11,
   "name": "ProvingGuard",
   "type": "MOB",
+  "tier": "normal",
+  "curveLevel": 1,
   "entityType": "SaberToothCat",
   "factors": {
-    "maxHealth": 80,
+    "baseMaxHealth": 80,
     "experience": 60,
     "speed": 0.5,
     "deltaPhi": 0.1,

@@ -10,7 +10,8 @@
     "player": {
       "healthGainTick": 0.00033,
       "walkingSpeedPerTick": 0.05,
-      "maxHealthLevelGainFraction": 0.1,
+      "levelGrowth": 1.12,
+      "maxLevel": 30,
       "levelUpXPBase": 300,
       "levelUpXPGrowthFactor": 1.2,
       "skillPointsPerLevel": 1

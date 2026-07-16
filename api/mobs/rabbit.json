@@ -4,8 +4,10 @@
   "name": "Rabbit",
   "type": "MOB",
   "faction": "prey",
+  "tier": "normal",
+  "curveLevel": 1,
   "factors": {
-    "maxHealth": 20,
+    "baseMaxHealth": 20,
     "maxHealthVariance": 0.1,
     "fleeBelowHealthRatio": 0.5,
     "experience": 8,

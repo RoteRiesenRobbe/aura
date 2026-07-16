@@ -3,8 +3,10 @@
   "name": "Dodo",
   "type": "MOB",
   "faction": "prey",
+  "tier": "normal",
+  "curveLevel": 1,
   "factors": {
-    "maxHealth": 40,
+    "baseMaxHealth": 40,
     "maxHealthVariance": 0.1,
     "experience": 15,
     "speed": 0.4,

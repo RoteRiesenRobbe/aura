@@ -3,9 +3,11 @@
   "id": 10,
   "name": "ProvingBoss",
   "type": "MOB",
+  "tier": "boss",
+  "curveLevel": 1,
   "entityType": "AngryMammoth",
   "factors": {
-    "maxHealth": 600,
+    "baseMaxHealth": 600,
     "experience": 800,
     "speed": 0.25,
     "deltaPhi": 0.05,

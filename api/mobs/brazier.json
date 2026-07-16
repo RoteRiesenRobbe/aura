@@ -3,8 +3,10 @@
   "id": 8,
   "name": "Brazier",
   "type": "MOB",
+  "tier": "normal",
+  "curveLevel": 1,
   "factors": {
-    "maxHealth": 50,
+    "baseMaxHealth": 50,
     "experience": 0,
     "speed": 0
   },

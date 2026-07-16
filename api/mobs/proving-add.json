@@ -3,9 +3,11 @@
   "id": 12,
   "name": "ProvingAdd",
   "type": "MOB",
+  "tier": "normal",
+  "curveLevel": 1,
   "entityType": "Rabbit",
   "factors": {
-    "maxHealth": 40,
+    "baseMaxHealth": 40,
     "experience": 30,
     "speed": 0.6,
     "deltaPhi": 0.1,

@@ -50,7 +50,20 @@ faction and skills without a schema append (see §5 and
    - optional `faction`: a faction name from `api/factions/` (see
      "Factions" below; absent = the built-in `hostile` default — attacks
      players, ignores all mobs)
-   - `factors`: `maxHealth`, `maxHealthVariance`, `experience`, `speed`,
+   - **`tier` + `curveLevel` + `factors.baseMaxHealth` — the C0
+     tier+baseline rule (REQUIRED for content):** `tier` is a pure
+     classification label (`normal`/`elite`/`boss` — eliteness lives in the
+     baseline numbers, the tier multiplies nothing); `curveLevel` is the
+     mob's position on the shared `f(L)` curve (zone number = curve
+     position). The loader derives `maxHealth = baseMaxHealth ×
+     f(curveLevel)` and applies the same `f(curveLevel)` to the mob's skill
+     HP values at cast time — so **author the mob's skills (damage/heal HP)
+     as curve-position-1 baselines too**, and a growth change re-derives
+     everything with one conf knob. Raw `factors.maxHealth` **hard-fails at
+     load**; raw absolute numbers sized to a zone are a review reject.
+     (Absent `tier`/`curveLevel` default to `normal`/1 — for synthetic/test
+     defs only, content always authors them explicitly.)
+   - `factors`: `baseMaxHealth`, `maxHealthVariance`, `experience`, `speed`,
      `deltaPhi`, `turnRate`, optional `resistances` / `damageTags`
    - `body`: `radius`, `aggroRadius`
    - `skills[]`: the mob's aura(s) by `skillName` (must exist in `api/skills/`)

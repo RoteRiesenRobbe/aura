@@ -88,6 +88,7 @@ type fakePlayer struct {
 	rejections      []rejectedActivation // NoteActivationRejected calls (chunk 4)
 	lastMoveDir     phy.Vec2f            // dash aim source (chunk 5)
 	buffs           skills.Buffs         // real store for tick_rate (chunk 6); zero value = factor 1.0
+	powerScale      float32              // f(character level) (C0); newFakePlayer sets neutral 1
 }
 
 // appliedResist records one ApplyResist call on a test double.
@@ -119,6 +120,7 @@ func (f *fakePlayer) AuraCollider() *phy.Circle              { return f.aura }
 func (f *fakePlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vitalSigns }
 func (f *fakePlayer) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
 func (f *fakePlayer) MaxHealthFactor() float32               { return f.maxHealthFactor }
+func (f *fakePlayer) PowerScale() float32                    { return f.powerScale }
 func (f *fakePlayer) IsGod() bool                            { return f.god }
 func (f *fakePlayer) MaxHealth() vitals.VitalSign            { return f.maxHealth }
 func (f *fakePlayer) NoteHealedBy(h model.PlayerEntity)      { f.healedBy = append(f.healedBy, h) }
@@ -195,6 +197,7 @@ func newFakePlayer() *fakePlayer {
 		maxHealthFactor: 1.0,
 		maxHealth:       100,
 		level:           1,
+		powerScale:      1.0, // f(1) — the un-inflated baseline (C0)
 		// Non-nil so applyDamageAura/applyHealAura can read the caster position
 		// for selector ordering; tests that need a real space overwrite it.
 		aura:   phy.NewCircle(phy.VEC2F_ZERO, 1.0),
@@ -634,6 +637,7 @@ type fakeMob struct {
 	statusEffects model.StatusEffects
 	faction       model.Faction
 	healthRatio   float32
+	powerScale    float32 // tier+baseline scale f(curveLevel) (C0); newFakeMob sets neutral 1
 }
 
 func (f *fakeMob) Basic() ecs.BasicEntity                 { return f.basic }
@@ -642,6 +646,7 @@ func (f *fakeMob) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeMob) AuraCollider() *phy.Circle              { return f.aura }
 func (f *fakeMob) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
 func (f *fakeMob) HealthRatio() float32                   { return f.healthRatio }
+func (f *fakeMob) PowerScale() float32                    { return f.powerScale }
 
 var (
 	_ skillEntity     = (*fakeMob)(nil)
@@ -662,6 +667,7 @@ func newFakeMob(effects ...skills.EffectDef) *fakeMob {
 		aura:        phy.NewCircle(phy.VEC2F_ZERO, 1.0),
 		faction:     model.FactionHostile,
 		healthRatio: 1,
+		powerScale:  1, // f(1) — baseline tier scale (C0)
 	}
 }
 
@@ -1340,7 +1346,7 @@ func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
 	target := &mobTouchRecorder{}
 	space := spaceWithBurstTarget(int(model.LayerPlayerCollision), target)
 
-	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects()}
+	caster := &fakeMob{basic: ecs.NewBasic(), sc: skills.NewSkillComponent(false), statusEffects: model.NewStatusEffects(), powerScale: 1}
 	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
 	caster.sc.EquipCooldown(0, stomp, 1)
 
@@ -3395,4 +3401,164 @@ func TestDash_CancelsRunningCast(t *testing.T) {
 	assert.InDelta(t, 2.5, caster.Position().X, 1e-4, "dash displaced the caster")
 	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "interrupted cast consumes no cooldown")
 	assert.Equal(t, 300, caster.sc.CooldownSlots[1].CdTicks, "dash consumed its own cooldown")
+}
+
+// --- C0: caster power scale — f(character level) on HP-side values ---
+// (plan-content-zones12.md §13 C0, GDD §5: damage / heal / dot / hot / shield
+// / self-heal / self-cost scale by the caster's PowerScale; never radius,
+// tick rate, target count, or the relative multiplier vocabulary.)
+
+func TestApplyDamageAura_PlayerPowerScaleMultipliesDamage(t *testing.T) {
+	caster := newFakePlayer()
+	caster.powerScale = 2 // f(level) — e.g. a mid-level player
+	target := &touchRecorder{}
+	effect := damageEffect(1)
+	effect.Damage = &skills.DamageParams{HP: 10}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 20, target.touches[0], 1e-6, "10 HP × f 2")
+}
+
+func TestApplyDamageAura_MobCaster_PowerScaleMultipliesDamage(t *testing.T) {
+	// A mob's PowerScale is its load-time tier+baseline scale f(curveLevel).
+	caster := newFakeMob()
+	caster.powerScale = 1.2544 // f(3) at growth 1.12
+	target := &mobTouchRecorder{}
+	effect := skills.EffectDef{
+		Type:           skills.EffectTypeDamageAura,
+		TargetsEnemies: true,
+		Damage:         &skills.DamageParams{HP: 10},
+	}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.factors, 1)
+	assert.InDelta(t, 12.544, target.factors[0].Damage, 1e-4)
+}
+
+func TestApplyHealAura_PowerScaleMultipliesHealAndSelfCost(t *testing.T) {
+	caster := newFakePlayer()
+	caster.powerScale = 2
+	ally := newFakePlayer()
+	ally.vitalSigns.Health = 10 // wounded
+
+	// healEffect: HP 10, SelfDamageHP 2 — both HP-side values scale
+	// (GDD §5 lists self-damage explicitly: costs stay proportional to the
+	// inflated pool).
+	testSkillSystem().applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+
+	assert.Equal(t, vitals.VitalSign(20), ally.healReceived, "10 HP × f 2")
+	assert.Equal(t, vitals.VitalSign(96), caster.vitalSigns.Health, "self-cost 2 × f 2")
+}
+
+func TestApplyShieldAura_PowerScaleMultipliesPool(t *testing.T) {
+	caster := newFakePlayer()
+	caster.powerScale = 2
+	ally := &shieldTargetRecorder{basic: ecs.NewBasic()}
+
+	applyShieldAura(caster, 27, 1, shieldEffect(), colliderSetOf(ally))
+
+	require.Len(t, ally.shields, 1)
+	assert.InDelta(t, 40, ally.shields[0].hp, 1e-6, "pool 20 × f 2")
+}
+
+func TestApplyDotEffect_PlayerPowerScaleFrozenIntoBuff(t *testing.T) {
+	caster := newFakePlayer()
+	caster.powerScale = 2
+	target := &dotRecorder{basic: ecs.NewBasic()}
+
+	applyDotEffect(caster, 5, 1, dotEffect(), colliderSetOf(target))
+
+	require.Len(t, target.dots, 1)
+	assert.InDelta(t, 10, target.dots[0].HP, 1e-6, "dot 5 HP × f 2, frozen at application")
+}
+
+func TestApplyHotAura_PowerScaleFrozenIntoBuff(t *testing.T) {
+	caster := newFakePlayer()
+	caster.powerScale = 2
+	ally := newFakePlayer()
+	ally.vitalSigns.Health = 10 // wounded
+	effect := skills.EffectDef{
+		Type:         skills.EffectTypeHotAura,
+		TickInterval: 20,
+		Hot:          &skills.HotParams{HP: 6, TickCount: 3, Interval: 30},
+	}
+
+	applyHotAura(caster, 31, 1, effect, colliderSetOf(model.PlayerEntity(ally)))
+
+	require.Len(t, ally.hots, 1)
+	assert.InDelta(t, 12, ally.hots[0].hot.HP, 1e-6, "hot 6 HP × f 2, frozen at application")
+}
+
+func TestCooldown_SelfHealFlatScalesByPowerScale(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+
+	healDef := &skills.SkillDefinition{
+		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+		Effects: []skills.EffectDef{{
+			Type:     skills.EffectTypeSelfHeal,
+			SelfHeal: &skills.SelfHealParams{HealHP: 20},
+		}},
+	}
+	caster := newFakePlayer()
+	caster.powerScale = 2
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.vitalSigns.Health = 10
+	caster.sc.EquipCooldown(0, healDef, 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk := NewSkillSystem(empty, nil)
+	sk.AddEntity(caster)
+	sk.Update(33.0)
+
+	assert.Equal(t, vitals.VitalSign(50), caster.vitalSigns.Health, "10 + flat 20 × f 2")
+}
+
+func TestCooldown_SelfHealFractionOfMaxDoesNotDoubleScale(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+
+	// The caster's max HP already carries f — the fraction branch must not
+	// multiply by PowerScale again.
+	healDef := &skills.SkillDefinition{
+		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+		Effects: []skills.EffectDef{{
+			Type:     skills.EffectTypeSelfHeal,
+			SelfHeal: &skills.SelfHealParams{FractionOfMax: 0.20},
+		}},
+	}
+	caster := newFakePlayer() // maxHealth 100
+	caster.powerScale = 2
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.vitalSigns.Health = 40
+	caster.sc.EquipCooldown(0, healDef, 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk := NewSkillSystem(empty, nil)
+	sk.AddEntity(caster)
+	sk.Update(33.0)
+
+	assert.Equal(t, vitals.VitalSign(60), caster.vitalSigns.Health,
+		"40 + 20% of max 100 — the fraction rides max HP, not f twice")
+}
+
+func TestApplyDamageAura_OwnedCaster_ComposesOwnerCurveScale(t *testing.T) {
+	// An owned summon rides the owner's f(level) on top of the linear
+	// SummonPower knob (C0 PO decision: summons stay same-tier-relevant).
+	owner := newFakePlayer()
+	owner.powerScale = 2
+	totem := newTestTotem(owner)
+	totem.SetSummonPower(1.5)
+
+	target := &touchRecorder{}
+	effect := damageEffect(1)
+	effect.Damage = &skills.DamageParams{HP: 10}
+
+	applyDamageAura(totem, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 30, target.touches[0], 1e-6, "10 HP × power 1.5 × owner f 2")
 }

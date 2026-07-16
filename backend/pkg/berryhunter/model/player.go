@@ -149,6 +149,11 @@ type PlayerEntity interface {
 	ApplyRecipeCascade()
 	AuraCollider() *phy.Circle
 	MaxHealthFactor() float32
+	// PowerScale is f(character level) — the global HP-value inflation
+	// multiplier (GDD §5, C0). The SkillSystem multiplies the player's
+	// HP-side skill output (damage/heal/dot/hot/shield/self-heal/self-cost)
+	// by it; never radius, tick rate, or target count.
+	PowerScale() float32
 	// MaxHealth is the player's absolute HP pool (item 11 Phase 1) =
 	// round(baseHealth × MaxHealthFactor); serialized as the max_health wire
 	// field so the client draws health/maxHealth.

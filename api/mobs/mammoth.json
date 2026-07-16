@@ -3,8 +3,10 @@
   "name": "Mammoth",
   "type": "MOB",
   "faction": "tusker",
+  "tier": "elite",
+  "curveLevel": 1,
   "factors": {
-    "maxHealth": 120,
+    "baseMaxHealth": 120,
     "maxHealthVariance": 0.1,
     "experience": 90,
     "speed": 0.2,

@@ -11,15 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCurve_F(t *testing.T) {
-	c := Curve{Growth: 1.12, MaxLevel: 30}
-
-	assert.InDelta(t, 1.0, c.F(1), 1e-12, "f(1) is the un-inflated baseline")
-	assert.InDelta(t, 1.12, c.F(2), 1e-12)
-	assert.InDelta(t, 1.12*1.12, c.F(3), 1e-12)
-	assert.InDelta(t, 1.0, c.F(0), 1e-12, "levels below 1 clamp to the baseline")
-	assert.InDelta(t, c.F(30), c.TotalInflation(), 1e-12)
-}
+// Curve math tests live with the shared formula in pkg/berryhunter/curve
+// (moved there in C0 — sim.Curve is an alias).
 
 // baselineFixture has distinctive numbers on every field so an accidentally
 // scaled non-HP knob shows up as a failure, not a coincidence.

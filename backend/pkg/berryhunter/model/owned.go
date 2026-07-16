@@ -16,3 +16,13 @@ type Owned interface {
 	// body and output, not its control effects).
 	SummonPower() float32
 }
+
+// PowerScaled is implemented by casters whose HP-side skill output rides the
+// f(character level) inflation curve (GDD §5, C0): players return
+// f(character level), mobs their load-time tier+baseline scale f(curveLevel).
+// The SkillSystem multiplies damage / heal / dot / hot / shield / self-heal /
+// self-cost HP values by it — never radius, tick rate, target count, or the
+// relative multiplier vocabulary (crit/execute/berserker/variance/lifesteal).
+type PowerScaled interface {
+	PowerScale() float32
+}

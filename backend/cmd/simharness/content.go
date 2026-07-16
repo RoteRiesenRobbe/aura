@@ -10,6 +10,7 @@ import (
 	aitems "github.com/trichner/berryhunter/pkg/api/items"
 	amobs "github.com/trichner/berryhunter/pkg/api/mobs"
 	askills "github.com/trichner/berryhunter/pkg/api/skills"
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
@@ -63,7 +64,10 @@ func loadMobPresets(contentDir string) ([]mobPreset, error) {
 	if err != nil {
 		return nil, fmt.Errorf("loading factions: %w", err)
 	}
-	mr, err := mobs.RegistryFromFS(ir, sr, fr, mobsFS)
+	// Presets derive tier+baseline numbers against the working-lock curve
+	// (curve.Default = what a conf without the keys boots with), so a preset
+	// carries the same derived numbers the live game would spawn.
+	mr, err := mobs.RegistryFromFS(ir, sr, fr, curve.Default(), mobsFS)
 	if err != nil {
 		return nil, fmt.Errorf("loading mobs: %w", err)
 	}
@@ -98,7 +102,9 @@ func mobSpecOf(def *mobs.MobDefinition) sim.MobSpec {
 				continue
 			}
 			spec.Aura = sim.AuraSpec{
-				DamageHP:     e.Damage.HPAt(ms.Level),
+				// × PowerScale: the live SkillSystem multiplies mob skill HP
+				// by the def's derived f(curveLevel) at cast time (C0).
+				DamageHP:     e.Damage.HPAt(ms.Level) * def.PowerScale,
 				TickInterval: skills.EffectiveTickInterval(e, ms.Level, 1),
 				Radius:       skills.Scaled(e.Radius, e.RadiusPerLevel, ms.Level),
 				Variance:     e.Damage.Variance,

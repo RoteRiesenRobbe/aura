@@ -4,8 +4,10 @@
   "name": "Healer",
   "type": "MOB",
   "faction": "predator",
+  "tier": "normal",
+  "curveLevel": 1,
   "factors": {
-    "maxHealth": 45,
+    "baseMaxHealth": 45,
     "experience": 25,
     "speed": 0.6,
     "deltaPhi": 0.1,

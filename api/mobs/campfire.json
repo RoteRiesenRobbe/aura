@@ -3,8 +3,10 @@
   "id": 13,
   "name": "Campfire",
   "type": "MOB",
+  "tier": "normal",
+  "curveLevel": 1,
   "factors": {
-    "maxHealth": 50,
+    "baseMaxHealth": 50,
     "experience": 0,
     "speed": 0
   },

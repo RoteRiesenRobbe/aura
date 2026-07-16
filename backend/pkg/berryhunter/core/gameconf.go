@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -19,16 +20,17 @@ func Config(conf *cfg.Config) Configuration {
 		g.PlayerConfig.HealthGainTick = conf.Game.Player.HealthGainTick
 		g.PlayerConfig.WalkingSpeedPerTick = conf.Game.Player.WalkingSpeedPerTick
 		g.PlayerConfig.BaseHealth = conf.Game.Player.BaseHealth
-		g.PlayerConfig.MaxHealthLevelGainFraction = conf.Game.Player.MaxHealthLevelGainFraction
+		g.PlayerConfig.LevelCurve = curve.Curve{Growth: conf.Game.Player.LevelGrowth, MaxLevel: conf.Game.Player.MaxLevel}
 		g.PlayerConfig.LevelUpXPBase = conf.Game.Player.LevelUpXPBase
 		g.PlayerConfig.LevelUpXPGrowthFactor = conf.Game.Player.LevelUpXPGrowthFactor
 		g.PlayerConfig.SkillPointsPerLevel = conf.Game.Player.SkillPointsPerLevel
 		if g.PlayerConfig.SkillPointsPerLevel <= 0 {
 			g.PlayerConfig.SkillPointsPerLevel = 1
 		}
-		if g.PlayerConfig.MaxHealthLevelGainFraction <= 0 {
-			g.PlayerConfig.MaxHealthLevelGainFraction = 0.1
-		}
+		// No LevelCurve defaulting here: cfg.ReadConfig is the single default
+		// point, so the player curve can never diverge from the mob registry's
+		// tier+baseline derivation (both read the same conf values). A zero
+		// curve (hand-built configs in tests/sim) is neutral by curve.F.
 		if g.PlayerConfig.BaseHealth <= 0 {
 			g.PlayerConfig.BaseHealth = 100 // [PLACEHOLDER] item 11 Phase 1
 		}

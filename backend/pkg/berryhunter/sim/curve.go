@@ -5,30 +5,17 @@ package sim
 // numbers. This models the decided curve inside the tool only — the live-game
 // multiplier is a separate step-6 task (§5 Decision 5).
 
-import "math"
+import (
+	"math"
 
-// Curve is f(character level) in its decided form: f(L) = growth^(L-1)
-// (§5 Decision 3 — steep, cross-tier-defining; the exact growth and max
-// level are what this chunk's sweeps let the PO pick, all [PLACEHOLDER]).
-type Curve struct {
-	Growth   float64 `json:"growth"`
-	MaxLevel int     `json:"maxLevel"`
-}
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
+)
 
-// F is the inflation multiplier at a character level; level 1 is the
-// un-inflated baseline, anything below clamps to it.
-func (c Curve) F(level int) float64 {
-	if level < 1 {
-		level = 1
-	}
-	return math.Pow(c.Growth, float64(level-1))
-}
-
-// TotalInflation is f at the level cap — one corner of the linked triple
-// (band width ↔ max level ↔ total inflation, §5 Decision 4).
-func (c Curve) TotalInflation() float64 {
-	return c.F(c.MaxLevel)
-}
+// Curve is f(character level) in its decided form: f(L) = growth^(L-1).
+// Since C0 (live wiring, plan-content-zones12.md §13) the formula lives in
+// pkg/berryhunter/curve, shared with the live game — this alias keeps the
+// harness structurally incapable of drifting from what ships.
+type Curve = curve.Curve
 
 // XPModel carries the kills-per-level analytics. The level-up requirement
 // mirrors player.experienceForNextLevel (base × growth^(L-1), rounded,

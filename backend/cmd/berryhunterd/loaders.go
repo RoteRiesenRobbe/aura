@@ -22,6 +22,7 @@ import (
 	askills "github.com/trichner/berryhunter/pkg/api/skills"
 	azones "github.com/trichner/berryhunter/pkg/api/zones"
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
@@ -114,9 +115,10 @@ func loadFactions(fsys fs.FS) factions.Registry {
 
 // loadMobs parses the mob definitions from the definition files, resolving
 // drops against the item registry, skill loadouts against the skill registry
-// and factions against the faction registry.
-func loadMobs(r items.Registry, sr skills.Registry, fr factions.Registry, fsys fs.FS) mobs.Registry {
-	registry, err := mobs.RegistryFromFS(r, sr, fr, fsys)
+// and factions against the faction registry; tier+baseline numbers derive
+// against c, the conf-driven f(L) curve (C0).
+func loadMobs(r items.Registry, sr skills.Registry, fr factions.Registry, c curve.Curve, fsys fs.FS) mobs.Registry {
+	registry, err := mobs.RegistryFromFS(r, sr, fr, c, fsys)
 	if err != nil {
 		slog.Error("failed to load mobs", slog.Any("err", err))
 		panic(err)

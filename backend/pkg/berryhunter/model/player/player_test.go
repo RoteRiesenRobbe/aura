@@ -2,12 +2,14 @@ package player
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/EngoEngine/ecs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/model/vitals"
@@ -102,17 +104,58 @@ func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
 
 // --- absolute HP (roadmap item 11 Phase 1) ---
 
-func TestPlayer_MaxHealth_FromBaseAndFactor(t *testing.T) {
+func TestPlayer_MaxHealth_FromBaseAndCurve(t *testing.T) {
 	p := newTestPlayer(nil)
 	p.config.BaseHealth = 100
-	p.config.MaxHealthLevelGainFraction = 0.1
+	p.config.LevelCurve = curve.Curve{Growth: 1.12, MaxLevel: 30}
 
 	p.progression.Level = 1
 	assert.Equal(t, vitals.VitalSign(100), p.MaxHealth(), "level 1 = base health")
 
 	p.progression.Level = 3
-	assert.Equal(t, vitals.VitalSign(120), p.MaxHealth(),
-		"level 3 = base × (1 + 2×0.1)")
+	assert.Equal(t, vitals.VitalSign(125), p.MaxHealth(),
+		"level 3 = base × f(3) = 100 × 1.12² = 125.44, rounded")
+}
+
+// The max-health passive composes multiplicatively with f(level) (C0 PO
+// decision): a +20% HP passive is +20% at EVERY level — specialization stays
+// relative, inflation is orthogonal (Philosophy A).
+func TestPlayer_MaxHealth_PassiveBonusMultipliesTheCurve(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.config.BaseHealth = 100
+	p.config.LevelCurve = curve.Curve{Growth: 1.12, MaxLevel: 30}
+	p.skills.Derived.MaxHealthBonus = 0.2
+
+	p.progression.Level = 1
+	assert.Equal(t, vitals.VitalSign(120), p.MaxHealth(), "level 1: 100 × 1.2")
+
+	p.progression.Level = 3
+	assert.Equal(t, vitals.VitalSign(151), p.MaxHealth(),
+		"level 3: 100 × 1.12² × 1.2 = 150.53, rounded")
+}
+
+// PowerScale is the player's f(character level) — the HP-side output
+// multiplier the SkillSystem applies to damage/heal/dot/hot/shield/self-heal
+// values (never radius, tick rate, or target count — GDD §5).
+func TestPlayer_PowerScale_IsFOfLevel(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.config.LevelCurve = curve.Curve{Growth: 1.12, MaxLevel: 30}
+
+	p.progression.Level = 1
+	assert.InDelta(t, 1.0, p.PowerScale(), 1e-6)
+
+	p.progression.Level = 10
+	assert.InDelta(t, math.Pow(1.12, 9), float64(p.PowerScale()), 1e-4)
+}
+
+// Level-ups clamp at the conf maxLevel: XP keeps accumulating but the level
+// (and therefore f, skill points, milestones) stops at the cap.
+func TestPlayer_AddExperience_ClampsAtMaxLevel(t *testing.T) {
+	p := newTestPlayer(nil)
+	p.config.LevelCurve = curve.Curve{Growth: 1.12, MaxLevel: 3}
+
+	p.AddExperience(1 << 40)
+	assert.Equal(t, uint32(3), p.progression.Level, "level stops at the cap")
 }
 
 // LevelProgressXP feeds the HUD's absolute xpInLevel/xpForNextLevel text: the

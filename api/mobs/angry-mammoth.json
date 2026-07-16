@@ -2,8 +2,10 @@
   "id": 4,
   "name": "AngryMammoth",
   "type": "MOB",
+  "tier": "elite",
+  "curveLevel": 1,
   "factors": {
-    "maxHealth": 400,
+    "baseMaxHealth": 400,
     "experience": 1000,
     "speed": 0.1,
     "deltaPhi": 0.05,

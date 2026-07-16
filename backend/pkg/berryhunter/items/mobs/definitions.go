@@ -3,11 +3,22 @@ package mobs
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
+)
+
+// Mob tiers (C0, plan-content-zones12.md §13): a classification label for
+// thresholds, XP models and UI — eliteness itself is expressed in the
+// authored baseline values, the tier does not multiply anything.
+const (
+	TierNormal = "normal"
+	TierElite  = "elite"
+	TierBoss   = "boss"
 )
 
 //{
@@ -122,6 +133,18 @@ type MobDefinition struct {
 	// validated against the FlatBuffers enum at load time.
 	EntityType string
 
+	// Tier + CurveLevel are the C0 tier+baseline authoring axes: Tier is a
+	// pure classification label (normal/elite/boss); CurveLevel is the mob's
+	// hand-picked position on the f(L) curve (zone number = curve position,
+	// GDD §5). Factors.MaxHealth arrives here already DERIVED
+	// (baseMaxHealth × f(CurveLevel)); PowerScale = f(CurveLevel) multiplies
+	// the mob's skill HP values at cast time (model.PowerScaled on the mob
+	// entity), so mob-skill JSONs stay baseline-authored. A growth change
+	// re-derives everything — one knob, no re-authoring.
+	Tier       string
+	CurveLevel int
+	PowerScale float32
+
 	Factors Factors
 	Drops   Drops
 	Body    Body
@@ -144,8 +167,15 @@ type mobDefinition struct {
 	Type       string `json:"type"`
 	EntityType string `json:"entityType"` // absent → the name resolves the wire type
 	Faction    string `json:"faction"`    // absent → the built-in hostile default
+	Tier       string `json:"tier"`       // absent → "normal" (label only, C0)
+	CurveLevel int    `json:"curveLevel"` // absent → 1 (baseline, f = 1)
 
 	Factors struct {
+		// BaseMaxHealth is the tier+baseline authoring value (C0): the HP
+		// pool at curve position 1. The derived pool is
+		// baseMaxHealth × f(curveLevel). MaxHealth exists only to hard-fail
+		// raw authoring — the pre-C0 field is a review reject.
+		BaseMaxHealth        uint32             `json:"baseMaxHealth"`
 		MaxHealth            uint32             `json:"maxHealth"`
 		MaxHealthVariance    float32            `json:"maxHealthVariance"`
 		FleeBelowHealthRatio float32            `json:"fleeBelowHealthRatio"`
@@ -195,12 +225,35 @@ func parseMobDefinition(data []byte) (*mobDefinition, error) {
 	return &mob, nil
 }
 
-func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry, fr factions.Registry) (*MobDefinition, error) {
+func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry, fr factions.Registry, c curve.Curve) (*MobDefinition, error) {
 	// Mobs need an aggro territory; the former 4x-damage-radius fallback died
 	// with Body.DamageRadius (Phase 6.1), so the value is now required.
 	if m.Body.AggroRadius <= 0 {
 		return nil, fmt.Errorf("mob %q: body.aggroRadius is required and must be > 0", m.Name)
 	}
+
+	// Tier + baseline authoring (C0): raw maxHealth hard-fails — the
+	// mechanical form of the "raw stat numbers are a review reject" rule.
+	// Absent tier/curveLevel default to the baseline (normal at curve
+	// position 1, f = 1) so synthetic/test defs stay minimal.
+	if m.Factors.MaxHealth != 0 {
+		return nil, fmt.Errorf("mob %q: factors.maxHealth is raw authoring — author factors.baseMaxHealth + tier + curveLevel instead (C0 tier+baseline rule)", m.Name)
+	}
+	tier := m.Tier
+	if tier == "" {
+		tier = TierNormal
+	}
+	if tier != TierNormal && tier != TierElite && tier != TierBoss {
+		return nil, fmt.Errorf("mob %q: tier %q must be one of normal/elite/boss", m.Name, tier)
+	}
+	curveLevel := m.CurveLevel
+	if curveLevel == 0 {
+		curveLevel = 1
+	}
+	if curveLevel < 1 {
+		return nil, fmt.Errorf("mob %q: curveLevel %d must be >= 1", m.Name, m.CurveLevel)
+	}
+	powerScale := c.F(curveLevel)
 
 	// Variance ≥ 1 would allow a 0-HP (born dead) roll; negative is nonsense.
 	if v := m.Factors.MaxHealthVariance; v < 0 || v >= 1 {
@@ -275,8 +328,11 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry,
 		EntityType: m.EntityType,
 		Faction:    faction,
 		AggroMask:  aggroMask,
+		Tier:       tier,
+		CurveLevel: curveLevel,
+		PowerScale: float32(powerScale),
 		Factors: Factors{
-			MaxHealth:            m.Factors.MaxHealth,
+			MaxHealth:            uint32(math.Round(float64(m.Factors.BaseMaxHealth) * powerScale)),
 			MaxHealthVariance:    m.Factors.MaxHealthVariance,
 			FleeBelowHealthRatio: m.Factors.FleeBelowHealthRatio,
 			WanderRadius:         m.Factors.WanderRadius,

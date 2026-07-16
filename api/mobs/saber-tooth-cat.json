@@ -3,8 +3,10 @@
   "name": "SaberToothCat",
   "type": "MOB",
   "faction": "predator",
+  "tier": "normal",
+  "curveLevel": 1,
   "factors": {
-    "maxHealth": 60,
+    "baseMaxHealth": 60,
     "experience": 40,
     "speed": 0.5,
     "deltaPhi": 0.1,

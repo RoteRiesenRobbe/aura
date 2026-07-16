@@ -478,6 +478,27 @@ any content.
 
 ### C0 — Scaling & authoring foundation (code only, TDD, no content)
 
+> **✅ DONE + VERIFIED IN-GAME 2026-07-16** (execution session). Shipped:
+> shared formula `pkg/berryhunter/curve` (sim aliases it — drift-free);
+> conf `game.player.levelGrowth`/`maxLevel` (defaults = `curve.Default()`
+> in `cfg.ReadConfig`, the SINGLE default point so player + mob derivation
+> can never diverge); player `MaxHealth = base × f(L) × (1+bonus)`
+> (multiplicative passive — PO pick), level cap 30, `PowerScale()`;
+> SkillSystem seam `casterPowerScale` × damage/heal/dot/hot/shield/flat
+> self-heal/selfDamageHP (fraction-of-max self-heal rides max HP, not f
+> twice; owned summons compose `SummonPower × f(ownerLevel)` — PO pick);
+> mob JSON `tier` (label) + `curveLevel` + `factors.baseMaxHealth`
+> (per-mob baseline — PO pick), loader derives maxHealth + def PowerScale,
+> **raw `factors.maxHealth` hard-fails**; all 13 existing mob JSONs
+> migrated at `curveLevel: 1` (byte-identical numbers — PO pick;
+> proving-boss=boss, mammoths=elite as pure labels); simharness presets
+> apply def PowerScale. Verified: full suite + race green, chunk 1–4 sim
+> pins byte-identical, harness spot-run matches (eff ≈0.22 flat), in-game:
+> L1 100/100 → XP 50000 → L20 861/861 (=100×1.12¹⁹) → XP cap → L30
+> 2675/2675, XP pinned. Deferred to C8: summon max-HP scaling
+> (`maxHealthPerOwnerLevel` stays linear vs exponential f — falls behind
+> at high level).
+
 - Live `f(L)`: conf-driven `growth` (1.12) + `maxLevel` (30) [WORKING LOCK];
   global multiplier on HP-side **player** values only — skill damage / heal /
   self-HP + player maxHealth; never radius, tick rate, or target count

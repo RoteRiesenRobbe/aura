@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 )
 
 type Server struct {
@@ -27,12 +29,17 @@ type Config struct {
 			HealthGainTick float32 `json:"healthGainTick"`
 
 			//
-			WalkingSpeedPerTick        float32 `json:"walkingSpeedPerTick"`
-			BaseHealth                 int     `json:"baseHealth"`
-			MaxHealthLevelGainFraction float32 `json:"maxHealthLevelGainFraction"`
-			LevelUpXPBase              uint32  `json:"levelUpXPBase"`
-			LevelUpXPGrowthFactor      float32 `json:"levelUpXPGrowthFactor"`
-			SkillPointsPerLevel        int     `json:"skillPointsPerLevel"`
+			WalkingSpeedPerTick float32 `json:"walkingSpeedPerTick"`
+			BaseHealth          int     `json:"baseHealth"`
+			// LevelGrowth + MaxLevel define f(character level) =
+			// levelGrowth^(L-1) — the number-inflation curve (GDD §5,
+			// [WORKING LOCK 2026-07-16]: 1.12 × 30). Replaced the linear
+			// maxHealthLevelGainFraction in C0.
+			LevelGrowth           float64 `json:"levelGrowth"`
+			MaxLevel              int     `json:"maxLevel"`
+			LevelUpXPBase         uint32  `json:"levelUpXPBase"`
+			LevelUpXPGrowthFactor float32 `json:"levelUpXPGrowthFactor"`
+			SkillPointsPerLevel   int     `json:"skillPointsPerLevel"`
 		} `json:"player"`
 	} `json:"game"`
 }
@@ -58,6 +65,17 @@ func ReadConfig(filename string) (*Config, error) {
 	}
 	if config.Game.DayTimeSeconds <= 0 {
 		config.Game.DayTimeSeconds = 400
+	}
+	// f(L) curve defaults [WORKING LOCK 2026-07-16]. Defaulted HERE — the
+	// single point both consumers read through — because the curve feeds two
+	// places that must never diverge: the player-side PlayerConfig.LevelCurve
+	// and the mob registry's tier+baseline derivation (C0, GDD §5 one-knob
+	// rule).
+	if config.Game.Player.LevelGrowth <= 0 {
+		config.Game.Player.LevelGrowth = curve.Default().Growth
+	}
+	if config.Game.Player.MaxLevel <= 0 {
+		config.Game.Player.MaxLevel = curve.Default().MaxLevel
 	}
 	// Validate
 	if config.Game.DayTimeSeconds > config.Game.TotalDayCycleSeconds {

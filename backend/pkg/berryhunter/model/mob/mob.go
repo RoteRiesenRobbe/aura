@@ -507,6 +507,18 @@ func (m *Mob) SummonPower() float32 {
 	return m.summonPower
 }
 
+// PowerScale is the def-derived tier+baseline scale f(curveLevel)
+// (model.PowerScaled, C0): the SkillSystem multiplies this mob's skill HP
+// values by it at cast time, so mob-skill JSONs stay baseline-authored. The
+// zero value (hand-built definitions in sim/tests) reads as neutral, the
+// SummonPower convention.
+func (m *Mob) PowerScale() float32 {
+	if m.definition.PowerScale <= 0 {
+		return 1
+	}
+	return m.definition.PowerScale
+}
+
 // RaiseMaxHealth grants flat bonus HP on top of the (possibly variance-rolled)
 // authored pool — the owner-level body scaling of summons. Current health
 // rises with it: summons spawn at full health.

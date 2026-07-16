@@ -235,13 +235,17 @@ func (p *player) StatusEffects() *model.StatusEffects {
 }
 
 func (p *player) maxHealthFactor() float32 {
-	level := p.progression.Level
-	if level < 1 {
-		level = 1
-	}
-	// Multiplier on baseHealth from level + passive bonuses (item 11 Phase 1).
+	// f(level) × (1 + passive bonus), C0: the curve carries inflation, the
+	// passive stays relative at every level (Philosophy A, GDD §5).
 	// Leveling raises maxHealth; current HP stays and regenerates up.
-	return 1 + float32(level-1)*p.config.MaxHealthLevelGainFraction + p.skills.Derived.MaxHealthBonus
+	return p.PowerScale() * (1 + p.skills.Derived.MaxHealthBonus)
+}
+
+// PowerScale is f(character level) — the global HP-value inflation multiplier
+// (model.PowerScaled, GDD §5). The SkillSystem multiplies the player's
+// HP-side skill output by it; maxHealthFactor rides the same curve.
+func (p *player) PowerScale() float32 {
+	return float32(p.config.LevelCurve.F(int(p.progression.Level)))
 }
 
 // MaxHealth is the player's absolute HP pool (item 11 Phase 1):
@@ -759,8 +763,15 @@ func (p *player) totalXPForLevel(level uint32) uint64 {
 }
 
 func (p *player) levelForExperience(xp uint64) uint32 {
+	// XP accumulates past the cap, but the level (and with it f, skill
+	// points, milestones) clamps at the conf maxLevel (C0, GDD §5 linked
+	// triple — [WORKING LOCK] 30).
+	maxLevel := uint32(p.config.LevelCurve.MaxLevel)
 	level := uint32(1)
 	for {
+		if maxLevel > 0 && level >= maxLevel {
+			return maxLevel
+		}
 		next := p.totalXPForLevel(level + 1)
 		if xp < next {
 			return level

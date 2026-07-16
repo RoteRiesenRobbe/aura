@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -66,10 +67,13 @@ type PlayerConfig struct {
 	WalkingSpeedPerTick float32
 
 	// BaseHealth is the player's absolute HP pool at level 1 (item 11 Phase 1)
-	// [PLACEHOLDER]; scaled by MaxHealthLevelGainFraction + passive bonuses.
+	// [PLACEHOLDER]; scaled by f(level) (LevelCurve) × passive bonuses.
 	BaseHealth int
 
-	MaxHealthLevelGainFraction float32
+	// LevelCurve is f(character level) — the global HP-value inflation
+	// multiplier (GDD §5): player max HP and HP-side skill output scale by
+	// F(level); MaxLevel caps level-ups. Zero growth = neutral (curve.F).
+	LevelCurve curve.Curve
 
 	LevelUpXPBase         uint32
 	LevelUpXPGrowthFactor float32

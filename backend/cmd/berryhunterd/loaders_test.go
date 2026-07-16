@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
@@ -36,7 +37,7 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, factionsRegistry.All())
 
-	mobsRegistry, err := mobs.RegistryFromFS(itemsRegistry, skillsRegistry, factionsRegistry, content.mobs)
+	mobsRegistry, err := mobs.RegistryFromFS(itemsRegistry, skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
 	require.NoError(t, err)
 	assert.NotEmpty(t, mobsRegistry.Mobs())
 

@@ -232,12 +232,10 @@ type tickRateBuffed interface {
 // cooldown path. Either way the debuff then runs on the target independent
 // of the delivery and the caster's presence (skills.Buffs).
 func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
-	// Owner-level power is frozen into the dot at application time, like the
-	// level (mob-depth chunk 1). A world mob's SummonPower is neutral 1.
-	hp := effect.Dot.HPAt(level)
-	if owned, ok := e.(model.Owned); ok {
-		hp *= owned.SummonPower()
-	}
+	// The caster's power scale (f(level) / tier scale / summon composition,
+	// C0) is frozen into the dot at application time, like the level
+	// (mob-depth chunk 1).
+	hp := effect.Dot.HPAt(level) * casterPowerScale(e)
 	dot := skills.DotBuff{
 		HP:       hp,
 		Tags:     effect.Dot.Tags,
@@ -368,6 +366,29 @@ func noteHarmDealt(caster any) {
 	}
 }
 
+// casterPowerScale is THE f(character level) / tier-scale output seam (C0,
+// GDD §5): the acting entity's own PowerScale (player: f(character level);
+// mob: its load-time tier+baseline scale f(curveLevel)), composed with
+// SummonPower × f(owner level) for owned summons with a live owner — a summon
+// rides its owner's inflation curve on top of the linear SummonPower
+// specialization knob, so summon builds stay same-tier-relevant at every
+// level (C0 PO decision). Multiplies HP-side output values ONLY (damage /
+// heal / dot / hot / shield / self-heal / self-cost) — never radius, tick
+// rate, target count, or the relative multiplier vocabulary
+// (crit/execute/berserker/variance/lifesteal/slow/resist). Route every new
+// HP-valued effect's amount through this — a per-site copy is how the curve
+// gets forgotten (the mayHarm lesson).
+func casterPowerScale(e any) float32 {
+	scale := float32(1)
+	if ps, ok := e.(model.PowerScaled); ok {
+		scale = ps.PowerScale()
+	}
+	if owned, ok := e.(model.Owned); ok && owned.Owner() != nil {
+		scale *= owned.SummonPower() * owned.Owner().PowerScale()
+	}
+	return scale
+}
+
 // mayHarm is THE hostility seam for enemy-flagged harmful effects (chunk 6.6
 // in-game fix): a caster without a model.HostilityGate (players) may harm any
 // different-faction target; a gated caster (every mob, incl. owned summons —
@@ -441,19 +462,21 @@ func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisio
 		// The summon rides along as the hit's Source: threat credits the
 		// summon itself, XP the owner (mob-depth chunk 3, gotcha #9).
 		source, _ := e.(model.Combatant)
-		applyPlayerDamageAura(owned.Owner(), source, e.AuraCollider().Position(), level, effect, collisions, rng, owned.SummonPower())
+		applyPlayerDamageAura(owned.Owner(), source, e.AuraCollider().Position(), level, effect, collisions, rng, casterPowerScale(e))
 		return
 	}
 	switch caster := e.(type) {
 	case model.PlayerEntity:
-		applyPlayerDamageAura(caster, nil, e.AuraCollider().Position(), level, effect, collisions, rng, 1)
+		applyPlayerDamageAura(caster, nil, e.AuraCollider().Position(), level, effect, collisions, rng, casterPowerScale(e))
 	case model.MobEntity:
 		applyMobDamageAura(caster, e.AuraCollider().Position(), level, effect, collisions, rng)
 	}
 }
 
-// outputScale is 1 for a direct player cast and the summon's power for an
-// owned cast — it multiplies the damage amount only (never CC parameters).
+// outputScale is the caster's composed power scale (casterPowerScale, C0):
+// f(character level) for a direct player cast, SummonPower × f(owner level)
+// for an owned cast — it multiplies the damage amount only (never CC
+// parameters).
 // source is the summon entity on owned casts (threat attribution, chunk 3),
 // nil on direct casts — the target then treats the caster as the source.
 func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand, outputScale float32) {
@@ -502,9 +525,10 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 // reject them. The Factors payload carries both damage values and each target
 // picks the one that applies to it. Selector/cap ride on top.
 func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
-	// Same F6 §3.1 composition as the player path: base × berserker (the
-	// caster's own missing HP), then per-hit execute × crit × variance below.
-	damageHP := effect.Damage.HPAt(level) * berserkerMultiplier(effect.Damage, caster)
+	// Same F6 §3.1 composition as the player path: base × tier scale (C0:
+	// the mob's derived f(curveLevel)) × berserker (the caster's own missing
+	// HP), then per-hit execute × crit × variance below.
+	damageHP := effect.Damage.HPAt(level) * casterPowerScale(caster) * berserkerMultiplier(effect.Damage, caster)
 	factors := mobs.Factors{
 		DamageTags:              effect.Damage.Tags,
 		StructureDamageFraction: effect.Damage.StructureDamageFraction,
@@ -581,7 +605,10 @@ func noteAuraHit(c phy.Collider, style model.AuraHitStyle) {
 
 func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	rng := s.rng
-	healCenterHP := effect.Heal.HPAt(level)
+	// Heal amount AND self-cost ride the caster's power scale (C0, GDD §5:
+	// self-damage is an HP value — costs stay proportional to the pool).
+	powerScale := casterPowerScale(e)
+	healCenterHP := effect.Heal.HPAt(level) * powerScale
 	casterPos := e.AuraCollider().Position()
 	casterFaction := e.Faction()
 	casterID := e.Basic().ID()
@@ -654,7 +681,7 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 	// healers pay none in v1 (healCaster is satisfied by players only).
 	if healedSomeone {
 		if caster, ok := e.(healCaster); ok && !caster.IsGod() {
-			selfHP := vitals.HP(effect.Heal.SelfDamageHP)
+			selfHP := vitals.HP(effect.Heal.SelfDamageHP * powerScale)
 			vs := caster.VitalSigns()
 			vs.Health = vs.Health.Sub(selfHP)
 			caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
@@ -671,10 +698,8 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 // Reuses the heal aura's implicit same-faction, wounded-only, never-self
 // predicate (no target flags).
 func applyHotAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
-	hp := effect.Hot.HPAt(level)
-	if owned, ok := e.(model.Owned); ok {
-		hp *= owned.SummonPower()
-	}
+	// Power scale frozen at application, the dot convention (C0).
+	hp := effect.Hot.HPAt(level) * casterPowerScale(e)
 	hot := skills.HotBuff{
 		HP:       hp,
 		Variance: effect.Hot.Variance,
@@ -805,7 +830,8 @@ type shieldBuffable interface {
 // buff lifetime is the effect's tick interval + 1 (the aura convention), so
 // staying in range keeps topping the pool up.
 func applyShieldAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
-	hp := effect.Shield.HPAt(level)
+	// The absorb pool is an HP value — it rides the caster's power scale (C0).
+	hp := effect.Shield.HPAt(level) * casterPowerScale(e)
 	ticks := effectiveTickInterval(effect, level) + 1
 
 	if effect.Shield.TargetsSelf {
@@ -834,7 +860,8 @@ func applyShieldAura(e skillEntity, source skills.SkillID, level int, effect ski
 // self-apply counts as a hit — a Barrier cast with nobody around is not a
 // whiff.
 func (s *SkillSystem) applyInstantShield(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
-	hp := effect.Shield.HPAt(level)
+	// The absorb pool is an HP value — it rides the caster's power scale (C0).
+	hp := effect.Shield.HPAt(level) * casterPowerScale(e)
 	ticks := effect.Shield.DurationTicks + 1
 
 	hitAny := false
@@ -873,10 +900,8 @@ func (s *SkillSystem) applyInstantShield(e skillEntity, source skills.SkillID, l
 // not a whiff. Applies the buff regardless of the target's current health (a
 // preemptive HoT is legitimate); the healing itself runs later in tickHotEvents.
 func (s *SkillSystem) applyInstantHot(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
-	hp := effect.Hot.HPAt(level)
-	if owned, ok := e.(model.Owned); ok {
-		hp *= owned.SummonPower()
-	}
+	// Power scale frozen at application, the dot convention (C0).
+	hp := effect.Hot.HPAt(level) * casterPowerScale(e)
 	hot := skills.HotBuff{
 		HP:       hp,
 		Variance: effect.Hot.Variance,
@@ -1113,7 +1138,7 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			if !ok {
 				continue
 			}
-			healHP := vitals.HP(vitals.RollVariance(selfHealHP(effect.SelfHeal, es.Level, caster.MaxHealth()), effect.SelfHeal.Variance, s.rng))
+			healHP := vitals.HP(vitals.RollVariance(selfHealHP(effect.SelfHeal, es.Level, caster.MaxHealth(), casterPowerScale(e)), effect.SelfHeal.Variance, s.rng))
 			vs := caster.VitalSigns()
 			before := vs.Health
 			vs.Health = vs.Health.AddCapped(healHP, caster.MaxHealth())
@@ -1448,13 +1473,15 @@ func applySlowAura(e skillEntity, source skills.SkillID, level int, effect skill
 // selfHealHP is the self_heal center amount in HP (pre-variance-roll): a
 // fraction of the caster's max HP when FractionOfMax is set (the heal
 // cooldown scales with max HP), otherwise the flat HealHP. The fraction grows
-// by FractionOfMaxPerLevel (absolute) per level.
-func selfHealHP(p *skills.SelfHealParams, level int, maxHP vitals.VitalSign) float32 {
+// by FractionOfMaxPerLevel (absolute) per level. Only the flat branch
+// multiplies by the caster's power scale (C0) — max HP already carries
+// f(level), so the fraction branch scaling again would double-inflate.
+func selfHealHP(p *skills.SelfHealParams, level int, maxHP vitals.VitalSign, powerScale float32) float32 {
 	if p.FractionOfMax > 0 {
 		frac := skills.Scaled(p.FractionOfMax, p.FractionOfMaxPerLevel, level)
 		return frac * float32(maxHP)
 	}
-	return skills.Scaled(p.HealHP, p.HealHPPerLevel, level)
+	return skills.Scaled(p.HealHP, p.HealHPPerLevel, level) * powerScale
 }
 
 func (s *SkillSystem) Remove(e ecs.BasicEntity) {
