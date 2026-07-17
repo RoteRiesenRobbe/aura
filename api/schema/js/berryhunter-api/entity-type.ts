@@ -26,5 +26,7 @@ export enum EntityType {
   Brazier = 20,
   Healer = 21,
   Campfire = 22,
-  Corpse = 23
+  Corpse = 23,
+  Turnip = 24,
+  House = 25
 }

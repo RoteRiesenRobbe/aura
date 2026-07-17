@@ -372,10 +372,10 @@ must be combat-gated first (§3).
 New characters begin as a "poor peasant" holding a **mundane utility aura** (e.g. *Turnip-Pull*, *Molehill-Close*) — not a combat aura.
 
 - The utility aura is *mechanically* a damage aura with a **unique tag**; the passive chore-mobs it works on (turnips, molehills — stationary harvest-mobs, see section 8) **resist every tag except that one**. So the gate is fully **deterministic** (the tag-resist system, item 11 Phase 2): the peasant aura pops chores and does *nothing* to wolves, and — conversely — a combat Damage Aura does *nothing* to chores.
-- "Defeating" chore-mobs yields **XP only** (no drops — this resolves the turnip / "no item drops" tension: chores are harvest-mobs). Reaching **level 1 milestone-unlocks the Damage Aura**, at which point the player can fight wolves — mobs that fight back. The level-1 Damage Aura milestone thus becomes a *genuine narrative unlock*, not a spawn freebie.
+- "Defeating" chore-mobs yields **XP only** (no drops — this resolves the turnip / "no item drops" tension: chores are harvest-mobs). At **level 2 [PLACEHOLDER] the Farmer teaches the Damage Aura** (plus Recall), at which point the player can fight wolves — mobs that fight back. The farmer-taught Damage Aura thus stays a *genuine narrative unlock*, not a spawn freebie. *(Amended in the content pass, step 6 C1 — this was originally a level-1 milestone; the teaching beat replaces it per `plan-content-zones12.md` §3.)*
 - **Generalizes to per-race / per-start-area variation:** a different starting utility aura + chore-mob + start location per race (see `backlog.md`, Races). This onboarding is the mechanical seed for that, not a bolt-on.
 
-> **Dev note:** the current build spawns new players *with* the Damage Aura for testing convenience. The peasant start is authored in the content pass (roadmap step 6); the spawn default flips then. It needs no new systems — a starting-loadout swap, a level-1 milestone for Damage Aura, and chore-mob content.
+> **Dev note (flipped in step 6 C1):** new players now spawn with exactly Turnip-Pull; the Damage Aura rides the Farmer's ordered teachings @L2. The chore gate is mechanically **opt-in damage** (`gatedDamageTags`): the utility aura only damages targets whose resistances explicitly name its tag — so turnips (and later bramble walls) opt in, and every combat mob is immune with zero per-mob authoring (`manual-content-authoring.md` §1).
 
 ### Milestone Unlocks
 
@@ -383,16 +383,16 @@ Guaranteed unlocks at certain levels. Draft:
 
 | Level | Unlock |
 |---|---|
-| 1 | Damage Aura |
 | 2 | Heal Aura |
 | 3 | Tank Aura |
 | 4 | Cooldown ability (first) |
 | 5 | First skill point |
 | 5+ | Skill points on level-up |
 
-*(The currently implemented [PLACEHOLDER] assignment differs and lives in the
-`api/skills/` milestone data / CLAUDE.md → Current state; this draft remains
-the design intent for the content pass.)*
+*(The Damage Aura left this table in step 6 C1 — it is farmer-taught @L2, see
+Onboarding above. The currently implemented [PLACEHOLDER] assignment lives in
+the milestone data (`backend/pkg/berryhunter/skills/milestone-unlocks.json`);
+the full rewrite lands over the content-pass chunks, final in C8.)*
 
 ### Skill System
 

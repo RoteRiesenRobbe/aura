@@ -41,6 +41,15 @@ func blockingStatic(space *phy.Space, pos phy.Vec2f, radius float32) {
 	space.AddStaticShape(c)
 }
 
+// blockingRectStatic plants a blocking rect-prop-like static box (content-pass
+// C1 rect-prop lift): layer MobStaticCollision, what model/prop.NewRect sets
+// for blocksMovement props.
+func blockingRectStatic(space *phy.Space, pos phy.Vec2f, width, height float32) {
+	b := phy.NewSolidAABB(pos, width, height)
+	b.Shape().Layer = int(model.LayerMobStaticCollision)
+	space.AddStaticShape(b)
+}
+
 // borderWall plants the world border, layered like core/game.go does.
 func borderWall(space *phy.Space, width, height float32) {
 	wall := phy.NewInvAABB(phy.VEC2F_ZERO, width, height)
@@ -74,6 +83,58 @@ func TestMob_SteersAroundBlockerReachesTarget(t *testing.T) {
 		}
 	}
 	t.Fatalf("mob never reached its target around the blocker; final pos %v", m.Body.Position())
+}
+
+func TestMob_SteersAroundRectBlockerReachesTarget(t *testing.T) {
+	space := phy.NewSpace()
+	blockingRectStatic(space, phy.Vec2f{X: 2, Y: 0}, 1.5, 1) // house across the path
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(phy.VEC2F_ZERO)
+	space.AddShape(m.Body)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 4.5, Y: 0} // dead behind the house
+	m.aggroTarget = p
+
+	reach := m.aura.Radius + p.radius
+	for i := 0; i < 300; i++ {
+		tick(t, m, space)
+		if m.Body.Position().Sub(p.pos).Abs() <= reach {
+			return // rounded the house and reached aura reach
+		}
+	}
+	t.Fatalf("mob never reached its target around the rect blocker; final pos %v", m.Body.Position())
+}
+
+func TestMob_TargetInsideRectBlockerHoldsWithoutJitter(t *testing.T) {
+	space := phy.NewSpace()
+	center := phy.Vec2f{X: 2.5, Y: 0}
+	blockingRectStatic(space, center, 3, 2) // stop distance < box: unreachable
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(phy.VEC2F_ZERO)
+	space.AddShape(m.Body)
+	p := newFakeAuraPlayer()
+	p.pos = center // level-design error: target inside the house
+	m.aggroTarget = p
+
+	// Warm-up: approach and settle.
+	for i := 0; i < 100; i++ {
+		tick(t, m, space)
+	}
+
+	prev := m.Body.Position()
+	for i := 0; i < 100; i++ {
+		tick(t, m, space)
+		pos := m.Body.Position()
+		// Physics holds the mob out of the box (face + body radius).
+		assert.True(t, absf(pos.X-center.X) >= 1.5+m.Body.Radius-1e-2 ||
+			absf(pos.Y-center.Y) >= 1+m.Body.Radius-1e-2,
+			"must not end up inside the rect blocker (tick %d): %v", i, pos)
+		// No jitter: per-tick displacement stays a plausible movement step.
+		assert.Less(t, pos.Sub(prev).Abs(), float32(0.15), "teleporty jitter (tick %d)", i)
+		prev = pos
+	}
 }
 
 func TestMob_NoBlockersPathUnchanged(t *testing.T) {

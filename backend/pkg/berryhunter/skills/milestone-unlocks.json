@@ -1,14 +1,6 @@
 [
   { "level": 2, "skillName": "HealAura" },
   { "level": 2, "skillName": "Heal" },
-  { "level": 2, "skillName": "Recall" },
-  { "level": 3, "skillName": "SwiftPassive" },
-  { "level": 4, "skillName": "NovaBurst" },
-  { "level": 4, "skillName": "Light" },
-  { "level": 5, "skillName": "ImmolationAura" },
-  { "level": 5, "skillName": "Ignite" },
-  { "level": 6, "skillName": "SummonTotem" },
-  { "level": 7, "skillName": "SummonCompanion" },
-  { "level": 8, "skillName": "Taunt" },
-  { "level": 8, "skillName": "Fade" }
+  { "level": 3, "skillName": "Recover" },
+  { "level": 4, "skillName": "Haste" }
 ]

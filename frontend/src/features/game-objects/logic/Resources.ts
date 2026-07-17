@@ -373,3 +373,45 @@ const flowerCfg = GraphicsConfig.resources.flower;
 Preloading.registerGameObjectSVG(Flower.resourceSpot, flowerCfg.spotFile, flowerCfg.maxSize);
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Flower, flowerCfg.file, flowerCfg.maxSize);
+
+// The rect-bodied house prop (content pass C1). Props ride the Resource wire
+// table, whose single size scalar is the max half-extent of the rect body —
+// the true aspect comes from the prop def itself (the same JSON the server
+// derives its body from), because SVG preloading rasterizes to a square
+// texture and loses the source proportions.
+const houseDef = require('../../../../../api/props/house.json') as {
+    body: { width: number; height: number };
+};
+
+export class House extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, House.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    initShape(svg: Texture, x: number, y: number, size: number, rotation: number): Container {
+        const sprite = createInjectedSVG(svg, x, y, size, rotation);
+        // createInjectedSVG scales square from the max half-extent; shrink the
+        // shorter body axis back to the authored proportions.
+        const {width, height} = houseDef.body;
+        const max = Math.max(width, height);
+        sprite.width = size * 2 * (width / max);
+        sprite.height = size * 2 * (height / max);
+        return sprite;
+    }
+
+    // Props stream a constant stock/capacity of 1/1; the base setter's
+    // uniform rescale would squash the non-square sprite, so skip it.
+    protected onStockChange(newStock: number, oldStock: number) {
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+const houseCfg = GraphicsConfig.props.house;
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(House, houseCfg.file, houseCfg.maxSize);

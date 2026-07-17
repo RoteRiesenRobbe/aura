@@ -85,11 +85,13 @@ type Factors struct {
 	Resistances             map[string]float32
 	Damage                  float32
 	DamageTags              []string
-	// Lifesteal / Crit are payload-only like DamageTags (plan-skill-vocab
-	// chunk 1): the SkillSystem fills them per hit from the casting effect;
-	// they are not part of the mob JSON.
+	// Lifesteal / Crit / Gated are payload-only like DamageTags
+	// (plan-skill-vocab chunk 1): the SkillSystem fills them per hit from the
+	// casting effect; they are not part of the mob JSON. Gated marks opt-in
+	// damage tags (content pass C1, skills.GateOpensFor).
 	Lifesteal float32
 	Crit      bool
+	Gated     bool
 	Speed                   float32
 	DeltaPhi                float32
 	TurnRate                float32

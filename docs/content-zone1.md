@@ -23,9 +23,16 @@ The tunnel is a **soft gate**: a player *can* walk through blind (darkness
 has no mechanical effect), but the low visibility strongly pushes them to
 find the Light aura first — the point of the light-role tutorial.
 
-The onboarding beat (spawn with Turnip-Pull → chore-mobs to L1 → Damage
-Aura milestone → wolves as first real combat) is the **peasant onboarding**,
-decided in GDD §5.
+The onboarding beat (spawn with Turnip-Pull → chore-mobs to L2 →
+**Farmer teaches Damage + Recall** → wolves as first real combat) is the
+**peasant onboarding**, decided in GDD §5 and amended in step 6 C1 (Damage
+moved from the L1 milestone to the Farmer's ordered teachings @L2).
+
+**In-game since C1:** the Rübenfeld farm start beat — the playfield zone
+(`api/zones/world.json`, full Z1+Z2 bounds), 2 solid houses (first rect
+props), the turnip field, the Rübenfeld campfire (spawn anchor), path stubs
+N + E, and the Farmer. Wildlife, dark forest, kobolds and the tunnel follow
+in C2/C3.
 
 ## Areas (intent)
 

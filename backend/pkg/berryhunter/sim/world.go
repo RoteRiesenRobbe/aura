@@ -87,7 +87,10 @@ func NewWorld(sc Scenario, seed int64) *World {
 				LevelUpXPGrowthFactor: 1.2,
 			},
 		},
-		registry: soloRegistry{sc.Player.Aura.definition(1, "DamageAura")},
+		// The synthetic aura rides the start-loadout name player.New looks up
+		// (TurnipPull since the C1 peasant start) — the payload is still the
+		// scenario's damage aura, only the lookup name follows the live game.
+		registry: soloRegistry{sc.Player.Aura.definition(1, "TurnipPull")},
 	}
 
 	// The minimal real system set, added exactly like core.NewGameWith —

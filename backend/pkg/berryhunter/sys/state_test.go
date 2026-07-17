@@ -61,10 +61,11 @@ func (c *fakeClient) SendMessage(b []byte) error { c.sent = append(c.sent, b); r
 func (c *fakeClient) Close()                     {}
 func (c *fakeClient) UUID() uuid.UUID            { return c.uuid }
 
-// minimal skill content so the real player.New can initialize its component.
-var stateTestDamageAuraJSON = []byte(`{
-  "id": 1,
-  "name": "DamageAura",
+// minimal skill content so the real player.New can initialize its component
+// (the C1 peasant start equips TurnipPull).
+var stateTestTurnipPullJSON = []byte(`{
+  "id": 41,
+  "name": "TurnipPull",
   "category": "active_aura",
   "maxLevel": 1,
   "effects": [{"type": "damage_aura", "targetsEnemies": true}]
@@ -73,7 +74,7 @@ var stateTestDamageAuraJSON = []byte(`{
 func stateTestSkillRegistry(t *testing.T) skills.Registry {
 	t.Helper()
 	r, err := skills.RegistryFromFS(fstest.MapFS{
-		"damage-aura.json": {Data: stateTestDamageAuraJSON},
+		"turnip-pull.json": {Data: stateTestTurnipPullJSON},
 	})
 	require.NoError(t, err)
 	return r

@@ -35,6 +35,7 @@ import (
 type touchRecorder struct {
 	touches    []float32 // damage HP per hit
 	touchTags  [][]string
+	gated      []bool            // Damage.Gated per hit (content pass C1)
 	sources    []model.Combatant // Damage.Source per hit (threat attribution, chunk 3)
 	crits      []bool            // Damage.Crit per hit (chunk 1)
 	lifesteals []float32         // Damage.Lifesteal per hit (chunk 1)
@@ -46,6 +47,7 @@ func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)   {}
 func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	r.touches = append(r.touches, damage.HP)
 	r.touchTags = append(r.touchTags, damage.Tags)
+	r.gated = append(r.gated, damage.Gated)
 	r.sources = append(r.sources, damage.Source)
 	r.crits = append(r.crits, damage.Crit)
 	r.lifesteals = append(r.lifesteals, damage.Lifesteal)
@@ -318,6 +320,30 @@ func TestApplyDamageAura_CarriesDamageTags(t *testing.T) {
 
 	require.Len(t, mobTarget.factors, 1)
 	assert.Equal(t, []string{"fire", "boss_x_lava"}, mobTarget.factors[0].DamageTags)
+}
+
+func TestApplyDamageAura_CarriesGatedFlag(t *testing.T) {
+	// Gated damage tags (content pass C1): the effect's opt-in flag rides the
+	// Damage payload (player path) and the Factors payload (mob path), so the
+	// target's takeDamage can close the gate on unauthored resistances.
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+	effect := damageEffect(1)
+	effect.Damage.Tags = []string{"turnip"}
+	effect.Damage.Gated = true
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.gated, 1)
+	assert.True(t, target.gated[0])
+
+	mobCaster := newFakeMob()
+	mobTarget := &mobTouchRecorder{}
+
+	applyDamageAura(mobCaster, 1, effect, colliderSetOf(mobTarget), testRNG())
+
+	require.Len(t, mobTarget.factors, 1)
+	assert.True(t, mobTarget.factors[0].Gated)
 }
 
 func TestApplyDamageAura_TagsFireStyleForFastTick(t *testing.T) {

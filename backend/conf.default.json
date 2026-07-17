@@ -4,7 +4,7 @@
     "path": "/game"
   },
   "game": {
-    "zone": "proving-grounds",
+    "zone": "world",
     "heatFractionPerSecond": 0.04,
     "totalDayCycleSeconds": 600,
     "dayTimeSeconds": 400,

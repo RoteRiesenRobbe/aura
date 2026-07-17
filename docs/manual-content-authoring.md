@@ -65,6 +65,13 @@ faction and skills without a schema append (see §5 and
      defs only, content always authors them explicitly.)
    - `factors`: `baseMaxHealth`, `maxHealthVariance`, `experience`, `speed`,
      `deltaPhi`, `turnRate`, optional `resistances` / `damageTags`
+   - **Chore/gate tags are opt-in (C1):** gate-style damage (Turnip-Pull)
+     carries `"gatedDamageTags": true` on its effect, which flips the resist
+     default — the hit only damages mobs whose `resistances` **explicitly
+     name** one of its tags (the `"*"` wildcard does not opt in). Combat
+     mobs therefore need NO turnip entry; things the gate aura should
+     affect opt in, like the turnip (`{ "*": 0, "turnip": 1 }`, see
+     `api/mobs/turnip.json`) and the C2 bramble walls.
    - `body`: `radius`, `aggroRadius`
    - `skills[]`: the mob's aura(s) by `skillName` (must exist in `api/skills/`)
    - optional `unlocks[]`: `{skillName, chance}` kill-drop payloads
@@ -134,6 +141,34 @@ Mob allegiances live in **`api/factions/*.json`**, one file per faction:
 - Kill rewards: players recorded as damage participants get full XP/drops
   no matter who lands the killing blow; a pure mob-vs-mob kill grants
   nothing.
+
+---
+
+## 1b. New prop (circle or rectangle)
+
+Props are static world objects from the authored zone (no HP, no gameplay
+behavior — movement blockers + visuals). One JSON per type in `api/props/`:
+
+```json
+{ "name": "Rock",  "entityType": "Stone", "body": { "radius": 0.5 } }
+{ "name": "House", "entityType": "House", "body": { "width": 4, "height": 3 } }
+```
+
+- **Body is exactly one form** (validated at boot): a circle (`radius`) or an
+  axis-aligned rectangle (`width` + `height`, C1 rect-prop lift —
+  `phy.SolidAABB` pushes players AND mobs out, and mob steering paths around
+  it). **Rect bodies never rotate** — a zone prop's `rotation` is ignored for
+  them (it isn't applied server-side for circles either, yet).
+- `entityType` picks the sprite. Reusing an existing enum entry (the scaffold
+  Tree/Rock way) needs no wire work; a **new** sprite is the same 5-file path
+  as a new mob: enum append in `server.fbs` → `./make.sh` → SVG → a render
+  class (`Resources.ts` — mirror `House`, which scales the sprite non-square
+  from the prop def's aspect) → `gameObjectClasses` slot.
+- The wire carries a single size scalar (max half-extent for rects); the
+  `House` render class reads `api/props/house.json` directly for the aspect,
+  so body edits keep the sprite in sync without a schema change.
+- Placement: `zone.props` entries (`type`, `x`, `y`, `blocksMovement`) via the
+  zone editor — rect props draw and hit-test as rectangles there.
 
 ## 2. New ability (aura / passive / cooldown)
 

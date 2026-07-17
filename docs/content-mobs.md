@@ -23,7 +23,7 @@ Loose grouping for the eventual full roster (from the 2026-07-09 capture,
 
 | Mob | Status | Category / role | Notes |
 |---|---|---|---|
-| Turnips | designed | Harvest-mob (chore) | Stationary, passive; only Turnip-Pull damages them (tag-gated). XP only, **no drops** (resolved conflict — `archive-content-zone1-capture.md`). Zone 1 onboarding chore-mob. |
+| Turnips | in-game *(C1)* | Harvest-mob (chore) | Stationary (speed 0), passive, no skills; first authored `resistances` — the `{"*": 0, "turnip": 1}` wildcard means only Turnip-Pull damages them. XP only, **no drops** (resolved conflict — `archive-content-zone1-capture.md`). Zone 1 onboarding chore-mob; field spawns in `api/zones/world.json`, def `api/mobs/turnip.json`. |
 | Wolves | designed | Animal / normal | Zone 1's first real combat mobs; come as a **pack** — the first 1-vs-N fight (pack sizing = sim-harness question, GDD §5). |
 | Elite wolf | designed | Animal / elite | Pack leader; candidate **kill-unlock** source. |
 | Kobolds | idea | Small Fantasy / pest | Field pests near the zone-1 farm; **no loot**. |

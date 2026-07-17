@@ -305,6 +305,8 @@ const gameObjectClasses = [
     Mobs.Healer,
     Mobs.Campfire,
     Corpse,
+    Mobs.Turnip,
+    Resources.House,
 ];
 
 function unmarshalEntityType(entityType) {

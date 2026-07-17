@@ -455,6 +455,22 @@ export class Campfire extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Campfire, file('campfire'), maxSize('campfire'));
 
+// The stationary harvest-mob (content pass C1): stands in the Rübenfeld field,
+// never moves or fights back — only Turnip-Pull damages it (wildcard resist).
+// No hit sound — the base Damaged flash suffices for the placeholder art.
+export class Turnip extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.turnip, x, y,
+            randomInt(minSize('turnip'), maxSize('turnip')),
+            Turnip.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Turnip, file('turnip'), maxSize('turnip'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.

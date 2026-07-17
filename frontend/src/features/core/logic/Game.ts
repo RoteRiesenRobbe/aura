@@ -180,6 +180,7 @@ export class Game implements IGame {
                 brazier: createNamedContainer('brazier'),
                 healer: createNamedContainer('healer'),
                 campfire: createNamedContainer('campfireMob'),
+                turnip: createNamedContainer('turnip'),
             },
             resources: {
                 berryBush: createNamedContainer('berryBush'),
@@ -242,6 +243,7 @@ export class Game implements IGame {
             this.layers.mobs.brazier,
             this.layers.mobs.healer,
             this.layers.mobs.campfire,
+            this.layers.mobs.turnip,
         );
 
         // Higher Placeables

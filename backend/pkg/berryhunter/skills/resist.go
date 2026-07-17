@@ -42,6 +42,28 @@ func ResistMultiplier(tags []string, sources ...map[string]float32) float32 {
 	return multiplier
 }
 
+// GateOpensFor reports whether a gated hit may damage a target with the given
+// BASE resistances (content pass C1, "gatedDamageTags"): gated damage is
+// opt-in — the target's own base map must explicitly name at least one of the
+// hit's tags. The wildcard entry does NOT opt in (it is a fallback, not a
+// declaration), and transient resist buffs never open the gate — opting into
+// a chore tag is a property of the authored mob, not of a buff. An explicit 0
+// entry opens the gate; the normal multiplier math then makes it a non-event
+// anyway. This is what keeps Turnip-Pull popping turnips (["turnip"] against
+// {"*": 0, "turnip": 1}) while every mob that never mentions the tag —
+// present or future — is immune with zero authoring.
+func GateOpensFor(tags []string, base map[string]float32) bool {
+	for _, tag := range tags {
+		if tag == ResistWildcard {
+			continue
+		}
+		if _, ok := base[tag]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 // The transient per-entity resist buffs live in the generic Buffs store
 // (buffs.go, effect foundations Step 2), which inherited ResistBuffs'
 // source-keying, stream and stacking semantics. The tag-LIST-shaped resist

@@ -504,7 +504,7 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 		// F6 §3.1 steps 3–5 per hit: execute × crit roll × variance roll; the
 		// target's resistance then multiplies the rolled value (decision C3).
 		hitHP, crit := rollHitDamage(damageHP, effect.Damage, c, rng)
-		damage := model.Damage{HP: hitHP, Tags: effect.Damage.Tags, Source: source, Lifesteal: effect.Damage.LifestealFraction, Crit: crit}
+		damage := model.Damage{HP: hitHP, Tags: effect.Damage.Tags, Gated: effect.Damage.Gated, Source: source, Lifesteal: effect.Damage.LifestealFraction, Crit: crit}
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
 		noteAuraHit(c, style)
 	}
@@ -531,6 +531,7 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, 
 	damageHP := effect.Damage.HPAt(level) * casterPowerScale(caster) * berserkerMultiplier(effect.Damage, caster)
 	factors := mobs.Factors{
 		DamageTags:              effect.Damage.Tags,
+		Gated:                   effect.Damage.Gated,
 		StructureDamageFraction: effect.Damage.StructureDamageFraction,
 		Lifesteal:               effect.Damage.LifestealFraction,
 	}

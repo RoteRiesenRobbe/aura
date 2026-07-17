@@ -514,6 +514,35 @@ any content.
 
 ### C1 — Z1 farm start beat (story §3 beats 1–4)
 
+> **✅ DONE + VERIFIED IN-GAME by PO 2026-07-17 (committed).**
+> Shipped beyond the scope below (PO-approved in-session): the **rect-prop
+> lift** — `phy.SolidAABB` (static solid rectangle, mirror of the border
+> InvAABB; TDD incl. through-Space pins), prop body = `radius` XOR
+> `width`+`height`, `model/prop.NewRect` (wire radius = max half-extent),
+> mob-steering `boxRepulsion`, zone-editor rect markers + hit-test — so the
+> farm houses are true solid rectangles and C4 (village, gates) reuses it.
+> PO decisions: milestone first cut also slots **Recover @3 + Haste @4**;
+> zone file stem = **`world`**; bounds 240×120 [PLACEHOLDER]. Sim pins stay
+> byte-identical (sim's soloRegistry follows the start-loadout name →
+> "TurnipPull"). **Gated damage tags (same-day follow-up, PO decision):**
+> `gatedDamageTags` on the damage payload flips the resist default to
+> opt-in — the hit only damages targets whose BASE resistances explicitly
+> name a hit tag (wildcard ≠ opt-in; `skills.GateOpensFor`); Turnip-Pull
+> carries it, so combat mobs need NO per-mob `"turnip": 0` entry, ever
+> (the interim rule was recorded and then replaced the same day). Gate
+> flows Damage.Gated / Factors.Gated on both caster paths; players never
+> opt in (no PvP leak); gating the implicit [physical] default hard-fails
+> at parse. **In-game fix (PO first join panicked):** the player VIEWPORT
+> is a dynamic `phy.Box` querier, and a blocking rect prop carries the
+> viewport layer for streaming — `SolidAABB.intersectWithBox` was a panic
+> stub; now plain AABB overlap (boxes never resolve physically), pinned by
+> viewport-streaming tests + a browser join smoke run (join → in-world at
+> the farm, no server panic, no client errors). Beat-2 field-edge pests are
+> the kobolds — C3, not authored here. GDD §5 amendment landed (onboarding
+> text, dev note, draft milestone table). Zone authored via a deterministic
+> generator script (scratchpad); the committed JSON is the artifact, the
+> editor round-trips it for PO polish.
+
 - New playfield zone JSON in `api/zones/` (full Z1+Z2 bounds; farm-area
   block-out: 2 houses, turnip field, Rübenfeld campfire, path stubs N + E).
 - Turnip mob (first authored `resistances` + `{"*":0,"turnip":1}` wildcard);

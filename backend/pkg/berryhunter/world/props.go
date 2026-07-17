@@ -10,10 +10,20 @@ import (
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 )
 
-// PropBody describes the physical circle body of a prop type.
-// [PLACEHOLDER] radii live in api/props/, tuned in-game.
+// PropBody describes the physical body of a prop type: either a circle
+// (radius) or an axis-aligned rectangle (width + height) — exactly one form,
+// enforced at parse. Rectangles never rotate (a zone prop's rotation stays
+// visual-only, and the server doesn't even apply it yet — see zone.Prop).
+// [PLACEHOLDER] sizes live in api/props/, tuned in-game.
 type PropBody struct {
 	Radius float32 `json:"radius"`
+	Width  float32 `json:"width"`
+	Height float32 `json:"height"`
+}
+
+// IsRect reports whether the body is the rectangle form.
+func (b PropBody) IsRect() bool {
+	return b.Width > 0 || b.Height > 0
 }
 
 // PropDefinition maps an authored prop type name to the client-facing
@@ -113,7 +123,14 @@ func parsePropDefinition(data []byte) (*PropDefinition, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown entityType %q", doc.EntityType)
 	}
-	if doc.Body.Radius <= 0 {
+	if doc.Body.IsRect() {
+		if doc.Body.Radius != 0 {
+			return nil, fmt.Errorf("body must be either a radius or width+height, not both")
+		}
+		if doc.Body.Width <= 0 || doc.Body.Height <= 0 {
+			return nil, fmt.Errorf("body width and height must both be positive, got %g x %g", doc.Body.Width, doc.Body.Height)
+		}
+	} else if doc.Body.Radius <= 0 {
 		return nil, fmt.Errorf("body radius must be positive, got %g", doc.Body.Radius)
 	}
 	return &PropDefinition{

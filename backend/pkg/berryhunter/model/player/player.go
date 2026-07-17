@@ -59,7 +59,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.skills = sc
 	p.milestoneUnlocks = g.Config().MilestoneUnlocks
 	p.recipes = g.Config().Recipes
-	// A fresh spawn only has DamageAura at level 1, but run the cascade anyway
+	// A fresh spawn only has TurnipPull at level 1, but run the cascade anyway
 	// so a starter recipe keyed on that would still fire — keeps discovery paths
 	// uniform.
 	p.ApplyRecipeCascade()
@@ -272,6 +272,12 @@ func (p *player) HealthRatio() float32 {
 // damage + actual HP lost after clamping — overkill never counts
 // (plan-skill-vocab chunk 2, F6 §3.1/9; mirrors the mob site).
 func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.VitalSign {
+	// Gated hits (content pass C1) are opt-in via BASE resistances, and
+	// players have none — a gated hit never damages a player (defensive;
+	// nothing casts gated damage at players under no-PvP).
+	if damage.Gated {
+		return 0
+	}
 	// Tag resistances (Phase 2): resist passives (Derived) and transient
 	// resist-aura buffs are distinct sources and stack multiplicatively.
 	hp32 := damage.HP *
@@ -470,7 +476,7 @@ func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 		p.attacker = c
 		p.attackerTicks = combatSignalWindowTicks
 	}
-	dealt := p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, Gated: factors.Gated, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
 	// always its own recipient.
 	model.ApplyLifesteal(dealt, factors.Lifesteal, nil, e)
@@ -718,15 +724,18 @@ func (p *player) ApplyRecipeCascade() {
 	}
 }
 
+// initializePlayerSkills builds the peasant-start loadout (content pass C1,
+// GDD §5): a fresh spawn owns exactly TurnipPull — the chore aura that pops
+// harvest-mobs and nothing else. DamageAura is farmer-taught at L2.
 func initializePlayerSkills(r skills.Registry) (*skills.SkillComponent, error) {
-	damageAura, err := r.GetByName("DamageAura")
+	turnipPull, err := r.GetByName("TurnipPull")
 	if err != nil {
-		return nil, fmt.Errorf("skill registry missing DamageAura: %w", err)
+		return nil, fmt.Errorf("skill registry missing TurnipPull: %w", err)
 	}
 
 	sc := skills.NewSkillComponent(true)
-	sc.EquipAura(0, damageAura, 1)
-	sc.Discover(damageAura.ID)
+	sc.EquipAura(0, turnipPull, 1)
+	sc.Discover(turnipPull.ID)
 	sc.SetActiveAura(0)
 	return sc, nil
 }

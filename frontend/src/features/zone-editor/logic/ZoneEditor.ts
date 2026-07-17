@@ -19,13 +19,17 @@ import {ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneNpc, ZoneProp, Zone
 export interface PropTypeDef {
     name: string;
     entityType: string;
-    radius: number; // server units
+    radius: number; // server units; 0 for rect bodies
+    width: number; // server units; 0 for circle bodies
+    height: number;
 }
 
 interface PropDefJSON {
     name: string;
     entityType: string;
-    body: { radius: number };
+    // Exactly one body form, matching the server-side parse (world/props.go):
+    // a circle (radius) or an axis-aligned rectangle (width + height).
+    body: { radius?: number; width?: number; height?: number };
 }
 
 interface MobDefJSON {
@@ -54,7 +58,13 @@ zonesContext.keys().forEach((key: string) => {
 export const zoneStems: string[] = Object.keys(zonesByStem).sort((a, b) => a.localeCompare(b));
 
 export const propTypes: PropTypeDef[] = propDefJSONs
-    .map(def => ({name: def.name, entityType: def.entityType, radius: def.body.radius}))
+    .map(def => ({
+        name: def.name,
+        entityType: def.entityType,
+        radius: def.body.radius || 0,
+        width: def.body.width || 0,
+        height: def.body.height || 0,
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
 export const mobNames: string[] = mobDefJSONs
@@ -255,6 +265,15 @@ export function hitTestProp(x: number, y: number): number {
     for (let i = model.props.length - 1; i >= 0; i--) {
         let prop = model.props[i];
         let def = propTypeByName(prop.type);
+        if (def && def.width > 0) {
+            // Rect body: point-in-rect, padded to the minimum hit size.
+            let hw = Math.max(def.width / 2, MIN_HIT_RADIUS);
+            let hh = Math.max(def.height / 2, MIN_HIT_RADIUS);
+            if (Math.abs(x - prop.x) <= hw && Math.abs(y - prop.y) <= hh) {
+                return i;
+            }
+            continue;
+        }
         let hitRadius = Math.max(def ? def.radius : MIN_HIT_RADIUS, MIN_HIT_RADIUS);
         if (distance(x, y, prop.x, prop.y) <= hitRadius) {
             return i;
@@ -493,21 +512,35 @@ function redrawBounds() {
 
 function drawPropMarker(prop: ZoneProp, selected: boolean): Container {
     let def = propTypeByName(prop.type);
-    let radiusPx = meter2px(Math.max(def ? def.radius : MIN_HIT_RADIUS, MIN_HIT_RADIUS));
     let color = prop.blocksMovement ? COLOR_BLOCKING : COLOR_DECORATIVE;
 
     let marker = new Container();
-    let graphic = new Graphics()
-        .circle(0, 0, radiusPx)
-        .fill({color, alpha: prop.blocksMovement ? 0.25 : 0.1})
-        .stroke({width: selected ? 6 : 3, color: selected ? COLOR_SELECTED : color})
-        // Rotation tick, so authored rotation is visible even on circles.
-        .moveTo(0, 0)
-        .lineTo(radiusPx, 0)
-        .stroke({width: 2, color});
-    graphic.rotation = prop.rotation;
+    let graphic: Graphics;
+    let labelOffsetPx: number;
+    if (def && def.width > 0) {
+        // Rect body (never rotates — the server body is axis-aligned).
+        let hwPx = meter2px(Math.max(def.width / 2, MIN_HIT_RADIUS));
+        let hhPx = meter2px(Math.max(def.height / 2, MIN_HIT_RADIUS));
+        graphic = new Graphics()
+            .rect(-hwPx, -hhPx, hwPx * 2, hhPx * 2)
+            .fill({color, alpha: prop.blocksMovement ? 0.25 : 0.1})
+            .stroke({width: selected ? 6 : 3, color: selected ? COLOR_SELECTED : color});
+        labelOffsetPx = hhPx;
+    } else {
+        let radiusPx = meter2px(Math.max(def ? def.radius : MIN_HIT_RADIUS, MIN_HIT_RADIUS));
+        graphic = new Graphics()
+            .circle(0, 0, radiusPx)
+            .fill({color, alpha: prop.blocksMovement ? 0.25 : 0.1})
+            .stroke({width: selected ? 6 : 3, color: selected ? COLOR_SELECTED : color})
+            // Rotation tick, so authored rotation is visible even on circles.
+            .moveTo(0, 0)
+            .lineTo(radiusPx, 0)
+            .stroke({width: 2, color});
+        graphic.rotation = prop.rotation;
+        labelOffsetPx = radiusPx;
+    }
     marker.addChild(graphic);
-    marker.addChild(markerLabel(prop.type, radiusPx));
+    marker.addChild(markerLabel(prop.type, labelOffsetPx));
     marker.position.set(meter2px(prop.x), meter2px(prop.y));
     return marker;
 }

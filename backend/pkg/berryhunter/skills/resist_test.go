@@ -85,3 +85,34 @@ func TestResistMultiplier_WildcardComposesAcrossSources(t *testing.T) {
 	)
 	assert.InDelta(t, 0.25, m, 1e-6)
 }
+
+func TestGateOpensFor_ExplicitEntryOpens(t *testing.T) {
+	// The turnip mob's map: explicitly opted into the turnip tag.
+	base := map[string]float32{"*": 0, "turnip": 1}
+	assert.True(t, GateOpensFor([]string{"turnip"}, base))
+}
+
+func TestGateOpensFor_ExplicitZeroStillOpens(t *testing.T) {
+	// An explicit 0 entry is deliberate immunity — the gate opens and the
+	// normal multiplier math produces the non-event.
+	base := map[string]float32{"turnip": 0}
+	assert.True(t, GateOpensFor([]string{"turnip"}, base))
+}
+
+func TestGateOpensFor_WildcardDoesNotOptIn(t *testing.T) {
+	// A wildcard-resisting mob has NOT opted into the gated tag.
+	base := map[string]float32{"*": 0.5}
+	assert.False(t, GateOpensFor([]string{"turnip"}, base))
+}
+
+func TestGateOpensFor_AbsentOrNilMapStaysClosed(t *testing.T) {
+	assert.False(t, GateOpensFor([]string{"turnip"}, map[string]float32{"physical": 0.8}))
+	assert.False(t, GateOpensFor([]string{"turnip"}, nil))
+}
+
+func TestGateOpensFor_AnyTagOpens(t *testing.T) {
+	// A multi-tag hit needs only one explicit entry to pass the gate; the
+	// per-tag multipliers then rule as usual.
+	base := map[string]float32{"turnip": 1}
+	assert.True(t, GateOpensFor([]string{"physical", "turnip"}, base))
+}

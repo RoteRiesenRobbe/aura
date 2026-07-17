@@ -177,6 +177,43 @@ func TestMob_PlayerTouches_ImmuneTagNoHit(t *testing.T) {
 	assert.NotContains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)
 }
 
+func TestMob_PlayerTouches_GatedTagNeedsOptIn(t *testing.T) {
+	// Gated damage (content pass C1, "gatedDamageTags") is opt-in: a mob
+	// whose base resistances never mention the tag is immune — the wolf
+	// case, with zero authoring on the wolf.
+	m := newTestMob() // no resistances at all
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"turnip"}, Gated: true})
+
+	assert.Equal(t, m.MaxHealth(), m.Health())
+	assert.Zero(t, m.DamageTaken())
+	assert.NotContains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient,
+		"a gate-closed hit is a non-event like a fully resisted one")
+}
+
+func TestMob_PlayerTouches_GatedTagWildcardDoesNotOptIn(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"*": 0.5}
+	m := NewMob(def, 0, nil)
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"turnip"}, Gated: true})
+
+	assert.Equal(t, m.MaxHealth(), m.Health(),
+		"a wildcard entry is a fallback, not an opt-in")
+}
+
+func TestMob_PlayerTouches_GatedTagExplicitEntryTakesDamage(t *testing.T) {
+	// The turnip case: {"*": 0, "turnip": 1} opts in, damage lands normally.
+	def := testMobDefinition()
+	def.Factors.Resistances = map[string]float32{"*": 0, "turnip": 1}
+	m := NewMob(def, 0, nil)
+
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"turnip"}, Gated: true})
+
+	assert.Equal(t, m.MaxHealth()-10, m.Health())
+	assert.Contains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)
+}
+
 func TestNewMob_EntityTypeOverride(t *testing.T) {
 	def := testMobDefinition()
 	def.Name = "ProvingBoss" // no such wire type — would fatal without the override

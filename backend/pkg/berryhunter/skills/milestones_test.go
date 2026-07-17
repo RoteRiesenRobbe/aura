@@ -58,23 +58,29 @@ func TestMilestoneUnlocksFromJSON_InvalidJSON(t *testing.T) {
 	require.Error(t, err)
 }
 
-// Pins the embedded milestone table (plan-skill-vocab chunk 4): 12 entries,
-// with Recall granted early ([PLACEHOLDER L2] — every character gets the
-// hearthstone-style escape, GDD §3). Resolves against the real content in
-// api/skills so a renamed skill fails here, not at boot.
+// Pins the embedded milestone table — first cut of the content-pass rewrite
+// (plan-content-zones12.md §13 C1, all levels [PLACEHOLDER], final in C8):
+// only skills the plan keeps as milestones remain. Everything reassigned to
+// drops/teachings is out (Recall → Farmer, Swift → Wolf, Light → Kobold,
+// NovaBurst → Elite Bandit, SummonCompanion → Dog NPC, Taunt → Horde,
+// SummonTotem/Fade → TBD §11), and the fire skills are de-fired (tone rule).
+// Resolves against the real content in api/skills so a renamed skill fails
+// here, not at boot.
 func TestDefaultMilestoneUnlocks_PinnedTable(t *testing.T) {
 	r, err := RegistryFromFS(os.DirFS("../../../../api/skills"))
 	require.NoError(t, err)
 
 	unlocks, err := DefaultMilestoneUnlocks(r)
 	require.NoError(t, err)
-	assert.Len(t, unlocks, 12)
 
-	var recallLevel uint32
+	got := map[string]uint32{}
 	for _, u := range unlocks {
-		if u.Skill.Name == "Recall" {
-			recallLevel = u.Level
-		}
+		got[u.Skill.Name] = u.Level
 	}
-	assert.Equal(t, uint32(2), recallLevel, "Recall rides the L2 milestone")
+	assert.Equal(t, map[string]uint32{
+		"HealAura": 2,
+		"Heal":     2,
+		"Recover":  3,
+		"Haste":    4,
+	}, got)
 }

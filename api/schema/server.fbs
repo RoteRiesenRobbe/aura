@@ -26,7 +26,9 @@ enum EntityType : ushort {
   Brazier,
   Healer,
   Campfire,
-  Corpse
+  Corpse,
+  Turnip,
+  House
 }
 
 enum StatusEffect : ushort {

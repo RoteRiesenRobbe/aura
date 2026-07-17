@@ -233,6 +233,15 @@ type DamageParams struct {
 	// "fire"). Always non-empty after parsing: absent → [DamageTagPhysical].
 	Tags []string
 
+	// Gated flips the resist default for this payload's tags (content pass
+	// C1, GDD §5 chore gate): the hit only damages targets whose BASE
+	// resistances explicitly name one of Tags (skills.GateOpensFor) — every
+	// unauthored target is immune instead of unresisted. Requires explicit
+	// damageTags (gating the [physical] default hard-fails at parse). This
+	// is what makes Turnip-Pull pop turnips and nothing else without every
+	// combat mob authoring a "turnip": 0 entry.
+	Gated bool
+
 	// Per-hit percentage variance band (item 11 Phase 3): each hit rolls
 	// uniform in [center×(1−v), center×(1+v)] around the level-scaled
 	// amount. 0 = static (the default); valid range 0 <= v < 1. The roll
@@ -576,6 +585,7 @@ type effectDef struct {
 	TargetsEnemies   bool     `json:"targetsEnemies"`
 	TargetsAllies    bool     `json:"targetsAllies"`
 	DamageTags       []string `json:"damageTags"` // absent → [physical] on damage effects
+	GatedDamageTags  bool     `json:"gatedDamageTags"`
 
 	Variance float32 `json:"variance"` // 0 = static; only on damage/heal amounts
 
@@ -672,7 +682,7 @@ var (
 	// ride only here — dots are deliberately excluded in v1 (§3.3; add to
 	// keysDotPayload + DotParams when content wants a burning execute).
 	keysDamagePayload = []string{
-		"damageHP", "damageHPPerLevel", "damageTags", "variance", "hitStyle", "targetsStructures", "structureDamageFraction",
+		"damageHP", "damageHPPerLevel", "damageTags", "gatedDamageTags", "variance", "hitStyle", "targetsStructures", "structureDamageFraction",
 		"executeBelowFraction", "executeBonusFactor", "berserkerMaxBonusFactor", "critChance", "critFactor", "lifestealFraction",
 	}
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
@@ -934,6 +944,12 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 func (e *effectDef) damageParams() (*DamageParams, error) {
 	tags := e.DamageTags
 	if len(tags) == 0 {
+		// Gating the implicit [physical] default would silently damage
+		// nothing that doesn't author "physical" — require the tags spelled
+		// out (content pass C1).
+		if e.GatedDamageTags {
+			return nil, fmt.Errorf("gatedDamageTags: requires explicit damageTags")
+		}
 		tags = []string{DamageTagPhysical}
 	} else if err := validateTags("damageTags", tags); err != nil {
 		return nil, err
@@ -979,6 +995,7 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 		HP:                      e.DamageHP,
 		HPPerLevel:              e.DamageHPPerLevel,
 		Tags:                    tags,
+		Gated:                   e.GatedDamageTags,
 		Variance:                e.Variance,
 		HitStyle:                hitStyle,
 		StructureDamageFraction: e.StructureDamageFraction,

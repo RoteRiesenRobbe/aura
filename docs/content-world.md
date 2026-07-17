@@ -28,6 +28,11 @@ is the zone JSON authored via the editor (`manual-zone-editor.md`).
 **Connections:** the **tunnel Zone 1 ↔ Zone 2** is the first dark area — the
 natural light-role tutorial (GDD §7; detail in `content-zone1.md`).
 
+**The playfield (since step 6 C1):** zones 1+2 ship as ONE zone file,
+`api/zones/world.json` (240×120; west half = Z1, east half = Z2 — design
+labels, not engine objects). It is the boot default (`game.zone: "world"`);
+the proving grounds stay reachable via `-zone proving-grounds`.
+
 ## Unplaced locations (no zone yet)
 
 | Place | Note |

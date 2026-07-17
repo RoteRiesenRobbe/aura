@@ -28,6 +28,13 @@ type Damage struct {
 	// renders it big. Presentational at the target — the multiplier was
 	// applied caster-side.
 	Crit bool
+
+	// Gated flips the resist default for this hit (content pass C1, the
+	// chore gate): the target takes damage only if its BASE resistances
+	// explicitly name one of Tags (skills.GateOpensFor) — otherwise the hit
+	// is a non-event, exactly like a fully resisted tag. Filled from the
+	// effect's gatedDamageTags at cast time, like Tags/Crit/Lifesteal.
+	Gated bool
 }
 
 type Interacter interface {

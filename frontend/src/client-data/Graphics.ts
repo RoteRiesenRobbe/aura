@@ -133,6 +133,22 @@ export const GraphicsConfig = {
             minSize: <number> 60,
             maxSize: <number> 60,
         },
+
+        turnip: {
+            file: require('../features/game-objects/assets/mobs/turnip.svg'),
+            minSize: <number> 20,
+            maxSize: <number> 26,
+        },
+    },
+
+    // Static zone props with dedicated art (content pass C1). Rect props are
+    // sized from the wire radius (= max half-extent) — the SVG aspect must
+    // match the prop body in api/props/.
+    props: {
+        house: {
+            file: require('../features/game-objects/assets/resources/house.svg'),
+            maxSize: <number> 480,
+        },
     },
 
     // Player corpse (chunk 4): gravestone placeholder at the deathspot.

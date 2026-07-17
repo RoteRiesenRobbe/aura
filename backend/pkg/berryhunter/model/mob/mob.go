@@ -1093,6 +1093,12 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	if m.invulnerable {
 		return 0
 	}
+	// Gated hits (content pass C1) are opt-in: without an explicit base
+	// entry for one of the hit's tags the mob was never a valid target —
+	// same non-event as a fully resisted hit.
+	if damage.Gated && !skills.GateOpensFor(damage.Tags, m.definition.Factors.Resistances) {
+		return 0
+	}
 	multiplier := skills.ResistMultiplier(damage.Tags, m.definition.Factors.Resistances) *
 		m.buffs.ResistMultiplier(damage.Tags)
 
@@ -1231,7 +1237,7 @@ func (m *Mob) ResetTickNumbers() {
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
+	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, Gated: factors.Gated, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
 	// always its own recipient.
 	model.ApplyLifesteal(lost, factors.Lifesteal, nil, e)

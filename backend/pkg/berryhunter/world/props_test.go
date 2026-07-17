@@ -74,6 +74,51 @@ func TestPropRegistry_RejectsNonPositiveRadius(t *testing.T) {
 	}
 }
 
+func TestPropRegistry_LoadsRectBody(t *testing.T) {
+	fsys := propFS(map[string]string{
+		"house.json": `{ "name": "House", "entityType": "Stone", "body": { "width": 4, "height": 3 } }`,
+	})
+
+	r, err := PropRegistryFromFS(fsys)
+	require.NoError(t, err)
+
+	house, err := r.GetByName("House")
+	require.NoError(t, err)
+	assert.True(t, house.Body.IsRect())
+	assert.EqualValues(t, 4, house.Body.Width)
+	assert.EqualValues(t, 3, house.Body.Height)
+	assert.EqualValues(t, 0, house.Body.Radius)
+}
+
+func TestPropRegistry_CircleBodyIsNotRect(t *testing.T) {
+	fsys := propFS(map[string]string{
+		"rock.json": `{ "name": "Rock", "entityType": "Stone", "body": { "radius": 0.5 } }`,
+	})
+
+	r, err := PropRegistryFromFS(fsys)
+	require.NoError(t, err)
+
+	rock, err := r.GetByName("Rock")
+	require.NoError(t, err)
+	assert.False(t, rock.Body.IsRect())
+}
+
+func TestPropRegistry_RejectsInvalidRectBodies(t *testing.T) {
+	for name, doc := range map[string]string{
+		"radius and rect":  `{ "name": "House", "entityType": "Stone", "body": { "radius": 1, "width": 4, "height": 3 } }`,
+		"width only":       `{ "name": "House", "entityType": "Stone", "body": { "width": 4 } }`,
+		"height only":      `{ "name": "House", "entityType": "Stone", "body": { "height": 3 } }`,
+		"negative width":   `{ "name": "House", "entityType": "Stone", "body": { "width": -4, "height": 3 } }`,
+		"zero height":      `{ "name": "House", "entityType": "Stone", "body": { "width": 4, "height": 0 } }`,
+		"radius and width": `{ "name": "House", "entityType": "Stone", "body": { "radius": 1, "width": 4 } }`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := PropRegistryFromFS(propFS(map[string]string{"house.json": doc}))
+			require.Error(t, err)
+		})
+	}
+}
+
 func TestPropRegistry_RejectsMissingName(t *testing.T) {
 	fsys := propFS(map[string]string{
 		"rock.json": `{ "entityType": "Stone", "body": { "radius": 0.5 } }`,

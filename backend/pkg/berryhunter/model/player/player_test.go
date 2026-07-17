@@ -57,29 +57,34 @@ func (r *stubRegistry) All() []*skills.SkillDefinition {
 
 var (
 	defDamageAura = &skills.SkillDefinition{ID: 1, Name: "DamageAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	// The peasant-start utility aura (content pass C1, GDD §5): the only
+	// skill a fresh spawn owns — DamageAura moved to the Farmer's teaching.
+	defTurnipPull = &skills.SkillDefinition{ID: 41, Name: "TurnipPull", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 )
 
 func TestInitializePlayerSkills_SlotsAndSpellbook(t *testing.T) {
-	r := newStubRegistry(defDamageAura)
+	r := newStubRegistry(defDamageAura, defTurnipPull)
 	sc, err := initializePlayerSkills(r)
 	require.NoError(t, err)
 
 	require.NotNil(t, sc.AuraSlots[0], "slot 0 must be populated")
-	assert.Equal(t, "DamageAura", sc.AuraSlots[0].Def.Name)
+	assert.Equal(t, "TurnipPull", sc.AuraSlots[0].Def.Name)
 	assert.Equal(t, 1, sc.AuraSlots[0].Level)
 
-	assert.Nil(t, sc.AuraSlots[1], "slot 1 must be empty — HealAura not yet unlocked")
+	assert.Nil(t, sc.AuraSlots[1], "slot 1 must be empty — nothing else unlocked")
 
 	assert.Equal(t, 0, sc.ActiveAuraSlot)
 
-	assert.True(t, sc.HasDiscovered(defDamageAura.ID), "DamageAura must be in spellbook")
+	assert.True(t, sc.HasDiscovered(defTurnipPull.ID), "TurnipPull must be in spellbook")
+	assert.False(t, sc.HasDiscovered(defDamageAura.ID),
+		"DamageAura is farmer-taught @L2 (GDD §5 amendment), never a spawn freebie")
 }
 
-func TestInitializePlayerSkills_MissingDamageAura(t *testing.T) {
-	r := newStubRegistry() // DamageAura absent
+func TestInitializePlayerSkills_MissingTurnipPull(t *testing.T) {
+	r := newStubRegistry(defDamageAura) // TurnipPull absent
 	_, err := initializePlayerSkills(r)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "DamageAura")
+	assert.Contains(t, err.Error(), "TurnipPull")
 }
 
 // --- milestone unlock tests ---
@@ -91,7 +96,7 @@ var defHealAura = &skills.SkillDefinition{ID: 2, Name: "HealAura", Category: ski
 //
 //	level 1→2 costs 100 XP, level 2→3 costs 200 XP.
 func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
-	r := newStubRegistry(defDamageAura, defHealAura)
+	r := newStubRegistry(defDamageAura, defHealAura, defTurnipPull)
 	sc, _ := initializePlayerSkills(r)
 	return &player{
 		progression:      model.PlayerProgression{Level: 1},

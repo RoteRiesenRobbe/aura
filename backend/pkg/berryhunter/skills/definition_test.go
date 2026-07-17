@@ -250,6 +250,35 @@ func TestMap_DamageTagsOnNonDamageEffectFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// --- gated damage tags (content pass C1) ---
+
+func TestParse_GatedDamageTags(t *testing.T) {
+	data := []byte(`{
+      "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
+      "effects": [{"type": "damage_aura", "targetsEnemies": true, "damageTags": ["turnip"], "gatedDamageTags": true}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	assert.True(t, def.Effects[0].Damage.Gated)
+}
+
+func TestParse_GatedDefaultsToFalse(t *testing.T) {
+	damage := mustParse(t, damageAuraJSON)
+	require.Len(t, damage.Effects, 1)
+	assert.False(t, damage.Effects[0].Damage.Gated)
+}
+
+func TestMap_GatedWithoutExplicitTagsFails(t *testing.T) {
+	// Gating the implicit [physical] default would make the skill damage
+	// nothing that doesn't author "physical" — a footgun, not content.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"gatedDamageTags":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "gatedDamageTags")
+}
+
 // --- per-hit variance (item 11 Phase 3) ---
 
 func TestParse_Variance(t *testing.T) {

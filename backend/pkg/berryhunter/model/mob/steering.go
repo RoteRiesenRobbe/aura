@@ -60,9 +60,10 @@ func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 }
 
 // blockerRepulsion sums the repulsion from every blocking static within the
-// steering lookahead: radial from circles (blocking props), axis-aligned
-// inward from the border wall. The probe carries the mob's own collision
-// mask, so a static the mob walks through (the boss vs rocks) never repels it.
+// steering lookahead: radial from circles (blocking props), away from the
+// closest face point of solid boxes (rect props), axis-aligned inward from
+// the border wall. The probe carries the mob's own collision mask, so a
+// static the mob walks through (the boss vs rocks) never repels it.
 func (m *Mob) blockerRepulsion() phy.Vec2f {
 	probe := phy.NewCircle(m.Position(), m.Radius()+steeringLookahead)
 	probe.Shape().Mask = m.Body.Shape().Mask
@@ -72,6 +73,8 @@ func (m *Mob) blockerRepulsion() phy.Vec2f {
 		switch o := c.(type) {
 		case *phy.Circle:
 			rep = rep.Add(m.circleRepulsion(o))
+		case *phy.SolidAABB:
+			rep = rep.Add(m.boxRepulsion(o))
 		case *phy.InvAABB:
 			rep = rep.Add(m.wallRepulsion(o))
 		}
@@ -90,6 +93,22 @@ func (m *Mob) circleRepulsion(o *phy.Circle) phy.Vec2f {
 		return m.heading
 	}
 	w := steeringFalloff(d - m.Radius() - o.Radius)
+	return delta.Div(d).Mult(w)
+}
+
+// boxRepulsion pushes away from the closest point on a solid box (rect
+// props), weighted by the falloff over the body-edge gap — circleRepulsion
+// with the box's contact point as the effective center.
+func (m *Mob) boxRepulsion(o *phy.SolidAABB) phy.Vec2f {
+	pos := m.Position()
+	delta := pos.Sub(o.ClosestPoint(pos))
+	d := delta.Abs()
+	if d < 1e-4 {
+		// Center inside the box: no outward direction exists — push along the
+		// current heading, like circleRepulsion's dead-center fallback.
+		return m.heading
+	}
+	w := steeringFalloff(d - m.Radius())
 	return delta.Div(d).Mult(w)
 }
 
