@@ -514,7 +514,7 @@ any content.
 
 ### C1 — Z1 farm start beat (story §3 beats 1–4)
 
-> **✅ DONE + VERIFIED IN-GAME by PO 2026-07-17 (committed).**
+> **✅ DONE + VERIFIED IN-GAME by PO 2026-07-17 (committed `a494bc26`).**
 > Shipped beyond the scope below (PO-approved in-session): the **rect-prop
 > lift** — `phy.SolidAABB` (static solid rectangle, mirror of the border
 > InvAABB; TDD incl. through-Space pins), prop body = `radius` XOR
