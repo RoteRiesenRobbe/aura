@@ -238,8 +238,8 @@ type DamageParams struct {
 	// resistances explicitly name one of Tags (skills.GateOpensFor) — every
 	// unauthored target is immune instead of unresisted. Requires explicit
 	// damageTags (gating the [physical] default hard-fails at parse). This
-	// is what makes Turnip-Pull pop turnips and nothing else without every
-	// combat mob authoring a "turnip": 0 entry.
+	// is what makes Harvest pop turnips and nothing else without every
+	// combat mob authoring a "harvest": 0 entry.
 	Gated bool
 
 	// Per-hit percentage variance band (item 11 Phase 3): each hit rolls

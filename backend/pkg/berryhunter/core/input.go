@@ -143,6 +143,9 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 			}
 			// Passive movement-speed bonus (DerivedStats); config stays untouched.
 			speed := p.Config().WalkingSpeedPerTick * (1 + p.SkillComponent().Derived.MovementSpeedBonus)
+			if f := p.SpeedCheatFactor(); f > 0 {
+				speed *= f
+			}
 			v = v.Mult(speed)
 			next := p.Position().Add(v)
 			p.SetPosition(next)

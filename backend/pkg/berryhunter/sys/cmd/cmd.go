@@ -88,6 +88,28 @@ var commands = map[string]Command{
 
 		return nil
 	},
+	// SPEED [factor|off] multiplies the player's movement speed for testing —
+	// no arg = 2, 'off' resets. Composes on top of passive speed bonuses.
+	"SPEED": func(g model.Game, p model.PlayerEntity, arg *string) error {
+		if arg == nil || len(*arg) == 0 {
+			p.SetSpeedCheat(2)
+			return nil
+		}
+		if *arg == "off" {
+			p.SetSpeedCheat(0)
+			return nil
+		}
+		factor, err := strconv.ParseFloat(*arg, 32)
+		if err != nil {
+			return fmt.Errorf("cannot parse factor: %s", err)
+		}
+		if factor <= 0 {
+			return fmt.Errorf("factor must be > 0, got %v", factor)
+		}
+		p.SetSpeedCheat(float32(factor))
+
+		return nil
+	},
 	"XP": func(g model.Game, p model.PlayerEntity, arg *string) error {
 		if arg == nil || len(*arg) == 0 {
 			return fmt.Errorf("no argument, usage: 'XP <amount>'")

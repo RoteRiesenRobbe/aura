@@ -65,14 +65,22 @@ faction and skills without a schema append (see §5 and
      defs only, content always authors them explicitly.)
    - `factors`: `baseMaxHealth`, `maxHealthVariance`, `experience`, `speed`,
      `deltaPhi`, `turnRate`, optional `resistances` / `damageTags`
-   - **Chore/gate tags are opt-in (C1):** gate-style damage (Turnip-Pull)
+   - **Chore/gate tags are opt-in (C1):** gate-style damage (Harvest)
      carries `"gatedDamageTags": true` on its effect, which flips the resist
      default — the hit only damages mobs whose `resistances` **explicitly
      name** one of its tags (the `"*"` wildcard does not opt in). Combat
-     mobs therefore need NO turnip entry; things the gate aura should
-     affect opt in, like the turnip (`{ "*": 0, "turnip": 1 }`, see
+     mobs therefore need NO harvest entry; things the gate aura should
+     affect opt in, like the turnip (`{ "*": 0, "harvest": 1 }`, see
      `api/mobs/turnip.json`) and the C2 bramble walls.
    - `body`: `radius`, `aggroRadius`
+   - **Solid-obstacle mobs (brazier/bramble pattern):** optional
+     `body.collisionLayer` / `collisionMask` override the defaults (layer
+     34 = Viewport|Action, mask 80 = MobStatic|Border). Brazier `32/16` =
+     unhittable, non-blocking scenery hazard; Bramble `99/16` (PlayerStatic
+     1 + Action 2 + Viewport 32 + MobStatic 64) = blocks players AND mobs
+     while staying aura-hittable, and mask 16 (Border only) means nothing
+     pushes it. Pair with `speed: 0`, XP 0 and opt-in `resistances` for a
+     destructible aura-gated wall (`api/mobs/bramble.json`).
    - `skills[]`: the mob's aura(s) by `skillName` (must exist in `api/skills/`)
    - optional `unlocks[]`: `{skillName, chance}` kill-drop payloads
 2. **`api/schema/server.fbs`** — add the mob's name to the `EntityType` enum.
@@ -335,7 +343,8 @@ work is deliberately deferred to the first real boss).
    tests may read your encounter struct's fields directly.
 5. **Verify in-game**: `make -C backend build`, restart, check the boot log
    (`Loaded mob definitions count=…`, your registration line), warp over
-   (`WARP <x·120> <y·120>` — the cheat takes px), and use the **`THREAT`
+   (`WARP <x·120> <y·120>` — the cheat takes px; `SPEED [factor|off]`
+   multiplies your movement for long traversals), and use the **`THREAT`
    cheat** (nearby mobs' threat tables, or `THREAT <entityID>`) to watch
    targeting/immunity through the phases in the server log.
 

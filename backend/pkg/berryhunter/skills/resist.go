@@ -49,8 +49,8 @@ func ResistMultiplier(tags []string, sources ...map[string]float32) float32 {
 // declaration), and transient resist buffs never open the gate — opting into
 // a chore tag is a property of the authored mob, not of a buff. An explicit 0
 // entry opens the gate; the normal multiplier math then makes it a non-event
-// anyway. This is what keeps Turnip-Pull popping turnips (["turnip"] against
-// {"*": 0, "turnip": 1}) while every mob that never mentions the tag —
+// anyway. This is what keeps Harvest popping turnips (["harvest"] against
+// {"*": 0, "harvest": 1}) while every mob that never mentions the tag —
 // present or future — is immune with zero authoring.
 func GateOpensFor(tags []string, base map[string]float32) bool {
 	for _, tag := range tags {

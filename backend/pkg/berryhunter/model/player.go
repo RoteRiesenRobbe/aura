@@ -68,6 +68,11 @@ type PlayerEntity interface {
 	IsGod() bool
 	WasGod() bool
 
+	// SetSpeedCheat sets the dev SPEED command's movement multiplier;
+	// 0 (the zero value) or 1 = off. Testing-only, never content-driven.
+	SetSpeedCheat(factor float32)
+	SpeedCheatFactor() float32
+
 	Config() *cfg.PlayerConfig
 	Stats() *Stats
 	AddExperience(xp uint64)

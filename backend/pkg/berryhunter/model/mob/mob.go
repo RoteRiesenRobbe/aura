@@ -411,16 +411,13 @@ func (m *Mob) TickRateFactor() float32 {
 	return m.buffs.TickRateFactor()
 }
 
-// LightRadius is the light emitted by the active aura, 0 = no light — mirrors
-// player.LightRadius. Serialized as Mob.light_radius (darkness hole-punch,
-// chunk 3; the campfire's big light coexisting with its small heal ring is
-// why this is not folded into AuraRadius).
+// LightRadius is the light emitted by the active aura and any light passives
+// in the loadout (max, C2 lift 2) — mirrors player.LightRadius. Serialized as
+// Mob.light_radius (darkness hole-punch, chunk 3; the campfire's big light
+// coexisting with its small heal ring is why this is not folded into
+// AuraRadius).
 func (m *Mob) LightRadius() float32 {
-	slot := m.skills.ActiveAuraSlot
-	if slot < 0 || m.skills.AuraSlots[slot] == nil {
-		return 0
-	}
-	return m.skills.AuraSlots[slot].LightRadius()
+	return m.skills.LightRadius()
 }
 
 // DwellRadius is the bind radius of a campfire respawn anchor, 0 for every

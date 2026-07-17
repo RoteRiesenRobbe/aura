@@ -25,7 +25,7 @@ PO rulings already taken (2026-07-16):
   2026-07-16 (interactive): **lifesteal** → spider bite + Elite Wolf;
   **hazards** → tunnel poison pools + orc-front spike barricades (no fire —
   tone rule holds); **destructible obstacles** → brambles gated on
-  Turnip-Pull + a tunnel rockfall (gate TBD), implemented as stationary
+  Harvest (né Turnip-Pull) + a tunnel rockfall (gate TBD), implemented as stationary
   solid mobs with wildcard resists (zero code, see §4); **totem** →
   "Lantern Post" (plantable light totem).
 
@@ -194,7 +194,7 @@ orc hostile to `aligned` + `human_army`.
 | Ork World Boss | Z2 front | scripted multi-phase, always present, ~30 min respawn | see §B | physical | Boss-Aura (chance 1.0) | spine ✓, script = §B work |
 | **Poison pool** (fixture) | Z1 tunnel | environmental hazard: unkillable, non-blocking, always-on aura (shipped brazier pattern: collisionLayer Viewport-only) | small dot/damage aura | poison | — (XP 0) | ✓ today — brazier machinery, reskinned |
 | **Spike barricade** (fixture) | Z2 orc front | environmental hazard shaping the boss approach; brazier pattern | damage aura | physical + bleed | — (XP 0) | ✓ today |
-| **Bramble wall** (obstacle) | Z1 shortcut(s) | destructible obstacle = stationary SOLID mob (collisionLayer incl. player-static — angry-mammoth precedent), passive, no retaliation, respawns via spawn point | none | resists `{"*":0,"turnip":1}` — **only Turnip-Pull clears vegetation** | — (XP 0) | ✓ today — zero code; starter aura keeps lifelong utility |
+| **Bramble wall** (obstacle) | Z1 shortcut(s) | destructible obstacle = stationary SOLID mob (collisionLayer incl. player-static — angry-mammoth precedent), passive, no retaliation, respawns via spawn point | none | resists `{"*":0,"harvest":1}` — **only Harvest clears vegetation** | — (XP 0) | ✓ today — zero code; starter aura keeps lifelong utility |
 | **Rockfall** (obstacle) | Z1 tunnel side passage | same solid-mob pattern; hides an optional secret on the solo path | none | wildcard resist, gate aura **TBD (§11)** | — (XP 0) | ✓ today |
 
 **Ecology:** wolves hunt boars/stags via faction hostility (predation ships
@@ -212,7 +212,7 @@ exists; "content-only" = new JSON, no code; "⚑ lift" = §9 code work.
 
 | Name | Origin | Building block | Status |
 |---|---|---|---|
-| Turnip-Pull | start loadout | damage_aura, damageTags `["turnip"]` | content-only |
+| Harvest *(né Turnip-Pull, renamed C2 Part 2)* | start loadout (equipped, not active) | damage_aura, damageTags `["harvest"]`, gated | in-game |
 | Damage | Farmer @L2 | damage_aura (= shipped DamageAura) | today |
 | Heal | milestone | heal_aura (= shipped HealAura; never self, GDD §3) | today |
 | Tank (Name TBD) | milestone | resist_aura over the zone tag set `[physical, poison, bleed]` — works today; wildcard-`*` buff variant is a ⚑ lift (§9) | content-only |
@@ -305,7 +305,7 @@ mob-owned spawns (boss adds via encounter SpawnMob), pity drops (§11).
 
 | System / capability | Where exercised in Z1+2 | Absence justification / proposal |
 |---|---|---|
-| damage_aura | Damage, Turnip-Pull, Long-Range Strike, most mobs | — |
+| damage_aura | Damage, Harvest, Long-Range Strike, most mobs | — |
 | heal_aura | player Heal aura, Bandit healer, campfires | — |
 | hot_aura | Bandit healer's lingering mend (adopted under coverage maximalism, alongside/instead of plain heal_aura — pick during authoring) | — |
 | dot_aura | Venom spider (poison) | — |
@@ -332,8 +332,8 @@ mob-owned spawns (boss adds via encounter SpawnMob), pity drops (§11).
 | Multi-effect skills | Front-Aura; campfire (heal+light) | — |
 | Two-zone (concentric) emulation | Rally-Drum inner/outer if adopted | single-effect two-zone doesn't exist; emulation via multi-effect radii |
 | Per-effect tick rates | Kobold ranged (slow) vs melee (fast); PaladinAura precedent | — |
-| Damage tags + resists | `turnip` wildcard (Turnip), `poison` + Antivenom, `bleed` (boar/bandits), `physical` + Thick Hide | `fire` deliberately absent (tone rule §2) — reserved for later zones |
-| Wildcard resist (`*`) | Turnip mob (`{"*":0,"turnip":1}`) | — |
+| Damage tags + resists | `harvest` gate tag (Turnip/Bramble), `poison` + Antivenom, `bleed` (boar/bandits), `physical` + Thick Hide | `fire` deliberately absent (tone rule §2) — reserved for later zones |
+| Wildcard resist (`*`) | Turnip mob (`{"*":0,"harvest":1}`) | — |
 | Faction target flags | allies (healer mob), enemies (everything), self (Recover) | `targetsStructures` flag itself stays unused: the destructible-obstacle need is served by the solid-mob pattern (below), and no placeable-damage beat exists in v1 |
 | Milestone unlocks | rewritten table (§11) | — |
 | Kill-drops (chance) | Light/Swift/Hardy/etc. (low %), Boss-Aura (1.0) | pity/guaranteed-first: not built — recorded TBD (§11) |
@@ -350,7 +350,7 @@ mob-owned spawns (boss adds via encounter SpawnMob), pity drops (§11).
 | Companions: player path | SummonCompanion (Dog NPC, adopted) | — |
 | Companions: NPC/encounter path | Ork boss adds via encounter SpawnMob | mob-cast spawn skills: not needed (owner-less anyway) |
 | Encounter controller + multi-phase boss | Ork World Boss (§B) | — |
-| Destructible aura-gated obstacles | **Bramble wall** (Turnip-Pull-gated shortcut) + **tunnel rockfall** (gate TBD) — stationary solid mobs w/ wildcard resist, PO 2026-07-16 | backlog §8's placeable-based machinery stays unbuilt — the mob pattern covers the need with zero code |
+| Destructible aura-gated obstacles | **Bramble wall** (Harvest-gated shortcut) + **tunnel rockfall** (gate TBD) — stationary solid mobs w/ wildcard resist, PO 2026-07-16 | backlog §8's placeable-based machinery stays unbuilt — the mob pattern covers the need with zero code |
 | Death / corpse / campfire respawn / revive window | bandit-horde deaths + walk-back flag (§7); Revive milestone | — |
 | Darkness / light | Z1+Z2 dark forests, tunnel; Light/Torch/campfires | — |
 | Recovery (campfire, personal, regen gate) | both campfires; Heal+Recover pair; regen gate live | — |
@@ -578,6 +578,31 @@ any content.
 > input-queue overflow now merges one-shot commands instead of dropping
 > them + HUD grace window (aura-selector stutter, TDD in model/client);
 > aura tick-glow baseline; tiny own-avatar darkness hole (40 px).
+>
+> **PART 2 (forest interior) DONE + VERIFIED IN-GAME by PO 2026-07-17.**
+> Shipped: **§9 lift 2 (passive light)** — `SkillComponent.LightRadius()`
+> folds the active aura's light with every equipped passive's light (max,
+> not sum; player + mob delegate; TDD, no wire/frontend change); **Torch**
+> (`api/skills/torch.json`, id 46, passive light_aura 2.5+0.5/level ≈ 60%
+> of the Light aura — PO pick: Light keeps the group-support role);
+> **Hermit** (deep NW pocket, plain teaching Torch — PO pick: no level
+> gate, the walk-in is the gate; the zone schema's mandatory `tooLowLine`
+> on teaching NPCs is flavor-only there) + **Dog** (mid-forest clearing,
+> "Woof", teaches SummonCompanion); **bramble walls** (`api/mobs/
+> bramble.json`, solid-mob pattern 99/16, opt-in gate resist, XP 0, 4
+> spawns sealing the shortcut-corridor mouth, ~5 min respawn; pattern
+> documented in manual §1). Found+fixed: Part 1 never bumped the pinned
+> skill-registry count (35→45 with Torch). **Same-day PO directives (all
+> verified in-game):** `SPEED [factor|off]` dev cheat (input-path
+> multiplier, TDD); **TurnipPull renamed Harvest** incl. the damage tag
+> (`turnip`→`harvest`; turnip + bramble opt-ins follow — future flora
+> authors a sensible tag); **fresh spawns no longer auto-activate the
+> start aura** (equipped only; the sim harness now activates slot 0
+> explicitly — pins stay byte-identical); **density pass ×2 between POIs**
+> via a deterministic seeded scatter (196→299 props, 52→94 spawns;
+> wildlife 32→74; forest gap-filled to no >5u pocket outside the NPC
+> clearings; predators keep ≥10u from the farm box, prey-only near the
+> farm; append-only — PO editor polish untouched).
 
 - Factions `wildlife_predator` / `wildlife_prey` (matrix values authored).
 - Mobs: Wolf (packs, hunts prey; Swift), Bear (berserker-modified damage

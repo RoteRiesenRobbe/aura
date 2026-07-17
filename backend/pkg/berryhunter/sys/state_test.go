@@ -62,10 +62,10 @@ func (c *fakeClient) Close()                     {}
 func (c *fakeClient) UUID() uuid.UUID            { return c.uuid }
 
 // minimal skill content so the real player.New can initialize its component
-// (the C1 peasant start equips TurnipPull).
-var stateTestTurnipPullJSON = []byte(`{
+// (the C1 peasant start equips Harvest).
+var stateTestHarvestJSON = []byte(`{
   "id": 41,
-  "name": "TurnipPull",
+  "name": "Harvest",
   "category": "active_aura",
   "maxLevel": 1,
   "effects": [{"type": "damage_aura", "targetsEnemies": true}]
@@ -74,7 +74,7 @@ var stateTestTurnipPullJSON = []byte(`{
 func stateTestSkillRegistry(t *testing.T) skills.Registry {
 	t.Helper()
 	r, err := skills.RegistryFromFS(fstest.MapFS{
-		"turnip-pull.json": {Data: stateTestTurnipPullJSON},
+		"harvest.json": {Data: stateTestHarvestJSON},
 	})
 	require.NoError(t, err)
 	return r

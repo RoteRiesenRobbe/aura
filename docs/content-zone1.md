@@ -23,7 +23,7 @@ The tunnel is a **soft gate**: a player *can* walk through blind (darkness
 has no mechanical effect), but the low visibility strongly pushes them to
 find the Light aura first — the point of the light-role tutorial.
 
-The onboarding beat (spawn with Turnip-Pull → chore-mobs to L2 →
+The onboarding beat (spawn with Harvest — equipped, not yet active → chore-mobs to L2 →
 **Farmer teaches Damage + Recall** → wolves as first real combat) is the
 **peasant onboarding**, decided in GDD §5 and amended in step 6 C1 (Damage
 moved from the L1 milestone to the Farmer's ordered teachings @L2).
@@ -38,8 +38,19 @@ stags and players; bears; the elite wolf deep in the forest) and the NW
 dark-forest block-out — solid thicket walls with three entrances, carved
 corridors and clearings, darkness circles inside the treeline, the
 "something big prowls" signpost at the south entrance, the path extended to
-it, plus open-country tree/rock scatter. Forest interior content (Hermit/
-Torch, Dog, bramble shortcut) is C2 Part 2; kobolds and the tunnel are C3.
+it, plus open-country tree/rock scatter.
+
+**In-game since C2 Part 2:** the forest interior — the Hermit deep in the
+NW pocket teaches **Torch** (first light passive; C2 lift 2 folds passive
+light into the entity light radius, max over sources), the Dog in the
+mid-forest clearing teaches SummonCompanion ("Woof"), and 4 **Bramble**
+solid mobs seal the shortcut-corridor mouth (Harvest-gated, XP 0,
+~5 min respawn). Same session: the **density pass** (PO directive — more
+action between points of interest) roughly doubled props and wildlife
+outside the POIs via a deterministic scatter (196→299 props, 52→94 spawns;
+wolf packs keep ≥10u from the farm box, prey-only near the farm), and the
+start aura was renamed **Harvest** and now spawns equipped but not active.
+Kobolds and the tunnel are C3.
 
 ## Areas (intent)
 

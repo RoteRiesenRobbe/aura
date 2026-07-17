@@ -353,6 +353,27 @@ func (sc *SkillComponent) SetActiveAura(slot int) {
 	}
 }
 
+// LightRadius is the entity's total emitted light: the maximum over the
+// active aura's light and every equipped passive's light (content pass C2
+// lift 2 — passives are always on, so a light passive like Torch glows while
+// a combat aura holds the one active slot; GDD §7 trade-off). Max, not sum —
+// light sources overlap, they don't amplify. 0 = no light.
+func (sc *SkillComponent) LightRadius() float32 {
+	var max float32
+	if slot := sc.ActiveAuraSlot; slot >= 0 && sc.AuraSlots[slot] != nil {
+		max = sc.AuraSlots[slot].LightRadius()
+	}
+	for _, es := range sc.PassiveSlots {
+		if es == nil {
+			continue
+		}
+		if r := es.LightRadius(); r > max {
+			max = r
+		}
+	}
+	return max
+}
+
 // Discover marks a skill as discovered at level 1. Re-discovering (idempotent
 // kill unlocks, milestone replays) never downgrades an already-raised level.
 // No-op for mobs (nil spellbook).

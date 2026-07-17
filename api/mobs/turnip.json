@@ -1,5 +1,5 @@
 {
-  "_comment": "The chore harvest-mob (content pass C1, GDD §5 peasant onboarding): stationary (speed 0, brazier precedent), no skills, no faction — it can neither move nor fight back. First authored resistances: the wildcard blocks every damage tag except 'turnip', so only Turnip-Pull pops it and combat auras do nothing (deterministic gate, item 11 Phase 2). XP only, no drops. All values [PLACEHOLDER]",
+  "_comment": "The chore harvest-mob (content pass C1, GDD §5 peasant onboarding): stationary (speed 0, brazier precedent), no skills, no faction — it can neither move nor fight back. First authored resistances: the wildcard blocks every damage tag except 'harvest', so only Harvest pops it and combat auras do nothing (deterministic gate, item 11 Phase 2). XP only, no drops. All values [PLACEHOLDER]",
   "id": 14,
   "name": "Turnip",
   "type": "MOB",
@@ -10,7 +10,7 @@
     "maxHealthVariance": 0.1,
     "experience": 10,
     "speed": 0,
-    "resistances": { "*": 0, "turnip": 1 }
+    "resistances": { "*": 0, "harvest": 1 }
   },
   "body": {
     "radius": 0.15,

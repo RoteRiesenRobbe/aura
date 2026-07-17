@@ -117,11 +117,15 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// ReaperAura vocabulary smoke, the Barrier shield smoke, the Recall
 	// cast-time cooldown, the chunk-3 HoT+revive smoke trio
 	// Rejuvenation/Recover/Revive, the chunk-5 Dash cooldown, the chunk-6
-	// Haste tick_rate cooldown, and the C1 TurnipPull peasant-start aura)
-	// + 9 mob skills (mobs/ subdirectory: 8 auras incl. TotemAura +
+	// Haste tick_rate cooldown, and the C1 Harvest peasant-start aura — né
+	// TurnipPull, renamed C2 Part 2)
+	// + the 5 C2 wildlife/forest drops/teachings (Hardy, ThickHide,
+	// BerserkerAura, LongRangeStrike, Torch) + 14 mob skills (mobs/
+	// subdirectory: TotemAura +
 	// CompanionAura + HealerAura + CampfireAura + the AngryMammothStomp
-	// cooldown)
-	assert.Len(t, r.All(), 35)
+	// cooldown + the C2 wildlife auras WolfBite/BearSwipe/BoarGore/
+	// StagNibble/EliteWolfBite, among the earlier proving/critter auras)
+	assert.Len(t, r.All(), 45)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

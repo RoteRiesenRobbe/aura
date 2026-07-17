@@ -1,0 +1,21 @@
+{
+  "_comment": "Content pass C2 Part 2: the destructible aura-gated obstacle (plan-content-zones12 §10) — a solid stationary 'mob' walling the forest shortcut corridor. collisionLayer 99 = PlayerStatic(1)+Action(2)+Viewport(32)+MobStatic(64): blocks players AND mobs, aura-hittable, streamed; collisionMask 16 = Border only (nothing pushes it) — solid-mob pattern, brazier precedent. Resistances opt in to the gated 'harvest' tag exactly like the Turnip mob: only Harvest clears it, combat auras do 0 (gated damage tags, C1). XP 0 — it is a door, not prey. speed 0 + aggroRadius dummy: never moves, never fights. All values [PLACEHOLDER].",
+  "id": 20,
+  "name": "Bramble",
+  "type": "MOB",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 40,
+    "experience": 0,
+    "speed": 0,
+    "resistances": { "*": 0, "harvest": 1 }
+  },
+  "body": {
+    "radius": 0.9,
+    "aggroRadius": 0.1,
+    "collisionLayer": 99,
+    "collisionMask": 16
+  },
+  "skills": []
+}

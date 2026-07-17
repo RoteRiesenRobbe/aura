@@ -369,13 +369,13 @@ must be combat-gated first (§3).
 
 ### Onboarding: The Peasant Start
 
-New characters begin as a "poor peasant" holding a **mundane utility aura** (e.g. *Turnip-Pull*, *Molehill-Close*) — not a combat aura.
+New characters begin as a "poor peasant" holding a **mundane utility aura** (e.g. *Harvest*, *Molehill-Close*) — not a combat aura.
 
 - The utility aura is *mechanically* a damage aura with a **unique tag**; the passive chore-mobs it works on (turnips, molehills — stationary harvest-mobs, see section 8) **resist every tag except that one**. So the gate is fully **deterministic** (the tag-resist system, item 11 Phase 2): the peasant aura pops chores and does *nothing* to wolves, and — conversely — a combat Damage Aura does *nothing* to chores.
 - "Defeating" chore-mobs yields **XP only** (no drops — this resolves the turnip / "no item drops" tension: chores are harvest-mobs). At **level 2 [PLACEHOLDER] the Farmer teaches the Damage Aura** (plus Recall), at which point the player can fight wolves — mobs that fight back. The farmer-taught Damage Aura thus stays a *genuine narrative unlock*, not a spawn freebie. *(Amended in the content pass, step 6 C1 — this was originally a level-1 milestone; the teaching beat replaces it per `plan-content-zones12.md` §3.)*
 - **Generalizes to per-race / per-start-area variation:** a different starting utility aura + chore-mob + start location per race (see `backlog.md`, Races). This onboarding is the mechanical seed for that, not a bolt-on.
 
-> **Dev note (flipped in step 6 C1):** new players now spawn with exactly Turnip-Pull; the Damage Aura rides the Farmer's ordered teachings @L2. The chore gate is mechanically **opt-in damage** (`gatedDamageTags`): the utility aura only damages targets whose resistances explicitly name its tag — so turnips (and later bramble walls) opt in, and every combat mob is immune with zero per-mob authoring (`manual-content-authoring.md` §1).
+> **Dev note (flipped in step 6 C1):** new players now spawn with exactly Harvest (né Turnip-Pull, renamed C2 Part 2) — equipped but NOT active (activating it is the player's first act, PO 2026-07-17); the Damage Aura rides the Farmer's ordered teachings @L2. The chore gate is mechanically **opt-in damage** (`gatedDamageTags`): the utility aura only damages targets whose resistances explicitly name its tag — so turnips (and later bramble walls) opt in, and every combat mob is immune with zero per-mob authoring (`manual-content-authoring.md` §1).
 
 ### Milestone Unlocks
 
@@ -539,7 +539,7 @@ An endgame boss kill triggers a one-time world event. Example: a puddle spawns, 
 | Elite | For groups, more XP |
 | Boss | Strong elite in special places |
 | Endgame boss | Raid-level, triggers a special event |
-| Harvest mob | Stationary, peaceful or passive. Only damageable by one specific aura (often learned via NPC teaching, see section 6). Gives lots of XP, slow respawn. Example: turnips on a farm field that only the "Turnip-Pull" aura can damage. |
+| Harvest mob | Stationary, peaceful or passive. Only damageable by one specific aura (often learned via NPC teaching, see section 6). Gives lots of XP, slow respawn. Example: turnips on a farm field that only the "Harvest" aura can damage. |
 
 ### Quest-like Content Through Existing Systems
 
@@ -556,7 +556,7 @@ Aura + mob resistance + NPC teaching together yield an implicit quest system wit
 ```
 
 Examples of possible variants:
-- Farmer + Turnip-Pull aura + turnip field
+- Farmer + Harvest aura + turnip field
 - Fisherman + Fishing aura + fish in the lake
 - Lumberjack + Wood-Chop aura + trees
 - Miner + Prospecting aura + ore veins

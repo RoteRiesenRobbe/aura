@@ -59,7 +59,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.skills = sc
 	p.milestoneUnlocks = g.Config().MilestoneUnlocks
 	p.recipes = g.Config().Recipes
-	// A fresh spawn only has TurnipPull at level 1, but run the cascade anyway
+	// A fresh spawn only has Harvest at level 1, but run the cascade anyway
 	// so a starter recipe keyed on that would still fire — keeps discovery paths
 	// uniform.
 	p.ApplyRecipeCascade()
@@ -113,6 +113,10 @@ type player struct {
 
 	isGod  bool
 	wasGod bool
+
+	// speedCheatFactor is the dev SPEED command's movement multiplier;
+	// 0/1 = off (input path treats <= 0 as 1).
+	speedCheatFactor float32
 
 	stats       model.Stats
 	progression model.PlayerProgression
@@ -647,14 +651,11 @@ func (p *player) AuraTickPhase() int {
 	return p.skills.AuraSlots[p.skills.ActiveAuraSlot].TickAccumulator % interval
 }
 
-// LightRadius is the light emitted by the active aura, 0 = no light.
-// Serialized as Character.light_radius (darkness hole-punch, chunk 3).
+// LightRadius is the light emitted by the active aura and equipped light
+// passives (max, C2 lift 2), 0 = no light. Serialized as
+// Character.light_radius (darkness hole-punch, chunk 3).
 func (p *player) LightRadius() float32 {
-	slot := p.skills.ActiveAuraSlot
-	if slot < 0 || p.skills.AuraSlots[slot] == nil {
-		return 0
-	}
-	return p.skills.AuraSlots[slot].LightRadius()
+	return p.skills.LightRadius()
 }
 
 // BurstRadius feeds the Character.burst_radius wire field (burst ring VFX).
@@ -725,18 +726,19 @@ func (p *player) ApplyRecipeCascade() {
 }
 
 // initializePlayerSkills builds the peasant-start loadout (content pass C1,
-// GDD §5): a fresh spawn owns exactly TurnipPull — the chore aura that pops
-// harvest-mobs and nothing else. DamageAura is farmer-taught at L2.
+// GDD §5): a fresh spawn owns exactly Harvest (renamed from TurnipPull in C2
+// Part 2) — the chore aura that pops harvest-mobs and nothing else. DamageAura
+// is farmer-taught at L2. The aura is equipped but NOT active (PO 2026-07-17):
+// switching it on is the player's first deliberate act.
 func initializePlayerSkills(r skills.Registry) (*skills.SkillComponent, error) {
-	turnipPull, err := r.GetByName("TurnipPull")
+	harvest, err := r.GetByName("Harvest")
 	if err != nil {
-		return nil, fmt.Errorf("skill registry missing TurnipPull: %w", err)
+		return nil, fmt.Errorf("skill registry missing Harvest: %w", err)
 	}
 
 	sc := skills.NewSkillComponent(true)
-	sc.EquipAura(0, turnipPull, 1)
-	sc.Discover(turnipPull.ID)
-	sc.SetActiveAura(0)
+	sc.EquipAura(0, harvest, 1)
+	sc.Discover(harvest.ID)
 	return sc, nil
 }
 
@@ -840,6 +842,14 @@ func (p *player) SetGodmode(on bool) {
 
 func (p *player) IsGod() bool {
 	return p.isGod
+}
+
+func (p *player) SetSpeedCheat(factor float32) {
+	p.speedCheatFactor = factor
+}
+
+func (p *player) SpeedCheatFactor() float32 {
+	return p.speedCheatFactor
 }
 
 func (p *player) WasGod() bool {

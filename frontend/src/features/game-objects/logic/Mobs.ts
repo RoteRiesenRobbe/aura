@@ -456,7 +456,7 @@ export class Campfire extends Mob {
 Preloading.registerGameObjectSVG(Campfire, file('campfire'), maxSize('campfire'));
 
 // The stationary harvest-mob (content pass C1): stands in the Rübenfeld field,
-// never moves or fights back — only Turnip-Pull damages it (wildcard resist).
+// never moves or fights back — only Harvest damages it (wildcard resist).
 // No hit sound — the base Damaged flash suffices for the placeholder art.
 export class Turnip extends Mob {
     static svg: PIXI.Texture;
@@ -538,7 +538,7 @@ export class EliteWolf extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(EliteWolf, file('eliteWolf'), maxSize('eliteWolf'));
 
-// The Turnip-Pull-gated destructible wall segment: a stationary solid mob,
+// The Harvest-gated destructible wall segment: a stationary solid mob,
 // never moves or fights back (solid-mob pattern, plan-content-zones12.md §4).
 export class Bramble extends Mob {
     static svg: PIXI.Texture;

@@ -1,0 +1,24 @@
+{
+  "_comment": "The peasant-start utility aura (content pass C1, GDD §5 peasant onboarding; renamed TurnipPull → Harvest in C2 Part 2 — general plant-interaction, more opt-in flora later): mechanically a damage aura with the unique 'harvest' tag, GATED — gatedDamageTags makes the damage opt-in, so it only hits targets whose base resistances explicitly name 'harvest' (the turnip mob, the bramble walls) and does nothing to any combat mob without per-mob authoring. Numbers mirror DamageAura's shape. All values [PLACEHOLDER]",
+  "id": 41,
+  "name": "Harvest",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 14,
+      "damageHPPerLevel": 3.2,
+      "damageTags": ["harvest"],
+      "gatedDamageTags": true,
+      "variance": 0.15,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 40
+    }
+  ]
+}

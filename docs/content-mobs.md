@@ -23,11 +23,12 @@ Loose grouping for the eventual full roster (from the 2026-07-09 capture,
 
 | Mob | Status | Category / role | Notes |
 |---|---|---|---|
-| Turnips | in-game *(C1)* | Harvest-mob (chore) | Stationary (speed 0), passive, no skills; first authored `resistances` — the `{"*": 0, "turnip": 1}` wildcard means only Turnip-Pull damages them. XP only, **no drops** (resolved conflict — `archive-content-zone1-capture.md`). Zone 1 onboarding chore-mob; field spawns in `api/zones/world.json`, def `api/mobs/turnip.json`. |
+| Turnips | in-game *(C1)* | Harvest-mob (chore) | Stationary (speed 0), passive, no skills; first authored `resistances` — the `{"*": 0, "harvest": 1}` wildcard means only Harvest damages them. XP only, **no drops** (resolved conflict — `archive-content-zone1-capture.md`). Zone 1 onboarding chore-mob; field spawns in `api/zones/world.json`, def `api/mobs/turnip.json`. |
 | Wolves | in-game *(C2)* | Animal / normal | Zone 1's first real combat mob; "pack" = clustered spawns (no pack mechanic). `wildlife_predator` — hunts boar/stag AND players (ambient predation). Speed 0.7 (PO rule: normal mobs clearly slower than the player). Drops Swift @0.15. `api/mobs/wolf.json`. |
 | Elite wolf | in-game *(C2)* | Animal / elite | Dark-forest pack leader ("something big"); EliteWolfBite carries **execute + lifesteal** (feeds on wounded prey). Guards the Hermit approach. Drops LongRangeStrike @0.5. `api/mobs/elite-wolf.json`. |
 | Bear | in-game *(C2)* | Animal / normal | Forest tank; BearSwipe carries **berserker** (wounded animal rages). Drops ThickHide @0.15 + BerserkerAura @0.1. `api/mobs/bear.json`. |
 | Stag | in-game *(C2)* | Animal / prey | Flee-always (`fleeBelowHealthRatio: 1`); XP only, no drop (§11 TBD open). `api/mobs/stag.json`. |
+| Bramble | in-game *(C2)* | Obstacle / solid mob | Destructible aura-gated wall (plan-content-zones12 §10): stationary, XP 0, `{"*": 0, "harvest": 1}` opt-in — only Harvest clears it. Solid-mob pattern `collisionLayer 99` (PlayerStatic+Action+Viewport+MobStatic) / `collisionMask 16` — blocks players and mobs, nothing pushes it. 4 spawns seal the forest shortcut-corridor mouth, ~5 min respawn. `api/mobs/bramble.json`. |
 | Kobolds | idea | Small Fantasy / pest | Field pests near the zone-1 farm; **no loot**. |
 | Elite kobold | idea | Small Fantasy / elite | — |
 | Wild boars | in-game *(C2)* | Animal / prey | `wildlife_prey`: passive until hit, then gores back (physical + **bleed**, first bleed tag). Drops Hardy @0.15 + Dash @0.1. `api/mobs/boar.json`. |

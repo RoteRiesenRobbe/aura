@@ -59,32 +59,33 @@ var (
 	defDamageAura = &skills.SkillDefinition{ID: 1, Name: "DamageAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 	// The peasant-start utility aura (content pass C1, GDD §5): the only
 	// skill a fresh spawn owns — DamageAura moved to the Farmer's teaching.
-	defTurnipPull = &skills.SkillDefinition{ID: 41, Name: "TurnipPull", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	defHarvest = &skills.SkillDefinition{ID: 41, Name: "Harvest", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 )
 
 func TestInitializePlayerSkills_SlotsAndSpellbook(t *testing.T) {
-	r := newStubRegistry(defDamageAura, defTurnipPull)
+	r := newStubRegistry(defDamageAura, defHarvest)
 	sc, err := initializePlayerSkills(r)
 	require.NoError(t, err)
 
 	require.NotNil(t, sc.AuraSlots[0], "slot 0 must be populated")
-	assert.Equal(t, "TurnipPull", sc.AuraSlots[0].Def.Name)
+	assert.Equal(t, "Harvest", sc.AuraSlots[0].Def.Name)
 	assert.Equal(t, 1, sc.AuraSlots[0].Level)
 
 	assert.Nil(t, sc.AuraSlots[1], "slot 1 must be empty — nothing else unlocked")
 
-	assert.Equal(t, 0, sc.ActiveAuraSlot)
+	assert.Equal(t, -1, sc.ActiveAuraSlot,
+		"the aura is equipped but NOT active (PO 2026-07-17) — switching it on is the player's first act")
 
-	assert.True(t, sc.HasDiscovered(defTurnipPull.ID), "TurnipPull must be in spellbook")
+	assert.True(t, sc.HasDiscovered(defHarvest.ID), "Harvest must be in spellbook")
 	assert.False(t, sc.HasDiscovered(defDamageAura.ID),
 		"DamageAura is farmer-taught @L2 (GDD §5 amendment), never a spawn freebie")
 }
 
-func TestInitializePlayerSkills_MissingTurnipPull(t *testing.T) {
-	r := newStubRegistry(defDamageAura) // TurnipPull absent
+func TestInitializePlayerSkills_MissingHarvest(t *testing.T) {
+	r := newStubRegistry(defDamageAura) // Harvest absent
 	_, err := initializePlayerSkills(r)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "TurnipPull")
+	assert.Contains(t, err.Error(), "Harvest")
 }
 
 // --- milestone unlock tests ---
@@ -96,7 +97,7 @@ var defHealAura = &skills.SkillDefinition{ID: 2, Name: "HealAura", Category: ski
 //
 //	level 1→2 costs 100 XP, level 2→3 costs 200 XP.
 func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
-	r := newStubRegistry(defDamageAura, defHealAura, defTurnipPull)
+	r := newStubRegistry(defDamageAura, defHealAura, defHarvest)
 	sc, _ := initializePlayerSkills(r)
 	return &player{
 		progression:      model.PlayerProgression{Level: 1},
@@ -105,6 +106,22 @@ func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
 		milestoneUnlocks: milestones,
 		PlayerVitalSigns: model.PlayerVitalSigns{Health: vitals.Max},
 	}
+}
+
+// --- light radius (content pass C2 lift 2: passive light) ---
+
+// The player's wire light_radius must include passive-slot light (Torch),
+// not just the active aura — delegation to the component-level max fold.
+func TestPlayer_LightRadius_FromPassiveSlot(t *testing.T) {
+	p := newTestPlayer(nil)
+	torch := &skills.SkillDefinition{
+		ID: 46, Name: "Torch", Category: skills.SkillCategoryPassive, MaxLevel: 3,
+		Effects: []skills.EffectDef{{Type: skills.EffectTypeLightAura, Radius: 2.5, RadiusPerLevel: 0.5}},
+	}
+	p.skills.EquipPassive(0, torch, 1)
+
+	assert.Equal(t, float32(2.5), p.LightRadius(),
+		"passive light must stream regardless of the active-aura slot")
 }
 
 // --- absolute HP (roadmap item 11 Phase 1) ---

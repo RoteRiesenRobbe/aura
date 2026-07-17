@@ -88,9 +88,9 @@ func NewWorld(sc Scenario, seed int64) *World {
 			},
 		},
 		// The synthetic aura rides the start-loadout name player.New looks up
-		// (TurnipPull since the C1 peasant start) — the payload is still the
+		// (Harvest — né TurnipPull — since the C1 peasant start) — the payload is still the
 		// scenario's damage aura, only the lookup name follows the live game.
-		registry: soloRegistry{sc.Player.Aura.definition(1, "TurnipPull")},
+		registry: soloRegistry{sc.Player.Aura.definition(1, "Harvest")},
 	}
 
 	// The minimal real system set, added exactly like core.NewGameWith —
@@ -117,8 +117,11 @@ func NewWorld(sc Scenario, seed int64) *World {
 	// "nothing active" — an idle player does not fight back.
 	pl := player.New(g, nopClient{}, "sim-player")
 	pl.SetPosition(phy.VEC2F_ZERO)
-	if !sc.PlayerAuraActive {
-		pl.SkillComponent().ActiveAuraSlot = -1
+	// Fresh spawns no longer auto-activate the start aura (PO 2026-07-17);
+	// the sim's fighting player switches it on explicitly — TTD keeps
+	// "nothing active" so an idle player does not fight back.
+	if sc.PlayerAuraActive {
+		pl.SkillComponent().SetActiveAura(0)
 	}
 	g.AddEntity(pl)
 

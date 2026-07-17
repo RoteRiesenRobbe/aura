@@ -124,6 +124,100 @@ func TestLightRadius_NoLightEffectYieldsZero(t *testing.T) {
 	assert.Equal(t, float32(0), es.LightRadius())
 }
 
+// --- component-level light fold (content pass C2 lift 2: passive light) ---
+
+var lightAuraDef = &SkillDefinition{
+	ID:       90,
+	Name:     "TestLight",
+	Category: SkillCategoryActiveAura,
+	MaxLevel: 3,
+	Effects:  []EffectDef{{Type: EffectTypeLightAura, Radius: 4.0, RadiusPerLevel: 1.0}},
+}
+
+var lightPassiveDef = &SkillDefinition{
+	ID:       91,
+	Name:     "TestTorch",
+	Category: SkillCategoryPassive,
+	MaxLevel: 3,
+	Effects:  []EffectDef{{Type: EffectTypeLightAura, Radius: 2.5, RadiusPerLevel: 0.5}},
+}
+
+var statPassiveDef = &SkillDefinition{
+	ID:       92,
+	Name:     "TestStatPassive",
+	Category: SkillCategoryPassive,
+	MaxLevel: 3,
+	Effects:  []EffectDef{{Type: EffectTypeStatMultiplier, Stat: &StatParams{Name: "movementSpeed", Bonus: 0.1}}},
+}
+
+func TestComponentLightRadius_NothingEquippedYieldsZero(t *testing.T) {
+	sc := NewSkillComponent(true)
+
+	assert.Equal(t, float32(0), sc.LightRadius())
+}
+
+func TestComponentLightRadius_ActiveAuraOnly(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipAura(0, lightAuraDef, 1)
+	sc.SetActiveAura(0)
+
+	assert.Equal(t, float32(4.0), sc.LightRadius())
+}
+
+// An equipped but INACTIVE light aura emits nothing — only the active aura
+// slot counts (unchanged pre-lift behavior).
+func TestComponentLightRadius_InactiveAuraEmitsNothing(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipAura(0, lightAuraDef, 1)
+
+	assert.Equal(t, float32(0), sc.LightRadius())
+}
+
+// The lift itself: a light passive emits from its slot with no active aura —
+// this is what makes Torch work while a damage aura is active.
+func TestComponentLightRadius_PassiveOnly(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipPassive(0, lightPassiveDef, 2)
+
+	assert.Equal(t, float32(3.0), sc.LightRadius())
+}
+
+// Active light aura + light passive fold as MAX, not sum.
+func TestComponentLightRadius_ActiveAndPassiveTakeMax(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipAura(0, lightAuraDef, 1) // 4.0
+	sc.SetActiveAura(0)
+	sc.EquipPassive(0, lightPassiveDef, 3) // 3.5
+
+	assert.Equal(t, float32(4.0), sc.LightRadius())
+
+	sc.EquipAura(0, lightAuraDef, 1)
+	sc.EquipPassive(0, lightPassiveDef, 3)
+	sc.SetActiveAura(-1)
+	assert.Equal(t, float32(3.5), sc.LightRadius(), "passive wins when no active aura light")
+}
+
+// Switching the active aura away from Light keeps the passive glow — the
+// GDD §7 trade-off resolution.
+func TestComponentLightRadius_PassivePersistsAcrossAuraSwitch(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipAura(0, lightAuraDef, 3)                             // 6.0
+	sc.EquipAura(1, &SkillDefinition{ID: 93, MaxLevel: 1}, 1)    // no light
+	sc.EquipPassive(1, lightPassiveDef, 1)                       // 2.5
+	sc.SetActiveAura(0)
+	assert.Equal(t, float32(6.0), sc.LightRadius())
+
+	sc.SetActiveAura(1)
+	assert.Equal(t, float32(2.5), sc.LightRadius())
+}
+
+func TestComponentLightRadius_NonLightPassiveYieldsZero(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipPassive(0, statPassiveDef, 1)
+
+	assert.Equal(t, float32(0), sc.LightRadius())
+}
+
 func TestUnequipAura_ClearsSlot(t *testing.T) {
 	sc := NewSkillComponent(true)
 	sc.EquipAura(0, testDef, 1)

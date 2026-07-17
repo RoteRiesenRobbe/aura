@@ -493,7 +493,7 @@ Context from current state *(added during capture)*:
 - Is "one specific aura" via a bespoke damage tag (chore-mob style) the
   intended mechanism, or should the gate check skill identity directly? The
   tag route is free but means the gating aura *is* a damage aura with a
-  unique tag (like Turnip-Pull).
+  unique tag (like Harvest).
 - Implementation fork: door-as-stationary-mob (all machinery exists, but it's
   semantically a mob on the wire/minimap and needs an `EntityType` for its
   look) vs. props gaining health/damageability (cleaner concept, new code).

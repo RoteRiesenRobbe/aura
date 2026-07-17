@@ -742,7 +742,7 @@ needs real design time:
   bindings + `api/mobs/*.json` + frontend `Mobs.ts`/`Graphics.ts`.
 - First real-values balancing pass over the placeholder numbers.
 - **Peasant onboarding (decided 2026-07-09, `gdd.md §5`).** Flip the starting
-  loadout from Damage Aura to a **utility aura** (Turnip-Pull / Molehill-Close),
+  loadout from Damage Aura to a **utility aura** (Harvest, né Turnip-Pull),
   author the passive **chore harvest-mobs** it tag-gates against, and move the
   **Damage Aura milestone to level 1** so chore-farming to level 1 unlocks combat.
   Content + two config moves, no new systems (tag-resist + milestones already

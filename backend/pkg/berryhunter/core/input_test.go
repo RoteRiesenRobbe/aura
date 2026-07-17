@@ -30,7 +30,10 @@ type fakeInputPlayer struct {
 	config      cfg.PlayerConfig
 	pos         phy.Vec2f
 	lastMoveDir phy.Vec2f
+	speedCheat  float32
 }
+
+func (f *fakeInputPlayer) SpeedCheatFactor() float32 { return f.speedCheat }
 
 func (f *fakeInputPlayer) Hand() *model.Hand                      { return &f.hand }
 func (f *fakeInputPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
@@ -242,6 +245,27 @@ func TestUpdateInput_ZeroMovementKeepsLastDashDirection(t *testing.T) {
 	}, nil)
 
 	assert.Equal(t, phy.Vec2f{X: 0, Y: 1}, p.lastMoveDir, "zero movement leaves the last direction intact")
+}
+
+func TestUpdateInput_SpeedCheatMultipliesMovement(t *testing.T) {
+	// The SPEED dev cheat multiplies the effective walking speed on top of
+	// config × passive bonus; 0 = off (the zero value must not freeze players).
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	p.vitalSigns.Health = 100
+	p.config.WalkingSpeedPerTick = 0.05
+
+	move := &model.PlayerInput{
+		ActiveAuraSlot: model.ActiveAuraSlotNoChange,
+		Movement:       &phy.Vec2f{X: 1, Y: 0},
+	}
+
+	sys.updateInput(p, move, nil)
+	assert.InDelta(t, 0.05, p.pos.X, 1e-6, "cheat off (zero value) = plain config speed")
+
+	p.speedCheat = 2
+	sys.updateInput(p, move, nil)
+	assert.InDelta(t, 0.15, p.pos.X, 1e-6, "factor 2 doubles the per-tick step")
 }
 
 func TestUpdateInput_ZeroMovementVectorKeepsCast(t *testing.T) {
