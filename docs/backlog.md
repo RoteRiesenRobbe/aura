@@ -1000,3 +1000,25 @@ Answered by current state:
 - Does the same effect type cover debuffs (slow-on-players is the known
   eligibility gap noted in `plan-content-zones12.md` §10), or stay
   buff-only?
+
+## 19. Client memory: stop decode-everything-at-boot audio
+
+Deferred 2026-07-16 (PO call after the C0-session benchmark; measurements +
+scripts recorded in that session).
+
+**Finding:** the game tab costs ~600 MB on top of Chromium's ~400 MB
+multi-process baseline; there is **no leak** (JS heap flat 14–23 MB across
+idle + active play, RSS flat after load). The biggest game-owned chunk is
+**~160 MB of eagerly decoded audio**: all 29 mp3s (7.6 MB compressed) are
+preloaded at boot (`registerPreload(PIXI.Assets.load(...))` in the Juice
+files) and `@pixi/sound` decodes each to raw 32-bit PCM AudioBuffers held in
+the renderer forever — confirmed by an mp3-blocked control run (renderer
+384 → 225 MB). The GPU process' ~120–195 MB (rasterized SVG textures,
+overlay layers, framebuffers) is normal PixiJS territory; the "Very high"
+power rating is the 30 FPS render loop, not memory.
+
+**The fix (cheap, ~25% of the game-tab footprint):** per-sound loading
+strategy — keep only short combat SFX decoded, load the rest on demand
+and/or switch long music/ambience tracks to `@pixi/sound`'s HTML5-streamed
+mode (`preload: false` / `html5`). No gameplay effect. Natural home: the
+ops/polish pass (step 9) or any frontend-touching session with slack.
