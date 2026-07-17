@@ -1,0 +1,32 @@
+{
+  "_comment": "Z1 grazing prey that fights back (content pass C2): wildlife_prey (empty hostileTo) = never aggros first, but retaliation rides the threat table — poke it and it gores you (physical+bleed, the first bleed tag). The 'charge' of the design table is flavor: aggro chase, no dash. All values [PLACEHOLDER]",
+  "id": 17,
+  "name": "Boar",
+  "type": "MOB",
+  "faction": "wildlife_prey",
+  "tier": "normal",
+  "curveLevel": 2,
+  "factors": {
+    "baseMaxHealth": 70,
+    "maxHealthVariance": 0.1,
+    "experience": 20,
+    "speed": 0.55,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.25,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.4,
+    "aggroRadius": 2.5
+  },
+  "skills": [
+    { "skillName": "BoarGore", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "Hardy", "chance": 0.15 },
+    { "skillName": "Dash", "chance": 0.1 }
+  ]
+}

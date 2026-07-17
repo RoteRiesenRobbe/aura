@@ -28,7 +28,16 @@ enum EntityType : ushort {
   Campfire,
   Corpse,
   Turnip,
-  House
+  House,
+  Wolf,
+  Bear,
+  Boar,
+  Stag,
+  EliteWolf,
+  Bramble,
+  Signpost,
+  Hermit,
+  DogNpc
 }
 
 enum StatusEffect : ushort {

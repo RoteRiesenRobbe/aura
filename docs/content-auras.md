@@ -17,6 +17,8 @@ there are [PLACEHOLDER] until the balance pass — as is every number here.
 | SlowAura | in-game | Slows enemies in range. | Skill-vocab smoke content. |
 | PaladinAura | in-game | Damages nearest enemy AND heals lowest-HP ally, each on its own cadence, at 70% of the base auras' values. | Combination result — recipe in `content-recipes.md`. |
 | ReaperAura | in-game | Exercises execute + berserker + crit + lifesteal together. | Vocab smoke content, cheat-granted only; throwaway until the content pass authors real build skills. |
+| BerserkerAura | in-game *(C2)* | DamageAura-family side-grade: hits harder the LOWER the caster's own HP (berserker modifier, up to ×2). | Bear kill-drop @0.1. `api/skills/berserker-aura.json`. |
+| LongRangeStrike | in-game *(C2)* | Much larger ring, lower dps, hard cap 1 target — the positioning side-grade (WildAura precedent). | Elite-wolf kill-drop @0.5. `api/skills/long-range-strike.json`. |
 | Turnip-Pull | in-game *(C1)* | Damages exclusively opted-in targets (`gatedDamageTags` + unique `turnip` tag): only mobs whose resistances explicitly name `turnip` take damage — combat mobs are immune with zero authoring. | **The start loadout** — a fresh spawn owns exactly this (peasant onboarding, GDD §5). Lifelong utility: also the bramble-wall opener (C2). `api/skills/turnip-pull.json`. |
 | Fire Strike | idea | Fire damage to the lowest_health target (percentage) in range. | Pyromancer combo component; example of the lowest_health selector. |
 | Long Range Execute *(working title)* | idea | Very large radius, very slow tick, high damage to the proportionally lowest target. **Hard single-target cap** regardless of level. | Example of a per-aura selector + fixed cap. |

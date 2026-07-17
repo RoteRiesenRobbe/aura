@@ -103,17 +103,44 @@ func (c *client) SendMessage(bytes []byte) error {
 	return c.c.SendMessage(bytes)
 }
 
+// pushInput enqueues an input for the tick loop. On overflow the OLDEST input
+// is evicted and the newest kept — movement is a stateless snapshot where
+// newest wins — but the evicted input's one-shot commands (aura switch,
+// cooldown activations) are carried into the incoming input so a queue
+// overflow can never eat a click (C2 PO finding 2026-07-17: the aura selector
+// stuttered while moving because the command's input was blind-dropped).
+// A newer aura command supersedes an evicted one.
+func (c *client) pushInput(i *model.PlayerInput) {
+	select {
+	case c.inputs <- i:
+		return
+	default:
+	}
+	select {
+	case old := <-c.inputs:
+		if i.ActiveAuraSlot == model.ActiveAuraSlotNoChange {
+			i.ActiveAuraSlot = old.ActiveAuraSlot
+		}
+		if len(old.CooldownActivations) > 0 {
+			i.CooldownActivations = append(old.CooldownActivations, i.CooldownActivations...)
+		}
+	default:
+	}
+	select {
+	case c.inputs <- i:
+	default:
+		// Both eviction and re-push lost the race against the reader — rare
+		// enough to just drop.
+		log.Print("Input dropped.")
+	}
+}
+
 func (c *client) routeMessage(msg *BerryhunterApi.ClientMessage) {
 	// route message
 	switch msg.BodyType() {
 	case BerryhunterApi.ClientMessageBodyInput:
 		i := codec.InputMessageFlatbufferUnmarshal(msg)
-		// push input if possible, drop if overflow
-		select {
-		case c.inputs <- i:
-		default:
-			log.Print("Input dropped.")
-		}
+		c.pushInput(i)
 	case BerryhunterApi.ClientMessageBodyJoin:
 		j := codec.JoinMessageFlatbufferUnmarshal(msg)
 		select {

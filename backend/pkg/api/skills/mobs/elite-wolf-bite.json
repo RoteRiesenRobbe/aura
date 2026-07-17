@@ -1,0 +1,23 @@
+{
+  "_comment": "Z1 elite wolf bite (content pass C2): the dark-forest pack leader feeds on wounded prey — execute (bonus vs targets below 35% HP) + lifesteal (heals itself per hit), the coverage home for both modifiers (plan-content-zones12.md §10). Large radius + slow tick is the 'telegraph' (no telegraph system exists). Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 114,
+  "name": "EliteWolfBite",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 2.2,
+      "radiusPerLevel": 0.0,
+      "damageHP": 14,
+      "damageHPPerLevel": 2.0,
+      "executeBelowFraction": 0.35,
+      "executeBonusFactor": 1.5,
+      "lifestealFraction": 0.5,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 50
+    }
+  ]
+}

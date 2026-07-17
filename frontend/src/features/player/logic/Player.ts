@@ -93,9 +93,13 @@ export class Player {
         if (isDefined(entity.auraTickInterval)) {
             this.character.setAuraTick(entity.auraTickInterval, entity.auraTickPhase);
         }
-        // Own light hole in the darkness overlay (chunk 3); 0 removes it.
+        // Own light hole in the darkness overlay (chunk 3). Floored at a TINY
+        // self-glow (PO ruling 2026-07-17: darkness stays fully dark — the
+        // hole may cover the avatar itself and nothing more). Other entities
+        // keep the raw wire value. [PLACEHOLDER]
         if (isDefined(entity.lightRadius)) {
-            DarknessOverlay.setLightRadius(this.character, entity.lightRadius);
+            DarknessOverlay.setLightRadius(this.character,
+                Math.max(entity.lightRadius, MIN_SELF_LIGHT_PX));
         }
         if (isDefined(entity.level)) {
             this.character.setLevel(entity.level);
@@ -138,3 +142,8 @@ export class Player {
         this.vitalSigns.destroy();
     }
 }
+
+// Minimum radius (px) of the own character's darkness hole — deliberately
+// tiny, just covering the avatar sprite itself (PO: darkness stays fully
+// dark). [PLACEHOLDER]
+const MIN_SELF_LIGHT_PX = 40;

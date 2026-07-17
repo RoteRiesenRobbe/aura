@@ -25,6 +25,9 @@ export class AuraTickIndicator {
 
     /** The ring radius in px (the same value the aura sprite is sized to). */
     setRadius(radiusPx: number) {
+        if (radiusPx === this.radiusPx) {
+            return;
+        }
         this.radiusPx = radiusPx;
         this.rebuild();
     }
@@ -68,13 +71,18 @@ export class AuraTickIndicator {
         }
         this.glow.visible = true;
         // phase / interval is 0 right after a tick and grows toward 1 as the
-        // next tick approaches: the ring brightens toward the beat, then snaps
-        // back at the tick (discharging into the existing hit VFX).
+        // next tick approaches: the ring brightens toward the beat, then eases
+        // back at the tick (discharging into the existing hit VFX). The
+        // baseline keeps the edge always faintly lit — without it the ring
+        // blinked fully off at every tick AND right after each aura switch
+        // (the switch resets the tick accumulator server-side), which read as
+        // a broken on/off stutter (C2 PO finding 2026-07-17).
         const fraction = Math.min(this.phase / this.interval, 1);
-        this.glow.alpha = fraction * GLOW_MAX_ALPHA;
+        this.glow.alpha = GLOW_BASE_ALPHA + fraction * (GLOW_MAX_ALPHA - GLOW_BASE_ALPHA);
     }
 }
 
 const GLOW_COLOR = 0xffffff;
 const GLOW_WIDTH_PX = 3;
 const GLOW_MAX_ALPHA = 0.45;
+const GLOW_BASE_ALPHA = 0.18;

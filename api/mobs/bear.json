@@ -1,0 +1,32 @@
+{
+  "_comment": "Z1 forest tank (content pass C2): slow, heavy, and it RAGES — BearSwipe's berserker modifier makes a half-dead bear roughly half again as dangerous, punishing the slow facetank grind. curveLevel 4 = a deep-forest fight. Drops the defense passive (ThickHide) and its own rage as a player aura. All values [PLACEHOLDER]",
+  "id": 16,
+  "name": "Bear",
+  "type": "MOB",
+  "faction": "wildlife_predator",
+  "tier": "normal",
+  "curveLevel": 4,
+  "factors": {
+    "baseMaxHealth": 160,
+    "maxHealthVariance": 0.1,
+    "experience": 60,
+    "speed": 0.4,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.25,
+    "idleDwellMinTicks": 300,
+    "idleDwellMaxTicks": 1200
+  },
+  "body": {
+    "radius": 0.6,
+    "aggroRadius": 4
+  },
+  "skills": [
+    { "skillName": "BearSwipe", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "ThickHide", "chance": 0.15 },
+    { "skillName": "BerserkerAura", "chance": 0.1 }
+  ]
+}

@@ -139,6 +139,61 @@ export const GraphicsConfig = {
             minSize: <number> 20,
             maxSize: <number> 26,
         },
+
+        // Z1 wildlife + brambles (content pass C2). wildboar.svg because
+        // boar.svg is taken by the legacy Dodo skin.
+        wolf: {
+            file: require('../features/game-objects/assets/mobs/wolf.svg'),
+            minSize: <number> 38,
+            maxSize: <number> 46,
+        },
+
+        bear: {
+            file: require('../features/game-objects/assets/mobs/bear.svg'),
+            minSize: <number> 70,
+            maxSize: <number> 82,
+        },
+
+        boar: {
+            file: require('../features/game-objects/assets/mobs/wildboar.svg'),
+            minSize: <number> 46,
+            maxSize: <number> 56,
+        },
+
+        stag: {
+            file: require('../features/game-objects/assets/mobs/stag.svg'),
+            minSize: <number> 42,
+            maxSize: <number> 50,
+        },
+
+        eliteWolf: {
+            file: require('../features/game-objects/assets/mobs/eliteWolf.svg'),
+            minSize: <number> 56,
+            maxSize: <number> 64,
+        },
+
+        bramble: {
+            file: require('../features/game-objects/assets/mobs/bramble.svg'),
+            minSize: <number> 58,
+            maxSize: <number> 66,
+        },
+    },
+
+    // NPC sprites (content pass C2): Resource-backed, referenced by the
+    // zone-JSON npc entityType (server npc.SpriteFor). Sized like props.
+    npcs: {
+        signpost: {
+            file: require('../features/game-objects/assets/resources/signpost.svg'),
+            maxSize: <number> 55,
+        },
+        hermit: {
+            file: require('../features/game-objects/assets/resources/hermit.svg'),
+            maxSize: <number> 60,
+        },
+        dogNpc: {
+            file: require('../features/game-objects/assets/resources/dogNpc.svg'),
+            maxSize: <number> 45,
+        },
     },
 
     // Static zone props with dedicated art (content pass C1). Rect props are

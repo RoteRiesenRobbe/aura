@@ -559,6 +559,26 @@ any content.
 
 ### C2 — Z1 wildlife + dark forest
 
+> **PART 1 (wildlife + factions + forest block-out) DONE + VERIFIED IN-GAME
+> by PO 2026-07-17** — the pre-marked split was taken at the checkpoint;
+> Part 2 (forest interior: lift 2 + Torch + Hermit, Dog, brambles) is the
+> next execution session. Shipped: `wildlife_predator`/`wildlife_prey`
+> factions; Wolf/Bear/Boar/Stag/EliteWolf (tier+baseline, berserker /
+> execute+lifesteal / bleed authored on the mob skills); drops Swift /
+> ThickHide+BerserkerAura / Hardy+Dash / — / LongRangeStrike; NW dark-forest
+> block-out (thicket walls + corridors + clearings, darkAreas, signpost NPC,
+> path extension, open-country scatter) via a deterministic scratchpad
+> generator (committed artifact = world.json); **NPC-sprite lift** (optional
+> zone-JSON npc `entityType`, TDD) so the signpost is a literal sign.
+> PO-feedback round (same day, all verified): land rect now fills the exact
+> bounds (blue border fixed, beach ring moved outside the wall); density
+> ×~2 (196 props / 48 spawns); wolf 0.85→0.7, elite 0.75 (PO rule: normal
+> mobs clearly slower than the player); darkAreas pulled inside the treeline
+> (the overhang made players "invisible outside the forest" without light);
+> input-queue overflow now merges one-shot commands instead of dropping
+> them + HUD grace window (aura-selector stutter, TDD in model/client);
+> aura tick-glow baseline; tiny own-avatar darkness hole (40 px).
+
 - Factions `wildlife_predator` / `wildlife_prey` (matrix values authored).
 - Mobs: Wolf (packs, hunts prey; Swift), Bear (berserker-modified damage
   aura; Thick Hide + Berserker-aura), Boar (bleed; Hardy + Dash), Stag

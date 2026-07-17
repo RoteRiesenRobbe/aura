@@ -188,7 +188,7 @@ func (c *countingNpc) Teachings() []model.Teaching {
 func TestNpcSystem_RisingEdgeAntiSpamAndReTrigger(t *testing.T) {
 	space := phy.NewSpace()
 
-	base := npc.New(phy.Vec2f{X: 0, Y: 0}, 3,
+	base := npc.New(phy.Vec2f{X: 0, Y: 0}, 3, npc.PlaceholderSprite,
 		[]model.Teaching{teaching(1, 1, "learned heal")}, "too low", nil)
 	n := &countingNpc{Npc: base}
 	// Register exactly as game.addNpcEntity does: visual body static, sensor
@@ -266,7 +266,7 @@ func TestNpcSystem_SpeechReachesAllSensorPlayers(t *testing.T) {
 
 	// A lore NPC speaks its (multi-line) lore on every approach, independent of
 	// level or grants — the cleanest way to exercise the speech path.
-	n := npc.New(phy.Vec2f{X: 0, Y: 0}, 3, nil, "",
+	n := npc.New(phy.Vec2f{X: 0, Y: 0}, 3, npc.PlaceholderSprite, nil, "",
 		[]string{"Welcome, traveler.", "Trolls up north."})
 	space.AddStaticShape(n.Bodies()[0])
 	space.AddShape(n.Sensor())

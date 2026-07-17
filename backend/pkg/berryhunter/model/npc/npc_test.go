@@ -13,7 +13,7 @@ import (
 func TestSensorReportsOverlappingPlayer(t *testing.T) {
 	space := phy.NewSpace()
 
-	n := New(phy.Vec2f{X: 0, Y: 0}, 3, nil, "", nil)
+	n := New(phy.Vec2f{X: 0, Y: 0}, 3, PlaceholderSprite, nil, "", nil)
 	// Mirror addNpcEntity: visual body static, sensor dynamic.
 	space.AddStaticShape(n.Bodies()[0])
 	space.AddShape(n.Sensor())
@@ -36,7 +36,7 @@ func TestSensorReportsOverlappingPlayer(t *testing.T) {
 func TestSensorIgnoresPlayerOutOfRange(t *testing.T) {
 	space := phy.NewSpace()
 
-	n := New(phy.Vec2f{X: 0, Y: 0}, 3, nil, "", nil)
+	n := New(phy.Vec2f{X: 0, Y: 0}, 3, PlaceholderSprite, nil, "", nil)
 	space.AddStaticShape(n.Bodies()[0])
 	space.AddShape(n.Sensor())
 
@@ -72,5 +72,30 @@ func TestStaticSensorReportsNothing(t *testing.T) {
 
 	if len(sensor.Collisions()) != 0 {
 		t.Fatalf("expected a static sensor to report nothing, got %d collisions", len(sensor.Collisions()))
+	}
+}
+
+// TestSpriteFor covers the per-NPC sprite resolution (content pass C2): an
+// authored entityType name maps to its enum sprite, absent keeps the Flower
+// placeholder. Unknown names fall back to the placeholder too — the zone
+// loader already hard-fails them, this is just belt-and-braces.
+func TestSpriteFor(t *testing.T) {
+	if got := SpriteFor(""); got != PlaceholderSprite {
+		t.Fatalf("SpriteFor(\"\") = %v, want the placeholder", got)
+	}
+	if got := SpriteFor("Signpost"); got == PlaceholderSprite {
+		t.Fatalf("SpriteFor(\"Signpost\") fell back to the placeholder")
+	}
+	if got := SpriteFor("NoSuchSprite"); got != PlaceholderSprite {
+		t.Fatalf("SpriteFor unknown = %v, want the placeholder", got)
+	}
+}
+
+// TestNewUsesGivenSprite pins that the sprite passed to New is what the NPC
+// streams as its wire EntityType.
+func TestNewUsesGivenSprite(t *testing.T) {
+	n := New(phy.Vec2f{X: 0, Y: 0}, 3, SpriteFor("Signpost"), nil, "", nil)
+	if n.Type() == PlaceholderSprite {
+		t.Fatalf("NPC ignored the authored sprite and kept the placeholder")
 	}
 }

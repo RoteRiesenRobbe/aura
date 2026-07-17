@@ -170,6 +170,18 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
 - Placement: `zone.props` entries (`type`, `x`, `y`, `blocksMovement`) via the
   zone editor — rect props draw and hit-test as rectangles there.
 
+## 1c. NPC sprite (zone-JSON `entityType`, C2)
+
+Zone-JSON NPCs (`zone.npcs`) render as the Flower placeholder unless the
+entry names a sprite: `"entityType": "Signpost"` (validated against the
+`EntityType` enum at zone load; must be a **Resource-backed** entry — NPCs
+ride the Resource wire path, a Mob sprite class would expect health/aura
+fields). A **new** NPC sprite is the usual 5-file path: enum append →
+regen → SVG → a Resource render class (`Resources.ts`, mirror `Signpost`)
+→ `gameObjectClasses` slot. The zone editor round-trips the field
+(no panel control — hand-authored in the JSON). First user: the C2 forest
+signpost.
+
 ## 2. New ability (aura / passive / cooldown)
 
 If it composes an **already-supported effect type**, this is mostly JSON with no

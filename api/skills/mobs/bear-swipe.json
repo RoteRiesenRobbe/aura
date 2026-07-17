@@ -1,0 +1,21 @@
+{
+  "_comment": "Z1 bear swipe (content pass C2): slow heavy hit; berserkerMaxBonusFactor = the wounded animal rages — up to double damage as the bear's own HP drops (first berserker-modified mob aura). Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 111,
+  "name": "BearSwipe",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.1,
+      "radiusPerLevel": 0.0,
+      "damageHP": 16,
+      "damageHPPerLevel": 2.5,
+      "berserkerMaxBonusFactor": 1.0,
+      "variance": 0.1,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 60
+    }
+  ]
+}

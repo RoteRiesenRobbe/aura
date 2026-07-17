@@ -307,6 +307,15 @@ const gameObjectClasses = [
     Corpse,
     Mobs.Turnip,
     Resources.House,
+    Mobs.Wolf,
+    Mobs.Bear,
+    Mobs.Boar,
+    Mobs.Stag,
+    Mobs.EliteWolf,
+    Mobs.Bramble,
+    Resources.Signpost,
+    Resources.Hermit,
+    Resources.DogNpc,
 ];
 
 function unmarshalEntityType(entityType) {

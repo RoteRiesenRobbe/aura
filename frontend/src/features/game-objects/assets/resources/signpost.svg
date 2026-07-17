@@ -1,0 +1,10 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder signpost art (content pass C2): a wooden sign seen from
+       above-ish — post shadow + tilted board so it reads as a sign top-down. -->
+  <circle cx="50" cy="58" r="7" fill="#5e4a30" stroke="#3f3220" stroke-width="3"/>
+  <g transform="rotate(-8 50 42)">
+    <rect x="18" y="26" width="64" height="32" rx="4" fill="#a9855a" stroke="#5e4a30" stroke-width="4"/>
+    <line x1="26" y1="36" x2="74" y2="36" stroke="#5e4a30" stroke-width="4" stroke-linecap="round"/>
+    <line x1="26" y1="46" x2="62" y2="46" stroke="#5e4a30" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

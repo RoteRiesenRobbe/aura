@@ -539,6 +539,38 @@ func TestZone_LoadsLoreNpc(t *testing.T) {
 	assert.Len(t, z.Npcs[0].Lines, 2)
 }
 
+// An NPC may name a sprite via entityType (content pass C2 — the signpost is a
+// literal sign); absent keeps the placeholder default (empty string).
+func TestZone_NpcEntityTypeParses(t *testing.T) {
+	const doc = `{
+		"name": "N", "bounds": { "width": 60, "height": 40 },
+		"npcs": [
+			{ "type": "ForestSign", "x": 20, "y": 0, "radius": 3, "entityType": "Signpost",
+			  "lines": ["Something big prowls these woods."] },
+			{ "type": "Guard", "x": 25, "y": 0, "radius": 3,
+			  "lines": ["No entry."] }
+		]
+	}`
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	require.NoError(t, err)
+	require.Len(t, z.Npcs, 2)
+	assert.Equal(t, "Signpost", z.Npcs[0].EntityType)
+	assert.Empty(t, z.Npcs[1].EntityType, "absent entityType stays empty (placeholder sprite)")
+}
+
+func TestZone_RejectsUnknownNpcEntityType(t *testing.T) {
+	const doc = `{
+		"name": "N", "bounds": { "width": 60, "height": 40 },
+		"npcs": [
+			{ "type": "ForestSign", "x": 20, "y": 0, "radius": 3, "entityType": "NoSuchSprite",
+			  "lines": ["hello"] }
+		]
+	}`
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "NoSuchSprite")
+}
+
 func TestZone_RejectsUnknownTeachingSkill(t *testing.T) {
 	const doc = `{
 		"name": "N", "bounds": { "width": 60, "height": 40 },

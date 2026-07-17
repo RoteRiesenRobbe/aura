@@ -181,6 +181,8 @@ export class Game implements IGame {
                 healer: createNamedContainer('healer'),
                 campfire: createNamedContainer('campfireMob'),
                 turnip: createNamedContainer('turnip'),
+                // Z1 wildlife + brambles share one layer (content pass C2).
+                wildlife: createNamedContainer('wildlife'),
             },
             resources: {
                 berryBush: createNamedContainer('berryBush'),
@@ -244,6 +246,7 @@ export class Game implements IGame {
             this.layers.mobs.healer,
             this.layers.mobs.campfire,
             this.layers.mobs.turnip,
+            this.layers.mobs.wildlife,
         );
 
         // Higher Placeables
@@ -424,13 +427,17 @@ export class Game implements IGame {
         DarknessOverlay.loadZone(gameInformation.zoneName);
         const mapWidth = gameInformation.mapWidth;
         const mapHeight = gameInformation.mapHeight;
-        const waterMargin = 240; // shallow-water ring inset from each edge
+        // Shallow-water beach ring OUTSIDE the physical bounds (C2 fix: the
+        // old inset ring sat inside the wall, so the last 2 units of walkable
+        // land rendered as water). Land now fills the exact bounds the border
+        // collision uses.
+        const waterMargin = 240;
         this.layers.terrain.ground.addChild(new Graphics()
-            .rect(-mapWidth / 2, -mapHeight / 2, mapWidth, mapHeight)
+            .rect(-mapWidth / 2 - waterMargin, -mapHeight / 2 - waterMargin,
+                mapWidth + 2 * waterMargin, mapHeight + 2 * waterMargin)
             .fill(GraphicsConfig.shallowWaterColor));
         this.layers.terrain.ground.addChild(new Graphics()
-            .rect(-mapWidth / 2 + waterMargin, -mapHeight / 2 + waterMargin,
-                mapWidth - 2 * waterMargin, mapHeight - 2 * waterMargin)
+            .rect(-mapWidth / 2, -mapHeight / 2, mapWidth, mapHeight)
             .fill(GraphicsConfig.landColor));
 
         this.miniMap.setup(mapWidth, mapHeight);

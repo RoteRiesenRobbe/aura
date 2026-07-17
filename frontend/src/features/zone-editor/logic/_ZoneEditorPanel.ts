@@ -780,10 +780,12 @@ function applyControlsToSelection() {
         }
     } else if (selection.kind === 'npc') {
         let current = ZoneEditor.model.npcs[selection.index];
-        // Teachings are edited via the sub-list, not these controls — carry them.
+        // Teachings are edited via the sub-list, not these controls — carry
+        // them. entityType has no panel control either (authored in the zone
+        // JSON, content pass C2) — carry it so an editor update can't strip it.
         let updated = readNpcControls(current.x, current.y, current.teachings || []);
         if (updated !== null) {
-            ZoneEditor.updateNpc(selection.index, updated);
+            ZoneEditor.updateNpc(selection.index, {...updated, entityType: current.entityType});
         }
     }
 }

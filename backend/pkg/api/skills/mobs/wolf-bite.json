@@ -1,0 +1,20 @@
+{
+  "_comment": "Z1 wolf pack bite (content pass C2): mid radius, brisk tick — the first real combat pressure after the farm. Authored as a curve-position-1 baseline; the loader scales it by f(curveLevel). All values [PLACEHOLDER]",
+  "id": 110,
+  "name": "WolfBite",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.2,
+      "radiusPerLevel": 0.0,
+      "damageHP": 6,
+      "damageHPPerLevel": 1.0,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 24
+    }
+  ]
+}

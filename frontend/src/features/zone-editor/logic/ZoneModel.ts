@@ -90,6 +90,9 @@ export interface ZoneNpc {
     tooLowLine?: string;
     teachings?: ZoneTeaching[];
     lines?: string[];
+    // Optional wire sprite (content pass C2, e.g. "Signpost"); absent = the
+    // server-side placeholder sprite. Must survive round-trips untouched.
+    entityType?: string;
 }
 
 export interface ZoneData {
@@ -274,6 +277,7 @@ export class ZoneModel {
                         ? n.teachings.map(t => ({skill: t.skill, requiredLevel: t.requiredLevel, line: t.line}))
                         : undefined,
                     lines: n.lines && n.lines.length > 0 ? n.lines.slice() : undefined,
+                    entityType: n.entityType || undefined,
                 }))
                 : undefined,
         };

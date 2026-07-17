@@ -20,11 +20,26 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 )
 
-// placeholderSprite is the reused client sprite every NPC renders as until a
-// dedicated NPC sprite exists (chunk 2). It must be a Resource-backed
-// EntityType because NPCs ride the Resource wire path (PropEntityFlatbufMarshal)
-// — a Mob sprite class expects health/aura wire fields a Resource payload lacks.
-const placeholderSprite = model.EntityType(BerryhunterApi.EntityTypeFlower)
+// PlaceholderSprite is the reused client sprite an NPC renders as when its
+// zone entry names no entityType (content pass C2 made the sprite authorable).
+// It must be a Resource-backed EntityType because NPCs ride the Resource wire
+// path (PropEntityFlatbufMarshal) — a Mob sprite class expects health/aura
+// wire fields a Resource payload lacks.
+const PlaceholderSprite = model.EntityType(BerryhunterApi.EntityTypeFlower)
+
+// SpriteFor resolves an authored zone-JSON entityType name to the NPC's wire
+// sprite. Empty = the placeholder; unknown names also fall back to it (the
+// zone loader already hard-fails those — this is belt-and-braces, not a
+// second validation site).
+func SpriteFor(entityType string) model.EntityType {
+	if entityType == "" {
+		return PlaceholderSprite
+	}
+	if v, ok := BerryhunterApi.EnumValuesEntityType[entityType]; ok {
+		return model.EntityType(v)
+	}
+	return PlaceholderSprite
+}
 
 // placeholderVisualRadius is the NPC's body/sprite radius in server units
 // [PLACEHOLDER]. Distinct from the (larger) sensor radius, which is authored
@@ -48,9 +63,11 @@ var _ = model.NpcEntity(&Npc{})
 
 // New builds a static teaching/lore NPC at pos: a solid visual body plus a
 // proximity sensor of sensorRadius that detects players (LayerPlayerCollision).
+// sprite is the wire EntityType the NPC renders as (SpriteFor resolves the
+// authored name; pass PlaceholderSprite when none is authored).
 // teachings/tooLowLine/lines are the approach payload (chunk 3); a pure-lore
 // NPC passes nil teachings + empty tooLowLine.
-func New(pos phy.Vec2f, sensorRadius float32, teachings []model.Teaching, tooLowLine string, lines []string) *Npc {
+func New(pos phy.Vec2f, sensorRadius float32, sprite model.EntityType, teachings []model.Teaching, tooLowLine string, lines []string) *Npc {
 	// Solid like a prop: players and mobs bump into the NPC, and it streams to
 	// clients via the viewport layer.
 	body := phy.NewCircle(pos, placeholderVisualRadius)
@@ -64,7 +81,7 @@ func New(pos phy.Vec2f, sensorRadius float32, teachings []model.Teaching, tooLow
 	sensor.Shape().IsSensor = true
 
 	n := &Npc{
-		BaseEntity: model.NewBaseEntity(body, placeholderSprite),
+		BaseEntity: model.NewBaseEntity(body, sprite),
 		sensor:     sensor,
 		teachings:  teachings,
 		tooLowLine: tooLowLine,

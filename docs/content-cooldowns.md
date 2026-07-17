@@ -7,7 +7,7 @@ In-game entries: authoritative definition is `api/skills/*.json`; all values
 
 | Name | Status | Effect | Unlock source / notes |
 |---|---|---|---|
-| Dash | in-game | Short forward burst of movement. | Taught by the Sage @ L5 (→ `content-npcs.md`). |
+| Dash | in-game | Short forward burst of movement. | Taught by the Sage @ L5 (→ `content-npcs.md`); **Boar kill-drop @0.1 since C2** (multi-source is safe/idempotent). |
 | Heal | in-game | Restores the caster's own resource (capped-partial per the §3 recovery boundary). | **The only path to instant self-healing** — heal auras never heal the caster. Intended reward from the troll territory clue anchor (→ `content-world.md`); = "Heal Magic cooldown" in older docs. |
 | Recover | in-game | Heals the caster over ~18 s AND gifts the same HoT to nearby allies. | = the "personal recovery cooldown" (GDD §3): the solo sit-and-eat substitute, out-of-combat-flavored. |
 | SummonCompanion | in-game | Summons an owned, player-aligned companion beside the caster; follows the owner, fights per the §3.6 assist rules, despawns on TTL. | Mob-depth chunk 6. **Content idea (2026-07-16): taught by the dog NPC in the dark forest (→ `content-npcs.md`); the companion uses the existing dog SVG.** Open questions on XP credit / caps: `backlog.md` §5. |

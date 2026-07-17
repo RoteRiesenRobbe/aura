@@ -1,0 +1,31 @@
+{
+  "_comment": "Z1 dark-forest pack leader (content pass C2): the 'something big' the signpost warns about. tier elite as a pure label — eliteness lives in the baseline + curveLevel 5. EliteWolfBite feeds on wounded prey (execute + lifesteal). Guards the Hermit approach; drops the positioning side-grade aura. All values [PLACEHOLDER]",
+  "id": 19,
+  "name": "EliteWolf",
+  "type": "MOB",
+  "faction": "wildlife_predator",
+  "tier": "elite",
+  "curveLevel": 5,
+  "factors": {
+    "baseMaxHealth": 220,
+    "maxHealthVariance": 0.1,
+    "experience": 150,
+    "speed": 0.75,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.45,
+    "aggroRadius": 6
+  },
+  "skills": [
+    { "skillName": "EliteWolfBite", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "LongRangeStrike", "chance": 0.5 }
+  ]
+}

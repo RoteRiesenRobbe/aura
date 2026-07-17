@@ -1,0 +1,11 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder bramble art (content pass C2): a knot of thorny vines —
+       the Turnip-Pull-gated destructible wall segment. -->
+  <circle cx="50" cy="50" r="34" fill="#4d5e3a" stroke="#33402a" stroke-width="4"/>
+  <path d="M 22 40 q 20 -18 56 -4 M 20 58 q 26 14 60 -2 M 34 24 q 10 30 -2 52 M 66 22 q -6 32 4 54"
+        fill="none" stroke="#33402a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M 30 34 l -6 -6 M 46 26 l -2 -8 M 64 30 l 6 -6 M 76 48 l 8 -2 M 68 70 l 6 6 M 46 78 l -2 8 M 26 64 l -8 4"
+        fill="none" stroke="#77894f" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="44" cy="48" r="4" fill="#77894f"/>
+  <circle cx="60" cy="56" r="4" fill="#77894f"/>
+</svg>

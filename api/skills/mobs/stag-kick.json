@@ -1,0 +1,19 @@
+{
+  "_comment": "Z1 stag kick (content pass C2): token defense of a flee-always prey mob — barely more than a nuisance. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 113,
+  "name": "StagKick",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 0.8,
+      "radiusPerLevel": 0.0,
+      "damageHP": 3,
+      "damageHPPerLevel": 0.5,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 40
+    }
+  ]
+}

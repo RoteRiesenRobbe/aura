@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
@@ -160,6 +161,13 @@ type Npc struct {
 	TooLowLine string     `json:"tooLowLine"`
 	Teachings  []Teaching `json:"teachings"`
 	Lines      []string   `json:"lines"`
+
+	// EntityType optionally names the wire sprite this NPC renders as
+	// (content pass C2 — a signpost NPC wears a sign). Must be a
+	// Resource-backed EntityType enum name (NPCs ride the Resource wire
+	// path); validated against the enum at load. Empty = the npc package's
+	// placeholder sprite.
+	EntityType string `json:"entityType"`
 }
 
 // Zone is the whole authored world description loaded from a zone file. One
@@ -307,6 +315,11 @@ func (z *Zone) validate() error {
 		}
 		if len(n.Teachings) > 0 && strings.TrimSpace(n.TooLowLine) == "" {
 			return fmt.Errorf("npc %d: teaching NPC must have a tooLowLine", i)
+		}
+		if n.EntityType != "" {
+			if _, ok := BerryhunterApi.EnumValuesEntityType[n.EntityType]; !ok {
+				return fmt.Errorf("npc %d: entityType %q is not a known EntityType", i, n.EntityType)
+			}
 		}
 		for j := range n.Teachings {
 			t := &n.Teachings[j]

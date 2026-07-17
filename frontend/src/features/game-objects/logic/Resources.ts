@@ -415,3 +415,56 @@ export class House extends Resource {
 const houseCfg = GraphicsConfig.props.house;
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(House, houseCfg.file, houseCfg.maxSize);
+
+// --- NPC sprites (content pass C2) ---
+// Resource-backed circle-bodied NPC sprites, picked by the zone-JSON npc
+// entityType (server-side npc.SpriteFor). NPCs ride the Resource wire path,
+// so these are plain fixed-rotation Resources like the House.
+
+export class Signpost extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, Signpost.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Signpost, GraphicsConfig.npcs.signpost.file, GraphicsConfig.npcs.signpost.maxSize);
+
+export class Hermit extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, Hermit.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Hermit, GraphicsConfig.npcs.hermit.file, GraphicsConfig.npcs.hermit.maxSize);
+
+export class DogNpc extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, DogNpc.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(DogNpc, GraphicsConfig.npcs.dogNpc.file, GraphicsConfig.npcs.dogNpc.maxSize);

@@ -31,8 +31,15 @@ moved from the L1 milestone to the Farmer's ordered teachings @L2).
 **In-game since C1:** the Rübenfeld farm start beat — the playfield zone
 (`api/zones/world.json`, full Z1+Z2 bounds), 2 solid houses (first rect
 props), the turnip field, the Rübenfeld campfire (spawn anchor), path stubs
-N + E, and the Farmer. Wildlife, dark forest, kobolds and the tunnel follow
-in C2/C3.
+N + E, and the Farmer.
+
+**In-game since C2 Part 1:** the wildlife ecology (wolf packs hunt boars/
+stags and players; bears; the elite wolf deep in the forest) and the NW
+dark-forest block-out — solid thicket walls with three entrances, carved
+corridors and clearings, darkness circles inside the treeline, the
+"something big prowls" signpost at the south entrance, the path extended to
+it, plus open-country tree/rock scatter. Forest interior content (Hermit/
+Torch, Dog, bramble shortcut) is C2 Part 2; kobolds and the tunnel are C3.
 
 ## Areas (intent)
 

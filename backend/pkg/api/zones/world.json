@@ -394,7 +394,7 @@
       "x": -94.51,
       "y": 13.5,
       "size": 1.21,
-      "rotation": 3.0,
+      "rotation": 3,
       "flipped": "none"
     },
     {
@@ -409,7 +409,7 @@
       "type": "Sand",
       "x": -88.38,
       "y": 40.25,
-      "size": 1.0,
+      "size": 1,
       "rotation": 1.335,
       "flipped": "none"
     },
@@ -623,7 +623,7 @@
     },
     {
       "type": "Sand",
-      "x": -56.0,
+      "x": -56,
       "y": 40.67,
       "size": 1.1,
       "rotation": 1.251,
@@ -649,7 +649,7 @@
       "type": "Sand",
       "x": -93.85,
       "y": 40.23,
-      "size": 1.0,
+      "size": 1,
       "rotation": 3.365,
       "flipped": "none"
     },
@@ -676,33 +676,105 @@
       "size": 1.38,
       "rotation": 3.624,
       "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -93.44,
+      "y": 10.57,
+      "size": 1.19,
+      "rotation": 4.756,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -93.69,
+      "y": 8.6,
+      "size": 1.08,
+      "rotation": 3.986,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -93.51,
+      "y": 6.29,
+      "size": 1.25,
+      "rotation": 2.892,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -93.28,
+      "y": 4.28,
+      "size": 1,
+      "rotation": 4.306,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -92.92,
+      "y": 2.83,
+      "size": 1.29,
+      "rotation": 2.047,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -92.67,
+      "y": 0.77,
+      "size": 1.12,
+      "rotation": 3.748,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -92.23,
+      "y": -0.92,
+      "size": 1.14,
+      "rotation": 3.76,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -92.13,
+      "y": -2.9,
+      "size": 0.98,
+      "rotation": 1.629,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -92.29,
+      "y": -5.24,
+      "size": 1.17,
+      "rotation": 6.173,
+      "flipped": "none"
     }
   ],
   "props": [
     {
       "type": "House",
-      "x": -103.0,
-      "y": 34.0,
+      "x": -103,
+      "y": 34,
       "rotation": 0,
       "blocksMovement": true
     },
     {
       "type": "House",
-      "x": -93.0,
-      "y": 33.0,
+      "x": -93,
+      "y": 33,
       "rotation": 0,
       "blocksMovement": true
     },
     {
       "type": "Tree",
-      "x": -108.0,
-      "y": 42.0,
+      "x": -108,
+      "y": 42,
       "rotation": 4.168,
       "blocksMovement": true
     },
     {
       "type": "Tree",
-      "x": -107.0,
+      "x": -107,
       "y": 48.5,
       "rotation": 4.96,
       "blocksMovement": true
@@ -710,13 +782,13 @@
     {
       "type": "Tree",
       "x": -101.5,
-      "y": 51.0,
+      "y": 51,
       "rotation": 5.726,
       "blocksMovement": true
     },
     {
       "type": "Tree",
-      "x": -79.0,
+      "x": -79,
       "y": 50.5,
       "rotation": 5.398,
       "blocksMovement": true
@@ -724,8 +796,1331 @@
     {
       "type": "Tree",
       "x": -76.5,
-      "y": 33.0,
+      "y": 33,
       "rotation": 5.436,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -115.76,
+      "y": -5.85,
+      "rotation": 0.149,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -115.87,
+      "y": -54.05,
+      "rotation": 6.226,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -112.53,
+      "y": -54.21,
+      "rotation": 0.684,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -108.91,
+      "y": -5.81,
+      "rotation": 4.314,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -109.04,
+      "y": -53.88,
+      "rotation": 3.788,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -106.75,
+      "y": -53.76,
+      "rotation": 1.079,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -105.46,
+      "y": -5.76,
+      "rotation": 3.712,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -103.2,
+      "y": -53.91,
+      "rotation": 4.147,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -101.49,
+      "y": -6.1,
+      "rotation": 5.501,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -99.83,
+      "y": -54.06,
+      "rotation": 4.153,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -97.84,
+      "y": -6.02,
+      "rotation": 0.902,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -96.39,
+      "y": -53.87,
+      "rotation": 5.211,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -94.15,
+      "y": -54.11,
+      "rotation": 0.606,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -90.63,
+      "y": -54.12,
+      "rotation": 0.587,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -89.27,
+      "y": -6.06,
+      "rotation": 1.564,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -87.4,
+      "y": -54,
+      "rotation": 2.778,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -85.31,
+      "y": -5.85,
+      "rotation": 2.213,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -83.3,
+      "y": -53.9,
+      "rotation": 1.239,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -81.53,
+      "y": -6.19,
+      "rotation": 3.94,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -79.79,
+      "y": -54.04,
+      "rotation": 5.491,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -78.14,
+      "y": -5.87,
+      "rotation": 2.6,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -76.14,
+      "y": -54.19,
+      "rotation": 2.337,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -74.57,
+      "y": -5.77,
+      "rotation": 5.923,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -72.95,
+      "y": -54.15,
+      "rotation": 0.884,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.77,
+      "y": -52.14,
+      "rotation": 6.198,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -115.96,
+      "y": -50.34,
+      "rotation": 2.319,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -72.24,
+      "y": -48.51,
+      "rotation": 2.31,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -116.16,
+      "y": -46.86,
+      "rotation": 1.765,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.76,
+      "y": -44.89,
+      "rotation": 1.114,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -116.1,
+      "y": -43.27,
+      "rotation": 2.287,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.94,
+      "y": -41.66,
+      "rotation": 1.818,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -116.21,
+      "y": -39.34,
+      "rotation": 4.956,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -72.24,
+      "y": -39.47,
+      "rotation": 4.218,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -115.89,
+      "y": -35.85,
+      "rotation": 1.424,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -72.15,
+      "y": -35.93,
+      "rotation": 4.25,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -115.79,
+      "y": -32.49,
+      "rotation": 4.194,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -116.21,
+      "y": -29.09,
+      "rotation": 4.725,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -72.03,
+      "y": -27.02,
+      "rotation": 5.584,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -116.19,
+      "y": -25.33,
+      "rotation": 5.293,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -72.13,
+      "y": -23.57,
+      "rotation": 5.484,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -115.8,
+      "y": -21.39,
+      "rotation": 4.243,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.82,
+      "y": -19.84,
+      "rotation": 6.085,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -116.03,
+      "y": -17.73,
+      "rotation": 6.253,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -72.04,
+      "y": -16.12,
+      "rotation": 1.069,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -116.1,
+      "y": -14.34,
+      "rotation": 5.686,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -72.05,
+      "y": -12.43,
+      "rotation": 5.693,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -116.18,
+      "y": -10.74,
+      "rotation": 0.214,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -72.1,
+      "y": -9,
+      "rotation": 5.955,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -112.65,
+      "y": -51.68,
+      "rotation": 1.603,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -114.09,
+      "y": -40.26,
+      "rotation": 4.731,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -107.81,
+      "y": -51.63,
+      "rotation": 3.766,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -107.06,
+      "y": -28.18,
+      "rotation": 5.131,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -107.06,
+      "y": -22.64,
+      "rotation": 0.144,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -107.27,
+      "y": -19.75,
+      "rotation": 4.098,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -107.55,
+      "y": -17.49,
+      "rotation": 5.247,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -107.61,
+      "y": -14.26,
+      "rotation": 1.621,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -107.18,
+      "y": -10.4,
+      "rotation": 2.741,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -105.13,
+      "y": -52.24,
+      "rotation": 2.39,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -105.18,
+      "y": -34.67,
+      "rotation": 4.003,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -105.4,
+      "y": -30.7,
+      "rotation": 2.354,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -104.53,
+      "y": -26.08,
+      "rotation": 4.187,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -104.68,
+      "y": -22.94,
+      "rotation": 2.89,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -105.24,
+      "y": -16.17,
+      "rotation": 5.789,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -105.38,
+      "y": -13.66,
+      "rotation": 0.371,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -104.24,
+      "y": -11.72,
+      "rotation": 1.005,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -104,
+      "y": -7.94,
+      "rotation": 3.465,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -101.15,
+      "y": -48.51,
+      "rotation": 1.103,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -102.18,
+      "y": -34.89,
+      "rotation": 5.26,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -101.08,
+      "y": -30.94,
+      "rotation": 4.066,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -101.71,
+      "y": -28.63,
+      "rotation": 0.405,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -102.31,
+      "y": -25.53,
+      "rotation": 2.096,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -102.15,
+      "y": -22.03,
+      "rotation": 4.88,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -101.45,
+      "y": -18.94,
+      "rotation": 3.035,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -102.2,
+      "y": -13.24,
+      "rotation": 3.176,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -101.34,
+      "y": -10.29,
+      "rotation": 2.231,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -99.01,
+      "y": -51.83,
+      "rotation": 2.075,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -98.71,
+      "y": -46.17,
+      "rotation": 3.268,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -99.02,
+      "y": -27.97,
+      "rotation": 5.072,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -99.58,
+      "y": -24.93,
+      "rotation": 4.406,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -99.78,
+      "y": -21.91,
+      "rotation": 5.788,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -98.44,
+      "y": -20.04,
+      "rotation": 1.93,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -98.75,
+      "y": -13.04,
+      "rotation": 4.745,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -98.58,
+      "y": -10.23,
+      "rotation": 5.839,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -95.44,
+      "y": -50.93,
+      "rotation": 1.734,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -96.45,
+      "y": -48.94,
+      "rotation": 0.997,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -95.47,
+      "y": -45.19,
+      "rotation": 0.898,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -95.72,
+      "y": -40.14,
+      "rotation": 5.866,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -96.15,
+      "y": -24.79,
+      "rotation": 2.625,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -96.49,
+      "y": -7.9,
+      "rotation": 5.673,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -92.4,
+      "y": -46.58,
+      "rotation": 0.345,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -93.35,
+      "y": -42.3,
+      "rotation": 3.389,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -92.64,
+      "y": -36.55,
+      "rotation": 5.103,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -90.99,
+      "y": -50.95,
+      "rotation": 1.955,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -90.07,
+      "y": -45.99,
+      "rotation": 1.574,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -89.5,
+      "y": -42.15,
+      "rotation": 0.487,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -91.05,
+      "y": -34.55,
+      "rotation": 0.975,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -88,
+      "y": -50.93,
+      "rotation": 1.69,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -87.9,
+      "y": -48.59,
+      "rotation": 4.709,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -87.68,
+      "y": -45.93,
+      "rotation": 0.08,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -87.29,
+      "y": -39.67,
+      "rotation": 5.66,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -86.97,
+      "y": -10.36,
+      "rotation": 5.798,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -85.25,
+      "y": -52.21,
+      "rotation": 6.244,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -84.08,
+      "y": -45.64,
+      "rotation": 3.414,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -84.97,
+      "y": -39.03,
+      "rotation": 2.962,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -84.96,
+      "y": -22.07,
+      "rotation": 4.303,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -84.09,
+      "y": -19.11,
+      "rotation": 3.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -84.19,
+      "y": -16.63,
+      "rotation": 4.141,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -83.69,
+      "y": -13.4,
+      "rotation": 0.182,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -82.25,
+      "y": -47.72,
+      "rotation": 3.582,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -81.3,
+      "y": -39.77,
+      "rotation": 0.031,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -82.44,
+      "y": -37.28,
+      "rotation": 2.786,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -81.45,
+      "y": -24.9,
+      "rotation": 0.896,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -82.24,
+      "y": -10.16,
+      "rotation": 2.868,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -78.14,
+      "y": -50.98,
+      "rotation": 6.032,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -78.49,
+      "y": -39.73,
+      "rotation": 0.313,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -79.28,
+      "y": -37.2,
+      "rotation": 2.586,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -78.81,
+      "y": -21.92,
+      "rotation": 1.662,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -79.05,
+      "y": -19.02,
+      "rotation": 2.608,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -79.34,
+      "y": -16.33,
+      "rotation": 6.143,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -78.91,
+      "y": -13.5,
+      "rotation": 3.142,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -78.04,
+      "y": -10.48,
+      "rotation": 4.356,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -75.14,
+      "y": -52.11,
+      "rotation": 3.078,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -75.56,
+      "y": -49.28,
+      "rotation": 1.834,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -76.15,
+      "y": -39.77,
+      "rotation": 2.091,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -75.84,
+      "y": -36.44,
+      "rotation": 5.578,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -76.05,
+      "y": -26.15,
+      "rotation": 3.856,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -75.19,
+      "y": -20.3,
+      "rotation": 2.473,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -76.44,
+      "y": -15.92,
+      "rotation": 1.146,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -75.48,
+      "y": -13.12,
+      "rotation": 4.485,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -75.63,
+      "y": -8.07,
+      "rotation": 6.103,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -73.81,
+      "y": 3.6,
+      "rotation": 0.431,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -109.71,
+      "y": 21.09,
+      "rotation": 1.196,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -79.71,
+      "y": 55.88,
+      "rotation": 0.944,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -86,
+      "y": 3.64,
+      "rotation": 5.521,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -64.68,
+      "y": 11.79,
+      "rotation": 1.772,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -79.68,
+      "y": 24.61,
+      "rotation": 5.807,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -99.73,
+      "y": 54.53,
+      "rotation": 1.559,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -67.56,
+      "y": -9.26,
+      "rotation": 0.47,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -101.12,
+      "y": 3.83,
+      "rotation": 1.571,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -78.91,
+      "y": 3.06,
+      "rotation": 4.884,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -69.8,
+      "y": -55.21,
+      "rotation": 2.596,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -62.39,
+      "y": 29.55,
+      "rotation": 3.527,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -66.18,
+      "y": -19.35,
+      "rotation": 4.606,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -59.26,
+      "y": 51.61,
+      "rotation": 0.968,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -56.66,
+      "y": -23.33,
+      "rotation": 4.389,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -54.65,
+      "y": -32.65,
+      "rotation": 4.209,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -104.37,
+      "y": 20.65,
+      "rotation": 3.461,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -48.51,
+      "y": 31.47,
+      "rotation": 1.593,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -63.98,
+      "y": -41.61,
+      "rotation": 1.824,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -50.24,
+      "y": -34.86,
+      "rotation": 4.035,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -54.19,
+      "y": 32.56,
+      "rotation": 6.125,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -107.24,
+      "y": -0.92,
+      "rotation": 3.173,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -49.48,
+      "y": 53.4,
+      "rotation": 2.582,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -59.78,
+      "y": -24.55,
+      "rotation": 3.264,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -54.3,
+      "y": -43.11,
+      "rotation": 5.363,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -55.39,
+      "y": -7.74,
+      "rotation": 3.692,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -48.63,
+      "y": -45.86,
+      "rotation": 0.784,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -53.18,
+      "y": 36.4,
+      "rotation": 2.019,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -108.74,
+      "y": 54.83,
+      "rotation": 3.248,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -62.95,
+      "y": 2.32,
+      "rotation": 2.963,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -77.26,
+      "y": 14.1,
+      "rotation": 4.204,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -75.01,
+      "y": 21.58,
+      "rotation": 0.372,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -66.96,
+      "y": 3.84,
+      "rotation": 0.331,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -57.51,
+      "y": 19.23,
+      "rotation": 0.548,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -66.54,
+      "y": -14.24,
+      "rotation": 5.257,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -63.78,
+      "y": -54.17,
+      "rotation": 1.926,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -85.26,
+      "y": 21.58,
+      "rotation": 4.155,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -57.3,
+      "y": -26.99,
+      "rotation": 4.311,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -88.26,
+      "y": 28.97,
+      "rotation": 4.767,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -68.17,
+      "y": 34.08,
+      "rotation": 2.128,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -67.67,
+      "y": 7.6,
+      "rotation": 1.364,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -64.09,
+      "y": -8.85,
+      "rotation": 5.766,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -56.95,
+      "y": 4.8,
+      "rotation": 3.486,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -50.61,
+      "y": 9.48,
+      "rotation": 2.944,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -48.66,
+      "y": 15.91,
+      "rotation": 5.443,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -59.82,
+      "y": -9.69,
+      "rotation": 0.471,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -69.79,
+      "y": 50.21,
+      "rotation": 0.688,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -66.83,
+      "y": 26.66,
+      "rotation": 4.777,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -58.86,
+      "y": -37.5,
+      "rotation": 1.535,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -102.06,
+      "y": 56.78,
+      "rotation": 5.727,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -48.73,
+      "y": 43.84,
+      "rotation": 4.145,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -73.72,
+      "y": 16.14,
+      "rotation": 4.31,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -114.96,
+      "y": 46.56,
+      "rotation": 5.326,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -58.46,
+      "y": -54.94,
+      "rotation": 1.087,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -102.85,
+      "y": 28.21,
+      "rotation": 1.151,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -65.1,
+      "y": 52.07,
+      "rotation": 5.392,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": -101.71,
+      "y": 22.86,
+      "rotation": 1.733,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -81.75,
+      "y": -2.05,
+      "rotation": 6.063,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -110.06,
+      "y": 57.99,
+      "rotation": 0.995,
       "blocksMovement": true
     }
   ],
@@ -857,15 +2252,317 @@
       "angle": 0,
       "respawnTicks": 300,
       "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": -108,
+      "y": 15,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": -98,
+      "y": 6,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": -83,
+      "y": 9,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": -70,
+      "y": 18,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": -114,
+      "y": 22,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": -88,
+      "y": 16,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": -64,
+      "y": 4,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": -60,
+      "y": 24,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": -113,
+      "y": 4,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": -90,
+      "y": 3,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": -75,
+      "y": 5,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": -66,
+      "y": 10,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": -106,
+      "y": 24,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": -80,
+      "y": 22,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": -62,
+      "y": 16,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": -58,
+      "y": -2,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -78,
+      "y": -2,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -76,
+      "y": 0,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -79,
+      "y": 1,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -89,
+      "y": -27,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -91,
+      "y": -29,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -88.5,
+      "y": -29.5,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -114,
+      "y": 0,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -116,
+      "y": -1.5,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -113.5,
+      "y": -2.5,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -62,
+      "y": 28,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -60,
+      "y": 29.5,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -63.5,
+      "y": 30,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Bear",
+      "x": -96,
+      "y": -16,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Bear",
+      "x": -76,
+      "y": -44,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Bear",
+      "x": -84,
+      "y": -33,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "EliteWolf",
+      "x": -102,
+      "y": -40,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
     }
   ],
   "campfires": [
     {
-      "x": -97.0,
-      "y": 40.0
+      "x": -97,
+      "y": 40
     }
   ],
-  "darkAreas": [],
+  "darkAreas": [
+    {
+      "x": -104,
+      "y": -42,
+      "radius": 12
+    },
+    {
+      "x": -104,
+      "y": -30,
+      "radius": 12
+    },
+    {
+      "x": -104,
+      "y": -18,
+      "radius": 12
+    },
+    {
+      "x": -94,
+      "y": -42,
+      "radius": 12
+    },
+    {
+      "x": -94,
+      "y": -30,
+      "radius": 12
+    },
+    {
+      "x": -94,
+      "y": -18,
+      "radius": 12
+    },
+    {
+      "x": -84,
+      "y": -42,
+      "radius": 12
+    },
+    {
+      "x": -84,
+      "y": -30,
+      "radius": 12
+    },
+    {
+      "x": -84,
+      "y": -18,
+      "radius": 12
+    }
+  ],
   "npcs": [
     {
       "type": "Farmer",
@@ -887,6 +2584,16 @@
       ],
       "lines": [
         "The city lies east. Follow the road — and stay clear of the middle woods."
+      ]
+    },
+    {
+      "type": "ForestSign",
+      "x": -89,
+      "y": -4,
+      "radius": 3,
+      "entityType": "Signpost",
+      "lines": [
+        "Something big prowls the dark forest."
       ]
     }
   ]

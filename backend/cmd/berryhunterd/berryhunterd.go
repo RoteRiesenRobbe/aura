@@ -159,6 +159,7 @@ func main() {
 		g.AddEntity(npc.New(
 			phy.Vec2f{X: n.X, Y: n.Y},
 			n.Radius,
+			npc.SpriteFor(n.EntityType),
 			teachings,
 			n.TooLowLine,
 			n.Lines,

@@ -294,13 +294,27 @@ function toggleAuraSlot(slot: number) {
     if (activeSlotIndex === slot) {
         input.activeAuraSlot = DEACTIVATE_AURA_SLOT;
         input.send();
+        pendingSlot = null;
+        pendingSlotUntil = Date.now() + PENDING_SLOT_GRACE_MS;
         clearActiveSlotHighlight();
     } else {
         input.activeAuraSlot = slot;
         input.send();
+        pendingSlot = slot;
+        pendingSlotUntil = Date.now() + PENDING_SLOT_GRACE_MS;
         setActiveSlotHighlight(slot);
     }
 }
+
+// Optimistic-highlight grace (C2 PO finding 2026-07-17): after a slot click,
+// snapshots still carry the OLD active slot for a tick or two — blindly
+// applying them made the selector flicker old→new. During the grace window,
+// authoritative values that don't confirm the pending choice are ignored;
+// confirmation or expiry ends the window (expiry = the command really was
+// lost, so the server value wins again).
+let pendingSlot: number | null | undefined = undefined;
+let pendingSlotUntil = 0;
+const PENDING_SLOT_GRACE_MS = 400;
 
 // hotkeyAuraSlot is the keyboard entry point (Controls, keys 1–4).
 export function hotkeyAuraSlot(slot: number) {
@@ -502,6 +516,16 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
 // optimistic click highlight within a tick, making the server the source of
 // truth for the panel from spawn on.
 export function updateActiveAuraSlot(slot: number) {
+    if (pendingSlot !== undefined) {
+        const server: number | null = slot >= 0 ? slot : null;
+        if (server === pendingSlot || Date.now() > pendingSlotUntil) {
+            pendingSlot = undefined;
+        } else {
+            // Stale tick during the click grace window — keep the optimistic
+            // highlight instead of flickering back.
+            return;
+        }
+    }
     if (slot >= 0) {
         setActiveSlotHighlight(slot);
     } else {

@@ -28,5 +28,14 @@ export enum EntityType {
   Campfire = 22,
   Corpse = 23,
   Turnip = 24,
-  House = 25
+  House = 25,
+  Wolf = 26,
+  Bear = 27,
+  Boar = 28,
+  Stag = 29,
+  EliteWolf = 30,
+  Bramble = 31,
+  Signpost = 32,
+  Hermit = 33,
+  DogNpc = 34
 }

@@ -471,6 +471,88 @@ export class Turnip extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Turnip, file('turnip'), maxSize('turnip'));
 
+// --- Z1 wildlife + brambles (content pass C2), sharing the wildlife layer ---
+
+export class Wolf extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('wolf'), maxSize('wolf')),
+            Wolf.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Wolf, file('wolf'), maxSize('wolf'));
+
+export class Bear extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('bear'), maxSize('bear')),
+            Bear.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Bear, file('bear'), maxSize('bear'));
+
+export class Boar extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('boar'), maxSize('boar')),
+            Boar.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Boar, file('boar'), maxSize('boar'));
+
+export class Stag extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('stag'), maxSize('stag')),
+            Stag.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Stag, file('stag'), maxSize('stag'));
+
+export class EliteWolf extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('eliteWolf'), maxSize('eliteWolf')),
+            EliteWolf.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(EliteWolf, file('eliteWolf'), maxSize('eliteWolf'));
+
+// The Turnip-Pull-gated destructible wall segment: a stationary solid mob,
+// never moves or fights back (solid-mob pattern, plan-content-zones12.md §4).
+export class Bramble extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('bramble'), maxSize('bramble')),
+            Bramble.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Bramble, file('bramble'), maxSize('bramble'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.

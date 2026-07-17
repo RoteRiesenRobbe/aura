@@ -33,6 +33,15 @@ const (
 	EntityTypeCorpse        EntityType = 23
 	EntityTypeTurnip        EntityType = 24
 	EntityTypeHouse         EntityType = 25
+	EntityTypeWolf          EntityType = 26
+	EntityTypeBear          EntityType = 27
+	EntityTypeBoar          EntityType = 28
+	EntityTypeStag          EntityType = 29
+	EntityTypeEliteWolf     EntityType = 30
+	EntityTypeBramble       EntityType = 31
+	EntityTypeSignpost      EntityType = 32
+	EntityTypeHermit        EntityType = 33
+	EntityTypeDogNpc        EntityType = 34
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -62,6 +71,15 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeCorpse:        "Corpse",
 	EntityTypeTurnip:        "Turnip",
 	EntityTypeHouse:         "House",
+	EntityTypeWolf:          "Wolf",
+	EntityTypeBear:          "Bear",
+	EntityTypeBoar:          "Boar",
+	EntityTypeStag:          "Stag",
+	EntityTypeEliteWolf:     "EliteWolf",
+	EntityTypeBramble:       "Bramble",
+	EntityTypeSignpost:      "Signpost",
+	EntityTypeHermit:        "Hermit",
+	EntityTypeDogNpc:        "DogNpc",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -91,6 +109,15 @@ var EnumValuesEntityType = map[string]EntityType{
 	"Corpse":        EntityTypeCorpse,
 	"Turnip":        EntityTypeTurnip,
 	"House":         EntityTypeHouse,
+	"Wolf":          EntityTypeWolf,
+	"Bear":          EntityTypeBear,
+	"Boar":          EntityTypeBoar,
+	"Stag":          EntityTypeStag,
+	"EliteWolf":     EntityTypeEliteWolf,
+	"Bramble":       EntityTypeBramble,
+	"Signpost":      EntityTypeSignpost,
+	"Hermit":        EntityTypeHermit,
+	"DogNpc":        EntityTypeDogNpc,
 }
 
 func (v EntityType) String() string {
