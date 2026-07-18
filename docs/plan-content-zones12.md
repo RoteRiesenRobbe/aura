@@ -728,7 +728,7 @@ any content.
 ### C5 — The front + Front-Aura
 
 > **✅ DONE 2026-07-18 (execution session), full chunk in one session —
-> PO-VERIFIED IN-GAME 2026-07-18, committed same day. Chunk closed —
+> PO-VERIFIED IN-GAME 2026-07-18, committed `96cea32f`. Chunk closed —
 > next: C6.**
 > Shipped per scope + four same-session PO rulings: **Front-Aura
 > composition = Damage + Heal + Shield** (option B — full DamageAura at 2
