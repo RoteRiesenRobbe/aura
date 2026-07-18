@@ -1,0 +1,21 @@
+{
+  "_comment": "Z1 kobold ranged volley (content pass C3, plan-content-zones12.md §4 + §10): large radius, slow tick, lower per-hit damage, selector 'all' = the uncapped-AoE showcase — every valid target in range is hit each volley (player + companion + summons together), ignoring maxTargets by definition. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 116,
+  "name": "KoboldVolley",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 4.5,
+      "radiusPerLevel": 0.0,
+      "damageHP": 7,
+      "damageHPPerLevel": 1.2,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "all",
+      "tickInterval": 60
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "_comment": "Dark Tunnel normal spider (content pass C3, plan-content-zones12.md §4): SpiderBite drains what it bites (lifesteal — feeding). Staged LIT at the tunnel's west mouth so players meet spiders in daylight before the dark interior (§2 staging area). curveLevel 4 = the tunnel tier. Drops Antivenom at low chance (the drop pair's lesser source). All values [PLACEHOLDER]",
+  "id": 23,
+  "name": "Spider",
+  "type": "MOB",
+  "faction": "spider",
+  "tier": "normal",
+  "curveLevel": 4,
+  "factors": {
+    "baseMaxHealth": 70,
+    "maxHealthVariance": 0.1,
+    "experience": 45,
+    "speed": 0.7,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 4
+  },
+  "skills": [
+    {
+      "skillName": "SpiderBite",
+      "level": 1
+    }
+  ],
+  "unlocks": [
+    {
+      "skillName": "Antivenom",
+      "chance": 0.1
+    }
+  ]
+}

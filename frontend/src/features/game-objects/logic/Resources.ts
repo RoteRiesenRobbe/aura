@@ -468,3 +468,19 @@ export class DogNpc extends Resource {
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(DogNpc, GraphicsConfig.npcs.dogNpc.file, GraphicsConfig.npcs.dogNpc.maxSize);
+
+export class Miner extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, Miner.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Miner, GraphicsConfig.npcs.miner.file, GraphicsConfig.npcs.miner.maxSize);

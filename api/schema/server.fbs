@@ -37,7 +37,14 @@ enum EntityType : ushort {
   Bramble,
   Signpost,
   Hermit,
-  DogNpc
+  DogNpc,
+  Kobold,
+  KoboldRanged,
+  Spider,
+  VenomSpider,
+  PoisonPool,
+  Rockfall,
+  Miner
 }
 
 enum StatusEffect : ushort {

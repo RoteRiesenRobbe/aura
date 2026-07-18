@@ -1,0 +1,38 @@
+{
+  "_comment": "Z1 hideout ranged kobold (content pass C3, plan-content-zones12.md §4): the uncapped-volley showcase — KoboldVolley hits EVERY valid target in its large radius on a slow tick (selector 'all', §10 coverage). Stands behind the melee line in the hideout block-out. Flees low HP like its melee kin; same low-chance Light drop. All values [PLACEHOLDER]",
+  "id": 22,
+  "name": "KoboldRanged",
+  "type": "MOB",
+  "faction": "kobold",
+  "tier": "normal",
+  "curveLevel": 3,
+  "factors": {
+    "baseMaxHealth": 40,
+    "maxHealthVariance": 0.1,
+    "experience": 30,
+    "speed": 0.6,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "fleeBelowHealthRatio": 0.25,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.25,
+    "aggroRadius": 6
+  },
+  "skills": [
+    {
+      "skillName": "KoboldVolley",
+      "level": 1
+    }
+  ],
+  "unlocks": [
+    {
+      "skillName": "Light",
+      "chance": 0.08
+    }
+  ]
+}

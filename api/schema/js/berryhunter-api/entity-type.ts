@@ -37,5 +37,12 @@ export enum EntityType {
   Bramble = 31,
   Signpost = 32,
   Hermit = 33,
-  DogNpc = 34
+  DogNpc = 34,
+  Kobold = 35,
+  KoboldRanged = 36,
+  Spider = 37,
+  VenomSpider = 38,
+  PoisonPool = 39,
+  Rockfall = 40,
+  Miner = 41
 }

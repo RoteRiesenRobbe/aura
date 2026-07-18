@@ -33,6 +33,8 @@ export const SkillNames: { [id: number]: string } = {
     44: 'Berserker Aura',
     45: 'Long-Range Strike',
     46: 'Torch',
+    47: 'Antivenom',
+    48: 'Pickaxe',
 };
 
 export function skillDisplayName(id: number): string {

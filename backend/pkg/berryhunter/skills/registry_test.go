@@ -120,12 +120,15 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// Haste tick_rate cooldown, and the C1 Harvest peasant-start aura — né
 	// TurnipPull, renamed C2 Part 2)
 	// + the 5 C2 wildlife/forest drops/teachings (Hardy, ThickHide,
-	// BerserkerAura, LongRangeStrike, Torch) + 14 mob skills (mobs/
-	// subdirectory: TotemAura +
+	// BerserkerAura, LongRangeStrike, Torch)
+	// + the 2 C3 tunnel skills (Antivenom resist_passive, Pickaxe
+	// smash-gated aura) + 19 mob skills (mobs/ subdirectory: TotemAura +
 	// CompanionAura + HealerAura + CampfireAura + the AngryMammothStomp
 	// cooldown + the C2 wildlife auras WolfBite/BearSwipe/BoarGore/
-	// StagNibble/EliteWolfBite, among the earlier proving/critter auras)
-	assert.Len(t, r.All(), 45)
+	// StagNibble/EliteWolfBite + the C3 kobold/spider/hazard set
+	// KoboldStab/KoboldVolley/SpiderBite/VenomSpit/PoisonPoolAura, among
+	// the earlier proving/critter auras)
+	assert.Len(t, r.All(), 52)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

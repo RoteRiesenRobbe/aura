@@ -1,0 +1,11 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder rockfall art (content pass C3): a heap of collapsed grey
+       boulders — the Pickaxe-gated tunnel obstacle (smash tag). -->
+  <circle cx="50" cy="52" r="34" fill="#7d7a75" stroke="#54524e" stroke-width="4"/>
+  <path d="M 30 40 L 46 32 L 54 44 L 40 52 Z" fill="#93908a" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 56 34 L 72 40 L 66 54 L 52 48 Z" fill="#8a8781" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 34 56 L 48 56 L 50 70 L 34 68 Z" fill="#a19e97" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 54 58 L 68 60 L 62 74 L 50 70 Z" fill="#96938d" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="44" cy="42" r="3" fill="#b4b1aa"/>
+  <circle cx="60" cy="66" r="2.5" fill="#b4b1aa"/>
+</svg>

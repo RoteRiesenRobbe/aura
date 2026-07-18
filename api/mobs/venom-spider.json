@@ -1,0 +1,37 @@
+{
+  "_comment": "Dark Tunnel venom spider (content pass C3, plan-content-zones12.md §4): VenomSpit leaves the world's first poison DoT — venom lingers after escaping the radius. Lives deeper in the dark than its normal kin; densest in the rockfall nest (PO 2026-07-17: the side-passage secret = venom-spider nest, best Antivenom odds in the game). All values [PLACEHOLDER]",
+  "id": 24,
+  "name": "VenomSpider",
+  "type": "MOB",
+  "faction": "spider",
+  "tier": "normal",
+  "curveLevel": 4,
+  "factors": {
+    "baseMaxHealth": 60,
+    "maxHealthVariance": 0.1,
+    "experience": 50,
+    "speed": 0.6,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.35,
+    "aggroRadius": 4
+  },
+  "skills": [
+    {
+      "skillName": "VenomSpit",
+      "level": 1
+    }
+  ],
+  "unlocks": [
+    {
+      "skillName": "Antivenom",
+      "chance": 0.25
+    }
+  ]
+}

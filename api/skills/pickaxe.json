@@ -1,0 +1,24 @@
+{
+  "_comment": "Miner-taught utility aura (content pass C3, PO 2026-07-17: rockfall gate = its own 'smash' tag on a Miner NPC teaching): the second gated harvest-style aura after Harvest. gatedDamageTags makes the damage opt-in — it only hits targets whose base resistances explicitly name 'smash' (the tunnel Rockfall) and does nothing to combat mobs or vegetation (Harvest and Pickaxe deliberately do NOT overlap: plants vs rocks). Numbers mirror Harvest's shape. All values [PLACEHOLDER]",
+  "id": 48,
+  "name": "Pickaxe",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 14,
+      "damageHPPerLevel": 3.2,
+      "damageTags": ["smash"],
+      "gatedDamageTags": true,
+      "variance": 0.15,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 40
+    }
+  ]
+}

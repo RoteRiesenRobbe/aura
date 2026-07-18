@@ -622,6 +622,36 @@ any content.
 
 ### C3 — Kobold hideout + Dark Tunnel (the solo path)
 
+> **✅ DONE 2026-07-17 (execution session) — pending PO in-game pass.**
+> Shipped exactly per scope + two same-session PO rulings: **rockfall
+> gate = its own `smash` tag on a Miner-taught skill** (closes that §11
+> item) and **the side-passage secret = a venom-spider nest** (densest
+> Antivenom odds). Content: factions `kobold`/`spider` (hostile to
+> `aligned` only); mobs 21–26 Kobold (flees @0.25, Light @0.08) /
+> KoboldRanged (KoboldVolley `selector:"all"` uncapped — the volley
+> showcase) / Spider (lifesteal bite, Antivenom @0.1) / VenomSpider
+> (first `poison` tag dot_aura, Antivenom @0.25) / PoisonPool (brazier
+> pattern, XP 0) / Rockfall (bramble pattern, `{"*":0,"smash":1}`); mob
+> skills 115–119; player skills **Antivenom** (47, resist_passive poison)
+> + **Pickaxe** (48, smash-gated Harvest twin, Miner-taught); NPCs Miner
+> (staging area, plain teaching) + TunnelSign ("middle road is suicide",
+> road fork) + KoboldSign ("shiny stuff", SE path); EntityTypes appended
+> (Kobold…Miner) + bindings regenerated + frontend classes/SVGs (7
+> placeholders); new rect-capable `Boulder` prop (r1.5, Stone sprite);
+> zone append-only +83 props/+27 spawns/+9 darkAreas/+3 npcs/+40 sand →
+> 382/121/18/7 (hideout ring ~(-25,35) mouth NW; tunnel y≈-52 x-40→+32,
+> walls + mouth flares; lit staging area west; nest pocket sealed by 2
+> Rockfalls, 2 venom spiders + 2 pools inside; 8+1 darkness circles; 2
+> path lines). Registry pin 45→52; simharness presets auto-derive (mob
+> registry walk) — no manual preset work. Verified: full suite + `-race`
+> green; boot 52 skills / 9 factions / 382 props / 121 spawns / 7 npcs;
+> headless browser smoke, 0 client errors — kobold swarm + volley rings
+> render, Miner teaching lands (Pickaxe 1/1 in spellbook on approach),
+> tunnel darkness + lit staging area render, poison pool: 100→0 HP while
+> XP stays 0. Left for the PO pass: flee/lifesteal/DoT-vs-Antivenom feel,
+> rockfall-falls-only-to-Pickaxe, Light drop roll, solo tunnel run at
+> level.
+
 - `kobold` + `spider` factions; Kobold melee (small radius, fast tick,
   flees low HP) + ranged (large radius, slow tick, uncapped `all`); Light
   kill-drop (low %); hideout block-out SE-center; kobold clue signpost

@@ -1,0 +1,19 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder venom-spider art (content pass C3): the poison kin —
+       darker body, sickly green hourglass marking + leg tips. -->
+  <g stroke="#26231f" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M 38 42 Q 20 34 12 20"/>
+    <path d="M 36 50 Q 16 48 6 40"/>
+    <path d="M 36 58 Q 16 62 8 74"/>
+    <path d="M 40 66 Q 26 78 22 90"/>
+    <path d="M 62 42 Q 80 34 88 20"/>
+    <path d="M 64 50 Q 84 48 94 40"/>
+    <path d="M 64 58 Q 84 62 92 74"/>
+    <path d="M 60 66 Q 74 78 78 90"/>
+  </g>
+  <ellipse cx="50" cy="60" rx="19" ry="23" fill="#38332c" stroke="#26231f" stroke-width="4"/>
+  <circle cx="50" cy="31" r="10" fill="#453f36" stroke="#26231f" stroke-width="4"/>
+  <path d="M 50 46 l 8 12 l -8 12 l -8 -12 Z" fill="#7fae3f" stroke="#55772a" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="46" cy="28" r="2.5" fill="#a6d95c"/>
+  <circle cx="54" cy="28" r="2.5" fill="#a6d95c"/>
+</svg>

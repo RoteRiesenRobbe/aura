@@ -1,0 +1,21 @@
+{
+  "_comment": "Dark Tunnel spider bite (content pass C3, plan-content-zones12.md §4): damage aura carrying lifestealFraction — the spider drains what it bites (feeding, PO 2026-07-16). Lifesteal rides damage payloads only, hence the NORMAL spider carries it and the venom spider carries the DoT instead. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 117,
+  "name": "SpiderBite",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.2,
+      "radiusPerLevel": 0.0,
+      "damageHP": 7,
+      "damageHPPerLevel": 1.2,
+      "lifestealFraction": 0.4,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 30
+    }
+  ]
+}

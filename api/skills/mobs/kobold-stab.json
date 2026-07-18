@@ -1,0 +1,20 @@
+{
+  "_comment": "Z1 kobold melee jab (content pass C3, plan-content-zones12.md §4): small radius + fast tick — the per-effect tick-rate CONTRAST partner to KoboldVolley (fast/small vs slow/large, §10 coverage). Individually weak, dangerous in the hideout swarm. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 115,
+  "name": "KoboldStab",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 0.8,
+      "radiusPerLevel": 0.0,
+      "damageHP": 4,
+      "damageHPPerLevel": 0.8,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 15
+    }
+  ]
+}

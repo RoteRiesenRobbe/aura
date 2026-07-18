@@ -177,6 +177,43 @@ export const GraphicsConfig = {
             minSize: <number> 58,
             maxSize: <number> 66,
         },
+
+        // C3 kobold hideout + Dark Tunnel (content pass C3).
+        kobold: {
+            file: require('../features/game-objects/assets/mobs/kobold.svg'),
+            minSize: <number> 30,
+            maxSize: <number> 36,
+        },
+
+        koboldRanged: {
+            file: require('../features/game-objects/assets/mobs/koboldRanged.svg'),
+            minSize: <number> 30,
+            maxSize: <number> 36,
+        },
+
+        spider: {
+            file: require('../features/game-objects/assets/mobs/spider.svg'),
+            minSize: <number> 38,
+            maxSize: <number> 46,
+        },
+
+        venomSpider: {
+            file: require('../features/game-objects/assets/mobs/venomSpider.svg'),
+            minSize: <number> 42,
+            maxSize: <number> 50,
+        },
+
+        poisonPool: {
+            file: require('../features/game-objects/assets/mobs/poisonPool.svg'),
+            minSize: <number> 60,
+            maxSize: <number> 70,
+        },
+
+        rockfall: {
+            file: require('../features/game-objects/assets/mobs/rockfall.svg'),
+            minSize: <number> 58,
+            maxSize: <number> 66,
+        },
     },
 
     // NPC sprites (content pass C2): Resource-backed, referenced by the
@@ -193,6 +230,10 @@ export const GraphicsConfig = {
         dogNpc: {
             file: require('../features/game-objects/assets/resources/dogNpc.svg'),
             maxSize: <number> 45,
+        },
+        miner: {
+            file: require('../features/game-objects/assets/resources/miner.svg'),
+            maxSize: <number> 60,
         },
     },
 

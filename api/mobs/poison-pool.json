@@ -1,0 +1,25 @@
+{
+  "_comment": "Dark Tunnel poison pool (content pass C3, plan-content-zones12.md §4 + §10 hazard fixtures): environmental hazard on the brazier pattern — collisionLayer 32 = Viewport ONLY (structurally unkillable, interaction-free body; its aura still hits the player layer), collisionMask 16 = Border only (non-blocking, nothing pushes it). Hurts while stood in, grants NOTHING (XP 0). aggroRadius dummy, speed 0 — the aura is always-on. All values [PLACEHOLDER]",
+  "id": 25,
+  "name": "PoisonPool",
+  "type": "MOB",
+  "tier": "normal",
+  "curveLevel": 4,
+  "factors": {
+    "baseMaxHealth": 50,
+    "experience": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.5,
+    "aggroRadius": 0.1,
+    "collisionLayer": 32,
+    "collisionMask": 16
+  },
+  "skills": [
+    {
+      "skillName": "PoisonPoolAura",
+      "level": 1
+    }
+  ]
+}

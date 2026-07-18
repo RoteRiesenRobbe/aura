@@ -71,7 +71,9 @@ faction and skills without a schema append (see §5 and
      name** one of its tags (the `"*"` wildcard does not opt in). Combat
      mobs therefore need NO harvest entry; things the gate aura should
      affect opt in, like the turnip (`{ "*": 0, "harvest": 1 }`, see
-     `api/mobs/turnip.json`) and the C2 bramble walls.
+     `api/mobs/turnip.json`), the C2 bramble walls and the C3 rockfall
+     (`{ "*": 0, "smash": 1 }` — each gate obstacle picks its own tag +
+     opener skill).
    - `body`: `radius`, `aggroRadius`
    - **Solid-obstacle mobs (brazier/bramble pattern):** optional
      `body.collisionLayer` / `collisionMask` override the defaults (layer
@@ -80,7 +82,9 @@ faction and skills without a schema append (see §5 and
      1 + Action 2 + Viewport 32 + MobStatic 64) = blocks players AND mobs
      while staying aura-hittable, and mask 16 (Border only) means nothing
      pushes it. Pair with `speed: 0`, XP 0 and opt-in `resistances` for a
-     destructible aura-gated wall (`api/mobs/bramble.json`).
+     destructible aura-gated wall (`api/mobs/bramble.json`,
+     `api/mobs/rockfall.json`); the brazier form reskins as any always-on
+     hazard (`api/mobs/poison-pool.json`).
    - `skills[]`: the mob's aura(s) by `skillName` (must exist in `api/skills/`)
    - optional `unlocks[]`: `{skillName, chance}` kill-drop payloads
 2. **`api/schema/server.fbs`** — add the mob's name to the `EntityType` enum.

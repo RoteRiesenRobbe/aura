@@ -1,0 +1,21 @@
+{
+  "_comment": "Dark Tunnel poison-pool hazard aura (content pass C3, plan-content-zones12.md §4 + §10 hazard fixtures): always-on poison-tagged damage while standing in the pool — direct damage, not a DoT, so stepping OUT stops the pain (the venom spider owns the lingering-poison niche). Carried by the PoisonPool fixture mob (brazier pattern, XP 0). Antivenom resists it. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 119,
+  "name": "PoisonPoolAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.1,
+      "radiusPerLevel": 0.0,
+      "damageHP": 5,
+      "damageHPPerLevel": 1.0,
+      "damageTags": ["poison"],
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 20
+    }
+  ]
+}

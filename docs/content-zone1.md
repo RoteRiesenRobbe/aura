@@ -50,7 +50,17 @@ action between points of interest) roughly doubled props and wildlife
 outside the POIs via a deterministic scatter (196→299 props, 52→94 spawns;
 wolf packs keep ≥10u from the farm box, prey-only near the farm), and the
 start aura was renamed **Harvest** and now spawns equipped but not active.
-Kobolds and the tunnel are C3.
+**In-game since C3:** the solo path east — the **Kobold Hideout**
+(boulder ring SE-center at ~(-25,35); melee swarm up front, ranged
+volley-kobolds behind; both flee low HP; Light kill-drop @low %), the
+**Dark Tunnel** along the north edge (~y-52, x-40→+32; boulder-walled
+corridor, chained darkness, lit **spider staging area** at the west mouth
+so spiders are met in daylight first), venom spiders + poison pools in the
+dark interior, and the **rockfall side passage** (Pickaxe-gated via the
+new `smash` tag) hiding the venom-spider nest — densest Antivenom odds.
+The **Miner** at the staging area teaches Pickaxe; a road-fork signpost
+warns "the middle road is suicide", a second points at the kobold hoard.
+Placement truth: `api/zones/world.json`.
 
 ## Areas (intent)
 
@@ -61,9 +71,11 @@ split within the zone would use named sub-regions
 
 ## Cast
 
-- NPCs: **Farmer**, **Tunnel guard** → `content-npcs.md`
-- Mobs: **Turnips**, **Wolves**, **Elite wolf**, **Kobolds**, **Elite
-  kobold**, **Wild boars** → `content-mobs.md`
+- NPCs: **Farmer**, **Hermit**, **Dog**, **Miner**, 3 signposts →
+  `content-npcs.md`
+- Mobs: **Turnips**, **Wolves**, **Elite wolf**, **Bear**, **Boar**,
+  **Stag**, **Kobolds** (melee + ranged), **Spiders** (normal + venom),
+  poison pools, brambles, rockfalls → `content-mobs.md`
 
 ## Open questions (content-pass)
 

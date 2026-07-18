@@ -1,0 +1,11 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder poison-pool art (content pass C3): irregular sickly-green
+       puddle with slow bubbles — flat on the ground, non-blocking hazard. -->
+  <path d="M 24 44 Q 18 26 38 22 Q 56 14 70 26 Q 88 32 82 50 Q 88 68 68 76 Q 52 88 36 76 Q 14 72 20 56 Q 14 50 24 44 Z"
+        fill="#5f7d33" stroke="#44592a" stroke-width="4" stroke-linejoin="round" opacity="0.9"/>
+  <path d="M 32 46 Q 30 36 42 34 Q 56 28 66 38 Q 74 44 68 54 Q 70 64 56 68 Q 44 74 36 64 Q 26 58 32 46 Z"
+        fill="#7ba043" opacity="0.85"/>
+  <circle cx="44" cy="46" r="4" fill="#a6c96a" opacity="0.9"/>
+  <circle cx="58" cy="56" r="3" fill="#a6c96a" opacity="0.8"/>
+  <circle cx="50" cy="62" r="2" fill="#c2df8d" opacity="0.8"/>
+</svg>

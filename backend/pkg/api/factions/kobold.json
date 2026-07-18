@@ -1,0 +1,5 @@
+{
+  "_comment": "Z1 hideout dwellers (content pass C3, plan-content-zones12.md §4): melee + ranged kobolds. Hostile to players only — they hoard, they don't hunt wildlife. Flee behavior rides each mob's fleeBelowHealthRatio, not the faction. [PLACEHOLDER]",
+  "name": "kobold",
+  "hostileTo": ["aligned"]
+}

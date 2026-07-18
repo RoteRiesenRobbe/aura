@@ -42,6 +42,13 @@ const (
 	EntityTypeSignpost      EntityType = 32
 	EntityTypeHermit        EntityType = 33
 	EntityTypeDogNpc        EntityType = 34
+	EntityTypeKobold        EntityType = 35
+	EntityTypeKoboldRanged  EntityType = 36
+	EntityTypeSpider        EntityType = 37
+	EntityTypeVenomSpider   EntityType = 38
+	EntityTypePoisonPool    EntityType = 39
+	EntityTypeRockfall      EntityType = 40
+	EntityTypeMiner         EntityType = 41
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -80,6 +87,13 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeSignpost:      "Signpost",
 	EntityTypeHermit:        "Hermit",
 	EntityTypeDogNpc:        "DogNpc",
+	EntityTypeKobold:        "Kobold",
+	EntityTypeKoboldRanged:  "KoboldRanged",
+	EntityTypeSpider:        "Spider",
+	EntityTypeVenomSpider:   "VenomSpider",
+	EntityTypePoisonPool:    "PoisonPool",
+	EntityTypeRockfall:      "Rockfall",
+	EntityTypeMiner:         "Miner",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -118,6 +132,13 @@ var EnumValuesEntityType = map[string]EntityType{
 	"Signpost":      EntityTypeSignpost,
 	"Hermit":        EntityTypeHermit,
 	"DogNpc":        EntityTypeDogNpc,
+	"Kobold":        EntityTypeKobold,
+	"KoboldRanged":  EntityTypeKoboldRanged,
+	"Spider":        EntityTypeSpider,
+	"VenomSpider":   EntityTypeVenomSpider,
+	"PoisonPool":    EntityTypePoisonPool,
+	"Rockfall":      EntityTypeRockfall,
+	"Miner":         EntityTypeMiner,
 }
 
 func (v EntityType) String() string {

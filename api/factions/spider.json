@@ -1,0 +1,5 @@
+{
+  "_comment": "Dark Tunnel dwellers (content pass C3, plan-content-zones12.md §4): normal + venom spiders. Hostile to players only — the tunnel is their web, everything that walks in is prey. [PLACEHOLDER]",
+  "name": "spider",
+  "hostileTo": ["aligned"]
+}

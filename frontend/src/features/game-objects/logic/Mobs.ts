@@ -553,6 +553,90 @@ export class Bramble extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Bramble, file('bramble'), maxSize('bramble'));
 
+// --- C3 kobold hideout + Dark Tunnel (content pass C3) ---
+
+export class Kobold extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('kobold'), maxSize('kobold')),
+            Kobold.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Kobold, file('kobold'), maxSize('kobold'));
+
+export class KoboldRanged extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('koboldRanged'), maxSize('koboldRanged')),
+            KoboldRanged.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(KoboldRanged, file('koboldRanged'), maxSize('koboldRanged'));
+
+export class Spider extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('spider'), maxSize('spider')),
+            Spider.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Spider, file('spider'), maxSize('spider'));
+
+export class VenomSpider extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('venomSpider'), maxSize('venomSpider')),
+            VenomSpider.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(VenomSpider, file('venomSpider'), maxSize('venomSpider'));
+
+// Environmental hazard fixture (brazier pattern): flat puddle, renders under
+// the walking mobs on the turnip layer.
+export class PoisonPool extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.turnip, x, y,
+            randomInt(minSize('poisonPool'), maxSize('poisonPool')),
+            PoisonPool.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(PoisonPool, file('poisonPool'), maxSize('poisonPool'));
+
+// The Pickaxe-gated destructible tunnel obstacle: a stationary solid mob,
+// never moves or fights back (solid-mob pattern, plan-content-zones12.md §4).
+export class Rockfall extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('rockfall'), maxSize('rockfall')),
+            Rockfall.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Rockfall, file('rockfall'), maxSize('rockfall'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.

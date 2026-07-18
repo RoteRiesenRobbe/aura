@@ -316,6 +316,13 @@ const gameObjectClasses = [
     Resources.Signpost,
     Resources.Hermit,
     Resources.DogNpc,
+    Mobs.Kobold,
+    Mobs.KoboldRanged,
+    Mobs.Spider,
+    Mobs.VenomSpider,
+    Mobs.PoisonPool,
+    Mobs.Rockfall,
+    Resources.Miner,
 ];
 
 function unmarshalEntityType(entityType) {
