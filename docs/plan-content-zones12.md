@@ -857,8 +857,8 @@ any content.
 
 ### C7 — Recipe net
 
-> **✅ DONE 2026-07-18 (execution session) — PO in-game pass 2026-07-18
-> ("all in all, it works") with two findings, both handled same session:
+> **✅ DONE 2026-07-18 (execution session) — PO in-game pass 2026-07-18,
+> committed `53868697` ("all in all, it works") with two findings, both handled same session:
 > (1) Vanguard + Warbanner overshields way too strong → shield_aura cut
 > to roughly a third (Vanguard 15+5 → 5+2, Warbanner 17+6 → 6+2.5,
 > [PLACEHOLDER] — C8 calibrates; docs/GDD wording follows); (2)
