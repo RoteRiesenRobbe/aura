@@ -795,8 +795,7 @@ any content.
 ### C6 — Ork World Boss (§B ticket)
 
 > **✅ DONE (2026-07-18), full chunk in one session — PO-VERIFIED
-> IN-GAME 2026-07-18 ("works as intended"), committed (hash in the
-> CLAUDE.md banner).** Shipped per this ticket + the session's PO
+> IN-GAME 2026-07-18 ("works as intended"), committed `5961b29a`.** Shipped per this ticket + the session's PO
 > rulings (fight sketch "Warbanner gate + waves"; enrage = rotating
 > tick_rate Frenzy, NO §9 lift 5; Boss-Aura = **Call for Aid** (cooldown,
 > THREE spawn effects → 3 SoldierCompanions — fireCooldown applies every
