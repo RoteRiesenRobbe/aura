@@ -24,13 +24,13 @@
 	height: 15vw;
 
 	position: absolute;
-	bottom: 0;
-	left: 0;
+	top: 0;
+	right: 0;
 
 	background-color: fade(Cornsilk, 50%);
 
-	margin-bottom: 0.3vw;
-	margin-left: 0.3vw;
+	margin-top: 0.3vw;
+	margin-right: 0.3vw;
 
 	border-radius: 50%;
 
@@ -512,6 +512,34 @@
 	color: @panel-color;
 	font-size: @panel-font-size;
 
+	> #spellbookScroll {
+		// SimpleBar needs an explicit height/max-height ON THIS element — its
+		// .simplebar-wrapper sizes via `max-height: inherit`, so a flex-derived
+		// size is invisible to it: the internals then lay out at full content
+		// height and hang below the panel as an invisible hit-target that
+		// swallows clicks on the passives panel (PO bug 2026-07-18). The
+		// subtrahend ≈ HUD margins + spellbook chrome + the passives panel, so
+		// both panels fit the viewport.
+		max-height: calc(100vh - 24rem);
+		// Disables SimpleBar's horizontal axis (its recalculate() reads the
+		// host overflow-x) — its scrollbar-hiding trick otherwise fakes ~20px
+		// of x-overflow and renders a pointless horizontal bar. overflow-y
+		// must stay `visible`: `hidden` here is SimpleBar's "axis disabled"
+		// signal and kills vertical scrolling entirely.
+		overflow-x: hidden;
+
+		// Always-visible light scrollbar (autoHide off in HUD.ts): the default
+		// auto-hiding dark bar is invisible on the panel background, so nothing
+		// would signal that the list scrolls.
+		.simplebar-scrollbar:before {
+			background-color: white;
+		}
+
+		.simplebar-track .simplebar-scrollbar.simplebar-visible:before {
+			opacity: 0.5;
+		}
+	}
+
 	> .spellbookTitle {
 		display: flex;
 		justify-content: space-between;
@@ -537,7 +565,9 @@
 		}
 	}
 
-	> #spellbookList {
+	// Descendant (not child) selector: SimpleBar nests its own wrappers
+	// between #spellbookScroll and the list.
+	#spellbookList {
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -622,7 +652,7 @@
 
 	// Without unspent points there is nothing to spend: dim the + buttons.
 	// (The pointerdown handler additionally guards on the actual count.)
-	&:not(.hasPoints) > #spellbookList .spendBtn {
+	&:not(.hasPoints) #spellbookList .spendBtn {
 		opacity: 0.25;
 		cursor: default;
 

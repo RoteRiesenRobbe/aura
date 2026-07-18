@@ -11,6 +11,7 @@ import {InputMessage, DEACTIVATE_AURA_SLOT} from '../../../backend/logic/message
 import {EquipMessage} from '../../../backend/logic/messages/outgoing/EquipMessage';
 import {SpendSkillPointMessage} from '../../../backend/logic/messages/outgoing/SpendSkillPointMessage';
 import * as Zoom from '../../../camera/logic/Zoom';
+import SimpleBar from 'simplebar';
 
 let Game: IGame = null;
 
@@ -218,6 +219,10 @@ export function getChat(): HTMLElement {
 function setupSpellbook() {
     spellbookListElement = document.getElementById('spellbookList');
     skillPointsBadgeElement = document.getElementById('skillPointsBadge');
+    // Explicit init: the HUD partial lands after DOMContentLoaded, so
+    // simplebar's data-attribute auto-init never sees it. SimpleBar's own
+    // MutationObserver tracks the list re-renders in updateSpellbook.
+    new SimpleBar(document.getElementById('spellbookScroll'), { autoHide: false });
     spellbookListElement.addEventListener('pointerdown', (e) => {
         const target = e.target as HTMLElement;
         const li = target.closest('li') as HTMLElement;

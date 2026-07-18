@@ -447,8 +447,12 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
 - **Polish-pass checklist** (concrete items so the scope is pinned, not
   implied — collected 2026-07-08):
   - [ ] Spellbook: proper panel icon (currently placeholder/none)
-  - [ ] Spellbook: pagination or scrolling once the skill roster outgrows the
-        flat list (17 entries today; the item-12 content pass will exceed it)
+  - [x] Spellbook: pagination or scrolling once the skill roster outgrows the
+        flat list — **DONE early (2026-07-18, PO: "scrolling only" pulled into
+        step 6; icons stay here):** SimpleBar scroll area (`#spellbookScroll`)
+        with always-visible scrollbar, panel capped to the viewport so the
+        passives panel never gets pushed off-screen; verified headless in-game
+        with a 33-skill roster
   - [ ] Per-skill icons — ability bar, spellbook, and passives panel currently
         have no real skill iconography
   - [ ] **Retire the `Skills.ts` hand-sync — KNOWN TECH DEBT.** A skill is
@@ -504,7 +508,10 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
         queue + the unlock/level-up content.
   - Note: **skill icons + spellbook pagination may want to land earlier**, in
     the content pass (step 6) — that's when the roster grows past the flat
-    list. Decide when step 6 starts; the rest stays here in step 8.
+    list. **Decided (PO 2026-07-18): scrolling only was pulled forward (done,
+    see above); skill icons stay here in step 8** (candidate source noted:
+    game-icons.net — ~4k CC-BY monochrome game SVGs, fits the existing SVG
+    pipeline, one credits line).
 - **Decided: zone chat is one channel per zone** (broadcast filtered by the
   sender's zone). The existing global chat stays as-is until zones exist.
 - **Avatar selection (new-mode).** Start-screen portrait picker; choice

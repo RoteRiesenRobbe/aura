@@ -6,6 +6,13 @@
     right: 0;
     z-index: (100 + 1); // Overlay start & end screen
 
+    // In-game the minimap occupies the top-right corner (moved 2026-07-18);
+    // step the gear left of it. Start/end screens (#gameUI hidden) keep the
+    // corner position.
+    body:has(#gameUI:not(.hidden)) & {
+        right: calc(15vw + 1vw);
+    }
+
     &.develop-offset {
         top: 350px;
     }
