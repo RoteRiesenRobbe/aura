@@ -123,14 +123,16 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// BerserkerAura, LongRangeStrike, Torch)
 	// + the 2 C3 tunnel skills (Antivenom resist_passive, Pickaxe
 	// smash-gated aura) + the C4 DamageBurst elite-drop cooldown
-	// + 24 mob skills (mobs/ subdirectory: TotemAura +
+	// + the C5 Vanguard (the Front-Aura power outlier, §A)
+	// + 27 mob skills (mobs/ subdirectory: TotemAura +
 	// CompanionAura + HealerAura + CampfireAura + the AngryMammothStomp
 	// cooldown + the C2 wildlife auras WolfBite/BearSwipe/BoarGore/
 	// StagNibble/EliteWolfBite + the C3 kobold/spider/hazard set
 	// KoboldStab/KoboldVolley/SpiderBite/VenomSpit/PoisonPoolAura + the C4
 	// bandit set BanditBlades/BanditVolley/BanditHeal/EliteBanditSlash/
-	// RallyDrum, among the earlier proving/critter auras)
-	assert.Len(t, r.All(), 58)
+	// RallyDrum + the C5 front set SoldierBlades/OrcCleave/
+	// SpikeBarricadeAura, among the earlier proving/critter auras)
+	assert.Len(t, r.All(), 62)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

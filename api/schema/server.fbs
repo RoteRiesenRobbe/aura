@@ -52,7 +52,11 @@ enum EntityType : ushort {
   RallyDrummer,
   CityGuard,
   VillageHealer,
-  GateWall
+  GateWall,
+  ArmySoldier,
+  Orc,
+  SpikeBarricade,
+  FrontCaptain
 }
 
 enum StatusEffect : ushort {

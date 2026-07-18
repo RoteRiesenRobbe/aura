@@ -1,0 +1,6 @@
+{
+  "_comment": "The Human Army at the Z2 front (content pass C5, plan-content-zones12.md §3+§4): wars with the orcs, NEVER proactively aggros players (hostileTo excludes aligned) and — §9 lift 6, adopted ideal — is harm-proof to the aligned side via friendlyToPlayers: player damage skips soldiers entirely, so no threat link ever forms and they never retaliate. Orcs fight both. No player-heals-army, no XP-via-army (PO rescope 2026-07-16). [PLACEHOLDER]",
+  "name": "human_army",
+  "hostileTo": ["orc"],
+  "friendlyToPlayers": true
+}

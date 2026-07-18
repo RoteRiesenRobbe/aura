@@ -704,6 +704,47 @@ export class RallyDrummer extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(RallyDrummer, file('rallyDrummer'), maxSize('rallyDrummer'));
 
+// --- C5 the front (content pass C5) ---
+
+export class ArmySoldier extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('armySoldier'), maxSize('armySoldier')),
+            ArmySoldier.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(ArmySoldier, file('armySoldier'), maxSize('armySoldier'));
+
+export class Orc extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('orc'), maxSize('orc')),
+            Orc.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Orc, file('orc'), maxSize('orc'));
+
+export class SpikeBarricade extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('spikeBarricade'), maxSize('spikeBarricade')),
+            SpikeBarricade.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(SpikeBarricade, file('spikeBarricade'), maxSize('spikeBarricade'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.

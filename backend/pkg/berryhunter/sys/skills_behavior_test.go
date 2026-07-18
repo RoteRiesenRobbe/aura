@@ -863,6 +863,67 @@ func TestApplyDamageAura_SameFactionTargetExcluded(t *testing.T) {
 	assert.Empty(t, ally.touches, "targetsEnemies must not hit a same-faction target")
 }
 
+// --- friendly-to-players factions (§9 lift 6, content pass C5) ---
+
+// friendlyTouchRecorder is a mob-like Interacter on a friendly-to-players
+// content faction (the Human Army shape): different faction than everyone in
+// these tests, harm-proof to the aligned side only.
+type friendlyTouchRecorder struct {
+	touchRecorder
+	mobFactors []mobs.Factors
+}
+
+func (r *friendlyTouchRecorder) Faction() model.Faction  { return model.Faction(2) }
+func (r *friendlyTouchRecorder) FriendlyToPlayers() bool { return true }
+func (r *friendlyTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
+	r.mobFactors = append(r.mobFactors, factors)
+}
+
+var _ model.PlayerFriendly = (*friendlyTouchRecorder)(nil)
+
+// gatedAlignedMob is an owned-summon-shaped caster: aligned faction with a
+// permissive HostilityGate (SetFaction gives real summons an all-others aggro
+// set). The friendly check must fire BEFORE the gate for the aligned side.
+type gatedAlignedMob struct{ fakeMob }
+
+func (m *gatedAlignedMob) MayHarm(f model.Faction, id uint64) bool { return true }
+
+var _ model.HostilityGate = (*gatedAlignedMob)(nil)
+
+func TestApplyDamageAura_PlayerCaster_SkipsFriendlyFaction(t *testing.T) {
+	// The adopted §9 lift 6 ideal: player damage skips a friendly-to-players
+	// faction entirely — no hit, no threat, no retaliation ever.
+	caster := newFakePlayer()
+	army := &friendlyTouchRecorder{}
+
+	applyDamageAura(caster, 1, damageEffect(1), colliderSetOf(army), testRNG())
+
+	assert.Empty(t, army.touches, "an aligned caster must never harm a friendly faction")
+}
+
+func TestApplyDamageAura_AlignedSummonCaster_SkipsFriendlyFaction(t *testing.T) {
+	// Owned summons are aligned too — their permissive gate must not bypass
+	// the friendly check (damage credits the owner; the flag would leak).
+	caster := &gatedAlignedMob{fakeMob: *newFakeMob()}
+	caster.faction = model.FactionAligned
+	army := &friendlyTouchRecorder{}
+
+	applyDamageAura(caster, 1, damageEffect(1), colliderSetOf(army), testRNG())
+
+	assert.Empty(t, army.mobFactors, "aligned summons must never harm a friendly faction")
+}
+
+func TestApplyDamageAura_MobCaster_StillHitsFriendlyFaction(t *testing.T) {
+	// Friendly is aligned-relative only: a non-aligned caster (the orc side of
+	// the war) fights the friendly faction through the normal hostility rules.
+	caster := newFakeMob() // FactionHostile, ungated double
+	army := &friendlyTouchRecorder{}
+
+	applyDamageAura(caster, 1, damageEffect(1), colliderSetOf(army), testRNG())
+
+	assert.Len(t, army.mobFactors, 1, "orcs still fight the player-friendly faction")
+}
+
 func TestApplyDamageAura_UnfactionedTargetNeverEatsTargetSlot(t *testing.T) {
 	// Placeables satisfy Interacter but have no faction; before Step 1 a capped
 	// damage aura could waste its maxTargets slot on a nearer structure (a no-op

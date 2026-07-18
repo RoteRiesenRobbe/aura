@@ -1,0 +1,5 @@
+{
+  "_comment": "The orc warband at the Z2 front (content pass C5, plan-content-zones12.md §3+§4): hostile to players AND the Human Army — the war runs unattended via mutual faction hostility (predation machinery). The C6 Ork World Boss joins this faction. [PLACEHOLDER]",
+  "name": "orc",
+  "hostileTo": ["aligned", "human_army"]
+}

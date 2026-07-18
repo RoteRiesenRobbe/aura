@@ -236,6 +236,8 @@ Combinations can also have other combination unlocks as ingredients (few, manual
 
 Combination recipes are **fixed and curated** — not algorithmic. They are documented nowhere in-game; players experiment and share their findings online. All unlocks from combinations are leveled separately.
 
+**Calibration & the one sanctioned exception (step 6 C5):** combination results calibrate to roughly ~70% of their components' standalone values (the PaladinAura reference), and unlock-source variants are side-grades — *different, never better*. The **Vanguard** (the Front-Aura, `plan-content-zones12.md` §A) is the **single sanctioned power exception**: a deliberately overstrong multi-effect aura (full DamageAura damage at double targets + free HealAura healing + a shield), taught level-gated at the Zone-2 front — the game's "endgame-gear equivalent" expressed as a spellbook entry. It and its C7 combinations set the game's power ceiling (see section 5). A named exception, not precedent erosion: everything else keeps the ~70% / side-grade rules.
+
 ### Cooldown Abilities
 
 Temporarily modify the next tick or the active aura. Examples:
@@ -339,6 +341,8 @@ bracket (see §5, First building block).
 - **TTK** against a same-tier normal mob **~8 s**; an idle player's **time-to-die ~20–25 s** (ratio ~1:3) in a 1-vs-1.
 - **Level gaps** are handled by the numbers alone (the steep `f` gap *is* the gating mechanism); an explicit level-gap damage multiplier stays an available, isolated retrofit — not built.
 - **Intra-zone difficulty variation is a free authoring pattern** — author a zone across a small level span (entrance corner at a lower tier, deep corner at a higher tier); no new mechanic.
+
+- **Power ceiling reference (step 6 C5, §A adoption):** the **Vanguard** (Front-Aura) and its C7 combinations are the game's deliberate power ceiling — the one sanctioned outlier above the side-grade rule (section 4). Every other skill balances *below* it; the C8 balance pass calibrates against it, and it lives in the sim-harness player-aura presets from the day it was authored — never a surprise.
 
 **Mobs do not use `f(character level)`.** Mobs have no level. A "same-tier normal mob" is one whose baseline values were hand-authored and placed on the curve via its authored `curveLevel` (since C0: `maxHealth` and skill values derive from `baseline × f(curveLevel)` at load — a *fixed* curve position, never the fighting player's level). **Zone number = position on the progression curve** (see section 7). This asymmetry is deliberate: a max-level player *outlevels and trivializes* starter zones (WoW-Classic-intended), and nobody should later give mobs a *player-level-reactive* multiplier.
 

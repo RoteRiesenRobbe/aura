@@ -33,6 +33,16 @@ type HostilityGate interface {
 	MayHarm(f Faction, id uint64) bool
 }
 
+// PlayerFriendly is implemented by combat entities whose faction is declared
+// friendly-to-players (§9 lift 6, content pass C5 — the Human Army shape):
+// the aligned side (players and player-owned summons) can never harm them, so
+// no threat link ever forms and they never retaliate against players — while
+// every other faction fights them through the normal hostility rules. The sys
+// eligibility seam (mayHarm) consults this; nothing else should.
+type PlayerFriendly interface {
+	FriendlyToPlayers() bool
+}
+
 // Factioned is implemented by entities that take part in the faction system
 // (players and mobs). Flag-gated targeted effects apply to Factioned entities
 // only — structures/resources have no allegiance and are reached exclusively

@@ -15,7 +15,8 @@ C8 balance pass. Zone 2 is the eastern half of the single `world` playfield
     middle road         — GROUP gate: the Bandit Horde (C4)
   → village (campfire = second respawn anchor; healer NPC, purpose open)
   → City Gates east: shut; guard passes word inside, points SOUTH
-  → the front: Human Army vs Orcs, Front NPC, Ork World Boss (C5/C6)
+  → the front: Human Army vs Orcs, FrontCaptain teaches Vanguard @L20 (C5);
+    Ork World Boss in the reserved west arena (C6)
 ```
 
 ## In-game since C4
@@ -42,13 +43,32 @@ C8 balance pass. Zone 2 is the eastern half of the single `world` playfield
   **Elite Bandit** (first authored crit pair; drops **DamageBurst @0.5**).
   Approach breadcrumb: the blocked N road out of the village.
 - **Wildlife density pass** — Z1-style scatter + prey near the village,
-  wolves/bears in and around the forest lanes; the **south front strip
-  (y > ~22 east of the seam) is deliberately empty — C5 canvas.**
+  wolves/bears in and around the forest lanes.
+
+## In-game since C5
+
+- **The front** — the south strip (y > ~24.7 east of the seam): the C4
+  south-road cap opened into a **checkpoint mouth** (middle GateWall
+  removed, flanking pair stays); road south to the army staging area, then
+  west toward the reserved boss arena and south-east to the S exit.
+- **The unattended war** — soldier line (8 spawns, ~60 s respawn, XP 0)
+  vs orc line (5 + 2 rear, ~2 min respawn, XP 15 — deliberately very low)
+  with overlapping aggro across no-man's land; `human_army` is
+  **friendly-to-players** (§9 lift 6: player damage skips soldiers
+  entirely), orcs fight both sides.
+- **Spike barricades** — 9 physical+bleed hazard fixtures (brazier
+  pattern, XP 0, players-only by faction choice) in no-man's land + a
+  funnel toward the **west arena (x 23–33) — reserved empty as the C6
+  boss canvas**.
+- **S exit** — road past the orc line's east flank to the south border,
+  flanked by a GateWall teaser pair (the blocked Zone-3+ exit beat).
+- **FrontCaptain NPC** — staging area, off-side of the road: teaches
+  **Vanguard** (the Front-Aura, §A power outlier) level-gated **@L20**
+  with a real TooLowLine (story-spine beat 6).
 
 ## Deliberately open here
 
 - Village purpose + village-healer purpose (§11 — Zone 2 session ruling
   still pending; the NPC is a spot reservation).
 - Bandit-ranged replacement drop (§11, open since the Rally cut).
-- The front, Front NPC, Front-Aura, spike barricades, S exit → **C5**;
-  Ork World Boss → **C6**.
+- Ork World Boss (arena reserved at the front's west end) → **C6**.

@@ -43,11 +43,15 @@ func Bit(f Faction) uint64 { return 1 << f }
 // this faction proactively acquires in its aggro sensor; 0 = passive
 // (retaliation-only). The built-in Hostile faction aggros exactly {Aligned} —
 // the pre-factions behavior of every mob (attack players, ignore all mobs) —
-// so declaring new factions never changes legacy mobs.
+// so declaring new factions never changes legacy mobs. FriendlyToPlayers
+// (§9 lift 6, content pass C5) makes the faction harm-proof to the aligned
+// side: player and player-summon damage skips its members entirely, while
+// every other faction fights it through the normal hostility rules.
 type Definition struct {
-	Name      string
-	ID        Faction
-	AggroMask uint64
+	Name              string
+	ID                Faction
+	AggroMask         uint64
+	FriendlyToPlayers bool
 }
 
 // Registry resolves faction names to their definitions.
@@ -83,9 +87,10 @@ func (r *registry) All() []*Definition {
 // _comment key is the content convention for authoring notes (as in the mob
 // JSONs) and deliberately tolerated under DisallowUnknownFields.
 type factionDoc struct {
-	Comment   string    `json:"_comment"`
-	Name      string    `json:"name"`
-	HostileTo *[]string `json:"hostileTo"`
+	Comment           string    `json:"_comment"`
+	Name              string    `json:"name"`
+	HostileTo         *[]string `json:"hostileTo"`
+	FriendlyToPlayers bool      `json:"friendlyToPlayers"`
 }
 
 // RegistryFromFS walks fileSystem for *.json faction definitions. Curated
@@ -142,7 +147,11 @@ func RegistryFromFS(fileSystem fs.FS) (Registry, error) {
 	}
 	sort.Strings(names)
 	for i, name := range names {
-		r.factions[name] = &Definition{Name: name, ID: firstContentID + Faction(i)}
+		r.factions[name] = &Definition{
+			Name:              name,
+			ID:                firstContentID + Faction(i),
+			FriendlyToPlayers: docs[name].FriendlyToPlayers,
+		}
 	}
 	for _, name := range names {
 		def := r.factions[name]
@@ -155,6 +164,9 @@ func RegistryFromFS(fileSystem fs.FS) (Registry, error) {
 				return nil, fmt.Errorf("faction %q: hostileTo must not reference itself", name)
 			}
 			def.AggroMask |= Bit(target.ID)
+		}
+		if def.FriendlyToPlayers && def.AggroMask&Bit(Aligned) != 0 {
+			return nil, fmt.Errorf("faction %q: friendlyToPlayers contradicts hostileTo %q", name, "aligned")
 		}
 	}
 

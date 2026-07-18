@@ -1,0 +1,25 @@
+{
+  "_comment": "Orc-front spike barricade (content pass C5, plan-content-zones12.md §4 + §10 hazard fixtures): environmental hazard shaping the boss approach — brazier pattern like the poison pool: collisionLayer 32 = Viewport ONLY (structurally unkillable, interaction-free body), collisionMask 16 = Border only (non-blocking). Hurts while stood in (physical+bleed), grants NOTHING (XP 0). Deliberately kept on the default hostile faction (no faction key): it wounds only players — orc-faction spikes would bleed the army line and tilt the unattended war. aggroRadius dummy, speed 0 — the aura is always-on. All values [PLACEHOLDER]",
+  "id": 34,
+  "name": "SpikeBarricade",
+  "type": "MOB",
+  "tier": "normal",
+  "curveLevel": 18,
+  "factors": {
+    "baseMaxHealth": 50,
+    "experience": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.5,
+    "aggroRadius": 0.1,
+    "collisionLayer": 32,
+    "collisionMask": 16
+  },
+  "skills": [
+    {
+      "skillName": "SpikeBarricadeAura",
+      "level": 1
+    }
+  ]
+}

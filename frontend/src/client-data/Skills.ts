@@ -36,6 +36,7 @@ export const SkillNames: { [id: number]: string } = {
     47: 'Antivenom',
     48: 'Pickaxe',
     49: 'Damage-Burst',
+    50: 'Vanguard',
 };
 
 export function skillDisplayName(id: number): string {
@@ -79,6 +80,7 @@ export const SkillMaxLevels: { [id: number]: number } = {
     47: 3,
     48: 5,
     49: 3,
+    50: 5,
 };
 
 export function skillMaxLevel(id: number): number {
@@ -124,6 +126,7 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     47: 'passive',
     48: 'aura',
     49: 'cooldown',
+    50: 'aura',
 };
 
 // Unknown IDs default to 'aura' — the most common category; keeps a missing
@@ -154,3 +157,5 @@ export const PALADIN_AURA_SKILL_ID = 30;
 export const FIRE_WARD_SKILL_ID = 40;
 // Rejuvenation is a support (heal-over-time) aura — heal-style ring (chunk 3).
 export const REJUVENATION_AURA_SKILL_ID = 29;
+// Vanguard damages and heals/shields at once — both rings, like PaladinAura (C5).
+export const VANGUARD_AURA_SKILL_ID = 50;

@@ -331,6 +331,10 @@ const gameObjectClasses = [
     Resources.CityGuard,
     Resources.VillageHealer,
     Resources.GateWall,
+    Mobs.ArmySoldier,
+    Mobs.Orc,
+    Mobs.SpikeBarricade,
+    Resources.FrontCaptain,
 ];
 
 function unmarshalEntityType(entityType) {

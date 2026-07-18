@@ -1,0 +1,44 @@
+{
+  "_comment": "Vanguard — the Front-Aura (content pass C5, plan-content-zones12.md §A): the game's FIRST SANCTIONED POWER OUTLIER, the 'endgame-gear equivalent' as a spellbook entry. Deliberately overstrong multi-effect: full DamageAura numbers at DOUBLE targets, full HealAura numbers with NO self-cost (the base aura pays 18 HP), plus a RallyDrum-class shield on allies AND self — each component ~100% of its dedicated base skill, INVERTING the Paladin ~70% combo calibration and the §4 side-grade rule (named exception, not precedent erosion — GDD §4/§5 amendments ride this chunk). Taught by the Front NPC at L20 (PO 2026-07-18: the journey's final step in v1). Sets the power ceiling: everything else balances below it (C8); C7 combos it with Damage / Heal / a Burst cooldown into the game's best-in-slot trio. All values [PLACEHOLDER]",
+  "id": 50,
+  "name": "Vanguard",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.2,
+      "radiusPerLevel": 0.0,
+      "damageHP": 14,
+      "damageHPPerLevel": 3.2,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 2,
+      "tickInterval": 40
+    },
+    {
+      "type": "heal_aura",
+      "radius": 1.2,
+      "radiusPerLevel": 0.0,
+      "healHP": 12,
+      "healHPPerLevel": 6,
+      "selfDamageHP": 0.0,
+      "selector": "lowest_health",
+      "maxTargets": 1,
+      "tickInterval": 120
+    },
+    {
+      "type": "shield_aura",
+      "radius": 1.2,
+      "radiusPerLevel": 0.0,
+      "shieldHP": 15,
+      "shieldHPPerLevel": 5,
+      "targetsAllies": true,
+      "targetsSelf": true,
+      "targetsEnemies": false,
+      "tickInterval": 30
+    }
+  ]
+}

@@ -519,6 +519,22 @@ export class VillageHealer extends Resource {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(VillageHealer, GraphicsConfig.npcs.villageHealer.file, GraphicsConfig.npcs.villageHealer.maxSize);
 
+export class FrontCaptain extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, FrontCaptain.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(FrontCaptain, GraphicsConfig.npcs.frontCaptain.file, GraphicsConfig.npcs.frontCaptain.maxSize);
+
 // The square rampart block prop (content pass C4): City Gates flanks + the
 // blocked roads. Square body, so the plain square SVG scaling is already
 // correct — no aspect correction needed (unlike House).

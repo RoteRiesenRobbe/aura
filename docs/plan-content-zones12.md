@@ -727,6 +727,57 @@ any content.
 
 ### C5 — The front + Front-Aura
 
+> **✅ DONE 2026-07-18 (execution session), full chunk in one session —
+> PO-VERIFIED IN-GAME 2026-07-18, committed same day. Chunk closed —
+> next: C6.**
+> Shipped per scope + four same-session PO rulings: **Front-Aura
+> composition = Damage + Heal + Shield** (option B — full DamageAura at 2
+> targets + full HealAura with selfDamage 0 + a RallyDrum-class shield on
+> allies AND self); **name = Vanguard**; **level anchor = L20** ("the
+> journey's final step in this version, very late" — this re-banded the
+> front itself: soldier curveLevel 18 / orc 20 so the front is at-level
+> endgame content at the anchor, closing the §11 anchor item; the 8–9
+> draft band is superseded); **sim presets = derived player damage-aura
+> presets** (option A). **§9 lift 6 landed (TDD):** faction JSON
+> `friendlyToPlayers` → factions registry (contradiction with
+> hostileTo-aligned hard-fails) → MobDefinition → `Mob` via new
+> `model.PlayerFriendly`; `mayHarm` skips friendly targets for ALIGNED
+> casters (players AND owned summons — checked before the gate; keyed on
+> faction, not Go type). **Content:** factions `human_army` (hostileTo
+> [orc], friendly) + `orc` (hostileTo [aligned, human_army]); mobs 32–34
+> ArmySoldier (cL18, XP 0, fast respawn) / Orc (elite, cL20, base 280,
+> **XP 15 very low**, OrcCleave 3-target) / SpikeBarricade (brazier
+> pattern, physical+bleed, XP 0, **default-hostile on purpose** — hurts
+> only players so it can't tilt the war); mob skills 125–127; player
+> skill **Vanguard id 50**; registry pin 58→62. EntityTypes
+> ArmySoldier…FrontCaptain appended + bindings regenerated + 4 placeholder
+> SVGs; Skills.ts triple entry + Character.ts dual-ring (Paladin
+> precedent). **Simharness:** player-aura preset derivation (registry walk,
+> id<100 = player convention; L1 + Lmax entries; `/player-auras` dropdown +
+> `-player-aura Name[:level]` CLI; damage effect only — documented; new
+> maxTargets knobs both sides). **Zone (deterministic scratchpad generator,
+> append-only + ONE sanctioned removal):** middle GateWall of the C4 S-road
+> cap removed → checkpoint mouth (flanking pair stays); staging road W +
+> S-exit road past the orc east flank to a GateWall teaser pair at the
+> border; soldier line y≈28.8 (8 spawns, ~60 s) vs orc line y≈32.3 (5+2,
+> ~2 min) with overlapping aggro = unattended war; 9 spike barricades
+> incl. a funnel toward the **west arena x 23–33 — kept empty as the C6
+> boss canvas**; churned-earth scatter; FrontCaptain NPC (~59,27,
+> teaching Vanguard @20, real TooLowLine — first live gate) → totals
+> 615 props / 185 spawns / 420 terrain / 10 npcs; flood-fill: village →
+> checkpoint / staging / arena mouth / S exit all reachable. GDD §4
+> sanctioned-exception clause + §5 power-ceiling bullet landed (§A).
+> **Verified:** suite + `-race` green; boot 62 skills / 12 factions / 34
+> mobs / 615 / 185 / 10; browser smoke — gate holds at L1 (no teach),
+> Vanguard lands in the spellbook at cap, equips + activates (slot 2,
+> self-shield segment visible on the HP bar), war fights unattended
+> (orc cleave −135 on a soldier observed), barricades render + tick,
+> 0 client errors on runs 2–3. **Watch item recurred:** the C4 1st-run
+> triple `null.split` pageerror appeared once on the first run after the
+> fresh build, gone with stacks armed on reruns — still unlocated
+> (backlog candidate). **PO in-game pass 2026-07-18: passed** (war-front
+> feel, checkpoint + S exit, soldier immunity, Vanguard power feel).
+
 - `human_army` + `orc` factions (army NOT hostile to `aligned`; orc hostile
   to `aligned` + `human_army`); army soldier (XP 0) + Orc (very strong,
   XP very low).

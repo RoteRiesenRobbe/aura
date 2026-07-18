@@ -52,5 +52,9 @@ export enum EntityType {
   RallyDrummer = 46,
   CityGuard = 47,
   VillageHealer = 48,
-  GateWall = 49
+  GateWall = 49,
+  ArmySoldier = 50,
+  Orc = 51,
+  SpikeBarricade = 52,
+  FrontCaptain = 53
 }

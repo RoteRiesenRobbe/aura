@@ -75,23 +75,23 @@ type MobID uint64
 // IdleDwellMin/MaxTicks is the stand time rolled between wander legs;
 // 0/absent = global defaults.
 type Factors struct {
-	MaxHealth               uint32
-	MaxHealthVariance       float32
-	FleeBelowHealthRatio    float32
-	WanderRadius            float32
-	IdleSpeedFactor         float32
-	IdleDwellMinTicks       int
-	IdleDwellMaxTicks       int
-	Resistances             map[string]float32
-	Damage                  float32
-	DamageTags              []string
+	MaxHealth            uint32
+	MaxHealthVariance    float32
+	FleeBelowHealthRatio float32
+	WanderRadius         float32
+	IdleSpeedFactor      float32
+	IdleDwellMinTicks    int
+	IdleDwellMaxTicks    int
+	Resistances          map[string]float32
+	Damage               float32
+	DamageTags           []string
 	// Lifesteal / Crit / Gated are payload-only like DamageTags
 	// (plan-skill-vocab chunk 1): the SkillSystem fills them per hit from the
 	// casting effect; they are not part of the mob JSON. Gated marks opt-in
 	// damage tags (content pass C1, skills.GateOpensFor).
-	Lifesteal float32
-	Crit      bool
-	Gated     bool
+	Lifesteal               float32
+	Crit                    bool
+	Gated                   bool
 	Speed                   float32
 	DeltaPhi                float32
 	TurnRate                float32
@@ -159,8 +159,11 @@ type MobDefinition struct {
 	// without a faction key gets the built-in hostile faction with its
 	// aggro-players-only mask — the pre-factions behavior. The numeric values
 	// mirror model.Faction (the boot seam converts in NewMob).
-	Faction   factions.Faction
-	AggroMask uint64
+	// FriendlyToPlayers rides the faction's flag (§9 lift 6, C5) onto the
+	// species so the entity can expose it to the damage-eligibility seam.
+	Faction           factions.Faction
+	AggroMask         uint64
+	FriendlyToPlayers bool
 }
 
 type mobDefinition struct {
@@ -308,6 +311,7 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry,
 	// set at spawn via SetFaction, never authored on a species).
 	faction := factions.Hostile
 	aggroMask := factions.Bit(factions.Aligned)
+	friendlyToPlayers := false
 	if m.Faction != "" {
 		if m.Faction == "aligned" {
 			return nil, fmt.Errorf("mob %q: faction \"aligned\" is summon-only and cannot be authored", m.Name)
@@ -321,18 +325,20 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry,
 		}
 		faction = f.ID
 		aggroMask = f.AggroMask
+		friendlyToPlayers = f.FriendlyToPlayers
 	}
 
 	mob := &MobDefinition{
-		ID:         MobID(m.Id),
-		Name:       m.Name,
-		Type:       m.Type,
-		EntityType: m.EntityType,
-		Faction:    faction,
-		AggroMask:  aggroMask,
-		Tier:       tier,
-		CurveLevel: curveLevel,
-		PowerScale: float32(powerScale),
+		ID:                MobID(m.Id),
+		Name:              m.Name,
+		Type:              m.Type,
+		EntityType:        m.EntityType,
+		Faction:           faction,
+		AggroMask:         aggroMask,
+		FriendlyToPlayers: friendlyToPlayers,
+		Tier:              tier,
+		CurveLevel:        curveLevel,
+		PowerScale:        float32(powerScale),
 		Factors: Factors{
 			MaxHealth:            uint32(math.Round(float64(m.Factors.BaseMaxHealth) * powerScale)),
 			MaxHealthVariance:    m.Factors.MaxHealthVariance,

@@ -515,6 +515,34 @@ func TestMapMobDefinition_ExplicitHostileFactionEqualsDefault(t *testing.T) {
 	assert.Equal(t, factions.Bit(factions.Aligned), def.AggroMask)
 }
 
+func TestMapMobDefinition_FriendlyToPlayersFollowsFaction(t *testing.T) {
+	// §9 lift 6 (C5): the faction's friendlyToPlayers flag rides onto the mob
+	// definition so the entity can expose it to the damage-eligibility seam.
+	fr, err := factions.RegistryFromFS(fstest.MapFS{
+		"human_army.json": {Data: []byte(`{"name": "human_army", "hostileTo": ["orc"], "friendlyToPlayers": true}`)},
+		"orc.json":        {Data: []byte(`{"name": "orc", "hostileTo": ["aligned", "human_army"]}`)},
+	})
+	require.NoError(t, err)
+
+	soldier, err := parseMobDefinition([]byte(`{
+	  "id": 1, "name": "ArmySoldier", "type": "MOB", "faction": "human_army",
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+	def, err := soldier.mapToMobDefinition(nil, testSkillRegistry(t), fr, testCurve())
+	require.NoError(t, err)
+	assert.True(t, def.FriendlyToPlayers)
+
+	orc, err := parseMobDefinition([]byte(`{
+	  "id": 2, "name": "Orc", "type": "MOB", "faction": "orc",
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+	orcDef, err := orc.mapToMobDefinition(nil, testSkillRegistry(t), fr, testCurve())
+	require.NoError(t, err)
+	assert.False(t, orcDef.FriendlyToPlayers)
+}
+
 func TestMapMobDefinition_UnknownFactionFails(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,

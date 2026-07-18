@@ -1,0 +1,20 @@
+{
+  "_comment": "Z2 front soldier blades (content pass C5, plan-content-zones12.md §4): disciplined line-infantry cuts — plain physical, mid radius, mid tick (bandit-blades cadence without the bleed; the orcs are the savage side). Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 125,
+  "name": "SoldierBlades",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 9,
+      "damageHPPerLevel": 1.5,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 25
+    }
+  ]
+}

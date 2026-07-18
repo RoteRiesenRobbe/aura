@@ -398,6 +398,16 @@ func casterPowerScale(e any) float32 {
 // this — a per-site copy is how the gate gets forgotten (the AuraMaskFor
 // resist-gap lesson). Only called for different-faction targets.
 func mayHarm(caster any, target model.Factioned) bool {
+	// Friendly-to-players factions (§9 lift 6, C5): the aligned side — players
+	// AND their owned summons (whose permissive gate would otherwise grant the
+	// harm) — can never damage a friendly faction. Keyed on the caster's
+	// FACTION, not its Go type, so future allegiance flips (charm, decoys)
+	// behave by allegiance. Checked before the gate on purpose.
+	if cf, ok := caster.(model.Factioned); ok && cf.Faction() == model.FactionAligned {
+		if pf, ok := target.(model.PlayerFriendly); ok && pf.FriendlyToPlayers() {
+			return false
+		}
+	}
 	gate, ok := caster.(model.HostilityGate)
 	if !ok {
 		return true

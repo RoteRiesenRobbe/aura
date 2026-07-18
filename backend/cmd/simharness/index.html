@@ -80,7 +80,9 @@
 
 <div class="preset-bar">
   Mob preset: <select id="mobPreset"><option value="-1">custom</option></select>
-  <small>(authored mobs; picking one fills the Mob knobs — editing them switches back to custom)</small>
+  Player aura: <select id="playerPreset"><option value="-1">custom</option></select>
+  <small>(authored content; picking one fills the knobs — editing them switches back to custom.
+  Player presets model the DAMAGE effect only — a multi-effect skill like Vanguard is stronger than its numbers here)</small>
 </div>
 
 <div class="knobs" id="knobs"></div>
@@ -146,6 +148,7 @@ const KNOBS = [
   ['Player', 'variance ±',        'player.aura.variance',      0.15, 0.05],
   ['Player', 'crit chance',       'player.aura.critChance',    0, 0.05],
   ['Player', 'crit factor',       'player.aura.critFactor',    0, 0.1],
+  ['Player', 'max targets',       'player.aura.maxTargets',    1, 1],
 
   ['Mob', 'max health',           'mob.maxHealth',             60, 1],
   ['Mob', 'spawn HP variance ±',  'mob.maxHealthVariance',     0, 0.05],
@@ -153,6 +156,7 @@ const KNOBS = [
   ['Mob', 'aura tick (ticks)',    'mob.aura.tickInterval',     20, 1],
   ['Mob', 'aura radius',          'mob.aura.radius',           1.0, 0.1],
   ['Mob', 'variance ±',           'mob.aura.variance',         0, 0.05],
+  ['Mob', 'aura max targets',     'mob.aura.maxTargets',       1, 1],
   ['Mob', 'speed (0=turret)',     'mob.speed',                 0.5, 0.1],
   ['Mob', 'body radius',          'mob.bodyRadius',            0.35, 0.05],
   ['Mob', 'aggro radius',         'mob.aggroRadius',           4.0, 0.5],
@@ -185,6 +189,10 @@ for (const [group, label, path, def, step] of KNOBS) {
     // hand-editing a mob knob diverges from the selected preset
     inp.addEventListener('input', () => { document.getElementById('mobPreset').value = '-1'; });
   }
+  if (path.startsWith('player.aura.')) {
+    // hand-editing a player aura knob diverges from the selected preset (C5)
+    inp.addEventListener('input', () => { document.getElementById('playerPreset').value = '-1'; });
+  }
   lab.appendChild(inp);
   fs.appendChild(lab);
   inputs[path] = inp;
@@ -215,6 +223,36 @@ presetSel.addEventListener('change', () => {
     for (const part of path.split('.').slice(1)) v = (v ?? {})[part];
     inputs[path].value = Math.round((v ?? 0) * 1000) / 1000;
   }
+  run();
+});
+
+// --- player-aura presets (authored player skills, damage effect only — C5) ---
+const playerPresetSel = document.getElementById('playerPreset');
+let playerPresets = [];
+fetch('/player-auras')
+  .then(r => r.ok ? r.json() : [])
+  .then(list => {
+    playerPresets = list || [];
+    playerPresets.forEach((p, i) => {
+      const o = document.createElement('option');
+      o.value = i;
+      o.textContent = p.name;
+      playerPresetSel.appendChild(o);
+    });
+  })
+  .catch(() => { /* roster unavailable — dropdown stays custom-only */ });
+
+playerPresetSel.addEventListener('change', () => {
+  const p = playerPresets[parseInt(playerPresetSel.value, 10)];
+  if (!p) return;
+  for (const path of Object.keys(inputs)) {
+    if (!path.startsWith('player.aura.')) continue;
+    let v = p.spec;
+    for (const part of path.split('.').slice(2)) v = (v ?? {})[part];
+    inputs[path].value = Math.round((v ?? 0) * 1000) / 1000;
+  }
+  // The sim needs at least one target slot; presets carry the authored cap.
+  if (!(p.spec.maxTargets >= 1)) inputs['player.aura.maxTargets'].value = 1;
   run();
 });
 

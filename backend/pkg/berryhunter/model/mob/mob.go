@@ -1018,6 +1018,14 @@ func (m *Mob) MayHarm(f model.Faction, id uint64) bool {
 	return m.aggroMask&f.Bit() != 0 || m.HasThreat(id)
 }
 
+// FriendlyToPlayers implements model.PlayerFriendly (§9 lift 6, C5): the
+// species' faction flag, read by the sys damage-eligibility seam. Runtime
+// faction flips (SetFaction — summons) don't touch it: friendliness is
+// authored on the species, and no summoned species is friendly.
+func (m *Mob) FriendlyToPlayers() bool {
+	return m.definition.FriendlyToPlayers
+}
+
 // highestThreatTarget returns the living top-threat entity, pruning dead
 // entries on the way (a TTL-expired summon zeroes its health, so stale refs
 // read as dead). Ties break toward the lower entity ID for determinism.

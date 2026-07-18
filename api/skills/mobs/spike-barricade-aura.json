@@ -1,0 +1,21 @@
+{
+  "_comment": "Orc-front spike-barricade hazard aura (content pass C5, plan-content-zones12.md §4 + §10 hazard fixtures): always-on physical+bleed scraping while standing in the spikes — direct damage like the poison pool (stepping out stops it). Carried by the SpikeBarricade fixture mob (brazier pattern, XP 0, players only — see the mob's _comment). Thick Hide halves it. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 127,
+  "name": "SpikeBarricadeAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 6,
+      "damageHPPerLevel": 1.0,
+      "damageTags": ["physical", "bleed"],
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 20
+    }
+  ]
+}

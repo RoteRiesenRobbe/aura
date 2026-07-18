@@ -46,7 +46,7 @@ func TestHandleRun_RunsBatteryAndReturnsReport(t *testing.T) {
 // The preset roster maps authored mobs onto MobSpecs — pinned against the
 // embedded SaberToothCat (60 HP, aura 8 HP / 20 ticks / r1.0 at level 1).
 func TestLoadMobPresets_EmbeddedContent(t *testing.T) {
-	presets, err := loadMobPresets("")
+	presets, _, err := loadPresets("")
 	require.NoError(t, err)
 	require.NotEmpty(t, presets)
 
@@ -61,6 +61,39 @@ func TestLoadMobPresets_EmbeddedContent(t *testing.T) {
 	assert.InDelta(t, 8, cat.Aura.DamageHP, 1e-6)
 	assert.Equal(t, 20, cat.Aura.TickInterval)
 	assert.InDelta(t, 1.0, cat.Aura.Radius, 1e-6)
+}
+
+// Player-aura presets (content pass C5, §A "never a surprise"): every
+// player-authored skill (id < 100 — mob skills number from 101) carrying a
+// damage_aura maps onto AuraSpecs at L1 and max level. Pinned against the
+// Vanguard (14 HP +3.2/lvl, tick 40, r1.2, 2 targets) and DamageAura.
+func TestLoadPlayerAuraPresets_EmbeddedContent(t *testing.T) {
+	_, presets, err := loadPresets("")
+	require.NoError(t, err)
+	require.NotEmpty(t, presets)
+
+	byName := map[string]sim.AuraSpec{}
+	for _, p := range presets {
+		byName[p.Name] = p.Spec
+	}
+
+	v1, ok := byName["Vanguard L1"]
+	require.True(t, ok, "roster must contain the Vanguard at L1")
+	assert.InDelta(t, 14, v1.DamageHP, 1e-6)
+	assert.Equal(t, 40, v1.TickInterval)
+	assert.InDelta(t, 1.2, v1.Radius, 1e-6)
+	assert.Equal(t, 2, v1.MaxTargets)
+
+	v5, ok := byName["Vanguard L5"]
+	require.True(t, ok, "roster must contain the Vanguard at max level")
+	assert.InDelta(t, 14+4*3.2, v5.DamageHP, 1e-6)
+
+	_, ok = byName["DamageAura L1"]
+	assert.True(t, ok, "plain damage skills derive too")
+
+	for name := range byName {
+		assert.NotContains(t, name, "KoboldVolley", "mob skills (id >= 100) stay out of the player dropdown")
+	}
 }
 
 func TestHandleMobs_ServesRoster(t *testing.T) {

@@ -67,6 +67,21 @@ func TestNewMob_BareDefinitionStaysHostileDefault(t *testing.T) {
 	assert.Equal(t, model.FactionAligned.Bit(), m.aggroMask)
 }
 
+func TestNewMob_FriendlyToPlayersDelegatesToDefinition(t *testing.T) {
+	// §9 lift 6 (C5): the entity exposes the definition's flag through
+	// model.PlayerFriendly for the sys damage-eligibility seam.
+	soldierDef := testMobDefinition()
+	soldierDef.Faction = 2
+	soldierDef.FriendlyToPlayers = true
+	soldier := NewMob(soldierDef, 0, nil)
+	assert.True(t, soldier.FriendlyToPlayers())
+
+	legacy := NewMob(testMobDefinition(), 0, nil)
+	assert.False(t, legacy.FriendlyToPlayers())
+
+	var _ model.PlayerFriendly = soldier
+}
+
 func TestMob_FindAggroTarget_AcquiresFactionInAggroSet(t *testing.T) {
 	// The wolf-chases-rabbit acquisition: a predator's sensor sees a mob body
 	// on the action layer and the prey faction is in its aggro set.

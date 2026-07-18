@@ -60,7 +60,7 @@ func main() {
 	// one-shot battery; all combatant flags below are ignored there (the
 	// page has its own inputs).
 	serveAddr := flag.String("serve", "", "serve the web explorer on this address (e.g. localhost:8081) instead of running once")
-	contentDir := flag.String("content", "", "api/-layout content dir for the explorer's mob presets (default: embedded copies; e.g. ../api)")
+	contentDir := flag.String("content", "", "api/-layout content dir for the mob / player-aura presets (default: embedded copies; e.g. ../api)")
 
 	// Curve battery (chunk 2): -levels sweeps the f(character level) curve
 	// instead of the single 1v1; the player/mob flags below become the
@@ -115,6 +115,7 @@ func main() {
 	playerVariance := flag.Float64("player-variance", 0.15, "player per-hit variance band")
 	playerCritChance := flag.Float64("player-crit-chance", 0, "player crit chance [0,1]")
 	playerCritFactor := flag.Float64("player-crit-factor", 0, "player crit multiplier (pair with crit chance)")
+	playerAura := flag.String("player-aura", "", "prefill the player aura from an authored skill, Name[:level] (e.g. Vanguard:5); overrides the -player-dmg/-tick/-radius/-variance/-crit flags (damage effect only — C5)")
 
 	// Mob — defaults mirror api/mobs/saber-tooth-cat.json + its aura, all
 	// [PLACEHOLDER].
@@ -132,12 +133,12 @@ func main() {
 	flag.Parse()
 
 	if *serveAddr != "" {
-		presets, err := loadMobPresets(*contentDir)
+		presets, playerPresets, err := loadPresets(*contentDir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "loading mob presets: %v\n", err)
+			fmt.Fprintf(os.Stderr, "loading presets: %v\n", err)
 			os.Exit(1)
 		}
-		if err := serve(*serveAddr, presets); err != nil {
+		if err := serve(*serveAddr, presets, playerPresets); err != nil {
 			fmt.Fprintf(os.Stderr, "serve: %v\n", err)
 			os.Exit(1)
 		}
@@ -155,6 +156,17 @@ func main() {
 			CritFactor:   float32(*playerCritFactor),
 			MaxTargets:   1,
 		},
+	}
+	if *playerAura != "" {
+		spec, err := playerAuraSpecByName(*contentDir, *playerAura)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
+		if spec.MaxTargets < 1 {
+			spec.MaxTargets = 1
+		}
+		player.Aura = spec
 	}
 	mob := sim.MobSpec{
 		MaxHealth:            float32(*mobHP),

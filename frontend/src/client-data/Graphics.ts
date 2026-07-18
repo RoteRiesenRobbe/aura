@@ -245,6 +245,24 @@ export const GraphicsConfig = {
             minSize: <number> 44,
             maxSize: <number> 50,
         },
+
+        armySoldier: {
+            file: require('../features/game-objects/assets/mobs/armySoldier.svg'),
+            minSize: <number> 36,
+            maxSize: <number> 42,
+        },
+
+        orc: {
+            file: require('../features/game-objects/assets/mobs/orc.svg'),
+            minSize: <number> 52,
+            maxSize: <number> 60,
+        },
+
+        spikeBarricade: {
+            file: require('../features/game-objects/assets/mobs/spikeBarricade.svg'),
+            minSize: <number> 60,
+            maxSize: <number> 66,
+        },
     },
 
     // NPC sprites (content pass C2): Resource-backed, referenced by the
@@ -272,6 +290,10 @@ export const GraphicsConfig = {
         },
         villageHealer: {
             file: require('../features/game-objects/assets/resources/villageHealer.svg'),
+            maxSize: <number> 60,
+        },
+        frontCaptain: {
+            file: require('../features/game-objects/assets/resources/frontCaptain.svg'),
             maxSize: <number> 60,
         },
     },

@@ -28,7 +28,7 @@ import {spatialAudio} from '../../audio/logic/SpatialAudio';
 import {swingLightAudioCues} from '../../player/logic/PlayerJuice';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
-import {FIRE_WARD_SKILL_ID, HEAL_AURA_SKILL_ID, PALADIN_AURA_SKILL_ID, REJUVENATION_AURA_SKILL_ID} from '../../../client-data/Skills';
+import {FIRE_WARD_SKILL_ID, HEAL_AURA_SKILL_ID, PALADIN_AURA_SKILL_ID, REJUVENATION_AURA_SKILL_ID, VANGUARD_AURA_SKILL_ID} from '../../../client-data/Skills';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -291,13 +291,13 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     // Character.active_skill_id wire field. 0 = Nothing → no ring.
     // Ring style per skill ID is a client-side mapping (resolved question 6).
     setActiveSkill(skillId: number) {
-        // PaladinAura both damages and heals, so it shows both rings; pure
-        // support auras (heal, FireWard resist) show only the heal-style ring;
-        // everything else shows the damage ring.
-        const isPaladin = skillId === PALADIN_AURA_SKILL_ID;
+        // PaladinAura and Vanguard both damage and support at once, so they
+        // show both rings; pure support auras (heal, FireWard resist) show
+        // only the heal-style ring; everything else shows the damage ring.
+        const isDual = skillId === PALADIN_AURA_SKILL_ID || skillId === VANGUARD_AURA_SKILL_ID;
         const isSupport = skillId === HEAL_AURA_SKILL_ID || skillId === FIRE_WARD_SKILL_ID || skillId === REJUVENATION_AURA_SKILL_ID;
         this.damageAuraSprite.visible = skillId !== 0 && !isSupport;
-        this.healAuraSprite.visible = isSupport || isPaladin;
+        this.healAuraSprite.visible = isSupport || isDual;
     }
 
     setAuraRadius(radiusPx: number) {

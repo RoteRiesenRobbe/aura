@@ -1,0 +1,22 @@
+{
+  "_comment": "Z2 front orc cleave (content pass C5, plan-content-zones12.md §4): huge sweeping blows — high damage, large radius, slow tick, hits up to 3 targets (an orc wades into the soldier line and staggers a whole rank; a careless player standing among the soldiers eats the same swing). Plain physical: brute force, no finesse. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 126,
+  "name": "OrcCleave",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.4,
+      "radiusPerLevel": 0.0,
+      "damageHP": 16,
+      "damageHPPerLevel": 2.5,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 3,
+      "tickInterval": 35
+    }
+  ]
+}

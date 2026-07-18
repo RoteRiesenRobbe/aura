@@ -63,6 +63,33 @@ func TestRegistryFromFS_HostileToMayReferenceBuiltins(t *testing.T) {
 	assert.Equal(t, Bit(Aligned)|Bit(Hostile), raider.AggroMask)
 }
 
+// --- friendlyToPlayers (§9 lift 6, content pass C5) ---
+
+func TestRegistryFromFS_FriendlyToPlayersParsed(t *testing.T) {
+	r, err := RegistryFromFS(factionFS(map[string]string{
+		"human_army.json": `{"name": "human_army", "hostileTo": ["orc"], "friendlyToPlayers": true}`,
+		"orc.json":        `{"name": "orc", "hostileTo": ["aligned", "human_army"]}`,
+	}))
+	require.NoError(t, err)
+
+	army, err := r.GetByName("human_army")
+	require.NoError(t, err)
+	assert.True(t, army.FriendlyToPlayers)
+
+	orc, err := r.GetByName("orc")
+	require.NoError(t, err)
+	assert.False(t, orc.FriendlyToPlayers, "absent = false, the normal case")
+}
+
+func TestRegistryFromFS_FriendlyToPlayersHostileToAlignedFails(t *testing.T) {
+	// A faction cannot be harm-proof to players AND proactively hunt them —
+	// contradictory curated content aborts at boot like every other anomaly.
+	_, err := RegistryFromFS(factionFS(map[string]string{
+		"confused.json": `{"name": "confused", "hostileTo": ["aligned"], "friendlyToPlayers": true}`,
+	}))
+	require.ErrorContains(t, err, "friendlyToPlayers")
+}
+
 func TestRegistryFromFS_MissingHostileToFails(t *testing.T) {
 	_, err := RegistryFromFS(factionFS(map[string]string{
 		"vague.json": `{"name": "vague"}`,

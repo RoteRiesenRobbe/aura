@@ -41,8 +41,9 @@ func (r *runRequest) validate() error {
 // serve runs the local explorer UI: GET / is the embedded page, POST /run
 // executes the TTK+TTD battery for the posted numbers and returns the same
 // report the CLI would save as its artifact, GET /mobs is the authored-mob
-// preset roster for the dropdown.
-func serve(addr string, presets []mobPreset) error {
+// preset roster for the dropdown, GET /player-auras the player-skill one
+// (content pass C5).
+func serve(addr string, presets []mobPreset, playerPresets []playerAuraPreset) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -57,13 +58,24 @@ func serve(addr string, presets []mobPreset) error {
 	mux.HandleFunc("/matrix", handleMatrix)
 	mux.HandleFunc("/chain", handleChain)
 	mux.HandleFunc("/mobs", handleMobs(presets))
+	mux.HandleFunc("/player-auras", handlePlayerAuras(playerPresets))
 
-	fmt.Printf("simharness explorer on http://%s (%d mob presets)\n", addr, len(presets))
+	fmt.Printf("simharness explorer on http://%s (%d mob presets, %d player-aura presets)\n", addr, len(presets), len(playerPresets))
 	return http.ListenAndServe(addr, mux)
 }
 
 // handleMobs serves the preset roster loaded at startup.
 func handleMobs(presets []mobPreset) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(presets); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+// handlePlayerAuras serves the player-aura preset roster (content pass C5).
+func handlePlayerAuras(presets []playerAuraPreset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(presets); err != nil {
