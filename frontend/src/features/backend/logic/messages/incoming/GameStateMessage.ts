@@ -339,6 +339,8 @@ const gameObjectClasses = [
     Mobs.WarbannerTotem,
     Mobs.OrcGrunt,
     Mobs.SoldierCompanion,
+    Mobs.ShieldbearerCompanion,
+    Mobs.MedicCompanion,
 ];
 
 function unmarshalEntityType(entityType) {

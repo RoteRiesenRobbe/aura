@@ -1,0 +1,53 @@
+{
+  "_comment": "Warbanner (content pass C7, plan-content-zones12.md §13): the CAPSTONE — Vanguard L5 + CallForAid L3 (base ingredients only, PO 2026-07-18). You BECOME the rallying point (lore echo of the Warlord's WarbannerTotems): every Vanguard component nudged up (~110%) PLUS a modest enemy slow. Best GENERALIST above Vanguard — but each single component stays below the matching specialist (Spearhead damage / Lifewarden heal), so the trio keeps its best-at-X crowns; shield has no specialist, Warbanner wears that crown. Top of the §A power ceiling. Secret recipe. All values [PLACEHOLDER] pending C8",
+  "id": 55,
+  "name": "Warbanner",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.2,
+      "radiusPerLevel": 0.0,
+      "damageHP": 15,
+      "damageHPPerLevel": 3.4,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 2,
+      "tickInterval": 40
+    },
+    {
+      "type": "heal_aura",
+      "radius": 1.2,
+      "radiusPerLevel": 0.0,
+      "healHP": 13,
+      "healHPPerLevel": 6.5,
+      "selfDamageHP": 0.0,
+      "selector": "lowest_health",
+      "maxTargets": 1,
+      "tickInterval": 120
+    },
+    {
+      "type": "shield_aura",
+      "radius": 1.2,
+      "radiusPerLevel": 0.0,
+      "shieldHP": 6,
+      "shieldHPPerLevel": 2.5,
+      "targetsAllies": true,
+      "targetsSelf": true,
+      "targetsEnemies": false,
+      "tickInterval": 30
+    },
+    {
+      "type": "slow_aura",
+      "radius": 1.2,
+      "radiusPerLevel": 0.0,
+      "slowFraction": 0.1,
+      "slowFractionPerLevel": 0.03,
+      "targetsEnemies": true,
+      "targetsAllies": false
+    }
+  ]
+}

@@ -38,6 +38,14 @@ export const SkillNames: { [id: number]: string } = {
     49: 'Damage-Burst',
     50: 'Vanguard',
     51: 'Call for Aid',
+    52: 'Spearhead',
+    53: 'Lifewarden',
+    54: 'Shockwave',
+    55: 'Warbanner',
+    56: 'Hold the Line',
+    57: 'Field Medics',
+    58: 'Wildfire',
+    59: 'Suppression',
 };
 
 export function skillDisplayName(id: number): string {
@@ -83,6 +91,14 @@ export const SkillMaxLevels: { [id: number]: number } = {
     49: 3,
     50: 5,
     51: 3,
+    52: 5,
+    53: 5,
+    54: 3,
+    55: 5,
+    56: 3,
+    57: 3,
+    58: 5,
+    59: 5,
 };
 
 export function skillMaxLevel(id: number): number {
@@ -130,6 +146,14 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     49: 'cooldown',
     50: 'aura',
     51: 'cooldown',
+    52: 'aura',
+    53: 'aura',
+    54: 'cooldown',
+    55: 'aura',
+    56: 'cooldown',
+    57: 'cooldown',
+    58: 'aura',
+    59: 'aura',
 };
 
 // Unknown IDs default to 'aura' — the most common category; keeps a missing
@@ -162,3 +186,7 @@ export const FIRE_WARD_SKILL_ID = 40;
 export const REJUVENATION_AURA_SKILL_ID = 29;
 // Vanguard damages and heals/shields at once — both rings, like PaladinAura (C5).
 export const VANGUARD_AURA_SKILL_ID = 50;
+// Lifewarden is a pure support (heal) aura — heal-style ring (C7).
+export const LIFEWARDEN_AURA_SKILL_ID = 53;
+// Warbanner damages and heals/shields at once — both rings, like Vanguard (C7).
+export const WARBANNER_AURA_SKILL_ID = 55;

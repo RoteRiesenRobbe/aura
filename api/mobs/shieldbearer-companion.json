@@ -1,0 +1,25 @@
+{
+  "_comment": "Shieldbearer companion (content pass C7, plan-content-zones12.md §13): the HoldTheLine summon — a tanky wall soldier that drums shields onto its squad and owner (reuses the RallyDrum mob skill, allies-only). Companion pattern verbatim (owned, caster-aligned follower; spawnSummon overrides faction from the caster, hence no faction key; never a zone spawn): collisionLayer 160 = Viewport|Player, collisionMask 17 = PlayerStatic|Border, speed above the player's so it keeps up, aggroRadius dummy (followers ride owner combat signals). curveLevel 1 — power comes from SummonPower x f(ownerLevel), not the curve. All values [PLACEHOLDER]",
+  "id": 39,
+  "name": "ShieldbearerCompanion",
+  "type": "MOB",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 90,
+    "experience": 0,
+    "speed": 1.2
+  },
+  "body": {
+    "radius": 0.28,
+    "aggroRadius": 0.1,
+    "collisionLayer": 160,
+    "collisionMask": 17
+  },
+  "skills": [
+    {
+      "skillName": "RallyDrum",
+      "level": 1
+    }
+  ]
+}

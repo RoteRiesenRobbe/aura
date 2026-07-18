@@ -287,6 +287,18 @@ export const GraphicsConfig = {
             minSize: <number> 34,
             maxSize: <number> 38,
         },
+
+        shieldbearerCompanion: {
+            file: require('../features/game-objects/assets/mobs/shieldbearerCompanion.svg'),
+            minSize: <number> 38,
+            maxSize: <number> 42,
+        },
+
+        medicCompanion: {
+            file: require('../features/game-objects/assets/mobs/medicCompanion.svg'),
+            minSize: <number> 32,
+            maxSize: <number> 36,
+        },
     },
 
     // NPC sprites (content pass C2): Resource-backed, referenced by the

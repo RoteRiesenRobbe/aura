@@ -1,0 +1,9 @@
+{
+  "_comment": "C7 recipe net (plan-content-zones12.md §13): Ignite + ImmolationAura maxed → Wildfire, the fire-identity gap fill (~70% side-grade). Secret — never documented in-game.",
+  "id": 8,
+  "result": "Wildfire",
+  "ingredients": [
+    { "skill": "Ignite", "level": 3 },
+    { "skill": "ImmolationAura", "level": 5 }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "_comment": "Shockwave (content pass C7, plan-content-zones12.md §13): Vanguard L5 + DamageBurst L3 combo — the BEST COOLDOWN in the game (§A ceiling trio, specialist shape): ~2x DamageBurst damage, wider ring, shorter cooldown; keeps the physical+bleed identity. Secret recipe. All values [PLACEHOLDER] pending C8",
+  "id": 54,
+  "name": "Shockwave",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 240,
+  "cooldownTicksPerLevel": -20,
+  "effects": [
+    {
+      "type": "instant_damage",
+      "radius": 2.0,
+      "radiusPerLevel": 0.1,
+      "damageHP": 44,
+      "damageHPPerLevel": 10,
+      "damageTags": ["physical", "bleed"],
+      "targetsEnemies": true,
+      "targetsAllies": false
+    }
+  ]
+}

@@ -799,6 +799,32 @@ export class SoldierCompanion extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(SoldierCompanion, file('soldierCompanion'), maxSize('soldierCompanion'));
 
+export class ShieldbearerCompanion extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('shieldbearerCompanion'), maxSize('shieldbearerCompanion')),
+            ShieldbearerCompanion.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(ShieldbearerCompanion, file('shieldbearerCompanion'), maxSize('shieldbearerCompanion'));
+
+export class MedicCompanion extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('medicCompanion'), maxSize('medicCompanion')),
+            MedicCompanion.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(MedicCompanion, file('medicCompanion'), maxSize('medicCompanion'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.

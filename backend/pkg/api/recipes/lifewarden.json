@@ -1,0 +1,9 @@
+{
+  "_comment": "C7 recipe net (plan-content-zones12.md §13/§A): Vanguard + HealAura maxed → Lifewarden, the best heal aura. Ceiling trio. Secret — never documented in-game.",
+  "id": 3,
+  "result": "Lifewarden",
+  "ingredients": [
+    { "skill": "Vanguard", "level": 5 },
+    { "skill": "HealAura", "level": 5 }
+  ]
+}

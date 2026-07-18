@@ -360,9 +360,10 @@ mob-owned spawns (boss adds via encounter SpawnMob), pity drops (§11).
 
 - **Milestone reordering** — full rewrite of `milestone-unlocks.json` against
   this plan's origins; all levels placeholder. (First cut in C1, final in C8.)
-- **Recipe net** — Front-Aura + Boss-Aura combinations (≥6 total, incl.
+- ~~**Recipe net** — Front-Aura + Boss-Aura combinations (≥6 total, incl.
   whether they combine with each other) — **chunk C7** (own session, before
-  the balance pass).
+  the balance pass).~~ **RESOLVED C7 (2026-07-18):** 10-recipe net authored
+  (§13 C7 banner); capstone = yes (Warbanner).
 - **Stag + Bandit-ranged replacement drops** (or none) — open since the
   Rally/Flee cut (2026-07-16).
 - **Front-NPC level anchor** — compute against the v1 level curve once
@@ -373,9 +374,18 @@ mob-owned spawns (boss adds via encounter SpawnMob), pity drops (§11).
 - Faction hostility matrix values, drop chances, all levels/radii/numbers.
 - **Rockfall gate aura** (§4) — which skill/tag opens the tunnel side passage.
 - **Lantern Post origin** — Hermit second teaching vs. milestone.
-- Homes inside the milestone rewrite for: Barrier (instant_shield),
-  ToughPassive (damageReduction), the bleed instant_dot candidate, Fade and
+- Homes inside the milestone rewrite for: ~~Barrier (instant_shield)~~
+  **(homed C7: Hardy+ToughPassive recipe result)**, ToughPassive
+  (damageReduction — still needs its own source; being a C7 recipe
+  ingredient is not a home), the bleed instant_dot candidate, Fade and
   Revive levels.
+- **Unplaced C7 recipe ingredients (PO-confirmed 2026-07-18):** Ignite +
+  ImmolationAura have NO in-game source at all, and SlowAura/ToughPassive
+  only drop from legacy mobs (Mammoth/Dodo) that never spawn in the
+  authored zone — so the Wildfire, Suppression and Barrier recipes are
+  cheat-only reachable today. Placement lands with the milestone rewrite /
+  drop pass in C8 (or later content); the 6 mandated §A/§B recipes are all
+  fully reachable.
 - Dog NPC exact placement in the Z1 dark forest.
 
 ## 12. Open flags (record, don't resolve)
@@ -846,6 +856,36 @@ any content.
   Boss-Aura reaches all participants + healers.
 
 ### C7 — Recipe net
+
+> **✅ DONE 2026-07-18 (execution session) — PO in-game pass 2026-07-18
+> ("all in all, it works") with two findings, both handled same session:
+> (1) Vanguard + Warbanner overshields way too strong → shield_aura cut
+> to roughly a third (Vanguard 15+5 → 5+2, Warbanner 17+6 → 6+2.5,
+> [PLACEHOLDER] — C8 calibrates; docs/GDD wording follows); (2)
+> Wildfire/Suppression/Barrier ingredients unplaced (Ignite/Immolation
+> sourceless; SlowAura/ToughPassive only on never-spawned legacy mobs) →
+> recorded in §11 + the content-recipes.md audit, placement = C8.**
+> Shipped per this chunk + the session's PO rulings (capstone = YES,
+> Vanguard(5)+CallForAid(3) → **Warbanner** aura, base ingredients only;
+> Vanguard trio = **specialist** results; thresholds = **all ingredients
+> maxed** net-wide; CallForAid partners = Taunt + **HealAura** (PO pick
+> over the Heal cooldown); gap fills = fire + kiter; extra PO recipe:
+> Hardy(3)+ToughPassive(3) → **Barrier**, the existing cheat-only
+> instant-shield as result — cooldown because that's the rarer category
+> after the net (20 auras / 18 cooldowns), closes the §11 "Barrier home"
+> item WITHOUT the instant_resist lift first considered → **chunk stayed
+> zero-lift**). **10 recipes total** (ids 1–10 incl. Paladin), 8 new
+> result skills 52–59 (Spearhead / Lifewarden / Shockwave / Warbanner /
+> HoldTheLine / FieldMedics / Wildfire / Suppression), 2 new summons
+> (ShieldbearerCompanion reusing RallyDrum, MedicCompanion reusing
+> HealerAura — zero new mob skills), EntityTypes 58–59 + SVGs, registry
+> pin 67→**75**, recipe-count pin 10 + net cascade test
+> (TestRecipes_C7Net), client ring styles (Lifewarden support /
+> Warbanner dual). Sim player-aura presets auto-derive the new
+> damage-carrying auras (Spearhead/Warbanner/Suppression L1+Lmax — the
+> §A "never a surprise" ceiling refs); coverage audit in
+> `content-recipes.md` (gaps = deliberate post-v1). Verified: suite +
+> race green; boot + in-game smoke per §13 checklist.
 
 - Design + author the Front-Aura / Boss-Aura combination net (≥6 recipes:
   Front-Aura × Damage / Heal / Burst per §A, Boss-Aura ≥3, incl. whether

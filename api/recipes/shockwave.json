@@ -1,0 +1,9 @@
+{
+  "_comment": "C7 recipe net (plan-content-zones12.md §13/§A): Vanguard + DamageBurst maxed → Shockwave, the best cooldown. Ceiling trio. Secret — never documented in-game.",
+  "id": 4,
+  "result": "Shockwave",
+  "ingredients": [
+    { "skill": "Vanguard", "level": 5 },
+    { "skill": "DamageBurst", "level": 3 }
+  ]
+}

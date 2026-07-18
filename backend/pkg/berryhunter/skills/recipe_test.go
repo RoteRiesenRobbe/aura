@@ -151,6 +151,65 @@ func TestRecipes_LoadsRealContent(t *testing.T) {
 	assert.NotContains(t, ApplyRecipes(sc2, rr), paladin.ID)
 }
 
+// TestRecipes_C7Net pins the C7 recipe net (plan-content-zones12.md §13 C7):
+// 10 recipes total, and every net result unlocks from its maxed ingredients —
+// including the Warbanner capstone and Barrier's recipe home (the pre-existing
+// skill as a result).
+func TestRecipes_C7Net(t *testing.T) {
+	sr, err := RegistryFromFS(os.DirFS("../../../../api/skills"))
+	require.NoError(t, err)
+	rr, err := RecipesFromFS(os.DirFS("../../../../api/recipes"), sr)
+	require.NoError(t, err)
+	assert.Len(t, rr.All(), 10)
+
+	// ingredient set -> expected results, per the authored net.
+	cases := []struct {
+		ingredients map[string]int
+		results     []string
+	}{
+		{map[string]int{"Vanguard": 5, "DamageAura": 5}, []string{"Spearhead"}},
+		{map[string]int{"Vanguard": 5, "HealAura": 5}, []string{"Lifewarden"}},
+		{map[string]int{"Vanguard": 5, "DamageBurst": 3}, []string{"Shockwave"}},
+		{map[string]int{"Vanguard": 5, "CallForAid": 3}, []string{"Warbanner"}},
+		{map[string]int{"CallForAid": 3, "Taunt": 3}, []string{"HoldTheLine"}},
+		{map[string]int{"CallForAid": 3, "HealAura": 5}, []string{"FieldMedics"}},
+		{map[string]int{"Ignite": 3, "ImmolationAura": 5}, []string{"Wildfire"}},
+		{map[string]int{"SlowAura": 5, "LongRangeStrike": 5}, []string{"Suppression"}},
+		{map[string]int{"Hardy": 3, "ToughPassive": 3}, []string{"Barrier"}},
+	}
+	for _, c := range cases {
+		sc := NewSkillComponent(true)
+		for name, level := range c.ingredients {
+			def, err := sr.GetByName(name)
+			require.NoError(t, err, name)
+			sc.Spellbook[def.ID] = level
+		}
+		unlocked := ApplyRecipes(sc, rr)
+		for _, result := range c.results {
+			def, err := sr.GetByName(result)
+			require.NoError(t, err, result)
+			assert.Contains(t, unlocked, def.ID, "%v -> %s", c.ingredients, result)
+		}
+	}
+
+	// A maxed Vanguard journey (all trio partners + CallForAid) unlocks the
+	// whole ceiling in one ApplyRecipes call.
+	sc := NewSkillComponent(true)
+	for name, level := range map[string]int{
+		"Vanguard": 5, "DamageAura": 5, "HealAura": 5, "DamageBurst": 3, "CallForAid": 3,
+	} {
+		def, err := sr.GetByName(name)
+		require.NoError(t, err, name)
+		sc.Spellbook[def.ID] = level
+	}
+	unlocked := ApplyRecipes(sc, rr)
+	for _, result := range []string{"Spearhead", "Lifewarden", "Shockwave", "Warbanner", "FieldMedics"} {
+		def, err := sr.GetByName(result)
+		require.NoError(t, err, result)
+		assert.Contains(t, unlocked, def.ID, result)
+	}
+}
+
 func TestRecipes_DuplicateIngredientSetAllowed(t *testing.T) {
 	recA := []byte(`{"id": 1, "result": "HealAura",
       "ingredients": [{ "skill": "DamageAura", "level": 2 }]}`)

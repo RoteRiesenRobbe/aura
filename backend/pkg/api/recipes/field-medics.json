@@ -1,0 +1,9 @@
+{
+  "_comment": "C7 recipe net (plan-content-zones12.md §13): CallForAid + HealAura maxed → FieldMedics, the support squad (PO pick: HealAura as medic partner). Secret — never documented in-game.",
+  "id": 7,
+  "result": "FieldMedics",
+  "ingredients": [
+    { "skill": "CallForAid", "level": 3 },
+    { "skill": "HealAura", "level": 5 }
+  ]
+}

@@ -49,6 +49,8 @@ Loose grouping for the eventual full roster (from the 2026-07-09 capture,
 | Warbanner totem | in-game *(C6)* | Encounter object | The Warlord's invuln gate: killable stationary (bramble body 99/16, NO gate resist — anything fells it), XP 0, `orc` faction. WarbannerShield = RallyDrum-class shield on nearby orcs, allies-only (the banner stays soft). Replanted once per cycle at 33% (the re-gate) and on wipe/respawn. `api/mobs/warbanner-totem.json`. |
 | Orc grunt | in-game *(C6)* | Humanoid | Wave add: normal tier @ cL20, XP 5 trickle, GruntSlash single-target melee, big aggro sensor (spawned waves find the fight while charging from the wave-mouth anchor). Encounter-spawned only. `api/mobs/orc-grunt.json`. |
 | Soldier companion | in-game *(C6)* | Summon | The Call for Aid squad member: Companion body/behavior pattern (owned, caster-aligned follower), SoldierBlades kit reused — a soldier of the front, marked yours. Skill-spawned only. `api/mobs/soldier-companion.json`. |
+| Shieldbearer companion | in-game *(C7)* | Summon | The HoldTheLine squad member: Companion pattern, tanky (baseline 90), **reuses the RallyDrum mob skill** — drums shields onto squad and owner. Skill-spawned only. `api/mobs/shieldbearer-companion.json`. |
+| Medic companion | in-game *(C7)* | Summon | The FieldMedics squad healer: Companion pattern, soft (baseline 45), **reuses the HealerAura mob skill** (lowest-health ally). Skill-spawned only. `api/mobs/medic-companion.json`. |
 | Trolls | idea | Fantasy | "Well versed in heal magic" — enable the Heal cooldown unlock (troll territory). |
 | Necromancer | idea | Evil / caster | Caster-mob archetype (2026-07-09 seed). |
 | Guardian golem | idea | Fantasy / boss | Boss before the mountain range (2026-07-09 seed). |

@@ -15,7 +15,10 @@ In-game entries: authoritative definition is `api/skills/*.json`; all values
 | Taunt | in-game | Forces every enemy mob in range to the top of its threat table — pulls aggro onto the caster. | Tank role tool (mob-depth chunk 7). **In-world source since C4: Bandit-Horde Rally-Drum drummer kill-drop @1.0** — beating the group gate pays every participant (→ `content-mobs.md`). |
 | Damage-Burst | in-game *(C4)* | Instant damage to everyone hostile in range, tagged **physical + bleed** — the first multi-tag instant hit. | Elite Bandit kill-drop @0.5. New skill id 49 (NovaBurst pattern; NovaBurst itself stays a proving-grounds relic — PO 2026-07-18). `api/skills/damage-burst.json`. |
 | Fade | in-game | Removes the caster's own threat entry on every enemy mob in range — sheds aggro to the next-highest holder. | Group utility, no-op solo (mob-depth chunk 7). |
-| Barrier | in-game | Grants an absorb pool to the caster and nearby allies for ~10 s. | Vocab smoke content. |
+| Barrier | in-game | Grants an absorb pool to the caster and nearby allies for ~10 s. | Vocab smoke content — **since C7 a combination result** (Hardy + ToughPassive maxed; was cheat-only, closes the §11 "Barrier home" item) → `content-recipes.md`. |
+| Shockwave | in-game *(C7)* | §A ceiling trio, **best cooldown**: instant physical+bleed hit at ~2× DamageBurst damage, wider ring, shorter cooldown. | Combination result — `content-recipes.md` (secret in-game). `api/skills/shockwave.json`. |
+| HoldTheLine | in-game *(C7)* | Tank-support squad: one cast raises 3 ShieldbearerCompanions (RallyDrum allies-only shields) AND detaunts the owner (Fade pattern) — enemies prefer the wall. CallForAid conventions (3 spawn effects, cooldown ≥ max TTL). | Combination result — `content-recipes.md`. `api/skills/hold-the-line.json`. |
+| FieldMedics | in-game *(C7)* | Support squad: 2 SoldierCompanions + a MedicCompanion (HealerAura — heals squad and owner). CallForAid conventions. | Combination result — `content-recipes.md`. `api/skills/field-medics.json`. |
 | Haste | in-game | Temporarily increases the caster's aura tick rate. | Vocab smoke content. |
 | Ignite | in-game | Applies a short fire dot to everyone hostile in range. | Effect-foundations smoke content. |
 | NovaBurst | in-game | Instant damage to everyone hostile in range. | Vocab smoke content. |

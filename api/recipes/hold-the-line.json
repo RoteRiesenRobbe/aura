@@ -1,0 +1,9 @@
+{
+  "_comment": "C7 recipe net (plan-content-zones12.md §13): CallForAid + Taunt maxed → HoldTheLine, the tank-support squad. Secret — never documented in-game.",
+  "id": 6,
+  "result": "HoldTheLine",
+  "ingredients": [
+    { "skill": "CallForAid", "level": 3 },
+    { "skill": "Taunt", "level": 3 }
+  ]
+}

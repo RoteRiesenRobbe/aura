@@ -28,7 +28,7 @@ import {spatialAudio} from '../../audio/logic/SpatialAudio';
 import {swingLightAudioCues} from '../../player/logic/PlayerJuice';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
-import {FIRE_WARD_SKILL_ID, HEAL_AURA_SKILL_ID, PALADIN_AURA_SKILL_ID, REJUVENATION_AURA_SKILL_ID, VANGUARD_AURA_SKILL_ID} from '../../../client-data/Skills';
+import {FIRE_WARD_SKILL_ID, HEAL_AURA_SKILL_ID, LIFEWARDEN_AURA_SKILL_ID, PALADIN_AURA_SKILL_ID, REJUVENATION_AURA_SKILL_ID, VANGUARD_AURA_SKILL_ID, WARBANNER_AURA_SKILL_ID} from '../../../client-data/Skills';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -294,8 +294,8 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         // PaladinAura and Vanguard both damage and support at once, so they
         // show both rings; pure support auras (heal, FireWard resist) show
         // only the heal-style ring; everything else shows the damage ring.
-        const isDual = skillId === PALADIN_AURA_SKILL_ID || skillId === VANGUARD_AURA_SKILL_ID;
-        const isSupport = skillId === HEAL_AURA_SKILL_ID || skillId === FIRE_WARD_SKILL_ID || skillId === REJUVENATION_AURA_SKILL_ID;
+        const isDual = skillId === PALADIN_AURA_SKILL_ID || skillId === VANGUARD_AURA_SKILL_ID || skillId === WARBANNER_AURA_SKILL_ID;
+        const isSupport = skillId === HEAL_AURA_SKILL_ID || skillId === FIRE_WARD_SKILL_ID || skillId === REJUVENATION_AURA_SKILL_ID || skillId === LIFEWARDEN_AURA_SKILL_ID;
         this.damageAuraSprite.visible = skillId !== 0 && !isSupport;
         this.healAuraSprite.visible = isSupport || isDual;
     }

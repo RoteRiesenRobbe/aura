@@ -1,0 +1,9 @@
+{
+  "_comment": "C7 recipe net (plan-content-zones12.md §13/§A): the CAPSTONE — Vanguard + CallForAid maxed → Warbanner (base ingredients only, PO 2026-07-18). Top of the power ceiling. Secret — never documented in-game.",
+  "id": 5,
+  "result": "Warbanner",
+  "ingredients": [
+    { "skill": "Vanguard", "level": 5 },
+    { "skill": "CallForAid", "level": 3 }
+  ]
+}

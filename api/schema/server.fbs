@@ -60,7 +60,9 @@ enum EntityType : ushort {
   OrcWarlord,
   WarbannerTotem,
   OrcGrunt,
-  SoldierCompanion
+  SoldierCompanion,
+  ShieldbearerCompanion,
+  MedicCompanion
 }
 
 enum StatusEffect : ushort {

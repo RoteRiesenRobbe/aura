@@ -1,0 +1,31 @@
+{
+  "_comment": "Suppression (content pass C7, plan-content-zones12.md §13): SlowAura L5 + LongRangeStrike L5 combo — the kiter-identity gap fill at the Paladin ~70% side-grade calibration: LRS-range damage AND a slow at the same long radius, each ~70% of its parent. Below the §A ceiling. Secret recipe. All values [PLACEHOLDER] pending C8",
+  "id": 59,
+  "name": "Suppression",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 2.6,
+      "radiusPerLevel": 0.1,
+      "damageHP": 6.5,
+      "damageHPPerLevel": 1.4,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 40
+    },
+    {
+      "type": "slow_aura",
+      "radius": 2.6,
+      "radiusPerLevel": 0.1,
+      "slowFraction": 0.07,
+      "slowFractionPerLevel": 0.07,
+      "targetsEnemies": true,
+      "targetsAllies": false
+    }
+  ]
+}
