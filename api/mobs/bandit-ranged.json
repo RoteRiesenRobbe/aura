@@ -1,0 +1,31 @@
+{
+  "_comment": "Z2 ranged bandit (content pass C4, plan-content-zones12.md §4): crossbow volley — large radius, slow tick, selector 'all' uncapped (kobold-ranged precedent). Stands behind the melee line. Drop deliberately empty: the Rally replacement (or none) stays TBD §11 (PO 2026-07-18). All values [PLACEHOLDER]",
+  "id": 28,
+  "name": "BanditRanged",
+  "type": "MOB",
+  "faction": "bandit",
+  "tier": "normal",
+  "curveLevel": 5,
+  "factors": {
+    "baseMaxHealth": 50,
+    "maxHealthVariance": 0.1,
+    "experience": 40,
+    "speed": 0.6,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 6
+  },
+  "skills": [
+    {
+      "skillName": "BanditVolley",
+      "level": 1
+    }
+  ]
+}

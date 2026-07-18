@@ -49,6 +49,14 @@ const (
 	EntityTypePoisonPool    EntityType = 39
 	EntityTypeRockfall      EntityType = 40
 	EntityTypeMiner         EntityType = 41
+	EntityTypeBandit        EntityType = 42
+	EntityTypeBanditRanged  EntityType = 43
+	EntityTypeBanditHealer  EntityType = 44
+	EntityTypeEliteBandit   EntityType = 45
+	EntityTypeRallyDrummer  EntityType = 46
+	EntityTypeCityGuard     EntityType = 47
+	EntityTypeVillageHealer EntityType = 48
+	EntityTypeGateWall      EntityType = 49
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -94,6 +102,14 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypePoisonPool:    "PoisonPool",
 	EntityTypeRockfall:      "Rockfall",
 	EntityTypeMiner:         "Miner",
+	EntityTypeBandit:        "Bandit",
+	EntityTypeBanditRanged:  "BanditRanged",
+	EntityTypeBanditHealer:  "BanditHealer",
+	EntityTypeEliteBandit:   "EliteBandit",
+	EntityTypeRallyDrummer:  "RallyDrummer",
+	EntityTypeCityGuard:     "CityGuard",
+	EntityTypeVillageHealer: "VillageHealer",
+	EntityTypeGateWall:      "GateWall",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -139,6 +155,14 @@ var EnumValuesEntityType = map[string]EntityType{
 	"PoisonPool":    EntityTypePoisonPool,
 	"Rockfall":      EntityTypeRockfall,
 	"Miner":         EntityTypeMiner,
+	"Bandit":        EntityTypeBandit,
+	"BanditRanged":  EntityTypeBanditRanged,
+	"BanditHealer":  EntityTypeBanditHealer,
+	"EliteBandit":   EntityTypeEliteBandit,
+	"RallyDrummer":  EntityTypeRallyDrummer,
+	"CityGuard":     EntityTypeCityGuard,
+	"VillageHealer": EntityTypeVillageHealer,
+	"GateWall":      EntityTypeGateWall,
 }
 
 func (v EntityType) String() string {

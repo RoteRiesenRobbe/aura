@@ -44,5 +44,13 @@ export enum EntityType {
   VenomSpider = 38,
   PoisonPool = 39,
   Rockfall = 40,
-  Miner = 41
+  Miner = 41,
+  Bandit = 42,
+  BanditRanged = 43,
+  BanditHealer = 44,
+  EliteBandit = 45,
+  RallyDrummer = 46,
+  CityGuard = 47,
+  VillageHealer = 48,
+  GateWall = 49
 }

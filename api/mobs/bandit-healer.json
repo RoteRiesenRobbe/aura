@@ -1,0 +1,31 @@
+{
+  "_comment": "Z2 bandit healer (content pass C4, plan-content-zones12.md §4): the mob that makes the horde a GROUP gate — same-faction heal_aura with the lowest_health selector (shipped Healer precedent; heal_aura vs hot_aura resolved heal_aura, PO 2026-07-18). NO damage aura: it never attacks, kill it to stop the healing — the kill-priority teach. All values [PLACEHOLDER]",
+  "id": 29,
+  "name": "BanditHealer",
+  "type": "MOB",
+  "faction": "bandit",
+  "tier": "normal",
+  "curveLevel": 5,
+  "factors": {
+    "baseMaxHealth": 55,
+    "maxHealthVariance": 0.1,
+    "experience": 45,
+    "speed": 0.6,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 6
+  },
+  "skills": [
+    {
+      "skillName": "BanditHeal",
+      "level": 1
+    }
+  ]
+}

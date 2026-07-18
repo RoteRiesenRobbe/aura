@@ -1,0 +1,8 @@
+{
+  "name": "GateWall",
+  "entityType": "GateWall",
+  "body": {
+    "width": 2.4,
+    "height": 2.4
+  }
+}

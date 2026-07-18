@@ -1676,6 +1676,1038 @@
       "size": 1.27,
       "rotation": 4.569,
       "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 19.57,
+      "y": 24.11,
+      "size": 1.22,
+      "rotation": 4.99,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 20.25,
+      "y": 23.66,
+      "size": 1.19,
+      "rotation": 5.02,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 21.46,
+      "y": 23.51,
+      "size": 0.97,
+      "rotation": 1.74,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 22.0,
+      "y": 22.92,
+      "size": 1.04,
+      "rotation": 1.73,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 23.28,
+      "y": 22.84,
+      "size": 0.93,
+      "rotation": 4.55,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 24.03,
+      "y": 22.49,
+      "size": 1.17,
+      "rotation": 1.75,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 23.78,
+      "y": 22.56,
+      "size": 1.07,
+      "rotation": 0.73,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 25.25,
+      "y": 22.02,
+      "size": 1.26,
+      "rotation": 3.96,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 26.2,
+      "y": 21.77,
+      "size": 0.99,
+      "rotation": 4.13,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 27.12,
+      "y": 21.43,
+      "size": 0.96,
+      "rotation": 3.72,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 28.23,
+      "y": 20.99,
+      "size": 1.29,
+      "rotation": 4.23,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 27.97,
+      "y": 21.02,
+      "size": 0.93,
+      "rotation": 5.02,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 28.75,
+      "y": 20.21,
+      "size": 0.92,
+      "rotation": 3.13,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 29.57,
+      "y": 19.38,
+      "size": 1.22,
+      "rotation": 2.5,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 30.51,
+      "y": 18.77,
+      "size": 1.24,
+      "rotation": 4.61,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 31.23,
+      "y": 18.07,
+      "size": 1.21,
+      "rotation": 5.27,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 31.96,
+      "y": 17.64,
+      "size": 1.08,
+      "rotation": 3.21,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 31.94,
+      "y": 17.26,
+      "size": 0.94,
+      "rotation": 1.47,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 32.56,
+      "y": 16.62,
+      "size": 1.32,
+      "rotation": 2.87,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 33.12,
+      "y": 15.77,
+      "size": 1.18,
+      "rotation": 1.77,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 33.71,
+      "y": 15.24,
+      "size": 1.2,
+      "rotation": 2.31,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 33.99,
+      "y": 14.5,
+      "size": 1.29,
+      "rotation": 5.15,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 34.26,
+      "y": 13.85,
+      "size": 0.96,
+      "rotation": 5.83,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 35.15,
+      "y": 13.01,
+      "size": 1.19,
+      "rotation": 3.35,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 34.79,
+      "y": 12.8,
+      "size": 1.12,
+      "rotation": 3.84,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 35.45,
+      "y": 12.06,
+      "size": 1.3,
+      "rotation": 0.31,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 36.07,
+      "y": 11.46,
+      "size": 1.26,
+      "rotation": 5.35,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 36.51,
+      "y": 10.15,
+      "size": 1.17,
+      "rotation": 0.15,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 36.93,
+      "y": 9.54,
+      "size": 1.28,
+      "rotation": 4.56,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 36.79,
+      "y": 9.67,
+      "size": 1.23,
+      "rotation": 5.69,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 37.8,
+      "y": 9.22,
+      "size": 1.2,
+      "rotation": 1.38,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 38.82,
+      "y": 8.55,
+      "size": 0.97,
+      "rotation": 0.4,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 40.03,
+      "y": 8.05,
+      "size": 0.96,
+      "rotation": 4.2,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 39.93,
+      "y": 8.06,
+      "size": 1.11,
+      "rotation": 4.68,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 41.14,
+      "y": 8.17,
+      "size": 1.08,
+      "rotation": 4.3,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 41.83,
+      "y": 8.14,
+      "size": 1.05,
+      "rotation": 0.93,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 42.66,
+      "y": 8.0,
+      "size": 1.21,
+      "rotation": 5.66,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.74,
+      "y": 8.04,
+      "size": 1.33,
+      "rotation": 1.09,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 44.86,
+      "y": 8.1,
+      "size": 0.92,
+      "rotation": 6.13,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 45.71,
+      "y": 8.2,
+      "size": 1.35,
+      "rotation": 2.11,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 46.32,
+      "y": 8.16,
+      "size": 1.27,
+      "rotation": 0.84,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 47.21,
+      "y": 7.96,
+      "size": 1.14,
+      "rotation": 0.29,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 48.35,
+      "y": 8.05,
+      "size": 0.94,
+      "rotation": 3.82,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 49.27,
+      "y": 8.18,
+      "size": 1.23,
+      "rotation": 4.19,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 50.29,
+      "y": 8.09,
+      "size": 0.94,
+      "rotation": 3.83,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 50.9,
+      "y": 8.05,
+      "size": 1.27,
+      "rotation": 0.46,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 52.18,
+      "y": 8.01,
+      "size": 1.0,
+      "rotation": 6.04,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 52.0,
+      "y": 8.24,
+      "size": 0.95,
+      "rotation": 2.27,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 52.74,
+      "y": 7.89,
+      "size": 1.28,
+      "rotation": 4.29,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 53.93,
+      "y": 8.2,
+      "size": 1.09,
+      "rotation": 3.13,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 55.03,
+      "y": 8.0,
+      "size": 1.16,
+      "rotation": 3.24,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 55.83,
+      "y": 7.76,
+      "size": 1.21,
+      "rotation": 4.0,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 56.64,
+      "y": 7.87,
+      "size": 1.03,
+      "rotation": 4.94,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 57.62,
+      "y": 7.79,
+      "size": 1.25,
+      "rotation": 2.82,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 58.7,
+      "y": 7.81,
+      "size": 1.2,
+      "rotation": 5.19,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 59.78,
+      "y": 7.85,
+      "size": 1.26,
+      "rotation": 3.89,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 60.74,
+      "y": 7.79,
+      "size": 1.09,
+      "rotation": 0.98,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 61.41,
+      "y": 7.83,
+      "size": 1.22,
+      "rotation": 0.0,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 62.73,
+      "y": 8.19,
+      "size": 1.06,
+      "rotation": 3.25,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 63.58,
+      "y": 8.1,
+      "size": 1.13,
+      "rotation": 0.46,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.81,
+      "y": 6.45,
+      "size": 1.23,
+      "rotation": 4.4,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.83,
+      "y": 5.48,
+      "size": 1.05,
+      "rotation": 1.26,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 44.12,
+      "y": 4.5,
+      "size": 0.97,
+      "rotation": 2.33,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 44.22,
+      "y": 3.82,
+      "size": 1.28,
+      "rotation": 2.7,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.86,
+      "y": 3.05,
+      "size": 1.12,
+      "rotation": 5.01,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 44.17,
+      "y": 1.93,
+      "size": 1.1,
+      "rotation": 3.04,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 44.09,
+      "y": 1.17,
+      "size": 1.32,
+      "rotation": 3.01,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.88,
+      "y": 0.06,
+      "size": 1.21,
+      "rotation": 4.89,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 44.04,
+      "y": -1.09,
+      "size": 1.04,
+      "rotation": 2.33,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.93,
+      "y": -1.58,
+      "size": 1.26,
+      "rotation": 1.85,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 44.11,
+      "y": -2.62,
+      "size": 1.31,
+      "rotation": 1.98,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.89,
+      "y": -3.77,
+      "size": 1.03,
+      "rotation": 5.76,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.76,
+      "y": -4.78,
+      "size": 0.91,
+      "rotation": 2.08,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.82,
+      "y": -5.41,
+      "size": 0.94,
+      "rotation": 1.71,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 55.99,
+      "y": 8.77,
+      "size": 0.97,
+      "rotation": 3.92,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 55.8,
+      "y": 9.69,
+      "size": 1.05,
+      "rotation": 0.47,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 55.84,
+      "y": 10.97,
+      "size": 1.15,
+      "rotation": 2.29,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 56.16,
+      "y": 11.92,
+      "size": 1.15,
+      "rotation": 1.58,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 56.22,
+      "y": 12.42,
+      "size": 1.03,
+      "rotation": 5.19,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 56.05,
+      "y": 13.33,
+      "size": 0.92,
+      "rotation": 4.16,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 55.91,
+      "y": 14.47,
+      "size": 1.15,
+      "rotation": 1.27,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 55.93,
+      "y": 15.54,
+      "size": 1.12,
+      "rotation": 3.77,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 55.95,
+      "y": 16.41,
+      "size": 1.01,
+      "rotation": 0.46,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 56.14,
+      "y": 17.13,
+      "size": 1.2,
+      "rotation": 4.15,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 55.98,
+      "y": 18.2,
+      "size": 1.01,
+      "rotation": 3.34,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 56.21,
+      "y": 18.74,
+      "size": 1.35,
+      "rotation": 6.13,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 56.0,
+      "y": 19.7,
+      "size": 0.92,
+      "rotation": 3.27,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 56.19,
+      "y": 20.45,
+      "size": 1.32,
+      "rotation": 1.89,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 56.06,
+      "y": 21.75,
+      "size": 0.96,
+      "rotation": 2.17,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 56.02,
+      "y": 22.41,
+      "size": 1.19,
+      "rotation": 4.36,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 21.17,
+      "y": -29.35,
+      "size": 1.09,
+      "rotation": 4.45,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 21.63,
+      "y": -28.43,
+      "size": 1.26,
+      "rotation": 2.76,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 22.86,
+      "y": -27.79,
+      "size": 1.35,
+      "rotation": 2.39,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 23.54,
+      "y": -26.79,
+      "size": 1.11,
+      "rotation": 0.5,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 24.55,
+      "y": -25.99,
+      "size": 0.95,
+      "rotation": 1.64,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 25.41,
+      "y": -24.79,
+      "size": 0.94,
+      "rotation": 0.2,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 26.08,
+      "y": -23.75,
+      "size": 1.28,
+      "rotation": 3.99,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 25.94,
+      "y": -24.02,
+      "size": 1.16,
+      "rotation": 1.09,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 26.95,
+      "y": -22.83,
+      "size": 1.22,
+      "rotation": 3.14,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 27.42,
+      "y": -21.88,
+      "size": 1.06,
+      "rotation": 4.35,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 28.01,
+      "y": -21.13,
+      "size": 0.97,
+      "rotation": 5.4,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 28.89,
+      "y": -19.83,
+      "size": 1.29,
+      "rotation": 1.25,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 29.57,
+      "y": -18.77,
+      "size": 1.31,
+      "rotation": 0.7,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 30.43,
+      "y": -18.18,
+      "size": 1.04,
+      "rotation": 3.65,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 31.1,
+      "y": -17.05,
+      "size": 1.32,
+      "rotation": 6.24,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 30.78,
+      "y": -17.12,
+      "size": 1.32,
+      "rotation": 0.72,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 31.94,
+      "y": -16.0,
+      "size": 1.25,
+      "rotation": 3.65,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 32.71,
+      "y": -15.19,
+      "size": 1.15,
+      "rotation": 4.09,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 33.39,
+      "y": -14.56,
+      "size": 1.01,
+      "rotation": 4.18,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 34.13,
+      "y": -13.73,
+      "size": 1.33,
+      "rotation": 2.93,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 34.77,
+      "y": -12.77,
+      "size": 1.13,
+      "rotation": 5.78,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 35.57,
+      "y": -11.99,
+      "size": 1.33,
+      "rotation": 1.2,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 36.72,
+      "y": -11.14,
+      "size": 1.11,
+      "rotation": 3.93,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 36.62,
+      "y": -11.11,
+      "size": 1.28,
+      "rotation": 0.94,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 37.28,
+      "y": -10.49,
+      "size": 1.15,
+      "rotation": 0.99,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 38.35,
+      "y": -9.82,
+      "size": 0.95,
+      "rotation": 0.58,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 39.27,
+      "y": -9.11,
+      "size": 1.28,
+      "rotation": 3.87,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 40.05,
+      "y": -8.34,
+      "size": 1.21,
+      "rotation": 0.18,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 41.06,
+      "y": -7.46,
+      "size": 1.28,
+      "rotation": 6.11,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 41.06,
+      "y": -7.73,
+      "size": 1.27,
+      "rotation": 5.25,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 42.25,
+      "y": -6.96,
+      "size": 1.03,
+      "rotation": 1.61,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 42.87,
+      "y": -6.58,
+      "size": 1.25,
+      "rotation": 3.86,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.82,
+      "y": -5.81,
+      "size": 1.28,
+      "rotation": 4.1,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.1,
+      "y": 9.51,
+      "size": 1.1,
+      "rotation": 5.89,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 45.95,
+      "y": 11.65,
+      "size": 1.36,
+      "rotation": 2.53,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 43.44,
+      "y": 10.64,
+      "size": 1.26,
+      "rotation": 5.02,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 46.11,
+      "y": 10.62,
+      "size": 1.03,
+      "rotation": 0.02,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 44.88,
+      "y": 9.74,
+      "size": 1.44,
+      "rotation": 4.82,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": 42.92,
+      "y": 11.11,
+      "size": 1.45,
+      "rotation": 0.87,
+      "flipped": "none"
     }
   ],
   "props": [
@@ -4352,6 +5384,1581 @@
       "y": -22.93,
       "rotation": 0.829,
       "blocksMovement": true
+    },
+    {
+      "type": "House",
+      "x": 40.0,
+      "y": 3.0,
+      "rotation": 1.34,
+      "blocksMovement": true
+    },
+    {
+      "type": "House",
+      "x": 48.0,
+      "y": 3.0,
+      "rotation": 1.89,
+      "blocksMovement": true
+    },
+    {
+      "type": "House",
+      "x": 40.0,
+      "y": 13.0,
+      "rotation": 5.98,
+      "blocksMovement": true
+    },
+    {
+      "type": "House",
+      "x": 48.0,
+      "y": 13.0,
+      "rotation": 5.97,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": -12.0,
+      "rotation": 0.4,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": -9.7,
+      "rotation": 2.44,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": -7.4,
+      "rotation": 3.71,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": -5.1,
+      "rotation": 5.87,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": -2.8,
+      "rotation": 4.37,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": -0.5,
+      "rotation": 2.47,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": 1.8,
+      "rotation": 3.83,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": 4.1,
+      "rotation": 1.69,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": 6.4,
+      "rotation": 3.71,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": 8.7,
+      "rotation": 2.37,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": 11.0,
+      "rotation": 1.0,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": 13.3,
+      "rotation": 4.22,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": 15.6,
+      "rotation": 1.06,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": 17.9,
+      "rotation": 3.77,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 64.8,
+      "y": 20.2,
+      "rotation": 5.18,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.62,
+      "y": -12.0,
+      "rotation": 0.59,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.58,
+      "y": -13.9,
+      "rotation": 1.44,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.84,
+      "y": -15.8,
+      "rotation": 5.35,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.64,
+      "y": -17.7,
+      "rotation": 5.74,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 65.08,
+      "y": -19.6,
+      "rotation": 2.45,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.67,
+      "y": -21.5,
+      "rotation": 2.45,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.75,
+      "y": -23.4,
+      "rotation": 0.99,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.99,
+      "y": -25.3,
+      "rotation": 2.13,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 65.08,
+      "y": -27.2,
+      "rotation": 0.44,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.63,
+      "y": -29.1,
+      "rotation": 0.54,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.43,
+      "y": -31.0,
+      "rotation": 2.42,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.63,
+      "y": -32.9,
+      "rotation": 0.39,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 65.07,
+      "y": -34.8,
+      "rotation": 3.66,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 65.0,
+      "y": 21.5,
+      "rotation": 6.28,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.78,
+      "y": 23.4,
+      "rotation": 2.15,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.88,
+      "y": 25.3,
+      "rotation": 2.53,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.46,
+      "y": 27.2,
+      "rotation": 1.85,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.48,
+      "y": 29.1,
+      "rotation": 3.86,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.76,
+      "y": 31.0,
+      "rotation": 5.1,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 64.67,
+      "y": 32.9,
+      "rotation": 2.43,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 65.07,
+      "y": 34.8,
+      "rotation": 1.37,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 44.0,
+      "y": -7.6,
+      "rotation": 6.11,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 41.8,
+      "y": -7.2,
+      "rotation": 5.56,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 46.2,
+      "y": -7.2,
+      "rotation": 2.54,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 56.0,
+      "y": 24.2,
+      "rotation": 3.64,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 53.8,
+      "y": 23.8,
+      "rotation": 5.44,
+      "blocksMovement": true
+    },
+    {
+      "type": "GateWall",
+      "x": 58.2,
+      "y": 23.8,
+      "rotation": 3.92,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 34.29,
+      "y": -34.19,
+      "rotation": 5.86,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 33.66,
+      "y": -29.56,
+      "rotation": 5.35,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 34.21,
+      "y": -27.78,
+      "rotation": 0.38,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 34.65,
+      "y": -25.76,
+      "rotation": 0.17,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 33.76,
+      "y": -23.25,
+      "rotation": 1.95,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 34.16,
+      "y": -22.58,
+      "rotation": 5.53,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 33.76,
+      "y": -19.59,
+      "rotation": 5.59,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 34.44,
+      "y": -18.22,
+      "rotation": 4.39,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 36.59,
+      "y": -27.66,
+      "rotation": 4.61,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 35.56,
+      "y": -25.69,
+      "rotation": 4.61,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 35.88,
+      "y": -24.05,
+      "rotation": 2.21,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 36.43,
+      "y": -21.46,
+      "rotation": 4.16,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 36.41,
+      "y": -19.45,
+      "rotation": 0.35,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 36.4,
+      "y": -17.25,
+      "rotation": 1.78,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 38.61,
+      "y": -35.24,
+      "rotation": 2.08,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 38.24,
+      "y": -32.66,
+      "rotation": 1.02,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 38.62,
+      "y": -25.68,
+      "rotation": 2.83,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 38.11,
+      "y": -23.69,
+      "rotation": 0.5,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 37.74,
+      "y": -21.46,
+      "rotation": 2.57,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 38.81,
+      "y": -20.17,
+      "rotation": 4.87,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 37.78,
+      "y": -16.99,
+      "rotation": 5.7,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 37.8,
+      "y": -16.27,
+      "rotation": 3.21,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 38.61,
+      "y": -14.27,
+      "rotation": 5.03,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 40.57,
+      "y": -34.26,
+      "rotation": 1.01,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 39.61,
+      "y": -33.07,
+      "rotation": 2.94,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 41.02,
+      "y": -30.69,
+      "rotation": 2.49,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 39.57,
+      "y": -23.53,
+      "rotation": 0.97,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 39.74,
+      "y": -21.62,
+      "rotation": 5.32,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 40.06,
+      "y": -20.4,
+      "rotation": 1.95,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 39.91,
+      "y": -16.91,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 40.65,
+      "y": -14.84,
+      "rotation": 0.96,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 40.86,
+      "y": -12.91,
+      "rotation": 0.39,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 40.62,
+      "y": -11.56,
+      "rotation": 1.44,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 42.75,
+      "y": -34.37,
+      "rotation": 5.49,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 41.94,
+      "y": -32.26,
+      "rotation": 2.44,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 41.89,
+      "y": -30.7,
+      "rotation": 3.37,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 42.51,
+      "y": -24.18,
+      "rotation": 1.63,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 43.15,
+      "y": -21.17,
+      "rotation": 0.2,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 42.04,
+      "y": -19.32,
+      "rotation": 2.22,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 42.82,
+      "y": -17.67,
+      "rotation": 3.24,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 41.9,
+      "y": -15.78,
+      "rotation": 5.44,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 43.09,
+      "y": -13.56,
+      "rotation": 3.55,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 42.39,
+      "y": -12.01,
+      "rotation": 1.93,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 45.29,
+      "y": -35.29,
+      "rotation": 0.65,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 43.79,
+      "y": -31.6,
+      "rotation": 4.84,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 44.46,
+      "y": -30.86,
+      "rotation": 1.36,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 44.13,
+      "y": -21.69,
+      "rotation": 1.53,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 44.0,
+      "y": -20.45,
+      "rotation": 5.85,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 44.2,
+      "y": -17.87,
+      "rotation": 2.06,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 44.35,
+      "y": -15.04,
+      "rotation": 4.68,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 47.13,
+      "y": -33.82,
+      "rotation": 0.81,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 46.79,
+      "y": -32.1,
+      "rotation": 4.88,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 46.1,
+      "y": -29.94,
+      "rotation": 2.17,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 46.31,
+      "y": -28.41,
+      "rotation": 3.59,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 48.29,
+      "y": -34.38,
+      "rotation": 0.21,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 49.19,
+      "y": -32.33,
+      "rotation": 2.36,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 48.5,
+      "y": -30.22,
+      "rotation": 3.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 49.27,
+      "y": -28.76,
+      "rotation": 4.7,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 49.29,
+      "y": -11.44,
+      "rotation": 1.37,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 50.71,
+      "y": -34.21,
+      "rotation": 5.45,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 51.04,
+      "y": -32.67,
+      "rotation": 0.58,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 51.1,
+      "y": -30.92,
+      "rotation": 5.35,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 50.86,
+      "y": -28.06,
+      "rotation": 0.23,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 50.93,
+      "y": -15.0,
+      "rotation": 1.24,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 50.28,
+      "y": -13.81,
+      "rotation": 1.28,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 50.9,
+      "y": -12.03,
+      "rotation": 1.38,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 53.37,
+      "y": -34.0,
+      "rotation": 2.45,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 53.67,
+      "y": -32.53,
+      "rotation": 2.25,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 52.57,
+      "y": -29.98,
+      "rotation": 3.04,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 52.94,
+      "y": -28.81,
+      "rotation": 6.04,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 52.61,
+      "y": -26.52,
+      "rotation": 2.16,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 52.29,
+      "y": -13.42,
+      "rotation": 2.56,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 53.22,
+      "y": -11.11,
+      "rotation": 2.79,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 55.44,
+      "y": -34.82,
+      "rotation": 2.85,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 55.03,
+      "y": -31.78,
+      "rotation": 6.07,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 55.09,
+      "y": -29.91,
+      "rotation": 1.16,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 55.41,
+      "y": -10.63,
+      "rotation": 3.63,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 56.38,
+      "y": -34.98,
+      "rotation": 3.03,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 57.03,
+      "y": -31.65,
+      "rotation": 0.74,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 56.82,
+      "y": -30.05,
+      "rotation": 1.58,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 57.24,
+      "y": -24.18,
+      "rotation": 4.97,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 56.94,
+      "y": -21.29,
+      "rotation": 0.5,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 56.79,
+      "y": -19.11,
+      "rotation": 2.38,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 56.97,
+      "y": -10.79,
+      "rotation": 3.83,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 59.67,
+      "y": -34.54,
+      "rotation": 1.66,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 59.55,
+      "y": -25.38,
+      "rotation": 5.35,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 58.97,
+      "y": -23.36,
+      "rotation": 5.95,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 60.0,
+      "y": -21.69,
+      "rotation": 1.5,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 59.41,
+      "y": -19.04,
+      "rotation": 2.91,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 59.62,
+      "y": -17.08,
+      "rotation": 1.62,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 61.86,
+      "y": -34.58,
+      "rotation": 1.14,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 61.53,
+      "y": -25.68,
+      "rotation": 4.57,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 61.74,
+      "y": -24.67,
+      "rotation": 4.75,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 60.51,
+      "y": -22.47,
+      "rotation": 0.7,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 60.84,
+      "y": -19.0,
+      "rotation": 4.75,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 60.54,
+      "y": -17.69,
+      "rotation": 4.47,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 61.66,
+      "y": -14.91,
+      "rotation": 0.88,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 61.68,
+      "y": -10.86,
+      "rotation": 5.38,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 62.64,
+      "y": -28.78,
+      "rotation": 1.18,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 62.82,
+      "y": -18.29,
+      "rotation": 3.94,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 46.4,
+      "y": -25.4,
+      "rotation": 1.63,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": 53.8,
+      "y": -19.1,
+      "rotation": 2.62,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": 48.8,
+      "y": -18.1,
+      "rotation": 4.62,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.51,
+      "y": -23.96,
+      "rotation": 5.86,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.8,
+      "y": -21.85,
+      "rotation": 5.95,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.87,
+      "y": -20.3,
+      "rotation": 5.48,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.71,
+      "y": -18.28,
+      "rotation": 2.47,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.99,
+      "y": -16.68,
+      "rotation": 3.91,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.11,
+      "y": -14.58,
+      "rotation": 4.09,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.13,
+      "y": -12.99,
+      "rotation": 5.24,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.85,
+      "y": -11.24,
+      "rotation": 5.28,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.12,
+      "y": -9.11,
+      "rotation": 2.33,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.52,
+      "y": -7.35,
+      "rotation": 0.81,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.83,
+      "y": -5.98,
+      "rotation": 3.86,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.76,
+      "y": -3.61,
+      "rotation": 3.31,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.22,
+      "y": -2.27,
+      "rotation": 4.55,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.69,
+      "y": -0.28,
+      "rotation": 1.8,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.09,
+      "y": 1.55,
+      "rotation": 2.9,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.47,
+      "y": 3.49,
+      "rotation": 2.5,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.31,
+      "y": 5.01,
+      "rotation": 1.76,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.69,
+      "y": 7.15,
+      "rotation": 0.11,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.89,
+      "y": 8.55,
+      "rotation": 3.93,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.59,
+      "y": 10.46,
+      "rotation": 4.28,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.62,
+      "y": 12.03,
+      "rotation": 6.23,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.15,
+      "y": 14.07,
+      "rotation": 5.91,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.68,
+      "y": 15.97,
+      "rotation": 1.88,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.87,
+      "y": 17.75,
+      "rotation": 4.3,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.63,
+      "y": 19.33,
+      "rotation": 3.61,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.65,
+      "y": 26.76,
+      "rotation": 3.13,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.86,
+      "y": 28.58,
+      "rotation": 0.63,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.23,
+      "y": 30.28,
+      "rotation": 3.51,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.21,
+      "y": 32.07,
+      "rotation": 0.8,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.85,
+      "y": 33.74,
+      "rotation": 3.77,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 21.92,
+      "y": 35.28,
+      "rotation": 2.08,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 25.64,
+      "y": 5.14,
+      "rotation": 1.78,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 29.61,
+      "y": -33.24,
+      "rotation": 5.02,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 27.11,
+      "y": -6.74,
+      "rotation": 3.89,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": 56.43,
+      "y": 5.37,
+      "rotation": 2.82,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 31.3,
+      "y": -4.49,
+      "rotation": 0.06,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 61.21,
+      "y": 2.38,
+      "rotation": 4.22,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 29.47,
+      "y": 14.38,
+      "rotation": 2.3,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": 57.82,
+      "y": 0.19,
+      "rotation": 4.02,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 61.79,
+      "y": -3.65,
+      "rotation": 4.83,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 35.72,
+      "y": 1.76,
+      "rotation": 0.89,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 24.44,
+      "y": -2.64,
+      "rotation": 4.25,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 35.44,
+      "y": -8.08,
+      "rotation": 5.52,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 29.22,
+      "y": -13.34,
+      "rotation": 4.51,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 27.35,
+      "y": -11.12,
+      "rotation": 3.58,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 33.63,
+      "y": 9.57,
+      "rotation": 4.27,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 52.77,
+      "y": 0.08,
+      "rotation": 0.89,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": 48.53,
+      "y": 19.23,
+      "rotation": 1.61,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 59.54,
+      "y": 17.55,
+      "rotation": 6.07,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 27.02,
+      "y": 1.09,
+      "rotation": 0.04,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 53.78,
+      "y": -1.9,
+      "rotation": 0.56,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 56.41,
+      "y": -2.85,
+      "rotation": 5.57,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 57.43,
+      "y": -8.49,
+      "rotation": 0.9,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": 30.61,
+      "y": 11.42,
+      "rotation": 2.45,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 34.78,
+      "y": -4.66,
+      "rotation": 2.11,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 36.82,
+      "y": -2.54,
+      "rotation": 5.17,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 48.82,
+      "y": -1.67,
+      "rotation": 4.36,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 39.1,
+      "y": -3.97,
+      "rotation": 4.31,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 51.21,
+      "y": 19.63,
+      "rotation": 3.72,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": 33.77,
+      "y": 6.83,
+      "rotation": 1.16,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": 53.77,
+      "y": 5.06,
+      "rotation": 3.56,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 30.61,
+      "y": 5.22,
+      "rotation": 1.48,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 28.74,
+      "y": -25.43,
+      "rotation": 1.51,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 26.44,
+      "y": -16.53,
+      "rotation": 5.63,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 61.95,
+      "y": -6.06,
+      "rotation": 4.52,
+      "blocksMovement": true
+    },
+    {
+      "type": "Rock",
+      "x": 45.01,
+      "y": 19.76,
+      "rotation": 6.27,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 28.91,
+      "y": -8.78,
+      "rotation": 0.74,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 60.02,
+      "y": 13.54,
+      "rotation": 5.74,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 25.8,
+      "y": -19.36,
+      "rotation": 6.27,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 26.98,
+      "y": 11.23,
+      "rotation": 1.89,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 37.72,
+      "y": 18.87,
+      "rotation": 4.31,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 29.91,
+      "y": -30.44,
+      "rotation": 1.93,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 24.77,
+      "y": 13.29,
+      "rotation": 4.46,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 24.45,
+      "y": -34.55,
+      "rotation": 6.04,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 31.01,
+      "y": 1.05,
+      "rotation": 1.42,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 51.89,
+      "y": -6.23,
+      "rotation": 1.82,
+      "blocksMovement": true
     }
   ],
   "spawns": [
@@ -5322,12 +7929,336 @@
       "angle": 0,
       "respawnTicks": 300,
       "respawnVariancePct": 0.0
+    },
+    {
+      "mob": "EliteBandit",
+      "x": 50.0,
+      "y": -24.2,
+      "angle": 2.45,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "BanditHealer",
+      "x": 50.0,
+      "y": -21.5,
+      "angle": 0.51,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Bandit",
+      "x": 52.95,
+      "y": -20.75,
+      "angle": 0.36,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Bandit",
+      "x": 49.91,
+      "y": -18.8,
+      "angle": 1.93,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Bandit",
+      "x": 46.89,
+      "y": -21.23,
+      "angle": 3.11,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Bandit",
+      "x": 48.16,
+      "y": -24.62,
+      "angle": 5.73,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "BanditRanged",
+      "x": 50.94,
+      "y": -23.77,
+      "angle": 5.99,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "BanditRanged",
+      "x": 51.85,
+      "y": -22.75,
+      "angle": 0.71,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 44.0,
+      "y": -26.0,
+      "angle": 3.48,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 39.0,
+      "y": -29.0,
+      "angle": 6.06,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 56.0,
+      "y": -16.0,
+      "angle": 4.37,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 57.0,
+      "y": -27.0,
+      "angle": 5.03,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 60.5,
+      "y": -30.5,
+      "angle": 0.82,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Bear",
+      "x": 35.5,
+      "y": -32.0,
+      "angle": 1.31,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Bear",
+      "x": 60.0,
+      "y": -13.0,
+      "angle": 2.49,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "RallyDrummer",
+      "x": 27.3,
+      "y": 19.7,
+      "angle": 5.73,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.1
+    },
+    {
+      "mob": "BanditHealer",
+      "x": 25.3,
+      "y": 20.7,
+      "angle": 1.65,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.1
+    },
+    {
+      "mob": "Bandit",
+      "x": 24.3,
+      "y": 23.1,
+      "angle": 1.12,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.1
+    },
+    {
+      "mob": "Bandit",
+      "x": 26.8,
+      "y": 23.8,
+      "angle": 5.61,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.1
+    },
+    {
+      "mob": "Bandit",
+      "x": 28.9,
+      "y": 22.7,
+      "angle": 1.12,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.1
+    },
+    {
+      "mob": "BanditRanged",
+      "x": 23.7,
+      "y": 20.9,
+      "angle": 2.14,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.1
+    },
+    {
+      "mob": "BanditRanged",
+      "x": 29.4,
+      "y": 20.6,
+      "angle": 0.53,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.1
+    },
+    {
+      "mob": "Wolf",
+      "x": 24.66,
+      "y": -11.4,
+      "angle": 6.12,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": 27.04,
+      "y": -31.87,
+      "angle": 1.8,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": 56.34,
+      "y": 3.38,
+      "angle": 4.85,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": 24.22,
+      "y": 10.19,
+      "angle": 1.45,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 55.25,
+      "y": 1.26,
+      "angle": 3.42,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": 61.36,
+      "y": 20.06,
+      "angle": 3.38,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": 54.3,
+      "y": -4.73,
+      "angle": 5.49,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": 39.59,
+      "y": -1.56,
+      "angle": 4.36,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 23.57,
+      "y": -8.76,
+      "angle": 0.07,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 49.3,
+      "y": -8.51,
+      "angle": 5.84,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": 53.16,
+      "y": 2.56,
+      "angle": 2.51,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": 32.9,
+      "y": 3.8,
+      "angle": 0.86,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": 24.18,
+      "y": 2.22,
+      "angle": 4.77,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": 60.8,
+      "y": -8.31,
+      "angle": 5.34,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 43.16,
+      "y": 21.86,
+      "angle": 6.04,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Stag",
+      "x": 32.25,
+      "y": -32.27,
+      "angle": 5.05,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 25.36,
+      "y": -37.09,
+      "angle": 0.96,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": 33.38,
+      "y": -0.3,
+      "angle": 2.08,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
     }
   ],
   "campfires": [
     {
       "x": -58.2,
       "y": 24.0
+    },
+    {
+      "x": 44.0,
+      "y": 10.5
     }
   ],
   "darkAreas": [
@@ -5420,6 +8351,81 @@
       "x": 7.8,
       "y": -25.2,
       "radius": 4.2
+    },
+    {
+      "x": 37.5,
+      "y": -29.5,
+      "radius": 6.2
+    },
+    {
+      "x": 37.5,
+      "y": -22.5,
+      "radius": 6.2
+    },
+    {
+      "x": 37.5,
+      "y": -15.5,
+      "radius": 6.2
+    },
+    {
+      "x": 43.5,
+      "y": -29.5,
+      "radius": 6.2
+    },
+    {
+      "x": 43.5,
+      "y": -22.5,
+      "radius": 6.2
+    },
+    {
+      "x": 43.5,
+      "y": -15.5,
+      "radius": 6.2
+    },
+    {
+      "x": 49.5,
+      "y": -29.5,
+      "radius": 6.2
+    },
+    {
+      "x": 49.5,
+      "y": -22.5,
+      "radius": 6.2
+    },
+    {
+      "x": 49.5,
+      "y": -15.5,
+      "radius": 6.2
+    },
+    {
+      "x": 55.5,
+      "y": -29.5,
+      "radius": 6.2
+    },
+    {
+      "x": 55.5,
+      "y": -22.5,
+      "radius": 6.2
+    },
+    {
+      "x": 55.5,
+      "y": -15.5,
+      "radius": 6.2
+    },
+    {
+      "x": 61.0,
+      "y": -29.5,
+      "radius": 6.2
+    },
+    {
+      "x": 61.0,
+      "y": -22.5,
+      "radius": 6.2
+    },
+    {
+      "x": 61.0,
+      "y": -15.5,
+      "radius": 6.2
     }
   ],
   "npcs": [
@@ -5524,6 +8530,28 @@
       "entityType": "Signpost",
       "lines": [
         "Kobolds burrow south-east of here. They hoard shiny stuff, the vermin."
+      ]
+    },
+    {
+      "type": "CityGuard",
+      "x": 62.4,
+      "y": 9.6,
+      "radius": 3,
+      "entityType": "CityGuard",
+      "lines": [
+        "The gates stay shut \u2014 captain's orders. Nobody enters while the front burns.",
+        "You cleared the road from the west? I'll pass word inside \u2014 the captain will hear your name.",
+        "If you're after more work, head south. The army takes every able body they can get."
+      ]
+    },
+    {
+      "type": "VillageHealer",
+      "x": 45.4,
+      "y": 11.0,
+      "radius": 3,
+      "entityType": "VillageHealer",
+      "lines": [
+        "Rest by the fire, traveler. These days I patch up more road-wounds than field-wounds."
       ]
     }
   ]

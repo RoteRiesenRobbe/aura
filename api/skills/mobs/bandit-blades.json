@@ -1,0 +1,21 @@
+{
+  "_comment": "Z2 bandit blades (content pass C4, plan-content-zones12.md §4): melee cuts carrying physical+bleed (multi-tag hit, boar-gore precedent — Thick Hide halves it, a future bleed resist would too). Mid radius, mid tick: steadier pressure than the kobold jab, fitting the higher band. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 120,
+  "name": "BanditBlades",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 9,
+      "damageHPPerLevel": 1.5,
+      "damageTags": ["physical", "bleed"],
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 25
+    }
+  ]
+}

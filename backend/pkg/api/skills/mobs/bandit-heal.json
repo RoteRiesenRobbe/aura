@@ -1,0 +1,18 @@
+{
+  "_comment": "Z2 bandit heal (content pass C4, plan-content-zones12.md §4): the group-gate maker — tops up the most-wounded same-faction bandit in range (heal_aura is allies-implicit; lowest_health selector, shipped HealerAura precedent; heal_aura over hot_aura per PO 2026-07-18). Out-heals a solo player's single-target pressure at level; a group killing the healer first breaks the gate. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 122,
+  "name": "BanditHeal",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "heal_aura",
+      "radius": 2.5,
+      "healHP": 14,
+      "healHPPerLevel": 4,
+      "selector": "lowest_health",
+      "maxTargets": 1,
+      "tickInterval": 60
+    }
+  ]
+}

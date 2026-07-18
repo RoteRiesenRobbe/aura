@@ -484,3 +484,61 @@ export class Miner extends Resource {
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Miner, GraphicsConfig.npcs.miner.file, GraphicsConfig.npcs.miner.maxSize);
+
+// --- C4 Z2 village + bandit gate (content pass C4) ---
+
+export class CityGuard extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, CityGuard.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(CityGuard, GraphicsConfig.npcs.cityGuard.file, GraphicsConfig.npcs.cityGuard.maxSize);
+
+export class VillageHealer extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, VillageHealer.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(VillageHealer, GraphicsConfig.npcs.villageHealer.file, GraphicsConfig.npcs.villageHealer.maxSize);
+
+// The square rampart block prop (content pass C4): City Gates flanks + the
+// blocked roads. Square body, so the plain square SVG scaling is already
+// correct — no aspect correction needed (unlike House).
+export class GateWall extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, GateWall.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    // Props stream a constant stock/capacity of 1/1; skip the base setter's
+    // rescale (House precedent).
+    protected onStockChange(newStock: number, oldStock: number) {
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(GateWall, GraphicsConfig.props.gateWall.file, GraphicsConfig.props.gateWall.maxSize);

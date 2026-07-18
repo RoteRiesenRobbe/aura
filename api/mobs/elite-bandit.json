@@ -1,0 +1,37 @@
+{
+  "_comment": "Z2 elite bandit (content pass C4, plan-content-zones12.md §4): camp leader — first authored CRIT pair (the one sanctioned upside-only combat RNG, §10 coverage home). curveLevel 7 tops the Z2 band; elite baseline ≈4x normal (elite-wolf precedent). Drops Damage-Burst (new skill 49) at the elite-wolf 0.5 chance. All values [PLACEHOLDER]",
+  "id": 30,
+  "name": "EliteBandit",
+  "type": "MOB",
+  "faction": "bandit",
+  "tier": "elite",
+  "curveLevel": 7,
+  "factors": {
+    "baseMaxHealth": 240,
+    "maxHealthVariance": 0.1,
+    "experience": 170,
+    "speed": 0.65,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.4,
+    "aggroRadius": 6
+  },
+  "skills": [
+    {
+      "skillName": "EliteBanditSlash",
+      "level": 1
+    }
+  ],
+  "unlocks": [
+    {
+      "skillName": "DamageBurst",
+      "chance": 0.5
+    }
+  ]
+}

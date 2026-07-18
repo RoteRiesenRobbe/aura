@@ -323,6 +323,14 @@ const gameObjectClasses = [
     Mobs.PoisonPool,
     Mobs.Rockfall,
     Resources.Miner,
+    Mobs.Bandit,
+    Mobs.BanditRanged,
+    Mobs.BanditHealer,
+    Mobs.EliteBandit,
+    Mobs.RallyDrummer,
+    Resources.CityGuard,
+    Resources.VillageHealer,
+    Resources.GateWall,
 ];
 
 function unmarshalEntityType(entityType) {

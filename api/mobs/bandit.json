@@ -1,0 +1,31 @@
+{
+  "_comment": "Z2 melee bandit (content pass C4, plan-content-zones12.md §4): blade fighter of the camp + horde. BanditBlades carries physical+bleed (multi-tag hit, boar-gore precedent). curveLevel 5 = the Z2 band, one band above Z1's kobolds/spiders (3-4), lower-first per the growth lock. No flee — bandits stand and fight (contrast to the kobold swarm). No drop: the ranged/melee replacement drops stay a §11 open item (Rally cut 2026-07-16). Speed under the 0.7 PO ceiling. All values [PLACEHOLDER]",
+  "id": 27,
+  "name": "Bandit",
+  "type": "MOB",
+  "faction": "bandit",
+  "tier": "normal",
+  "curveLevel": 5,
+  "factors": {
+    "baseMaxHealth": 60,
+    "maxHealthVariance": 0.1,
+    "experience": 40,
+    "speed": 0.65,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 5
+  },
+  "skills": [
+    {
+      "skillName": "BanditBlades",
+      "level": 1
+    }
+  ]
+}

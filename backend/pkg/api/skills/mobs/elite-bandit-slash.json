@@ -1,0 +1,22 @@
+{
+  "_comment": "Z2 elite bandit slash (content pass C4, plan-content-zones12.md §4 + §10): the first authored CRIT pair — each hit rolls critChance to multiply by critFactor (after execute/berserker, before variance; crit-flagged damage lands on the target's crit_taken wire accumulator). The spike is the elite's identity: facetanking it at level eats occasional double hits. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 123,
+  "name": "EliteBanditSlash",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.6,
+      "radiusPerLevel": 0.0,
+      "damageHP": 14,
+      "damageHPPerLevel": 2.0,
+      "critChance": 0.25,
+      "critFactor": 2.0,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "tickInterval": 40
+    }
+  ]
+}

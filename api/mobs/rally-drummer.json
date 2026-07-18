@@ -1,0 +1,37 @@
+{
+  "_comment": "Z2 Rally-Drum drummer (content pass C4, plan-content-zones12.md §4): the horde's signature mob — first authored shield_aura ('war drums embolden', the lift-1 rescope 2026-07-16). Shields ALLIES only, never itself: the drummer stays soft so focusing it is real counterplay. Spawns ONLY in the middle-road horde (never the camp) and carries the Taunt kill-drop at chance 1.0 — beating the group gate pays every participant (PO 2026-07-18: drummer = the carrier, horde-only so camp kills can't leak the reward). Slow: it lumbers behind the line. All values [PLACEHOLDER]",
+  "id": 31,
+  "name": "RallyDrummer",
+  "type": "MOB",
+  "faction": "bandit",
+  "tier": "normal",
+  "curveLevel": 6,
+  "factors": {
+    "baseMaxHealth": 80,
+    "maxHealthVariance": 0.1,
+    "experience": 60,
+    "speed": 0.45,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 2,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.35,
+    "aggroRadius": 6
+  },
+  "skills": [
+    {
+      "skillName": "RallyDrum",
+      "level": 1
+    }
+  ],
+  "unlocks": [
+    {
+      "skillName": "Taunt",
+      "chance": 1.0
+    }
+  ]
+}

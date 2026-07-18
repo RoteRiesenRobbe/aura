@@ -44,7 +44,15 @@ enum EntityType : ushort {
   VenomSpider,
   PoisonPool,
   Rockfall,
-  Miner
+  Miner,
+  Bandit,
+  BanditRanged,
+  BanditHealer,
+  EliteBandit,
+  RallyDrummer,
+  CityGuard,
+  VillageHealer,
+  GateWall
 }
 
 enum StatusEffect : ushort {

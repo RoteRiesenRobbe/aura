@@ -668,6 +668,47 @@ any content.
 
 ### C4 — Z2 village + bandit gate (the group path)
 
+> **✅ DONE 2026-07-18 (execution session), full chunk — no split needed;
+> in-game PO pass pending.** Zero code lifts — content + pins only (plus
+> the routine 5-file EntityType path for new sprites). **PO rulings this
+> session:** bandit healer = **heal_aura** (shipped Healer precedent);
+> bandit-ranged drop stays **empty** (§11 open); Damage-Burst = **new
+> skill 49** with physical+bleed (NovaBurst stays a proving relic); Taunt
+> carrier = **drummer, horde-only** (camp kills can't leak the reward);
+> village healer placed **lore-only** (purpose stays §11-OPEN); Z2 got the
+> **full density pass** (not a sprinkle). **Content:** `bandit` faction
+> (hostile to `aligned` only); mobs 27–31 (Bandit melee physical+bleed
+> no-flee / BanditRanged `selector:"all"` volley / BanditHealer
+> `lowest_health`, never attacks / EliteBandit **first authored crit pair**
+> 0.25@×2, drops DamageBurst 0.5 / RallyDrummer **first authored
+> shield_aura**, allies-only never self, drops Taunt 1.0); mob skills
+> 120–124; curveLevels camp 5 / drummer-horde 6 / elite 7 (one band above
+> Z1, lower-first); EntityTypes Bandit…GateWall appended + bindings
+> regenerated; new square **GateWall** rect prop (2.4×2.4, tiles into
+> walls); NPCs CityGuard + VillageHealer (lore-only, no tooLowLine —
+> only teaching NPCs require it). **Zone (append-only, deterministic
+> scratchpad generator):** 607 props / 161 spawns / 33 darkAreas / 9 npcs /
+> 2 campfires (village campfire = second respawn anchor); road continued
+> x≈20 → village (44,8) → gates wall x≈65; blocked N/S road stubs; **seam
+> ridge** so Z1→Z2 = exactly tunnel + horde road (flood-fill-verified:
+> plugging both cuts Z2 off); tunnel-mouth path down to the village
+> junction; NE dark forest (15 darkness circles) with lane maze + camp
+> clearing; horde on the road at the ridge gap (~3 min shared respawn);
+> full density pass with prey-near-village/predators-in-forest; **south
+> front strip left empty — C5 canvas**. Skill-registry pin 52→58; also
+> fixed the pre-existing `SkillMaxLevels` gap (ids 47/48 missing since C3's
+> category fix). **Verified:** suite + race green; boot 58 skills / 10
+> factions / 31 mobs / 607 / 161 / 9; browser smoke 0 client errors —
+> village+campfire+healer line, guard before the tiling gate wall, camp
+> under darkness with aggro, horde engages (volley rings; at-level check:
+> the healer out-heals a L1 DamageAura = gate holds; L30 shreds = 
+> trivializes), **Taunt dropped by the drummer landed in the spellbook**,
+> DamageBurst granted + named. Smoke-harness notes: support/ranged mobs
+> park at their own aura radius (by design — walk into them); the WARP
+> camera-crawl quirk (backlog) makes screenshots trail warps. One
+> **unreproduced** 1st-run triple `null.split` pageerror — watch item,
+> 4 later runs clean.
+
 - Z2 east block-out: 4-house village + campfire, City Gates + blocked
   roads N/S, bandit camp in the NE dark forest.
 - City-guard NPC (lore-only: quest completion + Zone 3 teaser).

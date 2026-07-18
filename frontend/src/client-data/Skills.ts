@@ -35,6 +35,7 @@ export const SkillNames: { [id: number]: string } = {
     46: 'Torch',
     47: 'Antivenom',
     48: 'Pickaxe',
+    49: 'Damage-Burst',
 };
 
 export function skillDisplayName(id: number): string {
@@ -75,6 +76,9 @@ export const SkillMaxLevels: { [id: number]: number } = {
     44: 5,
     45: 5,
     46: 3,
+    47: 3,
+    48: 5,
+    49: 3,
 };
 
 export function skillMaxLevel(id: number): number {
@@ -119,6 +123,7 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     46: 'passive',
     47: 'passive',
     48: 'aura',
+    49: 'cooldown',
 };
 
 // Unknown IDs default to 'aura' — the most common category; keeps a missing

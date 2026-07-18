@@ -214,6 +214,37 @@ export const GraphicsConfig = {
             minSize: <number> 58,
             maxSize: <number> 66,
         },
+
+        // C4 Z2 village + bandit gate (content pass C4).
+        bandit: {
+            file: require('../features/game-objects/assets/mobs/bandit.svg'),
+            minSize: <number> 36,
+            maxSize: <number> 42,
+        },
+
+        banditRanged: {
+            file: require('../features/game-objects/assets/mobs/banditRanged.svg'),
+            minSize: <number> 36,
+            maxSize: <number> 42,
+        },
+
+        banditHealer: {
+            file: require('../features/game-objects/assets/mobs/banditHealer.svg'),
+            minSize: <number> 36,
+            maxSize: <number> 42,
+        },
+
+        eliteBandit: {
+            file: require('../features/game-objects/assets/mobs/eliteBandit.svg'),
+            minSize: <number> 50,
+            maxSize: <number> 58,
+        },
+
+        rallyDrummer: {
+            file: require('../features/game-objects/assets/mobs/rallyDrummer.svg'),
+            minSize: <number> 44,
+            maxSize: <number> 50,
+        },
     },
 
     // NPC sprites (content pass C2): Resource-backed, referenced by the
@@ -235,6 +266,14 @@ export const GraphicsConfig = {
             file: require('../features/game-objects/assets/resources/miner.svg'),
             maxSize: <number> 60,
         },
+        cityGuard: {
+            file: require('../features/game-objects/assets/resources/cityGuard.svg'),
+            maxSize: <number> 60,
+        },
+        villageHealer: {
+            file: require('../features/game-objects/assets/resources/villageHealer.svg'),
+            maxSize: <number> 60,
+        },
     },
 
     // Static zone props with dedicated art (content pass C1). Rect props are
@@ -244,6 +283,10 @@ export const GraphicsConfig = {
         house: {
             file: require('../features/game-objects/assets/resources/house.svg'),
             maxSize: <number> 480,
+        },
+        gateWall: {
+            file: require('../features/game-objects/assets/resources/gateWall.svg'),
+            maxSize: <number> 288,
         },
     },
 

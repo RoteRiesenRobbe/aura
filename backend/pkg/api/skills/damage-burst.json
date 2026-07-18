@@ -1,0 +1,21 @@
+{
+  "_comment": "Damage-Burst (content pass C4, plan-content-zones12.md §5): Elite Bandit kill-drop — instant_damage on cooldown activation (NovaBurst pattern) carrying physical+bleed, the first multi-tag INSTANT hit (PO 2026-07-18: new skill with the bleed tag, NovaBurst stays a proving-grounds relic). All values [PLACEHOLDER]",
+  "id": 49,
+  "name": "DamageBurst",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 300,
+  "cooldownTicksPerLevel": -20,
+  "effects": [
+    {
+      "type": "instant_damage",
+      "radius": 1.5,
+      "radiusPerLevel": 0.1,
+      "damageHP": 22,
+      "damageHPPerLevel": 5,
+      "damageTags": ["physical", "bleed"],
+      "targetsEnemies": true,
+      "targetsAllies": false
+    }
+  ]
+}
