@@ -10,7 +10,7 @@
     "baseMaxHealth": 45,
     "maxHealthVariance": 0.1,
     "experience": 30,
-    "speed": 0.65,
+    "speed": 0.6,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
     "fleeBelowHealthRatio": 0.25,

@@ -522,7 +522,9 @@ any content.
 > mob-steering `boxRepulsion`, zone-editor rect markers + hit-test — so the
 > farm houses are true solid rectangles and C4 (village, gates) reuses it.
 > PO decisions: milestone first cut also slots **Recover @3 + Haste @4**;
-> zone file stem = **`world`**; bounds 240×120 [PLACEHOLDER]. Sim pins stay
+> zone file stem = **`world`**; bounds 144×72 [PLACEHOLDER] — condensed
+> ×0.6 from the original 240×120 (PO 2026-07-18; all zone coordinates +
+> darkness radii scaled, prop/NPC/gameplay radii kept). Sim pins stay
 > byte-identical (sim's soloRegistry follows the start-loadout name →
 > "TurnipPull"). **Gated damage tags (same-day follow-up, PO decision):**
 > `gatedDamageTags` on the damage payload flips the resist default to

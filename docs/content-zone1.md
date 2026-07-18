@@ -51,9 +51,9 @@ outside the POIs via a deterministic scatter (196→299 props, 52→94 spawns;
 wolf packs keep ≥10u from the farm box, prey-only near the farm), and the
 start aura was renamed **Harvest** and now spawns equipped but not active.
 **In-game since C3:** the solo path east — the **Kobold Hideout**
-(boulder ring SE-center at ~(-25,35); melee swarm up front, ranged
+(boulder ring SE-center at ~(-15,21); melee swarm up front, ranged
 volley-kobolds behind; both flee low HP; Light kill-drop @low %), the
-**Dark Tunnel** along the north edge (~y-52, x-40→+32; boulder-walled
+**Dark Tunnel** along the north edge (~y-31, x-24→+19; boulder-walled
 corridor, chained darkness, lit **spider staging area** at the west mouth
 so spiders are met in daylight first), venom spiders + poison pools in the
 dark interior, and the **rockfall side passage** (Pickaxe-gated via the

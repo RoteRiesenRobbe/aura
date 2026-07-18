@@ -117,6 +117,8 @@ export const SkillCategories: { [id: number]: SkillCategory } = {
     44: 'aura',
     45: 'aura',
     46: 'passive',
+    47: 'passive',
+    48: 'aura',
 };
 
 // Unknown IDs default to 'aura' — the most common category; keeps a missing
