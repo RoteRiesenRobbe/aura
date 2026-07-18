@@ -6,6 +6,7 @@ import {Snapshot} from './SnapshotFactory';
 import {GameStateMessage} from './messages/incoming/GameStateMessage';
 import {WelcomeMessage} from './messages/incoming/WelcomeMessage';
 import * as Chat from '../../chat/logic/Chat';
+import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
 import * as DayCycle from '../../day-cycle/logic/DayCycle';
 import * as StartScreen from '../../user-interface/start-screen/logic/StartScreen';
 import * as EndScreen from '../../user-interface/end-screen/logic/EndScreen';
@@ -196,7 +197,13 @@ export class Backend implements IBackend {
                     Develop.get().logServerMessage(entityMessage, 'EntityMessage', timeSinceLastMessage);
                 }
 
-                Chat.showMessage(Number(entityMessage.entityId()), entityMessage.message());
+                // Entity id 0 = server announcement (chat.SystemEntityID) —
+                // routed to the alert banner, not a speech bubble (C6).
+                if (Number(entityMessage.entityId()) === 0) {
+                    AlertBanner.show(entityMessage.message(), 'announce');
+                } else {
+                    Chat.showMessage(Number(entityMessage.entityId()), entityMessage.message());
+                }
 
                 break;
             case BerryhunterApi.ServerMessageBody.GameState:

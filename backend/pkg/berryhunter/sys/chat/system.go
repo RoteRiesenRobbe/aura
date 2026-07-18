@@ -9,8 +9,29 @@ import (
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 )
 
+// SystemEntityID is the EntityMessage sender id for server announcements —
+// no entity ever has id 0, so the client routes these to the alert banner
+// instead of a speech bubble.
+const SystemEntityID = 0
+
 type ChatSystem struct {
 	players []model.PlayerEntity
+}
+
+// Broadcast sends text to every connected player as a system EntityMessage
+// (sender id 0). Callers: encounter scripts (boss kill/respawn beats) and the
+// ANNOUNCE cheat.
+func (p *ChatSystem) Broadcast(text string) {
+	if len(p.players) == 0 {
+		return
+	}
+	builder := flatbuffers.NewBuilder(32)
+	entityMessage := codec.EntityMessageFlatbufMarshal(builder, SystemEntityID, text)
+	builder.Finish(entityMessage)
+	bytes := builder.FinishedBytes()
+	for _, player := range p.players {
+		player.Client().SendMessage(bytes)
+	}
 }
 
 func New() *ChatSystem {

@@ -1,0 +1,11 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder warbanner totem art (content pass C6): top-down orc war
+       banner — a planted pole with a ragged orc-green pennant and a bone
+       ring, the invuln-gate object of the Warlord arena. -->
+  <circle cx="50" cy="50" r="16" fill="#4a3a26" stroke="#241c11" stroke-width="4"/>
+  <circle cx="50" cy="50" r="6" fill="#241c11"/>
+  <path d="M 50 50 L 50 10" stroke="#241c11" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 50 12 L 88 20 L 62 34 Z" fill="#4a5232" stroke="#232815" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M 68 22 l 6 4" stroke="#b8a44a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 34 62 l -6 6 M 66 62 l 6 6 M 50 68 l 0 8" stroke="#8f8878" stroke-width="4" stroke-linecap="round"/>
+</svg>

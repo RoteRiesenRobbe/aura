@@ -120,7 +120,13 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	npcSys := sys.NewNpcSystem()
 	g.AddSystem(npcSys)
 
+	// Chat is constructed before the encounter + command systems so both can
+	// take it as their Announcer (server-wide system messages, content pass C6).
+	chatSys := chat.New()
+	g.AddSystem(chatSys)
+
 	enc := encounter.NewSystem(g, p.Space())
+	enc.SetAnnouncer(chatSys)
 	g.AddSystem(enc)
 	g.encounters = enc
 
@@ -147,14 +153,11 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// post-construction (the CampfireAnchorSink precedent).
 	sk.SetConnState(s)
 
-	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space())
+	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space(), chatSys)
 	g.AddSystem(c)
 
 	eq := equip.NewEquipSystem(g)
 	g.AddSystem(eq)
-
-	chat := chat.New()
-	g.AddSystem(chat)
 
 	d := sys.NewDecaySystem(g)
 	g.AddSystem(d)

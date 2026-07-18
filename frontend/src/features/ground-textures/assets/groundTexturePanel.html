@@ -36,6 +36,10 @@
                     <input type="radio" name="zoneEditor_mode" value="npc">
                     NPCs
                 </label>
+                <label>
+                    <input type="radio" name="zoneEditor_mode" value="anchor">
+                    Anchors
+                </label>
             </div>
         </div>
 
@@ -351,13 +355,36 @@
                 </div>
             </div>
 
+            <div id="zoneEditor_anchorControls" class="hidden">
+                <div class="group">
+                    <span>Click the map to place an anchor, click a marker to select it. Anchor names are looked up by encounter scripts &mdash; renaming one breaks the server boot until the script follows.</span>
+                </div>
+
+                <div class="group">
+                    <label for="zoneEditor_anchorName">Name</label>
+                    <input type="text" id="zoneEditor_anchorName" value=""/>
+                </div>
+
+                <div class="group">
+                    <button id="zoneEditor_anchorPlaceButton" class="actionButton">Place at my position</button>
+                </div>
+
+                <div class="group hidden" id="zoneEditor_anchorSelection">
+                    <div>Selected anchor #<span id="zoneEditor_anchorSelectedIndex"></span></div>
+                    <button id="zoneEditor_anchorUpdate" class="actionButton">Update name</button>
+                    <button id="zoneEditor_anchorDelete" class="secondaryButton">Delete</button>
+                    <button id="zoneEditor_anchorDeselect">Deselect</button>
+                </div>
+            </div>
+
             <div class="group">
                 <a href="#" id="zoneEditor_showPopup">
                     Zone: <span id="zoneEditor_propCount"></span> props /
                     <span id="zoneEditor_spawnCount"></span> spawns /
                     <span id="zoneEditor_campfireCount"></span> campfires /
                     <span id="zoneEditor_darkCount"></span> dark /
-                    <span id="zoneEditor_npcCount"></span> npcs
+                    <span id="zoneEditor_npcCount"></span> npcs /
+                    <span id="zoneEditor_anchorCount"></span> anchors
                 </a>
             </div>
         </div>

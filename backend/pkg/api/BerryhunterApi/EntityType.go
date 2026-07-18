@@ -7,174 +7,186 @@ import "strconv"
 type EntityType uint16
 
 const (
-	EntityTypeDebugCircle    EntityType = 0
-	EntityTypeBorder         EntityType = 1
-	EntityTypeRoundTree      EntityType = 2
-	EntityTypeMarioTree      EntityType = 3
-	EntityTypeCharacter      EntityType = 4
-	EntityTypeStone          EntityType = 5
-	EntityTypeBronze         EntityType = 6
-	EntityTypeIron           EntityType = 7
-	EntityTypeBerryBush      EntityType = 8
-	EntityTypeDodo           EntityType = 9
-	EntityTypeSaberToothCat  EntityType = 10
-	EntityTypeMammoth        EntityType = 11
-	EntityTypePlaceable      EntityType = 12
-	EntityTypeTitanium       EntityType = 13
-	EntityTypeFlower         EntityType = 14
-	EntityTypeAngryMammoth   EntityType = 15
-	EntityTypeTitaniumShard  EntityType = 16
-	EntityTypeTotem          EntityType = 17
-	EntityTypeRabbit         EntityType = 18
-	EntityTypeCompanion      EntityType = 19
-	EntityTypeBrazier        EntityType = 20
-	EntityTypeHealer         EntityType = 21
-	EntityTypeCampfire       EntityType = 22
-	EntityTypeCorpse         EntityType = 23
-	EntityTypeTurnip         EntityType = 24
-	EntityTypeHouse          EntityType = 25
-	EntityTypeWolf           EntityType = 26
-	EntityTypeBear           EntityType = 27
-	EntityTypeBoar           EntityType = 28
-	EntityTypeStag           EntityType = 29
-	EntityTypeEliteWolf      EntityType = 30
-	EntityTypeBramble        EntityType = 31
-	EntityTypeSignpost       EntityType = 32
-	EntityTypeHermit         EntityType = 33
-	EntityTypeDogNpc         EntityType = 34
-	EntityTypeKobold         EntityType = 35
-	EntityTypeKoboldRanged   EntityType = 36
-	EntityTypeSpider         EntityType = 37
-	EntityTypeVenomSpider    EntityType = 38
-	EntityTypePoisonPool     EntityType = 39
-	EntityTypeRockfall       EntityType = 40
-	EntityTypeMiner          EntityType = 41
-	EntityTypeBandit         EntityType = 42
-	EntityTypeBanditRanged   EntityType = 43
-	EntityTypeBanditHealer   EntityType = 44
-	EntityTypeEliteBandit    EntityType = 45
-	EntityTypeRallyDrummer   EntityType = 46
-	EntityTypeCityGuard      EntityType = 47
-	EntityTypeVillageHealer  EntityType = 48
-	EntityTypeGateWall       EntityType = 49
-	EntityTypeArmySoldier    EntityType = 50
-	EntityTypeOrc            EntityType = 51
-	EntityTypeSpikeBarricade EntityType = 52
-	EntityTypeFrontCaptain   EntityType = 53
+	EntityTypeDebugCircle      EntityType = 0
+	EntityTypeBorder           EntityType = 1
+	EntityTypeRoundTree        EntityType = 2
+	EntityTypeMarioTree        EntityType = 3
+	EntityTypeCharacter        EntityType = 4
+	EntityTypeStone            EntityType = 5
+	EntityTypeBronze           EntityType = 6
+	EntityTypeIron             EntityType = 7
+	EntityTypeBerryBush        EntityType = 8
+	EntityTypeDodo             EntityType = 9
+	EntityTypeSaberToothCat    EntityType = 10
+	EntityTypeMammoth          EntityType = 11
+	EntityTypePlaceable        EntityType = 12
+	EntityTypeTitanium         EntityType = 13
+	EntityTypeFlower           EntityType = 14
+	EntityTypeAngryMammoth     EntityType = 15
+	EntityTypeTitaniumShard    EntityType = 16
+	EntityTypeTotem            EntityType = 17
+	EntityTypeRabbit           EntityType = 18
+	EntityTypeCompanion        EntityType = 19
+	EntityTypeBrazier          EntityType = 20
+	EntityTypeHealer           EntityType = 21
+	EntityTypeCampfire         EntityType = 22
+	EntityTypeCorpse           EntityType = 23
+	EntityTypeTurnip           EntityType = 24
+	EntityTypeHouse            EntityType = 25
+	EntityTypeWolf             EntityType = 26
+	EntityTypeBear             EntityType = 27
+	EntityTypeBoar             EntityType = 28
+	EntityTypeStag             EntityType = 29
+	EntityTypeEliteWolf        EntityType = 30
+	EntityTypeBramble          EntityType = 31
+	EntityTypeSignpost         EntityType = 32
+	EntityTypeHermit           EntityType = 33
+	EntityTypeDogNpc           EntityType = 34
+	EntityTypeKobold           EntityType = 35
+	EntityTypeKoboldRanged     EntityType = 36
+	EntityTypeSpider           EntityType = 37
+	EntityTypeVenomSpider      EntityType = 38
+	EntityTypePoisonPool       EntityType = 39
+	EntityTypeRockfall         EntityType = 40
+	EntityTypeMiner            EntityType = 41
+	EntityTypeBandit           EntityType = 42
+	EntityTypeBanditRanged     EntityType = 43
+	EntityTypeBanditHealer     EntityType = 44
+	EntityTypeEliteBandit      EntityType = 45
+	EntityTypeRallyDrummer     EntityType = 46
+	EntityTypeCityGuard        EntityType = 47
+	EntityTypeVillageHealer    EntityType = 48
+	EntityTypeGateWall         EntityType = 49
+	EntityTypeArmySoldier      EntityType = 50
+	EntityTypeOrc              EntityType = 51
+	EntityTypeSpikeBarricade   EntityType = 52
+	EntityTypeFrontCaptain     EntityType = 53
+	EntityTypeOrcWarlord       EntityType = 54
+	EntityTypeWarbannerTotem   EntityType = 55
+	EntityTypeOrcGrunt         EntityType = 56
+	EntityTypeSoldierCompanion EntityType = 57
 )
 
 var EnumNamesEntityType = map[EntityType]string{
-	EntityTypeDebugCircle:    "DebugCircle",
-	EntityTypeBorder:         "Border",
-	EntityTypeRoundTree:      "RoundTree",
-	EntityTypeMarioTree:      "MarioTree",
-	EntityTypeCharacter:      "Character",
-	EntityTypeStone:          "Stone",
-	EntityTypeBronze:         "Bronze",
-	EntityTypeIron:           "Iron",
-	EntityTypeBerryBush:      "BerryBush",
-	EntityTypeDodo:           "Dodo",
-	EntityTypeSaberToothCat:  "SaberToothCat",
-	EntityTypeMammoth:        "Mammoth",
-	EntityTypePlaceable:      "Placeable",
-	EntityTypeTitanium:       "Titanium",
-	EntityTypeFlower:         "Flower",
-	EntityTypeAngryMammoth:   "AngryMammoth",
-	EntityTypeTitaniumShard:  "TitaniumShard",
-	EntityTypeTotem:          "Totem",
-	EntityTypeRabbit:         "Rabbit",
-	EntityTypeCompanion:      "Companion",
-	EntityTypeBrazier:        "Brazier",
-	EntityTypeHealer:         "Healer",
-	EntityTypeCampfire:       "Campfire",
-	EntityTypeCorpse:         "Corpse",
-	EntityTypeTurnip:         "Turnip",
-	EntityTypeHouse:          "House",
-	EntityTypeWolf:           "Wolf",
-	EntityTypeBear:           "Bear",
-	EntityTypeBoar:           "Boar",
-	EntityTypeStag:           "Stag",
-	EntityTypeEliteWolf:      "EliteWolf",
-	EntityTypeBramble:        "Bramble",
-	EntityTypeSignpost:       "Signpost",
-	EntityTypeHermit:         "Hermit",
-	EntityTypeDogNpc:         "DogNpc",
-	EntityTypeKobold:         "Kobold",
-	EntityTypeKoboldRanged:   "KoboldRanged",
-	EntityTypeSpider:         "Spider",
-	EntityTypeVenomSpider:    "VenomSpider",
-	EntityTypePoisonPool:     "PoisonPool",
-	EntityTypeRockfall:       "Rockfall",
-	EntityTypeMiner:          "Miner",
-	EntityTypeBandit:         "Bandit",
-	EntityTypeBanditRanged:   "BanditRanged",
-	EntityTypeBanditHealer:   "BanditHealer",
-	EntityTypeEliteBandit:    "EliteBandit",
-	EntityTypeRallyDrummer:   "RallyDrummer",
-	EntityTypeCityGuard:      "CityGuard",
-	EntityTypeVillageHealer:  "VillageHealer",
-	EntityTypeGateWall:       "GateWall",
-	EntityTypeArmySoldier:    "ArmySoldier",
-	EntityTypeOrc:            "Orc",
-	EntityTypeSpikeBarricade: "SpikeBarricade",
-	EntityTypeFrontCaptain:   "FrontCaptain",
+	EntityTypeDebugCircle:      "DebugCircle",
+	EntityTypeBorder:           "Border",
+	EntityTypeRoundTree:        "RoundTree",
+	EntityTypeMarioTree:        "MarioTree",
+	EntityTypeCharacter:        "Character",
+	EntityTypeStone:            "Stone",
+	EntityTypeBronze:           "Bronze",
+	EntityTypeIron:             "Iron",
+	EntityTypeBerryBush:        "BerryBush",
+	EntityTypeDodo:             "Dodo",
+	EntityTypeSaberToothCat:    "SaberToothCat",
+	EntityTypeMammoth:          "Mammoth",
+	EntityTypePlaceable:        "Placeable",
+	EntityTypeTitanium:         "Titanium",
+	EntityTypeFlower:           "Flower",
+	EntityTypeAngryMammoth:     "AngryMammoth",
+	EntityTypeTitaniumShard:    "TitaniumShard",
+	EntityTypeTotem:            "Totem",
+	EntityTypeRabbit:           "Rabbit",
+	EntityTypeCompanion:        "Companion",
+	EntityTypeBrazier:          "Brazier",
+	EntityTypeHealer:           "Healer",
+	EntityTypeCampfire:         "Campfire",
+	EntityTypeCorpse:           "Corpse",
+	EntityTypeTurnip:           "Turnip",
+	EntityTypeHouse:            "House",
+	EntityTypeWolf:             "Wolf",
+	EntityTypeBear:             "Bear",
+	EntityTypeBoar:             "Boar",
+	EntityTypeStag:             "Stag",
+	EntityTypeEliteWolf:        "EliteWolf",
+	EntityTypeBramble:          "Bramble",
+	EntityTypeSignpost:         "Signpost",
+	EntityTypeHermit:           "Hermit",
+	EntityTypeDogNpc:           "DogNpc",
+	EntityTypeKobold:           "Kobold",
+	EntityTypeKoboldRanged:     "KoboldRanged",
+	EntityTypeSpider:           "Spider",
+	EntityTypeVenomSpider:      "VenomSpider",
+	EntityTypePoisonPool:       "PoisonPool",
+	EntityTypeRockfall:         "Rockfall",
+	EntityTypeMiner:            "Miner",
+	EntityTypeBandit:           "Bandit",
+	EntityTypeBanditRanged:     "BanditRanged",
+	EntityTypeBanditHealer:     "BanditHealer",
+	EntityTypeEliteBandit:      "EliteBandit",
+	EntityTypeRallyDrummer:     "RallyDrummer",
+	EntityTypeCityGuard:        "CityGuard",
+	EntityTypeVillageHealer:    "VillageHealer",
+	EntityTypeGateWall:         "GateWall",
+	EntityTypeArmySoldier:      "ArmySoldier",
+	EntityTypeOrc:              "Orc",
+	EntityTypeSpikeBarricade:   "SpikeBarricade",
+	EntityTypeFrontCaptain:     "FrontCaptain",
+	EntityTypeOrcWarlord:       "OrcWarlord",
+	EntityTypeWarbannerTotem:   "WarbannerTotem",
+	EntityTypeOrcGrunt:         "OrcGrunt",
+	EntityTypeSoldierCompanion: "SoldierCompanion",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
-	"DebugCircle":    EntityTypeDebugCircle,
-	"Border":         EntityTypeBorder,
-	"RoundTree":      EntityTypeRoundTree,
-	"MarioTree":      EntityTypeMarioTree,
-	"Character":      EntityTypeCharacter,
-	"Stone":          EntityTypeStone,
-	"Bronze":         EntityTypeBronze,
-	"Iron":           EntityTypeIron,
-	"BerryBush":      EntityTypeBerryBush,
-	"Dodo":           EntityTypeDodo,
-	"SaberToothCat":  EntityTypeSaberToothCat,
-	"Mammoth":        EntityTypeMammoth,
-	"Placeable":      EntityTypePlaceable,
-	"Titanium":       EntityTypeTitanium,
-	"Flower":         EntityTypeFlower,
-	"AngryMammoth":   EntityTypeAngryMammoth,
-	"TitaniumShard":  EntityTypeTitaniumShard,
-	"Totem":          EntityTypeTotem,
-	"Rabbit":         EntityTypeRabbit,
-	"Companion":      EntityTypeCompanion,
-	"Brazier":        EntityTypeBrazier,
-	"Healer":         EntityTypeHealer,
-	"Campfire":       EntityTypeCampfire,
-	"Corpse":         EntityTypeCorpse,
-	"Turnip":         EntityTypeTurnip,
-	"House":          EntityTypeHouse,
-	"Wolf":           EntityTypeWolf,
-	"Bear":           EntityTypeBear,
-	"Boar":           EntityTypeBoar,
-	"Stag":           EntityTypeStag,
-	"EliteWolf":      EntityTypeEliteWolf,
-	"Bramble":        EntityTypeBramble,
-	"Signpost":       EntityTypeSignpost,
-	"Hermit":         EntityTypeHermit,
-	"DogNpc":         EntityTypeDogNpc,
-	"Kobold":         EntityTypeKobold,
-	"KoboldRanged":   EntityTypeKoboldRanged,
-	"Spider":         EntityTypeSpider,
-	"VenomSpider":    EntityTypeVenomSpider,
-	"PoisonPool":     EntityTypePoisonPool,
-	"Rockfall":       EntityTypeRockfall,
-	"Miner":          EntityTypeMiner,
-	"Bandit":         EntityTypeBandit,
-	"BanditRanged":   EntityTypeBanditRanged,
-	"BanditHealer":   EntityTypeBanditHealer,
-	"EliteBandit":    EntityTypeEliteBandit,
-	"RallyDrummer":   EntityTypeRallyDrummer,
-	"CityGuard":      EntityTypeCityGuard,
-	"VillageHealer":  EntityTypeVillageHealer,
-	"GateWall":       EntityTypeGateWall,
-	"ArmySoldier":    EntityTypeArmySoldier,
-	"Orc":            EntityTypeOrc,
-	"SpikeBarricade": EntityTypeSpikeBarricade,
-	"FrontCaptain":   EntityTypeFrontCaptain,
+	"DebugCircle":      EntityTypeDebugCircle,
+	"Border":           EntityTypeBorder,
+	"RoundTree":        EntityTypeRoundTree,
+	"MarioTree":        EntityTypeMarioTree,
+	"Character":        EntityTypeCharacter,
+	"Stone":            EntityTypeStone,
+	"Bronze":           EntityTypeBronze,
+	"Iron":             EntityTypeIron,
+	"BerryBush":        EntityTypeBerryBush,
+	"Dodo":             EntityTypeDodo,
+	"SaberToothCat":    EntityTypeSaberToothCat,
+	"Mammoth":          EntityTypeMammoth,
+	"Placeable":        EntityTypePlaceable,
+	"Titanium":         EntityTypeTitanium,
+	"Flower":           EntityTypeFlower,
+	"AngryMammoth":     EntityTypeAngryMammoth,
+	"TitaniumShard":    EntityTypeTitaniumShard,
+	"Totem":            EntityTypeTotem,
+	"Rabbit":           EntityTypeRabbit,
+	"Companion":        EntityTypeCompanion,
+	"Brazier":          EntityTypeBrazier,
+	"Healer":           EntityTypeHealer,
+	"Campfire":         EntityTypeCampfire,
+	"Corpse":           EntityTypeCorpse,
+	"Turnip":           EntityTypeTurnip,
+	"House":            EntityTypeHouse,
+	"Wolf":             EntityTypeWolf,
+	"Bear":             EntityTypeBear,
+	"Boar":             EntityTypeBoar,
+	"Stag":             EntityTypeStag,
+	"EliteWolf":        EntityTypeEliteWolf,
+	"Bramble":          EntityTypeBramble,
+	"Signpost":         EntityTypeSignpost,
+	"Hermit":           EntityTypeHermit,
+	"DogNpc":           EntityTypeDogNpc,
+	"Kobold":           EntityTypeKobold,
+	"KoboldRanged":     EntityTypeKoboldRanged,
+	"Spider":           EntityTypeSpider,
+	"VenomSpider":      EntityTypeVenomSpider,
+	"PoisonPool":       EntityTypePoisonPool,
+	"Rockfall":         EntityTypeRockfall,
+	"Miner":            EntityTypeMiner,
+	"Bandit":           EntityTypeBandit,
+	"BanditRanged":     EntityTypeBanditRanged,
+	"BanditHealer":     EntityTypeBanditHealer,
+	"EliteBandit":      EntityTypeEliteBandit,
+	"RallyDrummer":     EntityTypeRallyDrummer,
+	"CityGuard":        EntityTypeCityGuard,
+	"VillageHealer":    EntityTypeVillageHealer,
+	"GateWall":         EntityTypeGateWall,
+	"ArmySoldier":      EntityTypeArmySoldier,
+	"Orc":              EntityTypeOrc,
+	"SpikeBarricade":   EntityTypeSpikeBarricade,
+	"FrontCaptain":     EntityTypeFrontCaptain,
+	"OrcWarlord":       EntityTypeOrcWarlord,
+	"WarbannerTotem":   EntityTypeWarbannerTotem,
+	"OrcGrunt":         EntityTypeOrcGrunt,
+	"SoldierCompanion": EntityTypeSoldierCompanion,
 }
 
 func (v EntityType) String() string {

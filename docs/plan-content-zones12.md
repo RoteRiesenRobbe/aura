@@ -794,6 +794,48 @@ any content.
 
 ### C6 — Ork World Boss (§B ticket)
 
+> **✅ DONE (2026-07-18), full chunk in one session — PO-VERIFIED
+> IN-GAME 2026-07-18 ("works as intended"), committed (hash in the
+> CLAUDE.md banner).** Shipped per this ticket + the session's PO
+> rulings (fight sketch "Warbanner gate + waves"; enrage = rotating
+> tick_rate Frenzy, NO §9 lift 5; Boss-Aura = **Call for Aid** (cooldown,
+> THREE spawn effects → 3 SoldierCompanions — fireCooldown applies every
+> effect, zero code); boss cL22–24 → authored cL23 boss tier; adds = new
+> OrcGrunt normal cL20; totems = gate + shield_aura allies-only; wipe =
+> base leash+regen observed by the script; respawn ~5 min [PLACEHOLDER]
+> + return broadcast; kill broadcast WITH credit names).
+> **Two lifts:** (1) **alert/broadcast** — chat.Broadcast (EntityMessage
+> id 0 → all players) + ANNOUNCE cheat + client AlertBanner (upper third,
+> queued, fade; unlock banners ride the existing spellbook diff,
+> discoveries only); (2) **zone anchors** — `anchors` section in the zone
+> schema (validated: unique names, in-bounds) + `Zone.AnchorPos` + full
+> editor tool (place/select/rename/delete, crosshair markers) — the
+> encounter takes its 4 positions (warlord-home / warbanner-1/-2 /
+> wave-mouth) at registration and the boot hard-fails on a missing
+> anchor. **Script:** `encounter/warlord.go` — first designed encounter:
+> banner invuln gate re-derived per tick (AFTER replants — no 1-tick
+> vulnerability window), waves at 66/33%, one-shot re-gate at 33%, wipe
+> re-arm keyed on `engaged` (pre-pull banner kills stay down), kill →
+> named broadcast + arena despawn + respawn timer; structure tunables =
+> named constants; `System.Despawn` + `Mob.KillCreditNames` seams added.
+> **Content:** mobs 35–38 (OrcWarlord boss cL23, XP 600, WarlordCleave
+> multi-effect cleave+bleed + WarlordFrenzy; WarbannerTotem bramble-body
+> killable XP 0; OrcGrunt; SoldierCompanion = Companion pattern +
+> SoldierBlades reuse); mob skills 128–131; CallForAid id 51; registry
+> pin 62→67; EntityTypes 54–57 + placeholder SVGs; arena light dressing
+> (5-boulder rim, open E mouth + S border) + 4 anchors in world.json
+> (append-only; flood-fill: all 4 anchors / 185 spawns / 10 npcs
+> reachable). Roadmap 9f removed from v1 scope. **Verified:** suite +
+> race green; boot 67 skills / 12 factions / 38 mobs / 620 props / 185
+> spawns / 10 npcs / encounter registered; browser smoke 0 client
+> errors — ANNOUNCE banner, gold unlock banner ("New passive: Torch"),
+> warlord + both banners at anchors with `invulnerable=true` in the
+> THREAT dump, Call for Aid drops into the spellbook, equips to Q and
+> raises 3 SoldierCompanions server-side (at the safe farm spawn; in the
+> arena at owner L1 they die instantly to the at-level war — correct).
+> Wave/re-gate/wipe/kill beats pinned by the encounter unit tests. PO
+> in-game pass 2026-07-18: works as intended.
+
 - First designed Go encounter script on the spine: phases / adds
   (`SpawnMob`) / invuln gates / reset; always present, ~30 min [PLACEHOLDER]
   respawn via encounter timers. Enrage = in-chunk design decision (§9

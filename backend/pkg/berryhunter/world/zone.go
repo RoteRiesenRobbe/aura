@@ -170,9 +170,20 @@ type Npc struct {
 	EntityType string `json:"entityType"`
 }
 
+// Anchor is a named point encounter scripts look up at registration (content
+// pass C6): the zone owns WHERE an encounter plays out (boss home, totem
+// spots, wave mouth — editor-movable), the Go script owns WHAT happens.
+// Scripts hard-fail at boot on a missing anchor, so a rename here breaks
+// loudly, never silently.
+type Anchor struct {
+	Name string  `json:"name"`
+	X    float32 `json:"x"`
+	Y    float32 `json:"y"`
+}
+
 // Zone is the whole authored world description loaded from a zone file. One
 // file = one complete zone (bounds + terrain + props + spawns + campfires +
-// dark areas + npcs).
+// dark areas + npcs + anchors).
 type Zone struct {
 	Name      string           `json:"name"`
 	Bounds    Bounds           `json:"bounds"`
@@ -182,6 +193,7 @@ type Zone struct {
 	Campfires []Campfire       `json:"campfires"`
 	DarkAreas []DarkArea       `json:"darkAreas"`
 	Npcs      []Npc            `json:"npcs"`
+	Anchors   []Anchor         `json:"anchors"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
 	// and the identity sent to the client so it renders the matching terrain.
@@ -305,6 +317,21 @@ func (z *Zone) validate() error {
 			return fmt.Errorf("darkArea %d: radius must be positive, got %g", i, z.DarkAreas[i].Radius)
 		}
 	}
+	anchorNames := make(map[string]bool, len(z.Anchors))
+	for i := range z.Anchors {
+		a := &z.Anchors[i]
+		if strings.TrimSpace(a.Name) == "" {
+			return fmt.Errorf("anchor %d: name must not be empty", i)
+		}
+		if anchorNames[a.Name] {
+			return fmt.Errorf("anchor %d: duplicate name %q", i, a.Name)
+		}
+		anchorNames[a.Name] = true
+		if a.X < -z.Bounds.Width/2 || a.X > z.Bounds.Width/2 ||
+			a.Y < -z.Bounds.Height/2 || a.Y > z.Bounds.Height/2 {
+			return fmt.Errorf("anchor %d (%q): (%g, %g) is outside the bounds", i, a.Name, a.X, a.Y)
+		}
+	}
 	for i := range z.Npcs {
 		n := &z.Npcs[i]
 		if n.Radius <= 0 {
@@ -332,6 +359,17 @@ func (z *Zone) validate() error {
 		}
 	}
 	return nil
+}
+
+// AnchorPos looks up a named anchor point. The world package stays phy-free,
+// so callers assemble their own vector from (x, y).
+func (z *Zone) AnchorPos(name string) (x, y float32, ok bool) {
+	for i := range z.Anchors {
+		if z.Anchors[i].Name == name {
+			return z.Anchors[i].X, z.Anchors[i].Y, true
+		}
+	}
+	return 0, 0, false
 }
 
 // resolve binds each spawn's mob name, each prop's type name, and each NPC

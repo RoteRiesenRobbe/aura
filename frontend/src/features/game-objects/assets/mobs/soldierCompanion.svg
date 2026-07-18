@@ -1,0 +1,14 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder soldier companion art (content pass C6): the army soldier
+       silhouette with a gold call-horn pennant on the shoulder — the Call
+       for Aid summon reads as 'one of the front's own, marked as yours'. -->
+  <ellipse cx="50" cy="55" rx="21" ry="25" fill="#6e7681" stroke="#2b2f36" stroke-width="4"/>
+  <path d="M 39 40 L 61 40 L 57 74 L 43 74 Z" fill="#8a3038" stroke="#2b2f36" stroke-width="3"/>
+  <circle cx="50" cy="31" r="13" fill="#c49a76" stroke="#2b2f36" stroke-width="4"/>
+  <path d="M 35 30 A 15 15 0 0 1 65 30" fill="#9aa0a6" stroke="#2b2f36" stroke-width="3"/>
+  <circle cx="26" cy="52" r="11" fill="#7d858f" stroke="#2b2f36" stroke-width="4"/>
+  <circle cx="26" cy="52" r="4" fill="#d4af37"/>
+  <path d="M 70 60 l 16 -14" stroke="#9aa0a6" stroke-width="5" stroke-linecap="round"/>
+  <path d="M 68 64 l 5 -7" stroke="#5d4a33" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 62 34 q 8 -6 14 -2" fill="none" stroke="#d4af37" stroke-width="4" stroke-linecap="round"/>
+</svg>

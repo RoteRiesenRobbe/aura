@@ -1,0 +1,19 @@
+{
+  "_comment": "Warbanner shield (content pass C6, plan-content-zones12.md §B): the totem's aura on the RallyDrum pattern — re-applies a damage-absorbing shield to every orc in the wide ring each tick (buff lifetime = tickInterval + 1: fell the banner and the armor evaporates). targetsAllies only, NO targetsSelf: the banner itself stays soft — the gate is 'kill it fast', with the shield making grunts tankier NEAR the banners the positional incentive (PO totem pick: gate + shield allies). Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 130,
+  "name": "WarbannerShield",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "shield_aura",
+      "radius": 4.0,
+      "radiusPerLevel": 0.0,
+      "shieldHP": 20,
+      "shieldHPPerLevel": 5,
+      "targetsAllies": true,
+      "targetsEnemies": false,
+      "tickInterval": 30
+    }
+  ]
+}

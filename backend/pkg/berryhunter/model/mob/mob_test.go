@@ -58,6 +58,7 @@ func newTestMob() *Mob {
 type fakeAuraPlayer struct {
 	model.PlayerEntity
 	basic   ecs.BasicEntity
+	name    string
 	pos     phy.Vec2f
 	radius  float32
 	vs      model.PlayerVitalSigns
@@ -67,6 +68,7 @@ type fakeAuraPlayer struct {
 }
 
 func (f *fakeAuraPlayer) Basic() ecs.BasicEntity                 { return f.basic }
+func (f *fakeAuraPlayer) Name() string                           { return f.name }
 func (f *fakeAuraPlayer) Position() phy.Vec2f                    { return f.pos }
 func (f *fakeAuraPlayer) Radius() float32                        { return f.radius }
 func (f *fakeAuraPlayer) Faction() model.Faction                 { return model.FactionAligned }
@@ -1530,4 +1532,29 @@ func TestMob_Invulnerable_ShieldUntouched(t *testing.T) {
 	assert.Equal(t, vitals.VitalSign(20), m.ShieldHP(),
 		"invulnerability short-circuits before the absorb step — a non-event drains nothing")
 	assert.False(t, m.tookDamage)
+}
+
+// --- C6 kill-credit names (the Orc Warlord broadcast) ---
+
+func TestMob_KillCreditNames_ParticipantsPlusHealersDeduped(t *testing.T) {
+	m := newTestMob()
+
+	healer := newFakeAuraPlayer()
+	healer.name = "Cleo"
+	alice := newFakeAuraPlayer()
+	alice.name = "Alice"
+	alice.healers = []model.PlayerEntity{healer}
+	bob := newFakeAuraPlayer()
+	bob.name = "Bob"
+	bob.healers = []model.PlayerEntity{healer} // shared healer must dedupe
+
+	m.PlayerTouches(alice, model.Damage{HP: 1})
+	m.PlayerTouches(bob, model.Damage{HP: 1})
+	m.PlayerTouches(alice, model.Damage{HP: 1}) // repeat toucher must dedupe
+
+	assert.Equal(t, []string{"Alice", "Bob", "Cleo"}, m.KillCreditNames())
+}
+
+func TestMob_KillCreditNames_EmptyWithoutParticipants(t *testing.T) {
+	assert.Empty(t, newTestMob().KillCreditNames())
 }

@@ -95,6 +95,16 @@ export interface ZoneNpc {
     entityType?: string;
 }
 
+// Named point an encounter script looks up at boot (content pass C6) — the
+// editor owns WHERE (boss home, totem spots, wave mouth), the Go script owns
+// WHAT happens. Names must stay in sync with the script's lookups: the server
+// hard-fails at boot on a missing anchor.
+export interface ZoneAnchor {
+    name: string;
+    x: number;
+    y: number;
+}
+
 export interface ZoneData {
     name: string;
     bounds: ZoneBounds;
@@ -106,6 +116,8 @@ export interface ZoneData {
     darkAreas?: ZoneDarkArea[];
     // Omitted when empty so pre-step-5 zones round-trip diff-clean.
     npcs?: ZoneNpc[];
+    // Omitted when empty so pre-C6 zones round-trip diff-clean.
+    anchors?: ZoneAnchor[];
 }
 
 function round(value: number, digits: number): number {
@@ -125,8 +137,9 @@ export class ZoneModel {
     campfires: ZoneCampfire[];
     darkAreas: ZoneDarkArea[];
     npcs: ZoneNpc[];
+    anchors: ZoneAnchor[];
 
-    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[], darkAreas: ZoneDarkArea[], npcs: ZoneNpc[]) {
+    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[], darkAreas: ZoneDarkArea[], npcs: ZoneNpc[], anchors: ZoneAnchor[]) {
         this.name = name;
         this.bounds = bounds;
         this.terrain = terrain;
@@ -135,6 +148,7 @@ export class ZoneModel {
         this.campfires = campfires;
         this.darkAreas = darkAreas;
         this.npcs = npcs;
+        this.anchors = anchors;
     }
 
     static fromJSON(data: ZoneData): ZoneModel {
@@ -156,6 +170,7 @@ export class ZoneModel {
                 teachings: (n.teachings || []).map(t => ({...t})),
                 lines: (n.lines || []).slice(),
             })),
+            (data.anchors || []).map(a => ({...a})),
         );
     }
 
@@ -201,6 +216,14 @@ export class ZoneModel {
 
     removeDarkArea(index: number) {
         this.darkAreas.splice(index, 1);
+    }
+
+    addAnchor(anchor: ZoneAnchor): number {
+        return this.anchors.push(anchor) - 1;
+    }
+
+    removeAnchor(index: number) {
+        this.anchors.splice(index, 1);
     }
 
     addNpc(npc: ZoneNpc): number {
@@ -279,6 +302,11 @@ export class ZoneModel {
                     lines: n.lines && n.lines.length > 0 ? n.lines.slice() : undefined,
                     entityType: n.entityType || undefined,
                 }))
+                : undefined,
+            // Omitted (undefined key) while empty, so pre-C6 zones round-trip
+            // diff-clean. Names are script-lookup keys kept verbatim.
+            anchors: this.anchors.length > 0
+                ? this.anchors.map(a => ({name: a.name, x: round(a.x, 2), y: round(a.y, 2)}))
                 : undefined,
         };
         return JSON.stringify(data, null, 2);

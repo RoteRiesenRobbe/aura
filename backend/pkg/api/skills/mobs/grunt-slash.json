@@ -1,0 +1,22 @@
+{
+  "_comment": "Orc grunt slash (content pass C6, plan-content-zones12.md §B): wave-add melee — SoldierBlades cadence with a touch more weight and none of the discipline (single target, plain physical). Deliberately a rank below OrcCleave: waves must be clearable while the Warlord swings. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 131,
+  "name": "GruntSlash",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 10,
+      "damageHPPerLevel": 1.5,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 30
+    }
+  ]
+}

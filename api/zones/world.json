@@ -7671,6 +7671,41 @@
       "y": 30.6,
       "rotation": 0.97,
       "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 23.5,
+      "y": 27.2,
+      "rotation": 0,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 28.0,
+      "y": 26.4,
+      "rotation": 0,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 32.0,
+      "y": 27.2,
+      "rotation": 0,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 22.6,
+      "y": 29.5,
+      "rotation": 0,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": 22.6,
+      "y": 34.2,
+      "rotation": 0,
+      "blocksMovement": true
     }
   ],
   "spawns": [
@@ -9475,6 +9510,28 @@
       "lines": [
         "The orcs hold the south passage. Nobody leaves this valley without going through them."
       ]
+    }
+  ],
+  "anchors": [
+    {
+      "name": "warlord-home",
+      "x": 26.0,
+      "y": 30.5
+    },
+    {
+      "name": "warbanner-1",
+      "x": 25.0,
+      "y": 28.8
+    },
+    {
+      "name": "warbanner-2",
+      "x": 23.8,
+      "y": 32.0
+    },
+    {
+      "name": "wave-mouth",
+      "x": 33.5,
+      "y": 31.5
     }
   ]
 }

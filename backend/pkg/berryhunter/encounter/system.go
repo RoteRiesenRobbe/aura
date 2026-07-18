@@ -45,6 +45,13 @@ type System struct {
 	encounters []Encounter
 	tracked    map[uint64]model.MobEntity // every live mob, via addMobEntity routing
 	deaths     []uint64                   // queued in Remove, drained in Update
+	announcer  Announcer                  // nil until wired (tests); Announce no-ops
+}
+
+// Announcer is the server-wide system-message surface (chat.ChatSystem) —
+// narrow so encounters don't depend on the chat package.
+type Announcer interface {
+	Broadcast(text string)
 }
 
 func NewSystem(g model.Game, space *phy.Space) *System {
@@ -53,6 +60,21 @@ func NewSystem(g model.Game, space *phy.Space) *System {
 		space:   space,
 		tracked: make(map[uint64]model.MobEntity),
 	}
+}
+
+// SetAnnouncer wires the broadcast surface post-construction (the
+// SetConnState precedent — chat is built later in core/game.go).
+func (s *System) SetAnnouncer(a Announcer) {
+	s.announcer = a
+}
+
+// Announce broadcasts a system message to every connected player; a no-op
+// while unwired so encounter tests need no chat fake.
+func (s *System) Announce(text string) {
+	if s.announcer == nil {
+		return
+	}
+	s.announcer.Broadcast(text)
 }
 
 // Priority 15 — directly after the MobSystem (20): deaths it detects this
@@ -105,6 +127,13 @@ func (s *System) Update(dt float32) {
 // Ticks is the game clock, for encounter-owned timers.
 func (s *System) Ticks() uint64 {
 	return s.game.Ticks()
+}
+
+// Despawn removes a live encounter mob from the world (C6 empty-arena beat).
+// Removal routes through the normal entity teardown, so the encounter's own
+// OnMobDeath sees the id next Update — clear your reference BEFORE calling.
+func (s *System) Despawn(m *mob.Mob) {
+	s.game.RemoveEntity(m.Basic())
 }
 
 // SpawnMob spawns a mob of the named definition at pos — the scripted-spawn

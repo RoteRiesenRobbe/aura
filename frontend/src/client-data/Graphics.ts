@@ -263,6 +263,30 @@ export const GraphicsConfig = {
             minSize: <number> 60,
             maxSize: <number> 66,
         },
+
+        orcWarlord: {
+            file: require('../features/game-objects/assets/mobs/orcWarlord.svg'),
+            minSize: <number> 78,
+            maxSize: <number> 84,
+        },
+
+        warbannerTotem: {
+            file: require('../features/game-objects/assets/mobs/warbannerTotem.svg'),
+            minSize: <number> 50,
+            maxSize: <number> 54,
+        },
+
+        orcGrunt: {
+            file: require('../features/game-objects/assets/mobs/orcGrunt.svg'),
+            minSize: <number> 42,
+            maxSize: <number> 48,
+        },
+
+        soldierCompanion: {
+            file: require('../features/game-objects/assets/mobs/soldierCompanion.svg'),
+            minSize: <number> 34,
+            maxSize: <number> 38,
+        },
     },
 
     // NPC sprites (content pass C2): Resource-backed, referenced by the

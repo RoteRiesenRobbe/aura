@@ -170,15 +170,35 @@ type CommandSystem struct {
 	g        model.Game
 }
 
+// Announcer is the server-wide system-message surface (chat.ChatSystem) —
+// narrow so the cheat set doesn't depend on the chat package.
+type Announcer interface {
+	Broadcast(text string)
+}
+
 // NewCommandSystem wires the cheat set: the static package commands plus the
-// space-bound THREAT closure (the space enables the query-nearby-mobs form).
-func NewCommandSystem(g model.Game, tokens []string, space *phy.Space) *CommandSystem {
-	cmds := make(map[string]Command, len(commands)+1)
+// space-bound THREAT closure (the space enables the query-nearby-mobs form)
+// and the announcer-bound ANNOUNCE closure.
+func NewCommandSystem(g model.Game, tokens []string, space *phy.Space, announcer Announcer) *CommandSystem {
+	cmds := make(map[string]Command, len(commands)+2)
 	for name, action := range commands {
 		cmds[name] = action
 	}
 	cmds["THREAT"] = threatCommand(space)
+	cmds["ANNOUNCE"] = announceCommand(announcer)
 	return &CommandSystem{tokens: tokens, g: g, commands: cmds}
+}
+
+// announceCommand builds ANNOUNCE <text> — the dev shortcut onto the same
+// server-wide banner path the Orc Warlord encounter uses (content pass C6).
+func announceCommand(announcer Announcer) Command {
+	return func(g model.Game, p model.PlayerEntity, arg *string) error {
+		if arg == nil || len(*arg) == 0 {
+			return fmt.Errorf("no argument, usage: 'ANNOUNCE <text>'")
+		}
+		announcer.Broadcast(*arg)
+		return nil
+	}
 }
 
 // threatDumpRadius [PLACEHOLDER] is how far around the player the no-arg

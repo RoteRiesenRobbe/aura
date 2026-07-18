@@ -1284,6 +1284,30 @@ func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	m.tryGrantKillRewards()
 }
 
+// KillCreditNames lists everyone this mob's death rewards reach — damage
+// participants plus their recent healers, deduped and sorted (the C6
+// server-wide kill broadcast reads it in OnMobDeath, where the participant
+// map is still intact: it clears on full regen, never on death).
+func (m *Mob) KillCreditNames() []string {
+	seen := make(map[uint64]bool, len(m.participants))
+	var names []string
+	for id, p := range m.participants {
+		if !seen[id] {
+			seen[id] = true
+			names = append(names, p.Name())
+		}
+		for _, healer := range p.RecentHealers() {
+			hid := healer.Basic().ID()
+			if !seen[hid] {
+				seen[hid] = true
+				names = append(names, healer.Name())
+			}
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
 // noteParticipant records a damage contributor for the death rewards.
 func (m *Mob) noteParticipant(p model.PlayerEntity) {
 	if m.participants == nil {

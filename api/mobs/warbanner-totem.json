@@ -1,0 +1,26 @@
+{
+  "_comment": "Warbanner totem (content pass C6, plan-content-zones12.md §B): the Orc Warlord's invulnerability gate — encounter-spawned at the warbanner-1/-2 anchors, never a zone spawn. Killable stationary object on the bramble body pattern: collisionLayer 99 = PlayerStatic+Action+Viewport+MobStatic (solid, damageable by player auras), collisionMask 16 = Border only. NO resistances key — any damage fells it (unlike the gated bramble/rockfall obstacles). orc faction, so WarbannerShield armors nearby orcs/grunts (targetsAllies), the totem stays soft itself, and the army line ignores it. XP 0 — it is a mechanic, not a reward. All values [PLACEHOLDER]",
+  "id": 36,
+  "name": "WarbannerTotem",
+  "type": "MOB",
+  "faction": "orc",
+  "tier": "normal",
+  "curveLevel": 20,
+  "factors": {
+    "baseMaxHealth": 160,
+    "experience": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.4,
+    "aggroRadius": 0.1,
+    "collisionLayer": 99,
+    "collisionMask": 16
+  },
+  "skills": [
+    {
+      "skillName": "WarbannerShield",
+      "level": 1
+    }
+  ]
+}

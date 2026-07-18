@@ -66,9 +66,24 @@ C8 balance pass. Zone 2 is the eastern half of the single `world` playfield
   **Vanguard** (the Front-Aura, §A power outlier) level-gated **@L20**
   with a real TooLowLine (story-spine beat 6).
 
+## In-game since C6
+
+- **The Orc Warlord arena** — the reserved west arena (x 23–33) is live:
+  boss home + two Warbanner totems + wave mouth placed via **zone
+  anchors** (`anchors` in world.json, editor-movable — the encounter
+  script hard-fails at boot if one is missing); light dressing = a
+  5-boulder rim open to the east mouth and the south border (placement
+  truth = world.json; PO polishes in the editor).
+- **The encounter** (`encounter/warlord.go`, first designed script):
+  invuln while a banner stands → grunt waves at 66/33% from the wave
+  mouth → one-shot banner re-gate at 33% → burn. Wipe = plain leash +
+  walk-home + full regen (script re-arms). Kill → server-wide broadcast
+  with credit names + **Call for Aid** to all participants + recent
+  healers (chance 1.0) → empty arena → ~5 min respawn + return
+  broadcast.
+
 ## Deliberately open here
 
 - Village purpose + village-healer purpose (§11 — Zone 2 session ruling
   still pending; the NPC is a spot reservation).
 - Bandit-ranged replacement drop (§11, open since the Rally cut).
-- Ork World Boss (arena reserved at the front's west end) → **C6**.

@@ -56,5 +56,9 @@ export enum EntityType {
   ArmySoldier = 50,
   Orc = 51,
   SpikeBarricade = 52,
-  FrontCaptain = 53
+  FrontCaptain = 53,
+  OrcWarlord = 54,
+  WarbannerTotem = 55,
+  OrcGrunt = 56,
+  SoldierCompanion = 57
 }

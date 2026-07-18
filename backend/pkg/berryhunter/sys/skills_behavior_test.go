@@ -2284,6 +2284,34 @@ func TestCooldown_SpawnAddsOwnedAlignedMobWithTTL(t *testing.T) {
 	assert.False(t, m.Update(0), "TTL over → dies through the normal removal path")
 }
 
+// callForAidDef mirrors the C6 Boss-Aura shape: ONE cooldown, THREE spawn
+// effects — fireCooldown must apply every effect, raising the full squad.
+func callForAidDef() *skills.SkillDefinition {
+	spawn := func() skills.EffectDef {
+		return skills.EffectDef{
+			Type: skills.EffectTypeSpawn,
+			Spawn: &skills.SpawnParams{
+				MobName: "Totem", TTLTicks: 1800, TTLTicksPerLevel: 300,
+				MaxHealthPerOwnerLevel: 2, PowerPerOwnerLevel: 0.05,
+			},
+		}
+	}
+	return &skills.SkillDefinition{
+		ID: 51, Name: "CallForAid", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 2400,
+		Effects: []skills.EffectDef{spawn(), spawn(), spawn()},
+	}
+}
+
+func TestCooldown_ThreeSpawnEffectsRaiseThreeSummons(t *testing.T) {
+	caster, g, sk := spawnTestSetup(phy.NewSpace())
+	caster.sc.EquipCooldown(1, callForAidDef(), 1)
+	caster.sc.RequestCooldownActivation(1)
+
+	sk.Update(33.0)
+
+	require.Len(t, g.added, 3, "one cast raises the full squad")
+}
+
 func TestCooldown_SpawnMovingSummonFollowsOwner(t *testing.T) {
 	// The second spawn consumer (mob-depth chunk 6): a MOVING owned summon is
 	// a follower — spawnSummon's SetOwner plus the definition's speed > 0 are

@@ -3,6 +3,7 @@ import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
 import {skillDisplayName, skillMaxLevel, skillCategory} from '../../../../client-data/Skills';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
+import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
 import {VitalSignBar} from '../../../vital-signs/logic/VitalSignBar';
 import {IGame} from "../../../core/logic/IGame";
 import {UserInteraceDomReadyEvent} from '../../../core/logic/Events';
@@ -503,6 +504,9 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
             if (!isBaseline && !known.has(id)) {
                 li.classList.add('unlocked');
                 anyUnlock = true;
+                // Discovery banner (C6): genuinely new skills only — level
+                // changes and the join/respawn baseline never alert.
+                AlertBanner.show(`New ${skillCategory(id)}: ${skillDisplayName(id)}`, 'unlock');
             }
             spellbookListElement.appendChild(li);
         }

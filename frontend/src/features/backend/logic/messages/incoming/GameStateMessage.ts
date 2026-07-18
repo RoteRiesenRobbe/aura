@@ -335,6 +335,10 @@ const gameObjectClasses = [
     Mobs.Orc,
     Mobs.SpikeBarricade,
     Resources.FrontCaptain,
+    Mobs.OrcWarlord,
+    Mobs.WarbannerTotem,
+    Mobs.OrcGrunt,
+    Mobs.SoldierCompanion,
 ];
 
 function unmarshalEntityType(entityType) {

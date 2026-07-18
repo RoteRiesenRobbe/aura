@@ -21,7 +21,7 @@ import {ZoneNpc, ZoneProp, ZoneSpawn, ZoneTeaching} from './ZoneModel';
 
 const NEW_ZONE_OPTION = '__new__';
 
-export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark' | 'npc';
+export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark' | 'npc' | 'anchor';
 
 const PX_PER_UNIT = meter2px(1);
 
@@ -116,11 +116,17 @@ let npcTeachSkillSelect: HTMLSelectElement;
 let npcTeachLevelInput: HTMLInputElement;
 let npcTeachLineInput: HTMLInputElement;
 
+let anchorControls: HTMLElement;
+let anchorNameInput: HTMLInputElement;
+let anchorSelectionGroup: HTMLElement;
+let anchorSelectedIndexLabel: HTMLElement;
+
 let propCountLabel: HTMLElement;
 let spawnCountLabel: HTMLElement;
 let campfireCountLabel: HTMLElement;
 let darkCountLabel: HTMLElement;
 let npcCountLabel: HTMLElement;
+let anchorCountLabel: HTMLElement;
 
 /**
  * Wires the zone-editor sections of the shared panel. Called by
@@ -182,11 +188,17 @@ export function setupPanel() {
     npcTeachLevelInput = document.getElementById('zoneEditor_npcTeachLevel') as HTMLInputElement;
     npcTeachLineInput = document.getElementById('zoneEditor_npcTeachLine') as HTMLInputElement;
 
+    anchorControls = document.getElementById('zoneEditor_anchorControls');
+    anchorNameInput = document.getElementById('zoneEditor_anchorName') as HTMLInputElement;
+    anchorSelectionGroup = document.getElementById('zoneEditor_anchorSelection');
+    anchorSelectedIndexLabel = document.getElementById('zoneEditor_anchorSelectedIndex');
+
     propCountLabel = document.getElementById('zoneEditor_propCount');
     spawnCountLabel = document.getElementById('zoneEditor_spawnCount');
     campfireCountLabel = document.getElementById('zoneEditor_campfireCount');
     darkCountLabel = document.getElementById('zoneEditor_darkCount');
     npcCountLabel = document.getElementById('zoneEditor_npcCount');
+    anchorCountLabel = document.getElementById('zoneEditor_anchorCount');
 
     let popup = document.getElementById('zoneEditorPopup');
     popup.querySelectorAll('input, textarea, button, a, select')
@@ -335,6 +347,22 @@ export function setupPanel() {
         event.preventDefault();
         deselect();
     });
+    document.getElementById('zoneEditor_anchorPlaceButton').addEventListener('click', event => {
+        event.preventDefault();
+        placeAtPlayer();
+    });
+    document.getElementById('zoneEditor_anchorUpdate').addEventListener('click', event => {
+        event.preventDefault();
+        applyControlsToSelection();
+    });
+    document.getElementById('zoneEditor_anchorDelete').addEventListener('click', event => {
+        event.preventDefault();
+        deleteSelection();
+    });
+    document.getElementById('zoneEditor_anchorDeselect').addEventListener('click', event => {
+        event.preventDefault();
+        deselect();
+    });
     document.getElementById('zoneEditor_waypointRemoveLast').addEventListener('click', event => {
         event.preventDefault();
         editSelectedWaypoints(waypoints => waypoints.slice(0, -1));
@@ -431,6 +459,7 @@ function setMode(newMode: EditorMode) {
     campfireControls.classList.toggle('hidden', mode !== 'campfire');
     darkControls.classList.toggle('hidden', mode !== 'dark');
     npcControls.classList.toggle('hidden', mode !== 'npc');
+    anchorControls.classList.toggle('hidden', mode !== 'anchor');
 }
 
 function onBoundsChanged() {
@@ -446,7 +475,7 @@ function onMapPointerDown(event: PointerEvent) {
     if (event.button !== 0) {
         return;
     }
-    if (mode !== 'prop' && mode !== 'spawn' && mode !== 'campfire' && mode !== 'dark' && mode !== 'npc') {
+    if (mode !== 'prop' && mode !== 'spawn' && mode !== 'campfire' && mode !== 'dark' && mode !== 'npc' && mode !== 'anchor') {
         return;
     }
     if (Game.state !== GameState.PLAYING) {
@@ -487,6 +516,14 @@ function onMapPointerDown(event: PointerEvent) {
         if (hit >= 0) {
             ZoneEditor.setSelection({kind: 'npc', index: hit});
             populateNpcControls(ZoneEditor.model.npcs[hit]);
+            updateSelectionDisplay();
+            return;
+        }
+    } else if (mode === 'anchor') {
+        let hit = ZoneEditor.hitTestAnchor(x, y);
+        if (hit >= 0) {
+            ZoneEditor.setSelection({kind: 'anchor', index: hit});
+            anchorNameInput.value = ZoneEditor.model.anchors[hit].name;
             updateSelectionDisplay();
             return;
         }
@@ -546,6 +583,12 @@ function placeAt(x: number, y: number) {
         }
         ZoneEditor.placeNpc(npc);
         populateNpcControls(npc);
+    } else if (mode === 'anchor') {
+        let name = readAnchorName(-1);
+        if (name === null) {
+            return;
+        }
+        ZoneEditor.placeAnchor({name, x, y});
     }
 
     updateCounts();
@@ -787,7 +830,30 @@ function applyControlsToSelection() {
         if (updated !== null) {
             ZoneEditor.updateNpc(selection.index, {...updated, entityType: current.entityType});
         }
+    } else if (selection.kind === 'anchor') {
+        let current = ZoneEditor.model.anchors[selection.index];
+        let name = readAnchorName(selection.index);
+        if (name !== null) {
+            ZoneEditor.updateAnchor(selection.index, {...current, name});
+        }
     }
+}
+
+// readAnchorName validates the anchor name input: non-empty and unique
+// (mirroring the backend loader's hard-fails before they bite at boot).
+// excludeIndex skips the anchor being renamed in the uniqueness check.
+function readAnchorName(excludeIndex: number): string | null {
+    let name = anchorNameInput.value.trim();
+    if (name.length === 0) {
+        Game.player.character.say('Anchor needs a name');
+        return null;
+    }
+    let duplicate = ZoneEditor.model.anchors.some((a, i) => a.name === name && i !== excludeIndex);
+    if (duplicate) {
+        Game.player.character.say('Anchor name already used');
+        return null;
+    }
+    return name;
 }
 
 function deleteSelection() {
@@ -804,8 +870,10 @@ function deleteSelection() {
         ZoneEditor.removeCampfire(selection.index);
     } else if (selection.kind === 'dark') {
         ZoneEditor.removeDarkArea(selection.index);
-    } else {
+    } else if (selection.kind === 'npc') {
         ZoneEditor.removeNpc(selection.index);
+    } else {
+        ZoneEditor.removeAnchor(selection.index);
     }
 
     updateCounts();
@@ -856,12 +924,14 @@ function updateSelectionDisplay() {
     let campfireSelected = selection !== null && selection.kind === 'campfire';
     let darkSelected = selection !== null && selection.kind === 'dark';
     let npcSelected = selection !== null && selection.kind === 'npc';
+    let anchorSelected = selection !== null && selection.kind === 'anchor';
 
     propSelectionGroup.classList.toggle('hidden', !propSelected);
     spawnSelectionGroup.classList.toggle('hidden', !spawnSelected);
     campfireSelectionGroup.classList.toggle('hidden', !campfireSelected);
     darkSelectionGroup.classList.toggle('hidden', !darkSelected);
     npcSelectionGroup.classList.toggle('hidden', !npcSelected);
+    anchorSelectionGroup.classList.toggle('hidden', !anchorSelected);
     if (propSelected) {
         propSelectedIndexLabel.textContent = String(selection.index);
     }
@@ -879,6 +949,9 @@ function updateSelectionDisplay() {
     if (npcSelected) {
         npcSelectedIndexLabel.textContent = String(selection.index);
     }
+    if (anchorSelected) {
+        anchorSelectedIndexLabel.textContent = String(selection.index);
+    }
 }
 
 function updatePropRadiusLabel() {
@@ -892,4 +965,5 @@ function updateCounts() {
     campfireCountLabel.textContent = String(ZoneEditor.model.campfires.length);
     darkCountLabel.textContent = String(ZoneEditor.model.darkAreas.length);
     npcCountLabel.textContent = String(ZoneEditor.model.npcs.length);
+    anchorCountLabel.textContent = String(ZoneEditor.model.anchors.length);
 }

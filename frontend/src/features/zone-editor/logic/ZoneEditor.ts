@@ -14,7 +14,7 @@ import * as TextDisplay from '../../../client-data/TextDisplay';
 import {requireAll} from '../../common/logic/Utils';
 import {IGame} from '../../core/logic/IGame';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
-import {ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneNpc, ZoneProp, ZoneSpawn} from './ZoneModel';
+import {ZoneAnchor, ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneNpc, ZoneProp, ZoneSpawn} from './ZoneModel';
 
 export interface PropTypeDef {
     name: string;
@@ -112,7 +112,7 @@ export function propTypeByName(name: string): PropTypeDef {
     return propTypes.find(type => type.name === name);
 }
 
-export type SelectionKind = 'prop' | 'spawn' | 'campfire' | 'dark' | 'npc';
+export type SelectionKind = 'prop' | 'spawn' | 'campfire' | 'dark' | 'npc' | 'anchor';
 
 export interface Selection {
     kind: SelectionKind;
@@ -127,10 +127,12 @@ const COLOR_SPAWN = 0x4CAF50;
 const COLOR_CAMPFIRE = 0xFF9800;
 const COLOR_DARK = 0x673AB7;
 const COLOR_NPC = 0xE91E63;
+const COLOR_ANCHOR = 0x00BCD4;
 const COLOR_SELECTED = 0xFFEB3B;
 const COLOR_BOUNDS = 0xFFEB3B;
 const SPAWN_MARKER_RADIUS = 0.5; // server units
 const CAMPFIRE_MARKER_RADIUS = 0.5; // server units
+const ANCHOR_MARKER_RADIUS = 0.5; // server units
 const MIN_HIT_RADIUS = 0.4; // server units, so tiny props stay clickable
 
 let container: Container = null;
@@ -145,6 +147,7 @@ let spawnMarkers: Container[] = [];
 let campfireMarkers: Container[] = [];
 let darkAreaMarkers: Container[] = [];
 let npcMarkers: Container[] = [];
+let anchorMarkers: Container[] = [];
 
 export function isAttached(): boolean {
     return container !== null;
@@ -183,11 +186,13 @@ function rebuildMarkers() {
     campfireMarkers.forEach(marker => marker.destroy({children: true}));
     darkAreaMarkers.forEach(marker => marker.destroy({children: true}));
     npcMarkers.forEach(marker => marker.destroy({children: true}));
+    anchorMarkers.forEach(marker => marker.destroy({children: true}));
     propMarkers = [];
     spawnMarkers = [];
     campfireMarkers = [];
     darkAreaMarkers = [];
     npcMarkers = [];
+    anchorMarkers = [];
     selection = null;
 
     redrawBounds();
@@ -196,6 +201,7 @@ function rebuildMarkers() {
     campfireMarkers = model.campfires.map(campfire => addMarkerToStage(drawCampfireMarker(campfire, false)));
     darkAreaMarkers = model.darkAreas.map(darkArea => addMarkerToStage(drawDarkAreaMarker(darkArea, false)));
     npcMarkers = model.npcs.map(npc => addMarkerToStage(drawNpcMarker(npc, false)));
+    anchorMarkers = model.anchors.map(anchor => addMarkerToStage(drawAnchorMarker(anchor, false)));
 }
 
 /**
@@ -233,7 +239,7 @@ export function selectInitialZone(stem: string) {
  */
 export function newZone() {
     currentStem = '';
-    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], [], [], [], []);
+    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], [], [], [], [], []);
     rebuildMarkers();
     GroundTextureManager.clear();
 }
@@ -319,6 +325,16 @@ export function hitTestNpc(x: number, y: number): number {
     for (let i = model.npcs.length - 1; i >= 0; i--) {
         let npc = model.npcs[i];
         if (distance(x, y, npc.x, npc.y) <= Math.max(npc.radius, MIN_HIT_RADIUS)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+export function hitTestAnchor(x: number, y: number): number {
+    for (let i = model.anchors.length - 1; i >= 0; i--) {
+        let anchor = model.anchors[i];
+        if (distance(x, y, anchor.x, anchor.y) <= ANCHOR_MARKER_RADIUS) {
             return i;
         }
     }
@@ -426,6 +442,26 @@ export function removeNpc(index: number) {
     adjustSelectionAfterRemove('npc', index);
 }
 
+export function placeAnchor(anchor: ZoneAnchor): number {
+    let index = model.addAnchor(anchor);
+    if (container !== null) {
+        anchorMarkers.push(addMarkerToStage(drawAnchorMarker(anchor, false)));
+    }
+    setSelection({kind: 'anchor', index});
+    return index;
+}
+
+export function updateAnchor(index: number, anchor: ZoneAnchor) {
+    model.anchors[index] = anchor;
+    redrawMarker('anchor', index);
+}
+
+export function removeAnchor(index: number) {
+    model.removeAnchor(index);
+    removeMarker(anchorMarkers, index);
+    adjustSelectionAfterRemove('anchor', index);
+}
+
 function adjustSelectionAfterRemove(kind: SelectionKind, removedIndex: number) {
     if (selection === null || selection.kind !== kind) {
         return;
@@ -481,12 +517,18 @@ function redrawMarker(kind: SelectionKind, index: number) {
         }
         darkAreaMarkers[index].destroy({children: true});
         darkAreaMarkers[index] = addMarkerToStage(drawDarkAreaMarker(model.darkAreas[index], selected));
-    } else {
+    } else if (kind === 'npc') {
         if (index >= model.npcs.length) {
             return;
         }
         npcMarkers[index].destroy({children: true});
         npcMarkers[index] = addMarkerToStage(drawNpcMarker(model.npcs[index], selected));
+    } else {
+        if (index >= model.anchors.length) {
+            return;
+        }
+        anchorMarkers[index].destroy({children: true});
+        anchorMarkers[index] = addMarkerToStage(drawAnchorMarker(model.anchors[index], selected));
     }
 }
 
@@ -648,6 +690,27 @@ function drawNpcMarker(npc: ZoneNpc, selected: boolean): Container {
     let label = teachingCount > 0 ? npc.type + ' (' + teachingCount + ')' : npc.type;
     marker.addChild(markerLabel(label, radiusPx));
     marker.position.set(meter2px(npc.x), meter2px(npc.y));
+    return marker;
+}
+
+// Anchors are script-lookup points (content pass C6), drawn as a crosshair —
+// no radius to preview, the position IS the payload. The label is the name the
+// encounter script looks up, so a rename here must be mirrored in Go.
+function drawAnchorMarker(anchor: ZoneAnchor, selected: boolean): Container {
+    let radiusPx = meter2px(ANCHOR_MARKER_RADIUS);
+
+    let marker = new Container();
+    let color = selected ? COLOR_SELECTED : COLOR_ANCHOR;
+    let graphic = new Graphics()
+        .circle(0, 0, radiusPx)
+        .fill({color: COLOR_ANCHOR, alpha: 0.15})
+        .stroke({width: selected ? 6 : 3, color})
+        .moveTo(-radiusPx, 0).lineTo(radiusPx, 0)
+        .moveTo(0, -radiusPx).lineTo(0, radiusPx)
+        .stroke({width: 2, color});
+    marker.addChild(graphic);
+    marker.addChild(markerLabel(anchor.name, radiusPx));
+    marker.position.set(meter2px(anchor.x), meter2px(anchor.y));
     return marker;
 }
 

@@ -70,12 +70,16 @@ world actually match a zone, export it and restart the server with
 
 ## 3. Pick a mode
 
-Top of the panel: **Off / Terrain / Props / Spawns**.
+Top of the panel: **Off / Terrain / Props / Spawns / Campfires / Dark /
+NPCs / Anchors**.
 
 - **Off** — clicking does nothing special (default, so you can play normally).
 - **Terrain** — paint ground textures; they are now part of the zone (see §8).
 - **Props** — place/edit props.
 - **Spawns** — place/edit mob spawn points.
+- **Campfires / Dark / NPCs** — the later sections work the same way:
+  click to place, click a marker to select, Update/Delete.
+- **Anchors** — named points encounter scripts look up (see §5b).
 
 Only the active mode reacts to clicks. The "Mouse (units)" readout shows where
 your cursor is in **server units** — the same numbers that end up in the JSON.
@@ -153,6 +157,25 @@ only with waypoints, and no wander/route on a mob that can't walk (speed 0,
 e.g. Totem). In every archetype a mob that aggros mid-route **runs back at
 full speed** to the exact point where it left its route once combat ends,
 then drops back into the amble.
+
+## 5b. Anchors mode — encounter positions
+
+Anchors are **named points** that Go encounter scripts read at boot (content
+pass C6): the zone owns WHERE a fight plays out, the script owns WHAT
+happens. The Orc Warlord uses four: `warlord-home`, `warbanner-1`,
+`warbanner-2`, `wave-mouth`.
+
+Type a **Name**, then click the map (or **"Place at my position"**) — a cyan
+crosshair with the name label appears. Click a crosshair to select it
+(**Update name** / **Delete** as usual). To *move* an anchor: delete it and
+re-place it with the same name, like campfires.
+
+Two rules the server enforces at boot:
+
+- Names must be **unique** (the editor warns on duplicates too).
+- **Renaming or deleting an anchor a script looks up breaks the server
+  boot** — deliberately loud, never a silent fallback position. Move
+  anchors freely; rename only together with the Go script.
 
 ## 6. Choose a zone, or start a new one
 

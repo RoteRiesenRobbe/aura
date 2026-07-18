@@ -1,0 +1,34 @@
+{
+  "_comment": "Call for Aid — the Boss-Aura (content pass C6, plan-content-zones12.md §B): the Orc Warlord's chance-1.0 kill drop (all participants + recent healers), the v1 completion trophy and a curated combo ingredient (>=3 recipes, chunk C7). Sound the horn and three soldiers of the front answer: one cooldown, THREE spawn effects — fireCooldown applies every effect, so one cast raises the full squad (each on its own placement ring roll). SummonCompanion conventions: skill level scales TTL + summon loadout level, owner level adds max HP + power; cooldownTicks >= max TTL keeps it one-squad-at-a-time by content convention. Sits below the Vanguard ceiling (GDD §5). All values [PLACEHOLDER]",
+  "id": 51,
+  "name": "CallForAid",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 2400,
+  "effects": [
+    {
+      "type": "spawn",
+      "spawnMob": "SoldierCompanion",
+      "ttlTicks": 1800,
+      "ttlTicksPerLevel": 300,
+      "maxHealthPerOwnerLevel": 2,
+      "powerPerOwnerLevel": 0.05
+    },
+    {
+      "type": "spawn",
+      "spawnMob": "SoldierCompanion",
+      "ttlTicks": 1800,
+      "ttlTicksPerLevel": 300,
+      "maxHealthPerOwnerLevel": 2,
+      "powerPerOwnerLevel": 0.05
+    },
+    {
+      "type": "spawn",
+      "spawnMob": "SoldierCompanion",
+      "ttlTicks": 1800,
+      "ttlTicksPerLevel": 300,
+      "maxHealthPerOwnerLevel": 2,
+      "powerPerOwnerLevel": 0.05
+    }
+  ]
+}

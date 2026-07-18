@@ -1,0 +1,13 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder orc grunt art (content pass C6): the orc silhouette a rank
+       smaller and scrappier — paler skin, one crude hand axe, no armor mass.
+       Reads as the wave add next to the elite Orc and the Warlord. -->
+  <ellipse cx="50" cy="56" rx="22" ry="24" fill="#5d6a3e" stroke="#232815" stroke-width="4"/>
+  <path d="M 31 46 Q 26 40 28 33" fill="none" stroke="#232815" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 69 46 Q 74 40 72 33" fill="none" stroke="#232815" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="50" cy="32" r="13" fill="#7c8a52" stroke="#232815" stroke-width="4"/>
+  <path d="M 43 39 l -2 5" stroke="#e8e3d0" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 57 39 l 2 5" stroke="#e8e3d0" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 68 62 L 86 72" stroke="#4a3a26" stroke-width="5" stroke-linecap="round"/>
+  <path d="M 82 64 l 8 6" stroke="#7d7468" stroke-width="7" stroke-linecap="round"/>
+</svg>

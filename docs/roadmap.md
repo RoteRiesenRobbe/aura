@@ -217,9 +217,11 @@ trade-offs (light aura vs. damage aura).
 > threat diverging from owner-XP attribution, route validity = level-designer
 > responsibility, encounters = Go structs registered per zone (no DSL, no
 > zone-schema field yet — backlog 17 captures the editor-template idea).
-> **9f (timed world-state + dwell-capture) deliberately slid to the content
-> pass** with the real lava-bridge boss (§6.5 resolved — the only two pieces
-> with wire footprint). Boss *scripts* remain content (item 12).
+> **9f (timed world-state + dwell-capture) REMOVED from v1 scope (content
+> pass C6, 2026-07-18, per plan-content-zones12.md §B):** the Ork World Boss
+> shipped always-present with an encounter-owned respawn timer — no
+> kill-counter/spawn-trigger semantics needed in v1. Boss *scripts* landed
+> with C6 (the OrcWarlordEncounter is the first designed script).
 
 - Builds directly on skill-system Phase 6 (data-driven mobs): tiers are largely
   JSON loadouts (skills, levels, resource pool) + spawn placement.
@@ -794,8 +796,9 @@ system ships blind.
    aggro & threat → obstacle steering → patrol → companion → 6.5 hazard
    braziers/companion reachability → 6.6 mob factions & mob-vs-mob hostility →
    7 taunt/fade → 8 support mobs (healer) → 9 encounter-controller spine +
-   `THREAT` cheat. Boss *scripts* and 9f (timed world-state + dwell-capture)
-   deliberately slid to the content pass with the real lava-bridge boss.
+   `THREAT` cheat. Boss *scripts* landed in the content pass (C6 Orc
+   Warlord); 9f (timed world-state + dwell-capture) was removed from v1
+   scope there (always-present boss + encounter-owned respawn timer).
    Record: `plan-mob-depth.md` §5; authoring guide:
    `manual-content-authoring.md` §5.
 3. **Atmosphere & recovery** — ✅ **COMPLETE (2026-07-13)**, all 4 chunks

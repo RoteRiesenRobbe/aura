@@ -1,0 +1,37 @@
+{
+  "_comment": "Ork World Boss (content pass C6, plan-content-zones12.md §B): the v1 completion beat — encounter-spawned only (never a zone spawn; the OrcWarlordEncounter owns spawn/respawn via the warlord-home anchor). tier boss, curveLevel 23 (PO 2026-07-18: a couple of levels above the front band, punishes undersized groups). Boss baseline ≈3x the elite Orc — the mechanics (Warbanner invuln gate, grunt waves, Frenzy windows) carry the fight, not the stat block. experience 600 = the 'large XP' §B beat (contrast the deliberately-starved Orc 15). Kill-drop Call for Aid at chance 1.0 — all participants + recent healers (§B). Slow heavy stride under the orc 0.5. All values [PLACEHOLDER]",
+  "id": 35,
+  "name": "OrcWarlord",
+  "type": "MOB",
+  "faction": "orc",
+  "tier": "boss",
+  "curveLevel": 23,
+  "factors": {
+    "baseMaxHealth": 900,
+    "maxHealthVariance": 0.0,
+    "experience": 600,
+    "speed": 0.45,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1
+  },
+  "body": {
+    "radius": 0.6,
+    "aggroRadius": 7
+  },
+  "skills": [
+    {
+      "skillName": "WarlordCleave",
+      "level": 1
+    },
+    {
+      "skillName": "WarlordFrenzy",
+      "level": 1
+    }
+  ],
+  "unlocks": [
+    {
+      "skillName": "CallForAid",
+      "chance": 1.0
+    }
+  ]
+}

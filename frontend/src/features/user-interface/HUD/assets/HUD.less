@@ -19,6 +19,34 @@
 	}
 }
 
+// Alert banner (content pass C6): one message at a time in the upper third —
+// server announcements (boss beats, ANNOUNCE) and skill-unlock alerts.
+#alertBanner {
+	position: absolute;
+	top: 22vh;
+	left: 50%;
+	transform: translateX(-50%);
+	max-width: 60vw;
+	text-align: center;
+
+	font-size: (0.55 * @uiElementHeight);
+	font-weight: bold;
+	color: Cornsilk;
+	text-shadow: 0 0 6px rgba(0, 0, 0, 0.85), 0 2px 2px rgba(0, 0, 0, 0.6);
+	pointer-events: none;
+
+	opacity: 0;
+	transition: opacity 0.4s ease-in-out; // FADE_MS in AlertBanner.ts
+
+	&.visible {
+		opacity: 1;
+	}
+
+	&.unlock {
+		color: #ffd75e; // gold — a spellbook discovery
+	}
+}
+
 #minimap {
 	width: 15vw;
 	height: 15vw;

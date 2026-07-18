@@ -18,10 +18,13 @@ import (
 type fakePlayer struct {
 	model.PlayerEntity
 	basic ecs.BasicEntity
+	name  string
 	pos   phy.Vec2f
 }
 
 func (f *fakePlayer) Basic() ecs.BasicEntity              { return f.basic }
+func (f *fakePlayer) Name() string                        { return f.name }
+func (f *fakePlayer) ApplyRecipeCascade()                 {}
 func (f *fakePlayer) Position() phy.Vec2f                 { return f.pos }
 func (f *fakePlayer) Radius() float32                     { return 0.25 }
 func (f *fakePlayer) Faction() model.Faction              { return model.FactionAligned }

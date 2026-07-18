@@ -368,6 +368,18 @@ work is deliberately deferred to the first real boss).
 
 ---
 
+### Anchors: zone-owned positions (content pass C6)
+
+Since C6, encounter positions come from the zone's `anchors` section
+(`{"name", "x", "y"}`, editor-movable — manual-zone-editor.md §5b) instead
+of Go constants: resolve them at the registration site in `berryhunterd.go`
+and **panic on a missing anchor** (content bug = loud boot failure). The
+`OrcWarlordEncounter` is the reference: 4 anchors in, structure tunables as
+named constants at the top of `encounter/warlord.go`, all WHAT-happens logic
+in Go. `System.Despawn` removes a live encounter mob (empty-arena beats);
+`Mob.KillCreditNames` feeds the server-wide kill broadcast
+(`System.Announce`).
+
 ## Known hand-sync points
 
 These duplicate a single source of truth and must be updated together — easy to

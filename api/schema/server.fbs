@@ -56,7 +56,11 @@ enum EntityType : ushort {
   ArmySoldier,
   Orc,
   SpikeBarricade,
-  FrontCaptain
+  FrontCaptain,
+  OrcWarlord,
+  WarbannerTotem,
+  OrcGrunt,
+  SoldierCompanion
 }
 
 enum StatusEffect : ushort {

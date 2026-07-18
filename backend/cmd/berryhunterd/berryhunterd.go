@@ -181,6 +181,31 @@ func main() {
 		slog.Info("registered smoke encounter", slog.String("zone", zone.ID))
 	}
 
+	// The Orc Warlord (content pass C6, §B): WHERE it plays out comes from
+	// the zone's anchors (editor-movable), WHAT happens is the Go script. A
+	// missing anchor is a content bug — abort the boot loudly, never fall
+	// back to a silent default position.
+	if zone.ID == "world" {
+		r, ok := g.(encounter.Registrar)
+		if !ok {
+			panic("game does not accept encounters")
+		}
+		anchor := func(name string) phy.Vec2f {
+			x, y, found := zone.AnchorPos(name)
+			if !found {
+				panic(fmt.Sprintf("zone %q: missing anchor %q (Orc Warlord encounter)", zone.ID, name))
+			}
+			return phy.Vec2f{X: x, Y: y}
+		}
+		r.RegisterEncounter(encounter.NewOrcWarlordEncounter(
+			anchor(encounter.WarlordAnchorHome),
+			anchor(encounter.WarlordAnchorBanner1),
+			anchor(encounter.WarlordAnchorBanner2),
+			anchor(encounter.WarlordAnchorWaveMouth),
+		))
+		slog.Info("registered orc warlord encounter", slog.String("zone", zone.ID))
+	}
+
 	//---- set up server
 
 	if err := bootHttp(g.Handler(), config.Server, dev); err != nil {

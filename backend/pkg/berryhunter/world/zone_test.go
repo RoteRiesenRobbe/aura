@@ -626,3 +626,57 @@ func TestZone_RejectsUnknownNpcKey(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "faction")
 }
+
+func TestZone_ParsesAnchorsAndLooksThemUp(t *testing.T) {
+	const doc = `{
+		"name": "A", "bounds": { "width": 60, "height": 40 },
+		"anchors": [
+			{ "name": "warlord-home", "x": 28, "y": -10.5 },
+			{ "name": "wave-mouth", "x": 22, "y": -8 }
+		]
+	}`
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	require.NoError(t, err)
+	require.Len(t, z.Anchors, 2)
+
+	x, y, ok := z.AnchorPos("warlord-home")
+	require.True(t, ok)
+	assert.EqualValues(t, 28, x)
+	assert.EqualValues(t, -10.5, y)
+
+	_, _, ok = z.AnchorPos("no-such-anchor")
+	assert.False(t, ok)
+}
+
+func TestZone_RejectsDuplicateAnchorName(t *testing.T) {
+	const doc = `{
+		"name": "A", "bounds": { "width": 60, "height": 40 },
+		"anchors": [
+			{ "name": "spot", "x": 1, "y": 2 },
+			{ "name": "spot", "x": 3, "y": 4 }
+		]
+	}`
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "duplicate")
+}
+
+func TestZone_RejectsEmptyAnchorName(t *testing.T) {
+	const doc = `{
+		"name": "A", "bounds": { "width": 60, "height": 40 },
+		"anchors": [ { "name": "  ", "x": 1, "y": 2 } ]
+	}`
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "name")
+}
+
+func TestZone_RejectsOutOfBoundsAnchor(t *testing.T) {
+	const doc = `{
+		"name": "A", "bounds": { "width": 60, "height": 40 },
+		"anchors": [ { "name": "way-out", "x": 31, "y": 0 } ]
+	}`
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "bounds")
+}
