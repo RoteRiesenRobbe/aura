@@ -669,7 +669,8 @@ any content.
 ### C4 — Z2 village + bandit gate (the group path)
 
 > **✅ DONE 2026-07-18 (execution session), full chunk — no split needed;
-> in-game PO pass pending.** Zero code lifts — content + pins only (plus
+> PO-verified in-game 2026-07-18 (full pass), committed `4d5406a4`.
+> Chunk closed — next: C5.** Zero code lifts — content + pins only (plus
 > the routine 5-file EntityType path for new sprites). **PO rulings this
 > session:** bandit healer = **heal_aura** (shipped Healer precedent);
 > bandit-ranged drop stays **empty** (§11 open); Damage-Burst = **new
