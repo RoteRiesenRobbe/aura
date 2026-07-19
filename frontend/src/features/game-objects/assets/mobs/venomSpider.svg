@@ -1,19 +1,33 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder venom-spider art (content pass C3): the poison kin —
-       darker body, sickly green hourglass marking + leg tips. -->
-  <g stroke="#26231f" stroke-width="4" stroke-linecap="round" fill="none">
-    <path d="M 38 42 Q 20 34 12 20"/>
-    <path d="M 36 50 Q 16 48 6 40"/>
-    <path d="M 36 58 Q 16 62 8 74"/>
-    <path d="M 40 66 Q 26 78 22 90"/>
-    <path d="M 62 42 Q 80 34 88 20"/>
-    <path d="M 64 50 Q 84 48 94 40"/>
-    <path d="M 64 58 Q 84 62 92 74"/>
-    <path d="M 60 66 Q 74 78 78 90"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder venom-spider avatar (avatar icon pass): darker kin, green eyes + hourglass. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
   </g>
-  <ellipse cx="50" cy="60" rx="19" ry="23" fill="#38332c" stroke="#26231f" stroke-width="4"/>
-  <circle cx="50" cy="31" r="10" fill="#453f36" stroke="#26231f" stroke-width="4"/>
-  <path d="M 50 46 l 8 12 l -8 12 l -8 -12 Z" fill="#7fae3f" stroke="#55772a" stroke-width="3" stroke-linejoin="round"/>
-  <circle cx="46" cy="28" r="2.5" fill="#a6d95c"/>
-  <circle cx="54" cy="28" r="2.5" fill="#a6d95c"/>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(74,88,44);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <g stroke="#1c1a16" stroke-width="4" stroke-linecap="round" fill="none">
+          <path d="M 22 34 Q 8 26 2 12"/>
+          <path d="M 18 52 Q 4 50 -4 42"/>
+          <path d="M 20 68 Q 8 74 2 86"/>
+          <path d="M 78 34 Q 92 26 98 12"/>
+          <path d="M 82 52 Q 96 50 104 42"/>
+          <path d="M 80 68 Q 92 74 98 86"/>
+        </g>
+        <circle cx="50" cy="52" r="31" fill="#38332c" stroke="#1c1a16" stroke-width="3.5"/>
+        <path d="M 50 24 L 56 34 L 50 44 L 44 34 Z" fill="#7fae3f" stroke="#55772a" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="42" cy="52" r="6" fill="#a6d95c"/>
+        <circle cx="58" cy="52" r="6" fill="#a6d95c"/>
+        <circle cx="42" cy="52" r="2.2" fill="#1c1a16"/>
+        <circle cx="58" cy="52" r="2.2" fill="#1c1a16"/>
+        <path d="M 42 72 Q 40 80 44 84 M 58 72 Q 60 80 56 84" fill="none" stroke="#a6d95c" stroke-width="4.5" stroke-linecap="round"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>

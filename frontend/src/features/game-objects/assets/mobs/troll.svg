@@ -1,16 +1,30 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder troll art (intermission triage Session ②): a hulking mossy-
-       grey-green brute, broad hunched shoulders, jutting lower tusks and a huge
-       knotted club — rounder and clearly bigger than any other silhouette. -->
-  <ellipse cx="50" cy="58" rx="30" ry="30" fill="#5c6b4a" stroke="#2b331f" stroke-width="4"/>
-  <path d="M 24 46 Q 16 40 18 30" fill="none" stroke="#2b331f" stroke-width="6" stroke-linecap="round"/>
-  <path d="M 76 46 Q 84 40 82 30" fill="none" stroke="#2b331f" stroke-width="6" stroke-linecap="round"/>
-  <circle cx="50" cy="34" r="17" fill="#77855b" stroke="#2b331f" stroke-width="4"/>
-  <circle cx="43" cy="33" r="3" fill="#1a1f10"/>
-  <circle cx="57" cy="33" r="3" fill="#1a1f10"/>
-  <path d="M 44 44 l -2 6" stroke="#efe9d2" stroke-width="4" stroke-linecap="round"/>
-  <path d="M 56 44 l 2 6" stroke="#efe9d2" stroke-width="4" stroke-linecap="round"/>
-  <path d="M 72 66 L 96 58" stroke="#6a5a3f" stroke-width="11" stroke-linecap="round"/>
-  <circle cx="94" cy="58" r="8" fill="#6a5a3f" stroke="#3d3223" stroke-width="3"/>
-  <ellipse cx="50" cy="60" rx="12" ry="16" fill="#4a5638"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder troll avatar (avatar icon pass): mossy hulk, huge nose, under-tusks. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(72,86,66);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <path d="M 16 44 Q 6 38 8 26" fill="none" stroke="#2b331f" stroke-width="5" stroke-linecap="round"/>
+        <path d="M 84 44 Q 94 38 92 26" fill="none" stroke="#2b331f" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="50" cy="52" r="38" fill="#77855b" stroke="#2b331f" stroke-width="3.5"/>
+        <path d="M 22 40 Q 36 30 48 38 M 52 38 Q 64 30 78 40" fill="none" stroke="#4a5638" stroke-width="7" stroke-linecap="round"/>
+        <circle cx="36" cy="46" r="3.5" fill="#1a1f10"/>
+        <circle cx="64" cy="46" r="3.5" fill="#1a1f10"/>
+        <ellipse cx="50" cy="60" rx="11" ry="13" fill="#8a9a6b" stroke="#2b331f" stroke-width="3"/>
+        <path d="M 32 78 Q 50 84 68 78" fill="none" stroke="#2b331f" stroke-width="4" stroke-linecap="round"/>
+        <path d="M 36 79 L 33 66" stroke="#efe9d2" stroke-width="5.5" stroke-linecap="round"/>
+        <path d="M 64 79 L 67 66" stroke="#efe9d2" stroke-width="5.5" stroke-linecap="round"/>
+        <circle cx="26" cy="66" r="4" fill="#5c6b4a"/>
+        <circle cx="74" cy="30" r="4" fill="#5c6b4a"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>

@@ -1,13 +1,26 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder army soldier art (content pass C5): top-down human in a
-       royal-red tabard over mail, kettle helm, sword and round shield —
-       reads as the disciplined counterpart to the bandit rabble. -->
-  <ellipse cx="50" cy="55" rx="21" ry="25" fill="#6e7681" stroke="#2b2f36" stroke-width="4"/>
-  <path d="M 39 40 L 61 40 L 57 74 L 43 74 Z" fill="#8a3038" stroke="#2b2f36" stroke-width="3"/>
-  <circle cx="50" cy="31" r="13" fill="#c49a76" stroke="#2b2f36" stroke-width="4"/>
-  <path d="M 35 30 A 15 15 0 0 1 65 30" fill="#9aa0a6" stroke="#2b2f36" stroke-width="3"/>
-  <circle cx="26" cy="52" r="11" fill="#7d858f" stroke="#2b2f36" stroke-width="4"/>
-  <circle cx="26" cy="52" r="4" fill="#8a3038"/>
-  <path d="M 70 60 l 16 -14" stroke="#9aa0a6" stroke-width="5" stroke-linecap="round"/>
-  <path d="M 68 64 l 5 -7" stroke="#5d4a33" stroke-width="4" stroke-linecap="round"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder army-soldier avatar (avatar icon pass): kettle helm + royal-red tabard collar. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(60,82,115);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <circle cx="50" cy="52" r="33" fill="#c49a76" stroke="#2b2f36" stroke-width="3.5"/>
+        <path d="M 24 34 Q 28 14 50 14 Q 72 14 76 34 Z" fill="#9aa0a6" stroke="#2b2f36" stroke-width="3.5" stroke-linejoin="round"/>
+        <path d="M 14 38 L 86 38" stroke="#2b2f36" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M 16 34 Q 50 26 84 34 L 84 38 L 16 38 Z" fill="#8a9096" stroke="#2b2f36" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="39" cy="50" r="3.5" fill="#2b2f36"/>
+        <circle cx="61" cy="50" r="3.5" fill="#2b2f36"/>
+        <path d="M 42 64 L 58 64" stroke="#2b2f36" stroke-width="3" stroke-linecap="round"/>
+        <path d="M 24 78 Q 50 88 76 78 L 72 96 L 28 96 Z" fill="#8a3038" stroke="#2b2f36" stroke-width="3" stroke-linejoin="round"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>

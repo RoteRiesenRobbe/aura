@@ -1,14 +1,28 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder orc art (content pass C5): top-down hulking green-skinned
-       brute in crude hide armor with a massive cleaver — clearly bigger and
-       broader than any human silhouette on the field. -->
-  <ellipse cx="50" cy="56" rx="26" ry="28" fill="#4a5232" stroke="#232815" stroke-width="4"/>
-  <path d="M 28 44 Q 22 38 24 30" fill="none" stroke="#232815" stroke-width="5" stroke-linecap="round"/>
-  <path d="M 72 44 Q 78 38 76 30" fill="none" stroke="#232815" stroke-width="5" stroke-linecap="round"/>
-  <circle cx="50" cy="30" r="15" fill="#6d7c43" stroke="#232815" stroke-width="4"/>
-  <path d="M 42 38 l -3 6" stroke="#e8e3d0" stroke-width="4" stroke-linecap="round"/>
-  <path d="M 58 38 l 3 6" stroke="#e8e3d0" stroke-width="4" stroke-linecap="round"/>
-  <path d="M 70 62 L 94 74" stroke="#7d7468" stroke-width="9" stroke-linecap="round"/>
-  <path d="M 66 68 l 8 -8" stroke="#4a3a26" stroke-width="6" stroke-linecap="round"/>
-  <ellipse cx="50" cy="58" rx="11" ry="15" fill="#5b4a33"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder orc avatar (avatar icon pass): green brute face, heavy brow, tusks up. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(77,88,45);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <path d="M 18 40 L 2 30 L 20 26 Z" fill="#5b6a37" stroke="#232815" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 82 40 L 98 30 L 80 26 Z" fill="#5b6a37" stroke="#232815" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 20 30 Q 50 12 80 30 Q 84 60 68 78 Q 58 92 50 92 Q 42 92 32 78 Q 16 60 20 30 Z" fill="#6d7c43" stroke="#232815" stroke-width="3.5" stroke-linejoin="round"/>
+        <path d="M 28 42 Q 38 36 46 42 M 54 42 Q 62 36 72 42" fill="none" stroke="#232815" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="38" cy="48" r="3.5" fill="#232815"/>
+        <circle cx="62" cy="48" r="3.5" fill="#232815"/>
+        <path d="M 44 58 L 42 62 M 56 58 L 58 62" stroke="#232815" stroke-width="3" stroke-linecap="round"/>
+        <path d="M 34 72 Q 50 78 66 72" fill="none" stroke="#232815" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M 36 73 L 33 60" stroke="#e8e3d0" stroke-width="5" stroke-linecap="round"/>
+        <path d="M 64 73 L 67 60" stroke="#e8e3d0" stroke-width="5" stroke-linecap="round"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>

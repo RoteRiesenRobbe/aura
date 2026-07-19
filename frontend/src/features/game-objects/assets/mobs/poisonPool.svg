@@ -1,11 +1,24 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder poison-pool art (content pass C3): irregular sickly-green
-       puddle with slow bubbles — flat on the ground, non-blocking hazard. -->
-  <path d="M 24 44 Q 18 26 38 22 Q 56 14 70 26 Q 88 32 82 50 Q 88 68 68 76 Q 52 88 36 76 Q 14 72 20 56 Q 14 50 24 44 Z"
-        fill="#5f7d33" stroke="#44592a" stroke-width="4" stroke-linejoin="round" opacity="0.9"/>
-  <path d="M 32 46 Q 30 36 42 34 Q 56 28 66 38 Q 74 44 68 54 Q 70 64 56 68 Q 44 74 36 64 Q 26 58 32 46 Z"
-        fill="#7ba043" opacity="0.85"/>
-  <circle cx="44" cy="46" r="4" fill="#a6c96a" opacity="0.9"/>
-  <circle cx="58" cy="56" r="3" fill="#a6c96a" opacity="0.8"/>
-  <circle cx="50" cy="62" r="2" fill="#c2df8d" opacity="0.8"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder poison-pool avatar (avatar icon pass): sickly droplet + bubbles (hazard). -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(60,74,40);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <path d="M 50 12 Q 74 44 74 62 A 24 24 0 0 1 26 62 Q 26 44 50 12 Z" fill="#7ba043" stroke="#44592a" stroke-width="3.5" stroke-linejoin="round"/>
+        <path d="M 38 62 Q 38 70 44 74" fill="none" stroke="#c2df8d" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="24" cy="26" r="5" fill="#a6c96a"/>
+        <circle cx="78" cy="32" r="4" fill="#a6c96a"/>
+        <circle cx="80" cy="78" r="5" fill="#a6c96a"/>
+        <circle cx="20" cy="76" r="3.5" fill="#c2df8d"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>

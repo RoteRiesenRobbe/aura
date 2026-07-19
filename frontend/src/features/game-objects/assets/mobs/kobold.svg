@@ -1,11 +1,29 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder kobold art (content pass C3): top-down small russet
-       goblinoid — round body, big pointed ears, a crude dagger. -->
-  <ellipse cx="50" cy="55" rx="20" ry="24" fill="#a3623b" stroke="#6e3f24" stroke-width="4"/>
-  <circle cx="50" cy="32" r="13" fill="#b5734a" stroke="#6e3f24" stroke-width="4"/>
-  <path d="M 38 26 L 26 12 L 42 18 Z" fill="#8a4f2d" stroke="#6e3f24" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M 62 26 L 74 12 L 58 18 Z" fill="#8a4f2d" stroke="#6e3f24" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M 70 58 l 14 10" stroke="#8f9399" stroke-width="5" stroke-linecap="round"/>
-  <path d="M 68 62 l 6 -6" stroke="#5d4a33" stroke-width="4" stroke-linecap="round"/>
-  <ellipse cx="50" cy="54" rx="9" ry="14" fill="#c08256"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder kobold avatar (avatar icon pass): russet goblinoid face, big pointed ears. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(62,70,94);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <path d="M 20 42 L 0 20 L 32 28 Z" fill="#8a4f2d" stroke="#5a331c" stroke-width="3.5" stroke-linejoin="round"/>
+        <path d="M 80 42 L 100 20 L 68 28 Z" fill="#8a4f2d" stroke="#5a331c" stroke-width="3.5" stroke-linejoin="round"/>
+        <circle cx="50" cy="52" r="33" fill="#a3623b" stroke="#5a331c" stroke-width="3.5"/>
+        <path d="M 28 40 L 42 45 M 72 40 L 58 45" stroke="#5a331c" stroke-width="3.5" stroke-linecap="round"/>
+        <circle cx="38" cy="50" r="5.5" fill="#e8c33a"/>
+        <circle cx="62" cy="50" r="5.5" fill="#e8c33a"/>
+        <path d="M 38 46.5 L 38 53.5 M 62 46.5 L 62 53.5" stroke="#3b2412" stroke-width="2.5" stroke-linecap="round"/>
+        <ellipse cx="50" cy="66" rx="13" ry="9" fill="#c08256" stroke="#5a331c" stroke-width="3"/>
+        <circle cx="45" cy="64" r="2" fill="#5a331c"/>
+        <circle cx="55" cy="64" r="2" fill="#5a331c"/>
+        <path d="M 42 73 L 45 79 L 48 73 Z" fill="#f4ede2" stroke="#5a331c" stroke-width="1.5" stroke-linejoin="round"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>

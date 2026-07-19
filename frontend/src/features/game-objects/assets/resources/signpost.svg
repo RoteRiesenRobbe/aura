@@ -1,10 +1,25 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder signpost art (content pass C2): a wooden sign seen from
-       above-ish — post shadow + tilted board so it reads as a sign top-down. -->
-  <circle cx="50" cy="58" r="7" fill="#5e4a30" stroke="#3f3220" stroke-width="3"/>
-  <g transform="rotate(-8 50 42)">
-    <rect x="18" y="26" width="64" height="32" rx="4" fill="#a9855a" stroke="#5e4a30" stroke-width="4"/>
-    <line x1="26" y1="36" x2="74" y2="36" stroke="#5e4a30" stroke-width="4" stroke-linecap="round"/>
-    <line x1="26" y1="46" x2="62" y2="46" stroke="#5e4a30" stroke-width="4" stroke-linecap="round"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder signpost avatar (avatar icon pass): wooden sign board. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
   </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(128,104,58);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <path d="M 50 92 L 50 20" stroke="#5e4a30" stroke-width="8" stroke-linecap="round"/>
+        <g transform="rotate(-6 50 42)">
+          <rect x="14" y="24" width="72" height="36" rx="5" fill="#a9855a" stroke="#5e4a30" stroke-width="4"/>
+          <line x1="24" y1="36" x2="76" y2="36" stroke="#5e4a30" stroke-width="4.5" stroke-linecap="round"/>
+          <line x1="24" y1="48" x2="62" y2="48" stroke="#5e4a30" stroke-width="4.5" stroke-linecap="round"/>
+        </g>
+        <path d="M 38 92 Q 50 86 62 92" fill="none" stroke="#5e4a30" stroke-width="4" stroke-linecap="round"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>

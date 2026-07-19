@@ -1,10 +1,21 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder healer art (mob-depth chunk 8): support mob, top-down. A
-       green cross reads as "medic" at a glance and stands apart from the
-       damage mobs. -->
-  <circle cx="50" cy="50" r="42" fill="#5fbf7a" stroke="#2f7346" stroke-width="6"/>
-  <circle cx="50" cy="50" r="27" fill="#8ee0a3" stroke="#2f7346" stroke-width="4"/>
-  <!-- heal cross -->
-  <rect x="43" y="30" width="14" height="40" rx="3" fill="#2f7346"/>
-  <rect x="30" y="43" width="40" height="14" rx="3" fill="#2f7346"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder healer avatar (avatar icon pass): the green medic cross. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(62,115,82);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <circle cx="50" cy="50" r="36" fill="#8ee0a3" stroke="#2f7346" stroke-width="3.5"/>
+        <rect x="41" y="22" width="18" height="56" rx="4" fill="#2f7346"/>
+        <rect x="22" y="41" width="56" height="18" rx="4" fill="#2f7346"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>

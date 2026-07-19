@@ -1,13 +1,26 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder medic companion art (content pass C7): the soldier
-       companion silhouette in field-medic white with the red cross satchel
-       and the gold owner-mark — the FieldMedics healer reads as support. -->
-  <ellipse cx="50" cy="55" rx="21" ry="25" fill="#aeb4ba" stroke="#2b2f36" stroke-width="4"/>
-  <path d="M 39 40 L 61 40 L 57 74 L 43 74 Z" fill="#e8e4dc" stroke="#2b2f36" stroke-width="3"/>
-  <circle cx="50" cy="31" r="13" fill="#c49a76" stroke="#2b2f36" stroke-width="4"/>
-  <path d="M 35 30 A 15 15 0 0 1 65 30" fill="#e8e4dc" stroke="#2b2f36" stroke-width="3"/>
-  <rect x="18" y="44" width="18" height="16" rx="3" fill="#e8e4dc" stroke="#2b2f36" stroke-width="3"/>
-  <path d="M 27 47 v 10 M 22 52 h 10" stroke="#b3282d" stroke-width="4" stroke-linecap="round"/>
-  <circle cx="72" cy="52" r="6" fill="#7d858f" stroke="#2b2f36" stroke-width="3"/>
-  <circle cx="72" cy="52" r="2.5" fill="#d4af37"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder medic-companion avatar (avatar icon pass): white field-medic helm, red cross. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(78,110,120);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <circle cx="50" cy="52" r="33" fill="#c49a76" stroke="#2b2f36" stroke-width="3.5"/>
+        <path d="M 20 42 Q 22 14 50 14 Q 78 14 80 42 L 72 46 Q 70 26 50 26 Q 30 26 28 46 Z" fill="#e8e4dc" stroke="#2b2f36" stroke-width="3.5" stroke-linejoin="round"/>
+        <path d="M 50 16 v 12 M 44 22 h 12" stroke="#b3282d" stroke-width="4.5" stroke-linecap="round"/>
+        <circle cx="39" cy="52" r="3.5" fill="#2b2f36"/>
+        <circle cx="61" cy="52" r="3.5" fill="#2b2f36"/>
+        <path d="M 43 66 Q 50 70 57 66" fill="none" stroke="#2b2f36" stroke-width="3" stroke-linecap="round"/>
+        <path d="M 26 80 Q 50 90 74 80 L 70 96 L 30 96 Z" fill="#e8e4dc" stroke="#2b2f36" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="50" cy="88" r="4" fill="#d4af37"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>

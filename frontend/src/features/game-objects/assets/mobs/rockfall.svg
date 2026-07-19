@@ -1,11 +1,26 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder rockfall art (content pass C3): a heap of collapsed grey
-       boulders — the Pickaxe-gated tunnel obstacle (smash tag). -->
-  <circle cx="50" cy="52" r="34" fill="#7d7a75" stroke="#54524e" stroke-width="4"/>
-  <path d="M 30 40 L 46 32 L 54 44 L 40 52 Z" fill="#93908a" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M 56 34 L 72 40 L 66 54 L 52 48 Z" fill="#8a8781" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M 34 56 L 48 56 L 50 70 L 34 68 Z" fill="#a19e97" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M 54 58 L 68 60 L 62 74 L 50 70 Z" fill="#96938d" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
-  <circle cx="44" cy="42" r="3" fill="#b4b1aa"/>
-  <circle cx="60" cy="66" r="2.5" fill="#b4b1aa"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder rockfall avatar (avatar icon pass): heap of collapsed boulders (smash gate). -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(100,92,78);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <path d="M 24 62 L 38 40 L 56 46 L 52 66 Z" fill="#93908a" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 54 44 L 74 36 L 84 56 L 62 62 Z" fill="#8a8781" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 40 24 L 60 18 L 66 36 L 44 42 Z" fill="#a19e97" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 20 78 L 46 68 L 58 84 L 26 88 Z" fill="#a19e97" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 58 68 L 80 64 L 78 84 L 60 86 Z" fill="#96938d" stroke="#54524e" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="44" cy="54" r="3" fill="#b4b1aa"/>
+        <circle cx="68" cy="46" r="2.5" fill="#b4b1aa"/>
+        <circle cx="66" cy="76" r="2.5" fill="#b4b1aa"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>

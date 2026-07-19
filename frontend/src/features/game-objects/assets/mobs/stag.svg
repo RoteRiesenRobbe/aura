@@ -1,10 +1,27 @@
-<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Placeholder stag art (content pass C2): top-down tawny prey — slim body,
-       narrow head, branching antlers. -->
-  <ellipse cx="50" cy="58" rx="18" ry="28" fill="#b08d57" stroke="#7c6138" stroke-width="4"/>
-  <ellipse cx="50" cy="26" rx="9" ry="12" fill="#bc9a64" stroke="#7c6138" stroke-width="4"/>
-  <path d="M 43 20 q -12 -4 -14 -16 M 43 20 q -14 2 -20 -6" fill="none" stroke="#8a6f45" stroke-width="4" stroke-linecap="round"/>
-  <path d="M 57 20 q 12 -4 14 -16 M 57 20 q 14 2 20 -6" fill="none" stroke="#8a6f45" stroke-width="4" stroke-linecap="round"/>
-  <circle cx="50" cy="86" r="5" fill="#e8e0d2" stroke="#7c6138" stroke-width="3"/>
-  <ellipse cx="50" cy="56" rx="8" ry="16" fill="#c6a878"/>
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder stag avatar (avatar icon pass): tawny narrow face, branching antlers. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(62,105,74);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <path d="M 34 28 Q 26 18 28 4 M 34 28 Q 18 22 10 10 M 34 28 Q 22 30 10 26" fill="none" stroke="#8a6f45" stroke-width="4" stroke-linecap="round"/>
+        <path d="M 66 28 Q 74 18 72 4 M 66 28 Q 82 22 90 10 M 66 28 Q 78 30 90 26" fill="none" stroke="#8a6f45" stroke-width="4" stroke-linecap="round"/>
+        <ellipse cx="26" cy="38" rx="10" ry="6" transform="rotate(-30 26 38)" fill="#9a7c4e" stroke="#71592f" stroke-width="3"/>
+        <ellipse cx="74" cy="38" rx="10" ry="6" transform="rotate(30 74 38)" fill="#9a7c4e" stroke="#71592f" stroke-width="3"/>
+        <path d="M 32 28 Q 50 18 68 28 Q 70 52 60 72 Q 55 86 50 88 Q 45 86 40 72 Q 30 52 32 28 Z" fill="#b08d57" stroke="#71592f" stroke-width="3.5" stroke-linejoin="round"/>
+        <path d="M 44 58 Q 50 54 56 58 L 54 78 Q 50 82 46 78 Z" fill="#d3b88a"/>
+        <ellipse cx="40" cy="46" rx="4" ry="5" fill="#2e2013"/>
+        <ellipse cx="60" cy="46" rx="4" ry="5" fill="#2e2013"/>
+        <ellipse cx="50" cy="80" rx="5" ry="4" fill="#2e2013"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
 </svg>
