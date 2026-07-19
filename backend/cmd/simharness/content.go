@@ -74,10 +74,11 @@ func contentFS(contentDir string) (itemsFS, skillsFS, factionsFS, mobsFS fs.FS, 
 	return itemsFS, skillsFS, factionsFS, mobsFS, nil
 }
 
-// loadPresets builds both explorer rosters from the real content: every
-// authored mob, and every player-authored damage- or dot-aura skill at L1 +
-// max level (two entries — the baseline and the specialization ceiling).
-func loadPresets(contentDir string) ([]mobPreset, []playerAuraPreset, error) {
+// loadContent builds the real registries once and returns the authored mob
+// definitions (tier+baseline numbers derived against the working-lock curve —
+// curve.Default = what a conf without the keys boots with, so they match what
+// the live game would spawn) plus the skill registry.
+func loadContent(contentDir string) ([]*mobs.MobDefinition, skills.Registry, error) {
 	itemsFS, skillsFS, factionsFS, mobsFS, err := contentFS(contentDir)
 	if err != nil {
 		return nil, nil, err
@@ -95,16 +96,24 @@ func loadPresets(contentDir string) ([]mobPreset, []playerAuraPreset, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading factions: %w", err)
 	}
-	// Presets derive tier+baseline numbers against the working-lock curve
-	// (curve.Default = what a conf without the keys boots with), so a preset
-	// carries the same derived numbers the live game would spawn.
 	mr, err := mobs.RegistryFromFS(ir, sr, fr, curve.Default(), mobsFS)
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading mobs: %w", err)
 	}
+	return mr.Mobs(), sr, nil
+}
+
+// loadPresets builds both explorer rosters from the real content: every
+// authored mob, and every player-authored damage- or dot-aura skill at L1 +
+// max level (two entries — the baseline and the specialization ceiling).
+func loadPresets(contentDir string) ([]mobPreset, []playerAuraPreset, error) {
+	defs, sr, err := loadContent(contentDir)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	var presets []mobPreset
-	for _, def := range mr.Mobs() {
+	for _, def := range defs {
 		presets = append(presets, mobPreset{Name: def.Name, Spec: mobSpecOf(def)})
 	}
 	sort.Slice(presets, func(i, j int) bool { return presets[i].Name < presets[j].Name })
