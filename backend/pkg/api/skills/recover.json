@@ -1,5 +1,5 @@
 {
-  "_comment": "Skill-vocab chunk 3 smoke content (HoT cases 2+3): a cooldown that heals the caster over ~18 s (GDD personal recovery cooldown, nothing instant) AND gifts the same HoT to nearby allies. One instant_hot with targetsSelf+targetsAllies (the instant_shield structure). The REAL personal recovery cooldown in step 6 is self-only. Cheat-granted (SKILL Recover), no milestone. All values [PLACEHOLDER].",
+  "_comment": "Personal recovery cooldown (GDD: recovery, not combat sustain — the instant Heal covers that): self-only HoT over ~18 s, made self-only in the C8 milestone settlement per plan-content-zones12.md §5. World source: DireBear kill-drop (same settlement — was cheat-only). All values [PLACEHOLDER].",
   "id": 31,
   "name": "Recover",
   "category": "cooldown",
@@ -13,7 +13,7 @@
       "hotTicks": 9,
       "hotTickInterval": 60,
       "targetsSelf": true,
-      "targetsAllies": true
+      "targetsAllies": false
     }
   ]
 }

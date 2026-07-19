@@ -58,12 +58,11 @@ func TestMilestoneUnlocksFromJSON_InvalidJSON(t *testing.T) {
 	require.Error(t, err)
 }
 
-// Pins the embedded milestone table — first cut of the content-pass rewrite
-// (plan-content-zones12.md §13 C1, all levels [PLACEHOLDER], final in C8):
-// only skills the plan keeps as milestones remain. Everything reassigned to
-// drops/teachings is out (Recall → Farmer, Swift → Wolf, Light → Kobold,
-// NovaBurst → Elite Bandit, SummonCompanion → Dog NPC, Taunt → Horde,
-// SummonTotem/Fade → TBD §11), and the fire skills are de-fired (tone rule).
+// Pins the embedded milestone table — FINAL per the C8 milestone settlement
+// (plan-content-zones12.md §13 C8, PO 2026-07-19): milestones are the rare
+// guaranteed beats — Heal (combat sustain) and Haste (first cooldown) — and
+// everything else lives in the world (HealAura → turnip-field Hermit,
+// Recover → DireBear drop, plus all earlier drop/teaching reassignments).
 // Resolves against the real content in api/skills so a renamed skill fails
 // here, not at boot.
 func TestDefaultMilestoneUnlocks_PinnedTable(t *testing.T) {
@@ -78,9 +77,7 @@ func TestDefaultMilestoneUnlocks_PinnedTable(t *testing.T) {
 		got[u.Skill.Name] = u.Level
 	}
 	assert.Equal(t, map[string]uint32{
-		"HealAura": 2,
-		"Heal":     2,
-		"Recover":  3,
-		"Haste":    4,
+		"Heal":  3,
+		"Haste": 7,
 	}, got)
 }
