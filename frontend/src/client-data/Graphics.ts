@@ -299,6 +299,18 @@ export const GraphicsConfig = {
             minSize: <number> 32,
             maxSize: <number> 36,
         },
+
+        troll: {
+            file: require('../features/game-objects/assets/mobs/troll.svg'),
+            minSize: <number> 64,
+            maxSize: <number> 72,
+        },
+
+        banditPyromancer: {
+            file: require('../features/game-objects/assets/mobs/banditPyromancer.svg'),
+            minSize: <number> 46,
+            maxSize: <number> 52,
+        },
     },
 
     // NPC sprites (content pass C2): Resource-backed, referenced by the

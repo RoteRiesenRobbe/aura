@@ -316,19 +316,45 @@ func (p *DamageParams) BerserkerMultiplier(casterHealthRatio float32) float32 {
 }
 
 // HealParams is the heal_aura payload: absolute HP healed per tick (item 11
-// Phase 1) plus the caster's flat HP cost per heal tick. Heals roll their
-// variance per hit like damage does (decision C1); the self-cost stays
-// static by design (predictable build cost).
+// Phase 1) plus the caster's HP cost per heal tick. Heals roll their variance
+// per hit like damage does (decision C1). The self-cost scales per level via
+// SelfDamageHPPerLevel (triage item 2): authored negative it falls with level
+// (leveling makes the aura cheaper, never stronger), clamped at 0. FractionOfMax
+// (triage item 13) is the percent-of-max heal used by the campfire: > 0 heals
+// that fraction of the TARGET's max HP instead of the flat HP (mutually
+// exclusive with HP), so a campfire restores the same share of every pool.
 type HealParams struct {
-	HP           float32
-	HPPerLevel   float32
-	SelfDamageHP float32
-	Variance     float32
+	HP                   float32
+	HPPerLevel           float32
+	SelfDamageHP         float32
+	SelfDamageHPPerLevel float32
+
+	FractionOfMax         float32
+	FractionOfMaxPerLevel float32
+
+	Variance float32
 }
 
 // HPAt is the level-scaled heal center in absolute HP (pre-variance-roll).
 func (p *HealParams) HPAt(level int) float32 {
 	return Scaled(p.HP, p.HPPerLevel, level)
+}
+
+// SelfDamageAt is the level-scaled self-cost in absolute HP (triage item 2).
+// SelfDamageHPPerLevel is authored negative to make the aura cheaper per level;
+// the cost is clamped at 0 so an over-generous curve never heals the caster.
+func (p *HealParams) SelfDamageAt(level int) float32 {
+	cost := Scaled(p.SelfDamageHP, p.SelfDamageHPPerLevel, level)
+	if cost < 0 {
+		cost = 0
+	}
+	return cost
+}
+
+// FractionAt is the level-scaled percent-of-max heal fraction (triage item 13);
+// 0 when unset. The apply site multiplies it by the target's max HP.
+func (p *HealParams) FractionAt(level int) float32 {
+	return Scaled(p.FractionOfMax, p.FractionOfMaxPerLevel, level)
 }
 
 // SelfHealParams is the self_heal payload (cooldown heal on the caster).
@@ -596,9 +622,10 @@ type effectDef struct {
 	StructureDamageFraction float32 `json:"structureDamageFraction"`
 	TargetsStructures       bool    `json:"targetsStructures"`
 
-	HealHP         float32 `json:"healHP"`
-	HealHPPerLevel float32 `json:"healHPPerLevel"`
-	SelfDamageHP   float32 `json:"selfDamageHP"`
+	HealHP               float32 `json:"healHP"`
+	HealHPPerLevel       float32 `json:"healHPPerLevel"`
+	SelfDamageHP         float32 `json:"selfDamageHP"`
+	SelfDamageHPPerLevel float32 `json:"selfDamageHPPerLevel"`
 
 	HealFractionOfMax         float32 `json:"healFractionOfMax"`
 	HealFractionOfMaxPerLevel float32 `json:"healFractionOfMaxPerLevel"`
@@ -706,7 +733,8 @@ var effectKeys = map[EffectType][]string{
 	// No target flags: heal auras target allies implicitly (mob support
 	// behaviors lift the player-only capability with roadmap item 7).
 	EffectTypeHealAura: mergeKeys(keysGeometry, keysCadence, keysCapped,
-		[]string{"healHP", "healHPPerLevel", "selfDamageHP", "variance"}),
+		[]string{"healHP", "healHPPerLevel", "selfDamageHP", "selfDamageHPPerLevel",
+			"healFractionOfMax", "healFractionOfMaxPerLevel", "variance"}),
 	EffectTypeSelfHeal: {"healHP", "healHPPerLevel", "healFractionOfMax", "healFractionOfMaxPerLevel", "variance"},
 	// No selector/cap: a slow aura is a zone — it slows everything in range.
 	EffectTypeSlowAura: mergeKeys(keysGeometry, keysCadence, keysTargetFlags,
@@ -1012,11 +1040,19 @@ func (e *effectDef) healParams() (*HealParams, error) {
 	if err := validateVariance(e.Variance); err != nil {
 		return nil, err
 	}
+	// Flat HP and percent-of-max are mutually exclusive (triage item 13): a heal
+	// tick is one or the other, never both. Keeps the apply-site branch total.
+	if e.HealFractionOfMax > 0 && e.HealHP > 0 {
+		return nil, fmt.Errorf("heal_aura: healHP and healFractionOfMax are mutually exclusive (flat XOR percent-of-max)")
+	}
 	return &HealParams{
-		HP:           e.HealHP,
-		HPPerLevel:   e.HealHPPerLevel,
-		SelfDamageHP: e.SelfDamageHP,
-		Variance:     e.Variance,
+		HP:                    e.HealHP,
+		HPPerLevel:            e.HealHPPerLevel,
+		SelfDamageHP:          e.SelfDamageHP,
+		SelfDamageHPPerLevel:  e.SelfDamageHPPerLevel,
+		FractionOfMax:         e.HealFractionOfMax,
+		FractionOfMaxPerLevel: e.HealFractionOfMaxPerLevel,
+		Variance:              e.Variance,
 	}, nil
 }
 

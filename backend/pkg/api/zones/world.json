@@ -9188,7 +9188,20 @@
       "angle": 3.45,
       "respawnTicks": 7200,
       "respawnVariancePct": 0.1
-    }
+    },
+    { "mob": "Troll", "x": 67.0, "y": -30.0, "angle": 0, "respawnTicks": 5400, "respawnVariancePct": 0.2 },
+    { "mob": "Troll", "x": -67.0, "y": -30.0, "angle": 0, "respawnTicks": 5400, "respawnVariancePct": 0.2 },
+    { "mob": "Troll", "x": 64.0, "y": 31.0, "angle": 0, "respawnTicks": 5400, "respawnVariancePct": 0.2 },
+    { "mob": "Troll", "x": 68.0, "y": 33.0, "angle": 0, "respawnTicks": 5400, "respawnVariancePct": 0.2 },
+    { "mob": "BanditPyromancer", "x": 52.0, "y": -19.0, "angle": 0, "respawnTicks": 1800, "respawnVariancePct": 0.2 },
+    { "mob": "BanditPyromancer", "x": 47.0, "y": -25.5, "angle": 0, "respawnTicks": 1800, "respawnVariancePct": 0.2 },
+    { "mob": "BanditPyromancer", "x": 27.0, "y": 19.0, "angle": 0, "respawnTicks": 1800, "respawnVariancePct": 0.2 },
+    { "mob": "DireWolf", "x": 30.0, "y": -15.0, "angle": 0, "respawnTicks": 1200, "respawnVariancePct": 0.2 },
+    { "mob": "DireWolf", "x": 57.0, "y": -30.0, "angle": 0, "respawnTicks": 1200, "respawnVariancePct": 0.2 },
+    { "mob": "DireWolf", "x": 58.0, "y": 5.0, "angle": 0, "respawnTicks": 1200, "respawnVariancePct": 0.2 },
+    { "mob": "DireWolf", "x": 35.0, "y": -25.0, "angle": 0, "respawnTicks": 1200, "respawnVariancePct": 0.2 },
+    { "mob": "DireBear", "x": 52.0, "y": -33.0, "angle": 0, "respawnTicks": 2400, "respawnVariancePct": 0.2 },
+    { "mob": "DireBear", "x": 33.0, "y": 3.0, "angle": 0, "respawnTicks": 2400, "respawnVariancePct": 0.2 }
   ],
   "campfires": [
     {
@@ -9494,6 +9507,14 @@
       "y": 11.0,
       "radius": 3,
       "entityType": "VillageHealer",
+      "tooLowLine": "You're not ready to carry someone else's life yet. Come back when you've seen a few more fights.",
+      "teachings": [
+        {
+          "skill": "Revive",
+          "requiredLevel": 6,
+          "line": "You've the steady hands for it now — learn to call a fallen friend back from the edge. Revive."
+        }
+      ],
       "lines": [
         "Rest by the fire, traveler. These days I patch up more road-wounds than field-wounds."
       ]
@@ -9514,6 +9535,46 @@
       ],
       "lines": [
         "The orcs hold the south passage. Nobody leaves this valley without going through them."
+      ]
+    },
+    {
+      "type": "Emberkeeper",
+      "x": 40.0,
+      "y": -15.0,
+      "radius": 3,
+      "entityType": "Hermit",
+      "tooLowLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
+      "teachings": [
+        {
+          "skill": "Ignite",
+          "line": "The bandits stole embers from my hearth and call themselves pyromancers. Here is the real spark: Ignite."
+        },
+        {
+          "skill": "ImmolationAura",
+          "requiredLevel": 6,
+          "line": "And when the spark is not enough — wear the fire itself. Immolation."
+        }
+      ],
+      "lines": [
+        "They burned this forest to hide their camp. Fire remembers who feeds it."
+      ]
+    },
+    {
+      "type": "Shaman",
+      "x": 18.0,
+      "y": 6.0,
+      "radius": 3,
+      "entityType": "Hermit",
+      "tooLowLine": "The spirits do not answer the untested. Walk further first.",
+      "teachings": [
+        {
+          "skill": "SummonTotem",
+          "requiredLevel": 5,
+          "line": "Plant this where you make your stand — the spirits will hold the ground with you. Summon a Totem."
+        }
+      ],
+      "lines": [
+        "I raise totems where the roads cross. The wood watches over travelers who cannot watch their own backs."
       ]
     }
   ],

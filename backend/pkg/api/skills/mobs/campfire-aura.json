@@ -1,5 +1,5 @@
 {
-  "_comment": "Atmosphere & recovery chunk 2, §6.2 (decided): the campfire's heal. Uncapped (maxTargets 0) — a campfire heals EVERY wounded aligned entity in range (players + summons/companions), no lowest-health pick. Heals in combat: yes (v1) — attrition rides the chunk-1 regen gate. Cadence sized so zero-to-full ≈ 15–20 s (GDD §3 rhythm): 6 HP per 30-tick (~1 s) tick on a 100-HP pool ≈ 17 s. No selfDamageHP — the self-cost is a player build-cost lever; a mob caster pays none. Chunk 3 adds the big light_aura (rendering-only, streams as light_radius) — the first unequal-radii skill: heal stays r1.5 via the per-effect range check, light never touches sensor/aura_radius. All values [PLACEHOLDER].",
+  "_comment": "Atmosphere & recovery chunk 2, §6.2 (decided): the campfire's heal. Uncapped (maxTargets 0) — a campfire heals EVERY wounded aligned entity in range (players + summons/companions), no lowest-health pick. Heals in combat: yes (v1) — attrition rides the chunk-1 regen gate. Cadence sized so zero-to-full ≈ 15–20 s (GDD §3 rhythm): 6 HP per 30-tick (~1 s) tick on a 100-HP pool ≈ 17 s. No selfDamageHP — the self-cost is a player build-cost lever; a mob caster pays none. Triage item 13: heals healFractionOfMax (percent of each TARGET's max HP) instead of a flat amount, so higher-level pools restore at the same rate; 0.12 [PLACEHOLDER], the % value itself is C8's regen/downtime settlement. Chunk 3 adds the big light_aura (rendering-only, streams as light_radius) — the first unequal-radii skill: heal stays r1.5 via the per-effect range check, light never touches sensor/aura_radius. All values [PLACEHOLDER].",
   "id": 109,
   "name": "CampfireAura",
   "category": "active_aura",
@@ -8,7 +8,7 @@
     {
       "type": "heal_aura",
       "radius": 1.5,
-      "healHP": 12,
+      "healFractionOfMax": 0.12,
       "maxTargets": 0,
       "tickInterval": 60
     },

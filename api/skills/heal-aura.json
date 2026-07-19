@@ -11,7 +11,8 @@
       "radiusPerLevel": 0.0,
       "healHP": 12,
       "healHPPerLevel": 6,
-      "selfDamageHP": 18,
+      "selfDamageHP": 10,
+      "selfDamageHPPerLevel": -2,
       "selector": "lowest_health",
       "maxTargets": 1,
       "tickInterval": 120

@@ -1,0 +1,16 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder troll art (intermission triage Session ②): a hulking mossy-
+       grey-green brute, broad hunched shoulders, jutting lower tusks and a huge
+       knotted club — rounder and clearly bigger than any other silhouette. -->
+  <ellipse cx="50" cy="58" rx="30" ry="30" fill="#5c6b4a" stroke="#2b331f" stroke-width="4"/>
+  <path d="M 24 46 Q 16 40 18 30" fill="none" stroke="#2b331f" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 76 46 Q 84 40 82 30" fill="none" stroke="#2b331f" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="50" cy="34" r="17" fill="#77855b" stroke="#2b331f" stroke-width="4"/>
+  <circle cx="43" cy="33" r="3" fill="#1a1f10"/>
+  <circle cx="57" cy="33" r="3" fill="#1a1f10"/>
+  <path d="M 44 44 l -2 6" stroke="#efe9d2" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 56 44 l 2 6" stroke="#efe9d2" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 72 66 L 96 58" stroke="#6a5a3f" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="94" cy="58" r="8" fill="#6a5a3f" stroke="#3d3223" stroke-width="3"/>
+  <ellipse cx="50" cy="60" rx="12" ry="16" fill="#4a5638"/>
+</svg>

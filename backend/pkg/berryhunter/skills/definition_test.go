@@ -161,6 +161,52 @@ func TestParse_HealAura(t *testing.T) {
 	assert.Equal(t, 1, e.TickInterval)
 }
 
+// --- triage item 2: per-level self-cost curve ---
+
+func TestHealParams_SelfDamageAtScalesDownAndClampsAtZero(t *testing.T) {
+	// The authored curve mirrors heal-aura.json: cost 10 falling by 2/level.
+	p := &HealParams{SelfDamageHP: 10, SelfDamageHPPerLevel: -2}
+	assert.InDelta(t, 10, p.SelfDamageAt(1), 1e-6)
+	assert.InDelta(t, 8, p.SelfDamageAt(2), 1e-6)
+	assert.InDelta(t, 2, p.SelfDamageAt(5), 1e-6)
+	// A curve that would go negative clamps at 0 — leveling never heals the
+	// caster.
+	assert.InDelta(t, 0, p.SelfDamageAt(7), 1e-6, "cost floors at 0, never negative")
+}
+
+func TestParse_HealSelfDamagePerLevel(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":5,"effects":[{"type":"heal_aura","radius":1,"healHP":12,"selfDamageHP":10,"selfDamageHPPerLevel":-2,"tickInterval":120}]}`))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition()
+	require.NoError(t, err)
+	assert.InDelta(t, -2, def.Effects[0].Heal.SelfDamageHPPerLevel, 1e-6)
+}
+
+// --- triage item 13: percent-of-max heal (campfire) ---
+
+func TestHealParams_FractionAt(t *testing.T) {
+	p := &HealParams{FractionOfMax: 0.1, FractionOfMaxPerLevel: 0.05}
+	assert.InDelta(t, 0.1, p.FractionAt(1), 1e-6)
+	assert.InDelta(t, 0.2, p.FractionAt(3), 1e-6)
+	assert.InDelta(t, 0, (&HealParams{}).FractionAt(1), 1e-6, "unset → 0")
+}
+
+func TestParse_HealFractionOfMax(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"heal_aura","radius":1.5,"healFractionOfMax":0.12,"maxTargets":0,"tickInterval":60}]}`))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition()
+	require.NoError(t, err)
+	assert.InDelta(t, 0.12, def.Effects[0].Heal.FractionOfMax, 1e-6)
+	assert.InDelta(t, 0, def.Effects[0].Heal.HP, 1e-6, "no flat HP authored")
+}
+
+func TestMap_HealFlatAndFractionMutuallyExclusiveFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"heal_aura","radius":1,"healHP":5,"healFractionOfMax":0.1,"tickInterval":60}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	assert.ErrorContains(t, err, "mutually exclusive")
+}
+
 func TestParse_SwiftPassive(t *testing.T) {
 	def := mustParse(t, swiftPassiveJSON)
 

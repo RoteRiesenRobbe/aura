@@ -1,0 +1,5 @@
+{
+  "_comment": "Troll (intermission triage Session ②, item 20): a solitary bruiser that squats at the map outskirts between the bandit camps and the orc front. Hostile to players only — it is a lone monster, not part of any war (bandits/orcs/wildlife ignore it and it ignores them). Drops ToughPassive, repairing the Barrier recipe. [PLACEHOLDER]",
+  "name": "troll",
+  "hostileTo": ["aligned"]
+}

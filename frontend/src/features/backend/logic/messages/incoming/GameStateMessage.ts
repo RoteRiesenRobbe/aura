@@ -341,6 +341,8 @@ const gameObjectClasses = [
     Mobs.SoldierCompanion,
     Mobs.ShieldbearerCompanion,
     Mobs.MedicCompanion,
+    Mobs.Troll,
+    Mobs.BanditPyromancer,
 ];
 
 function unmarshalEntityType(entityType) {

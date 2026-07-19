@@ -1,0 +1,31 @@
+{
+  "_comment": "Bandit pyromancer (intermission triage Session ②, item 20): a fire-mage bandit that hangs back in the camps behind the melee line, cooking travelers with a medium-range burning aura (EmberAura, fire DoT). curveLevel 6 sits in the Z2 bandit band. Drops NovaBurst, giving the fire-burst cooldown a world source. Own portrait sprite (EntityType BanditPyromancer). All values [PLACEHOLDER]",
+  "id": 42,
+  "name": "BanditPyromancer",
+  "type": "MOB",
+  "faction": "bandit",
+  "tier": "normal",
+  "curveLevel": 6,
+  "factors": {
+    "baseMaxHealth": 55,
+    "maxHealthVariance": 0.1,
+    "experience": 45,
+    "speed": 0.55,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.3,
+    "aggroRadius": 6
+  },
+  "skills": [
+    { "skillName": "EmberAura", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "NovaBurst", "chance": 0.15 }
+  ]
+}

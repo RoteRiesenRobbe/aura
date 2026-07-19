@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 dark-forest pack leader (content pass C2): the 'something big' the signpost warns about. tier elite as a pure label — eliteness lives in the baseline + curveLevel 5. EliteWolfBite feeds on wounded prey (execute + lifesteal). Guards the Hermit approach; drops the positioning side-grade aura. All values [PLACEHOLDER]",
+  "_comment": "Z1 dark-forest pack leader (content pass C2): the 'something big' the signpost warns about. tier elite as a pure label — eliteness lives in the baseline + curveLevel 5. EliteWolfBite feeds on wounded prey (execute + lifesteal). Guards the Hermit approach; drops the positioning side-grade aura (LongRangeStrike) and — intermission triage Session ②, item 20 — ReaperAura, whose execute+crit+lifesteal identity mirrors the wolf's own. All values [PLACEHOLDER]",
   "id": 19,
   "name": "EliteWolf",
   "type": "MOB",
@@ -26,6 +26,7 @@
     { "skillName": "EliteWolfBite", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "LongRangeStrike", "chance": 0.5 }
+    { "skillName": "LongRangeStrike", "chance": 0.5 },
+    { "skillName": "ReaperAura", "chance": 0.5 }
   ]
 }

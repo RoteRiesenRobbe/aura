@@ -10,6 +10,8 @@ package mob
 // obstacle steering and slows apply like everywhere else.
 
 import (
+	"math"
+
 	"github.com/trichner/berryhunter/pkg/berryhunter/model"
 	"github.com/trichner/berryhunter/pkg/berryhunter/phy"
 )
@@ -28,7 +30,29 @@ const (
 	// signal target beyond it is never acquired, a sticky target drifting
 	// beyond it is dropped — the companion never strays from its owner.
 	companionTetherRadius float32 = 10
+	// companionJitterAngle bounds the per-companion ANGULAR offset of the hold
+	// point around the owner (triage item 6, ruling (c)): siblings steering to
+	// the same ring bearing settle at distinct angles instead of stacking on one
+	// point. Cosmetic — the hold RADIUS stays companionFollowDistance (only the
+	// bearing shifts), so a companion never drifts closer to or further from the
+	// owner than intended. Radians. [PLACEHOLDER]
+	companionJitterAngle = 0.5
+	// companionJitterBuckets quantizes the id-derived jitter angle. Prime, so
+	// the multiplicative hash below scatters CONSECUTIVE entity ids (the ids of
+	// companions spawned in one cast) across the range instead of into
+	// near-identical angles.
+	companionJitterBuckets = 619
 )
+
+// companionHoldAngleOffset is the stable per-companion angular offset applied to
+// the follow bearing (triage item 6): an id-hashed angle in
+// [-companionJitterAngle, companionJitterAngle). Purely functional (no rng draw,
+// no time) so it is identical every tick and reproducible in the sim; a
+// multiplicative hash scatters consecutive ids (companions from one cast).
+func (m *Mob) companionHoldAngleOffset() float64 {
+	h := (m.Basic().ID() * 2654435761) % companionJitterBuckets
+	return (float64(h)/float64(companionJitterBuckets)*2 - 1) * companionJitterAngle
+}
 
 // isFollower reports whether this mob follows an owner: owned and able to
 // move. The totem (speed 0) stays a stationary hazard; a zone-spawned mob has
@@ -68,6 +92,13 @@ func (m *Mob) updateFollow() {
 		dir = m.heading
 	} else {
 		dir = delta.Div(distance)
+	}
+	// Rotate the hold bearing by a small per-companion offset (item 6) so
+	// siblings sharing a bearing settle at distinct angles on the ring; rotation
+	// preserves |dir|, so the hold radius stays companionFollowDistance.
+	if theta := m.companionHoldAngleOffset(); theta != 0 {
+		cos, sin := float32(math.Cos(theta)), float32(math.Sin(theta))
+		dir = phy.Vec2f{X: dir.X*cos - dir.Y*sin, Y: dir.X*sin + dir.Y*cos}
 	}
 	ringPoint := ownerPos.Add(dir.Mult(companionFollowDistance))
 

@@ -1,0 +1,29 @@
+{
+  "_comment": "Z2 dire wolf (intermission triage Session ②, item 18): the stronger Z2 wildlife variant. Reuses the Wolf sprite via entityType (zero art) and the WolfBite skill; the step-up is pure curveLevel (2 → 6, ~1.6× the pool/damage per Philosophy A) plus a bigger body. Dropless — this is difficulty, not a new unlock source (keeps drop rates undistorted, item-18 note). All values [PLACEHOLDER]",
+  "id": 43,
+  "name": "DireWolf",
+  "type": "MOB",
+  "entityType": "Wolf",
+  "faction": "wildlife_predator",
+  "tier": "normal",
+  "curveLevel": 6,
+  "factors": {
+    "baseMaxHealth": 70,
+    "maxHealthVariance": 0.1,
+    "experience": 60,
+    "speed": 0.72,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 4,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.4,
+    "aggroRadius": 6
+  },
+  "skills": [
+    { "skillName": "WolfBite", "level": 1 }
+  ]
+}

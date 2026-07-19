@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 melee bandit (content pass C4, plan-content-zones12.md §4): blade fighter of the camp + horde. BanditBlades carries physical+bleed (multi-tag hit, boar-gore precedent). curveLevel 5 = the Z2 band, one band above Z1's kobolds/spiders (3-4), lower-first per the growth lock. No flee — bandits stand and fight (contrast to the kobold swarm). No drop: the ranged/melee replacement drops stay a §11 open item (Rally cut 2026-07-16). Speed under the 0.7 PO ceiling. All values [PLACEHOLDER]",
+  "_comment": "Z2 melee bandit (content pass C4, plan-content-zones12.md §4): blade fighter of the camp + horde. BanditBlades carries physical+bleed (multi-tag hit, boar-gore precedent). curveLevel 5 = the Z2 band, one band above Z1's kobolds/spiders (3-4), lower-first per the growth lock. No flee — bandits stand and fight (contrast to the kobold swarm). Drops Fade (intermission triage Session ②, item 20): the detaunt cooldown, a rogue's slip-away — fits the road-bandit theme. Speed under the 0.7 PO ceiling. All values [PLACEHOLDER]",
   "id": 27,
   "name": "Bandit",
   "type": "MOB",
@@ -27,5 +27,8 @@
       "skillName": "BanditBlades",
       "level": 1
     }
+  ],
+  "unlocks": [
+    { "skillName": "Fade", "chance": 0.1 }
   ]
 }

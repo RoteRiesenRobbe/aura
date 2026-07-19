@@ -137,8 +137,9 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// bandit set BanditBlades/BanditVolley/BanditHeal/EliteBanditSlash/
 	// RallyDrum + the C5 front set SoldierBlades/OrcCleave/
 	// SpikeBarricadeAura + the C6 warlord set WarlordCleave/WarlordFrenzy/
-	// WarbannerShield/GruntSlash, among the earlier proving/critter auras)
-	assert.Len(t, r.All(), 75)
+	// WarbannerShield/GruntSlash, among the earlier proving/critter auras;
+	// + the intermission Session ② mob auras TrollSmash/EmberAura)
+	assert.Len(t, r.All(), 77)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

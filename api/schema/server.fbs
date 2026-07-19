@@ -62,7 +62,9 @@ enum EntityType : ushort {
   OrcGrunt,
   SoldierCompanion,
   ShieldbearerCompanion,
-  MedicCompanion
+  MedicCompanion,
+  Troll,
+  BanditPyromancer
 }
 
 enum StatusEffect : ushort {

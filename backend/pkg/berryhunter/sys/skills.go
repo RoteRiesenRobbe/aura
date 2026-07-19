@@ -633,7 +633,7 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 		paysCost = false
 	}
 	if paysCost {
-		selfHP = vitals.HP(effect.Heal.SelfDamageHP * powerScale)
+		selfHP = vitals.HP(effect.Heal.SelfDamageAt(level) * powerScale)
 		if health := caster.VitalSigns().Health.UInt32(); selfHP >= health {
 			if health <= 1 && selfHP > 0 {
 				return // cost fully clamped away — skip the whole effect
@@ -674,9 +674,23 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
-		// Heals roll per hit like damage does (item 11 Phase 3, decision C1).
-		healHP := vitals.HP(vitals.RollVariance(healCenterHP, effect.Heal.Variance, rng))
 		other := c.Shape().UserData.(model.Healable)
+		// Percent-of-max heal (triage item 13): when a fraction is authored the
+		// heal center is that fraction of the TARGET's max HP — a campfire
+		// restores the same share of every pool, big or small. No power scale
+		// (max HP already carries f(level), like the self_heal fraction branch).
+		// A target without a MaxHealth (none in practice) heals nothing.
+		centerHP := healCenterHP
+		if effect.Heal.FractionOfMax > 0 {
+			centerHP = 0
+			if maxed, ok := other.(interface {
+				MaxHealth() vitals.VitalSign
+			}); ok {
+				centerHP = effect.Heal.FractionAt(level) * float32(maxed.MaxHealth())
+			}
+		}
+		// Heals roll per hit like damage does (item 11 Phase 3, decision C1).
+		healHP := vitals.HP(vitals.RollVariance(centerHP, effect.Heal.Variance, rng))
 		healed := other.Heal(healHP) // clamps at max, records the floating heal number
 
 		if healed <= 0 {

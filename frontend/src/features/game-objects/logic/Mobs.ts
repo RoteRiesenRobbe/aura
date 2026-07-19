@@ -729,6 +729,32 @@ export class Orc extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Orc, file('orc'), maxSize('orc'));
 
+export class Troll extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('troll'), maxSize('troll')),
+            Troll.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Troll, file('troll'), maxSize('troll'));
+
+export class BanditPyromancer extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('banditPyromancer'), maxSize('banditPyromancer')),
+            BanditPyromancer.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(BanditPyromancer, file('banditPyromancer'), maxSize('banditPyromancer'));
+
 export class SpikeBarricade extends Mob {
     static svg: PIXI.Texture;
 

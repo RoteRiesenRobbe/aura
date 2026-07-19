@@ -67,10 +67,14 @@ func TestMob_FollowerFollowsOwnerAtFullSpeed(t *testing.T) {
 	require.True(t, m.Update(0))
 
 	// One full-speed step toward the owner — follow is NOT idle ambling
-	// (idleSpeedFactor never applies; the companion must outrun the player).
-	assert.InDelta(t, 0.055, m.Position().X, 1e-5,
+	// (idleSpeedFactor never applies; the companion must outrun the player). The
+	// per-companion hold jitter (item 6) tilts the heading a few degrees off the
+	// straight line, so pin the step LENGTH at full speed and the direction as
+	// owner-ward (dominant +X) rather than an exact axis-aligned step.
+	assert.InDelta(t, 0.055, m.Position().Abs(), 1e-3,
 		"follower steps at full speed toward the owner")
-	assert.InDelta(t, 0, m.Position().Y, 1e-5)
+	assert.Greater(t, m.Position().X, float32(0.04),
+		"…and the step heads toward the owner")
 }
 
 func TestMob_FollowerHoldsAtFollowDistance(t *testing.T) {
@@ -108,6 +112,42 @@ func TestMob_FollowerTeleportsWhenHopelesslyFar(t *testing.T) {
 	d := m.Position().Sub(owner.pos).Abs()
 	assert.LessOrEqual(t, d, companionFollowDistance+1e-3,
 		"beyond the teleport threshold the companion snaps beside the owner")
+}
+
+// --- per-companion hold jitter (triage item 6, ruling (c)) ---
+
+func TestMob_CompanionJitterIsStableAndPerCompanion(t *testing.T) {
+	owner := newFakeOwner()
+	a := newTestCompanion(owner)
+	b := newTestCompanion(owner)
+
+	// Deterministic: the same companion yields the same offset every call (no
+	// rng draw, no time) — required for the sim.
+	assert.Equal(t, a.companionHoldAngleOffset(), a.companionHoldAngleOffset(), "offset is stable per tick")
+	// Distinct companions (distinct entity ids) get distinct offsets, so
+	// siblings don't share a hold point.
+	assert.NotEqual(t, a.companionHoldAngleOffset(), b.companionHoldAngleOffset(),
+		"consecutive companions hash to different jitter angles")
+}
+
+func TestMob_CompanionsSharingBearingDoNotStack(t *testing.T) {
+	// Two companions starting at the same point, following the same owner from
+	// the same bearing, would collapse onto one hold point without the jitter.
+	owner := newFakeOwner()
+	owner.pos = phy.Vec2f{X: 2, Y: 0}
+	a := newTestCompanion(owner)
+	b := newTestCompanion(owner)
+
+	for i := 0; i < 80; i++ {
+		require.True(t, a.Update(0))
+		require.True(t, b.Update(0))
+	}
+
+	assert.Greater(t, a.Position().Sub(b.Position()).Abs(), float32(0.1),
+		"the jitter un-stacks siblings that share a follow bearing")
+	// Both still hold on the follow ring around the owner.
+	assert.InDelta(t, companionFollowDistance, a.Position().Sub(owner.pos).Abs(), 0.1)
+	assert.InDelta(t, companionFollowDistance, b.Position().Sub(owner.pos).Abs(), 0.1)
 }
 
 func TestMob_FollowerStandsWhenOwnerDead(t *testing.T) {

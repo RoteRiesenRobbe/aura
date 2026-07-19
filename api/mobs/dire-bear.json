@@ -1,0 +1,29 @@
+{
+  "_comment": "Z2 dire bear (intermission triage Session ②, item 18): the tank half of the Z2 wildlife step-up. Reuses the Bear sprite via entityType (zero art) and the BearSwipe skill; curveLevel 4 → 7 makes it markedly tankier and hits harder while staying slow. Dropless (difficulty, not a source). All values [PLACEHOLDER]",
+  "id": 44,
+  "name": "DireBear",
+  "type": "MOB",
+  "entityType": "Bear",
+  "faction": "wildlife_predator",
+  "tier": "normal",
+  "curveLevel": 7,
+  "factors": {
+    "baseMaxHealth": 140,
+    "maxHealthVariance": 0.1,
+    "experience": 120,
+    "speed": 0.4,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.5,
+    "aggroRadius": 6
+  },
+  "skills": [
+    { "skillName": "BearSwipe", "level": 1 }
+  ]
+}

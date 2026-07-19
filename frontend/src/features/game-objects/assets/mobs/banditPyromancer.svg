@@ -1,0 +1,15 @@
+<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Placeholder bandit pyromancer art (intermission triage Session ②): a
+       hooded bandit in a soot-black cloak, an orange flame cupped in one hand
+       and a burning brand in the other — fire tones mark the caster among the
+       camp rabble. -->
+  <ellipse cx="50" cy="56" rx="23" ry="26" fill="#2a2522" stroke="#141110" stroke-width="4"/>
+  <path d="M 36 34 Q 50 20 64 34 L 60 44 Q 50 36 40 44 Z" fill="#3a322c" stroke="#141110" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="50" cy="38" r="12" fill="#9c7350" stroke="#141110" stroke-width="3"/>
+  <circle cx="45" cy="38" r="2.5" fill="#e8631f"/>
+  <circle cx="55" cy="38" r="2.5" fill="#e8631f"/>
+  <path d="M 24 64 q -4 -12 4 -18 q -2 10 6 12 q -6 4 -10 6 Z" fill="#f6a01e" stroke="#e8631f" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M 26 60 q 0 -6 3 -9 q 0 6 4 7 Z" fill="#ffe08a"/>
+  <path d="M 70 66 L 84 44" stroke="#4a3a26" stroke-width="5" stroke-linecap="round"/>
+  <path d="M 84 44 q -5 -10 2 -16 q -1 8 5 10 q -4 4 -7 6 Z" fill="#f6a01e" stroke="#e8631f" stroke-width="2" stroke-linejoin="round"/>
+</svg>

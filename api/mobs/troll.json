@@ -1,0 +1,31 @@
+{
+  "_comment": "Troll (intermission triage Session ②, item 20): a solitary bruiser squatting at the map outskirts, a difficulty tier BETWEEN the bandits (cL5-7) and the orc front (cL20) — curveLevel 11, elite. Very tanky, very slow, hits hard but rarely (TrollSmash). Spawns alone or in pairs. Drops ToughPassive, repairing the Barrier recipe (Hardy + ToughPassive). Own portrait sprite (EntityType Troll). All values [PLACEHOLDER]",
+  "id": 41,
+  "name": "Troll",
+  "type": "MOB",
+  "faction": "troll",
+  "tier": "elite",
+  "curveLevel": 11,
+  "factors": {
+    "baseMaxHealth": 90,
+    "maxHealthVariance": 0.1,
+    "experience": 220,
+    "speed": 0.45,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.55,
+    "aggroRadius": 6
+  },
+  "skills": [
+    { "skillName": "TrollSmash", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "ToughPassive", "chance": 0.25 }
+  ]
+}

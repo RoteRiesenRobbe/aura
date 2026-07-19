@@ -1,0 +1,22 @@
+{
+  "_comment": "Troll smash (intermission triage Session ②, item 20): a heavy, slow overhead blow — high single-target damage on a long tick. The troll is a tank that hits like a truck but rarely; a player kites it or out-sustains it. Plain physical brute force (no tags). Curve-position-1 baseline; the troll's f(cL11) power scale multiplies these at cast time. All values [PLACEHOLDER]",
+  "id": 132,
+  "name": "TrollSmash",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "damage_aura",
+      "radius": 1.3,
+      "radiusPerLevel": 0.0,
+      "damageHP": 22,
+      "damageHPPerLevel": 3.0,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "tickInterval": 50
+    }
+  ]
+}
