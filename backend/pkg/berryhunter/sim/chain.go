@@ -67,7 +67,8 @@ type ChainConfig struct {
 	// ChainFights is the fixed number of fights per chain [PLACEHOLDER].
 	ChainFights int `json:"chainFights"`
 	// DowntimeSeconds is the modeled walk-to-the-next-pack gap added to the
-	// chain clock after every recovery [PLACEHOLDER].
+	// chain clock after every recovery. Standard assumption 10 s — C8 regen/
+	// downtime settlement (PO 2026-07-19; zone-density-dependent by design).
 	DowntimeSeconds float64 `json:"downtimeSeconds"`
 	// RegenTick overrides the out-of-combat regen (fraction of max HP per
 	// tick); 0 = game default. Time-at-fire is explored by boosting this —

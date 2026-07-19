@@ -123,7 +123,9 @@ type Scenario struct {
 	RegenTick float32 `json:"regenTick,omitempty"`
 }
 
-// DefaultRegenTick mirrors conf.default.json's healthGainTick [PLACEHOLDER].
+// DefaultRegenTick mirrors conf.default.json's healthGainTick — FINAL per the
+// C8 regen settlement (PO 2026-07-19): base regen stays ~1%/s so recovery
+// skills/campfires remain meaningful accelerators (self-heal L1 ≈ +42% pace).
 const DefaultRegenTick = 0.00033
 
 // DefaultMaxTicks caps a fight at 120 simulated seconds [PLACEHOLDER] —

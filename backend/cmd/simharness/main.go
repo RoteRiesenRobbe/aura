@@ -94,7 +94,7 @@ func main() {
 	// [PLACEHOLDER].
 	chain := flag.Bool("chain", false, "run the kills/hour chain battery (facetank vs kite; ignores -distance)")
 	chainFights := flag.Int("chain-fights", 20, "fights per chain")
-	downtime := flag.Float64("downtime", 15, "modeled walk-to-the-next-pack gap in seconds")
+	downtime := flag.Float64("downtime", 10, "modeled walk-to-the-next-pack gap in seconds")
 	regenTick := flag.Float64("regen-tick", 0, "out-of-combat regen fraction of max HP per tick (0 = game default; raise it to model time-at-fire)")
 	selfHeal := flag.Int("self-heal", 0, "self-heal cooldown level, 0 = none (20%+5%/lvl of max HP, 30s cd — mirrors Heal)")
 	chainLevels := flag.String("chain-levels", "", "level brackets, comma-separated (scaled same-tier by -growth; empty = the explicit numbers)")
