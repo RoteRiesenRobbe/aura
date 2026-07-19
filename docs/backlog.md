@@ -671,7 +671,9 @@ death-respawn land at **execution step 3** (campfire death-respawn; the respawn
 point is set by dwelling N s [PLACEHOLDER] in the fire aura, not an instant
 walk-through). Recall itself lands at **step 4** — it is the first consumer of a
 new **cast-time + interrupt** primitive and reuses that step-3 tracker; it is a
-Cooldown-category spellbook entry. Recorded in roadmap.
+Cooldown-category spellbook entry. Recorded in roadmap. **⚠ See §20** — the
+client render-interpolation crawl on large position jumps must be fixed with
+Recall, or the teleport will visually creep instead of snapping.
 
 **Update (2026-07-10):** the respawn-point set is decided — **fixed world
 campfires only** (GDD §3); player-placed recovery points are never respawn
@@ -1026,3 +1028,35 @@ strategy — keep only short combat SFX decoded, load the rest on demand
 and/or switch long music/ambience tracks to `@pixi/sound`'s HTML5-streamed
 mode (`preload: false` / `html5`). No gameplay effect. Natural home: the
 ops/polish pass (step 9) or any frontend-touching session with slack.
+
+## 20. Client render-interpolation crawl after large position jumps
+
+Captured 2026-07-18 (during the map-condense pass; was a stray note in the
+CLAUDE.md status banner — moved here as its proper home).
+
+**Symptom:** after a large server-side position jump, the client's entity
+render-interpolation + camera-follow *crawl* the avatar to the new spot at
+roughly walk speed instead of snapping. The **server position is instant and
+physically correct** — this is purely a client-side visual smoothing artifact.
+
+**Reproduces on:** the `WARP` dev cheat today, and **almost certainly the
+future `Recall` cooldown** (§9 — Recall is the first real-feature consumer of
+a large jump, so fix this before/with Recall or its teleport will look broken).
+
+**Likely area:** entity snapshot interpolation + camera lerp in the frontend
+`core` / `game-objects` loop — a jump beyond some threshold should hard-snap
+(both entity and camera) rather than interpolate. No design decision needed;
+this is a bug/polish item.
+
+**Status (2026-07-19): resolved.** Root cause split in two: the **entity** side
+already hard-snapped — `_GameObject.setPosition` snaps for jumps beyond
+`TELEPORT_SNAP_DISTANCE_PX` (180px), which any WARP/Recall exceeds. The
+remaining crawl was purely the **camera**, which follows via a speed-capped
+Nature-of-Code steering `Vehicle` (`Camera.ts`); after a large jump it dragged
+across the whole gap at ~2× walk speed. Fixed in `Camera.update()` — when the
+followed character sits more than a full viewport away, the Vehicle snaps
+straight onto it (position set, velocity zeroed) instead of steering; normal
+on-screen following and its easing are untouched. Committed `b085452d`. Verified
+in-game: post-WARP frame-diff series shows one instantaneous view change then
+flat (no pan tail), player centered on the first post-warp frame, 0 client
+errors. Recall (§9) inherits the fix.
