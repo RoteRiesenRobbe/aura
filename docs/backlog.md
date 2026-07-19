@@ -1060,3 +1060,45 @@ on-screen following and its easing are untouched. Committed `b085452d`. Verified
 in-game: post-WARP frame-diff series shows one instantaneous view change then
 flat (no pan tail), player centered on the first post-warp frame, 0 client
 errors. Recall (§9) inherits the fix.
+
+## 21. Two capstones unlock simultaneously off the shared Vanguard gate
+
+Captured 2026-07-19 (PO play-noticed): leveling **Vanguard + CallForAid +
+DamageAura** pops **Spearhead** and **Warbanner** in the *same instant* —
+"doesn't feel good."
+
+**Root cause — the Vanguard hub.** `Vanguard 5` is the gate for *four* recipes
+at once, so maxing it while both partner ingredients are already met unlocks
+multiple combos together:
+
+| Recipe | Gate | Partner |
+|---|---|---|
+| Spearhead (§A "best damage aura", ceiling) | Vanguard 5 | DamageAura 5 |
+| Warbanner (§A capstone, top of ceiling) | Vanguard 5 | CallForAid 3 |
+| Lifewarden | Vanguard 5 | HealAura 5 |
+| Shockwave | Vanguard 5 | DamageBurst 3 |
+
+The specific bad pair is Spearhead + Warbanner because **both are ceiling/capstone
+combos** — co-popping robs each of its moment and erases the build *choice*
+between the two warlord fantasies (you just get both). Lifewarden/Shockwave can
+co-pop the same way; the fix should treat the whole hub, not just this pair.
+
+**Design principle to encode:** simultaneous multi-unlock is fine for *lateral
+flavor combos* (small synergies, "three things clicked" delight); it's bad for
+*two capstones*. Capstones must not share a gate that another capstone completes
+for free.
+
+**Fix options (open — PO call; likely settled in C8 recipe-net calibration,
+`plan-content-zones12.md` §13/§A):**
+- **A. Tier them (recommended).** Make the true capstone consume the other as an
+  ingredient (Warbanner requires Spearhead). Result-as-ingredient is already
+  supported and GDD-wanted; Spearhead unlocks first, Warbanner strictly later —
+  earned, sequential.
+- **B. Disjoint gates.** Re-gate one off a different maxed base so the two are
+  distinct investments (e.g. Spearhead off DamageAura + DamageBurst; Warbanner
+  keeps Vanguard + CallForAid). Getting both = deliberate double-investment.
+- **C. Stagger levels only.** Bump gate levels so they don't coincide. Removes
+  simultaneity but not the no-choice problem — weakest, not recommended.
+
+Design/recipe-topology decision, not a bug — no code until the direction is
+chosen.

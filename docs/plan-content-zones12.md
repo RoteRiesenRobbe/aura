@@ -897,6 +897,14 @@ any content.
 
 ### C8 — Balance & guardrail pass
 
+- **Step 0 (do first, before the calibration battery) — recipe-net topology fix
+  (backlog §21):** the shared `Vanguard 5` hub pops two *capstones* (Spearhead +
+  Warbanner) in the same instant off a warlord build — no sequence, no choice.
+  Pick the fix (PO call; **A = tier Warbanner→requires→Spearhead** recommended /
+  B = disjoint gates / C = stagger levels) and reshape the recipe JSON. Must
+  precede calibration because it changes the graph + the §A ceiling presets C8
+  tunes against; treat the whole Vanguard hub (Lifewarden/Shockwave co-pop the
+  same way), not just the one pair.
 - Full-roster sim-harness presets; kills/hour chain per level bracket vs
   the tier placeholders (normal ≤ ~50 % facetankable, elite ≤ ~25 %, boss
   kills the facetank bot); **regen/downtime knob settlement** (the open PO
