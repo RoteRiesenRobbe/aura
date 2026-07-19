@@ -64,7 +64,7 @@ func TestSpellbookLevelsMarshalFlatbuf_ParallelToSpellbook(t *testing.T) {
 }
 
 func TestPassiveSlotsMarshalFlatbuf_PositionalOrder(t *testing.T) {
-	// Equip passive slots 0 and 2; wire must read [id0, 0, id2, 0].
+	// Equip passive slots 0 and 2; wire must read [id0, 0, id2].
 	sc := skills.NewSkillComponent(true)
 	def0 := &skills.SkillDefinition{ID: 10, Name: "SwiftPassive"}
 	def2 := &skills.SkillDefinition{ID: 11, Name: "TankPassive"}
@@ -86,7 +86,6 @@ func TestPassiveSlotsMarshalFlatbuf_PositionalOrder(t *testing.T) {
 	assert.Equal(t, uint16(10), result.PassiveSlots(0))
 	assert.Equal(t, uint16(0), result.PassiveSlots(1))
 	assert.Equal(t, uint16(11), result.PassiveSlots(2))
-	assert.Equal(t, uint16(0), result.PassiveSlots(3))
 }
 
 func TestCooldownSlotsMarshalFlatbuf_ContentsAndRemaining(t *testing.T) {
@@ -147,8 +146,8 @@ func TestSpellbookMarshalFlatbuf_Empty(t *testing.T) {
 }
 
 func TestAuraSlotsMarshalFlatbuf_PositionalOrder(t *testing.T) {
-	// Equip slots 0 and 2; slots 1 and 3 empty.
-	// Wire must read [id0, 0, id2, 0] — empty middle slot must survive.
+	// Equip slots 0 and 2; slot 1 empty.
+	// Wire must read [id0, 0, id2] — empty middle slot must survive.
 	sc := skills.NewSkillComponent(true)
 	def0 := &skills.SkillDefinition{ID: 1, Name: "DamageAura"}
 	def2 := &skills.SkillDefinition{ID: 2, Name: "HealAura"}
@@ -163,11 +162,10 @@ func TestAuraSlotsMarshalFlatbuf_PositionalOrder(t *testing.T) {
 	b.Finish(gs)
 
 	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
-	require.Equal(t, 4, result.AuraSlotsLength())
+	require.Equal(t, skills.MaxAuraSlots, result.AuraSlotsLength())
 	assert.Equal(t, uint16(1), result.AuraSlots(0), "slot 0 = DamageAura")
 	assert.Equal(t, uint16(0), result.AuraSlots(1), "slot 1 = empty")
 	assert.Equal(t, uint16(2), result.AuraSlots(2), "slot 2 = HealAura")
-	assert.Equal(t, uint16(0), result.AuraSlots(3), "slot 3 = empty")
 }
 
 func TestAuraSlotsMarshalFlatbuf_AllEmpty(t *testing.T) {
@@ -181,8 +179,8 @@ func TestAuraSlotsMarshalFlatbuf_AllEmpty(t *testing.T) {
 	b.Finish(gs)
 
 	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
-	require.Equal(t, 4, result.AuraSlotsLength())
-	for i := 0; i < 4; i++ {
+	require.Equal(t, skills.MaxAuraSlots, result.AuraSlotsLength())
+	for i := 0; i < skills.MaxAuraSlots; i++ {
 		assert.Equal(t, uint16(0), result.AuraSlots(i))
 	}
 }

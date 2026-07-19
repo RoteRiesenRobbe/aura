@@ -6,6 +6,7 @@ import {Camera} from '../../camera/logic/Camera';
 import {DamageState, VitalSigns, VitalSignValues} from '../../vital-signs/logic/VitalSigns';
 import {isDefined} from '../../common/logic/Utils';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
+import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
 import {MiniMap} from '../../mini-map/logic/MiniMap';
 import {PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
@@ -16,6 +17,7 @@ export class Player {
     controls: Controls;
     camera: Camera;
     vitalSigns: VitalSigns;
+    private lastLevel: number | null = null;
 
     constructor(id: number, x: number, y: number, name: string, miniMap: MiniMap) {
         this.character = new Character(id, x, y, name, true);
@@ -102,6 +104,17 @@ export class Player {
                 Math.max(entity.lightRadius, MIN_SELF_LIGHT_PX));
         }
         if (isDefined(entity.level)) {
+            // Level-up notification: the server sends no event — detect the
+            // level increase from the per-tick value, like the spellbook diff.
+            // Fires here (before HUD.updateSpellbook in Backend), so on a
+            // milestone level the "Level N!" banner queues ahead of the
+            // "New skill" unlock banner from the same tick. The first snapshot
+            // after join/respawn only seeds lastLevel — no banner.
+            if (this.lastLevel !== null && entity.level > this.lastLevel) {
+                AlertBanner.show(`Level ${entity.level}!`, 'levelup');
+                this.character.showFloatingText('Level up!', LEVEL_UP_COLOR, LEVEL_UP_SIZE_FACTOR);
+            }
+            this.lastLevel = entity.level;
             this.character.setLevel(entity.level);
         }
 
@@ -147,3 +160,8 @@ export class Player {
 // tiny, just covering the avatar sprite itself (PO: darkness stays fully
 // dark). [PLACEHOLDER]
 const MIN_SELF_LIGHT_PX = 40;
+
+// Level-up overhead flash: gold matching the banner's unlock/levelup color,
+// crit-sized so it pops over the simultaneous +XP number.
+const LEVEL_UP_COLOR = 0xffd75e;
+const LEVEL_UP_SIZE_FACTOR = 1.6;

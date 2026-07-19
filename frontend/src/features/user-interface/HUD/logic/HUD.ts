@@ -290,7 +290,7 @@ function setupAuraLoadout() {
 // nothing. The highlight set here is optimistic (instant feedback); the
 // server-authoritative active_aura_slot overwrites it every tick
 // (updateActiveAuraSlot), and the on-character ring follows
-// Character.active_skill_id. Shared by slot clicks and hotkeys 1–4.
+// Character.active_skill_id. Shared by slot clicks and hotkeys 1–3.
 function toggleAuraSlot(slot: number) {
     if (currentAuraSlots[slot] === 0 || currentAuraSlots[slot] === undefined) {
         return;
@@ -322,12 +322,12 @@ let pendingSlot: number | null | undefined = undefined;
 let pendingSlotUntil = 0;
 const PENDING_SLOT_GRACE_MS = 400;
 
-// hotkeyAuraSlot is the keyboard entry point (Controls, keys 1–4).
+// hotkeyAuraSlot is the keyboard entry point (Controls, keys 1–3).
 export function hotkeyAuraSlot(slot: number) {
     toggleAuraSlot(slot);
 }
 
-// hotkeyCooldownSlot is the keyboard entry point (Controls, Q/E).
+// hotkeyCooldownSlot is the keyboard entry point (Controls, Q/E/F).
 export function hotkeyCooldownSlot(slot: number) {
     activateCooldownSlot(slot);
 }
@@ -375,7 +375,7 @@ function setupCooldownLoadout() {
 }
 
 // activateCooldownSlot fires an occupied, ready cooldown slot. Shared by
-// slot clicks and the Q/E hotkeys; the server re-validates every request.
+// slot clicks and the Q/E/F hotkeys; the server re-validates every request.
 function activateCooldownSlot(slot: number) {
     if ((currentCooldownSlots[slot] ?? 0) === 0) return;
     if ((currentCooldownRemaining[slot] ?? 0) > 0) return;

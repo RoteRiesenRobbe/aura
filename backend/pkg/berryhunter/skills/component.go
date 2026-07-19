@@ -2,11 +2,12 @@ package skills
 
 import "slices"
 
-// MaxAuraSlots, MaxPassiveSlots, MaxCooldownSlots are [PLACEHOLDER] — adjust during balancing.
+// MaxAuraSlots, MaxPassiveSlots, MaxCooldownSlots: 3/3/3 per PO 2026-07-20
+// (still [PLACEHOLDER] until marked final).
 const (
-	MaxAuraSlots     = 4
-	MaxPassiveSlots  = 4
-	MaxCooldownSlots = 2
+	MaxAuraSlots     = 3
+	MaxPassiveSlots  = 3
+	MaxCooldownSlots = 3
 )
 
 // EquippedSkill is one skill installed in a slot on a SkillComponent.

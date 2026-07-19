@@ -59,11 +59,11 @@ export class Controls {
     altActionKeys = new Keys(KeyCodes.SHIFT);
     pauseKeys = new Keys(KeyCodes.P);
     // Hotkeys [PLACEHOLDER bindings until a keybinding UI exists]:
-    // 1–4 toggle the aura slots, Q/E fire the cooldown slots.
-    auraHotkeys = [new Keys(KeyCodes.ONE), new Keys(KeyCodes.TWO), new Keys(KeyCodes.THREE), new Keys(KeyCodes.FOUR)];
-    cooldownHotkeys = [new Keys(KeyCodes.Q), new Keys(KeyCodes.E)];
-    private auraHotkeysWereDown: boolean[] = [false, false, false, false];
-    private cooldownHotkeysWereDown: boolean[] = [false, false];
+    // 1–3 toggle the aura slots, Q/E/F fire the cooldown slots.
+    auraHotkeys = [new Keys(KeyCodes.ONE), new Keys(KeyCodes.TWO), new Keys(KeyCodes.THREE)];
+    cooldownHotkeys = [new Keys(KeyCodes.Q), new Keys(KeyCodes.E), new Keys(KeyCodes.F)];
+    private auraHotkeysWereDown: boolean[] = [false, false, false];
+    private cooldownHotkeysWereDown: boolean[] = [false, false, false];
     hitAnimationTick: number = 0;
     clock: Tock;
     inventoryAction: InputAction;

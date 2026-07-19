@@ -42,8 +42,9 @@
 		opacity: 1;
 	}
 
-	&.unlock {
-		color: #ffd75e; // gold — a spellbook discovery
+	&.unlock,
+	&.levelup {
+		color: #ffd75e; // gold — a spellbook discovery or a level-up
 	}
 }
 
@@ -502,20 +503,6 @@
 		color: white;
 		font-size: (0.3 * @uiElementHeight);
 		text-shadow: 0 0 2px black, 0 0 2px black;
-	}
-}
-
-// Aura slots as a 2×2 grid: column 1 = slots 1+2, column 2 = slots 3+4
-// (column-first fill matches the hotkey order 1/2 left, 3/4 right).
-#auraLoadout > #auraSlotList {
-	display: grid;
-	grid-template-rows: repeat(2, auto);
-	grid-auto-flow: column;
-	column-gap: 1.5rem;
-
-	// Grid rows replace the list flow: only the top row keeps a divider.
-	> .auraSlot:nth-child(even) {
-		border-bottom: none;
 	}
 }
 
