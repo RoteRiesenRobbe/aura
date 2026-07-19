@@ -668,8 +668,8 @@ usual TDD + verify pass):
 ## Execution sequence (locked 2026-07-19)
 
 1. **Session ① — "Intermission fixes" mini-chunk** — ✅ **DONE 2026-07-19**
-   (one session; automated in-game verify PASS — pending the PO's own in-game
-   pass + commit). All items below landed; `go build` + full suite + `-race`
+   (one session; **PO-verified in-game, committed `2c155a68`** to main per PO
+   directive, no branch). All items below landed; `go build` + full suite + `-race`
    green, boot clean (startingSpawn validation passes), headless browser PASS
    (west-fire spawn, empty spellbook, Farmer teaches Harvest, avatar rotation
    pinned, 0 client errors on re-run). The item-3/9 *code* niceties (DRIFT-D
