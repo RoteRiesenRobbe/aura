@@ -682,13 +682,32 @@ usual TDD + verify pass):
    flag · **11** Harvest via Farmer (strip spawn freebie) · **21-partial**
    `Items.ts` `isDefined(null)` fix · **3/9** manual drift fixes + NPC
    walkthrough · GDD §11 + roadmap amendment for item 10. TDD + verify pass.
-2. **Session ② — pre-C8 lifts + content** (own chat, **PO directive: run with
-   ultracode**): item **2** heal-cost linear scaling (schema+loader+apply+UI
-   number) · **13** campfire `healFractionOfMax` lift (value stays C8) ·
-   **6** companion jitter · **18** Z2 wildlife variant defs · **20**
-   placements (fire-teacher NPC, SlowAura/ToughPassive/Fade/NovaBurst/
-   SummonTotem sources, Revive/Reaper ports) — un-breaking Wildfire/
-   Suppression/Barrier **before** C8 balances them.
+2. **Session ② — pre-C8 lifts + content** — ✅ **DONE 2026-07-19** (one session,
+   ran with ultracode; **PO-verified in-game, committed `dad7c42d`** to main,
+   no branch per PO). **Code lifts (TDD):** item **2** heal self-cost per-level
+   curve — `HealParams.SelfDamageHPPerLevel` + `SelfDamageAt()` (clamp ≥0), raw
+   `effectDef` field + `effectKeys[HealAura]` allowlist + apply-site
+   `sys/skills.go`; `heal-aura.json` `10 −2/level` ⇒ heal > cost from L1. Item
+   **13** campfire percent-of-max heal — `HealParams.FractionOfMax(+PerLevel)` +
+   `FractionAt()`, per-*target* `MaxHealth()` in `applyHealAura` (no powerScale,
+   mirrors self_heal), flat-XOR-fraction validation; `campfire-aura.json`
+   `healFractionOfMax:0.12` (value stays C8). Item **6** companion hold jitter —
+   deterministic id-hashed **angular** offset (rotates the bearing, preserves the
+   radius; sim-safe), 2 follow tests re-pinned + 1 new. **Content (item 20):**
+   SlowAura→BanditRanged drop, ReaperAura→EliteWolf drop, Fade→Bandit drop;
+   **ToughPassive→new Troll mob** (elite cL11, own art, `troll` faction,
+   TrollSmash); **NovaBurst→new BanditPyromancer mob** (cL6, own art, medium-range
+   fire DoT `EmberAura`); Ignite+ImmolationAura→new **Emberkeeper** NPC;
+   Revive→VillageHealer teaching; SummonTotem→new **Shaman** NPC; item **18**
+   DireWolf + DireBear Z2 variants (entityType art-reuse). **⇒ Wildfire /
+   Suppression / Barrier now craftable.** Two new mobs = full 6-file art path
+   (enum Troll=60/BanditPyromancer=61 + regen, Graphics.ts/Mobs.ts/
+   gameObjectClasses + 2 SVGs); new mob skills TrollSmash 132 + EmberAura 133,
+   registry pin 75→**77**. **Verified:** build + full suite + `-race` green; boot
+   77 skills/13 factions/44 mobs/10 recipes/620 props/198 spawns/2 campfires/12
+   npcs, 0 panics; browser (after camera-snap fix `b085452d`) — new mob sprites
+   render, Emberkeeper teaches Ignite, 0 client errors. **PO note:** RNG drops
+   liked as-is, "should be the default for most" (revisit in C8's drop-rate pass).
 3. **Session ③ — C8** per `plan-content-zones12.md` §13, now pure
    tuning/guardrails on final schemas with all recipes reachable.
 4. **Post-C8 — "combat readability" session:** items **7 + 15** (category
