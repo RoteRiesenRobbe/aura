@@ -897,6 +897,60 @@ any content.
 
 ### C8 — Balance & guardrail pass
 
+> **⏳ Session ③ part 1 (sim-side items) DONE 2026-07-19, PO-read in-session —
+> commits `4e412ebf` (Step 0) + `405b9e8c` + `6a2f69a4` + `ed9ffdff` +
+> `c55838e0`. All sim/test/tooling — ZERO game-content changes beyond Step 0's
+> Warbanner recipe; registry pins unchanged (77 skills / 10 recipes).
+> Remaining C8 (next session): drop-rate feel pass (§11 pity), campfire
+> `healFractionOfMax` + heal-cost-curve finals, milestone-table final, PO
+> full-journey in-game walkthrough (incl. the Step-0 Warbanner sequence +
+> ceiling-kit heal/shield feel — the sim under-reads the kit, damage axis
+> only).**
+>
+> **Ledger by item:** **(1) Full-roster presets** — found+fixed the dot gap:
+> sim `AuraSpec` gained `dotTicks`/`dotTickInterval` building a REAL
+> `dot_aura` (PO picked full-fidelity over DPS-approximation; StatusEffects
+> pipeline already ran in the sim world; exact-tick pin, death on tick 22).
+> BanditPyromancer/VenomSpider/Totem/Brazier un-turreted, ImmolationAura +
+> Wildfire join the player roster (24→28); explorer dot knobs both fieldsets;
+> pyro idle-TTD ~15.0 s median where it timed out before (`405b9e8c`).
+> **(2) Kills/hour chain, full armed roster** (34 mobs @ home bracket,
+> baseline bot 100×f / DamageAura-L1×f): metric is near-binary per matchup —
+> elites/bosses all comply (0% facetank survive / bot dies); normals split
+> 12 soft (100%) vs 3 hard (Kobold/Bear/DireBear kill the bot); kite
+> 140–285 kph vs facetank 39–129 everywhere it exists (efficiency .18–.51,
+> positioning always pays); ranged mobs invert coherently (facetank-only);
+> flat across brackets cL1–23 (Philosophy A holds on real content).
+> **PO rulings:** normal tier = **per-mob texture** (soft/hard is mob
+> identity), guardrail = zone **band-check** (Z1+Z2 each ≥1 soft + ≥1 hard);
+> **assert scope** = real hostile roster only (exempt: hazards/props,
+> summons, encounter internals, allies, flee-critters — curated list, new
+> mobs assert by default); **front exempt** from band-check (elite/group
+> territory); ProvingBoss solo-kite (LRS, ~34 kph) **acceptable**, boss
+> assert stays "facetank bot dies". **(3) Regen/downtime settlement**
+> (closes the chunk-4 PO item): **regen 0.00033/tick ≈ 1%/s FINAL** (at 1%/s
+> self-heal L1 = +42% facetank pace — the accelerator niche is the point;
+> 2%/s would hand it out free); **downtime 15 s → 10 s** (denser-spawn
+> assumption; kobold-tier kite 181→241 kph) — CLI/UI/doc defaults updated
+> (`6a2f69a4`). **(4) Guardrail asserts** — `guardrail_test.go`
+> `TestGuardrails_TierThresholdsVsRealRoster`: seeded, deterministic, 3.8 s,
+> all rulings encoded in the header ledger; current content passes (Z1 soft
+> ×6 / hard Kobold+Bear; Z2 soft ×4 / hard DireBear; 6 elites + 2 bosses
+> comply); `loadContent` refactor shares the registry path, bot weapon
+> derives from authored DamageAura (`ed9ffdff`). **(5) §A Front-Aura ceiling
+> calibration — ACCEPTED as authored, no tuning.** League (sustained
+> EV/tick, max level): Spearhead 2.28 (3.4× best non-ceiling) > Warbanner
+> 1.43 > Vanguard 1.34 > base family 0.67; even L1 ceiling refs beat maxed
+> base. Packs: Spearhead clears 3 OrcGrunts in the 1-grunt 4 s (base
+> overwhelmed at 2). Spearhead's r1.3 uniquely opens the Orc-elite kite ring
+> (157 kph) — the ceiling materially unlocks solo elite farming.
+> `TestGuardrails_CeilingOrdering` pins the ordering arithmetically (§A
+> "never a surprise") (`c55838e0`). **Verified:** full backend suite green
+> (29 pkgs) + `-race` (sim); Playwright driver over the explorer clean (dot
+> knobs render, 4 batteries drive). Battery artifacts (session scratchpad,
+> regenerate via the run-simharness skill): chain-roster-results-dt10.json,
+> regen-sweep-results.json, ceiling-calibration-results.json.**
+
 - **Step 0 — recipe-net topology fix (backlog §21): ✅ DONE 2026-07-19 (PO
   decided in-session).** Option **A (tier)**: Warbanner = `Vanguard 5 +
   Spearhead 5 + CallForAid 3` — Spearhead at max (cascade discovers at L1, so
