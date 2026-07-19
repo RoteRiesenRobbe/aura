@@ -69,15 +69,31 @@ export class Camera {
     }
 
     update() {
-        this.vehicle.arrive(this.character.getPosition());
-        this.vehicle.update();
+        const target = this.character.getPosition();
+        const scale = viewScale();
+
+        // After a teleport (WARP cheat, Recall) the followed character jumps far
+        // beyond one frame of follow-steering. Rather than let the steering
+        // Vehicle crawl across the whole gap at ~walk speed, snap the camera
+        // straight onto the target. Threshold: the target sits more than a full
+        // viewport away — only a real teleport does that, never on-screen
+        // movement — so normal following (and its easing) is untouched.
+        const dx = target.x - this.vehicle.position.x;
+        const dy = target.y - this.vehicle.position.y;
+        const snapDistance = Math.max(Game.width, Game.height) / scale;
+        if (dx * dx + dy * dy > snapDistance * snapDistance) {
+            this.vehicle.position.set(target.x, target.y);
+            this.vehicle.velocity.set(0, 0);
+        } else {
+            this.vehicle.arrive(target);
+            this.vehicle.update();
+        }
 
         if (!Develop.isActive() ||
             (Develop.isActive() && Develop.get().settings.cameraBoundaries)) {
             keepWithinMapBoundaries(this.vehicle);
         }
 
-        const scale = viewScale();
         Game.cameraGroup.scale.set(scale);
         Game.cameraGroup.position.set(
             Game.centerX - this.position.x * scale,
