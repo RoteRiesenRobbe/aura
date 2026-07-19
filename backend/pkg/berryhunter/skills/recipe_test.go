@@ -170,7 +170,7 @@ func TestRecipes_C7Net(t *testing.T) {
 		{map[string]int{"Vanguard": 5, "DamageAura": 5}, []string{"Spearhead"}},
 		{map[string]int{"Vanguard": 5, "HealAura": 5}, []string{"Lifewarden"}},
 		{map[string]int{"Vanguard": 5, "DamageBurst": 3}, []string{"Shockwave"}},
-		{map[string]int{"Vanguard": 5, "CallForAid": 3}, []string{"Warbanner"}},
+		{map[string]int{"Vanguard": 5, "Spearhead": 5, "CallForAid": 3}, []string{"Warbanner"}},
 		{map[string]int{"CallForAid": 3, "Taunt": 3}, []string{"HoldTheLine"}},
 		{map[string]int{"CallForAid": 3, "HealAura": 5}, []string{"FieldMedics"}},
 		{map[string]int{"Ignite": 3, "ImmolationAura": 5}, []string{"Wildfire"}},
@@ -192,8 +192,10 @@ func TestRecipes_C7Net(t *testing.T) {
 		}
 	}
 
-	// A maxed Vanguard journey (all trio partners + CallForAid) unlocks the
-	// whole ceiling in one ApplyRecipes call.
+	// §21 topology fix (Session ③ Step 0): a maxed Vanguard journey (all trio
+	// partners + CallForAid) pops the ceiling trio in one ApplyRecipes call,
+	// but the Warbanner capstone is tiered behind a maxed Spearhead — the
+	// cascade discovers Spearhead at L1, which must NOT satisfy Warbanner.
 	sc := NewSkillComponent(true)
 	for name, level := range map[string]int{
 		"Vanguard": 5, "DamageAura": 5, "HealAura": 5, "DamageBurst": 3, "CallForAid": 3,
@@ -203,11 +205,23 @@ func TestRecipes_C7Net(t *testing.T) {
 		sc.Spellbook[def.ID] = level
 	}
 	unlocked := ApplyRecipes(sc, rr)
-	for _, result := range []string{"Spearhead", "Lifewarden", "Shockwave", "Warbanner", "FieldMedics"} {
+	for _, result := range []string{"Spearhead", "Lifewarden", "Shockwave", "FieldMedics"} {
 		def, err := sr.GetByName(result)
 		require.NoError(t, err, result)
 		assert.Contains(t, unlocked, def.ID, result)
 	}
+	warbanner, err := sr.GetByName("Warbanner")
+	require.NoError(t, err)
+	assert.NotContains(t, unlocked, warbanner.ID,
+		"Warbanner must not co-pop with Spearhead off the Vanguard 5 hub")
+
+	// Investing Spearhead to max unlocks the capstone strictly later.
+	spearhead, err := sr.GetByName("Spearhead")
+	require.NoError(t, err)
+	for sc.RaiseSkillLevel(spearhead) {
+	}
+	assert.Contains(t, ApplyRecipes(sc, rr), warbanner.ID,
+		"Warbanner unlocks once Spearhead is maxed")
 }
 
 func TestRecipes_DuplicateIngredientSetAllowed(t *testing.T) {

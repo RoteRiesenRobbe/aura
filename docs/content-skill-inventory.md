@@ -52,7 +52,7 @@ without the SKILL cheat.
 | 50 | Vanguard | 5 | dmg 14 +3.2/L ×2 tgt + free heal 12 +6/L + shield 5 +2/L, r1.2 | NPC-W FrontCaptain @L20 |
 | 52 | Spearhead | 5 | dmg 16 +3.6/L ×3 tgt, r1.3 | Recipe: Vanguard 5 + DamageAura 5 |
 | 53 | Lifewarden | 5 | heal 14 +7/L ×2 tgt, no self-cost, r1.4 | Recipe: Vanguard 5 + HealAura 5 |
-| 55 | Warbanner | 5 | dmg 15 +3.4/L ×2 + heal 13 +6.5/L + shield 6 +2.5/L + slow 10% +3%/L, r1.2 | Recipe: Vanguard 5 + CallForAid 3 |
+| 55 | Warbanner | 5 | dmg 15 +3.4/L ×2 + heal 13 +6.5/L + shield 6 +2.5/L + slow 10% +3%/L, r1.2 | Recipe: Vanguard 5 + Spearhead 5 + CallForAid 3 |
 | 58 | Wildfire | 5 | fire dot 7 +1.4/L ×2 tgt @40t, r1.2 | Recipe: Ignite 3 + ImmolationAura 5 — **un-craftable: both ingredients NONE** |
 | 59 | Suppression | 5 | dmg 6.5 +1.4/L r2.6 + slow 7% +7%/L | Recipe: SlowAura 5 + LongRangeStrike 5 — **un-craftable in world: SlowAura is PG-only** |
 

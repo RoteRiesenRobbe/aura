@@ -1102,3 +1102,17 @@ for free.
 
 Design/recipe-topology decision, not a bug — no code until the direction is
 chosen.
+
+**Status (2026-07-19): resolved — option A (tier), implemented in Session ③
+Step 0.** PO decisions: Warbanner = `Vanguard 5 + Spearhead 5 + CallForAid 3`
+— Spearhead at **max** (the recipe cascade discovers results at L1, so a
+Spearhead-1 requirement would still co-pop; ≥2 is the mechanical floor, PO
+picked 5 for the full earn); **Vanguard 5 stays explicit** so a free respec
+out of Vanguard after the Spearhead unlock can't shortcut the capstone; the
+**remaining trio hub (Spearhead/Lifewarden/Shockwave off Vanguard 5) is
+accepted as-is** — best-in-category across three *different* categories is
+complementary "three things clicked" delight, not capstone choice erasure.
+Option C was ruled out as structurally broken (>= thresholds: whichever
+ingredient completes last pops everything already met). Pinned by
+`TestRecipes_C7Net` (warlord journey pops the trio, `NotContains` Warbanner;
+maxing Spearhead then unlocks it).

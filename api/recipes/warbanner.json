@@ -1,9 +1,10 @@
 {
-  "_comment": "C7 recipe net (plan-content-zones12.md §13/§A): the CAPSTONE — Vanguard + CallForAid maxed → Warbanner (base ingredients only, PO 2026-07-18). Top of the power ceiling. Secret — never documented in-game.",
+  "_comment": "C7 recipe net (plan-content-zones12.md §13/§A): the CAPSTONE — Vanguard + Spearhead + CallForAid maxed → Warbanner. Top of the power ceiling. Tiered behind Spearhead (backlog §21, PO 2026-07-19): the capstone must unlock strictly AFTER the Spearhead ceiling combo — Spearhead 5 forces real investment past the cascade's L1 discovery, and Vanguard 5 stays explicit so a free respec out of Vanguard can't shortcut the warlord build. Secret — never documented in-game.",
   "id": 5,
   "result": "Warbanner",
   "ingredients": [
     { "skill": "Vanguard", "level": 5 },
+    { "skill": "Spearhead", "level": 5 },
     { "skill": "CallForAid", "level": 3 }
   ]
 }
