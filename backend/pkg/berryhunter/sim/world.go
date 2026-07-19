@@ -113,10 +113,18 @@ func NewWorld(sc Scenario, seed int64) *World {
 	g.AddSystem(statuseffects.NewStatusEffectsSystem())
 
 	// The real player. Its skill registry holds exactly the synthetic aura
-	// (under the name player.New requires); TTD switches the loadout to
-	// "nothing active" — an idle player does not fight back.
+	// under the "Harvest" name.
 	pl := player.New(g, nopClient{}, "sim-player")
 	pl.SetPosition(phy.VEC2F_ZERO)
+	// The start loadout is empty since triage item 11 (Harvest is now the
+	// Farmer's teaching, not a spawn freebie), so the sim equips its synthetic
+	// aura to slot 0 itself — the def the solo registry serves under "Harvest".
+	harvest, err := g.Skills().GetByName("Harvest")
+	if err != nil {
+		panic(err) // the solo registry is built with this def — cannot happen
+	}
+	pl.SkillComponent().EquipAura(0, harvest, 1)
+	pl.SkillComponent().Discover(harvest.ID)
 	// Fresh spawns no longer auto-activate the start aura (PO 2026-07-17);
 	// the sim's fighting player switches it on explicitly — TTD keeps
 	// "nothing active" so an idle player does not fight back.

@@ -936,6 +936,11 @@ system ships blind.
    deliberately **after** content: the game proves out session-based first, then
    we invest in persistence, the anonymous-first account service (built fresh —
    chieftain deleted 2026-07-09), the styling pass, and avatar selection.
+   **The character-sacrifice loop (pulled into v1 scope, PO 2026-07-19 —
+   `plan-intermission-triage.md` item 10) slots directly after this step as
+   persistence's first consumer** (max-level detection, retire flow,
+   account-wide unlock storage, memorial — all cheap once account identity +
+   storage exist).
    **Audio — location-music half only (added 2026-07-09; combat SFX split to
    step 6 on 2026-07-14; needs a go/no-go review when reached; may still be cut):**
    location-based background music (forest vs. cave *within* a zone), music
@@ -965,5 +970,7 @@ system ships blind.
 
 ## Explicitly not v1.0
 
-PvP, formal groups, economy, mobile, endgame raid events, character sacrifice
-(meta-progression).
+PvP, formal groups, economy, mobile, endgame raid events. (Character
+sacrifice (meta-progression) was moved **into** v1 scope on 2026-07-19, PO
+ruling `plan-intermission-triage.md` item 10 — it lands right after step 8,
+accounts & persistence, as its first consumer; GDD §11 amended to match.)

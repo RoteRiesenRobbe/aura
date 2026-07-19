@@ -9193,7 +9193,8 @@
   "campfires": [
     {
       "x": -58.2,
-      "y": 24.0
+      "y": 24.0,
+      "startingSpawn": true
     },
     {
       "x": 44.0,
@@ -9375,6 +9376,10 @@
       "radius": 3,
       "tooLowLine": "You're new here \u2014 pull some turnips for me first.",
       "teachings": [
+        {
+          "skill": "Harvest",
+          "line": "First things first \u2014 here's Harvest. Now go pull my turnips."
+        },
         {
           "skill": "DamageAura",
           "requiredLevel": 2,

@@ -7,7 +7,7 @@
   "effects": [
     {
       "type": "heal_aura",
-      "radius": 2.5,
+      "radius": 1.0,
       "healHP": 14,
       "healHPPerLevel": 4,
       "selector": "lowest_health",

@@ -62,30 +62,22 @@ var (
 	defHarvest = &skills.SkillDefinition{ID: 41, Name: "Harvest", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 )
 
-func TestInitializePlayerSkills_SlotsAndSpellbook(t *testing.T) {
-	r := newStubRegistry(defDamageAura, defHarvest)
-	sc, err := initializePlayerSkills(r)
+// Triage item 11: a fresh spawn is TRULY empty — no equipped aura, empty
+// spellbook, no active aura. Harvest is now the Farmer's first ungated teaching
+// (world.json), not a spawn freebie, so nothing is granted at construction.
+func TestInitializePlayerSkills_EmptyLoadout(t *testing.T) {
+	sc, err := initializePlayerSkills(newStubRegistry(defDamageAura, defHarvest))
 	require.NoError(t, err)
 
-	require.NotNil(t, sc.AuraSlots[0], "slot 0 must be populated")
-	assert.Equal(t, "Harvest", sc.AuraSlots[0].Def.Name)
-	assert.Equal(t, 1, sc.AuraSlots[0].Level)
+	assert.Nil(t, sc.AuraSlots[0], "slot 0 must be empty — nothing is equipped at spawn")
+	assert.Nil(t, sc.AuraSlots[1], "slot 1 must be empty too")
 
-	assert.Nil(t, sc.AuraSlots[1], "slot 1 must be empty — nothing else unlocked")
+	assert.Equal(t, -1, sc.ActiveAuraSlot, "no active aura on a fresh spawn")
 
-	assert.Equal(t, -1, sc.ActiveAuraSlot,
-		"the aura is equipped but NOT active (PO 2026-07-17) — switching it on is the player's first act")
-
-	assert.True(t, sc.HasDiscovered(defHarvest.ID), "Harvest must be in spellbook")
+	assert.False(t, sc.HasDiscovered(defHarvest.ID),
+		"Harvest is Farmer-taught (triage item 11), never a spawn freebie")
 	assert.False(t, sc.HasDiscovered(defDamageAura.ID),
-		"DamageAura is farmer-taught @L2 (GDD §5 amendment), never a spawn freebie")
-}
-
-func TestInitializePlayerSkills_MissingHarvest(t *testing.T) {
-	r := newStubRegistry(defDamageAura) // Harvest absent
-	_, err := initializePlayerSkills(r)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Harvest")
+		"DamageAura is farmer-taught @L2 (GDD §5 amendment)")
 }
 
 // --- milestone unlock tests ---
@@ -399,8 +391,9 @@ func TestAddExperience_Level3_NoMilestoneEntry(t *testing.T) {
 	p.AddExperience(300) // enough for level 3 (100 + 200)
 
 	assert.Equal(t, uint32(3), p.progression.Level)
-	// spellbook: DamageAura (from init) + HealAura (level-2 unlock) — nothing more
-	assert.Len(t, p.skills.Discovered(), 2)
+	// spellbook: HealAura (level-2 unlock) only — a fresh spawn starts empty
+	// (triage item 11), so no start freebie inflates the count.
+	assert.Len(t, p.skills.Discovered(), 1)
 }
 
 // TestDeathRespawn_RetainsSpellbookAndProgression reproduces the semi-permadeath
@@ -433,7 +426,8 @@ func TestDeathRespawn_RetainsSpellbookAndProgression(t *testing.T) {
 	stashedProgression := dying.Progression()
 	stashedSkills := dying.SkillComponent()
 
-	// Re-join: player.New builds a fresh entity — spellbook has DamageAura only.
+	// Re-join: player.New builds a fresh entity — spellbook is empty (triage
+	// item 11: nothing is granted at spawn).
 	respawned := newTestPlayer(nil)
 	require.False(t, respawned.skills.HasDiscovered(defWildAura.ID), "fresh player must lack the drop (bug precondition)")
 
@@ -467,7 +461,7 @@ func TestAddExperience_DiscoverIdempotent(t *testing.T) {
 	p.AddExperience(50)  // stays at level 2, no new level-up
 
 	assert.Equal(t, uint32(2), p.progression.Level)
-	assert.Len(t, p.skills.Discovered(), 2, "spellbook must not grow on second XP grant at same level")
+	assert.Len(t, p.skills.Discovered(), 1, "spellbook must not grow on second XP grant at same level")
 }
 
 // --- tag resistances (item 11 Phase 2 Step 3) ---

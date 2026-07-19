@@ -1,7 +1,14 @@
 # Zone Editor — Step-by-Step Manual
 
-How to author `zone.json` (world bounds, props, mob spawn points) directly
-in-game, and how to make the server load your result. No coding required.
+How to author a zone file (`api/zones/<id>.json` — world bounds, terrain,
+props, mob spawns, campfires, dark areas, NPCs, anchors) directly in-game, and
+how to make the server load your result. No coding required. Current as of
+2026-07-19. Two zones ship today: `world.json` (the live game world — the
+default via conf `game.zone`) and `proving-grounds.json` (the debug/test map,
+loaded with `-zone proving-grounds`).
+
+This manual is the **placement half**; mob/skill/prop *definitions* and art
+live in `docs/manual-content-authoring.md`.
 
 The editor is a dev tool: it lives in the browser client, is activated by a
 query parameter, and never appears for normal players.
@@ -21,8 +28,9 @@ make -C backend build
 cd backend && ./berryhunterd -dev -content ../api
 ```
 
-`-content ../api` makes the server read `api/zones/zone.json` (and props/mobs)
-straight from the repo — that's the file you will be replacing with your edits.
+`-content ../api` makes the server read the zone files in `api/zones/` (and
+props/mobs) straight from the repo — `world.json` unless `-zone`/conf says
+otherwise. Those are the files you will be replacing with your edits.
 
 **Frontend** (second terminal, again from the repo root):
 
@@ -43,7 +51,8 @@ normally. You get:
 
 - The editor panel in the **top-right corner**.
 - GOD mode (auto-activated, so mobs can't interrupt your editing).
-- The current `zone.json` already loaded: yellow rectangle = world bounds,
+- The server's current zone (default: `world`) already loaded: yellow
+  rectangle = world bounds,
   circles = props (red = blocks movement, blue = decorative), green diamonds =
   spawn points. Labels show the prop type / mob name. These markers are
   editor-only overlays — the real props and mobs are still there underneath.
@@ -177,11 +186,55 @@ Two rules the server enforces at boot:
   boot** — deliberately loud, never a silent fallback position. Move
   anchors freely; rename only together with the Go script.
 
+## 5c. NPCs mode — author an NPC end-to-end (placement half)
+
+Teaching/lore NPCs are zone content: everything below lives in the zone JSON
+and is editor-authorable. The **definition/art half** — which sprite renders,
+how big it draws, brand-new art — is covered in
+`docs/manual-content-authoring.md` §1c (hand-off at the end of this list).
+
+1. **Place it.** NPCs mode → type a **Type** label (free text, e.g. `Farmer` —
+   the display/marker name, *not* the sprite), set the **Radius** (server
+   units — this is the **sensor radius**, the approach circle that triggers
+   teachings/lore, NOT the visual size), then click the map (or **"Place at
+   my position"**). Click a marker to select it, **Update**/**Delete** as
+   usual.
+2. **Too-low line.** One line spoken to a player below the next teaching's
+   level gate. **Required for every teaching NPC** — the server refuses to
+   boot a teaching NPC without one, so NPCs whose teachings are all ungated
+   still carry a flavor line that never fires (the Hermit/Dog pattern).
+3. **Lore lines.** The textarea holds idle lines, one per line. Every NPC
+   must have teachings or lore lines (or both) — one empty of both fails the
+   boot.
+4. **Ordered teachings.** With the NPC selected, the teaching sub-row appends
+   to its list: pick a **skill** (dropdown from the skill registry), a
+   **required level**, and the **line** spoken when it is granted. Teachings
+   are granted **in order** on approach; a player below a gate hears the
+   too-low line and gets nothing further — so "Harvest ungated, then
+   DamageAura @L2" works in one NPC. Each list row has a remove button.
+5. **Sprite binding — JSON-only, deliberately.** The zone entry's
+   `"entityType"` field names the sprite (a Resource-backed `EntityType` enum
+   name, validated at boot; absent = the Flower placeholder). There is **no
+   panel control** — hand-edit the exported JSON; the editor round-trips the
+   field untouched. Details: `manual-content-authoring.md` §1c.
+6. **Visual size is NOT in zone data.** The authored radius is only the
+   sensor; the wire sprite radius is a fixed placeholder
+   (`model/npc/npc.go`), and the drawn size comes from the matching
+   `Graphics.ts` `npcs:` entry (`maxSize`) — a frontend edit, see
+   `manual-content-authoring.md` §1c.
+7. **Export + restart** (§7) and check the boot log's NPC count.
+
+**New art?** A brand-new NPC sprite is the usual 5-file path (enum append →
+regen → SVG → Resource render class → `gameObjectClasses` slot) — steps in
+`manual-content-authoring.md` §1c.
+
 ## 6. Choose a zone, or start a new one
 
-A world can have several zones now — one file each in `api/zones/`, named by
-its **file stem** (`proving-grounds.json` → the id `proving-grounds`; since
-2026-07-11 this is the only shipped zone — the canonical debug/test map).
+A world can have several zones — one file each in `api/zones/`, named by its
+**file stem** (`proving-grounds.json` → the id `proving-grounds`). Two ship
+today: **`world.json`** (the live game world — what the server loads by
+default via conf `game.zone`) and **`proving-grounds.json`** (the canonical
+debug/test map, loaded with `-zone proving-grounds`).
 
 - **Load zone** dropdown — pick any existing zone to open it for editing, or
   **＋ New zone** to start a blank one (default bounds, no terrain/props/spawns).
@@ -208,8 +261,8 @@ its **file stem** (`proving-grounds.json` → the id `proving-grounds`; since
    ./berryhunterd -dev -content ../api -zone <id>
    ```
 
-   (Or set `game.zone` in `conf.json`. With only one zone file and no `-zone`,
-   the server just loads it.) The boot log prints the loaded zone (id, name,
+   (Or set `game.zone` in `conf.json` — without `-zone` the server loads the
+   configured zone, `world` by default.) The boot log prints the loaded zone (id, name,
    bounds, prop/spawn counts) — a hand-edit typo makes the server refuse to boot
    and name the problem.
 5. **If you changed terrain**, also let the frontend rebuild: the client bundles
@@ -241,6 +294,7 @@ else: the zone editor's **Download** (§7).
 |----------------------------------|----------------------------------------------------|
 | Open the editor                  | Add `&textures` to the game URL                    |
 | Place a prop / spawn             | Pick mode + type, click the ground (or "Place at my position") |
+| Author an NPC (place/text/teachings) | NPCs mode — end-to-end walkthrough in §5c      |
 | Edit one                         | Click its marker, change controls, **Update**      |
 | Move one                         | **Delete**, then click the new spot                |
 | Remove one                       | Click its marker, **Delete**                       |

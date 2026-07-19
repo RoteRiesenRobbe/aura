@@ -116,6 +116,12 @@ type TerrainTexture struct {
 type Campfire struct {
 	X float32 `json:"x"`
 	Y float32 `json:"y"`
+	// StartingSpawn marks a campfire as a first-arrival spawn point (triage
+	// item 5). Fresh / unbound players spawn at a random flagged fire — kept
+	// data-driven so future selectable start locations reuse the same flag. A
+	// zone that places any campfires must flag at least one, or boot hard-fails
+	// (validate) — otherwise new players would have nowhere to spawn.
+	StartingSpawn bool `json:"startingSpawn"`
 }
 
 // DarkArea is a hand-placed circle of constant darkness (atmosphere &
@@ -317,6 +323,21 @@ func (z *Zone) validate() error {
 			return fmt.Errorf("darkArea %d: radius must be positive, got %g", i, z.DarkAreas[i].Radius)
 		}
 	}
+	// A zone that places campfires must flag at least one as a starting spawn
+	// (triage item 5) — fresh players spawn at a flagged fire, so an unflagged
+	// zone would leave them nowhere to land.
+	if len(z.Campfires) > 0 {
+		hasStart := false
+		for i := range z.Campfires {
+			if z.Campfires[i].StartingSpawn {
+				hasStart = true
+				break
+			}
+		}
+		if !hasStart {
+			return fmt.Errorf("zone has %d campfire(s) but none is flagged startingSpawn", len(z.Campfires))
+		}
+	}
 	anchorNames := make(map[string]bool, len(z.Anchors))
 	for i := range z.Anchors {
 		a := &z.Anchors[i]
@@ -399,8 +420,28 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry, sr skills.Registry) er
 		}
 		p.Def = def
 	}
+	// NPC sprites ride the Resource wire path (npc.go), so an entityType that
+	// names a MOB's wire type would be handed a mob sprite class expecting
+	// health/aura fields and mis-render (triage item 3/9 nicety). Reject that
+	// specific footgun; resource sprites (Signpost, …) stay valid — a whitelist
+	// of prop types would wrongly reject those. validate() already checked the
+	// name is a known EntityType at all; this needs the mob registry.
+	var mobEntityTypes map[string]bool
+	if len(z.Npcs) > 0 {
+		mobEntityTypes = make(map[string]bool)
+		for _, m := range mr.Mobs() {
+			et := m.EntityType
+			if et == "" {
+				et = m.Name // an absent override means the name is the wire type
+			}
+			mobEntityTypes[et] = true
+		}
+	}
 	for i := range z.Npcs {
 		n := &z.Npcs[i]
+		if n.EntityType != "" && mobEntityTypes[n.EntityType] {
+			return fmt.Errorf("npc %d: entityType %q is a mob sprite; NPCs need a Resource-backed sprite", i, n.EntityType)
+		}
 		for j := range n.Teachings {
 			t := &n.Teachings[j]
 			def, err := sr.GetByName(t.Skill)

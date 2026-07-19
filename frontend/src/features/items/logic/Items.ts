@@ -23,7 +23,10 @@ function validatePlaceable(item) {
         throw 'Item "' + item.name + '" must define a property "placeable".';
     }
 
-    if (!isDefined(item.placeable.layer)) {
+    // == null catches undefined AND null — isDefined() lets null through
+    // (it only checks typeof undefined), which would crash on .split below
+    // (triage item 21).
+    if (item.placeable.layer == null) {
         throw 'Item "' + item.name + '" must define a property "layer" inside "placeable".';
     }
 

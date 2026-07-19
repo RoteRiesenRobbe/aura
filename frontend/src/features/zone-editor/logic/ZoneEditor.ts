@@ -100,7 +100,10 @@ export function effectiveWanderRadius(spawn: ZoneSpawn): number {
     return mobDefaultWanderRadius[spawn.mob] || 0;
 }
 
-const DEFAULT_STEM = zonesByStem['zone'] ? 'zone' : zoneStems[0];
+// Default to the live world zone if bundled (there is no 'zone' stem — that
+// was a vestigial default; the shipped zones are 'world' and 'proving-grounds'),
+// else the first available stem (triage item 3/9 DRIFT-A).
+const DEFAULT_STEM = zonesByStem['world'] ? 'world' : zoneStems[0];
 const NEW_ZONE_BOUNDS = {width: 60, height: 40};
 
 // currentStem is the loaded zone's file stem — the -zone key and download name.

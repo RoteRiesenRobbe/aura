@@ -620,6 +620,30 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 	// self-damage is an HP value — costs stay proportional to the pool).
 	powerScale := casterPowerScale(e)
 	healCenterHP := effect.Heal.HPAt(level) * powerScale
+
+	// Self-cost floor (triage item 1): the heal must never kill its caster.
+	// The scaled cost is computed up front; paying it may leave the caster at
+	// 1 HP but never below. A caster already at the floor skips the entire
+	// effect for this tick — no heal emitted, no cost paid. Zero-cost heal
+	// components (PaladinAura/Vanguard/Warbanner) never clamp, so they are
+	// unaffected. Mob healers pay none in v1 (healCaster is player-only).
+	var selfHP uint32
+	caster, paysCost := e.(healCaster)
+	if paysCost && caster.IsGod() {
+		paysCost = false
+	}
+	if paysCost {
+		selfHP = vitals.HP(effect.Heal.SelfDamageHP * powerScale)
+		if health := caster.VitalSigns().Health.UInt32(); selfHP >= health {
+			if health <= 1 && selfHP > 0 {
+				return // cost fully clamped away — skip the whole effect
+			}
+			if health > 0 {
+				selfHP = health - 1 // leave the caster at exactly 1 HP
+			}
+		}
+	}
+
 	casterPos := e.AuraCollider().Position()
 	casterFaction := e.Faction()
 	casterID := e.Basic().ID()
@@ -688,15 +712,13 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 		noteHarmDealt(e)
 	}
 
-	// Self-cost is the player build-cost lever and needs player vitals; mob
-	// healers pay none in v1 (healCaster is satisfied by players only).
-	if healedSomeone {
-		if caster, ok := e.(healCaster); ok && !caster.IsGod() {
-			selfHP := vitals.HP(effect.Heal.SelfDamageHP * powerScale)
-			vs := caster.VitalSigns()
-			vs.Health = vs.Health.Sub(selfHP)
-			caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
-		}
+	// Self-cost is the player build-cost lever — pre-clamped above so it can
+	// never take the caster below the 1-HP floor, and only ever paid when
+	// someone was actually healed.
+	if healedSomeone && paysCost {
+		vs := caster.VitalSigns()
+		vs.Health = vs.Health.Sub(selfHP)
+		caster.StatusEffects().Add(model.StatusEffectDamagedAmbient)
 	}
 }
 

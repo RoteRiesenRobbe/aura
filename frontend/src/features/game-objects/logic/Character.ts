@@ -167,11 +167,9 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     }
 
     setRotation(rotation: number) {
-        if (!this.isPlayerCharacter) {
-            rotation = Character.DOWNWARD_FACING_ROTATION;
-        }
-
-        super.setRotation(rotation);
+        // Portrait rule (triage item 16): avatars are portraits and never
+        // rotate — the local player included, per PO ruling.
+        super.setRotation(Character.DOWNWARD_FACING_ROTATION);
     }
 
     createHands() {

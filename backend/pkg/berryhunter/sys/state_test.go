@@ -308,6 +308,25 @@ func TestRespawn_SpawnsAtAnchorWithJitter(t *testing.T) {
 		"respawn must land at the anchor (within jitter)")
 }
 
+// Triage item 5: fresh / unbound arrivals spawn only at campfires flagged
+// startingSpawn, never at the others (here the Z2 fire) — so the west village
+// fire is the deterministic start.
+func TestDefaultSpawn_OnlyAtStartingSpawnFires(t *testing.T) {
+	s, _ := newStateFixture(t)
+	start := CampfireAnchor{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75, StartingSpawn: true}
+	other := CampfireAnchor{Pos: phy.Vec2f{X: -30, Y: -30}, DwellRadius: 0.75}
+	// Unflagged fire first, on purpose — a naive random pick would hit it ~half
+	// the time.
+	s.SetCampfireAnchors([]CampfireAnchor{other, start})
+
+	for i := 0; i < 200; i++ {
+		pos := s.defaultSpawnPosition()
+		dist := pos.Sub(start.Pos).Abs()
+		require.LessOrEqual(t, dist, float32(start.DwellRadius)+1e-4,
+			"a fresh spawn must land at the flagged starting fire, never the unflagged one")
+	}
+}
+
 func TestDisconnectWhileDead_CleansUpEverything(t *testing.T) {
 	s, g := newStateFixture(t)
 	s.SetCampfireAnchors([]CampfireAnchor{{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}})

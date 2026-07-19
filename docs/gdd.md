@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Status:** Living document
-**Last updated:** 2026-07-10 (combat pacing & recovery session: design-pillars list added to §1; aura line-of-sight **cut**; recovery rhythm + death state in §3; tick readability, two-zone auras + Combat Pacing subsection in §4 — decision prep/record: `research-combat-pacing-recovery.md`)
+**Last updated:** 2026-07-19 (intermission triage: §10 top-down-world / portrait-icon clarification (triage item 16); §11 character sacrifice moved into v1 scope per PO ruling, triage item 10). *Prior:* 2026-07-10 (combat pacing & recovery session: design-pillars list added to §1; aura line-of-sight **cut**; recovery rhythm + death state in §3; tick readability, two-zone auras + Combat Pacing subsection in §4 — decision prep/record: `research-combat-pacing-recovery.md`)
 
 > This document is the **game-design truth** (vision, mechanic intent, open
 > design questions). Technology belongs in the [Technical Design Document](./tdd.md),
@@ -595,6 +595,9 @@ Examples:
 - **No pixel art**
 - **Fully top-down** — exactly from above, not 2.5D, not isometric
 - Low-poly with icons for abilities, portraits for players/NPCs
+- Reconciling the two: the *world* is top-down, but *entities* (players, NPCs,
+  mobs) render as portrait icons — and portraits never rotate at runtime
+  (authoring checklist: `manual-content-authoring.md` §4)
 - References: Hotline Miami, Gods Trigger, Monaco, Rimworld, Gothic 1+2
 - System first, not presentation first
 
@@ -676,9 +679,13 @@ Mouse or WASD — still open.
 - [ ] UI: resource bar, XP bar, ability bar, aura panel, minimap, zone chat
 - ~~Line-of-sight for auras~~ — **cut 2026-07-10** (§4)
 - [ ] Campfire
+- [ ] Character sacrifice (meta-progression, §5) — **pulled into v1 scope
+  (PO, 2026-07-19)**; slots directly after the accounts/persistence step as
+  its first consumer (the loop is cheap once persistent account identity
+  exists — `plan-intermission-triage.md` item 10)
 
 **Not in v1.0:**
-PvP, formal group system, economy, mobile, endgame raid events, character sacrifice (nice to have)
+PvP, formal group system, economy, mobile, endgame raid events
 
 ---
 

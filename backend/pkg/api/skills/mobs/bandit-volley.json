@@ -7,7 +7,7 @@
   "effects": [
     {
       "type": "damage_aura",
-      "radius": 5.0,
+      "radius": 3.5,
       "radiusPerLevel": 0.0,
       "damageHP": 8,
       "damageHPPerLevel": 1.3,

@@ -4,9 +4,11 @@ How to add or replace content by hand: **new mobs**, **new abilities**
 (auras / passives / cooldowns), **ability VFX**, **mob / player icons**, and
 **scripted encounters / boss fights**.
 
-This is a how-to reference (`manual-` prefix). It reflects the wiring as of the
-world-foundation work (2026-07-08). File paths and array orderings drift — if a
-step doesn't match, trust the code.
+This is a how-to reference (`manual-` prefix). Current as of 2026-07-19
+(post-C7 content pass). File paths and array orderings drift — if a step
+doesn't match, trust the code. This manual is the **definition/art half**;
+placing things in the world (props, spawns, campfires, dark areas, NPCs,
+anchors — all via the in-game editor) is `docs/manual-zone-editor.md`.
 
 ## Conventions & build basics
 
@@ -94,7 +96,8 @@ faction and skills without a schema append (see §5 and
 4. If the mob uses a **new** aura, author that skill first (see §2).
 5. **Make it spawn:** mobs only spawn from `zone.spawns`. Add a spawn referencing
    the mob's name via the in-game zone editor (`docs/manual-zone-editor.md`) or
-   by hand-editing `api/zones/zone.json`.
+   by hand-editing the zone file (`api/zones/world.json` for the live world;
+   `api/zones/proving-grounds.json` for the debug map).
 6. **Build:** `make -C backend build`, or run `-content ../api` + restart.
 
 ### Frontend / art
@@ -182,17 +185,29 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
 - Placement: `zone.props` entries (`type`, `x`, `y`, `blocksMovement`) via the
   zone editor — rect props draw and hit-test as rectangles there.
 
-## 1c. NPC sprite (zone-JSON `entityType`, C2)
+## 1c. NPC sprite & size (zone-JSON `entityType`, C2)
 
-Zone-JSON NPCs (`zone.npcs`) render as the Flower placeholder unless the
-entry names a sprite: `"entityType": "Signpost"` (validated against the
-`EntityType` enum at zone load; must be a **Resource-backed** entry — NPCs
-ride the Resource wire path, a Mob sprite class would expect health/aura
-fields). A **new** NPC sprite is the usual 5-file path: enum append →
-regen → SVG → a Resource render class (`Resources.ts`, mirror `Signpost`)
-→ `gameObjectClasses` slot. The zone editor round-trips the field
-(no panel control — hand-authored in the JSON). First user: the C2 forest
-signpost.
+This is the **definition/art half** of authoring an NPC. The placement half —
+position, sensor radius, `tooLowLine`, lore lines, ordered teachings, all
+editor-authorable — is the end-to-end walkthrough in
+`docs/manual-zone-editor.md` §5c.
+
+- **Sprite binding — JSON-only, deliberately.** Zone-JSON NPCs (`zone.npcs`)
+  render as the Flower placeholder unless the entry names a sprite:
+  `"entityType": "Signpost"` (validated against the `EntityType` enum at zone
+  load; must be a **Resource-backed** entry — NPCs ride the Resource wire
+  path, a Mob sprite class would expect health/aura fields). The zone editor
+  round-trips the field (no panel control — hand-authored in the JSON). First
+  user: the C2 forest signpost.
+- **Visual size.** Not in zone data: the authored NPC radius is the *sensor*
+  circle, and the wire sprite radius is a fixed placeholder
+  (`model/npc/npc.go`). The drawn size comes from the matching entry in
+  `frontend/src/client-data/Graphics.ts` `npcs:` (`maxSize`, sized like
+  props) — edit that entry to resize an NPC on screen.
+- **New art.** A **new** NPC sprite is the usual 5-file path: enum append →
+  regen → SVG → a Resource render class (`Resources.ts`, mirror `Signpost`)
+  → `gameObjectClasses` slot — plus its `Graphics.ts` `npcs:` entry. Follow
+  the portrait style checklist in §4.
 
 ## 2. New ability (aura / passive / cooldown)
 
@@ -258,6 +273,28 @@ Three distinct VFX surfaces — **all pure frontend, no backend, no wire.**
 ---
 
 ## 4. Replacing mob / player icons
+
+### Portrait style checklist (applies to every creature/humanoid icon)
+
+The world is top-down, but creatures and humanoids are **portrait icons**, not
+top-down models (GDD §10). Every new or replacement mob/NPC/player SVG must
+tick all of these:
+
+- **Circle silhouette** — the art reads as a round icon (face-in-circle or a
+  bust that fills a circular footprint).
+- **Front-facing portrait/bust** — the creature looks *at* the viewer, not
+  down from above.
+- **No directionality baked in** — nothing in the art implies a heading
+  (no "pointing" pose, no top-down body axis); the sprite must read correctly
+  at any movement direction.
+- **Sprites are NEVER rotated at runtime** — portraits stay upright
+  regardless of the entity's wire heading. Don't design art that relies on
+  rotation.
+- **Reference files:** `frontend/src/features/game-objects/assets/mobs/`
+  `saberToothCat.svg`, `dodo.svg`, `mammoth.svg`.
+
+Inanimate props/hazards (pools, braziers, barricades) are exempt — no
+portrait applies there.
 
 Simplest case — **drop-in file replacement, frontend only.**
 

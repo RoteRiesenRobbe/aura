@@ -67,6 +67,9 @@ const campfireDwellTicks = 3 * constant.TicksPerSecond
 type CampfireAnchor struct {
 	Pos         phy.Vec2f
 	DwellRadius float32
+	// StartingSpawn marks this fire as a first-arrival spawn point (triage
+	// item 5): fresh / unbound players spawn only at flagged fires.
+	StartingSpawn bool
 }
 
 // CampfireAnchorSink is implemented by the game so cmd/berryhunterd can hand
@@ -132,15 +135,25 @@ func randomSpawnPosition(width, height float32) phy.Vec2f {
 }
 
 // defaultSpawnPosition places a first-time / unbound arrival at a random
-// campfire, jittered within that campfire's bind radius so they land inside the
-// binding ring but never exactly on the fire. Campfires are the default spawn.
-// Falls back to a random world position only when a zone has no campfires
-// (bare test zones).
+// STARTING-SPAWN campfire (triage item 5), jittered within that campfire's bind
+// radius so they land inside the binding ring but never exactly on the fire.
+// Real zones are guaranteed ≥1 flagged fire by world-zone validation; if none
+// is flagged (bare test zones) it falls back to any campfire, then to a random
+// world position when there are no campfires at all.
 func (s *ConnectionStateSystem) defaultSpawnPosition() phy.Vec2f {
 	if len(s.campfires) == 0 {
 		return randomSpawnPosition(s.game.Bounds())
 	}
-	c := s.campfires[rand.Intn(len(s.campfires))]
+	starts := make([]CampfireAnchor, 0, len(s.campfires))
+	for _, c := range s.campfires {
+		if c.StartingSpawn {
+			starts = append(starts, c)
+		}
+	}
+	if len(starts) == 0 {
+		starts = s.campfires // defensive: validation forbids this in real zones
+	}
+	c := starts[rand.Intn(len(starts))]
 	return jitterAround(c.Pos, c.DwellRadius)
 }
 
@@ -196,6 +209,9 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 	p.SetProgression(dead.progression)
 	p.SetSkillComponent(dead.skills)
 	p.SetPosition(s.respawnPosition(client.UUID()))
+	// Re-stamp full health AFTER progression/skills (triage item 14): the
+	// constructor stamped the base pool before +maxHealth passives were back.
+	p.VitalSigns().Health = p.MaxHealth()
 	s.game.AddEntity(p)
 	return true
 }

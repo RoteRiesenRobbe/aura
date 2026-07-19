@@ -93,7 +93,7 @@ export const GraphicsConfig = {
         },
 
         angryMammoth: {
-            file: require('../features/game-objects/assets/mobs/demon.svg'),
+            file: require('../features/game-objects/assets/mobs/angryMammoth.svg'),
             minSize: <number> 180,
             maxSize: <number> 220,
         },

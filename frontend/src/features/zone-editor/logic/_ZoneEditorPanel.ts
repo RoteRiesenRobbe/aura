@@ -1,9 +1,11 @@
 /**
- * Zone editor panel (world foundation chunk 5): prop + spawn placement modes
- * and zone.json export, sharing the ground-texture panel DOM. Owns the editor
- * mode ('off' | 'terrain' | 'prop' | 'spawn') that also gates ground-texture
- * click placement — the old MysticWand hand-equip gate is gone (defunct since
- * Block 2 removed the item system).
+ * Zone editor panel (world foundation chunk 5): placement modes for props,
+ * mob spawns, campfires, dark areas, NPCs and anchors, plus zone-JSON export,
+ * sharing the ground-texture panel DOM. Owns the editor mode (see EditorMode:
+ * 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark' | 'npc' |
+ * 'anchor') that also gates ground-texture click placement — the old
+ * MysticWand hand-equip gate is gone (defunct since Block 2 removed the item
+ * system).
  *
  * Dev-only: activated together with the ground-texture panel via the
  * ?textures query parameter (+ valid token).

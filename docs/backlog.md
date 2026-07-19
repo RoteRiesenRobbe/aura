@@ -19,6 +19,10 @@ Game *content* ideas (specific auras, passives, cooldowns, recipes, NPCs,
 mobs, lore, story, locations) belong in the `content-*.md` catalogs (see
 `README.md` → Content), not here — this file is for features and systems.
 
+Scoped, estimated work items from the 2026-07-18 pre-C8 intermission (bugs,
+config fixes, audits, small lifts) live in `plan-intermission-triage.md` —
+that doc absorbs item 6 below (heal self-cost floating number) for execution.
+
 ---
 
 ## 1. Gold as a second resource

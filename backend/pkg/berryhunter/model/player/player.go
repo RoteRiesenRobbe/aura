@@ -1,7 +1,6 @@
 package player
 
 import (
-	"fmt"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"log/slog"
 	"math"
@@ -725,21 +724,15 @@ func (p *player) ApplyRecipeCascade() {
 	}
 }
 
-// initializePlayerSkills builds the peasant-start loadout (content pass C1,
-// GDD §5): a fresh spawn owns exactly Harvest (renamed from TurnipPull in C2
-// Part 2) — the chore aura that pops harvest-mobs and nothing else. DamageAura
-// is farmer-taught at L2. The aura is equipped but NOT active (PO 2026-07-17):
-// switching it on is the player's first deliberate act.
-func initializePlayerSkills(r skills.Registry) (*skills.SkillComponent, error) {
-	harvest, err := r.GetByName("Harvest")
-	if err != nil {
-		return nil, fmt.Errorf("skill registry missing Harvest: %w", err)
-	}
-
-	sc := skills.NewSkillComponent(true)
-	sc.EquipAura(0, harvest, 1)
-	sc.Discover(harvest.ID)
-	return sc, nil
+// initializePlayerSkills builds the peasant-start loadout (content pass C1 →
+// triage item 11): a fresh spawn owns NOTHING — no equipped aura, empty
+// spellbook, no active aura (ActiveAuraSlot -1). Harvest is now the Farmer's
+// first, ungated teaching (api/zones/world.json), so a new player's very first
+// act is to walk to the Farmer and learn it; DamageAura follows at L2. The
+// client and wire already tolerate a zero-skill player (empty spellbook, empty
+// slots, active aura -1). The registry arg is kept for the construction seam.
+func initializePlayerSkills(_ skills.Registry) (*skills.SkillComponent, error) {
+	return skills.NewSkillComponent(true), nil
 }
 
 func (p *player) experienceForNextLevel(level uint32) uint64 {

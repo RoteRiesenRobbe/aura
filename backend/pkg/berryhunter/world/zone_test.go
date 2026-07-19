@@ -171,7 +171,7 @@ func TestZone_ParsesCampfires(t *testing.T) {
 	const doc = `{
 		"name": "X",
 		"bounds": { "width": 60, "height": 40 },
-		"campfires": [ { "x": 3, "y": -4.5 }, { "x": 0, "y": 0 } ]
+		"campfires": [ { "x": 3, "y": -4.5, "startingSpawn": true }, { "x": 0, "y": 0 } ]
 	}`
 
 	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
@@ -179,6 +179,60 @@ func TestZone_ParsesCampfires(t *testing.T) {
 	require.Len(t, z.Campfires, 2)
 	assert.EqualValues(t, 3, z.Campfires[0].X)
 	assert.EqualValues(t, -4.5, z.Campfires[0].Y)
+	assert.True(t, z.Campfires[0].StartingSpawn, "the flagged fire parses its startingSpawn flag")
+	assert.False(t, z.Campfires[1].StartingSpawn, "an unflagged fire defaults to false")
+}
+
+// Triage item 5: a zone that places campfires must flag at least one as a
+// starting spawn, or fresh players would have nowhere to land — boot hard-fails.
+func TestZone_RejectsCampfiresWithNoStartingSpawn(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"campfires": [ { "x": 3, "y": -4.5 }, { "x": 0, "y": 0 } ]
+	}`
+
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "startingSpawn")
+}
+
+// A zone with no campfires at all is fine (bare test zones fall back to a
+// random spawn) — the flag requirement only bites once a fire is placed.
+func TestZone_AllowsNoCampfires(t *testing.T) {
+	const doc = `{ "name": "X", "bounds": { "width": 60, "height": 40 } }`
+
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	require.NoError(t, err)
+}
+
+// Triage item 3/9 nicety: an NPC entityType that names a MOB's wire sprite is
+// rejected at load — NPCs render on the Resource path and a mob class would
+// mis-render. A resource-backed sprite (not a mob) passes.
+func TestZone_RejectsMobBackedNpcEntityType(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"npcs": [ { "type": "Impostor", "x": 0, "y": 0, "radius": 2,
+		            "entityType": "Dodo", "lines": ["hi"] } ]
+	}`
+
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "mob sprite")
+}
+
+func TestZone_AllowsResourceBackedNpcEntityType(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"npcs": [ { "type": "Guide", "x": 0, "y": 0, "radius": 2,
+		            "entityType": "Signpost", "lines": ["this way"] } ]
+	}`
+
+	// "Signpost" is a resource sprite, not a mob — Dodo is the only mob here.
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
+	require.NoError(t, err)
 }
 
 func TestZone_RejectsUnknownCampfireKey(t *testing.T) {

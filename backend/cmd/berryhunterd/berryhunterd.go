@@ -129,8 +129,9 @@ func main() {
 			m.SetDwellRadius(m.AuraRadius() * sys.CampfireDwellRadiusFactor)
 			g.AddEntity(m)
 			anchors = append(anchors, sys.CampfireAnchor{
-				Pos:         m.Position(),
-				DwellRadius: m.DwellRadius(),
+				Pos:           m.Position(),
+				DwellRadius:   m.DwellRadius(),
+				StartingSpawn: c.StartingSpawn,
 			})
 		}
 		sink, ok := g.(sys.CampfireAnchorSink)

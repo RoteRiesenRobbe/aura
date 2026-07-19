@@ -1,7 +1,7 @@
 import {IVector} from "../../core/logic/Vector";
 import {GameObject} from './_GameObject';
 import * as Preloading from '../../core/logic/Preloading';
-import {isUndefined, random, randomInt} from '../../common/logic/Utils';
+import {random, randomInt} from '../../common/logic/Utils';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {StatusEffect} from './StatusEffect';
 import {IGame} from '../../core/logic/IGame';
@@ -119,12 +119,9 @@ export abstract class Mob extends GameObject {
     }
 
     setRotation(rotation: number) {
-        if (isUndefined(rotation)) {
-            return;
-        }
-
-        // Keep all mob graphics facing down at default backend angle.
-        super.setRotation(rotation);
+        // Portrait rule (triage item 16): mob icons are portraits and never
+        // rotate — ignore the wire heading and keep the default facing
+        // (mirrors the fixed rotation on non-local characters).
     }
 
     getRotationShape(): PIXI.Container {
