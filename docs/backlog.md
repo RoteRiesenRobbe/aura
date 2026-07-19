@@ -1116,3 +1116,28 @@ Option C was ruled out as structurally broken (>= thresholds: whichever
 ingredient completes last pops everything already met). Pinned by
 `TestRecipes_C7Net` (warlord journey pops the trio, `NotContains` Warbanner;
 maxing Spearhead then unlocks it).
+
+## 22. Standalone browser map editor (bypass the in-game zone editor)
+
+**Origin:** Session ④ density pass (2026-07-19). The pass rendered
+`api/zones/world.json` as a top-down overview image (pure-stdlib Python
+rasterizer + seeded placement generator, session scratchpad) and drove a
+before/after approval loop over it. PO reaction: *"that would be such an
+awesome tool to directly work in and place stuff and draw maps etc. —
+basically circumventing the ingame editor."*
+
+**Idea:** productize that renderer into an interactive browser tool for bulk
+and overview work the in-game editor isn't built for:
+
+- Canvas render of the full zone exactly like the density-pass map (terrain,
+  props, spawns, dark areas, NPCs, campfires, anchors, 12-unit grid).
+- Palette of existing prop/mob/terrain types; click-to-place, drag-to-move,
+  delete; multi-select; semi-random scatter brush (the density-pass generator
+  as a brush: copse/pack placement with spacing + no-go rules).
+- No-go guides drawn in (NPC/campfire clearings, authored set-pieces).
+- Save path back to `api/zones/world.json` — tiny dev-server endpoint or
+  download-and-replace; round-trips the same JSON the engine loads.
+
+**Scope guess:** ~one focused session for a first usable cut (render + place +
+save). ⚑ Where it lives (`tools/`? behind `-dev`?) and whether it subsumes any
+in-game-editor modes is the design pass's call. Not before C8 closes.

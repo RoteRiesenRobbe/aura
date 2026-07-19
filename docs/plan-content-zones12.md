@@ -214,7 +214,7 @@ exists; "content-only" = new JSON, no code; "⚑ lift" = §9 code work.
 |---|---|---|---|
 | Harvest *(né Turnip-Pull, renamed C2 Part 2)* | start loadout (equipped, not active) | damage_aura, damageTags `["harvest"]`, gated | in-game |
 | Damage | Farmer @L2 | damage_aura (= shipped DamageAura) | today |
-| Heal | milestone | heal_aura (= shipped HealAura; never self, GDD §3) | today |
+| Heal | ~~milestone~~ **turnip-field Hermit teach @L2 (C8 Session ④ FINAL)** | heal_aura (= shipped HealAura; never self, GDD §3) | in-game |
 | Tank (Name TBD) | milestone | resist_aura over the zone tag set `[physical, poison, bleed]` — works today; wildcard-`*` buff variant is a ⚑ lift (§9) | content-only |
 | Light | Kobold drop (low %) | light_aura (shipped) | today |
 | Long-Range Strike | Elite Wolf drop | damage_aura, larger radius / lower dmg, **cap 1** (WildAura precedent + per-effect MaxTargets) | content-only |
@@ -235,9 +235,9 @@ exists; "content-only" = new JSON, no code; "⚑ lift" = §9 code work.
 
 | Name | Origin | Building block | Status |
 |---|---|---|---|
-| Heal (instant) | milestone | self_heal, capped-partial (shipped; GDD §3 combat sustain) | today |
-| Personal Recovery | early milestone | instant_hot (shipped Recover; make self-only per its own note) | today |
-| Haste | milestone (first cooldown) | tick_rate (shipped) | today |
+| Heal (instant) | milestone **@L3 (C8 Session ④ FINAL)** | self_heal, capped-partial (shipped; GDD §3 combat sustain) | in-game |
+| Personal Recovery | ~~early milestone~~ **DireBear drop (C8 Session ④ FINAL; chance placeholder)** | instant_hot (shipped Recover; **self-only since C8 Session ④**) | in-game |
+| Haste | milestone (first cooldown) **@L7 (C8 Session ④ FINAL)** | tick_rate (shipped) | in-game |
 | Recall | Farmer @L2 | cast-time + interrupt (shipped) | today |
 | ~~Flee~~ | ~~Stag drop~~ | speed+ self buff & radius− | **CUT from v1 (PO 2026-07-16)** — rode lift 1 (+ the radius− half rode lift 4); Stag replacement drop TBD §11 |
 | Dash | Boar drop | dash (shipped) | today |
@@ -245,7 +245,7 @@ exists; "content-only" = new JSON, no code; "⚑ lift" = §9 code work.
 | ~~Rally~~ | ~~Bandit (ranged) drop~~ | timed ally move-speed buff | **CUT from v1 (PO 2026-07-16)** — rode lift 1, now backlogged; Bandit-ranged replacement drop TBD §11 |
 | Damage-Burst | Elite Bandit drop | instant_damage (shipped NovaBurst pattern); candidate `bleed` tag → exercises multi-tag hits | today |
 | ~~Berserker~~ → Berserker-aura | Bear drop | **rescoped**: berserker is a damage-payload modifier, not a state cooldown → Bear drops a berserker-modified damage AURA instead | content-only |
-| **Lantern Post** (11th, PO 2026-07-16) | Hermit (2nd teaching) or milestone — origin TBD §11 | SummonTotem spawn effect; totem def carries a **light-aura loadout** — deployable light support without giving up the active damage aura | content-only (totem + spawn shipped) |
+| ~~**Lantern Post**~~ (11th, PO 2026-07-16) | **CUT to post-v1 (C8 Session ④, PO 2026-07-19)** — Shaman-taught SummonTotem + 3 light sources cover the niche | SummonTotem spawn effect; totem def carries a **light-aura loadout** — deployable light support without giving up the active damage aura | content-only (totem + spawn shipped) |
 
 Balance note (PO): instant Heal vs. HoT Recovery is a deliberately
 overlapping pair — balance carefully (§12 flag).
@@ -358,14 +358,20 @@ mob-owned spawns (boss adds via encounter SpawnMob), pity drops (§11).
 
 ## 11. Deliberately TBD (do not decide here)
 
-- **Milestone reordering** — full rewrite of `milestone-unlocks.json` against
-  this plan's origins; all levels placeholder. (First cut in C1, final in C8.)
+- ~~**Milestone reordering** — full rewrite of `milestone-unlocks.json` against
+  this plan's origins; all levels placeholder. (First cut in C1, final in C8.)~~
+  **RESOLVED C8 Session ④ (2026-07-20, PO):** table FINAL at two rows — Heal
+  @L3, Haste @L7; milestones are the rare guaranteed beats, everything else
+  world-placed (HealAura → turnip-field Hermit @2, Recover → DireBear drop +
+  self-only). Ledger: §13 C8 Session-④ banner.
 - ~~**Recipe net** — Front-Aura + Boss-Aura combinations (≥6 total, incl.
   whether they combine with each other) — **chunk C7** (own session, before
   the balance pass).~~ **RESOLVED C7 (2026-07-18):** 10-recipe net authored
   (§13 C7 banner); capstone = yes (Warbanner).
-- **Stag + Bandit-ranged replacement drops** (or none) — open since the
-  Rally/Flee cut (2026-07-16).
+- ~~**Stag + Bandit-ranged replacement drops** (or none) — open since the
+  Rally/Flee cut (2026-07-16).~~ **RESOLVED:** Bandit-ranged → SlowAura drop
+  (Session ② item 20); Stag → **none**, prey is prey (C8 Session ④, PO
+  2026-07-19).
 - **Front-NPC level anchor** — compute against the v1 level curve once
   `growth` + max level are locked (⚑ open sim-harness PO item).
 - **Village healer purpose + village purpose** — Zone 2 session.
@@ -373,12 +379,16 @@ mob-owned spawns (boss adds via encounter SpawnMob), pity drops (§11).
   guaranteed-first would be code. Decide if needed after drop-rate feel.
 - Faction hostility matrix values, drop chances, all levels/radii/numbers.
 - **Rockfall gate aura** (§4) — which skill/tag opens the tunnel side passage.
-- **Lantern Post origin** — Hermit second teaching vs. milestone.
-- Homes inside the milestone rewrite for: ~~Barrier (instant_shield)~~
-  **(homed C7: Hardy+ToughPassive recipe result)**, ToughPassive
-  (damageReduction — still needs its own source; being a C7 recipe
-  ingredient is not a home), the bleed instant_dot candidate, Fade and
-  Revive levels.
+- ~~**Lantern Post origin** — Hermit second teaching vs. milestone.~~
+  **RESOLVED C8 Session ④ (PO 2026-07-19): deferred post-v1** — Shaman-taught
+  SummonTotem + three light sources already cover deployable light support.
+- ~~Homes inside the milestone rewrite for: Barrier (instant_shield),
+  ToughPassive, the bleed instant_dot candidate, Fade and Revive levels.~~
+  **ALL RESOLVED:** Barrier → C7 recipe result; ToughPassive → Troll drop +
+  Fade → Bandit drop + Revive → VillageHealer @6 (Session ② item 20); bleed
+  instant_dot ("Lacerate") → **not adopted** (C8 Session ④, PO 2026-07-19 —
+  DamageBurst has carried physical+bleed since C4; player instant_dot stays
+  deliberately unexercised in v1).
 - **Unplaced C7 recipe ingredients (PO-confirmed 2026-07-18):** Ignite +
   ImmolationAura have NO in-game source at all, and SlowAura/ToughPassive
   only drop from legacy mobs (Mammoth/Dodo) that never spawn in the
@@ -897,6 +907,45 @@ any content.
 
 ### C8 — Balance & guardrail pass
 
+> **⏳ Session ④ part 1 (milestone settlement + density pass) DONE 2026-07-20,
+> PO-approved in-session (map artifact + choice prompts) + PO in-game density
+> check — committed `03a377b1` (main, per PO directive).
+> Remaining C8 (next session): drop-rate feel pass (§11 pity; now against
+> final density — 16 drops incl. the new Recover 0.15), campfire
+> `healFractionOfMax` + heal-cost-curve finals, PO full-journey walkthrough
+> (Step-0 Warbanner sequence, ceiling-kit heal/shield feel, teacher gates
+> Immolation 6/Totem 5/Revive 6 + new HealAura Hermit @2, Troll/Pyromancer/
+> Dire tiers, new density feel).**
+>
+> **Ledger: (1) Milestone settlement (PO 2026-07-19).** Table FINAL at two
+> rows — **Heal @L3, Haste @L7** (`skills/milestone-unlocks.json`, embedded →
+> rebuild applies; pin test re-pinned). Everything else world-placed:
+> **HealAura → 2nd Hermit instance** at the turnip field (−47.5, 28.2),
+> teaching gated **@L2** (mirrors the Farmer); **Recover → DireBear drop
+> 0.15** [chance = drop-rate-pass placeholder] — the Z2 dires' first loot
+> identity — and made **self-only** (`targetsAllies:false`, §5 ruling
+> applied). **Lantern Post → post-v1** (YAGNI: Shaman totems + 3 light
+> sources cover it); **Stag → stays dropless** (prey is prey); **Lacerate →
+> not adopted** (DamageBurst already ships physical+bleed since C4). Pins
+> unchanged 77/44/10. **(2) Density pass, 2 rounds, PO-approved via
+> before/after map artifact** (pure-stdlib rasterizer + seeded generator,
+> session scratchpad; artifact kept as the visual record). Round 1: 8 fill
+> regions (Z1 centre-east meadow, Z1 SE corner, kobold outskirts K, Z2
+> shelves/fields) — **+185 props / +53 spawns**; **Z1 N–S road rerouted**
+> to join the main road west of the kobold camp instead of dead-ending in
+> it (−5/+9 sand, camp keeps a gap entrance). Round 2 (PO: *"a mob on
+> screen at basically all times"*): coverage standard derived from
+> `Zoom.ts` — screen = 17×9.5 units at max zoom-out; sliding-window fill
+> until **no ⅔-screen window is empty** (half-screen in the middle woods =
+> predator forest, wolf-heavy) — **+95 themed spawns**. Zone: 620→**805
+> props**, 198→**346 spawns**, 13 npcs; no-go respected (front, arena,
+> village, tunnel, camps, NPC/campfire clearings, seam tree-wall).
+> Semantic diff vs HEAD verified append-only. **PO tooling note:** the map
+> renderer → standalone browser map editor idea captured as **backlog §22**
+> (post-C8). **Verified:** build clean, boot `77 skills/13 factions/44
+> mobs/10 recipes/805 props/346 spawns/2 campfires/13 npcs, 0 panics`,
+> full suite green (both rounds), PO in-game density check positive.**
+>
 > **⏳ Session ③ part 1 (sim-side items) DONE 2026-07-19, PO-read in-session —
 > commits `4e412ebf` (Step 0) + `405b9e8c` + `6a2f69a4` + `ed9ffdff` +
 > `c55838e0`. All sim/test/tooling — ZERO game-content changes beyond Step 0's
