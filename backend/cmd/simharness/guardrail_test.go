@@ -25,6 +25,8 @@ package main
 
 import (
 	"math"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -100,6 +102,84 @@ func facetankSurvival(t *testing.T, def *mobs.MobDefinition, botAura sim.AuraSpe
 		Runs:            guardrailRuns,
 	})
 	return rep.Rows[0].Facetank.SurviveRate
+}
+
+// sustainedEVPerTick is a preset's steady-state expected damage per game
+// tick across all its targets: crit EV on the hit, dot cadence for dots
+// (refresh sustains one event per DotTickInterval per target), direct
+// cadence otherwise.
+func sustainedEVPerTick(s sim.AuraSpec) float64 {
+	ev := float64(s.DamageHP)
+	if s.CritChance > 0 {
+		ev *= 1 + float64(s.CritChance)*(float64(s.CritFactor)-1)
+	}
+	interval := s.TickInterval
+	if s.DotTicks > 0 {
+		interval = s.DotTickInterval
+	}
+	targets := s.MaxTargets
+	if targets < 1 {
+		targets = 1
+	}
+	return ev / float64(interval) * float64(targets)
+}
+
+// TestGuardrails_CeilingOrdering pins the §A power-ceiling calibration
+// (C8, PO-read 2026-07-19): the Front-Aura (Vanguard) and its combos
+// (Spearhead, Warbanner) are the sanctioned power outliers — at max level,
+// every non-ceiling damage preset's sustained EV/tick must stay below every
+// ceiling ref, and Spearhead is the single damage-axis top. Arithmetic over
+// the served presets — content drift that outdamages the ceiling fails here
+// before it surprises anyone (§A "never a surprise").
+func TestGuardrails_CeilingOrdering(t *testing.T) {
+	_, presets, err := loadPresets("")
+	require.NoError(t, err)
+
+	ceiling := map[string]bool{"Spearhead": true, "Warbanner": true, "Vanguard": true}
+
+	// keep each skill's highest-level entry ("Name L<k>" convention)
+	type entry struct {
+		level int
+		spec  sim.AuraSpec
+	}
+	maxed := map[string]entry{}
+	for _, p := range presets {
+		i := strings.LastIndex(p.Name, " L")
+		require.Greater(t, i, 0, "preset name convention: %q", p.Name)
+		name := p.Name[:i]
+		level, err := strconv.Atoi(p.Name[i+2:])
+		require.NoError(t, err, "preset name convention: %q", p.Name)
+		if e, ok := maxed[name]; !ok || level > e.level {
+			maxed[name] = entry{level, p.Spec}
+		}
+	}
+
+	var maxNonCeiling float64
+	var maxNonCeilingName string
+	for name, e := range maxed {
+		if ceiling[name] {
+			continue
+		}
+		if ev := sustainedEVPerTick(e.spec); ev > maxNonCeiling {
+			maxNonCeiling, maxNonCeilingName = ev, name
+		}
+	}
+	require.NotZero(t, maxNonCeiling)
+	t.Logf("strongest non-ceiling: %s at %.3f ev/tick", maxNonCeilingName, maxNonCeiling)
+
+	spearhead := sustainedEVPerTick(maxed["Spearhead"].spec)
+	for name := range ceiling {
+		e, ok := maxed[name]
+		require.True(t, ok, "ceiling ref %s must be in the presets (§A)", name)
+		ev := sustainedEVPerTick(e.spec)
+		t.Logf("ceiling ref %s L%d: %.3f ev/tick", name, e.level, ev)
+		assert.Greater(t, ev, maxNonCeiling,
+			"%s (§A ceiling) must outdamage every non-ceiling skill (best: %s %.3f)",
+			name, maxNonCeilingName, maxNonCeiling)
+		if name != "Spearhead" {
+			assert.Greater(t, spearhead, ev, "Spearhead is the §A damage-axis top")
+		}
+	}
 }
 
 func TestGuardrails_TierThresholdsVsRealRoster(t *testing.T) {
