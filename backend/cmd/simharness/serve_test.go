@@ -96,6 +96,58 @@ func TestLoadPlayerAuraPresets_EmbeddedContent(t *testing.T) {
 	}
 }
 
+// dot_aura content derives into presets (C8 full-roster pass): a dot-only
+// mob must NOT read as a harmless turret. BanditPyromancer's EmberAura
+// (6 HP ×1.7623 power scale at cL6, 3 events every 40 ticks, applied on a
+// 50-tick aura cadence, r3) and VenomSpider's VenomSpit (5 HP ×1.4049 at
+// cL4, 4 events every 45 ticks) are the pins.
+func TestLoadMobPresets_DotAuraMobsDerive(t *testing.T) {
+	presets, _, err := loadPresets("")
+	require.NoError(t, err)
+
+	byName := map[string]sim.MobSpec{}
+	for _, p := range presets {
+		byName[p.Name] = p.Spec
+	}
+
+	pyro, ok := byName["BanditPyromancer"]
+	require.True(t, ok, "roster must contain BanditPyromancer")
+	assert.InDelta(t, 6*1.7623417, pyro.Aura.DamageHP, 1e-3)
+	assert.Equal(t, 3, pyro.Aura.DotTicks)
+	assert.Equal(t, 40, pyro.Aura.DotTickInterval)
+	assert.Equal(t, 50, pyro.Aura.TickInterval)
+	assert.InDelta(t, 3.0, pyro.Aura.Radius, 1e-6)
+
+	spider, ok := byName["VenomSpider"]
+	require.True(t, ok, "roster must contain VenomSpider")
+	assert.InDelta(t, 5*1.404928, spider.Aura.DamageHP, 1e-3)
+	assert.Equal(t, 4, spider.Aura.DotTicks)
+	assert.Equal(t, 45, spider.Aura.DotTickInterval)
+}
+
+// Player dot skills join the roster too — ImmolationAura and the Wildfire
+// combo capstone were invisible to the balance pass before. Pinned against
+// ImmolationAura (dot 10 HP +2/lvl, 3 events every 60 ticks, aura tick 40).
+func TestLoadPlayerAuraPresets_DotSkillsDerive(t *testing.T) {
+	_, presets, err := loadPresets("")
+	require.NoError(t, err)
+
+	byName := map[string]sim.AuraSpec{}
+	for _, p := range presets {
+		byName[p.Name] = p.Spec
+	}
+
+	imm, ok := byName["ImmolationAura L1"]
+	require.True(t, ok, "roster must contain ImmolationAura at L1")
+	assert.InDelta(t, 10, imm.DamageHP, 1e-6)
+	assert.Equal(t, 3, imm.DotTicks)
+	assert.Equal(t, 60, imm.DotTickInterval)
+	assert.Equal(t, 40, imm.TickInterval)
+
+	_, ok = byName["Wildfire L1"]
+	assert.True(t, ok, "the Wildfire combo capstone derives too")
+}
+
 func TestHandleMobs_ServesRoster(t *testing.T) {
 	presets := []mobPreset{{Name: "SimMob", Spec: sim.MobSpec{MaxHealth: 40}}}
 	req := httptest.NewRequest(http.MethodGet, "/mobs", nil)

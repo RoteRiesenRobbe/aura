@@ -22,8 +22,8 @@ import (
 
 // mobPreset is one entry of the explorer's mob dropdown: an authored mob's
 // name plus its numbers mapped onto the sim's MobSpec — a prefill
-// convenience, not a fidelity promise (the sim models one damage aura; a
-// mob whose loadout has no damage aura maps to a harmless turret).
+// convenience, not a fidelity promise (the sim models one damage or dot
+// aura; a mob whose loadout has neither maps to a harmless turret).
 type mobPreset struct {
 	Name string      `json:"name"`
 	Spec sim.MobSpec `json:"spec"`
@@ -31,8 +31,8 @@ type mobPreset struct {
 
 // playerAuraPreset is one entry of the explorer's player-aura dropdown
 // (content pass C5, plan §A "never a surprise"): a player-authored skill's
-// damage_aura at a specific skill level, mapped onto the sim AuraSpec.
-// Same fidelity caveat as mobPreset — only the damage effect is modeled, so
+// damage_aura or dot_aura at a specific skill level, mapped onto the sim
+// AuraSpec. Same fidelity caveat as mobPreset — only that effect is modeled, so
 // a multi-effect skill (Vanguard: + heal + shield) reads BETTER in the sim
 // than these numbers alone; the C8 balance pass owns the full picture.
 // Values are curve-position-1 baselines: the character-level f(L) is the
@@ -75,8 +75,8 @@ func contentFS(contentDir string) (itemsFS, skillsFS, factionsFS, mobsFS fs.FS, 
 }
 
 // loadPresets builds both explorer rosters from the real content: every
-// authored mob, and every player-authored damage-aura skill at L1 + max
-// level (two entries — the baseline and the specialization ceiling).
+// authored mob, and every player-authored damage- or dot-aura skill at L1 +
+// max level (two entries — the baseline and the specialization ceiling).
 func loadPresets(contentDir string) ([]mobPreset, []playerAuraPreset, error) {
 	itemsFS, skillsFS, factionsFS, mobsFS, err := contentFS(contentDir)
 	if err != nil {
@@ -165,36 +165,48 @@ func playerAuraSpecByName(contentDir, ref string) (sim.AuraSpec, error) {
 	}
 	e, ok := firstDamageEffect(def)
 	if !ok {
-		return sim.AuraSpec{}, fmt.Errorf("-player-aura %q: %s has no damage_aura effect", ref, def.Name)
+		return sim.AuraSpec{}, fmt.Errorf("-player-aura %q: %s has no damage_aura or dot_aura effect", ref, def.Name)
 	}
 	return auraSpecAt(e, level, 1), nil
 }
 
-// firstDamageEffect finds the definition's first damage_aura payload — the
-// one effect the sim models.
+// firstDamageEffect finds the definition's first damage-dealing aura payload
+// — damage_aura or dot_aura, the two effect shapes the sim models.
 func firstDamageEffect(def *skills.SkillDefinition) (skills.EffectDef, bool) {
 	for _, e := range def.Effects {
 		if e.Type == skills.EffectTypeDamageAura && e.Damage != nil {
+			return e, true
+		}
+		if e.Type == skills.EffectTypeDotAura && e.Dot != nil {
 			return e, true
 		}
 	}
 	return skills.EffectDef{}, false
 }
 
-// auraSpecAt maps one damage_aura effect at a skill level onto the sim's
-// synthetic AuraSpec — the same numbers the live SkillSystem would apply.
-// powerScale is the caster-side HP multiplier: a mob def's derived
+// auraSpecAt maps one damage_aura or dot_aura effect at a skill level onto
+// the sim's synthetic AuraSpec — the same numbers the live SkillSystem would
+// apply. powerScale is the caster-side HP multiplier: a mob def's derived
 // f(curveLevel) (C0), or neutral 1 for player baselines.
 func auraSpecAt(e skills.EffectDef, level int, powerScale float32) sim.AuraSpec {
-	return sim.AuraSpec{
-		DamageHP:     e.Damage.HPAt(level) * powerScale,
+	spec := sim.AuraSpec{
 		TickInterval: skills.EffectiveTickInterval(e, level, 1),
 		Radius:       skills.Scaled(e.Radius, e.RadiusPerLevel, level),
-		Variance:     e.Damage.Variance,
-		CritChance:   e.Damage.CritChance,
-		CritFactor:   e.Damage.CritFactor,
 		MaxTargets:   skills.Scaled(e.MaxTargets, e.MaxTargetsPerLevel, level),
 	}
+	switch {
+	case e.Damage != nil:
+		spec.DamageHP = e.Damage.HPAt(level) * powerScale
+		spec.Variance = e.Damage.Variance
+		spec.CritChance = e.Damage.CritChance
+		spec.CritFactor = e.Damage.CritFactor
+	case e.Dot != nil:
+		spec.DamageHP = e.Dot.HPAt(level) * powerScale
+		spec.Variance = e.Dot.Variance
+		spec.DotTicks = e.Dot.TickCount
+		spec.DotTickInterval = e.Dot.Interval
+	}
+	return spec
 }
 
 // mobSpecOf maps an authored definition onto the sim's synthetic MobSpec.
@@ -214,10 +226,7 @@ func mobSpecOf(def *mobs.MobDefinition) sim.MobSpec {
 		if ms.Def.Category != skills.SkillCategoryActiveAura {
 			continue
 		}
-		for _, e := range ms.Def.Effects {
-			if e.Type != skills.EffectTypeDamageAura || e.Damage == nil {
-				continue
-			}
+		if e, ok := firstDamageEffect(ms.Def); ok {
 			// × PowerScale: the live SkillSystem multiplies mob skill HP
 			// by the def's derived f(curveLevel) at cast time (C0).
 			spec.Aura = auraSpecAt(e, ms.Level, def.PowerScale)

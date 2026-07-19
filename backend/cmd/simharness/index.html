@@ -82,7 +82,7 @@
   Mob preset: <select id="mobPreset"><option value="-1">custom</option></select>
   Player aura: <select id="playerPreset"><option value="-1">custom</option></select>
   <small>(authored content; picking one fills the knobs — editing them switches back to custom.
-  Player presets model the DAMAGE effect only — a multi-effect skill like Vanguard is stronger than its numbers here)</small>
+  Player presets model the damage (or dot) effect only — a multi-effect skill like Vanguard is stronger than its numbers here)</small>
 </div>
 
 <div class="knobs" id="knobs"></div>
@@ -149,6 +149,8 @@ const KNOBS = [
   ['Player', 'crit chance',       'player.aura.critChance',    0, 0.05],
   ['Player', 'crit factor',       'player.aura.critFactor',    0, 0.1],
   ['Player', 'max targets',       'player.aura.maxTargets',    1, 1],
+  ['Player', 'dot events (0 = direct)', 'player.aura.dotTicks', 0, 1],
+  ['Player', 'dot event tick (ticks)',  'player.aura.dotTickInterval', 0, 5],
 
   ['Mob', 'max health',           'mob.maxHealth',             60, 1],
   ['Mob', 'spawn HP variance ±',  'mob.maxHealthVariance',     0, 0.05],
@@ -157,6 +159,8 @@ const KNOBS = [
   ['Mob', 'aura radius',          'mob.aura.radius',           1.0, 0.1],
   ['Mob', 'variance ±',           'mob.aura.variance',         0, 0.05],
   ['Mob', 'aura max targets',     'mob.aura.maxTargets',       1, 1],
+  ['Mob', 'dot events (0 = direct)',   'mob.aura.dotTicks',    0, 1],
+  ['Mob', 'dot event tick (ticks)',    'mob.aura.dotTickInterval', 0, 5],
   ['Mob', 'speed (0=turret)',     'mob.speed',                 0.5, 0.1],
   ['Mob', 'body radius',          'mob.bodyRadius',            0.35, 0.05],
   ['Mob', 'aggro radius',         'mob.aggroRadius',           4.0, 0.5],
@@ -268,7 +272,10 @@ function buildRequest() {
   }
   // integer fields must arrive as ints
   for (const p of ['player.maxHealth', 'player.aura.tickInterval',
-                   'mob.aura.tickInterval', 'runs', 'seed']) {
+                   'player.aura.dotTicks', 'player.aura.dotTickInterval',
+                   'mob.aura.tickInterval',
+                   'mob.aura.dotTicks', 'mob.aura.dotTickInterval',
+                   'runs', 'seed']) {
     const parts = p.split('.');
     let obj = req;
     for (const q of parts.slice(0, -1)) obj = obj[q];

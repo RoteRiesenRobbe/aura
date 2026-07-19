@@ -85,6 +85,35 @@ func TestRunFight_Timeout(t *testing.T) {
 	assert.Equal(t, 50, r.Ticks)
 }
 
+// A dot-armed mob (DotTicks > 0 = the spec builds a real dot_aura, C8
+// full-roster presets) kills an idle player through the real buff pipeline:
+// 10 HP dot events every 2nd tick into a 100-HP pool → 10 events. The aura
+// (tick 2) applies on tick 2, the acting accumulator then fires every 2nd
+// tick — exact tick math with all RNG off, proving the harness runs the
+// real StatusEffects/Buffs path, not a re-modeled cadence.
+func TestRunFight_TTD_DotAuraExactWithZeroVariance(t *testing.T) {
+	m := stationaryMob(10, 2)
+	m.Aura.DotTicks = 3
+	m.Aura.DotTickInterval = 2
+	r := RunFight(TTD(exactPlayer(), m, 0.3), 1)
+
+	assert.Equal(t, OutcomePlayerDied, r.Outcome)
+	assert.Equal(t, 22, r.Ticks)
+}
+
+// A dot-armed player kills a mob, including the dot's defining upgrade: the
+// buff keeps ticking on its own cadence independent of the aura's. 40-HP mob,
+// 10 HP per event → 4 events; the fight must resolve well before timeout.
+func TestRunFight_TTK_DotAuraKills(t *testing.T) {
+	p := exactPlayer()
+	p.Aura = AuraSpec{DamageHP: 10, TickInterval: 3, Radius: 1.0, MaxTargets: 1,
+		DotTicks: 3, DotTickInterval: 2}
+	r := RunFight(TTK(p, stationaryMob(0, 1), 0.5), 1)
+
+	assert.Equal(t, OutcomeMobDied, r.Outcome)
+	assert.Less(t, r.Ticks, DefaultMaxTicks, "the dot fight must resolve, not time out")
+}
+
 // fullRNG turns every chunk-1 randomness source on: hit variance and crit on
 // both sides plus the mob spawn-HP roll.
 func fullRNGScenario() Scenario {

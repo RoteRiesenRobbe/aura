@@ -17,6 +17,14 @@ type AuraSpec struct {
 	CritChance   float32 `json:"critChance"`   // per-hit crit roll, 0 = never
 	CritFactor   float32 `json:"critFactor"`   // crit damage multiplier (pair with CritChance)
 	MaxTargets   int     `json:"maxTargets"`   // nearest-N cap; 0 = uncapped (the chunk-3 matrix axis)
+
+	// DotTicks > 0 turns the spec into a dot_aura (C8 full-roster presets):
+	// each application deals DamageHP per event, DotTicks events, one every
+	// DotTickInterval game ticks — running on the TARGET independent of the
+	// aura (the tail keeps ticking after leaving range). TickInterval stays
+	// the application cadence; dots carry no crit (DotParams has none).
+	DotTicks        int `json:"dotTicks,omitempty"`
+	DotTickInterval int `json:"dotTickInterval,omitempty"`
 }
 
 // definition builds the real skill definition the ECS runs. Direct
@@ -27,24 +35,39 @@ func (a AuraSpec) definition(id skills.SkillID, name string) *skills.SkillDefini
 	if interval < 1 {
 		interval = 1
 	}
+	effect := skills.EffectDef{
+		Type:           skills.EffectTypeDamageAura,
+		Radius:         a.Radius,
+		TickInterval:   interval,
+		TargetsEnemies: true,
+		MaxTargets:     a.MaxTargets,
+		Damage: &skills.DamageParams{
+			HP:         a.DamageHP,
+			Variance:   a.Variance,
+			CritChance: a.CritChance,
+			CritFactor: a.CritFactor,
+		},
+	}
+	if a.DotTicks > 0 {
+		dotInterval := a.DotTickInterval
+		if dotInterval < 1 {
+			dotInterval = 1
+		}
+		effect.Type = skills.EffectTypeDotAura
+		effect.Damage = nil
+		effect.Dot = &skills.DotParams{
+			HP:        a.DamageHP,
+			Variance:  a.Variance,
+			TickCount: a.DotTicks,
+			Interval:  dotInterval,
+		}
+	}
 	return &skills.SkillDefinition{
 		ID:       id,
 		Name:     name,
 		Category: skills.SkillCategoryActiveAura,
 		MaxLevel: 1,
-		Effects: []skills.EffectDef{{
-			Type:           skills.EffectTypeDamageAura,
-			Radius:         a.Radius,
-			TickInterval:   interval,
-			TargetsEnemies: true,
-			MaxTargets:     a.MaxTargets,
-			Damage: &skills.DamageParams{
-				HP:         a.DamageHP,
-				Variance:   a.Variance,
-				CritChance: a.CritChance,
-				CritFactor: a.CritFactor,
-			},
-		}},
+		Effects:  []skills.EffectDef{effect},
 	}
 }
 
