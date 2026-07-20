@@ -36,6 +36,17 @@ func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 		return desired
 	}
 
+	left := desired.Rot90()
+	// Detour-commit: while the head-on latch is set, hold the latched tangent
+	// EVERY tick until fully clear of repulsion (the rep==0 reset above) — not
+	// just on head-on ticks. Falling back to the blended direction the moment
+	// the dot turns positive re-aims the mob at the gap it just deflected away
+	// from, and against a prop wall it limit-cycles between deflect and blend,
+	// jiggling in place at the notch forever (in-game finding, 2026-07-20).
+	if m.steerSide != 0 {
+		return left.Mult(m.steerSide)
+	}
+
 	combined := desired.Add(rep.Mult(steeringRepulsionWeight))
 	if combined.Dot(desired) > 0 {
 		return combined.Normalize()
@@ -48,13 +59,10 @@ func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 	// and the mob jitters in place, flipping sides forever (in-game finding,
 	// 2026-07-11). First head-on tick: take the lean of the combined vector
 	// (it points toward the freer side); exactly on the line, always left.
-	left := desired.Rot90()
-	if m.steerSide == 0 {
-		if combined.Dot(left) < 0 {
-			m.steerSide = -1
-		} else {
-			m.steerSide = 1
-		}
+	if combined.Dot(left) < 0 {
+		m.steerSide = -1
+	} else {
+		m.steerSide = 1
 	}
 	return left.Mult(m.steerSide)
 }

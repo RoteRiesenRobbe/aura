@@ -127,9 +127,15 @@ func TestMob_TargetInsideRectBlockerHoldsWithoutJitter(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		tick(t, m, space)
 		pos := m.Body.Position()
-		// Physics holds the mob out of the box (face + body radius).
-		assert.True(t, absf(pos.X-center.X) >= 1.5+m.Body.Radius-1e-2 ||
-			absf(pos.Y-center.Y) >= 1+m.Body.Radius-1e-2,
+		// Physics holds the mob out of the box: center at least a body radius
+		// from the closest face point. (Since the detour-commit the holding
+		// pattern orbits the box, so corner contact — radial, not face-axis —
+		// is a valid position too.)
+		closest := phy.Vec2f{
+			X: clampf(pos.X, center.X-1.5, center.X+1.5),
+			Y: clampf(pos.Y, center.Y-1, center.Y+1),
+		}
+		assert.GreaterOrEqual(t, pos.Sub(closest).Abs(), m.Body.Radius-float32(1e-2),
 			"must not end up inside the rect blocker (tick %d): %v", i, pos)
 		// No jitter: per-tick displacement stays a plausible movement step.
 		assert.Less(t, pos.Sub(prev).Abs(), float32(0.15), "teleporty jitter (tick %d)", i)
@@ -348,9 +354,48 @@ func TestMob_TwoBlockerPocketNoSideFlipOscillation(t *testing.T) {
 	t.Fatalf("mob never rounded the two-blocker pocket; final pos %v", m.Body.Position())
 }
 
+// A prop WALL: two big props with a gap narrower than the mob body, chase
+// line dead into the gap (in-game finding, 2026-07-20: density-pass tree
+// walls — two wolves jiggled in place at the notch forever). The side latch
+// alone is not enough here: once the mob has slid a little, the blend branch
+// re-aims it at the gap and it limit-cycles between deflect and blend. The
+// detour-commit keeps the latched tangent until fully clear of repulsion, so
+// the mob slides along the wall and rounds its end.
+func TestMob_PropWallNotchRoundsTheWall(t *testing.T) {
+	space := phy.NewSpace()
+	blockingStatic(space, phy.Vec2f{X: 2, Y: 1.35}, 1.1)
+	blockingStatic(space, phy.Vec2f{X: 2, Y: -1.35}, 1.1) // gap 0.5 < mob diameter
+
+	m := NewMob(steeringMobDefinition(), 0, space)
+	m.SetPosition(phy.VEC2F_ZERO)
+	space.AddShape(m.Body)
+	p := newFakeAuraPlayer()
+	p.pos = phy.Vec2f{X: 4.5, Y: 0} // dead behind the notch
+	m.aggroTarget = p
+
+	reach := m.aura.Radius + p.radius
+	for i := 0; i < 400; i++ {
+		tick(t, m, space)
+		if m.Body.Position().Sub(p.pos).Abs() <= reach {
+			return // slid along the wall, rounded an end, reached the target
+		}
+	}
+	t.Fatalf("mob never rounded the prop wall; final pos %v", m.Body.Position())
+}
+
 func absf(v float32) float32 {
 	if v < 0 {
 		return -v
+	}
+	return v
+}
+
+func clampf(v, lo, hi float32) float32 {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
 	}
 	return v
 }

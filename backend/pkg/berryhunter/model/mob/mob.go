@@ -222,6 +222,13 @@ type Mob struct {
 	// re-picking per tick flip-flops between two blockers (see steer).
 	steerSide float32
 
+	// chase stuck watchdog (see stuck.go): net-progress window + camp state.
+	progressAnchorPos phy.Vec2f
+	progressTicks     int
+	camped            bool
+	campTicks         int
+	campTargetPos     phy.Vec2f
+
 	health    vitals.VitalSign
 	maxHealth vitals.VitalSign
 	heading   phy.Vec2f
@@ -557,11 +564,15 @@ func (m *Mob) Update(dt float32) bool {
 
 	if m.aggroTarget != nil {
 		if m.shouldFlee() {
+			m.resetChaseWatchdog()
 			m.moveAwayFrom(m.aggroTarget.Position())
 		} else if m.shouldApproachAggroTarget() {
-			m.moveTowards(m.aggroTarget.Position())
+			m.chaseTowards(m.aggroTarget.Position())
+		} else {
+			m.resetChaseWatchdog()
 		}
 	} else {
+		m.resetChaseWatchdog()
 		m.updateIdleMovement()
 		// Heal to full in ~2 seconds while out of combat (absolute HP, item 11).
 		if m.health < m.maxHealth {
