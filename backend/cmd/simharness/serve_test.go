@@ -127,7 +127,8 @@ func TestLoadMobPresets_DotAuraMobsDerive(t *testing.T) {
 
 // Player dot skills join the roster too — ImmolationAura and the Wildfire
 // combo capstone were invisible to the balance pass before. Pinned against
-// ImmolationAura (dot 10 HP +2/lvl, 3 events every 60 ticks, aura tick 40).
+// ImmolationAura (dot 10.5 HP +2.1/lvl after the crit-rework-v2 dot
+// compensation, 3 events every 60 ticks, aura tick 40).
 func TestLoadPlayerAuraPresets_DotSkillsDerive(t *testing.T) {
 	_, presets, err := loadPresets("")
 	require.NoError(t, err)
@@ -139,7 +140,7 @@ func TestLoadPlayerAuraPresets_DotSkillsDerive(t *testing.T) {
 
 	imm, ok := byName["ImmolationAura L1"]
 	require.True(t, ok, "roster must contain ImmolationAura at L1")
-	assert.InDelta(t, 10, imm.DamageHP, 1e-6)
+	assert.InDelta(t, 10.5, imm.DamageHP, 1e-6)
 	assert.Equal(t, 3, imm.DotTicks)
 	assert.Equal(t, 60, imm.DotTickInterval)
 	assert.Equal(t, 40, imm.TickInterval)

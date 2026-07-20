@@ -67,5 +67,6 @@ export enum EntityType {
   BanditPyromancer = 61,
   Farmer = 62,
   Wanderer = 63,
-  Traveller = 64
+  Traveller = 64,
+  TownCrier = 65
 }

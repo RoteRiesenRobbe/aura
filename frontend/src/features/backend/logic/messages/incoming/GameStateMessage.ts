@@ -346,6 +346,7 @@ const gameObjectClasses = [
     Resources.Farmer,
     Resources.Wanderer,
     Resources.Traveller,
+    Resources.TownCrier,
 ];
 
 function unmarshalEntityType(entityType) {

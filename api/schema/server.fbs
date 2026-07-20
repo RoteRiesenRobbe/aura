@@ -67,7 +67,8 @@ enum EntityType : ushort {
   BanditPyromancer,
   Farmer,
   Wanderer,
-  Traveller
+  Traveller,
+  TownCrier
 }
 
 enum StatusEffect : ushort {

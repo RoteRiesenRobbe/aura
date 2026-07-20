@@ -501,6 +501,22 @@ export class Traveller extends Resource {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Traveller, GraphicsConfig.npcs.traveller.file, GraphicsConfig.npcs.traveller.maxSize);
 
+export class TownCrier extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, TownCrier.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(TownCrier, GraphicsConfig.npcs.townCrier.file, GraphicsConfig.npcs.townCrier.maxSize);
+
 export class DogNpc extends Resource {
     static svg: Texture;
 

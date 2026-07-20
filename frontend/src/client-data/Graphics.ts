@@ -336,6 +336,10 @@ export const GraphicsConfig = {
             file: require('../features/game-objects/assets/resources/traveller.svg'),
             maxSize: <number> 60,
         },
+        townCrier: {
+            file: require('../features/game-objects/assets/resources/townCrier.svg'),
+            maxSize: <number> 60,
+        },
         dogNpc: {
             file: require('../features/game-objects/assets/resources/dogNpc.svg'),
             maxSize: <number> 45,
