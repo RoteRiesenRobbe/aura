@@ -1141,3 +1141,40 @@ and overview work the in-game editor isn't built for:
 **Scope guess:** ~one focused session for a first usable cut (render + place +
 save). ⚑ Where it lives (`tools/`? behind `-dev`?) and whether it subsumes any
 in-game-editor modes is the design pass's call. Not before C8 closes.
+
+## 23. Crit chance as a stackable player stat (WoW-style)
+
+**Origin:** PO decision 2026-07-20 (live-content review chat). Extends the
+§4.3 crit doctrine (2026-07-13: crit = the ONE sanctioned, upside-only combat
+RNG, authored per-skill) — crit stays the only combat RNG, but becomes
+stackable build-wide via a passive stat. Recorded as a doctrine amendment.
+
+**Settled spec (PO choice prompts, 2026-07-20):**
+
+- **Scope: every direct hit can crit.** The stat gives all damage hits a crit
+  chance; effects without an authored crit pair use a **global default
+  critFactor** (⚑ value TBD, ×2 placeholder).
+- **Stacking: additive** with authored crit (ReaperAura 25% + stat 10% = 35%).
+- **DoTs never crit** (WoW-Classic rule; the dot-freeze path stays untouched).
+- Summons: unresolved ⚑ — berserker precedent says the ACTING entity's own
+  stats drive vocab, so summons would NOT inherit owner crit unless decided
+  otherwise.
+
+**Implementation sketch (paths verified 2026-07-20):**
+
+- `skills/definition.go` — `StatCritChance` in `validStats` (+ constant).
+- `skills/component.go` — `DerivedStats.CritChanceBonus` + case in
+  `recomputeDerived()`.
+- `sys/skills.go` — thread the acting entity's bonus into `rollHitDamage()`
+  (both call sites have the caster in scope); additive with
+  `DamageParams.CritChance`, default factor when the effect has none.
+- Content: first crit passive JSON (registry pin bump + rebuild + placement/
+  drop decision). Zero client work — crit already rides the `crit_taken`
+  wire accumulator and the client renders crit hits.
+- Test note: zero-chance effects consume no RNG draws today (seeded guardrail
+  determinism); equipping the passive starts consuming draws per hit — keep
+  guardrail scenarios crit-free or re-pin, and add a component + roll test.
+
+**Scope guess:** one mini-chunk (lift ~20–30 lines + tests + one passive +
+placement). **Scheduled: own mini-chunk after C8 closes** (PO 2026-07-20) —
+slots naturally next to the post-C8 combat-readability items 7/15.
