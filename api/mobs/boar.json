@@ -26,7 +26,7 @@
     { "skillName": "BoarGore", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "Hardy", "chance": 0.15 },
-    { "skillName": "Dash", "chance": 0.1 }
+    { "skillName": "Hardy", "chance": 0.03 },
+    { "skillName": "Dash", "chance": 0.025 }
   ]
 }

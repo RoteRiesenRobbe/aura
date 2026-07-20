@@ -29,6 +29,6 @@
     }
   ],
   "unlocks": [
-    { "skillName": "Fade", "chance": 0.1 }
+    { "skillName": "Fade", "chance": 0.015 }
   ]
 }

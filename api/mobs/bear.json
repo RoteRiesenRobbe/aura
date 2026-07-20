@@ -26,7 +26,7 @@
     { "skillName": "BearSwipe", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "ThickHide", "chance": 0.15 },
-    { "skillName": "BerserkerAura", "chance": 0.1 }
+    { "skillName": "ThickHide", "chance": 0.04 },
+    { "skillName": "BerserkerAura", "chance": 0.03 }
   ]
 }

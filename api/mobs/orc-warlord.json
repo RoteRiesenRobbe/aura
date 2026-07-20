@@ -1,5 +1,5 @@
 {
-  "_comment": "Ork World Boss (content pass C6, plan-content-zones12.md §B): the v1 completion beat — encounter-spawned only (never a zone spawn; the OrcWarlordEncounter owns spawn/respawn via the warlord-home anchor). tier boss, curveLevel 23 (PO 2026-07-18: a couple of levels above the front band, punishes undersized groups). Boss baseline ≈3x the elite Orc — the mechanics (Warbanner invuln gate, grunt waves, Frenzy windows) carry the fight, not the stat block. experience 600 = the 'large XP' §B beat (contrast the deliberately-starved Orc 15). Kill-drop Call for Aid at chance 1.0 — all participants + recent healers (§B). Slow heavy stride under the orc 0.5. All values [PLACEHOLDER]",
+  "_comment": "Ork World Boss (content pass C6, plan-content-zones12.md §B): the v1 completion beat — encounter-spawned only (never a zone spawn; the OrcWarlordEncounter owns spawn/respawn via the warlord-home anchor). tier boss, curveLevel 23 (PO 2026-07-18: a couple of levels above the front band, punishes undersized groups). Boss baseline ≈3x the elite Orc — the mechanics (Warbanner invuln gate, grunt waves, Frenzy windows) carry the fight, not the stat block. experience 600 = the 'large XP' §B beat (contrast the deliberately-starved Orc 15). Kill-drop Call for Aid at chance 1.0 — all participants + recent healers (§B). Rejuvenation at 0.1 = the first boss rare re-farm drop (C8 drop-rate pass, PO 2026-07-20: guaranteed identity drop + low-chance hunt slot; the support aura on the group-roles capstone). Slow heavy stride under the orc 0.5. All values [PLACEHOLDER]",
   "id": 35,
   "name": "OrcWarlord",
   "type": "MOB",
@@ -32,6 +32,10 @@
     {
       "skillName": "CallForAid",
       "chance": 1.0
+    },
+    {
+      "skillName": "Rejuvenation",
+      "chance": 0.1
     }
   ]
 }

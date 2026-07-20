@@ -32,7 +32,7 @@
   "unlocks": [
     {
       "skillName": "Light",
-      "chance": 0.08
+      "chance": 0.05
     }
   ]
 }

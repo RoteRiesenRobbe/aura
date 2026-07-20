@@ -29,6 +29,6 @@
     }
   ],
   "unlocks": [
-    { "skillName": "SlowAura", "chance": 0.15 }
+    { "skillName": "SlowAura", "chance": 0.03 }
   ]
 }

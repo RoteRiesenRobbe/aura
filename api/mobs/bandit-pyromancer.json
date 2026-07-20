@@ -26,6 +26,6 @@
     { "skillName": "EmberAura", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "NovaBurst", "chance": 0.15 }
+    { "skillName": "NovaBurst", "chance": 0.05 }
   ]
 }

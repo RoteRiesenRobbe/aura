@@ -1,5 +1,5 @@
 {
-  "_comment": "Skill-vocab chunk 3 smoke content (HoT case 1): a healing AURA whose heal-over-time lingers on allies after they leave range. The buff duration (hotTicks*hotTickInterval) outlasts the aura re-apply cadence (tickInterval), so walking out keeps the HoT ticking. Cheat-granted (SKILL Rejuvenation), no milestone. All values [PLACEHOLDER].",
+  "_comment": "Skill-vocab chunk 3 smoke content (HoT case 1): a healing AURA whose heal-over-time lingers on allies after they leave range. The buff duration (hotTicks*hotTickInterval) outlasts the aura re-apply cadence (tickInterval), so walking out keeps the HoT ticking. Live source: OrcWarlord rare re-farm drop at 0.1 (C8 drop-rate pass, PO 2026-07-20). All values [PLACEHOLDER].",
   "id": 29,
   "name": "Rejuvenation",
   "category": "active_aura",
