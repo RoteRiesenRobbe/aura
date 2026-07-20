@@ -375,8 +375,11 @@ mob-owned spawns (boss adds via encounter SpawnMob), pity drops (§11).
 - **Front-NPC level anchor** — compute against the v1 level curve once
   `growth` + max level are locked (⚑ open sim-harness PO item).
 - **Village healer purpose + village purpose** — Zone 2 session.
-- **Per-skill kill-drop mode** — only random-chance exists; pity /
-  guaranteed-first would be code. Decide if needed after drop-rate feel.
+- ~~**Per-skill kill-drop mode** — only random-chance exists; pity /
+  guaranteed-first would be code. Decide if needed after drop-rate feel.~~
+  **RESOLVED C8 Session ⑤ (2026-07-20, PO): no pity — pure per-kill RNG is
+  FINAL for v1** (farm-time table showed no grind wall; boss rares are the
+  hunt beat). Ledger: §13 C8 Session-⑤ banner.
 - Faction hostility matrix values, drop chances, all levels/radii/numbers.
 - **Rockfall gate aura** (§4) — which skill/tag opens the tunnel side passage.
 - ~~**Lantern Post origin** — Hermit second teaching vs. milestone.~~
@@ -907,6 +910,51 @@ any content.
 
 ### C8 — Balance & guardrail pass
 
+> **⏳ Session ⑤ (drop-rate pass FINAL + NPC pass + walkthrough part 1) DONE
+> 2026-07-20, PO-driven walkthrough in-session — committed `1ef67776` (drops)
+> + `ac44bae5` (NPCs) + `d5263355` (fixes), main per PO directive. A parallel
+> session landed `e2643cdb` (mob pathfinding detour-commit + camp watchdog,
+> from the walkthrough's wolves-jiggling finding) — no file overlap.
+> Remaining C8 (next session): walkthrough remainder (Step-0 Warbanner
+> sequence, remaining teacher gates, Vanguard/regen re-feel post-nerf,
+> Troll/Pyromancer/Dire tier feel) + the **Z2-hardening / cL8-17 farm-band
+> plan chunk** (PO 2026-07-20: plan-first, own session — Z2 difficulty+density
+> "up by a lot", dedicated high-tier farm content; the guardrail-flagged
+> cL8-17 normals gap is the design target).**
+>
+> **Ledger: (1) Drop-rate feel pass — table FINAL (PO 2026-07-20).** Method:
+> kills/hour chain battery vs final density (per-mob measured kph, best
+> viable stance, respawn-capacity cross-checked — 30 s standard never
+> binds); PO rulings: **no pity — pure per-kill RNG FINAL (closes GDD §11
+> TBD)**, event pacing ("a WoW blue") at **Z1 ≈10 min / Z2 ≈20 min expected**
+> model-time, gating utility quicker, elites high-chance (kill-gated).
+> Chances: Light .05 ×2 / Hardy .03 / Dash .025 / ThickHide .04 /
+> Berserker .03 / Swift .10 / Fade .015 / SlowAura .03 / NovaBurst .05 /
+> Recover .02 / Antivenom .10+.25 kept / elites .25+.5 kept.
+> **WildAura → DireWolf .06** (live home; legacy Dodo/SaberToothCat/Mammoth
+> carriers exist only in proving-grounds — flagged for Step-7 cleanup) and
+> **OrcWarlord + Rejuvenation .10** = first **boss rare re-farm drop**
+> (pattern adopted: guaranteed identity drop + low-chance hunt slot;
+> FireWard = the one remaining orphan, reserved for fire-themed content).
+> **(2) NPC pass:** body radius 1.0→**0.35** (player 0.25), sensor radius
+> 3→**1.5** all 13 NPCs incl. signposts, **Farmer sprite** = new EntityType
+> 62 through the full 5-file wire path (was Flower fallback).
+> **(3) Walkthrough part-1 findings fixed:** aura-swap-into-active-slot left
+> NO aura active (ring/effect/light off → invisible under darkness) —
+> equip flow now re-activates the slot, red-first pair in
+> `sys/equip/equip_test.go`; **Vanguard shield 13→~2.7 HP/s** at L5
+> (4 +1/lvl per 90 ticks; damage axis checked vs the §A league = maxed-base
+> ×2 targets, in-line, UNTOUCHED); **regen taper** 1.0@L1→0.4@max linear
+> (`regenTaper`, pinned) — amends the 1%/s lock at the top end only.
+> **Settled FINAL this session:** campfire `healFractionOfMax` 0.12, heal
+> cost curve `10 −2/level`, drop table, §11 no-pity. **PO walkthrough reads:**
+> teachers OK; tier readability vague-but-consistent = acceptable, real fix
+> stays deferred items 7+15. **Verified:** build clean, suite green (one
+> transient red mid-session = the parallel session's in-flight TDD, green at
+> its commit), boot `77 skills/13 factions/44 mobs/10 recipes/805 props/346
+> spawns/2 campfires/13 npcs, 0 panics`, headless client smoke (Farmer
+> sprite + teach range), PO in-game re-checks.**
+>
 > **⏳ Session ④ part 1 (milestone settlement + density pass) DONE 2026-07-20,
 > PO-approved in-session (map artifact + choice prompts) + PO in-game density
 > check — committed `03a377b1` (main, per PO directive).
