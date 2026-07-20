@@ -12198,6 +12198,26 @@
         "I raise totems where the roads cross. The wood watches over travelers who cannot watch their own backs."
       ],
       "entityType": "Hermit"
+    },
+    {
+      "type": "RoadWarner",
+      "x": -23.5,
+      "y": 13.5,
+      "radius": 1.5,
+      "lines": [
+        "Don't go east — bandits camp the road. Take the tunnel north."
+      ],
+      "entityType": "Wanderer"
+    },
+    {
+      "type": "LamplessTraveller",
+      "x": -17,
+      "y": -28.5,
+      "radius": 1.5,
+      "lines": [
+        "Kobolds took my lamp!"
+      ],
+      "entityType": "Traveller"
     }
   ],
   "anchors": [

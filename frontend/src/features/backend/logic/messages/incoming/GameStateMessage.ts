@@ -344,6 +344,8 @@ const gameObjectClasses = [
     Mobs.Troll,
     Mobs.BanditPyromancer,
     Resources.Farmer,
+    Resources.Wanderer,
+    Resources.Traveller,
 ];
 
 function unmarshalEntityType(entityType) {

@@ -469,6 +469,38 @@ export class Farmer extends Resource {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Farmer, GraphicsConfig.npcs.farmer.file, GraphicsConfig.npcs.farmer.maxSize);
 
+export class Wanderer extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, Wanderer.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Wanderer, GraphicsConfig.npcs.wanderer.file, GraphicsConfig.npcs.wanderer.maxSize);
+
+export class Traveller extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, Traveller.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Traveller, GraphicsConfig.npcs.traveller.file, GraphicsConfig.npcs.traveller.maxSize);
+
 export class DogNpc extends Resource {
     static svg: Texture;
 

@@ -1,8 +1,8 @@
 {
   "name": "World",
   "bounds": {
-    "width": 144.0,
-    "height": 72.0
+    "width": 144,
+    "height": 72
   },
   "terrain": [
     {
@@ -1039,7 +1039,7 @@
     },
     {
       "type": "Sand",
-      "x": -19.0,
+      "x": -19,
       "y": 27.38,
       "size": 1.07,
       "rotation": 0.266,
@@ -1473,7 +1473,7 @@
       "type": "Sand",
       "x": -26.38,
       "y": 9.91,
-      "size": 1.0,
+      "size": 1,
       "rotation": 4.338,
       "flipped": "none"
     },
@@ -1663,7 +1663,7 @@
     },
     {
       "type": "Sand",
-      "x": 22.0,
+      "x": 22,
       "y": 22.92,
       "size": 1.04,
       "rotation": 1.73,
@@ -1928,7 +1928,7 @@
     {
       "type": "Sand",
       "x": 42.66,
-      "y": 8.0,
+      "y": 8,
       "size": 1.21,
       "rotation": 5.66,
       "flipped": "none"
@@ -2009,13 +2009,13 @@
       "type": "Sand",
       "x": 52.18,
       "y": 8.01,
-      "size": 1.0,
+      "size": 1,
       "rotation": 6.04,
       "flipped": "none"
     },
     {
       "type": "Sand",
-      "x": 52.0,
+      "x": 52,
       "y": 8.24,
       "size": 0.95,
       "rotation": 2.27,
@@ -2040,7 +2040,7 @@
     {
       "type": "Sand",
       "x": 55.03,
-      "y": 8.0,
+      "y": 8,
       "size": 1.16,
       "rotation": 3.24,
       "flipped": "none"
@@ -2050,7 +2050,7 @@
       "x": 55.83,
       "y": 7.76,
       "size": 1.21,
-      "rotation": 4.0,
+      "rotation": 4,
       "flipped": "none"
     },
     {
@@ -2098,7 +2098,7 @@
       "x": 61.41,
       "y": 7.83,
       "size": 1.22,
-      "rotation": 0.0,
+      "rotation": 0,
       "flipped": "none"
     },
     {
@@ -2327,7 +2327,7 @@
     },
     {
       "type": "Sand",
-      "x": 56.0,
+      "x": 56,
       "y": 19.7,
       "size": 0.92,
       "rotation": 3.27,
@@ -2488,7 +2488,7 @@
     {
       "type": "Sand",
       "x": 31.94,
-      "y": -16.0,
+      "y": -16,
       "size": 1.25,
       "rotation": 3.65,
       "flipped": "none"
@@ -3272,7 +3272,7 @@
     {
       "type": "Land",
       "x": 51.58,
-      "y": 34.0,
+      "y": 34,
       "size": 1.31,
       "rotation": 1.57,
       "flipped": "none"
@@ -3280,7 +3280,7 @@
     {
       "type": "Land",
       "x": 53.99,
-      "y": 32.0,
+      "y": 32,
       "size": 1.24,
       "rotation": 6.17,
       "flipped": "none"
@@ -3345,7 +3345,7 @@
       "type": "Sand",
       "x": -22.88,
       "y": 18.74,
-      "size": 1.0,
+      "size": 1,
       "rotation": 1.268,
       "flipped": "none"
     },
@@ -3646,7 +3646,7 @@
     },
     {
       "type": "Tree",
-      "x": -43.0,
+      "x": -43,
       "y": -26.43,
       "rotation": 1.114,
       "blocksMovement": true
@@ -3661,7 +3661,7 @@
     {
       "type": "Tree",
       "x": -43.16,
-      "y": -25.0,
+      "y": -25,
       "rotation": 1.818,
       "blocksMovement": true
     },
@@ -4458,8 +4458,8 @@
     },
     {
       "type": "Tree",
-      "x": -34.0,
-      "y": -14.0,
+      "x": -34,
+      "y": -14,
       "rotation": 4.389,
       "blocksMovement": true
     },
@@ -4690,7 +4690,7 @@
     {
       "type": "Tree",
       "x": -40.1,
-      "y": 16.0,
+      "y": 16,
       "rotation": 4.777,
       "blocksMovement": true
     },
@@ -5053,7 +5053,7 @@
     },
     {
       "type": "Tree",
-      "x": -59.0,
+      "x": -59,
       "y": -0.67,
       "rotation": 5.647,
       "blocksMovement": true
@@ -5726,7 +5726,7 @@
     {
       "type": "Boulder",
       "x": -7.37,
-      "y": -34.0,
+      "y": -34,
       "rotation": 4.759,
       "blocksMovement": true
     },
@@ -6006,7 +6006,7 @@
     {
       "type": "Boulder",
       "x": 3.65,
-      "y": -26.0,
+      "y": -26,
       "rotation": 2.674,
       "blocksMovement": true
     },
@@ -6062,7 +6062,7 @@
     {
       "type": "Boulder",
       "x": 9.78,
-      "y": -23.0,
+      "y": -23,
       "rotation": 5.523,
       "blocksMovement": true
     },
@@ -6075,36 +6075,36 @@
     },
     {
       "type": "House",
-      "x": 40.0,
-      "y": 3.0,
+      "x": 40,
+      "y": 3,
       "rotation": 1.34,
       "blocksMovement": true
     },
     {
       "type": "House",
-      "x": 48.0,
-      "y": 3.0,
+      "x": 48,
+      "y": 3,
       "rotation": 1.89,
       "blocksMovement": true
     },
     {
       "type": "House",
-      "x": 40.0,
-      "y": 13.0,
+      "x": 40,
+      "y": 13,
       "rotation": 5.98,
       "blocksMovement": true
     },
     {
       "type": "House",
-      "x": 48.0,
-      "y": 13.0,
+      "x": 48,
+      "y": 13,
       "rotation": 5.97,
       "blocksMovement": true
     },
     {
       "type": "GateWall",
       "x": 64.8,
-      "y": -12.0,
+      "y": -12,
       "rotation": 0.4,
       "blocksMovement": true
     },
@@ -6174,8 +6174,8 @@
     {
       "type": "GateWall",
       "x": 64.8,
-      "y": 11.0,
-      "rotation": 1.0,
+      "y": 11,
+      "rotation": 1,
       "blocksMovement": true
     },
     {
@@ -6209,7 +6209,7 @@
     {
       "type": "Tree",
       "x": 64.62,
-      "y": -12.0,
+      "y": -12,
       "rotation": 0.59,
       "blocksMovement": true
     },
@@ -6279,7 +6279,7 @@
     {
       "type": "Tree",
       "x": 64.43,
-      "y": -31.0,
+      "y": -31,
       "rotation": 2.42,
       "blocksMovement": true
     },
@@ -6299,7 +6299,7 @@
     },
     {
       "type": "Tree",
-      "x": 65.0,
+      "x": 65,
       "y": 21.5,
       "rotation": 6.28,
       "blocksMovement": true
@@ -6335,7 +6335,7 @@
     {
       "type": "Tree",
       "x": 64.76,
-      "y": 31.0,
+      "y": 31,
       "rotation": 5.1,
       "blocksMovement": true
     },
@@ -6355,7 +6355,7 @@
     },
     {
       "type": "GateWall",
-      "x": 44.0,
+      "x": 44,
       "y": -7.6,
       "rotation": 6.11,
       "blocksMovement": true
@@ -6719,7 +6719,7 @@
     },
     {
       "type": "Tree",
-      "x": 44.0,
+      "x": 44,
       "y": -20.45,
       "rotation": 5.85,
       "blocksMovement": true
@@ -6832,7 +6832,7 @@
     {
       "type": "Tree",
       "x": 50.93,
-      "y": -15.0,
+      "y": -15,
       "rotation": 1.24,
       "blocksMovement": true
     },
@@ -6853,7 +6853,7 @@
     {
       "type": "Tree",
       "x": 53.37,
-      "y": -34.0,
+      "y": -34,
       "rotation": 2.45,
       "blocksMovement": true
     },
@@ -6999,7 +6999,7 @@
     },
     {
       "type": "Tree",
-      "x": 60.0,
+      "x": 60,
       "y": -21.69,
       "rotation": 1.5,
       "blocksMovement": true
@@ -7049,7 +7049,7 @@
     {
       "type": "Tree",
       "x": 60.84,
-      "y": -19.0,
+      "y": -19,
       "rotation": 4.75,
       "blocksMovement": true
     },
@@ -7671,7 +7671,7 @@
     },
     {
       "type": "Boulder",
-      "x": 26.0,
+      "x": 26,
       "y": 33.2,
       "rotation": 0.84,
       "blocksMovement": true
@@ -7699,7 +7699,7 @@
     },
     {
       "type": "Rock",
-      "x": 61.0,
+      "x": 61,
       "y": 30.6,
       "rotation": 0.97,
       "blocksMovement": true
@@ -7713,14 +7713,14 @@
     },
     {
       "type": "Boulder",
-      "x": 28.0,
+      "x": 28,
       "y": 26.4,
       "rotation": 0,
       "blocksMovement": true
     },
     {
       "type": "Boulder",
-      "x": 32.0,
+      "x": 32,
       "y": 27.2,
       "rotation": 0,
       "blocksMovement": true
@@ -8246,7 +8246,7 @@
     {
       "type": "Tree",
       "x": 9.29,
-      "y": 28.0,
+      "y": 28,
       "rotation": 0.972,
       "blocksMovement": true
     },
@@ -8379,7 +8379,7 @@
     {
       "type": "Tree",
       "x": -0.55,
-      "y": 34.0,
+      "y": 34,
       "rotation": 6.026,
       "blocksMovement": true
     },
@@ -8407,7 +8407,7 @@
     {
       "type": "Tree",
       "x": 15.39,
-      "y": 34.0,
+      "y": 34,
       "rotation": 2.597,
       "blocksMovement": true
     },
@@ -9094,7 +9094,7 @@
     },
     {
       "mob": "Turnip",
-      "x": -49.0,
+      "x": -49,
       "y": 26.88,
       "angle": 0,
       "respawnTicks": 300,
@@ -9167,7 +9167,7 @@
     {
       "mob": "Boar",
       "x": -64.8,
-      "y": 9.0,
+      "y": 9,
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -9190,7 +9190,7 @@
     },
     {
       "mob": "Boar",
-      "x": -42.0,
+      "x": -42,
       "y": 10.8,
       "angle": 0,
       "respawnTicks": 900,
@@ -9222,7 +9222,7 @@
     },
     {
       "mob": "Boar",
-      "x": -36.0,
+      "x": -36,
       "y": 14.4,
       "angle": 0,
       "respawnTicks": 900,
@@ -9238,7 +9238,7 @@
     },
     {
       "mob": "Stag",
-      "x": -54.0,
+      "x": -54,
       "y": 1.8,
       "angle": 0,
       "respawnTicks": 900,
@@ -9246,8 +9246,8 @@
     },
     {
       "mob": "Stag",
-      "x": -45.0,
-      "y": 3.0,
+      "x": -45,
+      "y": 3,
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -9255,7 +9255,7 @@
     {
       "mob": "Stag",
       "x": -39.6,
-      "y": 6.0,
+      "y": 6,
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -9270,7 +9270,7 @@
     },
     {
       "mob": "Stag",
-      "x": -48.0,
+      "x": -48,
       "y": 13.2,
       "angle": 0,
       "respawnTicks": 900,
@@ -9303,7 +9303,7 @@
     {
       "mob": "Wolf",
       "x": -45.6,
-      "y": 0.0,
+      "y": 0,
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -9343,7 +9343,7 @@
     {
       "mob": "Wolf",
       "x": -68.4,
-      "y": 0.0,
+      "y": 0,
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -9374,7 +9374,7 @@
     },
     {
       "mob": "Wolf",
-      "x": -36.0,
+      "x": -36,
       "y": 17.7,
       "angle": 0,
       "respawnTicks": 900,
@@ -9383,7 +9383,7 @@
     {
       "mob": "Wolf",
       "x": -38.1,
-      "y": 18.0,
+      "y": 18,
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -9415,7 +9415,7 @@
     {
       "mob": "EliteWolf",
       "x": -61.2,
-      "y": -24.0,
+      "y": -24,
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -9479,7 +9479,7 @@
     {
       "mob": "Wolf",
       "x": -60.05,
-      "y": 9.0,
+      "y": 9,
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -9703,7 +9703,7 @@
     {
       "mob": "Stag",
       "x": -37.91,
-      "y": -11.0,
+      "y": -11,
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -9878,7 +9878,7 @@
     },
     {
       "mob": "VenomSpider",
-      "x": 6.0,
+      "x": 6,
       "y": -25.8,
       "angle": 0,
       "respawnTicks": 900,
@@ -9898,7 +9898,7 @@
       "y": -26.4,
       "angle": 0,
       "respawnTicks": 300,
-      "respawnVariancePct": 0.0
+      "respawnVariancePct": 0
     },
     {
       "mob": "PoisonPool",
@@ -9906,12 +9906,12 @@
       "y": -23.88,
       "angle": 0,
       "respawnTicks": 300,
-      "respawnVariancePct": 0.0
+      "respawnVariancePct": 0
     },
     {
       "mob": "Spider",
       "x": -27.6,
-      "y": -30.0,
+      "y": -30,
       "angle": 0,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -9934,7 +9934,7 @@
     },
     {
       "mob": "Spider",
-      "x": -18.0,
+      "x": -18,
       "y": -30.6,
       "angle": 0,
       "respawnTicks": 900,
@@ -9974,11 +9974,11 @@
     },
     {
       "mob": "PoisonPool",
-      "x": -12.0,
+      "x": -12,
       "y": -32.1,
       "angle": 0,
       "respawnTicks": 300,
-      "respawnVariancePct": 0.0
+      "respawnVariancePct": 0
     },
     {
       "mob": "PoisonPool",
@@ -9986,7 +9986,7 @@
       "y": -30.18,
       "angle": 0,
       "respawnTicks": 300,
-      "respawnVariancePct": 0.0
+      "respawnVariancePct": 0
     },
     {
       "mob": "PoisonPool",
@@ -9994,7 +9994,7 @@
       "y": -32.28,
       "angle": 0,
       "respawnTicks": 300,
-      "respawnVariancePct": 0.0
+      "respawnVariancePct": 0
     },
     {
       "mob": "PoisonPool",
@@ -10002,11 +10002,11 @@
       "y": -30.18,
       "angle": 0,
       "respawnTicks": 300,
-      "respawnVariancePct": 0.0
+      "respawnVariancePct": 0
     },
     {
       "mob": "EliteBandit",
-      "x": 50.0,
+      "x": 50,
       "y": -24.2,
       "angle": 2.45,
       "respawnTicks": 900,
@@ -10014,7 +10014,7 @@
     },
     {
       "mob": "BanditHealer",
-      "x": 50.0,
+      "x": 50,
       "y": -21.5,
       "angle": 0.51,
       "respawnTicks": 900,
@@ -10070,32 +10070,32 @@
     },
     {
       "mob": "Wolf",
-      "x": 44.0,
-      "y": -26.0,
+      "x": 44,
+      "y": -26,
       "angle": 3.48,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "Wolf",
-      "x": 39.0,
-      "y": -29.0,
+      "x": 39,
+      "y": -29,
       "angle": 6.06,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "Wolf",
-      "x": 56.0,
-      "y": -16.0,
+      "x": 56,
+      "y": -16,
       "angle": 4.37,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "Wolf",
-      "x": 57.0,
-      "y": -27.0,
+      "x": 57,
+      "y": -27,
       "angle": 5.03,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -10111,15 +10111,15 @@
     {
       "mob": "Bear",
       "x": 35.5,
-      "y": -32.0,
+      "y": -32,
       "angle": 1.31,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "Bear",
-      "x": 60.0,
-      "y": -13.0,
+      "x": 60,
+      "y": -13,
       "angle": 2.49,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -10400,7 +10400,7 @@
       "mob": "Orc",
       "x": 41.03,
       "y": 32.06,
-      "angle": 4.0,
+      "angle": 4,
       "respawnTicks": 3600,
       "respawnVariancePct": 0.2
     },
@@ -10432,7 +10432,7 @@
       "mob": "Orc",
       "x": 57.6,
       "y": 33.9,
-      "angle": 1.0,
+      "angle": 1,
       "respawnTicks": 3600,
       "respawnVariancePct": 0.2
     },
@@ -10463,14 +10463,14 @@
     {
       "mob": "SpikeBarricade",
       "x": 47.5,
-      "y": 31.0,
+      "y": 31,
       "angle": 3.09,
       "respawnTicks": 7200,
       "respawnVariancePct": 0.1
     },
     {
       "mob": "SpikeBarricade",
-      "x": 52.0,
+      "x": 52,
       "y": 30.4,
       "angle": 0.2,
       "respawnTicks": 7200,
@@ -10478,7 +10478,7 @@
     },
     {
       "mob": "SpikeBarricade",
-      "x": 55.0,
+      "x": 55,
       "y": 31.4,
       "angle": 1.82,
       "respawnTicks": 7200,
@@ -10518,47 +10518,47 @@
     },
     {
       "mob": "Troll",
-      "x": 67.0,
-      "y": -30.0,
+      "x": 67,
+      "y": -30,
       "angle": 0,
       "respawnTicks": 5400,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "Troll",
-      "x": -67.0,
-      "y": -30.0,
+      "x": -67,
+      "y": -30,
       "angle": 0,
       "respawnTicks": 5400,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "Troll",
-      "x": 64.0,
-      "y": 31.0,
+      "x": 64,
+      "y": 31,
       "angle": 0,
       "respawnTicks": 5400,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "Troll",
-      "x": 68.0,
-      "y": 33.0,
+      "x": 68,
+      "y": 33,
       "angle": 0,
       "respawnTicks": 5400,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "BanditPyromancer",
-      "x": 52.0,
-      "y": -19.0,
+      "x": 52,
+      "y": -19,
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "BanditPyromancer",
-      "x": 47.0,
+      "x": 47,
       "y": -25.5,
       "angle": 0,
       "respawnTicks": 1800,
@@ -10566,56 +10566,56 @@
     },
     {
       "mob": "BanditPyromancer",
-      "x": 27.0,
-      "y": 19.0,
+      "x": 27,
+      "y": 19,
       "angle": 0,
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "DireWolf",
-      "x": 30.0,
-      "y": -15.0,
+      "x": 30,
+      "y": -15,
       "angle": 0,
       "respawnTicks": 1200,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "DireWolf",
-      "x": 57.0,
-      "y": -30.0,
+      "x": 57,
+      "y": -30,
       "angle": 0,
       "respawnTicks": 1200,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "DireWolf",
-      "x": 58.0,
-      "y": 5.0,
+      "x": 58,
+      "y": 5,
       "angle": 0,
       "respawnTicks": 1200,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "DireWolf",
-      "x": 35.0,
-      "y": -25.0,
+      "x": 35,
+      "y": -25,
       "angle": 0,
       "respawnTicks": 1200,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "DireBear",
-      "x": 52.0,
-      "y": -33.0,
+      "x": 52,
+      "y": -33,
       "angle": 0,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2
     },
     {
       "mob": "DireBear",
-      "x": 33.0,
-      "y": 3.0,
+      "x": 33,
+      "y": 3,
       "angle": 0,
       "respawnTicks": 2400,
       "respawnVariancePct": 0.2
@@ -10814,7 +10814,7 @@
     },
     {
       "mob": "Stag",
-      "x": 6.0,
+      "x": 6,
       "y": 28.75,
       "angle": 1.33,
       "respawnTicks": 900,
@@ -10823,7 +10823,7 @@
     {
       "mob": "Stag",
       "x": 12.04,
-      "y": 32.0,
+      "y": 32,
       "angle": 1.93,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -11312,7 +11312,7 @@
       "mob": "Wolf",
       "x": -30.05,
       "y": 20.54,
-      "angle": 1.0,
+      "angle": 1,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
@@ -11599,7 +11599,7 @@
     {
       "mob": "Boar",
       "x": 7.07,
-      "y": 4.0,
+      "y": 4,
       "angle": 4.67,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
@@ -11630,7 +11630,7 @@
     },
     {
       "mob": "Wolf",
-      "x": 31.0,
+      "x": 31,
       "y": 9.35,
       "angle": 3.72,
       "respawnTicks": 900,
@@ -11808,11 +11808,11 @@
   "campfires": [
     {
       "x": -58.2,
-      "y": 24.0,
+      "y": 24,
       "startingSpawn": true
     },
     {
-      "x": 44.0,
+      "x": 44,
       "y": 10.5
     }
   ],
@@ -11824,7 +11824,7 @@
     },
     {
       "x": -62.4,
-      "y": -18.0,
+      "y": -18,
       "radius": 7.2
     },
     {
@@ -11839,7 +11839,7 @@
     },
     {
       "x": -56.4,
-      "y": -18.0,
+      "y": -18,
       "radius": 7.2
     },
     {
@@ -11854,7 +11854,7 @@
     },
     {
       "x": -50.4,
-      "y": -18.0,
+      "y": -18,
       "radius": 7.2
     },
     {
@@ -11863,7 +11863,7 @@
       "radius": 7.2
     },
     {
-      "x": -18.0,
+      "x": -18,
       "y": -31.2,
       "radius": 5.4
     },
@@ -11888,7 +11888,7 @@
       "radius": 5.4
     },
     {
-      "x": 6.0,
+      "x": 6,
       "y": -31.2,
       "radius": 5.4
     },
@@ -11968,17 +11968,17 @@
       "radius": 6.2
     },
     {
-      "x": 61.0,
+      "x": 61,
       "y": -29.5,
       "radius": 6.2
     },
     {
-      "x": 61.0,
+      "x": 61,
       "y": -22.5,
       "radius": 6.2
     },
     {
-      "x": 61.0,
+      "x": 61,
       "y": -15.5,
       "radius": 6.2
     }
@@ -11989,35 +11989,35 @@
       "x": -53.7,
       "y": 24.3,
       "radius": 1.5,
-      "entityType": "Farmer",
-      "tooLowLine": "You're new here \u2014 pull some turnips for me first.",
+      "tooLowLine": "Leave me be and do your job!",
       "teachings": [
         {
           "skill": "Harvest",
-          "line": "First things first \u2014 here's Harvest. Now go pull my turnips."
+          "requiredLevel": 1,
+          "line": "There you are! I need help tending the field, get to it!"
         },
         {
           "skill": "DamageAura",
           "requiredLevel": 2,
-          "line": "Good work! Take this \u2014 a real fighting aura."
+          "line": "You're not useless after all. Get rid of those pesky wolves around the farm."
         },
         {
           "skill": "Recall",
-          "requiredLevel": 2,
-          "line": "And learn to find your way home: Recall."
+          "requiredLevel": 3,
+          "line": "There is no end to them! We need help from the city."
         }
       ],
       "lines": [
-        "The city lies east. Follow the road \u2014 and stay clear of the middle woods."
-      ]
+        "The city needs to know about those wolves. Head east and report to the militia."
+      ],
+      "entityType": "Farmer"
     },
     {
       "type": "Hermit",
       "x": -47.5,
       "y": 28.2,
       "radius": 1.5,
-      "entityType": "Hermit",
-      "tooLowLine": "Pull a few turnips first \u2014 mending starts with dirt under the nails.",
+      "tooLowLine": "Pull a few turnips first — mending starts with dirt under the nails.",
       "teachings": [
         {
           "skill": "HealAura",
@@ -12026,25 +12026,25 @@
         }
       ],
       "lines": [
-        "Us hermits keep the old ways \u2014 there are more of us out there, if you look."
-      ]
+        "Us hermits keep the old ways — there are more of us out there, if you look."
+      ],
+      "entityType": "Hermit"
     },
     {
       "type": "ForestSign",
       "x": -53.4,
       "y": -2.4,
       "radius": 1.5,
-      "entityType": "Signpost",
       "lines": [
         "Something big prowls the dark forest."
-      ]
+      ],
+      "entityType": "Signpost"
     },
     {
       "type": "Hermit",
-      "x": -66.0,
+      "x": -66,
       "y": -27.6,
       "radius": 1.5,
-      "entityType": "Hermit",
       "tooLowLine": "Rest a moment, wanderer.",
       "teachings": [
         {
@@ -12054,14 +12054,14 @@
       ],
       "lines": [
         "The dark is only dark until you carry your own light."
-      ]
+      ],
+      "entityType": "Hermit"
     },
     {
       "type": "Dog",
-      "x": -48.0,
-      "y": -18.0,
+      "x": -48,
+      "y": -18,
       "radius": 1.5,
-      "entityType": "DogNpc",
       "tooLowLine": "Woof?",
       "teachings": [
         {
@@ -12071,99 +12071,99 @@
       ],
       "lines": [
         "Woof."
-      ]
+      ],
+      "entityType": "DogNpc"
     },
     {
       "type": "Miner",
-      "x": -27.0,
+      "x": -27,
       "y": -26.4,
       "radius": 1.5,
-      "entityType": "Miner",
       "tooLowLine": "These old arms swung a pick for forty years.",
       "teachings": [
         {
           "skill": "Pickaxe",
-          "line": "Rockfalls choke the old shafts. Take my pick \u2014 swing it at the rubble."
+          "line": "Rockfalls choke the old shafts. Take my pick — swing it at the rubble."
         }
       ],
       "lines": [
         "I mined that tunnel as a lad, before the spiders came up from below."
-      ]
+      ],
+      "entityType": "Miner"
     },
     {
       "type": "TunnelSign",
       "x": -34.8,
       "y": -2.4,
       "radius": 1.5,
-      "entityType": "Signpost",
       "lines": [
         "The middle road is suicide. Take the north tunnel."
-      ]
+      ],
+      "entityType": "Signpost"
     },
     {
       "type": "KoboldSign",
       "x": -25.2,
       "y": 10.8,
       "radius": 1.5,
-      "entityType": "Signpost",
       "lines": [
         "Kobolds burrow south-east of here. They hoard shiny stuff, the vermin."
-      ]
+      ],
+      "entityType": "Signpost"
     },
     {
       "type": "CityGuard",
       "x": 62.4,
       "y": 9.6,
       "radius": 1.5,
-      "entityType": "CityGuard",
       "lines": [
-        "The gates stay shut \u2014 captain's orders. Nobody enters while the front burns.",
-        "You cleared the road from the west? I'll pass word inside \u2014 the captain will hear your name.",
+        "The gates stay shut — captain's orders. Nobody enters while the front burns.",
+        "You cleared the road from the west? I'll pass word inside — the captain will hear your name.",
         "If you're after more work, head south. The army takes every able body they can get."
-      ]
+      ],
+      "entityType": "CityGuard"
     },
     {
       "type": "VillageHealer",
       "x": 45.4,
-      "y": 11.0,
+      "y": 11,
       "radius": 1.5,
-      "entityType": "VillageHealer",
       "tooLowLine": "You're not ready to carry someone else's life yet. Come back when you've seen a few more fights.",
       "teachings": [
         {
           "skill": "Revive",
           "requiredLevel": 6,
-          "line": "You've the steady hands for it now \u2014 learn to call a fallen friend back from the edge. Revive."
+          "line": "You've the steady hands for it now — learn to call a fallen friend back from the edge. Revive."
         }
       ],
       "lines": [
         "Rest by the fire, traveler. These days I patch up more road-wounds than field-wounds."
-      ]
+      ],
+      "entityType": "VillageHealer"
     },
     {
       "type": "FrontCaptain",
       "x": 58.9,
       "y": 26.9,
       "radius": 1.5,
-      "entityType": "FrontCaptain",
-      "tooLowLine": "The front is no place for you yet. Live a little longer first \u2014 then we talk.",
+      "tooLowLine": "The front is no place for you yet. Live a little longer first — then we talk.",
       "teachings": [
         {
           "skill": "Vanguard",
           "requiredLevel": 20,
-          "line": "You fought your way here \u2014 that counts. Take the Vanguard: hold the line, and the line holds you."
+          "line": "You fought your way here — that counts. Take the Vanguard: hold the line, and the line holds you."
         }
       ],
       "lines": [
         "The orcs hold the south passage. Nobody leaves this valley without going through them."
-      ]
+      ],
+      "entityType": "FrontCaptain"
     },
     {
       "type": "Emberkeeper",
-      "x": 40.0,
-      "y": -15.0,
+      "x": 40,
+      "y": -15,
       "radius": 1.5,
-      "entityType": "Hermit",
       "tooLowLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
       "teachings": [
         {
@@ -12173,47 +12173,68 @@
         {
           "skill": "ImmolationAura",
           "requiredLevel": 6,
-          "line": "And when the spark is not enough \u2014 wear the fire itself. Immolation."
+          "line": "And when the spark is not enough — wear the fire itself. Immolation."
         }
       ],
       "lines": [
         "They burned this forest to hide their camp. Fire remembers who feeds it."
-      ]
+      ],
+      "entityType": "Hermit"
     },
     {
       "type": "Shaman",
-      "x": 18.0,
-      "y": 6.0,
+      "x": 18,
+      "y": 6,
       "radius": 1.5,
-      "entityType": "Hermit",
       "tooLowLine": "The spirits do not answer the untested. Walk further first.",
       "teachings": [
         {
           "skill": "SummonTotem",
           "requiredLevel": 5,
-          "line": "Plant this where you make your stand \u2014 the spirits will hold the ground with you. Summon a Totem."
+          "line": "Plant this where you make your stand — the spirits will hold the ground with you. Summon a Totem."
         }
       ],
       "lines": [
         "I raise totems where the roads cross. The wood watches over travelers who cannot watch their own backs."
-      ]
+      ],
+      "entityType": "Hermit"
+    },
+    {
+      "type": "RoadWarner",
+      "x": -23.5,
+      "y": 13.5,
+      "radius": 1.5,
+      "lines": [
+        "Don't go east — bandits camp the road. Take the tunnel north."
+      ],
+      "entityType": "Wanderer"
+    },
+    {
+      "type": "LamplessTraveller",
+      "x": -17,
+      "y": -28.5,
+      "radius": 1.5,
+      "lines": [
+        "Kobolds took my lamp!"
+      ],
+      "entityType": "Traveller"
     }
   ],
   "anchors": [
     {
       "name": "warlord-home",
-      "x": 26.0,
+      "x": 26,
       "y": 30.5
     },
     {
       "name": "warbanner-1",
-      "x": 25.0,
+      "x": 25,
       "y": 28.8
     },
     {
       "name": "warbanner-2",
       "x": 23.8,
-      "y": 32.0
+      "y": 32
     },
     {
       "name": "wave-mouth",

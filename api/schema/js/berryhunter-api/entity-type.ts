@@ -65,5 +65,7 @@ export enum EntityType {
   MedicCompanion = 59,
   Troll = 60,
   BanditPyromancer = 61,
-  Farmer = 62
+  Farmer = 62,
+  Wanderer = 63,
+  Traveller = 64
 }

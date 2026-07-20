@@ -328,6 +328,14 @@ export const GraphicsConfig = {
             file: require('../features/game-objects/assets/resources/farmer.svg'),
             maxSize: <number> 60,
         },
+        wanderer: {
+            file: require('../features/game-objects/assets/resources/wanderer.svg'),
+            maxSize: <number> 60,
+        },
+        traveller: {
+            file: require('../features/game-objects/assets/resources/traveller.svg'),
+            maxSize: <number> 60,
+        },
         dogNpc: {
             file: require('../features/game-objects/assets/resources/dogNpc.svg'),
             maxSize: <number> 45,
