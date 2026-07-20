@@ -910,6 +910,52 @@ any content.
 
 ### C8 — Balance & guardrail pass
 
+> **✅ Session ⑦ (C8 walkthrough close-out + village-arrival intro rework)
+> DONE 2026-07-21, PO-driven in-session — PO-VERIFIED IN-GAME 2026-07-21
+> ("the intro feels much better now"), committed `f9345739`, main per
+> standing PO directive. **C8 is CLOSED** — the walkthrough was the last
+> §13 item. Next: the Z2-hardening / cL8-17 farm-band **PLAN chunk** (own
+> session, plan-first); PO manual placements/corrections continue in the
+> editor on their side.**
+>
+> **Ledger: (1) The Session-⑥-deferred low-band cheese landed live during
+> the walkthrough** — a group standing in the turnip field power-levels
+> everyone (shared XP × zero-risk 10 s-respawn field). PO ruling: turnips
+> are no longer an XP source at all; the deferred turnip-brake decision is
+> resolved here (moot), while the **gray-band XP rule for the wolf band
+> stays owned by the farm-band plan**. **(2) Village-arrival intro
+> rework** (PO-designed, choice-prompt settlements): players are
+> "adventurers" arriving in a wolf-beset village (dialogue-only rename);
+> first task "get rid of those wolves" → Recall + go-east/militia hook.
+> Village = 3 NPCs: **TownCrier** (new, EntityType **65**, full 5-file
+> wire path per Wanderer precedent) at village center — DamageAura @L1 on
+> arrival + Recall @L3; **Farmer** moved south (−57/28.6) beside a new
+> Sand-patch field, teaches only Harvest (ungated @L1); **healer hermit**
+> pulled into the village (−54.9/25.6), stays Hermit type (keeps the
+> hermit-lore breadcrumb), HealAura @L2 unchanged. Turnip `experience`
+> 30→**0** (pure Harvest demo target, 16 old-field spawns → 5 at the new
+> field); L1→2 now happens on wolves — re-felt OK. **(3) PO editor pass
+> folded into the commit:** wolf spawns 86→97 (+1 DireWolf), RoadWarner
+> moved to the south road as Wanderer_1 (−15.5/30.7, reworded warning) +
+> **3rd campfire** beside it (−16.5/31.5), KoboldSign + TunnelSign
+> **deleted on purpose**, props 805→798. **Watch item (recurring):** the
+> zone editor does not round-trip `entityType` — hand-restore it on every
+> editor-added NPC (bit Wanderer_1 this session), and the editor Download
+> lands outside the repo (`world .json` with a space — install + delete
+> the stray). **(4) Stale pin fixed:**
+> `TestLoadPlayerAuraPresets_DotSkillsDerive` still expected ImmolationAura
+> 10 HP from before the crit-rework-v2 dot compensation (10.5) — the suite
+> was red at HEAD since `635a44e3`. **(5) Walkthrough close-out:** PO
+> blanket-verified the remainder in-game (Step-0 Warbanner sequence,
+> teacher gates Immolation 6 / Totem 5 / Revive 6, Vanguard/regen,
+> Troll/Pyromancer/Dire tier feel, wolf/DireWolf + XP-table re-feel, crit
+> rework re-feel) — no new triage items beyond the intro rework.
+> **Verified:** full suite + `-race` green, boot `78 skills/13
+> factions/44 mobs/10 recipes/798 props/347 spawns/3 campfires/14 npcs,
+> 0 panics`, headless browser smoke (TownCrier renders with its own
+> sprite + teaches DamageAura at L1, Farmer pops the Harvest unlock
+> banner).**
+
 > **⏳ Session ⑥ (XP pass v1 + wanderer NPCs + playtest triage) DONE
 > 2026-07-20, PO-driven in-session — PO-VERIFIED IN-GAME 2026-07-20
 > ("feels much better"), committed `e72a15e0` (XP pass) + `86f4f5d2`
