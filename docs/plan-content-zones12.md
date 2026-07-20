@@ -910,6 +910,65 @@ any content.
 
 ### C8 — Balance & guardrail pass
 
+> **⏳ Session ⑥ (XP pass v1 + wanderer NPCs + playtest triage) DONE
+> 2026-07-20, PO-driven in-session — PO-VERIFIED IN-GAME 2026-07-20
+> ("feels much better"), committed `e72a15e0` (XP pass) + `86f4f5d2`
+> (NPCs + wolf range), main per standing PO directive. Remaining C8
+> (Session ⑦): walkthrough remainder (Step-0 Warbanner sequence, teacher
+> gates Immolation 6 / Totem 5 / Revive 6, Vanguard/regen re-feel,
+> Troll/Pyromancer/Dire tier feel, now + wolf/DireWolf re-feel post
+> WolfBite cut + XP-table re-feel) + the Z2-hardening / cL8-17 farm-band
+> PLAN chunk.**
+>
+> **Ledger: (1) XP pass v1 — the per-mob `experience` table re-derived**
+> (21 mob JSONs; conf curve untouched, base 300 × growth 1.2 stays — base
+> is numerals-only, every felt quantity is a ratio). **Rule:** band
+> XP/hour target `X(cL) = 3600 × 1.15^(cL−1)` model-time; per-mob XP =
+> X(cL) ÷ measured kph (chain battery at guardrail knobs, best viable
+> stance, 0.5× kite discount) — hard/facetank-only mobs pay more per
+> kill, trivially-kiteable support pays less; danger finally correlates
+> with reward. **PO rulings 2026-07-20:** pace gently rising (mob-XP
+> growth 1.15 vs cost growth 1.2 ≈ +4%/level, ~3.3× at 30), ~5 min/level
+> early anchor (model-time), elite = 3× band-normal median, turnip 30 =
+> base/10 → **L2 in ~10 turnips** (L1→2 is turnip-only by design —
+> Farmer teaches Harvest first, DamageAura at L2). Headline moves: Wolf
+> 25→70, DireWolf 60→150 (hardest normal), Spider 45→100, EliteBandit
+> 170→330, Troll 220→435 (placeholder tier), Mammoth 90→45 (kiteable
+> elite — kph-derived, NOT 3×, anti-superfarm); Healer/BanditHealer/
+> RallyDrummer/SaberToothCat cut. Unchanged: prey 8/12/15, front
+> anti-faucet 5/15 (deliberate — endless-front XP faucet), Warlord 600,
+> proving legacy, 0-XP utility. Future cL8-17 farm-band mobs inherit the
+> rule. **Deferred (PO: "leave the turnips for now"):** the low-band
+> cheese/AFK brake — turnip field at 16 slots/10 s respawn sustains
+> ~284 kph × 30 ≈ 8.5k XP/h model-time and stays competitive to ~cL6;
+> options analyzed = gray-band XP rule (full ≤ cL+1, −25%/level, 0 at
+> cL+5 — fixes Healer/Mammoth cheese too, keeps field newbie-safe) vs
+> field exhaustion (griefs the mandatory first level); decision → the
+> farm-band plan chunk. **(2) Wanderer + Traveller NPC types**
+> (EntityType 63/64, full 5-file wire path + portrait SVGs, reusable via
+> zone-JSON `entityType`); placed RoadWarner (kobold sign, −23.5/13.5,
+> "Don't go east…") + LamplessTraveller (dark-tunnel mouth, −17/−28.5,
+> "Kobolds took my lamp!") — PO adjusts placement/lore in the editor.
+> Pickaxe teacher already existed (Miner, −27/−26.4). NPCs 13→**15**.
+> **(3) WolfBite radius 1.2→1.0** — symmetric with the player base aura
+> (PO: wolves already fast); shared Wolf + DireWolf. Sim note: the cut
+> re-opens a sliver ideal-kite ring vs the pinned XP kph — model
+> artifact, re-feel Session ⑦. **(4) Playtest triage findings:**
+> wolves-"attacking"-bramble = NOT an attack — double faction gate
+> (findAggroTarget mask + mayHarm) already excludes it; it is the pinned
+> chase-camp behavior (e2643cdb) reading as attack via the rendered aura
+> ring; PO re-ruled **keep camping as pinned** (wildlife-gives-up option
+> declined). Spiders will not attack rockfall boulders (same gates). PO
+> hand-authors (editor): campfires at kobold camp + top tunnel, fewer
+> wolves at the turnip field, forest density up / road corridor thin.
+> **Later:** reload-loses-character → reconnect-token plan chunk
+> (localStorage token + server-side parking ~10-15 min [PLACEHOLDER];
+> typed-code variant declined as friction, accounts supersede); L1-2
+> misery re-judge after PO density edits. **Verified:** full suite green
+> ×2 (post-XP, post-NPC), boot `77 skills/13 factions/44 mobs/10
+> recipes/805 props/346 spawns/2 campfires/15 npcs, 0 panics`, webpack
+> bundle serves the new classes, PO in-game session on the live server.**
+
 > **⏳ Session ⑤ (drop-rate pass FINAL + NPC pass + walkthrough part 1) DONE
 > 2026-07-20, PO-driven walkthrough in-session — committed `1ef67776` (drops)
 > + `ac44bae5` (NPCs) + `d5263355` (fixes), main per PO directive. A parallel
