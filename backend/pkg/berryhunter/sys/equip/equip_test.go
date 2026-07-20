@@ -410,3 +410,38 @@ func TestSpendSkillPoint_UnspendDoesNotTriggerRecipe(t *testing.T) {
 	assert.Equal(t, 1, player.sc.SkillLevel(defDamage.ID))
 	assert.False(t, player.sc.HasDiscovered(defNova.ID), "unspend must not fire a recipe")
 }
+
+// The C8-walkthrough bug (PO 2026-07-20): swapping the ACTIVE slot's aura for
+// another spellbook aura silently deactivated it (UnequipAura resets
+// ActiveAuraSlot to -1, EquipAura never restored it) — no ring, no effect, no
+// light; in a dark area the avatar vanished entirely. A swap into the active
+// slot must keep that slot active (the new aura becomes the active one).
+func TestEquipSystem_SwapIntoActiveSlotStaysActive(t *testing.T) {
+	es, player := newSystem(defDamage, defHeal)
+	player.sc.Discover(defDamage.ID)
+	player.sc.Discover(defHeal.ID)
+	player.sc.EquipAura(0, defDamage, 1)
+	player.sc.SetActiveAura(0)
+
+	player.client.msg = &model.EquipSkill{SkillID: defHeal.ID, Slot: 0}
+	es.Update(0)
+
+	require.NotNil(t, player.sc.AuraSlots[0])
+	assert.Equal(t, defHeal.ID, player.sc.AuraSlots[0].Def.ID)
+	assert.Equal(t, 0, player.sc.ActiveAuraSlot, "the swapped-in aura must stay active")
+}
+
+// Swapping a non-active slot must not steal or drop the active slot.
+func TestEquipSystem_SwapIntoInactiveSlotKeepsActive(t *testing.T) {
+	es, player := newSystem(defDamage, defHeal)
+	player.sc.Discover(defDamage.ID)
+	player.sc.Discover(defHeal.ID)
+	player.sc.EquipAura(0, defDamage, 1)
+	player.sc.SetActiveAura(0)
+
+	player.client.msg = &model.EquipSkill{SkillID: defHeal.ID, Slot: 1}
+	es.Update(0)
+
+	assert.Equal(t, 0, player.sc.ActiveAuraSlot, "active slot must be untouched by other-slot equips")
+	require.NotNil(t, player.sc.AuraSlots[1])
+}

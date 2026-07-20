@@ -822,3 +822,25 @@ func TestPlayer_SetSkillComponent_ClearsCastState(t *testing.T) {
 
 	assert.False(t, p.SkillComponent().IsCasting(), "respawn starts with no cast in flight")
 }
+
+// C8 walkthrough settlement (PO 2026-07-20): %-of-max regen tapers with level
+// — 100% of the configured rate at L1 sliding linearly to 40% at max level.
+// The Session-③ 1%/s lock was measured at low brackets and stays true there;
+// untapered, absolute regen grows ~27x over the curve and reads as free
+// sustain at the top end.
+func TestRegenTaper_LinearFromFullToFloor(t *testing.T) {
+	if got := regenTaper(1, 30); got != 1.0 {
+		t.Fatalf("L1 taper = %v, want 1.0", got)
+	}
+	if got := regenTaper(30, 30); got < 0.399 || got > 0.401 {
+		t.Fatalf("Lmax taper = %v, want 0.4", got)
+	}
+	mid := regenTaper(15, 30)
+	if mid <= 0.4 || mid >= 1.0 {
+		t.Fatalf("mid-curve taper = %v, want strictly between 0.4 and 1.0", mid)
+	}
+	// Degenerate curve (maxLevel <= 1, e.g. sim fixtures): no taper.
+	if got := regenTaper(1, 0); got != 1.0 {
+		t.Fatalf("degenerate maxLevel taper = %v, want 1.0", got)
+	}
+}

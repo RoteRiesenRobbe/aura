@@ -126,8 +126,16 @@ func (es *EquipSystem) handleEquip(player equipEntity) {
 	level := sc.SkillLevel(msg.SkillID)
 	switch def.Category {
 	case skills.SkillCategoryActiveAura:
+		// Swapping the active slot's aura keeps the slot active: UnequipAura
+		// resets ActiveAuraSlot, so re-activate the slot for the new aura —
+		// otherwise the player is left with no aura at all (ring/effect/light
+		// silently off; invisible under a dark-area overlay).
+		wasActive := sc.ActiveAuraSlot == msg.Slot
 		sc.UnequipAura(msg.Slot)
 		sc.EquipAura(msg.Slot, def, level)
+		if wasActive {
+			sc.SetActiveAura(msg.Slot)
+		}
 	case skills.SkillCategoryPassive:
 		sc.EquipPassive(msg.Slot, def, level)
 	case skills.SkillCategoryCooldown:
