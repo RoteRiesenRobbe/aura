@@ -107,6 +107,7 @@ let darkSelectionGroup: HTMLElement;
 let darkSelectedIndexLabel: HTMLElement;
 
 let npcControls: HTMLElement;
+let npcSpriteSelect: HTMLSelectElement;
 let npcTypeInput: HTMLInputElement;
 let npcRadiusInput: HTMLInputElement;
 let npcTooLowLineInput: HTMLInputElement;
@@ -179,6 +180,7 @@ export function setupPanel() {
     darkSelectedIndexLabel = document.getElementById('zoneEditor_darkSelectedIndex');
 
     npcControls = document.getElementById('zoneEditor_npcControls');
+    npcSpriteSelect = document.getElementById('zoneEditor_npcSprite') as HTMLSelectElement;
     npcTypeInput = document.getElementById('zoneEditor_npcType') as HTMLInputElement;
     npcRadiusInput = document.getElementById('zoneEditor_npcRadius') as HTMLInputElement;
     npcTooLowLineInput = document.getElementById('zoneEditor_npcTooLowLine') as HTMLInputElement;
@@ -227,6 +229,13 @@ export function setupPanel() {
         option.value = name;
         option.textContent = name;
         npcTeachSkillSelect.appendChild(option);
+    });
+
+    ZoneEditor.npcSpriteNames.forEach(name => {
+        let option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        npcSpriteSelect.appendChild(option);
     });
 
     // The zone controls (load/id/name/bounds/export) are zone-wide, so they
@@ -690,7 +699,10 @@ function populateSpawnControls(spawn: ZoneSpawn) {
 // the list to carry ([] when placing fresh, the existing list when updating).
 // Mirrors the backend loader's hard-fails so they don't bite only at boot.
 function readNpcControls(x: number, y: number, teachings: ZoneTeaching[]): ZoneNpc {
-    let type = npcTypeInput.value.trim();
+    let entityType = npcSpriteSelect.value;
+    // The name is a pure JSON/marker label — an empty one falls back to the
+    // sprite name (custom names like "Emberkeeper" stay author-only).
+    let type = npcTypeInput.value.trim() || entityType;
     if (type === '') {
         Game.player.character.say('NPC type must not be empty');
         return null;
@@ -718,10 +730,21 @@ function readNpcControls(x: number, y: number, teachings: ZoneTeaching[]): ZoneN
         tooLowLine: tooLowLine !== '' ? tooLowLine : undefined,
         teachings,
         lines,
+        entityType: entityType !== '' ? entityType : undefined,
     };
 }
 
 function populateNpcControls(npc: ZoneNpc) {
+    npcSpriteSelect.value = npc.entityType || '';
+    if (npc.entityType && npcSpriteSelect.value !== npc.entityType) {
+        // Hand-authored sprite outside the NPC registry (any Resource-backed
+        // EntityType is server-legal) — add it so Update can't silently swap it.
+        let option = document.createElement('option');
+        option.value = npc.entityType;
+        option.textContent = npc.entityType + ' (zone JSON)';
+        npcSpriteSelect.appendChild(option);
+        npcSpriteSelect.value = npc.entityType;
+    }
     npcTypeInput.value = npc.type;
     npcRadiusInput.value = String(npc.radius);
     npcTooLowLineInput.value = npc.tooLowLine || '';
@@ -826,11 +849,10 @@ function applyControlsToSelection() {
     } else if (selection.kind === 'npc') {
         let current = ZoneEditor.model.npcs[selection.index];
         // Teachings are edited via the sub-list, not these controls — carry
-        // them. entityType has no panel control either (authored in the zone
-        // JSON, content pass C2) — carry it so an editor update can't strip it.
+        // them. entityType comes from the sprite dropdown.
         let updated = readNpcControls(current.x, current.y, current.teachings || []);
         if (updated !== null) {
-            ZoneEditor.updateNpc(selection.index, {...updated, entityType: current.entityType});
+            ZoneEditor.updateNpc(selection.index, updated);
         }
     } else if (selection.kind === 'anchor') {
         let current = ZoneEditor.model.anchors[selection.index];

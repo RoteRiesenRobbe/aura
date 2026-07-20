@@ -9,7 +9,9 @@
  * hit-testing convert to pixels.
  */
 import {Container, Graphics, Text} from 'pixi.js';
+import {EntityType} from '../../../../../api/schema/js/berryhunter-api/entity-type';
 import {meter2px} from '../../../client-data/BasicConfig';
+import {GraphicsConfig} from '../../../client-data/Graphics';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {requireAll} from '../../common/logic/Utils';
 import {IGame} from '../../core/logic/IGame';
@@ -76,6 +78,22 @@ export const mobNames: string[] = mobDefJSONs
 // against, so an authored NPC never references an unknown skill.
 export const skillNames: string[] = skillDefJSONs
     .map(def => def.name)
+    .sort((a, b) => a.localeCompare(b));
+
+// The wire sprites an NPC may render as (zone-JSON entityType, resolved by the
+// server's npc.SpriteFor): every entry of the client NPC sprite registry,
+// upper-camelized to its EntityType enum name (townCrier -> TownCrier) and
+// checked against the generated enum — so the panel dropdown can never author
+// a name the backend loader rejects or the client can't render.
+export const npcSpriteNames: string[] = Object.keys(GraphicsConfig.npcs)
+    .map(key => key.charAt(0).toUpperCase() + key.slice(1))
+    .filter(name => {
+        if (name in EntityType) {
+            return true;
+        }
+        console.warn(`NPC sprite '${name}' has no EntityType enum entry — not offered in the zone editor`);
+        return false;
+    })
     .sort((a, b) => a.localeCompare(b));
 
 // Type-level default wander radii (factors.wanderRadius) — a spawn without

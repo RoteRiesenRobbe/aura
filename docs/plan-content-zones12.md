@@ -910,6 +910,62 @@ any content.
 
 ### C8 — Balance & guardrail pass
 
+> **✅ Farm-band pre-chunk session (post-C8, 2026-07-21) DONE — PO-driven
+> in-session (live playtest + two editor placement passes), committed
+> `1b33be7a` (+ same-session follow-up commit: turnip XP 1 + wrap), main
+> per standing PO directive. This session pulled the mob-authoring slice
+> forward out of the planned Z2-hardening/farm-band PLAN chunk (PO: "author
+> two…" → picked three via choice prompt); the full plan chunk (Z2
+> difficulty/density design, remaining farm content) stays NEXT.**
+>
+> **Ledger: (1) Three cL8-17 farm-band normals** (the guardrail-flagged
+> Z2→front normals gap): **GiantSpider** id 45 cL9 (spider faction,
+> VenomSpit poison-dot lurker, deep pool — the band's attrition check,
+> guardrail-soft), **AlphaWolf** id 46 cL10 (wildlife_predator, WolfBite,
+> speed 0.74 under the PO normal ceiling — soft), **Marauder** id 47 cL12
+> (bandit faction, **BanditBlades level 3** + 85 baseline = the band's
+> HARD normal, kills the guardrail bot; first non-encounter use of a
+> mob-skill level > 1, ProvingBoss precedent). All dropless for now (drop
+> table FINAL — additions are a PO call), spawns PO-placed same session.
+> **XP kph-derived per the Session-⑥ rule** — derivation re-run reproduced
+> the pinned Wolf 70 exactly (4140 ÷ 59.2 facetank kph), confirming the
+> stance rule (facetank kph while viable, else kite ×0.5): GiantSpider
+> **205**, AlphaWolf **275**, Marauder **175** (hard-but-kiteable pays
+> less — DireBear/Mammoth precedent). **(2) Guardrail band-check extended
+> (TDD):** `guardrailZone` cL8-17 → "farm" + the band joins the
+> soft+hard assert (`cmd/simharness/guardrail_test.go`) — failed all-soft
+> first, passes after the Marauder buff (`farm: soft=[AlphaWolf
+> GiantSpider] hard=[Marauder]`). **(3) Unique-art pass (PO ruling
+> 2026-07-21: every mob gets its own sprite, higher tier looks meaner):**
+> five new portrait SVGs in the house style — giantSpider / alphaWolf /
+> marauder + **DireWolf and DireBear lose their Wolf/Bear `entityType`
+> reskins** and get own sprites; EntityType enum appended 66-70
+> (GiantSpider, AlphaWolf, Marauder, DireWolf, DireBear — full 5-file
+> wire path, positional `gameObjectClasses` extended; dires verified
+> rendering their new art in-game, which also proves the 66-68 slot
+> alignment). Proving-grounds reskins (ProvingAdd/Boss/Guard) left alone
+> on purpose (debug map). **(4) PO editor passes ×2 folded in:** all
+> three farm mobs placed (AlphaWolf ×2, Marauder ×3, GiantSpider ×1),
+> Troll 4→6, Bandit +3, Spider +4, wildlife thinned (DireWolf −4, Bear
+> −3, Boar −3, Wolf −2, DireBear −1, Stag −1), campfires 3→**5**, props
+> 798→**856**, spawns 347→**349**. **Watch item recurred ×2:** the
+> editor dropped `entityType` on the moved Emberkeeper (pass 1) and
+> LamplessTraveller (pass 2) — hand-restored both; this time the download
+> was a plain `world.json` in the Windows Downloads folder (no
+> space-name stray), installed + stray deleted. **(5) PO balance
+> rulings in-session:** KoboldVolley radius **4.5 → 2.2** ("halve the
+> ranged kobold range"); **turnip XP 0 → 1** (token pop reward
+> post-Session-⑦; cheese stays dead — L1→2 costs 300). **(6) Gray-band
+> XP rule DECIDED: keep flat XP for now** (PO choice-prompt 2026-07-21;
+> live-mob camping explicitly accepted until it matters more — the
+> farm-band plan chunk no longer owns an open XP-rule decision).
+> **Verified:** full suite green ×3 (post-guardrail, post-content,
+> post-turnip) + `-race` on sim/simharness/items, `tsc` clean, webpack
+> prod + dev bundles serve the new classes, boot `78 skills/13
+> factions/47 mobs/10 recipes/856 props/349 spawns/5 campfires/14 npcs,
+> 0 panics`, headless in-game smoke (both dires render their new
+> sprites; villages/NPCs intact).**
+
 > **✅ Session ⑦ (C8 walkthrough close-out + village-arrival intro rework)
 > DONE 2026-07-21, PO-driven in-session — PO-VERIFIED IN-GAME 2026-07-21
 > ("the intro feels much better now"), committed `f9345739`, main per
