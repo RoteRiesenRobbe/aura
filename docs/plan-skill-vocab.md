@@ -677,6 +677,23 @@ balancing if slow auras feel casino-shaped. Alternatives on record
 (deterministic every-Nth; reject-keep-variance-only) were declined.
 Ships in chunk 1.
 
+**v2 amendment (PO 2026-07-20, backlog §23 mini-chunk, committed
+`635a44e3`): crit is a character-driven stackable stat.** Total per-hit
+chance = character base (conf `game.player.critChance`, 0.05
+[PLACEHOLDER]) + the `critChance` passive stat (KeenEye, 2%/level ×5) +
+the effect's authored level-scaled chance (`critChance` +
+`critChancePerLevel`). Chance-only authoring is valid — a crit on an
+effect with no authored factor uses the global `sys.defaultCritFactor`
+(×2 [PLACEHOLDER]); factor-only stays invalid. Acting-entity doctrine
+holds: mobs and summons have no character base (mob skills keep authored
+pairs — EliteBanditSlash 25%/×2 is untouched). DoTs still never crit;
+the player dot skills (Immolation/Wildfire/Ignite) got +~5% damageHP as
+compensation for the direct-hit EV lift they cannot receive. ReaperAura's
+authored 25%/×2 pair was REMOVED (crits via character chance only,
+~−12% sustained EV, PO accepted); DamageAura briefly carried 1%/level
+authored chance and the PO removed it the same day (it made the starter
+aura the strongest non-ceiling damage skill).
+
 ### 4.4 Recall no-anchor behavior — ✔ DECIDED 2026-07-13: refuse to cast
 
 Rejected activation, no cooldown consumed, client feedback why —

@@ -1142,7 +1142,23 @@ and overview work the in-game editor isn't built for:
 save). ⚑ Where it lives (`tools/`? behind `-dev`?) and whether it subsumes any
 in-game-editor modes is the design pass's call. Not before C8 closes.
 
-## 23. Crit chance as a stackable player stat (WoW-style)
+## 23. Crit chance as a stackable player stat (WoW-style) — ✅ DONE 2026-07-20, committed `635a44e3`
+
+**DONE 2026-07-20 (same-day mini-chunk, PO-driven in-session via choice
+prompts; in-game re-feel pending Session ⑦), committed `635a44e3`.** Shipped
+BEYOND the spec below by same-day PO rulings (v2): **flat character base 5%**
+(conf `game.player.critChance`, all conf JSONs + ReadConfig default) additive
+with the stat and skill-authored chance; **KeenEye passive id 60** (2%/level,
+maxLevel 5, DireWolf rare drop 0.06 — post-FINAL drop-table amendment, PO
+choice); **chance-only authoring valid** (+ new `critChancePerLevel` key,
+default factor ×2 [PLACEHOLDER]; factor-only invalid); **ReaperAura authored
+pair REMOVED** (~−12% sustained EV, PO accepted); DamageAura's briefly-added
+1%/level authored crit removed same day; **dot compensation +~5% damageHP**
+(Immolation/Wildfire/Ignite — dots never crit). Registry pin 77→**78**; sim
+wired (`PlayerSpec.critChance`, level-scaled preset derivation); guardrails
+green; in-game smoke confirmed the stat-driven crit renders the standard
+big-orange pop. Full doctrine ledger: `plan-skill-vocab.md` §4.3 v2 amendment.
+Original spec kept below for the record.
 
 **Origin:** PO decision 2026-07-20 (live-content review chat). Extends the
 §4.3 crit doctrine (2026-07-13: crit = the ONE sanctioned, upside-only combat
