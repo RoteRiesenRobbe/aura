@@ -59,9 +59,13 @@ export interface ZoneSpawn {
 
 // A fixed world campfire position (atmosphere & recovery chunk 2) — a plain
 // point; the heal fixture itself is defined by the Campfire mob def.
+// startingSpawn marks the new-player spawn fire (intermission ① item 16); the
+// backend hard-fails at boot unless exactly one campfire in a zone carries it,
+// so it must survive editor round-trips.
 export interface ZoneCampfire {
     x: number;
     y: number;
+    startingSpawn?: boolean;
 }
 
 // A circle of constant darkness (atmosphere & recovery chunk 3) — purely
@@ -281,7 +285,13 @@ export class ZoneModel {
             // Omitted (undefined key) while empty, so pre-step-3 zones
             // round-trip diff-clean — the chunk-5 array precedent.
             campfires: this.campfires.length > 0
-                ? this.campfires.map(c => ({x: round(c.x, 2), y: round(c.y, 2)}))
+                // startingSpawn only serializes when true — non-spawn fires
+                // stay bare {x, y} like the hand-written file.
+                ? this.campfires.map(c => ({
+                    x: round(c.x, 2),
+                    y: round(c.y, 2),
+                    startingSpawn: c.startingSpawn ? true : undefined,
+                }))
                 : undefined,
             darkAreas: this.darkAreas.length > 0
                 ? this.darkAreas.map(d => ({x: round(d.x, 2), y: round(d.y, 2), radius: round(d.radius, 2)}))
