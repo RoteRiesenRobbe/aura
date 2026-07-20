@@ -11988,7 +11988,8 @@
       "type": "Farmer",
       "x": -53.7,
       "y": 24.3,
-      "radius": 3,
+      "radius": 1.5,
+      "entityType": "Farmer",
       "tooLowLine": "You're new here \u2014 pull some turnips for me first.",
       "teachings": [
         {
@@ -12014,7 +12015,7 @@
       "type": "Hermit",
       "x": -47.5,
       "y": 28.2,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "Hermit",
       "tooLowLine": "Pull a few turnips first \u2014 mending starts with dirt under the nails.",
       "teachings": [
@@ -12032,7 +12033,7 @@
       "type": "ForestSign",
       "x": -53.4,
       "y": -2.4,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "Signpost",
       "lines": [
         "Something big prowls the dark forest."
@@ -12042,7 +12043,7 @@
       "type": "Hermit",
       "x": -66.0,
       "y": -27.6,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "Hermit",
       "tooLowLine": "Rest a moment, wanderer.",
       "teachings": [
@@ -12059,7 +12060,7 @@
       "type": "Dog",
       "x": -48.0,
       "y": -18.0,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "DogNpc",
       "tooLowLine": "Woof?",
       "teachings": [
@@ -12076,7 +12077,7 @@
       "type": "Miner",
       "x": -27.0,
       "y": -26.4,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "Miner",
       "tooLowLine": "These old arms swung a pick for forty years.",
       "teachings": [
@@ -12093,7 +12094,7 @@
       "type": "TunnelSign",
       "x": -34.8,
       "y": -2.4,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "Signpost",
       "lines": [
         "The middle road is suicide. Take the north tunnel."
@@ -12103,7 +12104,7 @@
       "type": "KoboldSign",
       "x": -25.2,
       "y": 10.8,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "Signpost",
       "lines": [
         "Kobolds burrow south-east of here. They hoard shiny stuff, the vermin."
@@ -12113,7 +12114,7 @@
       "type": "CityGuard",
       "x": 62.4,
       "y": 9.6,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "CityGuard",
       "lines": [
         "The gates stay shut \u2014 captain's orders. Nobody enters while the front burns.",
@@ -12125,7 +12126,7 @@
       "type": "VillageHealer",
       "x": 45.4,
       "y": 11.0,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "VillageHealer",
       "tooLowLine": "You're not ready to carry someone else's life yet. Come back when you've seen a few more fights.",
       "teachings": [
@@ -12143,7 +12144,7 @@
       "type": "FrontCaptain",
       "x": 58.9,
       "y": 26.9,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "FrontCaptain",
       "tooLowLine": "The front is no place for you yet. Live a little longer first \u2014 then we talk.",
       "teachings": [
@@ -12161,7 +12162,7 @@
       "type": "Emberkeeper",
       "x": 40.0,
       "y": -15.0,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "Hermit",
       "tooLowLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
       "teachings": [
@@ -12183,7 +12184,7 @@
       "type": "Shaman",
       "x": 18.0,
       "y": 6.0,
-      "radius": 3,
+      "radius": 1.5,
       "entityType": "Hermit",
       "tooLowLine": "The spirits do not answer the untested. Walk further first.",
       "teachings": [

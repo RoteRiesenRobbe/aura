@@ -453,6 +453,22 @@ export class Hermit extends Resource {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Hermit, GraphicsConfig.npcs.hermit.file, GraphicsConfig.npcs.hermit.maxSize);
 
+export class Farmer extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, Farmer.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Farmer, GraphicsConfig.npcs.farmer.file, GraphicsConfig.npcs.farmer.maxSize);
+
 export class DogNpc extends Resource {
     static svg: Texture;
 

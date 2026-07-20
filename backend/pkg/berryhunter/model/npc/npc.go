@@ -43,8 +43,9 @@ func SpriteFor(entityType string) model.EntityType {
 
 // placeholderVisualRadius is the NPC's body/sprite radius in server units
 // [PLACEHOLDER]. Distinct from the (larger) sensor radius, which is authored
-// per NPC in the zone file.
-const placeholderVisualRadius float32 = 1.0
+// per NPC in the zone file. Slightly bigger than the player's 0.25 — an NPC
+// should read person-sized, not landmark-sized (PO, C8 walkthrough 2026-07-20).
+const placeholderVisualRadius float32 = 0.35
 
 // Npc is a static teaching/lore NPC. The embedded BaseEntity holds the visual
 // body (also what Bodies(), Position(), Radius() and the Resource marshal read);

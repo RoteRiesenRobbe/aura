@@ -324,6 +324,10 @@ export const GraphicsConfig = {
             file: require('../features/game-objects/assets/resources/hermit.svg'),
             maxSize: <number> 60,
         },
+        farmer: {
+            file: require('../features/game-objects/assets/resources/farmer.svg'),
+            maxSize: <number> 60,
+        },
         dogNpc: {
             file: require('../features/game-objects/assets/resources/dogNpc.svg'),
             maxSize: <number> 45,

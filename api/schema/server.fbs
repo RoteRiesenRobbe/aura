@@ -64,7 +64,8 @@ enum EntityType : ushort {
   ShieldbearerCompanion,
   MedicCompanion,
   Troll,
-  BanditPyromancer
+  BanditPyromancer,
+  Farmer
 }
 
 enum StatusEffect : ushort {

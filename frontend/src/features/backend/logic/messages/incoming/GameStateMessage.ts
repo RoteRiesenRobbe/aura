@@ -343,6 +343,7 @@ const gameObjectClasses = [
     Mobs.MedicCompanion,
     Mobs.Troll,
     Mobs.BanditPyromancer,
+    Resources.Farmer,
 ];
 
 function unmarshalEntityType(entityType) {
