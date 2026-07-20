@@ -409,10 +409,12 @@ function clearEquipSelection() {
 }
 
 // Previous tick's spellbook contents, used to detect fresh unlocks for the
-// one-shot glow. Empty = no baseline yet (join/respawn/death cleared it) —
-// the first non-empty list renders without glow. That never swallows a real
-// unlock, since players always spawn with DamageAura already discovered.
-let knownSpellbookIds: number[] = [];
+// one-shot glow. null = no baseline yet — the first snapshot after load
+// establishes it without glow, even when it's empty. Empty is a real state
+// (peasant start owns nothing), so it must NOT double as the sentinel:
+// otherwise the first skill ever learned (Harvest) reads as the baseline
+// and its unlock banner is swallowed.
+let knownSpellbookIds: number[] | null = null;
 // Previous tick's per-skill levels, parallel to knownSpellbookIds; level
 // changes trigger a list rebuild but never the unlock glow.
 let knownSpellbookLevels: number[] = [];
@@ -440,10 +442,11 @@ function updateSkillPointsDisplay(points: number) {
 export function updateSpellbook(ids: number[], levels: number[], points: number) {
     if (!spellbookListElement) return;
     updateSkillPointsDisplay(points);
-    if (sameIds(ids, knownSpellbookIds) && sameIds(levels, knownSpellbookLevels)) return;
+    if (knownSpellbookIds !== null
+        && sameIds(ids, knownSpellbookIds) && sameIds(levels, knownSpellbookLevels)) return;
 
-    const isBaseline = knownSpellbookIds.length === 0;
-    const known = new Set(knownSpellbookIds);
+    const isBaseline = knownSpellbookIds === null;
+    const known = new Set(knownSpellbookIds ?? []);
     let anyUnlock = false;
 
     const entries = ids.map((id, i) => ({id, level: levels[i] ?? 1}));
