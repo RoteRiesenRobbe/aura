@@ -207,7 +207,7 @@ func auraSpecAt(e skills.EffectDef, level int, powerScale float32) sim.AuraSpec 
 	case e.Damage != nil:
 		spec.DamageHP = e.Damage.HPAt(level) * powerScale
 		spec.Variance = e.Damage.Variance
-		spec.CritChance = e.Damage.CritChance
+		spec.CritChance = e.Damage.CritChanceAt(level)
 		spec.CritFactor = e.Damage.CritFactor
 	case e.Dot != nil:
 		spec.DamageHP = e.Dot.HPAt(level) * powerScale

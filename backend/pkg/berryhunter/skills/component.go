@@ -124,6 +124,11 @@ type DerivedStats struct {
 	// DamageReductionBonus is subtractive: incoming damage × (1 − bonus),
 	// applied in player.takeDamage.
 	DamageReductionBonus float32
+	// CritChanceBonus is additive crit CHANCE (not a multiplier) on every
+	// outgoing direct hit of the acting entity, stacking with an effect's
+	// authored critChance (§4.3 amendment, backlog §23). Applied in
+	// sys.rollHitDamage; DoTs never crit.
+	CritChanceBonus float32
 	// Resistances aggregates resist_passive effects into one tag → multiplier
 	// source map (item 11 Phase 2): per tag, the product across equipped
 	// passives (each passive is a distinct resist source). nil when no resist
@@ -318,6 +323,8 @@ func (sc *SkillComponent) recomputeDerived() {
 					d.MaxHealthBonus += bonus
 				case StatDamageReduction:
 					d.DamageReductionBonus += bonus
+				case StatCritChance:
+					d.CritChanceBonus += bonus
 				}
 			case EffectTypeResistPassive:
 				// Level scaling mirrors the aura fields (FactorAt: base +

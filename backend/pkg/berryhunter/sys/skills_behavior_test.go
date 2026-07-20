@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/trichner/berryhunter/pkg/berryhunter/cfg"
 	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
@@ -91,6 +92,7 @@ type fakePlayer struct {
 	lastMoveDir     phy.Vec2f            // dash aim source (chunk 5)
 	buffs           skills.Buffs         // real store for tick_rate (chunk 6); zero value = factor 1.0
 	powerScale      float32              // f(character level) (C0); newFakePlayer sets neutral 1
+	conf            cfg.PlayerConfig     // zero value = no base crit (§4.3 v2); tests set CritChance explicitly
 }
 
 // appliedResist records one ApplyResist call on a test double.
@@ -118,6 +120,7 @@ type appliedHot struct {
 func (f *fakePlayer) Basic() ecs.BasicEntity                 { return f.basic }
 func (f *fakePlayer) Faction() model.Faction                 { return model.FactionAligned }
 func (f *fakePlayer) SkillComponent() *skills.SkillComponent { return f.sc }
+func (f *fakePlayer) Config() *cfg.PlayerConfig              { return &f.conf }
 func (f *fakePlayer) AuraCollider() *phy.Circle              { return f.aura }
 func (f *fakePlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vitalSigns }
 func (f *fakePlayer) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
@@ -2694,6 +2697,10 @@ type factionedMobCaster struct {
 
 func (c *factionedMobCaster) Faction() model.Faction { return c.faction }
 
+// The damage path reads the acting caster's derived crit stat on every
+// application (backlog §23); a nil component means "no stat", not a panic.
+func (c *factionedMobCaster) SkillComponent() *skills.SkillComponent { return nil }
+
 func TestApplyMobDamageAura_SameFactionNeverHitNorEatsTargetSlot(t *testing.T) {
 	// With aura masks spanning both combatant layers (chunk 6.6), a mob's
 	// sensor sees same-faction mobs — eligibility must skip them BEFORE the
@@ -3042,6 +3049,120 @@ func TestApplyDamageAura_CritSeededMixAtHalfChance(t *testing.T) {
 	}
 	assert.Greater(t, crits, 0, "seeded half chance must crit sometimes")
 	assert.Greater(t, normals, 0, "…and miss sometimes")
+}
+
+// critPassiveDef is a stat_multiplier passive granting the given flat crit
+// chance at level 1 (crit as a stackable player stat, backlog §23).
+func critPassiveDef(chance float32) *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 140, Name: "TestKeenEye", Category: skills.SkillCategoryPassive, MaxLevel: 3,
+		Effects: []skills.EffectDef{
+			{Type: skills.EffectTypeStatMultiplier, Stat: &skills.StatParams{Name: skills.StatCritChance, Bonus: chance}},
+		},
+	}
+}
+
+func TestApplyDamageAura_StatCritUsesDefaultFactorAndFlag(t *testing.T) {
+	// An effect with NO authored crit pair crits via the derived stat alone,
+	// at the global default factor — and carries the same wire flag, so the
+	// client renders it exactly like an authored crit.
+	effect := vocabEffect(func(d *skills.DamageParams) {})
+	caster := newFakePlayer()
+	caster.sc.EquipPassive(0, critPassiveDef(1), 1)
+	target := &touchRecorder{}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 10.0*defaultCritFactor, target.touches[0], 1e-4)
+	require.Len(t, target.crits, 1)
+	assert.True(t, target.crits[0], "stat-driven crits ride the same Damage.Crit flag")
+}
+
+func TestApplyDamageAura_StatCritStacksAdditivelyWithAuthored(t *testing.T) {
+	// Authored 0.5 + stat 0.5 = certain crit; the authored factor wins over
+	// the default (backlog §23: additive chance, per-skill factor stays).
+	effect := vocabEffect(func(d *skills.DamageParams) {
+		d.CritChance = 0.5
+		d.CritFactor = 3
+	})
+	caster := newFakePlayer()
+	caster.sc.EquipPassive(0, critPassiveDef(0.5), 1)
+	target := &touchRecorder{}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 30.0, target.touches[0], 1e-4)
+	assert.True(t, target.crits[0])
+}
+
+func TestApplyDamageAura_CharacterBaseCritFromConfig(t *testing.T) {
+	// §4.3 v2 (PO 2026-07-20): every player character has a flat base crit
+	// chance from conf (game.player.critChance) — it applies to any direct
+	// hit, even on effects with no authored crit at all.
+	effect := vocabEffect(func(d *skills.DamageParams) {})
+	caster := newFakePlayer()
+	caster.conf.CritChance = 1
+	target := &touchRecorder{}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 10.0*defaultCritFactor, target.touches[0], 1e-4)
+	assert.True(t, target.crits[0])
+}
+
+func TestApplyDamageAura_AuthoredCritChanceScalesPerLevel(t *testing.T) {
+	// Skill-authored crit chance follows base + (L−1)×perLevel: 0.5 + 0.5 at
+	// level 2 = certain crit, at the effect's own factor.
+	effect := vocabEffect(func(d *skills.DamageParams) {
+		d.CritChance = 0.5
+		d.CritChancePerLevel = 0.5
+		d.CritFactor = 3
+	})
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+
+	applyDamageAura(caster, 2, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 30.0, target.touches[0], 1e-4, "level-2 chance 1.0 × factor 3")
+	assert.True(t, target.crits[0])
+}
+
+func TestApplyPlayerDamageAura_SummonDoesNotInheritOwnerCrit(t *testing.T) {
+	// Berserker precedent (backlog §23): the ACTING entity's own stats drive
+	// vocab — an owned summon crits off neither the owner's passive nor the
+	// owner's character base, and a zero combined chance consumes no RNG draw
+	// (seeded-sequence discipline).
+	effect := vocabEffect(func(d *skills.DamageParams) {})
+	owner := newFakePlayer()
+	owner.conf.CritChance = 1
+	owner.sc.EquipPassive(0, critPassiveDef(1), 1)
+	summon := &fakeActingSource{ratio: 1}
+	target := &touchRecorder{}
+
+	applyPlayerDamageAura(owner, summon, phy.VEC2F_ZERO, 1, effect, colliderSetOf(target), testRNG(), 1)
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 10.0, target.touches[0], 1e-4, "no crit: the acting summon has no base or stat")
+	assert.False(t, target.crits[0])
+}
+
+func TestApplyDamageAura_MobCasterReadsOwnStatCrit(t *testing.T) {
+	// The mob path reads the same derived stat off the acting mob's own
+	// component — the vocabulary is symmetric across caster kinds.
+	effect := vocabEffect(func(d *skills.DamageParams) {})
+	caster := newFakeMob()
+	caster.sc.EquipPassive(0, critPassiveDef(1), 1)
+	target := &mobTouchRecorder{}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.factors, 1)
+	assert.InDelta(t, 10.0*defaultCritFactor, target.factors[0].Damage, 1e-4)
+	assert.True(t, target.factors[0].Crit)
 }
 
 func TestApplyDamageAura_LifestealRidesDamagePayload(t *testing.T) {

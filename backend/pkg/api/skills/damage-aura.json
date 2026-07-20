@@ -1,5 +1,5 @@
 {
-  "_comment": "Values copied from backend/conf.json as of migration start — all [PLACEHOLDER] pending balance pass",
+  "_comment": "Values copied from backend/conf.json as of migration start — all [PLACEHOLDER] pending balance pass. No authored crit (§4.3 v2 rework: briefly carried 1%/level, PO removed it same day 2026-07-20 — it made the starter aura the strongest non-ceiling damage skill); crits ride the character's own chance only.",
   "id": 1,
   "name": "DamageAura",
   "category": "active_aura",

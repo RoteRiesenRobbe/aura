@@ -24,6 +24,7 @@ func Config(conf *cfg.Config) Configuration {
 		g.PlayerConfig.LevelUpXPBase = conf.Game.Player.LevelUpXPBase
 		g.PlayerConfig.LevelUpXPGrowthFactor = conf.Game.Player.LevelUpXPGrowthFactor
 		g.PlayerConfig.SkillPointsPerLevel = conf.Game.Player.SkillPointsPerLevel
+		g.PlayerConfig.CritChance = conf.Game.Player.CritChance
 		if g.PlayerConfig.SkillPointsPerLevel <= 0 {
 			g.PlayerConfig.SkillPointsPerLevel = 1
 		}

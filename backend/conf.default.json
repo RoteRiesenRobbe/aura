@@ -17,7 +17,8 @@
       "maxLevel": 30,
       "levelUpXPBase": 300,
       "levelUpXPGrowthFactor": 1.2,
-      "skillPointsPerLevel": 1
+      "skillPointsPerLevel": 1,
+      "critChance": 0.05
     }
   }
 }

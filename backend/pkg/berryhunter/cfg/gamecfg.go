@@ -80,4 +80,10 @@ type PlayerConfig struct {
 
 	// skill points earned per player level beyond 1 [PLACEHOLDER]
 	SkillPointsPerLevel int
+
+	// CritChance is the flat character-base crit chance on every direct hit
+	// (§4.3 v2, PO 2026-07-20) [PLACEHOLDER]; additive with the critChance
+	// passive stat and any skill-authored chance. Read in sys.rollHitDamage's
+	// apply sites.
+	CritChance float32
 }

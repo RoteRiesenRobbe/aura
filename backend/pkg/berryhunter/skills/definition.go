@@ -155,12 +155,14 @@ const (
 	StatMovementSpeed   = "movementSpeed"
 	StatMaxHealth       = "maxHealth"
 	StatDamageReduction = "damageReduction" // applied in player.takeDamage
+	StatCritChance      = "critChance"      // applied in sys.rollHitDamage (§4.3 amendment, backlog §23)
 )
 
 var validStats = map[string]bool{
 	StatMovementSpeed:   true,
 	StatMaxHealth:       true,
 	StatDamageReduction: true,
+	StatCritChance:      true,
 }
 
 // EffectDef holds the parameters of one effect within a skill: the shared
@@ -272,11 +274,16 @@ type DamageParams struct {
 	BerserkerMaxBonusFactor float32
 
 	// Crit: the ONE sanctioned, upside-only combat RNG (§4.3 decided
-	// 2026-07-13): each hit rolls CritChance to multiply by CritFactor, after
-	// execute/berserker and before variance. Crit-flagged damage lands on the
-	// target's crit_taken wire accumulator. Authored as a pair.
-	CritChance float32
-	CritFactor float32
+	// 2026-07-13; v2 PO 2026-07-20): each hit rolls the effect's (level-scaled)
+	// authored chance PLUS the acting caster's own crit chance (character base
+	// + critChance stat), after execute/berserker and before variance. A crit
+	// multiplies by CritFactor, or the global default factor when none is
+	// authored (sys.defaultCritFactor). Crit-flagged damage lands on the
+	// target's crit_taken wire accumulator. Chance may be authored alone;
+	// a factor needs an authored chance source.
+	CritChance         float32
+	CritChancePerLevel float32
+	CritFactor         float32
 
 	// Lifesteal: the hit's recipient (the living Source, else the toucher)
 	// heals LifestealFraction × damage DEALT — shield-absorbed included,
@@ -287,6 +294,13 @@ type DamageParams struct {
 // HPAt is the level-scaled damage center in absolute HP (pre-variance-roll).
 func (p *DamageParams) HPAt(level int) float32 {
 	return Scaled(p.HP, p.HPPerLevel, level)
+}
+
+// CritChanceAt is the effect's authored crit chance at a skill level
+// (base + (L−1)×perLevel), before the caster's own chance adds on top
+// (§4.3 v2).
+func (p *DamageParams) CritChanceAt(level int) float32 {
+	return Scaled(p.CritChance, p.CritChancePerLevel, level)
 }
 
 // ExecuteMultiplier is the per-target execute bonus: ExecuteBonusFactor while
@@ -654,6 +668,7 @@ type effectDef struct {
 	ExecuteBonusFactor      float32 `json:"executeBonusFactor"`
 	BerserkerMaxBonusFactor float32 `json:"berserkerMaxBonusFactor"`
 	CritChance              float32 `json:"critChance"`
+	CritChancePerLevel      float32 `json:"critChancePerLevel"`
 	CritFactor              float32 `json:"critFactor"`
 	LifestealFraction       float32 `json:"lifestealFraction"`
 
@@ -710,7 +725,7 @@ var (
 	// keysDotPayload + DotParams when content wants a burning execute).
 	keysDamagePayload = []string{
 		"damageHP", "damageHPPerLevel", "damageTags", "gatedDamageTags", "variance", "hitStyle", "targetsStructures", "structureDamageFraction",
-		"executeBelowFraction", "executeBonusFactor", "berserkerMaxBonusFactor", "critChance", "critFactor", "lifestealFraction",
+		"executeBelowFraction", "executeBonusFactor", "berserkerMaxBonusFactor", "critChance", "critChancePerLevel", "critFactor", "lifestealFraction",
 	}
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
 	keysDotPayload    = []string{"damageHP", "damageHPPerLevel", "damageTags", "variance", "dotTicks", "dotTickInterval"}
@@ -991,9 +1006,9 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 		return nil, err
 	}
 
-	// Damage vocabulary (chunk 1). Execute and crit are authored as pairs — a
-	// lone threshold/chance is a silent no-op, a lone factor is unanchored;
-	// both hard-fail like the other no-scaling guards.
+	// Damage vocabulary (chunk 1). Execute is authored as a pair — a lone
+	// threshold is a silent no-op, a lone factor is unanchored; both hard-fail
+	// like the other no-scaling guards.
 	if (e.ExecuteBelowFraction != 0) != (e.ExecuteBonusFactor != 0) {
 		return nil, fmt.Errorf("execute: executeBelowFraction and executeBonusFactor must be authored together")
 	}
@@ -1006,11 +1021,17 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 	if e.BerserkerMaxBonusFactor < 0 {
 		return nil, fmt.Errorf("berserkerMaxBonusFactor: must be >= 0, got %v", e.BerserkerMaxBonusFactor)
 	}
-	if (e.CritChance != 0) != (e.CritFactor != 0) {
-		return nil, fmt.Errorf("crit: critChance and critFactor must be authored together")
+	// Crit v2 (§4.3 amendment, PO 2026-07-20): chance may be authored alone —
+	// it adds to the caster's own crit chance and rolls at the global default
+	// factor. A factor with no authored chance source stays invalid.
+	if e.CritFactor != 0 && e.CritChance == 0 && e.CritChancePerLevel == 0 {
+		return nil, fmt.Errorf("crit: critFactor requires an authored critChance or critChancePerLevel")
 	}
 	if e.CritChance < 0 || e.CritChance > 1 {
 		return nil, fmt.Errorf("critChance: must be in [0, 1], got %v", e.CritChance)
+	}
+	if e.CritChancePerLevel < 0 {
+		return nil, fmt.Errorf("critChancePerLevel: must be >= 0, got %v", e.CritChancePerLevel)
 	}
 	if e.CritFactor < 0 {
 		return nil, fmt.Errorf("critFactor: must be >= 0, got %v", e.CritFactor)
@@ -1031,6 +1052,7 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 		ExecuteBonusFactor:      e.ExecuteBonusFactor,
 		BerserkerMaxBonusFactor: e.BerserkerMaxBonusFactor,
 		CritChance:              e.CritChance,
+		CritChancePerLevel:      e.CritChancePerLevel,
 		CritFactor:              e.CritFactor,
 		LifestealFraction:       e.LifestealFraction,
 	}, nil

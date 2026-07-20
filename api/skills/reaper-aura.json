@@ -1,5 +1,5 @@
 {
-  "_comment": "Skill-vocab chunk 1 smoke content: one aura exercising execute + berserker + crit + lifesteal together. Cheat-granted (SKILL ReaperAura), no milestone; throwaway until the content pass authors the real build skills. All values [PLACEHOLDER].",
+  "_comment": "Skill-vocab chunk 1 smoke content: one aura exercising execute + berserker + lifesteal together; EliteWolf drop since Session ②. Authored crit pair REMOVED in the §4.3 v2 crit rework (PO 2026-07-20): Reaper crits only via the character's own crit chance (base 5% + critChance stat) at the default factor. All values [PLACEHOLDER].",
   "id": 7,
   "name": "ReaperAura",
   "category": "active_aura",
@@ -14,8 +14,6 @@
       "executeBelowFraction": 0.35,
       "executeBonusFactor": 2,
       "berserkerMaxBonusFactor": 1,
-      "critChance": 0.25,
-      "critFactor": 2,
       "lifestealFraction": 0.5,
       "targetsEnemies": true,
       "targetsAllies": false,

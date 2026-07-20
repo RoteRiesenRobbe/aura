@@ -509,11 +509,12 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 	damageHP := effect.Damage.HPAt(level) * outputScale * berserkerMultiplier(effect.Damage, acting)
 
 	style := auraHitStyleFor(effect, level)
+	critChance := effect.Damage.CritChanceAt(level) + casterCritChance(acting)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		// F6 §3.1 steps 3–5 per hit: execute × crit roll × variance roll; the
 		// target's resistance then multiplies the rolled value (decision C3).
-		hitHP, crit := rollHitDamage(damageHP, effect.Damage, c, rng)
+		hitHP, crit := rollHitDamage(damageHP, effect.Damage, c, rng, critChance)
 		damage := model.Damage{HP: hitHP, Tags: effect.Damage.Tags, Gated: effect.Damage.Gated, Source: source, Lifesteal: effect.Damage.LifestealFraction, Crit: crit}
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
 		noteAuraHit(c, style)
@@ -562,10 +563,11 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, 
 	}
 
 	style := auraHitStyleFor(effect, level)
+	critChance := effect.Damage.CritChanceAt(level) + casterCritChance(caster)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		// Per-hit execute × crit × variance, same as the player path.
-		factors.Damage, factors.Crit = rollHitDamage(damageHP, effect.Damage, c, rng)
+		factors.Damage, factors.Crit = rollHitDamage(damageHP, effect.Damage, c, rng, critChance)
 		c.Shape().UserData.(model.Interacter).MobTouches(caster, factors)
 		noteAuraHit(c, style)
 	}
@@ -585,22 +587,59 @@ func berserkerMultiplier(d *skills.DamageParams, acting any) float32 {
 	return d.BerserkerMultiplier(h.HealthRatio())
 }
 
+// defaultCritFactor multiplies crits on effects without an authored
+// critFactor (§4.3 v2, PO 2026-07-20). Authored factors win. [PLACEHOLDER ×2]
+const defaultCritFactor = 2.0
+
+// casterCritChance is the acting caster's own crit chance (§4.3 v2, PO
+// 2026-07-20): the flat character base (players only — mobs and summons have
+// none) plus the derived critChance stat from equipped passives. The effect's
+// authored (level-scaled) chance adds on top at the apply sites. The ACTING
+// entity's own stats drive vocabulary (the berserker precedent), so a summon
+// never inherits its owner's base or stat. Non-skill test doubles simply roll
+// unboosted.
+func casterCritChance(acting any) float32 {
+	var chance float32
+	if p, ok := acting.(model.PlayerEntity); ok {
+		if c := p.Config(); c != nil {
+			chance = c.CritChance
+		}
+	}
+	if h, ok := acting.(interface {
+		SkillComponent() *skills.SkillComponent
+	}); ok {
+		if sc := h.SkillComponent(); sc != nil {
+			chance += sc.Derived.CritChanceBonus
+		}
+	}
+	return chance
+}
+
 // rollHitDamage composes one hit's final outgoing HP (F6 §3.1 steps 3–5):
 // the application-level base (level-scaled × output × berserker) × the
 // per-target execute bonus × the per-hit crit roll (§4.3: the one sanctioned,
 // upside-only RNG), then the variance roll (C4). Targets without a health
-// ratio (structures) take no execute bonus. Zero chance/variance consume no
-// RNG draw, so seeded sequences of vocabulary-free effects are unchanged.
-func rollHitDamage(base float32, d *skills.DamageParams, c phy.Collider, rng *rand.Rand) (hp float32, crit bool) {
+// ratio (structures) take no execute bonus. critChance is the TOTAL per-hit
+// chance — the effect's level-scaled authored chance plus casterCritChance,
+// composed at the apply site. A crit multiplies by the effect's authored
+// factor, or defaultCritFactor when none is authored, and always carries the
+// Crit flag, so the client renders every crit identically. Zero chance/
+// variance consume no RNG draw, so seeded sequences of crit-free casters
+// running vocabulary-free effects are unchanged.
+func rollHitDamage(base float32, d *skills.DamageParams, c phy.Collider, rng *rand.Rand, critChance float32) (hp float32, crit bool) {
 	hp = base
 	if d.ExecuteBonusFactor != 0 {
 		if h, ok := c.Shape().UserData.(healthRatioer); ok {
 			hp *= d.ExecuteMultiplier(h.HealthRatio())
 		}
 	}
-	if d.CritChance > 0 && rng.Float32() < d.CritChance {
+	if critChance > 0 && rng.Float32() < critChance {
 		crit = true
-		hp *= d.CritFactor
+		factor := d.CritFactor
+		if factor == 0 {
+			factor = defaultCritFactor
+		}
+		hp *= factor
 	}
 	return vitals.RollVariance(hp, d.Variance, rng), crit
 }

@@ -40,6 +40,10 @@ type Config struct {
 			LevelUpXPBase         uint32  `json:"levelUpXPBase"`
 			LevelUpXPGrowthFactor float32 `json:"levelUpXPGrowthFactor"`
 			SkillPointsPerLevel   int     `json:"skillPointsPerLevel"`
+			// CritChance is the flat base crit chance every player character
+			// has (§4.3 v2, PO 2026-07-20) [PLACEHOLDER 0.05]; skill-authored
+			// chance and the critChance passive stat add on top.
+			CritChance float32 `json:"critChance"`
 		} `json:"player"`
 	} `json:"game"`
 }
@@ -76,6 +80,9 @@ func ReadConfig(filename string) (*Config, error) {
 	}
 	if config.Game.Player.MaxLevel <= 0 {
 		config.Game.Player.MaxLevel = curve.Default().MaxLevel
+	}
+	if config.Game.Player.CritChance <= 0 {
+		config.Game.Player.CritChance = 0.05
 	}
 	// Validate
 	if config.Game.DayTimeSeconds > config.Game.TotalDayCycleSeconds {

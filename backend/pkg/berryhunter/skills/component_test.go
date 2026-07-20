@@ -662,6 +662,21 @@ func TestDerivedStats(t *testing.T) {
 		assert.InDelta(t, 0.05, sc.Derived.MovementSpeedBonus, 1e-6)
 	})
 
+	t.Run("critChance accumulates into CritChanceBonus", func(t *testing.T) {
+		// Backlog §23: crit as a stackable player stat — the derived bonus
+		// is additive chance on every outgoing direct hit (rollHitDamage).
+		keen := &SkillDefinition{
+			ID: 14, Name: "KeenPassive", Category: SkillCategoryPassive, MaxLevel: 3,
+			Effects: []EffectDef{
+				{Type: EffectTypeStatMultiplier, Stat: &StatParams{Name: StatCritChance, Bonus: 0.05, BonusPerLevel: 0.05}},
+			},
+		}
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, keen, 2)
+
+		assert.InDelta(t, 0.10, sc.Derived.CritChanceBonus, 1e-6)
+	})
+
 	t.Run("equipping the same passive again moves it, never duplicates", func(t *testing.T) {
 		// The same buff in two slots would stack (0.05 + 0.05); equipping a
 		// passive already present elsewhere must clear the old slot instead.

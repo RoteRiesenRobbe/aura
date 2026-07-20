@@ -78,6 +78,12 @@ func (a AuraSpec) definition(id skills.SkillID, name string) *skills.SkillDefini
 type PlayerSpec struct {
 	MaxHealth int      `json:"maxHealth"`
 	Aura      AuraSpec `json:"aura"`
+	// CritChance is the character-base crit chance (§4.3 v2, PO 2026-07-20):
+	// a flat per-hit chance on every direct hit, additive with the aura's
+	// authored chance, rolling at the default ×2 factor when the aura has no
+	// authored factor. 0 = none — the sim stays explicit-input; scenarios
+	// mirroring the live game set the conf value (0.05).
+	CritChance float32 `json:"critChance,omitempty"`
 }
 
 // MobSpec is the synthetic mob: pool, movement/acquisition geometry and one

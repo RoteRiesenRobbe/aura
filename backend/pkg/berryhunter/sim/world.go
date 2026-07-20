@@ -85,6 +85,9 @@ func NewWorld(sc Scenario, seed int64) *World {
 				// multiplier must not double-apply on top.
 				LevelUpXPBase:         300,
 				LevelUpXPGrowthFactor: 1.2,
+				// Character-base crit (§4.3 v2) — the real SkillSystem reads
+				// it off the player's config exactly like the live game.
+				CritChance: sc.Player.CritChance,
 			},
 		},
 		// The synthetic aura rides the start-loadout name player.New looks up

@@ -987,8 +987,24 @@ func TestMap_ExecuteBoundsFail(t *testing.T) {
 	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"executeBelowFraction":0.35,"executeBonusFactor":-1}`, "executeBonusFactor")
 }
 
-func TestMap_CritPairIncompleteFails(t *testing.T) {
-	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":0.25}`, "crit")
+func TestMap_CritChanceAloneIsValid(t *testing.T) {
+	// §4.3 v2 (PO 2026-07-20): a skill may author extra crit CHANCE without a
+	// factor — it adds to the caster's own crit chance and rolls at the
+	// global default factor. Per-level scaling follows the base+(L−1)×perLevel
+	// convention.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":5,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":0.01,"critChancePerLevel":0.01}]}`))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition()
+	require.NoError(t, err)
+	d := def.Effects[0].Damage
+	assert.InDelta(t, 0.01, d.CritChance, 1e-6)
+	assert.InDelta(t, 0.01, d.CritChancePerLevel, 1e-6)
+	assert.InDelta(t, 0.02, d.CritChanceAt(2), 1e-6)
+	assert.InDelta(t, 0.05, d.CritChanceAt(5), 1e-6)
+}
+
+func TestMap_CritFactorAloneFails(t *testing.T) {
+	// A factor with no authored chance source on the skill stays invalid.
 	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critFactor":2}`, "crit")
 }
 
@@ -996,6 +1012,7 @@ func TestMap_CritBoundsFail(t *testing.T) {
 	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":1.5,"critFactor":2}`, "critChance")
 	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":-0.1,"critFactor":2}`, "critChance")
 	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":0.25,"critFactor":-2}`, "critFactor")
+	mustFailMap(t, `{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":0.01,"critChancePerLevel":-0.01}`, "critChancePerLevel")
 }
 
 func TestMap_NegativeBerserkerFails(t *testing.T) {

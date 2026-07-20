@@ -125,6 +125,7 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// smash-gated aura) + the C4 DamageBurst elite-drop cooldown
 	// + the C5 Vanguard (the Front-Aura power outlier, §A)
 	// + the C6 CallForAid boss drop (three-spawn cooldown)
+	// + the KeenEye crit-chance stat passive (backlog §23)
 	// + the 8 C7 recipe-net results (the §A ceiling trio Spearhead/
 	// Lifewarden/Shockwave, the Warbanner capstone, the CallForAid squads
 	// HoldTheLine/FieldMedics, and the gap fills Wildfire/Suppression —
@@ -139,7 +140,7 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// SpikeBarricadeAura + the C6 warlord set WarlordCleave/WarlordFrenzy/
 	// WarbannerShield/GruntSlash, among the earlier proving/critter auras;
 	// + the intermission Session ② mob auras TrollSmash/EmberAura)
-	assert.Len(t, r.All(), 77)
+	assert.Len(t, r.All(), 78)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)
