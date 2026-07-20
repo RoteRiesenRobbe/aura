@@ -347,6 +347,11 @@ const gameObjectClasses = [
     Resources.Wanderer,
     Resources.Traveller,
     Resources.TownCrier,
+    Mobs.GiantSpider,
+    Mobs.AlphaWolf,
+    Mobs.Marauder,
+    Mobs.DireWolf,
+    Mobs.DireBear,
 ];
 
 function unmarshalEntityType(entityType) {

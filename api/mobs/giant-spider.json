@@ -1,0 +1,28 @@
+{
+  "_comment": "cL8-17 farm-band normal #1 (Z2-hardening pre-chunk, PO 2026-07-21): the spider line grown up — a lurking heavyweight for the high-tier farm areas, poison identity via VenomSpit (dot pays off on the bigger pool). Own sprite/EntityType (PO ruling 2026-07-21: every mob gets unique art, higher tier looks meaner). Slow lurker, tanky for a normal: dot pressure + big pool = the band's attrition check. experience kph-derived per the Session-⑥ XP rule (3600×1.15^(cL−1) ÷ chain-battery kph). PO places spawns in the editor. All values [PLACEHOLDER]",
+  "id": 45,
+  "name": "GiantSpider",
+  "type": "MOB",
+  "faction": "spider",
+  "tier": "normal",
+  "curveLevel": 9,
+  "factors": {
+    "baseMaxHealth": 90,
+    "maxHealthVariance": 0.1,
+    "experience": 205,
+    "speed": 0.6,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.45,
+    "aggroRadius": 5
+  },
+  "skills": [
+    { "skillName": "VenomSpit", "level": 1 }
+  ]
+}

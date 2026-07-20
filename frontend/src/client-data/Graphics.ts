@@ -311,6 +311,39 @@ export const GraphicsConfig = {
             minSize: <number> 46,
             maxSize: <number> 52,
         },
+
+        // cL8-17 farm band + unique-art pass (2026-07-21): the dires get own
+        // sprites (were Wolf/Bear reskins via entityType), sized between
+        // their base kin and the elites/apex of their line.
+        direWolf: {
+            file: require('../features/game-objects/assets/mobs/direWolf.svg'),
+            minSize: <number> 48,
+            maxSize: <number> 56,
+        },
+
+        direBear: {
+            file: require('../features/game-objects/assets/mobs/direBear.svg'),
+            minSize: <number> 78,
+            maxSize: <number> 90,
+        },
+
+        giantSpider: {
+            file: require('../features/game-objects/assets/mobs/giantSpider.svg'),
+            minSize: <number> 58,
+            maxSize: <number> 68,
+        },
+
+        alphaWolf: {
+            file: require('../features/game-objects/assets/mobs/alphaWolf.svg'),
+            minSize: <number> 58,
+            maxSize: <number> 68,
+        },
+
+        marauder: {
+            file: require('../features/game-objects/assets/mobs/marauder.svg'),
+            minSize: <number> 44,
+            maxSize: <number> 52,
+        },
     },
 
     // NPC sprites (content pass C2): Resource-backed, referenced by the

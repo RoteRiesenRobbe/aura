@@ -68,7 +68,12 @@ enum EntityType : ushort {
   Farmer,
   Wanderer,
   Traveller,
-  TownCrier
+  TownCrier,
+  GiantSpider,
+  AlphaWolf,
+  Marauder,
+  DireWolf,
+  DireBear
 }
 
 enum StatusEffect : ushort {

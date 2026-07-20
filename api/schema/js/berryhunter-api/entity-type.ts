@@ -68,5 +68,10 @@ export enum EntityType {
   Farmer = 62,
   Wanderer = 63,
   Traveller = 64,
-  TownCrier = 65
+  TownCrier = 65,
+  GiantSpider = 66,
+  AlphaWolf = 67,
+  Marauder = 68,
+  DireWolf = 69,
+  DireBear = 70
 }

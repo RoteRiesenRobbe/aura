@@ -1,0 +1,28 @@
+{
+  "_comment": "cL8-17 farm-band normal #3 (Z2-hardening pre-chunk, PO 2026-07-21): hardened outlaws past the bandit camp — the humanoid farm mob of the band, an EliteBandit-derived NORMAL (the eliteness went into curveLevel 12, not the baseline). The band's HARD normal (guardrail band-check): BanditBlades at level 3 + the deeper pool kill the facetank bot — danger pays via the kph-derived XP. Own sprite/EntityType (PO ruling 2026-07-21: unique art per mob, higher tier looks meaner). BanditBlades baseline shared with the line (physical+bleed), f(cL12) scales it. experience kph-derived per the Session-⑥ XP rule. PO places spawns in the editor. All values [PLACEHOLDER]",
+  "id": 47,
+  "name": "Marauder",
+  "type": "MOB",
+  "faction": "bandit",
+  "tier": "normal",
+  "curveLevel": 12,
+  "factors": {
+    "baseMaxHealth": 85,
+    "maxHealthVariance": 0.1,
+    "experience": 175,
+    "speed": 0.65,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.35,
+    "aggroRadius": 5
+  },
+  "skills": [
+    { "skillName": "BanditBlades", "level": 3 }
+  ]
+}

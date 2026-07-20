@@ -1,9 +1,8 @@
 {
-  "_comment": "Z2 dire bear (intermission triage Session ②, item 18): the tank half of the Z2 wildlife step-up. Reuses the Bear sprite via entityType (zero art) and the BearSwipe skill; curveLevel 4 → 7 makes it markedly tankier and hits harder while staying slow. Drops Recover (C8 milestone settlement, PO 2026-07-19 — the Z2 dires' loot identity; chance kph-derived, C8 drop-rate pass FINAL 2026-07-20). All values [PLACEHOLDER]",
+  "_comment": "Z2 dire bear (intermission triage Session ②, item 18): the tank half of the Z2 wildlife step-up. Own sprite/EntityType since the unique-art pass (PO 2026-07-21 — every mob reads distinctly, higher tier looks meaner); shares the BearSwipe skill; curveLevel 4 → 7 makes it markedly tankier and hits harder while staying slow. Drops Recover (C8 milestone settlement, PO 2026-07-19 — the Z2 dires' loot identity; chance kph-derived, C8 drop-rate pass FINAL 2026-07-20). All values [PLACEHOLDER]",
   "id": 44,
   "name": "DireBear",
   "type": "MOB",
-  "entityType": "Bear",
   "faction": "wildlife_predator",
   "tier": "normal",
   "curveLevel": 7,

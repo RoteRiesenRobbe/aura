@@ -11,10 +11,11 @@ package main
 //     deliberately). Unarmed mobs (no damage/dot aura) are skipped: the sim
 //     maps them to harmless turrets, facetank is not measurable.
 //   - Normal tier: per-mob texture, NO per-mob ceiling. The assert is the
-//     zone band-check: Z1 (cL1-4) and Z2 (cL5-7) must each offer at least
-//     one soft (facetankable) and one hard (kills the bot) normal. The front
-//     (cL18+) is exempt — elite/group territory by design, its normals are
-//     support fodder. cL8-17 currently has no normals (the Z2→front gap).
+//     zone band-check: Z1 (cL1-4), Z2 (cL5-7) and the cL8-17 farm band must
+//     each offer at least one soft (facetankable) and one hard (kills the
+//     bot) normal. The front (cL18+) is exempt — elite/group territory by
+//     design, its normals are support fodder. (The farm band joined with
+//     its first normals, Z2-hardening pre-chunk PO 2026-07-21.)
 //   - Elite: facetank chain survival ≤ 25% at home bracket.
 //   - Boss: the facetank bot dies (survival < 5%); solo-kite viability is
 //     NOT asserted (ProvingBoss ruling).
@@ -69,13 +70,17 @@ var guardrailExempt = map[string]string{
 }
 
 // guardrailZone maps a normal mob's home bracket onto the band-check zone;
-// "" = no band assert for that bracket (front exemption + the cL8-17 gap).
+// "" = no band assert for that bracket (front exemption, cL18+). The cL8-17
+// farm band joined the check with its first normals (Z2-hardening pre-chunk,
+// PO 2026-07-21).
 func guardrailZone(curveLevel int) string {
 	switch {
 	case curveLevel <= 4:
 		return "Z1"
 	case curveLevel <= 7:
 		return "Z2"
+	case curveLevel <= 17:
+		return "farm"
 	default:
 		return ""
 	}
@@ -228,7 +233,7 @@ func TestGuardrails_TierThresholdsVsRealRoster(t *testing.T) {
 		}
 	}
 
-	for _, zone := range []string{"Z1", "Z2"} {
+	for _, zone := range []string{"Z1", "Z2", "farm"} {
 		assert.NotEmpty(t, soft[zone],
 			"%s must offer at least one soft (facetankable) normal", zone)
 		assert.NotEmpty(t, hard[zone],

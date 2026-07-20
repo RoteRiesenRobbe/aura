@@ -3444,6 +3444,230 @@
       "size": 1.5,
       "rotation": 3.3,
       "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -21.84,
+      "y": -29.82,
+      "size": 1.67,
+      "rotation": 1.169,
+      "flipped": "horizontal"
+    },
+    {
+      "type": "Sand",
+      "x": -20.03,
+      "y": -30.3,
+      "size": 1.46,
+      "rotation": 1.134,
+      "flipped": "horizontal"
+    },
+    {
+      "type": "Sand",
+      "x": -20.93,
+      "y": -30.35,
+      "size": 1.38,
+      "rotation": 4.747,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Sand",
+      "x": -18.84,
+      "y": -30.76,
+      "size": 1.46,
+      "rotation": 2.653,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Sand",
+      "x": -17.73,
+      "y": -30.78,
+      "size": 1.63,
+      "rotation": 5.184,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Dark Rubble",
+      "x": -15.78,
+      "y": -30.98,
+      "size": 0.46,
+      "rotation": 1.117,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Dark Rubble",
+      "x": -16.41,
+      "y": -31.87,
+      "size": 0.46,
+      "rotation": 5.568,
+      "flipped": "horizontal"
+    },
+    {
+      "type": "Dark Rubble",
+      "x": -16.18,
+      "y": -30.42,
+      "size": 0.67,
+      "rotation": 0.89,
+      "flipped": "none"
+    },
+    {
+      "type": "Dark Rubble",
+      "x": -15.54,
+      "y": -30.07,
+      "size": 0.67,
+      "rotation": 2.531,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Dark Rubble",
+      "x": -15.6,
+      "y": -31.71,
+      "size": 0.46,
+      "rotation": 5.672,
+      "flipped": "horizontal"
+    },
+    {
+      "type": "Dark Pebble",
+      "x": -14.39,
+      "y": -31.69,
+      "size": 1.38,
+      "rotation": 6.091,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Dark Pebble",
+      "x": -12.03,
+      "y": -30.25,
+      "size": 1.33,
+      "rotation": 2.635,
+      "flipped": "none"
+    },
+    {
+      "type": "Dark Pebble",
+      "x": -9.64,
+      "y": -30.87,
+      "size": 1.17,
+      "rotation": 1.553,
+      "flipped": "none"
+    },
+    {
+      "type": "Dark Pebble",
+      "x": -7.35,
+      "y": -31.81,
+      "size": 1.5,
+      "rotation": 1.641,
+      "flipped": "none"
+    },
+    {
+      "type": "Dark Pebble",
+      "x": -6.27,
+      "y": -30.2,
+      "size": 1.29,
+      "rotation": 6.039,
+      "flipped": "horizontal"
+    },
+    {
+      "type": "Dark Pebble",
+      "x": -4.16,
+      "y": -31.77,
+      "size": 1.46,
+      "rotation": 3.281,
+      "flipped": "horizontal"
+    },
+    {
+      "type": "Dark Pebble",
+      "x": -0.5,
+      "y": -31.52,
+      "size": 1.63,
+      "rotation": 1.292,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Dark Pebble",
+      "x": -2.1,
+      "y": -31.13,
+      "size": 1.29,
+      "rotation": 2.356,
+      "flipped": "none"
+    },
+    {
+      "type": "Dark Pebble",
+      "x": 4.14,
+      "y": -30.97,
+      "size": 1.25,
+      "rotation": 2.286,
+      "flipped": "horizontal"
+    },
+    {
+      "type": "Sand",
+      "x": -25.42,
+      "y": -26.86,
+      "size": 1.38,
+      "rotation": 0.75,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -24.32,
+      "y": -28.13,
+      "size": 1.29,
+      "rotation": 0.035,
+      "flipped": "none"
+    },
+    {
+      "type": "Sand",
+      "x": -23.46,
+      "y": -29.05,
+      "size": 1.42,
+      "rotation": 2.775,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Sand",
+      "x": -23.44,
+      "y": -30.17,
+      "size": 1.33,
+      "rotation": 0.14,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Sand",
+      "x": -22.11,
+      "y": -31.39,
+      "size": 1.42,
+      "rotation": 4.224,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Sand",
+      "x": -20.27,
+      "y": -31.81,
+      "size": 1.29,
+      "rotation": 0.175,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Sand",
+      "x": -17.89,
+      "y": -32.1,
+      "size": 1.58,
+      "rotation": 3.281,
+      "flipped": "vertical"
+    },
+    {
+      "type": "Sand",
+      "x": -16.26,
+      "y": -31.82,
+      "size": 1.5,
+      "rotation": 0.942,
+      "flipped": "horizontal"
+    },
+    {
+      "type": "Pebble",
+      "x": -15.39,
+      "y": -31.74,
+      "size": 1.21,
+      "rotation": 0.349,
+      "flipped": "vertical"
     }
   ],
   "props": [
@@ -3837,13 +4061,6 @@
       "x": -67.59,
       "y": -31.01,
       "rotation": 1.603,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": -68.45,
-      "y": -24.16,
-      "rotation": 4.731,
       "blocksMovement": true
     },
     {
@@ -5591,23 +5808,9 @@
     },
     {
       "type": "Boulder",
-      "x": -22.78,
-      "y": -28.58,
-      "rotation": 5.604,
-      "blocksMovement": true
-    },
-    {
-      "type": "Boulder",
       "x": -21.08,
       "y": -33.95,
       "rotation": 5.427,
-      "blocksMovement": true
-    },
-    {
-      "type": "Boulder",
-      "x": -21.27,
-      "y": -28.6,
-      "rotation": 4.491,
       "blocksMovement": true
     },
     {
@@ -5944,20 +6147,6 @@
       "x": 17.63,
       "y": -28.41,
       "rotation": 1.115,
-      "blocksMovement": true
-    },
-    {
-      "type": "Boulder",
-      "x": -24.35,
-      "y": -27.44,
-      "rotation": 3.351,
-      "blocksMovement": true
-    },
-    {
-      "type": "Boulder",
-      "x": -25.3,
-      "y": -26.74,
-      "rotation": 1.664,
       "blocksMovement": true
     },
     {
@@ -6354,27 +6543,6 @@
     },
     {
       "type": "GateWall",
-      "x": 44,
-      "y": -7.6,
-      "rotation": 6.11,
-      "blocksMovement": true
-    },
-    {
-      "type": "GateWall",
-      "x": 41.8,
-      "y": -7.2,
-      "rotation": 5.56,
-      "blocksMovement": true
-    },
-    {
-      "type": "GateWall",
-      "x": 46.2,
-      "y": -7.2,
-      "rotation": 2.54,
-      "blocksMovement": true
-    },
-    {
-      "type": "GateWall",
       "x": 53.8,
       "y": 23.8,
       "rotation": 5.44,
@@ -6711,13 +6879,6 @@
     },
     {
       "type": "Tree",
-      "x": 44.13,
-      "y": -21.69,
-      "rotation": 1.53,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
       "x": 44,
       "y": -20.45,
       "rotation": 5.85,
@@ -6735,20 +6896,6 @@
       "x": 44.35,
       "y": -15.04,
       "rotation": 4.68,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 47.13,
-      "y": -33.82,
-      "rotation": 0.81,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 46.79,
-      "y": -32.1,
-      "rotation": 4.88,
       "blocksMovement": true
     },
     {
@@ -6781,20 +6928,6 @@
     },
     {
       "type": "Tree",
-      "x": 48.5,
-      "y": -30.22,
-      "rotation": 3.73,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 49.27,
-      "y": -28.76,
-      "rotation": 4.7,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
       "x": 49.29,
       "y": -11.44,
       "rotation": 1.37,
@@ -6819,13 +6952,6 @@
       "x": 51.1,
       "y": -30.92,
       "rotation": 5.35,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 50.86,
-      "y": -28.06,
-      "rotation": 0.23,
       "blocksMovement": true
     },
     {
@@ -6914,13 +7040,6 @@
     },
     {
       "type": "Tree",
-      "x": 55.09,
-      "y": -29.91,
-      "rotation": 1.16,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
       "x": 55.41,
       "y": -10.63,
       "rotation": 3.63,
@@ -6938,27 +7057,6 @@
       "x": 57.03,
       "y": -31.65,
       "rotation": 0.74,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 56.82,
-      "y": -30.05,
-      "rotation": 1.58,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 57.24,
-      "y": -24.18,
-      "rotation": 4.97,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 56.94,
-      "y": -21.29,
-      "rotation": 0.5,
       "blocksMovement": true
     },
     {
@@ -6984,23 +7082,9 @@
     },
     {
       "type": "Tree",
-      "x": 59.55,
-      "y": -25.38,
-      "rotation": 5.35,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
       "x": 58.97,
       "y": -23.36,
       "rotation": 5.95,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 60,
-      "y": -21.69,
-      "rotation": 1.5,
       "blocksMovement": true
     },
     {
@@ -7047,13 +7131,6 @@
     },
     {
       "type": "Tree",
-      "x": 60.84,
-      "y": -19,
-      "rotation": 4.75,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
       "x": 60.54,
       "y": -17.69,
       "rotation": 4.47,
@@ -7085,13 +7162,6 @@
       "x": 62.82,
       "y": -18.29,
       "rotation": 3.94,
-      "blocksMovement": true
-    },
-    {
-      "type": "Boulder",
-      "x": 46.4,
-      "y": -25.4,
-      "rotation": 1.63,
       "blocksMovement": true
     },
     {
@@ -8188,13 +8258,6 @@
     },
     {
       "type": "Tree",
-      "x": -11.38,
-      "y": 31.62,
-      "rotation": 0.241,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
       "x": -20.71,
       "y": 31.39,
       "rotation": 0.142,
@@ -8219,13 +8282,6 @@
       "x": 6.02,
       "y": 30.53,
       "rotation": 2.191,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 0.84,
-      "y": 32.12,
-      "rotation": 1.578,
       "blocksMovement": true
     },
     {
@@ -8622,13 +8678,6 @@
     },
     {
       "type": "Tree",
-      "x": 53.25,
-      "y": 18.49,
-      "rotation": 3.886,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
       "x": 45.75,
       "y": 21.87,
       "rotation": 2.833,
@@ -8671,23 +8720,9 @@
     },
     {
       "type": "Tree",
-      "x": 25.88,
-      "y": -4.82,
-      "rotation": 0.11,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
       "x": 28.35,
       "y": -3.9,
       "rotation": 5.487,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 31.8,
-      "y": -1.4,
-      "rotation": 5.364,
       "blocksMovement": true
     },
     {
@@ -8761,31 +8796,10 @@
       "blocksMovement": true
     },
     {
-      "type": "Tree",
-      "x": 25.14,
-      "y": 8.47,
-      "rotation": 5.059,
-      "blocksMovement": true
-    },
-    {
       "type": "Boulder",
       "x": 28.69,
       "y": 10.91,
       "rotation": 4.668,
-      "blocksMovement": true
-    },
-    {
-      "type": "Boulder",
-      "x": 24.83,
-      "y": -5.87,
-      "rotation": 3.878,
-      "blocksMovement": true
-    },
-    {
-      "type": "Boulder",
-      "x": 26.03,
-      "y": -1.86,
-      "rotation": 5.658,
       "blocksMovement": true
     },
     {
@@ -8874,30 +8888,9 @@
     },
     {
       "type": "Tree",
-      "x": 24.16,
-      "y": -15.17,
-      "rotation": 3.295,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 26.07,
-      "y": -13.61,
-      "rotation": 6.029,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
       "x": 24.35,
       "y": -21.08,
       "rotation": 4.282,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 23.96,
-      "y": -12.65,
-      "rotation": 0.016,
       "blocksMovement": true
     },
     {
@@ -9031,6 +9024,643 @@
       "x": -24.29,
       "y": 0.16,
       "rotation": 4.102,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 46.99,
+      "y": -8.82,
+      "rotation": 2.548,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 47.87,
+      "y": -5.33,
+      "rotation": 2.548,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 63.47,
+      "y": -34.55,
+      "rotation": 0.017,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 58.25,
+      "y": -35.26,
+      "rotation": 0.017,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 47.57,
+      "y": -24.58,
+      "rotation": 1.536,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 41.57,
+      "y": -27.76,
+      "rotation": 1.536,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 20.66,
+      "y": -25.12,
+      "rotation": 1.536,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 11.36,
+      "y": 8.58,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 16.78,
+      "y": 9.99,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 14.12,
+      "y": 6.71,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 10.6,
+      "y": 5.59,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 15.66,
+      "y": 3.03,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 11.17,
+      "y": 3.29,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 8.46,
+      "y": 1.38,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 15.78,
+      "y": -2.55,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 14.09,
+      "y": -6.45,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 15.28,
+      "y": -9.26,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 11.21,
+      "y": -12.06,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 17.49,
+      "y": -12.05,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 13.05,
+      "y": -14.65,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 9.94,
+      "y": -16.08,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 18.37,
+      "y": -16.55,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 12.7,
+      "y": -17.75,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 17.07,
+      "y": -19.59,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 17.62,
+      "y": -22.75,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 9.15,
+      "y": -18.62,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 3.38,
+      "y": -18.77,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -0.33,
+      "y": -20.94,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -1.15,
+      "y": -23.56,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -5.05,
+      "y": -23.25,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -6.3,
+      "y": -18.9,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -8.04,
+      "y": -21.27,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -11.35,
+      "y": -20.27,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -10.24,
+      "y": -24.03,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -15.04,
+      "y": -23.9,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -16.22,
+      "y": -21.26,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -18.8,
+      "y": -23.72,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -20.86,
+      "y": -18.15,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -20.51,
+      "y": -21.3,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -23.66,
+      "y": -22.27,
+      "rotation": 3.892,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": -21.85,
+      "y": -26.13,
+      "rotation": 5.515,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -18.65,
+      "y": -5.45,
+      "rotation": 5.515,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -17.88,
+      "y": -8.77,
+      "rotation": 5.515,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -24.17,
+      "y": -4.22,
+      "rotation": 5.515,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -20.93,
+      "y": -10.26,
+      "rotation": 5.515,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -17.34,
+      "y": -12.02,
+      "rotation": 5.515,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -17.86,
+      "y": -16.1,
+      "rotation": 5.515,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 60.8,
+      "y": -35.4,
+      "rotation": 0,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 54.12,
+      "y": -34.85,
+      "rotation": 0,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": 52,
+      "y": -34.43,
+      "rotation": 0,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -41.07,
+      "y": -33.94,
+      "rotation": 0.244,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -40.36,
+      "y": -35.65,
+      "rotation": 0.244,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -48.87,
+      "y": -32.31,
+      "rotation": 0.244,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -69.37,
+      "y": -24.73,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.15,
+      "y": -6.68,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.08,
+      "y": -8.39,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.11,
+      "y": -10.02,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.12,
+      "y": -11.71,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.12,
+      "y": -13.46,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.12,
+      "y": -15.37,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.12,
+      "y": -17.39,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.12,
+      "y": -19.31,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.12,
+      "y": -21.26,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.12,
+      "y": -23.84,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.12,
+      "y": -25.73,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.12,
+      "y": -27.51,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.12,
+      "y": -28.95,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.91,
+      "y": -30.36,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.4,
+      "y": -31.65,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.19,
+      "y": -32.99,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -71.09,
+      "y": -34.45,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -69.33,
+      "y": -34.74,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -67.77,
+      "y": -34.73,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -66.01,
+      "y": -34.73,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -64.84,
+      "y": -34.73,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -62.74,
+      "y": -34.66,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -61.48,
+      "y": -34.36,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -59.68,
+      "y": -34.21,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -58.17,
+      "y": -34.55,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -56.27,
+      "y": -34.73,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -54.28,
+      "y": -34.35,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -53.09,
+      "y": -34.02,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -51.47,
+      "y": -34.97,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -50.1,
+      "y": -34.24,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -46.22,
+      "y": -35.26,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -48.24,
+      "y": -35.12,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -47.45,
+      "y": -34.18,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -44.39,
+      "y": -35.49,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -43.69,
+      "y": -34.37,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Tree",
+      "x": -41.63,
+      "y": -35.51,
+      "rotation": 4.73,
+      "blocksMovement": true
+    },
+    {
+      "type": "Boulder",
+      "x": -20.71,
+      "y": -27.18,
+      "rotation": 4.485,
       "blocksMovement": true
     }
   ],
@@ -9732,14 +10362,6 @@
       "respawnVariancePct": 0
     },
     {
-      "mob": "PoisonPool",
-      "x": 10.5,
-      "y": -23.88,
-      "angle": 0,
-      "respawnTicks": 300,
-      "respawnVariancePct": 0
-    },
-    {
       "mob": "Spider",
       "x": -27.6,
       "y": -30,
@@ -9793,7 +10415,8 @@
       "y": -32.1,
       "angle": 0,
       "respawnTicks": 900,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2.5
     },
     {
       "mob": "VenomSpider",
@@ -9941,14 +10564,6 @@
     },
     {
       "mob": "Bear",
-      "x": 35.5,
-      "y": -32,
-      "angle": 1.31,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Bear",
       "x": 60,
       "y": -13,
       "angle": 2.49,
@@ -10080,14 +10695,6 @@
       "x": 23.57,
       "y": -8.76,
       "angle": 0.07,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Wolf",
-      "x": 49.3,
-      "y": -8.51,
-      "angle": 5.84,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
@@ -10349,32 +10956,8 @@
     },
     {
       "mob": "Troll",
-      "x": 67,
-      "y": -30,
-      "angle": 0,
-      "respawnTicks": 5400,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Troll",
       "x": -67,
       "y": -30,
-      "angle": 0,
-      "respawnTicks": 5400,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Troll",
-      "x": 64,
-      "y": 31,
-      "angle": 0,
-      "respawnTicks": 5400,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Troll",
-      "x": 68,
-      "y": 33,
       "angle": 0,
       "respawnTicks": 5400,
       "respawnVariancePct": 0.2
@@ -10405,14 +10988,6 @@
     },
     {
       "mob": "DireWolf",
-      "x": 30,
-      "y": -15,
-      "angle": 0,
-      "respawnTicks": 1200,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "DireWolf",
       "x": 57,
       "y": -30,
       "angle": 0,
@@ -10433,14 +11008,6 @@
       "y": -25,
       "angle": 0,
       "respawnTicks": 1200,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "DireBear",
-      "x": 52,
-      "y": -33,
-      "angle": 0,
-      "respawnTicks": 2400,
       "respawnVariancePct": 0.2
     },
     {
@@ -10732,14 +11299,6 @@
       "respawnVariancePct": 0.2
     },
     {
-      "mob": "DireWolf",
-      "x": 36.07,
-      "y": 18.79,
-      "angle": 3.71,
-      "respawnTicks": 1200,
-      "respawnVariancePct": 0.2
-    },
-    {
       "mob": "Wolf",
       "x": 36.82,
       "y": -0.26,
@@ -10793,14 +11352,6 @@
       "y": -4.66,
       "angle": 4.47,
       "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "DireWolf",
-      "x": 32.71,
-      "y": -18.45,
-      "angle": 0.17,
-      "respawnTicks": 1200,
       "respawnVariancePct": 0.2
     },
     {
@@ -10893,14 +11444,6 @@
     },
     {
       "mob": "Boar",
-      "x": -21.09,
-      "y": -22.97,
-      "angle": 1.91,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Boar",
       "x": 6.28,
       "y": -14.93,
       "angle": 1.86,
@@ -10953,14 +11496,6 @@
       "y": 6.95,
       "angle": 0.59,
       "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "DireWolf",
-      "x": 53.84,
-      "y": 10.41,
-      "angle": 0.96,
-      "respawnTicks": 1200,
       "respawnVariancePct": 0.2
     },
     {
@@ -11148,58 +11683,10 @@
       "respawnVariancePct": 0.2
     },
     {
-      "mob": "Wolf",
-      "x": -60.53,
-      "y": -34.33,
-      "angle": 3.86,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Boar",
-      "x": -56.37,
-      "y": -34.14,
-      "angle": 4.8,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Stag",
-      "x": -49.87,
-      "y": -34.07,
-      "angle": 4.64,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Boar",
-      "x": -44.07,
-      "y": -34.2,
-      "angle": 2.28,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
       "mob": "Boar",
       "x": -37.5,
       "y": -34.25,
       "angle": 3.28,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Wolf",
-      "x": 43.78,
-      "y": -33.32,
-      "angle": 1.9,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Bear",
-      "x": -19.15,
-      "y": -25.4,
-      "angle": 4.27,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
@@ -11216,22 +11703,6 @@
       "x": -54.66,
       "y": -23.2,
       "angle": 3.81,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "DireWolf",
-      "x": 23.44,
-      "y": -22.96,
-      "angle": 5.46,
-      "respawnTicks": 1200,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Wolf",
-      "x": -13.59,
-      "y": -21.41,
-      "angle": 5.76,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
@@ -11257,22 +11728,6 @@
       "y": -17.65,
       "angle": 3.88,
       "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Wolf",
-      "x": -26.58,
-      "y": -17.94,
-      "angle": 2.43,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "DireWolf",
-      "x": 22.69,
-      "y": -14.69,
-      "angle": 0.43,
-      "respawnTicks": 1200,
       "respawnVariancePct": 0.2
     },
     {
@@ -11516,14 +11971,6 @@
       "respawnVariancePct": 0.2
     },
     {
-      "mob": "Bear",
-      "x": 14.75,
-      "y": 19.69,
-      "angle": 3.91,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
       "mob": "Stag",
       "x": 16.7,
       "y": 28.11,
@@ -11592,14 +12039,6 @@
       "x": 41.13,
       "y": -22.19,
       "angle": 6.03,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Wolf",
-      "x": 16.94,
-      "y": 22.57,
-      "angle": 3.52,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
@@ -11804,12 +12243,231 @@
       "respawnVariancePct": 0.2
     },
     {
+      "mob": "Marauder",
+      "x": 59.49,
+      "y": -32.55,
+      "angle": 0,
+      "respawnTicks": 1200,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5
+    },
+    {
+      "mob": "Marauder",
+      "x": 62.41,
+      "y": -32.77,
+      "angle": 0,
+      "respawnTicks": 1200,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5
+    },
+    {
+      "mob": "Marauder",
+      "x": 62.05,
+      "y": -30.67,
+      "angle": 0,
+      "respawnTicks": 1200,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5
+    },
+    {
+      "mob": "AlphaWolf",
+      "x": 63.02,
+      "y": -20.14,
+      "angle": 0,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "DireWolf",
+      "x": 24.18,
+      "y": -9.91,
+      "angle": 0.436,
+      "respawnTicks": 1200,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Troll",
+      "x": 52.84,
+      "y": 35.34,
+      "angle": 0,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Troll",
+      "x": 47.4,
+      "y": 35.62,
+      "angle": 0,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Troll",
+      "x": 41.03,
+      "y": 35.4,
+      "angle": 0,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Bandit",
+      "x": 19.38,
+      "y": 20.54,
+      "angle": 0,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 0
+    },
+    {
+      "mob": "Bandit",
+      "x": 19.3,
+      "y": 23.12,
+      "angle": 0,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 0
+    },
+    {
+      "mob": "Bandit",
+      "x": 19.76,
+      "y": 25.54,
+      "angle": 0,
+      "respawnTicks": 5400,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 0
+    },
+    {
+      "mob": "PoisonPool",
+      "x": 9.08,
+      "y": -24.76,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0
+    },
+    {
+      "mob": "Spider",
+      "x": -14.86,
+      "y": -31.58,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0
+    },
+    {
+      "mob": "Spider",
+      "x": -7.04,
+      "y": -31.21,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0
+    },
+    {
+      "mob": "PoisonPool",
+      "x": 1.29,
+      "y": -30.17,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0
+    },
+    {
+      "mob": "Spider",
+      "x": 18.45,
+      "y": -32.25,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0,
+      "wanderRadius": 1.5
+    },
+    {
+      "mob": "Spider",
+      "x": 18.19,
+      "y": -30.03,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0,
+      "wanderRadius": 1.5
+    },
+    {
       "mob": "Wolf",
-      "x": -20.92,
-      "y": -15.85,
-      "angle": 1.885,
+      "x": -10.39,
+      "y": -22.3,
+      "angle": 5.76,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -5.76,
+      "y": -21.11,
+      "angle": 5.76,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": -3.02,
+      "y": -24.29,
+      "angle": 5.76,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 1.69,
+      "y": -20.47,
+      "angle": 5.76,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Wolf",
+      "x": 5.9,
+      "y": -18.27,
+      "angle": 5.76,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "AlphaWolf",
+      "x": 14.83,
+      "y": -17.61,
+      "angle": 5.76,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "DireWolf",
+      "x": 13.75,
+      "y": -10.41,
+      "angle": 5.76,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "GiantSpider",
+      "x": 35.18,
+      "y": -32.29,
+      "angle": 1.309,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5
+    },
+    {
+      "mob": "Troll",
+      "x": 19.04,
+      "y": 34.57,
+      "angle": 1.309,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1
+    },
+    {
+      "mob": "Troll",
+      "x": -37.13,
+      "y": -35.31,
+      "angle": 3.857,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1.5
     }
   ],
   "campfires": [
@@ -11825,6 +12483,14 @@
     {
       "x": -16.47,
       "y": 31.53
+    },
+    {
+      "x": 51.39,
+      "y": -9.23
+    },
+    {
+      "x": -21.26,
+      "y": -23.51
     }
   ],
   "darkAreas": [
@@ -11929,11 +12595,6 @@
       "radius": 6.2
     },
     {
-      "x": 37.5,
-      "y": -15.5,
-      "radius": 6.2
-    },
-    {
       "x": 43.5,
       "y": -29.5,
       "radius": 6.2
@@ -11992,6 +12653,21 @@
       "x": 61,
       "y": -15.5,
       "radius": 6.2
+    },
+    {
+      "x": 60.76,
+      "y": -5.64,
+      "radius": 6
+    },
+    {
+      "x": 51.37,
+      "y": -6.22,
+      "radius": 6
+    },
+    {
+      "x": 46.44,
+      "y": -9.87,
+      "radius": 4
     }
   ],
   "npcs": [
@@ -12165,28 +12841,6 @@
       "entityType": "FrontCaptain"
     },
     {
-      "type": "Emberkeeper",
-      "x": 40,
-      "y": -15,
-      "radius": 1.5,
-      "tooLowLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
-      "teachings": [
-        {
-          "skill": "Ignite",
-          "line": "The bandits stole embers from my hearth and call themselves pyromancers. Here is the real spark: Ignite."
-        },
-        {
-          "skill": "ImmolationAura",
-          "requiredLevel": 6,
-          "line": "And when the spark is not enough — wear the fire itself. Immolation."
-        }
-      ],
-      "lines": [
-        "They burned this forest to hide their camp. Fire remembers who feeds it."
-      ],
-      "entityType": "Hermit"
-    },
-    {
       "type": "Shaman",
       "x": 18,
       "y": 6,
@@ -12205,16 +12859,6 @@
       "entityType": "Hermit"
     },
     {
-      "type": "LamplessTraveller",
-      "x": -17,
-      "y": -28.5,
-      "radius": 1.5,
-      "lines": [
-        "Kobolds took my lamp!"
-      ],
-      "entityType": "Traveller"
-    },
-    {
       "type": "Wanderer_1",
       "x": -15.53,
       "y": 30.68,
@@ -12223,6 +12867,44 @@
         "Don't go east, Bandits are watching the road. Better try the tunnel up north."
       ],
       "entityType": "Wanderer"
+    },
+    {
+      "type": "Emberkeeper",
+      "x": 52.57,
+      "y": -9.42,
+      "radius": 1.5,
+      "tooLowLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
+      "teachings": [
+        {
+          "skill": "Torch",
+          "requiredLevel": 1,
+          "line": "Something to light you the way."
+        },
+        {
+          "skill": "Ignite",
+          "requiredLevel": 3,
+          "line": "Let the fire burn in others!"
+        },
+        {
+          "skill": "ImmolationAura",
+          "requiredLevel": 8,
+          "line": "Burn them all!"
+        }
+      ],
+      "lines": [
+        "They burned this forest to hide their camp. Fire remembers who feeds it."
+      ],
+      "entityType": "Hermit"
+    },
+    {
+      "type": "LamplessTraveller",
+      "entityType": "Traveller",
+      "x": -20.63,
+      "y": -24.38,
+      "radius": 1.5,
+      "lines": [
+        "Kobolds took my lamp!"
+      ]
     }
   ],
   "anchors": [

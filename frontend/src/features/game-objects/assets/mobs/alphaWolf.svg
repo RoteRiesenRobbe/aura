@@ -1,0 +1,33 @@
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder alpha-wolf avatar (farm-band pass 2026-07-21): the apex of the wolf line — storm-silver mane, burning gold eyes, double scar, full snarl. Meanest wolf. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(36,48,62);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <path d="M 12 24 Q 26 6 44 16 Q 24 20 20 34 Z" fill="#6d747d" stroke="#20242a" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 88 24 Q 74 6 56 16 Q 76 20 80 34 Z" fill="#6d747d" stroke="#20242a" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M 20 6 L 42 28 L 12 38 Z" fill="#4c5158" stroke="#20242a" stroke-width="3.5" stroke-linejoin="round"/>
+        <path d="M 80 6 L 72 14 L 76 20 L 58 28 L 88 38 Z" fill="#4c5158" stroke="#20242a" stroke-width="3.5" stroke-linejoin="round"/>
+        <path d="M 14 26 Q 50 8 86 26 Q 84 56 67 73 Q 58 90 50 94 Q 42 90 33 73 Q 16 56 14 26 Z" fill="#8d939c" stroke="#20242a" stroke-width="3.5" stroke-linejoin="round"/>
+        <path d="M 36 58 Q 50 49 64 58 L 58 84 Q 50 90 42 84 Z" fill="#c6cbd2"/>
+        <path d="M 26 38 L 44 44" stroke="#15171b" stroke-width="5.5" stroke-linecap="round"/>
+        <path d="M 74 38 L 56 44" stroke="#15171b" stroke-width="5.5" stroke-linecap="round"/>
+        <circle cx="36" cy="45" r="4.5" fill="#e8b32a"/>
+        <circle cx="64" cy="45" r="4.5" fill="#e8b32a"/>
+        <circle cx="36" cy="45" r="1.8" fill="#15171b"/>
+        <circle cx="64" cy="45" r="1.8" fill="#15171b"/>
+        <path d="M 40 62 L 43 70 L 46 62 M 48 62 L 50 68 L 52 62 M 54 62 L 57 70 L 60 62" fill="#efece4" stroke="#20242a" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M 62 24 L 72 52 M 68 22 L 78 48" stroke="#c6cbd2" stroke-width="3" stroke-linecap="round"/>
+        <ellipse cx="50" cy="79" rx="6.5" ry="5.5" fill="#0e0f12"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
+</svg>

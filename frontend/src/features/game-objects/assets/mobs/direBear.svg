@@ -1,0 +1,33 @@
+<svg width="100%" height="100%" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+  <!-- Placeholder dire-bear avatar (unique-art pass 2026-07-21): the bear gone dark — near-black fur, torn ear, red-amber glare, snarl with fangs, claw scar. Meaner than Bear. -->
+  <g transform="matrix(1.164025,0,0,1.164025,-57.510829,-54.018753)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:url(#_Radial1);stroke:black;stroke-width:3.44px;"/>
+  </g>
+  <g transform="matrix(1.037243,0,0,1.037243,-23.363995,-20.252268)">
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:rgb(44,56,38);"/>
+    <clipPath id="_clip2"><circle cx="269.333" cy="266.333" r="210.333"/></clipPath>
+    <g clip-path="url(#_clip2)">
+      <g transform="matrix(3.6,0,0,3.6,269.333333,266.333333)"><g transform="matrix(1,0,0,1,-50,-50)">
+        <path d="M 12 20 Q 14 8 26 9 Q 37 10 36 21 Q 30 30 18 28 Q 12 26 12 20 Z" fill="#4a3626" stroke="#241a10" stroke-width="3.5" stroke-linejoin="round"/>
+        <path d="M 64 21 L 70 8 L 76 16 L 84 12 L 88 22 Q 84 30 72 28 Q 66 26 64 21 Z" fill="#4a3626" stroke="#241a10" stroke-width="3.5" stroke-linejoin="round"/>
+        <circle cx="24" cy="19" r="4.5" fill="#7a5a3c"/>
+        <circle cx="50" cy="54" r="37" fill="#5c4430" stroke="#241a10" stroke-width="3.5"/>
+        <ellipse cx="50" cy="69" rx="17" ry="13" fill="#a8895f" stroke="#241a10" stroke-width="3"/>
+        <ellipse cx="50" cy="61" rx="7.5" ry="5.5" fill="#1a1209"/>
+        <path d="M 38 72 Q 50 80 62 72" fill="none" stroke="#1a1209" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 40 72 L 42.5 77 L 45 71 M 55 71 L 57.5 77 L 60 72" fill="#e5ddc9" stroke="#241a10" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M 26 36 L 40 42" stroke="#1a1209" stroke-width="5" stroke-linecap="round"/>
+        <path d="M 74 36 L 60 42" stroke="#1a1209" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="35" cy="44" r="4.5" fill="#cf5a2a"/>
+        <circle cx="65" cy="44" r="4.5" fill="#cf5a2a"/>
+        <circle cx="35" cy="44" r="1.8" fill="#1a1209"/>
+        <circle cx="65" cy="44" r="1.8" fill="#1a1209"/>
+        <path d="M 66 28 L 72 50 M 72 26 L 78 46 M 78 28 L 83 44" stroke="#8f7355" stroke-width="2.8" stroke-linecap="round"/>
+      </g></g>
+    </g>
+    <circle cx="269.333" cy="266.333" r="210.333" style="fill:none;stroke:black;stroke-width:2.89px;"/>
+  </g>
+  <defs>
+    <radialGradient id="_Radial1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0,210.333333,-210.333333,0,269.333333,266.333333)"><stop offset="0" style="stop-color:white;stop-opacity:1"/><stop offset="0.48" style="stop-color:rgb(198,198,198);stop-opacity:1"/><stop offset="1" style="stop-color:rgb(44,44,44);stop-opacity:1"/></radialGradient>
+  </defs>
+</svg>

@@ -848,6 +848,75 @@ export class MedicCompanion extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(MedicCompanion, file('medicCompanion'), maxSize('medicCompanion'));
 
+// --- cL8-17 farm band + unique-art pass (2026-07-21): the dires get their
+// own sprites (were Wolf/Bear entityType reskins), plus the three farm-band
+// normals. All share the wildlife layer. ---
+
+export class GiantSpider extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('giantSpider'), maxSize('giantSpider')),
+            GiantSpider.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(GiantSpider, file('giantSpider'), maxSize('giantSpider'));
+
+export class AlphaWolf extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('alphaWolf'), maxSize('alphaWolf')),
+            AlphaWolf.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(AlphaWolf, file('alphaWolf'), maxSize('alphaWolf'));
+
+export class Marauder extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('marauder'), maxSize('marauder')),
+            Marauder.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Marauder, file('marauder'), maxSize('marauder'));
+
+export class DireWolf extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('direWolf'), maxSize('direWolf')),
+            DireWolf.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(DireWolf, file('direWolf'), maxSize('direWolf'));
+
+export class DireBear extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('direBear'), maxSize('direBear')),
+            DireBear.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(DireBear, file('direBear'), maxSize('direBear'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.
