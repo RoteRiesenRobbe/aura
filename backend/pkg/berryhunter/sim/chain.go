@@ -181,7 +181,7 @@ func selfHealDefinition() *skills.SkillDefinition {
 }
 
 // recoverToFull keeps ticking the post-fight world until the player is back
-// at max HP: the real 5 s combat grace runs out, then the real regen
+// at max HP: the real combat grace (~3.3 s) runs out, then the real regen
 // accumulator fills the pool (and a requested self-heal fires on the first
 // step). Returns the ticks spent; full is false if the cap was hit.
 func recoverToFull(w *World) (ticks int, full bool) {

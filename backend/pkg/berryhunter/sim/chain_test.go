@@ -101,11 +101,11 @@ func TestScenario_RegenTickDefault(t *testing.T) {
 
 // The exact chain pin, all RNG off. Fight: mob dead on tick 12, player at
 // 128−32 = 96 HP. Recovery on the same world: the last combat stamp is the
-// player's killing hit on tick 12 (inCombatTicks = 150, aged at the start
-// of each following tick), so ticks 13..161 are graced (149 recovery steps)
-// and regen starts on tick 162 = recovery step 150, at exactly 4 HP per
-// tick → 32 missing HP land on step 157. Chain clock per cycle:
-// 12 + 157 ticks + 10 s downtime.
+// player's killing hit on tick 12 (inCombatTicks = 100, aged at the start
+// of each following tick), so ticks 13..111 are graced (99 recovery steps)
+// and regen starts on tick 112 = recovery step 100, at exactly 4 HP per
+// tick → 32 missing HP land on step 107. Chain clock per cycle:
+// 12 + 107 ticks + 10 s downtime.
 func TestRunChain_ExactPinZeroVariance(t *testing.T) {
 	cfg := exactChainConfig()
 	sc, _, ok := chainScenario(cfg.Player, cfg.Mob, StanceFacetank, 0, cfg.RegenTick)
@@ -118,9 +118,9 @@ func TestRunChain_ExactPinZeroVariance(t *testing.T) {
 	require.Len(t, r.Cycles, 3)
 	for _, cyc := range r.Cycles {
 		assert.Equal(t, 12, cyc.Fight.Ticks)
-		assert.Equal(t, 149+8, cyc.RecoveryTicks)
+		assert.Equal(t, 99+8, cyc.RecoveryTicks)
 	}
-	wantSeconds := 3 * (seconds(12) + seconds(157) + 10)
+	wantSeconds := 3 * (seconds(12) + seconds(107) + 10)
 	assert.InDelta(t, wantSeconds, r.Seconds, 1e-9)
 
 	// Kills per simulated hour follows directly from the pinned clock.
@@ -193,7 +193,7 @@ func TestRunChain_RegenTickKnob(t *testing.T) {
 	r := runChain(sc, cfg, 1)
 
 	require.Equal(t, OutcomeChainDone, r.Outcome)
-	assert.Equal(t, 149+4, r.Cycles[0].RecoveryTicks)
+	assert.Equal(t, 99+4, r.Cycles[0].RecoveryTicks)
 }
 
 // The kite bot never gets hit: zero recovery, full survival.

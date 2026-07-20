@@ -183,10 +183,11 @@ type player struct {
 }
 
 // combatRegenGraceTicks [PLACEHOLDER] is how long after its last combat action
-// a player stays in combat, gating passive regen (~5 s @ 30 TPS). Deliberately
-// its own constant, not the shorter combatSignalWindowTicks (3 s) — a regen
+// a player stays in combat, gating passive regen and loadout editing
+// (~3.3 s @ 30 TPS; was 5 s, cut by a third — the equip lock felt too long).
+// Deliberately its own constant, not combatSignalWindowTicks (3 s) — a regen
 // grace that short would let regen flicker on between hits.
-const combatRegenGraceTicks = 5 * constant.TicksPerSecond
+const combatRegenGraceTicks = 100
 
 // combatSignalWindowTicks [PLACEHOLDER] is how long a combat signal stays
 // readable by a companion (~3 s) — long enough to bridge aura tick cadences,
