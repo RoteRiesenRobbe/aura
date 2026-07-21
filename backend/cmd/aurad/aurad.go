@@ -29,12 +29,16 @@ func main() {
 	logging.SetupLogging()
 
 	var dev, help bool
-	var contentDir, zoneName string
+	var contentDir, zoneName, profileAddr string
+	flag.StringVar(&profileAddr, "profile", "", "serve net/http/pprof + /tickstats on this address for capacity checks (e.g. :6060); off by default, see devops/loadtest.md")
 	flag.BoolVar(&dev, "dev", false, "Serve frontend directly")
 	flag.BoolVar(&help, "help", false, "Show usage help")
 	flag.StringVar(&contentDir, "content", "", "Load items/mobs/skills/recipes/zones/props from this api/-layout directory instead of the embedded copies (e.g. ../api); skips cp-defs + rebuild for content edits")
 	flag.StringVar(&zoneName, "zone", "", "Select which zone to load by file stem (e.g. 'scaffold' for scaffold.json); overrides game.zone in conf.json. Empty loads the sole zone when only one exists")
 	flag.Parse()
+	if profileAddr != "" {
+		startProfileServer(profileAddr)
+	}
 	if help {
 		flag.Usage()
 		os.Exit(1)

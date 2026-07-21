@@ -449,7 +449,9 @@ func (g *game) update() {
 
 	g.World.Update(stepMillis)
 
-	dtMillis := time.Since(before).Milliseconds()
+	dt := time.Since(before)
+	TickStats.record(dt.Microseconds()) // load-test instrumentation, see devops/loadtest.md
+	dtMillis := dt.Milliseconds()
 	if dtMillis > stepMillis {
 		fmt.Printf("Overload! Systems at: %d%%\n", overloadPercent(dtMillis))
 	}
