@@ -1114,3 +1114,74 @@ tsc + suite, but no headless scenario applied a dot/slow to a mob (needs a
 HUD-equipped player aura); one in-game glance when convenient. Poison pools
 do NOT pip by design — their aura is direct poison *damage*, not a dot (the
 venom spider owns the lingering-poison niche).
+*(Both carried items closed in the playtest-feedback pass below, 2026-07-21:
+mob-side pip glanced in-game, resist ring coloured.)*
+
+## Playtest feedback pass: banner ×2, dot responsiveness, resist ring, Wildfire rework (ad-hoc session, 2026-07-21)
+
+**DONE 2026-07-21 — readability items PO-VERIFIED IN-GAME 2026-07-21 ("all
+works"), committed `2c68be85`** (one combined commit by PO pick — it also
+carries a parallel session's Immolation→Immolate rename, see Watch below).
+PO-picked ad hoc from live play, ahead of queue item ② reconnect-token. Four
+observations + one design question in, four changes + one rework out.
+
+**PO rulings (choice prompts + follow-up, 2026-07-21):**
+- Dot application speedup → **player dots only** (Immolate + Wildfire
+  `tickInterval` 40→20, ~1.3 s → ~0.67 s to first burn). Mob dot auras keep
+  their lag (FireElemental 60 / Ember 50) — symmetric speedup declined.
+- Spellbook section headers → **bigger + gold** (1.1em, banner gold
+  `#ffd75e`; they were 0.85em muted — *smaller* than the skill rows).
+- Projected `resist_aura` ring → **teal `0x5fbfb0`**, same colour as the
+  applied-resist pip (closes the item-7 "resist has no colour" deferral).
+- Alert banner → ×2 across **all** kinds (unlock/levelup/announce share the
+  one element; PO okayed not splitting): `0.55 → 1.1 × @uiElementHeight`.
+- Commit scope → **one combined commit** including the parallel rename.
+
+**Wildfire question → rework ("the ultimate fire fantasy this version has to
+offer"):** PO asked what Wildfire offered over Immolate. Answer: the authored
+C7 ~70% side-grade — two targets at 7.4+1.5/lvl each vs one at 10.5+2.1/lvl
+(≈+41% vs packs, −30% single-target). PO response: retire the side-grade,
+make it a strict upgrade. Now: **full Immolate damage (10.5+2.1/lvl) on both
+targets, radius 1.2→1.4, dotTicks 3→4, plus caster-only fire resist**
+(`resist_aura` with `targetsSelf: true, targetsAllies: false` — the self path
+in `applyResistAura` is independent of the ally query, so caster-only is
+authorable with no code change; factor 0.6 −0.05/lvl → ×0.4 at L5, mirroring
+FireWard's range, Claude-proposed [PLACEHOLDER]). Side effect: Wildfire's
+ring now shows purple+teal dual bands (dot|resist categories) for free. The
+C7 calibration comment in the JSON rewritten to record the new intent.
+
+**Backend/code changes:**
+- `AuraCategoryResist = 1<<6` + `EffectTypeResistAura` reclassified from None
+  (TDD: `TestAuraCategoryOf_RingCategories` extended first, red→green).
+- Client mirror: `AuraRingsBit.Resist`, `resist` added to
+  `AURA_CATEGORY_COLORS` (single source — `EffectPips` now references it
+  instead of its own literal), ring style entry between Slow and Light.
+- Stale sim pin: `cmd/simharness/serve_test.go` pinned Immolate's aura tick
+  at 40 → updated to 20 (same class as the Session-⑦ stale-Immolation pin).
+
+**Watch item — parallel-session entanglement:** a second session was active
+in the same working tree mid-session: `immolation.json` was renamed to
+`immolate.json` *between my Read and Edit* (Edit failed "file does not
+exist"/"modified since read"). Diagnose via `git status` before assuming a
+typo; re-read and re-apply on the current state. The rename was complete +
+coherent (recipe ingredient, tests, `Skills.ts`, docs), went live in the
+PO's "all works" playtest, and was committed here by explicit PO pick after
+the entanglement was surfaced (3 files carried both sessions' edits —
+`immolate.json`, `wildfire.json`, `serve_test.go`).
+
+**Verified:** `go build ./...` clean; full suite green (after the sim-pin
+update); `tsc --noEmit` clean; webpack prod build clean; boot `-content
+../api` — `81 skills/14 factions/50 mobs/10 recipes/847 props/383 spawns/
+5 campfires/14 npcs, 0 panics` (twice: post-readability with rebuilt binary
+for the resist category, post-Wildfire JSON-only restart). PO in-game pass
+("all works") covered banner ×2, dot speed, gold headers, resist ring, and
+the deferred **mob-side pip glance — closed**. The Wildfire rework itself
+was handed over for testing but the PO went straight to "commit it" — one
+post-rework in-game feel pass still outstanding.
+
+**Open (carried to Deferred):** Wildfire rework values all [PLACEHOLDER]
+(radius 1.4 / dotTicks 4 / resist 0.6 −0.05/lvl) + one in-game feel pass;
+banner `1.1 × @uiElementHeight` + header `1.1em`/gold [PLACEHOLDER]; dot
+`tickInterval 20` [PLACEHOLDER]; mob dot auras still apply slow (excluded by
+PO pick — revisit if mob burns feel unfair to dodge). The "Wild reads as a
+trap pick" tuning note stands; its Wildfire sibling is resolved by rework.
