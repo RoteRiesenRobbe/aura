@@ -504,8 +504,11 @@ frontend-constant sync applies (CLAUDE.md tech-debt list).
   need `*.json **/*.json` for subdirs (pinned by `pkg/api/skills` test —
   `api/skills/mobs/` is a subdir, TotemAura lives there).
   `TestDiskContent_RepoApiLoadsEndToEnd` validates repo `api/` directly.
-  **`skills/milestone-unlocks.json` is code-adjacent and ALWAYS embedded**
-  — even under `-content ../api`, a milestone edit needs cp-defs + rebuild.
+  ~~**`skills/milestone-unlocks.json` is code-adjacent and ALWAYS embedded**
+  — even under `-content ../api`, a milestone edit needs cp-defs + rebuild.~~
+  **SUPERSEDED 2026-07-21 (`d7460462`):** the table moved to
+  `api/milestones/milestone-unlocks.json` and is now ordinary `api/` content —
+  `-content ../api` covers it, so a restart suffices and no rebuild is needed.
 - **Stale-server trap:** before any manual test `pkill aurad`,
   rebuild (`go build ./...` does NOT refresh `./aurad` — use
   `make -C backend build`), and check the boot log count pins
@@ -621,7 +624,9 @@ Leans presented 2026-07-08; 1/2/3/5 confirmed as leaned, 4 and 6 amended:
    consumer, nearest-1, interval ~30); `api/skills/summon-totem.json`
    (id 23, cooldown category, `spawn` effect, ttlTicks 300 ≈ 10 s,
    cooldownTicks 450 ≥ TTL); milestone level 6 in
-   `skills/milestone-unlocks.json` (embedded! cp-defs + rebuild). Update
+   `skills/milestone-unlocks.json` (embedded! cp-defs + rebuild —
+   **superseded 2026-07-21 `d7460462`**: now `api/milestones/`, restart-only).
+   Update
    count pins + `Skills.ts`.
 9. **Frontend:** Totem rendering entry + SVG placeholder; Skills.ts;
    tsc + webpack green.
