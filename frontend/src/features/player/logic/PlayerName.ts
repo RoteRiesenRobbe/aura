@@ -1,12 +1,33 @@
 import * as NameGenerator from './NameGenerator';
 import {Account} from "../../accounts/logic/Account";
+import {Session} from "../../accounts/logic/Session";
 import {IBackend} from "../../backend/logic/IBackend";
 import {JoinMessage} from "../../backend/logic/messages/outgoing/JoinMessage";
-import {BackendSetupEvent, GameJoinEvent, screen} from "../../core/logic/Events";
+import {BackendSetupEvent, FirstGameStateHandledEvent, GameJoinEvent, screen} from "../../core/logic/Events";
 
 let Backend: IBackend = null;
 BackendSetupEvent.subscribe((backend: IBackend) => {
     Backend = backend;
+});
+
+/**
+ * Reconnect auto-rejoin (plan-reconnect-token.md): a stored session token
+ * means this tab had a character — rejoin without the start-screen form as
+ * soon as the game is ready to accept a Join. A stale token (server restart /
+ * stash expired) degrades server-side to a fresh join under the same name.
+ * Deliberately NO GameJoinEvent: it re-enters fullscreen, which needs a user
+ * gesture an auto-rejoin doesn't have.
+ */
+export function willAutoRejoin(): boolean {
+    return Session.reconnectToken !== null;
+}
+
+FirstGameStateHandledEvent.subscribe(() => {
+    if (!willAutoRejoin()) {
+        return;
+    }
+    const name = (Account.playerName || NameGenerator.generate()).substr(0, MAX_LENGTH);
+    new JoinMessage(name, Session.reconnectToken).send();
 });
 
 const MAX_LENGTH = 20;
@@ -67,6 +88,6 @@ function onSubmit(event, inputElement, screen: screen) {
     name = name.substr(0, MAX_LENGTH);
 
 
-    new JoinMessage(name).send();
+    new JoinMessage(name, Session.reconnectToken).send();
     GameJoinEvent.trigger(screen);
 }

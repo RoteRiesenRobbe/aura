@@ -415,6 +415,12 @@ export class Game implements IGame {
     }
 
     removePlayer(): void {
+        if (!isDefined(this.player)) {
+            // Dead reconnect (plan-reconnect-token.md): the Obituary arrives
+            // before any player was created this page load — the spectator
+            // from the first GameState is already in place, nothing to remove.
+            return;
+        }
         BeforeDeathEvent.trigger(this);
         this.createSpectator(this.player.character.getX(), this.player.character.getY());
         this.player.remove();

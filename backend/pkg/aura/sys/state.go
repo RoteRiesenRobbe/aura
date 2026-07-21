@@ -51,6 +51,31 @@ type deadState struct {
 	skills      *skills.SkillComponent
 }
 
+// reconnectStashTTLTicks is how long a disconnected character (and its name
+// reservation) survives server-side awaiting a reconnect: ~10 min.
+// [PLACEHOLDER] (plan-reconnect-token.md)
+const reconnectStashTTLTicks = 10 * 60 * constant.TicksPerSecond
+
+// reconnectStash is a disconnected character awaiting its owner's return
+// (plan-reconnect-token.md): the deadState idea generalized — keyed by the
+// session's reconnect token instead of the per-connection UUID, so it survives
+// the socket. Alive characters stash their live position/HP; dead ones stash
+// the death scene (corpse position, dead flag) so a reconnect rebuilds the
+// death overlay and Respawn still works. The name stays reserved while
+// stashed; the TTL sweep frees both. Buffs and casting state are NOT carried
+// (the death-respawn precedent).
+type reconnectStash struct {
+	name        string
+	progression model.PlayerProgression
+	skills      *skills.SkillComponent
+	health      vitals.VitalSign // alive-stash only; dead reconnects respawn normally
+	position    phy.Vec2f        // alive: last position; dead: the deathspot
+	anchor      phy.Vec2f
+	hasAnchor   bool
+	dead        bool
+	disconnectTick uint64
+}
+
 // CampfireDwellRadiusFactor scales a campfire's heal radius down to its bind
 // radius: standing within heal range alone must NOT bind (healing without
 // binding is deliberate). [PLACEHOLDER] Hand-synced with the client's inner
@@ -94,6 +119,13 @@ type ConnectionStateSystem struct {
 	// dwell counts a player's consecutive ticks inside a campfire's bind
 	// radius, keyed by player entity ID (reset on leave, dropped on removal).
 	dwell map[uint64]int
+	// tokenByClient maps a live connection to its character's reconnect token
+	// (minted on first join, reused across reconnects). Kept as a side map so
+	// the token stays out of the model.Client interface.
+	tokenByClient map[uuid.UUID]string
+	// stashByToken holds disconnected characters awaiting reconnect, keyed by
+	// their token; swept by TTL.
+	stashByToken map[string]reconnectStash
 }
 
 // SetCampfireAnchors installs the placed campfires as respawn anchors.
@@ -103,11 +135,13 @@ func (s *ConnectionStateSystem) SetCampfireAnchors(campfires []CampfireAnchor) {
 
 func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
 	return &ConnectionStateSystem{
-		game:         g,
-		names:        stringSet{},
-		deadByClient: map[uuid.UUID]deadState{},
-		anchors:      map[uuid.UUID]phy.Vec2f{},
-		dwell:        map[uint64]int{},
+		game:          g,
+		names:         stringSet{},
+		deadByClient:  map[uuid.UUID]deadState{},
+		anchors:       map[uuid.UUID]phy.Vec2f{},
+		dwell:         map[uint64]int{},
+		tokenByClient: map[uuid.UUID]string{},
+		stashByToken:  map[string]reconnectStash{},
 	}
 }
 
@@ -159,6 +193,8 @@ func (s *ConnectionStateSystem) defaultSpawnPosition() phy.Vec2f {
 }
 
 func (s *ConnectionStateSystem) Update(dt float32) {
+	s.sweepExpiredStashes()
+
 	// Both loops iterate SNAPSHOT copies: RemoveEntity fans out synchronously
 	// into removeFromPlayers/removeFromSpectators, which shift the live slices
 	// mid-loop — with two same-tick deaths the old live iteration processed
@@ -179,6 +215,23 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 	}
 
 	s.trackCampfireDwell()
+}
+
+// sweepExpiredStashes drops stashed characters whose owner never came back:
+// the stash and its name reservation are freed. The map only holds recently
+// disconnected characters, so the every-tick iteration is negligible.
+func (s *ConnectionStateSystem) sweepExpiredStashes() {
+	if len(s.stashByToken) == 0 {
+		return
+	}
+	now := s.game.Ticks()
+	for tok, stash := range s.stashByToken {
+		if now-stash.disconnectTick >= reconnectStashTTLTicks {
+			log.Printf("⌛ stashed character '%s' expired.", stash.name)
+			s.names.remove(stash.name)
+			delete(s.stashByToken, tok)
+		}
+	}
 }
 
 // tryRespawn upgrades a DEAD client's spectator back to a player (chunk 4):
@@ -204,7 +257,7 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 	s.game.RemoveEntity(dead.corpse.Basic())
 
 	log.Printf("🏕️ '%s' respawned!", dead.name)
-	sendAcceptMessage(client)
+	sendAcceptMessage(client, s.tokenByClient[client.UUID()])
 
 	p := player.New(s.game, client, dead.name)
 	p.SetProgression(dead.progression)
@@ -218,15 +271,21 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 }
 
 // tryJoin upgrades a spectator to a fresh player — the brand-new-client path.
-// A DEAD client may also Join (name change instead of Respawn): its dead state
-// is released first — corpse removed, old name freed — then the flow proceeds
-// exactly like a first join, still restoring carried progression.
+// A Join presenting a known reconnect token restores the stashed character
+// instead (see reattach). A DEAD client may also Join (name change instead of
+// Respawn): its dead state is released first — corpse removed, old name freed
+// — then the flow proceeds exactly like a first join, still restoring carried
+// progression.
 func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	j := sp.Client().NextJoin()
 	if j == nil {
 		return
 	}
 	client := sp.Client()
+	if stash, ok := s.stashByToken[j.ReconnectToken]; ok && j.ReconnectToken != "" {
+		s.reattach(sp, j.ReconnectToken, stash)
+		return
+	}
 	dead, wasDead := s.deadByClient[client.UUID()]
 	if wasDead {
 		delete(s.deadByClient, client.UUID())
@@ -243,7 +302,12 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	}
 	name = s.manglePlayerName(name)
 	log.Printf("☺️ '%s' joined!", name)
-	sendAcceptMessage(client)
+	token, ok := s.tokenByClient[client.UUID()]
+	if !ok { // first join on this connection: mint the character's token
+		token = uuid.NewString()
+		s.tokenByClient[client.UUID()] = token
+	}
+	sendAcceptMessage(client, token)
 
 	p := player.New(s.game, client, name)
 	if wasDead {
@@ -254,6 +318,59 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	// spawn the player at a random campfire (default spawn)
 	p.SetPosition(s.defaultSpawnPosition())
 
+	s.game.AddEntity(p)
+}
+
+// reattach restores a stashed character onto a new connection: the reload
+// path. The stashed name is still reserved (never freed while stashed) and is
+// reused verbatim — the token identifies the character, so it wins over the
+// Join's name field. An alive character comes back exactly where it was with
+// its exact HP; a dead one gets its death scene rebuilt (corpse, dead marker,
+// overlay spectator) so Respawn/revive work as if the connection never
+// dropped.
+func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash reconnectStash) {
+	client := sp.Client()
+	// Consume the stash BEFORE removing the spectator (the tryRespawn ordering
+	// rule for state the removal fan-out must not see twice).
+	delete(s.stashByToken, token)
+	s.game.RemoveEntity(sp.Basic())
+
+	s.tokenByClient[client.UUID()] = token
+	if stash.hasAnchor {
+		s.anchors[client.UUID()] = stash.anchor
+	}
+	sendAcceptMessage(client, token)
+
+	if stash.dead {
+		log.Printf("🔌 '%s' reconnected (dead).", stash.name)
+		// Rebuild the death scene under the new connection: the client lands
+		// on the death overlay (Accept hides the start screen, Obituary shows
+		// the end screen) and the normal Respawn path takes over.
+		sendObituaryMessage(client)
+		c := corpse.New(stash.position)
+		s.game.AddEntity(c)
+		s.deadByClient[client.UUID()] = deadState{
+			name:        stash.name,
+			corpse:      c,
+			progression: stash.progression,
+			skills:      stash.skills,
+		}
+		s.game.AddEntity(spectator.NewSpectator(stash.position, client))
+		return
+	}
+
+	log.Printf("🔌 '%s' reconnected.", stash.name)
+	p := player.New(s.game, client, stash.name)
+	p.SetProgression(stash.progression)
+	p.SetSkillComponent(stash.skills)
+	p.SetPosition(stash.position)
+	// Exact stashed HP, clamped AFTER progression/skills are back (triage
+	// item 14 ordering) in case the max pool shrank.
+	health := stash.health
+	if health > p.MaxHealth() {
+		health = p.MaxHealth()
+	}
+	p.VitalSigns().Health = health
 	s.game.AddEntity(p)
 }
 
@@ -268,14 +385,20 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 	p.LoseCurrentLevelExperience()
 	name := p.Name()
 	anchor, hasAnchor := s.anchors[client.UUID()]
+	token, hasToken := s.tokenByClient[client.UUID()]
 
 	// The removal fan-out runs the full disconnect bookkeeping (funeral, name
-	// freed, anchor dropped); death deliberately re-adds name + anchor after
-	// it returns — this keeps removeFromPlayers a single unconditional path.
+	// stashed, anchor dropped); death deliberately re-adds name + anchor +
+	// token and drops the spurious stash after it returns — this keeps
+	// removeFromPlayers a single unconditional path.
 	s.game.RemoveEntity(p.Basic())
 	s.names.add(name)
 	if hasAnchor {
 		s.anchors[client.UUID()] = anchor
+	}
+	if hasToken {
+		delete(s.stashByToken, token)
+		s.tokenByClient[client.UUID()] = token
 	}
 
 	c := corpse.New(deathspot)
@@ -366,7 +489,7 @@ func (s *ConnectionStateSystem) ReviveAtCorpse(corpseID uint64, healthFraction f
 	s.game.RemoveEntity(dead.corpse.Basic())
 
 	log.Printf("✨ '%s' was revived!", dead.name)
-	sendAcceptMessage(client)
+	sendAcceptMessage(client, s.tokenByClient[client.UUID()])
 
 	p := player.New(s.game, client, dead.name)
 	p.SetProgression(dead.progression)
@@ -446,10 +569,27 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 	// Disconnect-while-dead (chunk 4): a dead client's spectator vanishing
 	// with its dead marker still present means the connection dropped — the
 	// respawn/join paths consume the marker BEFORE removing the spectator, so
-	// they never land here. Release everything the death kept alive.
+	// they never land here. The death scene is stashed for a reconnect (name
+	// stays reserved, corpse removed and recreated on reattach); without a
+	// token (defensive) everything the death kept alive is released.
 	client := sp.Client().UUID()
 	if dead, ok := s.deadByClient[client]; ok {
-		s.names.remove(dead.name)
+		if token, hasToken := s.tokenByClient[client]; hasToken {
+			anchor, hasAnchor := s.anchors[client]
+			s.stashByToken[token] = reconnectStash{
+				name:           dead.name,
+				progression:    dead.progression,
+				skills:         dead.skills,
+				position:       dead.corpse.Position(),
+				anchor:         anchor,
+				hasAnchor:      hasAnchor,
+				dead:           true,
+				disconnectTick: s.game.Ticks(),
+			}
+			delete(s.tokenByClient, client)
+		} else {
+			s.names.remove(dead.name)
+		}
 		s.game.RemoveEntity(dead.corpse.Basic())
 		delete(s.deadByClient, client)
 		delete(s.anchors, client)
@@ -464,8 +604,28 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 	}
 	p := arr[idx]
 	s.doFuneral(p)
-	s.names.remove(p.Name())
-	delete(s.anchors, p.Client().UUID())
+	clientUUID := p.Client().UUID()
+	// Stash the character for a reconnect instead of freeing it (the name
+	// stays reserved while stashed). Death routes through here too — it drops
+	// the spurious stash and re-registers the token right after the fan-out
+	// returns (see handleDeath). Without a token (defensive): old free path.
+	if token, hasToken := s.tokenByClient[clientUUID]; hasToken {
+		anchor, hasAnchor := s.anchors[clientUUID]
+		s.stashByToken[token] = reconnectStash{
+			name:           p.Name(),
+			progression:    p.Progression(),
+			skills:         p.SkillComponent(),
+			health:         p.VitalSigns().Health,
+			position:       p.Position(),
+			anchor:         anchor,
+			hasAnchor:      hasAnchor,
+			disconnectTick: s.game.Ticks(),
+		}
+		delete(s.tokenByClient, clientUUID)
+	} else {
+		s.names.remove(p.Name())
+	}
+	delete(s.anchors, clientUUID)
 	delete(s.dwell, p.Basic().ID())
 	s.players = append(arr[:idx], arr[idx+1:]...)
 }
@@ -478,9 +638,9 @@ func (s *ConnectionStateSystem) manglePlayerName(name string) string {
 	return name
 }
 
-func sendAcceptMessage(c model.Client) {
-	builder := flatbuffers.NewBuilder(32)
-	acceptMsg := codec.AcceptMessageFlatbufMarshal(builder)
+func sendAcceptMessage(c model.Client, reconnectToken string) {
+	builder := flatbuffers.NewBuilder(64)
+	acceptMsg := codec.AcceptMessageFlatbufMarshal(builder, reconnectToken)
 	builder.Finish(acceptMsg)
 	c.SendMessage(builder.FinishedBytes())
 }

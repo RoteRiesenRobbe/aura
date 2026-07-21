@@ -398,7 +398,10 @@ table Welcome {
 }
 
 table Accept {
-    // nothing to send with it, purely for signaling
+    // Session-scoped reconnect token identifying this character; the client
+    // stores it and presents it in Join after a reload to get the character
+    // back. Sent on every Accept (join/respawn/revive) — same token each time.
+    reconnect_token:string;
 }
 
 table Obituary {

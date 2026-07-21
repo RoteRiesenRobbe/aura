@@ -15,6 +15,11 @@ table Input {
 
 table Join {
     player_name:string;
+    // Session-scoped reconnect token (empty on a first join). When it matches
+    // a server-side stash of a disconnected character, that character is
+    // restored instead of minting a fresh one; unknown tokens degrade to a
+    // normal fresh join.
+    reconnect_token:string;
 }
 
 table Cheat {

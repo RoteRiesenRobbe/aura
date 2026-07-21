@@ -40,8 +40,10 @@ type Welcome struct {
 	ZoneName string
 }
 
-func AcceptMessageFlatbufMarshal(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func AcceptMessageFlatbufMarshal(builder *flatbuffers.Builder, reconnectToken string) flatbuffers.UOffsetT {
+	tokenOffset := builder.CreateString(reconnectToken)
 	AuraApi.AcceptStart(builder)
+	AuraApi.AcceptAddReconnectToken(builder, tokenOffset)
 	accept := AuraApi.AcceptEnd(builder)
 
 	return ServerMessageWrapFlatbufMarshal(builder, accept, AuraApi.ServerMessageBodyAccept)

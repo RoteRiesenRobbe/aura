@@ -41,8 +41,19 @@ func (rcv *Accept) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
+func (rcv *Accept) ReconnectToken() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func AcceptStart(builder *flatbuffers.Builder) {
-	builder.StartObject(0)
+	builder.StartObject(1)
+}
+func AcceptAddReconnectToken(builder *flatbuffers.Builder, reconnectToken flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(reconnectToken), 0)
 }
 func AcceptEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

@@ -17,6 +17,7 @@ import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
 import {GameState, IGame} from "../../core/logic/IGame";
 import {BackendState, IBackend} from "./IBackend";
+import {Session} from "../../accounts/logic/Session";
 import {Develop} from "../../internal-tools/develop/logic/_Develop";
 import {
     BackendConnectionFailureEvent,
@@ -66,6 +67,17 @@ export class Backend implements IBackend {
             if (!this.firstGameStateReceived) {
                 this.firstGameStateReject();
                 this.firstGameStateReceived = true;
+            }
+        };
+        this.webSocket.onclose = () => {
+            // Only announce a drop of an established session — pre-join
+            // failures are handled by the onerror/start-screen path. The
+            // character is stashed server-side; a reload reconnects it.
+            let wasInGame = this.state === BackendState.PLAYING
+                || this.state === BackendState.SPECTATING;
+            this.setState(BackendState.DISCONNECTED);
+            if (wasInGame) {
+                AlertBanner.show('Connection lost — reload to reconnect');
             }
         };
 
@@ -167,8 +179,16 @@ export class Backend implements IBackend {
                 break;
             case AuraApi.ServerMessageBody.Accept:
                 this.setState(BackendState.PLAYING);
+                let accept = serverMessage.body(new AuraApi.Accept()) as AuraApi.Accept;
                 if (Develop.isActive()) {
-                    Develop.get().logServerMessage(serverMessage.body(new AuraApi.Accept()), 'Accept', timeSinceLastMessage);
+                    Develop.get().logServerMessage(accept, 'Accept', timeSinceLastMessage);
+                }
+
+                // Every Accept carries the character's reconnect token; storing
+                // it on each one self-heals a stale token after a fresh join.
+                let reconnectToken = accept.reconnectToken();
+                if (reconnectToken) {
+                    Session.reconnectToken = reconnectToken;
                 }
 
                 StartScreen.hide();

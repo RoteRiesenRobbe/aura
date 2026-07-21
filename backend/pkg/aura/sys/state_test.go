@@ -6,10 +6,12 @@ import (
 	"testing/fstest"
 
 	"github.com/EngoEngine/ecs"
+	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
@@ -91,6 +93,7 @@ type stateFakeGame struct {
 	corpses   []model.CorpseEntity
 	removed   []uint64
 	spectators []model.Spectator
+	tick      uint64
 }
 
 func newStateFakeGame(t *testing.T) *stateFakeGame {
@@ -151,7 +154,7 @@ func (g *stateFakeGame) livingSpectators() []model.Spectator {
 	return out
 }
 
-func (g *stateFakeGame) Ticks() uint64                               { return 0 }
+func (g *stateFakeGame) Ticks() uint64                               { return g.tick }
 func (g *stateFakeGame) Bounds() (float32, float32)                  { return 60, 40 }
 func (g *stateFakeGame) Config() *cfg.GameConfig                     { return g.cfg }
 func (g *stateFakeGame) Skills() skills.Registry                     { return g.skillReg }
@@ -327,7 +330,7 @@ func TestDefaultSpawn_OnlyAtStartingSpawnFires(t *testing.T) {
 	}
 }
 
-func TestDisconnectWhileDead_CleansUpEverything(t *testing.T) {
+func TestDisconnectWhileDead_StashesDeathSceneAndRemovesCorpse(t *testing.T) {
 	s, g := newStateFixture(t)
 	s.SetCampfireAnchors([]CampfireAnchor{{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}})
 	c := newFakeClient()
@@ -344,9 +347,16 @@ func TestDisconnectWhileDead_CleansUpEverything(t *testing.T) {
 	g.RemoveEntity(g.livingSpectators()[0].Basic())
 
 	assert.True(t, g.wasRemoved(corpse.Basic().ID()), "corpse must be removed on disconnect-while-dead")
-	assert.False(t, s.names.contains("Alice"), "name must be freed on disconnect-while-dead")
+	// Reconnect-token semantics: the character is stashed, so the name stays
+	// reserved until the stash TTL expires (was: freed immediately).
+	assert.True(t, s.names.contains("Alice"), "name must stay reserved while stashed")
 	assert.Empty(t, s.deadByClient)
-	assert.Empty(t, s.anchors, "campfire bind must not outlive the connection")
+	assert.Empty(t, s.anchors, "campfire bind lives in the stash, not the live map")
+	require.Len(t, s.stashByToken, 1, "disconnect-while-dead must stash the death scene")
+	for _, stash := range s.stashByToken {
+		assert.True(t, stash.dead)
+		assert.True(t, stash.hasAnchor, "the campfire bind must be stashed")
+	}
 }
 
 func TestJoinWhileDead_FreesOldNameAndCorpse(t *testing.T) {
@@ -401,7 +411,7 @@ func TestStaleJoin_DrainedOnDeath(t *testing.T) {
 	assert.Empty(t, c.joins, "the stale Join must be drained at death")
 }
 
-func TestDisconnectAliveAfterRespawn_FreesName(t *testing.T) {
+func TestDisconnectAliveAfterRespawn_StashesInsteadOfDeadCleanup(t *testing.T) {
 	s, g := newStateFixture(t)
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
@@ -412,11 +422,16 @@ func TestDisconnectAliveAfterRespawn_FreesName(t *testing.T) {
 	np := g.players[1]
 
 	// disconnect while ALIVE: the delete-on-consume must have cleared the dead
-	// marker, so the fan-out frees the name normally
+	// marker, so the fan-out takes the alive-stash path (reconnect-token
+	// semantics: name stays reserved in the stash, not freed).
 	g.RemoveEntity(np.Basic())
 
-	assert.False(t, s.names.contains("Alice"),
-		"disconnect-while-alive after a respawn must free the name")
+	assert.True(t, s.names.contains("Alice"), "name stays reserved while stashed")
+	assert.Empty(t, s.deadByClient, "no dead marker may survive the respawn")
+	require.Len(t, s.stashByToken, 1)
+	for _, stash := range s.stashByToken {
+		assert.False(t, stash.dead, "an alive disconnect must stash an alive character")
+	}
 }
 
 // --- revive (plan-skill-vocab chunk 3, §3.6) ---
@@ -481,4 +496,220 @@ func TestReviveAtCorpse_DisconnectRaceNoOps(t *testing.T) {
 // spectatorFor builds a real spectator for a client at the origin.
 func spectatorFor(c model.Client) model.Spectator {
 	return spectator.NewSpectator(phy.VEC2F_ZERO, c)
+}
+
+// --- reconnect-token persistence (plan-reconnect-token.md) ---
+
+// sentAcceptTokens decodes every Accept the client received and returns the
+// reconnect tokens in order.
+func sentAcceptTokens(t *testing.T, c *fakeClient) []string {
+	t.Helper()
+	var out []string
+	for _, b := range c.sent {
+		msg := AuraApi.GetRootAsServerMessage(b, 0)
+		if msg.BodyType() != AuraApi.ServerMessageBodyAccept {
+			continue
+		}
+		tbl := new(flatbuffers.Table)
+		require.True(t, msg.Body(tbl))
+		var acc AuraApi.Accept
+		acc.Init(tbl.Bytes, tbl.Pos)
+		out = append(out, string(acc.ReconnectToken()))
+	}
+	return out
+}
+
+// sentBodyTypes lists the body type of every server message the client received.
+func sentBodyTypes(c *fakeClient) []AuraApi.ServerMessageBody {
+	var out []AuraApi.ServerMessageBody
+	for _, b := range c.sent {
+		out = append(out, AuraApi.GetRootAsServerMessage(b, 0).BodyType())
+	}
+	return out
+}
+
+// reconnect runs the full join flow for a fresh connection presenting a token.
+func reconnect(t *testing.T, s *ConnectionStateSystem, g *stateFakeGame, c *fakeClient, name, token string) {
+	t.Helper()
+	sp := spectatorFor(c)
+	g.AddEntity(sp)
+	c.joins = append(c.joins, &model.Join{PlayerName: name, ReconnectToken: token})
+	s.Update(0)
+}
+
+func TestJoin_IssuesReconnectTokenOnAccept(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	joinPlayer(t, s, g, c, "Alice")
+
+	tokens := sentAcceptTokens(t, c)
+	require.Len(t, tokens, 1, "the join Accept must carry a reconnect token")
+	assert.NotEmpty(t, tokens[0])
+	assert.Equal(t, tokens[0], s.tokenByClient[c.UUID()], "the sent token must be registered for the connection")
+}
+
+func TestDisconnectAlive_StashesAndKeepsNameReserved(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+
+	g.RemoveEntity(p.Basic()) // net-layer disconnect
+
+	require.Len(t, s.stashByToken, 1, "disconnect must stash the character")
+	assert.True(t, s.names.contains("Alice"), "name must stay reserved while stashed")
+	assert.Empty(t, s.tokenByClient, "the dead connection's token registration must be dropped")
+
+	c2 := newFakeClient()
+	p2 := joinPlayer(t, s, g, c2, "Alice")
+	assert.NotEqual(t, "Alice", p2.Name(), "a stash-reserved name must be mangled for new joiners")
+}
+
+func TestReconnect_RestoresCharacter(t *testing.T) {
+	s, g := newStateFixture(t)
+	fire := CampfireAnchor{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{fire})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	p.SetProgression(model.PlayerProgression{Level: 5, Experience: 1234})
+	p.SetPosition(phy.Vec2f{X: 10, Y: 10})
+	for i := 0; i < campfireDwellTicks; i++ {
+		s.Update(0)
+	}
+	spot := phy.Vec2f{X: -13, Y: 4}
+	p.SetPosition(spot)
+	p.VitalSigns().Health = 42
+	skillsBefore := p.SkillComponent()
+	token := s.tokenByClient[c.UUID()]
+
+	g.RemoveEntity(p.Basic()) // disconnect
+
+	c2 := newFakeClient()
+	reconnect(t, s, g, c2, "ignored-name", token)
+
+	require.Len(t, g.players, 2, "reconnect must rebuild the player")
+	np := g.players[1]
+	assert.Equal(t, "Alice", np.Name(), "stashed name is reused verbatim — token wins over the Join name")
+	assert.Equal(t, uint32(5), np.Progression().Level)
+	assert.Equal(t, uint64(1234), np.Progression().Experience)
+	assert.Same(t, skillsBefore, np.SkillComponent(), "the whole skill component is carried over")
+	assert.InDelta(t, spot.X, np.Position().X, 1e-5, "reconnect restores the last position")
+	assert.InDelta(t, spot.Y, np.Position().Y, 1e-5)
+	assert.EqualValues(t, 42, np.VitalSigns().Health, "reconnect restores the exact HP, not full")
+	assert.Equal(t, fire.Pos, s.anchors[c2.UUID()], "the campfire bind survives the reconnect")
+	assert.Empty(t, s.stashByToken, "the stash is consumed")
+	assert.Equal(t, token, s.tokenByClient[c2.UUID()], "the token is re-registered for the new connection")
+
+	tokens := sentAcceptTokens(t, c2)
+	require.Len(t, tokens, 1)
+	assert.Equal(t, token, tokens[0], "the reconnect Accept must carry the SAME token")
+}
+
+func TestReconnect_UnknownTokenJoinsFresh(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	reconnect(t, s, g, c, "Alice", "no-such-token")
+
+	require.Len(t, g.players, 1, "an unknown token must degrade to a fresh join")
+	p := g.players[0]
+	assert.Equal(t, "Alice", p.Name())
+	assert.Equal(t, uint32(1), p.Progression().Level)
+
+	tokens := sentAcceptTokens(t, c)
+	require.Len(t, tokens, 1)
+	assert.NotEmpty(t, tokens[0])
+	assert.NotEqual(t, "no-such-token", tokens[0], "a fresh token must be minted")
+}
+
+func TestReconnectWhileDead_RebuildsDeathScene(t *testing.T) {
+	s, g := newStateFixture(t)
+	s.SetCampfireAnchors([]CampfireAnchor{{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	p.SetProgression(model.PlayerProgression{Level: 5})
+	p.SetPosition(phy.Vec2f{X: 10, Y: 10})
+	for i := 0; i < campfireDwellTicks; i++ {
+		s.Update(0)
+	}
+	deathspot := phy.Vec2f{X: 7, Y: -3}
+	p.SetPosition(deathspot)
+	token := s.tokenByClient[c.UUID()]
+	kill(t, s, p)
+
+	g.RemoveEntity(g.livingSpectators()[0].Basic()) // disconnect while dead
+	require.Empty(t, g.livingCorpses(), "no lingering corpse while stashed")
+
+	c2 := newFakeClient()
+	reconnect(t, s, g, c2, "ignored-name", token)
+
+	// the client is put back on the death overlay: Accept then Obituary
+	types := sentBodyTypes(c2)
+	require.Len(t, types, 2)
+	assert.Equal(t, AuraApi.ServerMessageBodyAccept, types[0])
+	assert.Equal(t, AuraApi.ServerMessageBodyObituary, types[1])
+
+	corpses := g.livingCorpses()
+	require.Len(t, corpses, 1, "the corpse is recreated at the deathspot")
+	assert.InDelta(t, deathspot.X, corpses[0].Position().X, 1e-5)
+	assert.InDelta(t, deathspot.Y, corpses[0].Position().Y, 1e-5)
+	require.Len(t, g.livingSpectators(), 1, "the death-overlay spectator is rebuilt")
+	require.Contains(t, s.deadByClient, c2.UUID(), "the dead marker is rebuilt under the new connection")
+
+	// ... and the normal Respawn still works from here
+	c2.respawns = append(c2.respawns, &model.Respawn{})
+	s.Update(0)
+	require.Len(t, g.players, 2, "respawn after a dead reconnect rebuilds the player")
+	np := g.players[1]
+	assert.Equal(t, "Alice", np.Name())
+	assert.Equal(t, uint32(5), np.Progression().Level)
+}
+
+func TestStashTTL_ExpiryFreesNameAndStash(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+
+	g.tick = 100
+	g.RemoveEntity(p.Basic()) // disconnect at tick 100
+	require.Len(t, s.stashByToken, 1)
+
+	g.tick = 100 + reconnectStashTTLTicks - 1
+	s.Update(0)
+	assert.Len(t, s.stashByToken, 1, "the stash must survive until the TTL")
+	assert.True(t, s.names.contains("Alice"))
+
+	g.tick = 100 + reconnectStashTTLTicks
+	s.Update(0)
+	assert.Empty(t, s.stashByToken, "the TTL sweep must drop the stash")
+	assert.False(t, s.names.contains("Alice"), "the TTL sweep must free the name")
+}
+
+func TestDeath_LeavesNoStash(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	token := s.tokenByClient[c.UUID()]
+
+	kill(t, s, p)
+
+	assert.Empty(t, s.stashByToken, "death while connected must not leave a spurious stash")
+	assert.Equal(t, token, s.tokenByClient[c.UUID()], "the token must survive death for the respawn flow")
+}
+
+func TestReconnect_LiveTokenDegradesToFreshJoin(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	token := s.tokenByClient[c.UUID()]
+
+	// duplicated tab: the token's character is still connected — no stash exists
+	c2 := newFakeClient()
+	reconnect(t, s, g, c2, "Alice", token)
+
+	require.Len(t, g.players, 2)
+	assert.Equal(t, "Alice", g.players[0].Name(), "the live character is untouched")
+	assert.NotEqual(t, "Alice", g.players[1].Name(), "the duplicate joins fresh with a mangled name")
+	assert.Equal(t, "Alice", p.Name())
+	tokens := sentAcceptTokens(t, c2)
+	require.Len(t, tokens, 1)
+	assert.NotEqual(t, token, tokens[0], "the duplicate gets its own fresh token")
 }

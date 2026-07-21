@@ -22,8 +22,19 @@ static getSizePrefixedRootAsAccept(bb:flatbuffers.ByteBuffer, obj?:Accept):Accep
   return (obj || new Accept()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
 }
 
+reconnectToken():string|null
+reconnectToken(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+reconnectToken(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 4);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
 static startAccept(builder:flatbuffers.Builder) {
-  builder.startObject(0);
+  builder.startObject(1);
+}
+
+static addReconnectToken(builder:flatbuffers.Builder, reconnectTokenOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(0, reconnectTokenOffset, 0);
 }
 
 static endAccept(builder:flatbuffers.Builder):flatbuffers.Offset {
@@ -31,8 +42,9 @@ static endAccept(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 }
 
-static createAccept(builder:flatbuffers.Builder):flatbuffers.Offset {
+static createAccept(builder:flatbuffers.Builder, reconnectTokenOffset:flatbuffers.Offset):flatbuffers.Offset {
   Accept.startAccept(builder);
+  Accept.addReconnectToken(builder, reconnectTokenOffset);
   return Accept.endAccept(builder);
 }
 }

@@ -84,3 +84,43 @@ func TestEquipMessageFlatbufferUnmarshal_SlotZero(t *testing.T) {
 	assert.Equal(t, skills.SkillID(1), result.SkillID)
 	assert.Equal(t, 0, result.Slot)
 }
+
+func buildJoinClientMessage(name, token string) []byte {
+	b := flatbuffers.NewBuilder(64)
+	nameOffset := b.CreateString(name)
+	var tokenOffset flatbuffers.UOffsetT
+	if token != "" {
+		tokenOffset = b.CreateString(token)
+	}
+	AuraApi.JoinStart(b)
+	AuraApi.JoinAddPlayerName(b, nameOffset)
+	if token != "" {
+		AuraApi.JoinAddReconnectToken(b, tokenOffset)
+	}
+	body := AuraApi.JoinEnd(b)
+
+	AuraApi.ClientMessageStart(b)
+	AuraApi.ClientMessageAddBodyType(b, AuraApi.ClientMessageBodyJoin)
+	AuraApi.ClientMessageAddBody(b, body)
+	root := AuraApi.ClientMessageEnd(b)
+	b.Finish(root)
+	return b.FinishedBytes()
+}
+
+func TestJoinMessageFlatbufferUnmarshal_WithReconnectToken(t *testing.T) {
+	buf := buildJoinClientMessage("Momo", "tok-123")
+	msg := ClientMessageFlatbufferUnmarshal(buf)
+	result := JoinMessageFlatbufferUnmarshal(msg)
+	require.NotNil(t, result)
+	assert.Equal(t, "Momo", result.PlayerName)
+	assert.Equal(t, "tok-123", result.ReconnectToken)
+}
+
+func TestJoinMessageFlatbufferUnmarshal_TokenAbsent_OldClient(t *testing.T) {
+	buf := buildJoinClientMessage("Momo", "")
+	msg := ClientMessageFlatbufferUnmarshal(buf)
+	result := JoinMessageFlatbufferUnmarshal(msg)
+	require.NotNil(t, result)
+	assert.Equal(t, "Momo", result.PlayerName)
+	assert.Equal(t, "", result.ReconnectToken)
+}

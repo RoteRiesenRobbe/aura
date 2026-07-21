@@ -109,6 +109,12 @@ function setProgress(value) {
         loadingBar.style.width = (_progress * 100) + '%';
         if (_progress >= 1) {
             FirstGameStateHandledEvent.subscribe(() => {
+                if (PlayerName.willAutoRejoin()) {
+                    // A reconnect Join is on its way (PlayerName auto-rejoin);
+                    // keep the loading look until the server's Accept hides
+                    // the screen — no flash of the name form.
+                    return;
+                }
                 rootElement.classList.remove('loading');
                 rootElement.classList.add('finished');
                 let playerNameSubmit: HTMLInputElement = rootElement.querySelector('.playerNameSubmit');

@@ -7,6 +7,9 @@ import "github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 
 type Join struct {
 	PlayerName string
+	// ReconnectToken is empty on a first join; when it matches a stashed
+	// disconnected character, that character is restored instead.
+	ReconnectToken string
 }
 
 type Cheat struct {
