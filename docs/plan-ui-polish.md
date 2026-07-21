@@ -1,6 +1,82 @@
 # Plan: UI Polish Pass — Rough First Pass (step 8, item-8 slice)
 
-**Status:** PLANNED 2026-07-21 (this doc) — chunk 1 not started.
+**Status:** **CHUNK 1 DONE 2026-07-21 — PO-VERIFIED IN-GAME 2026-07-21 ×2
+("it works and is correct" + text-size/color follow-up "it's great"),
+committed `ae51d8b5`.** This pass's single chunk is complete; the rest of the
+item-8 checklist stays deferred (see §Deferred). Full ledger below.
+
+## Chunk 1 ledger (DONE 2026-07-21, `ae51d8b5`)
+
+**PO rulings (choice prompts, in-session):** tooltip stat lines = **full
+detail** (every authored non-zero mechanic gets a line — crit, execute,
+berserker, lifesteal, variance, tags, self-cost; unauthored fields show
+nothing); tooltip **anchored to the hovered element** (flips left on
+overflow, viewport-clamped), not cursor-following. Follow-up pass (same day,
+after first PO verify): **shared-line dedupe + font bump** (radius/targets
+lines identical across all of a skill's effects print once at the bottom;
+lines that differ stay grouped under their effect — Warbanner's 4 auras share
+radius 1.2 but tick at 40/120/30/1, so radius merges and cadence can't) and
+**colored label only** (the leading "Damage:"/"Heal:" label tints in the
+effect's `AURA_CATEGORY_COLORS` ring/pip color, numbers stay neutral; types
+without an aura category stay uncolored; colon-free colored lines like
+"Emits light" tint fully).
+
+**Judgment call (flagged to PO, accepted):** cadence folded into the main
+line instead of a standalone "Ticks every" line — hit auras "Damage: 15 →
+18.4 every 1.32s", state/over-time auras ", refreshed every 0.99s",
+interval-1 (continuous) shows only the hit auras' "per tick". Warbanner ~15
+→ 11 lines.
+
+**Backend:** `skills/catalog.go` — `CatalogJSON` (parsed registry sorted by
+id, marshaled once at boot) + `CatalogHandler` (`Content-Type` +
+`Access-Control-Allow-Origin: *`), mounted as `GET /skills` on both muxes in
+`aurad.go` (plain + TLS, like `/game`). JSON tags live on the REAL
+`SkillDefinition`/`EffectDef`/payload structs (no DTO — an untagged new field
+still marshals under its Go name, so drift is review-visible instead of
+missing); enum wire strings via `MarshalJSON` on
+`SkillCategory`/`EffectType`/`Selector`/`HitStyle` derived from the parse
+maps (`reverseNames`, "" alias keys skipped) so the two directions can't
+drift. `DisplayName` on `SkillDefinition`: authored `displayName` JSON
+override else derived CamelCase→spaces server-side. Override audit found
+exactly 4: **Call for Aid, Damage-Burst, Long-Range Strike, Hold the Line**
+(authored in their JSONs); everything else derives clean.
+
+**Frontend:** `client-data/Skills.ts` rewritten as the catalog module — the
+three hand-sync maps are **deleted** (roadmap item-8 debt entry closed);
+`skillDisplayName`/`skillMaxLevel`/`skillCategory` keep signatures, read the
+fetched catalog (wsUrl-derived origin `ws://…/game` → `http://…/skills`,
+fetched once at module init), degrade to `Skill #<id>` / `'aura'` on
+failure; typed payload interfaces mirror the Go JSON; server category
+`active_aura` maps to client `'aura'`; `activationRejectionMessage` stays.
+New `HUD/logic/SkillTooltip.ts`: pure `formatSkillTooltip` (per-effect-type
+line table over all ~20 types, current→next `prog()` values, ticks → seconds
+at 33 ms, unknown-type console-warn tripwire) + one shared `#skillTooltip`
+element on `document.body` (fixed positioning must not be re-rooted) with
+delegated `pointerover`/`pointerout`/`pointerdown` on the spellbook and all
+three loadout lists. `HUD.ts`: `currentSkillLevels` map (kept by
+`updateSpellbook`, feeds slot tooltips too), `data-skill-id` stamped on
+aura/passive/cooldown slot `li`s. Styles in `HUD.less` (`#skillTooltip`).
+
+**Verified:** `go build` clean; full backend suite green (+4 catalog tests
+in `catalog_test.go`: sorted+complete, display names, fields/defaults —
+absent `damageTags` → `[physical]` survives into the catalog — handler
+status/headers); `tsc` clean; prod build clean; boot `-content ../api`
+**81 skills/14 factions/50 mobs/10 recipes/828 props/373 spawns/5 campfires/
+14 npcs, 0 panics**; live curl pinned headers, id sort, overrides, parsed
+defaults; headless Playwright smoke **10/10 PASS** (spellbook hover line
+content, aura + cooldown slot tooltips incl. Cooldown progression line,
+empty slot silent, Warbanner dedupe + 4 label colors, blocked `/skills` →
+"Skill #1" fallback with no tooltip and no errors); PO in-game ×2.
+
+**Watch items:** `#gameUI` is a zero-size positioning shell — Playwright's
+visibility check never passes on it; wait on `classList.contains('hidden')`
+instead. `AURA_CATEGORY_COLORS` lives in `AuraRings.ts` (game-objects) and
+is now also a HUD dependency.
+
+**Placeholders (none FINAL):** tooltip font 1.5rem body / 1.6rem title /
+1.25rem subtitle, max-width 26rem, background `fade(black, 85%)` (all
+`HUD.less`); line-wording per effect type in `SkillTooltip.ts`; label colors
+ride the existing `AURA_CATEGORY_COLORS` placeholders.
 
 **Scope ruling (PO 2026-07-21, choice prompts):** step 8 starts with the UI
 side, and this pass is deliberately a **rough first pass focused on
