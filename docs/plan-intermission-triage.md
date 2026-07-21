@@ -1185,3 +1185,63 @@ banner `1.1 × @uiElementHeight` + header `1.1em`/gold [PLACEHOLDER]; dot
 `tickInterval 20` [PLACEHOLDER]; mob dot auras still apply slow (excluded by
 PO pick — revisit if mob burns feel unfair to dodge). The "Wild reads as a
 trap pick" tuning note stands; its Wildfire sibling is resolved by rework.
+
+## Triage pass: cast-bar stack, spider range match, Strong passive, Wildfire light (ad-hoc session, 2026-07-21)
+
+**DONE 2026-07-21, PO-VERIFIED ("Perfect") 2026-07-21, committed `37878018`.**
+Four PO triage items from live play, all landed in one session — nothing
+deferred.
+
+**The items:**
+
+1. **Cast bar above the action bars.** `#castBar` was free-floating at
+   `bottom: 13vh`; it now lives with `#actionBars` in a shared bottom-center
+   flex column `#bottomCenter` (HUD.html + HUD.less), so it sits directly
+   above the ability bars. The idle bar stays `visibility: hidden` — it keeps
+   its slot in the column, so nothing jumps when a cast starts. `#castBar`
+   switched `position: absolute → relative` (its `.barText` needs the
+   positioned ancestor).
+2. **Spider aura ranges matched.** `SpiderBite` radius 1.2 → **1.0**,
+   `VenomSpit` 2.0 → **1.0** — the venom spider explicitly matched down to
+   the normal spider's new value per the PO ask. 1.0 [PLACEHOLDER] (the
+   WolfBite precedent value).
+3. **Strong passive** (`api/skills/strong.json`, id 136, maxLevel 5):
+   +4% all outgoing damage +2%/point (`statBonus 0.04` /
+   `statBonusPerLevel 0.02`, [PLACEHOLDER]). Required a small Go lift — the
+   new **`damageDealt` stat** (the fifth validStat): `DerivedStats.
+   DamageDealtBonus` + `sys.casterDamageFactor` (the `casterCritChance`
+   twin — the ACTING entity's own stats, summons never inherit), multiplied
+   at **all three outgoing-damage base sites** (player direct auras/instants,
+   mob direct, and dot application — "all damage" includes dots, frozen into
+   the dot like the power scale). Never heals or CC. TDD: component
+   accumulation test + direct-hit test + dot test. Registry pin 81 → **82**.
+   `SkillTooltip.ts` STAT_LABELS gained `damageDealt: 'All damage'`.
+   **PO ruling (unlock source):** taught by the existing **CityGuard** at the
+   city gates, `requiredLevel 3` — the reward for the "inform the city"
+   quest thread the TownCrier already opens ("The city must hear of those
+   wolves. Head east…"); his dialogue already acknowledged the report. Added
+   `teachings[]` + a tooLowLine to the world.json NPC.
+4. **Wildfire emits light**: third effect `light_aura` r4 +1/L — exactly the
+   Light aura's values per the PO ask. Zero code: entity light is already
+   max-over-effects of the active aura (`LightRadius()`), streams as
+   `light_radius`; tooltip renders "Emits light / Radius: 4 → 5".
+
+**Verified:** `go build ./...` + full suite green (+3 damageDealt tests, pin
+82); `tsc --noEmit` + webpack prod build clean; boot `-content ../api` —
+`82 skills/14 factions/50 mobs/10 recipes/828 props/373 spawns/5 campfires/
+14 npcs, 0 panics`; `GET /skills` serves Strong (displayName derived) +
+Wildfire's light effect + both r1.0 spider payloads; Playwright smoke
+**8/8 PASS** (join, `#bottomCenter` stack geometry — cast bar bottom 664 <
+bars top 680 at 900px, stack anchored at screen bottom, Strong in the
+spellbook by catalog name, "All damage: +4% → 6%" tooltip line, Wildfire
+tooltip incl. the light lines). PO in-game: "Perfect."
+
+**Docs:** `content-skill-inventory.md` regenerated (47 player skills / 82
+pin, Strong + Wildfire rows, NPC teachings 14 across 10 NPCs, header
+restamped); `content-passives.md` gained the Strong design-intent row.
+
+**Open / placeholders from this pass:** spider radius 1.0 (feel pass in the
+tunnel), Strong 0.04/0.02 + the L3 gate, Wildfire light riding Light's
+r4 +1/L (Wildfire maxLevel 5 → its light tops out at r8 vs Light's r6 —
+by explicit PO spec "same radius and per level gain", flag only if night
+balance cares).
