@@ -910,6 +910,19 @@ any content.
 
 ### C8 — Balance & guardrail pass
 
+> **✅ Z2-hardening / cL8-17 farm-band PLAN chunk DISSOLVED (PO decision
+> 2026-07-21) — no session needed.** The chunk's remaining scope after the
+> farm-band pre-chunk (below) was Z2 difficulty/density design + farm-area
+> structure + more band content. PO ruling: **difficulty + density are
+> covered by the new farm-band mobs** (GiantSpider/AlphaWolf/Marauder ids
+> 45-47), and **placements + farm-area structure are PO-manual in the zone
+> editor** — no plan doc, no Claude session. The pieces that survive it:
+> the gray-band XP decision was already CLOSED in the pre-chunk (flat XP
+> kept), and any *future* new band mobs still inherit the Session-⑥ XP
+> derivation rule + the tier+baseline authoring rule + the "farm"
+> guardrail band-check. Earlier banners naming this chunk as NEXT are
+> superseded by this note.
+
 > **✅ Farm-band pre-chunk session (post-C8, 2026-07-21) DONE — PO-driven
 > in-session (live playtest + two editor placement passes), committed
 > `1b33be7a` (+ same-session follow-up commit: turnip XP 1 + wrap), main

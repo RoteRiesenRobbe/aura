@@ -5,6 +5,18 @@ and executed immediately; everything else scheduled as **execution-order step 7*
 (after the content pass, before accounts & persistence) — see `roadmap.md`
 "Execution order".
 
+> **REFRESHED 2026-07-21 (post-content-pass review, pre-execution).** Step 7 is
+> now ① in the PO priority queue (CLAUDE.md `## Status`). Audit findings folded
+> in throughout (dated notes); triage items **12** (legacy separation) and
+> **22** (skill naming) join Phase A as **A.5/A.6**. PO decisions made
+> 2026-07-21: legacy separation = **`"legacy": true` tag** (A.5), skill naming
+> = **bare thematic names** (A.6); the Phase-B naming set (module path /
+> binary / FB namespace) stays **decide-at-execution**. Key audit outcomes:
+> A.4's survival remnants are already gone; the items render path is
+> load-bearing (props + campfires) — prune, don't delete; `features/audio/`
+> is live infrastructure (music + the combat-SFX scaffold), not orphan-scan
+> material; legacy mobs live only in proving-grounds and are test/sim-pinned.
+
 ## 1. Goal
 
 Full replacement of all Berryhunter naming and assets with "Aura", plus removal
@@ -28,6 +40,12 @@ the rename now has a scheduled home instead of being indefinitely deferred.
 ## 3. Footprint (measured 2026-07-08)
 
 226 files reference "berryhunter" (excl. node_modules/dist). Four tiers:
+
+> **Re-measured 2026-07-21:** 246 files excl. docs (273 incl. docs). FB Go
+> bindings are down to **30** files (chieftain deletion removed 28); **119**
+> Go files carry the `trichner/berryhunter` import path; **16** TS files
+> import `BerryhunterApi`; only **8** TS files mention "berryhunter" at all
+> (berryhunter.io URLs live in exactly `Urls.ts` + `BasicConfig.ts`).
 
 | Tier | What | Risk |
 |---|---|---|
@@ -87,6 +105,10 @@ and possibly start-screen usages).
 webpack-bundled — dead code shipping to every client until this phase deletes
 it. Grep hits on `Rating` no longer indicate a live widget.
 
+**Update 2026-07-21 (refresh audit):** zero imports of `features/rating/`
+remain anywhere in `src/` — pure directory delete (40K). `SocialMedia`
+**stays**: `StartScreen.ts` is a live consumer.
+
 ### A.3 Chieftain service — DONE (2026-07-09, pulled forward)
 
 **Decision (2026-07-08): chieftain does NOT grow into the account service.**
@@ -111,39 +133,101 @@ Verified: `go build ./...`, `go generate ./...`, full `go test ./...` green;
 
 ### A.4 Survival/item scaffolding sweep (research-code-quality.md §4)
 
-- `model.PlayerVitalSigns.Satiety`/`.BodyTemperature` (set once, never read).
-- Frontend `VitalSigns.ts` satiety vital, `Character.createStatusEffects`
-  `Freezing` effect.
-- `Character.ts` item/equipment/crafting scaffolding (`equipItem`/
-  `unequipItem`, `PLACEABLE` slots, `craftingIndicator`, hand-swing
-  animations keyed to equipped items) — **verify against what the content
-  pass still needs for gear-as-passives flavor before deleting.**
-- `features/items/` frontend remnants (~308K assets) — same caveat: the
-  resource/placeable rendering path still runs through item types today
-  (props ride the `Resource` wire table). Only delete what the prop/content
-  work has replaced by then.
-- Asset orphan-scan afterwards: audio (3.0M), UI SVGs, ground textures —
-  delete what nothing references.
+**Rescoped 2026-07-21 (refresh audit)** — original list, with findings:
+
+- ~~`model.PlayerVitalSigns.Satiety`/`.BodyTemperature`~~ — **already gone**
+  (zero backend grep hits); swept during later work.
+- ~~Frontend `VitalSigns.ts` satiety vital, `Freezing` effect~~ — **already
+  gone**; `features/vital-signs/` survives as the resource bar (**keep**).
+- `Character.ts` item/equipment/crafting scaffolding — **still present**
+  (`equipItem`/`unequipItem`/`craftingIndicator` in `Character.ts` +
+  `EntityManager.ts`). Content pass is done, so the caveat is answerable now:
+  gear-as-passives took no dependency on it — **deletable**.
+- `features/items/` (332K) + `client-data/Items.ts` — **NOT wholesale
+  deletable**: the prop/placeable render path still rides the items pipeline
+  (props on the `Resource` wire table, **campfires are live placeables**).
+  Backend `api/items/` is already down to 10 files (none + 2 campfires +
+  7 resources), most live as decorative props. Scope = prune unreferenced
+  item defs/assets + the dead `drops[].item` code path (zero users, triage
+  item 12 audit); keep the render path.
+- Asset orphan-scan afterwards: UI SVGs, ground textures — delete what
+  nothing references. ~~audio (3.0M)~~ — **`features/audio/` (now 7.2M) is
+  LIVE**: music plays today and its `SpatialAudio`/trigger-throttle scaffold
+  is the base for the queued combat-SFX chunk. Do not touch here (its
+  decode-at-boot memory debt is backlog §19, separate).
+
+### A.5 Legacy-content separation (triage item 12 — DECIDED 2026-07-21)
+
+Proving-grounds-only content — 10 mobs (Mammoth/AngryMammoth/SaberToothCat/
+Dodo/Rabbit/Healer/Brazier/Proving*), 5 player skills, 6 mob skills,
+3 factions (predator/prey/tusker) — is **not deletable**: `sim/world.go`,
+`cmd/simharness` (incl. `guardrail_test.go`), encounter/codec/faction tests
+pin it by name, and Mammoth is the XP-derivation precedent mob. Berryhunter
+`api/items/` stays per A.4 (render-path dependency).
+
+**PO decision: option (b) — `"legacy": true` tag on defs.** Add the field to
+each registry schema (loaders vary in strictness — TDD per registry), tag the
+proving-grounds-only defs, and add a loader warning if the world zone
+references legacy-tagged content. Registry pins moved since the item-12 audit:
+**skills 78 / mobs 47** (`skills/registry_test.go` etc.) — tags themselves
+change no counts. **⚠️ orphan skills (Fade/FireWard/NovaBurst/…) are NOT
+legacy** — they're unplaced placement candidates; don't tag them.
+
+### A.6 Skill-name consistency (triage item 22 — DECIDED 2026-07-21)
+
+**PO decision: option (a) — bare thematic names**, category lives in the
+`category` field: ~6–8 renames (SwiftPassive→Swift, ToughPassive→Tough, drop
+arbitrary `Aura` suffixes, …) + resolve the **Heal vs HealAura collision by
+renaming the cooldown**. Blast radius (verified in the item-22 audit): JSON
+`name` is the registry key → touches skill files, mob `unlocks[]`/`skills[]`,
+zone `teachings[]`, recipes, `milestone-unlocks.json`, the hardcoded
+`"Harvest"` literal (`player.go:734`), and name-pinned Go tests — but **not**
+the wire (numeric ids), frontend maps (numeric ids), sim presets, or save
+data (none exists — doing this before persistence (queue item ③) is the
+cheapest it will ever be). Sync `Skills.ts` display names in the same pass.
 
 ## 5. Phase B — structural rename (one atomic commit)
 
-- Go module `github.com/trichner/berryhunter` → new module path.
+- Go module `github.com/trichner/berryhunter` → new module path (119 files
+  carry the import path, count 2026-07-21).
 - `backend/pkg/berryhunter/` → new package dir; `cmd/berryhunterd` → new
   binary name; `tokens.list`/conf naming stays functional.
 - FlatBuffers namespace `BerryhunterApi` → `AuraApi` (or similar) in
   `common.fbs`/`server.fbs`/`client.fbs`; regenerate Go + TS; fix all imports
-  (51 Go files, `BerryhunterApi.ts` + every frontend importer).
+  (30 generated Go files + 16 importing TS files, counts 2026-07-21).
 - Makefiles, Docker files, docs (CLAUDE.md, current plan docs) updated in the
   same commit. Historical plan/archive docs keep their old paths (they are
   records).
-- **Open naming decisions (decide at execution, not before):** module path
-  (`aurahunter` vs `aura`), binary name (`aurad`?), FB namespace.
+- **Additional touchpoints (audit 2026-07-21):** the `cp-defs` embedded copy
+  under `backend/pkg/api/` (path baked into the Makefile + CLAUDE.md
+  gotchas), `devops/` (`berryhunterd.service`, `conf.json`, README), stale
+  root-Makefile targets `berryhunter-web`/`berryhunter-edge` (verify dead →
+  delete), and the memory files under `.claude/`/user memory that name
+  `pkg/berryhunter` paths (update the live ones).
+- **Open naming decisions — CONFIRMED 2026-07-21: decide at execution, not
+  before:** module path (`aurahunter` vs `aura`), binary name (`aurad`?), FB
+  namespace (`AuraApi`).
 - Gate: full backend suite + tsc + boot + in-game smoke.
 
 ## 6. Phase C — branding
 
 Webpack `title`/`appName`/favicon config, `package.json` name/description/
 repository, `index.html`, README. Trivial; rides along with Phase B.
+
+## 6.5 Execution sequencing (added at the 2026-07-21 refresh)
+
+One commit per phase item, suite green + in-game check after each (house
+rule); estimated 1–2 execution sessions:
+
+1. **A.2** rating delete (pure, smallest risk warm-up).
+2. **A.4** scaffolding prune (Character/EntityManager equip-crafting code,
+   dead `drops[].item` path, asset orphan-scan — items render path stays).
+3. **A.5** `"legacy": true` tag (TDD: schema field per registry + world-zone
+   reference warning + tag the proving-grounds set).
+4. **A.6** bare-name skill renames (+ Heal-collision rename + `Skills.ts`
+   display-name sync; name-pinned Go tests updated in the same commit).
+5. **B + C** structural rename + branding, one atomic commit, naming set
+   decided at its start (choice prompt: module path / binary / namespace).
 
 ## 7. Timing rationale (why step 7)
 
