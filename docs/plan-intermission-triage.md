@@ -550,6 +550,12 @@ exceptions" → capture the stack with source maps. Isolate: clear only
 localStorage (storage theory) vs only HTTP cache (race theory). Fix follows
 the pinned frame.
 
+**2026-07-21 evidence (night-invisibility session):** fired 3× on the *first*
+run in a fresh headless-chromium profile (empty cache — consistent with the
+cold-cache theory) and left the entire canvas frozen black for that session;
+all subsequent runs in the same profile were clean. Still needs the pinned
+stack from the repro protocol above.
+
 ## 22. Skill ID naming consistency
 
 **Type:** audit (done) + **design (pick the convention)** · **Effort: S–M**
@@ -715,3 +721,55 @@ usual TDD + verify pass):
 5. **Step-7 rebrand:** items **22** (bare-name renames) + **12**
    (`legacy: true` tags). **Persistence step:** item **10** sacrifice loop
    (first consumer). **Anytime/annoying:** **21** full repro session.
+
+## Night-readability fix (ad-hoc session, 2026-07-21)
+
+**Night-invisibility bug — INVESTIGATED + FIXED 2026-07-21, PO-VERIFIED
+IN-GAME 2026-07-21 (full night played), committed `6afbee84`.**
+
+**Report:** PO screenshots — "damage aura active + night → my character is
+invisible; ended when it turned day."
+
+**Root cause (not an engine bug):** the DayCycle night tint is a
+`ColorMatrixFilter` (flood 107/131/185 + luma greyscale) applied to a
+**hand-listed** set of containers in `Game.ts` that predated the content
+pass: `characters` was tinted, but every content-pass mob layer (wildlife,
+healer, companion, campfireMob, turnip, brazier, totem, rabbit) silently
+skipped the filter. At full night the 0.9 *multiplicative* flood crushed the
+dark avatar + name + HP bar to near-black while the surrounding world stayed
+bright → reads as "my character vanished". The aura correlation was a
+day/night confound (the ring in the night screenshot was the player's own
+tinted damage ring blending under the campfire's unfiltered glow).
+Secondary finding: the mob layers rendered **above** `characters`, so
+campfire art fully covered a player standing on it — even at day.
+
+**Fix (frontend-only, no wire, commit `6afbee84`):**
+- `Game.ts` — night-filter list is now **derived**: every layer minus an
+  explicit exempt set (campfire placeable + campfireMob + brazier as light
+  sources; darkness overlay per zones-plan §6.5; namePlates/chatMessages/
+  floatingNumbers/vitalSignIndicators overlays). New layers are
+  night-correct by default. Mob-layer block moved **under** `characters`.
+- `DayCycle.ts` — `FLOOD_OPACITY` 0.9 → **0.6 [PLACEHOLDER** — PO tunes at
+  a real full night].
+- `Character.ts` — name + level + HP/shield bar moved onto a world-space
+  plate in the new unfiltered `characterAdditions.namePlates` overlay
+  (chat-bubble follow pattern; released in `hide()`), so characters stay
+  findable at any tint strength.
+
+**Investigation notes (headless Playwright, scratchpad drivers):** false
+leads eliminated on the way: Pixi nested-filter mechanics (the disabled
+Damaged ColorMatrixFilter on `actualShape` is skipped cleanly), Pixi
+RenderableGC (player renderables stayed in the live instruction set), and
+scene-graph state (always healthy — visible/alpha/bounds correct while
+pixel-invisible, which pointed at tint, not rendering). Headless gotchas
+worth keeping: **keyboard input (WASD/hotkeys) does not reach the game in
+headless Playwright** — equip/activate via spellbook `.skillName` click +
+aura-slot li clicks, move via `WARP`; and the player spawns pinned ON the
+spawn campfire, whose art covered the avatar entirely (the z-order finding
+above). `null.split` evidence recorded in §21.
+
+**Verified:** `tsc` + webpack prod build clean; headless night battery
+(avatar readable on open ground and above campfire art, plate follows WARP,
+campfire glow intact, mobs/NPCs uniformly tinted); boot counts unchanged
+(78 skills/13 factions/47 mobs/10 recipes/856 props/349 spawns/5 campfires/
+14 npcs, 0 panics); PO played a full night in-game.
