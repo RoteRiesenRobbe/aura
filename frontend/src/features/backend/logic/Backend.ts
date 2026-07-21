@@ -12,7 +12,7 @@ import * as StartScreen from '../../user-interface/start-screen/logic/StartScree
 import * as EndScreen from '../../user-interface/end-screen/logic/EndScreen';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {activationRejectionMessage} from '../../../client-data/Skills';
-import {BerryhunterApi} from './BerryhunterApi';
+import {AuraApi} from './AuraApi';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
 import {GameState, IGame} from "../../core/logic/IGame";
@@ -118,7 +118,7 @@ export class Backend implements IBackend {
 
         let data: Uint8Array;
         let buffer: flatbuffers.ByteBuffer;
-        let serverMessage: BerryhunterApi.ServerMessage;
+        let serverMessage: AuraApi.ServerMessage;
         try {
             data = new Uint8Array(message.data);
         } catch (e) {
@@ -140,7 +140,7 @@ export class Backend implements IBackend {
         }
 
         try {
-            serverMessage = BerryhunterApi.ServerMessage.getRootAsServerMessage(buffer);
+            serverMessage = AuraApi.ServerMessage.getRootAsServerMessage(buffer);
         } catch (e) {
             if (Develop.isActive()) {
                 Develop.get().logWebsocketStatus('Error reading ServerMessage from ByteBuffer.', 'bad');
@@ -157,18 +157,18 @@ export class Backend implements IBackend {
         }
 
         switch (serverMessage.bodyType()) {
-            case BerryhunterApi.ServerMessageBody.Welcome:
+            case AuraApi.ServerMessageBody.Welcome:
                 this.setState(BackendState.WELCOMED);
-                let welcome = new WelcomeMessage(serverMessage.body(new BerryhunterApi.Welcome()));
+                let welcome = new WelcomeMessage(serverMessage.body(new AuraApi.Welcome()));
                 if (Develop.isActive()) {
                     Develop.get().logServerMessage(welcome, 'Welcome', timeSinceLastMessage);
                 }
                 this.game.startRendering(welcome);
                 break;
-            case BerryhunterApi.ServerMessageBody.Accept:
+            case AuraApi.ServerMessageBody.Accept:
                 this.setState(BackendState.PLAYING);
                 if (Develop.isActive()) {
-                    Develop.get().logServerMessage(serverMessage.body(new BerryhunterApi.Accept()), 'Accept', timeSinceLastMessage);
+                    Develop.get().logServerMessage(serverMessage.body(new AuraApi.Accept()), 'Accept', timeSinceLastMessage);
                 }
 
                 StartScreen.hide();
@@ -176,22 +176,22 @@ export class Backend implements IBackend {
                 HUD.show();
 
                 break;
-            case BerryhunterApi.ServerMessageBody.Obituary:
+            case AuraApi.ServerMessageBody.Obituary:
                 this.setState(BackendState.SPECTATING);
                 if (Develop.isActive()) {
-                    Develop.get().logServerMessage(serverMessage.body(new BerryhunterApi.Obituary()), 'Obituary', timeSinceLastMessage);
+                    Develop.get().logServerMessage(serverMessage.body(new AuraApi.Obituary()), 'Obituary', timeSinceLastMessage);
                 }
 
                 this.game.removePlayer();
                 EndScreen.show();
 
                 break;
-            case BerryhunterApi.ServerMessageBody.EntityMessage:
+            case AuraApi.ServerMessageBody.EntityMessage:
                 /**
                  *
-                 * @type {BerryhunterApi.}
+                 * @type {AuraApi.}
                  */
-                let entityMessage: BerryhunterApi.EntityMessage = serverMessage.body(new BerryhunterApi.EntityMessage());
+                let entityMessage: AuraApi.EntityMessage = serverMessage.body(new AuraApi.EntityMessage());
 
                 if (Develop.isActive()) {
                     Develop.get().logServerMessage(entityMessage, 'EntityMessage', timeSinceLastMessage);
@@ -206,8 +206,8 @@ export class Backend implements IBackend {
                 }
 
                 break;
-            case BerryhunterApi.ServerMessageBody.GameState:
-                let gameState = new GameStateMessage(serverMessage.body(new BerryhunterApi.GameState()));
+            case AuraApi.ServerMessageBody.GameState:
+                let gameState = new GameStateMessage(serverMessage.body(new AuraApi.GameState()));
                 if (this.state === BackendState.WELCOMED) {
                     this.setState(BackendState.SPECTATING);
                     this.game.createSpectator(gameState.player.x, gameState.player.y);
@@ -219,7 +219,7 @@ export class Backend implements IBackend {
                     this.receiveSnapshot(SnapshotFactory.newSnapshot(this.state, gameState));
                 });
                 break;
-            case BerryhunterApi.ServerMessageBody.Pong:
+            case AuraApi.ServerMessageBody.Pong:
                 PongReceivedEvent.trigger();
 
                 if (!this.firstPongReceived) {

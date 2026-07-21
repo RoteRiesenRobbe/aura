@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Headless in-game smoke for berryhunterd + the browser client — build, serve, join, drive the HUD with Playwright. Use to verify frontend/backend changes at the real game surface (not simharness; that has its own skill).
+description: Headless in-game smoke for aurad + the browser client — build, serve, join, drive the HUD with Playwright. Use to verify frontend/backend changes at the real game surface (not simharness; that has its own skill).
 ---
 
 Recipe for driving the actual game headlessly, distilled 2026-07-18. All paths
@@ -12,7 +12,7 @@ relative to the **repo root**.
 cd frontend && npm run build            # backend -dev serves frontend/dist
 make -C backend build                   # only needed for backend changes
 bash .claude/skills/run-simharness/setup-browser.sh   # one-time; shared browser harness
-cd backend && setsid nohup ./berryhunterd -dev -content ../api > /tmp/bh.log 2>&1 < /dev/null &
+cd backend && setsid nohup ./aurad -dev -content ../api > /tmp/bh.log 2>&1 < /dev/null &
 ```
 
 `conf.json` `frontendDir` points at `../frontend/dist` — frontend changes need
@@ -22,7 +22,7 @@ the webpack **prod build**, not just a dev server. Game URL:
 ## Boot-count sanity check
 
 After a content add/edit, confirm the server actually loaded the new definitions
-(a stale `berryhunterd` process silently masks new content). The boot log is
+(a stale `aurad` process silently masks new content). The boot log is
 structured slog JSON; each definition type logs its own `count`:
 
 ```bash
@@ -66,7 +66,7 @@ Copy the browser-launch pattern from
 - The `-dev` server can die mid-session with `Overload! Systems at: 103%`
   under headless load — if `ERR_CONNECTION_REFUSED` appears, check the log
   tail and just restart; it is not caused by your change.
-- Don't `pkill -f berryhunterd` (matches your own shell); use
-  `pkill -x berryhunterd` or a pid file.
+- Don't `pkill -f aurad` (matches your own shell); use
+  `pkill -x aurad` or a pid file.
 - Player names are reserved while the corpse persists — use a fresh name per
   run if a prior run's player just died.

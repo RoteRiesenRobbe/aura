@@ -8,15 +8,15 @@ import (
 	"strconv"
 	"strings"
 
-	afactions "github.com/trichner/berryhunter/pkg/api/factions"
-	aitems "github.com/trichner/berryhunter/pkg/api/items"
-	amobs "github.com/trichner/berryhunter/pkg/api/mobs"
-	askills "github.com/trichner/berryhunter/pkg/api/skills"
-	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
-	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
-	"github.com/trichner/berryhunter/pkg/berryhunter/sim"
-	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
+	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
+	aitems "github.com/RoteRiesenRobbe/aura/pkg/api/items"
+	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
+	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 // mobPreset is one entry of the explorer's mob dropdown: an authored mob's
@@ -47,7 +47,7 @@ const firstMobSkillID skills.SkillID = 100
 
 // contentFS resolves the four content filesystems: the embedded pkg/api
 // copies by default (synced from api/ via `make cp-defs`), or a live
-// api/-layout directory when contentDir is set — the berryhunterd -content
+// api/-layout directory when contentDir is set — the aurad -content
 // convention, so content edits show up on a harness restart without cp-defs.
 func contentFS(contentDir string) (itemsFS, skillsFS, factionsFS, mobsFS fs.FS, err error) {
 	itemsFS, skillsFS, factionsFS, mobsFS = fs.FS(aitems.Items), fs.FS(askills.Skills), fs.FS(afactions.Factions), fs.FS(amobs.Mobs)

@@ -1,5 +1,5 @@
 import * as flatbuffers from "flatbuffers";
-import {BerryhunterApi} from "../../BerryhunterApi";
+import {AuraApi} from "../../AuraApi";
 import {ClientMessage} from "./ClientMessage";
 import {GameLateSetupEvent} from "../../../../core/logic/Events";
 
@@ -13,15 +13,15 @@ export class JoinMessage extends ClientMessage {
 
     private marshal(): flatbuffers.Offset {
         let playerName = this.builder.createString(this.playerName);
-        BerryhunterApi.Join.startJoin(this.builder);
-        BerryhunterApi.Join.addPlayerName(this.builder, playerName);
-        return BerryhunterApi.Join.endJoin(this.builder);
+        AuraApi.Join.startJoin(this.builder);
+        AuraApi.Join.addPlayerName(this.builder, playerName);
+        return AuraApi.Join.endJoin(this.builder);
     }
 
     public send(): void {
         GameLateSetupEvent.subscribe(() => {
             let messageBody = this.marshal();
-            super.send(BerryhunterApi.ClientMessageBody.Join, messageBody);
+            super.send(AuraApi.ClientMessageBody.Join, messageBody);
         });
     }
 }

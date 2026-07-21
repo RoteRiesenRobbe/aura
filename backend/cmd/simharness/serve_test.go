@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/trichner/berryhunter/pkg/berryhunter/sim"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 )
 
 func postRun(t *testing.T, body string) *httptest.ResponseRecorder {

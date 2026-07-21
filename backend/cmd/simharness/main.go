@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/trichner/berryhunter/pkg/berryhunter/sim"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 )
 
 // parseFloats / parseInts parse the comma-separated candidate-list flags.

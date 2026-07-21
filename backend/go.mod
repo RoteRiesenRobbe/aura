@@ -1,4 +1,4 @@
-module github.com/trichner/berryhunter
+module github.com/RoteRiesenRobbe/aura
 
 go 1.22
 

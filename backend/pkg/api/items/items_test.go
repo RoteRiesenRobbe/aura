@@ -4,7 +4,7 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/trichner/berryhunter/pkg/be"
+	"github.com/RoteRiesenRobbe/aura/pkg/be"
 )
 
 func TestLsItems(t *testing.T) {

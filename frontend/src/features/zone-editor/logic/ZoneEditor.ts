@@ -9,7 +9,7 @@
  * hit-testing convert to pixels.
  */
 import {Container, Graphics, Text} from 'pixi.js';
-import {EntityType} from '../../../../../api/schema/js/berryhunter-api/entity-type';
+import {EntityType} from '../../../../../api/schema/js/aura-api/entity-type';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import * as TextDisplay from '../../../client-data/TextDisplay';

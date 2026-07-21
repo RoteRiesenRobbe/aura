@@ -1,4 +1,4 @@
-namespace BerryhunterApi;
+namespace AuraApi;
 
 struct Vec3f {
   x:float;

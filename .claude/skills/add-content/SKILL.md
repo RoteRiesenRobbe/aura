@@ -45,9 +45,9 @@ the bottom. Trust the code over the manual if a path has drifted.
 Adding skills/recipes without bumping their pinned counts makes `go test` fail
 at HEAD (this bit C2 — "Part 1 never bumped the pinned count"). After adding:
 
-- **Skills:** `backend/pkg/berryhunter/skills/registry_test.go` →
+- **Skills:** `backend/pkg/aura/skills/registry_test.go` →
   `assert.Len(t, r.All(), N)` (~line 142). Bump `N` by skills added.
-- **Recipes:** `backend/pkg/berryhunter/skills/recipe_test.go` →
+- **Recipes:** `backend/pkg/aura/skills/recipe_test.go` →
   `assert.Len(t, rr.All(), N)` (~line 163, `TestRecipes_C7Net`). Bump by recipes
   added, and extend the cascade assertions if the net changed.
 - Keep `Skills.ts` counts consistent with the backend registry.
@@ -63,6 +63,6 @@ at HEAD (this bit C2 — "Part 1 never bumped the pinned count"). After adding:
    stale pin = red suite. Run `-race` on the affected packages for logic.
 3. **Boot-count check:** restart and confirm each `Loaded … definitions count=`
    line went up by exactly what you added — see the **Boot-count sanity check**
-   section of the `verify` skill for the exact grep. A stale `berryhunterd`
+   section of the `verify` skill for the exact grep. A stale `aurad`
    process silently masks new content.
 4. **In-game smoke:** the `verify` skill (real client, HUD-driven).

@@ -4,7 +4,7 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/trichner/berryhunter/pkg/be"
+	"github.com/RoteRiesenRobbe/aura/pkg/be"
 )
 
 // TestEmbeddedSkillsIncludeSubdirectories pins the embed pattern: the mob aura

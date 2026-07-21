@@ -1,4 +1,4 @@
-import {BerryhunterApi} from '../../BerryhunterApi';
+import {AuraApi} from '../../AuraApi';
 
 export class WelcomeMessage {
 
@@ -11,7 +11,7 @@ export class WelcomeMessage {
 
     /**
      *
-     * @param {BerryhunterApi.Welcome} welcome
+     * @param {AuraApi.Welcome} welcome
      */
     constructor(welcome) {
         this.serverName = welcome.serverName();

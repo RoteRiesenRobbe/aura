@@ -1,4 +1,4 @@
-import {BerryhunterApi} from "../../BerryhunterApi";
+import {AuraApi} from "../../AuraApi";
 import {ClientMessage} from "./ClientMessage";
 
 export class ChatMessage extends ClientMessage {
@@ -11,9 +11,9 @@ export class ChatMessage extends ClientMessage {
 
     public send(): void {
         let messageString = this.builder.createString(this.message);
-        BerryhunterApi.ChatMessage.startChatMessage( this.builder);
-        BerryhunterApi.ChatMessage.addMessage( this.builder, messageString);
-        let body = BerryhunterApi.ChatMessage.endChatMessage( this.builder);
-        super.send(BerryhunterApi.ClientMessageBody.ChatMessage, body);
+        AuraApi.ChatMessage.startChatMessage( this.builder);
+        AuraApi.ChatMessage.addMessage( this.builder, messageString);
+        let body = AuraApi.ChatMessage.endChatMessage( this.builder);
+        super.send(AuraApi.ClientMessageBody.ChatMessage, body);
     }
 }

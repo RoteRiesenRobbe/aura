@@ -2,7 +2,7 @@
 
 .PHONY: dev build gen fmt
 
-build: berryhunterd.build
+build: aurad.build
 
 gen:
 	@go generate ./...
@@ -18,7 +18,7 @@ cp-defs:
 %.build: gen cp-defs
 	go build -o $* ./cmd/$*
 
-dev: berryhunterd.dev
+dev: aurad.dev
 
 %.dev: gen cp-defs
 	go run ./cmd/$* -dev

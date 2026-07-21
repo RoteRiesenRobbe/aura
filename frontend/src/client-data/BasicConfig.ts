@@ -40,7 +40,7 @@ export const BasicConfig = {
     /**
      * Area of interest as management by the backend.
      *
-     * SYNCED WITH BACKEND (backend/pkg/berryhunter/model/constant/const.go:5)
+     * SYNCED WITH BACKEND (backend/pkg/aura/model/constant/const.go:5)
      */
     VIEWPORT: {
         WIDTH: <number>  meter2px(20),

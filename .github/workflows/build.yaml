@@ -31,7 +31,7 @@ jobs:
         name: Upload assets
         uses: actions/upload-artifact@v4
         with:
-          name: berryhunterd
+          name: aurad
           path: dist/*
       - uses: actions/setup-node@v4
         with:

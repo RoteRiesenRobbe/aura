@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
+	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 )
 
 var addr = flag.String("addr", "localhost:2000", "http service address")
@@ -48,7 +48,7 @@ func main() {
 			}
 			slog.Info("rx message", slog.String("type", formatWebsocketMessageType(mt)), slog.Any("len", len(message)))
 
-			msg := BerryhunterApi.GetRootAsServerMessage(message, 0)
+			msg := AuraApi.GetRootAsServerMessage(message, 0)
 			logServerMessage(msg)
 		}
 	}()
@@ -86,8 +86,8 @@ func main() {
 	}
 }
 
-func logServerMessage(msg *BerryhunterApi.ServerMessage) {
-	slog.Info("server message", slog.String("type", BerryhunterApi.EnumNamesServerMessageBody[msg.BodyType()]))
+func logServerMessage(msg *AuraApi.ServerMessage) {
+	slog.Info("server message", slog.String("type", AuraApi.EnumNamesServerMessageBody[msg.BodyType()]))
 }
 
 func formatWebsocketMessageType(t int) string {

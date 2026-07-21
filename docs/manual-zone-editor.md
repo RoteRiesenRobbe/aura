@@ -25,7 +25,7 @@ root** (`aurahunter/`) — check your prompt: if you are already inside
 
 ```bash
 make -C backend build
-cd backend && ./berryhunterd -dev -content ../api
+cd backend && ./aurad -dev -content ../api
 ```
 
 `-content ../api` makes the server read the zone files in `api/zones/` (and
@@ -258,7 +258,7 @@ debug/test map, loaded with `-zone proving-grounds`).
 4. **Restart the backend**, selecting your zone by id:
 
    ```bash
-   ./berryhunterd -dev -content ../api -zone <id>
+   ./aurad -dev -content ../api -zone <id>
    ```
 
    (Or set `game.zone` in `conf.json` — without `-zone` the server loads the

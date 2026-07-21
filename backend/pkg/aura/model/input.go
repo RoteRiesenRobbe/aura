@@ -1,0 +1,27 @@
+package model
+
+import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+)
+
+// active_aura_slot wire values. NOTE: -2 is a wire-only sentinel — a workaround for
+// FlatBuffers omitting a scalar equal to its schema default (-1), which makes an
+// explicit -1 indistinguishable from an absent field. Keep this name and comment in
+// sync with the frontend DEACTIVATE_AURA_SLOT constant (InputMessage.ts); together
+// they form one wire contract. Collapse -2 onto -1 if the schema default is ever
+// changed and regenerated.
+const (
+	ActiveAuraSlotNoChange   = -1 // client sent no active-aura command this input (wire default)
+	ActiveAuraSlotDeactivate = -2 // client explicitly requests Nothing (no active aura)
+)
+
+type PlayerInput struct {
+	Tick           uint64
+	Movement       *phy.Vec2f
+	Rotation       float32
+	ActiveAuraSlot int // ActiveAuraSlotNoChange / ActiveAuraSlotDeactivate / >= 0 = switch to that slot
+
+	// CooldownActivations holds cooldown slot indices to activate this tick;
+	// empty for most inputs. Out-of-range values are dropped downstream.
+	CooldownActivations []int
+}

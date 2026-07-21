@@ -29,7 +29,7 @@ export const GraphicsConfig = {
         /**
          * Physical collider radius used by backend for player body.
          *
-         * SYNCED WITH BACKEND (backend/pkg/berryhunter/model/player/player.go)
+         * SYNCED WITH BACKEND (backend/pkg/aura/model/player/player.go)
          */
         colliderRadiusMeters: <number> 0.25,
 

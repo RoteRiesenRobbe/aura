@@ -7,7 +7,7 @@ import {Corpse} from '../../../../game-objects/logic/Corpse';
 import {Placeable} from '../../../../game-objects/logic/Placeable';
 import {isFunction} from '../../../../common/logic/Utils';
 import {StatusEffectDefinition} from '../../../../game-objects/logic/StatusEffect'
-import {BerryhunterApi} from '../../BerryhunterApi';
+import {AuraApi} from '../../AuraApi';
 
 export class Spectator {
     id: number;
@@ -15,7 +15,7 @@ export class Spectator {
     isSpectator: boolean = true;
 
     /**
-     * @param {BerryhunterApi.Spectator} spectator
+     * @param {AuraApi.Spectator} spectator
      */
     constructor(spectator) {
         this.id = Number(spectator.id());
@@ -51,17 +51,17 @@ export class GameStateMessage {
     activationRejectedSkillId: number;
     activationRejectedReason: number;
 
-    constructor(gameState: BerryhunterApi.GameState) {
+    constructor(gameState: AuraApi.GameState) {
         this.tick = Number(gameState.tick());
 
         switch (gameState.playerType()) {
-            case BerryhunterApi.Player.Spectator:
-                this.player = new Spectator(gameState.player(new BerryhunterApi.Spectator()));
+            case AuraApi.Player.Spectator:
+                this.player = new Spectator(gameState.player(new AuraApi.Spectator()));
                 break;
-            case BerryhunterApi.Player.Character:
+            case AuraApi.Player.Character:
                 this.player = unmarshalEntity(
-                    gameState.player(new BerryhunterApi.Character()),
-                    BerryhunterApi.AnyEntity.Character);
+                    gameState.player(new AuraApi.Character()),
+                    AuraApi.AnyEntity.Character);
                 break;
         }
 
@@ -115,7 +115,7 @@ export class GameStateMessage {
 
 /**
  *
- * @param {BerryhunterApi.Vec2f|null} vec2f
+ * @param {AuraApi.Vec2f|null} vec2f
  */
 function unmarshalVec2f(vec2f) {
     return {
@@ -125,25 +125,25 @@ function unmarshalVec2f(vec2f) {
 }
 
 /**
- * @param {BerryhunterApi.Entity} wrappedEntity
+ * @param {AuraApi.Entity} wrappedEntity
  */
-function unmarshalWrappedEntity(wrappedEntity: BerryhunterApi.Entity) {
-    const eType: BerryhunterApi.AnyEntity = wrappedEntity.eType();
+function unmarshalWrappedEntity(wrappedEntity: AuraApi.Entity) {
+    const eType: AuraApi.AnyEntity = wrappedEntity.eType();
 
-    if (eType === BerryhunterApi.AnyEntity.NONE) {
+    if (eType === AuraApi.AnyEntity.NONE) {
         return null;
     }
 
     const entityCtors = {
-        [BerryhunterApi.AnyEntity.Character]: BerryhunterApi.Character,
-        [BerryhunterApi.AnyEntity.Mob]:       BerryhunterApi.Mob,
-        [BerryhunterApi.AnyEntity.Resource]:  BerryhunterApi.Resource,
-        [BerryhunterApi.AnyEntity.Placeable]: BerryhunterApi.Placeable,
+        [AuraApi.AnyEntity.Character]: AuraApi.Character,
+        [AuraApi.AnyEntity.Mob]:       AuraApi.Mob,
+        [AuraApi.AnyEntity.Resource]:  AuraApi.Resource,
+        [AuraApi.AnyEntity.Placeable]: AuraApi.Placeable,
     };
     let entity = new entityCtors[eType]();
 
     /**
-     * @type {BerryhunterApi.Mob | BerryhunterApi.Resource | BerryhunterApi.Player}
+     * @type {AuraApi.Mob | AuraApi.Resource | AuraApi.Player}
      */
     entity = wrappedEntity.e(entity);
 
@@ -194,16 +194,16 @@ function unmarshalEntity(entity, eType) {
         auraTickPhase: undefined,
     };
 
-    if (eType === BerryhunterApi.AnyEntity.Resource) {
+    if (eType === AuraApi.AnyEntity.Resource) {
         result.capacity = entity.capacity();
         result.stock = entity.stock();
     }
 
-    if (eType === BerryhunterApi.AnyEntity.Placeable) {
+    if (eType === AuraApi.AnyEntity.Placeable) {
         result.item = unmarshalItem(entity.item());
     }
 
-    if (eType === BerryhunterApi.AnyEntity.Mob) {
+    if (eType === AuraApi.AnyEntity.Mob) {
         result.rotation = entity.rotation();
         result.health = entity.health();
         result.maxHealth = entity.maxHealth();
@@ -230,7 +230,7 @@ function unmarshalEntity(entity, eType) {
         result.auraTickPhase = entity.auraTickPhase();
     }
 
-    if (eType === BerryhunterApi.AnyEntity.Character) {
+    if (eType === AuraApi.AnyEntity.Character) {
         result.isSpectator = false;
 
         result.rotation = entity.rotation();
@@ -276,7 +276,7 @@ function unmarshalEntity(entity, eType) {
 }
 
 /**
- * Has to be in sync with BerryhunterApi.EntityType
+ * Has to be in sync with AuraApi.EntityType
  */
 const gameObjectClasses = [
     DebugCircle,
@@ -358,7 +358,7 @@ function unmarshalEntityType(entityType) {
 
 /**
  *
- * @param {BerryhunterApi.AABB|null} aabb
+ * @param {AuraApi.AABB|null} aabb
  */
 function unmarshalAABB(aabb) {
     return {

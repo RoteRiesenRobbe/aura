@@ -8,7 +8,7 @@ module.exports = {
 	entry: './src/index.ts',
 	plugins: [
 		new HtmlWebpackPlugin({
-			title: 'BerryHunter',
+			title: 'Aura',
 			xhtml: true,
 			meta: {
 				viewport: 'width=device-width, initial-scale=1, user-scalable=no, interactive-widget=resizes-content'
@@ -20,7 +20,7 @@ module.exports = {
 			prefix: '',
 			inject: true,
 			favicons: {
-				appName: 'BerryHunter',
+				appName: 'Aura',
 				appDescription: 'A 2D multiplayer stone age survival game',
 				developerName: 'Team Dodo',
 				developerURL: 'https://berryhunter.io',

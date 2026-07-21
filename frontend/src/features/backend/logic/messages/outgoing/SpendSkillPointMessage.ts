@@ -1,4 +1,4 @@
-import {BerryhunterApi} from "../../BerryhunterApi";
+import {AuraApi} from "../../AuraApi";
 import {ClientMessage} from "./ClientMessage";
 
 export class SpendSkillPointMessage extends ClientMessage {
@@ -12,10 +12,10 @@ export class SpendSkillPointMessage extends ClientMessage {
     }
 
     public send(): void {
-        BerryhunterApi.SpendSkillPoint.startSpendSkillPoint(this.builder);
-        BerryhunterApi.SpendSkillPoint.addSkillId(this.builder, this.skillId);
-        BerryhunterApi.SpendSkillPoint.addUnspend(this.builder, this.unspend);
-        let body = BerryhunterApi.SpendSkillPoint.endSpendSkillPoint(this.builder);
-        super.send(BerryhunterApi.ClientMessageBody.SpendSkillPoint, body);
+        AuraApi.SpendSkillPoint.startSpendSkillPoint(this.builder);
+        AuraApi.SpendSkillPoint.addSkillId(this.builder, this.skillId);
+        AuraApi.SpendSkillPoint.addUnspend(this.builder, this.unspend);
+        let body = AuraApi.SpendSkillPoint.endSpendSkillPoint(this.builder);
+        super.send(AuraApi.ClientMessageBody.SpendSkillPoint, body);
     }
 }

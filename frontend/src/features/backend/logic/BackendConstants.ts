@@ -1,6 +1,6 @@
 import {Items} from '../../items/logic/Items';
 import {StatusEffect, StatusEffectDefinition} from '../../game-objects/logic/StatusEffect';
-import {BerryhunterApi} from './BerryhunterApi';
+import {AuraApi} from './AuraApi';
 
 
 export const NONE_ITEM_ID = 0;
@@ -18,9 +18,9 @@ function initializeItemLookupTable() {
 export const statusEffectLookupTable: StatusEffectDefinition[] = [];
 
 function initializeStatusEffectLookupTable() {
-    for (let statusEffect in BerryhunterApi.StatusEffect) {
+    for (let statusEffect in AuraApi.StatusEffect) {
         //noinspection JSUnfilteredForInLoop
-        statusEffectLookupTable[BerryhunterApi.StatusEffect[statusEffect]] = StatusEffect[statusEffect];
+        statusEffectLookupTable[AuraApi.StatusEffect[statusEffect]] = StatusEffect[statusEffect];
     }
 }
 

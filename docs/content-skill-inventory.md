@@ -9,7 +9,7 @@ design intent (that lives in `content-auras.md` / `content-passives.md` /
 (id/name/category/maxLevel/cooldownTicks + each effect's key params), then
 cross-reference sources from: `api/mobs/*.json` `unlocks[]`,
 `api/zones/world.json` + `proving-grounds.json` `npcs[].teachings[]`,
-`api/recipes/*.json`, `backend/pkg/berryhunter/skills/milestone-unlocks.json`,
+`api/recipes/*.json`, `backend/pkg/aura/skills/milestone-unlocks.json`,
 and `initializePlayerSkills` (`model/player/player.go`). E.g.:
 
 ```bash

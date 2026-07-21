@@ -1,4 +1,4 @@
-import {BerryhunterApi} from "../../BerryhunterApi";
+import {AuraApi} from "../../AuraApi";
 import {ClientMessage} from "./ClientMessage";
 import {GameLateSetupEvent} from "../../../../core/logic/Events";
 
@@ -11,14 +11,14 @@ import {GameLateSetupEvent} from "../../../../core/logic/Events";
 export class RespawnMessage extends ClientMessage {
 
     private marshal(): number {
-        BerryhunterApi.Respawn.startRespawn(this.builder);
-        return BerryhunterApi.Respawn.endRespawn(this.builder);
+        AuraApi.Respawn.startRespawn(this.builder);
+        return AuraApi.Respawn.endRespawn(this.builder);
     }
 
     public send(): void {
         GameLateSetupEvent.subscribe(() => {
             let messageBody = this.marshal();
-            super.send(BerryhunterApi.ClientMessageBody.Respawn, messageBody);
+            super.send(AuraApi.ClientMessageBody.Respawn, messageBody);
         });
     }
 }

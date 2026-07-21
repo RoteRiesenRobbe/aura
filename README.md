@@ -1,6 +1,7 @@
-# Berryhunter
+# Aura
 
-Repo for the most awesome berry-hunting experience.
+Top-down browser MMO where players and NPCs interact exclusively through auras.
+(Formerly Berryhunter — see `docs/plan-rebrand-cleanup.md`.)
 
 ## Running Locally on Windows with IntelliJ IDEA (2026 Edition)
 
@@ -41,15 +42,15 @@ This section describes how to run and debug the project natively on Windows usin
 
 Two IntelliJ run configurations are used — start them in order:
 
-#### 1. Backend — `go build berryhunterd`
+#### 1. Backend — `go build aurad`
 
 This compiles and runs the Go backend server.
 
 - **Type:** Go Application
-- **Package Path:** `github.com/trichner/berryhunter/cmd/berryhunterd`
+- **Package Path:** `github.com/RoteRiesenRobbe/aura/cmd/aurad`
 - **Working directory:** `<project root>/backend`
 
-Run it via **Run > Run 'go build berryhunterd'**, or use **Run > Debug** to attach IntelliJ's debugger. Breakpoints set in Go source files will be hit normally.
+Run it via **Run > Run 'go build aurad'**, or use **Run > Debug** to attach IntelliJ's debugger. Breakpoints set in Go source files will be hit normally.
 
 The backend starts on the port configured in `backend/conf.json` (default: `2000`).
 
@@ -83,18 +84,18 @@ http://localhost:2001/?token=plz&wsUrl=ws://localhost:2000/game
 The following query parameters are optional but helpful during development:
 
 * `&develop`: Opens the draggable development panel in the frontend UI
-* `&start-cmds=GOD,GIVE BronzeTool,GIVE IronSpear,GIVE Furnace 3,GIVE Berry 100`: Runs server-side commands on spawn, letting you skip the early game
+* `&start-cmds=GOD,SKILL Damage,XP`: Runs server-side commands on spawn, letting you skip the early game (available cheats: `GOD`, `WARP`, `SPEED`, `XP`, `SKILL <name>`, `ANNOUNCE`, `THREAT`)
 
 To disable god mode during a run, type `#god off` into chat or the console (openable on Windows keyboards via the `^` key.)
 
-A fully loaded dev URL (with god mode and a few starter items) looks like:
+A fully loaded dev URL (with god mode and a head start) looks like:
 
-http://localhost:2001/?token=plz&start-cmds=GOD,GIVE%20BronzeTool,GIVE%20IronSpear,GIVE%20Furnace%203,GIVE%20Berry%20100&develop&wsUrl=ws://localhost:2000/game
+http://localhost:2001/?token=plz&start-cmds=GOD,SKILL%20Damage,XP&develop&wsUrl=ws://localhost:2000/game
 
 ### Debugging the backend in IntelliJ
 
 1. Set breakpoints anywhere in the Go source code.
-2. Use **Run > Debug 'go build berryhunterd'** instead of Run.
+2. Use **Run > Debug 'go build aurad'** instead of Run.
 3. IntelliJ uses [Delve](https://github.com/go-delve/delve) under the hood — it is installed automatically by the Go plugin.
 4. The frontend dev server runs independently and does not need to be restarted when the backend is restarted.
 
@@ -128,7 +129,7 @@ Debugging in IntelliJ might be possible, but has not yet been tested.
 3. boot the server
     ```
     cd backend
-    ./berryhunterd -dev
+    ./aurad -dev
     ```
 4. check the console to figure out what URL to open in your local browser, probably http://localhost:2000/?wsUrl=ws://localhost:2000/game
 5. profit!
@@ -154,19 +155,11 @@ There is an [official guide](https://learn.microsoft.com/en-us/windows/wsl/insta
 7. `sudo apt update && sudo apt upgrade` will install the latest system updates
 8. Inside Ubuntu, run `explorer.exe .` --> this opens a regular Windows explorer window (at `\\wsl.localhost\Ubuntu-24.04\home\[username]\` ). If you are familiar with Unix you will notice how this path is a combination of a windows mounted "network" drive, your WSL distribution and finally the Unix filesystem.
 9. Create a folder `workspaces` inside this Ubuntu home folder.
-10. Checkout `berryhunter` here and open the project in your IDE
+10. Checkout `aura` here and open the project in your IDE
 11. From here on you can follow the general/mac instructions
     - use `sudo -i` to become the root user for the rest of your session
     - `exit` ends your root session
     - Use `sudo apt install [software]` to install everything you need
     - To install go use `sudo snap install go --classic`
-
-### Mac Environment
-(Last updated 30.10.2018)
-
-- open a terminal at project root
-- run `make`. This will take a while when running first time (about 10 minutes)
-- run `./up.sh` to load the images into docker and start docker
-- game url: http://local.berryhunter.io:2015/?local
 
 :V

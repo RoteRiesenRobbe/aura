@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/trichner/berryhunter/pkg/berryhunter/sim"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 )
 
 //go:embed index.html

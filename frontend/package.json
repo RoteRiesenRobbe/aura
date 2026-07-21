@@ -1,7 +1,7 @@
 {
-  "name": "berryhunter-frontend",
+  "name": "aura-frontend",
   "version": "0.0.1",
-  "description": "Frontend for BerryHunter.io game",
+  "description": "Frontend for the Aura game",
   "scripts": {
     "build": "webpack --config webpack.prod.js",
     "start": "webpack serve --config webpack.dev.js",
@@ -9,7 +9,7 @@
     "visualize": "webpack  --config webpack.visualize.js"
   },
   "main": "game.js",
-  "repository": "https://github.com/trichner/berryhunter",
+  "repository": "https://github.com/RoteRiesenRobbe/aura",
   "author": "Raoul Zander",
   "license": "UNLICENSED",
   "private": true,

@@ -929,7 +929,7 @@ would it be to allow configuring [scripted boss fights] like that, even for
 mobs, in the editor tool?" Assessment recorded; NOT scheduled.)*
 
 Today an encounter is a hand-written Go struct (`encounter/smoke.go`)
-registered per zone in `berryhunterd.go`; the zone editor only authors
+registered per zone in `aurad.go`; the zone editor only authors
 props/spawns/terrain (+ per-spawn wander/waypoints). Two distinct asks hide
 in the question:
 

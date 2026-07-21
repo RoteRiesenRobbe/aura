@@ -19,21 +19,21 @@ anchors — all via the in-game editor) is `docs/manual-zone-editor.md`.
   - `make -C backend build` runs `cp-defs` (copies `api/*` into
     `backend/pkg/api/` for `go:embed`) then builds the binary. Required for any
     Go or `.fbs` change, and for anything embedded (see `milestone-unlocks.json`).
-  - `./berryhunterd -dev -content ../api` reads the repo `api/` directly —
+  - `./aurad -dev -content ../api` reads the repo `api/` directly —
     JSON-only edits skip **both** `cp-defs` and the rebuild. A **restart still
     applies them**. The boot log prints the content source.
 - **Numbers are placeholders.** Every stat/radius/chance is `[PLACEHOLDER]` until
   a balance pass. Level scaling is always `base + (level−1) × perLevel`.
 - **Sync gotcha:** always check the boot log counts after a restart
-  (`Loaded skill definitions count=…`). A stale `berryhunterd` process silently
-  masks new content — `pkill berryhunterd`, rebuild, re-check.
+  (`Loaded skill definitions count=…`). A stale `aurad` process silently
+  masks new content — `pkill aurad`, rebuild, re-check.
 
 ---
 
 ## 1. New mob
 
 A mob's JSON `name` is resolved **directly against the `EntityType` enum**
-(`backend/pkg/berryhunter/model/mob/mob.go`, `types[d.Name]` — `log.Fatal` if the
+(`backend/pkg/aura/model/mob/mob.go`, `types[d.Name]` — `log.Fatal` if the
 name has no matching enum entry). So a **genuinely new mob type requires a new
 `EntityType`** — the same "5-file path" the props work used.
 
@@ -214,8 +214,8 @@ editor-authorable — is the end-to-end walkthrough in
 If it composes an **already-supported effect type**, this is mostly JSON with no
 wire changes — skills ride the existing spellbook stream. A **brand-new effect
 type** is Go work (payload struct + `effectKeys` allowlist + validator in
-`backend/pkg/berryhunter/skills/definition.go`, plus a dispatch case in
-`backend/pkg/berryhunter/sys/skills.go`).
+`backend/pkg/aura/skills/definition.go`, plus a dispatch case in
+`backend/pkg/aura/sys/skills.go`).
 
 Existing effect `type`s to compose: `damage_aura`, `instant_damage`, `heal_aura`,
 `self_heal`, `slow_aura`, `resist_aura`, `resist_passive`, `stat_multiplier`,
@@ -232,7 +232,7 @@ Existing effect `type`s to compose: `damage_aura`, `instant_damage`, `heal_aura`
      `damageTags`, `hitStyle`)
 2. **Pick an unlock source:**
    - **Milestone** — add to
-     `backend/pkg/berryhunter/skills/milestone-unlocks.json`.
+     `backend/pkg/aura/skills/milestone-unlocks.json`.
      ⚠️ This file is **embedded/code-adjacent**, so it needs a **rebuild even with
      `-content`**.
    - **Kill drop** — add `{skillName, chance}` to a mob's `unlocks[]`.
@@ -315,7 +315,7 @@ Webpack picks up SVG changes on rebuild / HMR.
 ## 5. Scripted encounter / boss fight (encounter controller)
 
 An encounter is **one Go struct behind the `Encounter` interface**
-(`backend/pkg/berryhunter/encounter/`) — deliberately code-defined, not a
+(`backend/pkg/aura/encounter/`) — deliberately code-defined, not a
 data/DSL format (roadmap decision F3; revisit only with many encounters + a
 non-engineer author). The `encounter.System` runs every registered encounter's
 lifecycle hooks each tick; everything the script *does* goes through exported
@@ -335,7 +335,7 @@ work is deliberately deferred to the first real boss).
 | `Mob.SetFleeOverride(on)` | `model/mob/mob.go` | Scripted flee at any HP. Also counts as in-combat for the leash, so the **threat table survives the whole phase**; drop the override and retention re-targets the top threat automatically — no re-engage code |
 | Threat seams | `model/mob/mob.go` | `NoteThreat`, `ForceThreatToTop`, `DropThreat`, `TargetsEntity`, `ThreatSnapshot` — script-side threat manipulation (same seams Taunt/Fade use) |
 | Summon-era seams | `model/mob/mob.go` | `SetFaction`, `SetTTLTicks`, `RaiseMaxHealth`, `SetSummonPower` — usable on encounter spawns too if a phase wants them |
-| `game.RegisterEncounter(e)` | `core/game.go` | Registration, called from `berryhunterd.go` post-construction |
+| `game.RegisterEncounter(e)` | `core/game.go` | Registration, called from `aurad.go` post-construction |
 
 ### Step by step
 
@@ -348,7 +348,7 @@ work is deliberately deferred to the first real boss).
      never fight each other.
    - **No `fleeBelowHealthRatio`** on the boss — flee should be *scripted*
      (the override), not autonomous, or the two will fight.
-2. **Write the encounter struct** in `backend/pkg/berryhunter/encounter/`
+2. **Write the encounter struct** in `backend/pkg/aura/encounter/`
    (or a subpackage later, when there are many). Patterns from `smoke.go`:
    - **State is plain fields**: mob handles (`*mob.Mob`, nil = dead), per-slot
      respawn ticks, one-shot phase latches (`fled bool`), a reset tick.
@@ -368,7 +368,7 @@ work is deliberately deferred to the first real boss).
    - **Own your resets**: since encounter spawns never respawn themselves,
      schedule an arena reset (`resetAt`) on boss death and clear pending
      per-slot timers when you respawn a slot, or a stale timer double-spawns.
-3. **Register it** in `cmd/berryhunterd/berryhunterd.go` after prop
+3. **Register it** in `cmd/aurad/aurad.go` after prop
    placement, gated on the zone:
    ```go
    if zone.ID == "my-zone" {
@@ -409,7 +409,7 @@ work is deliberately deferred to the first real boss).
 
 Since C6, encounter positions come from the zone's `anchors` section
 (`{"name", "x", "y"}`, editor-movable — manual-zone-editor.md §5b) instead
-of Go constants: resolve them at the registration site in `berryhunterd.go`
+of Go constants: resolve them at the registration site in `aurad.go`
 and **panic on a missing anchor** (content bug = loud boot failure). The
 `OrcWarlordEncounter` is the reference: 4 anchors in, structure tunables as
 named constants at the top of `encounter/warlord.go`, all WHAT-happens logic

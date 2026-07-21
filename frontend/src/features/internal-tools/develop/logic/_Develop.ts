@@ -12,7 +12,7 @@ import {
 } from '../../../common/logic/Utils';
 import * as Console from '../../console/logic/Console';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
-import {BerryhunterApi} from '../../../backend/logic/BerryhunterApi';
+import {AuraApi} from '../../../backend/logic/AuraApi';
 import {IGame} from "../../../core/logic/IGame";
 import {InputMessage} from "../../../backend/logic/messages/outgoing/InputMessage";
 import {IDevelop} from "./IDevelop";

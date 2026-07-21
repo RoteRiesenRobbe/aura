@@ -32,9 +32,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
-	"github.com/trichner/berryhunter/pkg/berryhunter/sim"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 )
 
 const (

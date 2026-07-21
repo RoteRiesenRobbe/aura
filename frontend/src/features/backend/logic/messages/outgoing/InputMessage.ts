@@ -1,6 +1,6 @@
 import {radians} from "../../../../common/logic/Types";
 import {Vector} from "../../../../core/logic/Vector";
-import {BerryhunterApi} from "../../BerryhunterApi";
+import {AuraApi} from "../../AuraApi";
 import * as flatbuffers from "flatbuffers";
 import {ClientMessage} from "./ClientMessage";
 import * as BackendConstants from "../../BackendConstants";
@@ -28,33 +28,33 @@ export class InputMessage extends ClientMessage {
         // Vectors must be built before startInput (FlatBuffers rule).
         let cooldownActivations: flatbuffers.Offset = null;
         if (this.cooldownActivations.length > 0) {
-            cooldownActivations = BerryhunterApi.Input.createCooldownActivationsVector(this.builder, this.cooldownActivations);
+            cooldownActivations = AuraApi.Input.createCooldownActivationsVector(this.builder, this.cooldownActivations);
         }
 
-        BerryhunterApi.Input.startInput(this.builder);
+        AuraApi.Input.startInput(this.builder);
 
         if (this.movement !== null) {
-            BerryhunterApi.Input.addMovement(this.builder,
-                BerryhunterApi.Vec2f.createVec2f(this.builder, this.movement.x, this.movement.y));
+            AuraApi.Input.addMovement(this.builder,
+                AuraApi.Vec2f.createVec2f(this.builder, this.movement.x, this.movement.y));
         }
 
         if (isDefined(this.rotation)) {
-            BerryhunterApi.Input.addRotation(this.builder, this.rotation);
+            AuraApi.Input.addRotation(this.builder, this.rotation);
         }
 
         // Marshal any real command: slot index (>= 0) or the -2 deactivate sentinel.
         // The default -1 ("no change") stays omitted so it reads as absent on the wire.
         if (this.activeAuraSlot !== -1) {
-            BerryhunterApi.Input.addActiveAuraSlot(this.builder, this.activeAuraSlot);
+            AuraApi.Input.addActiveAuraSlot(this.builder, this.activeAuraSlot);
         }
 
         if (cooldownActivations !== null) {
-            BerryhunterApi.Input.addCooldownActivations(this.builder, cooldownActivations);
+            AuraApi.Input.addCooldownActivations(this.builder, cooldownActivations);
         }
 
-        BerryhunterApi.Input.addTick(this.builder, BigInt(this.tick));
+        AuraApi.Input.addTick(this.builder, BigInt(this.tick));
 
-        return BerryhunterApi.Input.endInput(this.builder);
+        return AuraApi.Input.endInput(this.builder);
     }
 
     public send(): void {
@@ -70,6 +70,6 @@ export class InputMessage extends ClientMessage {
         }
 
         let messageBody = this.marshal();
-        super.send(BerryhunterApi.ClientMessageBody.Input, messageBody);
+        super.send(AuraApi.ClientMessageBody.Input, messageBody);
     }
 }

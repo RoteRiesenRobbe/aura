@@ -1,5 +1,5 @@
 // Static skill ID → display name map.
-// Tech debt: duplicates backend skill registry (backend/pkg/berryhunter/skills/).
+// Tech debt: duplicates backend skill registry (backend/pkg/aura/skills/).
 // Acceptable at a handful of skills; revisit when the skill list grows.
 export const SkillNames: { [id: number]: string } = {
     1: 'Damage',

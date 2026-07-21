@@ -16,7 +16,7 @@ Check what changed (`git status`, `git diff --stat`) and pick the cheapest path:
 | Changed | Action |
 |---|---|
 | `api/**/*.json` only (items, mobs, skills, recipes, zones, props, factions) | **No rebuild.** Restart with `-content ../api` |
-| Backend `.go` | `make -C backend build` (plain `go build ./...` does **not** refresh `./berryhunterd`) |
+| Backend `.go` | `make -C backend build` (plain `go build ./...` does **not** refresh `./aurad`) |
 | `api/schema/*.fbs` | `cd api/schema && ./make.sh`, then backend build **and** frontend build |
 | `frontend/**` | Nothing if the webpack dev server (port 2001) is up — HMR picks it up |
 
@@ -26,12 +26,12 @@ edit — `cp-defs` reverts `backend/pkg/api/` from source and wastes a minute.
 
 ## 2. Restart the server
 
-Kill the stale process first — a running `berryhunterd` silently serves old
+Kill the stale process first — a running `aurad` silently serves old
 content and that has burned sessions before.
 
 ```bash
-pkill -f berryhunterd; sleep 1
-cd backend && setsid nohup ./berryhunterd -dev -content ../api \
+pkill -f aurad; sleep 1
+cd backend && setsid nohup ./aurad -dev -content ../api \
   > "$SCRATCH/server.log" 2>&1 < /dev/null &
 sleep 4
 ```

@@ -80,9 +80,9 @@ When fixing a bug: first write a test that reproduces it, then fix.
 
 ## Project Overview
 
-**Berryhunter** (repo name: aurahunter) is a multiplayer browser survival game. Players gather resources, craft items, manage vitals (health, satiety, temperature), and fight mobs. The repo has three main parts:
+**Aura** (formerly Berryhunter; module path `github.com/RoteRiesenRobbe/aura`, local workspace dir `aurahunter`) is a multiplayer top-down browser MMO built on the Berryhunter survival-game foundation. The repo has three main parts:
 
-- `backend/` — Go game server (`berryhunterd`)
+- `backend/` — Go game server (`aurad`)
 - `frontend/` — TypeScript/webpack browser client using PixiJS
 - `api/` — Shared FlatBuffers schemas and JSON item/mob definitions
 
@@ -96,20 +96,20 @@ cp backend/conf.local-windows.json backend/conf.json   # Windows
 # or use backend/conf.default.json as a template
 
 # Build
-make -C backend build          # produces backend/berryhunterd
+make -C backend build          # produces backend/aurad
 
 # Run (dev mode serves static frontend too)
-cd backend && ./berryhunterd -dev
+cd backend && ./aurad -dev
 
 # Run without build (go run)
 make -C backend dev
 ```
 
 > **Gotcha:** after backend logic changes, rebuild the binary with `make -C backend build`.
-> `go build ./...` compiles/type-checks packages but does **not** refresh `./berryhunterd`,
+> `go build ./...` compiles/type-checks packages but does **not** refresh `./aurad`,
 > so a running `-dev` server keeps executing stale code.
 
-> **Content iteration:** `./berryhunterd -dev -content ../api` loads items/mobs/skills/recipes
+> **Content iteration:** `./aurad -dev -content ../api` loads items/mobs/skills/recipes
 > from the repo `api/` directory directly instead of the embedded copies — JSON edits then skip
 > both `cp-defs` and the rebuild (a server restart still applies them). The boot log prints the
 > content source (`Loading content source=…`). Production/default stays embedded.
@@ -146,7 +146,7 @@ Optional dev query params:
 cd backend && go test -timeout 60s ./...
 ```
 
-The full suite runs and passes. (`backend/pkg/berryhunter/net/net_test.go` is a manual `ListenAndServe` smoke script that used to hang the suite; it is now skipped via `t.Skip` — remove the skip to run it explicitly.)
+The full suite runs and passes. (`backend/pkg/aura/net/net_test.go` is a manual `ListenAndServe` smoke script that used to hang the suite; it is now skipped via `t.Skip` — remove the skip to run it explicitly.)
 
 The test runner requires generated files (`go generate ./...`). The Makefile `gen` target runs this automatically before builds.
 
@@ -166,13 +166,13 @@ cd api/schema && ./make.sh     # or make.bat on Windows
 
 The game server uses an **Entity-Component-System** architecture via `github.com/EngoEngine/ecs`.
 
-- `backend/cmd/berryhunterd/` — entrypoint; wires config, game, HTTP server
-- `backend/pkg/berryhunter/core/` — `game.go` constructs the ECS world and registers all systems; `Loop()` ticks at ~30 FPS (33 ms/tick)
-- `backend/pkg/berryhunter/sys/` — ECS systems: physics, mob AI, day/night cycle, decay, respawn, scoreboard, status effects, heater
-- `backend/pkg/berryhunter/model/` — interfaces and concrete types for entities (player, mob, resource, placeable, spectator)
-- `backend/pkg/berryhunter/items/` — item and mob definitions loaded from `api/items/` and `api/mobs/` JSON files at startup
-- `backend/pkg/berryhunter/codec/` — FlatBuffers encode/decode for the WebSocket protocol
-- `backend/pkg/berryhunter/phy/` — 2D physics (circle/AABB collision, spatial hashing)
+- `backend/cmd/aurad/` — entrypoint; wires config, game, HTTP server
+- `backend/pkg/aura/core/` — `game.go` constructs the ECS world and registers all systems; `Loop()` ticks at ~30 FPS (33 ms/tick)
+- `backend/pkg/aura/sys/` — ECS systems: physics, mob AI, day/night cycle, decay, respawn, scoreboard, status effects, heater
+- `backend/pkg/aura/model/` — interfaces and concrete types for entities (player, mob, resource, placeable, spectator)
+- `backend/pkg/aura/items/` — item and mob definitions loaded from `api/items/` and `api/mobs/` JSON files at startup
+- `backend/pkg/aura/codec/` — FlatBuffers encode/decode for the WebSocket protocol
+- `backend/pkg/aura/phy/` — 2D physics (circle/AABB collision, spatial hashing)
 
 **Adding a new system:** implement `ecs.System`, register it in `core/game.go:NewGameWith()`, and add entity registration cases in the relevant `addXxx()` methods.
 
@@ -211,15 +211,16 @@ Webpack configs: `webpack.common.js` (shared), `webpack.dev.js` (HMR, port 2001)
 
 ## Aurahunter Project Context
 
-This fork is being transformed into **"Aura"** — a top-down MMO. The Berryhunter
-survival systems (vitals, crafting, temperature, hunger) will be removed or
-heavily reduced. The core loop revolves around the aura system described below.
+This fork of Berryhunter has been transformed into **"Aura"** — a top-down MMO.
+The Berryhunter survival systems (vitals, crafting, temperature, hunger) have
+been removed. The core loop revolves around the aura system described below.
 
-The codebase still says "Berryhunter" in many places. That is expected. Do not
-rename or refactor naming proactively — focus on building new systems on top of
-the existing foundation. The full rename + legacy cleanup is **scheduled, not
-abandoned**: execution-order step 7 (after the content pass), per
-`docs/plan-rebrand-cleanup.md` — until then this rule stays in force.
+The structural rename (execution-order step 7, `docs/plan-rebrand-cleanup.md`)
+is **done**: module path `github.com/RoteRiesenRobbe/aura`, package dir
+`pkg/aura/`, binary `aurad`, FlatBuffers namespace `AuraApi`, title "Aura".
+Remaining "Berryhunter" references are intentional: historical plan/archive
+docs, `legacy: true`-tagged proving-grounds content, Kringel Games social/
+rating links, and berryhunter.io domain URLs (no replacement domain yet).
 
 ### Vision
 
@@ -354,9 +355,8 @@ Across both:
   multiple chunks in one session.
 - **Propose options for design decisions** — don't commit to a direction unilaterally.
 - **Never commit (or branch/push) autonomously** — only when explicitly asked.
-- Treat existing Berryhunter physics, collision, and the WebSocket/FlatBuffers protocol as
-  stable foundations. Extend, don't rewrite. Don't rename Berryhunter→Aura proactively — that
-  is scheduled (execution-order step 7).
+- Treat the inherited physics, collision, and the WebSocket/FlatBuffers protocol as
+  stable foundations. Extend, don't rewrite.
 - When in doubt about game design intent, ask — don't infer from the codebase.
 
 ## Sanity checks after every step

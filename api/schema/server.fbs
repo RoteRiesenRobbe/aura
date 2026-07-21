@@ -1,6 +1,6 @@
 include "common.fbs";
 
-namespace BerryhunterApi;
+namespace AuraApi;
 
 enum EntityType : ushort {
   DebugCircle = 0,

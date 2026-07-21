@@ -72,7 +72,7 @@ func main() {
 }
 
 func cleanOutputFolders() {
-	generatedFiles, _ := filepath.Glob("./BerryhunterApi/*.go")
+	generatedFiles, _ := filepath.Glob("./AuraApi/*.go")
 	for _, f := range generatedFiles {
 		_ = os.Remove(f)
 	}

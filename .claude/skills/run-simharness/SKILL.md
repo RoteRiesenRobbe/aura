@@ -8,7 +8,7 @@ a Go CLI that runs seeded combat batteries against the real ECS, plus a `-serve`
 mode hosting a single-file web explorer. Drive the web UI headlessly with
 `.claude/skills/run-simharness/driver.mjs` (Playwright, no root needed) after a
 one-time `setup-browser.sh`. This skill covers **simharness only**, not the
-berryhunterd game server.
+aurad game server.
 
 All paths are relative to the **repo root**.
 
@@ -75,11 +75,11 @@ content for the mob-preset dropdown instead of the embedded copies.
 ## Test
 
 ```bash
-cd backend && go test -timeout 120s ./pkg/berryhunter/sim/ ./cmd/simharness/
+cd backend && go test -timeout 120s ./pkg/aura/sim/ ./cmd/simharness/
 ```
 
 Both packages pass (sim sanity pins + HTTP handler tests). The sim package is
-also race-clean: `go test -race ./pkg/berryhunter/sim/`.
+also race-clean: `go test -race ./pkg/aura/sim/`.
 
 ## Gotchas
 

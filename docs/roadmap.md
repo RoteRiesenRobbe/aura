@@ -209,7 +209,7 @@ trade-offs (light aura vs. damage aura).
 > obstacle steering → patrol archetypes → companion → 6.5 hazard braziers →
 > 6.6 mob factions & mob-vs-mob hostility (mayHarm two-layer gate) → 7 taunt/
 > Fade → 8 support mobs (seek-healer; own checklist still open) → **9
-> encounter-controller spine (verified 2026-07-12: `pkg/berryhunter/encounter`
+> encounter-controller spine (verified 2026-07-12: `pkg/aura/encounter`
 > lifecycle hooks, conditional immunity, scripted spawns, encounter-owned
 > timers, scripted flee with retained threat, THREAT cheat; smoke arena in
 > proving-grounds; authoring guide `manual-content-authoring.md` §5)**. Key
@@ -650,7 +650,7 @@ Executed as Steps 1–3 in a dedicated session; each committed separately.
 - ✓ **Step 1 — selector & target-cap machinery (backend).** `EffectDef` gained
   `selector` (`nearest` default / `lowest_health` / `all`), `maxTargets`
   (**0 = uncapped**), plus level scaling `maxTargetsPerLevel` and
-  `tickIntervalPerLevel`. Targeting pipeline in `backend/pkg/berryhunter/sys/targeting.go`:
+  `tickIntervalPerLevel`. Targeting pipeline in `backend/pkg/aura/sys/targeting.go`:
   eligibility filter → selector sort → take N. Applied uniformly to
   `damage_aura` / `heal_aura` / `instant_damage`, so **every ability is
   target-cappable via config** (bursts just leave `maxTargets:0`).

@@ -14,9 +14,9 @@ before:
     - make -C backend cp-defs
 
 builds:
-  - binary: berryhunterd
+  - binary: aurad
     dir: ./backend
-    main: ./cmd/berryhunterd
+    main: ./cmd/aurad
     goos:
       - linux
       - windows

@@ -8,7 +8,7 @@ import {Character} from '../../game-objects/logic/Character';
 import {Placeable} from '../../game-objects/logic/Placeable';
 import {Resource} from '../../game-objects/logic/Resources';
 import {Mob} from '../../game-objects/logic/Mobs';
-import {BerryhunterApi} from './BerryhunterApi';
+import {AuraApi} from './AuraApi';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
 import {gameObjectId} from '../../common/logic/Types';
 import {Vector} from '../../core/logic/Vector';

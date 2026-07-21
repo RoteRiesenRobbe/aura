@@ -1,4 +1,4 @@
-import {BerryhunterApi} from "../../BerryhunterApi";
+import {AuraApi} from "../../AuraApi";
 import {ClientMessage} from "./ClientMessage";
 
 export class CommandMessage extends ClientMessage {
@@ -14,10 +14,10 @@ export class CommandMessage extends ClientMessage {
     public send(): void {
         let commandString = this.builder.createString(this.command);
         let tokenString = this.builder.createString(this.token);
-        BerryhunterApi.Cheat.startCheat(this.builder);
-        BerryhunterApi.Cheat.addCommand(this.builder, commandString);
-        BerryhunterApi.Cheat.addToken(this.builder, tokenString);
-        let body = BerryhunterApi.Cheat.endCheat(this.builder);
-        super.send(BerryhunterApi.ClientMessageBody.Cheat, body);
+        AuraApi.Cheat.startCheat(this.builder);
+        AuraApi.Cheat.addCommand(this.builder, commandString);
+        AuraApi.Cheat.addToken(this.builder, tokenString);
+        let body = AuraApi.Cheat.endCheat(this.builder);
+        super.send(AuraApi.ClientMessageBody.Cheat, body);
     }
 }

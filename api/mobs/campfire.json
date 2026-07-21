@@ -1,5 +1,5 @@
 {
-  "_comment": "Atmosphere & recovery chunk 2: the fixed world campfire — a permanent aligned heal fixture (recovery = time-at-fire, GDD §3). Brazier pattern: speed 0 = aura always-on, collisionLayer 32 (Viewport ONLY) = structurally unkillable/interaction-free body, collisionMask 16 = Border only. No faction key: an authored 'aligned' hard-fails by design — berryhunterd.go sets FactionAligned post-construction (spawnSummon pattern). Placed from zone.campfires, never from spawns. maxHealth is moot (unreachable body), experience 0, aggroRadius is a dummy. All values [PLACEHOLDER].",
+  "_comment": "Atmosphere & recovery chunk 2: the fixed world campfire — a permanent aligned heal fixture (recovery = time-at-fire, GDD §3). Brazier pattern: speed 0 = aura always-on, collisionLayer 32 (Viewport ONLY) = structurally unkillable/interaction-free body, collisionMask 16 = Border only. No faction key: an authored 'aligned' hard-fails by design — aurad.go sets FactionAligned post-construction (spawnSummon pattern). Placed from zone.campfires, never from spawns. maxHealth is moot (unreachable body), experience 0, aggroRadius is a dummy. All values [PLACEHOLDER].",
   "id": 13,
   "name": "Campfire",
   "type": "MOB",

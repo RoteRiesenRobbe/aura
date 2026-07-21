@@ -1,6 +1,6 @@
 include "common.fbs";
 
-namespace BerryhunterApi;
+namespace AuraApi;
 
 table Input {
     tick:ulong;

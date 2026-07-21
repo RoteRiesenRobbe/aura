@@ -1,7 +1,7 @@
 /**
  * Pure zone data model for the in-game zone editor (world foundation chunk 5).
  *
- * Mirrors the backend's world.Zone schema (backend/pkg/berryhunter/world/zone.go).
+ * Mirrors the backend's world.Zone schema (backend/pkg/aura/world/zone.go).
  * ALL coordinates and radii in this model are SERVER UNITS ("Points"), never
  * pixels — conversion happens at the interaction/render boundary in ZoneEditor.
  * The backend parses zone.json with DisallowUnknownFields, so the serialized

@@ -1,7 +1,7 @@
 "use strict";
 
 import * as flatbuffers from 'flatbuffers';
-import {BerryhunterApi} from '../../BerryhunterApi';
+import {AuraApi} from '../../AuraApi';
 import {IBackend} from "../../IBackend";
 import {BackendSetupEvent} from "../../../../core/logic/Events";
 
@@ -16,7 +16,7 @@ export class ClientMessage {
     }
 
     private finish() {
-        this.builder.finish(BerryhunterApi.ClientMessage.endClientMessage(this.builder));
+        this.builder.finish(AuraApi.ClientMessage.endClientMessage(this.builder));
         return this.builder.asUint8Array();
     }
 
@@ -30,10 +30,10 @@ export class ClientMessage {
         ClientMessage.webSocket.send(this.finish());
     }
 
-    public send(type: BerryhunterApi.ClientMessageBody, body: flatbuffers.Offset) {
-        BerryhunterApi.ClientMessage.startClientMessage(this.builder);
-        BerryhunterApi.ClientMessage.addBodyType(this.builder, type);
-        BerryhunterApi.ClientMessage.addBody(this.builder, body);
+    public send(type: AuraApi.ClientMessageBody, body: flatbuffers.Offset) {
+        AuraApi.ClientMessage.startClientMessage(this.builder);
+        AuraApi.ClientMessage.addBodyType(this.builder, type);
+        AuraApi.ClientMessage.addBody(this.builder, body);
 
         this.sendThroughWebsocket();
     }
