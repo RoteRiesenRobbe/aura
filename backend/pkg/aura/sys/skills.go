@@ -235,7 +235,7 @@ func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skil
 	// The caster's power scale (f(level) / tier scale / summon composition,
 	// C0) is frozen into the dot at application time, like the level
 	// (mob-depth chunk 1).
-	hp := effect.Dot.HPAt(level) * casterPowerScale(e)
+	hp := effect.Dot.HPAt(level) * casterPowerScale(e) * casterDamageFactor(e)
 	dot := skills.DotBuff{
 		HP:       hp,
 		Tags:     effect.Dot.Tags,
@@ -506,7 +506,7 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 	// F6 §3.1 steps 1–2: level-scaled base × summon power × berserker. The
 	// ACTING entity's missing HP drives berserker (chunk-1 decision: a wounded
 	// summon rages; the owner's HP is irrelevant — the §4.2 parallel).
-	damageHP := effect.Damage.HPAt(level) * outputScale * berserkerMultiplier(effect.Damage, acting)
+	damageHP := effect.Damage.HPAt(level) * outputScale * berserkerMultiplier(effect.Damage, acting) * casterDamageFactor(acting)
 
 	style := auraHitStyleFor(effect, level)
 	critChance := effect.Damage.CritChanceAt(level) + casterCritChance(acting)
@@ -539,7 +539,7 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, 
 	// Same F6 §3.1 composition as the player path: base × tier scale (C0:
 	// the mob's derived f(curveLevel)) × berserker (the caster's own missing
 	// HP), then per-hit execute × crit × variance below.
-	damageHP := effect.Damage.HPAt(level) * casterPowerScale(caster) * berserkerMultiplier(effect.Damage, caster)
+	damageHP := effect.Damage.HPAt(level) * casterPowerScale(caster) * berserkerMultiplier(effect.Damage, caster) * casterDamageFactor(caster)
 	factors := mobs.Factors{
 		DamageTags:              effect.Damage.Tags,
 		Gated:                   effect.Damage.Gated,
@@ -598,6 +598,22 @@ const defaultCritFactor = 2.0
 // entity's own stats drive vocabulary (the berserker precedent), so a summon
 // never inherits its owner's base or stat. Non-skill test doubles simply roll
 // unboosted.
+// casterDamageFactor is the acting caster's outgoing-damage multiplier from
+// the derived damageDealt stat (Strong, triage 2026-07-21): 1 + bonus. Like
+// casterCritChance, the ACTING entity's own stats drive it — a summon never
+// inherits its owner's passives. Applied at the damage base-composition sites
+// (direct auras/instants and dot application), never to heals or CC.
+func casterDamageFactor(acting any) float32 {
+	if h, ok := acting.(interface {
+		SkillComponent() *skills.SkillComponent
+	}); ok {
+		if sc := h.SkillComponent(); sc != nil {
+			return 1 + sc.Derived.DamageDealtBonus
+		}
+	}
+	return 1
+}
+
 func casterCritChance(acting any) float32 {
 	var chance float32
 	if p, ok := acting.(model.PlayerEntity); ok {

@@ -452,27 +452,33 @@
 	gap: 1rem;
 }
 
-// Bottom-center action bars (aura slots | cooldowns). Interim placement
-// until the full UI pass.
-#actionBars {
+// Bottom-center stack (triage 2026-07-21): cast bar directly above the
+// action bars (aura slots | cooldowns). Interim placement until the full
+// UI pass.
+#bottomCenter {
 	position: absolute;
 	bottom: 1rem;
 	left: 50%;
 	transform: translateX(-50%);
 
 	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1rem;
+}
+
+#actionBars {
+	display: flex;
 	align-items: flex-end;
 	gap: 1rem;
 }
 
-// Cast bar (skill-vocab chunk 4, bare rendering): bottom-center just above
-// the action bars; hidden while no cast runs. Fill width is set inline by
-// HUD.updateCastBar. Polish belongs to the step-8 UI pass.
+// Cast bar (skill-vocab chunk 4, bare rendering): hidden while no cast runs
+// — visibility keeps its slot in the column, so nothing jumps when a cast
+// starts. Fill width is set inline by HUD.updateCastBar. Polish belongs to
+// the step-8 UI pass.
 #castBar {
-	position: absolute;
-	bottom: 13vh;
-	left: 50%;
-	transform: translateX(-50%);
+	position: relative;
 	width: 18vw;
 	height: (0.5 * @uiElementHeight);
 	background-color: rgba(20, 24, 28, 0.75);

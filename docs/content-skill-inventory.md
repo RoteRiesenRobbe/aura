@@ -1,8 +1,9 @@
 # Skill Inventory — generated from data (2026-07-21)
 
 **Every value in this table is [PLACEHOLDER]** per the project rule. Generated
-from the actual data files on the `main` tree at 2026-07-21 (post wolf-line
-reshuffle, `f9a64db5`) — **not** hand-maintained design intent. The three
+from the actual data files on the `main` tree at 2026-07-21 (post triage pass:
+Strong passive + Wildfire light + spider-range match) — **not** hand-maintained
+design intent. The three
 catalogs (`content-auras.md` / `content-passives.md` / `content-cooldowns.md`)
 hold the design intent — *what an ability means and why it exists*. **This file
 is the source of truth for unlock sources and numbers**; the catalogs point
@@ -26,9 +27,9 @@ for f in sorted(glob.glob('api/skills/*.json')):
 EOF
 ```
 
-Scope: the 46 **player** skills (`api/skills/*.json`). The 35 mob-only skills
+Scope: the 47 **player** skills (`api/skills/*.json`). The 35 mob-only skills
 in `api/skills/mobs/` are not listed (they're authoring details of their mobs).
-46 + 35 = the **81** registry pin in the boot log.
+47 + 35 = the **82** registry pin in the boot log.
 
 Scaling notation: `12 +6/L` = base 12, +6 per skill level. Ticks: 30 ticks =
 1 s. Source key: **MS Ln** = milestone · **Drop** = mob kill unlock (chance) ·
@@ -65,10 +66,10 @@ without the `SKILL` cheat.
 | 52 | Spearhead | 5 | dmg 16 +3.6/L ×3 tgt, r1.3 | Recipe: Vanguard 5 + Damage 5 |
 | 53 | Lifewarden | 5 | heal 14 +7/L ×2 tgt, no self-cost, r1.4 | Recipe: Vanguard 5 + Heal 5 |
 | 55 | Warbanner | 5 | dmg 15 +3.4/L ×2 + heal 13 +6.5/L + shield 6 +2.5/L @30t + slow 10% +3%/L, r1.2 | Recipe: Vanguard 5 + Spearhead 5 + CallForAid 3 |
-| 58 | Wildfire | 5 | fire dot 10.5 +2.1/L ×2 tgt (4×60t) @20t, r1.4 + self-only fire resist ×0.6 −0.05/L | Recipe: Ignite 3 + Immolate 5 |
+| 58 | Wildfire | 5 | fire dot 10.5 +2.1/L ×2 tgt (4×60t) @20t, r1.4 + self-only fire resist ×0.6 −0.05/L + light r4 +1/L (2026-07-21) | Recipe: Ignite 3 + Immolate 5 |
 | 59 | Suppression | 5 | dmg 6.5 +1.4/L r2.6 +.1/L + slow 7% +7%/L | Recipe: Slow 5 + LongRangeStrike 5 |
 
-## Passives (7)
+## Passives (8)
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
@@ -79,6 +80,7 @@ without the `SKILL` cheat.
 | 46 | Torch | 3 | light r2.5 +.5/L | NPC-W Hermit (no level gate) + Emberkeeper @L1 |
 | 47 | Antivenom | 3 | poison resist ×0.7 −.1/L | Drop: Spider .1 / VenomSpider .25 |
 | 60 | KeenEye | 5 | crit chance +2% +2%/L | Drop: every wolf .06 (line-wide 2026-07-21) |
+| 136 | Strong | 5 | all outgoing damage +4% +2%/L (direct + dots) | NPC-W CityGuard @L3 (the "inform the city" reward, 2026-07-21) |
 
 ## Cooldowns (19)
 
@@ -109,7 +111,7 @@ without the `SKILL` cheat.
 Swept 2026-07-21 across mob `unlocks[]`, NPC `teachings[]`, recipes and the
 milestone table:
 
-- **Unreachable without the cheat: NONE.** All **46** player skills have a
+- **Unreachable without the cheat: NONE.** All **47** player skills have a
   non-legacy world source — a first. `FireWard` was the last gap (a
   pre-existing one, inherited from roadmap item 12) and the fire-elemental
   pair closed it on 2026-07-21: the mob that burns you drops the fire resist
@@ -120,11 +122,11 @@ milestone table:
 - **All 10 recipe results are craftable in the world zone** — every
   ingredient now has a world source. (Wildfire, Suppression and Barrier were
   un-craftable before the C8 §11 placements; that is resolved.)
-- **NPC-taught in the world zone, 13 teachings across 9 NPCs:** Damage,
+- **NPC-taught in the world zone, 14 teachings across 10 NPCs:** Damage,
   Recall (TownCrier) · Harvest (Farmer) · FirstAid, Heal, Torch (Hermit) ·
   SummonCompanion (Dog) · Pickaxe (Miner) · Revive (VillageHealer) ·
   Vanguard (FrontCaptain) · SummonTotem (Shaman) · Torch, Ignite, Immolate
-  (Emberkeeper).
+  (Emberkeeper) · Strong (CityGuard, 2026-07-21).
 - **Milestone unlocks, 1:** Haste @L7.
 - **Note on the XP values above the cL18–20 band** (FireElemental 190,
   GreaterFireElemental 260): these are **first-pass anchors set against the

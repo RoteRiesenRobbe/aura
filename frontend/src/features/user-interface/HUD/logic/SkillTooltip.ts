@@ -91,6 +91,7 @@ const STAT_LABELS: { [stat: string]: string } = {
     maxHealth: 'Max health',
     damageReduction: 'Damage reduction',
     critChance: 'Crit chance',
+    damageDealt: 'All damage',
 };
 
 const SELECTOR_LABELS: { [selector: string]: string } = {

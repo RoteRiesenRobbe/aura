@@ -3097,6 +3097,45 @@ func TestApplyDamageAura_StatCritStacksAdditivelyWithAuthored(t *testing.T) {
 	assert.True(t, target.crits[0])
 }
 
+// damagePassiveDef is a stat_multiplier passive granting the given flat
+// damageDealt bonus at level 1 (Strong, triage 2026-07-21).
+func damagePassiveDef(bonus float32) *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 141, Name: "TestStrong", Category: skills.SkillCategoryPassive, MaxLevel: 5,
+		Effects: []skills.EffectDef{
+			{Type: skills.EffectTypeStatMultiplier, Stat: &skills.StatParams{Name: skills.StatDamageDealt, Bonus: bonus}},
+		},
+	}
+}
+
+func TestApplyDamageAura_DamageDealtStatScalesBase(t *testing.T) {
+	// The derived damageDealt stat multiplies the outgoing base before the
+	// per-hit rolls: 10 × (1 + 0.2) = 12, no crit involved.
+	effect := vocabEffect(func(d *skills.DamageParams) {})
+	caster := newFakePlayer()
+	caster.sc.EquipPassive(0, damagePassiveDef(0.2), 1)
+	target := &touchRecorder{}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 12.0, target.touches[0], 1e-4)
+	assert.False(t, target.crits[0], "a stat-scaled hit is not a crit")
+}
+
+func TestApplyDotEffect_DamageDealtStatScalesDot(t *testing.T) {
+	// "All damage" includes dots: the bonus is frozen into the dot at
+	// application time like the power scale. 5 × (1 + 0.2) = 6.
+	caster := newFakePlayer()
+	caster.sc.EquipPassive(0, damagePassiveDef(0.2), 1)
+	target := &dotRecorder{basic: ecs.NewBasic()}
+
+	applyDotEffect(caster, 5, 1, dotEffect(), colliderSetOf(target))
+
+	require.Len(t, target.dots, 1)
+	assert.InDelta(t, 6.0, target.dots[0].HP, 1e-4)
+}
+
 func TestApplyDamageAura_CharacterBaseCritFromConfig(t *testing.T) {
 	// §4.3 v2 (PO 2026-07-20): every player character has a flat base crit
 	// chance from conf (game.player.critChance) — it applies to any direct

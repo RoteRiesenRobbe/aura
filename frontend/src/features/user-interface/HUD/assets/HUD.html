@@ -69,32 +69,35 @@
         </div>
     </div>
 
-    <!-- Cast bar (skill-vocab chunk 4, bare rendering): visible only while a
-         cooldown skill winds up; fill + text set by HUD.updateCastBar. -->
-    <div id="castBar">
-        <div class="indicator"></div>
-        <span class="barText"></span>
-    </div>
-
-    <!-- Bottom-center action bars: aura slots left, cooldowns right.
-         Interim placement until the full UI pass. -->
-    <div id="actionBars">
-        <div id="auraLoadout">
-            <div class="auraLoadoutTitle">Aura Slots</div>
-            <ul id="auraSlotList">
-                <li class="auraSlot hotkeySlot" data-slot="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span></li>
-                <li class="auraSlot hotkeySlot" data-slot="1"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span></li>
-                <li class="auraSlot hotkeySlot" data-slot="2"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span></li>
-            </ul>
+    <!-- Bottom-center stack: cast bar directly above the action bars
+         (triage 2026-07-21). Interim placement until the full UI pass. -->
+    <div id="bottomCenter">
+        <!-- Cast bar (skill-vocab chunk 4, bare rendering): visible only while a
+             cooldown skill winds up; fill + text set by HUD.updateCastBar. -->
+        <div id="castBar">
+            <div class="indicator"></div>
+            <span class="barText"></span>
         </div>
 
-        <div id="cooldownLoadout">
-            <div class="auraLoadoutTitle">Cooldowns</div>
-            <ul id="cooldownSlotList">
-                <li class="auraSlot hotkeySlot cooldownSlot" data-slot="0"><span class="hotkey">Q</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
-                <li class="auraSlot hotkeySlot cooldownSlot" data-slot="1"><span class="hotkey">E</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
-                <li class="auraSlot hotkeySlot cooldownSlot" data-slot="2"><span class="hotkey">F</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
-            </ul>
+        <!-- Action bars: aura slots left, cooldowns right. -->
+        <div id="actionBars">
+            <div id="auraLoadout">
+                <div class="auraLoadoutTitle">Aura Slots</div>
+                <ul id="auraSlotList">
+                    <li class="auraSlot hotkeySlot" data-slot="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span></li>
+                    <li class="auraSlot hotkeySlot" data-slot="1"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span></li>
+                    <li class="auraSlot hotkeySlot" data-slot="2"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span></li>
+                </ul>
+            </div>
+
+            <div id="cooldownLoadout">
+                <div class="auraLoadoutTitle">Cooldowns</div>
+                <ul id="cooldownSlotList">
+                    <li class="auraSlot hotkeySlot cooldownSlot" data-slot="0"><span class="hotkey">Q</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
+                    <li class="auraSlot hotkeySlot cooldownSlot" data-slot="1"><span class="hotkey">E</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
+                    <li class="auraSlot hotkeySlot cooldownSlot" data-slot="2"><span class="hotkey">F</span><span class="slotLabel">— Empty —</span><span class="cdRemaining"></span></li>
+                </ul>
+            </div>
         </div>
     </div>
 

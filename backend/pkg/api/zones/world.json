@@ -13096,7 +13096,15 @@
         "Sorry, can't let you in, the Orcs are too close.",
         "The village needs help you say? I will let the commander know."
       ],
-      "entityType": "CityGuard"
+      "entityType": "CityGuard",
+      "tooLowLine": "The village needs help? Hmph. Survive the road out there first, then we'll talk.",
+      "teachings": [
+        {
+          "skill": "Strong",
+          "requiredLevel": 3,
+          "line": "Wolves overrunning the west, you say? The commander will hear of it. Here - militia training, learn to put some weight behind your blows."
+        }
+      ]
     },
     {
       "type": "VillageHealer",

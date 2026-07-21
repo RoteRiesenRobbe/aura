@@ -156,6 +156,7 @@ const (
 	StatMaxHealth       = "maxHealth"
 	StatDamageReduction = "damageReduction" // applied in player.takeDamage
 	StatCritChance      = "critChance"      // applied in sys.rollHitDamage (§4.3 amendment, backlog §23)
+	StatDamageDealt     = "damageDealt"     // applied at sys' outgoing-damage base sites (Strong, triage 2026-07-21)
 )
 
 var validStats = map[string]bool{
@@ -163,6 +164,7 @@ var validStats = map[string]bool{
 	StatMaxHealth:       true,
 	StatDamageReduction: true,
 	StatCritChance:      true,
+	StatDamageDealt:     true,
 }
 
 // EffectDef holds the parameters of one effect within a skill: the shared

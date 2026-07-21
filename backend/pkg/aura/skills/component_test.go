@@ -677,6 +677,21 @@ func TestDerivedStats(t *testing.T) {
 		assert.InDelta(t, 0.10, sc.Derived.CritChanceBonus, 1e-6)
 	})
 
+	t.Run("damageDealt accumulates into DamageDealtBonus", func(t *testing.T) {
+		// Strong (triage 2026-07-21): all outgoing damage × (1 + bonus),
+		// applied at the base-composition sites in sys.
+		strong := &SkillDefinition{
+			ID: 15, Name: "StrongPassive", Category: SkillCategoryPassive, MaxLevel: 5,
+			Effects: []EffectDef{
+				{Type: EffectTypeStatMultiplier, Stat: &StatParams{Name: StatDamageDealt, Bonus: 0.04, BonusPerLevel: 0.02}},
+			},
+		}
+		sc := NewSkillComponent(true)
+		sc.EquipPassive(0, strong, 3)
+
+		assert.InDelta(t, 0.08, sc.Derived.DamageDealtBonus, 1e-6)
+	})
+
 	t.Run("equipping the same passive again moves it, never duplicates", func(t *testing.T) {
 		// The same buff in two slots would stack (0.05 + 0.05); equipping a
 		// passive already present elsewhere must clear the old slot instead.

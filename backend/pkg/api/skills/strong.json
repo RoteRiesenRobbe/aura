@@ -1,0 +1,15 @@
+{
+  "_comment": "Strong (triage 2026-07-21): flat outgoing-damage passive — +4% all damage (direct hits AND dots) +2% per further point, via the damageDealt stat (applied at sys' damage base-composition sites). Unlock source per PO pick. All values [PLACEHOLDER]",
+  "id": 136,
+  "name": "Strong",
+  "category": "passive",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "stat_multiplier",
+      "stat": "damageDealt",
+      "statBonus": 0.04,
+      "statBonusPerLevel": 0.02
+    }
+  ]
+}

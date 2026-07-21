@@ -142,7 +142,7 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + the intermission Session ② mob auras TrollSmash/EmberAura
 	// + the fire-elemental set FireTotem (player cooldown) /
 	// FireElementalAura / FireTotemAura, 2026-07-21)
-	assert.Len(t, r.All(), 81)
+	assert.Len(t, r.All(), 82)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)
