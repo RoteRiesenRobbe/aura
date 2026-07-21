@@ -4995,13 +4995,6 @@
       "blocksMovement": true
     },
     {
-      "type": "Tree",
-      "x": -35.08,
-      "y": -32.96,
-      "rotation": 1.087,
-      "blocksMovement": true
-    },
-    {
       "type": "Rock",
       "x": -61.71,
       "y": 16.93,
@@ -5080,13 +5073,6 @@
     },
     {
       "type": "Tree",
-      "x": -33.07,
-      "y": -29.74,
-      "rotation": 1.64,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
       "x": -37.89,
       "y": -29.2,
       "rotation": 5.494,
@@ -5111,13 +5097,6 @@
       "x": -31.06,
       "y": -23.68,
       "rotation": 3.96,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": -40.42,
-      "y": -23.31,
-      "rotation": 0.614,
       "blocksMovement": true
     },
     {
@@ -7557,20 +7536,6 @@
       "blocksMovement": true
     },
     {
-      "type": "Tree",
-      "x": 34.78,
-      "y": -4.66,
-      "rotation": 2.11,
-      "blocksMovement": true
-    },
-    {
-      "type": "Tree",
-      "x": 36.82,
-      "y": -2.54,
-      "rotation": 5.17,
-      "blocksMovement": true
-    },
-    {
       "type": "Boulder",
       "x": 48.82,
       "y": -1.67,
@@ -8965,13 +8930,6 @@
     },
     {
       "type": "Boulder",
-      "x": -11.49,
-      "y": 3.57,
-      "rotation": 0.476,
-      "blocksMovement": true
-    },
-    {
-      "type": "Boulder",
       "x": -16.3,
       "y": 4.42,
       "rotation": 4.396,
@@ -10179,14 +10137,6 @@
     },
     {
       "mob": "Stag",
-      "x": -37.91,
-      "y": -11,
-      "angle": 0,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Stag",
       "x": -35.22,
       "y": -10.09,
       "angle": 0,
@@ -10239,7 +10189,8 @@
       "y": 23.9,
       "angle": 0,
       "respawnTicks": 900,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 5
     },
     {
       "mob": "Boar",
@@ -10367,7 +10318,8 @@
       "y": -30,
       "angle": 0,
       "respawnTicks": 900,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
     },
     {
       "mob": "Spider",
@@ -10375,15 +10327,8 @@
       "y": -32.1,
       "angle": 0,
       "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Spider",
-      "x": -29.1,
-      "y": -27.9,
-      "angle": 0,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
     },
     {
       "mob": "Spider",
@@ -10438,14 +10383,6 @@
       "mob": "PoisonPool",
       "x": -4.8,
       "y": -30.18,
-      "angle": 0,
-      "respawnTicks": 300,
-      "respawnVariancePct": 0
-    },
-    {
-      "mob": "PoisonPool",
-      "x": 1.2,
-      "y": -32.28,
       "angle": 0,
       "respawnTicks": 300,
       "respawnVariancePct": 0
@@ -10675,14 +10612,6 @@
       "respawnVariancePct": 0.2
     },
     {
-      "mob": "Boar",
-      "x": 54.3,
-      "y": -4.73,
-      "angle": 5.49,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
       "mob": "Stag",
       "x": 39.59,
       "y": -1.56,
@@ -10719,14 +10648,6 @@
       "x": 24.18,
       "y": 2.22,
       "angle": 4.77,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Boar",
-      "x": 60.8,
-      "y": -8.31,
-      "angle": 5.34,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
@@ -11348,14 +11269,6 @@
     },
     {
       "mob": "Stag",
-      "x": 59.87,
-      "y": -4.66,
-      "angle": 4.47,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Stag",
       "x": 30.63,
       "y": -22.58,
       "angle": 3.49,
@@ -11531,14 +11444,6 @@
       "respawnVariancePct": 0.2
     },
     {
-      "mob": "Boar",
-      "x": -42.17,
-      "y": -13.25,
-      "angle": 1.71,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
       "mob": "Wolf",
       "x": -37.25,
       "y": -14.29,
@@ -11575,14 +11480,6 @@
       "x": -24.33,
       "y": -10.02,
       "angle": 3.28,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Bear",
-      "x": -44.37,
-      "y": -6.49,
-      "angle": 2.7,
       "respawnTicks": 900,
       "respawnVariancePct": 0.2
     },
@@ -12019,14 +11916,6 @@
       "respawnVariancePct": 0.2
     },
     {
-      "mob": "Wolf",
-      "x": -53.49,
-      "y": 33.32,
-      "angle": 1.13,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
       "mob": "Boar",
       "x": -44.2,
       "y": 34.18,
@@ -12148,27 +12037,12 @@
     },
     {
       "mob": "Wolf",
-      "x": -63.4,
-      "y": 34.94,
-      "angle": 0,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Wolf",
-      "x": -58.25,
-      "y": 35.26,
-      "angle": 0,
-      "respawnTicks": 900,
-      "respawnVariancePct": 0.2
-    },
-    {
-      "mob": "Wolf",
       "x": -48.62,
       "y": 34.62,
       "angle": 0,
       "respawnTicks": 900,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
     },
     {
       "mob": "Wolf",
@@ -12176,7 +12050,8 @@
       "y": 29.62,
       "angle": 0,
       "respawnTicks": 900,
-      "respawnVariancePct": 0.2
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
     },
     {
       "mob": "Wolf",
@@ -12468,6 +12343,372 @@
       "respawnTicks": 900,
       "respawnVariancePct": 0.2,
       "wanderRadius": 1.5
+    },
+    {
+      "mob": "Wolf",
+      "x": -45.89,
+      "y": 33.1,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -50.55,
+      "y": 11.31,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 5
+    },
+    {
+      "mob": "Boar",
+      "x": -38.26,
+      "y": -14.77,
+      "angle": 1.71,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -36.82,
+      "y": -15.14,
+      "angle": 1.71,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -36.54,
+      "y": -24.37,
+      "angle": 1.71,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Spider",
+      "x": -22.24,
+      "y": -28.96,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Spider",
+      "x": -21.99,
+      "y": -31.32,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "DireWolf",
+      "x": -4.48,
+      "y": -17.12,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "DireWolf",
+      "x": -2.72,
+      "y": -21.48,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "DireWolf",
+      "x": 6.55,
+      "y": -16.3,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "DireWolf",
+      "x": 7.73,
+      "y": -14.22,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "DireWolf",
+      "x": 7.42,
+      "y": -8.48,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Kobold",
+      "x": -13.19,
+      "y": 12.98,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Kobold",
+      "x": -9.99,
+      "y": 13.78,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Kobold",
+      "x": -11.19,
+      "y": 7.62,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -55.73,
+      "y": 34.83,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -59.28,
+      "y": 34.75,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -52.68,
+      "y": 32.84,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -49.5,
+      "y": 29.93,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -46.61,
+      "y": 27.16,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -63.41,
+      "y": 33.06,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -53.27,
+      "y": 13.64,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -49.11,
+      "y": 7.67,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "Boar",
+      "x": -35.02,
+      "y": -11.7,
+      "angle": 0,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 2
+    },
+    {
+      "mob": "PoisonPool",
+      "x": 3.11,
+      "y": -30.33,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0
+    },
+    {
+      "mob": "PoisonPool",
+      "x": 4.77,
+      "y": -29.94,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0
+    },
+    {
+      "mob": "PoisonPool",
+      "x": 8.55,
+      "y": -30.19,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0
+    },
+    {
+      "mob": "PoisonPool",
+      "x": 10.69,
+      "y": -32.15,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0
+    },
+    {
+      "mob": "Boar",
+      "x": 27.51,
+      "y": -18.28,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0,
+      "wanderRadius": 1.5
+    },
+    {
+      "mob": "Boar",
+      "x": 29.42,
+      "y": -16.3,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0,
+      "wanderRadius": 1.5
+    },
+    {
+      "mob": "Boar",
+      "x": 30.85,
+      "y": -14.36,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0,
+      "wanderRadius": 1.5
+    },
+    {
+      "mob": "DireWolf",
+      "x": 43.73,
+      "y": 20.26,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0,
+      "wanderRadius": 1.5
+    },
+    {
+      "mob": "DireWolf",
+      "x": 47.17,
+      "y": 18.68,
+      "angle": 0,
+      "respawnTicks": 300,
+      "respawnVariancePct": 0,
+      "wanderRadius": 1.5
+    },
+    {
+      "mob": "EliteWolf",
+      "x": 57.17,
+      "y": -5.3,
+      "angle": 5.498,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "DireWolf",
+      "x": 61.54,
+      "y": -8.36,
+      "angle": 5.341,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "EliteWolf",
+      "x": 59.84,
+      "y": -9.35,
+      "angle": 5.341,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "EliteWolf",
+      "x": 58.47,
+      "y": -14.6,
+      "angle": 5.341,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": 10.03,
+      "y": 18,
+      "angle": 5.341,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": 13.65,
+      "y": 16.33,
+      "angle": 5.341,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": 14.56,
+      "y": 19.27,
+      "angle": 5.341,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Boar",
+      "x": 10.8,
+      "y": 21.38,
+      "angle": 5.341,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2
+    },
+    {
+      "mob": "Kobold",
+      "x": -24.21,
+      "y": 24.61,
+      "angle": 5.341,
+      "respawnTicks": 900,
+      "respawnVariancePct": 0.2,
+      "wanderRadius": 1
     }
   ],
   "campfires": [
@@ -12676,17 +12917,17 @@
       "x": -56.9,
       "y": 23,
       "radius": 1.5,
-      "tooLowLine": "Those wolves won't leave on their own, adventurer — back at them!",
+      "tooLowLine": "Those wolves are a pest, get rid of them!",
       "teachings": [
         {
           "skill": "Damage",
           "requiredLevel": 1,
-          "line": "Hear ye! Adventurers, at last! Wolves beset our village — take this aura and get rid of them!"
+          "line": "Adventurer! We need your help. Wolves prowl in the forrest nearby."
         },
         {
           "skill": "Recall",
           "requiredLevel": 3,
-          "line": "There is no end to them! Take Recall and get help from the city — head east, find the militia!"
+          "line": "The city needs to hear about those wolf attacks! Take this, so you can find your way here."
         }
       ],
       "lines": [
@@ -12699,17 +12940,16 @@
       "x": -57,
       "y": 28.6,
       "radius": 1.5,
-      "tooLowLine": "Field work waits for no one, adventurer.",
+      "tooLowLine": "There's always money in farming.",
       "teachings": [
         {
           "skill": "Harvest",
           "requiredLevel": 1,
-          "line": "An adventurer, staying a while? Then make yourself useful — take Harvest and help me work the field."
+          "line": "If Adventuring becomes too stressful, there is always farming!"
         }
       ],
       "lines": [
-        "Turnips don't pull themselves. The field can always use another pair of hands.",
-        "Wolves? Talk to the crier — I just grow things."
+        "Tend to the field if you have time... or go out there adventuring. I know what I would pick."
       ],
       "entityType": "Farmer"
     },
@@ -12721,9 +12961,14 @@
       "tooLowLine": "See off a wolf or two first, adventurer — mending is learned in the thick of it.",
       "teachings": [
         {
-          "skill": "Heal",
+          "skill": "FirstAid",
           "requiredLevel": 2,
-          "line": "Adventurers who stand together live longer. Stay close to your friends and carry this: a healing aura."
+          "line": "Let me show you how to tend to those wounds..."
+        },
+        {
+          "skill": "Heal",
+          "requiredLevel": 3,
+          "line": "Let me show you how to tend to the wounds of your allies..."
         }
       ],
       "lines": [
@@ -12780,15 +13025,16 @@
       "x": -27,
       "y": -26.4,
       "radius": 1.5,
-      "tooLowLine": "These old arms swung a pick for forty years.",
+      "tooLowLine": "Careful! The tunnel is dark and dangerous.",
       "teachings": [
         {
           "skill": "Pickaxe",
-          "line": "Rockfalls choke the old shafts. Take my pick — swing it at the rubble."
+          "requiredLevel": 4,
+          "line": "The tunnel is overrun! Take my Pickaxe, I have no use for it anymore."
         }
       ],
       "lines": [
-        "I mined that tunnel as a lad, before the spiders came up from below."
+        "We need the Militia to clear this tunnel once and for all... They are so useless"
       ],
       "entityType": "Miner"
     },
@@ -12798,9 +13044,8 @@
       "y": 9.6,
       "radius": 1.5,
       "lines": [
-        "The gates stay shut — captain's orders. Nobody enters while the front burns.",
-        "You cleared the road from the west? I'll pass word inside — the captain will hear your name.",
-        "If you're after more work, head south. The army takes every able body they can get."
+        "Sorry, can't let you in, the Orcs are too close.",
+        "The village needs help you say? I will let the commander know."
       ],
       "entityType": "CityGuard"
     },
@@ -12809,16 +13054,16 @@
       "x": 45.4,
       "y": 11,
       "radius": 1.5,
-      "tooLowLine": "You're not ready to carry someone else's life yet. Come back when you've seen a few more fights.",
+      "tooLowLine": "I see you have a long way ahead of you. But I also see much potential. Come back later.",
       "teachings": [
         {
           "skill": "Revive",
-          "requiredLevel": 6,
-          "line": "You've the steady hands for it now — learn to call a fallen friend back from the edge. Revive."
+          "requiredLevel": 8,
+          "line": "Let me teach you how to aid your fallen comrades and bring them back to life."
         }
       ],
       "lines": [
-        "Rest by the fire, traveler. These days I patch up more road-wounds than field-wounds."
+        "Rest by the fire and regain your strength."
       ],
       "entityType": "VillageHealer"
     },
@@ -12827,12 +13072,12 @@
       "x": 58.9,
       "y": 26.9,
       "radius": 1.5,
-      "tooLowLine": "The front is no place for you yet. Live a little longer first — then we talk.",
+      "tooLowLine": "Careful, the Orc assault camp lies just south of here. This is no place for you yet.",
       "teachings": [
         {
           "skill": "Vanguard",
           "requiredLevel": 20,
-          "line": "You fought your way here — that counts. Take the Vanguard: hold the line, and the line holds you."
+          "line": "You look strong! We could use your help in the war. Take this."
         }
       ],
       "lines": [
@@ -12845,16 +13090,16 @@
       "x": 18,
       "y": 6,
       "radius": 1.5,
-      "tooLowLine": "The spirits do not answer the untested. Walk further first.",
+      "tooLowLine": "I see great potential in you! Come back later and I might have something for you.",
       "teachings": [
         {
           "skill": "SummonTotem",
           "requiredLevel": 5,
-          "line": "Plant this where you make your stand — the spirits will hold the ground with you. Summon a Totem."
+          "line": "You look like you could use some help. Take this Totem to aid you."
         }
       ],
       "lines": [
-        "I raise totems where the roads cross. The wood watches over travelers who cannot watch their own backs."
+        "Let nature guide you. But also be aware of nature. It's complicated."
       ],
       "entityType": "Hermit"
     },
@@ -12898,13 +13143,13 @@
     },
     {
       "type": "LamplessTraveller",
-      "entityType": "Traveller",
       "x": -20.63,
       "y": -24.38,
       "radius": 1.5,
       "lines": [
-        "Kobolds took my lamp!"
-      ]
+        "The Kobolds took my lamp!"
+      ],
+      "entityType": "Traveller"
     }
   ],
   "anchors": [

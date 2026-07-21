@@ -773,3 +773,96 @@ above). `null.split` evidence recorded in §21.
 campfire glow intact, mobs/NPCs uniformly tinted); boot counts unchanged
 (78 skills/13 factions/47 mobs/10 recipes/856 props/349 spawns/5 campfires/
 14 npcs, 0 panics); PO played a full night in-game.
+
+## Wolf-line drop reshuffle + milestone trim (ad-hoc session, 2026-07-21)
+
+**Balance/content tuning session — DONE 2026-07-21, PO-driven in-session,
+committed `0ef4b738`.** Not a planned chunk: PO was playtesting, found
+the four-wolf drop set confusing, and retuned it live alongside a manual
+zone-editor density pass.
+
+**Framing (PO ruling 2026-07-21):** the C8 "drop table FINAL" and "milestone
+table FINAL" locks are **first-pass settlements, not frozen values**. As with
+any MMO, drop sources/rates and unlock placement get tuned continuously as
+playtest feedback comes in. FINAL in this repo means "decided well enough to
+build on", not "never revisit". Treat the drop/milestone tables as
+tuning-open from here; the same applies to essentially every number carrying
+[PLACEHOLDER].
+
+**PO rulings:**
+- **FirstAid leaves the milestone table.** The village Hermit teaches it at
+  requiredLevel 2 — *earlier* than the L3 milestone granted it — so the
+  milestone was dead weight. **Haste @L7 is now the only milestone unlock.**
+- **Wolf line drop set**, line-wide + one signature aura each:
+  | mob | cL | drops |
+  |---|---|---|
+  | Wolf | 2 | Swift .1, KeenEye .06 |
+  | EliteWolf | 5 (elite) | Swift .1, KeenEye .06, **Wild .5** |
+  | DireWolf | 6 | Swift .1, KeenEye .06, **LongRangeStrike .2** |
+  | AlphaWolf | 10 | Swift .1, KeenEye .06, **Reaper .2** |
+- **Swift + KeenEye go line-wide** — Swift at .1 on all four (PO call after
+  the reachability flag below), KeenEye at .06 on all four (was DireWolf-only
+  since the crit rework v2). The wolf line owns the precision identity.
+- **AlphaWolf is no longer dropless** — it was the only wolf with no unlocks
+  at all despite being the cL10 apex; it now carries Reaper as the line's
+  apex payload, moved up from EliteWolf.
+- **"Easiest drop = least interesting skill" is intended**, not a bug: Wild
+  at .5 on the mid-tier elite is generous *variety*, not power. PO confirmed
+  the reward curve reads correctly.
+
+**Reachability flag raised + resolved in-session:** the literal spec ("Wolf
+drops nothing else") would have made **Swift world-unreachable** — Wolf was
+its only non-legacy source (no NPC teaches it, no recipe makes it; the other
+sources are legacy proving-grounds mobs). This would have regressed the
+step-7 A.5 guarantee that all player skills are world-reachable. PO resolved
+it by putting Swift on all four wolves at .1. Post-change sweep across mobs +
+NPC teachings + recipes + milestones: **nothing orphaned**. Two names the
+sweep flagged are non-issues — `Haste` (milestone table, which the sweep
+doesn't read) and `FireWard` (pre-existing known gap; its own `_comment`
+records "no unlock source yet — real placement comes with the item 12 content
+pass").
+
+**Balance notes for the next tuning pass (recorded, not acted on):**
+- All four drop auras are single-target (`maxTargets: 1`, `selector:
+  nearest`) on the same 40-tick interval, so radius-vs-damage is the only
+  axis. DPS vs the DamageAura baseline: **Wild ~72%** (r1.40→1.60),
+  **LongRangeStrike ~64%** (r2.60→3.00), **Reaper ~87%** (r2.0 + execute
+  <35% ×2 + lifesteal 50% + berserker).
+- **Wild is close to a trap pick** — its 1.4 radius is barely outside
+  DamageAura's 1.0, so the DPS loss buys no real safety; it reads as "worse
+  Damage" rather than a genuine side-grade. LongRangeStrike at 2.6–3.0 by
+  contrast outranges every wolf bite (1.0) and even EliteWolfBite (2.2), so
+  it is a real playstyle.
+- **Reaper caps at maxLevel 3** — 13.5 DPS at max vs LongRangeStrike's 12.8,
+  despite being the cL10 payload against LRS's cL6. Execute + lifesteal carry
+  it in practice, but the raw ceiling does not read as four curve levels
+  better. Raising `maxLevel` to 5 is the one-line fix if the apex drop should
+  feel apex.
+- AlphaWolf is at 2 spawns and is Reaper's only source at .2 (≈5 kills
+  expected) — PO is placing more by hand in the editor.
+
+**Content touched:** `backend/pkg/aura/skills/milestone-unlocks.json` (FirstAid
+row removed) + its pin test `pkg/aura/skills/milestones_test.go`
+(`TestDefaultMilestoneUnlocks_PinnedTable`, rewritten red→green with the
+rationale); `api/mobs/{wolf,elite-wolf,dire-wolf,alpha-wolf}.json` unlocks +
+`_comment`s; `api/skills/{keen-eye,wild,long-range-strike,reaper}.json`
+`_comment` source lines. Docs swept for stale drop sources:
+`content-mobs.md`, `content-auras.md`, `content-passives.md`,
+`content-skill-inventory.md` (incl. its milestone rows + reachability
+summary — that file is generated and now lags in other ways too; **regenerate
+it next content chunk**). PO's own `api/zones/world.json` editor pass rode
+along in the same commit: props 856→850, spawns 349→380 (Boar +17, DireWolf
++8, Kobold +4, EliteWolf +3, PoisonPool +3, Spider +1, Bear −1, Stag −2,
+Wolf −2).
+
+**Watch item (recurred):** the milestone table is `//go:embed`-ed under
+`backend/pkg/aura/skills/`, **not** `api/` — so `-content ../api` does not
+cover it and a `make -C backend build` is required. Easy to miss in a session
+that is otherwise pure JSON iteration.
+
+**Verified:** `go build ./...` clean; **full suite green** (`go test ./...`,
+exit 0) including the rewritten milestone pin; boot clean with **1 milestone
+unlock** (was 2) and no panics — `78 skills/13 factions/47 mobs/10 recipes/
+850 props/380 spawns/5 campfires/14 npcs, 0 panics`. Reachability sweep
+green. **Not yet PO-verified in-game** — server was left running for the PO
+to continue testing.

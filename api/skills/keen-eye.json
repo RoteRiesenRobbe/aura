@@ -1,5 +1,5 @@
 {
-  "_comment": "First crit-chance stat passive (backlog §23, §4.3 v2 crit rework PO 2026-07-20): +2% crit chance per level on every outgoing direct hit, additive with the character base 5% (conf game.player.critChance) and any skill-authored chance; pair-less effects crit at the global defaultCritFactor (sys/skills.go). DoTs never crit. Unlock source: DireWolf rare drop 0.06 (PO choice 2026-07-20 — Dire-style chase drop; the wolf line owns the precision identity). All values [PLACEHOLDER]",
+  "_comment": "First crit-chance stat passive (backlog §23, §4.3 v2 crit rework PO 2026-07-20): +2% crit chance per level on every outgoing direct hit, additive with the character base 5% (conf game.player.critChance) and any skill-authored chance; pair-less effects crit at the global defaultCritFactor (sys/skills.go). DoTs never crit. Unlock source: every wolf at 0.06 (PO 2026-07-21 — line-wide; the wolf line owns the precision identity. Was DireWolf-only from 2026-07-20). All values [PLACEHOLDER]",
   "id": 60,
   "name": "KeenEye",
   "category": "passive",

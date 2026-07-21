@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 dark-forest pack leader (content pass C2): the 'something big' the signpost warns about. tier elite as a pure label — eliteness lives in the baseline + curveLevel 5. EliteWolfBite feeds on wounded prey (execute + lifesteal). Guards the Hermit approach; drops the positioning side-grade aura (LongRangeStrike) and — intermission triage Session ②, item 20 — Reaper, whose execute+crit+lifesteal identity mirrors the wolf's own. All values [PLACEHOLDER]",
+  "_comment": "Z1 dark-forest pack leader (content pass C2): the 'something big' the signpost warns about. tier elite as a pure label — eliteness lives in the baseline + curveLevel 5. EliteWolfBite feeds on wounded prey (execute + lifesteal). Guards the Hermit approach. Drop set reshuffled across the wolf line (PO 2026-07-21): Swift 0.1 + KeenEye 0.06 are now line-wide, and this one carries Wild 0.5 (LongRangeStrike moved to DireWolf, Reaper up to AlphaWolf). All values [PLACEHOLDER]",
   "id": 19,
   "name": "EliteWolf",
   "type": "MOB",
@@ -26,7 +26,8 @@
     { "skillName": "EliteWolfBite", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "LongRangeStrike", "chance": 0.5 },
-    { "skillName": "Reaper", "chance": 0.5 }
+    { "skillName": "Swift", "chance": 0.1 },
+    { "skillName": "KeenEye", "chance": 0.06 },
+    { "skillName": "Wild", "chance": 0.5 }
   ]
 }

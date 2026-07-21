@@ -1,5 +1,5 @@
 {
-  "_comment": "cL8-17 farm-band normal #2 (Z2-hardening pre-chunk, PO 2026-07-21): the wolf line's apex — above Wolf (cL2) and DireWolf (cL6), the fast chaser of the high-tier farm areas. Own sprite/EntityType (PO ruling 2026-07-21: unique art per mob, higher tier looks meaner). Speed 0.74 stays under the PO normal-mob ceiling (clearly slower than the player); WolfBite baseline shared with the line, f(cL10) does the scaling. experience kph-derived per the Session-⑥ XP rule. PO places spawns in the editor. All values [PLACEHOLDER]",
+  "_comment": "cL8-17 farm-band normal #2 (Z2-hardening pre-chunk, PO 2026-07-21): the wolf line's apex — above Wolf (cL2) and DireWolf (cL6), the fast chaser of the high-tier farm areas. Own sprite/EntityType (PO ruling 2026-07-21: unique art per mob, higher tier looks meaner). Speed 0.74 stays under the PO normal-mob ceiling (clearly slower than the player); WolfBite baseline shared with the line, f(cL10) does the scaling. experience kph-derived per the Session-⑥ XP rule. Drops added 2026-07-21 (PO — it was the only dropless wolf): Swift 0.1 + KeenEye 0.06 line-wide, plus Reaper 0.2 as the line's apex payload, moved up from EliteWolf. PO places spawns in the editor. All values [PLACEHOLDER]",
   "id": 46,
   "name": "AlphaWolf",
   "type": "MOB",
@@ -24,5 +24,10 @@
   },
   "skills": [
     { "skillName": "WolfBite", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "Swift", "chance": 0.1 },
+    { "skillName": "KeenEye", "chance": 0.06 },
+    { "skillName": "Reaper", "chance": 0.2 }
   ]
 }

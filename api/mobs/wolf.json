@@ -26,6 +26,7 @@
     { "skillName": "WolfBite", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "Swift", "chance": 0.1 }
+    { "skillName": "Swift", "chance": 0.1 },
+    { "skillName": "KeenEye", "chance": 0.06 }
   ]
 }

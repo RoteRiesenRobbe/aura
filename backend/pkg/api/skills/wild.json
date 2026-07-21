@@ -1,5 +1,5 @@
 {
-  "_comment": "First monster-kill unlock payload (Phase 6.2): a damage-aura variant — wider ring, lower dps than Damage. All values [PLACEHOLDER]",
+  "_comment": "First monster-kill unlock payload (Phase 6.2): a damage-aura variant — wider ring, lower dps than Damage. Live source: EliteWolf 0.5 (PO 2026-07-21 wolf-line drop reshuffle; was DireWolf 0.06). All values [PLACEHOLDER]",
   "id": 3,
   "name": "Wild",
   "category": "active_aura",

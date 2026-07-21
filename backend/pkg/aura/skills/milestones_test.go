@@ -58,11 +58,12 @@ func TestMilestoneUnlocksFromJSON_InvalidJSON(t *testing.T) {
 	require.Error(t, err)
 }
 
-// Pins the embedded milestone table — FINAL per the C8 milestone settlement
-// (plan-content-zones12.md §13 C8, PO 2026-07-19): milestones are the rare
-// guaranteed beats — Heal (combat sustain) and Haste (first cooldown) — and
-// everything else lives in the world (Heal → turnip-field Hermit,
-// Recover → DireBear drop, plus all earlier drop/teaching reassignments).
+// Pins the embedded milestone table. The C8 milestone settlement
+// (plan-content-zones12.md §13 C8, PO 2026-07-19) fixed milestones as the rare
+// guaranteed beats and pushed everything else into the world. FirstAid left the
+// table on 2026-07-21 (PO): the village Hermit now teaches it at L2 — earlier
+// than the L3 milestone granted it — so the milestone was dead weight and Haste
+// (first cooldown) is the only guaranteed beat left.
 // Resolves against the real content in api/skills so a renamed skill fails
 // here, not at boot.
 func TestDefaultMilestoneUnlocks_PinnedTable(t *testing.T) {
@@ -77,7 +78,6 @@ func TestDefaultMilestoneUnlocks_PinnedTable(t *testing.T) {
 		got[u.Skill.Name] = u.Level
 	}
 	assert.Equal(t, map[string]uint32{
-		"FirstAid":  3,
 		"Haste": 7,
 	}, got)
 }
