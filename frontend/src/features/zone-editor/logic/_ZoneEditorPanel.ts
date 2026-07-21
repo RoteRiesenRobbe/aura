@@ -217,10 +217,18 @@ export function setupPanel() {
     propTypeSelect.addEventListener('change', updatePropRadiusLabel);
     updatePropRadiusLabel();
 
-    ZoneEditor.mobNames.forEach(name => {
+    ZoneEditor.mobOptions.forEach(mob => {
         let option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
+        // The value stays the bare name — that is what the zone JSON stores and
+        // what populateSpawnControls() assigns back on selection.
+        option.value = mob.name;
+        // "Wolf (cL2)" / "Troll (cL11, elite)" — the curve level always, the
+        // tier only when it carries information (normal is the default).
+        let suffix = 'cL' + mob.curveLevel;
+        if (mob.tier !== 'normal') {
+            suffix += ', ' + mob.tier;
+        }
+        option.textContent = mob.name + ' (' + suffix + ')';
         spawnMobSelect.appendChild(option);
     });
 

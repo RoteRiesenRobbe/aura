@@ -36,6 +36,8 @@ interface PropDefJSON {
 
 interface MobDefJSON {
     name: string;
+    tier?: string;
+    curveLevel?: number;
     factors?: { wanderRadius?: number };
 }
 
@@ -69,9 +71,19 @@ export const propTypes: PropTypeDef[] = propDefJSONs
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-export const mobNames: string[] = mobDefJSONs
-    .map(def => def.name)
-    .sort((a, b) => a.localeCompare(b));
+// The spawn dropdown entries: the authored mob name (the value the zone JSON
+// carries) plus the two authoring axes that tell two same-named-looking mobs
+// apart — curveLevel (the numeric strength axis, GDD §5) and tier (the
+// encounter-role label, which multiplies nothing). Defaults mirror the server
+// loader (mobs/definitions.go): absent tier -> normal, absent curveLevel -> 1.
+// Alphabetical — the suffix is a label, it does not group.
+export const mobOptions: { name: string; curveLevel: number; tier: string }[] = mobDefJSONs
+    .map(def => ({
+        name: def.name,
+        curveLevel: def.curveLevel || 1,
+        tier: def.tier || 'normal',
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
 // The registry skill names (e.g. "Heal", "Dash") the teaching dropdown
 // offers — the exact keys the backend zone loader resolves a Teaching.Skill
