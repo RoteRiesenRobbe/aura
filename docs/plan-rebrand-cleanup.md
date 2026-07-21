@@ -109,6 +109,14 @@ it. Grep hits on `Rating` no longer indicate a live widget.
 remain anywhere in `src/` — pure directory delete (40K). `SocialMedia`
 **stays**: `StartScreen.ts` is a live consumer.
 
+**PO ruling 2026-07-21 — A.2 CANCELLED, rating KEPT.** This is still a
+Kringel Games project: the rating/feedback widget and the start-screen
+social links remain accurate and stay. The feature is currently orphaned
+(no consumer since the 2026-07-13 end-screen rework) — **re-wiring it into
+a surface is a separate PO call**, not part of this plan. Do not delete;
+the rename sweep (Phase B/C) treats its berryhunter.io POST endpoint like
+every other URL.
+
 ### A.3 Chieftain service — DONE (2026-07-09, pulled forward)
 
 **Decision (2026-07-08): chieftain does NOT grow into the account service.**
@@ -132,6 +140,36 @@ Verified: `go build ./...`, `go generate ./...`, full `go test ./...` green;
 `server.fbs` untouched, zero wire/frontend impact.
 
 ### A.4 Survival/item scaffolding sweep (research-code-quality.md §4)
+
+> **✅ EXECUTED 2026-07-21, committed `93fba97e`.** **Backend:** the dead `drops[]`
+> chain removed end-to-end (`items/mobs/definitions.go` JSON field + `Drops`
+> type + resolve loop; `RegistryFromFS`/`mapToMobDefinition`/`loadMobs` lose
+> the now-unused `items.Registry` param — **the mobs package no longer
+> depends on the items package at all**; simharness stops loading the item
+> registry). **Frontend:** the equip/craft machinery was provably fed
+> nothing (`GameStateMessage` stamps `equipment: undefined`; `actionKeys`
+> bound to zero keys; no wire driver for `action()`), so the whole
+> reachability island went: `Character.ts` equip slots/hands/swing-anim
+> (~200 lines), `EntityManager` equipment sync, `Controls` action/
+> inventoryAction/isCraftInProgress machinery, `Player.isCraftInProgress`,
+> `ControlsActionEvent` + `CharacterEquippedItemEvent` + `InputAction`,
+> `_Develop` equipment replacer + dead subscription; orphaned modules
+> `AnimateAction.ts` + `animations/logic/Animation.ts` deleted; config
+> crumbs pruned (`actionAnimation`, `equippedPlaceableOpacity`,
+> `CRAFTING_RANGE`, `PLACEMENT_RANGE`, `INVENTORY_SLOTS`). **Asset
+> orphan-scan:** deleted `dummy.svg`, `mobs/circle.svg`, `mobs/demon.svg`
+> (angryMammoth got real art in the unique-art pass), `mobs/saberToothCat.svg`
+> (renders `lion.svg`), `social-media icons/twitter.png` (html uses the svg).
+> `logo.svg` initially flagged orphan but is the **favicon source in
+> webpack.common.js** (config files sit outside src — scan caveat); kept,
+> replaced at Phase C. Items render path + `features/audio/` untouched per
+> plan. **Verified:** full backend suite + `-race` on touched packages
+> green, `tsc` clean, webpack prod build compiles, boot counts unchanged
+> (`78 skills/13 factions/47 mobs/10 recipes/856 props/349 spawns/5
+> campfires/14 npcs, 0 panics`), headless in-game smoke ×4: join, character
+> renders, movement, HUD alive. One flaky `null.split` pageerror in run 1 =
+> the documented pre-existing item-21 intermittent (same signature, 0/4
+> later runs), not a regression.
 
 **Rescoped 2026-07-21 (refresh audit)** — original list, with findings:
 
@@ -214,20 +252,33 @@ cheapest it will ever be). Sync `Skills.ts` display names in the same pass.
 Webpack `title`/`appName`/favicon config, `package.json` name/description/
 repository, `index.html`, README. Trivial; rides along with Phase B.
 
+**Added 2026-07-21 (PO check: "is the title screen part of the rebrand?" —
+it wasn't; now it is):**
+- **Title screen:** the hard-coded `<h1>BerryHunter.io</h1>` in
+  `startScreen.html` (the actual in-game title, independent of the webpack
+  tab title) + the commented-out wiki link below it.
+- **Mascot/splash art:** `hunter.png` (header mascot) + `loadingScreen.jpg`
+  — whether these get new art is a **PO art call**, not blocking; the
+  rename only retitles text.
+- **Stays as-is:** Kringel Games identity — the social links and the rating
+  widget's branding are still accurate (PO ruling above).
+
 ## 6.5 Execution sequencing (added at the 2026-07-21 refresh)
 
 One commit per phase item, suite green + in-game check after each (house
 rule); estimated 1–2 execution sessions:
 
-1. **A.2** rating delete (pure, smallest risk warm-up).
+1. ~~**A.2** rating delete~~ — **CANCELLED 2026-07-21** (PO: rating + social
+   links stay, Kringel Games project — see §4 A.2).
 2. **A.4** scaffolding prune (Character/EntityManager equip-crafting code,
    dead `drops[].item` path, asset orphan-scan — items render path stays).
 3. **A.5** `"legacy": true` tag (TDD: schema field per registry + world-zone
    reference warning + tag the proving-grounds set).
 4. **A.6** bare-name skill renames (+ Heal-collision rename + `Skills.ts`
    display-name sync; name-pinned Go tests updated in the same commit).
-5. **B + C** structural rename + branding, one atomic commit, naming set
-   decided at its start (choice prompt: module path / binary / namespace).
+5. **B + C** structural rename + branding (incl. the title-screen `<h1>` —
+   §6), one atomic commit, naming set decided at its start (choice prompt:
+   module path / binary / namespace).
 
 ## 7. Timing rationale (why step 7)
 
