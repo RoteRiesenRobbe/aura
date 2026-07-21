@@ -1031,3 +1031,86 @@ categories gets proportionally chunky bands (switch to a fraction-of-radius with
 a px floor if that reads badly). Placeholders: all 6 category colours,
 `BAND_WIDTH 4` / `BAND_ALPHA 0.75` / `FILL_ALPHA 0.1`, elite silver `#c8ccd4`
 w2 / boss gold `#e8c04a` w3.
+
+## Applied-effects pips: buff/debuff visibility on avatars (ad-hoc session, 2026-07-21)
+
+**DONE 2026-07-21 — PO-VERIFIED IN-GAME 2026-07-21 ("works"), committed
+`1358b9bc`.** PO-picked ad hoc (ahead of queue item ② reconnect-token): a dot,
+buff or debuff on an avatar was invisible until its first damage tick popped a
+floating number. Now the moment it lands, colour pips appear under the
+overhead HP bar — players and mobs alike.
+
+**PO rulings (choice prompts, 2026-07-21):**
+- Visual form → **colour pips at the nameplate/overhead bar** (not body-ring,
+  not tint pulse, not icon badges — no icon assets exist, and pips reuse the
+  fresh item-7 category colour language).
+- Scope → **all applied kinds except shield** (dot/slow/hot/resist/tickrate);
+  shield stays bar-only — `shield_hp` + the absorb segment already show it, a
+  pip would double-display.
+- Duration → **presence only** (one ubyte; fade-out warning would need
+  per-kind remaining-ticks on the wire — deferred until missed).
+
+**Key architectural point — two directions, two fields:** `aura_category` is
+what an entity *projects*; the new `applied_effects` is what is applied *to*
+it (the `skills.Buffs` store). Before this chunk nothing of the Buffs store
+reached the wire except the derived `shield_hp` scalar.
+
+**Backend:**
+- `skills.AppliedEffect` bitmask (dot/slow/hot/resist/tickrate), derived live
+  by `Buffs.AppliedEffects()` (`skills/applied_effects.go`). Exhaustiveness is
+  **compile-enforced, one step stronger than the aura_category table**: the
+  `appliedBit()` classifier is part of the `buffPayload` interface, so a new
+  payload kind fails to *build* without a pip decision (shield deliberately
+  returns None).
+- TDD: `TestAppliedEffects_*` — per-kind bits, shield exclusion, cross-skill
+  union, expiry via `Tick()`.
+- `AppliedEffects()` accessor on mob + player + both model interfaces (the
+  `ShieldHP` placement pattern).
+
+**Wire (append-only; no existing field IDs shift):** `Mob.applied_effects`
+(after `tier`) + `Character.applied_effects` (after `aura_category`), both
+`ubyte`; Go + TS bindings regenerated; encoded in the codec next to the other
+live values.
+
+**Frontend:**
+- One shared `EffectPips` renderer (`game-objects/logic/EffectPips.ts`) for
+  characters and mobs — no per-class copy. Redraws only on mask change.
+- Dot/slow/hot pips reuse the aura-ring category colours, now **exported as
+  `AURA_CATEGORY_COLORS` from `AuraRings.ts`** (single source): "purple ring
+  around a mob" and "purple pip on me" are the same colour by construction.
+- **Resist + tickrate get their first colours** — teal `0x5fbfb0` / orange
+  `0xe0812e` [PLACEHOLDER] (half-resolves the deferred "resist has no colour"
+  call: the pip has one, the resist aura *ring* still draws nothing).
+- Player pips on the nameplate plate (unfiltered → night-readable); mob pips
+  with the on-body bar (night-filtered like the bar, accepted).
+- **Gotcha found by the smoke:** the own player bypasses `EntityManager` and
+  updates via `Player.updateFromBackend` — it needed its own
+  `setAppliedEffects` call; without it only *other* entities showed pips.
+
+**Watch item (cost a PO round-trip):** regenerating the FlatBuffers **TS
+bindings (`api/schema/js/`) requires a webpack dev-server restart** — the
+files live outside `frontend/src` and HMR does not watch them, so the running
+dev server kept serving the old generated classes
+(`entity.appliedEffects is not a function`) while the prod build was fine.
+Sibling of the known "webpack config changes need a restart" item. Also
+re-confirmed: `pkill -f` self-kill applies to *any* pattern that appears in
+the invoking compound command (`pkill -f "npm run start"` killed its own
+shell, exit 144) — kill by PID from `ps` instead.
+
+**Verified:** `go build ./...` clean; **full suite green** (`go test ./...`);
+`tsc --noEmit` clean; webpack prod build clean; boot `-content ../api` —
+`81 skills/14 factions/50 mobs/10 recipes/847 props/383 spawns/5 campfires/
+14 npcs, 0 panics`. Headless Playwright smoke with a real before/after:
+before-shot at the spawn campfire shows **no pip**, then `WARP` to the
+FireElemental pair, burn `dot_aura` lands → **purple dot pip under the
+player's bar** (screenshot-confirmed, both on the :2000 prod build and the
+:2001 dev server after its restart), no runtime errors. Non-vacuous by
+construction (pip absent before, present after).
+
+**Open (carried to Deferred):** pip geometry placeholders (`EffectPips.ts`:
+`PIP_RADIUS 4` / `PIP_SPACING 11`) + the two new colours above. **Mob-side pip
+visually unverified** — identical wire/setter/renderer path and covered by
+tsc + suite, but no headless scenario applied a dot/slow to a mob (needs a
+HUD-equipped player aura); one in-game glance when convenient. Poison pools
+do NOT pip by design — their aura is direct poison *damage*, not a dot (the
+venom spider owns the lingering-poison niche).
