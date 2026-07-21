@@ -26,6 +26,7 @@ func TestAuraCategoryOf_RingCategories(t *testing.T) {
 	assert.Equal(t, AuraCategoryDot, AuraCategoryOf(EffectTypeDotAura))
 	assert.Equal(t, AuraCategorySlow, AuraCategoryOf(EffectTypeSlowAura))
 	assert.Equal(t, AuraCategoryLight, AuraCategoryOf(EffectTypeLightAura))
+	assert.Equal(t, AuraCategoryResist, AuraCategoryOf(EffectTypeResistAura))
 }
 
 func TestAuraCategoryOf_NonRingEffects(t *testing.T) {

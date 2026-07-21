@@ -6,7 +6,7 @@ export const SkillNames: { [id: number]: string } = {
     2: 'Heal',
     3: 'Wild',
     4: 'Slow',
-    5: 'Immolation',
+    5: 'Immolate',
     6: 'Light',
     7: 'Reaper',
     10: 'Swift',

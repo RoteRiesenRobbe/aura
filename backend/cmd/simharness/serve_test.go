@@ -125,10 +125,11 @@ func TestLoadMobPresets_DotAuraMobsDerive(t *testing.T) {
 	assert.Equal(t, 45, spider.Aura.DotTickInterval)
 }
 
-// Player dot skills join the roster too — Immolation and the Wildfire
+// Player dot skills join the roster too — Immolate and the Wildfire
 // combo capstone were invisible to the balance pass before. Pinned against
-// Immolation (dot 10.5 HP +2.1/lvl after the crit-rework-v2 dot
-// compensation, 3 events every 60 ticks, aura tick 40).
+// Immolate (dot 10.5 HP +2.1/lvl after the crit-rework-v2 dot
+// compensation, 3 events every 60 ticks, aura tick 20 after the 2026-07-21
+// dot-responsiveness halving).
 func TestLoadPlayerAuraPresets_DotSkillsDerive(t *testing.T) {
 	_, presets, err := loadPresets("")
 	require.NoError(t, err)
@@ -138,12 +139,12 @@ func TestLoadPlayerAuraPresets_DotSkillsDerive(t *testing.T) {
 		byName[p.Name] = p.Spec
 	}
 
-	imm, ok := byName["Immolation L1"]
-	require.True(t, ok, "roster must contain Immolation at L1")
+	imm, ok := byName["Immolate L1"]
+	require.True(t, ok, "roster must contain Immolate at L1")
 	assert.InDelta(t, 10.5, imm.DamageHP, 1e-6)
 	assert.Equal(t, 3, imm.DotTicks)
 	assert.Equal(t, 60, imm.DotTickInterval)
-	assert.Equal(t, 40, imm.TickInterval)
+	assert.Equal(t, 20, imm.TickInterval)
 
 	_, ok = byName["Wildfire L1"]
 	assert.True(t, ok, "the Wildfire combo capstone derives too")

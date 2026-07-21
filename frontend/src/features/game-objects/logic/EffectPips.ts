@@ -26,16 +26,16 @@ interface PipStyle {
 }
 
 /**
- * Pip colours and display order (debuffs first, then buffs). Dot/slow/hot reuse
- * the aura-ring category language so "purple around a mob" and "purple pip on
- * me" mean the same thing; resist and tick-rate have no ring category, so their
- * colours are new here. All colours [PLACEHOLDER] — tune in-game.
+ * Pip colours and display order (debuffs first, then buffs). Dot/slow/hot/resist
+ * reuse the aura-ring category language so "purple around a mob" and "purple pip
+ * on me" mean the same thing; tick-rate has no ring category, so its colour is
+ * new here. All colours [PLACEHOLDER] — tune in-game.
  */
 const PIP_STYLES: readonly PipStyle[] = [
     {bit: AppliedEffectBit.Dot, color: AURA_CATEGORY_COLORS.dot},
     {bit: AppliedEffectBit.Slow, color: AURA_CATEGORY_COLORS.slow},
     {bit: AppliedEffectBit.Hot, color: AURA_CATEGORY_COLORS.heal},
-    {bit: AppliedEffectBit.Resist, color: 0x5fbfb0},
+    {bit: AppliedEffectBit.Resist, color: AURA_CATEGORY_COLORS.resist},
     {bit: AppliedEffectBit.TickRate, color: 0xe0812e},
 ];
 

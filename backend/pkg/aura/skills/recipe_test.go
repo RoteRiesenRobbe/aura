@@ -173,7 +173,7 @@ func TestRecipes_C7Net(t *testing.T) {
 		{map[string]int{"Vanguard": 5, "Spearhead": 5, "CallForAid": 3}, []string{"Warbanner"}},
 		{map[string]int{"CallForAid": 3, "Taunt": 3}, []string{"HoldTheLine"}},
 		{map[string]int{"CallForAid": 3, "Heal": 5}, []string{"FieldMedics"}},
-		{map[string]int{"Ignite": 3, "Immolation": 5}, []string{"Wildfire"}},
+		{map[string]int{"Ignite": 3, "Immolate": 5}, []string{"Wildfire"}},
 		{map[string]int{"Slow": 5, "LongRangeStrike": 5}, []string{"Suppression"}},
 		{map[string]int{"Hardy": 3, "Tough": 3}, []string{"Barrier"}},
 	}

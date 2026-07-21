@@ -18,6 +18,7 @@ const (
 	AuraCategoryDot    AuraCategory = 1 << 3
 	AuraCategorySlow   AuraCategory = 1 << 4
 	AuraCategoryLight  AuraCategory = 1 << 5
+	AuraCategoryResist AuraCategory = 1 << 6
 )
 
 // Has reports whether c carries the given category bit.
@@ -41,9 +42,9 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	EffectTypeSlowAura:   AuraCategorySlow,
 	EffectTypeLightAura:  AuraCategoryLight,
 
-	// Resist auras are persistent fields but have no colour of their own in the
-	// item-7 language; left uncoloured until the PO picks one.
-	EffectTypeResistAura: AuraCategoryNone,
+	// Teal on the client, matching the applied-resist pip — projected and
+	// received resist share one colour (PO pick 2026-07-21).
+	EffectTypeResistAura: AuraCategoryResist,
 
 	// No persistent aura radius — nothing to outline.
 	EffectTypeNone:           AuraCategoryNone,

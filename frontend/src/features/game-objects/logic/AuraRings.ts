@@ -16,6 +16,7 @@ export const enum AuraCategoryBit {
     Dot = 1 << 3,
     Slow = 1 << 4,
     Light = 1 << 5,
+    Resist = 1 << 6,
 }
 
 /**
@@ -30,6 +31,7 @@ export const AURA_CATEGORY_COLORS = {
     shield: 0xe0b83c,
     slow: 0x4a9ae0,
     light: 0xf0dfa0,
+    resist: 0x5fbfb0,
 } as const;
 
 interface AuraCategoryStyle {
@@ -48,6 +50,7 @@ const AURA_CATEGORY_STYLES: readonly AuraCategoryStyle[] = [
     {bit: AuraCategoryBit.Heal, color: AURA_CATEGORY_COLORS.heal},
     {bit: AuraCategoryBit.Shield, color: AURA_CATEGORY_COLORS.shield},
     {bit: AuraCategoryBit.Slow, color: AURA_CATEGORY_COLORS.slow},
+    {bit: AuraCategoryBit.Resist, color: AURA_CATEGORY_COLORS.resist},
     {bit: AuraCategoryBit.Light, color: AURA_CATEGORY_COLORS.light},
 ];
 

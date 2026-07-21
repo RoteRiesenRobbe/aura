@@ -722,7 +722,7 @@ func TestParse_ExactlyOnePayload(t *testing.T) {
 
 func TestMap_DotAura(t *testing.T) {
 	data := []byte(`{
-      "id": 5, "name": "Immolation", "category": "active_aura", "maxLevel": 5,
+      "id": 5, "name": "Immolate", "category": "active_aura", "maxLevel": 5,
       "effects": [{
         "type": "dot_aura", "radius": 1.0, "tickInterval": 20,
         "damageHP": 5, "damageHPPerLevel": 1, "damageTags": ["fire"], "variance": 0.1,
