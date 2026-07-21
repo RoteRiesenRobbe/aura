@@ -51,7 +51,7 @@ without the `SKILL` cheat.
 | 2 | Heal | 5 | heal 12 +6/L @120t, r1.0, lowest_health 1 tgt, **self-cost 10 −2/L** (FINAL) | NPC-W Hermit @L3 (+ NPC-PG Sage @L1) |
 | 3 | Wild | 5 | dmg 10 +2.4/L @40t, r1.4 +.05/L | Drop: EliteWolf .5 (2026-07-21) |
 | 4 | Slow | 5 | slow 10% +10%/L, r1.5 | Drop: BanditRanged .03 (+ PG Mammoth .2) |
-| 5 | Immolate | 5 | fire dot 10.5 +2.1/L (3×60t) @40t, r1.0 | NPC-W Emberkeeper @L8 |
+| 5 | Immolate | 5 | fire dot 10.5 +2.1/L (3×60t) @20t, r1.0 | NPC-W Emberkeeper @L8 |
 | 6 | Light | 3 | light r4 +1/L | Drop: Kobold / KoboldRanged .05 |
 | 7 | Reaper | 3 | dmg 12 +3/L @40t r2.0; execute <35% ×2; lifesteal 50%; berserker ×2 at low HP | Drop: AlphaWolf .2 (2026-07-21) |
 | 29 | Rejuvenation | 3 | HoT 4 +2/L (6×60t) @60t, r2.5 +.2/L | Drop: OrcWarlord .1 (boss-rare) |
@@ -65,7 +65,7 @@ without the `SKILL` cheat.
 | 52 | Spearhead | 5 | dmg 16 +3.6/L ×3 tgt, r1.3 | Recipe: Vanguard 5 + Damage 5 |
 | 53 | Lifewarden | 5 | heal 14 +7/L ×2 tgt, no self-cost, r1.4 | Recipe: Vanguard 5 + Heal 5 |
 | 55 | Warbanner | 5 | dmg 15 +3.4/L ×2 + heal 13 +6.5/L + shield 6 +2.5/L @30t + slow 10% +3%/L, r1.2 | Recipe: Vanguard 5 + Spearhead 5 + CallForAid 3 |
-| 58 | Wildfire | 5 | fire dot 7.4 +1.5/L ×2 tgt (3×60t) @40t, r1.2 | Recipe: Ignite 3 + Immolate 5 |
+| 58 | Wildfire | 5 | fire dot 10.5 +2.1/L ×2 tgt (4×60t) @20t, r1.4 + self-only fire resist ×0.6 −0.05/L | Recipe: Ignite 3 + Immolate 5 |
 | 59 | Suppression | 5 | dmg 6.5 +1.4/L r2.6 +.1/L + slow 7% +7%/L | Recipe: Slow 5 + LongRangeStrike 5 |
 
 ## Passives (7)

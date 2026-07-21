@@ -1,5 +1,5 @@
 {
-  "_comment": "C7 recipe net (plan-content-zones12.md §13): Ignite + Immolate maxed → Wildfire, the fire-identity gap fill (~70% side-grade). Secret — never documented in-game.",
+  "_comment": "C7 recipe net (plan-content-zones12.md §13): Ignite + Immolate maxed → Wildfire — reworked 2026-07-21 from the ~70% side-grade into a strict Immolate upgrade, see api/skills/wildfire.json. Secret — never documented in-game.",
   "id": 8,
   "result": "Wildfire",
   "ingredients": [
