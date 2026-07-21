@@ -880,7 +880,7 @@ to continue testing.
 ## Milestone table moves into `api/` + restart-robustness (ad-hoc session, 2026-07-21)
 
 **Milestone table relocated to `api/milestones/` — DONE 2026-07-21, PO-driven
-in-session, committed `[uncommitted]`. Closes the `-content` coverage gap that
+in-session, committed `d7460462`. Closes the `-content` coverage gap that
 the wolf-line session logged as a recurring Watch item one chunk earlier.**
 
 **Trigger:** PO asked why the milestone table sat outside `api/` at all, while
