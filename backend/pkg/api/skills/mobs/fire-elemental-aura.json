@@ -1,5 +1,5 @@
 {
-  "_comment": "Fire-elemental aura (2026-07-21): the burn field both elementals carry — a fire dot on EVERYONE hostile in range (selector 'all', KoboldVolley precedent), because the elemental damages what stands near it rather than picking a target. Shared by FireElemental (cL18) and GreaterFireElemental (cL20) by PO ruling: the elite's extra HP and damage come from its tier baseline + f(cL), not from a separate skill. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "Fire-elemental aura (2026-07-21): the burn field both elementals carry — a fire dot on EVERYONE hostile in range (selector 'all', KoboldVolley precedent), because the elemental damages what stands near it rather than picking a target. Shared by FireElemental (cL18) and GreaterFireElemental (cL20) by PO ruling: the elite's extra HP and damage come from its tier baseline + f(cL), not from a separate skill. Curve-position-1 baseline. The light_aura is the fire's glow — rendering-only, slightly wider than the burn field so the danger zone is lit before you stand in it. All values [PLACEHOLDER]",
   "id": 134,
   "name": "FireElementalAura",
   "category": "active_aura",
@@ -19,6 +19,11 @@
       "targetsEnemies": true,
       "selector": "all",
       "tickInterval": 60
+    },
+    {
+      "type": "light_aura",
+      "radius": 2.5,
+      "radiusPerLevel": 0.0
     }
   ]
 }
