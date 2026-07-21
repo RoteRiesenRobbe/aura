@@ -58,8 +58,9 @@ type deadState struct {
 const CampfireDwellRadiusFactor = 0.5
 
 // campfireDwellTicks is how long a player must stay inside a campfire's bind
-// radius before it becomes their respawn anchor: 3 s. [PLACEHOLDER] (chunk 4)
-const campfireDwellTicks = 3 * constant.TicksPerSecond
+// radius before it becomes their respawn anchor: ~1.7 s — a bit more than half
+// the original 3 s, which felt sluggish in play. [PLACEHOLDER] (chunk 4)
+const campfireDwellTicks = 17 * constant.TicksPerSecond / 10
 
 // CampfireAnchor is a placed world campfire as the respawn tracker sees it:
 // position + pre-scaled bind radius. Built in cmd/aurad right after
