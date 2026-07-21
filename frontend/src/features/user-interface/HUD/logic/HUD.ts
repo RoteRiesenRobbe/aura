@@ -2,6 +2,7 @@ import '../assets/HUD.less';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
 import {skillDisplayName, skillMaxLevel, skillCategory} from '../../../../client-data/Skills';
+import {attachSkillTooltips} from './SkillTooltip';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
 import {VitalSignBar} from '../../../vital-signs/logic/VitalSignBar';
@@ -30,6 +31,15 @@ let cooldownSlotListElement: HTMLElement;
 // Latest cooldown slot state from the server; gates the activate-on-click.
 let currentCooldownSlots: number[] = [];
 let currentCooldownRemaining: number[] = [];
+
+// Current level of every spellbook-known skill, kept by updateSpellbook.
+// Feeds the hover tooltips (spellbook entries AND loadout slots — a slotted
+// skill's level is its spellbook level).
+const currentSkillLevels = new Map<number, number>();
+
+function skillLevelOf(skillId: number): number {
+    return currentSkillLevels.get(skillId) ?? 1;
+}
 
 let selectedSkillId: number | null = null;
 let skillPointsBadgeElement: HTMLElement;
@@ -224,6 +234,7 @@ function setupSpellbook() {
     // simplebar's data-attribute auto-init never sees it. SimpleBar's own
     // MutationObserver tracks the list re-renders in updateSpellbook.
     new SimpleBar(document.getElementById('spellbookScroll'), { autoHide: false });
+    attachSkillTooltips(spellbookListElement, skillLevelOf);
     spellbookListElement.addEventListener('pointerdown', (e) => {
         const target = e.target as HTMLElement;
         const li = target.closest('li') as HTMLElement;
@@ -264,6 +275,7 @@ function setupSpellbook() {
 function setupAuraLoadout() {
     auraLoadoutElement = document.getElementById('auraLoadout');
     auraSlotListElement = document.getElementById('auraSlotList');
+    attachSkillTooltips(auraSlotListElement, skillLevelOf);
     auraSlotListElement.addEventListener('pointerdown', (e) => {
         const li = (e.target as HTMLElement).closest('li') as HTMLElement;
         if (!li || li.dataset.slot === undefined) return;
@@ -335,6 +347,7 @@ export function hotkeyCooldownSlot(slot: number) {
 function setupPassiveLoadout() {
     passiveLoadoutElement = document.getElementById('passiveLoadout');
     passiveSlotListElement = document.getElementById('passiveSlotList');
+    attachSkillTooltips(passiveSlotListElement, skillLevelOf);
     passiveSlotListElement.addEventListener('pointerdown', (e) => {
         const li = (e.target as HTMLElement).closest('li') as HTMLElement;
         if (!li || li.dataset.slot === undefined) return;
@@ -353,6 +366,7 @@ function setupPassiveLoadout() {
 function setupCooldownLoadout() {
     cooldownLoadoutElement = document.getElementById('cooldownLoadout');
     cooldownSlotListElement = document.getElementById('cooldownSlotList');
+    attachSkillTooltips(cooldownSlotListElement, skillLevelOf);
     cooldownSlotListElement.addEventListener('pointerdown', (e) => {
         const li = (e.target as HTMLElement).closest('li') as HTMLElement;
         if (!li || li.dataset.slot === undefined) return;
@@ -450,6 +464,10 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
     let anyUnlock = false;
 
     const entries = ids.map((id, i) => ({id, level: levels[i] ?? 1}));
+    currentSkillLevels.clear();
+    for (const {id, level} of entries) {
+        currentSkillLevels.set(id, level);
+    }
     const sections: { category: string, title: string }[] = [
         {category: 'aura', title: 'Auras'},
         {category: 'passive', title: 'Passives'},
@@ -553,6 +571,7 @@ export function updateAuraLoadout(slots: number[]) {
         if (!li) continue;
         const label = li.querySelector('.slotLabel') as HTMLElement;
         label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
+        li.dataset.skillId = String(slots[i]);
         // Re-apply the optimistic highlight after the per-tick text re-render.
         // Never highlight an empty slot (guards against a slot emptied while active).
         li.classList.toggle('activeSlot', activeSlotIndex === i && slots[i] !== 0);
@@ -567,6 +586,7 @@ export function updatePassiveLoadout(slots: number[]) {
         const li = passiveSlotListElement.querySelector(`.passiveSlot[data-slot="${i}"]`) as HTMLElement;
         if (!li) continue;
         li.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
+        li.dataset.skillId = String(slots[i]);
     }
 }
 
@@ -582,6 +602,7 @@ export function updateCooldownLoadout(slots: number[], remainingTicks: number[])
         const label = li.querySelector('.slotLabel') as HTMLElement;
         const cd = li.querySelector('.cdRemaining') as HTMLElement;
         label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
+        li.dataset.skillId = String(slots[i]);
         const remaining = remainingTicks[i] ?? 0;
         cd.textContent = remaining > 0 ? `${(remaining * 33 / 1000).toFixed(1)}s` : '';
         li.classList.toggle('onCooldown', remaining > 0);

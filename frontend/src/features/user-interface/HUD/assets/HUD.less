@@ -900,3 +900,37 @@
 		}
 	}
 }
+
+// Skill hover tooltip (plan-ui-polish chunk 1): one shared element, anchored
+// beside the hovered spellbook entry / loadout slot (SkillTooltip.ts). Lives
+// on document.body, not inside #gameUI — position: fixed must not be
+// re-rooted by any ancestor transform/filter.
+#skillTooltip {
+	position: fixed;
+	z-index: 100;
+	max-width: 26rem;
+	padding: 0.7rem 1rem;
+	background: fade(black, 85%);
+	border: 1px solid @panel-border;
+	border-radius: 0.5rem;
+	color: @panel-color;
+	font-size: 1.5rem; // bumped with the shared-line dedupe (PO 2026-07-21) [PLACEHOLDER]
+	line-height: 1.45;
+	pointer-events: none; // never steal the hover from the anchor element
+
+	&.hidden {
+		display: none;
+	}
+
+	> .tooltipTitle {
+		color: #ffd75e; // the spellbook section-header gold
+		font-size: 1.6rem;
+		font-weight: 700;
+	}
+
+	> .tooltipSubtitle {
+		color: @panel-title-color;
+		font-size: 1.25rem;
+		margin-bottom: 0.35rem;
+	}
+}

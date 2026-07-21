@@ -2,6 +2,7 @@
   "_comment": "DireWolf kill-drop aura 0.2 (content pass C2; moved off EliteWolf in the wolf-line drop reshuffle, PO 2026-07-21): strike from well outside melee — much larger ring, lower dps, hard cap 1 target (Wild precedent + per-effect maxTargets, plan-content-zones12.md §5). A positioning side-grade, never a straight upgrade. All values [PLACEHOLDER]",
   "id": 45,
   "name": "LongRangeStrike",
+  "displayName": "Long-Range Strike",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

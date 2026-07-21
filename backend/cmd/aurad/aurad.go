@@ -19,6 +19,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/npc"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 	"github.com/RoteRiesenRobbe/aura/pkg/logging"
 	"golang.org/x/crypto/acme/autocert"
@@ -209,7 +210,15 @@ func main() {
 
 	//---- set up server
 
-	if err := bootHttp(g.Handler(), config.Server, dev); err != nil {
+	// Skill-catalog sidecar (plan-ui-polish chunk 1): the parsed registry as
+	// JSON — the client's single source of skill metadata for tooltips.
+	skillsHandler, err := skills.CatalogHandler(skillsRegistry)
+	if err != nil {
+		slog.Error("failed to build skill catalog", slog.Any("error", err))
+		panic(err)
+	}
+
+	if err := bootHttp(g.Handler(), skillsHandler, config.Server, dev); err != nil {
 		slog.Error("failed to boot HTTP server", slog.Any("error", err))
 		panic(err)
 	}
@@ -217,16 +226,16 @@ func main() {
 	g.Loop()
 }
 
-func bootHttp(gameHandler http.Handler, cfg cfg.Server, dev bool) error {
+func bootHttp(gameHandler, skillsHandler http.Handler, cfg cfg.Server, dev bool) error {
 	if cfg.TlsHost != "" {
-		return bootTlsServer(gameHandler, cfg, dev)
+		return bootTlsServer(gameHandler, skillsHandler, cfg, dev)
 	} else {
-		bootServer(gameHandler, cfg, dev)
+		bootServer(gameHandler, skillsHandler, cfg, dev)
 	}
 	return nil
 }
 
-func bootTlsServer(gameHandler http.Handler, cfg cfg.Server, dev bool) error {
+func bootTlsServer(gameHandler, skillsHandler http.Handler, cfg cfg.Server, dev bool) error {
 	host := cfg.TlsHost
 
 	port := cfg.Port
@@ -257,6 +266,7 @@ func bootTlsServer(gameHandler http.Handler, cfg cfg.Server, dev bool) error {
 	mux := http.NewServeMux()
 
 	mux.Handle("/game", gameHandler)
+	mux.Handle("/skills", skillsHandler)
 
 	if dev {
 		slog.Info("🔥 dev server running", slog.String("url", fmt.Sprintf("https://%s?wsUrl=wss://%s/game", host, host)))
@@ -294,7 +304,7 @@ func determineCacheDir() (string, error) {
 	return os.UserCacheDir()
 }
 
-func bootServer(gameHandler http.Handler, cfg cfg.Server, dev bool) {
+func bootServer(gameHandler, skillsHandler http.Handler, cfg cfg.Server, dev bool) {
 	port := cfg.Port
 
 	slog.Info("🦄 Booting game-server", slog.String("addr", fmt.Sprintf(":%d/game", port)))
@@ -302,6 +312,7 @@ func bootServer(gameHandler http.Handler, cfg cfg.Server, dev bool) {
 
 	mux := http.NewServeMux()
 	mux.Handle("/game", gameHandler)
+	mux.Handle("/skills", skillsHandler)
 
 	if dev {
 		slog.Info("🔥 dev server running", slog.String("url", fmt.Sprintf("http://localhost:%d?wsUrl=ws://localhost:%d/game", port, port)))

@@ -1,172 +1,232 @@
-// Static skill ID → display name map.
-// Tech debt: duplicates backend skill registry (backend/pkg/aura/skills/).
-// Acceptable at a handful of skills; revisit when the skill list grows.
-export const SkillNames: { [id: number]: string } = {
-    1: 'Damage',
-    2: 'Heal',
-    3: 'Wild',
-    4: 'Slow',
-    5: 'Immolate',
-    6: 'Light',
-    7: 'Reaper',
-    10: 'Swift',
-    11: 'Tough',
-    20: 'Nova Burst',
-    21: 'First Aid',
-    22: 'Ignite',
-    23: 'Summon Totem',
-    24: 'Summon Companion',
-    25: 'Taunt',
-    26: 'Fade',
-    27: 'Barrier',
-    28: 'Recall',
-    29: 'Rejuvenation',
-    30: 'Paladin',
-    31: 'Recover',
-    32: 'Revive',
-    33: 'Dash',
-    34: 'Haste',
-    40: 'Fire Ward',
-    41: 'Harvest',
-    42: 'Hardy',
-    43: 'Thick Hide',
-    44: 'Berserker',
-    45: 'Long-Range Strike',
-    46: 'Torch',
-    47: 'Antivenom',
-    48: 'Pickaxe',
-    49: 'Damage-Burst',
-    50: 'Vanguard',
-    51: 'Call for Aid',
-    52: 'Spearhead',
-    53: 'Lifewarden',
-    54: 'Shockwave',
-    55: 'Warbanner',
-    56: 'Hold the Line',
-    57: 'Field Medics',
-    58: 'Wildfire',
-    59: 'Suppression',
-    60: 'Keen Eye',
-    61: 'Fire Totem',
-};
+// Skill catalog (plan-ui-polish chunk 1): metadata for every skill — display
+// name, category, max level, and the full effect numbers for tooltips —
+// fetched once at startup from the aurad HTTP sidecar (GET /skills). The
+// server serves its PARSED registry, so this stays correct through every
+// balance retune and `-content` iteration. This replaces the three
+// hand-maintained maps that used to live here (name/maxLevel/category).
+//
+// Until the fetch lands (or if it fails) the accessors degrade to fallbacks:
+// names render as "Skill #<id>", tooltips simply don't show. The game never
+// blocks on the catalog.
 
-export function skillDisplayName(id: number): string {
-    return SkillNames[id] ?? `Skill #${id}`;
-}
+import {gameServer} from '../features/backend/logic/Urls';
 
-// Static skill ID → maxLevel map for the spellbook level badge ("2/5").
-// Same tech debt as SkillNames: duplicates the backend skill registry.
-export const SkillMaxLevels: { [id: number]: number } = {
-    1: 5,
-    2: 5,
-    3: 5,
-    4: 5,
-    5: 5,
-    6: 3,
-    7: 3,
-    10: 3,
-    11: 3,
-    20: 3,
-    21: 3,
-    22: 3,
-    23: 3,
-    24: 3,
-    25: 3,
-    26: 3,
-    27: 3,
-    28: 1,
-    29: 3,
-    30: 5,
-    31: 1,
-    32: 1,
-    33: 3,
-    34: 1,
-    40: 3,
-    41: 5,
-    42: 3,
-    43: 3,
-    44: 5,
-    45: 5,
-    46: 3,
-    47: 3,
-    48: 5,
-    49: 3,
-    50: 5,
-    51: 3,
-    52: 5,
-    53: 5,
-    54: 3,
-    55: 5,
-    56: 3,
-    57: 3,
-    58: 5,
-    59: 5,
-    60: 5,
-    61: 3,
-};
-
-export function skillMaxLevel(id: number): number {
-    return SkillMaxLevels[id] ?? 1;
-}
-
-// Static skill ID → category map for the spellbook sections and the
-// equip-click guards. Same tech debt as SkillNames.
 export type SkillCategory = 'aura' | 'passive' | 'cooldown';
 
-export const SkillCategories: { [id: number]: SkillCategory } = {
-    1: 'aura',
-    2: 'aura',
-    3: 'aura',
-    4: 'aura',
-    5: 'aura',
-    6: 'aura',
-    7: 'aura',
-    10: 'passive',
-    11: 'passive',
-    20: 'cooldown',
-    21: 'cooldown',
-    22: 'cooldown',
-    23: 'cooldown',
-    24: 'cooldown',
-    25: 'cooldown',
-    26: 'cooldown',
-    27: 'cooldown',
-    28: 'cooldown',
-    29: 'aura',
-    30: 'aura',
-    31: 'cooldown',
-    32: 'cooldown',
-    33: 'cooldown',
-    34: 'cooldown',
-    40: 'aura',
-    41: 'aura',
-    42: 'passive',
-    43: 'passive',
-    44: 'aura',
-    45: 'aura',
-    46: 'passive',
-    47: 'passive',
-    48: 'aura',
-    49: 'cooldown',
-    50: 'aura',
-    51: 'cooldown',
-    52: 'aura',
-    53: 'aura',
-    54: 'cooldown',
-    55: 'aura',
-    56: 'cooldown',
-    57: 'cooldown',
-    58: 'aura',
-    59: 'aura',
-    60: 'passive',
-    61: 'cooldown',
+// --- catalog wire types (mirror of the Go skills.SkillDefinition JSON) ---
+
+export interface DamageParams {
+    hp: number;
+    hpPerLevel: number;
+    tags: string[];
+    gated: boolean;
+    variance: number;
+    hitStyle: string;
+    structureDamageFraction: number;
+    executeBelowFraction: number;
+    executeBonusFactor: number;
+    berserkerMaxBonusFactor: number;
+    critChance: number;
+    critChancePerLevel: number;
+    critFactor: number;
+    lifestealFraction: number;
+}
+
+export interface HealParams {
+    hp: number;
+    hpPerLevel: number;
+    selfDamageHp: number;
+    selfDamageHpPerLevel: number;
+    fractionOfMax: number;
+    fractionOfMaxPerLevel: number;
+    variance: number;
+}
+
+export interface SelfHealParams {
+    healHp: number;
+    healHpPerLevel: number;
+    fractionOfMax: number;
+    fractionOfMaxPerLevel: number;
+    variance: number;
+}
+
+export interface SlowParams {
+    fraction: number;
+    fractionPerLevel: number;
+}
+
+export interface ResistParams {
+    tags: string[];
+    factor: number;
+    factorPerLevel: number;
+    targetsSelf: boolean;
+}
+
+export interface StatParams {
+    name: string;
+    bonus: number;
+    bonusPerLevel: number;
+}
+
+export interface DotParams {
+    hp: number;
+    hpPerLevel: number;
+    tags: string[];
+    variance: number;
+    tickCount: number;
+    interval: number;
+}
+
+export interface SpawnParams {
+    mobName: string;
+    ttlTicks: number;
+    ttlTicksPerLevel: number;
+    maxHealthPerOwnerLevel: number;
+    powerPerOwnerLevel: number;
+}
+
+export interface ThreatParams {
+    margin: number;
+}
+
+export interface ShieldParams {
+    hp: number;
+    hpPerLevel: number;
+    durationTicks: number;
+    targetsSelf: boolean;
+}
+
+export interface HotParams {
+    hp: number;
+    hpPerLevel: number;
+    variance: number;
+    tickCount: number;
+    interval: number;
+    targetsSelf: boolean;
+}
+
+export interface ReviveParams {
+    healthFraction: number;
+}
+
+export interface DashParams {
+    distance: number;
+    distancePerLevel: number;
+}
+
+export interface TickRateParams {
+    factor: number;
+    durationTicks: number;
+}
+
+export interface SkillEffect {
+    type: string;
+    radius: number;
+    radiusPerLevel: number;
+    tickInterval: number;
+    tickIntervalPerLevel: number;
+    selector: string;
+    maxTargets: number;
+    maxTargetsPerLevel: number;
+    targetsEnemies: boolean;
+    targetsAllies: boolean;
+    targetsStructures: boolean;
+    damage?: DamageParams;
+    heal?: HealParams;
+    selfHeal?: SelfHealParams;
+    slow?: SlowParams;
+    resist?: ResistParams;
+    stat?: StatParams;
+    dot?: DotParams;
+    spawn?: SpawnParams;
+    threat?: ThreatParams;
+    shield?: ShieldParams;
+    hot?: HotParams;
+    revive?: ReviveParams;
+    dash?: DashParams;
+    tickRate?: TickRateParams;
+}
+
+export interface SkillDefinition {
+    id: number;
+    name: string;
+    displayName: string;
+    category: SkillCategory;
+    maxLevel: number;
+    legacy: boolean;
+    cooldownTicks: number;
+    cooldownTicksPerLevel: number;
+    castTicks: number;
+    castTicksPerLevel: number;
+    castInterruptedByDamage: boolean;
+    effects: SkillEffect[];
+}
+
+// --- catalog state + fetch ---
+
+const catalog = new Map<number, SkillDefinition>();
+
+// The server's category vocabulary → the client's (the HUD panels and equip
+// guards say 'aura').
+const CATEGORY_MAP: { [server: string]: SkillCategory } = {
+    active_aura: 'aura',
+    passive: 'passive',
+    cooldown: 'cooldown',
 };
 
-// Unknown IDs default to 'aura' — the most common category; keeps a missing
-// map entry visible (skill shows up, equips into an aura slot server-checked)
-// instead of hiding the skill entirely.
+function skillCatalogUrl(): string {
+    // ws://host:2000/game → http://host:2000/skills (wss → https).
+    const url = new URL(gameServer);
+    url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
+    url.pathname = '/skills';
+    url.search = '';
+    return url.toString();
+}
+
+export function loadSkillCatalog(): Promise<void> {
+    return fetch(skillCatalogUrl())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`GET /skills returned ${response.status}`);
+            }
+            return response.json();
+        })
+        .then((definitions: any[]) => {
+            catalog.clear();
+            for (const def of definitions) {
+                catalog.set(def.id, {
+                    ...def,
+                    category: CATEGORY_MAP[def.category] ?? 'aura',
+                });
+            }
+        })
+        .catch(error => {
+            console.warn('Skill catalog unavailable — falling back to placeholder names', error);
+        });
+}
+
+// Fetched once at startup; the accessors below degrade gracefully until then.
+loadSkillCatalog();
+
+// --- accessors (same signatures as the retired hand-sync maps) ---
+
+export function skillDefinition(id: number): SkillDefinition | undefined {
+    return catalog.get(id);
+}
+
+export function skillDisplayName(id: number): string {
+    return catalog.get(id)?.displayName ?? `Skill #${id}`;
+}
+
+export function skillMaxLevel(id: number): number {
+    return catalog.get(id)?.maxLevel ?? 1;
+}
+
+// Unknown IDs default to 'aura' — the most common category; keeps a skill
+// with a missing catalog entry visible (shows up, equips into an aura slot
+// server-checked) instead of hiding it entirely.
 export function skillCategory(id: number): SkillCategory {
-    return SkillCategories[id] ?? 'aura';
+    return catalog.get(id)?.category ?? 'aura';
 }
 
 // Static rejection-reason → feedback text map (skill-vocab chunk 4, §3.5):
@@ -180,7 +240,3 @@ export const ActivationRejectionMessages: { [reason: number]: string } = {
 export function activationRejectionMessage(reason: number): string {
     return ActivationRejectionMessages[reason] ?? 'Cannot use that now';
 }
-
-// The per-skill ring-style constants that used to live here are gone (triage
-// item 7): the server now sends an effect-category bitmask on the wire, so ring
-// colour needs no skill-ID table on the client and new auras colour themselves.

@@ -2,6 +2,7 @@
   "_comment": "Damage-Burst (content pass C4, plan-content-zones12.md §5): Elite Bandit kill-drop — instant_damage on cooldown activation carrying physical+bleed, the first multi-tag INSTANT hit (PO 2026-07-18). Deliberately pure one-shot burst — its counterpart NovaBurst is the hit-plus-fire-dot version (PO 2026-07-21). All values [PLACEHOLDER]",
   "id": 49,
   "name": "DamageBurst",
+  "displayName": "Damage-Burst",
   "category": "cooldown",
   "maxLevel": 3,
   "cooldownTicks": 300,

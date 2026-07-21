@@ -171,20 +171,25 @@ var validStats = map[string]bool{
 // enforces the invariant and hard-fails any JSON key the effect type does
 // not read (see effectKeys); code constructing an EffectDef directly (tests)
 // must uphold it too.
+// The json tags on EffectDef, SkillDefinition, and the payload structs are
+// the skill-catalog wire shape (GET /skills, plan-ui-polish chunk 1). They
+// live on the real structs — not a DTO — so a new field can't silently miss
+// the catalog: an untagged field still marshals (under its Go name), it just
+// looks off, which is a review-visible smell instead of missing data.
 type EffectDef struct {
-	Type EffectType
+	Type EffectType `json:"type"`
 
 	// Geometry: effect radius — the aura sensor size, or the one-shot query
 	// circle of an instant_damage burst.
-	Radius         float32
-	RadiusPerLevel float32
+	Radius         float32 `json:"radius"`
+	RadiusPerLevel float32 `json:"radiusPerLevel"`
 
 	// Cadence: every how many ticks an active-aura effect fires. Always >= 1
 	// after parsing (absent → 1); negative PerLevel = faster at higher
 	// levels, effective interval floored at 1. Not valid on cooldown-fired
 	// or equip-time effects — they have no tick cadence.
-	TickInterval         int
-	TickIntervalPerLevel int
+	TickInterval         int `json:"tickInterval"`
+	TickIntervalPerLevel int `json:"tickIntervalPerLevel"`
 
 	// Targeting: Selector orders candidates when MaxTargets caps the set
 	// (0 = uncapped AoE-all); the flags gate RELATIVE to the caster's faction
@@ -193,47 +198,47 @@ type EffectDef struct {
 	// when its caster's faction differs or flips (mob loadouts, future charm/
 	// summons). Placeables have no faction; damage effects reach them via
 	// TargetsStructures only. Flags also drive the sensor/query masks.
-	Selector           Selector
-	MaxTargets         int
-	MaxTargetsPerLevel int
-	TargetsEnemies     bool
-	TargetsAllies      bool
-	TargetsStructures  bool
+	Selector           Selector `json:"selector"`
+	MaxTargets         int      `json:"maxTargets"`
+	MaxTargetsPerLevel int      `json:"maxTargetsPerLevel"`
+	TargetsEnemies     bool     `json:"targetsEnemies"`
+	TargetsAllies      bool     `json:"targetsAllies"`
+	TargetsStructures  bool     `json:"targetsStructures"`
 
 	// Per-type payloads — exactly one non-nil, matching Type.
-	Damage   *DamageParams   // damage_aura, instant_damage
-	Heal     *HealParams     // heal_aura
-	SelfHeal *SelfHealParams // self_heal
-	Slow     *SlowParams     // slow_aura
-	Resist   *ResistParams   // resist_aura, resist_passive
-	Stat     *StatParams     // stat_multiplier
-	Dot      *DotParams      // dot_aura, instant_dot
-	Spawn    *SpawnParams    // spawn
-	Threat   *ThreatParams   // taunt, detaunt
-	Shield   *ShieldParams   // shield_aura, instant_shield
-	Hot      *HotParams      // hot_aura, instant_hot
-	Revive   *ReviveParams   // revive
-	Dash     *DashParams     // dash
-	TickRate *TickRateParams // tick_rate
+	Damage   *DamageParams   `json:"damage,omitempty"`   // damage_aura, instant_damage
+	Heal     *HealParams     `json:"heal,omitempty"`     // heal_aura
+	SelfHeal *SelfHealParams `json:"selfHeal,omitempty"` // self_heal
+	Slow     *SlowParams     `json:"slow,omitempty"`     // slow_aura
+	Resist   *ResistParams   `json:"resist,omitempty"`   // resist_aura, resist_passive
+	Stat     *StatParams     `json:"stat,omitempty"`     // stat_multiplier
+	Dot      *DotParams      `json:"dot,omitempty"`      // dot_aura, instant_dot
+	Spawn    *SpawnParams    `json:"spawn,omitempty"`    // spawn
+	Threat   *ThreatParams   `json:"threat,omitempty"`   // taunt, detaunt
+	Shield   *ShieldParams   `json:"shield,omitempty"`   // shield_aura, instant_shield
+	Hot      *HotParams      `json:"hot,omitempty"`      // hot_aura, instant_hot
+	Revive   *ReviveParams   `json:"revive,omitempty"`   // revive
+	Dash     *DashParams     `json:"dash,omitempty"`     // dash
+	TickRate *TickRateParams `json:"tickRate,omitempty"` // tick_rate
 }
 
 // ThreatParams is the taunt / detaunt payload (mob-depth chunk 7). Margin is
 // the head start a taunt sets above the mob's current max threat (force-to-top,
 // decided v1); detaunt is a single-entry removal and ignores it.
 type ThreatParams struct {
-	Margin float32
+	Margin float32 `json:"margin"`
 }
 
 // DamageParams is the damage_aura / instant_damage payload: absolute HP
 // dealt per hit (item 11 Phase 1).
 type DamageParams struct {
-	HP         float32
-	HPPerLevel float32
+	HP         float32 `json:"hp"`
+	HPPerLevel float32 `json:"hpPerLevel"`
 
 	// Damage tags for resistances (item 11 Phase 2). Arbitrary strings by
 	// design (bespoke tags like "boss_x_lava" compose with general ones like
 	// "fire"). Always non-empty after parsing: absent → [DamageTagPhysical].
-	Tags []string
+	Tags []string `json:"tags"`
 
 	// Gated flips the resist default for this payload's tags (content pass
 	// C1, GDD §5 chore gate): the hit only damages targets whose BASE
@@ -242,21 +247,21 @@ type DamageParams struct {
 	// damageTags (gating the [physical] default hard-fails at parse). This
 	// is what makes Harvest pop turnips and nothing else without every
 	// combat mob authoring a "harvest": 0 entry.
-	Gated bool
+	Gated bool `json:"gated"`
 
 	// Per-hit percentage variance band (item 11 Phase 3): each hit rolls
 	// uniform in [center×(1−v), center×(1+v)] around the level-scaled
 	// amount. 0 = static (the default); valid range 0 <= v < 1. The roll
 	// happens before the target's mitigation (decision C3).
-	Variance float32
+	Variance float32 `json:"variance"`
 
 	// Per-effect aura-hit VFX override (item 11 Step 4). HitStyleAuto
 	// (default) derives the style from the tick cadence.
-	HitStyle HitStyle
+	HitStyle HitStyle `json:"hitStyle"`
 
 	// Mob casters only: damage dealt to structures (placeables) per tick.
 	// Structures read this via MobTouches double dispatch.
-	StructureDamageFraction float32
+	StructureDamageFraction float32 `json:"structureDamageFraction"`
 
 	// Damage vocabulary (plan-skill-vocab chunk 1) — all optional (F2), zero =
 	// inert. Composition order is F6 §3.1: base × berserker × execute × crit,
@@ -265,13 +270,13 @@ type DamageParams struct {
 	// Execute: hits on targets whose health ratio is strictly below
 	// ExecuteBelowFraction are multiplied by ExecuteBonusFactor. Deterministic,
 	// per target, evaluated at hit time. Authored as a pair.
-	ExecuteBelowFraction float32
-	ExecuteBonusFactor   float32
+	ExecuteBelowFraction float32 `json:"executeBelowFraction"`
+	ExecuteBonusFactor   float32 `json:"executeBonusFactor"`
 
 	// Berserker: outgoing damage × (1 + max × (1 − casterHealthRatio)) — the
 	// caster's missing HP scales the whole application. The acting entity's own
 	// HP counts (a summon rages on ITS wounds, not the owner's; §4.2 parallel).
-	BerserkerMaxBonusFactor float32
+	BerserkerMaxBonusFactor float32 `json:"berserkerMaxBonusFactor"`
 
 	// Crit: the ONE sanctioned, upside-only combat RNG (§4.3 decided
 	// 2026-07-13; v2 PO 2026-07-20): each hit rolls the effect's (level-scaled)
@@ -281,14 +286,14 @@ type DamageParams struct {
 	// authored (sys.defaultCritFactor). Crit-flagged damage lands on the
 	// target's crit_taken wire accumulator. Chance may be authored alone;
 	// a factor needs an authored chance source.
-	CritChance         float32
-	CritChancePerLevel float32
-	CritFactor         float32
+	CritChance         float32 `json:"critChance"`
+	CritChancePerLevel float32 `json:"critChancePerLevel"`
+	CritFactor         float32 `json:"critFactor"`
 
 	// Lifesteal: the hit's recipient (the living Source, else the toucher)
 	// heals LifestealFraction × damage DEALT — shield-absorbed included,
 	// overkill excluded (F6 §3.1/9).
-	LifestealFraction float32
+	LifestealFraction float32 `json:"lifestealFraction"`
 }
 
 // HPAt is the level-scaled damage center in absolute HP (pre-variance-roll).
@@ -338,15 +343,15 @@ func (p *DamageParams) BerserkerMultiplier(casterHealthRatio float32) float32 {
 // that fraction of the TARGET's max HP instead of the flat HP (mutually
 // exclusive with HP), so a campfire restores the same share of every pool.
 type HealParams struct {
-	HP                   float32
-	HPPerLevel           float32
-	SelfDamageHP         float32
-	SelfDamageHPPerLevel float32
+	HP                   float32 `json:"hp"`
+	HPPerLevel           float32 `json:"hpPerLevel"`
+	SelfDamageHP         float32 `json:"selfDamageHp"`
+	SelfDamageHPPerLevel float32 `json:"selfDamageHpPerLevel"`
 
-	FractionOfMax         float32
-	FractionOfMaxPerLevel float32
+	FractionOfMax         float32 `json:"fractionOfMax"`
+	FractionOfMaxPerLevel float32 `json:"fractionOfMaxPerLevel"`
 
-	Variance float32
+	Variance float32 `json:"variance"`
 }
 
 // HPAt is the level-scaled heal center in absolute HP (pre-variance-roll).
@@ -376,20 +381,20 @@ func (p *HealParams) FractionAt(level int) float32 {
 // the flat HealHP (the heal cooldown scales with max HP); the fraction grows
 // by FractionOfMaxPerLevel per level (absolute, e.g. 0.20 → 0.25 → 0.30).
 type SelfHealParams struct {
-	HealHP         float32
-	HealHPPerLevel float32
+	HealHP         float32 `json:"healHp"`
+	HealHPPerLevel float32 `json:"healHpPerLevel"`
 
-	FractionOfMax         float32
-	FractionOfMaxPerLevel float32
+	FractionOfMax         float32 `json:"fractionOfMax"`
+	FractionOfMaxPerLevel float32 `json:"fractionOfMaxPerLevel"`
 
-	Variance float32
+	Variance float32 `json:"variance"`
 }
 
 // SlowParams is the slow_aura payload: movement-speed reduction applied to
 // every slowable target in range (no selector/cap — a slow aura is a zone).
 type SlowParams struct {
-	Fraction         float32
-	FractionPerLevel float32
+	Fraction         float32 `json:"fraction"`
+	FractionPerLevel float32 `json:"fractionPerLevel"`
 }
 
 // FractionAt is the level-scaled slow fraction; the apply site clamps it to
@@ -404,10 +409,10 @@ func (p *SlowParams) FractionAt(level int) float32 {
 // negative FactorPerLevel = stronger per level. TargetsSelf (resist_aura
 // only) also buffs the caster — without consuming a MaxTargets slot.
 type ResistParams struct {
-	Tags           []string
-	Factor         float32
-	FactorPerLevel float32
-	TargetsSelf    bool
+	Tags           []string `json:"tags"`
+	Factor         float32  `json:"factor"`
+	FactorPerLevel float32  `json:"factorPerLevel"`
+	TargetsSelf    bool     `json:"targetsSelf"`
 }
 
 // FactorAt is the level-scaled resistance multiplier, floored at 0.
@@ -427,10 +432,10 @@ func (p *ResistParams) FactorAt(level int) float32 {
 // DurationTicks lifetime. TargetsSelf also buffs the caster — without
 // consuming a MaxTargets slot (the resist_aura convention).
 type ShieldParams struct {
-	HP            float32
-	HPPerLevel    float32
-	DurationTicks int // instant_shield only; 0 on shield_aura
-	TargetsSelf   bool
+	HP            float32 `json:"hp"`
+	HPPerLevel    float32 `json:"hpPerLevel"`
+	DurationTicks int     `json:"durationTicks"` // instant_shield only; 0 on shield_aura
+	TargetsSelf   bool    `json:"targetsSelf"`
 }
 
 // HPAt is the level-scaled absorb pool size, floored at 0.
@@ -450,16 +455,16 @@ func (p *ShieldParams) HPAt(level int) float32 {
 // runs on the TARGET, independent of the aura or the caster's presence:
 // TickCount damage events of HP each, one every Interval game ticks.
 type DotParams struct {
-	HP         float32
-	HPPerLevel float32
+	HP         float32 `json:"hp"`
+	HPPerLevel float32 `json:"hpPerLevel"`
 
 	// Same semantics as DamageParams: tags for resistances (absent →
 	// [DamageTagPhysical]) and a per-event variance roll before mitigation.
-	Tags     []string
-	Variance float32
+	Tags     []string `json:"tags"`
+	Variance float32  `json:"variance"`
 
-	TickCount int // number of damage events per application
-	Interval  int // game ticks between events
+	TickCount int `json:"tickCount"` // number of damage events per application
+	Interval  int `json:"interval"`  // game ticks between events
 }
 
 // HPAt is the level-scaled per-event damage center in absolute HP
@@ -483,15 +488,15 @@ func (p *DotParams) DurationTicks() int {
 // instant_hot cooldown applies it once to the caster (TargetsSelf) and/or
 // allies in range (TargetsAllies) — cases 2 and 3.
 type HotParams struct {
-	HP         float32
-	HPPerLevel float32
+	HP         float32 `json:"hp"`
+	HPPerLevel float32 `json:"hpPerLevel"`
 
-	Variance float32
+	Variance float32 `json:"variance"`
 
-	TickCount int // number of heal events per application
-	Interval  int // game ticks between events
+	TickCount int `json:"tickCount"` // number of heal events per application
+	Interval  int `json:"interval"`  // game ticks between events
 
-	TargetsSelf bool // instant_hot: also heals the caster (aura form is allies-implicit)
+	TargetsSelf bool `json:"targetsSelf"` // instant_hot: also heals the caster (aura form is allies-implicit)
 }
 
 // HPAt is the level-scaled per-event heal center in absolute HP
@@ -511,7 +516,7 @@ func (p *HotParams) DurationTicks() int {
 // HP. No target flags — corpses sit on the Viewport layer, reached by a
 // dedicated mask.
 type ReviveParams struct {
-	HealthFraction float32
+	HealthFraction float32 `json:"healthFraction"`
 }
 
 // DashParams is the dash payload (plan-skill-vocab §3.8). Direction was decided
@@ -523,8 +528,8 @@ type ReviveParams struct {
 // stepped static-collision probe so a dash never tunnels a blocking prop or the
 // border.
 type DashParams struct {
-	Distance         float32
-	DistancePerLevel float32
+	Distance         float32 `json:"distance"`
+	DistancePerLevel float32 `json:"distancePerLevel"`
 }
 
 // TickRateParams is the tick_rate payload (plan-skill-vocab chunk 6): a
@@ -533,8 +538,8 @@ type DashParams struct {
 // buff composes multiplicatively with any other tick_rate source and is floored
 // at 1 tick at EffectiveTickInterval. Self-only: no target flags, no radius.
 type TickRateParams struct {
-	Factor        float32
-	DurationTicks int
+	Factor        float32 `json:"factor"`
+	DurationTicks int     `json:"durationTicks"`
 }
 
 // SpawnParams is the spawn payload (effect foundations Step 3 / mob-depth
@@ -545,13 +550,13 @@ type TickRateParams struct {
 // damage/heal power multiplier. Power never touches CC parameters (slow
 // fraction/duration ride only the summon's own skill levels).
 type SpawnParams struct {
-	MobName string
+	MobName string `json:"mobName"`
 
-	TTLTicks         int
-	TTLTicksPerLevel int
+	TTLTicks         int `json:"ttlTicks"`
+	TTLTicksPerLevel int `json:"ttlTicksPerLevel"`
 
-	MaxHealthPerOwnerLevel float32
-	PowerPerOwnerLevel     float32
+	MaxHealthPerOwnerLevel float32 `json:"maxHealthPerOwnerLevel"`
+	PowerPerOwnerLevel     float32 `json:"powerPerOwnerLevel"`
 }
 
 // TTLAt is the summon lifetime in ticks at the given SKILL level, floored at 1.
@@ -577,9 +582,9 @@ func (p *SpawnParams) PowerAt(ownerLevel int) float32 {
 // StatParams is the stat_multiplier payload: an additive bonus to the named
 // stat (see validStats — every stat needs a hand-placed application site).
 type StatParams struct {
-	Name          string
-	Bonus         float32
-	BonusPerLevel float32
+	Name          string  `json:"name"`
+	Bonus         float32 `json:"bonus"`
+	BonusPerLevel float32 `json:"bonusPerLevel"`
 }
 
 // BonusAt is the level-scaled additive stat bonus.
@@ -588,19 +593,26 @@ func (p *StatParams) BonusAt(level int) float32 {
 }
 
 type SkillDefinition struct {
-	ID       SkillID
-	Name     string
-	Category SkillCategory
-	MaxLevel int
+	ID   SkillID `json:"id"`
+	Name string  `json:"name"`
+
+	// DisplayName is the human-facing name shown in the client (spellbook,
+	// tooltips, banners): the optional authored `displayName` JSON override,
+	// else derived from Name by CamelCase→spaces (plan-ui-polish chunk 1).
+	// Always non-empty after parsing.
+	DisplayName string `json:"displayName"`
+
+	Category SkillCategory `json:"category"`
+	MaxLevel int           `json:"maxLevel"`
 
 	// Legacy marks proving-grounds-only content (step-7 A.5): kept for the
 	// legacy zone, sim presets and tests, but never referenced by the live
 	// world — loaders warn when live content points at a legacy def.
-	Legacy bool
+	Legacy bool `json:"legacy"`
 
 	// Zero for non-cooldown skills.
-	CooldownTicks         int
-	CooldownTicksPerLevel int
+	CooldownTicks         int `json:"cooldownTicks"`
+	CooldownTicksPerLevel int `json:"cooldownTicksPerLevel"`
 
 	// Cast time (plan-skill-vocab chunk 4): ticks the activation winds up
 	// before the skill fires and the cooldown is consumed. 0 (the default) =
@@ -610,11 +622,11 @@ type SkillDefinition struct {
 	// damage-interrupt is Recall-style opt-in (chunk-4 start decision).
 	// NOTE: the mob fire path ignores cast time — mobs never author castTicks;
 	// hard-fail is cheap to add when a boss wants telegraphed casts.
-	CastTicks               int
-	CastTicksPerLevel       int
-	CastInterruptedByDamage bool
+	CastTicks               int  `json:"castTicks"`
+	CastTicksPerLevel       int  `json:"castTicksPerLevel"`
+	CastInterruptedByDamage bool `json:"castInterruptedByDamage"`
 
-	Effects []EffectDef
+	Effects []EffectDef `json:"effects"`
 }
 
 // --- private JSON parsing types ---
@@ -702,11 +714,12 @@ type effectDef struct {
 }
 
 type skillDefinition struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Category string `json:"category"`
-	MaxLevel int    `json:"maxLevel"`
-	Legacy   bool   `json:"legacy"` // absent → live content (step-7 A.5)
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	DisplayName string `json:"displayName"` // absent → derived CamelCase→spaces
+	Category    string `json:"category"`
+	MaxLevel    int    `json:"maxLevel"`
+	Legacy      bool   `json:"legacy"` // absent → live content (step-7 A.5)
 
 	CooldownTicks         int `json:"cooldownTicks"`
 	CooldownTicksPerLevel int `json:"cooldownTicksPerLevel"`
@@ -885,9 +898,15 @@ func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
 		effects = append(effects, effect)
 	}
 
+	displayName := s.DisplayName
+	if displayName == "" {
+		displayName = deriveDisplayName(s.Name)
+	}
+
 	return &SkillDefinition{
 		ID:                      SkillID(s.ID),
 		Name:                    s.Name,
+		DisplayName:             displayName,
 		Category:                category,
 		MaxLevel:                s.MaxLevel,
 		Legacy:                  s.Legacy,
