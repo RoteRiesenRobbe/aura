@@ -196,6 +196,38 @@ Verified: `go build ./...`, `go generate ./...`, full `go test ./...` green;
 
 ### A.5 Legacy-content separation (triage item 12 — DECIDED 2026-07-21)
 
+> **✅ EXECUTED 2026-07-21, committed `d1acf28d`.** **Set correction —
+> the item-12 audit list was stale** (re-traced at execution): Sessions ⑤–⑦
+> made **all 5 audit-listed player skills world-reachable** (SlowAura →
+> BanditRanged drop, ToughPassive → Troll drop, WildAura → DireWolf drop,
+> ReaperAura → EliteWolf drop, Revive → world-NPC teaching), and HealerAura
+> is live via MedicCompanion (FieldMedics = CallForAid + HealAura). Actually
+> tagged: **10 mobs** (unchanged list), **0 player skills**, **5 mob skills**
+> (MammothAura/AngryMammothAura/AngryMammothStomp/SaberToothCatAura/
+> DodoAura), **3 factions** (predator/prey/tusker), plus
+> **`proving-grounds.json` itself tagged `legacy: true`** as the legacy zone
+> (suppresses its expected-shape warnings) — 19 JSON files. **Code (TDD per
+> registry):** `legacy` field on skills (tolerant), mobs (tolerant), factions
+> (strict decoder — field declared in `factionDoc`); `Zone.Legacy` +
+> `resolve()` aggregates distinct legacy references (spawn mobs, NPC teaching
+> skills) into `Zone.LegacyRefs`; **beyond the plan's letter:** the mob
+> mapper collects the same leak on live mobs (`MobDefinition.LegacyRefs` —
+> legacy skill/unlock/faction refs), since zones never reference factions or
+> mob skills directly and those tags would otherwise have zero enforcement
+> (this exact check is what would have caught a mis-tagged HealerAura). Both
+> warn once, aggregated, via `slog.Warn` in `loaders.go`. **Real-content pin**
+> `TestDiskContent_LegacyTagging` (loaders_test.go): exact tagged sets, zero
+> leaks on every live mob, world zone legacy-free, proving-grounds tagged —
+> guards against the zone editor's known field-dropping habit. Registry pins
+> unchanged (78 skills / 47 mobs / 13 factions). **Verified:** full suite
+> `-count=1` green (29 pkgs) + `-race` on the 5 touched packages;
+> `make -C backend build` (cp-defs); boot world zone **0 warnings**, counts
+> unchanged (`78 skills/13 factions/47 mobs/10 recipes/856 props/349
+> spawns/5 campfires/14 npcs, 0 panics`); boot proving-grounds 0 warnings;
+> negative test (zone tag temporarily removed) fired the aggregated WARN
+> listing all 7 legacy spawn mobs, then restored. No client surface (no TS,
+> no wire) — no browser smoke needed.
+
 Proving-grounds-only content — 10 mobs (Mammoth/AngryMammoth/SaberToothCat/
 Dodo/Rabbit/Healer/Brazier/Proving*), 5 player skills, 6 mob skills,
 3 factions (predator/prey/tusker) — is **not deletable**: `sim/world.go`,
@@ -272,8 +304,9 @@ rule); estimated 1–2 execution sessions:
    links stay, Kringel Games project — see §4 A.2).
 2. **A.4** scaffolding prune (Character/EntityManager equip-crafting code,
    dead `drops[].item` path, asset orphan-scan — items render path stays).
-3. **A.5** `"legacy": true` tag (TDD: schema field per registry + world-zone
-   reference warning + tag the proving-grounds set).
+3. **A.5** `"legacy": true` tag — **✅ 2026-07-21** (schema field per
+   registry + zone/mob leak warnings + 19 files tagged; corrected set — see
+   the §4 A.5 banner: 0 player skills / 5 mob skills, audit list was stale).
 4. **A.6** bare-name skill renames (+ Heal-collision rename + `Skills.ts`
    display-name sync; name-pinned Go tests updated in the same commit).
 5. **B + C** structural rename + branding (incl. the title-screen `<h1>` —
