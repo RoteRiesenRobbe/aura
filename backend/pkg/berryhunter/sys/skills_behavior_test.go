@@ -257,7 +257,7 @@ func colliderSetOf(userData ...any) phy.ColliderSet {
 func damageEffect(interval int) skills.EffectDef {
 	return skills.EffectDef{
 		Type:           skills.EffectTypeDamageAura,
-		TargetsEnemies: true, // mirrors the real DamageAura JSON
+		TargetsEnemies: true, // mirrors the real Damage JSON
 		TickInterval:   interval,
 		Damage:         &skills.DamageParams{HP: 0.01, HPPerLevel: 0.002},
 	}
@@ -1117,7 +1117,7 @@ func TestSkillSystem_TickInterval_FiresEveryNthTick(t *testing.T) {
 // behavior: with a shared but monotonic accumulator and per-effect modulo, each
 // effect fires exactly on multiples of its own interval, independent of the
 // others (this replaced the earlier shared-max-interval-reset quirk, which made
-// a shorter-interval effect re-fire every tick). PaladinAura relies on this to
+// a shorter-interval effect re-fire every tick). Paladin relies on this to
 // run its fast damage and slow heal on separate cadences.
 func TestSkillSystem_MultiEffect_EachEffectOnOwnCadence(t *testing.T) {
 	caster, target := activeAuraPlayer(t, damageEffect(2), damageEffect(3))
@@ -1196,7 +1196,7 @@ func TestSkillSystem_EndToEnd_HealAuraHealsAndCosts(t *testing.T) {
 	caster.aura = spaceWithAuraAndTarget(t, model.PlayerEntity(ally))
 
 	def := &skills.SkillDefinition{
-		ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
+		ID: 2, Name: "Heal", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
 		Effects: []skills.EffectDef{healEffect()},
 	}
 	caster.sc.EquipAura(1, def, 1)
@@ -1307,7 +1307,7 @@ func TestCooldown_SelfHealVarianceRollsWithinBand(t *testing.T) {
 	empty.Update()
 
 	healDef := &skills.SkillDefinition{
-		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+		ID: 21, Name: "FirstAid", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
 		Effects: []skills.EffectDef{{
 			Type:     skills.EffectTypeSelfHeal,
 			SelfHeal: &skills.SelfHealParams{HealHP: 50, Variance: 0.2},
@@ -1500,7 +1500,7 @@ func TestCooldown_SelfHealHealsCaster(t *testing.T) {
 	empty.Update()
 
 	healDef := &skills.SkillDefinition{
-		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+		ID: 21, Name: "FirstAid", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
 		Effects: []skills.EffectDef{{
 			Type:     skills.EffectTypeSelfHeal,
 			SelfHeal: &skills.SelfHealParams{HealHP: 20, HealHPPerLevel: 5},
@@ -1528,7 +1528,7 @@ func TestCooldown_SelfHealFractionOfMaxAndNumber(t *testing.T) {
 	// Heal cooldown: heals a fraction of MAX HP (20% + 5% absolute per level),
 	// unlike the flat-HP heal aura.
 	healDef := &skills.SkillDefinition{
-		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+		ID: 21, Name: "FirstAid", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
 		Effects: []skills.EffectDef{{
 			Type:     skills.EffectTypeSelfHeal,
 			SelfHeal: &skills.SelfHealParams{FractionOfMax: 0.20, FractionOfMaxPerLevel: 0.05},
@@ -3733,7 +3733,7 @@ func TestCooldown_SelfHealFlatScalesByPowerScale(t *testing.T) {
 	empty.Update()
 
 	healDef := &skills.SkillDefinition{
-		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+		ID: 21, Name: "FirstAid", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
 		Effects: []skills.EffectDef{{
 			Type:     skills.EffectTypeSelfHeal,
 			SelfHeal: &skills.SelfHealParams{HealHP: 20},
@@ -3760,7 +3760,7 @@ func TestCooldown_SelfHealFractionOfMaxDoesNotDoubleScale(t *testing.T) {
 	// The caster's max HP already carries f — the fraction branch must not
 	// multiply by PowerScale again.
 	healDef := &skills.SkillDefinition{
-		ID: 21, Name: "Heal", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+		ID: 21, Name: "FirstAid", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
 		Effects: []skills.EffectDef{{
 			Type:     skills.EffectTypeSelfHeal,
 			SelfHeal: &skills.SelfHealParams{FractionOfMax: 0.20},

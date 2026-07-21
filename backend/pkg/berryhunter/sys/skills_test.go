@@ -80,7 +80,7 @@ func TestSkillSystem_NoActiveAura_TicksNothing(t *testing.T) {
 
 	// Equip a heal aura but leave the active slot at Nothing (-1).
 	def := &skills.SkillDefinition{
-		ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
+		ID: 2, Name: "Heal", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
 		Effects: []skills.EffectDef{{
 			Type: skills.EffectTypeHealAura,
 			Heal: &skills.HealParams{HP: 0.5, SelfDamageHP: 0.5},

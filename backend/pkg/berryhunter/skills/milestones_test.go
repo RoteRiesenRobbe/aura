@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	defHeal = &SkillDefinition{ID: 2, Name: "HealAura", Category: SkillCategoryActiveAura, MaxLevel: 5}
+	defHeal = &SkillDefinition{ID: 2, Name: "Heal", Category: SkillCategoryActiveAura, MaxLevel: 5}
 )
 
 func stubReg(defs ...*SkillDefinition) Registry {
@@ -25,7 +25,7 @@ func stubReg(defs ...*SkillDefinition) Registry {
 }
 
 func TestMilestoneUnlocksFromJSON_Valid(t *testing.T) {
-	data := []byte(`[{"level":2,"skillName":"HealAura"}]`)
+	data := []byte(`[{"level":2,"skillName":"Heal"}]`)
 	r := stubReg(defHeal)
 
 	unlocks, err := milestoneUnlocksFromJSON(data, r)
@@ -61,7 +61,7 @@ func TestMilestoneUnlocksFromJSON_InvalidJSON(t *testing.T) {
 // Pins the embedded milestone table — FINAL per the C8 milestone settlement
 // (plan-content-zones12.md §13 C8, PO 2026-07-19): milestones are the rare
 // guaranteed beats — Heal (combat sustain) and Haste (first cooldown) — and
-// everything else lives in the world (HealAura → turnip-field Hermit,
+// everything else lives in the world (Heal → turnip-field Hermit,
 // Recover → DireBear drop, plus all earlier drop/teaching reassignments).
 // Resolves against the real content in api/skills so a renamed skill fails
 // here, not at boot.
@@ -77,7 +77,7 @@ func TestDefaultMilestoneUnlocks_PinnedTable(t *testing.T) {
 		got[u.Skill.Name] = u.Level
 	}
 	assert.Equal(t, map[string]uint32{
-		"Heal":  3,
+		"FirstAid":  3,
 		"Haste": 7,
 	}, got)
 }

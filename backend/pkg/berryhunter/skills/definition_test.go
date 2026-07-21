@@ -11,7 +11,7 @@ import (
 
 var damageAuraJSON = []byte(`{
   "id": 1,
-  "name": "DamageAura",
+  "name": "Damage",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [
@@ -29,7 +29,7 @@ var damageAuraJSON = []byte(`{
 
 var healAuraJSON = []byte(`{
   "id": 2,
-  "name": "HealAura",
+  "name": "Heal",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [
@@ -46,7 +46,7 @@ var healAuraJSON = []byte(`{
 
 var swiftPassiveJSON = []byte(`{
   "id": 10,
-  "name": "SwiftPassive",
+  "name": "Swift",
   "category": "passive",
   "maxLevel": 3,
   "effects": [
@@ -92,7 +92,7 @@ func TestParse_DamageAura(t *testing.T) {
 	def := mustParse(t, damageAuraJSON)
 
 	assert.Equal(t, SkillID(1), def.ID)
-	assert.Equal(t, "DamageAura", def.Name)
+	assert.Equal(t, "Damage", def.Name)
 	assert.Equal(t, SkillCategoryActiveAura, def.Category)
 	assert.Equal(t, 5, def.MaxLevel)
 	assert.Equal(t, 0, def.CooldownTicks)
@@ -169,7 +169,7 @@ func TestParse_HealAura(t *testing.T) {
 	def := mustParse(t, healAuraJSON)
 
 	assert.Equal(t, SkillID(2), def.ID)
-	assert.Equal(t, "HealAura", def.Name)
+	assert.Equal(t, "Heal", def.Name)
 	assert.Equal(t, SkillCategoryActiveAura, def.Category)
 	assert.Equal(t, 5, def.MaxLevel)
 
@@ -187,7 +187,7 @@ func TestParse_HealAura(t *testing.T) {
 // --- triage item 2: per-level self-cost curve ---
 
 func TestHealParams_SelfDamageAtScalesDownAndClampsAtZero(t *testing.T) {
-	// The authored curve mirrors heal-aura.json: cost 10 falling by 2/level.
+	// The authored curve mirrors heal.json: cost 10 falling by 2/level.
 	p := &HealParams{SelfDamageHP: 10, SelfDamageHPPerLevel: -2}
 	assert.InDelta(t, 10, p.SelfDamageAt(1), 1e-6)
 	assert.InDelta(t, 8, p.SelfDamageAt(2), 1e-6)
@@ -234,7 +234,7 @@ func TestParse_SwiftPassive(t *testing.T) {
 	def := mustParse(t, swiftPassiveJSON)
 
 	assert.Equal(t, SkillID(10), def.ID)
-	assert.Equal(t, "SwiftPassive", def.Name)
+	assert.Equal(t, "Swift", def.Name)
 	assert.Equal(t, SkillCategoryPassive, def.Category)
 	assert.Equal(t, 3, def.MaxLevel)
 
@@ -524,7 +524,7 @@ func TestParse_SelectorDefaultsToNearest(t *testing.T) {
 
 func TestParse_SlowAura(t *testing.T) {
 	data := []byte(`{
-      "id": 4, "name": "SlowAura", "category": "active_aura", "maxLevel": 5,
+      "id": 4, "name": "Slow", "category": "active_aura", "maxLevel": 5,
       "effects": [{"type": "slow_aura", "radius": 1.5, "slowFraction": 0.1, "slowFractionPerLevel": 0.1, "targetsEnemies": true}]
     }`)
 	def := mustParse(t, data)
@@ -540,7 +540,7 @@ func TestParse_SlowAura(t *testing.T) {
 
 func TestParse_SelfHeal(t *testing.T) {
 	data := []byte(`{
-      "id": 21, "name": "Heal", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 900,
+      "id": 21, "name": "FirstAid", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 900,
       "effects": [{"type": "self_heal", "healHP": 0.20, "healHPPerLevel": 0.05}]
     }`)
 	def := mustParse(t, data)
@@ -637,7 +637,7 @@ func TestMap_TickRateKeyOnOtherEffectFails(t *testing.T) {
 
 func TestParse_DamageReductionStat(t *testing.T) {
 	data := []byte(`{
-      "id": 11, "name": "ToughPassive", "category": "passive", "maxLevel": 3,
+      "id": 11, "name": "Tough", "category": "passive", "maxLevel": 3,
       "effects": [{"type": "stat_multiplier", "stat": "damageReduction", "statBonus": 0.02, "statBonusPerLevel": 0.02}]
     }`)
 	def := mustParse(t, data)
@@ -722,7 +722,7 @@ func TestParse_ExactlyOnePayload(t *testing.T) {
 
 func TestMap_DotAura(t *testing.T) {
 	data := []byte(`{
-      "id": 5, "name": "ImmolationAura", "category": "active_aura", "maxLevel": 5,
+      "id": 5, "name": "Immolation", "category": "active_aura", "maxLevel": 5,
       "effects": [{
         "type": "dot_aura", "radius": 1.0, "tickInterval": 20,
         "damageHP": 5, "damageHPPerLevel": 1, "damageTags": ["fire"], "variance": 0.1,
@@ -832,7 +832,7 @@ func TestMap_StatFieldsOnNonStatEffectFails(t *testing.T) {
 
 func TestMap_ExplicitTickInterval(t *testing.T) {
 	data := []byte(`{
-      "id": 99, "name": "SlowAura", "category": "active_aura", "maxLevel": 1,
+      "id": 99, "name": "Slow", "category": "active_aura", "maxLevel": 1,
       "effects": [{"type": "damage_aura", "tickInterval": 3, "targetsEnemies": true}]
     }`)
 	def := mustParse(t, data)
@@ -946,7 +946,7 @@ func TestMap_LightAuraRejectsNonGeometryKeys(t *testing.T) {
 
 func TestParse_DamageVocabularyFields(t *testing.T) {
 	def := mustParse(t, []byte(`{
-	  "id": 7, "name": "ReaperAura", "category": "active_aura", "maxLevel": 3,
+	  "id": 7, "name": "Reaper", "category": "active_aura", "maxLevel": 3,
 	  "effects": [{
 	    "type": "damage_aura", "targetsEnemies": true, "radius": 3, "damageHP": 6,
 	    "executeBelowFraction": 0.35, "executeBonusFactor": 2,

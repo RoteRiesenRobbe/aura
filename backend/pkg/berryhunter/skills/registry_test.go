@@ -21,7 +21,7 @@ var duplicateIDJSON = []byte(`{
 
 var duplicateNameJSON = []byte(`{
   "id": 99,
-  "name": "DamageAura",
+  "name": "Damage",
   "category": "active_aura",
   "maxLevel": 1,
   "effects": [{"type": "damage_aura", "targetsMobs": true}]
@@ -29,8 +29,8 @@ var duplicateNameJSON = []byte(`{
 
 func TestRegistry_LoadsMultipleSkills(t *testing.T) {
 	fsys := fstest.MapFS{
-		"damage-aura.json": {Data: damageAuraJSON},
-		"heal-aura.json":   {Data: healAuraJSON},
+		"damage.json": {Data: damageAuraJSON},
+		"heal.json":   {Data: healAuraJSON},
 	}
 	r, err := RegistryFromFS(fsys)
 	require.NoError(t, err)
@@ -38,17 +38,17 @@ func TestRegistry_LoadsMultipleSkills(t *testing.T) {
 }
 
 func TestRegistry_GetByID_Found(t *testing.T) {
-	fsys := fstest.MapFS{"damage-aura.json": {Data: damageAuraJSON}}
+	fsys := fstest.MapFS{"damage.json": {Data: damageAuraJSON}}
 	r, err := RegistryFromFS(fsys)
 	require.NoError(t, err)
 
 	def, err := r.Get(SkillID(1))
 	require.NoError(t, err)
-	assert.Equal(t, "DamageAura", def.Name)
+	assert.Equal(t, "Damage", def.Name)
 }
 
 func TestRegistry_GetByID_NotFound(t *testing.T) {
-	fsys := fstest.MapFS{"damage-aura.json": {Data: damageAuraJSON}}
+	fsys := fstest.MapFS{"damage.json": {Data: damageAuraJSON}}
 	r, err := RegistryFromFS(fsys)
 	require.NoError(t, err)
 
@@ -57,17 +57,17 @@ func TestRegistry_GetByID_NotFound(t *testing.T) {
 }
 
 func TestRegistry_GetByName_Found(t *testing.T) {
-	fsys := fstest.MapFS{"damage-aura.json": {Data: damageAuraJSON}}
+	fsys := fstest.MapFS{"damage.json": {Data: damageAuraJSON}}
 	r, err := RegistryFromFS(fsys)
 	require.NoError(t, err)
 
-	def, err := r.GetByName("DamageAura")
+	def, err := r.GetByName("Damage")
 	require.NoError(t, err)
 	assert.Equal(t, SkillID(1), def.ID)
 }
 
 func TestRegistry_GetByName_NotFound(t *testing.T) {
-	fsys := fstest.MapFS{"damage-aura.json": {Data: damageAuraJSON}}
+	fsys := fstest.MapFS{"damage.json": {Data: damageAuraJSON}}
 	r, err := RegistryFromFS(fsys)
 	require.NoError(t, err)
 
@@ -83,7 +83,7 @@ func TestRegistry_MalformedJSON(t *testing.T) {
 
 func TestRegistry_DuplicateID(t *testing.T) {
 	fsys := fstest.MapFS{
-		"damage-aura.json": {Data: damageAuraJSON},
+		"damage.json": {Data: damageAuraJSON},
 		"also-id-1.json":   {Data: duplicateIDJSON},
 	}
 	_, err := RegistryFromFS(fsys)
@@ -92,7 +92,7 @@ func TestRegistry_DuplicateID(t *testing.T) {
 
 func TestRegistry_DuplicateName(t *testing.T) {
 	fsys := fstest.MapFS{
-		"damage-aura.json":    {Data: damageAuraJSON},
+		"damage.json":    {Data: damageAuraJSON},
 		"duplicate-name.json": {Data: duplicateNameJSON},
 	}
 	_, err := RegistryFromFS(fsys)
@@ -110,17 +110,17 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	fsys := os.DirFS("../../../../api/skills")
 	r, err := RegistryFromFS(fsys)
 	require.NoError(t, err)
-	// 25 player skills (incl. SwiftPassive/ToughPassive, NovaBurst/Heal,
-	// SlowAura, the PaladinAura combination result, the FireWard resist
-	// aura, the ImmolationAura/Ignite dot pair, SummonTotem,
+	// 25 player skills (incl. Swift/Tough, NovaBurst/FirstAid,
+	// Slow, the Paladin combination result, the FireWard resist
+	// aura, the Immolation/Ignite dot pair, SummonTotem,
 	// SummonCompanion, the Taunt/Fade threat-op pair, Light, the
-	// ReaperAura vocabulary smoke, the Barrier shield smoke, the Recall
+	// Reaper vocabulary smoke, the Barrier shield smoke, the Recall
 	// cast-time cooldown, the chunk-3 HoT+revive smoke trio
 	// Rejuvenation/Recover/Revive, the chunk-5 Dash cooldown, the chunk-6
 	// Haste tick_rate cooldown, and the C1 Harvest peasant-start aura — né
 	// TurnipPull, renamed C2 Part 2)
 	// + the 5 C2 wildlife/forest drops/teachings (Hardy, ThickHide,
-	// BerserkerAura, LongRangeStrike, Torch)
+	// Berserker, LongRangeStrike, Torch)
 	// + the 2 C3 tunnel skills (Antivenom resist_passive, Pickaxe
 	// smash-gated aura) + the C4 DamageBurst elite-drop cooldown
 	// + the C5 Vanguard (the Front-Aura power outlier, §A)
@@ -147,11 +147,11 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 		assert.NoError(t, err, name)
 	}
 
-	damage, err := r.GetByName("DamageAura")
+	damage, err := r.GetByName("Damage")
 	require.NoError(t, err)
 	assert.Equal(t, SkillID(1), damage.ID)
 
-	heal, err := r.GetByName("HealAura")
+	heal, err := r.GetByName("Heal")
 	require.NoError(t, err)
 	assert.Equal(t, SkillID(2), heal.ID)
 }

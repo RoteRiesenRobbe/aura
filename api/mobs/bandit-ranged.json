@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 ranged bandit (content pass C4, plan-content-zones12.md §4): crossbow volley — large radius, slow tick, selector 'all' uncapped (kobold-ranged precedent). Stands behind the melee line. Drops SlowAura (intermission triage Session ②, item 20): the kiter-identity aura, matching the stand-behind-the-line bandit — repairs the Suppression recipe (SlowAura + LongRangeStrike). All values [PLACEHOLDER]",
+  "_comment": "Z2 ranged bandit (content pass C4, plan-content-zones12.md §4): crossbow volley — large radius, slow tick, selector 'all' uncapped (kobold-ranged precedent). Stands behind the melee line. Drops Slow (intermission triage Session ②, item 20): the kiter-identity aura, matching the stand-behind-the-line bandit — repairs the Suppression recipe (Slow + LongRangeStrike). All values [PLACEHOLDER]",
   "id": 28,
   "name": "BanditRanged",
   "type": "MOB",
@@ -29,6 +29,6 @@
     }
   ],
   "unlocks": [
-    { "skillName": "SlowAura", "chance": 0.03 }
+    { "skillName": "Slow", "chance": 0.03 }
   ]
 }

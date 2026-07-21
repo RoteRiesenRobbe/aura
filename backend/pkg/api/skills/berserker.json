@@ -1,7 +1,7 @@
 {
-  "_comment": "Bear kill-drop aura (content pass C2): the bear's rage as a player build piece — a DamageAura-family side-grade that hits harder the LOWER the caster's own HP (berserkerMaxBonusFactor, up to double at death's door). Slightly lower base than DamageAura: the bonus is the identity. All values [PLACEHOLDER]",
+  "_comment": "Bear kill-drop aura (content pass C2): the bear's rage as a player build piece — a Damage-family side-grade that hits harder the LOWER the caster's own HP (berserkerMaxBonusFactor, up to double at death's door). Slightly lower base than Damage: the bonus is the identity. All values [PLACEHOLDER]",
   "id": 44,
-  "name": "BerserkerAura",
+  "name": "Berserker",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

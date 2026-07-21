@@ -26193,7 +26193,7 @@
       "tooLowLine": "Come back when you are stronger.",
       "teachings": [
         {
-          "skill": "HealAura",
+          "skill": "Heal",
           "requiredLevel": 1,
           "line": "You learned Heal!"
         },
@@ -26220,7 +26220,7 @@
           "line": "You learning Revive"
         },
         {
-          "skill": "ReaperAura",
+          "skill": "Reaper",
           "requiredLevel": 10,
           "line": "Big Boy"
         }

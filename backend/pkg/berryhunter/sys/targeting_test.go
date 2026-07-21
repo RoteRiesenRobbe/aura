@@ -233,7 +233,7 @@ func TestApplyDamageAura_UncappedHitsAll(t *testing.T) {
 }
 
 func TestApplyHealAura_LowestHealthHealsMostWounded(t *testing.T) {
-	// HealAura ships with selector lowest_health + maxTargets 1: the single
+	// Heal ships with selector lowest_health + maxTargets 1: the single
 	// most-wounded ally (by percentage) is healed, even if farther away than a
 	// less-wounded one.
 	caster := newFakePlayer()

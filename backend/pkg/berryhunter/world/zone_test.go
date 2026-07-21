@@ -238,11 +238,11 @@ func TestZone_AllowsResourceBackedNpcEntityType(t *testing.T) {
 // --- legacy tag (step-7 A.5) ---
 
 // legacyZoneFixtures: mob "Mammoth" and skill "ReviveOld" are legacy-tagged,
-// "Wolf"/"Heal" are live.
+// "Wolf"/"FirstAid" are live.
 func legacyZoneFixtures() (*fakeMobRegistry, *fakeSkillRegistry) {
 	mr := newFakeMobRegistry("Mammoth", "Wolf")
 	mr.byName["Mammoth"].Legacy = true
-	sr := newFakeSkillRegistry("ReviveOld", "Heal")
+	sr := newFakeSkillRegistry("ReviveOld", "FirstAid")
 	sr.byName["ReviveOld"].Legacy = true
 	return mr, sr
 }
@@ -262,7 +262,7 @@ func TestZone_CollectsLegacyRefs(t *testing.T) {
 		            "tooLowLine": "not yet",
 		            "teachings": [
 		              { "skill": "ReviveOld", "requiredLevel": 1, "line": "learn" },
-		              { "skill": "Heal", "requiredLevel": 1, "line": "learn" }
+		              { "skill": "FirstAid", "requiredLevel": 1, "line": "learn" }
 		            ] } ]
 	}`
 
@@ -623,23 +623,23 @@ func TestZone_LoadsTeachingNpc(t *testing.T) {
 			{ "type": "Sage", "x": 3, "y": -4, "radius": 3,
 			  "tooLowLine": "Come back when you are stronger.",
 			  "teachings": [
-				{ "skill": "HealAura", "requiredLevel": 1, "line": "You learned Heal!" },
+				{ "skill": "Heal", "requiredLevel": 1, "line": "You learned Heal!" },
 				{ "skill": "DodoAura", "requiredLevel": 5, "line": "You learned Dodo!" }
 			  ] }
 		]
 	}`
 	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(),
-		newFakeSkillRegistry("HealAura", "DodoAura"))
+		newFakeSkillRegistry("Heal", "DodoAura"))
 	require.NoError(t, err)
 	require.Len(t, z.Npcs, 1)
 	n := z.Npcs[0]
 	assert.Equal(t, "Sage", n.Type)
 	assert.EqualValues(t, 3, n.Radius)
 	require.Len(t, n.Teachings, 2)
-	assert.Equal(t, "HealAura", n.Teachings[0].Skill)
+	assert.Equal(t, "Heal", n.Teachings[0].Skill)
 	assert.EqualValues(t, 1, n.Teachings[0].RequiredLevel)
 	require.NotNil(t, n.Teachings[0].Def, "teaching skill resolved at load time")
-	assert.Equal(t, "HealAura", n.Teachings[0].Def.Name)
+	assert.Equal(t, "Heal", n.Teachings[0].Def.Name)
 	assert.Equal(t, "DodoAura", n.Teachings[1].Def.Name)
 }
 
@@ -700,7 +700,7 @@ func TestZone_RejectsUnknownTeachingSkill(t *testing.T) {
 			  "teachings": [ { "skill": "NoSuchAura", "requiredLevel": 1, "line": "learned" } ] }
 		]
 	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry("HealAura"))
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry("Heal"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "NoSuchAura")
 }
@@ -710,10 +710,10 @@ func TestZone_RejectsTeachingNpcWithoutTooLowLine(t *testing.T) {
 		"name": "N", "bounds": { "width": 60, "height": 40 },
 		"npcs": [
 			{ "type": "Sage", "x": 0, "y": 0, "radius": 3,
-			  "teachings": [ { "skill": "HealAura", "requiredLevel": 1, "line": "learned" } ] }
+			  "teachings": [ { "skill": "Heal", "requiredLevel": 1, "line": "learned" } ] }
 		]
 	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry("HealAura"))
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry("Heal"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "tooLowLine")
 }

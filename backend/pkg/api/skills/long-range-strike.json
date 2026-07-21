@@ -1,5 +1,5 @@
 {
-  "_comment": "Elite-wolf kill-drop aura (content pass C2): strike from well outside melee — much larger ring, lower dps, hard cap 1 target (WildAura precedent + per-effect maxTargets, plan-content-zones12.md §5). A positioning side-grade, never a straight upgrade. All values [PLACEHOLDER]",
+  "_comment": "Elite-wolf kill-drop aura (content pass C2): strike from well outside melee — much larger ring, lower dps, hard cap 1 target (Wild precedent + per-effect maxTargets, plan-content-zones12.md §5). A positioning side-grade, never a straight upgrade. All values [PLACEHOLDER]",
   "id": 45,
   "name": "LongRangeStrike",
   "category": "active_aura",

@@ -1,6 +1,6 @@
 {
   "id": 4,
-  "name": "SlowAura",
+  "name": "Slow",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

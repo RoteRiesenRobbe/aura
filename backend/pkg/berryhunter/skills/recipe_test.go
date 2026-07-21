@@ -10,13 +10,13 @@ import (
 )
 
 // testSkillRegistry builds a skill registry from the shared fixtures so recipe
-// tests can resolve ingredient/result names. DamageAura (ID 1, maxLevel 5),
-// SwiftPassive (ID 10, maxLevel 3), HealAura (ID 2, maxLevel 5).
+// tests can resolve ingredient/result names. Damage (ID 1, maxLevel 5),
+// Swift (ID 10, maxLevel 3), Heal (ID 2, maxLevel 5).
 func testSkillRegistry(t *testing.T) Registry {
 	t.Helper()
 	fsys := fstest.MapFS{
-		"damage-aura.json":   {Data: damageAuraJSON},
-		"heal-aura.json":     {Data: healAuraJSON},
+		"damage.json":        {Data: damageAuraJSON},
+		"heal.json":          {Data: healAuraJSON},
 		"swift-passive.json": {Data: swiftPassiveJSON},
 	}
 	r, err := RegistryFromFS(fsys)
@@ -26,10 +26,10 @@ func testSkillRegistry(t *testing.T) Registry {
 
 var frostfireRecipeJSON = []byte(`{
   "id": 100,
-  "result": "HealAura",
+  "result": "Heal",
   "ingredients": [
-    { "skill": "DamageAura", "level": 3 },
-    { "skill": "SwiftPassive", "level": 2 }
+    { "skill": "Damage", "level": 3 },
+    { "skill": "Swift", "level": 2 }
   ]
 }`)
 
@@ -43,11 +43,11 @@ func TestRecipes_LoadsAndResolves(t *testing.T) {
 
 	rec := rr.All()[0]
 	assert.Equal(t, RecipeID(100), rec.ID)
-	assert.Equal(t, "HealAura", rec.Result.Name)
+	assert.Equal(t, "Heal", rec.Result.Name)
 	require.Len(t, rec.Ingredients, 2)
-	assert.Equal(t, "DamageAura", rec.Ingredients[0].Skill.Name)
+	assert.Equal(t, "Damage", rec.Ingredients[0].Skill.Name)
 	assert.Equal(t, 3, rec.Ingredients[0].Level)
-	assert.Equal(t, "SwiftPassive", rec.Ingredients[1].Skill.Name)
+	assert.Equal(t, "Swift", rec.Ingredients[1].Skill.Name)
 	assert.Equal(t, 2, rec.Ingredients[1].Level)
 }
 
@@ -66,7 +66,7 @@ func TestRecipes_MalformedJSON(t *testing.T) {
 func TestRecipes_UnknownResult(t *testing.T) {
 	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{
       "id": 1, "result": "NoSuchSkill",
-      "ingredients": [{ "skill": "DamageAura", "level": 1 }]
+      "ingredients": [{ "skill": "Damage", "level": 1 }]
     }`)}}
 	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
 	assert.Error(t, err)
@@ -74,7 +74,7 @@ func TestRecipes_UnknownResult(t *testing.T) {
 
 func TestRecipes_UnknownIngredient(t *testing.T) {
 	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{
-      "id": 1, "result": "HealAura",
+      "id": 1, "result": "Heal",
       "ingredients": [{ "skill": "NoSuchSkill", "level": 1 }]
     }`)}}
 	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
@@ -82,10 +82,10 @@ func TestRecipes_UnknownIngredient(t *testing.T) {
 }
 
 func TestRecipes_IngredientLevelTooHigh(t *testing.T) {
-	// DamageAura maxLevel is 5.
+	// Damage maxLevel is 5.
 	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{
-      "id": 1, "result": "HealAura",
-      "ingredients": [{ "skill": "DamageAura", "level": 6 }]
+      "id": 1, "result": "Heal",
+      "ingredients": [{ "skill": "Damage", "level": 6 }]
     }`)}}
 	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
 	assert.Error(t, err)
@@ -93,8 +93,8 @@ func TestRecipes_IngredientLevelTooHigh(t *testing.T) {
 
 func TestRecipes_IngredientLevelZero(t *testing.T) {
 	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{
-      "id": 1, "result": "HealAura",
-      "ingredients": [{ "skill": "DamageAura", "level": 0 }]
+      "id": 1, "result": "Heal",
+      "ingredients": [{ "skill": "Damage", "level": 0 }]
     }`)}}
 	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
 	assert.Error(t, err)
@@ -102,17 +102,17 @@ func TestRecipes_IngredientLevelZero(t *testing.T) {
 
 func TestRecipes_EmptyIngredients(t *testing.T) {
 	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{
-      "id": 1, "result": "HealAura", "ingredients": []
+      "id": 1, "result": "Heal", "ingredients": []
     }`)}}
 	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
 	assert.Error(t, err)
 }
 
 func TestRecipes_DuplicateID(t *testing.T) {
-	recA := []byte(`{"id": 5, "result": "HealAura",
-      "ingredients": [{ "skill": "DamageAura", "level": 1 }]}`)
-	recB := []byte(`{"id": 5, "result": "DamageAura",
-      "ingredients": [{ "skill": "SwiftPassive", "level": 1 }]}`)
+	recA := []byte(`{"id": 5, "result": "Heal",
+      "ingredients": [{ "skill": "Damage", "level": 1 }]}`)
+	recB := []byte(`{"id": 5, "result": "Damage",
+      "ingredients": [{ "skill": "Swift", "level": 1 }]}`)
 	fsys := fstest.MapFS{"a.json": {Data: recA}, "b.json": {Data: recB}}
 	_, err := RecipesFromFS(fsys, testSkillRegistry(t))
 	assert.Error(t, err)
@@ -122,7 +122,7 @@ func TestRecipes_DuplicateID(t *testing.T) {
 // a validation error, unlike duplicate IDs.
 // TestRecipes_LoadsRealContent pins the shipped Phase 9 content: the real
 // recipe JSONs resolve against the real skill registry, and the Paladin Aura
-// combination (DamageAura L5 + HealAura L5 -> PaladinAura) both loads and fires.
+// combination (Damage L5 + Heal L5 -> Paladin) both loads and fires.
 func TestRecipes_LoadsRealContent(t *testing.T) {
 	sr, err := RegistryFromFS(os.DirFS("../../../../api/skills"))
 	require.NoError(t, err)
@@ -130,18 +130,18 @@ func TestRecipes_LoadsRealContent(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, rr.All())
 
-	paladin, err := sr.GetByName("PaladinAura")
+	paladin, err := sr.GetByName("Paladin")
 	require.NoError(t, err)
 
-	// End-to-end: a spellbook with both ingredients maxed unlocks PaladinAura.
-	dmg, _ := sr.GetByName("DamageAura")
-	heal, _ := sr.GetByName("HealAura")
+	// End-to-end: a spellbook with both ingredients maxed unlocks Paladin.
+	dmg, _ := sr.GetByName("Damage")
+	heal, _ := sr.GetByName("Heal")
 	sc := NewSkillComponent(true)
 	sc.Spellbook[dmg.ID] = 5
 	sc.Spellbook[heal.ID] = 5
 
 	unlocked := ApplyRecipes(sc, rr)
-	assert.Contains(t, unlocked, paladin.ID, "PaladinAura unlocks from DamageAura+HealAura maxed")
+	assert.Contains(t, unlocked, paladin.ID, "Paladin unlocks from Damage+Heal maxed")
 	assert.True(t, sc.HasDiscovered(paladin.ID))
 
 	// One ingredient below the threshold must not unlock it.
@@ -167,15 +167,15 @@ func TestRecipes_C7Net(t *testing.T) {
 		ingredients map[string]int
 		results     []string
 	}{
-		{map[string]int{"Vanguard": 5, "DamageAura": 5}, []string{"Spearhead"}},
-		{map[string]int{"Vanguard": 5, "HealAura": 5}, []string{"Lifewarden"}},
+		{map[string]int{"Vanguard": 5, "Damage": 5}, []string{"Spearhead"}},
+		{map[string]int{"Vanguard": 5, "Heal": 5}, []string{"Lifewarden"}},
 		{map[string]int{"Vanguard": 5, "DamageBurst": 3}, []string{"Shockwave"}},
 		{map[string]int{"Vanguard": 5, "Spearhead": 5, "CallForAid": 3}, []string{"Warbanner"}},
 		{map[string]int{"CallForAid": 3, "Taunt": 3}, []string{"HoldTheLine"}},
-		{map[string]int{"CallForAid": 3, "HealAura": 5}, []string{"FieldMedics"}},
-		{map[string]int{"Ignite": 3, "ImmolationAura": 5}, []string{"Wildfire"}},
-		{map[string]int{"SlowAura": 5, "LongRangeStrike": 5}, []string{"Suppression"}},
-		{map[string]int{"Hardy": 3, "ToughPassive": 3}, []string{"Barrier"}},
+		{map[string]int{"CallForAid": 3, "Heal": 5}, []string{"FieldMedics"}},
+		{map[string]int{"Ignite": 3, "Immolation": 5}, []string{"Wildfire"}},
+		{map[string]int{"Slow": 5, "LongRangeStrike": 5}, []string{"Suppression"}},
+		{map[string]int{"Hardy": 3, "Tough": 3}, []string{"Barrier"}},
 	}
 	for _, c := range cases {
 		sc := NewSkillComponent(true)
@@ -198,7 +198,7 @@ func TestRecipes_C7Net(t *testing.T) {
 	// cascade discovers Spearhead at L1, which must NOT satisfy Warbanner.
 	sc := NewSkillComponent(true)
 	for name, level := range map[string]int{
-		"Vanguard": 5, "DamageAura": 5, "HealAura": 5, "DamageBurst": 3, "CallForAid": 3,
+		"Vanguard": 5, "Damage": 5, "Heal": 5, "DamageBurst": 3, "CallForAid": 3,
 	} {
 		def, err := sr.GetByName(name)
 		require.NoError(t, err, name)
@@ -225,10 +225,10 @@ func TestRecipes_C7Net(t *testing.T) {
 }
 
 func TestRecipes_DuplicateIngredientSetAllowed(t *testing.T) {
-	recA := []byte(`{"id": 1, "result": "HealAura",
-      "ingredients": [{ "skill": "DamageAura", "level": 2 }]}`)
-	recB := []byte(`{"id": 2, "result": "SwiftPassive",
-      "ingredients": [{ "skill": "DamageAura", "level": 2 }]}`)
+	recA := []byte(`{"id": 1, "result": "Heal",
+      "ingredients": [{ "skill": "Damage", "level": 2 }]}`)
+	recB := []byte(`{"id": 2, "result": "Swift",
+      "ingredients": [{ "skill": "Damage", "level": 2 }]}`)
 	fsys := fstest.MapFS{"a.json": {Data: recA}, "b.json": {Data: recB}}
 	rr, err := RecipesFromFS(fsys, testSkillRegistry(t))
 	require.NoError(t, err)

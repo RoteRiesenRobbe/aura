@@ -66,7 +66,7 @@ func TestSpellbookLevelsMarshalFlatbuf_ParallelToSpellbook(t *testing.T) {
 func TestPassiveSlotsMarshalFlatbuf_PositionalOrder(t *testing.T) {
 	// Equip passive slots 0 and 2; wire must read [id0, 0, id2].
 	sc := skills.NewSkillComponent(true)
-	def0 := &skills.SkillDefinition{ID: 10, Name: "SwiftPassive"}
+	def0 := &skills.SkillDefinition{ID: 10, Name: "Swift"}
 	def2 := &skills.SkillDefinition{ID: 11, Name: "TankPassive"}
 	sc.EquipPassive(0, def0, 1)
 	sc.EquipPassive(2, def2, 1)
@@ -149,8 +149,8 @@ func TestAuraSlotsMarshalFlatbuf_PositionalOrder(t *testing.T) {
 	// Equip slots 0 and 2; slot 1 empty.
 	// Wire must read [id0, 0, id2] — empty middle slot must survive.
 	sc := skills.NewSkillComponent(true)
-	def0 := &skills.SkillDefinition{ID: 1, Name: "DamageAura"}
-	def2 := &skills.SkillDefinition{ID: 2, Name: "HealAura"}
+	def0 := &skills.SkillDefinition{ID: 1, Name: "Damage"}
+	def2 := &skills.SkillDefinition{ID: 2, Name: "Heal"}
 	sc.EquipAura(0, def0, 1)
 	sc.EquipAura(2, def2, 1)
 
@@ -163,9 +163,9 @@ func TestAuraSlotsMarshalFlatbuf_PositionalOrder(t *testing.T) {
 
 	result := BerryhunterApi.GetRootAsGameState(b.FinishedBytes(), 0)
 	require.Equal(t, skills.MaxAuraSlots, result.AuraSlotsLength())
-	assert.Equal(t, uint16(1), result.AuraSlots(0), "slot 0 = DamageAura")
+	assert.Equal(t, uint16(1), result.AuraSlots(0), "slot 0 = Damage")
 	assert.Equal(t, uint16(0), result.AuraSlots(1), "slot 1 = empty")
-	assert.Equal(t, uint16(2), result.AuraSlots(2), "slot 2 = HealAura")
+	assert.Equal(t, uint16(2), result.AuraSlots(2), "slot 2 = Heal")
 }
 
 func TestAuraSlotsMarshalFlatbuf_AllEmpty(t *testing.T) {
@@ -187,7 +187,7 @@ func TestAuraSlotsMarshalFlatbuf_AllEmpty(t *testing.T) {
 
 func TestActiveSkillID_ActiveSlotYieldsSkillID(t *testing.T) {
 	sc := skills.NewSkillComponent(true)
-	sc.EquipAura(1, &skills.SkillDefinition{ID: 2, Name: "HealAura"}, 1)
+	sc.EquipAura(1, &skills.SkillDefinition{ID: 2, Name: "Heal"}, 1)
 	sc.SetActiveAura(1)
 
 	assert.Equal(t, uint16(2), ActiveSkillID(sc))
@@ -195,7 +195,7 @@ func TestActiveSkillID_ActiveSlotYieldsSkillID(t *testing.T) {
 
 func TestActiveSkillID_NothingActiveYieldsZero(t *testing.T) {
 	sc := skills.NewSkillComponent(true)
-	sc.EquipAura(0, &skills.SkillDefinition{ID: 1, Name: "DamageAura"}, 1)
+	sc.EquipAura(0, &skills.SkillDefinition{ID: 1, Name: "Damage"}, 1)
 
 	assert.Equal(t, uint16(0), ActiveSkillID(sc))
 }

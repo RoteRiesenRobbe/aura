@@ -12679,7 +12679,7 @@
       "tooLowLine": "Those wolves won't leave on their own, adventurer — back at them!",
       "teachings": [
         {
-          "skill": "DamageAura",
+          "skill": "Damage",
           "requiredLevel": 1,
           "line": "Hear ye! Adventurers, at last! Wolves beset our village — take this aura and get rid of them!"
         },
@@ -12721,7 +12721,7 @@
       "tooLowLine": "See off a wolf or two first, adventurer — mending is learned in the thick of it.",
       "teachings": [
         {
-          "skill": "HealAura",
+          "skill": "Heal",
           "requiredLevel": 2,
           "line": "Adventurers who stand together live longer. Stay close to your friends and carry this: a healing aura."
         }
@@ -12886,7 +12886,7 @@
           "line": "Let the fire burn in others!"
         },
         {
-          "skill": "ImmolationAura",
+          "skill": "Immolation",
           "requiredLevel": 8,
           "line": "Burn them all!"
         }

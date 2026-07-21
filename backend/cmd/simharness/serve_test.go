@@ -66,7 +66,7 @@ func TestLoadMobPresets_EmbeddedContent(t *testing.T) {
 // Player-aura presets (content pass C5, §A "never a surprise"): every
 // player-authored skill (id < 100 — mob skills number from 101) carrying a
 // damage_aura maps onto AuraSpecs at L1 and max level. Pinned against the
-// Vanguard (14 HP +3.2/lvl, tick 40, r1.2, 2 targets) and DamageAura.
+// Vanguard (14 HP +3.2/lvl, tick 40, r1.2, 2 targets) and Damage.
 func TestLoadPlayerAuraPresets_EmbeddedContent(t *testing.T) {
 	_, presets, err := loadPresets("")
 	require.NoError(t, err)
@@ -88,7 +88,7 @@ func TestLoadPlayerAuraPresets_EmbeddedContent(t *testing.T) {
 	require.True(t, ok, "roster must contain the Vanguard at max level")
 	assert.InDelta(t, 14+4*3.2, v5.DamageHP, 1e-6)
 
-	_, ok = byName["DamageAura L1"]
+	_, ok = byName["Damage L1"]
 	assert.True(t, ok, "plain damage skills derive too")
 
 	for name := range byName {
@@ -125,9 +125,9 @@ func TestLoadMobPresets_DotAuraMobsDerive(t *testing.T) {
 	assert.Equal(t, 45, spider.Aura.DotTickInterval)
 }
 
-// Player dot skills join the roster too — ImmolationAura and the Wildfire
+// Player dot skills join the roster too — Immolation and the Wildfire
 // combo capstone were invisible to the balance pass before. Pinned against
-// ImmolationAura (dot 10.5 HP +2.1/lvl after the crit-rework-v2 dot
+// Immolation (dot 10.5 HP +2.1/lvl after the crit-rework-v2 dot
 // compensation, 3 events every 60 ticks, aura tick 40).
 func TestLoadPlayerAuraPresets_DotSkillsDerive(t *testing.T) {
 	_, presets, err := loadPresets("")
@@ -138,8 +138,8 @@ func TestLoadPlayerAuraPresets_DotSkillsDerive(t *testing.T) {
 		byName[p.Name] = p.Spec
 	}
 
-	imm, ok := byName["ImmolationAura L1"]
-	require.True(t, ok, "roster must contain ImmolationAura at L1")
+	imm, ok := byName["Immolation L1"]
+	require.True(t, ok, "roster must contain Immolation at L1")
 	assert.InDelta(t, 10.5, imm.DamageHP, 1e-6)
 	assert.Equal(t, 3, imm.DotTicks)
 	assert.Equal(t, 60, imm.DotTickInterval)

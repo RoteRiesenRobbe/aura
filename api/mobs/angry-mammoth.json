@@ -23,6 +23,6 @@
     { "skillName": "AngryMammothStomp", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "WildAura", "chance": 1.0 }
+    { "skillName": "Wild", "chance": 1.0 }
   ]
 }

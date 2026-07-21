@@ -1,9 +1,9 @@
 {
-  "_comment": "C7 recipe net (plan-content-zones12.md §13/§A): Vanguard + DamageAura maxed → Spearhead, the best damage aura. Ceiling trio. Secret — never documented in-game.",
+  "_comment": "C7 recipe net (plan-content-zones12.md §13/§A): Vanguard + Damage maxed → Spearhead, the best damage aura. Ceiling trio. Secret — never documented in-game.",
   "id": 2,
   "result": "Spearhead",
   "ingredients": [
     { "skill": "Vanguard", "level": 5 },
-    { "skill": "DamageAura", "level": 5 }
+    { "skill": "Damage", "level": 5 }
   ]
 }

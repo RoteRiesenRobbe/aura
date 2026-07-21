@@ -1,5 +1,5 @@
 {
-  "_comment": "Wildfire (content pass C7, plan-content-zones12.md §13): Ignite L3 + ImmolationAura L5 combo — the fire-identity gap fill at the Paladin ~70% side-grade calibration: the burn spreads to TWO targets but each burn is weaker than Immolation's. Below the §A ceiling. Secret recipe. damageHP +~5% (§4.3 v2 base-crit rework, PO 2026-07-20: dots never crit, so dot skills missed the direct-hit EV lift). All values [PLACEHOLDER] pending C8",
+  "_comment": "Wildfire (content pass C7, plan-content-zones12.md §13): Ignite L3 + Immolation L5 combo — the fire-identity gap fill at the Paladin ~70% side-grade calibration: the burn spreads to TWO targets but each burn is weaker than Immolation's. Below the §A ceiling. Secret recipe. damageHP +~5% (§4.3 v2 base-crit rework, PO 2026-07-20: dots never crit, so dot skills missed the direct-hit EV lift). All values [PLACEHOLDER] pending C8",
   "id": 58,
   "name": "Wildfire",
   "category": "active_aura",

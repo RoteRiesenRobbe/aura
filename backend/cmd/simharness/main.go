@@ -4,7 +4,7 @@
 // diffing runs across tuning sessions.
 //
 // Usage (all combatant flags default to the current content's [PLACEHOLDER]
-// numbers — DamageAura + a SaberToothCat-shaped mob):
+// numbers — Damage + a SaberToothCat-shaped mob):
 //
 //	go run ./cmd/simharness
 //	go run ./cmd/simharness -player-dmg 20 -mob-hp 80 -runs 500
@@ -96,7 +96,7 @@ func main() {
 	chainFights := flag.Int("chain-fights", 20, "fights per chain")
 	downtime := flag.Float64("downtime", 10, "modeled walk-to-the-next-pack gap in seconds")
 	regenTick := flag.Float64("regen-tick", 0, "out-of-combat regen fraction of max HP per tick (0 = game default; raise it to model time-at-fire)")
-	selfHeal := flag.Int("self-heal", 0, "self-heal cooldown level, 0 = none (20%+5%/lvl of max HP, 30s cd — mirrors Heal)")
+	selfHeal := flag.Int("self-heal", 0, "self-heal cooldown level, 0 = none (20%+5%/lvl of max HP, 30s cd — mirrors FirstAid)")
 	chainLevels := flag.String("chain-levels", "", "level brackets, comma-separated (scaled same-tier by -growth; empty = the explicit numbers)")
 
 	// Battery controls.
@@ -106,7 +106,7 @@ func main() {
 	distance := flag.Float64("distance", 0.5, "start distance player→mob in world units")
 	out := flag.String("out", "simharness-report.json", "JSON artifact path ('' = skip)")
 
-	// Player build — defaults mirror api/skills/damage-aura.json + conf
+	// Player build — defaults mirror api/skills/damage.json + conf
 	// baseHealth, all [PLACEHOLDER].
 	playerHP := flag.Int("player-hp", 100, "player max health (absolute HP)")
 	playerDmg := flag.Float64("player-dmg", 14, "player aura damage per hit")

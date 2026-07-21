@@ -729,7 +729,7 @@ func (p *player) ApplyRecipeCascade() {
 // triage item 11): a fresh spawn owns NOTHING — no equipped aura, empty
 // spellbook, no active aura (ActiveAuraSlot -1). Harvest is now the Farmer's
 // first, ungated teaching (api/zones/world.json), so a new player's very first
-// act is to walk to the Farmer and learn it; DamageAura follows at L2. The
+// act is to walk to the Farmer and learn it; Damage follows at L2. The
 // client and wire already tolerate a zero-skill player (empty spellbook, empty
 // slots, active aura -1). The registry arg is kept for the construction seam.
 func initializePlayerSkills(_ skills.Registry) (*skills.SkillComponent, error) {

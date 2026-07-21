@@ -1,9 +1,9 @@
 {
-  "_comment": "C7 recipe net (plan-content-zones12.md §13): SlowAura + LongRangeStrike maxed → Suppression, the kiter-identity gap fill (~70% side-grade). Secret — never documented in-game.",
+  "_comment": "C7 recipe net (plan-content-zones12.md §13): Slow + LongRangeStrike maxed → Suppression, the kiter-identity gap fill (~70% side-grade). Secret — never documented in-game.",
   "id": 9,
   "result": "Suppression",
   "ingredients": [
-    { "skill": "SlowAura", "level": 5 },
+    { "skill": "Slow", "level": 5 },
     { "skill": "LongRangeStrike", "level": 5 }
   ]
 }

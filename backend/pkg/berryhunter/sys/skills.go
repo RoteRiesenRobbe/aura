@@ -158,7 +158,7 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 	// The accumulator counts ticks since the aura became active and grows
 	// monotonically (equip and SetActiveAura reset it to 0). Each effect fires
 	// independently whenever the count is a multiple of its own interval, so a
-	// multi-effect aura (e.g. PaladinAura's fast damage + slow heal) runs each
+	// multi-effect aura (e.g. Paladin's fast damage + slow heal) runs each
 	// effect on its own cadence — unlike a shared max-interval reset, this is
 	// correct regardless of how the intervals relate.
 	equip.TickAccumulator++
@@ -664,7 +664,7 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 	// The scaled cost is computed up front; paying it may leave the caster at
 	// 1 HP but never below. A caster already at the floor skips the entire
 	// effect for this tick — no heal emitted, no cost paid. Zero-cost heal
-	// components (PaladinAura/Vanguard/Warbanner) never clamp, so they are
+	// components (Paladin/Vanguard/Warbanner) never clamp, so they are
 	// unaffected. Mob healers pay none in v1 (healCaster is player-only).
 	var selfHP uint32
 	caster, paysCost := e.(healCaster)

@@ -2,17 +2,17 @@
 // Tech debt: duplicates backend skill registry (backend/pkg/berryhunter/skills/).
 // Acceptable at a handful of skills; revisit when the skill list grows.
 export const SkillNames: { [id: number]: string } = {
-    1: 'Damage Aura',
-    2: 'Heal Aura',
-    3: 'Wild Aura',
+    1: 'Damage',
+    2: 'Heal',
+    3: 'Wild',
     4: 'Slow',
-    5: 'Immolation Aura',
-    6: 'Light Aura',
-    7: 'Reaper Aura',
+    5: 'Immolation',
+    6: 'Light',
+    7: 'Reaper',
     10: 'Swift',
     11: 'Tough',
     20: 'Nova Burst',
-    21: 'Heal',
+    21: 'First Aid',
     22: 'Ignite',
     23: 'Summon Totem',
     24: 'Summon Companion',
@@ -21,7 +21,7 @@ export const SkillNames: { [id: number]: string } = {
     27: 'Barrier',
     28: 'Recall',
     29: 'Rejuvenation',
-    30: 'Paladin Aura',
+    30: 'Paladin',
     31: 'Recover',
     32: 'Revive',
     33: 'Dash',
@@ -30,7 +30,7 @@ export const SkillNames: { [id: number]: string } = {
     41: 'Harvest',
     42: 'Hardy',
     43: 'Thick Hide',
-    44: 'Berserker Aura',
+    44: 'Berserker',
     45: 'Long-Range Strike',
     46: 'Torch',
     47: 'Antivenom',
@@ -181,13 +181,13 @@ export function activationRejectionMessage(reason: number): string {
 // Skill IDs referenced by the client-side ring-style mapping (Character.setActiveSkill).
 export const DAMAGE_AURA_SKILL_ID = 1;
 export const HEAL_AURA_SKILL_ID = 2;
-// PaladinAura damages and heals at once — it shows both rings (Phase 9).
+// Paladin damages and heals at once — it shows both rings (Phase 9).
 export const PALADIN_AURA_SKILL_ID = 30;
 // FireWard is a support (resist) aura — it shows the heal-style ring (item 11 Phase 2).
 export const FIRE_WARD_SKILL_ID = 40;
 // Rejuvenation is a support (heal-over-time) aura — heal-style ring (chunk 3).
 export const REJUVENATION_AURA_SKILL_ID = 29;
-// Vanguard damages and heals/shields at once — both rings, like PaladinAura (C5).
+// Vanguard damages and heals/shields at once — both rings, like Paladin (C5).
 export const VANGUARD_AURA_SKILL_ID = 50;
 // Lifewarden is a pure support (heal) aura — heal-style ring (C7).
 export const LIFEWARDEN_AURA_SKILL_ID = 53;

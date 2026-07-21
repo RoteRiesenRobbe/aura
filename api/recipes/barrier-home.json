@@ -1,9 +1,9 @@
 {
-  "_comment": "C7 recipe net (plan-content-zones12.md §13): Hardy + ToughPassive maxed → Barrier (PO 2026-07-18: the existing cheat-only instant-shield cooldown becomes this recipe's result — closes the §11 'Barrier home' item; result category picked as cooldown = the rarer category after the net). Secret — never documented in-game.",
+  "_comment": "C7 recipe net (plan-content-zones12.md §13): Hardy + Tough maxed → Barrier (PO 2026-07-18: the existing cheat-only instant-shield cooldown becomes this recipe's result — closes the §11 'Barrier home' item; result category picked as cooldown = the rarer category after the net). Secret — never documented in-game.",
   "id": 10,
   "result": "Barrier",
   "ingredients": [
     { "skill": "Hardy", "level": 3 },
-    { "skill": "ToughPassive", "level": 3 }
+    { "skill": "Tough", "level": 3 }
   ]
 }

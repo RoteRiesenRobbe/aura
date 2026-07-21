@@ -56,9 +56,9 @@ func (r *stubRegistry) All() []*skills.SkillDefinition {
 }
 
 var (
-	defDamageAura = &skills.SkillDefinition{ID: 1, Name: "DamageAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	defDamageAura = &skills.SkillDefinition{ID: 1, Name: "Damage", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 	// The peasant-start utility aura (content pass C1, GDD §5): the only
-	// skill a fresh spawn owns — DamageAura moved to the Farmer's teaching.
+	// skill a fresh spawn owns — Damage moved to the Farmer's teaching.
 	defHarvest = &skills.SkillDefinition{ID: 41, Name: "Harvest", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 )
 
@@ -77,12 +77,12 @@ func TestInitializePlayerSkills_EmptyLoadout(t *testing.T) {
 	assert.False(t, sc.HasDiscovered(defHarvest.ID),
 		"Harvest is Farmer-taught (triage item 11), never a spawn freebie")
 	assert.False(t, sc.HasDiscovered(defDamageAura.ID),
-		"DamageAura is farmer-taught @L2 (GDD §5 amendment)")
+		"Damage is farmer-taught @L2 (GDD §5 amendment)")
 }
 
 // --- milestone unlock tests ---
 
-var defHealAura = &skills.SkillDefinition{ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+var defHealAura = &skills.SkillDefinition{ID: 2, Name: "Heal", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 
 // newTestPlayer builds a minimal *player for unit-testing AddExperience.
 // LevelUpXPBase=100, LevelUpXPGrowthFactor=2.0 means:
@@ -381,7 +381,7 @@ func TestAddExperience_Level2_DiscoversHealAura(t *testing.T) {
 	p.AddExperience(100) // exactly enough for level 2
 
 	assert.Equal(t, uint32(2), p.progression.Level)
-	assert.True(t, p.skills.HasDiscovered(defHealAura.ID), "HealAura must be discovered at level 2")
+	assert.True(t, p.skills.HasDiscovered(defHealAura.ID), "Heal must be discovered at level 2")
 }
 
 func TestAddExperience_Level3_NoMilestoneEntry(t *testing.T) {
@@ -391,7 +391,7 @@ func TestAddExperience_Level3_NoMilestoneEntry(t *testing.T) {
 	p.AddExperience(300) // enough for level 3 (100 + 200)
 
 	assert.Equal(t, uint32(3), p.progression.Level)
-	// spellbook: HealAura (level-2 unlock) only — a fresh spawn starts empty
+	// spellbook: Heal (level-2 unlock) only — a fresh spawn starts empty
 	// (triage item 11), so no start freebie inflates the count.
 	assert.Len(t, p.skills.Discovered(), 1)
 }
@@ -405,9 +405,9 @@ func TestAddExperience_Level3_NoMilestoneEntry(t *testing.T) {
 func TestDeathRespawn_RetainsSpellbookAndProgression(t *testing.T) {
 	// A "drop" skill discovered only via a monster kill — unrecoverable by
 	// re-applying milestones, so it must survive death via the component itself.
-	defWildAura := &skills.SkillDefinition{ID: 3, Name: "WildAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	defWildAura := &skills.SkillDefinition{ID: 3, Name: "Wild", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 
-	// Player levels up (milestone HealAura) and picks up a WildAura drop.
+	// Player levels up (milestone Heal) and picks up a Wild drop.
 	dying := newTestPlayer([]skills.MilestoneUnlock{{Level: 2, Skill: defHealAura}})
 	dying.AddExperience(150) // reach level 2 with progress toward 3
 	dying.skills.Discover(defWildAura.ID)

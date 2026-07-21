@@ -44,8 +44,8 @@ const playerBodyRadius = 0.25
 // recover", itself a finding.
 const recoveryCapTicks = 600 * TicksPerSecond
 
-// The synthetic self-heal cooldown, shaped like the authored Heal
-// (api/skills/heal-cooldown.json) [ALL PLACEHOLDER]. ID 90 stays clear of
+// The synthetic self-heal cooldown, shaped like the authored FirstAid
+// (api/skills/first-aid.json) [ALL PLACEHOLDER]. ID 90 stays clear of
 // the player aura (1) and the mob auras (2+i).
 const (
 	selfHealSkillID          = 90

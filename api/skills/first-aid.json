@@ -1,6 +1,6 @@
 {
   "id": 21,
-  "name": "Heal",
+  "name": "FirstAid",
   "category": "cooldown",
   "maxLevel": 3,
   "cooldownTicks": 900,

@@ -1,7 +1,7 @@
 {
   "_comment": "Effect foundations Step 2 placeholder content: an aura that leaves a fire dot on the nearest enemy. damageHP +5% (§4.3 v2 base-crit rework, PO 2026-07-20: dots never crit, so dot skills missed the ~5% EV lift every direct-hit skill got). All values [PLACEHOLDER].",
   "id": 5,
-  "name": "ImmolationAura",
+  "name": "Immolation",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

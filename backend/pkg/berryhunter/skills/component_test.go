@@ -534,7 +534,7 @@ func TestBurstRadius(t *testing.T) {
 
 	t.Run("radiusless bursts (self_heal) stay zero", func(t *testing.T) {
 		selfHeal := &SkillDefinition{
-			ID: 21, Name: "Heal", Category: SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
+			ID: 21, Name: "FirstAid", Category: SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 900,
 			Effects: []EffectDef{{Type: EffectTypeSelfHeal, SelfHeal: &SelfHealParams{HealHP: 0.2}}},
 		}
 		sc := NewSkillComponent(true)
@@ -565,7 +565,7 @@ func TestRequestCooldownActivation(t *testing.T) {
 
 var testSwift = &SkillDefinition{
 	ID:       10,
-	Name:     "SwiftPassive",
+	Name:     "Swift",
 	Category: SkillCategoryPassive,
 	MaxLevel: 3,
 	Effects: []EffectDef{

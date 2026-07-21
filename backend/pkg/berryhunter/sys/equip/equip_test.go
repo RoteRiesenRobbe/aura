@@ -107,9 +107,9 @@ func (e *stubEquipEntity) ApplyRecipeCascade() {
 // --- helpers ---
 
 var (
-	defDamage = &skills.SkillDefinition{ID: 1, Name: "DamageAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
-	defHeal   = &skills.SkillDefinition{ID: 2, Name: "HealAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
-	defSwift  = &skills.SkillDefinition{ID: 10, Name: "SwiftPassive", Category: skills.SkillCategoryPassive, MaxLevel: 3,
+	defDamage = &skills.SkillDefinition{ID: 1, Name: "Damage", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	defHeal   = &skills.SkillDefinition{ID: 2, Name: "Heal", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	defSwift  = &skills.SkillDefinition{ID: 10, Name: "Swift", Category: skills.SkillCategoryPassive, MaxLevel: 3,
 		Effects: []skills.EffectDef{{Type: skills.EffectTypeStatMultiplier, Stat: &skills.StatParams{Name: skills.StatMovementSpeed, Bonus: 0.05, BonusPerLevel: 0.05}}}}
 	defNova = &skills.SkillDefinition{ID: 20, Name: "NovaBurst", Category: skills.SkillCategoryCooldown, MaxLevel: 3}
 )
@@ -370,10 +370,10 @@ func TestSpendSkillPoint_UnspendAtLevel1IsRejected(t *testing.T) {
 // the trigger fires from the EquipSystem spend handler.
 func TestSpendSkillPoint_RaiseTriggersRecipeCascade(t *testing.T) {
 	es, player := newSystem(defDamage, defNova)
-	// Recipe: DamageAura@2 -> NovaBurst.
+	// Recipe: Damage@2 -> NovaBurst.
 	fsys := fstest.MapFS{"r.json": {Data: []byte(`{
       "id": 1, "result": "NovaBurst",
-      "ingredients": [{ "skill": "DamageAura", "level": 2 }]
+      "ingredients": [{ "skill": "Damage", "level": 2 }]
     }`)}}
 	recipes, err := skills.RecipesFromFS(fsys, es.g.(*stubGame).registry)
 	require.NoError(t, err)
@@ -395,7 +395,7 @@ func TestSpendSkillPoint_UnspendDoesNotTriggerRecipe(t *testing.T) {
 	es, player := newSystem(defDamage, defNova)
 	fsys := fstest.MapFS{"r.json": {Data: []byte(`{
       "id": 1, "result": "NovaBurst",
-      "ingredients": [{ "skill": "DamageAura", "level": 2 }]
+      "ingredients": [{ "skill": "Damage", "level": 2 }]
     }`)}}
 	recipes, err := skills.RecipesFromFS(fsys, es.g.(*stubGame).registry)
 	require.NoError(t, err)

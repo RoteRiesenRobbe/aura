@@ -1,7 +1,7 @@
 {
-  "_comment": "Phase 9 combination result (DamageAura L5 + HealAura L5). Damages the nearest enemy and heals the lowest-HP ally in range each on its own cadence. Values are a constant 70% of DamageAura/HealAura at every level; no heal self-cost. All [PLACEHOLDER] pending balance pass.",
+  "_comment": "Phase 9 combination result (Damage L5 + Heal L5). Damages the nearest enemy and heals the lowest-HP ally in range each on its own cadence. Values are a constant 70% of Damage/Heal at every level; no heal self-cost. All [PLACEHOLDER] pending balance pass.",
   "id": 30,
-  "name": "PaladinAura",
+  "name": "Paladin",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

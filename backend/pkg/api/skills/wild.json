@@ -1,7 +1,7 @@
 {
-  "_comment": "First monster-kill unlock payload (Phase 6.2): a damage-aura variant — wider ring, lower dps than DamageAura. All values [PLACEHOLDER]",
+  "_comment": "First monster-kill unlock payload (Phase 6.2): a damage-aura variant — wider ring, lower dps than Damage. All values [PLACEHOLDER]",
   "id": 3,
-  "name": "WildAura",
+  "name": "Wild",
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

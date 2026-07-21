@@ -73,7 +73,7 @@ export const mobNames: string[] = mobDefJSONs
     .map(def => def.name)
     .sort((a, b) => a.localeCompare(b));
 
-// The registry skill names (e.g. "HealAura", "Dash") the teaching dropdown
+// The registry skill names (e.g. "Heal", "Dash") the teaching dropdown
 // offers — the exact keys the backend zone loader resolves a Teaching.Skill
 // against, so an authored NPC never references an unknown skill.
 export const skillNames: string[] = skillDefJSONs

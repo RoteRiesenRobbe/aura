@@ -197,7 +197,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     // Character.active_skill_id wire field. 0 = Nothing → no ring.
     // Ring style per skill ID is a client-side mapping (resolved question 6).
     setActiveSkill(skillId: number) {
-        // PaladinAura and Vanguard both damage and support at once, so they
+        // Paladin and Vanguard both damage and support at once, so they
         // show both rings; pure support auras (heal, FireWard resist) show
         // only the heal-style ring; everything else shows the damage ring.
         const isDual = skillId === PALADIN_AURA_SKILL_ID || skillId === VANGUARD_AURA_SKILL_ID || skillId === WARBANNER_AURA_SKILL_ID;

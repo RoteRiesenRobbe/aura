@@ -35,11 +35,11 @@ func recipesOf(recs ...*RecipeDefinition) RecipeRegistry {
 
 func TestApplyRecipes_TriggerOnDiscovery(t *testing.T) {
 	sr := testSkillRegistry(t)
-	dmg := mustSkill(t, sr, "DamageAura")
-	swift := mustSkill(t, sr, "SwiftPassive")
-	heal := mustSkill(t, sr, "HealAura")
+	dmg := mustSkill(t, sr, "Damage")
+	swift := mustSkill(t, sr, "Swift")
+	heal := mustSkill(t, sr, "Heal")
 
-	sc := spellbookWith(t, sr, map[string]int{"DamageAura": 3, "SwiftPassive": 2})
+	sc := spellbookWith(t, sr, map[string]int{"Damage": 3, "Swift": 2})
 	recs := recipesOf(&RecipeDefinition{ID: 1, Result: heal,
 		Ingredients: []RecipeIngredient{ing(dmg, 3), ing(swift, 2)}})
 
@@ -51,12 +51,12 @@ func TestApplyRecipes_TriggerOnDiscovery(t *testing.T) {
 
 func TestApplyRecipes_ThresholdNotMet(t *testing.T) {
 	sr := testSkillRegistry(t)
-	dmg := mustSkill(t, sr, "DamageAura")
-	swift := mustSkill(t, sr, "SwiftPassive")
-	heal := mustSkill(t, sr, "HealAura")
+	dmg := mustSkill(t, sr, "Damage")
+	swift := mustSkill(t, sr, "Swift")
+	heal := mustSkill(t, sr, "Heal")
 
-	// DamageAura only at 2 — below the required 3.
-	sc := spellbookWith(t, sr, map[string]int{"DamageAura": 2, "SwiftPassive": 2})
+	// Damage only at 2 — below the required 3.
+	sc := spellbookWith(t, sr, map[string]int{"Damage": 2, "Swift": 2})
 	recs := recipesOf(&RecipeDefinition{ID: 1, Result: heal,
 		Ingredients: []RecipeIngredient{ing(dmg, 3), ing(swift, 2)}})
 
@@ -66,11 +66,11 @@ func TestApplyRecipes_ThresholdNotMet(t *testing.T) {
 
 func TestApplyRecipes_GreaterOrEqual(t *testing.T) {
 	sr := testSkillRegistry(t)
-	dmg := mustSkill(t, sr, "DamageAura")
-	heal := mustSkill(t, sr, "HealAura")
+	dmg := mustSkill(t, sr, "Damage")
+	heal := mustSkill(t, sr, "Heal")
 
 	// Over-leveled ingredient must still satisfy (>=), never lock out.
-	sc := spellbookWith(t, sr, map[string]int{"DamageAura": 5})
+	sc := spellbookWith(t, sr, map[string]int{"Damage": 5})
 	recs := recipesOf(&RecipeDefinition{ID: 1, Result: heal,
 		Ingredients: []RecipeIngredient{ing(dmg, 3)}})
 
@@ -81,10 +81,10 @@ func TestApplyRecipes_GreaterOrEqual(t *testing.T) {
 // once; simulates the "trigger on level raise" call site (no missed window).
 func TestApplyRecipes_TriggerOnRaise(t *testing.T) {
 	sr := testSkillRegistry(t)
-	dmg := mustSkill(t, sr, "DamageAura")
-	heal := mustSkill(t, sr, "HealAura")
+	dmg := mustSkill(t, sr, "Damage")
+	heal := mustSkill(t, sr, "Heal")
 
-	sc := spellbookWith(t, sr, map[string]int{"DamageAura": 2})
+	sc := spellbookWith(t, sr, map[string]int{"Damage": 2})
 	recs := recipesOf(&RecipeDefinition{ID: 1, Result: heal,
 		Ingredients: []RecipeIngredient{ing(dmg, 3)}})
 
@@ -96,10 +96,10 @@ func TestApplyRecipes_TriggerOnRaise(t *testing.T) {
 
 func TestApplyRecipes_Idempotent(t *testing.T) {
 	sr := testSkillRegistry(t)
-	dmg := mustSkill(t, sr, "DamageAura")
-	heal := mustSkill(t, sr, "HealAura")
+	dmg := mustSkill(t, sr, "Damage")
+	heal := mustSkill(t, sr, "Heal")
 
-	sc := spellbookWith(t, sr, map[string]int{"DamageAura": 3})
+	sc := spellbookWith(t, sr, map[string]int{"Damage": 3})
 	recs := recipesOf(&RecipeDefinition{ID: 1, Result: heal,
 		Ingredients: []RecipeIngredient{ing(dmg, 3)}})
 
@@ -110,11 +110,11 @@ func TestApplyRecipes_Idempotent(t *testing.T) {
 // A result unlocking at level 1 satisfies a chain recipe on the next pass.
 func TestApplyRecipes_ChainCascade(t *testing.T) {
 	sr := testSkillRegistry(t)
-	dmg := mustSkill(t, sr, "DamageAura")
-	heal := mustSkill(t, sr, "HealAura")
-	swift := mustSkill(t, sr, "SwiftPassive")
+	dmg := mustSkill(t, sr, "Damage")
+	heal := mustSkill(t, sr, "Heal")
+	swift := mustSkill(t, sr, "Swift")
 
-	sc := spellbookWith(t, sr, map[string]int{"DamageAura": 2})
+	sc := spellbookWith(t, sr, map[string]int{"Damage": 2})
 	recs := recipesOf(
 		&RecipeDefinition{ID: 1, Result: heal, Ingredients: []RecipeIngredient{ing(dmg, 2)}},
 		&RecipeDefinition{ID: 2, Result: swift, Ingredients: []RecipeIngredient{ing(heal, 1)}},
@@ -128,16 +128,16 @@ func TestApplyRecipes_ChainCascade(t *testing.T) {
 // Cyclic recipes must terminate and never double-discover.
 func TestApplyRecipes_CycleTerminates(t *testing.T) {
 	sr := testSkillRegistry(t)
-	heal := mustSkill(t, sr, "HealAura")
-	swift := mustSkill(t, sr, "SwiftPassive")
+	heal := mustSkill(t, sr, "Heal")
+	swift := mustSkill(t, sr, "Swift")
 
-	// A: HealAura@1 -> SwiftPassive ; B: SwiftPassive@1 -> HealAura (a cycle).
+	// A: Heal@1 -> Swift ; B: Swift@1 -> Heal (a cycle).
 	recs := recipesOf(
 		&RecipeDefinition{ID: 1, Result: swift, Ingredients: []RecipeIngredient{ing(heal, 1)}},
 		&RecipeDefinition{ID: 2, Result: heal, Ingredients: []RecipeIngredient{ing(swift, 1)}},
 	)
 
-	sc := spellbookWith(t, sr, map[string]int{"HealAura": 1})
+	sc := spellbookWith(t, sr, map[string]int{"Heal": 1})
 	unlocked := ApplyRecipes(sc, recs) // must return, not hang
 	assert.Equal(t, []SkillID{swift.ID}, unlocked)
 	assert.True(t, sc.HasDiscovered(swift.ID))
@@ -145,11 +145,11 @@ func TestApplyRecipes_CycleTerminates(t *testing.T) {
 
 func TestApplyRecipes_TwoRecipesSameIngredientsBothFire(t *testing.T) {
 	sr := testSkillRegistry(t)
-	dmg := mustSkill(t, sr, "DamageAura")
-	heal := mustSkill(t, sr, "HealAura")
-	swift := mustSkill(t, sr, "SwiftPassive")
+	dmg := mustSkill(t, sr, "Damage")
+	heal := mustSkill(t, sr, "Heal")
+	swift := mustSkill(t, sr, "Swift")
 
-	sc := spellbookWith(t, sr, map[string]int{"DamageAura": 2})
+	sc := spellbookWith(t, sr, map[string]int{"Damage": 2})
 	recs := recipesOf(
 		&RecipeDefinition{ID: 1, Result: heal, Ingredients: []RecipeIngredient{ing(dmg, 2)}},
 		&RecipeDefinition{ID: 2, Result: swift, Ingredients: []RecipeIngredient{ing(dmg, 2)}},
@@ -161,8 +161,8 @@ func TestApplyRecipes_TwoRecipesSameIngredientsBothFire(t *testing.T) {
 
 func TestApplyRecipes_NilSpellbookMob(t *testing.T) {
 	sr := testSkillRegistry(t)
-	dmg := mustSkill(t, sr, "DamageAura")
-	heal := mustSkill(t, sr, "HealAura")
+	dmg := mustSkill(t, sr, "Damage")
+	heal := mustSkill(t, sr, "Heal")
 
 	sc := NewSkillComponent(false) // mob: nil spellbook
 	recs := recipesOf(&RecipeDefinition{ID: 1, Result: heal,

@@ -19,7 +19,7 @@ import (
 
 // costlyHealEffect mirrors the real heal-aura shape with a self-cost large
 // enough to threaten a low-HP caster (all numbers [PLACEHOLDER], matching the
-// authored flat 18 of api/skills/heal-aura.json).
+// authored flat 18 of api/skills/heal.json).
 func costlyHealEffect() skills.EffectDef {
 	return skills.EffectDef{
 		Type:         skills.EffectTypeHealAura,
@@ -58,7 +58,7 @@ func TestApplyHealAura_CasterAtOneHP_SkipsEffectEntirely(t *testing.T) {
 }
 
 func TestApplyHealAura_ZeroCostEffect_StillHealsAtOneHP(t *testing.T) {
-	// Multi-effect heal components (PaladinAura/Vanguard/Warbanner) author
+	// Multi-effect heal components (Paladin/Vanguard/Warbanner) author
 	// selfDamageHP 0 — a zero cost never clamps, so the floor must not block
 	// them even on a 1-HP caster.
 	caster := newFakePlayer()

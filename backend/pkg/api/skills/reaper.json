@@ -1,7 +1,7 @@
 {
   "_comment": "Skill-vocab chunk 1 smoke content: one aura exercising execute + berserker + lifesteal together; EliteWolf drop since Session ②. Authored crit pair REMOVED in the §4.3 v2 crit rework (PO 2026-07-20): Reaper crits only via the character's own crit chance (base 5% + critChance stat) at the default factor. All values [PLACEHOLDER].",
   "id": 7,
-  "name": "ReaperAura",
+  "name": "Reaper",
   "category": "active_aura",
   "maxLevel": 3,
   "effects": [

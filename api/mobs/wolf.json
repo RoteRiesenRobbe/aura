@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 pack predator (content pass C2, plan-content-zones12.md §4): the first real combat mob after the farm. 'Pack' = clustered zone spawns (no pack mechanic exists); wildlife_predator makes it hunt boar/stag AND players on sight — ambient predation. Speed 0.7 (PO rule 2026-07-17: normal enemies stay clearly slower than the player — with endless chase + bite radius, near-parity is inescapable; faster-than-player stays reserved for special must-kill mobs). curveLevel 2 = meant for players fresh off the Farmer's DamageAura. All values [PLACEHOLDER]",
+  "_comment": "Z1 pack predator (content pass C2, plan-content-zones12.md §4): the first real combat mob after the farm. 'Pack' = clustered zone spawns (no pack mechanic exists); wildlife_predator makes it hunt boar/stag AND players on sight — ambient predation. Speed 0.7 (PO rule 2026-07-17: normal enemies stay clearly slower than the player — with endless chase + bite radius, near-parity is inescapable; faster-than-player stays reserved for special must-kill mobs). curveLevel 2 = meant for players fresh off the Farmer's Damage. All values [PLACEHOLDER]",
   "id": 15,
   "name": "Wolf",
   "type": "MOB",
@@ -26,6 +26,6 @@
     { "skillName": "WolfBite", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "SwiftPassive", "chance": 0.1 }
+    { "skillName": "Swift", "chance": 0.1 }
   ]
 }

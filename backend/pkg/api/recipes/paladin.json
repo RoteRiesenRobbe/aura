@@ -1,0 +1,9 @@
+{
+  "_comment": "Phase 9 first content: the Paladin Aura combination. Secret — never documented in-game. Curated per the design; Damage and Heal both maxed unlock it.",
+  "id": 1,
+  "result": "Paladin",
+  "ingredients": [
+    { "skill": "Damage", "level": 5 },
+    { "skill": "Heal", "level": 5 }
+  ]
+}

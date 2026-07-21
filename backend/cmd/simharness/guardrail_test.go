@@ -44,7 +44,7 @@ const (
 	guardrailSeed     = 1
 
 	// The baseline bot's HP pool mirrors conf.default.json game.player
-	// baseHealth; its weapon is the authored DamageAura at L1 (loaded from
+	// baseHealth; its weapon is the authored Damage at L1 (loaded from
 	// content below, not hardcoded).
 	guardrailBotBaseHP = 100
 )
@@ -191,7 +191,7 @@ func TestGuardrails_TierThresholdsVsRealRoster(t *testing.T) {
 	defs, sr, err := loadContent("")
 	require.NoError(t, err)
 
-	dmgAura, err := sr.GetByName("DamageAura")
+	dmgAura, err := sr.GetByName("Damage")
 	require.NoError(t, err, "the baseline bot's weapon must exist in content")
 	e, ok := firstDamageEffect(dmgAura)
 	require.True(t, ok)

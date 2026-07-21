@@ -41,7 +41,7 @@ func (f *fakeInputPlayer) LastMoveDir() phy.Vec2f                 { return f.las
 func (f *fakeInputPlayer) SetLastMoveDir(v phy.Vec2f)             { f.lastMoveDir = v }
 
 func newFakeInputPlayer() *fakeInputPlayer {
-	def := &skills.SkillDefinition{ID: 1, Name: "DamageAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	def := &skills.SkillDefinition{ID: 1, Name: "Damage", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 	sc := skills.NewSkillComponent(true)
 	sc.EquipAura(0, def, 1)
 	sc.EquipAura(2, def, 1)

@@ -366,7 +366,7 @@ func TestMob_Kill_HealerWhoAlsoDamagedGetsXPOnce(t *testing.T) {
 // --- kill unlocks (Phase 6.2) ---
 
 func TestMob_Kill_GuaranteedUnlockGoesToAllRewardedPlayers(t *testing.T) {
-	unlockSkill := &skills.SkillDefinition{ID: 3, Name: "WildAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	unlockSkill := &skills.SkillDefinition{ID: 3, Name: "Wild", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 	d := testMobDefinition()
 	d.Unlocks = []mobs.MobUnlock{{Skill: unlockSkill, Chance: 1.0}}
 	m := NewMob(d, 0, nil)

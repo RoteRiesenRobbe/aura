@@ -27,6 +27,6 @@
   ],
   "unlocks": [
     { "skillName": "ThickHide", "chance": 0.04 },
-    { "skillName": "BerserkerAura", "chance": 0.03 }
+    { "skillName": "Berserker", "chance": 0.03 }
   ]
 }
