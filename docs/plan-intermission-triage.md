@@ -941,3 +941,93 @@ added to `api/milestones/` and picked up by a plain restart with **no rebuild**
 (`count=2`), then reverted (`git diff` on that path empty). **Not PO-verified
 in-game** — no runtime surface changed; server left running on the PO's
 `world.json` (props 850→847, spawns 380→383 from their editor pass).
+
+## Combat readability: category aura rings + tier frames (items 7 + 15, 2026-07-21)
+
+**Items 7 + 15 DONE 2026-07-21 — PO-VERIFIED IN-GAME 2026-07-21 ("looks
+better"), committed `e8b67289`.** The first chunk of the post-C8 PO priority
+queue; closes both readability items in one pass since they share the same
+append-only Mob-table wire extension.
+
+**PO rulings (choice prompts, 2026-07-21):**
+- Item 7 → **(a) category colour**: one colour per effect category, identical
+  for players and mobs. Not damage-type colour, not per-skill patterns.
+- Item 15 → **(a) frame ring**: programmatic ring on the portrait circle;
+  normal unmarked, elite silver, boss gold.
+- Multi-effect auras → **bitmask, keep dual rings** (not first-effect-wins).
+- **Ring geometry correction (PO, mid-chunk, after playing Warbanner):** the
+  first implementation drew one full ring per category at *decreasing radii*.
+  That reads as several different areas of effect — false, since every effect
+  on an aura applies over the same radius. Bands now stack **inward from the
+  aura edge**, so a multi-category aura is simply a *thicker border* on one
+  circle. Category order is unchanged; the outermost band's outer edge is the
+  true aura radius (the gameplay-critical edge).
+
+**Wire (append-only; no existing field IDs shift):** `Mob.aura_category`
+(slot 21) + `Mob.tier` (slot 22), `Character.aura_category` (slot 29). All
+`ubyte`. Verified against the generated `PrependByteSlot` indices.
+
+**Backend:**
+- `skills.AuraCategory` bitmask (damage/heal/shield/dot/slow/light) +
+  `AuraCategoriesOf`, **derived from the existing `EffectDef.Type`** — no new
+  authored field, no content migration. Classification is an **exhaustive
+  table, not a switch with a default**: a new `EffectType` fails a test instead
+  of silently rendering ringless.
+- `mobs.TierRank` encodes the authored tier label as an ordered byte.
+  `tierRanks` became the **single source for both** the loader's validity check
+  and the wire encoding, replacing the hardcoded
+  `tier != TierNormal && tier != TierElite && tier != TierBoss` chain — a tier
+  can no longer be loadable without an encoding.
+- `SkillComponent.AuraCategories()` with player + mob delegating one-liners
+  (the existing `LightRadius` pattern), rather than a 3rd copy of the
+  active-slot lookup in each entity.
+
+**Frontend — net *removal* of hand-sync debt:**
+- New `AuraRingStack` (`game-objects/logic/AuraRings.ts`): interior wash +
+  one `Graphics` band per set category, redrawn only when `(radius, mask)`
+  actually changes (the setters run every snapshot).
+- Replaces **three** separate implementations (character damage/heal sprite
+  pair, mob always-red sprite) with one shared class.
+- Deleted `damageAura.svg` + `healAura.svg` (identical geometry, hardcoded red
+  and green) — and after the geometry correction the SVG path went away
+  entirely, so `auraRingFile`, both preload registrations and the whole
+  `assets/effects/` dir are gone. A new category is now one palette row + one
+  bit: no art, no render-path change.
+- Deleted the hardcoded skill-ID ring switch in `Character.setActiveSkill` and
+  **all 8 `*_SKILL_ID` constants** from `Skills.ts`.
+- Mob tier frame ring on the portrait circle (`Mobs.initShape`), following the
+  campfire bind-circle precedent already in that file.
+
+**Finding — the old dual ring was already wrong:** Warbanner carries **four**
+ring categories (damage+heal+shield+slow) and Vanguard **three**, but the
+client only ever had two sprites. The bitmask fixes a pre-existing
+misrepresentation, it does not merely preserve the old look.
+
+**Watch item (cost a PO round-trip):** `_GameObject`'s constructor calls
+`initShape()`, which runs **before subclass field initialisers**. New subclass
+fields assigned inside `initShape` must be declared **without** an initialiser
+(as `actualShape` already was) — `private tierFrame: PIXI.Graphics = null;`
+silently overwrote the Graphics `initShape` had just created, and the crash
+surfaced only at runtime (`Cannot set properties of null (setting 'visible')`).
+Compounded by `isDefined` being `!== undefined`, so it returns **true for
+null**. Both fixed; the constraint is now commented at the field declarations.
+
+**Verified:** `go build ./...` clean; **full suite green** (`go test ./...`,
+exit 0); `tsc --noEmit` clean; webpack prod build clean; boot `-content ../api`
+— `81 skills/14 factions/50 mobs/10 recipes/847 props/383 spawns/5 campfires/
+14 npcs, 0 panics`. Headless Playwright client smoke reports **no runtime
+errors**, and was **proved non-vacuous** by reintroducing the field-initialiser
+defect and confirming the harness reproduced the PO's exact error 8×.
+New tests: `TestAuraCategory_*` (incl. the exhaustiveness guard, proved
+non-vacuous by deleting a table entry), `TestRank_*`/`TestTierRank_*`,
+`TestMobMarshalFlatbuf_AuraCategory{,_MultiEffect}`, `TestMobMarshalFlatbuf_Tier`,
+`TestAuraCategories_ActiveAuraOnly`.
+
+**Open (carried to Deferred):** `resist_aura` (FireWard) is classified
+`AuraCategoryNone` and draws **no ring** — it is a persistent field but was not
+one of the PO's six categories; needs a colour decision. Band width is a fixed
+**4 px** regardless of aura size, so a small-radius mob aura with several
+categories gets proportionally chunky bands (switch to a fraction-of-radius with
+a px floor if that reads badly). Placeholders: all 6 category colours,
+`BAND_WIDTH 4` / `BAND_ALPHA 0.75` / `FILL_ALPHA 0.1`, elite silver `#c8ccd4`
+w2 / boss gold `#e8c04a` w3.
