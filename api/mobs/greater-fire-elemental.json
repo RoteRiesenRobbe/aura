@@ -1,0 +1,31 @@
+{
+  "_comment": "Greater fire elemental, ELITE tier (2026-07-21): the fire line's apex, curveLevel 20 = Orc-equivalent, the hardest non-boss content alongside the front. Elite baseline ≈4x its normal counterpart (Orc 280 / EliteBandit 240 precedent). Carries the SAME FireElementalAura as the small one by PO ruling — the extra HP and damage come from the elite baseline + f(cL20), not a separate skill. Slower still (0.45): it is a walking furnace, kiting is the counterplay. Drops FireTotem @0.2 — the signature-drop rate (LongRangeStrike/Reaper precedent). PO places spawns in the editor. All values [PLACEHOLDER]",
+  "id": 49,
+  "name": "GreaterFireElemental",
+  "type": "MOB",
+  "faction": "elemental",
+  "tier": "elite",
+  "curveLevel": 20,
+  "factors": {
+    "baseMaxHealth": 300,
+    "maxHealthVariance": 0.1,
+    "experience": 260,
+    "speed": 0.45,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 2,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.55,
+    "aggroRadius": 6
+  },
+  "skills": [
+    { "skillName": "FireElementalAura", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "FireTotem", "chance": 0.2 }
+  ]
+}

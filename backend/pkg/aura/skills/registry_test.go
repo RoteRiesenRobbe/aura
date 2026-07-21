@@ -139,8 +139,10 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// RallyDrum + the C5 front set SoldierBlades/OrcCleave/
 	// SpikeBarricadeAura + the C6 warlord set WarlordCleave/WarlordFrenzy/
 	// WarbannerShield/GruntSlash, among the earlier proving/critter auras;
-	// + the intermission Session ② mob auras TrollSmash/EmberAura)
-	assert.Len(t, r.All(), 78)
+	// + the intermission Session ② mob auras TrollSmash/EmberAura
+	// + the fire-elemental set FireTotem (player cooldown) /
+	// FireElementalAura / FireTotemAura, 2026-07-21)
+	assert.Len(t, r.All(), 81)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

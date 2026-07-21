@@ -1,0 +1,31 @@
+{
+  "_comment": "Fire elemental, normal tier (2026-07-21): a high-band burn hazard on par with the Z2 front. curveLevel 18 sits it at ArmySoldier/front difficulty — dangerous but below the Orc elite. Carries FireElementalAura (shared with the greater elemental). Drops FireWard @0.2 — the drop pair authored against its own source (the mob that burns you drops the fire resist), Antivenom/spider precedent; this is also what finally gives FireWard a world unlock source, closing the last reachability gap. Slow (0.55) — it advances, it doesn't chase. PO places spawns in the editor. All values [PLACEHOLDER]",
+  "id": 48,
+  "name": "FireElemental",
+  "type": "MOB",
+  "faction": "elemental",
+  "tier": "normal",
+  "curveLevel": 18,
+  "factors": {
+    "baseMaxHealth": 110,
+    "maxHealthVariance": 0.1,
+    "experience": 190,
+    "speed": 0.55,
+    "deltaPhi": 0.1,
+    "turnRate": 0.1,
+    "wanderRadius": 3,
+    "idleSpeedFactor": 0.3,
+    "idleDwellMinTicks": 240,
+    "idleDwellMaxTicks": 900
+  },
+  "body": {
+    "radius": 0.4,
+    "aggroRadius": 6
+  },
+  "skills": [
+    { "skillName": "FireElementalAura", "level": 1 }
+  ],
+  "unlocks": [
+    { "skillName": "FireWard", "chance": 0.2 }
+  ]
+}

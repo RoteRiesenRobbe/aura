@@ -73,5 +73,8 @@ export enum EntityType {
   AlphaWolf = 67,
   Marauder = 68,
   DireWolf = 69,
-  DireBear = 70
+  DireBear = 70,
+  FireElemental = 71,
+  GreaterFireElemental = 72,
+  FireTotem = 73
 }

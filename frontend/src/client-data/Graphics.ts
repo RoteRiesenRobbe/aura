@@ -319,6 +319,27 @@ export const GraphicsConfig = {
             minSize: <number> 44,
             maxSize: <number> 52,
         },
+
+        fireElemental: {
+            file: require('../features/game-objects/assets/mobs/fireElemental.svg'),
+            minSize: <number> 52,
+            maxSize: <number> 62,
+        },
+
+        // Elite — deliberately larger than the lesser elemental so the tier
+        // reads at a glance (body radius 0.55 vs 0.4).
+        greaterFireElemental: {
+            file: require('../features/game-objects/assets/mobs/greaterFireElemental.svg'),
+            minSize: <number> 72,
+            maxSize: <number> 84,
+        },
+
+        // Sized to match the plain totem (50/50) — they are siblings.
+        fireTotem: {
+            file: require('../features/game-objects/assets/mobs/fireTotem.svg'),
+            minSize: <number> 50,
+            maxSize: <number> 50,
+        },
     },
 
     // NPC sprites (content pass C2): Resource-backed, referenced by the

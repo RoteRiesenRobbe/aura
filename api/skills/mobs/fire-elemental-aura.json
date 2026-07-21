@@ -1,0 +1,24 @@
+{
+  "_comment": "Fire-elemental aura (2026-07-21): the burn field both elementals carry — a fire dot on EVERYONE hostile in range (selector 'all', KoboldVolley precedent), because the elemental damages what stands near it rather than picking a target. Shared by FireElemental (cL18) and GreaterFireElemental (cL20) by PO ruling: the elite's extra HP and damage come from its tier baseline + f(cL), not from a separate skill. Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "id": 134,
+  "name": "FireElementalAura",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "dot_aura",
+      "radius": 2.0,
+      "radiusPerLevel": 0.0,
+      "damageHP": 7,
+      "damageHPPerLevel": 1.8,
+      "damageTags": ["fire"],
+      "dotTicks": 3,
+      "dotTickInterval": 60,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "all",
+      "tickInterval": 60
+    }
+  ]
+}

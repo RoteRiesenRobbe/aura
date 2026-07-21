@@ -1,0 +1,5 @@
+{
+  "_comment": "Fire elementals (2026-07-21): hostile to players only. They are not wildlife and have no quarrel with the orcs or the army — they burn whatever walks into them. Kobold precedent (hostileTo players only). [PLACEHOLDER]",
+  "name": "elemental",
+  "hostileTo": ["aligned"]
+}

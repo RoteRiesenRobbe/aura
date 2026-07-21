@@ -26,9 +26,9 @@ for f in sorted(glob.glob('api/skills/*.json')):
 EOF
 ```
 
-Scope: the 45 **player** skills (`api/skills/*.json`). The 33 mob-only skills
+Scope: the 46 **player** skills (`api/skills/*.json`). The 35 mob-only skills
 in `api/skills/mobs/` are not listed (they're authoring details of their mobs).
-45 + 33 = the **78** registry pin in the boot log.
+46 + 35 = the **81** registry pin in the boot log.
 
 Scaling notation: `12 +6/L` = base 12, +6 per skill level. Ticks: 30 ticks =
 1 s. Source key: **MS Ln** = milestone · **Drop** = mob kill unlock (chance) ·
@@ -56,7 +56,7 @@ without the `SKILL` cheat.
 | 7 | Reaper | 3 | dmg 12 +3/L @40t r2.0; execute <35% ×2; lifesteal 50%; berserker ×2 at low HP | Drop: AlphaWolf .2 (2026-07-21) |
 | 29 | Rejuvenation | 3 | HoT 4 +2/L (6×60t) @60t, r2.5 +.2/L | Drop: OrcWarlord .1 (boss-rare) |
 | 30 | Paladin | 5 | dmg 10 +2.2/L + heal 8 +4/L (no self-cost) | Recipe: Damage 5 + Heal 5 |
-| 40 | FireWard | 3 | fire resist ×0.6 −0.1/L, allies+self, r1.5 | **NONE** — the only unreachable skill |
+| 40 | FireWard | 3 | fire resist ×0.6 −0.1/L, allies+self, r1.5 | Drop: FireElemental .2 (2026-07-21 — closed the last reachability gap) |
 | 41 | Harvest | 5 | gated dmg 14 +3.2/L, tag `harvest`, var ±15% | NPC-W Farmer @L1 |
 | 44 | Berserker | 5 | dmg 11 +2.6/L, var ±15%; up to +100% at low HP | Drop: Bear .03 |
 | 45 | LongRangeStrike | 5 | dmg 9 +2/L, r2.6 +.1/L, var ±15% | Drop: DireWolf .2 (2026-07-21) |
@@ -80,7 +80,7 @@ without the `SKILL` cheat.
 | 47 | Antivenom | 3 | poison resist ×0.7 −.1/L | Drop: Spider .1 / VenomSpider .25 |
 | 60 | KeenEye | 5 | crit chance +2% +2%/L | Drop: every wolf .06 (line-wide 2026-07-21) |
 
-## Cooldowns (18)
+## Cooldowns (19)
 
 | ID | Name | MaxLv | Values (CD in ticks) | Source |
 |---|---|---|---|---|
@@ -102,18 +102,21 @@ without the `SKILL` cheat.
 | 54 | Shockwave | 3 | burst 44 +10/L phys+bleed, r2.0 +.1/L; CD 240 | Recipe: Vanguard 5 + DamageBurst 3 |
 | 56 | HoldTheLine | 3 | detaunt r2.0 + 3× ShieldbearerCompanion, TTL 1800 +300/L; CD 2400 | Recipe: CallForAid 3 + Taunt 3 |
 | 57 | FieldMedics | 3 | 2× SoldierCompanion + 1× MedicCompanion, TTL 1800 +300/L; CD 2400 | Recipe: CallForAid 3 + Heal 5 |
+| 61 | FireTotem | 3 | spawn FireTotem, TTL 300 +60/L; its aura = fire dot 6 +2/L (3×60t) r2.5 on **all** enemies; CD 450 | Drop: GreaterFireElemental .2 (2026-07-21) |
 
 ## Reachability summary (live world zone)
 
 Swept 2026-07-21 across mob `unlocks[]`, NPC `teachings[]`, recipes and the
 milestone table:
 
-- **Unreachable without the cheat, 1:** `FireWard`. Pre-existing known gap —
-  its own `_comment` records "no unlock source yet"; inherited from roadmap
-  item 12 (`plan-intermission-triage.md`).
-- **Every other player skill has a non-legacy world source.** This is the
-  step-7 A.5 guarantee (`plan-rebrand-cleanup.md`); the wolf-line reshuffle
-  had to go line-wide on Swift specifically to preserve it.
+- **Unreachable without the cheat: NONE.** All **46** player skills have a
+  non-legacy world source — a first. `FireWard` was the last gap (a
+  pre-existing one, inherited from roadmap item 12) and the fire-elemental
+  pair closed it on 2026-07-21: the mob that burns you drops the fire resist
+  (the Spider/Antivenom "drop pair authored against its own source" pattern).
+- This is the step-7 A.5 guarantee (`plan-rebrand-cleanup.md`) now fully
+  satisfied; the wolf-line reshuffle had to go line-wide on Swift
+  specifically to preserve it.
 - **All 10 recipe results are craftable in the world zone** — every
   ingredient now has a world source. (Wildfire, Suppression and Barrier were
   un-craftable before the C8 §11 placements; that is resolved.)
@@ -123,6 +126,10 @@ milestone table:
   Vanguard (FrontCaptain) · SummonTotem (Shaman) · Torch, Ignite, Immolation
   (Emberkeeper).
 - **Milestone unlocks, 1:** Haste @L7.
+- **Note on the XP values above the cL18–20 band** (FireElemental 190,
+  GreaterFireElemental 260): these are **first-pass anchors set against the
+  Orc (cL20, 200)**, *not* kills-per-hour-derived per the Session-⑥ rule.
+  They want a simharness kph measurement before they are trusted.
 
 > Both the drop table and the milestone table are **tuning-open**, not frozen
 > (PO ruling 2026-07-21) — "FINAL" on them meant *first-pass settled*.

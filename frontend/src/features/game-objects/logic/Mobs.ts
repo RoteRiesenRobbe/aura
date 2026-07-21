@@ -917,6 +917,51 @@ export class DireBear extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(DireBear, file('direBear'), maxSize('direBear'));
 
+// Fire elementals (2026-07-21): high-band burn hazards, reusing the shared
+// `wildlife` layer like the orcs and marauders — no new layer, so no Game.ts
+// container/addChild pair is needed.
+export class FireElemental extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('fireElemental'), maxSize('fireElemental')),
+            FireElemental.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(FireElemental, file('fireElemental'), maxSize('fireElemental'));
+
+export class GreaterFireElemental extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.wildlife, x, y,
+            randomInt(minSize('greaterFireElemental'), maxSize('greaterFireElemental')),
+            GreaterFireElemental.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(
+    GreaterFireElemental, file('greaterFireElemental'), maxSize('greaterFireElemental'));
+
+// The player-summoned fire totem: stationary and fixed-size, on the same
+// `totem` layer as its plain sibling.
+export class FireTotem extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.totem, x, y,
+            randomInt(minSize('fireTotem'), maxSize('fireTotem')),
+            FireTotem.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(FireTotem, file('fireTotem'), maxSize('fireTotem'));
+
 // Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
 // sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
 // bounds the texture resolution.

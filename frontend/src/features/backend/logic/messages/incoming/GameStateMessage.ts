@@ -350,6 +350,9 @@ const gameObjectClasses = [
     Mobs.Marauder,
     Mobs.DireWolf,
     Mobs.DireBear,
+    Mobs.FireElemental,
+    Mobs.GreaterFireElemental,
+    Mobs.FireTotem,
 ];
 
 function unmarshalEntityType(entityType) {
