@@ -245,6 +245,37 @@ legacy** — they're unplaced placement candidates; don't tag them.
 
 ### A.6 Skill-name consistency (triage item 22 — DECIDED 2026-07-21)
 
+> **✅ EXECUTED 2026-07-21 — PO-VERIFIED IN-GAME, committed `24806352`.**
+> **11 renames** (one more than the ~6–8 estimate — the full suffix set):
+> `Aura` dropped from DamageAura→**Damage**, HealAura→**Heal**,
+> WildAura→Wild, SlowAura→Slow, ImmolationAura→Immolation,
+> ReaperAura→Reaper, PaladinAura→Paladin, BerserkerAura→Berserker;
+> `Passive` dropped from SwiftPassive→Swift, ToughPassive→Tough; collision
+> resolved cooldown-side per the decision: id 21 Heal→**FirstAid**
+> (milestone L3 follows in `milestone-unlocks.json`). **PO naming picks at
+> execution (choice prompt):** Damage (strict bare, over Smite/Wrath) +
+> FirstAid (over Mend/Cure/Bandage). **Mechanics:** ordered replace
+> (`"Heal"`→`"FirstAid"` first, then `\bHealAura\b`→`Heal` etc.) —
+> word-boundary sed leaves `EffectType*`/`apply*` Go identifiers and the
+> lowercase `*_aura` effect-type strings untouched while catching quoted
+> literals, composite roster keys (`"DamageAura L1"`), and comments. 12 JSON
+> files git-mv'd to bare kebab names (`damage.json`, `first-aid.json`,
+> `paladin.json` recipe, …) — safe because the zone editor and loaders glob
+> directories (`require.context`), nothing imports by filename. `Skills.ts`
+> display names synced (incl. `Light Aura`→`Light` for id 6, 21→`First
+> Aid`); stale filename comments (`heal-cooldown.json` etc.) and
+> `registry_test.go`/`recipe_test.go` fixture keys updated. As predicted:
+> **no wire, no frontend id maps, no sim presets** (roster names derive from
+> the registry); mob-skill namespace pre-checked collision-free. **Verified:**
+> full suite `-count=1` green + `-race` on the 6 touched package trees
+> (skills/world/sys/model-player/codec/simharness); `make -C backend build`
+> (cp-defs); `tsc --noEmit` + webpack prod build clean; boot world **0
+> warnings**, counts unchanged (`78 skills/13 factions/47 mobs/10
+> recipes/856 props/349 spawns/5 campfires/14 npcs, 0 panics`); boot
+> `-zone proving-grounds` 0 warnings (its renamed Heal/Reaper teachings
+> resolve); milestone boot log shows FirstAid@L3/Haste@L7; PO checked the
+> spellbook names in-game.
+
 **PO decision: option (a) — bare thematic names**, category lives in the
 `category` field: ~6–8 renames (SwiftPassive→Swift, ToughPassive→Tough, drop
 arbitrary `Aura` suffixes, …) + resolve the **Heal vs HealAura collision by
@@ -307,11 +338,12 @@ rule); estimated 1–2 execution sessions:
 3. **A.5** `"legacy": true` tag — **✅ 2026-07-21** (schema field per
    registry + zone/mob leak warnings + 19 files tagged; corrected set — see
    the §4 A.5 banner: 0 player skills / 5 mob skills, audit list was stale).
-4. **A.6** bare-name skill renames (+ Heal-collision rename + `Skills.ts`
-   display-name sync; name-pinned Go tests updated in the same commit).
+4. **A.6** bare-name skill renames — **✅ 2026-07-21 `24806352`** (11
+   renames incl. Heal→FirstAid collision fix + `Skills.ts` sync; PO picks
+   Damage + FirstAid — see the §4 A.6 banner).
 5. **B + C** structural rename + branding (incl. the title-screen `<h1>` —
    §6), one atomic commit, naming set decided at its start (choice prompt:
-   module path / binary / namespace).
+   module path / binary / namespace). **← NEXT (Phase A complete).**
 
 ## 7. Timing rationale (why step 7)
 
