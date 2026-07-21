@@ -1,6 +1,13 @@
 # Research — Combat Pacing & Recovery: Placement, Evaluation, Implementation Planning
 
-**Status:** Research deliverable (2026-07-10). All numbers [PLACEHOLDER], per
+**Status:** ✅ **ARCHIVED 2026-07-21 — fully consumed.** Every decision this
+research produced was executed as execution-order step 3 (record:
+`plan-atmosphere-recovery.md`, complete 2026-07-13): the regen combat gate,
+campfires, darkness & light, the death state and campfire respawn — and the
+aura-LoS cut. Kept for the rationale behind those calls, not as open work.
+*Filed as `research-combat-pacing-recovery.md` until 2026-07-21.*
+
+Originally a research deliverable (2026-07-10). All numbers [PLACEHOLDER], per
 the project-wide rule.
 
 > **DECISION BANNER (2026-07-10, same-day review session — the open questions

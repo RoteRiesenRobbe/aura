@@ -66,3 +66,16 @@ at HEAD (this bit C2 — "Part 1 never bumped the pinned count"). After adding:
    section of the `verify` skill for the exact grep. A stale `aurad`
    process silently masks new content.
 4. **In-game smoke:** the `verify` skill (real client, HUD-driven).
+5. **Regenerate `docs/content-skill-inventory.md`** if you touched skills,
+   mob `unlocks[]`, NPC `teachings[]`, recipes, or the milestone table. It is
+   **generated, not hand-maintained** — the doc carries its own regeneration
+   script. Re-run the reachability sweep at the bottom too: every player skill
+   should have a non-legacy world source (`FireWard` is the one known,
+   tracked exception). This is the step that keeps the docs honest: the
+   step-7 A.6 rename (`24806352`) touched zero docs, and the catalogs drifted
+   for days — stale names, wrong drop chances, and a reachability summary
+   claiming 7 cheat-only skills when only 1 was.
+
+   The three design catalogs (`content-auras.md` / `content-passives.md` /
+   `content-cooldowns.md`) deliberately **do not** repeat sources or numbers —
+   they point here. Don't "helpfully" add drop chances back into them.

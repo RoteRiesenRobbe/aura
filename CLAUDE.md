@@ -171,7 +171,7 @@ The game server uses an **Entity-Component-System** architecture via `github.com
 
 - `backend/cmd/aurad/` — entrypoint; wires config, game, HTTP server
 - `backend/pkg/aura/core/` — `game.go` constructs the ECS world and registers all systems; `Loop()` ticks at ~30 FPS (33 ms/tick)
-- `backend/pkg/aura/sys/` — ECS systems: physics, mob AI, day/night cycle, decay, respawn, scoreboard, status effects, heater
+- `backend/pkg/aura/sys/` — ECS systems: physics, mob AI, NPCs, skills, targeting, decay, state (death/respawn), pre/post-update, plus `chat/`, `cmd/`, `equip/`, `statuseffects/` (the scoreboard and heater systems were deleted — scoreboard in the 2026-07-08 dead-feature prune, heater with step 7)
 - `backend/pkg/aura/model/` — interfaces and concrete types for entities (player, mob, resource, placeable, spectator)
 - `backend/pkg/aura/items/` — item and mob definitions loaded from `api/items/` and `api/mobs/` JSON files at startup
 - `backend/pkg/aura/codec/` — FlatBuffers encode/decode for the WebSocket protocol

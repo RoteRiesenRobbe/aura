@@ -5,7 +5,7 @@ in-game (chunk 1+2+3: 2026-07-12; chunk 4: 2026-07-13, outcome banner in
 §3.4). Execution plan + decision record for
 execution-order step 3 (roadmap.md "Execution order"): **roadmap item 5**
 (darkness & light) **+ the 2026-07-10 recovery/death bundle**
-(`research-combat-pacing-recovery.md`: campfire death-respawn E5, death state
+(`archive-combat-pacing-recovery.md`: campfire death-respawn E5, death state
 E7, regen combat gate E4). The aura-LoS half of the original step 3 was **cut
 2026-07-10** (roadmap item 6) — no spike, no occlusion work. All numbers
 [PLACEHOLDER], per the project-wide rule.
@@ -54,8 +54,13 @@ E7, regen combat gate E4). The aura-LoS half of the original step 3 was **cut
   lean deliberately leaves room for it.
 - **Real dark-zone content** (the zone-1↔2 tunnel) — content pass (item
   12); this step ships proving-grounds test pockets only.
-- **Deleting the dead Berryhunter heat machinery** (see §2.4) — step-7
-  rebrand/cleanup territory; noted there, not touched here.
+- **Deleting the dead Berryhunter heat machinery** (see §2.4) — was routed to
+  step-7 rebrand/cleanup; not touched here.
+  **Status 2026-07-21: only partly done.** Step 7 closed having removed
+  `sys/heater.go`, but the heat machinery still survives in
+  `items/itemdefinition.go` (`HeatRadius`, `HeatPerSecond`, `HeatPerTick`) and
+  `model/placeable/placeable.go` (`heaterBody`, `LayerHeatCollision`). That
+  remainder is now **unowned** — no open step claims it.
 
 ### 1.3 Session decisions (user, 2026-07-12 planning session)
 
@@ -160,8 +165,9 @@ The old campfire machinery is dead weight: `model.HeatRadiator`/`Heater`
 `big-campfire.json` still exist — but **no system consumes heat** since
 Block 2. The new world campfire is a **separate mob-like entity**; the
 vestige (incl. the legacy placeable campfire items and the existing
-`Game.ts` lower-placeable `campfire` layer) is step-7 cleanup material
-(`plan-rebrand-cleanup.md`).
+`Game.ts` lower-placeable `campfire` layer) was step-7 cleanup material
+(`plan-rebrand-cleanup.md`). **Step 7 closed 2026-07-21 without clearing the
+whole vestige** — see §1.2 for what survives.
 
 ### 2.5 Darkness & rendering (chunk 3 seams)
 
@@ -362,7 +368,7 @@ Order = code first, content second, cp-defs + regen after:
    `zone-editor/logic/` — `ZoneModel`/`ZoneEditor`/`_ZoneEditorPanel`:
    place/select/delete + serializer round-trip of `campfires`).
 9. Sanity: `go build ./...`, `go test` (targeting + heal-threat pkgs),
-   `cp-defs`/rebuild, `pkill berryhunterd` + boot-log check (gotcha #10),
+   `cp-defs`/rebuild, `pkill aurad` + boot-log check (gotcha #10),
    in-game checklist (heal at fire, uncapped, in-combat top-up, mob does
    NOT path to the fire).
 
@@ -510,7 +516,7 @@ Light).
    `Campfire`/`Corpse`, `light_radius`, `Respawn` message); regen Go+TS
    FlatBuffers together (flatc v24.3.25).
 10. **Stale-server testing gotcha** (standing rule): `pkill
-    berryhunterd`, rebuild, check the boot log before in-game checks.
+    aurad`, rebuild, check the boot log before in-game checks.
 
 ---
 
@@ -604,7 +610,7 @@ commits.
 
 ## 7. Cross-references
 
-- `research-combat-pacing-recovery.md` — the E1–E8 decision prep + banner
+- `archive-combat-pacing-recovery.md` — the E1–E8 decision prep + banner
   (E4 gate, E5 world-fires-only, E7 death state = this plan's chunks 1+4).
 - `roadmap.md` — execution step 3 (this plan), item 5 (darkness & light),
   item 6 (LoS cut record), step 4 (the consumers: HoT, Recall, revive).

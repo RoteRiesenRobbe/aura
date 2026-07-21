@@ -7,7 +7,7 @@
 > damage tags, resist effect types) are recorded in
 > `plan-item11-hp-resist-variance.md`; the schema below reflects the current
 > state. The **authoritative field list is the code**
-> (`backend/pkg/berryhunter/skills/definition.go`) — a current data-vs-Go map
+> (`backend/pkg/aura/skills/definition.go`) — a current data-vs-Go map
 > lives in `archive-scripting-audit.md` §1.
 
 ## Overview
@@ -347,7 +347,7 @@ dot 6 HP +1.5/lvl × 3 events @ 1 s ≈ "3 seconds of burn").
 ### Go Package Layout
 
 ```
-backend/pkg/berryhunter/
+backend/pkg/aura/
   skills/
     definition.go   -- SkillDefinition, EffectDef, SkillID, SkillCategory, EffectType
     registry.go     -- SkillRegistry (same pattern as items.Registry)
@@ -977,7 +977,7 @@ can be ingredients of higher recipes.
 **Implementation status:**
 
 - ✓ `RecipeDefinition` + `RecipeRegistry` + `RecipesFromFS` in
-  `pkg/berryhunter/skills/recipe.go` (mirrors the skill registry; `api/recipes/`
+  `pkg/aura/skills/recipe.go` (mirrors the skill registry; `api/recipes/`
   JSON, embedded via `pkg/api/recipes`; hard-fail validation — unknown
   result/ingredient names, level `<1`/`>maxLevel`, empty ingredients, duplicate
   recipe IDs; duplicate *ingredient sets* allowed). `cp-defs` bundles
@@ -1139,7 +1139,7 @@ be added when something consumes them.
 
 Known issues to address in a future cleanup pass — not blocking current work.
 
-- **`backend/pkg/berryhunter/net/net_test.go` (FIXED)** — was not a real test: a
+- **`backend/pkg/aura/net/net_test.go` (FIXED)** — was not a real test: a
   manual `ListenAndServe` script with no timeout or teardown that hung
   `go test ./...`. Now skipped via `t.Skip` (kept for manual WebSocket
   debugging — remove the skip to run it explicitly), so the full

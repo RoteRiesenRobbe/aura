@@ -1,5 +1,8 @@
 # Block 2 — Resource Unification & Survival-System Removal
 
+**Status:** ✅ **COMPLETE (2026-07-04)** — both roadmap items landed and
+verified; this doc now stands as the execution record.
+
 Execution plan and running status for **roadmap items 1 + 2** (single unified
 resource; removal of the Berryhunter survival systems, crafting, and items).
 Graduated to its own doc per the roadmap convention once the work started

@@ -1,7 +1,9 @@
 # Plan: Simulation Harness — the balancing / what-if explorer
 
-> **Status banner (keep current):** APPROVED — design settled with PO 2026-07-15.
-> **Chunk 1 DONE — PO-reviewed ("it works") + COMMITTED `5faf7aa6` 2026-07-15:** `pkg/berryhunter/sim/`
+> **Status: ✅ COMPLETE — all 4 chunks built, PO-approved and committed.**
+> The harness is live tooling; drive it via the `run-simharness` skill.
+> Design settled with PO 2026-07-15; per-chunk records follow.
+> **Chunk 1 DONE — PO-reviewed ("it works") + COMMITTED `5faf7aa6` 2026-07-15:** `pkg/aura/sim/`
 > (world/scenario/runner/report) + `cmd/simharness` + `sys.SkillSystem.SeedRNG`
 > seam; 7 sanity tests green (exact TTK/TTD cadence pins, fixed-seed
 > reproducibility, variance spread), full suite + build green, CLI smoke-run OK
@@ -278,13 +280,13 @@ simulated walk.
 
 ## 7. Structure
 
-New package `backend/pkg/berryhunter/sim/` (content-agnostic runner + metrics) +
+New package `backend/pkg/aura/sim/` (content-agnostic runner + metrics) +
 a thin `backend/cmd/simharness/` that runs a battery and emits a report **and a
 saved artifact** (human table to stdout + JSON/CSV file) so runs can be diffed /
 charted across tuning sessions.
 
 ```
-pkg/berryhunter/sim/
+pkg/aura/sim/
   world.go       # minimal deterministic world: Space + real systems, seeded, Step(n)
   runner.go      # fight-to-death; N-seeded-run aggregation -> distribution
   scenario.go    # 1v1 TTK/TTD, 1-vs-N, chain runner; metric collection
@@ -332,7 +334,7 @@ Order 1 → 2 → 3 → 4. The cmd grows one scenario per chunk.
 
 ## 9. Test strategy
 
-- Each chunk ships `go test` **sanity** tests in `pkg/berryhunter/sim/` (the world
+- Each chunk ships `go test` **sanity** tests in `pkg/aura/sim/` (the world
   builds, a fight terminates, distributions are stable under a fixed seed).
 - The optional per-tier **threshold guardrails** (Chunk 4) are added only once the
   outcomes are understood — the tool is an explorer first.

@@ -1,6 +1,14 @@
 # Plan — Mob depth & totems (execution step 2)
 
-**Status:** PLANNED (2026-07-09). Execution plan + decision record for
+**Status:** ✅ **COMPLETE (2026-07-12)** — all 9 chunks implemented +
+verified in-game (totem → flee → aggro & threat → obstacle steering → patrol →
+companion → 6.5 hazard braziers → 6.6 mob factions → 7 taunt/fade → 8 support
+mobs → 9 encounter-controller spine + `THREAT` cheat). Boss *scripts* landed
+later in the content pass (C6 Orc Warlord); 9f (timed world-state + dwell
+capture) was dropped from v1 scope there. Per-chunk outcome banners are inline
+below; roadmap record: `roadmap.md` "Execution order" step 2.
+
+*Planned 2026-07-09.* Execution plan + decision record for
 execution-order step 2 (roadmap.md "Execution order"): **roadmap item 7's
 remainder** (patrol archetypes, aggro & threat, support mobs, encounter-
 controller spine) **+ effect-foundations Step 3** (spawned-entity/totem
@@ -335,7 +343,7 @@ threat) and the chunk-1 spawn machinery (scripted adds).
     corner must not jitter. Flee (chunk 2) lands BEFORE steering (chunk
     4): v1 flee clamps/slides along the wall; once chunk 4 lands, wall
     repulsion composes in like any other blocker.
-11. **Stale-server trap** (standing): `pkill berryhunterd`,
+11. **Stale-server trap** (standing): `pkill aurad`,
     `make -C backend build` (NOT `go build`), check boot-log count pins —
     which change **twice** in this step (totem chunk, companion chunk).
 12. **Mob-vs-mob damage has no participant tracking** — support-mob heals

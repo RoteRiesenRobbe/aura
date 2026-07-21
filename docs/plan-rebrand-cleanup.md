@@ -1,12 +1,27 @@
 # Plan: Rebrand to "Aura" & Berryhunter cleanup
 
-**Status:** decided 2026-07-08. Scoreboard removal (Phase A.1) pulled forward
-and executed immediately; everything else scheduled as **execution-order step 7**
-(after the content pass, before accounts & persistence) — see `roadmap.md`
-"Execution order".
+**Status:** ✅ **COMPLETE 2026-07-21 — step 7 is done and PO-verified in-game.**
+Executed as: A.1 scoreboard removal (pulled forward 2026-07-08), chieftain
+deletion (2026-07-09), A.4 scaffolding prune (`93fba97e`), A.5 legacy tagging
+(`d1acf28d`), A.6 bare skill names (`24806352`), then the structural rename +
+branding in one atomic commit (**`aa509d95`**): module
+`github.com/RoteRiesenRobbe/aura`, `pkg/aura/` dir, `aurad` binary, `AuraApi`
+FlatBuffers namespace, title "Aura". A.2 (rating/socials delete) was
+**cancelled** — Kringel Games links stay. Full ledger: §5 banner + §6.5.
 
-> **REFRESHED 2026-07-21 (post-content-pass review, pre-execution).** Step 7 is
-> now ① in the PO priority queue (CLAUDE.md `## Status`). Audit findings folded
+**Deliberately kept, still open PO calls:** berryhunter.io URLs (no
+replacement domain yet), replacement art (mascot/splash/favicon),
+wiki-generator keep-or-delete. **Known incomplete:** the dead heat machinery
+was only partly removed — `sys/heater.go` is gone, but `HeatRadius`/
+`HeatPerSecond` survive in `items/itemdefinition.go` and `heaterBody`/
+`LayerHeatCollision` in `model/placeable/placeable.go`; that remainder is now
+unowned (see `plan-atmosphere-recovery.md` §1.2).
+
+*Originally decided 2026-07-08; scheduled as execution-order step 7 — after
+the content pass, before accounts & persistence.*
+
+> **REFRESHED 2026-07-21 (post-content-pass review, then executed same day).**
+> Step 7 was ① in the PO priority queue (CLAUDE.md `## Status`). Audit findings folded
 > in throughout (dated notes); triage items **12** (legacy separation) and
 > **22** (skill naming) join Phase A as **A.5/A.6**. PO decisions made
 > 2026-07-21: legacy separation = **`"legacy": true` tag** (A.5), skill naming

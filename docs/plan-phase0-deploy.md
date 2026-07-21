@@ -29,8 +29,10 @@ Cloudflare. All Phase 1+ (`research-hosting.md` §4).
   **x86** shared instance (CX-class, ~€4–8/mo). x86 deliberately: the WSL2
   dev machine builds `linux/amd64` natively, so no cross-compile step. EU
   region (audience is EU friends).
-- **Domain: throwaway.** Branding is coupled to the rebrand (step 7,
-  `plan-rebrand-cleanup.md`); any cheap domain works. Subdomain fine.
+- **Domain: throwaway.** The rebrand (step 7, `plan-rebrand-cleanup.md`) is
+  complete as of 2026-07-21, but deliberately kept the berryhunter.io URLs —
+  the replacement domain is still an open PO call. Any cheap domain works
+  for Phase 0. Subdomain fine.
 - **Architecture: the proven `devops/` path** — single binary, systemd with
   `DynamicUser`, built-in autocert TLS, `-dev` flag to serve the frontend
   statically. No Docker, no reverse proxy, no goreleaser (KISS; those paths
@@ -75,7 +77,7 @@ abused (spam, attacks) at the owner's cost and name. Ranked:
 
 ### 3.3 Standing rules for the box
 
-- The box runs **nothing but** sshd + berryhunterd. No extra software, no
+- The box runs **nothing but** sshd + aurad. No extra software, no
   other sites, no personal data, no reused passwords/keys.
 - Provider account gets **2FA**.
 - Treat the box as disposable: teardown = delete VPS (§6.4); rebuild from
@@ -111,13 +113,13 @@ abused (spam, attacks) at the owner's cost and name. Ranked:
 - `devops/deploy.sh` → new ~20-line script: build backend
   (`make -C backend build`) + frontend (`cd frontend && npm run build`),
   `rsync` binary, `frontend/dist/` → `frontend/`, and conf to
-  `root@<domain>:/opt/berryhunterd/`, then `systemctl restart berryhunterd`
+  `root@<domain>:/opt/aurad/`, then `systemctl restart aurad`
   over ssh. **`tokens.list` is deliberately NOT deployed by the script** —
   it's written once by hand (§5.4) and never lives in the repo.
 - `devops/README.md` → update to this flow (it still documents GOPATH-era
-  steps in `update.sh`; `update.sh`/`up.sh` at repo root are dead — note
-  them for the step-7 cleanup sweep, don't delete now).
-- Verify `devops/berryhunterd.service` as-is (it's sound: `DynamicUser`
+  steps in `update.sh`; `update.sh`/`up.sh` at repo root were dead and were
+  pruned by the step-7 cleanup sweep, `93fba97e`).
+- Verify `devops/aurad.service` as-is (it's sound: `DynamicUser`
   sandbox, auto-restart 3 s, `CAP_NET_BIND_SERVICE` for 443,
   `CacheDirectory` → autocert cert cache survives restarts).
 
@@ -148,21 +150,21 @@ No ufw needed — the provider firewall (§4.4) is the enforcement point.
 
 ```shell
 ssh root@<domain>
-mkdir -p /opt/berryhunterd
+mkdir -p /opt/aurad
 # then from the dev machine: run devops/deploy.sh (copies binary, frontend, conf)
 
-# systemd unit (contents = devops/berryhunterd.service)
-systemctl edit --force --full berryhunterd
-systemctl enable --now berryhunterd
-journalctl -f -u berryhunterd     # watch the boot
+# systemd unit (contents = devops/aurad.service)
+systemctl edit --force --full aurad
+systemctl enable --now aurad
+journalctl -f -u aurad     # watch the boot
 ```
 
 ### 5.4 Secrets (once, by hand, never in the repo)
 
 ```shell
 # on the box:
-openssl rand -hex 16 > /opt/berryhunterd/tokens.list
-cat /opt/berryhunterd/tokens.list   # note it down locally, share with no one
+openssl rand -hex 16 > /opt/aurad/tokens.list
+cat /opt/aurad/tokens.list   # note it down locally, share with no one
 ```
 
 The cheat URL is then `https://<domain>/?token=<that value>` — the operator's
@@ -178,8 +180,9 @@ private link. Friends get the plain `https://<domain>/`.
   limits (~5 issuances/domain/week) make cache persistence matter — don't
   delete the cache dir casually.
 - Known cosmetic: autocert `Email` is hardcoded `dev@berryhunter.io`
-  (expiry-notice address only, functionally irrelevant) — pinned for the
-  rebrand sweep, `plan-rebrand-cleanup.md`.
+  (`backend/cmd/aurad/aurad.go`; expiry-notice address only, functionally
+  irrelevant). Step 7 deliberately left the berryhunter.io addresses in
+  place — this changes with the domain decision, not before.
 
 ## 6. Verification & operations
 
@@ -193,7 +196,7 @@ private link. Friends get the plain `https://<domain>/`.
       rejected and logged (`😡 … invalid token`).
 - [ ] `http://<domain>/` does NOT load (expected — no port 80; share https
       links only).
-- [ ] Kill test: `systemctl kill --signal=SIGKILL berryhunterd` → unit is
+- [ ] Kill test: `systemctl kill --signal=SIGKILL aurad` → unit is
       back within ~3 s (`systemctl status`), clients can rejoin.
 - [ ] `sshd -T` re-checked after the reboot (hardening survived).
 - [ ] From outside: `nmap <domain>` (or an online port scanner) shows only
@@ -201,12 +204,12 @@ private link. Friends get the plain `https://<domain>/`.
 
 ### 6.2 During the playtest
 
-- Logs: `journalctl -f -u berryhunterd`.
+- Logs: `journalctl -f -u aurad`.
 - Balance/content patch: edit locally → `devops/deploy.sh` → ~5 s restart,
   players rejoin (announce in chat first). This is the whole deploy story at
   Phase 0.
 - If griefed by a stranger (Option A risk materializing):
-  `systemctl restart berryhunterd` ends it; recurring → build Option B.
+  `systemctl restart aurad` ends it; recurring → build Option B.
 
 ### 6.3 What "done" means
 

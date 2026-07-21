@@ -1,13 +1,23 @@
 # Intermission Triage — 2026-07-18 (between C7 and C8)
 
-**Status: DECIDED 2026-07-19 — all PO decisions resolved, nothing implemented
-yet.** This doc records the PO's 22 intermission items (bugs, config fixes,
+**Status: DECIDED 2026-07-19, LARGELY EXECUTED — partially open.** Sessions ①
+and ② landed 2026-07-19 (`2c155a68`, `dad7c42d`), followed by the crit rework
+v2, the night-readability fix (`6afbee84`), and the wolf-line drop reshuffle
+(`f9a64db5`) — see §Execution sequence for the per-item state. **Still open:**
+combat readability (items 7 + 15), item 10 sacrifice loop (waits on
+persistence), and item 21's `null.split` repro. Items 12 (legacy separation)
+and 22 (skill naming) were executed as step-7 A.5/A.6 (`d1acf28d`,
+`24806352`). Separately, `FireWard` still has no world unlock source — a
+pre-existing gap inherited from roadmap item 12, not a triage item.
+
+This doc records the PO's 22 intermission items (bugs, config fixes,
 audits, design questions raised after playing the C1–C7 content), each
 investigated against the current code, with effort estimates and a proposed
 priority order. **No game code, config, or content was changed in the capture
 session.** The PO resolved every open decision on 2026-07-19 (see §Decisions —
-RESOLVED) and locked the execution sequence (see §Execution sequence). The
-Tier-1 mini-chunk is the next execution session.
+RESOLVED) and locked the execution sequence (see §Execution sequence). *(The
+capture-session framing above is historical — execution began 2026-07-19 with
+the Tier-1 mini-chunk; see the status banner for where things stand now.)*
 
 Why this doc and not `backlog.md`: the backlog is the *idea* parking lot
 ("nothing here is scoped"); these are scoped, estimated work items. Ideas that
@@ -33,7 +43,7 @@ Related sources: agent-verified findings with file:line refs as of commit
 **Problem:** the heal aura's self-cost can drive the caster to 0 HP and kill
 them.
 
-**Findings:** `applyHealAura` (`backend/pkg/berryhunter/sys/skills.go:617-701`)
+**Findings:** `applyHealAura` (`backend/pkg/aura/sys/skills.go:617-701`)
 heals targets first, then pays the self-cost (`skills.go:693-700`) — only if
 someone was actually healed, which is already correct. The cost path
 `vs.Health.Sub(selfHP)` (`model/vitals/vitals.go:68-74`) clamps at 0 but has
@@ -201,7 +211,7 @@ campfires — west village `(-58.2, 24.0)` and Z2 village `(44.0, 10.5)` — so
 **Proposed approach:** per the PO's design note (future selectable starting
 locations), go **data-driven, not hardcoded**: add `"startingSpawn": true` to
 the campfire schema (`world.Campfire` → `sys.CampfireAnchor` →
-`berryhunterd.go:114-141` boot loop), have `defaultSpawnPosition` pick only
+`aurad.go:114-141` boot loop), have `defaultSpawnPosition` pick only
 from flagged fires (random among them — which is exactly the future
 multi-start behavior), hard-fail boot if a zone has campfires but none
 flagged. Flag the west village fire in `world.json`. Optional: an editor

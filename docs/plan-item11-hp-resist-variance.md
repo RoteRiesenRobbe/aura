@@ -1,5 +1,8 @@
 # Item 11 (deferred) — HP system, resistances, stat variance
 
+**Status:** ✅ **COMPLETE (2026-07-06)** — all three phases committed and
+verified in-game; this doc now stands as the execution record.
+
 Graduates the "Deferred from item 11" block of `roadmap.md` into an execution
 doc. Three phases, in the mandated sequence. **All numbers [PLACEHOLDER].**
 

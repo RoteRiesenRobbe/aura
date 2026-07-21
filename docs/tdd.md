@@ -2,7 +2,7 @@
 
 **Version:** 0.5
 **Status:** Living document
-**Last updated:** 2026-07-10 (aura line-of-sight **CUT** — §4.2 rewritten as decision record; harness metrics extended §4.1; step 7 reshaped §6; state: skill system Phases 1–9 ✓, Block 2 ✓, item 11 all phases ✓, effect foundations Steps 0+1+2 ✓, mob depth chunks 1–3 implemented)
+**Last updated:** 2026-07-21 (docs cleanup pass: §1 missing-for-v1 and §6 roadmap brought up to date — execution-order steps 1–7 are complete, incl. the content pass and the Aura rebrand; §3 map-format decision closed; character sacrifice corrected to **in** v1 scope per the 2026-07-19 PO ruling)
 
 > Companion document to the [Game Design Document](./gdd.md). This holds only technical decisions, architecture, and implementation topics. Game mechanics belong in the GDD.
 >
@@ -21,23 +21,25 @@
 
 ### What already works
 - Multiplayer sync via WebSockets, top-down rendering, player movement, server-client architecture (ECS-based, `github.com/EngoEngine/ecs`)
-- **Skill-system migration complete (Phases 1–9,** see `docs/plan-skill-system.md`**):** data-driven skills (JSON + registry), `SkillComponent` on players *and* mobs, all three categories playable (auras / passives / cooldowns), skill leveling + free respec, milestone & kill unlocks, spellbook + equip UI, curated secret combination recipes (PaladinAura)
+- **Skill-system migration complete (Phases 1–9,** see `docs/plan-skill-system.md`**):** data-driven skills (JSON + registry), `SkillComponent` on players *and* mobs, all three categories playable (auras / passives / cooldowns), skill leveling + free respec, milestone & kill unlocks, spellbook + equip UI, curated secret combination recipes (Paladin)
 - **Aura targeting (roadmap item 11):** selector + target cap per effect, base auras single-target, floating numbers, per-tick hit VFX (slash/fire)
-- **Single resource + survival removal (Block 2,** see `docs/plan-block2-survival-removal.md`**):** `Health` is the one resource; crafting/items/vitals removed
+- **Single resource + survival removal (Block 2,** see `docs/archive-block2-survival-removal.md`**):** `Health` is the one resource; crafting/items/vitals removed
 - **Absolute HP system + resistances/damage tags (item 11 Phases 1+2,** see `docs/plan-item11-hp-resist-variance.md`**):** integer HP per entity, string-tag-based resistances, `resist_aura`/`resist_passive`
 
 ### What's missing for v1.0
 *(Authoritative: `docs/roadmap.md` — headlines only here.)*
-- **Initial content pass** (roadmap item 12 — prototype gate)
 - Accounts (register / login) and persistence (player data, world state) — item 3
-- Handcrafted world & zones (currently procedurally assembled) — item 4
-- Darkness & light (`light_aura`) — item 5
-- ~~Line-of-sight for auras~~ — **cut 2026-07-10** (see §4.2)
-- Mob behavior, tiers, boss scripting/encounter controller — item 7
-- Zone chat (Berryhunter chat exists, zone scoping missing) — item 8
-- Remaining unlock sources (world exploration, NPC teaching) — item 9
+- Zone chat (chat exists, zone scoping missing) — item 8
+- **Character sacrifice / meta-progression** — moved **into** v1 scope
+  2026-07-19 (PO ruling, `plan-intermission-triage.md` item 10; GDD §11
+  amended). Lands right after accounts & persistence, as its first consumer.
+- Combat-feel SFX — the open remnant of the content pass (roadmap step 6)
 
-*(Meta-progression / character sacrifice is explicitly **not** v1.0 — see GDD §11 and the roadmap.)*
+*Done since this list was first written:* ~~initial content pass~~ (item 12,
+✅ 2026-07-21) · ~~handcrafted world & zones~~ (item 4, ✅ 2026-07-09) ·
+~~darkness & light~~ (item 5, ✅ 2026-07-13) · ~~mob behavior/tiers/encounter
+controller~~ (item 7, ✅ 2026-07-12) · ~~remaining unlock sources~~ (item 9,
+✅ 2026-07-15) · ~~line-of-sight for auras~~ **cut 2026-07-10** (see §4.2).
 
 ---
 
@@ -63,8 +65,11 @@ A clean start remains only a theoretical fallback in case the code structure eve
 - [ ] Database (accounts, level, skills, spellbook, meta-progression)
 - [ ] Hosting strategy for production (phased outline + load math recorded: `research-hosting.md`; provider/DB still open)
 - [ ] Auth system (direction decided: anonymous-first with upgrade path, see roadmap item 3; concrete implementation open)
-- [ ] Client build pipeline (currently webpack from Berryhunter)
-- [ ] Map format / authoring tooling (Tiled vs. custom JSON — roadmap item 4)
+- [ ] Client build pipeline (currently webpack, inherited)
+- [x] ~~Map format / authoring tooling (Tiled vs. custom JSON)~~ — **decided
+      and shipped** (roadmap item 4, 2026-07-09): custom server-authoritative
+      `zone.json` + an in-game editor. Manual: `manual-zone-editor.md`. A
+      standalone browser map editor is a possible successor (`backlog.md` §22).
 
 ---
 
@@ -78,7 +83,7 @@ Each system below gets its own spec discussion before it is implemented; section
 
 - Skill definitions as JSON (`api/skills/`), registry analogous to items/mobs, hard-fail validation at load
 - `SkillComponent` on players and mobs (same mechanics; per-mob aura skills, aura switching via `SetActiveAura` possible)
-- Generic `SkillSystem` (ECS) processes the active aura per tick; 8 effect types (`damage_aura`, `heal_aura`, `stat_multiplier`, `instant_damage`, `slow_aura`, `self_heal`, `resist_aura`, `resist_passive`)
+- Generic `SkillSystem` (ECS) processes the active aura per tick; **22 effect types in use** as of 2026-07-21 — grown from the original 8 by the effect-foundations plan and the skill-vocabulary fill: `damage_aura`, `heal_aura`, `hot_aura`, `dot_aura`, `shield_aura`, `resist_aura`, `slow_aura`, `light_aura`, `stat_multiplier`, `resist_passive`, `instant_damage`, `instant_dot`, `instant_hot`, `instant_shield`, `self_heal`, `spawn`, `taunt`, `detaunt`, `dash`, `recall`, `revive`, `tick_rate`
 - **Targeting pipeline per effect:** range filter (aura sensor) → selector sort (`nearest` default, `lowest_health` percentage-based, `all`) → first `maxTargets`. There is deliberately **no LoS filter** (cut 2026-07-10, §4.2). Heal auras never heal the caster; self-healing is a cooldown (`self_heal`).
 - Tick intervals per effect, monotonic accumulator per equipped skill (multi-effect skills run each effect on its own cadence); reset on aura switch prevents the rapid-switch DPS exploit
 - Unlocks are data-driven (milestones, kill drops, recipe cascade); spellbook over the wire + UI (panel, equip, unlock glow)
@@ -98,7 +103,7 @@ Each system below gets its own spec discussion before it is implemented; section
 and every environment object; walls and props remain **movement** blockers
 (that mechanic stays fully intact — `blocksMovement`, the `InvAABB`
 boundary). Full decision prep + rationale:
-`research-combat-pacing-recovery.md` §2.C. The load-bearing points:
+`archive-combat-pacing-recovery.md` §2.C. The load-bearing points:
 
 - **Solo, LoS is symmetric** — an obstacle between two centers blocks *both*
   auras, so it grants no positional advantage in 1v1, only a disengage tool.
@@ -238,13 +243,14 @@ First sketch; the authoritative plans are `docs/plan-skill-system.md` (skill sys
 3. ✅ **Survival removal + resource unification** — roadmap items 1+2 (Block 2)
 4. ✅ **Aura targeting: selector + target count** — roadmap item 11, incl. hit VFX; then absolute HP + resistances/tags/variance (item 11 Phases 1–3)
 5. ✅ **World foundation** — roadmap item 4; in-game editor + `zone.json` loader + rectangular boundary + zone-owned free-form terrain + multi-zone save/select + scaffold zone (`plan-world-zones.md`, 6 chunks) — **COMPLETE + in-game-verified 2026-07-09**
-6. ⬜ **Mob depth + totems** — roadmap item 7 remainder (patrol archetypes, support mob-heal, **encounter-controller spine + threat table** built early) + effect-foundations Step 3 (spawned-entity/totem lifecycle) ← **we are here**
-7. ⬜ **Darkness/light + campfires + death & recovery** — roadmap item 5 (~~item 6 cut 2026-07-10~~, §4.2): darkness rendering + `light_aura` effect type + campfires (consumes item-4 map data), plus the 2026-07-10 recovery/death bundle — campfire death-respawn (world campfires only), the death state (corpses + respawn button), combat-gating player passive regen
-8. ⬜ **Skill-vocabulary fill** — effect-foundations Step 4 (shield-as-buff-payload) + cheap effect types (life steal, execute, crit, berserker)
-9. ⬜ **Unlock-source systems** — roadmap item 9; world clue-anchor entities + NPC-teaching behavior
-10. ⬜ **Initial content pass** — roadmap item 12; first real skill/mob/recipe/boss/zone content + legacy-mob replacement + balance (**the prove-it gate**)
-11. ⬜ **Accounts & persistence** — roadmap item 3; anonymous-first (**after** content) + UI polish / avatar (item 8)
-12. ⬜ **Polish & closed alpha** — ops gaps (CI tests, crash isolation, observability): see `docs/research-v1-readiness.md`
+6. ✅ **Mob depth + totems** — roadmap item 7 remainder (patrol archetypes, support mob-heal, **encounter-controller spine + threat table** built early) + effect-foundations Step 3 (spawned-entity/totem lifecycle) — **COMPLETE 2026-07-12** (`plan-mob-depth.md`, 9 chunks)
+7. ✅ **Darkness/light + campfires + death & recovery** — roadmap item 5 (~~item 6 cut 2026-07-10~~, §4.2): darkness rendering + `light_aura` effect type + campfires (consumes item-4 map data), plus the 2026-07-10 recovery/death bundle — campfire death-respawn (world campfires only), the death state (corpses + respawn button), combat-gating player passive regen — **COMPLETE 2026-07-13** (`plan-atmosphere-recovery.md`, 4 chunks)
+8. ✅ **Skill-vocabulary fill** — effect-foundations Step 4 (shield-as-buff-payload) + cheap effect types (life steal, execute, crit, berserker) — **COMPLETE** (`plan-skill-vocab.md`; crit reworked to a character-driven stat 2026-07-20, `backlog.md` §23)
+9. ✅ **Unlock-source systems** — roadmap item 9; world clue-anchor entities + NPC-teaching behavior — **COMPLETE 2026-07-15** (`plan-npc-teaching.md`, 6 chunks; clue anchors deferred, the NPC entity doubles as a lore sign post). Followed by the pre-content **simulation harness** gate — **COMPLETE** (`plan-sim-harness.md`, 4 chunks)
+10. ✅ **Initial content pass** — roadmap item 12; first real skill/mob/recipe/boss/zone content + legacy-mob replacement + balance (**the prove-it gate**) — **COMPLETE 2026-07-21** (`plan-content-zones12.md` §13, chunks C0–C8 + intermissions; combat-feel SFX is the one open remnant)
+11. ✅ **Rebrand to Aura & Berryhunter cleanup** — module `github.com/RoteRiesenRobbe/aura`, `pkg/aura/`, `aurad` binary, `AuraApi` FlatBuffers namespace — **COMPLETE 2026-07-21** (`plan-rebrand-cleanup.md`, `aa509d95`)
+12. ⬜ **Accounts & persistence** — roadmap item 3; anonymous-first (**after** content) + UI polish / avatar (item 8) ← **we are here**
+13. ⬜ **Polish & closed alpha** — ops gaps (CI tests, crash isolation, observability): see `docs/research-v1-readiness.md`
 
 ---
 

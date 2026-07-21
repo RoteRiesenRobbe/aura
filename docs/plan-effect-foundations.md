@@ -1,12 +1,11 @@
 # Effect-System Foundations — Scaling the Effect-Type Vocabulary
 
-> **Status: decided 2026-07-07; execution in progress — Steps 0+1+2 ✓ done
-> and verified in-game (2026-07-08). Step 3 (spawned-entity lifecycle) is
-> NOT next in the build queue: per the decided execution order
-> (roadmap.md "Execution order", 2026-07-08) it folds into execution step 2
-> (mob depth) and must run AFTER World foundation chunk 4 rewrites the
-> `MobSystem` respawn path (`plan-world-zones.md` §5 gotcha #7). When it
-> comes up, start at the §8 briefing.** Decision record + plan for
+> **Status: ✅ COMPLETE — all steps executed.** Decided 2026-07-07; Steps 0+1+2
+> done and verified in-game 2026-07-08; **Step 3** (spawned-entity/totem
+> lifecycle) shipped inside execution step 2 as `plan-mob-depth.md` chunk 1
+> (see §4 line ~184); **Step 4** (shield-as-buff-payload + the cheap effect
+> types) shipped with the skill-vocabulary fill, `plan-skill-vocab.md`. The §8
+> Step-3 briefing below is now a historical record, not a to-do. Decision record + plan for
 > growing the effect vocabulary from 8 to ~25+ types. Closes the scripting
 > question left open in `archive-scripting-options.md` (decision F1/F2 below);
 > the factual data-vs-Go audit behind it lives in `archive-scripting-audit.md`.
@@ -507,8 +506,8 @@ frontend-constant sync applies (CLAUDE.md tech-debt list).
   `TestDiskContent_RepoApiLoadsEndToEnd` validates repo `api/` directly.
   **`skills/milestone-unlocks.json` is code-adjacent and ALWAYS embedded**
   — even under `-content ../api`, a milestone edit needs cp-defs + rebuild.
-- **Stale-server trap:** before any manual test `pkill berryhunterd`,
-  rebuild (`go build ./...` does NOT refresh `./berryhunterd` — use
+- **Stale-server trap:** before any manual test `pkill aurad`,
+  rebuild (`go build ./...` does NOT refresh `./aurad` — use
   `make -C backend build`), and check the boot log count pins
   (**19 skills / 7 milestone entries / 5 mobs** after this step).
 - **Count pins to update:** `registry_test` (17→19 skills),

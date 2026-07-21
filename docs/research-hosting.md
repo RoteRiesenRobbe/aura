@@ -24,11 +24,11 @@ their owning roadmap items.*
 ## 2. What the repo already has (inherited from Berryhunter, working)
 
 - **`devops/`** — the real production setup berryhunter.io ran on:
-  - `berryhunterd.service` — systemd unit: `DynamicUser`, auto-restart
+  - `aurad.service` — systemd unit: `DynamicUser`, auto-restart
     (3 s, unlimited), `AmbientCapabilities=CAP_NET_BIND_SERVICE` so the
     binary binds 80/443 directly, State/CacheDirectory for the autocert cache.
   - `README.md` — step-by-step box bring-up (copy binary + frontend `dist/` +
-    conf to `/opt/berryhunterd`, `touch tokens.list`, enable unit).
+    conf to `/opt/aurad`, `touch tokens.list`, enable unit).
   - `cloud-ops-agent.yaml` — GCP Cloud Logging shipper config (optional).
   - `conf.json` — **stale**: pre-skill-system tuning values (`healthGainTick`,
     `damageAuraRadius`, …). A Phase-0 deploy must start from the current
@@ -80,7 +80,7 @@ session — acceptable, even desirable (loud failures).
 
 - One cheap VPS *(Hetzner CX-class or similar, ~€5–10/mo; EU region fine for a
   friends playtest)* + a domain.
-- Reuse the `devops/` path as-is: release frontend build + `berryhunterd`
+- Reuse the `devops/` path as-is: release frontend build + `aurad`
   binary + systemd unit + `tlsHost` autocert.
 - Work items (~a day): fresh prod `conf.json` from `conf.default.json`;
   `tokens.list` with a non-guessable token (it gates cheats); a copy-files
@@ -132,7 +132,8 @@ that seam exists. New work, all persistence-driven (see §1):
   reversible while stateless.
 - **Database choice + migrations framework** — owned by the accounts design
   (item 3), constrained only by §1 (persistent, so migrations matter).
-- **Domain/branding** — coupled to the rebrand (step 7); Phase 0 can run on a
-  throwaway domain.
+- **Domain/branding** — the rebrand (step 7) completed 2026-07-21 but kept the
+  berryhunter.io URLs; the replacement domain remains an open PO call. Phase 0
+  can run on a throwaway domain regardless.
 - **Cloudflare-in-front vs. binary-terminates-TLS** — revisit at Phase 1; the
   autocert path wins on simplicity until DDoS/CDN needs say otherwise.

@@ -16,7 +16,7 @@ Unscoped ideas that haven't graduated into a roadmap item live in
 
 ## 1. The Resource (single unified stat) ✓ Done
 
-> **Done (Block 2, 2026-07-04) — see `plan-block2-survival-removal.md`.**
+> **Done (Block 2, 2026-07-04) — see `archive-block2-survival-removal.md`.**
 > `Health` is now the single resource; items 1 + 2 were executed together.
 
 Every player and NPC has exactly one resource — HP, mana, everything at once;
@@ -28,12 +28,12 @@ Every player and NPC has exactly one resource — HP, mana, everything at once;
 - Tightly coupled to survival-system removal (below); probably the same chapter.
 - **Decided: costs are effect parameters.** Any skill — cooldowns included —
   *may* declare a self-cost via the existing `selfDamageFraction` pattern
-  (HealAura already does). No separate cost system; costs stay curatable per
+  (the Heal aura already does). No separate cost system; costs stay curatable per
   skill, no new code.
 
 ## 2. Survival-system removal ✓ Done
 
-> **Done (Block 2, 2026-07-04) — see `plan-block2-survival-removal.md`.**
+> **Done (Block 2, 2026-07-04) — see `archive-block2-survival-removal.md`.**
 > Survival systems, crafting, inventory, equipment, and the item wire protocol
 > removed; resources kept as decorative, campfires as inert stubs.
 
@@ -174,7 +174,7 @@ trade-offs (light aura vs. damage aura).
   an extension of the skill system's effect types.
 - **Campfire = large light + small heal (captured 2026-07-09).** A campfire is
   one entity carrying a **large `light_aura`** plus a **much smaller `heal_aura`**
-  (multi-effect entity — PaladinAura is the precedent), so its light reaches far
+  (multi-effect entity — Paladin is the precedent), so its light reaches far
   wider than its healing/safety radius.
 
 ## 6. ~~Line-of-sight for auras~~ — CUT (2026-07-10)
@@ -182,7 +182,7 @@ trade-offs (light aura vs. damage aura).
 > **Cut entirely (2026-07-10).** Auras pass through walls and every
 > environment object; walls/props remain **movement** blockers (that
 > mechanic stays fully intact). Decision prep + full rationale:
-> `research-combat-pacing-recovery.md` §2.C; decision record: `tdd.md` §4.2
+> `archive-combat-pacing-recovery.md` §2.C; decision record: `tdd.md` §4.2
 > + `gdd.md` §12. Key points: solo LoS is symmetric (no positional value),
 > the cost was larger than documented (medium system + blob perf spike +
 > an undocumented LoS-aware mob-AI extension), and the light-support pillar
@@ -735,7 +735,7 @@ Systems alone aren't a game. Before the prototype is *playable*, a curated
 first content set is needed — almost entirely JSON/data work, no code, but it
 needs real design time:
 
-- A first roster of skills beyond DamageAura + HealAura: base auras, passives
+- A first roster of skills beyond Damage + Heal: base auras, passives
   (incl. item-flavored ones), cooldowns — count [PLACEHOLDER].
 - **Per-aura targeting config** (selector, initial target count, level-up
   axes — see item 11) for every authored skill, including the balance pass on
@@ -837,8 +837,10 @@ system ships blind.
    this builds the tracker + death-respawn; the separate *Recall* cooldown
    ability (backlog item 9) reuses the same tracker but is left to the
    skill-vocabulary/content work.
-4. **Skill-vocabulary fill** — ← **CURRENT — PLANNED 2026-07-13 →
-   `docs/plan-skill-vocab.md`** (6 chunks, execution order 1 → 2 → 4 → 3 →
+4. **Skill-vocabulary fill** — ✅ **COMPLETE 2026-07-14** (all 6 chunks done +
+   verified in-game, last one `3e9ab8e4`; crit later reworked into a
+   character-driven stat, 2026-07-20 — `backlog.md` §23). Record:
+   `docs/plan-skill-vocab.md` (6 chunks, execution order 1 → 2 → 4 → 3 →
    5 → 6; review decisions: crit = sanctioned upside-only RNG,
    activation preconditions + rejection feedback, per-entity tick wire +
    tick-rate manipulability) — (effect-foundations
@@ -889,7 +891,7 @@ system ships blind.
    > the tdd.md §4.1 `f(character level)` note). **PLANNED + APPROVED
    > 2026-07-15 → `docs/plan-sim-harness.md`** (a balancing / what-if
    > *explorer* that drives the real ECS headlessly and reports distributions;
-   > 4 chunks; **next session = execute Chunk 1**). Metrics: TTK / survival /
+   > 4 chunks — ✅ **ALL COMPLETE**, the harness is live tooling). Metrics: TTK / survival /
    > kills-per-level + the 1-vs-N matrix **+ the stand-still bot test with
    > per-mob-type thresholds, measured as sustainable kills/hour over a
    > chain incl. modeled regen + downtime, run per level bracket** (GDD §5).
@@ -900,7 +902,19 @@ system ships blind.
    > ~25–35 — supersedes the old 60/50×/6.9% placeholders); live-game wiring
    > stays a step-6 task.
 
-6. **Initial content pass** (item 12) — **the prove-it gate.** Real zones, full
+6. ✅ **Initial content pass** (item 12) — **the prove-it gate. COMPLETE
+   2026-07-21** (`plan-content-zones12.md` §13). Chunks C0–C8 all executed +
+   PO-verified in-game, C8 explicitly CLOSED, plus two intermission sessions
+   (`plan-intermission-triage.md`), a post-C8 farm-band pre-chunk, the XP pass
+   v1, the crit rework v2, and ad-hoc balance tuning. Shipped: Zones 1+2 with
+   a village/farm start beat, dark forest, kobold hideout + tunnel, bandit
+   gate, the front, the Orc Warlord world boss, 47 mobs, 78 skills, 10
+   combination recipes, teaching NPCs, and the first real balance pass
+   (kills/hour-derived XP bands, guardrail asserts). **One deliberate
+   remnant:** the combat-feel SFX slice below is still open — it rides in the
+   PO priority queue rather than blocking the step.
+
+   Original scope: real zones, full
    mob roster (replace the legacy Berryhunter mobs), boss scripts, skills,
    passives, cooldowns, combination recipes, first real balance pass. **This is
    where the game is validated as fun**, session-based (no accounts yet).

@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Status:** Living document
-**Last updated:** 2026-07-19 (intermission triage: §10 top-down-world / portrait-icon clarification (triage item 16); §11 character sacrifice moved into v1 scope per PO ruling, triage item 10). *Prior:* 2026-07-10 (combat pacing & recovery session: design-pillars list added to §1; aura line-of-sight **cut**; recovery rhythm + death state in §3; tick readability, two-zone auras + Combat Pacing subsection in §4 — decision prep/record: `research-combat-pacing-recovery.md`)
+**Last updated:** 2026-07-19 (intermission triage: §10 top-down-world / portrait-icon clarification (triage item 16); §11 character sacrifice moved into v1 scope per PO ruling, triage item 10). *Prior:* 2026-07-10 (combat pacing & recovery session: design-pillars list added to §1; aura line-of-sight **cut**; recovery rhythm + death state in §3; tick readability, two-zone auras + Combat Pacing subsection in §4 — decision prep/record: `archive-combat-pacing-recovery.md`)
 
 > This document is the **game-design truth** (vision, mechanic intent, open
 > design questions). Technology belongs in the [Technical Design Document](./tdd.md),
@@ -139,7 +139,7 @@ Since death has the same effect on XP progress as a respec, you can respec for f
 
 ### Definition
 
-An aura is a circular effect field around a player or NPC. The circle is the **range** from which the aura strikes its targets — not necessarily a hit zone for everything inside it. **Deliberately not line-of-sight blocked (decided 2026-07-10):** auras pass through walls and every environment object — walls and props block *movement*, never effects. Wall-exploits are handled on the mob-AI side (leash behavior + obstacle steering), not by occlusion. Decision record: `research-combat-pacing-recovery.md` §2.C.
+An aura is a circular effect field around a player or NPC. The circle is the **range** from which the aura strikes its targets — not necessarily a hit zone for everything inside it. **Deliberately not line-of-sight blocked (decided 2026-07-10):** auras pass through walls and every environment object — walls and props block *movement*, never effects. Wall-exploits are handled on the mob-AI side (leash behavior + obstacle steering), not by occlusion. Decision record: `archive-combat-pacing-recovery.md` §2.C.
 
 ```
        . . . . .
@@ -204,7 +204,7 @@ All slots together form the **build**. You can have more auras in the spellbook 
   a global distance-falloff system — falloff would sacrifice the circle
   system's core readability. Reserved for particular mobs and particular
   player auras. *(Mechanically: one skill, two effects at different radii —
-  per-effect radius already exists; see `research-combat-pacing-recovery.md`
+  per-effect radius already exists; see `archive-combat-pacing-recovery.md`
   §2.B.)*
 
 ### Base Auras
@@ -236,7 +236,7 @@ Combinations can also have other combination unlocks as ingredients (few, manual
 
 Combination recipes are **fixed and curated** — not algorithmic. They are documented nowhere in-game; players experiment and share their findings online. All unlocks from combinations are leveled separately.
 
-**Calibration & the one sanctioned exception (step 6 C5):** combination results calibrate to roughly ~70% of their components' standalone values (the PaladinAura reference), and unlock-source variants are side-grades — *different, never better*. The **Vanguard** (the Front-Aura, `plan-content-zones12.md` §A) is the **single sanctioned power exception**: a deliberately overstrong multi-effect aura (full DamageAura damage at double targets + free HealAura healing + a shield), taught level-gated at the Zone-2 front — the game's "endgame-gear equivalent" expressed as a spellbook entry. It and its C7 combinations set the game's power ceiling (see section 5). A named exception, not precedent erosion: everything else keeps the ~70% / side-grade rules.
+**Calibration & the one sanctioned exception (step 6 C5):** combination results calibrate to roughly ~70% of their components' standalone values (the Paladin reference), and unlock-source variants are side-grades — *different, never better*. The **Vanguard** (the Front-Aura, `plan-content-zones12.md` §A) is the **single sanctioned power exception**: a deliberately overstrong multi-effect aura (full Damage damage at double targets + free Heal healing + a shield), taught level-gated at the Zone-2 front — the game's "endgame-gear equivalent" expressed as a spellbook entry. It and its C7 combinations set the game's power ceiling (see section 5). A named exception, not precedent erosion: everything else keeps the ~70% / side-grade rules.
 
 ### Cooldown Abilities
 
@@ -273,7 +273,7 @@ The circle reads as a **range indicator**, not as a hit zone: each tick, a **hit
 *(History note: a forward-looking tick indicator has never been implemented —
 the ring has always been a static sprite; the pre-2026-07 continuous damage
 flash was replaced by per-hit landing VFX (item 11 Step 4). Forensics:
-`research-combat-pacing-recovery.md` §2.A.)*
+`archive-combat-pacing-recovery.md` §2.A.)*
 
 *Deferred:* sticky targeting against target flicker with nearest (keep the target until it dies or leaves range) — build only when the flicker actually bothers. Visualizing overlaps of multiple player auras is also still unsolved.
 
@@ -281,7 +281,7 @@ flash was replaced by per-hit landing VFX (item 11 Step 4). Forensics:
 
 *(Recorded 2026-07-10 — the durable rationale behind the tick-readability
 requirement, two-zone auras, and the mob-movement vocabulary. Full analysis:
-`research-combat-pacing-recovery.md`.)*
+`archive-combat-pacing-recovery.md`.)*
 
 Not every fight must be exciting — **standing still is acceptable only as a
 held decision** (the player found and keeps a good position), never as the
@@ -703,14 +703,14 @@ PvP, formal group system, economy, mobile, endgame raid events
 - [x] ~~lowest-HP absolute or percentage?~~ → **Decided:** percentage (relative to max resource)
 - [x] ~~Power source: rank system vs. level scaling?~~ → **Decided:** Option A — `effectValue = base(skill level) × f(character level)`; character level carries number inflation (HP values only), skill points stay relative specialization (see section 5, Power Source & Curve)
 - [x] ~~Combat RNG (random misses / resists)?~~ → **Deliberately rejected** (not deferred): clashes with the positioning+timing skill expression and punishes slow-ticking auras; the deterministic tag-resist system + ±variance band fill the role. **Crit left explicitly open** — a possible sanctioned upside-only RNG (roadmap step 4 / skill-vocabulary fill)
-- [x] ~~Line-of-sight blocking for auras?~~ → **Cut (2026-07-10):** auras pass through everything; walls block movement only. Solo LoS is symmetric (no positional value — an obstacle between two centers blocks both auras); the pack/group value was judged not worth a medium system + perf spike + LoS-aware mob AI. Wall-cheese is handled by mob-AI leash/steering (navmesh stays the escalation if steering demonstrably fails); stationary mobs are protected by the §8 placement rule. Darkness/light unaffected (area-based, purely visual). Decision prep + record: `research-combat-pacing-recovery.md` §2.C
+- [x] ~~Line-of-sight blocking for auras?~~ → **Cut (2026-07-10):** auras pass through everything; walls block movement only. Solo LoS is symmetric (no positional value — an obstacle between two centers blocks both auras); the pack/group value was judged not worth a medium system + perf spike + LoS-aware mob AI. Wall-cheese is handled by mob-AI leash/steering (navmesh stays the escalation if steering demonstrably fails); stationary mobs are protected by the §8 placement rule. Darkness/light unaffected (area-based, purely visual). Decision prep + record: `archive-combat-pacing-recovery.md` §2.C
 - [ ] Feast aftereffect buff shape — constraint decided 2026-07-10 (no regeneration persisting into combat, see §3); open options: breaks on taking damage / works only out of combat / a non-healing buff entirely
 - [ ] Personal recovery cooldown theme (mini-campfire vs other — mechanics decided in §3, theme is content)
 
 ### World & Content
 - [ ] Which base auras exist concretely (complete list)
 - [ ] Per aura: define selector, initial target count, and level-up axes (content pass)
-- [ ] Work out the fixed combination recipes (mechanic built — Phase 9; first recipe: PaladinAura)
+- [ ] Work out the fixed combination recipes (mechanic built — Phase 9; first recipe: Paladin)
 - [ ] Define the damage-type *list* (fire, ice, physical, ...) — the *mechanic* (string tags, resist multipliers) is decided + built (see section 4, Damage Types)
 
 ### Controls & UI

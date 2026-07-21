@@ -211,7 +211,7 @@ how big it draws, brand-new art — is covered in
    **required level**, and the **line** spoken when it is granted. Teachings
    are granted **in order** on approach; a player below a gate hears the
    too-low line and gets nothing further — so "Harvest ungated, then
-   DamageAura @L2" works in one NPC. Each list row has a remove button.
+   Damage @L2" works in one NPC. Each list row has a remove button.
 5. **Sprite binding — JSON-only, deliberately.** The zone entry's
    `"entityType"` field names the sprite (a Resource-backed `EntityType` enum
    name, validated at boot; absent = the Flower placeholder). There is **no

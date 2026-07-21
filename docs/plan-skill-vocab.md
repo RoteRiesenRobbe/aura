@@ -1,6 +1,10 @@
 # Skill-Vocabulary Fill — Execution Step 4
 
-> **Status: PLAN REVIEWED 2026-07-13 — §4 decisions resolved same day**
+> **Status: ✅ STEP 4 COMPLETE** — all 6 chunks done + verified in-game, the
+> last (chunk 6) on 2026-07-14 (`3e9ab8e4`). Crit was later reworked into a
+> character-driven stat (v2, 2026-07-20 — §4.3 + `backlog.md` §23).
+>
+> *Plan reviewed 2026-07-13 — §4 decisions resolved same day*
 > (crit = sanctioned upside-only RNG; activation preconditions with
 > rejection feedback replace whiff-on-no-anchor/no-corpse; tick wire =
 > per-entity effective fields + interval must be manipulable → haste seam;

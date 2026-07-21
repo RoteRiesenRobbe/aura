@@ -3,9 +3,11 @@
 **Design intent only.** This doc holds what Zone 1 is supposed to *be and
 do*; exact runtime positions live in the zone JSON authored via the editor
 (`manual-zone-editor.md`) and are never mirrored here. Conventions →
-`README.md` → Content. Everything below is [PLACEHOLDER] until the content
-pass (step 6) scopes it; rationale for the two resolved design conflicts is
-kept in `archive-content-zone1-capture.md`.
+`README.md` → Content. The content pass (step 6) **scoped and built Zone 1
+across chunks C1–C3** and closed 2026-07-21 — this doc is the design intent
+behind what shipped, not a forward plan; numbers remain [PLACEHOLDER] and
+tuning-open. Rationale for the two resolved design conflicts is kept in
+`archive-content-zone1-capture.md`.
 
 ## Intended flow
 

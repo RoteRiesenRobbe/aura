@@ -1,7 +1,12 @@
 # Plan — Content Pass: Zones 1 + 2 (execution step 6, roadmap item 12)
 
-**Status: PLANNED (2026-07-16) — chunked (§13), execution not started.**
-Basis: PO design session (external prompt + `zones12-mockup` map image) +
+**Status: ✅ COMPLETE (2026-07-21) — chunks C0–C8 all executed + PO-verified
+in-game; C8 explicitly CLOSED (§13), plus a post-C8 farm-band pre-chunk and
+ad-hoc balance-tuning sessions.** The one deliberate remnant is combat-feel
+SFX (roadmap step 6's audio slice), tracked in the PO priority queue rather
+than here. Per-chunk ledgers and outcome banners live in §13.
+
+*Planned 2026-07-16.* Basis: PO design session (external prompt + `zones12-mockup` map image) +
 a full code-verification pass (4 parallel audits, this doc's §1). Where the
 design session's assumptions differed from code, this doc records the
 **verified** state; deltas are marked. All numbers, levels, chances, radii and
