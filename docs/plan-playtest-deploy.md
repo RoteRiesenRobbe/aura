@@ -94,8 +94,86 @@ part of this.
 - Invite line for testers: *progress is not saved yet — server restarts reset
   characters; a browser reload within ~10 min keeps yours.*
 
+## Ops & security posture
+
+Audited 2026-07-22 (PO question: "ist der Server sicher?"). Framing: security
+scales with what there is to lose, and today that is one restartable game
+process with no data behind it. Recorded here so the *next* posture step isn't
+rediscovered from scratch.
+
+### Current state (audited 2026-07-22)
+
+| Surface | State |
+|---|---|
+| Open ports | **22, 80, 443** only — everything else binds loopback (systemd-resolve) |
+| `aurad` | non-root user `aurad`, `ProtectSystem=strict`, `NoNewPrivileges`, `PrivateTmp` |
+| SSH | root `prohibit-password`; **`PasswordAuthentication no`** (2026-07-22, see below) |
+| Patching | `unattended-upgrades` active, 0 pending |
+| Shell users | `root` only |
+| ufw / iptables / Hetzner cloud firewall | all inactive — nothing to block, see ruling below |
+
+~110 failed SSH logins/24 h = internet background noise, dead-ends against
+key-only root. Not a compromise indicator.
+
+### Done 2026-07-22 — SSH key-only
+
+`/etc/ssh/sshd_config.d/00-hardening.conf` with `PasswordAuthentication no` +
+`KbdInteractiveAuthentication no`. Drop-in rather than editing the main config,
+so `openssh-server` package updates don't clobber it. Applied with
+`systemctl reload ssh` (not restart — no live session or player interrupted).
+
+Verified: `sshd -t` before reload → fresh non-multiplexed connection after →
+`sshd -T` shows `passwordauthentication no` → forced-password counter-probe
+returns `Permission denied (publickey)` → `aurad` still active.
+
+Motivation was pre-emptive, not acute: with root key-only and no second shell
+user, password auth was already unusable. It removes the trap where a future
+"let me quickly add a user" silently opens a bruteforceable door.
+
+### Cloud firewall — deliberately NOT applied (2026-07-22)
+
+The Hetzner UI's "no firewalls applied" is a statement, not a warning: with
+only 22/80/443 listening and all three wanted, a firewall would block nothing
+today. **It becomes real defense-in-depth the moment something can bind
+`0.0.0.0` by accident — i.e. the database in step 8.** Deferred to there, not
+dismissed.
+
+fail2ban likewise skipped: with key-only root it reduces log noise, not risk.
+
+### Carry into the step-8 persistence planning session
+
+Persistence — not public launch — is the posture tipping point: it's the first
+time the box holds something whose loss hurts. Attach a small ops block to that
+plan:
+
+- [ ] Hetzner cloud firewall, allow 22/80/443 only (now that a DB exists)
+- [ ] DB bound to localhost, never `0.0.0.0`
+- [ ] Daily backup + a **restore** actually exercised once
+- [ ] Credential handling (DB password not in the repo, same pattern as `tokens.list`)
+- [ ] GDPR applies as soon as accounts carry e-mail addresses of non-friends
+
+Roughly an hour if done *while* building persistence; an unpleasant afternoon
+retrofitted.
+
+### Carry into any public launch
+
+App-layer, not host-layer — these already sit in "known-accepted risks" above
+and stay acceptable only while the URL is unlisted:
+
+- [ ] Rate limiting / join-flood protection — **the likely way a playtest
+  actually breaks**: once the URL reaches a Discord, one bored person with a
+  script can swamp the server
+- [ ] WebSocket `CheckOrigin` currently returns `true` for any origin
+
+### Rule of thumb
+
+**Now:** nothing. → **With persistence:** firewall + backups + DB closed. →
+**Before public:** rate limiting + `CheckOrigin`.
+
 ## Status
 
+- **Security posture audited + SSH hardened 2026-07-22** (key-only SSH; cloud
+  firewall deliberately deferred to step 8). See §Ops & security posture.
 - **DEPLOYED + LIVE + PO-VERIFIED 2026-07-21, `a7a2267d`:** `https://aura-game.duckdns.org/`
   (Hetzner CX23 `159.69.148.73`, systemd `aurad`, LE cert, `-content ./api`).
   §A–§D complete: machine checks green incl. live Playwright join smoke, PO
