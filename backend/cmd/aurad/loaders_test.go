@@ -64,6 +64,10 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, propsRegistry.Props())
 
+	milestoneUnlocks, err := skills.MilestoneUnlocksFromFS(content.milestones, skillsRegistry)
+	require.NoError(t, err)
+	assert.NotEmpty(t, milestoneUnlocks)
+
 	// EVERY shipped zone must load by stem — a zone that only breaks when
 	// selected would otherwise ship broken. Selecting by stem also proves
 	// multi-zone selection against real content.
@@ -170,4 +174,21 @@ func TestDiskContent_LegacyTagging(t *testing.T) {
 func TestDiskContent_MissingSubdirFails(t *testing.T) {
 	_, err := diskContent(t.TempDir())
 	assert.Error(t, err)
+}
+
+// The embedded milestone table must match the authored one in api/. They drift
+// only when cp-defs did not run (or stopped copying the directory), and the
+// symptom is nasty: -content boots the correct table while the default
+// embedded build serves a stale one.
+func TestEmbeddedMilestones_MatchSource(t *testing.T) {
+	disk, err := diskContent("../../../api")
+	require.NoError(t, err)
+
+	want, err := fs.ReadFile(disk.milestones, "milestone-unlocks.json")
+	require.NoError(t, err)
+	got, err := fs.ReadFile(embeddedContent().milestones, "milestone-unlocks.json")
+	require.NoError(t, err)
+
+	assert.JSONEq(t, string(want), string(got),
+		"embedded milestone table is stale — run `make -C backend cp-defs`")
 }

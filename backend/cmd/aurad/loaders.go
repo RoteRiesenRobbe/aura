@@ -16,6 +16,7 @@ import (
 
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
 	aitems "github.com/RoteRiesenRobbe/aura/pkg/api/items"
+	amilestones "github.com/RoteRiesenRobbe/aura/pkg/api/milestones"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 	aprops "github.com/RoteRiesenRobbe/aura/pkg/api/props"
 	arecipes "github.com/RoteRiesenRobbe/aura/pkg/api/recipes"
@@ -34,32 +35,35 @@ import (
 // The default is the go:embed copies under pkg/api (synced from the repo's
 // api/ via `make cp-defs`); the -content flag swaps in a live disk directory
 // with the api/ layout, so content edits need neither cp-defs nor a rebuild —
-// only a server restart. (skills/milestone-unlocks.json is code-adjacent
-// config, not api/ content, and stays embedded either way.)
+// only a server restart. Every tunable definition file lives under api/ and is
+// covered here — keep it that way, or a content edit silently no-ops until
+// someone remembers the rebuild.
 type contentSources struct {
-	items    fs.FS
-	mobs     fs.FS
-	skills   fs.FS
-	recipes  fs.FS
-	zones    fs.FS
-	props    fs.FS
-	factions fs.FS
+	items      fs.FS
+	mobs       fs.FS
+	skills     fs.FS
+	recipes    fs.FS
+	zones      fs.FS
+	props      fs.FS
+	factions   fs.FS
+	milestones fs.FS
 }
 
 func embeddedContent() contentSources {
 	return contentSources{
-		items:    aitems.Items,
-		mobs:     amobs.Mobs,
-		skills:   askills.Skills,
-		recipes:  arecipes.Recipes,
-		zones:    azones.Zones,
-		props:    aprops.Props,
-		factions: afactions.Factions,
+		items:      aitems.Items,
+		mobs:       amobs.Mobs,
+		skills:     askills.Skills,
+		recipes:    arecipes.Recipes,
+		zones:      azones.Zones,
+		props:      aprops.Props,
+		factions:   afactions.Factions,
+		milestones: amilestones.Milestones,
 	}
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
-// (items/, mobs/, skills/, recipes/, zones/, props/, factions/). Missing subdirectories
+// (items/, mobs/, skills/, recipes/, zones/, props/, factions/, milestones/). Missing subdirectories
 // hard-fail here — content errors are loud, matching the registry ethos.
 func diskContent(dir string) (contentSources, error) {
 	root := os.DirFS(dir)
@@ -91,6 +95,9 @@ func diskContent(dir string) (contentSources, error) {
 		return contentSources{}, err
 	}
 	if c.factions, err = sub("factions"); err != nil {
+		return contentSources{}, err
+	}
+	if c.milestones, err = sub("milestones"); err != nil {
 		return contentSources{}, err
 	}
 	return c, nil
@@ -219,10 +226,11 @@ func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry, 
 	return zone
 }
 
-// loadMilestoneUnlocks parses the embedded milestone-unlock table and resolves
-// skill names against the provided registry.
-func loadMilestoneUnlocks(r skills.Registry) []skills.MilestoneUnlock {
-	unlocks, err := skills.DefaultMilestoneUnlocks(r)
+// loadMilestoneUnlocks parses the milestone-unlock table and resolves skill
+// names against the provided registry. Curated content: any validation failure
+// aborts startup.
+func loadMilestoneUnlocks(fsys fs.FS, r skills.Registry) []skills.MilestoneUnlock {
+	unlocks, err := skills.MilestoneUnlocksFromFS(fsys, r)
 	if err != nil {
 		slog.Error("failed to load milestone unlocks", slog.Any("err", err))
 		panic(err)

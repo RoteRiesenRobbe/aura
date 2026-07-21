@@ -59,7 +59,7 @@ func main() {
 	factionsRegistry := loadFactions(content.factions)
 	levelCurve := curve.Curve{Growth: config.Game.Player.LevelGrowth, MaxLevel: config.Game.Player.MaxLevel}
 	mobsRegistry := loadMobs(skillsRegistry, factionsRegistry, levelCurve, content.mobs)
-	milestoneUnlocks := loadMilestoneUnlocks(skillsRegistry)
+	milestoneUnlocks := loadMilestoneUnlocks(content.milestones, skillsRegistry)
 	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
 	propsRegistry := loadProps(content.props)
 	// -zone flag overrides the game.zone config default.

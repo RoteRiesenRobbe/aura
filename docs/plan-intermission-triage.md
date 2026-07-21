@@ -876,3 +876,68 @@ unlock** (was 2) and no panics — `78 skills/13 factions/47 mobs/10 recipes/
 850 props/380 spawns/5 campfires/14 npcs, 0 panics`. Reachability sweep
 green. **Not yet PO-verified in-game** — server was left running for the PO
 to continue testing.
+
+## Milestone table moves into `api/` + restart-robustness (ad-hoc session, 2026-07-21)
+
+**Milestone table relocated to `api/milestones/` — DONE 2026-07-21, PO-driven
+in-session, committed `[uncommitted]`. Closes the `-content` coverage gap that
+the wolf-line session logged as a recurring Watch item one chunk earlier.**
+
+**Trigger:** PO asked why the milestone table sat outside `api/` at all, while
+restarting the server for a `world.json` editor pass.
+
+**Finding (it was historical, not principled):** `git log --follow` puts the
+file's creation at `4afc7fb4` "Phase 3.2 — unlock HealAura at level 2 via
+milestone table", back when it was a small Go-side table. The `-content` flag
+and the whole `contentSources` abstraction only landed in `aa509d95` (step-7
+B+C, 2026-07-21), and that commit did not revisit the file — it wrote a comment
+rationalising the status quo instead ("code-adjacent config, not api/ content").
+That distinction does not survive contact: the table is `[{level, skillName}]`
+resolved against the skill registry at load, structurally the same as
+`api/recipes/`, and it is tuned on PO feedback like any other content — it was
+retuned the previous session (FirstAid off the table).
+
+**Change (backend-only, no wire, no content values):**
+- `api/milestones/milestone-unlocks.json` — `git mv`'d out of
+  `backend/pkg/aura/skills/`; now the single source of truth.
+- `backend/pkg/api/milestones/milestones.go` — new 4-line embed pkg mirroring
+  `recipes.go`.
+- `backend/Makefile` — `../api/milestones` added to the `cp-defs` copy list
+  (a fixed list, not a glob, so this was required).
+- `skills/milestones.go` — `DefaultMilestoneUnlocks(r)` →
+  `MilestoneUnlocksFromFS(fsys, r)`; `//go:embed` dropped. The tested core
+  `milestoneUnlocksFromJSON` is untouched.
+- `cmd/aurad/loaders.go` + `aurad.go` — `milestones fs.FS` on `contentSources`,
+  wired into `embeddedContent()` and as a hard-failing `sub("milestones")` in
+  `diskContent()`. The false "code-adjacent config" comment is deleted and
+  replaced with a keep-it-that-way note.
+
+**Restart robustness (same session):** `pkill -f aurad` — the form the
+`playtest` skill taught — **kills its own shell**, because `-f` matches the full
+command line and the invoking shell has `aurad` in its own. It burned three
+attempts before diagnosis (exit 144), leaving the stale server alive each time.
+`'[a]urad'` does not help either: the `./aurad -dev` later in the same compound
+command still matches. Fixed in `.claude/skills/playtest/SKILL.md` to
+**`pkill -x aurad`** (name-exact, no `-f`) — a shell is named `bash`, so
+self-match is structurally impossible. Used throughout the rest of the session
+with no recurrence.
+
+**Test strategy:** the pin test now resolves through the FS entrypoint against
+`api/milestones/` (assertion unchanged — Haste @L7, renamed
+`TestMilestoneUnlocksFromFS_PinnedTable`); added a missing-file case; extended
+`TestDiskContent_RepoApiLoadsEndToEnd` with milestone coverage. New
+`TestEmbeddedMilestones_MatchSource` guards the one nasty failure mode — a
+forgotten `cp-defs` leaves `-content` serving the correct table while embedded
+builds serve a stale one; it diffs the two copies and names the fix in its
+failure message. **The guard was proved non-vacuous**: the embedded copy was
+deliberately drifted (level 7→3), the test failed as intended, then restored.
+
+**Verified:** `go build ./...` clean; **full suite green** (`go test ./...`,
+exit 0). Booted **both** ways — `source=embedded` and `source=../api` — each
+reporting `Loaded milestone unlocks count=1`, 0 panics:
+`81 skills/14 factions/50 mobs/10 recipes/847 props/383 spawns/5 campfires/
+14 npcs, 0 panics`. **End-to-end proof of the actual goal:** a second entry was
+added to `api/milestones/` and picked up by a plain restart with **no rebuild**
+(`count=2`), then reverted (`git diff` on that path empty). **Not PO-verified
+in-game** — no runtime surface changed; server left running on the PO's
+`world.json` (props 850→847, spawns 380→383 from their editor pass).

@@ -30,11 +30,18 @@ Kill the stale process first — a running `aurad` silently serves old
 content and that has burned sessions before.
 
 ```bash
-pkill -f aurad; sleep 1
+pkill -x aurad; sleep 1
 cd backend && setsid nohup ./aurad -dev -content ../api \
   > "$SCRATCH/server.log" 2>&1 < /dev/null &
 sleep 4
 ```
+
+Use `pkill -x` (name-exact), **never** `pkill -f aurad`. `-f` matches the full
+command line, and the shell running this snippet has `aurad` in its own command
+line — so it kills itself before starting anything, and the old server survives.
+`'[a]urad'` does not save you either: the `./aurad -dev` later in the same
+compound command still matches. `-x` matches only the process name, so a shell
+(named `bash`) can never match.
 
 Check the frontend dev server is alive too (`ps aux | grep webpack`); if not,
 `cd frontend && npm run start` in the background.

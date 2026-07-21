@@ -1,13 +1,14 @@
 package skills
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 )
 
-//go:embed milestone-unlocks.json
-var milestoneUnlocksJSON []byte
+// milestoneUnlocksFile is the single file the table is authored in, under
+// api/milestones/.
+const milestoneUnlocksFile = "milestone-unlocks.json"
 
 // MilestoneUnlock pairs a player level with the skill that becomes discovered
 // when the player first reaches that level.
@@ -16,10 +17,15 @@ type MilestoneUnlock struct {
 	Skill *SkillDefinition
 }
 
-// DefaultMilestoneUnlocks returns the milestone table from the embedded JSON,
-// with all skill names resolved against r. Fails if any name is unknown.
-func DefaultMilestoneUnlocks(r Registry) ([]MilestoneUnlock, error) {
-	return milestoneUnlocksFromJSON(milestoneUnlocksJSON, r)
+// MilestoneUnlocksFromFS returns the milestone table read from fsys (the
+// api/milestones/ layout), with all skill names resolved against r. Fails if
+// the file is missing or any name is unknown.
+func MilestoneUnlocksFromFS(fsys fs.FS, r Registry) ([]MilestoneUnlock, error) {
+	data, err := fs.ReadFile(fsys, milestoneUnlocksFile)
+	if err != nil {
+		return nil, fmt.Errorf("milestone-unlocks: %w", err)
+	}
+	return milestoneUnlocksFromJSON(data, r)
 }
 
 type milestoneUnlockRaw struct {

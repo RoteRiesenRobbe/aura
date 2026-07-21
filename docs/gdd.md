@@ -395,7 +395,7 @@ Guaranteed unlocks at certain levels. Draft:
 
 *(The Damage Aura left this table in step 6 C1 — it is farmer-taught @L2, see
 Onboarding above. The currently implemented [PLACEHOLDER] assignment lives in
-the milestone data (`backend/pkg/aura/skills/milestone-unlocks.json`);
+the milestone data (`api/milestones/milestone-unlocks.json`);
 the full rewrite lands over the content-pass chunks, final in C8.)*
 
 ### Skill System

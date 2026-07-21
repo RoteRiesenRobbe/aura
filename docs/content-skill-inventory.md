@@ -13,7 +13,7 @@ here rather than repeating them. Regenerate after any content chunk.
 cross-reference sources from: `api/mobs/*.json` `unlocks[]` (`skillName`,
 `chance`), `api/zones/world.json` + `proving-grounds.json` `npcs[].teachings[]`
 (`skill`, `requiredLevel`), `api/recipes/*.json` (`result`, `ingredients[].skill`
-/`.level`), and `backend/pkg/aura/skills/milestone-unlocks.json`. E.g.:
+/`.level`), and `api/milestones/milestone-unlocks.json`. E.g.:
 
 ```bash
 python3 - <<'EOF'

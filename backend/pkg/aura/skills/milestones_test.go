@@ -3,6 +3,7 @@ package skills
 import (
 	"os"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +59,13 @@ func TestMilestoneUnlocksFromJSON_InvalidJSON(t *testing.T) {
 	require.Error(t, err)
 }
 
-// Pins the embedded milestone table. The C8 milestone settlement
+func TestMilestoneUnlocksFromFS_MissingFile(t *testing.T) {
+	_, err := MilestoneUnlocksFromFS(fstest.MapFS{}, stubReg())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "milestone-unlocks")
+}
+
+// Pins the authored milestone table in api/milestones/. The C8 milestone settlement
 // (plan-content-zones12.md §13 C8, PO 2026-07-19) fixed milestones as the rare
 // guaranteed beats and pushed everything else into the world. FirstAid left the
 // table on 2026-07-21 (PO): the village Hermit now teaches it at L2 — earlier
@@ -66,11 +73,11 @@ func TestMilestoneUnlocksFromJSON_InvalidJSON(t *testing.T) {
 // (first cooldown) is the only guaranteed beat left.
 // Resolves against the real content in api/skills so a renamed skill fails
 // here, not at boot.
-func TestDefaultMilestoneUnlocks_PinnedTable(t *testing.T) {
+func TestMilestoneUnlocksFromFS_PinnedTable(t *testing.T) {
 	r, err := RegistryFromFS(os.DirFS("../../../../api/skills"))
 	require.NoError(t, err)
 
-	unlocks, err := DefaultMilestoneUnlocks(r)
+	unlocks, err := MilestoneUnlocksFromFS(os.DirFS("../../../../api/milestones"), r)
 	require.NoError(t, err)
 
 	got := map[string]uint32{}

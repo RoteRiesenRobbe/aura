@@ -231,10 +231,10 @@ Existing effect `type`s to compose: `damage_aura`, `instant_damage`, `heal_aura`
      (+ `selector`, `maxTargets`, `tickInterval`, optional `variance`,
      `damageTags`, `hitStyle`)
 2. **Pick an unlock source:**
-   - **Milestone** — add to
-     `backend/pkg/aura/skills/milestone-unlocks.json`.
-     ⚠️ This file is **embedded/code-adjacent**, so it needs a **rebuild even with
-     `-content`**.
+   - **Milestone** — add to `api/milestones/milestone-unlocks.json`.
+     (Moved out of `backend/pkg/aura/skills/` on 2026-07-21 — it is now ordinary
+     `api/` content, covered by `-content ../api` like everything else, so a
+     restart suffices and no rebuild is needed.)
    - **Kill drop** — add `{skillName, chance}` to a mob's `unlocks[]`.
    - **Combination** — add `api/recipes/newcombo.json`
      (`result` + `ingredients[]` by name+level; curated/secret/backend-only).
