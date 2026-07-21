@@ -90,6 +90,10 @@ type PlayerEntity interface {
 	// client draws the tick indicator; skill-vocab chunk 6).
 	AuraTickInterval() int
 	AuraTickPhase() int
+	// AuraCategories is the active aura's effect-category bitmask, 0 while none
+	// is active (wire aura_category — the client colours the aura ring from it;
+	// triage item 7).
+	AuraCategories() skills.AuraCategory
 	// LightRadius is the light emitted by the active aura's light_aura effect,
 	// 0 = no light (wire light_radius — the client hole-punches the darkness
 	// overlay; atmosphere & recovery chunk 3).

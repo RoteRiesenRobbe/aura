@@ -200,6 +200,15 @@ table Mob {
   // field IDs stay stable.
   aura_tick_interval:ushort = 0;
   aura_tick_phase:ushort = 0;
+
+  // Bitmask of the active aura's effect categories (damage/heal/shield/dot/
+  // slow/light — skills.AuraCategory); 0 = no ring. The client colours the aura
+  // ring from it, so mobs and players share one colour language and multi-effect
+  // auras keep their dual ring (triage item 7).
+  aura_category:ubyte = 0;
+  // Authored mob tier as an ordered rank (0 normal, 1 elite, 2 boss —
+  // mobs.TierRank); drives the portrait frame ring (triage item 15).
+  tier:ubyte = 0;
 }
 
 table Character {
@@ -294,6 +303,13 @@ table Character {
   // Appended at the table end so existing field IDs stay stable.
   aura_tick_interval:ushort = 0;
   aura_tick_phase:ushort = 0;
+
+  // Bitmask of the active aura's effect categories (skills.AuraCategory);
+  // 0 = no ring. Mirrors Mob.aura_category — sending it here too means the
+  // client colours every ring from one server-side taxonomy instead of keeping
+  // its own skill-ID table (triage item 7). Appended at the table end so
+  // existing field IDs stay stable.
+  aura_category:ubyte = 0;
 }
 
 table Spectator {

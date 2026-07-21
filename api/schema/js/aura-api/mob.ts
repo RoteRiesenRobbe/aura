@@ -143,8 +143,18 @@ auraTickPhase():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
+auraCategory():number {
+  const offset = this.bb!.__offset(this.bb_pos, 46);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
+tier():number {
+  const offset = this.bb!.__offset(this.bb_pos, 48);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(21);
+  builder.startObject(23);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -241,6 +251,14 @@ static addAuraTickInterval(builder:flatbuffers.Builder, auraTickInterval:number)
 
 static addAuraTickPhase(builder:flatbuffers.Builder, auraTickPhase:number) {
   builder.addFieldInt16(20, auraTickPhase, 0);
+}
+
+static addAuraCategory(builder:flatbuffers.Builder, auraCategory:number) {
+  builder.addFieldInt8(21, auraCategory, 0);
+}
+
+static addTier(builder:flatbuffers.Builder, tier:number) {
+  builder.addFieldInt8(22, tier, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

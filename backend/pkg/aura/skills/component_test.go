@@ -892,3 +892,33 @@ func TestCancelCastOnDamage_UnflaggedSkillKeepsCasting(t *testing.T) {
 	assert.True(t, sc.IsCasting(), "unflagged cast survives damage")
 	assert.Equal(t, 300, sc.CastTicksLeft)
 }
+
+// AuraCategories is the ring-colour bitmask serialized to both Character and
+// Mob (triage item 7): the ACTIVE aura only, 0 while none is active.
+func TestAuraCategories_ActiveAuraOnly(t *testing.T) {
+	sc := NewSkillComponent(true)
+	damage := &SkillDefinition{
+		ID: 900, Name: "TestDamage", Category: SkillCategoryActiveAura, MaxLevel: 5,
+		Effects: []EffectDef{{Type: EffectTypeDamageAura}},
+	}
+	heal := &SkillDefinition{
+		ID: 901, Name: "TestHeal", Category: SkillCategoryActiveAura, MaxLevel: 5,
+		Effects: []EffectDef{{Type: EffectTypeHealAura}},
+	}
+
+	sc.EquipAura(0, damage, 1)
+	sc.EquipAura(1, heal, 1)
+	assert.Equal(t, AuraCategoryNone, sc.AuraCategories(),
+		"equipped but nothing activated → no ring")
+
+	sc.ActiveAuraSlot = 0
+	assert.Equal(t, AuraCategoryDamage, sc.AuraCategories())
+
+	// Switching the active slot re-colours the ring — the loadout is a
+	// one-active-aura design, so the other equipped aura must not leak in.
+	sc.ActiveAuraSlot = 1
+	assert.Equal(t, AuraCategoryHeal, sc.AuraCategories())
+
+	sc.ActiveAuraSlot = -1
+	assert.Equal(t, AuraCategoryNone, sc.AuraCategories())
+}

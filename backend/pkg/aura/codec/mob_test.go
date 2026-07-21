@@ -81,3 +81,49 @@ func TestMobMarshalFlatbuf_AuraTick(t *testing.T) {
 	assert.Equal(t, uint16(0), marshalledMob(t, mob.NewMob(stateDef, 0, nil)).AuraTickInterval(),
 		"a non-hit first effect → no tick indicator")
 }
+
+// Mob.aura_category (triage item 7): the wire carries the active aura's
+// effect-category bitmask, so the client colours a mob's ring by what the aura
+// actually does. Before this every mob ring rendered the same red damage sprite.
+func TestMobMarshalFlatbuf_AuraCategory(t *testing.T) {
+	stationary := mob.NewMob(testMobDef(0), 0, nil) // speed 0 → aura always on
+	assert.Equal(t, byte(skills.AuraCategoryDamage), marshalledMob(t, stationary).AuraCategory(),
+		"active damage aura → damage bit on the wire")
+
+	gated := mob.NewMob(testMobDef(1), 0, nil) // moving mob spawns with the aura off
+	assert.Equal(t, byte(0), marshalledMob(t, gated).AuraCategory(),
+		"gated aura → 0 on the wire, no ring on the client")
+}
+
+// A multi-effect aura keeps every category it carries, rather than being
+// demoted to its first effect — the dual-ring case (Paladin/Vanguard/Warbanner).
+func TestMobMarshalFlatbuf_AuraCategory_MultiEffect(t *testing.T) {
+	def := testMobDef(0)
+	def.Skills[0].Def.Effects = append(def.Skills[0].Def.Effects, skills.EffectDef{
+		Type: skills.EffectTypeSlowAura, Radius: 0.5, TargetsEnemies: true, TickInterval: 1,
+	})
+
+	got := marshalledMob(t, mob.NewMob(def, 0, nil)).AuraCategory()
+	assert.Equal(t, byte(skills.AuraCategoryDamage|skills.AuraCategorySlow), got,
+		"both categories ride the same byte")
+}
+
+// Mob.tier (triage item 15): the authored tier rides the wire as an ordered
+// rank, so the client draws the portrait frame ring without its own
+// EntityType→tier table.
+func TestMobMarshalFlatbuf_Tier(t *testing.T) {
+	for _, tc := range []struct {
+		tier string
+		want byte
+	}{
+		{"", byte(mobs.TierRankNormal)}, // absent → normal, matching the loader default
+		{mobs.TierNormal, byte(mobs.TierRankNormal)},
+		{mobs.TierElite, byte(mobs.TierRankElite)},
+		{mobs.TierBoss, byte(mobs.TierRankBoss)},
+	} {
+		def := testMobDef(0)
+		def.Tier = tc.tier
+		assert.Equal(t, tc.want, marshalledMob(t, mob.NewMob(def, 0, nil)).Tier(),
+			"tier %q on the wire", tc.tier)
+	}
+}

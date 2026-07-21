@@ -181,18 +181,6 @@ export function activationRejectionMessage(reason: number): string {
     return ActivationRejectionMessages[reason] ?? 'Cannot use that now';
 }
 
-// Skill IDs referenced by the client-side ring-style mapping (Character.setActiveSkill).
-export const DAMAGE_AURA_SKILL_ID = 1;
-export const HEAL_AURA_SKILL_ID = 2;
-// Paladin damages and heals at once — it shows both rings (Phase 9).
-export const PALADIN_AURA_SKILL_ID = 30;
-// FireWard is a support (resist) aura — it shows the heal-style ring (item 11 Phase 2).
-export const FIRE_WARD_SKILL_ID = 40;
-// Rejuvenation is a support (heal-over-time) aura — heal-style ring (chunk 3).
-export const REJUVENATION_AURA_SKILL_ID = 29;
-// Vanguard damages and heals/shields at once — both rings, like Paladin (C5).
-export const VANGUARD_AURA_SKILL_ID = 50;
-// Lifewarden is a pure support (heal) aura — heal-style ring (C7).
-export const LIFEWARDEN_AURA_SKILL_ID = 53;
-// Warbanner damages and heals/shields at once — both rings, like Vanguard (C7).
-export const WARBANNER_AURA_SKILL_ID = 55;
+// The per-skill ring-style constants that used to live here are gone (triage
+// item 7): the server now sends an effect-category bitmask on the wire, so ring
+// colour needs no skill-ID table on the client and new auras colour themselves.

@@ -192,6 +192,9 @@ function unmarshalEntity(entity, eType) {
         dwellRadius: undefined,
         auraTickInterval: undefined,
         auraTickPhase: undefined,
+        // aura ring colour bitmask + mob tier rank (triage items 7 / 15)
+        auraCategory: undefined,
+        tier: undefined,
     };
 
     if (eType === AuraApi.AnyEntity.Resource) {
@@ -228,6 +231,12 @@ function unmarshalEntity(entity, eType) {
         // is the design-critical use case (skill-vocab chunk 6).
         result.auraTickInterval = entity.auraTickInterval();
         result.auraTickPhase = entity.auraTickPhase();
+        // effect-category bitmask of the active aura, 0 = no ring — colours the
+        // aura ring (triage item 7).
+        result.auraCategory = entity.auraCategory();
+        // authored tier rank (0 normal / 1 elite / 2 boss) — drives the portrait
+        // frame ring (triage item 15).
+        result.tier = entity.tier();
     }
 
     if (eType === AuraApi.AnyEntity.Character) {
@@ -265,6 +274,9 @@ function unmarshalEntity(entity, eType) {
         // drives the tick indicator on the own player + other players (chunk 6).
         result.auraTickInterval = entity.auraTickInterval();
         result.auraTickPhase = entity.auraTickPhase();
+        // effect-category bitmask of the active aura, 0 = no ring — colours the
+        // aura ring (triage item 7).
+        result.auraCategory = entity.auraCategory();
     }
 
     if (isFunction(entity.statusEffectsLength) &&

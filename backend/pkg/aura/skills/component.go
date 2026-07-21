@@ -362,6 +362,20 @@ func (sc *SkillComponent) SetActiveAura(slot int) {
 }
 
 // LightRadius is the entity's total emitted light: the maximum over the
+// AuraCategories is the ring-colour bitmask of the active aura, 0 while none is
+// active (triage item 7). Serialized as aura_category on both Character and Mob,
+// so players and mobs share one colour language.
+//
+// Active aura only — passives are always on but draw no ring, so folding them in
+// would colour the ring by a skill the player cannot see the radius of.
+func (sc *SkillComponent) AuraCategories() AuraCategory {
+	slot := sc.ActiveAuraSlot
+	if slot < 0 || sc.AuraSlots[slot] == nil {
+		return AuraCategoryNone
+	}
+	return AuraCategoriesOf(sc.AuraSlots[slot].Def.Effects)
+}
+
 // active aura's light and every equipped passive's light (content pass C2
 // lift 2 — passives are always on, so a light passive like Torch glows while
 // a combat aura holds the one active slot; GDD §7 trade-off). Max, not sum —

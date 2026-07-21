@@ -70,6 +70,8 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	// draws the tick indicator from these (own player + other players; chunk 6).
 	AuraApi.CharacterAddAuraTickInterval(builder, uint16(p.AuraTickInterval()))
 	AuraApi.CharacterAddAuraTickPhase(builder, uint16(p.AuraTickPhase()))
+	// Ring colour (triage item 7); 0 while no aura is active.
+	AuraApi.CharacterAddAuraCategory(builder, byte(p.AuraCategories()))
 }
 
 // u64ToU32Clamped narrows a uint64 to uint32 for the wire, saturating rather

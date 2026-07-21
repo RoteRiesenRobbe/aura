@@ -9,6 +9,7 @@ import {GameSetupEvent} from '../../core/logic/Events';
 import * as PIXI from 'pixi.js';
 import {createInjectedSVG} from "../../core/logic/InjectedSVG";
 import {AuraTickIndicator} from './AuraTickIndicator';
+import {AuraRingStack} from './AuraRings';
 import {meter2px} from "../../../client-data/BasicConfig";
 import {ISvgContainer} from "../../core/logic/ISvgContainer";
 import './MobJuice';
@@ -34,8 +35,22 @@ function file(mob: keyof typeof GraphicsConfig.mobs) {
     return GraphicsConfig.mobs[mob].file;
 }
 
+/**
+ * Portrait frame ring per mob tier, indexed by the wire `Mob.tier` rank
+ * (triage item 15).
+ *
+ * SYNCED WITH BACKEND (backend/pkg/aura/items/mobs/definitions.go TierRank)
+ *
+ * Index 0 (normal) is deliberately absent: the common case stays unmarked, so
+ * a frame always means "this one is above baseline". All values [PLACEHOLDER].
+ */
+const TIER_FRAME_STYLES: readonly { color: number, width: number, alpha: number }[] = [
+    undefined,                                      // 0 normal — no frame
+    {color: 0xc8ccd4, width: 2, alpha: 0.85},       // 1 elite  — silver
+    {color: 0xe8c04a, width: 3, alpha: 0.95},       // 2 boss   — gold
+];
+
 export abstract class Mob extends GameObject {
-    static damageAura: ISvgContainer = {svg: undefined};
 
     protected actualShape: PIXI.Container;
     private healthFillGroup: PIXI.Container;
@@ -45,7 +60,17 @@ export abstract class Mob extends GameObject {
     private shieldFraction: number = 0;
     private barInnerX: number = 0;
     private barInnerWidth: number = 0;
-    private auraSprite: PIXI.Container = null;
+    private auraRings: AuraRingStack = null;
+    // Tier frame ring (triage item 15); tierRank caches the last drawn rank so
+    // the Graphics is only rebuilt when the tier actually changes, not per tick.
+    //
+    // Deliberately declared WITHOUT initializers, like actualShape above: these
+    // are assigned in initShape(), which the _GameObject constructor calls
+    // before subclass field initializers run — an `= null` here would silently
+    // overwrite the value initShape just set.
+    private tierFrame: PIXI.Graphics;
+    private tierFrameRadius: number;
+    private tierRank: number;
     // Bare tick indicator (skill-vocab chunk 6): a dot orbiting the aura ring
     // once per effective tick interval — reading a mob's beat to dodge its
     // ticks is the design-critical use case.
@@ -74,8 +99,8 @@ export abstract class Mob extends GameObject {
      */
     setAuraRadius(radiusPx: number) {
         if (radiusPx <= 0) {
-            if (this.auraSprite !== null) {
-                this.auraSprite.visible = false;
+            if (this.auraRings !== null) {
+                this.auraRings.setRadius(0);
             }
             if (this.auraTickIndicator !== null) {
                 this.auraTickIndicator.setRadius(0);
@@ -85,17 +110,28 @@ export abstract class Mob extends GameObject {
         // Like hit reach, the visual ring extends by the player collider
         // radius (collision is shape-vs-shape).
         const ringRadius = radiusPx + meter2px(GraphicsConfig.character.colliderRadiusMeters);
-        if (this.auraSprite === null) {
-            this.auraSprite = createInjectedSVG(Mob.damageAura.svg, 0, 0, ringRadius);
-            this.shape.addChildAt(this.auraSprite, 0);
-        }
-        this.auraSprite.visible = true;
-        this.auraSprite.width = ringRadius * 2;
-        this.auraSprite.height = ringRadius * 2;
+        this.ensureAuraRings().setRadius(ringRadius);
         if (this.auraTickIndicator === null) {
             this.auraTickIndicator = new AuraTickIndicator(this.shape);
         }
         this.auraTickIndicator.setRadius(ringRadius);
+    }
+
+    // setAuraCategories drives the ring colours from the wire Mob.aura_category
+    // bitmask (triage item 7). Before this, every mob ring rendered the same red
+    // damage sprite regardless of what the aura actually did — a healer's and a
+    // slower's aura were indistinguishable from a damage aura.
+    setAuraCategories(mask: number) {
+        this.ensureAuraRings().setCategories(mask);
+    }
+
+    private ensureAuraRings(): AuraRingStack {
+        if (this.auraRings === null) {
+            this.auraRings = new AuraRingStack();
+            // Bottom of the display list: the ring renders behind the mob art.
+            this.shape.addChildAt(this.auraRings.container, 0);
+        }
+        return this.auraRings;
     }
 
     // setAuraTick drives the bare tick indicator from the wire
@@ -115,7 +151,45 @@ export abstract class Mob extends GameObject {
         this.actualShape.addChild(super.initShape(svg, 0, 0, size, rotation, anchor));
         group.addChild(this.actualShape);
 
+        // Tier frame ring (triage item 15) — drawn over the portrait so it reads
+        // against dark mob art. Sized from the mob's own graphic, and left
+        // invisible until the wire tier arrives (normal tier stays invisible).
+        this.tierFrame = new PIXI.Graphics();
+        this.tierFrame.visible = false;
+        this.tierFrameRadius = size;
+        group.addChild(this.tierFrame);
+
         return group;
+    }
+
+    /**
+     * setTier draws the portrait frame ring from the wire Mob.tier rank (triage
+     * item 15): normal is unmarked, elite and boss get a frame. Tier was
+     * previously invisible unless a mob happened to have bespoke elite art, so
+     * an elite reskin of a normal mob read as an ordinary mob.
+     */
+    setTier(rank: number) {
+        // Guard with a truthiness check, not isDefined: isDefined only excludes
+        // undefined, so it passes for null and would crash on the assignment.
+        if (!this.tierFrame) {
+            return;
+        }
+        const style = TIER_FRAME_STYLES[rank];
+        if (!style) {
+            // Normal tier (or an unknown rank) — no frame.
+            this.tierFrame.visible = false;
+            this.tierRank = rank;
+            return;
+        }
+        if (this.tierRank === rank) {
+            return;
+        }
+        this.tierRank = rank;
+        this.tierFrame.clear();
+        this.tierFrame
+            .circle(0, 0, this.tierFrameRadius)
+            .stroke({width: style.width, color: style.color, alpha: style.alpha});
+        this.tierFrame.visible = true;
     }
 
     setRotation(rotation: number) {
@@ -962,12 +1036,3 @@ export class FireTotem extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(FireTotem, file('fireTotem'), maxSize('fireTotem'));
 
-// Rasterization size for the shared ring texture [PLACEHOLDER 4 m]: the
-// sprite is scaled per mob to the wire-driven radius (chunk 3c), this only
-// bounds the texture resolution.
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(
-    Mob.damageAura,
-    GraphicsConfig.character.damageAuraFile,
-    meter2px(4),
-);

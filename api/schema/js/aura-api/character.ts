@@ -185,8 +185,13 @@ auraTickPhase():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
+auraCategory():number {
+  const offset = this.bb!.__offset(this.bb_pos, 62);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(29);
+  builder.startObject(30);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -315,6 +320,10 @@ static addAuraTickInterval(builder:flatbuffers.Builder, auraTickInterval:number)
 
 static addAuraTickPhase(builder:flatbuffers.Builder, auraTickPhase:number) {
   builder.addFieldInt16(28, auraTickPhase, 0);
+}
+
+static addAuraCategory(builder:flatbuffers.Builder, auraCategory:number) {
+  builder.addFieldInt8(29, auraCategory, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

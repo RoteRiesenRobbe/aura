@@ -78,8 +78,8 @@ export class Player {
             HUD.updateShield(entity.shieldHp, entity.maxHealth, healthFraction);
             this.character.setShield(entity.shieldHp, entity.maxHealth);
         }
-        if (isDefined(entity.activeSkillId)) {
-            this.character.setActiveSkill(entity.activeSkillId);
+        if (isDefined(entity.auraCategory)) {
+            this.character.setAuraCategories(entity.auraCategory);
         }
         if (isDefined(entity.auraRadius)) {
             this.character.setAuraRadius(entity.auraRadius);

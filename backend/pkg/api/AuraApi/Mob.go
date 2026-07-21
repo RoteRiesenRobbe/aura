@@ -309,8 +309,32 @@ func (rcv *Mob) MutateAuraTickPhase(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(44, n)
 }
 
+func (rcv *Mob) AuraCategory() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Mob) MutateAuraCategory(n byte) bool {
+	return rcv._tab.MutateByteSlot(46, n)
+}
+
+func (rcv *Mob) Tier() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Mob) MutateTier(n byte) bool {
+	return rcv._tab.MutateByteSlot(48, n)
+}
+
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(21)
+	builder.StartObject(23)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -377,6 +401,12 @@ func MobAddAuraTickInterval(builder *flatbuffers.Builder, auraTickInterval uint1
 }
 func MobAddAuraTickPhase(builder *flatbuffers.Builder, auraTickPhase uint16) {
 	builder.PrependUint16Slot(20, auraTickPhase, 0)
+}
+func MobAddAuraCategory(builder *flatbuffers.Builder, auraCategory byte) {
+	builder.PrependByteSlot(21, auraCategory, 0)
+}
+func MobAddTier(builder *flatbuffers.Builder, tier byte) {
+	builder.PrependByteSlot(22, tier, 0)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

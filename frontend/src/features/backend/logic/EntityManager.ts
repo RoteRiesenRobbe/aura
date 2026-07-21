@@ -91,18 +91,29 @@ export class EntityManager {
             if (isDefined(entity.level) && isFunction(character['setLevel'])) {
                 character['setLevel'](entity.level);
             }
-            // Ring is driven solely by the server-authoritative active_skill_id
-            // (0 = Nothing → no ring); the legacy activeAura field is ignored here.
-            if (isDefined(entity.activeSkillId) && isFunction(character['setActiveSkill'])) {
-                character['setActiveSkill'](entity.activeSkillId);
+            // Ring colours come from the server-resolved effect-category
+            // bitmask (0 = no aura → no rings); triage item 7 replaced the
+            // client-side skill-ID mapping this used to do.
+            if (isDefined(entity.auraCategory) && isFunction(character['setAuraCategories'])) {
+                character['setAuraCategories'](entity.auraCategory);
             }
             if (isDefined(entity.auraRadius) && isFunction(character['setAuraRadius'])) {
                 character['setAuraRadius'](entity.auraRadius);
             }
-        } else if (isDefined(entity.auraRadius) && isFunction(gameObject['setAuraRadius'])) {
+        } else {
             // Mob aura ring (mob-depth chunk 3c): wire-driven effective
-            // radius in px, 0 while the aura is gated → ring hidden.
-            gameObject['setAuraRadius'](entity.auraRadius);
+            // radius in px, 0 while the aura is gated → ring hidden. Categories
+            // colour it the same way as a player's (triage item 7).
+            if (isDefined(entity.auraCategory) && isFunction(gameObject['setAuraCategories'])) {
+                gameObject['setAuraCategories'](entity.auraCategory);
+            }
+            if (isDefined(entity.auraRadius) && isFunction(gameObject['setAuraRadius'])) {
+                gameObject['setAuraRadius'](entity.auraRadius);
+            }
+            // Portrait frame ring by authored tier (triage item 15).
+            if (isDefined(entity.tier) && isFunction(gameObject['setTier'])) {
+                gameObject['setTier'](entity.tier);
+            }
         }
 
         // Bare aura tick indicator (skill-vocab chunk 6): the wire cadence +

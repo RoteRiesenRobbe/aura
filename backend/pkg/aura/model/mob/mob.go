@@ -427,6 +427,19 @@ func (m *Mob) LightRadius() float32 {
 	return m.skills.LightRadius()
 }
 
+// AuraCategories is the active aura's ring-colour bitmask, 0 while none is
+// active — mirrors player.AuraCategories. Serialized as Mob.aura_category, so a
+// mob's ring reads the same colour language as a player's (triage item 7).
+func (m *Mob) AuraCategories() skills.AuraCategory {
+	return m.skills.AuraCategories()
+}
+
+// TierRank is the authored tier as its wire byte, driving the client's portrait
+// frame ring (triage item 15). Serialized as Mob.tier.
+func (m *Mob) TierRank() mobs.TierRank {
+	return m.definition.Rank()
+}
+
 // DwellRadius is the bind radius of a campfire respawn anchor, 0 for every
 // other mob. Set post-construction by cmd/aurad (heal radius ×
 // sys.CampfireDwellRadiusFactor) and serialized as Mob.dwell_radius — the

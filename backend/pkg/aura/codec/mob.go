@@ -42,6 +42,11 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	// draws the tick indicator and reads the beat to dodge ticks (chunk 6).
 	AuraApi.MobAddAuraTickInterval(builder, uint16(m.AuraTickInterval()))
 	AuraApi.MobAddAuraTickPhase(builder, uint16(m.AuraTickPhase()))
+	// Ring colour + portrait frame (triage items 7/15): the category bitmask is
+	// 0 while no aura is active, the tier rank is a static property of the
+	// definition.
+	AuraApi.MobAddAuraCategory(builder, byte(m.AuraCategories()))
+	AuraApi.MobAddTier(builder, byte(m.TierRank()))
 
 	return AuraApi.MobEnd(builder)
 }

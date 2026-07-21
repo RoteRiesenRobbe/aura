@@ -21,7 +21,7 @@ import {Container, Graphics, Sprite, Text, Texture} from 'pixi.js';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
-import {FIRE_WARD_SKILL_ID, HEAL_AURA_SKILL_ID, LIFEWARDEN_AURA_SKILL_ID, PALADIN_AURA_SKILL_ID, REJUVENATION_AURA_SKILL_ID, VANGUARD_AURA_SKILL_ID, WARBANNER_AURA_SKILL_ID} from '../../../client-data/Skills';
+import {AuraRingStack} from './AuraRings';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -30,8 +30,6 @@ GameSetupEvent.subscribe((game: IGame) => {
 
 export class Character extends GameObject implements ICharacterLike, IMiniMapRendered {
     static avatar: ISvgContainer = {svg: undefined};
-    static damageAura: ISvgContainer = {svg: undefined};
-    static healAura: ISvgContainer = {svg: undefined};
     static readonly DOWNWARD_FACING_ROTATION = Math.PI / 2;
 
 
@@ -49,8 +47,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     private shieldFraction: number = 0;
     private barInnerX: number = 0;
     private barInnerWidth: number = 0;
-    private damageAuraSprite: Sprite;
-    private healAuraSprite: Sprite;
+    private auraRings: AuraRingStack;
     // Bare tick indicator (skill-vocab chunk 6): a dot orbiting the aura ring
     // once per effective tick interval, so the beat is visible.
     private auraTickIndicator: AuraTickIndicator = null;
@@ -71,8 +68,8 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
         // Keep a fixed default facing (down) until explicit rotation is applied.
         this.setRotation(Character.DOWNWARD_FACING_ROTATION);
-        // No ring until the first server state arrives (active_skill_id drives it).
-        this.setActiveSkill(0);
+        // No rings until the first server state arrives (aura_category drives them).
+        this.setAuraCategories(0);
 
         this.plate = createNamedContainer('characterPlate');
         this.plate.position.copyFrom(this.shape.position);
@@ -95,22 +92,8 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         const group = new Container();
         group.position.set(x, y);
 
-        this.damageAuraSprite = createInjectedSVG(
-            Character.damageAura.svg,
-            0,
-            0,
-            meter2px(GraphicsConfig.character.damageAuraRadiusMeters),
-        );
-        group.addChild(this.damageAuraSprite);
-
-        this.healAuraSprite = createInjectedSVG(
-            Character.healAura.svg,
-            0,
-            0,
-            meter2px(GraphicsConfig.character.damageAuraRadiusMeters),
-        );
-        this.healAuraSprite.visible = false;
-        group.addChild(this.healAuraSprite);
+        this.auraRings = new AuraRingStack();
+        group.addChild(this.auraRings.container);
 
         this.actualShape = createNamedContainer('actualShape');
         this.actualShape.addChild(super.initShape(svg, 0, 0, size, rotation));
@@ -212,26 +195,17 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
             Math.min(this.healthFraction, 1 - this.shieldFraction) * this.barInnerWidth;
     }
 
-    // setActiveSkill drives the aura ring from the server-authoritative
-    // Character.active_skill_id wire field. 0 = Nothing → no ring.
-    // Ring style per skill ID is a client-side mapping (resolved question 6).
-    setActiveSkill(skillId: number) {
-        // Paladin and Vanguard both damage and support at once, so they
-        // show both rings; pure support auras (heal, FireWard resist) show
-        // only the heal-style ring; everything else shows the damage ring.
-        const isDual = skillId === PALADIN_AURA_SKILL_ID || skillId === VANGUARD_AURA_SKILL_ID || skillId === WARBANNER_AURA_SKILL_ID;
-        const isSupport = skillId === HEAL_AURA_SKILL_ID || skillId === FIRE_WARD_SKILL_ID || skillId === REJUVENATION_AURA_SKILL_ID || skillId === LIFEWARDEN_AURA_SKILL_ID;
-        this.damageAuraSprite.visible = skillId !== 0 && !isSupport;
-        this.healAuraSprite.visible = isSupport || isDual;
+    // setAuraCategories drives the ring colours from the server-authoritative
+    // Character.aura_category bitmask (triage item 7). 0 = no aura → no rings.
+    // This replaced a hardcoded skill-ID switch: the categories are resolved
+    // from the skill's effects backend-side, so new auras need no client change.
+    setAuraCategories(mask: number) {
+        this.auraRings.setCategories(mask);
     }
 
     setAuraRadius(radiusPx: number) {
         // `auraRadius` from the backend is already serialized in pixel units.
-        const diameter = radiusPx * 2;
-        this.damageAuraSprite.width = diameter;
-        this.damageAuraSprite.height = diameter;
-        this.healAuraSprite.width = diameter;
-        this.healAuraSprite.height = diameter;
+        this.auraRings.setRadius(radiusPx);
         this.ensureAuraTickIndicator().setRadius(radiusPx);
     }
 
@@ -338,14 +312,3 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Character.avatar, GraphicsConfig.character.file, GraphicsConfig.character.size);
 
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(
-    Character.damageAura,
-    GraphicsConfig.character.damageAuraFile,
-    meter2px(GraphicsConfig.character.damageAuraRadiusMeters));
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(
-    Character.healAura,
-    GraphicsConfig.character.healAuraFile,
-    meter2px(GraphicsConfig.character.damageAuraRadiusMeters));

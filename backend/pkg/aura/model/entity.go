@@ -160,6 +160,13 @@ type MobEntity interface {
 	// is the design-critical case; skill-vocab chunk 6).
 	AuraTickInterval() int
 	AuraTickPhase() int
+	// AuraCategories is the active aura's effect-category bitmask, 0 while none
+	// is active (wire aura_category — the client colours the aura ring from it,
+	// so mobs and players share one colour language; triage item 7).
+	AuraCategories() skills.AuraCategory
+	// TierRank is the authored mob tier as its wire byte (wire tier — the client
+	// draws the portrait frame ring from it; triage item 15).
+	TierRank() mobs.TierRank
 	// LightRadius is the light emitted by the active aura's light_aura effect,
 	// 0 = no light (wire light_radius — the client hole-punches the darkness
 	// overlay; atmosphere & recovery chunk 3).

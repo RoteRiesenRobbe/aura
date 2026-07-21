@@ -658,6 +658,13 @@ func (p *player) LightRadius() float32 {
 	return p.skills.LightRadius()
 }
 
+// AuraCategories is the active aura's ring-colour bitmask, 0 while none is
+// active. Serialized as Character.aura_category — the client colours the ring
+// from it instead of matching hardcoded skill IDs (triage item 7).
+func (p *player) AuraCategories() skills.AuraCategory {
+	return p.skills.AuraCategories()
+}
+
 // BurstRadius feeds the Character.burst_radius wire field (burst ring VFX).
 func (p *player) BurstRadius() float32 {
 	return p.skills.BurstRadius(skills.BurstVFXTicks)

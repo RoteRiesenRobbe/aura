@@ -20,6 +20,33 @@ const (
 	TierBoss   = "boss"
 )
 
+// TierRank is the wire encoding of the tier label (triage item 15): the client
+// draws the portrait frame ring from it, so the authored label stays the single
+// source and the client needs no EntityType→tier table of its own.
+//
+// Ordered, not arbitrary — normal < elite < boss — so the client can treat it as
+// a severity and a future tier slots in without a wire break. Serialized as the
+// Mob.tier ubyte.
+type TierRank uint8
+
+const (
+	TierRankNormal TierRank = 0
+	TierRankElite  TierRank = 1
+	TierRankBoss   TierRank = 2
+)
+
+var tierRanks = map[string]TierRank{
+	TierNormal: TierRankNormal,
+	TierElite:  TierRankElite,
+	TierBoss:   TierRankBoss,
+}
+
+// Rank is the definition's tier as its wire byte. An absent or unrecognised
+// label reports normal, matching the JSON loader's own "absent → normal"
+// default; TestTierRank_CoversEveryTier guards the table against a new tier
+// constant being added without an encoding.
+func (d *MobDefinition) Rank() TierRank { return tierRanks[d.Tier] }
+
 //{
 //"id": 1,
 //"name": "Dodo",
@@ -242,7 +269,10 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	if tier == "" {
 		tier = TierNormal
 	}
-	if tier != TierNormal && tier != TierElite && tier != TierBoss {
+	// tierRanks is the single source of valid tiers: a tier is authorable
+	// exactly when it has a wire encoding, so a new one cannot be accepted by
+	// the loader while rendering as an unmarked normal on the client.
+	if _, ok := tierRanks[tier]; !ok {
 		return nil, fmt.Errorf("mob %q: tier %q must be one of normal/elite/boss", m.Name, tier)
 	}
 	curveLevel := m.CurveLevel
