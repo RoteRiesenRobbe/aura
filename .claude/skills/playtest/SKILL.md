@@ -24,37 +24,38 @@ Check what changed (`git status`, `git diff --stat`) and pick the cheapest path:
 edits skip both `cp-defs` and the rebuild. Never `make build` just for a JSON
 edit — `cp-defs` reverts `backend/pkg/api/` from source and wastes a minute.
 
-## 2. Restart the server
+## 2. Restart
 
-Kill the stale process first — a running `aurad` silently serves old
-content and that has burned sessions before.
+**Use the script — do not hand-roll the kill/start commands.**
 
 ```bash
-pkill -x aurad; sleep 1
-cd backend && setsid nohup ./aurad -dev -content ../api \
-  > "$SCRATCH/server.log" 2>&1 < /dev/null &
-sleep 4
+./scripts/dev-restart.sh server     # aurad only (the common case)
+./scripts/dev-restart.sh frontend   # webpack only
+./scripts/dev-restart.sh all        # both
 ```
 
-Use `pkill -x` (name-exact), **never** `pkill -f aurad`. `-f` matches the full
-command line, and the shell running this snippet has `aurad` in its own command
-line — so it kills itself before starting anything, and the old server survives.
-`'[a]urad'` does not save you either: the `./aurad -dev` later in the same
-compound command still matches. `-x` matches only the process name, so a shell
-(named `bash`) can never match.
+It kills stale processes, starts fresh ones detached, waits for both ports,
+prints the boot counts, and fails loudly on a panic. Logs land in
+`/tmp/aura-dev/` (override with `AURA_LOG_DIR`).
 
-Check the frontend dev server is alive too (`ps aux | grep webpack`); if not,
-`cd frontend && npm run start` in the background.
+Restart the **frontend** too whenever generated files outside `frontend/src`
+change — regenerated `api/schema/js/` bindings especially. HMR does not watch
+them, so the client keeps running against stale FlatBuffers definitions. Tell
+the PO to hard-reload (Ctrl+Shift+R) after any wire change.
+
+> **Why a script:** the kill must be `pkill -x <name>` (name-exact). `pkill -f
+> <pattern>` matches the full command line — including the shell running the
+> restart — so it kills itself before starting anything and the old process
+> survives, silently serving stale code. This has burned several sessions, for
+> `aurad`, `npm run start`, and `simharness` alike. The rule is not
+> process-specific: **never `pkill -f`, for anything.**
 
 ## 3. Verify the boot before handing over
 
-Content loading is validated at boot and **panics** on violation. Always read
-the log — do not assume a restart succeeded.
-
-```bash
-grep -iE '"msg":"Loaded|placed |panic|ERROR' "$SCRATCH/server.log" | tail -20
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:2000/
-```
+The script already greps the log and returns non-zero on a panic, so a clean
+exit plus the printed counts is the check. Content loading is validated at
+boot and **panics** on violation — never assume a restart succeeded without
+seeing those counts.
 
 Counts must match the current pin in the CLAUDE.md status banner (the
 `boot …` figures — read them from there, they move every content session).

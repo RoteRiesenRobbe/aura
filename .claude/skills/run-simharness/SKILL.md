@@ -86,9 +86,11 @@ also race-clean: `go test -race ./pkg/aura/sim/`.
 - **`go run ./cmd/simharness` from repo root fails** with `go: cannot find
   main module` — the Go module lives in `backend/`. Either `cd backend` first
   or use the built `./backend/simharness`.
-- **Don't stop the server with `pkill -f simharness`** — the pattern matches
-  your own shell's command line and kills it (observed as exit code 144). Use
-  the pid file as shown above.
+- **Never `pkill -f <anything>`** (here: `pkill -f simharness`) — the pattern
+  matches your own shell's command line and kills it (observed as exit code
+  144), leaving the stale server alive. Use the pid file as shown above, or
+  `pkill -x simharness` (name-exact). The rule is not process-specific; it has
+  bitten `aurad` and `npm run start` too.
 - **Chromium needs `LD_LIBRARY_PATH`** pointing at the extracted debs; the
   driver injects it into the browser subprocess itself, so nothing to export —
   but bypassing the driver with raw Playwright will hit

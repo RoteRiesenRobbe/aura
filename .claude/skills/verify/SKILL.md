@@ -66,7 +66,11 @@ Copy the browser-launch pattern from
 - The `-dev` server can die mid-session with `Overload! Systems at: 103%`
   under headless load — if `ERR_CONNECTION_REFUSED` appears, check the log
   tail and just restart; it is not caused by your change.
-- Don't `pkill -f aurad` (matches your own shell); use
-  `pkill -x aurad` or a pid file.
+- **Never `pkill -f <anything>`** — the pattern matches the full command line
+  of your own shell and kills it before the restart runs (observed as exit
+  code 144), leaving the stale process alive. Use `pkill -x <name>`
+  (name-exact; a shell is named `bash`, so it can never match) or a pid file.
+  For a plain dev restart prefer `./scripts/dev-restart.sh`, which encapsulates
+  this.
 - Player names are reserved while the corpse persists — use a fresh name per
   run if a prior run's player just died.
