@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 front orc (content pass C5, plan-content-zones12.md §4): very strong and tanky, hostile to players AND the Human Army. experience 15 = deliberately VERY low for the tier (locked plan ruling — the front is a wall and a spectacle, not a grind spot; the player levels elsewhere and comes back). curveLevel 20 = the Vanguard anchor (PO 2026-07-18: the front is the journey's final step) — at-level content exactly when the Front NPC starts teaching. Elite baseline ≈4x+ normal (elite-bandit precedent, 'tanky' tops it). Slow lumber. All values [PLACEHOLDER]",
+  "_comment": "Z2 front orc (content pass C5, plan-content-zones12.md §4): very strong and tanky, hostile to players AND the Human Army. experience 200 (PO balancing pass 2026-07-21 — supersedes the earlier XP-15 'wall, not grind spot' ruling; the front now pays like real content). curveLevel 20 = the Vanguard anchor (PO 2026-07-18: the front is the journey's final step) — at-level content exactly when the Front NPC starts teaching. Elite baseline ≈4x+ normal (elite-bandit precedent, 'tanky' tops it). Slow lumber. All values [PLACEHOLDER]",
   "id": 33,
   "name": "Orc",
   "type": "MOB",
@@ -9,7 +9,7 @@
   "factors": {
     "baseMaxHealth": 280,
     "maxHealthVariance": 0.1,
-    "experience": 15,
+    "experience": 200,
     "speed": 0.5,
     "deltaPhi": 0.1,
     "turnRate": 0.1,

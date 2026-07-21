@@ -7,7 +7,7 @@
   "tier": "normal",
   "curveLevel": 10,
   "factors": {
-    "baseMaxHealth": 80,
+    "baseMaxHealth": 120,
     "maxHealthVariance": 0.1,
     "experience": 275,
     "speed": 0.74,

@@ -7,7 +7,7 @@
   "tier": "elite",
   "curveLevel": 11,
   "factors": {
-    "baseMaxHealth": 90,
+    "baseMaxHealth": 135,
     "maxHealthVariance": 0.1,
     "experience": 435,
     "speed": 0.45,
