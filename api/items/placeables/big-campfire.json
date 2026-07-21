@@ -3,9 +3,7 @@
   "id": 20,
   "type": "PLACEABLE",
   "factors": {
-    "heatPerSecond": 0.06,
     "durationInSeconds": 250,
-    "heatRadius": 1,
     "vulnerability": 0.01
   },
   "body": {

@@ -12,29 +12,26 @@ const (
 	_CollisionLayerLowerName_0 = "layernonecollisionlayerplayerstaticcollisionlayeractioncollision"
 	_CollisionLayerName_1      = "LayerWeaponCollision"
 	_CollisionLayerLowerName_1 = "layerweaponcollision"
-	_CollisionLayerName_2      = "LayerHeatCollision"
-	_CollisionLayerLowerName_2 = "layerheatcollision"
-	_CollisionLayerName_3      = "LayerBorderCollision"
-	_CollisionLayerLowerName_3 = "layerbordercollision"
-	_CollisionLayerName_4      = "LayerViewportCollision"
-	_CollisionLayerLowerName_4 = "layerviewportcollision"
-	_CollisionLayerName_5      = "LayerMobStaticCollision"
-	_CollisionLayerLowerName_5 = "layermobstaticcollision"
-	_CollisionLayerName_6      = "LayerPlayerCollision"
-	_CollisionLayerLowerName_6 = "layerplayercollision"
-	_CollisionLayerName_7      = "LayerPlaceableCollision"
-	_CollisionLayerLowerName_7 = "layerplaceablecollision"
+	_CollisionLayerName_2      = "LayerBorderCollision"
+	_CollisionLayerLowerName_2 = "layerbordercollision"
+	_CollisionLayerName_3      = "LayerViewportCollision"
+	_CollisionLayerLowerName_3 = "layerviewportcollision"
+	_CollisionLayerName_4      = "LayerMobStaticCollision"
+	_CollisionLayerLowerName_4 = "layermobstaticcollision"
+	_CollisionLayerName_5      = "LayerPlayerCollision"
+	_CollisionLayerLowerName_5 = "layerplayercollision"
+	_CollisionLayerName_6      = "LayerPlaceableCollision"
+	_CollisionLayerLowerName_6 = "layerplaceablecollision"
 )
 
 var (
 	_CollisionLayerIndex_0 = [...]uint8{0, 18, 44, 64}
 	_CollisionLayerIndex_1 = [...]uint8{0, 20}
-	_CollisionLayerIndex_2 = [...]uint8{0, 18}
-	_CollisionLayerIndex_3 = [...]uint8{0, 20}
-	_CollisionLayerIndex_4 = [...]uint8{0, 22}
-	_CollisionLayerIndex_5 = [...]uint8{0, 23}
-	_CollisionLayerIndex_6 = [...]uint8{0, 20}
-	_CollisionLayerIndex_7 = [...]uint8{0, 23}
+	_CollisionLayerIndex_2 = [...]uint8{0, 20}
+	_CollisionLayerIndex_3 = [...]uint8{0, 22}
+	_CollisionLayerIndex_4 = [...]uint8{0, 23}
+	_CollisionLayerIndex_5 = [...]uint8{0, 20}
+	_CollisionLayerIndex_6 = [...]uint8{0, 23}
 )
 
 func (i CollisionLayer) String() string {
@@ -43,18 +40,16 @@ func (i CollisionLayer) String() string {
 		return _CollisionLayerName_0[_CollisionLayerIndex_0[i]:_CollisionLayerIndex_0[i+1]]
 	case i == 4:
 		return _CollisionLayerName_1
-	case i == 8:
-		return _CollisionLayerName_2
 	case i == 16:
-		return _CollisionLayerName_3
+		return _CollisionLayerName_2
 	case i == 32:
-		return _CollisionLayerName_4
+		return _CollisionLayerName_3
 	case i == 64:
-		return _CollisionLayerName_5
+		return _CollisionLayerName_4
 	case i == 128:
-		return _CollisionLayerName_6
+		return _CollisionLayerName_5
 	case i == 256:
-		return _CollisionLayerName_7
+		return _CollisionLayerName_6
 	default:
 		return fmt.Sprintf("CollisionLayer(%d)", i)
 	}
@@ -68,7 +63,6 @@ func _CollisionLayerNoOp() {
 	_ = x[LayerPlayerStaticCollision-(1)]
 	_ = x[LayerActionCollision-(2)]
 	_ = x[LayerWeaponCollision-(4)]
-	_ = x[LayerHeatCollision-(8)]
 	_ = x[LayerBorderCollision-(16)]
 	_ = x[LayerViewportCollision-(32)]
 	_ = x[LayerMobStaticCollision-(64)]
@@ -76,7 +70,7 @@ func _CollisionLayerNoOp() {
 	_ = x[LayerPlaceableCollision-(256)]
 }
 
-var _CollisionLayerValues = []CollisionLayer{LayerNoneCollision, LayerPlayerStaticCollision, LayerActionCollision, LayerWeaponCollision, LayerHeatCollision, LayerBorderCollision, LayerViewportCollision, LayerMobStaticCollision, LayerPlayerCollision, LayerPlaceableCollision}
+var _CollisionLayerValues = []CollisionLayer{LayerNoneCollision, LayerPlayerStaticCollision, LayerActionCollision, LayerWeaponCollision, LayerBorderCollision, LayerViewportCollision, LayerMobStaticCollision, LayerPlayerCollision, LayerPlaceableCollision}
 
 var _CollisionLayerNameToValueMap = map[string]CollisionLayer{
 	_CollisionLayerName_0[0:18]:       LayerNoneCollision,
@@ -87,18 +81,16 @@ var _CollisionLayerNameToValueMap = map[string]CollisionLayer{
 	_CollisionLayerLowerName_0[44:64]: LayerActionCollision,
 	_CollisionLayerName_1[0:20]:       LayerWeaponCollision,
 	_CollisionLayerLowerName_1[0:20]:  LayerWeaponCollision,
-	_CollisionLayerName_2[0:18]:       LayerHeatCollision,
-	_CollisionLayerLowerName_2[0:18]:  LayerHeatCollision,
-	_CollisionLayerName_3[0:20]:       LayerBorderCollision,
-	_CollisionLayerLowerName_3[0:20]:  LayerBorderCollision,
-	_CollisionLayerName_4[0:22]:       LayerViewportCollision,
-	_CollisionLayerLowerName_4[0:22]:  LayerViewportCollision,
-	_CollisionLayerName_5[0:23]:       LayerMobStaticCollision,
-	_CollisionLayerLowerName_5[0:23]:  LayerMobStaticCollision,
-	_CollisionLayerName_6[0:20]:       LayerPlayerCollision,
-	_CollisionLayerLowerName_6[0:20]:  LayerPlayerCollision,
-	_CollisionLayerName_7[0:23]:       LayerPlaceableCollision,
-	_CollisionLayerLowerName_7[0:23]:  LayerPlaceableCollision,
+	_CollisionLayerName_2[0:20]:       LayerBorderCollision,
+	_CollisionLayerLowerName_2[0:20]:  LayerBorderCollision,
+	_CollisionLayerName_3[0:22]:       LayerViewportCollision,
+	_CollisionLayerLowerName_3[0:22]:  LayerViewportCollision,
+	_CollisionLayerName_4[0:23]:       LayerMobStaticCollision,
+	_CollisionLayerLowerName_4[0:23]:  LayerMobStaticCollision,
+	_CollisionLayerName_5[0:20]:       LayerPlayerCollision,
+	_CollisionLayerLowerName_5[0:20]:  LayerPlayerCollision,
+	_CollisionLayerName_6[0:23]:       LayerPlaceableCollision,
+	_CollisionLayerLowerName_6[0:23]:  LayerPlaceableCollision,
 }
 
 var _CollisionLayerNames = []string{
@@ -106,12 +98,11 @@ var _CollisionLayerNames = []string{
 	_CollisionLayerName_0[18:44],
 	_CollisionLayerName_0[44:64],
 	_CollisionLayerName_1[0:20],
-	_CollisionLayerName_2[0:18],
-	_CollisionLayerName_3[0:20],
-	_CollisionLayerName_4[0:22],
-	_CollisionLayerName_5[0:23],
-	_CollisionLayerName_6[0:20],
-	_CollisionLayerName_7[0:23],
+	_CollisionLayerName_2[0:20],
+	_CollisionLayerName_3[0:22],
+	_CollisionLayerName_4[0:23],
+	_CollisionLayerName_5[0:20],
+	_CollisionLayerName_6[0:23],
 }
 
 // CollisionLayerString retrieves an enum value from the enum constants string name.

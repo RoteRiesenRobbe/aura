@@ -45,12 +45,6 @@ type Entity interface {
 	Type() EntityType
 }
 
-// Heater is an entity that radiates heat
-type Heater interface {
-	BasicEntity
-	HeatRadiation() *HeatRadiator
-}
-
 // PlaceableEntity is an entity that was
 // dynamically placed and might need constant updates
 type PlaceableEntity interface {
@@ -59,7 +53,6 @@ type PlaceableEntity interface {
 
 	Decayed() bool
 	Update(dt float32)
-	HeatRadiation() *HeatRadiator
 	Item() items.Item
 }
 

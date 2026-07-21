@@ -19,7 +19,6 @@ type Placeable struct {
 	item items.Item
 
 	health        vitals.VitalSign
-	radiator      *model.HeatRadiator
 	ticksLeft     int
 	statusEffects model.StatusEffects
 }
@@ -35,25 +34,6 @@ func (p *Placeable) Update(dt float32) {
 
 func (p *Placeable) Decayed() bool {
 	return p.ticksLeft <= 0 || p.health <= 0
-}
-
-func (p *Placeable) HeatRadiation() *model.HeatRadiator {
-	return p.radiator
-}
-
-func (p *Placeable) SetPosition(pos phy.Vec2f) {
-	p.BaseEntity.SetPosition(pos)
-	if p.radiator != nil {
-		p.radiator.Body.SetPosition(pos)
-	}
-}
-
-func (p *Placeable) Bodies() model.Bodies {
-	b := p.BaseEntity.Bodies()
-	if p.radiator != nil {
-		b = append(b, p.radiator.Body)
-	}
-	return b
 }
 
 func (p *Placeable) Item() items.Item {
@@ -92,19 +72,6 @@ func NewPlaceable(item items.Item) (*Placeable, error) {
 		return nil, fmt.Errorf("No body provided.")
 	}
 
-	var radiator *model.HeatRadiator = nil
-
-	if item.Factors.HeatPerTick != 0 {
-		radiator = &model.HeatRadiator{}
-		radiator.HeatPerTick = item.Factors.HeatPerTick
-		radiator.Radius = item.Factors.HeatRadius
-		heaterBody := phy.NewCircle(phy.VEC2F_ZERO, radiator.Radius)
-		heaterBody.Shape().IsSensor = true
-		heaterBody.Shape().Mask = int(model.LayerHeatCollision)
-		heaterBody.Shape().Group = -1 // no need to collide with other heat sources
-		radiator.Body = heaterBody
-	}
-
 	// set up the decay time
 	var ticksLeft int = math.MaxInt32
 	if item.Factors.DurationInTicks != 0 {
@@ -116,7 +83,6 @@ func NewPlaceable(item items.Item) (*Placeable, error) {
 		BaseEntity:    base,
 		item:          item,
 		health:        vitals.Max,
-		radiator:      radiator,
 		ticksLeft:     ticksLeft,
 		statusEffects: model.NewStatusEffects(),
 	}

@@ -56,10 +56,6 @@ func (pr *PlaceableResource) Decayed() bool {
 	return pr.Placeable.Decayed()
 }
 
-func (pr *PlaceableResource) HeatRadiation() *model.HeatRadiator {
-	return pr.Placeable.HeatRadiation()
-}
-
 func (pr *PlaceableResource) StatusEffects() *model.StatusEffects {
 	combinedEffects := model.NewStatusEffects()
 

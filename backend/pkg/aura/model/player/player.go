@@ -40,7 +40,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	shapeGroup := int(p.ID())
 	p.Body.Shape().UserData = p
 	p.Body.Shape().Group = shapeGroup
-	p.Body.Shape().Layer = int(model.LayerViewportCollision | model.LayerHeatCollision | model.LayerPlayerCollision)
+	p.Body.Shape().Layer = int(model.LayerViewportCollision | model.LayerPlayerCollision)
 	p.Body.Shape().Mask = int(model.LayerPlayerStaticCollision | model.LayerBorderCollision)
 
 	// setup viewport

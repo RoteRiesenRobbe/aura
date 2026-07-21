@@ -215,7 +215,7 @@ func newFakePlayer() *fakePlayer {
 // (player.go:41) so healerTargetable reads a player-shaped Bodies()[0].
 func playerLayerBody() *phy.Circle {
 	b := phy.NewCircle(phy.VEC2F_ZERO, 0.25)
-	b.Shape().Layer = int(model.LayerViewportCollision | model.LayerHeatCollision | model.LayerPlayerCollision)
+	b.Shape().Layer = int(model.LayerViewportCollision | model.LayerPlayerCollision)
 	return b
 }
 

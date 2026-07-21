@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 )
 
 type EquipSlot int
@@ -41,9 +40,7 @@ type Factors struct {
 	MinYield        int
 	DurationInTicks int
 
-	// Placeable/Heater
-	HeatPerTick   uint32
-	HeatRadius    float32
+	// Placeable
 	Vulnerability float32
 
 	// Resource
@@ -95,8 +92,6 @@ type itemDefinition struct {
 		Yield           int     `json:"yield"`
 		MinYield        int     `json:"minimumYield"`
 		DurationInS     int     `json:"durationInSeconds"`
-		HeatPerSecond   float32 `json:"heatPerSecond"`
-		HeatRadius      float32 `json:"heatRadius"`
 		Vulnerability   float32 `json:"vulnerability"`
 
 		ReplenishProbabilityPerS *float32 `json:"replenishProbabilityPerSecond"`
@@ -213,8 +208,6 @@ func (i *itemDefinition) mapToItemDefinition() (*ItemDefinition, error) {
 			StructureDamage:      i.Factors.StructureDamage,
 			Yield:                i.Factors.Yield,
 			MinYield:             i.Factors.MinYield,
-			HeatPerTick:          vitals.FractionToAbsPerTick(i.Factors.HeatPerSecond),
-			HeatRadius:           i.Factors.HeatRadius,
 			Vulnerability:        i.Factors.Vulnerability,
 			DurationInTicks:      i.Factors.DurationInS * constant.TicksPerSecond,
 			ReplenishProbability: replenishProbability,
