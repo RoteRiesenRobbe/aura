@@ -1,6 +1,6 @@
 # Plan: Reconnect-Token Persistence
 
-**Status:** **DONE 2026-07-21 — PO-VERIFIED IN-GAME 2026-07-21 ("tested and works"), committed `[uncommitted]`.**
+**Status:** **DONE 2026-07-21 — PO-VERIFIED IN-GAME 2026-07-21 ("tested and works"), committed `a8e82851`.**
 
 **Ledger:** single execution chunk, PO queue item ②. **PO rulings (choice
 prompts):** stash-immediately (no grace period / lingering body), client
