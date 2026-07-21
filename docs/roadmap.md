@@ -484,6 +484,9 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
         on the buff-visibility wire decision** (`plan-effect-foundations.md §6`;
         v1 is VFX-only today, no per-entity buff list on the wire)
   - [ ] Hover info on spellbook / ability entries (name, targeting rule, effects)
+        — **PLANNED 2026-07-21 → `plan-ui-polish.md` chunk 1** (skill-catalog
+        HTTP endpoint + stats-only tooltips; also retires the Skills.ts
+        hand-sync above via the catalog)
   - [ ] Avatar state reactions (damaged / happy / dead) + on-token effect display
         (current damage VFX, DoTs, and other states on the token)
   - [ ] **Aura VFX/animation/polish pass** (named 2026-07-10 — previously no
@@ -497,7 +500,9 @@ Resource bar, XP bar, ability bar, aura panel, minimap, zone chat.
         level-ups, mob kills, aura unlocks (a cosmetic lane parallel to the
         spellbook unlocks). **Designed together with the avatar picker below as
         one system — see `plan-avatar-system.md` (design sketch 2026-07-14).**
-  - [ ] Unlock & level-up popups (collected 2026-07-11) — designed in-game
+  - [ ] Unlock & level-up popups (collected 2026-07-11) — **PO ruling
+        2026-07-21: implement via the existing in-game announcement system
+        (AlertBanner lane), not a new overlay mechanism** — designed in-game
         notification with actual text for skill unlocks and level-ups, with a
         **queue** so several events (e.g. level-up + milestone unlock landing
         the same tick) play nicely one after another instead of overlapping.
