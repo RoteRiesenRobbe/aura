@@ -129,6 +129,13 @@ func loadMobs(sr skills.Registry, fr factions.Registry, c curve.Curve, fsys fs.F
 	sort.Sort(mobs.ByID(mobList))
 	for _, m := range mobList {
 		slog.Debug(fmt.Sprintf("%3d: %s (%s)", m.ID, m.Name, m.Type))
+		// A live mob referencing legacy-tagged content means the tag went
+		// stale — untag the content or retire the reference (step-7 A.5).
+		if len(m.LegacyRefs) > 0 {
+			slog.Warn("live mob references legacy-tagged content",
+				slog.String("mob", m.Name),
+				slog.String("refs", strings.Join(m.LegacyRefs, ", ")))
+		}
 	}
 	return registry
 }
@@ -202,6 +209,13 @@ func loadZone(fsys fs.FS, name string, mr mobs.Registry, pr world.PropRegistry, 
 		slog.Float64("height", float64(zone.Bounds.Height)),
 		slog.Int("props", len(zone.Props)),
 		slog.Int("spawns", len(zone.Spawns)))
+	// A live zone referencing legacy-tagged content means the tag went stale —
+	// untag the content or retire the reference (step-7 A.5).
+	if len(zone.LegacyRefs) > 0 {
+		slog.Warn("live zone references legacy-tagged content",
+			slog.String("zone", zone.ID),
+			slog.String("refs", strings.Join(zone.LegacyRefs, ", ")))
+	}
 	return zone
 }
 

@@ -460,6 +460,117 @@ func testFactionRegistry(t *testing.T) factions.Registry {
 	return fr
 }
 
+// --- legacy tag (step-7 A.5) ---
+
+func TestMapMobDefinition_LegacyTagParsed(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "legacy": true,
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
+	require.NoError(t, err)
+	assert.True(t, def.Legacy)
+}
+
+func TestMapMobDefinition_AbsentLegacyTagDefaultsToLive(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Wolf",
+	  "type": "MOB",
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
+	require.NoError(t, err)
+	assert.False(t, def.Legacy)
+	assert.Empty(t, def.LegacyRefs)
+}
+
+// legacyLeakFixtures builds a registry pair where skill "DodoAura" and faction
+// "predator" are legacy-tagged, "WolfBite"/"prey" are live.
+func legacyLeakFixtures(t *testing.T) (skills.Registry, factions.Registry) {
+	t.Helper()
+	sr, err := skills.RegistryFromFS(fstest.MapFS{
+		"dodo-aura.json": {Data: []byte(`{
+		  "id": 101, "name": "DodoAura", "category": "active_aura", "maxLevel": 5, "legacy": true,
+		  "effects": [{"type": "damage_aura", "radius": 0.6, "damageHP": 2, "targetsEnemies": true}]
+		}`)},
+		"wolf-bite.json": {Data: []byte(`{
+		  "id": 102, "name": "WolfBite", "category": "active_aura", "maxLevel": 5,
+		  "effects": [{"type": "damage_aura", "radius": 0.6, "damageHP": 2, "targetsEnemies": true}]
+		}`)},
+	})
+	require.NoError(t, err)
+	fr, err := factions.RegistryFromFS(fstest.MapFS{
+		"predator.json": {Data: []byte(`{"name": "predator", "hostileTo": ["aligned", "prey"], "legacy": true}`)},
+		"prey.json":     {Data: []byte(`{"name": "prey", "hostileTo": []}`)},
+	})
+	require.NoError(t, err)
+	return sr, fr
+}
+
+func TestMapMobDefinition_LiveMobCollectsLegacyRefs(t *testing.T) {
+	// A live (untagged) mob referencing legacy-tagged content is an authoring
+	// smell — mapping collects the offending names so the boot loader can warn
+	// (the tag would otherwise silently go stale, step-7 A.5).
+	sr, fr := legacyLeakFixtures(t)
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Wolf",
+	  "type": "MOB",
+	  "faction": "predator",
+	  "body": {"radius": 0.2, "aggroRadius": 2.4},
+	  "skills": [{"skillName": "DodoAura"}],
+	  "unlocks": [{"skillName": "DodoAura", "chance": 0.5}]
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(sr, fr, testCurve())
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"skill DodoAura", "unlock DodoAura", "faction predator"}, def.LegacyRefs)
+}
+
+func TestMapMobDefinition_LegacyMobMayReferenceLegacyContent(t *testing.T) {
+	sr, fr := legacyLeakFixtures(t)
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "legacy": true,
+	  "faction": "predator",
+	  "body": {"radius": 0.2, "aggroRadius": 2.4},
+	  "skills": [{"skillName": "DodoAura"}]
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(sr, fr, testCurve())
+	require.NoError(t, err)
+	assert.Empty(t, def.LegacyRefs, "legacy referencing legacy is the expected shape")
+}
+
+func TestMapMobDefinition_LiveRefsCollectNothing(t *testing.T) {
+	sr, fr := legacyLeakFixtures(t)
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Wolf",
+	  "type": "MOB",
+	  "faction": "prey",
+	  "body": {"radius": 0.2, "aggroRadius": 2.4},
+	  "skills": [{"skillName": "WolfBite"}]
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(sr, fr, testCurve())
+	require.NoError(t, err)
+	assert.Empty(t, def.LegacyRefs)
+}
+
 func TestMapMobDefinition_ResolvesFaction(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,

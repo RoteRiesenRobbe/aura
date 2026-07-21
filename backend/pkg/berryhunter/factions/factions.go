@@ -52,6 +52,10 @@ type Definition struct {
 	ID                Faction
 	AggroMask         uint64
 	FriendlyToPlayers bool
+
+	// Legacy marks proving-grounds-only factions (step-7 A.5): kept for the
+	// legacy zone and tests, never used by live-world species.
+	Legacy bool
 }
 
 // Registry resolves faction names to their definitions.
@@ -91,6 +95,7 @@ type factionDoc struct {
 	Name              string    `json:"name"`
 	HostileTo         *[]string `json:"hostileTo"`
 	FriendlyToPlayers bool      `json:"friendlyToPlayers"`
+	Legacy            bool      `json:"legacy"` // absent → live content (step-7 A.5)
 }
 
 // RegistryFromFS walks fileSystem for *.json faction definitions. Curated
@@ -151,6 +156,7 @@ func RegistryFromFS(fileSystem fs.FS) (Registry, error) {
 			Name:              name,
 			ID:                firstContentID + Faction(i),
 			FriendlyToPlayers: docs[name].FriendlyToPlayers,
+			Legacy:            docs[name].Legacy,
 		}
 	}
 	for _, name := range names {

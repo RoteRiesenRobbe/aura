@@ -1,5 +1,6 @@
 {
   "_comment": "Passive grazers: never proactively aggro anyone, retaliate/flee when hit — [PLACEHOLDER] chunk-6.6 smoke content",
   "name": "prey",
+  "legacy": true,
   "hostileTo": []
 }

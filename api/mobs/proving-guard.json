@@ -2,6 +2,7 @@
   "_comment": "Encounter-controller chunk 9 THROWAWAY smoke content: one of the three arena guards whose deaths lift the ProvingBoss's immunity (respawned on an encounter-owned timer). entityType reuses the SaberToothCat sprite; default-hostile faction. All values [PLACEHOLDER].",
   "id": 11,
   "name": "ProvingGuard",
+  "legacy": true,
   "type": "MOB",
   "tier": "normal",
   "curveLevel": 1,

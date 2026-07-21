@@ -90,6 +90,24 @@ func TestRegistryFromFS_FriendlyToPlayersHostileToAlignedFails(t *testing.T) {
 	require.ErrorContains(t, err, "friendlyToPlayers")
 }
 
+// --- legacy tag (step-7 A.5) ---
+
+func TestRegistryFromFS_LegacyTagParsed(t *testing.T) {
+	r, err := RegistryFromFS(factionFS(map[string]string{
+		"tusker.json": `{"name": "tusker", "hostileTo": [], "legacy": true}`,
+		"kobold.json": `{"name": "kobold", "hostileTo": []}`,
+	}))
+	require.NoError(t, err)
+
+	tusker, err := r.GetByName("tusker")
+	require.NoError(t, err)
+	assert.True(t, tusker.Legacy)
+
+	kobold, err := r.GetByName("kobold")
+	require.NoError(t, err)
+	assert.False(t, kobold.Legacy, "absent = live content, the normal case")
+}
+
 func TestRegistryFromFS_MissingHostileToFails(t *testing.T) {
 	_, err := RegistryFromFS(factionFS(map[string]string{
 		"vague.json": `{"name": "vague"}`,

@@ -1,6 +1,7 @@
 {
   "id": 3,
   "name": "SaberToothCat",
+  "legacy": true,
   "type": "MOB",
   "faction": "predator",
   "tier": "normal",

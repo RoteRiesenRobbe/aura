@@ -192,6 +192,7 @@ type Anchor struct {
 // dark areas + npcs + anchors).
 type Zone struct {
 	Name      string           `json:"name"`
+	Legacy    bool             `json:"legacy"` // proving-grounds-style legacy zone (step-7 A.5)
 	Bounds    Bounds           `json:"bounds"`
 	Terrain   []TerrainTexture `json:"terrain"`
 	Props     []Prop           `json:"props"`
@@ -206,6 +207,12 @@ type Zone struct {
 	// Not part of the JSON; set at load time. Distinct from Name, which is a
 	// human-readable label that may differ.
 	ID string `json:"-"`
+
+	// LegacyRefs lists legacy-tagged content a LIVE zone references (spawn
+	// mobs, NPC teaching skills; distinct names) — an authoring smell the boot
+	// loader warns about (step-7 A.5). Always empty on legacy zones. Filled
+	// by resolve, not part of the JSON.
+	LegacyRefs []string `json:"-"`
 }
 
 // LoadZoneFS loads the zone selected by name (its file stem, e.g. "scaffold"
@@ -396,11 +403,30 @@ func (z *Zone) AnchorPos(name string) (x, y float32, ok bool) {
 // resolve binds each spawn's mob name, each prop's type name, and each NPC
 // teaching's skill name to their definitions.
 func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry, sr skills.Registry) error {
+	// Legacy-leak collection (step-7 A.5): a live zone pointing at
+	// legacy-tagged content means the tag went stale — the boot loader warns.
+	// Distinct names only; a legacy zone referencing legacy content is its
+	// expected shape and collects nothing.
+	legacySeen := map[string]bool{}
+	noteLegacy := func(kind, name string) {
+		if z.Legacy {
+			return
+		}
+		ref := kind + " " + name
+		if !legacySeen[ref] {
+			legacySeen[ref] = true
+			z.LegacyRefs = append(z.LegacyRefs, ref)
+		}
+	}
+
 	for i := range z.Spawns {
 		s := &z.Spawns[i]
 		def, err := mr.GetByName(s.Mob)
 		if err != nil {
 			return fmt.Errorf("spawn %d: unknown mob %q", i, s.Mob)
+		}
+		if def.Legacy {
+			noteLegacy("mob", def.Name)
 		}
 		// Speed needs the resolved definition, so this check can't live in
 		// validate(): a mob that cannot walk cannot wander or patrol. (A
@@ -447,6 +473,9 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry, sr skills.Registry) er
 			def, err := sr.GetByName(t.Skill)
 			if err != nil {
 				return fmt.Errorf("npc %d teaching %d: unknown skill %q", i, j, t.Skill)
+			}
+			if def.Legacy {
+				noteLegacy("skill", def.Name)
 			}
 			t.Def = def
 		}

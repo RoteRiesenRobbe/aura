@@ -2,6 +2,7 @@
   "_comment": "Boss aura (Phase 6.3): level-1 values are the 1:1 migration of the legacy AngryMammoth; per-level scaling makes the boss designation a pure mob-JSON level knob. All values [PLACEHOLDER]. NOTE: the frontend ring size is a GraphicsConfig constant (angryMammoth.damageAuraRadiusMeters) — keep it in sync with the effective radius at the equipped level.",
   "id": 104,
   "name": "AngryMammothAura",
+  "legacy": true,
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

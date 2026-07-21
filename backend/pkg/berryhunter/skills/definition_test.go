@@ -107,6 +107,29 @@ func TestParse_DamageAura(t *testing.T) {
 	assert.True(t, e.TargetsEnemies)
 	assert.False(t, e.TargetsAllies)
 	assert.Equal(t, 1, e.TickInterval) // absent in JSON → normalized to default 1
+	assert.False(t, def.Legacy)        // absent → live content
+}
+
+// Legacy tag (step-7 A.5, plan-rebrand-cleanup.md §4): proving-grounds-only
+// defs carry "legacy": true so the live world can warn on references to them.
+func TestParse_LegacyTag(t *testing.T) {
+	var legacyJSON = []byte(`{
+	  "id": 3,
+	  "name": "DodoAura",
+	  "category": "active_aura",
+	  "maxLevel": 1,
+	  "legacy": true,
+	  "effects": [
+	    {
+	      "type": "damage_aura",
+	      "radius": 1.0,
+	      "damageHP": 0.001,
+	      "targetsEnemies": true
+	    }
+	  ]
+	}`)
+	def := mustParse(t, legacyJSON)
+	assert.True(t, def.Legacy)
 }
 
 // Mob aura shape: structure damage + structure targeting (Phase 6). Values

@@ -106,6 +106,64 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	assert.NotZero(t, patrollers, "proving-grounds should exercise route patrol")
 }
 
+// TestDiskContent_LegacyTagging pins the step-7 A.5 legacy separation against
+// the real repo content: the proving-grounds-only set is tagged (re-traced
+// 2026-07-21 — the item-12 audit's "5 player skills / 6 mob skills" was stale;
+// all 5 player skills and HealerAura are world-reachable via drops/teachings/
+// summons and stay live), and no live content references a legacy def.
+func TestDiskContent_LegacyTagging(t *testing.T) {
+	content, err := diskContent("../../../api")
+	require.NoError(t, err)
+
+	skillsRegistry, err := skills.RegistryFromFS(content.skills)
+	require.NoError(t, err)
+	factionsRegistry, err := factions.RegistryFromFS(content.factions)
+	require.NoError(t, err)
+	mobsRegistry, err := mobs.RegistryFromFS(skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
+	require.NoError(t, err)
+	propsRegistry, err := world.PropRegistryFromFS(content.props)
+	require.NoError(t, err)
+
+	var legacySkills, legacyFactions, legacyMobs []string
+	for _, s := range skillsRegistry.All() {
+		if s.Legacy {
+			legacySkills = append(legacySkills, s.Name)
+		}
+	}
+	for _, f := range factionsRegistry.All() {
+		if f.Legacy {
+			legacyFactions = append(legacyFactions, f.Name)
+		}
+	}
+	for _, m := range mobsRegistry.Mobs() {
+		if m.Legacy {
+			legacyMobs = append(legacyMobs, m.Name)
+		}
+		assert.Empty(t, m.LegacyRefs, "live mob %q must not reference legacy content", m.Name)
+	}
+
+	assert.ElementsMatch(t, []string{
+		"MammothAura", "AngryMammothAura", "AngryMammothStomp", "SaberToothCatAura", "DodoAura",
+	}, legacySkills)
+	assert.ElementsMatch(t, []string{"predator", "prey", "tusker"}, legacyFactions)
+	assert.ElementsMatch(t, []string{
+		"Mammoth", "AngryMammoth", "SaberToothCat", "Dodo", "Rabbit",
+		"Healer", "Brazier", "ProvingAdd", "ProvingBoss", "ProvingGuard",
+	}, legacyMobs)
+
+	// The live world must stay legacy-free; proving-grounds is the tagged
+	// legacy home and therefore warns about nothing.
+	worldZone, err := world.LoadZoneFS(content.zones, "world", mobsRegistry, propsRegistry, skillsRegistry)
+	require.NoError(t, err)
+	assert.False(t, worldZone.Legacy)
+	assert.Empty(t, worldZone.LegacyRefs, "the live world must not reference legacy content")
+
+	pgZone, err := world.LoadZoneFS(content.zones, "proving-grounds", mobsRegistry, propsRegistry, skillsRegistry)
+	require.NoError(t, err)
+	assert.True(t, pgZone.Legacy)
+	assert.Empty(t, pgZone.LegacyRefs)
+}
+
 // TestDiskContent_MissingSubdirFails pins the loud-failure contract: a
 // -content dir without the api/ layout must error at startup, not surface as
 // an empty registry later.

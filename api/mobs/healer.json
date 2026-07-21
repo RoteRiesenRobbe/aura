@@ -2,6 +2,7 @@
   "_comment": "Mob-depth chunk 8 placeholder content: a support mob (seek-healer). Its primary aura is a heal aura, so it acquires the most-wounded same-faction ally in aggro range and moves to heal it — its heal ring gates on/off with that acquisition, exactly like a damage mob reacting to a player. Predator faction: it heals wounded SaberToothCats. It has NO damage aura — it never attacks, only heals (and never retaliates/flees), so kill it to stop the healing. Speed 0.6, aggroRadius 6 (senses the whole cat frontline). All values [PLACEHOLDER].",
   "id": 9,
   "name": "Healer",
+  "legacy": true,
   "type": "MOB",
   "faction": "predator",
   "tier": "normal",

@@ -593,6 +593,11 @@ type SkillDefinition struct {
 	Category SkillCategory
 	MaxLevel int
 
+	// Legacy marks proving-grounds-only content (step-7 A.5): kept for the
+	// legacy zone, sim presets and tests, but never referenced by the live
+	// world — loaders warn when live content points at a legacy def.
+	Legacy bool
+
 	// Zero for non-cooldown skills.
 	CooldownTicks         int
 	CooldownTicksPerLevel int
@@ -701,6 +706,7 @@ type skillDefinition struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`
 	MaxLevel int    `json:"maxLevel"`
+	Legacy   bool   `json:"legacy"` // absent → live content (step-7 A.5)
 
 	CooldownTicks         int `json:"cooldownTicks"`
 	CooldownTicksPerLevel int `json:"cooldownTicksPerLevel"`
@@ -884,6 +890,7 @@ func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
 		Name:                    s.Name,
 		Category:                category,
 		MaxLevel:                s.MaxLevel,
+		Legacy:                  s.Legacy,
 		CooldownTicks:           s.CooldownTicks,
 		CooldownTicksPerLevel:   s.CooldownTicksPerLevel,
 		CastTicks:               s.CastTicks,

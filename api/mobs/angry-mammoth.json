@@ -1,6 +1,7 @@
 {
   "id": 4,
   "name": "AngryMammoth",
+  "legacy": true,
   "type": "MOB",
   "tier": "elite",
   "curveLevel": 1,

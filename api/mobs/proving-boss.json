@@ -2,6 +2,7 @@
   "_comment": "Encounter-controller chunk 9 THROWAWAY smoke content: the proving-grounds arena boss, driven entirely by the SmokeEncounter script (invulnerable while its guards live, scripted flee at half HP). entityType reuses the AngryMammoth sprite — no wire/frontend change. Default-hostile faction (no faction key) so roaming predators/tuskers ignore the arena. No fleeBelowHealthRatio: flee is scripted only. All values [PLACEHOLDER].",
   "id": 10,
   "name": "ProvingBoss",
+  "legacy": true,
   "type": "MOB",
   "tier": "boss",
   "curveLevel": 1,

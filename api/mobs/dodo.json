@@ -1,6 +1,7 @@
 {
   "id": 1,
   "name": "Dodo",
+  "legacy": true,
   "type": "MOB",
   "faction": "prey",
   "tier": "normal",

@@ -235,6 +235,73 @@ func TestZone_AllowsResourceBackedNpcEntityType(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// --- legacy tag (step-7 A.5) ---
+
+// legacyZoneFixtures: mob "Mammoth" and skill "ReviveOld" are legacy-tagged,
+// "Wolf"/"Heal" are live.
+func legacyZoneFixtures() (*fakeMobRegistry, *fakeSkillRegistry) {
+	mr := newFakeMobRegistry("Mammoth", "Wolf")
+	mr.byName["Mammoth"].Legacy = true
+	sr := newFakeSkillRegistry("ReviveOld", "Heal")
+	sr.byName["ReviveOld"].Legacy = true
+	return mr, sr
+}
+
+func TestZone_CollectsLegacyRefs(t *testing.T) {
+	// A live zone referencing legacy-tagged content is an authoring smell —
+	// resolve aggregates the distinct offenders so the boot loader can warn.
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"spawns": [
+			{ "mob": "Mammoth", "x": 1, "y": 1 },
+			{ "mob": "Mammoth", "x": 2, "y": 2 },
+			{ "mob": "Wolf", "x": 3, "y": 3 }
+		],
+		"npcs": [ { "type": "Hermit", "x": 0, "y": 0, "radius": 2,
+		            "tooLowLine": "not yet",
+		            "teachings": [
+		              { "skill": "ReviveOld", "requiredLevel": 1, "line": "learn" },
+		              { "skill": "Heal", "requiredLevel": 1, "line": "learn" }
+		            ] } ]
+	}`
+
+	mr, sr := legacyZoneFixtures()
+	z, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry(), sr)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"mob Mammoth", "skill ReviveOld"}, z.LegacyRefs,
+		"distinct names, duplicates collapsed")
+}
+
+func TestZone_LegacyZoneMayReferenceLegacyContent(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"legacy": true,
+		"bounds": { "width": 60, "height": 40 },
+		"spawns": [ { "mob": "Mammoth", "x": 1, "y": 1 } ]
+	}`
+
+	mr, sr := legacyZoneFixtures()
+	z, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry(), sr)
+	require.NoError(t, err)
+	assert.True(t, z.Legacy)
+	assert.Empty(t, z.LegacyRefs, "legacy referencing legacy is the expected shape")
+}
+
+func TestZone_LiveRefsCollectNothing(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"spawns": [ { "mob": "Wolf", "x": 3, "y": 3 } ]
+	}`
+
+	mr, sr := legacyZoneFixtures()
+	z, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry(), sr)
+	require.NoError(t, err)
+	assert.False(t, z.Legacy)
+	assert.Empty(t, z.LegacyRefs)
+}
+
 func TestZone_RejectsUnknownCampfireKey(t *testing.T) {
 	const doc = `{
 		"name": "X",

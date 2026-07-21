@@ -138,6 +138,14 @@ type MobDefinition struct {
 	CurveLevel int
 	PowerScale float32
 
+	// Legacy marks proving-grounds-only species (step-7 A.5): kept for the
+	// legacy zone, sim presets and tests, never spawned by the live world.
+	// LegacyRefs lists legacy-tagged content a LIVE mob references (skills,
+	// unlocks, faction) — an authoring smell the boot loader warns about;
+	// always empty on legacy mobs (legacy referencing legacy is expected).
+	Legacy     bool
+	LegacyRefs []string
+
 	Factors Factors
 	Body    Body
 	Skills  []MobSkill
@@ -164,6 +172,7 @@ type mobDefinition struct {
 	Faction    string `json:"faction"`    // absent → the built-in hostile default
 	Tier       string `json:"tier"`       // absent → "normal" (label only, C0)
 	CurveLevel int    `json:"curveLevel"` // absent → 1 (baseline, f = 1)
+	Legacy     bool   `json:"legacy"`     // absent → live content (step-7 A.5)
 
 	Factors struct {
 		// BaseMaxHealth is the tier+baseline authoring value (C0): the HP
@@ -297,6 +306,9 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	faction := factions.Hostile
 	aggroMask := factions.Bit(factions.Aligned)
 	friendlyToPlayers := false
+	// Legacy-leak collection (step-7 A.5): a live mob pointing at
+	// legacy-tagged content means the tag went stale — the boot loader warns.
+	var legacyRefs []string
 	if m.Faction != "" {
 		if m.Faction == "aligned" {
 			return nil, fmt.Errorf("mob %q: faction \"aligned\" is summon-only and cannot be authored", m.Name)
@@ -311,6 +323,9 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		faction = f.ID
 		aggroMask = f.AggroMask
 		friendlyToPlayers = f.FriendlyToPlayers
+		if f.Legacy && !m.Legacy {
+			legacyRefs = append(legacyRefs, "faction "+f.Name)
+		}
 	}
 
 	mob := &MobDefinition{
@@ -324,6 +339,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		Tier:              tier,
 		CurveLevel:        curveLevel,
 		PowerScale:        float32(powerScale),
+		Legacy:            m.Legacy,
 		Factors: Factors{
 			MaxHealth:            uint32(math.Round(float64(m.Factors.BaseMaxHealth) * powerScale)),
 			MaxHealthVariance:    m.Factors.MaxHealthVariance,
@@ -356,6 +372,9 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		if level < 1 {
 			level = 1
 		}
+		if def.Legacy && !m.Legacy {
+			legacyRefs = append(legacyRefs, "skill "+def.Name)
+		}
 		mob.Skills = append(mob.Skills, MobSkill{Def: def, Level: level})
 	}
 
@@ -372,8 +391,12 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		if chance <= 0 || chance > 1 {
 			return nil, fmt.Errorf("mob %q: unlock %q chance %f must be in (0, 1]", m.Name, u.SkillName, chance)
 		}
+		if def.Legacy && !m.Legacy {
+			legacyRefs = append(legacyRefs, "unlock "+def.Name)
+		}
 		mob.Unlocks = append(mob.Unlocks, MobUnlock{Skill: def, Chance: chance})
 	}
 
+	mob.LegacyRefs = legacyRefs
 	return mob, nil
 }

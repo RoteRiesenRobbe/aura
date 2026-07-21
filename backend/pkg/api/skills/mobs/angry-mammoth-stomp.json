@@ -1,6 +1,7 @@
 {
   "id": 105,
   "name": "AngryMammothStomp",
+  "legacy": true,
   "category": "cooldown",
   "maxLevel": 1,
   "cooldownTicks": 450,

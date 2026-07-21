@@ -1,5 +1,6 @@
 {
   "name": "Proving Grounds",
+  "legacy": true,
   "bounds": {
     "width": 120,
     "height": 80

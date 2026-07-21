@@ -2,6 +2,7 @@
   "_comment": "1:1 migration of Mammoth body.damageRadius/factors.damageFraction (Phase 6.1) — all values [PLACEHOLDER]",
   "id": 103,
   "name": "MammothAura",
+  "legacy": true,
   "category": "active_aura",
   "maxLevel": 5,
   "effects": [

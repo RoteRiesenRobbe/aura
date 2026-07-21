@@ -2,6 +2,7 @@
   "_comment": "Mob-depth chunk 2 smoke content: the cowardly critter — chases and nips like a Dodo while healthy, flees its aggro target once below half health (factors.fleeBelowHealthRatio). Speed 0.8 → 0.044/tick, deliberately just under the player's 0.05/tick so a fleeing rabbit stays catchable. All values [PLACEHOLDER].",
   "id": 6,
   "name": "Rabbit",
+  "legacy": true,
   "type": "MOB",
   "faction": "prey",
   "tier": "normal",
