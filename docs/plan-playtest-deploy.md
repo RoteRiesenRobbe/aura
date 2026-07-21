@@ -96,7 +96,7 @@ part of this.
 
 ## Status
 
-- **DEPLOYED + LIVE + PO-VERIFIED 2026-07-21:** `https://aura-game.duckdns.org/`
+- **DEPLOYED + LIVE + PO-VERIFIED 2026-07-21, `a7a2267d`:** `https://aura-game.duckdns.org/`
   (Hetzner CX23 `159.69.148.73`, systemd `aurad`, LE cert, `-content ./api`).
   §A–§D complete: machine checks green incl. live Playwright join smoke, PO
   played live ("hat alles geklappt, wir können spielen").
