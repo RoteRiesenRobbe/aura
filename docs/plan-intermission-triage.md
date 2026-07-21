@@ -777,7 +777,7 @@ campfire glow intact, mobs/NPCs uniformly tinted); boot counts unchanged
 ## Wolf-line drop reshuffle + milestone trim (ad-hoc session, 2026-07-21)
 
 **Balance/content tuning session — DONE 2026-07-21, PO-driven in-session,
-committed `0ef4b738`.** Not a planned chunk: PO was playtesting, found
+committed `f9a64db5`.** Not a planned chunk: PO was playtesting, found
 the four-wolf drop set confusing, and retuned it live alongside a manual
 zone-editor density pass.
 
