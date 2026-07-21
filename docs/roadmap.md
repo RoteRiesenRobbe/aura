@@ -923,15 +923,19 @@ system ships blind.
    exist — the gap is a sound registry + asset load and the trigger hooks off
    ability/hit/death events, not new infrastructure. The location-music half stays
    at step 8.
-7. **Rebrand to Aura & Berryhunter cleanup** (`plan-rebrand-cleanup.md`) —
-   dead-feature removal (rating popup, survival/item scaffolding; the
-   **scoreboard was pulled forward and removed 2026-07-08**, the **chieftain
-   service likewise deleted 2026-07-09**),
-   then the structural rename in one atomic commit (Go module + `pkg/berryhunter`
-   dir + `berryhunterd` binary + `BerryhunterApi` FlatBuffers namespace) +
-   branding. Sits here because the content pass (step 6) has just replaced the
-   legacy mobs/sprites/enums ("rename once"), and everything must be final
-   before ops tooling (step 9) hardcodes names.
+7. ✅ **Rebrand to Aura & Berryhunter cleanup** (`plan-rebrand-cleanup.md`) —
+   **COMPLETE 2026-07-21.** Dead-feature removal (scoreboard pulled forward
+   2026-07-08, chieftain deleted 2026-07-09, A.4 scaffolding prune
+   `93fba97e`; A.2 rating delete **cancelled** — Kringel Games links stay),
+   legacy tagging (A.5 `d1acf28d`), bare skill names (A.6 `24806352`), then
+   the structural rename + branding in one atomic commit **`aa509d95`**:
+   module `github.com/RoteRiesenRobbe/aura`, `pkg/aura/` dir, `aurad`
+   binary, `AuraApi` FlatBuffers namespace, title "Aura". Sat here because
+   the content pass (step 6) had just replaced the legacy
+   mobs/sprites/enums ("rename once"), and everything must be final before
+   ops tooling (step 9) hardcodes names — which it now is. Residual PO
+   calls: replacement art (mascot/splash/favicon), wiki-generator
+   keep-or-delete, domain (berryhunter.io URLs kept meanwhile).
 8. **Accounts & persistence** (item 3) **+ UI polish / avatar / audio** (item 8) —
    deliberately **after** content: the game proves out session-based first, then
    we invest in persistence, the anonymous-first account service (built fresh —

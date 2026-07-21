@@ -25,7 +25,7 @@ status. CLAUDE.md carries only a two-line pointer to the last-completed and next
 - **plan-world-zones.md** — world & zones first slice (roadmap item 4 + placement/respawn half of item 7): in-game editor, rectangular single-Space world, server-authoritative zone.json; decisions A–D + six-chunk plan + pitfalls
 - **plan-mob-depth.md** — mob depth & totems (execution step 2): 9-chunk plan + records (totem → flee → aggro/threat → steering → patrol → companion → taunt → support mobs → encounter-controller spine); decisions in §1.3/§3.1; open ⚑ in §6
 - **plan-atmosphere-recovery.md** — atmosphere & recovery (execution step 3): 4-chunk plan (regen combat gate → campfires → darkness & light → death state + campfire respawn); decisions, recon anchors in §2, gotchas in §4, open ⚑ in §6
-- **plan-rebrand-cleanup.md** — rebrand to "Aura" + Berryhunter cleanup: phased plan, scheduled as execution-order step 7; chieftain-deletion decision
+- **plan-rebrand-cleanup.md** — rebrand to "Aura" + Berryhunter cleanup: phased plan, executed as step 7 (complete 2026-07-21, `aa509d95`); chieftain-deletion decision
 - **plan-content-zones12.md** — content pass (step 6) working plan for Zones 1+2: code-verified capability baseline, geography/story/mob/ability plan, required code lifts, systems-coverage table, Front-Aura + Ork-boss tickets (§A/§B), execution chunks C0–C8 (§13)
 
 ## Content (catalogs + zone design intent)

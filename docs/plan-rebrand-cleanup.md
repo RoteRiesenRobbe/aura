@@ -289,6 +289,51 @@ cheapest it will ever be). Sync `Skills.ts` display names in the same pass.
 
 ## 5. Phase B — structural rename (one atomic commit)
 
+> **✅ EXECUTED 2026-07-21 (with Phase C, one atomic commit) — PO-VERIFIED
+> IN-GAME, committed `aa509d95`.** **Naming set (PO choice prompt at session
+> start):** module path **`github.com/RoteRiesenRobbe/aura`** (matches the
+> origin remote), package dir **`pkg/aura/`**, binary **`aurad`** in
+> **`cmd/aurad/`** (entrypoint file `aurad.go`), FB namespace **`AuraApi`**,
+> title **"Aura"** (PO corrected from Aura.io mid-prompt). **Go:** module
+> path swept across all import sites (two-step sed: `…/pkg/berryhunter` →
+> `…/pkg/aura` first, then the bare module path), dirs git-mv'd; stale
+> path/binary comments updated; found in the final sweep: env var
+> `BERRYHUNTERD_CONF` → **`AURAD_CONF`** (loaders.go) and the Welcome
+> `ServerName` → `"Aura [Alpha] rza, n1b, xyckno & co."`. **FlatBuffers:**
+> namespace `AuraApi` in all 3 schemas, wrapper `berryhunter.fbs` →
+> `aura.fbs`; Go bindings regenerated to `pkg/api/AuraApi/` (30 files, via
+> the vendored flatc + `make gen` re-download path both verified), TS to
+> `api/schema/js/aura-api/`; frontend barrel `AuraApi.ts` + 15 importers;
+> `flatcgen.go` clean-glob + `api/schema/.gitignore` updated. **Build/
+> deploy:** backend Makefile targets `aurad.*`; root Makefile's dead docker
+> machinery (`berryhunter-web`/`berryhunter-edge` — no `Dockerfile.*` exist)
+> deleted; **12 dead root scripts deleted** (verified dead first:
+> `start.bat`/`build.bat` referenced A.3-deleted chieftaind, `docker-*`/
+> `up.*` referenced nonexistent Dockerfile/compose/, `update.sh` a
+> nonexistent `./berryhunterd/` dir); goreleaser binary/main + CI artifact
+> renamed (CI builds from committed bindings — no gen step there);
+> `devops/aurad.service` (`/opt/aurad`); `.gitignore`. **Additional
+> touchpoints landed:** the 4 live project skills, living docs (manuals,
+> gdd, tdd, roadmap, backlog, content-*) operational paths, CLAUDE.md body
+> (rename rule retired). **Kept by design:** berryhunter.io domain URLs
+> (`Urls.ts` localhost fallback, `BasicConfig` REMOTE_URL, ACME email,
+> devops tlsHost, webpack developerURL — no replacement domain exists yet),
+> Kringel social/rating links (A.2 ruling), historical plan/archive docs +
+> changelog records, `hunter.png`/`loadingScreen.jpg`/`logo.svg` art (PO
+> art call — PO given the file paths for drop-in replacement),
+> **wiki-generator/ (dormant, unaudited — open PO keep-or-delete call)**.
+> **Verified:** full suite `-count=1` green (29 pkgs), `make -C backend
+> build` clean end-to-end (flatcgen → cp-defs → `aurad`), boot world **and**
+> proving-grounds 0 warnings with counts unchanged (78 skills/13 factions/
+> 47 mobs/10 recipes/856 props/349 spawns/5 campfires/14 npcs, 0 panics),
+> `tsc --noEmit` + webpack prod clean, headless Playwright smoke (join,
+> move, HUD alive, tab title + `<h1>` = "Aura", 0 console errors), PO
+> played in-game. **Watch items:** the webpack **dev server must be
+> restarted** for webpack.common.js config changes (tab title stayed
+> "BerryHunter" on port 2001 until restart — HMR does not cover config);
+> one dev-server death mid-PO-test was the known pre-existing
+> `Overload! Systems at: 169%` issue, not a rename regression.
+
 - Go module `github.com/trichner/berryhunter` → new module path (119 files
   carry the import path, count 2026-07-21).
 - `backend/pkg/berryhunter/` → new package dir; `cmd/berryhunterd` → new
@@ -341,9 +386,12 @@ rule); estimated 1–2 execution sessions:
 4. **A.6** bare-name skill renames — **✅ 2026-07-21 `24806352`** (11
    renames incl. Heal→FirstAid collision fix + `Skills.ts` sync; PO picks
    Damage + FirstAid — see the §4 A.6 banner).
-5. **B + C** structural rename + branding (incl. the title-screen `<h1>` —
-   §6), one atomic commit, naming set decided at its start (choice prompt:
-   module path / binary / namespace). **← NEXT (Phase A complete).**
+5. **B + C** structural rename + branding — **✅ 2026-07-21 `aa509d95`**
+   (one atomic commit; naming set `RoteRiesenRobbe/aura` / `pkg/aura` /
+   `aurad` / `AuraApi` / title "Aura" — see the §5 banner). **Plan
+   complete** (A.2 cancelled, A.1/A.3 pulled forward, A.4–A.6 + B+C
+   executed). Residual: art assets + wiki-generator = open PO calls;
+   berryhunter.io URLs await a domain decision.
 
 ## 7. Timing rationale (why step 7)
 
