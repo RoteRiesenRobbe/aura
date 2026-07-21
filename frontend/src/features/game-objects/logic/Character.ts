@@ -11,7 +11,9 @@ import {IGame} from '../../core/logic/IGame';
 import {
     CharacterMoved,
     GameSetupEvent,
+    ISubscriptionToken,
     PlayerMoved,
+    PrerenderEvent,
 } from '../../core/logic/Events';
 import {ICharacterLike} from './ICharacter';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
@@ -52,6 +54,11 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     // Bare tick indicator (skill-vocab chunk 6): a dot orbiting the aura ring
     // once per effective tick interval, so the beat is visible.
     private auraTickIndicator: AuraTickIndicator = null;
+    // Name + level + HP/shield bar live on this world-space plate in the
+    // unfiltered namePlates overlay (not on `shape`), so they stay readable
+    // under the night tint — the chat-bubble follow pattern (GameObject.say).
+    private plate: Container = null;
+    private plateSubToken: ISubscriptionToken = null;
 
     constructor(id: number, x: number, y: number, name: string, isPlayerCharacter: boolean) {
         super(id, Game.layers.characters, x, y, GraphicsConfig.character.size, Character.DOWNWARD_FACING_ROTATION, Character.avatar.svg);
@@ -67,9 +74,21 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         // No ring until the first server state arrives (active_skill_id drives it).
         this.setActiveSkill(0);
 
+        this.plate = createNamedContainer('characterPlate');
+        this.plate.position.copyFrom(this.shape.position);
+        Game.layers.characterAdditions.namePlates.addChild(this.plate);
+        this.plateSubToken = PrerenderEvent.subscribe(this.updatePlate, this);
+
         this.initHealthBar();
         this.createName();
         this.setLevel(1);
+    }
+
+    // Per-frame: glue the plate to the (interpolated) character position.
+    // Runs after the movement interpolation — GameObject.setup subscribed
+    // that before any Character exists.
+    private updatePlate() {
+        this.plate.position.copyFrom(this.shape.position);
     }
 
     initShape(svg: Texture, x: number, y: number, size: number, rotation: number) {
@@ -137,7 +156,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
             }),
         });
         text.anchor.set(0.5, 0.5);
-        this.shape.addChild(text);
+        this.plate.addChild(text);
         text.position.set(0, -1.3 * this.size);
         this.nameElement = text;
     }
@@ -158,7 +177,7 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
                 }),
             });
             text.anchor.set(0.5, 0.5);
-            this.shape.addChild(text);
+            this.plate.addChild(text);
             text.position.set(0.72 * this.size, 0.72 * this.size);
             this.levelElement = text;
             return;
@@ -288,8 +307,23 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         this.shieldFillGroup.visible = false;
         bar.addChild(this.shieldFillGroup);
 
-        this.shape.addChild(bar);
+        this.plate.addChild(bar);
         this.setHealth(1, 1); // full until the first snapshot
+    }
+
+    // hide() is terminal for a Character (viewport removal / death both build
+    // a fresh instance on return) — release the overlay plate with it.
+    override hide() {
+        super.hide();
+        if (this.plateSubToken !== null) {
+            this.plateSubToken.unsubscribe();
+            this.plateSubToken = null;
+        }
+        if (this.plate !== null) {
+            this.plate.parent?.removeChild(this.plate);
+            this.plate.destroy({children: true});
+            this.plate = null;
+        }
     }
 
     override onMove(): void {

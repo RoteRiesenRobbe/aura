@@ -196,6 +196,12 @@ export class Game implements IGame {
             // set — dark areas are dark independent of the cycle (§6.5).
             darkness: createNamedContainer('darkness'),
             characterAdditions: {
+                // Character name + overhead HP/shield plates: world-space
+                // follow overlay OUTSIDE the night filter, so characters stay
+                // findable at full night (night-readability fix — the tinted
+                // in-shape plates used to go near-black while unfiltered
+                // layers stayed bright, reading as "my character is gone").
+                namePlates: createNamedContainer('namePlates'),
                 chatMessages: createNamedContainer('chatMessages'),
                 // Floating damage/heal/XP numbers (item 11): topmost world layer
                 // so they read above every entity.
@@ -232,10 +238,10 @@ export class Game implements IGame {
         // Corpses below the living
         this.cameraGroup.addChild(this.layers.corpses);
 
-        // Characters
-        this.cameraGroup.addChild(this.layers.characters);
-
-        // Mobs
+        // Mobs — deliberately UNDER the characters: a player standing on a
+        // mob-layer entity (campfire, turnip field) must never be covered by
+        // its art (night-readability fix; the fire sprite used to hide the
+        // avatar completely).
         this.cameraGroup.addChild(
             this.layers.mobs.dodo,
             this.layers.mobs.saberToothCat,
@@ -249,6 +255,9 @@ export class Game implements IGame {
             this.layers.mobs.turnip,
             this.layers.mobs.wildlife,
         );
+
+        // Characters above mobs
+        this.cameraGroup.addChild(this.layers.characters);
 
         // Higher Placeables
         this.cameraGroup.addChild(
@@ -271,6 +280,7 @@ export class Game implements IGame {
 
         // Character Additions
         this.cameraGroup.addChild(
+            this.layers.characterAdditions.namePlates,
             this.layers.characterAdditions.chatMessages,
             this.layers.characterAdditions.floatingNumbers,
         );
@@ -444,29 +454,42 @@ export class Game implements IGame {
 
         this.miniMap.setup(mapWidth, mapHeight);
         this.map = new EntityManager(mapWidth, mapHeight, this.miniMap);
+        // Night-tinted layers are DERIVED (every layer minus the exempt set)
+        // instead of hand-listed: the old include-list predated the content
+        // pass, so every newer mob layer (wildlife, healer, companion, …)
+        // silently skipped the night tint — the world stayed bright while the
+        // characters layer went near-black, which read as "my character turned
+        // invisible at night". A new layer is now night-correct by default.
+        // Exempt: light sources (campfires, braziers), the darkness overlay
+        // (dark areas are dark independent of the cycle, §6.5), and the
+        // readability overlays (name plates, chat, floating numbers, vitals).
+        const nightExempt = new Set<Container>([
+            this.layers.placeables.campfire,
+            this.layers.mobs.brazier,
+            this.layers.mobs.campfire,
+            this.layers.darkness,
+            this.layers.characterAdditions.namePlates,
+            this.layers.characterAdditions.chatMessages,
+            this.layers.characterAdditions.floatingNumbers,
+            this.layers.overlays.vitalSignIndicators,
+        ]);
+        const nightTinted: Container[] = [];
+        const collectLayers = (group: object) => {
+            Object.values(group).forEach((entry) => {
+                if (entry instanceof Container) {
+                    if (!nightExempt.has(entry)) {
+                        nightTinted.push(entry);
+                    }
+                } else {
+                    collectLayers(entry);
+                }
+            });
+        };
+        collectLayers(this.layers);
         DayCycle.setup(
             gameInformation.totalDayCycleTicks,
             gameInformation.dayTimeTicks,
-            [
-                this.layers.terrain.water,
-                this.layers.terrain.ground,
-                this.layers.terrain.textures,
-                this.layers.terrain.resourceSpots,
-                this.layers.placeables.chest,
-                this.layers.placeables.workbench,
-                this.layers.resources.berryBush,
-                this.layers.corpses,
-                this.layers.characters,
-                this.layers.mobs.dodo,
-                this.layers.mobs.saberToothCat,
-                this.layers.mobs.mammoth,
-                this.layers.placeables.doors,
-                this.layers.placeables.walls,
-                this.layers.placeables.spikyWalls,
-                this.layers.resources.minerals,
-                this.layers.resources.trees,
-                this.layers.bossMobs,
-            ]
+            nightTinted,
         );
         this.play();
         this.state = GameState.RENDERING;

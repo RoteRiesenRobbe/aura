@@ -31,7 +31,13 @@ const NightVisuals = {
         green: 131,
         blue: 185,
     },
-    FLOOD_OPACITY: 0.9,
+    // The flood MULTIPLIES each channel down toward the flood color, so dark
+    // sprites (the blue/purple avatar) hit near-black long before bright ones
+    // dim: at the former 0.9 a character at full night was effectively
+    // invisible while unfiltered layers stayed bright. 0.6 keeps night
+    // clearly night but leaves tinted sprites readable. [PLACEHOLDER — tune
+    // in-game at full night]
+    FLOOD_OPACITY: 0.6,
 };
 
 let timeOfDay: number;
