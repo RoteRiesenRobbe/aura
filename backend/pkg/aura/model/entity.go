@@ -191,6 +191,11 @@ type MobEntity interface {
 	// accumulator.
 	ShieldHP() vitals.VitalSign
 
+	// AppliedEffects is the bitmask of buff/debuff kinds currently applied TO
+	// this mob (wire applied_effects — the client draws the pips from it; the
+	// received-status mirror of AuraCategories).
+	AppliedEffects() skills.AppliedEffect
+
 	// HealReceived is the health restored this tick (VitalSign units),
 	// serialized as the floating heal number for a mob-cast heal (mob-depth
 	// chunk 8) and reset each tick via ResetTickNumbers.

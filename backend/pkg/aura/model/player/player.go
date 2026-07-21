@@ -440,6 +440,13 @@ func (p *player) ShieldHP() vitals.VitalSign {
 	return vitals.VitalSign(vitals.HP(p.buffs.ShieldTotal()))
 }
 
+// AppliedEffects is the bitmask of buff/debuff kinds currently applied to this
+// player; serialized as the applied_effects wire field. A live value, like
+// ShieldHP.
+func (p *player) AppliedEffects() skills.AppliedEffect {
+	return p.buffs.AppliedEffects()
+}
+
 // DueBuffEvents advances and drains this tick's due dot damage and hot heal
 // events; called once per tick by the SkillSystem's acting site.
 func (p *player) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {

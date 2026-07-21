@@ -81,6 +81,11 @@ export class Player {
         if (isDefined(entity.auraCategory)) {
             this.character.setAuraCategories(entity.auraCategory);
         }
+        // Own buff/debuff pips (applied_effects): the kinds currently applied
+        // TO this player — a dot shows before its first damage tick lands.
+        if (isDefined(entity.appliedEffects)) {
+            this.character.setAppliedEffects(entity.appliedEffects);
+        }
         if (isDefined(entity.auraRadius)) {
             this.character.setAuraRadius(entity.auraRadius);
         }

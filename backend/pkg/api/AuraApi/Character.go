@@ -413,8 +413,20 @@ func (rcv *Character) MutateAuraCategory(n byte) bool {
 	return rcv._tab.MutateByteSlot(62, n)
 }
 
+func (rcv *Character) AppliedEffects() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateAppliedEffects(n byte) bool {
+	return rcv._tab.MutateByteSlot(64, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(30)
+	builder.StartObject(31)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -508,6 +520,9 @@ func CharacterAddAuraTickPhase(builder *flatbuffers.Builder, auraTickPhase uint1
 }
 func CharacterAddAuraCategory(builder *flatbuffers.Builder, auraCategory byte) {
 	builder.PrependByteSlot(29, auraCategory, 0)
+}
+func CharacterAddAppliedEffects(builder *flatbuffers.Builder, appliedEffects byte) {
+	builder.PrependByteSlot(30, appliedEffects, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

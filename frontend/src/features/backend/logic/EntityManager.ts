@@ -116,6 +116,12 @@ export class EntityManager {
             }
         }
 
+        // Buff/debuff pips (applied_effects): the kinds currently applied TO
+        // the entity — characters and mobs alike; 0 hides the strip.
+        if (isDefined(entity.appliedEffects) && isFunction(gameObject['setAppliedEffects'])) {
+            gameObject['setAppliedEffects'](entity.appliedEffects);
+        }
+
         // Bare aura tick indicator (skill-vocab chunk 6): the wire cadence +
         // phase drive a dot orbiting the ring; characters and mobs alike, 0
         // interval hides it. Fed after setAuraRadius so the ring radius is set.

@@ -47,6 +47,8 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	// definition.
 	AuraApi.MobAddAuraCategory(builder, byte(m.AuraCategories()))
 	AuraApi.MobAddTier(builder, byte(m.TierRank()))
+	// Buff/debuff kinds currently applied TO the mob — drives the pips.
+	AuraApi.MobAddAppliedEffects(builder, byte(m.AppliedEffects()))
 
 	return AuraApi.MobEnd(builder)
 }

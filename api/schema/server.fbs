@@ -209,6 +209,14 @@ table Mob {
   // Authored mob tier as an ordered rank (0 normal, 1 elite, 2 boss —
   // mobs.TierRank); drives the portrait frame ring (triage item 15).
   tier:ubyte = 0;
+
+  // Bitmask of the buff/debuff kinds currently applied TO this mob
+  // (dot/slow/hot/resist/tickrate — skills.AppliedEffect); 0 = none. The
+  // received-status mirror of aura_category (which is what the mob projects) —
+  // the client draws the buff/debuff pips from it. Shields are deliberately
+  // absent: shield_hp already carries them. Appended at table end so existing
+  // field IDs stay stable.
+  applied_effects:ubyte = 0;
 }
 
 table Character {
@@ -310,6 +318,14 @@ table Character {
   // its own skill-ID table (triage item 7). Appended at the table end so
   // existing field IDs stay stable.
   aura_category:ubyte = 0;
+
+  // Bitmask of the buff/debuff kinds currently applied TO this character
+  // (dot/slow/hot/resist/tickrate — skills.AppliedEffect); 0 = none. Mirrors
+  // Mob.applied_effects — the received-status opposite of aura_category. The
+  // client draws the buff/debuff pips from it; shields are deliberately absent
+  // (shield_hp already carries them). Appended at the table end so existing
+  // field IDs stay stable.
+  applied_effects:ubyte = 0;
 }
 
 table Spectator {

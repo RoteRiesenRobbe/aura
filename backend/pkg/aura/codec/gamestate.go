@@ -72,6 +72,8 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	AuraApi.CharacterAddAuraTickPhase(builder, uint16(p.AuraTickPhase()))
 	// Ring colour (triage item 7); 0 while no aura is active.
 	AuraApi.CharacterAddAuraCategory(builder, byte(p.AuraCategories()))
+	// Buff/debuff kinds currently applied TO the player — drives the pips.
+	AuraApi.CharacterAddAppliedEffects(builder, byte(p.AppliedEffects()))
 }
 
 // u64ToU32Clamped narrows a uint64 to uint32 for the wire, saturating rather

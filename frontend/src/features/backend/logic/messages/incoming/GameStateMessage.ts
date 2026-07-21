@@ -195,6 +195,8 @@ function unmarshalEntity(entity, eType) {
         // aura ring colour bitmask + mob tier rank (triage items 7 / 15)
         auraCategory: undefined,
         tier: undefined,
+        // buff/debuff kinds currently applied TO the entity — drives the pips
+        appliedEffects: undefined,
     };
 
     if (eType === AuraApi.AnyEntity.Resource) {
@@ -237,6 +239,8 @@ function unmarshalEntity(entity, eType) {
         // authored tier rank (0 normal / 1 elite / 2 boss) — drives the portrait
         // frame ring (triage item 15).
         result.tier = entity.tier();
+        // buff/debuff kinds currently applied TO the mob — drives the pips.
+        result.appliedEffects = entity.appliedEffects();
     }
 
     if (eType === AuraApi.AnyEntity.Character) {
@@ -277,6 +281,8 @@ function unmarshalEntity(entity, eType) {
         // effect-category bitmask of the active aura, 0 = no ring — colours the
         // aura ring (triage item 7).
         result.auraCategory = entity.auraCategory();
+        // buff/debuff kinds currently applied TO the character — drives the pips.
+        result.appliedEffects = entity.appliedEffects();
     }
 
     if (isFunction(entity.statusEffectsLength) &&

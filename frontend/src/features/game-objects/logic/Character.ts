@@ -22,6 +22,7 @@ import * as TextDisplay from '../../../client-data/TextDisplay';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
 import {AuraRingStack} from './AuraRings';
+import {EffectPips} from './EffectPips';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -48,6 +49,10 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     private barInnerX: number = 0;
     private barInnerWidth: number = 0;
     private auraRings: AuraRingStack;
+    // Buff/debuff pips under the overhead bar (wire applied_effects). Created
+    // in initHealthBar (constructor body), so an initializer here is safe —
+    // unlike fields assigned in initShape.
+    private effectPips: EffectPips = null;
     // Bare tick indicator (skill-vocab chunk 6): a dot orbiting the aura ring
     // once per effective tick interval, so the beat is visible.
     private auraTickIndicator: AuraTickIndicator = null;
@@ -195,6 +200,13 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
             Math.min(this.healthFraction, 1 - this.shieldFraction) * this.barInnerWidth;
     }
 
+    // setAppliedEffects drives the buff/debuff pips from the wire
+    // applied_effects bitmask: the kinds currently applied TO this character
+    // (a dot no longer waits for its first damage tick to become visible).
+    setAppliedEffects(mask: number) {
+        this.effectPips?.setMask(mask);
+    }
+
     // setAuraCategories drives the ring colours from the server-authoritative
     // Character.aura_category bitmask (triage item 7). 0 = no aura → no rings.
     // This replaced a hardcoded skill-ID switch: the categories are resolved
@@ -280,6 +292,12 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         );
         this.shieldFillGroup.visible = false;
         bar.addChild(this.shieldFillGroup);
+
+        // Buff/debuff pips just under the bar; on the plate they stay readable
+        // under the night tint, like the bar itself.
+        this.effectPips = new EffectPips();
+        this.effectPips.container.y = barHeight / 2 + 9;
+        bar.addChild(this.effectPips.container);
 
         this.plate.addChild(bar);
         this.setHealth(1, 1); // full until the first snapshot

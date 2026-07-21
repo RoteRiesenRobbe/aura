@@ -190,8 +190,13 @@ auraCategory():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+appliedEffects():number {
+  const offset = this.bb!.__offset(this.bb_pos, 64);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(30);
+  builder.startObject(31);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -324,6 +329,10 @@ static addAuraTickPhase(builder:flatbuffers.Builder, auraTickPhase:number) {
 
 static addAuraCategory(builder:flatbuffers.Builder, auraCategory:number) {
   builder.addFieldInt8(29, auraCategory, 0);
+}
+
+static addAppliedEffects(builder:flatbuffers.Builder, appliedEffects:number) {
+  builder.addFieldInt8(30, appliedEffects, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

@@ -18,26 +18,37 @@ export const enum AuraCategoryBit {
     Light = 1 << 5,
 }
 
+/**
+ * The category colour language, shared by the aura rings and the applied-effect
+ * pips (EffectPips.ts) — a dot pip and a dot ring mean the same colour on
+ * purpose. All colours [PLACEHOLDER] — tune in-game.
+ */
+export const AURA_CATEGORY_COLORS = {
+    damage: 0xe04a3c,
+    dot: 0x9a4ec9,
+    heal: 0x4ec96a,
+    shield: 0xe0b83c,
+    slow: 0x4a9ae0,
+    light: 0xf0dfa0,
+} as const;
+
 interface AuraCategoryStyle {
     bit: number;
-    /** Band colour. [PLACEHOLDER] */
     color: number;
 }
 
 /**
- * The ring colour language. Order matters: a multi-category aura stacks one band
- * per set bit inward from the aura edge, in this order, so the list doubles as
- * the layering priority. Adding a category is one entry here plus one bit above.
- *
- * All colours [PLACEHOLDER] — tune in-game.
+ * The ring styles. Order matters: a multi-category aura stacks one band per set
+ * bit inward from the aura edge, in this order, so the list doubles as the
+ * layering priority. Adding a category is one entry here plus one bit above.
  */
 const AURA_CATEGORY_STYLES: readonly AuraCategoryStyle[] = [
-    {bit: AuraCategoryBit.Damage, color: 0xe04a3c},
-    {bit: AuraCategoryBit.Dot, color: 0x9a4ec9},
-    {bit: AuraCategoryBit.Heal, color: 0x4ec96a},
-    {bit: AuraCategoryBit.Shield, color: 0xe0b83c},
-    {bit: AuraCategoryBit.Slow, color: 0x4a9ae0},
-    {bit: AuraCategoryBit.Light, color: 0xf0dfa0},
+    {bit: AuraCategoryBit.Damage, color: AURA_CATEGORY_COLORS.damage},
+    {bit: AuraCategoryBit.Dot, color: AURA_CATEGORY_COLORS.dot},
+    {bit: AuraCategoryBit.Heal, color: AURA_CATEGORY_COLORS.heal},
+    {bit: AuraCategoryBit.Shield, color: AURA_CATEGORY_COLORS.shield},
+    {bit: AuraCategoryBit.Slow, color: AURA_CATEGORY_COLORS.slow},
+    {bit: AuraCategoryBit.Light, color: AURA_CATEGORY_COLORS.light},
 ];
 
 /** Thickness of one category band, in px. [PLACEHOLDER] */

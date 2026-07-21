@@ -10,6 +10,7 @@ import * as PIXI from 'pixi.js';
 import {createInjectedSVG} from "../../core/logic/InjectedSVG";
 import {AuraTickIndicator} from './AuraTickIndicator';
 import {AuraRingStack} from './AuraRings';
+import {EffectPips} from './EffectPips';
 import {meter2px} from "../../../client-data/BasicConfig";
 import {ISvgContainer} from "../../core/logic/ISvgContainer";
 import './MobJuice';
@@ -61,6 +62,10 @@ export abstract class Mob extends GameObject {
     private barInnerX: number = 0;
     private barInnerWidth: number = 0;
     private auraRings: AuraRingStack = null;
+    // Buff/debuff pips under the overhead bar (wire applied_effects). Created
+    // in initHealthBar (constructor body, after field initializers), so the
+    // initializer here is safe — unlike fields assigned in initShape.
+    private effectPips: EffectPips = null;
     // Tier frame ring (triage item 15); tierRank caches the last drawn rank so
     // the Graphics is only rebuilt when the tier actually changes, not per tick.
     //
@@ -115,6 +120,13 @@ export abstract class Mob extends GameObject {
             this.auraTickIndicator = new AuraTickIndicator(this.shape);
         }
         this.auraTickIndicator.setRadius(ringRadius);
+    }
+
+    // setAppliedEffects drives the buff/debuff pips from the wire
+    // applied_effects bitmask: the kinds currently applied TO this mob — your
+    // dot on it is visible between damage ticks, a slowed mob reads as slowed.
+    setAppliedEffects(mask: number) {
+        this.effectPips?.setMask(mask);
     }
 
     // setAuraCategories drives the ring colours from the wire Mob.aura_category
@@ -274,6 +286,12 @@ export abstract class Mob extends GameObject {
         );
         this.shieldFillGroup.visible = false;
         bar.addChild(this.shieldFillGroup);
+
+        // Buff/debuff pips just under the bar (mirrors Character.initHealthBar;
+        // the two overhead bars share no base).
+        this.effectPips = new EffectPips();
+        this.effectPips.container.y = barHeight / 2 + 9;
+        bar.addChild(this.effectPips.container);
 
         this.shape.addChild(bar);
         this.setHealth(1, 1); // full until the first snapshot

@@ -153,8 +153,13 @@ tier():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+appliedEffects():number {
+  const offset = this.bb!.__offset(this.bb_pos, 50);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(23);
+  builder.startObject(24);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -259,6 +264,10 @@ static addAuraCategory(builder:flatbuffers.Builder, auraCategory:number) {
 
 static addTier(builder:flatbuffers.Builder, tier:number) {
   builder.addFieldInt8(22, tier, 0);
+}
+
+static addAppliedEffects(builder:flatbuffers.Builder, appliedEffects:number) {
+  builder.addFieldInt8(23, appliedEffects, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

@@ -125,6 +125,10 @@ type PlayerEntity interface {
 	// chunk 2), serialized as shield_hp — a live value, not a per-tick
 	// accumulator.
 	ShieldHP() vitals.VitalSign
+	// AppliedEffects is the bitmask of buff/debuff kinds currently applied TO
+	// this player (wire applied_effects — the client draws the pips from it;
+	// the received-status mirror of AuraCategories).
+	AppliedEffects() skills.AppliedEffect
 	HealReceived() vitals.VitalSign
 	XpGained() uint64
 	NoteHealReceived(delta vitals.VitalSign)

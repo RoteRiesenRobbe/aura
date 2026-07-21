@@ -37,9 +37,13 @@ type buffEntry struct {
 	ticks   int
 }
 
-// buffPayload is the closed set of typed payloads the store carries.
+// buffPayload is the closed set of typed payloads the store carries. appliedBit
+// makes the applied_effects wire classification compile-enforced: a new payload
+// kind does not build until its pip bit (or deliberate None) is decided in
+// applied_effects.go.
 type buffPayload interface {
 	isBuffPayload()
+	appliedBit() AppliedEffect
 }
 
 type resistPayload struct {
