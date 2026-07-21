@@ -8,13 +8,6 @@ import {isDefined} from "../../../../common/logic/Utils";
 import * as SnapshotFactory from "../../SnapshotFactory";
 import {Develop} from "../../../../internal-tools/develop/logic/_Develop";
 
-// The wire action was removed with the item system (Block 2); this interface
-// stays only to type the now-inert ControlsActionEvent.
-export interface InputAction {
-    item,
-    actionType: number
-}
-
 // Wire-only sentinel for "explicitly deactivate the active aura" (Nothing).
 // NOTE: -2 is a workaround for FlatBuffers omitting a scalar equal to its schema
 // default (-1), which makes an explicit -1 indistinguishable from an absent field.

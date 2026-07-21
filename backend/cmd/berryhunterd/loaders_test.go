@@ -37,7 +37,7 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, factionsRegistry.All())
 
-	mobsRegistry, err := mobs.RegistryFromFS(itemsRegistry, skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
+	mobsRegistry, err := mobs.RegistryFromFS(skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
 	require.NoError(t, err)
 	assert.NotEmpty(t, mobsRegistry.Mobs())
 

@@ -15,11 +15,6 @@ export const GraphicsConfig = {
         duration: <number> 500, //ms
     },
 
-    /**
-     * Controls how translucent equipped placeables appear that are not yet placed
-     */
-    equippedPlaceableOpacity: <number> 0.6,
-
     character: {
         /**
          * Pixel radius of the character graphic.
@@ -43,26 +38,6 @@ export const GraphicsConfig = {
             lineColor: <color> 0x000000,
         },
 
-        actionAnimation: {
-            /**
-             * Should be synchronized with the value below,
-             * but is purely used for a smooth client side animation.
-             */
-            duration: <integer> 500, // ms
-
-            /**
-             * How much of the animation is forward - the rest is reversing.
-             * 0.4 ==> 40% (200ms of 500ms) are forward movement, 60% is backwards
-             */
-            relativeDurationForward: <number> 0.35,
-
-            /**
-             * How many ticks will the backend communicate an action in progress
-             *
-             * SYNCED WITH BACKEND
-             */
-            backendTicks: <integer> 10,
-        },
     },
 
     mobs: <{

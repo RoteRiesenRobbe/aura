@@ -4,8 +4,6 @@ import {BackendState, IBackend} from "../../backend/logic/IBackend";
 import {Player} from "../../player/logic/Player";
 import {Vector} from "./Vector";
 import {radians} from "../../common/logic/Types";
-import {InputAction} from "../../backend/logic/messages/outgoing/InputMessage";
-import {EquipmentSlot} from "../../items/logic/Equipment";
 import {Placeable} from "../../game-objects/logic/Placeable";
 import {DamageState} from '../../vital-signs/logic/VitalSigns';
 
@@ -255,14 +253,6 @@ export const VitalSignChangedEvent: PayloadEvent<VitalSignMsg> = new PayloadEven
 export const CameraUpdatedEvent: PayloadEvent<Vector> = new PayloadEvent<Vector>();
 export const ControlsRotateEvent: PayloadEvent<radians> = new PayloadEvent<radians>();
 export const ControlsMovementEvent: PayloadEvent<Vector> = new PayloadEvent<Vector>();
-export const ControlsActionEvent: PayloadEvent<InputAction> = new PayloadEvent<InputAction>();
-
-export interface CharacterEquippedItemMsg {
-    // TODO create Item interface/class
-    item: any,
-    equipmentSlot: EquipmentSlot
-}
-export const CharacterEquippedItemEvent: PayloadEvent<CharacterEquippedItemMsg> = new PayloadEvent<CharacterEquippedItemMsg>();
 export const ResourceStockChangedEvent: PayloadEvent<{ entityType: string, newStock: number, oldStock: number, position: Vector }> = new PayloadEvent();
 export const GameSettingChangedEvent: PayloadEvent<{ path: string, newValue: any, oldValue: any }> = new PayloadEvent();
 

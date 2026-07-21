@@ -14,7 +14,6 @@ import (
 	askills "github.com/trichner/berryhunter/pkg/api/skills"
 	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/items/mobs"
 	"github.com/trichner/berryhunter/pkg/berryhunter/sim"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
@@ -79,15 +78,11 @@ func contentFS(contentDir string) (itemsFS, skillsFS, factionsFS, mobsFS fs.FS, 
 // curve.Default = what a conf without the keys boots with, so they match what
 // the live game would spawn) plus the skill registry.
 func loadContent(contentDir string) ([]*mobs.MobDefinition, skills.Registry, error) {
-	itemsFS, skillsFS, factionsFS, mobsFS, err := contentFS(contentDir)
+	_, skillsFS, factionsFS, mobsFS, err := contentFS(contentDir)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ir, err := items.RegistryFromFS(itemsFS)
-	if err != nil {
-		return nil, nil, fmt.Errorf("loading items: %w", err)
-	}
 	sr, err := skills.RegistryFromFS(skillsFS)
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading skills: %w", err)
@@ -96,7 +91,7 @@ func loadContent(contentDir string) ([]*mobs.MobDefinition, skills.Registry, err
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading factions: %w", err)
 	}
-	mr, err := mobs.RegistryFromFS(ir, sr, fr, curve.Default(), mobsFS)
+	mr, err := mobs.RegistryFromFS(sr, fr, curve.Default(), mobsFS)
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading mobs: %w", err)
 	}

@@ -1,21 +1,14 @@
 import {GameObject} from './_GameObject';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
-import {isDefined, random, randomFrom} from '../../common/logic/Utils';
-import * as Equipment from '../../items/logic/Equipment';
-import {EquipmentSlot} from '../../items/logic/Equipment';
+import {isDefined} from '../../common/logic/Utils';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import * as Preloading from '../../core/logic/Preloading';
-import {IVector, Vector} from '../../core/logic/Vector';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {meter2px} from "../../../client-data/BasicConfig";
-import {animateAction} from './AnimateAction';
 import {AuraTickIndicator} from './AuraTickIndicator';
 import {StatusEffect} from './StatusEffect';
-import {Animation} from '../../animations/logic/Animation';
-import {Items} from '../../items/logic/Items';
 import {IGame} from '../../core/logic/IGame';
 import {
-    CharacterEquippedItemEvent,
     CharacterMoved,
     GameSetupEvent,
     PlayerMoved,
@@ -24,8 +17,6 @@ import {ICharacterLike} from './ICharacter';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {Container, Graphics, Sprite, Text, Texture} from 'pixi.js';
 import * as TextDisplay from '../../../client-data/TextDisplay';
-import {spatialAudio} from '../../audio/logic/SpatialAudio';
-import {swingLightAudioCues} from '../../player/logic/PlayerJuice';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
 import {FIRE_WARD_SKILL_ID, HEAL_AURA_SKILL_ID, LIFEWARDEN_AURA_SKILL_ID, PALADIN_AURA_SKILL_ID, REJUVENATION_AURA_SKILL_ID, VANGUARD_AURA_SKILL_ID, WARBANNER_AURA_SKILL_ID} from '../../../client-data/Skills';
@@ -35,17 +26,10 @@ GameSetupEvent.subscribe((game: IGame) => {
     Game = game;
 });
 
-export interface Hand {
-    container: { group: Container & { originalTranslation: IVector }, slot: Container };
-    originalTranslation: IVector;
-    originalRotation: number;
-}
-
 export class Character extends GameObject implements ICharacterLike, IMiniMapRendered {
     static avatar: ISvgContainer = {svg: undefined};
     static damageAura: ISvgContainer = {svg: undefined};
     static healAura: ISvgContainer = {svg: undefined};
-    static hitAnimationFrameDuration: number = GraphicsConfig.character.actionAnimation.backendTicks;
     static readonly DOWNWARD_FACING_ROTATION = Math.PI / 2;
 
 
@@ -54,12 +38,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     levelElement: Text;
     isPlayerCharacter: boolean;
     movementSpeed: number;
-
-    currentAction: string | false;
-    equipmentSlotGroups: { [key in EquipmentSlot]?: Container & { originalTranslation?: IVector }; };
-    equippedItems;
-    lastRemainingTicks: number = 0;
-    useLeftHand: boolean = false;
 
     actualShape: Container;
     private healthFillGroup: Container;
@@ -75,9 +53,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
     // once per effective tick interval, so the beat is visible.
     private auraTickIndicator: AuraTickIndicator = null;
 
-    leftHand: Hand;
-    rightHand: Hand;
-
     constructor(id: number, x: number, y: number, name: string, isPlayerCharacter: boolean) {
         super(id, Game.layers.characters, x, y, GraphicsConfig.character.size, Character.DOWNWARD_FACING_ROTATION, Character.avatar.svg);
         this.name = name;
@@ -86,33 +61,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         this.isMovable = true;
         this.visibleOnMinimap = false;
         this.turnRate = 0;
-
-        this.currentAction = false;
-
-        /**
-         * Needs the same properties as Equipment.Slots
-         */
-        this.equipmentSlotGroups = {};
-        this.equippedItems = {};
-        for (const equipmentSlot in Equipment.EquipmentSlot) {
-            //noinspection JSUnfilteredForInLoop
-            this.equippedItems[equipmentSlot] = null;
-        }
-
-        const placeableSlot = new Container();
-        this.actualShape.addChild(placeableSlot);
-        this.equipmentSlotGroups[Equipment.EquipmentSlot.PLACEABLE] = placeableSlot;
-        placeableSlot.position.set(
-            Constants.PLACEMENT_RANGE,
-            0,
-        );
-        placeableSlot.alpha = GraphicsConfig.equippedPlaceableOpacity;
-
-        this.createHands();
-
-        Object.values(this.equipmentSlotGroups).forEach((equipmentSlot: { originalTranslation?: IVector, position: IVector }) => {
-            equipmentSlot.originalTranslation = Vector.clone(equipmentSlot.position);
-        });
 
         // Keep a fixed default facing (down) until explicit rotation is applied.
         this.setRotation(Character.DOWNWARD_FACING_ROTATION);
@@ -170,46 +118,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         // Portrait rule (triage item 16): avatars are portraits and never
         // rotate — the local player included, per PO ruling.
         super.setRotation(Character.DOWNWARD_FACING_ROTATION);
-    }
-
-    createHands() {
-        // TODO Hände unter die Frisur rendern
-        const handAngleDistance = 0.4;
-
-        this.leftHand = this.createHand(-handAngleDistance);
-        this.actualShape.addChild(this.leftHand.container.group);
-
-        this.rightHand = this.createHand(handAngleDistance);
-        this.actualShape.addChild(this.rightHand.container.group);
-
-        this.equipmentSlotGroups[Equipment.EquipmentSlot.HAND] = this.rightHand.container.slot;
-    }
-
-    createHand(handAngleDistance: number): Hand {
-        const group = new Container() as Container & { originalTranslation: { x: number, y: number } };
-
-        const handAngle = 0;
-        group.position.set(
-            Math.cos(handAngle + Math.PI * handAngleDistance) * this.size * 0.8,
-            Math.sin(handAngle + Math.PI * handAngleDistance) * this.size * 0.8,
-        );
-
-        const slotGroup = new Container();
-        group.addChild(slotGroup);
-        slotGroup.position.set(-this.size * 0.2, 0);
-        slotGroup.rotation = Math.PI / 2;
-
-        // Intentionally no visible fist shape; keep slot/transform for held item visuals.
-
-        group['originalTranslation'] = Vector.clone(group.position);
-        return {
-            container: {
-                group: group,
-                slot: slotGroup,
-            },
-            originalTranslation: {x: group.x, y: group.y},
-            originalRotation: group.rotation,
-        };
     }
 
     createName() {
@@ -339,77 +247,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         return LevelOfDynamic.DYNAMIC;
     }
 
-    getEquippedItemAnimationType() {
-        let equippedItem = this.getEquippedItem(Equipment.EquipmentSlot.HAND);
-        if (equippedItem === null) {
-            equippedItem = Items.None;
-        }
-
-        return equippedItem.equipment.animation;
-    }
-
-    action(remainingTicks?: number) {
-        if (isDefined(remainingTicks)) {
-            if (this.lastRemainingTicks >= remainingTicks) {
-                this.lastRemainingTicks = remainingTicks;
-                return; // nothing to do - just let the animation roll
-            }
-            this.lastRemainingTicks = remainingTicks;
-        }
-
-        if (this.isSlotEquipped(Equipment.EquipmentSlot.PLACEABLE)) {
-            this.animateAction(this.rightHand, 'stab', remainingTicks);
-            this.currentAction = 'PLACING';
-            return Character.hitAnimationFrameDuration;
-        }
-
-        // If nothing is equipped (= action with bare hand), use the boolean `useLeftHand`
-        // to alternate between left and right punches
-        if (this.getEquippedItem(Equipment.EquipmentSlot.HAND) === null && this.useLeftHand) {
-            spatialAudio.play(randomFrom(swingLightAudioCues), this.getPosition(), {
-                volume: 0.25,
-                speed: random(0.8, 1.2),
-            });
-            this.currentAction = 'ALT';
-            this.animateAction(this.leftHand, this.getEquippedItemAnimationType(), remainingTicks, true);
-        } else {
-            this.currentAction = 'MAIN';
-            spatialAudio.play(randomFrom(swingLightAudioCues), this.getPosition(), {
-                volume: 0.25,
-                speed: random(0.8, 1.2),
-            });
-            this.animateAction(this.rightHand, this.getEquippedItemAnimationType(), remainingTicks);
-        }
-        this.useLeftHand = !this.useLeftHand;
-        return Character.hitAnimationFrameDuration;
-    }
-
-    altAction() {
-        if (this.isSlotEquipped(Equipment.EquipmentSlot.PLACEABLE)) {
-            this.currentAction = false;
-            return 0;
-        }
-    }
-
-    private animateAction(
-        hand: Hand,
-        type: 'swing' | 'stab',
-        remainingTicks?: number,
-        mirrored: boolean = false,
-    ) {
-        animateAction({
-            size: this.size,
-            hand: hand,
-            type,
-            animation: new Animation(),
-            animationFrame: remainingTicks,
-            onDone: () => {
-                this.currentAction = false;
-            },
-            mirrored,
-        });
-    }
-
     private initHealthBar() {
         const barWidth = Math.min(160, Math.max(30, this.size * 0.9));
         const barHeight = Math.max(5, Math.min(10, barWidth * 0.12));
@@ -453,72 +290,6 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
 
         this.shape.addChild(bar);
         this.setHealth(1, 1); // full until the first snapshot
-    }
-
-    isSlotEquipped(equipmentSlot: EquipmentSlot) {
-        return this.equippedItems[equipmentSlot] !== null;
-    }
-
-    /**
-     * @return {Boolean} whether or not the item was equipped
-     */
-    equipItem(item, equipmentSlot: EquipmentSlot): boolean {
-        // If the same item is already equipped, just cancel
-        if (this.equippedItems[equipmentSlot] === item) {
-            return false;
-        }
-
-        const slotGroup = this.equipmentSlotGroups[equipmentSlot];
-        // Offsets are applied to the slot itself to respect the slot rotation
-        if (isDefined(item.graphic.offsetX)) {
-            slotGroup.position.x = slotGroup.originalTranslation.x + item.graphic.offsetX * 2;
-        } else {
-            slotGroup.position.x = slotGroup.originalTranslation.x;
-        }
-        if (isDefined(item.graphic.offsetY)) {
-            slotGroup.position.y = slotGroup.originalTranslation.y + item.graphic.offsetY * 2;
-        } else {
-            slotGroup.position.y = slotGroup.originalTranslation.y;
-        }
-        const equipmentGraphic = createInjectedSVG(item.graphic.svg, 0, 0, item.graphic.size);
-        slotGroup.addChild(equipmentGraphic);
-
-        if (equipmentSlot === Equipment.EquipmentSlot.PLACEABLE) {
-            equipmentGraphic.rotation = Math.PI / -2;
-        }
-
-        this.equippedItems[equipmentSlot] = item;
-
-        CharacterEquippedItemEvent.trigger({item, equipmentSlot});
-
-        return true;
-    }
-
-    /**
-     *
-     * @param equipmentSlot
-     * @return {Item} the item that was unequipped
-     */
-    unequipItem(equipmentSlot: EquipmentSlot) {
-        // If the slot is already empty, just cancel
-        if (this.equippedItems[equipmentSlot] === null) {
-            return;
-        }
-
-        const slotGroup = this.equipmentSlotGroups[equipmentSlot];
-        if (!this.isSlotEquipped(equipmentSlot)) {
-            return;
-        }
-        slotGroup.removeChildAt(0);
-
-        const item = this.equippedItems[equipmentSlot];
-        this.equippedItems[equipmentSlot] = null;
-
-        return item;
-    }
-
-    getEquippedItem(equipmentSlot) {
-        return this.equippedItems[equipmentSlot];
     }
 
     override onMove(): void {

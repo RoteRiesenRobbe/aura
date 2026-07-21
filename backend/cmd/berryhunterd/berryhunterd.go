@@ -58,7 +58,7 @@ func main() {
 	skillsRegistry := loadSkills(content.skills)
 	factionsRegistry := loadFactions(content.factions)
 	levelCurve := curve.Curve{Growth: config.Game.Player.LevelGrowth, MaxLevel: config.Game.Player.MaxLevel}
-	mobsRegistry := loadMobs(itemsRegistry, skillsRegistry, factionsRegistry, levelCurve, content.mobs)
+	mobsRegistry := loadMobs(skillsRegistry, factionsRegistry, levelCurve, content.mobs)
 	milestoneUnlocks := loadMilestoneUnlocks(skillsRegistry)
 	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
 	propsRegistry := loadProps(content.props)

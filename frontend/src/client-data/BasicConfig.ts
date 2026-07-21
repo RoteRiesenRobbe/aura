@@ -124,28 +124,6 @@ export const BasicConfig = {
     DEFAULT_TURN_RATE: <number> (2 * 2 * Math.PI / 1000),
 
     /**
-     * Number of available inventory slots.
-     *
-     * SYNCED WITH BACKEND
-     */
-    INVENTORY_SLOTS: <number> 9,
-
-    /**
-     * How far away a character can be to access workbenches and campfires.
-     * Measured in pixels from center to center.
-     *
-     * SYNCED WITH BACKEND
-     */
-    CRAFTING_RANGE: <number> 100,
-
-    /**
-     * Number of pixels that placeables are placed in front of characters.
-     *
-     * SYNCED WITH BACKEND
-     */
-    PLACEMENT_RANGE: <number> 60,
-
-    /**
      * Number of milliseconds that a chat message will stay visible
      */
     CHAT_MESSAGE_DURATION: <number> 5000,

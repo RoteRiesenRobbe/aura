@@ -46,7 +46,7 @@ func TestMapMobDefinition_EntityTypeOverrideParsed(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
 	assert.Equal(t, "AngryMammoth", def.EntityType,
@@ -62,7 +62,7 @@ func TestMapMobDefinition_AbsentEntityTypeStaysEmpty(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
 	assert.Empty(t, def.EntityType,
@@ -79,7 +79,7 @@ func TestMapMobDefinition_UnknownEntityTypeFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.Error(t, err, "an entityType that is no FlatBuffers EntityType name hard-fails at load")
 	assert.Contains(t, err.Error(), "NoSuchWireType")
 }
@@ -94,7 +94,7 @@ func TestMapMobDefinition_ResolvesSkills(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
 	require.Len(t, def.Skills, 1)
@@ -112,7 +112,7 @@ func TestMapMobDefinition_SkillLevelDefaultsToOne(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
 	require.Len(t, def.Skills, 1)
@@ -129,7 +129,7 @@ func TestMapMobDefinition_ResolvesUnlocks(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
 	require.Len(t, def.Unlocks, 1)
@@ -147,7 +147,7 @@ func TestMapMobDefinition_UnlockChanceDefaultsToGuaranteed(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
 	require.Len(t, def.Unlocks, 1)
@@ -164,7 +164,7 @@ func TestMapMobDefinition_UnknownUnlockSkillFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	assert.Error(t, err)
 }
 
@@ -179,7 +179,7 @@ func TestMapMobDefinition_InvalidUnlockChanceFails(t *testing.T) {
 		}`))
 		require.NoError(t, err)
 
-		_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+		_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 		assert.Error(t, err, "chance %s must be rejected", chance)
 	}
 }
@@ -194,7 +194,7 @@ func TestMapMobDefinition_UnknownSkillFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	assert.Error(t, err)
 }
 
@@ -210,7 +210,7 @@ func TestMapMobDefinition_ParsesResistances(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
 	require.NotNil(t, def.Factors.Resistances)
@@ -227,7 +227,7 @@ func TestMapMobDefinition_NoResistancesIsNil(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 	assert.Nil(t, def.Factors.Resistances)
 }
@@ -242,7 +242,7 @@ func TestMapMobDefinition_NegativeResistanceFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	assert.Error(t, err)
 }
 
@@ -256,7 +256,7 @@ func TestMapMobDefinition_ParsesMaxHealthVariance(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 	assert.InDelta(t, 0.1, def.Factors.MaxHealthVariance, 1e-6)
 }
@@ -271,7 +271,7 @@ func TestMapMobDefinition_MaxHealthVarianceDefaultsToZero(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 	assert.Zero(t, def.Factors.MaxHealthVariance)
 }
@@ -287,7 +287,7 @@ func TestMapMobDefinition_MaxHealthVarianceOutOfBoundsFails(t *testing.T) {
 		}`))
 		require.NoError(t, err)
 
-		_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+		_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 		assert.Error(t, err, "maxHealthVariance %s must be rejected (valid: 0 <= v < 1)", variance)
 	}
 }
@@ -302,7 +302,7 @@ func TestMapMobDefinition_EmptyResistanceTagFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	assert.Error(t, err)
 }
 
@@ -318,7 +318,7 @@ func TestMapMobDefinition_ParsesFleeBelowHealthRatio(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 	assert.InDelta(t, 0.5, def.Factors.FleeBelowHealthRatio, 1e-6)
 }
@@ -333,7 +333,7 @@ func TestMapMobDefinition_FleeBelowHealthRatioDefaultsToZero(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 	assert.Zero(t, def.Factors.FleeBelowHealthRatio, "absent = never flees")
 }
@@ -350,7 +350,7 @@ func TestMapMobDefinition_FleeBelowHealthRatioOutOfBoundsFails(t *testing.T) {
 		}`))
 		require.NoError(t, err)
 
-		_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+		_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 		assert.Error(t, err, "fleeBelowHealthRatio %s must be rejected (valid: 0 <= r <= 1)", ratio)
 	}
 }
@@ -367,7 +367,7 @@ func TestMapMobDefinition_ParsesIdleFields(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 	assert.InDelta(t, 2.5, def.Factors.WanderRadius, 1e-6)
 	assert.InDelta(t, 0.25, def.Factors.IdleSpeedFactor, 1e-6)
@@ -383,7 +383,7 @@ func TestMapMobDefinition_IdleFieldsDefaultToZero(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 	assert.Zero(t, def.Factors.WanderRadius, "absent = no type-default wander")
 	assert.Zero(t, def.Factors.IdleSpeedFactor, "absent = global default at mob construction")
@@ -407,7 +407,7 @@ func TestMapMobDefinition_InvalidIdleFieldsFail(t *testing.T) {
 		}`))
 		require.NoError(t, err)
 
-		_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+		_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 		assert.Error(t, err, "factors %s must be rejected", factors)
 	}
 }
@@ -434,13 +434,13 @@ func TestRegistry_SpawnEffectUnknownMobFails(t *testing.T) {
 	}`)
 
 	// The referenced mob exists → loads fine.
-	_, err = RegistryFromFS(nil, sr, nil, testCurve(), fstest.MapFS{
+	_, err = RegistryFromFS(sr, nil, testCurve(), fstest.MapFS{
 		"totem.json": {Data: totemMobJSON},
 	})
 	require.NoError(t, err)
 
 	// The referenced mob is missing → hard-fail naming skill and mob.
-	_, err = RegistryFromFS(nil, sr, nil, testCurve(), fstest.MapFS{
+	_, err = RegistryFromFS(sr, nil, testCurve(), fstest.MapFS{
 		"dodo.json": {Data: otherMobJSON},
 	})
 	require.Error(t, err)
@@ -471,7 +471,7 @@ func TestMapMobDefinition_ResolvesFaction(t *testing.T) {
 	require.NoError(t, err)
 
 	fr := testFactionRegistry(t)
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), fr, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), fr, testCurve())
 	require.NoError(t, err)
 
 	predator, err := fr.GetByName("predator")
@@ -490,7 +490,7 @@ func TestMapMobDefinition_AbsentFactionDefaultsToHostileVsAligned(t *testing.T) 
 	require.NoError(t, err)
 
 	// No factions registry needed for the default path (keeps tests lean).
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
 	assert.Equal(t, factions.Hostile, def.Faction)
@@ -508,7 +508,7 @@ func TestMapMobDefinition_ExplicitHostileFactionEqualsDefault(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), testFactionRegistry(t), testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), testFactionRegistry(t), testCurve())
 	require.NoError(t, err)
 
 	assert.Equal(t, factions.Hostile, def.Faction)
@@ -529,7 +529,7 @@ func TestMapMobDefinition_FriendlyToPlayersFollowsFaction(t *testing.T) {
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
 	}`))
 	require.NoError(t, err)
-	def, err := soldier.mapToMobDefinition(nil, testSkillRegistry(t), fr, testCurve())
+	def, err := soldier.mapToMobDefinition(testSkillRegistry(t), fr, testCurve())
 	require.NoError(t, err)
 	assert.True(t, def.FriendlyToPlayers)
 
@@ -538,7 +538,7 @@ func TestMapMobDefinition_FriendlyToPlayersFollowsFaction(t *testing.T) {
 	  "body": {"radius": 0.2, "aggroRadius": 2.4}
 	}`))
 	require.NoError(t, err)
-	orcDef, err := orc.mapToMobDefinition(nil, testSkillRegistry(t), fr, testCurve())
+	orcDef, err := orc.mapToMobDefinition(testSkillRegistry(t), fr, testCurve())
 	require.NoError(t, err)
 	assert.False(t, orcDef.FriendlyToPlayers)
 }
@@ -553,7 +553,7 @@ func TestMapMobDefinition_UnknownFactionFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), testFactionRegistry(t), testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), testFactionRegistry(t), testCurve())
 	require.ErrorContains(t, err, `"pradator"`)
 }
 
@@ -568,7 +568,7 @@ func TestMapMobDefinition_AlignedFactionFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), testFactionRegistry(t), testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), testFactionRegistry(t), testCurve())
 	require.ErrorContains(t, err, "aligned")
 }
 
@@ -582,7 +582,7 @@ func TestMapMobDefinition_FactionWithoutRegistryFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.ErrorContains(t, err, "no factions")
 }
 
@@ -603,7 +603,7 @@ func TestMapMobDefinition_DerivesMaxHealthAndPowerScale(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
 	assert.Equal(t, "normal", def.Tier)
@@ -624,7 +624,7 @@ func TestMapMobDefinition_TierAndCurveLevelDefaultToBaseline(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	def, err := raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.NoError(t, err)
 
 	assert.Equal(t, "normal", def.Tier)
@@ -644,7 +644,7 @@ func TestMapMobDefinition_RawMaxHealthIsAReject(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "baseMaxHealth")
 }
@@ -660,7 +660,7 @@ func TestMapMobDefinition_UnknownTierFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "legendary")
 }
@@ -676,7 +676,7 @@ func TestMapMobDefinition_NegativeCurveLevelFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToMobDefinition(nil, testSkillRegistry(t), nil, testCurve())
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "curveLevel")
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/trichner/berryhunter/pkg/api/BerryhunterApi"
 	"github.com/trichner/berryhunter/pkg/berryhunter/curve"
 	"github.com/trichner/berryhunter/pkg/berryhunter/factions"
-	"github.com/trichner/berryhunter/pkg/berryhunter/items"
 	"github.com/trichner/berryhunter/pkg/berryhunter/skills"
 )
 
@@ -27,13 +26,7 @@ const (
 //"type": "MOB",
 //"factors": {
 //"vulnerability": 5.0
-//},
-//"drops": [
-//{
-//"item": "RawMeat",
-//"count": 3
 //}
-//]
 //}
 
 type MobID uint64
@@ -106,8 +99,6 @@ type Body struct {
 	AggroRadius    float32
 }
 
-type Drops []*items.ItemStack
-
 // MobSkill is one entry of a mob's skill loadout, resolved against the skill
 // registry at load time.
 type MobSkill struct {
@@ -148,7 +139,6 @@ type MobDefinition struct {
 	PowerScale float32
 
 	Factors Factors
-	Drops   Drops
 	Body    Body
 	Skills  []MobSkill
 	Unlocks []MobUnlock
@@ -195,11 +185,6 @@ type mobDefinition struct {
 		Experience           uint32             `json:"experience"`
 	} `json:"factors"`
 
-	Drops []struct {
-		Item  string `json:"item"`
-		Count int    `json:"count"`
-	} `json:"drops"`
-
 	Body struct {
 		Radius         float32 `json:"radius"`
 		CollisionLayer int     `json:"collisionLayer"`
@@ -230,7 +215,7 @@ func parseMobDefinition(data []byte) (*mobDefinition, error) {
 	return &mob, nil
 }
 
-func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry, fr factions.Registry, c curve.Curve) (*MobDefinition, error) {
+func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Registry, c curve.Curve) (*MobDefinition, error) {
 	// Mobs need an aggro territory; the former 4x-damage-radius fallback died
 	// with Body.DamageRadius (Phase 6.1), so the value is now required.
 	if m.Body.AggroRadius <= 0 {
@@ -353,25 +338,12 @@ func (m *mobDefinition) mapToMobDefinition(r items.Registry, sr skills.Registry,
 			TurnRate:             m.Factors.TurnRate,
 			Experience:           m.Factors.Experience,
 		},
-		Drops: make(Drops, 0, 1),
 		Body: Body{
 			Radius:         m.Body.Radius,
 			CollisionLayer: m.Body.CollisionLayer,
 			CollisionMask:  m.Body.CollisionMask,
 			AggroRadius:    m.Body.AggroRadius,
 		},
-	}
-
-	// append drops
-	for _, d := range m.Drops {
-		i, err := r.GetByName(d.Item)
-		if err != nil {
-			return nil, err
-		}
-		if d.Count < 1 {
-			return nil, fmt.Errorf("Invalid Mob Definition, drop count is %d", d.Count)
-		}
-		mob.Drops = append(mob.Drops, items.NewItemStack(i, d.Count))
 	}
 
 	// resolve skill loadout

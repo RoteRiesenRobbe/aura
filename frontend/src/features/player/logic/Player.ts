@@ -23,7 +23,7 @@ export class Player {
         this.character = new Character(id, x, y, name, true);
         this.character.visibleOnMinimap = true;
 
-        this.controls = new Controls(this.character, this.isCraftInProgress.bind(this));
+        this.controls = new Controls(this.character);
 
         this.camera = new Camera(this.character);
         miniMap.add(this.character);
@@ -34,11 +34,6 @@ export class Player {
 
     init() {
         PlayerCreatedEvent.trigger(this);
-    }
-
-    // Crafting was removed with the item system (Block 2); never in progress.
-    isCraftInProgress() {
-        return false;
     }
 
     updateFromBackend(entity) {

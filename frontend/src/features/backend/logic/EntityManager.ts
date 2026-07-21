@@ -1,6 +1,6 @@
 import _clone = require('lodash/clone');
 import {Ticker} from 'pixi.js';
-import {isDefined, isFunction, removeElement} from '../../common/logic/Utils';
+import {isDefined, isFunction} from '../../common/logic/Utils';
 import {DebugCircle} from '../../internal-tools/develop/logic/DebugCircle';
 import {GameObject, hpToDisplay} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
@@ -8,8 +8,6 @@ import {Character} from '../../game-objects/logic/Character';
 import {Placeable} from '../../game-objects/logic/Placeable';
 import {Resource} from '../../game-objects/logic/Resources';
 import {Mob} from '../../game-objects/logic/Mobs';
-import * as Equipment from '../../items/logic/Equipment';
-import {EquipmentSlot} from '../../items/logic/Equipment';
 import {BerryhunterApi} from './BerryhunterApi';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
 import {gameObjectId} from '../../common/logic/Types';
@@ -89,32 +87,6 @@ export class EntityManager {
 
         if (entity.type === Character) {
             const character: Character = gameObject as Character;
-
-            /**
-             * Handle equipment
-             */
-            let slotsToHandle = Object.keys(EquipmentSlot).map(k => EquipmentSlot[k as any]);
-            removeElement(slotsToHandle, EquipmentSlot.PLACEABLE);
-
-            if (isDefined(entity.equipment)) {
-                entity.equipment.forEach((equippedItem) => {
-                    let slot = Equipment.Helper.getItemEquipmentSlot(equippedItem);
-                    removeElement(slotsToHandle, slot);
-                    let currentlyEquippedItem = character.getEquippedItem(slot);
-                    if (currentlyEquippedItem === equippedItem) {
-                        return;
-                    }
-                    if (currentlyEquippedItem !== null) {
-                        character.unequipItem(slot);
-                    }
-                    character.equipItem(equippedItem, slot);
-                });
-            }
-
-            // All Slots that are not equipped according to backend are dropped.
-            slotsToHandle.forEach(slot => {
-                character.unequipItem(slot);
-            });
 
             if (isDefined(entity.level) && isFunction(character['setLevel'])) {
                 character['setLevel'](entity.level);

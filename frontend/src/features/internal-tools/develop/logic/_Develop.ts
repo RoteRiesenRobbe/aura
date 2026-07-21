@@ -21,7 +21,6 @@ import {
     BackendStateChangedEvent,
     BackendStateChangedMsg,
     BackendValidTokenEvent,
-    ControlsActionEvent,
     DevelopSetupEvent,
     GameSetupEvent,
 } from '../../../core/logic/Events';
@@ -174,10 +173,6 @@ export class Develop implements IDevelop {
             this.setupTickSampler();
         });
 
-        ControlsActionEvent.subscribe(() => {
-            // The event.preventDefault() of the inputManager otherwise keeps the focus in the develop panel input elements.
-            resetFocus();
-        });
     }
 
     private setupToggleButtons() {
@@ -324,13 +319,6 @@ export class Develop implements IDevelop {
             case 'type':
                 if (_isObject(value) && value.hasOwnProperty('name')) {
                     return value['name'];
-                }
-                break;
-            case 'equipment':
-                if (Array.isArray(value)) {
-                    return value.map(entry => {
-                        return entry.name;
-                    });
                 }
                 break;
             case 'x':

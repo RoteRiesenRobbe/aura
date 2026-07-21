@@ -1,20 +1,17 @@
 import {
-    ControlsActionEvent,
     ControlsMovementEvent,
     ControlsRotateEvent,
     GameSetupEvent,
 } from '../../core/logic/Events';
 import {BasicConfig as Constants} from '../../../client-data/BasicConfig';
-import * as Equipment from '../../items/logic/Equipment';
 import * as Console from '../../internal-tools/console/logic/Console';
 import * as Chat from '../../chat/logic/Chat';
-import {isDefined, isUndefined} from '../../common/logic/Utils';
+import {isUndefined} from '../../common/logic/Utils';
 import Tock from 'tocktimer';
 import {KeyCodes} from '../../input-system/logic/keyboard/keys/KeyCodes';
-import {BerryhunterApi} from '../../backend/logic/BerryhunterApi';
 import {Character} from '../../game-objects/logic/Character';
 import {GameState, IGame} from '../../core/logic/IGame';
-import {InputAction, InputMessage} from '../../backend/logic/messages/outgoing/InputMessage';
+import {InputMessage} from '../../backend/logic/messages/outgoing/InputMessage';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {Vector} from '../../core/logic/Vector';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
@@ -45,7 +42,6 @@ class Keys {
 
 
 export class Controls {
-    isCraftInProgress: () => boolean;
     character: Character;
     lastX: number;
     lastY: number;
@@ -54,9 +50,6 @@ export class Controls {
     downKeys = new Keys(KeyCodes.S, KeyCodes.DOWN);
     leftKeys = new Keys(KeyCodes.A, KeyCodes.LEFT);
     rightKeys = new Keys(KeyCodes.D, KeyCodes.RIGHT);
-    actionKeys = new Keys();
-    // Q moved to the cooldown hotkeys; SHIFT keeps the (legacy) alt action.
-    altActionKeys = new Keys(KeyCodes.SHIFT);
     pauseKeys = new Keys(KeyCodes.P);
     // Hotkeys [PLACEHOLDER bindings until a keybinding UI exists]:
     // 1–3 toggle the aura slots, Q/E/F fire the cooldown slots.
@@ -64,18 +57,11 @@ export class Controls {
     cooldownHotkeys = [new Keys(KeyCodes.Q), new Keys(KeyCodes.E), new Keys(KeyCodes.F)];
     private auraHotkeysWereDown: boolean[] = [false, false, false];
     private cooldownHotkeysWereDown: boolean[] = [false, false, false];
-    hitAnimationTick: number = 0;
     clock: Tock;
-    inventoryAction: InputAction;
     updateTime: number;
     lastInputType: ('MOUSE' | 'TOUCH') = 'MOUSE';
 
-    /**
-     * @param {Character} character
-     * @param {function} isCraftInProgress Model function. Can be called to determine if a craft is in progress.
-     */
-    constructor(character: Character, isCraftInProgress: () => boolean) {
-        this.isCraftInProgress = isCraftInProgress;
+    constructor(character: Character) {
         this.character = character;
 
         if (Constants.ALWAYS_VIEW_CURSOR) {
@@ -121,21 +107,6 @@ export class Controls {
             event.preventDefault();
             return;
         }
-    }
-
-    /**
-     * @return {boolean} whether or not the action was allowed. Visuals have to be aligned to this return value
-     */
-    onInventoryAction(item, actionType) {
-        if (this.isCraftInProgress()) {
-            return false;
-        }
-
-        this.inventoryAction = {
-            item: item,
-            actionType: actionType,
-        };
-        return true;
     }
 
     update() {
@@ -208,37 +179,6 @@ export class Controls {
             movement.x += 1;
         }
 
-        let action: InputAction = null;
-        if (this.hitAnimationTick) {
-            // Make sure tick 0 gets passed to the character to finish animation
-            this.hitAnimationTick--;
-        } else {
-            if (isDefined(this.inventoryAction)) {
-                action = this.inventoryAction;
-                delete this.inventoryAction;
-            } else {
-                if (this.isCraftInProgress()) {
-                    // Don't check for actions
-                } else if (this.actionKeys.isDown) {
-                    this.hitAnimationTick = this.character.action();
-                    switch (this.character.currentAction) {
-                        case 'MAIN':
-                        case 'ALT':
-                            action = {
-                                item: Game.player.character.getEquippedItem(Equipment.EquipmentSlot.HAND),
-                                actionType: 0, // was ActionType.Primary; wire action removed (Block 2)
-                            };
-                            break;
-                        // PLACING removed with the item system (Block 2): no
-                        // inventory to unequip a placeable from.
-                    }
-                } else if (this.altActionKeys.isDown || inputManager.activePointer.rightButtonDown()) {
-                    // Alt Action is only cancelling an equipped placeable - not need to report to backend
-                    this.hitAnimationTick = this.character.altAction();
-                }
-            }
-        }
-
         let input = new InputMessage();
         let hasInput = false;
 
@@ -260,13 +200,6 @@ export class Controls {
         if (movement.x !== 0 || movement.y !== 0) {
             input.movement = movement;
             ControlsMovementEvent.trigger(movement);
-            hasInput = true;
-        }
-
-        if (action !== null) {
-            // Wire action removed with the item system (Block 2); the event stays
-            // for inert subscribers (juice/dev), but nothing is sent to the server.
-            ControlsActionEvent.trigger(action);
             hasInput = true;
         }
 
