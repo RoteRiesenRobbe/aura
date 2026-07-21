@@ -911,8 +911,10 @@ system ships blind.
    gate, the front, the Orc Warlord world boss, 47 mobs, 78 skills, 10
    combination recipes, teaching NPCs, and the first real balance pass
    (kills/hour-derived XP bands, guardrail asserts). **One deliberate
-   remnant:** the combat-feel SFX slice below is still open — it rides in the
-   PO priority queue rather than blocking the step.
+   remnant:** the combat-feel SFX slice below stayed open past the gate;
+   **DEFERRED by PO 2026-07-21** (no placeholder audio assets — background
+   music + existing sounds suffice for now; revisit later, natural slot: the
+   step-8 audio half).
 
    Original scope: real zones, full
    mob roster (replace the legacy Berryhunter mobs), boss scripts, skills,
