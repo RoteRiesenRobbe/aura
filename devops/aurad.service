@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/aurad
-ExecStart=/opt/aurad/aurad -dev
+ExecStart=/opt/aurad/aurad -dev -content ./api
 DynamicUser=yes
 CacheDirectory=cache
 StateDirectory=state

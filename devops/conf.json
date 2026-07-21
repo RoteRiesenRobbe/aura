@@ -1,25 +1,25 @@
 {
   "server": {
     "path": "/game",
-    "tlsHost": "dev.berryhunter.io",
+    "tlsHost": "aura-game.duckdns.org",
     "frontendDir": "./frontend"
   },
   "game": {
+    "zone": "world",
     "heatFractionPerSecond": 0.04,
+    "totalDayCycleSeconds": 600,
+    "dayTimeSeconds": 400,
     "mobChaseIntoAuraMargin": 0.2,
     "player": {
       "healthGainTick": 0.00033,
       "walkingSpeedPerTick": 0.05,
-      "damageAuraRadius": 1,
-      "damageAuraDamageFraction": 0.009,
-      "damageAuraLevelGainFraction": 0.002,
-      "maxHealthLevelGainFraction": 0.1,
-      "healAuraRadius": 1,
-      "healAuraHealTickFraction": 0.001,
-      "healAuraLevelGainFraction": 0.0005,
-      "healAuraSelfDamageTickFraction": 0.0015,
+      "baseHealth": 100,
+      "levelGrowth": 1.12,
+      "maxLevel": 30,
       "levelUpXPBase": 300,
-      "levelUpXPGrowthFactor": 1.2
+      "levelUpXPGrowthFactor": 1.2,
+      "skillPointsPerLevel": 1,
+      "critChance": 0.05
     }
   }
 }

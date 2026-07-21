@@ -288,6 +288,10 @@ func bootTlsServer(gameHandler, skillsHandler http.Handler, cfg cfg.Server, dev 
 		Handler:   mux,
 	}
 
+	// Port 80 companion: serves the ACME http-01 challenge and redirects
+	// everything else to https, so bare http:// links reach the game.
+	go http.ListenAndServe(":http", m.HTTPHandler(nil))
+
 	// start server
 	go s.ListenAndServeTLS("", "")
 
