@@ -127,4 +127,12 @@ export const BasicConfig = {
      * Number of milliseconds that a chat message will stay visible
      */
     CHAT_MESSAGE_DURATION: <number> 5000,
+
+    /**
+     * Number of milliseconds that an NPC line stays visible (playtest-1
+     * feedback pass B item 1: doubled — texts vanished before they could be
+     * read). Separate from player chat on purpose: an NPC line is content to
+     * read, a chat line is conversation. [PLACEHOLDER]
+     */
+    NPC_MESSAGE_DURATION: <number> 10000,
 };

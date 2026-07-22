@@ -23,7 +23,10 @@
 // server announcements (boss beats, ANNOUNCE) and skill-unlock alerts.
 #alertBanner {
 	position: absolute;
-	top: 22vh;
+	// Top of the screen, not the upper third (feedback pass B item 1): at 22vh
+	// the banner sat right on top of the NPC speech bubbles of an NPC the
+	// player was standing next to. [PLACEHOLDER]
+	top: 7vh;
 	left: 50%;
 	transform: translateX(-50%);
 	max-width: 60vw;
@@ -45,6 +48,13 @@
 	&.unlock,
 	&.levelup {
 		color: #ffd75e; // gold — a spellbook discovery or a level-up
+	}
+
+	// Blocked-action feedback (feedback pass B item 7): the loadout-in-combat
+	// rejection used to be a floating text over the character, where it went
+	// unnoticed. Red, so it never reads as a reward.
+	&.warning {
+		color: #ff8a72;
 	}
 }
 
@@ -73,6 +83,49 @@
 
 		border-radius: 50%;
 		overflow: hidden;
+	}
+
+	// Compass (feedback pass B item 6): the minimap is north-up and never
+	// rotates with the player, so the cardinals are four static labels laid
+	// over the rim rather than anything pixi has to draw per frame.
+	// Sits above .wrapper's overflow:hidden, so the glyphs are never clipped.
+	> .compass {
+		position: absolute;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		right: 0;
+		pointer-events: none;
+
+		font-size: (0.4 * @uiElementHeight);
+		font-weight: 700;
+		line-height: 1;
+		color: fade(black, 60%);
+		text-shadow: 0 0 2px fade(Cornsilk, 90%);
+
+		> span {
+			position: absolute;
+		}
+
+		> .north,
+		> .south {
+			left: 50%;
+			transform: translateX(-50%);
+		}
+
+		> .west,
+		> .east {
+			top: 50%;
+			transform: translateY(-50%);
+		}
+
+		// N/S sit at the narrow poles of the circle, E/W at its widest point —
+		// so the horizontal pair needs the larger inset to stay on the map
+		// disc instead of straddling the rim.
+		> .north { top: 0.2vw; }
+		> .south { bottom: 0.2vw; }
+		> .west  { left: 1vw; }
+		> .east  { right: 1vw; }
 	}
 }
 
@@ -561,16 +614,20 @@
 		}
 	}
 
+	// Same treatment as .auraLoadoutTitle — the four panel titles are one
+	// vocabulary and must not diverge (feedback pass B item 8).
 	> .spellbookTitle {
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
 		gap: 0.6rem;
 		font-weight: 700;
-		letter-spacing: 0.04em;
-		margin-bottom: 0.8rem;
-		color: @panel-title-color;
-		font-size: @panel-title-size;
+		letter-spacing: 0.08em;
+		padding-bottom: 0.3rem;
+		margin-bottom: 0.6rem;
+		border-bottom: 2px solid fade(#ffd75e, 45%);
+		color: #ffd75e;
+		font-size: (@panel-title-size * 1.2);
 		text-transform: uppercase;
 
 		> #skillPointsBadge {
@@ -618,15 +675,28 @@
 				border-radius: 0.4rem;
 			}
 
+			// Category dividers inside the spellbook list. Feedback pass B
+			// item 8: the earlier 1.1em gold pass was not enough — the
+			// playtester still could not find the Passives group. Now a
+			// filled band with a rule under it, so the list reads as three
+			// labelled blocks instead of one long run of rows.
 			&.sectionHeader {
 				display: block;
-				padding: 0.6rem 0 0.2rem;
+				margin: 1rem -0.6rem 0.2rem;
+				padding: 0.4rem 0.6rem;
+				background: fade(#ffd75e, 12%);
+				border-bottom: 2px solid fade(#ffd75e, 55%);
+				border-radius: 0.4rem 0.4rem 0 0;
 				color: #ffd75e; // banner unlock/levelup gold — easier to spot while scrolling
-				font-size: 1.1em;
+				font-size: 1.3em;
 				font-weight: 700;
 				text-transform: uppercase;
-				letter-spacing: 0.04em;
+				letter-spacing: 0.08em;
 				cursor: default;
+
+				&:first-child {
+					margin-top: 0;
+				}
 			}
 
 			> .skillControls {
@@ -735,12 +805,18 @@
 	color: @panel-color;
 	font-size: @panel-font-size;
 
+	// Panel titles ("Passives" / "Aura Slots" / "Cooldowns"). Feedback pass B
+	// item 8: these are what tells the player which panel holds what, and at
+	// 60%-white they read as decoration. Gold + a rule, matching the
+	// spellbook's section bands so the two vocabularies agree.
 	> .auraLoadoutTitle {
 		font-weight: 700;
-		letter-spacing: 0.04em;
-		margin-bottom: 0.8rem;
-		color: @panel-title-color;
-		font-size: @panel-title-size;
+		letter-spacing: 0.08em;
+		padding-bottom: 0.3rem;
+		margin-bottom: 0.6rem;
+		border-bottom: 2px solid fade(#ffd75e, 45%);
+		color: #ffd75e;
+		font-size: (@panel-title-size * 1.2);
 		text-transform: uppercase;
 	}
 

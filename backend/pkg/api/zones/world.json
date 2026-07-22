@@ -13159,7 +13159,7 @@
       "type": "Farmer",
       "x": -57,
       "y": 28.6,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "There's always money in farming.",
       "teachings": [
         {
@@ -13177,7 +13177,7 @@
       "type": "Hermit",
       "x": -54.9,
       "y": 25.6,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "If you are hurt, rest by the fire. But come back to me later. I might have something for you.",
       "teachings": [
         {
@@ -13200,7 +13200,7 @@
       "type": "Hermit",
       "x": -66,
       "y": -27.6,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "Rest a moment, wanderer.",
       "teachings": [
         {
@@ -13217,7 +13217,7 @@
       "type": "Dog",
       "x": -48,
       "y": -18,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "Woof?",
       "teachings": [
         {
@@ -13234,7 +13234,7 @@
       "type": "Miner",
       "x": -27,
       "y": -26.4,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "Careful! The tunnel is dark and dangerous.",
       "teachings": [
         {
@@ -13252,7 +13252,7 @@
       "type": "CityGuard",
       "x": 62.4,
       "y": 9.6,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "The village needs help? Hmph. Did you even try to help?",
       "teachings": [
         {
@@ -13271,9 +13271,14 @@
       "type": "VillageHealer",
       "x": 45.4,
       "y": 11,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "I see you have a long way ahead of you. But I also see much potential. Come back later.",
       "teachings": [
+        {
+          "skill": "FirstAid",
+          "requiredLevel": 2,
+          "line": "You are hurt. Here — learn to patch yourself up, you will need it out there."
+        },
         {
           "skill": "Revive",
           "requiredLevel": 8,
@@ -13289,7 +13294,7 @@
       "type": "FrontCaptain",
       "x": 58.9,
       "y": 26.9,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "Careful, the Orc assault camp lies just south of here. This is no place for you yet.",
       "teachings": [
         {
@@ -13299,7 +13304,8 @@
         }
       ],
       "lines": [
-        "You might just have a chance at the Orc Commander. He's in his camp in the west."
+        "You might just have a chance at the Orc Commander. He's in his camp in the west.",
+        "But steel will not touch him while his war banners stand. Destroy his banners first — then bring him down."
       ],
       "entityType": "FrontCaptain"
     },
@@ -13307,9 +13313,14 @@
       "type": "Shaman",
       "x": 18,
       "y": 6,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "I see great potential in you! Come back later and I might have something for you.",
       "teachings": [
+        {
+          "skill": "Recover",
+          "requiredLevel": 4,
+          "line": "Nature mends what it can. Breathe, and let this close your wounds."
+        },
         {
           "skill": "SummonTotem",
           "requiredLevel": 5,
@@ -13325,7 +13336,7 @@
       "type": "Wanderer_1",
       "x": -15.53,
       "y": 30.68,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "Are you sure you should be out here? Anyways, don't go further east.",
       "teachings": [
         {
@@ -13343,7 +13354,7 @@
       "type": "Emberkeeper",
       "x": 52.57,
       "y": -9.42,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
       "teachings": [
         {
@@ -13371,7 +13382,7 @@
       "type": "LamplessTraveller",
       "x": -20.63,
       "y": -24.38,
-      "radius": 1.5,
+      "radius": 1.0,
       "lines": [
         "The Kobolds took my lamp!"
       ],
@@ -13381,7 +13392,7 @@
       "type": "TownCrier",
       "x": -55.74,
       "y": 21.96,
-      "radius": 1.5,
+      "radius": 1.0,
       "tooLowLine": "Those wolves are a pest, get rid of them!",
       "teachings": [
         {
@@ -13404,7 +13415,7 @@
       "type": "ForestSign",
       "x": -53.61,
       "y": -1.18,
-      "radius": 1.5,
+      "radius": 1.0,
       "lines": [
         "DANGER! STAY AWAY!"
       ],

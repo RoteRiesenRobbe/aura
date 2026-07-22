@@ -150,20 +150,25 @@ export function updateCombatIndicator(inCombat: boolean) {
 }
 
 // combatLocked mirrors Character.in_combat — the window during which the server
-// rejects loadout edits. Client-side we short-circuit equip clicks with an
-// over-the-head message (same feedback channel as the campfire bind) instead of
-// letting the request travel and get silently dropped.
+// rejects loadout edits. Client-side we short-circuit equip clicks with a
+// warning banner instead of letting the request travel and get silently
+// dropped.
 let combatLocked = false;
 
 // rejectEquipInCombat blocks a loadout edit while in combat, showing the reason
-// over the local character. Returns true when the edit was blocked. Only equip
+// in the alert banner. Returns true when the edit was blocked. Only equip
 // (re-slotting) is locked — switching the active aura and firing cooldowns stay
 // available mid-fight.
+//
+// Feedback pass B item 7: this used to be a floating text over the local
+// character, which the playtester never noticed (the eyes are on the panel
+// being clicked, not on the avatar). The banner is the established
+// "read this" surface.
 function rejectEquipInCombat(): boolean {
     if (!combatLocked) {
         return false;
     }
-    Game.player?.character?.showFloatingText("Can't change loadout in combat", 0xE05038);
+    AlertBanner.show("Can't change loadout in combat", 'warning');
     return true;
 }
 
@@ -190,12 +195,15 @@ export function updateShield(shieldHp: number, maxHealth: number, healthFraction
 // health as currentHP/maxHP, XP as within-level progress toward the next
 // level (server-authoritative — resets to 0/needed on level-up and on the
 // death XP penalty).
+//
+// The XP bar carries an explicit "XP" prefix (feedback pass B item 5): the
+// playtester did not recognise the bare "12/40" as an experience bar at all.
 export function updateBarTexts(health: number, maxHealth: number, xpInLevel: number, xpForNextLevel: number) {
     if (healthBarTextElement) {
         healthBarTextElement.textContent = `${health}/${maxHealth}`;
     }
     if (xpBarTextElement) {
-        xpBarTextElement.textContent = `${xpInLevel}/${xpForNextLevel}`;
+        xpBarTextElement.textContent = `XP ${xpInLevel}/${xpForNextLevel}`;
     }
 }
 

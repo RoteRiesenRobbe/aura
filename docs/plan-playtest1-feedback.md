@@ -1,9 +1,10 @@
 # Plan: Playtest-1 Feedback (external tester)
 
-**Status:** **Pass A DONE 2026-07-22** (A1 + A2, `b0171ffb`) — awaiting PO
-in-game feel pass. **NEXT: Pass B** in its own session, then Pass C. The
-tutorial/quest/aura-differentiation themes go to their own planning rounds.
-Full Pass-A ledger: §Pass A ledger at the end of this doc.
+**Status:** **Pass A DONE 2026-07-22** (A1 + A2, `b0171ffb`) and **Pass B DONE
+2026-07-22** (`[uncommitted]`) — both awaiting the PO in-game feel/read pass.
+**NEXT: Pass C** in its own session. The tutorial/quest/aura-differentiation
+themes go to their own planning rounds. Full ledgers: §Pass A ledger and
+§Pass B ledger at the end of this doc.
 
 ## Source
 
@@ -138,7 +139,8 @@ guardrails, sim battery after the HP/damage pass.
 
 - One feedback line was garbled ("möchte questhat dinge aufgelevelt") — PO to
   clarify if it contained anything beyond the quest wish.
-- "Light" replacement name = PO pick at Pass-B execution.
+- ~~"Light" replacement name = PO pick at Pass-B execution.~~ **RESOLVED
+  2026-07-22: Lantern** (full registry rename, see §Pass B ledger).
 - Gray threshold −5, campfire-radius no-entry geometry, **respawn ×2**
   (RESOLVED at Pass-A execution — the "×0.5" above was self-contradictory
   against "too fast"; PO picked timers ×2, see §Pass A ledger), all new
@@ -271,6 +273,119 @@ tuning) in one session — NOT yet PO-verified in-game, committed
 - All new numbers are [PLACEHOLDER]: gray band −5, safe-radius factor 1.0,
   respawn ×2, the three HP/XP band factors, Z2 ×1.25, the three speeds, Heal
   1.5/+0.1/80, and every drop chance above.
+
+## Pass B ledger
+
+**Pass B (Communication & small fixes) DONE 2026-07-22, one session —
+NOT yet PO-verified in-game, committed `[uncommitted]`.** All 8 plan items
+landed; item 1 shipped partially by PO decision (see below).
+
+### PO rulings (choice prompts, 2026-07-22)
+
+- **"Light" → `Lantern`** — full registry rename (not a `displayName`
+  override), so the JSON name, the two kobold drop refs and the file name all
+  agree. Rationale: pairs with the dimmer `Torch` passive as an object-name
+  family, and reads unambiguously as a light source.
+- **Unlock source attribution (items 1c + 1d) SKIPPED** — "just reposition".
+  The client derives unlocks from a spellbook diff and has no source data; the
+  offered fix (server-authored per-unlock alert from all 5 grant sites, reusing
+  the EntityMessage channel with a reserved sentinel id, no schema change) was
+  deferred. The overlap complaint is addressed by 1b alone. **Still open.**
+- **FirstAid second source = the existing VillageHealer** (it already stands
+  1.5 u from the village campfire) rather than a new campfire-teaches
+  mechanic — zero new machinery for the same in-world result.
+- **Recover second source = the Shaman @ (18, 6)** (Hermit sprite, Zone 2,
+  the NPC nearest map centre). Note for the record: no Hermit-sprite NPC
+  actually stands at a campfire near map centre — the four candidates were put
+  to the PO with their real coordinates and this one was picked.
+
+### Frontend (no wire change, no schema change)
+
+- **NPC bubble duration ×2** — new `BasicConfig.NPC_MESSAGE_DURATION` **10000**
+  [PLACEHOLDER], selected in `_GameObject.say()` off the existing `latestWins`
+  flag. Deliberately *not* shared with `CHAT_MESSAGE_DURATION` (5000): an NPC
+  line is content to read, a chat line is conversation.
+- **Alert banner 22vh → 7vh** [PLACEHOLDER] + new **`warning`** AlertKind
+  (`#ff8a72` red). `rejectEquipInCombat` (item 7) moved off
+  `showFloatingText` over the character — the playtester never noticed it
+  there, because the eyes are on the panel being clicked.
+- **Tooltip wording** (item 5a): gated damage tags now render as what the
+  player *does* — `GATED_TAG_LINES` maps `smash` → "Smashes boulders and
+  rockfalls — nothing else", `harvest` → the plants equivalent; an unmapped
+  tag falls back to the old passive phrasing rather than inventing a verb.
+  `light_aura` "Emits light" → "Lights up the darkness around you".
+- **XP bar** (item 5c): `12/300` → **`XP 12/300`** + a `title` tooltip. The
+  tester did not recognise the bare numbers as an experience bar.
+- **Minimap compass** (item 6): four static CSS labels in `HUD.html` over the
+  rim, *not* pixi — `MiniMap.ts` contains no rotation code at all, so the map
+  is permanently north-up. E/W need a larger inset (1vw) than N/S (0.2vw):
+  they sit at the circle's widest point and straddled the rim at 0.35vw.
+- **Headers** (item 8): spellbook `.sectionHeader` gains a filled gold band +
+  2px rule, 1.1em → **1.3em**; all four panel titles (`.spellbookTitle` +
+  the three `.auraLoadoutTitle`s) go gold + ruled at `@panel-title-size × 1.2`.
+  **Deviation from plan:** the plan named only three titles, but leaving
+  "Spellbook" grey among four sibling panels reads as a bug — flagged to PO.
+
+### Content
+
+- **Light → Lantern**: `api/skills/light.json` git-mv'd to `lantern.json`,
+  `"name"` changed, both kobold `skillName` drop refs and the `_comment`s
+  updated, plus the `registry_test.go` roster comment. Id **6** and the
+  registry pin **82** are untouched — a name-only change.
+- **NPC sensor radius 1.5 → 1.0** [PLACEHOLDER] on all 14 NPCs (item 2). One
+  `sed` on `"radius": 1.5` — verified safe first: the only other `radius` key
+  in the file is `darkAreas`, whose values are 4.0–7.2, so exactly 14 lines
+  moved. Geometry: NPC body 0.35 + player 0.25 = 0.60 contact distance vs
+  1.0 + 0.25 = 1.25 detection, so the player gets ~0.43 s of walking inside
+  the sensor and then physically bumps into the NPC — which is the point of
+  the item ("didn't realize she was talking to an NPC").
+- **Second sources** (item 3): Shaman gains **Recover @L4** [PLACEHOLDER]
+  ordered *before* its SummonTotem @L5 (the ordered walk stops at the first
+  too-low teaching, so the lower gate must come first); VillageHealer gains
+  **FirstAid @L2** [PLACEHOLDER] before its Revive @L8.
+- **Warlord hint** (item 4): FrontCaptain `lines` gains "…Destroy his banners
+  first — then bring him down." **Scope extension:** the hint also went into
+  `tooLowLine`. `onApproach` speaks the *teaching* line on a first meeting and
+  only falls back to `lines` afterwards, so a player who has just earned
+  Vanguard would never hear the hint; and under-15 explorers who find the
+  front early are exactly the audience that needs it.
+
+### Verified
+
+- `go build ./...` clean; `go test ./...` **exit 0, 29 packages**.
+- Boot: `10 items/82 skills/14 factions/50 mobs/10 recipes/1 milestone/5 props/
+  815 props/399 spawns/5 campfires (safeRadius 1.5)/14 npcs, 0 panics`, no
+  warnings.
+- Frontend `npx tsc --noEmit` clean; webpack prod build green.
+- **Playwright smoke 15/15, no JS errors** — banner at 7.0vh, `XP 0/300`,
+  compass N/E/S/W with real layout boxes, 3 gold banded section headers, 4 gold
+  ruled panel titles, `Lantern` in the spellbook and in `GET /skills` (and
+  `Light` gone), Pickaxe tooltip active voice, warning banner red.
+- **In-game NPC pass:** teaching confirmed at the new 1.0 radius for
+  Farmer/Harvest (ungated), Shaman/Recover, VillageHealer/FirstAid and
+  FrontCaptain/Vanguard; both FrontCaptain text paths screenshotted
+  (under-level `tooLowLine` and veteran lore lines, hint legible in both).
+- `world.json` diff is 43 lines — no reformatting of a file the PO edits by
+  hand in the zone editor.
+
+### Watch items / open calls for the read pass
+
+- **Items 1c + 1d are still open** (sequencing + "Taught by: …" source). The
+  tester's "never noticed *where* abilities came from" is unaddressed.
+- **Long NPC bubbles can still graze the banner.** At 7vh the original
+  complaint is fixed, but the FrontCaptain's 7-wrapped-line bubble still
+  reaches up near it when the NPC sits at screen centre. Implication: keep
+  lore lines to ~2 short sentences, or reduce the bubble wrap width.
+- **`WARP` has 1-unit granularity** — `sys/cmd/cmd.go:76` does integer
+  division (`x / codec.Points2px`) before the float cast, so fractional
+  coordinates truncate. With the sensor now at 1.0 this can no longer reliably
+  land you inside an NPC trigger (it produced one false test failure: (58,26)
+  is 1.27 from the captain, just past the 1.25 threshold). Pre-existing, not
+  introduced here — but it now matters for PO walkthroughs.
+- **Spellbook title went gold too** (consistency call, see Frontend above) —
+  one-line revert if the PO wants only the three planned titles.
+- All new numbers are [PLACEHOLDER]: NPC radius 1.0, banner 7vh, NPC bubble
+  10 s, Recover @L4, FirstAid @L2, header sizes/band colours, compass insets.
 
 ## Test strategy
 

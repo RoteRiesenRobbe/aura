@@ -265,7 +265,11 @@ export abstract class GameObject {
             style: textStyle,
         });
         messageShape.anchor.set(0.5, 1);
-        messageShape['timeToLife'] = Constants.CHAT_MESSAGE_DURATION;
+        // NPC lines (latestWins) stay up twice as long as player chat — they
+        // are content to read, not conversation (feedback pass B item 1).
+        messageShape['timeToLife'] = latestWins
+            ? Constants.NPC_MESSAGE_DURATION
+            : Constants.CHAT_MESSAGE_DURATION;
         this.messagesGroup.addChild(messageShape);
         this.messages.push(messageShape);
     }

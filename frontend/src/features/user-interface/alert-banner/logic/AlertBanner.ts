@@ -1,9 +1,11 @@
 /**
- * AlertBanner (content pass C6): the single text-alert surface in the upper
- * third of the screen. Three feeds share it: server-wide system messages
- * (EntityMessage with entity id 0 — boss kill/respawn beats, ANNOUNCE cheat),
- * locally-detected spellbook discoveries (HUD.updateSpellbook diff), and
- * locally-detected level-ups (Player.updateFromBackend level diff).
+ * AlertBanner (content pass C6): the single text-alert surface, at the top of
+ * the screen (moved up out of the NPC speech bubbles in feedback pass B).
+ * Four feeds share it: server-wide system messages (EntityMessage with entity
+ * id 0 — boss kill/respawn beats, ANNOUNCE cheat), locally-detected spellbook
+ * discoveries (HUD.updateSpellbook diff), locally-detected level-ups
+ * (Player.updateFromBackend level diff), and blocked-action warnings
+ * (HUD.rejectEquipInCombat).
  *
  * Messages queue and show one at a time; CSS transitions handle fade in/out.
  */
@@ -11,7 +13,7 @@
 const SHOW_MS = 4500;
 const FADE_MS = 400; // keep in sync with the transition in HUD.less
 
-export type AlertKind = 'announce' | 'unlock' | 'levelup';
+export type AlertKind = 'announce' | 'unlock' | 'levelup' | 'warning';
 
 interface QueuedAlert {
     text: string;

@@ -1,11 +1,21 @@
 <div id="gameUI" class="hidden hideForLeaderboard">
-    <!-- Alert banner (content pass C6): server announcements + skill-unlock
-         alerts, upper third of the screen. Driven by AlertBanner.ts. -->
+    <!-- Alert banner (content pass C6): server announcements, skill-unlock
+         alerts and blocked-action warnings, at the top of the screen (moved up
+         in feedback pass B so it stops covering NPC speech bubbles).
+         Driven by AlertBanner.ts. -->
     <div id="alertBanner"></div>
 
     <div id="minimap">
         <div class="wrapper">
             <!-- pixi.js instance here, to display minimap icons -->
+        </div>
+        <!-- Compass (feedback pass B item 6): the minimap is north-up and never
+             rotates, so the cardinals are static labels rather than pixi. -->
+        <div class="compass" aria-hidden="true">
+            <span class="north">N</span>
+            <span class="east">E</span>
+            <span class="south">S</span>
+            <span class="west">W</span>
         </div>
     </div>
 
@@ -17,7 +27,7 @@
             <div class="shieldIndicator"></div>
             <span class="barText"></span>
         </div>
-        <div id="xpBar" class="bar flex">
+        <div id="xpBar" class="bar flex" title="Experience — fills up to your next level">
             <div class="indicator"></div>
             <div class="negativeDeltaIndicator"></div>
             <div class="positiveDeltaIndicator"></div>

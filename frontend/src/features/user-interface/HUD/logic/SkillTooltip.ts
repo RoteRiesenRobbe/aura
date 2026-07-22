@@ -99,6 +99,23 @@ const SELECTOR_LABELS: { [selector: string]: string } = {
     lowest_health: 'most wounded',
 };
 
+// Gated damage tags (gatedDamageTags: the aura hits ONLY targets that opt in
+// by naming the tag) rendered as what the player DOES with it. Feedback pass
+// B item 5: "Only affects targets vulnerable to: smash" left the playtester
+// with no idea Pickaxe is the key to the tunnel's boulders. An unmapped tag
+// falls back to the passive phrasing rather than inventing a verb.
+const GATED_TAG_LINES: { [tag: string]: string } = {
+    smash: 'Smashes boulders and rockfalls — nothing else',
+    harvest: 'Harvests plants and brambles — nothing else',
+};
+
+function gatedLine(tags: string[]): string {
+    if (tags.length === 1 && GATED_TAG_LINES[tags[0]] !== undefined) {
+        return GATED_TAG_LINES[tags[0]];
+    }
+    return `Only affects targets vulnerable to: ${tags.join(', ')}`;
+}
+
 // Aura-form effects with a real tick cadence; every other type's
 // tickInterval is just the parse default and means nothing.
 const TICKING_TYPES = new Set([
@@ -139,7 +156,7 @@ function damageExtraLines(damage: DamageParams, level: number, maxLevel: number,
         lines.push(`Damage type: ${damage.tags.join(', ')}`);
     }
     if (damage.gated) {
-        lines.push(`Only affects targets vulnerable to: ${damage.tags.join(', ')}`);
+        lines.push(gatedLine(damage.tags));
     }
     if (damage.variance > 0) {
         lines.push(`Variance: ±${pct(damage.variance)}`);
@@ -266,7 +283,9 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number): Effe
             lines.push('Sheds your threat to an enemy in range');
             break;
         case 'light_aura':
-            lines.push('Emits light');
+            // Feedback pass B item 5: "Emits light" did not read as "this is
+            // your light source in the dark" — say what it is for.
+            lines.push('Lights up the darkness around you');
             break;
         case 'shield_aura':
         case 'instant_shield': {

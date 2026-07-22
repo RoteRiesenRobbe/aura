@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 hideout ranged kobold (content pass C3, plan-content-zones12.md §4): the uncapped-volley showcase — KoboldVolley hits EVERY valid target in its large radius on a slow tick (selector 'all', §10 coverage). Stands behind the melee line in the hideout block-out. Flees low HP like its melee kin; same low-chance Light drop. All values [PLACEHOLDER]",
+  "_comment": "Z1 hideout ranged kobold (content pass C3, plan-content-zones12.md §4): the uncapped-volley showcase — KoboldVolley hits EVERY valid target in its large radius on a slow tick (selector 'all', §10 coverage). Stands behind the melee line in the hideout block-out. Flees low HP like its melee kin; same low-chance Lantern drop. All values [PLACEHOLDER]",
   "id": 22,
   "name": "KoboldRanged",
   "type": "MOB",
@@ -30,6 +30,6 @@
     }
   ],
   "unlocks": [
-    { "skillName": "Light", "chance": 0.05 }
+    { "skillName": "Lantern", "chance": 0.05 }
   ]
 }

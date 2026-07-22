@@ -113,7 +113,7 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// 25 player skills (incl. Swift/Tough, NovaBurst/FirstAid,
 	// Slow, the Paladin combination result, the FireWard resist
 	// aura, the Immolate/Ignite dot pair, SummonTotem,
-	// SummonCompanion, the Taunt/Fade threat-op pair, Light, the
+	// SummonCompanion, the Taunt/Fade threat-op pair, Lantern (né Light), the
 	// Reaper vocabulary smoke, the Barrier shield smoke, the Recall
 	// cast-time cooldown, the chunk-3 HoT+revive smoke trio
 	// Rejuvenation/Recover/Revive, the chunk-5 Dash cooldown, the chunk-6

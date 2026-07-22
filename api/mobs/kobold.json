@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 hideout melee kobold (content pass C3, plan-content-zones12.md §4): individually weak swarm fighter — KoboldStab is small/fast (volley contrast partner). fleeBelowHealthRatio 0.25 = the first flee-at-low-HP combat mob (§10 coverage home). curveLevel 3: post-forest, pre-tunnel. Hoards shiny stuff — low-chance Light kill-drop, the zone's only Light source (§12 flag). Speed under the 0.7 PO ceiling for normal enemies. All values [PLACEHOLDER]",
+  "_comment": "Z1 hideout melee kobold (content pass C3, plan-content-zones12.md §4): individually weak swarm fighter — KoboldStab is small/fast (volley contrast partner). fleeBelowHealthRatio 0.25 = the first flee-at-low-HP combat mob (§10 coverage home). curveLevel 3: post-forest, pre-tunnel. Hoards shiny stuff — low-chance Lantern kill-drop, the zone's only Lantern source (§12 flag). Speed under the 0.7 PO ceiling for normal enemies. All values [PLACEHOLDER]",
   "id": 21,
   "name": "Kobold",
   "type": "MOB",
@@ -30,6 +30,6 @@
     }
   ],
   "unlocks": [
-    { "skillName": "Light", "chance": 0.05 }
+    { "skillName": "Lantern", "chance": 0.05 }
   ]
 }
