@@ -26,8 +26,8 @@ Positives to keep/extend: core aura mechanic, static traps in the Dark Tunnel
 2. **Gray-aggro removed** — mobs far below player level no longer aggro
    (still attackable; flat gray XP stays DECIDED). Threshold proposal:
    `mob cL ≤ player cL − 5` [PLACEHOLDER] (matches band width ≈ +5).
-   **↺ RE-OPENED 2026-07-22:** shipped in Pass A, then **reverted** after the
-   PO played it — with no level signal on the mob it just feels bugged when
+   **↺ RE-OPENED 2026-07-22:** shipped in Pass A, then **reverted** (`6e7a301e`,
+   PO-verified) after the PO played it — with no level signal on the mob it just feels bugged when
    some mobs stop reacting. Revisit once the decision-5 nameplate colors land
    (Pass C), which supply the missing explanation. Flat gray XP is unaffected.
 3. **Drop philosophy: hybrid** — most ability drops move to elite/boss mobs
@@ -179,8 +179,9 @@ tuning) in one session — NOT yet PO-verified in-game, committed
 
 ### A1 — Go/AI (TDD, red → green)
 
-- ~~**Gray-aggro gate** (decision 2)~~ — **REVERTED 2026-07-22 (PO call), decision 2
-  is re-opened.** In play it read as a bug rather than a rule: some mobs simply
+- ~~**Gray-aggro gate** (decision 2)~~ — **REVERTED ✅ `6e7a301e` 2026-07-22 (PO call),
+  PO-verified in-game the same day ("aggro works again, mobs come at me now");
+  decision 2 is re-opened.** In play it read as a bug rather than a rule: some mobs simply
   stopped reacting with no visible reason, and nothing in the UI explains why.
   Reverted in full — `model.Leveled`, `player.CombatLevel()`, `Mob.isGrayTo()`,
   `Mob.combatLevel()`, `grayAggroBandLevels` and `gray_aggro_test.go` are all
