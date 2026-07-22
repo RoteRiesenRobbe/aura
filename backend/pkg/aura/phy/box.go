@@ -38,7 +38,6 @@ func (b *Box) resolveCollsionWith(c CollisionResolver) Vec2f {
 
 func (b *Box) resolveCollisionWithCircle(circle *Circle) Vec2f {
 	panic("implement me")
-	return Vec2f{}
 }
 
 func (b *Box) resolveCollisionWithBox(box *Box) Vec2f {
@@ -63,7 +62,6 @@ func (b *Box) StabQuery(p Vec2f) bool {
 // Stabs the shape and returns true if the point lies on the shape
 func (b *Box) ImpaleQuery(s Segment) float32 {
 	panic("Not implemented :(")
-	return -1
 }
 
 // updates the bounding box according to the size and position of this box

@@ -226,10 +226,12 @@ across 50 packages** in seconds.
 
 ### 7.2 Still open from 2026-07-06 (re-verified, unchanged)
 
-- **§5 `go vet` is still not clean** — `phy/box.go:41,66` unreachable; unkeyed
-  `phy.Vec2f` literals in `spectator.go:11`, `player.go:47,807`,
-  `mob.go:168,642,646`, `cmd.go:78`. The chieftain site went with the package,
-  but **new sites have appeared** — consistent with nothing enforcing vet.
+- ~~**§5 `go vet` is still not clean**~~ **CLOSED 2026-07-22 (with §7.4):**
+  all findings fixed — the two `phy/box.go` unreachable returns removed, every
+  unkeyed `phy.Vec2f`/`model.Cheat` literal keyed (12 sites; four *more* had
+  appeared since this pass was written — `codec/client_message.go:86`,
+  `core/input.go:163`, `sys/mob.go:59,63` — proving the point that nothing
+  enforced vet). `go vet ./...` is zero-finding and now gates CI.
 - **§5 three logging styles** — 24 `log.Printf`/`log.Fatalf` + 5 `fmt.Printf`
   remain alongside `slog`.
 - **§3.5 the six `addXxx` registration methods** — still eight near-identical
@@ -237,6 +239,12 @@ across 50 packages** in seconds.
   extension point.
 
 ### 7.3 New finding — `gameObjectClasses` is a positional array (highest severity)
+
+> **FIXED 2026-07-22, same day** — implemented exactly as proposed below:
+> `Record<AuraApi.EntityType, GameObjectClass>` keyed by the generated enum.
+> Verified: deleting one entry makes `tsc` fail with TS2741 ("Property
+> '[EntityType.FireTotem]' is missing"), and `npm run typecheck` runs in CI.
+> `manual-content-authoring.md` §Known hand-sync points updated.
 
 `frontend/.../incoming/GameStateMessage.ts:305` maps wire entity types to
 render classes as a **74-entry array indexed by position**, whose only safety
@@ -260,6 +268,13 @@ it should point here once the fix lands. That section is also **stale on
 `Skills.ts`** — those maps no longer exist, see §7.1.)
 
 ### 7.4 ⭐ Three small fixes — recommended next, cheap, high leverage
+
+> **ALL THREE LANDED 2026-07-22, same day, as one batch** (plus the §7.2 vet
+> cleanup so #1's vet gate could be enabled): CI runs `go vet` + `go test`
+> before the goreleaser step and `npm run typecheck` before the frontend
+> build; `gameObjectClasses` is enum-keyed (§7.3); `tsconfig.json` `include`
+> is `./src/**/*` (the dead `old-structure` entry removed — full-tree
+> typecheck came up clean, so the stale include was hiding nothing).
 
 Called out together because each is hours-not-days and each protects work
 already paid for. Two are **restatements of open items in

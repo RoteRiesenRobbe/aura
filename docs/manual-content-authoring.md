@@ -118,12 +118,12 @@ faction and skills without a schema append (see §5 and
    sprite renders into a container that is never on stage (bit the Totem,
    2026-07-09). Reusing an existing layer needs neither.
 10. **`frontend/src/features/backend/logic/messages/incoming/GameStateMessage.ts`**
-    — insert the new class into the `gameObjectClasses` array **at the index
-    matching its `EntityType` ordinal**. The array is positional and must stay in
-    sync with the enum.
+    — add a `[AuraApi.EntityType.YourMob]: Mobs.YourMob` entry to the
+    `gameObjectClasses` record. It is keyed by the generated enum, so a missing
+    (or extra) entry is a compile error — `npm run typecheck` catches it.
 
 > A new mob type is the only one of these four workflows that touches the wire
-> (`.fbs` + regen) and the positional `gameObjectClasses` array.
+> (`.fbs` + regen) and the `gameObjectClasses` record.
 
 ---
 
@@ -440,14 +440,13 @@ in Go. `System.Despawn` removes a live encounter mob (empty-arena beats);
 These duplicate a single source of truth and must be updated together — easy to
 forget:
 
-- **`EntityType` enum ↔ `gameObjectClasses` array** (positional index) ↔ mob JSON
-  `name`. **⚠ The last remaining hand-sync, and the sharpest edge in the repo:**
-  the array is indexed by *position*, so inserting an enum member anywhere but
-  **at the end** silently reassigns the artwork of every mob after it — no build
-  error, no test failure, no runtime warning. Always append. (Verified in sync
-  2026-07-22: 74 entries ↔ 74 enum members, `FireTotem` = 73. A proposed fix —
-  key the map by the generated `entity-type.ts` enum members so position stops
-  mattering — is written up in `research-code-quality.md` §7.3/§7.4.)
+- ~~**`EntityType` enum ↔ `gameObjectClasses` array** (positional index)~~
+  **defused 2026-07-22 (`research-code-quality.md` §7.3/§7.4):** the map is now
+  a `Record` keyed by the generated `entity-type.ts` enum members, so position
+  no longer matters and a missing/extra entry is a **compile error** (`npm run
+  typecheck`, also run in CI). What remains is the benign pair: enum member ↔
+  mob JSON `name` (resolved at boot, a typo fails loudly), plus remembering to
+  add the record entry — which the compiler now reminds you of.
 - ~~**`Skills.ts`** `SkillNames` / `SkillMaxLevels` / `SkillCategories`~~
   **retired 2026-07-21 (UI-polish chunk 1, `ae51d8b5`):** the client fetches the
   server's parsed registry over `GET /skills`; the three maps are deleted. Mob

@@ -23,7 +23,6 @@
 		},
 	},
 	"include": [
-		"./src/index.ts",
-      "./src/old-structure/**/*"
+		"./src/**/*"
 	]
 }

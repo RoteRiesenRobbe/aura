@@ -160,7 +160,7 @@ func input2vec(i *model.PlayerInput) phy.Vec2f {
 	if x == 0 && y == 0 {
 		return phy.Vec2f{}
 	}
-	v := phy.Vec2f{x, y}
+	v := phy.Vec2f{X: x, Y: y}
 	return v.Normalize()
 }
 

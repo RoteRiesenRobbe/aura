@@ -83,7 +83,7 @@ func unmarshalCheat(c *AuraApi.Cheat) *model.Cheat {
 		return nil
 	}
 
-	cheat := &model.Cheat{string(c.Token()), string(c.Command())}
+	cheat := &model.Cheat{Token: string(c.Token()), Command: string(c.Command())}
 	return cheat
 }
 

@@ -75,7 +75,7 @@ var commands = map[string]Command{
 
 		xf := float32(x / codec.Points2px)
 		yf := float32(y / codec.Points2px)
-		p.SetPosition(phy.Vec2f{xf, yf})
+		p.SetPosition(phy.Vec2f{X: xf, Y: yf})
 
 		return nil
 	},

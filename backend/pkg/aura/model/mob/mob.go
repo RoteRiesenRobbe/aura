@@ -165,7 +165,7 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 		BaseEntity:       base,
 		space:            space,
 		rand:             rnd,
-		heading:          phy.Vec2f{-1, 0},
+		heading:          phy.Vec2f{X: -1, Y: 0},
 		health:           maxHealth,
 		maxHealth:        maxHealth,
 		definition:       d,
@@ -639,11 +639,11 @@ func (m *Mob) SetPosition(p phy.Vec2f) {
 func (m *Mob) Angle() float32 {
 	// FIXME the angle has to be set when the position is updated
 	// => That's where you're wrong kiddo. Vector arithmetic ftw!
-	return phy.Vec2f{-1, 0}.AngleBetween(m.heading)
+	return phy.Vec2f{X: -1, Y: 0}.AngleBetween(m.heading)
 }
 
 func (m *Mob) SetAngle(a float32) {
-	m.heading = phy.NewRotMat2f(a).Mult(phy.Vec2f{-1, 0})
+	m.heading = phy.NewRotMat2f(a).Mult(phy.Vec2f{X: -1, Y: 0})
 }
 
 // ApplySlow slows the mob's movement by the given fraction (effect

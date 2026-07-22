@@ -35,6 +35,10 @@
   safe test scope (or full `./...`) into CI. Cheap, high leverage.
   *(Update 2026-07-06: `net_test.go` is fixed — full `go test ./...` passes
   locally. Wiring it into CI is still open.)*
+  *(Update 2026-07-22: **CLOSED** — CI now runs `go vet ./...` +
+  `go test ./...` before the goreleaser step, and `npm run typecheck` before
+  the frontend build; `go vet` was cleaned to zero findings to enable the
+  gate. `research-code-quality.md` §7.4.)*
 - **No migration framework — but also no database yet.** Current persistence
   is chieftain's scoreboard SQLite (`CREATE TABLE IF NOT EXISTS`, no
   versioning). The real obligation lands with roadmap item 3 (accounts): the
@@ -66,8 +70,8 @@ better than typical prototype hygiene.
 
 **What's missing, in rough order of pain for a live service:**
 
-1. **Tests in CI** (see above) — coverage that doesn't run doesn't exist
-   operationally.
+1. ~~**Tests in CI**~~ **closed 2026-07-22** — `go vet` + `go test` gate the
+   build in CI (see §1 update).
 2. **One end-to-end protocol test** — nothing exercises
    connect → join → input → GameState over a real WebSocket. Codec is
    unit-tested per message, but wire regressions (FlatBuffers field
@@ -81,11 +85,12 @@ better than typical prototype hygiene.
    measures tick time today, so perf regressions land silently. Even a crude
    benchmark test (N synthetic casters, assert update() < budget) would hold
    the line.
-4. **Frontend: zero tests, no lint, no typecheck script.** The webpack build
-   is the only gate (it does type-check via ts-loader). Full frontend test
-   coverage is not the ask; a lint + `tsc --noEmit` CI step and a handful of
-   tests around `EntityManager`/backend-snapshot logic would catch the
-   classes of bug that currently only manual play finds.
+4. **Frontend: zero tests, no lint, ~~no typecheck script~~.** *(Update
+   2026-07-22: `npm run typecheck` (`tsc --noEmit`) exists and runs in CI;
+   the stale `old-structure` `include` in `tsconfig.json` is fixed, so the
+   whole `src/` tree is covered.)* Still open: ESLint and a handful of tests
+   around `EntityManager`/backend-snapshot logic to catch the classes of bug
+   that currently only manual play finds.
 5. **Determinism/fuzz on content loading** — load-time validation is strong
    (hard-fail ethos), already well tested. No gap worth new work.
 

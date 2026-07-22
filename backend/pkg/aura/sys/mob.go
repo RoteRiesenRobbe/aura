@@ -56,11 +56,11 @@ func NewMobSystem(g model.Game, seed int64, spawns []world.Spawn, space *phy.Spa
 	for _, s := range spawns {
 		var waypoints []phy.Vec2f
 		for _, w := range s.Waypoints {
-			waypoints = append(waypoints, phy.Vec2f{w.X, w.Y})
+			waypoints = append(waypoints, phy.Vec2f{X: w.X, Y: w.Y})
 		}
 		points = append(points, spawnPoint{
 			def:             s.Def,
-			pos:             phy.Vec2f{s.X, s.Y},
+			pos:             phy.Vec2f{X: s.X, Y: s.Y},
 			angle:           s.Angle,
 			respawnTicks:    s.RespawnTicks,
 			variancePct:     s.RespawnVariancePct,

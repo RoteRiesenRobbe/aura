@@ -44,7 +44,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.Body.Shape().Mask = int(model.LayerPlayerStaticCollision | model.LayerBorderCollision)
 
 	// setup viewport
-	p.viewport = phy.NewBox(e.Body.Position(), phy.Vec2f{constant.ViewPortWidth / 2, constant.ViewPortHeight / 2})
+	p.viewport = phy.NewBox(e.Body.Position(), phy.Vec2f{X: constant.ViewPortWidth / 2, Y: constant.ViewPortHeight / 2})
 
 	p.viewport.Shape().IsSensor = true
 	p.viewport.Shape().Mask = int(model.LayerViewportCollision)
@@ -804,7 +804,7 @@ func (p *player) levelForExperience(xp uint64) uint32 {
 	}
 }
 
-var handOffset = phy.Vec2f{0.25, 0}
+var handOffset = phy.Vec2f{X: 0.25, Y: 0}
 
 func (p *player) updateHand() {
 	// could cache Rotation matrix/ handOffset
