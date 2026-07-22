@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 grazing prey that fights back (content pass C2): wildlife_prey (empty hostileTo) = never aggros first, but retaliation rides the threat table — poke it and it gores you (physical+bleed, the first bleed tag). The 'charge' of the design table is flavor: aggro chase, no dash. All values [PLACEHOLDER]",
+  "_comment": "Z1 grazing prey that fights back (content pass C2): wildlife_prey (empty hostileTo) = never aggros first, but retaliation rides the threat table — poke it and it gores you (physical+bleed, the first bleed tag). The 'charge' of the design table is flavor: aggro chase, no dash. Health 70→60 + BoarGore 8→6 (2026-07-22): prey must lose the ambient 1v1 to the wolf, and one lever alone could not get there (boar HP × DPS had to drop below 55 × 7.5 = 412.5 for the wolf to win at all) — the split keeps the boar the tankier body (60 vs 55) and the wolf the better damage (7.5 vs 6.0/s), wolf wins in 8.0 s vs 9.2 s. All values [PLACEHOLDER]",
   "id": 17,
   "name": "Boar",
   "type": "MOB",
@@ -7,7 +7,7 @@
   "tier": "normal",
   "curveLevel": 2,
   "factors": {
-    "baseMaxHealth": 70,
+    "baseMaxHealth": 60,
     "maxHealthVariance": 0.1,
     "experience": 40,
     "speed": 0.55,
