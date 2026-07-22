@@ -1335,3 +1335,116 @@ session transcript; PO never got to run it in time.
   — they just need the ~1.3 s hold the `verify` skill documents. Binding a
   skill is: click `li[data-skill-id="N"] .skillName`, hold `1` (bind), hold
   `1` again (activate).
+
+---
+
+## Idle-loop allocation fix — the empty server was overloading (ad-hoc session, 2026-07-22)
+
+**DONE 2026-07-22, committed `fe0044d0` (+ `ba266284` embedded-content sync),
+deployed live the same day, PO-verified in-game before the deploy ("movement
+feels the same"). Backend-only, behaviour-preserving.** Found while deploying
+playtest-1 Pass A–C to live: the journal was full of
+`Overload! Systems at: N%` (the `game.go:456` warning that fires whenever a
+tick exceeds its 33 ms budget).
+
+**Triage first — most of the noise was self-inflicted.** 9 657 warnings in
+24 h, but bucketed by hour they collapse into two deliberate `loadbot` ramps
+(2026-07-21 22:43–22:49 and 2026-07-22 13:12–13:59, ~9 550 of them). Real play
+produced a trickle: **8 spikes in the PO's 1.5 h solo session**, all 103–121 %.
+**The signal worth chasing was elsewhere: the server also overloaded with ZERO
+players online** — ~30/hour, up to **154 %**, through the small hours with
+nobody connected.
+
+**Not the host.** `%steal` 0.00 all day, CPU 83 % idle, load 0.4 — no noisy
+neighbour on the shared vCPU, and no sustained saturation. It is a *tail*
+problem, not a throughput problem.
+
+**Why the tail clipped the budget.** Same content, same idle world: the live
+box spends **25.8 % of a core** per tick where the dev box spends **7.7 %** —
+the Hetzner vCPU is ~3.4× slower per unit of loop work. Local `p50` 1.7 ms /
+`max` 9.1 ms scaled by that factor lands the tail right on the 33 ms line, so
+it crosses a couple of times a minute. (It never reproduced locally, even at
+`GOMAXPROCS=2` — raw per-core speed, not core count. Do not expect to see this
+on a dev machine.)
+
+**Root cause: the idle loop allocated ~11 MB/s with nobody online**, forcing a
+GC every ~350 ms (`GODEBUG=gctrace=1` on an empty world). Attribution from a
+14 s alloc profile (159 MB) — four sites, all the same shape, all "rebuild the
+per-tick state from scratch":
+
+| share | site | what it re-made every tick |
+|---|---|---|
+| 26.7 % | `QueryCircleStatics` ← `Mob.blockerRepulsion` | probe circle + `seen` map + hit slice, **per mob** |
+| 24.2 % | `addCollision` ← `bruteIntersectShapes` | inserts into a map re-made each tick |
+| 21.7 % | `insertAt` ← `Space.insert` | `s.grid = make(...)` — the whole broadphase grid |
+| 14.5 % | `resetCollisions` ← `Space.Update` | `make(ColliderSet)` **per collider** |
+
+The CPU profile agreed: ~25–30 % of loop CPU was allocator/map machinery
+(`mallocgc` 12.2 %, `mapassign` 15.9 %, plus `scanobject`/`evacuate`).
+Note `QueryCircleStatics`'s own doc comment says *"Intended for one-shot
+placement checks… create a circle, query, drop it"* — `steering.go:76` was
+calling it for every mob on every tick. That one is arguably a misuse rather
+than merely an unoptimised path.
+
+**Change (backend-only, 5 files + 3 new test files, no wire, no content):**
+- `phy/space.go` — `Space.Update` reuses the grid map and its per-cell slices
+  (`[:0]`, tail `clear`ed so a cell stops pinning shapes removed since last
+  tick). New **`AppendCircleStatics(dst, c)`** for per-tick callers;
+  `QueryCircleStatics` stays as the one-shot wrapper delegating to it, so its
+  eight other call sites are untouched. Cell-straddle de-dup moved from a
+  `seen` map to a linear scan over the hits (a probe spans a handful of cells).
+- `phy/shape.go` — `resetCollisions` → `clear(c.collisions)`. Safe because no
+  reader retains the map across ticks (`sys/skills`, `sys/npc`, mob aggro all
+  consume it within the tick; `targeting` copies what it keeps).
+- `model/mob/steering.go` + `mob.go` — `blockerRepulsion` reuses a per-mob
+  probe circle and hit buffer (`steerProbe`/`steerHits`, never read elsewhere).
+- `model/status_effects.go` — `Clear` → `clear()`. Safe: the map never escapes,
+  `Effects()` hands out a copy.
+
+**Test strategy (TDD, all six pins failed first).** `space_alloc_test.go`,
+`steering_alloc_test.go`, `status_effects_alloc_test.go` assert
+`testing.AllocsPerRun` is **zero** in steady state — not "cheap", zero — with
+shapes moving between runs so a frozen scene cannot pass trivially. Plus
+`TestAppendCircleStatics_MatchesQueryCircleStatics` (same hits, same
+de-duplication, four probe radii) and an "actually clears" guard, so an
+in-place clear cannot pass by simply not clearing.
+
+**Measured — idle world, `GOMAXPROCS=2` to match the live box:**
+
+| | before | after |
+|---|---|---|
+| allocation | 11.2 MB/s | **0.16 MB/s** (~70×) |
+| GC cycles | every ~350 ms | 4 total, none after the first 7.5 s |
+| tick `p50` | 1742 µs | 1312 µs |
+| tick `p95` | 2713 µs | **1673 µs** (−38 %) |
+| tick `p99` | 3286 µs | **2024 µs** (−38 %) |
+
+Every remaining allocation is mob *respawn* work (`NewMob`, `AddShape`,
+`NetSystem.AddEntity`) — real per-entity cost, not per-tick churn.
+
+**Verified:** `go build ./...` exit 0; `go test ./...` **29 packages with tests
+pass, 0 failures** (21 more have no test files — the commit message's "50
+packages" counts all packages, not test runs). Boot after deploy:
+`83 skills/14 factions/50 mobs/10 recipes/777 props/471 spawns/5 campfires
+(safeRadius 1.5)/14 npcs, 0 panics`. PO drove mob movement around props, rect
+props and the border wall in-game before the deploy and found it unchanged.
+**Live confirmation — the number that actually matters**, sampled from
+`/proc/<pid>/stat` over 20 s on the deployed binary: idle CPU **25.8 % → 17 %
+of a core** (−34 %, better than the 25–30 % the local profile predicted), RSS
+25.6 → 18.1 MB.
+
+**Open / watch:**
+- **The overload verdict itself needs a day of live logs.** 0 overloads since
+  the deploy proves nothing yet — the *old* binary also managed 26 clean idle
+  minutes. The rate to beat is ~10–30/hour idle:
+  `journalctl -u aurad --since "-24h" | grep -c Overload`.
+- **The load-test ceiling is unchanged structurally.** `bruteIntersectShapes`
+  is still O(n²) per cell and still ~39 % of loop CPU — the published
+  clustered ~60–70 (`devops/loadtest.md`) was measured *before* this fix and
+  should shift up somewhat from the GC savings, but the next real capacity
+  gain is that broadphase, not more allocation work.
+- **Live journal noise:** the box is drowning in
+  `acme/autocert: host "api.cybex.net" not configured in HostWhitelist`
+  handshake errors — someone else's DNS points that name at `159.69.148.73`.
+  Harmless (autocert correctly refuses), but always
+  `grep -v "TLS handshake"` when reading those logs.
