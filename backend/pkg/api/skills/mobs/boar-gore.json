@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 boar gore (content pass C2): tusk hit carrying the first 'bleed' damage tag alongside physical (multi-tag hit — Thick Hide halves it, a future bleed resist would too). Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "Z1 boar gore (content pass C2): tusk hit carrying the first 'bleed' damage tag alongside physical (multi-tag hit — Thick Hide halves it, a future bleed resist would too). Curve-position-1 baseline. damageHP 8→6 (2026-07-22, half of the wolf-matchup nerf — see boar.json). All values [PLACEHOLDER]",
   "id": 112,
   "name": "BoarGore",
   "category": "active_aura",
@@ -9,7 +9,7 @@
       "type": "damage_aura",
       "radius": 0.9,
       "radiusPerLevel": 0.0,
-      "damageHP": 8,
+      "damageHP": 6,
       "damageHPPerLevel": 1.5,
       "damageTags": ["physical", "bleed"],
       "variance": 0.15,
