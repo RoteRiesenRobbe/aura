@@ -2,7 +2,7 @@
 
 **Status:** **Pass A DONE 2026-07-22** (A1 + A2, `b0171ffb`), **Pass B DONE
 2026-07-22** (`75486ec9`), **Pass C items 1 + 2 DONE 2026-07-22**
-(`22028dc4`) — all awaiting the PO in-game feel/read pass.
+(`5308c312`) — all awaiting the PO in-game feel/read pass.
 **NEXT: Pass C item 3 (darkness multiply blend)** in its own session, then the
 deferred Pass-B items 1c + 1d. The tutorial/quest/aura-differentiation themes
 go to their own planning rounds. Full ledgers: §Pass A / §Pass B / §Pass C
@@ -404,7 +404,7 @@ landed; item 1 shipped partially by PO decision (see below).
 ## Pass C ledger
 
 **Pass C items 1 + 2 DONE (2026-07-22), frontend + one backend endpoint —
-NOT yet PO-verified in-game, committed `22028dc4`. Item 3 (darkness
+NOT yet PO-verified in-game, committed `5308c312`. Item 3 (darkness
 multiply blend) SPLIT OUT to its own session** — it is a rendering-tech chunk
 with its own diagnosis phase and shares no code with 1 or 2.
 
