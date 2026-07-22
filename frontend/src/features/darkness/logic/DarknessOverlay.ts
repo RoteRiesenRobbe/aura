@@ -22,8 +22,16 @@ import {gameObjectId} from '../../common/logic/Types';
 
 const DarknessVisuals = {
     // Overall darkness opacity — how much of the world stays visible inside
-    // a dark area. [PLACEHOLDER]
-    MAX_ALPHA: 0.94,
+    // a dark area. FULLY opaque (playtest-1 Pass C item 3): at the former 0.94
+    // the world beneath still came through at 6%, which measures as 9% of
+    // daylight luminance and, crucially, PRESERVES relative contrast — props
+    // stayed a readable silhouette against the ground, so the tunnel was
+    // navigable without any light at all. That contradicts both gdd.md §6.5
+    // ("field of view heavily restricted") and the 2026-07-17 ruling recorded
+    // in Player.ts, so the residual 6% was never the design — it was the
+    // placeholder. Vision now comes exclusively from the light holes, of which
+    // the player's own MIN_SELF_LIGHT_PX glow is the guaranteed floor.
+    MAX_ALPHA: 1,
     // Width (world units) of the soft edge appended OUTSIDE the authored
     // radius — the authored circle itself is guaranteed fully dark, so
     // overlapping circles chain without bright seams. [PLACEHOLDER]
@@ -53,10 +61,23 @@ interface LightSource {
     sprite: Sprite;
 }
 
+interface Circle {
+    x: number;
+    y: number;
+    // Squared, so the hit test never needs a square root.
+    radiusSq: number;
+}
+
 let layer: Container = null;
 const radialTextures = new Map<number, Texture>();
 let active = false;
 const lights = new Map<gameObjectId, LightSource>();
+// Hit-test geometry for isHidden(), in the same world-px space as the sprites.
+// Kept alongside the sprites rather than derived from them because the sprite
+// radii include the soft fade, and the fade is exactly the part that must NOT
+// count as "hidden".
+const darkCircles: Circle[] = [];
+const staticLights: Circle[] = [];
 
 export function setup(darknessLayer: Container) {
     layer = darknessLayer;
@@ -84,6 +105,14 @@ export function loadZone(zoneName: string) {
         sprite.position.set(meter2px(area.x), meter2px(area.y));
         sprite.width = sprite.height = 2 * meter2px(fadeRadius);
         layer.addChild(sprite);
+        // The AUTHORED radius, not fadeRadius: inside it the world is fully
+        // black, in the fade ring it is only partly dark and a plate there
+        // still matches what the player can see.
+        darkCircles.push({
+            x: meter2px(area.x),
+            y: meter2px(area.y),
+            radiusSq: meter2px(area.radius) ** 2,
+        });
     });
 
     // Static campfire glow — erase sprites appended after the dark sprites so
@@ -99,6 +128,11 @@ export function loadZone(zoneName: string) {
             sprite.position.set(meter2px(fire.x), meter2px(fire.y));
             sprite.width = sprite.height = 2 * meter2px(CAMPFIRE_LIGHT_RADIUS);
             layer.addChild(sprite);
+            staticLights.push({
+                x: meter2px(fire.x),
+                y: meter2px(fire.y),
+                radiusSq: meter2px(CAMPFIRE_LIGHT_RADIUS) ** 2,
+            });
         });
     }
 }
@@ -156,9 +190,46 @@ function removeLight(id: gameObjectId, light: LightSource) {
     lights.delete(id);
 }
 
+/**
+ * Is this world-px point swallowed by the darkness — inside an authored dark
+ * area and reached by no light? Used by the overlays that render ABOVE the
+ * darkness layer and would otherwise stay fully lit inside a black area
+ * (mob name plates). Vision in the dark is the light role's job (GDD §6.5
+ * "spotting targets"), and a readable plate over an invisible mob hands that
+ * away for free.
+ *
+ * Cheap by construction: squared distances only, and it early-outs on the
+ * dark-circle test, so a point in the lit 95% of the map costs one pass over
+ * the zone's handful of circles and never touches the light lists.
+ */
+export function isHidden(x: number, y: number): boolean {
+    if (!active || !inAnyCircle(x, y, darkCircles)) {
+        return false;
+    }
+    if (inAnyCircle(x, y, staticLights)) {
+        return false;
+    }
+    // Dynamic (wire-driven) lights: the full radius counts, not just the
+    // fully-erased core, so a plate reappears as soon as any light reaches the
+    // mob — the same moment the mob itself starts to become visible.
+    for (const light of lights.values()) {
+        const radius = light.sprite.width / 2;
+        if ((x - light.sprite.position.x) ** 2 + (y - light.sprite.position.y) ** 2 <= radius ** 2) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function inAnyCircle(x: number, y: number, circles: Circle[]): boolean {
+    return circles.some(c => (x - c.x) ** 2 + (y - c.y) ** 2 <= c.radiusSq);
+}
+
 function clear() {
     lights.forEach((light, id) => removeLight(id, light));
     layer.removeChildren().forEach(child => child.destroy());
+    darkCircles.length = 0;
+    staticLights.length = 0;
     active = false;
     layer.visible = false;
 }

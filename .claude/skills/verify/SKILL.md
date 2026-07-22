@@ -82,3 +82,17 @@ Copy the browser-launch pattern from
   this.
 - Player names are reserved while the corpse persists — use a fresh name per
   run if a prior run's player just died.
+- **After `WARP`, wait ~20 s before screenshotting.** The client interpolates
+  the camera very slowly across a large jump (backlog §20), so a shot taken
+  ~1.5 s after the command renders the *previous* position — silently, with no
+  error and a perfectly plausible-looking frame. A darkness measurement run
+  (2026-07-22) was contaminated end-to-end by this and produced exactly
+  inverted results. If the frame must be trustworthy, allow the settle or
+  confirm the position first.
+- **Reaching the live PixiJS scene graph:** `window.game` exists with a valid
+  `&token=` (`BrowserConsole.ts`), and `window.game.character.plate.parent` IS
+  the `namePlates` overlay container — from there `page.evaluate` can walk
+  children and read `visible` / `position` / text. Asserting on scene-graph
+  state beats eyeballing screenshots for anything conditional (e.g. "is this
+  plate hidden?"), and TS `private` is compile-time only, so private fields
+  are readable at runtime.

@@ -15,6 +15,7 @@ import {AuraTickIndicator} from './AuraTickIndicator';
 import {AuraRingStack} from './AuraRings';
 import {EffectPips} from './EffectPips';
 import {meter2px} from "../../../client-data/BasicConfig";
+import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {ISvgContainer} from "../../core/logic/ISvgContainer";
 import './MobJuice';
 
@@ -176,11 +177,19 @@ export abstract class Mob extends GameObject {
      * integer ops and only touches PixiJS when the band actually changes.
      *
      * The plate also mirrors the shape's alpha so it fades with the mob's
-     * corpse fade-out instead of hanging at full opacity over a vanishing mob.
+     * corpse fade-out instead of hanging at full opacity over a vanishing mob,
+     * and hides outright while the mob stands in unlit darkness — the plate
+     * renders on the overlay ABOVE the darkness layer, so without this it is
+     * the one thing still legible in a fully black area (see isHidden()).
+     * DarknessOverlay subscribes to PrerenderEvent during Game construction,
+     * i.e. before any mob exists, so the light positions it tests against have
+     * already been advanced for this frame.
      */
     private updatePlate() {
         this.plate.position.copyFrom(this.shape.position);
         this.plate.alpha = this.shape.alpha;
+        this.plate.visible = !DarknessOverlay.isHidden(
+            this.shape.position.x, this.shape.position.y);
 
         if (this.nameElement === null) {
             return;

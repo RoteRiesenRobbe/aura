@@ -2,11 +2,13 @@
 
 **Status:** **Pass A DONE 2026-07-22** (A1 + A2, `b0171ffb`), **Pass B DONE
 2026-07-22** (`75486ec9`), **Pass C items 1 + 2 DONE 2026-07-22**
-(`5308c312`) — all awaiting the PO in-game feel/read pass.
-**NEXT: Pass C item 3 (darkness multiply blend)** in its own session, then the
-deferred Pass-B items 1c + 1d. The tutorial/quest/aura-differentiation themes
-go to their own planning rounds. Full ledgers: §Pass A / §Pass B / §Pass C
-ledger at the end of this doc.
+(`5308c312`) — awaiting the PO in-game feel/read pass. **Pass C item 3 DONE
+2026-07-22** (`[uncommitted]`), PO-approved in-session ("all good now").
+**PASS C IS COMPLETE — the whole playtest-1 feedback plan is executed.**
+**NEXT: the deferred Pass-B items 1c + 1d** (unlock popup sequencing + "Taught
+by: …" source attribution). The tutorial/quest/aura-differentiation themes go
+to their own planning rounds. Full ledgers: §Pass A / §Pass B / §Pass C ledger
+/ §Pass C item 3 ledger at the end of this doc.
 
 ## Source
 
@@ -103,7 +105,12 @@ guardrails, sim battery after the HP/damage pass.
    grayer, fully playable without light. Known placeholder
    (`FLOOD_OPACITY 0.6`), but the real fix is a multiply-style blend instead
    of an alpha flood so darkness actually darkens regardless of display
-   gamma. Tech chunk.
+   gamma. Tech chunk. **✅ DONE 2026-07-22 — but both halves of that
+   hypothesis were wrong; see §Pass C item 3 ledger. It was neither
+   `FLOOD_OPACITY` (that is the day/night cycle, a different system, left
+   untouched by PO ruling) nor a blend-mode problem (`flood()` already emits a
+   pure multiply matrix). The authored dark areas were simply not opaque:
+   `MAX_ALPHA 0.94`.**
 
 ## Own planning rounds (not scheduled yet)
 
@@ -511,6 +518,130 @@ with its own diagnosis phase and shares no code with 1 or 2.
   was missing is on screen.
 - All new numbers are [PLACEHOLDER]: the five band colours + their
   thresholds, nameplate font size 16, `NAMEPLATE_GAP` 16.
+
+## Pass C item 3 ledger (darkness)
+
+**Pass C item 3 DONE (2026-07-22), frontend only — PO-approved in-session
+("all good now"), in-game feel pass still outstanding, committed
+`[uncommitted]`.** Two files, ~35 lines of code. Closes Pass C.
+
+### The plan's premise was wrong in two ways — diagnosis first
+
+The chunk was scoped as "multiply blend instead of the alpha flood". Measuring
+before touching either constant (per the handover note) showed neither half
+held. Headless measurement, identical crop, day vs night, open ground vs the
+Dark Tunnel corridor at `y ≈ -31`:
+
+| state | mean luma | vs daylight |
+| --- | --- | --- |
+| day, open ground | 67.7 | 100% |
+| night, open ground | 47.2 | **70%** |
+| day, inside a dark area | 6.1 | **9%** |
+| night, inside a dark area | 5.2 | 8% |
+
+- **`FLOOD_OPACITY` is the day/night cycle, a different system** from the
+  authored dark areas. Night retains 70% of daylight — genuinely "merely
+  grayer". That made it the obvious suspect, and it was the wrong one.
+- **`flood()` already emits a pure multiply**: its matrix is
+  `diag(k_r,k_g,k_b)` with a zero offset column, i.e. per-channel
+  ×0.65/×0.71/×0.84 for `rgb(107,131,185)` @ 0.6. Switching to a "multiply
+  blend" would have changed nothing. Night fails to darken only because the
+  flood *colour* is bright — even `FLOOD_OPACITY 1.0` only reaches 51%.
+- **PO ruling (2026-07-22): day/night is out of scope** — "the day night cycle
+  is just a small visual, don't touch it". The tester's report was the tunnel,
+  witnessed by the PO directly: *"the spawns and props in the dark were still
+  visible enough to easily navigate"*.
+
+The model was validated against the measurement (predicted night RGB
+`(33.2,52.5,45.4)` vs measured `(31.0,52.3,44.6)`), so any future candidate
+constant can be priced analytically without running the game.
+
+### Why 9% still read as navigable
+
+`MAX_ALPHA 0.94` left the world beneath at 6%, and an alpha-black overlay
+**preserves relative contrast**: props stayed 6% brighter than the ground, so
+every silhouette survived the darkening intact — dim, but fully readable shape
+information. That is why it read as "grayer" rather than "darker", and why
+raising the constant a little would not have helped.
+
+### The change
+
+- **`MAX_ALPHA` `0.94` → `1`.** Dark areas now measure exactly `(0,0,0)`.
+  This is not a new design call: `gdd.md` §6.5 asks for "field of view heavily
+  restricted", and a **PO ruling from 2026-07-17** is written into
+  `Player.ts:99` — *"darkness stays fully dark — the hole may cover the avatar
+  itself and nothing more"* — backed by `MIN_SELF_LIGHT_PX = 40` so you always
+  see your own avatar. The residual 6% was never the design, it was the
+  placeholder.
+- **`DarknessOverlay.isHidden(x, y)`** + one line in `Mobs.updatePlate()` —
+  mob name plates hide while their mob stands in unlit darkness. Plates render
+  on the night-exempt `namePlates` overlay *above* the darkness layer, so at
+  full black they were the only legible thing on screen: "Venom Spider 4" in
+  orange over an invisible spider. That directly cannibalises the light role,
+  whose stated value in `gdd.md:482` is "spotting targets".
+
+### Design calls (each a one-line flip)
+
+- **The authored radius counts as dark, not `radius + EDGE_FADE`** — in the
+  fade ring the mob is partly visible anyway, so its plate matches what the
+  player can actually see. This is why the hit-test geometry is stored
+  alongside the sprites rather than derived from them: the sprite radii include
+  the fade, and the fade is exactly the part that must not count.
+- **For dynamic lights the full radius counts, not just the fully-erased
+  core** — a plate reappears the moment any light reaches the mob, the same
+  moment the mob itself starts to emerge.
+- **Scope held to mob plates** (PO: "just the plates"). Other players' plates,
+  floating damage numbers and NPC chat bubbles still show through darkness.
+
+### Verified
+
+- **The one real risk was PixiJS short-circuiting the `AlphaFilter` at alpha
+  1**, which would have let the `erase` blend punch through the darkness layer
+  into the page background instead of revealing the world. It does not:
+  sampled green ground pixels (`19,39,29`, `18,47,33`) at the self-glow rim,
+  so render-to-texture — and with it erase confinement and the flattening of
+  overlapping circles — is intact.
+- **Plate rule: 52 mob plates across 5 positions, 0 mismatches, exit 0, no JS
+  errors.** Verified by walking the live PixiJS scene graph
+  (`window.game.character.plate.parent` *is* the namePlates overlay) and
+  cross-checking each plate's `visible` flag against the circle geometry read
+  straight from `world.json` — not by eyeballing screenshots. The campfire
+  pocket at `(51,-9)` is the discriminating case, same dark circle both ways:
+  `Dire Wolf 6 (53.3,-9.7) litByFire=true visible=true` vs
+  `Bear 4 (61.4,-15.4) litByFire=false visible=false`.
+- `tsc --noEmit` clean; webpack prod build green.
+- `go build ./...` clean; `go test ./...` **exit 0** (nothing Go changed).
+- Boot: `82 skills/14 factions/50 mobs/10 recipes/815 props/399 spawns/5
+  campfires (safeRadius 1.5)/14 npcs, 0 panics` — unchanged, no content added.
+
+### Watch items / open calls
+
+- **The tunnel is now a total blackout.** At `(1,-31)` the entire viewport is
+  `(0,0,0)` — the corridor is wider than the screen, so there is no lit ground
+  above or below to steer by, and an unlit player crosses it blind apart from
+  the ~0.33-unit self-glow. That is the intended trade-off (`gdd.md:485`, the
+  tunnel as the light-role tutorial), but **there is no campfire anywhere in
+  the corridor** — nearest is `(-21.26,-23.51)`, ~9 units off the west end. If
+  it plays too harshly, a campfire in the corridor is the content-side lever,
+  no code change.
+- **Still leaking through darkness**: other players' plates (`Character.ts`,
+  same overlay — arguably correct, seeing a teammate's name in a black tunnel
+  is the light-support fantasy working), **floating damage numbers** (the one
+  most likely to be noticed next — fighting an invisible mob still paints
+  numbers over it) and NPC chat bubbles.
+- **Light does nothing at night.** Light radii only erase holes in the
+  darkness layer, which has no geometry outside the authored circles, so a
+  Lantern outdoors after dark is a pure no-op — as is sitting at a campfire.
+  Not a problem this chunk was asked to solve; recorded so it is not
+  re-derived.
+- `MAX_ALPHA` is **no longer a placeholder**. `EDGE_FADE 2`,
+  `LIGHT_CORE_FRACTION 0.55` and `MIN_SELF_LIGHT_PX 40` still are — the
+  self-glow size in particular is now load-bearing in a way it was not at 0.94.
+- **Harness gotcha (recorded in the `verify` skill):** the client interpolates
+  the camera very slowly across a WARP jump (backlog §20), so a screenshot
+  taken ~1.5 s after `WARP` shows the *previous* position. The first
+  measurement run was entirely contaminated by this and inverted the answer.
+  Allow ~20 s to settle, or verify the position before trusting the frame.
 
 ## Test strategy
 
