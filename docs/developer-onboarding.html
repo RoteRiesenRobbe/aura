@@ -1,0 +1,682 @@
+<!doctype html>
+<!--
+  Source of ../aura-developer-onboarding.pdf — the "new developer joins the
+  project" technical overview.
+
+  Regenerate (headless Chromium print-to-PDF, A4, backgrounds on):
+
+    NODE_PATH=/home/momo/.cache/aurahunter-run/node_modules node -e "
+      const {chromium}=require('playwright');(async()=>{
+      const b=await chromium.launch(); const p=await b.newPage();
+      await p.goto('file://'+process.cwd()+'/docs/developer-onboarding.html');
+      await p.pdf({path:'aura-developer-onboarding.pdf', format:'A4', printBackground:true,
+        displayHeaderFooter:true, headerTemplate:'<span></span>',
+        footerTemplate:'<div style=\"width:100%;font-size:7pt;color:#8a839a;font-family:sans-serif;padding:0 16mm;display:flex;justify-content:space-between;\"><span>Aura — Developer Onboarding</span><span class=\"pageNumber\"></span></div>',
+        margin:{top:'15mm',bottom:'14mm',left:'16mm',right:'16mm'}});
+      await b.close();})()"
+
+  Companion handout: docs/feature-inventory.html (what has been built).
+  This one is about how it is put together.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aura — Developer Onboarding</title>
+<style>
+  @page { size: A4; margin: 16mm; }
+
+  :root {
+    --accent: #6d3bd4;
+    --accent-soft: #f1ecfd;
+    --game: #1d7a4c;
+    --game-soft: #e6f5ed;
+    --tech: #b0480a;
+    --tech-soft: #fdeee2;
+    --ink: #16141c;
+    --muted: #635d70;
+    --rule: #ddd8e6;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "DejaVu Sans", system-ui, sans-serif;
+    color: var(--ink);
+    font-size: 9.3pt;
+    line-height: 1.45;
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  code, .mono {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 0.85em;
+    background: #f4f2f8;
+    padding: 0.5pt 2pt;
+    border-radius: 2pt;
+  }
+
+  pre {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 7.8pt;
+    line-height: 1.4;
+    background: #f7f5fb;
+    border-left: 2.5pt solid var(--accent);
+    padding: 6pt 8pt;
+    margin: 6pt 0;
+    white-space: pre-wrap;
+    border-radius: 0 3pt 3pt 0;
+  }
+  pre code { background: none; padding: 0; }
+
+  h1 {
+    font-size: 22pt;
+    margin: 0 0 2pt;
+    letter-spacing: -0.4pt;
+  }
+  h2 {
+    font-size: 12.5pt;
+    margin: 16pt 0 5pt;
+    padding-bottom: 3pt;
+    border-bottom: 1.2pt solid var(--accent);
+    color: var(--accent);
+    letter-spacing: -0.2pt;
+    break-after: avoid;
+  }
+  h3 {
+    font-size: 10pt;
+    margin: 10pt 0 3pt;
+    color: var(--ink);
+    break-after: avoid;
+  }
+  h4 {
+    font-size: 9.3pt;
+    margin: 8pt 0 2pt;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4pt;
+    font-size: 7.8pt;
+    break-after: avoid;
+  }
+
+  p { margin: 0 0 5pt; }
+  ul, ol { margin: 0 0 6pt; padding-left: 14pt; }
+  li { margin-bottom: 2.5pt; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.4pt;
+    margin: 5pt 0 8pt;
+    break-inside: avoid;
+  }
+  th {
+    text-align: left;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 7.6pt;
+    text-transform: uppercase;
+    letter-spacing: 0.4pt;
+    padding: 3.5pt 5pt;
+    border-bottom: 1pt solid var(--rule);
+  }
+  td {
+    padding: 3.5pt 5pt;
+    border-bottom: 0.6pt solid var(--rule);
+    vertical-align: top;
+  }
+  td:first-child { white-space: nowrap; }
+  table.wrap td:first-child { white-space: normal; }
+
+  .lede {
+    font-size: 10pt;
+    color: var(--muted);
+    margin-bottom: 10pt;
+  }
+
+  .meta {
+    font-size: 7.8pt;
+    color: var(--muted);
+    border-top: 0.8pt solid var(--rule);
+    border-bottom: 0.8pt solid var(--rule);
+    padding: 4pt 0;
+    margin-bottom: 12pt;
+    display: flex;
+    gap: 14pt;
+    flex-wrap: wrap;
+  }
+  .meta b { color: var(--ink); font-weight: 600; }
+
+  .box {
+    border: 0.8pt solid var(--rule);
+    border-left: 2.5pt solid var(--tech);
+    background: var(--tech-soft);
+    padding: 6pt 8pt;
+    margin: 7pt 0;
+    font-size: 8.6pt;
+    break-inside: avoid;
+  }
+  .box.game { border-left-color: var(--game); background: var(--game-soft); }
+  .box.note { border-left-color: var(--accent); background: var(--accent-soft); }
+  .box .t {
+    font-size: 7.4pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+    font-weight: 700;
+    color: var(--tech);
+    display: block;
+    margin-bottom: 2pt;
+  }
+  .box.game .t { color: var(--game); }
+  .box.note .t { color: var(--accent); }
+
+  .cols { display: flex; gap: 12pt; }
+  .cols > div { flex: 1; }
+
+  .stats {
+    display: flex;
+    gap: 6pt;
+    margin: 8pt 0 10pt;
+    flex-wrap: wrap;
+  }
+  .stat {
+    flex: 1 1 auto;
+    min-width: 68pt;
+    border: 0.8pt solid var(--rule);
+    border-radius: 3pt;
+    padding: 5pt 6pt;
+    text-align: center;
+  }
+  .stat .n { font-size: 13pt; font-weight: 700; color: var(--accent); display: block; line-height: 1.1; }
+  .stat .l { font-size: 6.8pt; text-transform: uppercase; letter-spacing: 0.4pt; color: var(--muted); }
+
+  .tag {
+    display: inline-block;
+    font-size: 6.8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.4pt;
+    font-weight: 700;
+    padding: 1pt 4pt;
+    border-radius: 2pt;
+    background: var(--accent-soft);
+    color: var(--accent);
+    vertical-align: 1pt;
+  }
+  .tag.warn { background: var(--tech-soft); color: var(--tech); }
+  .tag.ok { background: var(--game-soft); color: var(--game); }
+
+  .pagebreak { break-before: page; }
+  .tight li { margin-bottom: 1.5pt; }
+</style>
+</head>
+<body>
+
+<h1>Aura — Developer Onboarding</h1>
+<p class="lede">A technical overview of the systems, how they are wired, and what
+they look like from the player's side. Written for someone about to start
+working on the repo.</p>
+
+<div class="meta">
+  <span><b>Repo</b> github.com/RoteRiesenRobbe/aura (workspace dir <code>aurahunter</code>)</span>
+  <span><b>State</b> 2026-07-22, branch <code>main</code></span>
+  <span><b>Live</b> aura-game.duckdns.org</span>
+</div>
+
+<h2>1. What the project is</h2>
+
+<p><b>Aura</b> is a browser-based top-down multiplayer MMO, built on a fork of the
+<i>Berryhunter</i> survival game. The survival systems (hunger, temperature,
+crafting, inventory) were stripped out; what remains of the inheritance is the
+load-bearing infrastructure: the Go game server, the WebSocket + FlatBuffers
+netcode, the 2D physics, and the PixiJS renderer. Everything above that is new.</p>
+
+<p>The design premise, and the thing that shapes most of the code: <b>players and
+NPCs interact exclusively through auras</b> — circular effect fields that apply
+automatically to whatever is inside them. There is no target selection and no
+attack button for the main damage loop. Positioning and cooldown timing are the
+only skill expressions. Mobs run the exact same skill system as players.</p>
+
+<p>Every entity — player, mob, NPC — has exactly <b>one resource</b> (integer HP).
+It is health, mana, and cost pool at once. Zero means death.</p>
+
+<div class="stats">
+  <div class="stat"><span class="n">~26.7k</span><span class="l">Go LOC (prod)</span></div>
+  <div class="stat"><span class="n">~21.9k</span><span class="l">Go LOC (tests)</span></div>
+  <div class="stat"><span class="n">~18.9k</span><span class="l">TypeScript LOC</span></div>
+  <div class="stat"><span class="n">50</span><span class="l">Go packages</span></div>
+  <div class="stat"><span class="n">83</span><span class="l">skill JSONs</span></div>
+  <div class="stat"><span class="n">50</span><span class="l">mob JSONs</span></div>
+  <div class="stat"><span class="n">30 Hz</span><span class="l">server tick</span></div>
+</div>
+
+<h2>2. Repo layout, build, run</h2>
+
+<table class="wrap">
+<tr><th style="width:24%">Path</th><th>What lives there</th></tr>
+<tr><td><code>backend/</code></td><td>Go game server. Binary is <code>aurad</code>. Entry point <code>cmd/aurad/</code>; all game code under <code>pkg/aura/</code>.</td></tr>
+<tr><td><code>frontend/</code></td><td>TypeScript + webpack + PixiJS browser client. Feature-module layout under <code>src/features/</code>.</td></tr>
+<tr><td><code>api/</code></td><td>The shared contract <i>and</i> all game content: FlatBuffers schemas (<code>api/schema/</code>) plus JSON definitions for skills, mobs, items, factions, recipes, props, milestones, zones.</td></tr>
+<tr><td><code>docs/</code></td><td>GDD, TDD, architecture, per-feature plan docs, content catalogues, authoring manuals. Heavily used — most design decisions are recorded there with rationale.</td></tr>
+<tr><td><code>devops/</code></td><td>Deploy script, systemd unit, load-test harness notes, server runbook.</td></tr>
+<tr><td><code>CLAUDE.md</code></td><td>The live status document. What was last finished, what is next, every open placeholder value. Read this first each session.</td></tr>
+</table>
+
+<h4>Getting it running</h4>
+<pre><code>cp backend/conf.local-windows.json backend/conf.json   # or conf.default.json
+make -C backend build                                  # → backend/aurad
+cd backend &amp;&amp; ./aurad -dev                             # port 2000
+
+cd frontend &amp;&amp; npm install &amp;&amp; npm run start            # webpack HMR, port 2001
+
+# open:
+http://localhost:2001/?token=plz&amp;wsUrl=ws://localhost:2000/game
+# optional: &amp;develop (dev panel), &amp;start-cmds=GOD,XP 5000,...</code></pre>
+
+<p><code>backend/tokens.list</code> must exist with at least one token for in-game
+commands (cheats) to work. Dev cheats available in-game:
+<code>GOD</code>, <code>WARP x y</code>, <code>SPEED</code>, <code>XP</code>,
+<code>SKILL</code>, <code>ANNOUNCE</code>, <code>THREAT</code>.</p>
+
+<div class="box">
+<span class="t">Three build gotchas that will cost you an hour each</span>
+<ul class="tight">
+<li><code>go build ./...</code> type-checks but does <b>not</b> refresh <code>./aurad</code>. A running <code>-dev</code> server keeps executing the old binary. Use <code>make -C backend build</code>.</li>
+<li>Content JSON is <code>go:embed</code>ed via <code>backend/pkg/api/</code>, refreshed by <code>make cp-defs</code>. For content iteration, boot <code>./aurad -dev -content ../api</code> to read the repo tree directly — then a restart is enough, no rebuild. The boot log prints which source it used.</li>
+<li>Webpack HMR only watches <code>frontend/src</code>. Regenerated FlatBuffers bindings (<code>api/schema/js/</code>) and webpack <i>config</i> changes need a dev-server restart.</li>
+</ul>
+</div>
+
+<h2>3. Backend architecture</h2>
+
+<h3>3.1 The loop</h3>
+
+<p>The server is an <b>ECS</b> (<code>github.com/EngoEngine/ecs</code>) running a
+<b>fixed 30 Hz tick, single-threaded</b>. <code>core/game.go:Loop()</code> is
+literally <code>for { g.update(); &lt;-ticker.C }</code> — every registered system's
+<code>Update()</code> runs sequentially in one goroutine, with a 33 ms budget per
+tick. Exceeding it logs <code>Overload! Systems at: N%</code>.</p>
+
+<p><b>Single-threadedness is the structural ceiling.</b> One core caps total
+simulation work regardless of how tight each piece is. The designed escape hatch
+is one physics <code>Space</code> per zone (each on its own goroutine or process),
+not micro-optimisation. Today the whole world is one Space.</p>
+
+<h3>3.2 The systems</h3>
+
+<p>Registered in order in <code>core.NewGameWith()</code>. Execution order is the
+engine's priority sort — <b>do not re-sort <code>World.Systems()</code></b>, it
+returns the live slice (there is a regression test pinning this).</p>
+
+<table class="wrap">
+<tr><th style="width:26%">System</th><th>Responsibility</th></tr>
+<tr><td><code>PhysicsSystem</code></td><td>Owns the <code>phy.Space</code>: movement integration, broadphase, collision sets.</td></tr>
+<tr><td><code>NetSystem</code></td><td>Per-player area-of-interest snapshot assembly + FlatBuffers marshalling + websocket send.</td></tr>
+<tr><td><code>InputSystem</code></td><td>Drains client input into player intent (movement vector, aura slot, cooldown activations).</td></tr>
+<tr><td><code>MobSystem</code></td><td>Spawning, respawn timers, AI state machine (idle/wander/chase/attack/leash), obstacle steering.</td></tr>
+<tr><td><code>NpcSystem</code></td><td>Peaceful NPCs: proximity trigger, chat bubbles, skill teaching.</td></tr>
+<tr><td><code>ChatSystem</code></td><td>Chat + server-wide announcements (also the <code>Announcer</code> for encounters and commands).</td></tr>
+<tr><td><code>EncounterSystem</code></td><td>Scripted boss encounters (phases, threat table, adds).</td></tr>
+<tr><td><code>Pre/PostUpdateSystem</code></td><td>Per-tick state reset and commit brackets around the gameplay systems.</td></tr>
+<tr><td><code>UpdateSystem</code></td><td>Player entity update: regen, death checks, level-ups.</td></tr>
+<tr><td><b><code>SkillSystem</code></b></td><td><b>The core.</b> Resolves every equipped skill of every entity per tick. ~1,600 lines, the deliberate complexity sink.</td></tr>
+<tr><td><code>StatusEffectsSystem</code></td><td>Transient visual/status flags (damaged, burst-fired, regenerating) fed to the wire.</td></tr>
+<tr><td><code>ConnectionStateSystem</code></td><td>Join/leave, death state, respawn, and the reconnect-token stash (reload restores your character for ~10 min).</td></tr>
+<tr><td><code>CommandSystem</code></td><td>Token-gated cheat/admin commands.</td></tr>
+<tr><td><code>EquipSystem</code></td><td>Aura slot loadout changes, skill point spend/respec.</td></tr>
+<tr><td><code>DecaySystem</code></td><td>Corpse and temporary-entity lifetimes.</td></tr>
+</table>
+
+<h3>3.3 Physics and the two scaling properties</h3>
+
+<p><code>pkg/aura/phy/</code> is a small purpose-built 2D layer: circles and AABBs,
+a uniform spatial hash with 10-unit cells, layer masks. Static shapes (props,
+walls, world boundary) live in a persistent static grid inserted once; dynamic
+shapes go into a grid that is cleared and reused each tick. Collision inside a
+cell is brute force, O(k²) over the k shapes in it.</p>
+
+<p>Two consequences you should internalise before touching anything performance-adjacent:</p>
+
+<ul>
+<li><b>Large shapes are the cost amplifier.</b> Roughly three shapes per entity
+(mob: body + aura + aggro sensor; player: body + aura + viewport). A player's
+viewport is a 20×12 box spanning 4–6 cells, and it is brute-forced in
+<i>every</i> cell it overlaps.</li>
+<li><b>Density, not headcount, is the limit.</b> Cost is Σ&nbsp;k<sub>c</sub>² per cell,
+so N players spread over a zone is cheap and N players piled on one screen is
+quadratic.</li>
+</ul>
+
+<p>The network layer already avoids the classic O(players × entities) MMO trap:
+each player is sent only the entities intersecting their viewport shape. That is
+the single most important scaling property in the codebase — and the same reason
+clustering hurts twice (broadphase <i>and</i> send-set both explode).</p>
+
+<div class="box">
+<span class="t">Measured, not theoretical</span>
+There is a load-test harness (<code>cmd/loadbot</code>, see <code>devops/loadtest.md</code>)
+that drives real websocket clients with real skills. Current numbers: spread
+players are fine well past 120; <b>clustered players hit a wall around 60–70</b>,
+and the wall is the single-threaded per-player snapshot encoding. Mobs cost more
+than auras. Re-measure before quoting any of these — they predate the most recent
+allocation work.
+</div>
+
+<h2>4. The skill / aura system — the part that matters</h2>
+
+<p>Everything gameplay-facing is expressed as a <b>skill</b>. Skills are JSON, live
+in <code>api/skills/</code> (47 player + 36 mob definitions), and are loaded into a
+registry at boot with <b>hard-fail validation</b>. Players and mobs both carry a
+<code>SkillComponent</code>; the mechanics are identical for both.</p>
+
+<h3>4.1 Three categories</h3>
+
+<table class="wrap">
+<tr><th style="width:20%">Category</th><th>Semantics</th></tr>
+<tr><td><code>active_aura</code></td><td>Toggleable field with a visible in-world radius. <b>Exactly one is active at a time.</b> The slots are a loadout — several equipped, one on, switchable mid-fight. Build variety comes from loadout + switch timing, not from stacking auras.</td></tr>
+<tr><td><code>passive</code></td><td>Always on, these <i>do</i> run in parallel. Stat multipliers, resistances, flat bonuses.</td></tr>
+<tr><td><code>cooldown</code></td><td>Manually fired ability with a cooldown timer. Self-healing is a cooldown, never an aura.</td></tr>
+</table>
+
+<h3>4.2 Anatomy of a definition</h3>
+
+<p>A skill is <code>id</code> + <code>name</code> + <code>category</code> +
+<code>maxLevel</code> + a list of <b>effects</b>. There are <b>22 effect types</b>:</p>
+
+<p class="mono" style="font-size:7.6pt; line-height:1.6">
+damage_aura · heal_aura · hot_aura · dot_aura · shield_aura · resist_aura ·
+slow_aura · light_aura · stat_multiplier · resist_passive · instant_damage ·
+instant_dot · instant_hot · instant_shield · self_heal · spawn · taunt ·
+detaunt · dash · recall · revive · tick_rate
+</p>
+
+<pre><code>{
+  "id": 1, "name": "Damage", "category": "active_aura", "maxLevel": 5,
+  "effects": [{
+    "type": "damage_aura",
+    "radius": 1.0, "radiusPerLevel": 0.0,
+    "damageHP": 14, "damageHPPerLevel": 3.2, "variance": 0.15,
+    "targetsEnemies": true, "targetsAllies": false,
+    "selector": "nearest", "maxTargets": 1,
+    "tickInterval": 40
+  }]
+}</code></pre>
+
+<p>Effect semantics stay in Go — <b>this was an explicit decision</b>: no scripting
+engine for effects. New behaviour means a new effect type, not a new expression
+language. A constrained expression layer is parked behind an explicit trigger
+that has not fired.</p>
+
+<h3>4.3 Targeting pipeline</h3>
+
+<p>Per effect, per tick interval: <b>range filter</b> (the aura sensor shape from
+the broadphase) → <b>faction/target-flag filter</b>
+(<code>targetsEnemies</code> / <code>targetsAllies</code> /
+<code>targetsStructures</code> / <code>targetsSelf</code>) → <b>selector sort</b>
+(<code>nearest</code> default, <code>lowest_health</code> by percentage,
+<code>all</code>) → take the first <code>maxTargets</code>.</p>
+
+<p>There is deliberately <b>no line-of-sight filter</b> — auras pass through walls.
+That was cut in 2026-07-10 with a written rationale (walls remain movement
+blockers; wall-cheese is handled by mob AI steering and leashing instead). Don't
+re-add it without reading <code>tdd.md</code> §4.2.</p>
+
+<p>"No friendly fire" is not special-cased anywhere; it is simply
+<code>targetsAllies: false</code>. Heal auras never heal the caster.</p>
+
+<h3>4.4 Two multiplicative scaling axes</h3>
+
+<p>This trips people up, so it is worth stating precisely:</p>
+
+<ul>
+<li><b>Specialisation axis</b> — per-skill level: <code>base + (level−1) × perLevel</code>
+(<code>skills.Scaled</code>). Authored per skill.</li>
+<li><b>Inflation axis</b> — per character level: <code>f(L) = growth^(L−1)</code>, one shared
+formula in <code>pkg/aura/curve</code>, config-driven
+(<code>levelGrowth 1.12</code> × <code>maxLevel 30</code> ≈ 27× total).</li>
+</ul>
+
+<p>The inflation axis passes through a <b>single seam</b> in the SkillSystem
+(<code>casterPowerScale</code>) and multiplies <b>HP-side output only</b> — damage,
+heal, dot, hot, shield absorb, self-heal, self-damage cost. It never touches
+radius, tick rate, target count, or the relative vocabulary (crit, execute,
+berserker, lifesteal, slow, resist).</p>
+
+<p><b>Mobs carry no runtime level multiplier.</b> Mob JSON authors
+<code>tier</code> (normal/elite/boss — a pure label for framing/VFX) +
+<code>curveLevel</code> (position on f) + <code>factors.baseMaxHealth</code>; the
+loader derives max HP and the mob's power scale. Writing a raw
+<code>factors.maxHealth</code> <b>hard-fails at load</b> — deliberately, so a
+growth-curve change stays a one-knob re-derivation.</p>
+
+<h3>4.5 Unlocks and combinations</h3>
+
+<p>Five data-driven ways to obtain a skill: <b>milestone</b> (level gates,
+<code>api/milestones/</code>), <b>mob kill drops</b> (<code>unlocks</code> array on
+the mob JSON, with a chance), <b>NPC teaching</b> (walk into an NPC's sensor),
+<b>world exploration</b> anchors, and <b>combination recipes</b>
+(<code>api/recipes/</code>, 10 curated). Recipes are <b>curated, not algorithmic,
+and not documented in-game</b> — the community is meant to discover them. A
+recipe result can itself be an ingredient for a higher recipe.</p>
+
+<h3>4.6 Damage tags and resistances</h3>
+
+<p>Damage effects carry <b>arbitrary string tags</b> (<code>fire</code>,
+<code>physical</code>, or something bespoke like <code>boss_x_lava</code>), and
+resist sources list the tags they cover. Deliberately not a fixed enum, so a
+one-off hazard needs content, not a code change. Multipliers compose
+(<code>skills.ResistMultiplier</code>).</p>
+
+<h2>5. Content pipeline</h2>
+
+<p>All tunable content is JSON under <code>api/</code>, loaded by registries that
+mirror each other in shape. As of the milestone-table move, <code>-content ../api</code>
+covers <b>100%</b> of tunable content — no rebuild needed for a balance change.</p>
+
+<table>
+<tr><th>Directory</th><th>Count</th><th>Notes</th></tr>
+<tr><td><code>api/skills/</code></td><td>47 + 36 mob</td><td>Registry pin test asserts the total; bump it when you add one.</td></tr>
+<tr><td><code>api/mobs/</code></td><td>50</td><td>tier + curveLevel + baseline stats + skills + unlock drops.</td></tr>
+<tr><td><code>api/factions/</code></td><td>12</td><td>Hostility relations, <code>friendlyToPlayers</code>.</td></tr>
+<tr><td><code>api/recipes/</code></td><td>10</td><td>Combination unlocks.</td></tr>
+<tr><td><code>api/props/</code>, <code>api/zones/</code></td><td>5 / 2</td><td>World geometry. <code>world.json</code> holds ~777 props, ~471 spawns, campfires, NPCs — authored in the in-game zone editor, not by hand.</td></tr>
+<tr><td><code>api/milestones/</code></td><td>1</td><td>Level → guaranteed unlock table.</td></tr>
+</table>
+
+<div class="box note">
+<span class="t">The validation philosophy is the thing to preserve</span>
+<code>skills/definition.go</code> hard-fails at boot on anything that would be a
+silent no-op: variance on a non-rolling effect, resist fields on a non-resist
+effect, empty or duplicate tags. On top of that, <code>validateEffectKeys()</code>
+is a <b>per-effect-type key allowlist with rename hints</b> — an unknown or stale
+field in a skill JSON fails the boot naming both the bad field and its
+replacement. That one function kills the most common authoring bug class, and is
+why the JSON pipeline is trustworthy without a schema. Extend it when you add an
+effect type.
+</div>
+
+<h2>6. Wire protocol</h2>
+
+<p>WebSocket + <b>FlatBuffers</b> (flatc v24.3.25), namespace <code>AuraApi</code>.
+Schemas in <code>api/schema/</code>:</p>
+
+<ul class="tight">
+<li><code>client.fbs</code> — <code>Input</code>, <code>Join</code>, <code>Cheat</code>, <code>ChatMessage</code></li>
+<li><code>server.fbs</code> — <code>GameState</code>, <code>Welcome</code>, <code>Obituary</code>, the <code>EntityType</code> enum, entity tables</li>
+<li><code>common.fbs</code> — <code>Vec2f</code>, shared enums</li>
+</ul>
+
+<p>After editing a <code>.fbs</code>, regenerate <b>both</b> sides:
+<code>cd api/schema &amp;&amp; ./make.sh</code>, then <code>make -C backend gen</code>.
+Schema changes should be <b>append-only</b> where possible — several shipped
+features (aura category rings, tier frames, applied-effect pips) added exactly
+one field at the end of an existing table and cost nothing on the client.</p>
+
+<p>Note the <code>-2</code> sentinel on <code>active_aura_slot</code>: FlatBuffers
+omits default values, so an explicit <code>-1</code> is indistinguishable from an
+absent field. <code>-2</code> means "deactivate". It stays; the paired constants
+are <code>model.ActiveAuraSlotDeactivate</code> and <code>DEACTIVATE_AURA_SLOT</code>.</p>
+
+<h2>7. Frontend</h2>
+
+<p>TypeScript + webpack + PixiJS, organised as feature modules under
+<code>frontend/src/features/</code>: <code>backend/</code> (websocket, deserialisation,
+entity snapshots), <code>core/</code> (game loop, entity manager),
+<code>game-objects/</code> (Pixi render classes for mobs, characters, corpses,
+placeables), <code>camera/</code>, <code>controls/</code>, <code>input-system/</code>,
+<code>darkness/</code>, <code>day-cycle/</code>, <code>mini-map/</code>,
+<code>user-interface/</code>, <code>zone-editor/</code>, <code>internal-tools/</code>
+(dev panel, only with <code>?develop</code>).</p>
+
+<p>The client is a <b>pure renderer of server state</b> plus input capture.
+Nothing combat-relevant is computed client-side; the server is authoritative for
+everything that matters.</p>
+
+<h3>7.1 Two rules that are not obvious from the source</h3>
+
+<ul>
+<li><b>Use <code>pointerdown</code>, never <code>click</code>, on HUD panels.</b>
+<code>MouseManager</code> registers a <code>mousedown</code> listener on
+<code>document.documentElement</code> with <code>preventDefault()</code>, which
+suppresses the synthetic <code>click</code>. A <code>click</code> handler on a HUD
+panel silently never fires.</li>
+<li><b>Fixed field of view.</b> How much world you see is a game constant, not a
+browser artefact — zoom levels are defined as visible world <i>heights</i> and the
+camera scales to cover. Browser zoom only changes sharpness. This closes the
+fairness hole where zooming out granted sight range, and it is capped below the
+server's 20×12 streaming viewport so you can never outrun the entity stream.</li>
+</ul>
+
+<h3>7.2 The house answer to frontend/backend duplication</h3>
+
+<p>The client used to mirror the backend skill registry in a hand-synced
+<code>Skills.ts</code> table. That is gone. The server now exposes
+<code>GET /skills</code> and <code>GET /mobs</code> serving its <b>parsed</b>
+registries, and the client fetches them. <b>Serve a catalog, don't mirror a
+table</b> — apply this to any new content duplication you are tempted to
+introduce.</p>
+
+<h2>8. What the player actually sees</h2>
+
+<p>How the systems above surface in the client, roughly in the order a new player
+meets them:</p>
+
+<table class="wrap">
+<tr><th style="width:25%">System</th><th>Player-facing form</th></tr>
+<tr><td><b>Active aura</b></td><td>A circle drawn around your character at its real radius, with a coloured ring band per <i>effect category</i> (damage, heal, shield, slow, light, resist). Ticks are visible as hit VFX <b>on the struck target</b> — a slash for slow ticks, fire for fast ones — so the circle reads as <i>range</i>, not as a hit zone.</td></tr>
+<tr><td><b>Mobs</b></td><td>Same aura rings (you can read a mob's threat from its ring colour and size before it reaches you). Tier is a frame around the mob: silver for elite, gold for boss. Nameplates show <code>Name cL</code> tinted WoW-style by level difference — red ≥+5 down to gray ≤−6.</td></tr>
+<tr><td><b>Resource</b></td><td>One bar. Overhead bar on every entity, plus the HUD bar for yourself. Buffs/debuffs currently applied to an entity show as coloured pips under its overhead bar.</td></tr>
+<tr><td><b>Cooldowns</b></td><td>Ability bar with hotkeys, a cast/cooldown bar stack above it, and a burst VFX on fire.</td></tr>
+<tr><td><b>Spellbook</b></td><td>Panel listing everything discovered, with hover tooltips showing current → next values (fed from <code>GET /skills</code>). Click a skill then press a slot hotkey to bind it; Escape cancels.</td></tr>
+<tr><td><b>Unlocks</b></td><td>Glow on the spellbook + an alert banner. <span class="tag warn">open</span> Source attribution ("taught by X") is <b>not</b> implemented — testers reported never noticing where abilities came from. This is the next queued work item.</td></tr>
+<tr><td><b>Darkness &amp; light</b></td><td>Authored dark areas (caves, the zone-1→2 tunnel) render as an opaque overlay with holes punched by light sources: your own small self-glow, a Lantern aura, campfires. In unlit darkness, mob nameplates are hidden. The tunnel is the designed tutorial for role support — light costs you your damage aura, so someone else has to carry it.</td></tr>
+<tr><td><b>Campfires</b></td><td>Hard safe zones, heal over time, and act as respawn anchors.</td></tr>
+<tr><td><b>NPCs</b></td><td>Peaceful; walking into their 1.0-unit sensor triggers a chat bubble (10 s) and can teach a skill. Often placed next to harvest-mobs only one specific aura can damage — a soft profession identity without a class system.</td></tr>
+<tr><td><b>Death</b></td><td>Corpse + respawn button. Passive regen is combat-gated. No XP loss; all combat participants get XP (no formal groups in v1).</td></tr>
+<tr><td><b>Boss</b></td><td>The Ork Warlord: a scripted encounter with phases, a threat table, and adds, announced to the whole server via the alert banner.</td></tr>
+</table>
+
+<h2>9. Testing and verification</h2>
+
+<p>Test-to-production ratio is about <b>0.96:1</b> (~22k lines of test code, 81
+test files). The discipline is real: regressions found in play get pinned with a
+named test. <b>TDD is the expected workflow</b> for game logic and bug fixes —
+write the failing test first.</p>
+
+<table class="wrap">
+<tr><th style="width:26%">Layer</th><th>What it is</th></tr>
+<tr><td><code>go test ./...</code></td><td>Runs clean in seconds. Now gated in CI alongside <code>go vet ./...</code> and <code>npm run typecheck</code>.</td></tr>
+<tr><td><code>cmd/simharness</code></td><td>A balance explorer, not a test suite: TTK/TTD batteries, 1-vs-N matrices, kills-per-hour chains per level bracket, plus a web UI. It also holds a <b>deterministic guardrail test suite</b> that asserts balance invariants (e.g. band ordering, the power ceiling) — new content is expected to pass it.</td></tr>
+<tr><td><code>cmd/loadbot</code></td><td>Real websocket clients with real skills, for capacity measurement.</td></tr>
+<tr><td><code>*_alloc_test.go</code></td><td>Allocation pins asserting <b>zero</b> allocations per tick in the hot broadphase paths. These exist because the idle loop once allocated 11 MB/s and overloaded an empty server.</td></tr>
+<tr><td>Playwright smoke</td><td>Headless browser drives the real HUD end to end.</td></tr>
+</table>
+
+<p><b>Before declaring anything done:</b> <code>go build ./...</code>, the relevant
+<code>go test</code>, and — for anything with a runtime surface — an actual in-game
+check. Report the output rather than asserting success.</p>
+
+<h2>10. Deployment</h2>
+
+<p>One Hetzner box. A single <code>aurad</code> process serves the frontend bundle,
+the websocket, and the HTTP catalog endpoints, with autocert TLS and a port-80
+redirect, under systemd with restart-on-failure. <code>devops/deploy.sh</code> does a
+full deploy or <code>--content-only</code>. Cheat tokens are server-side only
+(<code>/opt/aurad/tokens.list</code>).</p>
+
+<div class="box">
+<span class="t">There is no persistence</span>
+Every restart wipes all characters. Announce before deploying. This is the
+single biggest open gap and the next major work item — accounts and persistence,
+with character sacrifice / meta-progression as its first consumer.
+</div>
+
+<h2 class="pagebreak">11. Known challenges</h2>
+
+<h3>11.1 Structural, on the roadmap</h3>
+
+<table class="wrap">
+<tr><th style="width:26%">Challenge</th><th>State</th></tr>
+<tr><td><b>No persistence, no accounts</b></td><td>Nothing survives a restart. Direction decided (anonymous-first, upgrade path); database choice, migration framework, and snapshot strategy all open. This is <b>next</b>.</td></tr>
+<tr><td><b>Single-threaded ceiling</b></td><td>Fine for realistic v1 load. The escape hatch (one Space per zone) is designed but unbuilt. Note that a Space boundary is a <b>hard wall in the simulation</b> — no aura crosses it — so seams have to sit at chokepoints where nothing is meant to fight across. That is exactly why the zone topology is tunnels.</td></tr>
+<tr><td><b>Clustered-density wall</b></td><td>~60–70 players on one screen. Broadphase is O(n²) per cell and <code>bruteIntersectShapes</code> is ~39% of loop CPU; the send path is the other half. Not urgent — the game's shape (no PvP, ~5–20 players at a boss) does not produce big clusters naturally.</td></tr>
+<tr><td><b>Zone chat</b></td><td>Chat exists; zone scoping does not.</td></tr>
+<tr><td><b>Combat-feel SFX</b></td><td>Deferred — the audio scaffold exists, no placeholder assets available.</td></tr>
+</table>
+
+<h3>11.2 Live-ops watch items</h3>
+
+<ul>
+<li><b>Tick overload on the live host.</b> The production vCPU is ~3.4× slower than the dev box on identical idle work, which lands the tick tail right on the 33 ms line. An allocation fix took idle CPU from 25.8% to 17% of a core, but the verdict needs a day of live logs to confirm. Nothing here reproduced locally, even with <code>GOMAXPROCS=2</code> — it is raw per-core speed, not core count.</li>
+<li><b>Day/night cycle is switched off.</b> <code>DAY_CYCLE_PRESENTATION_ENABLED = false</code>. It made avatars invisible at the day→night transition; never reproduced headlessly, looks GPU-dependent. Prime suspect is ~25 per-layer <code>ColorMatrixFilter</code> passes. Don't re-enable without collapsing those into one pass on a single parent container.</li>
+<li><b>Unlock source attribution.</b> Players do not learn where a new ability came from. Proposed fix: a server-authored per-unlock alert from all five grant sites over the existing announcement channel, no schema change.</li>
+</ul>
+
+<h3>11.3 Code-level friction you will hit</h3>
+
+<ul>
+<li><b><code>sys/skills.go</code> is ~1,600 lines / ~40 functions</b> — a flat dispatch that grows with every effect type. Readable today. The written guidance is <i>not</i> to refactor it pre-emptively, but it is where the next structural pressure will show.</li>
+<li><b>The <code>addXxx</code> registration methods in <code>core/game.go</code></b> — eight near-identical type-switch loops. The most error-prone backend extension point: adding an entity type means touching all the relevant ones.</li>
+<li><b>Three logging styles coexist</b> — <code>slog</code>, <code>log.Printf</code>, <code>fmt.Printf</code>. Prefer <code>slog</code>.</li>
+<li><b><code>go:embed</code> patterns do not recurse.</b> A pattern needs both <code>*.json</code> and <code>**/*.json</code>. Disk-based registry tests cannot catch embed gaps, so there is an explicit embed pin test. Before any manual test: kill the old process (<code>pkill -x aurad</code>), rebuild, and check the boot log counts — a stale process silently masks new behaviour.</li>
+<li><b>Adding an entity type still touches three places</b>: mob JSON, the <code>.fbs</code> enum, and the frontend render-class map. The map is now keyed by enum member (so TypeScript enforces exhaustiveness), but the three-place sync itself remains.</li>
+<li><b>Frontend has no linter</b> and ~18 stray <code>: any</code>. Typecheck runs in CI; ESLint does not exist.</li>
+<li><b>WARP has 1-unit granularity</b> — it integer-divides before the float cast. Since NPC sensors dropped to 1.0 it can no longer reliably land you inside an NPC trigger; warp to the nearest whole unit and walk the last step.</li>
+</ul>
+
+<h2>12. How to work in this repo</h2>
+
+<p>The working style is documented in <code>CLAUDE.md</code> and is enforced socially
+rather than by tooling. The parts that will affect you immediately:</p>
+
+<ul>
+<li><b>Plan before code.</b> Non-trivial work is designed plan-first in a
+<code>docs/plan-*.md</code> doc — what changes and why, chunk breakdown, decisions,
+open questions, test strategy — and then executed one chunk at a time,
+referencing the plan.</li>
+<li><b>Every number is a placeholder until explicitly marked final</b>, and even
+"FINAL" means "first-pass settled", not frozen. Damage values, radii, drop rates,
+level caps, respec costs — all of them. Don't treat a value in the code as a
+decision that was made.</li>
+<li><b>KISS / DRY / YAGNI, seriously applied.</b> Build what the current design
+requires, not what future combinations might. This is stated explicitly for the
+aura system.</li>
+<li><b>Extend, don't rewrite</b> the inherited physics, collision, and
+WebSocket/FlatBuffers layers — they are treated as stable foundations.</li>
+<li><b>Status lives in <code>CLAUDE.md</code>, not in the design docs.</b> The GDD and
+TDD are the big picture; on detail conflicts, <code>CLAUDE.md</code>, the roadmap,
+and the plan docs win.</li>
+</ul>
+
+<div class="box game">
+<span class="t">Where to start reading</span>
+<code>CLAUDE.md</code> (current state, open items) → <code>docs/gdd.md</code> §4–5
+(combat pacing, power curve) → <code>docs/tdd.md</code> §4 (system architecture and
+the decision records) → <code>docs/architecture.md</code> (cost model, zones as
+Spaces) → then <code>backend/pkg/aura/sys/skills.go</code> alongside a couple of
+skill JSONs. For content work, <code>docs/manual-content-authoring.md</code> is the
+authoritative procedure.
+</div>
+
+</body>
+</html>
