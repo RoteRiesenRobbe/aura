@@ -109,7 +109,11 @@ func loadPresets(contentDir string) ([]mobPreset, []playerAuraPreset, error) {
 
 	var presets []mobPreset
 	for _, def := range defs {
-		presets = append(presets, mobPreset{Name: def.Name, Spec: mobSpecOf(def)})
+		spec, err := mobSpecOf(def)
+		if err != nil {
+			return nil, nil, err
+		}
+		presets = append(presets, mobPreset{Name: def.Name, Spec: spec})
 	}
 	sort.Slice(presets, func(i, j int) bool { return presets[i].Name < presets[j].Name })
 
@@ -118,18 +122,21 @@ func loadPresets(contentDir string) ([]mobPreset, []playerAuraPreset, error) {
 		if def.ID >= firstMobSkillID || def.Category != skills.SkillCategoryActiveAura {
 			continue
 		}
-		e, ok := firstDamageEffect(def)
-		if !ok {
+		if !hasDamageEffect(def) {
 			continue
 		}
-		players = append(players, playerAuraPreset{
-			Name: fmt.Sprintf("%s L1", def.Name),
-			Spec: auraSpecAt(e, 1, 1),
-		})
+		levels := []int{1}
 		if def.MaxLevel > 1 {
+			levels = append(levels, def.MaxLevel)
+		}
+		for _, level := range levels {
+			spec, err := auraSpecOf(def, level, 1)
+			if err != nil {
+				return nil, nil, err
+			}
 			players = append(players, playerAuraPreset{
-				Name: fmt.Sprintf("%s L%d", def.Name, def.MaxLevel),
-				Spec: auraSpecAt(e, def.MaxLevel, 1),
+				Name: fmt.Sprintf("%s L%d", def.Name, level),
+				Spec: spec,
 			})
 		}
 	}
@@ -167,57 +174,131 @@ func playerAuraSpecByName(contentDir, ref string) (sim.AuraSpec, error) {
 	if level > def.MaxLevel {
 		return sim.AuraSpec{}, fmt.Errorf("-player-aura %q: %s caps at level %d", ref, def.Name, def.MaxLevel)
 	}
-	e, ok := firstDamageEffect(def)
-	if !ok {
-		return sim.AuraSpec{}, fmt.Errorf("-player-aura %q: %s has no damage_aura or dot_aura effect", ref, def.Name)
+	spec, err := auraSpecOf(def, level, 1)
+	if err != nil {
+		return sim.AuraSpec{}, fmt.Errorf("-player-aura %q: %w", ref, err)
 	}
-	return auraSpecAt(e, level, 1), nil
+	return spec, nil
 }
 
-// firstDamageEffect finds the definition's first damage-dealing aura payload
-// — damage_aura or dot_aura, the two effect shapes the sim models.
-func firstDamageEffect(def *skills.SkillDefinition) (skills.EffectDef, bool) {
+// hasDamageEffect reports whether the definition carries any payload the sim
+// models — damage_aura or dot_aura.
+func hasDamageEffect(def *skills.SkillDefinition) bool {
 	for _, e := range def.Effects {
-		if e.Type == skills.EffectTypeDamageAura && e.Damage != nil {
-			return e, true
-		}
-		if e.Type == skills.EffectTypeDotAura && e.Dot != nil {
-			return e, true
+		if (e.Type == skills.EffectTypeDamageAura && e.Damage != nil) ||
+			(e.Type == skills.EffectTypeDotAura && e.Dot != nil) {
+			return true
 		}
 	}
-	return skills.EffectDef{}, false
+	return false
 }
 
-// auraSpecAt maps one damage_aura or dot_aura effect at a skill level onto
-// the sim's synthetic AuraSpec — the same numbers the live SkillSystem would
-// apply. powerScale is the caster-side HP multiplier: a mob def's derived
+// auraSpecOf maps a skill's damage-dealing effects at a level onto the sim's
+// synthetic AuraSpec — the same numbers the live SkillSystem would apply.
+// powerScale is the caster-side HP multiplier: a mob def's derived
 // f(curveLevel) (C0), or neutral 1 for player baselines.
-func auraSpecAt(e skills.EffectDef, level int, powerScale float32) sim.AuraSpec {
-	spec := sim.AuraSpec{
-		TickInterval: skills.EffectiveTickInterval(e, level, 1),
-		Radius:       skills.Scaled(e.Radius, e.RadiusPerLevel, level),
-		MaxTargets:   skills.Scaled(e.MaxTargets, e.MaxTargetsPerLevel, level),
+//
+// A skill may carry a direct hit AND a dot (GiantVenomSpit, 2026-07-22); both
+// land, so both are modelled. Anything the single-aura AuraSpec cannot express
+// is a hard error rather than a silent under-measurement — the guardrail
+// asserts on these numbers, so a spec that quietly drops half a mob's output
+// is worse than no spec at all.
+func auraSpecOf(def *skills.SkillDefinition, level int, powerScale float32) (sim.AuraSpec, error) {
+	var spec sim.AuraSpec
+	var direct, dot *skills.EffectDef
+	var geometry *skills.EffectDef
+
+	for i := range def.Effects {
+		e := &def.Effects[i]
+		switch {
+		case e.Type == skills.EffectTypeDamageAura && e.Damage != nil:
+			if direct != nil {
+				return spec, fmt.Errorf("%s: two damage_aura payloads on one skill — not modellable by a single AuraSpec", def.Name)
+			}
+			direct = e
+		case e.Type == skills.EffectTypeDotAura && e.Dot != nil:
+			if dot != nil {
+				return spec, fmt.Errorf("%s: two dot_aura payloads on one skill — not modellable by a single AuraSpec", def.Name)
+			}
+			dot = e
+		default:
+			continue // light/resist/buff riders carry no damage
+		}
+
+		// The live entity owns ONE aura sensor, sized to the max radius across
+		// effects (skills.EquippedSkill.EffectiveRadius), and target selection
+		// filters by that sensor rather than per effect — so a smaller
+		// authored radius does not mean what it looks like: that effect still
+		// reaches the full distance. Reject it instead of modelling a lie.
+		// Cadence and target count DO differ faithfully per effect
+		// (WarlordCleave's 35-tick sweep + 50-tick bleed) and are modelled.
+		r := skills.Scaled(e.Radius, e.RadiusPerLevel, level)
+		if geometry == nil {
+			geometry = e
+			spec.Radius = r
+			continue
+		}
+		if r != spec.Radius {
+			return spec, fmt.Errorf("%s: damaging effects disagree on radius (%.2f vs %.2f) — the shared aura sensor applies BOTH at the larger one", def.Name, spec.Radius, r)
+		}
 	}
-	switch {
-	case e.Damage != nil:
-		spec.DamageHP = e.Damage.HPAt(level) * powerScale
-		spec.Variance = e.Damage.Variance
-		spec.CritChance = e.Damage.CritChanceAt(level)
-		spec.CritFactor = e.Damage.CritFactor
-	case e.Dot != nil:
-		spec.DamageHP = e.Dot.HPAt(level) * powerScale
-		spec.Variance = e.Dot.Variance
-		spec.DotTicks = e.Dot.TickCount
-		spec.DotTickInterval = e.Dot.Interval
+
+	if direct == nil && dot == nil {
+		return spec, fmt.Errorf("%s has no damage_aura or dot_aura effect", def.Name)
 	}
-	return spec
+
+	// Cadence/targets come from whichever payload owns them; with only one
+	// payload the aura-level fields ARE that payload's.
+	if direct != nil {
+		spec.TickInterval = skills.EffectiveTickInterval(*direct, level, 1)
+		spec.MaxTargets = skills.Scaled(direct.MaxTargets, direct.MaxTargetsPerLevel, level)
+		spec.DamageHP = direct.Damage.HPAt(level) * powerScale
+		spec.Variance = direct.Damage.Variance
+		spec.CritChance = direct.Damage.CritChanceAt(level)
+		spec.CritFactor = direct.Damage.CritFactor
+	}
+	if dot != nil {
+		applyInterval := skills.EffectiveTickInterval(*dot, level, 1)
+		targets := skills.Scaled(dot.MaxTargets, dot.MaxTargetsPerLevel, level)
+		hp := dot.Dot.HPAt(level) * powerScale
+
+		spec.DotTicks = dot.Dot.TickCount
+		spec.DotTickInterval = dot.Dot.Interval
+		if direct != nil {
+			// Both payloads: the dot needs its own HP field, and its cadence
+			// and target cap only when they diverge from the direct hit's.
+			spec.DotHP = hp
+			if applyInterval != spec.TickInterval {
+				spec.DotApplyInterval = applyInterval
+			}
+			if targets != spec.MaxTargets {
+				spec.DotMaxTargets = targets
+			}
+		} else {
+			// Dot-only shorthand: DamageHP IS the dot's per-event HP, and the
+			// aura-level cadence/targets are the dot's own.
+			spec.DamageHP = hp
+			spec.Variance = dot.Dot.Variance
+			spec.TickInterval = applyInterval
+			spec.MaxTargets = targets
+		}
+
+		// A dot only sustains its DotTickInterval rate while it stays
+		// refreshed; re-applying slower than the dot's own lifetime leaves
+		// gaps the steady-state model does not capture.
+		if lifetime := dot.Dot.DurationTicks(); applyInterval > lifetime {
+			return spec, fmt.Errorf("%s: dot re-applies every %d ticks but lasts only %d — the sustained model assumes continuous uptime",
+				def.Name, applyInterval, lifetime)
+		}
+	}
+	return spec, nil
 }
 
 // mobSpecOf maps an authored definition onto the sim's synthetic MobSpec.
-// The aura is the FIRST damage_aura effect across the mob's aura loadout,
+// The aura is the first damage-dealing skill across the mob's aura loadout,
 // level-scaled at the declared skill level — the same numbers the live
 // SkillSystem would apply.
-func mobSpecOf(def *mobs.MobDefinition) sim.MobSpec {
+func mobSpecOf(def *mobs.MobDefinition) (sim.MobSpec, error) {
 	spec := sim.MobSpec{
 		MaxHealth:            float32(def.Factors.MaxHealth),
 		MaxHealthVariance:    def.Factors.MaxHealthVariance,
@@ -227,15 +308,17 @@ func mobSpecOf(def *mobs.MobDefinition) sim.MobSpec {
 		FleeBelowHealthRatio: def.Factors.FleeBelowHealthRatio,
 	}
 	for _, ms := range def.Skills {
-		if ms.Def.Category != skills.SkillCategoryActiveAura {
+		if ms.Def.Category != skills.SkillCategoryActiveAura || !hasDamageEffect(ms.Def) {
 			continue
 		}
-		if e, ok := firstDamageEffect(ms.Def); ok {
-			// × PowerScale: the live SkillSystem multiplies mob skill HP
-			// by the def's derived f(curveLevel) at cast time (C0).
-			spec.Aura = auraSpecAt(e, ms.Level, def.PowerScale)
-			return spec
+		// × PowerScale: the live SkillSystem multiplies mob skill HP
+		// by the def's derived f(curveLevel) at cast time (C0).
+		aura, err := auraSpecOf(ms.Def, ms.Level, def.PowerScale)
+		if err != nil {
+			return spec, fmt.Errorf("mob %s: %w", def.Name, err)
 		}
+		spec.Aura = aura
+		return spec, nil
 	}
-	return spec
+	return spec, nil
 }

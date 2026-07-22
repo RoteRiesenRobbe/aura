@@ -98,9 +98,12 @@ func facetankSurvival(t *testing.T, def *mobs.MobDefinition, botAura sim.AuraSpe
 	}
 	bot.Aura.DamageHP *= float32(f)
 
+	mobSpec, err := mobSpecOf(def)
+	require.NoError(t, err)
+
 	rep := sim.RunChain(sim.ChainConfig{
 		Player:          bot,
-		Mob:             mobSpecOf(def),
+		Mob:             mobSpec,
 		ChainFights:     guardrailFights,
 		DowntimeSeconds: guardrailDowntime,
 		BaseSeed:        guardrailSeed,
@@ -110,23 +113,26 @@ func facetankSurvival(t *testing.T, def *mobs.MobDefinition, botAura sim.AuraSpe
 }
 
 // sustainedEVPerTick is a preset's steady-state expected damage per game
-// tick across all its targets: crit EV on the hit, dot cadence for dots
-// (refresh sustains one event per DotTickInterval per target), direct
-// cadence otherwise.
+// tick across all its targets: crit EV on the direct hit at the aura cadence,
+// plus the dot at its own cadence (refresh sustains one event per
+// DotTickInterval per target, and dots carry no crit). An aura with both
+// payloads — GiantVenomSpit's bite+venom — contributes both.
 func sustainedEVPerTick(s sim.AuraSpec) float64 {
-	ev := float64(s.DamageHP)
-	if s.CritChance > 0 {
-		ev *= 1 + float64(s.CritChance)*(float64(s.CritFactor)-1)
+	var perTick float64
+
+	if s.HasDirect() {
+		ev := float64(s.DamageHP)
+		if s.CritChance > 0 {
+			ev *= 1 + float64(s.CritChance)*(float64(s.CritFactor)-1)
+		}
+		perTick += ev / float64(max(s.TickInterval, 1)) * float64(max(s.MaxTargets, 1))
 	}
-	interval := s.TickInterval
 	if s.DotTicks > 0 {
-		interval = s.DotTickInterval
+		perTick += float64(s.DotPayloadHP()) / float64(max(s.DotTickInterval, 1)) *
+			float64(max(s.DotTargetCap(), 1))
 	}
-	targets := s.MaxTargets
-	if targets < 1 {
-		targets = 1
-	}
-	return ev / float64(interval) * float64(targets)
+
+	return perTick
 }
 
 // TestGuardrails_CeilingOrdering pins the §A power-ceiling calibration
@@ -193,9 +199,8 @@ func TestGuardrails_TierThresholdsVsRealRoster(t *testing.T) {
 
 	dmgAura, err := sr.GetByName("Damage")
 	require.NoError(t, err, "the baseline bot's weapon must exist in content")
-	e, ok := firstDamageEffect(dmgAura)
-	require.True(t, ok)
-	botAura := auraSpecAt(e, 1, 1)
+	botAura, err := auraSpecOf(dmgAura, 1, 1)
+	require.NoError(t, err)
 
 	// zone -> classified normals, for the band-check below.
 	soft := map[string][]string{}
@@ -206,7 +211,9 @@ func TestGuardrails_TierThresholdsVsRealRoster(t *testing.T) {
 			t.Logf("skip %-18s %s", def.Name, reason)
 			continue
 		}
-		if mobSpecOf(def).Aura.DamageHP == 0 {
+		spec, err := mobSpecOf(def)
+		require.NoError(t, err, "%s: content the sim cannot model faithfully", def.Name)
+		if spec.Aura.DamageHP == 0 && spec.Aura.DotHP == 0 {
 			continue // unarmed — harmless-turret mapping, not measurable
 		}
 
@@ -234,8 +241,16 @@ func TestGuardrails_TierThresholdsVsRealRoster(t *testing.T) {
 	}
 
 	for _, zone := range []string{"Z1", "Z2", "farm"} {
-		assert.NotEmpty(t, soft[zone],
-			"%s must offer at least one soft (facetankable) normal", zone)
+		// The soft-normal floor is a LEVELING-zone rule (PO 2026-07-22): a
+		// player working through Z1/Z2 must always have something they can
+		// stand and trade with. The farm band (cL8-17) is deliberate,
+		// out-levelled content you engage on purpose — it is allowed to be
+		// hard across the board, and since the GiantSpider bite+venom pass it
+		// is. Every band still needs a hard normal, or it is not a band.
+		if zone != "farm" {
+			assert.NotEmpty(t, soft[zone],
+				"%s must offer at least one soft (facetankable) normal", zone)
+		}
 		assert.NotEmpty(t, hard[zone],
 			"%s must offer at least one hard (bot-killing) normal", zone)
 		t.Logf("%s band: soft=%v hard=%v", zone, soft[zone], hard[zone])

@@ -76,6 +76,7 @@ func (fx Fixture) PlayerAt(level int) PlayerSpec {
 	p := fx.Player
 	p.MaxHealth = int(math.Round(float64(p.MaxHealth) * f))
 	p.Aura.DamageHP = float32(float64(p.Aura.DamageHP) * f)
+	p.Aura.DotHP = float32(float64(p.Aura.DotHP) * f)
 	return p
 }
 
@@ -86,5 +87,6 @@ func (fx Fixture) MobAt(tier int) MobSpec {
 	m := fx.Mob
 	m.MaxHealth = float32(float64(m.MaxHealth) * f)
 	m.Aura.DamageHP = float32(float64(m.Aura.DamageHP) * f)
+	m.Aura.DotHP = float32(float64(m.Aura.DotHP) * f)
 	return m
 }

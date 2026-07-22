@@ -7,8 +7,9 @@ package sim
 import "github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 
 // AuraSpec is one synthetic damage aura, given as explicit numbers — the
-// "these numbers" half of the tool's number→outcome question. It maps 1:1
-// onto a real skills.SkillDefinition with a single damage_aura effect.
+// "these numbers" half of the tool's number→outcome question. It maps onto a
+// real skills.SkillDefinition carrying a damage_aura effect, a dot_aura
+// effect, or both.
 type AuraSpec struct {
 	DamageHP     float32 `json:"damageHP"`     // absolute HP per hit (pre-roll center)
 	TickInterval int     `json:"tickInterval"` // game ticks between hits (min 1)
@@ -18,13 +19,66 @@ type AuraSpec struct {
 	CritFactor   float32 `json:"critFactor"`   // crit damage multiplier (pair with CritChance)
 	MaxTargets   int     `json:"maxTargets"`   // nearest-N cap; 0 = uncapped (the chunk-3 matrix axis)
 
-	// DotTicks > 0 turns the spec into a dot_aura (C8 full-roster presets):
-	// each application deals DamageHP per event, DotTicks events, one every
+	// DotTicks > 0 adds a dot_aura payload (C8 full-roster presets): each
+	// application deals DotHP per event, DotTicks events, one every
 	// DotTickInterval game ticks — running on the TARGET independent of the
 	// aura (the tail keeps ticking after leaving range). TickInterval stays
 	// the application cadence; dots carry no crit (DotParams has none).
-	DotTicks        int `json:"dotTicks,omitempty"`
+	//
+	// DotHP defaults to DamageHP, the long-standing dot-only shorthand every
+	// roster preset uses. Setting BOTH to non-zero gives the aura a direct hit
+	// AND a dot from one application — WarlordCleave's sweep+bleed, the
+	// GiantSpider's bite+venom — and the spec then maps onto TWO effects.
+	//
+	// The two payloads may run at different cadences and target counts, as
+	// authored content does; DotApplyInterval and DotMaxTargets default to the
+	// direct hit's TickInterval / MaxTargets when unset. They may NOT differ in
+	// radius: the live entity owns one aura sensor sized to the max radius
+	// across effects, and selection filters by that sensor.
+	DotHP    float32 `json:"dotHP,omitempty"`
+	DotTicks int     `json:"dotTicks,omitempty"`
+	// DotTickInterval is the dot's own event cadence once applied — and thus
+	// its SUSTAINED rate, since a refresh extends the duration without
+	// resetting the acting accumulator (skills.Buffs.ApplyDot).
 	DotTickInterval int `json:"dotTickInterval,omitempty"`
+	// DotApplyInterval is how often the aura re-applies the dot; 0 = the
+	// direct hit's TickInterval. It governs the dot's UPTIME, not its rate.
+	DotApplyInterval int `json:"dotApplyInterval,omitempty"`
+	// DotMaxTargets caps the dot's nearest-N selection; 0 = MaxTargets.
+	DotMaxTargets int `json:"dotMaxTargets,omitempty"`
+}
+
+// HasDirect reports whether the spec carries a direct-hit payload. A dot-only
+// spec (the shorthand) leaves DamageHP as the DOT's per-event HP, so a direct
+// hit only exists once DotHP names the dot payload separately.
+func (a AuraSpec) HasDirect() bool {
+	return a.DamageHP > 0 && (a.DotTicks <= 0 || a.DotHP > 0)
+}
+
+// DotPayloadHP is the dot's per-event HP: DotHP when named, else the
+// dot-only shorthand where DamageHP IS the dot.
+func (a AuraSpec) DotPayloadHP() float32 {
+	if a.DotHP > 0 {
+		return a.DotHP
+	}
+	return a.DamageHP
+}
+
+// DotApplyCadence is the dot effect's application interval, defaulting to the
+// aura's own TickInterval.
+func (a AuraSpec) DotApplyCadence() int {
+	if a.DotApplyInterval > 0 {
+		return a.DotApplyInterval
+	}
+	return a.TickInterval
+}
+
+// DotTargetCap is the dot's nearest-N cap, defaulting to the aura's own.
+func (a AuraSpec) DotTargetCap() int {
+	if a.DotMaxTargets > 0 {
+		return a.DotMaxTargets
+	}
+	return a.MaxTargets
 }
 
 // definition builds the real skill definition the ECS runs. Direct
@@ -35,39 +89,58 @@ func (a AuraSpec) definition(id skills.SkillID, name string) *skills.SkillDefini
 	if interval < 1 {
 		interval = 1
 	}
-	effect := skills.EffectDef{
-		Type:           skills.EffectTypeDamageAura,
+	// Both payloads share the aura's RADIUS: the live entity sizes ONE sensor
+	// to the max radius across effects (skills.EquippedSkill.EffectiveRadius)
+	// and target selection filters by that sensor, not per effect — so
+	// divergent radii are not modellable, and the harness rejects them in
+	// authored content (auraSpecOf). Cadence and target count may differ.
+	base := skills.EffectDef{
 		Radius:         a.Radius,
 		TickInterval:   interval,
 		TargetsEnemies: true,
 		MaxTargets:     a.MaxTargets,
-		Damage: &skills.DamageParams{
+	}
+
+	var effects []skills.EffectDef
+	if a.HasDirect() || a.DotTicks <= 0 {
+		direct := base
+		direct.Type = skills.EffectTypeDamageAura
+		direct.Damage = &skills.DamageParams{
 			HP:         a.DamageHP,
 			Variance:   a.Variance,
 			CritChance: a.CritChance,
 			CritFactor: a.CritFactor,
-		},
+		}
+		effects = append(effects, direct)
 	}
 	if a.DotTicks > 0 {
 		dotInterval := a.DotTickInterval
 		if dotInterval < 1 {
 			dotInterval = 1
 		}
-		effect.Type = skills.EffectTypeDotAura
-		effect.Damage = nil
-		effect.Dot = &skills.DotParams{
-			HP:        a.DamageHP,
+		applyInterval := a.DotApplyCadence()
+		if applyInterval < 1 {
+			applyInterval = 1
+		}
+		dot := base
+		dot.Type = skills.EffectTypeDotAura
+		dot.TickInterval = applyInterval
+		dot.MaxTargets = a.DotTargetCap()
+		dot.Dot = &skills.DotParams{
+			HP:        a.DotPayloadHP(),
 			Variance:  a.Variance,
 			TickCount: a.DotTicks,
 			Interval:  dotInterval,
 		}
+		effects = append(effects, dot)
 	}
+
 	return &skills.SkillDefinition{
 		ID:       id,
 		Name:     name,
 		Category: skills.SkillCategoryActiveAura,
 		MaxLevel: 1,
-		Effects:  []skills.EffectDef{effect},
+		Effects:  effects,
 	}
 }
 
