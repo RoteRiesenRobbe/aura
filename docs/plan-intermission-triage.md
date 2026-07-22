@@ -1249,7 +1249,7 @@ balance cares).
 ## Day/night cycle DEACTIVATED — avatar invisibility recurred (ad-hoc session, 2026-07-22)
 
 **Day/night presentation switched OFF (not deleted) 2026-07-22, PO-directed
-in-session, committed `[uncommitted]`.** Ad-hoc: PO hit the bug twice on the
+in-session, committed `e648ab88`.** Ad-hoc: PO hit the bug twice on the
 live server mid-playtest, reproduced it 100%, and called the cycle "cosmetic
 anyway — deactivate it for now, in case we want it back".
 
