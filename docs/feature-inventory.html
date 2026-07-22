@@ -1,0 +1,749 @@
+<!doctype html>
+<!--
+  Source of ../aura-feature-inventory.pdf — the "everything built since the
+  fork" overview handout. Edit this file, re-print, commit both.
+
+  Regenerate (headless Chromium print-to-PDF, A4, backgrounds on):
+
+    node -e "const {chromium}=require('playwright');(async()=>{
+      const b=await chromium.launch(); const p=await b.newPage();
+      await p.goto('file://'+process.cwd()+'/docs/feature-inventory.html');
+      await p.pdf({path:'aura-feature-inventory.pdf', format:'A4', printBackground:true,
+        displayHeaderFooter:true, headerTemplate:'<span></span>',
+        footerTemplate:'<div style=\"width:100%;font-size:7pt;color:#8a839a;font-family:sans-serif;padding:0 16mm;display:flex;justify-content:space-between;\"><span>Aura — Feature Inventory</span><span class=\"pageNumber\"></span></div>',
+        margin:{top:'16mm',bottom:'14mm',left:'16mm',right:'16mm'}});
+      await b.close();})()"
+
+  Or just open it in a browser and Ctrl+P → A4, margins default, "Background
+  graphics" ON. The @page margins in the CSS are the fallback for that path.
+
+  When updating: re-derive every number from the tree rather than editing the
+  old ones — counts come from `ls api/skills/*.json`, the category grep,
+  non-legacy mob/faction counts, the EffectType enum, and the world.json
+  props/spawns figures. The cover states which commit the state is taken from;
+  keep that honest if the working tree is dirty.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aura — Feature Inventory</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 16mm 16mm; }
+
+  :root {
+    --accent: #6d3bd4;
+    --accent-soft: #f1ecfd;
+    --game: #1d7a4c;
+    --game-soft: #e6f5ed;
+    --tech: #b0480a;
+    --tech-soft: #fdeee2;
+    --ink: #16141c;
+    --muted: #635d70;
+    --rule: #ddd8e6;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: "DejaVu Sans", system-ui, sans-serif;
+    color: var(--ink);
+    font-size: 9.4pt;
+    line-height: 1.45;
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  code, .mono {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 0.86em;
+    background: #f4f2f8;
+    border: 0.4pt solid var(--rule);
+    border-radius: 2pt;
+    padding: 0 2.5pt;
+    white-space: nowrap;
+  }
+
+  /* ---------- cover ---------- */
+
+  .cover { page-break-after: always; padding-top: 6mm; }
+
+  .eyebrow {
+    font-size: 8pt;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  .cover h1 {
+    font-size: 34pt;
+    line-height: 1.02;
+    margin: 5mm 0 0;
+    letter-spacing: -0.02em;
+  }
+
+  .cover h1 .thin {
+    display: block;
+    font-size: 15pt;
+    font-weight: normal;
+    color: var(--muted);
+    letter-spacing: 0;
+    margin-top: 3mm;
+  }
+
+  .cover .lede {
+    margin: 8mm 0 0;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    max-width: 125mm;
+    color: #2c2836;
+  }
+
+  .cover .live {
+    margin-top: 5mm;
+    display: inline-block;
+    background: var(--accent-soft);
+    border-left: 2.5pt solid var(--accent);
+    padding: 2.5mm 4mm;
+    font-size: 9pt;
+  }
+
+  .cover .live b { color: var(--accent); }
+
+  .rule { height: 2pt; background: var(--accent); margin: 9mm 0 7mm; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6mm 4mm;
+  }
+
+  .stat .n {
+    font-size: 24pt;
+    font-weight: bold;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+
+  .stat .l {
+    margin-top: 1.5mm;
+    font-size: 7.2pt;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .stat .sub { font-size: 7.2pt; color: var(--muted); margin-top: 0.8mm; }
+
+  .cover .foot {
+    margin-top: 12mm;
+    padding-top: 3mm;
+    border-top: 0.6pt solid var(--rule);
+    font-size: 8pt;
+    color: var(--muted);
+  }
+
+  /* ---------- sections ---------- */
+
+  h2 {
+    font-size: 12.5pt;
+    color: var(--accent);
+    margin: 7mm 0 3mm;
+    padding-bottom: 1.5mm;
+    border-bottom: 1.2pt solid var(--accent);
+    page-break-after: avoid;
+    letter-spacing: -0.01em;
+  }
+
+  h2:first-of-type { margin-top: 0; }
+
+  h2 .count { float: right; font-size: 8pt; color: var(--muted); font-weight: normal; padding-top: 2mm; }
+
+  .feature {
+    display: grid;
+    grid-template-columns: 8mm 1fr;
+    gap: 0 2mm;
+    margin: 0 0 3.6mm;
+    page-break-inside: avoid;
+  }
+
+  .num {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #cdc3e4;
+    line-height: 1.15;
+    text-align: right;
+  }
+
+  .feature h3 {
+    font-size: 10pt;
+    margin: 0 0 1.2mm;
+    line-height: 1.2;
+  }
+
+  .feature h3 .aside { font-weight: normal; color: var(--muted); }
+
+  .feature p { margin: 0 0 1.2mm; }
+  .feature p:last-child { margin-bottom: 0; }
+
+  .tag {
+    display: inline-block;
+    font-size: 6.6pt;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    padding: 0.5mm 1.3mm;
+    border-radius: 1.5pt;
+    vertical-align: 1.1pt;
+    margin-right: 1.4mm;
+  }
+
+  .tag.game { background: var(--game-soft); color: var(--game); }
+  .tag.tech { background: var(--tech-soft); color: var(--tech); }
+
+  .new {
+    display: inline-block;
+    font-size: 6.4pt;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 0.4pt solid #cdbdf3;
+    border-radius: 1.5pt;
+    padding: 0.3mm 1.2mm;
+    vertical-align: 1.4pt;
+    margin-left: 1.5mm;
+  }
+
+  /* ---------- closing ---------- */
+
+  .closing {
+    margin-top: 7mm;
+    border-top: 1.2pt solid var(--accent);
+    padding-top: 3.5mm;
+    page-break-inside: avoid;
+  }
+
+  .closing h2 { border: 0; margin: 0 0 2mm; padding: 0; font-size: 11pt; }
+  .closing p { margin: 0 0 2mm; }
+
+  .snapshot {
+    margin-top: 4mm;
+    background: #f7f5fb;
+    border: 0.5pt solid var(--rule);
+    border-left: 2.5pt solid var(--accent);
+    padding: 3mm 4mm;
+    font-size: 8.3pt;
+    color: #2c2836;
+  }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="eyebrow">Project Aura &nbsp;·&nbsp; formerly Berryhunter</div>
+  <h1>Feature Inventory
+    <span class="thin">everything built since the fork</span>
+  </h1>
+
+  <p class="lede">
+    The systems, content, and tooling layered on top of Berryhunter's survival foundation to turn it into
+    <b>Aura</b> — a top-down aura-combat MMO-lite. Each feature is described from both the in-game and the
+    technical side. The structural rename is complete: the repo is Aura end-to-end (module
+    <code>github.com/RoteRiesenRobbe/aura</code>, binary <code>aurad</code>).
+  </p>
+
+  <div class="live">
+    <b>Live:</b> a friends &amp; family build runs at <code>https://aura-game.duckdns.org/</code> —
+    one process serving frontend, WebSocket and skill catalog over TLS.
+  </div>
+
+  <div class="rule"></div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">37</div><div class="l">Features</div></div>
+    <div class="stat"><div class="n">47</div><div class="l">Player skills</div><div class="sub">20 auras · 19 cooldowns · 8 passives</div></div>
+    <div class="stat"><div class="n">40</div><div class="l">Mob types</div><div class="sub">+ 10 legacy proving-grounds</div></div>
+    <div class="stat"><div class="n">10</div><div class="l">Combo recipes</div></div>
+    <div class="stat"><div class="n">9</div><div class="l">Factions</div></div>
+    <div class="stat"><div class="n">22</div><div class="l">Effect types</div></div>
+    <div class="stat"><div class="n">2</div><div class="l">Zones</div><div class="sub">815 props · 399 spawns</div></div>
+    <div class="stat"><div class="n">1</div><div class="l">World boss</div></div>
+  </div>
+
+  <div class="foot">
+    Generated 2026-07-22 &nbsp;·&nbsp; state = committed <code>main</code> (<code>b6c1d018</code>) &nbsp;·&nbsp;
+    Legend: <span class="tag game">GAME</span> in-game perspective &nbsp;
+    <span class="tag tech">TECH</span> implementation &nbsp;·&nbsp;
+    <span class="new">NEW</span> added since the 2026-07-19 edition
+  </div>
+</section>
+
+<h2>Core skill / aura engine<span class="count">1–7</span></h2>
+
+<div class="feature">
+  <div class="num">1</div>
+  <div>
+    <h3>Skill component framework <span class="aside">— the spine of everything</span></h3>
+    <p><span class="tag game">GAME</span> Every player and mob carries a spellbook and a loadout: three equipped auras but
+      <b>exactly one active at a time</b> (a field around you), three always-on passives, three cooldown abilities.
+      Switch auras mid-fight, spend/refund points, level skills.</p>
+    <p><span class="tag tech">TECH</span> <code>skills/component.go</code> — <code>SkillComponent</code> (3/3/3 slots, active slot,
+      spellbook, derived stats). One resizable circular sensor per entity, not one per skill.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">2</div>
+  <div>
+    <h3>Data-driven skill definitions + effect vocabulary</h3>
+    <p><span class="tag game">GAME</span> Each skill is composed of effects — damage, heal, slow, resist, shield,
+      damage-over-time, heal-over-time, summon, taunt, detaunt, light, recall, dash, revive, haste, stat buff — with
+      per-level scaling on damage / heal / radius / target-count / tick-rate.</p>
+    <p><span class="tag tech">TECH</span> <code>skills/definition.go</code> — 22 <code>EffectType</code>s parsed from
+      <code>api/skills/*.json</code> with strict per-type key allowlists (hard-fail on typos). Three categories:
+      <code>active_aura</code> / <code>passive</code> / <code>cooldown</code>.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">3</div>
+  <div>
+    <h3>Skill application system</h3>
+    <p><span class="tag game">GAME</span> Makes auras pulse on their tick cadence, fires cooldowns (player input, or auto for
+      mobs) with a cast-time wind-up bar, rolls crits/variance, applies no-friendly-fire and target caps.</p>
+    <p><span class="tag tech">TECH</span> <code>sys/skills.go</code> (the big one). Per-tick sensor resize, per-effect intervals,
+      player↔mob damage paths, cast wind-up/interrupt, <code>mayHarm</code> hostility gate, faction-relative target
+      eligibility.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">4</div>
+  <div>
+    <h3>Capped, no-aim targeting</h3>
+    <p><span class="tag game">GAME</span> No manual aiming — each aura picks its own targets by rule (nearest / lowest-% health /
+      all), capped to N. Positioning decides who gets hit.</p>
+    <p><span class="tag tech">TECH</span> <code>sys/targeting.go</code> — range filter → selector sort → take N.
+      <code>selector</code>/<code>maxTargets</code> (+per-level) on damage/heal/instant effects.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">5</div>
+  <div>
+    <h3>Transient buff / debuff store</h3>
+    <p><span class="tag game">GAME</span> Burns keep ticking after you leave the aura, shields absorb hits, slows / resists /
+      haste linger.</p>
+    <p><span class="tag tech">TECH</span> <code>skills/buffs.go</code> — one generic <code>Buffs</code> container per entity, keyed
+      by source skill; <code>AbsorbShield</code>, <code>ResistMultiplier</code>, <code>SlowFraction</code>,
+      <code>TickRateFactor</code>.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">6</div>
+  <div>
+    <h3>HP, resistances &amp; damage tags, stat variance</h3>
+    <p><span class="tag game">GAME</span> Absolute HP pools; mobs resist / are immune to specific damage types (string tags, incl.
+      <code>"*"</code> wildcard); harvest &amp; gate obstacles only take damage from the "right" aura; per-hit and
+      spawn-HP variance.</p>
+    <p><span class="tag tech">TECH</span> Resist maps in <code>skills/resist.go</code>, gated damage tags, spawn-HP bands.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">7</div>
+  <div>
+    <h3>Crit as a character stat<span class="new">NEW</span></h3>
+    <p><span class="tag game">GAME</span> Everyone crits: a flat base chance on every hit, raised by stacking passives (KeenEye)
+      rather than by picking "crit skills". Damage-over-time gets a flat compensation instead of rolling crits.</p>
+    <p><span class="tag tech">TECH</span> <code>StatCritChance</code> as a derived stat applied in <code>rollHitDamage</code>;
+      base chance from config, <code>critFactor</code> multiplier, authored crit pairs removed (crit rework v2).</p>
+  </div>
+</div>
+
+<h2>Progression &amp; unlocks<span class="count">8–11</span></h2>
+
+<div class="feature">
+  <div class="num">8</div>
+  <div>
+    <h3>Spellbook, skill points, free respec</h3>
+    <p><span class="tag game">GAME</span> Discover skills (never lost on death), spend points earned per level to raise levels,
+      freely respec down to discovery level.</p>
+    <p><span class="tag tech">TECH</span> <code>skills/component.go</code> — spellbook, point accounting, raise/lower level; skills
+      survive death via carried component in <code>sys/state.go</code>.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">9</div>
+  <div>
+    <h3>Five unlock sources</h3>
+    <p><span class="tag game">GAME</span> Skills come from <b>milestone levels</b>, <b>mob kill-drops</b> (chance, shared with
+      recent healers), <b>NPC teaching</b>, <b>recipes</b>, and (scoped) character sacrifice.</p>
+    <p><span class="tag tech">TECH</span> <code>skills/milestones.go</code> fed by <code>api/milestones/</code>;
+      <code>MobUnlock</code> in <code>items/mobs/definitions.go</code>; <code>sys/npc.go</code>;
+      <code>skills/recipe*.go</code>.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">10</div>
+  <div>
+    <h3>Aura combinations / recipes</h3>
+    <p><span class="tag game">GAME</span> Secret, undocumented recipes — hold a set of skills at required levels and a capstone
+      auto-unlocks (Vanguard trio → Warbanner). Community-discovered.</p>
+    <p><span class="tag tech">TECH</span> <code>skills/recipe.go</code> + <code>recipe_apply.go</code> — cascading, idempotent
+      threshold check on every discovery / level-up.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">11</div>
+  <div>
+    <h3>XP for all participants + a derived XP curve</h3>
+    <p><span class="tag game">GAME</span> Every damager (and their recent healers) gets full XP on a kill — no groups, no split, no
+      grief. Each mob's XP value is derived from how many of it you can actually kill per hour, so any band levels at a
+      comparable pace.</p>
+    <p><span class="tag tech">TECH</span> <code>model/mob/mob.go</code> <code>rewardPlayer</code> — participant + recent-healer
+      tracking, then the recipe cascade. XP values authored from the band rule
+      <code>3600 × 1.15^(cL−1) ÷ measured kills/h</code>.</p>
+  </div>
+</div>
+
+<h2>Mobs &amp; AI<span class="count">12–17</span></h2>
+
+<div class="feature">
+  <div class="num">12</div>
+  <div>
+    <h3>Mob AI depth</h3>
+    <p><span class="tag game">GAME</span> Threat table (per-player aggro, taunt / detaunt), state-dependent leash + walk-home,
+      out-of-combat regen, flee-when-low, auras-off-until-aggroed. Idle archetypes: stationary / local wander / route
+      patrol with evade-return, plus obstacle steering that commits to a detour instead of jittering.</p>
+    <p><span class="tag tech">TECH</span> <code>model/mob/mob.go</code>, <code>patrol.go</code>, <code>steering.go</code>,
+      <code>stuck.go</code> — threat ops, invuln/flee overrides, TTL, buff appliers, chase stuck-watchdog.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">13</div>
+  <div>
+    <h3>Faction system</h3>
+    <p><span class="tag game">GAME</span> Players + summons are "aligned"; content can declare factions friendly-to-players (never
+      harmable, still fight other factions), plus mob-vs-mob hostility.</p>
+    <p><span class="tag tech">TECH</span> <code>model/faction.go</code> — <code>HostilityGate.MayHarm</code>,
+      <code>PlayerFriendly</code>; enforced in <code>sys/skills.go</code>; rosters in <code>api/factions/</code>.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">14</div>
+  <div>
+    <h3>Summons / companions</h3>
+    <p><span class="tag game">GAME</span> Cooldowns spawn owned, player-aligned mobs: stationary totems or following companions
+      that defend-then-assist and expire on a timer; owner-attributed XP.</p>
+    <p><span class="tag tech">TECH</span> <code>sys/skills.go</code> <code>spawnSummon</code>;
+      <code>model/mob/companion.go</code> — follow ring, tether, owner combat-signal acquisition, teleport catch-up.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">15</div>
+  <div>
+    <h3>Support mob (seek-healer)</h3>
+    <p><span class="tag game">GAME</span> Friendly healer mob seeks the most-wounded ally, chases it; heal aura toggles on only
+      while healing.</p>
+    <p><span class="tag tech">TECH</span> <code>model/mob/healer.go</code> — reuses the aggro machinery with allies instead of
+      enemies.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">16</div>
+  <div>
+    <h3>Encounter controller + Orc Warlord world boss</h3>
+    <p><span class="tag game">GAME</span> First designed boss: invulnerable while either Warbanner totem stands; grunt waves at
+      66 / 33%; banners replant; wiping resets it; killing it broadcasts the credited players server-wide, empties the
+      arena, and respawns him ~5 min later.</p>
+    <p><span class="tag tech">TECH</span> <code>encounter/system.go</code> (ECS lifecycle hooks, spawn/despawn/announce);
+      <code>encounter/warlord.go</code> (script); positions from zone anchors.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">17</div>
+  <div>
+    <h3>Authored mob power model <span class="aside">— curve level + tier</span><span class="new">NEW</span></h3>
+    <p><span class="tag game">GAME</span> Every combat mob is authored as "a level-N normal / elite / boss" instead of hand-typed
+      HP: tiers mean something concrete (elite ≤ 25% facetankable, boss kills the standing bot), and each zone band has a
+      shape the roster must fit.</p>
+    <p><span class="tag tech">TECH</span> Raw <code>maxHealth</code> hard-fails; stats derive from curve level × tier baseline.
+      Deterministic band asserts in <code>cmd/simharness/guardrail_test.go</code> (Z1 / Z2 / farm bands, front exempt).</p>
+  </div>
+</div>
+
+<h2>World &amp; atmosphere<span class="count">18–22</span></h2>
+
+<div class="feature">
+  <div class="num">18</div>
+  <div>
+    <h3>Authored zone system</h3>
+    <p><span class="tag game">GAME</span> The procedural world is replaced by hand-authored zones: bounds, terrain, props, spawns,
+      campfires, dark areas, teaching NPCs, and named encounter anchors; <code>-zone</code> selectable. The shipped world
+      is 815 props, 399 spawns, 35 dark areas, 14 NPCs, 5 campfires.</p>
+    <p><span class="tag tech">TECH</span> <code>world/zone.go</code> — <code>LoadZoneFS</code> with strict validation; anchors,
+      campfires, dark areas, spawn archetypes, prop registry.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">19</div>
+  <div>
+    <h3>NPC teaching / lore</h3>
+    <p><span class="tag game">GAME</span> Peaceful, unattackable NPCs teach ordered skills on approach (level-gated, "too low"
+      line) or speak lore / sign-post lines — including the village arrival beat, where a Town Crier hands out the first
+      combat aura and Recall.</p>
+    <p><span class="tag tech">TECH</span> <code>sys/npc.go</code> — rising-edge proximity; <code>onApproach</code> grants + recipe
+      cascade; <code>speak</code> reuses the chat wire.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">20</div>
+  <div>
+    <h3>Campfire recovery, respawn, revive &amp; recall</h3>
+    <p><span class="tag game">GAME</span> Campfires heal a % of max HP and, after a short dwell, become your respawn point; fresh
+      players spawn at a starting campfire; Recall teleports you back; Revive raises a downed player at their corpse.</p>
+    <p><span class="tag tech">TECH</span> <code>sys/state.go</code> — campfire anchors, dwell tracking, default spawn,
+      <code>tryRespawn</code>, <code>ReviveAtCorpse</code>, <code>AnchorOf</code>.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">21</div>
+  <div>
+    <h3>Light, darkness &amp; a readable night</h3>
+    <p><span class="tag game">GAME</span> Authored dark-area circles independent of day/night; a light aura or Torch passive punches
+      a lit hole — a real slot trade-off (light vs. combat aura). Night dims the world without swallowing characters:
+      nameplates stay legible above the tint.</p>
+    <p><span class="tag tech">TECH</span> <code>light_aura</code> effect + <code>light_radius</code> wire (max over active aura and
+      passives); client <code>DarknessOverlay.ts</code>; <code>DayCycle.ts</code> night-filter layer list is derived (new
+      layers are night-correct by default) with an unfiltered <code>namePlates</code> overlay.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">22</div>
+  <div>
+    <h3>Chat / server broadcast</h3>
+    <p><span class="tag game">GAME</span> Proximity speech bubbles plus server-wide system banners (boss beats,
+      <code>ANNOUNCE</code>).</p>
+    <p><span class="tag tech">TECH</span> <code>sys/chat/system.go</code> — <code>Broadcast</code> (sender id 0 = system banner) +
+      proximity say via viewport.</p>
+  </div>
+</div>
+
+<h2>Client / UI<span class="count">23–32</span></h2>
+
+<div class="feature">
+  <div class="num">23</div>
+  <div>
+    <h3>Spellbook UI</h3>
+    <p><span class="tag game">GAME</span> Scrollable Auras / Passives / Cooldowns panel, level badges with +/− spend buttons gated
+      by skill points, gold glow on genuine unlocks (level-ups &amp; baseline never false-trigger).</p>
+    <p><span class="tag tech">TECH</span> <code>HUD.ts</code> setup/update + SimpleBar scroll; diff logic against known spellbook
+      ids/levels.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">24</div>
+  <div>
+    <h3>Ability bar &amp; loadout</h3>
+    <p><span class="tag game">GAME</span> Aura slots (hotkeys 1–3, one active / toggle-to-Nothing), passive slots, cooldown slots
+      (Q/E/F) with remaining-seconds readout and a cast bar stacked above them; loadout editing locked in combat with
+      feedback.</p>
+    <p><span class="tag tech">TECH</span> <code>HUD.ts</code>, <code>Controls.ts</code>, <code>InputMessage.ts</code> —
+      server-authoritative with optimistic-highlight reconciliation.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">25</div>
+  <div>
+    <h3>Category aura rings <span class="aside">— what is this field doing to me?</span><span class="new">NEW</span></h3>
+    <p><span class="tag game">GAME</span> The translucent field around a caster is colour-coded by what it does — damage, burn,
+      heal, shield, slow, light, resist — with one band per category stacked inward from the aura's edge, so the outer
+      circle always means "this is the range". An edge glow pulses in time with each tick and speeds up under haste; per-tick
+      hit VFX plus floating damage / heal / XP numbers.</p>
+    <p><span class="tag tech">TECH</span> Server-derived <code>skills.AuraCategory</code> bitmask on the wire
+      (<code>aura_category</code>, Character + Mob); one shared <code>AuraRingStack</code> in <code>AuraRings.ts</code>
+      replaced three ring implementations; <code>AuraTickIndicator.ts</code> for the tick phase.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">26</div>
+  <div>
+    <h3>Applied-effect pips &amp; mob tier frames<span class="new">NEW</span></h3>
+    <p><span class="tag game">GAME</span> Small coloured pips under the overhead bar show what is currently applied <i>to</i> an
+      entity — burning, slowed, regenerating, resisting, hasted — in the same colour language as the rings. Elites wear a
+      silver frame, bosses a gold one, so "should I fight this" is readable before the health bar moves.</p>
+    <p><span class="tag tech">TECH</span> <code>applied_effects</code> ubyte on both tables (the received-status mirror of
+      <code>aura_category</code>), compile-enforced from the buff payloads; shared <code>EffectPips.ts</code> +
+      <code>AURA_CATEGORY_COLORS</code>; tier frames in <code>Mobs.ts</code>.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">27</div>
+  <div>
+    <h3>Skill catalog endpoint + hover tooltips<span class="new">NEW</span></h3>
+    <p><span class="tag game">GAME</span> Hovering any skill — spellbook, ability bar — shows a full tooltip: what it does, the
+      numbers at your current level and what the next level buys, radius, targets, cadence.</p>
+    <p><span class="tag tech">TECH</span> <code>GET /skills</code> serves the <b>parsed</b> registry as JSON
+      (<code>skills/catalog.go</code>), fetched once at startup. This deleted the hand-synced name/category/maxLevel maps in
+      <code>Skills.ts</code> — the client can no longer drift from server balance. Tooltips in <code>SkillTooltip.ts</code>.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">28</div>
+  <div>
+    <h3>AlertBanner</h3>
+    <p><span class="tag game">GAME</span> Upper-third single-slot queued banner for server announcements + gold new-skill unlock
+      notices.</p>
+    <p><span class="tag tech">TECH</span> <code>alert-banner/AlertBanner.ts</code> — queue + <code>show(text, kind)</code>; fed from
+      <code>EntityMessage</code> id 0.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">29</div>
+  <div>
+    <h3>Reload-safe session <span class="aside">— reconnect token</span><span class="new">NEW</span></h3>
+    <p><span class="tag game">GAME</span> Refreshing the tab (or a brief disconnect) no longer costs you your character: you come
+      back as the same player, same level, same spellbook — for roughly ten minutes.</p>
+    <p><span class="tag tech">TECH</span> Append-only <code>Join.reconnect_token</code> / <code>Accept.reconnect_token</code>;
+      server-side <code>stashByToken</code> in <code>sys/state.go</code> (disconnect stashes the character and holds the
+      name, TTL ~10 min); client <code>Session.ts</code> in sessionStorage with auto-rejoin.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">30</div>
+  <div>
+    <h3>Portrait rotation freeze</h3>
+    <p><span class="tag game">GAME</span> Avatars are fixed-facing portraits that never spin to the pointer (local player
+      included).</p>
+    <p><span class="tag tech">TECH</span> <code>Character.ts</code> — <code>setRotation</code> forces downward facing; held items
+      still transform.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">31</div>
+  <div>
+    <h3>Zone editor dev panel</h3>
+    <p><span class="tag game">GAME</span> In-game placement / editing of props, spawns, campfires, dark areas, NPCs, and anchors,
+      with hit-testing, a registry-validated teaching-skill dropdown, and mob entries that show curve level + tier while
+      you place them.</p>
+    <p><span class="tag tech">TECH</span> <code>zone-editor/ZoneEditor.ts</code> + <code>ZoneModel.ts</code> — per-kind
+      place/update/remove/hitTest, marker drawing, export back to zone JSON.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">32</div>
+  <div>
+    <h3>Mob roster art</h3>
+    <p><span class="tag game">GAME</span> ~50 new EntityTypes / SVGs: wildlife and dire variants, kobolds (melee / ranged), spiders
+      + venom, bandits (ranged / healer / elite / pyromancer), army &amp; orc faction incl. the Warlord boss, fire elementals,
+      player summons, village NPCs, and hazards (PoisonPool, Rockfall, Bramble, SpikeBarricade, Brazier, Campfire, Turnip).</p>
+    <p><span class="tag tech">TECH</span> <code>Mobs.ts</code> (~47 classes, each registers an SVG); NPCs ride the Resource path in
+      <code>Resources.ts</code>.</p>
+  </div>
+</div>
+
+<h2>Tooling &amp; operations<span class="count">33–37</span></h2>
+
+<div class="feature">
+  <div class="num">33</div>
+  <div>
+    <h3>Dev cheats</h3>
+    <p><span class="tag game">GAME</span> Token-gated testing commands: <code>GOD</code>, <code>WARP x y</code>,
+      <code>SPEED [factor|off]</code>, <code>XP &lt;n&gt;</code>, <code>SKILL &lt;name&gt;</code>, <code>KILL</code>,
+      <code>DAMAGE &lt;pct&gt;</code>, <code>THREAT [id]</code>, <code>ANNOUNCE &lt;text&gt;</code>, <code>PING</code>.</p>
+    <p><span class="tag tech">TECH</span> <code>sys/cmd/cmd.go</code> <code>CommandSystem</code> — static map + space/announcer-bound
+      closures. On the live server the token list lives outside the deploy bundle, so players never get one.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">34</div>
+  <div>
+    <h3>Content pipeline <span class="aside">— edit JSON, restart, play</span><span class="new">NEW</span></h3>
+    <p><span class="tag game">GAME</span> Every tunable — skills, mobs, factions, recipes, milestones, props, zones — is content,
+      not code. Balance passes are a JSON edit and a restart, on the dev box or on the live server.</p>
+    <p><span class="tag tech">TECH</span> <code>aurad -content ../api</code> loads from the repo tree instead of the embedded copy;
+      the milestone table moved into <code>api/milestones/</code> to close the last gap, so content deploys skip the
+      rebuild entirely (<code>deploy.sh --content-only</code>).</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">35</div>
+  <div>
+    <h3>Simulation harness</h3>
+    <p><span class="tag game">GAME</span> Headless balancing explorer that drives the real ECS: TTK / TTD, kills-per-level, 1-vs-N
+      matrix, stand-still-bot facetank thresholds, plus a <code>-serve</code> web UI.</p>
+    <p><span class="tag tech">TECH</span> <code>cmd/simharness</code> — full-roster presets incl. dot auras, plus
+      <code>guardrail_test.go</code>: deterministic asserts that the shipped roster stays inside its band and that the power
+      ceiling keeps its ordering.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">36</div>
+  <div>
+    <h3>Load-test harness<span class="new">NEW</span></h3>
+    <p><span class="tag game">GAME</span> Answers "how many players can this box hold": a bot swarm joins over the real protocol at
+      the real tick rate and ramps population until the loop falls behind.</p>
+    <p><span class="tag tech">TECH</span> <code>cmd/loadbot</code> (ramp steps, snapshots/sec + kB/s per bot) against
+      <code>-profile</code>'s <code>/tickstats</code> ring (p50/p95/p99 vs the 33 ms budget). Profiler is opt-in and never
+      enabled in production.</p>
+  </div>
+</div>
+
+<div class="feature">
+  <div class="num">37</div>
+  <div>
+    <h3>One-command deploy + live playtest server<span class="new">NEW</span></h3>
+    <p><span class="tag game">GAME</span> The game is playable on the open internet by anyone with the link — testers just open the
+      URL, no install, no account.</p>
+    <p><span class="tag tech">TECH</span> A single <code>aurad</code> process serves frontend, <code>/game</code> WebSocket and
+      <code>/skills</code> with built-in Let's Encrypt TLS + port-80 redirect, under systemd with restart-on-failure;
+      <code>devops/deploy.sh</code> (full / <code>--content-only</code>) + runbook.</p>
+  </div>
+</div>
+
+<div class="closing">
+  <h2>Worth flagging as NOT built, despite appearances</h2>
+  <p><b>Aura line-of-sight</b> was deliberately cut — auras pass through walls; walls only block movement (the client's
+    light/darkness hole is a soft presentational model, not raycast occlusion).</p>
+  <p><b>There is no persistence.</b> Characters live in server memory only: the reconnect token survives a reload for
+    ~10 minutes, but any server restart wipes every character — which is why live deploys are announced in-game first.
+    Accounts &amp; persistence is the next system, with the character-sacrifice loop as its first consumer.</p>
+
+  <div class="snapshot">
+    <b>Roster snapshot</b> (committed <code>main</code>, <code>b6c1d018</code>): 47 player skills (20 auras / 19 cooldowns /
+    8 passives) · 35 mob skills · 40 world mobs + 10 legacy proving-grounds · 9 factions · 10 combination recipes ·
+    2 zones + 1 boss encounter · 22 effect types. All numbers are placeholders until marked final — and "final" here means
+    first-pass settled, not frozen.
+  </div>
+</div>
+
+</body>
+</html>
