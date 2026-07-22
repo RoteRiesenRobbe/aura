@@ -111,6 +111,7 @@ rediscovered from scratch.
 | Patching | `unattended-upgrades` active, 0 pending |
 | Shell users | `root` only |
 | ufw / iptables / Hetzner cloud firewall | all inactive — nothing to block, see ruling below |
+| Agent (Claude Code) access | passphrase-less root key on the dev box; permission rules narrowed 2026-07-22, see below |
 
 ~110 failed SSH logins/24 h = internet background noise, dead-ends against
 key-only root. Not a compromise indicator.
@@ -129,6 +130,53 @@ returns `Permission denied (publickey)` → `aurad` still active.
 Motivation was pre-emptive, not acute: with root key-only and no second shell
 user, password auth was already unusable. It removes the trap where a future
 "let me quickly add a user" silently opens a bruteforceable door.
+
+### Done 2026-07-22 — agent access narrowed (Claude Code permissions)
+
+Same audit, second surface: the deploy path itself. `~/.ssh/id_ed25519` on the
+dev box has **no passphrase** and authenticates as **root** — and
+`.claude/settings.local.json` allowed `Bash(ssh *)` with **no deny rules at
+all**. Net effect: an unattended root shell on the live server, invoked without
+a confirmation prompt.
+
+The realistic failure modes are *not* "the agent turns malicious":
+
+- **A mistyped destructive command.** `deploy.sh` already runs
+  `rsync --delete` against `/opt/aurad/`; a hand-typed variant with a wrong
+  path and no prompt has nothing to catch it.
+- **Prompt injection.** Web pages, server logs and files all get read into
+  context. An agent holding a *pre-approved* root shell is a far more valuable
+  injection target than one that has to ask.
+
+Narrowed to what the runbook actually needs (blanket `Bash(ssh *)` and the
+ad-hoc `ssh -o … root@… ' *` rule both removed):
+
+| Allowed unprompted | Now prompts |
+|---|---|
+| `devops/deploy.sh *` (full + `--content-only`) | any ad-hoc `ssh root@… '<command>'` |
+| `ssh root@159.69.148.73 journalctl *` | |
+| `ssh root@159.69.148.73 systemctl status *` | |
+
+Plus 8 deny rules over ssh — `rm`, `dd`, `mkfs`, `shutdown`, `reboot`,
+`poweroff`, `userdel`, `chown -R`. Deny beats allow, so they hold even if a
+broader allow rule gets added later.
+
+**Deploys are unaffected:** permission checks apply to the top-level command,
+so the `ssh`/`rsync`/`systemctl restart` calls *inside* `deploy.sh` are not
+separately gated.
+
+Two caveats, recorded so they aren't mistaken for solved:
+
+- Prefix rules ending in `*` are a raised bar, **not a sandbox** — a command
+  that starts as an allowed `journalctl` call can in principle chain further.
+  The deny list is the backstop.
+- `.claude/settings.local.json` is gitignored (global
+  `~/.config/git/ignore`), so these rules are **per-machine** — a second dev
+  box starts from the blanket default and must redo them.
+
+Not done, deliberately: key passphrase and a non-root deploy user with a narrow
+`systemctl restart aurad` sudo rule. Both add friction that only pays off once
+the box holds data → folded into the step-8 block below.
 
 ### Cloud firewall — deliberately NOT applied (2026-07-22)
 
@@ -150,6 +198,8 @@ plan:
 - [ ] DB bound to localhost, never `0.0.0.0`
 - [ ] Daily backup + a **restore** actually exercised once
 - [ ] Credential handling (DB password not in the repo, same pattern as `tokens.list`)
+- [ ] Deploy as a non-root user (narrow `systemctl restart aurad` sudo rule) +
+  passphrase or a separate unattended deploy key — see agent-access section
 - [ ] GDPR applies as soon as accounts carry e-mail addresses of non-friends
 
 Roughly an hour if done *while* building persistence; an unpleasant afternoon
@@ -174,6 +224,9 @@ and stay acceptable only while the URL is unlisted:
 
 - **Security posture audited + SSH hardened 2026-07-22** (key-only SSH; cloud
   firewall deliberately deferred to step 8). See §Ops & security posture.
+- **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
+  three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
+  remote commands now prompt. Rules are per-machine (file is gitignored).
 - **DEPLOYED + LIVE + PO-VERIFIED 2026-07-21, `a7a2267d`:** `https://aura-game.duckdns.org/`
   (Hetzner CX23 `159.69.148.73`, systemd `aurad`, LE cert, `-content ./api`).
   §A–§D complete: machine checks green incl. live Playwright join smoke, PO
