@@ -1,8 +1,9 @@
-# Skill Inventory — generated from data (2026-07-21)
+# Skill Inventory — generated from data (2026-07-22)
 
 **Every value in this table is [PLACEHOLDER]** per the project rule. Generated
 from the actual data files on the `main` tree at 2026-07-21 (post triage pass:
-Strong passive + Wildfire light + spider-range match) — **not** hand-maintained
+Strong passive + Wildfire light + spider-range match), counts refreshed
+2026-07-22 (mob-only `GiantVenomSpit`; no player skill changed) — **not** hand-maintained
 design intent. The three
 catalogs (`content-auras.md` / `content-passives.md` / `content-cooldowns.md`)
 hold the design intent — *what an ability means and why it exists*. **This file
@@ -27,9 +28,9 @@ for f in sorted(glob.glob('api/skills/*.json')):
 EOF
 ```
 
-Scope: the 47 **player** skills (`api/skills/*.json`). The 35 mob-only skills
+Scope: the 47 **player** skills (`api/skills/*.json`). The 36 mob-only skills
 in `api/skills/mobs/` are not listed (they're authoring details of their mobs).
-47 + 35 = the **82** registry pin in the boot log.
+47 + 36 = the **83** registry pin in the boot log.
 
 Scaling notation: `12 +6/L` = base 12, +6 per skill level. Ticks: 30 ticks =
 1 s. Source key: **MS Ln** = milestone · **Drop** = mob kill unlock (chance) ·

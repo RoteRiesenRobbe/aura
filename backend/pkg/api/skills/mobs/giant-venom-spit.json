@@ -1,0 +1,25 @@
+{
+  "_comment": "GiantSpider's grown-up venom (farm-band damage fix 2026-07-22): the cL9 GiantSpider inherited VenomSpit at level 1 — a curve-position-1 baseline authored for the cL4 tunnel VenomSpider, and the weakest baseline in the roster (3.33 baseline HP/s vs SpiderBite's 7.0). PowerScale f(cL9)=2.48 faithfully multiplied half-strength and the mob landed at 8.25 HP/s, under a cL2 Wolf, 100% facetank survival in the guardrail battery. Its own skill so the farm band is not chained to the tunnel baseline: same poison identity (Antivenom stays the authored counter), but a bigger bite, a faster dot cadence, reach past its own 0.45 body radius (a slow speed-0.6 lurker at radius 1.0 is trivially walked away from), and 2 targets — the band's attrition check should punish a pair, not tickle one. HP is capped by the guardrail band-check, NOT by taste: the farm band's other two normals (AlphaWolf, Marauder) are both bot-killers, so GiantSpider is the band's only facetankable normal and must stay ≥50% survival. Its 451 effective HP makes the fight long, so dot attrition compounds and the soft/hard cliff sits between 9.1 and 10.4 HP/s (measured sweep, 2026-07-22) — far below DireWolf's, which carries 13.2 HP/s and is still soft. 6/45 = 9.90 HP/s = 62% survival, the top of the soft band. Raising it further needs a second soft farm normal first. All values [PLACEHOLDER]",
+  "id": 137,
+  "name": "GiantVenomSpit",
+  "category": "active_aura",
+  "maxLevel": 5,
+  "effects": [
+    {
+      "type": "dot_aura",
+      "radius": 1.6,
+      "radiusPerLevel": 0.0,
+      "damageHP": 6,
+      "damageHPPerLevel": 1.2,
+      "damageTags": ["poison"],
+      "dotTicks": 5,
+      "dotTickInterval": 45,
+      "variance": 0.15,
+      "targetsAllies": false,
+      "targetsEnemies": true,
+      "selector": "nearest",
+      "maxTargets": 2,
+      "tickInterval": 50
+    }
+  ]
+}
