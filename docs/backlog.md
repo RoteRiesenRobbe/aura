@@ -978,6 +978,88 @@ flag-shaped, not script-shaped.
 - Does spawn-group tagging (mobs referencing an encounter group) replace
   the encounter spawning its own mobs, or coexist?
 
+### Re-assessment 2026-07-22 — DECIDED: spec + generic runner (path A, sharpened)
+
+*(PO question: "if the two boss fights use 80% the same seams, can't we make
+this smarter?" — re-read of `warlord.go` + `smoke.go` now that C6 shipped the
+2nd real encounter, i.e. the trigger condition the 2026-07-12 assessment set.)*
+
+**Finding: both shipped encounters are 100% declarative — zero bespoke logic
+between them.** Every line of both files is one of five repeated mechanics:
+
+| Mechanic | Uses across the two files |
+|---|---|
+| spawn-and-track (`SpawnMob` → log on error → store handle) | 5 near-identical 8-line funcs |
+| "is any member of group X alive" scan | 2 |
+| death → clear the matching handle (`OnMobDeath` id cascade) | 2 |
+| tick timer (`xAt = Ticks() + delay`, fire when due) | 3 (guard respawn, arena reset, boss respawn) |
+| once-per-cycle latch at an HP threshold | 5 (waveHigh, waveLow, regate, fled, engaged) |
+
+Warlord ("invuln while banners stand → waves at 66%/33% → re-gate once →
+announce → empty arena → return in 5 min") and smoke ("invuln while guards
+stand → flee at 50% with adds → re-engage when adds die → reset") are the
+**same program with different arguments**.
+
+**Decision (PO 2026-07-22): ONE generic runner + a declarative `Spec`, as a Go
+data literal** — not JSON (yet), not several rich templates. This resolves the
+"template granularity" open question above: neither a handful of fat templates
+nor many tiny composable ones, but a single runner over a small vocabulary.
+**5 condition kinds + 5 action kinds cover both existing fights exactly**
+(`HPBelow`, `SquadEmpty`, `SquadAlive`, boot, boss-death × `Spawn`, `Replant`,
+`SetFlee`, `AnnounceWithCredit`, `EmptyArena`). Sketch:
+
+```go
+Spec{
+  Boss:  Squad{Mob: "OrcWarlord", At: Anchor("warlord-home")},
+  Gate:  "banners",                      // boss invuln while any member alive
+  Squads: []Squad{
+    {Name: "banners", Mob: "WarbannerTotem",
+     At: Anchors("warbanner-1", "warbanner-2"), SpawnAtStart: true},
+    {Name: "wave", Mob: "OrcGrunt", Count: 3, At: LineAt("wave-mouth")},
+  },
+  Triggers: []Trigger{
+    {When: HPBelow(0.66), Once: true, Do: Spawn("wave")},
+    {When: HPBelow(0.33), Once: true, Do: Spawn("wave"), Replant("banners")},
+  },
+  OnKill:       []Action{AnnounceWithCredit("The Orc Warlord has fallen to %s!"), EmptyArena()},
+  RespawnAfter: 9000,
+}
+```
+
+Smoke additionally needs `RespawnAfter` **on `Squad`** (the 60 s per-guard
+timers) and the `SetFlee` action + `SquadEmpty` condition; nothing else.
+
+Why this beats "shorter code":
+
+- **The subtle correctness rules become structural, not comments a new author
+  must honor.** Re-derive the gate *after* replants or you leave a one-tick
+  vulnerability window (`warlord.go:190-193`); key the wipe re-arm on
+  `engaged` or pre-pull banner kills hand out free replants
+  (`warlord.go:165-174`); clear the handle *before* `Despawn` or the death
+  dispatch double-fires (`system.go:132-137`). The runner encodes each once.
+- **The existing tests are the proof of coverage.** Rewriting both fights as
+  specs and keeping all 8 Warlord tests + the smoke tests green demonstrates
+  the vocabulary covers shipped, PO-verified content — not a guess at what
+  encounter #3 needs. Unusually safe for a framework extracted at n=2.
+- **Encounter #3 stops needing a Go author** (~40-line named-field literal),
+  and the later move to `api/encounters/*.json` becomes a decoder, not a
+  redesign — which also defers the second open question above.
+
+**Keep `Encounter` as the interface; the runner is just one implementation**,
+so a genuinely weird fight can still be hand-written Go alongside. This is the
+escape hatch that makes extracting at two instances safe despite the project's
+own "extract at the third" rule (`manual-content-authoring.md:355`).
+
+⚑ **Scheduling (PO 2026-07-22): NOT now — this runs as the opening move of the
+next encounter-authoring pass**, so the third fight pays for the extraction
+immediately. Nothing is blocked meanwhile; the current queue (Pass-B 1c+1d →
+step 8 accounts & persistence) is unaffected. Rough size: one chunk, ~1–1.5
+sessions including the rewrite of both existing encounters.
+
+⚑ Caveat worth restating at pickup: the ~20% that *isn't* shared skeleton is
+where the design lives. A spec makes the plumbing free; it does not make a
+fight good.
+
 ## 18. Timed stat-buff effect (movement speed first)
 
 Cut from the step-6 content pass (PO 2026-07-16, `plan-content-zones12.md`
