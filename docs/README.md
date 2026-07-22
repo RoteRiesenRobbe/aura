@@ -73,7 +73,7 @@ go to `backlog.md`; this section is content only.
 
 *Point-in-time when written; most are still forward-looking inputs to unbuilt work.*
 
-- **research-code-quality.md** — code-quality items (level-scaling unification §3.2/§3.3 done)
+- **research-code-quality.md** — code-quality items (level-scaling unification §3.2/§3.3 done); **§7 = 2026-07-22 re-assessment**: legacy layer + frontend/backend duplication closed, one new latent risk (`gameObjectClasses` positional array), and ⭐ three cheap recommended fixes (tests in CI · enum-keyed entity map · frontend typecheck)
 - **research-content-pipeline.md** — designer-authoring pipeline gaps + preventive steps
 - **research-v1-readiness.md** — prototype→live readiness assessment (ops/CI/observability gaps); feeds step 9
 - **research-hosting.md** — hosting phases, load math, persistent-servers decision; Phase 0 is planned in `plan-phase0-deploy.md`, Phases 1+ still open

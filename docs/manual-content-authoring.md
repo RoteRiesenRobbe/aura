@@ -217,9 +217,17 @@ type** is Go work (payload struct + `effectKeys` allowlist + validator in
 `backend/pkg/aura/skills/definition.go`, plus a dispatch case in
 `backend/pkg/aura/sys/skills.go`).
 
-Existing effect `type`s to compose: `damage_aura`, `instant_damage`, `heal_aura`,
-`self_heal`, `slow_aura`, `resist_aura`, `resist_passive`, `stat_multiplier`,
-`dot_aura`, `instant_dot`.
+Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
+`backend/pkg/aura/skills/definition.go` — 22 as of 2026-07-22):
+`damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
+`instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
+`slow_aura`, `resist_aura`, `resist_passive`, `stat_multiplier`, `light_aura`,
+`taunt`, `detaunt`, `spawn`, `recall`, `revive`, `dash`, `tick_rate`.
+
+Each type has its **own allowlist of legal fields** (`effectKeys`), enforced at
+load: an unknown or renamed key hard-fails the boot naming the field and its
+replacement, rather than silently reading as zero. Authoring against the wrong
+type is therefore a boot error, not a mystery in play.
 
 ### Backend / data
 
@@ -240,16 +248,26 @@ Existing effect `type`s to compose: `damage_aura`, `instant_damage`, `heal_aura`
      (`result` + `ingredients[]` by name+level; curated/secret/backend-only).
 3. **Build:** `make -C backend build`, or `-content ../api` + restart.
 
-### Frontend (without this, the skill shows as "Skill #id")
+### Frontend — nothing to do
 
-4. **`frontend/src/client-data/Skills.ts`** — add the id to the three parallel
-   maps: `SkillNames`, `SkillMaxLevels`, `SkillCategories`. These are hand-synced
-   with the backend registry.
-5. **Optional ring style:** to show a specific active-aura ring, add an
-   `*_SKILL_ID` constant in `Skills.ts` and handle it in
-   `Character.setActiveSkill`.
+**Retired 2026-07-21 (UI-polish chunk 1, `ae51d8b5`).** This step used to be two
+hand-synced edits; both are gone:
 
-> No `.fbs` / FlatBuffers regen is needed for new skills.
+- ~~`Skills.ts` `SkillNames` / `SkillMaxLevels` / `SkillCategories`~~ — the client
+  now fetches the server's **parsed** registry once at startup over
+  `GET /skills`, so name, maxLevel, category *and* the full effect numbers for
+  tooltips stay correct through every retune and every `-content` iteration.
+  Display name is derived from the registry (with a handful of JSON overrides).
+- ~~`*_SKILL_ID` ring-style constants + `Character.setActiveSkill`~~ — **retired
+  2026-07-21 (`e8b67289`)**: the aura ring is category-driven off the wire
+  (`aura_category`, derived server-side from `EffectDef.Type`) and drawn by the
+  shared `AuraRingStack`. All eight constants are deleted.
+
+If a skill renders as `Skill #<id>`, the catalog fetch failed — that is a
+connectivity/CORS symptom, not a missing frontend entry.
+
+> No `.fbs` / FlatBuffers regen is needed for new skills, and no frontend edit
+> at all. A new ability is **pure JSON + restart**.
 
 ---
 
@@ -423,9 +441,19 @@ These duplicate a single source of truth and must be updated together — easy t
 forget:
 
 - **`EntityType` enum ↔ `gameObjectClasses` array** (positional index) ↔ mob JSON
-  `name`.
-- **`Skills.ts`** `SkillNames` / `SkillMaxLevels` / `SkillCategories` duplicate the
-  backend skill registry.
+  `name`. **⚠ The last remaining hand-sync, and the sharpest edge in the repo:**
+  the array is indexed by *position*, so inserting an enum member anywhere but
+  **at the end** silently reassigns the artwork of every mob after it — no build
+  error, no test failure, no runtime warning. Always append. (Verified in sync
+  2026-07-22: 74 entries ↔ 74 enum members, `FireTotem` = 73. A proposed fix —
+  key the map by the generated `entity-type.ts` enum members so position stops
+  mattering — is written up in `research-code-quality.md` §7.3/§7.4.)
+- ~~**`Skills.ts`** `SkillNames` / `SkillMaxLevels` / `SkillCategories`~~
+  **retired 2026-07-21 (UI-polish chunk 1, `ae51d8b5`):** the client fetches the
+  server's parsed registry over `GET /skills`; the three maps are deleted. Mob
+  nameplates got the same treatment via `GET /mobs` (`5308c312`). **Serving a
+  catalog is the house answer for new frontend/backend content duplication —
+  don't mirror a table.**
 - ~~`Graphics.ts` `damageAuraRadiusMeters`~~ **retired 2026-07-10 (mob-depth
   chunk 3c):** mob ring size is wire-driven (`Mob.aura_radius`, 0 = aura
   gated/off) — no hand-sync remains.
@@ -436,7 +464,7 @@ forget:
 |------|------|-----|----------------|----------|
 | New mob (new art) | ✅ | — | ✅ | ✅ |
 | Mob variant (reused art via `entityType`) | ✅ | — | — | — |
-| New skill (existing effect types) | ✅ | — | — | ✅ (`Skills.ts`) |
+| New skill (existing effect types) | ✅ | — | — | — (served via `GET /skills`) |
 | New effect *type* | ✅ | ✅ | — | ✅ |
 | Scripted encounter (existing seams) | ✅ (mob defs) | ✅ (one struct + registration) | — | — |
 | Replace ability VFX | — | — | — | ✅ |

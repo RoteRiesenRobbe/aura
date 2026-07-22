@@ -7,6 +7,10 @@
 > frontend hot spots (`Character.ts`, `VitalSigns.ts`), plus `go vet` and a
 > tsconfig check. This is not a work order — nothing here blocks item 12;
 > per-finding triage is at the end.
+>
+> **§7 is a second pass, 2026-07-22** (post playtest-1, commit `f1c03481`). It
+> records which §1–§6 findings closed, one new finding, and three cheap fixes.
+> For anything still open, **§7's table supersedes §6's**.
 
 ---
 
@@ -181,3 +185,109 @@ sweep; until then it is the main source of unclear paths.
 | Ring style as data | with Skills.ts sync decision | when the skill list grows |
 | Survival/vitals/equipment remnants | scoped sweep | with the planned item-system removal |
 | TS strictness for new code | policy decision | soon, cheap to start |
+
+---
+
+## 7. Re-assessment 2026-07-22 (post playtest-1, commit `f1c03481`)
+
+Second pass, same scope plus the content pipeline and CI. Headline: **the "two
+codebases in one" split from §-verdict has largely healed.** The legacy layer
+§4 called "the main unclear path" is gone, and the frontend/backend duplication
+§3.6 flagged as *compounding* was solved structurally rather than patched.
+Backend grade moves **A− → A−/A** (deduction now hygiene, not design);
+frontend **C+ → C+** (unchanged: it works, but nothing gates it).
+
+Verified this pass: `go build ./...` clean, `go test -count=1 ./...` **exit 0
+across 50 packages** in seconds.
+
+### 7.1 Closed since 2026-07-06
+
+- **§3.1 `EffectDef` triple bookkeeping** — restructured, not merely deduped:
+  `mapToEffectDef` is now "shared core plus exactly one per-type payload"
+  (`damageParams()`, `healParams()`, `resistParams()`, … `definition.go:947+`).
+  The 30-field hand copy is gone. Better than the embedded-struct fix proposed.
+- **§3.4 duplicated eligibility closures** — collapsed into the generic
+  `eligibleByTargetFlags[Capability any]` (`sys/skills.go:433`), now the single
+  predicate behind damage/resist/shield/hot/dot.
+- **§3.6 ring style as data + Skills.ts duplication** — both resolved, and the
+  *pattern* is the valuable part: category rides the wire (`aura_category`) and
+  the client fetches the server's **parsed** registry over `GET /skills` /
+  `GET /mobs`. All eight `*_SKILL_ID` constants and the three hand-maintained
+  `Skills.ts` maps are deleted. **This is now the house answer for any new
+  frontend/backend content duplication — serve a catalog, don't mirror a table.**
+- **§4 the half-dead legacy layer** — fully swept. Zero hits for
+  `Satiety`/`BodyTemperature` in Go, zero for `Freezing`/`satiety` in the
+  frontend. The `chieftain` package is gone.
+- **New since the last pass, worth keeping:** `validateEffectKeys`
+  (`definition.go:851`) is a **per-effect-type key allowlist with rename hints**
+  — an unknown or stale field in a skill JSON fails the boot naming the field
+  and its replacement. That single function kills the most common authoring bug
+  class, and is why the JSON pipeline can be trusted without a schema.
+
+### 7.2 Still open from 2026-07-06 (re-verified, unchanged)
+
+- **§5 `go vet` is still not clean** — `phy/box.go:41,66` unreachable; unkeyed
+  `phy.Vec2f` literals in `spectator.go:11`, `player.go:47,807`,
+  `mob.go:168,642,646`, `cmd.go:78`. The chieftain site went with the package,
+  but **new sites have appeared** — consistent with nothing enforcing vet.
+- **§5 three logging styles** — 24 `log.Printf`/`log.Fatalf` + 5 `fmt.Printf`
+  remain alongside `slog`.
+- **§3.5 the six `addXxx` registration methods** — still eight near-identical
+  type-switch loops in `core/game.go`, still the most error-prone backend
+  extension point.
+
+### 7.3 New finding — `gameObjectClasses` is a positional array (highest severity)
+
+`frontend/.../incoming/GameStateMessage.ts:305` maps wire entity types to
+render classes as a **74-entry array indexed by position**, whose only safety
+mechanism is the comment `Has to be in sync with AuraApi.EntityType`.
+
+**Verified in sync as of 2026-07-22** (74 array entries ↔ 74 enum members,
+`FireTotem` = 73 aligns), so this is a *latent* risk, not a live defect. But it
+is the only place in the repo where a plausible edit — inserting an enum member
+anywhere but the end — silently reassigns the artwork of **every mob after it**,
+with no build error, no test failure, and no runtime warning. It is also the
+one content type that still requires touching three places (JSON + `.fbs` +
+frontend), so it gets exercised often.
+
+**Concrete fix:** the FlatBuffers compiler already emits a *named* enum at
+`api/schema/js/aura-api/entity-type.ts`. Replace the array with a
+`Record<EntityType, GameObjectClass>` keyed by those members — TypeScript then
+enforces exhaustiveness, and position stops mattering. Half a day at most, and
+it permanently removes the highest-consequence silent-corruption seam we have.
+(`manual-content-authoring.md` §"Known hand-sync points" documents this seam;
+it should point here once the fix lands. That section is also **stale on
+`Skills.ts`** — those maps no longer exist, see §7.1.)
+
+### 7.4 ⭐ Three small fixes — recommended next, cheap, high leverage
+
+Called out together because each is hours-not-days and each protects work
+already paid for. Two are **restatements of open items in
+`research-v1-readiness.md`** (§1/§2 there) — listed here only so the three are
+actionable as one batch; that doc remains their home.
+
+| # | Fix | Effort | New here? |
+|---|---|---|---|
+| **1** | **Add `go test ./...` (and `go vet ./...`) to `.github/workflows/build.yaml`.** CI currently runs goreleaser + `npm run build` and *never executes a test*. ~22k lines of tests and the deterministic `simharness` guardrail suite are defended by nothing but local discipline. | ~3 lines | no — `research-v1-readiness.md` §1/§2, still open |
+| **2** | **Key `gameObjectClasses` by enum member instead of array position.** | ~half day | **yes** — see §7.3 |
+| **3** | **Add `"typecheck": "tsc --noEmit"` to `frontend/package.json`, fix the stale `include`, run it in CI.** There is no typecheck or lint script at all today (no ESLint config either); `tsc` is invoked ad-hoc by hand. **Newly noticed:** `tsconfig.json`'s `include` still lists `./src/old-structure/**/*`, **a directory that no longer exists** — so typecheck coverage is whatever is transitively reachable from `src/index.ts`, and anything outside that graph is checked by nobody. | ~1 h | partly — the gap is in `research-v1-readiness.md` §2.4; the stale `include` is **new** |
+
+Doing 1 and 3 first makes 2 (and everything after it) verifiable.
+
+### 7.5 Metrics for the next pass to diff against
+
+| Measure | 2026-07-22 |
+|---|---|
+| Backend prod / test LOC | 22,687 / 21,768 (**~0.96:1**) |
+| Go packages | 50, all green uncached |
+| Frontend TS LOC | 18,937 (+6 stray `.js`, 18 `: any`) |
+| `TODO`/`FIXME`/`HACK`/`XXX` in prod code | **27** across ~41k LOC |
+| `Berryhunter` refs in backend Go | **0** |
+| Content JSON | 83 skills · 50 mobs · 12 factions · 10 recipes · 10 items · 5 props |
+| Largest single file | `sys/skills.go` **1,594 lines / ~40 funcs** |
+
+Two of these are the ones to watch. `sys/skills.go` is the complexity sink — a
+flat dispatch that grows with every new effect type; it is readable today and
+should **not** be refactored pre-emptively, but it is where the next structural
+pressure will show up. And the ~0.96:1 test ratio is only worth what CI makes
+of it, which today is nothing (§7.4 #1).
