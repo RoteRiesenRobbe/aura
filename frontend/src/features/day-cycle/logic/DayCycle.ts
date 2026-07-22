@@ -5,6 +5,31 @@ import {isUndefined} from '../../common/logic/Utils';
 import {OnDayTimeStartEvent, OnNightTimeStartEvent} from '../../core/logic/Events';
 import './DayCycleJuice';
 
+/**
+ * Master switch for the day/night PRESENTATION — the night colour tint and the
+ * dawn/dusk boundary SFX. **DEACTIVATED 2026-07-22 (PO call), not deleted.**
+ *
+ * Why: players went invisible to themselves during the day→night transition —
+ * the avatar (and its aura ring) stopped rendering while the name plate, level
+ * and HP bar, which live on the night-EXEMPT `namePlates` overlay, kept
+ * drawing. It reproduced only with an active aura, which is the one thing that
+ * changes the `characters` layer's bounds, and therefore the size of the filter
+ * render-texture PixiJS allocates for that layer's own tint pass. The tint is
+ * applied per layer (~25 separate filter passes, see Game.ts), and during a
+ * twilight fade `getNightFilterOpacity()` changes every tick, so all ~25
+ * `container.filters` assignments were being re-made at 30 Hz. Never
+ * reproduced headlessly (software GL), so the fault is GPU/driver dependent.
+ *
+ * The cycle is cosmetic — nothing gameplay-facing reads it — so it is switched
+ * off rather than debugged for now. Flip this back to `true` to restore it; if
+ * the bug returns with it on, the fix to try first is collapsing the ~25
+ * per-layer passes into ONE filter on a single parent container.
+ *
+ * The clock itself keeps running (`getTime`/`isDay`/`isNight`/the dev-panel
+ * readout) — only the presentation is suppressed.
+ */
+const DAY_CYCLE_PRESENTATION_ENABLED = false;
+
 let ticksPerDay: number;
 let dayTimeTicks: number;
 const hoursPerDay = 24;
@@ -134,6 +159,12 @@ export function setTimeByTick(tick: number) {
     timeOfDay = (tick % ticksPerDay / ticksPerDay * hoursPerDay + sunriseHour) % hoursPerDay;
     if (Develop.isActive()) {
         Develop.get().logTimeOfDay(getFormattedTime());
+    }
+
+    // Deactivated: leave every layer untinted and skip the boundary SFX. The
+    // filters are never assigned in this mode, so there is nothing to clear.
+    if (!DAY_CYCLE_PRESENTATION_ENABLED) {
+        return;
     }
 
     if (knownIsDay != isDay()) {

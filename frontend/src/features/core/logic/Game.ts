@@ -460,6 +460,11 @@ export class Game implements IGame {
 
         this.miniMap.setup(mapWidth, mapHeight);
         this.map = new EntityManager(mapWidth, mapHeight, this.miniMap);
+        // NOTE: the night tint is currently DEACTIVATED — see
+        // DAY_CYCLE_PRESENTATION_ENABLED in DayCycle.ts for why. The list below
+        // is still derived and handed over so re-enabling is a one-word change;
+        // with the flag off DayCycle never assigns a filter to any of it.
+        //
         // Night-tinted layers are DERIVED (every layer minus the exempt set)
         // instead of hand-listed: the old include-list predated the content
         // pass, so every newer mob layer (wildlife, healer, companion, …)

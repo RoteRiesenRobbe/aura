@@ -1245,3 +1245,93 @@ tunnel), Strong 0.04/0.02 + the L3 gate, Wildfire light riding Light's
 r4 +1/L (Wildfire maxLevel 5 → its light tops out at r8 vs Light's r6 —
 by explicit PO spec "same radius and per level gain", flag only if night
 balance cares).
+
+## Day/night cycle DEACTIVATED — avatar invisibility recurred (ad-hoc session, 2026-07-22)
+
+**Day/night presentation switched OFF (not deleted) 2026-07-22, PO-directed
+in-session, committed `[uncommitted]`.** Ad-hoc: PO hit the bug twice on the
+live server mid-playtest, reproduced it 100%, and called the cycle "cosmetic
+anyway — deactivate it for now, in case we want it back".
+
+**Report:** PO screenshots — local avatar invisible with the aura ACTIVE,
+visible again with the aura OFF; name, level number and HP bar kept rendering
+throughout. Second sighting added the decisive detail: **it starts when night
+starts and ends when night ends**, and it happens **during the day→night
+transition**.
+
+**This supersedes the `6afbee84` verdict.** That session (§Night-readability
+fix, 2026-07-21) concluded the aura correlation was "a day/night confound".
+It is not — the PO can toggle it on and off with the aura inside a single
+night. `6afbee84` fixed a real and separate problem (the hand-listed filter
+set, the 0.9 flood, mob layers over `characters`) and the plate work it added
+is exactly why name/level/HP survive in the new screenshots, but it did not
+close this.
+
+**Mechanism (diagnosed, not proven — see Not-closed below):**
+- The night tint is applied **per layer**: `Game.ts` hands DayCycle ~25
+  containers and each gets its own `ColorMatrixFilter` pass. `namePlates` is
+  exempt, which is precisely why the plate renders while the avatar does not.
+- **Not a tint-to-black.** The night matrix works out to a pure multiply of
+  ×0.65/×0.71/×0.84 — recomputed by hand from `flood` + `lumaGreyscale` and
+  confirmed live (`matrixRowSums = [0.65, 0.71, 0.84]` at full night). A dark
+  avatar cannot disappear under that. It is not being darkened; it is not
+  being drawn.
+- **Why the aura is the switch:** the `AuraRingStack` Graphics is the only
+  thing that changes the `characters` layer's bounds (~40×40 px → 2× the aura
+  radius), and PixiJS v8 sizes that layer's filter render-texture straight
+  from those bounds (`FilterSystem.push` → `getFastGlobalBounds` →
+  `fitBounds` → `TexturePool.getOptimalTexture`). The aura is the one input
+  that changes the night filter pass for that layer and nothing else.
+- **Why the transition:** during a twilight fade `getNightFilterOpacity()`
+  returns a new value every tick, so the `opacity !== lastOpacity` branch
+  re-assigns `container.filters` across all ~25 layers at 30 Hz — while the
+  `characters` layer's filter texture is simultaneously being resized by the
+  aura ring. Steady day and steady night both skip that branch entirely.
+- **Not the darkness overlay's erase hole:** that layer is night-exempt and
+  its sprites exist in daylight too, so it would break at noon as well.
+
+**Change (frontend-only, additive, no wire, 2 files / +36 lines, 0 deletions):**
+- `DayCycle.ts` — new module const `DAY_CYCLE_PRESENTATION_ENABLED = false`
+  with the full why-block. `setTimeByTick` still advances the clock and still
+  feeds the dev-panel readout, then returns early before the tint and the
+  dawn/dusk SFX. Re-enabling is one word.
+- `Game.ts` — note above the `nightExempt` derivation so the still-computed
+  layer list does not read as dead code.
+- **Deliberately untouched:** `NightVisuals` values, `flood`/`lumaGreyscale`,
+  the derived exempt set, `isDay`/`isNight`/`getFormattedTime`,
+  `DayCycleJuice` + rooster/wolf assets, and the server-side
+  `totalDayCycleSeconds`/`dayTimeSeconds` in `conf.json`. The server cycle
+  keeps ticking; only the client presentation is suppressed.
+
+**Verified:** `tsc --noEmit` exit 0; `npm run build` clean (only the
+pre-existing bundle-size warnings). Live probe across day→dusk→night→dawn on
+a temporary 60 s/60 s cycle: `charactersFilters: "undefined"` at night, every
+sampled world layer `=u`, avatar `visible`/`renderable`, alpha 1, bounds
+39×39 — identical in every phase. Visual pass with the Damage aura active:
+at `00:52 night` the world renders in full daylight colour with the avatar
+and its aura ring clearly drawn. Backend untouched (a parallel session held
+`simharness`/`pkg/aura/sim`/giant-spider, excluded from this commit).
+
+**NOT CLOSED — this is a deactivation, not a fix.** If the cycle is ever
+turned back on, the first thing to try is **collapsing the ~25 per-layer
+passes into ONE filter on a single parent container** (one pass, one texture,
+and the `characters` layer can no longer be singled out by its own bounds) —
+that is a real perf win regardless. The root cause was never proven: it
+**never reproduced headlessly** across many driven day/night cycles with the
+aura bound and active (software GL under Playwright), so the fault looks
+GPU/driver dependent and needs a real GPU to bisect. The diagnostic snippet
+that would settle "unrendered vs mispositioned vs transparent" is in the
+session transcript; PO never got to run it in time.
+
+**Headless gotchas worth keeping (cost real time this session):**
+- `worldAlpha` is **not** a public property on PixiJS v8 containers — asserting
+  on it reports failure in every phase and looks like a repro.
+- A 1 Hz full-scene-graph `page.evaluate` walk **starves the renderer**: the
+  client tick freezes and every screenshot goes solid black, at day as well as
+  night. Two separate runs were misread as repros before the daylight frames
+  gave it away. Keep per-sample work minimal and cross-check a day frame
+  before believing a night one.
+- Unlike the 2026-07-21 note, keyboard hotkeys **do** reach the game headlessly
+  — they just need the ~1.3 s hold the `verify` skill documents. Binding a
+  skill is: click `li[data-skill-id="N"] .skillName`, hold `1` (bind), hold
+  `1` again (activate).
