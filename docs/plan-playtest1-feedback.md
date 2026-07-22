@@ -1,7 +1,7 @@
 # Plan: Playtest-1 Feedback (external tester)
 
 **Status:** **Pass A DONE 2026-07-22** (A1 + A2, `b0171ffb`) and **Pass B DONE
-2026-07-22** (`[uncommitted]`) — both awaiting the PO in-game feel/read pass.
+2026-07-22** (`75486ec9`) — both awaiting the PO in-game feel/read pass.
 **NEXT: Pass C** in its own session. The tutorial/quest/aura-differentiation
 themes go to their own planning rounds. Full ledgers: §Pass A ledger and
 §Pass B ledger at the end of this doc.
@@ -277,7 +277,7 @@ tuning) in one session — NOT yet PO-verified in-game, committed
 ## Pass B ledger
 
 **Pass B (Communication & small fixes) DONE 2026-07-22, one session —
-NOT yet PO-verified in-game, committed `[uncommitted]`.** All 8 plan items
+NOT yet PO-verified in-game, committed `75486ec9`.** All 8 plan items
 landed; item 1 shipped partially by PO decision (see below).
 
 ### PO rulings (choice prompts, 2026-07-22)
