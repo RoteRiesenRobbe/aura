@@ -222,6 +222,12 @@ type Mob struct {
 	// re-picking per tick flip-flops between two blockers (see steer).
 	steerSide float32
 
+	// steerProbe/steerHits are blockerRepulsion's reused scratch (see there):
+	// the lookahead circle and its hit buffer, built once per mob instead of
+	// once per tick. Never read outside blockerRepulsion.
+	steerProbe *phy.Circle
+	steerHits  []phy.Collider
+
 	// chase stuck watchdog (see stuck.go): net-progress window + camp state.
 	progressAnchorPos phy.Vec2f
 	progressTicks     int

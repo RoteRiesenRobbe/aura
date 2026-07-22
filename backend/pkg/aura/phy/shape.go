@@ -111,7 +111,16 @@ func (c *colliderShape) addCollision(s Collider) {
 }
 
 func (c *colliderShape) resetCollisions() {
-	c.collisions = make(ColliderSet)
+	if c.collisions == nil {
+		c.collisions = make(ColliderSet)
+		return
+	}
+	// clear keeps the buckets — re-making this map for every collider on
+	// every tick was ~15% of the idle server's garbage (idle-overload
+	// investigation 2026-07-22). Safe because no caller holds on to the map
+	// across ticks: every reader (sys/skills, sys/npc, mob aggro, targeting)
+	// consumes it within the same tick, and targeting copies what it keeps.
+	clear(c.collisions)
 }
 
 func (c *colliderShape) resolveFancyCollisions() {

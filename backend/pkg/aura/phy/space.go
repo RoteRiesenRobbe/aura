@@ -52,7 +52,19 @@ func (s *Space) getStaticAt(x, y int) []Collider {
 
 // Update runs collision detection over all boxes
 func (s *Space) Update() {
-	s.grid = make(dynamicColliderGrid)
+	// Reuse the grid and its per-cell slices instead of re-making them: this
+	// runs 30×/s forever, and rebuilding it from scratch was ~20% of the idle
+	// server's garbage (idle-overload investigation 2026-07-22, pinned by
+	// space_alloc_test.go). Truncating to [:0] keeps the capacity; the tail is
+	// cleared so cells stop pinning shapes that were removed since last tick.
+	if s.grid == nil {
+		s.grid = make(dynamicColliderGrid)
+	} else {
+		for v, cell := range s.grid {
+			clear(cell[:cap(cell)])
+			s.grid[v] = cell[:0]
+		}
+	}
 
 	// reset all collisions and dynamic bodies
 	for shape := range s.shapes {
@@ -174,21 +186,26 @@ func (s *Space) QueryCircle(c *Circle) []DynamicCollider {
 // layer matches the circle's mask. The static grid is built at AddStaticShape
 // time, so no Update is required first. Intended for one-shot placement
 // checks (spawn-effect offset placement): create a circle, query, drop it.
+// On a per-tick path use AppendCircleStatics instead — this one allocates a
+// fresh result slice per call.
 func (s *Space) QueryCircleStatics(c *Circle) []Collider {
+	return s.AppendCircleStatics(nil, c)
+}
+
+// AppendCircleStatics is QueryCircleStatics without the per-call garbage: it
+// appends the hits to dst and returns the extended slice, so a caller on a
+// per-tick path can hand back its own buffer (buf[:0]) and allocate nothing.
+// Duplicates are suppressed only among the hits appended by THIS call — a
+// static straddling several grid cells is still reported once.
+func (s *Space) AppendCircleStatics(dst []Collider, c *Circle) []Collider {
 	c.updateBB()
 	bb := c.BoundingBox()
 
-	seen := make(map[Collider]struct{})
-	var hits []Collider
+	start := len(dst)
 
 	for x := floor32f(bb.Left / gridWidth); x <= floor32f(bb.Right/gridWidth); x++ {
 		for y := floor32f(bb.Bottom / gridWidth); y <= floor32f(bb.Upper/gridWidth); y++ {
 			for _, other := range s.gridStatic[Vec2i{x, y}] {
-				if _, ok := seen[other]; ok {
-					continue
-				}
-				seen[other] = struct{}{}
-
 				obb := other.BoundingBox()
 				if !IntersectAabb(&bb, &obb) {
 					continue
@@ -199,11 +216,26 @@ func (s *Space) QueryCircleStatics(c *Circle) []Collider {
 				if !c.IntersectWith(other) {
 					continue
 				}
-				hits = append(hits, other)
+				// Cell-straddle de-dup by linear scan rather than a `seen`
+				// map: a probe spans a handful of cells and hits a handful of
+				// statics, and the map was pure garbage on the hot path.
+				if containsCollider(dst[start:], other) {
+					continue
+				}
+				dst = append(dst, other)
 			}
 		}
 	}
-	return hits
+	return dst
+}
+
+func containsCollider(list []Collider, c Collider) bool {
+	for _, other := range list {
+		if other == c {
+			return true
+		}
+	}
+	return false
 }
 
 // AddShape appends a new shape to the existing ones

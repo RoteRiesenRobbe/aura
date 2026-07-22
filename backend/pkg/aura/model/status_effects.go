@@ -26,8 +26,17 @@ func NewStatusEffects() StatusEffects {
 	}
 }
 
+// Clear drops every effect. It runs for every status entity on every tick
+// (sys/statuseffects), so it clears the map in place instead of re-making it —
+// the re-make was the third-largest allocation site in the idle game loop
+// (idle-overload investigation 2026-07-22). Safe because the map never
+// escapes: Effects() hands out a copy.
 func (s *StatusEffects) Clear() {
-	s.effects = make(map[StatusEffect]struct{})
+	if s.effects == nil {
+		s.effects = make(map[StatusEffect]struct{})
+		return
+	}
+	clear(s.effects)
 }
 
 func (s *StatusEffects) Add(e StatusEffect) {

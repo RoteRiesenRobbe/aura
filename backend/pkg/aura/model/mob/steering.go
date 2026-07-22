@@ -73,11 +73,22 @@ func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 // the border wall. The probe carries the mob's own collision mask, so a
 // static the mob walks through (the boss vs rocks) never repels it.
 func (m *Mob) blockerRepulsion() phy.Vec2f {
-	probe := phy.NewCircle(m.Position(), m.Radius()+steeringLookahead)
+	// Probe and hit buffer are per-mob and reused: this runs for every mob on
+	// every tick it moves — ~50 mobs × 30 Hz with nobody even online — and
+	// building them per call was the single largest allocation site in the
+	// idle game loop (idle-overload investigation 2026-07-22, pinned by
+	// steering_alloc_test.go).
+	if m.steerProbe == nil {
+		m.steerProbe = phy.NewCircle(m.Position(), m.Radius()+steeringLookahead)
+	}
+	probe := m.steerProbe
+	probe.SetPosition(m.Position())
+	probe.SetRadius(m.Radius() + steeringLookahead)
 	probe.Shape().Mask = m.Body.Shape().Mask
 
 	var rep phy.Vec2f
-	for _, c := range m.space.QueryCircleStatics(probe) {
+	m.steerHits = m.space.AppendCircleStatics(m.steerHits[:0], probe)
+	for _, c := range m.steerHits {
 		switch o := c.(type) {
 		case *phy.Circle:
 			rep = rep.Add(m.circleRepulsion(o))
