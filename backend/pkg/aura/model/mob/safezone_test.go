@@ -13,6 +13,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// sensedBy puts target inside m's aggro sensor.
+func sensedBy(m *Mob, target model.Combatant, layer model.CollisionLayer) {
+	space := phy.NewSpace()
+	space.AddShape(m.aggroAura)
+	c := phy.NewCircle(target.Position(), target.Radius())
+	c.Shape().IsSensor = true
+	c.Shape().Layer = int(layer)
+	c.Shape().UserData = target
+	space.AddShape(c)
+	space.Update()
+}
+
 // withSafeZone installs a single campfire zone for the duration of a test.
 func withSafeZone(t *testing.T, center phy.Vec2f, radius float32) {
 	t.Helper()
@@ -46,7 +58,7 @@ func TestMob_FindAggroTarget_SkipsTargetsInsideSafeZone(t *testing.T) {
 
 	m := newTestMob()
 	m.SetPosition(phy.Vec2f{X: 2.5, Y: 0})
-	p := newLeveledCombatant(1)
+	p := newFakeCombatant()
 	p.faction = model.FactionAligned
 	p.pos = phy.Vec2f{X: 1, Y: 0} // inside the fire, inside the sensor
 	sensedBy(m, p, model.LayerPlayerCollision)

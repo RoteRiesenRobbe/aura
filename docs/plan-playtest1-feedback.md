@@ -26,6 +26,10 @@ Positives to keep/extend: core aura mechanic, static traps in the Dark Tunnel
 2. **Gray-aggro removed** — mobs far below player level no longer aggro
    (still attackable; flat gray XP stays DECIDED). Threshold proposal:
    `mob cL ≤ player cL − 5` [PLACEHOLDER] (matches band width ≈ +5).
+   **↺ RE-OPENED 2026-07-22:** shipped in Pass A, then **reverted** after the
+   PO played it — with no level signal on the mob it just feels bugged when
+   some mobs stop reacting. Revisit once the decision-5 nameplate colors land
+   (Pass C), which supply the missing explanation. Flat gray XP is unaffected.
 3. **Drop philosophy: hybrid** — most ability drops move to elite/boss mobs
    (chances there can rise); a few hand-picked skills stay on normal mobs at
    low chance. Drops become an event, not rain. (Drop table is TUNING-OPEN
@@ -175,13 +179,18 @@ tuning) in one session — NOT yet PO-verified in-game, committed
 
 ### A1 — Go/AI (TDD, red → green)
 
-- **Gray-aggro gate** (decision 2): new optional `model.Leveled` interface
-  (`model/combatant.go`), implemented by the **player only** — mob-vs-mob
-  acquisition (front war, predators hunting prey, summons) carries no character
-  level and is untouched. `Mob.isGrayTo()` + `Mob.combatLevel()` (curve level,
-  absent-→-1 baseline repeated for synthetic defs) gate **`findAggroTarget`
-  only**: threat retention is deliberately untouched, so gray mobs still
-  retaliate and still pay flat gray XP. `grayAggroBandLevels = 5` [PLACEHOLDER].
+- ~~**Gray-aggro gate** (decision 2)~~ — **REVERTED 2026-07-22 (PO call), decision 2
+  is re-opened.** In play it read as a bug rather than a rule: some mobs simply
+  stopped reacting with no visible reason, and nothing in the UI explains why.
+  Reverted in full — `model.Leveled`, `player.CombatLevel()`, `Mob.isGrayTo()`,
+  `Mob.combatLevel()`, `grayAggroBandLevels` and `gray_aggro_test.go` are all
+  gone; `findAggroTarget` is back to faction + safe-zone gating only. The
+  `sensedBy` test helper moved into `safezone_test.go` (its only remaining
+  user). May return later — likely paired with the Pass-C nameplate level
+  colors, which would give the player the missing "this mob is beneath you"
+  signal. What it *was*: an optional `model.Leveled` implemented by the player
+  only (mob-vs-mob acquisition untouched), gating acquisition only —
+  retaliation and flat gray XP were always kept.
 - **Campfire hard safe-zone** (decision 4): new `model/mob/safezone.go`.
   Radius = the campfire's **visible heal ring** (1.5), so the promise is exactly
   what the player sees. Three effects: acquisition skips in-zone targets; an
@@ -248,7 +257,9 @@ tuning) in one session — NOT yet PO-verified in-game, committed
   815 props/399 spawns/5 campfires (safeRadius 1.5)/14 npcs, 0 panics`.
 - Browser smoke 6/6, no JS errors. 9 new Go tests (gray gate at/inside the band
   edge, gray retaliation, unleveled-never-gray, cL fallback, chase-break,
-  acquisition skip, body-never-enters, aligned exemption, empty-by-default).
+  acquisition skip, body-never-enters, aligned exemption, empty-by-default) —
+  **the 4 gray-gate tests went with the 2026-07-22 revert; the 5 safe-zone
+  tests remain, `go test ./...` exit 0 / 29 pkgs after it.**
 - `world.json` diff is exactly 400 lines (399 timers + the Vanguard gate) — no
   reformatting of a file the PO edits by hand in the zone editor.
 
@@ -270,7 +281,7 @@ tuning) in one session — NOT yet PO-verified in-game, committed
   but it exists by construction of "guaranteed safe".
 - **Content pin moved**: `cmd/simharness/serve_test.go` pinned EmberAura's
   authored damage at 6 → now 7.5 (the Z2 pass). Expected, noted in the test.
-- All new numbers are [PLACEHOLDER]: gray band −5, safe-radius factor 1.0,
+- All new numbers are [PLACEHOLDER]: ~~gray band −5~~ (reverted), safe-radius factor 1.0,
   respawn ×2, the three HP/XP band factors, Z2 ×1.25, the three speeds, Heal
   1.5/+0.1/80, and every drop chance above.
 

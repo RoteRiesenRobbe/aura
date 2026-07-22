@@ -875,34 +875,6 @@ func (m *Mob) targetWithinSensor() bool {
 // gated per faction in chunk 6.6). A faction outside the set is seen but
 // never proactively acquired — it still retaliates through the threat table
 // when hit.
-// grayAggroBandLevels [PLACEHOLDER] is how far below a target's character
-// level a mob's curve level has to sit before it stops acquiring proactively
-// (playtest-1 feedback Pass A, decision 2 — matches the ≈ +5 band width of the
-// growth lock). Acquisition only: a gray mob still retaliates through threat
-// retention, and gray kills still pay their flat XP (decision closed
-// 2026-07-21).
-const grayAggroBandLevels = 5
-
-// isGrayTo reports whether target outlevels this mob by a full band. Targets
-// with no character level (mobs, summons, prey) are never gray.
-func (m *Mob) isGrayTo(target model.Combatant) bool {
-	leveled, ok := target.(model.Leveled)
-	if !ok {
-		return false
-	}
-	return m.combatLevel() <= leveled.CombatLevel()-grayAggroBandLevels
-}
-
-// combatLevel is the mob's authored curve level (the C0 tier+baseline axis),
-// with the definition loader's absent-→-1 baseline repeated for directly
-// constructed definitions (tests, sim harness).
-func (m *Mob) combatLevel() int {
-	if m.definition.CurveLevel < 1 {
-		return 1
-	}
-	return m.definition.CurveLevel
-}
-
 func (m *Mob) findAggroTarget() model.Combatant {
 	var nearest model.Combatant
 	bestDistance := float32(0)
@@ -919,7 +891,7 @@ func (m *Mob) findAggroTarget() model.Combatant {
 		if m.aggroMask&target.Faction().Bit() == 0 {
 			continue
 		}
-		if m.isGrayTo(target) || m.blockedBySafeZone(target.Position()) {
+		if m.blockedBySafeZone(target.Position()) {
 			continue
 		}
 		d := target.Position().Sub(m.Position()).AbsSq()

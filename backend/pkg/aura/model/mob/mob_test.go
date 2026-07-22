@@ -65,7 +65,6 @@ type fakeAuraPlayer struct {
 	xp      []uint64
 	healers []model.PlayerEntity
 	sc      *skills.SkillComponent
-	level   int // character level as the gray-aggro gate reads it (0 = never gray)
 }
 
 func (f *fakeAuraPlayer) Basic() ecs.BasicEntity                 { return f.basic }
@@ -79,7 +78,6 @@ func (f *fakeAuraPlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vs 
 func (f *fakeAuraPlayer) AddExperience(xp uint64)                { f.xp = append(f.xp, xp) }
 func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity    { return f.healers }
 func (f *fakeAuraPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
-func (f *fakeAuraPlayer) CombatLevel() int                       { return f.level }
 func (f *fakeAuraPlayer) ApplyRecipeCascade()                    {}
 
 func newFakeAuraPlayer() *fakeAuraPlayer {

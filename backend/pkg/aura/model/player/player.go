@@ -596,12 +596,6 @@ func (p *player) Progression() model.PlayerProgression {
 	return p.progression
 }
 
-// CombatLevel satisfies model.Leveled: the character level the gray-aggro gate
-// compares a mob's curve level against (playtest-1 feedback Pass A).
-func (p *player) CombatLevel() int {
-	return int(p.progression.Level)
-}
-
 // AvailableSkillPoints is the unspent point count: the budget the player level
 // earns minus the points bound in the spellbook. Derived on every call so free
 // respec can never make the numbers drift.

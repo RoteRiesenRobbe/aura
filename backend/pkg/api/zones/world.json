@@ -13295,7 +13295,7 @@
       "x": 58.9,
       "y": 26.9,
       "radius": 1.0,
-      "tooLowLine": "Careful, the Orc assault camp lies just south of here. This is no place for you yet.",
+      "tooLowLine": "Careful, the Orc assault camp lies just south of here. This is no place for you yet — and when it is, remember: no blade touches the Orc Commander while his war banners stand.",
       "teachings": [
         {
           "skill": "Vanguard",
