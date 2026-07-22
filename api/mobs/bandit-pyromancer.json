@@ -7,9 +7,9 @@
   "tier": "normal",
   "curveLevel": 6,
   "factors": {
-    "baseMaxHealth": 80,
+    "baseMaxHealth": 96,
     "maxHealthVariance": 0.1,
-    "experience": 110,
+    "experience": 132,
     "speed": 0.55,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,12 +20,12 @@
   },
   "body": {
     "radius": 0.3,
-    "aggroRadius": 6
+    "aggroRadius": 3.6
   },
   "skills": [
     { "skillName": "EmberAura", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "NovaBurst", "chance": 0.05 }
+    { "skillName": "NovaBurst", "chance": 0.3 }
   ]
 }

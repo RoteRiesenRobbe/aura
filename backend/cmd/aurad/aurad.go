@@ -123,6 +123,7 @@ func main() {
 			panic(err)
 		}
 		anchors := make([]sys.CampfireAnchor, 0, len(zone.Campfires))
+		safeZones := make([]mob.SafeZone, 0, len(zone.Campfires))
 		for _, c := range zone.Campfires {
 			m := mob.NewMob(campfireDef, g.Config().MobChaseIntoAuraMargin, nil)
 			m.SetPosition(phy.Vec2f{X: c.X, Y: c.Y})
@@ -138,13 +139,25 @@ func main() {
 				DwellRadius:   m.DwellRadius(),
 				StartingSpawn: c.StartingSpawn,
 			})
+			// Hard safe-zone (playtest-1 feedback Pass A, decision 4): hostile
+			// mobs never enter the fire's visible heal ring and break off the
+			// chase at its edge. Radius = the heal radius the client already
+			// draws, so the promise is exactly what the player sees.
+			safeZones = append(safeZones, mob.SafeZone{
+				Center: m.Position(),
+				Radius: m.AuraRadius() * mob.CampfireSafeRadiusFactor,
+			})
 		}
+		mob.SetSafeZones(safeZones)
 		sink, ok := g.(sys.CampfireAnchorSink)
 		if !ok {
 			panic("game does not accept campfire anchors")
 		}
 		sink.SetCampfireAnchors(anchors)
-		slog.Info("placed campfires", slog.Int("count", len(zone.Campfires)), slog.String("zone", zone.ID))
+		slog.Info("placed campfires",
+			slog.Int("count", len(zone.Campfires)),
+			slog.String("zone", zone.ID),
+			slog.Float64("safeRadius", float64(safeZones[0].Radius)))
 	}
 
 	// Teaching / lore NPCs (plan-npc-teaching.md): peaceful, static,

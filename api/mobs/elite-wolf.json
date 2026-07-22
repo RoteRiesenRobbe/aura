@@ -7,9 +7,9 @@
   "tier": "elite",
   "curveLevel": 5,
   "factors": {
-    "baseMaxHealth": 220,
+    "baseMaxHealth": 264,
     "maxHealthVariance": 0.1,
-    "experience": 170,
+    "experience": 204,
     "speed": 0.75,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,14 +20,16 @@
   },
   "body": {
     "radius": 0.45,
-    "aggroRadius": 6
+    "aggroRadius": 3.6
   },
   "skills": [
     { "skillName": "EliteWolfBite", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "Swift", "chance": 0.1 },
-    { "skillName": "KeenEye", "chance": 0.06 },
-    { "skillName": "Wild", "chance": 0.5 }
+    { "skillName": "Wild", "chance": 0.5 },
+    { "skillName": "Swift", "chance": 0.25 },
+    { "skillName": "KeenEye", "chance": 0.2 },
+    { "skillName": "Dash", "chance": 0.2 },
+    { "skillName": "Hardy", "chance": 0.2 }
   ]
 }

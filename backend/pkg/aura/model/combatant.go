@@ -21,6 +21,15 @@ type Combatant interface {
 	InCombat() bool
 }
 
+// Leveled is the optional character-level capability read by the gray-aggro
+// gate (playtest-1 feedback Pass A, decision 2): a mob whose combat level sits
+// a full band below the target no longer acquires it proactively. Implemented
+// by players only — mob-vs-mob acquisition (the front war, predators hunting
+// prey, summons) carries no character level and stays untouched.
+type Leveled interface {
+	CombatLevel() int
+}
+
 // CombatActor is the player-only capability to be stamped into combat by its
 // own harmful/supporting action (atmosphere & recovery chunk 1). Mobs derive
 // InCombat from their aggro target and never need stamping, so they do not

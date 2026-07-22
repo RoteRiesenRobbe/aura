@@ -7,9 +7,9 @@
   "tier": "normal",
   "curveLevel": 5,
   "factors": {
-    "baseMaxHealth": 50,
+    "baseMaxHealth": 60,
     "maxHealthVariance": 0.1,
-    "experience": 65,
+    "experience": 78,
     "speed": 0.6,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,7 +20,7 @@
   },
   "body": {
     "radius": 0.3,
-    "aggroRadius": 6
+    "aggroRadius": 3.6
   },
   "skills": [
     {
@@ -29,6 +29,6 @@
     }
   ],
   "unlocks": [
-    { "skillName": "Slow", "chance": 0.03 }
+    { "skillName": "Slow", "chance": 0.2 }
   ]
 }

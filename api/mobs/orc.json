@@ -7,9 +7,9 @@
   "tier": "elite",
   "curveLevel": 20,
   "factors": {
-    "baseMaxHealth": 280,
+    "baseMaxHealth": 420,
     "maxHealthVariance": 0.1,
-    "experience": 200,
+    "experience": 300,
     "speed": 0.5,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,12 +20,15 @@
   },
   "body": {
     "radius": 0.4,
-    "aggroRadius": 6
+    "aggroRadius": 3.6
   },
   "skills": [
     {
       "skillName": "OrcCleave",
       "level": 1
     }
+  ],
+  "unlocks": [
+    { "skillName": "Tough", "chance": 0.2 }
   ]
 }

@@ -673,7 +673,7 @@ func (m *Mob) moveTowardsScaled(target phy.Vec2f, speedScale float32) {
 	}
 
 	dir := m.steer(delta.Div(distance))
-	m.SetPosition(current.Add(dir.Mult(step)))
+	m.moveTo(current.Add(dir.Mult(step)))
 }
 
 // moveAwayFrom is the flee movement mode (mob-depth chunk 2): the inverse of
@@ -699,7 +699,7 @@ func (m *Mob) moveAwayFrom(threat phy.Vec2f) {
 		dir = delta.Div(distance)
 	}
 
-	m.SetPosition(current.Add(m.steer(dir).Mult(m.stepLength())))
+	m.moveTo(current.Add(m.steer(dir).Mult(m.stepLength())))
 }
 
 // stepLength is this tick's movement distance: base velocity reduced by the
@@ -773,6 +773,15 @@ func (m *Mob) updateAggro() {
 	if m.seekHealer {
 		m.updateHealerTargeting()
 		return
+	}
+
+	// Campfire hard safe-zone (Pass A, decision 4): a target that reaches the
+	// fire breaks the chase outright — threat cleared, aura off, walk home.
+	// Checked BEFORE retention, so the cleared table cannot re-latch the same
+	// target on this tick; findAggroTarget skips in-zone targets, so nothing
+	// re-acquires until they step back out.
+	if m.aggroTarget != nil && m.blockedBySafeZone(m.aggroTarget.Position()) {
+		m.resetAggro()
 	}
 
 	if target := m.highestThreatTarget(); target != nil {
@@ -866,6 +875,34 @@ func (m *Mob) targetWithinSensor() bool {
 // gated per faction in chunk 6.6). A faction outside the set is seen but
 // never proactively acquired — it still retaliates through the threat table
 // when hit.
+// grayAggroBandLevels [PLACEHOLDER] is how far below a target's character
+// level a mob's curve level has to sit before it stops acquiring proactively
+// (playtest-1 feedback Pass A, decision 2 — matches the ≈ +5 band width of the
+// growth lock). Acquisition only: a gray mob still retaliates through threat
+// retention, and gray kills still pay their flat XP (decision closed
+// 2026-07-21).
+const grayAggroBandLevels = 5
+
+// isGrayTo reports whether target outlevels this mob by a full band. Targets
+// with no character level (mobs, summons, prey) are never gray.
+func (m *Mob) isGrayTo(target model.Combatant) bool {
+	leveled, ok := target.(model.Leveled)
+	if !ok {
+		return false
+	}
+	return m.combatLevel() <= leveled.CombatLevel()-grayAggroBandLevels
+}
+
+// combatLevel is the mob's authored curve level (the C0 tier+baseline axis),
+// with the definition loader's absent-→-1 baseline repeated for directly
+// constructed definitions (tests, sim harness).
+func (m *Mob) combatLevel() int {
+	if m.definition.CurveLevel < 1 {
+		return 1
+	}
+	return m.definition.CurveLevel
+}
+
 func (m *Mob) findAggroTarget() model.Combatant {
 	var nearest model.Combatant
 	bestDistance := float32(0)
@@ -880,6 +917,9 @@ func (m *Mob) findAggroTarget() model.Combatant {
 			continue
 		}
 		if m.aggroMask&target.Faction().Bit() == 0 {
+			continue
+		}
+		if m.isGrayTo(target) || m.blockedBySafeZone(target.Position()) {
 			continue
 		}
 		d := target.Position().Sub(m.Position()).AbsSq()

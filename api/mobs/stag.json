@@ -21,7 +21,7 @@
   },
   "body": {
     "radius": 0.35,
-    "aggroRadius": 2.5
+    "aggroRadius": 1.5
   },
   "skills": [
     { "skillName": "StagKick", "level": 1 }

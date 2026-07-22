@@ -7,9 +7,9 @@
   "tier": "normal",
   "curveLevel": 18,
   "factors": {
-    "baseMaxHealth": 110,
+    "baseMaxHealth": 165,
     "maxHealthVariance": 0.1,
-    "experience": 190,
+    "experience": 285,
     "speed": 0.55,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,12 +20,12 @@
   },
   "body": {
     "radius": 0.4,
-    "aggroRadius": 6
+    "aggroRadius": 3.6
   },
   "skills": [
     { "skillName": "FireElementalAura", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "FireWard", "chance": 0.2 }
+    { "skillName": "FireWard", "chance": 0.35 }
   ]
 }

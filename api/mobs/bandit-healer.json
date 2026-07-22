@@ -7,9 +7,9 @@
   "tier": "normal",
   "curveLevel": 5,
   "factors": {
-    "baseMaxHealth": 55,
+    "baseMaxHealth": 66,
     "maxHealthVariance": 0.1,
-    "experience": 30,
+    "experience": 36,
     "speed": 0.6,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,7 +20,7 @@
   },
   "body": {
     "radius": 0.3,
-    "aggroRadius": 6
+    "aggroRadius": 3.6
   },
   "skills": [
     {

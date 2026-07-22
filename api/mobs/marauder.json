@@ -7,10 +7,10 @@
   "tier": "normal",
   "curveLevel": 12,
   "factors": {
-    "baseMaxHealth": 130,
+    "baseMaxHealth": 195,
     "maxHealthVariance": 0.1,
-    "experience": 175,
-    "speed": 0.65,
+    "experience": 262,
+    "speed": 0.92,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
     "wanderRadius": 3,
@@ -20,7 +20,7 @@
   },
   "body": {
     "radius": 0.35,
-    "aggroRadius": 5
+    "aggroRadius": 3
   },
   "skills": [
     { "skillName": "BanditBlades", "level": 3 }

@@ -7,9 +7,9 @@
   "tier": "normal",
   "curveLevel": 7,
   "factors": {
-    "baseMaxHealth": 210,
+    "baseMaxHealth": 284,
     "maxHealthVariance": 0.1,
-    "experience": 110,
+    "experience": 148,
     "speed": 0.4,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,12 +20,14 @@
   },
   "body": {
     "radius": 0.5,
-    "aggroRadius": 6
+    "aggroRadius": 3.6
   },
   "skills": [
     { "skillName": "BearSwipe", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "Recover", "chance": 0.02 }
+    { "skillName": "Recover", "chance": 0.25 },
+    { "skillName": "ThickHide", "chance": 0.2 },
+    { "skillName": "Berserker", "chance": 0.15 }
   ]
 }

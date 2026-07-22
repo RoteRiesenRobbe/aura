@@ -20,13 +20,9 @@
   },
   "body": {
     "radius": 0.4,
-    "aggroRadius": 2.5
+    "aggroRadius": 1.5
   },
   "skills": [
     { "skillName": "BoarGore", "level": 1 }
-  ],
-  "unlocks": [
-    { "skillName": "Hardy", "chance": 0.03 },
-    { "skillName": "Dash", "chance": 0.025 }
   ]
 }

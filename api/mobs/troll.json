@@ -7,9 +7,9 @@
   "tier": "elite",
   "curveLevel": 11,
   "factors": {
-    "baseMaxHealth": 135,
+    "baseMaxHealth": 182,
     "maxHealthVariance": 0.1,
-    "experience": 435,
+    "experience": 587,
     "speed": 0.45,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,12 +20,12 @@
   },
   "body": {
     "radius": 0.55,
-    "aggroRadius": 6
+    "aggroRadius": 3.6
   },
   "skills": [
     { "skillName": "TrollSmash", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "Tough", "chance": 0.25 }
+    { "skillName": "Tough", "chance": 0.4 }
   ]
 }

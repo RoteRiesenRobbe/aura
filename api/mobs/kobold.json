@@ -21,7 +21,7 @@
   },
   "body": {
     "radius": 0.25,
-    "aggroRadius": 5
+    "aggroRadius": 3
   },
   "skills": [
     {
@@ -30,9 +30,6 @@
     }
   ],
   "unlocks": [
-    {
-      "skillName": "Light",
-      "chance": 0.05
-    }
+    { "skillName": "Light", "chance": 0.05 }
   ]
 }

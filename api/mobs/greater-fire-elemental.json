@@ -7,9 +7,9 @@
   "tier": "elite",
   "curveLevel": 20,
   "factors": {
-    "baseMaxHealth": 300,
+    "baseMaxHealth": 450,
     "maxHealthVariance": 0.1,
-    "experience": 260,
+    "experience": 390,
     "speed": 0.45,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,12 +20,12 @@
   },
   "body": {
     "radius": 0.55,
-    "aggroRadius": 6
+    "aggroRadius": 3.6
   },
   "skills": [
     { "skillName": "FireElementalAura", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "FireTotem", "chance": 0.2 }
+    { "skillName": "FireTotem", "chance": 0.5 }
   ]
 }

@@ -20,13 +20,12 @@
   },
   "body": {
     "radius": 0.3,
-    "aggroRadius": 5
+    "aggroRadius": 3
   },
   "skills": [
     { "skillName": "WolfBite", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "Swift", "chance": 0.1 },
-    { "skillName": "KeenEye", "chance": 0.06 }
+    { "skillName": "Swift", "chance": 0.04 }
   ]
 }

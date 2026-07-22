@@ -7,9 +7,9 @@
   "tier": "normal",
   "curveLevel": 4,
   "factors": {
-    "baseMaxHealth": 60,
+    "baseMaxHealth": 72,
     "maxHealthVariance": 0.1,
-    "experience": 85,
+    "experience": 102,
     "speed": 0.6,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,7 +20,7 @@
   },
   "body": {
     "radius": 0.35,
-    "aggroRadius": 4
+    "aggroRadius": 2.4
   },
   "skills": [
     {
@@ -29,9 +29,6 @@
     }
   ],
   "unlocks": [
-    {
-      "skillName": "Antivenom",
-      "chance": 0.25
-    }
+    { "skillName": "Antivenom", "chance": 0.25 }
   ]
 }

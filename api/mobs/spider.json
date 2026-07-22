@@ -7,9 +7,9 @@
   "tier": "normal",
   "curveLevel": 4,
   "factors": {
-    "baseMaxHealth": 70,
+    "baseMaxHealth": 84,
     "maxHealthVariance": 0.1,
-    "experience": 100,
+    "experience": 120,
     "speed": 0.7,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
@@ -20,18 +20,12 @@
   },
   "body": {
     "radius": 0.3,
-    "aggroRadius": 4
+    "aggroRadius": 2.4
   },
   "skills": [
     {
       "skillName": "SpiderBite",
       "level": 1
-    }
-  ],
-  "unlocks": [
-    {
-      "skillName": "Antivenom",
-      "chance": 0.1
     }
   ]
 }

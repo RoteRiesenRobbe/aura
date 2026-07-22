@@ -20,7 +20,7 @@
   },
   "body": {
     "radius": 0.3,
-    "aggroRadius": 7
+    "aggroRadius": 4.2
   },
   "skills": [
     {

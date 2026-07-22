@@ -16,7 +16,7 @@
   },
   "body": {
     "radius": 0.6,
-    "aggroRadius": 7
+    "aggroRadius": 4.2
   },
   "skills": [
     {
@@ -29,13 +29,7 @@
     }
   ],
   "unlocks": [
-    {
-      "skillName": "CallForAid",
-      "chance": 1.0
-    },
-    {
-      "skillName": "Rejuvenation",
-      "chance": 0.1
-    }
+    { "skillName": "CallForAid", "chance": 1 },
+    { "skillName": "Rejuvenation", "chance": 0.25 }
   ]
 }

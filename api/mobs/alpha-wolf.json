@@ -7,10 +7,10 @@
   "tier": "normal",
   "curveLevel": 10,
   "factors": {
-    "baseMaxHealth": 120,
+    "baseMaxHealth": 162,
     "maxHealthVariance": 0.1,
-    "experience": 275,
-    "speed": 0.74,
+    "experience": 371,
+    "speed": 0.95,
     "deltaPhi": 0.1,
     "turnRate": 0.1,
     "wanderRadius": 4,
@@ -20,14 +20,14 @@
   },
   "body": {
     "radius": 0.45,
-    "aggroRadius": 6
+    "aggroRadius": 3.6
   },
   "skills": [
     { "skillName": "WolfBite", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "Swift", "chance": 0.1 },
-    { "skillName": "KeenEye", "chance": 0.06 },
-    { "skillName": "Reaper", "chance": 0.2 }
+    { "skillName": "Reaper", "chance": 0.35 },
+    { "skillName": "Swift", "chance": 0.15 },
+    { "skillName": "KeenEye", "chance": 0.12 }
   ]
 }
