@@ -60,6 +60,14 @@ Copy the browser-launch pattern from
   unreliable inside SimpleBar-wrapped panels (its capture-phase pointerdown
   handler eats untrusted/zero-coordinate events) and will produce false FAILs.
 - HUD panels listen on `pointerdown`, never `click` (see CLAUDE.md).
+- **Slot hotkeys (1–3, Q/E/F) need a LONG hold — ~1.3 s, not 200 ms.** They are
+  edge-triggered from `Controls.update`, whose Tock clock is rAF-driven, and a
+  headless/backgrounded page has its rAF heavily throttled (far slower than the
+  nominal 33 ms `INPUT_TICKRATE`). A short `keyboard.down`/`up` pair can fall
+  entirely between two samples, so the key registers in the KeyboardManager
+  (`key.isDown` really does flip) but no action ever fires — it reads exactly
+  like a broken feature. Raw `window` keydown listeners (Escape, chat, console)
+  are unaffected, which makes the failure look even more selective.
 
 ## Gotchas
 

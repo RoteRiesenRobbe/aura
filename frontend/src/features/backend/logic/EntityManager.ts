@@ -114,6 +114,13 @@ export class EntityManager {
             if (isDefined(entity.tier) && isFunction(gameObject['setTier'])) {
                 gameObject['setTier'](entity.tier);
             }
+            // Species id → the level-tinted nameplate, resolved against the
+            // /mobs catalog (feedback pass C item 2). Sent every tick like the
+            // rest; the mob rebuilds the plate only when the id actually
+            // changes (i.e. once).
+            if (isDefined(entity.mobId) && isFunction(gameObject['setMobId'])) {
+                gameObject['setMobId'](entity.mobId);
+            }
         }
 
         // Buff/debuff pips (applied_effects): the kinds currently applied TO

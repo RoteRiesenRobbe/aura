@@ -54,3 +54,19 @@ QueryParameters.get().tryGetString(Constants.VALUE_PARAMETERS.WEBSOCKET_URL, (ws
 });
 
 export const gameServer = _gameServer;
+
+/**
+ * URL of a content-catalog endpoint on the aurad HTTP sidecar, derived from
+ * the game socket: ws://host:2000/game → http://host:2000/<path> (wss → https).
+ *
+ * Shared by every catalog client (Skills.ts, Mobs.ts) so the derivation —
+ * including the protocol swap that a deployed wss:// host depends on — has a
+ * single definition.
+ */
+export function catalogUrl(path: string): string {
+    const url = new URL(gameServer);
+    url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
+    url.pathname = `/${path}`;
+    url.search = '';
+    return url.toString();
+}

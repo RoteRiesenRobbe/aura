@@ -1,10 +1,12 @@
 # Plan: Playtest-1 Feedback (external tester)
 
-**Status:** **Pass A DONE 2026-07-22** (A1 + A2, `b0171ffb`) and **Pass B DONE
-2026-07-22** (`75486ec9`) — both awaiting the PO in-game feel/read pass.
-**NEXT: Pass C** in its own session. The tutorial/quest/aura-differentiation
-themes go to their own planning rounds. Full ledgers: §Pass A ledger and
-§Pass B ledger at the end of this doc.
+**Status:** **Pass A DONE 2026-07-22** (A1 + A2, `b0171ffb`), **Pass B DONE
+2026-07-22** (`75486ec9`), **Pass C items 1 + 2 DONE 2026-07-22**
+(`22028dc4`) — all awaiting the PO in-game feel/read pass.
+**NEXT: Pass C item 3 (darkness multiply blend)** in its own session, then the
+deferred Pass-B items 1c + 1d. The tutorial/quest/aura-differentiation themes
+go to their own planning rounds. Full ledgers: §Pass A / §Pass B / §Pass C
+ledger at the end of this doc.
 
 ## Source
 
@@ -398,6 +400,117 @@ landed; item 1 shipped partially by PO decision (see below).
   one-line revert if the PO wants only the three planned titles.
 - All new numbers are [PLACEHOLDER]: NPC radius 1.0, banner 7vh, NPC bubble
   10 s, Recover @L4, FirstAid @L2, header sizes/band colours, compass insets.
+
+## Pass C ledger
+
+**Pass C items 1 + 2 DONE (2026-07-22), frontend + one backend endpoint —
+NOT yet PO-verified in-game, committed `22028dc4`. Item 3 (darkness
+multiply blend) SPLIT OUT to its own session** — it is a rendering-tech chunk
+with its own diagnosis phase and shares no code with 1 or 2.
+
+### PO rulings (choice prompts, 2026-07-22)
+
+- **Nameplate content = name + level** ("Alpha Wolf 10"), not name-only and
+  not level-only. The number is the literal signal the reverted gray-aggro
+  gate was missing, and pairing it with the tint teaches the colour code.
+- **Colour bands = WoW-classic**: `≥ +5` red / `+3..+4` orange / `−2..+2`
+  yellow / `−5..−3` green / `≤ −6` gray. Matches the ≈+5 band width the level
+  curve already locks in, so "red" and "a band above you" mean the same thing.
+- **Gray-aggro NOT re-landed** (decision 2 stays reverted) — ship the colours,
+  play them, then decide. Re-landing blind risks a second "feels bugged"
+  revert; reversing `6e7a301e` later is trivial.
+- **No equip-flow hint text** — the keys are wired, teaching the flow belongs
+  to the tutorial/onboarding planning round with the rest of the onboarding.
+  Discoverability therefore remains unchanged by this pass.
+
+### C1 — click-to-bind (frontend only)
+
+- **Half of decision 6 already existed**: spellbook click → slot click has
+  worked since the panel was built. Missing was the *"or press slot key"*
+  half — `hotkeyAuraSlot`/`hotkeyCooldownSlot` ignored the pending selection.
+- **`tryEquipPending(category, slot)`** is now the single implementation,
+  shared by the three slot-click handlers and both hotkey entry points, so
+  keyboard and mouse cannot drift apart on the combat lock or the category
+  rule. Net effect: three inlined copies collapse into one helper.
+- **A category mismatch consumes the key** rather than falling through —
+  otherwise, with a passive pending, pressing `1` would silently fire your
+  aura instead of doing nothing.
+- **Escape cancels** a pending selection (`Controls.handleFunctionKeys`, no
+  `preventDefault` so Escape keeps its browser meanings). Previously the only
+  exit was re-clicking the same entry, and a forgotten pending selection
+  silently swallowed every subsequent slot keypress.
+- **Passives stay click-only** — no key is assigned to passive slots and none
+  was invented.
+
+### C2 — cLv nameplates (no wire change, no schema change)
+
+- **Mobs had no name text at all**, so decision 5 meant *adding* the
+  nameplate, not recolouring one. `MobDefinition` already carries `Name` +
+  `CurveLevel` + `Tier`, and the snapshot has always sent `mob_id` (never
+  read client-side) — so the whole feature needs **zero schema change**.
+- **`GET /mobs`** (`mobs.CatalogHandler`, mirroring `skills.CatalogHandler`):
+  per-species metadata as JSON, marshaled once at boot. The alternative —
+  appending name+level to every Mob in the per-tick snapshot — would ship
+  constant per-species data 30×/s per mob.
+- **Minimal projection by design**: `{id, name, displayName, curveLevel,
+  tier, combatTarget}`, with `TestMobCatalogJSON_ExposesNothingBeyondNameplateFields`
+  pinning that exact key set. A public endpoint serving the full definition
+  would leak drops/resistances/HP — an out-of-game answer key against the
+  zero-hint policy.
+- **`combatTarget` = grants XP && not friendly to players** — derived, not
+  authored. Campfires, braziers, companions, totems, brambles, rockfalls,
+  poison pools and spike barricades are all `MobDefinition`s; without this a
+  "Campfire 1" plate lands on screen. The zero-XP set turned out to be
+  *exactly* the props/summons/hazards/obstacles.
+- **Plate lives on the unfiltered `namePlates` overlay** (the `Character.plate`
+  pattern), not inside `shape`: the night filter recolours everything in the
+  world layers, and a tint is the entire feature — a green mob would read
+  yellow at dusk. The plate mirrors `shape.alpha` so it fades with the mob's
+  corpse fade instead of hanging at full opacity over a vanishing mob.
+- **Tint recomputed per frame, not pushed on level-up**: it depends on the
+  *player's* level, so a push would need every live mob to subscribe to a
+  level event. Two integer ops per mob per frame, and PixiJS is only touched
+  when the band actually changes — so levelling up recolours the world.
+- **Drive-by DRY**: `deriveDisplayName` → exported `skills.DeriveDisplayName`,
+  now used by both catalogs (two copies of a naming convention drift apart);
+  the ws→http catalog-URL derivation → shared `catalogUrl()` in `Urls.ts`.
+
+### Verified
+
+- `go build ./...` clean; `go test ./...` **exit 0**, including the 6 new
+  `pkg/aura/items/mobs` catalog tests.
+- `tsc --noEmit` clean; webpack prod build green.
+- Boot: `82 skills/14 factions/50 mobs/10 recipes/815 props/399 spawns/5
+  campfires (safeRadius 1.5)/14 npcs, 0 panics` — unchanged, as expected for
+  a pass that adds no content.
+- **C1 Playwright smoke 8/8**, no JS errors: hotkey binds aura + cooldown,
+  binding clears the selection, mismatched category neither equips nor fires,
+  Escape cancels, and with nothing pending the keys still activate.
+- **C2 Playwright smoke 5/5**, no JS errors: catalog served, name/level/tier
+  correct, fixtures excluded, real mobs included, no key leakage.
+- **Visual**: the same wolf (cL2) reads **yellow at player L1 → green at L7 →
+  gray at L21**; the village campfire and the NPCs carry no plate.
+
+### Watch items / open calls for the feel pass
+
+- **`combatTarget` has two visible consequences to judge**: the **Turnip gets
+  a plate** ("Turnip 1", gray — it grants 1 XP), and **Fire Totem / Poison
+  Pool get none** despite being genuinely hostile, because they grant 0 XP.
+  Both are one-line flips if the PO wants them the other way.
+- **Nameplate font size 16 + 16 px gap** below the HP bar are [PLACEHOLDER];
+  at default zoom "Wolf 2" is legible but small.
+- **Slot hotkeys look broken under Playwright unless the key is held ~1.3 s.**
+  They are edge-triggered off `Controls.update`, whose Tock clock is
+  rAF-driven, and a headless/backgrounded page throttles rAF far below the
+  nominal 33 ms `INPUT_TICKRATE` — a 200 ms tap falls between two samples and
+  nothing fires, even though `key.isDown` really does flip. Raw `window`
+  keydown listeners (Escape, chat, console) are unaffected, which makes the
+  failure look feature-specific. Harness artifact only; recorded as a gotcha
+  in `.claude/skills/verify/SKILL.md`.
+- **Gray-aggro (decision 2) can now be re-evaluated** — the level signal it
+  was missing is on screen.
+- All new numbers are [PLACEHOLDER]: the five band colours + their
+  thresholds, nameplate font size 16, `NAMEPLATE_GAP` 16.
 
 ## Test strategy
 

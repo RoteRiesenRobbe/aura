@@ -50,11 +50,16 @@ func (t EffectType) MarshalJSON() ([]byte, error)    { return marshalEnum(effect
 func (s Selector) MarshalJSON() ([]byte, error)      { return marshalEnum(selectorNames, s) }
 func (h HitStyle) MarshalJSON() ([]byte, error)      { return marshalEnum(hitStyleNames, h) }
 
-// deriveDisplayName splits a CamelCase registry name into spaced words
+// DeriveDisplayName splits a CamelCase registry name into spaced words
 // ("SummonTotem" → "Summon Totem"). Computed server-side so the client never
 // re-implements the rule; the odd cases ("Long-Range Strike", "Call for
 // Aid") author an explicit displayName override instead.
-func deriveDisplayName(name string) string {
+//
+// Exported because the mob catalog (mobs.CatalogJSON) applies the identical
+// rule to species names — two copies of a naming convention are exactly the
+// kind of knowledge that drifts apart. It lives here because the skill
+// catalog is where the rule and its override convention are defined.
+func DeriveDisplayName(name string) string {
 	var b strings.Builder
 	b.Grow(len(name) + 4)
 	for i, r := range name {

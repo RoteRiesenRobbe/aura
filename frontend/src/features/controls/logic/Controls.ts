@@ -107,6 +107,15 @@ export class Controls {
             event.preventDefault();
             return;
         }
+
+        // Escape cancels a pending click-to-bind selection (feedback pass C
+        // item 1). No preventDefault — Escape keeps its browser meanings
+        // (leaving fullscreen above all), and the call is a no-op when no
+        // skill is pending.
+        if (event.code === 'Escape') {
+            HUD.cancelEquipSelection();
+            return;
+        }
     }
 
     update() {

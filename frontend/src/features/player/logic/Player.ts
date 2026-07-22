@@ -10,6 +10,7 @@ import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanne
 import {MiniMap} from '../../mini-map/logic/MiniMap';
 import {PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
+import {setLocalPlayerLevel} from '../../../client-data/Mobs';
 import './PlayerJuice';
 
 export class Player {
@@ -116,6 +117,10 @@ export class Player {
             }
             this.lastLevel = entity.level;
             this.character.setLevel(entity.level);
+            // Mob nameplates tint by their distance from THIS level, so every
+            // visible mob re-reads it on the next frame (feedback pass C
+            // item 2) — levelling up recolours the world around you.
+            setLocalPlayerLevel(entity.level);
         }
 
         // Floating combat numbers over the own character (item 11). The

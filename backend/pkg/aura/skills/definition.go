@@ -902,7 +902,7 @@ func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
 
 	displayName := s.DisplayName
 	if displayName == "" {
-		displayName = deriveDisplayName(s.Name)
+		displayName = DeriveDisplayName(s.Name)
 	}
 
 	return &SkillDefinition{

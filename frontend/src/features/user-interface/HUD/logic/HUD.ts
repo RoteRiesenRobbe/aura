@@ -1,7 +1,7 @@
 import '../assets/HUD.less';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
-import {skillDisplayName, skillMaxLevel, skillCategory} from '../../../../client-data/Skills';
+import {skillDisplayName, skillMaxLevel, skillCategory, SkillCategory} from '../../../../client-data/Skills';
 import {attachSkillTooltips} from './SkillTooltip';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
@@ -280,6 +280,41 @@ function setupSpellbook() {
     });
 }
 
+// tryEquipPending installs a pending spellbook selection into `slot`, and is
+// the single implementation of the click-to-bind flow (feedback pass C item 1)
+// — shared by the three slot-click handlers and the slot hotkeys, so keyboard
+// and mouse can never drift apart on the combat lock or the category rule.
+//
+// Returns true when the interaction was consumed by the equip flow, so callers
+// skip their activate branch. A category mismatch also consumes: while a
+// passive is pending, clicking an aura slot must not silently fire that aura
+// (the server derives the target slot array from the skill, so the send would
+// equip somewhere the player never pointed at).
+function tryEquipPending(category: SkillCategory, slot: number): boolean {
+    if (selectedSkillId === null) {
+        return false;
+    }
+    if (skillCategory(selectedSkillId) !== category) {
+        return true;
+    }
+    if (rejectEquipInCombat()) {
+        return true;
+    }
+    new EquipMessage(selectedSkillId, slot).send();
+    clearEquipSelection();
+    return true;
+}
+
+// cancelEquipSelection drops a pending selection from outside the panel
+// (Controls binds it to Escape). Without an escape hatch a pending skill the
+// player changed their mind about keeps swallowing every slot hotkey press.
+export function cancelEquipSelection() {
+    if (selectedSkillId === null) {
+        return;
+    }
+    clearEquipSelection();
+}
+
 function setupAuraLoadout() {
     auraLoadoutElement = document.getElementById('auraLoadout');
     auraSlotListElement = document.getElementById('auraSlotList');
@@ -289,17 +324,7 @@ function setupAuraLoadout() {
         if (!li || li.dataset.slot === undefined) return;
         const slot = Number(li.dataset.slot);
 
-        if (selectedSkillId !== null) {
-            // Equip branch: a pending skill installs into this slot — but only
-            // if its category matches (the server derives the target slot array
-            // from the skill, so a mismatched send would equip elsewhere).
-            if (skillCategory(selectedSkillId) === 'aura') {
-                if (rejectEquipInCombat()) return;
-                new EquipMessage(selectedSkillId, slot).send();
-                clearEquipSelection();
-            }
-            return;
-        }
+        if (tryEquipPending('aura', slot)) return;
 
         toggleAuraSlot(slot);
     });
@@ -342,13 +367,18 @@ let pendingSlot: number | null | undefined = undefined;
 let pendingSlotUntil = 0;
 const PENDING_SLOT_GRACE_MS = 400;
 
-// hotkeyAuraSlot is the keyboard entry point (Controls, keys 1–3).
+// hotkeyAuraSlot is the keyboard entry point (Controls, keys 1–3). With a
+// skill selected in the spellbook the key BINDS instead of activating —
+// decision 6's "click skill → press slot key" half.
 export function hotkeyAuraSlot(slot: number) {
+    if (tryEquipPending('aura', slot)) return;
     toggleAuraSlot(slot);
 }
 
-// hotkeyCooldownSlot is the keyboard entry point (Controls, Q/E/F).
+// hotkeyCooldownSlot is the keyboard entry point (Controls, Q/E/F); binds a
+// pending cooldown skill before it fires anything, like hotkeyAuraSlot.
 export function hotkeyCooldownSlot(slot: number) {
+    if (tryEquipPending('cooldown', slot)) return;
     activateCooldownSlot(slot);
 }
 
@@ -362,12 +392,10 @@ function setupPassiveLoadout() {
         const slot = Number(li.dataset.slot);
 
         // Passives have no activate branch — all equipped passives are always
-        // on. The only interaction is equipping a pending passive skill.
-        if (selectedSkillId !== null && skillCategory(selectedSkillId) === 'passive') {
-            if (rejectEquipInCombat()) return;
-            new EquipMessage(selectedSkillId, slot).send();
-            clearEquipSelection();
-        }
+        // on. The only interaction is equipping a pending passive skill, and
+        // no slot hotkey exists for them (no key is assigned), so passives
+        // stay click-only.
+        tryEquipPending('passive', slot);
     });
 }
 
@@ -381,14 +409,7 @@ function setupCooldownLoadout() {
         const slot = Number(li.dataset.slot);
 
         // Equip branch: a pending cooldown skill installs into this slot.
-        if (selectedSkillId !== null) {
-            if (skillCategory(selectedSkillId) === 'cooldown') {
-                if (rejectEquipInCombat()) return;
-                new EquipMessage(selectedSkillId, slot).send();
-                clearEquipSelection();
-            }
-            return;
-        }
+        if (tryEquipPending('cooldown', slot)) return;
 
         // Activate branch: clicking an occupied, ready slot fires it — the
         // same wire signal as the hotkeys. The server re-validates anyway.

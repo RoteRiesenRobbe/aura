@@ -5,7 +5,10 @@ import {random, randomInt} from '../../common/logic/Utils';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {StatusEffect} from './StatusEffect';
 import {IGame} from '../../core/logic/IGame';
-import {GameSetupEvent} from '../../core/logic/Events';
+import {GameSetupEvent, ISubscriptionToken, PrerenderEvent} from '../../core/logic/Events';
+import {createNamedContainer} from '../../pixi-js/logic/CustomData';
+import * as TextDisplay from '../../../client-data/TextDisplay';
+import {difficultyColor, getLocalPlayerLevel, mobDefinition} from '../../../client-data/Mobs';
 import * as PIXI from 'pixi.js';
 import {createInjectedSVG} from "../../core/logic/InjectedSVG";
 import {AuraTickIndicator} from './AuraTickIndicator';
@@ -51,6 +54,9 @@ const TIER_FRAME_STYLES: readonly { color: number, width: number, alpha: number 
     {color: 0xe8c04a, width: 3, alpha: 0.95},       // 2 boss   — gold
 ];
 
+// Nameplate offset below the overhead HP bar, in px. [PLACEHOLDER]
+const NAMEPLATE_GAP = 16;
+
 export abstract class Mob extends GameObject {
 
     protected actualShape: PIXI.Container;
@@ -80,6 +86,18 @@ export abstract class Mob extends GameObject {
     // once per effective tick interval — reading a mob's beat to dodge its
     // ticks is the design-critical use case.
     private auraTickIndicator: AuraTickIndicator = null;
+    // Level-tinted nameplate (feedback pass C item 2). Like the character
+    // plate it lives on the UNFILTERED namePlates overlay: the whole point of
+    // the plate is its colour, and the night filter would recolour a tint
+    // rendered inside `shape` — a green mob would read yellow at dusk.
+    private plate: PIXI.Container = null;
+    private plateSubToken: ISubscriptionToken = null;
+    private nameElement: PIXI.Text = null;
+    // Last rendered species + difference, so the plate is rebuilt only when
+    // something actually changed (the wire re-sends mobId every tick, and the
+    // difference moves when the PLAYER levels, not the mob).
+    private plateMobId: number = 0;
+    private plateDifference: number = null;
 
     protected constructor(
         id: number,
@@ -94,6 +112,106 @@ export abstract class Mob extends GameObject {
         this.initHealthBar();
         this.isMovable = true;
         this.visibleOnMinimap = false;
+
+        this.plate = createNamedContainer('mobPlate');
+        this.plate.position.copyFrom(this.shape.position);
+        Game.layers.characterAdditions.namePlates.addChild(this.plate);
+        this.plateSubToken = PrerenderEvent.subscribe(this.updatePlate, this);
+    }
+
+    /**
+     * setMobId resolves the species against the /mobs catalog and renders
+     * "<Name> <cL>" under the health bar, tinted by how far the mob's combat
+     * level sits from the player's (decision 5). An id the catalog does not
+     * know (catalog still loading, or fetch failed) renders nothing at all —
+     * a nameless mob beats a mob labelled "undefined".
+     */
+    setMobId(mobId: number) {
+        if (this.plateMobId === mobId) {
+            return;
+        }
+        this.plateMobId = mobId;
+        this.plateDifference = null; // force a re-tint for the new species
+
+        const definition = mobDefinition(mobId);
+        // No plate for an unknown id (catalog still loading or fetch failed —
+        // a nameless mob beats one labelled "undefined"), nor for the
+        // fixtures/summons/obstacles that are MobDefinitions without being
+        // things you fight.
+        if (!definition || !definition.combatTarget) {
+            this.nameElement?.destroy();
+            this.nameElement = null;
+            return;
+        }
+
+        if (this.nameElement === null) {
+            const text = new PIXI.Text({
+                text: '',
+                style: TextDisplay.style({
+                    stroke: {color: '#000000', width: 3},
+                    fontSize: 16,
+                    fontWeight: '700',
+                }),
+            });
+            text.anchor.set(0.5, 0);
+            text.position.set(0, this.nameplateY());
+            this.plate.addChild(text);
+            this.nameElement = text;
+        }
+        this.nameElement.text = `${definition.displayName} ${definition.curveLevel}`;
+    }
+
+    // Y offset of the plate text: under the overhead bar, whose own offset is
+    // derived from the mob size in initHealthBar — kept in one expression so
+    // the two cannot drift apart.
+    private nameplateY(): number {
+        return Math.max(30, this.size * 0.9) + NAMEPLATE_GAP;
+    }
+
+    /**
+     * Per-frame: glue the plate to the (interpolated) mob position and keep
+     * the difficulty tint current. The tint is recomputed rather than pushed
+     * on level-up: it depends on the PLAYER's level, so a push would need
+     * every live mob to subscribe to a level event — this comparison is two
+     * integer ops and only touches PixiJS when the band actually changes.
+     *
+     * The plate also mirrors the shape's alpha so it fades with the mob's
+     * corpse fade-out instead of hanging at full opacity over a vanishing mob.
+     */
+    private updatePlate() {
+        this.plate.position.copyFrom(this.shape.position);
+        this.plate.alpha = this.shape.alpha;
+
+        if (this.nameElement === null) {
+            return;
+        }
+        const definition = mobDefinition(this.plateMobId);
+        if (!definition) {
+            return;
+        }
+        const difference = definition.curveLevel - getLocalPlayerLevel();
+        if (difference === this.plateDifference) {
+            return;
+        }
+        this.plateDifference = difference;
+        this.nameElement.style.fill = difficultyColor(definition.curveLevel);
+    }
+
+    // Terminal for a mob: EntityManager deletes the object on removal and
+    // builds a fresh one if the mob re-enters the viewport, so the overlay
+    // plate is released with it (the Character.hide precedent).
+    override hide() {
+        super.hide();
+        if (this.plateSubToken !== null) {
+            this.plateSubToken.unsubscribe();
+            this.plateSubToken = null;
+        }
+        if (this.plate !== null) {
+            this.plate.parent?.removeChild(this.plate);
+            this.plate.destroy({children: true});
+            this.plate = null;
+            this.nameElement = null;
+        }
     }
 
     /**

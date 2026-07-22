@@ -9,7 +9,7 @@
 // names render as "Skill #<id>", tooltips simply don't show. The game never
 // blocks on the catalog.
 
-import {gameServer} from '../features/backend/logic/Urls';
+import {catalogUrl} from '../features/backend/logic/Urls';
 
 export type SkillCategory = 'aura' | 'passive' | 'cooldown';
 
@@ -174,17 +174,8 @@ const CATEGORY_MAP: { [server: string]: SkillCategory } = {
     cooldown: 'cooldown',
 };
 
-function skillCatalogUrl(): string {
-    // ws://host:2000/game → http://host:2000/skills (wss → https).
-    const url = new URL(gameServer);
-    url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
-    url.pathname = '/skills';
-    url.search = '';
-    return url.toString();
-}
-
 export function loadSkillCatalog(): Promise<void> {
-    return fetch(skillCatalogUrl())
+    return fetch(catalogUrl('skills'))
         .then(response => {
             if (!response.ok) {
                 throw new Error(`GET /skills returned ${response.status}`);

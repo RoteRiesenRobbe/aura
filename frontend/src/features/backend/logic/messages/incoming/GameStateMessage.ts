@@ -195,6 +195,8 @@ function unmarshalEntity(entity, eType) {
         // aura ring colour bitmask + mob tier rank (triage items 7 / 15)
         auraCategory: undefined,
         tier: undefined,
+        // mob definition id — the key into the /mobs catalog (nameplates)
+        mobId: undefined,
         // buff/debuff kinds currently applied TO the entity — drives the pips
         appliedEffects: undefined,
     };
@@ -239,6 +241,10 @@ function unmarshalEntity(entity, eType) {
         // authored tier rank (0 normal / 1 elite / 2 boss) — drives the portrait
         // frame ring (triage item 15).
         result.tier = entity.tier();
+        // species id: the client looks its display name + combat level up in
+        // the /mobs catalog to render the level-tinted nameplate (feedback
+        // pass C item 2). Long-present on the wire, first read here.
+        result.mobId = entity.mobId();
         // buff/debuff kinds currently applied TO the mob — drives the pips.
         result.appliedEffects = entity.appliedEffects();
     }
