@@ -3,7 +3,7 @@
 **Status:** **Pass A DONE 2026-07-22** (A1 + A2, `b0171ffb`), **Pass B DONE
 2026-07-22** (`75486ec9`), **Pass C items 1 + 2 DONE 2026-07-22**
 (`5308c312`) — awaiting the PO in-game feel/read pass. **Pass C item 3 DONE
-2026-07-22** (`[uncommitted]`), PO-approved in-session ("all good now").
+2026-07-22** (`a0a06e79`), PO-approved in-session ("all good now").
 **PASS C IS COMPLETE — the whole playtest-1 feedback plan is executed.**
 **NEXT: the deferred Pass-B items 1c + 1d** (unlock popup sequencing + "Taught
 by: …" source attribution). The tutorial/quest/aura-differentiation themes go
@@ -523,7 +523,7 @@ with its own diagnosis phase and shares no code with 1 or 2.
 
 **Pass C item 3 DONE (2026-07-22), frontend only — PO-approved in-session
 ("all good now"), in-game feel pass still outstanding, committed
-`[uncommitted]`.** Two files, ~35 lines of code. Closes Pass C.
+`a0a06e79`.** Two files, ~35 lines of code. Closes Pass C.
 
 ### The plan's premise was wrong in two ways — diagnosis first
 
