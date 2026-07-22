@@ -53,6 +53,14 @@ var (
 	warpTo    = flag.String("warp", "", "world coords 'x,y' to warp bots to after setup (1-unit granularity)")
 	warpJit   = flag.Float64("warpjitter", 3, "spread bots +/- this many units around -warp so they don't stack on one point")
 	god       = flag.Bool("god", false, "godmode the bots — keeps population stable when warped onto mobs")
+	// Skill LEVEL matters for cost: aura radius scales with it, and a bigger
+	// radius spans more broadphase cells. Levels need skill points, which come
+	// from player level, so this cheats XP first.
+	skillLevel = flag.Int("skilllevel", 0, "raise every granted skill to this level (capped per skill maxLevel); 0 = leave at 1")
+	// Cooldowns are never fired by the game on a player's behalf — only an
+	// explicit activation does. Without this the equipped cooldown slots are
+	// dead weight in the measurement.
+	castEvery = flag.Duration("cast", 0, "request activation of every equipped cooldown slot this often; 0 = never")
 )
 
 // ---- metrics shared across bots
@@ -73,6 +81,14 @@ var (
 	mobsSeen   atomic.Int64
 	mobsAggro  atomic.Int64
 	mobSamples atomic.Int64
+	// per-snapshot loadout census — the server's own account of what each bot
+	// is carrying, averaged over the window. Same reasoning as auraLive: the
+	// cheat/equip/spend paths are all silent on rejection, so the only proof
+	// the build stuck is reading it back out of the bot's own GameState.
+	passivesFilled atomic.Int64
+	cdsFilled      atomic.Int64
+	cdsOnCooldown  atomic.Int64 // >0 means the cooldown actually fired
+	levelsSpent    atomic.Int64 // sum of (level-1) over the spellbook
 )
 
 // ---- resolved once in main, read-only for the bots
@@ -83,7 +99,12 @@ var (
 	// activateSlot is the aura slot the bots switch on after setup, or -1 when
 	// the loadout has no active aura.
 	activateSlot int8 = -1
+	// cooldownSlots are the slot indices the bots mash every castTicks ticks.
+	cooldownSlots []uint8
+	castTicks     int
 )
+
+var castsSent atomic.Int64
 
 type bot struct {
 	name    string
@@ -123,13 +144,27 @@ func buildJoin(name string) []byte {
 // Send an activation exactly ONCE — SetActiveAura resets the slot's TickAccumulator
 // on every call, so re-sending it each tick would keep an aura with tickInterval 40
 // permanently at accumulator 0 and it would never fire.
-func buildInput(tick uint64, mx, my, rot float32, auraSlot int8) []byte {
+// cds are cooldown slot indices to activate this tick; the server ignores any
+// slot that is empty or still counting down, so pressing every button on an
+// interval is a fair stand-in for a player mashing them.
+func buildInput(tick uint64, mx, my, rot float32, auraSlot int8, cds []uint8) []byte {
 	bl := flatbuffers.NewBuilder(64)
+	var cdVec flatbuffers.UOffsetT
+	if len(cds) > 0 {
+		AuraApi.InputStartCooldownActivationsVector(bl, len(cds))
+		for i := len(cds) - 1; i >= 0; i-- { // vectors are built back to front
+			bl.PrependByte(cds[i])
+		}
+		cdVec = bl.EndVector(len(cds))
+	}
 	AuraApi.InputStart(bl)
 	AuraApi.InputAddTick(bl, tick)
 	AuraApi.InputAddMovement(bl, AuraApi.CreateVec2f(bl, mx, my))
 	AuraApi.InputAddRotation(bl, rot)
 	AuraApi.InputAddActiveAuraSlot(bl, auraSlot)
+	if len(cds) > 0 {
+		AuraApi.InputAddCooldownActivations(bl, cdVec)
+	}
 	body := AuraApi.InputEnd(bl)
 	AuraApi.ClientMessageStart(bl)
 	AuraApi.ClientMessageAddBodyType(bl, AuraApi.ClientMessageBodyInput)
@@ -166,6 +201,18 @@ func buildEquip(skillID uint16, slot int8) []byte {
 	return bl.FinishedBytes()
 }
 
+func buildSpend(skillID uint16) []byte {
+	bl := flatbuffers.NewBuilder(64)
+	AuraApi.SpendSkillPointStart(bl)
+	AuraApi.SpendSkillPointAddSkillId(bl, skillID)
+	body := AuraApi.SpendSkillPointEnd(bl)
+	AuraApi.ClientMessageStart(bl)
+	AuraApi.ClientMessageAddBodyType(bl, AuraApi.ClientMessageBodySpendSkillPoint)
+	AuraApi.ClientMessageAddBody(bl, body)
+	bl.Finish(AuraApi.ClientMessageEnd(bl))
+	return bl.FinishedBytes()
+}
+
 // ---- skill catalog: resolve names to registry ids over GET /skills so the
 // bot never hardcodes an id that a content edit could shift underneath it.
 
@@ -173,6 +220,7 @@ type catalogEntry struct {
 	ID       uint16 `json:"id"`
 	Name     string `json:"name"`
 	Category string `json:"category"`
+	MaxLevel int    `json:"maxLevel"`
 }
 
 // loadout is one resolved skill plus the slot it goes to. The server routes by
@@ -182,6 +230,7 @@ type loadout struct {
 	category string
 	id       uint16
 	slot     int8
+	maxLevel int
 }
 
 func resolveLoadout(names []string) ([]loadout, error) {
@@ -215,9 +264,21 @@ func resolveLoadout(names []string) ([]loadout, error) {
 			return nil, fmt.Errorf("more than 3 %s skills requested", e.Category)
 		}
 		perCategory[e.Category] = slot + 1
-		out = append(out, loadout{name: e.Name, category: e.Category, id: e.ID, slot: slot})
+		out = append(out, loadout{name: e.Name, category: e.Category, id: e.ID, slot: slot, maxLevel: e.MaxLevel})
 	}
 	return out, nil
+}
+
+// targetLevel is the level this skill is driven to: the -skilllevel request
+// clamped to what the skill actually supports. Pass a big number to max out.
+func (l loadout) targetLevel() int {
+	if *skillLevel < 1 {
+		return 1
+	}
+	if l.maxLevel > 0 && *skillLevel > l.maxLevel {
+		return l.maxLevel
+	}
+	return *skillLevel
 }
 
 // setupSeq is the per-bot bring-up. Every one-shot client message rides a
@@ -231,6 +292,17 @@ func setupSeq(id int) [][]byte {
 	}
 	for _, l := range equipPlan {
 		msgs = append(msgs, buildCheat(*token, "SKILL "+l.name))
+	}
+	if *skillLevel > 1 {
+		// Skill points are derived from player level (level-1, one per level),
+		// so buy the whole budget in one shot — XP overshoots freely, the
+		// server clamps the level at the conf maxLevel.
+		msgs = append(msgs, buildCheat(*token, "XP 100000000"))
+		for _, l := range equipPlan {
+			for lvl := 1; lvl < l.targetLevel(); lvl++ {
+				msgs = append(msgs, buildSpend(l.id))
+			}
+		}
 	}
 	for _, l := range equipPlan {
 		msgs = append(msgs, buildEquip(l.id, l.slot))
@@ -266,6 +338,8 @@ func spawnBot(id int) (*bot, error) {
 	// puts it back to -1 (see buildInput's note on TickAccumulator).
 	pendingAura := atomic.Int32{}
 	pendingAura.Store(-1)
+	// cooldown mashing only starts once the slots are actually filled
+	casting := atomic.Bool{}
 
 	// reader: drains snapshots, tracks the authoritative tick
 	go func() {
@@ -317,6 +391,31 @@ func spawnBot(id int) (*bot, error) {
 					mobsAggro.Add(aggro)
 					mobSamples.Add(1)
 
+					// loadout census — same window, same denominator
+					var pf, cf, cc, spent int64
+					for j := 0; j < gs.PassiveSlotsLength(); j++ {
+						if gs.PassiveSlots(j) != 0 {
+							pf++
+						}
+					}
+					for j := 0; j < gs.CooldownSlotsLength(); j++ {
+						if gs.CooldownSlots(j) != 0 {
+							cf++
+						}
+					}
+					for j := 0; j < gs.CooldownRemainingTicksLength(); j++ {
+						if gs.CooldownRemainingTicks(j) > 0 {
+							cc++
+						}
+					}
+					for j := 0; j < gs.SpellbookLevelsLength(); j++ {
+						spent += int64(gs.SpellbookLevels(j)) - 1
+					}
+					passivesFilled.Add(pf)
+					cdsFilled.Add(cf)
+					cdsOnCooldown.Add(cc)
+					levelsSpent.Add(spent)
+
 					live := gs.ActiveAuraSlot() >= 0 && gs.AuraSlotsLength() > 0 && gs.AuraSlots(0) != 0
 					if live != armed {
 						armed = live
@@ -355,6 +454,7 @@ func spawnBot(id int) (*bot, error) {
 			}
 			setupDone.Add(1)
 			pendingAura.Store(int32(activateSlot))
+			casting.Store(true)
 		}()
 	}
 
@@ -364,6 +464,8 @@ func spawnBot(id int) (*bot, error) {
 		defer t.Stop()
 		phase := rand.Float64() * math.Pi * 2
 		heading := rand.Float64() * math.Pi * 2 // fixed per-bot walk direction
+		// stagger the mash across bots so 140 activations don't land on one tick
+		castCounter := rand.Intn(max(1, castTicks))
 		for {
 			select {
 			case <-b.stop:
@@ -387,7 +489,16 @@ func spawnBot(id int) (*bot, error) {
 					aura = int8(p)
 					auraOn.Add(1)
 				}
-				if err := b.send(buildInput(lt+1, mx, my, float32(phase), aura)); err != nil {
+				var cds []uint8
+				if castTicks > 0 && casting.Load() {
+					castCounter++
+					if castCounter >= castTicks {
+						castCounter = 0
+						cds = cooldownSlots
+						castsSent.Add(1)
+					}
+				}
+				if err := b.send(buildInput(lt+1, mx, my, float32(phase), aura, cds)); err != nil {
 					b.close()
 					return
 				}
@@ -456,10 +567,23 @@ func main() {
 			log.Fatalf("resolving -skills: %v", err)
 		}
 		for _, l := range equipPlan {
-			fmt.Printf("loadout: %-16s id=%-4d %-13s slot=%d\n", l.name, l.id, l.category, l.slot)
+			fmt.Printf("loadout: %-16s id=%-4d %-13s slot=%d level=%d\n",
+				l.name, l.id, l.category, l.slot, l.targetLevel())
 			if l.category == "active_aura" && l.slot == 0 {
 				activateSlot = 0
 			}
+			if l.category == "cooldown" {
+				cooldownSlots = append(cooldownSlots, uint8(l.slot))
+			}
+		}
+	}
+	if *castEvery > 0 {
+		castTicks = int(castEvery.Seconds() * 30)
+		if castTicks < 1 {
+			castTicks = 1
+		}
+		if len(cooldownSlots) == 0 {
+			log.Fatal("-cast needs at least one cooldown skill in -skills")
 		}
 	}
 	if *warpTo != "" {
@@ -507,6 +631,11 @@ func main() {
 		mobsSeen.Store(0)
 		mobsAggro.Store(0)
 		mobSamples.Store(0)
+		passivesFilled.Store(0)
+		cdsFilled.Store(0)
+		cdsOnCooldown.Store(0)
+		levelsSpent.Store(0)
+		castsSent.Store(0)
 		start := time.Now()
 
 		time.Sleep(*hold)
@@ -543,6 +672,16 @@ func main() {
 				"   (setup sent %d/%d, activations %d, auras CONFIRMED LIVE %d/%d | mobs/viewport %.1f, aggroed %.1f)\n",
 				setupDone.Load(), liveBots, auraOn.Load(), auraLive.Load(), liveBots,
 				float64(mobsSeen.Load())/n, float64(mobsAggro.Load())/n)
+			// The rest of the build, read back the same way: per-bot averages
+			// over the window. points/bot is the honest check that the spends
+			// landed — it is the server's own (level-1) sum over the spellbook.
+			if *skillLevel > 1 || castTicks > 0 {
+				fmt.Fprintf(os.Stderr,
+					"   (per bot: passives %.2f, cooldowns equipped %.2f, on-cooldown %.2f, points spent %.1f | casts requested %d)\n",
+					float64(passivesFilled.Load())/n, float64(cdsFilled.Load())/n,
+					float64(cdsOnCooldown.Load())/n, float64(levelsSpent.Load())/n,
+					castsSent.Load())
+			}
 		}
 	}
 

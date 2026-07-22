@@ -87,6 +87,8 @@ go run ./cmd/loadbot -scheme wss -addr aura-game.duckdns.org:443 -stats "" \
 | `-warp` | — | `x,y` world coords to drop bots at. **1-unit granularity** — `WARP` integer-divides by 120 (`sys/cmd/cmd.go:76`) |
 | `-warpjitter` | `3` | spread bots ±N units around `-warp` so they don't stack on one point |
 | `-god` | off | godmode the bots. **Use whenever `-warp`ing onto mobs** — otherwise bots die, never send `Respawn`, and rot as spectators while `connected` still counts them |
+| `-skilllevel` | `0` (= level 1) | drive every granted skill to this level, clamped per skill `maxLevel`. Pass `99` to max everything. Cheats `XP 100000000` first, since points are derived from player level (level−1, one per level, capped at 30 ⇒ **29 points**) |
+| `-cast` | off | how often each bot requests activation of **every** equipped cooldown slot. The server drops slots that are empty or still counting down, so this is a fair stand-in for a player mashing the keys. Nothing else ever fires a player cooldown |
 
 ### Reading skill-mode output
 
@@ -104,6 +106,18 @@ Each step adds a line like:
   0/N, the run measured nothing and the numbers are a walking-bot run.**
 - **`aggroed`** — a mob reports non-zero `aura_radius` only once it has aggroed
   (`server.fbs:161`), so this is the proof combat is actually running.
+- With `-skilllevel` / `-cast` a second line appears, read back the same way out
+  of each bot's own `GameState`:
+
+  ```
+  (per bot: passives 3.00, cooldowns equipped 3.00, on-cooldown 2.60, points spent 28.0 | casts requested 300)
+  ```
+
+  **`points spent`** is the honest check that the spends landed — it is the
+  server's own `sum(level−1)` over the spellbook. **`on-cooldown`** counts slots
+  with a non-zero remaining timer, i.e. the proof the cooldowns actually *fired*
+  rather than just sitting equipped. Equip and spend are as silent on rejection
+  as the cheat token is.
 - Compare mob census between an aura run and its control. They will **not**
   match: auras kill mobs (census falls), a control doesn't (census climbs).
 
@@ -123,6 +137,26 @@ go run ./cmd/loadbot -scheme wss -addr aura-game.duckdns.org:443 -stats "" \
 `(38,31)` is the densest spawn cluster in `world.json` (16 spawns in a 10×10
 box). Bots do not need to be placed *on* a spawn — mobs aggro and close the
 distance themselves.
+
+### Max build
+
+Everything a level-30 character can carry at once — 3 auras, 3 passives,
+3 cooldowns, all maxed, cooldowns mashed. `-settle 15s` because bring-up is
+~50 spaced messages per bot (grant ×9, XP, spend ×28, equip ×9, warp):
+
+```shell
+go run ./cmd/loadbot -scheme wss -addr aura-game.duckdns.org:443 -stats "" \
+  -steps 20,40,60,80,100,140 -hold 30s -settle 15s \
+  -token "$TOKEN" -god -warp "38,31" \
+  -skills "Suppression,Damage,Wildfire,Swift,Strong,KeenEye,NovaBurst,DamageBurst,Barrier" \
+  -skilllevel 99 -cast 2s
+```
+
+Two things bound how much build is reachable, and neither is the harness:
+**3 slots per category** and **29 skill points** at the level cap (this loadout
+spends 28). Back-to-back runs are safe — a still-stashed bot name gets mangled
+rather than rejected — but leave a gap for mobs to respawn, or the second run
+fights a thinner field (see the 2026-07-22 evening results).
 
 ## Results — 2026-07-22
 
@@ -190,6 +224,66 @@ radius scales with skill level and a bigger radius means more broadphase cells,
 so a maxed-out build should cost more than this. Player-vs-player auras never
 apply (PvP-off rests entirely on `targetsAllies: false`, `skills.go:444-450`),
 so clustered bots never damage each other — only mobs.
+
+## Results — 2026-07-22 evening, after the idle-alloc fix `fe0044d0`
+
+Same live box, empty server, same spot `(38,31)`, clustered. Two ramps
+back to back, 30 s hold. Run A repeats the morning's aura column verbatim so
+the fix can be read off directly; run B is the heaviest build a level-30
+character can legally carry.
+
+| bots | A: Damage L1 (pre-fix, morning) | A: Damage L1 (post-fix) | B: max build |
+|---|---|---|---|
+| 20 | 30.0 | 30.0 | 30.0 |
+| 40 | 30.0 | 30.0 | 30.0 |
+| 60 | 30.0 | 30.0 | 29.8 |
+| 80 | 26.8 | **28.7** | **18.8** |
+| 100 | 17.1 | **20.7** | **11.1** |
+| 140 | 8.9 | **10.1** | 5.2 |
+
+**The fix bought headroom past the knee, not a higher ceiling.** +7 % at 80,
++21 % at 100, +13 % at 140 — real, but at 100 bots it is only about 2× the
+~1.8 snap/s run-to-run noise measured in the morning, so treat the size as
+approximate. Everything at or below 60 was already a full 30 Hz before and
+still is. **The clustered ceiling stays ~60–70.** That is the expected shape:
+the fix removed *allocation*, and past the knee the loop is bound by
+single-threaded snapshot encoding, which it did not touch.
+
+### Run B — the max build
+
+```
+Suppression L5 (active) + Damage L5 + Wildfire L5     3 aura slots
+Swift L3 + Strong L5 + KeenEye L5                     3 passive slots
+NovaBurst L3 + DamageBurst L3 + Barrier L3            3 cooldown slots, mashed every 2 s
+```
+
+28 of the 29 available skill points, confirmed live on every bot
+(`points spent 28.0`, `passives 3.00`, `cooldowns equipped 3.00`,
+`on-cooldown ~2.6–2.9`). Suppression is the active aura on purpose: at L5 its
+radius is **3.0**, the largest any player aura reaches, and radius is what
+drags the broadphase. Only one aura is ever active — that is the design, not a
+harness limit — so three equipped auras cost little beyond the one that is on.
+
+**A fully built raid is roughly one step worse than the L1 baseline**: 80 bots
+drops from 28.7 to 18.8, 100 from 20.7 to 11.1. **Ceiling for maxed players:
+~60.**
+
+That comparison is *conservative*. Run B fought a **thinner** mob field than run
+A (9–12 mobs/viewport vs 16–21) because run A had just killed them and 60 s of
+cooldown was not enough for the ×2 respawn timers. Less work, and still slower.
+
+### Server-side during the ramps
+
+`/proc` on the live box, sampled every 20 s:
+
+- CPU peaked at **147 % of one core** (run A) and **136 %** (run B) — i.e. ~70 %
+  of the 2-vCPU box. **It never saturated.** The loop cannot spend the second
+  vCPU; the surplus is websocket write goroutines. This is the wall below,
+  visible from the outside.
+- RSS 29 → 51 MB across both ramps; back to 45 MB idle afterwards.
+- Worst tick observed: `Overload! Systems at: 772%` ≈ 255 ms for a 33 ms budget.
+- No panics, no OOM, no dropped connections. Back to ~21 % of a core idle with
+  0 overloads once the bots left.
 
 ## The wall (and how to move it)
 
