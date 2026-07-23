@@ -1276,3 +1276,135 @@ stackable build-wide via a passive stat. Recorded as a doctrine amendment.
 **Scope guess:** one mini-chunk (lift ~20–30 lines + tests + one passive +
 placement). **Scheduled: own mini-chunk after C8 closes** (PO 2026-07-20) —
 slots naturally next to the post-C8 combat-readability items 7/15.
+
+---
+
+## 24. Tech debt: the entity→system registration matrix in `core/game.go`
+
+**Origin:** code-health question 2026-07-24 ("is game.go growing and growing?").
+Answer to the literal question was **no** — see *Non-finding* below — but the
+review surfaced one genuine smell worth recording before it's forgotten.
+Nothing here is scheduled; it is **not** blocking any roadmap step.
+
+### Non-finding: the file is not growing
+
+Line count of `core/game.go` (and its pre-rename ancestors) over its life:
+
+| date | lines |
+|---|---|
+| 2024-04-12 `81f97a42` | 429 |
+| 2024-12-12 `54d83240` | 457 |
+| 2026-07-03 `b8993221` | 479 |
+| 2026-07-08 `7979a93a` | 457 ← dead-feature prune (scoreboard) |
+| 2026-07-12 `239cb229` | 427 ← heater removal |
+| 2026-07-24 | 494 |
+
+**+65 lines in 27 months, with two net shrinks.** What reads as growth is
+*edit frequency* — game.go is touched by every new system and every new entity
+type — not size. For scale, `sys/skills.go` is 1594 lines, `model/mob/mob.go`
+1418, `skills/definition.go` 1334; game.go is a third of those. If a file-size
+pass is ever wanted, those are the targets, not this one.
+
+### Provenance: inherited, not introduced here
+
+`git log -S` per helper:
+
+| helper | added | by |
+|---|---|---|
+| `addSpectator`, `addMobEntity`, `addPlaceableEntity`, `addEntity`, `addResourceEntity`, `addPlayer` | **2017-08-20** `82569117` "Moar packages :)" | Thomas Richner (original Berryhunter) |
+| `addPlaceableResourceEntity` | 2024-12-08 `39c432a2` | R. Zander |
+| `addCorpse` | 2026-07-13 `2ec15c6d` | RoteRiesenRobbe (atmosphere & recovery chunk 4) |
+| `addNpcEntity` | 2026-07-14 `9d71f9ad` | RoteRiesenRobbe (plan-npc-teaching chunk 2) |
+
+**Six of eight are original Berryhunter, structurally unchanged for nine
+years** (the 2018-09 and 2024-04 snapshots carry the identical function list).
+This project added two, while adding two entity types — i.e. growth is exactly
+one helper per new entity kind, the pattern behaving as designed. Extending it
+rather than rewriting was also the correct call under the CLAUDE.md rule
+*"treat the inherited physics, collision, and the WebSocket/FlatBuffers
+protocol as stable foundations. Extend, don't rewrite."* This item sits on that
+boundary and should not be actioned casually.
+
+### The actual smell
+
+`game.go:252–439` — `AddEntity` plus 8 `addXxx` helpers, each looping over all
+16 registered systems and type-switching to pick out the 2–10 it cares about.
+A hand-maintained 8×13 sparse matrix expressed as nested control flow.
+
+Cost is **not** performance (registration is rare and off the hot path). It is
+the **silent failure mode**: a forgotten `case` drops the entity from a system
+with no compile error and no runtime error. Already bitten once — the comment
+at `game.go:353` exists because routing NPCs through the generic path
+*"would register only `Bodies()[0]` and silently drop the sensor."*
+
+**⚑ The trap for anyone attacking this:** the matrix is not "which systems does
+entity X join" but **"which systems, _and how_"**. `PhysicsSystem` alone is
+registered four different ways across the eight helpers:
+
+- `addPlayer` / `addMobEntity` / `addPlaceable*` → `s.AddEntity(e)` (dynamic)
+- `addEntity` → `s.AddStaticBody(e.Basic(), e.Bodies()[0])`
+- `addNpcEntity` → `AddStaticBody(...)` **plus** `s.Space().AddShape(e.Sensor())`
+  (a static sensor is never reported by the broadphase — see `game.go:353`)
+- `addCorpse` → `s.AddEntity(e)` *specifically* because corpses must be
+  removable and `PhysicsSystem.Remove` panics on static bodies (`game.go:338`)
+
+Any naive "just invert it" refactor hits this wall. Record it before proposing
+one.
+
+### Free cleanup — ✅ DONE 2026-07-24 (uncommitted at time of writing)
+
+**`addPlaceableResourceEntity` was dead weight.** It was effect-identical to
+`addPlaceableEntity` — same five systems, same calls, same order — and its own
+comment admitted it (*"Currently matches 100% the addPlaceableEntity
+registration"*). Since `PlaceableResourceEntity` embeds `PlaceableEntity`
+(`model/entity.go:76–79`), the function **and** its case in `AddEntity` were
+deleted; resources now fall through to the placeable branch.
+
+**Shipped:** `game.go` **494 → 471 lines**, no behavior change. A 3-line
+comment now sits at the fall-through point explaining *why* there is no
+dedicated case — the old comment recorded the duplication but not that the
+fall-through was safe, which is what would have invited someone to re-add it.
+Safe because the earlier `PlayerEntity` / `MobEntity` cases precede where the
+resource case sat, so removing it cannot change which earlier branch wins;
+only the ordering against `PlaceableEntity` mattered, and both bodies were
+identical.
+
+**Verified:** `go build ./...` exit 0, `go vet ./pkg/aura/core/` exit 0,
+`go test ./...` **29 packages with tests pass / 0 failures**, boot
+`83 skills/14 factions/50 mobs/10 recipes/777 props/471 spawns/5 campfires
+(safeRadius 1.5)/14 npcs, 0 panics` — the boot count is the real proof, since
+resources are registered during zone placement.
+
+### Options (none chosen)
+
+- **A — Invert the registration.** Add `interface{ Register(model.BasicEntity) }`;
+  each system type-asserts for what it wants (`DecaySystem` decides what is
+  decayable, not `game.go`). Collapses ~190 lines to ~10 and is a genuine
+  dependency inversion, not mere indirection. **Costs:** the four how-variants
+  above migrate into per-system type switches (complexity relocates rather than
+  vanishes — though arguably *to its owner*, since static-vs-dynamic bodies are
+  physics' business), and "which systems does a mob join?" stops being
+  answerable by reading one screen. A real refactor with a real tradeoff —
+  deliberate decision, not drive-by.
+- **B — Pin it, keep it.** Table-driven test asserting, per entity type, the
+  exact set of systems it lands in. Removes the only *dangerous* property (the
+  silent drop) and leaves the 8 clones merely verbose, which is harmless.
+  **~1 hour, near-zero risk.** Also the prerequisite that makes A safe later,
+  by proving a refactor dropped nothing.
+- **C — Do nothing.** Defensible: stable for nine years, explicit, greppable,
+  and it has cost one authoring-time bug total.
+
+**Cosmetic, and explicitly *not* a fix for the above:** moving `AddEntity` +
+the 8 helpers verbatim into a new `core/entities.go` (same package). game.go
+drops to ~300 lines and becomes one thing — *wiring + loop* — while
+entities.go becomes one thing — *the entity→system matrix*. Worth doing on its
+own readability merits, but it relocates the smell, it does not address it.
+File it as a separate, smaller item so the two don't get conflated.
+
+**Recommendation on record (2026-07-24):** **B now if/when it's picked up, A
+only if a future entity type makes the matrix actually hurt.** The free
+cleanup is done (above); everything else is **not scheduled**.
+
+**Scope guess:** ~~free cleanup ~10 min~~ ✅ done; B ~1 hour; the entities.go
+split ~15 min (mechanical, `go build` + `go test ./...`); A is a half-day-plus
+with a real design decision in front of it.

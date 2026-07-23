@@ -259,8 +259,9 @@ func (g *game) AddEntity(e model.BasicEntity) {
 		g.addPlayer(v)
 	case model.MobEntity:
 		g.addMobEntity(v)
-	case model.PlaceableResourceEntity:
-		g.addPlaceableResourceEntity(v)
+	// PlaceableResourceEntity embeds PlaceableEntity (model/entity.go) and
+	// needed exactly the same registrations, so it has no case of its own —
+	// resources fall through to the placeable path.
 	case model.PlaceableEntity:
 		g.addPlaceableEntity(v)
 	case model.Spectator:
@@ -381,30 +382,6 @@ func (g *game) addEntity(e model.Entity) {
 			s.AddStaticBody(e.Basic(), e.Bodies()[0])
 		case *NetSystem:
 			s.AddEntity(e)
-		}
-	}
-}
-
-func (g *game) addPlaceableResourceEntity(p model.PlaceableResourceEntity) {
-	// Loop over all Systems
-	for _, system := range g.Systems() {
-		// Use a type-switch to figure out which System is which
-		switch s := system.(type) {
-
-		// Create a case for each System you want to use
-
-		// Currently matches 100% the addPlaceableEntity registration,
-		// but only because resources use a sub set of the placeable systems.
-		case *sys.PhysicsSystem:
-			s.AddEntity(p)
-		case *NetSystem:
-			s.AddEntity(p)
-		case *statuseffects.StatusEffectsSystem:
-			s.Add(p, p)
-		case *sys.UpdateSystem:
-			s.AddUpdateable(p)
-		case *sys.DecaySystem:
-			s.AddDecayable(p)
 		}
 	}
 }
