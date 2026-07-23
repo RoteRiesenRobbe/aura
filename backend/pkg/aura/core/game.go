@@ -183,6 +183,13 @@ func (g *game) SetCampfireAnchors(campfires []sys.CampfireAnchor) {
 	g.connState.SetCampfireAnchors(campfires)
 }
 
+// PlayerCount is the number of joined characters in the world, for cmd/aurad's
+// GET /players endpoint. Safe to call off the game-loop goroutine — the
+// ConnectionStateSystem publishes it atomically once per tick.
+func (g *game) PlayerCount() int {
+	return g.connState.PlayerCount()
+}
+
 func (g *game) Bounds() (width, height float32) {
 	return g.boundsWidth, g.boundsHeight
 }

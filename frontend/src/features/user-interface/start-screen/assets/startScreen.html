@@ -47,6 +47,19 @@
 			<div id="loadingBar"></div>
 		</div>
 
+		<!-- Players online (PlayerCount.ts). Starts hidden; the first successful
+		     GET /players reveals it, so a server without the endpoint shows
+		     nothing rather than a placeholder. -->
+		<div id="playerCount" class="hidden" title="Players online">
+			<span>currently online</span>
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+			     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+				<circle cx="12" cy="7" r="4"/>
+			</svg>
+			<span id="playerCountValue"></span>
+		</div>
+
 		<!--		<a href="#changelog" id="betaStamp"><img src="./betaStamp.svg" /></a>-->
 <!--		<a href="#changelog" id="betaStamp" class="text-mode">Playtest<br />20.10.2024</a>-->
 		<a href="#changelog" id="betaStamp" class="text-mode off-season">Prototype</a>

@@ -13,6 +13,7 @@ import {
     StartScreenDomReadyEvent
 } from "../../../core/logic/Events";
 import * as SocialMedia from "../../social-media-links/logic/SocialMedia";
+import * as PlayerCount from "./PlayerCount";
 
 
 let _progress = 0;
@@ -78,6 +79,8 @@ export function onDomReady() {
 
     Credits.setup();
 
+    PlayerCount.setup(rootElement);
+
     StartScreenDomReadyEvent.trigger(rootElement);
 }
 
@@ -87,6 +90,7 @@ export function show() {
 
 export function hide() {
     rootElement.classList.add('hidden');
+    PlayerCount.stop();
 }
 
 PreloadingProgressedEvent.subscribe(setProgress);

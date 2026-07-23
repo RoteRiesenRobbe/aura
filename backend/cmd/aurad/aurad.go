@@ -229,10 +229,11 @@ func main() {
 
 	//---- set up server
 
-	// Content-catalog sidecars: parsed registries as JSON, the client's single
-	// source of the per-definition metadata it renders. /skills feeds the skill
-	// tooltips (plan-ui-polish chunk 1), /mobs the level-tinted nameplates
-	// (feedback pass C item 2). Both are static after boot.
+	// Sidecar endpoints, served on the same mux as /game. /skills and /mobs are
+	// content catalogs — the parsed registries as JSON, the client's single
+	// source of the per-definition metadata it renders (skill tooltips,
+	// plan-ui-polish chunk 1; level-tinted nameplates, feedback pass C item 2),
+	// static after boot. /players is the one live one.
 	skillsHandler, err := skills.CatalogHandler(skillsRegistry)
 	if err != nil {
 		slog.Error("failed to build skill catalog", slog.Any("error", err))
@@ -243,12 +244,17 @@ func main() {
 		slog.Error("failed to build mob catalog", slog.Any("error", err))
 		panic(err)
 	}
-	catalogs := map[string]http.Handler{
-		"/skills": skillsHandler,
-		"/mobs":   mobsHandler,
+	counter, ok := g.(playerCounter)
+	if !ok {
+		panic("game does not report a player count")
+	}
+	sidecars := map[string]http.Handler{
+		"/skills":  skillsHandler,
+		"/mobs":    mobsHandler,
+		"/players": playersHandler(counter),
 	}
 
-	if err := bootHttp(g.Handler(), catalogs, config.Server, dev); err != nil {
+	if err := bootHttp(g.Handler(), sidecars, config.Server, dev); err != nil {
 		slog.Error("failed to boot HTTP server", slog.Any("error", err))
 		panic(err)
 	}
@@ -256,16 +262,16 @@ func main() {
 	g.Loop()
 }
 
-func bootHttp(gameHandler http.Handler, catalogs map[string]http.Handler, cfg cfg.Server, dev bool) error {
+func bootHttp(gameHandler http.Handler, sidecars map[string]http.Handler, cfg cfg.Server, dev bool) error {
 	if cfg.TlsHost != "" {
-		return bootTlsServer(gameHandler, catalogs, cfg, dev)
+		return bootTlsServer(gameHandler, sidecars, cfg, dev)
 	} else {
-		bootServer(gameHandler, catalogs, cfg, dev)
+		bootServer(gameHandler, sidecars, cfg, dev)
 	}
 	return nil
 }
 
-func bootTlsServer(gameHandler http.Handler, catalogs map[string]http.Handler, cfg cfg.Server, dev bool) error {
+func bootTlsServer(gameHandler http.Handler, sidecars map[string]http.Handler, cfg cfg.Server, dev bool) error {
 	host := cfg.TlsHost
 
 	port := cfg.Port
@@ -296,7 +302,7 @@ func bootTlsServer(gameHandler http.Handler, catalogs map[string]http.Handler, c
 	mux := http.NewServeMux()
 
 	mux.Handle("/game", gameHandler)
-	for path, handler := range catalogs {
+	for path, handler := range sidecars {
 		mux.Handle(path, handler)
 	}
 
@@ -340,7 +346,7 @@ func determineCacheDir() (string, error) {
 	return os.UserCacheDir()
 }
 
-func bootServer(gameHandler http.Handler, catalogs map[string]http.Handler, cfg cfg.Server, dev bool) {
+func bootServer(gameHandler http.Handler, sidecars map[string]http.Handler, cfg cfg.Server, dev bool) {
 	port := cfg.Port
 
 	slog.Info("🦄 Booting game-server", slog.String("addr", fmt.Sprintf(":%d/game", port)))
@@ -348,7 +354,7 @@ func bootServer(gameHandler http.Handler, catalogs map[string]http.Handler, cfg 
 
 	mux := http.NewServeMux()
 	mux.Handle("/game", gameHandler)
-	for path, handler := range catalogs {
+	for path, handler := range sidecars {
 		mux.Handle(path, handler)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"sync/atomic"
 
 	"github.com/EngoEngine/ecs"
 	"github.com/google/flatbuffers/go"
@@ -126,6 +127,22 @@ type ConnectionStateSystem struct {
 	// stashByToken holds disconnected characters awaiting reconnect, keyed by
 	// their token; swept by TTL.
 	stashByToken map[string]reconnectStash
+	// playerCount mirrors len(players), republished at the end of every
+	// Update. The players slice itself may only be touched by the game-loop
+	// goroutine; this is the cross-goroutine window onto it (see PlayerCount).
+	playerCount atomic.Int64
+}
+
+// PlayerCount is the number of joined characters currently in the world.
+//
+// It is served over HTTP (GET /players, the start screen's "players online"
+// readout), so it is deliberately a per-tick snapshot rather than a live
+// len(s.players): the handler runs on a net/http goroutine and reading the
+// slice there would race the loop's appends and splices. Same shape as
+// core.TickStats. Spectators — clients on the start screen or the death
+// overlay — are not players and are not counted.
+func (s *ConnectionStateSystem) PlayerCount() int {
+	return int(s.playerCount.Load())
 }
 
 // SetCampfireAnchors installs the placed campfires as respawn anchors.
@@ -215,6 +232,9 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 	}
 
 	s.trackCampfireDwell()
+
+	// Publish the count last, after this tick's joins and deaths have settled.
+	s.playerCount.Store(int64(len(s.players)))
 }
 
 // sweepExpiredStashes drops stashed characters whose owner never came back:
