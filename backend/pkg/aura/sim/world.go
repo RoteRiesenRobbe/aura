@@ -291,5 +291,6 @@ func (nopClient) NextEquip() *model.EquipSkill                { return nil }
 func (nopClient) NextSpendSkillPoint() *model.SpendSkillPoint { return nil }
 func (nopClient) NextRespawn() *model.Respawn                 { return nil }
 func (nopClient) SendMessage([]byte) error                    { return nil }
+func (nopClient) SendUnlock(uint64, string) error             { return nil }
 func (nopClient) Close()                                      {}
 func (nopClient) UUID() uuid.UUID                             { return uuid.Nil }

@@ -4,6 +4,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"log/slog"
 	"math"
+	"strconv"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
@@ -716,8 +717,10 @@ func (p *player) LevelProgressXP() (gained, required uint64) {
 // Called on level-up; from/to are both inclusive so a multi-level jump catches all entries.
 func (p *player) applyMilestoneUnlocks(from, to uint32) {
 	for _, u := range p.milestoneUnlocks {
-		if u.Level >= from && u.Level <= to {
+		if u.Level >= from && u.Level <= to && !p.skills.HasDiscovered(u.Skill.ID) {
 			p.skills.Discover(u.Skill.ID)
+			// Attribute the unlock to the milestone level (plan-unlock-attribution.md).
+			p.client.SendUnlock(uint64(u.Skill.ID), "Level "+strconv.Itoa(int(u.Level))+" reward")
 			slog.Info("milestone unlock", slog.String("player", p.name), slog.String("skill", u.Skill.Name), slog.Uint64("level", uint64(u.Level)))
 		}
 	}
@@ -735,6 +738,9 @@ func (p *player) ApplyRecipeCascade() {
 		return
 	}
 	for _, id := range skills.ApplyRecipes(p.skills, p.recipes) {
+		// A combination has no source entity — attribute it generically
+		// (plan-unlock-attribution.md).
+		p.client.SendUnlock(uint64(id), "Combination discovered")
 		slog.Info("combination unlock", slog.String("player", p.name), slog.Int("skillID", int(id)))
 	}
 }

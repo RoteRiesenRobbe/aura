@@ -79,6 +79,7 @@ func (c *stubClient) NextCheat() *model.Cheat             { return nil }
 func (c *stubClient) NextChatMessage() *model.ChatMessage { return nil }
 func (c *stubClient) NextRespawn() *model.Respawn         { return nil }
 func (c *stubClient) SendMessage([]byte) error            { return nil }
+func (c *stubClient) SendUnlock(uint64, string) error     { return nil }
 func (c *stubClient) Close()                              {}
 func (c *stubClient) UUID() uuid.UUID                     { return uuid.UUID{} }
 

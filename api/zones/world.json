@@ -14109,6 +14109,7 @@
     },
     {
       "type": "Dog",
+      "name": "Dog",
       "x": -48,
       "y": -18,
       "radius": 1,
@@ -14205,6 +14206,7 @@
     },
     {
       "type": "Shaman",
+      "name": "Shaman",
       "x": 18,
       "y": 6,
       "radius": 1,
@@ -14289,6 +14291,7 @@
     },
     {
       "type": "Emberkeeper",
+      "name": "Emberkeeper",
       "x": 34.52,
       "y": -19.6,
       "radius": 1,

@@ -65,6 +65,24 @@ type fakeAuraPlayer struct {
 	xp      []uint64
 	healers []model.PlayerEntity
 	sc      *skills.SkillComponent
+	client  *mobFakeClient
+}
+
+// mobFakeClient captures SendUnlock for the kill-drop attribution test; the rest
+// of the model.Client surface is unused (embedded nil interface = panic tripwire).
+type mobFakeClient struct {
+	model.Client
+	unlocks []capturedUnlock
+}
+
+type capturedUnlock struct {
+	skillID uint64
+	source  string
+}
+
+func (c *mobFakeClient) SendUnlock(id uint64, source string) error {
+	c.unlocks = append(c.unlocks, capturedUnlock{id, source})
+	return nil
 }
 
 func (f *fakeAuraPlayer) Basic() ecs.BasicEntity                 { return f.basic }
@@ -79,6 +97,7 @@ func (f *fakeAuraPlayer) AddExperience(xp uint64)                { f.xp = append
 func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity    { return f.healers }
 func (f *fakeAuraPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeAuraPlayer) ApplyRecipeCascade()                    {}
+func (f *fakeAuraPlayer) Client() model.Client                   { return f.client }
 
 func newFakeAuraPlayer() *fakeAuraPlayer {
 	return &fakeAuraPlayer{
@@ -86,6 +105,7 @@ func newFakeAuraPlayer() *fakeAuraPlayer {
 		radius: 0.25,
 		vs:     model.PlayerVitalSigns{Health: vitals.Max},
 		sc:     skills.NewSkillComponent(true),
+		client: &mobFakeClient{},
 	}
 }
 
@@ -392,6 +412,39 @@ func TestMob_Kill_NoUnlocksDeclared_NoDiscovery(t *testing.T) {
 	m.PlayerTouches(p, model.Damage{HP: 1000})
 
 	assert.Empty(t, p.sc.Discovered())
+}
+
+// TestMob_Kill_DropEmitsAttribution pins that a guaranteed kill-drop emits one
+// unlock attribution naming the mob (plan-unlock-attribution.md), derived from
+// the definition name.
+func TestMob_Kill_DropEmitsAttribution(t *testing.T) {
+	unlockSkill := &skills.SkillDefinition{ID: 3, Name: "Wild", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	d := testMobDefinition()
+	d.Unlocks = []mobs.MobUnlock{{Skill: unlockSkill, Chance: 1.0}}
+	m := NewMob(d, 0, nil)
+
+	p := newFakeAuraPlayer()
+	m.PlayerTouches(p, model.Damage{HP: 1000}) // kill
+
+	require.Len(t, p.client.unlocks, 1)
+	assert.Equal(t, uint64(unlockSkill.ID), p.client.unlocks[0].skillID)
+	assert.Equal(t, "Dropped by: "+skills.DeriveDisplayName(d.Name), p.client.unlocks[0].source)
+}
+
+// TestMob_Kill_AlreadyKnownDrop_NoReAttribution pins that a drop the player
+// already owns rolls but does not re-announce (idempotent Discover ⇒ single announce).
+func TestMob_Kill_AlreadyKnownDrop_NoReAttribution(t *testing.T) {
+	unlockSkill := &skills.SkillDefinition{ID: 3, Name: "Wild", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	d := testMobDefinition()
+	d.Unlocks = []mobs.MobUnlock{{Skill: unlockSkill, Chance: 1.0}}
+	m := NewMob(d, 0, nil)
+
+	p := newFakeAuraPlayer()
+	p.sc.Discover(unlockSkill.ID) // already known
+
+	m.PlayerTouches(p, model.Damage{HP: 1000}) // kill
+
+	assert.Empty(t, p.client.unlocks, "no attribution for an already-known drop")
 }
 
 func TestMob_FullOutOfCombatRegenClearsParticipants(t *testing.T) {

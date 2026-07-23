@@ -82,10 +82,33 @@ type fakeSkillPlayer struct {
 	model.PlayerEntity
 	sc       *skills.SkillComponent
 	cascades int
+	client   *cmdFakeClient
+}
+
+// cmdFakeClient captures SendUnlock; the rest of model.Client is unused.
+type cmdFakeClient struct {
+	model.Client
+	unlocks []struct {
+		id     uint64
+		source string
+	}
+}
+
+func (c *cmdFakeClient) SendUnlock(id uint64, source string) error {
+	c.unlocks = append(c.unlocks, struct {
+		id     uint64
+		source string
+	}{id, source})
+	return nil
 }
 
 func (f *fakeSkillPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeSkillPlayer) ApplyRecipeCascade()                    { f.cascades++ }
+func (f *fakeSkillPlayer) Client() model.Client                   { return f.client }
+
+func newFakeSkillPlayer() *fakeSkillPlayer {
+	return &fakeSkillPlayer{sc: skills.NewSkillComponent(true), client: &cmdFakeClient{}}
+}
 
 // fakeSkillGame provides the skill registry the SKILL command resolves names
 // against.
@@ -110,18 +133,21 @@ func skillTestGame(t *testing.T) *fakeSkillGame {
 
 func TestSkillCommand_DiscoversByNameAndCascades(t *testing.T) {
 	g := skillTestGame(t)
-	p := &fakeSkillPlayer{sc: skills.NewSkillComponent(true)}
+	p := newFakeSkillPlayer()
 
 	err := commands["SKILL"](g, p, strPtr("FireWard"))
 
 	assert.NoError(t, err)
 	assert.True(t, p.sc.HasDiscovered(skills.SkillID(40)))
 	assert.Equal(t, 1, p.cascades, "discovery must run the recipe cascade like real unlock paths")
+	require.Len(t, p.client.unlocks, 1, "the cheat exercises the same unlock UI")
+	assert.Equal(t, uint64(40), p.client.unlocks[0].id)
+	assert.Equal(t, "Cheat", p.client.unlocks[0].source)
 }
 
 func TestSkillCommand_UnknownNameFails(t *testing.T) {
 	g := skillTestGame(t)
-	p := &fakeSkillPlayer{sc: skills.NewSkillComponent(true)}
+	p := newFakeSkillPlayer()
 
 	err := commands["SKILL"](g, p, strPtr("NoSuchSkill"))
 
@@ -131,7 +157,7 @@ func TestSkillCommand_UnknownNameFails(t *testing.T) {
 
 func TestSkillCommand_MissingArgument(t *testing.T) {
 	g := skillTestGame(t)
-	p := &fakeSkillPlayer{sc: skills.NewSkillComponent(true)}
+	p := newFakeSkillPlayer()
 
 	assert.Error(t, commands["SKILL"](g, p, nil))
 	assert.Error(t, commands["SKILL"](g, p, strPtr("")))

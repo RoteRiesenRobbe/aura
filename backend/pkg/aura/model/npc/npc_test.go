@@ -13,7 +13,7 @@ import (
 func TestSensorReportsOverlappingPlayer(t *testing.T) {
 	space := phy.NewSpace()
 
-	n := New(phy.Vec2f{X: 0, Y: 0}, 3, PlaceholderSprite, nil, "", nil)
+	n := New(phy.Vec2f{X: 0, Y: 0}, 3, PlaceholderSprite, "", nil, "", nil)
 	// Mirror addNpcEntity: visual body static, sensor dynamic.
 	space.AddStaticShape(n.Bodies()[0])
 	space.AddShape(n.Sensor())
@@ -36,7 +36,7 @@ func TestSensorReportsOverlappingPlayer(t *testing.T) {
 func TestSensorIgnoresPlayerOutOfRange(t *testing.T) {
 	space := phy.NewSpace()
 
-	n := New(phy.Vec2f{X: 0, Y: 0}, 3, PlaceholderSprite, nil, "", nil)
+	n := New(phy.Vec2f{X: 0, Y: 0}, 3, PlaceholderSprite, "", nil, "", nil)
 	space.AddStaticShape(n.Bodies()[0])
 	space.AddShape(n.Sensor())
 
@@ -94,7 +94,7 @@ func TestSpriteFor(t *testing.T) {
 // TestNewUsesGivenSprite pins that the sprite passed to New is what the NPC
 // streams as its wire EntityType.
 func TestNewUsesGivenSprite(t *testing.T) {
-	n := New(phy.Vec2f{X: 0, Y: 0}, 3, SpriteFor("Signpost"), nil, "", nil)
+	n := New(phy.Vec2f{X: 0, Y: 0}, 3, SpriteFor("Signpost"), "", nil, "", nil)
 	if n.Type() == PlaceholderSprite {
 		t.Fatalf("NPC ignored the authored sprite and kept the placeholder")
 	}

@@ -37,6 +37,13 @@ type Client interface {
 	// messages queue
 	SendMessage([]byte) error
 
+	// SendUnlock enqueues a skill-unlock EntityMessage (kind=Unlock) carrying
+	// the unlocked skill id and a human-readable source label (e.g.
+	// "Taught by: Farmer"). The client composes the "New <category>: <name>"
+	// line from its catalog and shows the source label beneath it — see
+	// plan-unlock-attribution.md.
+	SendUnlock(skillID uint64, source string) error
+
 	// Close closes the connection and disconnects the client
 	Close()
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/EngoEngine/ecs"
 	"github.com/google/flatbuffers/go"
+	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -61,11 +62,16 @@ func (s *NpcSystem) Update(dt float32) {
 			if prev[pid] {
 				continue // still in range since last tick — not a rising edge
 			}
-			lines := onApproach(n, p)
+			lines, taught := onApproach(n, p)
 			if len(lines) > 0 {
 				// Grants have already landed in p's spellbook; now let the NPC
 				// speak the combined lines to everyone standing around it.
 				speak(n, lines)
+			}
+			// Attribute each freshly-taught skill to this NPC, after the bubble
+			// so the source line trails the teaching (plan-unlock-attribution.md).
+			for _, id := range taught {
+				p.Client().SendUnlock(uint64(id), "Taught by: "+npcName(n))
 			}
 		}
 		s.seen[id] = current
@@ -82,7 +88,7 @@ func (s *NpcSystem) Update(dt float32) {
 // and the client shows the newest say.
 func speak(n model.NpcEntity, lines []string) {
 	builder := flatbuffers.NewBuilder(64)
-	entityMessage := codec.EntityMessageFlatbufMarshal(builder, n.Basic().ID(), strings.Join(lines, "\n"))
+	entityMessage := codec.EntityMessageFlatbufMarshal(builder, n.Basic().ID(), strings.Join(lines, "\n"), AuraApi.EntityMessageKindChat)
 	builder.Finish(entityMessage)
 	bytes := builder.FinishedBytes()
 
@@ -119,8 +125,9 @@ type learner interface {
 // every unlock up to their level at once. When nothing is taught (a pure-lore
 // guard/sign-post, or a sage whose teachings are all already known) the NPC's
 // Lines are the fallback so it still speaks.
-func onApproach(n teacher, p learner) []string {
-	var lines []string
+// Returns the lines to speak plus the skill ids newly taught this approach —
+// the caller emits one unlock attribution per taught id (chunk 2).
+func onApproach(n teacher, p learner) (lines []string, taught []skills.SkillID) {
 	sc := p.SkillComponent()
 	level := p.Progression().Level
 	for _, t := range n.Teachings() {
@@ -131,6 +138,7 @@ func onApproach(n teacher, p learner) []string {
 			sc.Discover(t.Def.ID)
 			p.ApplyRecipeCascade()
 			lines = append(lines, t.Line)
+			taught = append(taught, t.Def.ID)
 		} else {
 			lines = append(lines, n.TooLowLine())
 			break
@@ -139,7 +147,21 @@ func onApproach(n teacher, p learner) []string {
 	if len(lines) == 0 && len(n.Lines()) > 0 {
 		lines = n.Lines()
 	}
-	return lines
+	return lines, taught
+}
+
+// npcName is the friendly source name for a "Taught by: X" unlock label. It
+// prefers the NPC's authored name; when none was placed it falls back to the
+// wire sprite EntityType, run through the same CamelCase→spaced derivation the
+// mob labels use (TownCrier → "Town Crier").
+func npcName(n model.NpcEntity) string {
+	if n.Name() != "" {
+		return n.Name()
+	}
+	if name, ok := AuraApi.EnumNamesEntityType[AuraApi.EntityType(n.Type())]; ok {
+		return skills.DeriveDisplayName(name)
+	}
+	return "an NPC"
 }
 
 // Remove is a no-op: NPCs are placed once at boot and never removed.

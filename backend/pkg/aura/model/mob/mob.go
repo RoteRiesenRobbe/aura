@@ -1399,10 +1399,20 @@ func (m *Mob) tryGrantKillRewards() {
 func (m *Mob) rewardPlayer(p model.PlayerEntity, xp uint64) {
 	p.AddExperience(xp)
 	for _, u := range m.definition.Unlocks {
-		if m.rand.Float32() < u.Chance {
+		// The roll is always consumed (RNG stream unchanged); only a genuinely
+		// new discovery announces its source (plan-unlock-attribution.md).
+		if m.rand.Float32() < u.Chance && !p.SkillComponent().HasDiscovered(u.Skill.ID) {
 			p.SkillComponent().Discover(u.Skill.ID)
+			p.Client().SendUnlock(uint64(u.Skill.ID), "Dropped by: "+m.dropSourceName())
 		}
 	}
 	// A kill-drop discovery can newly satisfy a recipe (Phase 9).
 	p.ApplyRecipeCascade()
+}
+
+// dropSourceName is the friendly mob name for a "Dropped by: X" unlock label —
+// the CamelCase definition name spaced out (the same derivation the /mobs
+// nameplate catalog uses).
+func (m *Mob) dropSourceName() string {
+	return skills.DeriveDisplayName(m.definition.Name)
 }

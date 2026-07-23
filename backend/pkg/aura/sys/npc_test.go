@@ -70,7 +70,7 @@ func TestOnApproach_MultiTeachingOrderedGrant(t *testing.T) {
 	}
 	p := newLearner(10) // qualifies for both
 
-	lines := onApproach(n, p)
+	lines, _ := onApproach(n, p)
 
 	assert.Equal(t, []string{"learned heal", "learned dash"}, lines, "both lines in order")
 	assert.True(t, p.sc.HasDiscovered(1), "heal granted")
@@ -88,7 +88,7 @@ func TestOnApproach_LevelGateStops(t *testing.T) {
 	}
 	p := newLearner(3) // qualifies for heal (1) but not dash (5)
 
-	lines := onApproach(n, p)
+	lines, _ := onApproach(n, p)
 
 	assert.Equal(t, []string{"learned heal", "come back stronger"}, lines,
 		"grants the qualifying teaching, then the too-low line and stops")
@@ -104,7 +104,7 @@ func TestOnApproach_FirstTeachingTooLow(t *testing.T) {
 	}
 	p := newLearner(1)
 
-	lines := onApproach(n, p)
+	lines, _ := onApproach(n, p)
 
 	assert.Equal(t, []string{"come back stronger"}, lines)
 	assert.False(t, p.sc.HasDiscovered(1))
@@ -124,7 +124,7 @@ func TestOnApproach_BackToBackMultiUnlock(t *testing.T) {
 	}
 	p := newLearner(20)
 
-	lines := onApproach(n, p)
+	lines, _ := onApproach(n, p)
 
 	assert.Equal(t, []string{"a", "b", "c"}, lines)
 	assert.True(t, p.sc.HasDiscovered(1) && p.sc.HasDiscovered(2) && p.sc.HasDiscovered(3))
@@ -139,7 +139,7 @@ func TestOnApproach_IdempotentReApproach(t *testing.T) {
 	p := newLearner(10)
 	p.sc.Discover(1) // already knows it
 
-	lines := onApproach(n, p)
+	lines, _ := onApproach(n, p)
 
 	assert.Empty(t, lines, "nothing to teach, no lore fallback -> silent")
 	assert.Equal(t, 0, p.cascadeCalls, "no re-grant")
@@ -149,7 +149,7 @@ func TestOnApproach_LoreFallbackWhenNothingTaught(t *testing.T) {
 	n := &fakeTeacher{lines: []string{"No entry.", "Trolls up north."}}
 	p := newLearner(10)
 
-	lines := onApproach(n, p)
+	lines, _ := onApproach(n, p)
 
 	assert.Equal(t, []string{"No entry.", "Trolls up north."}, lines)
 	assert.Equal(t, 0, p.cascadeCalls, "pure-lore NPC never grants")
@@ -165,7 +165,7 @@ func TestOnApproach_LoreFallbackWhenAllLearned(t *testing.T) {
 	p := newLearner(10)
 	p.sc.Discover(1)
 
-	lines := onApproach(n, p)
+	lines, _ := onApproach(n, p)
 
 	assert.Equal(t, []string{"You have learned all I can teach."}, lines)
 	assert.Equal(t, 0, p.cascadeCalls)
@@ -188,7 +188,7 @@ func (c *countingNpc) Teachings() []model.Teaching {
 func TestNpcSystem_RisingEdgeAntiSpamAndReTrigger(t *testing.T) {
 	space := phy.NewSpace()
 
-	base := npc.New(phy.Vec2f{X: 0, Y: 0}, 3, npc.PlaceholderSprite,
+	base := npc.New(phy.Vec2f{X: 0, Y: 0}, 3, npc.PlaceholderSprite, "",
 		[]model.Teaching{teaching(1, 1, "learned heal")}, "too low", nil)
 	n := &countingNpc{Npc: base}
 	// Register exactly as game.addNpcEntity does: visual body static, sensor
@@ -248,6 +248,74 @@ func addPlayerCollider(space *phy.Space, p *fakePlayer, pos phy.Vec2f) *phy.Circ
 
 func sentOf(p *fakePlayer) [][]byte { return p.client.(*fakeClient).sent }
 
+func unlocksOf(p *fakePlayer) []capturedUnlock { return p.client.(*fakeClient).unlocks }
+
+// TestOnApproach_ReturnsTaughtIDs pins that onApproach reports exactly the
+// freshly-granted skill ids (and only those) so the caller can attribute each.
+func TestOnApproach_ReturnsTaughtIDs(t *testing.T) {
+	n := &fakeTeacher{
+		tooLowLine: "too low",
+		teachings: []model.Teaching{
+			teaching(1, 1, "learned heal"),
+			teaching(2, 5, "learned dash"),
+		},
+	}
+	p := newLearner(10)
+	p.sc.Discover(1) // already known — must NOT be re-reported
+
+	_, taught := onApproach(n, p)
+
+	assert.Equal(t, []skills.SkillID{2}, taught, "only the genuinely new skill is attributed")
+}
+
+// TestNpcSystem_TeachEmitsUnlockAttribution pins the wiring: crossing into a
+// teaching NPC's sensor emits one SendUnlock per taught skill. This NPC has no
+// authored name, so the label falls back to the sprite name run through
+// DeriveDisplayName ("TownCrier" → "Taught by: Town Crier") —
+// plan-unlock-attribution.md.
+func TestNpcSystem_TeachEmitsUnlockAttribution(t *testing.T) {
+	space := phy.NewSpace()
+
+	n := npc.New(phy.Vec2f{X: 0, Y: 0}, 3, model.EntityType(AuraApi.EntityTypeTownCrier), "",
+		[]model.Teaching{teaching(7, 1, "learn to farm")}, "too low", nil)
+	space.AddStaticShape(n.Bodies()[0])
+	space.AddShape(n.Sensor())
+
+	p := newFakePlayer()
+	p.level = 10
+	player := phy.NewCircle(phy.Vec2f{X: 1, Y: 0}, 0.5)
+	player.Shape().Layer = int(model.LayerPlayerCollision)
+	player.Shape().UserData = model.PlayerEntity(p)
+	space.AddShape(player)
+
+	sysN := NewNpcSystem()
+	sysN.AddEntity(n)
+
+	space.Update()
+	sysN.Update(33.0)
+
+	require.Len(t, unlocksOf(p), 1, "one unlock attribution for the one taught skill")
+	assert.Equal(t, uint64(7), unlocksOf(p)[0].skillID)
+	assert.Equal(t, "Taught by: Town Crier", unlocksOf(p)[0].source)
+
+	// Standing in range must not re-emit (rising-edge only).
+	sysN.Update(33.0)
+	assert.Len(t, unlocksOf(p), 1, "no re-emit while still in range")
+}
+
+// TestNpcName_PrefersAuthoredName pins that an authored name wins over the
+// sprite-derived fallback — so two NPCs sharing a sprite can still attribute
+// distinctly, and a name need not match its sprite.
+func TestNpcName_PrefersAuthoredName(t *testing.T) {
+	// Sprite says TownCrier, but the authored name is what the label uses.
+	named := npc.New(phy.Vec2f{}, 3, model.EntityType(AuraApi.EntityTypeTownCrier), "Old Bartleby", nil, "", []string{"lore"})
+	assert.Equal(t, "Old Bartleby", npcName(named))
+
+	// No authored name → sprite fallback.
+	unnamed := npc.New(phy.Vec2f{}, 3, model.EntityType(AuraApi.EntityTypeTownCrier), "", nil, "", []string{"lore"})
+	assert.Equal(t, "Town Crier", npcName(unnamed))
+}
+
 // decodeEntityMessage unwraps the wire bytes NpcSystem.speak produces back into
 // the anchored entity id + text, verifying it is really an EntityMessage.
 func decodeEntityMessage(t *testing.T, b []byte) (uint64, string) {
@@ -266,7 +334,7 @@ func TestNpcSystem_SpeechReachesAllSensorPlayers(t *testing.T) {
 
 	// A lore NPC speaks its (multi-line) lore on every approach, independent of
 	// level or grants — the cleanest way to exercise the speech path.
-	n := npc.New(phy.Vec2f{X: 0, Y: 0}, 3, npc.PlaceholderSprite, nil, "",
+	n := npc.New(phy.Vec2f{X: 0, Y: 0}, 3, npc.PlaceholderSprite, "", nil, "",
 		[]string{"Welcome, traveler.", "Trolls up north."})
 	space.AddStaticShape(n.Bodies()[0])
 	space.AddShape(n.Sensor())

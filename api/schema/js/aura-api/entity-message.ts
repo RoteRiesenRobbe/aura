@@ -4,6 +4,9 @@
 
 import * as flatbuffers from 'flatbuffers';
 
+import { EntityMessageKind } from '../aura-api/entity-message-kind.js';
+
+
 export class EntityMessage {
   bb: flatbuffers.ByteBuffer|null = null;
   bb_pos = 0;
@@ -34,8 +37,13 @@ message(optionalEncoding?:any):string|Uint8Array|null {
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
+kind():EntityMessageKind {
+  const offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : EntityMessageKind.Chat;
+}
+
 static startEntityMessage(builder:flatbuffers.Builder) {
-  builder.startObject(2);
+  builder.startObject(3);
 }
 
 static addEntityId(builder:flatbuffers.Builder, entityId:bigint) {
@@ -46,15 +54,20 @@ static addMessage(builder:flatbuffers.Builder, messageOffset:flatbuffers.Offset)
   builder.addFieldOffset(1, messageOffset, 0);
 }
 
+static addKind(builder:flatbuffers.Builder, kind:EntityMessageKind) {
+  builder.addFieldInt8(2, kind, EntityMessageKind.Chat);
+}
+
 static endEntityMessage(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createEntityMessage(builder:flatbuffers.Builder, entityId:bigint, messageOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createEntityMessage(builder:flatbuffers.Builder, entityId:bigint, messageOffset:flatbuffers.Offset, kind:EntityMessageKind):flatbuffers.Offset {
   EntityMessage.startEntityMessage(builder);
   EntityMessage.addEntityId(builder, entityId);
   EntityMessage.addMessage(builder, messageOffset);
+  EntityMessage.addKind(builder, kind);
   return EntityMessage.endEntityMessage(builder);
 }
 }

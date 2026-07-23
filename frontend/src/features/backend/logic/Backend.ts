@@ -11,7 +11,7 @@ import * as DayCycle from '../../day-cycle/logic/DayCycle';
 import * as StartScreen from '../../user-interface/start-screen/logic/StartScreen';
 import * as EndScreen from '../../user-interface/end-screen/logic/EndScreen';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
-import {activationRejectionMessage} from '../../../client-data/Skills';
+import {activationRejectionMessage, skillCategory, skillDisplayName} from '../../../client-data/Skills';
 import {AuraApi} from './AuraApi';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
@@ -217,9 +217,20 @@ export class Backend implements IBackend {
                     Develop.get().logServerMessage(entityMessage, 'EntityMessage', timeSinceLastMessage);
                 }
 
+                if (entityMessage.kind() === AuraApi.EntityMessageKind.Unlock) {
+                    // Skill unlock (plan-unlock-attribution.md): entity_id carries
+                    // the skill id, message carries the source label. The client
+                    // owns the "New <category>: <name>" line so it stays in sync
+                    // with the catalog's displayName overrides.
+                    const skillId = Number(entityMessage.entityId());
+                    const source = entityMessage.message();
+                    const text = `New ${skillCategory(skillId)}: ${skillDisplayName(skillId)}`
+                        + (source ? `\n${source}` : '');
+                    AlertBanner.show(text, 'unlock');
+                }
                 // Entity id 0 = server announcement (chat.SystemEntityID) —
                 // routed to the alert banner, not a speech bubble (C6).
-                if (Number(entityMessage.entityId()) === 0) {
+                else if (Number(entityMessage.entityId()) === 0) {
                     AlertBanner.show(entityMessage.message(), 'announce');
                 } else {
                     Chat.showMessage(Number(entityMessage.entityId()), entityMessage.message());

@@ -554,9 +554,11 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
             if (!isBaseline && !known.has(id)) {
                 li.classList.add('unlocked');
                 anyUnlock = true;
-                // Discovery banner (C6): genuinely new skills only — level
-                // changes and the join/respawn baseline never alert.
-                AlertBanner.show(`New ${skillCategory(id)}: ${skillDisplayName(id)}`, 'unlock');
+                // The discovery banner is now server-authored (it carries the
+                // unlock source — plan-unlock-attribution.md) and arrives on the
+                // EntityMessage/Unlock channel. Here we only mark the panel entry
+                // and drive the unlockPulse below; level changes and the
+                // join/respawn baseline still never pulse.
             }
             spellbookListElement.appendChild(li);
         }

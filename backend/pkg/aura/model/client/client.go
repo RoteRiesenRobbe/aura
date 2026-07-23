@@ -3,6 +3,7 @@ package client
 import (
 	"log"
 
+	"github.com/google/flatbuffers/go"
 	"github.com/google/uuid"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
@@ -101,6 +102,15 @@ func (c *client) Close() {
 
 func (c *client) SendMessage(bytes []byte) error {
 	return c.c.SendMessage(bytes)
+}
+
+// SendUnlock marshals a kind=Unlock EntityMessage (skill id in entity_id, the
+// source label in message) and enqueues it — see plan-unlock-attribution.md.
+func (c *client) SendUnlock(skillID uint64, source string) error {
+	builder := flatbuffers.NewBuilder(64)
+	msg := codec.EntityMessageFlatbufMarshal(builder, skillID, source, AuraApi.EntityMessageKindUnlock)
+	builder.Finish(msg)
+	return c.SendMessage(builder.FinishedBytes())
 }
 
 // pushInput enqueues an input for the tick loop. On overflow the OLDEST input

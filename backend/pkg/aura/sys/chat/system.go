@@ -5,6 +5,7 @@ import (
 
 	"github.com/EngoEngine/ecs"
 	"github.com/google/flatbuffers/go"
+	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 )
@@ -26,7 +27,7 @@ func (p *ChatSystem) Broadcast(text string) {
 		return
 	}
 	builder := flatbuffers.NewBuilder(32)
-	entityMessage := codec.EntityMessageFlatbufMarshal(builder, SystemEntityID, text)
+	entityMessage := codec.EntityMessageFlatbufMarshal(builder, SystemEntityID, text, AuraApi.EntityMessageKindChat)
 	builder.Finish(entityMessage)
 	bytes := builder.FinishedBytes()
 	for _, player := range p.players {
@@ -72,7 +73,7 @@ func updatePlayer(p model.PlayerEntity) {
 	log.Printf("New message: %s", strMsg)
 
 	builder := flatbuffers.NewBuilder(32)
-	entityMessage := codec.EntityMessageFlatbufMarshal(builder, p.Basic().ID(), strMsg)
+	entityMessage := codec.EntityMessageFlatbufMarshal(builder, p.Basic().ID(), strMsg, AuraApi.EntityMessageKindChat)
 	builder.Finish(entityMessage)
 	bytes := builder.FinishedBytes()
 

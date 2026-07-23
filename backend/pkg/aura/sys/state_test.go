@@ -28,6 +28,13 @@ type fakeClient struct {
 	joins    []*model.Join
 	respawns []*model.Respawn
 	sent     [][]byte
+	unlocks  []capturedUnlock
+}
+
+// capturedUnlock records one SendUnlock call for the attribution tests.
+type capturedUnlock struct {
+	skillID uint64
+	source  string
 }
 
 func newFakeClient() *fakeClient {
@@ -60,6 +67,10 @@ func (c *fakeClient) NextSpendSkillPoint() *model.SpendSkillPoint {
 	return nil
 }
 func (c *fakeClient) SendMessage(b []byte) error { c.sent = append(c.sent, b); return nil }
+func (c *fakeClient) SendUnlock(id uint64, source string) error {
+	c.unlocks = append(c.unlocks, capturedUnlock{id, source})
+	return nil
+}
 func (c *fakeClient) Close()                     {}
 func (c *fakeClient) UUID() uuid.UUID            { return c.uuid }
 
@@ -409,6 +420,41 @@ func TestStaleJoin_DrainedOnDeath(t *testing.T) {
 
 	assert.Len(t, g.players, 1, "the stale Join must not silently respawn the player")
 	assert.Empty(t, c.joins, "the stale Join must be drained at death")
+}
+
+// TestReconnectRestore_EmitsNoUnlockSpam pins that restoring a stashed
+// character's spellbook on reconnect emits ZERO unlock attributions: reattach
+// swaps the whole SkillComponent (SetSkillComponent), never routing through the
+// Discover-per-grant sites — so a reload never re-announces the spellbook
+// (plan-unlock-attribution.md).
+func TestReconnectRestore_EmitsNoUnlockSpam(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+
+	// A populated spellbook (as drops/teachings would build during play).
+	p.SkillComponent().Discover(1)
+	p.SkillComponent().Discover(2)
+
+	token := s.tokenByClient[c.UUID()]
+	require.NotEmpty(t, token, "first join mints a reconnect token")
+
+	// Disconnect while alive → stash keyed by the token.
+	g.RemoveEntity(p.Basic())
+	require.Len(t, s.stashByToken, 1)
+
+	// Reconnect: a fresh client Joins with the token; reattach restores.
+	c2 := newFakeClient()
+	sp := spectatorFor(c2)
+	g.AddEntity(sp)
+	c2.joins = append(c2.joins, &model.Join{PlayerName: "Alice", ReconnectToken: token})
+	s.Update(0)
+
+	np := g.players[len(g.players)-1]
+	assert.True(t, np.SkillComponent().HasDiscovered(1), "spellbook restored")
+	assert.True(t, np.SkillComponent().HasDiscovered(2), "spellbook restored")
+	assert.Empty(t, c.unlocks, "original client sees no unlock on restore")
+	assert.Empty(t, c2.unlocks, "reconnecting client sees no unlock spam")
 }
 
 func TestDisconnectAliveAfterRespawn_StashesInsteadOfDeadCleanup(t *testing.T) {

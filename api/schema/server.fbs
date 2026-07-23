@@ -409,9 +409,15 @@ table Obituary {
     // maybe killer? or stats?
 }
 
+// Distinguishes a plain speech-bubble/announcement (Chat) from a skill-unlock
+// notification (Unlock). Appended field defaults to Chat, so old clients that
+// never read `kind` treat every EntityMessage as chat exactly as before.
+enum EntityMessageKind:ubyte { Chat = 0, Unlock = 1 }
+
 table EntityMessage {
-    entity_id:ulong;
-    message:string;
+    entity_id:ulong;   // on Unlock: repurposed to carry the unlocked skill id
+    message:string;    // on Unlock: the source label only ("Taught by: Farmer")
+    kind:EntityMessageKind = Chat;
 }
 
 table Pong {

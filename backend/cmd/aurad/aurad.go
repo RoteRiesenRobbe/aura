@@ -180,6 +180,7 @@ func main() {
 			phy.Vec2f{X: n.X, Y: n.Y},
 			n.Radius,
 			npc.SpriteFor(n.EntityType),
+			n.Name,
 			teachings,
 			n.TooLowLine,
 			n.Lines,

@@ -12,6 +12,7 @@ export { ClientMessage } from './aura-api/client-message.js';
 export { ClientMessageBody } from './aura-api/client-message-body.js';
 export { Entity } from './aura-api/entity.js';
 export { EntityMessage } from './aura-api/entity-message.js';
+export { EntityMessageKind } from './aura-api/entity-message-kind.js';
 export { EntityType } from './aura-api/entity-type.js';
 export { Equip } from './aura-api/equip.js';
 export { GameState } from './aura-api/game-state.js';

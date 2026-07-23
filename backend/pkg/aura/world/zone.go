@@ -160,9 +160,17 @@ type Teaching struct {
 //   - Lore / sign-post: Lines are spoken when nothing is taught (an all-learned
 //     sage's idle lore, or a pure guard/sign-post with no Teachings at all).
 type Npc struct {
-	Type       string     `json:"type"`
-	X          float32    `json:"x"`
-	Y          float32    `json:"y"`
+	Type string  `json:"type"`
+	X    float32 `json:"x"`
+	Y    float32 `json:"y"`
+
+	// Name is the authored display name used in unlock attribution
+	// ("Taught by: <Name>" — plan-unlock-attribution.md). Optional: when empty
+	// the client-facing label falls back to the wire sprite's spaced-out enum
+	// name, so a nameless NPC still attributes sensibly. Distinct from Type,
+	// which is decorative role metadata read nowhere.
+	Name string `json:"name"`
+
 	Radius     float32    `json:"radius"`
 	TooLowLine string     `json:"tooLowLine"`
 	Teachings  []Teaching `json:"teachings"`

@@ -55,6 +55,7 @@ const placeholderVisualRadius float32 = 0.35
 type Npc struct {
 	model.BaseEntity
 	sensor     *phy.Circle
+	name       string
 	teachings  []model.Teaching
 	tooLowLine string
 	lines      []string
@@ -65,10 +66,11 @@ var _ = model.NpcEntity(&Npc{})
 // New builds a static teaching/lore NPC at pos: a solid visual body plus a
 // proximity sensor of sensorRadius that detects players (LayerPlayerCollision).
 // sprite is the wire EntityType the NPC renders as (SpriteFor resolves the
-// authored name; pass PlaceholderSprite when none is authored).
-// teachings/tooLowLine/lines are the approach payload (chunk 3); a pure-lore
-// NPC passes nil teachings + empty tooLowLine.
-func New(pos phy.Vec2f, sensorRadius float32, sprite model.EntityType, teachings []model.Teaching, tooLowLine string, lines []string) *Npc {
+// authored name; pass PlaceholderSprite when none is authored). name is the
+// authored display name for unlock attribution ("" = fall back to the sprite
+// name, see Name). teachings/tooLowLine/lines are the approach payload (chunk
+// 3); a pure-lore NPC passes nil teachings + empty tooLowLine.
+func New(pos phy.Vec2f, sensorRadius float32, sprite model.EntityType, name string, teachings []model.Teaching, tooLowLine string, lines []string) *Npc {
 	// Solid like a prop: players and mobs bump into the NPC, and it streams to
 	// clients via the viewport layer.
 	body := phy.NewCircle(pos, placeholderVisualRadius)
@@ -84,6 +86,7 @@ func New(pos phy.Vec2f, sensorRadius float32, sprite model.EntityType, teachings
 	n := &Npc{
 		BaseEntity: model.NewBaseEntity(body, sprite),
 		sensor:     sensor,
+		name:       name,
 		teachings:  teachings,
 		tooLowLine: tooLowLine,
 		lines:      lines,
@@ -100,6 +103,10 @@ func New(pos phy.Vec2f, sensorRadius float32, sprite model.EntityType, teachings
 func (n *Npc) Sensor() phy.DynamicCollider {
 	return n.sensor
 }
+
+// Name is the authored display name for unlock attribution; empty when the NPC
+// was placed without one (the caller falls back to the sprite name).
+func (n *Npc) Name() string { return n.name }
 
 // Teachings are the ordered skill grants this NPC offers on approach (chunk 3).
 func (n *Npc) Teachings() []model.Teaching { return n.teachings }

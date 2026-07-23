@@ -97,8 +97,35 @@ func newTestPlayer(milestones []skills.MilestoneUnlock) *player {
 		skills:           sc,
 		milestoneUnlocks: milestones,
 		PlayerVitalSigns: model.PlayerVitalSigns{Health: vitals.Max},
+		client:           &fakePlayerClient{},
 	}
 }
+
+// capturedUnlock records one SendUnlock call for the attribution tests.
+type capturedUnlock struct {
+	skillID uint64
+	source  string
+}
+
+// fakePlayerClient captures SendUnlock; the rest of the model.Client surface is
+// unused by these tests (embedding the interface leaves it nil — a call would
+// panic, which is the intended tripwire if a test starts exercising it).
+type fakePlayerClient struct {
+	model.Client
+	unlocks []capturedUnlock
+}
+
+func (c *fakePlayerClient) SendUnlock(id uint64, source string) error {
+	c.unlocks = append(c.unlocks, capturedUnlock{id, source})
+	return nil
+}
+
+func unlocksOf(p *player) []capturedUnlock { return p.client.(*fakePlayerClient).unlocks }
+
+// stubRecipeRegistry is a minimal skills.RecipeRegistry for the cascade test.
+type stubRecipeRegistry struct{ recipes []*skills.RecipeDefinition }
+
+func (r *stubRecipeRegistry) All() []*skills.RecipeDefinition { return r.recipes }
 
 // --- light radius (content pass C2 lift 2: passive light) ---
 
@@ -394,6 +421,62 @@ func TestAddExperience_Level3_NoMilestoneEntry(t *testing.T) {
 	// spellbook: Heal (level-2 unlock) only — a fresh spawn starts empty
 	// (triage item 11), so no start freebie inflates the count.
 	assert.Len(t, p.skills.Discovered(), 1)
+}
+
+// --- unlock attribution (plan-unlock-attribution.md chunk 2) ---
+
+// TestMilestoneUnlock_EmitsLevelReward pins that a milestone discovery emits one
+// unlock attribution labelled with the milestone level.
+func TestMilestoneUnlock_EmitsLevelReward(t *testing.T) {
+	p := newTestPlayer([]skills.MilestoneUnlock{{Level: 2, Skill: defHealAura}})
+
+	p.AddExperience(100) // reach level 2
+
+	require.Len(t, unlocksOf(p), 1, "one unlock for the level-2 milestone")
+	assert.Equal(t, uint64(defHealAura.ID), unlocksOf(p)[0].skillID)
+	assert.Equal(t, "Level 2 reward", unlocksOf(p)[0].source)
+}
+
+// TestMilestoneUnlock_MultiLevelJumpAttributesEach pins that a multi-level XP
+// jump attributes every crossed milestone to its own level, exactly once each.
+func TestMilestoneUnlock_MultiLevelJumpAttributesEach(t *testing.T) {
+	defWild := &skills.SkillDefinition{ID: 3, Name: "Wild", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	p := newTestPlayer([]skills.MilestoneUnlock{
+		{Level: 2, Skill: defHealAura},
+		{Level: 3, Skill: defWild},
+	})
+
+	p.AddExperience(300) // straight to level 3, crossing both milestones
+
+	require.Len(t, unlocksOf(p), 2)
+	assert.Equal(t, "Level 2 reward", unlocksOf(p)[0].source)
+	assert.Equal(t, "Level 3 reward", unlocksOf(p)[1].source)
+}
+
+// TestRecipeCascade_EmitsCombinationDiscovered pins that a recipe firing during
+// the cascade emits a "Combination discovered" attribution for its result.
+func TestRecipeCascade_EmitsCombinationDiscovered(t *testing.T) {
+	// Recipe: Damage(L1) -> Wild (a combination result).
+	defWild := &skills.SkillDefinition{ID: 3, Name: "Wild", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	p := newTestPlayer(nil)
+	p.recipes = &stubRecipeRegistry{recipes: []*skills.RecipeDefinition{{
+		ID:          1,
+		Result:      defWild,
+		Ingredients: []skills.RecipeIngredient{{Skill: defDamageAura, Level: 1}},
+	}}}
+
+	// Discover the ingredient, then run the cascade (as every grant site does).
+	p.skills.Discover(defDamageAura.ID)
+	p.ApplyRecipeCascade()
+
+	require.True(t, p.skills.HasDiscovered(defWild.ID), "combination result discovered")
+	require.Len(t, unlocksOf(p), 1)
+	assert.Equal(t, uint64(defWild.ID), unlocksOf(p)[0].skillID)
+	assert.Equal(t, "Combination discovered", unlocksOf(p)[0].source)
+
+	// Re-running the cascade must not re-announce an already-discovered result.
+	p.ApplyRecipeCascade()
+	assert.Len(t, unlocksOf(p), 1, "cascade is idempotent — no duplicate attribution")
 }
 
 // TestDeathRespawn_RetainsSpellbookAndProgression reproduces the semi-permadeath

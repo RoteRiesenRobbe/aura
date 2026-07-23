@@ -110,6 +110,9 @@ type Teaching struct {
 type NpcEntity interface {
 	Entity
 	Sensor() phy.DynamicCollider
+	// Name is the authored display name for unlock attribution; empty falls back
+	// to the sprite name (plan-unlock-attribution.md).
+	Name() string
 	Teachings() []Teaching
 	TooLowLine() string
 	Lines() []string

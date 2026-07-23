@@ -138,7 +138,11 @@ var commands = map[string]Command{
 			return err
 		}
 
-		p.SkillComponent().Discover(def.ID)
+		if !p.SkillComponent().HasDiscovered(def.ID) {
+			p.SkillComponent().Discover(def.ID)
+			// Exercise the same unlock UI the real sources use (label "Cheat").
+			p.Client().SendUnlock(uint64(def.ID), "Cheat")
+		}
 		p.ApplyRecipeCascade()
 
 		return nil
