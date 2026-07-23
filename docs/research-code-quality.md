@@ -401,3 +401,64 @@ Metrics note for §7.5's next diff: §26 would remove ~760 backend+frontend line
 and 9 content JSON files, drop Go packages 50 → 49 (`gen` disappears), and take
 `core/game.go` from 471 to ~440 while deleting 2 of its 8 `addXxx` helpers and
 1 of the 16 registered systems.
+
+## 10. Focused pass 2026-07-24 — `model/mob/mob.go`, `sys/mob.go`, `skills/definition.go`
+
+Companion pass to §8, same prompt one step wider ("the other two big files —
+do they carry smells too?"). **Full findings live in `backlog.md` §27**; this
+section records the verdict and the findings that belong to this doc's lineage.
+
+**Verdict: `skills/definition.go` is the strongest code in the backend, and the
+two large files carry structural debt but almost no defects.** Both bugs the
+pass found are in `sys/mob.go` and `model/mob/mob.go`'s *seeding*, not in the
+1334- and 1418-line bodies everyone would suspect — and the worst of them lives
+in `sys/mob.go`, the **smallest** file reviewed at 187 lines. That inversion is
+the pass's headline: **size predicted nothing here**, exactly as in §8.
+
+- **⚠️ One live bug, reproduced** — `MobSystem.Update` (`sys/mob.go:99`) removes
+  dead mobs *inside* `for _, mob := range n.mobs`, and `game.RemoveEntity` →
+  `ecs.World.RemoveEntity` → `MobSystem.Remove` is **synchronous**, shifting the
+  backing array under the live range loop. Every tick in which a mob dies, one
+  surviving mob is **skipped** and another is **updated twice**. Details, repro
+  output and the nine sibling systems to check are in §27.1. First code-behavior
+  bug found since §2's `ByPriority.Less` — and it has the same signature: a
+  *diagnostics-shaped* symptom (a single-tick mob stutter, indistinguishable
+  from netcode jitter) hiding a real one.
+
+- **⚠️ A second bug, by PO ruling** — `NewMob` seeds each mob's RNG from its
+  entity ID alone (`mob.go:150`), and `ecs.NewBasic()` counts from 1 each
+  process, so a fresh server rolls the **same HP variance and the same first
+  drop for the Nth spawn point on every restart**. Recorded first as a design
+  question; **PO ruled it a bug on 2026-07-24 — rolls must be random per run,
+  the same mob must not drop the same skill after every restart.** Fix and its
+  two constraints (independent per-mob streams; the sim harness needs its own
+  explicit seed) are in §27.2.2. Worth noting *as a code-quality finding* and
+  not just a balance one: the defect is a **hidden coupling to a global
+  counter** in a third-party library — nothing at the call site suggests
+  `Basic().ID()` is a deterministic sequence rather than an opaque handle.
+
+- **§7.3's pattern has a third instance.** `mapToEffectDef`'s 15-case switch
+  (`definition.go:975`) has **no `default:`**, so an `EffectType` registered in
+  `effectTypeMap` but forgotten in the switch parses *successfully* into an
+  `EffectDef` with every payload pointer nil — violating the invariant the
+  struct's own doc comment claims parsing enforces. That now makes three:
+  `gameObjectClasses` (§7.3, fixed), `applySlowAura`'s missing faction gate (§8),
+  and this. **The house lesson from §9 restated: the dangerous findings in this
+  codebase are the silent ones — a wrong result that no build, test or log
+  reports.** All three were one-line-to-half-day fixes whose value is entirely in
+  making the failure loud. This one is literally one line.
+
+- **Guard coverage is uneven where guards are the whole point.** `definition.go`
+  hard-fails a `dot` with no damage, a `shield` with no pool and a
+  `stat_multiplier` with no scaling — but loads a `damage_aura` that deals 0, a
+  `heal_aura` that heals 0, and **any aura with `radius: 0`**. The convention was
+  established mid-build, and the two oldest payloads predate it (§27.3.2). Worth
+  naming here because §7.1 credits `validateEffectKeys` as "why the JSON pipeline
+  can be trusted without a schema" — that credit stands, and this is the gap in it.
+
+Nothing in this pass changes the §7 grades or the §7.4 priorities. For §7.5's
+metrics table next pass: `model/mob/mob.go` (1418 l) is the **second**-largest
+file after `sys/skills.go` (1594 l), and unlike skills.go its growth pressure is
+in *state* (a ~45-field struct spanning eight concerns while behavior is already
+split across seven files), not in dispatch — a different refactor when it comes,
+and equally not yet.

@@ -1672,3 +1672,216 @@ scoreboard prune and the step-7 heater removal. Verification tail is the
 standard one — `go build ./...`, `go test ./...`, `tsc --noEmit`, and a boot
 count check (`777 props/471 spawns` is the real proof, since props stream over
 the very path this touches). **Not scheduled**; PO signalled intent to do it.
+
+---
+
+## 27. Tech debt: `model/mob/mob.go`, `sys/mob.go`, `skills/definition.go` — one live bug + uneven guard coverage
+
+**Written 2026-07-24**, same code-health prompt that produced §25 (`sys/skills.go`)
+— "the other two big files, are they also carrying smells?". Reviewed:
+`sys/mob.go` (187 l), `model/mob/mob.go` (1418 l), `skills/definition.go`
+(1334 l). Verdict up front: **`definition.go` is the strongest code in the
+backend and `model/mob/mob.go` has no bugs at all** — but `sys/mob.go`, the
+smallest of the three, carries a confirmed live defect. Nothing here is
+scheduled; recorded so it is not rediscovered.
+
+Everything below was verified against the code (and, for §27.1, reproduced),
+not inferred from reading.
+
+### 27.1 ⚠️ LIVE BUG — mutation-during-iteration in `MobSystem.Update`
+
+`sys/mob.go:99-105` iterates `for _, mob := range n.mobs`, and a mob that
+reports dead is removed **inside that loop**:
+
+```go
+for _, mob := range n.mobs {
+    alive := mob.Update(dt)
+    if !alive {
+        n.onMobDeath(mob)
+        n.game.RemoveEntity(mob.Basic())   // <- synchronous
+    }
+}
+```
+
+`game.RemoveEntity` (`core/game.go:247`) calls `ecs.World.RemoveEntity`, which
+(`ecs@v1.0.5/world.go:112`) calls **every system's `Remove` synchronously** —
+including `MobSystem.Remove` (`sys/mob.go:176`), which does
+`append(n.mobs[:d], n.mobs[d+1:]...)`. That shifts the survivors left **in the
+same backing array** while the `range` loop is still walking it with the
+pre-removal length.
+
+**Reproduced** (standalone, mirroring the exact pattern) on `[A, B(dead), C, D]`:
+
+```
+Update() called on: A  B  D  D
+survivors:          A  C  D
+```
+
+⇒ **`C` is skipped for the whole tick** (no aggro update, no movement, no
+regen, no TTL decrement) **and `D` is updated twice** (two movement steps, two
+regen ticks, two TTL decrements, two aggro passes). One skip + one
+double-update per *dead mob per tick*, and it fires on every tick in which
+anything dies — i.e. most ticks during play, with 471 spawn points.
+
+**Why it has never been noticed:** both symptoms are single-tick (33 ms)
+position/state anomalies on a mob that is not the one the player just killed.
+It presents as an occasional mob micro-stutter or a half-step lunge, which is
+indistinguishable from ordinary netcode jitter. It does **not** corrupt state
+permanently — a double `Update` on an already-dead mob hits the `m.health == 0`
+early return, and the second `onMobDeath` finds no matching spawn point and
+returns silently.
+
+**Fix (~30 min, no design decisions):** iterate by index in reverse, or collect
+dead entities in the loop and remove them after it. Test-first: a fake
+`model.Game` whose `RemoveEntity` calls `sys.Remove` synchronously, three mobs,
+assert `Update` is called exactly once per survivor.
+
+**Blast radius to check with the fix:** nine other systems use the same
+`for _, x := range s.entities` shape — `sys/skills.go:121` + `:865`,
+`sys/state.go:543`, `sys/npc.go:51`, `sys/statuseffects/system.go:31`,
+`sys/chat/system.go:33` + `:55`, `sys/equip/equip.go:59`, `sys/cmd/cmd.go:294`.
+Only `sys/mob.go` is *confirmed* to remove during its own iteration; the others
+need one grep each, not a rewrite.
+
+### 27.2 `model/mob/mob.go` — no bugs, structural debt
+
+Ranked by consequence, not by size.
+
+1. **`log.Fatalf` inside a per-spawn constructor** (`mob.go:42`) — an unresolvable
+   EntityType takes the **whole server process** down, and the validation is
+   asymmetric: the optional `entityType` *override* hard-fails at content load
+   (`items/mobs/definitions.go:328`, pinned by
+   `TestMapMobDefinition_UnknownEntityTypeFails`), but the **name-fallback path
+   is validated nowhere** — a mob whose `name` is not a FlatBuffers EntityType
+   passes the loader and dies at first spawn. Reachable at runtime, not just at
+   boot: the `spawn` effect builds mobs at cast time. Fix: resolve the lookup
+   once at registry load and hard-fail there, like the override already does.
+   (Also the last `log.Fatalf` in `model/` — see `research-code-quality.md` §5's
+   three-logging-styles finding.)
+2. **Drop luck is deterministic across restarts.** `NewMob` seeds the mob's own
+   RNG with its entity ID (`rand.NewSource(int64(base.Basic().ID()))`, line 150),
+   and `ecs.NewBasic()` hands out IDs from a **global counter starting at 1 each
+   process**. World mobs are spawned in a fixed order on the first tick
+   (`MobSystem.Update`'s `!initialized` branch), so on every fresh server the Nth
+   spawn point gets the same seed ⇒ the **same HP variance roll and the same
+   first drop roll, every restart**. Respawns get fresh IDs so this decays during
+   a session, but the live F&F server wipes on every restart, which makes the
+   fixed opening state potentially observable ("that wolf never drops").
+   **✅ PO RULING 2026-07-24: this is a BUG, not intended reproducibility.**
+   Rolls must be **random per run** — the same mob must not drop the same skill
+   after every restart. Fix: seed each mob's RNG from a per-process random
+   source mixed with the entity ID (e.g. a `MobSystem`-owned seed drawn once at
+   boot, combined with the ID so per-mob streams stay independent), *not* from
+   the entity ID alone. **Not scheduled — documented only.** Two things to keep
+   when it lands: the per-mob stream must stay independent (drop rolls must not
+   consume each other's RNG across mobs), and the sim harness / guardrail
+   batteries rely on determinism, so they need their own explicit seed rather
+   than inheriting the world's.
+3. **Mob out-of-combat regen is hardcoded and untunable** (`mob.go:598`):
+   `maxHealth / (2 * TicksPerSecond)` = full pool in ~2 s, living in the model
+   layer with no `conf.json` entry — while the *player* regen rate is a declared
+   **FINAL** tunable (`0.00033 ≈ 1 %/s × level taper`). Anyone tuning "how
+   punishing is disengaging?" will not find it. It is also what makes leashing
+   free: a mob that breaks off is at full HP 60 ticks later.
+4. **God struct.** `Mob` is ~45 fields over 155 lines spanning eight concerns
+   (steering scratch, stuck watchdog, idle archetypes, threat table, aggro/leash,
+   buff store, per-tick wire accumulators, encounter seams, reward bookkeeping).
+   The package already splits *behavior* across seven files
+   (`steering/patrol/stuck/companion/healer/safezone`), so today **no file owns
+   the state it operates on**. Not urgent and not the cause of any defect — but
+   it is the seam where the next structural pressure shows up, the mob-side twin
+   of §25's `sys/skills.go` watch item.
+5. **`NewMob` is ~170 lines doing eight unrelated jobs**, including a three-branch
+   equip loop (lines 62-89) whose arms differ only in counter, slot limit, equip
+   function and log wording.
+6. **Six "zero means unset" fallbacks, two enforcement styles.** Four are
+   normalized in the constructor (`chaseIntoAuraMargin`, `idleSpeedFactor`,
+   `dwellMaxTicks`, `maxHealth`); two are re-applied on **every read**
+   (`SummonPower()`, `PowerScale()`), which silently makes direct field access a
+   bug. One convention would be better than one convention enforced two ways.
+7. **`Update(dt float32)` ignores `dt` entirely** — everything is in ticks. The
+   parameter is inherited from the ECS interface and reads as frame-rate
+   independence the code does not have. Related: velocity is
+   `0.055 * d.Factors.Speed` (line 178) under a long-standing
+   `TODO use walkingSpeedPerTick from global config`. That hardcoded
+   tick-coupled constant is exactly what makes **`plan-input-jitter.md` chunk 3
+   (client/server rate alignment) non-trivial** — worth reading together.
+8. Smaller, all one-sitting fixes: `highestThreatTarget()` (line 1074) **prunes
+   dead entries while reading** — a getter that mutates, as does
+   `ForceThreatToTop`; the threat-entry gate (nil / same-faction / dead + lazy
+   map init + get-or-create) is **copy-pasted** between `noteThreat` (923) and
+   `ForceThreatToTop` (962); `tryGrantKillRewards` (1372) and `KillCreditNames`
+   (1340) walk the **same** participants × `RecentHealers()` dedupe twice, one to
+   grant and one to name, so a change to the credit rule must land in both;
+   `NoteThreat` is an exported one-line wrapper around `noteThreat`.
+9. **Layering note, knowingly taken:** `rewardPlayer` (1406) composes the
+   user-facing English string — `p.Client().SendUnlock(id, "Dropped by: "+…)` —
+   so a domain entity reaches through to the network client *and* authors UI
+   copy. That is the design shipped in `2bfee286` across all four grant sites
+   (`plan-unlock-attribution.md`), so it is deliberate, not an oversight. The
+   cost to remember: rewording or localising unlock banners means grepping string
+   literals across `sys/` and `model/`.
+
+### 27.3 `skills/definition.go` — excellent, with uneven coverage
+
+This file's hard-fail-at-load philosophy is the reason the JSON content pipeline
+can be trusted without a schema (`research-code-quality.md` §1 and §7.1 both say
+so, and the per-payload builder refactor closed §3.1). **The findings below are
+gaps in coverage, not problems with the design** — and each one is a silent
+no-op of exactly the kind the rest of the file exists to prevent.
+
+1. **⭐ `mapToEffectDef`'s 15-case switch has no `default:`** (line 975). Adding an
+   `EffectType` means hand-editing four tables in this file (`effectTypeMap`,
+   `effectKeys`, this switch, a payload struct + builder) plus the apply switch
+   in `sys/skills.go` and `HasVisibleTickCadence`. Three of those fail loudly
+   when missed — a type absent from `effectTypeMap` fails parsing, one absent
+   from `effectKeys` rejects every key. But a type missing from **this** switch
+   parses *successfully* into an `EffectDef` with **every payload pointer nil**,
+   which is precisely the invariant the struct's own doc comment says parsing
+   enforces ("the pointer matching Type is non-nil, every other one nil").
+   Downstream that is a nil deref or a silent no-op depending on the apply site.
+   **One-line fix:** `default: return EffectDef{}, fmt.Errorf("effect type %v has
+   no payload mapping", effectType)`. Same class as §7.3's positional
+   `gameObjectClasses` array — latent, silent, and cheap to close permanently.
+2. **The no-silent-no-op rule is applied unevenly across payloads.** Hard-fails
+   today: `dot` with no damage, `hot` with no heal, `shield` with no pool,
+   `stat_multiplier` with no scaling, `dash` with zero distance, `taunt` with
+   zero margin, `tick_rate` at factor 1. Loads fine today: **`damage_aura` with
+   `damageHP` and `damageHPPerLevel` both 0** (an aura that deals nothing),
+   **`heal_aura` with no heal authored**, and **`radius: 0` on any aura**
+   (an aura that reaches nothing — never validated for any type). The guards were
+   added chunk-by-chunk as each payload landed; the two oldest payloads
+   (damage, heal) predate the convention and never got theirs. ~15 lines to even
+   out, and it closes the most plausible authoring mistake left in the pipeline.
+3. **`tickInterval` silently coerces bad input** (line 955). The field is a
+   `*int` *precisely* to distinguish absent from 0 — and then
+   `if e.TickInterval != nil && *e.TickInterval > 0` throws that distinction
+   away: an authored `"tickInterval": 0` or `-5` is rewritten to 1 instead of
+   hard-failing, in the one file whose entire thesis is that a value the engine
+   ignores must not load. 3-line fix.
+4. **Authors and the catalog speak different vocabularies for the same data.**
+   Content JSON is flat and prefixed (`damageHP`, `healHP`, `resistTags` — the
+   private `effectDef` shape); `GET /skills` serves nested payloads
+   (`damage.hp`, `heal.hp`, `resist.tags` — the public `EffectDef` shape). Both
+   halves are deliberate and well-documented, but the consequence is that a
+   designer reading the catalog in devtools cannot grep a key back to the file
+   they author, and `SkillTooltip.ts` speaks a different language than
+   `manual-content-authoring.md`. **Probably a doc fix, not a code change:** one
+   `authored key → catalog path` table in the manual.
+5. Noted and explicitly *not* worth acting on: `mergeKeys` (830) can emit
+   duplicate entries when key groups overlap (`variance` sits in both
+   `keysDamagePayload` and `keysDotPayload`) — harmless against a linear
+   `slices.Contains`, and a *dropped* entry fails loudly rather than silently.
+
+### 27.4 Suggested order, if any of this is ever scheduled
+
+| # | Item | Effort | Why this order |
+|---|---|---|---|
+| 1 | §27.1 removal-during-iteration | ~30 min, test-first | the only live defect here |
+| 2 | §27.3.1 `default:` on the payload switch | one line | permanently closes a silent class |
+| 3 | §27.2.1 validate the EntityType name-fallback at load | ~1 h | turns a live-server crash into a boot error |
+| 4 | §27.3.2 even out the zero-value payload guards | ~15 lines | authoring-safety, same session as #2 |
+| 5 | §27.2.2 drop-RNG determinism | ~1 h | **PO-ruled a bug 2026-07-24** — rolls must be random per run |
+| 6 | §27.2.3 mob regen → `conf.json` | ~30 min | balance visibility |
+| 7 | §27.3.3 / §27.2.8 the small ones | opportunistic | pure hygiene |
+| — | §27.2.4 `Mob` god struct | do **not** act pre-emptively | watch item, like §25's |
