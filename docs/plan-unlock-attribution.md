@@ -1,9 +1,49 @@
 # Plan — Unlock source attribution (Playtest-1 Pass-B items 1c + 1d)
 
-**Status:** PLANNED, not started. Planning session 2026-07-23.
+**Status:** ✅ DONE — both chunks + an NPC-name follow-on, committed `2bfee286`
+2026-07-24 (planning session 2026-07-23). Server handed to the PO for the
+in-game read pass; not yet PO-verified. Closes the last open playtest-1 items.
 Deferred from `plan-playtest1-feedback.md` §Pass B item 1 (see its "Watch
 items / open calls" — items 1c + 1d were SKIPPED there as "just reposition";
 the overlap half was fixed by 1b, the attribution half was never done).
+
+## Outcome / deviations from plan (2026-07-24, `2bfee286`)
+
+Implemented as planned, with these notes:
+
+- **Chunk 1** landed exactly as designed: `EntityMessage.kind` enum + the
+  `entity_id`-carries-skill-id overload, `model.Client.SendUnlock`, client
+  composes the line from its catalog. Wire-compat pin + reconnect-silent pin
+  green.
+- **Chunk 2** — the recipe emit lives in **`player.ApplyRecipeCascade`** (which
+  has the client), not in `skills.ApplyRecipes` (which has no player/client) as
+  the site table loosely suggested; `ApplyRecipes` already returns only the
+  freshly-discovered ids, so the cascade is naturally single-announce. Kill-drop
+  and milestone/cheat sites got an explicit `!HasDiscovered` guard so an
+  already-known grant rolls/relevels without re-announcing.
+- **Mob name** uses `skills.DeriveDisplayName(def.Name)` (the CamelCase→spaced
+  derivation the `/mobs` nameplate catalog already uses) — there is no
+  `DisplayName` on the runtime `MobDefinition`.
+- **NPC-name follow-on (beyond the original plan):** the plan's open question
+  #1 ("NPC display-name accessor… fall back to the type name") was resolved by
+  **adding an authored optional `name` field** to the NPC (zone JSON → `world.Npc`
+  → `npc.New` → `Npc.Name()` → `model.NpcEntity`), because NPCs carried no name
+  and deriving purely from the sprite mislabels shared-sprite NPCs (Shaman and
+  Emberkeeper both ride the `Hermit` sprite; Dog → "Dog Npc"). `npcName` prefers
+  the authored name, else the sprite-derived `DeriveDisplayName`. Authored
+  `name` for Dog / Shaman / Emberkeeper; the other 11 NPCs fall back correctly.
+- **Presentation (PO feedback at the read pass):** the banner now breaks the
+  source onto a 2nd line (`white-space: pre-line`; `\n` in `textContent` was
+  collapsing), the `.unlock` variant is ~20% smaller, and the shared banner got
+  a hard 8-direction black outline + `-webkit-text-stroke` for contrast over a
+  similarly-coloured background. Sizes/outline are [PLACEHOLDER].
+- **Still 4 sources, not 5:** world-exploration clue anchors and character
+  sacrifice have no grant code yet; they add their own `SendUnlock` site when
+  they land (see below).
+
+Verified: `go build ./...` exit 0; `go test ./...` 29 packages with tests pass /
+0 failures; boot `83 skills/14 factions/50 mobs/10 recipes/777 props/471 spawns/
+5 campfires (safeRadius 1.5)/14 npcs, 0 panics`.
 
 ## The feedback
 
