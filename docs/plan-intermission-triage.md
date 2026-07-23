@@ -1438,6 +1438,9 @@ of a core** (−34 %, better than the 25–30 % the local profile predicted), RS
   the deploy proves nothing yet — the *old* binary also managed 26 clean idle
   minutes. The rate to beat is ~10–30/hour idle:
   `journalctl -u aurad --since "-24h" | grep -c Overload`.
+  **→ Checked 2026-07-23: NOT closed. Fix helped but the tail got worse; a
+  gctrace probe is now armed on live. Full follow-up in the dated subsection
+  below.**
 - **The load-test ceiling is unchanged structurally.** `bruteIntersectShapes`
   is still O(n²) per cell and still ~39 % of loop CPU — the published
   clustered ~60–70 (`devops/loadtest.md`) was measured *before* this fix and
@@ -1448,3 +1451,91 @@ of a core** (−34 %, better than the 25–30 % the local profile predicted), RS
   handshake errors — someone else's DNS points that name at `159.69.148.73`.
   Harmless (autocert correctly refuses), but always
   `grep -v "TLS handshake"` when reading those logs.
+
+---
+
+### Live overload watch — day-of-logs check + gctrace probe (2026-07-23)
+
+**Verdict: the watch is NOT closed. The alloc fix roughly halved the idle rate
+but left a *worse* tail — and the residual idle spikes are the same event that
+drops movement inputs (`plan-input-jitter.md`).**
+
+**What the day of logs showed** (binary up since 2026-07-22 18:01 UTC; always
+`grep -v "TLS handshake"`):
+- **200 overloads / 24 h ≈ 8/h**, spread across *all 24 hours* including the
+  **zero-player small hours** (00:00–08:59 logged ~77 overloads with **no player
+  activity events at all** in that window). So the idle-overload signal
+  **persists** — down from the pre-fix ~10–30/h (the fix genuinely helped), but
+  structurally still there.
+- **The tail got worse, not better.** At **00:17:44, nobody online**, two ticks
+  hit **203 % and 245 %** in the same second (a ~81 ms tick). The pre-fix worst
+  *idle* reading was 154 %. Daily max readings now reach 209/245/272 %. So
+  average allocation churn is gone (as intended) but the residual idle tail
+  occasionally stalls *harder* than the old binary ever did idle.
+- Player activity (named chars "Sam Quartz / Pebbles Marble / Momo" — likely the
+  incoming devs) clustered in hours 09/12/19/20/21; the small-hours spikes are
+  unambiguously idle.
+
+**Host ruled out again, but only for *sustained* pressure** (non-destructive
+`/proc` probes, 2026-07-23): load average **0.36** on 2 cores, **steal 0** over
+the sample, aurad the only real CPU user, **involuntary ctx switches ~2/s avg**.
+This rules out a noisy neighbour / sustained contention — but these are
+*averages*, and the spike is a rare ~8/h event; a single 50 ms deschedule 8×/h
+moves none of them. **Cannot rule out a rare host stall from outside the process.**
+
+**Respawn is NOT the idle cause** (code reasoning, `sys/mob.go:107`): on a truly
+idle server nothing dies, so every spawn point has `liveMobID != 0` and the
+respawn loop is just ~471 cheap int-compares. An 80 ms idle tick is therefore
+most likely **GC** (the fix made GC *rare*, so each one now scans a **larger**
+heap → the triggering tick eats the mark-assist; the double-spike-in-one-second
+fits GC: trigger tick + assist on the next) **or a rare host deschedule** — not
+an algorithmic hotspot, and not `bruteIntersectShapes`.
+
+**Instrument-first (PO ruling carried over from `plan-input-jitter.md`).** The
+current loop logs only *total* tick time (`core/game.go:456`); there is no
+per-system breakdown and pprof is off on the live binary. Two probes, cheapest
+first:
+- **Probe 1 — gctrace correlation (zero code). ARMED 2026-07-23 20:57 UTC.**
+  Added `Environment=GODEBUG=gctrace=1` to `/etc/systemd/system/aurad.service`
+  (`[Service]` section; **backup at `aurad.service.bak-gctrace`** on the box),
+  `daemon-reload` + `restart`, clean boot verified
+  (`5 campfires/14 npcs/encounter registered/loop 30 tps`), gctrace lines
+  confirmed flowing. Idle GC cadence ~1–3/min (heap floor ~4 MB, ~0.16 MB/s ⇒ GC
+  every ~25 s), so journal volume is negligible for a day. **This restart reset
+  the character state and the Overload history — tomorrow's counts start from the
+  20:57 UTC boot.**
+- **Probe 2 — per-overload-tick diagnostic (small code change, only if Probe 1 is
+  negative).** On any over-budget tick, log `NumGC` delta + last pause **and
+  sum-of-per-system-times vs total**. The killer signal is sum-vs-total: systems
+  sum ≪ total ⇒ time spent *outside our code* (GC STW or host deschedule);
+  `PhysicsSystem` ≈ total ⇒ `bruteIntersectShapes`. Build with a test, verify
+  locally, deploy once.
+
+**FOLLOW-UP — 2026-07-24 (after an overnight idle window, the cleanest signal):**
+correlate GC lines against big overloads by second:
+```bash
+journalctl -u aurad --since "-24h" --no-pager \
+ | grep -E "Overload! Systems at: (1[4-9][0-9]|[2-9][0-9]{2})%|gc [0-9]+ @" \
+ | grep -v "TLS handshake"
+```
+Read the **assist** field of each GC (first number of the mark-cpu triple, e.g.
+the `0` in `... 0.053+0/2.6/1.3+0.008 ms cpu ...`) and the concurrent-mark clock
+against heap size.
+
+**REVERT after diagnosis** (don't leave gctrace on long-term): remove the
+`Environment=GODEBUG=gctrace=1` line (or `cp aurad.service.bak-gctrace
+aurad.service`), `systemctl daemon-reload && systemctl restart aurad`.
+
+**NEXT STEPS by outcome:**
+- **Big overloads sit next to a GC with high assist / long mark on a large heap
+  ⇒ GC-driven.** Fix = smooth the residual **mob-respawn** allocation the alloc
+  fix left behind, or `debug.SetGCPercent` / `SetMemoryLimit` to trade RSS for a
+  gentler tail. **Not `bruteIntersectShapes`.**
+- **Big overloads with no nearby GC ⇒ host deschedule or algorithm.** Ship
+  **Probe 2** to split the two; if it's the algorithm, `bruteIntersectShapes`
+  (O(n²) per cell, ~39 % of loop CPU) is the lever.
+- **Either way, the higher-leverage fix is `plan-input-jitter.md` Chunk 2
+  (coast + reconcile):** the 80 ms idle tail *is* the dropped-movement event, and
+  coast-and-reconcile makes the player immune to a tick stall regardless of its
+  cause — better than whack-a-mole against a 3.4×-slower vCPU. Chase the server
+  spike for host health; ship coast+reconcile for the player-facing bug.
