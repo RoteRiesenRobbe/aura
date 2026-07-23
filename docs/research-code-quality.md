@@ -183,7 +183,8 @@ sweep; until then it is the main source of unclear paths.
 | Eligibility-closure dedup | ~1 h | opportunistic |
 | `addXxx` registration table | design sketch first | when the next entity type is added |
 | Ring style as data | with Skills.ts sync decision | when the skill list grows |
-| Survival/vitals/equipment remnants | scoped sweep | with the planned item-system removal |
+| Resource/decay layer — **fully dead**, no coupling | one chunk ~1–2 h | anytime; **evidence §9, inventory `backlog.md` §26** |
+| Survival/vitals/equipment remnants (incl. the unread item registry) | scoped sweep | with the planned item-system removal |
 | TS strictness for new code | policy decision | soon, cheap to start |
 
 ---
@@ -345,3 +346,58 @@ because it belongs to this doc's lineage:
   `manual-content-authoring.md` §Factions, where an author would meet it first.
 
 Nothing in this pass changes the §7 grades or the §7.4 priorities.
+
+## 9. Focused pass 2026-07-24 — the resource/decay layer is fully dead
+
+Prompted by a PO observation during the §24 review: *"'resources' in their
+former Berryhunter sense no longer exist in the game and are not intended to
+come back. The same goes for decaying."* Traced statically the same day.
+**Confirmed — and this is the first §4 item that turns out to be fully dead
+rather than half-dead.** Full removal inventory lives in `backlog.md` §26;
+this section records the verdict and what it changes for §4/§5/§6.
+
+**Verdict: both are dead, and resources are actively *unusable*.** The
+constructor cluster (`NewPlaceableResource` → `NewPlaceable` /
+`NewStaticEntityWithBody` → `NewResource`) is a closed loop with zero entry
+points, including from tests. Every live `AddEntity` passes a prop, mob, NPC,
+player, spectator, corpse or minion — campfires, the one plausible consumer,
+are **mobs**. And `determineResourceEntityType` panics for every stock item
+except `"Berry"`, which no longer exists on disk: the path cannot execute
+against current content even if something called it.
+
+`DecaySystem` is registered and ticks 30×/s over a permanently empty slice —
+its sole `AddDecayable` call site sits inside the unreachable
+`addPlaceableEntity`.
+
+**What this changes for the doc's lineage:**
+
+- **§4 gets its first clean amputation.** The section's framing — *"a new
+  reader cannot tell what is load-bearing without archaeology"* — is exactly
+  right, and here the archaeology has now been done. The vitals/equipment
+  remnants in §4 remain *half*-dead (still referenced, still rendering);
+  resource/decay is the subset that is wholly severed and can go without a
+  design decision attached.
+- **§6's "Survival/vitals/equipment remnants | scoped sweep | with the planned
+  item-system removal" row splits in two.** The resource/decay half no longer
+  needs to wait for the item-system removal — it has no coupling to it. The
+  item *registry* half does (see §26's "adjacent" note: `game.Items()` has zero
+  callers, but unpicking it touches `model.Game` and the frontend item
+  scaffolding).
+- **§5 gains one entry retroactively:** `gen/generator.go` appears in the `go
+  vet` unkeyed-literal list, and the whole `gen` package is inside the dead
+  cluster — so that vet finding is deleted rather than fixed by §26.
+
+**The trap worth recording, because it is the kind that survives a careless
+prune:** props ride the *resource wire path* — `case model.PropEntity` marshals
+via `PropEntityFlatbufMarshal` but sends `eType = AnyEntityResource`
+(`plan-world-zones.md` §3.2 decision B). The `AnyEntityResource` enum and the
+frontend's 624-line `Resources.ts` are load-bearing; only the server-side
+`model.ResourceEntity` *implementation* is dead. Anyone grepping for "resource"
+and deleting what matches will break every prop in the world. Same lesson as
+§7.3 and §8's `applySlowAura`: **the dangerous findings in this codebase are
+the ones where the name and the load-bearing-ness have come apart.**
+
+Metrics note for §7.5's next diff: §26 would remove ~760 backend+frontend lines
+and 9 content JSON files, drop Go packages 50 → 49 (`gen` disappears), and take
+`core/game.go` from 471 to ~440 while deleting 2 of its 8 `addXxx` helpers and
+1 of the 16 registered systems.

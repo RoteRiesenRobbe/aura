@@ -1407,6 +1407,13 @@ File it as a separate, smaller item so the two don't get conflated.
 only if a future entity type makes the matrix actually hurt.** The free
 cleanup is done (above); everything else is **not scheduled**.
 
+**⚠ Sequencing:** **§26 (prune the dead resource/decay layer) should land
+first.** It deletes `addPlaceableEntity` (1 of the **7** helpers remaining after
+the free cleanup above) and `DecaySystem` (1 of the 16 systems every helper
+iterates) — so the original 8×13 matrix ends up **6 helpers**. Any work here
+done *before* §26 would be partly redone, and B's table-driven pin would have to
+be written twice.
+
 **Scope guess:** ~~free cleanup ~10 min~~ ✅ done; B ~1 hour; the entities.go
 split ~15 min (mechanical, `go build` + `go test ./...`); A is a half-day-plus
 with a real design decision in front of it.
@@ -1579,3 +1586,89 @@ otherwise. **Not scheduled.**
 
 **Scope guess:** A ~1–2 h; B ~30 min; C ~20 min; D ~15 min. None of them
 interact, so they can be taken individually.
+
+---
+
+## 26. Prune the dead resource + decay layer (Berryhunter remnant)
+
+**Origin:** PO observation 2026-07-24, during the §24 review — *"'resources' in
+their former Berryhunter sense no longer exist in the game and are not intended
+to come back. The same goes for decaying."* Verified by static trace the same
+day. **Both are confirmed fully dead.** This is the concrete, scoped instance
+of the sweep §4 and §6 of `research-code-quality.md` have been describing
+generically since 2026-07-06; evidence lives there as §9.
+
+### The evidence (verified 2026-07-24)
+
+**Resources are not merely unused, they are unusable.** The constructor cluster
+is a closed loop with **zero entry points** — `NewPlaceableResource` has no
+callers anywhere (including tests), and it is the only caller of `NewPlaceable`
+and `NewStaticEntityWithBody`, which is the only caller of `NewResource`. Every
+live `AddEntity` passes a prop, mob, NPC, player, spectator, corpse or minion.
+**Campfires are mobs** (`mob.NewMob(campfireDef, …)`, `aurad.go:129`), not
+placeables — the one plausible live consumer, checked and cleared.
+
+The clincher: `determineResourceEntityType` (`placeableResource.go:120`)
+**panics for every stock item except `"Berry"`**, and there is no `berry.json`
+on disk. Even if something called it, it would panic on 100% of current
+content.
+
+**Decay ticks 30×/s over a permanently empty slice.** `AddDecayable` has
+exactly one call site — `game.go:334`, inside `addPlaceableEntity`, which is
+unreachable because nothing constructs a `PlaceableEntity`. `model.Decayer` has
+zero references outside the cluster. Note `prop/prop.go:6` already states props
+have *"no harvest, decay, respawn or update systems involved"* — the
+replacement design walked away from this deliberately.
+
+### ⚑ Do NOT cut: props ride the resource *wire* path
+
+`case model.PropEntity` marshals via `PropEntityFlatbufMarshal` but sends
+`eType = AnyEntityResource` (deliberate — `plan-world-zones.md` §3.2 decision
+B). So the `AnyEntityResource` wire enum and the frontend's `Resources.ts`
+(624 lines) are **load-bearing** and stay. Only the *server-side*
+`model.ResourceEntity` implementation is dead. Anyone pattern-matching on the
+word "resource" will get this wrong.
+
+**Switch-ordering checked and safe:** `case model.ResourceEntity` sits *before*
+`case model.PropEntity` in `codec/gamestate.go`, but `PropEntity` is just
+`Entity` while `ResourceEntity` additionally demands `Interacter`,
+`StatusEntity`, `Update()`, `Stock()` and `Resource()` — props cannot match it.
+Removing the earlier cases changes no behavior.
+
+### Removal inventory
+
+| What | Size |
+|---|---|
+| `model/resource/resource.go`, `model/placeable/{placeable,placeableResource}.go`, `gen/resource_entity.go` (the whole `gen` package), `sys/decay.go`, `model/decay.go` | **544 lines** |
+| `codec/gamestate.go` — 3 switch cases + `ResourceEntityFlatbufMarshal` (21) + `PlaceableEntityFlatbufMarshal` (20) | ~45 |
+| `core/game.go` — `addPlaceableEntity`, its `AddEntity` case, DecaySystem construction + registration | ~30 |
+| `model/entity.go` — `ResourceEntity`, `PlaceableEntity`, `PlaceableResourceEntity` interfaces + `Decayed()` | ~25 |
+| Frontend `Placeable.ts` (51) + `ResourceJuice.ts` (68, verify first) | ~119 |
+| `api/items/resources/*.json` ×7, `api/items/placeables/*.json` ×2 | 9 files |
+
+**~760 lines + 9 JSON files. No dedicated tests exist for any of it**, so
+nothing has to be rewritten.
+
+**Bonus:** this deletes `addPlaceableEntity` and `DecaySystem` — **1 of the 7
+`addXxx` helpers left after §24's free cleanup, and 1 of the 16 registered
+systems**. Together with that cleanup, §24's original 8 helpers end up at 6,
+shrinking the matrix without touching its design question. **Land this before
+any §24 work** (see the sequencing note there).
+
+### Adjacent, deliberately NOT folded in
+
+**The item registry is also unread.** Boot loads 10 item definitions (Wood,
+Stone, Bronze, Iron, Titanium, TitaniumShard, Feather, Campfire, BigCampfire,
+None) and **`game.Items()` has zero callers** in live code; Wood / Bronze /
+Iron / Feather appear zero times in backend Go outside comments. Same
+Berryhunter cluster, but removing it touches `items.Registry`, the loaders,
+`model.Game` and the frontend item scaffolding (§4's *"full item/equipment/
+crafting scaffolding"*), so it is a **separate question** — and one CLAUDE.md
+already anticipates as "the planned item-system removal". Flagged here so the
+next person does not rediscover it.
+
+**Scope guess:** one chunk, ~1–2 h, mechanical. Same shape as the 2026-07-08
+scoreboard prune and the step-7 heater removal. Verification tail is the
+standard one — `go build ./...`, `go test ./...`, `tsc --noEmit`, and a boot
+count check (`777 props/471 spawns` is the real proof, since props stream over
+the very path this touches). **Not scheduled**; PO signalled intent to do it.

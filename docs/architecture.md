@@ -22,7 +22,10 @@ This doc answers three recurring questions:
 - One `phy.Space` for the whole world today (zones not yet split — see §6).
 - Per tick, the cost that matters concentrates in two systems:
   **physics broadphase** and **network / game-state assembly**. Everything else
-  (mob AI, SkillSystem, decay, scoreboard) is O(entities) with cheap bodies.
+  (mob AI, SkillSystem, status effects, NPCs) is O(entities) with cheap bodies.
+  (This list previously named `scoreboard`, deleted in the 2026-07-08 prune, and
+  `decay`, which still ticks but over a permanently empty slice — see
+  `research-code-quality.md` §9 / `backlog.md` §26.)
 
 **The structural ceiling is single-threadedness:** one core caps total
 simulation work per tick regardless of how tight each piece is. The escape hatch
