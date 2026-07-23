@@ -156,6 +156,13 @@ Mob allegiances live in **`api/factions/*.json`**, one file per faction:
 - Kill rewards: players recorded as damage participants get full XP/drops
   no matter who lands the killing blow; a pure mob-vs-mob kill grants
   nothing.
+- ⚑ **`slow_aura` does not honour any of the above.** `applySlowAura`
+  (`sys/skills.go:1544`) slows every entity in range that can be slowed, with
+  no faction check and no hostility gate — the one aura path that skips both.
+  Harmless today because no mob authors a slow aura and players cannot be
+  slowed at all, and **nothing but a comment pins that**. If you are the first
+  to give a mob a `slow_aura`, expect it to slow its own pack mates, and route
+  the effect through `eligibleByTargetFlags[slowable]` first (backlog §25).
 
 ---
 

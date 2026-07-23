@@ -1303,7 +1303,9 @@ Line count of `core/game.go` (and its pre-rename ancestors) over its life:
 *edit frequency* — game.go is touched by every new system and every new entity
 type — not size. For scale, `sys/skills.go` is 1594 lines, `model/mob/mob.go`
 1418, `skills/definition.go` 1334; game.go is a third of those. If a file-size
-pass is ever wanted, those are the targets, not this one.
+pass is ever wanted, those are the targets, not this one. (`sys/skills.go` was
+reviewed on the same day — **§25**: size warranted, four mechanical cleanups
+recorded, likewise not scheduled.)
 
 ### Provenance: inherited, not introduced here
 
@@ -1408,3 +1410,172 @@ cleanup is done (above); everything else is **not scheduled**.
 **Scope guess:** ~~free cleanup ~10 min~~ ✅ done; B ~1 hour; the entities.go
 split ~15 min (mechanical, `go build` + `go test ./...`); A is a half-day-plus
 with a real design decision in front of it.
+
+## 25. Tech debt: `sys/skills.go` — size is warranted, the cleanup layer on top is not
+
+**Origin:** code-health question 2026-07-24 ("skills.go is very large — is it in
+bad shape? hardcoded stuff? or is the size warranted?"), the companion to §24 and
+the follow-up §7.5 of `research-code-quality.md` predicted ("`sys/skills.go` is
+the complexity sink … it is where the next structural pressure will show up").
+Answer to the literal question: **the size is warranted, and there is no
+architectural problem** — but four mechanical cleanups and four hardcoded
+balance constants are worth recording. Nothing here is scheduled; it is **not**
+blocking any roadmap step, and per §7.5's standing advice the file should **not**
+be refactored pre-emptively.
+
+### Finding: the size is warranted (unlike §24, it IS growing — for a reason)
+
+| measure | 2026-07-24 |
+|---|---|
+| total lines | 1594 |
+| **code lines** | **1009** |
+| comment lines | 460 (**~46% of code**) |
+| blank | 125 |
+| functions | 47 |
+| functions > 100 lines | **1** (`applyHealAura`, 130 incl. comments) |
+
+It is the **single execution point for 19 of the 22 `EffectType`s** — the other
+three (`StatMultiplier`, `ResistPassive`, `LightAura`) are passives resolved
+elsewhere. ~30 code lines per effect applier is proportionate, and there is no
+god-function. **A 1k-line file is the honest size of "the whole effect
+vocabulary executes here."**
+
+Growth, unlike game.go's +65 lines in 27 months:
+
+| date | commit | lines |
+|---|---|---|
+| 2026-06-29 | `801c3d2b` | 57 ← born |
+| 2026-07-06 | `c0426e35` | 475 |
+| 2026-07-12 | `d58cd413` | 866 |
+| 2026-07-14 | `3e9ab8e4` | 1457 ← `tick_rate`, the last effect type added |
+| 2026-07-16 | `63ed12be` | 1492 |
+| 2026-07-20 | `635a44e3` | 1578 |
+| 2026-07-24 | `37878018` | 1594 |
+
+**+1400 lines in 16 days, then +137 in the 10 days since.** The steep phase was
+the effect-vocabulary build-out (plan-skill-vocab, plan-mob-depth); it is
+**plateauing as the vocabulary completes**, not compounding. The growth curve is
+the feature curve, which is exactly what §7.5 said to watch for — so watch it,
+but the reading today is benign.
+
+### Cleanup layer (mechanical, no behavior change, ~70 lines / ~7%)
+
+1. **`fireCooldown` is a `switch` written as an if-chain** (`skills.go:1233–1337`).
+   Eight sequential `if effect.Type == X { …; continue }` blocks, then a negated
+   two-type guard, then an actual `switch` for the last two. Every new cooldown
+   effect appends another if-block. One `switch` collapses ~25 lines and makes
+   the exhaustiveness visible. **Highest value of the four** — this is the
+   extension point that grows.
+2. **Copy-pasted "wounded ally" predicate** — `applyHealAura:716–728` and
+   `applyHotAura:815–827` are logically identical (`Healable` + same faction +
+   not self + `HealthRatio() < 1`). This is the **residual of §3.4 in
+   `research-code-quality.md`**: the flag-gated predicates were unified into
+   `eligibleByTargetFlags`, but heal and hot carry a bespoke implicit-ally rule
+   that was deliberately left out of that seam — and then duplicated. Extract it
+   as a named `woundedAllyPredicate(e)`; both call sites already comment that
+   they share the rule.
+3. **Four copies of the instant-query preamble** — `applyInstantShield:977–990`,
+   `applyInstantHot:1023–1036`, `applyThreatEffect:1453–1455`, and the
+   instant-damage path in `fireCooldown:1308–1321` all do: `skills.Scaled`
+   radius → `NewCircle` at aura pos → `InstantDamageMask` → `QueryCircle` →
+   convert the `[]Collider` into a `ColliderSet`. Three of those slice→set loops
+   are byte-identical. One `queryCircleTargets(e, effect, level)` helper removes
+   ~30 lines and four divergence risks. (Related but **not** recommended:
+   `applyInstantShield` and `applyInstantHot` are the same function with a
+   different buff payload — merging them needs generics over two unrelated apply
+   signatures, which costs more clarity than the ~40 lines buy. KISS says leave
+   the pair.)
+4. **A doc comment got merged into its neighbour** (`skills.go:594–616`).
+   `casterCritChance`'s doc paragraph runs straight into `casterDamageFactor`'s
+   with no break, and the function that actually follows the block is
+   `casterDamageFactor`. Net effect: **`casterCritChance` (line 617) has no doc
+   comment at all** and `casterDamageFactor` carries two. Almost certainly a bad
+   merge during the Strong-passive triage pass (`37878018`, the commit that
+   introduced `casterDamageFactor`). Pure documentation defect, ~2 minutes.
+
+### Hardcoded balance constants — four, all in Go, none in `conf.json`
+
+| constant | line | value | marked |
+|---|---|---|---|
+| `defaultCritFactor` | 592 | `2.0` | `[PLACEHOLDER ×2]` |
+| `healerThreatFactor` | 838 | `0.5` | `[PLACEHOLDER]` |
+| `summonPlacementGap` | 1483 | `0.3` | `[PLACEHOLDER]` |
+| `summonPlacementTries` | 1484 | `8` | `[PLACEHOLDER]` |
+
+They are all correctly *labelled*, so nothing is masquerading as decided. The
+smell is **inconsistent homes for one knob**: base `critChance` lives in
+`conf.json` (tunable, restart only) while the crit *factor* it multiplies is a
+Go const (**rebuild required**). Same mechanic, two workflows — and the whole
+point of `-content ../api` + `conf.json` is that tuning skips the rebuild.
+
+`defaultCritFactor` is the one that actually matters (it applies to every crit
+on every effect without an authored `critFactor`, i.e. most of them);
+`healerThreatFactor` is a real balance lever too. The two summon-placement
+numbers are geometry, not balance, and are fine where they are.
+
+**Cheapest fix:** move `defaultCritFactor` and `healerThreatFactor` into the
+`game.player` block of `conf.json` next to `critChance`, leave the placement
+constants alone. ~30 min including the conf plumbing and a test.
+
+### ⚑ Latent correctness gap — `applySlowAura` has no faction eligibility
+
+`skills.go:1544–1573` iterates the raw collision set and slows anything
+implementing `slowable`, with **no faction check and no `mayHarm` gate** — the
+only aura path that skips both. Its own comment admits it (*"pre-6.6 gap,
+harmless while no mob carries a slow aura and players cannot be slowed"*), and
+the assessment is correct **today**: no mob authors a slow aura, and players
+implement no `ApplySlow`, so nothing can currently reach the gap.
+
+It is recorded here because it is **documented in prose only — no test pins
+it**. The day a mob slow aura is authored, it silently bypasses the hostility
+gate and can slow its own faction. Fix when it ships: route it through
+`eligibleByTargetFlags[slowable]` like every other harmful effect. Noted in
+`manual-content-authoring.md` §Factions so the authoring side sees it first.
+
+### The comment ratio (judgement call, not a defect)
+
+**460 comment lines to 1009 code lines.** Much of it is decision archaeology
+referencing plan docs and chunk numbers ("chunk 6.6", "§3.1", "gotcha #12",
+"the mayHarm lesson"). Two kinds are mixed together:
+
+- **Load-bearing, keep:** the seam warnings on `casterPowerScale` and `mayHarm`
+  (*"route every new HP-valued effect through this — a per-site copy is how the
+  curve gets forgotten"*), the `initShape`-style ordering traps, and the
+  rationale for every deliberate asymmetry (why damage doesn't skip the caster,
+  why a summon's hits don't put its owner in combat). These are the reason the
+  file is safely extensible by someone who wasn't there.
+- **History, arguably belongs in `docs/plan-*.md`:** the narrative of which
+  chunk decided what, in past tense.
+
+No action proposed — it is a PO call, and erring toward over-documentation in
+the single most consequence-dense file in the backend is a defensible bias.
+Flagged only so the ratio is a **choice on record** rather than drift.
+
+### Options (none chosen)
+
+- **A — Do the four mechanical cleanups.** ~70 lines removed, no behavior
+  change, `skills_behavior_test.go` (3839 lines) is the regression net. **~1–2
+  hours, low risk.** #4 alone is 2 minutes and should ride along with any
+  future touch of that file.
+- **B — Move the two balance constants into `conf.json`.** ~30 min, independent
+  of A.
+- **C — Pin `applySlowAura`'s gap with a test** that fails the moment a mob
+  gains a slow aura, instead of relying on the comment. ~20 min. (Or just fix
+  it — but that means picking faction semantics for an effect no content uses,
+  i.e. a design decision with no design pressure behind it. YAGNI says pin, not
+  fix.)
+- **D — Split the file** into `skills.go` (system + dispatch) / `skills_auras.go`
+  / `skills_cooldowns.go`. Mechanical, same package, ~15 min. **Not
+  recommended yet** — the file is cohesive (everything is "apply a skill effect
+  this tick") and §7.5's advice against pre-emptive refactoring stands. Revisit
+  if the vocabulary resumes growing.
+- **E — Do nothing.** Fully defensible. Nothing here is a live bug; the file
+  is readable, tested, and its size is earned.
+
+**Recommendation on record (2026-07-24):** **A + B if the file is being opened
+anyway** (they are the kind of thing that is cheap on a visit and never worth a
+dedicated session), **C whenever a mob slow aura is first considered**, D and E
+otherwise. **Not scheduled.**
+
+**Scope guess:** A ~1–2 h; B ~30 min; C ~20 min; D ~15 min. None of them
+interact, so they can be taken individually.

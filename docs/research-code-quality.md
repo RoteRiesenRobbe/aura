@@ -306,3 +306,42 @@ flat dispatch that grows with every new effect type; it is readable today and
 should **not** be refactored pre-emptively, but it is where the next structural
 pressure will show up. And the ~0.96:1 test ratio is only worth what CI makes
 of it, which today is nothing (§7.4 #1).
+
+## 8. Focused pass 2026-07-24 — `sys/skills.go` (§7.5's prediction, checked)
+
+Single-file review prompted by a code-health question ("skills.go is very large
+— is it in bad shape?"). **Full findings live in `backlog.md` §25**; this
+section records only the verdict and what it means for §7.5's watch item.
+
+**Verdict: the size is warranted; §7.5's advice stands unchanged.** 1594 lines
+resolve to **1009 code / 460 comment / 125 blank**, 47 functions, exactly one
+over 100 lines. It is the single execution point for **19 of the 22
+`EffectType`s** (the other three are passives resolved elsewhere), so ~30 code
+lines per effect applier. No god-function, no architectural problem.
+
+**The growth curve is the feature curve, and it is flattening.** Born
+2026-06-29 at 57 lines; **+1400 in the 16 days** of the effect-vocabulary
+build-out (through `3e9ab8e4`, `tick_rate` — the last effect type added), then
+**+137 in the 10 days since**. So the complexity sink is filling up as designed
+rather than compounding. Keep it in the metrics table; do not act on it yet.
+
+Four mechanical cleanups (~70 lines, no behavior change) and four hardcoded
+balance constants are recorded in §25, plus one latent gap worth naming here
+because it belongs to this doc's lineage:
+
+- **§3.4's residual.** `eligibleByTargetFlags` closed the flag-gated
+  duplication (§7.1), but heal and hot auras carry a *bespoke* implicit-ally
+  predicate deliberately left outside that seam — and it is now duplicated
+  verbatim between `applyHealAura:716` and `applyHotAura:815`. The generic seam
+  fixed the general case and the exception quietly re-grew. Worth remembering as
+  a pattern: **an "intentionally excluded from the shared helper" comment is a
+  duplication forecast.**
+- **`applySlowAura:1544` has no faction eligibility at all** — the one aura path
+  skipping both the faction check and the `mayHarm` hostility gate. Unreachable
+  today (no mob authors a slow aura; players implement no `ApplySlow`), and its
+  own comment says so, but it is **pinned by nothing but that comment**. Same
+  shape as §7.3's `gameObjectClasses` finding: latent, not live, and dangerous
+  precisely because the failure is silent. Now also flagged in
+  `manual-content-authoring.md` §Factions, where an author would meet it first.
+
+Nothing in this pass changes the §7 grades or the §7.4 priorities.
