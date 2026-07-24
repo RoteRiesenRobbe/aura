@@ -1,7 +1,10 @@
 # Plan: Walking micro-resets → buffered snapshot interpolation
 
-**Status:** **PLANNED 2026-07-24 — not started.** Spun out of the input-jitter
-fix (`docs/plan-input-jitter.md`): once the input path was made clean (0 browser
+**Status:** **DONE 2026-07-24 — chunks 1 + Lever A + Lever B all committed and
+DEPLOYED LIVE; PO-validated LOCALLY ("feels good"). Live re-feel + a fresh
+`[snapshot-arrival]`/eviction re-measure is the outstanding acceptance test.**
+See the §Ledger at the bottom. Spun out of the input-jitter fix
+(`docs/plan-input-jitter.md`): once the input path was made clean (0 browser
 starvation), a *different*, smaller artifact remained. PO report from the live
 re-measure:
 
@@ -171,3 +174,77 @@ for PvE, and the right base to extend from if prediction is ever needed.
    is low-jitter and the per-tick 33/33.333 mismatch was the dominant cause. The
    chunk-1 measurement answers it: if arrival jitter is small, ship Lever A and
    defer Lever B; if arrival jitter is the driver, Lever B is required.
+   **Answered: no** — the PO reported still-visible jitter with only the per-tick
+   component addressed, so both levers shipped together.
+
+## Ledger — DONE 2026-07-24
+
+**Chunk 1 — instrumentation (`0e504c22`).** Dev-gated `[snapshot-arrival]`
+console line: GameState→GameState arrival intervals, p50/p95/p99/max, one summary
+per 300 snapshots (~10 s at 30 Hz). Deliberately **snapshot-only** — the existing
+`serverTickRate` dev line measures time-since-ANY-message and is corrupted by
+interleaved EntityMessage/Pong traffic. New `IDevelop.logSnapshotArrival`, a
+per-object arrival tracker in `_Develop.ts`, and one call in the `GameState` case
+of `Backend.receive` under the existing `Develop.isActive()` gate.
+
+**Measurement (the whole point).** localhost read mean **30.3 ms** — which looked
+like an anomaly (server is coded 30 Hz = 33.3 ms; the send path in `core/net.go`
+is provably one GameState per tick). Live (`&develop`, ~10 min) read mean **33.3
+ms**, exactly the true rate ⇒ **the 30.3 was a loopback artifact**, and the live
+number *confirmed* Lever A's constant rather than overturning it (the opposite of
+how the input-jitter measurement overturned TCP-HoL). Live distribution: p50 ~33.3,
+p95 ~39–40, **p99 ~40–43**, max mostly 41–52 with a lone 72.7 ms outlier. That p99
+sized the render delay.
+
+**Lever A — rate alignment (`8a29a75c`).** `INPUT_TICKRATE` + `SERVER_TICKRATE`
+`33 → 1000/30` (33.333) in `BasicConfig.ts`. Kills the per-tick 33-vs-33.3
+micro-freeze and the 10 % input-queue eviction (client was running 30.303 vs 30.0
+Hz). Client-only — never move the server tick rate. Contained surface confirmed:
+the two constants feed only a `Tock` interval, one `Math.round` count in
+`VitalSigns`, and the lerp.
+
+**Lever B — buffered render-delay interpolation (`c5064732`), all in
+`_GameObject.ts`.** Replaced the reactive un-buffered chase in
+`moveInterpolatedObjects` with the standard scheme: each snapshot stored as
+`{x, y, t: receiveTime}` in a per-object `positionBuffer`; every frame render at
+`now − RENDER_DELAY_MS` (`RENDER_DELAY_TICKS = 2` × `SERVER_TICKRATE` ≈ 66.7 ms),
+lerping between the two bracketing samples. Design points settled while writing:
+- **Render delay must be ≥ the late-arrival gaps.** 1 tick (33 ms) would underrun
+  on any gap >33 ms — ~half of them (p50 is 33.3) — so 2 ticks is the measured
+  minimum that covers the p99 (42) with margin (only the rare >66 ms max, e.g.
+  72.7, underruns by a bounded ~6 ms). `RENDER_DELAY_TICKS` is the documented
+  smoothness↔latency knob.
+- **Restart-from-idle seed.** The dedupe (skip identical server positions) makes a
+  stationary entity stop producing samples and settle (buffer cleared, removed
+  from the interpolation set). Without care the next move would *jump* to the new
+  sample. Fix: when `setPosition` runs with an empty buffer, push a synthetic left
+  anchor at the current rendered position timestamped `now − RENDER_DELAY_MS`, so
+  the very next frame renders exactly where the object already is and ramps up
+  smoothly. Verified in the smoke (smooth position continuity across `buf: 0`
+  transitions).
+- **Underrun policy: freeze at newest, never extrapolate** (a walker would be
+  guessed into walls/auras) — the downstream analog of the input coast's bounded
+  stop.
+- **Teleport bypass preserved.** A delta beyond `TELEPORT_SNAP_DISTANCE_PX` clears
+  the buffer and sets `shape.position` directly; the next ordinary sample
+  re-seeds from the destination. Compared against the last known *server* position
+  (newest sample), not the render-lagged `shape.position`.
+- Uniform on players and mobs; the local player too (no prediction — the +~66 ms
+  render latency is the documented PvE tradeoff, and the correct substrate for
+  future self-prediction).
+
+**Verification.** `tsc --noEmit` + webpack prod exit 0. Headless smokes had to
+**shim `requestAnimationFrame` onto `setTimeout`** — a hidden Playwright page
+throttles rAF to ~6 fps, which starves the `PrerenderEvent` render loop and makes
+*any* interpolation look frozen (this initially read as a bug; the rAF probe
+showed 6 fps and the shim fixed it). With the shim: movement tracks **414 px**
+smoothly with the buffer trimming/settling to 0 (not pegged), teleport (`WARP`)
+snaps **7460 px** and settles, 0 new console errors (pre-existing `null.split`
+filtered). Deployed to `aura-game.duckdns.org` on an empty server (pid 54025,
+bundle `main.ec3610404a…`, boot 5 campfires / 14 npcs, 0 panics).
+
+**Outstanding (acceptance).** PO live re-feel of the walking smoothness AND the
++66 ms latency judgement; a fresh `[snapshot-arrival]` p99 + eviction/`q_mean`
+re-measure (expect eviction back to ~0 / `q_mean` ~1.0 after Lever A). If the
+latency reads laggy, drop `RENDER_DELAY_TICKS` to 1. All numeric values here are
+[PLACEHOLDER] pending that pass.
