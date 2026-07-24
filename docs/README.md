@@ -34,7 +34,6 @@ literally correct — don't add the prefix to newly archived docs, the folder sa
 
 Everything else that ever had a plan doc lives in `archive/` (see the Archive section).
 
-- **plan-item-system-removal.md** — backlog §28, **in progress**: 3 chunks removing the dead item system. Chunks 1+2 done (`b9d01d33`, `2f933634`); **Chunk 3** (FlatBuffers dead-wire-enum prune) is the last one, to be done before step-8 persistence
 - **plan-intermission-triage.md** — the PO's 22 post-C7 playtest items (bugs, config fixes, audits, design questions), each investigated against code with effort estimates + a locked execution sequence. Largely executed; still the home of the open combat-readability and sacrifice-loop items
 - **plan-ui-polish.md** — UI-polish pass (step 8, item-8 slice): Chunk 1 done (`GET /skills` catalog + skill tooltips); the rest of the checklist is deferred (§Deferred)
 - **plan-playtest-deploy.md** — the live server (2026-07-21, `a7a2267d`): Hetzner VPS, `devops/deploy.sh`, server-only cheat token, **no persistence** (restarts wipe characters). Live-ops reference; its §Ops & security posture is a required input to step-8 persistence
@@ -115,6 +114,7 @@ are relative to `docs/archive/`.
 - **plan-render-jitter.md** — walking micro-resets → buffered snapshot interpolation (`0e504c22`/`8a29a75c`/`c5064732`): tickrate align + `RENDER_DELAY_TICKS=2`, freeze-not-extrapolate
 - **plan-entitytype-validation.md** — backlog §27.2.1 (`c3938be7`): the mob `EntityType` name-fallback validated at load, turning a live crash-at-first-spawn into a boot error
 - **plan-resource-decay-prune.md** — backlog §26 (`ee9d42e9`+`a2ab90b5`): the dead resource/placeable/decay layer removed. Its §13 holds two process lessons (hidden webpack `require`s; rebuild **both** sides after content deletions)
+- **plan-item-system-removal.md** — backlog §28 (`b9d01d33`+`2f933634`+Chunk 3): the dead Berryhunter item system removed in 3 chunks — backend registry, frontend scaffolding, then the wire-enum prune that **pinned explicit `EntityType`/`StatusEffect` values** so no future removal renumbers a survivor. Its §13 Chunk 3 records a plan audit that caught a broken repoint target before it shipped
 - **plan-unlock-attribution.md** — unlock source attribution (`2bfee286`): `EntityMessage.kind=Unlock` labels every unlock from the 4 grant sites
 
 ### Playtest / deploy records

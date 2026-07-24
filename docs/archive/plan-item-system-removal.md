@@ -7,7 +7,9 @@ FlatBuffers schema tail (Tier 3) the §26 prune deliberately left behind.
 **Precedent:** `plan-resource-decay-prune.md` (§26). Same shape, same
 verification tail, same "prove nothing live broke" discipline. Read its §13
 chunk ledger for the two process lessons that apply directly here.
-**Status:** PLANNING (written 2026-07-24). No production code yet.
+**Status:** ✅ **COMPLETE** — all 3 chunks landed 2026-07-24
+(`b9d01d33` backend registry · `2f933634` frontend scaffolding · Chunk 3 wire-enum
+prune `8ed4ff4c`), each PO-verified in-game. Full ledger in §13.
 
 ---
 
@@ -393,4 +395,94 @@ safe-zone, props, flowers, 2 NPCs, aura ring, full HUD, Websocket PLAYING).
 
 No wire/schema change — that is **Chunk 3**.
 
-### Chunk 3 — FlatBuffers schema prune — _pending (do before step-8 persistence)_
+### Chunk 3 — FlatBuffers dead-wire-enum prune — DONE (2026-07-24), wire regen both muxes, PO-verified in-game 2026-07-24, committed `8ed4ff4c`
+
+The last chunk: deleted the dead Berryhunter wire types and **pinned explicit
+values on both enums**, so no future removal can ever renumber a survivor.
+32 files, **131 insertions / 1033 deletions.**
+
+**Plan audit first (PO ask: "verify the plan for any bad code smell").** The
+plan's dead-set audit was re-derived independently across all 74 `EntityType`
+members (content JSON × non-generated Go × frontend) and **held exactly**:
+only the 8 clean + `Flower` have zero live references, `Placeable` is the last
+union member (renumber-safe), the frontend `entityCtors` map already omitted it,
+and `Freezing`/`Starving` have no emitter. **Four problems were found:**
+
+① **🔴 The plan's repoint target was broken.** §4 step 1 said point
+`PlaceholderSprite` at `DebugCircle` — which is a **dev-tool class with a
+60-tick TTL that deletes itself** and calls `Develop.get()`, initialised only
+under `?develop`. Following the plan literally would have given NPCs that vanish
+after ~2 s and threw on a normal client. (Mitigating: all 14 `world.json` NPCs
+author an `entityType`; only the 2 legacy proving-grounds NPCs hit the
+placeholder.)
+② **`StatusEffect.Yielded` was equally dead and not in the plan** — zero
+emitters (only the const in `model/status_effects.go`), yet the frontend carried
+a full `forYielded` VFX + a `Resources.ts` wiring that could never fire.
+③ **Plan step 4 would have *created* dead code** — deleting the enum rows
+orphans 7 `Resources.*` classes, their `ResourceJuice.ts` cases, SVGs and
+`Graphics.ts` entries, and `tsc` says nothing.
+④ **The explicit-value decision had an unstated sub-decision** — preserve
+today's ordinals vs. renumber compactly. The plan's prose implied renumbering.
+
+**PO rulings (2026-07-24, 4 choice prompts):** ① **new authored art** — not
+`DebugCircle`, not a borrowed live sprite: a dedicated **red `?` on a purple
+disc** so missing art reads as missing art; ② fold `Yielded` in — **yes**;
+③ **preserve today's ordinals, leave gaps** (survivors' wire values unchanged);
+④ delete the orphaned classes + art — **yes**.
+
+**Schema (`api/schema/server.fbs`):** removed `table Placeable` (incl.
+`item:ubyte`) + its `AnyEntity` member (last position ⇒ `Character`/`Mob`/
+`Resource` keep 1/2/3); removed the 9 dead `EntityType` members and
+`StatusEffect.Yielded/Freezing/Starving`; **pinned explicit values at today's
+positions** on both enums — gaps `EntityType` 1, 3, 6-8, 12-14, 16 and
+`StatusEffect` 1-3, with a header comment stating the permanent contract (add at
+the next free value, never reuse a gap). Added `EntityType.NpcPlaceholder = 74`.
+
+**New placeholder art:** `assets/resources/npcPlaceholder.svg` (512×512, matching
+the NPC sprite convention) + an `NpcPlaceholder` Resource class + a
+`GraphicsConfig.npcs.placeholder` entry; `npc.PlaceholderSprite` repointed to it.
+
+**Backend:** `npc.go` repoint + comment; `StatusEffectYielded` const dropped.
+The generator's own `cleanOutputFolders()` removed the orphan
+`AuraApi/Placeable.go`; `make.sh`'s `rm -rf ./js` removed `placeable.ts`.
+
+**Frontend:** 9 rows out of the exhaustive `gameObjectClasses` Record + 1 in;
+the 7 orphaned `Resources.*` classes (`MarioTree`, `Bronze`, `Iron`, `Titanium`,
+`TitaniumShard`, `BerryBush`, `Flower`) + their cfg consts and preloads; the
+`ResourceJuice.ts` cases; **11 SVGs + the now-unplayable `bush-hit` mp3**; the
+unreachable `forYielded` VFX; the `berryBush` render layer in `Game.ts` (its
+only two users were BerryBush + Flower); 4 imports the deletions stranded.
+
+**One deviation (in-scope, verification-surfaced — the Chunk 2 ② pattern):**
+`internal-tools/art-references/` **deleted**. `artwork.html` was an unbundled
+dev art-reference page whose entire subject was `flower.svg` — every `<img>`
+pointed at the sprite this chunk removed; nothing links to it, webpack never
+touched it, and its sibling `transfer.svg` already had zero readers.
+
+**Verified:** `go build`/`go vet`/`go test -timeout 120s ./...` all green;
+`tsc --noEmit` clean; `make -C backend build` + webpack prod build green; boot
+**embedded** *and* **`-content ../api`** identical with **0 errors / 0 panics** —
+**83 skills/14 factions/50 mobs/10 recipes/5 prop defs/777 props/471 spawns/5
+campfires/14 npcs** (unchanged from the Chunk 1/2 baseline, the decisive check
+since §27.2.1's loader hard-fails on a still-referenced removed EntityType);
+join smoke both muxes — character spawns, world renders (campfire safe-zone,
+houses, trees, 2 NPCs, aura ring, full HUD, `Websocket PLAYING`), **zero
+console/page errors**. **PO-verified in-game 2026-07-24** ("tested and works").
+
+**⚠ Watch — one unexplained observation, tracked as backlog §29.** The *first*
+cold develop-mux load threw `Cannot read properties of null (reading 'split')`
+×3 and rendered a **black world** with a healthy HUD/websocket. It did **not**
+reproduce in 5 subsequent cold runs, and the failing run showed client frame
+times up to **40 000 ms** (rAF starvation on the cold 2.8 MiB bundle). Not
+attributed to the prune: a wrong wire enum value is deterministic per entity
+stream and would break *every* join, not 1 in 6. `logCallers` (the only `.split`
+on a nullable `Error().stack`) has **zero callers**. Reproduce against a **dev**
+build for an unminified stack — see §29.
+
+**Also spun off:** backlog **§30** — 4 pre-existing Berryhunter render/asset
+vestiges surfaced by this audit and deliberately *not* folded in (`Resource.
+capacity`/`stock` hardcoded to 1/1 + their client rescale path; the dead
+`item: undefined` snapshot field; **all seven `layers.placeables.*` containers
+are permanently empty**; `mineral-hit-sharp` + 2 orphan minimap icons).
+
+**§28 is complete** — all 3 chunks landed 2026-07-24.

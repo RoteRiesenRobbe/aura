@@ -1990,7 +1990,19 @@ no-op of exactly the kind the rest of the file exists to prevent.
 
 ---
 
-## 28. Item-system removal (deferred — the Berryhunter item cluster)
+## 28. Item-system removal — ✅ DONE 2026-07-24 (3 chunks, `b9d01d33` + `2f933634` + Chunk 3)
+
+> **✅ CLOSED 2026-07-24.** All three chunks landed and were PO-verified in-game;
+> the plan doc is archived at `docs/archive/plan-item-system-removal.md` (its §13
+> is the full ledger). Chunk 1 removed the backend registry, Chunk 2 the frontend
+> scaffolding + `api/items/none.json`, Chunk 3 the wire tail — and went further
+> than part 2 below: rather than accepting the mid-enum renumber, it **pinned
+> explicit values on both `EntityType` and `StatusEffect` at their existing
+> ordinals**, so every survivor's wire value is unchanged and *every future
+> removal is a one-line delete that leaves a gap*. `StatusEffect.Yielded` (dead
+> too, missed by the plan) went with `Freezing`/`Starving`. Two follow-ups were
+> spun off: **§29** (an unexplained develop-mux page error) and **§30**
+> (pre-existing render/asset vestiges the audit surfaced).
 
 **Tracked 2026-07-24** (PO ask, during the §26 resource/decay-prune planning) so
 it is not lost. This is CLAUDE.md's long-referenced "planned item-system removal",
@@ -2027,3 +2039,90 @@ Two coupled parts, one chunk:
 
 **Not scheduled.** Same mechanical shape as the §26 prune; verification tail is the
 same (`go build`/`go test`/`tsc --noEmit` + boot count + join smoke).
+
+---
+
+## 29. Investigate: intermittent `null.split` page error + black world on the develop mux
+
+**Tracked 2026-07-24** during the §28 Chunk 3 wire-enum prune (`plan-item-system-removal.md`).
+
+**What was seen (once).** On the *first* cold headless load of
+`?token=plz&wsUrl=…&develop` after a server restart, the client threw
+`Cannot read properties of null (reading 'split')` **three times** as page
+errors and rendered a **completely black world** — no terrain, no character
+sprite — while the HUD, the dev panel and the websocket were all healthy
+(`Websocket PLAYING`, server tick advancing, HP/XP bars populated).
+
+**Why it was not attributed to the enum prune.** The failure did not reproduce
+in **five** subsequent cold runs, nor on the plain mux at all. A wrong wire enum
+value is deterministic per entity stream — it would break *every* join, not one
+in six. The failing run's dev panel also showed client frame times up to
+**40 000 ms** (vs. ~10 ms on healthy runs), i.e. severe rAF starvation while the
+cold 2.8 MiB bundle + 7 MiB audio decoded. Prime suspect: a load-order race that
+only opens when the first frame is starved that badly.
+
+**Leads / dead ends already checked.**
+- `Utils.ts logCallers()` is the only `.split` on a `new Error().stack` (which
+  can legitimately be null) — but it has **zero callers**, so it is not it.
+- `QueryParameters.ts` `getStringArray`/`tryGetStringArray` both null-guard
+  before `.split(',')`.
+- `_ZoneEditorPanel.ts:723` splits `npcLinesInput.value` — develop-only, but
+  needs interaction, and none happened.
+- The build is minified, so the observed stack was useless. **Reproduce against
+  a dev build (port 2001) to get a real stack**, or wire a
+  `window.onerror` capture that logs `e.error.stack` before minification.
+
+**Why it matters.** A black world with a healthy HUD and websocket is
+indistinguishable, to a player, from "the game is broken" — and it is
+develop-mux-only so far, which is where all hand-testing happens. Cheap to
+reproduce hunting: throttle the CPU hard in Playwright
+(`CDPSession.send('Emulation.setCPUThrottlingRate', {rate: 20})`) on a cold
+load and see whether the rate goes up.
+
+**Not scheduled.** Low frequency, no known player-facing occurrence on the live
+server yet.
+
+---
+
+## 30. Berryhunter render/asset vestiges surfaced by the §28 Chunk 3 audit
+
+**Tracked 2026-07-24** while pruning the dead wire enums
+(`plan-item-system-removal.md` Chunk 3). All of these are **pre-existing** dead
+weight — none was created by that chunk, which is why they were left alone
+rather than folded in. Each is independently removable; none is urgent.
+
+**1. `Resource.capacity` / `Resource.stock` are a constant `1`/`1`.**
+`codec/gamestate.go:373-374` hardcodes `ResourceAddCapacity(builder, 1)` +
+`ResourceAddStock(builder, 1)` for every prop and NPC, and the client still
+carries the whole harvest-era consumer path off them: `Resource.stock`'s setter
+in `Resources.ts` calls `onStockChange`, which fires `ResourceStockChangedEvent`
+and rescales the sprite by `newStock / capacity` — a ratio that can now only
+ever be 1. `House` and `GateWall` already override `onStockChange` to an empty
+body precisely to dodge that rescale. **Caveat before cutting:** these are
+*mid-table* FlatBuffers fields, so removing them shifts the vtable slots of
+`aabb` after them — either accept that (safe pre-persistence, same argument as
+§28 Chunk 3) or mark them `(deprecated)` and leave the slots. Removing them also
+retires `ResourceStockChangedEvent` and the two override stubs.
+
+**2. `GameStateMessage.ts:166` `item: undefined`.** A snapshot field that is
+declared and never assigned — the last trace of the `Placeable.item` wire field
+removed in §28 Chunk 3. One line.
+
+**3. Every `layers.placeables.*` container is permanently empty.** All seven
+(`campfire`, `chest`, `workbench`, `furnace`, `doors`, `walls`, `spikyWalls`)
+are created in `Game.ts` and added to the stage, but **nothing renders into any
+of them** — the only references anywhere are the stage assembly itself plus
+`placeables.campfire` in the night-exempt set. Real campfires are mobs and go to
+`layers.mobs.campfire`, which is separately night-exempt already, so dropping the
+whole `placeables` group is behaviour-neutral. (`IGame.ts:20` types it as a loose
+`Record<string, Container>`, so no interface change is needed.) Note the §26
+naming trap: this is the *display-layer* `placeables`, unrelated to the physics
+`model.LayerPlaceableCollision`, which **is** live in `auramask.go`.
+
+**4. Two orphaned client assets.** `mineral-hit-sharp` in `ResourceJuice.ts` is
+`Assets.add`-ed and preloaded but never played by any surviving switch case;
+`GraphicsConfig.miniMap.icons.BerrySeed` and `.Workbench` have zero readers.
+
+**Not scheduled.** Item 3 is the biggest single win and the lowest risk; item 1
+is the only one that touches the wire and should ride along with another schema
+regen rather than earning one on its own.
