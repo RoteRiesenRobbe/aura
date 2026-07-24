@@ -1842,7 +1842,7 @@ so, and the per-payload builder refactor closed §3.1). **The findings below are
 gaps in coverage, not problems with the design** — and each one is a silent
 no-op of exactly the kind the rest of the file exists to prevent.
 
-> **✅ FIXED 2026-07-24, findings 1 + 2, test-first** (`39152958`). The
+> **✅ FIXED 2026-07-24, findings 1 + 2, test-first** (`eee10331`). The
 > §27.4 order pairs these two, so they landed together.
 > - **Finding 1 (§27.3.1 `default:`):** the switch now ends with an explicit
 >   `case EffectTypeLightAura, EffectTypeRecall:` (payload-less by design) then a
@@ -1920,9 +1920,9 @@ no-op of exactly the kind the rest of the file exists to prevent.
 | # | Item | Effort | Why this order |
 |---|---|---|---|
 | 1 | ~~§27.1 removal-during-iteration~~ **✅ DONE 2026-07-24** | ~30 min, test-first | the only live defect here |
-| 2 | ~~§27.3.1 `default:` on the payload switch~~ **✅ DONE 2026-07-24** (`39152958`) | one line | permanently closes a silent class |
+| 2 | ~~§27.3.1 `default:` on the payload switch~~ **✅ DONE 2026-07-24** (`eee10331`) | one line | permanently closes a silent class |
 | 3 | §27.2.1 validate the EntityType name-fallback at load | ~1 h | turns a live-server crash into a boot error |
-| 4 | ~~§27.3.2 even out the zero-value payload guards~~ **✅ DONE 2026-07-24** (`39152958`, same session as #2) | ~15 lines | authoring-safety, same session as #2 |
+| 4 | ~~§27.3.2 even out the zero-value payload guards~~ **✅ DONE 2026-07-24** (`eee10331`, same session as #2) | ~15 lines | authoring-safety, same session as #2 |
 | 5 | §27.2.2 drop-RNG determinism | ~1 h | **PO-ruled a bug 2026-07-24** — rolls must be random per run |
 | 6 | §27.2.3 mob regen → `conf.json` | ~30 min | balance visibility |
 | 7 | §27.3.3 / §27.2.8 the small ones | opportunistic | pure hygiene |
