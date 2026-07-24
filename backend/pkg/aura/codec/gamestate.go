@@ -327,16 +327,6 @@ func EntitiesMarshalFlatbuf(entities []model.Entity, builder *flatbuffers.Builde
 		case model.MobEntity:
 			marshalled = MobEntityFlatbufMarshal(v, builder)
 			eType = AuraApi.AnyEntityMob
-		case model.PlaceableResourceEntity:
-			// Placeable resources are handled as resources for the client
-			marshalled = ResourceEntityFlatbufMarshal(v, builder)
-			eType = AuraApi.AnyEntityResource
-		case model.PlaceableEntity:
-			marshalled = PlaceableEntityFlatbufMarshal(v, builder)
-			eType = AuraApi.AnyEntityPlaceable
-		case model.ResourceEntity:
-			marshalled = ResourceEntityFlatbufMarshal(v, builder)
-			eType = AuraApi.AnyEntityResource
 		case model.PropEntity:
 			// Props ride the resource streaming path to the client (decision B,
 			// plan-world-zones.md §3.2).
@@ -357,30 +347,6 @@ func EntitiesMarshalFlatbuf(entities []model.Entity, builder *flatbuffers.Builde
 		builder.PrependUOffsetT(o)
 	}
 	return builder.EndVector(n)
-}
-
-// EntityFlatbufMarshal marshals an Entity interface to its corresponding
-// flatbuffer schema
-func ResourceEntityFlatbufMarshal(e model.ResourceEntity, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	statusEffects := StatusEffectsMarshal(builder, e)
-
-	AuraApi.ResourceStart(builder)
-	AuraApi.ResourceAddId(builder, e.Basic().ID())
-	AuraApi.ResourceAddStatusEffects(builder, statusEffects)
-
-	pos := Vec2fMarshalFlatbuf(builder, e.Position())
-	AuraApi.ResourceAddPos(builder, pos)
-
-	aabb := AabbMarshalFlatbuf(e.AABB(), builder)
-	AuraApi.ResourceAddAabb(builder, aabb)
-
-	AuraApi.ResourceAddRadius(builder, f32ToU16Px(e.Radius()))
-	AuraApi.ResourceAddEntityType(builder, AuraApi.EntityType(e.Type()))
-
-	AuraApi.ResourceAddCapacity(builder, byte(e.Stock().Capacity))
-	AuraApi.ResourceAddStock(builder, byte(e.Stock().Available))
-
-	return AuraApi.ResourceEnd(builder)
 }
 
 // PropEntityFlatbufMarshal marshals a static prop through the Resource wire
@@ -408,27 +374,6 @@ func PropEntityFlatbufMarshal(e model.PropEntity, builder *flatbuffers.Builder) 
 	AuraApi.ResourceAddStock(builder, 1)
 
 	return AuraApi.ResourceEnd(builder)
-}
-
-func PlaceableEntityFlatbufMarshal(e model.PlaceableEntity, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	statusEffects := StatusEffectsMarshal(builder, e)
-
-	AuraApi.PlaceableStart(builder)
-	AuraApi.PlaceableAddId(builder, e.Basic().ID())
-	AuraApi.PlaceableAddStatusEffects(builder, statusEffects)
-
-	pos := Vec2fMarshalFlatbuf(builder, e.Position())
-	AuraApi.PlaceableAddPos(builder, pos)
-
-	aabb := AabbMarshalFlatbuf(e.AABB(), builder)
-	AuraApi.PlaceableAddAabb(builder, aabb)
-
-	AuraApi.PlaceableAddRadius(builder, f32ToU16Px(e.Radius()))
-	AuraApi.PlaceableAddEntityType(builder, AuraApi.EntityType(e.Type()))
-
-	AuraApi.PlaceableAddItem(builder, byte(e.Item().ID))
-
-	return AuraApi.PlaceableEnd(builder)
 }
 
 // intermediate struct to serialize

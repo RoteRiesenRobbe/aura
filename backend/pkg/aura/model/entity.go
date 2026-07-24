@@ -3,7 +3,6 @@ package model
 import (
 	"github.com/EngoEngine/ecs"
 
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
@@ -43,39 +42,6 @@ type Entity interface {
 	AABB() AABB
 	Angle() float32
 	Type() EntityType
-}
-
-// PlaceableEntity is an entity that was
-// dynamically placed and might need constant updates
-type PlaceableEntity interface {
-	Entity
-	StatusEntity
-
-	Decayed() bool
-	Update(dt float32)
-	Item() items.Item
-}
-
-type ResourceStock struct {
-	Item      items.Item
-	Capacity  int
-	Available int
-}
-
-// ResourceEntity is an entity that can be mined/gathered
-type ResourceEntity interface {
-	Entity
-	Interacter
-	StatusEntity
-
-	Update(dt float32)
-	Stock() *ResourceStock
-	Resource() items.Item
-}
-
-type PlaceableResourceEntity interface {
-	PlaceableEntity
-	ResourceEntity
 }
 
 // PropEntity is a hand-placed static world object from the authored zone

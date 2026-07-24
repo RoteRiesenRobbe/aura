@@ -159,9 +159,6 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	eq := equip.NewEquipSystem(g)
 	g.AddSystem(eq)
 
-	d := sys.NewDecaySystem(g)
-	g.AddSystem(d)
-
 	g.printSystems()
 	return g, nil
 }
@@ -259,11 +256,6 @@ func (g *game) AddEntity(e model.BasicEntity) {
 		g.addPlayer(v)
 	case model.MobEntity:
 		g.addMobEntity(v)
-	// PlaceableResourceEntity embeds PlaceableEntity (model/entity.go) and
-	// needed exactly the same registrations, so it has no case of its own —
-	// resources fall through to the placeable path.
-	case model.PlaceableEntity:
-		g.addPlaceableEntity(v)
 	case model.Spectator:
 		g.addSpectator(v)
 	case model.CorpseEntity:
@@ -311,27 +303,6 @@ func (g *game) addMobEntity(e model.MobEntity) {
 			s.AddEntity(e)
 		case *encounter.System:
 			s.AddEntity(e)
-		}
-	}
-}
-
-func (g *game) addPlaceableEntity(p model.PlaceableEntity) {
-	// Loop over all Systems
-	for _, system := range g.Systems() {
-		// Use a type-switch to figure out which System is which
-		switch s := system.(type) {
-
-		// Create a case for each System you want to use
-		case *sys.PhysicsSystem:
-			s.AddEntity(p)
-		case *NetSystem:
-			s.AddEntity(p)
-		case *statuseffects.StatusEffectsSystem:
-			s.Add(p, p)
-		case *sys.UpdateSystem:
-			s.AddUpdateable(p)
-		case *sys.DecaySystem:
-			s.AddDecayable(p)
 		}
 	}
 }

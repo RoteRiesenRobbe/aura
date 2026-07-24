@@ -2,5 +2,5 @@ package items
 
 import "embed"
 
-//go:embed *.json **/*.json
+//go:embed *.json
 var Items embed.FS
