@@ -1591,16 +1591,19 @@ interact, so they can be taken individually.
 
 ## 26. Prune the dead resource + decay layer (Berryhunter remnant)
 
-> **✅ Chunk 1 DONE 2026-07-24, committed `ee9d42e9`.** Planned in
-> `docs/plan-resource-decay-prune.md`; full ledger there (§13 Chunk 1). Removed
-> the whole resource/placeable/decay Go cluster + 3 codec cases + game.go wiring
-> + 3 dead interfaces + the 9 resource/placeable item JSONs. Helpers 7→6, systems
-> 16→15. Verified: `go build`/`vet`/`test` (29 pkgs) green, boot embedded and
-> `-content ../api` both 0 panics / props:777 spawns:471 / 5 campfires / 1 item.
-> One deviation: those JSONs were 100% of nested item content, so `items.go`'s
-> embed narrowed to `*.json` — the registry is now down to `None`, which makes
-> **§28 trivial** (see the note there). **Chunk 2 (frontend `Placeable.ts` sweep)
-> still open** — separate, per the plan. Original finding below.
+> **✅ FULLY DONE 2026-07-24 (Chunks 1+2).** Planned in
+> `docs/plan-resource-decay-prune.md`; full ledger there (§13). **Chunk 1
+> `ee9d42e9`** — removed the resource/placeable/decay Go cluster + 3 codec cases +
+> game.go wiring + 3 dead interfaces + the 9 resource/placeable item JSONs
+> (helpers 7→6, systems 16→15); the JSONs were 100% of nested item content so
+> `items.go`'s embed narrowed to `*.json`, leaving the registry at `None` alone
+> ⇒ **§28 now trivial** (note there). **Chunk 2 `a2ab90b5`** — swept the frontend
+> `Placeable` decode path + fixed a Chunk-1 regression (the deleted JSONs broke
+> `npm run build` via a static `require` in `client-data/Items.ts`, unseen by the
+> backend-only rebuild). Verified: backend `go build`/`vet`/`test` (29 pkgs),
+> frontend `tsc`/webpack, boot 0 panics / props:777 spawns:471 / 5 campfires /
+> 1 item, 12/12 clean joins, PO hand-tested. **Tier 3 (FlatBuffers `Placeable`
+> schema prune) deferred into §28.** Original finding below.
 
 **Origin:** PO observation 2026-07-24, during the §24 review — *"'resources' in
 their former Berryhunter sense no longer exist in the game and are not intended

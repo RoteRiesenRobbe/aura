@@ -212,4 +212,35 @@ count:5`, `Loaded item definitions count:1`. No dangling refs to any deleted
 symbol. §24 side-effect banked: `addPlaceableEntity` gone (helpers 7→6),
 `DecaySystem` gone (registered systems 16→15).
 
-Chunk 2 (frontend `Placeable.ts` sweep) is separate and not yet started.
+### Chunk 2 — frontend `Placeable.ts` sweep ✅ 2026-07-24, committed `a2ab90b5`
+
+Removed the frontend `Placeable` GameObject + its now-inert decode path (the
+server stopped sending `AnyEntityPlaceable` in Chunk 1): deleted `Placeable.ts`;
+`EntityManager` import + `case Placeable`; `GameStateMessage` import + the
+`AnyEntity.Placeable` ctor-map entry + the `eType===Placeable` decode branch +
+the orphaned `unmarshalItem`; `Events` `PlaceablePlacedEvent`; `PlayerJuice`
+subscription + the dead `place-heavy` sound (asset add, preload, `.mp3`).
+**Kept** `EntityType.Placeable` in the exhaustive `gameObjectClasses` `Record` as
+`undefined` (like `Border`) — the schema enum lingers until §28; a comment says so.
+
+**Also fixed a Chunk-1 regression discovered here:** `client-data/Items.ts`
+`require()`s the item JSONs Chunk 1 deleted, so `npm run build` was **broken at
+`ee9d42e9`** — the backend-only rebuild after Chunk 1 never exercised the frontend.
+Trimmed the 8 deleted-item entries from `ItemsConfig` (kept `None`). Verified safe:
+the live prop renderers (`Resources.Stone` etc.) use `GraphicsConfig` not
+`ItemsConfig`, and the item table's only reader was the just-removed
+`unmarshalItem`. The rest of the frontend item scaffolding
+(`BackendConstants.itemLookupTable`, `features/items/logic`) is unread and comes
+out with **§28**. *Process lesson: rebuild frontend **and** backend after content
+deletions — a JSON delete can break a static `require` with no backend symptom.*
+
+**Verified:** `tsc --noEmit` clean; `webpack` prod build clean (was broken
+pre-fix); **12/12 clean headless joins** across dev (:2001) + prod (:2000) —
+character joins, props/campfires render, no crash on the removed path; PO
+hand-tested locally "all looking good". **Caveat, recorded honestly:** the very
+first prod join (of ~13) threw 3 non-fatal `null.split` pageerrors that never
+reproduced in the following 12 and are not reachable from any changed code —
+judged a pre-existing init-race artifact, not attributable to this change.
+
+**§26 is now fully executed** (Chunks 1+2). Tier 3 (FlatBuffers `Placeable`
+schema prune) stays deferred into §28.
