@@ -451,46 +451,6 @@ export const GraphicsConfig = {
                 alpha: 1,
                 sizeFactor: 1,
             },
-            BerrySeed: {
-                color: 0xc20071,
-                alpha: 1,
-                sizeFactor: 1.2,
-            },
-            Workbench: {
-                color: 0xFF0000,
-                alpha: 1,
-                sizeFactor: 1,
-            },
-            WorkbenchConstruction: {
-                color: 0xFF00FF,
-                alpha: 1,
-                sizeFactor: 1,
-            },
-            Furnace: {
-                color: 0xFF8000,
-                alpha: 1,
-                sizeFactor: 0.4,
-            },
-            WoodWall: {
-                color: 0x8B4513,
-                alpha: 1,
-                sizeFactor: 0.7,
-            },
-            StoneWall: {
-                color: 0x8B4513,
-                alpha: 1,
-                sizeFactor: 0.7,
-            },
-            BronzeWall: {
-                color: 0x8B4513,
-                alpha: 1,
-                sizeFactor: 0.7,
-            },
-            IronWall: {
-                color: 0x8B4513,
-                alpha: 1,
-                sizeFactor: 0.7,
-            }
         },
     },
 

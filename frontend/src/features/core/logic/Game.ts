@@ -158,16 +158,9 @@ export class Game implements IGame {
                 textures: createNamedContainer('textures'),
                 resourceSpots: createNamedContainer('resourceSpots'),
             },
-            placeables: {
-                campfire: createNamedContainer('campfire'),
-                chest: createNamedContainer('chest'),
-                workbench: createNamedContainer('workbench'),
-                furnace: createNamedContainer('furnace'),
-
-                doors: createNamedContainer('doors'),
-                walls: createNamedContainer('walls'),
-                spikyWalls: createNamedContainer('spikyWalls'),
-            },
+            // No `placeables` group: the Berryhunter build/placeable feature is
+            // gone (backlog §26/§28), so all seven of its containers rendered
+            // nothing. Real campfires are mobs and live on layers.mobs.campfire.
             // Player corpses (chunk 4): under the living.
             corpses: createNamedContainer('corpses'),
             characters: createNamedContainer('characters'),
@@ -225,14 +218,6 @@ export class Game implements IGame {
             this.layers.terrain.resourceSpots,
         );
 
-        // Lower Placeables
-        this.cameraGroup.addChild(
-            this.layers.placeables.campfire,
-            this.layers.placeables.chest,
-            this.layers.placeables.workbench,
-            this.layers.placeables.furnace,
-        );
-
         // Corpses below the living
         this.cameraGroup.addChild(this.layers.corpses);
 
@@ -256,13 +241,6 @@ export class Game implements IGame {
 
         // Characters above mobs
         this.cameraGroup.addChild(this.layers.characters);
-
-        // Higher Placeables
-        this.cameraGroup.addChild(
-            this.layers.placeables.doors,
-            this.layers.placeables.walls,
-            this.layers.placeables.spikyWalls,
-        );
 
         // Resources
         this.cameraGroup.addChild(
@@ -473,7 +451,6 @@ export class Game implements IGame {
         // (dark areas are dark independent of the cycle, §6.5), and the
         // readability overlays (name plates, chat, floating numbers, vitals).
         const nightExempt = new Set<Container>([
-            this.layers.placeables.campfire,
             this.layers.mobs.brazier,
             this.layers.mobs.campfire,
             this.layers.darkness,

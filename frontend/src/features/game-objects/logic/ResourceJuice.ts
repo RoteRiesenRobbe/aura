@@ -40,8 +40,6 @@ ResourceStockChangedEvent.subscribe((payload) => {
 
 PIXI.Assets.add({ alias: 'tree-chop', src: require('../assets/resources/536736__egomassive__chop.mp3') });
 PIXI.Assets.add({ alias: 'mineral-hit-dull', src: require('../assets/resources/319229__worthahep88__single-rock-hit-dirt-2.mp3') });
-PIXI.Assets.add({ alias: 'mineral-hit-sharp', src: require('../assets/resources/390770__d00121058__fx_014_sword_contact_stone_2.mp3') });
 // noinspection JSIgnoredPromiseFromCall
 registerPreload(PIXI.Assets.load('tree-chop'));
 registerPreload(PIXI.Assets.load('mineral-hit-dull'));
-registerPreload(PIXI.Assets.load('mineral-hit-sharp'));

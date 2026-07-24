@@ -839,6 +839,16 @@ func TestMap_ExplicitTickInterval(t *testing.T) {
 	assert.Equal(t, 3, def.Effects[0].TickInterval)
 }
 
+// TickInterval is a *int precisely so "absent" and "authored 0" are
+// distinguishable (backlog §27.3.3). An authored 0 or negative is a value the
+// engine cannot honour, so it must hard-fail at load like every other inert
+// config — silently rewriting it to 1 is the one thing this file exists to
+// prevent. Absent stays normalized to 1 (TestMap_* above pin that).
+func TestMap_NonPositiveTickIntervalFails(t *testing.T) {
+	mustFailMap(t, `{"type":"damage_aura","radius":1,"targetsEnemies":true,"damageHP":5,"tickInterval":0}`, "tickInterval")
+	mustFailMap(t, `{"type":"damage_aura","radius":1,"targetsEnemies":true,"damageHP":5,"tickInterval":-5}`, "tickInterval")
+}
+
 // --- spawn (effect foundations Step 3 / mob-depth chunk 1) ---
 
 func TestMap_SpawnEffect(t *testing.T) {

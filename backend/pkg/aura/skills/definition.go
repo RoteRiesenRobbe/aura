@@ -952,8 +952,16 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		return EffectDef{}, fmt.Errorf("unknown selector: %q", e.Selector)
 	}
 
+	// TickInterval is a *int so absent (→ default 1) stays distinguishable from
+	// authored. An authored 0 or negative is a cadence the engine cannot honour,
+	// so it hard-fails rather than being silently rewritten to 1 (backlog
+	// §27.3.3) — a coerced value is exactly the kind of engine-ignored input the
+	// rest of this file rejects.
 	tickInterval := 1
-	if e.TickInterval != nil && *e.TickInterval > 0 {
+	if e.TickInterval != nil {
+		if *e.TickInterval <= 0 {
+			return EffectDef{}, fmt.Errorf("tickInterval: must be > 0 when authored, got %d", *e.TickInterval)
+		}
 		tickInterval = *e.TickInterval
 	}
 

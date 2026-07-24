@@ -163,7 +163,6 @@ function unmarshalEntity(entity, eType) {
         aabb: unmarshalAABB(entity.aabb()),
         capacity: undefined,
         stock: undefined,
-        item: undefined,
         rotation: undefined,
         isSpectator: undefined,
         isHit: undefined,
