@@ -425,7 +425,11 @@ the pass's headline: **size predicted nothing here**, exactly as in §8.
   *diagnostics-shaped* symptom (a single-tick mob stutter, indistinguishable
   from netcode jitter) hiding a real one.
 
-- **⚠️ A second bug, by PO ruling** — `NewMob` seeds each mob's RNG from its
+- **⚠️ A second bug, by PO ruling — ✅ FIXED 2026-07-24 (`b4b0e66d`, test-first).**
+  `NewMob` now seeds from a per-process salt (`mob.SeedProcess` at boot) mixed with
+  the entity ID; the sim/guardrails leave the salt 0 and never touch a mob's
+  internal RNG, so they stay deterministic. Full ledger in §27.2.2. Original
+  finding below. — `NewMob` seeds each mob's RNG from its
   entity ID alone (`mob.go:150`), and `ecs.NewBasic()` counts from 1 each
   process, so a fresh server rolls the **same HP variance and the same first
   drop for the Nth spawn point on every restart**. Recorded first as a design

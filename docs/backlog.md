@@ -1770,7 +1770,30 @@ Ranked by consequence, not by size.
    once at registry load and hard-fail there, like the override already does.
    (Also the last `log.Fatalf` in `model/` — see `research-code-quality.md` §5's
    three-logging-styles finding.)
-2. **Drop luck is deterministic across restarts.** `NewMob` seeds the mob's own
+2. **Drop luck is deterministic across restarts.**
+
+   > **✅ FIXED 2026-07-24, test-first (`b4b0e66d`).** `NewMob` now seeds its RNG
+   > from `mobRNGSeed(processSalt, entityID)` — a package-level `processSalt` set
+   > once at boot by `mob.SeedProcess(time.Now().UnixNano())` (`cmd/aurad`, logged
+   > `🎲 mob RNG salt` for reproducibility), mixed with the entity ID through a
+   > splitmix64 finalizer. The salt randomizes HP-variance + drop rolls per server
+   > run; the ID keeps per-mob streams independent even for same-instant spawns.
+   > The finding's `MobSystem`-owned-seed suggestion was reworked to a package
+   > salt because `NewMob` has six call sites — a package var reaches them all with
+   > no signature churn, mirroring `sys.SkillSystem`'s boot-vs-`SeedRNG` split.
+   > **Determinism preserved with zero plumbing:** the sim/guardrails leave the
+   > salt 0 *and* never consume a mob's internal RNG (`sim/world.go` pre-rolls HP
+   > externally with variance 0, declares no unlocks), so replays stay identical.
+   > Pinned by `TestMobRNGSeed_SaltRandomizesButKeepsPerIDIndependence` (pure
+   > seed: same ID + different salt → different stream; same salt + different ID →
+   > different stream) and `TestNewMob_VarianceRollUsesSaltedSeedNotEntityIDAlone`
+   > (behavioral: a salted roll ≠ the old id-only roll) — both fail on the pre-fix
+   > seed. `go test ./...` green (29 pkgs), `go vet` clean, guardrails replay
+   > identically under `-count=2`, boot verified (salt differs across two runs,
+   > 0 panics). The world seed (`0xDEADBEEF+4`) stays fixed, so spawn *positions*
+   > remain reproducible — only variance/drops randomize. Original finding below.
+
+   `NewMob` seeds the mob's own
    RNG with its entity ID (`rand.NewSource(int64(base.Basic().ID()))`, line 150),
    and `ecs.NewBasic()` hands out IDs from a **global counter starting at 1 each
    process**. World mobs are spawned in a fixed order on the first tick
@@ -1923,7 +1946,7 @@ no-op of exactly the kind the rest of the file exists to prevent.
 | 2 | ~~§27.3.1 `default:` on the payload switch~~ **✅ DONE 2026-07-24** (`eee10331`) | one line | permanently closes a silent class |
 | 3 | §27.2.1 validate the EntityType name-fallback at load | ~1 h | turns a live-server crash into a boot error |
 | 4 | ~~§27.3.2 even out the zero-value payload guards~~ **✅ DONE 2026-07-24** (`eee10331`, same session as #2) | ~15 lines | authoring-safety, same session as #2 |
-| 5 | §27.2.2 drop-RNG determinism | ~1 h | **PO-ruled a bug 2026-07-24** — rolls must be random per run |
+| 5 | ~~§27.2.2 drop-RNG determinism~~ **✅ DONE 2026-07-24** (`b4b0e66d`) | ~1 h, test-first | **PO-ruled a bug** — now random per run via a per-process salt |
 | 6 | §27.2.3 mob regen → `conf.json` | ~30 min | balance visibility |
 | 7 | §27.3.3 / §27.2.8 the small ones | opportunistic | pure hygiene |
 | — | §27.2.4 `Mob` god struct | do **not** act pre-emptively | watch item, like §25's |
