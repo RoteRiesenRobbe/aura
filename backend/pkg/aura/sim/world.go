@@ -42,8 +42,9 @@ type World struct {
 // NewWorld builds the world for a scenario. All fight-relevant RNG (the
 // mobs' spawn-HP rolls and the SkillSystem's variance/crit rolls) derives
 // from seed, so the same (scenario, seed) pair replays the same fight. The
-// mobs' own entity-ID-seeded rngs only drive behaviors a fight never reaches
-// (idle wander rolls, kill-unlock rolls — no unlocks are declared).
+// mobs' own rngs (salt 0 here, since the harness never calls mob.SeedProcess)
+// only drive behaviors a fight never reaches (idle wander rolls, kill-unlock
+// rolls — no unlocks are declared).
 func NewWorld(sc Scenario, seed int64) *World {
 	packSize := sc.PackSize
 	if packSize < 1 {

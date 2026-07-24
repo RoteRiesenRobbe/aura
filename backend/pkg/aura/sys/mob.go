@@ -149,8 +149,9 @@ func (n *MobSystem) rollDelay(p *spawnPoint) int {
 }
 
 // spawnAt builds a fresh mob for the point and registers it with the game.
-// Each NewMob seeds its own entity-ID RNG, so HP variance rolls per spawn
-// (item 11 Phase 3). A wander point rolls the (re)spawn position uniformly
+// Each NewMob seeds its own RNG from a per-process salt mixed with its entity
+// ID, so HP variance rolls per spawn (item 11 Phase 3) and differs per server
+// run (§27.2.2). A wander point rolls the (re)spawn position uniformly
 // within its radius (chunk 5a); the wander anchor stays the AUTHORED point —
 // anchoring on the roll would drift the territory (gotcha #7). Waypoint and
 // stationary mobs spawn exactly at the authored spot.

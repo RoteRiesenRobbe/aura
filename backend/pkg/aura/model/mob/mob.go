@@ -25,6 +25,32 @@ var types = func() map[string]model.EntityType {
 	return t
 }()
 
+// processSalt randomizes every mob's RNG stream per process run so a fresh
+// server no longer re-rolls the same HP variance + first drop for the Nth
+// spawn on every restart (backlog §27.2.2 — PO-ruled a bug: rolls must be
+// random per run). Set once at boot via SeedProcess; left 0 in tests and the
+// sim harness, which need determinism (the sim never consumes a mob's internal
+// RNG for fight outcomes — sim/world.go pre-rolls HP externally).
+var processSalt int64
+
+// SeedProcess sets the per-process salt mixed into every mob's RNG seed. Call
+// once at server boot, before any mob spawns; not safe to mutate concurrently
+// with live spawns. Mirrors sys.SkillSystem.SeedRNG's boot-vs-deterministic
+// split.
+func SeedProcess(salt int64) { processSalt = salt }
+
+// mobRNGSeed derives a mob's RNG seed from the process salt and its entity ID.
+// The salt shifts the whole sequence per run (per-run randomness); the ID keeps
+// streams independent even for mobs constructed in the same instant, so one
+// mob's drop rolls never mirror another's. The splitmix64 finalizer decorrelates
+// consecutive IDs (which otherwise seed near-identical LCG streams).
+func mobRNGSeed(salt int64, id uint64) int64 {
+	x := uint64(salt) + id*0x9E3779B97F4A7C15
+	x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9
+	x = (x ^ (x >> 27)) * 0x94D049BB133111EB
+	return int64(x ^ (x >> 31))
+}
+
 // NewMob builds a mob from its definition. space is the physics space used for
 // obstacle steering (mob-depth chunk 4) — nil disables steering (movement is
 // pure straight-line geometry, as before the chunk); every production spawn
@@ -147,7 +173,7 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	aggroAura.Shape().IsSensor = true
 
 	base := model.NewBaseEntity(mobBody, entityType)
-	rnd := rand.New(rand.NewSource(int64(base.Basic().ID())))
+	rnd := rand.New(rand.NewSource(mobRNGSeed(processSalt, base.Basic().ID())))
 
 	// Absolute HP pool (item 11 Phase 1). A definition without maxHealth falls
 	// back to a default so directly-constructed mobs (tests) are never born dead.

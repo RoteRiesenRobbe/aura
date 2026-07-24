@@ -7,6 +7,7 @@ package mob
 // from these tests during the migration is a bug, not a design change.
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/EngoEngine/ecs"
@@ -149,6 +150,47 @@ func TestNewMob_VarianceRollNeverBelowOneHP(t *testing.T) {
 		assert.GreaterOrEqual(t, m.MaxHealth(), vitals.VitalSign(1),
 			"a rolled HP pool must never reach 0 (min-1)")
 	}
+}
+
+// --- drop/variance RNG determinism (backlog §27.2.2) ---
+
+// mobRNGSeed must randomize per process run (mixing in the salt) while keeping
+// per-mob streams independent (mixing in the entity ID). Both properties are
+// what the §27.2.2 fix requires; the old id-only seed satisfies neither the
+// per-run randomness nor lets a salt exist.
+func TestMobRNGSeed_SaltRandomizesButKeepsPerIDIndependence(t *testing.T) {
+	// Same spawn (same entity ID), different process salt → different stream:
+	// a fresh server must not reproduce the Nth spawn's HP + drop rolls.
+	assert.NotEqual(t, mobRNGSeed(0, 5), mobRNGSeed(0x1234567, 5),
+		"a different process salt must change the Nth mob's RNG stream")
+
+	// Same salt, different entity ID → different stream: one mob's drop rolls
+	// must not consume/mirror another's.
+	assert.NotEqual(t, mobRNGSeed(0x1234567, 5), mobRNGSeed(0x1234567, 6),
+		"per-mob streams must stay independent across entity IDs")
+}
+
+// With a process salt set, NewMob's spawn-HP variance roll must NOT equal the
+// roll the old entity-ID-only seeding produced for that same mob — the direct
+// behavioral proof that the salt reaches the mob's RNG.
+func TestNewMob_VarianceRollUsesSaltedSeedNotEntityIDAlone(t *testing.T) {
+	SeedProcess(0x0BADF00D)
+	defer SeedProcess(0) // restore the deterministic-by-ID default for other tests
+
+	def := testMobDefinition()
+	def.Factors.MaxHealth = 1000
+	def.Factors.MaxHealthVariance = 0.1
+
+	m := NewMob(def, 0, nil)
+	id := m.Basic().ID()
+
+	// Reproduce the roll the pre-fix id-only seed (rand.NewSource(int64(id)))
+	// would have produced for this exact mob.
+	oldRng := rand.New(rand.NewSource(int64(id)))
+	oldHP := vitals.VitalSign(vitals.HP(vitals.RollVariance(1000, 0.1, oldRng)))
+
+	assert.NotEqual(t, oldHP, m.MaxHealth(),
+		"with a process salt set, the variance roll must diverge from the entity-ID-only roll (§27.2.2)")
 }
 
 // --- damage intake (what player auras do to the mob) ---

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
@@ -82,6 +83,15 @@ func main() {
 	// https://docs.google.com/spreadsheets/d/13EbpERJ05GpjUUXOp2zU4Od2FGqymeMV0F278_eBIcQ/edit#gid=0
 	var seed int64 = 0xDEADBEEF + 4
 	rnd := rand.New(rand.NewSource(seed))
+
+	// The world seed above stays fixed (reproducible spawn positions); mob HP
+	// variance + drop rolls instead ride a per-process salt so a fresh server
+	// no longer re-rolls the same drops every restart (backlog §27.2.2). Logged
+	// so a run's rolls can be reproduced if ever needed.
+	mobSalt := time.Now().UnixNano()
+	mob.SeedProcess(mobSalt)
+	slog.Info("🎲 mob RNG salt", slog.Int64("salt", mobSalt))
+
 	g, err := core.NewGameWith(
 		rnd.Int63(),
 		core.Config(config),
