@@ -272,7 +272,7 @@ func TestParse_NovaBurst(t *testing.T) {
 func TestParse_DamageTags(t *testing.T) {
 	data := []byte(`{
       "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
-      "effects": [{"type": "damage_aura", "targetsEnemies": true, "damageTags": ["fire", "boss_x_lava"]}]
+      "effects": [{"type": "damage_aura", "radius": 1, "damageHP": 5, "targetsEnemies": true, "damageTags": ["fire", "boss_x_lava"]}]
     }`)
 	def := mustParse(t, data)
 
@@ -324,7 +324,7 @@ func TestMap_DamageTagsOnNonDamageEffectFails(t *testing.T) {
 func TestParse_GatedDamageTags(t *testing.T) {
 	data := []byte(`{
       "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
-      "effects": [{"type": "damage_aura", "targetsEnemies": true, "damageTags": ["turnip"], "gatedDamageTags": true}]
+      "effects": [{"type": "damage_aura", "radius": 1, "damageHP": 5, "targetsEnemies": true, "damageTags": ["turnip"], "gatedDamageTags": true}]
     }`)
 	def := mustParse(t, data)
 
@@ -353,7 +353,7 @@ func TestMap_GatedWithoutExplicitTagsFails(t *testing.T) {
 func TestParse_Variance(t *testing.T) {
 	data := []byte(`{
       "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
-      "effects": [{"type": "damage_aura", "targetsEnemies": true, "damageHP": 7, "variance": 0.15}]
+      "effects": [{"type": "damage_aura", "radius": 1, "targetsEnemies": true, "damageHP": 7, "variance": 0.15}]
     }`)
 	def := mustParse(t, data)
 
@@ -371,8 +371,8 @@ func TestParse_VarianceValidOnAllRollingEffects(t *testing.T) {
 	// Damage and heal amounts both roll (decision C1): damage_aura,
 	// instant_damage, heal_aura and self_heal all accept a variance band.
 	for _, effect := range []string{
-		`{"type": "instant_damage", "targetsEnemies": true, "damageHP": 25, "variance": 0.1}`,
-		`{"type": "heal_aura", "healHP": 6, "variance": 0.1}`,
+		`{"type": "instant_damage", "radius": 1, "targetsEnemies": true, "damageHP": 25, "variance": 0.1}`,
+		`{"type": "heal_aura", "radius": 1, "healHP": 6, "variance": 0.1}`,
 		`{"type": "self_heal", "healHP": 20, "variance": 0.1}`,
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
@@ -500,7 +500,7 @@ func TestMap_UnknownSelector(t *testing.T) {
 func TestParse_SelectorAndCap(t *testing.T) {
 	data := []byte(`{
       "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
-      "effects": [{"type": "damage_aura", "targetsEnemies": true, "selector": "lowest_health", "maxTargets": 2, "maxTargetsPerLevel": 1, "tickIntervalPerLevel": -1}]
+      "effects": [{"type": "damage_aura", "radius": 1, "damageHP": 5, "targetsEnemies": true, "selector": "lowest_health", "maxTargets": 2, "maxTargetsPerLevel": 1, "tickIntervalPerLevel": -1}]
     }`)
 	def := mustParse(t, data)
 
@@ -514,7 +514,7 @@ func TestParse_SelectorAndCap(t *testing.T) {
 
 func TestParse_SelectorDefaultsToNearest(t *testing.T) {
 	// Absent selector must default to nearest, MaxTargets 0 = uncapped.
-	data := []byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true}]}`)
+	data := []byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","radius":1,"damageHP":5,"targetsEnemies":true}]}`)
 	def := mustParse(t, data)
 
 	e := def.Effects[0]
@@ -833,7 +833,7 @@ func TestMap_StatFieldsOnNonStatEffectFails(t *testing.T) {
 func TestMap_ExplicitTickInterval(t *testing.T) {
 	data := []byte(`{
       "id": 99, "name": "Slow", "category": "active_aura", "maxLevel": 1,
-      "effects": [{"type": "damage_aura", "tickInterval": 3, "targetsEnemies": true}]
+      "effects": [{"type": "damage_aura", "radius": 1, "damageHP": 5, "tickInterval": 3, "targetsEnemies": true}]
     }`)
 	def := mustParse(t, data)
 	assert.Equal(t, 3, def.Effects[0].TickInterval)
@@ -942,6 +942,75 @@ func TestMap_LightAuraRejectsNonGeometryKeys(t *testing.T) {
 	}
 }
 
+// --- inert-config guards: no-op payloads and zero-radius geometry (§27.3.1/§27.3.2) ---
+
+func TestParse_PayloadlessTypesStillParse(t *testing.T) {
+	// §27.3.1 regression: light_aura and recall are the two types the payload
+	// switch intentionally handles with no payload. They must keep parsing
+	// (the default: branch hard-fails only a type forgotten from the switch).
+	for _, effect := range []string{
+		`{"type": "light_aura", "radius": 4}`,
+		`{"type": "recall"}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		require.NoError(t, err, "payload-less type must still parse: %s", effect)
+	}
+}
+
+func TestMap_DamageWithNoAmountFails(t *testing.T) {
+	// damageHP, damageHPPerLevel and structureDamageFraction all 0 → the aura
+	// deals nothing (§27.3.2).
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","radius":1,"targetsEnemies":true}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no damage authored")
+}
+
+func TestParse_SiegeDamageAuraStaysValid(t *testing.T) {
+	// A structure-only aura (0 direct HP but a structureDamageFraction) still
+	// damages placeables, so it must NOT trip the no-damage guard (§27.3.2).
+	def := mustParse(t, []byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","radius":1,"targetsStructures":true,"structureDamageFraction":0.5}]}`))
+	require.Len(t, def.Effects, 1)
+	assert.InDelta(t, 0.5, def.Effects[0].Damage.StructureDamageFraction, 1e-6)
+}
+
+func TestMap_HealAuraWithNoHealFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"heal_aura","radius":1,"tickInterval":60}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no heal authored")
+}
+
+func TestMap_SelfHealWithNoHealFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"self_heal"}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no heal authored")
+}
+
+func TestMap_ZeroRadiusGeometryEffectFails(t *testing.T) {
+	// A geometry effect with radius 0 senses nothing (§27.3.2). Non-geometry
+	// types (self_heal, stat_multiplier, recall, …) carry no radius and are
+	// unaffected. Placed after the payload build, so a payload error would win
+	// — here every payload is valid, isolating the radius check.
+	for _, effect := range []string{
+		`{"type": "damage_aura", "radius": 0, "targetsEnemies": true, "damageHP": 5}`,
+		`{"type": "heal_aura", "healHP": 5, "tickInterval": 60}`,             // radius omitted → 0
+		`{"type": "slow_aura", "targetsEnemies": true, "slowFraction": 0.3}`, // radius omitted → 0
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition()
+		require.Error(t, err, "zero-radius geometry effect must fail: %s", effect)
+		assert.Contains(t, err.Error(), "radius must be > 0", "for: %s", effect)
+	}
+}
+
 // --- damage vocabulary: execute / berserker / crit / lifesteal (plan-skill-vocab chunk 1) ---
 
 func TestParse_DamageVocabularyFields(t *testing.T) {
@@ -1015,7 +1084,7 @@ func TestMap_CritChanceAloneIsValid(t *testing.T) {
 	// factor — it adds to the caster's own crit chance and rolls at the
 	// global default factor. Per-level scaling follows the base+(L−1)×perLevel
 	// convention.
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":5,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":6,"critChance":0.01,"critChancePerLevel":0.01}]}`))
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":5,"effects":[{"type":"damage_aura","radius":1,"targetsEnemies":true,"damageHP":6,"critChance":0.01,"critChancePerLevel":0.01}]}`))
 	require.NoError(t, err)
 	def, err := raw.mapToSkillDefinition()
 	require.NoError(t, err)

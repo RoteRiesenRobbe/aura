@@ -81,7 +81,7 @@ var stateTestHarvestJSON = []byte(`{
   "name": "Harvest",
   "category": "active_aura",
   "maxLevel": 1,
-  "effects": [{"type": "damage_aura", "targetsEnemies": true}]
+  "effects": [{"type": "damage_aura", "radius": 1, "damageHP": 5, "targetsEnemies": true}]
 }`)
 
 func stateTestSkillRegistry(t *testing.T) skills.Registry {

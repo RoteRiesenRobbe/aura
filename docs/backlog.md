@@ -1842,7 +1842,37 @@ so, and the per-payload builder refactor closed §3.1). **The findings below are
 gaps in coverage, not problems with the design** — and each one is a silent
 no-op of exactly the kind the rest of the file exists to prevent.
 
-1. **⭐ `mapToEffectDef`'s 15-case switch has no `default:`** (line 975). Adding an
+> **✅ FIXED 2026-07-24, findings 1 + 2, test-first** (`39152958`). The
+> §27.4 order pairs these two, so they landed together.
+> - **Finding 1 (§27.3.1 `default:`):** the switch now ends with an explicit
+>   `case EffectTypeLightAura, EffectTypeRecall:` (payload-less by design) then a
+>   `default: return EffectDef{}, fmt.Errorf("effect type %v has no payload
+>   mapping", …)`. The naive one-line `default:error` the finding proposed would
+>   have wrongly rejected the two intentionally payload-less types — the real fix
+>   whitelists them, and the `default:` now hard-fails only a type added to
+>   `effectTypeMap` but forgotten in the switch.
+> - **Finding 2 (§27.3.2 zero-value guards):** three inert-config guards added,
+>   mirroring the dot/shield/stat convention — `damageParams` fails when
+>   `damageHP` + `damageHPPerLevel` + `structureDamageFraction` are all 0 (a
+>   siege aura with only `structureDamageFraction` stays valid — verified against
+>   `placeable.go:107`, structure damage is independent of `damageHP`);
+>   `healParams` **and** `selfHealParams` fail when all four heal knobs are 0
+>   (evened out beyond the finding's `heal_aura`-only wording); and
+>   `mapToEffectDef` fails when a geometry-using type has base `radius ≤ 0`. The
+>   radius guard is **data-driven** — `slices.Contains(effectKeys[type],
+>   "radius")` — so any future geometry type is covered with no new list. Placed
+>   after the payload switch so a specific payload error wins.
+> - **Verified:** 6 new tests (rejections + a payload-less-still-parses
+>   regression + a siege-aura-stays-valid regression); 8 incidental fixtures in
+>   `definition_test.go` + 1 in `sys/state_test.go` completed to valid defs (they
+>   had authored inert/radiusless skills). `go test ./...` green (29 pkgs), `go
+>   vet` clean, `go build` clean. Real content boot-safe: `aurad -content ../api`
+>   loaded 10 items/83 skills/14 factions/50 mobs/1 milestone/10 recipes/5 props,
+>   zone 777 props/471 spawns, **0 panics, 0 load errors** (pre-scanned all
+>   `api/skills/` first — nothing trips the new guards). Findings 3–5 below stay
+>   open.
+
+1. **✅ FIXED (see banner above). ⭐ `mapToEffectDef`'s 15-case switch has no `default:`** (line 975). Adding an
    `EffectType` means hand-editing four tables in this file (`effectTypeMap`,
    `effectKeys`, this switch, a payload struct + builder) plus the apply switch
    in `sys/skills.go` and `HasVisibleTickCadence`. Three of those fail loudly
@@ -1855,7 +1885,7 @@ no-op of exactly the kind the rest of the file exists to prevent.
    **One-line fix:** `default: return EffectDef{}, fmt.Errorf("effect type %v has
    no payload mapping", effectType)`. Same class as §7.3's positional
    `gameObjectClasses` array — latent, silent, and cheap to close permanently.
-2. **The no-silent-no-op rule is applied unevenly across payloads.** Hard-fails
+2. **✅ FIXED (see banner above). The no-silent-no-op rule is applied unevenly across payloads.** Hard-fails
    today: `dot` with no damage, `hot` with no heal, `shield` with no pool,
    `stat_multiplier` with no scaling, `dash` with zero distance, `taunt` with
    zero margin, `tick_rate` at factor 1. Loads fine today: **`damage_aura` with
@@ -1890,9 +1920,9 @@ no-op of exactly the kind the rest of the file exists to prevent.
 | # | Item | Effort | Why this order |
 |---|---|---|---|
 | 1 | ~~§27.1 removal-during-iteration~~ **✅ DONE 2026-07-24** | ~30 min, test-first | the only live defect here |
-| 2 | §27.3.1 `default:` on the payload switch | one line | permanently closes a silent class |
+| 2 | ~~§27.3.1 `default:` on the payload switch~~ **✅ DONE 2026-07-24** (`39152958`) | one line | permanently closes a silent class |
 | 3 | §27.2.1 validate the EntityType name-fallback at load | ~1 h | turns a live-server crash into a boot error |
-| 4 | §27.3.2 even out the zero-value payload guards | ~15 lines | authoring-safety, same session as #2 |
+| 4 | ~~§27.3.2 even out the zero-value payload guards~~ **✅ DONE 2026-07-24** (`39152958`, same session as #2) | ~15 lines | authoring-safety, same session as #2 |
 | 5 | §27.2.2 drop-RNG determinism | ~1 h | **PO-ruled a bug 2026-07-24** — rolls must be random per run |
 | 6 | §27.2.3 mob regen → `conf.json` | ~30 min | balance visibility |
 | 7 | §27.3.3 / §27.2.8 the small ones | opportunistic | pure hygiene |

@@ -1003,10 +1003,30 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Dash, err = e.dashParams()
 	case EffectTypeTickRate:
 		def.TickRate, err = e.tickRateParams()
+	case EffectTypeLightAura, EffectTypeRecall:
+		// Payload-less by design: light_aura is pure geometry (its radius
+		// streams as the wire light_radius) and recall's destination is the
+		// caster's campfire anchor. Both intentionally leave every payload nil.
+	default:
+		// A type in effectTypeMap but absent from this switch would parse into
+		// an EffectDef with every payload nil — the exact invariant the struct
+		// doc-comment says parsing enforces, silently violated. Hard-fail so a
+		// new EffectType can't ship a nil-payload no-op (§27.3.1).
+		return EffectDef{}, fmt.Errorf("effect type %v has no payload mapping", effectType)
 	}
 	if err != nil {
 		return EffectDef{}, err
 	}
+
+	// Geometry types sense through a radius — a zero-radius aura reaches
+	// nothing, a silent no-op the per-payload guards above don't catch. Gate
+	// on the allowlist so only radius-reading types are checked (passives,
+	// spawns, dashes, recall carry no geometry). Placed after the switch so a
+	// more specific payload error wins (§27.3.2).
+	if slices.Contains(effectKeys[effectType], "radius") && def.Radius <= 0 {
+		return EffectDef{}, fmt.Errorf("effect type %v: radius must be > 0 (an aura with no radius reaches nothing)", effectType)
+	}
+
 	return def, nil
 }
 
@@ -1032,6 +1052,14 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 	}
 	if err := validateVariance(e.Variance); err != nil {
 		return nil, err
+	}
+
+	// A damage effect with no direct damage AND no structure damage does
+	// nothing — hard-fail like the dot/shield no-scaling guards. A siege aura
+	// (0 direct HP but a structureDamageFraction > 0) stays valid: it still
+	// damages placeables (§27.3.2).
+	if e.DamageHP == 0 && e.DamageHPPerLevel == 0 && e.StructureDamageFraction == 0 {
+		return nil, fmt.Errorf("damage: no damage authored (damageHP, damageHPPerLevel, structureDamageFraction all 0)")
 	}
 
 	// Damage vocabulary (chunk 1). Execute is authored as a pair — a lone
@@ -1095,6 +1123,11 @@ func (e *effectDef) healParams() (*HealParams, error) {
 	if e.HealFractionOfMax > 0 && e.HealHP > 0 {
 		return nil, fmt.Errorf("heal_aura: healHP and healFractionOfMax are mutually exclusive (flat XOR percent-of-max)")
 	}
+	// A heal that restores nothing (no flat HP, no percent-of-max) is a silent
+	// no-op — hard-fail like the hot guard (§27.3.2).
+	if e.HealHP == 0 && e.HealHPPerLevel == 0 && e.HealFractionOfMax == 0 && e.HealFractionOfMaxPerLevel == 0 {
+		return nil, fmt.Errorf("heal_aura: no heal authored (healHP, healHPPerLevel, healFractionOfMax, healFractionOfMaxPerLevel all 0)")
+	}
 	return &HealParams{
 		HP:                    e.HealHP,
 		HPPerLevel:            e.HealHPPerLevel,
@@ -1109,6 +1142,11 @@ func (e *effectDef) healParams() (*HealParams, error) {
 func (e *effectDef) selfHealParams() (*SelfHealParams, error) {
 	if err := validateVariance(e.Variance); err != nil {
 		return nil, err
+	}
+	// Same no-op guard as heal_aura: a self_heal cooldown that restores
+	// nothing is unauthorable (§27.3.2, evened out with heal_aura).
+	if e.HealHP == 0 && e.HealHPPerLevel == 0 && e.HealFractionOfMax == 0 && e.HealFractionOfMaxPerLevel == 0 {
+		return nil, fmt.Errorf("self_heal: no heal authored (healHP, healHPPerLevel, healFractionOfMax, healFractionOfMaxPerLevel all 0)")
 	}
 	return &SelfHealParams{
 		HealHP:                e.HealHP,
