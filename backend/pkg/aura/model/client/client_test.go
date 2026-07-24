@@ -66,6 +66,36 @@ func TestPushInputOverflowNewestCommandWins(t *testing.T) {
 	}
 }
 
+// Eviction on a full queue increments the transport counter (chunk 1
+// instrumentation) without regressing the one-shot carry-forward property.
+func TestPushInputOverflowIncrementsEvicted(t *testing.T) {
+	c := newTestClient()
+
+	c.pushInput(&model.PlayerInput{ActiveAuraSlot: model.ActiveAuraSlotNoChange})
+	c.pushInput(&model.PlayerInput{ActiveAuraSlot: model.ActiveAuraSlotNoChange})
+	// Overflow: this third input evicts the oldest.
+	c.pushInput(&model.PlayerInput{ActiveAuraSlot: model.ActiveAuraSlotNoChange})
+
+	ts := c.InputTransportStats()
+	if ts.Evicted != 1 {
+		t.Fatalf("evicted = %d, want 1", ts.Evicted)
+	}
+	if ts.Dropped != 0 {
+		t.Fatalf("dropped = %d, want 0", ts.Dropped)
+	}
+	if ts.Arrivals != 3 {
+		t.Fatalf("arrivals = %d, want 3", ts.Arrivals)
+	}
+	// Queue depth sampled before each send: 0, then 1, then 2 (full → evict).
+	if ts.QDepthSum != 3 {
+		t.Fatalf("qDepthSum = %d, want 3 (0+1+2)", ts.QDepthSum)
+	}
+	// The C2 carry-forward property must still hold: two inputs remain queued.
+	if got := drain(c); len(got) != 2 {
+		t.Fatalf("queue length = %d, want 2", len(got))
+	}
+}
+
 // Cooldown activations from an evicted input are prepended, never lost.
 func TestPushInputOverflowCarriesCooldowns(t *testing.T) {
 	c := newTestClient()

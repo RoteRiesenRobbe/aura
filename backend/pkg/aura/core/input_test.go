@@ -12,11 +12,12 @@ package core
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/stretchr/testify/assert"
 )
 
 // fakeInputPlayer implements just enough of model.PlayerEntity for
@@ -31,8 +32,10 @@ type fakeInputPlayer struct {
 	pos         phy.Vec2f
 	lastMoveDir phy.Vec2f
 	speedCheat  float32
+	basic       ecs.BasicEntity
 }
 
+func (f *fakeInputPlayer) Basic() ecs.BasicEntity    { return f.basic }
 func (f *fakeInputPlayer) SpeedCheatFactor() float32 { return f.speedCheat }
 
 func (f *fakeInputPlayer) Hand() *model.Hand                      { return &f.hand }
@@ -49,7 +52,8 @@ func newFakeInputPlayer() *fakeInputPlayer {
 	return &fakeInputPlayer{
 		sc: sc,
 		// A real collider so the unconditional hand-mask reset works.
-		hand: model.Hand{Collider: phy.NewCircle(phy.VEC2F_ZERO, 0.1)},
+		hand:  model.Hand{Collider: phy.NewCircle(phy.VEC2F_ZERO, 0.1)},
+		basic: ecs.NewBasic(),
 	}
 }
 
@@ -105,11 +109,10 @@ func TestUpdateInput_OutOfRangeSlotFromClientIsIgnored(t *testing.T) {
 	assert.Equal(t, 0, p.sc.ActiveAuraSlot)
 }
 
-// pickInput bridges a single starved tick (client/server clock drift drops one
-// input every ~30 s) with the last movement, so walking doesn't hitch — but
-// only for one tick, so a disconnected client's character halts instead of
-// sliding forever. See docs deferred-bug note "Movement micro-stutter".
-func TestPickInput_BridgesOneStarvedTick(t *testing.T) {
+// pickInput coasts a starved tick on the last movement (movement only — never
+// replaying one-shots) and keeps coasting the SAME held copy across consecutive
+// starved ticks, up to maxHoldTicks. plan-input-jitter.md chunk A.
+func TestPickInput_CoastsHeldMovement(t *testing.T) {
 	sys := &PlayerInputSystem{lastMove: map[uint64]*model.PlayerInput{}}
 	move := &phy.Vec2f{X: 1, Y: 0}
 	fresh := &model.PlayerInput{
@@ -122,20 +125,128 @@ func TestPickInput_BridgesOneStarvedTick(t *testing.T) {
 	// A fresh input is applied as-is (full command, incl. one-shots).
 	assert.Same(t, fresh, sys.pickInput(7, fresh))
 
-	// First starved tick: bridged with a movement-only copy — the one-shot
-	// commands must NOT be replayed.
+	// First starved tick coasts on a movement-only copy — one-shots stripped.
 	got := sys.pickInput(7, nil)
 	if assert.NotNil(t, got) {
 		assert.Equal(t, move, got.Movement)
 		assert.Equal(t, float32(0.5), got.Rotation)
 		assert.Equal(t, model.ActiveAuraSlotNoChange, got.ActiveAuraSlot,
-			"bridged input must not replay an aura switch")
-		assert.Empty(t, got.CooldownActivations,
-			"bridged input must not replay cooldown activations")
+			"coast must not replay an aura switch")
+		assert.Empty(t, got.CooldownActivations, "coast must not replay cooldowns")
 	}
 
-	// Second consecutive starved tick: nil → the player halts.
-	assert.Nil(t, sys.pickInput(7, nil))
+	// Consecutive starved ticks keep coasting the same held copy (not consumed).
+	assert.Same(t, got, sys.pickInput(7, nil))
+	assert.Same(t, got, sys.pickInput(7, nil))
+}
+
+// --- chunk A: coast counters + cap, run histogram ---
+
+func freshMove() *model.PlayerInput {
+	return &model.PlayerInput{Movement: &phy.Vec2f{X: 1}, ActiveAuraSlot: model.ActiveAuraSlotNoChange}
+}
+
+// A starve run within the cap coasts every tick (zero stalls); past the cap it
+// halts. starved = coasted + stalled, bounded by maxHoldTicks. plan §3-4.
+func TestPickInput_CoastCounterAndCap(t *testing.T) {
+	sys := &PlayerInputSystem{lastMove: map[uint64]*model.PlayerInput{}}
+	const id = 7
+	sys.pickInput(id, freshMove()) // seed the held movement
+
+	for k := 0; k < maxHoldTicks; k++ {
+		assert.NotNil(t, sys.pickInput(id, nil), "coast within the cap")
+	}
+	for k := 0; k < 3; k++ {
+		assert.Nil(t, sys.pickInput(id, nil), "halt past the cap")
+	}
+
+	st := sys.statFor(id)
+	assert.Equal(t, uint64(maxHoldTicks+3), st.starved)
+	assert.Equal(t, uint64(maxHoldTicks), st.coasted, "coasted caps at maxHoldTicks")
+	assert.Equal(t, uint64(3), st.stalled, "past-cap ticks stall")
+	assert.Equal(t, maxHoldTicks+3, st.runLen, "run still open (never closed by a fresh input)")
+}
+
+// A run is bucketed by length only when a real input closes it.
+func TestPickInput_ClosedRunBucketed(t *testing.T) {
+	sys := &PlayerInputSystem{lastMove: map[uint64]*model.PlayerInput{}}
+	const id = 8
+	sys.pickInput(id, freshMove())
+	sys.pickInput(id, nil)
+	sys.pickInput(id, nil)
+	sys.pickInput(id, nil)         // run length 3
+	sys.pickInput(id, freshMove()) // closes it
+
+	st := sys.statFor(id)
+	assert.Equal(t, 2, bucket(3), "run length 3 → index 2 ('3' bucket)")
+	assert.Equal(t, uint64(1), st.hist[bucket(3)], "closed run of length 3 bucketed")
+	assert.Equal(t, 0, st.runLen, "run closed by the fresh input")
+}
+
+// A run still open at disconnect (never closed by a fresh input) must NOT be
+// bucketed — otherwise a dropped client's permanent-starve tail would poison
+// the histogram.
+func TestPickInput_OpenRunNotBucketed(t *testing.T) {
+	sys := &PlayerInputSystem{lastMove: map[uint64]*model.PlayerInput{}}
+	const id = 9
+
+	sys.pickInput(id, freshMove())
+	for k := 0; k < 5; k++ {
+		sys.pickInput(id, nil)
+	}
+
+	st := sys.statFor(id)
+	assert.Equal(t, uint64(5), st.starved)
+	assert.Equal(t, 5, st.runLen, "run still open")
+	for idx, b := range st.hist {
+		assert.Equal(t, uint64(0), b, "bucket %d must be empty for an unclosed run", idx)
+	}
+}
+
+func TestBucket(t *testing.T) {
+	cases := map[int]int{1: 0, 2: 1, 3: 2, 4: 3, 6: 3, 7: 4, 9: 4, 10: 5, 15: 5, 16: 6, 100: 6}
+	for n, want := range cases {
+		assert.Equal(t, want, bucket(n), "bucket(%d)", n)
+	}
+}
+
+// The starved path (coast while held, then stall past the cap — the hot path
+// during a client stall) must allocate nothing, keeping the fe0044d0 zero-alloc
+// posture. The fresh path pre-allocates the held copy (pre-existing) and is
+// deliberately not pinned here.
+func TestPickInput_StarvedPathZeroAlloc(t *testing.T) {
+	sys := &PlayerInputSystem{lastMove: map[uint64]*model.PlayerInput{}}
+	const id = 7
+	// Warm the stats entry + held movement so both are pure reads under measure.
+	sys.pickInput(id, freshMove())
+
+	allocs := testing.AllocsPerRun(1000, func() {
+		sys.pickInput(id, nil)
+	})
+	assert.Equal(t, 0.0, allocs, "the coast/stall pickInput path must not allocate")
+}
+
+// A dead player's held movement is cleared, so a coast cannot replay the
+// pre-death direction across respawn (plan-input-jitter.md §7 item 4).
+func TestUpdateInput_DeathClearsHeldMovement(t *testing.T) {
+	sys := &PlayerInputSystem{lastMove: map[uint64]*model.PlayerInput{}}
+	p := newFakeInputPlayer()
+	id := p.Basic().ID()
+	p.vitalSigns.Health = 100
+
+	// Seed a held movement via a fresh walking input while alive.
+	fresh := &model.PlayerInput{Movement: &phy.Vec2f{X: 1, Y: 0}, ActiveAuraSlot: model.ActiveAuraSlotNoChange}
+	sys.updateInput(p, sys.pickInput(id, fresh), nil)
+	assert.NotNil(t, sys.lastMove[id], "held seeded while alive")
+
+	// Player dies: updateInput must drop the held movement this tick.
+	p.vitalSigns.Health = 0
+	sys.updateInput(p, sys.pickInput(id, nil), nil)
+	assert.Nil(t, sys.lastMove[id], "death clears the held movement")
+
+	// After respawn a starved tick must not coast (held is gone → halt).
+	p.vitalSigns.Health = 100
+	assert.Nil(t, sys.pickInput(id, nil), "no coast across respawn")
 }
 
 func TestUpdateInput_NilInputIsNoop(t *testing.T) {

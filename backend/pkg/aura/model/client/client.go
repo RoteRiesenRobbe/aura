@@ -2,6 +2,7 @@ package client
 
 import (
 	"log"
+	"sync/atomic"
 
 	"github.com/google/flatbuffers/go"
 	"github.com/google/uuid"
@@ -23,6 +24,25 @@ type client struct {
 	spends   chan *model.SpendSkillPoint
 	respawns chan *model.Respawn
 	uuid     uuid.UUID
+
+	// Input-transport instrumentation (plan-input-jitter.md chunk 1). Written on
+	// the read goroutine inside pushInput, read on the tick goroutine via
+	// InputTransportStats — hence atomics, no locks.
+	evicted   atomic.Uint64 // oldest-input evictions on a full queue
+	dropped   atomic.Uint64 // double-race drops (both evict and re-push lost)
+	arrivals  atomic.Uint64 // total inputs pushed
+	qDepthSum atomic.Uint64 // sum of queue depth sampled on arrival
+}
+
+// InputTransportStats snapshots the transport counters. Concrete method on
+// *client — deliberately NOT on the model.Client interface (see the type's doc).
+func (c *client) InputTransportStats() model.InputTransportStats {
+	return model.InputTransportStats{
+		Evicted:   c.evicted.Load(),
+		Dropped:   c.dropped.Load(),
+		Arrivals:  c.arrivals.Load(),
+		QDepthSum: c.qDepthSum.Load(),
+	}
 }
 
 func (c *client) UUID() uuid.UUID {
@@ -121,6 +141,11 @@ func (c *client) SendUnlock(skillID uint64, source string) error {
 // stuttered while moving because the command's input was blind-dropped).
 // A newer aura command supersedes an evicted one.
 func (c *client) pushInput(i *model.PlayerInput) {
+	// Instrumentation (chunk 1): sample queue depth on arrival before the send,
+	// so q_mean = qDepthSum/arrivals reports how saturated the queue runs.
+	c.arrivals.Add(1)
+	c.qDepthSum.Add(uint64(len(c.inputs)))
+
 	select {
 	case c.inputs <- i:
 		return
@@ -128,6 +153,7 @@ func (c *client) pushInput(i *model.PlayerInput) {
 	}
 	select {
 	case old := <-c.inputs:
+		c.evicted.Add(1)
 		if i.ActiveAuraSlot == model.ActiveAuraSlotNoChange {
 			i.ActiveAuraSlot = old.ActiveAuraSlot
 		}
@@ -141,6 +167,7 @@ func (c *client) pushInput(i *model.PlayerInput) {
 	default:
 		// Both eviction and re-push lost the race against the reader — rare
 		// enough to just drop.
+		c.dropped.Add(1)
 		log.Print("Input dropped.")
 	}
 }

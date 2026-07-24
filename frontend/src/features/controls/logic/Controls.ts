@@ -60,6 +60,11 @@ export class Controls {
     clock: Tock;
     updateTime: number;
     lastInputType: ('MOUSE' | 'TOUCH') = 'MOUSE';
+    // Release-signal state (plan-input-jitter.md chunk B): the client sends an
+    // explicit zero-movement input for a short tail after the keys are released,
+    // so the server's coast (chunk A) sees the stop even if a packet is lost.
+    private wasMoving = false;
+    private stopTailRemaining = 0;
 
     constructor(character: Character) {
         this.character = character;
@@ -210,6 +215,23 @@ export class Controls {
             input.movement = movement;
             ControlsMovementEvent.trigger(movement);
             hasInput = true;
+            this.wasMoving = true;
+            this.stopTailRemaining = 0;
+        } else {
+            // Keys released this tick → start the stop-tail so the server gets an
+            // explicit "not walking" state even under packet loss. Without it a
+            // release is signalled only by silence, which the server coast
+            // (chunk A) would replay as continued movement. Then go quiet, so an
+            // idle player sends nothing (no standing spam).
+            if (this.wasMoving) {
+                this.stopTailRemaining = Constants.STOP_TAIL_TICKS;
+            }
+            this.wasMoving = false;
+            if (this.stopTailRemaining > 0) {
+                input.movement = new Vector(); // explicit (0,0) stop
+                hasInput = true;
+                this.stopTailRemaining--;
+            }
         }
 
         // Edge-triggered slot hotkeys: one action per key press, not per tick

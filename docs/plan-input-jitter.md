@@ -1,241 +1,407 @@
-# Plan: Dropped Movement Inputs (live jitter tolerance)
+# Plan: Dropped Movement Inputs → held-state input model
 
-**Status:** **PLANNED 2026-07-22 — not started.** Opened from a live PO report:
-*"I wanted to walk but kept stopping. It wasn't delayed or sluggish, just that
-sometimes my movement keys did not register somehow."*
+**Status:** **DONE 2026-07-24 (chunks 1 + A + B), [uncommitted], PO-VALIDATED
+LIVE.** Chunk 1 instrumentation shipped and the ~14-min PO run (below) **overturned
+the TCP-HoL hypothesis** — root cause is client-side Tock coalescing under render
+jank, proven from the code. Chunks **A (server coast ≤`maxHoldTicks=15`)** + **B
+(client explicit "stopped" on release, `STOP_TAIL_TICKS=5`)** shipped together.
+**Live re-measure (20 control bots + PO): the browser input queue logged 0 starved
+/ 0 coasted / 0 stalled across all 7 windows — the dropped-movement bug is GONE.**
+Chunk C (non-coalescing input timer) was **not needed** — 0 starvation left nothing
+to fix upstream. See §11 for the wrap.
 
-**PO rulings (choice prompts, 2026-07-22):** instrument **first**, fix after
-reading real numbers; the client/server input-rate mismatch is **in scope**,
-but planned before it is touched.
+**The re-measure surfaced a SEPARATE, downstream problem** (own plan
+`docs/plan-render-jitter.md`): 10 % eviction / `q_mean` 1.09 (client-fast rate
+mismatch) and a *slight* felt "micro-reset" while walking that **persists solo** —
+that is client-side snapshot rendering, not this input path (0 starvation proves
+it). Not addressed here.
 
-## The report and what it is not
-
-Session window 19:31–19:54 UTC on `aura-game.duckdns.org`. Over those 23
-minutes the server logged **10 overloaded ticks** (103–133 %, single ticks
-stretching to 34–44 ms). The 7 330 overloads visible in the 6-hour journal are
-almost entirely the 17:11–17:20 `loadbot` ramps (peaks to 681 %).
-
-⇒ **The simulation was healthy while the stopping happened.** This is not the
-overload story from `plan-intermission-triage.md` §Idle-loop allocation fix.
-The problem is in the **upstream input transport**.
-
-Incidentally this is also the first live data point for that fix's open watch
-item: ~10 overloads in the 87 minutes 18:16–19:43 **with a player online**,
-against the pre-fix rate of ~10–30/h with the server **empty**. Encouraging,
-still not the full day of logs that item asks for.
-
-## Diagnosis
-
-The input path tolerates **exactly 3 ticks (~100 ms)** of upstream gap, and
-past that it does not delay movement — it **deletes** it.
-
-| Site | Fact |
-|---|---|
-| `model/client/client.go:192` | the per-client input channel is **2 deep** |
-| `core/input.go:60` | `Update` calls `NextInput()` **once per player per tick** — no drain, no catch-up |
-| `core/input.go:90` | `pickInput` bridges a starved tick with the last movement **only once** (`delete(i.lastMove, id)` on use) |
-| `model/client/client.go:113` | on overflow `pushInput` **evicts the oldest** to hold the queue at 2 |
-
-From a saturated queue, when inputs stop arriving:
-
-| tick | behaviour |
-|---|---|
-| T | consume queued input — moves |
-| T+1 | consume queued input — moves |
-| T+2 | starved → bridged — moves |
-| T+3 | starved, bridge spent → `nil` → **stands still** |
-
-Recovery is the damaging half. When the gap ends and (say) 9 backed-up inputs
-arrive together, `pushInput` evicts down to 2 and **7 are discarded** — seven
-ticks (~230 ms) of walking silently deleted, never replayed. The character does
-not catch up. That is exactly "not sluggish, the keys just didn't register".
-
-**Suspected trigger: TCP head-of-line blocking.** One lost upstream packet on
-WSS stalls every input behind it for a retransmit timeout (~200–300 ms), well
-past the 100 ms budget. At 30 inputs/s even 0.1 % loss yields one such stall
-roughly every 30 s. Localhost has no loss, which is why this has never been
-seen in dev.
-
-**Competing hypothesis: client-side main-thread stalls.** `Controls.update`
-runs on a Tock timer (`Controls.ts:72`, `INPUT_TICKRATE 33`). On a stall Tock
-advances past the missed ticks and replays only **one** of them
-(`tocktimer/tock.js:53`), so a render hitch also eats inputs. Chunk 1 is
-designed to tell these two apart — see the discriminator below.
-
-## Two incidental findings
-
-1. **The client outruns the server by 1 %.** `INPUT_TICKRATE: 33`
-   (`BasicConfig.ts:100`), drift-corrected by Tock, is 30.303 Hz. The server
-   ticker is `time.Second / 30` = 33.333 ms = 30.0 Hz (`core/game.go:218`). The
-   queue therefore sits permanently saturated, costing ~66 ms of standing input
-   latency. **In scope, chunk 3.**
-2. **The `pickInput` comment is wrong-signed.** `core/input.go:82` reasons
-   about "~0.1 % clock drift starves the queue … once every 30 s". The real
-   mismatch is 1 % in the opposite direction: a full queue that silently
-   evicts. Rewrite it with chunk 1.
-
-Also noted, **out of scope**: `stepMillis = 33.0` (`core/game.go:434`, and
-`sim/world.go:30`) is what the simulation integrates and what the overload
-threshold is measured against, while the ticker advances 33.333 ms of wall
-time. The world therefore runs ~1 % slow in real time. Pre-existing, well
-inside [PLACEHOLDER] noise, and every seconds→ticks conversion in the game
-(`TotalDayCycleTicks`, respawn timers, the 1 %/s regen) assumes exactly 30 —
-so this is deliberately **not** touched here. Flagged for the record.
+Opened from a live PO report: *"I wanted to walk but kept stopping. It wasn't
+delayed or sluggish, just that sometimes my movement keys did not register
+somehow."*
 
 ---
 
-## Chunk 1 — Instrumentation (measurement only, zero behaviour change)
+## 1. What the measurement proved
 
-Prove the diagnosis and **size the coast window** from real numbers before
-changing any behaviour. Eviction is currently invisible: `log.Print("Input
-dropped.")` (`client.go:134`) only fires on a rare double-race, so the 72
-"dropped" lines in the live journal are all equip/skill-point spam from the
-17:19 loadbot run. The live logs today cannot confirm or deny input loss.
+Chunk 1 added per-player input-transport instrumentation (see §7 for the ledger).
+A ~14-min live session (join 08:01:28Z, 14 rolling windows to 08:15:28Z, id 1343)
+produced this — quiet-by-default, so every line below means real trouble:
 
-### Counters
+| metric | total over ~25 200 ticks | rate | reading |
+|---|---|---|---|
+| **stalled** | 5 031 | **~20 % of all ticks** | 1 tick in 5 the character stood still while a key was held |
+| **starve runs** (= bridged) | 296 | **one every ~2.8 s** | the queue ran fully dry 296 times |
+| starved ticks | 5 327 | ~21 % | — |
+| evicted | 283 | **1.1 %** | steady background, **uncorrelated** with the stalls |
+| dropped | 0 | — | the rare double-race never fired |
 
-Per player, following the existing `TickStats` pattern (`core/game.go:453`,
-`devops/loadtest.md`):
+**Cumulative starve-run histogram** (buckets `1 / 2 / 3 / 4-6 / 7-9 / 10-15 / 16+`):
 
-| counter | site | what it answers |
-|---|---|---|
-| `starved` | `pickInput`, `fresh == nil` | how often the queue runs dry |
-| `bridged` | `pickInput`, bridge used | gaps currently covered |
-| **`stalled`** | `pickInput`, starved with no bridge | **the symptom count** — ticks the character stood still |
-| **`evicted`** | `pushInput` overflow | **the lost-movement count** |
-| starve-run histogram | `pickInput` | **sizes `maxCoastTicks`** — buckets 1 / 2 / 3 / 4–6 / 7–9 / 10–15 / 16+ ticks |
-| queue depth on arrival | `pushInput` | confirms or refutes the saturation prediction from finding 1 |
+```
+[48, 26, 24, 45, 32, 36, 85]
+```
 
-### Constraints
+- **52 %** of runs (153/296) lasted **≥7 ticks (≥233 ms)**.
+- **29 %** (85/296) lasted **≥16 ticks (≥533 ms)** — the single largest bucket,
+  and it is **unbounded**, so the true p99 is unknown from this data.
+- The 3-tick bridge tolerance covers only the first ~98 runs.
 
-- **Zero allocation per tick.** The idle-alloc fix (`fe0044d0`) left
-  `*_alloc_test.go` pins asserting `AllocsPerRun` is **zero**, not "cheap".
-  Fixed-size arrays for the histogram, no maps, no `fmt` in the hot path. The
-  new counters must keep those pins green — this is the main landmine in the
-  chunk.
-- `pushInput` runs on the client's read goroutine, `pickInput` on the tick
-  goroutine ⇒ the eviction counters live on the `client` struct as
-  `atomic.Uint64`. No locks.
-- **Journal quiet when idle.** Summary line only while a player is connected
-  and only when a counter is non-zero, plus a final line per player on
-  disconnect. `plan-playtest-deploy.md` already warns about journal noise.
-- No wire change, no content change, no schema regen.
+**Two consistency checks that validate the instrumentation itself:**
+- runs (296) == bridged (296) == histogram sum (48+26+24+45+32+36+85). Each run
+  is bridged exactly once — the state machine is correct.
+- The AFK tail window (08:16:28, after the PO stopped) read
+  `starved:1800, stalled:1800, arrivals:0`, **no `q_mean`** (guarded on zero
+  arrivals) and **`run_hist` unchanged** — the open run at disconnect was never
+  bucketed, exactly as designed, so a dropped client cannot poison the histogram.
 
-### The discriminator
+### The discriminator verdict — client-side, NOT the network
 
-The same data separates the two hypotheses:
+The chunk-1 design set up a test to separate two hypotheses. The data is
+unambiguous:
 
-- **Network gap (TCP HoL):** a starve run is followed by a **burst arrival and
-  a spike in `evicted`** — the inputs existed, they were stuck, then thrown away.
-- **Client-side stall:** a starve run with **no backlog burst and no
-  evictions** — the inputs were never produced.
+- **No eviction burst follows a starve run.** The two *biggest* starve windows
+  (688 and 671 stalled) had among the *lowest* evictions (17 and 7). A TCP
+  head-of-line stall would dump a backlog → an eviction spike. It didn't.
+- **`q_mean ≈ 0.6–0.9`, never near the cap of 2.** The queue runs *near-empty*.
+  This **refutes finding 1's saturation prediction** — the client is net
+  *under*-feeding the queue, not overfeeding it.
+- The steady **1.1 % eviction** is exactly the ~1 % the client-fast timer
+  (30.303 vs 30.0 Hz) predicts — present as flat background, drowned out by the
+  starvation.
 
-### Test strategy (TDD)
-
-1. Failing test first: drive `PlayerInputSystem.Update` through a synthetic
-   starvation pattern (n fresh, m starved, burst of k) and assert
-   `starved` / `bridged` / `stalled` / histogram bucket exactly.
-2. Failing test first: `pushInput` eviction increments `evicted` and still
-   carries one-shot commands forward (the C2 2026-07-17 property must not
-   regress).
-3. Alloc pin: `AllocsPerRun` stays zero across an `Update` with counters live.
-
-### Measurement protocol
-
-1. Deploy (`devops/deploy.sh`; `ANNOUNCE` first — restarts wipe characters).
-2. PO plays ~10 minutes on live, deliberately including sustained walking of
-   the kind that felt bad.
-3. `ssh root@159.69.148.73 'journalctl -u aurad --since "-20m" --no-pager | grep -v "TLS handshake" | grep inputstats'`
-
-### Decision gate
-
-Read `stalled` (does the symptom count match the felt frequency?), the
-starve-run p99 (sizes `maxCoastTicks`), `evicted` (how much movement is being
-deleted), and mean queue depth (finding 1). **If `stalled` is near zero the
-diagnosis is wrong** and chunk 2 does not happen as written — the investigation
-moves to the client.
+⇒ **The inputs were never produced.** The problem is client-side input
+production, not transport.
 
 ---
 
-## Chunk 2 — The fix: coast + reconcile
+## 2. Root cause (proven from the client code, not inferred)
 
-Shape confirmed by chunk 1's numbers; `maxCoastTicks` [PLACEHOLDER] set from
-the measured p99 starve run.
+Three code facts stack into the bug:
 
-1. **Queue 2 → ~16** (`NewClient`) so a burst is buffered instead of evicted.
-2. **`pickInput` coasts** up to `maxCoastTicks` consecutive starved ticks
-   (instead of exactly 1), counting the coasted ticks per player.
-3. **Reconcile on resume:** when fresh inputs return, discard `coasted` inputs
-   from the front of the backlog before applying — those ticks were already
-   simulated by the coast — then resume 1/tick.
+1. **`tock.js:50–59` — the input timer is `setTimeout`-based and *coalesces
+   missed ticks*.** `_tick` calls the callback (`Controls.update`) **once**, then
+   if it is ≥1 interval behind schedule it computes `missed_ticks`, **advances the
+   clock past them without firing the callback for each**, and recurses exactly
+   once. A main-thread block of N intervals therefore yields **2** `update()`
+   calls, not N — the other N−2 input ticks are silently discarded. Being
+   `setTimeout`, it shares the single main thread with the PixiJS render loop, so
+   any long frame (aura `ColorMatrixFilter` passes, GC, many entities) delays the
+   input tick and trips the coalescing.
 
-Net: total distance travelled equals **exactly** what the client sent. No lost
-movement (unlike today) and no ghost over-travel (unlike a naive longer bridge).
+2. **`Controls.ts:209–244` — the client sends a packet *only when there is
+   movement*** (or rotation / pointer-moved). No packet on key release, no
+   keepalive. So "walking packets/second the server sees" == "times Tock fired
+   `update()` while a key was held" — which droops below 30 exactly when the
+   client is busy.
 
-**Properties that must hold, each with a test:**
+3. **`InputMessage.ts:36` — there is no "I stopped" signal on the wire at all.**
+   Zero movement is omitted; stopping is communicated by *silence*, which the
+   server turns into bridge-then-delete (`core/input.go:pickInput`).
 
-- The coast carries **movement only** — never replays one-shot commands (aura
-  switch, cooldown activation). This already holds (`ActiveAuraSlotNoChange`,
-  empty `CooldownActivations`) and matters *more* with a longer window.
-- A genuinely disconnected client halts after `maxCoastTicks`, not forever —
-  the existing "don't slide forever" guarantee, widened from 1 tick to N.
-- **No cheat surface.** The server still applies at most one movement per tick;
-  a deeper queue defers inputs, it cannot make a flooding client move faster,
-  and the reconcile discard means coasting cannot be double-counted. Worth
-  stating explicitly given the `loadbot`/cheat-token posture in
-  `devops/loadtest.md`.
-- Coasting stops on death (`updateInput` already gates on `Health != 0`).
+**The loop:** client busy → Tock drops input ticks → fewer walking packets →
+server queue starves → server deletes movement after a 1-tick bridge → the
+character stutter-stops while the key is held.
 
-**Fallback:** if chunk 1 points at client-side stalls instead, the coast is
-still the right fix but the reconcile has no backlog to discard — ship
-coast-only and skip steps 1 and 3.
+**Machine-specific or universal?** The *mechanism* is universal — provable from
+the code, it fires on any client whenever a render frame runs long, which is
+every client sometimes and weaker/hotter machines often. The PO's machine set the
+*magnitude* (20 %). Confidence it affects every tester to some degree: high
+(~90 %+). This is not a single-machine artifact.
 
----
+### Why the core loop makes this a priority, not polish
 
-## Chunk 3 — Rate alignment (PO: in scope, planned first)
-
-Close the 30.303 Hz vs 30.0 Hz mismatch so the queue stops sitting saturated
-and the ~66 ms of standing input latency goes away.
-
-**Recommended: move the client.** `INPUT_TICKRATE: 33` → `1000 / 30`
-(33.333 ms). Tock's interval is used in plain arithmetic against `Date.now()`
-and drift-corrects, so a fractional interval is fine. Residual mismatch ≈ 0.
-**No balance implications** — the server is untouched.
-
-**Rejected: move the server** (`time.Second / 30` → `33 * time.Millisecond`).
-It would make the ticker, `stepMillis`, the overload threshold and the client
-all agree at 30.303 Hz — but every seconds→ticks conversion in the game
-(day cycle, respawn timers, regen) assumes exactly 30 ticks/s, so it shifts
-all of them 1 % without a design reason.
-
-Also in this chunk: rewrite the wrong-signed drift comment at `core/input.go:82`.
-
-**Sequencing note:** chunk 3 changes the steady-state queue depth, which is one
-of the things chunk 1 measures. Land chunk 3 **after** the chunk 1 measurement
-run, or the baseline moves under it.
+The vision makes positioning *the* skill expression, and auras tick on anything
+in range. A stutter-stop *inside* a damage aura is unintended damage; a naive long
+coast would *ghost-walk the player into* an aura they were leaving. The bug hits
+the primary mechanic directly.
 
 ---
 
-## Open questions
+## 3. The design: input as idempotent held state
 
-1. **`maxCoastTicks`** — deliberately unset; comes from chunk 1's p99. Expect
-   6–10 ticks (200–330 ms) if TCP retransmit is the trigger.
-2. **Summary cadence** — per-disconnect only, or also a rolling line every
-   60 s while players are online? Rolling is more useful for a PO session that
-   never cleanly disconnects; the cost is journal noise. **Recommend both**
-   (rolling 60 s, suppressed when every counter is zero, plus a final line on
-   disconnect) so the chunk-1 measurement run cannot be lost to a session that
-   ends by closing the tab. Not blocking — a new session can start on this
-   default and the PO can veto it at the measurement run.
-3. **Keep the instrumentation after the fix?** It doubles as the regression
-   detector for exactly this class of bug, and `TickStats` set the precedent
-   for permanent load instrumentation. Recommend keeping it, quiet by default.
+Stop treating movement as a lossy stream of per-tick samples; treat it as **held
+state that is re-asserted and held**. This is the Quake/Source-lineage model and
+it dissolves the whole bug *class* rather than patching this instance.
 
-## Verification (both chunks)
+Three composable properties, and the crucial one is that they make the
+previously-unsizable coast window stop being a behavioural guess:
 
-- `go build ./...` exit 0 from `backend/`
-- `go test ./...` — full suite, plus the new pins and the untouched
-  `*_alloc_test.go` allocation pins
-- `tsc --noEmit` clean for chunk 3
-- boot with `-content ../api`, 0 panics
-- live deploy + a PO play session (chunk 1 *is* the play session)
+- **P1 — the server holds the last movement *direction* on a starved tick**
+  (coast), bounded by a safety cap `maxHoldTicks`. Movement is integrated as
+  `position += normalize(dir) × speed` per tick (`input.go:149–151`), so
+  replaying a direction simply keeps integrating — **coasting "north" then
+  receiving a fresh "north" is continuous, with no double-count and therefore no
+  reconcile-discard step.** (This is why the old plan's "discard `coasted` inputs
+  from the backlog" is unnecessary: the client sends a *current direction*, not a
+  queue of position-steps.)
+- **P2 — queue eviction becomes correct by construction.** A newer state
+  supersedes an older queued one (last-writer-wins); evicting a superseded
+  direction is *right*, not lossy. **So the queue is NOT deepened** (the old plan's
+  2→16). Depth 2 with last-writer-wins is the whole reconcile.
+- **P3 — the client sends an explicit "stopped" state on release**, re-asserted
+  for a short tail (~5 ticks) so at least one lands, then goes quiet. This is the
+  missing release signal. It is what makes P1 *safe*: without it, silence means
+  "keep walking" and every release would ghost-walk. **P1 without P3 is the
+  landmine; P1+P3 together are the fix** — hence they ship as one committed pair.
+
+Under P1+P2+P3 every failure mode collapses to a no-op: a dropped input tick
+(render jank) is covered by the hold and re-asserted by the next packet; a lost
+"still walking" packet is a no-op because the state did not change; a release is
+an explicit, re-sent, idempotent state so it cannot be lost into a ghost-walk. The
+design is robust to causes we have **not** identified, which is the point.
+
+### `maxHoldTicks` is now a bounded reliability parameter, not a p99 guess
+
+With P3 in place, the cap's only job is to bound **worst-case drift on a genuine
+total client freeze while a key is held** (the one case where no stop packet can
+be sent). It is *not* trying to cover the unbounded 16+ histogram tail.
+
+- Proposed starting value: **~15 ticks (~0.5 s)** [PLACEHOLDER]. Rationale: it
+  fully covers the ≤15-tick buckets (71 % of observed jank runs), and 0.5 s is an
+  acceptable, bounded drift ceiling for the rare true-freeze case. Tunable up for
+  smoothness, down for tighter drift — the tradeoff is explicit and documented,
+  not hidden.
+- It is derived from an observable (the histogram) and a UX ceiling (drift on
+  freeze), so it carries a comment explaining *why its value*, per the
+  no-hardcoded-landmine rule.
+
+---
+
+## 4. Chunk A — server-side hold (coast)
+
+Generalise the existing 1-tick bridge into a bounded hold, keyed on the same
+`fresh == nil` starvation signal `pickInput` already computes.
+
+- `pickInput`: when starved, replay the held movement (direction + rotation,
+  one-shots stripped — already the bridge's behaviour) for up to `maxHoldTicks`
+  consecutive starved ticks, counting the coasted ticks per player, then halt.
+- The held entry is the movement-only copy already built in `pickInput`; widen
+  its lifetime from "consumed on first use" to "reused up to `maxHoldTicks`".
+- **Clear the held state on death and on authoritative reposition.** `updateInput`
+  already gates movement on `Health != 0`, so a dead player does not move; but the
+  held entry must be **deleted on the alive→dead transition** so a respawn
+  (`state.go:285`) or Recall (`skills.go:1353`) does not coast the player back out
+  of the new position. Property + test required.
+- Coasting carries **movement only**, never one-shot commands (aura switch,
+  cooldown) — already true of the bridge copy, and it matters *more* with a longer
+  window.
+
+**No queue change, no reconcile step** (see P2/P1). The chunk-1 instrumentation
+stays as the permanent regression detector; add a `coasted` counter alongside
+`stalled` so the fix's effect is visible in the same `inputstats` line (stalled
+should collapse toward zero, coasted should absorb it).
+
+**Tests (TDD):**
+- A starve run of length k ≤ `maxHoldTicks` produces k coasted ticks of the held
+  direction, zero stalls.
+- A run longer than `maxHoldTicks` halts at the cap (the "don't slide forever"
+  guarantee, widened from 1 to N).
+- Held state cleared on death → no coast across respawn.
+- Alloc pin: the coast path stays zero-alloc (reuses the held copy; keeps the
+  `fe0044d0` posture green).
+
+## 5. Chunk B — client-side release signal (ships WITH chunk A)
+
+- `Controls.update`: when movement transitions non-zero → zero (key release),
+  send an explicit zero-movement input, and keep sending it for a short tail
+  (~5 ticks [PLACEHOLDER]) so at least one survives loss, then go quiet.
+- **No new wire field.** A fresh `Input` with movement absent/zero already means
+  "not walking" on the server (`input2vec` → zero vector → no step); the change is
+  that the client actually *sends* it on release instead of falling silent. The
+  server distinction is `fresh != nil && zero-movement` (stop, clear held) vs
+  `fresh == nil` (starved, coast) — exactly the signal `pickInput` already keys
+  on.
+- **Idle bandwidth stays ~zero.** Held *walking* already sends per tick (when the
+  timer fires); the only new upstream traffic is the ~5-packet release tail. Do
+  **NOT** "simplify" this to send-every-tick-while-idle — that would put 30
+  standing packets/s per idle player on the wire and regress the loadtest ceiling
+  (~60–70 clustered, `devops/loadtest.md`). This constraint is a landmine; it is
+  called out again in §6.
+
+**Tests (TDD, Playwright at the game surface per the `verify` skill):**
+- Releasing a held key emits a zero-movement input tail, then silence.
+- Server receiving the stop halts immediately (no coast past a real release).
+
+## 6. Chunk C — optional hardening (only if residual droop remains)
+
+After A+B, a dropped input tick is a no-op, so fixing input *production* is
+polish, not load-bearing. If the post-A+B `inputstats` still shows meaningful
+starvation:
+
+- Drive input sampling off a **non-coalescing** source — a `requestAnimationFrame`
+  accumulator that emits the correct number of ticks, or a Web Worker heartbeat
+  immune to main-thread jank — instead of the coalescing Tock `setTimeout`.
+- Keep the drift comment fix (see §8, was chunk 3): the old `pickInput` comment
+  was rewritten with chunk 1; the `BasicConfig` rate mismatch note stays for the
+  record but is **moot for this bug** — `q_mean 0.7` proves the queue is not
+  saturated, so aligning 30.303→30.0 Hz does not touch the stalls. Do not ship a
+  server tick-rate change (it would shift every seconds→ticks conversion 1 %).
+
+---
+
+## 7. Longevity assessment & when this solution could itself become a problem
+
+The user asked for an honest read on how durable this is and where it could turn
+into its own problem. Both below.
+
+### Why it is durable
+
+- It is the **standard foundation** action-game netcode is built on; it is not a
+  bespoke trick.
+- It fixes the **class** (any single dropped tick — jank, packet loss, or an
+  unknown future cause — is absorbed), not just the measured instance.
+- It is **KISS/YAGNI-consistent for a PvE, no-PvP-for-5-years game**: server
+  authority + interpolated rendering + bounded hold is exactly enough; it does
+  **not** build client prediction / rollback / lag-comp, which the current design
+  does not need.
+- It is **forward-compatible**: held-state is the substrate PvP prediction would
+  later build on, so it does not foreclose that future — it de-risks it.
+- It removes, rather than adds, magic numbers: the queue-depth tuning and the
+  p99-derived coast window both disappear; the one remaining constant
+  (`maxHoldTicks`) is a bounded, documented drift ceiling.
+
+### When it could become a problem in and of itself
+
+1. **A genuine multi-second client freeze *while walking toward danger*.** During
+   a true freeze no stop packet can be sent, so the server coasts up to
+   `maxHoldTicks` and the player returns to find they drifted. This is *inherent*
+   to any coast and is the reason the cap exists and is bounded (~0.5 s). It is a
+   deliberate, bounded tradeoff — smoother common case for a small worst-case
+   drift — not a bug. Setting `maxHoldTicks` too high is where it bites.
+
+2. **Adding client-side prediction later without reconciling the coast.** If we
+   ever predict movement on the client to hide RTT, the client's "I released"
+   must reconcile with the server still coasting the held state for a few ticks
+   until the stop lands — otherwise the player snaps/rubber-bands. Held-state is
+   the *right* substrate for prediction, but the coast window and the prediction
+   must be reconciled together. Flag for whoever builds prediction; do not add
+   prediction piecemeal on top of the coast.
+
+3. **A future "simplification" to send held-state every tick including idle.** It
+   looks cleaner ("always send the current state") but it puts 30 standing
+   packets/s per idle player on the wire and regresses the loadtest ceiling. The
+   §5 release-tail approach is deliberate. This is the most likely way a later
+   editor re-introduces a problem; it is commented at the call site.
+
+4. **Forgetting to clear held state on death / reposition** (respawn, Recall,
+   any future knockback/teleport) → the player coasts out of a safe respawn or
+   away from a teleport target. Handled in chunk A as a required property with a
+   test; any *new* authoritative reposition site must clear it too.
+
+5. **`maxHoldTicks` drift as a silent tuning constant.** Less of a landmine than
+   the old p99 guess (it is bounded by P3), but still a value that, set wrong,
+   trades stutter for drift. It must keep its "why this value" comment and be
+   re-checked if `WalkingSpeedPerTick` ever changes (drift distance = cap × speed).
+
+None of these is unbounded or silent once documented, which is the bar for
+"durable." The honest ceiling of this design is that it is *server-authoritative
+without prediction* — correct and smooth for PvE co-op, and the correct base to
+extend from if PvP ever makes prediction necessary.
+
+---
+
+## 8. What changed from the pre-measurement plan
+
+- **Dropped:** queue-deepen 2→16 (P2 makes eviction correct at depth 2);
+  reconcile-discard (P1 makes it unnecessary); chunk 3 server/client rate
+  alignment *as a fix* (`q_mean 0.7` proves it is moot here).
+- **Kept:** the wrong-signed `pickInput` drift comment was already rewritten with
+  chunk 1. The `BasicConfig.INPUT_TICKRATE` 33→`1000/30` note survives only as
+  record, not as this bug's fix.
+- **New:** the held-state model (§3) and its client release signal (§5).
+
+### Chunk 1 wrap (instrumentation — shipped, kept permanently)
+
+Landed 2026-07-24: `model.InputTransportStats` value type (not on the `Client`
+interface — read via a narrow type-assert so the sim `nopClient` and the six test
+fakes are untouched); client-side `atomic.Uint64` counters (`evicted`, `dropped`,
+`arrivals`, `qDepthSum`) bumped in `pushInput`; tick-side per-player
+`playerInputStats` (`starved`, `bridged`, `stalled`, a compile-locked 7-bucket
+starve-run histogram) with a `statFor` accessor; rolling `slog` `inputstats` line
+every `summaryIntervalTicks = 60 × constant.TicksPerSecond`, suppressed on a
+trouble-free window, honest `win_ticks`, `q_mean` guarded on zero arrivals; final
+cumulative line on disconnect anchored to the join tick. Zero-alloc pin on the
+starved path holds. Deployed live (pid 50325, clean boot, `GET /` + `/skills`
+200). **Keep permanently** (PO ruling) — it is the regression detector for exactly
+this bug class, and chunk A extends it with a `coasted` counter.
+
+---
+
+## 9. Verification (chunks A–C)
+
+- `go build ./...` exit 0 from `backend/`; `go test ./...` full suite + the new
+  pins + the untouched `*_alloc_test.go` pins.
+- `tsc --noEmit` clean for chunk B/C.
+- boot with `-content ../api`, 0 panics.
+- **Live re-measure is the acceptance test:** redeploy (ANNOUNCE first — restarts
+  wipe characters), PO plays ~10 min including the sustained walking that felt
+  bad, then
+  `ssh root@159.69.148.73 'journalctl -u aurad --since "-20m" --no-pager | grep inputstats'`.
+  **Success = `stalled` collapses toward zero and `coasted` absorbs it, with no
+  new ghost-walk feel on release.** If stalls persist, chunk C (input production)
+  is warranted; if release feels like over-travel, `maxHoldTicks` is too high.
+
+## 10. Open questions
+
+1. **`maxHoldTicks`** — proposed ~15 ticks (~0.5 s), framed as the freeze-drift
+   ceiling (§3). Confirm at a live re-measure.
+2. **Release-tail length** — proposed ~5 ticks (§5). Enough for loss tolerance
+   without idle spam.
+3. **Chunk C needed at all?** — decided by the post-A+B `inputstats`, not upfront.
+   **RESOLVED: no** — the re-measure showed 0 starvation on the browser, so there
+   was nothing left upstream to fix. See §11.
+
+---
+
+## 11. Wrap — what shipped (2026-07-24, [uncommitted], PO-validated live)
+
+**Chunk 1 — instrumentation (kept permanently).** `model.InputTransportStats`
+value type read via a narrow `inputTransportReporter` type-assert (deliberately
+NOT on `model.Client`, so the sim `nopClient` + 6 test fakes are untouched);
+client-side `atomic.Uint64` counters (`evicted`/`dropped`/`arrivals`/`qDepthSum`)
+in `pushInput`; tick-side per-player `playerInputStats` (`starved`/`coasted`/
+`stalled` + compile-locked 7-bucket histogram) via a nil-tolerant `statFor`;
+rolling quiet-by-default `slog` `inputstats` line every `summaryIntervalTicks =
+60 × constant.TicksPerSecond`, honest `win_ticks`, `q_mean` guarded on zero
+arrivals, final cumulative line on disconnect. Zero-alloc pin on the coast/stall
+path holds.
+
+**Chunk A — server coast.** `pickInput` replays the held movement **direction**
+for up to `maxHoldTicks = 15` consecutive starved ticks (was a 1-tick bridge),
+then halts; instrumentation renamed `bridged`→`coasted` so `starved = coasted +
+stalled`. Held state cleared on the alive→dead transition in `updateInput` so a
+coast can't cross a respawn/teleport (`TestUpdateInput_DeathClearsHeldMovement`).
+No queue-deepen, no reconcile-discard (P1/P2).
+
+**Chunk B — client release signal.** `Controls.update` sends an explicit
+zero-movement input for `STOP_TAIL_TICKS = 5` ticks after key release, then goes
+quiet — the missing "stopped" signal that makes the coast safe. **No wire field**
+(reuses the existing zero-movement input); idle bandwidth stays ~zero.
+
+**Chunk C — dropped.** 0 browser starvation ⇒ nothing to fix upstream.
+
+**Verification.** `go build`+`go test ./...` exit 0; alloc pins (incl. new
+coast/stall path + the `fe0044d0` pins) green; boot `-content ../api` 0 panics;
+`tsc --noEmit` exit 0; webpack prod build clean; headless smoke moved 365 u then
+**0.0000 residual drift** (no ghost-walk). **Live re-measure** (deployed pid
+51474; 20 dispersing walking bots as a live control + PO solo): browser (id 1364)
+**0 starved / 0 coasted / 0 stalled across all 7 windows**; bots confirmed the
+coast covers short network gaps (bot 1706: coasted 113/188 starved) while the
+worst-connected bots showed the cap biting on multi-second outages (expected).
+
+**Live measurement data — the two runs.**
+
+| run | starved | stalled | coasted | evicted | q_mean | verdict |
+|---|---|---|---|---|---|---|
+| pre-fix (jittery, solo) | ~21 % | ~20 % | n/a | 1.1 % | 0.7 | queue under-fed by client jank |
+| post-fix (browser, 20 bots + solo) | **0** | **0** | **0** | ~10 % | 1.09 | input path clean; over-feeding = rate mismatch |
+
+**Follow-up spun out:** the post-fix 10 % eviction / `q_mean` 1.09 and the felt
+"micro-reset" (persists solo) → `docs/plan-render-jitter.md` (downstream snapshot
+rendering, not this input path).
+
+**New tests:** `TestPickInput_CoastsHeldMovement`, `TestPickInput_CoastCounterAndCap`,
+`TestPickInput_ClosedRunBucketed`, `TestPickInput_OpenRunNotBucketed`, `TestBucket`,
+`TestPickInput_StarvedPathZeroAlloc`, `TestUpdateInput_DeathClearsHeldMovement`,
+`TestPushInputOverflowIncrementsEvicted`.

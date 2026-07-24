@@ -100,6 +100,17 @@ export const BasicConfig = {
     INPUT_TICKRATE: <number> 33,
 
     /**
+     * How many ticks to keep re-sending an explicit "stopped" (zero-movement)
+     * input after the movement keys are released, so the server gets the release
+     * even if a packet is lost — the client-side half of the server coast
+     * (plan-input-jitter.md chunk B). Without it, releasing a key is signalled
+     * only by silence, which the server's hold would replay as continued
+     * movement. Kept small so an idle player goes quiet quickly (no standing
+     * spam). [PLACEHOLDER]
+     */
+    STOP_TAIL_TICKS: <number> 5,
+
+    /**
      * Used for interpolation.
      *
      * SYNCED WITH BACKEND

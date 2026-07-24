@@ -1539,3 +1539,41 @@ aurad.service`), `systemctl daemon-reload && systemctl restart aurad`.
   coast-and-reconcile makes the player immune to a tick stall regardless of its
   cause — better than whack-a-mole against a 3.4×-slower vCPU. Chase the server
   spike for host health; ship coast+reconcile for the player-facing bug.
+
+**RESULT — Probe 1 read 2026-07-24 07:15 UTC (overnight idle window). GC is
+RULED OUT. Cause is a rare host deschedule; the catastrophic tail did not recur.**
+- **GC is NOT the cause — the two are temporally uncorrelated.** Over the probe
+  window (boot 20:57 Jul 23, then a *clean manual* `systemctl restart` at 22:52
+  Jul 23 → pid `43817`; **not a crash** — systemd Stopping/Started, 17.4 M peak
+  RSS), all five ≥142 % overloads land **mid-cycle in the ~2 min idle GC gap**,
+  never adjacent to a collection:
+  - `169 %`+`157 %` @ 01:12:31–32 → nearest GCs `gc120` @01:12:18 (13 s before) /
+    `gc121` @01:14:18 (107 s after).
+  - `151 %` @ 01:16:53 → `gc122` @01:16:18 (35 s before) / `gc123` @01:18:18.
+  - `154 %`+`148 %` @ 04:42:52 → `gc225` @04:42:19 (33 s before) / `gc226` @04:44:19.
+  And the GC pauses themselves are **far too small to cause a ~56 ms tick**: STW
+  0.4–2.7 ms (first+last clock), concurrent mark 7–16 ms, **assist ≈ 0** on every
+  line (heap floor 4→7 MB over 8 h idle, goal 8→15 MB — a gentle, harmless creep,
+  no leak). A GC could not produce the spike *and* isn't next to one. **Not
+  `bruteIntersectShapes` either** (idle ⇒ few sensed pairs).
+- **The catastrophic tail is GONE.** Probe-binary worst is **169 % (~56 ms)** vs
+  the pre-probe 245/272 %; the double-spike-in-one-second pattern did not recur.
+  Residual idle overloads are **rare and minor** — 87 in ~8 h (~11/h), of which
+  **69 are 103–124 %** (a single barely-over-budget tick), tail 148–169 %.
+- **Verdict: rare host deschedule** on the shared 2-vCPU CX-class box (consistent
+  with the mid-cycle timing, the sub-ms GC pauses, and the earlier `/proc` ruling
+  that only cleared *sustained* pressure). **Probe 2 is not worth shipping** —
+  the events are now rare + minor with no catastrophic tail, and Probe 2 only
+  splits deschedule-vs-algorithm, not deschedule-vs-fixable. **The player-facing
+  win is `plan-input-jitter.md` Chunk 2 (coast + reconcile)**, which makes the
+  player immune to a stall regardless of cause. **Live overload watch: CLOSED as
+  diagnosed (host deschedule); no server-side fix warranted.**
+- **REVERT gctrace** (planned post-diagnosis; needs a restart ⇒ wipes live
+  characters — ANNOUNCE / off-peak): remove the `Environment=GODEBUG=gctrace=1`
+  line (or `cp aurad.service.bak-gctrace aurad.service`), `daemon-reload &&
+  restart`. **DONE 2026-07-24 07:19 UTC** — restored `aurad.service.bak-gctrace`,
+  `daemon-reload` + `restart` → pid `49080`, clean boot (`5 campfires safeRadius
+  1.5 / 14 npcs / warlord encounter / loop 30 tps / 0 panics`), `GODEBUG absent`
+  from `/proc/<pid>/environ`, zero `gc @` lines from the new pid. gctrace is OFF
+  on live again; that restart reset live character state (off-peak, only 1 idle
+  connection, no join activity in the prior 2 h).
