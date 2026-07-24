@@ -162,8 +162,9 @@ export class Backend implements IBackend {
         }
 
         let timeSinceLastMessage;
+        let messageReceivedTime;
         if (Develop.isActive()) {
-            let messageReceivedTime = performance.now();
+            messageReceivedTime = performance.now();
             timeSinceLastMessage = messageReceivedTime - this.lastMessageReceivedTime;
             this.lastMessageReceivedTime = messageReceivedTime;
         }
@@ -245,6 +246,12 @@ export class Backend implements IBackend {
                 }
                 if (Develop.isActive()) {
                     Develop.get().logServerTick(gameState, timeSinceLastMessage);
+                    // Snapshot-only arrival interval (GameState→GameState), the
+                    // metric that actually sizes the render-jitter fix — the
+                    // serverTickRate line above is time-since-any-message and is
+                    // polluted by interleaved EntityMessages/Pongs.
+                    // (plan-render-jitter.md chunk 1)
+                    Develop.get().logSnapshotArrival(messageReceivedTime);
                 }
                 GameLateSetupEvent.subscribe(() => {
                     this.receiveSnapshot(SnapshotFactory.newSnapshot(this.state, gameState));

@@ -20,6 +20,8 @@ export interface IDevelop {
 
     logServerTick(gameState, timeSinceLast): void;
 
+    logSnapshotArrival(receivedTime): void;
+
     logClientTick(inputObj: InputMessage): void;
 
     logFPS(fps): void;

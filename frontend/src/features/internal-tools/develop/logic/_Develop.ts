@@ -38,6 +38,14 @@ let dragStartX: number = undefined;
 let dragStartY: number = undefined;
 
 export class Develop implements IDevelop {
+    /**
+     * Number of GameState→GameState intervals per emitted arrival summary.
+     * 300 ≈ 10 s at the 30 Hz snapshot rate — frequent enough to read the
+     * distribution shift between solo and loaded play, quiet enough that a
+     * 10-min run leaves ~60 lines, not a flood. (plan-render-jitter.md chunk 1)
+     */
+    private static readonly SNAPSHOT_ARRIVAL_WINDOW: number = 300;
+
     public settings = {
         showAABBs: false,
         cameraBoundaries: true,
@@ -54,6 +62,21 @@ export class Develop implements IDevelop {
         fps: [],
         serverTickRate: [],
         clientTickRate: [],
+    };
+
+    /**
+     * Inter-snapshot arrival tracking (plan-render-jitter.md chunk 1). The
+     * existing `serverTickRate` line measures time-since-ANY-message, which is
+     * corrupted by interleaved EntityMessages / Pongs; the render jitter is
+     * driven purely by how regularly GameState *snapshots* land, so this tracks
+     * GameState→GameState intervals only and reports p50/p95/p99/max — the p99
+     * is what sizes the render delay / buffer depth in chunks 2+3. Console-only
+     * (not a panel cell) so a ~10-min live run leaves a copyable percentile
+     * trail; quiet-by-default: one summary line per SNAPSHOT_ARRIVAL_WINDOW.
+     */
+    private snapshotArrival: { lastTime: number, intervals: number[] } = {
+        lastTime: null,
+        intervals: [],
     };
 
     showNextGameState: boolean = false;
@@ -307,6 +330,40 @@ export class Develop implements IDevelop {
                 JSON.stringify(gameState, this.serverTickReplacer, 2);
             this.showNextGameState = false;
         }
+    }
+
+    public logSnapshotArrival(receivedTime): void {
+        let prev = this.snapshotArrival.lastTime;
+        this.snapshotArrival.lastTime = receivedTime;
+        if (prev === null) {
+            // First snapshot — no interval to measure yet.
+            return;
+        }
+
+        let intervals = this.snapshotArrival.intervals;
+        intervals.push(receivedTime - prev);
+        if (intervals.length < Develop.SNAPSHOT_ARRIVAL_WINDOW) {
+            return;
+        }
+
+        let sorted = intervals.slice().sort((a, b) => a - b);
+        let n = sorted.length;
+        let sum = 0;
+        sorted.forEach((v) => sum += v);
+
+        // Nearest-rank percentile: index ceil(p·n) − 1, clamped.
+        let percentile = (p) => sorted[Math.min(n - 1, Math.max(0, Math.ceil(p * n) - 1))];
+
+        console.info(
+            '[snapshot-arrival] n=' + n +
+            ' mean=' + (sum / n).toFixed(1) +
+            ' p50=' + percentile(0.50).toFixed(1) +
+            ' p95=' + percentile(0.95).toFixed(1) +
+            ' p99=' + percentile(0.99).toFixed(1) +
+            ' max=' + sorted[n - 1].toFixed(1) + ' ms'
+        );
+
+        intervals.length = 0;
     }
 
     public logTimeOfDay(formattedTimeOfDay): void {
