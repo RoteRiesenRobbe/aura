@@ -1591,6 +1591,17 @@ interact, so they can be taken individually.
 
 ## 26. Prune the dead resource + decay layer (Berryhunter remnant)
 
+> **✅ Chunk 1 DONE 2026-07-24, committed `ee9d42e9`.** Planned in
+> `docs/plan-resource-decay-prune.md`; full ledger there (§13 Chunk 1). Removed
+> the whole resource/placeable/decay Go cluster + 3 codec cases + game.go wiring
+> + 3 dead interfaces + the 9 resource/placeable item JSONs. Helpers 7→6, systems
+> 16→15. Verified: `go build`/`vet`/`test` (29 pkgs) green, boot embedded and
+> `-content ../api` both 0 panics / props:777 spawns:471 / 5 campfires / 1 item.
+> One deviation: those JSONs were 100% of nested item content, so `items.go`'s
+> embed narrowed to `*.json` — the registry is now down to `None`, which makes
+> **§28 trivial** (see the note there). **Chunk 2 (frontend `Placeable.ts` sweep)
+> still open** — separate, per the plan. Original finding below.
+
 **Origin:** PO observation 2026-07-24, during the §24 review — *"'resources' in
 their former Berryhunter sense no longer exist in the game and are not intended
 to come back. The same goes for decaying."* Verified by static trace the same
@@ -1950,3 +1961,43 @@ no-op of exactly the kind the rest of the file exists to prevent.
 | 6 | §27.2.3 mob regen → `conf.json` | ~30 min | balance visibility |
 | 7 | §27.3.3 / §27.2.8 the small ones | opportunistic | pure hygiene |
 | — | §27.2.4 `Mob` god struct | do **not** act pre-emptively | watch item, like §25's |
+
+---
+
+## 28. Item-system removal (deferred — the Berryhunter item cluster)
+
+**Tracked 2026-07-24** (PO ask, during the §26 resource/decay-prune planning) so
+it is not lost. This is CLAUDE.md's long-referenced "planned item-system removal",
+plus the schema tail (Tier 3) the §26 prune deliberately left behind. Do **after**
+the §26 prune (`docs/plan-resource-decay-prune.md`), which first strips the
+resource/placeable JSONs and the entity/system layer.
+
+> **⚑ Update 2026-07-24 — the §26 prune (`ee9d42e9`) already did half of this.**
+> Deleting the 9 resource/placeable JSONs left `api/items/` with a **single
+> `none.json`**, so the boot log now reads `Loaded item definitions count:1`.
+> Whatever it once was, the item registry is now the `None` item alone — part 1
+> below is no longer a ~10-definition unwind, just: delete `none.json`, the
+> `items` package + embed, `items.Registry`, the loaders, `game.Items()`, and the
+> frontend item/equipment/crafting scaffolding. Confirm `None` has no live
+> consumer first (it is the `ItemTypeNone` zero-value sentinel in
+> `items/itemtype.go` — likely referenced by item-typed fields that also go with
+> this cut). Part 2 (schema) is unchanged.
+
+Two coupled parts, one chunk:
+
+1. **The item registry itself.** `game.Items()` has **zero live callers**. Was
+   ~10 item definitions (Wood, Stone, Bronze, Iron, Titanium, TitaniumShard,
+   Feather, Campfire, BigCampfire, None); after `ee9d42e9` only **`None`** remains
+   (see the update banner above). None are read by game logic (the only
+   `GetByName("Campfire")` hits the *mobs* registry, not this one). Removing it
+   touches `items.Registry`, the loaders, `model.Game`, and the frontend
+   item/equipment/crafting scaffolding (§4 of `research-code-quality.md`).
+2. **FlatBuffers `Placeable` schema prune (§26 Tier 3).** Remove `Placeable` from
+   `union AnyEntity` (renumber-safe — it is the *last* union member) + the
+   `Placeable` table, and — carefully — `EntityType.Placeable` (mid-enum, so it
+   **renumbers** subsequent members); regenerate bindings both sides. Only worth
+   the wire regen bundled with part 1. (§26 Chunk 2 removes the frontend
+   `Placeable.ts` decode path; this removes the schema underneath it.)
+
+**Not scheduled.** Same mechanical shape as the §26 prune; verification tail is the
+same (`go build`/`go test`/`tsc --noEmit` + boot count + join smoke).
