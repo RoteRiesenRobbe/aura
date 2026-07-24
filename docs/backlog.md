@@ -1420,6 +1420,41 @@ with a real design decision in front of it.
 
 ## 25. Tech debt: `sys/skills.go` — size is warranted, the cleanup layer on top is not
 
+> **PARTIALLY DONE 2026-07-24 — options A#4 and B landed, headless-verified,
+> committed `2ec03ee7`** (A#1–3, C, D, E still open).
+> - **B (balance constants → conf.json):** `defaultCritFactor` and
+>   `healerThreatFactor` are gone from Go. They live in a **new `game.combat`
+>   block**, not `game.player` as proposed below — unlike the
+>   player-character-only `critChance`, both apply to *every* acting entity
+>   (player, mob, summon), and filing them under a player-scoped name would
+>   have been misleading. Implementation deviation: the finding assumed
+>   `SkillSystem` methods, but both crit-factor readers sit in **free**
+>   functions (`applyDamageAura`/`applyMobDamageAura`) with **58 in-package test
+>   call sites**, so threading a parameter meant 58 test edits for a value
+>   identical everywhere. Both knobs therefore use one mechanism — a
+>   package-level setter called once at boot (`sys.SetCombatFactors`,
+>   `mob.SetHealthGainTick`), mirroring the existing `mob.SeedProcess`.
+>   Normalization lives in exactly one place, `cfg.CombatConfig`'s accessors, so
+>   a nil game, a zero-value `GameConfig` and an absent conf block all resolve
+>   identically. **Deliberate consequence: authoring 0 restores the default
+>   rather than disabling the factor** — healer threat cannot be switched off by
+>   authoring 0 (open question flagged to the PO 2026-07-24).
+> - **A#4 (doc comment):** `casterCritChance`'s paragraph moved back onto
+>   `casterCritChance`. Rode along because the deleted `defaultCritFactor` const
+>   sat in the *same hunk* as the orphaned comment — inseparable.
+> - **Blast radius traced 2026-07-24:** **no player skill authors crit at all**,
+>   so every player crit resolves through the global default — the dial is
+>   precisely "how spiky does player damage feel". Exactly one mob ability
+>   (`EliteBanditSlash`) authors both `critChance` **and** `critFactor: 2.0`, so
+>   it is immune to the dial. Keep that pattern deliberate: a mob ability that
+>   authors chance but *not* factor starts riding player crit tuning.
+> - **Verified:** `go build`/`vet` clean, `go test ./...` green (**27 pkgs** —
+>   the "29" in older banners is stale), guardrails replay identically under
+>   `-count=2`, boot with the block reports `defaultCritFactor=2
+>   healerThreatFactor=0.5` and boot with it **stripped** (the live server's
+>   upgrade path) resolves to the same numbers, 0 errors. **Not PO-verified
+>   in-game.**
+
 **Origin:** code-health question 2026-07-24 ("skills.go is very large — is it in
 bad shape? hardcoded stuff? or is the size warranted?"), the companion to §24 and
 the follow-up §7.5 of `research-code-quality.md` predicted ("`sys/skills.go` is
@@ -1850,6 +1885,28 @@ Ranked by consequence, not by size.
    batteries rely on determinism, so they need their own explicit seed rather
    than inheriting the world's.
 3. **Mob out-of-combat regen is hardcoded and untunable** (`mob.go:598`):
+
+   > **✅ FIXED 2026-07-24, test-first (`2ec03ee7`).** Now
+   > **`game.mob.healthGainTick`** — deliberately the **same name and same unit**
+   > as `game.player.healthGainTick` (a fraction of the max pool per tick) in a
+   > parallel block, so unifying the two later is a rename rather than a redesign
+   > (**§31**). Threaded via a package-level `mob.SetHealthGainTick` at boot,
+   > mirroring `mob.SeedProcess` — chosen over a 4th `NewMob` parameter because
+   > `NewMob` has ~100 call sites, ~95 of them tests passing `0` (PO call
+   > 2026-07-24). A non-positive value restores the built-in default, normalized
+   > at the single write point so no read site re-checks it. Authored
+   > **0.0166667** = exactly the old hardcoded `maxHealth/(2*TicksPerSecond)`;
+   > `vitals.HP`'s round-with-min-1 absorbs the float difference either way.
+   > **Pins:** `TestMob_RegenRateFollowsConfiguredHealthGainTick`,
+   > `TestSetHealthGainTick_NonPositiveKeepsBuiltInDefault`, plus the
+   > pre-existing `TestMob_RegeneratesOutOfCombat` unchanged as the
+   > no-behaviour-change net. New `🎚️ tuning knobs` boot line reports the
+   > effective values (setter-held values never appear in the `GameConfig` dump).
+   > Boot with the block **stripped** resolves to 0.01666667 — the live server's
+   > upgrade path is safe. **Not PO-verified in-game.** The leashing observation
+   > below still stands as a *balance* question, now with a findable dial.
+   > Original finding:
+
    `maxHealth / (2 * TicksPerSecond)` = full pool in ~2 s, living in the model
    layer with no `conf.json` entry — while the *player* regen rate is a declared
    **FINAL** tunable (`0.00033 ≈ 1 %/s × level taper`). Anyone tuning "how
@@ -1955,7 +2012,13 @@ no-op of exactly the kind the rest of the file exists to prevent.
    added chunk-by-chunk as each payload landed; the two oldest payloads
    (damage, heal) predate the convention and never got theirs. ~15 lines to even
    out, and it closes the most plausible authoring mistake left in the pipeline.
-3. **`tickInterval` silently coerces bad input** (line 955). The field is a
+3. **✅ FIXED 2026-07-24, test-first (`f095514a`). `tickInterval` silently coerces bad input** (line 955).
+   An authored 0 or negative now hard-fails at load with
+   `tickInterval: must be > 0 when authored`; absent still normalizes to 1.
+   Pinned by `TestMap_NonPositiveTickIntervalFails` (fails on the pre-fix
+   mapper). All of `api/skills/` prescanned first — authored values are 1..120,
+   so nothing existing trips the guard, confirmed by a clean 83-skill boot.
+   Original finding: The field is a
    `*int` *precisely* to distinguish absent from 0 — and then
    `if e.TickInterval != nil && *e.TickInterval > 0` throws that distinction
    away: an authored `"tickInterval": 0` or `-5` is rewritten to 1 instead of
@@ -1984,8 +2047,8 @@ no-op of exactly the kind the rest of the file exists to prevent.
 | 3 | ~~§27.2.1 validate the EntityType name-fallback at load~~ **✅ DONE 2026-07-24** (`c3938be7`) | ~1 h, test-first | turned a live-server crash-at-first-spawn into a boot error |
 | 4 | ~~§27.3.2 even out the zero-value payload guards~~ **✅ DONE 2026-07-24** (`eee10331`, same session as #2) | ~15 lines | authoring-safety, same session as #2 |
 | 5 | ~~§27.2.2 drop-RNG determinism~~ **✅ DONE 2026-07-24** (`b4b0e66d`) | ~1 h, test-first | **PO-ruled a bug** — now random per run via a per-process salt |
-| 6 | §27.2.3 mob regen → `conf.json` | ~30 min | balance visibility |
-| 7 | §27.3.3 / §27.2.8 the small ones | opportunistic | pure hygiene |
+| 6 | ~~§27.2.3 mob regen → `conf.json`~~ **✅ DONE 2026-07-24** (`2ec03ee7`) | ~30 min, test-first | now `game.mob.healthGainTick`, mirroring the player block's vocabulary |
+| 7 | ~~§27.3.3~~ **✅ DONE 2026-07-24** (`f095514a`) · §27.2.8 still open | opportunistic | pure hygiene |
 | — | §27.2.4 `Mob` god struct | do **not** act pre-emptively | watch item, like §25's |
 
 ---
@@ -2115,6 +2178,26 @@ narrow console facade (`{run, character, pause, play}`) with no `.layers` or
 ---
 
 ## 30. Berryhunter render/asset vestiges surfaced by the §28 Chunk 3 audit
+
+> **✅ ITEMS 2, 3, 4 DONE 2026-07-24, committed `f095514a`** (item 1 stays open —
+> it is the only one that touches the wire and should still ride along with
+> another schema regen). Headless-verified, **not PO-verified in-game**.
+> - **Item 3 (the big one):** the whole `layers.placeables` group deleted — 7
+>   containers, both stage-assembly blocks, the no-op `nightExempt` entry and the
+>   `IGame` field. `cameraGroup` children **30 → 23**. Behaviour-neutral as
+>   predicted; the join smoke confirms all six named containers absent with the
+>   world still rendering.
+> - **Item 2:** `item: undefined` gone.
+> - **Item 4:** `mineral-hit-sharp` alias + preload + its 3.4 KB mp3 deleted.
+>   **Deviation — widened:** a full trace showed only `character`/`tree`/`stone`
+>   have readers, so **all 8** unread minimap icons went, not the 2 named below
+>   (`BerrySeed`, `Workbench`, `WorkbenchConstruction`, `Furnace`, `WoodWall`,
+>   `StoneWall`, `BronzeWall`, `IronWall`).
+> - **Left deliberately:** `ResourceJuice.ts` is *wholly* unreachable at runtime
+>   (its `ResourceStockChangedEvent` can only fire on a stock *change*, and stock
+>   is a constant 1) — but retiring that event is item 1's wire work.
+> - **Verified:** `tsc --noEmit` clean, webpack prod green, boot 0 panics, join
+>   smoke both muxes 752/703 display objects, 0 console/page errors.
 
 **Tracked 2026-07-24** while pruning the dead wire enums
 (`plan-item-system-removal.md` Chunk 3). All of these are **pre-existing** dead
@@ -2250,3 +2333,17 @@ and 3 are mostly plumbing once 1 and 4 are decided.
 **Not scheduled.** No live defect; recorded so the direction survives the
 session it was discussed in. **Do not action gap 1 in isolation** without the
 scaling ruling — a silent behaviour change to every mob is the failure mode.
+
+**First instalment landed 2026-07-24 (`2ec03ee7`), part of gap 2:** mob regen
+became `game.mob.healthGainTick` using the player block's exact name and unit,
+and the two universal combat factors moved to `game.combat` rather than
+`game.player`. Both were chosen *for* this convergence — the point was to make
+the eventual unification a rename, not a redesign. Movement speed
+(`0.055 * Factors.Speed`, still under its TODO) is the obvious next one.
+
+**⚠ Sequencing vs roadmap step 8 (accounts & persistence):** persistence has to
+serialize *something*, and "what is a character, versus a mob, versus an NPC" is
+exactly the question this item asks. Deciding the entity model **before** a
+schema is written is materially cheaper than migrating one after. Worth at least
+a deliberate "we are not unifying yet, and here is what that costs the schema"
+call during step-8 planning.
