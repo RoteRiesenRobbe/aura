@@ -1,11 +1,11 @@
 package mob
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"sort"
 
-	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
@@ -16,14 +16,6 @@ import (
 
 var _ = model.MobEntity(&Mob{})
 var _ = model.Healable(&Mob{})
-
-var types = func() map[string]model.EntityType {
-	t := map[string]model.EntityType{}
-	for id, name := range AuraApi.EnumNamesEntityType {
-		t[name] = model.EntityType(id)
-	}
-	return t
-}()
 
 // processSalt randomizes every mob's RNG stream per process run so a fresh
 // server no longer re-rolls the same HP variance + first drop for the Nth
@@ -57,15 +49,19 @@ func mobRNGSeed(salt int64, id uint64) int64 {
 // site passes the real space.
 func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space) *Mob {
 	// The wire EntityType comes from the def's optional entityType override
-	// (chunk 9: throwaway/variant defs reuse existing sprites), falling back
-	// to the def name — the pre-chunk-9 rule for all legacy defs.
-	lookup := d.EntityType
-	if lookup == "" {
-		lookup = d.Name
-	}
-	entityType, ok := types[lookup]
+	// (chunk 9: throwaway/variant defs reuse existing sprites), falling back to
+	// the def name — the pre-chunk-9 rule for all legacy defs.
+	entityType, ok := mobs.ResolveEntityType(d.EntityType, d.Name)
 	if !ok {
-		log.Fatalf("Mob type not found: %d/%s", d.ID, lookup)
+		// Unreachable for registry-loaded defs: the loader validates resolvability
+		// at content load (§27.2.1). Reaching here means a def was built outside the
+		// loader (a synthetic sim/test def) with an unresolved EntityType — panic so
+		// it fails that unit with a stack trace rather than os.Exit-ing the process.
+		key := d.EntityType
+		if key == "" {
+			key = d.Name
+		}
+		panic(fmt.Sprintf("mob %d/%s: EntityType %q unresolved — def bypassed loader validation", d.ID, d.Name, key))
 	}
 
 	mobBody := phy.NewCircle(phy.VEC2F_ZERO, d.Body.Radius)
@@ -172,7 +168,7 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	aggroAura.Shape().Mask = sensorMask
 	aggroAura.Shape().IsSensor = true
 
-	base := model.NewBaseEntity(mobBody, entityType)
+	base := model.NewBaseEntity(mobBody, model.EntityType(entityType))
 	rnd := rand.New(rand.NewSource(mobRNGSeed(processSalt, base.Basic().ID())))
 
 	// Absolute HP pool (item 11 Phase 1). A definition without maxHealth falls

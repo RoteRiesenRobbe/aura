@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -322,12 +321,15 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		}
 	}
 
-	// entityType override (chunk 9): must name a real FlatBuffers EntityType —
-	// failing here at load beats mob.NewMob's runtime fatal at first spawn.
-	if m.EntityType != "" {
-		if _, ok := AuraApi.EnumValuesEntityType[m.EntityType]; !ok {
+	// The wire EntityType is the override if present, else the def name
+	// (mob.NewMob's fallback). Validate whichever will actually be looked up so an
+	// unresolvable name fails here at load (a boot error) instead of at first spawn
+	// (a live-server crash — §27.2.1), matching the override's existing fail-fast.
+	if _, ok := ResolveEntityType(m.EntityType, m.Name); !ok {
+		if m.EntityType != "" {
 			return nil, fmt.Errorf("mob %q: entityType %q is not a known EntityType", m.Name, m.EntityType)
 		}
+		return nil, fmt.Errorf("mob %q: name is not a known EntityType and no entityType override is set", m.Name)
 	}
 
 	// Faction (chunk 6.6): absent = the built-in hostile default; an explicit

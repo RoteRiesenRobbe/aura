@@ -84,6 +84,23 @@ func TestMapMobDefinition_UnknownEntityTypeFails(t *testing.T) {
 	assert.Contains(t, err.Error(), "NoSuchWireType")
 }
 
+func TestMapMobDefinition_UnknownNameFallbackFails(t *testing.T) {
+	// No override, and a name that is no FlatBuffers EntityType. Before §27.2.1
+	// this loaded clean and crashed the whole server at first spawn (mob.NewMob's
+	// log.Fatalf); now it fails here at load.
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 10,
+	  "name": "NoSuchWireType",
+	  "type": "MOB",
+	  "body": {"radius": 1.7, "aggroRadius": 10}
+	}`))
+	require.NoError(t, err)
+
+	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
+	require.Error(t, err, "a name that is no EntityType and no override hard-fails at load")
+	assert.Contains(t, err.Error(), "NoSuchWireType")
+}
+
 func TestMapMobDefinition_ResolvesSkills(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,

@@ -13,6 +13,7 @@ import (
 	"github.com/EngoEngine/ecs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
@@ -285,8 +286,21 @@ func TestNewMob_EntityTypeOverride(t *testing.T) {
 
 	m := NewMob(def, 0, nil)
 
-	assert.Equal(t, types["Dodo"], m.Type(),
+	assert.Equal(t, model.EntityType(AuraApi.EntityTypeDodo), m.Type(),
 		"the wire EntityType comes from the override, not the def name")
+}
+
+// TestNewMob_PanicsOnUnresolvedEntityType pins the direct-construction guard: a
+// def built outside the loader (as the sim/tests do) with an EntityType that
+// resolves to nothing must panic — not silently render EntityType(0) =
+// DebugCircle, and not os.Exit the whole test binary. Keeps a future "just
+// delete the guard" from passing silently (§27.2.1).
+func TestNewMob_PanicsOnUnresolvedEntityType(t *testing.T) {
+	def := testMobDefinition()
+	def.Name = "NoSuchWireType" // no override, no such wire type
+	def.EntityType = ""
+
+	require.Panics(t, func() { NewMob(def, 0, nil) })
 }
 
 // --- conditional immunity (encounter-controller chunk 9b) ---
