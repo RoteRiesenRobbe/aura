@@ -1688,7 +1688,19 @@ scheduled; recorded so it is not rediscovered.
 Everything below was verified against the code (and, for §27.1, reproduced),
 not inferred from reading.
 
-### 27.1 ⚠️ LIVE BUG — mutation-during-iteration in `MobSystem.Update`
+### 27.1 ✅ FIXED 2026-07-24 — mutation-during-iteration in `MobSystem.Update`
+
+> **FIXED, test-first.** `MobSystem.Update` now collects dead mobs during the
+> range loop and removes them in a second loop afterward, so the synchronous
+> `Remove` array-shift can no longer skip/double-update a survivor. Pinned by
+> `TestMobSystem_RemovingDeadMobDoesNotSkipOrDoubleUpdateSurvivors`
+> (`sys/mob_test.go`), which fails on the old inline-removal code (survivor `C`
+> gets 0 updates, `D` gets 2). `go test ./...` green across 29 packages; the fix
+> is isolated to `mob.go` and preserves the prior ordering (`onMobDeath`
+> per-dead-mob before the respawn loop). Blast-radius confirmed: `state.go`
+> already snapshots before removing; `decay.go:27` shares the shape but is dead
+> code (§9/§26); no other live system removes during its own iteration. Original
+> finding below.
 
 `sys/mob.go:99-105` iterates `for _, mob := range n.mobs`, and a mob that
 reports dead is removed **inside that loop**:
@@ -1877,7 +1889,7 @@ no-op of exactly the kind the rest of the file exists to prevent.
 
 | # | Item | Effort | Why this order |
 |---|---|---|---|
-| 1 | §27.1 removal-during-iteration | ~30 min, test-first | the only live defect here |
+| 1 | ~~§27.1 removal-during-iteration~~ **✅ DONE 2026-07-24** | ~30 min, test-first | the only live defect here |
 | 2 | §27.3.1 `default:` on the payload switch | one line | permanently closes a silent class |
 | 3 | §27.2.1 validate the EntityType name-fallback at load | ~1 h | turns a live-server crash into a boot error |
 | 4 | §27.3.2 even out the zero-value payload guards | ~15 lines | authoring-safety, same session as #2 |

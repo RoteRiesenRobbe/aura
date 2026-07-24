@@ -92,6 +92,45 @@ func newMobSystemWith(spawns []world.Spawn) (*MobSystem, *fakeGame) {
 	return ms, g
 }
 
+// countingMob wraps a real mob to count Update calls and control liveness, so a
+// test can prove the update loop visits every survivor exactly once even when a
+// sibling mob is removed mid-tick (the synchronous-Remove hazard, backlog §27.1).
+type countingMob struct {
+	model.MobEntity
+	updates int
+	alive   bool
+}
+
+func (c *countingMob) Update(dt float32) bool {
+	c.updates++
+	return c.alive
+}
+
+func TestMobSystem_RemovingDeadMobDoesNotSkipOrDoubleUpdateSurvivors(t *testing.T) {
+	ms, g := newMobSystemWith(nil) // no points: initialized flips, nothing spawns
+	ms.Update(0)
+	require.Empty(t, g.added)
+
+	// [A, B(dead), C, D]. game.RemoveEntity → MobSystem.Remove shifts n.mobs'
+	// backing array synchronously; removing inside `range n.mobs` slides C into
+	// B's freed slot (so C is skipped) and re-reads D (so D updates twice).
+	mkMob := func(alive bool) *countingMob {
+		return &countingMob{MobEntity: mob.NewMob(testMobDef(), 0, nil), alive: alive}
+	}
+	a, b, c, d := mkMob(true), mkMob(false), mkMob(true), mkMob(true)
+	for _, m := range []*countingMob{a, b, c, d} {
+		ms.AddEntity(m)
+	}
+
+	ms.Update(0)
+
+	assert.Equal(t, 1, a.updates, "A updated exactly once")
+	assert.Equal(t, 1, b.updates, "B (dead) updated exactly once")
+	assert.Equal(t, 1, c.updates, "C must not be skipped when B is removed")
+	assert.Equal(t, 1, d.updates, "D must not be updated twice")
+	assert.Equal(t, []uint64{b.Basic().ID()}, g.removed, "only the dead mob is removed")
+}
+
 func TestSpawnPoint_SpawnsAtAuthoredPosition(t *testing.T) {
 	pos := phy.Vec2f{X: 12, Y: -5}
 	ms, g := newMobSystemWith([]world.Spawn{

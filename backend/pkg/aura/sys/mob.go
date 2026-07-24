@@ -96,12 +96,19 @@ func (n *MobSystem) Update(dt float32) {
 		n.initialized = true
 	}
 
+	// Update every mob, collecting the dead. Removal is deferred until after the
+	// loop: game.RemoveEntity → MobSystem.Remove shifts n.mobs' backing array
+	// synchronously, so removing inside `range n.mobs` would skip the survivor
+	// that slides into the freed slot and double-update the next one (backlog §27.1).
+	var dead []model.MobEntity
 	for _, mob := range n.mobs {
-		alive := mob.Update(dt)
-		if !alive {
-			n.onMobDeath(mob)
-			n.game.RemoveEntity(mob.Basic())
+		if !mob.Update(dt) {
+			dead = append(dead, mob)
 		}
+	}
+	for _, mob := range dead {
+		n.onMobDeath(mob)
+		n.game.RemoveEntity(mob.Basic())
 	}
 
 	// Respawn any point whose timer has elapsed. A mob with no owning point
