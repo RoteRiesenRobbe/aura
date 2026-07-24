@@ -345,5 +345,52 @@ line is **gone**: 83 skills / 14 factions / 50 mobs / 10 recipes / 5 prop defs /
 zone props 777 / spawns 471 / 5 campfires / 14 npcs. No wire/schema/JSON change,
 so no frontend rebuild needed this chunk.
 
-### Chunk 2 — frontend scaffolding removal — _pending_
-### Chunk 3 — FlatBuffers schema prune — _pending / possibly deferred_
+### Chunk 2 — frontend scaffolding removal — DONE (2026-07-24), + delete `none.json`, PO-verified in-game, committed `2f933634`
+
+Deleted the frontend half of the dead item system, mirroring Chunk 1. Nothing
+gameplay consumed it (the §26 prune had already emptied the registry to `None`).
+63 files, **1253 deletions, zero production-logic additions.**
+
+**Deleted (per plan):** `frontend/src/features/items/` —
+`logic/{Item,Items,ItemType,Equipment}.ts` + **54 item SVGs**;
+`frontend/src/client-data/Items.ts`; `api/items/none.json` (last reader gone) +
+the now-empty `api/items/` dir; the stale gitignored `devops/bundle/api/items/`
+snapshot (regenerated wholesale from `api/` on next deploy anyway).
+
+**Unwired:** `index.ts` side-effect import `./features/items/logic/Items` (a
+**5th coupling the plan's `.ts` blast-radius list missed** — it named 4);
+`BackendConstants.ts` — dropped `Items` import, `NONE_ITEM_ID`,
+`itemLookupTable`, `initializeItemLookupTable()` + its `setup()` call. **Kept**
+`statusEffectLookupTable`/`setup()` — live, used by `GameStateMessage.ts:402`.
+
+**Three deviations from the plan, all surfaced by the verification gates
+(in-scope):**
+① **`credits.html`** (webpack-surfaced — exactly the §26 hidden-`require`
+lesson): the "Credits for used graphics" section embedded ~24 deleted item icons
+via html-loader ⇒ **removed the whole graphics-credits section** (PO-approved
+2026-07-24), kept the Authors section. game-icons.net icons no longer ship
+anywhere, so the CC BY attribution obligation lapses.
+② **`graphics.html`** (grep-surfaced): a dev-only art gallery (internal-tools,
+**not bundled**, no in-game route) with 54 dead icon links ⇒ **deleted**
+(PO-approved). `artwork.html` (references a live `flower.svg`) kept.
+③ **dead item-give block in `developPanel.html`** (in-game-surfaced — the "Add
+Item" button): `develop_itemSelect`/`itemCount`/`itemAdd`, **zero TS handlers**
+(already inert, pre-dates this chunk) ⇒ removed as in-scope dead item UI; no PO
+call (an unwired block can't break anything, and the join smoke proved no
+handler exists).
+
+**Gates verified (plan §4 Chunk 2):** `tsc --noEmit` clean; webpack prod build
+green (surfaced credits.html → fixed → green; rebuilt again after the dev-panel
+edit); **no backend rebuild needed** — Chunk 1 already decoupled the backend from
+`api/items` entirely (embed removed + `cp-defs` dropped `../api/items`), so
+deleting `none.json` had **zero** backend impact; backend boot from
+`-content ../api` clean, counts identical to Chunk 1's baseline: **83 skills / 14
+factions / 50 mobs / 10 recipes / 5 prop defs / 777 props / 471 spawns / 5
+campfires / 14 npcs, 0 panics** (the `Loaded item definitions` line stays gone);
+join smoke both `&develop` and plain — character spawns, **zero console/page
+errors** (decisive signal for a missing require/asset), world renders (campfire
+safe-zone, props, flowers, 2 NPCs, aura ring, full HUD, Websocket PLAYING).
+
+No wire/schema change — that is **Chunk 3**.
+
+### Chunk 3 — FlatBuffers schema prune — _pending (do before step-8 persistence)_
