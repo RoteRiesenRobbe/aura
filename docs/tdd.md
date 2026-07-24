@@ -6,7 +6,7 @@
 
 > Companion document to the [Game Design Document](./gdd.md). This holds only technical decisions, architecture, and implementation topics. Game mechanics belong in the GDD.
 >
-> This TDD is the overarching technical big picture — **not a status tracker**. The current state lives in `CLAUDE.md` (migration status) and `docs/roadmap.md`; the skill-system migration plan in `docs/plan-skill-system.md`; runtime cost & scaling in `docs/architecture.md`. On detail conflicts, those repo docs win.
+> This TDD is the overarching technical big picture — **not a status tracker**. The current state lives in `CLAUDE.md` (migration status) and `docs/roadmap.md`; the skill-system migration plan in `docs/archive/plan-skill-system.md`; runtime cost & scaling in `docs/architecture.md`. On detail conflicts, those repo docs win.
 
 ---
 
@@ -21,10 +21,10 @@
 
 ### What already works
 - Multiplayer sync via WebSockets, top-down rendering, player movement, server-client architecture (ECS-based, `github.com/EngoEngine/ecs`)
-- **Skill-system migration complete (Phases 1–9,** see `docs/plan-skill-system.md`**):** data-driven skills (JSON + registry), `SkillComponent` on players *and* mobs, all three categories playable (auras / passives / cooldowns), skill leveling + free respec, milestone & kill unlocks, spellbook + equip UI, curated secret combination recipes (Paladin)
+- **Skill-system migration complete (Phases 1–9,** see `docs/archive/plan-skill-system.md`**):** data-driven skills (JSON + registry), `SkillComponent` on players *and* mobs, all three categories playable (auras / passives / cooldowns), skill leveling + free respec, milestone & kill unlocks, spellbook + equip UI, curated secret combination recipes (Paladin)
 - **Aura targeting (roadmap item 11):** selector + target cap per effect, base auras single-target, floating numbers, per-tick hit VFX (slash/fire)
-- **Single resource + survival removal (Block 2,** see `docs/archive-block2-survival-removal.md`**):** `Health` is the one resource; crafting/items/vitals removed
-- **Absolute HP system + resistances/damage tags (item 11 Phases 1+2,** see `docs/plan-item11-hp-resist-variance.md`**):** integer HP per entity, string-tag-based resistances, `resist_aura`/`resist_passive`
+- **Single resource + survival removal (Block 2,** see `docs/archive/archive-block2-survival-removal.md`**):** `Health` is the one resource; crafting/items/vitals removed
+- **Absolute HP system + resistances/damage tags (item 11 Phases 1+2,** see `docs/archive/plan-item11-hp-resist-variance.md`**):** integer HP per entity, string-tag-based resistances, `resist_aura`/`resist_passive`
 
 ### What's missing for v1.0
 *(Authoritative: `docs/roadmap.md` — headlines only here.)*
@@ -79,7 +79,7 @@ Each system below gets its own spec discussion before it is implemented; section
 
 ### 4.1 Skill/Aura System
 
-**Status: built and live** — migration Phases 1–9 complete (`docs/plan-skill-system.md`), targeting incl. hit VFX (roadmap item 11), absolute HP + resistances/tags (`docs/plan-item11-hp-resist-variance.md`). The factual current state (which effect types exist, what is data vs. Go) is mapped in `docs/archive-scripting-audit.md` §1; here only the architectural big picture:
+**Status: built and live** — migration Phases 1–9 complete (`docs/archive/plan-skill-system.md`), targeting incl. hit VFX (roadmap item 11), absolute HP + resistances/tags (`docs/archive/plan-item11-hp-resist-variance.md`). The factual current state (which effect types exist, what is data vs. Go) is mapped in `docs/archive/archive-scripting-audit.md` §1; here only the architectural big picture:
 
 - Skill definitions as JSON (`api/skills/`), registry analogous to items/mobs, hard-fail validation at load
 - `SkillComponent` on players and mobs (same mechanics; per-mob aura skills, aura switching via `SetActiveAura` possible)
@@ -95,7 +95,7 @@ Each system below gets its own spec discussion before it is implemented; section
 **Deliberately open / deferred:**
 - Mob heal / heal_aura target flags: **deliberately later**, with roadmap item 7 (mob support behaviors); the two known limitations are documented in `plan-skill-system.md` (Effect Types → heal_aura)
 - Sticky targeting against target flicker with `nearest` — only when it actually bothers in practice
-- ~~Whether effect behavior eventually becomes authorable as expressions/scripts instead of Go effect types~~ — **decided 2026-07-07: effect semantics stay Go effect types, no scripting engine for effects; a constrained expression layer stays parked behind an explicit trigger.** Rationale + the primitive-first growth plan: `docs/plan-effect-foundations.md` (archived options record: `docs/archive-scripting-options.md`)
+- ~~Whether effect behavior eventually becomes authorable as expressions/scripts instead of Go effect types~~ — **decided 2026-07-07: effect semantics stay Go effect types, no scripting engine for effects; a constrained expression layer stays parked behind an explicit trigger.** Rationale + the primitive-first growth plan: `docs/archive/plan-effect-foundations.md` (archived options record: `docs/archive/archive-scripting-options.md`)
 
 ### 4.2 Line-of-Sight — CUT (decision record)
 
@@ -168,7 +168,7 @@ now.
 ### 4.5 Cooldown System
 
 - Per-player cooldowns for Q/E abilities, server-authoritative
-- **Status: built (Phase 8.2)** — hotkeys + ability bar, `cooldown_activations` on `Input`, `CdTicks` bookkeeping in the SkillSystem, burst VFX through the status pipeline. Self-healing runs through a cooldown (not through heal auras). Details: `docs/plan-skill-system.md` → Phase 8.2.
+- **Status: built (Phase 8.2)** — hotkeys + ability bar, `cooldown_activations` on `Input`, `CdTicks` bookkeeping in the SkillSystem, burst VFX through the status pipeline. Self-healing runs through a cooldown (not through heal auras). Details: `docs/archive/plan-skill-system.md` → Phase 8.2.
 
 ### 4.6 Zones & Zone Chat
 
@@ -236,7 +236,7 @@ class for good (see below).
 
 ## 6. Roadmap (technical, rough)
 
-First sketch; the authoritative plans are `docs/plan-skill-system.md` (skill system) and `docs/roadmap.md` (rest — current progress + the **decided execution order** live there, not duplicated here). **Build order decided 2026-07-08: systems-first, content-last** — see roadmap.md "Execution order". Re-sequenced to match (numbering below now reflects the build order, not the roadmap item numbers):
+First sketch; the authoritative plans are `docs/archive/plan-skill-system.md` (skill system) and `docs/roadmap.md` (rest — current progress + the **decided execution order** live there, not duplicated here). **Build order decided 2026-07-08: systems-first, content-last** — see roadmap.md "Execution order". Re-sequenced to match (numbering below now reflects the build order, not the roadmap item numbers):
 
 1. ✅ **Repo setup & onboarding** — Berryhunter running locally, Claude Code set up, build pipeline understood
 2. ✅ **Skill-system migration** — Phases 1–9 complete (tick engine, all three categories, leveling, unlocks, combinations)
@@ -270,13 +270,20 @@ First sketch; the authoritative plans are `docs/plan-skill-system.md` (skill sys
 ## 8. Deferred Technical Debt / known bugs
 
 This is the authoritative list of open, cross-cutting debt. (Fixed items are recorded in
-`docs/archive-session-log.md` + git; per-item debt also lives in the relevant `plan-*.md`.)
+`docs/archive/archive-session-log.md` + git; per-item debt also lives in the relevant `plan-*.md`.)
 
-- **Player passive regen is not combat-gated** (`model/player/update.go` regenerates whenever `0 < Health < max`, in combat too — GDD §3 says out-of-combat only). Gate scheduled as execution step 3 chunk 1 (needs a player in-combat flag / recent-damage window); prerequisite for the harness stand-still thresholds. See `plan-atmosphere-recovery.md`.
-- **Frontend `Skills.ts` hardcodes skill ID → name, maxLevel *and* category**, duplicating the backend registry — sync manually when skills change; revisit (wire or generated file) when the skill list grows.
 - **`-2` `active_aura_slot` deactivate sentinel** is a workaround for FlatBuffers omitting the `-1` default (an explicit `-1` is indistinguishable from an absent field). Decided in Phase 5: it stays. Paired constants: `model.ActiveAuraSlotDeactivate` (Go) / `DEACTIVATE_AURA_SLOT` (InputMessage.ts).
 - ⚠️ **`go:embed` testing gotcha:** patterns don't include subdirectories (`*.json **/*.json`!), and disk-based registry tests can't catch embed gaps — pinned by `pkg/api/skills/skills_test.go`. Before manual tests: `pkill aurad`, rebuild, and check the boot log (`Loaded skill definitions count=…`) — a stale server process silently masks new behavior.
 - **`backend/pkg/aura/net/net_test.go`** is a manual `ListenAndServe` WebSocket smoke script (not a real test); it starts with `t.Skip` so the full suite runs. Remove the skip to run it explicitly.
 - Frontend FlatBuffers toolchain is on **flatc v24.3.25**.
 
-For the live-operations perspective (CI, observability, crash story) see `docs/research-v1-readiness.md`; for the content-pipeline debt (Skills.ts duplication, `go:embed` rebuild loop) `docs/research-content-pipeline.md`.
+**Closed since (kept as pointers, don't re-open):** player passive regen *is* combat-gated
+now (`model/player/update.go` → `if p.InCombat()`, step 3 / `plan-atmosphere-recovery.md`);
+the frontend `Skills.ts` id→name/maxLevel/category hand-sync maps are **gone** — the client
+fetches the server's parsed registry via `GET /skills` (`plan-ui-polish.md` Chunk 1), so skill
+metadata no longer needs manual syncing.
+
+**Code-health debt** (dead-code prunes, registration matrix, per-file findings) is tracked in
+`backlog.md` §24–§28 with the current state in CLAUDE.md's Status banner — not duplicated here.
+
+For the live-operations perspective (CI, observability, crash story) see `docs/research-v1-readiness.md`; for the remaining content-pipeline debt (`go:embed` rebuild loop) `docs/research-content-pipeline.md`.

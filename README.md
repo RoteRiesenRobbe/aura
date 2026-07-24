@@ -1,7 +1,7 @@
 # Aura
 
 Top-down browser MMO where players and NPCs interact exclusively through auras.
-(Formerly Berryhunter — see `docs/plan-rebrand-cleanup.md`.)
+(Formerly Berryhunter — see `docs/archive/plan-rebrand-cleanup.md`.)
 
 ## Running Locally on Windows with IntelliJ IDEA (2026 Edition)
 

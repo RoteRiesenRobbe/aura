@@ -1,4 +1,4 @@
-// Package sim is the balancing / what-if explorer (docs/plan-sim-harness.md):
+// Package sim is the balancing / what-if explorer (docs/archive/plan-sim-harness.md):
 // it builds a minimal deterministic world, drives the REAL ECS systems
 // headlessly (no re-modeled combat math), and reports outcome metrics as
 // distributions over N seeded runs. Chunk 1: explicit-input 1v1 TTK / TTD.

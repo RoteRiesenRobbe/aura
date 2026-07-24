@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
      point to the plan doc. See the `chunk-wrap` skill for the collapse rule. -->
 
 - **Last completed:** item-system removal **Chunk 2 (frontend scaffolding removal + delete `none.json`) DONE** (2026-07-24, `plan-item-system-removal.md`) ✅ `2f933634`, PO-verified in-game. Deleted the frontend half of the dead item system, mirroring Chunk 1 — 63 files, **1253 deletions, 0 production-logic additions**. Removed `frontend/src/features/items/` (`logic/{Item,Items,ItemType,Equipment}.ts` + **54 item SVGs**), `client-data/Items.ts`, `api/items/none.json` + the empty dir, the stale gitignored `devops/bundle/api/items/` snapshot; unwired `index.ts` side-effect import (**5th coupling the plan's `.ts` audit missed**) + `BackendConstants.ts` `itemLookupTable`/`NONE_ITEM_ID`/`initializeItemLookupTable` + its `setup()` call (**kept** `statusEffectLookupTable`/`setup()` — live). **Three verification-surfaced deviations, all in-scope:** ① `credits.html` "Credits for used graphics" section removed (webpack-surfaced hidden `require` — the §26 lesson; PO-approved, CC BY attribution lapses as the icons no longer ship); ② `graphics.html` dev art gallery deleted (dev-only, unbundled, PO-approved); ③ dead item-give block in `developPanel.html` removed (`develop_itemSelect`/`itemCount`/`itemAdd`, already 0 TS handlers). **No backend rebuild needed** — Chunk 1 already decoupled the backend from `api/items`, so deleting `none.json` had 0 backend impact. Verified: `tsc --noEmit` clean, webpack prod build green, backend boot from `-content ../api` clean + counts unchanged (83 skills/14 factions/50 mobs/10 recipes/5 prop defs/777 props/471 spawns/5 campfires/14 npcs, 0 panics, `Loaded item definitions` line stays gone), join smoke both muxes = character spawns / 0 console errors / world renders. No wire/schema change (that's Chunk 3). Full ledger: `plan-item-system-removal.md §13 Chunk 2`.
-- **Prior:** item-system removal Chunk 1 (backend registry removal) ✅ `b9d01d33` 2026-07-24 — deleted the dead `items` Go package + `pkg/api/items/` embed + 8 importers (kept `items/mobs/`); +2 plan-missed sites (simharness `contentFS` 4→3, Makefile cp-defs drop `../api/items`); full ledger `plan-item-system-removal.md §13 Chunk 1`. EntityType name-fallback validation §27.2.1 ✅ `c3938be7` 2026-07-24 — a §27 live-server crash-at-first-spawn turned into a boot error (shared `mobs.ResolveEntityType` + loader guard + `NewMob` panic); full ledger `docs/plan-entitytype-validation.md`.
+- **Prior:** item-system removal Chunk 1 (backend registry removal) ✅ `b9d01d33` 2026-07-24 — deleted the dead `items` Go package + `pkg/api/items/` embed + 8 importers (kept `items/mobs/`); +2 plan-missed sites (simharness `contentFS` 4→3, Makefile cp-defs drop `../api/items`); full ledger `plan-item-system-removal.md §13 Chunk 1`. EntityType name-fallback validation §27.2.1 ✅ `c3938be7` 2026-07-24 — a §27 live-server crash-at-first-spawn turned into a boot error (shared `mobs.ResolveEntityType` + loader guard + `NewMob` panic); full ledger `docs/archive/plan-entitytype-validation.md`.
 - **Recent chunks (newest first; full ledgers in the plan docs):** dead resource+placeable+decay prune §26 FULLY DONE ✅ `ee9d42e9`+`a2ab90b5` (Chunks 1+2 — emptied the item registry to `None` ⇒ §28 removal now trivial; Chunk 2 also fixed a Chunk-1 frontend-build regression — **rebuild frontend AND backend after content deletions**; `plan-resource-decay-prune.md`); render-jitter buffered-interp fix ✅ `0e504c22`/`8a29a75c`/`c5064732` (`plan-render-jitter.md`); input-jitter held-state fix ✅ `cb7f011f` (`plan-input-jitter.md`); unlock source attribution ✅ `2bfee286` (`plan-unlock-attribution.md`); idle-loop alloc fix ✅ `fe0044d0` + day/night DEACTIVATED ✅ `e648ab88` (`plan-intermission-triage.md`); playtest-1 Passes A/B/C ✅ — **plan fully executed** (`plan-playtest1-feedback.md`); F&F deploy LIVE ✅ `a7a2267d` → `https://aura-game.duckdns.org/` (`plan-playtest-deploy.md`); content pass C1–C8 + rebrand step 7 complete. Earlier chunks: roadmap.md "Execution order" + the plan-*.md §13 banners.
 - **Next: step 8 — accounts & persistence** (roadmap item 3, planning session), then the character-sacrifice loop (triage item 10) as persistence's first consumer — extra-motivated since the live server wipes characters on every restart. **Fold in `plan-playtest-deploy.md` §Ops & security posture** when planning it — persistence is the security tipping point (cloud firewall, DB bound to localhost, daily backup + proven restore, DB-credential handling). Expect ad-hoc live-playtest triage in parallel. **Deferred:** step-8 audio half (combat SFX, PO-deferred 2026-07-21 — no placeholder assets); UI-polish later passes (`plan-ui-polish.md` §Deferred — popups ride the in-game announcement system); playtest-1 design rounds (`plan-playtest1-feedback.md` §Own planning rounds); the full Deferred/placeholder catalog lives in the respective plan docs.
 - **Open PO calls:** replacement art (mascot/splash/favicon), wiki-generator keep-or-delete, eventual domain (berryhunter.io URLs kept meanwhile). PO continues manual zone-editor placements in parallel.
@@ -68,7 +68,11 @@ When fixing a bug: first write a test that reproduces it, then fix.
 
 - `backend/` — Go game server (`aurad`)
 - `frontend/` — TypeScript/webpack browser client using PixiJS
-- `api/` — Shared FlatBuffers schemas and JSON item/mob definitions
+- `api/` — Shared FlatBuffers schemas and the authored content JSON (mobs, skills, recipes, zones, props, factions, milestones)
+
+`docs/README.md` is the docs index — it holds the naming convention and the four-layer status model (this file = current state · `roadmap.md` "Execution order" = sequence · `plan-*.md` §13 banners = per-chunk ledgers · `MEMORY.md` = cross-session index).
+
+**`docs/` = live work, `docs/archive/` = finished work.** Plan docs referenced by bare name below (e.g. `plan-mob-depth.md`) are in `docs/archive/` once their work has shipped; anything still in `docs/` proper has something open. When a plan's last chunk lands, `git mv` it into `archive/` and move its index line to the README's Archive section.
 
 ## Build & Run
 
@@ -152,9 +156,9 @@ The game server uses an **Entity-Component-System** architecture via `github.com
 
 - `backend/cmd/aurad/` — entrypoint; wires config, game, HTTP server
 - `backend/pkg/aura/core/` — `game.go` constructs the ECS world and registers all systems; `Loop()` ticks at ~30 FPS (33 ms/tick)
-- `backend/pkg/aura/sys/` — ECS systems: physics, mob AI, NPCs, skills, targeting, decay, state (death/respawn), pre/post-update, plus `chat/`, `cmd/`, `equip/`, `statuseffects/` (the scoreboard and heater systems were deleted — scoreboard in the 2026-07-08 dead-feature prune, heater with step 7)
-- `backend/pkg/aura/model/` — interfaces and concrete types for entities (player, mob, resource, placeable, spectator)
-- `backend/pkg/aura/items/` — item and mob definitions loaded from `api/items/` and `api/mobs/` JSON files at startup
+- `backend/pkg/aura/sys/` — ECS systems: physics, mob AI, NPCs, skills, targeting, state (death/respawn), pre/post-update, plus `chat/`, `cmd/`, `equip/`, `statuseffects/` (deleted systems: scoreboard in the 2026-07-08 dead-feature prune, heater with step 7, decay with the §26 resource prune)
+- `backend/pkg/aura/model/` — interfaces and concrete types for entities (`player/`, `mob/`, `npc/`, `prop/`, `corpse/`, `spectator/`, plus `vitals/` and `client/`)
+- `backend/pkg/aura/items/mobs/` — the mob registry: definitions, catalog, `EntityType` resolution (the enclosing `items` package was deleted with the §28 item-system removal; only `mobs/` remains)
 - `backend/pkg/aura/codec/` — FlatBuffers encode/decode for the WebSocket protocol
 - `backend/pkg/aura/phy/` — 2D physics (circle/AABB collision, spatial hashing)
 
@@ -166,7 +170,7 @@ The game server uses an **Entity-Component-System** architecture via `github.com
 
 Schemas live in `api/schema/`:
 - `client.fbs` — client→server: `Input`, `Join`, `Cheat`, `ChatMessage`
-- `server.fbs` — server→client: `GameState`, `Welcome`, `Scoreboard`, `Obituary`, etc.
+- `server.fbs` — server→client: `GameState`, `Welcome`, `Accept`, `Obituary`, `EntityMessage`, `Pong`
 - `common.fbs` — shared types (`Vec2f`, `ActionType`, `AuraType`)
 
 After editing `.fbs` files, regenerate bindings for both backend and frontend.
@@ -175,9 +179,9 @@ After editing `.fbs` files, regenerate bindings for both backend and frontend.
 
 All numerical tuning lives in `backend/conf.json` (or `conf.default.json` for reference). The `game.player` block controls movement speed, aura radii, vital-sign drain/gain rates, and level-up scaling. Changes take effect on restart.
 
-### Item / Mob Data (JSON)
+### Content Data (JSON)
 
-`api/items/` and `api/mobs/` contain JSON definitions. The `make -C backend cp-defs` target copies them into `backend/pkg/api/` so the Go build embeds them. Run this (or just `make -C backend build`) after editing any JSON definition.
+All authored content lives under `api/` in seven directories — `mobs/`, `skills/`, `recipes/`, `zones/`, `props/`, `factions/`, `milestones/`. Each is loaded by `cmd/aurad/loaders.go` (`contentSources`); a missing directory hard-fails at boot. The `make -C backend cp-defs` target copies all seven into `backend/pkg/api/` so the Go build embeds them, so run it (or just `make -C backend build`) after editing any JSON definition — or boot with `-content ../api` to skip both (see Content iteration above). Keep `contentSources` covering every `api/` subdirectory, or a content edit silently no-ops.
 
 ### Frontend
 
@@ -185,7 +189,7 @@ The frontend is structured as feature modules under `frontend/src/features/`:
 - `backend/` — WebSocket connection, FlatBuffers deserialization, entity snapshot management
 - `core/` — game loop, entity manager
 - `player/`, `vital-signs/` — local player state and HUD
-- `game-objects/` — rendering entities (resources, mobs, placeables) via PixiJS
+- `game-objects/` — rendering entities (props/resources, mobs, characters, corpses) via PixiJS; `AuraRings`/`EffectPips`/`AuraTickIndicator` are the shared combat-readability overlays
 - `input-system/`, `controls/` — keyboard/mouse/touch input
 - `internal-tools/` — dev panel, console, overlay tester (only active with `?develop`)
 
@@ -199,7 +203,7 @@ This fork of Berryhunter has been transformed into **"Aura"** — a top-down MMO
 The Berryhunter survival systems (vitals, crafting, temperature, hunger) have
 been removed. The core loop revolves around the aura system described below.
 
-The structural rename (execution-order step 7, `docs/plan-rebrand-cleanup.md`)
+The structural rename (execution-order step 7, `docs/archive/plan-rebrand-cleanup.md`)
 is **done**: module path `github.com/RoteRiesenRobbe/aura`, package dir
 `pkg/aura/`, binary `aurad`, FlatBuffers namespace `AuraApi`, title "Aura".
 Remaining "Berryhunter" references are intentional: historical plan/archive

@@ -1,6 +1,6 @@
 package sim
 
-// Chunk 4 (docs/plan-sim-harness.md §6 + §8): the sustainable-kills/hour
+// Chunk 4 (docs/archive/plan-sim-harness.md §6 + §8): the sustainable-kills/hour
 // chain — repeat [fight → REAL out-of-combat regen to full → modeled
 // downtime gap] — compared across the two stand-still bot stances, facetank
 // vs kite. Efficiency = facetank ÷ kite is the parking-lot metric (GDD §4:

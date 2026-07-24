@@ -1,6 +1,9 @@
 # Plan: Documentation & repo cleanup for human onboarding
 
-> **Status:** LIVE plan — not started (created 2026-07-23). Planning session; no code written.
+> **Status:** LIVE plan — created 2026-07-23. **Workstream B is partially done (2026-07-24):**
+> `docs/archive/` exists and the archive sweep + cross-reference fix + `docs/README.md`
+> rewrite have landed (26 docs moved; see §Workstream B ledger). The status-banner half is
+> done for archived docs only. Workstreams A, C, D, E, F, G are untouched.
 
 ## Context
 
@@ -84,6 +87,36 @@ Make "live vs. history" obvious without moving files around wholesale.
   filename across `docs/`, `CLAUDE.md`, `README.md`, `.claude/skills/`, and the onboarding
   HTML; update paths. This is the one mechanical cost of the archive move and must be complete
   or newcomers hit dead links.
+
+### Workstream B ledger (archive sweep DONE 2026-07-24)
+
+**Shipped:** `docs/archive/` created; **26 docs moved** via `git mv` (history preserved) —
+19 completed/superseded plan records + the 6 `archive-*.md` files. `docs/` proper is down to
+30 files, all of them live. `docs/README.md` rewritten: naming convention now states the
+`docs/` = live · `docs/archive/` = finished rule, plans split into "live" vs a grouped
+Archive section (execution-step records · fix/cleanup records · playtest/deploy records ·
+pre-decision research).
+
+**PO rulings (choice prompts, in-session):** ① archive **everything shipped**, no
+living-reference exception — one rule that stays true beats a per-doc judgment call;
+② the 6 `archive-*.md` **keep their filenames** (prefix redundant in the folder, but renaming
+would invalidate ~42 existing mentions) — new archivals don't get the prefix; ③ status
+banners on **archived docs only** — "last reviewed" dates on live docs rot unmaintained.
+
+**Deviations / findings:**
+- The plan's fear that the move "breaks every cross-reference" was **wrong** — a survey found
+  **0 markdown links** to these docs; all 214 references are bare code-spans, which stay
+  readable. Only *path-style* refs (`docs/plan-x.md`) needed rewriting: 8 live docs +
+  `.claude/skills/run-simharness/SKILL.md` + **9 Go source comments** (comment-only;
+  `go build ./...` and the full `go test ./...` green after).
+- Only 1 of 26 moved docs actually lacked a status line (`plan-phase0-deploy.md`) — the three
+  `archive-*` ones already said RESOLVED/ARCHIVED. Two carried *stale* ones, fixed in passing:
+  `plan-resource-decay-prune.md` still said "PLANNING" (it is fully done), `plan-input-jitter.md`
+  said "[uncommitted]" (it is `cb7f011f`).
+- `.claude/settings.local.json` still holds old paths in permission allowlist entries; left
+  alone deliberately (historical grants, they simply stop matching).
+
+**Not done from Workstream B:** status banners on the docs that stayed live (PO ruling ③).
 
 ## Workstream C — Decouple human status from the agent file
 

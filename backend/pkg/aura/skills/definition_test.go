@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// JSON literals from docs/plan-skill-system.md examples.
+// JSON literals from docs/archive/plan-skill-system.md examples.
 
 var damageAuraJSON = []byte(`{
   "id": 1,

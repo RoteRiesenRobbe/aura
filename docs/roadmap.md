@@ -95,7 +95,7 @@ food/tool items.
 open world; open-world dungeons (caves, no instances); environmental
 storytelling.
 
-> **First slice PLANNED (2026-07-08) → `docs/plan-world-zones.md`.** Decided:
+> **First slice PLANNED (2026-07-08) → `docs/archive/plan-world-zones.md`.** Decided:
 > in-game editor (extend the MysticWand tool), rectangular single-`Space` world,
 > server-authoritative `zone.json` (bounds + props + mob spawn points), resources
 > demoted to dead weight, occluders carry `blocksMovement`/`blocksAura` but only
@@ -202,7 +202,7 @@ trade-offs (light aura vs. damage aura).
 
 ## 7. Mob behavior, tiers & spawning — normal / elite / boss
 
-> **✅ BUILD-OUT COMPLETE (2026-07-12) → `docs/plan-mob-depth.md`** (execution
+> **✅ BUILD-OUT COMPLETE (2026-07-12) → `docs/archive/plan-mob-depth.md`** (execution
 > step 2, with effect-foundations Step 3 totems + a companion cooldown folded
 > in). All chunks done + in-game-verified: totem → flee → aggro & threat
 > (entity-keyed threat, state-dependent leash, auras-off-until-aggroed) →
@@ -845,7 +845,7 @@ system ships blind.
 4. **Skill-vocabulary fill** — ✅ **COMPLETE 2026-07-14** (all 6 chunks done +
    verified in-game, last one `3e9ab8e4`; crit later reworked into a
    character-driven stat, 2026-07-20 — `backlog.md` §23). Record:
-   `docs/plan-skill-vocab.md` (6 chunks, execution order 1 → 2 → 4 → 3 →
+   `docs/archive/plan-skill-vocab.md` (6 chunks, execution order 1 → 2 → 4 → 3 →
    5 → 6; review decisions: crit = sanctioned upside-only RNG,
    activation preconditions + rejection feedback, per-entity tick wire +
    tick-rate manipulability) — (effect-foundations
@@ -879,7 +879,7 @@ system ships blind.
    metadata debt; the polished VFX lands in step 8's aura pass.
 5. **Unlock-source systems** (item 9) — world clue-anchor entities + NPC-teaching
    behavior (needs world **and** mobs). ✅ **DONE — all 6 chunks committed +
-   VERIFIED IN-GAME by PO 2026-07-15 → `docs/plan-npc-teaching.md`** (6 chunks;
+   VERIFIED IN-GAME by PO 2026-07-15 → `docs/archive/plan-npc-teaching.md`** (6 chunks;
    order 1 → 2 → 3 → 4 → 5 → 6; editor mode = `00574d4c`). **NEXT = the
    pre-step-6 simulation-harness gate below, then item 6 (content pass).** Scope
    locked with PO: **teaching/lore NPC with one-way speech only** (NOT branching
@@ -894,7 +894,7 @@ system ships blind.
    > **Pre-step-6 gate: the simulation harness** (GDD §5 "First building
    > block"; made an explicit bullet 2026-07-10 — it previously hid inside
    > the tdd.md §4.1 `f(character level)` note). **PLANNED + APPROVED
-   > 2026-07-15 → `docs/plan-sim-harness.md`** (a balancing / what-if
+   > 2026-07-15 → `docs/archive/plan-sim-harness.md`** (a balancing / what-if
    > *explorer* that drives the real ECS headlessly and reports distributions;
    > 4 chunks — ✅ **ALL COMPLETE**, the harness is live tooling). Metrics: TTK / survival /
    > kills-per-level + the 1-vs-N matrix **+ the stand-still bot test with

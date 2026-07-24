@@ -36,6 +36,28 @@ separate, explicitly-requested step (project rule). Wrap-up = docs only.
   section) — never guess them.
 - Convert relative dates to absolute (project rule).
 
+## Archive the plan doc when its LAST chunk lands
+
+`docs/` = live work · `docs/archive/` = finished work (rule + rationale in
+`docs/README.md`). When the chunk you are wrapping is the plan's **final** one —
+nothing left open, no deferred half anyone will resume:
+
+1. `git mv docs/plan-<name>.md docs/archive/` (keeps history; do **not** add an
+   `archive-` prefix — the folder says it).
+2. Move its bullet in `docs/README.md` from "Plans — live" to the matching
+   Archive subsection, and make the description past-tense with the commit hash.
+3. Rewrite any **path-style** refs (`docs/plan-x.md` → `docs/archive/plan-x.md`)
+   across `CLAUDE.md`, `README.md`, `docs/*.md`, `.claude/skills/`, and **Go/TS
+   source comments** — that last one is easy to miss:
+   `grep -rn "docs/plan-<name>.md" . --exclude-dir=.git --exclude-dir=node_modules`.
+   Bare code-span mentions (`` `plan-x.md` ``) need no change. Leave docs already
+   inside `archive/` untouched — they are historical records, not maintained.
+4. If the doc's top status line is stale ("PLANNING", `[uncommitted]`), fix it —
+   an archived doc's header is the first thing the next reader trusts.
+
+A doc with *any* open item (deferred checklist, unstarted workstream, live-ops
+reference) **stays in `docs/`**.
+
 ## Docs-hygiene guard (keeps context from overflowing)
 
 CLAUDE.md and MEMORY.md load **every session**. The full prose history of past

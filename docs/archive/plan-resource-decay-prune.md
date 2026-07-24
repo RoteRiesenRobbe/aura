@@ -1,5 +1,9 @@
 # Plan: Prune the dead resource + decay layer (backlog §26)
 
+> **Status:** HISTORICAL RECORD — ✅ **FULLY DONE 2026-07-24**, Chunks 1 + 2
+> committed `ee9d42e9` + `a2ab90b5`. Full ledger in §13. Not maintained.
+> *(The "PLANNING" line below is the doc's original header, kept as written.)*
+
 **Type:** cleanup / dead-code removal. No behavior change.
 **Origin:** backlog §26 (PO observation 2026-07-24 — *"'resources' in their former
 Berryhunter sense no longer exist and are not intended to come back; same for

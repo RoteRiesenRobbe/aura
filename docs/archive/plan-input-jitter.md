@@ -1,6 +1,6 @@
 # Plan: Dropped Movement Inputs → held-state input model
 
-**Status:** **DONE 2026-07-24 (chunks 1 + A + B), [uncommitted], PO-VALIDATED
+**Status:** **DONE 2026-07-24 (chunks 1 + A + B), committed `cb7f011f`, PO-VALIDATED
 LIVE.** Chunk 1 instrumentation shipped and the ~14-min PO run (below) **overturned
 the TCP-HoL hypothesis** — root cause is client-side Tock coalescing under render
 jank, proven from the code. Chunks **A (server coast ≤`maxHoldTicks=15`)** + **B

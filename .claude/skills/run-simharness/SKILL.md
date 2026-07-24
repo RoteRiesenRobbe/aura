@@ -3,7 +3,7 @@ name: run-simharness
 description: Build, run, and drive the simharness balancing explorer (backend/cmd/simharness) — the CLI TTK/TTD/level-curve batteries and the -serve web explorer. Use when asked to run simharness, start the explorer, screenshot its UI, verify the sim harness end-to-end, or run its tests.
 ---
 
-simharness is the headless balancing / what-if explorer (`docs/plan-sim-harness.md`):
+simharness is the headless balancing / what-if explorer (`docs/archive/plan-sim-harness.md`):
 a Go CLI that runs seeded combat batteries against the real ECS, plus a `-serve`
 mode hosting a single-file web explorer. Drive the web UI headlessly with
 `.claude/skills/run-simharness/driver.mjs` (Playwright, no root needed) after a

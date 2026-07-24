@@ -1,5 +1,5 @@
 // simharness is the standalone balancing / what-if explorer CLI
-// (docs/plan-sim-harness.md, chunk 1): explicit combatant numbers in,
+// (docs/archive/plan-sim-harness.md, chunk 1): explicit combatant numbers in,
 // TTK / TTD distributions out — a table on stdout plus a JSON artifact for
 // diffing runs across tuning sessions.
 //

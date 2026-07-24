@@ -1592,7 +1592,7 @@ interact, so they can be taken individually.
 ## 26. Prune the dead resource + decay layer (Berryhunter remnant)
 
 > **✅ FULLY DONE 2026-07-24 (Chunks 1+2).** Planned in
-> `docs/plan-resource-decay-prune.md`; full ledger there (§13). **Chunk 1
+> `docs/archive/plan-resource-decay-prune.md`; full ledger there (§13). **Chunk 1
 > `ee9d42e9`** — removed the resource/placeable/decay Go cluster + 3 codec cases +
 > game.go wiring + 3 dead interfaces + the 9 resource/placeable item JSONs
 > (helpers 7→6, systems 16→15); the JSONs were 100% of nested item content so
@@ -1785,7 +1785,7 @@ Ranked by consequence, not by size.
    > validated at content load, matching the override's existing fail-fast — an
    > unresolvable name fails at **boot** (a deploy error) instead of at first
    > spawn (a live crash-at-first-encounter). Three coupled edits (plan
-   > `docs/plan-entitytype-validation.md`): ① a new shared resolver
+   > `docs/archive/plan-entitytype-validation.md`): ① a new shared resolver
    > `mobs.ResolveEntityType(override, name)` — the single source of truth for
    > the name/override → wire-type mapping, collapsing the DRY smell (`NewMob`'s
    > `types` map and the loader's `EnumValuesEntityType` check were the same
@@ -1995,7 +1995,7 @@ no-op of exactly the kind the rest of the file exists to prevent.
 **Tracked 2026-07-24** (PO ask, during the §26 resource/decay-prune planning) so
 it is not lost. This is CLAUDE.md's long-referenced "planned item-system removal",
 plus the schema tail (Tier 3) the §26 prune deliberately left behind. Do **after**
-the §26 prune (`docs/plan-resource-decay-prune.md`), which first strips the
+the §26 prune (`docs/archive/plan-resource-decay-prune.md`), which first strips the
 resource/placeable JSONs and the entity/system layer.
 
 > **⚑ Update 2026-07-24 — the §26 prune (`ee9d42e9`) already did half of this.**

@@ -1,6 +1,6 @@
 package sim
 
-// Chunk 2 (docs/plan-sim-harness.md §5 + §8): the f(character level) curve
+// Chunk 2 (docs/archive/plan-sim-harness.md §5 + §8): the f(character level) curve
 // and the fixture generator that turns "a level" into explicit combatant
 // numbers. This models the decided curve inside the tool only — the live-game
 // multiplier is a separate step-6 task (§5 Decision 5).

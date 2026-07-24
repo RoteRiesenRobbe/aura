@@ -6,7 +6,7 @@ package sys
 // that exercise applyDamageAura / applyHealAura against hand-built collision
 // sets, and processEntity against a real phy.Space so the accumulator and
 // TickInterval behavior is pinned down — including the documented multi-effect
-// interval quirk (docs/plan-skill-system.md, "Known limitation").
+// interval quirk (docs/archive/plan-skill-system.md, "Known limitation").
 
 import (
 	"fmt"

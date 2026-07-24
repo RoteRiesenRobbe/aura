@@ -2,7 +2,7 @@ package mob
 
 // Characterization tests pinning the CURRENT hardcoded mob aura behavior.
 // They are the "old" side of the Phase 6 strict 1:1 migration comparison
-// (docs/plan-skill-system.md, Phase 6): once mobs move onto the SkillSystem,
+// (docs/archive/plan-skill-system.md, Phase 6): once mobs move onto the SkillSystem,
 // the new path must reproduce exactly these numbers and rules. Any deviation
 // from these tests during the migration is a bug, not a design change.
 

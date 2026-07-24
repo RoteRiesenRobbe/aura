@@ -1,5 +1,10 @@
 # Plan: Phase-0 Deploy — Friends Playtest (~20 players)
 
+> **Status:** HISTORICAL RECORD — **never executed as written**, superseded by
+> `plan-playtest-deploy.md`, which is the deploy that actually went live
+> 2026-07-21 (`a7a2267d`). Kept for the runbook detail and the hosting rationale.
+> Not maintained.
+
 *Planned 2026-07-14. Executes Phase 0 of `research-hosting.md` §4. One chunk:
 a runbook session, not a coding session — the only repo changes are a deploy
 script + refreshed `devops/` files. Written for an operator without prior
