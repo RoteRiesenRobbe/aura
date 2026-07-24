@@ -45,6 +45,23 @@ type Config struct {
 			// chance and the critChance passive stat add on top.
 			CritChance float32 `json:"critChance"`
 		} `json:"player"`
+
+		// Mob mirrors the player block's vocabulary for stats both entity kinds
+		// have (backlog §27.2.3). Same names, same units, different block — so
+		// unifying them later is a rename, not a redesign (§31).
+		Mob struct {
+			// HealthGainTick is out-of-combat regen as a fraction of the mob's
+			// max pool per tick — the SAME unit as player.healthGainTick.
+			// Absent → the built-in default (full pool in ~2 s). [PLACEHOLDER]
+			HealthGainTick float32 `json:"healthGainTick"`
+		} `json:"mob"`
+
+		// Combat holds factors that apply to every acting entity (player, mob,
+		// summon) rather than to one kind — see cfg.CombatConfig.
+		Combat struct {
+			DefaultCritFactor  float32 `json:"defaultCritFactor"`
+			HealerThreatFactor float32 `json:"healerThreatFactor"`
+		} `json:"combat"`
 	} `json:"game"`
 }
 

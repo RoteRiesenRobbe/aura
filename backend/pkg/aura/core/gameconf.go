@@ -24,6 +24,11 @@ func Config(conf *cfg.Config) Configuration {
 		g.PlayerConfig.LevelUpXPGrowthFactor = conf.Game.Player.LevelUpXPGrowthFactor
 		g.PlayerConfig.SkillPointsPerLevel = conf.Game.Player.SkillPointsPerLevel
 		g.PlayerConfig.CritChance = conf.Game.Player.CritChance
+
+		// Copied raw: CombatConfig's accessors normalize the zero value, so
+		// defaulting here as well would be the same knob enforced two ways.
+		g.CombatConfig.DefaultCritFactor = conf.Game.Combat.DefaultCritFactor
+		g.CombatConfig.HealerThreatFactor = conf.Game.Combat.HealerThreatFactor
 		if g.PlayerConfig.SkillPointsPerLevel <= 0 {
 			g.PlayerConfig.SkillPointsPerLevel = 1
 		}

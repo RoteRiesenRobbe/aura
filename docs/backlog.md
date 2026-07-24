@@ -2082,6 +2082,36 @@ load and see whether the rate goes up.
 **Not scheduled.** Low frequency, no known player-facing occurrence on the live
 server yet.
 
+### Second sighting 2026-07-24 — two findings that narrow it
+
+Reproduced during the §27.2.3/§25 B verification smoke (a backend-only change;
+the frontend bundle was byte-identical to two earlier clean smokes, so it is not
+attributable to either chunk). It then did **not** recur in the next **three**
+double-mux runs — same ~1-in-6 rate as the first sighting.
+
+**① It is NOT develop-mux-only.** This time the triple `null.split` fired on the
+**plain** mux, while the `&develop` context in the same run — same browser
+process, seconds later — was completely clean. That **kills the
+`_ZoneEditorPanel.ts:723` lead** (develop-only) and removes the dev panel from
+suspicion entirely.
+
+**② The black world and the errors are separable.** The failing run still
+rendered: the scene-graph probe walked a healthy tree (terrain, mobs,
+characters, nameplates) and only the error assertion failed. So the three
+`null.split` page errors can occur **without** the black world — which argues
+they are two symptoms of one underlying condition (a starved/racing cold boot)
+rather than the errors *causing* the black world. A fix hunt should target the
+race, not the render path.
+
+Both sightings share: **first cold load after a fresh `aurad` restart**.
+
+**Next step unchanged:** reproduce against the **dev** build (port 2001) for an
+unminified stack — the prod bundle's stack is useless. The smoke harness used
+here lives in this session's scratchpad; it walks the scene graph from
+`window.game.character.plate` to the stage root, because `window.game` is a
+narrow console facade (`{run, character, pause, play}`) with no `.layers` or
+`.state` despite what the `verify` skill doc implies.
+
 ---
 
 ## 30. Berryhunter render/asset vestiges surfaced by the §28 Chunk 3 audit
@@ -2126,3 +2156,97 @@ naming trap: this is the *display-layer* `placeables`, unrelated to the physics
 **Not scheduled.** Item 3 is the biggest single win and the lowest risk; item 1
 is the only one that touches the wire and should ride along with another schema
 regen rather than earning one on its own.
+
+---
+
+## 31. One entity, many roles — converge the player/mob/NPC stat model
+
+**Origin:** PO design question 2026-07-24, raised while deciding where the two
+combat constants of §25 B should live: *"what brings us closer to a general
+entity system where players and mobs and companions can all kind of function
+the same because they are the same — entities that can exist on multiple levels
+and have abilities and stats that are similar whether they are an NPC or a
+mob?"* Everything below was traced against the code that day.
+
+**The target shape, in the PO's terms:** one entity with a **level**, a **stat
+block** and an **ability loadout**, where *player*, *mob*, *companion*, *NPC*
+and *boss* are **configurations** of that one thing rather than different kinds.
+A friendly NPC is then a levelled entity with abilities that happens to be
+non-hostile and carry dialogue; a mob is the same entity with a hostile faction
+and AI; a player is the same entity driven by input instead of AI.
+
+### The good news: the shared layer already exists and is proven
+
+Both `*Mob` (`model/mob/mob.go:484`) and `*player` (`model/player/player.go:822`)
+already carry a `*skills.SkillComponent` with the same `DerivedStats`
+(`skills/component.go:121`). And the two **newest** stats already read it
+**entity-agnostically**: `casterCritChance` and `casterDamageFactor`
+(`sys/skills.go`) take `acting any` and structurally assert
+`SkillComponent() *skills.SkillComponent`, so a player, a mob and a summon all
+flow through one code path. **The pattern to copy is already in the file** — it
+simply was never applied backwards to the older stats.
+
+### The four gaps
+
+**1. Three of five derived stats are applied only in player code paths.**
+
+| stat | applied at | reaches mobs? |
+|---|---|---|
+| `CritChanceBonus` | `sys/skills.go` `casterCritChance` (`acting any`) | ✅ |
+| `DamageDealtBonus` | `sys/skills.go` `casterDamageFactor` (`acting any`) | ✅ |
+| `MaxHealthBonus` | `model/player/player.go:246` | ❌ |
+| `DamageReductionBonus` | `model/player/player.go:292` | ❌ |
+| `MovementSpeedBonus` | `core/input.go:343` (player input path) | ❌ |
+
+A mob equipping Hardy, Tough or Swift silently gets nothing. **Latent, not a
+live bug** — verified 2026-07-24 that **zero mob definitions equip any of the
+five `stat_multiplier` passives** (`tough`/`swift`/`keen-eye`/`hardy`/`strong`
+→ 0 mob defs each). It becomes live the day a mob authors one, and it will fail
+silently, which is the dangerous part. Fix = hoist to `sys`-level helpers over
+`acting any`, exactly like the two that work.
+
+**2. Base stats speak two vocabularies.** Players read `cfg.PlayerConfig`
+(`BaseHealth`, `HealthGainTick`, `WalkingSpeedPerTick`, `CritChance`,
+`LevelCurve`); mobs read `mobs.MobDefinition` plus hardcoded Go — velocity
+`0.055 * d.Factors.Speed` (`mob.go:178`, under a standing
+`TODO use walkingSpeedPerTick from global config`) — and had **no crit base at
+all** (`casterCritChance` explicitly special-cases `model.PlayerEntity`).
+**Partially addressed 2026-07-24 (§27.2.3 + §25 B):** mob regen became
+`game.mob.healthGainTick` deliberately mirroring the player block's *name and
+unit* (a fraction of max pool per tick), and the two universal combat factors
+moved to a `game.combat` block precisely because they are **not** player-only.
+That is the first instalment of this item, not a substitute for it. The
+remaining divergence to fold in: movement speed, and a base crit for non-players
+if that is ever wanted.
+
+**3. Two level curves.** Player: `PlayerConfig.LevelCurve` (`curve.Curve`,
+growth 1.12 × maxLevel 30). Mob: tier + baseline derivation at registry load.
+Both compute f(level); neither can read the other's.
+
+**4. `model/npc` is not on the axis at all.** `Npc` (`model/npc/npc.go:58`) is a
+body + a proximity sensor + `teachings`/`lines` — **no health, no level, no
+faction, no `SkillComponent`**. It cannot act and cannot be hit. **The codebase
+has already been routing around this:** every "NPC" that needed stats was
+implemented as a **mob** — the village healer, the campfires, the turnip fields,
+the guards — while all 14 teaching/lore NPCs in `world.json` are the statless
+kind. That is the clearest evidence the abstraction is missing: the content
+keeps asking for it and the answer keeps being "make it a mob".
+
+### Convergence target
+
+`effective = base(per-entity source) × derived(shared)`, read through **one**
+interface — already true for `critChance` and `damageDealt`, and the model the
+other three should be moved onto.
+
+### Sequencing note
+
+Gap 1 is the cheap, mechanical one and is pure latent-bug removal — but it is
+**not** free of design: it needs a ruling on whether mob passives scale
+identically to player ones. Gap 4 is the deep one and is really a **content**
+question (should NPCs be killable? levelled? teachable-by-combat?) before it is
+a code question — so it wants a PO design pass, not a refactor session. Gaps 2
+and 3 are mostly plumbing once 1 and 4 are decided.
+
+**Not scheduled.** No live defect; recorded so the direction survives the
+session it was discussed in. **Do not action gap 1 in isolation** without the
+scaling ruling — a silent behaviour change to every mob is the failure mode.

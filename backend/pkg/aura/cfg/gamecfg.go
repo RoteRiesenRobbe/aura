@@ -39,6 +39,50 @@ type GameConfig struct {
 	MobChaseIntoAuraMargin float32
 
 	PlayerConfig PlayerConfig
+	CombatConfig CombatConfig
+}
+
+// Built-in defaults for the combat factors [PLACEHOLDER], applied whenever the
+// matching conf entry is absent (zero). They live here — not at the read sites
+// — so a hand-built GameConfig (the sim harness, tests) and a real conf.json
+// without a game.combat block resolve to the same numbers through one path.
+const (
+	DefaultCritFactor         = 2.0
+	DefaultHealerThreatFactor = 0.5
+)
+
+// CombatConfig holds combat factors that apply to EVERY acting entity — player,
+// mob, summon alike — which is why they sit outside PlayerConfig next to the
+// player-character-only CritChance (backlog §25 B). See §31 for the wider
+// player/mob stat convergence these are the first instalment of.
+type CombatConfig struct {
+	// DefaultCritFactor multiplies crits on effects that author no critFactor
+	// of their own (§4.3 v2, PO 2026-07-20); authored factors win.
+	DefaultCritFactor float32
+
+	// HealerThreatFactor weights landed healing into threat (§6.3, decided
+	// 2026-07-10): healedHP × factor, credited on every mob in combat with the
+	// heal target.
+	HealerThreatFactor float32
+}
+
+// CritFactor is DefaultCritFactor with the zero value normalized to the
+// built-in default, so callers never have to check.
+func (c CombatConfig) CritFactor() float32 {
+	if c.DefaultCritFactor <= 0 {
+		return DefaultCritFactor
+	}
+	return c.DefaultCritFactor
+}
+
+// HealerThreat is HealerThreatFactor with the zero value normalized to the
+// built-in default. Note a deliberate consequence: healer threat cannot be
+// switched OFF by authoring 0 — set a tiny value instead.
+func (c CombatConfig) HealerThreat() float32 {
+	if c.HealerThreatFactor <= 0 {
+		return DefaultHealerThreatFactor
+	}
+	return c.HealerThreatFactor
 }
 
 func (g *GameConfig) LogValue() slog.Value {

@@ -666,9 +666,41 @@ func TestMob_RegeneratesOutOfCombat(t *testing.T) {
 	alive := m.Update(0) // no aggro target, nothing in range
 
 	assert.True(t, alive)
-	regenPerTick := vitals.HP(float32(m.maxHealth) / (2 * constant.TicksPerSecond))
+	regenPerTick := vitals.HP(float32(m.maxHealth) * defaultMobHealthGainTick)
 	assert.Equal(t, start.AddCapped(regenPerTick, m.maxHealth), m.Health(),
 		"heals to full over ~2 seconds of ticks while out of combat")
+}
+
+// --- regen rate is a conf knob (backlog §27.2.3) ---
+//
+// Mob out-of-combat regen used to be a hardcoded maxHealth/(2*TicksPerSecond)
+// in the model layer, while the player's identical mechanic was a conf.json
+// value — so nobody tuning "how punishing is disengaging?" could find it. It is
+// now the same knob in the same unit (a fraction of the max pool per tick),
+// threaded in at boot like SeedProcess.
+
+func TestMob_RegenRateFollowsConfiguredHealthGainTick(t *testing.T) {
+	t.Cleanup(func() { SetHealthGainTick(0) }) // 0 restores the built-in default
+
+	SetHealthGainTick(0.5) // half the pool per tick
+	m := newTestMob()      // maxHealth 100
+	m.health = 1
+
+	m.Update(0)
+
+	assert.Equal(t, vitals.VitalSign(51), m.Health(),
+		"regen step must come from the configured rate, not the old hardcoded one")
+}
+
+func TestSetHealthGainTick_NonPositiveKeepsBuiltInDefault(t *testing.T) {
+	t.Cleanup(func() { SetHealthGainTick(0) })
+
+	SetHealthGainTick(0.5)
+	SetHealthGainTick(0) // absent in conf.json → the default must survive
+	assert.Equal(t, float32(defaultMobHealthGainTick), healthGainTick)
+
+	SetHealthGainTick(-1)
+	assert.Equal(t, float32(defaultMobHealthGainTick), healthGainTick)
 }
 
 // --- transient resist buffs (item 11 Phase 2 Step 3) ---

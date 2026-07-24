@@ -91,6 +91,24 @@ func main() {
 	mob.SeedProcess(mobSalt)
 	slog.Info("🎲 mob RNG salt", slog.Int64("salt", mobSalt))
 
+	// Boot-time tuning knobs that live behind package-level setters rather than
+	// on an entity/system (backlog §27.2.3 + §25 B). Both take effect before any
+	// mob spawns or any hit is composed; both fall back to their built-in
+	// defaults when the conf block is absent.
+	mob.SetHealthGainTick(config.Game.Mob.HealthGainTick)
+	combat := cfg.CombatConfig{
+		DefaultCritFactor:  config.Game.Combat.DefaultCritFactor,
+		HealerThreatFactor: config.Game.Combat.HealerThreatFactor,
+	}
+	sys.SetCombatFactors(combat)
+	// Logged post-normalization: these live behind setters rather than in the
+	// GameConfig dump, so this is the only place an operator can see what a
+	// missing conf block actually resolved to.
+	slog.Info("🎚️ tuning knobs",
+		slog.Float64("mob.healthGainTick", float64(mob.HealthGainTick())),
+		slog.Float64("combat.defaultCritFactor", float64(combat.CritFactor())),
+		slog.Float64("combat.healerThreatFactor", float64(combat.HealerThreat())))
+
 	g, err := core.NewGameWith(
 		rnd.Int63(),
 		core.Config(config),

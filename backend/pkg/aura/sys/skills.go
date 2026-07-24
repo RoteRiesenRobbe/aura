@@ -8,6 +8,7 @@ import (
 
 	"github.com/EngoEngine/ecs"
 	"github.com/google/uuid"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -587,17 +588,29 @@ func berserkerMultiplier(d *skills.DamageParams, acting any) float32 {
 	return d.BerserkerMultiplier(h.HealthRatio())
 }
 
-// defaultCritFactor multiplies crits on effects without an authored
-// critFactor (§4.3 v2, PO 2026-07-20). Authored factors win. [PLACEHOLDER ×2]
-const defaultCritFactor = 2.0
+// combatFactors is the game.combat block (backlog §25 B). It is package-level
+// rather than a SkillSystem field because both readers below sit in FREE
+// functions — applyDamageAura/applyMobDamageAura and their 58 in-package test
+// call sites would all have to grow a parameter that is the same value
+// everywhere. Set once at boot via SetCombatFactors, exactly like
+// mob.SetHealthGainTick and mob.SeedProcess; the zero value left in tests and
+// the sim harness resolves to the built-in defaults through the accessors, so
+// those paths keep today's numbers with no wiring at all.
+var combatFactors cfg.CombatConfig
 
-// casterCritChance is the acting caster's own crit chance (§4.3 v2, PO
-// 2026-07-20): the flat character base (players only — mobs and summons have
-// none) plus the derived critChance stat from equipped passives. The effect's
-// authored (level-scaled) chance adds on top at the apply sites. The ACTING
-// entity's own stats drive vocabulary (the berserker precedent), so a summon
-// never inherits its owner's base or stat. Non-skill test doubles simply roll
-// unboosted.
+// SetCombatFactors wires the game.combat knobs. Call once at server boot,
+// before the loop starts; not safe to mutate concurrently with a running game.
+func SetCombatFactors(c cfg.CombatConfig) { combatFactors = c }
+
+// critFactor multiplies crits on effects without an authored critFactor
+// (§4.3 v2, PO 2026-07-20). Authored factors win.
+func critFactor() float32 { return combatFactors.CritFactor() }
+
+// healerThreatFactor weights landed healing into threat (§6.3, decided
+// 2026-07-10): a landed heal credits the healer with healedHP × factor on every
+// mob currently in combat with the heal target.
+func healerThreatFactor() float32 { return combatFactors.HealerThreat() }
+
 // casterDamageFactor is the acting caster's outgoing-damage multiplier from
 // the derived damageDealt stat (Strong, triage 2026-07-21): 1 + bonus. Like
 // casterCritChance, the ACTING entity's own stats drive it — a summon never
@@ -614,6 +627,13 @@ func casterDamageFactor(acting any) float32 {
 	return 1
 }
 
+// casterCritChance is the acting caster's own crit chance (§4.3 v2, PO
+// 2026-07-20): the flat character base (players only — mobs and summons have
+// none) plus the derived critChance stat from equipped passives. The effect's
+// authored (level-scaled) chance adds on top at the apply sites. The ACTING
+// entity's own stats drive vocabulary (the berserker precedent), so a summon
+// never inherits its owner's base or stat. Non-skill test doubles simply roll
+// unboosted.
 func casterCritChance(acting any) float32 {
 	var chance float32
 	if p, ok := acting.(model.PlayerEntity); ok {
@@ -653,7 +673,7 @@ func rollHitDamage(base float32, d *skills.DamageParams, c phy.Collider, rng *ra
 		crit = true
 		factor := d.CritFactor
 		if factor == 0 {
-			factor = defaultCritFactor
+			factor = critFactor()
 		}
 		hp *= factor
 	}
@@ -832,11 +852,6 @@ func applyHotAura(e skillEntity, source skills.SkillID, level int, effect skills
 	}
 }
 
-// healerThreatFactor [PLACEHOLDER] weights healing into threat (§6.3, decided
-// 2026-07-10): a landed heal credits the healer with healedHP × factor on
-// every mob currently in combat with the heal target.
-const healerThreatFactor = 0.5
-
 // threatReceiver is the mob-side crediting seam (concrete *mob.Mob; kept as a
 // local interface so fakes can observe the credit in tests).
 type threatReceiver interface {
@@ -861,7 +876,7 @@ func (s *SkillSystem) creditHealerThreat(healedID uint64, healer model.Combatant
 	if healedHP <= 0 || !healerTargetable(healer) {
 		return
 	}
-	amount := healedHP * healerThreatFactor
+	amount := healedHP * healerThreatFactor()
 	for _, e := range s.entities {
 		if t, ok := e.(threatReceiver); ok && (t.HasThreat(healedID) || t.TargetsEntity(healedID)) {
 			t.NoteThreat(healer, amount)

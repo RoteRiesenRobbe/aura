@@ -17,6 +17,15 @@
       "levelUpXPGrowthFactor": 1.2,
       "skillPointsPerLevel": 1,
       "critChance": 0.05
+    },
+    "mob": {
+      "_comment": "Stats mobs share with the player block, same names + same units (backlog §27.2.3). healthGainTick is out-of-combat regen as a fraction of the max pool per tick; 0.0166667 = full pool in ~2 s, the value this was hardcoded to. [PLACEHOLDER]",
+      "healthGainTick": 0.0166667
+    },
+    "combat": {
+      "_comment": "Factors that apply to EVERY acting entity — player, mob, summon (backlog §25 B). Absent = the built-in defaults below. [PLACEHOLDER]",
+      "defaultCritFactor": 2.0,
+      "healerThreatFactor": 0.5
     }
   }
 }

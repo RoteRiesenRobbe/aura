@@ -2590,7 +2590,7 @@ func TestApplyHealAura_CreditsHealerThreatOnMobsFightingTarget(t *testing.T) {
 
 	require.Len(t, fighting.sources, 1, "a mob in combat with the heal target learns of the heal")
 	assert.Same(t, any(healer), any(fighting.sources[0]))
-	assert.InDelta(t, 10*healerThreatFactor, fighting.amounts[0], 1e-6,
+	assert.InDelta(t, 10*cfg.DefaultHealerThreatFactor, fighting.amounts[0], 1e-6,
 		"healer threat = actually-healed HP × factor (§6.3)")
 	assert.Empty(t, idle.sources, "a mob not fighting the target never learns of the heal")
 }
@@ -3068,7 +3068,7 @@ func TestApplyDamageAura_StatCritUsesDefaultFactorAndFlag(t *testing.T) {
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
-	assert.InDelta(t, 10.0*defaultCritFactor, target.touches[0], 1e-4)
+	assert.InDelta(t, 10.0*cfg.DefaultCritFactor, target.touches[0], 1e-4)
 	require.Len(t, target.crits, 1)
 	assert.True(t, target.crits[0], "stat-driven crits ride the same Damage.Crit flag")
 }
@@ -3142,7 +3142,7 @@ func TestApplyDamageAura_CharacterBaseCritFromConfig(t *testing.T) {
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
-	assert.InDelta(t, 10.0*defaultCritFactor, target.touches[0], 1e-4)
+	assert.InDelta(t, 10.0*cfg.DefaultCritFactor, target.touches[0], 1e-4)
 	assert.True(t, target.crits[0])
 }
 
@@ -3194,7 +3194,7 @@ func TestApplyDamageAura_MobCasterReadsOwnStatCrit(t *testing.T) {
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.factors, 1)
-	assert.InDelta(t, 10.0*defaultCritFactor, target.factors[0].Damage, 1e-4)
+	assert.InDelta(t, 10.0*cfg.DefaultCritFactor, target.factors[0].Damage, 1e-4)
 	assert.True(t, target.factors[0].Crit)
 }
 
@@ -3830,4 +3830,45 @@ func TestApplyDamageAura_OwnedCaster_ComposesOwnerCurveScale(t *testing.T) {
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 30, target.touches[0], 1e-6, "10 HP × power 1.5 × owner f 2")
+}
+
+// --- combat factors are conf knobs (backlog §25 B) ---
+//
+// defaultCritFactor and healerThreatFactor used to be Go consts needing a
+// rebuild, while the critChance one of them multiplies was already a conf.json
+// value — the same mechanic on two workflows. They are now game.combat entries,
+// read through accessors that normalize a zero value back to the built-in
+// default so hand-built GameConfigs (the sim harness, most tests here) and a
+// nil game keep today's behaviour exactly.
+
+func TestCombatFactors_ZeroValueFallsBackToBuiltInDefaults(t *testing.T) {
+	t.Cleanup(func() { SetCombatFactors(cfg.CombatConfig{}) })
+
+	SetCombatFactors(cfg.CombatConfig{}) // conf.json without a game.combat block
+	assert.Equal(t, float32(cfg.DefaultCritFactor), critFactor())
+	assert.Equal(t, float32(cfg.DefaultHealerThreatFactor), healerThreatFactor())
+}
+
+func TestCombatFactors_ComeFromConfig(t *testing.T) {
+	t.Cleanup(func() { SetCombatFactors(cfg.CombatConfig{}) })
+
+	SetCombatFactors(cfg.CombatConfig{DefaultCritFactor: 3.5, HealerThreatFactor: 0.25})
+	assert.Equal(t, float32(3.5), critFactor())
+	assert.Equal(t, float32(0.25), healerThreatFactor())
+}
+
+// The configured factor must reach the actual hit composition, not just the
+// accessor — this is the pin that would fail if rollHitDamage kept a const.
+func TestApplyDamageAura_ConfiguredCritFactorDrivesTheHit(t *testing.T) {
+	t.Cleanup(func() { SetCombatFactors(cfg.CombatConfig{}) })
+	SetCombatFactors(cfg.CombatConfig{DefaultCritFactor: 5})
+
+	target := &touchRecorder{}
+	effect := damageEffect(1)
+	effect.Damage = &skills.DamageParams{HP: 10, CritChance: 1} // always crits, authors no factor
+
+	applyDamageAura(newFakePlayer(), 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 50.0, target.touches[0], 1e-4, "10 HP × the configured factor 5")
 }

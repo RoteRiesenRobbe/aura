@@ -31,6 +31,38 @@ var processSalt int64
 // split.
 func SeedProcess(salt int64) { processSalt = salt }
 
+// defaultMobHealthGainTick is the built-in out-of-combat regen rate: a fraction
+// of the mob's max pool per tick, i.e. the full pool in ~2 seconds. It is the
+// value this was hardcoded to before it became a conf knob (backlog §27.2.3).
+const defaultMobHealthGainTick = 1.0 / (2 * constant.TicksPerSecond)
+
+// healthGainTick is the out-of-combat regen rate in the SAME unit as the
+// player's game.player.healthGainTick — a fraction of maxHealth per tick — so
+// the two mechanics are one vocabulary in two config blocks. Set once at boot
+// via SetHealthGainTick; left at the default in tests and the sim harness.
+//
+// Note the deliberate asymmetry: the player's rate is additionally scaled by
+// regenTaper(level) while a mob's is flat. That is one of the divergences
+// backlog §31 tracks toward a shared entity stat block.
+var healthGainTick float32 = defaultMobHealthGainTick
+
+// SetHealthGainTick sets the out-of-combat regen rate for every mob. Call once
+// at server boot, before any mob spawns; not safe to mutate concurrently with
+// live spawns. A non-positive value (an absent conf entry) restores the
+// built-in default rather than disabling regen — normalized here at the single
+// write point, so no read site has to re-check it.
+func SetHealthGainTick(fractionPerTick float32) {
+	if fractionPerTick <= 0 {
+		healthGainTick = defaultMobHealthGainTick
+		return
+	}
+	healthGainTick = fractionPerTick
+}
+
+// HealthGainTick is the effective regen rate after normalization — the value a
+// boot log should report, since a missing conf entry resolves to the default.
+func HealthGainTick() float32 { return healthGainTick }
+
 // mobRNGSeed derives a mob's RNG seed from the process salt and its entity ID.
 // The salt shifts the whole sequence per run (per-run randomness); the ID keeps
 // streams independent even for mobs constructed in the same instant, so one
@@ -615,9 +647,10 @@ func (m *Mob) Update(dt float32) bool {
 	} else {
 		m.resetChaseWatchdog()
 		m.updateIdleMovement()
-		// Heal to full in ~2 seconds while out of combat (absolute HP, item 11).
+		// Heal out of combat at the configured fraction of the pool per tick
+		// (absolute HP, item 11; rate is game.mob.healthGainTick, §27.2.3).
 		if m.health < m.maxHealth {
-			regen := vitals.HP(float32(m.maxHealth) / (2 * constant.TicksPerSecond))
+			regen := vitals.HP(float32(m.maxHealth) * healthGainTick)
 			m.health = m.health.AddCapped(regen, m.maxHealth)
 		}
 		// Back at full health with no aggro = combat over; earlier
