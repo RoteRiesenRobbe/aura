@@ -20,6 +20,24 @@ let rotatingObjects = new Set();
 const TELEPORT_SNAP_DISTANCE_PX = 180;
 const TELEPORT_SNAP_DISTANCE_PX_SQUARED = TELEPORT_SNAP_DISTANCE_PX * TELEPORT_SNAP_DISTANCE_PX;
 
+// How far in the past the world is rendered (plan-render-jitter.md Lever B).
+// Buffered interpolation lerps between the two snapshots that bracket
+// `now − RENDER_DELAY_MS`, so the "next" sample the lerp needs is already in
+// hand and arrival jitter up to this window is invisible. Sized from the live
+// [snapshot-arrival] measurement over the 33.3 ms (30 Hz) baseline: p99 ≈ 42 ms,
+// max ≈ 72 ms. Two snapshot intervals (~66.7 ms) absorb the p99 comfortably and
+// all but the rarest outlier; a deeper delay only adds visual latency. On
+// underrun (no bracketing sample) the object freezes at its newest known
+// position — never extrapolated, which would guess a walker into walls/auras.
+// [PLACEHOLDER — retune against a fresh p99 if the link's jitter profile shifts]
+const RENDER_DELAY_TICKS = 2;
+const RENDER_DELAY_MS = RENDER_DELAY_TICKS * Constants.SERVER_TICKRATE;
+
+// Upper bound on buffered samples per object. The frame loop keeps the live
+// buffer at ~RENDER_DELAY_TICKS + 1; this only caps growth when the render
+// frame loop is throttled (backgrounded tab) while snapshots keep landing.
+const MAX_POSITION_SAMPLES = 12;
+
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
     Game = game;
@@ -70,8 +88,11 @@ export abstract class GameObject {
     private messagesFollowGroup: Container = null;
     private messagesSubToken: ISubscriptionToken = null;
 
-    desiredPosition: Vector;
-    desireTimestamp: number;
+    // Buffered snapshot samples for render-delay interpolation (Lever B):
+    // each server position tagged with its client receive time, oldest first.
+    // moveInterpolatedObjects() renders between the two entries that bracket
+    // `now − RENDER_DELAY_MS`; consumed samples are shifted off there.
+    positionBuffer: { x: number, y: number, t: number }[] = [];
 
     desiredRotation: number;
     desiredRotationTimestamp: number;
@@ -133,9 +154,15 @@ export abstract class GameObject {
             throw "y has to be defined.";
         }
 
-        if (isDefined(this.desiredPosition) && //
-            nearlyEqual(this.desiredPosition.x, x, 0.01) && //
-            nearlyEqual(this.desiredPosition.y, y, 0.01)) {
+        const buffer = this.positionBuffer;
+        const newest = buffer.length > 0 ? buffer[buffer.length - 1] : null;
+        // Reference for dedupe + teleport test: the last known SERVER position
+        // (newest sample), or — when the buffer is idle/empty — the current
+        // rendered position. A stationary entity still ticks a snapshot every
+        // frame; ignoring the repeat lets it settle in place.
+        const refX = newest !== null ? newest.x : this.shape.position.x;
+        const refY = newest !== null ? newest.y : this.shape.position.y;
+        if (nearlyEqual(refX, x, 0.01) && nearlyEqual(refY, y, 0.01)) {
             return false;
         }
 
@@ -144,19 +171,37 @@ export abstract class GameObject {
         }
 
         if (Constants.MOVEMENT_INTERPOLATION) {
-            // Teleport snap (skill-vocab chunk 4): a delta far beyond any
-            // per-tick movement (Recall, dash) must jump, not glide — the
-            // lerp would smear the character across the distance for a tick.
-            const dx = x - this.shape.position.x;
-            const dy = y - this.shape.position.y;
+            const now = performance.now();
+
+            // Teleport snap (skill-vocab chunk 4): a server jump far beyond any
+            // per-tick movement (Recall, dash, respawn) must jump, not glide,
+            // and must bypass the render-delay buffer or the lerp would smear
+            // the character across the gap. Clear the buffer so the next
+            // ordinary sample re-seeds cleanly from the destination.
+            const dx = x - refX;
+            const dy = y - refY;
             if (dx * dx + dy * dy > TELEPORT_SNAP_DISTANCE_PX_SQUARED) {
                 this.shape.position.set(x, y);
-                this.desiredPosition = new Vector(x, y);
+                buffer.length = 0;
                 movementInterpolatedObjects.delete(this);
                 return true;
             }
-            this.desiredPosition = new Vector(x, y); //.sub(this.shape.position);
-            this.desireTimestamp = performance.now();
+
+            // Restarting from idle (or first sample): seed a synthetic left
+            // anchor at the current rendered position, timestamped one render
+            // delay back, so the very next frame renders exactly where the
+            // object already is and interpolation ramps up smoothly instead of
+            // snapping to the new sample. (plan-render-jitter.md Lever B)
+            if (buffer.length === 0) {
+                buffer.push({x: this.shape.position.x, y: this.shape.position.y, t: now - RENDER_DELAY_MS});
+            }
+            buffer.push({x, y, t: now});
+            // Safety cap (the frame loop trims consumed samples; this only bites
+            // if rAF is throttled — e.g. a backgrounded tab — while snapshots
+            // keep arriving).
+            if (buffer.length > MAX_POSITION_SAMPLES) {
+                buffer.shift();
+            }
             movementInterpolatedObjects.add(this);
         } else {
             this.shape.position.set(x, y);
@@ -554,25 +599,55 @@ export abstract class GameObject {
 }
 
 
+// Buffered render-delay interpolation (plan-render-jitter.md Lever B): render
+// the world RENDER_DELAY_MS in the past, lerping at constant velocity between
+// the two buffered snapshots that bracket that render time. Because the "next"
+// sample needed for the lerp is already in hand, snapshot arrival jitter up to
+// the render delay is invisible — the downstream analog of the input coast.
 function moveInterpolatedObjects() {
-    let now = performance.now();
+    let renderTime = performance.now() - RENDER_DELAY_MS;
 
     movementInterpolatedObjects.forEach(
         /**
-         *
          * @param {GameObject} gameObject
          */
         function (gameObject: GameObject) {
-            let elapsedTimePortion = (now - gameObject.desireTimestamp) / Constants.SERVER_TICKRATE;
-            if (elapsedTimePortion >= 1) {
-                gameObject.shape.position.copyFrom(gameObject.desiredPosition);
-                movementInterpolatedObjects.delete(gameObject);
-            } else {
-                gameObject.shape.position.copyFrom(
-                    Vector.clone(gameObject.shape.position).lerp(
-                        gameObject.desiredPosition,
-                        elapsedTimePortion));
+            const buffer = gameObject.positionBuffer;
+
+            // Drop samples fully behind renderTime, keeping the last one at or
+            // before it as the interpolation's left anchor.
+            while (buffer.length >= 2 && buffer[1].t <= renderTime) {
+                buffer.shift();
             }
+
+            if (buffer.length === 0) {
+                movementInterpolatedObjects.delete(gameObject);
+                return;
+            }
+
+            const a = buffer[0];
+            if (buffer.length < 2 || renderTime <= a.t) {
+                // Underrun (no bracketing newer sample yet) or renderTime still
+                // before the oldest sample: hold at the known position — never
+                // extrapolate, which would guess a walker into walls/auras.
+                gameObject.shape.position.set(a.x, a.y);
+                // Fully caught up to a lone sample → settle and stop consuming
+                // frames until a new snapshot re-adds this object.
+                if (buffer.length === 1 && renderTime >= a.t) {
+                    buffer.length = 0;
+                    movementInterpolatedObjects.delete(gameObject);
+                }
+                gameObject.onMove();
+                return;
+            }
+
+            const b = buffer[1];
+            const span = b.t - a.t;
+            const portion = span > 0 ? (renderTime - a.t) / span : 1;
+            gameObject.shape.position.set(
+                a.x + (b.x - a.x) * portion,
+                a.y + (b.y - a.y) * portion,
+            );
             gameObject.onMove();
         });
 }
