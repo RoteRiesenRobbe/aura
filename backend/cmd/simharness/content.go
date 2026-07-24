@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
-	aitems "github.com/RoteRiesenRobbe/aura/pkg/api/items"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
@@ -45,32 +44,32 @@ type playerAuraPreset struct {
 // below 100, mob skills (api/skills/mobs/) number from 101.
 const firstMobSkillID skills.SkillID = 100
 
-// contentFS resolves the four content filesystems: the embedded pkg/api
+// contentFS resolves the three content filesystems: the embedded pkg/api
 // copies by default (synced from api/ via `make cp-defs`), or a live
 // api/-layout directory when contentDir is set — the aurad -content
 // convention, so content edits show up on a harness restart without cp-defs.
-func contentFS(contentDir string) (itemsFS, skillsFS, factionsFS, mobsFS fs.FS, err error) {
-	itemsFS, skillsFS, factionsFS, mobsFS = fs.FS(aitems.Items), fs.FS(askills.Skills), fs.FS(afactions.Factions), fs.FS(amobs.Mobs)
+func contentFS(contentDir string) (skillsFS, factionsFS, mobsFS fs.FS, err error) {
+	skillsFS, factionsFS, mobsFS = fs.FS(askills.Skills), fs.FS(afactions.Factions), fs.FS(amobs.Mobs)
 	if contentDir == "" {
-		return itemsFS, skillsFS, factionsFS, mobsFS, nil
+		return skillsFS, factionsFS, mobsFS, nil
 	}
 	root := os.DirFS(contentDir)
 	for _, s := range []struct {
 		name string
 		dst  *fs.FS
 	}{
-		{"items", &itemsFS}, {"skills", &skillsFS}, {"factions", &factionsFS}, {"mobs", &mobsFS},
+		{"skills", &skillsFS}, {"factions", &factionsFS}, {"mobs", &mobsFS},
 	} {
 		sub, err := fs.Sub(root, s.name)
 		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("content dir %q: %w", contentDir, err)
+			return nil, nil, nil, fmt.Errorf("content dir %q: %w", contentDir, err)
 		}
 		if _, err := fs.Stat(sub, "."); err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("content dir %q: %w", contentDir, err)
+			return nil, nil, nil, fmt.Errorf("content dir %q: %w", contentDir, err)
 		}
 		*s.dst = sub
 	}
-	return itemsFS, skillsFS, factionsFS, mobsFS, nil
+	return skillsFS, factionsFS, mobsFS, nil
 }
 
 // loadContent builds the real registries once and returns the authored mob
@@ -78,7 +77,7 @@ func contentFS(contentDir string) (itemsFS, skillsFS, factionsFS, mobsFS fs.FS, 
 // curve.Default = what a conf without the keys boots with, so they match what
 // the live game would spawn) plus the skill registry.
 func loadContent(contentDir string) ([]*mobs.MobDefinition, skills.Registry, error) {
-	_, skillsFS, factionsFS, mobsFS, err := contentFS(contentDir)
+	skillsFS, factionsFS, mobsFS, err := contentFS(contentDir)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -159,7 +158,7 @@ func playerAuraSpecByName(contentDir, ref string) (sim.AuraSpec, error) {
 		}
 	}
 
-	_, skillsFS, _, _, err := contentFS(contentDir)
+	skillsFS, _, _, err := contentFS(contentDir)
 	if err != nil {
 		return sim.AuraSpec{}, err
 	}

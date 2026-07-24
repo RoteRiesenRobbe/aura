@@ -13,7 +13,6 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/spectator"
@@ -172,7 +171,6 @@ func (g *stateFakeGame) Skills() skills.Registry                     { return g.
 func (g *stateFakeGame) Handler() http.Handler                       { panic("unused") }
 func (g *stateFakeGame) Loop()                                       { panic("unused") }
 func (g *stateFakeGame) GetEntity(uint64) (model.BasicEntity, error) { panic("unused") }
-func (g *stateFakeGame) Items() items.Registry                       { panic("unused") }
 func (g *stateFakeGame) Mobs() mobs.Registry                         { panic("unused") }
 
 // newStateFixture wires a ConnectionStateSystem to a fake game and returns both.

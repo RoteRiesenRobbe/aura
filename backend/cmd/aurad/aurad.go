@@ -61,7 +61,6 @@ func main() {
 	slog.Info("Loading content", slog.String("source", contentSource))
 
 	config := loadConf()
-	itemsRegistry := loadItems(content.items)
 	skillsRegistry := loadSkills(content.skills)
 	factionsRegistry := loadFactions(content.factions)
 	levelCurve := curve.Curve{Growth: config.Game.Player.LevelGrowth, MaxLevel: config.Game.Player.MaxLevel}
@@ -95,7 +94,7 @@ func main() {
 	g, err := core.NewGameWith(
 		rnd.Int63(),
 		core.Config(config),
-		core.Registries(itemsRegistry, mobsRegistry),
+		core.Registries(mobsRegistry),
 		core.SkillRegistry(skillsRegistry),
 		core.MilestoneUnlocks(milestoneUnlocks),
 		core.Recipes(recipeRegistry),

@@ -3,7 +3,6 @@ package core
 import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -49,9 +48,8 @@ func Config(conf *cfg.Config) Configuration {
 	}
 }
 
-func Registries(r items.Registry, m mobs.Registry) Configuration {
+func Registries(m mobs.Registry) Configuration {
 	return func(g *cfg.GameConfig) error {
-		g.ItemRegistry = r
 		g.MobRegistry = m
 		return nil
 	}

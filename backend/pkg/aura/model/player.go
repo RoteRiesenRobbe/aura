@@ -3,7 +3,6 @@ package model
 import (
 	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -15,7 +14,6 @@ type PlayerVitalSigns struct {
 
 type Hand struct {
 	Collider phy.DynamicCollider
-	Item     items.Item
 }
 
 type Stats struct {

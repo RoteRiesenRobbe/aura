@@ -14,7 +14,6 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/encounter"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -36,7 +35,6 @@ type game struct {
 	ecs.World
 	Tick          uint64
 	config        *cfg.GameConfig
-	itemRegistry  items.Registry
 	mobRegistry   mobs.Registry
 	skillRegistry skills.Registry
 
@@ -76,7 +74,6 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 		entities:      make(entitiesMap),
 		joinQueue:     make(chan model.Client, 16),
 		mobRegistry:   gc.MobRegistry,
-		itemRegistry:  gc.ItemRegistry,
 		skillRegistry: gc.SkillRegistry,
 		boundsWidth:   gc.Bounds.Width,
 		boundsHeight:  gc.Bounds.Height,
@@ -189,10 +186,6 @@ func (g *game) PlayerCount() int {
 
 func (g *game) Bounds() (width, height float32) {
 	return g.boundsWidth, g.boundsHeight
-}
-
-func (g *game) Items() items.Registry {
-	return g.itemRegistry
 }
 
 func (g *game) Mobs() mobs.Registry {

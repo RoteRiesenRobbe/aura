@@ -5,7 +5,6 @@ import (
 
 	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
@@ -26,9 +25,6 @@ type Game interface {
 
 	// Finds an entity by its id
 	GetEntity(id uint64) (BasicEntity, error)
-
-	// Items returns the registry with all available item definitions
-	Items() items.Registry
 
 	// Mobs returns the registry with all available mob definitions
 	Mobs() mobs.Registry

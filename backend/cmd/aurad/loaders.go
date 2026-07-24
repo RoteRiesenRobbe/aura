@@ -15,7 +15,6 @@ import (
 	"github.com/google/uuid"
 
 	afactions "github.com/RoteRiesenRobbe/aura/pkg/api/factions"
-	aitems "github.com/RoteRiesenRobbe/aura/pkg/api/items"
 	amilestones "github.com/RoteRiesenRobbe/aura/pkg/api/milestones"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 	aprops "github.com/RoteRiesenRobbe/aura/pkg/api/props"
@@ -25,7 +24,6 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -39,7 +37,6 @@ import (
 // covered here — keep it that way, or a content edit silently no-ops until
 // someone remembers the rebuild.
 type contentSources struct {
-	items      fs.FS
 	mobs       fs.FS
 	skills     fs.FS
 	recipes    fs.FS
@@ -51,7 +48,6 @@ type contentSources struct {
 
 func embeddedContent() contentSources {
 	return contentSources{
-		items:      aitems.Items,
 		mobs:       amobs.Mobs,
 		skills:     askills.Skills,
 		recipes:    arecipes.Recipes,
@@ -63,7 +59,7 @@ func embeddedContent() contentSources {
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
-// (items/, mobs/, skills/, recipes/, zones/, props/, factions/, milestones/). Missing subdirectories
+// (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/). Missing subdirectories
 // hard-fail here — content errors are loud, matching the registry ethos.
 func diskContent(dir string) (contentSources, error) {
 	root := os.DirFS(dir)
@@ -76,9 +72,6 @@ func diskContent(dir string) (contentSources, error) {
 
 	var c contentSources
 	var err error
-	if c.items, err = sub("items"); err != nil {
-		return contentSources{}, err
-	}
 	if c.mobs, err = sub("mobs"); err != nil {
 		return contentSources{}, err
 	}
@@ -143,23 +136,6 @@ func loadMobs(sr skills.Registry, fr factions.Registry, c curve.Curve, fsys fs.F
 				slog.String("mob", m.Name),
 				slog.String("refs", strings.Join(m.LegacyRefs, ", ")))
 		}
-	}
-	return registry
-}
-
-// loadItems parses the item definitions from the definition files
-func loadItems(fsys fs.FS) items.Registry {
-	registry, err := items.RegistryFromFS(fsys)
-	if err != nil {
-		slog.Error("failed to load items", slog.Any("err", err))
-		panic(err)
-	}
-
-	itemList := registry.Items()
-	slog.Info("Loaded item definitions", slog.Int("count", len(itemList)))
-	sort.Sort(items.ByID(itemList))
-	for _, i := range itemList {
-		slog.Debug(fmt.Sprintf("%3d: %s (%d)", i.ID, i.Name, i.Type))
 	}
 	return registry
 }

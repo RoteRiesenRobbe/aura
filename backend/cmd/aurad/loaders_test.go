@@ -10,7 +10,6 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -24,10 +23,6 @@ import (
 func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	content, err := diskContent("../../../api")
 	require.NoError(t, err)
-
-	itemsRegistry, err := items.RegistryFromFS(content.items)
-	require.NoError(t, err)
-	assert.NotEmpty(t, itemsRegistry.Items())
 
 	skillsRegistry, err := skills.RegistryFromFS(content.skills)
 	require.NoError(t, err)

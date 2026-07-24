@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
@@ -196,10 +195,9 @@ func (g *simGame) Bounds() (float32, float32) {
 	return g.config.Bounds.Width, g.config.Bounds.Height
 }
 
-// Items / Mobs are unused by the sim's system set (no crafting, no spawn
-// effect in chunk 1); nil keeps an accidental dependency loud.
-func (g *simGame) Items() items.Registry { return nil }
-func (g *simGame) Mobs() mobs.Registry   { return nil }
+// Mobs is unused by the sim's system set (no spawn effect in chunk 1); nil
+// keeps an accidental dependency loud.
+func (g *simGame) Mobs() mobs.Registry { return nil }
 
 // Handler / Loop belong to the net layer the sim deliberately does not
 // stand up (plan §2).

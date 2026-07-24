@@ -19,7 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/corpse"
@@ -43,7 +42,6 @@ type touchRecorder struct {
 	hitStyles  []model.AuraHitStyle
 }
 
-func (r *touchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item) {}
 func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)   {}
 func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	r.touches = append(r.touches, damage.HP)
@@ -230,7 +228,6 @@ type playerTouchRecorder struct {
 
 func (p *playerTouchRecorder) Basic() ecs.BasicEntity                                { return p.basic }
 func (p *playerTouchRecorder) Faction() model.Faction                                { return model.FactionAligned }
-func (p *playerTouchRecorder) PlayerHitsWith(pl model.PlayerEntity, item items.Item) {}
 func (p *playerTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)    {}
 func (p *playerTouchRecorder) PlayerTouches(pl model.PlayerEntity, damage model.Damage) {
 	p.rec.PlayerTouches(pl, damage)
@@ -642,7 +639,6 @@ type mobTouchRecorder struct {
 	hitStyles []model.AuraHitStyle
 }
 
-func (r *mobTouchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item)    {}
 func (r *mobTouchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {}
 func (r *mobTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
 	r.factors = append(r.factors, factors)
@@ -844,7 +840,6 @@ type structureRecorder struct {
 	mobHits []mobs.Factors
 }
 
-func (r *structureRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item) {}
 func (r *structureRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
 	r.mobHits = append(r.mobHits, factors)
 }
@@ -2679,7 +2674,6 @@ type factionedMobTouchRecorder struct {
 	hits    []mobs.Factors
 }
 
-func (r *factionedMobTouchRecorder) PlayerHitsWith(p model.PlayerEntity, item items.Item)    {}
 func (r *factionedMobTouchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {}
 func (r *factionedMobTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {
 	r.hits = append(r.hits, factors)

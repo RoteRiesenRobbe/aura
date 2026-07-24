@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
@@ -56,7 +55,6 @@ func (g *fakeGame) Config() *cfg.GameConfig                     { return g.cfg }
 func (g *fakeGame) Handler() http.Handler                       { panic("unused") }
 func (g *fakeGame) Loop()                                       { panic("unused") }
 func (g *fakeGame) GetEntity(uint64) (model.BasicEntity, error) { panic("unused") }
-func (g *fakeGame) Items() items.Registry                       { panic("unused") }
 func (g *fakeGame) Mobs() mobs.Registry {
 	if g.mobReg == nil {
 		panic("unused")

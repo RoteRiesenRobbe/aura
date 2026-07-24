@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/items"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -25,7 +24,6 @@ type GameConfig struct {
 	// ZoneName is the active zone's identity (its file stem), sent to the
 	// client in the Welcome so it renders the matching terrain (chunk 6).
 	ZoneName         string
-	ItemRegistry     items.Registry
 	MobRegistry      mobs.Registry
 	SkillRegistry    skills.Registry
 	MilestoneUnlocks []skills.MilestoneUnlock
