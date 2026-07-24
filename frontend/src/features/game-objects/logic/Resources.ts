@@ -1,13 +1,11 @@
-import * as PIXI from 'pixi.js';
 import {Container, Graphics, Sprite, Texture, ViewContainer} from 'pixi.js';
 import {GameObject} from './_GameObject';
 import * as Preloading from '../../core/logic/Preloading';
-import {deg2rad, isDefined, randomRotation, TwoDimensional} from '../../common/logic/Utils';
+import {randomRotation, TwoDimensional} from '../../common/logic/Utils';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {IGame} from '../../core/logic/IGame';
 import {GameSetupEvent, ResourceStockChangedEvent} from '../../core/logic/Events';
-import {alea as SeedRandom} from 'seedrandom';
 import {StatusEffect} from './StatusEffect';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
 import './ResourceJuice';
@@ -68,7 +66,6 @@ export abstract class Resource extends GameObject implements IMiniMapRendered {
         return {
             Damaged: StatusEffect.forDamaged(this.shape),
             DamagedAmbient: StatusEffect.forDamagedOverTime(this.shape),
-            Yielded: StatusEffect.forYielded(this.shape),
         };
     }
 
@@ -121,17 +118,6 @@ export class RoundTree extends Tree {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(RoundTree, treeCfg.roundTreeFile, treeCfg.maxSize);
 
-export class MarioTree extends Tree {
-    static svg: Texture;
-
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, x, y, size, MarioTree.svg);
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(MarioTree, treeCfg.deciduousTreeFile, treeCfg.maxSize);
-
 export abstract class Mineral extends Resource {
     static resourceSpot: ISvgContainer = {svg: undefined};
     resourceSpotTexture: Sprite;
@@ -177,202 +163,6 @@ export class Stone extends Mineral {
 
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Stone, mineralCfg.stoneFile, mineralCfg.maxSize);
-
-export class Bronze extends Mineral {
-    static svg: Texture;
-
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, x, y, size, Bronze.svg);
-    }
-
-    createMinimapIcon() {
-        const miniMapCfg = GraphicsConfig.miniMap.icons.bronze;
-        return new Graphics()
-            .poly(TwoDimensional.makePolygon(this.size * miniMapCfg.sizeFactor, 5, true))
-            .fill({color: miniMapCfg.color, alpha: miniMapCfg.alpha});
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Bronze, mineralCfg.bronzeFile, mineralCfg.maxSize);
-
-export class Iron extends Mineral {
-    static svg: Texture;
-
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, x, y, size, Iron.svg);
-    }
-
-    createMinimapIcon() {
-        const miniMapCfg = GraphicsConfig.miniMap.icons.iron;
-        return new Graphics()
-            .poly(TwoDimensional.makePolygon(this.size * miniMapCfg.sizeFactor, 6, true))
-            .fill({color: miniMapCfg.color, alpha: miniMapCfg.alpha});
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Iron, mineralCfg.ironFile, mineralCfg.maxSize);
-
-export class Titanium extends Mineral {
-    static svg: Texture;
-
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, x, y, size, Titanium.svg);
-        this.visibleOnMinimap = false;
-    }
-
-    createMinimapIcon() {
-        const miniMapCfg = GraphicsConfig.miniMap.icons.titanium;
-        return new Graphics()
-            .poly(TwoDimensional.makePolygon(this.size * miniMapCfg.sizeFactor, 4, true))
-            .fill({color: miniMapCfg.color, alpha: miniMapCfg.alpha});
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Titanium, mineralCfg.titaniumFile, mineralCfg.maxSize);
-
-export class TitaniumShard extends Mineral {
-    static resourceSpot: ISvgContainer = {svg: undefined};
-    static svg: PIXI.Texture;
-
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, x, y, size - (GraphicsConfig.character.size * 0.5), TitaniumShard.svg);
-    }
-
-    protected createResourceSpotTexture(x: number, y: number) {
-        return createInjectedSVG(TitaniumShard.resourceSpot.svg, x, y, this.size * 0.9, this.rotation);
-    }
-
-    createMinimapIcon() {
-        const miniMapCfg = GraphicsConfig.miniMap.icons.titaniumShard;
-        return new Graphics()
-            .poly(TwoDimensional.makePolygon(this.size * miniMapCfg.sizeFactor, 3, true))
-            .fill({color: miniMapCfg.color, alpha: miniMapCfg.alpha});
-    }
-
-    get miniMapDynamic(): LevelOfDynamic {
-        return LevelOfDynamic.REMOVABLE_REMEMBERED;
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(TitaniumShard.resourceSpot, mineralCfg.shardSpotFile, mineralCfg.shardMaxSize);
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(TitaniumShard, mineralCfg.titaniumShardFile, mineralCfg.shardMaxSize);
-
-
-const berryBushCfg = GraphicsConfig.resources.berryBush;
-
-export class BerryBush extends Resource {
-    static svg: Texture;
-    static berry: ISvgContainer = {svg: undefined};
-    // It's the little black cross on top of berries
-    static calyx: ISvgContainer = {svg: undefined};
-
-    actualShape: Container;
-    berries: Container;
-
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.berryBush, x, y, size, 0, BerryBush.svg);
-    }
-
-    initShape(svg: Texture, x: number, y: number, size: number, rotation: number) {
-        const group = new Container();
-        group.position.set(x, y);
-
-        this.actualShape = super.initShape(svg, 0, 0, size, rotation);
-        group.addChild(this.actualShape);
-
-        return group;
-    }
-
-    createMinimapIcon() {
-        const miniMapCfg = GraphicsConfig.miniMap.icons.berryBush;
-        return new Graphics()
-            .circle(0, 0, this.size * miniMapCfg.sizeFactor)
-            .fill({color: miniMapCfg.color, alpha: miniMapCfg.alpha});
-    }
-
-    onStockChange(newStock: number, oldStock: number) {
-        if (isDefined(this.berries)) {
-            this.berries.parent.removeChild(this.berries);
-        }
-
-        this.berries = new Container();
-        this.shape.addChild(this.berries);
-
-        // Seed a random generator with the ID of the game object to make sure it always looks the same
-        const seedRandom = new SeedRandom(this.id);
-
-        for (let i = 0; i < this.capacity; i++) {
-            if (i >= newStock) {
-                break;
-            }
-
-            const berrySize = this.random(seedRandom, berryBushCfg.berryMinSize, berryBushCfg.berryMaxSize);
-
-            const distance = this.random(seedRandom, 0.2, 0.4) * this.size;
-            const x = Math.cos(Math.PI * 2 / this.capacity * i) * distance;
-            const y = Math.sin(Math.PI * 2 / this.capacity * i) * distance;
-            const berry = createInjectedSVG(BerryBush.berry.svg, x, y, berrySize);
-            this.berries.addChild(berry);
-
-            const calyx = createInjectedSVG(BerryBush.calyx.svg, x, y, berrySize, this.random(seedRandom, deg2rad(-65), deg2rad(220)));
-            this.berries.addChild(calyx);
-        }
-        ResourceStockChangedEvent.trigger({
-            entityType: this.constructor.name,
-            newStock: newStock,
-            oldStock: oldStock,
-            position: this.getPosition(),
-        });
-    }
-
-    random(rng: () => number, min: number, max: number) {
-        return rng() * (max - min) + min;
-    }
-}
-
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(BerryBush, berryBushCfg.bushFile, berryBushCfg.maxSize);
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(BerryBush.berry, berryBushCfg.berryFile, berryBushCfg.berryMaxSize);
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(BerryBush.calyx, berryBushCfg.calyxFile, berryBushCfg.berryMaxSize);
-
-export class Flower extends Resource {
-    static resourceSpot = {
-        svg: null as Texture,
-    };
-    resourceSpotTexture: Sprite;
-
-    static svg: Texture;
-
-    constructor(id: number, x: number, y: number, size: number) {
-        super(id, Game.layers.resources.berryBush, x, y, size, randomRotation(), Flower.svg);
-        this.visibleOnMinimap = false;
-
-        this.resourceSpotTexture = createInjectedSVG(Flower.resourceSpot.svg, x, y, this.size * 1.667, randomRotation());
-        Game.layers.terrain.resourceSpots.addChild(this.resourceSpotTexture);
-    }
-
-    hide() {
-        this.resourceSpotTexture.parent.removeChild(this.resourceSpotTexture);
-        super.hide();
-    }
-
-    createMinimapIcon(): ViewContainer {
-        throw new Error('Method not implemented.');
-    }
-}
-
-const flowerCfg = GraphicsConfig.resources.flower;
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Flower.resourceSpot, flowerCfg.spotFile, flowerCfg.maxSize);
-// noinspection JSIgnoredPromiseFromCall
-Preloading.registerGameObjectSVG(Flower, flowerCfg.file, flowerCfg.maxSize);
 
 // The rect-bodied house prop (content pass C1). Props ride the Resource wire
 // table, whose single size scalar is the max half-extent of the rect body —
@@ -420,6 +210,25 @@ Preloading.registerGameObjectSVG(House, houseCfg.file, houseCfg.maxSize);
 // Resource-backed circle-bodied NPC sprites, picked by the zone-JSON npc
 // entityType (server-side npc.SpriteFor). NPCs ride the Resource wire path,
 // so these are plain fixed-rotation Resources like the House.
+
+// The "missing art" marker an NPC renders as when its zone entry names no
+// entityType (server npc.PlaceholderSprite → EntityType.NpcPlaceholder). Kept
+// deliberately un-gamelike so an unconfigured NPC cannot pass for content.
+export class NpcPlaceholder extends Resource {
+    static svg: Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, 0, NpcPlaceholder.svg);
+        this.visibleOnMinimap = false;
+    }
+
+    createMinimapIcon(): ViewContainer {
+        throw new Error('Method not implemented.');
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(NpcPlaceholder, GraphicsConfig.npcs.placeholder.file, GraphicsConfig.npcs.placeholder.maxSize);
 
 export class Signpost extends Resource {
     static svg: Texture;

@@ -8,22 +8,13 @@ type EntityType uint16
 
 const (
 	EntityTypeDebugCircle           EntityType = 0
-	EntityTypeBorder                EntityType = 1
 	EntityTypeRoundTree             EntityType = 2
-	EntityTypeMarioTree             EntityType = 3
 	EntityTypeCharacter             EntityType = 4
 	EntityTypeStone                 EntityType = 5
-	EntityTypeBronze                EntityType = 6
-	EntityTypeIron                  EntityType = 7
-	EntityTypeBerryBush             EntityType = 8
 	EntityTypeDodo                  EntityType = 9
 	EntityTypeSaberToothCat         EntityType = 10
 	EntityTypeMammoth               EntityType = 11
-	EntityTypePlaceable             EntityType = 12
-	EntityTypeTitanium              EntityType = 13
-	EntityTypeFlower                EntityType = 14
 	EntityTypeAngryMammoth          EntityType = 15
-	EntityTypeTitaniumShard         EntityType = 16
 	EntityTypeTotem                 EntityType = 17
 	EntityTypeRabbit                EntityType = 18
 	EntityTypeCompanion             EntityType = 19
@@ -81,26 +72,18 @@ const (
 	EntityTypeFireElemental         EntityType = 71
 	EntityTypeGreaterFireElemental  EntityType = 72
 	EntityTypeFireTotem             EntityType = 73
+	EntityTypeNpcPlaceholder        EntityType = 74
 )
 
 var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeDebugCircle:           "DebugCircle",
-	EntityTypeBorder:                "Border",
 	EntityTypeRoundTree:             "RoundTree",
-	EntityTypeMarioTree:             "MarioTree",
 	EntityTypeCharacter:             "Character",
 	EntityTypeStone:                 "Stone",
-	EntityTypeBronze:                "Bronze",
-	EntityTypeIron:                  "Iron",
-	EntityTypeBerryBush:             "BerryBush",
 	EntityTypeDodo:                  "Dodo",
 	EntityTypeSaberToothCat:         "SaberToothCat",
 	EntityTypeMammoth:               "Mammoth",
-	EntityTypePlaceable:             "Placeable",
-	EntityTypeTitanium:              "Titanium",
-	EntityTypeFlower:                "Flower",
 	EntityTypeAngryMammoth:          "AngryMammoth",
-	EntityTypeTitaniumShard:         "TitaniumShard",
 	EntityTypeTotem:                 "Totem",
 	EntityTypeRabbit:                "Rabbit",
 	EntityTypeCompanion:             "Companion",
@@ -158,26 +141,18 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeFireElemental:         "FireElemental",
 	EntityTypeGreaterFireElemental:  "GreaterFireElemental",
 	EntityTypeFireTotem:             "FireTotem",
+	EntityTypeNpcPlaceholder:        "NpcPlaceholder",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
 	"DebugCircle":           EntityTypeDebugCircle,
-	"Border":                EntityTypeBorder,
 	"RoundTree":             EntityTypeRoundTree,
-	"MarioTree":             EntityTypeMarioTree,
 	"Character":             EntityTypeCharacter,
 	"Stone":                 EntityTypeStone,
-	"Bronze":                EntityTypeBronze,
-	"Iron":                  EntityTypeIron,
-	"BerryBush":             EntityTypeBerryBush,
 	"Dodo":                  EntityTypeDodo,
 	"SaberToothCat":         EntityTypeSaberToothCat,
 	"Mammoth":               EntityTypeMammoth,
-	"Placeable":             EntityTypePlaceable,
-	"Titanium":              EntityTypeTitanium,
-	"Flower":                EntityTypeFlower,
 	"AngryMammoth":          EntityTypeAngryMammoth,
-	"TitaniumShard":         EntityTypeTitaniumShard,
 	"Totem":                 EntityTypeTotem,
 	"Rabbit":                EntityTypeRabbit,
 	"Companion":             EntityTypeCompanion,
@@ -235,6 +210,7 @@ var EnumValuesEntityType = map[string]EntityType{
 	"FireElemental":         EntityTypeFireElemental,
 	"GreaterFireElemental":  EntityTypeGreaterFireElemental,
 	"FireTotem":             EntityTypeFireTotem,
+	"NpcPlaceholder":        EntityTypeNpcPlaceholder,
 }
 
 func (v EntityType) String() string {

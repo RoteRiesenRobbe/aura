@@ -20,7 +20,6 @@ export { Input } from './aura-api/input.js';
 export { Join } from './aura-api/join.js';
 export { Mob } from './aura-api/mob.js';
 export { Obituary } from './aura-api/obituary.js';
-export { Placeable } from './aura-api/placeable.js';
 export { Player } from './aura-api/player.js';
 export { Pong } from './aura-api/pong.js';
 export { Resource } from './aura-api/resource.js';

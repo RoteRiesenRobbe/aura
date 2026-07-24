@@ -47,7 +47,6 @@ export interface TweenEffect {
 export class StatusEffect implements StatusEffectDefinition {
     static Damaged: StatusEffectDefinition = { id: 'Damaged', priority: 1 };
     static DamagedAmbient: StatusEffectDefinition = { id: 'DamagedAmbient', priority: 2 };
-    static Yielded: StatusEffectDefinition = { id: 'Yielded', priority: 3 };
     static ResourceHit: StatusEffectDefinition = { id: 'Hit', priority: 5 };
     static Regenerating: StatusEffectDefinition = { id: 'Regenerating', priority: 6 };
     // Not part of the one-at-a-time effect pipeline: rendered as a gold burst
@@ -146,21 +145,6 @@ export class StatusEffect implements StatusEffectDefinition {
             gameObjectShape,
             [new ColorMatrixTweenEffect(255, 255, 255, 0, 1, 200, false, 0, true)],
             soundData
-        );
-    }
-
-    static forYielded(gameObjectShape: Container, soundId?: string) {
-        return new StatusEffect(
-            StatusEffect.Yielded,
-            gameObjectShape,
-            [{ type: 'shake', from: 4, to: 4, duration: 24 }],
-            isDefined(soundId) ? [{
-                soundId: soundId,
-                options: {
-                    speed: random(0.8, 0.9),
-                    volume: random(0.8, 0.9),
-                }
-            }] : undefined
         );
     }
 

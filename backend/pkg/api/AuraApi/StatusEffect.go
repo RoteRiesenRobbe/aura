@@ -8,9 +8,6 @@ type StatusEffect uint16
 
 const (
 	StatusEffectDamaged        StatusEffect = 0
-	StatusEffectYielded        StatusEffect = 1
-	StatusEffectFreezing       StatusEffect = 2
-	StatusEffectStarving       StatusEffect = 3
 	StatusEffectRegenerating   StatusEffect = 4
 	StatusEffectDamagedAmbient StatusEffect = 5
 	StatusEffectBurstFired     StatusEffect = 6
@@ -18,9 +15,6 @@ const (
 
 var EnumNamesStatusEffect = map[StatusEffect]string{
 	StatusEffectDamaged:        "Damaged",
-	StatusEffectYielded:        "Yielded",
-	StatusEffectFreezing:       "Freezing",
-	StatusEffectStarving:       "Starving",
 	StatusEffectRegenerating:   "Regenerating",
 	StatusEffectDamagedAmbient: "DamagedAmbient",
 	StatusEffectBurstFired:     "BurstFired",
@@ -28,9 +22,6 @@ var EnumNamesStatusEffect = map[StatusEffect]string{
 
 var EnumValuesStatusEffect = map[string]StatusEffect{
 	"Damaged":        StatusEffectDamaged,
-	"Yielded":        StatusEffectYielded,
-	"Freezing":       StatusEffectFreezing,
-	"Starving":       StatusEffectStarving,
 	"Regenerating":   StatusEffectRegenerating,
 	"DamagedAmbient": StatusEffectDamagedAmbient,
 	"BurstFired":     StatusEffectBurstFired,

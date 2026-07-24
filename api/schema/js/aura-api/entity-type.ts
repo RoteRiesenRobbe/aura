@@ -4,22 +4,13 @@
 
 export enum EntityType {
   DebugCircle = 0,
-  Border = 1,
   RoundTree = 2,
-  MarioTree = 3,
   Character = 4,
   Stone = 5,
-  Bronze = 6,
-  Iron = 7,
-  BerryBush = 8,
   Dodo = 9,
   SaberToothCat = 10,
   Mammoth = 11,
-  Placeable = 12,
-  Titanium = 13,
-  Flower = 14,
   AngryMammoth = 15,
-  TitaniumShard = 16,
   Totem = 17,
   Rabbit = 18,
   Companion = 19,
@@ -76,5 +67,6 @@ export enum EntityType {
   DireBear = 70,
   FireElemental = 71,
   GreaterFireElemental = 72,
-  FireTotem = 73
+  FireTotem = 73,
+  NpcPlaceholder = 74
 }

@@ -297,28 +297,19 @@ type GameObjectClass = (new (...args: any[]) => unknown) | undefined;
 
 /**
  * Keyed by the generated AuraApi.EntityType enum, so the compiler rejects a
- * missing or extra entry and enum insertion order cannot shift the artwork.
+ * missing or extra entry. Since §28 Chunk 3 the schema also pins explicit enum
+ * values, so a member removed there leaves a gap here rather than renumbering
+ * — the wire value of every surviving sprite is stable forever.
  */
 const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.DebugCircle]: DebugCircle,
-    [AuraApi.EntityType.Border]: undefined,
-    // Placeables were pruned server-side (backlog §26); the enum lingers in the
-    // schema until the §28 item-system removal, so this stays undefined like Border.
-    [AuraApi.EntityType.Placeable]: undefined,
     [AuraApi.EntityType.RoundTree]: Resources.RoundTree,
-    [AuraApi.EntityType.MarioTree]: Resources.MarioTree,
     [AuraApi.EntityType.Character]: Character,
     [AuraApi.EntityType.Stone]: Resources.Stone,
-    [AuraApi.EntityType.Bronze]: Resources.Bronze,
-    [AuraApi.EntityType.Iron]: Resources.Iron,
-    [AuraApi.EntityType.BerryBush]: Resources.BerryBush,
     [AuraApi.EntityType.Dodo]: Mobs.Dodo,
     [AuraApi.EntityType.SaberToothCat]: Mobs.SaberToothCat,
     [AuraApi.EntityType.Mammoth]: Mobs.Mammoth,
-    [AuraApi.EntityType.Titanium]: Resources.Titanium,
-    [AuraApi.EntityType.Flower]: Resources.Flower,
     [AuraApi.EntityType.AngryMammoth]: Mobs.AngryMammoth,
-    [AuraApi.EntityType.TitaniumShard]: Resources.TitaniumShard,
     [AuraApi.EntityType.Totem]: Mobs.Totem,
     [AuraApi.EntityType.Rabbit]: Mobs.Rabbit,
     [AuraApi.EntityType.Companion]: Mobs.Companion,
@@ -376,6 +367,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.FireElemental]: Mobs.FireElemental,
     [AuraApi.EntityType.GreaterFireElemental]: Mobs.GreaterFireElemental,
     [AuraApi.EntityType.FireTotem]: Mobs.FireTotem,
+    [AuraApi.EntityType.NpcPlaceholder]: Resources.NpcPlaceholder,
 };
 
 function unmarshalEntityType(entityType: AuraApi.EntityType) {

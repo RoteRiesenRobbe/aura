@@ -20,12 +20,15 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 )
 
-// PlaceholderSprite is the reused client sprite an NPC renders as when its
-// zone entry names no entityType (content pass C2 made the sprite authorable).
+// PlaceholderSprite is the client sprite an NPC renders as when its zone entry
+// names no entityType (content pass C2 made the sprite authorable). It is a
+// dedicated "missing art" marker — a red "?" on a purple disc — so an
+// unconfigured NPC reads as unconfigured instead of borrowing a live sprite
+// (§28 Chunk 3; it used to be Flower, one of the pruned Berryhunter resources).
 // It must be a Resource-backed EntityType because NPCs ride the Resource wire
 // path (PropEntityFlatbufMarshal) — a Mob sprite class expects health/aura
 // wire fields a Resource payload lacks.
-const PlaceholderSprite = model.EntityType(AuraApi.EntityTypeFlower)
+const PlaceholderSprite = model.EntityType(AuraApi.EntityTypeNpcPlaceholder)
 
 // SpriteFor resolves an authored zone-JSON entityType name to the NPC's wire
 // sprite. Empty = the placeholder; unknown names also fall back to it (the

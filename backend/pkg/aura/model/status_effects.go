@@ -2,12 +2,11 @@ package model
 
 import "github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 
-// Freezing / Starving still exist in the wire enum (server.fbs) for
-// compatibility, but the survival mechanics behind them are gone — no
-// constant, no emitter.
+// Yielded / Freezing / Starving were the Berryhunter survival vestiges — no
+// emitter on either side. They are gone from the wire enum too (§28 Chunk 3),
+// leaving gaps 1-3 so no survivor ever renumbers.
 const (
 	StatusEffectDamaged        = StatusEffect(AuraApi.StatusEffectDamaged)
-	StatusEffectYielded        = StatusEffect(AuraApi.StatusEffectYielded)
 	StatusEffectRegenerating   = StatusEffect(AuraApi.StatusEffectRegenerating)
 	StatusEffectDamagedAmbient = StatusEffect(AuraApi.StatusEffectDamagedAmbient)
 	StatusEffectBurstFired     = StatusEffect(AuraApi.StatusEffectBurstFired)

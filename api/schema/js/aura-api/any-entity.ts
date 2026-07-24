@@ -4,7 +4,6 @@
 
 import { Character } from '../aura-api/character.js';
 import { Mob } from '../aura-api/mob.js';
-import { Placeable } from '../aura-api/placeable.js';
 import { Resource } from '../aura-api/resource.js';
 
 
@@ -12,35 +11,32 @@ export enum AnyEntity {
   NONE = 0,
   Character = 1,
   Mob = 2,
-  Resource = 3,
-  Placeable = 4
+  Resource = 3
 }
 
 export function unionToAnyEntity(
   type: AnyEntity,
-  accessor: (obj:Character|Mob|Placeable|Resource) => Character|Mob|Placeable|Resource|null
-): Character|Mob|Placeable|Resource|null {
+  accessor: (obj:Character|Mob|Resource) => Character|Mob|Resource|null
+): Character|Mob|Resource|null {
   switch(AnyEntity[type]) {
     case 'NONE': return null; 
     case 'Character': return accessor(new Character())! as Character;
     case 'Mob': return accessor(new Mob())! as Mob;
     case 'Resource': return accessor(new Resource())! as Resource;
-    case 'Placeable': return accessor(new Placeable())! as Placeable;
     default: return null;
   }
 }
 
 export function unionListToAnyEntity(
   type: AnyEntity, 
-  accessor: (index: number, obj:Character|Mob|Placeable|Resource) => Character|Mob|Placeable|Resource|null, 
+  accessor: (index: number, obj:Character|Mob|Resource) => Character|Mob|Resource|null, 
   index: number
-): Character|Mob|Placeable|Resource|null {
+): Character|Mob|Resource|null {
   switch(AnyEntity[type]) {
     case 'NONE': return null; 
     case 'Character': return accessor(index, new Character())! as Character;
     case 'Mob': return accessor(index, new Mob())! as Mob;
     case 'Resource': return accessor(index, new Resource())! as Resource;
-    case 'Placeable': return accessor(index, new Placeable())! as Placeable;
     default: return null;
   }
 }

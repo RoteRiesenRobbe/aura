@@ -343,6 +343,12 @@ export const GraphicsConfig = {
     // NPC sprites (content pass C2): Resource-backed, referenced by the
     // zone-JSON npc entityType (server npc.SpriteFor). Sized like props.
     npcs: {
+        // "Missing art" marker for an NPC whose zone entry names no
+        // entityType (server npc.PlaceholderSprite). Loud on purpose.
+        placeholder: {
+            file: require('../features/game-objects/assets/resources/npcPlaceholder.svg'),
+            maxSize: <number> 60,
+        },
         signpost: {
             file: require('../features/game-objects/assets/resources/signpost.svg'),
             maxSize: <number> 55,
@@ -415,38 +421,13 @@ export const GraphicsConfig = {
             maxSize: <number> 210,
 
             roundTreeFile: require('../features/game-objects/assets/resources/roundTree.svg'),
-            deciduousTreeFile: require('../features/game-objects/assets/resources/deciduousTree.svg'),
         },
 
         mineral: {
             spotFile: require('../features/game-objects/assets/resources/stoneSpot.svg'),
-            shardSpotFile: require('../features/game-objects/assets/resources/shardSpot.svg'),
             maxSize: <number> 142,
-            shardMaxSize: <number> 71,
 
             stoneFile: require('../features/game-objects/assets/resources/stone.svg'),
-            bronzeFile: require('../features/game-objects/assets/resources/bronze.svg'),
-            ironFile: require('../features/game-objects/assets/resources/iron.svg'),
-            titaniumFile: require('../features/game-objects/assets/resources/titanium.svg'),
-            titaniumShardFile: require('../features/game-objects/assets/resources/titaniumShard.svg'),
-        },
-
-        berryBush: {
-            bushFile: require('../features/game-objects/assets/resources/berryBush.svg'),
-            maxSize: <number> (meter2px(0.5) * 2),
-
-            berryFile: require('../features/game-objects/assets/resources/berry.svg'),
-            berryMaxSize: <number> 11,
-            berryMinSize: <number> 6,
-
-            calyxFile: require('../features/game-objects/assets/resources/berryCalyx.svg'),
-        },
-
-        flower: {
-            spotFile: require('../features/game-objects/assets/resources/flowerSpot.svg'),
-            file: require('../features/game-objects/assets/resources/flower.svg'),
-            minSize: <number> (meter2px(0.15) * 2),
-            maxSize: <number> (meter2px(0.25) * 2),
         },
     },
 
@@ -469,31 +450,6 @@ export const GraphicsConfig = {
                 color: 0x737373,
                 alpha: 1,
                 sizeFactor: 1,
-            },
-            bronze: {
-                color: 0xb57844,
-                alpha: 1,
-                sizeFactor: 1.5,
-            },
-            iron: {
-                color: 0xa46262,
-                alpha: 1,
-                sizeFactor: 1.3,
-            },
-            titanium: {
-                color: 0x181818,
-                alpha: 1,
-                sizeFactor: 1.3,
-            },
-            titaniumShard: {
-                color: 0x181818,
-                alpha: 1,
-                sizeFactor: 2,
-            },
-            berryBush: {
-                color: 0xc20071,
-                alpha: 1,
-                sizeFactor: 1.2,
             },
             BerrySeed: {
                 color: 0xc20071,

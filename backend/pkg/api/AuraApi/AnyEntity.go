@@ -11,7 +11,6 @@ const (
 	AnyEntityCharacter AnyEntity = 1
 	AnyEntityMob       AnyEntity = 2
 	AnyEntityResource  AnyEntity = 3
-	AnyEntityPlaceable AnyEntity = 4
 )
 
 var EnumNamesAnyEntity = map[AnyEntity]string{
@@ -19,7 +18,6 @@ var EnumNamesAnyEntity = map[AnyEntity]string{
 	AnyEntityCharacter: "Character",
 	AnyEntityMob:       "Mob",
 	AnyEntityResource:  "Resource",
-	AnyEntityPlaceable: "Placeable",
 }
 
 var EnumValuesAnyEntity = map[string]AnyEntity{
@@ -27,7 +25,6 @@ var EnumValuesAnyEntity = map[string]AnyEntity{
 	"Character": AnyEntityCharacter,
 	"Mob":       AnyEntityMob,
 	"Resource":  AnyEntityResource,
-	"Placeable": AnyEntityPlaceable,
 }
 
 func (v AnyEntity) String() string {

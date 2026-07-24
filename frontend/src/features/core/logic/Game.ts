@@ -186,7 +186,6 @@ export class Game implements IGame {
                 wildlife: createNamedContainer('wildlife'),
             },
             resources: {
-                berryBush: createNamedContainer('berryBush'),
                 minerals: createNamedContainer('minerals'),
                 trees: createNamedContainer('trees'),
             },
@@ -232,7 +231,6 @@ export class Game implements IGame {
             this.layers.placeables.chest,
             this.layers.placeables.workbench,
             this.layers.placeables.furnace,
-            this.layers.resources.berryBush,
         );
 
         // Corpses below the living
