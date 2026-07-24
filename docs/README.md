@@ -34,6 +34,7 @@ literally correct — don't add the prefix to newly archived docs, the folder sa
 
 Everything else that ever had a plan doc lives in `archive/` (see the Archive section).
 
+- **plan-playtest-feedback.md** — **the standing collection of playtest-arising issues** (successor to `archive/plan-playtest1-feedback.md`). Round 2 (2026-07-24) triaged and sorted into Pass 1 (point curve + resource costs + retune) / Pass 2 (pulsing auras, directional ability, anti-AFK patrols) / Pass 3 (XP credit, minion combos) + rolling filler. New playtest rounds append to §Intake; we pick targets from here
 - **plan-intermission-triage.md** — the PO's 22 post-C7 playtest items (bugs, config fixes, audits, design questions), each investigated against code with effort estimates + a locked execution sequence. Largely executed; still the home of the open combat-readability and sacrifice-loop items
 - **plan-ui-polish.md** — UI-polish pass (step 8, item-8 slice): Chunk 1 done (`GET /skills` catalog + skill tooltips); the rest of the checklist is deferred (§Deferred)
 - **plan-playtest-deploy.md** — the live server (2026-07-21, `a7a2267d`): Hetzner VPS, `devops/deploy.sh`, server-only cheat token, **no persistence** (restarts wipe characters). Live-ops reference; its §Ops & security posture is a required input to step-8 persistence
@@ -119,7 +120,7 @@ are relative to `docs/archive/`.
 
 ### Playtest / deploy records
 
-- **plan-playtest1-feedback.md** — first external playtest (2026-07-22) triaged into Passes A/B/C; fully executed. The design themes it spun off are still open
+- **plan-playtest1-feedback.md** — first external playtest (2026-07-22) triaged into Passes A/B/C; fully executed (its last open items 1c+1d landed in `2bfee286`). Superseded as the intake point by the live `plan-playtest-feedback.md`; the design themes it spun off (aura differentiation, tutorial/onboarding, quests) are still open and partly picked up there
 - **plan-phase0-deploy.md** — Phase-0 deploy runbook, **never executed as written**; superseded by the live `plan-playtest-deploy.md`. Kept for the runbook detail
 
 ### Pre-decision research & captures
