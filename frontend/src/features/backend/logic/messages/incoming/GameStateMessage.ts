@@ -4,7 +4,6 @@ import * as Mobs from '../../../../game-objects/logic/Mobs';
 import {DebugCircle} from '../../../../internal-tools/develop/logic/DebugCircle';
 import {Character} from '../../../../game-objects/logic/Character';
 import {Corpse} from '../../../../game-objects/logic/Corpse';
-import {Placeable} from '../../../../game-objects/logic/Placeable';
 import {isFunction} from '../../../../common/logic/Utils';
 import {StatusEffectDefinition} from '../../../../game-objects/logic/StatusEffect'
 import {AuraApi} from '../../AuraApi';
@@ -138,7 +137,6 @@ function unmarshalWrappedEntity(wrappedEntity: AuraApi.Entity) {
         [AuraApi.AnyEntity.Character]: AuraApi.Character,
         [AuraApi.AnyEntity.Mob]:       AuraApi.Mob,
         [AuraApi.AnyEntity.Resource]:  AuraApi.Resource,
-        [AuraApi.AnyEntity.Placeable]: AuraApi.Placeable,
     };
     let entity = new entityCtors[eType]();
 
@@ -204,10 +202,6 @@ function unmarshalEntity(entity, eType) {
     if (eType === AuraApi.AnyEntity.Resource) {
         result.capacity = entity.capacity();
         result.stock = entity.stock();
-    }
-
-    if (eType === AuraApi.AnyEntity.Placeable) {
-        result.item = unmarshalItem(entity.item());
     }
 
     if (eType === AuraApi.AnyEntity.Mob) {
@@ -308,6 +302,9 @@ type GameObjectClass = (new (...args: any[]) => unknown) | undefined;
 const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.DebugCircle]: DebugCircle,
     [AuraApi.EntityType.Border]: undefined,
+    // Placeables were pruned server-side (backlog §26); the enum lingers in the
+    // schema until the §28 item-system removal, so this stays undefined like Border.
+    [AuraApi.EntityType.Placeable]: undefined,
     [AuraApi.EntityType.RoundTree]: Resources.RoundTree,
     [AuraApi.EntityType.MarioTree]: Resources.MarioTree,
     [AuraApi.EntityType.Character]: Character,
@@ -318,7 +315,6 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Dodo]: Mobs.Dodo,
     [AuraApi.EntityType.SaberToothCat]: Mobs.SaberToothCat,
     [AuraApi.EntityType.Mammoth]: Mobs.Mammoth,
-    [AuraApi.EntityType.Placeable]: Placeable,
     [AuraApi.EntityType.Titanium]: Resources.Titanium,
     [AuraApi.EntityType.Flower]: Resources.Flower,
     [AuraApi.EntityType.AngryMammoth]: Mobs.AngryMammoth,
@@ -397,13 +393,6 @@ function unmarshalAABB(aabb) {
         UpperX: aabb.upper().x(),
         UpperY: aabb.upper().y(),
     };
-}
-
-/**
- * @param {number} itemId
- */
-function unmarshalItem(itemId) {
-    return BackendConstants.itemLookupTable[itemId];
 }
 
 function unmarshalStatusEffects(length, getter): StatusEffectDefinition[] {

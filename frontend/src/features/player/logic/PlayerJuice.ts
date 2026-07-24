@@ -1,6 +1,5 @@
 import {
     BeforeDeathEvent,
-    PlaceablePlacedEvent,
     PlayerDamagedEvent,
     PlayerMoved,
     CharacterMoved,
@@ -32,19 +31,6 @@ BeforeDeathEvent.subscribe((payload) => {
                 speed: random(0.9, 1.11),
                 volume: random(0.7, 1),
             });
-    }
-});
-
-PlaceablePlacedEvent.subscribe((payload) => {
-    switch (payload.item) {
-        default:
-            spatialAudio.play('place-heavy',
-                payload.getPosition(),
-                {
-                    speed: random(0.9, 1.11),
-                    volume: random(0.8, 1),
-                });
-            break;
     }
 });
 
@@ -91,7 +77,6 @@ export const swingLightAudioCues = ['swingLight', 'swingLight2', 'swingLight3', 
 const steps = ['step', 'step2', 'step3'];
 
 PIXI.Assets.add({ alias: 'death', src: require('../assets/416838__tonsil5__grunt2-death-pain.mp3') });
-PIXI.Assets.add({ alias: 'place-heavy', src: require('../assets/443629__checholio__28-clavando-estaca.mp3') });
 PIXI.Assets.add({ alias: 'hurt', src: require('../assets/413181__micahlg__male_hurt5.mp3') });
 PIXI.Assets.add({ alias: 'hurt2', src: require('../assets/413185__micahlg__male_hurt8.mp3') });
 PIXI.Assets.add({ alias: 'hurt3', src: require('../assets/413186__micahlg__male_hurt9.mp3') });
@@ -112,7 +97,6 @@ PIXI.Assets.add({ alias: 'hello', src: require('../assets/411184__d3rfux__gruzi.
 
 // noinspection JSIgnoredPromiseFromCall
 registerPreload(PIXI.Assets.load('death'));
-registerPreload(PIXI.Assets.load('place-heavy'));
 registerPreload(PIXI.Assets.load('hurt'));
 registerPreload(PIXI.Assets.load('hurt2'));
 registerPreload(PIXI.Assets.load('hurt3'));

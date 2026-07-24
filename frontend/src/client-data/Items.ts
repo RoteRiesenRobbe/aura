@@ -50,66 +50,8 @@ export const ItemsConfig = {
             animation: 'swing'
         }
     },
-
-    /***********************************
-     * PLACEABLES
-     ***********************************/
-    Campfire: {
-        icon: {file: require('../features/items/assets/icons/fireCampIcon.svg')},
-        graphic: {
-            file: require('../features/items/assets/icons/fireCamp.svg'),
-            size: 100
-        },
-        definition: require('../../../api/items/placeables/campfire.json'),
-        type: ItemType.PLACEABLE,
-        placeable: {
-            layer: 'placeables.campfire'
-        }
-    },
-    BigCampfire: {
-        icon: {file: require('../features/items/assets/icons/fireBigCampIcon.svg')},
-        graphic: {
-            file: require('../features/items/assets/icons/fireBigCamp.svg'),
-            size: 120
-        },
-        definition: require('../../../api/items/placeables/big-campfire.json'),
-        type: ItemType.PLACEABLE,
-        placeable: {
-            layer: 'placeables.campfire'
-        }
-    },
-
-    /***********************************
-     * RESOURCES
-     ***********************************/
-    Wood: {
-        icon: {file: require('../features/items/assets/icons/woodIcon.svg')},
-        definition: require('../../../api/items/resources/wood.json'),
-        type: ItemType.RESOURCE
-    },
-    Stone: {
-        icon: {file: require('../features/items/assets/icons/stoneIcon.svg')},
-        definition: require('../../../api/items/resources/stone.json'),
-        type: ItemType.RESOURCE
-    },
-    Bronze: {
-        icon: {file: require('../features/items/assets/icons/bronzeIcon.svg')},
-        definition: require('../../../api/items/resources/bronze.json'),
-        type: ItemType.RESOURCE
-    },
-    Iron: {
-        icon: {file: require('../features/items/assets/icons/ironIcon.svg')},
-        definition: require('../../../api/items/resources/iron.json'),
-        type: ItemType.RESOURCE
-    },
-    Titanium: {
-        icon: {file: require('../features/items/assets/icons/titaniumIcon.svg')},
-        definition: require('../../../api/items/resources/titanium.json'),
-        type: ItemType.RESOURCE
-    },
-    Feather: {
-        icon: {file: require('../features/items/assets/icons/feather.svg')},
-        definition: require('../../../api/items/resources/feather.json'),
-        type: ItemType.RESOURCE
-    },
+    // The resource/placeable items were pruned with the dead server-side layer
+    // (backlog §26); only the None sentinel remains. The rest of this frontend
+    // item scaffolding (BackendConstants.itemLookupTable, features/items/logic)
+    // is now unread and comes out with the §28 item-system removal.
 };

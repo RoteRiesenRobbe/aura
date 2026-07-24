@@ -4,7 +4,6 @@ import {BackendState, IBackend} from "../../backend/logic/IBackend";
 import {Player} from "../../player/logic/Player";
 import {Vector} from "./Vector";
 import {radians} from "../../common/logic/Types";
-import {Placeable} from "../../game-objects/logic/Placeable";
 import {DamageState} from '../../vital-signs/logic/VitalSigns';
 
 const warnedEvents = [];
@@ -263,5 +262,3 @@ export const PrerenderEvent: PayloadEvent<number> = new PayloadEvent<number>();
 
 export const OnDayTimeStartEvent: SimpleEvent = new SimpleEvent();
 export const OnNightTimeStartEvent: SimpleEvent = new SimpleEvent();
-
-export const PlaceablePlacedEvent: PayloadEvent<Placeable> = new PayloadEvent<Placeable>();

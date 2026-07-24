@@ -5,7 +5,6 @@ import {DebugCircle} from '../../internal-tools/develop/logic/DebugCircle';
 import {GameObject, hpToDisplay} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Character} from '../../game-objects/logic/Character';
-import {Placeable} from '../../game-objects/logic/Placeable';
 import {Resource} from '../../game-objects/logic/Resources';
 import {Mob} from '../../game-objects/logic/Mobs';
 import {AuraApi} from './AuraApi';
@@ -56,9 +55,6 @@ export class EntityManager {
             switch (entity.type) {
                 case Character:
                     gameObject = new Character(entity.id, entity.position.x, entity.position.y, entity.name, false);
-                    break;
-                case Placeable:
-                    gameObject = new Placeable(entity.id, entity.item, entity.position.x, entity.position.y);
                     break;
                 case DebugCircle:
                     if (!Develop.isActive()) {
