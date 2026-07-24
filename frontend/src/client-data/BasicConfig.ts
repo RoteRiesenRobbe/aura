@@ -93,11 +93,17 @@ export const BasicConfig = {
     },
 
     /**
-     * Milliseconds between input sampling ticks.
+     * Milliseconds between input sampling ticks. Must equal the backend tick
+     * period exactly: the server ticks every `time.Second / 30` = 33.333 ms
+     * (constant.TicksPerSecond = 30). The rounded 33 made the client fast
+     * (30.303 vs 30.0 Hz), over-feeding the input queue — the measured 10 %
+     * eviction / q_mean 1.09 after the input-jitter fix. 1000/30 aligns the
+     * two rates. Move the CLIENT, never the server (a server tick-rate change
+     * shifts every seconds→ticks conversion 1 %). (plan-render-jitter.md Lever A)
      *
-     * SYNCED WITH BACKEND
+     * SYNCED WITH BACKEND (backend/pkg/aura/model/constant/const.go:7 = 30/s)
      */
-    INPUT_TICKRATE: <number> 33,
+    INPUT_TICKRATE: <number> 1000 / 30,
 
     /**
      * How many ticks to keep re-sending an explicit "stopped" (zero-movement)
@@ -111,11 +117,16 @@ export const BasicConfig = {
     STOP_TAIL_TICKS: <number> 5,
 
     /**
-     * Used for interpolation.
+     * The true inter-snapshot interval: one server tick = `time.Second / 30` =
+     * 33.333 ms. Confirmed by live measurement (the [snapshot-arrival] mean is
+     * 33.3 ms on the wire; the 30.3 seen on localhost was a loopback artifact).
+     * The rounded 33 made the reactive lerp finish ~0.333 ms early every tick —
+     * a constant per-tick micro-freeze. Used as the interval basis for the
+     * buffered render delay. (plan-render-jitter.md Lever A/B)
      *
-     * SYNCED WITH BACKEND
+     * SYNCED WITH BACKEND (backend/pkg/aura/model/constant/const.go:7 = 30/s)
      */
-    SERVER_TICKRATE: <number> 33,
+    SERVER_TICKRATE: <number> 1000 / 30,
 
     /**
      * Whether movement of game objects should be smoothed.
