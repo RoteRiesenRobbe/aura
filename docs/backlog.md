@@ -1779,11 +1779,34 @@ Ranked by consequence, not by size.
    (`items/mobs/definitions.go:328`, pinned by
    `TestMapMobDefinition_UnknownEntityTypeFails`), but the **name-fallback path
    is validated nowhere** — a mob whose `name` is not a FlatBuffers EntityType
-   passes the loader and dies at first spawn. Reachable at runtime, not just at
-   boot: the `spawn` effect builds mobs at cast time. Fix: resolve the lookup
-   once at registry load and hard-fail there, like the override already does.
-   (Also the last `log.Fatalf` in `model/` — see `research-code-quality.md` §5's
-   three-logging-styles finding.)
+   passes the loader and dies at first spawn.
+
+   > **✅ FIXED 2026-07-24, test-first (`c3938be7`).** The name-fallback is now
+   > validated at content load, matching the override's existing fail-fast — an
+   > unresolvable name fails at **boot** (a deploy error) instead of at first
+   > spawn (a live crash-at-first-encounter). Three coupled edits (plan
+   > `docs/plan-entitytype-validation.md`): ① a new shared resolver
+   > `mobs.ResolveEntityType(override, name)` — the single source of truth for
+   > the name/override → wire-type mapping, collapsing the DRY smell (`NewMob`'s
+   > `types` map and the loader's `EnumValuesEntityType` check were the same
+   > mapping expressed twice); ② the loader validates the **effective** lookup
+   > (override else name) with distinct per-knob messages; ③ `NewMob` uses the
+   > resolver and **panics** instead of `log.Fatalf` (the last `log.Fatalf` in
+   > `model/` — closes `research-code-quality.md` §5's finding). **The guard
+   > stays, not deleted** — unreachable for loaded content but still live for
+   > direct construction (sim/tests), where it catches the
+   > `EntityType(0)=DebugCircle` zero-value trap; `panic` fails just that unit
+   > with a stack trace rather than `os.Exit`-ing the whole test binary.
+   > **Pins:** `TestMapMobDefinition_UnknownNameFallbackFails` (the regression —
+   > fails on the pre-fix loader), `TestResolveEntityType`,
+   > `TestNewMob_PanicsOnUnresolvedEntityType`. `go build`/`vet` clean, `go test
+   > ./...` green (29 pkgs); boot over real content loads 50 mobs 0 panics;
+   > negative boot check (a mob `name` pointed at a non-EntityType) fails at load
+   > with the new message, not a first-spawn crash. No wire/schema/JSON change.
+   > Original finding below. Fix: resolve the lookup once at registry load and
+   > hard-fail there, like the override already does. (Also the last `log.Fatalf`
+   > in `model/` — see `research-code-quality.md` §5's three-logging-styles
+   > finding.)
 2. **Drop luck is deterministic across restarts.**
 
    > **✅ FIXED 2026-07-24, test-first (`b4b0e66d`).** `NewMob` now seeds its RNG
@@ -1958,7 +1981,7 @@ no-op of exactly the kind the rest of the file exists to prevent.
 |---|---|---|---|
 | 1 | ~~§27.1 removal-during-iteration~~ **✅ DONE 2026-07-24** | ~30 min, test-first | the only live defect here |
 | 2 | ~~§27.3.1 `default:` on the payload switch~~ **✅ DONE 2026-07-24** (`eee10331`) | one line | permanently closes a silent class |
-| 3 | §27.2.1 validate the EntityType name-fallback at load | ~1 h | turns a live-server crash into a boot error |
+| 3 | ~~§27.2.1 validate the EntityType name-fallback at load~~ **✅ DONE 2026-07-24** (`c3938be7`) | ~1 h, test-first | turned a live-server crash-at-first-spawn into a boot error |
 | 4 | ~~§27.3.2 even out the zero-value payload guards~~ **✅ DONE 2026-07-24** (`eee10331`, same session as #2) | ~15 lines | authoring-safety, same session as #2 |
 | 5 | ~~§27.2.2 drop-RNG determinism~~ **✅ DONE 2026-07-24** (`b4b0e66d`) | ~1 h, test-first | **PO-ruled a bug** — now random per run via a per-process salt |
 | 6 | §27.2.3 mob regen → `conf.json` | ~30 min | balance visibility |
