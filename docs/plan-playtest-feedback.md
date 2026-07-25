@@ -1,7 +1,8 @@
 # Plan: Playtest Feedback (rolling collection)
 
 **Status:** **Collection doc — nothing executed yet.** Triaged, prioritized and
-sorted 2026-07-24; no chunk started. This is the **standing home for issues
+sorted 2026-07-24; rounds 3 + 4 appended 2026-07-25, each with a designed chunk;
+no chunk started. This is the **standing home for issues
 arising from playtests**: new rounds append to §Intake, items get sorted into
 the passes below, and we pick targets from here. Successor to
 `archive/plan-playtest1-feedback.md` (first external playtest, fully executed
@@ -153,17 +154,46 @@ rather than from *taking damage*, so any mob that cannot or will not retaliate
 hits it. Same hole, milder instance: a mob whose leash expires while still being
 shot from out of reach resets aggro and starts regenerating.
 
-### Adjacent finding — the squad medic (read from code, not yet observed)
+### Adjacent finding — the squad medic — ✅ **CONFIRMED IN-GAME 2026-07-25**
 
 `updateAggro` has **two** special-case early-returns, not one: `isFollower`
 (`mob.go:826`) and `seekHealer` (`mob.go:834`) — **and they already collide.**
 `MedicCompanion` (`api/mobs/medic-companion.json`) carries `HealerAura` but is a
-follower, so `isFollower` wins and the healer path never runs for it. Its heal
-aura therefore gates on acquiring a **hostile** within heal-aura reach via
+follower (`isFollower` = `owner != nil && velocity > 0`, and its speed is 1.2),
+so `isFollower` wins and the healer path never runs for it. Its heal aura
+therefore gates on acquiring a **hostile** within heal-aura reach via
 `updateCompanionTargeting`, and its `aggroRadius` is a `0.1` dummy, so it cannot
-sense a wounded ally at all. Reads as: *the medic heals only while an enemy
-happens to be inside its heal radius.* **Needs an in-game check to confirm**
-before it is called a live bug; either way it is the same missing abstraction.
+sense a wounded ally at all.
+
+**Verified in-game** with a headless Playwright run against `aurad -dev -content
+../api`: join → `SKILL FieldMedics` + `SKILL Damage` → equip both → warp next to
+a Z1 wolf → summon the squad → damage aura on → `THREAT` sampled through the
+fight. The `THREAT` dump prints each mob's aggro target, and
+`MedicCompanion` is not `auraAlwaysOn` (that is `Factors.Speed <= 0`), so
+**`target=0` ⇒ its aura is gated OFF**. Observed:
+
+| observation | reading |
+|---|---|
+| `def=MedicCompanion … target=2203` where **2203 is a `Wolf`** | **Decisive.** A seek-healer's `findWoundedAlly` only ever returns *same-faction* allies, so a medic that acquires a hostile is provably running the companion path, not the healer path. |
+| `def=MedicCompanion … target=0 rows=1 \| 2203=47.0` | The medic had taken **47 damage from the wolf** and still held **no target** — aura off *while being killed*. (Followers deliberately do not retain threat, §3.6, so the row never re-targets it.) |
+| `target=0` in **11 of 15** samples across an active fight in which both `SoldierCompanion`s were wounded | The squad healer spends most of a fight with its heal aura **off** while its allies are wounded. |
+
+So the medic heals only during the moments an enemy happens to sit inside its
+2.0-unit heal radius — **a live bug**, and the same missing abstraction as the
+rest of this section. Fold it into the mode-selector chunk.
+
+**Two incidental findings from the same run:**
+
+- **⚑ The `DAMAGE <pct>` dev cheat is broken and always kills.** It calls
+  `VitalSign.SubFraction`, which computes against `vitals.Max` (`^VitalSign(0)`,
+  the *type* maximum) — but player health has been **absolute HP** since item 11
+  (`player.go:68`). Any argument therefore subtracts vastly more than the pool.
+  Filed under Rolling filler.
+- **Decision 1 has a player-side precedent, which strengthens it:** the player
+  already gates passive regen on `InCombat()` / `combatRegenGraceTicks`
+  (`player.go:230-240`) — a recent-combat window, exactly the rule mobs lack.
+  The chunk is *porting an existing rule across the entity split*, not inventing
+  one, which is the §31 argument in miniature.
 
 ### Decisions (PO, 2026-07-25, via choice prompts)
 
@@ -254,7 +284,10 @@ One execution chunk. Not started.
 4. **Widen the sensor mask** to `LayerCombatants` for any mob carrying a support
    aura (it must see allies *and* enemies). Small broadphase cost, only those
    mobs.
-5. **`MedicCompanion`** — verify in-game first, then fold into the selector.
+5. **`MedicCompanion`** — ✅ verified in-game 2026-07-25 (see above); fold into
+   the selector. Also give it a real `aggroRadius` — the `0.1` dummy was chosen
+   because followers ride owner signals and never sense for themselves, which
+   stops being true the moment the medic can look for a wounded ally.
 
 **Why it is smaller than it sounds — four pieces already exist:**
 
@@ -288,6 +321,189 @@ And the whole spectrum becomes content with no branching:
 | heal + damage | attacks in the gaps, heals when needed |
 | damage + shield, `supportThreshold: 0.5` | guardian: cleaves, switches to shielding an ally below 50 % |
 | `supportThreshold: 0.2` | mostly fights, emergency-support only |
+
+---
+
+## Intake — round 4 (2026-07-25): ability tooltips under-report every HP value
+
+Found by the PO from live play: Rejuvenation's tooltip reads **identically** on a
+level-1 and a level-30 character (`4 → 6 × 6 over 11.88s`), which prompted "if it
+scales then something in the description is wrong". It is the description. The
+scaling itself is correct.
+
+### The bug
+
+The tooltip's entire scaling model is `SkillTooltip.ts:52`:
+
+```ts
+function scaled(base: number, perLevel: number, level: number): number {
+    return base + perLevel * (level - 1);   // level = SKILL level
+}
+```
+
+The server does one more multiplication that the tooltip omits —
+`sys/skills.go:824` (and its siblings for every other HP-valued effect):
+
+```go
+hp := effect.Hot.HPAt(level) * casterPowerScale(e)   // × f(charLevel) = 1.12^(L−1)
+```
+
+So both screenshots showing `4` is *consistent* with the tooltip's own logic —
+the skill was `Lv 1/3` in both, and character level was never an input. At
+character level 30 Rejuvenation actually ticks **≈107 HP** (`4 × 1.12²⁹ ≈ 4 ×
+26.75`). The tooltip is off by the full total inflation of the curve, up to
+**26.75×** at the cap.
+
+### Scope — seven lines, not one
+
+`casterPowerScale`'s own doc comment (`sys/skills.go:376`) is the authoritative
+list of what it multiplies: *damage / heal / dot / hot / shield / self-heal /
+self-cost*. All seven have an under-reporting tooltip line:
+
+| line | `SkillTooltip.ts` |
+|---|---|
+| `Damage:` | `:212` |
+| `Heal:` (flat-HP branch) | `:220` |
+| `Costs you: … HP per tick` | `:225` |
+| `Heal self:` (flat-HP branch) | `:234` |
+| `Damage over time:` | `:262` |
+| `Shield:` | `:293` |
+| `Heal over time:` | `:308` |
+
+**Must NOT be scaled** (they are already curve-free and scaling them would be a
+new bug): the two `of max HP` fraction branches (`:218`, `:232` — max HP already
+carries f(L), which is exactly why the server skips `powerScale` on those
+branches too), plus radius, crit %, variance, slow, resist, stat passives, dash
+distance, tick rate/cadence, target counts. `casterPowerScale` deliberately
+touches HP values only — mirror that boundary exactly.
+
+### PO decision (2026-07-25): absolute numbers
+
+> *"The tooltip should show what the player actually will see. Since the player
+> character is at level 30 and the aura will heal for 107, it should say that. If
+> that is relative to his own health pool is not relevant."*
+
+So: render the true absolute value. The considered-and-rejected alternative was
+rendering heals/shields as *% of your max HP* (curve-free by construction, but it
+answers a question the PO did not ask, and damage has no natural denominator).
+
+### Why it is not a one-line fix
+
+The client has no access to the curve. `levelGrowth: 1.12` lives in
+`conf.default.json:16`; grepping `frontend/src` and all three `.fbs` schemas for
+`levelGrowth` / `powerScale` returns **nothing**. Hardcoding `1.12` client-side
+would re-create precisely the hand-sync duplication that the `GET /skills`
+catalog endpoint was built to delete (plan-ui-polish chunk 1) — and the curve is
+a [WORKING LOCK], not a constant.
+
+**Two pieces already exist, which is what keeps this small:**
+
+- **The client already knows its character level.** `Character.level` is on the
+  wire (`server.fbs:230`), `Player.updateFromBackend` already mirrors it into
+  `getLocalPlayerLevel()` (`client-data/Mobs.ts:62-69`, added for the
+  nameplate difficulty tint) and it is live-updated every snapshot.
+- **`curve.Curve` already marshals to JSON** (`growth` / `maxLevel` tags,
+  `curve/curve.go:12-15`), and `cfg.ReadConfig` is the single defaulting point
+  (`cfg/conf.go:95-101`), so anything read out of `config.Game.Player` post-parse
+  is already defaulted. No new defaulting logic.
+
+### The chunk
+
+One execution chunk, backend + frontend. Not started.
+
+1. **Serve the curve on `/skills`.** `CatalogJSON`/`CatalogHandler` currently
+   marshal a bare **array** (`skills/catalog.go:77-81`), so this is a payload
+   *shape* change to `{"curve": {...}, "skills": [...]}`. Breaking, but the only
+   consumer is our own client and both halves ship in one commit. Take the curve
+   as a `curve.Curve` parameter (no import cycle — `curve` imports only `math`)
+   and construct it in `aurad.go:264` from `config.Game.Player.LevelGrowth` /
+   `MaxLevel`.
+   - ⚑ **DRY watch:** that construction already exists verbatim at
+     `core/gameconf.go:22`. Two copies of "how you build the curve from conf" is
+     the drift shape the C0 one-knob rule exists to prevent — extract a shared
+     constructor rather than copy the literal.
+   - *Alternative considered:* a separate additive `/conf` sidecar. Non-breaking
+     and an honest home for future client-visible conf, but it duplicates the
+     fetch + fallback plumbing for one number pair — YAGNI. *Also rejected:*
+     streaming `power_scale` as a wire field (authoritative, zero client-side
+     formula, but a schema regen + codec change + per-tick bandwidth for a value
+     that changes ~30 times per character lifetime, and it drags in the
+     "regenerated bindings need a webpack dev-server restart" gotcha).
+2. **Consume it in `client-data/Skills.ts`.** Parse the curve alongside the
+   definitions; expose `powerScaleAt(level)` = `Math.pow(growth, level - 1)`,
+   clamped to `level >= 1` to mirror `curve.F`. Degrade to **1** when the fetch
+   fails — the module's existing contract is "the game never blocks on the
+   catalog", and a neutral scale reproduces exactly today's behaviour rather
+   than crashing a tooltip.
+3. **Apply it in `SkillTooltip.ts`** to the seven lines above and nothing else.
+   Cleanest seam: a second optional multiplier argument threaded into `prog()` at
+   the HP-valued call sites, so the "which lines scale" decision stays visible at
+   each call rather than hidden in a helper. Character level comes from
+   `getLocalPlayerLevel()`.
+   - ⚑ **Rounding:** `fmt()` trims to 2 decimals, so scaled values will read
+     `106.99` where the server deals `vitals.HP(...)`. Match the server's own
+     rounding, or the tooltip is precise and still wrong. Check what
+     `vitals.HP` does before picking.
+   - ⚑ `getLocalPlayerLevel` lives in `client-data/Mobs.ts` because the tint
+     "already owned the mob side". Tooltips are its second consumer, so the
+     mob-module home is now wrong. Judgement call in-chunk: import it as-is
+     (KISS) or lift it to its own tiny module. Prefer lifting only if a third
+     consumer is already visible.
+4. **Update the header comment** (`SkillTooltip.ts:1-9`). It claims the tooltip
+   "stays correct through every balance retune" — true for authored values, and
+   it tracked those correctly all along; it simply never modelled the curve axis.
+   Say both axes now.
+
+**Test strategy.** `prog`/`scaled` are already pure and DOM-free by design
+("unit-testable" per the header) — TDD a failing test first: the same effect at
+character level 1 vs 30 must differ by `1.12²⁹`, and a radius/crit/variance line
+must be **byte-identical** across both (that assertion is the real regression
+guard — it pins the boundary, which is the part most likely to be got wrong).
+Backend: a catalog test that the new payload shape round-trips and carries the
+conf curve, not `curve.Default()`. Then in-game: hover Rejuvenation at level 1,
+`XP` up to 30, hover again — the number must move, and it must match the actual
+heal landing on an ally.
+
+**Blocks nothing, blocked by nothing.** Independent of the round-3 healer chunk.
+
+### Adjacent finding — Hardy does not buff heal output (verified, no action)
+
+The PO asked whether `Hardy` (`stat_multiplier` / `maxHealth`, +8 %/level) raises
+heal output, since heals could plausibly be max-HP-derived. **It does not, and
+there is no double-dip anywhere.** Pinning it here because it is the kind of
+thing that gets re-derived every time someone reads the heal path:
+
+- **Flat-HP output** (Damage, Heal, Rejuvenation's HoT, shields, dots,
+  self-cost): **no.** `casterPowerScale` reads `PowerScale()`, which is pure
+  `curve.F(level)` (`player.go:252-254`). Hardy's bonus lives in
+  `Derived.MaxHealthBonus`, consumed *only* by `maxHealthFactor()`
+  (`player.go:242-247`) for the HP pool. Nothing in the skill-output path calls
+  it. The separation is deliberate and clean.
+- **`heal_aura` + `healFractionOfMax`** → fraction of the **target's** max HP
+  (`skills.go:759-766`); campfire only (0.12). So *your* Hardy makes the campfire
+  restore more absolute HP *to you*; it does not strengthen heals *you* cast.
+- **`self_heal` + `healFractionOfMax`** → fraction of the **caster's own** max HP
+  (`skills.go:1597-1599`); `FirstAid` (0.20 +0.05/L). **Hardy does raise
+  FirstAid's absolute heal** — 20 % of a bigger pool.
+- Both fraction branches deliberately skip `powerScale` (their comments state
+  why: max HP already carries f(L), so scaling again would double-inflate).
+
+Net: Hardy is relatively neutral everywhere — the same *fraction* of a larger
+pool — and never inflates an outgoing heal number. **Consequence for the chunk:
+the tooltip fix needs the curve only, never `MaxHealthBonus`**, since no
+HP-valued output line depends on it.
+
+⚠ Caveat, not a bug today: per backlog §31, `maxHealth` is one of the three
+derived stats applied **only in player code paths** — a mob equipping Hardy
+silently gets nothing. Latent (0 mob defs equip it), tracked in §31.
+
+### Drive-by while in here: stale Rejuvenation drop chance
+
+`Rejuvenation`'s drop was raised **0.1 → 0.25** in playtest-1 Pass A
+(`archive/plan-playtest1-feedback.md:251`), and `orc-warlord.json:33` carries the
+new value — but three docs still say `.1`: the mob's own `_comment`,
+`content-skill-inventory.md:59`, and `content-auras.md`. Doc-only, one-line
+fixes; fold into this chunk's commit or any nearby one.
 
 ---
 
@@ -381,6 +597,13 @@ a multiplayer playtest, not a solo one.
   tooltip reads the caster's `spawn` effect, not the summoned mob's loadout.
   Needs the tooltip to follow the spawn into the mob's own skills.
 - **Haste's name promises movement, delivers cadence** (see §Findings).
+- **The `DAMAGE <pct>` dev cheat always kills** (round 3, 2026-07-25).
+  `cmd.go`'s `DAMAGE` calls `VitalSign.SubFraction`, which is a fraction of
+  `vitals.Max` (`^VitalSign(0)`, the *type* max) — but player health has been
+  **absolute HP** since item 11 (`player.go:68`), so every argument removes far
+  more than the whole pool. Fix = subtract a fraction of `p.MaxHealth()`. Dev
+  tooling only, no gameplay surface, but it silently invalidates any test that
+  tries to wound a player.
 
 ## Own planning session
 
@@ -433,6 +656,18 @@ a multiplayer playtest, not a solo one.
    says it tracks threat but ignores the attacker. Taunt already reads it
    (`ForceThreatToTop`); nothing else does. If nothing consumes it, the ruling is
    still right for uniformity — but say so explicitly rather than by accident.
+
+**Round 4 (2026-07-25):**
+
+9. **Do the `of max HP` tooltip lines also want an absolute number?** The round-4
+   ruling is "show what the player actually will see", and `FirstAid` reads
+   `Heal self: 20 % → 25 % of max HP` — correct, curve-free, and *not* what the
+   player watches land (≈535 HP at level 30). Adding the absolute alongside the
+   percentage is cheap: `max_health` is already client-side for the health bar
+   (`Player.ts:69`), needing only the same one-line mirror that
+   `setLocalPlayerLevel` got. **Blocks nothing** — additive, decidable once the
+   round-4 chunk is felt. It is the *only* line where authored and experienced
+   numbers still diverge after that chunk lands.
 
 ---
 
