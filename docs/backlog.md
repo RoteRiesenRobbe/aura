@@ -2312,10 +2312,69 @@ five `stat_multiplier` passives** (`tough`/`swift`/`keen-eye`/`hardy`/`strong`
 silently, which is the dangerous part. Fix = hoist to `sys`-level helpers over
 `acting any`, exactly like the two that work.
 
+> **Re-verified 2026-07-25 against the §25 C lesson** (that gap was recorded as
+> latent on a check that only considered mob content, and was live all along —
+> see the §25 banner). **The "latent" label survives the same scrutiny, and is
+> correct.** What was redone:
+>
+> - **Checked by effect TYPE, not by skill name** — the exact §25 C failure
+>   mode. Grepping all 83 skills for `"type": "stat_multiplier"` yields
+>   **exactly 5**, all player passives (Hardy/`maxHealth`, Tough/
+>   `damageReduction`, Swift/`movementSpeed`, KeenEye/`critChance`,
+>   Strong/`damageDealt`). **No `api/skills/mobs/` skill authors the effect type
+>   at all**, so the name-based and type-based checks agree.
+> - **All 50 mob defs re-read**: each equips 1–2 combat skills, three equip
+>   none, none equips a passive.
+> - **Every runtime acquisition route is closed.** Summons: `spawnSummon`
+>   (`sys/skills.go:1507`) builds from the *mob def*, not the owner — no passive
+>   inheritance, and `RaiseLoadoutLevels` only raises what the def equipped.
+>   Cheats: `sys/cmd/cmd.go:142` grants to a player only. Encounter scripts:
+>   no skill grants at all. NPCs: `model/npc.Npc` has no `SkillComponent`
+>   (which is gap 4).
+> - ⚠ **Near-miss for the next reader:** `sys/skills.go:1523` calls
+>   `p.MaxHealthBonusAt(ownerLevel)` **on a mob** and scans like a mob-side
+>   reader of `MaxHealthBonus`. It is not — it is `SpawnParams`' summon-HP-from-
+>   owner-level, an unrelated quantity that happens to share the name.
+>
+> **Three things the original entry missed, all of which make the trap worse:**
+>
+> **① It defeats the obvious verification.** `recomputeDerived()`
+> (`skills/component.go:313`) is a `SkillComponent` method and runs from
+> `EquipPassive`/`RaiseLoadoutLevels` **regardless of whether the component
+> belongs to a player or a mob**. A mob equipping Hardy therefore has
+> `Derived.MaxHealthBonus` **correctly populated** — a debugger, a log line, or
+> a test asserting on `Derived` all show the right number. The failure is not
+> "the stat does not compute", it is "the stat computes and nobody reads it".
+> Whoever authors the first mob passive will check their work the natural way
+> and conclude it works.
+>
+> **② Nothing warns.** `model/mob/mob.go:123` shows the mob side already has
+> the full passive-equip path, including a "declares more passives than slots"
+> log. Authoring a passive on a mob is an accepted, ordinary-looking action the
+> loader takes **silently** — no hard-fail, no warning, unlike the tier/baseline
+> authoring guards.
+>
+> **③ ⭐ The sim harness is exposed too, and that is arguably worse than the
+> live bug.** `sim/world.go:160` builds mobs with `mob.NewMob(def, …)` from the
+> real definitions, so the day a mob def carries a passive the **balancing
+> harness models it wrong as well** — and the harness is where TTK, kills/hour
+> and the XP bands come from (`plan-sim-harness.md`). A live bug surfaces in
+> play; a wrong harness number gets baked into authored content and stays there.
+> **Any fix for gap 1 must be verified in the harness, not only in-game.**
+>
+> **Why it stayed latent (and why that is a design signal, not luck):** mobs
+> have parallel mechanisms for all three broken stats — `factors.baseMaxHealth`
+> + `Mob.RaiseMaxHealth` for HP, resist tags for damage reduction,
+> `factors.speed` for movement. An author reaching for mob durability naturally
+> reaches for `factors`, never for Tough. That is gap 2 (two vocabularies)
+> wearing a different hat, and it is the concrete reason the "do NOT action
+> gap 1 in isolation" note below stands: the question is not "wire three more
+> readers", it is "should mobs express durability as passives at all".
+
 **2. Base stats speak two vocabularies.** Players read `cfg.PlayerConfig`
 (`BaseHealth`, `HealthGainTick`, `WalkingSpeedPerTick`, `CritChance`,
 `LevelCurve`); mobs read `mobs.MobDefinition` plus hardcoded Go — velocity
-`0.055 * d.Factors.Speed` (`mob.go:178`, under a standing
+`0.055 * d.Factors.Speed` (`mob.go:232`, under a standing
 `TODO use walkingSpeedPerTick from global config`) — and had **no crit base at
 all** (`casterCritChance` explicitly special-cases `model.PlayerEntity`).
 **Partially addressed 2026-07-24 (§27.2.3 + §25 B):** mob regen became
