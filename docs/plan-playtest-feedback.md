@@ -1,8 +1,11 @@
 # Plan: Playtest Feedback (rolling collection)
 
-**Status:** **Collection doc — nothing executed yet.** Triaged, prioritized and
-sorted 2026-07-24; rounds 3 + 4 appended 2026-07-25, each with a designed chunk;
-no chunk started. This is the **standing home for issues
+**Status:** **Collection doc — 1 of 2 designed chunks executed.** Triaged,
+prioritized and sorted 2026-07-24; rounds 3 + 4 appended 2026-07-25, each with a
+designed chunk. **Round 3 (healer combat state + role-as-loadout) shipped
+2026-07-25 `03b152f4` — ⏳ PO test pending 2026-07-26** (ledger + acceptance
+checklist: §Round-3 chunk ledger). **Round 4 (tooltip power scale) not started.**
+This is the **standing home for issues
 arising from playtests**: new rounds append to §Intake, items get sorted into
 the passes below, and we pick targets from here. Successor to
 `archive/plan-playtest1-feedback.md` (first external playtest, fully executed
@@ -270,7 +273,7 @@ why decision 1 and decision 2 point in different directions.
 
 ### The chunk
 
-> **✅ DONE 2026-07-25 — ⏳ PO TEST PENDING (scheduled 2026-07-26).**
+> **✅ DONE 2026-07-25 `03b152f4` — ⏳ PO TEST PENDING (scheduled 2026-07-26).**
 > Headless-verified only; NOT yet PO-verified in-game. Both parts in one chunk
 > per PO call. Ledger at the end of this section (§Round-3 chunk ledger).
 
@@ -329,7 +332,7 @@ And the whole spectrum becomes content with no branching:
 ### Round-3 chunk ledger
 
 **Healer combat state + role-as-loadout DONE (2026-07-25), backend + content —
-⏳ PO TEST PENDING (2026-07-26), headless-verified only.** 11 files.
+⏳ PO TEST PENDING (2026-07-26), headless-verified only, committed `03b152f4`.** 11 files.
 Both parts shipped together: the selector needs a combat-state notion that is
 not "has an aggro target", and support mode makes that proxy strictly worse.
 
