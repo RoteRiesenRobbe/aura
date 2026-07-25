@@ -3,6 +3,7 @@ package phy
 import (
 	"bytes"
 	"fmt"
+	"math"
 )
 
 type (
@@ -17,9 +18,16 @@ type (
 
 const gridWidth = 10
 
-// floor32f is a math.Floor(f) for float32 to int
+// floor32f is a math.Floor(f) for float32 to int.
+//
+// This must floor, not truncate: the world is centred on the origin, so
+// negative coordinates are ordinary, and int(f) rounding toward zero mapped
+// both (-10, 0) and [0, 10) onto cell 0 — a double-width bucket on each axis
+// and a quadruple-area cell where they cross. Bucketing stayed monotone, so
+// no collision was ever missed; the cost was purely the O(k^2) per-cell
+// brute force paying ~16x on the busiest cell in the world.
 func floor32f(f float32) int {
-	return int(f)
+	return int(math.Floor(float64(f)))
 }
 
 // NewSpace initializes a new Space

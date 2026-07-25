@@ -1,8 +1,15 @@
 # Architecture & Scaling
 
 Runtime cost model, scaling limits, and the zone/networking architecture.
-Grounded in the current code (2026-07); all concrete numbers are
+Grounded in the current code (2026-07); the concrete numbers **in this doc** are
 **[PLACEHOLDER]** estimates for reasoning, not measurements.
+
+> **Real measurements exist — prefer them over §4's estimates.**
+> `devops/loadtest.md` records live break-ramps against the deployed box:
+> **~60–70 concurrent clustered players** (~60 for maxed builds), **120+
+> dispersed with the ceiling never reached**, and CPU peaking at 147 % of one
+> core on a 2-vCPU box — i.e. the loop cannot spend the second core. The wall is
+> single-threaded per-player GameState encoding, not physics.
 
 This doc answers three recurring questions:
 1. How bad does performance get at 5 / 50 / 500 players?
@@ -33,9 +40,17 @@ is per-zone Spaces (§6), not micro-optimization.
 
 ## 2. Physics broadphase (`phy/space.go`)
 
-- Uniform grid, cell size `gridWidth = 10` units. The **dynamic grid is rebuilt
-  every tick** (`s.grid = make(...)`) → per-tick map allocation = GC pressure at
-  scale. **Static shapes** live in a persistent `gridStatic` inserted once.
+- Uniform grid, cell size `gridWidth = 10` units. The dynamic grid is **reused
+  across ticks** (`space.go` `Update()` truncates each cell to `[:0]` and clears
+  the tail) — it used to be re-`make()`d every tick, which was ~20 % of the idle
+  server's garbage until `fe0044d0` (2026-07-22); `space_alloc_test.go` now pins
+  `Space.Update` at zero allocations. **Static shapes** live in a persistent
+  `gridStatic` inserted once.
+- Cell indexing floors toward negative infinity (`floor32f`). It used to
+  truncate toward zero, which merged the two columns either side of each axis
+  into one double-width bucket — and the world is centred on the origin, so the
+  centre cell was 20×20 and paid ~16× the pair tests of a normal cell. Fixed
+  2026-07-25; bucketing was monotone either way, so no collision was ever missed.
 - Collision is per-cell brute force: `bruteIntersectShapes` is O(k²) over the
   k shapes in a cell (dynamic×dynamic) plus dynamic×static.
 - **Large shapes are the cost amplifier.** A player viewport is a
@@ -85,8 +100,11 @@ For the prototype and realistic v1 (2–3 zones, tens of players) the current
 architecture is fine — the one load-bearing thing (AOI) already exists. When
 headroom is needed, in order of effort:
 
-1. **Cheap, high value:** reuse the grid map across ticks (clear + reuse instead
-   of `make()` every tick) → kills the per-tick GC allocation. ~an hour.
+1. ~~**Cheap, high value:** reuse the grid map across ticks~~ — **DONE
+   `fe0044d0`** (2026-07-22). Idle allocation fell ~70× (11.2 → 0.16 MB/s), tick
+   p95/p99 −38 %, live idle CPU 25.8 → 17 % of a core. Measurements:
+   `plan-intermission-triage.md`. The remaining cheap win of the same kind was
+   the `floor32f` truncation (§2), fixed 2026-07-25.
 2. **Structural, already in the design:** one `phy.Space` per zone (§6). Free
    architecturally because the world is already partitioned into zones; each
    zone gets its own core/goroutine/process — the real horizontal-scale path

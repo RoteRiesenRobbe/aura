@@ -315,7 +315,7 @@ func SpectatorGameStateMessageMarshalFlatbuf(builder *flatbuffers.Builder, g *Sp
 func EntitiesMarshalFlatbuf(entities []model.Entity, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	n := len(entities)
 
-	offsets := make([]flatbuffers.UOffsetT, n)
+	offsets := make([]flatbuffers.UOffsetT, 0, n)
 	for _, e := range entities {
 		var marshalled flatbuffers.UOffsetT
 		var eType AuraApi.AnyEntity
@@ -343,8 +343,12 @@ func EntitiesMarshalFlatbuf(entities []model.Entity, builder *flatbuffers.Builde
 	}
 
 	AuraApi.GameStateStartEntitiesVector(builder, n)
-	for _, o := range offsets {
-		builder.PrependUOffsetT(o)
+	// Prepend in reverse so index 0 lands at the lowest address — the same
+	// rule as every other vector in this file. Prepending forward used to
+	// emit the entities reversed; harmless (the client keys on id) but it
+	// made this the one vector that disagreed with the others.
+	for i := len(offsets) - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(offsets[i])
 	}
 	return builder.EndVector(n)
 }

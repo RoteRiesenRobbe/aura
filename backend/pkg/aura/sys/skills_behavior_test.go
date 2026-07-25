@@ -1544,13 +1544,28 @@ func TestCooldown_SelfHealFractionOfMaxAndNumber(t *testing.T) {
 		"self-heal records the floating heal number")
 }
 
-// slowRecorder implements the slowable interface for slow_aura tests.
+// slowRecorder implements the slowable interface for slow_aura tests. It is
+// Factioned because slow is a harmful effect and now runs through the shared
+// eligibility seam like every other one — an unfactioned target is no longer
+// a legal target of anything.
 type slowRecorder struct {
+	basic     ecs.BasicEntity
+	faction   model.Faction
+	friendly  bool
 	sources   []skills.SkillID
 	fractions []float32
 	ticks     []int
 }
 
+// newSlowTarget builds a hostile slowable — the ordinary target of a player's
+// slow aura.
+func newSlowTarget() *slowRecorder {
+	return &slowRecorder{basic: ecs.NewBasic(), faction: model.FactionHostile}
+}
+
+func (r *slowRecorder) Basic() ecs.BasicEntity        { return r.basic }
+func (r *slowRecorder) Faction() model.Faction        { return r.faction }
+func (r *slowRecorder) FriendlyToPlayers() bool       { return r.friendly }
 func (r *slowRecorder) ApplySlow(source skills.SkillID, fraction float32, ticks int) {
 	r.sources = append(r.sources, source)
 	r.fractions = append(r.fractions, fraction)
@@ -1558,7 +1573,7 @@ func (r *slowRecorder) ApplySlow(source skills.SkillID, fraction float32, ticks 
 }
 
 func TestSlowAura_AppliesLevelScaledSlow(t *testing.T) {
-	target := &slowRecorder{}
+	target := newSlowTarget()
 	set := colliderSetOf(target)
 
 	effect := skills.EffectDef{
@@ -1589,7 +1604,7 @@ func TestSlowAura_SkipsNonSlowableTargets(t *testing.T) {
 // (CC-a-hostile direction, atmosphere & recovery chunk 1).
 func TestSlowAura_CasterEntersCombatOnSlow(t *testing.T) {
 	caster := newFakePlayer()
-	target := &slowRecorder{}
+	target := newSlowTarget()
 	effect := skills.EffectDef{
 		Type:           skills.EffectTypeSlowAura,
 		TargetsEnemies: true,
@@ -1601,6 +1616,87 @@ func TestSlowAura_CasterEntersCombatOnSlow(t *testing.T) {
 
 	require.Len(t, target.fractions, 1, "the target was slowed")
 	assert.Equal(t, 1, caster.combatActions, "CC'ing a hostile enters combat")
+}
+
+// --- slow_aura eligibility (backlog §25 C) ---
+//
+// applySlowAura used to iterate the raw collision set and slow anything
+// implementing slowable, with no faction check and no mayHarm gate — the only
+// aura path that skipped both. The sensor mask is LayerCombatants, which does
+// not discriminate by faction, so the targetsAllies:false authored on all
+// three live slow skills (Slow, Suppression, Warbanner) was silently ignored
+// and a player's slow also hit friendly NPCs and their own summons.
+
+func TestSlowAura_SkipsSameFactionWhenAlliesNotTargeted(t *testing.T) {
+	caster := newFakePlayer() // FactionAligned
+	ally := newSlowTarget()
+	ally.faction = model.FactionAligned // a player-owned summon
+
+	effect := skills.EffectDef{
+		Type:           skills.EffectTypeSlowAura,
+		TargetsEnemies: true,
+		TargetsAllies:  false,
+		TickInterval:   1,
+		Slow:           &skills.SlowParams{Fraction: 0.5},
+	}
+
+	applySlowAura(caster, 4, 1, effect, colliderSetOf(ally))
+
+	assert.Empty(t, ally.fractions, "targetsAllies:false must exclude same-faction targets")
+	assert.Zero(t, caster.combatActions, "slowing nobody is not a combat action")
+}
+
+func TestSlowAura_SkipsPlayerFriendlyFaction(t *testing.T) {
+	caster := newFakePlayer() // FactionAligned
+	npc := newSlowTarget()    // different faction…
+	npc.friendly = true       // …but declared friendly to players
+
+	effect := skills.EffectDef{
+		Type:           skills.EffectTypeSlowAura,
+		TargetsEnemies: true,
+		TickInterval:   1,
+		Slow:           &skills.SlowParams{Fraction: 0.5},
+	}
+
+	applySlowAura(caster, 4, 1, effect, colliderSetOf(npc))
+
+	assert.Empty(t, npc.fractions, "the aligned side can never harm a player-friendly faction")
+}
+
+func TestSlowAura_SkipsUnfactionedTargets(t *testing.T) {
+	// Structures/resources have no allegiance and are reached only through
+	// their dedicated paths — never through a flag-gated harmful effect.
+	set := colliderSetOf(&struct {
+		slowable
+	}{})
+
+	effect := skills.EffectDef{
+		Type:           skills.EffectTypeSlowAura,
+		TargetsEnemies: true,
+		TickInterval:   1,
+		Slow:           &skills.SlowParams{Fraction: 0.5},
+	}
+
+	assert.NotPanics(t, func() { applySlowAura(newFakePlayer(), 4, 1, effect, set) })
+}
+
+func TestSlowAura_MobCasterDoesNotSlowOwnFaction(t *testing.T) {
+	// The headline risk the backlog recorded for this gap: the day a mob slow
+	// aura is authored, it would slow its own faction.
+	caster := newFakeMob()         // FactionHostile
+	sameFaction := newSlowTarget() // also FactionHostile
+
+	effect := skills.EffectDef{
+		Type:           skills.EffectTypeSlowAura,
+		TargetsEnemies: true,
+		TargetsAllies:  false,
+		TickInterval:   1,
+		Slow:           &skills.SlowParams{Fraction: 0.5},
+	}
+
+	applySlowAura(caster, 4, 1, effect, colliderSetOf(sameFaction))
+
+	assert.Empty(t, sameFaction.fractions, "a mob must not slow its own faction")
 }
 
 // --- applyResistAura (item 11 Phase 2 Step 3) ---

@@ -131,3 +131,40 @@ func TestSpace_QueryCircleStatics_InvAABBBorder(t *testing.T) {
 	poking.Shape().Mask = 0b01
 	assert.Len(t, s.QueryCircleStatics(poking), 1, "poking past the boundary hits the wall")
 }
+
+// floor32f must be a real floor, not a truncation. int(f) rounds toward zero,
+// which collapses the two cell columns either side of an axis into one
+// double-width bucket: the world is centred on the origin, so cell 0 covered
+// (-10, 10) and the centre cell was 4x the area of every other one. Since
+// bruteIntersectShapes is O(k^2) per cell, that cell paid ~16x the pair tests
+// at equal density. Bucketing stayed monotone either way, so this never lost
+// a collision — it only wasted work.
+func TestFloor32f_FloorsTowardNegativeInfinity(t *testing.T) {
+	cases := []struct {
+		in   float32
+		want int
+	}{
+		{0, 0},
+		{0.9, 0},
+		{1, 1},
+		{1.5, 1},
+		{-0.1, -1},
+		{-0.9, -1},
+		{-1, -1},
+		{-1.5, -2},
+		{-2, -2},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.want, floor32f(c.in), "floor32f(%v)", c.in)
+	}
+}
+
+// The regression this fixes, stated in grid terms: a shape just left of the
+// origin and one just right of it must land in different cells.
+func TestFloor32f_OriginCellIsNotDoubleWidth(t *testing.T) {
+	left := floor32f(-5 / float32(gridWidth))
+	right := floor32f(5 / float32(gridWidth))
+	assert.NotEqual(t, left, right, "cells either side of the origin must differ")
+	assert.Equal(t, -1, left)
+	assert.Equal(t, 0, right)
+}

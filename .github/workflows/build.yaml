@@ -20,6 +20,25 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
+      # The Go bindings regenerate on every `make -C backend build` (the `gen`
+      # target), but the TypeScript ones only ever regenerate when a human
+      # remembers to run api/schema/make.sh. So editing a .fbs and building the
+      # backend silently produces Go bindings newer than the checked-in TS
+      # ones, and the first symptom is a wire mismatch at runtime. Regenerate
+      # both from the schemas and fail if anything moved. Both generators are
+      # byte-idempotent, so a clean tree here means genuinely in sync.
+      - id: check-generated-bindings
+        name: Check generated FlatBuffers bindings match the schemas
+        run: |
+          set -euo pipefail
+          (cd backend && go generate ./...)
+          (cd api/schema && ./make.sh)
+          if [ -n "$(git status --porcelain -- backend/pkg/api/AuraApi api/schema/js)" ]; then
+            echo "::error::Generated FlatBuffers bindings are out of date. Run 'go generate ./...' in backend/ AND api/schema/make.sh, then commit the result."
+            git status --porcelain -- backend/pkg/api/AuraApi api/schema/js
+            git diff -- backend/pkg/api/AuraApi api/schema/js
+            exit 1
+          fi
       - id: vet-backend
         name: Vet backend
         working-directory: backend

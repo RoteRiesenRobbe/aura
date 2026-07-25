@@ -317,12 +317,18 @@ discussion — never silently adopt them as set.
 Accounts, aura system (base auras, cooldowns, first combinations), spellbook
 with milestone and monster unlocks, progression (level, skill system, slots),
 persistent world, 2–3 zones, mob types (normal/elite/boss), UI (resource bar,
-XP bar, ability bar, aura panel, minimap, zone chat), line-of-sight for auras,
-campfire system.
+XP bar, ability bar, aura panel, minimap, zone chat), campfire system, and
+the **character-sacrifice loop** (moved *into* v1 by PO ruling 2026-07-19,
+`plan-intermission-triage.md` item 10 / GDD §11 — it lands right after step 8
+as persistence's first consumer).
+
+~~Line-of-sight for auras~~ — **CUT 2026-07-10.** Auras pass through walls and
+every environment object; props block movement, never effects. The `blocksAura`
+flag was deleted 2026-07-11. See `gdd.md` §142/§163 and `roadmap.md` item 6.
 
 ### Not in v1.0
 
-PvP, formal group system, economy, mobile, endgame raid events, character sacrifice.
+PvP, formal group system, economy, mobile, endgame raid events.
 
 ---
 

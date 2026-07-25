@@ -7,6 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -303,4 +306,63 @@ func TestGameStateCastAndRejection_AbsentReadsZero(t *testing.T) {
 	assert.Zero(t, result.CastTicksTotal())
 	assert.Zero(t, result.ActivationRejectedSkillId())
 	assert.Zero(t, result.ActivationRejectedReason())
+}
+
+// resourceIDAt reads the entity at index j as a Resource and returns its id.
+// Every entity the test below marshals is a prop, which rides the Resource
+// wire table (PropEntityFlatbufMarshal).
+func resourceIDAt(t *testing.T, gs *AuraApi.GameState, j int) uint64 {
+	t.Helper()
+
+	var ent AuraApi.Entity
+	require.True(t, gs.Entities(&ent, j), "entity %d missing", j)
+	require.Equal(t, AuraApi.AnyEntityResource, ent.EType())
+
+	var tbl flatbuffers.Table
+	require.True(t, ent.E(&tbl), "entity %d carries no union payload", j)
+
+	var res AuraApi.Resource
+	res.Init(tbl.Bytes, tbl.Pos)
+	return res.Id()
+}
+
+func TestEntitiesMarshalFlatbuf_LengthAndOrder(t *testing.T) {
+	// The entities vector is rebuilt for every player, every tick — the
+	// hottest allocation path in the server — and nothing pinned it before.
+	// It must carry exactly len(entities) elements, in input order (the
+	// prepend-in-reverse rule every other vector in this file follows).
+	entities := []model.Entity{
+		prop.New(model.EntityType(1), phy.Vec2f{X: 1, Y: 2}, 0.5, false),
+		prop.New(model.EntityType(2), phy.Vec2f{X: 3, Y: 4}, 0.5, false),
+		prop.New(model.EntityType(3), phy.Vec2f{X: 5, Y: 6}, 0.5, true),
+	}
+
+	b := flatbuffers.NewBuilder(256)
+	vec := EntitiesMarshalFlatbuf(entities, b)
+
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddEntities(b, vec)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
+
+	require.Equal(t, len(entities), result.EntitiesLength())
+	for i, e := range entities {
+		assert.Equal(t, e.Basic().ID(), resourceIDAt(t, result, i),
+			"entity at index %d is not the one that was marshalled there", i)
+	}
+}
+
+func TestEntitiesMarshalFlatbuf_Empty(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	vec := EntitiesMarshalFlatbuf(nil, b)
+
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddEntities(b, vec)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	assert.Zero(t, result.EntitiesLength())
 }

@@ -1556,12 +1556,15 @@ func (s *SkillSystem) summonPosition(e skillEntity, summonRadius float32) phy.Ve
 	return casterPos
 }
 
-// applySlowAura slows every slowable target in range. The sensor mask
-// pre-filters layers per the target flags; entities that cannot be slowed
-// (players — no ApplySlow) are skipped. NOTE: this path has no faction
-// eligibility at all (pre-6.6 gap, harmless while no mob carries a slow aura
-// and players cannot be slowed) — when a mob slow ships, route it through
-// eligibleByTargetFlags so the mayHarm hostility gate applies.
+// applySlowAura slows every eligible slowable target in range. Eligibility
+// rides eligibleByTargetFlags like every other harmful effect, so the
+// targetsAllies/targetsEnemies flags and the mayHarm hostility gate apply
+// (backlog §25 C). Before that it iterated the raw collision set: the sensor
+// mask is LayerCombatants, which does not discriminate by faction, so the
+// targetsAllies:false authored on all three live slow skills was ignored and
+// a player's slow also hit friendly NPCs and their own summons. The caster is
+// not skipped — same-faction protection is the targetsAllies rule, matching
+// applyDamageAura.
 func applySlowAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) {
 	fraction := effect.Slow.FractionAt(level)
 	if fraction <= 0 {
@@ -1571,8 +1574,12 @@ func applySlowAura(e skillEntity, source skills.SkillID, level int, effect skill
 		fraction = 1
 	}
 	ticks := effectiveTickInterval(effect, level) + 1
+	eligible := eligibleByTargetFlags[slowable](effect, e, 0, false)
 	slowedAny := false
 	for c := range collisions {
+		if !eligible(c) {
+			continue
+		}
 		if target, ok := c.Shape().UserData.(slowable); ok {
 			target.ApplySlow(source, fraction, ticks)
 			slowedAny = true

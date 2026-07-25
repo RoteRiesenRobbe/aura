@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"net/http"
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -381,11 +382,49 @@ func (g *game) addPlayer(p model.PlayerEntity) {
 
 const stepMillis = 33.0
 
-func (g *game) update() {
-	// fixed 33ms steps
-	// monotonic clock — wall time jumps (e.g. WSL2 host-sleep resync) must
-	// not register as overload
-	before := time.Now()
+// maxPanicStacks caps how many full stack traces the loop prints. A system
+// that panics deterministically would otherwise emit one 30×/s and bury every
+// other log line; past the cap the panic is still counted and logged, just
+// without the trace.
+const maxPanicStacks = 5
+
+// recoveredPanics counts ticks aborted by a panic in an ECS system. Package
+// scope mirrors TickStats — the loop is a singleton and telemetry readers
+// (the /tickstats endpoint, tests) want it without a game handle.
+var recoveredPanics atomic.Uint64
+
+// RecoveredPanics reports how many ticks have been aborted by a recovered
+// panic since process start. Any value above zero means the world is running
+// on partially-updated state and wants investigating.
+func RecoveredPanics() uint64 { return recoveredPanics.Load() }
+
+// runTick performs the mutating half of a tick — admitting a joiner and
+// stepping every ECS system — with a recover so that one bad entity or system
+// cannot take the process down and disconnect everyone.
+//
+// The trade is deliberate and worth stating: recovering ABORTS THE REST OF
+// THE TICK, so the world is left partially updated (some systems ran, the
+// ones after the fault did not). That is a correctness cost accepted in
+// exchange for availability — a transient edge case now costs one degraded
+// tick instead of every player's session. It is not a licence to leave panics
+// unfixed: RecoveredPanics() is the signal that something needs a real fix.
+func (g *game) runTick() {
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		n := recoveredPanics.Add(1)
+		attrs := []any{
+			slog.Any("panic", r),
+			slog.Uint64("tick", atomic.LoadUint64(&g.Tick)),
+			slog.Uint64("recovered_total", n),
+		}
+		if n <= maxPanicStacks {
+			attrs = append(attrs, slog.String("stack", string(debug.Stack())))
+		}
+		slog.Error("recovered panic in game loop — tick aborted, world partially updated", attrs...)
+	}()
 
 	// accept at most one player per tick
 	select {
@@ -396,6 +435,15 @@ func (g *game) update() {
 	}
 
 	g.World.Update(stepMillis)
+}
+
+func (g *game) update() {
+	// fixed 33ms steps
+	// monotonic clock — wall time jumps (e.g. WSL2 host-sleep resync) must
+	// not register as overload
+	before := time.Now()
+
+	g.runTick()
 
 	dt := time.Since(before)
 	TickStats.record(dt.Microseconds()) // load-test instrumentation, see devops/loadtest.md

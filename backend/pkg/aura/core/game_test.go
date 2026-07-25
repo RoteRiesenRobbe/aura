@@ -57,3 +57,60 @@ func TestOverloadPercent_NoTruncationTo100(t *testing.T) {
 	// Exactly on budget is 100%.
 	assert.Equal(t, int64(100), overloadPercent(33))
 }
+
+// panickingSystem panics on every Update until disarmed.
+type panickingSystem struct {
+	priority int
+	armed    bool
+	calls    int
+}
+
+func (s *panickingSystem) Update(dt float32) {
+	s.calls++
+	if s.armed {
+		panic("boom")
+	}
+}
+func (s *panickingSystem) Remove(e ecs.BasicEntity) {}
+func (s *panickingSystem) Priority() int            { return s.priority }
+
+// countingSystem records that it ran.
+type countingSystem struct {
+	priority int
+	calls    int
+}
+
+func (s *countingSystem) Update(dt float32)        { s.calls++ }
+func (s *countingSystem) Remove(e ecs.BasicEntity) {}
+func (s *countingSystem) Priority() int            { return s.priority }
+
+// A panic in any ECS system used to kill the process and disconnect every
+// player: Loop() is `for { g.update(); <-ticker.C }` with no recover anywhere.
+// One malformed edge case = full-server outage.
+func TestUpdate_RecoversFromSystemPanic(t *testing.T) {
+	g := &game{}
+	boom := &panickingSystem{priority: 10, armed: true}
+	after := &countingSystem{priority: 0}
+	g.World.AddSystem(boom)
+	g.World.AddSystem(after)
+
+	before := RecoveredPanics()
+
+	assert.NotPanics(t, func() { g.update() }, "a system panic must not escape the tick")
+
+	assert.Equal(t, before+1, RecoveredPanics(), "the panic is counted for telemetry")
+	assert.Equal(t, uint64(1), g.Tick, "the tick still advances so clients do not freeze")
+	assert.Equal(t, 1, boom.calls)
+
+	// The honest cost of recovering: the rest of the tick is skipped, so the
+	// world is left partially updated. Recovery buys availability, not
+	// correctness — a sustained panic is still an outage, just a visible one.
+	assert.Zero(t, after.calls, "systems after the panicking one do not run this tick")
+
+	// The loop keeps going and fully recovers once the fault clears.
+	boom.armed = false
+	assert.NotPanics(t, func() { g.update() })
+	assert.Equal(t, before+1, RecoveredPanics(), "a healthy tick does not increment the counter")
+	assert.Equal(t, uint64(2), g.Tick)
+	assert.Equal(t, 1, after.calls, "the rest of the tick runs again once the fault clears")
+}

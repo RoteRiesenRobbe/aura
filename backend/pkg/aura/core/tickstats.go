@@ -43,6 +43,10 @@ type TickSummary struct {
 	P99        int64  `json:"p99_us"`
 	Max        int64  `json:"max_us"`
 	BudgetUs   int64  `json:"budget_us"`
+	// RecoveredPanics is process-lifetime, not per-ring: unlike the latency
+	// samples it is never reset, because "this server has aborted N ticks" is
+	// a fact about the run, not about the current measurement window.
+	RecoveredPanics uint64 `json:"recovered_panics"`
 }
 
 // Summarize snapshots the ring. It does not reset it — call Reset between
@@ -58,7 +62,12 @@ func (t *tickStatsRecorder) Summarize() TickSummary {
 	total := t.total
 	t.mu.Unlock()
 
-	s := TickSummary{Samples: n, TotalTicks: total, BudgetUs: stepMillis * 1000}
+	s := TickSummary{
+		Samples:         n,
+		TotalTicks:      total,
+		BudgetUs:        stepMillis * 1000,
+		RecoveredPanics: RecoveredPanics(),
+	}
 	if n == 0 {
 		return s
 	}

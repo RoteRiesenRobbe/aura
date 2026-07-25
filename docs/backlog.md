@@ -1420,8 +1420,26 @@ with a real design decision in front of it.
 
 ## 25. Tech debt: `sys/skills.go` — size is warranted, the cleanup layer on top is not
 
-> **PARTIALLY DONE 2026-07-24 — options A#4 and B landed, headless-verified,
-> committed `2ec03ee7`** (A#1–3, C, D, E still open).
+> **PARTIALLY DONE — options A#4 and B landed 2026-07-24 (`2ec03ee7`),
+> option C landed 2026-07-25** (A#1–3, D, E still open).
+> - **C (`applySlowAura` eligibility): FIXED, not pinned — and it was a LIVE
+>   bug, not the latent one recorded below.** The assessment under
+>   "⚑ Latent correctness gap" was wrong on its central fact: it assumed
+>   nothing could reach the gap, but the aura sensor mask is `LayerCombatants`,
+>   which does **not** discriminate by faction, and `*Mob` implements
+>   `ApplySlow`. All three live slow skills (`Slow`, `Suppression`,
+>   `Warbanner`) author `targetsAllies: false` — **and that authoring was
+>   silently ignored**, so a player's slow also hit friendly-faction NPCs and
+>   their own summons/companions. That also dissolves the "pin, don't fix"
+>   recommendation: fixing needed no new faction semantics, because all three
+>   JSONs already author them. `applySlowAura` now filters through
+>   `eligibleByTargetFlags[slowable]` exactly like every other harmful effect
+>   (caster not skipped, matching `applyDamageAura`). Four new pins in
+>   `skills_behavior_test.go`: same-faction excluded, player-friendly faction
+>   excluded, unfactioned targets excluded, mob caster cannot slow its own
+>   faction. **Lesson for the next latent-gap triage:** "no content reaches
+>   this" was checked against mob content only; the player skills that reach it
+>   were never looked at.
 > - **B (balance constants → conf.json):** `defaultCritFactor` and
 >   `healerThreatFactor` are gone from Go. They live in a **new `game.combat`
 >   block**, not `game.player` as proposed below — unlike the
@@ -1559,7 +1577,12 @@ numbers are geometry, not balance, and are fine where they are.
 `game.player` block of `conf.json` next to `critChance`, leave the placement
 constants alone. ~30 min including the conf plumbing and a test.
 
-### ⚑ Latent correctness gap — `applySlowAura` has no faction eligibility
+### ~~⚑ Latent correctness gap — `applySlowAura` has no faction eligibility~~ ✅ FIXED 2026-07-25
+
+> **Superseded — see the banner at the top of §25.** It was not latent: the
+> section below reasoned only about mob content, and the three *player* skills
+> that author `slow_aura` were reaching the gap the whole time. Kept verbatim
+> for the record.
 
 `skills.go:1544–1573` iterates the raw collision set and slows anything
 implementing `slowable`, with **no faction check and no `mayHarm` gate** — the
@@ -1601,11 +1624,11 @@ Flagged only so the ratio is a **choice on record** rather than drift.
   future touch of that file.
 - **B — Move the two balance constants into `conf.json`.** ~30 min, independent
   of A.
-- **C — Pin `applySlowAura`'s gap with a test** that fails the moment a mob
-  gains a slow aura, instead of relying on the comment. ~20 min. (Or just fix
-  it — but that means picking faction semantics for an effect no content uses,
-  i.e. a design decision with no design pressure behind it. YAGNI says pin, not
-  fix.)
+- ~~**C — Pin `applySlowAura`'s gap with a test**~~ ✅ **FIXED 2026-07-25** (see
+  the §25 banner). The reasoning recorded here was wrong: the effect *is* used
+  by content (`Slow`, `Suppression`, `Warbanner`), those three already author
+  the faction semantics this option worried about picking, and the gap was live
+  rather than latent. Fixed + 4 pins.
 - **D — Split the file** into `skills.go` (system + dispatch) / `skills_auras.go`
   / `skills_cooldowns.go`. Mechanical, same package, ~15 min. **Not
   recommended yet** — the file is cohesive (everything is "apply a skill effect
@@ -1614,13 +1637,14 @@ Flagged only so the ratio is a **choice on record** rather than drift.
 - **E — Do nothing.** Fully defensible. Nothing here is a live bug; the file
   is readable, tested, and its size is earned.
 
-**Recommendation on record (2026-07-24):** **A + B if the file is being opened
-anyway** (they are the kind of thing that is cheap on a visit and never worth a
-dedicated session), **C whenever a mob slow aura is first considered**, D and E
-otherwise. **Not scheduled.**
+**Recommendation on record (2026-07-24, amended 2026-07-25):** **A + B if the
+file is being opened anyway** (they are the kind of thing that is cheap on a
+visit and never worth a dedicated session); ~~C whenever a mob slow aura is
+first considered~~ — **C is done, and it should not have waited on mob content
+at all**; D and E otherwise. **A#1–3 not scheduled.**
 
-**Scope guess:** A ~1–2 h; B ~30 min; C ~20 min; D ~15 min. None of them
-interact, so they can be taken individually.
+**Scope guess:** A ~1–2 h; D ~15 min. (B took ~30 min; C took ~40 min including
+the four pins.) None of them interact, so they can be taken individually.
 
 ---
 
