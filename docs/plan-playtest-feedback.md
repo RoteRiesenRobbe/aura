@@ -270,6 +270,10 @@ why decision 1 and decision 2 point in different directions.
 
 ### The chunk
 
+> **✅ DONE 2026-07-25 — ⏳ PO TEST PENDING (scheduled 2026-07-26).**
+> Headless-verified only; NOT yet PO-verified in-game. Both parts in one chunk
+> per PO call. Ledger at the end of this section (§Round-3 chunk ledger).
+
 One execution chunk. Not started.
 
 1. **Damage-recency combat timer** — `tookDamage` flag → countdown; regen gates
@@ -321,6 +325,132 @@ And the whole spectrum becomes content with no branching:
 | heal + damage | attacks in the gaps, heals when needed |
 | damage + shield, `supportThreshold: 0.5` | guardian: cleaves, switches to shielding an ally below 50 % |
 | `supportThreshold: 0.2` | mostly fights, emergency-support only |
+
+### Round-3 chunk ledger
+
+**Healer combat state + role-as-loadout DONE (2026-07-25), backend + content —
+⏳ PO TEST PENDING (2026-07-26), headless-verified only.** 11 files.
+Both parts shipped together: the selector needs a combat-state notion that is
+not "has an aggro target", and support mode makes that proxy strictly worse.
+
+**PO in-game acceptance checklist (2026-07-26):**
+1. Beat on a lone `Healer` / `BanditHealer` — it must now die instead of
+   out-regenerating you. **This is the reported bug.**
+2. Disengage from a wounded mob and wait — it must still heal back to full
+   (the fix is a combat gate, not a removal of regen).
+3. `RallyDrummer` must no longer chase you; it should tend its own squad. Judge
+   whether that reads correctly (see the ⚠ below — it is a real behaviour change).
+4. Summon `FieldMedics` / `HoldTheLine` while a squadmate is hurt — the medic
+   and the shieldbearer must actually heal/shield now, and must NOT run off to
+   chase whatever hit you.
+
+**PO decisions (2026-07-25, via choice prompts).**
+- Scope: **both parts, timer first**.
+- Hysteresis: **switch only on tick boundaries**, with the explicit constraint
+  *"just ensure this is not a hard requirement for players as well"*. Honoured
+  structurally — the damping lives in `mob.applyMode`, and players switch
+  through `SkillComponent.SetActiveAura` directly (`core/input.go:314`,
+  `sys/equip/equip.go:137`), untouched. That seam is also why it is the right
+  one: the accumulator reset is a deliberate anti-exploit guard against
+  rapid-switch DPS stacking, so damping it there would have weakened it.
+- Grace: **100 ticks**, deliberately the player's `combatRegenGraceTicks` value
+  AND name (§31 vocabulary convergence — same tactic as `game.mob.healthGainTick`).
+- Idle mode: **only on acquisition** — idle deactivates the aura outright,
+  preserving auras-off-until-aggroed (chunk 3c) and "a lit ring means something
+  is happening".
+
+**Part 1 — combat state.** `Mob.InCombat()` already existed and returned exactly
+`m.aggroTarget != nil`; it *was* the bug, already public and already read by heal
+eligibility. Now `aggroTarget != nil || inCombatTicks > 0`, stamped in
+`takeDamage` beside the existing `tookDamage` (which is consumed once per tick by
+the leash and could not serve). Regen moved out of the `else` of "has a target"
+into its own `!InCombat()` gate. Mobs still do **not** implement
+`model.CombatActor`: the dealt half is already covered by holding a target.
+
+**Part 2 — role as loadout.** `healer.go` → **`support.go`** (git mv). The
+latched `seekHealer` type flag is gone; `roleSlots` derives `supportSlot` /
+`combatSlot` from aura **categories** via the existing `skills.AuraCategoriesOf`
+table (support = Heal|Shield per the PO's set; combat = Damage|Dot|Slow). Both
+`updateAggro` early-returns are replaced by a three-step pipeline — enemy
+acquisition (follower / pacifist / ordinary) → support acquisition → `selectMode`.
+`setAggroTarget`/`resetAggro` no longer touch the aura: `applyMode` is the single
+writer. `supportTarget` is its own field, so `aggroTarget` means only "the enemy
+I fight" again.
+
+**Dwell rule (the landmine).** "Tick boundary" is ambiguous for a multi-effect
+aura — `sys/skills.go` runs each effect on its own cadence off one accumulator.
+Resolved as: a swap of one **live** aura for another waits until the outgoing
+slot's accumulator reaches its **fastest** effective interval. Expressed in the
+aura's own authored units, so it self-tunes per skill and cannot drift out of
+sync with a retune. Activation and deactivation are never held back (neither can
+discard progress) — pinned by
+`TestMob_DeactivationIsNotHeldBackByTheBoundary`. Factor 1.0 is correct today
+because mobs do not satisfy `sys.tickRateBuffed`; `fastestTickInterval`'s doc
+comment says what must change if they ever do.
+
+**⚑ Second bug found in-chunk, not in the plan.** `SetFaction` re-derives the
+sensor mask from the aggro set, and `spawnSummon` calls it **after** `NewMob` —
+so a support widening applied only at construction was narrowed straight back.
+Every summoned medic was blind to allies regardless of the rest of the fix. The
+widening is now part of the derivation (`refreshSensorMask`), pinned both ways
+(`TestMob_SetFaction_KeepsTheSupportSensorWidening` +
+`..._LeavesDamageMobSensorNarrow`). This shape predates the chunk — it applied to
+`seekHealer` too.
+
+**⚑ Third finding: `ShieldbearerCompanion` had the same bug as `MedicCompanion`.**
+The plan named only the medic. Both are followers carrying a support aura and
+both hit the `isFollower` early return.
+
+**⚑ Fourth: selector branch ORDER is load-bearing.** A medic companion is both a
+follower and a pacifist. With `isFollower` checked first it still acquired the
+owner's attacker from the owner's combat signals and chased it — with no combat
+aura to hurt it with, and away from the ally it exists to heal. `isPacifist` is
+therefore checked **before** `isFollower`; a support-only follower acquires
+nothing and falls through to `updateFollow` via `updateIdleMovement`. Found by a
+post-implementation smell review, fixed test-first
+(`TestMob_MedicCompanion_IgnoresTheOwnersAttacker`). The pacifist rule now holds
+for followers too, which is what the PO ruling actually says.
+
+**Content.** `supportThreshold` added to `factors` (validated `[0, 1]` at load,
+absent → 1.0 at construction). `medic-companion.json` aggroRadius `0.1 → 3.5`,
+`shieldbearer-companion.json` `0.1 → 5.5` (support radius + ~1.5 follow ring);
+both `_comment`s rewritten — the "dummy, followers ride owner signals" rationale
+stopped being true the moment they sense for themselves.
+
+**⚠ Live behaviour change the PO should rule on: `RallyDrummer`.** It carries
+`RallyDrum`, which is `shield_aura` — **not** `heal_aura` — so the old
+`firstAuraHeals` check never classified it as a seek-healer. It was treated as an
+ordinary combat mob: it acquired players and chased them while shielding its own
+squad, dealing nothing. Under the loadout rule it is a **pacifist** and now seeks
+wounded allies instead of chasing players. This looks like the correct behaviour
+and follows directly from the PO's Heal+Shield support set, but it is a live
+content change beyond the healers and was not called out in the plan.
+
+**Also PO-visible: every mob now stops regenerating for ~3.3 s after any hit.**
+Hit-and-run whittling works on *anything*, not just healers. Intended, and the
+direct consequence of the grace decision.
+
+**Verified.** `go build` / `go vet` clean; `go test ./...` green (27 pkgs);
+**guardrails replay identically `-count=2`** (matters — this is mob AI, and every
+damage mob must be byte-identical: none carries a support aura, so the new rule
+never fires for them). Boot `-content ../api`: **83 skills/14 factions/50
+mobs/10 recipes/5 prop defs/1 milestone/777 props/471 spawns/5 campfires/14
+npcs, 0 errors, 0 panics**. `make -C backend build` re-run **after** the JSON
+edits so the embedded `backend/pkg/api/` copies carry the new radii (they are
+gitignored; cp-defs ran before the edits on the first pass — the §26 Chunk-2
+lesson, caught here). Headless join smoke: joined, character live, 5–9 nameplates
+rendering. No frontend or wire changes, so no `tsc`/webpack run.
+
+**⚠ §29 recurred (4th sighting), and the "first cold load after a restart" lead
+did NOT hold.** Run 1 threw 3 × `Cannot read properties of null (reading
+'split')`; runs 2, 3 and 4 — including a deliberate fresh cold load after a
+server restart — were completely clean. Not attributable to this chunk (backend
+only, no wire change, same binary across all four runs). The cold-load hypothesis
+recorded in CLAUDE.md should be treated as weakened, not confirmed.
+
+**Not done:** no in-game click-through. The acceptance check is the reported bug
+— beat on a lone healer and confirm it dies — plus a look at whether
+`RallyDrummer` no longer chasing reads correctly.
 
 ---
 

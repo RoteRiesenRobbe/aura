@@ -418,3 +418,115 @@ func TestMob_PlayerTouches_SummonSourcedHitDoesNotStamp(t *testing.T) {
 	assert.Empty(t, owner.attacksDealt,
 		"summon-sourced damage is not the owner attacking (Source != nil)")
 }
+
+// --- the medic companion: a follower that also supports (round 3, §31 gap 5) ---
+//
+// Two early returns used to collide in updateAggro. isFollower() was checked
+// first and returned, so a follower carrying a heal aura never reached the
+// seek-healer branch: MedicCompanion and ShieldbearerCompanion were shipped
+// content that could not do the one thing they exist for. There is only one
+// selector now, and the follower branch decides acquisition, not behaviour.
+
+func medicCompanionDefinition() *mobs.MobDefinition {
+	def := companionDefinition()
+	def.Name = "MedicCompanion"
+	def.Skills = []mobs.MobSkill{{Def: testHealAuraSkill(), Level: 1}}
+	def.Body.AggroRadius = 3.0 // a real sensor: it looks for the wounded itself
+	return def
+}
+
+func TestMob_MedicCompanion_HealsAWoundedAllyWhileFollowing(t *testing.T) {
+	owner := newFakeOwner()
+	m := NewMob(medicCompanionDefinition(), 0, nil)
+	m.SetFaction(model.FactionAligned)
+	m.SetOwner(owner)
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+
+	require.True(t, m.isFollower(), "still a follower")
+	require.Equal(t, 0, m.supportSlot, "and it carries a support aura")
+	require.Equal(t, int(model.LayerCombatants), m.aggroAura.Shape().Mask,
+		"the sensor was widened so it can see allies at all")
+
+	ally := newFakeCombatant()
+	ally.faction = model.FactionAligned // the owner's side, like the medic
+	ally.healthRatio = 0.3
+	ally.pos = phy.Vec2f{X: 1.5, Y: 0}
+
+	space := phy.NewSpace()
+	space.AddShape(m.aggroAura)
+	addSensorContact(m, space, ally, model.LayerActionCollision)
+	require.NotEmpty(t, m.aggroAura.Collisions())
+
+	m.updateAggro()
+
+	assert.Same(t, ally, m.supportTarget, "the medic finally sees its patient")
+	assert.Equal(t, modeSupport, m.mode)
+	assert.Greater(t, m.AuraRadius(), float32(0), "and switches its heal aura on")
+}
+
+// A follower with no support aura is unaffected: acquisition still comes purely
+// from the owner's combat signals, and nothing new fires.
+func TestMob_PlainCompanion_KeepsOwnerSignalAcquisitionOnly(t *testing.T) {
+	owner := newFakeOwner()
+	m := newTestCompanion(owner)
+
+	assert.Equal(t, -1, m.supportSlot)
+
+	ally := newFakeCombatant()
+	ally.faction = model.FactionAligned
+	ally.healthRatio = 0.3
+
+	m.updateAggro()
+
+	assert.Nil(t, m.supportTarget, "no support aura → no support target, ever")
+	assert.Nil(t, m.aggroTarget, "and no owner signal → nothing acquired")
+}
+
+// SetFaction re-derives the sensor mask from the aggro set. A summoned companion
+// has its faction set from the caster AFTER construction, so a support widening
+// applied only in NewMob would be narrowed straight back — blind medic, no
+// error. The widening is part of the derivation for exactly this reason.
+func TestMob_SetFaction_KeepsTheSupportSensorWidening(t *testing.T) {
+	m := NewMob(medicCompanionDefinition(), 0, nil)
+	require.Equal(t, int(model.LayerCombatants), m.aggroAura.Shape().Mask)
+
+	m.SetFaction(model.FactionAligned) // what spawnSummon does
+
+	assert.Equal(t, int(model.LayerCombatants), m.aggroAura.Shape().Mask,
+		"a support carrier must still see both combatant layers after re-factioning")
+}
+
+// The same call on a damage mob must still narrow to the aggro set — the
+// widening is not a blanket "everyone sees everything".
+func TestMob_SetFaction_LeavesDamageMobSensorNarrow(t *testing.T) {
+	m := newTestMob()
+
+	m.SetFaction(model.FactionAligned)
+
+	assert.Equal(t, aggroSensorMask(m.aggroMask), m.aggroAura.Shape().Mask)
+	assert.NotEqual(t, int(model.LayerCombatants), m.aggroAura.Shape().Mask)
+}
+
+// A pacifist follower must ignore its owner's combat signals too. The medic has
+// no combat aura, so acquiring the owner's attacker would just walk it away from
+// the ally it exists to heal, chasing something it cannot hurt (PO 2026-07-25:
+// pacifist healers ignore their attacker — followers are not an exception).
+func TestMob_MedicCompanion_IgnoresTheOwnersAttacker(t *testing.T) {
+	owner := newFakeOwner()
+	m := NewMob(medicCompanionDefinition(), 0, nil)
+	m.SetFaction(model.FactionAligned)
+	m.SetOwner(owner)
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+	require.True(t, m.isFollower())
+	require.True(t, m.isPacifist())
+
+	attacker := newHostileCombatant(phy.Vec2f{X: 1, Y: 0})
+	attacker.healthRatio = 1
+	owner.attacker = attacker
+
+	m.updateAggro()
+
+	assert.Nil(t, m.aggroTarget,
+		"a medic with nothing to fight with must not chase the owner's attacker")
+	assert.Equal(t, modeIdle, m.mode, "no ally to support either → idle, keep following")
+}

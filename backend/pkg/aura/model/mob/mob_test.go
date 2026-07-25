@@ -621,10 +621,10 @@ func TestMob_StopsChasingInsideAuraStopDistance(t *testing.T) {
 
 	// stopDistance = damageAura.Radius + player.Radius - margin = 0.5 + 0.25 - 0.05 = 0.7
 	p.pos = phy.Vec2f{X: 0.8, Y: 0}
-	assert.True(t, m.shouldApproachAggroTarget(), "outside stop distance → keep approaching")
+	assert.True(t, m.shouldApproach(m.aggroTarget), "outside stop distance → keep approaching")
 
 	p.pos = phy.Vec2f{X: 0.6, Y: 0}
-	assert.False(t, m.shouldApproachAggroTarget(), "inside stop distance → hold position")
+	assert.False(t, m.shouldApproach(m.aggroTarget), "inside stop distance → hold position")
 }
 
 func TestMob_FindAggroTarget_PicksNearestLivingPlayer(t *testing.T) {
@@ -654,6 +654,74 @@ func TestMob_FindAggroTarget_PicksNearestLivingPlayer(t *testing.T) {
 
 	require.NotNil(t, target)
 	assert.Same(t, near, target, "nearest living player wins; dead players are ignored")
+}
+
+// --- damage-recency combat state (playtest feedback round 3) ---
+//
+// A mob's combat state used to be "do I have an aggro target". A pacifist
+// healer never acquires one, so it sat permanently in the out-of-combat branch
+// and regenerated straight through incoming damage — live-unkillable by a solo
+// player. Combat state is now ALSO a damage-recency window, matching the
+// player's inCombatTicks/combatRegenGraceTicks in name, unit and default
+// (backlog §31 vocabulary convergence).
+
+func TestMob_TakingDamageEntersCombatWithoutAnAggroTarget(t *testing.T) {
+	m := newTestMob()
+	require.False(t, m.InCombat(), "idle mob starts out of combat")
+
+	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+
+	assert.Nil(t, m.aggroTarget, "nothing was acquired — this is the healer case")
+	assert.True(t, m.InCombat(), "being hit IS combat, target or no target")
+}
+
+func TestMob_DamagedMobDoesNotRegenerate(t *testing.T) {
+	m := newTestMob()
+	m.health = m.maxHealth / 2
+	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	wounded := m.Health()
+
+	m.Update(0) // no aggro target: the old gate regenerated here
+
+	assert.Equal(t, wounded, m.Health(),
+		"regen gates on combat state, not on holding an aggro target")
+}
+
+func TestMob_RegenResumesAfterTheCombatGraceExpires(t *testing.T) {
+	m := newTestMob()
+	m.health = m.maxHealth / 2
+	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	wounded := m.Health()
+
+	for i := 0; i < combatRegenGraceTicks; i++ {
+		m.Update(0)
+	}
+	require.Equal(t, wounded, m.Health(), "the whole grace window stays gated")
+	require.False(t, m.InCombat(), "window closed")
+
+	m.Update(0)
+
+	assert.Greater(t, m.Health(), wounded, "regen resumes once the window closes")
+}
+
+func TestMob_EachHitRefreshesTheCombatWindow(t *testing.T) {
+	m := newTestMob()
+	m.health = m.maxHealth / 2
+
+	// Hit once, run most of the window down, hit again: the second hit must
+	// restamp, not top up a nearly-expired window.
+	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	for i := 0; i < combatRegenGraceTicks-1; i++ {
+		m.Update(0)
+	}
+	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
+	wounded := m.Health()
+
+	for i := 0; i < combatRegenGraceTicks; i++ {
+		m.Update(0)
+	}
+
+	assert.Equal(t, wounded, m.Health(), "a mob under sustained fire never regenerates")
 }
 
 // --- out-of-combat regeneration ---
@@ -1373,23 +1441,37 @@ func newTestHealerMob() *Mob {
 	return NewMob(def, 0, nil)
 }
 
-// A seek-healer spawns aura-gated like a damage mob (no ring until it acquires
-// a wounded ally), and its sensor spans both combatant layers so it can see
+// addSensorContact puts c into m's aggro sensor at its own position, on the
+// given body layer, and steps the space so the collision is live.
+func addSensorContact(m *Mob, space *phy.Space, c *fakeCombatant, layer model.CollisionLayer) {
+	shape := phy.NewCircle(c.pos, 0.25)
+	shape.Shape().IsSensor = true
+	shape.Shape().Layer = int(layer)
+	shape.Shape().UserData = model.Combatant(c)
+	space.AddShape(shape)
+	space.Update()
+}
+
+// A support-carrying mob spawns aura-gated like a damage mob (no ring until it
+// acquires someone), and its sensor spans both combatant layers so it can see
 // allies at aggro range (a passive-faction healer would otherwise be blind).
-func TestMob_SeekHealer_SpawnsGatedWithAllySensor(t *testing.T) {
+func TestMob_Support_SpawnsGatedWithAllySensor(t *testing.T) {
 	m := newTestHealerMob()
 
-	assert.True(t, m.seekHealer)
+	assert.Equal(t, 0, m.supportSlot, "the heal aura is the support slot")
+	assert.Equal(t, -1, m.combatSlot, "nothing in the loadout can fight")
+	assert.True(t, m.isPacifist())
 	assert.Equal(t, -1, m.skills.ActiveAuraSlot, "healer spawns aura-gated like a damage mob")
 	assert.Zero(t, m.AuraRadius(), "no ring until it acquires a wounded ally")
 	assert.Equal(t, int(model.LayerCombatants), m.aggroAura.Shape().Mask,
-		"healer sensor spans both combatant layers to see allies")
+		"support sensor spans both combatant layers to see allies")
 }
 
-// The core symmetry (chunk 8): a healer acquires the wounded ally in its aggro
-// sensor the way a damage mob acquires an enemy — the heal aura activates on
-// acquisition (ring on) and it chases the ally at full speed.
-func TestMob_SeekHealer_AcquiresWoundedAllyActivatesAuraAndChases(t *testing.T) {
+// The core symmetry (chunk 8, preserved through the round-3 rework): a healer
+// acquires the wounded ally in its aggro sensor the way a damage mob acquires an
+// enemy — the heal aura activates on acquisition (ring on) and it chases the
+// ally. The ally now lands in supportTarget, NOT aggroTarget.
+func TestMob_Support_AcquiresWoundedAllyActivatesAuraAndChases(t *testing.T) {
 	m := newTestHealerMob() // FactionHostile
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	ally := newFakeCombatant()
@@ -1399,46 +1481,46 @@ func TestMob_SeekHealer_AcquiresWoundedAllyActivatesAuraAndChases(t *testing.T) 
 
 	space := phy.NewSpace()
 	space.AddShape(m.aggroAura)
-	c := phy.NewCircle(ally.pos, 0.25)
-	c.Shape().IsSensor = true
-	c.Shape().Layer = int(model.LayerActionCollision)
-	c.Shape().UserData = model.Combatant(ally)
-	space.AddShape(c)
-	space.Update()
+	addSensorContact(m, space, ally, model.LayerActionCollision)
 	require.NotEmpty(t, m.aggroAura.Collisions())
 
 	m.updateAggro()
 
-	require.Same(t, ally, m.aggroTarget, "healer acquires the wounded ally")
+	require.Same(t, ally, m.supportTarget, "healer acquires the wounded ally to support")
+	assert.Nil(t, m.aggroTarget, "an ally is not an aggro target — that conflation is the bug")
+	assert.Equal(t, modeSupport, m.mode)
 	assert.Greater(t, m.AuraRadius(), float32(0), "heal aura activates on acquisition (ring on)")
 
 	before := m.Position()
-	require.True(t, m.shouldApproachAggroTarget(), "ally is outside heal range → approach")
-	m.moveTowards(m.aggroTarget.Position())
+	require.True(t, m.shouldApproach(m.supportTarget), "ally is outside heal range → approach")
+	m.moveTowards(m.supportTarget.Position())
 	assert.Greater(t, m.Position().X, before.X, "healer chases the wounded ally")
 }
 
 // A healed-to-full ally is released, and the heal aura gates back off.
-func TestMob_SeekHealer_ReleasesFullHealedAlly(t *testing.T) {
+func TestMob_Support_ReleasesFullHealedAlly(t *testing.T) {
 	m := newTestHealerMob()
 	ally := newFakeCombatant()
 	ally.faction = model.FactionHostile
 	ally.healthRatio = 0.4
 
-	m.setAggroTarget(ally)
-	require.NotNil(t, m.aggroTarget)
+	m.supportTarget = ally
+	m.selectMode()
+	require.Equal(t, modeSupport, m.mode)
 	assert.Greater(t, m.AuraRadius(), float32(0))
 
 	ally.healthRatio = 1.0 // topped up
-	m.updateHealerTargeting()
+	m.updateSupportTarget()
+	m.selectMode()
 
-	assert.Nil(t, m.aggroTarget, "healer releases a full-health ally")
+	assert.Nil(t, m.supportTarget, "healer releases a full-health ally")
+	assert.Equal(t, modeIdle, m.mode)
 	assert.Zero(t, m.AuraRadius(), "ring off after release")
 }
 
 // A different-faction wounded entity in the sensor is never acquired (no
 // healing players/enemies by accident, at the acquisition layer).
-func TestMob_SeekHealer_IgnoresWoundedNonAlly(t *testing.T) {
+func TestMob_Support_IgnoresWoundedNonAlly(t *testing.T) {
 	m := newTestHealerMob() // FactionHostile
 	enemy := newFakeCombatant()
 	enemy.faction = model.FactionAligned // different faction (e.g. a player)
@@ -1447,24 +1529,171 @@ func TestMob_SeekHealer_IgnoresWoundedNonAlly(t *testing.T) {
 
 	space := phy.NewSpace()
 	space.AddShape(m.aggroAura)
-	c := phy.NewCircle(enemy.pos, 0.25)
-	c.Shape().IsSensor = true
-	c.Shape().Layer = int(model.LayerPlayerCollision)
-	c.Shape().UserData = model.Combatant(enemy)
-	space.AddShape(c)
-	space.Update()
+	addSensorContact(m, space, enemy, model.LayerPlayerCollision)
 	require.NotEmpty(t, m.aggroAura.Collisions())
 
 	m.updateAggro()
 
-	assert.Nil(t, m.aggroTarget, "a wounded non-ally is never acquired for healing")
+	assert.Nil(t, m.supportTarget, "a wounded non-ally is never acquired for support")
+	assert.Nil(t, m.aggroTarget, "and a pacifist acquires no enemy either")
 }
 
-// A non-healer moving mob is not a seek-healer: its aura stays aggro-gated.
-func TestMob_NonHealerMovingMobIsNotSeekHealer(t *testing.T) {
+// A damage-only mob carries no support slot: the support rule never fires and
+// its aura gating is exactly the pre-round-3 behaviour.
+func TestMob_DamageOnlyMobHasNoSupportRole(t *testing.T) {
 	m := newTestMob() // damage aura, speed 1.0
-	assert.False(t, m.seekHealer)
+	assert.Equal(t, -1, m.supportSlot)
+	assert.Equal(t, 0, m.combatSlot)
+	assert.False(t, m.isPacifist())
 	assert.Equal(t, -1, m.skills.ActiveAuraSlot, "damage mob spawns aura-gated (chunk 3c)")
+}
+
+// --- role-as-loadout: the mode selector (playtest round 3, §31 gap 5) ---
+
+// newTestHybridMob carries a damage aura in slot 0 and a heal aura in slot 1 —
+// the configuration that had no possible representation before round 3.
+func newTestHybridMob() *Mob {
+	def := testMobDefinition()
+	def.Skills = []mobs.MobSkill{
+		{Def: testAuraSkill(), Level: 1},
+		{Def: testHealAuraSkill(), Level: 1},
+	}
+	return NewMob(def, 0, nil)
+}
+
+func TestMob_Hybrid_DerivesBothRoleSlots(t *testing.T) {
+	m := newTestHybridMob()
+
+	assert.Equal(t, 1, m.supportSlot, "heal aura in slot 1")
+	assert.Equal(t, 0, m.combatSlot, "damage aura in slot 0")
+	assert.False(t, m.isPacifist(), "it can fight, so it is not a pacifist")
+	assert.Equal(t, int(model.LayerCombatants), m.aggroAura.Shape().Mask,
+		"a hybrid must see allies AND enemies")
+}
+
+// Engage with an enemy present, support the moment an ally needs it — one mob,
+// no type, no branching. This is the whole point of the chunk.
+func TestMob_Hybrid_SwitchesAuraSlotWithTheMode(t *testing.T) {
+	m := newTestHybridMob()
+	enemy := newFakeCombatant()
+	enemy.faction = model.FactionAligned
+	enemy.healthRatio = 1
+
+	m.setAggroTarget(enemy)
+	m.selectMode()
+	require.Equal(t, modeEngage, m.mode)
+	require.Equal(t, 0, m.skills.ActiveAuraSlot, "fighting → the damage slot")
+
+	// An ally drops. Support outranks engage.
+	ally := newFakeCombatant()
+	ally.faction = model.FactionHostile
+	ally.healthRatio = 0.3
+	m.supportTarget = ally
+	m.skills.AuraSlots[0].TickAccumulator = 99 // past the boundary, free to switch
+	m.selectMode()
+
+	assert.Equal(t, modeSupport, m.mode)
+	assert.Equal(t, 1, m.skills.ActiveAuraSlot, "supporting → the heal slot")
+}
+
+// ⚑ The landmine this chunk was warned about: SetActiveAura zeroes the tick
+// accumulator, so a selector free to flip every tick would leave the mob dealing
+// and healing EXACTLY ZERO, silently. The accumulator must be allowed to reach
+// the aura's own cadence before a swap is honoured.
+func TestMob_ModeSwitchWaitsForATickBoundary(t *testing.T) {
+	m := newTestHybridMob()
+	// A slower cadence than the 1-tick test auras, so a boundary is observable.
+	m.skills.AuraSlots[0].Def.Effects[0].TickInterval = 10
+	m.skills.AuraSlots[1].Def.Effects[0].TickInterval = 10
+
+	enemy := newFakeCombatant()
+	enemy.faction = model.FactionAligned
+	enemy.healthRatio = 1
+	m.setAggroTarget(enemy)
+	m.selectMode()
+	require.Equal(t, 0, m.skills.ActiveAuraSlot)
+	require.Zero(t, m.skills.AuraSlots[0].TickAccumulator)
+
+	ally := newFakeCombatant()
+	ally.faction = model.FactionHostile
+	ally.healthRatio = 0.3
+	m.supportTarget = ally
+
+	// Nine ticks of aura progress is not yet a full cadence: the swap must wait.
+	for i := 1; i < 10; i++ {
+		m.skills.AuraSlots[0].TickAccumulator = i
+		m.selectMode()
+		require.Equal(t, 0, m.skills.ActiveAuraSlot,
+			"switching at accumulator %d would discard the tick and deal nothing", i)
+		require.Equal(t, modeEngage, m.mode, "mode and slot stay consistent while held")
+	}
+
+	m.skills.AuraSlots[0].TickAccumulator = 10 // the effect fired
+	m.selectMode()
+
+	assert.Equal(t, 1, m.skills.ActiveAuraSlot, "boundary reached → the swap lands")
+	assert.Equal(t, modeSupport, m.mode)
+}
+
+// Gating an aura OFF discards nothing, so it is never held back — a mob that
+// leashes must drop its ring immediately, not one cadence later.
+func TestMob_DeactivationIsNotHeldBackByTheBoundary(t *testing.T) {
+	m := newTestHybridMob()
+	m.skills.AuraSlots[0].Def.Effects[0].TickInterval = 10
+
+	enemy := newFakeCombatant()
+	enemy.faction = model.FactionAligned
+	enemy.healthRatio = 1
+	m.setAggroTarget(enemy)
+	m.selectMode()
+	require.Equal(t, 0, m.skills.ActiveAuraSlot)
+
+	m.resetAggro() // leashed
+	m.selectMode()
+
+	assert.Equal(t, -1, m.skills.ActiveAuraSlot, "ring off the same tick it disengages")
+	assert.Equal(t, modeIdle, m.mode)
+}
+
+// supportThreshold makes the guardian authorable: cleave until an ally drops
+// below the authored ratio, and only then break off.
+func TestMob_SupportThreshold_GatesAcquisition(t *testing.T) {
+	def := testMobDefinition()
+	def.Skills = []mobs.MobSkill{
+		{Def: testAuraSkill(), Level: 1},
+		{Def: testHealAuraSkill(), Level: 1},
+	}
+	def.Factors.SupportThreshold = 0.5
+	m := NewMob(def, 0, nil)
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+
+	ally := newFakeCombatant()
+	ally.faction = model.FactionHostile
+	ally.healthRatio = 0.8 // hurt, but above the threshold
+	ally.pos = phy.Vec2f{X: 1.0, Y: 0}
+
+	space := phy.NewSpace()
+	space.AddShape(m.aggroAura)
+	addSensorContact(m, space, ally, model.LayerActionCollision)
+
+	m.updateSupportTarget()
+	assert.Nil(t, m.supportTarget, "0.8 is above the 0.5 threshold — keep fighting")
+
+	ally.healthRatio = 0.4 // now it matters
+	m.updateSupportTarget()
+	assert.Same(t, ally, m.supportTarget, "below the threshold → break off to support")
+
+	// Retention runs to FULL, not back to the threshold: the gap is hysteresis,
+	// so healing an ally across 0.5 does not drop it on the next tick.
+	ally.healthRatio = 0.6
+	m.updateSupportTarget()
+	assert.Same(t, ally, m.supportTarget, "keep supporting until the ally is topped up")
+}
+
+func TestMob_SupportThresholdDefaultsToAnyWoundedAlly(t *testing.T) {
+	m := newTestHealerMob()
+	assert.Equal(t, defaultSupportThreshold, m.supportThreshold,
+		"absent in the definition → the pre-round-3 seek-healer behaviour")
 }
 
 // --- lifesteal + crit accumulator (plan-skill-vocab chunk 1, F6 §3.1) ---

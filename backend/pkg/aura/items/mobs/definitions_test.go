@@ -372,6 +372,57 @@ func TestMapMobDefinition_FleeBelowHealthRatioOutOfBoundsFails(t *testing.T) {
 	}
 }
 
+// --- support threshold (role-as-loadout, playtest round 3) ---
+
+func TestMapMobDefinition_ParsesSupportThreshold(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 6,
+	  "name": "Rabbit",
+	  "type": "MOB",
+	  "factors": {"baseMaxHealth": 20, "supportThreshold": 0.5},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
+	require.NoError(t, err)
+	assert.InDelta(t, 0.5, def.Factors.SupportThreshold, 1e-6)
+}
+
+func TestMapMobDefinition_SupportThresholdDefaultsToZeroAndResolvesLater(t *testing.T) {
+	raw, err := parseMobDefinition([]byte(`{
+	  "id": 1,
+	  "name": "Dodo",
+	  "type": "MOB",
+	  "factors": {"baseMaxHealth": 40},
+	  "body": {"radius": 0.2, "aggroRadius": 2.4}
+	}`))
+	require.NoError(t, err)
+
+	def, err := raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
+	require.NoError(t, err)
+	assert.Zero(t, def.Factors.SupportThreshold,
+		"absent stays 0 here; NewMob resolves it to the 1.0 default")
+}
+
+func TestMapMobDefinition_SupportThresholdOutOfBoundsFails(t *testing.T) {
+	// 1.0 itself is valid ("support any ally short of full"); outside [0, 1] is
+	// not — a threshold above 1 is one no ally can ever be under.
+	for _, ratio := range []string{"-0.1", "1.5"} {
+		raw, err := parseMobDefinition([]byte(`{
+		  "id": 1,
+		  "name": "Dodo",
+		  "type": "MOB",
+		  "factors": {"supportThreshold": ` + ratio + `},
+		  "body": {"radius": 0.2, "aggroRadius": 2.4}
+		}`))
+		require.NoError(t, err)
+
+		_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
+		assert.Error(t, err, "supportThreshold %s must be rejected (valid: 0 <= r <= 1)", ratio)
+	}
+}
+
 func TestMapMobDefinition_ParsesIdleFields(t *testing.T) {
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,

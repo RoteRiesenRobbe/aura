@@ -2473,6 +2473,43 @@ triggers, a 3-slot priority table with three different triggers. The migration
 is **additive**: the fixed rule above becomes the default row. Build it when a
 second condition *kind* actually shows up, not before.
 
+**✅ SHIPPED 2026-07-25** (`[uncommitted]`, ⏳ PO test pending) — full ledger in
+`plan-playtest-feedback.md` §Round-3 chunk ledger. `seekHealer` is gone,
+`healer.go` → `support.go`, both early-returns replaced by the selector.
+Confirmed in the build: `MedicCompanion` was broken, **and so was
+`ShieldbearerCompanion`**, and there was a *third* reason neither could work —
+`SetFaction` re-derives the sensor mask and `spawnSummon` calls it after
+`NewMob`, so the ally-sensing widening was narrowed straight back.
+
+**Residue this left behind — the slot-0 assumption (small, do it opportunistically).**
+The rework killed "role as a type", but two spots still assume **slot 0 is the
+combat aura**, which was true only while one latched flag decided everything:
+
+- `model/mob/companion.go:148` `auraCanReach` tests the **slot-0** aura's mask
+  against a candidate target. For a hybrid follower whose slot 0 is the support
+  aura, that asks "can my *heal* reach this enemy?" — the wrong question. Should
+  read `combatSlot`. **Latent**: no companion is a hybrid today.
+- `model/mob/mob.go:164` pre-sizes the aura collider from slot 0. Much milder —
+  the SkillSystem re-derives radius/mask every tick once a slot is active, so
+  this only affects the stop distance on the first tick before acquisition.
+
+Both are the exact §31 failure shape (*correct until content asks for the
+combination, then silently wrong*), so they are worth closing **with** the first
+hybrid mob rather than being left to be discovered by it.
+
+**Still an implicit type: `isFollower()`** = `owner != nil && velocity > 0`
+(`companion.go:61`), documented as deliberate YAGNI at chunk-6 plan-first. It is
+now the *last* mob role inferred rather than read, and its branch order turned
+out to be load-bearing (a medic is both a follower and a pacifist — pacifist has
+to win, or it chases the owner's attacker with nothing to hurt it with). Fold
+into the entity-model decision rather than fixing standalone.
+
+**Checked and NOT a problem** (verified 2026-07-25, recorded so it is not
+re-investigated): `SetFaction` overwrites the authored `aggroMask` with
+`^f.Bit()` ("aggro everything that is not me"), discarding the faction's curated
+aggro set. Inert in practice — followers acquire from owner signals and never
+consult the mask, and stationary summons are `auraAlwaysOn` and acquire nothing.
+
 **Also parked here (PO 2026-07-25):** a shared **`Autoattack`** skill — *"a
 default damage aura for everything, akin to WoW auto attack"*. The mode selector
 delivers "retaliate if it has the means" without it. The version worth having is

@@ -149,12 +149,10 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	if auraCount > 0 && auraAlwaysOn {
 		sc.SetActiveAura(0)
 	}
-	// A moving mob whose primary aura is a heal aura is a seek-healer (chunk 8):
-	// it acquires wounded ALLIES the way a damage mob acquires enemies, so its
-	// aura gates on/off with that acquisition (updateHealerTargeting). It spawns
-	// aura-gated (moving mob) exactly like a damage mob; only the acquisition
-	// target and the sensor mask (below) differ.
-	seekHealer := !auraAlwaysOn && auraCount > 0 && firstAuraHeals(sc)
+	// Role-as-loadout (round 3, support.go): which slot supports and which
+	// fights, derived from the loadout's aura CATEGORIES rather than latched as
+	// a mob type. Both may be set (a hybrid), both may be absent (a prop mob).
+	supportSlot, combatSlot := roleSlots(sc)
 
 	// The single aura sensor, pre-sized from slot 0 even while the aura
 	// starts gated: the chase stop distance is correct from the first aggro
@@ -189,15 +187,8 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	// sensor sees nothing at all.
 	aggroAura := phy.NewCircle(phy.VEC2F_ZERO, d.Body.AggroRadius)
 	aggroAura.Shape().Layer = int(model.LayerNoneCollision)
-	sensorMask := aggroSensorMask(aggroMask)
-	// A seek-healer senses fellow COMBATANTS (both body layers) so it can spot
-	// wounded allies at aggro range and move to them — its hostility set may be
-	// empty (a passive faction), which would otherwise blind its sensor.
-	// findWoundedAlly filters the collisions down to same-faction wounded.
-	if seekHealer {
-		sensorMask = int(model.LayerCombatants)
-	}
-	aggroAura.Shape().Mask = sensorMask
+	// Widened below by refreshSensorMask when the loadout carries support.
+	aggroAura.Shape().Mask = aggroSensorMask(aggroMask)
 	aggroAura.Shape().IsSensor = true
 
 	base := model.NewBaseEntity(mobBody, model.EntityType(entityType))
@@ -231,7 +222,9 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 		// TODO use walkingSpeedPerTick from global config
 		velocity:            0.055 * d.Factors.Speed,
 		auraAlwaysOn:        auraAlwaysOn,
-		seekHealer:          seekHealer,
+		supportSlot:         supportSlot,
+		combatSlot:          combatSlot,
+		supportThreshold:    d.Factors.SupportThreshold,
 		chaseIntoAuraMargin: chaseIntoAuraMargin,
 		statusEffects:       model.NewStatusEffects(),
 		faction:             faction,
@@ -240,6 +233,12 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	if m.chaseIntoAuraMargin <= 0 {
 		m.chaseIntoAuraMargin = 0.05
 	}
+	// Absent in the definition → support anything short of full health, which
+	// is what the pre-round-3 seek-healer did (validated to [0, 1] at load).
+	if m.supportThreshold <= 0 {
+		m.supportThreshold = defaultSupportThreshold
+	}
+	m.refreshSensorMask()
 	// Idle pacing from the definition, global defaults when unset (validated
 	// at registry load: factor in (0, 1], min <= max).
 	m.idleSpeedFactor = d.Factors.IdleSpeedFactor
@@ -346,6 +345,19 @@ type Mob struct {
 	// consumed by updateAggro's in-combat check one tick later (chunk 3b).
 	tookDamage bool
 
+	// inCombatTicks is the damage-recency in-combat window (playtest round 3):
+	// stamped to combatRegenGraceTicks by any real HP loss and aged one per
+	// Update. Deliberately the SAME name, unit and default as the player's
+	// (model/player/player.go) — the mob and player combat models are meant to
+	// converge (backlog §31), so matching vocabularies now makes that a rename
+	// rather than a redesign, exactly as game.mob.healthGainTick did for regen.
+	//
+	// Unlike the player's, it is stamped only by damage TAKEN, not by damage
+	// dealt: a mob holding an aggro target is already in combat through the
+	// other half of InCombat, so the dealt half would be redundant. That is why
+	// Mob still does not implement model.CombatActor.
+	inCombatTicks int
+
 	// leashTicks counts ticks with the target unreachable, out of the aggro
 	// sensor and dealing no damage; past leashCountdownTicks the mob resets
 	// (3b).
@@ -354,12 +366,17 @@ type Mob struct {
 	// auraAlwaysOn exempts stationary mobs from aura gating (chunk 3c).
 	auraAlwaysOn bool
 
-	// seekHealer marks a moving mob whose primary aura is a heal aura (chunk 8).
-	// It reacts to wounded ALLIES the way a damage mob reacts to enemies: its
-	// aggro sensor senses fellow combatants (LayerCombatants), it acquires the
-	// most-wounded ally in range as its aggro target, chases it at full speed
-	// and its heal aura gates on/off with that acquisition (updateHealerTargeting).
-	seekHealer bool
+	// Role-as-loadout (round 3, see support.go). supportSlot/combatSlot are the
+	// aura slots this mob would use to support an ally and to fight, −1 when the
+	// loadout has none; they replace the old latched `seekHealer` type flag.
+	// mode is what it is doing THIS tick, re-derived every tick by selectMode.
+	// supportTarget is the wounded ally it is looking after — deliberately its
+	// own field, so aggroTarget can go back to meaning only "the enemy I fight".
+	supportSlot      int
+	combatSlot       int
+	supportThreshold float32
+	mode             combatMode
+	supportTarget    model.Combatant
 
 	// Encounter-controller seams (chunk 9): invulnerable gates takeDamage
 	// into a non-event (9b); fleeOverride forces the flee movement mode
@@ -537,6 +554,26 @@ func (m *Mob) Faction() model.Faction {
 func (m *Mob) SetFaction(f model.Faction) {
 	m.faction = f
 	m.aggroMask = ^f.Bit()
+	m.refreshSensorMask()
+}
+
+// refreshSensorMask re-derives the aggro sensor's mask from the aggro set, plus
+// the support widening. It has to be a derivation rather than a one-off at
+// construction: spawnSummon calls SetFaction after NewMob (a companion inherits
+// its caster's faction), which would otherwise narrow the mask straight back and
+// leave every summoned medic blind to the allies it exists to heal.
+func (m *Mob) refreshSensorMask() {
+	// Any mob carrying a support aura senses fellow COMBATANTS (both body
+	// layers) so it can spot wounded allies at aggro range and move to them —
+	// its hostility set may be empty (a passive faction), which would otherwise
+	// blind its sensor. findWoundedAlly filters down to same-faction wounded.
+	// Widened from seek-healers to any support carrier in round 3: a hybrid must
+	// see allies AND enemies. The cost is confined to those mobs; every damage
+	// mob keeps its narrow aggro-set mask.
+	if m.supportSlot >= 0 {
+		m.aggroAura.Shape().Mask = int(model.LayerCombatants)
+		return
+	}
 	m.aggroAura.Shape().Mask = aggroSensorMask(m.aggroMask)
 }
 
@@ -635,46 +672,75 @@ func (m *Mob) Update(dt float32) bool {
 
 	m.updateAggro()
 
-	if m.aggroTarget != nil {
+	// Movement follows the mode's target (round 3): support mode walks to the
+	// ALLY it is healing, engage mode to the enemy it is fighting. Fleeing is
+	// enemy-relative and only applies to engage — a healer at low health does
+	// not run away from its patient.
+	switch {
+	case m.mode == modeSupport && m.supportTarget != nil:
+		if m.shouldApproach(m.supportTarget) {
+			m.chaseTowards(m.supportTarget.Position())
+		} else {
+			m.resetChaseWatchdog()
+		}
+	case m.aggroTarget != nil:
 		if m.shouldFlee() {
 			m.resetChaseWatchdog()
 			m.moveAwayFrom(m.aggroTarget.Position())
-		} else if m.shouldApproachAggroTarget() {
+		} else if m.shouldApproach(m.aggroTarget) {
 			m.chaseTowards(m.aggroTarget.Position())
 		} else {
 			m.resetChaseWatchdog()
 		}
-	} else {
+	default:
 		m.resetChaseWatchdog()
 		m.updateIdleMovement()
+	}
+
+	// Regeneration gates on COMBAT STATE, not on holding a target (round 3).
+	// Those were the same thing until support mode gave a mob a reason to hold
+	// a target it is not fighting, and until damage recency gave it a reason to
+	// be in combat while holding none — which is the bug that made a lone
+	// healer unkillable.
+	if !m.InCombat() {
 		// Heal out of combat at the configured fraction of the pool per tick
 		// (absolute HP, item 11; rate is game.mob.healthGainTick, §27.2.3).
 		if m.health < m.maxHealth {
 			regen := vitals.HP(float32(m.maxHealth) * healthGainTick)
 			m.health = m.health.AddCapped(regen, m.maxHealth)
 		}
-		// Back at full health with no aggro = combat over; earlier
-		// contributors no longer count as participants for the next fight.
+		// Back at full health and out of combat = fight over; earlier
+		// contributors no longer count as participants for the next one.
 		if m.health == m.maxHealth && len(m.participants) > 0 {
 			m.participants = nil
 		}
 	}
 
+	// Age the combat window last, so a mob is gated for the full grace after
+	// its last hit rather than the grace minus the tick that stamped it.
+	if m.inCombatTicks > 0 {
+		m.inCombatTicks--
+	}
+
 	return m.health > 0
 }
 
-func (m *Mob) shouldApproachAggroTarget() bool {
-	if m.aggroTarget == nil {
+// shouldApproach reports whether t is still out of reach of the mob's CURRENT
+// aura. Target-agnostic since round 3 so support mode can reuse it: m.aura is
+// re-sized every tick from the active slot (sys/skills.go), so a mob that
+// switched to a shorter-ranged heal automatically closes the extra distance.
+func (m *Mob) shouldApproach(t model.Combatant) bool {
+	if t == nil {
 		return false
 	}
 
 	// Stop once target is already within damage aura, minus a tiny margin.
 	// Include player radius because collision is shape-vs-shape.
-	stopDistance := m.aura.Radius + m.aggroTarget.Radius() - m.chaseIntoAuraMargin
+	stopDistance := m.aura.Radius + t.Radius() - m.chaseIntoAuraMargin
 	if stopDistance < 0 {
 		stopDistance = 0
 	}
-	return m.Position().Sub(m.aggroTarget.Position()).Abs() > stopDistance
+	return m.Position().Sub(t.Position()).Abs() > stopDistance
 }
 
 func (m *Mob) SetPosition(p phy.Vec2f) {
@@ -808,6 +874,12 @@ func (m *Mob) SetFleeOverride(on bool) {
 // resets aggro, threat and the active aura.
 const leashCountdownTicks = 90 // ~3 s
 
+// combatRegenGraceTicks [PLACEHOLDER] is how long after its last taken damage a
+// mob stays in combat, gating out-of-combat regeneration (~3.3 s @ 30 TPS).
+// Deliberately the player's constant of the same name and value
+// (model/player/player.go) rather than a mob-specific one — see inCombatTicks.
+const combatRegenGraceTicks = 100
+
 // updateAggro drives acquisition, threat retention and the state-dependent
 // leash (mob-depth chunk 3). Retention: whenever the threat table holds a
 // living entry, the highest-threat entity IS the aggro target — the sensor
@@ -815,26 +887,48 @@ const leashCountdownTicks = 90 // ~3 s
 // nearest living enemy-faction entity in the aggro sensor is picked; a hit
 // from outside the sensor seeds threat and acquires through retention, so
 // mobs retaliate against snipers.
+// Since round 3 it is a three-step pipeline rather than a chain of early
+// returns: pick an enemy (by whichever acquisition strategy fits the mob), pick
+// an ally worth supporting, then let selectMode decide which of the two the mob
+// acts on. The early returns it replaced skipped everything downstream of them —
+// which is why a healer never leashed, never retaliated, never respected the
+// campfire safe-zone, and a follower with a heal aura never healed at all.
 func (m *Mob) updateAggro() {
-	tookDamage := m.tookDamage
-	m.tookDamage = false
+	switch {
+	// A mob that can support but cannot fight acquires no enemy at all: it has
+	// nothing to answer one with (PO 2026-07-25 — pacifist healers ignore their
+	// attacker). Note this is now a statement about its LOADOUT, not its type,
+	// and it is checked BEFORE the follower branch on purpose: a medic
+	// companion is both, and acquiring its owner's attacker would drag it away
+	// from the ally it exists to heal to chase something it cannot hurt.
+	case m.isPacifist():
+		m.tookDamage = false
 
 	// Followers (chunk 6) are owner-centric: acquisition from the owner's
 	// combat signals, stickiness bounded by the owner tether — no sensor
 	// (its mask sees the player layer), no threat retention (hits on the
 	// companion never re-target it, §3.6), no leash (the tether replaces it).
-	if m.isFollower() {
+	case m.isFollower():
+		m.tookDamage = false
 		m.updateCompanionTargeting()
-		return
+
+	default:
+		m.updateEnemyTargeting()
 	}
 
-	// Seek-healers (chunk 8) acquire wounded ALLIES, not enemies: no threat
-	// table, no sensor-enemy acquisition — the ally-sensing sensor + a wounded-
-	// ally pick drive the same aggroTarget/aura-gate/chase machinery.
-	if m.seekHealer {
-		m.updateHealerTargeting()
-		return
-	}
+	// Support acquisition runs for every mob carrying a support aura, follower
+	// or not — the collision between the two old early returns is exactly what
+	// left MedicCompanion and ShieldbearerCompanion unable to heal.
+	m.updateSupportTarget()
+
+	m.selectMode()
+}
+
+// updateEnemyTargeting is the ordinary sensor+threat acquisition path: the
+// pre-round-3 body of updateAggro, unchanged.
+func (m *Mob) updateEnemyTargeting() {
+	tookDamage := m.tookDamage
+	m.tookDamage = false
 
 	// Campfire hard safe-zone (Pass A, decision 4): a target that reaches the
 	// fire breaks the chase outright — threat cleared, aura off, walk home.
@@ -874,38 +968,24 @@ func (m *Mob) updateAggro() {
 	}
 }
 
+// setAggroTarget latches the enemy this mob fights. Since round 3 it no longer
+// touches the active aura: applyMode is the single writer of aura gating, and it
+// runs at the end of the same updateAggro, so the end-of-tick state is unchanged
+// while the "who I chase" / "what I have switched on" conflation is gone.
 func (m *Mob) setAggroTarget(t model.Combatant) {
 	if m.aggroTarget == nil {
 		m.noteCombatEntry()
 	}
 	m.aggroTarget = t
-	m.setAuraActive(true)
 }
 
-// resetAggro is the combat reset: target + threat cleared, countdown zeroed,
-// aura deactivated (3c) — walk-home and out-of-combat regen follow from
-// aggroTarget == nil in Update.
+// resetAggro is the combat reset: target + threat cleared, countdown zeroed —
+// walk-home follows from having no target in Update, and the aura gates off
+// through applyMode falling to modeIdle.
 func (m *Mob) resetAggro() {
 	m.aggroTarget = nil
 	m.threat = nil
 	m.leashTicks = 0
-	m.setAuraActive(false)
-}
-
-// setAuraActive flips the active aura with aggro (mob-depth chunk 3c).
-// Idempotent per state — SetActiveAura resets the tick accumulator, so it
-// must only run on an actual transition. auraAlwaysOn mobs never gate.
-func (m *Mob) setAuraActive(on bool) {
-	if m.auraAlwaysOn {
-		return
-	}
-	if on {
-		if m.skills.ActiveAuraSlot < 0 && m.skills.AuraSlots[0] != nil {
-			m.skills.SetActiveAura(0)
-		}
-	} else if m.skills.ActiveAuraSlot >= 0 {
-		m.skills.SetActiveAura(-1)
-	}
 }
 
 // targetWithinAuraReach reports whether the aggro target overlaps the mob's
@@ -924,11 +1004,16 @@ func (m *Mob) targetWithinAuraReach() bool {
 // overlap so it needs no physics step; the target is already faction- and
 // liveness-checked.
 func (m *Mob) targetWithinSensor() bool {
-	if m.aggroTarget == nil {
+	return m.withinSensor(m.aggroTarget)
+}
+
+// withinSensor is the target-agnostic form, shared with support retention.
+func (m *Mob) withinSensor(t model.Combatant) bool {
+	if t == nil {
 		return false
 	}
-	reach := m.aggroAura.Radius + m.aggroTarget.Radius()
-	return m.Position().Sub(m.aggroTarget.Position()).Abs() <= reach
+	reach := m.aggroAura.Radius + t.Radius()
+	return m.Position().Sub(t.Position()).Abs() <= reach
 }
 
 // findAggroTarget acquires the nearest living entity in the aggro sensor
@@ -1064,11 +1149,16 @@ func (m *Mob) TargetsEntity(id uint64) bool {
 }
 
 // InCombat reports whether this mob is currently engaged (model.Combatant;
-// atmosphere & recovery chunk 1). A mob's combat state is simply "has an aggro
-// target" — read by a healer deciding whether an allied mob it heals counts as
-// an in-combat ally.
+// atmosphere & recovery chunk 1) — read by the regen gate and by a healer
+// deciding whether an allied mob it heals counts as an in-combat ally.
+//
+// Two halves, either sufficient (playtest round 3): holding an aggro target,
+// OR having taken damage recently. It used to be the first alone, which made
+// every mob that cannot acquire a target — a pacifist healer — permanently
+// "out of combat" and therefore permanently regenerating, whatever was being
+// done to it.
 func (m *Mob) InCombat() bool {
-	return m.aggroTarget != nil
+	return m.aggroTarget != nil || m.inCombatTicks > 0
 }
 
 // ThreatRow is one read-only threat-table row for the THREAT debug cheat
@@ -1229,6 +1319,10 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 		// In-combat signal for the leash (chunk 3b); widened to dealt in
 		// chunk 2 — being beaten on your shield is combat (§3.1).
 		m.tookDamage = true
+		// ...and the damage-recency window behind InCombat (round 3). The
+		// leash consumes tookDamage once per tick; this one outlives it, so a
+		// mob that never retaliates still counts as fighting.
+		m.inCombatTicks = combatRegenGraceTicks
 	}
 	m.StatusEffects().Add(s)
 	return dealt

@@ -15,17 +15,21 @@ type Combatant interface {
 	HealthRatio() float32
 
 	// InCombat reports whether this combatant is currently engaged (atmosphere
-	// & recovery chunk 1). A mob derives it from its aggro target; a player
-	// runs a time-gated recent-action window. Read by the regen gate and by a
-	// healer deciding whether supporting an ally counts as combat.
+	// & recovery chunk 1). Read by the regen gate and by a healer deciding
+	// whether supporting an ally counts as combat. A player runs a time-gated
+	// recent-action window; a mob holds an aggro target OR has taken damage
+	// recently (playtest round 3 — the aggro-target half alone left a mob that
+	// acquires nothing, i.e. a pacifist healer, permanently out of combat and
+	// so permanently regenerating).
 	InCombat() bool
 }
 
 // CombatActor is the player-only capability to be stamped into combat by its
-// own harmful/supporting action (atmosphere & recovery chunk 1). Mobs derive
-// InCombat from their aggro target and never need stamping, so they do not
-// implement this — the SkillSystem's caster-side stamp type-asserts it and
-// skips mob casters for free.
+// own harmful/supporting action (atmosphere & recovery chunk 1). Mobs still do
+// not implement it — their in-combat window is stamped internally by damage
+// TAKEN, and the dealt half is already covered by holding an aggro target — so
+// the SkillSystem's caster-side stamp type-asserts this and skips mob casters
+// for free.
 type CombatActor interface {
 	NoteCombatAction()
 }

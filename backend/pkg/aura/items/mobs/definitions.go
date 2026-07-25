@@ -93,10 +93,18 @@ type MobID uint64
 // 0/absent = the global default at mob construction, valid (0, 1].
 // IdleDwellMin/MaxTicks is the stand time rolled between wander legs;
 // 0/absent = global defaults.
+//
+// SupportThreshold is the role-as-loadout knob (playtest round 3): the ally
+// health ratio at or below which a mob carrying a heal/shield aura breaks off to
+// support, switching its active aura to the support slot. 0/absent = 1.0 (any
+// ally short of full health — the pre-round-3 seek-healer behaviour); 0.5 makes
+// a guardian that cleaves until an ally drops below half. Valid range [0, 1].
+// Inert on a mob whose loadout carries no support aura.
 type Factors struct {
 	MaxHealth            uint32
 	MaxHealthVariance    float32
 	FleeBelowHealthRatio float32
+	SupportThreshold     float32
 	WanderRadius         float32
 	IdleSpeedFactor      float32
 	IdleDwellMinTicks    int
@@ -209,6 +217,7 @@ type mobDefinition struct {
 		MaxHealth            uint32             `json:"maxHealth"`
 		MaxHealthVariance    float32            `json:"maxHealthVariance"`
 		FleeBelowHealthRatio float32            `json:"fleeBelowHealthRatio"`
+		SupportThreshold     float32            `json:"supportThreshold"`
 		WanderRadius         float32            `json:"wanderRadius"`
 		IdleSpeedFactor      float32            `json:"idleSpeedFactor"`
 		IdleDwellMinTicks    int                `json:"idleDwellMinTicks"`
@@ -291,6 +300,12 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	// A health ratio lives in [0, 1]; 1 itself is valid (flees whenever damaged).
 	if ratio := m.Factors.FleeBelowHealthRatio; ratio < 0 || ratio > 1 {
 		return nil, fmt.Errorf("mob %q: factors.fleeBelowHealthRatio %v must be in [0, 1]", m.Name, ratio)
+	}
+
+	// Likewise a ratio (round 3). Absent → the 1.0 default at construction; an
+	// authored value above 1 would be a support threshold no ally can be under.
+	if ratio := m.Factors.SupportThreshold; ratio < 0 || ratio > 1 {
+		return nil, fmt.Errorf("mob %q: factors.supportThreshold %v must be in [0, 1] (or absent for 1.0)", m.Name, ratio)
 	}
 
 	// Idle pacing (chunk 5): a stationary species cannot carry a default
@@ -376,6 +391,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 			MaxHealth:            uint32(math.Round(float64(m.Factors.BaseMaxHealth) * powerScale)),
 			MaxHealthVariance:    m.Factors.MaxHealthVariance,
 			FleeBelowHealthRatio: m.Factors.FleeBelowHealthRatio,
+			SupportThreshold:     m.Factors.SupportThreshold,
 			WanderRadius:         m.Factors.WanderRadius,
 			IdleSpeedFactor:      m.Factors.IdleSpeedFactor,
 			IdleDwellMinTicks:    m.Factors.IdleDwellMinTicks,

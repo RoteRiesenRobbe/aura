@@ -1,5 +1,5 @@
 {
-  "_comment": "Medic companion (content pass C7, plan-content-zones12.md §13): the FieldMedics squad healer — patches up the soldiers and the owner (reuses the HealerAura mob skill, lowest-health ally). Companion pattern verbatim (owned, caster-aligned follower; spawnSummon overrides faction from the caster, hence no faction key; never a zone spawn): collisionLayer 160 = Viewport|Player, collisionMask 17 = PlayerStatic|Border, speed above the player's so it keeps up, aggroRadius dummy (followers ride owner combat signals). curveLevel 1 — power comes from SummonPower x f(ownerLevel), not the curve. All values [PLACEHOLDER]",
+  "_comment": "Medic companion (content pass C7, plan-content-zones12.md §13): the FieldMedics squad healer — patches up the soldiers and the owner (reuses the HealerAura mob skill, lowest-health ally). Companion pattern verbatim (owned, caster-aligned follower; spawnSummon overrides faction from the caster, hence no faction key; never a zone spawn): collisionLayer 160 = Viewport|Player, collisionMask 17 = PlayerStatic|Border, speed above the player's so it keeps up. aggroRadius 3.5 is a REAL sensor since the round-3 role-as-loadout rework: a support carrier looks for wounded allies itself instead of riding owner combat signals only, so the old 0.1 dummy left it permanently blind (HealerAura heals at 2.0; the extra ~1.5 is the follow ring, so it can spot a squadmate it then walks to). curveLevel 1 — power comes from SummonPower x f(ownerLevel), not the curve. All values [PLACEHOLDER]",
   "id": 40,
   "name": "MedicCompanion",
   "type": "MOB",
@@ -12,7 +12,7 @@
   },
   "body": {
     "radius": 0.24,
-    "aggroRadius": 0.1,
+    "aggroRadius": 3.5,
     "collisionLayer": 160,
     "collisionMask": 17
   },
