@@ -2497,6 +2497,26 @@ Both are the exact §31 failure shape (*correct until content asks for the
 combination, then silently wrong*), so they are worth closing **with** the first
 hybrid mob rather than being left to be discovered by it.
 
+**Deliberately NOT fixed now (PO 2026-07-25), tripwire installed instead.** The
+one-line "read `combatSlot`" fix *looks* obviously right, but `auraCanReach` runs
+during **acquisition, before a mode is chosen** — so for a hybrid, "which slot
+decides reachability?" is genuinely undetermined. A hybrid arguably *should*
+acquire a target its damage aura can reach even when its heal cannot, which makes
+this a design question for this gap's successor rather than a typo. Fixing it now
+would bake in semantics the first real hybrid would immediately dispute, against
+a configuration no content has (YAGNI).
+
+So the trap was made **loud** instead:
+`TestContent_NoAuthoredMobIsAHybridYet` (`model/mob/hybrid_tripwire_test.go`)
+loads the real embedded content, derives the slots through the real `NewMob` (so
+it cannot drift from `roleSlots`), and fails the moment any authored mob carries
+both a support and a combat aura — naming the mob and both sites to resolve.
+Verified to actually fire by temporarily giving `Healer` a `WolfBite`. Same trick
+as `TestAuraCategory_ClassifiesEveryAuthorableEffectType`: an assertion that goes
+off when new content appears, rather than a behaviour guessed ahead of it. **It
+is a tripwire, not a prohibition** — when the first hybrid is wanted, fix the two
+sites and replace it with real hybrid behaviour pins.
+
 **Still an implicit type: `isFollower()`** = `owner != nil && velocity > 0`
 (`companion.go:61`), documented as deliberate YAGNI at chunk-6 plan-first. It is
 now the *last* mob role inferred rather than read, and its branch order turned
