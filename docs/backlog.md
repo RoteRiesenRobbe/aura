@@ -2347,3 +2347,101 @@ exactly the question this item asks. Deciding the entity model **before** a
 schema is written is materially cheaper than migrating one after. Worth at least
 a deliberate "we are not unifying yet, and here is what that costs the schema"
 call during step-8 planning.
+
+### Gap 5 — the same divergence exists in AI, and it is the cheap half
+
+**Added 2026-07-25**, from the healer-regen bug (`plan-playtest-feedback.md`
+§Intake round 3). Gaps 1–4 are all about the **stat** model. The identical
+"role baked as a type" pattern runs through the **behaviour** model, and it is
+both cheaper to fix and already causing trouble.
+
+`updateAggro` has two special-case early-returns — `isFollower`
+(`model/mob/mob.go:826`) and `seekHealer` (`mob.go:834`). `seekHealer` is a
+**flag decided once at construction** (`mob.go:157`, inferred from "does slot 0
+carry a heal effect") that then routes the mob into an entirely separate
+targeting function. That is precisely this item's counter-example, in AI instead
+of stats: a role expressed as a *type* rather than read from the loadout.
+
+**They already collide.** `MedicCompanion` carries `HealerAura` but is a
+follower, so `isFollower` wins and the healer path never runs for it — its heal
+aura ends up gating on acquiring a *hostile* within heal-aura reach, and its
+`aggroRadius` is a `0.1` dummy so it cannot sense a wounded ally at all. Same
+shape as gap 4's *"the content keeps asking for the abstraction and the answer
+keeps being 'make it a mob'"*, one level up.
+
+**Decided 2026-07-25 (PO, via choice prompts) — scheduled as this item's
+behaviour-side instalment, its own chunk, before step-8 planning.** Replace both
+early-returns with one loadout-driven mode selector keyed on **aura category**
+(`skills/aura_category.go`, already exhaustive and build-test-enforced):
+
+> If an ally is below `supportThreshold` and I carry a support-category aura →
+> activate that slot and move to the ally. Otherwise → activate my primary slot
+> and behave as a normal combat mob.
+
+Support set = **Heal + Shield** [PLACEHOLDER]; Resist/Light are one constant
+away. Healer, hybrid healer, damage+shield guardian and plain fighter all become
+**loadout configurations of one behaviour**, with no branching — which is this
+item's thesis, demonstrated on the cheap half. Full decision list, chunk shape
+and the mode-thrash landmine: `plan-playtest-feedback.md` §Intake round 3.
+
+**Deliberately NOT built (YAGNI, PO 2026-07-25):** per-slot authored conditions
+— own-health triggers (*"below 30 % I pop a defensive aura"*), enemy-count
+triggers, a 3-slot priority table with three different triggers. The migration
+is **additive**: the fixed rule above becomes the default row. Build it when a
+second condition *kind* actually shows up, not before.
+
+**Also parked here (PO 2026-07-25):** a shared **`Autoattack`** skill — *"a
+default damage aura for everything, akin to WoW auto attack"*. The mode selector
+delivers "retaliate if it has the means" without it. The version worth having is
+`curveLevel`-derived, which **is gap 3** (two level curves, neither can read the
+other's); a flat-authored version would need per-tier variants and become
+migration debt the day gap 3 lands. Note that a universal auto-attack for
+**players** was rejected outright on design grounds: it would defuse the
+"choosing the Lantern costs you all your damage" trade-off the zone-1→2 tunnel
+tutorial is built on.
+
+---
+
+## 32. Consumable cooldowns — charges in the spellbook
+
+**Origin:** PO idea 2026-07-25, recorded alongside the healer-regen bug
+(`plan-playtest-feedback.md` §Intake round 3). *"Cooldowns that are very
+powerful, that can be farmed and used up, because the spellbook carries them
+similar to an inventory — something like a 'disposable bomb' that does huge
+damage once but consumes a charge in the spellbook."*
+
+**The shape:** a cooldown skill that additionally carries a **charge count**.
+Casting consumes a charge; at zero it is unusable but still known. Charges are
+farmed from the world (mob kill drops already grant skills via the `unlocks`
+table with a chance, so the *source* mechanism exists).
+
+**Why it is interesting beyond "an item system by another name":**
+
+- It is the first thing in the game with a **quantity**, and the first thing a
+  player can **lose** — which is exactly the pressure round 2's headline theme 4
+  (*"nothing costs anything"*) is asking for, at a different scale than
+  per-tick resource costs.
+- Powerful-but-finite is a different design axis from powerful-but-long-cooldown:
+  it makes *when to spend* a decision rather than *when it comes back up*.
+- It gives kill-drops a second job. Today a drop is a one-time unlock and the
+  mob becomes pointless to re-farm; a charge source stays relevant.
+
+**⚑ Open — the decision that determines everything else: does a charge survive
+death?** This is a **step-8 (accounts & persistence) consumer**, not an
+independent feature. Persisted charges = a durable stockpile and a real farming
+loop; wiped-on-death charges = a per-life consumable closer to a pickup.
+
+**⚑ Watch — economy creep.** This is an economy seed, and the GDD puts economy
+outside v1.0 scope. Charges that can be *stockpiled* invite trading pressure the
+moment more than one player wants one. Worth deciding deliberately whether
+charges are ever transferable (recommendation: no, ever — untradeable sidesteps
+the entire question).
+
+**Not a re-introduction of the item system.** §28 removed items; this is a
+counter on a **skill**, not an inventory of objects — a charge count on the
+spellbook entry, a wire field, UI, and consumption at cast. Materially smaller,
+and it rides machinery that already exists (`CooldownSlots`, `PendingCooldowns`,
+the cast path in `sys/skills.go`).
+
+**Not scheduled.** Revisit during step-8 planning, where the persistence
+question is on the table anyway.

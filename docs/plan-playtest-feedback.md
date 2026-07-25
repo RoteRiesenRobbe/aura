@@ -123,6 +123,174 @@ passive-ish effects.
 
 ---
 
+## Intake — round 3 (2026-07-25)
+
+PO report from live play, plus two recorded ideas and a direction question.
+Traced against the code in-session; everything below was read, not estimated.
+
+### The bug: healers regenerate through incoming damage
+
+**PO report:** *"Healers keep permanently regenerating health when they are
+alone, even if they are attacked, since they don't fight back."*
+
+**Mechanism (confirmed):**
+
+1. `Mob.Update` treats **"no aggro target" as "out of combat"** and regenerates
+   there (`model/mob/mob.go:647-655`), currently at `game.mob.healthGainTick`
+   ≈ the full pool in ~2 s.
+2. A seek-healer is routed through `updateHealerTargeting`
+   (`mob.go:834` → `model/mob/healer.go:37`), which **returns before the
+   threat/retaliation block entirely** — healers have no threat table at all.
+   `findWoundedAlly` also excludes self (`healer.go:65`), so a *lone* healer can
+   never acquire anything.
+
+⇒ A lone healer is permanently `aggroTarget == nil`, therefore permanently
+regenerating, and damage taken cannot change that. Unkillable unless burst beats
+~50 % of its pool per second.
+
+**This is not a healer bug.** "In combat" is derived from *having a target*
+rather than from *taking damage*, so any mob that cannot or will not retaliate
+hits it. Same hole, milder instance: a mob whose leash expires while still being
+shot from out of reach resets aggro and starts regenerating.
+
+### Adjacent finding — the squad medic (read from code, not yet observed)
+
+`updateAggro` has **two** special-case early-returns, not one: `isFollower`
+(`mob.go:826`) and `seekHealer` (`mob.go:834`) — **and they already collide.**
+`MedicCompanion` (`api/mobs/medic-companion.json`) carries `HealerAura` but is a
+follower, so `isFollower` wins and the healer path never runs for it. Its heal
+aura therefore gates on acquiring a **hostile** within heal-aura reach via
+`updateCompanionTargeting`, and its `aggroRadius` is a `0.1` dummy, so it cannot
+sense a wounded ally at all. Reads as: *the medic heals only while an enemy
+happens to be inside its heal radius.* **Needs an in-game check to confirm**
+before it is called a live bug; either way it is the same missing abstraction.
+
+### Decisions (PO, 2026-07-25, via choice prompts)
+
+1. **The regen fix is a damage-recency combat timer**, not retaliation. Regen
+   gates on "took damage within the last N ticks" [PLACEHOLDER] instead of on
+   `aggroTarget`. `m.tookDamage` already exists as a per-tick flag and becomes a
+   countdown. Fixes healers, any future non-retaliating mob, and the leash hole
+   in one rule — and preserves the healer's authored teach (`healer.json`:
+   *"it never attacks — kill it to stop the healing"*), which retaliation would
+   have deleted.
+2. **No universal auto-attack.** *"Retaliate if it has the means"* — i.e. if the
+   loadout contains a damaging aura. The shared `Autoattack` skill idea is
+   **parked in backlog §31**: a `curveLevel`-derived baseline is §31 gap 3 (two
+   level curves, neither can read the other's), and a flat-authored version
+   would need per-tier variants and become migration debt.
+3. **Role is a loadout configuration, not an entity type** — scoped as **§31's
+   behaviour-side instalment**, its own chunk, before step-8 planning. Delete
+   the `seekHealer` flag *and* the follower early-return in favour of one
+   loadout-driven mode selector; fix the `MedicCompanion` collision in the same
+   pass.
+4. **A pacifist healer keeps healing and ignores its attacker.** It is in
+   combat, regen off, threat tracked, but movement stays ally-driven. Flee and
+   retreat-toward-allies were both considered and rejected for now — flee would
+   also make healers meaningfully harder to kill, which is a tuning change
+   smuggled into a bug fix.
+5. **Mode rule keys on aura *category*, not on "heal".** *If an ally is below
+   `supportThreshold` and I carry a support-category aura → activate that slot
+   and move to the ally. Otherwise → activate my primary slot and behave as a
+   normal combat mob.* `skills/aura_category.go` already classifies every aura
+   effect exhaustively (Damage/Heal/Shield/Dot/Slow/Light/Resist) with a test
+   that fails the build on an unclassified effect type — the AI and the client's
+   ring colours then read **one** classification, so they cannot diverge.
+6. **Support set = Heal + Shield** [PLACEHOLDER]. Resist and Light can join
+   later without code changes — it is one constant. Light was rejected because
+   it has no ally-health relationship: a torchbearer would run at whoever is
+   most hurt for no reason.
+7. **Per-slot authored conditions are NOT built now** (own-health triggers,
+   enemy-count triggers, a 3-slot priority table). Recorded in §31 as the
+   additive generalization for when a second condition *kind* actually appears;
+   today's fixed rule becomes the default row in that table.
+8. **The survivors-like fork is CLOSED — the game stays MMO-lite.** PO question:
+   *"are we moving more into a survivor-like game where waves of enemies
+   approach you, making distinct NPCs too complicated or unnecessary?"* Answer:
+   the content and systems are already committed to role interdependence (50
+   authored mobs, factions, threat, taunt, healers as a kill-priority teach,
+   group gates) and the GDD pillar *"players filling roles for each other is
+   essential, not optional"*. Survivors-likes have undifferentiated enemies
+   *because* they have no role interdependence — taking that fork means deleting
+   the pillar, not just simplifying mobs. But "NPCs as distinct as players" was
+   never required, and **WoW does not do that either**: mobs are template-driven
+   with authored ability lists and no progression system. The middle path —
+   **share the stat vocabulary, not the progression machinery** — is both
+   cheaper and what §31 already targets. *"High-level play feels survivors-ish"*
+   is an observation about density, which is a tuning knob.
+
+### WoW Classic, checked (the PO asked whether it works this way)
+
+**Shared:** mobs and players are both `Unit`s — same health/power model, melee
+auto-attack on a swing timer, the same attack table (miss/dodge/parry/block/
+crit), the same buff/debuff system, the same threat rules. **Not shared:**
+creature stats come from level-based template tables, not gear + talents; no
+talent trees; no gear-derived crit rating (creature crit is a flat baseline);
+damage is a baked min/max range, not weapon × attack power; abilities are
+hand-authored spell lists. Auto-attack *is* near-universal for hostile NPCs —
+caster and healer NPCs melee you in melee range.
+
+**But WoW's healer NPCs are not killable because they auto-attack.** They are
+killable because of mana pools, cast times, pushback and interrupts — and
+because *any* damage puts a mob in combat, ending regen until it evades (at
+which point it heals to full instantly, the anti-kite rule). Aura's healers have
+none of those brakes: no cost, no cast time, no interrupt, instant, whole-ring.
+**The transferable lesson is the combat-state rule, not auto-attack** — which is
+why decision 1 and decision 2 point in different directions.
+
+### The chunk
+
+One execution chunk. Not started.
+
+1. **Damage-recency combat timer** — `tookDamage` flag → countdown; regen gates
+   on it. TDD in `mob_test.go`. Independently valuable; ship-ready on its own.
+2. **One mode selector** replacing both early-returns. `aggroTarget` currently
+   means three things at once — *who I chase*, *whether my aura is on*, and *am
+   I in combat*. Split: combat state ← threat + damage recency; movement target
+   ← ally **or** enemy per mode; active slot ← follows the mode. Add a
+   `supportTarget` next to `aggroTarget`.
+3. **`supportThreshold` on the mob definition** [PLACEHOLDER default 1.0 = any
+   wounded ally], plus loader validation.
+4. **Widen the sensor mask** to `LayerCombatants` for any mob carrying a support
+   aura (it must see allies *and* enemies). Small broadphase cost, only those
+   mobs.
+5. **`MedicCompanion`** — verify in-game first, then fold into the selector.
+
+**Why it is smaller than it sounds — four pieces already exist:**
+
+- **Mob aura switching is already fully supported and nothing uses it.** The
+  SkillSystem re-derives the aura collider's radius **and** mask every tick from
+  the *active* slot (`sys/skills.go:151-157`), so a mob flipping heal→damage
+  retargets and resizes its sensor for free — and `shouldApproachAggroTarget`
+  reads `m.aura.Radius`, so its stop distance auto-corrects. `setAuraActive`
+  (`mob.go:898`) simply never picks anything but slot 0.
+- Threat, retaliation, leash, safe-zone and flee all work; healers just `return`
+  before reaching them.
+- Mob cooldowns already auto-fire when ready and only consume on a hit
+  (`sys/skills.go:1093`).
+- Decision 1's timer supplies "in combat while doing nothing" on its own.
+
+**⚑ The landmine: mode thrash.** `SetActiveAura` zeroes the tick accumulator
+(`skills/component.go:366`). A mob that flips mode every tick **never completes
+an aura tick — it deals and heals exactly zero, silently.** Needs hysteresis
+(hold a mode ≥ N ticks [PLACEHOLDER], or switch only on tick boundaries). This
+is the same failure shape §31 warns about for gap 1: a silent behaviour change,
+no error. Pin it with a test.
+
+**What falls out for free:** §31 notes the village healer is already a mob — a
+loadout-driven healer generalizes to friendly-faction healers healing *players*.
+And the whole spectrum becomes content with no branching:
+
+| Loadout | Behaviour |
+|---|---|
+| support auras only | today's pacifist healer — kill it to stop the healing |
+| damage auras only | rule never fires; ordinary combat mob |
+| heal + damage | attacks in the gaps, heals when needed |
+| damage + shield, `supportThreshold: 0.5` | guardian: cleaves, switches to shielding an ally below 50 % |
+| `supportThreshold: 0.2` | mostly fights, emergency-support only |
+
+---
+
 ## Pass 1 — the numbers rewrite
 
 **Both systemic changes together, then a single retune on top.** They each
@@ -172,6 +340,22 @@ things to **do**, where Pass 1 makes existing things fair.
 3. **Patrolling wide-aura mobs** to discourage AFK. Check first whether the
    mob-depth patrol behaviour (`archive/plan-mob-depth.md`, chunk 5) already
    covers waypoints — this may be mostly content.
+4. **Pulse-damage passive** (round-3 idea, PO 2026-07-25) — *"a passive that
+   ticks damage periodically while an aura is active, i.e. a damage pulse every
+   5 s while any aura is active, even if that aura is not damaging."* Should be
+   authored as **one shape with item 1** — same oscillation vocabulary, same
+   "read the beat" skill expression, and the ring render has to track both.
+   - **Why it earns its slot:** it is a **damage floor for support builds**, so
+     a player who takes the Lantern is not contributing zero — a softer answer
+     to the same problem a universal auto-attack would solve, *without* costing
+     the "choosing the Lantern costs you all your damage" trade-off that the
+     zone-1→2 tunnel tutorial is built on (decision 2 above rejected the
+     auto-attack route for mobs; this is the player-side counterpart).
+   - **⚑ Engine-new:** it is the **first passive that emits an effect** rather
+     than modifying a stat — all five `validStats` today are multipliers.
+     Nearest existing machinery is `EffectDef.TickInterval` plus the aura apply
+     loop; it needs a passive that emits into the active aura's collider. Scope
+     this before committing to the pass.
 
 → **playtest**
 
@@ -233,6 +417,22 @@ a multiplayer playtest, not a solo one.
 5. All new numbers are **[PLACEHOLDER]** until felt in-game: the cost curve
    steps, every `selfDamageHP` value, every retuned radius/dps, pulse
    amplitude and period.
+
+**Round 3 (2026-07-25):**
+
+6. **A shield is preventive, but the mode rule fires reactively.** Round-3
+   decision 5 triggers on *"an ally is below `supportThreshold`"* and picks the
+   most-wounded ally (the existing `findWoundedAlly` pick), so a guardian shields
+   the wolf that is nearly dead rather than the one about to get hit. Might be
+   exactly right; might argue for shield-carrying mobs triggering on *"an ally is
+   in combat"* instead. **Blocks nothing** — it is a trigger swap inside one
+   rule, decidable after it is felt in-game.
+7. **What the mode-thrash hysteresis window actually is** — a hold time, a
+   tick-boundary-only switch, or both. Needs feeling, not deriving.
+8. **Does the pacifist healer's threat table have any consumer?** Decision 4
+   says it tracks threat but ignores the attacker. Taunt already reads it
+   (`ForceThreatToTop`); nothing else does. If nothing consumes it, the ruling is
+   still right for uniformity — but say so explicitly rather than by accident.
 
 ---
 
