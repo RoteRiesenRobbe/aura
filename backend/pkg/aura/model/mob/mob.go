@@ -275,11 +275,14 @@ type Mob struct {
 	// re-picking per tick flip-flops between two blockers (see steer).
 	steerSide float32
 
-	// steerProbe/steerHits are blockerRepulsion's reused scratch (see there):
-	// the lookahead circle and its hit buffer, built once per mob instead of
-	// once per tick. Never read outside blockerRepulsion.
-	steerProbe *phy.Circle
-	steerHits  []phy.Collider
+	// steerProbe/steerHits/steerMobHits are the steering queries' reused
+	// scratch (see steeringProbe): the lookahead circle and one hit buffer per
+	// query — statics for blockerRepulsion, mob bodies for mobSeparation —
+	// built once per mob instead of once per tick. Never read outside
+	// steering.go.
+	steerProbe   *phy.Circle
+	steerHits    []phy.Collider
+	steerMobHits []phy.DynamicCollider
 
 	// chase stuck watchdog (see stuck.go): net-progress window + camp state.
 	progressAnchorPos phy.Vec2f

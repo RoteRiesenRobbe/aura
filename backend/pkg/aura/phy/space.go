@@ -189,6 +189,55 @@ func (s *Space) QueryCircle(c *Circle) []DynamicCollider {
 	return hits
 }
 
+// AppendCircleDynamics is QueryCircle without the per-call garbage: it appends
+// the hits to dst and returns the extended slice, so a caller on a per-tick
+// path can hand back its own buffer (buf[:0]) and allocate nothing. Same
+// semantics as QueryCircle otherwise — the broadphase grid of the last Update,
+// the query circle is never added to the space, nothing records a collision.
+// Duplicates are suppressed only among the hits appended by THIS call — a body
+// straddling several grid cells is still reported once.
+func (s *Space) AppendCircleDynamics(dst []DynamicCollider, c *Circle) []DynamicCollider {
+	c.updateBB()
+	bb := c.BoundingBox()
+
+	start := len(dst)
+
+	for x := floor32f(bb.Left / gridWidth); x <= floor32f(bb.Right/gridWidth); x++ {
+		for y := floor32f(bb.Bottom / gridWidth); y <= floor32f(bb.Upper/gridWidth); y++ {
+			for _, other := range s.grid[Vec2i{x, y}] {
+				obb := other.BoundingBox()
+				if !IntersectAabb(&bb, &obb) {
+					continue
+				}
+				if !ArbiterShapes(c, other) {
+					continue
+				}
+				if !c.IntersectWith(other) {
+					continue
+				}
+				// Cell-straddle de-dup by linear scan rather than QueryCircle's
+				// `seen` map, for the same reason AppendCircleStatics does it:
+				// a probe spans a handful of cells and hits a handful of
+				// bodies, and the map was pure garbage on the hot path.
+				if containsDynamic(dst[start:], other) {
+					continue
+				}
+				dst = append(dst, other)
+			}
+		}
+	}
+	return dst
+}
+
+func containsDynamic(list []DynamicCollider, c DynamicCollider) bool {
+	for _, other := range list {
+		if other == c {
+			return true
+		}
+	}
+	return false
+}
+
 // QueryCircleStatics is QueryCircle's static-side twin: all static colliders
 // (blocking props, the border wall) that intersect the given circle and whose
 // layer matches the circle's mask. The static grid is built at AddStaticShape

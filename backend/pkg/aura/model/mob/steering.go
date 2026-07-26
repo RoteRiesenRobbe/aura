@@ -1,6 +1,7 @@
 package mob
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 )
 
@@ -23,17 +24,32 @@ const steeringLookahead float32 = 0.6
 // forces the head-on deflection before the bodies touch.
 const steeringRepulsionWeight float32 = 1.5
 
+// mobSeparationWeight [PLACEHOLDER] scales the (unit-clamped) repulsion from
+// nearby mob bodies against the unit-length step direction — playtest round 6
+// item 3, PO decision 2026-07-26: mob-vs-mob SOFT separation, no hard blocking
+// (backlog §34). Deliberately < 1 so separation bends the path and can never
+// reverse it, and well below steeringRepulsionWeight: a mob is a much weaker
+// reason to turn than a wall.
+const mobSeparationWeight float32 = 0.45
+
 // steer bends the desired unit direction around nearby blockers. With no
 // space (direct construction, tests) or nothing in steering range it returns
 // desired unchanged — movement is then exactly the pre-steering straight line.
+//
+// Statics and mobs are kept apart on purpose: only statics feed the head-on
+// detour latch (see below). Mob separation is blended into the RESULT, so a
+// mob can neither set the latch nor hold it — the latch clears on "no static
+// repulsion", and a mob trailing this one would otherwise keep it alive
+// forever and walk it sideways.
 func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 	if m.space == nil {
 		return desired
 	}
 	rep := m.blockerRepulsion()
+	sep := m.mobSeparation()
 	if rep.X == 0 && rep.Y == 0 {
 		m.steerSide = 0 // clear of everything: the next obstruction re-picks
-		return desired
+		return blendSeparation(desired, sep)
 	}
 
 	left := desired.Rot90()
@@ -44,12 +60,14 @@ func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 	// from, and against a prop wall it limit-cycles between deflect and blend,
 	// jiggling in place at the notch forever (in-game finding, 2026-07-20).
 	if m.steerSide != 0 {
+		// Committed detour: separation stays out of it, so the tangent is
+		// exactly the one the latch was tuned to hold.
 		return left.Mult(m.steerSide)
 	}
 
 	combined := desired.Add(rep.Mult(steeringRepulsionWeight))
 	if combined.Dot(desired) > 0 {
-		return combined.Normalize()
+		return blendSeparation(combined.Normalize(), sep)
 	}
 	// Head-on: repulsion cancels the pull or points backward — deflect across
 	// the desired line. The side is LATCHED until the mob is fully clear of
@@ -73,18 +91,7 @@ func (m *Mob) steer(desired phy.Vec2f) phy.Vec2f {
 // the border wall. The probe carries the mob's own collision mask, so a
 // static the mob walks through (the boss vs rocks) never repels it.
 func (m *Mob) blockerRepulsion() phy.Vec2f {
-	// Probe and hit buffer are per-mob and reused: this runs for every mob on
-	// every tick it moves — ~50 mobs × 30 Hz with nobody even online — and
-	// building them per call was the single largest allocation site in the
-	// idle game loop (idle-overload investigation 2026-07-22, pinned by
-	// steering_alloc_test.go).
-	if m.steerProbe == nil {
-		m.steerProbe = phy.NewCircle(m.Position(), m.Radius()+steeringLookahead)
-	}
-	probe := m.steerProbe
-	probe.SetPosition(m.Position())
-	probe.SetRadius(m.Radius() + steeringLookahead)
-	probe.Shape().Mask = m.Body.Shape().Mask
+	probe := m.steeringProbe(m.Body.Shape().Mask)
 
 	var rep phy.Vec2f
 	m.steerHits = m.space.AppendCircleStatics(m.steerHits[:0], probe)
@@ -99,6 +106,117 @@ func (m *Mob) blockerRepulsion() phy.Vec2f {
 		}
 	}
 	return rep
+}
+
+// steeringProbe is the reused lookahead circle both steering queries run with,
+// re-aimed at the mob's current position and carrying the given mask. Probe
+// and hit buffers are per-mob and reused: this runs for every mob on every
+// tick it moves — ~50 mobs × 30 Hz with nobody even online — and building them
+// per call was the single largest allocation site in the idle game loop
+// (idle-overload investigation 2026-07-22, pinned by steering_alloc_test.go).
+func (m *Mob) steeringProbe(mask int) *phy.Circle {
+	if m.steerProbe == nil {
+		m.steerProbe = phy.NewCircle(m.Position(), m.Radius()+steeringLookahead)
+	}
+	probe := m.steerProbe
+	probe.SetPosition(m.Position())
+	probe.SetRadius(m.Radius() + steeringLookahead)
+	probe.Shape().Mask = mask
+	return probe
+}
+
+// mobSeparation sums the repulsion from every OTHER mob body within the
+// steering lookahead, clamped to unit length — the soft half of "mobs stop
+// piling into one unreadable clump" (round 6 item 3).
+//
+// The query runs on LayerViewportCollision and filters the hits to *Mob
+// through UserData, rather than on a mob-body layer bit. There is no such bit:
+// Viewport is the only layer every body shares, and an authored collisionLayer
+// REPLACES the default wholesale (campfires and totems already do exactly
+// that), so a new bit would be silently dropped by the defs most likely to
+// need it. The type filter is also what makes the PO's two rejections — no
+// player↔player, no player↔mob — structural instead of mask arithmetic a
+// future content edit could undo.
+func (m *Mob) mobSeparation() phy.Vec2f {
+	probe := m.steeringProbe(int(model.LayerViewportCollision))
+
+	var sep phy.Vec2f
+	m.steerMobHits = m.space.AppendCircleDynamics(m.steerMobHits[:0], probe)
+	for _, c := range m.steerMobHits {
+		other, ok := c.Shape().UserData.(*Mob)
+		if !ok || other == m {
+			continue
+		}
+		sep = sep.Add(m.mobRepulsion(other))
+	}
+	// Clamp to unit length: with mobSeparationWeight < 1 that makes it
+	// impossible for any number of mobs to out-pull the direction home. A
+	// crowd spreads the pack, it never turns a mob around.
+	if l := sep.Abs(); l > 1 {
+		sep = sep.Div(l)
+	}
+	return sep
+}
+
+// mobRepulsion is circleRepulsion for another mob's body, with one difference
+// that matters: the co-located tie-break. circleRepulsion's dead-center
+// fallback pushes along the mob's own heading, which is fine against a static
+// but WELDS two mobs sharing a point and a heading — they push identically
+// forever, and same-point spawns are exactly what the wave and summon paths
+// produce (the soft analogue of §34's equal-radius welding).
+//
+// The pair splits on entity ID into two opposite pushes — the same shape as
+// any other pair, so blendSeparation's rotation handles it from there. Both
+// mobs derive the split from the pair, so it is symmetric without any shared
+// state.
+func (m *Mob) mobRepulsion(o *Mob) phy.Vec2f {
+	delta := m.Position().Sub(o.Position())
+	d := delta.Abs()
+	if d < 1e-4 {
+		if m.Basic().ID() < o.Basic().ID() {
+			return coLocatedNudge
+		}
+		return coLocatedNudge.Mult(-1)
+	}
+	w := steeringFalloff(d - m.Radius() - o.Radius())
+	return delta.Div(d).Mult(w)
+}
+
+// coLocatedNudge is the arbitrary unit direction the lower-ID mob of a
+// co-located pair pushes along (see mobRepulsion). Any fixed unit vector
+// works — the pair separates within a few ticks and the axis is invisible.
+var coLocatedNudge = phy.Vec2f{X: 1, Y: 0}
+
+// blendSeparation folds the mob separation into an already-unit step
+// direction. Nothing nearby leaves the direction bit-identical to the
+// pre-separation one.
+//
+// ⚑ A push that lines up with the direction of travel achieves NOTHING on its
+// own: steering sets direction, not speed, so a mob walking single file behind
+// another is pushed straight backwards and normalizing the blend hands back
+// the very same direction. That is the common pack shape, not a corner case —
+// a chase converges every mob onto one line. So a perpendicular component
+// fades in as the push lines up with the path: none at all when the pair is
+// already side by side, full when it is nose to tail. The pair's pushes are
+// opposites, so the same rotation sends one left and the other right.
+func blendSeparation(dir phy.Vec2f, sep phy.Vec2f) phy.Vec2f {
+	if sep.X == 0 && sep.Y == 0 {
+		return dir
+	}
+	sideways := dir.Cross(sep) / sep.Abs() // sine of the angle; dir is unit
+	if sideways < 0 {
+		sideways = -sideways
+	}
+	sep = sep.Add(sep.Rot90().Mult(1 - sideways))
+
+	blended := dir.Add(sep.Mult(mobSeparationWeight))
+	if blended.AbsSq() < 1e-8 {
+		// Unreachable while mobSeparationWeight < 1 and sep is unit-clamped
+		// (the sum is at least 1 - weight long) — but Normalize divides by the
+		// length with no guard, and a NaN position is unrecoverable.
+		return dir
+	}
+	return blended.Normalize()
 }
 
 // circleRepulsion pushes radially away from a blocking circle, weighted by

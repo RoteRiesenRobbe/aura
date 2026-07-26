@@ -140,8 +140,10 @@ func NewWorld(sc Scenario, seed int64) *World {
 	// carries that mob's rolled spawn-HP pool and variance 0). EntityType
 	// "Dodo" only satisfies the wire-type lookup — nothing in a headless run
 	// reads it. The pack spawns on an evenly-spaced ring of radius
-	// StartDistance; mob 0 lands at (d, 0), exactly the 1v1 spawn. Mobs have
-	// no mob-vs-mob collision, so the ring mainly synchronizes arrival.
+	// StartDistance; mob 0 lands at (d, 0), exactly the 1v1 spawn. Mobs still
+	// have no mob-vs-mob collision, so the ring mainly synchronizes arrival —
+	// they do steer softly apart since round 6, but from a spread ring that
+	// changes nothing measurable (the matrix is byte-identical across it).
 	pack := make([]*mob.Mob, packSize)
 	for i := range pack {
 		def := &mobs.MobDefinition{

@@ -83,6 +83,44 @@ func TestQueryCircleStatics_ReusableProbeAllocatesNothing(t *testing.T) {
 	assert.NotEmpty(t, hits, "probe must actually hit statics — an empty result would pass trivially")
 }
 
+func TestAppendCircleDynamics_ReusableProbeAllocatesNothing(t *testing.T) {
+	s, _ := allocSpace()
+	s.Update()
+
+	probe := NewCircle(Vec2f{X: 5, Y: 1}, 1.2)
+	probe.Shape().Mask = 1
+
+	// The mob separation probe (model/mob.mobSeparation) runs this per mob per
+	// tick, right beside the static one — QueryCircle allocates a `seen` map
+	// AND a fresh result slice per call, which is exactly the regression the
+	// static twin above exists to avoid.
+	var hits []DynamicCollider
+	allocs := testing.AllocsPerRun(30, func() {
+		hits = s.AppendCircleDynamics(hits[:0], probe)
+	})
+
+	assert.Zero(t, allocs, "AppendCircleDynamics must not allocate when the caller reuses the buffer")
+	assert.NotEmpty(t, hits, "probe must actually hit bodies — an empty result would pass trivially")
+}
+
+// TestAppendCircleDynamics_MatchesQueryCircle keeps the allocation-free
+// variant honest: same hits, same de-duplication across grid cells.
+func TestAppendCircleDynamics_MatchesQueryCircle(t *testing.T) {
+	s, _ := allocSpace()
+	s.Update()
+
+	for _, r := range []float32{0.2, 1.2, 4, 25} {
+		probe := NewCircle(Vec2f{X: 5, Y: 1}, r)
+		probe.Shape().Mask = 1
+
+		want := s.QueryCircle(probe)
+		got := s.AppendCircleDynamics(nil, probe)
+
+		assert.ElementsMatch(t, want, got, "radius %v", r)
+		assert.Len(t, got, len(want), "radius %v: no duplicates across cells", r)
+	}
+}
+
 // TestAppendCircleStatics_MatchesQueryCircleStatics keeps the allocation-free
 // variant honest: same hits, same de-duplication across grid cells.
 func TestAppendCircleStatics_MatchesQueryCircleStatics(t *testing.T) {
