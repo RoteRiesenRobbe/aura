@@ -1,11 +1,12 @@
 # Plan: Playtest Feedback (rolling collection)
 
-**Status:** **Collection doc — both designed chunks executed.** Triaged,
-prioritized and sorted 2026-07-24; rounds 3 + 4 appended 2026-07-25, each with a
-designed chunk. **Round 3 (healer combat state + role-as-loadout) shipped
-2026-07-25 `03b152f4` — ⏳ PO test pending** (ledger + acceptance checklist:
-§Round-3 chunk ledger). **Round 4 (tooltip power scale) shipped 2026-07-26
-`eaae2e69` — ⏳ PO test pending** (§Round-4 chunk ledger).
+**Status:** **Collection doc — both designed chunks executed, plus a filler
+batch.** Triaged, prioritized and sorted 2026-07-24; rounds 3 + 4 appended
+2026-07-25, each with a designed chunk. **Three chunks are shipped and ⏳ PO-test
+pending, all mutually independent** — each ledger opens with its own numbered
+acceptance checklist: **Round 3** (healer combat state + role-as-loadout)
+`03b152f4` 2026-07-25 · **Round 4** (tooltip power scale) `eaae2e69` 2026-07-26 ·
+**Rolling-filler batch** (4 of the 6 filler items) `dab4dae0` 2026-07-26.
 This is the **standing home for issues
 arising from playtests**: new rounds append to §Intake, items get sorted into
 the passes below, and we pick targets from here. Successor to
