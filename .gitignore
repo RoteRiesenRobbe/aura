@@ -4,6 +4,8 @@
 *.log
 /backend/aurad
 /backend/aurad.exe
+/backend/loadbot
+/backend/loadbot.exe
 /backend/conf.json
 /backend/simharness
 simharness-report*.json
