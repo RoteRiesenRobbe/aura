@@ -3122,3 +3122,121 @@ level-1 Damage aura with collision fully enforced. The focus-fire problem is a
 **targeting** defect — `selectTargets` has no target persistence
 (`sys/targeting.go:108`) — tracked separately at `plan-playtest-feedback.md`
 §Intake round 6 item 4.
+
+---
+
+## 35. One value, many homes — the tuning-value duplication sweep
+
+**Origin:** PO 2026-07-26, while retuning mob out-of-combat regen from ~2 s to
+5 s. That one-number change touched **three conf files plus a Go constant**, and
+the PO's response was the right one: *"doesn't seem good that we need to adjust
+it at 4 places — make a list of all values that need to be changed in multiple
+fields and tackle it as a code cleanup topic."*
+
+**Status: SURVEYED, not planned.** This section is the overview the PO asked
+for. A plan doc comes later; nothing here is scheduled and nothing here blocks.
+The regen retune itself is **not** part of this item — it shipped separately
+(rate `1/(5·TicksPerSecond)` + a fractional carry mirroring the player's).
+
+⚑ **Read the tier-1 rows first: four of them are already-drifted values, i.e.
+live defects rather than tidiness.** Duplication that has not yet drifted is a
+risk; duplication that has is a bug, and this sweep found both.
+
+### The finding that reframes it: there are FIVE config files, not four
+
+`backend/conf.default.json`, `conf.json` (gitignored), `conf.local-windows.json`,
+`conf.docker.json` — **and `backend/cmd/aurad/conf.default.json`**, which is
+`go:embed`ed (`cmd/aurad/loaders.go:99`) and **written out as `./conf.json` on
+first boot when no config exists** (`setupDefaultConfig`, `loaders.go:239`). It
+is the file a fresh machine or a fresh deploy actually runs on, and it is the
+most out-of-date of the five (tier 1 row 2).
+
+Nothing merges, overlays or cross-checks any of them: each is a full standalone
+snapshot, and `cfg.ReadConfig` + per-field Go defaults quietly fill whatever a
+given file omits. **That per-field defaulting is also the way out** — an absent
+key already resolves to a single Go source of truth, which `conf.docker.json`
+demonstrates by omitting the whole `mob` block and inheriting the new 5 s regen
+for free.
+
+### Tier 1 — already drifted (defects)
+
+| # | Where | Finding |
+|---|---|---|
+| 1 | `pkg/aura/sim/world.go:75` | `MobChaseIntoAuraMargin: 0.05, // conf.default.json value` — `conf.default.json` says **0.2**. The comment asserts a mirror that is **4× off**, inside the balancing harness that authored content numbers are derived from. A wrong harness number gets baked into content and stays there. |
+| 2 | `cmd/aurad/conf.default.json` | Stale vs `backend/conf.default.json`: **7 dead keys** (`damageAuraRadius`, `damageAuraDamageFraction`, `damageAuraLevelGainFraction`, `healAuraRadius`, `healAuraHealTickFraction`, `healAuraLevelGainFraction`, `healAuraSelfDamageTickFraction` — none exist in `cfg.Config` any more, so they are silently ignored), and **missing** `zone`, `totalDayCycleSeconds`, `dayTimeSeconds`, `baseHealth`, `skillPointsPerLevel`, `critChance`, plus the entire `mob` and `combat` blocks. |
+| 3 | `HUD.ts:138`, `HUD.ts:638` | Ticks→seconds via a bare `33`, twice, while `BasicConfig.SERVER_TICKRATE` exists as `1000/30`. ⚑ `BasicConfig.ts:128` **documents the rounded 33 as a past bug** ("made the reactive lerp finish ~0.333 ms early every tick"), so two live call sites use the value the codebase already recorded as wrong. Effect is cosmetic (a cooldown label). |
+| 4 | vestiges | `heatFractionPerSecond` is authored in **all four** `backend/` conf files and read by **nothing** (the heater system went with step 7). `Graphics.ts:26` `damageAuraRadiusMeters: 1` likewise — both `mob.go:475` and `Mobs.ts:230` state it was retired by the served `aura_radius`. (Possible overlap with §30's vestige list.) |
+
+### Tier 2 — 17 of 20 conf keys are identical restatements
+
+Across the four `backend/` files (the embedded fifth adds its own copies on top):
+
+- **11 keys in all four**, byte-identical: `totalDayCycleSeconds`,
+  `dayTimeSeconds`, `heatFractionPerSecond` (dead), `player.healthGainTick`,
+  `player.walkingSpeedPerTick`, `player.levelGrowth`, `player.maxLevel`,
+  `player.levelUpXPBase`, `player.levelUpXPGrowthFactor`,
+  `player.skillPointsPerLevel`, `player.critChance`
+- **3 keys in three**: `mob.healthGainTick`, `combat.defaultCritFactor`,
+  `combat.healerThreatFactor`
+- **3 keys in two**: `zone`, `server.frontendDir`, `server.path`
+- **Only `server.port` genuinely deviates** anywhere (docker `80`).
+- The inverse inconsistency also exists: `player.baseHealth` and
+  `mobChaseIntoAuraMargin` are authored in **one** file and rely on Go defaults
+  in the other four.
+
+So of ~20 knobs, exactly one carries a real per-environment difference. The rest
+is restatement — and restatement of values that already have a Go home.
+
+### Tier 3 — Go constants restating conf values, kept in sync by discipline
+
+- `sim.DefaultRegenTick = 0.00033` (`sim/scenario.go:205`) — its own comment says
+  it "mirrors conf.default.json's healthGainTick"
+- `sim/world.go` hardcodes `LevelUpXPBase: 300` and
+  `LevelUpXPGrowthFactor: 1.2`, plus `Bounds{60, 40}` [PLACEHOLDER arena]
+- `core/gameconf.go:38` `BaseHealth = 100` ↔ `conf.default.json`'s `baseHealth: 100`
+- `cfg.ReadConfig` defaults `600`/`400`, `critChance 0.05` and the level curve —
+  all also restated in the conf files
+- `player.combatRegenGraceTicks = 100` **and** `mob.combatRegenGraceTicks = 100`
+  — two separate consts holding one number, a deliberate §31 vocabulary mirror
+  maintained by hand
+- `mob.defaultMobHealthGainTick` ↔ `game.mob.healthGainTick` — the row that
+  started this. Now explicitly documented as the source of truth (the conf blocks
+  restate it, and deleting the key resolves back to it), which is the cheapest
+  version of the fix and a candidate pattern for the rest.
+
+### Tier 4 — cross-language (backend ↔ frontend), hand-synced
+
+- `BasicConfig.VIEWPORT` `20`/`12` ↔ `constant.ViewPortWidth/Height` — at least
+  honestly labelled *"SYNCED WITH BACKEND (backend/pkg/aura/model/constant/const.go:5)"*
+- `INPUT_TICKRATE` / `SERVER_TICKRATE` `1000/30` ↔ `constant.TicksPerSecond = 30`
+- ⭐ **The counter-example to copy:** the level curve is **served**, not
+  duplicated — `Skills.ts:195` reads `payload.curve` off the catalog, so
+  growth × maxLevel exists once. Anything the client needs *can* ride the wire.
+
+### Three mechanisms a plan would choose between
+
+1. **Overlay loading** kills tier 2: read `conf.default.json` first, then
+   unmarshal the environment file over the same struct — `json.Unmarshal` leaves
+   absent fields untouched, so it merges for free (~5 lines). The environment
+   files shrink to their real deltas. Cost: `conf.default.json` becomes a
+   required runtime file, and it interacts with the existing "non-positive
+   restores the default" normalization.
+2. **One source per value, plus a drift test** kills tier 3: pick Go-const or
+   conf as authoritative per value, and add a test asserting `conf.default.json`
+   equals the Go defaults. Divergence becomes a red test instead of a stale
+   comment (which is exactly how tier-1 rows 1 and 2 survived).
+3. **Serve it, like the curve** kills tier 4: send the value in the
+   catalog/`Welcome` payload instead of hand-syncing a TS constant.
+
+None of the three requires the others; they address disjoint tiers.
+
+### Scope notes
+
+- ⚑ **Do not double-book the mob-speed row.** `plan-entity-model.md` Chunk 1a
+  already owns `game.mob.walkingSpeedPerTick` and the `0.055` (`mob.go:232`) vs
+  player `0.05` pair, including the landmine that a naive convergence makes every
+  mob 9 % slower.
+- **This sweep was targeted, so the list is a floor, not a ceiling.** It covered
+  the conf files, Go tuning constants/defaults, the sim harness and frontend
+  constants. It did **not** audit content JSON ↔ Go (tier ranks, faction bits,
+  skill enums), the wire enums, or the docs.
