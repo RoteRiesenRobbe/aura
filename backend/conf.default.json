@@ -21,8 +21,8 @@
       "critChance": 0.05
     },
     "mob": {
-      "_comment": "Stats mobs share with the player block, same names + same units (backlog §27.2.3). healthGainTick is out-of-combat regen as a fraction of the max pool per tick; 0.0166667 = full pool in ~2 s, the value this was hardcoded to. [PLACEHOLDER]",
-      "healthGainTick": 0.0166667
+      "_comment": "Stats mobs share with the player block, same names + same units (backlog §27.2.3). healthGainTick is out-of-combat regen as a fraction of the max pool per tick; 0.0066667 = full pool in 5 s (PO 2026-07-26). The Go default in model/mob is the source of truth for the rate; this restates it, and removing the entry resolves back to it. NOTE: vitals.HP floors a step at 1 HP, so pools under ~150 refill in maxHealth/30 s regardless. [PLACEHOLDER]",
+      "healthGainTick": 0.0066667
     },
     "combat": {
       "_comment": "Factors that apply to EVERY acting entity — player, mob, summon (backlog §25 B). Absent = the built-in defaults below. [PLACEHOLDER]",

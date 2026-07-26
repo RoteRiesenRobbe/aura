@@ -699,7 +699,11 @@ func TestMob_RegenResumesAfterTheCombatGraceExpires(t *testing.T) {
 	require.Equal(t, wounded, m.Health(), "the whole grace window stays gated")
 	require.False(t, m.InCombat(), "window closed")
 
-	m.Update(0)
+	// A second of ticks, not one: the per-tick step is a fraction of the pool
+	// and is carried until it makes a whole HP, so one tick can add nothing.
+	for i := 0; i < constant.TicksPerSecond; i++ {
+		m.Update(0)
+	}
 
 	assert.Greater(t, m.Health(), wounded, "regen resumes once the window closes")
 }
@@ -727,16 +731,68 @@ func TestMob_EachHitRefreshesTheCombatWindow(t *testing.T) {
 // --- out-of-combat regeneration ---
 
 func TestMob_RegeneratesOutOfCombat(t *testing.T) {
-	m := newTestMob() // maxHealth 100 (default)
+	def := testMobDefinition()
+	def.Factors.MaxHealth = 150 // divides evenly: exactly 1 HP per tick
+	m := NewMob(def, 0, nil)
 	m.health = m.maxHealth / 2
 	start := m.health
 
 	alive := m.Update(0) // no aggro target, nothing in range
 
 	assert.True(t, alive)
-	regenPerTick := vitals.HP(float32(m.maxHealth) * defaultMobHealthGainTick)
-	assert.Equal(t, start.AddCapped(regenPerTick, m.maxHealth), m.Health(),
-		"heals to full over ~2 seconds of ticks while out of combat")
+	for i := 1; i < constant.TicksPerSecond; i++ {
+		m.Update(0)
+	}
+	perSecond := vitals.VitalSign(float32(m.maxHealth) * defaultMobHealthGainTick * constant.TicksPerSecond)
+	assert.Equal(t, start+perSecond, m.Health(),
+		"heals while out of combat at the configured fraction of the pool")
+}
+
+// TestMob_DefaultRegenHealsAFullPoolInFiveSeconds pins the DURATION the default
+// rate encodes (PO 2026-07-26: disengaging costs 5 s of recovery, was ~2 s).
+// Asserted on a 150-HP pool because that is where the rate divides evenly: at
+// 1/(5*TicksPerSecond) the per-tick step is exactly 1 HP, so the pin measures
+// the rate and not vitals.HP's rounding. Pools that do NOT divide evenly heal
+// faster than 5 s — see TestMob_SmallPoolsHealFasterThanTheNominalDuration.
+func TestMob_DefaultRegenHealsAFullPoolInFiveSeconds(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.MaxHealth = 150
+	m := NewMob(def, 0, nil)
+	m.health = 1 // as low as a LIVE mob gets — 0 is death (Update's first check)
+
+	for i := 0; i < 5*constant.TicksPerSecond-2; i++ {
+		m.Update(0)
+	}
+	require.Less(t, m.Health(), m.maxHealth, "not yet full two ticks early")
+
+	m.Update(0)
+
+	assert.Equal(t, m.maxHealth, m.Health(), "a full pool takes 5 seconds")
+}
+
+// TestMob_SmallPoolsTakeTheSameFiveSeconds is the fractional-carry pin (PO
+// 2026-07-26). The duration used to hold only above ~150 HP: regen went through
+// vitals.HP, which floors a positive amount at 1 HP (item 11 Phase 1), so a
+// 30-HP mob regenerated 1 HP/tick — a full pool in 1 second — and 22 of 50 mob
+// definitions ignored the rate entirely. The fraction is now carried across
+// ticks exactly as the player's is (player/update.go:49), so the rate means the
+// same thing at every pool size.
+func TestMob_SmallPoolsTakeTheSameFiveSeconds(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.MaxHealth = 30 // 30/150 = 0.2 HP/tick — under the old min-1 floor
+	m := NewMob(def, 0, nil)
+	m.health = 1
+
+	for i := 0; i < 4*constant.TicksPerSecond; i++ {
+		m.Update(0)
+	}
+	require.Less(t, m.Health(), m.maxHealth, "a small pool no longer refills in 1 s")
+
+	for i := 0; i < constant.TicksPerSecond; i++ {
+		m.Update(0)
+	}
+
+	assert.Equal(t, m.maxHealth, m.Health(), "and still reaches full within 5 s")
 }
 
 // --- regen rate is a conf knob (backlog §27.2.3) ---

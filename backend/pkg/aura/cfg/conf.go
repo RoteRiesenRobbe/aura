@@ -52,7 +52,7 @@ type Config struct {
 		Mob struct {
 			// HealthGainTick is out-of-combat regen as a fraction of the mob's
 			// max pool per tick — the SAME unit as player.healthGainTick.
-			// Absent → the built-in default (full pool in ~2 s). [PLACEHOLDER]
+			// Absent → the built-in default (full pool in 5 s). [PLACEHOLDER]
 			HealthGainTick float32 `json:"healthGainTick"`
 		} `json:"mob"`
 

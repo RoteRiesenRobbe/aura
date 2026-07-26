@@ -32,9 +32,18 @@ var processSalt int64
 func SeedProcess(salt int64) { processSalt = salt }
 
 // defaultMobHealthGainTick is the built-in out-of-combat regen rate: a fraction
-// of the mob's max pool per tick, i.e. the full pool in ~2 seconds. It is the
-// value this was hardcoded to before it became a conf knob (backlog §27.2.3).
-const defaultMobHealthGainTick = 1.0 / (2 * constant.TicksPerSecond)
+// of the mob's max pool per tick, i.e. the full pool in 5 seconds (PO
+// 2026-07-26; was 2 s, the value this was hardcoded to before it became a conf
+// knob — backlog §27.2.3). THE source of truth for the rate: the conf blocks
+// restate it for discoverability and an absent entry resolves back to here
+// (SetHealthGainTick), so a retune must move this constant.
+//
+// Caveat the duration only holds above ~150 HP: vitals.HP floors a positive
+// amount at 1 HP, so smaller pools regenerate 1 HP/tick and refill in
+// maxHealth/30 seconds regardless of this rate — pinned by
+// TestMob_SmallPoolsHealFasterThanTheNominalDuration. The player's identical
+// mechanic carries the fraction across ticks instead (player/update.go:49).
+const defaultMobHealthGainTick = 1.0 / (5 * constant.TicksPerSecond)
 
 // healthGainTick is the out-of-combat regen rate in the SAME unit as the
 // player's game.player.healthGainTick — a fraction of maxHealth per tick — so
@@ -293,8 +302,16 @@ type Mob struct {
 
 	health    vitals.VitalSign
 	maxHealth vitals.VitalSign
-	heading   phy.Vec2f
-	rand      *rand.Rand
+	// healthRegen carries the sub-1-HP remainder of out-of-combat regeneration
+	// between ticks. Same name, same unit and same reason as the player's
+	// (player/update.go): healthGainTick is a fraction of a pool stored as
+	// integer HP, so most mobs earn well under 1 HP per tick and rounding each
+	// tick in isolation would either lose the regen or — via vitals.HP's min-1
+	// floor — pay a whole HP for a fraction of one, which is what used to make
+	// every pool under ~150 HP refill far faster than the configured duration.
+	healthRegen float32
+	heading     phy.Vec2f
+	rand        *rand.Rand
 
 	skills    *skills.SkillComponent
 	aura      *phy.Circle
@@ -725,9 +742,16 @@ func (m *Mob) Update(dt float32) bool {
 	if !m.InCombat() {
 		// Heal out of combat at the configured fraction of the pool per tick
 		// (absolute HP, item 11; rate is game.mob.healthGainTick, §27.2.3).
+		// The fraction is carried across ticks rather than rounded each tick —
+		// see healthRegen — so the rate encodes the same duration whatever the
+		// pool size.
 		if m.health < m.maxHealth {
-			regen := vitals.HP(float32(m.maxHealth) * healthGainTick)
-			m.health = m.health.AddCapped(regen, m.maxHealth)
+			m.healthRegen += float32(m.maxHealth) * healthGainTick
+			if m.healthRegen >= 1 {
+				whole := uint32(m.healthRegen)
+				m.healthRegen -= float32(whole)
+				m.health = m.health.AddCapped(whole, m.maxHealth)
+			}
 		}
 		// Back at full health and out of combat = fight over; earlier
 		// contributors no longer count as participants for the next one.
