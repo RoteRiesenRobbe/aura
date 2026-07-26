@@ -733,7 +733,7 @@ fixes; fold into this chunk's commit or any nearby one.
 
 ## Rolling-filler batch ledger
 
-**Rolling filler — 4 of 6 items DONE (2026-07-26), committed `[uncommitted]` —
+**Rolling filler — 4 of 6 items DONE (2026-07-26), committed `dab4dae0` —
 ⏳ PO TEST PENDING (headless-verified only).** 6 files + 2 new. Picked up as
 independent work while rounds 3 and 4 both sat PO-test-pending; deliberately
 touches **no file either of those chunks touched**.
@@ -938,7 +938,7 @@ a multiplayer playtest, not a solo one.
 
 ## Rolling filler — blocks nothing, do any time
 
-> **4 of 6 ✅ DONE 2026-07-26** in one batch, committed `[uncommitted]` —
+> **4 of 6 ✅ DONE 2026-07-26** in one batch, committed `dab4dae0` —
 > ⏳ **PO TEST PENDING**. Full ledger: §Rolling-filler batch ledger below.
 
 - ~~**Minimap resets on death.** Bug.~~ ✅ 2026-07-26
