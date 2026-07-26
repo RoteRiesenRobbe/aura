@@ -35,6 +35,7 @@ import {
 } from './Events';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {registerPreload} from './Preloading';
+import {installContextLossWarning} from './ContextLossWarning';
 
 
 export let instance: Game;
@@ -99,7 +100,12 @@ export class Game implements IGame {
             antialias: true,
             autoDensity: true,
             resolution: window.devicePixelRatio,
-        }).then(() => this.setupResizeHandling()));
+        }).then(() => {
+            this.setupResizeHandling();
+            // Only reachable once init() resolved — application.canvas does not
+            // exist before that, so a loss during init itself stays unlabelled.
+            installContextLossWarning(this.application.canvas);
+        }));
     }
 
     /**

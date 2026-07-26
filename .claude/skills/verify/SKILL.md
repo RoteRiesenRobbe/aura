@@ -97,7 +97,10 @@ Copy the browser-launch pattern from
   plate hidden?"), and TS `private` is compile-time only, so private fields
   are readable at runtime.
 - **`Cannot read properties of null (reading 'split')` = a lost WebGL context**,
-  not a bug in your change (diagnosed 2026-07-26, `docs/backlog.md` §29.1). On a
+  not a bug in your change (diagnosed 2026-07-26, `docs/backlog.md` §29.1).
+  **Since §29 option A the client says so itself** — look for the console error
+  `[webgl] world context lost` and a red banner; its *absence* on a blank world
+  means the cause is something else. On a
   lost context every WebGL getter returns null, so PixiJS misreads it as a
   shader link failure and its error reporter dies on
   `gl.getShaderSource(shader).split('\n')` — destroying the real diagnostic. The
@@ -107,5 +110,8 @@ Copy the browser-launch pattern from
   (3 mid-boot, 1 in steady state). Two traps: a **scene-graph walk cannot detect
   it** (children unchanged — screenshot instead), and a `webglcontextlost` event
   at boot is *normal* (pixi makes 5 contexts and deliberately loses 2 capability
-  probes). Reproduce on demand with `ctxloss-repro.mjs`; hunt organically with
-  `hunt-null-split.mjs`.
+  probes) — which is why the warning listens on the world canvas only.
+  Reproduce on demand with `ctxloss-repro.mjs`; hunt organically with
+  `hunt-null-split.mjs`; re-check the warning itself with
+  `ctxloss-warning.mjs clean|forced` after any boot-path change (`clean` must
+  report **0** warnings, or the banner is crying wolf on every boot).
