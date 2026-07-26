@@ -368,12 +368,14 @@ func noteHarmDealt(caster any) {
 }
 
 // casterPowerScale is THE f(character level) / tier-scale output seam (C0,
-// GDD §5): the acting entity's own PowerScale (player: f(character level);
-// mob: its load-time tier+baseline scale f(curveLevel)), composed with
-// SummonPower × f(owner level) for owned summons with a live owner — a summon
-// rides its owner's inflation curve on top of the linear SummonPower
-// specialization knob, so summon builds stay same-tier-relevant at every
-// level (C0 PO decision). Multiplies HP-side output values ONLY (damage /
+// GDD §5): the acting entity's own PowerScale — f(the level it stands at),
+// which for an owned summon IS its owner's level (chunk 1b) — composed with
+// the linear SummonPower specialization knob. A summon therefore still rides
+// its owner's inflation curve and summon builds stay same-tier-relevant at
+// every level (C0 PO decision), but the curve now arrives through the one
+// PowerScale call every actor uses; multiplying the owner's in again here
+// would apply f(ownerLevel) twice (landmine L3). Multiplies HP-side output
+// values ONLY (damage /
 // heal / dot / hot / shield / self-heal / self-cost) — never radius, tick
 // rate, target count, or the relative multiplier vocabulary
 // (crit/execute/berserker/variance/lifesteal/slow/resist). Route every new
@@ -385,7 +387,7 @@ func casterPowerScale(e any) float32 {
 		scale = ps.PowerScale()
 	}
 	if owned, ok := e.(model.Owned); ok && owned.Owner() != nil {
-		scale *= owned.SummonPower() * owned.Owner().PowerScale()
+		scale *= owned.SummonPower()
 	}
 	return scale
 }
@@ -1518,12 +1520,15 @@ func (s *SkillSystem) spawnSummon(e skillEntity, es *skills.EquippedSkill, p *sk
 	m.SetTTLTicks(p.TTLAt(es.Level))
 	m.SkillComponent().RaiseLoadoutLevels(es.Level)
 	if owner, ok := e.(model.PlayerEntity); ok {
+		// Binding the owner IS the body scaling since chunk 1b: the summon's
+		// Level becomes its owner's, so its pool is baseMaxHealth × f(owner
+		// level) — the same rule every other actor's pool follows. It was a
+		// flat per-owner-level HP bonus frozen at spawn; that knob is gone,
+		// not moved (plan-entity-model.md §4, PO 2026-07-26). The fill is
+		// needed because the pool only widens once the owner is bound.
 		m.SetOwner(owner)
-		ownerLevel := int(owner.Progression().Level)
-		if bonus := vitals.HP(p.MaxHealthBonusAt(ownerLevel)); bonus > 0 {
-			m.RaiseMaxHealth(bonus)
-		}
-		m.SetSummonPower(p.PowerAt(ownerLevel))
+		m.RestoreToFullHealth()
+		m.SetSummonPower(p.PowerAt(int(owner.Progression().Level)))
 	}
 	m.SetPosition(s.summonPosition(e, m.Radius()))
 	s.game.AddEntity(m)

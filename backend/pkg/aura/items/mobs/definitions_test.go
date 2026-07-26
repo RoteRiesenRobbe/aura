@@ -787,13 +787,14 @@ func TestMapMobDefinition_DerivesMaxHealthAndPowerScale(t *testing.T) {
 
 	assert.Equal(t, "normal", def.Tier)
 	assert.Equal(t, 3, def.CurveLevel)
-	assert.Equal(t, uint32(38), def.Factors.MaxHealth, "30 × 1.12² = 37.63, rounded")
-	assert.InDelta(t, 1.2544, def.PowerScale, 1e-4, "f(3) — multiplies the mob's skill HP values at cast time")
-	// The curve itself is retained, not just its value at load time
-	// (plan-entity-model.md chunk 1a): *Mob.PowerScale re-evaluates f at the
-	// mob's CURRENT level, so a mapper that forgets this leaves every mob
-	// neutral at 1.
+	// The authored baseline passes through UNSCALED (chunk 1b): f(level) is
+	// applied live by *Mob.MaxHealth and *Mob.PowerScale, so nothing here is
+	// pre-derived and the curve itself is the only thing retained. A mapper
+	// that forgets the curve leaves every mob neutral at 1.
+	assert.Equal(t, uint32(30), def.Factors.BaseMaxHealth, "the baseline, not 30 × 1.12²")
 	assert.Equal(t, testCurve(), def.Curve)
+	assert.InDelta(t, 1.2544, def.Curve.F(def.CurveLevel), 1e-4,
+		"f(3) — what the live mob scales its pool and its skill HP values by")
 }
 
 func TestMapMobDefinition_TierAndCurveLevelDefaultToBaseline(t *testing.T) {
@@ -813,8 +814,8 @@ func TestMapMobDefinition_TierAndCurveLevelDefaultToBaseline(t *testing.T) {
 
 	assert.Equal(t, "normal", def.Tier)
 	assert.Equal(t, 1, def.CurveLevel)
-	assert.Equal(t, uint32(40), def.Factors.MaxHealth)
-	assert.InDelta(t, 1.0, def.PowerScale, 1e-9)
+	assert.Equal(t, uint32(40), def.Factors.BaseMaxHealth)
+	assert.InDelta(t, 1.0, def.Curve.F(def.CurveLevel), 1e-9)
 }
 
 func TestMapMobDefinition_RawMaxHealthIsAReject(t *testing.T) {

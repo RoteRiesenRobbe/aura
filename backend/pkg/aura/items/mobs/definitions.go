@@ -3,7 +3,6 @@ package mobs
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
@@ -64,11 +63,16 @@ type MobID uint64
 // parameters and each target picks the value that applies to it (players/mobs:
 // Damage in absolute HP, structures: StructureDamageFraction as a fraction).
 //
-// MaxHealth is the mob's absolute HP pool (item 11 Phase 1); a definition with
-// MaxHealth <= 0 falls back to a default at mob construction. MaxHealthVariance
-// (item 11 Phase 3) is a percentage band rolled once at spawn: the mob's actual
-// pool is uniform in [MaxHealth×(1−v), MaxHealth×(1+v)]. 0 = every spawn
-// identical; valid range 0 <= v < 1 (players never get HP variance, C1).
+// BaseMaxHealth is the mob's HP pool at the baseline curve position — the
+// authored factors.baseMaxHealth verbatim (C0 tier+baseline authoring). The
+// f(CurveLevel) inflation is NOT baked in here: *Mob.MaxHealth applies it live
+// at the mob's CURRENT level, the same way the player's pool is derived
+// (plan-entity-model.md chunk 1b — an owned summon stands at its owner's
+// level, so a frozen pool would be wrong the moment the owner levels).
+// BaseMaxHealth <= 0 falls back to a default at mob construction.
+// MaxHealthVariance (item 11 Phase 3) is a percentage band rolled once at
+// spawn into a lifetime multiplier on that base; 0 = every spawn identical,
+// valid range 0 <= v < 1 (players never get HP variance, C1).
 //
 // Resistances maps damage tags to incoming-damage multipliers (item 11
 // Phase 2): 1 = normal, 0.5 = takes half, 0 = immune, > 1 = vulnerable.
@@ -101,7 +105,7 @@ type MobID uint64
 // a guardian that cleaves until an ally drops below half. Valid range [0, 1].
 // Inert on a mob whose loadout carries no support aura.
 type Factors struct {
-	MaxHealth            uint32
+	BaseMaxHealth        uint32
 	MaxHealthVariance    float32
 	FleeBelowHealthRatio float32
 	SupportThreshold     float32
@@ -163,22 +167,20 @@ type MobDefinition struct {
 	// Tier + CurveLevel are the C0 tier+baseline authoring axes: Tier is a
 	// pure classification label (normal/elite/boss); CurveLevel is the mob's
 	// hand-picked position on the f(L) curve (zone number = curve position,
-	// GDD §5). Factors.MaxHealth arrives here already DERIVED
-	// (baseMaxHealth × f(CurveLevel)); PowerScale = f(CurveLevel) multiplies
-	// the mob's skill HP values at cast time (model.PowerScaled on the mob
-	// entity), so mob-skill JSONs stay baseline-authored. A growth change
-	// re-derives everything — one knob, no re-authoring.
+	// GDD §5), and the level a mob stands at unless it is owned. Both the HP
+	// pool and the mob's skill output are f(level) × the authored baseline, so
+	// mob JSONs stay baseline-authored and a growth change re-derives
+	// everything — one knob, no re-authoring.
 	Tier       string
 	CurveLevel int
-	PowerScale float32
 
 	// Curve is f(L) itself — the same curve.Curve value the player reads live
-	// (model/player.PowerScale), retained here so a mob's PowerScale can be
-	// evaluated at its CURRENT level rather than only at the level frozen into
-	// the field above (plan-entity-model.md chunk 1a, gap 3: it was always one
-	// curve, the mob side just had no way to re-evaluate it). The zero value
-	// is neutral — Curve.F returns 1 at every level for growth <= 0 — which is
-	// what hand-built definitions in tests and the sim harness get.
+	// (model/player.PowerScale). It is the ONLY representation of the curve on
+	// a definition: nothing is pre-derived at load, so a mob evaluates f at its
+	// CURRENT level (plan-entity-model.md chunks 1a/1b, gap 3 — it was always
+	// one curve, the mob side just had no way to re-evaluate it). The zero
+	// value is neutral — Curve.F returns 1 at every level for growth <= 0 —
+	// which is what hand-built definitions in tests and the sim harness get.
 	Curve curve.Curve
 
 	// Legacy marks proving-grounds-only species (step-7 A.5): kept for the
@@ -299,8 +301,6 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	if curveLevel < 1 {
 		return nil, fmt.Errorf("mob %q: curveLevel %d must be >= 1", m.Name, m.CurveLevel)
 	}
-	powerScale := c.F(curveLevel)
-
 	// Variance ≥ 1 would allow a 0-HP (born dead) roll; negative is nonsense.
 	if v := m.Factors.MaxHealthVariance; v < 0 || v >= 1 {
 		return nil, fmt.Errorf("mob %q: factors.maxHealthVariance %v must be in [0, 1)", m.Name, v)
@@ -394,11 +394,10 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		FriendlyToPlayers: friendlyToPlayers,
 		Tier:              tier,
 		CurveLevel:        curveLevel,
-		PowerScale:        float32(powerScale),
 		Curve:             c,
 		Legacy:            m.Legacy,
 		Factors: Factors{
-			MaxHealth:            uint32(math.Round(float64(m.Factors.BaseMaxHealth) * powerScale)),
+			BaseMaxHealth:        m.Factors.BaseMaxHealth,
 			MaxHealthVariance:    m.Factors.MaxHealthVariance,
 			FleeBelowHealthRatio: m.Factors.FleeBelowHealthRatio,
 			SupportThreshold:     m.Factors.SupportThreshold,

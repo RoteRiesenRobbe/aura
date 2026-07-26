@@ -36,7 +36,7 @@ func TestMob_LoneHealerUnderFireIsKillable(t *testing.T) {
 // The fix is a combat gate, not a removal of mob regeneration.
 func TestMob_HealerStillRegeneratesWhenLeftAlone(t *testing.T) {
 	m := newTestHealerMob()
-	m.health = m.maxHealth / 2
+	m.health = m.MaxHealth() / 2
 	wounded := m.Health()
 
 	for i := 0; i < combatRegenGraceTicks+5; i++ {

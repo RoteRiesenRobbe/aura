@@ -85,7 +85,7 @@ func testMobDef() *mobs.MobDefinition {
 		ID:      1,
 		Name:    "Dodo",
 		Body:    mobs.Body{Radius: 0.3, AggroRadius: 2.0},
-		Factors: mobs.Factors{MaxHealth: 40},
+		Factors: mobs.Factors{BaseMaxHealth: 40},
 	}
 }
 

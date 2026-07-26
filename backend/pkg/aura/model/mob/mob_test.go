@@ -64,6 +64,7 @@ type fakeAuraPlayer struct {
 	pos     phy.Vec2f
 	radius  float32
 	vs      model.PlayerVitalSigns
+	prog    model.PlayerProgression
 	xp      []uint64
 	healers []model.PlayerEntity
 	sc      *skills.SkillComponent
@@ -95,6 +96,7 @@ func (f *fakeAuraPlayer) Faction() model.Faction                 { return model.
 func (f *fakeAuraPlayer) HealthRatio() float32                   { return float32(f.vs.Health) / float32(vitals.Max) }
 func (f *fakeAuraPlayer) InCombat() bool                         { return false }
 func (f *fakeAuraPlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vs }
+func (f *fakeAuraPlayer) Progression() model.PlayerProgression   { return f.prog }
 func (f *fakeAuraPlayer) AddExperience(xp uint64)                { f.xp = append(f.xp, xp) }
 func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity    { return f.healers }
 func (f *fakeAuraPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
@@ -115,7 +117,7 @@ func newFakeAuraPlayer() *fakeAuraPlayer {
 
 func TestNewMob_MaxHealthVarianceRollsWithinBand(t *testing.T) {
 	def := testMobDefinition()
-	def.Factors.MaxHealth = 1000
+	def.Factors.BaseMaxHealth = 1000
 	def.Factors.MaxHealthVariance = 0.1
 
 	seen := map[vitals.VitalSign]bool{}
@@ -134,7 +136,7 @@ func TestNewMob_MaxHealthVarianceRollsWithinBand(t *testing.T) {
 
 func TestNewMob_ZeroVarianceIsExactBase(t *testing.T) {
 	def := testMobDefinition()
-	def.Factors.MaxHealth = 1000
+	def.Factors.BaseMaxHealth = 1000
 
 	m := NewMob(def, 0, nil)
 	assert.Equal(t, vitals.VitalSign(1000), m.MaxHealth(),
@@ -143,7 +145,7 @@ func TestNewMob_ZeroVarianceIsExactBase(t *testing.T) {
 
 func TestNewMob_VarianceRollNeverBelowOneHP(t *testing.T) {
 	def := testMobDefinition()
-	def.Factors.MaxHealth = 1
+	def.Factors.BaseMaxHealth = 1
 	def.Factors.MaxHealthVariance = 0.9
 
 	for i := 0; i < 16; i++ {
@@ -179,7 +181,7 @@ func TestNewMob_VarianceRollUsesSaltedSeedNotEntityIDAlone(t *testing.T) {
 	defer SeedProcess(0) // restore the deterministic-by-ID default for other tests
 
 	def := testMobDefinition()
-	def.Factors.MaxHealth = 1000
+	def.Factors.BaseMaxHealth = 1000
 	def.Factors.MaxHealthVariance = 0.1
 
 	m := NewMob(def, 0, nil)
@@ -677,7 +679,7 @@ func TestMob_TakingDamageEntersCombatWithoutAnAggroTarget(t *testing.T) {
 
 func TestMob_DamagedMobDoesNotRegenerate(t *testing.T) {
 	m := newTestMob()
-	m.health = m.maxHealth / 2
+	m.health = m.MaxHealth() / 2
 	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
 	wounded := m.Health()
 
@@ -689,7 +691,7 @@ func TestMob_DamagedMobDoesNotRegenerate(t *testing.T) {
 
 func TestMob_RegenResumesAfterTheCombatGraceExpires(t *testing.T) {
 	m := newTestMob()
-	m.health = m.maxHealth / 2
+	m.health = m.MaxHealth() / 2
 	m.takeDamage(model.Damage{HP: 5}, model.StatusEffectDamagedAmbient)
 	wounded := m.Health()
 
@@ -710,7 +712,7 @@ func TestMob_RegenResumesAfterTheCombatGraceExpires(t *testing.T) {
 
 func TestMob_EachHitRefreshesTheCombatWindow(t *testing.T) {
 	m := newTestMob()
-	m.health = m.maxHealth / 2
+	m.health = m.MaxHealth() / 2
 
 	// Hit once, run most of the window down, hit again: the second hit must
 	// restamp, not top up a nearly-expired window.
@@ -732,9 +734,9 @@ func TestMob_EachHitRefreshesTheCombatWindow(t *testing.T) {
 
 func TestMob_RegeneratesOutOfCombat(t *testing.T) {
 	def := testMobDefinition()
-	def.Factors.MaxHealth = 150 // divides evenly: exactly 1 HP per tick
+	def.Factors.BaseMaxHealth = 150 // divides evenly: exactly 1 HP per tick
 	m := NewMob(def, 0, nil)
-	m.health = m.maxHealth / 2
+	m.health = m.MaxHealth() / 2
 	start := m.health
 
 	alive := m.Update(0) // no aggro target, nothing in range
@@ -743,7 +745,7 @@ func TestMob_RegeneratesOutOfCombat(t *testing.T) {
 	for i := 1; i < constant.TicksPerSecond; i++ {
 		m.Update(0)
 	}
-	perSecond := vitals.VitalSign(float32(m.maxHealth) * defaultMobHealthGainTick * constant.TicksPerSecond)
+	perSecond := vitals.VitalSign(float32(m.MaxHealth()) * defaultMobHealthGainTick * constant.TicksPerSecond)
 	assert.Equal(t, start+perSecond, m.Health(),
 		"heals while out of combat at the configured fraction of the pool")
 }
@@ -756,18 +758,18 @@ func TestMob_RegeneratesOutOfCombat(t *testing.T) {
 // faster than 5 s — see TestMob_SmallPoolsHealFasterThanTheNominalDuration.
 func TestMob_DefaultRegenHealsAFullPoolInFiveSeconds(t *testing.T) {
 	def := testMobDefinition()
-	def.Factors.MaxHealth = 150
+	def.Factors.BaseMaxHealth = 150
 	m := NewMob(def, 0, nil)
 	m.health = 1 // as low as a LIVE mob gets — 0 is death (Update's first check)
 
 	for i := 0; i < 5*constant.TicksPerSecond-2; i++ {
 		m.Update(0)
 	}
-	require.Less(t, m.Health(), m.maxHealth, "not yet full two ticks early")
+	require.Less(t, m.Health(), m.MaxHealth(), "not yet full two ticks early")
 
 	m.Update(0)
 
-	assert.Equal(t, m.maxHealth, m.Health(), "a full pool takes 5 seconds")
+	assert.Equal(t, m.MaxHealth(), m.Health(), "a full pool takes 5 seconds")
 }
 
 // TestMob_SmallPoolsTakeTheSameFiveSeconds is the fractional-carry pin (PO
@@ -779,20 +781,20 @@ func TestMob_DefaultRegenHealsAFullPoolInFiveSeconds(t *testing.T) {
 // same thing at every pool size.
 func TestMob_SmallPoolsTakeTheSameFiveSeconds(t *testing.T) {
 	def := testMobDefinition()
-	def.Factors.MaxHealth = 30 // 30/150 = 0.2 HP/tick — under the old min-1 floor
+	def.Factors.BaseMaxHealth = 30 // 30/150 = 0.2 HP/tick — under the old min-1 floor
 	m := NewMob(def, 0, nil)
 	m.health = 1
 
 	for i := 0; i < 4*constant.TicksPerSecond; i++ {
 		m.Update(0)
 	}
-	require.Less(t, m.Health(), m.maxHealth, "a small pool no longer refills in 1 s")
+	require.Less(t, m.Health(), m.MaxHealth(), "a small pool no longer refills in 1 s")
 
 	for i := 0; i < constant.TicksPerSecond; i++ {
 		m.Update(0)
 	}
 
-	assert.Equal(t, m.maxHealth, m.Health(), "and still reaches full within 5 s")
+	assert.Equal(t, m.MaxHealth(), m.Health(), "and still reaches full within 5 s")
 }
 
 // --- regen rate is a conf knob (backlog §27.2.3) ---
@@ -1054,16 +1056,9 @@ func TestMob_FleeAlongWallSlides(t *testing.T) {
 	assert.Greater(t, pos.Y, float32(0.5), "tangential component keeps the mob sliding along the wall")
 }
 
-func TestMob_RaiseMaxHealth(t *testing.T) {
-	def := testMobDefinition()
-	def.Factors.MaxHealth = 100
-	m := NewMob(def, 0, nil)
-
-	m.RaiseMaxHealth(20)
-
-	assert.Equal(t, vitals.VitalSign(120), m.MaxHealth())
-	assert.Equal(t, vitals.VitalSign(120), m.Health(), "the bonus raises current HP too — summons spawn at full health")
-}
+// RaiseMaxHealth — the flat summon body bonus — is gone with chunk 1b: a
+// summon's pool is now its own baseMaxHealth × f(owner level), pinned in
+// level_test.go.
 
 // --- threat table, faction-aware aggro, leash & aura gating (mob-depth chunk 3) ---
 

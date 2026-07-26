@@ -857,7 +857,7 @@ func TestMap_SpawnEffect(t *testing.T) {
       "effects": [{
         "type": "spawn", "spawnMob": "Totem",
         "ttlTicks": 300, "ttlTicksPerLevel": 60,
-        "maxHealthPerOwnerLevel": 2, "powerPerOwnerLevel": 0.05
+        "powerPerOwnerLevel": 0.05
       }]
     }`)
 	def := mustParse(t, data)
@@ -867,8 +867,6 @@ func TestMap_SpawnEffect(t *testing.T) {
 	assert.Equal(t, "Totem", e.Spawn.MobName)
 	assert.Equal(t, 300, e.Spawn.TTLAt(1))
 	assert.Equal(t, 420, e.Spawn.TTLAt(3), "skill level scales the TTL")
-	assert.InDelta(t, 0, e.Spawn.MaxHealthBonusAt(1), 1e-6, "level-1 owner gets no bonus")
-	assert.InDelta(t, 8, e.Spawn.MaxHealthBonusAt(5), 1e-6)
 	assert.InDelta(t, 1, e.Spawn.PowerAt(1), 1e-6, "level-1 owner has neutral power")
 	assert.InDelta(t, 1.2, e.Spawn.PowerAt(5), 1e-6)
 }
@@ -882,7 +880,6 @@ func TestMap_SpawnEffectDefaultsScalingToOff(t *testing.T) {
 	e := def.Effects[0].Spawn
 	require.NotNil(t, e)
 	assert.Equal(t, 300, e.TTLAt(5), "absent per-level = static TTL")
-	assert.InDelta(t, 0, e.MaxHealthBonusAt(10), 1e-6)
 	assert.InDelta(t, 1, e.PowerAt(10), 1e-6)
 }
 
@@ -893,9 +890,10 @@ func TestMap_SpawnEffectInvalid(t *testing.T) {
 		// missing/zero TTL — an instantly-expiring summon is unauthorable
 		`{"type": "spawn", "spawnMob": "Totem"}`,
 		`{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 0}`,
-		// negative owner-level scaling — these fields are buffs by design
-		`{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300, "maxHealthPerOwnerLevel": -1}`,
+		// negative owner-level scaling — the field is a buff by design
 		`{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300, "powerPerOwnerLevel": -0.1}`,
+		// retired with chunk 1b: a summon's body scaling IS its owner's level
+		`{"type": "spawn", "spawnMob": "Totem", "ttlTicks": 300, "maxHealthPerOwnerLevel": 2}`,
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":23,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)

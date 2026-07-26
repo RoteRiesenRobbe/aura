@@ -17,7 +17,7 @@ func testMobDef(speed float32) *mobs.MobDefinition {
 		Name: "Dodo",
 		Factors: mobs.Factors{
 			Speed:      speed,
-			MaxHealth:  40,
+			BaseMaxHealth:  40,
 			Experience: 1,
 		},
 		Body: mobs.Body{Radius: 0.3, AggroRadius: 2.0},

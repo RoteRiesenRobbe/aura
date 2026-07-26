@@ -244,25 +244,26 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	base := model.NewBaseEntity(mobBody, model.EntityType(entityType))
 	rnd := rand.New(rand.NewSource(mobRNGSeed(processSalt, base.Basic().ID())))
 
-	// Absolute HP pool (item 11 Phase 1). A definition without maxHealth falls
-	// back to a default so directly-constructed mobs (tests) are never born dead.
-	maxHealth := vitals.VitalSign(d.Factors.MaxHealth)
-	if maxHealth == 0 {
-		maxHealth = defaultMobMaxHealth
+	// Baseline HP pool (item 11 Phase 1). A definition without baseMaxHealth
+	// falls back to a default so directly-constructed mobs (tests) are never
+	// born dead.
+	baseMaxHealth := float32(d.Factors.BaseMaxHealth)
+	if baseMaxHealth == 0 {
+		baseMaxHealth = float32(defaultMobMaxHealth)
 	}
 	// Spawn HP roll (item 11 Phase 3): variance is a percentage band around the
-	// authored pool, fixed for the mob's lifetime. vitals.HP's min-1 keeps even
-	// a 1-HP base alive.
+	// authored pool, fixed for the mob's lifetime. It rides the BASE rather than
+	// the curved pool (chunk 1b) so the two compose in either order; vitals.HP's
+	// min-1 in MaxHealth keeps even a 1-HP base alive.
 	if v := d.Factors.MaxHealthVariance; v > 0 {
-		maxHealth = vitals.VitalSign(vitals.HP(vitals.RollVariance(float32(maxHealth), v, rnd)))
+		baseMaxHealth = vitals.RollVariance(baseMaxHealth, v, rnd)
 	}
 	m := &Mob{
 		BaseEntity:       base,
 		space:            space,
 		rand:             rnd,
 		heading:          phy.Vec2f{X: -1, Y: 0},
-		health:           maxHealth,
-		maxHealth:        maxHealth,
+		baseMaxHealth:    baseMaxHealth,
 		definition:       d,
 		skills:           sc,
 		aura:             aura,
@@ -279,6 +280,9 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 		faction:             faction,
 		aggroMask:           aggroMask,
 	}
+	// Spawns at full health — MaxHealth is derived, so the pool only exists
+	// once the definition and skill component are in place.
+	m.health = m.MaxHealth()
 	if m.chaseIntoAuraMargin <= 0 {
 		m.chaseIntoAuraMargin = 0.05
 	}
@@ -340,8 +344,13 @@ type Mob struct {
 	campTicks         int
 	campTargetPos     phy.Vec2f
 
-	health    vitals.VitalSign
-	maxHealth vitals.VitalSign
+	health vitals.VitalSign
+	// baseMaxHealth is the mob's pool at the BASELINE curve position, with its
+	// lifetime spawn-variance roll already folded in: the authored
+	// factors.baseMaxHealth × the roll, unrounded. Everything else about the
+	// pool is derived per read by MaxHealth — f(Level) and the max-health
+	// passive — because an owned summon's level moves under it (chunk 1b).
+	baseMaxHealth float32
 	// healthRegen carries the sub-1-HP remainder of out-of-combat regeneration
 	// between ticks. Same name, same unit and same reason as the player's
 	// (player/update.go): healthGainTick is a fraction of a pool stored as
@@ -681,17 +690,23 @@ func (m *Mob) SummonPower() float32 {
 	return m.summonPower
 }
 
-// Level is the mob's position on f(L) — the authored curveLevel (GDD §5: zone
-// number = curve position). It is the mob-side counterpart of the player's
-// progression.Level, and the accessor the Actor model was missing: the two
-// entity kinds always shared ONE curve, but only the player could say which
-// level to evaluate it at (plan-entity-model.md chunk 1a, gap 3). Below 1
-// clamps to the baseline, matching Curve.F and the loader's default for an
-// unauthored curveLevel.
+// Level is where this mob stands on f(L) — the mob-side counterpart of the
+// player's progression.Level, and the accessor the Actor model was missing:
+// the two entity kinds always shared ONE curve, but only the player could say
+// which level to evaluate it at (plan-entity-model.md chunk 1a, gap 3).
 //
-// Still fixed for a mob's lifetime here; chunk 1b makes it mutable, which is
-// what collapses the summon scaling.
+// An OWNED summon stands where its owner stands, read live rather than
+// snapshotted at spawn (chunk 1b decision, PO 2026-07-26): a companion that
+// keeps fighting while its player levels keeps up, in HP exactly as it already
+// did in output. A world mob stands at its authored curveLevel (GDD §5: zone
+// number = curve position); below 1 clamps to the baseline, matching Curve.F
+// and the loader's default for an unauthored curveLevel. The owner reference
+// wins over the authored level outright — no max, no sum: the summon defs are
+// authored at the baseline precisely because the owner supplies the level.
 func (m *Mob) Level() int {
+	if m.owner != nil {
+		return int(m.owner.Progression().Level)
+	}
 	if m.definition.CurveLevel < 1 {
 		return 1
 	}
@@ -701,21 +716,22 @@ func (m *Mob) Level() int {
 // PowerScale is f(this mob's level) — the same global inflation multiplier the
 // player reads (model.PowerScaled, C0): the SkillSystem multiplies this mob's
 // skill HP values by it at cast time, so mob-skill JSONs stay
-// baseline-authored. Evaluated from the curve rather than read from the
-// registry-frozen definition.PowerScale field, so it follows Level (chunk 1a
-// — inert while Level is fixed, load-bearing in 1b). A definition without a
-// curve (hand-built in sim/tests) reads as neutral 1, the SummonPower
-// convention, exactly as the old PowerScale <= 0 guard did.
+// baseline-authored. Evaluated from the curve at the mob's CURRENT level, so a
+// summon's output rides its owner's curve through this one call — which is why
+// casterPowerScale no longer multiplies the owner's PowerScale in separately
+// (chunk 1b; doing both would apply f(ownerLevel) twice, landmine L3). A
+// definition without a curve (hand-built in sim/tests) reads as neutral 1, the
+// SummonPower convention.
 func (m *Mob) PowerScale() float32 {
 	return float32(m.definition.Curve.F(m.Level()))
 }
 
-// RaiseMaxHealth grants flat bonus HP on top of the (possibly variance-rolled)
-// authored pool — the owner-level body scaling of summons. Current health
-// rises with it: summons spawn at full health.
-func (m *Mob) RaiseMaxHealth(bonusHP uint32) {
-	m.maxHealth = m.maxHealth.Add(bonusHP)
-	m.health = m.health.Add(bonusHP)
+// RestoreToFullHealth fills the pool without counting as a heal (no floating
+// number, no heal-received bookkeeping) — the spawn site's tool: a summon is
+// constructed before its owner is known, so its pool widens to f(ownerLevel)
+// only once SetOwner lands.
+func (m *Mob) RestoreToFullHealth() {
+	m.health = m.MaxHealth()
 }
 
 func (m *Mob) MobDefinition() *mobs.MobDefinition {
@@ -796,6 +812,15 @@ func (m *Mob) Update(dt float32) bool {
 	// a target it is not fighting, and until damage recency gave it a reason to
 	// be in combat while holding none — which is the bug that made a lone
 	// healer unkillable.
+	// A DERIVED pool can shrink under a mob's feet (chunk 1b): an unequipped
+	// max-health passive, or an owner who somehow lost a level. Current health
+	// is absolute and never rises with the pool, so only this direction needs
+	// handling — leaving health above the cap would render as an over-full bar
+	// and hand out free effective HP.
+	if maxHP := m.MaxHealth(); m.health > maxHP {
+		m.health = maxHP
+	}
+
 	if !m.InCombat() {
 		// Heal out of combat at the configured fraction of the pool per tick
 		// (absolute HP, item 11; rate is game.mob.healthGainTick, §27.2.3).
@@ -1348,18 +1373,20 @@ func (m *Mob) Health() vitals.VitalSign {
 }
 
 // MaxHealth is the mob's absolute HP pool (item 11 Phase 1); serialized as the
-// max_health wire field so the client draws health/maxHealth. The stored
-// m.maxHealth is the BASE pool (authored × spawn variance, plus any summon
-// body bonus); the max-health passive factor rides on top of it exactly as it
-// does for the player (chunk 1a, DerivedStats.MaxHealthFactor). Every pool cap
-// in this file goes through here, so a passive widens the real pool rather
-// than only the number on the wire.
+// max_health wire field so the client draws health/maxHealth. Fully derived,
+// the same three factors the player's pool is derived from (chunk 1b):
 //
-// A factor that SHRINKS mid-life (unequipping a passive) can leave current
-// health above the pool; nothing does that today, and the clamp is chunk 1b's
-// business, where MaxHealth becomes fully derived.
+//	baseMaxHealth (authored baseline × lifetime variance roll)
+//	  × f(Level)  — inflation, and the whole of a summon's body scaling
+//	  × Derived.MaxHealthFactor() — the max-health passive
+//
+// Every pool cap in this file goes through here, so a wider pool is a real
+// pool rather than only a bigger number on the wire. Current health is
+// absolute and does NOT move with the pool: a summon whose owner levels grows
+// room to regenerate into, exactly like the player's own pool. The shrinking
+// direction is clamped in Update.
 func (m *Mob) MaxHealth() vitals.VitalSign {
-	return vitals.VitalSign(vitals.HP(float32(m.maxHealth) * m.skills.Derived.MaxHealthFactor()))
+	return vitals.VitalSign(vitals.HP(m.baseMaxHealth * m.PowerScale() * m.skills.Derived.MaxHealthFactor()))
 }
 
 // HealthRatio is the current/max health fraction (0..1), read by the

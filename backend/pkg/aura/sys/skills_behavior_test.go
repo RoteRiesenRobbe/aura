@@ -10,14 +10,13 @@ package sys
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"testing"
 
 	"github.com/EngoEngine/ecs"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -26,6 +25,9 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // --- test doubles ---
@@ -42,7 +44,7 @@ type touchRecorder struct {
 	hitStyles  []model.AuraHitStyle
 }
 
-func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)   {}
+func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {}
 func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	r.touches = append(r.touches, damage.HP)
 	r.touchTags = append(r.touchTags, damage.Tags)
@@ -226,9 +228,9 @@ type playerTouchRecorder struct {
 	rec   touchRecorder
 }
 
-func (p *playerTouchRecorder) Basic() ecs.BasicEntity                                { return p.basic }
-func (p *playerTouchRecorder) Faction() model.Faction                                { return model.FactionAligned }
-func (p *playerTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors)    {}
+func (p *playerTouchRecorder) Basic() ecs.BasicEntity                             { return p.basic }
+func (p *playerTouchRecorder) Faction() model.Faction                             { return model.FactionAligned }
+func (p *playerTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {}
 func (p *playerTouchRecorder) PlayerTouches(pl model.PlayerEntity, damage model.Damage) {
 	p.rec.PlayerTouches(pl, damage)
 }
@@ -1254,8 +1256,8 @@ func TestApplyDamageAura_VarianceComposesWithResistance(t *testing.T) {
 		ID:   1,
 		Name: "Dodo",
 		Factors: mobs.Factors{
-			MaxHealth:   1000,
-			Resistances: map[string]float32{"fire": 0.5},
+			BaseMaxHealth: 1000,
+			Resistances:   map[string]float32{"fire": 0.5},
 		},
 		Body: mobs.Body{Radius: 0.3, AggroRadius: 2.0},
 	}
@@ -1563,9 +1565,9 @@ func newSlowTarget() *slowRecorder {
 	return &slowRecorder{basic: ecs.NewBasic(), faction: model.FactionHostile}
 }
 
-func (r *slowRecorder) Basic() ecs.BasicEntity        { return r.basic }
-func (r *slowRecorder) Faction() model.Faction        { return r.faction }
-func (r *slowRecorder) FriendlyToPlayers() bool       { return r.friendly }
+func (r *slowRecorder) Basic() ecs.BasicEntity  { return r.basic }
+func (r *slowRecorder) Faction() model.Faction  { return r.faction }
+func (r *slowRecorder) FriendlyToPlayers() bool { return r.friendly }
 func (r *slowRecorder) ApplySlow(source skills.SkillID, fraction float32, ticks int) {
 	r.sources = append(r.sources, source)
 	r.fractions = append(r.fractions, fraction)
@@ -2231,7 +2233,7 @@ func hostileMobDef() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID: 1, Name: "SaberToothCat", // valid AuraApi entity type name
 		Body:    mobs.Body{Radius: 0.25, AggroRadius: 4},
-		Factors: mobs.Factors{MaxHealth: 60, Speed: 1},
+		Factors: mobs.Factors{BaseMaxHealth: 60, Speed: 1},
 	}
 }
 
@@ -2311,12 +2313,17 @@ func totemAuraDef() *skills.SkillDefinition {
 	}
 }
 
+// totemMobDef carries the live curve: a summon's pool AND its output are
+// f(the level it stands at) — its owner's, once one is bound (chunk 1b) — so a
+// curve-less definition would model neither.
 func totemMobDef() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID: 9, Name: "Totem", // must be a valid AuraApi entity type name
-		Body:    mobs.Body{Radius: 0.25, AggroRadius: 0.1},
-		Factors: mobs.Factors{MaxHealth: 50, Speed: 0},
-		Skills:  []mobs.MobSkill{{Def: totemAuraDef(), Level: 1}},
+		Body:       mobs.Body{Radius: 0.25, AggroRadius: 0.1},
+		Factors:    mobs.Factors{BaseMaxHealth: 50, Speed: 0},
+		CurveLevel: 1,
+		Curve:      curve.Curve{Growth: 1.12, MaxLevel: 30},
+		Skills:     []mobs.MobSkill{{Def: totemAuraDef(), Level: 1}},
 	}
 }
 
@@ -2327,7 +2334,7 @@ func summonTotemDef() *skills.SkillDefinition {
 			Type: skills.EffectTypeSpawn,
 			Spawn: &skills.SpawnParams{
 				MobName: "Totem", TTLTicks: 300, TTLTicksPerLevel: 60,
-				MaxHealthPerOwnerLevel: 2, PowerPerOwnerLevel: 0.05,
+				PowerPerOwnerLevel: 0.05,
 			},
 		}},
 	}
@@ -2360,8 +2367,12 @@ func TestCooldown_SpawnAddsOwnedAlignedMobWithTTL(t *testing.T) {
 	assert.Equal(t, caster.sc.CooldownSlots[0].EffectiveCooldownTicks(), caster.sc.CooldownSlots[0].CdTicks,
 		"the cooldown is consumed")
 
-	// Owner level 5: maxHealth 50 + 4×2, power 1 + 4×0.05 (chunk-1 decision 4).
-	assert.Equal(t, vitals.VitalSign(58), m.MaxHealth())
+	// Owner level 5 (chunk 1b): the summon STANDS at level 5, so its pool is
+	// its own baseline 50 × f(5) = 78.7 — the flat +2/owner-level bonus is
+	// gone. SummonPower stays the linear per-skill knob: 1 + 4×0.05.
+	assert.Equal(t, 5, m.Level(), "a summon stands where its owner stands")
+	assert.Equal(t, vitals.VitalSign(79), m.MaxHealth())
+	assert.Equal(t, m.MaxHealth(), m.Health(), "and spawns at that full pool")
 	assert.InDelta(t, 1.2, m.SummonPower(), 1e-6)
 
 	// Summon-skill level 2: the totem's loadout follows it.
@@ -2386,7 +2397,7 @@ func callForAidDef() *skills.SkillDefinition {
 			Type: skills.EffectTypeSpawn,
 			Spawn: &skills.SpawnParams{
 				MobName: "Totem", TTLTicks: 1800, TTLTicksPerLevel: 300,
-				MaxHealthPerOwnerLevel: 2, PowerPerOwnerLevel: 0.05,
+				PowerPerOwnerLevel: 0.05,
 			},
 		}
 	}
@@ -2414,7 +2425,7 @@ func TestCooldown_SpawnMovingSummonFollowsOwner(t *testing.T) {
 	companionDef := &mobs.MobDefinition{
 		ID: 10, Name: "Companion", // must be a valid AuraApi entity type name
 		Body:    mobs.Body{Radius: 0.25, AggroRadius: 0.1},
-		Factors: mobs.Factors{MaxHealth: 60, Speed: 1.2},
+		Factors: mobs.Factors{BaseMaxHealth: 60, Speed: 1.2},
 		Skills:  []mobs.MobSkill{{Def: totemAuraDef(), Level: 1}},
 	}
 	g := newFakeGame()
@@ -2733,7 +2744,7 @@ func campfireMobDef() *mobs.MobDefinition {
 			CollisionLayer: int(model.LayerViewportCollision),
 			CollisionMask:  int(model.LayerBorderCollision),
 		},
-		Factors: mobs.Factors{MaxHealth: 50, Speed: 0},
+		Factors: mobs.Factors{BaseMaxHealth: 50, Speed: 0},
 		Skills:  []mobs.MobSkill{{Def: campfireAuraDef(), Level: 1}},
 	}
 }
@@ -2881,7 +2892,7 @@ func harmGateMobDef(name string, faction factions.Faction, aggroMask uint64) *mo
 		Name:      name,
 		Faction:   faction,
 		AggroMask: aggroMask,
-		Factors:   mobs.Factors{Speed: 1, MaxHealth: 100},
+		Factors:   mobs.Factors{Speed: 1, BaseMaxHealth: 100},
 		Body:      mobs.Body{Radius: 0.3, AggroRadius: 2},
 	}
 }
@@ -3913,10 +3924,16 @@ func TestCooldown_SelfHealFractionOfMaxDoesNotDoubleScale(t *testing.T) {
 func TestApplyDamageAura_OwnedCaster_ComposesOwnerCurveScale(t *testing.T) {
 	// An owned summon rides the owner's f(level) on top of the linear
 	// SummonPower knob (C0 PO decision: summons stay same-tier-relevant).
+	// Since chunk 1b the curve arrives through the summon's OWN PowerScale —
+	// it stands at its owner's level — instead of casterPowerScale
+	// multiplying the owner's in a second time (landmine L3). The product is
+	// unchanged, which is why no shipped summon's output moved.
 	owner := newFakePlayer()
-	owner.powerScale = 2
+	owner.level = 7
 	totem := newTestTotem(owner)
 	totem.SetSummonPower(1.5)
+	f7 := float32(math.Pow(1.12, 6))
+	require.InDelta(t, f7, totem.PowerScale(), 1e-6, "the summon evaluates f at the owner's level")
 
 	target := &touchRecorder{}
 	effect := damageEffect(1)
@@ -3925,7 +3942,7 @@ func TestApplyDamageAura_OwnedCaster_ComposesOwnerCurveScale(t *testing.T) {
 	applyDamageAura(totem, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
-	assert.InDelta(t, 30, target.touches[0], 1e-6, "10 HP × power 1.5 × owner f 2")
+	assert.InDelta(t, 10*1.5*f7, target.touches[0], 1e-5, "10 HP × power 1.5 × f(owner level 7)")
 }
 
 // --- combat factors are conf knobs (backlog §25 B) ---

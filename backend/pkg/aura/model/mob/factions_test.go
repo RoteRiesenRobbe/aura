@@ -39,7 +39,7 @@ func preyDefinition() *mobs.MobDefinition {
 	def.Faction = 3 // testFactionPrey
 	def.AggroMask = 0
 	def.Factors.FleeBelowHealthRatio = 0.5
-	def.Factors.MaxHealth = 20
+	def.Factors.BaseMaxHealth = 20
 	return def
 }
 
@@ -177,7 +177,7 @@ func TestMob_MobKillingBlowGrantsRewardsToParticipants(t *testing.T) {
 	// damaged — recorded participants must still get their rewards (GDD: all
 	// combat participants receive XP), regardless of who struck last.
 	def := testMobDefinition()
-	def.Factors.MaxHealth = 100
+	def.Factors.BaseMaxHealth = 100
 	m := NewMob(def, 0, nil)
 	p := newFakeAuraPlayer()
 	wolf := NewMob(predatorDefinition(), 0, nil)

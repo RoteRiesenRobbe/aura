@@ -11,7 +11,6 @@
       "spawnMob": "FireTotem",
       "ttlTicks": 300,
       "ttlTicksPerLevel": 60,
-      "maxHealthPerOwnerLevel": 2,
       "powerPerOwnerLevel": 0.05
     }
   ]

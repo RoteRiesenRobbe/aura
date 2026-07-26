@@ -38,7 +38,7 @@ func statPassive(name string, bonus float32) *skills.SkillDefinition {
 // mobWithPool builds a test mob with an explicit absolute HP pool.
 func mobWithPool(hp uint32) *Mob {
 	d := testMobDefinition()
-	d.Factors.MaxHealth = hp
+	d.Factors.BaseMaxHealth = hp
 	return NewMob(d, 0, nil)
 }
 

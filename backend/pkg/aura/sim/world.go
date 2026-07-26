@@ -151,7 +151,7 @@ func NewWorld(sc Scenario, seed int64) *World {
 			Name:       "SimMob",
 			EntityType: "Dodo",
 			Factors: mobs.Factors{
-				MaxHealth:            uint32(mobHPs[i]),
+				BaseMaxHealth:        uint32(mobHPs[i]),
 				Speed:                sc.Mob.Speed,
 				FleeBelowHealthRatio: sc.Mob.FleeBelowHealthRatio,
 				Experience:           0, // no XP: the player must not level mid-measurement

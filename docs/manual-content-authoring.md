@@ -359,7 +359,7 @@ work is deliberately deferred to the first real boss).
 | `Mob.SetInvulnerable(on)` | `model/mob/mob.go` | Conditional immunity: an immune hit is a **non-event** (no damage, no number, no threat). Hit VFX still stamps — that ring-without-numbers IS the "immune" feedback |
 | `Mob.SetFleeOverride(on)` | `model/mob/mob.go` | Scripted flee at any HP. Also counts as in-combat for the leash, so the **threat table survives the whole phase**; drop the override and retention re-targets the top threat automatically — no re-engage code |
 | Threat seams | `model/mob/mob.go` | `NoteThreat`, `ForceThreatToTop`, `DropThreat`, `TargetsEntity`, `ThreatSnapshot` — script-side threat manipulation (same seams Taunt/Fade use) |
-| Summon-era seams | `model/mob/mob.go` | `SetFaction`, `SetTTLTicks`, `RaiseMaxHealth`, `SetSummonPower` — usable on encounter spawns too if a phase wants them |
+| Summon-era seams | `model/mob/mob.go` | `SetFaction`, `SetTTLTicks`, `SetOwner`, `RestoreToFullHealth`, `SetSummonPower` — usable on encounter spawns too if a phase wants them. ⚑ `SetOwner` is also the **body scaling**: an owned mob stands at its owner's level, so its pool becomes `baseMaxHealth × f(ownerLevel)` — follow it with `RestoreToFullHealth()` unless the spawn is meant to start hurt (`RaiseMaxHealth` was retired with that rule, plan-entity-model.md chunk 1b) |
 | `game.RegisterEncounter(e)` | `core/game.go` | Registration, called from `aurad.go` post-construction |
 
 ### Step by step

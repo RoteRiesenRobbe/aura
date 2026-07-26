@@ -1,6 +1,6 @@
 # Plan: One entity, many roles — the Actor model
 
-**Status:** in progress — **Chunk 1a done 2026-07-26** (see §11), 1b next.
+**Status:** in progress — **Chunks 1a + 1b done 2026-07-26** (see §11), 2 next.
 Design session 2026-07-26 (PO, via choice prompts). Supersedes the "not scheduled" note on `backlog.md` §31 — that entry
 stays as the *findings* record; this doc is the *plan*. Everything here is
 plan-first: no production code was written in the session that produced it.
@@ -311,7 +311,7 @@ re-run and the deltas are recorded and PO-signed. See landmine L3.
 
 **Open inside this chunk:** does a `structure` ever change level? A campfire is
 `curveLevel: 1` forever. Recommendation: yes, mechanically — it just never
-happens to be raised. Do not special-case it.
+happens to be raised. Do not special-case it. *(Resolved as recommended — §11.)*
 
 ---
 
@@ -476,7 +476,9 @@ switches sides, or a quest that turns a friendly hostile would each silently
 destroy the reaction table. Fix it *when* runtime faction changes are wanted —
 not speculatively, but do not forget it exists.
 
-**L3 — summon scaling double-counts under dynamic levels.** Chunk 1b's
+**L3 — summon scaling double-counts under dynamic levels.** ✅ **HELD in 1b** —
+both mechanisms came out in the one change; the product is provably unchanged
+(§11). Chunk 1b's
 `Level = owner.Level` gives a summon `f(ownerLevel)` for free; if
 `SummonPower × owner.PowerScale()` and `MaxHealthBonusAt(ownerLevel)` are left in
 place, it is applied twice. Both must come out in the same change, and the sim
@@ -517,7 +519,9 @@ test asserting on `Derived` all show the right number while the behaviour is
 absent. **Every Chunk 1a test must assert on behaviour** (HP pool, damage taken,
 distance moved), never on `Derived`.
 
-**L7 — `sys/skills.go:1523` is a near-miss, not a mob-side reader.** It calls
+**L7 — `sys/skills.go:1523` is a near-miss, not a mob-side reader.** ✅ **MOOT
+since 1b** — that call site and `MaxHealthBonusAt` itself are deleted; kept for
+the reasoning, not as a live pointer. It calls
 `p.MaxHealthBonusAt(ownerLevel)` on a mob and scans like gap 1's missing reader.
 It is not — it is `SpawnParams`' summon-HP-from-owner-level, an unrelated
 quantity that happens to share the name. Do not "fix" it in Chunk 1a; it is
@@ -551,8 +555,11 @@ content counts recorded.
 
 ## 10. Open questions (not blocking; resolve in the owning chunk)
 
-1. **Does a `structure` ever change level?** (Chunk 1b) Recommendation: yes
-   mechanically, never in practice. Do not special-case.
+1. ~~**Does a `structure` ever change level?**~~ **RESOLVED in 1b: yes,
+   mechanically, and it is not special-cased.** A structure reads `Level()` like
+   any other actor; an owned one (FireTotem, Totem) stands at its owner's level,
+   an authored one at its `curveLevel`. Nothing tests for `speed <= 0` on this
+   path.
 2. **Should non-players get a base crit chance?** (gap 2 remnant) `casterCritChance`
    explicitly special-cases `model.PlayerEntity` for the flat base. Under decision 1
    the *passive* half already converges; the flat base is a separate design call.
@@ -568,8 +575,9 @@ content counts recorded.
 6. **Do the 2 legacy proving-grounds Sages migrate or drop?** (Chunk 3a, code
    audit) They lack `entityType`/`name`, are dev/test content ("Too low",
    "Big Boy"), and sit outside the boot count of 14.
-7. **Summon level: assigned at spawn or tracked live?** (Chunk 1b, code audit —
-   see "New decision" there.) Recommendation on record: track live.
+7. ~~**Summon level: assigned at spawn or tracked live?**~~ **RESOLVED in 1b
+   (PO 2026-07-26): tracked LIVE** — `Level()` reads the owner's current level,
+   with no synced field (§11). The recommendation was taken.
 
 ---
 
@@ -636,7 +644,113 @@ what shipped, which commit, what was verified.)*
   makes byte-identity provable. Mob movement and damage are driven end-to-end
   by the sim through the real `mob.NewMob`.
 
-- **Chunk 1b — dynamic levels + summon collapse:** not started
+- **Chunk 1b — dynamic levels + summon collapse: ✅ DONE 2026-07-26**, backend
+  + 6 content JSONs, 30 files + 1 new test file, committed `[uncommitted]`.
+  ⏳ PO in-game check not required — the world side is smoke-verified below and
+  the summon numbers were signed off *before* the code, at design time.
+
+  **2 PO decisions, taken up front against the real numbers** (choice prompts,
+  2026-07-26):
+  ① **Pure curve, authored bases unchanged** — a summon's pool is
+  `baseMaxHealth × f(ownerLevel)`, and the flat `maxHealthPerOwnerLevel` knob is
+  **retired from the schema and the 6 summon skills**, not kept alongside. An
+  authored key the engine ignores is worse than no key, so it is rejected by the
+  loader with a migration hint (`renamedEffectKeys`), the `factors.maxHealth`
+  precedent.
+  ② **Summon level tracks the owner LIVE**, not snapshotted at spawn: a
+  companion whose player levels mid-fight keeps up. This is what a summon's
+  *output* already did (`casterPowerScale` read the owner live); 1b makes its
+  *body* consistent with it rather than the reverse.
+
+  **⭐ The finding that made the sign-off easy: OUTPUT DOES NOT MOVE AT ALL.**
+  All 6 summon mobs are authored `curveLevel: 1`, so today's product is
+  `f(1) × SummonPower × f(ownerLevel)`. Setting `Level = owner.Level` turns the
+  summon's own `PowerScale()` into `f(ownerLevel)`, and dropping
+  `× owner.PowerScale()` from `casterPowerScale` reproduces the old product
+  exactly — verified at L1/5/10/15/20/25/30 (1.0000 / 1.8882 / 4.0210 / 8.3081 /
+  16.7949 / 33.3930 / 65.5373 on both sides). L3's double-apply is therefore
+  avoided by removing one factor, not by retuning. `SummonPower` survives as
+  what it always was: the linear per-skill specialization knob.
+
+  **The balance delta is HP, and it is large by design** — `+2/owner level` flat
+  → the curve:
+
+  | summon (base) | L1 | L10 | L20 | L30 |
+  |---|---|---|---|---|
+  | Companion / FireTotem (60) | 60 → 60 | 78 → 166 | 98 → 517 | 118 → **1605** |
+  | Shieldbearer (90) | 90 → 90 | 108 → 250 | 128 → 775 | 148 → **2407** |
+  | Soldier (55) | 55 → 55 | 73 → 153 | 93 → 474 | 113 → **1471** |
+  | Medic (45) | 45 → 45 | 63 → 125 | 83 → 388 | 103 → **1204** |
+  | Totem (50) | 50 → 50 | 68 → 139 | 88 → 431 | 108 → **1337** |
+  | *player pool, for scale (base 100)* | *100* | *277* | *861* | *2675* |
+
+  The flat knob left a companion at ~4 % of a same-level player's pool at L30;
+  the curve holds it at a constant fraction (60 % for the Companion) at every
+  level — the "same-tier-relevant" property output already had.
+
+  **Shipped.** `MaxHealth()` is now fully derived —
+  `HP(baseMaxHealth × f(Level) × Derived.MaxHealthFactor())` — the same three
+  factors the player's pool is derived from. `Level()` returns the owner's
+  current level when owned, else the authored `curveLevel`. **The registry stops
+  pre-deriving**: `Factors.MaxHealth` (derived) → `Factors.BaseMaxHealth` (the
+  authored baseline verbatim), and the frozen `MobDefinition.PowerScale` field is
+  **deleted** — `Curve` + `CurveLevel` already carry it, and a second
+  representation of f(curveLevel) is exactly the drift this plan exists to
+  remove. `RaiseMaxHealth` is gone; `RestoreToFullHealth()` replaces it at the
+  spawn site.
+
+  **4 decisions taken inside the chunk:**
+  ① **The variance roll moved onto the BASE pool** and is stored unrounded
+  (`baseMaxHealth float32` = authored × roll), so variance and curve compose in
+  either order and the pool rounds exactly once, in `MaxHealth()`.
+  ② **`Level()` derives from the owner rather than a synced field.** The plan
+  said "a live field defaulting to curveLevel"; a settable field would need a
+  system to push owner level-ups into every summon each tick, and nothing else
+  wants to set a mob's level today (YAGNI). Reading the owner IS live, with zero
+  plumbing. A `SetLevel` can be added the moment a consumer exists.
+  ③ **The shrink clamp lives in `Update`** — a derived pool can now shrink
+  (unequipped passive), and health above the cap would render as an over-full bar
+  and hand out free effective HP. Growth is deliberately *not* mirrored: current
+  health stays absolute and regenerates up, exactly like the player's.
+  ④ **The spawn site refills explicitly** (`SetOwner` → `RestoreToFullHealth`)
+  rather than `SetOwner` doing it as a side effect or `Heal` doing it (which
+  would pop a floating heal number on every summon).
+
+  **⚑ One trap the sim harness would have hidden:** `mobSpecOf` reads authored
+  definitions, so with the pre-derivation gone it has to apply `f(curveLevel)`
+  **and round it** — the live pool rounds through `vitals.HP`, and an unrounded
+  preset would have modelled mobs the server cannot spawn. Caught by diffing the
+  `/mobs` preset roster against a HEAD build, not by any test.
+
+  **Verified.** TDD **red first on all 4 behavioural pins** — each verified by
+  reverting the specific mechanism and watching the pin fail: owner-tracking
+  (`TestMob_OwnedSummon_LevelTracksItsOwnerLive`, `TestCooldown_SpawnAdds…`),
+  the curve on the pool (`TestMob_MaxHealth_RidesTheCurveAtItsLevel`,
+  `TestNewMob_VarianceRollsAroundTheCurvedPool`), the shrink clamp
+  (`TestMob_Update_ClampsHealthToAShrunkPool`) and the un-doubled output
+  (`TestApplyDamageAura_OwnedCaster_ComposesOwnerCurveScale`). All assert on HP
+  pool / damage dealt / level, never on `Derived` (L6). `go build ./...` and
+  `go vet ./...` clean · `go test -timeout 180s ./...` **exit 0, 27 packages** ·
+  simharness guardrails **`-count=2`** · alloc guardrails **`-count=2`** (the
+  derived pool adds a `math.Pow` to the per-tick regen path — no allocation) ·
+  boot `-content ../api` **0 errors 0 panics 0 warnings**, 83 skills/14
+  factions/50 mobs/10 recipes/5 prop defs/1 milestone/777 props/471 spawns/5
+  campfires/14 npcs.
+
+  **⭐ Sim battery, level curve, pack matrix AND the 50-mob preset roster are
+  BYTE-IDENTICAL** to a binary built from HEAD (`git worktree`, not a
+  remembered number): TTK 6.67s / TTD 8.70s. That is the expected result and it
+  is evidence, not a null: the sim contains no summons, and the world-mob half
+  of the change re-derives the same pool the registry used to freeze. **Every
+  number that moved is a summon number, and every summon number was priced
+  before the first edit.**
+
+  **In-game smoke** (`scratchpad/chunk1b-smoke.mjs`, world zone): joined, warped
+  into the 7-wolf cluster at (−64, 8), pack gathered and chased — **0 console
+  errors, 0 WebGL context losses**, health bars render, player 100/100. That
+  path is the one worth smoking: `MaxHealth()` is now evaluated per read for
+  every mob, every tick, on the wire. ⚑ The first run hit a §29 lost context
+  (1 in ~6, the client said so itself); the retry was clean.
 - **Chunk 2 — role discriminator:** not started
 - **Chunk 3a — NPC merge + interaction schema:** not started
 - **Chunk 3b — interact verb + dialogue panel:** not started

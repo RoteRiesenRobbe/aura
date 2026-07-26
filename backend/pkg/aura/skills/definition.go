@@ -556,8 +556,15 @@ type TickRateParams struct {
 // chunk 1): a cooldown-fired summon of an owned, caster-aligned mob. Two
 // scaling sources compose (chunk-1 decision): the SUMMON SKILL's level scales
 // the TTL (and the spawn site equips the summon's loadout at that level);
-// the OWNER's player level scales body and output — bonus max HP plus a
-// damage/heal power multiplier. Power never touches CC parameters (slow
+// the OWNER's player level scales body and output.
+//
+// The BODY half is no longer authored here: a summon stands at its owner's
+// level, so its pool is the ordinary baseMaxHealth × f(level) every actor's
+// pool is (plan-entity-model.md chunk 1b). The former maxHealthPerOwnerLevel
+// knob was retired with it — an authored key the engine ignores is worse than
+// no key. PowerPerOwnerLevel survives as what it always was: a LINEAR
+// per-skill specialization knob on output, on top of the curve rather than
+// standing in for it. Power never touches CC parameters (slow
 // fraction/duration ride only the summon's own skill levels).
 type SpawnParams struct {
 	MobName string `json:"mobName"`
@@ -565,8 +572,7 @@ type SpawnParams struct {
 	TTLTicks         int `json:"ttlTicks"`
 	TTLTicksPerLevel int `json:"ttlTicksPerLevel"`
 
-	MaxHealthPerOwnerLevel float32 `json:"maxHealthPerOwnerLevel"`
-	PowerPerOwnerLevel     float32 `json:"powerPerOwnerLevel"`
+	PowerPerOwnerLevel float32 `json:"powerPerOwnerLevel"`
 }
 
 // TTLAt is the summon lifetime in ticks at the given SKILL level, floored at 1.
@@ -576,11 +582,6 @@ func (p *SpawnParams) TTLAt(level int) int {
 		ttl = 1
 	}
 	return ttl
-}
-
-// MaxHealthBonusAt is the flat bonus HP granted by the OWNER's player level.
-func (p *SpawnParams) MaxHealthBonusAt(ownerLevel int) float32 {
-	return Scaled(0, p.MaxHealthPerOwnerLevel, ownerLevel)
 }
 
 // PowerAt is the damage/heal output multiplier granted by the OWNER's player
@@ -699,11 +700,10 @@ type effectDef struct {
 	CritFactor              float32 `json:"critFactor"`
 	LifestealFraction       float32 `json:"lifestealFraction"`
 
-	SpawnMob               string  `json:"spawnMob"`
-	TTLTicks               int     `json:"ttlTicks"`
-	TTLTicksPerLevel       int     `json:"ttlTicksPerLevel"`
-	MaxHealthPerOwnerLevel float32 `json:"maxHealthPerOwnerLevel"`
-	PowerPerOwnerLevel     float32 `json:"powerPerOwnerLevel"`
+	SpawnMob           string  `json:"spawnMob"`
+	TTLTicks           int     `json:"ttlTicks"`
+	TTLTicksPerLevel   int     `json:"ttlTicksPerLevel"`
+	PowerPerOwnerLevel float32 `json:"powerPerOwnerLevel"`
 
 	ThreatMargin float32 `json:"threatMargin"` // taunt: head start above the current top
 
@@ -793,7 +793,7 @@ var effectKeys = map[EffectType][]string{
 	EffectTypeInstantDot: mergeKeys(keysGeometry, keysCapped, keysTargetFlags, keysDotPayload),
 	// No geometry/cadence/targeting: a spawn fires at the caster's position on
 	// cooldown activation — placement is the spawn site's business.
-	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "maxHealthPerOwnerLevel", "powerPerOwnerLevel"},
+	EffectTypeSpawn: {"spawnMob", "ttlTicks", "ttlTicksPerLevel", "powerPerOwnerLevel"},
 	// Threat ops (chunk 7): a query circle (geometry) of enemy mobs; taunt
 	// carries a threatMargin, detaunt is a bare single-entry removal.
 	EffectTypeTaunt:   mergeKeys(keysGeometry, keysTargetFlags, []string{"threatMargin"}),
@@ -851,6 +851,9 @@ var renamedEffectKeys = map[string]string{
 	"additivePerLevel": "statBonus/statBonusPerLevel (level-scaling unification)",
 	"damageFraction":   "damageHP (absolute HP, item 11 Phase 1)",
 	"healFraction":     "healHP (absolute HP, item 11 Phase 1)",
+	"maxHealthPerOwnerLevel": "(nothing) — the key is retired: a summon stands at its " +
+		"owner's level, so its pool is its own baseMaxHealth × f(level) " +
+		"(plan-entity-model.md chunk 1b); delete it",
 }
 
 // validateEffectKeys hard-fails any JSON key outside the effect type's
@@ -1234,18 +1237,14 @@ func (e *effectDef) spawnParams() (*SpawnParams, error) {
 	if e.TTLTicks < 1 {
 		return nil, fmt.Errorf("ttlTicks: must be >= 1, got %v", e.TTLTicks)
 	}
-	if e.MaxHealthPerOwnerLevel < 0 {
-		return nil, fmt.Errorf("maxHealthPerOwnerLevel: must be >= 0, got %v", e.MaxHealthPerOwnerLevel)
-	}
 	if e.PowerPerOwnerLevel < 0 {
 		return nil, fmt.Errorf("powerPerOwnerLevel: must be >= 0, got %v", e.PowerPerOwnerLevel)
 	}
 	return &SpawnParams{
-		MobName:                e.SpawnMob,
-		TTLTicks:               e.TTLTicks,
-		TTLTicksPerLevel:       e.TTLTicksPerLevel,
-		MaxHealthPerOwnerLevel: e.MaxHealthPerOwnerLevel,
-		PowerPerOwnerLevel:     e.PowerPerOwnerLevel,
+		MobName:            e.SpawnMob,
+		TTLTicks:           e.TTLTicks,
+		TTLTicksPerLevel:   e.TTLTicksPerLevel,
+		PowerPerOwnerLevel: e.PowerPerOwnerLevel,
 	}, nil
 }
 

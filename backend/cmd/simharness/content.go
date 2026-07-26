@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/fs"
+	"math"
 	"os"
 	"sort"
 	"strconv"
@@ -298,8 +299,16 @@ func auraSpecOf(def *skills.SkillDefinition, level int, powerScale float32) (sim
 // level-scaled at the declared skill level — the same numbers the live
 // SkillSystem would apply.
 func mobSpecOf(def *mobs.MobDefinition) (sim.MobSpec, error) {
+	// f(curveLevel) is applied HERE because a definition no longer carries a
+	// pre-derived pool or power scale — the live mob evaluates the curve at
+	// its current level (plan-entity-model.md chunk 1b). A preset is a world
+	// mob, which stands at its authored curveLevel, so this is that same
+	// number: the sim keeps modelling exactly what the SkillSystem applies.
+	powerScale := float32(def.Curve.F(def.CurveLevel))
 	spec := sim.MobSpec{
-		MaxHealth:            float32(def.Factors.MaxHealth),
+		// Rounded, because vitals.HP rounds the live pool: a preset that kept
+		// the fraction would model a mob the server cannot spawn.
+		MaxHealth:            float32(math.Round(float64(def.Factors.BaseMaxHealth) * float64(powerScale))),
 		MaxHealthVariance:    def.Factors.MaxHealthVariance,
 		Speed:                def.Factors.Speed,
 		BodyRadius:           def.Body.Radius,
@@ -310,9 +319,9 @@ func mobSpecOf(def *mobs.MobDefinition) (sim.MobSpec, error) {
 		if ms.Def.Category != skills.SkillCategoryActiveAura || !hasDamageEffect(ms.Def) {
 			continue
 		}
-		// × PowerScale: the live SkillSystem multiplies mob skill HP
-		// by the def's derived f(curveLevel) at cast time (C0).
-		aura, err := auraSpecOf(ms.Def, ms.Level, def.PowerScale)
+		// × powerScale: the live SkillSystem multiplies mob skill HP
+		// by f(the mob's level) at cast time (C0).
+		aura, err := auraSpecOf(ms.Def, ms.Level, powerScale)
 		if err != nil {
 			return spec, fmt.Errorf("mob %s: %w", def.Name, err)
 		}

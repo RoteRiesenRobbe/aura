@@ -56,7 +56,7 @@ func smokeDef(id mobs.MobID, name, entityType string, maxHealth uint32, radius f
 		Name:       name,
 		EntityType: entityType,
 		Body:       mobs.Body{Radius: radius, AggroRadius: 5},
-		Factors:    mobs.Factors{MaxHealth: maxHealth, Speed: 1.0, Experience: 10},
+		Factors:    mobs.Factors{BaseMaxHealth: maxHealth, Speed: 1.0, Experience: 10},
 		Skills:     []mobs.MobSkill{{Def: smokeAuraSkill(), Level: 1}},
 	}
 }
