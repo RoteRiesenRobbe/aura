@@ -645,7 +645,7 @@ what shipped, which commit, what was verified.)*
   by the sim through the real `mob.NewMob`.
 
 - **Chunk 1b — dynamic levels + summon collapse: ✅ DONE 2026-07-26**, backend
-  + 6 content JSONs, 30 files + 1 new test file, committed `[uncommitted]`.
+  + 6 content JSONs, 30 files + 1 new test file, committed `ee01ccdb`.
   ⏳ PO in-game check not required — the world side is smoke-verified below and
   the summon numbers were signed off *before* the code, at design time.
 
