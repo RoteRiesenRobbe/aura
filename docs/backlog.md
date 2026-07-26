@@ -2646,7 +2646,7 @@ triggers, a 3-slot priority table with three different triggers. The migration
 is **additive**: the fixed rule above becomes the default row. Build it when a
 second condition *kind* actually shows up, not before.
 
-**✅ SHIPPED 2026-07-25** (`03b152f4`, ⏳ PO test pending) — full ledger in
+**✅ SHIPPED 2026-07-25** (`03b152f4`, PO-verified in-game 2026-07-26) — full ledger in
 `plan-playtest-feedback.md` §Round-3 chunk ledger. `seekHealer` is gone,
 `healer.go` → `support.go`, both early-returns replaced by the selector.
 Confirmed in the build: `MedicCompanion` was broken, **and so was

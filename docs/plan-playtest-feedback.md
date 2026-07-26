@@ -6,8 +6,8 @@ checklist item passed): **Round 3** (healer combat state + role-as-loadout)
 `03b152f4` 2026-07-25 · **Round 4** (tooltip power scale) `eaae2e69` 2026-07-26 ·
 **Rolling-filler batch** (4 of the 6 filler items) `dab4dae0` 2026-07-26.
 That verification session raised **2 new items (§Intake round 5), and both are
-already ✅ DONE the same day — ⏳ PO test pending**, ledger at §Round-5 chunk
-ledger: the missing shield-aura tick indicator, and pacifist mobs fleeing when
+✅ DONE and PO-verified in-game the same day** (`f06b2161`), ledger at
+§Round-5 chunk ledger: the missing shield-aura tick indicator, and pacifist mobs fleeing when
 attacked with nothing to support (design decided by choice prompts, all four
 answers minimal).
 This is the **standing home for issues
@@ -744,12 +744,14 @@ fixes; fold into this chunk's commit or any nearby one.
 
 ## Round-5 chunk ledger
 
-**Both round-5 items DONE 2026-07-26, backend only — ⏳ PO TEST PENDING**
-(headless/unit-verified only). Uncommitted at time of writing. 4 files.
-Design context and the diagnosis for both is §Intake round 5 immediately below;
-this section is what shipped.
+**Both round-5 items DONE 2026-07-26, backend only — ✅ PO-VERIFIED IN-GAME
+2026-07-26, committed `f06b2161`.** All 6 acceptance items passed, and the one
+⚠ judgement call (item 5) resolved **as shipped**: the `RallyDrummer`'s
+50 %-speed retreat "reads fine" — no flee-speed multiplier, decision 4 stands.
+4 files. Design context and the diagnosis for both is §Intake round 5
+immediately below; this section is what shipped.
 
-### Acceptance checklist (PO, in-game)
+### Acceptance checklist (PO, in-game) — ✅ all 6 passed 2026-07-26
 
 1. Find the `RallyDrummer` at (27.3, 19.7) and let it shield its squad — its
    aura ring must now carry a **tick indicator** showing when the next shield
@@ -871,7 +873,8 @@ they are authored with a real, deliberate cadence (`RallyDrum` and
 shield application **is** a visible event — the absorb pool refills and the pip
 is already on the bar. The strobe argument does not apply.
 
-> **✅ FIXED 2026-07-26** — ⏳ PO test pending. Ledger: §Round-5 chunk ledger.
+> **✅ FIXED 2026-07-26**, PO-verified in-game 2026-07-26 (`f06b2161`).
+> Ledger: §Round-5 chunk ledger.
 
 **Shape of the fix:** add `EffectTypeShieldAura` to the whitelist. Watch the
 `Effects[0]` assumption in `AuraTickInterval` — it reads the *first* effect
@@ -959,7 +962,9 @@ pieces above: `modeFlee`, one `selectMode` case, one `Update` movement case,
 `highestThreatTarget()` for direction. `applyMode` untouched. No content edits,
 no conf knobs, no wire change.
 
-> **✅ EXECUTED 2026-07-26 exactly as designed** — ⏳ PO test pending. Ledger:
+> **✅ EXECUTED 2026-07-26 exactly as designed**, PO-verified in-game
+> 2026-07-26 (`f06b2161`) — the 50 %-speed drummer retreat was judged to read
+> fine, so decision 4's "authored speed, no flee multiplier" stands. Ledger:
 > §Round-5 chunk ledger above.
 
 ---
