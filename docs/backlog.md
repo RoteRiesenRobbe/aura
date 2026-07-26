@@ -2129,7 +2129,14 @@ same (`go build`/`go test`/`tsc --noEmit` + boot count + join smoke).
 
 ---
 
-## 29. Investigate: intermittent `null.split` page error + black world on the develop mux
+## 29. ~~Investigate:~~ intermittent `null.split` page error + black world — **lost WebGL context**
+
+> **✅ DIAGNOSED 2026-07-26 — root cause found and reproduced deterministically.**
+> It is **a lost WebGL context**, and the `null.split` is PixiJS's *error
+> reporter* crashing on the way to reporting it. Full write-up in
+> §29.1 below; the sections under it are the original (partly wrong) trail, kept
+> because two of its leads have to be actively un-believed. **No fix applied** —
+> options and a recommendation are in §29.2, awaiting a PO call.
 
 **Tracked 2026-07-24** during the §28 Chunk 3 wire-enum prune (`plan-item-system-removal.md`).
 
@@ -2198,6 +2205,172 @@ here lives in this session's scratchpad; it walks the scene graph from
 `window.game.character.plate` to the stage root, because `window.game` is a
 narrow console facade (`{run, character, pause, play}`) with no `.layers` or
 `.state` despite what the `verify` skill doc implies.
+
+### 29.1 Root cause (2026-07-26) — a lost WebGL context, misreported
+
+**The error is not in our code.** It is thrown inside PixiJS's shader-error
+*reporter*, and its first statement is the throw site:
+
+```js
+// pixi.js/src/rendering/renderers/gl/shader/program/logProgramError.ts
+function logPrettyShaderError(gl, shader) {
+  const shaderSrc = gl.getShaderSource(shader).split("\n")…   // ← null.split
+```
+
+The captured stack (unminified prod build, this session):
+
+```
+logPrettyShaderError            → gl.getShaderSource(shader).split("\n")
+Object.logProgramError
+Object.generateProgram
+GlShaderSystem._createProgramData
+GlShaderSystem._getProgramData
+GlShaderSystem._setProgram
+GlShaderSystem.bind
+```
+
+**The chain, all of it verified:**
+
+1. The WebGL context is lost (driver/browser decision — GPU reset, memory
+   pressure, headless SwiftShader hiccup). **On a lost context every WebGL
+   getter returns `null`** — that is where a genuine `null`, rather than an
+   `undefined`, comes from.
+2. `generateProgram()` links its program and checks
+   `gl.getProgramParameter(p, LINK_STATUS)`. That is now `null`, so `!null` is
+   true and it concludes the program failed to link.
+3. `logProgramError()` then checks `getShaderParameter(…, COMPILE_STATUS)` for
+   the vertex and fragment shaders — also `null`, so both look failed, and it
+   calls `logPrettyShaderError()` to pretty-print the source.
+4. `gl.getShaderSource(shader)` is `null` too ⇒ **`TypeError: Cannot read
+   properties of null (reading 'split')`**, thrown *out of the renderer*. The
+   real diagnostic ("context lost") is destroyed by the reporter meant to print
+   it, which is exactly why four sightings produced no usable lead.
+5. The throw escapes the rAF callback, so **the render loop stops**. Scene
+   graph, DOM HUD, websocket and server ticks are all untouched ⇒ a blank world
+   with a perfectly healthy HUD.
+
+**Reproduced deterministically** with `.claude/skills/verify/ctxloss-repro.mjs`
+(kills the renderer's GL context via `WEBGL_lose_context` after boot):
+
+- Loss **mid-boot** (`HUNT_PERCTX=1`, 400 ms after context creation) → **exactly
+  three** `null.split` page errors, world gone, `Websocket PLAYING`, server tick
+  advancing, tick rate 32/33/35 ms, dev-panel FPS blank. **That is the sighting,
+  symptom for symptom, including the count of three.** Two errors come through
+  `GlShaderSystem.bind`, the third through `generateShaderSyncCode` — i.e. the
+  count is "how many distinct shader programs the dying frame still had to
+  build", which is why it is 3 during boot and 1 in steady state.
+- Loss **after boot** (steady state) → **one** error, because every program is
+  already cached and only the next new one hits the broken path.
+
+**Two earlier leads are now actively wrong — do not re-use them:**
+
+- ⚑ **The 40 000 ms frame time was a consequence, not the cause.** The original
+  note read it as rAF starvation and made "a load-order race that only opens
+  when the first frame is starved that badly" the prime suspect. A dead render
+  loop is what a frozen frame timer *looks* like. Accordingly, CPU throttling is
+  the wrong lever: 4 cold loads at 20× throttle on the dev build and a further
+  prod batch (fresh `aurad` restart + cold cache per run) were all clean, and
+  the worst *real* frame gap ever measured was 902 ms.
+- ⚑ **The scene-graph probe cannot see this failure**, so sighting 2's
+  conclusion that "the black world and the errors are separable" is unsafe. The
+  graph stays intact — 3 root children / 24 grandchildren both before and after
+  the world visibly disappears. Only **pixels** can detect it. (The minimap is
+  also its own PixiJS `Application` with its own context, so it can survive
+  while the main world does not — visible in the restore experiment below.)
+
+**Also learned, so it stops looking suspicious:** the client creates **five**
+WebGL contexts at boot and **PixiJS deliberately loses two of them** — they are
+throwaway capability probes (`isWebGLSupported()`), which call `loseContext()`
+on purpose. A `webglcontextlost` event at boot is therefore *normal*; only a
+loss on one of the two connected `webgl2` contexts (main renderer + minimap)
+matters.
+
+**Why PixiJS never recovers:** `GlContextSystem.handleContextLost` does call
+`event.preventDefault()` (so restoration is *permitted*), but it only calls
+`restoreContext()` when `_contextLossForced` is set — i.e. only when pixi itself
+forced the loss. **A real driver-initiated loss is never restored**, so the
+renderer stays dead until the page is reloaded.
+
+**Measured (`HUNT_RESTORE=1`): restoring the context by hand is not sufficient.**
+`restoreContext()` fires `webglcontextrestored` and the **minimap** Application
+came back visibly, but the main world stayed blank — by then its render loop is
+already dead and its GPU resources are gone. So auto-recovery is not a
+20-line change.
+
+**5th sighting, organic, same session — and it confirms the diagnosis on the
+real artifact.** The final check of this session (one unthrottled run against the
+restored **minified** prod bundle) reproduced it by itself:
+
+- **3** page errors, the *identical* stack — `logPrettyShaderError` ←
+  `logProgramError` ← `generateProgram` ← `GlShaderSystem.bind` ←
+  `GlBatchAdaptor.start` ← `_BatcherPipe.execute`, two via `_setProgram` and one
+  via `generateShaderSyncCode`, exactly as in the forced mid-boot reproduction.
+- All three at **t ≈ 896 / 941 / 962 ms** — during boot, ~40 ms apart.
+- **No throttling of any kind**, and the worst rAF gap in the whole run was
+  **420 ms** ⇒ final nail in the starvation theory.
+- Scene graph healthy (3 root children / 24 grandchildren) while the world was
+  visibly gone, and **pixi's own `console.error(shaderLog)` never ran** — the
+  throw precedes it, so there is no console breadcrumb either.
+- ⚑ **The minimap rendered normally in the same screenshot.** It is its own
+  PixiJS `Application` with its own GL context, so *"minimap fine, world blank"*
+  is the fastest visual tell that the main renderer's context is what died.
+
+**Trigger still unidentified**: whatever makes the browser drop the context. All
+five sightings are **headless harness runs**, with no known player-facing
+occurrence — which fits a software-GL/WSL2 headless environment rather than a
+real GPU. Note this makes the bug a **harness-reliability problem first**: any
+smoke run can lose ~1 in 6 attempts to it and the failure looks like the change
+under test.
+
+### 29.2 Fix options (none chosen — PO call)
+
+- **A — Detect and say so** (~20 lines, recommended). Add our own
+  `webglcontextlost` / `webglcontextrestored` listeners on the renderer canvas:
+  log loudly and raise the existing red `warning` alert banner ("graphics
+  context lost — reload"). Does not fix rendering, but converts a silent blank
+  world with three lying TypeErrors into a message a player and a harness can
+  both act on. Cheap, no risk, and it makes any future sighting self-labelling.
+- **B — A, plus attempt recovery.** Call `restoreContext()` ourselves, then
+  restart the ticker and rebuild GPU state. Measured today: the restore half
+  works, the rebuild half does not come for free (see above). Real work,
+  uncertain payoff, and it would be verified by a reproducer we now have.
+- **C — Reduce the trigger.** Cold-boot memory/GPU pressure is the plausible
+  cause: §19 (decode-every-mp3-at-boot, ~7 MiB), ~90 SVG textures, 400 KiB jpgs.
+  Speculative, but it is the only lever that addresses the *cause* rather than
+  the symptom, and it happens to be work already on this list.
+- **D — Report upstream.** `logPrettyShaderError` should null-check
+  `getShaderSource`; on a lost context PixiJS destroys its own diagnostic. Not
+  our code, affects only the message — but it is the reason this took four
+  sightings, and a two-line upstream patch.
+- **E — Nothing.** Defensible while it stays headless-only: with §29.1 on record
+  plus `ctxloss-repro.mjs`, the next sighting is identified in seconds instead of
+  investigated from scratch.
+
+**Recommendation:** **A now** (it is the honest minimum and pays for itself the
+next time a smoke run goes weird), **D as a courtesy**, and treat any *player*
+report as promoting **C**. B only if a player-facing occurrence appears.
+
+### 29.3 Harnesses (kept)
+
+- `.claude/skills/verify/ctxloss-repro.mjs` — forces the loss and captures the
+  error, stack, GL events and a screenshot. `HUNT_PERCTX=1` = mid-boot loss
+  (3 errors), `HUNT_RESTORE=1` = also attempt `restoreContext()`.
+- `.claude/skills/verify/hunt-null-split.mjs` — the organic hunt: N cold runs,
+  CPU throttling (`Emulation.setCPUThrottlingRate`), optional network throttling
+  (`HUNT_NET=1`), optional `aurad` restart per run (`HUNT_RESTART=1`), captures
+  `pageerror` stacks *and* an in-page `window.onerror` record (filename/line/col),
+  plus a max-rAF-gap starvation metric so a clean batch still reports something.
+  ⚠ Its black-world probe walks the scene graph and therefore **cannot** detect
+  this bug — screenshot instead.
+
+**To get a readable stack from a prod bundle** (there are no source maps in
+`webpack.prod.js`): `npx webpack --config webpack.prod.js
+--no-optimization-minimize --devtool source-map`, which keeps prod's three-chunk
+`runtime`/`vendors`/`main` split — the **dev** server is a single bundle, so it is
+not a faithful stand-in. Restore afterwards with `npm run build` (verified:
+identical content hashes). A source map's `sourcesContent` is also enough to map
+a bundled line back to its npm source file by substring search, without decoding
+any VLQ mappings.
 
 ---
 
