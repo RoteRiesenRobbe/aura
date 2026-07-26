@@ -5,6 +5,12 @@
 //		"noImplicitAny": true,
 //		"module": "commonjs", // TODO replace with es6 to enable proper tree-shaking
 		"target": "es5",
+		// The shipped bundle targets es5, but vitest's own .d.ts files use
+		// private identifiers and a bundler-style export map, which tsc then
+		// reports against OUR target/moduleResolution. Skipping declaration
+		// files is the standard fix and costs nothing here — every .d.ts in
+		// node_modules is third-party, already-checked code.
+		"skipLibCheck": true,
 		"downlevelIteration": true,
 		"alwaysStrict": true,
 		"lib": [

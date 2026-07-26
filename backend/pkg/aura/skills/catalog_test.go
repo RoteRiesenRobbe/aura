@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"testing/fstest"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 )
 
 // catalogTestFS is a minimal registry: an aura with defaulted damage tags and
@@ -63,17 +65,34 @@ func catalogTestRegistry(t *testing.T) Registry {
 	return r
 }
 
+// catalogTestCurve is deliberately NOT curve.Default() — the payload has to
+// prove it carries the *configured* curve, and identical numbers could not
+// tell the two apart.
+var catalogTestCurve = curve.Curve{Growth: 1.5, MaxLevel: 12}
+
 // catalogEntry mirrors the catalog JSON shape as loose maps — the test reads
 // it the way the client does, so it pins the wire names, not Go internals.
 type catalogEntry map[string]any
 
+// decodeCatalog unwraps the {curve, skills} envelope and returns the skill
+// list; decodeEnvelope is for the tests that care about the curve half.
 func decodeCatalog(t *testing.T, data []byte) []catalogEntry {
 	t.Helper()
-	var entries []catalogEntry
-	if err := json.Unmarshal(data, &entries); err != nil {
+	return decodeEnvelope(t, data).Skills
+}
+
+type catalogEnvelope struct {
+	Curve  map[string]any `json:"curve"`
+	Skills []catalogEntry `json:"skills"`
+}
+
+func decodeEnvelope(t *testing.T, data []byte) catalogEnvelope {
+	t.Helper()
+	var envelope catalogEnvelope
+	if err := json.Unmarshal(data, &envelope); err != nil {
 		t.Fatalf("catalog JSON does not decode: %v", err)
 	}
-	return entries
+	return envelope
 }
 
 func (e catalogEntry) effects(t *testing.T) []map[string]any {
@@ -90,7 +109,7 @@ func (e catalogEntry) effects(t *testing.T) []map[string]any {
 }
 
 func TestCatalogJSON_SortedAndComplete(t *testing.T) {
-	data, err := CatalogJSON(catalogTestRegistry(t))
+	data, err := CatalogJSON(catalogTestRegistry(t), catalogTestCurve)
 	if err != nil {
 		t.Fatalf("CatalogJSON: %v", err)
 	}
@@ -109,7 +128,7 @@ func TestCatalogJSON_SortedAndComplete(t *testing.T) {
 }
 
 func TestCatalogJSON_DisplayNames(t *testing.T) {
-	data, err := CatalogJSON(catalogTestRegistry(t))
+	data, err := CatalogJSON(catalogTestRegistry(t), catalogTestCurve)
 	if err != nil {
 		t.Fatalf("CatalogJSON: %v", err)
 	}
@@ -130,7 +149,7 @@ func TestCatalogJSON_DisplayNames(t *testing.T) {
 }
 
 func TestCatalogJSON_FieldsAndDefaults(t *testing.T) {
-	data, err := CatalogJSON(catalogTestRegistry(t))
+	data, err := CatalogJSON(catalogTestRegistry(t), catalogTestCurve)
 	if err != nil {
 		t.Fatalf("CatalogJSON: %v", err)
 	}
@@ -196,8 +215,36 @@ func TestCatalogJSON_FieldsAndDefaults(t *testing.T) {
 	}
 }
 
+// The curve half exists so the client can render what a heal/hit ACTUALLY
+// lands for at the player's character level (round-4 tooltip fix): the
+// tooltip's own model only ever knew the skill-level axis. It must be the
+// CONFIGURED curve, not curve.Default() — a server booted on a retuned
+// levelGrowth would otherwise ship tooltips that lie by the difference.
+func TestCatalogJSON_CarriesTheConfiguredCurve(t *testing.T) {
+	data, err := CatalogJSON(catalogTestRegistry(t), catalogTestCurve)
+	if err != nil {
+		t.Fatalf("CatalogJSON: %v", err)
+	}
+	envelope := decodeEnvelope(t, data)
+
+	if envelope.Curve == nil {
+		t.Fatalf("payload carries no curve: %s", data)
+	}
+	if got := envelope.Curve["growth"]; got != 1.5 {
+		t.Errorf("curve growth = %v, want 1.5 (the configured value, not the default)", got)
+	}
+	if got := envelope.Curve["maxLevel"]; got != float64(12) {
+		t.Errorf("curve maxLevel = %v, want 12", got)
+	}
+	// The skills half must survive the reshape unchanged — it is the same
+	// list, one level deeper.
+	if len(envelope.Skills) != 3 {
+		t.Errorf("skills = %d entries, want 3", len(envelope.Skills))
+	}
+}
+
 func TestCatalogHandler(t *testing.T) {
-	handler, err := CatalogHandler(catalogTestRegistry(t))
+	handler, err := CatalogHandler(catalogTestRegistry(t), catalogTestCurve)
 	if err != nil {
 		t.Fatalf("CatalogHandler: %v", err)
 	}

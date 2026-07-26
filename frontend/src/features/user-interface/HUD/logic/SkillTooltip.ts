@@ -4,11 +4,17 @@
 // mechanic gets a line, unauthored fields show nothing — and the tooltip is
 // anchored to the hovered element (not cursor-following).
 //
-// Values render at the player's current skill level with a next-level
-// preview ("14.7 → 16.8") while below max level, answering the
-// spend-a-point decision directly.
+// Values scale along BOTH of the game's axes (round-4 tooltip fix):
+//   · the SKILL level, rendered with a next-level preview ("14.7 → 16.8")
+//     while below max level, answering the spend-a-point decision directly;
+//   · the CHARACTER level, via the caller-supplied power scale — the same
+//     f(L) the server multiplies HP-valued output by (casterPowerScale).
+// Modelling only the first is what made Rejuvenation read "4" on a level-30
+// character it was actually healing for ~107. PO ruling 2026-07-25: show the
+// absolute number the player will actually see.
 
-import {DamageParams, SkillDefinition, SkillEffect, skillDefinition} from '../../../../client-data/Skills';
+import {DamageParams, SkillDefinition, SkillEffect, powerScaleAt, skillDefinition} from '../../../../client-data/Skills';
+import {getLocalPlayerLevel} from '../../../../client-data/Mobs';
 import {AURA_CATEGORY_COLORS} from '../../../game-objects/logic/AuraRings';
 
 const TICK_MS = 33;
@@ -58,6 +64,17 @@ function fmt(n: number): string {
     return String(parseFloat(n.toFixed(2)));
 }
 
+// hpFmt renders an absolute HP amount the way the server deals it —
+// vitals.HP: rounded half up to a whole point, and never rounded away to
+// nothing when it is positive (the min-1 rule). Without this a scaled heal
+// would read "106.99" for a 107 HP tick: precise, and still not what lands.
+function hpFmt(n: number): string {
+    if (n <= 0) {
+        return '0';
+    }
+    return String(Math.max(1, Math.trunc(n + 0.5)));
+}
+
 function pct(fraction: number): string {
     return fmt(fraction * 100) + '%';
 }
@@ -68,11 +85,16 @@ function ticksToSecs(ticks: number): string {
 
 // prog renders a level-scaled value as "current → next" while a next level
 // exists and actually changes it, else just the current value.
+//
+// `scale` is the character-level power scale and defaults to neutral, so the
+// decision "does this line ride f(character level)?" stays visible at every
+// call site rather than hidden in here — casterPowerScale multiplies HP-side
+// output ONLY, and this is the client-side mirror of that boundary.
 function prog(base: number, perLevel: number, level: number, maxLevel: number,
-              render: (n: number) => string = fmt): string {
-    const current = render(scaled(base, perLevel, level));
+              render: (n: number) => string = fmt, scale: number = 1): string {
+    const current = render(scaled(base, perLevel, level) * scale);
     if (perLevel !== 0 && level < maxLevel) {
-        const next = render(scaled(base, perLevel, level + 1));
+        const next = render(scaled(base, perLevel, level + 1) * scale);
         if (next !== current) {
             return `${current} → ${next}`;
         }
@@ -150,6 +172,9 @@ function targetsLine(effect: SkillEffect, level: number, maxLevel: number): stri
     return `Targets: all ${who} in range`;
 }
 
+// The extras are all relative multipliers (crit %, variance, execute,
+// berserker, lifesteal) or damage-type text — casterPowerScale touches none
+// of them, so this whole function is power-scale-free on purpose.
 function damageExtraLines(damage: DamageParams, level: number, maxLevel: number, lines: string[]) {
     const nonPhysical = damage.tags.length > 1 || damage.tags[0] !== 'physical';
     if (nonPhysical && !damage.gated) {
@@ -191,7 +216,7 @@ interface EffectBlock {
     generics: Partial<Record<GenericKind, string>>;
 }
 
-function effectBlock(effect: SkillEffect, level: number, maxLevel: number): EffectBlock {
+function effectBlock(effect: SkillEffect, level: number, maxLevel: number, powerScale: number): EffectBlock {
     const lines: string[] = [];
 
     // Cadence folds into the main line instead of its own "Ticks every" line
@@ -209,29 +234,35 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number): Effe
     switch (effect.type) {
         case 'damage_aura':
         case 'instant_damage':
-            lines.push(`Damage: ${prog(effect.damage.hp, effect.damage.hpPerLevel, level, maxLevel)}${perTick}`);
+            lines.push(`Damage: ${prog(effect.damage.hp, effect.damage.hpPerLevel, level, maxLevel, hpFmt, powerScale)}${perTick}`);
             damageExtraLines(effect.damage, level, maxLevel, lines);
             break;
         case 'heal_aura': {
             const heal = effect.heal;
             if (heal.fractionOfMax > 0) {
+                // Curve-free by construction: max HP already carries f(L),
+                // which is why the server skips powerScale on this branch too.
                 lines.push(`Heal: ${prog(heal.fractionOfMax, heal.fractionOfMaxPerLevel, level, maxLevel, pct)} of max HP${perTick}`);
             } else {
-                lines.push(`Heal: ${prog(heal.hp, heal.hpPerLevel, level, maxLevel)}${perTick}`);
+                lines.push(`Heal: ${prog(heal.hp, heal.hpPerLevel, level, maxLevel, hpFmt, powerScale)}${perTick}`);
             }
             if (heal.variance > 0) lines.push(`Variance: ±${pct(heal.variance)}`);
-            const renderCost = (n: number) => fmt(Math.max(0, n));
-            if (renderCost(scaled(heal.selfDamageHp, heal.selfDamageHpPerLevel, level)) !== '0') {
-                lines.push(`Costs you: ${prog(heal.selfDamageHp, heal.selfDamageHpPerLevel, level, maxLevel, renderCost)} HP per tick`);
+            // The self-cost is an HP value, so it rides the curve with the
+            // heal — costs stay proportional to the pool (GDD §5). hpFmt
+            // already floors a negative (over-levelled) cost at 0, which is
+            // both what vitals.HP does and what suppresses the line.
+            if (hpFmt(scaled(heal.selfDamageHp, heal.selfDamageHpPerLevel, level) * powerScale) !== '0') {
+                lines.push(`Costs you: ${prog(heal.selfDamageHp, heal.selfDamageHpPerLevel, level, maxLevel, hpFmt, powerScale)} HP per tick`);
             }
             break;
         }
         case 'self_heal': {
             const selfHeal = effect.selfHeal;
             if (selfHeal.fractionOfMax > 0) {
+                // Curve-free, as above.
                 lines.push(`Heal self: ${prog(selfHeal.fractionOfMax, selfHeal.fractionOfMaxPerLevel, level, maxLevel, pct)} of max HP`);
             } else {
-                lines.push(`Heal self: ${prog(selfHeal.healHp, selfHeal.healHpPerLevel, level, maxLevel)} HP`);
+                lines.push(`Heal self: ${prog(selfHeal.healHp, selfHeal.healHpPerLevel, level, maxLevel, hpFmt, powerScale)} HP`);
             }
             if (selfHeal.variance > 0) lines.push(`Variance: ±${pct(selfHeal.variance)}`);
             break;
@@ -259,7 +290,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number): Effe
         case 'instant_dot': {
             const dot = effect.dot;
             const duration = ticksToSecs(dot.tickCount * dot.interval);
-            lines.push(`Damage over time: ${prog(dot.hp, dot.hpPerLevel, level, maxLevel)} × ${dot.tickCount} hits over ${duration}${refresh}`);
+            lines.push(`Damage over time: ${prog(dot.hp, dot.hpPerLevel, level, maxLevel, hpFmt, powerScale)} × ${dot.tickCount} hits over ${duration}${refresh}`);
             const nonPhysical = dot.tags.length > 1 || dot.tags[0] !== 'physical';
             if (nonPhysical) lines.push(`Damage type: ${dot.tags.join(', ')}`);
             if (dot.variance > 0) lines.push(`Variance: ±${pct(dot.variance)}`);
@@ -290,7 +321,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number): Effe
         case 'shield_aura':
         case 'instant_shield': {
             const shield = effect.shield;
-            let line = `Shield: ${prog(shield.hp, shield.hpPerLevel, level, maxLevel)} HP`;
+            let line = `Shield: ${prog(shield.hp, shield.hpPerLevel, level, maxLevel, hpFmt, powerScale)} HP`;
             if (effect.type === 'instant_shield') {
                 line += ` for ${ticksToSecs(shield.durationTicks)}`;
             }
@@ -305,7 +336,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number): Effe
         case 'instant_hot': {
             const hot = effect.hot;
             const duration = ticksToSecs(hot.tickCount * hot.interval);
-            lines.push(`Heal over time: ${prog(hot.hp, hot.hpPerLevel, level, maxLevel)} × ${hot.tickCount} over ${duration}${refresh}`);
+            lines.push(`Heal over time: ${prog(hot.hp, hot.hpPerLevel, level, maxLevel, hpFmt, powerScale)} × ${hot.tickCount} over ${duration}${refresh}`);
             if (hot.targetsSelf) lines.push('Also heals you');
             break;
         }
@@ -348,8 +379,11 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number): Effe
 
 const GENERIC_KINDS: GenericKind[] = ['radius', 'targets'];
 
-export function formatSkillTooltip(def: SkillDefinition, level: number): TooltipContent {
-    const blocks = def.effects.map(effect => effectBlock(effect, level, def.maxLevel));
+// powerScale is f(character level) — passed in rather than read here so the
+// whole formatter stays pure and DOM-free (and testable at both ends of the
+// curve without a loaded catalog).
+export function formatSkillTooltip(def: SkillDefinition, level: number, powerScale: number): TooltipContent {
+    const blocks = def.effects.map(effect => effectBlock(effect, level, def.maxLevel, powerScale));
 
     // A generic kind is shared when every effect that renders it renders it
     // identically — then it prints once at the bottom instead of per effect.
@@ -419,7 +453,10 @@ function showTooltip(anchor: HTMLElement, skillId: number, level: number) {
     }
     currentAnchor = anchor;
     const element = ensureTooltipElement();
-    const content = formatSkillTooltip(def, level);
+    // getLocalPlayerLevel lives in the mob catalog because the nameplate
+    // difficulty tint (its first consumer) already owned the mob side; it is
+    // live-updated from every snapshot by Player.updateFromBackend.
+    const content = formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()));
 
     element.innerHTML = '';
     const title = document.createElement('div');

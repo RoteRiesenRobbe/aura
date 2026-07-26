@@ -1,10 +1,11 @@
 # Plan: Playtest Feedback (rolling collection)
 
-**Status:** **Collection doc — 1 of 2 designed chunks executed.** Triaged,
+**Status:** **Collection doc — both designed chunks executed.** Triaged,
 prioritized and sorted 2026-07-24; rounds 3 + 4 appended 2026-07-25, each with a
 designed chunk. **Round 3 (healer combat state + role-as-loadout) shipped
-2026-07-25 `03b152f4` — ⏳ PO test pending 2026-07-26** (ledger + acceptance
-checklist: §Round-3 chunk ledger). **Round 4 (tooltip power scale) not started.**
+2026-07-25 `03b152f4` — ⏳ PO test pending** (ledger + acceptance checklist:
+§Round-3 chunk ledger). **Round 4 (tooltip power scale) shipped 2026-07-26
+`[uncommitted]` — ⏳ PO test pending** (§Round-4 chunk ledger).
 This is the **standing home for issues
 arising from playtests**: new rounds append to §Intake, items get sorted into
 the passes below, and we pick targets from here. Successor to
@@ -598,6 +599,96 @@ conf curve, not `curve.Default()`. Then in-game: hover Rejuvenation at level 1,
 heal landing on an ally.
 
 **Blocks nothing, blocked by nothing.** Independent of the round-3 healer chunk.
+
+### Round-4 chunk ledger
+
+**Tooltip character-power-scale DONE (2026-07-26), backend + frontend + first JS
+test infra — ⏳ PO TEST PENDING** (headless-verified only), committed
+`[uncommitted]`. 14 files.
+
+**PO in-game acceptance checklist:**
+1. Hover any HP-valued ability at character level 1, `XP 99999999` to 30, hover
+   again — the number must move. Rejuvenation is the reported case: `4 → 6`
+   becomes `107 → 160`.
+2. Confirm the tooltip number matches the heal/hit **actually landing** (the
+   headless run pins the render, not the collision between render and reality).
+3. Check the non-HP lines did **not** move: radius, crit %, variance, slow,
+   resist, stat passives, cadence, cooldown, target counts.
+4. ⚠ **Sanity-check the new whole-point rounding reads acceptably** — see the
+   behaviour change below.
+
+**Backend.** `skills.Catalog` envelope: `/skills` now serves
+`{"curve": {...}, "skills": [...]}` instead of a bare array.
+`CatalogJSON`/`CatalogHandler` take a `curve.Curve`. Breaking, but our client is
+the only consumer and both halves ship in one commit.
+- The planned ⚑ **DRY watch resolved by extraction, not by a third copy:** the
+  literal `curve.Curve{Growth: …, MaxLevel: …}` already existed twice
+  (`aurad.go:65`, `gameconf.go:22`). Added **`cfg.Config.LevelCurve()`** as THE
+  construction point and repointed both — so the chunk *removed* a duplication
+  instead of adding one. `ReadConfig` already defaults both fields, so it needs
+  no defaulting of its own (the GDD §5 one-knob rule).
+
+**Frontend.** `Skills.ts` parses the curve and exposes **`powerScaleAt(level)`**,
+mirroring `curve.F` exactly — *including both degenerate cases*: growth ≤ 0 is
+neutral, level < 1 clamps to the baseline. Fetch failure → scale 1, which
+reproduces exactly the pre-fix rendering rather than inventing a factor.
+`SkillTooltip.ts`: `prog()` gained a trailing `scale` argument defaulting to
+neutral, so "does this line ride f(L)?" stays visible **at each call site** —
+the client-side mirror of `casterPowerScale`'s HP-values-only boundary. Applied
+to the seven lines named above and nothing else; the two `of max HP` fraction
+branches carry inline comments saying why they are curve-free.
+`getLocalPlayerLevel` imported from `client-data/Mobs` as-is (no third consumer
+yet ⇒ no lift, per the plan's own rule).
+
+**⚑ Rounding, resolved.** `vitals.HP` rounds half up and floors a positive
+amount at 1. New `hpFmt` mirrors it. Without this a scaled heal renders
+`106.99` for a 107 HP tick — precise, and still not what lands.
+
+**⚠ PO-visible behaviour change (not in the plan):** because `hpFmt` replaces
+`fmt` on those seven lines, **HP values now read as whole points even at
+character level 1**. An authored `6.3` shield reads `Shield: 6 HP`. This is what
+the server grants (`vitals.HP(6.3)` = 6) and follows from the PO's
+"show what the player will actually see" ruling, but it is a visible low-level
+change. Checked before shipping: every authored base HP is ≥ 4 and every
+per-level step ≥ 1.2, so the `→ next` arrow still moves on every skill.
+
+**First JS test infra in the repo (PO decision 2026-07-26, via choice prompt).**
+`vitest` + `jsdom` devDeps, `vitest.config.ts`, `vitest.setup.ts`, `npm test`.
+Three landmines worth recording:
+- **jsdom, not node** — the client's module graph reaches `window` at import
+  time (`Urls.ts` derives the catalog host from `window.location`, PixiJS wants
+  a document), so even a pure-formatting unit needs a browser-shaped global.
+- **`vitest.setup.ts` stubs `fetch`** — `Skills.ts`/`Mobs.ts` fetch on *import*,
+  so an un-stubbed unit test does real DNS against the derived catalog host.
+- **`skipLibCheck: true`** added to `tsconfig.json`: vitest's own `.d.ts` files
+  use private identifiers and a bundler-style export map, which tsc reports
+  against the app's `es5` target. The shipped bundle target is unchanged.
+
+**Verified.** `go build`/`vet` clean, `go test ./...` **exit 0, 27 packages**,
+simharness guardrails replay clean `-count=2`. `npm test` 6/6, `npm run
+typecheck` clean, `npm run build` clean. `make -C backend build` re-run **after**
+the JSON edit (the §26 Chunk-2 lesson). Boot `-content ../api` **0 errors 0
+panics** — 83 skills/14 factions/50 mobs/10 recipes/5 prop defs/1 milestone/777
+props/471 spawns/5 campfires/14 npcs. Headless in-game
+(`.claude/skills/verify/round4-tooltip.mjs`, kept as a repeatable check per PO):
+joined, catalog parsed (real names, not `Skill #29`), Rejuvenation renders
+`4 → 6` at level 1 and `107 → 160` at 30 with `Radius: 2.5 → 2.7` byte-identical
+across both.
+
+**TDD.** Backend test red → green first. Six frontend tests written red first,
+three genuinely red on behaviour. The load-bearing one is *"leaves every non-HP
+line byte-identical across the scale"* — over-applying the scale is the failure
+mode that would look like a fix.
+
+**Harness notes for the next headless run** (both cost a cycle here):
+`#gameUI`'s class is **not** `active` in this build — wait on
+`window.game?.character` instead; and `Character` has no `level` field, the
+level is only on `character.levelElement.text`.
+
+**Drive-by, as the plan asked:** the stale Rejuvenation drop chance (`.1` → the
+authored `0.25`) fixed in `orc-warlord.json`'s `_comment` and
+`content-skill-inventory.md:59`. `content-auras.md` turned out not to carry the
+number at all — the plan named it, but there is nothing there to fix.
 
 ### Adjacent finding — Hardy does not buff heal output (verified, no action)
 

@@ -65,6 +65,16 @@ type Config struct {
 	} `json:"game"`
 }
 
+// LevelCurve builds f(character level) from the conf pair. THE single
+// construction point: the player stat scale, the mob registry's tier+baseline
+// derivation and the /skills catalog all read the same curve, and three
+// hand-written `curve.Curve{Growth: …, MaxLevel: …}` literals are exactly how
+// one of them quietly keeps an old growth after a retune (GDD §5 one-knob
+// rule). ReadConfig has already defaulted both fields, so this needs none.
+func (c *Config) LevelCurve() curve.Curve {
+	return curve.Curve{Growth: c.Game.Player.LevelGrowth, MaxLevel: c.Game.Player.MaxLevel}
+}
+
 // reads the config from file
 func ReadConfig(filename string) (*Config, error) {
 	var err error

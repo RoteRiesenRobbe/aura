@@ -56,7 +56,7 @@ without the `SKILL` cheat.
 | 5 | Immolate | 5 | fire dot 10.5 +2.1/L (3×60t) @20t, r1.0 | NPC-W Emberkeeper @L8 |
 | 6 | Light | 3 | light r4 +1/L | Drop: Kobold / KoboldRanged .05 |
 | 7 | Reaper | 3 | dmg 12 +3/L @40t r2.0; execute <35% ×2; lifesteal 50%; berserker ×2 at low HP | Drop: AlphaWolf .2 (2026-07-21) |
-| 29 | Rejuvenation | 3 | HoT 4 +2/L (6×60t) @60t, r2.5 +.2/L | Drop: OrcWarlord .1 (boss-rare) |
+| 29 | Rejuvenation | 3 | HoT 4 +2/L (6×60t) @60t, r2.5 +.2/L | Drop: OrcWarlord .25 (boss-rare) |
 | 30 | Paladin | 5 | dmg 10 +2.2/L + heal 8 +4/L (no self-cost) | Recipe: Damage 5 + Heal 5 |
 | 40 | FireWard | 3 | fire resist ×0.6 −0.1/L, allies+self, r1.5 | Drop: FireElemental .2 (2026-07-21 — closed the last reachability gap) |
 | 41 | Harvest | 5 | gated dmg 14 +3.2/L, tag `harvest`, var ±15% | NPC-W Farmer @L1 |

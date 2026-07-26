@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 )
 
 // The skill catalog (plan-ui-polish chunk 1) serves the PARSED registry as
@@ -71,20 +73,33 @@ func DeriveDisplayName(name string) string {
 	return b.String()
 }
 
-// CatalogJSON marshals every loaded skill definition sorted by ID. Mob-only
-// and legacy skills are included — harmless, since the client only renders
-// tooltips for spellbook-known ids.
-func CatalogJSON(r Registry) ([]byte, error) {
+// Catalog is the /skills payload. The skill list is the bulk of it; the curve
+// rides along because authored effect numbers alone do not tell the client
+// what a heal or a hit actually lands for — the server multiplies every
+// HP-valued output by f(character level) (casterPowerScale, GDD §5), so
+// without the curve a tooltip can only ever render the level-1 baseline
+// (round-4 tooltip fix). Serving it beats hardcoding growth client-side:
+// levelGrowth is a [WORKING LOCK], not a constant, and hand-syncing it is
+// exactly the drift this endpoint was built to delete.
+type Catalog struct {
+	Curve  curve.Curve        `json:"curve"`
+	Skills []*SkillDefinition `json:"skills"`
+}
+
+// CatalogJSON marshals every loaded skill definition sorted by ID, alongside
+// the configured level curve. Mob-only and legacy skills are included —
+// harmless, since the client only renders tooltips for spellbook-known ids.
+func CatalogJSON(r Registry, c curve.Curve) ([]byte, error) {
 	defs := r.All()
 	sort.Slice(defs, func(i, j int) bool { return defs[i].ID < defs[j].ID })
-	return json.Marshal(defs)
+	return json.Marshal(Catalog{Curve: c, Skills: defs})
 }
 
 // CatalogHandler serves the catalog on GET with a wildcard CORS origin: in
 // dev the client runs on :2001 against aurad on :2000, and the catalog is
 // public read-only content.
-func CatalogHandler(r Registry) (http.Handler, error) {
-	payload, err := CatalogJSON(r)
+func CatalogHandler(r Registry, c curve.Curve) (http.Handler, error) {
+	payload, err := CatalogJSON(r, c)
 	if err != nil {
 		return nil, err
 	}

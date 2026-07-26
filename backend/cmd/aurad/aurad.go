@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/core"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/encounter"
@@ -63,7 +62,7 @@ func main() {
 	config := loadConf()
 	skillsRegistry := loadSkills(content.skills)
 	factionsRegistry := loadFactions(content.factions)
-	levelCurve := curve.Curve{Growth: config.Game.Player.LevelGrowth, MaxLevel: config.Game.Player.MaxLevel}
+	levelCurve := config.LevelCurve()
 	mobsRegistry := loadMobs(skillsRegistry, factionsRegistry, levelCurve, content.mobs)
 	milestoneUnlocks := loadMilestoneUnlocks(content.milestones, skillsRegistry)
 	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
@@ -260,8 +259,10 @@ func main() {
 	// content catalogs — the parsed registries as JSON, the client's single
 	// source of the per-definition metadata it renders (skill tooltips,
 	// plan-ui-polish chunk 1; level-tinted nameplates, feedback pass C item 2),
-	// static after boot. /players is the one live one.
-	skillsHandler, err := skills.CatalogHandler(skillsRegistry)
+	// static after boot. /skills also carries the level curve, without which
+	// tooltips can only render the level-1 baseline (skills.Catalog).
+	// /players is the one live one.
+	skillsHandler, err := skills.CatalogHandler(skillsRegistry, levelCurve)
 	if err != nil {
 		slog.Error("failed to build skill catalog", slog.Any("error", err))
 		panic(err)

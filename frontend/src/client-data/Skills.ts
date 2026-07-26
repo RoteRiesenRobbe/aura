@@ -162,9 +162,18 @@ export interface SkillDefinition {
     effects: SkillEffect[];
 }
 
+// LevelCurve mirrors the Go curve.Curve served alongside the definitions
+// (skills.Catalog). Growth 0 means "no curve known" and is neutral — the same
+// un-configured-curve convention curve.F uses server-side.
+export interface LevelCurve {
+    growth: number;
+    maxLevel: number;
+}
+
 // --- catalog state + fetch ---
 
 const catalog = new Map<number, SkillDefinition>();
+let levelCurve: LevelCurve = {growth: 0, maxLevel: 0};
 
 // The server's category vocabulary → the client's (the HUD panels and equip
 // guards say 'aura').
@@ -182,9 +191,10 @@ export function loadSkillCatalog(): Promise<void> {
             }
             return response.json();
         })
-        .then((definitions: any[]) => {
+        .then((payload: { curve?: LevelCurve, skills: any[] }) => {
+            levelCurve = payload.curve ?? {growth: 0, maxLevel: 0};
             catalog.clear();
-            for (const def of definitions) {
+            for (const def of payload.skills) {
                 catalog.set(def.id, {
                     ...def,
                     category: CATEGORY_MAP[def.category] ?? 'aura',
@@ -211,6 +221,21 @@ export function skillDisplayName(id: number): string {
 
 export function skillMaxLevel(id: number): number {
     return catalog.get(id)?.maxLevel ?? 1;
+}
+
+// powerScaleAt is f(character level) — the number-inflation multiplier the
+// server applies to every HP-valued output (casterPowerScale, GDD §5).
+// Mirrors curve.F exactly, including both of its degenerate cases: an
+// un-configured curve is neutral, and levels below 1 clamp to the baseline.
+//
+// Neutral-on-failure is deliberate: if the catalog fetch never lands, the
+// tooltip reproduces exactly its pre-round-4 behaviour (authored values, no
+// curve) rather than inventing a factor or refusing to render.
+export function powerScaleAt(characterLevel: number): number {
+    if (levelCurve.growth <= 0) {
+        return 1;
+    }
+    return Math.pow(levelCurve.growth, Math.max(1, characterLevel) - 1);
 }
 
 // Unknown IDs default to 'aura' — the most common category; keeps a skill

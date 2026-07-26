@@ -2,7 +2,6 @@ package core
 
 import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
@@ -19,7 +18,7 @@ func Config(conf *cfg.Config) Configuration {
 		g.PlayerConfig.HealthGainTick = conf.Game.Player.HealthGainTick
 		g.PlayerConfig.WalkingSpeedPerTick = conf.Game.Player.WalkingSpeedPerTick
 		g.PlayerConfig.BaseHealth = conf.Game.Player.BaseHealth
-		g.PlayerConfig.LevelCurve = curve.Curve{Growth: conf.Game.Player.LevelGrowth, MaxLevel: conf.Game.Player.MaxLevel}
+		g.PlayerConfig.LevelCurve = conf.LevelCurve()
 		g.PlayerConfig.LevelUpXPBase = conf.Game.Player.LevelUpXPBase
 		g.PlayerConfig.LevelUpXPGrowthFactor = conf.Game.Player.LevelUpXPGrowthFactor
 		g.PlayerConfig.SkillPointsPerLevel = conf.Game.Player.SkillPointsPerLevel
