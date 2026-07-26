@@ -2322,7 +2322,16 @@ real GPU. Note this makes the bug a **harness-reliability problem first**: any
 smoke run can lose ~1 in 6 attempts to it and the failure looks like the change
 under test.
 
-### 29.2 Fix options (none chosen — PO call)
+### 29.2 Fix options — ✅ **A CHOSEN** (PO 2026-07-26)
+
+> **PO decision 2026-07-26: take option A (detect + warn), scheduled as a chunk
+> ahead of the step-8 entity design session.** Rationale on record: the entity /
+> persistence stretch is verification-heavy and long-running, and a blank world
+> in ~1 in 6 headless runs currently reads as a regression in the change under
+> test — §29.1's two dead leads were both chased for that reason. A converts it
+> into a self-labelling failure for ~20 lines. **B, C and E not taken; D (the
+> upstream null-check courtesy) stays optional and unscheduled.** Any *player*
+> report still promotes C, per the recommendation below.
 
 - **A — Detect and say so** (~20 lines, recommended). Add our own
   `webglcontextlost` / `webglcontextrestored` listeners on the renderer canvas:
@@ -2349,6 +2358,62 @@ under test.
 **Recommendation:** **A now** (it is the honest minimum and pays for itself the
 next time a smoke run goes weird), **D as a courtesy**, and treat any *player*
 report as promoting **C**. B only if a player-facing occurrence appears.
+
+### 29.2.1 Chunk plan for option A (traced against the code 2026-07-26)
+
+Frontend only, no backend, no wire. Scheduled ahead of the step-8 entity design
+session so a blank world stops reading as a regression in whatever is under test.
+
+**Where it goes.** `frontend/src/features/core/logic/Game.ts`. The world
+`Application` is constructed at `:95` and `application.init()` resolves at `:98`
+(already chained into `setupResizeHandling`); the canvas is already exposed as
+`this.application.canvas` (`domElement` getter, `:86`). Attach a
+`webglcontextlost` listener to that canvas on the same `.then()`.
+
+**What it does.** An unconditional labelled `console.error`, plus
+`AlertBanner.show('…', 'warning')` — the `warning` kind already exists
+(`features/user-interface/alert-banner/logic/AlertBanner.ts:16`) and already
+renders red from feedback pass B. Nothing else: no recovery, no ticker restart.
+
+**Three decisions taken at plan time, each with a reason that is not obvious
+from the source:**
+
+1. **World canvas only — deliberately NOT the minimap's.** `MiniMap.ts:44` owns
+   a second `Application` with its own context, and §29.1's 5th sighting had the
+   minimap rendering while the world did not. Warning on the minimap's context
+   would be a different (and much less serious) failure. ⚑ **Verify against the
+   boot probes:** §29.1 records that the client makes 5 GL contexts at boot and
+   **pixi deliberately loses 2 of them** as capability probes. Those are on
+   throwaway canvases, so scoping the listener to `application.canvas` *should*
+   see zero false positives — but that is the assumption most likely to be
+   wrong, and it is the first thing `ctxloss-repro.mjs` must confirm. A warning
+   banner on every clean boot is worse than no banner.
+2. **`console.error` is the load-bearing half; the banner is best-effort.**
+   `AlertBanner.show()` silently no-ops while `bannerElement === null`
+   (`AlertBanner.ts:33`, "not set up (tests, early messages)") — and the
+   deterministically reproduced case is a **mid-boot** loss, i.e. precisely when
+   the banner may not exist yet. The log line is what the harness reads, so it
+   must not depend on HUD setup order. **Recorded as a known limitation rather
+   than fixed** — queueing pre-setup alerts is machinery this does not justify
+   (YAGNI); revisit only if a *player*-facing sighting appears, which per §29.2
+   would promote option C anyway.
+3. **Do not call `preventDefault()` on the event.** Suppressing the default is
+   what makes a later `webglcontextrestored` possible; option B (attempt
+   recovery) was explicitly not taken, and §29.1 measured that the restore half
+   works while the GPU-state rebuild does not come for free. Leaving the default
+   alone keeps A honest instead of half-implementing B. For the same reason
+   **no `webglcontextrestored` listener** is added — there is nothing to do in it.
+
+**Test strategy.** Extract the installer as its own module
+(`installContextLossWarning(canvas)`) so the vitest/jsdom infra added by the
+round-4 chunk can drive it with a stub canvas that dispatches the event, and
+assert both the log and the `AlertBanner.show` call. See CLAUDE.md §Frontend
+tests for the three landmines (jsdom not node, the `fetch` stub, explicit
+`{describe, it, expect}` imports). Real verification is
+`.claude/skills/verify/ctxloss-repro.mjs` with `HUNT_PERCTX=1` — it already
+forces the loss and screenshots — plus a clean-boot run to prove decision 1.
+⚑ **The scene-graph probe cannot see this bug** (§29.3): screenshot, don't walk
+the tree.
 
 ### 29.3 Harnesses (kept)
 

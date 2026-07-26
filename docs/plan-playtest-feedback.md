@@ -1080,6 +1080,16 @@ already right — *"Large aggro sensor so a spawned wave finds the fight on its
 own while charging in"* — 5.4 was simply authored too small for where the anchor
 ended up.
 
+> **✅ RESOLVED 2026-07-26 — PO takes it themselves, in the zone editor: option
+> B, move the `wave-mouth` anchor closer to `warlord-home`.** No code chunk, no
+> `api/mobs/orc-grunt.json` edit from this side; it lands with the PO's ongoing
+> manual placement passes. ⚑ **The distance to beat is the grunt's own
+> `aggroRadius` 5.4** — the gap is 7.57 today, so the anchor has to come inside
+> that, and trimming to ~6 (as suggested under B below) leaves only 0.6 units of
+> margin while keeping some of the charge-in beat. **A and C are not being
+> implemented**; if B alone proves not to fire in play, A is still the cheapest
+> follow-up.
+
 **⇒ PO decision 2026-07-26: all three of the following are sanctioned options;
 pick at execution time.** (Options 4 and 5 from the triage — spawn-at-the-boss,
 and a new scripted-move seam — are **not** taken: the first deletes the
@@ -1146,6 +1156,84 @@ constraint, so it can be **overwhelmed when many mobs converge on one point**;
 hard collision guarantees a minimum spacing at any count. If the clump proves
 worst exactly when the pack is biggest, that is the case that would re-open
 backlog §34.
+
+#### Chunk plan (traced against the code 2026-07-26)
+
+**⚠ Correction to the sizing above.** "It is a steering change, not a physics
+change" is true of the *semantics* — masks stay untouched, nothing new collides.
+It is **not** true of the file list: two prerequisites fall out in `phy/`, and
+they are most of the chunk. Neither was visible from the decision-level analysis.
+
+**① There is no allocation-free dynamic-side query, and the naive one is
+pinned against.** `blockerRepulsion` (`model/mob/steering.go:90`) uses
+`space.AppendCircleStatics`, which exists *specifically* to allocate nothing —
+the comment at `:76` records that building the probe and hit buffer per call was
+"the single largest allocation site in the idle game loop". Its dynamic
+counterpart `QueryCircle` (`phy/space.go:160`) allocates **a `seen` map *and* a
+fresh `hits` slice on every call**, and this path runs per mob per tick (~50
+mobs × 30 Hz with nobody online). Using it would re-open the idle-overload
+regression and fail `steering_alloc_test.go`, the pin the idle-alloc fix
+(`fe0044d0`) left behind for exactly this.
+
+⇒ **New `Space.AppendCircleDynamics(dst []DynamicCollider, c *Circle)`**,
+mirroring `AppendCircleStatics` (`space.go:208`) — same `dst[:0]` buffer-reuse
+contract, same **linear-scan cell-straddle de-dup** via `containsCollider`
+rather than a map (`space.go:227` explains why: "a probe spans a handful of
+cells and hits a handful of statics, and the map was pure garbage on the hot
+path"). The mob then carries a second reusable hit buffer alongside
+`m.steerHits`.
+
+**② No collision layer identifies "a mob body", so the mask cannot do the
+filtering.** Checked every source of the bit:
+
+| body | layer | source |
+|---|---|---|
+| mob (default) | `Viewport\|Action` | `model/mob/mob.go:101` |
+| mob (authored) | whatever the def says | `mob.go:103`, `d.Body.CollisionLayer` |
+| campfire | `32` = Viewport only | `api/mobs/campfire.json` |
+| totem, companion | `160` = Viewport\|Player | the authored "player-layer trick" |
+| player | `Viewport\|Player` | `model/player/player.go:44` |
+
+`Viewport` is the **only** bit every body shares, and it does not discriminate
+player from mob. An authored `collisionLayer` replaces the default wholesale, so
+adding a new `LayerMobBodyCollision` bit would be silently dropped by exactly
+the defs that already override — and the campfire/totem comments show authors
+treat that field as an exact number, not a set to extend.
+
+⇒ **Query on `LayerViewportCollision`, then filter hits to `*Mob` through
+`Shape().UserData`, dropping self by pointer identity.** This is not a
+workaround — it is what makes the PO's two rejections (**no player↔player, no
+player↔mob**) structural: a type check content cannot undo, instead of mask
+arithmetic a future `collisionLayer` edit could accidentally re-enable.
+
+**③ The steering change itself is small.** Reuse the existing `m.steerProbe`
+(same radius, `m.Radius()+steeringLookahead`) with the mask swapped for the
+second query, sum `circleRepulsion` over the surviving mobs, and scale by a new
+`mobRepulsionWeight` **[PLACEHOLDER]** constant kept well below
+`steeringRepulsionWeight = 1.5` (`steering.go:24`). Low weight is precisely what
+keeps the head-on `steerSide` latch (`steering.go:46`) from firing against
+*moving* blockers — it was tuned against stationary ones, and both the
+2026-07-11 and 2026-07-20 in-game findings recorded there are jiggle-in-place
+limit cycles.
+
+**⚑ Landmine to pin with a test — the soft analogue of §34's welding.** §34
+records that co-located equal-radius circles never separate under
+`resolveCircleThomas`. The steering side is better but not immune:
+`circleRepulsion` handles `d < 1e-4` by pushing along `m.heading`
+(`steering.go:112`), so it is at least never a zero vector — but two
+same-species mobs spawned on one point **with the same heading push identically
+and stay welded**. Worth a direct test either way, since same-point spawns are
+exactly what the wave/summon paths produce.
+
+**Verification.** `go build`/`vet`, `go test ./...`, guardrails `-count=2`, and
+specifically `steering_alloc_test.go` (the whole point of ①) plus the sim
+battery — steering changes alter time-to-contact and therefore TTK. Then
+in-game: pull a wolf pack and watch whether it spreads without any mob
+jiggling in place at a prop notch.
+
+**Does NOT close item 4 below.** Read that item's arithmetic first: ~19 wolves
+fit inside a level-1 Damage aura even with *hard* collision fully enforced, so
+no separation scheme creates focus fire. Different fix, different chunk.
 
 ### 4. Nearest-targeting auras have no target persistence (bug, surfaced by item 3)
 
@@ -1333,6 +1421,18 @@ total work, one settling point.
    reducing heal costs by X %. **Engine-new**: the sixth `validStat` and the
    first that modifies an *input* rather than an output. Rides item 2, so it
    lands with it or not at all.
+
+> **⚑ Ordering ruling 2026-07-26 (PO): the whole of Pass 1a.2 runs AFTER the
+> step-8 entity design session, not before it.** Item 3 would add the **sixth**
+> `validStat` (`skills/definition.go:170` holds exactly five today), and per
+> backlog §31 gap 1 **three of those five — `maxHealth`, `damageReduction`,
+> `movementSpeed` — are applied only in player code paths**, so a mob equipping
+> them silently gets nothing. Authoring a sixth while *"do mob passives scale
+> like player ones?"* is unresolved bakes the same trap into one more stat, and
+> this is the first one that modifies an **input**, where the mob-side answer
+> matters more rather than less. Gap 1's ruling is therefore an input to this
+> pass. This supersedes nothing about the costs-first-then-retune preference
+> recorded above — that ordering is 1a.2-vs-1b and still stands.
 
 ### 1b — retune on top
 
