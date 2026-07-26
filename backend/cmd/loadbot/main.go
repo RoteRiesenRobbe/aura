@@ -243,10 +243,14 @@ func resolveLoadout(names []string) ([]loadout, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	var cat []catalogEntry
-	if err := json.NewDecoder(resp.Body).Decode(&cat); err != nil {
+	// The endpoint wraps the list since the tooltip work: {"curve":…,"skills":[…]}.
+	var payload struct {
+		Skills []catalogEntry `json:"skills"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil, err
 	}
+	cat := payload.Skills
 	byName := make(map[string]catalogEntry, len(cat))
 	for _, e := range cat {
 		byName[e.Name] = e

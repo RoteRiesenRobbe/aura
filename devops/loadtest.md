@@ -285,6 +285,50 @@ cooldown was not enough for the ×2 respawn timers. Less work, and still slower.
 - No panics, no OOM, no dropped connections. Back to ~21 % of a core idle with
   0 overloads once the bots left.
 
+## Results — 2026-07-26, after the encoding + grid fixes and mob separation
+
+Same live box, same spot `(38,31)`, clustered, same two ramps. Deployed build:
+everything through `8b045395` (mob soft separation) plus the then-uncommitted
+mob-regen retune; measures the net of `6f1fc64c` (snapshot-vector fix on the
+encoding bottleneck + grid-floor fix in the broadphase) against the added
+per-mob separation work.
+
+**⚑ Measurement caveat that owns this table:** the network path to the box was
+degraded this evening — a *flat* 27.3 snap/s floor at 20–60 bots where the
+server logged **zero** over-budget ticks, while the identical harness against a
+local server read a clean 30.0. The deficit is constant across populations
+(binds even at 2.5 MB/s total), i.e. multiplicative, so the corrected column
+divides by 0.91. Check the floor against a local control before trusting any
+future live run's absolute numbers.
+
+| bots | A: Damage L1 (07-22 post-fix) | A: today (corrected) | B: max build (07-22) | B: today (corrected) |
+|---|---|---|---|---|
+| 20 | 30.0 | 27.3 (30.0) | 30.0 | 27.3 (30.0) |
+| 40 | 30.0 | 27.3 (30.0) | 30.0 | 27.3 (30.0) |
+| 60 | 30.0 | 27.3 (30.0) | 29.8 | 26.7 (29.3) |
+| 80 | 28.7 | 26.4 (29.0) | 18.8 | 15.2 (16.7) |
+| 100 | 20.7 | 18.8 (20.7) | 11.1 | 9.6 (10.5) |
+| 140 | 10.1 | 9.6 (10.5) | 5.2 | 4.5 (4.9) |
+
+**No measurable change — the clustered ceiling stays ~60–70 (L1) / ~60
+(maxed).** Run A corrected is baseline to the decimal at 100 bots. Run B is
+5–11 % below baseline past the knee — inside the confounds (its mob field was
+thin and refilling, census 7.1→14.1 with only 5–6.5 aggroed, and the network
+correction is approximate), but if any of it is real, mob soft separation is
+the likely payer: ~15 aggroed mobs per viewport now run a dynamics query per
+tick while chasing. Worst tick 809 % (~267 ms) vs 772 % on 07-22 — same
+magnitude. Idle after the ramps: ~18 % of a core, RSS 51 MB, no panics.
+
+This is the expected shape, same as the alloc fix: the encoding fix removed
+*waste* (4n bytes + an alloc per player-tick) but not the *structure* — the
+loop still fully re-encodes per player per tick, single-threaded — and the
+grid-floor fix mainly de-fattened the origin cell, which the `(38,31)` test
+cluster never touches. Moving the wall still means the structural list below.
+
+Harness note: `GET /skills` now wraps the catalog (`{"curve":…,"skills":[…]}`,
+round-4 tooltip work); loadbot's `resolveLoadout` was updated to match in this
+session — an old loadbot binary dies at startup with a JSON unmarshal error.
+
 ## The wall (and how to move it)
 
 The bottleneck is **single-threaded per-player GameState encoding on the game
