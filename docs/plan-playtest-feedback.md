@@ -5,7 +5,7 @@ prioritized and sorted 2026-07-24; rounds 3 + 4 appended 2026-07-25, each with a
 designed chunk. **Round 3 (healer combat state + role-as-loadout) shipped
 2026-07-25 `03b152f4` — ⏳ PO test pending** (ledger + acceptance checklist:
 §Round-3 chunk ledger). **Round 4 (tooltip power scale) shipped 2026-07-26
-`[uncommitted]` — ⏳ PO test pending** (§Round-4 chunk ledger).
+`eaae2e69` — ⏳ PO test pending** (§Round-4 chunk ledger).
 This is the **standing home for issues
 arising from playtests**: new rounds append to §Intake, items get sorted into
 the passes below, and we pick targets from here. Successor to
@@ -604,7 +604,7 @@ heal landing on an ally.
 
 **Tooltip character-power-scale DONE (2026-07-26), backend + frontend + first JS
 test infra — ⏳ PO TEST PENDING** (headless-verified only), committed
-`[uncommitted]`. 14 files.
+`eaae2e69`. 14 files.
 
 **PO in-game acceptance checklist:**
 1. Hover any HP-valued ability at character level 1, `XP 99999999` to 30, hover
