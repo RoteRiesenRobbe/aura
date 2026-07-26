@@ -15,6 +15,22 @@ import {KeyCombo} from './combo/KeyCombo';
 import {ProcessKeyDown} from './keys/ProcessKeyDown';
 import {ProcessKeyUp} from './keys/ProcessKeyUp';
 
+// Keys that zoom the browser when held with Ctrl (or Cmd on macOS). Matched on
+// `event.key` rather than `keyCode` so the main row and the numpad are both
+// covered on every layout — on a US layout the zoom-in key reports '=' unshifted
+// and '+' shifted, and the numpad reports '+' either way.
+const BROWSER_ZOOM_KEYS = new Set(['+', '-', '=', '_']);
+
+/**
+ * Ctrl/Cmd +/− — the browser's own zoom. Ctrl+0 is deliberately NOT matched:
+ * it resets the zoom, and swallowing it too would strand anyone who had already
+ * zoomed with the mouse wheel or the browser menu (neither of which a page can
+ * intercept from here).
+ */
+function isBrowserZoomShortcut(event: KeyboardEvent): boolean {
+    return (event.ctrlKey || event.metaKey) && BROWSER_ZOOM_KEYS.has(event.key);
+}
+
 export class KeyboardManager {
     enabled = false;
     target;
@@ -47,6 +63,14 @@ export class KeyboardManager {
         let captures = this.captures;
 
         let handler = function (event) {
+            if (isBrowserZoomShortcut(event)) {
+                // Browser zoom fights the fixed field of view (camera/Zoom.ts):
+                // the world keeps its size and only the HUD rescales, so the
+                // page ends up mismatched with no in-game benefit. Game zoom is
+                // its own control in the HUD.
+                event.preventDefault();
+            }
+
             // FIXME Space is always prevented!?
             if (event.defaultPrevented && (event.keyCode !== KeyCodes.SPACE)) {
                 // Do nothing if event already handled

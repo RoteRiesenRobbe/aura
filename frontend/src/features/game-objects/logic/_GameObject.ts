@@ -8,6 +8,7 @@ import {radians} from "../../common/logic/Types";
 import {GameSetupEvent, ISubscriptionToken, PrerenderEvent} from "../../core/logic/Events";
 import {IGame} from "../../core/logic/IGame";
 import * as TextDisplay from '../../../client-data/TextDisplay';
+import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 
 let movementInterpolatedObjects = new Set();
 let rotatingObjects = new Set();
@@ -445,6 +446,30 @@ export abstract class GameObject {
     showFloatingText(label: string, color: number, sizeFactor: number = 1) {
         if (Game === null) return;
 
+        // Swallowed by unlit darkness, exactly like mob name plates
+        // (Mobs.updatePlate, playtest-1 Pass C item 3). This layer renders
+        // ABOVE the darkness, so without the test a readable "-12" hangs over
+        // an invisible fight and hands away what the light role is for.
+        //
+        // Tested at the ENTITY's position, matching the name-plate precedent
+        // rather than the label's own offset position. That distinction
+        // decides the local player's case: the own character always carries a
+        // light (Player.MIN_SELF_LIGHT_PX), so own numbers always render,
+        // while a number over an unlit mob is suppressed. Testing the label
+        // position instead would put the test right at the edge of that small
+        // self-light and make the player's own feedback flicker on geometry.
+        //
+        // Once at spawn rather than per frame: the rise lasts 900 ms, well
+        // under the time a light needs to travel a meaningful distance — and
+        // testing here means the Text is never built in the first place.
+        if (DarknessOverlay.isHidden(this.shape.position.x, this.shape.position.y)) {
+            return;
+        }
+
+        // Slight horizontal jitter so numbers stacking on the same tick fan out.
+        const startX = this.shape.position.x + (Math.random() - 0.5) * this.size;
+        const startY = this.shape.position.y - this.size;
+
         const layer = Game.layers.characterAdditions.floatingNumbers;
         const text = new Text({
             text: label,
@@ -457,10 +482,6 @@ export abstract class GameObject {
             },
         });
         text.anchor.set(0.5, 0.5);
-
-        // Slight horizontal jitter so numbers stacking on the same tick fan out.
-        const startX = this.shape.position.x + (Math.random() - 0.5) * this.size;
-        const startY = this.shape.position.y - this.size;
         text.position.set(startX, startY);
         layer.addChild(text);
 

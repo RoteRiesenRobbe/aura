@@ -731,6 +731,134 @@ fixes; fold into this chunk's commit or any nearby one.
 
 ---
 
+## Rolling-filler batch ledger
+
+**Rolling filler — 4 of 6 items DONE (2026-07-26), committed `[uncommitted]` —
+⏳ PO TEST PENDING (headless-verified only).** 6 files + 2 new. Picked up as
+independent work while rounds 3 and 4 both sat PO-test-pending; deliberately
+touches **no file either of those chunks touched**.
+
+### Acceptance checklist (PO, in-game)
+
+1. `DAMAGE 25` takes a quarter of the health bar and leaves you alive
+   (it used to kill outright at any argument).
+2. Die, respawn — the minimap still shows what you explored, with **exactly
+   one** player dot and none left at the death site.
+3. `Ctrl+−` / `Ctrl++` no longer zoom the browser; **`Ctrl+0` still resets** it.
+4. In an unlit dark area: damage numbers over mobs are gone, **your own numbers
+   still show**.
+
+### The four fixes
+
+**① `DAMAGE <pct>` always killed** — `sys/cmd/cmd.go`. `SubFraction()` is a
+fraction of `vitals.Max` (`^VitalSign(0)` = 2^32−1); player health has been
+absolute HP since item 11, so `DAMAGE 1` subtracted ~43 million HP. Now
+`h.Sub(uint32(float32(p.MaxHealth()) * dmgf))`, with `dmgf` **clamped at 1** —
+without the clamp a large argument makes the float→`uint32` conversion
+out-of-range, which Go leaves implementation-defined. TDD: 6 tests, **3 red on
+behaviour**, 3 pinning behaviour that had to survive (100 % still empties the
+pool, still stamps `Damaged`, still rejects bad arguments).
+
+**② Floating numbers rendered in unlit darkness** — `_GameObject.ts`. One guard
+at `showFloatingText`, the sole creator of every floating number (numbers, XP,
+level-up, campfire-bound, activation rejections all route through it).
+
+> **⚑ The load-bearing detail: it tests the ENTITY's position, not the label's.**
+> The label spawns `this.size` px above the entity, and the local player always
+> carries a light (`Player.MIN_SELF_LIGHT_PX = 40`) — so testing the label
+> position would put the test right at the edge of that small self-light and
+> make the player's **own** feedback flicker on geometry. Testing the entity
+> position matches the `Mobs.updatePlate` precedent exactly and gives the
+> defensible rule: **own numbers always render, numbers over unlit mobs don't.**
+> This overturned the first cut of the fix, which suppressed the player's own
+> numbers too.
+
+**③ Minimap reset on death** — `BasicConfig.ts` + `Player.ts`. Not a logic bug:
+`CLEAR_MINIMAP_ON_DEATH` is **Berryhunter inheritance**, where death ended the
+character so forgetting the explored map was the point. In Aura you respawn as
+the same character, so the map is knowledge the character keeps. Flipped to
+`false`.
+
+> **⚠ The flag flip alone would have shipped a new bug.** `miniMap.clear()` was
+> the only thing that ever removed the **local player's own** icon — it is added
+> in the `Player` constructor (not through the entity snapshot, so
+> `EntityManager.newSnapshot`'s reconciliation never sees it) and nothing else
+> takes it off. Without a fix, every death would leave a frozen dot at the death
+> site and the respawn would add a second one. `Player.remove()` now removes its
+> own icon. **Proven by negative control** (see Verified).
+>
+> Checked and fine: the flag also guards `EntityManager.clear()`. Not clearing
+> it is safe — `newSnapshot` fully reconciles, dropping anything absent from the
+> incoming snapshot. Skipping *only* the minimap clear would have been the
+> wrong half: it would desync `registeredGameObjectIds` from the entity manager
+> and freeze dynamic icons.
+
+**④ Ctrl +/− zoomed the browser** — `KeyboardManager.ts`. The handler only
+`preventDefault`s keycodes in the `captures` map, and +/− are never registered
+(game zoom is HUD-button-only, `camera/Zoom.ts`). Matched on **`event.key`**,
+not `keyCode`, so the main row and the numpad are both covered on any layout —
+the US-layout zoom-in key reports `=` unshifted and `+` shifted.
+**`Ctrl+0` is deliberately NOT matched:** it resets the zoom, and swallowing it
+too would strand anyone who had already zoomed by wheel or browser menu, neither
+of which a page can intercept. Browser zoom is only cancelable from `keydown`,
+so this is a mitigation, not a lock.
+
+### ⭐ Second use of the vitest infra (added by the round-4 chunk)
+
+`KeyboardManager.test.ts`, 9 tests — the first test file outside
+`SkillTooltip.ts`, and it confirms the jsdom choice generalizes: dispatching a
+real `KeyboardEvent` on `window` and asserting `defaultPrevented` is the honest
+assertion available (jsdom has no zoom to observe, and preventing the default
+*is* the fix). Verified genuinely red — stubbing `isBrowserZoomShortcut` to
+`false` fails exactly the 6 suppression cases and leaves the 3 must-not-suppress
+cases green.
+
+### Verified
+
+- `go build` / `go vet` clean; `go test ./...` **exit 0, 27 pkgs**; guardrail
+  replay clean at `-count=2`.
+- `npm test` **15/15** (9 new), `npm run typecheck` clean, `npm run build` clean.
+- Boot `-content ../api`: **0 errors, 0 panics** — 83 skills/14 factions/50
+  mobs/10 recipes/5 prop defs/1 milestone/777 props/471 spawns/5 campfires/14
+  npcs.
+- Headless in-game via the new **`.claude/skills/verify/filler-batch.mjs`**
+  (kept as a repeatable check): 3 consecutive clean runs of join → `DAMAGE
+  10/50/100` → death → respawn.
+- **⭐ Negative control on the minimap fix** — the assertion that matters is
+  "exactly 1 player dot after respawn", so it was proven to actually fire:
+  commenting out `miniMap.remove(this.character)` and rebuilding reports
+  **2 dots** (`[15,16]`); restoring it reports 1. Note `dead: []` passes either
+  way and is *not* discriminating — the stale icon only reappears on respawn.
+
+### Harness notes (both pre-existing, cost two failed runs each)
+
+- **The first console command after joining is dropped.** Observed as
+  `DAMAGE 10` taking 0 HP while the identical later commands landed. The script
+  now burns a `PING` warming the channel before anything is asserted on.
+- **`WARP` is unusable for "move the player then screenshot".** It triggers the
+  render-interpolation crawl (backlog §20), so the client's *rendered* position
+  — which the minimap icon follows — lags many seconds; the probe read the old
+  position and found no dot at all. The script **walks** (held `KeyD` for 9 s,
+  ~1600 px) instead.
+- **The `&develop` panel is drawn over the minimap corner** — an element
+  screenshot of `#minimap > .wrapper` is a screenshot of the dev panel until it
+  is hidden with an injected style.
+- **Counting minimap icons needs pixels, not the scene graph.** The minimap is
+  its own PixiJS `Application` with no global handle and no back-reference from
+  its canvas, and `window.game` is a 4-key console facade. The script decodes
+  the element screenshot **in-page** (Image → 2D canvas → `getImageData`) and
+  flood-fills blobs of the `0x00008B` character icon colour; reading the WebGL
+  canvas directly is unreliable without `preserveDrawingBuffer`.
+
+### Noted, not fixed
+
+The `DAMAGE` cheat stamps `StatusEffectDamaged` but never touches the
+`damageTaken` tick accumulator, so it produces **no floating damage number** —
+unlike real damage. Dev tooling only; out of scope for a batch that was meant to
+stay small.
+
+---
+
 ## Pass 1 — the numbers rewrite
 
 **Both systemic changes together, then a single retune on top.** They each
@@ -810,24 +938,28 @@ a multiplayer playtest, not a solo one.
 
 ## Rolling filler — blocks nothing, do any time
 
-- **Minimap resets on death.** Bug.
-- **Damage numbers render in darkness.** Should be suppressed like mob
-  nameplates already are — `DarknessOverlay.isHidden()` precedent exists from
-  playtest-1 Pass C item 3, which explicitly flagged floating damage numbers as
+> **4 of 6 ✅ DONE 2026-07-26** in one batch, committed `[uncommitted]` —
+> ⏳ **PO TEST PENDING**. Full ledger: §Rolling-filler batch ledger below.
+
+- ~~**Minimap resets on death.** Bug.~~ ✅ 2026-07-26
+- ~~**Damage numbers render in darkness.**~~ ✅ 2026-07-26 — suppressed like mob
+  nameplates already are; the `DarknessOverlay.isHidden()` precedent from
+  playtest-1 Pass C item 3 explicitly flagged floating damage numbers as
   *"the one most likely to be noticed next"*. It was.
-- **Ctrl +/− still zooms the browser.** `KeyboardManager` calls
-  `preventDefault` but evidently not for these.
+- ~~**Ctrl +/− still zooms the browser.**~~ ✅ 2026-07-26
 - **Totem/companion tooltips don't describe the summon's effects** — the
   tooltip reads the caster's `spawn` effect, not the summoned mob's loadout.
   Needs the tooltip to follow the spawn into the mob's own skills.
+  **Deliberately left out of the 2026-07-26 batch:** it lives in
+  `SkillTooltip.ts`, which the round-4 chunk had already changed and which was
+  ⏳ PO-test-pending at the time — stacking a second unverified change into that
+  file would have muddied the round-4 test pass. Pick it up after round 4 clears.
 - **Haste's name promises movement, delivers cadence** (see §Findings).
-- **The `DAMAGE <pct>` dev cheat always kills** (round 3, 2026-07-25).
-  `cmd.go`'s `DAMAGE` calls `VitalSign.SubFraction`, which is a fraction of
-  `vitals.Max` (`^VitalSign(0)`, the *type* max) — but player health has been
-  **absolute HP** since item 11 (`player.go:68`), so every argument removes far
-  more than the whole pool. Fix = subtract a fraction of `p.MaxHealth()`. Dev
-  tooling only, no gameplay surface, but it silently invalidates any test that
-  tries to wound a player.
+- ~~**The `DAMAGE <pct>` dev cheat always kills** (round 3, 2026-07-25).~~
+  ✅ 2026-07-26 — `cmd.go`'s `DAMAGE` called `VitalSign.SubFraction`, a fraction
+  of `vitals.Max` (`^VitalSign(0)`, the *type* max), but player health has been
+  **absolute HP** since item 11 (`player.go:68`), so every argument removed far
+  more than the whole pool.
 
 ## Own planning session
 

@@ -55,9 +55,14 @@ export const BasicConfig = {
     ALWAYS_VIEW_CURSOR: <boolean> true,
 
     /**
-     * Whether the minimap should "forget" the map every time the player starts again
+     * Whether the minimap should "forget" the map every time the player starts again.
+     *
+     * Berryhunter inheritance: there, death ended the character, so forgetting
+     * the explored map was the point. In Aura you respawn as the same character
+     * with the same progression, so wiping exploration on every death is just
+     * lost work — the map is knowledge the character keeps.
      */
-    CLEAR_MINIMAP_ON_DEATH: <boolean>true,
+    CLEAR_MINIMAP_ON_DEATH: <boolean>false,
 
     /**
      * Pixel size of all graphic files. Scaling and loading is done considering this constant.

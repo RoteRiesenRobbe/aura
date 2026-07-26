@@ -158,9 +158,20 @@ var commands = map[string]Command{
 		}
 
 		dmgf := float32(dmg) / 100.0
+		if dmgf > 1 {
+			// Anything at or over 100 % empties the pool. Clamping here keeps the
+			// float→uint32 conversion below in range; out-of-range conversions are
+			// implementation-defined in Go.
+			dmgf = 1
+		}
 
+		// The percentage is of the player's OWN pool, not of the vitals.VitalSign
+		// type ceiling. SubFraction() means the latter, which was fine while
+		// health was a fraction of ^VitalSign(0) but has been wrong since player
+		// health became absolute HP (item 11) — every argument subtracted a
+		// fraction of ~4.3 billion, so DAMAGE 1 was instantly lethal.
 		h := p.VitalSigns().Health
-		p.VitalSigns().Health = h.SubFraction(dmgf)
+		p.VitalSigns().Health = h.Sub(uint32(float32(p.MaxHealth()) * dmgf))
 		p.StatusEffects().Add(model.StatusEffectDamaged)
 
 		return nil

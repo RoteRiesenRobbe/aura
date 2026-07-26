@@ -18,6 +18,7 @@ export class Player {
     controls: Controls;
     camera: Camera;
     vitalSigns: VitalSigns;
+    private readonly miniMap: MiniMap;
     private lastLevel: number | null = null;
 
     constructor(id: number, x: number, y: number, name: string, miniMap: MiniMap) {
@@ -27,6 +28,7 @@ export class Player {
         this.controls = new Controls(this.character);
 
         this.camera = new Camera(this.character);
+        this.miniMap = miniMap;
         miniMap.add(this.character);
         miniMap.setPlayerCharacter(this.character);
 
@@ -154,6 +156,12 @@ export class Player {
     }
 
     remove() {
+        // The own character is added to the minimap here rather than through
+        // the entity snapshot, so nothing else will ever take it off again.
+        // Until CLEAR_MINIMAP_ON_DEATH was turned off, the wholesale clear on
+        // death hid this: without it, every death left a frozen player dot
+        // behind and the respawned character added a second one.
+        this.miniMap.remove(this.character);
         this.character.remove();
         this.controls.destroy();
         this.camera.destroy();

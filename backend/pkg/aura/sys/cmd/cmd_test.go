@@ -11,6 +11,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
@@ -239,4 +240,83 @@ func TestThreatCommand_MobsNearbyFindsMobBody(t *testing.T) {
 
 	assert.Empty(t, mobsNearby(space, phy.Vec2f{X: 100, Y: 100}, 5),
 		"nothing found far away")
+}
+
+// --- DAMAGE cheat ---
+
+// fakeDamagePlayer carries the absolute-HP pool the DAMAGE cheat has to read.
+// Player health has been absolute HP since item 11, so a percentage is a
+// percentage OF MaxHealth, never of the vitals.VitalSign type ceiling.
+type fakeDamagePlayer struct {
+	model.PlayerEntity
+	vitals   model.PlayerVitalSigns
+	maxHP    vitals.VitalSign
+	statusFx model.StatusEffects
+}
+
+func (f *fakeDamagePlayer) VitalSigns() *model.PlayerVitalSigns { return &f.vitals }
+func (f *fakeDamagePlayer) MaxHealth() vitals.VitalSign         { return f.maxHP }
+func (f *fakeDamagePlayer) StatusEffects() *model.StatusEffects { return &f.statusFx }
+
+func newFakeDamagePlayer(maxHP vitals.VitalSign) *fakeDamagePlayer {
+	return &fakeDamagePlayer{
+		vitals:   model.PlayerVitalSigns{Health: maxHP},
+		maxHP:    maxHP,
+		statusFx: model.NewStatusEffects(),
+	}
+}
+
+func TestDamageCommand_SubtractsFractionOfMaxHealth(t *testing.T) {
+	p := newFakeDamagePlayer(200)
+
+	require.NoError(t, commands["DAMAGE"](nil, p, strPtr("25")))
+
+	assert.Equal(t, vitals.VitalSign(150), p.vitals.Health,
+		"25 %% of a 200 HP pool is 50 HP, not a fraction of the VitalSign type max")
+}
+
+func TestDamageCommand_DoesNotKillOnASmallPercentage(t *testing.T) {
+	p := newFakeDamagePlayer(500)
+
+	require.NoError(t, commands["DAMAGE"](nil, p, strPtr("1")))
+
+	assert.Equal(t, vitals.VitalSign(495), p.vitals.Health)
+	assert.NotZero(t, p.vitals.Health, "the whole point: 1 %% must not be lethal")
+}
+
+func TestDamageCommand_AtOrAbove100Kills(t *testing.T) {
+	for _, pct := range []string{"100", "250", "999999999999"} {
+		p := newFakeDamagePlayer(200)
+
+		require.NoError(t, commands["DAMAGE"](nil, p, strPtr(pct)))
+
+		assert.Zero(t, p.vitals.Health, "DAMAGE %s empties the pool without underflowing", pct)
+	}
+}
+
+func TestDamageCommand_SubtractsFromCurrentHealthNotMax(t *testing.T) {
+	p := newFakeDamagePlayer(200)
+	p.vitals.Health = 100
+
+	require.NoError(t, commands["DAMAGE"](nil, p, strPtr("25")))
+
+	assert.Equal(t, vitals.VitalSign(50), p.vitals.Health,
+		"the percentage sizes the hit against max HP; the hit lands on current HP")
+}
+
+func TestDamageCommand_MarksDamaged(t *testing.T) {
+	p := newFakeDamagePlayer(200)
+
+	require.NoError(t, commands["DAMAGE"](nil, p, strPtr("10")))
+
+	assert.Contains(t, p.statusFx.Effects(), model.StatusEffectDamaged)
+}
+
+func TestDamageCommand_RejectsBadArguments(t *testing.T) {
+	p := newFakeDamagePlayer(200)
+
+	assert.Error(t, commands["DAMAGE"](nil, p, nil))
+	assert.Error(t, commands["DAMAGE"](nil, p, strPtr("")))
+	assert.Error(t, commands["DAMAGE"](nil, p, strPtr("lots")))
+	assert.Equal(t, vitals.VitalSign(200), p.vitals.Health, "a rejected command changes nothing")
 }
