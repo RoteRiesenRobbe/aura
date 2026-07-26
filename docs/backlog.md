@@ -2568,6 +2568,19 @@ regen rather than earning one on its own.
 
 ## 31. One entity, many roles — converge the player/mob/NPC stat model
 
+**Status 2026-07-26: PLANNED AND IN PROGRESS — `docs/plan-entity-model.md`.**
+This section stays the *findings* record (the five gaps and why they matter);
+the plan doc is where the chunks, the 7 PO rulings and the landmines live.
+**Chunk 1a is done** (2026-07-26): **gap 1 is closed** — the three numeric
+player-only derived stats now apply to any actor via three shared factor
+methods on `DerivedStats` — and **gap 2's movement-speed half** is closed with
+it (`game.mob.walkingSpeedPerTick`, value preserved at 0.055). **Gap 3 is
+half-closed**: `*Mob.Level()` exists and `PowerScale()` is derived from it,
+but the level is still fixed at the authored `curveLevel` until chunk 1b.
+Gap 4 (NPC merge) and gap 5's remainder are chunks 3a/3b. `Derived.Resistances`
+— the 4th player-only stat the code audit found — is deliberately still
+player-only, pending the first authored resist passive.
+
 **Origin:** PO design question 2026-07-24, raised while deciding where the two
 combat constants of §25 B should live: *"what brings us closer to a general
 entity system where players and mobs and companions can all kind of function

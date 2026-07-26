@@ -1,7 +1,7 @@
 # Plan: One entity, many roles — the Actor model
 
-**Status:** designed, not started. Design session 2026-07-26 (PO, via choice
-prompts). Supersedes the "not scheduled" note on `backlog.md` §31 — that entry
+**Status:** in progress — **Chunk 1a done 2026-07-26** (see §11), 1b next.
+Design session 2026-07-26 (PO, via choice prompts). Supersedes the "not scheduled" note on `backlog.md` §31 — that entry
 stays as the *findings* record; this doc is the *plan*. Everything here is
 plan-first: no production code was written in the session that produced it.
 Audited line-by-line against the code 2026-07-26 (same day, four parallel
@@ -578,7 +578,64 @@ content counts recorded.
 *(filled in as chunks land — one entry per chunk: what was decided inside it,
 what shipped, which commit, what was verified.)*
 
-- **Chunk 1a — one derived-stat formula:** not started
+- **Chunk 1a — one derived-stat formula: ✅ DONE 2026-07-26**, backend only,
+  10 files + 1 new test file, committed `cf9a10c7`. ⏳ PO in-game check not
+  required — see "no runtime surface" below.
+
+  **Shipped, exactly as §7 specified.** Three factor methods on `DerivedStats`
+  (`skills/component.go`): `MaxHealthFactor` / `DamageReductionFactor` /
+  `MovementSpeedFactor`. Player migrated onto them (`player.maxHealthFactor`,
+  `player.takeDamage`, `core/input.go:343`) with no behaviour change; `*Mob`
+  now reads all three. Plus the two riders: `game.mob.walkingSpeedPerTick`
+  (**0.055 preserved** — the L1 landmine held, the player's 0.05 was never
+  adopted) and `Level()` on `*Mob` with `PowerScale()` derived from it.
+  `Derived.Resistances` untouched, as the code audit deferred it.
+
+  **3 decisions taken inside the chunk:**
+  ① **Every pool cap goes through `MaxHealth()`**, not just the getter — the
+  out-of-combat regen target, `Heal`'s `AddCapped`, `HealthRatio` and the
+  full-health participant reset. Applying the factor to the getter alone would
+  have widened the number on the wire while the mob still could not heal past
+  its base pool. The stored `m.maxHealth` is now explicitly the **base** pool,
+  which is the shape 1b generalizes. The full-health comparison moved `==` →
+  `>=` for the same reason (a shrinking factor must not strand it).
+  ② **The DR clamp lives inside `DamageReductionFactor`**, so no call site
+  re-checks it; the player's inline `if r > 1 { r = 1 }` is gone.
+  ③ **The speed factor applies at `stepLength()`, the consumption site** — not
+  folded into the stored `velocity`, which is set once at construction and
+  would freeze whatever loadout the mob spawned with. Same shape as the
+  player's `core/input.go` site.
+
+  **⚑ One plumbing step the plan flagged and it was real:** deriving
+  `PowerScale()` live needed `curve.Curve` threaded into `MobDefinition` (the
+  registry retained only the resulting float). The zero-value curve is neutral
+  at every level, so hand-built sim/test definitions read 1 exactly as the old
+  `PowerScale <= 0 → 1` guard did — the guard is gone, not replaced. A mapper
+  that forgets to set `Curve` would silently flatten every mob to 1, so the
+  registry test pins the field.
+
+  **Verified.** TDD **red first on all 3 behavioural pins** (`0x0` vs `0x32`
+  pool, `0x3c` vs `0x46` damage, 0.055 vs 0.0825 distance), all asserting on
+  HP pool / damage taken / distance moved — never on `Derived` (L6). Plus pins
+  for `Level`/`PowerScale`, the new knob's default + non-positive
+  normalization, and the mapper's retained curve. `go build ./...` and
+  `go vet ./...` clean · `go test -timeout 120s ./...` **exit 0, 27 packages** ·
+  simharness guardrails **`-count=2`** · alloc guardrails **`-count=2`** (the
+  new multiply sits on the per-tick `steer` path) · boot `-content ../api`
+  **0 errors 0 panics 0 warnings**, 83 skills/14 factions/50 mobs/10 recipes/5
+  prop defs/1 milestone/777 props/471 spawns/5 campfires/14 npcs, with the new
+  `mob.walkingSpeedPerTick: 0.055` in the tuning-knob log line.
+
+  **⭐ Acceptance criterion met: sim battery + level curve + pack matrix are
+  BYTE-IDENTICAL** to a baseline captured before the first edit (TTK 6.67s /
+  TTD 8.70s unchanged). That identity is the whole point of opening with 1a —
+  1b's real balance deltas now measure against a clean baseline.
+
+  **No in-game check requested:** nothing is player-visible, because no mob
+  authors a `stat_multiplier` passive — which is exactly the property that
+  makes byte-identity provable. Mob movement and damage are driven end-to-end
+  by the sim through the real `mob.NewMob`.
+
 - **Chunk 1b — dynamic levels + summon collapse:** not started
 - **Chunk 2 — role discriminator:** not started
 - **Chunk 3a — NPC merge + interaction schema:** not started
