@@ -2758,3 +2758,139 @@ the cast path in `sys/skills.go`).
 
 **Not scheduled.** Revisit during step-8 planning, where the persistence
 question is on the table anyway.
+
+---
+
+## 33. `hot_aura` cannot pre-hot — the wounded-only gate is inherited, not designed
+
+**Origin:** PO question 2026-07-26: *"is it intended that Rejuvenation, the
+heal-over-time aura, only applies a HoT if the target has taken damage? So
+pre-hotting is not possible?"* Answer: **yes, intended — and recorded as
+"accepted v1 behavior" at the time.** Everything below was traced against the
+code that day.
+
+### The mechanism
+
+`applyHotAura` (`sys/skills.go:822`) filters candidates through an eligibility
+predicate whose last line is:
+
+```go
+return other.HealthRatio() < 1 // wounded only    // sys/skills.go:846
+```
+
+`applyHealAura:747` is the byte-identical line. The hot applier's doc-comment
+says so outright — it *"reuses the heal aura's implicit same-faction,
+wounded-only, never-self predicate"*. This is **not authorable**: `HotParams`
+carries no knob for it, `rejuvenation.json` says nothing about it, and unlike
+damage/resist/dot the predicate is deliberately **not** routed through the
+shared `eligibleByTargetFlags` seam. Heal and hot are the two bespoke cases.
+
+Pinned by `TestApplyHotAura_SkipsFullHealthAlly`
+(`sys/skills_behavior_test.go:1927`) — a behavioural lock, not an accident.
+
+The design note that shipped it (`archive/plan-skill-vocab.md:613–619`) names
+the consequence exactly:
+
+> NOTE: while a target sits at full HP in range the wounded-only gate skips
+> re-application, so its buff can begin counting down before it leaves —
+> **accepted v1 behavior** (mirrors heal_aura's wounded-only cadence).
+
+**⚑ Note the second-order effect that sentence is pointing at, which is easy to
+miss and probably the worse half:** the gate blocks *re-application*, not just
+first application. `ApplyHot` refreshes a stream's remaining duration on
+re-apply (`skills/buffs.go:217–234`), so the aura tops its HoT up every tick
+while the ally is wounded — but the moment the HoT heals them back to full,
+topping up stops and the buff runs down **while they are still standing in the
+aura**. It only resumes once they take a hit. So the aura is weakest at exactly
+the point it succeeded.
+
+### Why the inherited justification does not transfer
+
+On `heal_aura` the gate earns its keep, twice over:
+
+- **It would bill the caster for nothing.** Heal authors `selfDamageHP` 10−2/level
+  (FINAL cost curve), paid per tick that heals someone. A tick spent on a
+  full-HP target would cost the caster real HP for zero effect.
+- **It would burn the only slot.** Heal authors `maxTargets: 1` +
+  `selector: lowest_health` — one target per tick, so a wasted slot is a real
+  loss.
+
+**Rejuvenation authors neither.** No `selfDamageHP` (`applyHotAura` pays no
+self-cost at all — "a build lever, authored in step 6", and step 6 never
+authored one), no `maxTargets` (0 = uncapped, `sys/targeting.go:18`), no
+`selector`. Every reason the predicate exists on the heal side is absent on the
+hot side. It came along as a copy-paste.
+
+### ⚑ The inconsistency that makes this hard to defend
+
+The **sibling HoT applier has no such gate.** `applyInstantHot`
+(`sys/skills.go:1019`, the `instant_hot` path used by **Recover**) selects via
+`eligibleByTargetFlags` (`:1044`) — full-HP targets included. Same buff type,
+same `ApplyHot` call, two different rules:
+
+| | applier | wounded gate? | can pre-hot? |
+|---|---|---|---|
+| **Rejuvenation** (`hot_aura`) | `applyHotAura:822` | yes (`:846`) | **no** |
+| **Recover** (`instant_hot`) | `applyInstantHot:1019` | no | **yes** |
+
+A player who owns both sees the cooldown HoT land on a healthy ally and the
+aura HoT refuse to — with nothing in either tooltip explaining the difference.
+
+Adjacent, same function, worth stating alongside it: `hot_aura` **never targets
+the caster** (`sys/skills.go:843`; parsing forces `TargetsSelf` false for the
+type). Self-HoT is `instant_hot`'s job by design — that half is coherent and is
+*not* what this item proposes changing.
+
+### Blast radius: one skill, zero mobs
+
+`grep '"type": "hot_aura"'` over `api/` returns **exactly one hit** —
+`rejuvenation.json`. It is the only HoT aura in the game; no mob equips one
+(`bandit-heal.json` is a `heal_aura`, its `_comment` merely records the
+PO's 2026-07-18 "heal_aura over hot_aura" pick). Sole player source: OrcWarlord
+kill-drop @ 0.25. So a behaviour change here touches **one player-facing skill
+and no mob behaviour** — unusually cheap to try and to revert.
+
+**No threat/XP exploit is created by lifting the gate.** `tickHotEvents`
+(`sys/skills.go:332`) already guards `healed <= 0 → continue` *before* healer
+threat, participation-XP crediting and combat entry. A HoT ticking on a
+full-HP target is fully inert: it heals 0, credits nothing, and pulls nothing.
+The safety property lives at the tick, not at the application — which is
+precisely why the application gate is redundant rather than protective.
+
+### ⚑ The call for the PO
+
+Pre-hotting a tank before a pull is real, legible support gameplay, and the
+"weakest at the moment it succeeded" refresh behaviour above reads as a bug in
+play even though it is spec. Against that: the gate is *some* friction on a
+support aura that currently costs nothing to run.
+
+1. **Lift it for `hot_aura` only** — drop `HealthRatio() < 1` from
+   `applyHotAura`, keep it on `applyHealAura`. Pre-hotting works, refresh keeps
+   topping up in range, `instant_hot`/`hot_aura` stop disagreeing.
+   ~1 line + flip `TestApplyHotAura_SkipsFullHealthAlly` into its inverse.
+   **Recommended** — it is the option the evidence points at.
+2. **Keep the gate, fix only the refresh half** — apply to wounded targets, but
+   let an already-running stream keep refreshing while the target is in range.
+   Preserves "must be hurt once to start", removes the perverse decay. Slightly
+   more code (the predicate needs to know about existing streams).
+3. **Make it authorable** — a `TargetsHealthy` (or `woundedOnly`) flag on
+   `HotParams`, defaulting to today's behaviour. YAGNI says no with one
+   `hot_aura` in the game, but it is the honest answer if the PO wants both
+   shapes as a *build* distinction later.
+4. **Keep as-is** — then the rule deserves to be visible in `SkillTooltip`,
+   because nothing currently tells the player.
+
+### ⚑ Ordering constraint against §25
+
+`§25` *Cleanup layer* item 2 proposes extracting the duplicated predicate as a
+shared `woundedAllyPredicate(e)` — a mechanical dedupe with no behaviour change.
+**Decide this item first.** If the answer is option 1 or 2, heal and hot stop
+sharing a rule and want *separate* predicates; doing the dedupe first would
+cement the very coupling this item questions, and make the behavioural change a
+re-split instead of a one-line delete. If the answer is option 4, the dedupe is
+straightforwardly correct and should proceed.
+
+**Effort:** option 1 is ~1 line + 1 test flip + a tooltip sanity-check, well
+under an hour including in-game verification (stand next to a full-HP ally with
+Rejuvenation on; the HoT should land, then keep refreshing). Options 2 and 3 are
+larger but still small. **Not scheduled** — it is a design call first.
