@@ -964,6 +964,215 @@ no conf knobs, no wire change.
 
 ---
 
+## Intake — round 6 (2026-07-26): PO design session, three topics
+
+Not a playtest round — a **design discussion**, triaged against source
+in-session (every number below is read, not estimated). All three topics were
+resolved to a decision or a shortlist in the same session.
+
+### 1. Resource costs on abilities — ruling that unblocks Pass 1a.2
+
+**Not new scope.** GDD §3 already said *"More powerful auras cost more resource
+per tick"*, and round-2 **decision 2** already put costs on auras (per tick) and
+cooldowns (per cast). This session supplied the **design intent behind the
+numbers**, which is what was actually missing.
+
+**⭐ PO ruling 2026-07-26 — the double meaning is the point.** One resource is
+both *"possibility of actions"* and *"time left to die"*, deliberately: *"a
+character is at their strongest with full resource and decides how to spend it —
+do I risk more but also do more, or do I play it safe."* Full statement now in
+**GDD §3 Consumption**, which is the source of truth. Two constraints bound
+every cost value:
+
+1. **A free floor.** Basic actions — the base damage aura above all — stay free
+   at any resource level; *"even a low-resource character needs access to basic
+   things, so there is never no option left."* This is the explicit answer to
+   the death-spiral risk round-2 decision 2 recorded: it is **not** solved by
+   tuning, it is solved by a permanently free baseline.
+2. **The good stuff is gated behind spending.** Everything above the floor costs
+   in proportion to impact. That is what makes the floor a floor and not a
+   default.
+
+**⇒ The 1-HP clamp is not the safety net.** `sys/skills.go:706` already stops a
+cost killing its caster (a caster at the floor skips the effect entirely), but
+under this ruling that behaviour is the *wrong* protection to rely on: it makes
+the ability silently stop working. The free baseline is the protection; the
+clamp stays as a backstop.
+
+**What already exists (the field is live, on one skill).**
+`selfDamageHP` / `selfDamageHPPerLevel` sit on `HealParams`
+(`skills/definition.go:350`), applied in `applyHealAura`
+(`sys/skills.go:711`); the tooltip already renders
+`Costs you: 10 → 8 HP per tick` (`SkillTooltip.ts:255`). Pass 1a.2 is
+**generalizing a live field**, not a new concept — the UI half is a copy of a
+line that already ships.
+
+**Four rules the heal implementation settled that must carry over** — each is a
+bug if dropped:
+
+1. **Never-kill clamp** (`sys/skills.go:706`) — cost may leave the caster at
+   exactly 1 HP, never below; at the floor the whole effect is skipped.
+2. **Cost rides `casterPowerScale`.** An absolute HP cost that does not scale
+   becomes free as the pool grows ~26× over 30 levels — the exact mechanism that
+   makes Recover dead content (§Findings). Every cost needs a per-skill answer:
+   power-scaled absolute (heal's model) or fraction-of-max.
+3. **Mobs pay nothing.** The cost path is gated on a player-only interface and
+   the mob JSON comments say so explicitly (*"the self-cost is a player
+   build-cost lever; a mob caster pays none"*). Keep it, or every caster mob
+   suicides.
+4. **GOD skips the cost.**
+
+**⚑ New sub-item — the cost-reduction passive (PO idea: a "Healer" passive
+reducing all heal costs by X %).** This is **engine-new**: today's five
+`validStats` (`definition.go:154` — `movementSpeed`, `maxHealth`,
+`damageReduction`, `critChance`, `damageDealt`) are all output multipliers with
+a **hand-placed application site**, and an unlisted stat name hard-fails at load
+so it can never silently no-op. A cost stat is the **sixth**, and the first that
+modifies an *input* rather than an output. Small, but it must be authored as a
+real stat, not faked per-skill. It is player-only by construction, which is fine
+here — mobs pay no cost anyway (backlog §31 gap 1 does not bite).
+
+**Balancing vectors — the list to price against.** The PO's working set was
+impact / cost / cooldown / range. The engine already carries more, and the
+first one is doing most of the work today:
+
+| Vector | Where it lives | Note |
+| --- | --- | --- |
+| **Opportunity cost** | one active aura at a time (GDD §4) | **The largest vector in the game.** An aura's real price is the aura you are not running — the zone-1→2 tunnel tutorial is built entirely on it. |
+| Cadence | `tickInterval` | DPS is impact ÷ cadence. Damage 14/40 ticks, Heal 12/80. Also the readability beat. |
+| Target count + selector | `maxTargets`, `nearest` / `lowest_health` | Single-target vs area outweighs radius. |
+| Uptime / duration | `tickCount`, `durationTicks`, summon TTL | The whole budget for dots/hots/shields/summons. |
+| Cast time | `castTicks`, `castInterruptedByDamage` | Exists, essentially unused. §Intake round 3 already cited WoW's cast times/pushback/interrupts as what makes casters killable. |
+| Point cost | round-2 decision 1's escalating curve | Power-per-point ≠ power-per-level. |
+| Acquisition cost | drop chance + level reachable | Part of why LongRangeStrike dominates is that it is cheap to *get*. |
+| Damage type vs resist | `damageTags` + resist maps | Build identity, mob counters. |
+| Conditionality | execute-below-X %, berserker, lifesteal, `targetsSelf` | Conditional power should price below flat power. Reaper stacks three. |
+
+**⚑ Sequencing deviation to confirm.** The PO proposal is *costs first, feel it,
+retune later*. §Pass 1 deliberately bundles 1a with 1b because *"they each
+rewrite every number across the skill catalog; splitting them means retuning the
+whole catalog twice"*. Costs-first is defensible under *"make it fun first"*,
+but the Pass-1b retune **will re-touch every number authored in the cost pass**.
+Recorded as a deviation, not a silent change.
+
+### 2. The Orc Warlord's grunt waves never reach the fight
+
+**PO report:** the grunts spawned by the boss do not move close enough to
+aggro onto the player.
+
+**Diagnosed — a distance-vs-sensor mismatch, not a behaviour bug.**
+
+- `wave-mouth` = (33.5, 31.5); `warlord-home` = (26, 30.5) → **7.57 units apart**
+  (`api/zones/world.json` anchors).
+- `OrcGrunt.body.aggroRadius` = **5.4** (`api/mobs/orc-grunt.json`).
+- The grunt authors no `waypoints` and no `wanderRadius`, so
+  `updateIdleMovement` falls to `m.moveTowards(m.spawnPosition)`
+  (`model/mob/patrol.go:89`) — it walks back to the wave mouth and stands there.
+
+7.57 > 5.4, so a player fighting at the boss sits **~2 units outside the
+sensor** and nothing ever fires. The def's own comment shows the intent was
+already right — *"Large aggro sensor so a spawned wave finds the fight on its
+own while charging in"* — 5.4 was simply authored too small for where the anchor
+ended up.
+
+**⇒ PO decision 2026-07-26: all three of the following are sanctioned options;
+pick at execution time.** (Options 4 and 5 from the triage — spawn-at-the-boss,
+and a new scripted-move seam — are **not** taken: the first deletes the
+charge-in beat and orphans the anchor, the second is strictly more code than
+option C for no gain.)
+
+- **A — raise `OrcGrunt.aggroRadius` 5.4 → ~9.** *Config only*: one number in
+  `api/mobs/orc-grunt.json`, `-content ../api` + restart, no rebuild. OrcGrunt is
+  **encounter-spawned only, never a zone spawn**, so collateral is zero. Cheapest
+  real fix.
+- **B — move the `wave-mouth` anchor closer.** *Config only*, and PO-doable in the
+  zone editor. Best used to trim 7.5 → ~6 alongside A rather than alone;
+  shortening the charge is the part of the beat worth keeping.
+- **C — seed threat at spawn.** ~6 lines in `encounter/warlord.go`: read
+  `e.boss.ThreatSnapshot()`, take the top living row, `grunt.NoteThreat(that, 1)`.
+  Threat-based acquisition has **no distance filter** (`highestThreatTarget`,
+  `mob.go:1219`), so they commit from any range. Both seams are already exported
+  and were built for exactly this.
+
+**⚑ Leash interaction — C is marginal on its own.** The leash is 90 ticks (~3 s)
+of *unreachable + outside sensor + not taking damage* (`mob.go:875`). Grunt step
+is `0.055 × speed 0.6` ≈ **1 unit/s**, so from 7.5 units it must close ~2.1
+units (~64 ticks) to get inside its own 5.4 sensor — under the leash, but only
+just, and it breaks if the anchor ever moves further out. **A + C is the robust
+pair**; C alone is not.
+
+### 3. Should players and mobs block movement? — ✅ DECIDED: soft separation
+
+**PO question:** mobs (and players?) piling into one unreadable clump — should
+bodies block each other?
+
+**✅ PO DECISION 2026-07-26 — implement mob-vs-mob *soft separation*, not hard
+collision.** Extend `blockerRepulsion` (`model/mob/steering.go`) to include
+nearby mobs at a **low weight**, so packs spread and flow around each other with
+**no hard blocking**. Hard collision is **not** taken; player↔player collision is
+**not** taken. Full analysis, the rejected alternatives and the two engine
+landmines: **backlog §34**.
+
+**Why this is cheap and why the obvious worry does not apply.** The broadphase
+already pairs dynamic-vs-dynamic every tick (`phy/space.go:100`) and
+circle-push-out already exists — nothing dynamic collides today only because of
+**masks** (player body `Mask = PlayerStatic|Border`, `player.go:44`; mob body
+`Mask = MobStatic|Border`, `mob.go:106`). And there is **no client-side
+collision and no client-side prediction** — the frontend has zero collision code
+and the local player renders from server snapshots — so a server-side movement
+change has no rubber-banding problem. Soft separation sidesteps the masks
+entirely: it is a steering change, not a physics change.
+
+**⚑ The gap it closes.** `blockerRepulsion` currently queries
+`space.AppendCircleStatics` (`steering.go:87`) — **statics only**. Mobs deflect
+around props and the border wall but have *no* awareness of each other, which is
+the direct cause of the clump. The head-on detour latch (`steerSide`) was tuned
+against *stationary* blockers; against moving ones the jiggle-in-place limit
+cycles recorded in the 2026-07-11 and 2026-07-20 in-game findings are the thing
+to watch — low weight is what keeps mob repulsion from triggering the latch.
+
+**⚑ PO argument on record, and it is the strongest pro for the hard version:**
+*"clumps of mobs mean it's hard to focus individual ones with a nearest-targeting
+aura. Right now you can try to kite them apart if they have different auras or
+you have multiple people, but aura ranges and speeds are similar or the same, so
+mobs quickly end up as a big unreadable clump."* Two halves, and they need
+different fixes — see item 4. Soft separation is a direction blend, not a
+constraint, so it can be **overwhelmed when many mobs converge on one point**;
+hard collision guarantees a minimum spacing at any count. If the clump proves
+worst exactly when the pack is biggest, that is the case that would re-open
+backlog §34.
+
+### 4. Nearest-targeting auras have no target persistence (bug, surfaced by item 3)
+
+Chasing item 3's focus-fire half turned up an independent defect.
+
+**`selectTargets` (`sys/targeting.go:108`) has no target memory at all.** Every
+tick it rebuilds the candidate list from the collider set and re-sorts from
+scratch; `nearest` is a plain distance sort (`:151`). Nothing in the package
+holds a previous target. So a `maxTargets: 1` aura re-picks its victim ~30×/s
+and, in a jostling clump, **smears damage across the pack instead of killing
+anything** — which is the felt complaint. Nuance: ties break on entity ID via
+`sort.SliceStable`, so mobs at *exactly* equal distance do pick stably; it is
+the *near*-equal case that flickers, which is the realistic one.
+
+**⚑ Hard collision would not have fixed this.** Wolf body radius 0.3, Damage
+aura radius 1.0, hit when the circles intersect ⇒ center within 1.3. Hard
+collision only guarantees centers ≥ 0.6 apart, and points at 0.6 minimum spacing
+pack into a 1.3 disk as 1 + 6 + 12 ≈ **19**. Nineteen wolves still fit inside a
+level-1 Damage aura with collision fully enforced; LongRangeStrike at radius
+2.6–3.0 is far worse. Collision stops mobs sharing a *point*; it does not thin
+the clump inside an aura, so it cannot create focus fire. **This is a targeting
+change either way** — which is why item 3's decision does not close it.
+
+**Shape of the fix:** keep last tick's pick while it stays eligible and in
+range. Small rule, but **new plumbing** — targeting is currently stateless per
+tick, so it needs per-caster-per-effect memory. And it must be **per-selector**:
+stickiness is right for `nearest` damage and *wrong* for `lowest_health` heals,
+which must always chase the most wounded. **Not scheduled** — it is a Pass-1b
+neighbour (it changes how every damage aura feels) but blocks nothing.
+
+---
+
 ## Rolling-filler batch ledger
 
 **Rolling filler — 4 of 6 items DONE (2026-07-26), committed `dab4dae0` —
@@ -1106,19 +1315,33 @@ total work, one settling point.
    levels (deliberately, so free respec can't drift) — that derivation is the
    single place the curve lands.
 2. **Resource costs** (decision 2): `selfDamageHP` on damage auras (per tick)
-   and a cast cost on cooldowns.
+   and a cast cost on cooldowns. **Design intent settled 2026-07-26** — GDD §3
+   Consumption (the *"possibility of actions" + "time left to die"* ruling) and
+   §Intake round 6 item 1, which also carries the four heal-implementation rules
+   that must survive generalization and the balancing-vector table to price
+   against. ⚑ **The free baseline is load-bearing**: the base damage aura stays
+   free at any resource level, so no cost curve can ever leave a player with no
+   action. ⚑ **Sequencing deviation on record** — the PO proposal is costs
+   first, feel it, retune later; 1b will then re-touch every number authored
+   here.
+3. **Cost-reduction passive** (round 6, 2026-07-26) — e.g. a "Healer" passive
+   reducing heal costs by X %. **Engine-new**: the sixth `validStat` and the
+   first that modifies an *input* rather than an output. Rides item 2, so it
+   lands with it or not at all.
 
 ### 1b — retune on top
 
-3. **Prune the vocabulary to Damage / LongRangeStrike / Reaper / Vanguard +
+4. **Prune the vocabulary to Damage / LongRangeStrike / Reaper / Vanguard +
    combinations** — delete **Wild**. PO framing: *"we had these to proof
    concepts, not to be final, so it's fine."*
-4. **Reaper** — lifesteal and radius are the two culprits.
-5. **LongRangeStrike** — reach becomes affordable rather than free, now that
+5. **Reaper** — lifesteal and radius are the two culprits. ⚑ Round 6: price
+   costs **against sustain** — lifesteal partly refunds Reaper's cost while
+   LongRangeStrike's is unrefunded, so a flat cost pass *widens* that gap.
+6. **LongRangeStrike** — reach becomes affordable rather than free, now that
    it can pay in resource.
-6. **Recover** — fractional scaling, or re-role as upkeep for expensive auras
+7. **Recover** — fractional scaling, or re-role as upkeep for expensive auras
    (decision 2 gives it a job it doesn't have today).
-7. **Swift** — ruling open (decision 7); the empty-movement-slot finding above
+8. **Swift** — ruling open (decision 7); the empty-movement-slot finding above
    is the input.
 
 Authoring rules still apply: tier + baseline for any touched mob, band-check

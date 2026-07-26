@@ -74,6 +74,31 @@ Every player and every NPC has exactly **one resource**. It represents HP, mana,
 - Your own heal auras on other players cost resource continuously
 - More powerful auras cost more resource per tick
 
+**⭐ The double meaning is the design, not a side effect (PO ruling
+2026-07-26).** One value is simultaneously *"possibility of actions"* and
+*"time left to die"*, deliberately. A character is at their strongest at full
+resource and the whole moment-to-moment decision is **how to spend it**: *do I
+risk more and do more, or do I play it safe?* Spending power to gain power, out
+of the same pool that keeps you alive, **is** the combat game.
+
+Two constraints follow, and they bound every cost value in the catalog:
+
+1. **There is always an option left.** Basic actions — the base damage aura
+   above all — stay **free** at any resource level. A character at 1 HP must
+   still be able to act. A cost that can lock a player out of *all* offence is
+   a bug, not tuning: it converts "I'm low, play carefully" into "I'm low, I
+   can do nothing", which is the death spiral, not the risk decision.
+2. **The good stuff is gated behind spending.** Everything above the free
+   baseline — stronger auras, cooldowns, the whole reason to build — costs, and
+   costs in proportion to what it does. This is what makes the free baseline a
+   *floor* rather than a *default*.
+
+⚑ Consequence for balancing: cost is **not** an independent axis from impact,
+because paying is itself a survivability loss. Costs are priced against
+sustain, not in isolation — an aura that refunds via lifesteal is paying much
+less than the same number on an aura that does not. See
+`plan-playtest-feedback.md` §Pass 1 for the implementation and the vector list.
+
 ### Regeneration & Recovery
 
 Sources: slow passive regeneration outside of combat, your own cooldown

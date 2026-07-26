@@ -2894,3 +2894,93 @@ straightforwardly correct and should proceed.
 under an hour including in-game verification (stand next to a full-HP ally with
 Rejuvenation on; the HoT should land, then keep refreshing). Options 2 and 3 are
 larger but still small. **Not scheduled** — it is a design call first.
+
+---
+
+## 34. Entity-vs-entity collision — considered, **not** taken; soft separation chosen instead
+
+**Origin:** PO question 2026-07-26 (`plan-playtest-feedback.md` §Intake round 6
+item 3) — *"should players and mobs block movement, against players and against
+each other? It would avoid mobs all piling into one place, making a giant death
+circle."*
+
+**✅ DECIDED the same session: implement mob-vs-mob *soft separation* — extend
+`blockerRepulsion` to include nearby mobs at a low weight — and take neither
+hard collision nor player↔player collision.** This item exists so the rejected
+half is not re-litigated, and so the two engine landmines below are on record if
+it ever is.
+
+### What the code actually says (measured, don't re-derive)
+
+- **Nothing dynamic collides with anything dynamic today.** Player body
+  `Layer = Viewport|PlayerCollision`, `Mask = PlayerStatic|Border`
+  (`model/player/player.go:44`); mob body `Layer = Viewport|ActionCollision`,
+  `Mask = MobStatic|Border` (`model/mob/mob.go:101`). Bodies block only against
+  **statics** — props, NPCs, the border wall.
+- **The broadphase already pairs dynamic-vs-dynamic every tick**
+  (`phy/space.go:100`, the inner `j := i+1` loop) — that is how auras, aggro
+  sensors and viewports work — and circle-vs-circle push-out already exists and
+  is exercised (`resolveCircleThomas`). So hard collision is a **mask edit**, not
+  new machinery. The masks are not the hard part; the consequences are.
+- ⭐ **There is no client-side collision and no client-side prediction.** The
+  frontend has zero collision code and the local player renders from server
+  snapshots (which is why `WARP` visibly crawls). A server-side movement change
+  therefore has **no reconciliation or rubber-banding problem** — the single
+  reason this is cheap here and expensive in most games.
+
+### The decomposition — three independent toggles, three different answers
+
+- **A. mob ↔ mob** — the one that targets the complaint. No griefing concern.
+  ⚑ But `blockerRepulsion` queries `space.AppendCircleStatics`
+  (`model/mob/steering.go:87`) — **statics only** — so mobs have no avoidance of
+  each other and hard collision would turn a chasing pack into a shoving scrum at
+  the stop-distance ring, possibly reading *worse* than the pile.
+- **B. player ↔ mob** — makes body-blocking a real tank tool, and is the biggest
+  rebalance: positioning *is* the only skill expression, so every authored radius
+  shifts, and a wall of bodies makes LongRangeStrike **more** dominant (round-2
+  already measured its 2.6–3.0 reach as *"effective immunity to every melee
+  mob"*).
+- **C. player ↔ player** — ⚑ **fights a stated pillar.** GDD §9: *"No griefing
+  possible by design."* Player bodies that block create body-blocking exactly
+  where the world design leans on chokepoints: the zone-1→2 tunnel (the tutorial
+  beat), cave mouths, campfires, boss arenas. Rejected for v1 on that basis
+  alone.
+
+*(For reference, WoW is close to this same split — mobs block players, players do
+not block each other: B yes, C no.)*
+
+### ⚑ Two engine landmines, if hard collision is ever revisited
+
+1. **Co-located equal-radius circles never separate.** `resolveCircleThomas`
+   tie-breaks on `Signum32f(c.Radius - other.Radius)` and returns a **zero
+   vector** when radii are equal and centers coincide. Two same-species mobs
+   spawned on one point — summons, encounter waves — would weld together
+   permanently. Needs a real tie-break *before* any hard collision ships.
+2. **Push-out is instantaneous position correction — no mass, no damping.** Full
+   overlap is resolved each tick, both sides, resolution running once per tick
+   with no re-resolution. Chains of overlapping bodies can shove a player into a
+   prop, corrected only next tick. Expect jitter at pile-ups; the render-delay
+   interpolation (`RENDER_DELAY_TICKS=2`) smooths it visually but also makes the
+   shove read mushy.
+
+Performance is a **non-issue** — the pairs are already tested; only resolution
+would be added.
+
+### What would re-open this
+
+**The PO's argument for the hard version is the strongest one on record and is
+not refuted, only outweighed:** soft separation is a *direction blend, not a
+constraint*, so it can be overwhelmed when many mobs converge on one point,
+whereas hard collision guarantees a minimum spacing at any mob count. **If the
+clump proves worst exactly when the pack is biggest, re-open A** (never C).
+
+### What this does NOT fix — read before re-opening
+
+Hard collision would **not** have solved the focus-fire half of the complaint.
+Wolf body radius 0.3, Damage aura radius 1.0 ⇒ hit when center is within 1.3;
+collision only guarantees centers ≥ 0.6 apart, and points at 0.6 minimum spacing
+pack into a 1.3 disk as 1 + 6 + 12 ≈ **19**. Nineteen wolves still fit inside a
+level-1 Damage aura with collision fully enforced. The focus-fire problem is a
+**targeting** defect — `selectTargets` has no target persistence
+(`sys/targeting.go:108`) — tracked separately at `plan-playtest-feedback.md`
+§Intake round 6 item 4.
