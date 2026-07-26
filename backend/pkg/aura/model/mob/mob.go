@@ -673,9 +673,17 @@ func (m *Mob) Update(dt float32) bool {
 	m.updateAggro()
 
 	// Movement follows the mode's target (round 3): support mode walks to the
-	// ALLY it is healing, engage mode to the enemy it is fighting. Fleeing is
-	// enemy-relative and only applies to engage — a healer at low health does
-	// not run away from its patient.
+	// ALLY it is healing, engage mode to the enemy it is fighting. The
+	// health-threshold flee (shouldFlee) is enemy-relative and only applies to
+	// engage — a healer at low health does not run away from its patient.
+	//
+	// Resolved once: highestThreatTarget prunes dead rows as it reads, so it is
+	// not a free repeat call.
+	var fleeFrom model.Combatant
+	if m.mode == modeFlee {
+		fleeFrom = m.highestThreatTarget()
+	}
+
 	switch {
 	case m.mode == modeSupport && m.supportTarget != nil:
 		if m.shouldApproach(m.supportTarget) {
@@ -683,6 +691,15 @@ func (m *Mob) Update(dt float32) bool {
 		} else {
 			m.resetChaseWatchdog()
 		}
+	// A pacifist under attack with nobody to support runs from whoever is
+	// hitting it (round 5). The threat table is the source for "whoever" —
+	// it is already maintained for pacifists (noteThreat gates on faction and
+	// liveness, never on pacifism), so this needs no new bookkeeping. With no
+	// live threat there is nothing to run from, and it falls through to idle.
+	case fleeFrom != nil:
+		m.resetChaseWatchdog()
+		m.moveAwayFrom(fleeFrom.Position())
+
 	case m.aggroTarget != nil:
 		if m.shouldFlee() {
 			m.resetChaseWatchdog()

@@ -37,6 +37,10 @@ const (
 	modeIdle combatMode = iota
 	modeEngage
 	modeSupport
+	// modeFlee: under attack with nothing to support and no way to fight back
+	// (playtest round 5, 2026-07-26). Only pacifists ever reach it — PO scope
+	// call: a mob that can answer its attacker answers it.
+	modeFlee
 )
 
 // supportCategories is the set of aura categories that count as supporting an
@@ -148,11 +152,18 @@ func (m *Mob) findWoundedAlly() model.Combatant {
 // selectMode is the single decision point that replaced both updateAggro early
 // returns. Support outranks engage on purpose: a guardian that can see a dying
 // ally should drop the cleave and shield it.
+//
+// Flee sits BELOW support (round 5): a healer that can still do its job does it,
+// even while being hit — reaching the flee case at all means the support case
+// already failed, i.e. there is nobody to heal. It sits above engage only for
+// readability; a pacifist has no combat slot, so the two can never compete.
 func (m *Mob) selectMode() {
 	next := modeIdle
 	switch {
 	case m.supportSlot >= 0 && m.supportTarget != nil:
 		next = modeSupport
+	case m.isPacifist() && m.InCombat():
+		next = modeFlee
 	case m.combatSlot >= 0 && m.aggroTarget != nil:
 		next = modeEngage
 	}

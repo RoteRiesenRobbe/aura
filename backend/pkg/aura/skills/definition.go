@@ -58,14 +58,22 @@ const (
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
 // periodic on-ring HIT worth drawing a tick indicator for (skill-vocab chunk
-// 6). Only the four output auras qualify: damage/heal land a visible event each
-// tick, and dot/hot re-apply on their authored cadence. State + visual effects
-// (slow, resist, light) re-apply too — often at interval 1 — but show no
-// per-tick hit, so an indicator would just strobe; those report the wire 0 (no
-// indicator) instead.
+// 6). Only the five output auras qualify: damage/heal land a visible event each
+// tick, dot/hot re-apply on their authored cadence, and shield re-applies its
+// absorb pool on its own. State + visual effects (slow, resist, light) re-apply
+// too — often at interval 1 — but show no per-tick hit, so an indicator would
+// just strobe; those report the wire 0 (no indicator) instead. Instants are not
+// auras and have no cadence to indicate.
+//
+// shield_aura was missing here until the round-5 playtest fix (2026-07-26):
+// a RallyDrummer's ring gave no read on when the next shield lands. It had
+// fallen to the default alongside the state effects, but neither half of that
+// justification holds for shields — RallyDrum and WarbannerShield are authored
+// tickInterval 30 (1 s), not 1, and a shield application is visible: the absorb
+// pool refills and the pip is already on the bar.
 func HasVisibleTickCadence(t EffectType) bool {
 	switch t {
-	case EffectTypeDamageAura, EffectTypeHealAura, EffectTypeDotAura, EffectTypeHotAura:
+	case EffectTypeDamageAura, EffectTypeHealAura, EffectTypeDotAura, EffectTypeHotAura, EffectTypeShieldAura:
 		return true
 	default:
 		return false

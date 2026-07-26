@@ -1,12 +1,15 @@
 # Plan: Playtest Feedback (rolling collection)
 
 **Status:** **Collection doc — both designed chunks executed, plus a filler
-batch.** Triaged, prioritized and sorted 2026-07-24; rounds 3 + 4 appended
-2026-07-25, each with a designed chunk. **Three chunks are shipped and ⏳ PO-test
-pending, all mutually independent** — each ledger opens with its own numbered
-acceptance checklist: **Round 3** (healer combat state + role-as-loadout)
+batch. All three ✅ PO-VERIFIED IN-GAME 2026-07-26** (one session, every
+checklist item passed): **Round 3** (healer combat state + role-as-loadout)
 `03b152f4` 2026-07-25 · **Round 4** (tooltip power scale) `eaae2e69` 2026-07-26 ·
 **Rolling-filler batch** (4 of the 6 filler items) `dab4dae0` 2026-07-26.
+That verification session raised **2 new items (§Intake round 5), and both are
+already ✅ DONE the same day — ⏳ PO test pending**, ledger at §Round-5 chunk
+ledger: the missing shield-aura tick indicator, and pacifist mobs fleeing when
+attacked with nothing to support (design decided by choice prompts, all four
+answers minimal).
 This is the **standing home for issues
 arising from playtests**: new rounds append to §Intake, items get sorted into
 the passes below, and we pick targets from here. Successor to
@@ -275,9 +278,9 @@ why decision 1 and decision 2 point in different directions.
 
 ### The chunk
 
-> **✅ DONE 2026-07-25 `03b152f4` — ⏳ PO TEST PENDING (scheduled 2026-07-26).**
-> Headless-verified only; NOT yet PO-verified in-game. Both parts in one chunk
-> per PO call. Ledger at the end of this section (§Round-3 chunk ledger).
+> **✅ DONE 2026-07-25 `03b152f4` — ✅ PO-VERIFIED IN-GAME 2026-07-26.**
+> All 4 checklist items passed. Both parts in one chunk per PO call. Ledger at
+> the end of this section (§Round-3 chunk ledger).
 
 One execution chunk. Not started.
 
@@ -334,11 +337,17 @@ And the whole spectrum becomes content with no branching:
 ### Round-3 chunk ledger
 
 **Healer combat state + role-as-loadout DONE (2026-07-25), backend + content —
-⏳ PO TEST PENDING (2026-07-26), headless-verified only, committed `03b152f4`.** 11 files.
+✅ PO-VERIFIED IN-GAME 2026-07-26, committed `03b152f4`.** 11 files.
 Both parts shipped together: the selector needs a combat-state notion that is
 not "has an aggro target", and support mode makes that proxy strictly worse.
 
-**PO in-game acceptance checklist (2026-07-26):**
+**PO in-game acceptance checklist (2026-07-26) — ✅ ALL PASSED.** Both ⚠ items
+resolved in the PO's favour: the `RallyDrummer` **reads correctly** as authored
+("chasing other bandit mobs to shield them seems fine" — pacifism accepted), and
+the universal post-hit regen gate is accepted as shipped. One follow-up raised,
+NOT a defect in this chunk: a pacifist under attack with nothing in range to
+support should **flee** rather than idle-wander — see §Intake round 5 item 2.
+
 1. Beat on a lone `Healer` / `BanditHealer` — it must now die instead of
    out-regenerating you. **This is the reported bug.**
 2. Disengage from a wounded mob and wait — it must still heal back to full
@@ -604,10 +613,11 @@ heal landing on an ally.
 ### Round-4 chunk ledger
 
 **Tooltip character-power-scale DONE (2026-07-26), backend + frontend + first JS
-test infra — ⏳ PO TEST PENDING** (headless-verified only), committed
-`eaae2e69`. 14 files.
+test infra — ✅ PO-VERIFIED IN-GAME 2026-07-26**, committed `eaae2e69`. 14 files.
 
-**PO in-game acceptance checklist:**
+**PO in-game acceptance checklist — ✅ ALL PASSED.** Item 4 signed off: the
+whole-point HP rounding reads acceptably, so the unplanned display change stands
+as shipped.
 1. Hover any HP-valued ability at character level 1, `XP 99999999` to 30, hover
    again — the number must move. Rejuvenation is the reported case: `4 → 6`
    becomes `107 → 160`.
@@ -732,14 +742,236 @@ fixes; fold into this chunk's commit or any nearby one.
 
 ---
 
+## Round-5 chunk ledger
+
+**Both round-5 items DONE 2026-07-26, backend only — ⏳ PO TEST PENDING**
+(headless/unit-verified only). Uncommitted at time of writing. 4 files.
+Design context and the diagnosis for both is §Intake round 5 immediately below;
+this section is what shipped.
+
+### Acceptance checklist (PO, in-game)
+
+1. Find the `RallyDrummer` at (27.3, 19.7) and let it shield its squad — its
+   aura ring must now carry a **tick indicator** showing when the next shield
+   lands (1 s cadence). Same for any `Warbanner` totem.
+2. Beat on a lone `BanditHealer` (50, −21.5) with no other bandits around — it
+   must **run away from you** instead of standing still, and must still die
+   when you keep up (it flees at 66 % of your speed).
+3. Beat on it **next to a wounded bandit** — it must keep healing instead of
+   fleeing. Support outranks flight.
+4. Stop hitting a fleeing healer — after ~3.3 s it must stop running and go
+   back to wandering.
+5. `RallyDrummer` flees at 50 % of your speed. **Judge whether that reads as
+   fleeing or as comedy** — decision 4 deliberately shipped it unmodified.
+6. Ordinary damage mobs must be **completely unchanged**.
+
+### ① Shield auras now draw a tick indicator
+
+`skills/definition.go`. One line: `EffectTypeShieldAura` joins the
+`HasVisibleTickCadence` whitelist. Everything downstream was already live and
+category-agnostic — `Mob.AuraTickInterval` → wire `aura_tick_interval` →
+`Mobs.setAuraTick` → `AuraTickIndicator`. **No frontend change.**
+
+The predicate is shared by `player.go:644` and `mob.go:475`, so player and mob
+indicators moved together, as intended.
+
+Affects `RallyDrum` and `WarbannerShield` (shield-only auras, both authored
+`tickInterval: 30`). `Vanguard` is untouched: `AuraTickInterval` reads
+`Effects[0]`, which is its damage aura, so it already indicated at the damage
+cadence and still does.
+
+TDD: `TestHasVisibleTickCadence` extended + a new
+`TestHasVisibleTickCadence_ShieldAura` pinning the reasoning (and that
+`instant_shield` stays out — instants have no cadence). Verified red first.
+
+> **Why it was missing** — `shield_aura` had simply never been in either list of
+> the existing test, which is how it slipped. It was grouped with the state
+> effects, whose exclusion is justified as *"they re-apply, often at interval 1,
+> and an indicator would just strobe"*. Neither half is true of shields.
+
+### ② Pacifists flee when attacked with nothing to support
+
+`model/mob/support.go` + `model/mob/mob.go`. Exactly the four pieces the design
+called for, no additions:
+
+1. `modeFlee` joins `combatMode`.
+2. `selectMode` gains `case m.isPacifist() && m.InCombat()`, ranked **below
+   support** — reaching it means the support case already failed, i.e. there is
+   nobody to heal. Ranked above engage for readability only: a pacifist has no
+   combat slot, so the two can never compete.
+3. One movement case in `Update` calling the existing `moveAwayFrom()`.
+4. Direction from `highestThreatTarget()`.
+
+`applyMode` untouched: `modeFlee` is not named in its slot switch, so it falls
+through to slot −1 — which is already what an unemployed pacifist does. No
+content edits, no conf knobs, no wire change, no frontend rebuild.
+
+**The one implementation deviation from the sketch:** `highestThreatTarget()`
+**prunes dead rows as it reads**, so calling it twice in one tick (once in the
+`case`, once in the body) is not a free repeat. It is resolved once into a local
+before the switch.
+
+**Tests** (5 new in `support_test.go`, all verified red first — the first three
+failed to compile on `modeFlee`, which is red for the right reason):
+
+- `TestMob_PacifistUnderFireFleesFromAttacker` — asserts the **exact** away
+  vector, not just "moved", plus that it still never fights back and still shows
+  no ring.
+- `TestMob_PacifistFleeEndsWithTheCombatWindow` — the flee ends itself; no new
+  timer was added.
+- `TestMob_PacifistPrefersSupportOverFlee` — the ordering guard.
+- `TestMob_FighterUnderFireDoesNotFlee` — the scope guard for every existing
+  damage mob.
+- `TestMob_StationaryPacifistCannotFleeAndKeepsItsAura` — **the edge worth
+  knowing about.** Campfires, totems and braziers are pacifists too (support
+  aura, no combat aura), so they now reach `modeFlee` when damaged. It is inert
+  in both directions: they are `auraAlwaysOn`, which early-returns out of
+  `applyMode` before any aura gating, and `moveAwayFrom` refuses to move a
+  zero-velocity mob. This is the one place the new mode meets an existing early
+  return, so it is pinned rather than reasoned about.
+
+**Verified:** `go build` + `go vet` clean; `go test ./...` **exit 0**;
+simharness guardrails `-count=2` clean (6.6 s); boot clean, counts unchanged
+(83 skills / 14 factions / 50 mobs / 10 recipes / 5 prop defs / 1 milestone /
+777 props / 471 spawns / 5 campfires / 14 npcs). **Not done:** no in-game
+click-through — items 1, 5 and 6 of the checklist above are feel judgements that
+only the PO can make, and decision 4 explicitly deferred the drummer's flee
+speed to in-game.
+
+---
+
+## Intake — round 5 (2026-07-26): from the three-chunk verification session
+
+Both items came out of the session that PO-verified rounds 3 + 4 + the filler
+batch. **Neither is a defect in any of those three chunks** — both are gaps the
+round-3 support work made visible for the first time, because before it no
+pacifist mob ever ran its aura in front of the PO for long enough to notice.
+Triaged against the code in-session; findings below are read from source, not
+estimated.
+
+### 1. A shield aura draws no tick indicator (bug, one-line fix)
+
+The `RallyDrummer`'s aura ring has no tick indicator, so there is no read on
+when the next shield application lands. Every other output aura has one.
+
+**Cause — a stale exclusion list, not missing plumbing.**
+`skills.HasVisibleTickCadence` (`skills/definition.go:66`) whitelists exactly
+four effect types — `damage_aura`, `heal_aura`, `dot_aura`, `hot_aura`.
+`shield_aura` falls to `default: false`, so `Mob.AuraTickInterval()`
+(`mob/mob.go:469`) returns 0, the wire `Mob.aura_tick_interval` is 0, and the
+frontend correctly draws nothing. The whole path below that is already live and
+category-agnostic (`Mobs.setAuraTick` → `AuraTickIndicator`).
+
+**Why it looks like an oversight rather than a decision.** The function's own
+comment justifies the exclusions as "state + visual effects (slow, resist,
+light) re-apply too — often at interval 1 — but show no per-tick hit, so an
+indicator would just strobe". Neither half of that reasoning holds for shields:
+they are authored with a real, deliberate cadence (`RallyDrum` and
+`WarbannerShield` both `tickInterval: 30` = 1 s; `Vanguard`'s shield 90), and a
+shield application **is** a visible event — the absorb pool refills and the pip
+is already on the bar. The strobe argument does not apply.
+
+> **✅ FIXED 2026-07-26** — ⏳ PO test pending. Ledger: §Round-5 chunk ledger.
+
+**Shape of the fix:** add `EffectTypeShieldAura` to the whitelist. Watch the
+`Effects[0]` assumption in `AuraTickInterval` — it reads the *first* effect
+only, so on a multi-effect aura like `Vanguard` (damage 40 / heal 120 / shield
+90) the indicator already tracks the damage cadence and would keep doing so;
+adding shield changes nothing there. The behaviour change is confined to
+shield-only auras: `RallyDrum`, `WarbannerShield`. Same question probably wants
+asking for the **player** path (`Character.ts` drives the same indicator from
+`Character.aura_tick_interval`) — one shared predicate, both sides move
+together.
+
+### 2. Pacifist mobs should flee when attacked with nothing to support
+
+> PO, 2026-07-26: "both the healer and rally drummer should, if attacked and no
+> target is in range to heal or shield, flee instead of standing still."
+
+**This is a logic change, not per-mob config.** The distinction matters because
+`factors.fleeBelowHealthRatio` exists and looks like it should cover it — it
+does not, and authoring it on `BanditHealer` / `RallyDrummer` today would do
+**literally nothing**:
+
+- The flee branch (`mob/mob.go:687`) is nested inside `case m.aggroTarget !=
+  nil:` and flees *from the aggro target*.
+- A pacifist never acquires an aggro target — that is the round-3 PO ruling,
+  implemented as `case m.isPacifist(): m.tookDamage = false` in `updateAggro`
+  (`mob.go:904`), which returns before any acquisition.
+- So `shouldFlee()` is never even consulted for the exact mobs this is about.
+
+And the requested trigger is not the health threshold anyway. "Attacked and
+nothing to support" is a **mode**, not a cowardice ratio — it fires at full
+health.
+
+**Shape of the fix — it lands cleanly in the round-3 architecture, no new
+plumbing.** Four small pieces:
+
+1. `modeFlee` joins `combatMode` (`support.go:36`).
+2. `selectMode` gains one case, ranked **below** support and above idle, so a
+   fleeing healer that sees a wounded ally goes straight back to work:
+   `case m.isPacifist() && m.InCombat() && m.supportTarget == nil`.
+   `InCombat()` is already exactly "took damage within
+   `combatRegenGraceTicks`" (~3.3 s) — the round-3 fix built it. That also
+   gives the exit for free: the window lapses, the mob falls back to idle
+   wander and walks home. No new timer.
+3. Movement: one case in `Update`'s switch calling the existing
+   `moveAwayFrom()`, which already deflects around props and the border wall.
+4. Flee-from position: `m.highestThreatTarget()`. **The threat table is already
+   populated for a pacifist** — `noteThreat` (`mob.go:1063`) is gated on
+   faction and liveness, never on pacifism, and the credit at `mob.go:1450`
+   runs on any hit. The attacker identity is free.
+
+`applyMode` needs **no** change: its slot switch names only `modeSupport` and
+`modeEngage`, so `modeFlee` falls through to slot −1 (aura off), which is
+already what an unemployed pacifist does today.
+
+**Does it undo round 3's "kill the healer" fix? No — checked.** Mob step is
+`0.055 × factors.speed` against a player's `walkingSpeedPerTick` 0.05:
+`BanditHealer` 0.6 → 0.033 (**66 %** of player speed), `RallyDrummer` 0.45 →
+0.025 (**50 %**). Both are comfortably outrun, so a fleeing healer is still a
+dead healer — it just costs a few steps. Worth re-confirming in-game, since
+that is precisely the failure mode round 3 existed to remove.
+
+**✅ Design decided by the PO 2026-07-26 (choice prompts) — all four minimal:**
+
+1. **Scope: pacifists only.** Mobs carrying support with no combat aura —
+   `BanditHealer`, `RallyDrummer`, `MedicCompanion`, `ShieldbearerCompanion`.
+   Every other mob stays byte-identical. (Rejected: widening to any mob with
+   nothing to act on, which would start overriding leash/idle behaviour that
+   already works, and turn a "retreat" into a chase for damage mobs.)
+2. **Universal within that scope — no authoring flag.** Only ~4 mobs are in
+   scope, so there is no migration and no knob to forget. YAGNI: add
+   `fleeWhenHelpless` if and when content wants a healer that stands its ground.
+3. **Flee away from the top-threat attacker** — `highestThreatTarget()` +
+   the existing `moveAwayFrom()`. No new pathing. (Rejected: toward the nearest
+   ally, the better *story* — "runs to fetch the guards" — but it needs an ally
+   search outside the aggro sensor and can walk the healer straight *into* the
+   player when the ally is behind them.)
+4. **Ship at the authored speed; judge the waddle in-game.** No flee-speed
+   multiplier. Keeping the drummer at 50 % of player speed is what guarantees it
+   stays killable, which is the property round 3 exists to protect; a panic
+   sprint would partly walk that back and adds a [PLACEHOLDER] to tune. Revisit
+   only if it reads as comedy.
+
+**⇒ The chunk is unblocked and needs no further design.** It is exactly the four
+pieces above: `modeFlee`, one `selectMode` case, one `Update` movement case,
+`highestThreatTarget()` for direction. `applyMode` untouched. No content edits,
+no conf knobs, no wire change.
+
+> **✅ EXECUTED 2026-07-26 exactly as designed** — ⏳ PO test pending. Ledger:
+> §Round-5 chunk ledger above.
+
+---
+
 ## Rolling-filler batch ledger
 
 **Rolling filler — 4 of 6 items DONE (2026-07-26), committed `dab4dae0` —
-⏳ PO TEST PENDING (headless-verified only).** 6 files + 2 new. Picked up as
+✅ PO-VERIFIED IN-GAME 2026-07-26 (all 4 checklist items passed).** 6 files + 2 new. Picked up as
 independent work while rounds 3 and 4 both sat PO-test-pending; deliberately
 touches **no file either of those chunks touched**.
 
-### Acceptance checklist (PO, in-game)
+### Acceptance checklist (PO, in-game) — ✅ ALL PASSED 2026-07-26
 
 1. `DAMAGE 25` takes a quarter of the health bar and leaves you alive
    (it used to kill outright at any argument).
@@ -940,7 +1172,8 @@ a multiplayer playtest, not a solo one.
 ## Rolling filler — blocks nothing, do any time
 
 > **4 of 6 ✅ DONE 2026-07-26** in one batch, committed `dab4dae0` —
-> ⏳ **PO TEST PENDING**. Full ledger: §Rolling-filler batch ledger below.
+> ✅ **PO-VERIFIED IN-GAME 2026-07-26**. Full ledger: §Rolling-filler batch
+> ledger below.
 
 - ~~**Minimap resets on death.** Bug.~~ ✅ 2026-07-26
 - ~~**Damage numbers render in darkness.**~~ ✅ 2026-07-26 — suppressed like mob
@@ -956,6 +1189,9 @@ a multiplayer playtest, not a solo one.
   ⏳ PO-test-pending at the time — stacking a second unverified change into that
   file would have muddied the round-4 test pass. Pick it up after round 4 clears.
 - **Haste's name promises movement, delivers cadence** (see §Findings).
+- ~~**A shield aura draws no tick indicator** (round 5, 2026-07-26).~~
+  ✅ 2026-07-26 — `shield_aura` was missing from the `HasVisibleTickCadence`
+  whitelist; everything below it already worked. §Round-5 chunk ledger.
 - ~~**The `DAMAGE <pct>` dev cheat always kills** (round 3, 2026-07-25).~~
   ✅ 2026-07-26 — `cmd.go`'s `DAMAGE` called `VitalSign.SubFraction`, a fraction
   of `vitals.Max` (`^VitalSign(0)`, the *type* max), but player health has been
@@ -1025,6 +1261,16 @@ a multiplayer playtest, not a solo one.
    `setLocalPlayerLevel` got. **Blocks nothing** — additive, decidable once the
    round-4 chunk is felt. It is the *only* line where authored and experienced
    numbers still diverge after that chunk lands.
+
+**Round 5 (2026-07-26) — pacifist flee: ✅ ALL FOUR DECIDED, chunk unblocked.**
+Recorded in full at §Intake round 5 item 2. Every one landed on the minimal option,
+so the chunk is the four-piece shape already described in §Intake round 5 item 2
+with **no additions**: no new knob, no new pathing, no new tuning value.
+
+Question 8 above is now answered as a side effect: the chosen flee direction
+(`highestThreatTarget`) gives the pacifist threat table its **second** consumer
+after Taunt, so the round-3 "track threat but ignore the attacker" ruling is no
+longer tracking-for-nothing.
 
 ---
 

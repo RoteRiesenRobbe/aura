@@ -547,14 +547,33 @@ func TestEffectiveTickInterval_FlooredAtOne(t *testing.T) {
 }
 
 func TestHasVisibleTickCadence(t *testing.T) {
-	// The four output auras land a visible per-tick event; state + visual
+	// The five output auras land a visible per-tick event; state + visual
 	// effects re-apply silently (often at interval 1) so they get no indicator.
-	for _, tt := range []EffectType{EffectTypeDamageAura, EffectTypeHealAura, EffectTypeDotAura, EffectTypeHotAura} {
+	for _, tt := range []EffectType{EffectTypeDamageAura, EffectTypeHealAura, EffectTypeDotAura, EffectTypeHotAura, EffectTypeShieldAura} {
 		assert.True(t, HasVisibleTickCadence(tt), tt)
 	}
 	for _, tt := range []EffectType{EffectTypeSlowAura, EffectTypeResistAura, EffectTypeLightAura, EffectTypeResistPassive, EffectTypeStatMultiplier} {
 		assert.False(t, HasVisibleTickCadence(tt), tt)
 	}
+}
+
+// TestHasVisibleTickCadence_ShieldAura pins the round-5 fix (playtest feedback
+// 2026-07-26): a shield aura draws no tick indicator, so a RallyDrummer's ring
+// gave no read on when the next shield lands. shield_aura was simply missing
+// from the whitelist and fell to the default.
+//
+// It belongs with the output auras, not the state effects: the exclusion list
+// was justified as "state effects re-apply, often at interval 1, and would just
+// strobe", and neither half holds here. RallyDrum and WarbannerShield are both
+// authored tickInterval 30 (1 s at 30 TPS) and a shield application is a
+// visible event — the absorb pool refills and the pip is already on the bar.
+//
+// The instants stay out: they are not auras and have no cadence at all.
+func TestHasVisibleTickCadence_ShieldAura(t *testing.T) {
+	assert.True(t, HasVisibleTickCadence(EffectTypeShieldAura),
+		"an authored shield cadence is a visible periodic event and gets an indicator")
+	assert.False(t, HasVisibleTickCadence(EffectTypeInstantShield),
+		"instants have no cadence to indicate")
 }
 
 func TestEffectiveTickInterval_Rounds(t *testing.T) {
