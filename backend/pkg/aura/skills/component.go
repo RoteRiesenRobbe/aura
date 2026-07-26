@@ -141,6 +141,44 @@ type DerivedStats struct {
 	Resistances map[string]float32
 }
 
+// The three factor methods below are THE application formula for the stat
+// bonuses that every actor shares (plan-entity-model.md chunk 1a). Both
+// *player and *Mob hold a *SkillComponent and call them from their own
+// MaxHealth / takeDamage / movement sites — one formula, two callers, no
+// entity-kind branch anywhere.
+//
+// Resistances deliberately has no factor method: a mob already carries
+// authored base resistances, so composing them with a resist passive is a
+// design call rather than a mechanical one — deferred until the first resist
+// passive is authored (chunk 1a code audit).
+
+// MaxHealthFactor is the multiplier a max-health passive puts on the base HP
+// pool: base × (1 + bonus).
+func (d DerivedStats) MaxHealthFactor() float32 {
+	return 1 + d.MaxHealthBonus
+}
+
+// DamageReductionFactor is the multiplier a damage-reduction passive puts on
+// incoming damage: damage × (1 − bonus). 100% reduction is the natural cap
+// (clamped here, so no call site has to re-check it); a negative bonus cannot
+// be authored, and would read as increased damage taken if it ever were.
+func (d DerivedStats) DamageReductionFactor() float32 {
+	r := d.DamageReductionBonus
+	if r > 1 {
+		r = 1
+	}
+	if r < 0 {
+		r = 0
+	}
+	return 1 - r
+}
+
+// MovementSpeedFactor is the multiplier a movement-speed passive puts on the
+// base per-tick step: base × (1 + bonus).
+func (d DerivedStats) MovementSpeedFactor() float32 {
+	return 1 + d.MovementSpeedBonus
+}
+
 // NewSkillComponent creates a SkillComponent with no skills equipped.
 // Pass withSpellbook=true for players, false for mobs.
 func NewSkillComponent(withSpellbook bool) *SkillComponent {

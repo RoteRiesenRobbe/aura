@@ -72,6 +72,47 @@ func SetHealthGainTick(fractionPerTick float32) {
 // boot log should report, since a missing conf entry resolves to the default.
 func HealthGainTick() float32 { return healthGainTick }
 
+// defaultMobWalkingSpeedPerTick is the built-in base movement step in world
+// units per tick, multiplied by the mob's factors.speed to give its velocity.
+// THE source of truth for the rate, exactly like defaultMobHealthGainTick
+// above: the conf block restates it and an absent entry resolves back to here.
+//
+// ⚑ It is deliberately NOT the player's 0.05 (game.player.walkingSpeedPerTick).
+// Converging the two is a rename into one vocabulary, never a silent balance
+// change — adopting the player's number would make every mob in the game 9%
+// slower, and all 50 authored factors.speed values are tuned against this one
+// (plan-entity-model.md landmine L1).
+const defaultMobWalkingSpeedPerTick float32 = 0.055
+
+// walkingSpeedPerTick is the base step in the SAME unit and under the SAME
+// name as the player's game.player.walkingSpeedPerTick, so the two mechanics
+// are one vocabulary in two config blocks (the game.mob.healthGainTick
+// precedent, backlog §27.2.3). Set once at boot via SetWalkingSpeedPerTick;
+// left at the default in tests and the sim harness.
+var walkingSpeedPerTick = defaultMobWalkingSpeedPerTick
+
+// SetWalkingSpeedPerTick sets the base movement step for every mob spawned
+// after it. Call once at server boot, before any mob spawns; not safe to
+// mutate concurrently with live spawns. A non-positive value (an absent conf
+// entry) restores the built-in default rather than freezing every mob —
+// normalized here at the single write point.
+//
+// Note it is consumed at CONSTRUCTION (velocity is stored per mob), unlike
+// healthGainTick which is read per tick: changing it mid-run leaves already
+// spawned mobs at their old speed.
+func SetWalkingSpeedPerTick(unitsPerTick float32) {
+	if unitsPerTick <= 0 {
+		walkingSpeedPerTick = defaultMobWalkingSpeedPerTick
+		return
+	}
+	walkingSpeedPerTick = unitsPerTick
+}
+
+// WalkingSpeedPerTick is the effective base step after normalization — the
+// value a boot log should report, since a missing conf entry resolves to the
+// default.
+func WalkingSpeedPerTick() float32 { return walkingSpeedPerTick }
+
 // mobRNGSeed derives a mob's RNG seed from the process salt and its entity ID.
 // The salt shifts the whole sequence per run (per-run randomness); the ID keeps
 // streams independent even for mobs constructed in the same instant, so one
@@ -228,8 +269,7 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 		aggroAura:        aggroAura,
 		spawnPosition:    phy.VEC2F_ZERO,
 		spawnInitialized: false,
-		// TODO use walkingSpeedPerTick from global config
-		velocity:            0.055 * d.Factors.Speed,
+		velocity:            walkingSpeedPerTick * d.Factors.Speed,
 		auraAlwaysOn:        auraAlwaysOn,
 		supportSlot:         supportSlot,
 		combatSlot:          combatSlot,
@@ -641,16 +681,33 @@ func (m *Mob) SummonPower() float32 {
 	return m.summonPower
 }
 
-// PowerScale is the def-derived tier+baseline scale f(curveLevel)
-// (model.PowerScaled, C0): the SkillSystem multiplies this mob's skill HP
-// values by it at cast time, so mob-skill JSONs stay baseline-authored. The
-// zero value (hand-built definitions in sim/tests) reads as neutral, the
-// SummonPower convention.
-func (m *Mob) PowerScale() float32 {
-	if m.definition.PowerScale <= 0 {
+// Level is the mob's position on f(L) — the authored curveLevel (GDD §5: zone
+// number = curve position). It is the mob-side counterpart of the player's
+// progression.Level, and the accessor the Actor model was missing: the two
+// entity kinds always shared ONE curve, but only the player could say which
+// level to evaluate it at (plan-entity-model.md chunk 1a, gap 3). Below 1
+// clamps to the baseline, matching Curve.F and the loader's default for an
+// unauthored curveLevel.
+//
+// Still fixed for a mob's lifetime here; chunk 1b makes it mutable, which is
+// what collapses the summon scaling.
+func (m *Mob) Level() int {
+	if m.definition.CurveLevel < 1 {
 		return 1
 	}
-	return m.definition.PowerScale
+	return m.definition.CurveLevel
+}
+
+// PowerScale is f(this mob's level) — the same global inflation multiplier the
+// player reads (model.PowerScaled, C0): the SkillSystem multiplies this mob's
+// skill HP values by it at cast time, so mob-skill JSONs stay
+// baseline-authored. Evaluated from the curve rather than read from the
+// registry-frozen definition.PowerScale field, so it follows Level (chunk 1a
+// — inert while Level is fixed, load-bearing in 1b). A definition without a
+// curve (hand-built in sim/tests) reads as neutral 1, the SummonPower
+// convention, exactly as the old PowerScale <= 0 guard did.
+func (m *Mob) PowerScale() float32 {
+	return float32(m.definition.Curve.F(m.Level()))
 }
 
 // RaiseMaxHealth grants flat bonus HP on top of the (possibly variance-rolled)
@@ -745,17 +802,18 @@ func (m *Mob) Update(dt float32) bool {
 		// The fraction is carried across ticks rather than rounded each tick —
 		// see healthRegen — so the rate encodes the same duration whatever the
 		// pool size.
-		if m.health < m.maxHealth {
-			m.healthRegen += float32(m.maxHealth) * healthGainTick
+		maxHP := m.MaxHealth()
+		if m.health < maxHP {
+			m.healthRegen += float32(maxHP) * healthGainTick
 			if m.healthRegen >= 1 {
 				whole := uint32(m.healthRegen)
 				m.healthRegen -= float32(whole)
-				m.health = m.health.AddCapped(whole, m.maxHealth)
+				m.health = m.health.AddCapped(whole, maxHP)
 			}
 		}
 		// Back at full health and out of combat = fight over; earlier
 		// contributors no longer count as participants for the next one.
-		if m.health == m.maxHealth && len(m.participants) > 0 {
+		if m.health >= maxHP && len(m.participants) > 0 {
 			m.participants = nil
 		}
 	}
@@ -873,10 +931,16 @@ func (m *Mob) moveAwayFrom(threat phy.Vec2f) {
 	m.moveTo(current.Add(m.steer(dir).Mult(m.stepLength())))
 }
 
-// stepLength is this tick's movement distance: base velocity reduced by the
-// strongest active slow (shared by chase, walk-home and flee).
+// stepLength is this tick's movement distance: base velocity raised by the
+// movement-speed passive and reduced by the strongest active slow (shared by
+// chase, walk-home and flee).
+//
+// ⚑ The passive applies HERE, at the consumption site, not to the stored
+// velocity (chunk 1a): velocity is set once at construction, so folding the
+// factor in there would freeze whatever loadout the mob spawned with. The
+// player's equivalent site (core/input.go) is the same shape.
 func (m *Mob) stepLength() float32 {
-	step := m.velocity
+	step := m.velocity * m.skills.Derived.MovementSpeedFactor()
 	if slow := m.buffs.SlowFraction(); slow > 0 {
 		step *= 1 - slow
 	}
@@ -1284,18 +1348,28 @@ func (m *Mob) Health() vitals.VitalSign {
 }
 
 // MaxHealth is the mob's absolute HP pool (item 11 Phase 1); serialized as the
-// max_health wire field so the client draws health/maxHealth.
+// max_health wire field so the client draws health/maxHealth. The stored
+// m.maxHealth is the BASE pool (authored × spawn variance, plus any summon
+// body bonus); the max-health passive factor rides on top of it exactly as it
+// does for the player (chunk 1a, DerivedStats.MaxHealthFactor). Every pool cap
+// in this file goes through here, so a passive widens the real pool rather
+// than only the number on the wire.
+//
+// A factor that SHRINKS mid-life (unequipping a passive) can leave current
+// health above the pool; nothing does that today, and the clamp is chunk 1b's
+// business, where MaxHealth becomes fully derived.
 func (m *Mob) MaxHealth() vitals.VitalSign {
-	return m.maxHealth
+	return vitals.VitalSign(vitals.HP(float32(m.maxHealth) * m.skills.Derived.MaxHealthFactor()))
 }
 
 // HealthRatio is the current/max health fraction (0..1), read by the
 // lowest_health aura selector (roadmap.md item 11).
 func (m *Mob) HealthRatio() float32 {
-	if m.maxHealth == 0 {
+	maxHP := m.MaxHealth()
+	if maxHP == 0 {
 		return 0
 	}
-	return float32(m.health) / float32(m.maxHealth)
+	return float32(m.health) / float32(maxHP)
 }
 
 // SetInvulnerable toggles conditional damage immunity (encounter-controller
@@ -1338,7 +1412,11 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	multiplier := skills.ResistMultiplier(damage.Tags, m.definition.Factors.Resistances) *
 		m.buffs.ResistMultiplier(damage.Tags)
 
-	hp32 := damage.HP * multiplier
+	// Passive damage reduction (DerivedStats) — the same shared factor the
+	// player's takeDamage applies, in the same position: after resistances,
+	// before the non-event check (chunk 1a). Base resistances and a reduction
+	// passive are distinct sources and stack multiplicatively.
+	hp32 := damage.HP * multiplier * m.skills.Derived.DamageReductionFactor()
 	// A fully resisted hit stays a non-event: no combat signal, no absorb.
 	if vitals.HP(hp32) <= 0 {
 		return 0
@@ -1392,7 +1470,7 @@ func (m *Mob) CritTaken() vitals.VitalSign {
 // live pool is the only path here.
 func (m *Mob) Heal(hp uint32) vitals.VitalSign {
 	before := m.health
-	m.health = m.health.AddCapped(hp, m.maxHealth)
+	m.health = m.health.AddCapped(hp, m.MaxHealth())
 	healed := m.health - before
 	m.healReceived += healed
 	return healed

@@ -54,6 +54,12 @@ type Config struct {
 			// max pool per tick — the SAME unit as player.healthGainTick.
 			// Absent → the built-in default (full pool in 5 s). [PLACEHOLDER]
 			HealthGainTick float32 `json:"healthGainTick"`
+			// WalkingSpeedPerTick is the base movement step in world units per
+			// tick, multiplied by each mob's factors.speed — the SAME unit as
+			// player.walkingSpeedPerTick, deliberately NOT the same value
+			// (0.055 vs 0.05; every authored factors.speed is tuned against
+			// it). Absent → the built-in default. [PLACEHOLDER]
+			WalkingSpeedPerTick float32 `json:"walkingSpeedPerTick"`
 		} `json:"mob"`
 
 		// Combat holds factors that apply to every acting entity (player, mob,

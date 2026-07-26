@@ -95,6 +95,7 @@ func main() {
 	// mob spawns or any hit is composed; both fall back to their built-in
 	// defaults when the conf block is absent.
 	mob.SetHealthGainTick(config.Game.Mob.HealthGainTick)
+	mob.SetWalkingSpeedPerTick(config.Game.Mob.WalkingSpeedPerTick)
 	combat := cfg.CombatConfig{
 		DefaultCritFactor:  config.Game.Combat.DefaultCritFactor,
 		HealerThreatFactor: config.Game.Combat.HealerThreatFactor,
@@ -105,6 +106,7 @@ func main() {
 	// missing conf block actually resolved to.
 	slog.Info("🎚️ tuning knobs",
 		slog.Float64("mob.healthGainTick", float64(mob.HealthGainTick())),
+		slog.Float64("mob.walkingSpeedPerTick", float64(mob.WalkingSpeedPerTick())),
 		slog.Float64("combat.defaultCritFactor", float64(combat.CritFactor())),
 		slog.Float64("combat.healerThreatFactor", float64(combat.HealerThreat())))
 

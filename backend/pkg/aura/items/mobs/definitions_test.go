@@ -789,6 +789,11 @@ func TestMapMobDefinition_DerivesMaxHealthAndPowerScale(t *testing.T) {
 	assert.Equal(t, 3, def.CurveLevel)
 	assert.Equal(t, uint32(38), def.Factors.MaxHealth, "30 × 1.12² = 37.63, rounded")
 	assert.InDelta(t, 1.2544, def.PowerScale, 1e-4, "f(3) — multiplies the mob's skill HP values at cast time")
+	// The curve itself is retained, not just its value at load time
+	// (plan-entity-model.md chunk 1a): *Mob.PowerScale re-evaluates f at the
+	// mob's CURRENT level, so a mapper that forgets this leaves every mob
+	// neutral at 1.
+	assert.Equal(t, testCurve(), def.Curve)
 }
 
 func TestMapMobDefinition_TierAndCurveLevelDefaultToBaseline(t *testing.T) {

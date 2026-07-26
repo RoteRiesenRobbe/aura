@@ -243,7 +243,9 @@ func (p *player) maxHealthFactor() float32 {
 	// f(level) × (1 + passive bonus), C0: the curve carries inflation, the
 	// passive stays relative at every level (Philosophy A, GDD §5).
 	// Leveling raises maxHealth; current HP stays and regenerates up.
-	return p.PowerScale() * (1 + p.skills.Derived.MaxHealthBonus)
+	// The passive half is DerivedStats' shared formula (chunk 1a) — the mob
+	// side of MaxHealth() calls the same method.
+	return p.PowerScale() * p.skills.Derived.MaxHealthFactor()
 }
 
 // PowerScale is f(character level) — the global HP-value inflation multiplier
@@ -288,13 +290,10 @@ func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vi
 	hp32 := damage.HP *
 		skills.ResistMultiplier(damage.Tags, p.skills.Derived.Resistances) *
 		p.buffs.ResistMultiplier(damage.Tags)
-	// Passive damage reduction (DerivedStats); 100% is the natural cap.
-	if r := p.skills.Derived.DamageReductionBonus; r > 0 {
-		if r > 1 {
-			r = 1
-		}
-		hp32 *= 1 - r
-	}
+	// Passive damage reduction (DerivedStats); 100% is the natural cap,
+	// clamped inside the shared factor (chunk 1a — the mob takeDamage calls
+	// the same method).
+	hp32 *= p.skills.Derived.DamageReductionFactor()
 	// God short-circuits before the absorb step — god never drains a shield.
 	if p.IsGod() {
 		return 0

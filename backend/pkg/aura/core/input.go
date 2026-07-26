@@ -339,8 +339,9 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 				p.SkillComponent().CancelCast()
 				p.SetLastMoveDir(v)
 			}
-			// Passive movement-speed bonus (DerivedStats); config stays untouched.
-			speed := p.Config().WalkingSpeedPerTick * (1 + p.SkillComponent().Derived.MovementSpeedBonus)
+			// Passive movement-speed bonus (DerivedStats); config stays
+			// untouched. The mob's stepLength applies the same factor (chunk 1a).
+			speed := p.Config().WalkingSpeedPerTick * p.SkillComponent().Derived.MovementSpeedFactor()
 			if f := p.SpeedCheatFactor(); f > 0 {
 				speed *= f
 			}

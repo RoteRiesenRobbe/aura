@@ -172,6 +172,15 @@ type MobDefinition struct {
 	CurveLevel int
 	PowerScale float32
 
+	// Curve is f(L) itself — the same curve.Curve value the player reads live
+	// (model/player.PowerScale), retained here so a mob's PowerScale can be
+	// evaluated at its CURRENT level rather than only at the level frozen into
+	// the field above (plan-entity-model.md chunk 1a, gap 3: it was always one
+	// curve, the mob side just had no way to re-evaluate it). The zero value
+	// is neutral — Curve.F returns 1 at every level for growth <= 0 — which is
+	// what hand-built definitions in tests and the sim harness get.
+	Curve curve.Curve
+
 	// Legacy marks proving-grounds-only species (step-7 A.5): kept for the
 	// legacy zone, sim presets and tests, never spawned by the live world.
 	// LegacyRefs lists legacy-tagged content a LIVE mob references (skills,
@@ -386,6 +395,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		Tier:              tier,
 		CurveLevel:        curveLevel,
 		PowerScale:        float32(powerScale),
+		Curve:             c,
 		Legacy:            m.Legacy,
 		Factors: Factors{
 			MaxHealth:            uint32(math.Round(float64(m.Factors.BaseMaxHealth) * powerScale)),
