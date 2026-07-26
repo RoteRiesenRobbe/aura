@@ -34,6 +34,7 @@ literally correct — don't add the prefix to newly archived docs, the folder sa
 
 Everything else that ever had a plan doc lives in `archive/` (see the Archive section).
 
+- **plan-entity-model.md** — **the Actor model** (backlog §31, designed 2026-07-26, not started): converge the player/mob/NPC stat model onto one Actor + optional capabilities, with an authored `role` discriminator replacing today's inferred roles, and the NPC merge + interaction schema that unblocks WoW-Classic-style NPCs. 7 PO decisions; 5 chunks; **all of it runs before step 8**
 - **plan-playtest-feedback.md** — **the standing collection of playtest-arising issues** (successor to `archive/plan-playtest1-feedback.md`). Round 2 (2026-07-24) triaged and sorted into Pass 1 (point curve + resource costs + retune) / Pass 2 (pulsing auras, directional ability, anti-AFK patrols) / Pass 3 (XP credit, minion combos) + rolling filler. New playtest rounds append to §Intake; we pick targets from here
 - **plan-intermission-triage.md** — the PO's 22 post-C7 playtest items (bugs, config fixes, audits, design questions), each investigated against code with effort estimates + a locked execution sequence. Largely executed; still the home of the open combat-readability and sacrifice-loop items
 - **plan-ui-polish.md** — UI-polish pass (step 8, item-8 slice): Chunk 1 done (`GET /skills` catalog + skill tooltips); the rest of the checklist is deferred (§Deferred)
