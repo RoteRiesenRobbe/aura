@@ -4,6 +4,9 @@
 prompts). Supersedes the "not scheduled" note on `backlog.md` §31 — that entry
 stays as the *findings* record; this doc is the *plan*. Everything here is
 plan-first: no production code was written in the session that produced it.
+Audited line-by-line against the code 2026-07-26 (same day, four parallel
+verification sweeps); the corrections are folded in below and marked
+"code audit" where they overturned a claim.
 
 **Scheduled:** all three chunks run **before** roadmap step 8 (accounts &
 persistence). PO ruling, see §2 decision 7.
@@ -19,14 +22,16 @@ the real problem is the inverse:
 > it expresses which job by lying about its numbers. `Npc` exists only because
 > `Mob` could not carry dialogue.**
 
-Measured across the 50 authored mob defs and the 14 zone NPCs (2026-07-26):
+Measured across the 50 authored mob defs and the 16 authored zone-NPC entries
+(2026-07-26 — 14 in `world.json`, which is the boot count, plus 2 legacy `Sage`
+entries in `proving-grounds.json`):
 
 | what content authored | count | how the role is encoded today |
 |---|---|---|
 | creature (wolf / bandit / orc) | 40 mobile defs | the honest case |
 | inert structure (campfire, totem, poison pool, spike barricade, turnip, bramble, rockfall) | **10** | `speed: 0` → `auraAlwaysOn` **inferred** at `model/mob/mob.go:148`; `aggroRadius: 0.1` is a pure **dummy** on all 10; `Campfire` adds `collisionLayer: 32` to be structurally unkillable; `Turnip` adds `resistances: {"*": 0, "harvest": 1}` to gate what may hit it |
 | companion / summon | 4 | `isFollower()` = `owner != nil && velocity > 0` (`model/mob/companion.go:61`) |
-| teacher / lore NPC | 14 | a **separate statless Go type** — no HP, no level, no faction, no `SkillComponent` |
+| teacher / lore NPC | 14 (+2 legacy Sages) | a **separate statless Go type** — no HP, no level, no faction, no `SkillComponent` |
 
 The through-line of all five §31 gaps is one sentence: **role is inferred from
 incidental values instead of authored.** Speed 0 means "structure". Velocity > 0
@@ -133,8 +138,10 @@ starts.
 (`plan-playtest-feedback.md` §Intake round 6) because its cost-reduction passive
 would be the **sixth `validStat`** while three of the current five were
 player-only. **Decision 1 is the input it was waiting for** — after Chunk 1a
-there are no player-only stats, so a sixth is an ordinary addition. Re-schedule
-1a.2 once Chunk 1 lands.
+the three numeric player-only stats are gone, so a sixth is an ordinary
+addition. (Code audit: `Derived.Resistances` stays player-only past 1a, by
+deliberate deferral — see Chunk 1a. It is not a `validStat` and does not block
+1a.2.) Re-schedule 1a.2 once Chunk 1 lands.
 
 ---
 
@@ -224,6 +231,18 @@ func (d DerivedStats) MovementSpeedFactor() float32   // 1 + MovementSpeedBonus
 | `DamageReductionBonus` | `model/player/player.go:292` `takeDamage` | both `player.takeDamage` and the mob damage site |
 | `MovementSpeedBonus` | `core/input.go:343` | both, and mob-side at the *consumption* site (`moveTowardsScaled`), not the stored `velocity` field — the bonus must stay dynamic |
 
+**⚑ Code audit: there is a FOURTH player-only derived stat, deliberately
+deferred.** `DerivedStats` has **six** fields, not five — this plan originally
+missed `Derived.Resistances` (a map, `skills/component.go:142`), read only at
+`player.go:289`; a mob mitigates via `definition.Factors.Resistances`
+(`mob.go:1315`) and never reads its own `Derived.Resistances`. It is equally
+latent (no content authors a resist passive), but converging it is not
+mechanical: a mob already *has* authored resistances, so derived-vs-authored
+composition (a third multiplier in the existing `ResistMultiplier` chain,
+presumably) is a small design call. **Defer it out of 1a; decide it when the
+first resist passive is authored.** Until then decision 1's "no player-only
+stats" is one map short — noted where it matters (Pass 1a.2 above).
+
 **Also in 1a — movement-speed vocabulary (gap 2 remainder).** `mob.go:222` is
 `velocity: 0.055 * d.Factors.Speed` under a standing
 `TODO use walkingSpeedPerTick from global config`. **⚑ Do not "just use" the
@@ -236,7 +255,12 @@ balance change.
 `*Mob` returning `definition.CurveLevel`, and derive `PowerScale()` from it
 instead of reading the stored `definition.PowerScale`. Player already has it via
 `progression.Level`. No behaviour change: `curve.F(CurveLevel)` is what the
-registry precomputed anyway.
+registry precomputed anyway. ⚑ Code audit — one plumbing step the plan missed:
+**no curve reference is retained anywhere in the mob layer** (`definitions.go`
+stores only the resulting `float32`), so deriving `PowerScale()` live means
+threading the `curve.Curve` value into `MobDefinition` or the constructor.
+Trivial, but it is a new dependency, and mind the existing `PowerScale() <= 0 → 1`
+guard when replacing the stored read.
 
 **Expected behaviour delta: none.** Zero mob defs equip a `stat_multiplier`
 passive today (re-verified by effect *type*, not name — `grep "stat_multiplier"`
@@ -260,12 +284,26 @@ MaxHealth() = round(baseMaxHealth × varianceRoll × curve.F(Level) × Derived.M
 with `baseMaxHealth`, the per-mob lifetime `varianceRoll` and `flatBonus` stored,
 and `Level` mutable. Current health stays absolute and clamps to the new max.
 
-**What this collapses.** `spawnSummon` (`sys/skills.go:1507`) currently does
-`SummonPower × owner.PowerScale()` for output and `MaxHealthBonusAt(ownerLevel)`
-for HP — two bespoke mechanisms for "a summon rides its owner's curve". Under
-dynamic levels a summon sets `Level = owner.Level` and gets both for free.
-`SummonPower` survives as what it was always meant to be: the linear
-specialization knob, not a curve.
+**What this collapses.** Two bespoke mechanisms for "a summon rides its owner's
+curve" — but (code audit) they live in different places and at different times
+than this plan first said. `spawnSummon` (`sys/skills.go:1507`) only *stores*
+the factor (`SetSummonPower(PowerAt(ownerLevel))`, a linear per-skill knob baked
+at spawn) and applies the HP half as a **one-shot flat bonus frozen at spawn**
+(`MaxHealthBonusAt(ownerLevel)` → `RaiseMaxHealth`). The multiply happens
+**live at cast time** in `casterPowerScale` (`skills.go:382-392`), a
+three-factor product: summon's own `PowerScale` × `SummonPower` ×
+`owner.PowerScale()`. So today an existing summon's *output* already tracks the
+owner's level-ups live, while its *HP* does not. Under dynamic levels a summon
+sets `Level = owner.Level` and gets both for free. `SummonPower` survives as
+what it was always meant to be: the linear specialization knob, not a curve.
+
+**⚑ New decision this chunk must record: is `Level = owner.Level` assigned once
+at spawn or tracked live?** The two reproduce *different halves* of today's
+behaviour — assign-once matches today's HP and breaks output tracking; live
+tracking matches output and changes HP (an existing summon's pool would grow on
+owner level-up). Recommendation: **track live** — it is the simpler rule, the
+direction decision 2 points, and the sim deltas will price it. Either way it is
+a semantics choice, not just retuning; write it into the ledger.
 
 **⚠ This is a real balance change.** Summon HP and output numbers *will* move.
 Chunk 1b is not done until the sim battery, level curve and pack matrix are
@@ -288,7 +326,10 @@ exactly when the loader knows it.
 Brazier, Campfire, FireTotem, PoisonPool, Rockfall, SpikeBarricade, Totem,
 Turnip, WarbannerTotem); `role: follower` onto the 4 companions (Companion,
 MedicCompanion, ShieldbearerCompanion, SoldierCompanion). Everything else
-defaults to `creature`.
+defaults to `creature`. (Code audit: `FireTotem` and `Totem` are summon-spawned
+*and* speed-0 — they become `role: structure` **with** an owner, the first live
+proof that `role` and the `Owned` capability are orthogonal, exactly as §3
+requires.)
 
 **What the discriminator replaces:**
 
@@ -299,8 +340,13 @@ defaults to `creature`.
   and a pacifist — pacifist must win). Keep the order; just stop inferring the
   input.
 - `body.aggroRadius` becomes **optional for `role: structure`**, which retires
-  the `0.1` dummy on all 10 defs. It stays required (`> 0`) for `creature` and
-  `follower`.
+  the `0.1` dummy on all 10 defs. It stays required (`> 0`) for `creature`.
+  ⚑ Code audit: two **followers** also carry the `0.1` dummy today (`Companion`,
+  `SoldierCompanion` — they bypass the sensor via owner combat signals;
+  `MedicCompanion` was deliberately moved to a real `3.5` in round 3). Requiring
+  `> 0` for `follower` would preserve the dummy on exactly the defs this chunk
+  exists to clean — make it **optional for `follower` too**, or author real
+  values while migrating.
 
 **Expected behaviour delta: none.** Every mapping above reproduces today's
 inference exactly. Sim outputs byte-identical again.
@@ -338,9 +384,13 @@ dialogue panel). 3a is shippable and verifiable on its own.
 }
 ```
 
-Today's 14 NPCs each become **one node, one option, one `teach_skill` grant**,
-plus the existing `tooLowLine` expressed as a second node gated on a level
-condition. Nothing branches. The container is what buys the future:
+Each of today's NPCs becomes **one node whose single option carries its full
+grant list** — code audit: they are *not* uniformly one-teaching (Emberkeeper
+teaches 3 skills, five NPCs teach 2, and `LamplessTraveller`/`ForestSign` teach
+**0** — pure flavour, no `tooLowLine`). The typed grant list already allows
+several `teach_skill` grants per option, and a flavour NPC is a grant-less node;
+the existing `tooLowLine` becomes a second node gated on a level condition.
+Nothing branches. The container is what buys the future:
 
 - **gossip trees** → more nodes, `next` links. No schema change.
 - **quest offer / accept / turn-in** → new grant kinds. No schema change.
@@ -361,11 +411,16 @@ condition. Nothing branches. The container is what buys the future:
   nearly intact as the degenerate node evaluator.
 - `addNpcEntity` leaves `core/game.go` (§24's matrix shrinks by one helper). The
   NPC's separate dynamic sensor disappears — the mob's `aggroAura` is that
-  sensor. ⚑ Re-read `game.go:353`'s comment before deleting: the *reason* the
-  NPC sensor is registered dynamically (a static shape's `Collisions()` is
-  always empty) applies to the aggro aura too, and it is already satisfied there.
-- The 14 zone NPC entries migrate from `zone.npcs` to actor definitions +
-  spawns. **Decide during the chunk** whether they stay a distinct zone-JSON
+  sensor. ⚑ Re-read the comment at `game.go:319` (above `addNpcEntity`; the
+  blunt phrasing "a static shape's `Collisions()` is always empty" lives in
+  `model/npc/npc.go:10`) before deleting: the *reason* the NPC sensor is
+  registered dynamically applies to the aggro aura too, and it is already
+  satisfied there.
+- The zone NPC entries migrate from `zone.npcs` to actor definitions + spawns —
+  **16 authored entries, not 14** (code audit): 14 in `world.json` (the boot
+  count) plus 2 legacy `Sage` entries in `proving-grounds.json` that lack
+  `entityType`/`name` and need an explicit keep-or-drop call (open question 6).
+  **Decide during the chunk** whether they stay a distinct zone-JSON
   section (placement ergonomics for the editor) or fold into `spawns`; the
   editor is PO-operated, so the ergonomics call is the PO's.
 - ⚠ **Wire path change** — see landmine L5.
@@ -373,9 +428,12 @@ condition. Nothing branches. The container is what buys the future:
 ### Chunk 3b — the interact verb
 
 - New client keybind (recommend `E`), in-range prompt, dialogue panel.
-- New client→server message. ⚑ `client.fbs`'s message union is **append-only**,
-  same rule as the table fields (§28 Chunk 3 pinned the enum values explicitly
-  for exactly this reason) — add, never reorder.
+- New client→server message. ⚑ `client.fbs`'s message union is **append-only**
+  — add, never reorder. Code audit correction: unlike `server.fbs`'s
+  `EntityType`/`StatusEffect` (which §28 Chunk 3 pinned explicitly), the union's
+  values are **positional and unpinned** (generated `ClientMessageBody` numbers
+  them 1–7 by order), so nothing but discipline enforces the rule — a reorder
+  would silently remap every client message type.
 - The panel is where option selection happens, which is what keeps the "no
   targeting" pillar intact: nothing is ever clicked in the world.
 
@@ -408,8 +466,12 @@ makes **every mob in the game 9 % slower**. Mirror the name and unit
 
 **L2 — `SetFaction` nukes the authored aggro mask.** `mob.go:559` overwrites it
 with `^f.Bit()` — *"aggro everything that is not me"*, discarding the faction's
-curated reaction set. §31 records this as inert today (only `spawnSummon` calls
-it). **Under the PO brief it is directly blocking:** a charmed NPC, a guard that
+curated reaction set. §31 recorded it as inert with `spawnSummon` the only
+caller — code audit: **wrong, there are two call sites.** Campfire placement
+also calls it at zone boot (`cmd/aurad/aurad.go:157`, `SetFaction(FactionAligned)`;
+the "first caller" comment at `mob.go:554` is stale). Still inert in *effect*,
+but any fix must cover both, and Chunk 2's sensor work touches
+`refreshSensorMask` right next door. **Under the PO brief it is directly blocking:** a charmed NPC, a guard that
 switches sides, or a quest that turns a friendly hostile would each silently
 destroy the reaction table. Fix it *when* runtime faction changes are wanted —
 not speculatively, but do not forget it exists.
@@ -421,19 +483,31 @@ place, it is applied twice. Both must come out in the same change, and the sim
 battery must be re-run.
 
 **L4 — the sim harness is exposed, and that is worse than the live bug.**
-`sim/world.go:160` builds mobs with the real `mob.NewMob` from the real
-definitions, so any stat-application change is modelled by the balancing harness
+`sim/world.go:162` builds mobs with the real `mob.NewMob`, so any
+stat-application change in the model layer is modelled by the balancing harness
 too — and the harness is where TTK, kills/hour and the XP bands come from.
-**Verify every chunk in the harness, not only in-game.** (§31 ⭐)
+**Verify every chunk in the harness, not only in-game.** (§31 ⭐) ⚑ Code-audit
+precision: the harness feeds `NewMob` **synthetic inline definitions**
+(`world.go:149-162`, its own comment: "real mobs, from synthetic definitions") —
+it never loads authored `api/` content. So sim byte-identity covers the model
+layer but proves nothing about loader-side work (Chunk 2's `role` validation
+lives in the registry path the sim bypasses); there, `boot -content ../api` with
+the pinned counts is the actual gate.
 
 **L5 — NPCs change wire path in Chunk 3a.** They ride the **Resource** path
-today (`PropEntityFlatbufMarshal`, rendered by `frontend/.../Resources.ts`); as
-Actors they ride the **Mob** path, which carries `health` / `max_health` /
-`aura_*` / `tier`. Expect the Farmer to sprout a health bar and a tier frame
-unless gated. **Check first:** the mob nameplate rule from playtest Pass C item 2
-is already `combatTarget = grants-XP && !friendly`, so a `friendlyToPlayers`
-NPC with `experience: 0` may well be gated for free. The health bar needs its
-own check. Verify with a screenshot, not by reading the code.
+today (`PropEntityFlatbufMarshal`, rendered by
+`frontend/src/features/game-objects/logic/Resources.ts`); as Actors they ride
+the **Mob** path, which carries `health` / `max_health` / `aura_*` / `tier`.
+**Resolved by code audit 2026-07-26:** the nameplate IS gated for free
+(`combatTarget = Experience > 0 && !FriendlyToPlayers`, `catalog.go:63`, sole
+frontend consumer `Mobs.ts:142`) and so is the tier frame (rank 0 is
+deliberately invisible, `TIER_FRAME_STYLES[0] = undefined`). But the **health
+bar is not gated at all** — `initHealthBar()` runs unconditionally in the Mob
+constructor (`Mobs.ts:113`) and pre-renders a full bar (buff-pip strip attached)
+before the first snapshot. **Chunk 3a must add that gate**, or the PO accepts
+bars on NPCs — campfires, totems and companions already show them today, so
+there is precedent either way; it is a PO-visible design choice. Verify with a
+screenshot regardless.
 
 **L6 — `Derived` is populated on mobs already, so the obvious test passes.**
 `recomputeDerived()` (`skills/component.go:313`) is a `SkillComponent` method and
@@ -450,7 +524,9 @@ quantity that happens to share the name. Do not "fix" it in Chunk 1a; it is
 Chunk 1b's business.
 
 **L8 — the §24 registration matrix is "which systems, *and how*".**
-`PhysicsSystem` alone is registered four different ways across the helpers.
+`PhysicsSystem` alone is reached through 3 distinct mechanisms across the 6
+helpers (dynamic `AddEntity` · static body · static body + dynamic sensor shape
+— the NPC being the only two-call case).
 Chunk 3a removes one helper, which is safe, but do not take it as licence to
 invert the matrix — that is §24 option A and an explicit half-day-plus design
 decision of its own.
@@ -464,7 +540,7 @@ decision of its own.
 | **1a** | TDD red-first: mob + Hardy has more HP · mob + Tough takes less damage · mob + Swift moves faster. All **behavioural** (L6). Existing guardrails `-count=2`. | `go test ./...` green; **sim battery + level curve + pack matrix byte-identical** to a stashed baseline (no mob authors a passive, so identity is provable) |
 | **1b** | summon HP/output pins at 2–3 owner levels; max-HP recompute clamps current health | sim battery **re-run and deltas recorded**; PO signs the summon numbers |
 | **2** | loader rejects an unknown `role`; the 3 mappings reproduce today's inference exactly; `aggroRadius` optional only for `structure` | boot `-content ../api` clean with the pinned counts; sim byte-identical again |
-| **3a** | interaction-node evaluator reproduces `onApproach`'s teaching order + `tooLowLine` gate; content pin on all 14 migrated NPCs | boot counts (npcs → 0, mobs +14 or spawns +14); headless smoke; **screenshot** for L5 |
+| **3a** | interaction-node evaluator reproduces `onApproach`'s teaching order + `tooLowLine` gate; content pin on all 16 migrated NPC entries (14 `world.json` + 2 legacy Sages, per the open-question-6 call) | boot counts (npcs → 0, mobs/spawns +14 world-side); headless smoke; **screenshot** for the L5 health-bar gate |
 | **3b** | keybind + panel unit tests via the existing vitest infra (`jsdom` + the `fetch` stub) | in-game: approach a teacher, press the key, learn the skill, panel closes |
 
 Backend gate every chunk: `go build ./...`, `go vet`, `go test -timeout 60s ./...`,
@@ -489,6 +565,11 @@ content counts recorded.
    Lantern costs you all your damage" trade-off the zone-1→2 tunnel is built on.
 5. **The journal / quest ledger itself.** Deliberately out of scope; the typed
    grant list is the only thing this plan owes it.
+6. **Do the 2 legacy proving-grounds Sages migrate or drop?** (Chunk 3a, code
+   audit) They lack `entityType`/`name`, are dev/test content ("Too low",
+   "Big Boy"), and sit outside the boot count of 14.
+7. **Summon level: assigned at spawn or tracked live?** (Chunk 1b, code audit —
+   see "New decision" there.) Recommendation on record: track live.
 
 ---
 
