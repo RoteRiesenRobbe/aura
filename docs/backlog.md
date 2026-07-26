@@ -2135,8 +2135,14 @@ same (`go build`/`go test`/`tsc --noEmit` + boot count + join smoke).
 > It is **a lost WebGL context**, and the `null.split` is PixiJS's *error
 > reporter* crashing on the way to reporting it. Full write-up in
 > §29.1 below; the sections under it are the original (partly wrong) trail, kept
-> because two of its leads have to be actively un-believed. **No fix applied** —
-> options and a recommendation are in §29.2, awaiting a PO call.
+> because two of its leads have to be actively un-believed.
+>
+> **✅ OPTION A SHIPPED 2026-07-26 (chunk A), committed `6c8bde2e`** — the
+> client now labels the failure instead of leaving three lying TypeErrors behind.
+> Ledger: §29.2.2. **The trigger is still unknown and rendering is still not
+> recovered** — this is detection only, so §29 stays open: option C (reduce the
+> trigger) remains the only lever at the cause, and any *player*-facing sighting
+> promotes it.
 
 **Tracked 2026-07-24** during the §28 Chunk 3 wire-enum prune (`plan-item-system-removal.md`).
 
@@ -2415,8 +2421,64 @@ forces the loss and screenshots — plus a clean-boot run to prove decision 1.
 ⚑ **The scene-graph probe cannot see this bug** (§29.3): screenshot, don't walk
 the tree.
 
+### 29.2.2 Chunk ledger — option A ✅ DONE 2026-07-26, committed `6c8bde2e`
+
+**Frontend only, no backend, no wire.** 1 file modified, 2 new + 1 new harness.
+Executed exactly to the §29.2.1 plan — all three plan-time decisions held, no
+deviations, nothing added.
+
+**Content**
+
+- **`features/core/logic/ContextLossWarning.ts` (new)** —
+  `installContextLossWarning(canvas)`: one `webglcontextlost` listener →
+  a labelled `console.error('[webgl] world context lost — rendering has
+  stopped. Reload the page. (backlog §29)')` plus
+  `AlertBanner.show('Graphics context lost — please reload the page.',
+  'warning')`. Extracted as its own module purely so vitest can drive it.
+- **`features/core/logic/Game.ts`** — installed inside the existing
+  `application.init().then(…)` alongside `setupResizeHandling()`.
+- **`features/core/logic/ContextLossWarning.test.ts` (new)** — 6 tests. Three of
+  them are *negative* pins that make the plan's decisions falsifiable: the
+  default is **not** prevented (decision 3), `webglcontextrestored` is ignored,
+  and another canvas firing the event warns about nothing. The decision-2
+  limitation is pinned as behaviour rather than described: **it still logs when
+  `#alertBanner` does not exist yet**, which is precisely the reproduced case.
+- **`.claude/skills/verify/ctxloss-warning.mjs` (new)** — acceptance harness,
+  `clean` / `forced` modes, non-zero exit on mismatch.
+
+**⚑ The plan's riskiest assumption held.** Clean boot measures **5 GL contexts
+created, 2 lost** (pixi's capability probes, §29.1) and **0 warnings** — three
+consecutive runs. Scoping the listener to `application.canvas` really does see
+zero false positives, so the banner does not cry wolf on every boot.
+
+**Verified 2026-07-26** — TDD red first (2 behavioural failures against a stub:
+`expected "error" to be called 1 times, but got 0 times`; the 4 negative pins
+pass against the stub by construction, as intended). `npm test` **21/21** across
+3 files, `npm run typecheck` clean, `npm run build` clean, `go build ./...`
+clean (untouched, checked anyway). Forced mid-boot loss: **exactly 1** warning,
+banner up with `className="warning"` and the right text, 0 other console errors,
+and the screenshot is the whole point — blank world, spellbook/slots/HP/XP
+intact, dev panel reporting **FPS 60/60/60**, `Websocket PLAYING`, server tick
+advancing, red banner across the top. `ctxloss-repro.mjs HUNT_PERCTX=1` still
+produces the three `null.split` TypeErrors unchanged: **this labels them, it
+does not suppress them.**
+
+**Two known limitations, both by plan, neither fixed:**
+
+1. **A loss during `init()` itself stays unlabelled** — `application.canvas`
+   does not exist until init resolves, so there is no canvas to listen on
+   before that. Recorded in a comment at the call site.
+2. **The banner is best-effort; the log is load-bearing** — `AlertBanner.show()`
+   no-ops while the HUD is not set up (decision 2). Queueing pre-setup alerts is
+   machinery this does not justify.
+
 ### 29.3 Harnesses (kept)
 
+- `.claude/skills/verify/ctxloss-warning.mjs` — acceptance for the shipped
+  warning. `clean` = no forced loss, expect **0** warnings (this is the
+  cry-wolf check, and the reason to re-run it after any boot-path change);
+  `forced` = mid-boot loss, expect **1** + the banner. Exits non-zero on
+  mismatch; screenshots to `/tmp/ctxwarn-*.png`.
 - `.claude/skills/verify/ctxloss-repro.mjs` — forces the loss and captures the
   error, stack, GL events and a screenshot. `HUNT_PERCTX=1` = mid-boot loss
   (3 errors), `HUNT_RESTORE=1` = also attempt `restoreContext()`.
