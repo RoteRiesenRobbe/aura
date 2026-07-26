@@ -3037,6 +3037,17 @@ hard collision nor player↔player collision.** This item exists so the rejected
 half is not re-litigated, and so the two engine landmines below are on record if
 it ever is.
 
+> **✅ The soft half SHIPPED 2026-07-26 as chunk B** (`8b045395`, ledger
+> `plan-playtest-feedback.md` §Round-6 chunk B ledger, **PO-verified in-game
+> 2026-07-26 — "feels much better"**, so the hard half stays closed). Two notes that bear on any re-opening of the hard half: ① the
+> **welding landmine below has a steering-side twin that is far more common** —
+> not co-located mobs but a mob directly *behind* another, whose push is
+> collinear with travel and therefore erased by direction-only steering
+> (fixed with a perpendicular fade); ② **a stopped mob does not steer at all**,
+> so soft separation cannot thin a pack that has already settled on the aura
+> ring. If the clump complaint survives the in-game check, that is the specific
+> gap — and a tangential settle nudge is the cheaper answer than hard collision.
+
 ### What the code actually says (measured, don't re-derive)
 
 - **Nothing dynamic collides with anything dynamic today.** Player body

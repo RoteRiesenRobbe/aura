@@ -1,7 +1,9 @@
 # Plan: Playtest Feedback (rolling collection)
 
-**Status:** **Collection doc — both designed chunks executed, plus a filler
-batch. All three ✅ PO-VERIFIED IN-GAME 2026-07-26** (one session, every
+**Status:** **Collection doc.** Latest: **round-6 chunk B (mob-vs-mob soft
+separation) DONE 2026-07-26, ⏳ PO in-game check pending** — ledger
+§Round-6 chunk B ledger. Before it: both designed chunks executed, plus a filler
+batch — **all three ✅ PO-VERIFIED IN-GAME 2026-07-26** (one session, every
 checklist item passed): **Round 3** (healer combat state + role-as-loadout)
 `03b152f4` 2026-07-25 · **Round 4** (tooltip power scale) `eaae2e69` 2026-07-26 ·
 **Rolling-filler batch** (4 of the 6 filler items) `dab4dae0` 2026-07-26.
@@ -969,6 +971,159 @@ no conf knobs, no wire change.
 
 ---
 
+## Round-6 chunk B ledger — mob-vs-mob soft separation
+
+**DONE 2026-07-26, backend only, 5 files + 2 new — ✅ PO-VERIFIED IN-GAME
+2026-07-26, committed `8b045395`.** PO verdict: *"feels much better"*. The
+stopped-mob limitation below was **not** raised as a blocker, so
+`mobSeparationWeight` 0.45 stands and the tangential settle nudge stays offered
+and unscheduled. Executes §Intake round 6 item 3's chunk
+plan (below) exactly: soft separation only, no hard collision, no player↔player
+and no player↔mob. Design context and the PO decision are in that section; this
+is what shipped.
+
+### What it does, in one line
+
+`blockerRepulsion` used to query statics only (`steering.go`), so mobs had zero
+awareness of each other — a pack converging on a player collapsed onto one
+point. Mobs now also repel each other, softly, while they move.
+
+### The three pieces (the plan's ① ② ③, all as specified)
+
+1. **`phy.Space.AppendCircleDynamics`** (`phy/space.go`, +49) — `QueryCircle`
+   without the per-call garbage, mirroring `AppendCircleStatics`: caller-owned
+   `dst[:0]` buffer, cell-straddle de-dup by linear scan instead of a `seen`
+   map. `QueryCircle` allocates a map **and** a slice per call and this path
+   runs per mob per tick, so using it would have re-opened the idle-overload
+   regression `fe0044d0` pinned shut.
+2. **Query on `LayerViewportCollision`, filter hits to `*Mob` via
+   `Shape().UserData`** (`steering.go:mobSeparation`) — there is no mob-body
+   layer bit to filter on (`Viewport` is the only bit every body shares, and an
+   authored `collisionLayer` replaces the default wholesale). The type check is
+   what makes the PO's two rejections structural rather than mask arithmetic a
+   content edit could undo.
+3. **The steering blend** — `mobSeparationWeight` **0.45 [PLACEHOLDER]**, summed
+   separation clamped to unit length, folded in by `blendSeparation`.
+
+Plus the plumbing: a second reusable hit buffer `steerMobHits` on `Mob`, and
+`steeringProbe(mask)` factored out so both queries share the one probe circle
+instead of depending on call order.
+
+### Three decisions taken inside the chunk
+
+**① Separation is kept out of the head-on detour latch entirely.** The plan
+said low weight is what keeps mob repulsion from tripping `steerSide`; the
+implementation makes it structural instead — `blockerRepulsion` stays
+statics-only and keeps owning the latch, and separation is blended into the
+*result*. ⚑ The half that would have bitten is not setting the latch but
+**holding** it: it clears on `rep == 0`, so a mob trailing another would have
+kept `rep` non-zero forever and walked sideways until the pack broke up. A
+latched mob ignores separation completely, so a committed detour is bit-for-bit
+what it was before this chunk. Pinned by `TestMobSeparation_DoesNotLatchTheDetour`.
+
+**② The sum is clamped to unit length and the weight is < 1.** Together those
+mean no number of mobs can out-pull the direction home — separation bends a
+path, it never reverses one. Pinned by `TestMobSeparation_NeverReversesThePull`
+(a mob ringed by four others still steps toward its target).
+
+**③ ⚑ The welding landmine was NOT where the plan expected, and the plan's
+tie-break would not have fixed it.** §34 and the chunk plan both flag
+*co-located* mobs (`d < 1e-4`, same heading ⇒ identical push ⇒ welded). True,
+but nearly unreachable: mobs update sequentially within a tick, so an exact
+same-point spawn breaks apart by one step immediately — and lands in the case
+that actually matters. **A mob directly behind another is pushed straight
+backwards, and steering sets direction, not speed, so normalizing the blend
+hands back the very same direction.** Zero separation, and single file is what
+a chase converges every pack into. The first fix attempt (push along ±heading,
+split by entity ID) failed its own test for exactly this reason: two opposite
+pushes along the line of travel both collapse back onto it.
+
+⇒ `blendSeparation` fades in a **perpendicular** component as the push lines up
+with the path — none when the pair is already side by side, full when nose to
+tail. The pair's pushes are opposites, so the same rotation sends one left and
+the other right. The co-located tie-break survives as a two-line ID split
+feeding the same machinery. Pinned by `TestMobSeparation_SingleFilePackSplits`
+and `TestMobSeparation_CoLocatedMobsSeparate`.
+
+### ⚠ Known limitation, by design — a STOPPED mob does not separate
+
+`shouldApproach` (`mob.go:749`) halts a mob once its target is inside its aura,
+and `steer` only runs from `moveTowards`/`moveAwayFrom`. So separation acts
+**during the approach** — packs arrive spread — and a pack that has already
+settled on the aura ring keeps whatever spacing it arrived with. Making stopped
+mobs separate radially would fight the arrival clamp (drift out → re-approach)
+and produce exactly the jiggle-in-place limit cycle the steering comments warn
+about twice; a *tangential* settle nudge would sidestep that, but it is scope
+beyond the approved decision and is offered, not taken.
+
+**Measured** (throwaway probe, 4 wolf-like mobs, real `phy.Space`, 900 ticks;
+bodies touch at 0.6, every configuration static across ticks 300/600/900 ⇒ no
+weight in the sweep jittered):
+
+| weight | at rest: min / mean gap | chasing: min / mean gap |
+|---|---|---|
+| 0 = today | 0.01 / 0.01 | 0.00 / 0.10 |
+| 0.30 | 0.22 / 0.49 | 0.16 / 0.46 |
+| **0.45 shipped** | **0.29 / 0.68** | **0.30 / 0.75** |
+| 0.80 | 0.10 / 0.86 | 0.79 / 1.06 |
+| 1.20 | 0.85 / 1.09 | 0.92 / 1.16 |
+
+Today's total weld (0.01) is the thing to compare against. 0.45 is a large
+improvement everywhere and holds the invariant; **1.20 separates best but is
+> 1**, i.e. a crowded mob can be held out of its own attack range by its
+packmates — a balance change, and against the PO's "low weight" wording. The
+number is one line if the in-game read wants more.
+
+### Verified
+
+- `go build ./...`, `go vet ./...` clean; **`go test ./...` exit 0, 27 pkgs**;
+  guardrails `-count=2` clean.
+- **`steering_alloc_test.go` is the point of ①** — extended with
+  `TestSteer_AllocatesNothing` (the whole per-tick path, two neighbours inside
+  the probe): **0 allocations**, as is the new
+  `TestAppendCircleDynamics_ReusableProbeAllocatesNothing`.
+- **Sim battery byte-identical before/after** — 1v1 TTK/TTD (`-runs 200`),
+  level curve (`-levels`), and the 1-vs-N pack matrix (`-matrix -max-pack 6`)
+  all `diff`-clean against the stashed baseline. The sim spawns its pack on a
+  spread ring, so separation has nothing to do there.
+- TDD: 6 new pins in `model/mob/separation_test.go`, **red first on 3
+  behavioural assertions** (pack spread 0.045, welded pair 0, and the
+  discriminating control in the player-body test). 2 of the 6 are negative pins
+  (no latch, no reversal) and 1 is the structural no-player↔mob guard.
+- In-game headless: boot `-content ../api` clean —
+  **83 skills/14 factions/50 mobs/10 recipes/5 prop defs/1 milestone/777
+  props/471 spawns/5 campfires/14 npcs, 0 errors 0 panics**. New
+  `.claude/skills/verify/mob-separation.mjs` warps a GOD player into the
+  densest wolf cluster (7 spawns around (−63.7, 7.5)), gathers a pack, then
+  walks so the pack is *chasing* for the second shot: **0 console errors, 0
+  WebGL context losses**, screenshots `/tmp/mobsep-after{,-gathered}.png`.
+  ⚑ It deliberately does **not** measure spacing — `window.game` is the
+  four-key console facade with no entity manager, so mob positions would have
+  to be reverse-engineered out of the PIXI layer tree. The numbers are the Go
+  pins above; whether it *reads* as spread is the PO's call.
+
+### Acceptance checklist (PO, in-game)
+
+1. Pull a wolf pack (densest cluster ≈ (−64, 8)) and **keep walking**. The pack
+   must spread while it follows instead of travelling as one blob.
+2. Stand still and let them arrive. Expect them **less** piled than before but
+   **not** fully separated — the stopped-mob limitation above is visible, and
+   the question is whether it is good enough.
+3. No mob may **jiggle in place** at a prop notch or a wall corner — the
+   head-on latch is the thing decisions ① exists to protect.
+4. Mobs must still reach you and still round props normally. Nothing blocks
+   anything; you can still walk straight through a mob.
+5. Campfires, totems and companions are mobs too — they repel and are repelled
+   (stationary ones only repel). Check nothing drifts oddly around a campfire.
+
+### Does NOT close round-6 item 4
+
+~19 wolves fit inside a level-1 Damage aura even with *hard* collision
+enforced, so no separation scheme creates focus fire. `selectTargets` still has
+no target memory; unchanged by this chunk, still unscheduled.
+
+---
+
 ## Intake — round 6 (2026-07-26): PO design session, three topics
 
 Not a playtest round — a **design discussion**, triaged against source
@@ -1234,6 +1389,14 @@ jiggling in place at a prop notch.
 **Does NOT close item 4 below.** Read that item's arithmetic first: ~19 wolves
 fit inside a level-1 Damage aura even with *hard* collision fully enforced, so
 no separation scheme creates focus fire. Different fix, different chunk.
+
+> **✅ EXECUTED 2026-07-26 as chunk B**, PO-verified in-game the same day
+> (`8b045395`, *"feels much better"*). Ledger:
+> §Round-6 chunk B ledger above. Both prerequisites landed as specified; the
+> one thing this plan got wrong is *which* welding case matters — it is the
+> mob directly BEHIND another, not the co-located one, and the fix is a
+> perpendicular fade in `blendSeparation`. Also newly on record: a **stopped**
+> mob does not steer at all, so a settled pack keeps its arrival spacing.
 
 ### 4. Nearest-targeting auras have no target persistence (bug, surfaced by item 3)
 
