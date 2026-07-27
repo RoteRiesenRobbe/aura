@@ -2527,7 +2527,7 @@ what shipped, which commit, what was verified.)*
   14**, which is 3b-ii's content half and part of why the split exists.
 - **Chunk 3b-ii — the conversation panel: ✅ DONE 2026-07-28**, wire + backend +
   frontend + content, 45 files (3 new source files, 1 new harness), committed
-  `[uncommitted]`. **HARNESS-VERIFIED IN-GAME 28/28**, 1 deliberate SKIP, 0
+  `ef4355f1`. **HARNESS-VERIFIED IN-GAME 28/28**, 1 deliberate SKIP, 0
   console errors, 0 webgl context losses; ⏳ PO sign-off rides the single
   deferred pass.
 
