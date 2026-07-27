@@ -28,7 +28,7 @@ package mob
 // fires when new content appears, rather than a behaviour baked in ahead of it.
 //
 // Reads the real embedded content, and derives the slots through the real
-// NewMob, so it cannot drift from roleSlots.
+// NewMob, so it cannot drift from loadoutSlots.
 
 import (
 	"testing"

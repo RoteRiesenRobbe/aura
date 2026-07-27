@@ -2,6 +2,12 @@ package mob
 
 // Role-as-loadout (playtest feedback round 3, backlog §31 gap 5).
 //
+// ⚑ "Role" here means the COMBAT role — supporter or fighter — and it is
+// derived from the loadout every tick, never authored. It is a different axis
+// from the authored actor role (creature/structure/follower, items/mobs/role.go),
+// which is why the finder below is loadoutSlots and not roleSlots: a follower
+// can be a supporter, a structure can be a fighter.
+//
 // A mob used to BE a healer: NewMob checked whether slot 0 carried a heal
 // effect and latched a `seekHealer` bool for the mob's whole life, and
 // updateAggro then returned early on it — before threat, retaliation, the
@@ -25,6 +31,7 @@ package mob
 // resizes the sensor for free, and shouldApproach reads the live radius.
 
 import (
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
@@ -58,11 +65,11 @@ const combatCategories = skills.AuraCategoryDamage | skills.AuraCategoryDot | sk
 // short of full health, which is exactly what the old seek-healer did.
 const defaultSupportThreshold float32 = 1.0
 
-// roleSlots finds the first aura slot able to support and the first able to
+// loadoutSlots finds the first aura slot able to support and the first able to
 // fight. −1 for absent. A multi-effect aura that does both (a damage+heal
 // Paladin shape) legitimately answers to both, in which case mode switching
 // resolves to the same slot and is a no-op — the loadout already is the hybrid.
-func roleSlots(sc *skills.SkillComponent) (support, combat int) {
+func loadoutSlots(sc *skills.SkillComponent) (support, combat int) {
 	support, combat = -1, -1
 	for i, eq := range sc.AuraSlots {
 		if eq == nil {
@@ -186,9 +193,9 @@ func (m *Mob) selectMode() {
 // SkillComponent.SetActiveAura directly (core/input.go, sys/equip), and switch
 // timing mid-fight is a core skill expression per the GDD.
 func (m *Mob) applyMode(next combatMode) {
-	// Stationary mobs (totems, braziers, campfires) are aura-always-on: the
-	// aura IS their entire behaviour and never gates (chunk 3c).
-	if m.auraAlwaysOn {
+	// Structures (totems, braziers, campfires) are aura-always-on: the aura IS
+	// their entire behaviour and never gates (chunk 3c; authored since chunk 2).
+	if m.role == mobs.RoleStructure {
 		m.mode = next
 		return
 	}

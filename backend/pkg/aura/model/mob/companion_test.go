@@ -38,6 +38,7 @@ func newFakeOwner() *fakeOwner {
 func companionDefinition() *mobs.MobDefinition {
 	def := testMobDefinition()
 	def.Name = "Companion"
+	def.Role = mobs.RoleFollower // authored since chunk 2, no longer inferred from owner+velocity
 	return def
 }
 

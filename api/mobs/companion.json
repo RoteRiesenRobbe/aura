@@ -1,8 +1,9 @@
 {
-  "_comment": "Mob-depth chunk 6 placeholder content: the player-summoned companion — an owned, aligned follower created only by the SummonCompanion spawn effect (never referenced by any zone spawn; owned + moving = follower behavior). Speed 1.2 → 0.066/tick, deliberately above the player's 0.05/tick so it keeps up. collisionLayer 160 = Viewport|Player (the player-layer trick: hostile enemy-masks can hit it; ally auras buff it), collisionMask 17 = PlayerStatic|Border (collides like its owner, goes wherever the owner goes). aggroRadius is a dummy — followers bypass the sensor (owner combat signals instead). All values [PLACEHOLDER].",
+  "_comment": "Mob-depth chunk 6 placeholder content: the player-summoned companion — an owned, aligned follower created only by the SummonCompanion spawn effect (never referenced by any zone spawn; role follower + an owner = follower behavior since chunk 2, no longer inferred from speed). Speed 1.2 → 0.066/tick, deliberately above the player's 0.05/tick so it keeps up. collisionLayer 160 = Viewport|Player (the player-layer trick: hostile enemy-masks can hit it; ally auras buff it), collisionMask 17 = PlayerStatic|Border (collides like its owner, goes wherever the owner goes). aggroRadius 3.5 [PLACEHOLDER] — inert while this kit carries no support aura (followers acquire from owner combat signals), authored because every moving role states its sensor. All values [PLACEHOLDER].",
   "id": 7,
   "name": "Companion",
   "type": "MOB",
+  "role": "follower",
   "tier": "normal",
   "curveLevel": 1,
   "factors": {
@@ -12,7 +13,7 @@
   },
   "body": {
     "radius": 0.25,
-    "aggroRadius": 0.1,
+    "aggroRadius": 3.5,
     "collisionLayer": 160,
     "collisionMask": 17
   },

@@ -125,15 +125,16 @@ func TestMob_PacifistPrefersSupportOverFlee(t *testing.T) {
 
 // Stationary support mobs (campfires, totems, braziers) are pacifists too, so
 // they now reach modeFlee when damaged. That must stay inert: they are
-// auraAlwaysOn, which early-returns out of applyMode before any aura gating,
+// role structure, which early-returns out of applyMode before any aura gating,
 // and moveAwayFrom refuses to move a zero-velocity mob. This is the one place
 // the new mode meets an existing early return.
 func TestMob_StationaryPacifistCannotFleeAndKeepsItsAura(t *testing.T) {
 	def := testMobDefinition()
-	def.Factors.Speed = 0 // ⇒ auraAlwaysOn
+	def.Role = mobs.RoleStructure // ⇒ aura always on (chunk 2: authored, not speed-inferred)
+	def.Factors.Speed = 0
 	def.Skills = []mobs.MobSkill{{Def: testHealAuraSkill(), Level: 1}}
 	m := NewMob(def, 0, nil)
-	require.True(t, m.auraAlwaysOn)
+	require.Equal(t, mobs.RoleStructure, m.role)
 	m.SetPosition(phy.Vec2f{X: 2, Y: 2})
 	before := m.Position()
 	activeBefore := m.skills.ActiveAuraSlot

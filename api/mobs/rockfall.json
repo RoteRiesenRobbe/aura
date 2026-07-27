@@ -1,8 +1,9 @@
 {
-  "_comment": "Dark Tunnel rockfall (content pass C3, plan-content-zones12.md §4): the second destructible aura-gated obstacle on the bramble solid-mob pattern — collisionLayer 99 = PlayerStatic(1)+Action(2)+Viewport(32)+MobStatic(64): blocks players AND mobs (seals the venom nest in), aura-hittable, streamed; collisionMask 16 = Border only. Resistances opt in to the gated 'smash' tag ONLY (PO 2026-07-17): the Miner-taught Pickaxe clears it, Harvest and every combat aura do 0. XP 0 — a door, not prey. All values [PLACEHOLDER]",
+  "_comment": "Dark Tunnel rockfall (content pass C3, plan-content-zones12.md §4): the second destructible aura-gated obstacle on the bramble solid-mob pattern — collisionLayer 99 = PlayerStatic(1)+Action(2)+Viewport(32)+MobStatic(64): blocks players AND mobs (seals the venom nest in), aura-hittable, streamed; collisionMask 16 = Border only. Resistances opt in to the gated 'smash' tag ONLY (PO 2026-07-17): the Miner-taught Pickaxe clears it, Harvest and every combat aura do 0. XP 0 — a door, not prey. role structure (chunk 2): it authors no aggroRadius. All values [PLACEHOLDER]",
   "id": 26,
   "name": "Rockfall",
   "type": "MOB",
+  "role": "structure",
   "tier": "normal",
   "curveLevel": 1,
   "factors": {
@@ -16,7 +17,6 @@
   },
   "body": {
     "radius": 0.9,
-    "aggroRadius": 0.1,
     "collisionLayer": 99,
     "collisionMask": 16
   },

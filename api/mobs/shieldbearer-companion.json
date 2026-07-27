@@ -1,8 +1,9 @@
 {
-  "_comment": "Shieldbearer companion (content pass C7, plan-content-zones12.md §13): the HoldTheLine summon — a tanky wall soldier that drums shields onto its squad and owner (reuses the RallyDrum mob skill, allies-only). Companion pattern verbatim (owned, caster-aligned follower; spawnSummon overrides faction from the caster, hence no faction key; never a zone spawn): collisionLayer 160 = Viewport|Player, collisionMask 17 = PlayerStatic|Border, speed above the player's so it keeps up. aggroRadius 5.5 is a REAL sensor since the round-3 role-as-loadout rework: a support carrier looks for wounded allies itself instead of riding owner combat signals only, so the old 0.1 dummy left it permanently blind (RallyDrum shields at 4.0; the extra ~1.5 is the follow ring, so it can spot a squadmate it then walks to). curveLevel 1 — power comes from SummonPower x f(ownerLevel), not the curve. All values [PLACEHOLDER]",
+  "_comment": "Shieldbearer companion (content pass C7, plan-content-zones12.md §13): the HoldTheLine summon — a tanky wall soldier that drums shields onto its squad and owner (reuses the RallyDrum mob skill, allies-only). Companion pattern verbatim (role follower, owned, caster-aligned; spawnSummon overrides faction from the caster, hence no faction key; never a zone spawn): collisionLayer 160 = Viewport|Player, collisionMask 17 = PlayerStatic|Border, speed above the player's so it keeps up. aggroRadius 5.5 is a REAL sensor since the round-3 role-as-loadout rework: a support carrier looks for wounded allies itself instead of riding owner combat signals only, so the old 0.1 dummy left it permanently blind (RallyDrum shields at 4.0; the extra ~1.5 is the follow ring, so it can spot a squadmate it then walks to). curveLevel 1 — power comes from SummonPower x f(ownerLevel), not the curve. All values [PLACEHOLDER]",
   "id": 39,
   "name": "ShieldbearerCompanion",
   "type": "MOB",
+  "role": "follower",
   "tier": "normal",
   "curveLevel": 1,
   "factors": {

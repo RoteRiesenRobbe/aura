@@ -988,6 +988,9 @@ func TestSkillSystem_EndToEnd_RealMobDamagesPlayerTarget(t *testing.T) {
 	def := &mobs.MobDefinition{
 		ID:   1,
 		Name: "Dodo",
+		// A structure so the aura runs without an aggro target — the test is
+		// about aura application, not acquisition.
+		Role: mobs.RoleStructure,
 		Body: mobs.Body{Radius: 0.3, AggroRadius: 2.0},
 		Skills: []mobs.MobSkill{{
 			Def: &skills.SkillDefinition{
@@ -2319,7 +2322,8 @@ func totemAuraDef() *skills.SkillDefinition {
 func totemMobDef() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID: 9, Name: "Totem", // must be a valid AuraApi entity type name
-		Body:       mobs.Body{Radius: 0.25, AggroRadius: 0.1},
+		Role:       mobs.RoleStructure,
+		Body:       mobs.Body{Radius: 0.25},
 		Factors:    mobs.Factors{BaseMaxHealth: 50, Speed: 0},
 		CurveLevel: 1,
 		Curve:      curve.Curve{Growth: 1.12, MaxLevel: 30},
@@ -2418,13 +2422,14 @@ func TestCooldown_ThreeSpawnEffectsRaiseThreeSummons(t *testing.T) {
 }
 
 func TestCooldown_SpawnMovingSummonFollowsOwner(t *testing.T) {
-	// The second spawn consumer (mob-depth chunk 6): a MOVING owned summon is
-	// a follower — spawnSummon's SetOwner plus the definition's speed > 0 are
-	// all it takes (no schema flag); after spawning offset beside the caster
-	// it trails the owner instead of standing or wandering.
+	// The second spawn consumer (mob-depth chunk 6): an owned summon authored
+	// as a follower — spawnSummon's SetOwner plus the definition's role are
+	// all it takes; after spawning offset beside the caster it trails the
+	// owner instead of standing or wandering.
 	companionDef := &mobs.MobDefinition{
 		ID: 10, Name: "Companion", // must be a valid AuraApi entity type name
-		Body:    mobs.Body{Radius: 0.25, AggroRadius: 0.1},
+		Role:    mobs.RoleFollower,
+		Body:    mobs.Body{Radius: 0.25, AggroRadius: 3.5},
 		Factors: mobs.Factors{BaseMaxHealth: 60, Speed: 1.2},
 		Skills:  []mobs.MobSkill{{Def: totemAuraDef(), Level: 1}},
 	}
@@ -2739,8 +2744,9 @@ func campfireAuraDef() *skills.SkillDefinition {
 func campfireMobDef() *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID: 13, Name: "Brazier",
+		Role: mobs.RoleStructure,
 		Body: mobs.Body{
-			Radius: 0.25, AggroRadius: 0.1,
+			Radius:         0.25,
 			CollisionLayer: int(model.LayerViewportCollision),
 			CollisionMask:  int(model.LayerBorderCollision),
 		},

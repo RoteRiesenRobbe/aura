@@ -174,6 +174,12 @@ type MobDefinition struct {
 	Tier       string
 	CurveLevel int
 
+	// Role is the authored actor discriminator (chunk 2, role.go): creature,
+	// structure or follower. Absent in JSON → creature; the zero value is the
+	// empty string, so NewMob re-applies that default for definitions built
+	// directly (tests, the sim harness).
+	Role Role
+
 	// Curve is f(L) itself — the same curve.Curve value the player reads live
 	// (model/player.PowerScale). It is the ONLY representation of the curve on
 	// a definition: nothing is pre-derived at load, so a mob evaluates f at its
@@ -216,6 +222,7 @@ type mobDefinition struct {
 	EntityType string `json:"entityType"` // absent → the name resolves the wire type
 	Faction    string `json:"faction"`    // absent → the built-in hostile default
 	Tier       string `json:"tier"`       // absent → "normal" (label only, C0)
+	Role       string `json:"role"`       // absent → "creature" (chunk 2)
 	CurveLevel int    `json:"curveLevel"` // absent → 1 (baseline, f = 1)
 	Legacy     bool   `json:"legacy"`     // absent → live content (step-7 A.5)
 
@@ -271,10 +278,20 @@ func parseMobDefinition(data []byte) (*mobDefinition, error) {
 }
 
 func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Registry, c curve.Curve) (*MobDefinition, error) {
+	// The authored actor discriminator (chunk 2). Resolved before the body
+	// checks because the sensor rule depends on it.
+	role, ok := ParseRole(m.Role)
+	if !ok {
+		return nil, fmt.Errorf("mob %q: role %q must be one of creature/structure/follower", m.Name, m.Role)
+	}
+
 	// Mobs need an aggro territory; the former 4x-damage-radius fallback died
-	// with Body.DamageRadius (Phase 6.1), so the value is now required.
-	if m.Body.AggroRadius <= 0 {
-		return nil, fmt.Errorf("mob %q: body.aggroRadius is required and must be > 0", m.Name)
+	// with Body.DamageRadius (Phase 6.1), so the value is required — for
+	// everything that moves toward something. A structure acquires nothing (its
+	// aura is always-on and it does not chase), so it authors no sensor;
+	// requiring one is what produced the 0.1 dummy on all ten of them.
+	if m.Body.AggroRadius <= 0 && role != RoleStructure {
+		return nil, fmt.Errorf("mob %q: body.aggroRadius is required and must be > 0 for role %q", m.Name, role)
 	}
 
 	// Tier + baseline authoring (C0): raw maxHealth hard-fails — the
@@ -393,6 +410,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		AggroMask:         aggroMask,
 		FriendlyToPlayers: friendlyToPlayers,
 		Tier:              tier,
+		Role:              role,
 		CurveLevel:        curveLevel,
 		Curve:             c,
 		Legacy:            m.Legacy,

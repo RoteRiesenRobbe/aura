@@ -13,7 +13,7 @@ import (
 )
 
 func TestPack_Constructor(t *testing.T) {
-	sc := Pack(exactPlayer(), stationaryMob(0, 1), 4, 0.5)
+	sc := Pack(exactPlayer(), turretMob(0, 1), 4, 0.5)
 
 	assert.Equal(t, "PACK", sc.Name)
 	assert.Equal(t, 4, sc.PackSize)
@@ -26,7 +26,7 @@ func TestPack_Constructor(t *testing.T) {
 // where the 1v1 mob spawns; each mob rolls its own spawn HP from the run
 // rng in index order, so same-seed worlds match mob for mob.
 func TestNewWorld_PackRingPlacement(t *testing.T) {
-	m := stationaryMob(0, 1)
+	m := turretMob(0, 1)
 	m.MaxHealthVariance = 0.1
 	sc := Pack(exactPlayer(), m, 3, 0.5)
 
@@ -73,7 +73,7 @@ func TestRunFight_PackSize1_MatchesTTK(t *testing.T) {
 func TestRunFight_Pack_UncappedExact(t *testing.T) {
 	p := exactPlayer()
 	p.Aura.MaxTargets = 0
-	r := RunFight(Pack(p, stationaryMob(0, 1), 2, 0.5), 1)
+	r := RunFight(Pack(p, turretMob(0, 1), 2, 0.5), 1)
 
 	assert.Equal(t, OutcomeMobDied, r.Outcome)
 	assert.Equal(t, 12, r.Ticks)
@@ -85,7 +85,7 @@ func TestRunFight_Pack_UncappedExact(t *testing.T) {
 // hit = 8 hits → tick 24. (Identical mobs make the pin invariant to
 // nearest-selector tie-breaking between the equidistant targets.)
 func TestRunFight_Pack_CappedSequentialExact(t *testing.T) {
-	r := RunFight(Pack(exactPlayer(), stationaryMob(0, 1), 2, 0.5), 1)
+	r := RunFight(Pack(exactPlayer(), turretMob(0, 1), 2, 0.5), 1)
 
 	assert.Equal(t, OutcomeMobDied, r.Outcome)
 	assert.Equal(t, 24, r.Ticks)
@@ -97,7 +97,7 @@ func TestRunFight_Pack_CappedSequentialExact(t *testing.T) {
 // 12) 50 more on tick 20 → the player falls on tick 20 with exactly one
 // kill banked.
 func TestRunFight_Pack_KillsBeforeDeath(t *testing.T) {
-	r := RunFight(Pack(exactPlayer(), stationaryMob(25, 10), 3, 0.5), 1)
+	r := RunFight(Pack(exactPlayer(), turretMob(25, 10), 3, 0.5), 1)
 
 	assert.Equal(t, OutcomePlayerDied, r.Outcome)
 	assert.Equal(t, 20, r.Ticks)
@@ -137,7 +137,7 @@ func TestRunMatrix_ReproducibleUnderFixedSeed(t *testing.T) {
 func matrixTestConfig() MatrixConfig {
 	return MatrixConfig{
 		Player:               exactPlayer(),
-		Mob:                  stationaryMob(4, 2),
+		Mob:                  turretMob(4, 2),
 		MaxTargetsCandidates: []int{1, 0},
 		MaxPackSize:          5,
 		BaseSeed:             1,
@@ -174,7 +174,7 @@ func TestRunMatrix_WinRateMonotoneAndOverwhelm(t *testing.T) {
 // A build that never loses in the swept range reports no overwhelm point.
 func TestRunMatrix_NoOverwhelmReportsMinusOne(t *testing.T) {
 	cfg := matrixTestConfig()
-	cfg.Mob = stationaryMob(0, 1) // harmless turrets
+	cfg.Mob = turretMob(0, 1) // harmless turrets
 	cfg.MaxTargetsCandidates = []int{1}
 	cfg.MaxPackSize = 3
 

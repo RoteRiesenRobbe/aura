@@ -17,6 +17,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -29,7 +30,8 @@ const (
 	StanceFacetank Stance = "facetank"
 	// StanceKite puts the player in the ring where its aura hits the mob but
 	// the mob's aura misses — the theoretical best a moving player
-	// approximates. The mob is pinned (speed 0) for the ideal geometry.
+	// approximates. The mob is pinned (speed 0) for the ideal geometry and
+	// authored as a structure so it still fights back from where it stands.
 	StanceKite Stance = "kite"
 )
 
@@ -140,9 +142,11 @@ func KiteDistance(p PlayerSpec, m MobSpec) (float32, bool) {
 
 // chainScenario builds the fight scenario for one stance. Facetank spawns
 // the mob at the player's position (body layers never collide — no
-// separation) with its authored speed; kite pins the mob (speed 0 keeps its
-// aura always on, so it still "fights back") at the ring centre. ok is
-// false for an infeasible kite.
+// separation) with its authored speed; kite pins the mob at the ring centre —
+// speed 0 so it cannot close, role structure so its aura stays on and it
+// still "fights back". ⚑ Those are two separate statements since chunk 2:
+// pinning the speed alone would silently produce a mob that never attacks.
+// ok is false for an infeasible kite.
 func chainScenario(p PlayerSpec, m MobSpec, st Stance, maxTicks int, regen float32) (Scenario, float32, bool) {
 	distance := float32(0)
 	if st == StanceKite {
@@ -152,6 +156,7 @@ func chainScenario(p PlayerSpec, m MobSpec, st Stance, maxTicks int, regen float
 		}
 		distance = d
 		m.Speed = 0
+		m.Role = string(mobs.RoleStructure)
 	}
 	sc := TTK(p, m, distance)
 	sc.Name = "CHAIN/" + string(st)

@@ -191,18 +191,31 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 			log.Printf("mob %s declares skill %s of an unsupported category; ignored", d.Name, s.Def.Name)
 		}
 	}
-	// Auras-off-until-aggroed (mob-depth chunk 3c): a moving mob's aura only
-	// runs while it has an aggro target (Update flips it on/off). Stationary
-	// mobs (speed 0 — totems, braziers) are exempt: a hazard that cannot
-	// chase has its aura as its entire behavior, so it stays always-on.
-	auraAlwaysOn := d.Factors.Speed <= 0
-	if auraCount > 0 && auraAlwaysOn {
+	// The authored role (chunk 2). Absent → creature, re-applied here because a
+	// definition built outside the loader (tests, the sim harness) carries the
+	// zero value; an unknown one is a def that bypassed loader validation, so it
+	// panics like the EntityType above rather than degrading silently into a
+	// creature — a wrong role is a wrong behaviour, not a cosmetic default.
+	role, ok := mobs.ParseRole(string(d.Role))
+	if !ok {
+		panic(fmt.Sprintf("mob %d/%s: role %q unknown — def bypassed loader validation", d.ID, d.Name, d.Role))
+	}
+
+	// Auras-off-until-aggroed (mob-depth chunk 3c): a creature's aura only runs
+	// while it has an aggro target (Update flips it on/off). Structures are
+	// exempt: a hazard that does not chase has its aura as its entire behavior,
+	// so it stays always-on. ⚑ Authored, not inferred (chunk 2): this used to
+	// read `Factors.Speed <= 0`, which made "is a turret" a side effect of a
+	// tuning value and forced every structure to carry a dummy aggroRadius.
+	if auraCount > 0 && role == mobs.RoleStructure {
 		sc.SetActiveAura(0)
 	}
 	// Role-as-loadout (round 3, support.go): which slot supports and which
 	// fights, derived from the loadout's aura CATEGORIES rather than latched as
 	// a mob type. Both may be set (a hybrid), both may be absent (a prop mob).
-	supportSlot, combatSlot := roleSlots(sc)
+	// Orthogonal to the authored actor role above — that says what it IS, this
+	// says what its loadout can DO.
+	supportSlot, combatSlot := loadoutSlots(sc)
 
 	// The single aura sensor, pre-sized from slot 0 even while the aura
 	// starts gated: the chase stop distance is correct from the first aggro
@@ -271,7 +284,7 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 		spawnPosition:    phy.VEC2F_ZERO,
 		spawnInitialized: false,
 		velocity:            walkingSpeedPerTick * d.Factors.Speed,
-		auraAlwaysOn:        auraAlwaysOn,
+		role:                role,
 		supportSlot:         supportSlot,
 		combatSlot:          combatSlot,
 		supportThreshold:    d.Factors.SupportThreshold,
@@ -432,10 +445,14 @@ type Mob struct {
 	// (3b).
 	leashTicks int
 
-	// auraAlwaysOn exempts stationary mobs from aura gating (chunk 3c).
-	auraAlwaysOn bool
+	// role is the authored actor discriminator (chunk 2): creature, structure or
+	// follower. It answers "what is this", which used to be read off incidental
+	// values — a structure by its speed being 0, a follower by having an owner
+	// and a non-zero velocity. Orthogonal to the loadout slots below and to
+	// ownership: a totem is a structure WITH an owner.
+	role mobs.Role
 
-	// Role-as-loadout (round 3, see support.go). supportSlot/combatSlot are the
+	// Loadout slots (round 3, see support.go). supportSlot/combatSlot are the
 	// aura slots this mob would use to support an ally and to fight, −1 when the
 	// loadout has none; they replace the old latched `seekHealer` type flag.
 	// mode is what it is doing THIS tick, re-derived every tick by selectMode.

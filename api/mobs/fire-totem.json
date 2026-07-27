@@ -1,8 +1,9 @@
 {
-  "_comment": "The player-summoned fire totem (2026-07-21): a stationary aura carrier created only by the FireTotem spawn effect (never referenced by any zone spawn) — Totem precedent. collisionLayer 160 = Viewport|Player (the player-layer trick: hostile enemy-masks can hit it; ally auras buff it), collisionMask 16 = Border only (non-blocking, nothing pushes it). speed 0 = it never moves; aggroRadius is a dummy, validated > 0 but unused at speed 0. Slightly beefier than the plain Totem (60 vs 50) because it is a late-game drop that plants itself in a fight it wants to survive. All values [PLACEHOLDER].",
+  "_comment": "The player-summoned fire totem (2026-07-21): a stationary aura carrier created only by the FireTotem spawn effect (never referenced by any zone spawn) — Totem precedent. collisionLayer 160 = Viewport|Player (the player-layer trick: hostile enemy-masks can hit it; ally auras buff it), collisionMask 16 = Border only (non-blocking, nothing pushes it). role structure = its aura is always-on and it authors no aggroRadius; speed 0 = it never moves. A structure WITH an owner — role and ownership are orthogonal (chunk 2). Slightly beefier than the plain Totem (60 vs 50) because it is a late-game drop that plants itself in a fight it wants to survive. All values [PLACEHOLDER].",
   "id": 50,
   "name": "FireTotem",
   "type": "MOB",
+  "role": "structure",
   "tier": "normal",
   "curveLevel": 1,
   "factors": {
@@ -12,7 +13,6 @@
   },
   "body": {
     "radius": 0.25,
-    "aggroRadius": 0.1,
     "collisionLayer": 160,
     "collisionMask": 16
   },

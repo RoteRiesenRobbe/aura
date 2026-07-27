@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 )
 
 // exactPlayer deals exactly 10 HP every 3rd tick, no rolls.
@@ -19,11 +21,13 @@ func exactPlayer() PlayerSpec {
 	}
 }
 
-// stationaryMob is a 40-HP turret: speed 0 keeps its aura always on and its
-// position fixed, so hit cadences are exactly the tick math.
-func stationaryMob(damage float32, interval int) MobSpec {
+// turretMob is a 40-HP turret: role structure keeps its aura always on and
+// speed 0 keeps its position fixed, so hit cadences are exactly the tick math.
+// ⚑ Both are stated (chunk 2): speed alone no longer implies always-on.
+func turretMob(damage float32, interval int) MobSpec {
 	return MobSpec{
 		MaxHealth:   40,
+		Role:        string(mobs.RoleStructure),
 		Speed:       0,
 		BodyRadius:  0.2,
 		AggroRadius: 2.4,
@@ -32,7 +36,7 @@ func stationaryMob(damage float32, interval int) MobSpec {
 }
 
 func TestNewWorld_Builds(t *testing.T) {
-	w := NewWorld(TTK(exactPlayer(), stationaryMob(0, 1), 0.5), 1)
+	w := NewWorld(TTK(exactPlayer(), turretMob(0, 1), 0.5), 1)
 
 	assert.EqualValues(t, 100, w.Player.VitalSigns().Health)
 	assert.EqualValues(t, 40, w.Mob.Health())
@@ -44,7 +48,7 @@ func TestNewWorld_Builds(t *testing.T) {
 // 4 hits → death on tick 12. Pinning this proves the harness drives the
 // real accumulator, not a re-modeled cadence.
 func TestRunFight_TTK_ExactWithZeroVariance(t *testing.T) {
-	r := RunFight(TTK(exactPlayer(), stationaryMob(0, 1), 0.5), 1)
+	r := RunFight(TTK(exactPlayer(), turretMob(0, 1), 0.5), 1)
 
 	assert.Equal(t, OutcomeMobDied, r.Outcome)
 	assert.Equal(t, 12, r.Ticks)
@@ -55,7 +59,7 @@ func TestRunFight_TTK_ExactWithZeroVariance(t *testing.T) {
 // player → 10 hits → death on tick 20. The player's aura is off, so the mob
 // is never harmed.
 func TestRunFight_TTD_ExactWithZeroVariance(t *testing.T) {
-	r := RunFight(TTD(exactPlayer(), stationaryMob(10, 2), 0.3), 1)
+	r := RunFight(TTD(exactPlayer(), turretMob(10, 2), 0.3), 1)
 
 	assert.Equal(t, OutcomePlayerDied, r.Outcome)
 	assert.Equal(t, 20, r.Ticks)
@@ -65,7 +69,7 @@ func TestRunFight_TTD_ExactWithZeroVariance(t *testing.T) {
 // the idle player, walk into aura reach and kill — later than the
 // stationary-mob cadence floor, still well before the timeout.
 func TestRunFight_TTD_ChasingMobTerminates(t *testing.T) {
-	m := stationaryMob(10, 2)
+	m := turretMob(10, 2)
 	m.Speed = 0.5
 	r := RunFight(TTD(exactPlayer(), m, 2.0), 1)
 
@@ -77,7 +81,7 @@ func TestRunFight_TTD_ChasingMobTerminates(t *testing.T) {
 // An idle player with a harmless mob never resolves — the timeout guard
 // reports it instead of hanging.
 func TestRunFight_Timeout(t *testing.T) {
-	sc := TTD(exactPlayer(), stationaryMob(0, 1), 0.3)
+	sc := TTD(exactPlayer(), turretMob(0, 1), 0.3)
 	sc.MaxTicks = 50
 	r := RunFight(sc, 1)
 
@@ -92,7 +96,7 @@ func TestRunFight_Timeout(t *testing.T) {
 // tick — exact tick math with all RNG off, proving the harness runs the
 // real StatusEffects/Buffs path, not a re-modeled cadence.
 func TestRunFight_TTD_DotAuraExactWithZeroVariance(t *testing.T) {
-	m := stationaryMob(10, 2)
+	m := turretMob(10, 2)
 	m.Aura.DotTicks = 3
 	m.Aura.DotTickInterval = 2
 	r := RunFight(TTD(exactPlayer(), m, 0.3), 1)
@@ -108,7 +112,7 @@ func TestRunFight_TTK_DotAuraKills(t *testing.T) {
 	p := exactPlayer()
 	p.Aura = AuraSpec{DamageHP: 10, TickInterval: 3, Radius: 1.0, MaxTargets: 1,
 		DotTicks: 3, DotTickInterval: 2}
-	r := RunFight(TTK(p, stationaryMob(0, 1), 0.5), 1)
+	r := RunFight(TTK(p, turretMob(0, 1), 0.5), 1)
 
 	assert.Equal(t, OutcomeMobDied, r.Outcome)
 	assert.Less(t, r.Ticks, DefaultMaxTicks, "the dot fight must resolve, not time out")
@@ -124,6 +128,7 @@ func fullRNGScenario() Scenario {
 	m := MobSpec{
 		MaxHealth:         40,
 		MaxHealthVariance: 0.1,
+		Role:              string(mobs.RoleStructure),
 		Speed:             0,
 		BodyRadius:        0.2,
 		AggroRadius:       2.4,

@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 )
 
@@ -124,7 +125,8 @@ func main() {
 	mobDmg := flag.Float64("mob-dmg", 8, "mob aura damage per hit")
 	mobTick := flag.Int("mob-tick", 20, "mob aura tick interval (game ticks)")
 	mobRadius := flag.Float64("mob-radius", 1.0, "mob aura radius")
-	mobSpeed := flag.Float64("mob-speed", 0.5, "mob chase speed factor (0 = stationary)")
+	mobSpeed := flag.Float64("mob-speed", 0.5, "mob chase speed factor (0 = stands still)")
+	mobRole := flag.String("mob-role", "creature", "mob actor role: creature (aura gates on aggro) or structure (aura always on)")
 	mobBody := flag.Float64("mob-body", 0.35, "mob body radius")
 	mobAggro := flag.Float64("mob-aggro", 4.0, "mob aggro sensor radius")
 	mobVariance := flag.Float64("mob-variance", 0, "mob per-hit variance band")
@@ -168,9 +170,16 @@ func main() {
 		}
 		player.Aura = spec
 	}
+	// Validated here rather than deep in the world builder: this is where a
+	// typo can still be reported to the person who typed it (chunk 2).
+	if _, ok := mobs.ParseRole(*mobRole); !ok {
+		fmt.Fprintf(os.Stderr, "unknown -mob-role %q: expected creature, structure or follower\n", *mobRole)
+		os.Exit(2)
+	}
 	mob := sim.MobSpec{
 		MaxHealth:            float32(*mobHP),
 		MaxHealthVariance:    float32(*mobHPVariance),
+		Role:                 *mobRole,
 		Speed:                float32(*mobSpeed),
 		BodyRadius:           float32(*mobBody),
 		AggroRadius:          float32(*mobAggro),

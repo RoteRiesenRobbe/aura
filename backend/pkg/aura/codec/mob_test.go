@@ -11,12 +11,17 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
-func testMobDef(speed float32) *mobs.MobDefinition {
+// testMobDef builds a mob in the given ROLE: a structure's aura is always on,
+// a creature's is gated until it aggros — which is the only thing these wire
+// tests care about. (It used to take a speed and lean on the pre-chunk-2
+// inference that speed 0 meant "turret".)
+func testMobDef(role mobs.Role) *mobs.MobDefinition {
 	return &mobs.MobDefinition{
 		ID:   1,
 		Name: "Dodo",
+		Role: role,
 		Factors: mobs.Factors{
-			Speed:      speed,
+			Speed:      1,
 			BaseMaxHealth:  40,
 			Experience: 1,
 		},
@@ -45,11 +50,11 @@ func marshalledMob(t *testing.T, m *mob.Mob) *AuraApi.Mob {
 // effective radius in px — 0 while the aura is gated — so the client draws
 // the ring only while the aura actually runs.
 func TestMobMarshalFlatbuf_AuraRadius(t *testing.T) {
-	stationary := mob.NewMob(testMobDef(0), 0, nil) // speed 0 → aura always on
+	stationary := mob.NewMob(testMobDef(mobs.RoleStructure), 0, nil) // a structure's aura is always on
 	assert.Equal(t, uint16(0.5*Points2px), marshalledMob(t, stationary).AuraRadius(),
 		"active aura → effective radius in px on the wire")
 
-	gated := mob.NewMob(testMobDef(1), 0, nil) // moving mob spawns with the aura off
+	gated := mob.NewMob(testMobDef(mobs.RoleCreature), 0, nil) // a creature spawns with its aura gated
 	assert.Equal(t, uint16(0), marshalledMob(t, gated).AuraRadius(),
 		"gated aura → 0 on the wire, no ring on the client")
 }
@@ -58,7 +63,7 @@ func TestMobMarshalFlatbuf_AuraRadius(t *testing.T) {
 // the active aura's first-effect effective cadence and the accumulator phase;
 // both 0 while the aura is gated, so the client shows no tick indicator.
 func TestMobMarshalFlatbuf_AuraTick(t *testing.T) {
-	def := testMobDef(0) // speed 0 → aura always on
+	def := testMobDef(mobs.RoleStructure) // a structure's aura is always on
 	def.Skills[0].Def.Effects[0].TickInterval = 8
 
 	m := mob.NewMob(def, 0, nil)
@@ -68,7 +73,7 @@ func TestMobMarshalFlatbuf_AuraTick(t *testing.T) {
 	assert.Equal(t, uint16(0), marshalled.AuraTickPhase(),
 		"a freshly-spawned mob's accumulator is at phase 0")
 
-	gated := mob.NewMob(testMobDef(1), 0, nil) // moving mob spawns with the aura off
+	gated := mob.NewMob(testMobDef(mobs.RoleCreature), 0, nil) // a creature spawns with its aura gated
 	assert.Equal(t, uint16(0), marshalledMob(t, gated).AuraTickInterval(),
 		"gated aura → interval 0, no tick indicator")
 	assert.Equal(t, uint16(0), marshalledMob(t, gated).AuraTickPhase())
@@ -76,7 +81,7 @@ func TestMobMarshalFlatbuf_AuraTick(t *testing.T) {
 	// A state/visual first effect (here light_aura) re-applies silently — no
 	// per-tick hit — so it reports interval 0 and shows no indicator, even
 	// though the aura is active (skill-vocab chunk 6 tick-cadence gate).
-	stateDef := testMobDef(0)
+	stateDef := testMobDef(mobs.RoleStructure)
 	stateDef.Skills[0].Def.Effects[0] = skills.EffectDef{Type: skills.EffectTypeLightAura, Radius: 0.5, TickInterval: 1}
 	assert.Equal(t, uint16(0), marshalledMob(t, mob.NewMob(stateDef, 0, nil)).AuraTickInterval(),
 		"a non-hit first effect → no tick indicator")
@@ -86,11 +91,11 @@ func TestMobMarshalFlatbuf_AuraTick(t *testing.T) {
 // effect-category bitmask, so the client colours a mob's ring by what the aura
 // actually does. Before this every mob ring rendered the same red damage sprite.
 func TestMobMarshalFlatbuf_AuraCategory(t *testing.T) {
-	stationary := mob.NewMob(testMobDef(0), 0, nil) // speed 0 → aura always on
+	stationary := mob.NewMob(testMobDef(mobs.RoleStructure), 0, nil) // a structure's aura is always on
 	assert.Equal(t, byte(skills.AuraCategoryDamage), marshalledMob(t, stationary).AuraCategory(),
 		"active damage aura → damage bit on the wire")
 
-	gated := mob.NewMob(testMobDef(1), 0, nil) // moving mob spawns with the aura off
+	gated := mob.NewMob(testMobDef(mobs.RoleCreature), 0, nil) // a creature spawns with its aura gated
 	assert.Equal(t, byte(0), marshalledMob(t, gated).AuraCategory(),
 		"gated aura → 0 on the wire, no ring on the client")
 }
@@ -98,7 +103,7 @@ func TestMobMarshalFlatbuf_AuraCategory(t *testing.T) {
 // A multi-effect aura keeps every category it carries, rather than being
 // demoted to its first effect — the dual-ring case (Paladin/Vanguard/Warbanner).
 func TestMobMarshalFlatbuf_AuraCategory_MultiEffect(t *testing.T) {
-	def := testMobDef(0)
+	def := testMobDef(mobs.RoleStructure)
 	def.Skills[0].Def.Effects = append(def.Skills[0].Def.Effects, skills.EffectDef{
 		Type: skills.EffectTypeSlowAura, Radius: 0.5, TargetsEnemies: true, TickInterval: 1,
 	})
@@ -121,7 +126,7 @@ func TestMobMarshalFlatbuf_Tier(t *testing.T) {
 		{mobs.TierElite, byte(mobs.TierRankElite)},
 		{mobs.TierBoss, byte(mobs.TierRankBoss)},
 	} {
-		def := testMobDef(0)
+		def := testMobDef(mobs.RoleStructure)
 		def.Tier = tc.tier
 		assert.Equal(t, tc.want, marshalledMob(t, mob.NewMob(def, 0, nil)).Tier(),
 			"tier %q on the wire", tc.tier)

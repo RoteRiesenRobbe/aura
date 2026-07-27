@@ -164,9 +164,15 @@ type PlayerSpec struct {
 // the mob's own entity-ID-seeded rng) so distributions are reproducible
 // under a fixed base seed.
 type MobSpec struct {
-	MaxHealth            float32  `json:"maxHealth"`
-	MaxHealthVariance    float32  `json:"maxHealthVariance"` // spawn roll band, 0 = exact
-	Speed                float32  `json:"speed"`             // chase speed factor (0 = stationary, aura always on)
+	MaxHealth         float32 `json:"maxHealth"`
+	MaxHealthVariance float32 `json:"maxHealthVariance"` // spawn roll band, 0 = exact
+	// Role is the authored actor role (mobs.Role): "" = creature, "structure"
+	// = the aura is always on. ⚑ It must be stated, never inferred from Speed
+	// (plan-entity-model.md chunk 2, landmine L9): this harness is where TTK,
+	// kills/hour and the XP bands come from, so a mob that quietly stops
+	// fighting back moves the level curve rather than failing a test.
+	Role                 string   `json:"role"`
+	Speed                float32  `json:"speed"` // chase speed factor, 0 = stationary
 	BodyRadius           float32  `json:"bodyRadius"`
 	AggroRadius          float32  `json:"aggroRadius"`
 	FleeBelowHealthRatio float32  `json:"fleeBelowHealthRatio"` // 0 = never flees
@@ -244,7 +250,7 @@ func TTD(p PlayerSpec, m MobSpec, startDistance float32) Scenario {
 // Pack is the "player clears a homogeneous pack" scenario: packSize copies
 // of one mob on a ring at startDistance, player at origin fighting back; the
 // metric is the whole pack's death. Reproducibility keeps the chunk-1/2
-// contract: mobs must aggro (startDistance ≤ AggroRadius) or have speed 0 —
+// contract: mobs must aggro (startDistance ≤ AggroRadius) or be structures —
 // idle wander draws from the mobs' own entity-ID-seeded rngs.
 func Pack(p PlayerSpec, m MobSpec, packSize int, startDistance float32) Scenario {
 	return Scenario{

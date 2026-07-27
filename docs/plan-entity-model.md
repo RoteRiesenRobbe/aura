@@ -317,47 +317,248 @@ happens to be raised. Do not special-case it. *(Resolved as recommended — §11
 
 ## 5. Chunk 2 — the role discriminator
 
-**Authoring.** New required-ish `role` key on the mob definition:
-`creature` (default when absent) · `structure` · `follower`. Validated at load
-against a single source table, the `tierRanks` precedent — a role is authorable
-exactly when the loader knows it.
+*Planned in full 2026-07-27 (design session, no code). Line numbers below are
+post-1b HEAD `fe3b7f45`.*
 
-**Content migration:** `role: structure` onto the 10 speed-0 defs (Bramble,
-Brazier, Campfire, FireTotem, PoisonPool, Rockfall, SpikeBarricade, Totem,
-Turnip, WarbannerTotem); `role: follower` onto the 4 companions (Companion,
-MedicCompanion, ShieldbearerCompanion, SoldierCompanion). Everything else
-defaults to `creature`. (Code audit: `FireTotem` and `Totem` are summon-spawned
-*and* speed-0 — they become `role: structure` **with** an owner, the first live
-proof that `role` and the `Owned` capability are orthogonal, exactly as §3
-requires.)
+**The one-sentence chunk:** a mob stops signalling what it *is* by lying about
+what it *does* — `role` is authored, and the two places that read a number to
+guess a kind read the key instead.
 
-**What the discriminator replaces:**
+### 5.1 The authored vocabulary
 
-- `auraAlwaysOn := d.Factors.Speed <= 0` (`mob.go:148`) → `role == structure`
-- `isFollower()` = `owner != nil && velocity > 0` (`companion.go:61`) →
-  `role == follower`. §31 calls this *"the last mob role inferred rather than
-  read"*, and notes its branch order is load-bearing (a medic is both a follower
-  and a pacifist — pacifist must win). Keep the order; just stop inferring the
-  input.
-- `body.aggroRadius` becomes **optional for `role: structure`**, which retires
-  the `0.1` dummy on all 10 defs. It stays required (`> 0`) for `creature`.
-  ⚑ Code audit: two **followers** also carry the `0.1` dummy today (`Companion`,
-  `SoldierCompanion` — they bypass the sensor via owner combat signals;
-  `MedicCompanion` was deliberately moved to a real `3.5` in round 3). Requiring
-  `> 0` for `follower` would preserve the dummy on exactly the defs this chunk
-  exists to clean — make it **optional for `follower` too**, or author real
-  values while migrating.
+New optional `role` key on the mob definition, three values:
 
-**Expected behaviour delta: none.** Every mapping above reproduces today's
-inference exactly. Sim outputs byte-identical again.
+| role | means | authored on |
+|---|---|---|
+| `creature` | the default actor: chases, gates its aura on aggro | 36 defs (absent → this) |
+| `structure` | does not chase; its aura **is** its behaviour, always on | 10 defs |
+| `follower` | owner-centric: acquires from the owner's combat signals, tethered, no leash | 4 defs |
 
-**Not closed by this chunk:** the slot-0 assumptions at `companion.go:148`
-(`auraCanReach`) and `mob.go:164` (aura collider pre-size). §31 records a
-deliberate PO decision (2026-07-25) to leave them and install
-`TestContent_NoAuthoredMobIsAHybridYet` as a loud tripwire instead, because
-"which slot decides reachability during acquisition?" is a genuine design
-question no content has yet posed. **That decision stands** — the tripwire is
-not a prohibition, and it fires the day a hybrid is authored.
+Shape follows the `tierRanks` precedent exactly — **one source table is the
+whole rule**: a `Role` string type in `items/mobs`, three constants, a
+`roles map[string]Role`, and an exported `ParseRole(s) (Role, bool)`. A role is
+authorable exactly when the table knows it. `ParseRole` is the *single* entry
+point: the JSON loader, the sim's `MobSpec` and the simharness CLI flag all go
+through it, so there is no second list to drift.
+
+Absent → `creature`, and that default must exist **twice**: in the loader (for
+authored content) and in `NewMob` (for the directly-constructed definitions in
+tests and the sim). The faction zero-value guard at `mob.go:227` is the shape to
+copy — a zero-value `MobDefinition` must keep meaning what it means today.
+
+`body.aggroRadius` becomes **optional for `role: structure`**; it stays required
+(`> 0`) for `creature` **and `follower`** — PO 2026-07-27, see decision D1.
+
+### 5.2 What the discriminator replaces — exactly three reads
+
+1. `auraAlwaysOn := d.Factors.Speed <= 0` (`mob.go:198`) → `role == structure`.
+   The stored `auraAlwaysOn bool` field disappears; `support.go:191` compares
+   the role directly.
+2. `isFollower() = m.owner != nil && m.velocity > 0` (`companion.go:61`) →
+   `role == follower && m.owner != nil`. ⚑ **The owner half stays** — see D4.
+   Three call sites (`mob.go:1044` targeting dispatch, `patrol.go:72` idle
+   movement, `patrol.go:99` evade-point suppression); §31 notes the branch order
+   at `mob.go:1044` is load-bearing (pacifist is checked *before* follower so a
+   medic companion does not chase its owner's attacker). **Keep the order** —
+   this chunk changes the input to the predicate, never the ordering.
+3. The 10 dummy `body.aggroRadius: 0.1` values, which exist only to pass the
+   loader's `> 0` check, are deleted with the defs' migration to `structure`.
+
+### 5.3 What it deliberately does NOT replace
+
+Four other `speed <= 0` / `velocity <= 0` reads survive **untouched**, because
+they are statements about *movement*, not about *kind* — a creature authored at
+speed 0 genuinely cannot walk either:
+
+- `mob.go:913` / `mob.go:939` — `moveTowardsScaled` / `moveAwayFrom` early-return.
+- `definitions.go:325` — a speed-0 def cannot carry a type-level `wanderRadius`.
+- `zone.go:444` — a speed-0 def cannot be given waypoints or a spawn wander.
+
+Recording this line is half the value of the chunk: *"speed 0 means it cannot
+move"* is correct and stays; *"speed 0 means it is a turret"* is the inference
+being retired.
+
+### 5.4 Content migration — 14 files
+
+**`role: structure` + delete `aggroRadius: 0.1`** (10): `bramble`, `brazier`,
+`campfire`, `fire-totem`, `poison-pool`, `rockfall`, `spike-barricade`, `totem`,
+`turnip`, `warbanner-totem`.
+
+**`role: follower`** (4): `companion`, `soldier-companion`, `medic-companion`,
+`shieldbearer-companion`. `MedicCompanion` (3.5) and `ShieldbearerCompanion`
+(5.5) already carry real aggro radii and keep them; `Companion` and
+`SoldierCompanion` carry the `0.1` dummy and must now author a real value —
+**[PLACEHOLDER] 3.5 for both**, mirroring `MedicCompanion`. ⚑ The value is
+**inert today** (a non-support follower's sensor is read by nothing: the follower
+branch skips `updateEnemyTargeting`, and `updateSupportTarget` returns early
+without a support slot), so it is a forward-looking number, not a balance change
+— but it does add real broadphase pairs where a 0.1 point-sensor added none.
+Note it in the ledger; the PO may set a different number at execution time.
+
+**Everything else (36 defs) is untouched** and defaults to `creature`.
+
+`FireTotem` and `Totem` are summon-spawned *and* speed-0 → `role: structure`
+**with** an owner: the first live proof that role and the `Owned` capability are
+orthogonal, exactly as §3 requires.
+
+### 5.5 The sim harness carries the role too (⚑ the finding that resizes this chunk)
+
+**`speed: 0` is not merely a value in the sim — it is a mechanism.**
+`sim/chain.go:154` pins the mob at speed 0 for the kite stance with the comment
+*"speed 0 keeps its aura always on, so it still fights back"*;
+`sim/scenario.go:169` documents the field as *"0 = stationary, aura always on"*;
+`main.go:127`'s flag says *"0 = stationary"*; the explorer's knob is literally
+labelled **`speed (0=turret)`** (`index.html:164`). The moment `auraAlwaysOn`
+reads `role`, every one of those mobs stops fighting back — and the kite stance
+is half of the **chain battery, which is where the level curve comes from**.
+
+**PO ruling 2026-07-27: the sim gets an explicit role, no shorthand** — *"aren't
+we moving away from speed defining what something is? that was the whole point"*.
+Correct, and load-bearingly so: L4 already says the harness is where TTK,
+kills/hour and the XP bands come from, so an inference *there* is worse than one
+in the model layer, not better. The work:
+
+- `sim.MobSpec` gains `Role string \`json:"role"\`` (JSON-facing, so the
+  explorer request and `/mobs` presets carry it with no decoder change).
+- `sim/world.go:149-162` passes it into the synthetic `mobs.MobDefinition`.
+- `sim/chain.go:154` sets `Role: structure` alongside its `Speed = 0` — the pin
+  becomes an authored statement of intent instead of a side effect. (The speed
+  pin **stays**: "does not move" is still true and still the point.)
+- `simharness/content.go:313` (`mobSpecOf`) copies `def.Role`. ⚑ **Required, not
+  optional:** `FireTotem` is an armed structure that is *not* in
+  `guardrailExempt` (unlike Brazier/PoisonPool/SpikeBarricade/Totem), so it runs
+  `facetankSurvival` in the guardrail battery every time. Without the role its
+  aura gates on aggro and its survival number moves.
+- `simharness/main.go` gains `-mob-role` (default `creature`), and the
+  `-mob-speed` help text drops "0 = stationary" as a *behaviour* claim.
+- `simharness/index.html` gains a `role` select (creature / structure — the sim
+  has no owner, so `follower` is meaningless there) and the speed knob is
+  relabelled plain `speed`. ⚑ **~15–20 lines of real plumbing, not a one-liner:**
+  the `KNOBS` table is uniformly `type="number"`, `buildRequest()` runs every
+  value through `parseFloat` (a string yields `NaN` → `return null` → the run is
+  silently skipped), and the preset-apply loop does `Math.round(v*1000)/1000`.
+  Both paths need a string-knob branch.
+- Validation: `ParseRole` at the two entry points that can report an error (the
+  CLI flag, the decoded HTTP request). `world.go` **panics** on an unparseable
+  role rather than falling back to `creature` — a silent fallback in the
+  balancing harness is precisely the failure class this chunk exists to remove,
+  and the harness is a dev tool where loud is correct.
+
+### 5.6 Decisions
+
+- **D1 — `aggroRadius` optional for `structure` only** (PO 2026-07-27). The 10
+  structure dummies go; the two follower dummies become real authored values
+  (§5.4). Rejected: making it optional for followers too (would have left the
+  schema unable to say a moving actor has a sensor).
+- **D2 — the sim authors its role explicitly** (PO 2026-07-27), §5.5. Rejected:
+  a one-line `speed == 0 → structure` fallback in `sim/world.go`.
+- **D3 — no loader guard on `speed: 0` without `role: structure`** (PO
+  2026-07-27): *"a turret is something I would want to build, so no error
+  necessary — wrong configurations should show up in the game only, if they are
+  still legal."* A speed-0 `creature` is a **legal, wanted** config: a stationary
+  hazard that gates its aura on aggro. No hard-fail, and no boot warning either.
+  The content pin (§5.8) is a regression pin on the 50 authored defs, not a rule.
+- **D4 — `isFollower` keeps its owner check**: `role == follower && owner != nil`.
+  Role is the authored *intent*; ownership is the runtime *precondition* the
+  follower code paths actually require (`updateFollow` needs an owner to follow,
+  `updateCompanionTargeting` needs owner combat signals). Today's four follower
+  defs are only ever summon-spawned, but nothing stops the PO placing one from
+  the zone editor, and an ownerless "follower" must degrade to ordinary creature
+  behaviour rather than to a no-op mob. This also preserves today's semantics
+  exactly, which is what makes the chunk's identity claim provable.
+- **D5 — rename the *other* `role`.** `support.go:65`'s `roleSlots()` and the
+  "role-as-loadout" vocabulary from round 3 mean the **combat** role
+  (support vs. fighter) — a different axis that happens to share the word, and
+  after this chunk the collision is live in one file. Rename `roleSlots` →
+  `loadoutSlots` (internal, no content or wire surface) so `role` means the
+  authored discriminator and nothing else. Pure rename, own step, zero behaviour.
+- **D6 — no exported `Role()` accessor on `*Mob` yet.** Store the field, read it
+  internally. Chunk 3a is the first plausible consumer; adding the accessor
+  before there is a caller is the YAGNI this plan keeps flagging.
+
+### 5.7 Implementation order
+
+Six steps, each compiling and green on its own:
+
+1. **Registry vocabulary** — `Role` type + table + `ParseRole` +
+   `MobDefinition.Role` + the JSON field + the conditional `aggroRadius` rule
+   (`items/mobs/definitions.go`). Nothing reads it yet.
+2. **Model consumption** — `m.role`, `auraAlwaysOn` deleted, `isFollower`
+   rewritten, the `NewMob` zero-value default (`model/mob/{mob,companion,support}.go`).
+3. **D5 rename** — `roleSlots` → `loadoutSlots`.
+4. **Sim plumbing** — §5.5, all six sites. Run the batteries here, before any
+   content moves, so an identity break is unambiguously the code's fault.
+5. **Content migration** — the 14 JSONs + `docs/manual-content-authoring.md`
+   (the mob section at line ~55 lists the authored keys; `role` goes next to
+   `tier`/`curveLevel`, and the "Solid-obstacle mobs" paragraph currently says
+   *"pair with `speed: 0`"* — it must now say `role: structure`).
+6. **Verification tail** — §5.8.
+
+Rough size: ~10 Go files + 8 test files + 14 JSONs + 1 HTML + 1 doc.
+
+### 5.8 Test plan & acceptance
+
+**Red-first pins (all behavioural — L6):**
+
+- Loader: an unknown `role` is rejected; absent `role` yields `creature`; a
+  `structure` may omit `aggroRadius`; a `creature` and a `follower` may not.
+- Model: a def with **speed > 0 and `role: structure`** has an always-on aura
+  (proves the read is the role, not the speed); a def with **speed 0 and
+  `role: creature`** gates its aura on aggro (the same, inverted); an owned
+  speed-0 `structure` is **not** a follower; an owned `role: follower` follows
+  and keeps the pacifist-before-follower branch order.
+- Content pin: every one of the 50 authored defs asserts its expected role
+  (10/4/36), so a future def cannot silently drift.
+- The existing 13 test sites that construct `Speed: 0` defs (`model/mob`,
+  `sys/skills_behavior_test.go:2323,2747`, the `sim` package tests) are the
+  chunk's own migration surface — each one must be read and either given a role
+  or confirmed as a movement-only fact.
+
+**Acceptance:**
+
+- `go build ./...`, `go vet`, `go test -timeout 60s ./...`, guardrails `-count=2`.
+- **Sim battery, level curve and pack matrix byte-identical** to a HEAD build
+  (`git worktree`, as in 1b — not a remembered number). This covers the §5.5
+  plumbing; the kite rows are the specific thing being proved.
+- ⚑ **The 50-mob preset roster is NOT byte-identical, by design:** **12 rows**
+  change in the `aggroRadius` column and nothing else — the 10 structures to 0,
+  plus `Companion` and `SoldierCompanion` from the `0.1` dummy to their new
+  authored 3.5 (D1 kept the key required for followers). Any other moved column
+  is a bug. *(Verified: exactly those 12 cells moved.)*
+- Boot `-content ../api`: 0 errors / 0 panics / 0 warnings with the pinned counts
+  (83 skills / 14 factions / 50 mobs / 10 recipes / 5 prop defs / 1 milestone /
+  777 props / 471 spawns / 5 campfires / 14 npcs). ⚑ **This is the real gate for
+  this chunk** — L4: the sim never loads authored content, so `role` validation
+  lives in a path sim identity cannot see.
+- In-game smoke: a campfire still burns and heals unprovoked; a brazier/poison
+  pool still damages on contact; a summoned companion still follows and fights;
+  a bramble still blocks and takes only its gated damage.
+
+**⚑ The one non-identity to state out loud.** Deleting `aggroRadius: 0.1` gives
+the 10 structures a **radius-0 (point) sensor**. Traced consequence: `Campfire`
+and `WarbannerTotem` carry support auras, so `refreshSensorMask` widens their
+sensor to `LayerCombatants` and `updateSupportTarget`/`withinSensor`
+(`support.go:109`) currently reach `0.1 + targetRadius`; after the chunk they
+reach `targetRadius`. **Inert** — both are velocity-0 (`moveTowards` refuses to
+move them) and `auraAlwaysOn` (so `applyMode` early-returns before any aura
+gating), which is the same pair of reasons round 5 pinned campfires/totems as
+inert pacifists. It is still a state difference a debugger can see, so **pin it
+rather than assume it**: a campfire with a wounded player standing on it heals
+identically before and after.
+
+### 5.9 Not closed by this chunk
+
+The slot-0 assumptions at `companion.go:148` (`auraCanReach`) and `mob.go:214`
+(aura collider pre-size). §31 records a deliberate PO decision (2026-07-25) to
+leave them and install `TestContent_NoAuthoredMobIsAHybridYet` as a loud tripwire
+instead, because "which slot decides reachability during acquisition?" is a
+genuine design question no content has yet posed. **That decision stands** — the
+tripwire is not a prohibition, and it fires the day a hybrid is authored.
+
+Also still open next door: **L2** (`SetFaction` overwrites the authored aggro
+mask, two callers). This chunk's step 2 touches `refreshSensorMask`'s
+neighbourhood but does **not** fix it — it stays inert-in-effect and blocked-in-
+principle until runtime faction changes are actually wanted.
 
 ---
 
@@ -535,6 +736,34 @@ Chunk 3a removes one helper, which is safe, but do not take it as licence to
 invert the matrix — that is §24 option A and an explicit half-day-plus design
 decision of its own.
 
+**L9 — `speed: 0` is a MECHANISM inside the sim harness, not just a value.**
+Four sites use it to mean *turret*, not *stationary*: `sim/chain.go:154` pins the
+kite-stance mob at 0 explicitly so "its aura stays always on, so it still fights
+back", `sim/scenario.go:169` documents the field that way, `simharness/main.go:127`'s
+flag says so, and the explorer's knob is labelled **`speed (0=turret)`**
+(`index.html:164`). The kite stance is half the **chain battery, which is where
+the level curve comes from** — so the moment `auraAlwaysOn` reads `role`, an
+un-migrated sim stops modelling a fight and the curve moves. Chunk 2 must carry
+role through `MobSpec` → `world.go` → the synthetic definition, and through
+`mobSpecOf` (`content.go:313`) for the preset roster. ⚑ **`FireTotem` is the
+sharp edge**: an armed structure that is *not* in `guardrailExempt` (unlike
+Brazier / PoisonPool / SpikeBarricade / Totem), so it runs `facetankSurvival` in
+the guardrail battery on every run. Ruled 2026-07-27: **explicit role in the sim,
+no `speed == 0` shorthand** — an inference in the balancing harness is worse than
+one in the model layer, not better (see L4).
+
+**L10 — a `structure` with a support aura has a sensor, and dropping its dummy
+`aggroRadius` shrinks it.** `Campfire` (heal) and `WarbannerTotem` (shield) carry
+support auras, so `refreshSensorMask` widens their sensor to `LayerCombatants`
+and `updateSupportTarget` reaches `aggroRadius + targetRadius` (`support.go:109`).
+Deleting the `0.1` dummy makes that a point sensor. **Inert** — both are
+velocity-0 and always-on, the same pair of reasons round 5 pinned
+campfires/totems as inert pacifists — but it is the chunk's only non-identity, so
+pin it instead of assuming it. It also means the 50-mob preset roster is
+**deliberately not byte-identical**: 12 rows move in the `aggroRadius` column
+(the 10 structures to 0, plus the two follower dummies to an authored 3.5 under
+D1) and nothing else.
+
 ---
 
 ## 9. Test strategy
@@ -543,7 +772,7 @@ decision of its own.
 |---|---|---|
 | **1a** | TDD red-first: mob + Hardy has more HP · mob + Tough takes less damage · mob + Swift moves faster. All **behavioural** (L6). Existing guardrails `-count=2`. | `go test ./...` green; **sim battery + level curve + pack matrix byte-identical** to a stashed baseline (no mob authors a passive, so identity is provable) |
 | **1b** | summon HP/output pins at 2–3 owner levels; max-HP recompute clamps current health | sim battery **re-run and deltas recorded**; PO signs the summon numbers |
-| **2** | loader rejects an unknown `role`; the 3 mappings reproduce today's inference exactly; `aggroRadius` optional only for `structure` | boot `-content ../api` clean with the pinned counts; sim byte-identical again |
+| **2** | loader rejects an unknown `role`, absent → `creature`, `aggroRadius` optional only for `structure`; **speed>0 + `structure` is always-on** and **speed-0 + `creature` gates** (proves the read moved off speed); owned-`structure` ≠ follower; content pin on all 50 roles | boot `-content ../api` clean with the pinned counts (**the real gate — L4**); sim battery/level curve/pack matrix byte-identical vs a `git worktree` HEAD build; preset roster moves in **exactly 10 `aggroRadius` cells** and nowhere else (L10) |
 | **3a** | interaction-node evaluator reproduces `onApproach`'s teaching order + `tooLowLine` gate; content pin on all 16 migrated NPC entries (14 `world.json` + 2 legacy Sages, per the open-question-6 call) | boot counts (npcs → 0, mobs/spawns +14 world-side); headless smoke; **screenshot** for the L5 health-bar gate |
 | **3b** | keybind + panel unit tests via the existing vitest infra (`jsdom` + the `fetch` stub) | in-game: approach a teacher, press the key, learn the skill, panel closes |
 
@@ -578,6 +807,11 @@ content counts recorded.
 7. ~~**Summon level: assigned at spawn or tracked live?**~~ **RESOLVED in 1b
    (PO 2026-07-26): tracked LIVE** — `Level()` reads the owner's current level,
    with no synced field (§11). The recommendation was taken.
+8. **What aggro radius do `Companion` and `SoldierCompanion` get?** (Chunk 2, D1)
+   They lose the `0.1` dummy and must author a real value; the plan proposes
+   **3.5 [PLACEHOLDER]**, mirroring `MedicCompanion`. Inert today (a non-support
+   follower's sensor is read by nothing), so it is a forward-looking number the
+   PO can set to anything at execution time.
 
 ---
 
@@ -751,6 +985,11 @@ what shipped, which commit, what was verified.)*
   path is the one worth smoking: `MaxHealth()` is now evaluated per read for
   every mob, every tick, on the wire. ⚑ The first run hit a §29 lost context
   (1 in ~6, the client said so itself); the retry was clean.
-- **Chunk 2 — role discriminator:** not started
+- **Chunk 2 — role discriminator:** **planned in full 2026-07-27** (§5 rewritten
+  from a sketch into an executable plan: 6 decisions D1–D6, a 6-step order, the
+  50-def content table, and two new landmines **L9** (the sim harness reads
+  `speed: 0` as *turret*, so it must carry the role explicitly — 3 PO rulings
+  taken this session) and **L10** (deleting the structure `aggroRadius` dummies
+  is the chunk's only non-identity)). Not started in code.
 - **Chunk 3a — NPC merge + interaction schema:** not started
 - **Chunk 3b — interact verb + dialogue panel:** not started

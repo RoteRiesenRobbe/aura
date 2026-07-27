@@ -308,8 +308,12 @@ func mobSpecOf(def *mobs.MobDefinition) (sim.MobSpec, error) {
 	spec := sim.MobSpec{
 		// Rounded, because vitals.HP rounds the live pool: a preset that kept
 		// the fraction would model a mob the server cannot spawn.
-		MaxHealth:            float32(math.Round(float64(def.Factors.BaseMaxHealth) * float64(powerScale))),
-		MaxHealthVariance:    def.Factors.MaxHealthVariance,
+		MaxHealth:         float32(math.Round(float64(def.Factors.BaseMaxHealth) * float64(powerScale))),
+		MaxHealthVariance: def.Factors.MaxHealthVariance,
+		// The authored role rides along (chunk 2): a preset structure must
+		// still be a structure in the sim, or FireTotem — an armed structure
+		// the guardrail battery does NOT exempt — quietly stops fighting back.
+		Role:                 string(def.Role),
 		Speed:                def.Factors.Speed,
 		BodyRadius:           def.Body.Radius,
 		AggroRadius:          def.Body.AggroRadius,

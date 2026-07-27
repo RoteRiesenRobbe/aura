@@ -12,6 +12,7 @@ package mob
 import (
 	"math"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 )
@@ -54,12 +55,17 @@ func (m *Mob) companionHoldAngleOffset() float64 {
 	return (float64(h)/float64(companionJitterBuckets)*2 - 1) * companionJitterAngle
 }
 
-// isFollower reports whether this mob follows an owner: owned and able to
-// move. The totem (speed 0) stays a stationary hazard; a zone-spawned mob has
-// no owner. Deliberately implicit — no schema flag until content needs a
-// non-following mobile summon (YAGNI, recorded at chunk-6 plan-first).
+// isFollower reports whether this mob follows an owner: authored as a follower
+// AND actually owned.
+//
+// The role is the authored intent (chunk 2 — it used to be inferred from
+// "owned and able to move", which made a totem's stillness the only thing
+// keeping it planted). Ownership stays a runtime precondition on top of it:
+// every follower path needs an owner to follow or to take combat signals from,
+// so an ownerless follower — a companion def placed from the zone editor —
+// degrades to ordinary creature behaviour rather than standing inert.
 func (m *Mob) isFollower() bool {
-	return m.owner != nil && m.velocity > 0
+	return m.role == mobs.RoleFollower && m.owner != nil
 }
 
 // ownerCombatant is the owner as combat sees it (position/liveness); nil when

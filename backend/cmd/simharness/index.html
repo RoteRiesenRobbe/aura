@@ -161,7 +161,8 @@ const KNOBS = [
   ['Mob', 'aura max targets',     'mob.aura.maxTargets',       1, 1],
   ['Mob', 'dot events (0 = direct)',   'mob.aura.dotTicks',    0, 1],
   ['Mob', 'dot event tick (ticks)',    'mob.aura.dotTickInterval', 0, 5],
-  ['Mob', 'speed (0=turret)',     'mob.speed',                 0.5, 0.1],
+  ['Mob', 'role',                 'mob.role',                  'creature', 0, ['creature', 'structure']],
+  ['Mob', 'speed',                'mob.speed',                 0.5, 0.1],
   ['Mob', 'body radius',          'mob.bodyRadius',            0.35, 0.05],
   ['Mob', 'aggro radius',         'mob.aggroRadius',           4.0, 0.5],
   ['Mob', 'flees below HP ratio', 'mob.fleeBelowHealthRatio',  0, 0.05],
@@ -172,9 +173,13 @@ const KNOBS = [
   ['Battery', 'timeout (sim s)',  'maxSeconds',                120, 10],
 ];
 
+// Paths whose value is authored text, not a number — derived from the table so
+// it cannot drift out of sync with it.
+const STRING_KNOBS = new Set(KNOBS.filter(k => k[5]).map(k => k[2]));
+
 const knobsEl = document.getElementById('knobs');
 const inputs = {}; // path -> input element
-for (const [group, label, path, def, step] of KNOBS) {
+for (const [group, label, path, def, step, options] of KNOBS) {
   let fs = knobsEl.querySelector(`fieldset[data-group="${group}"]`);
   if (!fs) {
     fs = document.createElement('fieldset');
@@ -184,10 +189,22 @@ for (const [group, label, path, def, step] of KNOBS) {
   }
   const lab = document.createElement('label');
   lab.innerHTML = `<span>${label}</span>`;
-  const inp = document.createElement('input');
-  inp.type = 'number';
-  inp.value = def;
-  inp.step = step;
+  // A knob with an options list is a STRING knob (mob.role) and needs a select:
+  // its value never goes through parseFloat. Chunk 2 — the sim states what a mob
+  // IS instead of implying it with speed 0.
+  const inp = document.createElement(options ? 'select' : 'input');
+  if (options) {
+    for (const o of options) {
+      const opt = document.createElement('option');
+      opt.value = o; opt.textContent = o;
+      inp.appendChild(opt);
+    }
+    inp.value = def;
+  } else {
+    inp.type = 'number';
+    inp.value = def;
+    inp.step = step;
+  }
   inp.addEventListener('input', scheduleRun);
   if (path.startsWith('mob.')) {
     // hand-editing a mob knob diverges from the selected preset
@@ -225,7 +242,9 @@ presetSel.addEventListener('change', () => {
     if (!path.startsWith('mob.')) continue;
     let v = p.spec;
     for (const part of path.split('.').slice(1)) v = (v ?? {})[part];
-    inputs[path].value = Math.round((v ?? 0) * 1000) / 1000;
+    inputs[path].value = STRING_KNOBS.has(path)
+      ? (v || 'creature')            // an absent role IS creature (chunk 2)
+      : Math.round((v ?? 0) * 1000) / 1000;
   }
   run();
 });
@@ -263,8 +282,9 @@ playerPresetSel.addEventListener('change', () => {
 function buildRequest() {
   const req = { player: { aura: { maxTargets: 1 } }, mob: { aura: { maxTargets: 1 } } };
   for (const path of Object.keys(inputs)) {
-    const v = parseFloat(inputs[path].value);
-    if (Number.isNaN(v)) return null;
+    const raw = inputs[path].value;
+    const v = STRING_KNOBS.has(path) ? raw : parseFloat(raw);
+    if (typeof v === 'number' && Number.isNaN(v)) return null;
     const parts = path.split('.');
     let obj = req;
     for (const p of parts.slice(0, -1)) obj = obj[p] = obj[p] || {};

@@ -65,6 +65,16 @@ faction and skills without a schema append (see §5 and
      load**; raw absolute numbers sized to a zone are a review reject.
      (Absent `tier`/`curveLevel` default to `normal`/1 — for synthetic/test
      defs only, content always authors them explicitly.)
+   - **`role` — what the actor IS** (`creature` / `structure` / `follower`;
+     absent = `creature`). `creature` chases what it aggros and its aura runs
+     only while it has a target; `structure` does not chase and its aura is
+     **always on** (totems, braziers, campfires, gate obstacles); `follower`
+     acquires from its owner's combat signals and trails the owner (the
+     companion summons). ⚑ **Role is not a speed.** A stationary creature (a
+     hazard that gates its aura on aggro) and a moving structure are both
+     legal and neither is warned about — author the role you mean. Before
+     chunk 2 this was inferred (`speed: 0` = structure, owner + moving =
+     follower), which is why old defs carried a dummy `aggroRadius`.
    - `factors`: `baseMaxHealth`, `maxHealthVariance`, `experience`, `speed`,
      `deltaPhi`, `turnRate`, optional `resistances` / `damageTags`
    - **Chore/gate tags are opt-in (C1):** gate-style damage (Harvest)
@@ -76,15 +86,17 @@ faction and skills without a schema append (see §5 and
      `api/mobs/turnip.json`), the C2 bramble walls and the C3 rockfall
      (`{ "*": 0, "smash": 1 }` — each gate obstacle picks its own tag +
      opener skill).
-   - `body`: `radius`, `aggroRadius`
+   - `body`: `radius`, `aggroRadius` (required and `> 0` for `creature` and
+     `follower`; **omit it on a `structure`** — a structure acquires nothing,
+     and requiring one is what produced the old `0.1` dummies)
    - **Solid-obstacle mobs (brazier/bramble pattern):** optional
      `body.collisionLayer` / `collisionMask` override the defaults (layer
      34 = Viewport|Action, mask 80 = MobStatic|Border). Brazier `32/16` =
      unhittable, non-blocking scenery hazard; Bramble `99/16` (PlayerStatic
      1 + Action 2 + Viewport 32 + MobStatic 64) = blocks players AND mobs
      while staying aura-hittable, and mask 16 (Border only) means nothing
-     pushes it. Pair with `speed: 0`, XP 0 and opt-in `resistances` for a
-     destructible aura-gated wall (`api/mobs/bramble.json`,
+     pushes it. Pair with `role: "structure"` + `speed: 0`, XP 0 and opt-in
+     `resistances` for a destructible aura-gated wall (`api/mobs/bramble.json`,
      `api/mobs/rockfall.json`); the brazier form reskins as any always-on
      hazard (`api/mobs/poison-pool.json`).
    - `skills[]`: the mob's aura(s) by `skillName` (must exist in `api/skills/`)

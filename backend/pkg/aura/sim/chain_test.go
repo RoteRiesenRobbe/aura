@@ -10,6 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 )
 
 // chainPlayer deals exactly 10 HP every 3rd tick; 128 max HP so the regen
@@ -27,6 +29,7 @@ func chainPlayer() PlayerSpec {
 func chainMob() MobSpec {
 	return MobSpec{
 		MaxHealth:   40,
+		Role:        string(mobs.RoleStructure),
 		Speed:       0,
 		BodyRadius:  0.2,
 		AggroRadius: 2.4,

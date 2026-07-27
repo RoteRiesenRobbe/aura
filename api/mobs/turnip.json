@@ -1,8 +1,9 @@
 {
-  "_comment": "The chore harvest-mob (content pass C1, GDD §5 peasant onboarding): stationary (speed 0, brazier precedent), no skills, no faction — it can neither move nor fight back. First authored resistances: the wildcard blocks every damage tag except 'harvest', so only Harvest pops it and combat auras do nothing (deterministic gate, item 11 Phase 2). XP 1 token (PO 2026-07-21, post-Session-⑦: was 0 after the shared-XP AFK powerlevel cheese; 1 keeps the pop rewarding without reviving the cheese — L1→2 costs 300, leveling still starts at wolves), no drops — pure Harvest demo target at the farmer's field. All values [PLACEHOLDER]",
+  "_comment": "The chore harvest-mob (content pass C1, GDD §5 peasant onboarding): role structure + speed 0 (brazier precedent), no skills, no faction — it can neither move nor fight back, and authors no aggroRadius. First authored resistances: the wildcard blocks every damage tag except 'harvest', so only Harvest pops it and combat auras do nothing (deterministic gate, item 11 Phase 2). XP 1 token (PO 2026-07-21, post-Session-⑦: was 0 after the shared-XP AFK powerlevel cheese; 1 keeps the pop rewarding without reviving the cheese — L1→2 costs 300, leveling still starts at wolves), no drops — pure Harvest demo target at the farmer's field. All values [PLACEHOLDER]",
   "id": 14,
   "name": "Turnip",
   "type": "MOB",
+  "role": "structure",
   "tier": "normal",
   "curveLevel": 1,
   "factors": {
@@ -13,8 +14,7 @@
     "resistances": { "*": 0, "harvest": 1 }
   },
   "body": {
-    "radius": 0.15,
-    "aggroRadius": 0.1
+    "radius": 0.15
   },
   "skills": []
 }

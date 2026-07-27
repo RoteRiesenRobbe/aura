@@ -1387,13 +1387,14 @@ func TestNewMob_MovingMobSpawnsAuraGated(t *testing.T) {
 	assert.InDelta(t, 0, m.AuraRadius(), 1e-6, "wire radius 0 → no ring on the client")
 }
 
-func TestNewMob_StationaryMobAuraAlwaysOn(t *testing.T) {
+func TestNewMob_StructureAuraAlwaysOn(t *testing.T) {
 	def := testMobDefinition()
+	def.Role = mobs.RoleStructure
 	def.Factors.Speed = 0
 	m := NewMob(def, 0, nil)
 
 	assert.Equal(t, 0, m.SkillComponent().ActiveAuraSlot,
-		"a stationary hazard (totem, brazier) cannot chase — its aura is its behavior, always on")
+		"a hazard (totem, brazier) does not chase — its aura is its behavior, always on")
 	assert.InDelta(t, 0.5, m.AuraRadius(), 1e-6)
 
 	m.resetAggro()

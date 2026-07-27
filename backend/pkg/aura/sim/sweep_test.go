@@ -11,9 +11,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 )
 
-// exactFixture is deterministic: turret mob (speed 0), no variance, no crit.
+// exactFixture is deterministic: turret mob (role structure, speed 0), no
+// variance, no crit.
 // Baseline cadence (chunk-1 pins): TTK = ceil(60/14) = 5 hits × 40 ticks =
 // tick 200; TTD = ceil(100/8) = 13 hits × 20 ticks = tick 260.
 func exactFixture(growth float64, maxLevel int) Fixture {
@@ -25,6 +28,7 @@ func exactFixture(growth float64, maxLevel int) Fixture {
 		},
 		Mob: MobSpec{
 			MaxHealth:   60,
+			Role:        string(mobs.RoleStructure),
 			Speed:       0,
 			BodyRadius:  0.2,
 			AggroRadius: 2.4,

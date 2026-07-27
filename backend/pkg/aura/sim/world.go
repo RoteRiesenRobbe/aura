@@ -144,10 +144,20 @@ func NewWorld(sc Scenario, seed int64) *World {
 	// have no mob-vs-mob collision, so the ring mainly synchronizes arrival —
 	// they do steer softly apart since round 6, but from a spread ring that
 	// changes nothing measurable (the matrix is byte-identical across it).
+	// The scenario's role is authored, so an unknown one is a bad scenario, not
+	// a default to fall back on — a silent creature here would turn a pinned
+	// turret into a mob that never fights back and quietly move every number
+	// the harness exists to produce (chunk 2, L9).
+	role, ok := mobs.ParseRole(sc.Mob.Role)
+	if !ok {
+		panic(fmt.Sprintf("sim: mob role %q is not one of creature/structure/follower", sc.Mob.Role))
+	}
+
 	pack := make([]*mob.Mob, packSize)
 	for i := range pack {
 		def := &mobs.MobDefinition{
 			ID:         mobs.MobID(1000 + i),
+			Role:       role,
 			Name:       "SimMob",
 			EntityType: "Dodo",
 			Factors: mobs.Factors{

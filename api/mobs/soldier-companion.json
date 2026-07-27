@@ -1,8 +1,9 @@
 {
-  "_comment": "Soldier companion (content pass C6, plan-content-zones12.md §B): the summon behind Call for Aid — three soldiers of the front answer the horn. Companion pattern verbatim (owned, caster-aligned follower; spawnSummon overrides faction from the caster, hence no faction key; never a zone spawn): collisionLayer 160 = Viewport|Player, collisionMask 17 = PlayerStatic|Border, speed above the player's so it keeps up, aggroRadius dummy (followers ride owner combat signals). curveLevel 1 — power comes from SummonPower x f(ownerLevel), not the curve. Reuses SoldierBlades (the ArmySoldier kit): the summon IS a soldier. All values [PLACEHOLDER]",
+  "_comment": "Soldier companion (content pass C6, plan-content-zones12.md §B): the summon behind Call for Aid — three soldiers of the front answer the horn. Companion pattern verbatim (owned, caster-aligned follower; spawnSummon overrides faction from the caster, hence no faction key; never a zone spawn): collisionLayer 160 = Viewport|Player, collisionMask 17 = PlayerStatic|Border, speed above the player's so it keeps up, role follower (authored since chunk 2); aggroRadius 3.5 [PLACEHOLDER], inert while it rides owner combat signals. curveLevel 1 — power comes from SummonPower x f(ownerLevel), not the curve. Reuses SoldierBlades (the ArmySoldier kit): the summon IS a soldier. All values [PLACEHOLDER]",
   "id": 38,
   "name": "SoldierCompanion",
   "type": "MOB",
+  "role": "follower",
   "tier": "normal",
   "curveLevel": 1,
   "factors": {
@@ -12,7 +13,7 @@
   },
   "body": {
     "radius": 0.25,
-    "aggroRadius": 0.1,
+    "aggroRadius": 3.5,
     "collisionLayer": 160,
     "collisionMask": 17
   },

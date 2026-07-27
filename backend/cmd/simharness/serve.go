@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
 )
 
@@ -34,6 +35,11 @@ func (r *runRequest) validate() error {
 	}
 	if r.Distance < 0 {
 		return fmt.Errorf("distance must be >= 0, got %v", r.Distance)
+	}
+	// The role is authored text, so a typo is reported here rather than
+	// panicking in the world builder (chunk 2).
+	if _, ok := mobs.ParseRole(r.Mob.Role); !ok {
+		return fmt.Errorf("mob.role %q must be creature, structure or follower", r.Mob.Role)
 	}
 	return nil
 }
