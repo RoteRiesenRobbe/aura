@@ -1867,8 +1867,8 @@ what shipped, which commit, what was verified.)*
   size, **the health bar you accepted (D3)**, no nameplate, the bubble, the
   unlock banner. Also worth a look in the **zone editor**: the NPC mode is gone
   and NPCs are placed with the spawn tool now (D1).
-- **Chunk 3b — interact verb + dialogue panel: PLANNED 2026-07-27** (design
-  session, no code). Split into **3b-i (the verb)** and **3b-ii (the panel)** —
+- **Chunk 3b — interact verb + dialogue panel: PLANNED 2026-07-27** ✅ `85afcdb1`
+  (design session, no code). Split into **3b-i (the verb)** and **3b-ii (the panel)** —
   §6b is the plan, 7 new PO decisions **D8–D14**, 5 new landmines **L15–L19**.
   Neither half is started. The planning session's own finding is D9's:
   **this plan had been recommending `E`, which is already the cooldown-slot-2
