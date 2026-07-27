@@ -978,6 +978,11 @@ prompt, so the verb costs a call-site move, not a new mechanism.
 playable and verifiable on its own; 3b-ii is frontend-led and needs content that
 does not exist yet.
 
+**3b-i is ✅ DONE (`6368b2e5`); 3b-ii was re-planned in full on 2026-07-27 after
+it shipped** — §6b.9 onward, decisions **D15–D23**. ⚑ **That session overturned
+three of the decisions below** (D11 and D14 via D18, D13 via D19), so read §6b.9
+before implementing anything from §6b.0.
+
 ### 6b.0 Decisions (PO, 2026-07-27, via choice prompts)
 
 **D8 — 3b splits into 3b-i (interact verb) and 3b-ii (dialogue panel).** The
@@ -1007,7 +1012,10 @@ which is already the own-player-only channel (`in_combat`, `cast_*`,
 *events* — no enter/leave bookkeeping, no desync possible, and **the
 `ServerMessageBody` positional-union landmine (L16) is never exercised.**
 
-**D11 — all 14 flip to `trigger: "interact"`.** One uniform rule: nothing ever
+**D11 — all 14 flip to `trigger: "interact"`.** ⚑ **SUPERSEDED by D18 (3b-ii):
+the key is deleted from all 14 again** — with no enum left, "nothing speaks
+unprompted" stops being an authored value and becomes the only behaviour there
+is. The rule below survives; only its expression goes. One uniform rule: nothing ever
 speaks unprompted. Costs `ForestSign` and `LamplessTraveller` their walk-by lore
 (they are the only two with zero grants and zero options), and buys no ambient
 chatter firing while a player runs past mid-fight.
@@ -1020,13 +1028,20 @@ dim-when-visible / lit-when-in-range variant was the discoverability option; it
 would have needed the one catalog boolean D10 otherwise avoids. Revisit if
 playtest says NPCs go unnoticed.)
 
-**D13 — the reply is private to the interactor.** Today `speak()` fans the lines
+**D13 — the reply is private to the interactor.** ⚑ **SUPERSEDED by D19
+(3b-ii): the reply moves into the panel and the private `speak()` is retired
+altogether** — the reply text rides the streamed tree, so nothing is sent. The
+fan-out survives, now serving `ambient`. Today `speak()` fans the lines
 to every player inside the sensor. Once a conversation is deliberately initiated
 by one player, that is the wrong audience: a crowded town square would fill with
 other people's teaching lines. One-line change. (The unlock banner was already
 private.)
 
-**D14 — `approach` stays in the trigger table with zero content users.** It
+**D14 — `approach` stays in the trigger table with zero content users.**
+⚑ **SUPERSEDED by D18 (3b-ii): the trigger enum is deleted outright.** The want
+D14 was protecting — ambient walk-by lore — became its own `interaction.ambient`
+field, which is what a content author actually reached for; the *trigger* had no
+behaviour left once D17 retired the walk. The original reasoning: It
 remains the parse default for an absent `trigger`, it is ~5 lines, and its
 evaluator path is the same `evaluate()` call from a different call site — fully
 covered by the 373 ported tests. Ambient walk-by lore is an obvious future want
@@ -1277,28 +1292,384 @@ interaction layer is precisely where charm / side-switching gets wanted).
 
 ---
 
-### Chunk 3b-ii — the dialogue panel
+### Chunk 3b-ii — the conversation panel
 
-Sketched, not planned in detail — it should be re-planned once 3b-i is in
-play and the badge/verb feel is known. Its shape is fixed by the decisions
-above:
+*Planned in full 2026-07-27, in a second design session held after 3b-i shipped
+(the re-plan the sketch below asked for). Line numbers are post-3b-i HEAD
+`d9b53aa0`.*
 
-- **The evaluator splits** (§6b.1): `present(node, player)` returns lines and
-  option labels with each option's availability, mutating nothing;
-  `apply(option, player)` runs today's grant walk. This is the whole chunk's
-  cost.
-- **A conversation session** per player — which actor, which node — so
-  `next` can advance. Server-side; it dies with the player or when they leave
-  range.
-- **Two more wire additions**: the node payload to the client, and an option
-  index back. ⚑ The node payload is the one that will be tempted to add a
-  `ServerMessageBody` member (**L16**) — check whether it can ride `GameState`
-  the way D10's field does before growing the union.
-- **Content debt: `option.text` is unauthored on all 14** (verified 2026-07-27),
-  and the 2 flavour NPCs have no options at all, so a zero-option node must
-  render as lines plus a dismiss. 12 button labels are the content half.
-- The panel is where option selection happens, which is what keeps the "no
-  targeting" pillar intact: nothing is ever clicked in the world.
+**The one-sentence chunk:** the panel is not a teaching dialog with buttons on
+it — it is a **conversation tree browser**, and once that is the target,
+"everything is an option" collapses the whole feature onto one mechanism the
+schema already validates but nothing has ever read.
+
+#### 6b.9 The reframe (PO brief, 2026-07-27)
+
+The sketch this section replaces assumed a flat panel: lines, option labels,
+pick one, done. The PO brief is a tree:
+
+> a player approaches an NPC and presses E. Dialogue window pops up with three
+> choices. First: *"Anything new happen around here"* → leads to an
+> environmental text hint, displayed as a response in the conversation UI. This
+> might also lead to quest starts or ends. The UI leaves the option of either
+> further questions or going back. Second option would be *"teach me
+> something"* → leads to a list in the same conversation UI window where the
+> player can make a selection of what to learn. Things already learned are not
+> shown in that list. Again, UI allows for going back to the selection. Third
+> option could be *"tell me where I can find…"* with a list of options
+> afterwards, similar to WoW guards in cities.
+
+⭐ **That maps onto the authored schema with no new nesting**, because decision 6
+built the container in full and only ever authored the degenerate case:
+
+| the brief | the schema, unchanged |
+|---|---|
+| three choices at the greeting | a node with three `options` |
+| "anything new" → hint text → back | option `next:` → a node with `lines`, no grants |
+| "teach me something" → a pickable list | option `next:` → a node with **one option per skill**, each holding a single grant |
+| "where can I find…" → directions list | identical shape: option → node of options → nodes with `lines` |
+| already-learned entries not shown | `HasDiscovered`, promoted from *silent skip inside the walk* to **visibility** |
+| too-low entries greyed with the wall | `grant.RequiredLevel`, rendered instead of stopping a walk |
+
+⭐ **The consequence that shapes everything else: a "list" is just a node whose
+options happen to be one-grant teachings.** Options are the only interactive
+element in the entire panel — branch or grant, they are the same row. There is
+no second concept to build, and quest offer/accept lands later as a new
+`GrantKind` on the identical row.
+
+#### 6b.10 Decisions (PO, 2026-07-27, via choice prompts)
+
+**D15 — the panel is a tree browser; everything is an option.** Rows are
+options; grants are what an option hands over. A teaching list is authored as
+one option per skill. Nodes with no options are leaf replies (a hint, a
+sign-post) and render as lines plus Back/Leave.
+
+**D16 — the client walks a streamed tree; the server owns availability.** While
+a conversation is open, `GameState` carries the **whole personalised tree** for
+that actor: every reachable node, each option marked available or locked, with
+already-known ones omitted. The client navigates instantly with a local
+back-stack; only *taking* an option goes to the server, where it is validated
+exactly as today. Server-side state is 2 fields (who is talking to whom) with
+**no node bookkeeping** — the position in the tree is a client concern, because
+every apply is validated on its own merits (in range · node exists and its
+conditions pass · option available · level cleared · not already known), never
+on the path taken to reach it. Rejected: one-node-at-a-time server traversal —
+a round-trip per click, plus a real session lifecycle, to buy path validation
+that condition checks already provide.
+
+**D17 — teaching becomes per-entry selection, and the ordered grant WALK
+retires.** Clicking *Ignite* teaches Ignite and nothing else. Already-known
+entries are hidden; locked ones show the wall and, when clicked, the NPC answers
+with the authored `blockedLine` and grants nothing. ⚑ **This is the chunk's one
+behaviour change and it costs the 373-line ported evaluator suite** — that suite
+pins the walk, which is precisely what 3b-i was careful not to touch. It is
+rewritten around `present()` / `applyGrant()`. **The upside is that the 11
+NPCs we do not re-author need no content migration at all:** `present()` expands
+a legacy multi-grant option into one row per grant automatically.
+
+**D18 — `trigger` is retired entirely; ambient speech becomes its own field.**
+⚑ **The finding that forced this: `trigger` is a single value, so an NPC could
+never both call out as you pass AND open a tree on `E`** — which is exactly the
+NPC the PO described. So `interaction.ambient: ["…"]` is spoken as a world
+bubble on the sensor's rising edge, to everyone standing around, independent of
+anything else; and with the walk retired (D17) the `approach` trigger has no
+remaining meaning. The enum, its parse table, `ParseTrigger` and **landmine
+L18's guard** all go. *PO asked whether `approach` could be reused later for
+quests that advance on approach: no — the reusable part is the rising-edge
+`seen` map and `speakToSensor`, and those stay alive and exercised by `ambient`.
+A future approach-fired quest hook needs a pointer to WHICH node fires
+(`onApproach: <nodeId>`) plus one-shot-per-player-forever semantics that a
+per-session `seen` map does not provide, and is more likely to want a world
+trigger volume in a doorway than a property of a talkable NPC. Keeping the enum
+would preserve a name whose behaviour no longer exists.*
+
+**D19 — the NPC's speech moves INTO the panel; world bubbles stay for ambient
+storytelling.** Node lines and an option's reply render inside the window. The
+floating bubble survives for `ambient` only. ⚑ Consequence: **D13's private
+`speak()` is retired** — a conversation reply no longer travels as an
+`EntityMessage` at all, because the reply text is already in the streamed tree
+(§6b.13). `speakToSensor` and `marshalSay` stay, now serving `ambient`.
+
+**D20 — locked entries are shown, greyed, with the level wall named.**
+`✗ Immolate — level 12` at level 2. Each NPC becomes a signpost for progression
+and a reason to come back. Accepted cost: it names a skill before the player can
+have it — but only to someone standing in front of the NPC, never through a
+public endpoint (which is why serving the tree from the mob catalog was
+rejected: `catalog.go`'s own comment forbids handing players an answer key).
+
+**D21 — the panel is non-blocking, mouse-driven, and combat ends the
+conversation.** Movement, auras and cooldowns keep working while it is open; it
+closes on Escape, a second `E`, Leave, walking out of range, **or either party
+entering combat**. ⚑ That last rule is what makes non-blocking safe: a player
+cannot be trapped reading dialogue while something eats them.
+
+**D22 — an actor in conversation holds position, and resumes afterwards.** So a
+patrolling NPC on a road can be stopped and talked to. ⚑ Nothing in the game
+patrols today — **all 14 conversants author `speed: 0`** — so the chunk also
+authors a moving NPC (the `Wanderer`) to prove the rule in-game rather than
+shipping a hold nothing exercises.
+
+**Also decided:** Back and Leave are **automatic, never authored** — content
+authors only forward `next` links, so no one can author a dead end a player is
+stuck in. The panel sits **bottom-centre, above the action bars** (see L25).
+Content scope is **2–3 real trees** (D23 below), the rest stay flat and render
+correctly via D17's auto-expansion.
+
+#### 6b.11 The authored shape after this chunk
+
+```jsonc
+"interaction": {
+  "range": 2.0,                                   // [PLACEHOLDER] see L26
+  "ambient": ["The bridge past the mill is out!"], // NEW (D18): bubble on approach, no panel
+  "nodes": [
+    { "id": "root",
+      "lines": ["Fire remembers who feeds it."],
+      "options": [
+        {"text": "Teach me something.",        "next": "teachings"},
+        {"text": "Anything new around here?",  "next": "news"},
+        {"text": "Where can I find the mill?", "next": "directions"}
+      ]},
+    { "id": "teachings",
+      "lines": ["What would you have of the flame?"],
+      "options": [
+        {"text": "Torch",  "grants": [{"kind": "teach_skill", "skill": "Torch",  "requiredLevel": 1,
+                                       "line": "Let this be a light for you in dark places."}]},
+        {"text": "Ignite", "blockedLine": "Fire doesn't suffer the careless. Grow stronger.",
+                           "grants": [{"kind": "teach_skill", "skill": "Ignite", "requiredLevel": 7,
+                                       "line": "Let me show you how to light a fire in your enemies."}]}
+      ]},
+    { "id": "news", "lines": ["They burned this forest to hide their camp."] }
+  ]
+}
+```
+
+**Two loader changes, both fail-at-boot:**
+
+1. `trigger` is gone (D18). ⚑ **The mob loader is NOT strict** —
+   `definitions.go:284` is a plain `json.Unmarshal` with no
+   `DisallowUnknownFields`, unlike `world/zone.go:244` and `factions.go:184` —
+   so a leftover `"trigger": "interact"` would be **silently ignored on all 14
+   files**. Stripping the key from the content is therefore part of the same
+   step, not a follow-up (L22).
+2. **An option must carry at least one grant or a `next`.** Today an option with
+   neither is merely pointless; under a panel it is a button that visibly does
+   nothing. The existing `next`-names-no-node check (added in 3a for exactly
+   this reason) already guards the other half.
+
+**Cycles need no check.** `present()` serialises *every* node of the interaction
+rather than walking the graph, so an authored loop (`news` → back to `root`) is
+harmless by construction — there is no traversal to run away.
+
+#### 6b.12 The evaluator split — `present()` and `applyGrant()`
+
+`evaluate()` dies with the walk (D17). Two functions replace it:
+
+```go
+// present builds the personalised tree. Pure: it reads the spellbook and the
+// level and mutates NOTHING — that is the whole point of the split (D8).
+func present(in *mobs.Interaction, p learner) *presentedTree
+
+// applyGrant hands over exactly one grant, validating it on its own merits.
+func applyGrant(in *mobs.Interaction, p learner, nodeID string, option, grant int) (reply string, taught *skills.SkillID, ok bool)
+```
+
+`present()`'s rules, all of which are today's rules relocated:
+
+| authored | presented |
+|---|---|
+| node whose `Conditions` fail | **omitted**, and any option whose `next` names it is hidden |
+| entry node | the first node whose conditions pass — `selectNode()` verbatim, so a conditional greeting still works |
+| option whose grants are all `HasDiscovered` | **hidden** (today: silently skipped mid-walk) |
+| grant with `RequiredLevel` above the player | **locked**, with the level named (D20) |
+| option with several grants and no `text` | **one row per grant**, labelled with the skill's display name — this is what makes the 11 un-migrated NPCs work (D17) |
+| option with `text` | one row, that label |
+| `grant.Line` / `option.BlockedLine` | the row's `reply` — what the NPC says when the row is clicked, chosen by the row's state |
+
+⚑ **Carrying `reply` in the tree is what makes the panel feel instant**: the
+client shows the NPC's answer the moment a row is clicked, with no round-trip,
+and the row flips to *known* on the next snapshot when the server's grant lands
+(L24).
+
+#### 6b.13 The session, the end conditions, and the hold
+
+**On the player:** one field, `conversingWith uint64` (plus its getter and
+setter). Not a per-tick number — it survives across ticks, so it does **not**
+join `ResetTickNumbers`.
+
+**Opened** by an `Interact` whose `entity_id` matches the already-stamped
+`Interactable()` — 3b-i's validation unchanged. **Ended** by any of:
+
+- the client sending `close` (Leave / Escape / a second `E`);
+- `Interactable() != conversingWith` — walked out of range, which costs nothing
+  to check because the badge already computes it every tick;
+- the player `InCombat()` **or** the actor `InCombat()` (D21) — both methods
+  already exist (`player.go:248`, `Mob.InCombat()` since the round-3 fix), but
+  ⚑ **neither is reachable through the interfaces this system holds**:
+  `InCombat()` lives on `model.Combatant` (`model/combatant.go:24`), and
+  `MobEntity` does **not** embed it, so `Conversant` and `interactor` each need
+  the method added. Both concrete types satisfy it for free; the cost is the
+  **test doubles** in `sys/interaction_test.go`, which is the same trap 3b-i hit
+  with `model.Client`'s 7th method — `go build ./...` stays green while they
+  break, and only `go test` says so;
+- the actor dying or despawning, the player dying, the client disconnecting
+  (`Remove` already sweeps both slices since 3b-i).
+
+**The hold (D22)** is one guard at the top of `Mob.updateIdleMovement()`
+(`model/mob/patrol.go:66`, after the `spawnInitialized` check): an actor with at
+least one conversation partner does not walk. That single point covers route
+patrol, wander *and* the walk-home default, and deliberately leaves the aggro
+path alone — an actor that aggroes is in combat, which has already ended the
+conversation. The flag is recomputed each tick by `InteractionSystem` with a
+clear-then-set pass over its two slices (**no per-tick map** — the idle-alloc
+discipline, `fe0044d0`).
+
+#### 6b.14 The wire — nested tables on `GameState`, `Interact` grows
+
+**`server.fbs`**, three new tables plus one `GameState` field. ⚑ **No new
+`ServerMessageBody` member** — the same D10 refinement that kept L16 unexercised
+in 3b-i:
+
+```fbs
+table ConversationOption {
+  option_index:ubyte;      // AUTHORED index — never the presented one (L21)
+  grant_index:ubyte = 255; // authored grant within the option; 255 = navigation only
+  text:string;             // resolved label: authored text, else the skill's display name
+  next:string;             // node to continue at; empty = none
+  locked:bool = false;     // shown greyed (D20); already-known rows are omitted entirely
+  required_level:ubyte = 0;// the wall to name while locked
+  reply:string;            // what the actor says when this row is taken (grant line / blockedLine)
+}
+table ConversationNode { id:string; lines:[string]; options:[ConversationOption]; }
+table Conversation { entity_id:ulong; entry_node:string; nodes:[ConversationNode]; }
+
+// in GameState, appended at the table end:
+conversation:Conversation;  // absent = no conversation open
+```
+
+**`client.fbs`**, `Interact` grows three fields — **the union is not touched
+again**:
+
+```fbs
+table Interact {
+  entity_id:ulong;
+  node_id:string;             // "" = just open the conversation
+  option_index:ubyte = 255;   // 255 = none
+  grant_index:ubyte = 255;
+  close:bool = false;         // the player dismissed the panel
+}
+```
+
+Cost while a panel is open: today's fattest tree marshals to ~350 bytes/tick for
+that one player; a future 10-node quest tree ~4 KB. Sent as **state**, every
+tick, for consistency with `interactable_entity_id` — a change-only send is a
+measurable optimisation available later, not a design requirement.
+
+#### 6b.15 Frontend
+
+- **`features/conversation/`**, split the way the repo already splits testable
+  frontend logic (the `SkillTooltip` / `InteractBadgeTargeting` precedent): a
+  **DOM-free navigation model** (entry node, follow `next`, back-stack, close
+  when the server drops the tree) covered by vitest, plus a thin panel that
+  renders it.
+- **The panel is bottom-centre above the action bars** — see **L25**, it shares
+  that column with `#castBar` and `#actionBars` and must not cover either.
+- **Input:** `pointerdown`, never `click` (the documented `MouseManager`
+  landmine — `click` listeners on HUD panels silently never fire). Escape and a
+  second `E` close. No number-key selection: `1`/`2`/`3` are the aura hotkeys.
+- **The badge hides while its own conversation is open** — it has already been
+  accepted.
+- **The panel is state-driven**: it closes because `conversation` went absent
+  from the snapshot, never because the client decided to. Every server-side end
+  condition (§6b.13) therefore needs no client counterpart.
+
+#### 6b.16 Content
+
+**D23 — 2–3 representative trees, the rest stay flat.**
+
+- **Emberkeeper** — the teaching list: three one-grant options, level walls at
+  1/7/12, so hidden-when-known and locked-with-wall are both visible in one
+  screen.
+- **TownCrier** — the hint branch: *"Anything new around here?"* → a leaf node,
+  plus **`ambient`** lines so the same NPC calls out as you walk past (the NPC
+  D18 exists for).
+- **Wanderer** — the patrol: a `wanderRadius` [PLACEHOLDER] plus a small tree,
+  so **D22's hold is provable in-game** rather than shipped blind. Waypoints
+  authored per-spawn in the zone editor are the alternative if the PO prefers a
+  road route.
+
+The other 11 keep their single-option node and are rendered by D17's
+auto-expansion. All 14 lose their now-dead `"trigger": "interact"` key (L22).
+
+#### 6b.17 Implementation order
+
+1. `.fbs` both directions + regenerate both sides. Nothing reads them yet.
+2. **Schema + loader + content, together**: `ambient`, the grant-or-`next`
+   option rule, `trigger` deleted, and the key stripped from all 14 files.
+   ⚑ Together because the loader is not strict — split them and the content
+   keeps a lying key that nothing rejects (L22).
+3. **The evaluator split**: `present()` + `applyGrant()`, `evaluate()` deleted,
+   the 373-line suite rewritten around the two. This is the chunk's core and its
+   biggest single diff.
+4. **Session + end conditions + the `GameState` marshal.**
+5. **The hold** (D22) + the `Wanderer`'s movement.
+6. **Frontend**: navigation model, panel, input, badge suppression.
+7. **Content**: the 2–3 trees + `ambient` lines.
+
+#### 6b.18 Test plan & acceptance
+
+- **Go, `present()`** (all pure, no mutation — the assertion the split exists
+  for): every reachable node emitted · a condition-failed node omitted *and*
+  options pointing at it hidden · all-known option hidden · too-low option
+  locked with its level · a legacy multi-grant option expanded to one row per
+  grant · **the emitted indices are the AUTHORED ones** (L21) · entry node is
+  `selectNode`'s.
+- **Go, `applyGrant()`**: grants exactly one skill · refuses out of range,
+  unknown node, condition-failed node, bad index, too-low level, already-known ·
+  returns the authored `blockedLine` for a locked row and grants nothing.
+- **Go, session**: ends on range loss, on the player entering combat, on the
+  actor entering combat, on actor death and on disconnect · the actor holds
+  position while a partner is conversing and **resumes afterwards** (a synthetic
+  wandering actor, since only the authored `Wanderer` moves) · `ambient` fires
+  once per rising edge and fans out to everyone in the sensor.
+- **Loader**: an option with neither grant nor `next` is rejected · `ambient`
+  parses · content pin that **no file authors `trigger`** (a raw-JSON assertion,
+  because the loader will not catch it).
+- **Codec**: `GameState` round-trip over the nested `Conversation` table
+  (vectors of tables inside a table — the first such payload on this channel).
+- **Frontend**: vitest over the navigation model (opens at the entry node,
+  follows `next`, back-stack pops, Leave closes, an absent `conversation` closes
+  it, hidden rows never render); `npm run typecheck` + prod build.
+- **Boot both ways** with the pinned counts (83 skills / 15 factions / 64 mobs /
+  777 props / 485 spawns / 5 campfires).
+- **Sim battery**: expected byte-identical — no gameplay number moves. ⚑ The one
+  thing to check is the **guardrail preset roster**, which gained the 14 NPC rows
+  in 3a (L14): authoring `wanderRadius`/speed on the `Wanderer` may legitimately
+  move that row and nothing else.
+- **In-game (`.claude/skills/verify`, new `chunk3b-ii-conversation.mjs`)**: `E`
+  at the Emberkeeper opens the panel with three-ish rows, Torch available,
+  Ignite locked reading *level 7*; clicking Ignite while too low speaks the
+  refusal and teaches nothing; clicking Torch teaches Torch **and only Torch**,
+  the row vanishes, the unlock banner fires; Back returns to the greeting; Leave
+  closes; walking out of range closes it; **being hit closes it**; the
+  `Wanderer` stops while talked to and walks on afterwards; the `TownCrier`
+  still calls out its `ambient` line as you pass **without** opening anything.
+  ⚑ Walk in 0.5 s bursts and stop on the badge, never a fixed duration — 3b-i's
+  harness finding, and doubly so against a moving target (L26).
+
+#### 6b.19 Not closed by 3b-ii
+
+Quest state and the journal (decision 6 still: shape only — a quest is a new
+`GrantKind` on the identical row, plus a condition kind); vendors; NPC
+nameplates (still gated off by `experience: 0` — the panel header now carries
+the name instead); **L2** (`SetFaction` nuking the authored aggro mask — two
+callers, inert today, and still exactly what a charm / side-switch / quest-
+turns-hostile would trip over); a change-only send for the conversation tree
+(§6b.14); approach-fired quest hooks (D18 — they want `onApproach: <nodeId>` and
+persistent one-shot semantics, not the retired trigger).
+
+⚑ **What the panel does NOT break:** every selection happens inside the window,
+never in the world, so the GDD's "no targeting" pillar stands exactly as ruling 5
+intended — the only world-space act is standing near someone and pressing a key.
 
 ---
 
@@ -1311,7 +1682,11 @@ above:
 - **Making everything killable or levelled "for symmetry".** A campfire that does
   not implement `Perishable` is *better* than a campfire with a level it never
   uses. Capabilities are opt-in by implementation.
-- **The gossip tree, quest state, the journal, vendors.** Decision 6: shape only.
+- ~~**The gossip tree**~~ — **built in 3b-ii** (D15/D16: the panel walks the
+  authored node graph). Decision 6's "shape only" now covers **quest state, the
+  journal and vendors** alone; each is a new `GrantKind` or `ConditionKind` on
+  the row the panel already renders, which is exactly the additive-content
+  outcome that decision was taken for.
 - **Per-slot authored behaviour conditions.** Already ruled out 2026-07-25
   (§31), still right. The fixed support rule remains the default row.
 - **A per-pair faction *reaction scale*** (WoW's hostile/unfriendly/neutral/
@@ -1550,6 +1925,62 @@ permanently-unwritten `radius` stayed invisible for the life of the project.
 So "above the sprite" is only one expression if the badge measures the rendered
 container, not either input. Anchor off the sprite's bounds.
 
+⚑ **L18 and L20 both go away in 3b-ii** — D18 deletes the trigger enum, and with
+it the guard L18 exists to protect. They stay recorded because the *class* of
+bug (an ordering trap inside one `Update`, presenting as "the key does nothing")
+outlives the specific guard: 3b-ii's session and hold passes are written into the
+same `Update`, in the same order-dependent way. L20's stamp-before-drain rule
+still binds.
+
+**L21 — a presented option index is NOT its authored index.** `present()` omits
+already-known options and condition-failed nodes, so the panel's third row can
+be the definition's fifth option. If the client echoes its own row position, a
+player learns the wrong skill — and it only misfires *after* they have learned
+something, which is exactly when nobody is looking any more. The wire therefore
+carries the **authored** `option_index` / `grant_index` explicitly (§6b.14), and
+`applyGrant()` indexes the definition, never the presentation.
+
+**L22 — the mob loader is not strict, so deleting `trigger` from Go leaves 14
+lying keys.** `definitions.go:284` is a plain `json.Unmarshal`; unlike
+`world/zone.go:244`, `props.go:113` and `factions.go:184`, it does **not** call
+`DisallowUnknownFields`. So after D18 removes the field, every conversant keeps
+authoring `"trigger": "interact"` and boot stays green while the key means
+nothing. Strip the content in the same step as the Go change (§6b.17 step 2) and
+pin it with a raw-JSON content assertion — the loader cannot give you that one.
+
+**L23 — the hold flag is one tick stale by construction, and that is fine.**
+`InteractionSystem` and `MobSystem` share priority **20**, so within a tick their
+order is registration order, not design. An actor can therefore take one extra
+33 ms step after a conversation opens or ends. Build nothing on same-tick
+ordering here; the visible behaviour is "it stops", and one frame of drift is
+imperceptible. (The sensor is *already* a tick stale by design — L17.)
+
+**L24 — the reply the panel shows is optimistic.** `present()` ships each row's
+`reply` inside the tree so the NPC answers instantly on click (§6b.12), which
+means the client speaks **before** the server has applied anything. That is
+correct only while a refusal is impossible-by-construction: the row's state was
+computed by the same server from the same spellbook one tick earlier, and
+nothing but the player's own action changes it. Do **not** add a
+refusal-message wire path to "fix" this — add a test that the row states and
+`applyGrant()`'s validation cannot disagree.
+
+**L25 — the panel shares its column with the cast bar and the action bars.**
+`#bottomCenter` (`HUD.less`, `bottom: 1rem; left: 50%`) stacks `#castBar` above
+`#actionBars`, and the cast bar **appears and disappears** with a running cast.
+A panel anchored relative to that stack will jump every time somebody casts.
+Anchor it to a fixed offset that clears the whole stack, and check it with a
+cast running — the bug is invisible in a still screenshot.
+
+**L26 — talk range is ~1 unit today, and 3b-ii makes leaving it *end* something.**
+No conversant authors `interaction.range`, so `SenseRadius()` falls back to
+`aggroRadius: 1.0` on all 14. Under 3b-i that only governed when a badge lit;
+under D21 it also governs when a conversation is **torn down**, so a range this
+tight makes the panel fragile to ordinary shuffling — and D22 adds an actor that
+walks away on its own. Author a real `range` [PLACEHOLDER 2.0] on the
+conversants and let the PO tune it in-game. ⚑ For the harness this compounds
+3b-i's finding that a **fixed walk duration cannot reach these actors**: step in
+0.5 s bursts and stop on the badge, now against a moving target.
+
 ---
 
 ## 9. Test strategy
@@ -1561,7 +1992,7 @@ container, not either input. Anchor off the sprite's bounds.
 | **2** | loader rejects an unknown `role`, absent → `creature`, `aggroRadius` optional only for `structure`; **speed>0 + `structure` is always-on** and **speed-0 + `creature` gates** (proves the read moved off speed); owned-`structure` ≠ follower; content pin on all 50 roles | boot `-content ../api` clean with the pinned counts (**the real gate — L4**); sim battery/level curve/pack matrix byte-identical vs a `git worktree` HEAD build; preset roster moves in **exactly 10 `aggroRadius` cells** and nowhere else (L10) |
 | **3a** | port all 373 lines of `sys/npc_test.go` onto the node evaluator (order + `blockedLine` gate + lore fallback); **a passive-faction conversant senses a player** (L11); 0 damage + no hostile acquisition on an NPC body (D5); the 9 loader rejections of §6a.2; content pin on all 14 defs incl. teaching order vs the pre-migration zone JSON | boot `-content ../api` clean with **mobs 50 → 64 · spawns 471 → 485 · factions 14 → 15 · the `placed npcs` line gone**; sim battery byte-identical and the preset roster **+14 rows, no cell moved** (L14); headless smoke (teach / blocked / lore); **screenshot** (bars are accepted per D3 — the shot is for sprite, size, layer, ring) |
 | **3b-i** | invert `TestParseTrigger_InteractIsNotAuthorableYet` (the opening red); the **373-line evaluator suite stays green untouched** — 3b-i moves *when* `evaluate()` runs, never what it does, so any diff there is a bug in the split; an `interact` actor does not grant on the sensor edge (**L18**); an `Interact` naming an un-signalled actor is refused; `interactable_entity_id` stamped/cleared per tick and nearest-wins on overlap (**L17**); reply private to the interactor while `approach` still fans out (D13); `GameState` codec round-trip on the new field; content pin that all 14 author `interact` | boot `-content ../api` clean with the 3a counts unchanged (**83 skills / 15 factions / 64 mobs / 485 spawns**); **sim battery byte-identical — required, 3b-i moves no number**; frontend typecheck + vitest + prod build; in-game: badge on approach with **nothing said**, `E` teaches, walk away → badge gone, return → re-triggers; Emberkeeper's 3-grant walk still stops at the first gate; `R` fires cooldown 2 and `E` no longer does; `E` with the chat box open does nothing (**L15**) |
-| **3b-ii** | panel unit tests via the existing vitest infra (`jsdom` + the `fetch` stub); `present()` mutates nothing (the split's whole point) | in-game: press the key, panel opens with lines + labelled options, choose one, the skill lands, panel closes |
+| **3b-ii** | **the 373-line evaluator suite is REWRITTEN**, not preserved — D17 retires the walk it pins. New: `present()` mutates nothing (the split's whole point) · condition-failed node omitted *and* its inbound options hidden · known hidden / too-low locked with its level · a legacy multi-grant option expands to one row per grant · **emitted indices are the AUTHORED ones (L21)** · `applyGrant()` grants exactly one and refuses range/node/index/level/known · session ends on range loss, on either party entering combat, on death and on disconnect · the actor holds position and resumes (L23) · `ambient` fires once per rising edge and fans out · loader rejects an option with neither grant nor `next` · **raw-JSON pin that no file authors `trigger` (L22)** · `GameState` codec round-trip over the nested `Conversation` tables · vitest over the DOM-free navigation model | boot `-content ../api` clean with the 3a counts (**83 skills / 15 factions / 64 mobs / 777 props / 485 spawns / 5 campfires**); sim battery byte-identical **except** a possible `Wanderer` row in the preset roster (L14/D22); frontend typecheck + vitest + prod build; in-game: `E` opens the panel, Ignite locked at *level 7* refuses with its authored line, Torch teaches **only Torch** and its row vanishes, Back returns, Leave closes, walking out of range closes, **being hit closes**, the `Wanderer` stops to talk and walks on after, the `TownCrier` calls out its ambient line **without** opening anything |
 
 Backend gate every chunk: `go build ./...`, `go vet`, `go test -timeout 60s ./...`,
 guardrails `-count=2`, boot `-content ../api` with 0 errors / 0 panics and the
@@ -2094,3 +2525,64 @@ what shipped, which commit, what was verified.)*
   `GameState` field rather than a new message — which keeps `ServerMessageBody`
   out of the change entirely (L16); and `option.text` is **unauthored on all
   14**, which is 3b-ii's content half and part of why the split exists.
+- **Chunk 3b-ii — the conversation panel: PLANNED 2026-07-27** (second design
+  session, held after 3b-i shipped — the re-plan the old sketch asked for; docs
+  only, no code). §6b.9–6b.19 replaces a 20-line sketch with the full chunk plan:
+  **9 PO decisions D15–D23 · 6 new landmines L21–L26 · a rewritten test-strategy
+  row.**
+
+  ⭐ **The reframe: the panel is a conversation TREE browser, not a teaching
+  dialog** — and once that is the target, *everything is an option* collapses the
+  feature onto one mechanism the schema already validates and nothing has ever
+  read. The PO's brief (three greeting choices · a hint branch that can later
+  start quests · a pickable teaching list · a WoW-guard directions list · back
+  navigation) needs **no new nesting**: a "list" is just a node whose options
+  happen to be one-grant teachings, so branch rows and grant rows are the same
+  row, and `next` — authored, load-validated in 3a, read by nothing since — is
+  the whole navigation mechanism.
+
+  **The three rulings that delete machinery.** ① **D17 retires the ordered grant
+  walk**: a list is not a walk, so clicking *Ignite* teaches Ignite and nothing
+  else. ⚑ That costs the **373-line ported evaluator suite**, the one thing 3b-i
+  was careful not to touch — it pins the walk. The compensation is that the 11
+  NPCs left un-migrated need **zero content work**: `present()` expands their
+  legacy multi-grant option into one row per grant. ② **D18 retires `trigger`
+  entirely.** ⚑ The finding that forced it: **`trigger` is a single value, so an
+  NPC could never both call out as you pass AND open a tree on `E`** — exactly
+  the NPC the brief describes. `interaction.ambient` becomes its own field, and
+  with the walk gone `approach` has no behaviour left to name. PO asked whether
+  it could be reused for quests advancing on approach; ruled no — the reusable
+  part is the rising-edge `seen` map and `speakToSensor`, which `ambient` keeps
+  alive and exercised, while an approach-fired quest hook would want
+  `onApproach: <nodeId>` plus one-shot-per-player-forever semantics a
+  per-session map cannot give. **L18 and L20's guard go with it.** ③ **D19 moves
+  speech into the panel**, which retires D13's private `speak()` — the reply text
+  already rides the streamed tree.
+
+  **D16 is the architectural call:** while a conversation is open, `GameState`
+  carries the **whole personalised tree**; the client navigates instantly with a
+  local back-stack and only *taking* an option goes to the server. Server state
+  is 2 fields with **no node bookkeeping**, because every apply is validated on
+  its own merits, never on the path taken to reach it — and `present()`
+  serialises all nodes instead of walking them, so authored cycles need no check.
+  `ServerMessageBody` stays untouched for the second chunk running (L16), and the
+  answer-key objection killed the cheaper catalog-served variant.
+
+  **⚑ 3 landmines worth reading before the first edit.** **L21** — `present()`
+  omits hidden rows, so a presented index is **not** the authored one; the wire
+  carries authored `option_index`/`grant_index` or a player learns the wrong
+  skill, misfiring only *after* they have already learned something. **L22** —
+  the mob loader is the one loader **without** `DisallowUnknownFields`
+  (`definitions.go:284`), so deleting `trigger` from Go leaves 14 lying keys that
+  boot green; strip the content in the same step and pin it with a raw-JSON
+  assertion. **L26** — no conversant authors `interaction.range`, so talk range
+  is `aggroRadius: 1.0` on all 14; under D21 leaving that range now **tears a
+  conversation down**, and D22 adds an actor that walks away on its own.
+
+  **Two rules that need content that does not exist yet:** D22 (an actor in
+  conversation holds position) — ⚑ **all 14 conversants author `speed: 0`, so
+  nothing patrols today**, and the chunk therefore authors a moving `Wanderer`
+  rather than shipping a hold nothing exercises; and D23's 2–3 representative
+  trees (Emberkeeper = the teaching list with its 1/7/12 walls, TownCrier = the
+  hint branch **plus** `ambient`, Wanderer = the patrol). Ruled **one chunk, not
+  a split** — every piece is unverifiable without the others.
