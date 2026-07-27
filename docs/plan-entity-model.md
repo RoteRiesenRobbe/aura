@@ -966,13 +966,276 @@ the journal (decision 6: shape only); NPC nameplates (gated off by
 
 ## 6b. Chunk 3b — the interact verb
 
-- New client keybind (recommend `E`), in-range prompt, dialogue panel.
-- New client→server message. ⚑ `client.fbs`'s message union is **append-only**
-  — add, never reorder. Code audit correction: unlike `server.fbs`'s
-  `EntityType`/`StatusEffect` (which §28 Chunk 3 pinned explicitly), the union's
-  values are **positional and unpinned** (generated `ClientMessageBody` numbers
-  them 1–7 by order), so nothing but discipline enforces the rule — a reorder
-  would silently remap every client message type.
+*Planned in full 2026-07-27 (design session, no code). Line numbers are
+post-chunk-3a HEAD `62a320fe`.*
+
+**The one-sentence chunk:** talking stops being something that happens *to* a
+player who walked too close and becomes something a player *does* — and the
+sensor that 3a built for "approach" turns out to be the thing that drives the
+prompt, so the verb costs a call-site move, not a new mechanism.
+
+**Split into 3b-i (the verb) and 3b-ii (the panel)** — D8. 3b-i is shippable,
+playable and verifiable on its own; 3b-ii is frontend-led and needs content that
+does not exist yet.
+
+### 6b.0 Decisions (PO, 2026-07-27, via choice prompts)
+
+**D8 — 3b splits into 3b-i (interact verb) and 3b-ii (dialogue panel).** The
+fork is §6b.1's finding: presenting a node and applying it are one pass today
+(`evaluate()` walks grants, mutates the spellbook and returns the lines to speak,
+all before anything is displayed). A panel that shows options *before* they are
+taken needs that split; a plain interact verb does not. Splitting keeps all the
+wire risk in 3b-i and all the UI in 3b-ii, the 3a/3b precedent.
+
+**D9 — the interact key is `E`; the cooldown hotkeys become `Q`/`R`/`F`.**
+⚑ **The plan's own earlier recommendation was unsafe:** `E` is already bound —
+`Controls.ts:57` `cooldownHotkeys = [Q, E, F]`, and `Q` and `F` are taken too.
+Those bindings carry an explicit *"[PLACEHOLDER bindings until a keybinding UI
+exists]"* comment, which is what makes moving one sanctioned. Cooldown slot 2
+moves `E` → `R`; the aura hotkeys `1`/`2`/`3` are untouched. See **L15**.
+
+**D10 — the in-range signal is server-pushed, not client-computed.** The
+alternative was extending `GET /mobs` with `interactable` + `interactRange` and
+letting the client measure. Rejected: it duplicates the server's sense-radius
+geometry client-side, so any mismatch shows a prompt the server then refuses.
+The codebase already has the opposite rule on record — `aura_radius` and
+`dwell_radius` were moved onto the wire *specifically* to retire hand-synced
+client constants. ⚑ **Refinement taken during planning:** "server-pushed" does
+**not** mean a new `ServerMessageBody` member. It is one field on `GameState`,
+which is already the own-player-only channel (`in_combat`, `cast_*`,
+`activation_rejected_*`, `spellbook`). That makes it *state* rather than
+*events* — no enter/leave bookkeeping, no desync possible, and **the
+`ServerMessageBody` positional-union landmine (L16) is never exercised.**
+
+**D11 — all 14 flip to `trigger: "interact"`.** One uniform rule: nothing ever
+speaks unprompted. Costs `ForestSign` and `LamplessTraveller` their walk-by lore
+(they are the only two with zero grants and zero options), and buys no ambient
+chatter firing while a player runs past mid-fight.
+
+**D12 — the `E` badge appears only while in range**, and is anchored **in the
+world over the entity**, not in the HUD. Purely server-driven from D10's field,
+so the badge can never promise something the server refuses. Accepted downside:
+no hint that a figure is talkable until you are already next to it. (The
+dim-when-visible / lit-when-in-range variant was the discoverability option; it
+would have needed the one catalog boolean D10 otherwise avoids. Revisit if
+playtest says NPCs go unnoticed.)
+
+**D13 — the reply is private to the interactor.** Today `speak()` fans the lines
+to every player inside the sensor. Once a conversation is deliberately initiated
+by one player, that is the wrong audience: a crowded town square would fill with
+other people's teaching lines. One-line change. (The unlock banner was already
+private.)
+
+**D14 — `approach` stays in the trigger table with zero content users.** It
+remains the parse default for an absent `trigger`, it is ~5 lines, and its
+evaluator path is the same `evaluate()` call from a different call site — fully
+covered by the 373 ported tests. Ambient walk-by lore is an obvious future want
+(a whispering ruin, a warning as you cross a threshold). ⚑ This is a deliberate
+exception to the house anti-dead-code rule, taken because the *code* is not dead
+— only the authored value is unused, and the machinery behind it is what drives
+the prompt (§6b.3 step 2).
+
+### 6b.1 Why the split, precisely
+
+`evaluate()` (`sys/interaction.go:150`) does presentation and mutation in one
+pass. For 3b-i that is exactly right — the verb only moves *when* it is called:
+
+| | today (3a) | 3b-i |
+|---|---|---|
+| what fires `evaluate()` | the rising edge of the sensor | an `Interact` message naming the actor |
+| what the sensor edge does | fires `evaluate()` | drives the prompt field |
+| what the player sees | a bubble that ambushed them | a badge, then a bubble they asked for |
+
+3b-ii is where the pass has to break in two — *present this node* (lines +
+option labels, nothing mutated) then *apply this option* (grants land). That
+restructure has no reason to ride along with a keybind.
+
+---
+
+### Chunk 3b-i — the interact verb
+
+#### 6b.2 The wire — one append in each direction, one union touched
+
+**`client.fbs`** gets a new message appended to the union:
+
+```fbs
+// Open a conversation with an actor the server has told this client is in
+// range (GameState.interactable_entity_id). The id is echoed back rather than
+// implied so a stale keypress names what the player actually saw.
+table Interact {
+    entity_id:ulong;
+}
+
+union ClientMessageBody { Input, Join, Cheat, ChatMessage, Equip, SpendSkillPoint, Respawn, Interact }
+```
+
+⚑ **Append at the end, value 8. Never reorder** — L16.
+
+**`server.fbs`** gets one field at the end of `GameState`, **no new union
+member**:
+
+```fbs
+  // Entity id of the conversant the owning player can talk to right now; 0 =
+  // none. Own player only, live state (not a per-tick one-shot): the client
+  // draws the interact badge over exactly this entity. Server-authoritative by
+  // construction — the same value gates the Interact message, so the badge can
+  // never promise a conversation the server refuses. Appended at the table end
+  // so existing field IDs stay stable.
+  interactable_entity_id:ulong = 0;
+```
+
+**Why a `GameState` field and not a message** (D10): `GameState` is already the
+own-player-only channel, the field is state rather than an event so there is no
+enter/leave bookkeeping to get wrong, 8 bytes/tick/player is noise against a
+~30-field table, and it leaves `ServerMessageBody` untouched.
+
+Both `.fbs` edits need `cd api/schema && ./make.sh` and regenerated bindings on
+**both** sides.
+
+#### 6b.3 Server changes — five small ones
+
+1. **`mobs.triggers` gains one entry** (`items/mobs/interaction.go:105`):
+   `string(TriggerInteract): TriggerInteract`. This is 3b's first edit and it is
+   what unblocks D6. `TestParseTrigger_InteractIsNotAuthorableYet` inverts — it
+   is the red test that opens the chunk.
+
+2. **`InteractionSystem.Update` splits its two jobs.** The sensor loop keeps
+   running exactly as it does today, because it is now what drives the prompt.
+   What changes is the body:
+
+   - stamp `p.NoteInteractable(actorID)` for every player in the sensor
+     (nearest wins when several overlap — see L17);
+   - call `evaluate()` on the rising edge **only when the actor's trigger is
+     `approach`** (**L18**: without this guard, an `interact` NPC would grant on
+     approach *and* on keypress).
+
+3. **A new drain of the `Interact` queue**, mirroring `NextEquip`/`NextRespawn`:
+   `model.Client.NextInteract() *model.Interact`, a `c.interacts` channel of 2,
+   a `routeMessage` case, and `codec.InteractMessageFlatbufferUnmarshal`. The
+   handler lives in `InteractionSystem` (it owns the actor list and the
+   evaluator) and validates the named id against the player's own stamped
+   `interactableEntityID` — **the same value the client was told**, so range
+   enforcement is one comparison, not a second geometry implementation.
+
+4. **`speak()` takes the interactor instead of fanning** (D13): the
+   `for c := range a.Sensor().Collisions()` loop is replaced by one
+   `p.Client().SendMessage(bytes)`. The `approach` path keeps the fan-out — that
+   *is* ambient speech and it should stay public. So `speak()` grows a
+   recipients argument rather than losing its loop.
+
+5. **`player` grows the per-tick field** — `interactableEntityID uint64`, an
+   `Interactable()` getter, `NoteInteractable()`, and a clear in
+   `ResetTickNumbers()` (`player.go:459`) alongside `campfireBound` and
+   `rejectedSkill`. ⚑ **Ordering is already correct and worth stating:**
+   `StatusEffectsSystem` (priority **101**) clears → `InteractionSystem`
+   (priority **20**) stamps → `PostUpdateSystem` (priority **−80**) serializes.
+   The exact `campfire_bound` pattern; no new sequencing risk.
+
+#### 6b.4 Content — 14 files, one key each
+
+`"trigger": "approach"` → `"trigger": "interact"` in all 14 (D11). Nothing else
+in the interaction blocks moves; `option.text` and `next` stay unauthored until
+3b-ii. `interaction_content_test.go` gains an assertion that every conversant
+authors `interact`, which is what keeps a 15th NPC from silently defaulting to
+ambient speech.
+
+#### 6b.5 Frontend — the rebind, the key, the badge
+
+**The keybind rides the existing edge-triggered hotkey path**, not
+`handleFunctionKeys`. That is deliberate: `Controls.update()` already early-
+returns on `Game.state !== GameState.PLAYING` (so a dead spectator cannot talk)
+and the aura/cooldown hotkeys already implement press-edge detection via the
+`…WereDown` arrays. Adding `interactKey = new Keys(KeyCodes.E)` plus one
+`interactKeyWasDown` inherits every guard for free. ⚑ Chat/console-open
+suppression comes from `KeyboardManager`, not from `Controls` — verify with the
+chat box open, it is the one guard not inherited by construction, and L15 records why.
+
+**The rebind** (D9): `cooldownHotkeys = [Q, E, F]` → `[Q, R, F]`, and the
+comment above it updated to name `E` as interact.
+
+**The badge** is a world-anchored child container on the entity's sprite — the
+same pattern as `AuraTickIndicator`, `EffectPips` and the nameplate, all of
+which already hang off mob sprites, and 3a moved all 14 NPC sprite classes onto
+that `Mobs` path. Driven purely by `GameState.interactable_entity_id`: the
+client shows it on `Game.map.getObject(id)` and hides the previous one when the
+id changes or goes to 0. ⚑ **Anchor it off the sprite's rendered bounds, not the
+wire `radius`** — 3a's own finding is that mob sprites size from
+`GraphicsConfig` and ignore the wire value while NPCs size from the wire, so
+"above the sprite" is only one expression if it reads the container (L19).
+
+#### 6b.6 Implementation order
+
+The tree stays green at every step; only steps 2 and 3 must not be swapped.
+
+1. `.fbs` edits + regenerate both sides. Nothing reads them yet.
+2. **Server: `triggers` table entry + the `approach`-only guard on the
+   evaluator call (L18), together.** Adding the table entry alone would let
+   authored `interact` load while still granting on approach — the exact silent
+   double-fire the guard exists to prevent.
+3. Server: the stamp, the `Interact` drain + validation, `speak()`'s recipient.
+4. Content: 14 files flip. Boot `-content ../api` — this is where a wrong
+   trigger table shows up.
+5. Frontend: rebind, key, badge.
+
+#### 6b.7 Test plan & acceptance
+
+**Red first**, and the chunk hands one to itself: inverting
+`TestParseTrigger_InteractIsNotAuthorableYet` is the opening move.
+
+- Go: the ported 373-line evaluator suite must stay green **untouched** — 3b-i
+  changes *when* `evaluate()` is called, never what it does. Any diff there is
+  a bug in the split.
+- Go, new: `interact` parses; an `interact` actor does **not** grant on the
+  sensor edge (L18); an `Interact` naming an actor the player was never told
+  about is refused; `interactable_entity_id` is stamped and cleared per tick;
+  nearest wins with two overlapping sensors; the reply reaches only the
+  interactor (D13) while an `approach` actor still fans out.
+- Codec: a `GameState` round-trip pinning the new field, mirroring
+  `gamestate_test.go`'s `activation_rejected` pair.
+- Frontend: vitest over the badge's pure selection logic (which id is shown);
+  `npm run typecheck` + prod build.
+- **Boot both ways** with the pinned counts (83 skills / 15 factions / 64 mobs /
+  485 spawns) — the loader is where a bad trigger surfaces and the sim harness
+  cannot see it.
+- Sim battery byte-identity is **expected and required**: `sim/world.go` never
+  loads authored content and has no client, so 3b-i must not move a single
+  number.
+- **In-game (the acceptance test, `.claude/skills/verify`):** walk to the
+  Farmer (−57/28.6) — badge appears, nothing is said; press `E` — the bubble and
+  the unlock banner fire; walk away — badge gone; walk back and press again —
+  re-triggers, already-known skills skipped. Emberkeeper (34.5/−19.6) for the
+  ordered 3-grant walk stopping at the first gate. `R` fires cooldown slot 2 and
+  `E` no longer does.
+
+#### 6b.8 Not closed by 3b-i
+
+The dialogue panel; `option.text` and `next` still read by nothing; NPC
+nameplates (D12 chose the bare badge, so the name is still gated off by
+`experience: 0`); **L2** (`SetFaction` nuking the authored aggro mask — an
+interaction layer is precisely where charm / side-switching gets wanted).
+
+---
+
+### Chunk 3b-ii — the dialogue panel
+
+Sketched, not planned in detail — it should be re-planned once 3b-i is in
+play and the badge/verb feel is known. Its shape is fixed by the decisions
+above:
+
+- **The evaluator splits** (§6b.1): `present(node, player)` returns lines and
+  option labels with each option's availability, mutating nothing;
+  `apply(option, player)` runs today's grant walk. This is the whole chunk's
+  cost.
+- **A conversation session** per player — which actor, which node — so
+  `next` can advance. Server-side; it dies with the player or when they leave
+  range.
+- **Two more wire additions**: the node payload to the client, and an option
+  index back. ⚑ The node payload is the one that will be tempted to add a
+  `ServerMessageBody` member (**L16**) — check whether it can ride `GameState`
+  the way D10's field does before growing the union.
+- **Content debt: `option.text` is unauthored on all 14** (verified 2026-07-27),
+  and the 2 flavour NPCs have no options at all, so a zero-option node must
+  render as lines plus a dismiss. 12 button labels are the content half.
 - The panel is where option selection happens, which is what keeps the "no
   targeting" pillar intact: nothing is ever clicked in the world.
 
@@ -1141,6 +1404,58 @@ defs are skipped at `guardrail_test.go:214`
 `skills: []`. The sim battery itself stays byte-identical for the usual reason
 (L4: the sim never loads authored content).
 
+**L15 — `E` is already the cooldown-slot-2 hotkey, and so are `Q` and `F`.**
+`Controls.ts:57` — `cooldownHotkeys = [KeyCodes.Q, KeyCodes.E, KeyCodes.F]`.
+**This plan's own pre-3b recommendation ("recommend `E`") would have silently
+double-bound the key.** D9 resolves it by moving cooldown slot 2 `E` → `R`,
+which the *"[PLACEHOLDER bindings until a keybinding UI exists]"* comment above
+that line sanctions — but it is a muscle-memory change for anyone already
+playing, so it belongs in the in-game checklist, not just the diff. Free letters
+after the move: `T`, `G`, `X`, `C`, `V`, `Z`, `Space`. ⚑ Second half of the same
+landmine: putting interact on `Controls`' edge-triggered hotkey path inherits
+the dead-spectator guard (`Game.state !== PLAYING`) for free but **not**
+chat/console suppression — that lives in `KeyboardManager`, so "press `E` with
+the chat box open" is an explicit test case, not an assumption.
+
+**L16 — `ServerMessageBody` is positional and unpinned too, not just
+`ClientMessageBody`.** `server.fbs:417`. §28 Chunk 3 pinned `EntityType` and
+`StatusEffect` with explicit permanent values; **neither union got the same
+treatment**, so a reorder in either direction silently remaps every message type
+and nothing but discipline stops it. 3b-i deliberately keeps the landmine
+unexercised on the server side — D10's in-range signal is a `GameState` field,
+not a new union member — but 3b-ii's node payload will be tempted to add one.
+Ask first whether it can ride `GameState`. If a member is genuinely needed,
+**pin both unions' values explicitly in the same change** rather than adding one
+more positional entry.
+
+**L17 — the interact sensor is one tick stale, and overlapping sensors need a
+tie-break.** `InteractionSystem` (priority 20) reads `Sensor().Collisions()`,
+which is the *previous* tick's broadphase result (`PhysicsSystem` is priority
+0) — 3a documented this and it is exactly what approach detection wants. For a
+prompt it is imperceptible at 30 Hz, and it is **deliberately also what the
+server validates an incoming `Interact` against**: one comparison to the value
+the client was actually told, not a second geometry implementation that could
+disagree with the badge. The one-tick grace is forgiving in the player's favour.
+⚑ Where two conversants' sensors overlap (a town square), the stamp must pick
+one deterministically — **nearest by centre distance**; otherwise the badge
+flickers between them as map iteration order changes.
+
+**L18 — an `interact` actor must be skipped by the rising-edge grant path, or
+it grants twice.** The `seen` map keeps running under 3b-i — it is what drives
+the prompt — so the guard goes on the `evaluate()` **call**, not on the map.
+Without it, walking up to an NPC grants the skill (approach path) and pressing
+`E` grants it again (interact path); the second is a harmless no-op today only
+because `HasDiscovered` short-circuits, which means **the bug would present as
+"the conversation is empty when I press the key", not as a double grant.** This
+is why §6b.6 forbids splitting the table entry from the guard.
+
+**L19 — the badge's anchor cannot read the wire radius.** 3a's own finding: mob
+sprite classes size from `GraphicsConfig` and ignore `Mob.radius`, while NPCs
+(which came off the Resource path) size from the wire — which is exactly how a
+permanently-unwritten `radius` stayed invisible for the life of the project.
+So "above the sprite" is only one expression if the badge measures the rendered
+container, not either input. Anchor off the sprite's bounds.
+
 ---
 
 ## 9. Test strategy
@@ -1151,7 +1466,8 @@ defs are skipped at `guardrail_test.go:214`
 | **1b** | summon HP/output pins at 2–3 owner levels; max-HP recompute clamps current health | sim battery **re-run and deltas recorded**; PO signs the summon numbers |
 | **2** | loader rejects an unknown `role`, absent → `creature`, `aggroRadius` optional only for `structure`; **speed>0 + `structure` is always-on** and **speed-0 + `creature` gates** (proves the read moved off speed); owned-`structure` ≠ follower; content pin on all 50 roles | boot `-content ../api` clean with the pinned counts (**the real gate — L4**); sim battery/level curve/pack matrix byte-identical vs a `git worktree` HEAD build; preset roster moves in **exactly 10 `aggroRadius` cells** and nowhere else (L10) |
 | **3a** | port all 373 lines of `sys/npc_test.go` onto the node evaluator (order + `blockedLine` gate + lore fallback); **a passive-faction conversant senses a player** (L11); 0 damage + no hostile acquisition on an NPC body (D5); the 9 loader rejections of §6a.2; content pin on all 14 defs incl. teaching order vs the pre-migration zone JSON | boot `-content ../api` clean with **mobs 50 → 64 · spawns 471 → 485 · factions 14 → 15 · the `placed npcs` line gone**; sim battery byte-identical and the preset roster **+14 rows, no cell moved** (L14); headless smoke (teach / blocked / lore); **screenshot** (bars are accepted per D3 — the shot is for sprite, size, layer, ring) |
-| **3b** | keybind + panel unit tests via the existing vitest infra (`jsdom` + the `fetch` stub) | in-game: approach a teacher, press the key, learn the skill, panel closes |
+| **3b-i** | invert `TestParseTrigger_InteractIsNotAuthorableYet` (the opening red); the **373-line evaluator suite stays green untouched** — 3b-i moves *when* `evaluate()` runs, never what it does, so any diff there is a bug in the split; an `interact` actor does not grant on the sensor edge (**L18**); an `Interact` naming an un-signalled actor is refused; `interactable_entity_id` stamped/cleared per tick and nearest-wins on overlap (**L17**); reply private to the interactor while `approach` still fans out (D13); `GameState` codec round-trip on the new field; content pin that all 14 author `interact` | boot `-content ../api` clean with the 3a counts unchanged (**83 skills / 15 factions / 64 mobs / 485 spawns**); **sim battery byte-identical — required, 3b-i moves no number**; frontend typecheck + vitest + prod build; in-game: badge on approach with **nothing said**, `E` teaches, walk away → badge gone, return → re-triggers; Emberkeeper's 3-grant walk still stops at the first gate; `R` fires cooldown 2 and `E` no longer does; `E` with the chat box open does nothing (**L15**) |
+| **3b-ii** | panel unit tests via the existing vitest infra (`jsdom` + the `fetch` stub); `present()` mutates nothing (the split's whole point) | in-game: press the key, panel opens with lines + labelled options, choose one, the skill lands, panel closes |
 
 Backend gate every chunk: `go build ./...`, `go vet`, `go test -timeout 60s ./...`,
 guardrails `-count=2`, boot `-content ../api` with 0 errors / 0 panics and the
@@ -1551,4 +1867,13 @@ what shipped, which commit, what was verified.)*
   size, **the health bar you accepted (D3)**, no nameplate, the bubble, the
   unlock banner. Also worth a look in the **zone editor**: the NPC mode is gone
   and NPCs are placed with the spawn tool now (D1).
-- **Chunk 3b — interact verb + dialogue panel:** not started
+- **Chunk 3b — interact verb + dialogue panel: PLANNED 2026-07-27** (design
+  session, no code). Split into **3b-i (the verb)** and **3b-ii (the panel)** —
+  §6b is the plan, 7 new PO decisions **D8–D14**, 5 new landmines **L15–L19**.
+  Neither half is started. The planning session's own finding is D9's:
+  **this plan had been recommending `E`, which is already the cooldown-slot-2
+  hotkey** (L15). Two more that shaped it: the client had **no way to know who
+  is interactable** (`GET /mobs` is a minimal projection), resolved as a
+  `GameState` field rather than a new message — which keeps `ServerMessageBody`
+  out of the change entirely (L16); and `option.text` is **unauthored on all
+  14**, which is 3b-ii's content half and part of why the split exists.
