@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aura — Accounts &amp; Persistence: decided scope</title>
+<style>
+  :root {
+    --ink: #1b1a17;
+    --muted: #6a655c;
+    --rule: #ded8cc;
+    --bg: #faf8f4;
+    --panel: #fff;
+    --accent: #9a4a1e;
+    --open: #7a5c00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #e8e4dc; --muted: #9d968a; --rule: #34312c;
+      --bg: #171614; --panel: #1e1d1a; --accent: #e08a52; --open: #d8b552;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 3rem 1.25rem 5rem;
+    background: var(--bg); color: var(--ink);
+    font: 16px/1.6 ui-serif, Georgia, "Times New Roman", serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 46rem; margin: 0 auto; }
+  .eyebrow {
+    font: 600 0.72rem/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 0.75rem;
+  }
+  h1 { font-size: 1.9rem; line-height: 1.15; margin: 0 0 0.5rem; font-weight: 600; }
+  .sub { color: var(--muted); margin: 0 0 2.5rem; font-size: 1.02rem; }
+  h2 {
+    font: 600 0.78rem/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    margin: 2.75rem 0 1rem; padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  p { margin: 0 0 1rem; }
+  b { font-weight: 600; }
+  code {
+    font: 0.86em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    padding: 0.1em 0.35em; border-radius: 3px;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 1rem; font-size: 0.95rem; }
+  th {
+    text-align: left; font: 600 0.72rem/1 ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    padding: 0 0.9rem 0.6rem 0; border-bottom: 1px solid var(--rule);
+  }
+  td { padding: 0.6rem 0.9rem 0.6rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td:last-child, th:last-child { padding-right: 0; color: var(--muted); }
+  tr.gap td { color: var(--accent); }
+  ul { margin: 0 0 1rem; padding-left: 1.1rem; }
+  li { margin-bottom: 0.7rem; }
+  li > b { color: var(--open); }
+  .note {
+    border-left: 2px solid var(--accent); padding: 0.1rem 0 0.1rem 1rem;
+    margin: 1.5rem 0; color: var(--muted);
+  }
+  footer {
+    margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--rule);
+    font: 0.8rem/1.5 ui-sans-serif, system-ui, sans-serif; color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <p class="eyebrow">Aura · onboarding brief</p>
+  <h1>Accounts &amp; persistence: what is decided</h1>
+  <p class="sub">The scope is settled ahead of implementation. This is what will be stored,
+  where that state lives in the running code today, and what is still an open call.</p>
+
+  <h2>Decided scope</h2>
+
+  <p><b>Two storage tiers.</b> Account level holds identity — an anonymous-first secret
+  issued on the player's first visit, with optional email/OAuth linking later — plus the
+  account-wide sacrifice unlocks. Character level holds everything else. The split is not
+  optional: the sacrifice loop wipes a character while its unlocks survive.</p>
+
+  <p><b>Only live players persist.</b> Mobs, NPCs and summons always respawn from their
+  authored definitions, so nothing world-side is stored. This is what keeps the schema
+  small.</p>
+
+  <p><b>The character record uses Actor vocabulary</b>, not a dump of the player struct.</p>
+
+  <h2>Persisted, and where it lives today</h2>
+
+  <table>
+    <thead><tr><th>Persisted</th><th>Current home</th></tr></thead>
+    <tbody>
+      <tr><td>level, experience</td><td><code>PlayerProgression</code> on the player struct (<code>model/player</code>)</td></tr>
+      <tr><td>spellbook (skill → level)</td><td><code>SkillComponent.Spellbook</code> (<code>aura/skills</code>)</td></tr>
+      <tr><td>loadout: aura / passive / cooldown slots, active aura index</td><td><code>SkillComponent</code> slot arrays</td></tr>
+      <tr><td>faction</td><td>Actor vocabulary, per the entity model</td></tr>
+      <tr><td>name, avatar choice</td><td>frontend <code>accounts</code> localStorage</td></tr>
+      <tr class="gap"><td>account-wide sacrifice unlocks</td><td>nowhere — per-character and in-memory. This is the gap.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Deliberately not persisted</h2>
+
+  <p><code>DerivedStats</code> (recomputed from equipped passives on load) · recipe and
+  milestone registries (content, not state) · combination discoveries (they fall out of the
+  spellbook via the recipe cascade) · all combat-transient state — pending and casting
+  cooldowns, status effects, buffs.</p>
+
+  <h2>Still open</h2>
+
+  <ul>
+    <li><b>Charges.</b> Do spellbook consumable charges survive death? The item most likely
+    to need schema room. Untradeable is the standing recommendation.</li>
+    <li><b>Current HP and position on logout.</b> Restore, or reset to full at a safe spawn?</li>
+    <li><b>One character per account, or a succession.</b> The sacrifice loop implies the
+    latter; whether retired characters stay as rows is undecided.</li>
+    <li><b>Per-character flag store</b> for quest and NPC state. The interaction system now
+    in flight already names <code>flag_set</code> and <code>quest_advance</code> as future
+    grant kinds, so the bag is coming — cheap to reserve now, expensive to retrofit.</li>
+    <li><b>Campfire respawn anchor.</b> Keyed by client UUID in the connection-state system,
+    i.e. session-shaped. Persist, or re-bind on login?</li>
+    <li><b>Character age.</b> <code>Stats.BirthTick</code> is a tick counter and meaningless
+    across restarts; it needs a wall-clock timestamp if age is ever surfaced.</li>
+    <li><b>Database choice.</b> Open.</li>
+  </ul>
+
+  <div class="note">
+    Persistence is also the point where the deployment stops being a hobby server: firewall,
+    a database bound to localhost, credential handling, and a backup with a restore that has
+    actually been proven. That work belongs to this step, not to a follow-up.
+  </div>
+
+  <footer>Aura · internal engineering brief · 2026-07-27</footer>
+
+</main>
+</body>
+</html>
