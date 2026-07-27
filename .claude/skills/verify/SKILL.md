@@ -118,6 +118,26 @@ Copy the browser-launch pattern from
   stay where they were and drop out of the client's view — so a check that warps
   and then scores "did my companion do that" is scoring damage it could not have
   caused. Warp first, summon after.
+- **⚑ `window.game` is a FOUR-METHOD FAÇADE, not the `Game` instance.** It
+  exposes exactly `{run, character, pause, play}` — verified live 2026-07-27.
+  So `window.game.getInteractableEntityId()`, `window.game.map`,
+  `window.game.backend` and friends are all `undefined`, and reading them
+  yields `undefined`/`0` **silently**: no throw, no console error. That cost two
+  full harness runs on chunk 3b-ii, where it presented as "the Wanderer never
+  moves" and "the TownCrier is never reached" — both actually "the stop
+  condition never fired, so the player walked straight past". If you need
+  server-driven state, read it off the **rendered scene graph** (via
+  `window.game.character.plate.parent`, below) or off the **DOM**, never off a
+  Game API you have not first probed with
+  `Object.keys(window.game)`.
+- **⚑ `#developPanel` covers the right-hand side of the screen in `&develop`.**
+  It is a large draggable `<table>` layered above the HUD, so a
+  `page.mouse.click` at coordinates under it hits the table instead of your
+  element — with no error, and `elementFromPoint` is the only thing that says
+  so. This made a HUD close-button unclickable for three runs. `&develop` is
+  still required for the console, so hide the panel right after joining:
+  `document.getElementById('developPanel').style.display = 'none'` (the console
+  is a separate element and is unaffected).
 - **Reaching the live PixiJS scene graph:** `window.game` exists with a valid
   `&token=` (`BrowserConsole.ts`), and `window.game.character.plate.parent` IS
   the `namePlates` overlay container — from there `page.evaluate` can walk
