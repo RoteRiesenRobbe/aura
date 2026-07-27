@@ -89,6 +89,35 @@ Copy the browser-launch pattern from
   (2026-07-22) was contaminated end-to-end by this and produced exactly
   inverted results. If the frame must be trustworthy, allow the settle or
   confirm the position first.
+- **A dead player nulls the way into the scene graph.** `Character.destroy()`
+  sets `plate = null`, and `character.plate.parent` is the documented entry
+  point — so the moment the player dies, every scene-graph read throws
+  `Cannot read properties of null (reading 'parent')` and the run dies
+  mid-assertion, looking exactly like a crash in the feature under test. A
+  level-1 player parked next to an NPC for 20 s is inside plenty of aggro radii
+  (observed 2026-07-27 at the ForestSign, after the earlier steps had passed).
+  **Cache the root once while the character is alive** (`window.__auraRoot`) and
+  run `GOD` in any script that stands still.
+- **⚑ Never measure distance in SCREEN space.** The obvious metric — an entity's
+  screen bounds vs the viewport centre, "where the player is" — is wrong,
+  because `Cam Boundaries: On` clamps the camera at the map edges, so near a
+  boundary the player is **not** drawn at the centre. This reported a correctly
+  following companion as fleeing (84px → 638px) and was one edit away from a
+  false regression report (2026-07-27). Measure in world units instead: a
+  sprite's `.position` and `window.game.character.getX()/getY()` are in the
+  **same** space (`character.shape.position` equals `getX/getY`), so the
+  difference is a true distance in wire units — divide by 120 for world units.
+- **Equipping from the spellbook: click the skill NAME, not the row centre.**
+  Each row is `<name> [−] <lvl>/<max> [+]`, and the spend/unspend buttons sit
+  mid-row with explicit precedence in the `pointerdown` handler — a centre click
+  spends a skill point and the equip then silently never happens. Click
+  `box.x + 25`, then assert `#spellbookList li.selected` before clicking the
+  slot. `chunk2-follower.mjs` is the worked example (spellbook → cooldown slot →
+  long-hold `Q`, including waiting out a running cooldown).
+- **`WARP` moves only the PLAYER.** Summons, followers and anything else owned
+  stay where they were and drop out of the client's view — so a check that warps
+  and then scores "did my companion do that" is scoring damage it could not have
+  caused. Warp first, summon after.
 - **Reaching the live PixiJS scene graph:** `window.game` exists with a valid
   `&token=` (`BrowserConsole.ts`), and `window.game.character.plate.parent` IS
   the `namePlates` overlay container — from there `page.evaluate` can walk

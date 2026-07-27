@@ -1683,8 +1683,15 @@ what shipped, which commit, what was verified.)*
   (1 in ~6, the client said so itself); the retry was clean.
 - **Chunk 2 — the authored role discriminator: ✅ DONE 2026-07-27**, planned and
   executed in one session (§5 is the plan, this is the ledger), backend +
-  content, 42 files + 5 new, committed `0be771bd`. ⏳ PO in-game check pending
-  on the **follower** half only — see "not covered" below.
+  content, 42 files + 5 new, committed `0be771bd`. ✅ **The follower half is now
+  HARNESS-VERIFIED in-game (2026-07-27)** — the gap "not covered" below describes
+  is closed by the new `.claude/skills/verify/chunk2-follower.mjs`, which drives
+  the aura panel with real clicks and so exercises the summon path end to end for
+  the first time: 6/6, the companion trails at **0.8 → 1.44 units** across a
+  **9.2-unit** walk, and it fights (`−8`/`−6` on a Wolf and a Boar, **XP 0 →
+  70/300**, with every aura slot Empty so none of that damage was the player's).
+  ⏳ PO's own sign-off deferred to the single pass after all open chunks land
+  (PO 2026-07-27).
 
   **Shipped as §5 specified.** `mobs.Role` + the `roles` table + `ParseRole`
   (`items/mobs/role.go`) is the single source, resolved by the loader, `NewMob`,
@@ -1763,7 +1770,15 @@ what shipped, which commit, what was verified.)*
 - **Chunk 3a — the NPC merge: ✅ DONE 2026-07-27**, planned and executed in one
   session (§6a is the plan, this is the ledger), backend + frontend + content,
   26 files changed + 15 new, 4 deleted, **−800 lines net**, committed
-  `ba124ceb`. ⏳ **PO in-game check PENDING.**
+  `ba124ceb`. ✅ **HARNESS-VERIFIED in-game 2026-07-27** — `chunk3a-npc-merge.mjs`
+  6/6 re-run green, plus the new `npc-portraits.mjs`: Farmer/Hermit/TownCrier/
+  Emberkeeper render at correct size (the scale-`[0,0]` wire gap has not
+  returned), **health bars present** (D3 as accepted) and **no nameplates** —
+  while `Turnip 1`/`Boar 2`/`Stag 1` plates render in the same frames, so the
+  gating is proven by an in-picture control rather than assumed. ⏳ PO's own
+  sign-off deferred to the single pass after all open chunks land (PO
+  2026-07-27); the **zone editor** half (D1) is untouched by the harness and
+  stays manual.
 
   **`model/npc` is gone.** A teaching NPC is an ordinary actor whose definition
   carries an `interaction` block, placed as an ordinary spawn. Deleted outright:
@@ -1862,11 +1877,17 @@ what shipped, which commit, what was verified.)*
   no `EntityManager` on it, so scene-graph work goes through
   `character.plate.parent` and climbs to the root.
 
-  **⏳ PO in-game check (pending 2026-07-27):** walk up to a few NPCs — Farmer,
-  Hermit, TownCrier, the Emberkeeper — and confirm they read right: sprite,
-  size, **the health bar you accepted (D3)**, no nameplate, the bubble, the
-  unlock banner. Also worth a look in the **zone editor**: the NPC mode is gone
-  and NPCs are placed with the spawn tool now (D1).
+  **✅ PO in-game check — HARNESS-DONE 2026-07-27, PO sign-off deferred.** Ruling
+  the same day: the PO's own pass happens **once, after every open chunk has
+  landed**, not per chunk. Driven headlessly instead — `npc-portraits.mjs` (new,
+  kept) frames Farmer, Hermit, TownCrier and the Emberkeeper one at a time in
+  clear screen space and pairs each picture with the three assertions worth
+  making: correct rendered size, **the health bar D3 accepted**, and **no
+  nameplate** — with `Turnip 1`/`Boar 2`/`Stag 1` plates in the same frames as an
+  in-picture control. Still manual and untouched by any harness: the **zone
+  editor** (D1 — NPC mode gone, NPCs placed with the spawn tool, teachings
+  JSON-only), and the taste question a ~10 fps headless run cannot answer —
+  whether they *read* right.
 - **Chunk 3b — interact verb + dialogue panel: PLANNED 2026-07-27** ✅ `85afcdb1`
   (design session, no code). Split into **3b-i (the verb)** and **3b-ii (the panel)** —
   §6b is the plan, 7 new PO decisions **D8–D14**, 5 new landmines **L15–L19**.

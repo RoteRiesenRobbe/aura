@@ -79,9 +79,22 @@ const pos = () => page.evaluate(() => ({
 // the speaker up in the EntityManager and silently no-ops for an entity the
 // client is not tracking — so a bubble anchored on the Farmer means the client
 // really did build a game object for it off the Mob wire path.
+//
+// ⚑ The root is cached on first use (window.__auraRoot). The documented way in
+// is character.plate.parent, but `plate` is nulled by Character.destroy() — so
+// the instant the player DIES this walk throws `null (reading 'parent')` and
+// the whole run dies with it, mid-assertion, looking like a product bug. A
+// level-1 player parked next to a lore NPC for 20 s is entirely killable
+// (observed 2026-07-27 at the ForestSign, after steps 1-2 had passed). Cache
+// the root while the character is alive and the harvest survives the death;
+// GOD below stops it happening at all.
 const worldText = () => page.evaluate(() => {
-  let root = window.game.character.plate.parent;
-  while (root.parent) root = root.parent;
+  if (!window.__auraRoot) {
+    let r = window.game.character.plate.parent;
+    while (r.parent) r = r.parent;
+    window.__auraRoot = r;
+  }
+  const root = window.__auraRoot;
   const out = [];
   const walk = (c) => {
     if (typeof c?.text === 'string' && c.text) out.push(c.text);
@@ -106,6 +119,12 @@ const walkTo = async (key, seconds) => {
 };
 
 await cmd('PING'); // the first command after joining is dropped (harness note)
+// Survivability only — GOD changes nothing this script asserts (approach,
+// grants, bubbles, attribution all ignore it), but a level-1 player standing
+// still next to an NPC for 20 s is inside plenty of aggro radii. Without it the
+// run is a coin-flip that fails as a crash rather than as a FAIL line.
+await cmd('GOD');
+await worldText(); // prime window.__auraRoot while the character is alive
 
 const results = [];
 
