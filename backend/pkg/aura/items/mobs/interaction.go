@@ -92,18 +92,21 @@ const (
 	// — the pre-merge NPC behaviour, preserved exactly by chunk 3a.
 	TriggerApproach Trigger = "approach"
 	// TriggerInteract waits for the player to press the interact key in range
-	// (chunk 3b). Named here so the vocabulary is complete, but deliberately
-	// ABSENT from the triggers table until the engine implements it — see
-	// ParseTrigger.
+	// (chunk 3b-i). The sensor still runs — it is what tells the client an
+	// actor is talkable — but only an Interact message opens the conversation.
 	TriggerInteract Trigger = "interact"
 )
 
 // triggers is the single source of authorable triggers, the tierRanks/roles
-// precedent. TriggerInteract is missing ON PURPOSE (D6): the loader never
-// accepts content the engine cannot honour, because an accepted-but-inert
-// trigger would ship an NPC that silently does nothing.
+// precedent: a trigger is authorable exactly when the engine honours it, so an
+// accepted-but-inert trigger can never ship an NPC that silently does nothing.
+// TriggerInteract joined in 3b-i, together with the guard in
+// sys/interaction.go that keeps it off the rising-edge grant path (L18) —
+// adding this key alone would load the content while still granting on
+// approach.
 var triggers = map[string]Trigger{
 	string(TriggerApproach): TriggerApproach,
+	string(TriggerInteract): TriggerInteract,
 }
 
 // ParseTrigger resolves an authored trigger. Absent means approach — the only

@@ -12,6 +12,7 @@ import {KeyCodes} from '../../input-system/logic/keyboard/keys/KeyCodes';
 import {Character} from '../../game-objects/logic/Character';
 import {GameState, IGame} from '../../core/logic/IGame';
 import {InputMessage} from '../../backend/logic/messages/outgoing/InputMessage';
+import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMessage';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {Vector} from '../../core/logic/Vector';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
@@ -52,11 +53,19 @@ export class Controls {
     rightKeys = new Keys(KeyCodes.D, KeyCodes.RIGHT);
     pauseKeys = new Keys(KeyCodes.P);
     // Hotkeys [PLACEHOLDER bindings until a keybinding UI exists]:
-    // 1–3 toggle the aura slots, Q/E/F fire the cooldown slots.
+    // 1–3 toggle the aura slots, Q/R/F fire the cooldown slots, E talks to
+    // whoever is in range.
+    //
+    // ⚑ Cooldown slot 2 was E until chunk 3b-i took that key for the interact
+    // verb. Q and F were taken too, so there was no free letter next to them —
+    // R is the move the PLACEHOLDER note above sanctions (D9). Muscle memory
+    // for anyone already playing changes with it.
     auraHotkeys = [new Keys(KeyCodes.ONE), new Keys(KeyCodes.TWO), new Keys(KeyCodes.THREE)];
-    cooldownHotkeys = [new Keys(KeyCodes.Q), new Keys(KeyCodes.E), new Keys(KeyCodes.F)];
+    cooldownHotkeys = [new Keys(KeyCodes.Q), new Keys(KeyCodes.R), new Keys(KeyCodes.F)];
+    interactKey = new Keys(KeyCodes.E);
     private auraHotkeysWereDown: boolean[] = [false, false, false];
     private cooldownHotkeysWereDown: boolean[] = [false, false, false];
+    private interactKeyWasDown = false;
     clock: Tock;
     updateTime: number;
     lastInputType: ('MOUSE' | 'TOUCH') = 'MOUSE';
@@ -251,6 +260,20 @@ export class Controls {
             }
             this.cooldownHotkeysWereDown[slot] = down;
         });
+
+        // Interact (chunk 3b-i): same edge-triggered path as the slot hotkeys,
+        // which is what earns it the PLAYING-state guard above for free — a
+        // dead spectator cannot talk. The id comes straight from the badge the
+        // server lit, and the server refuses anything else, so a stale press
+        // costs nothing.
+        const interactDown = this.interactKey.isDown;
+        if (interactDown && !this.interactKeyWasDown) {
+            const target = Game.getInteractableEntityId();
+            if (target !== 0) {
+                new InteractMessage(target).send();
+            }
+        }
+        this.interactKeyWasDown = interactDown;
 
         if (hasInput) {
             if (isUndefined(input.rotation)) {

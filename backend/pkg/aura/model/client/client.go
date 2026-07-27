@@ -20,10 +20,11 @@ type client struct {
 	inputs chan *model.PlayerInput
 	cheats chan *model.Cheat
 	chat   chan *model.ChatMessage
-	equips   chan *model.EquipSkill
-	spends   chan *model.SpendSkillPoint
-	respawns chan *model.Respawn
-	uuid     uuid.UUID
+	equips    chan *model.EquipSkill
+	spends    chan *model.SpendSkillPoint
+	respawns  chan *model.Respawn
+	interacts chan *model.Interact
+	uuid      uuid.UUID
 
 	// Input-transport instrumentation (plan-input-jitter.md chunk 1). Written on
 	// the read goroutine inside pushInput, read on the tick goroutine via
@@ -106,6 +107,15 @@ func (c *client) NextSpendSkillPoint() *model.SpendSkillPoint {
 func (c *client) NextRespawn() *model.Respawn {
 	select {
 	case msg := <-c.respawns:
+		return msg
+	default:
+	}
+	return nil
+}
+
+func (c *client) NextInteract() *model.Interact {
+	select {
+	case msg := <-c.interacts:
 		return msg
 	default:
 	}
@@ -220,6 +230,13 @@ func (c *client) routeMessage(msg *AuraApi.ClientMessage) {
 		default:
 			log.Print("Respawn dropped.")
 		}
+	case AuraApi.ClientMessageBodyInteract:
+		m := codec.InteractMessageFlatbufferUnmarshal(msg)
+		select {
+		case c.interacts <- m:
+		default:
+			log.Print("Interact dropped.")
+		}
 	}
 }
 
@@ -230,10 +247,11 @@ func NewClient(c *net.Client) model.Client {
 		joins:  make(chan *model.Join, 2),
 		cheats: make(chan *model.Cheat, 2),
 		chat:   make(chan *model.ChatMessage, 2),
-		equips:   make(chan *model.EquipSkill, 2),
-		spends:   make(chan *model.SpendSkillPoint, 2),
-		respawns: make(chan *model.Respawn, 2),
-		uuid:     uuid.New(),
+		equips:    make(chan *model.EquipSkill, 2),
+		spends:    make(chan *model.SpendSkillPoint, 2),
+		respawns:  make(chan *model.Respawn, 2),
+		interacts: make(chan *model.Interact, 2),
+		uuid:      uuid.New(),
 	}
 
 	c.OnMessage(func(client *net.Client, bytes []byte) {

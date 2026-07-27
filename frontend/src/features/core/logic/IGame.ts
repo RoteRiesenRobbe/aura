@@ -47,6 +47,14 @@ export interface IGame {
     readonly map: EntityManager;
     readonly miniMap: MiniMap;
 
+    /**
+     * The actor the server says the player can talk to right now; 0 = nobody
+     * (plan-entity-model.md chunk 3b-i). Delegates to the backend, which owns
+     * the value — the interact key names exactly this id, and the server
+     * refuses anything else.
+     */
+    getInteractableEntityId(): number;
+
     readonly domElement: HTMLCanvasElement;
     readonly inputManager: InputManager;
     readonly joystickManager: JoystickManager;

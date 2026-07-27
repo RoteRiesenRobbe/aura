@@ -342,8 +342,20 @@ func (rcv *GameState) MutateActivationRejectedReason(n byte) bool {
 	return rcv._tab.MutateByteSlot(36, n)
 }
 
+func (rcv *GameState) InteractableEntityId() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateInteractableEntityId(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(38, n)
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(17)
+	builder.StartObject(18)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -416,6 +428,9 @@ func GameStateAddActivationRejectedSkillId(builder *flatbuffers.Builder, activat
 }
 func GameStateAddActivationRejectedReason(builder *flatbuffers.Builder, activationRejectedReason byte) {
 	builder.PrependByteSlot(16, activationRejectedReason, 0)
+}
+func GameStateAddInteractableEntityId(builder *flatbuffers.Builder, interactableEntityId uint64) {
+	builder.PrependUint64Slot(17, interactableEntityId, 0)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

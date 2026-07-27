@@ -143,6 +143,14 @@ export class Game implements IGame {
         requestAnimationFrame(resize);
     }
 
+    /**
+     * The actor the player can talk to right now; 0 = nobody, and also 0
+     * before the backend exists (chunk 3b-i). The interact key reads it.
+     */
+    getInteractableEntityId(): number {
+        return this.backend?.getInteractableEntityId() ?? 0;
+    }
+
     setup(): void {
         let setupPromises = [];
 

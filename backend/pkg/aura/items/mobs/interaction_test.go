@@ -99,17 +99,21 @@ func TestParseTrigger_AbsentIsApproach(t *testing.T) {
 	assert.Equal(t, TriggerApproach, trigger)
 }
 
-// D6: the schema NAMES the 3b value, the loader refuses to accept content the
-// engine cannot honour — the same rule that gates tier and role.
-func TestParseTrigger_InteractIsNotAuthorableYet(t *testing.T) {
-	_, ok := ParseTrigger(string(TriggerInteract))
-	assert.False(t, ok, "trigger \"interact\" must not load until chunk 3b implements it")
+// Chunk 3b-i implements the verb, so the D6 gate opens. This test is the
+// inverse of 3a's TestParseTrigger_InteractIsNotAuthorableYet, which is exactly
+// the red test that opened this chunk.
+func TestParseTrigger_ResolvesInteract(t *testing.T) {
+	trigger, ok := ParseTrigger(string(TriggerInteract))
+	require.True(t, ok, "trigger \"interact\" loads now that chunk 3b-i implements it")
+	assert.Equal(t, TriggerInteract, trigger)
 }
 
 func TestTriggers_CoverOnlyWhatTheEngineImplements(t *testing.T) {
 	_, ok := triggers[string(TriggerApproach)]
 	assert.True(t, ok)
-	assert.Len(t, triggers, 1, "adding a trigger here without an implementation ships a dead key")
+	_, ok = triggers[string(TriggerInteract)]
+	assert.True(t, ok)
+	assert.Len(t, triggers, 2, "adding a trigger here without an implementation ships a dead key")
 }
 
 func TestParseGrantKind_ResolvesTeachSkill(t *testing.T) {
@@ -135,10 +139,13 @@ func TestMapMobDefinition_RejectsUnknownTrigger(t *testing.T) {
 	assert.Contains(t, err.Error(), "shout")
 }
 
-func TestMapMobDefinition_RejectsInteractTrigger(t *testing.T) {
-	_, err := mapInteraction(t, `{"trigger": "interact", "nodes": [{"id": "root", "lines": ["hi"]}]}`)
-	require.Error(t, err, "interact must hard-fail until chunk 3b (D6)")
-	assert.Contains(t, err.Error(), "interact")
+// 3a's twin of this asserted the opposite — interact hard-failed at load until
+// the engine could honour it (D6). 3b-i is that implementation.
+func TestMapMobDefinition_AcceptsInteractTrigger(t *testing.T) {
+	def, err := mapInteraction(t, `{"trigger": "interact", "nodes": [{"id": "root", "lines": ["hi"]}]}`)
+	require.NoError(t, err)
+	require.NotNil(t, def.Interaction)
+	assert.Equal(t, TriggerInteract, def.Interaction.Trigger)
 }
 
 func TestMapMobDefinition_RejectsEmptyNodes(t *testing.T) {

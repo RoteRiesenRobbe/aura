@@ -23,11 +23,12 @@ import (
 // fakeClient is the first model.Client test double (chunk 4): queueable
 // Join/Respawn messages, everything else inert.
 type fakeClient struct {
-	uuid     uuid.UUID
-	joins    []*model.Join
-	respawns []*model.Respawn
-	sent     [][]byte
-	unlocks  []capturedUnlock
+	uuid      uuid.UUID
+	joins     []*model.Join
+	respawns  []*model.Respawn
+	interacts []*model.Interact
+	sent      [][]byte
+	unlocks   []capturedUnlock
 }
 
 // capturedUnlock records one SendUnlock call for the attribution tests.
@@ -56,6 +57,17 @@ func (c *fakeClient) NextRespawn() *model.Respawn {
 	r := c.respawns[0]
 	c.respawns = c.respawns[1:]
 	return r
+}
+
+// A real queue, not an inert stub: the interact verb's whole server half is
+// "what happens when this drains" (chunk 3b-i).
+func (c *fakeClient) NextInteract() *model.Interact {
+	if len(c.interacts) == 0 {
+		return nil
+	}
+	i := c.interacts[0]
+	c.interacts = c.interacts[1:]
+	return i
 }
 
 func (c *fakeClient) NextInput() *model.PlayerInput             { return nil }

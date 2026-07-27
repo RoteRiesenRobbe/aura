@@ -146,6 +146,13 @@ type PlayerEntity interface {
 	// as activation_rejected_skill_id + activation_rejected_reason.
 	ActivationRejected() (skills.SkillID, ActivationRejection)
 	NoteActivationRejected(skill skills.SkillID, reason ActivationRejection)
+	// Interactable / NoteInteractable carry the per-tick "this conversant is
+	// in talking range" stamp (chunk 3b-i): the InteractionSystem re-stamps it
+	// from its sensors every tick, nearest offer wins, serialized as
+	// interactable_entity_id. The same value validates an incoming Interact,
+	// so the badge and the verb can never disagree.
+	Interactable() uint64
+	NoteInteractable(id uint64, distSq float32)
 	// InCombat reports whether the player is inside the recent-combat window
 	// (the same flag that gates out-of-combat regen). The EquipSystem reads it
 	// to lock loadout editing in combat.

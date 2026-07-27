@@ -92,6 +92,12 @@ type fakePlayer struct {
 	lastMoveDir     phy.Vec2f            // dash aim source (chunk 5)
 	buffs           skills.Buffs         // real store for tick_rate (chunk 6); zero value = factor 1.0
 	powerScale      float32              // f(character level) (C0); newFakePlayer sets neutral 1
+	// The per-tick interactable stamp (chunk 3b-i). Nothing clears these
+	// between ticks the way ResetTickNumbers does for a real player — the
+	// clearing is pinned in model/player, these doubles only need to carry the
+	// value the InteractionSystem stamped.
+	interactableID     uint64
+	interactableDistSq float32
 	conf            cfg.PlayerConfig     // zero value = no base crit (§4.3 v2); tests set CritChance explicitly
 }
 
@@ -174,6 +180,20 @@ func (f *fakePlayer) Client() model.Client    { return f.client }
 func (f *fakePlayer) SetPosition(v phy.Vec2f) { f.aura.SetPosition(v) }
 func (f *fakePlayer) NoteActivationRejected(id skills.SkillID, reason model.ActivationRejection) {
 	f.rejections = append(f.rejections, rejectedActivation{id, reason})
+}
+
+func (f *fakePlayer) Interactable() uint64 { return f.interactableID }
+
+// NoteInteractable mirrors (*player).NoteInteractable's nearest-wins rule (L17)
+// so the system tests exercise the real tie-break. The rule itself is pinned on
+// the real type in model/player; what this double lets the system tests catch
+// is the InteractionSystem handing it the WRONG distance.
+func (f *fakePlayer) NoteInteractable(id uint64, distSq float32) {
+	if f.interactableID != 0 && distSq >= f.interactableDistSq {
+		return
+	}
+	f.interactableID = id
+	f.interactableDistSq = distSq
 }
 
 // rejectedActivation records one NoteActivationRejected call (chunk 4).

@@ -51,7 +51,19 @@ table SpendSkillPoint {
 table Respawn {
 }
 
-union ClientMessageBody { Input, Join, Cheat, ChatMessage, Equip, SpendSkillPoint, Respawn }
+// Open a conversation with an actor the server has told this client is in
+// range (GameState.interactable_entity_id). The id is echoed back rather than
+// implied so a stale keypress names what the player actually saw, and so the
+// server validates against one value instead of re-deriving the geometry
+// (plan-entity-model.md chunk 3b-i, D10).
+table Interact {
+    entity_id:ulong;
+}
+
+// APPEND-ONLY. Union members are positional: their wire values are the
+// declaration order, so reordering or removing one silently remaps every
+// message type (plan-entity-model.md L16). Interact is value 8.
+union ClientMessageBody { Input, Join, Cheat, ChatMessage, Equip, SpendSkillPoint, Respawn, Interact }
 table ClientMessage { body:ClientMessageBody; }
 
 root_type ClientMessage;

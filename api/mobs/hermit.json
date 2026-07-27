@@ -20,7 +20,7 @@
   },
   "skills": [],
   "interaction": {
-    "trigger": "approach",
+    "trigger": "interact",
     "nodes": [
       {
         "id": "root",

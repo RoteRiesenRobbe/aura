@@ -374,6 +374,15 @@ table GameState {
   // stay stable.
   activation_rejected_skill_id:ushort = 0;
   activation_rejected_reason:ubyte = 0;
+
+  // Entity id of the conversant the owning player can talk to right now; 0 =
+  // none (entity ids start at 1). Own player only, and live STATE rather than
+  // a per-tick one-shot: the client draws the interact badge over exactly this
+  // entity, so there is no enter/leave bookkeeping to desync. The same value
+  // gates an incoming Interact message, which is what makes the badge unable
+  // to promise a conversation the server would refuse (chunk 3b-i, D10).
+  // Appended at the table end so existing field IDs stay stable.
+  interactable_entity_id:ulong = 0;
 }
 
 table Welcome {
@@ -414,6 +423,9 @@ table Pong {
     // nothing to send with it, purely for signaling
 }
 
+// APPEND-ONLY, same rule as ClientMessageBody: members are positional and
+// unpinned (plan-entity-model.md L16). 3b-i deliberately adds nothing here —
+// the in-range signal rides GameState instead.
 union ServerMessageBody { Welcome, GameState, Accept, Obituary, EntityMessage, Pong }
 table ServerMessage { body:ServerMessageBody; }
 

@@ -308,6 +308,31 @@ func TestGameStateCastAndRejection_AbsentReadsZero(t *testing.T) {
 	assert.Zero(t, result.ActivationRejectedReason())
 }
 
+// --- the interact prompt wire (plan-entity-model.md chunk 3b-i) ---
+
+func TestGameStateInteractable_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddInteractableEntityId(b, 4711)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	assert.Equal(t, uint64(4711), result.InteractableEntityId())
+}
+
+func TestGameStateInteractable_AbsentReadsZero(t *testing.T) {
+	// The codec omits the field when nobody is in range, and entity ids start
+	// at 1, so 0 is an unambiguous "nobody" for old and new clients alike.
+	b := flatbuffers.NewBuilder(64)
+	AuraApi.GameStateStart(b)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	assert.Zero(t, result.InteractableEntityId())
+}
+
 // resourceIDAt reads the entity at index j as a Resource and returns its id.
 // Every entity the test below marshals is a prop, which rides the Resource
 // wire table (PropEntityFlatbufMarshal).

@@ -16,4 +16,11 @@ export interface IBackend {
     setup(game: IGame): void;
 
     getState(): BackendState;
+
+    /**
+     * The actor the server says this player can talk to right now; 0 = nobody
+     * (plan-entity-model.md chunk 3b-i). Server-authoritative: the interact
+     * key names this id, and the server refuses anything else.
+     */
+    getInteractableEntityId(): number;
 }

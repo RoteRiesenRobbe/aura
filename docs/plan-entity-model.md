@@ -1092,7 +1092,11 @@ enter/leave bookkeeping to get wrong, 8 bytes/tick/player is noise against a
 Both `.fbs` edits need `cd api/schema && ./make.sh` and regenerated bindings on
 **both** sides.
 
-#### 6b.3 Server changes — five small ones
+#### 6b.3 Server changes — six small ones
+
+*Code-audited against HEAD `688a0d41` on 2026-07-27, before the first edit. The
+shape held; one step was missing outright (step 3) and three details were wrong.
+Corrections are tagged **[audit]**.*
 
 1. **`mobs.triggers` gains one entry** (`items/mobs/interaction.go:105`):
    `string(TriggerInteract): TriggerInteract`. This is 3b's first edit and it is
@@ -1103,30 +1107,60 @@ Both `.fbs` edits need `cd api/schema && ./make.sh` and regenerated bindings on
    running exactly as it does today, because it is now what drives the prompt.
    What changes is the body:
 
-   - stamp `p.NoteInteractable(actorID)` for every player in the sensor
+   - stamp `p.NoteInteractable(actorID, distSq)` for every player in the sensor
      (nearest wins when several overlap — see L17);
    - call `evaluate()` on the rising edge **only when the actor's trigger is
      `approach`** (**L18**: without this guard, an `interact` NPC would grant on
      approach *and* on keypress).
 
-3. **A new drain of the `Interact` queue**, mirroring `NextEquip`/`NextRespawn`:
+   ⚑ **[audit] The two jobs are order-dependent inside one `Update`, and it is
+   the same class of trap as L18 — see L20.** The sensor stamp must run **before**
+   the step-4 drain, because `ResetTickNumbers` has already zeroed the field this
+   tick.
+
+3. **⚑ [audit] `InteractionSystem` must learn about players — it has none
+   today.** This step was missing from the plan. The system is registered
+   **only** in the mob branch of the add-entity matrix (`core/game.go:298`); it
+   holds `actors []Conversant` and nothing else, so there is no queue to drain
+   from and nothing to stamp onto. 3b-i adds, on the `EquipSystem` precedent
+   (`sys/equip/equip.go:30-56`): a `players []interactor` slice behind a minimal
+   local interface (`Basic`/`Client`/`Position`, the `equipEntity` pattern), an
+   `AddPlayer`, and a `case *sys.InteractionSystem: s.AddPlayer(p)` in the
+   **player** branch (`game.go:~360`, beside `equip.EquipSystem`). ⚑ **`Remove`
+   must sweep the players slice too** — today it walks `actors` and deletes from
+   `seen` only, so every disconnect would leak a player and keep draining a dead
+   client's queue.
+
+4. **A new drain of the `Interact` queue**, mirroring `NextEquip`/`NextRespawn`:
    `model.Client.NextInteract() *model.Interact`, a `c.interacts` channel of 2,
    a `routeMessage` case, and `codec.InteractMessageFlatbufferUnmarshal`. The
    handler lives in `InteractionSystem` (it owns the actor list and the
    evaluator) and validates the named id against the player's own stamped
    `interactableEntityID` — **the same value the client was told**, so range
    enforcement is one comparison, not a second geometry implementation.
+   ⚑ **[audit] This is the 7th method on `model.Client`, an interface two test
+   files implement by hand** — `sys/state_test.go`'s `fakeClient` and
+   `sys/equip/equip_test.go`'s `stubClient`. Both break, and `go build ./...`
+   stays green while they do: only `go test` catches it. Add the two one-line
+   stubs in the same step.
 
-4. **`speak()` takes the interactor instead of fanning** (D13): the
+5. **`speak()` takes the interactor instead of fanning** (D13): the
    `for c := range a.Sensor().Collisions()` loop is replaced by one
    `p.Client().SendMessage(bytes)`. The `approach` path keeps the fan-out — that
    *is* ambient speech and it should stay public. So `speak()` grows a
    recipients argument rather than losing its loop.
 
-5. **`player` grows the per-tick field** — `interactableEntityID uint64`, an
+6. **`player` grows the per-tick field** — `interactableEntityID uint64`, an
    `Interactable()` getter, `NoteInteractable()`, and a clear in
    `ResetTickNumbers()` (`player.go:459`) alongside `campfireBound` and
-   `rejectedSkill`. ⚑ **Ordering is already correct and worth stating:**
+   `rejectedSkill`. ⚑ **[audit] carry the tie-break on the player, not in a
+   per-tick map:** `NoteInteractable(id, distSq)` keeps the nearer of what it is
+   handed and `ResetTickNumbers` clears both fields, which satisfies L17's
+   nearest-by-centre rule in two comparisons and with **zero new per-tick
+   allocation** — the alternative (a `map[playerID]best` rebuilt each tick) adds
+   garbage to the idle loop that `fe0044d0` exists to keep out. (`sys/` has no
+   alloc pin today — `phy`, `model` and `model/mob` do — so this is house rule,
+   not a failing test.) ⚑ **Ordering is already correct and worth stating:**
    `StatusEffectsSystem` (priority **101**) clears → `InteractionSystem`
    (priority **20**) stamps → `PostUpdateSystem` (priority **−80**) serializes.
    The exact `campfire_bound` pattern; no new sequencing risk.
@@ -1151,12 +1185,25 @@ suppression comes from `KeyboardManager`, not from `Controls` — verify with th
 chat box open, it is the one guard not inherited by construction, and L15 records why.
 
 **The rebind** (D9): `cooldownHotkeys = [Q, E, F]` → `[Q, R, F]`, and the
-comment above it updated to name `E` as interact.
+comment above it updated to name `E` as interact. ⚑ **[audit] the file is
+`src/features/controls/logic/Controls.ts`** (the array is at :56, the
+`[PLACEHOLDER bindings…]` comment at :54) — L15 and D9 both write `Controls.ts:57`
+without the `logic/` segment.
 
-**The badge** is a world-anchored child container on the entity's sprite — the
-same pattern as `AuraTickIndicator`, `EffectPips` and the nameplate, all of
-which already hang off mob sprites, and 3a moved all 14 NPC sprite classes onto
-that `Mobs` path. Driven purely by `GameState.interactable_entity_id`: the
+**The badge** is a world-anchored child container on the entity's sprite, and 3a
+moved all 14 NPC sprite classes onto that `Mobs` path. ⚑ **[audit] only one of
+the three named precedents actually is that pattern.** `AuraTickIndicator` is —
+it takes the sprite as its parent (`new AuraTickIndicator(this.shape)`,
+`Mobs.ts:247` and `:280`). **The nameplate is not**: it lives on the separate
+unfiltered `Game.layers.characterAdditions.namePlates` overlay and is glued to
+the sprite per frame in `updatePlate` (`Mobs.ts:117-120`, `:188`), *deliberately*,
+because a plate must stay legible above the darkness layer — which is precisely
+why it then needs the explicit `DarknessOverlay.isHidden` call at `Mobs.ts:191`
+to hide itself again in unlit areas. **Follow `AuraTickIndicator`, not the
+plate**: parenting to `this.shape` puts the badge under the darkness filter with
+the NPC it labels, so it dims and vanishes exactly when its subject does, and no
+`isHidden` bookkeeping is needed. Driven purely by
+`GameState.interactable_entity_id`: the
 client shows it on `Game.map.getObject(id)` and hides the previous one when the
 id changes or goes to 0. ⚑ **Anchor it off the sprite's rendered bounds, not the
 wire `radius`** — 3a's own finding is that mob sprites size from
@@ -1165,17 +1212,26 @@ wire `radius`** — 3a's own finding is that mob sprites size from
 
 #### 6b.6 Implementation order
 
-The tree stays green at every step; only steps 2 and 3 must not be swapped.
+The tree stays green at every step; only the two halves of step 2 must not be
+split. **[audit] Six steps, not five** — player registration was missing.
 
 1. `.fbs` edits + regenerate both sides. Nothing reads them yet.
 2. **Server: `triggers` table entry + the `approach`-only guard on the
    evaluator call (L18), together.** Adding the table entry alone would let
    authored `interact` load while still granting on approach — the exact silent
    double-fire the guard exists to prevent.
-3. Server: the stamp, the `Interact` drain + validation, `speak()`'s recipient.
-4. Content: 14 files flip. Boot `-content ../api` — this is where a wrong
+3. **[audit] Server: player registration first** — `AddPlayer` + the `Remove`
+   sweep + the `game.go` player-branch case (§6b.3 step 3). Split out because it
+   is the one step the plan had missed entirely, and because everything in step 4
+   is unwritable without it: there is no player list to stamp or drain from.
+   Landing it alone is inert and green.
+4. Server: the stamp, then the `Interact` drain + validation, then `speak()`'s
+   recipient. ⚑ **stamp before drain inside `Update` (L20)** — the `EquipSystem`
+   shape this otherwise mirrors puts handlers first, which here refuses every
+   keypress.
+5. Content: 14 files flip. Boot `-content ../api` — this is where a wrong
    trigger table shows up.
-5. Frontend: rebind, key, badge.
+6. Frontend: rebind, key, badge.
 
 #### 6b.7 Test plan & acceptance
 
@@ -1186,8 +1242,13 @@ The tree stays green at every step; only steps 2 and 3 must not be swapped.
   changes *when* `evaluate()` is called, never what it does. Any diff there is
   a bug in the split.
 - Go, new: `interact` parses; an `interact` actor does **not** grant on the
-  sensor edge (L18); an `Interact` naming an actor the player was never told
-  about is refused; `interactable_entity_id` is stamped and cleared per tick;
+  sensor edge — **assert by walking into range and checking the spellbook, not
+  by pressing `E`** (L18 [audit]); a stamp and an `Interact` inside **one** tick
+  succeed, which is the L20 pin and the one test that would catch a
+  handlers-first `Update`; an `Interact` naming an actor the player was never
+  told about is refused; a disconnected player is dropped from the system's own
+  slice (§6b.3 step 3's `Remove` sweep);
+  `interactable_entity_id` is stamped and cleared per tick;
   nearest wins with two overlapping sensors; the reply reaches only the
   interactor (D13) while an `approach` actor still fans out.
 - Codec: a `GameState` round-trip pinning the new field, mirroring
@@ -1438,16 +1499,49 @@ the client was actually told, not a second geometry implementation that could
 disagree with the badge. The one-tick grace is forgiving in the player's favour.
 ⚑ Where two conversants' sensors overlap (a town square), the stamp must pick
 one deterministically — **nearest by centre distance**; otherwise the badge
-flickers between them as map iteration order changes.
+flickers between them as map iteration order changes. ⚑ **[audit] do the
+tie-break on the player, not in a scratch map** — see §6b.3 step 6.
+
+**L20 — [audit] inside `InteractionSystem.Update`, the stamp must precede the
+drain, and getting it backwards refuses every keypress.** `ResetTickNumbers`
+(`StatusEffectsSystem`, priority **101**) zeroes `interactableEntityID` at the
+top of every tick, *before* `InteractionSystem` (priority 20) runs. So a drain
+placed at the top of `Update` — which is the natural thing to write, because it
+is exactly what `EquipSystem.Update` does (`equip.go:58`, handlers first, no
+per-tick state to rebuild) — validates each incoming `Interact` against a field
+that is still 0, and **every interaction is silently refused.** The sensor loop
+must rebuild the stamp first, the drain second, in the same `Update`. This is
+L18's sibling: both are ordering traps whose symptom is "the key does nothing",
+both are invisible to the evaluator suite, and neither shows up in a build.
+Pin it with a test that stamps and interacts in one tick.
 
 **L18 — an `interact` actor must be skipped by the rising-edge grant path, or
 it grants twice.** The `seen` map keeps running under 3b-i — it is what drives
 the prompt — so the guard goes on the `evaluate()` **call**, not on the map.
 Without it, walking up to an NPC grants the skill (approach path) and pressing
 `E` grants it again (interact path); the second is a harmless no-op today only
-because `HasDiscovered` short-circuits, which means **the bug would present as
-"the conversation is empty when I press the key", not as a double grant.** This
-is why §6b.6 forbids splitting the table entry from the guard.
+because `HasDiscovered` short-circuits, which means **the bug presents as
+something other than a double grant.** This is why §6b.6 forbids splitting the
+table entry from the guard.
+
+⚑ **[audit] the predicted symptom was wrong, and the real one hides better.**
+This entry said the misfire would read as *"the conversation is empty when I
+press the key"*. It would not: **all 14 conversants author node `lines`**
+(verified 2026-07-27 — every one has `lines ≥ 1`, so `evaluate()`'s lore
+fallback can never return empty for them). The actual presentation is **"the NPC
+still ambushes me on walk-up, and `E` then just repeats its lore line"** — 3a's
+behaviour plus a key that appears to work. That is harder to catch in a smoke
+run than silence, because a bubble fires on both paths. So do not test the guard
+by pressing `E`: **walk into range and assert nothing was granted.**
+
+⚑ **[audit] a second-order note on D14's rationale.** D14 keeps `approach` partly
+on the grounds that "the machinery behind it is what drives the prompt". Precise
+version: the **sensor loop** drives the prompt, and it is unconditionally live.
+The **`seen` map** does not — it gates `evaluate()` on the approach path only,
+which after D11 has zero content users. D14's conclusion still stands (~5 lines,
+an obvious future want), but the `seen` map specifically is dormant after 3b-i,
+and a reader looking for "what keeps this alive" should not expect to find it in
+the prompt path.
 
 **L19 — the badge's anchor cannot read the wire radius.** 3a's own finding: mob
 sprite classes size from `GraphicsConfig` and ignore `Mob.radius`, while NPCs
@@ -1888,10 +1982,112 @@ what shipped, which commit, what was verified.)*
   editor** (D1 — NPC mode gone, NPCs placed with the spawn tool, teachings
   JSON-only), and the taste question a ~10 fps headless run cannot answer —
   whether they *read* right.
+- **Chunk 3b-i — the interact verb: ✅ DONE 2026-07-27**, wire + backend +
+  frontend + content, 12 modified + 6 new (2 of them tests), committed
+  `[uncommitted]`. ✅ **HARNESS-VERIFIED in-game 2026-07-27** — the new
+  `chunk3b-interact.mjs` (kept) **15/15, 0 console errors, 0 webgl context
+  losses**. ⏳ PO's own sign-off deferred to the single pass after all open
+  chunks land (PO 2026-07-27).
+
+  **Talking is now something a player DOES.** All 14 conversants author
+  `trigger: "interact"`; the sensor that used to open the conversation now only
+  *offers* it. `GameState.interactable_entity_id` carries the offer, an
+  `Interact` message accepts it, and the server validates the second against the
+  first.
+
+  **Shipped as §6b specified, with one step the plan had missed.** `.fbs`:
+  `table Interact` appended to `ClientMessageBody` (**value 8**) and
+  `interactable_entity_id` appended to `GameState`; **`ServerMessageBody`
+  untouched**, so L16 stayed unexercised as D10 intended (both unions gained an
+  APPEND-ONLY comment). Server: the `triggers` table entry **plus** the
+  `approach`-only guard on the `evaluate()` call, together in one step (L18);
+  `sense()` stamps, `handleInteracts()` drains; `speak()` took its audience as an
+  argument and grew `speakToSensor()` for the approach path (D13), marshalling
+  once and fanning rather than once per recipient. Player: `interactableEntityID`
+  + `interactableDistSq`, cleared in `ResetTickNumbers`. Frontend: `E` bound on
+  the existing edge-triggered hotkey path, cooldown slot 2 `E` → `R` (D9), and a
+  world-anchored key cap on the mob's own shape.
+
+  **⚑ The step the plan missed, and it was blocking: `InteractionSystem` had no
+  players.** §6b.3 said the handler "lives in `InteractionSystem` (it owns the
+  actor list and the evaluator)" — it owns the actor list and *nothing else*. The
+  system is registered only in the **mob** branch of the add-entity matrix
+  (`game.go:298`), so there was no queue to drain from and nothing to stamp onto.
+  Added on the `EquipSystem` precedent: a `players []interactor` slice behind a
+  minimal local interface, `AddPlayer`, a player-branch case, **and a `Remove`
+  sweep for players** — without which every disconnect leaks a player and keeps
+  draining a dead client's queue. Found by a pre-flight code audit of the plan,
+  before the first edit.
+
+  **⚑ New landmine L20, the sibling of L18: inside `Update`, the stamp must
+  precede the drain.** `ResetTickNumbers` (priority 101) zeroes the field before
+  `InteractionSystem` (priority 20) runs, so a handlers-first `Update` — which is
+  exactly the shape `EquipSystem.Update` uses and the natural thing to write —
+  validates every incoming `Interact` against 0 and **silently refuses all of
+  them**. Both traps present as "the key does nothing", both are invisible to the
+  evaluator suite, and neither shows up in a build. Pinned by a test that stamps
+  and interacts in the same tick.
+
+  **⚑ L18's predicted symptom was wrong, and the audit corrected it before it
+  cost anything.** The landmine said a missing guard would read as *"the
+  conversation is empty when I press the key"*. It would not: **all 14
+  conversants author node `lines`** (verified), so the lore fallback can never
+  return empty for them. The real presentation is *the NPC still ambushes you on
+  walk-up and `E` merely repeats its lore line* — harder to catch, because a
+  bubble fires on both paths. The test therefore walks into range and asserts
+  **nothing was granted**, rather than pressing the key.
+
+  **2 bugs the harness caught that no test could.** ① The cooldown slot 2 key
+  hint is authored in **`HUD.html`**, not derived from `Controls.ts` — it still
+  read `E`, so the UI would have taught the old key while the code used the new
+  one. ② The badge anchor used `bounds.height / 2`, but a mob's shape is **not
+  centred on its origin** (Farmer: `y −73.5`, height `115.5`), so the cap landed
+  on the NPC's face; it reads `bounds.y` now. That is **L19 biting anyway** — the
+  landmine correctly said "measure the container", and measuring the wrong
+  property of it still put the badge in the wrong place.
+
+  **Verified.** TDD red first — inverting
+  `TestParseTrigger_InteractIsNotAuthorableYet` was the opening move, as planned,
+  and `TestMapMobDefinition_RejectsInteractTrigger` inverted with it. The **373-line
+  ported evaluator suite stayed green UNTOUCHED**; one call site changed
+  (`speak` → `speakToSensor`) and no evaluator behaviour did. ⚑ A first cut
+  called `a.Interaction()` twice per rising edge and broke
+  `countingConversant`'s call count — hoisting it into a local kept that suite
+  untouched, which is precisely the signal the "untouched" rule exists to give.
+  New: the approach guard (asserted on the spellbook), stamp-and-interact in one
+  tick (L20), an unoffered actor refused, the private reply vs the approach
+  fan-out, nearest-wins in both registration orders, the `Remove` player sweep, a
+  `GameState` round-trip pair, and 6 vitest cases over the badge's pure targeting
+  logic. `go build`/`go vet` clean · `go test ./...` **exit 0** · simharness
+  guardrails and alloc pins **`-count=2`** · frontend typecheck + **27 vitest
+  passing** + prod build. Boot **both ways** 0 errors 0 warnings 0 panics —
+  83 skills/15 factions/64 mobs/10 recipes/5 prop defs/1 milestone/777 props/485
+  spawns/5 campfires.
+
+  **⭐ Sim byte-identity was REQUIRED, not merely expected, and it held:** the
+  default battery, `-levels`, `-matrix` and `-chain` all diff clean against a
+  `git worktree` HEAD build (TTK 6.67s / TTD 8.70s). 3b-i moves no gameplay
+  number, so any drift would have been a bug.
+
+  **⚑ Harness finding worth carrying forward: a fixed walk duration cannot reach
+  these actors.** The talk sensor is ~1 unit wide and headless walking speed
+  swung from ~0.5 to ~1.5 units/s **within one session**, so a walk tuned for the
+  Farmer sailed straight past the Emberkeeper — the badge lit and went out inside
+  a single burst, reading exactly like "the badge never lit". Two full runs
+  failed on it before a position probe showed the overshoot. `walkUntilBadge()`
+  walks in 0.5 s bursts and stops on the state flip. Second, smaller: reading the
+  cooldown-slot text *after* firing `R` reported the post-`R` state for both
+  checks, making a correct PASS read as a contradiction.
+
+  **Not closed by 3b-i:** the dialogue panel (3b-ii); `option.text` and `next`
+  still read by nothing; NPC nameplates (D12 chose the bare badge); **L2**
+  (`SetFaction` nuking the authored aggro mask). The badge's exact height above
+  the sprite is a **[PLACEHOLDER]** — it reads correctly but sits close to the
+  head, which is a taste question for the PO pass.
 - **Chunk 3b — interact verb + dialogue panel: PLANNED 2026-07-27** ✅ `85afcdb1`
   (design session, no code). Split into **3b-i (the verb)** and **3b-ii (the panel)** —
   §6b is the plan, 7 new PO decisions **D8–D14**, 5 new landmines **L15–L19**.
-  Neither half is started. The planning session's own finding is D9's:
+  **3b-i is now DONE (entry above); 3b-ii is not started.** The planning session's own finding is D9's:
   **this plan had been recommending `E`, which is already the cooldown-slot-2
   hotkey** (L15). Two more that shaped it: the client had **no way to know who
   is interactable** (`GET /mobs` is a minimal projection), resolved as a

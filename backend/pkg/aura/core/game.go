@@ -360,6 +360,10 @@ func (g *game) addPlayer(p model.PlayerEntity) {
 			s.AddEntity(p)
 		case *equip.EquipSystem:
 			s.AddPlayer(p)
+		case *sys.InteractionSystem:
+			// The mob branch registers conversants; this side registers who
+			// can talk TO them, which is every player (chunk 3b-i).
+			s.AddPlayer(p)
 		}
 	}
 }

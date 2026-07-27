@@ -283,6 +283,13 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 		AuraApi.GameStateAddActivationRejectedSkillId(builder, uint16(id))
 		AuraApi.GameStateAddActivationRejectedReason(builder, byte(reason))
 	}
+	// Who the player can talk to right now (chunk 3b-i). Unlike the fields
+	// above this is live STATE, not a one-shot: it is re-stamped every tick by
+	// the InteractionSystem while the player stands in range, and 0 (the
+	// default, so nothing is written) means nobody.
+	if id := gs.Player.Interactable(); id != 0 {
+		AuraApi.GameStateAddInteractableEntityId(builder, id)
+	}
 
 	return AuraApi.GameStateEnd(builder)
 }

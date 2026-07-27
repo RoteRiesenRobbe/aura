@@ -153,6 +153,20 @@ type player struct {
 	rejectedSkill  skills.SkillID
 	rejectedReason model.ActivationRejection
 
+	// interactableEntityID is the conversant this player can talk to right now
+	// (chunk 3b-i); 0 = none. Re-stamped every tick by the InteractionSystem
+	// from its sensors and cleared alongside the accumulators above, so it is
+	// live state rather than an event — there is no enter/leave bookkeeping to
+	// desync. It drives the client's interact badge AND validates the Interact
+	// message that badge produces, which is what stops the two disagreeing.
+	//
+	// interactableDistSq carries the nearest-wins tie-break (L17) here instead
+	// of in a per-tick scratch map in the system: where two sensors overlap the
+	// stamp must be deterministic or the badge flickers, and doing it with two
+	// comparisons on the player keeps the idle loop allocation-free.
+	interactableEntityID uint64
+	interactableDistSq   float32
+
 	// healthRegen accumulates sub-1-HP out-of-combat regen (item 11 Phase 1):
 	// with absolute integer HP the per-tick regen is often < 1 HP, so it is
 	// carried here and applied once a whole HP has built up.
@@ -381,6 +395,23 @@ func (p *player) ActivationRejected() (skills.SkillID, model.ActivationRejection
 	return p.rejectedSkill, p.rejectedReason
 }
 
+// Interactable reports the conversant this player can talk to this tick
+// (chunk 3b-i); 0 = none. Serialized as interactable_entity_id, and compared
+// against an incoming Interact to decide whether to honour it.
+func (p *player) Interactable() uint64 { return p.interactableEntityID }
+
+// NoteInteractable offers a conversant at squared distance distSq; the nearest
+// offer of the tick wins (L17). The InteractionSystem calls it once per actor
+// whose sensor holds this player, in whatever order its actor list happens to
+// be in — hence the comparison rather than a plain assignment.
+func (p *player) NoteInteractable(id uint64, distSq float32) {
+	if p.interactableEntityID != 0 && distSq >= p.interactableDistSq {
+		return
+	}
+	p.interactableEntityID = id
+	p.interactableDistSq = distSq
+}
+
 // NoteActivationRejected records a precondition-refused cooldown activation
 // this tick; the SkillSystem calls it.
 func (p *player) NoteActivationRejected(skill skills.SkillID, reason model.ActivationRejection) {
@@ -465,6 +496,8 @@ func (p *player) ResetTickNumbers() {
 	p.campfireBound = false
 	p.rejectedSkill = 0
 	p.rejectedReason = model.ActivationRejectedNone
+	p.interactableEntityID = 0
+	p.interactableDistSq = 0
 	p.buffs.Tick()
 	// Age the companion combat signals (chunk 6); the refs stay until
 	// re-stamped, the getters gate on the remaining window.

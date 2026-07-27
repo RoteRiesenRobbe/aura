@@ -106,6 +106,22 @@ func unmarshalEquip(e *AuraApi.Equip) *model.EquipSkill {
 	}
 }
 
+func unwrapInteract(msg *AuraApi.ClientMessage) *AuraApi.Interact {
+	i := &AuraApi.Interact{}
+	err := fbutil.UnwrapUnion[AuraApi.ClientMessageBody](msg, i)
+	if err != nil {
+		return nil
+	}
+	return i
+}
+
+func unmarshalInteract(i *AuraApi.Interact) *model.Interact {
+	if i == nil {
+		return nil
+	}
+	return &model.Interact{EntityID: i.EntityId()}
+}
+
 func unwrapSpendSkillPoint(msg *AuraApi.ClientMessage) *AuraApi.SpendSkillPoint {
 	i := &AuraApi.SpendSkillPoint{}
 	err := fbutil.UnwrapUnion[AuraApi.ClientMessageBody](msg, i)
@@ -173,6 +189,11 @@ func EquipMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.EquipSki
 func RespawnMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.Respawn {
 	fbutil.AssertBodyType[AuraApi.ClientMessageBody](msg, AuraApi.ClientMessageBodyRespawn)
 	return &model.Respawn{}
+}
+
+func InteractMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.Interact {
+	fbutil.AssertBodyType[AuraApi.ClientMessageBody](msg, AuraApi.ClientMessageBodyInteract)
+	return unmarshalInteract(unwrapInteract(msg))
 }
 
 func SpendSkillPointMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.SpendSkillPoint {

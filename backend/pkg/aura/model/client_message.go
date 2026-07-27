@@ -30,6 +30,15 @@ type EquipSkill struct {
 // the client is a dead spectator.
 type Respawn struct{}
 
+// Interact is a request to open a conversation with the actor the server told
+// this client is in range (GameState.interactable_entity_id, chunk 3b-i). The
+// id is echoed back rather than implied so a stale keypress names what the
+// player actually saw; the server refuses anything that does not match the
+// value it stamped this tick.
+type Interact struct {
+	EntityID uint64
+}
+
 // SpendSkillPoint is a one-shot request to spend (or, with Unspend, refund)
 // one skill point on a discovered skill, raising/lowering its spellbook level
 // by one. The server validates point availability and level bounds.

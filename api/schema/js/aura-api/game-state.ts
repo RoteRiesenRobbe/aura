@@ -176,8 +176,13 @@ activationRejectedReason():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+interactableEntityId():bigint {
+  const offset = this.bb!.__offset(this.bb_pos, 38);
+  return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(17);
+  builder.startObject(18);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -357,12 +362,16 @@ static addActivationRejectedReason(builder:flatbuffers.Builder, activationReject
   builder.addFieldInt8(16, activationRejectedReason, 0);
 }
 
+static addInteractableEntityId(builder:flatbuffers.Builder, interactableEntityId:bigint) {
+  builder.addFieldInt64(17, interactableEntityId, BigInt('0'));
+}
+
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number, spellbookLevelsOffset:flatbuffers.Offset, skillPoints:number, passiveSlotsOffset:flatbuffers.Offset, cooldownSlotsOffset:flatbuffers.Offset, cooldownRemainingTicksOffset:flatbuffers.Offset, castSkillId:number, castTicksLeft:number, castTicksTotal:number, activationRejectedSkillId:number, activationRejectedReason:number):flatbuffers.Offset {
+static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number, spellbookLevelsOffset:flatbuffers.Offset, skillPoints:number, passiveSlotsOffset:flatbuffers.Offset, cooldownSlotsOffset:flatbuffers.Offset, cooldownRemainingTicksOffset:flatbuffers.Offset, castSkillId:number, castTicksLeft:number, castTicksTotal:number, activationRejectedSkillId:number, activationRejectedReason:number, interactableEntityId:bigint):flatbuffers.Offset {
   GameState.startGameState(builder);
   GameState.addTick(builder, tick);
   GameState.addPlayerType(builder, playerType);
@@ -381,6 +390,7 @@ static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Play
   GameState.addCastTicksTotal(builder, castTicksTotal);
   GameState.addActivationRejectedSkillId(builder, activationRejectedSkillId);
   GameState.addActivationRejectedReason(builder, activationRejectedReason);
+  GameState.addInteractableEntityId(builder, interactableEntityId);
   return GameState.endGameState(builder);
 }
 }

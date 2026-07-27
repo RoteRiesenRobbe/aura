@@ -57,6 +57,12 @@ func addPlayerCollider(space *phy.Space, p *fakePlayer, pos phy.Vec2f) *phy.Circ
 
 func sentOf(p *fakePlayer) [][]byte { return p.client.(*fakeClient).sent }
 
+// pressInteract queues one Interact naming id, as the client's E key does.
+func pressInteract(p *fakePlayer, id uint64) {
+	c := p.client.(*fakeClient)
+	c.interacts = append(c.interacts, &model.Interact{EntityID: id})
+}
+
 func unlocksOf(p *fakePlayer) []capturedUnlock { return p.client.(*fakeClient).unlocks }
 
 // decodeEntityMessage unwraps the wire bytes speak() produces back into the
@@ -93,6 +99,14 @@ func teachingInteraction(blockedLine string, lines []string, grants ...mobs.Inte
 		node.Options = []mobs.InteractionOption{{BlockedLine: blockedLine, Grants: grants}}
 	}
 	return &mobs.Interaction{Trigger: mobs.TriggerApproach, Nodes: []mobs.InteractionNode{node}}
+}
+
+// interactInteraction is the same degenerate node under the 3b-i verb: the
+// conversation waits for a keypress instead of opening on the sensor edge.
+func interactInteraction(blockedLine string, lines []string, grants ...mobs.InteractionGrant) *mobs.Interaction {
+	in := teachingInteraction(blockedLine, lines, grants...)
+	in.Trigger = mobs.TriggerInteract
+	return in
 }
 
 // --- evaluate: grant logic (ported from onApproach) ---
@@ -328,6 +342,208 @@ func TestInteractionSystem_RisingEdgeAntiSpamAndReTrigger(t *testing.T) {
 	assert.Equal(t, 2, n.calls, "leave + re-enter re-triggers")
 }
 
+// L18: an `interact` actor must be skipped by the rising-edge grant path. The
+// assertion is deliberately on the SPELLBOOK and on silence, not on pressing
+// the key: all 14 conversants author lore lines, so a missing guard does not
+// present as an empty conversation — it presents as the pre-3b ambush, with a
+// bubble that looks correct. Nothing may happen on approach at all.
+func TestInteractionSystem_InteractActorDoesNotGrantOnApproach(t *testing.T) {
+	space := phy.NewSpace()
+
+	m := mob.NewMob(npcDef("Farmer", interactInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal"))), 0, nil)
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+	addNpcToSpace(t, space, m)
+
+	p := newFakePlayer()
+	p.level = 10
+	addPlayerCollider(space, p, phy.Vec2f{X: 1, Y: 0})
+
+	s := NewInteractionSystem()
+	s.AddEntity(m)
+
+	for i := 0; i < 4; i++ {
+		space.Update()
+		s.Update(33.0)
+	}
+
+	assert.False(t, p.sc.HasDiscovered(1), "an interact actor must not teach on approach")
+	assert.Empty(t, sentOf(p), "and must not speak on approach either")
+	assert.Empty(t, unlocksOf(p), "so no attribution banner fires")
+}
+
+// The approach trigger keeps working untouched — D14 keeps it in the table with
+// zero content users, and this is what proves the guard discriminates rather
+// than disabling the path.
+func TestInteractionSystem_ApproachActorStillGrantsOnApproach(t *testing.T) {
+	space := phy.NewSpace()
+
+	m := mob.NewMob(npcDef("Farmer", teachingInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal"))), 0, nil)
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+	addNpcToSpace(t, space, m)
+
+	p := newFakePlayer()
+	p.level = 10
+	addPlayerCollider(space, p, phy.Vec2f{X: 1, Y: 0})
+
+	s := NewInteractionSystem()
+	s.AddEntity(m)
+
+	space.Update()
+	s.Update(33.0)
+
+	assert.True(t, p.sc.HasDiscovered(1), "approach still teaches on the sensor edge")
+}
+
+// --- the interact verb (chunk 3b-i) ---
+
+// interactFixture wires the standard 3b-i scene: one interact-triggered actor
+// at the origin, one registered player 1 unit away, inside the sensor.
+func interactFixture(t *testing.T, in *mobs.Interaction) (*InteractionSystem, *phy.Space, *mob.Mob, *fakePlayer) {
+	t.Helper()
+	space := phy.NewSpace()
+
+	m := mob.NewMob(npcDef("Farmer", in), 0, nil)
+	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
+	addNpcToSpace(t, space, m)
+
+	p := newFakePlayer()
+	p.level = 10
+	p.SetPosition(phy.Vec2f{X: 1, Y: 0})
+	addPlayerCollider(space, p, phy.Vec2f{X: 1, Y: 0})
+
+	s := NewInteractionSystem()
+	s.AddEntity(m)
+	s.AddPlayer(p)
+	return s, space, m, p
+}
+
+// The prompt: standing in range stamps who the player could talk to, which is
+// the single value the client's badge and the server's validation both use.
+func TestInteractionSystem_StampsInteractableWhileInRange(t *testing.T) {
+	s, space, m, p := interactFixture(t, interactInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+
+	space.Update()
+	s.Update(33.0)
+
+	assert.Equal(t, m.Basic().ID(), p.Interactable(), "an actor in range is offered")
+	assert.Empty(t, sentOf(p), "but offering is not speaking")
+}
+
+// ⚑ L20. The stamp and the drain live in one Update, and the stamp must come
+// first: ResetTickNumbers zeroed the field at the top of this tick, so a
+// handlers-first Update would validate every keypress against 0 and refuse it.
+// This is the test that fails if the two halves are ever reordered.
+func TestInteractionSystem_StampAndInteractInTheSameTick(t *testing.T) {
+	s, space, m, p := interactFixture(t, interactInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+
+	// The keypress is already queued when the tick begins — the ordinary case,
+	// since the client sends it a tick or more before the server drains it.
+	pressInteract(p, m.Basic().ID())
+
+	space.Update()
+	s.Update(33.0)
+
+	assert.True(t, p.sc.HasDiscovered(1), "the conversation opens on the key")
+	require.Len(t, sentOf(p), 1, "and the actor speaks")
+}
+
+// Range enforcement: the server honours only the actor it told this player
+// about. Naming a real conversant that is out of range is refused without a
+// word — a stale keypress from a player who walked away is ordinary, not an
+// error. This is the whole of the range check: one comparison against the value
+// the client was given, never a second geometry implementation that could
+// disagree with the badge it drew.
+func TestInteractionSystem_RefusesUnofferedActor(t *testing.T) {
+	s, space, near, p := interactFixture(t, interactInteraction("", []string{"near"}))
+
+	// A second conversant, well outside the player's reach, teaching skill 1.
+	far := mob.NewMob(npcDef("Hermit", interactInteraction("too low", nil, grant(1, 1, "learned heal"))), 0, nil)
+	far.SetPosition(phy.Vec2f{X: 50, Y: 0})
+	addNpcToSpace(t, space, far)
+	s.AddEntity(far)
+
+	pressInteract(p, far.Basic().ID())
+	space.Update()
+	s.Update(33.0)
+
+	assert.Equal(t, near.Basic().ID(), p.Interactable(), "only the near actor was offered")
+	assert.False(t, p.sc.HasDiscovered(1), "so the far one is refused")
+	assert.Empty(t, sentOf(p), "silently")
+}
+
+// D13: a conversation the player opened is private to them — a crowded town
+// square must not fill with other people's teaching lines.
+func TestInteractionSystem_InteractReplyIsPrivate(t *testing.T) {
+	s, space, m, p := interactFixture(t, interactInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+
+	bystander := newFakePlayer()
+	bystander.level = 10
+	bystander.SetPosition(phy.Vec2f{X: -1, Y: 0})
+	addPlayerCollider(space, bystander, phy.Vec2f{X: -1, Y: 0})
+	s.AddPlayer(bystander)
+
+	pressInteract(p, m.Basic().ID())
+	space.Update()
+	s.Update(33.0)
+
+	require.Len(t, sentOf(p), 1, "the interactor hears the reply")
+	assert.Empty(t, sentOf(bystander), "someone standing next to them does not")
+	assert.Equal(t, m.Basic().ID(), bystander.Interactable(), "though they are offered the same actor")
+}
+
+// ...while the approach trigger stays ambient, which is why speak takes its
+// audience as an argument instead of losing the fan-out.
+func TestInteractionSystem_ApproachSpeechStillFansOut(t *testing.T) {
+	s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+
+	bystander := newFakePlayer()
+	bystander.level = 10
+	bystander.SetPosition(phy.Vec2f{X: -1, Y: 0})
+	addPlayerCollider(space, bystander, phy.Vec2f{X: -1, Y: 0})
+
+	space.Update()
+	s.Update(33.0)
+
+	assert.NotEmpty(t, sentOf(p), "approach speech reaches everyone standing around")
+	assert.NotEmpty(t, sentOf(bystander))
+	_ = m
+}
+
+// L17: where two sensors overlap, the stamp must be deterministic or the badge
+// flickers between them as iteration order changes. Nearest by centre wins.
+func TestInteractionSystem_NearestConversantWins(t *testing.T) {
+	space := phy.NewSpace()
+
+	near := mob.NewMob(npcDef("Farmer", interactInteraction("", []string{"near"})), 0, nil)
+	near.SetPosition(phy.Vec2f{X: 1, Y: 0})
+	addNpcToSpace(t, space, near)
+
+	far := mob.NewMob(npcDef("Hermit", interactInteraction("", []string{"far"})), 0, nil)
+	far.SetPosition(phy.Vec2f{X: -2, Y: 0})
+	addNpcToSpace(t, space, far)
+
+	p := newFakePlayer()
+	p.level = 10
+	p.SetPosition(phy.Vec2f{X: 0, Y: 0})
+	addPlayerCollider(space, p, phy.Vec2f{X: 0, Y: 0})
+
+	s := NewInteractionSystem()
+	// Registered far-first, so a system that simply took the last offer would
+	// pick the near one by accident and pass. Both orders are asserted below.
+	s.AddEntity(far)
+	s.AddEntity(near)
+	s.AddPlayer(p)
+
+	space.Update()
+	s.Update(33.0)
+	assert.Equal(t, near.Basic().ID(), p.Interactable(), "the nearer actor wins")
+
+	p.interactableID, p.interactableDistSq = 0, 0
+	s.actors[0], s.actors[1] = s.actors[1], s.actors[0]
+	s.Update(33.0)
+	assert.Equal(t, near.Basic().ID(), p.Interactable(), "regardless of registration order")
+}
+
 // A mob with nothing to say is not registered at all — capability, not type.
 func TestInteractionSystem_IgnoresNonConversantMobs(t *testing.T) {
 	s := NewInteractionSystem()
@@ -348,6 +564,20 @@ func TestInteractionSystem_RemoveDropsActorAndItsEdgeState(t *testing.T) {
 
 	assert.Empty(t, s.actors)
 	assert.NotContains(t, s.seen, m.Basic().ID())
+}
+
+// ecs.World calls Remove on every system for every removed entity, so the
+// players list needs the same sweep the actors list has — otherwise each
+// disconnect leaks a player whose client queue keeps being drained (3b-i).
+func TestInteractionSystem_RemoveDropsPlayer(t *testing.T) {
+	p := newFakePlayer()
+	s := NewInteractionSystem()
+	s.AddPlayer(p)
+	require.Len(t, s.players, 1)
+
+	s.Remove(p.Basic())
+
+	assert.Empty(t, s.players, "a disconnected player must not stay registered")
 }
 
 // The attribution label is the definition's display name — the same one the

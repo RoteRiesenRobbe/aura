@@ -18,6 +18,7 @@ import * as Urls from './Urls';
 import {GameState, IGame} from "../../core/logic/IGame";
 import {BackendState, IBackend} from "./IBackend";
 import {Session} from "../../accounts/logic/Session";
+import {Badgeable, retargetInteractBadge} from "./InteractBadgeTargeting";
 import {Develop} from "../../internal-tools/develop/logic/_Develop";
 import {
     BackendConnectionFailureEvent,
@@ -41,6 +42,11 @@ export class Backend implements IBackend {
     webSocket: WebSocket;
     lastMessageReceivedTime: number;
     firstPongReceived = false;
+
+    // The entity currently wearing the interact badge (chunk 3b-i); 0 = none.
+    // Tracked so the previous one can be cleared when the server names a
+    // different actor or nobody — the badge is state, not an event.
+    private interactableEntityId = 0;
 
     public setup(game: IGame): void {
         this.game = game;
@@ -335,9 +341,30 @@ export class Backend implements IBackend {
             this.game.map.addOrUpdate(entity);
         });
 
+        // Interact badge (chunk 3b-i). After addOrUpdate, so an actor that
+        // entered the viewport this same tick already has a game object to
+        // hang the prompt on.
+        this.updateInteractBadge(snapshot.interactableEntityId ?? 0);
+
         if (!this.firstGameStateReceived) {
             this.firstGameStateResolve();
             this.firstGameStateReceived = true;
         }
+    }
+
+    /**
+     * The actor this player can talk to right now; 0 = nobody. The interact
+     * key reads it so the message names exactly what the badge is drawn on.
+     */
+    public getInteractableEntityId(): number {
+        return this.interactableEntityId;
+    }
+
+    /** Move the interact badge to whichever entity the server named, or clear it. */
+    private updateInteractBadge(id: number): void {
+        this.interactableEntityId = retargetInteractBadge(
+            this.interactableEntityId,
+            id,
+            (entityId) => this.game.map.getObject(entityId) as Badgeable);
     }
 }

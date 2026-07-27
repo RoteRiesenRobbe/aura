@@ -24,6 +24,7 @@ export class Snapshot {
     castTicksTotal: number;
     activationRejectedSkillId: number; // one-tick rejection feedback; 0 = none
     activationRejectedReason: number;
+    interactableEntityId: number; // conversant in talking range (3b-i); 0 = none
 }
 
 export function newSnapshot(backendState: BackendState, gameState: GameStateMessage) {
@@ -67,6 +68,10 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         snapshot.castTicksTotal = gameState.castTicksTotal;
         snapshot.activationRejectedSkillId = gameState.activationRejectedSkillId;
         snapshot.activationRejectedReason = gameState.activationRejectedReason;
+        // Always carried, like the scalars above: it is live state, so "absent"
+        // has to be distinguishable from "nobody in range" — the delta snapshot
+        // would otherwise leave a stale badge lit after walking away.
+        snapshot.interactableEntityId = gameState.interactableEntityId;
     } else {
         // First snapshot: assign the whole GameStateMessage, which already carries spellbook.
         snapshot = gameState;

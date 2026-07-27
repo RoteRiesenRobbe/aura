@@ -14,6 +14,7 @@ import {createInjectedSVG} from "../../core/logic/InjectedSVG";
 import {AuraTickIndicator} from './AuraTickIndicator';
 import {AuraRingStack} from './AuraRings';
 import {EffectPips} from './EffectPips';
+import {InteractBadge} from './InteractBadge';
 import {meter2px} from "../../../client-data/BasicConfig";
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {ISvgContainer} from "../../core/logic/ISvgContainer";
@@ -87,6 +88,11 @@ export abstract class Mob extends GameObject {
     // once per effective tick interval — reading a mob's beat to dodge its
     // ticks is the design-critical use case.
     private auraTickIndicator: AuraTickIndicator = null;
+    // Interact prompt (chunk 3b-i): shown only while the server names this
+    // entity in GameState.interactable_entity_id. Created lazily on the first
+    // show, so the overwhelming majority of mobs — which nobody can talk to —
+    // never build one.
+    private interactBadge: InteractBadge = null;
     // Level-tinted nameplate (feedback pass C item 2). Like the character
     // plate it lives on the UNFILTERED namePlates overlay: the whole point of
     // the plate is its colour, and the night filter would recolour a tint
@@ -206,11 +212,31 @@ export abstract class Mob extends GameObject {
         this.nameElement.style.fill = difficultyColor(definition.curveLevel);
     }
 
+    /**
+     * Show or hide the interact prompt over this mob (chunk 3b-i). Purely
+     * server-driven: the caller passes whether this entity is the one named in
+     * GameState.interactable_entity_id, so the badge and the server's own range
+     * check can never disagree.
+     */
+    setInteractable(interactable: boolean) {
+        if (!interactable && this.interactBadge === null) {
+            return; // the common case: no badge, and none wanted
+        }
+        if (this.interactBadge === null) {
+            this.interactBadge = new InteractBadge(this.shape);
+        }
+        this.interactBadge.setVisible(interactable);
+    }
+
     // Terminal for a mob: EntityManager deletes the object on removal and
     // builds a fresh one if the mob re-enters the viewport, so the overlay
     // plate is released with it (the Character.hide precedent).
     override hide() {
         super.hide();
+        if (this.interactBadge !== null) {
+            this.interactBadge.destroy();
+            this.interactBadge = null;
+        }
         if (this.plateSubToken !== null) {
             this.plateSubToken.unsubscribe();
             this.plateSubToken = null;

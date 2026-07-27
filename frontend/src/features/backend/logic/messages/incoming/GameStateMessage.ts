@@ -49,6 +49,9 @@ export class GameStateMessage {
     // precondition — which skill and why (0 = none)
     activationRejectedSkillId: number;
     activationRejectedReason: number;
+    // the conversant the owning player can talk to right now; 0 = none. Live
+    // state, re-sent every tick while in range (chunk 3b-i)
+    interactableEntityId: number;
 
     constructor(gameState: AuraApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -109,6 +112,8 @@ export class GameStateMessage {
 
         this.activationRejectedSkillId = gameState.activationRejectedSkillId();
         this.activationRejectedReason = gameState.activationRejectedReason();
+
+        this.interactableEntityId = Number(gameState.interactableEntityId());
     }
 }
 

@@ -33,6 +33,10 @@ type Client interface {
 	// from the client. Returns nil if none available.
 	NextRespawn() *Respawn
 
+	// NextInteract deques an Interact message received
+	// from the client. Returns nil if none available.
+	NextInteract() *Interact
+
 	// SendMessage enqueues a message in the outgoing
 	// messages queue
 	SendMessage([]byte) error

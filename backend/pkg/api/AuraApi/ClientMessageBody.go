@@ -15,6 +15,7 @@ const (
 	ClientMessageBodyEquip           ClientMessageBody = 5
 	ClientMessageBodySpendSkillPoint ClientMessageBody = 6
 	ClientMessageBodyRespawn         ClientMessageBody = 7
+	ClientMessageBodyInteract        ClientMessageBody = 8
 )
 
 var EnumNamesClientMessageBody = map[ClientMessageBody]string{
@@ -26,6 +27,7 @@ var EnumNamesClientMessageBody = map[ClientMessageBody]string{
 	ClientMessageBodyEquip:           "Equip",
 	ClientMessageBodySpendSkillPoint: "SpendSkillPoint",
 	ClientMessageBodyRespawn:         "Respawn",
+	ClientMessageBodyInteract:        "Interact",
 }
 
 var EnumValuesClientMessageBody = map[string]ClientMessageBody{
@@ -37,6 +39,7 @@ var EnumValuesClientMessageBody = map[string]ClientMessageBody{
 	"Equip":           ClientMessageBodyEquip,
 	"SpendSkillPoint": ClientMessageBodySpendSkillPoint,
 	"Respawn":         ClientMessageBodyRespawn,
+	"Interact":        ClientMessageBodyInteract,
 }
 
 func (v ClientMessageBody) String() string {

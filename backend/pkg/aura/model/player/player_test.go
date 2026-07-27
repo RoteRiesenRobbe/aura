@@ -266,6 +266,42 @@ func TestPlayer_HealReceived_AccumulatesAndResets(t *testing.T) {
 	assert.Zero(t, p.HealReceived())
 }
 
+// --- the interact prompt stamp (plan-entity-model.md chunk 3b-i) ---
+
+// The stamp is live state, not an accumulator: the InteractionSystem re-writes
+// it every tick from its sensors, so the clear is what makes walking away turn
+// the badge off.
+func TestPlayer_Interactable_StampsAndResets(t *testing.T) {
+	p := newTestPlayer(nil)
+
+	assert.Zero(t, p.Interactable(), "nobody in range to begin with")
+
+	p.NoteInteractable(42, 4.0)
+	assert.Equal(t, uint64(42), p.Interactable())
+
+	p.ResetTickNumbers()
+	assert.Zero(t, p.Interactable(), "walking away clears the offer")
+}
+
+// L17: overlapping sensors offer the same player several actors in whatever
+// order the system's actor list happens to be in. Nearest by centre wins, or
+// the badge flickers between them as that order changes.
+func TestPlayer_Interactable_NearestOfferWins(t *testing.T) {
+	p := newTestPlayer(nil)
+
+	p.NoteInteractable(7, 9.0)
+	p.NoteInteractable(8, 1.0) // nearer — takes over
+	p.NoteInteractable(9, 4.0) // further than 8 — ignored
+	assert.Equal(t, uint64(8), p.Interactable())
+
+	// The same offers in the opposite order settle on the same actor.
+	p.ResetTickNumbers()
+	p.NoteInteractable(9, 4.0)
+	p.NoteInteractable(8, 1.0)
+	p.NoteInteractable(7, 9.0)
+	assert.Equal(t, uint64(8), p.Interactable())
+}
+
 // --- resource unification (roadmap Block 2, Stage 1) ---
 
 // updateVitalSigns regenerates Health, the single resource (the survival

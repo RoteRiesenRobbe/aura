@@ -101,6 +101,18 @@ func TestContent_EveryConversantSpeaks(t *testing.T) {
 	}
 }
 
+// D11: nothing speaks unprompted. Every conversant authors the interact verb
+// explicitly — and the assertion matters precisely because an ABSENT trigger
+// still parses, defaulting to approach (D14 keeps that path for future ambient
+// lore). Without this pin a 15th NPC that simply omits the key would ship
+// ambushing players, and the failure would look like content, not a bug.
+func TestContent_EveryConversantWaitsForTheKey(t *testing.T) {
+	for name, def := range conversants(t) {
+		assert.Equal(t, TriggerInteract, def.Interaction.Trigger,
+			"%s must author trigger \"interact\" — an omitted trigger silently means approach", name)
+	}
+}
+
 // The two knobs that keep a merged NPC unattackable (D5). Both are authored, so
 // this is the pin that catches a content edit quietly making one killable —
 // the behavioural half is pinned in model/mob and sys.

@@ -28,6 +28,23 @@ type Conversant interface {
 	Sensor() phy.DynamicCollider
 }
 
+// interactor is the minimal player surface the system needs to honour an
+// Interact message (chunk 3b-i). It is deliberately narrower than
+// model.PlayerEntity — the equipEntity precedent — so the unit tests' doubles
+// stay small; model.PlayerEntity satisfies it at the call site in game.go.
+//
+// It embeds learner because applying a conversation IS the evaluator's job:
+// the player the message names is the player whose spellbook it mutates.
+type interactor interface {
+	learner
+	Basic() ecs.BasicEntity
+	Client() model.Client
+	// Interactable is the conversant this player was told is in range this
+	// tick — stamped by sense(), and the only thing an incoming Interact is
+	// validated against.
+	Interactable() uint64
+}
+
 // InteractionSystem drives conversations (chunk 3a; it replaced NpcSystem and
 // with it the whole model/npc type).
 //
@@ -44,6 +61,13 @@ type Conversant interface {
 // broadphase result, which is exactly what approach detection wants.
 type InteractionSystem struct {
 	actors []Conversant
+
+	// players is the drain side of the interact verb (chunk 3b-i). The system
+	// owns the actor list and the evaluator, so it is also where an incoming
+	// Interact is honoured — but until 3b-i it had no player list at all,
+	// because the approach trigger only ever reached players through an
+	// actor's sensor.
+	players []interactor
 
 	// seen tracks, per actor id, the set of player ids currently in the sensor,
 	// so the conversation opens only on the rising edge (a player entering)
@@ -74,7 +98,31 @@ func (s *InteractionSystem) AddEntity(e model.MobEntity) {
 	s.actors = append(s.actors, c)
 }
 
+// AddPlayer registers a player as a possible interactor (chunk 3b-i). Unlike
+// AddEntity this is unconditional: every player can press the key, and whether
+// anything happens is decided per tick by what the server told them is in
+// range.
+func (s *InteractionSystem) AddPlayer(p interactor) {
+	s.players = append(s.players, p)
+}
+
+// Update runs the sensor pass, then honours whatever interact keypresses
+// arrived.
+//
+// ⚑ The order is load-bearing (L20). The sensor pass re-stamps every player's
+// interactable id, which ResetTickNumbers (StatusEffectsSystem, priority 101)
+// zeroed at the top of this tick; the drain then validates against exactly that
+// value. Draining first — which is the shape EquipSystem.Update uses, and the
+// natural thing to write — would compare every incoming Interact against 0 and
+// silently refuse all of them.
 func (s *InteractionSystem) Update(dt float32) {
+	s.sense()
+	s.handleInteracts()
+}
+
+// sense re-stamps who each nearby player could talk to, and runs the approach
+// trigger's rising edge.
+func (s *InteractionSystem) sense() {
 	for _, a := range s.actors {
 		id := a.Basic().ID()
 		prev := s.seen[id]
@@ -86,14 +134,33 @@ func (s *InteractionSystem) Update(dt float32) {
 			}
 			pid := p.Basic().ID()
 			current[pid] = true
+
+			// The prompt: tell this player the actor is talkable. Unlike the
+			// grant path below this is NOT edge-gated — it is live state, so a
+			// player standing still keeps the badge, and a player who logs in
+			// already in range gets one.
+			p.NoteInteractable(id, p.Position().DistanceToSquared(a.Position()))
+
 			if prev[pid] {
 				continue // still in range since last tick — not a rising edge
 			}
-			lines, taught := evaluate(a.Interaction(), p)
+			// L18: the rising edge opens a conversation only for an actor that
+			// asked for one. An `interact` actor's sensor edge is a PROMPT, not
+			// a trigger — its conversation waits for the Interact message. The
+			// guard sits on the evaluate() call rather than on the `seen` map
+			// because the map is what makes the prompt cheap, and because a
+			// missing guard would not read as a double grant: HasDiscovered
+			// short-circuits the second one, so the actor would simply keep
+			// ambushing players exactly as it did before 3b-i.
+			in := a.Interaction()
+			if in.Trigger != mobs.TriggerApproach {
+				continue
+			}
+			lines, taught := evaluate(in, p)
 			if len(lines) > 0 {
 				// Grants have already landed in p's spellbook; now let the
 				// actor speak the combined lines to everyone standing around it.
-				speak(a, lines)
+				speakToSensor(a, lines)
 			}
 			// Attribute each freshly-taught skill to this actor, after the
 			// bubble so the source line trails the teaching
@@ -106,20 +173,79 @@ func (s *InteractionSystem) Update(dt float32) {
 	}
 }
 
-// speak fans one EntityMessage anchored on the actor out to every player
-// currently in its sensor, reusing the existing chat wire
-// (codec.EntityMessageFlatbufMarshal → Chat.showMessage → a floating bubble
-// above the entity). The sensor is a subset of each of those players'
-// viewports, so the client already tracks the entity and can render the bubble
-// (this also sidesteps the Chat.showMessage throw-on-untracked bug). All near
-// players see the same message; latest-wins is automatic — every line shares
-// the one entity_id, and the client shows the newest say.
-func speak(a Conversant, lines []string) {
-	builder := flatbuffers.NewBuilder(64)
-	entityMessage := codec.EntityMessageFlatbufMarshal(builder, a.Basic().ID(), strings.Join(lines, "\n"), AuraApi.EntityMessageKindChat)
-	builder.Finish(entityMessage)
-	bytes := builder.FinishedBytes()
+// handleInteracts drains one interact keypress per player per tick and opens
+// the named conversation.
+//
+// Range enforcement is one comparison against the value the client was actually
+// told (sense, above), not a second geometry implementation: a server that
+// re-derived the reach could disagree with the badge it drew, and the player
+// would see a prompt that does nothing. The stamp is one tick stale by
+// construction (L17) — the sensor reads the previous tick's broadphase — which
+// errs in the player's favour and is imperceptible at 30 Hz.
+func (s *InteractionSystem) handleInteracts() {
+	for _, p := range s.players {
+		msg := p.Client().NextInteract()
+		if msg == nil {
+			continue
+		}
+		a := s.actorByID(msg.EntityID)
+		if a == nil {
+			continue // gone, or never a conversant
+		}
+		if msg.EntityID != p.Interactable() {
+			// Out of range, or naming someone the player was never offered.
+			// Silent: a stale keypress from a player who just walked away is
+			// ordinary, not an error.
+			continue
+		}
+		if a.Interaction().Trigger != mobs.TriggerInteract {
+			continue // an approach actor does not answer the key
+		}
 
+		lines, taught := evaluate(a.Interaction(), p)
+		if len(lines) > 0 {
+			// D13: a conversation the player deliberately opened is private to
+			// them. The approach path keeps its fan-out — that one IS ambient
+			// speech — which is why speak takes its audience as an argument.
+			speak(a, lines, p.Client())
+		}
+		for _, skillID := range taught {
+			p.Client().SendUnlock(uint64(skillID), "Taught by: "+actorName(a))
+		}
+	}
+}
+
+// actorByID finds a registered conversant. The list is the handful of actors
+// that carry a conversation, not every mob in the world.
+func (s *InteractionSystem) actorByID(id uint64) Conversant {
+	for _, a := range s.actors {
+		if a.Basic().ID() == id {
+			return a
+		}
+	}
+	return nil
+}
+
+// speak sends one EntityMessage anchored on the actor, reusing the existing
+// chat wire (codec.EntityMessageFlatbufMarshal → Chat.showMessage → a floating
+// bubble above the entity). Anyone in the actor's sensor already tracks it in
+// their viewport, so the bubble renders (this also sidesteps the
+// Chat.showMessage throw-on-untracked bug). Latest-wins is automatic — every
+// line shares the one entity_id, and the client shows the newest say.
+//
+// The audience is the caller's choice because the two triggers want different
+// ones (D13): approach is ambient speech and fans out to everyone standing
+// around, while an interact conversation belongs to the player who opened it —
+// a crowded town square should not fill with other people's teaching lines.
+func speak(a Conversant, lines []string, to model.Client) {
+	to.SendMessage(marshalSay(a, lines))
+}
+
+// speakToSensor is the approach trigger's audience: every player standing
+// around the actor. The bytes are marshalled once and fanned, which is why this
+// is not a loop over speak().
+func speakToSensor(a Conversant, lines []string) {
+	bytes := marshalSay(a, lines)
 	for c := range a.Sensor().Collisions() {
 		p, ok := c.Shape().UserData.(model.PlayerEntity)
 		if !ok {
@@ -127,6 +253,13 @@ func speak(a Conversant, lines []string) {
 		}
 		p.Client().SendMessage(bytes)
 	}
+}
+
+func marshalSay(a Conversant, lines []string) []byte {
+	builder := flatbuffers.NewBuilder(64)
+	entityMessage := codec.EntityMessageFlatbufMarshal(builder, a.Basic().ID(), strings.Join(lines, "\n"), AuraApi.EntityMessageKindChat)
+	builder.Finish(entityMessage)
+	return builder.FinishedBytes()
 }
 
 // learner is the player surface the evaluator mutates/reads — a subset of
@@ -223,10 +356,20 @@ func actorName(a Conversant) string {
 // Remove drops a conversant and its rising-edge state. Unlike the NPC system it
 // replaced, this cannot be a no-op: conversants are ordinary actors now, and an
 // actor can die or despawn.
+//
+// It sweeps both lists because ecs.World calls Remove on every system for every
+// removed entity, actor or player alike — and a player left behind here would
+// keep having a disconnected client's queue drained (chunk 3b-i).
 func (s *InteractionSystem) Remove(b ecs.BasicEntity) {
 	for i, a := range s.actors {
 		if a.Basic().ID() == b.ID() {
 			s.actors = append(s.actors[:i], s.actors[i+1:]...)
+			break
+		}
+	}
+	for i, p := range s.players {
+		if p.Basic().ID() == b.ID() {
+			s.players = append(s.players[:i], s.players[i+1:]...)
 			break
 		}
 	}
