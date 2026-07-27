@@ -354,8 +354,21 @@ func (rcv *GameState) MutateInteractableEntityId(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(38, n)
 }
 
+func (rcv *GameState) Conversation(obj *Conversation) *Conversation {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
+	if o != 0 {
+		x := rcv._tab.Indirect(o + rcv._tab.Pos)
+		if obj == nil {
+			obj = new(Conversation)
+		}
+		obj.Init(rcv._tab.Bytes, x)
+		return obj
+	}
+	return nil
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(18)
+	builder.StartObject(19)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -431,6 +444,9 @@ func GameStateAddActivationRejectedReason(builder *flatbuffers.Builder, activati
 }
 func GameStateAddInteractableEntityId(builder *flatbuffers.Builder, interactableEntityId uint64) {
 	builder.PrependUint64Slot(17, interactableEntityId, 0)
+}
+func GameStateAddConversation(builder *flatbuffers.Builder, conversation flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(18, flatbuffers.UOffsetT(conversation), 0)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

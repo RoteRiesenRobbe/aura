@@ -56,8 +56,29 @@ table Respawn {
 // implied so a stale keypress names what the player actually saw, and so the
 // server validates against one value instead of re-deriving the geometry
 // (plan-entity-model.md chunk 3b-i, D10).
+//
+// Chunk 3b-ii grows it into the panel's one upstream message — the union is
+// NOT touched again. Three shapes, distinguished by their defaults:
+//   · node_id "" and close false      → open the conversation
+//   · a row taken                     → node_id + option_index (+ grant_index)
+//   · close true                      → the player dismissed the panel
 table Interact {
     entity_id:ulong;
+
+    // Which node the row was taken from. Empty = just open the conversation.
+    // Sent so the server validates the node's own conditions rather than
+    // trusting the client's position in the tree (D16).
+    node_id:string;
+
+    // ⚑ The AUTHORED indices the server streamed in ConversationOption, never
+    // the client's row position (L21). 255 = none.
+    option_index:ubyte = 255;
+    grant_index:ubyte = 255;
+
+    // Leave / Escape / a second E. The server drops the session; the panel
+    // then closes because the tree left the next snapshot, not because the
+    // client hid it.
+    close:bool = false;
 }
 
 // APPEND-ONLY. Union members are positional: their wire values are the

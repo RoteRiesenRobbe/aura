@@ -325,6 +325,60 @@ table Spectator {
 
 union Player { Character, Spectator }
 
+// --- the conversation tree (plan-entity-model.md chunk 3b-ii) ---
+//
+// While a player has a conversation open, GameState carries the WHOLE
+// personalised tree for that actor (D16): every node the player can reach,
+// every option marked available or locked, with already-known ones omitted.
+// The client then navigates instantly with a local back-stack and only
+// *taking* an option goes back to the server, which validates it on its own
+// merits — never on the path taken to reach it.
+
+// One interactive row. Branch or grant, they are the same row (D15): a
+// teaching list is just a node whose options happen to be one-grant teachings.
+table ConversationOption {
+  // ⚑ The AUTHORED indices into the definition, never the presented ones
+  // (L21): present() omits already-known options and condition-failed nodes,
+  // so the panel's third row can be the definition's fifth option. The client
+  // echoes these back verbatim and applyGrant indexes the definition with
+  // them, so a hidden row can never shift what a click teaches.
+  option_index:ubyte;
+  // The authored grant within that option; 255 = this row grants nothing and
+  // only navigates.
+  grant_index:ubyte = 255;
+  // Resolved label: the authored option text, else the granted skill's display
+  // name (which is what makes the un-migrated NPCs render — D17).
+  text:string;
+  // Node to continue at when this row is taken; empty = none.
+  next:string;
+  // Shown greyed with the wall named (D20). Already-KNOWN rows are omitted
+  // entirely rather than locked.
+  locked:bool = false;
+  required_level:ubyte = 0;
+  // What the actor says when this row is taken: the grant's line, or the
+  // option's blockedLine while locked. ⚑ Carried in the tree so the panel can
+  // answer instantly, which makes it optimistic by design — see L24.
+  reply:string;
+}
+
+table ConversationNode {
+  id:string;
+  lines:[string];
+  options:[ConversationOption];
+}
+
+table Conversation {
+  entity_id:ulong;
+  // Display name of the actor — the panel header carries it, which is what
+  // makes NPC nameplates unnecessary (they stay gated off by experience: 0).
+  actor_name:string;
+  // Where the panel opens: selectNode()'s first-conditions-pass node.
+  entry_node:string;
+  // EVERY reachable node, not a walk — which is why an authored cycle needs no
+  // check: there is no traversal to run away.
+  nodes:[ConversationNode];
+}
+
 table GameState {
   tick:ulong;
 
@@ -383,6 +437,16 @@ table GameState {
   // to promise a conversation the server would refuse (chunk 3b-i, D10).
   // Appended at the table end so existing field IDs stay stable.
   interactable_entity_id:ulong = 0;
+
+  // The open conversation's personalised tree (chunk 3b-ii, D16); ABSENT = no
+  // conversation, which is the client's only close signal — the panel closes
+  // because the field went away, never because the client decided to, so every
+  // server-side end condition (range, combat, death, disconnect) needs no
+  // client counterpart. Own player only. Sent as STATE every tick, for
+  // consistency with interactable_entity_id above; a change-only send is a
+  // later optimisation, not a design requirement. Appended at the table end so
+  // existing field IDs stay stable.
+  conversation:Conversation;
 }
 
 table Welcome {

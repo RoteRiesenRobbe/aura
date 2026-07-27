@@ -53,11 +53,67 @@ func (rcv *Interact) MutateEntityId(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(4, n)
 }
 
+func (rcv *Interact) NodeId() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *Interact) OptionIndex() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 255
+}
+
+func (rcv *Interact) MutateOptionIndex(n byte) bool {
+	return rcv._tab.MutateByteSlot(8, n)
+}
+
+func (rcv *Interact) GrantIndex() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 255
+}
+
+func (rcv *Interact) MutateGrantIndex(n byte) bool {
+	return rcv._tab.MutateByteSlot(10, n)
+}
+
+func (rcv *Interact) Close() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Interact) MutateClose(n bool) bool {
+	return rcv._tab.MutateBoolSlot(12, n)
+}
+
 func InteractStart(builder *flatbuffers.Builder) {
-	builder.StartObject(1)
+	builder.StartObject(5)
 }
 func InteractAddEntityId(builder *flatbuffers.Builder, entityId uint64) {
 	builder.PrependUint64Slot(0, entityId, 0)
+}
+func InteractAddNodeId(builder *flatbuffers.Builder, nodeId flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(nodeId), 0)
+}
+func InteractAddOptionIndex(builder *flatbuffers.Builder, optionIndex byte) {
+	builder.PrependByteSlot(2, optionIndex, 255)
+}
+func InteractAddGrantIndex(builder *flatbuffers.Builder, grantIndex byte) {
+	builder.PrependByteSlot(3, grantIndex, 255)
+}
+func InteractAddClose(builder *flatbuffers.Builder, close bool) {
+	builder.PrependBoolSlot(4, close, false)
 }
 func InteractEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

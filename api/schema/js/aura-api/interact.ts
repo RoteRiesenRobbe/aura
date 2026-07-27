@@ -27,12 +27,50 @@ entityId():bigint {
   return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
 }
 
+nodeId():string|null
+nodeId(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+nodeId(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 6);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
+optionIndex():number {
+  const offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 255;
+}
+
+grantIndex():number {
+  const offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 255;
+}
+
+close():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 12);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
 static startInteract(builder:flatbuffers.Builder) {
-  builder.startObject(1);
+  builder.startObject(5);
 }
 
 static addEntityId(builder:flatbuffers.Builder, entityId:bigint) {
   builder.addFieldInt64(0, entityId, BigInt('0'));
+}
+
+static addNodeId(builder:flatbuffers.Builder, nodeIdOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(1, nodeIdOffset, 0);
+}
+
+static addOptionIndex(builder:flatbuffers.Builder, optionIndex:number) {
+  builder.addFieldInt8(2, optionIndex, 255);
+}
+
+static addGrantIndex(builder:flatbuffers.Builder, grantIndex:number) {
+  builder.addFieldInt8(3, grantIndex, 255);
+}
+
+static addClose(builder:flatbuffers.Builder, close:boolean) {
+  builder.addFieldInt8(4, +close, +false);
 }
 
 static endInteract(builder:flatbuffers.Builder):flatbuffers.Offset {
@@ -40,9 +78,13 @@ static endInteract(builder:flatbuffers.Builder):flatbuffers.Offset {
   return offset;
 }
 
-static createInteract(builder:flatbuffers.Builder, entityId:bigint):flatbuffers.Offset {
+static createInteract(builder:flatbuffers.Builder, entityId:bigint, nodeIdOffset:flatbuffers.Offset, optionIndex:number, grantIndex:number, close:boolean):flatbuffers.Offset {
   Interact.startInteract(builder);
   Interact.addEntityId(builder, entityId);
+  Interact.addNodeId(builder, nodeIdOffset);
+  Interact.addOptionIndex(builder, optionIndex);
+  Interact.addGrantIndex(builder, grantIndex);
+  Interact.addClose(builder, close);
   return Interact.endInteract(builder);
 }
 }

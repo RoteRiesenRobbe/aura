@@ -4,6 +4,7 @@
 
 import * as flatbuffers from 'flatbuffers';
 
+import { Conversation } from '../aura-api/conversation.js';
 import { Entity } from '../aura-api/entity.js';
 import { Player, unionToPlayer, unionListToPlayer } from '../aura-api/player.js';
 
@@ -181,8 +182,13 @@ interactableEntityId():bigint {
   return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
 }
 
+conversation(obj?:Conversation):Conversation|null {
+  const offset = this.bb!.__offset(this.bb_pos, 40);
+  return offset ? (obj || new Conversation()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(18);
+  builder.startObject(19);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -366,31 +372,13 @@ static addInteractableEntityId(builder:flatbuffers.Builder, interactableEntityId
   builder.addFieldInt64(17, interactableEntityId, BigInt('0'));
 }
 
+static addConversation(builder:flatbuffers.Builder, conversationOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(18, conversationOffset, 0);
+}
+
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createGameState(builder:flatbuffers.Builder, tick:bigint, playerType:Player, playerOffset:flatbuffers.Offset, entitiesOffset:flatbuffers.Offset, spellbookOffset:flatbuffers.Offset, auraSlotsOffset:flatbuffers.Offset, activeAuraSlot:number, spellbookLevelsOffset:flatbuffers.Offset, skillPoints:number, passiveSlotsOffset:flatbuffers.Offset, cooldownSlotsOffset:flatbuffers.Offset, cooldownRemainingTicksOffset:flatbuffers.Offset, castSkillId:number, castTicksLeft:number, castTicksTotal:number, activationRejectedSkillId:number, activationRejectedReason:number, interactableEntityId:bigint):flatbuffers.Offset {
-  GameState.startGameState(builder);
-  GameState.addTick(builder, tick);
-  GameState.addPlayerType(builder, playerType);
-  GameState.addPlayer(builder, playerOffset);
-  GameState.addEntities(builder, entitiesOffset);
-  GameState.addSpellbook(builder, spellbookOffset);
-  GameState.addAuraSlots(builder, auraSlotsOffset);
-  GameState.addActiveAuraSlot(builder, activeAuraSlot);
-  GameState.addSpellbookLevels(builder, spellbookLevelsOffset);
-  GameState.addSkillPoints(builder, skillPoints);
-  GameState.addPassiveSlots(builder, passiveSlotsOffset);
-  GameState.addCooldownSlots(builder, cooldownSlotsOffset);
-  GameState.addCooldownRemainingTicks(builder, cooldownRemainingTicksOffset);
-  GameState.addCastSkillId(builder, castSkillId);
-  GameState.addCastTicksLeft(builder, castTicksLeft);
-  GameState.addCastTicksTotal(builder, castTicksTotal);
-  GameState.addActivationRejectedSkillId(builder, activationRejectedSkillId);
-  GameState.addActivationRejectedReason(builder, activationRejectedReason);
-  GameState.addInteractableEntityId(builder, interactableEntityId);
-  return GameState.endGameState(builder);
-}
 }
