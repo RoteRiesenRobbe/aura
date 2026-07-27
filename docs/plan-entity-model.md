@@ -1984,7 +1984,7 @@ what shipped, which commit, what was verified.)*
   whether they *read* right.
 - **Chunk 3b-i — the interact verb: ✅ DONE 2026-07-27**, wire + backend +
   frontend + content, 12 modified + 6 new (2 of them tests), committed
-  `[uncommitted]`. ✅ **HARNESS-VERIFIED in-game 2026-07-27** — the new
+  `6368b2e5`. ✅ **HARNESS-VERIFIED in-game 2026-07-27** — the new
   `chunk3b-interact.mjs` (kept) **15/15, 0 console errors, 0 webgl context
   losses**. ⏳ PO's own sign-off deferred to the single pass after all open
   chunks land (PO 2026-07-27).
