@@ -329,6 +329,66 @@ Harness note: `GET /skills` now wraps the catalog (`{"curve":…,"skills":[…]}
 round-4 tooltip work); loadbot's `resolveLoadout` was updated to match in this
 session — an old loadbot binary dies at startup with a JSON unmarshal error.
 
+## Results — 2026-07-27, on the 3b-ii build
+
+Same live box, same spot `(38,31)`, clustered, same two ramps, 30 s hold
+(run B `-settle 15s`). Deployed binary built 22:40 that evening — the first live
+build carrying chunk 3b-ii (the conversation panel), i.e. everything through
+`9231c96d`.
+
+**⚑ The 27.3 floor is back, and this time it is proven not to be the server.**
+Same flat 27.3 at 20–60 bots as on 07-26, so the corrected column again divides
+by 0.91. Two independent checks pin it to the path, not the loop: a local
+control run minutes earlier read a clean **30.0** (p95 2.1 ms) on the same
+harness binary, and during run A's 20-bot measurement window the box logged
+**zero** `Overload!` lines — the first one lands at 22:53:00, after the window
+closed. Two evenings apart with the identical figure means this is not weather;
+keep dividing it out, and keep checking it against a local control first.
+
+**⚑ Second caveat: the server was NOT empty.** Two real players were on the box
+(PO ruling: run anyway). Their load is negligible, but it breaks the
+"only when empty" rule the live-run section states — recorded so the table is
+not read as a clean-room measurement.
+
+| bots | A: Damage L1 (07-22) | A: 07-27 (corrected) | B: max build (07-22) | B: 07-27 (corrected) |
+|---|---|---|---|---|
+| 20 | 30.0 | 27.3 (30.0) | 30.0 | 27.3 (30.0) |
+| 40 | 30.0 | 27.3 (30.0) | 30.0 | 27.3 (30.0) |
+| 60 | 30.0 | 27.1 (29.8) | 29.8 | **22.0 (24.2)** |
+| 80 | 28.7 | 25.4 (27.9) | 18.8 | **12.4 (13.6)** |
+| 100 | 20.7 | 16.6 (18.2) | 11.1 | 8.4 (9.2) |
+| 140 | 10.1 | 8.9 (9.8) | 5.2 | 4.0 (4.4) |
+
+`auras CONFIRMED LIVE` was N/N at every step of both runs, and run B read back
+`points spent 28.0`, `passives 3.00`, `cooldowns equipped 3.00`,
+`on-cooldown 2.70–2.94` — so both tables are real combat measurements with the
+build actually live.
+
+**The L1 ceiling is unchanged at ~60–70. The maxed ceiling moved: 60 no longer
+holds 30 Hz.** Run B corrected at 60 is 24.2 against 29.8 (07-22) and 29.3
+(07-26) — roughly 3× the ~1.8 snap/s run-to-run noise, and 80 is a further
+3 below. Run A is within noise everywhere except 100 (18.2 vs 20.7).
+
+**Two confounds both make run B's deficit an understatement, not an artefact:**
+its mob field was thinner throughout (11–13 per viewport, **5.7–6.8 aggroed**,
+vs run A's 12–16 and 10–15 — a 90 s inter-run gap is not enough against the ×2
+respawn timers, same trap as 07-22), and at 140 the bring-up itself degraded
+(`passives 2.76`, `cooldowns equipped 2.61`, `points spent 24.6`), so part of
+that row carried a *lighter* loadout than intended.
+
+⚑ **Treat the max-build drop as a regression candidate, not a finding.** It is
+the first live run on the 3b-ii build, but run A sitting near baseline argues
+against a flat per-player cost, so nothing is pinned on the conversation panel.
+Confirming it is cheap and should come first: re-run B alone on an empty server
+with a longer respawn gap, before anyone bisects.
+
+Server-side during the ramps: peak **134 % of one core** — never saturated, the
+same "the loop cannot spend the second vCPU" signature as every prior run. RSS
+37 → 55 MB, back to 22 % of a core and 48 MB idle afterwards. **0 panics, 0 OOM,
+0 dropped connections**, and no restart, so no characters were wiped. Worst tick
+`Systems at: 957%` (~316 ms) vs 809 % on 07-26 and 772 % on 07-22 — the tail got
+worse too.
+
 ## The wall (and how to move it)
 
 The bottleneck is **single-threaded per-player GameState encoding on the game
