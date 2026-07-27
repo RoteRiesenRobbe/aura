@@ -2579,6 +2579,16 @@ with it (`game.mob.walkingSpeedPerTick`, value preserved at 0.055), and
 reads its owner's current level), `MaxHealth()` and `PowerScale()` are both
 derived from it, and the registry no longer pre-derives either — one curve,
 one level, read at the point of use.
+**Chunk 2 is done** (2026-07-27, `0be771bd`): **the central defect named at the
+top of this section — "role is inferred from incidental values instead of
+authored" — is fixed for the two inferences that existed.** `role`
+(`creature`/`structure`/`follower`) is authored on the mob definition and
+validated against one `mobs.ParseRole` table; `auraAlwaysOn := Factors.Speed
+<= 0` and `isFollower() = owner != nil && velocity > 0` both read it now, and
+the 10 dummy `aggroRadius: 0.1` values are deleted. ⚑ **A third inference was
+found during the chunk and is also gone: the SIM harness used `speed: 0` to
+mean "turret"** in four places, including the kite-stance pin that half the
+chain battery — and therefore the level curve — depends on.
 Gap 4 (NPC merge) and gap 5's remainder are chunks 3a/3b. `Derived.Resistances`
 — the 4th player-only stat the code audit found — is deliberately still
 player-only, pending the first authored resist passive.

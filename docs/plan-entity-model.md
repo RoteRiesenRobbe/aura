@@ -1,9 +1,11 @@
 # Plan: One entity, many roles — the Actor model
 
-**Status:** in progress — **Chunks 1a + 1b done 2026-07-26** (see §11), 2 next.
+**Status:** in progress — **Chunks 1a + 1b done 2026-07-26, Chunk 2 done
+2026-07-27** (see §11), **3a next**.
 Design session 2026-07-26 (PO, via choice prompts). Supersedes the "not scheduled" note on `backlog.md` §31 — that entry
-stays as the *findings* record; this doc is the *plan*. Everything here is
-plan-first: no production code was written in the session that produced it.
+stays as the *findings* record; this doc is the *plan*. §5 (Chunk 2) was planned
+and executed in one session 2026-07-27, plan-first within it; everything else
+here predates any of its code.
 Audited line-by-line against the code 2026-07-26 (same day, four parallel
 verification sweeps); the corrections are folded in below and marked
 "code audit" where they overturned a claim.
@@ -985,11 +987,84 @@ what shipped, which commit, what was verified.)*
   path is the one worth smoking: `MaxHealth()` is now evaluated per read for
   every mob, every tick, on the wire. ⚑ The first run hit a §29 lost context
   (1 in ~6, the client said so itself); the retry was clean.
-- **Chunk 2 — role discriminator:** **planned in full 2026-07-27** (§5 rewritten
-  from a sketch into an executable plan: 6 decisions D1–D6, a 6-step order, the
-  50-def content table, and two new landmines **L9** (the sim harness reads
-  `speed: 0` as *turret*, so it must carry the role explicitly — 3 PO rulings
-  taken this session) and **L10** (deleting the structure `aggroRadius` dummies
-  is the chunk's only non-identity)). Not started in code.
+- **Chunk 2 — the authored role discriminator: ✅ DONE 2026-07-27**, planned and
+  executed in one session (§5 is the plan, this is the ledger), backend +
+  content, 42 files + 5 new, committed `0be771bd`. ⏳ PO in-game check pending
+  on the **follower** half only — see "not covered" below.
+
+  **Shipped as §5 specified.** `mobs.Role` + the `roles` table + `ParseRole`
+  (`items/mobs/role.go`) is the single source, resolved by the loader, `NewMob`,
+  `sim/world.go` and the `-mob-role` flag alike. The absent→creature default is
+  applied **twice** — loader for authored content, `NewMob` for the definitions
+  tests and the sim build directly — so a zero-value `MobDefinition` keeps
+  meaning what it meant. Three reads retired: `auraAlwaysOn` (field deleted),
+  `isFollower()`, and the ten dummy `aggroRadius: 0.1` values. `roleSlots` →
+  `loadoutSlots` (D5).
+
+  **The 6 plan decisions all held**, plus one taken during execution: an
+  unknown role **panics** in `NewMob` and in `sim/world.go` rather than
+  degrading to creature. A silent default there is the exact failure class the
+  chunk exists to remove, and both sites are only reachable by a definition that
+  bypassed loader validation — the `ResolveEntityType` panic precedent (§27.2.1).
+  The two entry points where a human can still be told (`-mob-role`, the decoded
+  HTTP request) validate and report instead.
+
+  **⚑ L9 was the finding that resized the chunk, and it was real.** Four sim
+  sites used `speed: 0` as a *mechanism*: `chain.go`'s kite pin ("speed 0 keeps
+  its aura always on, so it still fights back"), the `MobSpec` doc, the CLI flag,
+  and the explorer's `speed (0=turret)` label. Left un-migrated, every kite-row
+  mob stops fighting back and the **level curve moves**. PO ruling 2026-07-27:
+  explicit role in the sim, no shorthand — *"aren't we moving away from speed
+  defining what something is?"*. The explorer cost the ~15–20 lines the plan
+  predicted: its `KNOBS` table is uniformly `type="number"`, `buildRequest()`
+  pushes every value through `parseFloat` (a string ⇒ `NaN` ⇒ the run is
+  silently skipped), and the preset-apply loop rounds — both needed a
+  string-knob branch, and `STRING_KNOBS` is derived from the table so it cannot
+  drift.
+
+  **Content:** 36 creature / 10 structure / 4 follower. All 14 `_comment` blocks
+  rewritten — they were *teaching* the retired inference ("speed 0 = aura
+  always-on", "owned + moving = follower behavior"). `Companion` and
+  `SoldierCompanion` author **3.5 [PLACEHOLDER]** (D1: the key stays required
+  for followers); inert today, since a non-support follower's sensor is read by
+  nothing. `FireTotem`/`Totem` are now live proof that role and ownership are
+  orthogonal: structures **with** an owner.
+
+  **Verified.** TDD red-first, and the pins are the interesting part: each
+  authors a role that **contradicts** the old inference — a **speed-0.7
+  structure** keeps its aura on, a **speed-0 creature** gates it, an **owned
+  structure** does not follow — so they cannot pass against a speed read. Plus
+  the 50-def role census and the sensor rule (`role_content_test.go`).
+  `go build`/`go vet` clean · `go test -timeout 120s ./...` **exit 0, 27
+  packages** · simharness + alloc guardrails **`-count=2`** · boot
+  `-content ../api` **0 errors 0 panics 0 warnings**, 83 skills/14 factions/50
+  mobs/10 recipes/5 prop defs/1 milestone/777 props/471 spawns/5 campfires/14
+  npcs — **the real gate here** (L4: the sim never loads authored content).
+
+  **⭐ Sim battery, level curve, pack matrix AND the chain battery byte-identical**
+  to a binary built from HEAD (`git worktree`); the only JSON delta is the new
+  `role` key echoed into the artifact. **The kite row is identical, which IS L9
+  holding.** The 50-mob preset roster moves in **exactly 12 cells, all
+  `aggroRadius`** (10 structures → 0, the 2 follower dummies → 3.5) — the
+  predicted L10 delta, and nothing else moved.
+
+  **In-game smoke** (`.claude/skills/verify/chunk2-roles.mjs`, kept): 3/3, **0
+  console errors, 0 WebGL context losses**. Campfire **+46 HP in 8 s** where
+  regen alone gives ~8 — the *rate* is the evidence, not "HP went up"; poison
+  pool kills an idle player unprovoked; bramble stops a 3.2-unit walk at the
+  computed wall face (−5.95). ⚑ **Two harness traps cost a rerun each and are
+  now comments in the script:** the dev console input calls `stopPropagation()`
+  on keydown, so WASD is swallowed while it holds focus — the first bramble run
+  "passed" while the player never moved at all — and **screen-up is DECREASING
+  world y**, so `w` walks *away* from a wall at a higher y. Also: warping onto a
+  tree strands the player against it, so the approach point must be chosen from
+  the zone JSON, not guessed.
+
+  **Not covered in-game: the follower half.** Summoning a companion needs a
+  cooldown equipped through the aura panel, which the headless harness handles
+  badly. Pinned by the Go suite instead (the whole `companion_test.go` set,
+  `role_test.go`'s four follower/owner pins, and `TestCooldown_SpawnMovingSummon…`).
+  **PO check when convenient: summon a companion, confirm it trails you and
+  fights what you fight.**
 - **Chunk 3a — NPC merge + interaction schema:** not started
 - **Chunk 3b — interact verb + dialogue panel:** not started
