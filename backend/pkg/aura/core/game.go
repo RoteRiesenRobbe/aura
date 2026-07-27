@@ -115,8 +115,10 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	m := sys.NewMobSystem(g, rnd.Int63(), gc.Spawns, p.Space())
 	g.AddSystem(m)
 
-	npcSys := sys.NewNpcSystem()
-	g.AddSystem(npcSys)
+	// Conversations (plan-entity-model.md chunk 3a): actors carrying an
+	// interaction block, registered through the ordinary mob path.
+	interactionSys := sys.NewInteractionSystem()
+	g.AddSystem(interactionSys)
 
 	// Chat is constructed before the encounter + command systems so both can
 	// take it as their Announcer (server-wide system messages, content pass C6).
@@ -254,8 +256,6 @@ func (g *game) AddEntity(e model.BasicEntity) {
 		g.addSpectator(v)
 	case model.CorpseEntity:
 		g.addCorpse(v)
-	case model.NpcEntity:
-		g.addNpcEntity(v)
 	case model.Entity:
 		g.addEntity(v)
 	}
@@ -295,6 +295,10 @@ func (g *game) addMobEntity(e model.MobEntity) {
 			s.AddEntity(e)
 		case *sys.SkillSystem:
 			s.AddEntity(e)
+		case *sys.InteractionSystem:
+			// Capability, not type: the system keeps only the actors that
+			// carry a conversation and ignores everything else (chunk 3a).
+			s.AddEntity(e)
 		case *encounter.System:
 			s.AddEntity(e)
 		}
@@ -311,26 +315,6 @@ func (g *game) addCorpse(e model.CorpseEntity) {
 		case *sys.PhysicsSystem:
 			s.AddEntity(e)
 		case *NetSystem:
-			s.AddEntity(e)
-		}
-	}
-}
-
-// addNpcEntity registers a teaching/lore NPC (plan-npc-teaching.md chunk 2).
-// The visual body goes in STATIC (immovable, like a prop); the proximity
-// sensor goes in as a DYNAMIC shape because the physics broadphase only records
-// collisions onto dynamic shapes — a static sensor would never report the
-// players standing in range. Routing the NPC through the plain-Entity path
-// would register only Bodies()[0] and silently drop the sensor.
-func (g *game) addNpcEntity(e model.NpcEntity) {
-	for _, system := range g.Systems() {
-		switch s := system.(type) {
-		case *sys.PhysicsSystem:
-			s.AddStaticBody(e.Basic(), e.Bodies()[0])
-			s.Space().AddShape(e.Sensor())
-		case *NetSystem:
-			s.AddEntity(e)
-		case *sys.NpcSystem:
 			s.AddEntity(e)
 		}
 	}

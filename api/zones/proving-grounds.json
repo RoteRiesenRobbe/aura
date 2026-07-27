@@ -26183,51 +26183,5 @@
       "y": 32.7,
       "radius": 6
     }
-  ],
-  "npcs": [
-    {
-      "type": "Sage",
-      "x": 4,
-      "y": 3,
-      "radius": 3,
-      "tooLowLine": "Come back when you are stronger.",
-      "teachings": [
-        {
-          "skill": "Heal",
-          "requiredLevel": 1,
-          "line": "You learned Heal!"
-        },
-        {
-          "skill": "Dash",
-          "requiredLevel": 5,
-          "line": "You learned Dash!"
-        }
-      ],
-      "lines": [
-        "Nice to see you again, traveller."
-      ]
-    },
-    {
-      "type": "Sage",
-      "x": -3.13,
-      "y": 1.88,
-      "radius": 3,
-      "tooLowLine": "Too low",
-      "teachings": [
-        {
-          "skill": "Revive",
-          "requiredLevel": 5,
-          "line": "You learning Revive"
-        },
-        {
-          "skill": "Reaper",
-          "requiredLevel": 10,
-          "line": "Big Boy"
-        }
-      ],
-      "lines": [
-        "Hello!"
-      ]
-    }
   ]
 }

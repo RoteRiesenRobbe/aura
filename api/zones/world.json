@@ -13846,6 +13846,90 @@
       "respawnTicks": 1800,
       "respawnVariancePct": 0.2,
       "wanderRadius": 2
+    },
+    {
+      "mob": "Farmer",
+      "x": -57,
+      "y": 28.6,
+      "angle": 0
+    },
+    {
+      "mob": "Hermit",
+      "x": -54.9,
+      "y": 25.6,
+      "angle": 0
+    },
+    {
+      "mob": "Lamplighter",
+      "x": -66,
+      "y": -27.6,
+      "angle": 0
+    },
+    {
+      "mob": "Dog",
+      "x": -48,
+      "y": -18,
+      "angle": 0
+    },
+    {
+      "mob": "Miner",
+      "x": -27,
+      "y": -26.4,
+      "angle": 0
+    },
+    {
+      "mob": "CityGuard",
+      "x": 62.4,
+      "y": 9.6,
+      "angle": 0
+    },
+    {
+      "mob": "VillageHealer",
+      "x": 45.4,
+      "y": 11,
+      "angle": 0
+    },
+    {
+      "mob": "FrontCaptain",
+      "x": 58.9,
+      "y": 26.9,
+      "angle": 0
+    },
+    {
+      "mob": "Shaman",
+      "x": 18,
+      "y": 6,
+      "angle": 0
+    },
+    {
+      "mob": "Wanderer",
+      "x": -15.53,
+      "y": 30.68,
+      "angle": 0
+    },
+    {
+      "mob": "LamplessTraveller",
+      "x": -20.63,
+      "y": -24.38,
+      "angle": 0
+    },
+    {
+      "mob": "TownCrier",
+      "x": -55.74,
+      "y": 21.96,
+      "angle": 0
+    },
+    {
+      "mob": "ForestSign",
+      "x": -53.61,
+      "y": -1.18,
+      "angle": 0
+    },
+    {
+      "mob": "Emberkeeper",
+      "x": 34.52,
+      "y": -19.6,
+      "angle": 0
     }
   ],
   "campfires": [
@@ -14046,277 +14130,6 @@
       "x": 46.44,
       "y": -9.87,
       "radius": 4
-    }
-  ],
-  "npcs": [
-    {
-      "type": "Farmer",
-      "x": -57,
-      "y": 28.6,
-      "radius": 1,
-      "tooLowLine": "There's always money in farming.",
-      "teachings": [
-        {
-          "skill": "Harvest",
-          "requiredLevel": 1,
-          "line": "If Adventuring becomes too stressful, there is always farming!"
-        }
-      ],
-      "lines": [
-        "Tend to the field if you have time... or go out there adventuring. I know what I would pick."
-      ],
-      "entityType": "Farmer"
-    },
-    {
-      "type": "Hermit",
-      "x": -54.9,
-      "y": 25.6,
-      "radius": 1,
-      "tooLowLine": "If you are hurt, rest by the fire. But come back to me later. I might have something for you.",
-      "teachings": [
-        {
-          "skill": "FirstAid",
-          "requiredLevel": 2,
-          "line": "Let me show you how to tend to those wounds..."
-        },
-        {
-          "skill": "Heal",
-          "requiredLevel": 3,
-          "line": "Let me show you how to tend to the wounds of your allies..."
-        }
-      ],
-      "lines": [
-        "Did you break your nose recently? Doesn't look good."
-      ],
-      "entityType": "Hermit"
-    },
-    {
-      "type": "Hermit",
-      "x": -66,
-      "y": -27.6,
-      "radius": 1,
-      "tooLowLine": "Rest a moment, wanderer.",
-      "teachings": [
-        {
-          "skill": "Torch",
-          "line": "Oh, all alone out here? Here, take this."
-        }
-      ],
-      "lines": [
-        "The dark is only dark until you carry your own light."
-      ],
-      "entityType": "Hermit"
-    },
-    {
-      "type": "Dog",
-      "name": "Dog",
-      "x": -48,
-      "y": -18,
-      "radius": 1,
-      "tooLowLine": "Woof?",
-      "teachings": [
-        {
-          "skill": "SummonCompanion",
-          "line": "Woof!"
-        }
-      ],
-      "lines": [
-        "Woof."
-      ],
-      "entityType": "DogNpc"
-    },
-    {
-      "type": "Miner",
-      "x": -27,
-      "y": -26.4,
-      "radius": 1,
-      "tooLowLine": "Careful! The tunnel is dark and dangerous.",
-      "teachings": [
-        {
-          "skill": "Pickaxe",
-          "requiredLevel": 4,
-          "line": "The tunnel is overrun! Take my Pickaxe, I have no use for it anymore."
-        }
-      ],
-      "lines": [
-        "We need the Militia to clear this tunnel once and for all... They are so useless"
-      ],
-      "entityType": "Miner"
-    },
-    {
-      "type": "CityGuard",
-      "x": 62.4,
-      "y": 9.6,
-      "radius": 1,
-      "tooLowLine": "The village needs help? Hmph. Did you even try to help?",
-      "teachings": [
-        {
-          "skill": "Strong",
-          "requiredLevel": 3,
-          "line": "Wolves at the village? I will let the commander know. Let me teach you something for your trouble."
-        }
-      ],
-      "lines": [
-        "Sorry, can't let you in, the Orcs are too close.",
-        "But maybe you can help out at the front in the south?"
-      ],
-      "entityType": "CityGuard"
-    },
-    {
-      "type": "VillageHealer",
-      "x": 45.4,
-      "y": 11,
-      "radius": 1,
-      "tooLowLine": "I see you have a long way ahead of you. But I also see much potential. Come back later.",
-      "teachings": [
-        {
-          "skill": "FirstAid",
-          "requiredLevel": 2,
-          "line": "You are hurt. Here — learn to patch yourself up, you will need it out there."
-        },
-        {
-          "skill": "Revive",
-          "requiredLevel": 8,
-          "line": "Let me teach you how to aid your fallen comrades and bring them back to life."
-        }
-      ],
-      "lines": [
-        "Rest by the fire and regain your strength."
-      ],
-      "entityType": "VillageHealer"
-    },
-    {
-      "type": "FrontCaptain",
-      "x": 58.9,
-      "y": 26.9,
-      "radius": 1,
-      "tooLowLine": "Careful, the Orc assault camp lies just south of here. This is no place for you yet — and when it is, remember: no blade touches the Orc Commander while his war banners stand.",
-      "teachings": [
-        {
-          "skill": "Vanguard",
-          "requiredLevel": 15,
-          "line": "You look strong! We could use your help in the war. Take this."
-        }
-      ],
-      "lines": [
-        "You might just have a chance at the Orc Commander. He's in his camp in the west.",
-        "But steel will not touch him while his war banners stand. Destroy his banners first — then bring him down."
-      ],
-      "entityType": "FrontCaptain"
-    },
-    {
-      "type": "Shaman",
-      "name": "Shaman",
-      "x": 18,
-      "y": 6,
-      "radius": 1,
-      "tooLowLine": "I see great potential in you! Come back later and I might have something for you.",
-      "teachings": [
-        {
-          "skill": "Recover",
-          "requiredLevel": 4,
-          "line": "Nature mends what it can. Breathe, and let this close your wounds."
-        },
-        {
-          "skill": "SummonTotem",
-          "requiredLevel": 5,
-          "line": "You look like you could use some help. Take this Totem to aid you."
-        }
-      ],
-      "lines": [
-        "Let nature guide you. But also be aware of nature. It's complicated."
-      ],
-      "entityType": "Hermit"
-    },
-    {
-      "type": "Wanderer_1",
-      "x": -15.53,
-      "y": 30.68,
-      "radius": 1,
-      "tooLowLine": "Are you sure you should be out here? Anyways, don't go further east.",
-      "teachings": [
-        {
-          "skill": "Recall",
-          "requiredLevel": 3,
-          "line": "Always nice to return to a fire!"
-        }
-      ],
-      "lines": [
-        "Don't go east, Bandits are watching the road. Better try the tunnel up north."
-      ],
-      "entityType": "Wanderer"
-    },
-    {
-      "type": "LamplessTraveller",
-      "x": -20.63,
-      "y": -24.38,
-      "radius": 1,
-      "lines": [
-        "The Kobolds took my lamp!"
-      ],
-      "entityType": "Traveller"
-    },
-    {
-      "type": "TownCrier",
-      "x": -55.74,
-      "y": 21.96,
-      "radius": 1,
-      "tooLowLine": "Those wolves are a pest, get rid of them!",
-      "teachings": [
-        {
-          "skill": "Damage",
-          "requiredLevel": 1,
-          "line": "You're finally here! We need your help! Wolves prowl the forrests, kill them!"
-        },
-        {
-          "skill": "Recall",
-          "requiredLevel": 3,
-          "line": "The city needs to hear of these wolf attacks! Take this so you can find your way back."
-        }
-      ],
-      "lines": [
-        "The city must hear of those wolves. Head east and report to the militia."
-      ],
-      "entityType": "TownCrier"
-    },
-    {
-      "type": "ForestSign",
-      "x": -53.61,
-      "y": -1.18,
-      "radius": 1,
-      "lines": [
-        "DANGER! STAY AWAY!"
-      ],
-      "entityType": "Signpost"
-    },
-    {
-      "type": "Emberkeeper",
-      "name": "Emberkeeper",
-      "x": 34.52,
-      "y": -19.6,
-      "radius": 1,
-      "tooLowLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
-      "teachings": [
-        {
-          "skill": "Torch",
-          "requiredLevel": 1,
-          "line": "Let this be a light for you in dark places."
-        },
-        {
-          "skill": "Ignite",
-          "requiredLevel": 7,
-          "line": "Let me show you how to light a fire in your enemies."
-        },
-        {
-          "skill": "Immolate",
-          "requiredLevel": 12,
-          "line": "I can teach you how to burn everything around you. If you so desire."
-        }
-      ],
-      "lines": [
-        "They burned this forest to hide their camp. Fire remembers who feeds it."
-      ],
-      "entityType": "Hermit"
     }
   ],
   "anchors": [

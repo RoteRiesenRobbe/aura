@@ -247,8 +247,13 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	// AggroRadius is validated > 0 at definition load time. The sensor's mask
 	// follows the aggro set: no mob faction in the set = no action-layer bit =
 	// no new broadphase pairs (the chunk-6.6 perf knob); a passive faction's
-	// sensor sees nothing at all.
-	aggroAura := phy.NewCircle(phy.VEC2F_ZERO, d.Body.AggroRadius)
+	// sensor sees nothing at all — unless it has something to say, see
+	// refreshSensorMask.
+	//
+	// SenseRadius, not Body.AggroRadius: an actor has ONE sensor, sized by
+	// whichever job needs to see further (chunk 3a, D7). For everything that
+	// carries no conversation the two are identical.
+	aggroAura := phy.NewCircle(phy.VEC2F_ZERO, d.SenseRadius())
 	aggroAura.Shape().Layer = int(model.LayerNoneCollision)
 	// Widened below by refreshSensorMask when the loadout carries support.
 	aggroAura.Shape().Mask = aggroSensorMask(aggroMask)
@@ -660,8 +665,31 @@ func (m *Mob) refreshSensorMask() {
 		m.aggroAura.Shape().Mask = int(model.LayerCombatants)
 		return
 	}
-	m.aggroAura.Shape().Mask = aggroSensorMask(m.aggroMask)
+	mask := aggroSensorMask(m.aggroMask)
+	// ⚑ A conversant must see players regardless of what it aggros (chunk 3a,
+	// L11). An NPC's faction is passive by design, so aggroSensorMask returns
+	// LayerNoneCollision for it — the sensor would report nobody and the NPC
+	// would be silently mute, with every evaluator test still green. Same
+	// shape as the support widening above: the cost is confined to the mobs
+	// that need it.
+	if m.definition.Interaction != nil {
+		mask |= int(model.LayerPlayerCollision)
+	}
+	m.aggroAura.Shape().Mask = mask
 }
+
+// Sensor is the actor's proximity sensor — the SAME circle as its aggro aura,
+// because "approach" is aggro for something friendly (chunk 3a). It is already
+// registered as a dynamic shape via Bodies(), which is the requirement the
+// deleted addNpcEntity existed to satisfy: the broadphase only records
+// collisions onto dynamic shapes, so a static sensor would sense nothing.
+func (m *Mob) Sensor() phy.DynamicCollider { return m.aggroAura }
+
+// Interaction is the conversation this actor carries, nil for the overwhelming
+// majority that carry none. It is the Conversant capability the interaction
+// system asserts on — never a type test, so a creature, a structure and a
+// follower can each talk without a branch.
+func (m *Mob) Interaction() *mobs.Interaction { return m.definition.Interaction }
 
 // aggroSensorMask derives the aggro sensor's collision mask from the aggro
 // set: the aligned faction lives on the player body layer (players plus the

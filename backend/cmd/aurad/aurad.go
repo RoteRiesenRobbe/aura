@@ -17,7 +17,6 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/npc"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -187,35 +186,6 @@ func main() {
 			slog.Int("count", len(zone.Campfires)),
 			slog.String("zone", zone.ID),
 			slog.Float64("safeRadius", float64(safeZones[0].Radius)))
-	}
-
-	// Teaching / lore NPCs (plan-npc-teaching.md): peaceful, static,
-	// hand-placed. Like props they are built once here and route through
-	// game.AddEntity — but via a dedicated addNpcEntity case, because the
-	// approach sensor must be registered as a dynamic shape (chunk 2). The
-	// zone's teaching payload (skill resolved at load) is decomposed into
-	// model.Teaching here so model/npc need not import world (chunk 3).
-	for _, n := range zone.Npcs {
-		teachings := make([]model.Teaching, len(n.Teachings))
-		for i, t := range n.Teachings {
-			teachings[i] = model.Teaching{
-				Def:           t.Def,
-				RequiredLevel: t.RequiredLevel,
-				Line:          t.Line,
-			}
-		}
-		g.AddEntity(npc.New(
-			phy.Vec2f{X: n.X, Y: n.Y},
-			n.Radius,
-			npc.SpriteFor(n.EntityType),
-			n.Name,
-			teachings,
-			n.TooLowLine,
-			n.Lines,
-		))
-	}
-	if len(zone.Npcs) > 0 {
-		slog.Info("placed npcs", slog.Int("count", len(zone.Npcs)), slog.String("zone", zone.ID))
 	}
 
 	// Encounters are Go-registered per zone (chunk 9 decision: no zone-schema

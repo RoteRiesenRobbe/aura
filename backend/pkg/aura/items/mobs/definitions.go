@@ -202,6 +202,14 @@ type MobDefinition struct {
 	Skills  []MobSkill
 	Unlocks []MobUnlock
 
+	// Interaction is the conversation this actor carries (chunk 3a,
+	// interaction.go); nil for the overwhelming majority that carry none. It
+	// is what replaced the separate model/npc type — an NPC is an ordinary
+	// actor with this field set, which is why role and "being an NPC" are
+	// orthogonal (a teaching guard that fights bandits is a creature with an
+	// interaction block, needing no new type and no new branch).
+	Interaction *Interaction
+
 	// Faction is the species' allegiance, AggroMask the bitmask of faction IDs
 	// it proactively acquires in its aggro sensor (mob-depth chunk 6.6, both
 	// resolved against the factions registry at load time). A definition
@@ -225,6 +233,10 @@ type mobDefinition struct {
 	Role       string `json:"role"`       // absent → "creature" (chunk 2)
 	CurveLevel int    `json:"curveLevel"` // absent → 1 (baseline, f = 1)
 	Legacy     bool   `json:"legacy"`     // absent → live content (step-7 A.5)
+
+	// Interaction is the authored conversation (chunk 3a); absent → nil, which
+	// is every mob that is not an NPC.
+	Interaction *jsonInteraction `json:"interaction"`
 
 	Factors struct {
 		// BaseMaxHealth is the tier+baseline authoring value (C0): the HP
@@ -472,6 +484,32 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		mob.Unlocks = append(mob.Unlocks, MobUnlock{Skill: def, Chance: chance})
 	}
 
+	// resolve the interaction container (chunk 3a)
+	interaction, err := m.mapToInteraction(sr, &legacyRefs)
+	if err != nil {
+		return nil, err
+	}
+	mob.Interaction = interaction
+	// A conversant nobody can ever reach is indistinguishable from a content
+	// typo, and it would present in-game as a mute NPC. A structure omits
+	// aggroRadius legitimately, so range is then the only radius it has.
+	if mob.Interaction != nil && mob.SenseRadius() <= 0 {
+		return nil, fmt.Errorf("mob %q: an interaction needs a sensor — author interaction.range or body.aggroRadius", m.Name)
+	}
+
 	mob.LegacyRefs = legacyRefs
 	return mob, nil
+}
+
+// SenseRadius is the radius of the actor's one sensor: the wider of its aggro
+// territory and its interaction reach (chunk 3a, D7). A mob's aggro aura and an
+// NPC's proximity sensor were always the same mechanism — "approach" is aggro,
+// for something friendly — so there is one circle, sized by whichever job needs
+// to see further.
+func (d *MobDefinition) SenseRadius() float32 {
+	r := d.Body.AggroRadius
+	if d.Interaction != nil && d.Interaction.Range > r {
+		r = d.Interaction.Range
+	}
+	return r
 }

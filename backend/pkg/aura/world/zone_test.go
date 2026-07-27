@@ -206,35 +206,6 @@ func TestZone_AllowsNoCampfires(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Triage item 3/9 nicety: an NPC entityType that names a MOB's wire sprite is
-// rejected at load — NPCs render on the Resource path and a mob class would
-// mis-render. A resource-backed sprite (not a mob) passes.
-func TestZone_RejectsMobBackedNpcEntityType(t *testing.T) {
-	const doc = `{
-		"name": "X",
-		"bounds": { "width": 60, "height": 40 },
-		"npcs": [ { "type": "Impostor", "x": 0, "y": 0, "radius": 2,
-		            "entityType": "Dodo", "lines": ["hi"] } ]
-	}`
-
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "mob sprite")
-}
-
-func TestZone_AllowsResourceBackedNpcEntityType(t *testing.T) {
-	const doc = `{
-		"name": "X",
-		"bounds": { "width": 60, "height": 40 },
-		"npcs": [ { "type": "Guide", "x": 0, "y": 0, "radius": 2,
-		            "entityType": "Signpost", "lines": ["this way"] } ]
-	}`
-
-	// "Signpost" is a resource sprite, not a mob — Dodo is the only mob here.
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
-	require.NoError(t, err)
-}
-
 // --- legacy tag (step-7 A.5) ---
 
 // legacyZoneFixtures: mob "Mammoth" and skill "ReviveOld" are legacy-tagged,
@@ -257,19 +228,16 @@ func TestZone_CollectsLegacyRefs(t *testing.T) {
 			{ "mob": "Mammoth", "x": 1, "y": 1 },
 			{ "mob": "Mammoth", "x": 2, "y": 2 },
 			{ "mob": "Wolf", "x": 3, "y": 3 }
-		],
-		"npcs": [ { "type": "Hermit", "x": 0, "y": 0, "radius": 2,
-		            "tooLowLine": "not yet",
-		            "teachings": [
-		              { "skill": "ReviveOld", "requiredLevel": 1, "line": "learn" },
-		              { "skill": "FirstAid", "requiredLevel": 1, "line": "learn" }
-		            ] } ]
+		]
 	}`
 
 	mr, sr := legacyZoneFixtures()
 	z, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry(), sr)
 	require.NoError(t, err)
-	assert.ElementsMatch(t, []string{"mob Mammoth", "skill ReviveOld"}, z.LegacyRefs,
+	// Spawn mobs are the zone's only content reference since the NPC merge —
+	// a legacy skill now surfaces through the MOB definition that teaches it
+	// (items/mobs collects "teaching X" the way it collects skills and drops).
+	assert.ElementsMatch(t, []string{"mob Mammoth"}, z.LegacyRefs,
 		"distinct names, duplicates collapsed")
 }
 
@@ -610,142 +578,6 @@ func TestZone_RejectsUnknownTerrainKey(t *testing.T) {
 	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "flip")
-}
-
-// --- NPC teaching/lore (plan-npc-teaching.md chunk 1) ---
-
-// A teaching NPC parses, its teachings keep source order, and each teaching's
-// Skill resolves against the skills registry (Def set at load time).
-func TestZone_LoadsTeachingNpc(t *testing.T) {
-	const doc = `{
-		"name": "N", "bounds": { "width": 60, "height": 40 },
-		"npcs": [
-			{ "type": "Sage", "x": 3, "y": -4, "radius": 3,
-			  "tooLowLine": "Come back when you are stronger.",
-			  "teachings": [
-				{ "skill": "Heal", "requiredLevel": 1, "line": "You learned Heal!" },
-				{ "skill": "DodoAura", "requiredLevel": 5, "line": "You learned Dodo!" }
-			  ] }
-		]
-	}`
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(),
-		newFakeSkillRegistry("Heal", "DodoAura"))
-	require.NoError(t, err)
-	require.Len(t, z.Npcs, 1)
-	n := z.Npcs[0]
-	assert.Equal(t, "Sage", n.Type)
-	assert.EqualValues(t, 3, n.Radius)
-	require.Len(t, n.Teachings, 2)
-	assert.Equal(t, "Heal", n.Teachings[0].Skill)
-	assert.EqualValues(t, 1, n.Teachings[0].RequiredLevel)
-	require.NotNil(t, n.Teachings[0].Def, "teaching skill resolved at load time")
-	assert.Equal(t, "Heal", n.Teachings[0].Def.Name)
-	assert.Equal(t, "DodoAura", n.Teachings[1].Def.Name)
-}
-
-// A pure lore/sign-post NPC (no teachings, only lines) is valid and needs no
-// tooLowLine.
-func TestZone_LoadsLoreNpc(t *testing.T) {
-	const doc = `{
-		"name": "N", "bounds": { "width": 60, "height": 40 },
-		"npcs": [
-			{ "type": "Guard", "x": 20, "y": 0, "radius": 3,
-			  "lines": ["No entry right now.", "Trolls up north."] }
-		]
-	}`
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
-	require.NoError(t, err)
-	require.Len(t, z.Npcs, 1)
-	assert.Empty(t, z.Npcs[0].Teachings)
-	assert.Len(t, z.Npcs[0].Lines, 2)
-}
-
-// An NPC may name a sprite via entityType (content pass C2 — the signpost is a
-// literal sign); absent keeps the placeholder default (empty string).
-func TestZone_NpcEntityTypeParses(t *testing.T) {
-	const doc = `{
-		"name": "N", "bounds": { "width": 60, "height": 40 },
-		"npcs": [
-			{ "type": "ForestSign", "x": 20, "y": 0, "radius": 3, "entityType": "Signpost",
-			  "lines": ["Something big prowls these woods."] },
-			{ "type": "Guard", "x": 25, "y": 0, "radius": 3,
-			  "lines": ["No entry."] }
-		]
-	}`
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
-	require.NoError(t, err)
-	require.Len(t, z.Npcs, 2)
-	assert.Equal(t, "Signpost", z.Npcs[0].EntityType)
-	assert.Empty(t, z.Npcs[1].EntityType, "absent entityType stays empty (placeholder sprite)")
-}
-
-func TestZone_RejectsUnknownNpcEntityType(t *testing.T) {
-	const doc = `{
-		"name": "N", "bounds": { "width": 60, "height": 40 },
-		"npcs": [
-			{ "type": "ForestSign", "x": 20, "y": 0, "radius": 3, "entityType": "NoSuchSprite",
-			  "lines": ["hello"] }
-		]
-	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "NoSuchSprite")
-}
-
-func TestZone_RejectsUnknownTeachingSkill(t *testing.T) {
-	const doc = `{
-		"name": "N", "bounds": { "width": 60, "height": 40 },
-		"npcs": [
-			{ "type": "Sage", "x": 0, "y": 0, "radius": 3, "tooLowLine": "later",
-			  "teachings": [ { "skill": "NoSuchAura", "requiredLevel": 1, "line": "learned" } ] }
-		]
-	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry("Heal"))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "NoSuchAura")
-}
-
-func TestZone_RejectsTeachingNpcWithoutTooLowLine(t *testing.T) {
-	const doc = `{
-		"name": "N", "bounds": { "width": 60, "height": 40 },
-		"npcs": [
-			{ "type": "Sage", "x": 0, "y": 0, "radius": 3,
-			  "teachings": [ { "skill": "Heal", "requiredLevel": 1, "line": "learned" } ] }
-		]
-	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry("Heal"))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "tooLowLine")
-}
-
-func TestZone_RejectsNpcNonPositiveRadius(t *testing.T) {
-	const doc = `{
-		"name": "N", "bounds": { "width": 60, "height": 40 },
-		"npcs": [ { "type": "Guard", "x": 0, "y": 0, "radius": 0, "lines": ["hi"] } ]
-	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "radius")
-}
-
-func TestZone_RejectsEmptyNpc(t *testing.T) {
-	const doc = `{
-		"name": "N", "bounds": { "width": 60, "height": 40 },
-		"npcs": [ { "type": "Ghost", "x": 0, "y": 0, "radius": 3 } ]
-	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "teachings or lore")
-}
-
-func TestZone_RejectsUnknownNpcKey(t *testing.T) {
-	const doc = `{
-		"name": "N", "bounds": { "width": 60, "height": 40 },
-		"npcs": [ { "type": "Guard", "x": 0, "y": 0, "radius": 3, "lines": ["hi"], "faction": "x" } ]
-	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "faction")
 }
 
 func TestZone_ParsesAnchorsAndLooksThemUp(t *testing.T) {

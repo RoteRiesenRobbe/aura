@@ -50,7 +50,10 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 		"Companion", "MedicCompanion", "ShieldbearerCompanion", "SoldierCompanion",
 	}, byRole[RoleFollower], "the authored followers")
 
-	assert.Len(t, byRole[RoleCreature], 36, "everything else is a creature")
+	// 36 before chunk 3a, plus the 14 merged NPCs: D4 authors them as creatures
+	// that simply state speed 0, so that content can later give one a loadout
+	// and a walk without changing what it IS.
+	assert.Len(t, byRole[RoleCreature], 50, "everything else is a creature")
 	assert.Len(t, byRole, 3, "no def carries a role outside the three")
 }
 

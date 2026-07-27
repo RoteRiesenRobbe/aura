@@ -132,3 +132,19 @@ func TestMobMarshalFlatbuf_Tier(t *testing.T) {
 			"tier %q on the wire", tc.tier)
 	}
 }
+
+// Mob.radius (plan-entity-model.md chunk 3a): the body radius in px. The field
+// was in the schema from the start but never written — every mob sprite class
+// sizes itself from GraphicsConfig, so a permanent 0 was invisible. The merged
+// NPCs size from the wire the way they did on the Resource path, which is what
+// turned the gap into a rendering bug (a scale-0 sprite: valid texture, no
+// pixels).
+func TestMobMarshalFlatbuf_Radius(t *testing.T) {
+	def := testMobDef(mobs.RoleCreature)
+	def.Body.Radius = 0.35
+
+	got := marshalledMob(t, mob.NewMob(def, 0, nil)).Radius()
+
+	assert.Equal(t, f32ToU16Px(0.35), got, "the body radius must reach the client")
+	assert.NotZero(t, got)
+}

@@ -9,14 +9,13 @@
  * hit-testing convert to pixels.
  */
 import {Container, Graphics, Text} from 'pixi.js';
-import {EntityType} from '../../../../../api/schema/js/aura-api/entity-type';
 import {meter2px} from '../../../client-data/BasicConfig';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {requireAll} from '../../common/logic/Utils';
 import {IGame} from '../../core/logic/IGame';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
-import {ZoneAnchor, ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneNpc, ZoneProp, ZoneSpawn} from './ZoneModel';
+import {ZoneAnchor, ZoneCampfire, ZoneDarkArea, ZoneData, ZoneModel, ZoneProp, ZoneSpawn} from './ZoneModel';
 
 export interface PropTypeDef {
     name: string;
@@ -41,14 +40,9 @@ interface MobDefJSON {
     factors?: { wanderRadius?: number };
 }
 
-interface SkillDefJSON {
-    name: string;
-}
-
 // Bundled straight from the repo api/ — the same files the server reads.
 const propDefJSONs = requireAll(require.context('../../../../../api/props', false, /\.json$/)) as unknown as PropDefJSON[];
 const mobDefJSONs = requireAll(require.context('../../../../../api/mobs', false, /\.json$/)) as unknown as MobDefJSON[];
-const skillDefJSONs = requireAll(require.context('../../../../../api/skills', false, /\.json$/)) as unknown as SkillDefJSON[];
 
 // Every zone bundled by file stem — the load picker can open any of them (or a
 // blank one), and the editor exports the stem as <id>.json (chunk 6).
@@ -84,29 +78,6 @@ export const mobOptions: { name: string; curveLevel: number; tier: string }[] = 
         tier: def.tier || 'normal',
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
-
-// The registry skill names (e.g. "Heal", "Dash") the teaching dropdown
-// offers — the exact keys the backend zone loader resolves a Teaching.Skill
-// against, so an authored NPC never references an unknown skill.
-export const skillNames: string[] = skillDefJSONs
-    .map(def => def.name)
-    .sort((a, b) => a.localeCompare(b));
-
-// The wire sprites an NPC may render as (zone-JSON entityType, resolved by the
-// server's npc.SpriteFor): every entry of the client NPC sprite registry,
-// upper-camelized to its EntityType enum name (townCrier -> TownCrier) and
-// checked against the generated enum — so the panel dropdown can never author
-// a name the backend loader rejects or the client can't render.
-export const npcSpriteNames: string[] = Object.keys(GraphicsConfig.npcs)
-    .map(key => key.charAt(0).toUpperCase() + key.slice(1))
-    .filter(name => {
-        if (name in EntityType) {
-            return true;
-        }
-        console.warn(`NPC sprite '${name}' has no EntityType enum entry — not offered in the zone editor`);
-        return false;
-    })
-    .sort((a, b) => a.localeCompare(b));
 
 // Type-level default wander radii (factors.wanderRadius) — a spawn without
 // its own radius inherits these, so the marker previews the effective disc.
@@ -145,7 +116,7 @@ export function propTypeByName(name: string): PropTypeDef {
     return propTypes.find(type => type.name === name);
 }
 
-export type SelectionKind = 'prop' | 'spawn' | 'campfire' | 'dark' | 'npc' | 'anchor';
+export type SelectionKind = 'prop' | 'spawn' | 'campfire' | 'dark' | 'anchor';
 
 export interface Selection {
     kind: SelectionKind;
@@ -159,7 +130,6 @@ const COLOR_DECORATIVE = 0x03A9F4;
 const COLOR_SPAWN = 0x4CAF50;
 const COLOR_CAMPFIRE = 0xFF9800;
 const COLOR_DARK = 0x673AB7;
-const COLOR_NPC = 0xE91E63;
 const COLOR_ANCHOR = 0x00BCD4;
 const COLOR_SELECTED = 0xFFEB3B;
 const COLOR_BOUNDS = 0xFFEB3B;
@@ -179,7 +149,6 @@ let propMarkers: Container[] = [];
 let spawnMarkers: Container[] = [];
 let campfireMarkers: Container[] = [];
 let darkAreaMarkers: Container[] = [];
-let npcMarkers: Container[] = [];
 let anchorMarkers: Container[] = [];
 
 export function isAttached(): boolean {
@@ -218,13 +187,11 @@ function rebuildMarkers() {
     spawnMarkers.forEach(marker => marker.destroy({children: true}));
     campfireMarkers.forEach(marker => marker.destroy({children: true}));
     darkAreaMarkers.forEach(marker => marker.destroy({children: true}));
-    npcMarkers.forEach(marker => marker.destroy({children: true}));
     anchorMarkers.forEach(marker => marker.destroy({children: true}));
     propMarkers = [];
     spawnMarkers = [];
     campfireMarkers = [];
     darkAreaMarkers = [];
-    npcMarkers = [];
     anchorMarkers = [];
     selection = null;
 
@@ -233,7 +200,6 @@ function rebuildMarkers() {
     spawnMarkers = model.spawns.map(spawn => addMarkerToStage(drawSpawnMarker(spawn, false)));
     campfireMarkers = model.campfires.map(campfire => addMarkerToStage(drawCampfireMarker(campfire, false)));
     darkAreaMarkers = model.darkAreas.map(darkArea => addMarkerToStage(drawDarkAreaMarker(darkArea, false)));
-    npcMarkers = model.npcs.map(npc => addMarkerToStage(drawNpcMarker(npc, false)));
     anchorMarkers = model.anchors.map(anchor => addMarkerToStage(drawAnchorMarker(anchor, false)));
 }
 
@@ -272,7 +238,7 @@ export function selectInitialZone(stem: string) {
  */
 export function newZone() {
     currentStem = '';
-    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], [], [], [], [], []);
+    model = new ZoneModel('New Zone', {...NEW_ZONE_BOUNDS}, [], [], [], [], [], []);
     rebuildMarkers();
     GroundTextureManager.clear();
 }
@@ -346,18 +312,6 @@ export function hitTestDarkArea(x: number, y: number): number {
     for (let i = model.darkAreas.length - 1; i >= 0; i--) {
         let darkArea = model.darkAreas[i];
         if (distance(x, y, darkArea.x, darkArea.y) <= darkArea.radius) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-// Hit-tests the authored sensor radius — the marker circle IS the NPC's
-// approach range (clamped so a tiny-radius NPC stays clickable).
-export function hitTestNpc(x: number, y: number): number {
-    for (let i = model.npcs.length - 1; i >= 0; i--) {
-        let npc = model.npcs[i];
-        if (distance(x, y, npc.x, npc.y) <= Math.max(npc.radius, MIN_HIT_RADIUS)) {
             return i;
         }
     }
@@ -455,26 +409,6 @@ export function removeDarkArea(index: number) {
     adjustSelectionAfterRemove('dark', index);
 }
 
-export function placeNpc(npc: ZoneNpc): number {
-    let index = model.addNpc(npc);
-    if (container !== null) {
-        npcMarkers.push(addMarkerToStage(drawNpcMarker(npc, false)));
-    }
-    setSelection({kind: 'npc', index});
-    return index;
-}
-
-export function updateNpc(index: number, npc: ZoneNpc) {
-    model.updateNpc(index, npc);
-    redrawMarker('npc', index);
-}
-
-export function removeNpc(index: number) {
-    model.removeNpc(index);
-    removeMarker(npcMarkers, index);
-    adjustSelectionAfterRemove('npc', index);
-}
-
 export function placeAnchor(anchor: ZoneAnchor): number {
     let index = model.addAnchor(anchor);
     if (container !== null) {
@@ -550,12 +484,6 @@ function redrawMarker(kind: SelectionKind, index: number) {
         }
         darkAreaMarkers[index].destroy({children: true});
         darkAreaMarkers[index] = addMarkerToStage(drawDarkAreaMarker(model.darkAreas[index], selected));
-    } else if (kind === 'npc') {
-        if (index >= model.npcs.length) {
-            return;
-        }
-        npcMarkers[index].destroy({children: true});
-        npcMarkers[index] = addMarkerToStage(drawNpcMarker(model.npcs[index], selected));
     } else {
         if (index >= model.anchors.length) {
             return;
@@ -701,28 +629,6 @@ function drawDarkAreaMarker(darkArea: ZoneDarkArea, selected: boolean): Containe
     marker.addChild(graphic);
     marker.addChild(markerLabel('Dark', radiusPx));
     marker.position.set(meter2px(darkArea.x), meter2px(darkArea.y));
-    return marker;
-}
-
-// Like the dark-area marker, the circle is drawn at the TRUE authored radius —
-// it previews the NPC's approach/teaching sensor. A solid centre dot marks the
-// exact NPC position, since the sensor disc can be large. The label is the
-// NPC type plus, for teaching NPCs, the number of skills it grants.
-function drawNpcMarker(npc: ZoneNpc, selected: boolean): Container {
-    let radiusPx = meter2px(Math.max(npc.radius, MIN_HIT_RADIUS));
-
-    let marker = new Container();
-    let graphic = new Graphics()
-        .circle(0, 0, radiusPx)
-        .fill({color: COLOR_NPC, alpha: 0.2})
-        .stroke({width: selected ? 6 : 3, color: selected ? COLOR_SELECTED : COLOR_NPC})
-        .circle(0, 0, meter2px(0.3))
-        .fill({color: COLOR_NPC, alpha: 0.9});
-    marker.addChild(graphic);
-    let teachingCount = (npc.teachings || []).length;
-    let label = teachingCount > 0 ? npc.type + ' (' + teachingCount + ')' : npc.type;
-    marker.addChild(markerLabel(label, radiusPx));
-    marker.position.set(meter2px(npc.x), meter2px(npc.y));
     return marker;
 }
 

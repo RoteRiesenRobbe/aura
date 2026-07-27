@@ -24,6 +24,16 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	pos := Vec2fMarshalFlatbuf(builder, m.Position())
 	AuraApi.MobAddPos(builder, pos)
 
+	// Body radius (px). The field has been in the schema since forever but was
+	// never written: every mob sprite class sizes itself from GraphicsConfig
+	// and ignores the wire value, so a permanent 0 went unnoticed. The merged
+	// NPCs (plan-entity-model.md chunk 3a) DO size from the wire, the way they
+	// always did on the Resource path — a hand-placed NPC should be exactly as
+	// big as its authored body, not a per-session random roll. Mirrors
+	// Resource.radius and Character.radius; existing mob classes are unaffected
+	// because they still ignore it.
+	AuraApi.MobAddRadius(builder, f32ToU16Px(m.Radius()))
+
 	AuraApi.MobAddBurstRadius(builder, f32ToU16Px(m.BurstRadius()))
 	AuraApi.MobAddDamageTaken(builder, m.DamageTaken().UInt32())
 	// Crit-flagged share of damage taken (skill-vocab chunk 1, §4.3).

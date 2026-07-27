@@ -1181,3 +1181,162 @@ export class FireTotem extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(FireTotem, file('fireTotem'), maxSize('fireTotem'));
 
+
+// --- NPC sprites (plan-entity-model.md chunk 3a) ---
+//
+// The teaching/lore NPCs used to be a separate statless type riding the
+// RESOURCE wire path; merged onto the actor model they ride the MOB path, so
+// their sprite classes live here. Three deliberate departures from the mob
+// classes above:
+//
+//  1. They render on `resources.trees`, the layer they have always been on.
+//     The `mobs` layers are added to the stage BEFORE `resources`, so giving
+//     them a mob layer would silently move every NPC underneath the trees.
+//  2. They size from the WIRE radius (the 4th constructor argument
+//     EntityManager always passes) rather than from a GraphicsConfig
+//     min/max roll — the npc entries carry no minSize, and a fixed
+//     hand-placed NPC should not change size between sessions anyway.
+//  3. They keep the overhead health bar the Mob constructor draws (PO
+//     2026-07-27): an NPC is an actor that can act, and most simply choose
+//     not to. The nameplate stays off for free — the catalog's combatTarget
+//     is false for anything that grants no XP.
+function npcCfg(npc: keyof typeof GraphicsConfig.npcs) {
+    return GraphicsConfig.npcs[npc];
+}
+
+export class Farmer extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, Farmer.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Farmer, npcCfg('farmer').file, npcCfg('farmer').maxSize);
+
+// The "missing art" marker for an NPC definition whose entityType names no
+// drawn sprite yet. Kept deliberately un-gamelike so unconfigured content
+// cannot pass for finished content. Since the merge it is authorable directly
+// (`"entityType": "NpcPlaceholder"` on a mob definition) rather than being a
+// server-side fallback.
+export class NpcPlaceholder extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, NpcPlaceholder.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(NpcPlaceholder, npcCfg('placeholder').file, npcCfg('placeholder').maxSize);
+
+export class Signpost extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, Signpost.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Signpost, npcCfg('signpost').file, npcCfg('signpost').maxSize);
+
+export class Hermit extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, Hermit.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Hermit, npcCfg('hermit').file, npcCfg('hermit').maxSize);
+
+export class Wanderer extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, Wanderer.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Wanderer, npcCfg('wanderer').file, npcCfg('wanderer').maxSize);
+
+export class Traveller extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, Traveller.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Traveller, npcCfg('traveller').file, npcCfg('traveller').maxSize);
+
+export class TownCrier extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, TownCrier.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(TownCrier, npcCfg('townCrier').file, npcCfg('townCrier').maxSize);
+
+export class DogNpc extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, DogNpc.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(DogNpc, npcCfg('dogNpc').file, npcCfg('dogNpc').maxSize);
+
+export class Miner extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, Miner.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Miner, npcCfg('miner').file, npcCfg('miner').maxSize);
+
+export class CityGuard extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, CityGuard.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(CityGuard, npcCfg('cityGuard').file, npcCfg('cityGuard').maxSize);
+
+export class VillageHealer extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, VillageHealer.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(VillageHealer, npcCfg('villageHealer').file, npcCfg('villageHealer').maxSize);
+
+export class FrontCaptain extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number, size: number) {
+        super(id, Game.layers.resources.trees, x, y, size, FrontCaptain.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(FrontCaptain, npcCfg('frontCaptain').file, npcCfg('frontCaptain').maxSize);

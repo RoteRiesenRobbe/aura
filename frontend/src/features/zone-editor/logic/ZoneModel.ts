@@ -76,28 +76,11 @@ export interface ZoneDarkArea {
     radius: number;
 }
 
-// One ordered skill a teaching NPC grants on approach (plan-npc-teaching.md).
-export interface ZoneTeaching {
-    skill: string;
-    requiredLevel: number;
-    line: string;
-}
-
-// A peaceful, hand-placed teaching/lore NPC (plan-npc-teaching.md). A teaching
-// NPC has teachings + a tooLowLine; a pure lore/sign-post NPC has only lines.
-// Both may coexist on one NPC (lore is the fallback when nothing is taught).
-export interface ZoneNpc {
-    type: string;
-    x: number;
-    y: number;
-    radius: number;
-    tooLowLine?: string;
-    teachings?: ZoneTeaching[];
-    lines?: string[];
-    // Optional wire sprite (content pass C2, e.g. "Signpost"); absent = the
-    // server-side placeholder sprite. Must survive round-trips untouched.
-    entityType?: string;
-}
+// NPCs have no editor type of their own since the actor merge
+// (plan-entity-model.md chunk 3a): they are ordinary mob definitions placed as
+// ordinary spawns, so the spawn tool authors them and their conversation lives
+// in api/mobs/*.json — like every mob's skills, drops and resistances already
+// did.
 
 // Named point an encounter script looks up at boot (content pass C6) — the
 // editor owns WHERE (boss home, totem spots, wave mouth), the Go script owns
@@ -119,7 +102,6 @@ export interface ZoneData {
     campfires?: ZoneCampfire[];
     darkAreas?: ZoneDarkArea[];
     // Omitted when empty so pre-step-5 zones round-trip diff-clean.
-    npcs?: ZoneNpc[];
     // Omitted when empty so pre-C6 zones round-trip diff-clean.
     anchors?: ZoneAnchor[];
 }
@@ -140,10 +122,9 @@ export class ZoneModel {
     spawns: ZoneSpawn[];
     campfires: ZoneCampfire[];
     darkAreas: ZoneDarkArea[];
-    npcs: ZoneNpc[];
     anchors: ZoneAnchor[];
 
-    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[], darkAreas: ZoneDarkArea[], npcs: ZoneNpc[], anchors: ZoneAnchor[]) {
+    constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[], darkAreas: ZoneDarkArea[], anchors: ZoneAnchor[]) {
         this.name = name;
         this.bounds = bounds;
         this.terrain = terrain;
@@ -151,7 +132,6 @@ export class ZoneModel {
         this.spawns = spawns;
         this.campfires = campfires;
         this.darkAreas = darkAreas;
-        this.npcs = npcs;
         this.anchors = anchors;
     }
 
@@ -169,11 +149,6 @@ export class ZoneModel {
             })),
             (data.campfires || []).map(c => ({...c})),
             (data.darkAreas || []).map(d => ({...d})),
-            (data.npcs || []).map(n => ({
-                ...n,
-                teachings: (n.teachings || []).map(t => ({...t})),
-                lines: (n.lines || []).slice(),
-            })),
             (data.anchors || []).map(a => ({...a})),
         );
     }
@@ -230,18 +205,6 @@ export class ZoneModel {
         this.anchors.splice(index, 1);
     }
 
-    addNpc(npc: ZoneNpc): number {
-        return this.npcs.push(npc) - 1;
-    }
-
-    updateNpc(index: number, npc: ZoneNpc) {
-        this.npcs[index] = npc;
-    }
-
-    removeNpc(index: number) {
-        this.npcs.splice(index, 1);
-    }
-
     /**
      * Serializes in the exact field order of the hand-written api/zones/zone.json.
      * Coordinates are rounded to 2 decimals (~1.2 px), angles to 3.
@@ -295,23 +258,6 @@ export class ZoneModel {
                 : undefined,
             darkAreas: this.darkAreas.length > 0
                 ? this.darkAreas.map(d => ({x: round(d.x, 2), y: round(d.y, 2), radius: round(d.radius, 2)}))
-                : undefined,
-            // Omitted (undefined key) while empty, so pre-step-5 zones
-            // round-trip diff-clean. Teachings/lines are content strings kept
-            // verbatim; only positions round.
-            npcs: this.npcs.length > 0
-                ? this.npcs.map(n => ({
-                    type: n.type,
-                    x: round(n.x, 2),
-                    y: round(n.y, 2),
-                    radius: round(n.radius, 2),
-                    tooLowLine: n.teachings && n.teachings.length > 0 ? n.tooLowLine : undefined,
-                    teachings: n.teachings && n.teachings.length > 0
-                        ? n.teachings.map(t => ({skill: t.skill, requiredLevel: t.requiredLevel, line: t.line}))
-                        : undefined,
-                    lines: n.lines && n.lines.length > 0 ? n.lines.slice() : undefined,
-                    entityType: n.entityType || undefined,
-                }))
                 : undefined,
             // Omitted (undefined key) while empty, so pre-C6 zones round-trip
             // diff-clean. Names are script-lookup keys kept verbatim.

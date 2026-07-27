@@ -16,7 +16,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
@@ -135,55 +134,6 @@ type DarkArea struct {
 	Radius float32 `json:"radius"`
 }
 
-// Teaching is one ordered skill a teaching NPC grants on approach once the
-// player is at least RequiredLevel and does not already know the skill
-// (unlock-source systems, plan-npc-teaching.md chunk 1). Line is spoken when
-// the grant happens. Def is resolved from Skill at load time so an unknown
-// skill fails loudly at boot, like Spawn.Mob and Prop.Type.
-type Teaching struct {
-	Skill         string `json:"skill"`
-	RequiredLevel uint32 `json:"requiredLevel"`
-	Line          string `json:"line"`
-
-	// Def is the skill definition resolved from Skill; not part of the JSON.
-	Def *skills.SkillDefinition `json:"-"`
-}
-
-// Npc is a peaceful, hand-placed, static teaching/lore NPC — the first
-// non-hostile interactive entity (plan-npc-teaching.md). It is unattackable by
-// construction (no HP, not a Combatant). Type maps to a placeholder EntityType
-// sprite. A proximity sensor of Radius drives approach detection (chunk 2/3).
-//
-// Two roles, combinable on one NPC:
-//   - Teaching: Teachings are granted in order on approach; a player too low
-//     for the next teaching hears TooLowLine and nothing further is granted.
-//   - Lore / sign-post: Lines are spoken when nothing is taught (an all-learned
-//     sage's idle lore, or a pure guard/sign-post with no Teachings at all).
-type Npc struct {
-	Type string  `json:"type"`
-	X    float32 `json:"x"`
-	Y    float32 `json:"y"`
-
-	// Name is the authored display name used in unlock attribution
-	// ("Taught by: <Name>" — plan-unlock-attribution.md). Optional: when empty
-	// the client-facing label falls back to the wire sprite's spaced-out enum
-	// name, so a nameless NPC still attributes sensibly. Distinct from Type,
-	// which is decorative role metadata read nowhere.
-	Name string `json:"name"`
-
-	Radius     float32    `json:"radius"`
-	TooLowLine string     `json:"tooLowLine"`
-	Teachings  []Teaching `json:"teachings"`
-	Lines      []string   `json:"lines"`
-
-	// EntityType optionally names the wire sprite this NPC renders as
-	// (content pass C2 — a signpost NPC wears a sign). Must be a
-	// Resource-backed EntityType enum name (NPCs ride the Resource wire
-	// path); validated against the enum at load. Empty = the npc package's
-	// placeholder sprite.
-	EntityType string `json:"entityType"`
-}
-
 // Anchor is a named point encounter scripts look up at registration (content
 // pass C6): the zone owns WHERE an encounter plays out (boss home, totem
 // spots, wave mouth — editor-movable), the Go script owns WHAT happens.
@@ -197,7 +147,8 @@ type Anchor struct {
 
 // Zone is the whole authored world description loaded from a zone file. One
 // file = one complete zone (bounds + terrain + props + spawns + campfires +
-// dark areas + npcs + anchors).
+// dark areas + anchors). NPCs used to be a section of their own; since the
+// actor merge they are ordinary spawns (plan-entity-model.md chunk 3a).
 type Zone struct {
 	Name      string           `json:"name"`
 	Legacy    bool             `json:"legacy"` // proving-grounds-style legacy zone (step-7 A.5)
@@ -207,7 +158,6 @@ type Zone struct {
 	Spawns    []Spawn          `json:"spawns"`
 	Campfires []Campfire       `json:"campfires"`
 	DarkAreas []DarkArea       `json:"darkAreas"`
-	Npcs      []Npc            `json:"npcs"`
 	Anchors   []Anchor         `json:"anchors"`
 
 	// ID is the file stem the zone was loaded from — the -zone selection key
@@ -217,7 +167,7 @@ type Zone struct {
 	ID string `json:"-"`
 
 	// LegacyRefs lists legacy-tagged content a LIVE zone references (spawn
-	// mobs, NPC teaching skills; distinct names) — an authoring smell the boot
+	// mobs; distinct names) — an authoring smell the boot
 	// loader warns about (step-7 A.5). Always empty on legacy zones. Filled
 	// by resolve, not part of the JSON.
 	LegacyRefs []string `json:"-"`
@@ -368,32 +318,6 @@ func (z *Zone) validate() error {
 			return fmt.Errorf("anchor %d (%q): (%g, %g) is outside the bounds", i, a.Name, a.X, a.Y)
 		}
 	}
-	for i := range z.Npcs {
-		n := &z.Npcs[i]
-		if n.Radius <= 0 {
-			return fmt.Errorf("npc %d: radius must be positive, got %g", i, n.Radius)
-		}
-		if len(n.Teachings) == 0 && len(n.Lines) == 0 {
-			return fmt.Errorf("npc %d: must have teachings or lore lines", i)
-		}
-		if len(n.Teachings) > 0 && strings.TrimSpace(n.TooLowLine) == "" {
-			return fmt.Errorf("npc %d: teaching NPC must have a tooLowLine", i)
-		}
-		if n.EntityType != "" {
-			if _, ok := AuraApi.EnumValuesEntityType[n.EntityType]; !ok {
-				return fmt.Errorf("npc %d: entityType %q is not a known EntityType", i, n.EntityType)
-			}
-		}
-		for j := range n.Teachings {
-			t := &n.Teachings[j]
-			if strings.TrimSpace(t.Skill) == "" {
-				return fmt.Errorf("npc %d teaching %d: skill must not be empty", i, j)
-			}
-			if strings.TrimSpace(t.Line) == "" {
-				return fmt.Errorf("npc %d teaching %d: line must not be empty", i, j)
-			}
-		}
-	}
 	return nil
 }
 
@@ -453,40 +377,6 @@ func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry, sr skills.Registry) er
 			return fmt.Errorf("prop %d: unknown type %q", i, p.Type)
 		}
 		p.Def = def
-	}
-	// NPC sprites ride the Resource wire path (npc.go), so an entityType that
-	// names a MOB's wire type would be handed a mob sprite class expecting
-	// health/aura fields and mis-render (triage item 3/9 nicety). Reject that
-	// specific footgun; resource sprites (Signpost, …) stay valid — a whitelist
-	// of prop types would wrongly reject those. validate() already checked the
-	// name is a known EntityType at all; this needs the mob registry.
-	var mobEntityTypes map[string]bool
-	if len(z.Npcs) > 0 {
-		mobEntityTypes = make(map[string]bool)
-		for _, m := range mr.Mobs() {
-			et := m.EntityType
-			if et == "" {
-				et = m.Name // an absent override means the name is the wire type
-			}
-			mobEntityTypes[et] = true
-		}
-	}
-	for i := range z.Npcs {
-		n := &z.Npcs[i]
-		if n.EntityType != "" && mobEntityTypes[n.EntityType] {
-			return fmt.Errorf("npc %d: entityType %q is a mob sprite; NPCs need a Resource-backed sprite", i, n.EntityType)
-		}
-		for j := range n.Teachings {
-			t := &n.Teachings[j]
-			def, err := sr.GetByName(t.Skill)
-			if err != nil {
-				return fmt.Errorf("npc %d teaching %d: unknown skill %q", i, j, t.Skill)
-			}
-			if def.Legacy {
-				noteLegacy("skill", def.Name)
-			}
-			t.Def = def
-		}
 	}
 	return nil
 }

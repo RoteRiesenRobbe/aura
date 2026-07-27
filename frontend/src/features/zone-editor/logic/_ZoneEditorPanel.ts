@@ -1,8 +1,8 @@
 /**
  * Zone editor panel (world foundation chunk 5): placement modes for props,
- * mob spawns, campfires, dark areas, NPCs and anchors, plus zone-JSON export,
+ * mob spawns, campfires, dark areas and anchors, plus zone-JSON export,
  * sharing the ground-texture panel DOM. Owns the editor mode (see EditorMode:
- * 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark' | 'npc' |
+ * 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark' |
  * 'anchor') that also gates ground-texture click placement — the old
  * MysticWand hand-equip gate is gone (defunct since Block 2 removed the item
  * system).
@@ -19,11 +19,11 @@ import {saveAs} from 'file-saver';
 import * as Console from '../../internal-tools/console/logic/Console';
 import * as GroundTextureManager from '../../ground-textures/logic/GroundTextureManager';
 import * as ZoneEditor from './ZoneEditor';
-import {ZoneNpc, ZoneProp, ZoneSpawn, ZoneTeaching} from './ZoneModel';
+import {ZoneProp, ZoneSpawn} from './ZoneModel';
 
 const NEW_ZONE_OPTION = '__new__';
 
-export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark' | 'npc' | 'anchor';
+export type EditorMode = 'off' | 'terrain' | 'prop' | 'spawn' | 'campfire' | 'dark' | 'anchor';
 
 const PX_PER_UNIT = meter2px(1);
 
@@ -106,18 +106,6 @@ let darkRadiusInput: HTMLInputElement;
 let darkSelectionGroup: HTMLElement;
 let darkSelectedIndexLabel: HTMLElement;
 
-let npcControls: HTMLElement;
-let npcSpriteSelect: HTMLSelectElement;
-let npcTypeInput: HTMLInputElement;
-let npcRadiusInput: HTMLInputElement;
-let npcTooLowLineInput: HTMLInputElement;
-let npcLinesInput: HTMLTextAreaElement;
-let npcSelectionGroup: HTMLElement;
-let npcSelectedIndexLabel: HTMLElement;
-let npcTeachingList: HTMLElement;
-let npcTeachSkillSelect: HTMLSelectElement;
-let npcTeachLevelInput: HTMLInputElement;
-let npcTeachLineInput: HTMLInputElement;
 
 let anchorControls: HTMLElement;
 let anchorNameInput: HTMLInputElement;
@@ -128,7 +116,6 @@ let propCountLabel: HTMLElement;
 let spawnCountLabel: HTMLElement;
 let campfireCountLabel: HTMLElement;
 let darkCountLabel: HTMLElement;
-let npcCountLabel: HTMLElement;
 let anchorCountLabel: HTMLElement;
 
 /**
@@ -179,18 +166,6 @@ export function setupPanel() {
     darkSelectionGroup = document.getElementById('zoneEditor_darkSelection');
     darkSelectedIndexLabel = document.getElementById('zoneEditor_darkSelectedIndex');
 
-    npcControls = document.getElementById('zoneEditor_npcControls');
-    npcSpriteSelect = document.getElementById('zoneEditor_npcSprite') as HTMLSelectElement;
-    npcTypeInput = document.getElementById('zoneEditor_npcType') as HTMLInputElement;
-    npcRadiusInput = document.getElementById('zoneEditor_npcRadius') as HTMLInputElement;
-    npcTooLowLineInput = document.getElementById('zoneEditor_npcTooLowLine') as HTMLInputElement;
-    npcLinesInput = document.getElementById('zoneEditor_npcLines') as HTMLTextAreaElement;
-    npcSelectionGroup = document.getElementById('zoneEditor_npcSelection');
-    npcSelectedIndexLabel = document.getElementById('zoneEditor_npcSelectedIndex');
-    npcTeachingList = document.getElementById('zoneEditor_npcTeachingList');
-    npcTeachSkillSelect = document.getElementById('zoneEditor_npcTeachSkill') as HTMLSelectElement;
-    npcTeachLevelInput = document.getElementById('zoneEditor_npcTeachLevel') as HTMLInputElement;
-    npcTeachLineInput = document.getElementById('zoneEditor_npcTeachLine') as HTMLInputElement;
 
     anchorControls = document.getElementById('zoneEditor_anchorControls');
     anchorNameInput = document.getElementById('zoneEditor_anchorName') as HTMLInputElement;
@@ -201,7 +176,6 @@ export function setupPanel() {
     spawnCountLabel = document.getElementById('zoneEditor_spawnCount');
     campfireCountLabel = document.getElementById('zoneEditor_campfireCount');
     darkCountLabel = document.getElementById('zoneEditor_darkCount');
-    npcCountLabel = document.getElementById('zoneEditor_npcCount');
     anchorCountLabel = document.getElementById('zoneEditor_anchorCount');
 
     let popup = document.getElementById('zoneEditorPopup');
@@ -232,19 +206,7 @@ export function setupPanel() {
         spawnMobSelect.appendChild(option);
     });
 
-    ZoneEditor.skillNames.forEach(name => {
-        let option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        npcTeachSkillSelect.appendChild(option);
-    });
 
-    ZoneEditor.npcSpriteNames.forEach(name => {
-        let option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        npcSpriteSelect.appendChild(option);
-    });
 
     // The zone controls (load/id/name/bounds/export) are zone-wide, so they
     // stay visible in every mode — not just prop/spawn.
@@ -321,26 +283,6 @@ export function setupPanel() {
     document.getElementById('zoneEditor_darkDeselect').addEventListener('click', event => {
         event.preventDefault();
         deselect();
-    });
-    document.getElementById('zoneEditor_npcPlaceButton').addEventListener('click', event => {
-        event.preventDefault();
-        placeAtPlayer();
-    });
-    document.getElementById('zoneEditor_npcUpdate').addEventListener('click', event => {
-        event.preventDefault();
-        applyControlsToSelection();
-    });
-    document.getElementById('zoneEditor_npcDelete').addEventListener('click', event => {
-        event.preventDefault();
-        deleteSelection();
-    });
-    document.getElementById('zoneEditor_npcDeselect').addEventListener('click', event => {
-        event.preventDefault();
-        deselect();
-    });
-    document.getElementById('zoneEditor_npcTeachAdd').addEventListener('click', event => {
-        event.preventDefault();
-        addTeachingToSelection();
     });
     document.getElementById('zoneEditor_propUpdate').addEventListener('click', event => {
         event.preventDefault();
@@ -477,7 +419,6 @@ function setMode(newMode: EditorMode) {
     spawnControls.classList.toggle('hidden', mode !== 'spawn');
     campfireControls.classList.toggle('hidden', mode !== 'campfire');
     darkControls.classList.toggle('hidden', mode !== 'dark');
-    npcControls.classList.toggle('hidden', mode !== 'npc');
     anchorControls.classList.toggle('hidden', mode !== 'anchor');
 }
 
@@ -494,7 +435,7 @@ function onMapPointerDown(event: PointerEvent) {
     if (event.button !== 0) {
         return;
     }
-    if (mode !== 'prop' && mode !== 'spawn' && mode !== 'campfire' && mode !== 'dark' && mode !== 'npc' && mode !== 'anchor') {
+    if (mode !== 'prop' && mode !== 'spawn' && mode !== 'campfire' && mode !== 'dark' && mode !== 'anchor') {
         return;
     }
     if (Game.state !== GameState.PLAYING) {
@@ -527,14 +468,6 @@ function onMapPointerDown(event: PointerEvent) {
         if (hit >= 0) {
             ZoneEditor.setSelection({kind: 'dark', index: hit});
             populateDarkControls(ZoneEditor.model.darkAreas[hit]);
-            updateSelectionDisplay();
-            return;
-        }
-    } else if (mode === 'npc') {
-        let hit = ZoneEditor.hitTestNpc(x, y);
-        if (hit >= 0) {
-            ZoneEditor.setSelection({kind: 'npc', index: hit});
-            populateNpcControls(ZoneEditor.model.npcs[hit]);
             updateSelectionDisplay();
             return;
         }
@@ -595,13 +528,6 @@ function placeAt(x: number, y: number) {
             return;
         }
         ZoneEditor.placeDarkArea({x, y, radius});
-    } else if (mode === 'npc') {
-        let npc = readNpcControls(x, y, []);
-        if (npc === null) {
-            return;
-        }
-        ZoneEditor.placeNpc(npc);
-        populateNpcControls(npc);
     } else if (mode === 'anchor') {
         let name = readAnchorName(-1);
         if (name === null) {
@@ -702,122 +628,6 @@ function populateSpawnControls(spawn: ZoneSpawn) {
     patrolModeSelect.value = spawn.patrolMode === 'loop' ? 'loop' : 'pingpong';
 }
 
-// Builds an NPC from the panel fields. Teachings aren't authored here — they're
-// added to the selected NPC via the teaching sub-list — so the caller passes
-// the list to carry ([] when placing fresh, the existing list when updating).
-// Mirrors the backend loader's hard-fails so they don't bite only at boot.
-function readNpcControls(x: number, y: number, teachings: ZoneTeaching[]): ZoneNpc {
-    let entityType = npcSpriteSelect.value;
-    // The name is a pure JSON/marker label — an empty one falls back to the
-    // sprite name (custom names like "Emberkeeper" stay author-only).
-    let type = npcTypeInput.value.trim() || entityType;
-    if (type === '') {
-        Game.player.character.say('NPC type must not be empty');
-        return null;
-    }
-    let radius = parseFloat(npcRadiusInput.value);
-    if (isNaN(radius) || radius <= 0) {
-        Game.player.character.say('NPC radius must be positive');
-        return null;
-    }
-    let lines = npcLinesInput.value.split('\n').map(l => l.trim()).filter(l => l !== '');
-    let tooLowLine = npcTooLowLineInput.value.trim();
-    if (teachings.length > 0 && tooLowLine === '') {
-        Game.player.character.say('A teaching NPC needs a too-low line');
-        return null;
-    }
-    // "Teachings or lore lines" is NOT enforced here: a teaching NPC is placed
-    // first (teachings empty) and gets its teachings added while selected, so a
-    // fresh NPC legitimately has neither yet. The backend zone loader fails loud
-    // at boot on an NPC empty of both — that's the source of truth.
-    return {
-        type,
-        x,
-        y,
-        radius,
-        tooLowLine: tooLowLine !== '' ? tooLowLine : undefined,
-        teachings,
-        lines,
-        entityType: entityType !== '' ? entityType : undefined,
-    };
-}
-
-function populateNpcControls(npc: ZoneNpc) {
-    npcSpriteSelect.value = npc.entityType || '';
-    if (npc.entityType && npcSpriteSelect.value !== npc.entityType) {
-        // Hand-authored sprite outside the NPC registry (any Resource-backed
-        // EntityType is server-legal) — add it so Update can't silently swap it.
-        let option = document.createElement('option');
-        option.value = npc.entityType;
-        option.textContent = npc.entityType + ' (zone JSON)';
-        npcSpriteSelect.appendChild(option);
-        npcSpriteSelect.value = npc.entityType;
-    }
-    npcTypeInput.value = npc.type;
-    npcRadiusInput.value = String(npc.radius);
-    npcTooLowLineInput.value = npc.tooLowLine || '';
-    npcLinesInput.value = (npc.lines || []).join('\n');
-    renderTeachingList(npc.teachings || []);
-}
-
-// Renders the selected NPC's ordered teachings, each with a remove button.
-function renderTeachingList(teachings: ZoneTeaching[]) {
-    npcTeachingList.textContent = '';
-    teachings.forEach((teaching, i) => {
-        let item = document.createElement('li');
-        item.textContent = teaching.skill + ' @L' + teaching.requiredLevel + ' "' + teaching.line + '" ';
-        let remove = document.createElement('button');
-        remove.textContent = '✕';
-        remove.addEventListener('click', event => {
-            event.preventDefault();
-            removeTeachingFromSelection(i);
-        });
-        item.appendChild(remove);
-        npcTeachingList.appendChild(item);
-    });
-}
-
-// Appends the teaching authored in the sub-row to the selected NPC (rising-edge
-// order matters — grants are applied top-to-bottom by the backend).
-function addTeachingToSelection() {
-    let selection = ZoneEditor.getSelection();
-    if (selection === null || selection.kind !== 'npc') {
-        return;
-    }
-    if (npcTeachSkillSelect.value === '') {
-        Game.player.character.say('Choose a skill to teach');
-        return;
-    }
-    let level = parseInt(npcTeachLevelInput.value);
-    if (isNaN(level) || level < 1) {
-        Game.player.character.say('Required level must be at least 1');
-        return;
-    }
-    let line = npcTeachLineInput.value.trim();
-    if (line === '') {
-        Game.player.character.say('Teaching needs a line');
-        return;
-    }
-    let npc = ZoneEditor.model.npcs[selection.index];
-    let teachings = (npc.teachings || []).concat([{skill: npcTeachSkillSelect.value, requiredLevel: level, line}]);
-    ZoneEditor.updateNpc(selection.index, {...npc, teachings});
-    npcTeachLineInput.value = '';
-    renderTeachingList(teachings);
-    updateSelectionDisplay();
-}
-
-function removeTeachingFromSelection(teachingIndex: number) {
-    let selection = ZoneEditor.getSelection();
-    if (selection === null || selection.kind !== 'npc') {
-        return;
-    }
-    let npc = ZoneEditor.model.npcs[selection.index];
-    let teachings = (npc.teachings || []).filter((_, i) => i !== teachingIndex);
-    ZoneEditor.updateNpc(selection.index, {...npc, teachings});
-    renderTeachingList(teachings);
-    updateSelectionDisplay();
-}
-
 function applyControlsToSelection() {
     let selection = ZoneEditor.getSelection();
     if (selection === null) {
@@ -853,14 +663,6 @@ function applyControlsToSelection() {
         let radius = readDarkRadius();
         if (radius !== null) {
             ZoneEditor.updateDarkArea(selection.index, {...current, radius});
-        }
-    } else if (selection.kind === 'npc') {
-        let current = ZoneEditor.model.npcs[selection.index];
-        // Teachings are edited via the sub-list, not these controls — carry
-        // them. entityType comes from the sprite dropdown.
-        let updated = readNpcControls(current.x, current.y, current.teachings || []);
-        if (updated !== null) {
-            ZoneEditor.updateNpc(selection.index, updated);
         }
     } else if (selection.kind === 'anchor') {
         let current = ZoneEditor.model.anchors[selection.index];
@@ -902,8 +704,6 @@ function deleteSelection() {
         ZoneEditor.removeCampfire(selection.index);
     } else if (selection.kind === 'dark') {
         ZoneEditor.removeDarkArea(selection.index);
-    } else if (selection.kind === 'npc') {
-        ZoneEditor.removeNpc(selection.index);
     } else {
         ZoneEditor.removeAnchor(selection.index);
     }
@@ -955,14 +755,12 @@ function updateSelectionDisplay() {
     let spawnSelected = selection !== null && selection.kind === 'spawn';
     let campfireSelected = selection !== null && selection.kind === 'campfire';
     let darkSelected = selection !== null && selection.kind === 'dark';
-    let npcSelected = selection !== null && selection.kind === 'npc';
     let anchorSelected = selection !== null && selection.kind === 'anchor';
 
     propSelectionGroup.classList.toggle('hidden', !propSelected);
     spawnSelectionGroup.classList.toggle('hidden', !spawnSelected);
     campfireSelectionGroup.classList.toggle('hidden', !campfireSelected);
     darkSelectionGroup.classList.toggle('hidden', !darkSelected);
-    npcSelectionGroup.classList.toggle('hidden', !npcSelected);
     anchorSelectionGroup.classList.toggle('hidden', !anchorSelected);
     if (propSelected) {
         propSelectedIndexLabel.textContent = String(selection.index);
@@ -977,9 +775,6 @@ function updateSelectionDisplay() {
     }
     if (darkSelected) {
         darkSelectedIndexLabel.textContent = String(selection.index);
-    }
-    if (npcSelected) {
-        npcSelectedIndexLabel.textContent = String(selection.index);
     }
     if (anchorSelected) {
         anchorSelectedIndexLabel.textContent = String(selection.index);
@@ -996,6 +791,5 @@ function updateCounts() {
     spawnCountLabel.textContent = String(ZoneEditor.model.spawns.length);
     campfireCountLabel.textContent = String(ZoneEditor.model.campfires.length);
     darkCountLabel.textContent = String(ZoneEditor.model.darkAreas.length);
-    npcCountLabel.textContent = String(ZoneEditor.model.npcs.length);
     anchorCountLabel.textContent = String(ZoneEditor.model.anchors.length);
 }

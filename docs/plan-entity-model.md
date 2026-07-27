@@ -571,21 +571,41 @@ dialogue panel). 3a is shippable and verifiable on its own.
 
 ### The interaction schema (decision 6 — full container, degenerate authoring)
 
+*Finalized 2026-07-27 against the code. The shape below is what the loader
+parses; §6.2 lists the validation rules.*
+
 ```jsonc
 "interaction": {
-  "trigger": "interact",        // 3b; 3a authors "approach" to preserve behaviour
-  "range": 1.0,
+  "trigger": "approach",         // 3a; "interact" hard-fails until 3b implements it
+  "range": 1.0,                  // OPTIONAL — absent = body.aggroRadius (see D7)
   "nodes": [
     {
-      "conditions": [ … ],       // level >= N, knows/doesn't know skill X, later quest state
-      "text": "…",
+      "id": "root",
+      "conditions": [],          // [{ "kind": "minLevel", "value": 5 }] — later: quest state
+      "lines": ["…"],            // today's `lines`: spoken when nothing was granted
       "options": [
-        { "text": "…", "grants": [ { "kind": "teach_skill", "skill": "FirstAid" } ], "next": null }
+        {
+          "text": "",            // 3b button label; 3a auto-selects the sole option
+          "blockedLine": "…",    // today's `tooLowLine`
+          "grants": [
+            { "kind": "teach_skill", "skill": "FirstAid", "requiredLevel": 2, "line": "…" },
+            { "kind": "teach_skill", "skill": "Heal",     "requiredLevel": 3, "line": "…" }
+          ],
+          "next": null
+        }
       ]
     }
   ]
 }
 ```
+
+⚑ **The grant keeps `requiredLevel` rather than growing a `conditions` list.**
+That is deliberate and not a shortcut: it is today's `world.Teaching` field
+verbatim, and the ordered-stop walk is a property of the grant *list*, not of a
+condition engine. Adding an optional `conditions` key to a grant later is
+**additive JSON** — what decision 6 is actually buying is the *nesting*
+(nodes → options → grants), which is the part that cannot be added later without
+rewriting every authored file.
 
 Each of today's NPCs becomes **one node whose single option carries its full
 grant list** — code audit: they are *not* uniformly one-teaching (Emberkeeper
@@ -606,29 +626,345 @@ Nothing branches. The container is what buys the future:
   block it is grants staying hardcoded as "teach a skill" — which the typed
   grant list fixes. **One fix, two features.**
 
-### Chunk 3a — backend + content merge
+---
 
-- `interaction` (+ the authored display `name`) move onto the actor definition.
-- `model/npc` is **deleted**. `sys/npc.go` (168 lines) becomes an interaction
-  system operating on Actors; `onApproach`'s teaching-order logic survives
-  nearly intact as the degenerate node evaluator.
-- `addNpcEntity` leaves `core/game.go` (§24's matrix shrinks by one helper). The
-  NPC's separate dynamic sensor disappears — the mob's `aggroAura` is that
-  sensor. ⚑ Re-read the comment at `game.go:319` (above `addNpcEntity`; the
-  blunt phrasing "a static shape's `Collisions()` is always empty" lives in
-  `model/npc/npc.go:10`) before deleting: the *reason* the NPC sensor is
-  registered dynamically applies to the aggro aura too, and it is already
-  satisfied there.
-- The zone NPC entries migrate from `zone.npcs` to actor definitions + spawns —
-  **16 authored entries, not 14** (code audit): 14 in `world.json` (the boot
-  count) plus 2 legacy `Sage` entries in `proving-grounds.json` that lack
-  `entityType`/`name` and need an explicit keep-or-drop call (open question 6).
-  **Decide during the chunk** whether they stay a distinct zone-JSON
-  section (placement ergonomics for the editor) or fold into `spawns`; the
-  editor is PO-operated, so the ergonomics call is the PO's.
-- ⚠ **Wire path change** — see landmine L5.
+## 6a. Chunk 3a — the NPC merge
 
-### Chunk 3b — the interact verb
+*Planned in full 2026-07-27 (design session, no code). Line numbers are
+post-chunk-2 HEAD `052244d5`.*
+
+**The one-sentence chunk:** the teaching NPC stops being a second entity type
+and becomes an ordinary actor carrying an authored `interaction` block —
+and "approach" turns out to be the thing the mob layer already had, an aggro
+sensor with the friendly end of the faction table.
+
+### 6a.1 What the chunk actually costs
+
+The merge itself is small. What makes 3a the biggest chunk in the plan is that
+**the NPC's wire path, its placement path and its authoring UI all move at
+once**, and none of the three can move separately: the moment the server stops
+marshalling an NPC through the Resource table, a client that still expects one
+mis-renders it. The ordered sequence in §6a.7 is therefore not a preference —
+it is the only order in which the tree stays green.
+
+Deleted outright: `model/npc` (122 lines + 101 test), `model.NpcEntity`,
+`model.Teaching`, `npc.SpriteFor`, `game.addNpcEntity` + its `AddEntity` case,
+`world.Npc` + `world.Teaching` + the whole `npcs` zone section and its five
+validations, `aurad.go`'s NPC boot loop and its `placed npcs` log line, and the
+zone editor's entire NPC mode. `sys/npc.go` is not deleted but rewritten as
+`sys/interaction.go`.
+
+### 6a.2 Loader validation — what a bad `interaction` block must not survive
+
+Every rule hard-fails at boot, the house standard for curated content. The
+single-source-table shape (`tierRanks` → `ParseRole` → here) repeats twice:
+
+- **`trigger`** resolves through a `ParseTrigger` table. 3a knows `approach`
+  only; authoring `interact` **hard-fails until 3b implements it** — the engine
+  never silently accepts a key it cannot honour (D6).
+- **`grants[].kind`** resolves through a `grantKinds` table. 3a knows
+  `teach_skill` only.
+- **`conditions[].kind`** likewise; 3a knows `minLevel` only.
+- `nodes` non-empty; `id` non-empty and unique within the block; `next` either
+  absent/null or naming a node in the same block (dangling link = boot failure).
+- `grants[].skill` resolves against the skill registry **at load** — today's
+  `zone.go:479` behaviour moves here verbatim, `noteLegacy` and all.
+- A node must carry `lines` **or** at least one option with at least one grant
+  (today's *"must have teachings or lore lines"*, `zone.go:376`).
+- An option carrying a grant with `requiredLevel > 0` needs a `blockedLine`
+  (today's *"teaching NPC must have a tooLowLine"*, `zone.go:379`).
+- `range >= 0`, and an actor with an `interaction` block must end up with a
+  **positive effective sense radius** — `max(body.aggroRadius, interaction.range)`
+  (D7). A conversant with a 0 sensor is an NPC nobody can ever talk to, and it
+  would look exactly like a content typo.
+
+### 6a.3 The system — `InteractionSystem` over a `Conversant` capability
+
+`sys/npc.go` → `sys/interaction.go`. The 373-line `npc_test.go` is the spec:
+`onApproach`'s semantics are preserved exactly, only its inputs change shape.
+
+| today | after |
+|---|---|
+| `NpcSystem.npcs []model.NpcEntity` | `InteractionSystem.actors []Conversant` |
+| `n.Teachings()/TooLowLine()/Lines()` | one node → one option → its grant list |
+| `n.Sensor()` (the NPC's own dynamic circle) | `m.Sensor()` → the mob's `aggroAura` |
+| `npcName()` — authored name, else the spaced sprite enum | the definition's display name (`DeriveDisplayName(def.Name)`) |
+| `Remove` is a no-op ("NPCs are placed once and never removed") | **implemented** — see below |
+
+`Conversant` is the capability from §3, asserted structurally:
+
+```go
+type Conversant interface {
+    model.MobEntity
+    Interaction() *mobs.Interaction
+    Sensor() phy.DynamicCollider
+}
+```
+
+`addMobEntity` offers every mob to the system; the system stores only those
+that assert. Priority stays 20 (same-tick sensor read, alongside `MobSystem` —
+the existing comment's reasoning is unchanged).
+
+⚑ **`Remove` must actually be implemented.** Today's no-op encodes *"an NPC
+never dies"*, which stops being true the moment interaction rides the mob path:
+a conversant companion or a killable quest-giver would leak its `seen` entry
+and, worse, keep a dead actor in the slice. It is four lines; write them now.
+
+⚑ **The rising-edge `seen` map is the reason 3a is behaviour-preserving.** Keep
+it as-is, including *"a player who leaves and returns re-triggers"*.
+
+**⚑ The sensor widening is the one line that makes the whole chunk work —
+see landmine L11.** `refreshSensorMask` (`mob.go:651`) derives the sensor mask
+from the *aggro* mask, and a friendly NPC's faction aggros nothing, so
+`aggroSensorMask(0)` returns `LayerNoneCollision` — **a blind sensor**. A
+conversant must widen to include `LayerPlayerCollision`, mirroring the
+support-carrier widening two lines above it in the same function.
+
+**The registration deletion is safe and already reasoned.** `game.go:319`'s
+comment (*"a static shape's `Collisions()` is always empty, so a static sensor
+would sense nothing"*) is exactly why `addNpcEntity` exists — and
+`PhysicsSystem.AddEntity` (`physics.go:58`) registers **every** shape from
+`Bodies()` as dynamic, and `mob.go:530` returns `[body, aura, aggroAura]`. The
+requirement the comment states is already satisfied on the mob path; that is
+the "elegant bit" of §3, verified.
+
+### 6a.4 Content — 14 definitions, one faction, zero behaviour change
+
+**The 14** (ids 51–64; `_comment` block on each, house convention):
+
+| def name | entityType | teaches | note |
+|---|---|---|---|
+| `Farmer` | Farmer | Harvest@1 | |
+| `Hermit` | Hermit | FirstAid@2, Heal@3 | |
+| `Lamplighter` | Hermit | Torch@0 | today an anonymous second `Hermit`; **named by the PO 2026-07-27** |
+| `Dog` | DogNpc | SummonCompanion@0 | authored `name: "Dog"` today |
+| `Miner` | Miner | Pickaxe@4 | |
+| `CityGuard` | CityGuard | Strong@3 | 2 lore lines |
+| `VillageHealer` | VillageHealer | FirstAid@2, Revive@8 | |
+| `FrontCaptain` | FrontCaptain | Vanguard@15 | 2 lore lines |
+| `Shaman` | Hermit | Recover@4, SummonTotem@5 | |
+| `Wanderer` | Wanderer | Recall@3 | zone `type` is `Wanderer_1`; drop the suffix |
+| `LamplessTraveller` | Traveller | — | pure flavour, no `blockedLine` |
+| `TownCrier` | TownCrier | Damage@1, Recall@3 | |
+| `ForestSign` | Signpost | — | pure flavour, no `blockedLine` |
+| `Emberkeeper` | Hermit | Torch@1, Ignite@7, Immolate@12 | the 3-grant case |
+
+Four defs share the `Hermit` sprite via the `entityType` override — the
+`proving-*` precedent, and nothing in the loader requires entityType uniqueness.
+
+**The def name is now player-visible.** `DeriveDisplayName(def.Name)` feeds the
+`"Taught by: X"` unlock attribution, which deletes the authored-name-vs-sprite-
+name fallback (`npc.go:157`) — a real simplification, but it means
+`LamplessTraveller` renders "Lampless Traveller" and the second Hermit needs a
+name of its own instead of inheriting the sprite's.
+
+**Body — reproduce today's NPC exactly, in authored numbers:**
+
+```jsonc
+"body": { "radius": 0.35, "collisionLayer": 97, "collisionMask": 16, "aggroRadius": 1.0 }
+```
+
+`0.35` is `npc.placeholderVisualRadius` verbatim. `97` = PlayerStatic(1) +
+Viewport(32) + MobStatic(64) — **precisely today's NPC body bits**, and
+pointedly *not* Action(2), so no aura on either side can target it (see L12).
+`aggroRadius: 1.0` is today's authored zone `radius`, so `interaction.range` is
+omitted on all 14 (D7).
+
+**Factors:** `speed: 0`, `experience: 0`, `skills: []` (the Turnip/Rockfall
+precedent — skill-less mobs already ship), `baseMaxHealth: 200 [PLACEHOLDER]`.
+The pool is authored rather than left to the 100 default because the PO's
+ruling makes it visible: NPCs keep their health bar (D3).
+
+**Role: `creature`** (D4). Not `structure`, even though these 14 neither move
+nor fight: the PO's ruling is that an NPC must be able to act like any mob if
+content later wants it to, and `creature` is the role that chases and gates its
+aura on aggro. An NPC is then an ordinary actor that happens to author
+`speed: 0` — the exact inverse of the inference chunk 2 retired.
+
+**New faction `api/factions/townsfolk.json`:** `hostileTo: []` (explicitly
+passive — the loader *requires* the key), `friendlyToPlayers: true`. Note the
+existing guard: `friendlyToPlayers` plus `hostileTo: ["aligned"]` is rejected,
+which `[]` satisfies.
+
+**Unattackability is now two authored knobs, not a type property** (D5):
+the body off the Action layer means nothing can target it *at all* (players and
+hostile mobs alike — today's guarantee), and `friendlyToPlayers` makes player
+damage skip it regardless (`skills.go:410`). Belt and braces, both authored ⇒
+making one specific NPC killable later is a JSON edit, not a code change. That
+is the property the PO's D4 ruling asks for.
+
+**The 2 legacy proving-grounds Sages are DROPPED** (D2). `proving-grounds.json`
+loses its `npcs` section entirely. Consequence: `NpcPlaceholder` has no authored
+user left. Keep the enum value (pinned, §28 Chunk 3), keep the sprite class and
+asset — as a mob `entityType` it stays a legitimate authoring choice for an NPC
+whose art is not drawn yet, which is what it was built to be.
+
+### 6a.5 Placement — fold into `spawns` (D1)
+
+`zone.npcs` is deleted; each NPC becomes an ordinary spawn row:
+
+```jsonc
+{ "mob": "Farmer", "x": -57, "y": 28.6, "angle": 0 }
+```
+
+Respawn fields are omitted — inert on something that cannot die. The gain
+beyond DRY is that `angle` (facing) and the waypoint/wander machinery come free,
+so a patrolling merchant is later a content edit rather than a schema change.
+
+**The zone editor loses its NPC mode outright** (~127 `npc` references across
+`_ZoneEditorPanel.ts`, `ZoneEditor.ts`, `ZoneModel.ts`, plus the
+`zoneEditor_npcControls` block in `groundTexturePanel.html`). This is a real
+workflow change and the reason D1 was the PO's call: **teachings stop being
+editable in the editor** and become JSON content, exactly like every mob's skill
+loadout, drops and resistances already are. NPCs are then placed with the
+existing spawn tool and its mob dropdown, which needs no new code — see L13.
+
+### 6a.6 The wire path (L5) — 11 sprite classes change base class
+
+NPCs ride the **Resource** table today and the **Mob** table after. Server-side
+this is automatic (the `model.MobEntity` case in `EntitiesMarshalFlatbuf`
+precedes `model.PropEntity`); client-side, `gameObjectClasses` maps
+`EntityType → class` and 11 entries must point at `Mobs.*` instead of
+`Resources.*`: **Signpost, Hermit, Farmer, Wanderer, Traveller, TownCrier,
+DogNpc, Miner, CityGuard, VillageHealer, FrontCaptain**. `GateWall` stays a
+Resource — it is a prop wall, not an NPC. `NpcPlaceholder` moves too, so it
+stays authorable (§6a.4).
+
+Four details that keep this from being a visual regression:
+
+1. **Constructor signature is already uniform.** `EntityManager` always calls
+   `new entity.type(id, x, y, radius)`; Mob subclasses simply ignore the 4th
+   argument today. The NPC classes should *keep reading it* and pass it as
+   `size`, exactly as the Resource versions do — that preserves on-screen size,
+   whereas the `randomInt(minSize, maxSize)` idiom the mob classes use has no
+   `minSize` to read (the `GraphicsConfig.npcs` entries carry only `file` +
+   `maxSize`).
+2. **Render layer: keep `Game.layers.resources.trees`.** The `Mob` constructor
+   takes any container, and the layer stack adds `mobs` **before** `resources`
+   — a new `mobs.npc` layer would silently move every NPC *underneath* the
+   trees. Changing z-order is not this chunk's business.
+3. **`GraphicsConfig.npcs` stays where it is**; add npc-scoped `file()/maxSize()`
+   helpers in `Mobs.ts` rather than merging the block into `GraphicsConfig.mobs`
+   (whose helpers are typed against that object and expect `minSize`/`anchor`).
+4. **Health bars: accepted, no gate** (D3). L5's open half is closed by PO
+   ruling — *"we accept bars on NPCs since they can now also act in the world;
+   most will not act but they can"*. So `initHealthBar` is untouched. The
+   nameplate stays off for free (`combatTarget = Experience > 0 && …`, and
+   experience is 0) and so does the tier frame (rank 0 is invisible). ⚠ A
+   **screenshot is still required** — the ruling accepts a bar, it does not
+   accept a mis-scaled sprite, a wrong layer or a stray aura ring.
+
+### 6a.7 Implementation order
+
+The only order that keeps the tree green at every step:
+
+1. **Schema + loader** — `Interaction` types in `items/mobs`, the three parse
+   tables, validation, tests. Nothing consumes it yet.
+2. **`townsfolk` faction + the 14 defs.** Boot still ignores them; `go test`
+   green, boot counts move (mobs 50 → 64).
+3. **Sensor widening** (L11) + `Sensor()`/`Interaction()` on `*Mob`, with the
+   passive-faction pin. Still no behaviour change — nothing is conversant yet.
+4. **`sys/interaction.go`** — port `onApproach` and the whole of `npc_test.go`
+   onto the new types, with the old `NpcSystem` still registered and running.
+   Both systems compile; only one has content.
+5. **Pilot one NPC.** Move `Farmer` alone: its spawn row, its client class, its
+   table entry. Both paths live simultaneously (the split is per-`EntityType`,
+   so this genuinely works). **Verify in-game here** — this is the cheapest
+   place to discover a wire/sprite surprise, with 13 NPCs still on the old path
+   as a live A/B control.
+6. **Bulk-migrate the remaining 13** + the other 10 sprite classes.
+7. **Delete**: `model/npc`, `NpcEntity`, `Teaching`, `addNpcEntity`, the zone
+   `npcs` section + validations + tests, the `aurad.go` loop, `sys/npc.go`, and
+   the editor's NPC mode.
+8. Boot, smoke, screenshot, sim battery.
+
+Steps 1–4 are pure addition; step 7 is pure deletion. If the session runs long,
+**5 is the natural stopping point** — and worth its own commit either way.
+
+### 6a.8 Decisions
+
+**D1 — placement folds into `spawns`** (PO 2026-07-27). `zone.npcs` is deleted
+along with the editor's NPC mode; teachings become JSON content.
+
+**D2 — the 2 legacy proving-grounds Sages are dropped** (PO 2026-07-27), not
+migrated. 14 definitions, not 16. Open question 6 closed.
+
+**D3 — health bars on NPCs are accepted** (PO 2026-07-27): *"they can now also
+act in the world … most will not act but they can"*. No gate on
+`initHealthBar`; L5's open half closes without frontend work.
+
+**D4 — role is `creature`, not `structure`** (PO 2026-07-27): *"whatever change
+allows them to act like mobs, if we want — I want NPCs and mobs to be
+theoretically able to act the same way"*. The 14 author `speed: 0` and are
+otherwise ordinary actors. Downstream consequence, accepted: `creature` keeps
+`body.aggroRadius` required, which is fine because that radius **is** the
+interaction sensor (D7).
+
+**D5 — unattackability becomes two authored knobs**, replacing today's
+structural guarantee: the body off the Action layer (nothing can target it) plus
+`friendlyToPlayers` (player damage skips it). Both are content, so a killable
+NPC is a JSON edit. Follows from D4.
+
+**D6 — `trigger: "interact"` hard-fails at load until 3b implements it.** The
+schema names the future value; the loader refuses to accept content the engine
+cannot honour, matching how `tier` and `role` are gated by their tables.
+
+**D7 — `interaction.range` is optional; absent means `body.aggroRadius`.** The
+effective sensor is `max(aggroRadius, range)`. The 14 omit it (one authored
+radius, no duplicate sense number); the fighting teaching-guard of §3 authors
+both, because talk range and aggro range are genuinely different quantities.
+
+### 6a.9 Test plan & acceptance
+
+**TDD, red-first.** `sys/npc_test.go` (373 lines) is the specification — port
+it, do not rewrite it. Every `onApproach` case must be reproduced by the node
+evaluator: ordered grants, stop-at-first-too-low + `blockedLine`, all-known →
+`lines` fallback, grant-less flavour node, the 3-grant Emberkeeper walk, and the
+level-skipper who collects several unlocks in one approach.
+
+| pin | why it is the one that matters |
+|---|---|
+| a conversant with a **passive faction** senses a player | L11 — without the widening the NPC is silently mute, and every unit test of the evaluator still passes |
+| a player aura tick on an NPC deals **0 damage**, and a hostile mob does not acquire it | D5 — assert behaviour, not layer equality |
+| loader rejects: unknown `trigger`/`kind`/condition kind, `trigger: "interact"`, empty `nodes`, duplicate node id, dangling `next`, unknown skill, gated grant without `blockedLine`, zero effective sense radius | the whole of §6a.2 |
+| content pin over all 14 defs: role, faction, interaction non-nil, and the **teaching order + required levels match the pre-migration zone JSON exactly** | table-driven, migrated from `world.json` — this is what proves "zero behaviour change" |
+| `InteractionSystem.Remove` drops the actor and its `seen` entry | the no-op assumption that stops being true |
+
+**Acceptance gates:**
+
+- `go build ./...`, `go vet`, `go test -timeout 60s ./...` green; guardrails
+  `-count=2`.
+- **boot `-content ../api`, 0 errors / 0 panics / 0 warnings** — the real gate
+  (L4), since the sim never loads authored content. Counts move exactly:
+  **mobs 50 → 64**, **spawns 471 → 485**, **factions 14 → 15**, **npcs 14 → the
+  log line is gone**, everything else unchanged (83 skills / 10 recipes / 5 prop
+  defs / 1 milestone / 777 props / 5 campfires).
+- **Sim battery + level curve + pack matrix byte-identical** to a `git worktree`
+  HEAD build. The **preset roster gains exactly 14 rows and moves no existing
+  cell** (L14); the guardrail battery is unaffected because unarmed defs are
+  skipped at `guardrail_test.go:214`.
+- Frontend `npm test` + `npm run typecheck` + `npm run build`.
+- **Headless smoke** (`.claude/skills/verify`, the chunk-2 script as the
+  template): walk into the Farmer's radius → Harvest learned, bubble shown,
+  `"Taught by: Farmer"` attribution; approach the Emberkeeper under-level →
+  blocked line and **nothing** granted; approach the ForestSign → its lore line.
+  ⚑ Chunk 2's two harness traps still apply: the dev console `stopPropagation()`s
+  keydown so **WASD is swallowed while it holds focus**, and **screen-up is
+  decreasing world y**.
+- **Screenshot** of an NPC — sprite, size, layer, health bar, no nameplate, no
+  aura ring (§6a.6 detail 4).
+
+### 6a.10 Not closed by this chunk
+
+3b's interact verb and dialogue panel; **L2** (`SetFaction` nuking the authored
+aggro mask — still two callers, still inert, and an interaction layer is exactly
+where charm / side-switching / quest-turns-hostile gets wanted); quest state and
+the journal (decision 6: shape only); NPC nameplates (gated off by
+`experience: 0` — 3b's in-range prompt is the natural place for a name).
+
+---
+
+## 6b. Chunk 3b — the interact verb
 
 - New client keybind (recommend `E`), in-range prompt, dialogue panel.
 - New client→server message. ⚑ `client.fbs`'s message union is **append-only**
@@ -709,10 +1045,10 @@ frontend consumer `Mobs.ts:142`) and so is the tier frame (rank 0 is
 deliberately invisible, `TIER_FRAME_STYLES[0] = undefined`). But the **health
 bar is not gated at all** — `initHealthBar()` runs unconditionally in the Mob
 constructor (`Mobs.ts:113`) and pre-renders a full bar (buff-pip strip attached)
-before the first snapshot. **Chunk 3a must add that gate**, or the PO accepts
-bars on NPCs — campfires, totems and companions already show them today, so
-there is precedent either way; it is a PO-visible design choice. Verify with a
-screenshot regardless.
+before the first snapshot. ✅ **RESOLVED by PO ruling 2026-07-27 (D3): bars on
+NPCs are ACCEPTED** — *"they can now also act in the world; most will not act
+but they can"*. No gate; `initHealthBar` is untouched. **The screenshot is still
+required** — the ruling accepts a bar, not a mis-scaled sprite or a wrong layer.
 
 **L6 — `Derived` is populated on mobs already, so the obvious test passes.**
 `recomputeDerived()` (`skills/component.go:313`) is a `SkillComponent` method and
@@ -766,6 +1102,45 @@ pin it instead of assuming it. It also means the 50-mob preset roster is
 (the 10 structures to 0, plus the two follower dummies to an authored 3.5 under
 D1) and nothing else.
 
+**L11 — a passive faction's aggro sensor is BLIND, so "approach is aggro" needs
+one extra line.** `refreshSensorMask` (`mob.go:651`) derives the sensor mask
+from the *aggro* mask, and `aggroSensorMask(0)` returns `LayerNoneCollision`
+(`mob.go:669`). A friendly NPC aggros nothing ⇒ its sensor reports nothing ⇒ the
+NPC is silently mute, **with every unit test of the node evaluator still green**.
+Chunk 3a must widen a conversant's mask to include `LayerPlayerCollision`,
+mirroring the support-carrier widening two lines above in the same function. Pin
+it directly (§6a.9) — this is the single most likely way 3a ships broken.
+
+**L12 — the NPC's body goes from STATIC to DYNAMIC, and its layer must be
+authored.** Today `addNpcEntity` registers the visual body via `AddStaticBody`
+with `PlayerStatic|MobStatic|Viewport` (`npc.go:80`); as a mob it is a dynamic
+shape from `Bodies()[0]` with whatever `body.collisionLayer` says — and the mob
+**default is `Viewport|Action`** (`mob.go:150`), i.e. walk-through *and*
+aura-targetable, the exact opposite of an NPC on both counts. Author
+`collisionLayer: 97` (1+32+64) — today's bits verbatim, pointedly without
+Action(2). The dynamic-body-blocks-the-player half is already proven live by
+`Bramble` (layer 99), so the pattern is not new; only the missing Action bit is.
+
+**L13 — the zone editor authors the teaching payload per PLACEMENT.** It is not
+a viewer: `_ZoneEditorPanel.ts` has a full NPC form (sprite select, radius,
+tooLowLine, lore lines, an add/remove teaching list) backed by `ZoneModel`'s
+`ZoneNpc`/`ZoneTeaching` and a `zoneEditor_npcControls` block in
+`groundTexturePanel.html` — ~127 `npc` references across four files. Moving
+`interaction` onto the definition **removes that authoring surface** (D1 deletes
+the mode rather than reworking it), so teachings become JSON-edited content like
+every mob's skills, drops and resistances already are. PO-visible workflow
+change, ruled 2026-07-27.
+
+**L14 — the simharness preset roster grows by 14 rows; the guardrail battery
+does not care.** `loadPresets` (`content.go:104`) builds the explorer roster
+from the **real authored content**, so every new NPC definition appears in it —
+50 → 64. Harmless but not byte-identical, and worth predicting so it does not
+read as a regression. The guardrail battery is genuinely unaffected: unarmed
+defs are skipped at `guardrail_test.go:214`
+(`spec.Aura.DamageHP == 0 && spec.Aura.DotHP == 0 → continue`), and all 14 are
+`skills: []`. The sim battery itself stays byte-identical for the usual reason
+(L4: the sim never loads authored content).
+
 ---
 
 ## 9. Test strategy
@@ -775,7 +1150,7 @@ D1) and nothing else.
 | **1a** | TDD red-first: mob + Hardy has more HP · mob + Tough takes less damage · mob + Swift moves faster. All **behavioural** (L6). Existing guardrails `-count=2`. | `go test ./...` green; **sim battery + level curve + pack matrix byte-identical** to a stashed baseline (no mob authors a passive, so identity is provable) |
 | **1b** | summon HP/output pins at 2–3 owner levels; max-HP recompute clamps current health | sim battery **re-run and deltas recorded**; PO signs the summon numbers |
 | **2** | loader rejects an unknown `role`, absent → `creature`, `aggroRadius` optional only for `structure`; **speed>0 + `structure` is always-on** and **speed-0 + `creature` gates** (proves the read moved off speed); owned-`structure` ≠ follower; content pin on all 50 roles | boot `-content ../api` clean with the pinned counts (**the real gate — L4**); sim battery/level curve/pack matrix byte-identical vs a `git worktree` HEAD build; preset roster moves in **exactly 10 `aggroRadius` cells** and nowhere else (L10) |
-| **3a** | interaction-node evaluator reproduces `onApproach`'s teaching order + `tooLowLine` gate; content pin on all 16 migrated NPC entries (14 `world.json` + 2 legacy Sages, per the open-question-6 call) | boot counts (npcs → 0, mobs/spawns +14 world-side); headless smoke; **screenshot** for the L5 health-bar gate |
+| **3a** | port all 373 lines of `sys/npc_test.go` onto the node evaluator (order + `blockedLine` gate + lore fallback); **a passive-faction conversant senses a player** (L11); 0 damage + no hostile acquisition on an NPC body (D5); the 9 loader rejections of §6a.2; content pin on all 14 defs incl. teaching order vs the pre-migration zone JSON | boot `-content ../api` clean with **mobs 50 → 64 · spawns 471 → 485 · factions 14 → 15 · the `placed npcs` line gone**; sim battery byte-identical and the preset roster **+14 rows, no cell moved** (L14); headless smoke (teach / blocked / lore); **screenshot** (bars are accepted per D3 — the shot is for sprite, size, layer, ring) |
 | **3b** | keybind + panel unit tests via the existing vitest infra (`jsdom` + the `fetch` stub) | in-game: approach a teacher, press the key, learn the skill, panel closes |
 
 Backend gate every chunk: `go build ./...`, `go vet`, `go test -timeout 60s ./...`,
@@ -795,17 +1170,20 @@ content counts recorded.
    explicitly special-cases `model.PlayerEntity` for the flat base. Under decision 1
    the *passive* half already converges; the flat base is a separate design call.
    Not needed for any chunk here.
-3. **Do the 14 NPCs stay a distinct `zone.npcs` section or fold into `spawns`?**
-   (Chunk 3a) Editor ergonomics — the PO's call, since the PO operates the editor.
+3. ~~**Do the 14 NPCs stay a distinct `zone.npcs` section or fold into
+   `spawns`?**~~ **RESOLVED (PO 2026-07-27): fold into `spawns`** — §6a.5 / D1.
+   `zone.npcs` and the editor's whole NPC mode are deleted; teachings become
+   JSON content (L13), and facing/patrol come free.
 4. **`Autoattack`** (parked in §31 as blocked on gap 3): decision 2 unblocks it.
    Re-raise as content after Chunk 1. Note the standing design rejection of a
    universal auto-attack for **players** — it would defuse the "choosing the
    Lantern costs you all your damage" trade-off the zone-1→2 tunnel is built on.
 5. **The journal / quest ledger itself.** Deliberately out of scope; the typed
    grant list is the only thing this plan owes it.
-6. **Do the 2 legacy proving-grounds Sages migrate or drop?** (Chunk 3a, code
-   audit) They lack `entityType`/`name`, are dev/test content ("Too low",
-   "Big Boy"), and sit outside the boot count of 14.
+6. ~~**Do the 2 legacy proving-grounds Sages migrate or drop?**~~ **RESOLVED
+   (PO 2026-07-27): DROPPED** — D2. `proving-grounds.json` loses its `npcs`
+   section entirely; 14 definitions, not 16. `NpcPlaceholder` keeps its pinned
+   enum value and sprite class as an authorable "art not drawn yet" entityType.
 7. ~~**Summon level: assigned at spawn or tracked live?**~~ **RESOLVED in 1b
    (PO 2026-07-26): tracked LIVE** — `Level()` reads the owner's current level,
    with no synced field (§11). The recommendation was taken.
@@ -1066,5 +1444,111 @@ what shipped, which commit, what was verified.)*
   `role_test.go`'s four follower/owner pins, and `TestCooldown_SpawnMovingSummon…`).
   **PO check when convenient: summon a companion, confirm it trails you and
   fights what you fight.**
-- **Chunk 3a — NPC merge + interaction schema:** not started
+- **Chunk 3a — the NPC merge: ✅ DONE 2026-07-27**, planned and executed in one
+  session (§6a is the plan, this is the ledger), backend + frontend + content,
+  26 files changed + 15 new, 4 deleted, **−800 lines net**, committed
+  `[uncommitted]`. ⏳ **PO in-game check PENDING.**
+
+  **`model/npc` is gone.** A teaching NPC is an ordinary actor whose definition
+  carries an `interaction` block, placed as an ordinary spawn. Deleted outright:
+  `model/npc` (122 + 101 test), `model.NpcEntity`, `model.Teaching`,
+  `npc.SpriteFor`, `game.addNpcEntity` + its `AddEntity` case (the §24 matrix
+  loses a helper), `world.Npc` + `world.Teaching` + the whole `zone.npcs` section
+  and its five validations, `aurad.go`'s NPC boot loop, `sys/npc.go`, and the
+  zone editor's entire NPC mode. `sys/npc.go` → `sys/interaction.go`.
+
+  **⭐ The pilot (§6a.7 step 5) paid for itself immediately — and found a latent
+  wire gap, not a chunk bug.** The migrated Farmer arrived, spoke, taught and
+  attributed correctly, and rendered as **nothing**. A scene-graph probe found a
+  valid 120×120 texture at `scale = [0, 0]`: **`Mob.radius` has been in
+  `server.fbs` since the beginning and the server never wrote it**
+  (`MobAddRadius` was absent from `MobEntityFlatbufMarshal`). Every mob sprite
+  class sizes itself from `GraphicsConfig` and ignores the wire value, so a
+  permanent 0 was invisible for the life of the project — until the merged NPCs,
+  which size from the wire the way they always did on the Resource path. One
+  line in `codec/mob.go`, pinned by `TestMobMarshalFlatbuf_Radius`. **No existing
+  mob is affected** (they all still ignore it). ⚑ Generalizable: *a schema field
+  nothing reads is not proof the server writes it.*
+
+  **⚑ A forced sequencing change the plan did not predict.** `zone.go`'s "an NPC
+  may not wear a mob sprite" guard fires the *instant* the 14 definitions exist —
+  its premise ("NPCs ride the Resource path") is precisely what this chunk
+  repeals — so it had to be deleted at step 2, not at the step-7 deletion pass.
+  Consequence: the pilot's both-paths-live window is narrower than §6a.7
+  imagined, though the per-`EntityType` client table still made the one-NPC
+  pilot work exactly as intended.
+
+  **4 PO rulings (2026-07-27), all taken before the first edit** — D1 placement
+  folds into `spawns` (the editor's NPC mode deleted, not reworked) · D2 the 2
+  legacy Sages **dropped**, 14 definitions not 16 · D3 **health bars on NPCs
+  accepted** (*"they can now also act in the world … most will not act but they
+  can"*), so `initHealthBar` is untouched and L5's open half closed with zero
+  frontend work · D4 **role `creature`**, not `structure`. Plus three taken
+  inside the chunk: D5 unattackability is now **two authored knobs** (faction
+  `friendlyToPlayers` + a body layer without the Action bit) rather than a
+  structural property of a type, so a killable NPC is a JSON edit · D6
+  `trigger: "interact"` **hard-fails** until 3b · D7 `interaction.range` optional,
+  sensor = `max(aggroRadius, range)`.
+
+  **⚑ L11 was real and is closed.** `aggroSensorMask(0)` returns
+  `LayerNoneCollision`, so a passive faction's sensor sees nothing — a merged NPC
+  would have been **silently mute with every evaluator test green**.
+  `refreshSensorMask` now widens for conversants, mirroring the support-carrier
+  widening two lines above it, and it is pinned directly
+  (`TestNewMob_ConversantSensesPlayersDespitePassiveFaction`), as is the
+  narrowness of the widening (a passive non-conversant stays blind).
+
+  **Content.** 14 definitions (ids 51–64) + `api/factions/townsfolk.json`
+  (`hostileTo: []`, `friendlyToPlayers: true`). Body `radius 0.35` /
+  `collisionLayer 97` (PlayerStatic+Viewport+MobStatic, **deliberately not
+  Action(2)**) / `collisionMask 16` / `aggroRadius 1.0` — the pre-merge zone
+  `radius` verbatim, which IS the interaction range under D7. `speed: 0`,
+  `experience: 0` (nameplate gated for free), `skills: []` (the Turnip/Rockfall
+  precedent), `baseMaxHealth: 200 [PLACEHOLDER]`. Four defs share the `Hermit`
+  sprite via the `entityType` override (the `proving-*` precedent). **The def
+  name is now player-visible** through `"Taught by: X"`, which deleted the old
+  authored-name-vs-sprite-name fallback — so the anonymous second Hermit was
+  **named `Lamplighter` by the PO**, and `Wanderer_1` lost its placement suffix.
+  Frontend: 11 sprite classes moved `Resources` → `Mobs`, keeping
+  `resources.trees` as their layer (the `mobs` layers are added to the stage
+  *first*, so a new mob layer would have silently put every NPC under the trees).
+
+  **⚑ A pre-merge zone file now fails LOUDLY**, not silently:
+  `zone "world.json": cannot parse: json: unknown field "npcs"` — the zone
+  decoder's `DisallowUnknownFields`. Worth knowing before the PO opens an old
+  editor export.
+
+  **Verified.** TDD red-first throughout; **all 373 lines of `sys/npc_test.go`
+  ported** onto the node evaluator rather than rewritten — that port IS the
+  chunk's acceptance test. `go build` / `go vet` / `go test -timeout 120s ./...`
+  green; guardrails + alloc `-count=2` green; frontend `typecheck` + `vitest`
+  (21) + prod build green. **Boot both ways, `-content ../api` AND embedded, 0
+  errors / 0 warnings / 0 panics:**
+  `83 skills/15 factions/64 mobs/10 recipes/5 prop defs/1 milestone/777 props/485 spawns/5 campfires`
+  — mobs 50 → 64, factions 14 → 15, spawns 471 → 485, and the `placed npcs` line
+  **gone**. **Sim battery + level curve + pack matrix + chain battery all
+  BYTE-IDENTICAL** to a `git worktree` HEAD build; the **preset roster gains
+  exactly 14 rows and moves 0 cells** among the 50 survivors — the predicted L14
+  delta and nothing else.
+
+  **In-game smoke** (`.claude/skills/verify/chunk3a-npc-merge.mjs`, kept): **6/6,
+  0 console errors, 0 WebGL context losses.** Farmer teaches Harvest with the
+  authored bubble and a `Taught by: Farmer` banner; **the Emberkeeper's 3-grant
+  walk stops at the first gate** — a level-1 player gets Torch@1 and then the
+  blocked line for Ignite@7, granting nothing further (one bubble:
+  *"Let this be a light for you in dark places.\nFire doesn't suffer the
+  careless…"*), which is the ordered walk surviving the move from zone entry to
+  definition; ForestSign speaks its lore with no grants at all. Screenshots
+  confirm sprite, size, layer, **the accepted health bar, and no nameplate**.
+  ⚑ Chunk 2's two harness traps still bite (dev console swallows WASD;
+  screen-up is decreasing world y) and are comments in the script. ⚑ New harness
+  note: **`window.game` is a small facade** (`run`/`character`/`pause`/`play`) —
+  no `EntityManager` on it, so scene-graph work goes through
+  `character.plate.parent` and climbs to the root.
+
+  **⏳ PO in-game check (pending 2026-07-27):** walk up to a few NPCs — Farmer,
+  Hermit, TownCrier, the Emberkeeper — and confirm they read right: sprite,
+  size, **the health bar you accepted (D3)**, no nameplate, the bubble, the
+  unlock banner. Also worth a look in the **zone editor**: the NPC mode is gone
+  and NPCs are placed with the spawn tool now (D1).
 - **Chunk 3b — interact verb + dialogue panel:** not started
