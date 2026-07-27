@@ -333,6 +333,98 @@ func TestGameStateInteractable_AbsentReadsZero(t *testing.T) {
 	assert.Zero(t, result.InteractableEntityId())
 }
 
+// --- the conversation tree wire (plan-entity-model.md chunk 3b-ii) ---
+
+// ⚑ The first payload on this channel that is a VECTOR OF TABLES INSIDE A
+// TABLE, and FlatBuffers builds inside out — every string and nested vector has
+// to be finished before the table referencing it is started. Getting that order
+// wrong does not fail to compile and does not panic; it silently writes a tree
+// whose strings belong to the wrong rows. Hence a round-trip that reads every
+// field of a two-node, three-row tree back out.
+func TestGameStateConversation_RoundTrip(t *testing.T) {
+	c := &model.Conversation{
+		EntityID:  4711,
+		ActorName: "Emberkeeper",
+		EntryNode: "root",
+		Nodes: []model.ConversationNode{
+			{
+				ID:    "root",
+				Lines: []string{"Fire remembers who feeds it.", "What would you have?"},
+				Options: []model.ConversationOption{
+					{OptionIndex: 0, GrantIndex: model.ConversationNoGrant, Text: "Anything new?", Next: "news"},
+					{OptionIndex: 1, GrantIndex: 0, Text: "Torch", Reply: "a light in dark places"},
+					{OptionIndex: 1, GrantIndex: 2, Text: "Immolate", Locked: true, RequiredLevel: 12,
+						Reply: "Fire doesn't suffer the careless."},
+				},
+			},
+			{ID: "news", Lines: []string{"They burned this forest."}},
+		},
+	}
+
+	b := flatbuffers.NewBuilder(256)
+	offset := ConversationMarshalFlatbuf(c, b)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddConversation(b, offset)
+	b.Finish(AuraApi.GameStateEnd(b))
+
+	got := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).Conversation(nil)
+	require.NotNil(t, got)
+	assert.Equal(t, uint64(4711), got.EntityId())
+	assert.Equal(t, "Emberkeeper", string(got.ActorName()))
+	assert.Equal(t, "root", string(got.EntryNode()))
+	require.Equal(t, 2, got.NodesLength())
+
+	var root AuraApi.ConversationNode
+	require.True(t, got.Nodes(&root, 0))
+	assert.Equal(t, "root", string(root.Id()))
+	require.Equal(t, 2, root.LinesLength())
+	assert.Equal(t, "Fire remembers who feeds it.", string(root.Lines(0)), "line order survives the reversal")
+	assert.Equal(t, "What would you have?", string(root.Lines(1)))
+	require.Equal(t, 3, root.OptionsLength())
+
+	var nav, torch, immolate AuraApi.ConversationOption
+	require.True(t, root.Options(&nav, 0))
+	require.True(t, root.Options(&torch, 1))
+	require.True(t, root.Options(&immolate, 2))
+
+	assert.Equal(t, "Anything new?", string(nav.Text()), "row order survives the reversal too")
+	assert.Equal(t, model.ConversationNoGrant, nav.GrantIndex())
+	assert.Equal(t, "news", string(nav.Next()))
+
+	assert.Equal(t, "Torch", string(torch.Text()))
+	assert.EqualValues(t, 1, torch.OptionIndex())
+	assert.EqualValues(t, 0, torch.GrantIndex())
+	assert.Equal(t, "a light in dark places", string(torch.Reply()))
+	assert.False(t, torch.Locked())
+
+	// ⚑ L21 across the wire: two rows from the SAME authored option, telling
+	// themselves apart only by grant index. If the marshaller ever collapsed
+	// them, a click would teach the wrong skill.
+	assert.EqualValues(t, 1, immolate.OptionIndex())
+	assert.EqualValues(t, 2, immolate.GrantIndex())
+	assert.True(t, immolate.Locked())
+	assert.EqualValues(t, 12, immolate.RequiredLevel())
+	assert.Equal(t, "Fire doesn't suffer the careless.", string(immolate.Reply()))
+
+	var news AuraApi.ConversationNode
+	require.True(t, got.Nodes(&news, 1))
+	assert.Equal(t, "news", string(news.Id()))
+	assert.Zero(t, news.OptionsLength(), "a leaf reply has no rows")
+}
+
+// An absent conversation IS the close signal (D16), so no-panel must marshal to
+// nothing rather than to an empty table.
+func TestGameStateConversation_AbsentReadsNil(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	assert.Zero(t, ConversationMarshalFlatbuf(nil, b), "nil writes no table at all")
+
+	AuraApi.GameStateStart(b)
+	b.Finish(AuraApi.GameStateEnd(b))
+
+	assert.Nil(t, AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).Conversation(nil),
+		"the client reads absent, which is how every server-side end condition reaches it")
+}
+
 // resourceIDAt reads the entity at index j as a Resource and returns its id.
 // Every entity the test below marshals is a prop, which rides the Resource
 // wire table (PropEntityFlatbufMarshal).

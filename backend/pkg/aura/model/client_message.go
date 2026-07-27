@@ -30,13 +30,26 @@ type EquipSkill struct {
 // the client is a dead spectator.
 type Respawn struct{}
 
-// Interact is a request to open a conversation with the actor the server told
-// this client is in range (GameState.interactable_entity_id, chunk 3b-i). The
-// id is echoed back rather than implied so a stale keypress names what the
-// player actually saw; the server refuses anything that does not match the
+// Interact is the panel's one upstream message (chunks 3b-i and 3b-ii). The
+// entity id is echoed back rather than implied so a stale keypress names what
+// the player actually saw; the server refuses anything that does not match the
 // value it stamped this tick.
+//
+// Three shapes, distinguished by their zero values:
+//   - NodeID empty, Close false → open the conversation
+//   - NodeID set               → take that node's row
+//   - Close true               → dismiss the panel (Leave / Escape / second E)
 type Interact struct {
 	EntityID uint64
+	// NodeID is the node the row was taken from. The server re-checks that
+	// node's own conditions rather than trusting the client's position in the
+	// tree — every apply is validated on its own merits (D16).
+	NodeID string
+	// ⚑ AUTHORED indices, streamed to the client in ConversationOption and
+	// echoed back verbatim (L21). ConversationNoGrant = none.
+	OptionIndex uint8
+	GrantIndex  uint8
+	Close       bool
 }
 
 // SpendSkillPoint is a one-shot request to spend (or, with Unspend, refund)

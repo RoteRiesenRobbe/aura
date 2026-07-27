@@ -242,6 +242,84 @@ func SpellbookLevelsMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuffe
 	return builder.EndVector(n)
 }
 
+// ConversationMarshalFlatbuf serializes the open conversation tree; 0 = none,
+// and the caller then writes no field at all so the client reads it as absent
+// (chunk 3b-ii, D16 — an absent tree IS the close signal).
+//
+// ⚑ FlatBuffers builds inside out: every string and every nested vector must be
+// finished BEFORE the table that references it is started, so this walks the
+// tree bottom-up — option strings, then option tables, then the option vector,
+// then the node's own strings, then the node table. Must itself be called
+// before GameStateStart, like every other vector here.
+func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if c == nil {
+		return 0
+	}
+
+	nodeOffsets := make([]flatbuffers.UOffsetT, 0, len(c.Nodes))
+	for i := range c.Nodes {
+		node := &c.Nodes[i]
+
+		optionOffsets := make([]flatbuffers.UOffsetT, 0, len(node.Options))
+		for j := range node.Options {
+			opt := &node.Options[j]
+			text := builder.CreateString(opt.Text)
+			next := builder.CreateString(opt.Next)
+			reply := builder.CreateString(opt.Reply)
+
+			AuraApi.ConversationOptionStart(builder)
+			AuraApi.ConversationOptionAddOptionIndex(builder, opt.OptionIndex)
+			AuraApi.ConversationOptionAddGrantIndex(builder, opt.GrantIndex)
+			AuraApi.ConversationOptionAddText(builder, text)
+			AuraApi.ConversationOptionAddNext(builder, next)
+			AuraApi.ConversationOptionAddLocked(builder, opt.Locked)
+			AuraApi.ConversationOptionAddRequiredLevel(builder, opt.RequiredLevel)
+			AuraApi.ConversationOptionAddReply(builder, reply)
+			optionOffsets = append(optionOffsets, AuraApi.ConversationOptionEnd(builder))
+		}
+		AuraApi.ConversationNodeStartOptionsVector(builder, len(optionOffsets))
+		// Prepend in reverse so index 0 lands at the lowest address — the same
+		// rule every vector in this file follows.
+		for k := len(optionOffsets) - 1; k >= 0; k-- {
+			builder.PrependUOffsetT(optionOffsets[k])
+		}
+		options := builder.EndVector(len(optionOffsets))
+
+		lineOffsets := make([]flatbuffers.UOffsetT, 0, len(node.Lines))
+		for _, line := range node.Lines {
+			lineOffsets = append(lineOffsets, builder.CreateString(line))
+		}
+		AuraApi.ConversationNodeStartLinesVector(builder, len(lineOffsets))
+		for k := len(lineOffsets) - 1; k >= 0; k-- {
+			builder.PrependUOffsetT(lineOffsets[k])
+		}
+		lines := builder.EndVector(len(lineOffsets))
+
+		id := builder.CreateString(node.ID)
+		AuraApi.ConversationNodeStart(builder)
+		AuraApi.ConversationNodeAddId(builder, id)
+		AuraApi.ConversationNodeAddLines(builder, lines)
+		AuraApi.ConversationNodeAddOptions(builder, options)
+		nodeOffsets = append(nodeOffsets, AuraApi.ConversationNodeEnd(builder))
+	}
+
+	AuraApi.ConversationStartNodesVector(builder, len(nodeOffsets))
+	for k := len(nodeOffsets) - 1; k >= 0; k-- {
+		builder.PrependUOffsetT(nodeOffsets[k])
+	}
+	nodes := builder.EndVector(len(nodeOffsets))
+
+	actorName := builder.CreateString(c.ActorName)
+	entryNode := builder.CreateString(c.EntryNode)
+
+	AuraApi.ConversationStart(builder)
+	AuraApi.ConversationAddEntityId(builder, c.EntityID)
+	AuraApi.ConversationAddActorName(builder, actorName)
+	AuraApi.ConversationAddEntryNode(builder, entryNode)
+	AuraApi.ConversationAddNodes(builder, nodes)
+	return AuraApi.ConversationEnd(builder)
+}
+
 // MarshalFlatbuf implements FlatbufCodec for GameState
 func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	entities := EntitiesMarshalFlatbuf(gs.Entities, builder)
@@ -252,6 +330,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	passiveSlots := PassiveSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	cooldownSlots := CooldownSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	cooldownRemaining := CooldownRemainingMarshalFlatbuf(gs.Player.SkillComponent(), builder)
+	conversation := ConversationMarshalFlatbuf(gs.Player.Conversation(), builder)
 
 	AuraApi.GameStateStart(builder)
 	AuraApi.GameStateAddTick(builder, gs.Tick)
@@ -289,6 +368,12 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// default, so nothing is written) means nobody.
 	if id := gs.Player.Interactable(); id != 0 {
 		AuraApi.GameStateAddInteractableEntityId(builder, id)
+	}
+	// The open conversation tree (chunk 3b-ii). Writing NOTHING when there is no
+	// panel is load-bearing: an absent field is the client's only close signal,
+	// so every server-side end condition needs no client counterpart.
+	if conversation != 0 {
+		AuraApi.GameStateAddConversation(builder, conversation)
 	}
 
 	return AuraApi.GameStateEnd(builder)

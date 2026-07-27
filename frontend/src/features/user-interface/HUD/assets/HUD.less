@@ -542,6 +542,128 @@
 	gap: 1rem;
 }
 
+// Conversation panel (plan-entity-model.md chunk 3b-ii, D21): non-blocking and
+// mouse-driven — movement, auras and cooldowns all keep working while it is
+// open, and combat on either side closes it, which is what makes that safe.
+//
+// ⚑ It sits at the TOP of the #bottomCenter column, above the cast bar. That
+// stack is stable by construction: #castBar hides with `visibility`, keeping its
+// slot, so a cast starting mid-conversation cannot shove the panel around (L25).
+#conversation {
+	width: 44rem;
+	max-width: 90vw;
+	max-height: 40vh;
+
+	// ⚑ The panel itself does NOT scroll — only .conversationBody does. Putting
+	// overflow on the panel grew a scrollbar down its right edge the moment a
+	// node's text was long, and the ✕ lives exactly there: clicking Leave then
+	// hit the scrollbar instead of the button, so the panel could not be
+	// dismissed with the mouse. Back survived only because it is full-width and
+	// gets clicked near the centre. Keep the header and the Back footer OUT of
+	// the scroll container.
+	display: flex;
+	flex-direction: column;
+
+	background: @panel-bg;
+	border: 1px solid @panel-border;
+	border-radius: @panel-border-radius;
+	padding: @panel-padding;
+	color: @panel-color;
+	font-size: @panel-font-size;
+
+	&.hidden {
+		display: none;
+	}
+
+	> .conversationHeader {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+
+		padding-bottom: 0.5rem;
+		border-bottom: 1px solid @panel-row-divider;
+
+		// The actor's name lives here, which is why NPCs still need no
+		// world-space nameplate (they stay gated off by experience: 0).
+		> .conversationActor {
+			color: @panel-title-color;
+			font-size: @panel-title-size;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+
+		> .conversationLeave {
+			cursor: pointer;
+			color: @panel-title-color;
+			padding: 0 0.5rem;
+
+			&:hover {
+				color: white;
+			}
+		}
+	}
+
+	// The only scrolling region. min-height: 0 is required or a flex child
+	// refuses to shrink below its content and the panel overflows instead.
+	> .conversationBody {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+	}
+
+	.conversationLines {
+		padding: 1rem 0;
+		font-style: italic;
+		white-space: pre-line;
+	}
+
+	.conversationRows {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+
+		> li {
+			padding: 0.6rem 0.8rem;
+			border-top: 1px solid @panel-row-divider;
+			cursor: pointer;
+
+			&:hover {
+				background: fade(white, 8%);
+			}
+
+			// D20: a row the player is too low for is SHOWN, greyed, with the
+			// wall named — each NPC becomes a signpost for progression. It stays
+			// clickable on purpose: the actor answers with its authored refusal.
+			&.locked {
+				color: fade(white, 35%);
+
+				> .conversationWall {
+					float: right;
+					font-size: @panel-title-size;
+				}
+			}
+		}
+	}
+
+	> .conversationBack {
+		margin-top: 0.8rem;
+		padding-top: 0.6rem;
+		border-top: 1px solid @panel-row-divider;
+		color: @panel-title-color;
+		font-size: @panel-title-size;
+		cursor: pointer;
+
+		&:hover {
+			color: white;
+		}
+
+		&.hidden {
+			display: none;
+		}
+	}
+}
+
 // Cast bar (skill-vocab chunk 4, bare rendering): hidden while no cast runs
 // — visibility keeps its slot in the column, so nothing jumps when a cast
 // starts. Fill width is set inline by HUD.updateCastBar. Polish belongs to

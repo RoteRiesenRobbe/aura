@@ -26,6 +26,13 @@ type Conversant interface {
 	model.MobEntity
 	Interaction() *mobs.Interaction
 	Sensor() phy.DynamicCollider
+	// InCombat ends any conversation this actor is in (D21). ⚑ It lives on
+	// model.Combatant, which MobEntity does NOT embed, so it has to be named
+	// here — both concrete types satisfy it for free.
+	InCombat() bool
+	// SetConversing holds the actor's idle movement while somebody is talking to
+	// it (D22), so a patrolling NPC can be stopped on a road.
+	SetConversing(v bool)
 }
 
 // interactor is the minimal player surface the system needs to honour an
@@ -43,18 +50,31 @@ type interactor interface {
 	// tick — stamped by sense(), and the only thing an incoming Interact is
 	// validated against.
 	Interactable() uint64
+
+	// The open conversation (chunk 3b-ii). The session is two fields and no
+	// node bookkeeping: where the player is in the tree is theirs to track.
+	ConversingWith() uint64
+	SetConversingWith(id uint64)
+	SetConversation(c *model.Conversation)
+	// InCombat ends the conversation (D21) — the rule that makes a non-blocking
+	// panel safe, because a player cannot be trapped reading dialogue while
+	// something eats them.
+	InCombat() bool
 }
 
 // InteractionSystem drives conversations (chunk 3a; it replaced NpcSystem and
 // with it the whole model/npc type).
 //
-// On the rising edge of a player entering a conversant's sensor it evaluates
-// the interaction's nodes: ordered skill grants gated by player level, with a
-// lore fallback. Grants mutate the player's spellbook instantly (the client
-// renders the unlock glow from the spellbook diff — no wire event). The
-// resulting lines are spoken as one EntityMessage anchored on the actor, fanned
-// out to every player in its sensor (reusing the existing chat wire — see
-// speak).
+// Two jobs, both driven by the actors' sensors:
+//
+//   - the sensor pass stamps who each nearby player could talk to (the interact
+//     badge, chunk 3b-i) and speaks any ambient lines on the rising edge (D18);
+//   - the drain honours what arrives on the key: opening a conversation, taking
+//     one of its rows, or closing it.
+//
+// Nothing ever opens by itself. Grants mutate the player's spellbook directly —
+// the client renders the unlock glow from the spellbook diff, so there is no
+// wire event for it beyond the attribution banner.
 //
 // It runs at the same priority as MobSystem (20), which likewise reads its
 // aggro sensor's Collisions(): both act on the previous tick's physics
@@ -118,10 +138,11 @@ func (s *InteractionSystem) AddPlayer(p interactor) {
 func (s *InteractionSystem) Update(dt float32) {
 	s.sense()
 	s.handleInteracts()
+	s.refreshConversations()
 }
 
-// sense re-stamps who each nearby player could talk to, and runs the approach
-// trigger's rising edge.
+// sense re-stamps who each nearby player could talk to, and speaks ambient
+// lines on the rising edge.
 func (s *InteractionSystem) sense() {
 	for _, a := range s.actors {
 		id := a.Basic().ID()
@@ -144,37 +165,22 @@ func (s *InteractionSystem) sense() {
 			if prev[pid] {
 				continue // still in range since last tick — not a rising edge
 			}
-			// L18: the rising edge opens a conversation only for an actor that
-			// asked for one. An `interact` actor's sensor edge is a PROMPT, not
-			// a trigger — its conversation waits for the Interact message. The
-			// guard sits on the evaluate() call rather than on the `seen` map
-			// because the map is what makes the prompt cheap, and because a
-			// missing guard would not read as a double grant: HasDiscovered
-			// short-circuits the second one, so the actor would simply keep
-			// ambushing players exactly as it did before 3b-i.
-			in := a.Interaction()
-			if in.Trigger != mobs.TriggerApproach {
-				continue
-			}
-			lines, taught := evaluate(in, p)
-			if len(lines) > 0 {
-				// Grants have already landed in p's spellbook; now let the
-				// actor speak the combined lines to everyone standing around it.
-				speakToSensor(a, lines)
-			}
-			// Attribute each freshly-taught skill to this actor, after the
-			// bubble so the source line trails the teaching
-			// (plan-unlock-attribution.md).
-			for _, skillID := range taught {
-				p.Client().SendUnlock(uint64(skillID), "Taught by: "+actorName(a))
+			// D18: the rising edge speaks AMBIENT lines and nothing else. No
+			// conversation ever opens by itself — a player who walks past is
+			// called out to, never ambushed with a teaching. The two are
+			// deliberately independent fields, because the town crier the PO
+			// described does both and the retired single-valued `trigger`
+			// could express only one of them.
+			if ambient := a.Interaction().Ambient; len(ambient) > 0 {
+				speakToSensor(a, ambient)
 			}
 		}
 		s.seen[id] = current
 	}
 }
 
-// handleInteracts drains one interact keypress per player per tick and opens
-// the named conversation.
+// handleInteracts drains one interact message per player per tick: opening a
+// conversation, taking one of its rows, or closing it.
 //
 // Range enforcement is one comparison against the value the client was actually
 // told (sense, above), not a second geometry implementation: a server that
@@ -188,6 +194,12 @@ func (s *InteractionSystem) handleInteracts() {
 		if msg == nil {
 			continue
 		}
+		if msg.Close {
+			// Leave / Escape / a second E. Unconditional: dismissing a panel is
+			// never refused, whatever else the message says.
+			p.SetConversingWith(0)
+			continue
+		}
 		a := s.actorByID(msg.EntityID)
 		if a == nil {
 			continue // gone, or never a conversant
@@ -198,20 +210,83 @@ func (s *InteractionSystem) handleInteracts() {
 			// ordinary, not an error.
 			continue
 		}
-		if a.Interaction().Trigger != mobs.TriggerInteract {
-			continue // an approach actor does not answer the key
+
+		if msg.NodeID == "" {
+			// Open. refreshConversations builds the tree this same tick, so the
+			// very next snapshot carries the panel.
+			p.SetConversingWith(msg.EntityID)
+			continue
 		}
 
-		lines, taught := evaluate(a.Interaction(), p)
-		if len(lines) > 0 {
-			// D13: a conversation the player deliberately opened is private to
-			// them. The approach path keeps its fan-out — that one IS ambient
-			// speech — which is why speak takes its audience as an argument.
-			speak(a, lines, p.Client())
+		// Taking a row. ⚑ The reply is deliberately NOT sent back: the panel
+		// already spoke it, straight out of the streamed row (D19/L24). All that
+		// travels is the grant itself, through the spellbook, plus its
+		// attribution banner.
+		//
+		// ⚑ Note what is NOT checked: whether this player has a session open, or
+		// whether the node is where they were. Every apply stands on its own
+		// merits — in range, node exists, its conditions pass, index valid, level
+		// cleared, not already known — which is exactly what buys D16's
+		// bookkeeping-free session.
+		_, taught, ok := applyGrant(a.Interaction(), p, msg.NodeID, int(msg.OptionIndex), int(msg.GrantIndex))
+		if !ok || taught == nil {
+			continue
 		}
-		for _, skillID := range taught {
-			p.Client().SendUnlock(uint64(skillID), "Taught by: "+actorName(a))
+		p.Client().SendUnlock(uint64(*taught), "Taught by: "+actorName(a))
+	}
+}
+
+// refreshConversations ends the sessions that should end and rebuilds the tree
+// for the ones that survive.
+//
+// Rebuilding every tick is what keeps the panel honest: a row taught this tick
+// is gone from the next snapshot, with no invalidation logic to get wrong. It
+// costs one present() per conversing player, and only while a panel is open.
+func (s *InteractionSystem) refreshConversations() {
+	// D22's hold, clear-then-set: derived fresh each tick from who is actually
+	// talking, so it needs no reference counting and cannot leak a stuck actor.
+	// ⚑ Two loops over slices rather than a per-tick map — the idle-alloc
+	// discipline fe0044d0 exists to keep garbage out of the empty-server loop,
+	// and this runs every tick whether anyone is talking or not.
+	for _, a := range s.actors {
+		a.SetConversing(false)
+	}
+
+	for _, p := range s.players {
+		id := p.ConversingWith()
+		if id == 0 {
+			continue
 		}
+
+		a := s.actorByID(id)
+		switch {
+		// The actor died or despawned. (A dead or disconnected PLAYER never
+		// reaches here — RemoveEntity fans out to Remove, which drops them from
+		// s.players.)
+		case a == nil,
+			// Walked out of talking range. Free to check: the badge already
+			// recomputes this every tick, and comparing against the same stamp
+			// keeps range enforcement to one number.
+			p.Interactable() != id,
+			// ⚑ D21, and the rule that makes a non-blocking panel safe: a player
+			// cannot be left reading dialogue while something eats them, and an
+			// actor that has been pulled into a fight stops talking.
+			p.InCombat(), a.InCombat():
+			p.SetConversingWith(0)
+			continue
+		}
+
+		c := present(a.Interaction(), p)
+		if c == nil {
+			// Nothing left to say to this player right now — the same condition
+			// that would refuse to open one.
+			p.SetConversingWith(0)
+			continue
+		}
+		c.EntityID = id
+		c.ActorName = actorName(a)
+		p.SetConversation(c)
+		a.SetConversing(true)
 	}
 }
 
@@ -226,24 +301,20 @@ func (s *InteractionSystem) actorByID(id uint64) Conversant {
 	return nil
 }
 
-// speak sends one EntityMessage anchored on the actor, reusing the existing
-// chat wire (codec.EntityMessageFlatbufMarshal → Chat.showMessage → a floating
-// bubble above the entity). Anyone in the actor's sensor already tracks it in
-// their viewport, so the bubble renders (this also sidesteps the
-// Chat.showMessage throw-on-untracked bug). Latest-wins is automatic — every
-// line shares the one entity_id, and the client shows the newest say.
+// speakToSensor fans one EntityMessage, anchored on the actor, to every player
+// standing around it — reusing the existing chat wire
+// (codec.EntityMessageFlatbufMarshal → Chat.showMessage → a floating bubble
+// above the entity). Anyone in the sensor already tracks the actor in their
+// viewport, so the bubble renders (this also sidesteps the Chat.showMessage
+// throw-on-untracked bug). Latest-wins is automatic — every line shares the one
+// entity_id, and the client shows the newest say. The bytes are marshalled once
+// and fanned rather than per recipient.
 //
-// The audience is the caller's choice because the two triggers want different
-// ones (D13): approach is ambient speech and fans out to everyone standing
-// around, while an interact conversation belongs to the player who opened it —
-// a crowded town square should not fill with other people's teaching lines.
-func speak(a Conversant, lines []string, to model.Client) {
-	to.SendMessage(marshalSay(a, lines))
-}
-
-// speakToSensor is the approach trigger's audience: every player standing
-// around the actor. The bytes are marshalled once and fanned, which is why this
-// is not a loop over speak().
+// ⚑ It has exactly ONE caller now: ambient speech (D18). D13's private variant
+// was retired with D19 — a conversation reply no longer travels at all, because
+// the text already rode the streamed tree and the panel spoke it locally. So the
+// fan-out survived the thing it was contrasted against, and public is now the
+// only audience there is.
 func speakToSensor(a Conversant, lines []string) {
 	bytes := marshalSay(a, lines)
 	for c := range a.Sensor().Collisions() {
@@ -271,47 +342,176 @@ type learner interface {
 	ApplyRecipeCascade()
 }
 
-// evaluate runs the interaction for p and returns the lines to speak plus the
-// skill ids newly taught (the caller emits one unlock attribution per id).
+// present builds the personalised conversation tree for p (chunk 3b-ii, D16).
 //
-// The node walk is the degenerate case decision 6 authors: the FIRST node whose
-// conditions all pass is the one that speaks. Within it, grants are walked in
-// order — the first one p is too low for stops the walk with that option's
-// blockedLine and grants nothing further, so a level-skipper meeting the actor
-// for the first time gets every unlock up to their level at once. When nothing
-// is granted (a pure-lore sign-post, or a sage whose grants are all already
-// known) the node's Lines are the fallback so it still speaks.
-func evaluate(in *mobs.Interaction, p learner) (lines []string, taught []skills.SkillID) {
-	node := selectNode(in, p)
-	if node == nil {
-		return nil, nil
+// ⚑ It is PURE: it reads the spellbook and the level and mutates nothing. That
+// is the entire point of the split — a panel that shows options before they are
+// taken cannot be the same pass that applies them, which is why 3a's evaluate()
+// (presentation and mutation in one breath) had to go.
+//
+// It serialises EVERY node whose conditions pass rather than walking the graph,
+// so an authored cycle needs no check: there is no traversal to run away. nil
+// means the actor has nothing to say to this player right now.
+//
+// The caller stamps EntityID and ActorName — this function only knows content.
+func present(in *mobs.Interaction, p learner) *model.Conversation {
+	entry := selectNode(in, p)
+	if entry == nil {
+		return nil
 	}
 
+	// Which nodes survive their conditions, so an option pointing at a hidden
+	// one can be hidden too. Built once per call rather than re-checked per
+	// option, and only while a panel is actually open.
+	visible := make(map[string]bool, len(in.Nodes))
+	for i := range in.Nodes {
+		if conditionsPass(in.Nodes[i].Conditions, p) {
+			visible[in.Nodes[i].ID] = true
+		}
+	}
+
+	c := &model.Conversation{EntryNode: entry.ID}
+	for i := range in.Nodes {
+		node := &in.Nodes[i]
+		if !visible[node.ID] {
+			continue
+		}
+		c.Nodes = append(c.Nodes, model.ConversationNode{
+			ID:      node.ID,
+			Lines:   node.Lines,
+			Options: presentOptions(node, p, visible),
+		})
+	}
+	return c
+}
+
+// presentOptions turns one node's authored options into the rows a player sees.
+//
+// An option with grants becomes one row PER grant — which is what makes the 11
+// NPCs nobody re-authored into trees render correctly with zero content work
+// (D17): their single nameless multi-grant option shows up as one labelled row
+// per skill. An option with no grants is a navigation row.
+func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bool) []model.ConversationOption {
 	sc := p.SkillComponent()
 	level := p.Progression().Level
-walk:
-	for _, opt := range node.Options {
-		for _, g := range opt.Grants {
+
+	var rows []model.ConversationOption
+	for oi := range node.Options {
+		opt := &node.Options[oi]
+		// A row leading to a node this player cannot see would be a button that
+		// goes nowhere. The loader guarantees Next names a real node; conditions
+		// are what make it conditionally absent.
+		if opt.Next != "" && !visible[opt.Next] {
+			continue
+		}
+
+		if len(opt.Grants) == 0 {
+			rows = append(rows, model.ConversationOption{
+				OptionIndex: uint8(oi),
+				GrantIndex:  model.ConversationNoGrant,
+				Text:        opt.Text,
+				Next:        opt.Next,
+			})
+			continue
+		}
+
+		for gi := range opt.Grants {
+			g := &opt.Grants[gi]
 			if g.Kind != mobs.GrantTeachSkill {
 				continue // no other kind exists yet; a new one adds a case here
 			}
+			// "Things already learned are not shown in that list" — the PO brief
+			// verbatim. Under 3a this was a silent skip mid-walk; it is
+			// visibility now, and it is why a presented index is not an
+			// authored one (L21).
 			if sc.HasDiscovered(g.Skill.ID) {
 				continue
 			}
-			if level < g.RequiredLevel {
-				lines = append(lines, opt.BlockedLine)
-				break walk
+
+			locked := level < g.RequiredLevel
+			// D20: a locked row is shown with its wall named, so each NPC is a
+			// signpost for progression. The reply is chosen by the row's state,
+			// which is what lets the panel answer on click with no round-trip.
+			reply := g.Line
+			if locked {
+				reply = opt.BlockedLine
 			}
-			sc.Discover(g.Skill.ID)
-			p.ApplyRecipeCascade()
-			lines = append(lines, g.Line)
-			taught = append(taught, g.Skill.ID)
+			// An authored label wins; otherwise the skill names its own row.
+			// Several grants under one authored Text would all read alike, so
+			// the derived name is the honest fallback there.
+			text := opt.Text
+			if text == "" || len(opt.Grants) > 1 {
+				text = skills.DeriveDisplayName(g.Skill.Name)
+			}
+			rows = append(rows, model.ConversationOption{
+				OptionIndex:   uint8(oi),
+				GrantIndex:    uint8(gi),
+				Text:          text,
+				Next:          opt.Next,
+				Locked:        locked,
+				RequiredLevel: uint8(min(g.RequiredLevel, 255)),
+				Reply:         reply,
+			})
 		}
 	}
-	if len(lines) == 0 && len(node.Lines) > 0 {
-		lines = node.Lines
+	return rows
+}
+
+// applyGrant hands over exactly ONE grant — the row the player clicked, and
+// nothing else (D17: a list is not a walk, so clicking Ignite teaches Ignite).
+//
+// ⚑ Every check is on the row's OWN merits, never on the path taken to reach
+// it: that is precisely what lets the server keep two session fields and no node
+// bookkeeping while the client navigates locally (D16). The indices are the
+// AUTHORED ones the client was streamed, so they index the definition directly
+// (L21).
+//
+// ok=false is a silent refusal — a stale click from a player who just walked
+// away is ordinary, not an error. A LOCKED row is ok=true with nothing taught:
+// the actor answers with the authored blockedLine and hands nothing over.
+//
+// The returned reply is deliberately NOT sent anywhere: the panel already said
+// it, straight out of the streamed row (D19/L24). It exists so a test can prove
+// the two cannot disagree.
+func applyGrant(in *mobs.Interaction, p learner, nodeID string, option, grant int) (reply string, taught *skills.SkillID, ok bool) {
+	node := nodeByID(in, nodeID)
+	if node == nil || !conditionsPass(node.Conditions, p) {
+		return "", nil, false
 	}
-	return lines, taught
+	if option < 0 || option >= len(node.Options) {
+		return "", nil, false
+	}
+	opt := &node.Options[option]
+	if grant < 0 || grant >= len(opt.Grants) {
+		return "", nil, false
+	}
+	g := &opt.Grants[grant]
+	if g.Kind != mobs.GrantTeachSkill {
+		return "", nil, false
+	}
+
+	sc := p.SkillComponent()
+	if sc.HasDiscovered(g.Skill.ID) {
+		// Not presented, so this can only be a stale click or a crafted one.
+		return "", nil, false
+	}
+	if p.Progression().Level < g.RequiredLevel {
+		return opt.BlockedLine, nil, true
+	}
+
+	sc.Discover(g.Skill.ID)
+	p.ApplyRecipeCascade()
+	id := g.Skill.ID
+	return g.Line, &id, true
+}
+
+func nodeByID(in *mobs.Interaction, id string) *mobs.InteractionNode {
+	for i := range in.Nodes {
+		if in.Nodes[i].ID == id {
+			return &in.Nodes[i]
+		}
+	}
+	return nil
 }
 
 // selectNode picks the first node every condition of which passes; nil when

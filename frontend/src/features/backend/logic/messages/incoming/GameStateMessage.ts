@@ -7,6 +7,11 @@ import {Corpse} from '../../../../game-objects/logic/Corpse';
 import {isFunction} from '../../../../common/logic/Utils';
 import {StatusEffectDefinition} from '../../../../game-objects/logic/StatusEffect'
 import {AuraApi} from '../../AuraApi';
+import {
+    ConversationNode,
+    ConversationRow,
+    ConversationTree,
+} from '../../../../conversation/logic/ConversationModel';
 
 export class Spectator {
     id: number;
@@ -52,6 +57,11 @@ export class GameStateMessage {
     // the conversant the owning player can talk to right now; 0 = none. Live
     // state, re-sent every tick while in range (chunk 3b-i)
     interactableEntityId: number;
+    // the open conversation's personalised tree, or null when no panel is open
+    // (chunk 3b-ii). ⚑ null IS the close signal — every server-side end
+    // condition (range, combat, death, disconnect) reaches the client as the
+    // field simply going absent.
+    conversation: ConversationTree | null;
 
     constructor(gameState: AuraApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -114,7 +124,55 @@ export class GameStateMessage {
         this.activationRejectedReason = gameState.activationRejectedReason();
 
         this.interactableEntityId = Number(gameState.interactableEntityId());
+        this.conversation = unmarshalConversation(gameState.conversation(null));
     }
+}
+
+/**
+ * Read the conversation tree out of a snapshot (chunk 3b-ii).
+ *
+ * @param c the nested table, or null when no panel is open
+ */
+function unmarshalConversation(c: AuraApi.Conversation | null): ConversationTree | null {
+    if (c === null) {
+        return null;
+    }
+
+    const nodes: ConversationNode[] = [];
+    for (let i = 0; i < c.nodesLength(); ++i) {
+        const node = c.nodes(i);
+
+        const lines: string[] = [];
+        for (let j = 0; j < node.linesLength(); ++j) {
+            lines.push(node.lines(j));
+        }
+
+        const rows: ConversationRow[] = [];
+        for (let j = 0; j < node.optionsLength(); ++j) {
+            const o = node.options(j);
+            rows.push({
+                // ⚑ The AUTHORED indices (L21) — carried, never re-derived from
+                // j. The server hides known rows, so j is not the definition's
+                // index and echoing it back would teach the wrong skill.
+                optionIndex: o.optionIndex(),
+                grantIndex: o.grantIndex(),
+                text: o.text() ?? '',
+                next: o.next() ?? '',
+                locked: o.locked(),
+                requiredLevel: o.requiredLevel(),
+                reply: o.reply() ?? '',
+            });
+        }
+
+        nodes.push({id: node.id() ?? '', lines, rows});
+    }
+
+    return {
+        entityId: Number(c.entityId()),
+        actorName: c.actorName() ?? '',
+        entryNode: c.entryNode() ?? '',
+        nodes,
+    };
 }
 
 /**

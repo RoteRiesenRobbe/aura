@@ -98,6 +98,11 @@ type fakePlayer struct {
 	// value the InteractionSystem stamped.
 	interactableID     uint64
 	interactableDistSq float32
+	// The conversation session (chunk 3b-ii). ⚑ These are NOT per-tick like the
+	// two above: a session survives ticks and is ended only by an explicit
+	// condition, which is precisely what the end-condition tests assert on.
+	conversingWith uint64
+	conversation   *model.Conversation
 	conf            cfg.PlayerConfig     // zero value = no base crit (§4.3 v2); tests set CritChance explicitly
 }
 
@@ -195,6 +200,18 @@ func (f *fakePlayer) NoteInteractable(id uint64, distSq float32) {
 	f.interactableID = id
 	f.interactableDistSq = distSq
 }
+
+// The conversation session (chunk 3b-ii), mirroring (*player)'s: ending it drops
+// the tree with it, so a stale panel can never outlive its conversation.
+func (f *fakePlayer) ConversingWith() uint64 { return f.conversingWith }
+func (f *fakePlayer) SetConversingWith(id uint64) {
+	f.conversingWith = id
+	if id == 0 {
+		f.conversation = nil
+	}
+}
+func (f *fakePlayer) Conversation() *model.Conversation     { return f.conversation }
+func (f *fakePlayer) SetConversation(c *model.Conversation) { f.conversation = c }
 
 // rejectedActivation records one NoteActivationRejected call (chunk 4).
 type rejectedActivation struct {

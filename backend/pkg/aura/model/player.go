@@ -153,6 +153,15 @@ type PlayerEntity interface {
 	// so the badge and the verb can never disagree.
 	Interactable() uint64
 	NoteInteractable(id uint64, distSq float32)
+	// The open conversation (chunk 3b-ii, D16): who the panel belongs to, and
+	// the personalised tree streamed with it as GameState.conversation. NOT
+	// per-tick state — a session survives ticks and ends only on an explicit
+	// condition — while the tree itself is rebuilt every tick, so a row flips to
+	// known the snapshot after its grant lands.
+	ConversingWith() uint64
+	SetConversingWith(id uint64)
+	Conversation() *Conversation
+	SetConversation(c *Conversation)
 	// InCombat reports whether the player is inside the recent-combat window
 	// (the same flag that gates out-of-combat regen). The EquipSystem reads it
 	// to lock loadout editing in combat.

@@ -167,6 +167,21 @@ type player struct {
 	interactableEntityID uint64
 	interactableDistSq   float32
 
+	// conversingWith is the actor this player currently has a panel open with
+	// (chunk 3b-ii); 0 = none. ⚑ Unlike the stamp above it is NOT a per-tick
+	// number and deliberately does not join ResetTickNumbers — a conversation
+	// survives across ticks and is ended only by one of the explicit conditions
+	// in sys.InteractionSystem (close, range loss, either party entering combat,
+	// death, disconnect).
+	//
+	// conversation is the personalised tree streamed alongside it, rebuilt every
+	// tick by the InteractionSystem so a row flips to known the tick after its
+	// grant lands. Together they are the whole of the server's session state:
+	// where the player IS in the tree is a client concern, because every apply
+	// is validated on its own merits rather than on the path taken (D16).
+	conversingWith uint64
+	conversation   *model.Conversation
+
 	// healthRegen accumulates sub-1-HP out-of-combat regen (item 11 Phase 1):
 	// with absolute integer HP the per-tick regen is often < 1 HP, so it is
 	// carried here and applied once a whole HP has built up.
@@ -411,6 +426,29 @@ func (p *player) NoteInteractable(id uint64, distSq float32) {
 	p.interactableEntityID = id
 	p.interactableDistSq = distSq
 }
+
+// ConversingWith reports the actor this player has a panel open with (chunk
+// 3b-ii); 0 = none.
+func (p *player) ConversingWith() uint64 { return p.conversingWith }
+
+// SetConversingWith opens or ends the session. 0 ends it, and drops the tree
+// with it so a stale panel can never outlive its conversation — the client
+// closes the panel because the tree left the snapshot, never on its own say-so.
+func (p *player) SetConversingWith(id uint64) {
+	p.conversingWith = id
+	if id == 0 {
+		p.conversation = nil
+	}
+}
+
+// Conversation is the streamed tree; nil = no panel. Serialized as
+// GameState.conversation.
+func (p *player) Conversation() *model.Conversation { return p.conversation }
+
+// SetConversation replaces the tree. The InteractionSystem rebuilds it every
+// tick the session is alive, which is what makes a taught row disappear on the
+// snapshot after the grant.
+func (p *player) SetConversation(c *model.Conversation) { p.conversation = c }
 
 // NoteActivationRejected records a precondition-refused cooldown activation
 // this tick; the SkillSystem calls it.

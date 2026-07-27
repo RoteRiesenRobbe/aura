@@ -1,6 +1,7 @@
 import {isDefined, nearlyEqual} from '../../common/logic/Utils';
 import {BackendState} from "./IBackend";
 import _clone = require('lodash/clone');
+import {ConversationTree} from '../../conversation/logic/ConversationModel';
 import {GameStateMessage} from './messages/incoming/GameStateMessage';
 
 
@@ -25,6 +26,7 @@ export class Snapshot {
     activationRejectedSkillId: number; // one-tick rejection feedback; 0 = none
     activationRejectedReason: number;
     interactableEntityId: number; // conversant in talking range (3b-i); 0 = none
+    conversation: ConversationTree | null; // open conversation tree (3b-ii); null = no panel
 }
 
 export function newSnapshot(backendState: BackendState, gameState: GameStateMessage) {
@@ -72,6 +74,11 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         // has to be distinguishable from "nobody in range" — the delta snapshot
         // would otherwise leave a stale badge lit after walking away.
         snapshot.interactableEntityId = gameState.interactableEntityId;
+        // Same reasoning, and more sharply: an ABSENT conversation is the close
+        // signal (chunk 3b-ii, D16). A delta snapshot that dropped the field
+        // would leave the panel open after the server ended the conversation —
+        // exactly the desync every end condition exists to prevent.
+        snapshot.conversation = gameState.conversation;
     } else {
         // First snapshot: assign the whole GameStateMessage, which already carries spellbook.
         snapshot = gameState;

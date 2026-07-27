@@ -52,6 +52,12 @@ func (m *Mob) SetWaypoints(points []phy.Vec2f, loop bool) {
 	m.waypointLoop = loop
 }
 
+// SetConversing holds or releases this actor's idle movement (chunk 3b-ii,
+// D22). The InteractionSystem re-derives it every tick from who is actually
+// talking, so it needs no reference counting: two players in the same
+// conversation both set it, and the last one leaving clears it.
+func (m *Mob) SetConversing(v bool) { m.conversing = v }
+
 // SetIdleSpeedFactor overrides the idle-movement pace for this mob instance
 // (spawn-level knob; NewMob seeds the type default).
 func (m *Mob) SetIdleSpeedFactor(f float32) {
@@ -65,6 +71,17 @@ func (m *Mob) SetIdleSpeedFactor(f float32) {
 // classic stand-at-spawn (whose walk home this keeps verbatim).
 func (m *Mob) updateIdleMovement() {
 	if !m.spawnInitialized {
+		return
+	}
+	// D22: an actor in conversation holds position, so a patrolling NPC on a
+	// road can be stopped and talked to — and resumes the moment the panel
+	// closes, because nothing else is touched.
+	//
+	// ⚑ ONE guard covers route patrol, wander AND the walk-home default, which
+	// is why it sits here rather than in each archetype. The aggro path above
+	// this is deliberately left alone: an actor that aggroes is in combat, and
+	// combat has already ended the conversation (D21).
+	if m.conversing {
 		return
 	}
 	// Followers (chunk 6) trail their owner instead of any world archetype;

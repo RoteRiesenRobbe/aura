@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. aggroRadius 1.0 is the pre-merge zone radius verbatim and IS the interaction range (D7 ⇒ interaction.range omitted). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches the base Damage aura and Recall — the closest thing the world has to a starting trainer.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. ⚑ D23's AMBIENT NPC (chunk 3b-ii) and the one D18 exists for: it calls out as you walk past AND opens a tree on E. Those are two independent fields now — under the retired single-valued `trigger` an actor could only ever do one of them, which is what forced the enum's deletion. Its `ambient` lines are the only ones in the game, so they are also the regression test for walk-by speech; the hint branch (news → news_who) is D23's second required shape. Teaches the base Damage aura and Recall — the closest thing the world has to a starting trainer.",
   "id": 62,
   "name": "TownCrier",
   "type": "MOB",
@@ -20,23 +20,58 @@
   },
   "skills": [],
   "interaction": {
-    "trigger": "interact",
+    "range": 2.0,
+    "ambient": [
+      "Wolves on the forest road! Travel armed or not at all!",
+      "The militia wants word of every attack — east, to the city!"
+    ],
     "nodes": [
       {
         "id": "root",
         "lines": [
-          "The city must hear of those wolves. Head east and report to the militia."
+          "You there! Good. Somebody who still walks toward trouble instead of away from it."
         ],
         "options": [
+          {"text": "What needs doing?", "next": "news"},
+          {"text": "Teach me something.", "next": "teachings"}
+        ]
+      },
+      {
+        "id": "news",
+        "lines": [
+          "Wolves. Out of the forest, onto the road, bolder every week.",
+          "Thin them out and get word east to the militia. That is the whole of it."
+        ],
+        "options": [
+          {"text": "Who else should I speak to?", "next": "news_who"}
+        ]
+      },
+      {
+        "id": "news_who",
+        "lines": [
+          "The farmer, if you want to eat. The keeper of the fire east of here, if you want to survive the dark.",
+          "Neither will thank you for the visit. Go anyway."
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": ["I can spare what a newcomer needs. No more than that."],
+        "options": [
           {
-            "blockedLine": "Those wolves are a pest, get rid of them!",
+            "text": "Something to fight with.",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Damage",
                 "requiredLevel": 1,
                 "line": "You're finally here! We need your help! Wolves prowl the forrests, kill them!"
-              },
+              }
+            ]
+          },
+          {
+            "text": "A way back here.",
+            "blockedLine": "Those wolves are a pest, get rid of them!",
+            "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Recall",

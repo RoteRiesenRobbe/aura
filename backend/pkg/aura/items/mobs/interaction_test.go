@@ -36,7 +36,6 @@ func mapInteraction(t *testing.T, interaction string) (*MobDefinition, error) {
 
 // The degenerate case decision 6 authors: one node, one option, one grant.
 const teachOneJSON = `{
-  "trigger": "approach",
   "nodes": [{
     "id": "root",
     "lines": ["Tend to the field if you have time..."],
@@ -53,7 +52,6 @@ func TestMapMobDefinition_ResolvesInteraction(t *testing.T) {
 
 	in := def.Interaction
 	require.NotNil(t, in)
-	assert.Equal(t, TriggerApproach, in.Trigger)
 	require.Len(t, in.Nodes, 1)
 
 	node := in.Nodes[0]
@@ -91,29 +89,38 @@ func TestMapMobDefinition_AbsentInteractionIsNil(t *testing.T) {
 	assert.Nil(t, def.Interaction)
 }
 
-// --- the three parse tables (the tierRanks/ParseRole precedent) ---
+// --- ambient speech (chunk 3b-ii, D18) ---
 
-func TestParseTrigger_AbsentIsApproach(t *testing.T) {
-	trigger, ok := ParseTrigger("")
-	require.True(t, ok)
-	assert.Equal(t, TriggerApproach, trigger)
+// ⚑ The finding that retired `trigger` outright: it was a SINGLE value, so an
+// actor could never both call out as you pass AND open a tree on E — which is
+// exactly the NPC the PO brief describes. Ambient is its own field, spoken on
+// the sensor's rising edge, independent of the conversation entirely.
+func TestMapMobDefinition_ResolvesAmbient(t *testing.T) {
+	def, err := mapInteraction(t, `{
+	  "ambient": ["The bridge past the mill is out!", "Mind the wolves."],
+	  "nodes": [{"id": "root", "lines": ["hi"]}]
+	}`)
+	require.NoError(t, err)
+	require.NotNil(t, def.Interaction)
+	assert.Equal(t, []string{"The bridge past the mill is out!", "Mind the wolves."},
+		def.Interaction.Ambient)
 }
 
-// Chunk 3b-i implements the verb, so the D6 gate opens. This test is the
-// inverse of 3a's TestParseTrigger_InteractIsNotAuthorableYet, which is exactly
-// the red test that opened this chunk.
-func TestParseTrigger_ResolvesInteract(t *testing.T) {
-	trigger, ok := ParseTrigger(string(TriggerInteract))
-	require.True(t, ok, "trigger \"interact\" loads now that chunk 3b-i implements it")
-	assert.Equal(t, TriggerInteract, trigger)
+// Ambient is optional: an actor that only answers the key authors none, which
+// is all 14 conversants at the start of this chunk.
+func TestMapMobDefinition_AbsentAmbientIsEmpty(t *testing.T) {
+	def, err := mapInteraction(t, teachOneJSON)
+	require.NoError(t, err)
+	assert.Empty(t, def.Interaction.Ambient, "silence is the default, and the only behaviour there is")
 }
 
-func TestTriggers_CoverOnlyWhatTheEngineImplements(t *testing.T) {
-	_, ok := triggers[string(TriggerApproach)]
-	assert.True(t, ok)
-	_, ok = triggers[string(TriggerInteract)]
-	assert.True(t, ok)
-	assert.Len(t, triggers, 2, "adding a trigger here without an implementation ships a dead key")
+// D18 deletes the enum. An authored `trigger` is now an unknown key — and the
+// mob loader does NOT reject unknown keys (L22), so this hard-fail is the only
+// thing standing between a stale content file and a key that means nothing.
+func TestMapMobDefinition_RejectsRetiredTriggerKey(t *testing.T) {
+	_, err := mapInteraction(t, `{"trigger": "interact", "nodes": [{"id": "root", "lines": ["hi"]}]}`)
+	require.Error(t, err, "trigger was retired in 3b-ii (D18) and must not load silently")
+	assert.Contains(t, err.Error(), "trigger")
 }
 
 func TestParseGrantKind_ResolvesTeachSkill(t *testing.T) {
@@ -133,25 +140,35 @@ func TestParseConditionKind_ResolvesMinLevel(t *testing.T) {
 
 // --- rejections (§6a.2): each one is a boot failure, not a silent degrade ---
 
-func TestMapMobDefinition_RejectsUnknownTrigger(t *testing.T) {
-	_, err := mapInteraction(t, `{"trigger": "shout", "nodes": [{"id": "root", "lines": ["hi"]}]}`)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "shout")
-}
-
-// 3a's twin of this asserted the opposite — interact hard-failed at load until
-// the engine could honour it (D6). 3b-i is that implementation.
-func TestMapMobDefinition_AcceptsInteractTrigger(t *testing.T) {
-	def, err := mapInteraction(t, `{"trigger": "interact", "nodes": [{"id": "root", "lines": ["hi"]}]}`)
-	require.NoError(t, err)
-	require.NotNil(t, def.Interaction)
-	assert.Equal(t, TriggerInteract, def.Interaction.Trigger)
-}
-
 func TestMapMobDefinition_RejectsEmptyNodes(t *testing.T) {
-	_, err := mapInteraction(t, `{"trigger": "approach", "nodes": []}`)
+	_, err := mapInteraction(t, `{"nodes": []}`)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "nodes")
+}
+
+// An option is a BUTTON now (D15). One that neither grants nor navigates was
+// merely pointless under the walk; in the panel it is a row a player clicks
+// and watches do nothing.
+func TestMapMobDefinition_RejectsInertOption(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "options": [{"text": "A button that does nothing."}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "next")
+}
+
+// ...while an option that only navigates is entirely legitimate — that is the
+// whole "anything new around here?" branch.
+func TestMapMobDefinition_AcceptsNavigationOnlyOption(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [
+	  {"id": "root", "lines": ["hi"], "options": [{"text": "Anything new?", "next": "news"}]},
+	  {"id": "news", "lines": ["They burned the forest."]}
+	]}`)
+	require.NoError(t, err)
+	require.Len(t, def.Interaction.Nodes[0].Options, 1)
+	assert.Empty(t, def.Interaction.Nodes[0].Options[0].Grants)
 }
 
 func TestMapMobDefinition_RejectsMissingNodeID(t *testing.T) {
@@ -231,6 +248,34 @@ func TestMapMobDefinition_RejectsGatedGrantWithoutBlockedLine(t *testing.T) {
 }
 
 // An ungated grant can never block, so it needs no blocked line.
+// ⚑ requiredLevel 1 is not a gate: players START at level 1, so it can never
+// refuse anybody, and demanding a refusal line for it only adds a string nobody
+// will ever read. 3a asked for one whenever requiredLevel was set at all.
+func TestMapMobDefinition_LevelOneGrantNeedsNoBlockedLine(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "options": [{"text": "A light to carry.", "grants": [
+	    {"kind": "teach_skill", "skill": "DodoAura", "requiredLevel": 1, "line": "here"}
+	  ]}]
+	}]}`)
+	require.NoError(t, err)
+}
+
+// ...while a real wall still has to have an answer, or clicking a greyed row
+// gets silence.
+func TestMapMobDefinition_RealGateStillNeedsBlockedLine(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "options": [{"text": "Everything you have.", "grants": [
+	    {"kind": "teach_skill", "skill": "DodoAura", "requiredLevel": 2, "line": "here"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "blockedLine")
+}
+
 func TestMapMobDefinition_UngatedGrantNeedsNoBlockedLine(t *testing.T) {
 	_, err := mapInteraction(t, `{"nodes": [{
 	  "id": "root",

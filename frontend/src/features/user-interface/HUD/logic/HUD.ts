@@ -1,4 +1,5 @@
 import '../assets/HUD.less';
+import * as Conversation from '../../../conversation/logic/Conversation';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
 import {skillDisplayName, skillMaxLevel, skillCategory, SkillCategory} from '../../../../client-data/Skills';
@@ -75,6 +76,7 @@ export function setup(game) {
     setupAuraLoadout();
     setupPassiveLoadout();
     setupCooldownLoadout();
+    Conversation.setup();
 }
 
 // Zoom control: steps through the fixed-FOV zoom levels (camera/logic/Zoom.ts).

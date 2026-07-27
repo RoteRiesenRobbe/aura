@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. aggroRadius 1.0 is the pre-merge zone radius verbatim and IS the interaction range (D7 ⇒ interaction.range omitted). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Strong at the settlement gate.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Strong at the settlement gate.",
   "id": 56,
   "name": "CityGuard",
   "type": "MOB",
@@ -20,7 +20,7 @@
   },
   "skills": [],
   "interaction": {
-    "trigger": "interact",
+    "range": 2.0,
     "nodes": [
       {
         "id": "root",

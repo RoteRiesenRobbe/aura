@@ -119,7 +119,13 @@ func unmarshalInteract(i *AuraApi.Interact) *model.Interact {
 	if i == nil {
 		return nil
 	}
-	return &model.Interact{EntityID: i.EntityId()}
+	return &model.Interact{
+		EntityID:    i.EntityId(),
+		NodeID:      string(i.NodeId()),
+		OptionIndex: i.OptionIndex(),
+		GrantIndex:  i.GrantIndex(),
+		Close:       i.Close(),
+	}
 }
 
 func unwrapSpendSkillPoint(msg *AuraApi.ClientMessage) *AuraApi.SpendSkillPoint {

@@ -30,7 +30,6 @@ func npcDefinition() *mobs.MobDefinition {
 		Factors:           mobs.Factors{BaseMaxHealth: 200, Speed: 0},
 		Body:              mobs.Body{Radius: 0.35, AggroRadius: 1.0},
 		Interaction: &mobs.Interaction{
-			Trigger: mobs.TriggerApproach,
 			Nodes: []mobs.InteractionNode{{ID: "root", Lines: []string{"hello"}}},
 		},
 	}
@@ -103,7 +102,7 @@ func TestMob_SensorIsTheAggroAura(t *testing.T) {
 func TestMob_InteractionIsTheAuthoredBlock(t *testing.T) {
 	npc := NewMob(npcDefinition(), 0, nil)
 	require.NotNil(t, npc.Interaction())
-	assert.Equal(t, mobs.TriggerApproach, npc.Interaction().Trigger)
+	assert.Equal(t, "root", npc.Interaction().Nodes[0].ID)
 
 	assert.Nil(t, newTestMob().Interaction(), "an ordinary mob carries no conversation")
 }

@@ -79,9 +79,32 @@
         </div>
     </div>
 
-    <!-- Bottom-center stack: cast bar directly above the action bars
-         (triage 2026-07-21). Interim placement until the full UI pass. -->
+    <!-- Bottom-center stack: conversation panel above the cast bar above the
+         action bars (triage 2026-07-21; panel added chunk 3b-ii). Interim
+         placement until the full UI pass.
+         ⚑ Ordering matters and #castBar hides with `visibility`, not `display`,
+         so it keeps its slot in the column — the panel therefore does NOT jump
+         when a cast starts (L25). Check that with a cast running before
+         changing either rule. -->
     <div id="bottomCenter">
+        <!-- Conversation panel (chunk 3b-ii): non-blocking, mouse-driven.
+             Rendered entirely by Conversation.render(); hidden when the server
+             stops sending a tree. -->
+        <div id="conversation" class="hidden">
+            <div class="conversationHeader">
+                <span class="conversationActor"></span>
+                <span class="conversationLeave" title="Leave (Esc)">✕</span>
+            </div>
+            <!-- Only the body scrolls. The header (and its ✕) and the Back
+                 footer stay pinned, so a long node can never grow a scrollbar
+                 across the controls. -->
+            <div class="conversationBody">
+                <div class="conversationLines"></div>
+                <ul class="conversationRows"></ul>
+            </div>
+            <div class="conversationBack hidden">← Back</div>
+        </div>
+
         <!-- Cast bar (skill-vocab chunk 4, bare rendering): visible only while a
              cooldown skill winds up; fill + text set by HUD.updateCastBar. -->
         <div id="castBar">

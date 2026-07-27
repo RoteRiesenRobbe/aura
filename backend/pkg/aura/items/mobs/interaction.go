@@ -17,10 +17,17 @@ import (
 // instead of a schema migration, because the nesting they need already exists.
 //
 // It replaces model/npc: an NPC is not a type, it is an ordinary actor whose
-// definition carries one of these plus a friendly faction. The evaluator lives
-// in sys/interaction.go and preserves the ordered teaching walk verbatim.
+// definition carries one of these plus a friendly faction. Chunk 3b-ii is
+// where the container is finally READ in full: present() (sys/interaction.go)
+// serialises every node into the panel's tree and `next` becomes navigation.
 type Interaction struct {
-	Trigger Trigger
+	// Ambient is what the actor calls out to everyone standing around it, on
+	// the rising edge of a player entering its sensor (chunk 3b-ii, D18). It
+	// is deliberately INDEPENDENT of the conversation: a town crier both
+	// shouts the news as you pass AND opens a tree on the interact key, which
+	// is precisely what the retired single-valued `trigger` could not express.
+	// Empty (the common case) = the actor says nothing unprompted.
+	Ambient []string
 
 	// Range is the interaction reach in server units. OPTIONAL (0 = absent):
 	// the effective sensor is MobDefinition.SenseRadius, the wider of this and
@@ -44,17 +51,27 @@ type InteractionNode struct {
 	Options []InteractionOption
 }
 
-// InteractionOption is one branch of a node. 3a authors exactly one per node
-// and selects it implicitly; 3b renders Text as a button in the dialogue panel.
+// InteractionOption is one row of a node, and the ONLY interactive element in
+// the whole panel (chunk 3b-ii, D15). Branch or grant, it is the same row: a
+// teaching list is just a node whose options happen to be one-grant teachings,
+// and a quest offer will land later as a new GrantKind on this identical row.
+//
+// Every option must either grant something or navigate — an option that does
+// neither is a button a player clicks and watches do nothing.
 type InteractionOption struct {
+	// Text is the row's label. Empty is legal and means "label me from what I
+	// grant": present() falls back to the skill's display name, which is what
+	// renders the NPCs that were never re-authored into trees.
 	Text string
-	// BlockedLine is spoken, and the walk stops, when the player fails a
-	// grant's RequiredLevel — today's tooLowLine.
+	// BlockedLine is what the actor answers when the player takes a row whose
+	// grant they are too low for. It replaces nothing and grants nothing (D17
+	// retired the walk that used to stop here).
 	BlockedLine string
 	Grants      []InteractionGrant
-	// Next names the node to continue at (3b). Empty = the conversation ends.
-	// Validated at load even though nothing follows it yet, so a broken link
-	// fails at boot rather than the first time 3b walks the graph.
+	// Next names the node to continue at. Empty = this row only grants.
+	// Validated at load since 3a; 3b-ii is where it is finally READ, and it is
+	// the entire navigation mechanism — Back and Leave are automatic, so no
+	// author can strand a player in a dead end.
 	Next string
 }
 
@@ -82,41 +99,6 @@ type InteractionGrant struct {
 type InteractionCondition struct {
 	Kind  ConditionKind
 	Value int
-}
-
-// Trigger is what opens the conversation.
-type Trigger string
-
-const (
-	// TriggerApproach fires on the rising edge of a player entering the sensor
-	// — the pre-merge NPC behaviour, preserved exactly by chunk 3a.
-	TriggerApproach Trigger = "approach"
-	// TriggerInteract waits for the player to press the interact key in range
-	// (chunk 3b-i). The sensor still runs — it is what tells the client an
-	// actor is talkable — but only an Interact message opens the conversation.
-	TriggerInteract Trigger = "interact"
-)
-
-// triggers is the single source of authorable triggers, the tierRanks/roles
-// precedent: a trigger is authorable exactly when the engine honours it, so an
-// accepted-but-inert trigger can never ship an NPC that silently does nothing.
-// TriggerInteract joined in 3b-i, together with the guard in
-// sys/interaction.go that keeps it off the rising-edge grant path (L18) —
-// adding this key alone would load the content while still granting on
-// approach.
-var triggers = map[string]Trigger{
-	string(TriggerApproach): TriggerApproach,
-	string(TriggerInteract): TriggerInteract,
-}
-
-// ParseTrigger resolves an authored trigger. Absent means approach — the only
-// behaviour 3a has, so an interaction block need not restate it.
-func ParseTrigger(name string) (Trigger, bool) {
-	if name == "" {
-		return TriggerApproach, true
-	}
-	t, ok := triggers[name]
-	return t, ok
 }
 
 // GrantKind is what an option hands over.
@@ -155,7 +137,13 @@ func ParseConditionKind(name string) (ConditionKind, bool) {
 // jsonInteraction is the authored shape. Kept beside the resolved types rather
 // than in definitions.go so the whole container reads in one place.
 type jsonInteraction struct {
-	Trigger string                `json:"trigger"` // absent → "approach"
+	// ⚑ Trigger is a TOMBSTONE, kept solely to reject it (D18). The mob loader
+	// is the one loader without DisallowUnknownFields (definitions.go:284), so
+	// simply deleting the field would let all 14 stale content files boot green
+	// with a key that means nothing — and the PO authors these files by hand
+	// (L22). Four lines buy a named boot failure instead of a silent no-op.
+	Trigger string                `json:"trigger"`
+	Ambient []string              `json:"ambient"` // absent → says nothing unprompted
 	Range   float32               `json:"range"`   // absent → body.aggroRadius
 	Nodes   []jsonInteractionNode `json:"nodes"`
 }
@@ -199,9 +187,9 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		return nil, nil
 	}
 
-	trigger, ok := ParseTrigger(ji.Trigger)
-	if !ok {
-		return nil, fmt.Errorf("mob %q: interaction.trigger %q must be one of %s", m.Name, ji.Trigger, names(triggers))
+	if ji.Trigger != "" {
+		return nil, fmt.Errorf("mob %q: interaction.trigger was retired — nothing speaks unprompted now, "+
+			"and walk-by lore is interaction.ambient (plan-entity-model.md D18)", m.Name)
 	}
 	if ji.Range < 0 {
 		return nil, fmt.Errorf("mob %q: interaction.range %v must not be negative", m.Name, ji.Range)
@@ -210,7 +198,7 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		return nil, fmt.Errorf("mob %q: interaction.nodes must not be empty", m.Name)
 	}
 
-	in := &Interaction{Trigger: trigger, Range: ji.Range}
+	in := &Interaction{Ambient: ji.Ambient, Range: ji.Range}
 	ids := make(map[string]bool, len(ji.Nodes))
 	for i := range ji.Nodes {
 		jn := &ji.Nodes[i]
@@ -255,7 +243,13 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 				if def.Legacy && !m.Legacy {
 					*legacyRefs = append(*legacyRefs, "teaching "+def.Name)
 				}
-				if jg.RequiredLevel > 0 {
+				// ⚑ > 1, not > 0: players start at level 1, so a requiredLevel
+				// of 1 can never refuse anybody and demanding a refusal line for
+				// it just adds a string no player will ever see. (3a asked for
+				// one whenever requiredLevel was set at all; under D20 a genuinely
+				// locked row also renders its wall, so the line is the ANSWER to
+				// clicking it rather than the only feedback there is.)
+				if jg.RequiredLevel > 1 {
 					gated = true
 				}
 				opt.Grants = append(opt.Grants, InteractionGrant{
@@ -265,11 +259,18 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 					Skill:         def,
 				})
 			}
-			// Today's rule, moved from the zone loader: a level-gated walk that
-			// stops has to have something to say, or a player who is too low
-			// meets silence and reads it as a broken NPC.
+			// Today's rule, moved from the zone loader: a level-gated grant has
+			// to have something to say when it is refused, or a player who is
+			// too low meets silence and reads it as a broken NPC.
 			if gated && strings.TrimSpace(jo.BlockedLine) == "" {
 				return nil, fmt.Errorf("mob %q: interaction node %q option %d: blockedLine is required when a grant has a requiredLevel",
+					m.Name, jn.ID, j)
+			}
+			// An option is a clickable row now (D15), so one that neither
+			// grants nor navigates is a button that visibly does nothing.
+			// Under 3a's implicit walk it was merely pointless.
+			if len(opt.Grants) == 0 && opt.Next == "" {
+				return nil, fmt.Errorf("mob %q: interaction node %q option %d: needs at least one grant or a next",
 					m.Name, jn.ID, j)
 			}
 			grants += len(opt.Grants)

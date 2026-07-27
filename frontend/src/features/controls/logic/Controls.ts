@@ -12,6 +12,7 @@ import {KeyCodes} from '../../input-system/logic/keyboard/keys/KeyCodes';
 import {Character} from '../../game-objects/logic/Character';
 import {GameState, IGame} from '../../core/logic/IGame';
 import {InputMessage} from '../../backend/logic/messages/outgoing/InputMessage';
+import * as Conversation from '../../conversation/logic/Conversation';
 import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMessage';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {Vector} from '../../core/logic/Vector';
@@ -128,6 +129,10 @@ export class Controls {
         // skill is pending.
         if (event.code === 'Escape') {
             HUD.cancelEquipSelection();
+            // ...and dismisses an open conversation (chunk 3b-ii, D21). Also a
+            // no-op when no panel is open. It only ASKS: the panel closes when
+            // the server drops the tree from the next snapshot.
+            Conversation.leave();
             return;
         }
     }
@@ -268,9 +273,15 @@ export class Controls {
         // costs nothing.
         const interactDown = this.interactKey.isDown;
         if (interactDown && !this.interactKeyWasDown) {
-            const target = Game.getInteractableEntityId();
-            if (target !== 0) {
-                new InteractMessage(target).send();
+            if (Conversation.isOpen()) {
+                // A second E closes the panel (chunk 3b-ii, D21) — the same key
+                // that opened it, which is what players reach for first.
+                Conversation.leave();
+            } else {
+                const target = Game.getInteractableEntityId();
+                if (target !== 0) {
+                    new InteractMessage(target).send();
+                }
             }
         }
         this.interactKeyWasDown = interactDown;

@@ -19,6 +19,7 @@ import {GameState, IGame} from "../../core/logic/IGame";
 import {BackendState, IBackend} from "./IBackend";
 import {Session} from "../../accounts/logic/Session";
 import {Badgeable, retargetInteractBadge} from "./InteractBadgeTargeting";
+import * as Conversation from "../../conversation/logic/Conversation";
 import {Develop} from "../../internal-tools/develop/logic/_Develop";
 import {
     BackendConnectionFailureEvent,
@@ -43,10 +44,18 @@ export class Backend implements IBackend {
     lastMessageReceivedTime: number;
     firstPongReceived = false;
 
-    // The entity currently wearing the interact badge (chunk 3b-i); 0 = none.
-    // Tracked so the previous one can be cleared when the server names a
-    // different actor or nobody — the badge is state, not an event.
+    // The conversant the server says is in range (chunk 3b-i); 0 = none. What
+    // the interact key names when it opens a conversation.
     private interactableEntityId = 0;
+
+    // The entity currently WEARING the badge; 0 = none. Tracked so the previous
+    // one can be cleared when the server names a different actor or nobody —
+    // the badge is state, not an event.
+    //
+    // ⚑ Deliberately not the same field as the offer above: while a panel is
+    // open the badge is suppressed (the prompt has already been accepted) but
+    // the actor is still very much in range.
+    private badgedEntityId = 0;
 
     public setup(game: IGame): void {
         this.game = game;
@@ -341,10 +350,27 @@ export class Backend implements IBackend {
             this.game.map.addOrUpdate(entity);
         });
 
+        // Conversation panel (chunk 3b-ii). Before the badge, because the badge
+        // suppresses itself for whoever the panel belongs to.
+        Conversation.update(snapshot.conversation ?? null);
+
         // Interact badge (chunk 3b-i). After addOrUpdate, so an actor that
         // entered the viewport this same tick already has a game object to
         // hang the prompt on.
-        this.updateInteractBadge(snapshot.interactableEntityId ?? 0);
+        //
+        // ⚑ The badge hides while its OWN conversation is open: the prompt has
+        // already been accepted, and leaving it lit reads as "press E again to
+        // do the thing you are already doing".
+        //
+        // ⚑ Suppression is applied to the BADGE ONLY, never to the tracked id.
+        // Feeding 0 into updateInteractBadge would also zero what
+        // getInteractableEntityId() reports, so the whole client would believe
+        // nobody is in range for as long as a panel is open — harmless today
+        // only because the interact key checks Conversation.isOpen() first, and
+        // a trap for the next reader of that getter.
+        const offered = snapshot.interactableEntityId ?? 0;
+        this.interactableEntityId = offered;
+        this.updateInteractBadge(offered === Conversation.partnerId() ? 0 : offered);
 
         if (!this.firstGameStateReceived) {
             this.firstGameStateResolve();
@@ -360,10 +386,15 @@ export class Backend implements IBackend {
         return this.interactableEntityId;
     }
 
-    /** Move the interact badge to whichever entity the server named, or clear it. */
+    /**
+     * Move the interact badge to whichever entity should wear it, or clear it.
+     *
+     * ⚑ Tracked separately from interactableEntityId: what is DRAWN and what is
+     * OFFERED diverge while a panel is open (the badge hides, the offer stands).
+     */
     private updateInteractBadge(id: number): void {
-        this.interactableEntityId = retargetInteractBadge(
-            this.interactableEntityId,
+        this.badgedEntityId = retargetInteractBadge(
+            this.badgedEntityId,
             id,
             (entityId) => this.game.map.getObject(entityId) as Badgeable);
     }

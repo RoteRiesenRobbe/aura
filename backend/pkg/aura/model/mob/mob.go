@@ -390,6 +390,19 @@ type Mob struct {
 	spawnPosition    phy.Vec2f
 	spawnInitialized bool
 
+	// conversing is set while at least one player has a panel open with this
+	// actor (chunk 3b-ii, D22): it holds position so a patrolling NPC can be
+	// stopped and talked to, and resumes its route the moment the last
+	// conversation ends. Recomputed every tick by the InteractionSystem with a
+	// clear-then-set pass over its slices — a bool rather than a per-tick map,
+	// to keep the idle loop allocation-free (fe0044d0).
+	//
+	// ⚑ One tick stale by construction (L23): InteractionSystem and MobSystem
+	// share priority 20, so their order within a tick is registration order, not
+	// design. An actor can take one extra 33 ms step after a conversation opens
+	// or ends. Build nothing on same-tick ordering here.
+	conversing bool
+
 	// Idle-movement archetypes (mob-depth chunk 5, patrol.go). The wander
 	// anchor is the AUTHORED spawn point (gotcha #7), set via SetWander;
 	// waypoints is the ping-pong patrol route (SetWaypoints). returnPos is
