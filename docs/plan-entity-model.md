@@ -1447,7 +1447,7 @@ what shipped, which commit, what was verified.)*
 - **Chunk 3a — the NPC merge: ✅ DONE 2026-07-27**, planned and executed in one
   session (§6a is the plan, this is the ledger), backend + frontend + content,
   26 files changed + 15 new, 4 deleted, **−800 lines net**, committed
-  `[uncommitted]`. ⏳ **PO in-game check PENDING.**
+  `ba124ceb`. ⏳ **PO in-game check PENDING.**
 
   **`model/npc` is gone.** A teaching NPC is an ordinary actor whose definition
   carries an `interaction` block, placed as an ordinary spawn. Deleted outright:
