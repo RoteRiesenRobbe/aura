@@ -2525,6 +2525,98 @@ what shipped, which commit, what was verified.)*
   `GameState` field rather than a new message — which keeps `ServerMessageBody`
   out of the change entirely (L16); and `option.text` is **unauthored on all
   14**, which is 3b-ii's content half and part of why the split exists.
+- **Chunk 3b-ii — the conversation panel: ✅ DONE 2026-07-28**, wire + backend +
+  frontend + content, 45 files (3 new source files, 1 new harness), committed
+  `[uncommitted]`. **HARNESS-VERIFIED IN-GAME 28/28**, 1 deliberate SKIP, 0
+  console errors, 0 webgl context losses; ⏳ PO sign-off rides the single
+  deferred pass.
+
+  **Shipped as §6b.17 specified, all seven steps.** The panel is a conversation
+  TREE browser: `E` opens the Emberkeeper's greeting with three branch rows,
+  *Teach me* reaches the list with Torch available and Ignite/Immolate locked at
+  their authored walls, and clicking a row teaches **that row and nothing else**.
+  `evaluate()` is gone; `present()` (pure) + `applyGrant()` (one grant, validated
+  on its own merits) replace it, and `next` — authored and load-validated since
+  3a — is finally read.
+
+  **`ServerMessageBody` stayed untouched for the SECOND chunk running** (L16
+  unexercised, exactly as D10/D16 intended): the whole tree rides `GameState`.
+  Neither union was touched.
+
+  **3 decisions taken inside the chunk:**
+  ① **⚑ The presented tree lives in `model`, not `sys`.** The plan put
+  `present()` in `sys` and had `codec` marshal its result — but `sys` imports
+  `codec`, so a `sys`-local tree type is unmarshalable. `model/conversation.go`
+  holds the transport shapes; `present()` stays beside `applyGrant()` and stamps
+  `player.conversation`. Found in the pre-flight audit, before the first edit.
+  ② **L22 got a boot-time tombstone, not just the planned CI pin.** The plan
+  assumed the loader cannot catch a stale `trigger` (it is the one loader without
+  `DisallowUnknownFields`), so it specified a raw-JSON test. `jsonInteraction`
+  keeps `Trigger string` **solely to reject it**, so boot hard-fails with a named
+  error — which matters because content is hand-edited against `-content ../api`
+  by someone who does not run `go test`. Both guards are in.
+  ③ **`requiredLevel: 1` is no longer a gate.** 3a demanded a `blockedLine`
+  whenever `requiredLevel` was set at all; players start at level 1, so that
+  forced a refusal line no player can ever read. Now `> 1`.
+
+  **Content — 14 files.** All lose `trigger` and gain `range: 2.0` [PLACEHOLDER]
+  (L26: talk range now TEARS DOWN a conversation, and the old 1.0 fallback left
+  less standing room than the two bodies occupy). D23's three trees authored:
+  **Emberkeeper** (teaching list, 1/7/12 walls, plus a hint leaf and a
+  WoW-guard directions list), **TownCrier** (hint branch + the game's only
+  `ambient` lines — the NPC D18 exists for, doing both at once), **Wanderer**
+  (`speed 0.5 · wanderRadius 4 · idleSpeedFactor 0.35 · dwell 30–90` — the one
+  conversant that moves, so D22's hold is provable rather than shipped blind).
+  The other 11 needed **zero content work**, exactly as D17 predicted.
+
+  **⚑ Three defects the harness found that NO unit test could reach:**
+  ① **The panel re-rendered on every snapshot (~30×/s).** The server re-sends the
+  tree each tick by design, so the row list was destroyed and rebuilt
+  continuously: `:hover` never survived, and a click could land in the gap
+  between an `<li>` being detached and its replacement appearing. It dropped
+  clicks on roughly half of the harness runs and would do the same to a player.
+  Fixed with a view-signature check; pinned by two vitest cases.
+  ② **`getInteractableEntityId()` read 0 while a panel was open** — self-inflicted
+  by suppressing the badge through the tracked id. Split into offered-vs-drawn
+  (`interactableEntityId` / `badgedEntityId`).
+  ③ **`wanderRadius` also RANDOMISES THE SPAWN POINT** (`MobSystem.spawnAt`
+  offsets by `randomInDisc`), so the Wanderer starts up to 4 units off the
+  authored spot and wanders 4 more — it is never where `world.json` says.
+  Recorded in its own `_comment`.
+
+  **⚑ One acceptance item is a permanent SKIP, by construction:** *being hit
+  closes the panel*. No cheat can stamp player combat — `DAMAGE` writes health
+  directly, bypassing `takeDamage`, and `THREAT` is read-only — so the harness
+  waits for a real mob and reports SKIP rather than a fake PASS. Both directions
+  are pinned deterministically in Go
+  (`TestSession_ClosesWhenEitherPartyEntersCombat`).
+
+  **Verified:** red first (the loader/ambient cases opened the chunk);
+  `go build`/`vet`/`test ./...` green; guardrails + alloc pins `-count=2` green;
+  frontend typecheck + **44 vitest** (up from 27) + prod build; boot **both ways**
+  0 errors 0 warnings 0 panics — **83 skills / 15 factions / 64 mobs / 777 props /
+  485 spawns / 5 campfires**. **⭐ Sim battery BYTE-IDENTICAL across all four runs**
+  (default, `-levels`, `-matrix`, `-chain`; TTK 6.67s / TTD 8.70s) — the possible
+  `Wanderer` roster row L14 warned about never materialised. In-game
+  `chunk3b-ii-conversation.mjs` **28/28**, including the Wanderer holding position
+  (drift **1.29 → 0 → 1.21** units/4s) and the TownCrier calling out its ambient
+  line **without** opening anything.
+
+  **⚑ Three harness traps cost ~6 runs and are now in the `verify` skill:**
+  **§29** lost-WebGL-context invalidates a run (it produced 8 plausible
+  downstream "failures"; the script now exits 2 and says so); **`#developPanel`**
+  is a draggable table covering the right-hand side under `&develop`, which made
+  the panel's ✕ unclickable for three runs (`elementAtCentre: TABLE.`, 0 frames
+  sent); and **`window.game` is a four-method façade** — `{run, character, pause,
+  play}` — so `getInteractableEntityId`/`map` read as `undefined` **silently**,
+  presenting as "the Wanderer never moves".
+
+  **Not closed:** quest state and the journal (still shape-only — a quest is a
+  new `GrantKind` on the identical row); vendors; **L2** (`SetFaction` nuking the
+  authored aggro mask, two callers, still exactly what charm / side-switch /
+  quest-turns-hostile would trip over); a change-only send for the tree;
+  approach-fired quest hooks.
+
 - **Chunk 3b-ii — the conversation panel: PLANNED 2026-07-27** (second design
   session, held after 3b-i shipped — the re-plan the old sketch asked for; docs
   only, no code). §6b.9–6b.19 replaces a 20-line sketch with the full chunk plan:
