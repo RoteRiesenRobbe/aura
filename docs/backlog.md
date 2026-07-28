@@ -3311,3 +3311,164 @@ None of the three requires the others; they address disjoint tiers.
   the conf files, Go tuning constants/defaults, the sim harness and frontend
   constants. It did **not** audit content JSON ↔ Go (tier ranks, faction bits,
   skill enums), the wire enums, or the docs.
+
+---
+
+## 36. Three character slots, three bloodlines — sacrifice unlocks scoped per slot
+
+**Origin:** PO idea 2026-07-29. *"For accounts: 3 character slots. Each slot has
+its own 'bloodline', and sacrifice as a feature unlocks abilities only for this
+bloodline. So 3 character slots, 3 bloodlines."*
+
+**The shape:** an account holds **3 character slots**. Each slot carries a
+persistent **bloodline** that outlives the characters played in it. Sacrificing
+a max-level character grants its reward to **that slot's bloodline only** — not
+to the account. Over time each slot accumulates a different catalog of unlocked
+base auras / start options, so the three slots become three distinct lineages
+rather than three interchangeable saves.
+
+**What it changes in the GDD:** §5 (Meta-Progression: Character Sacrifice)
+currently says the reward is **account-wide** — *"New characters benefit from
+all previous sacrifices."* This idea replaces one word (`account-wide` →
+`bloodline-wide`) and that word is load-bearing for the rest of the section.
+**Not edited in the GDD** — the section is written as decided design, and this
+is an amendment awaiting a design pass.
+
+**Why it is interesting:**
+
+- It gives an alt a **reason to exist beyond a different race**. Today the
+  restart-loop variety comes from per-race starts (§12) and secret recipes; a
+  bloodline makes the *slot itself* an identity that accrues history.
+- It makes the memorial (§5) personal per lineage — a slot's monument entries
+  are its own ancestors, not the account's undifferentiated pile.
+- It multiplies the reward catalog's reach without adding rewards: the same
+  curated catalog read three times over produces three different characters.
+
+**⚑ The main risk — it is a per-slot grind multiplier, and §5's Hologrind rule
+is the thing to test it against.** The verbatim design rule is *"Does a player
+who never sacrifices feel weaker in the endgame? If yes, the reward is
+miscalibrated."* Bloodline-scoping does not break that rule directly (rewards
+are still breadth, never power), but it does mean a player who wants reward X
+available on slot 2 must level **and sacrifice on slot 2**. Account-wide made
+one sacrifice pay off everywhere; bloodline-wide makes it pay off in one third
+of the account. Whether that reads as *depth* or as *chores* is the design call.
+
+**⚑ Open questions:**
+
+- Is a bloodline **chosen** (pick a lineage when you first use the slot) or is
+  it simply *"whatever slot 2 has accumulated"* — an emergent identity with no
+  authored content behind it? These are very different features: the first is
+  content (named houses, flavor, maybe starting bonuses), the second is
+  bookkeeping.
+- Can a bloodline be **reset / re-rolled**? A slot whose accumulated unlocks the
+  player regrets is a dead slot out of three.
+- Does the bloodline survive an empty slot (character deleted, not sacrificed)?
+- Why **3**? [PLACEHOLDER] — the number is the least interesting part, but it
+  interacts with the "living starting zone" goal: more slots = more restarts.
+- Does it interact with §12 (races)? Races are already a sanctioned sacrifice
+  reward ("new start options"). If a bloodline *is* effectively a race lineage,
+  these two ideas want merging before either is scoped.
+
+**⚑ Persistence finding — this adds a THIRD persistence scope, and step 8 is
+where that gets cheap or expensive.** `plan-entity-model.md` ruling 4 fixed the
+schema's scope as *only live players persist* — mobs and NPCs always respawn
+from definitions. Slots + bloodlines add state that is neither a live player nor
+a definition: **account-scoped state that outlives every character written into
+it**. That is not hard, but it is a shape step 8 should know about before the
+character record is designed, because it means the top-level record is an
+**account**, not a character, from the first migration. Recording it here rather
+than pretending it is free later.
+
+**Not scheduled — but it is a step-8 input, not an independent feature.** Raise
+it in the accounts & persistence design session alongside §32 (does a charge
+survive death?). Both are "what is the persistence scope of X" questions and
+they want answering together.
+
+---
+
+## 37. Aura augmentation — auras gain effects instead of combining into new ones
+
+**Origin:** PO idea 2026-07-29. *"Alternative to the current aura recipe
+unlocks. Players can augment an aura and add certain effects to it through some
+mechanism, i.e. leveling. For example, after X levels, make the decision to add
+either a slow or a heal to your damage aura — it is now augmented with that
+effect. Other auras follow the same mechanism to an extent: they can, through a
+process, gain additional effect types."*
+
+**The shape:** instead of *skill A at level x + skill B at level y → discover
+skill C*, a skill you already own **grows a new effect**. At an authored
+threshold the player picks one augment from a small offered set (slow ⊕ heal),
+and their damage aura now carries that effect too. Repeatable across auras, and
+in principle across categories.
+
+**⭐ The structural finding — this is the first thing in the game that makes a
+skill's EFFECT LIST per-character.** Today the split is absolute:
+
+- `SkillDefinition.Effects []EffectDef` (`skills/definition.go:672`) is the
+  **shared, global** effect list, held by pointer — the same `*SkillDefinition`
+  is used by every player who owns the skill **and by every mob that equips it**.
+- Per-character skill state is exactly **one integer**: `Spellbook map[SkillID]int`
+  (`skills/component.go:96`) and `EquippedSkill.Level`. Everything else — radius,
+  damage, tick interval, target selector — is `Scaled(base, perLevel, level)` off
+  the shared definition.
+- A recipe's `Result` is a whole **separate authored `SkillDefinition`**
+  (`skills/recipe.go`), which is why combinations cost the engine nothing: they
+  swap which global definition you point at.
+
+So the two implementation shapes are genuinely different features, and picking
+between them is the whole design decision:
+
+**(a) Augmentation as a recipe result — zero engine change.** `DamageAura_Slowing`
+is just another authored def; "choosing an augment" swaps the spellbook entry.
+Free today. Cost is **combinatorial content**: n auras × m augments authored by
+hand, and it multiplies again the moment augments stack (two augments on one
+aura = n × m² defs). Practical only if augments never stack and the offered sets
+stay tiny.
+
+**(b) Augmentation as per-character state — linear content, engine-new.** The
+spellbook value becomes `{level, augments []AugmentID}`, and the effect list is
+**composed at equip time** rather than read from the definition. Content stays
+linear (one augment authored once, applies to any aura), but it touches the
+equip path, the derived-stat recompute, the wire and the client.
+
+**⚑ Under shape (b), the client would not know.** `frontend/src/client-data/Skills.ts`
+fetches the skill catalog **by definition**, so tooltips, aura-ring radius and
+effect pips all render from the global def. A player's augmented aura would look,
+read and tooltip **exactly like an unaugmented one**. This is the same class of
+gap as `plan-faction-flips.md` L-C (charm is invisible to the client) and the
+`Mob.radius`-in-the-schema-but-never-written gap that 3a's NPC pilot found — a
+feature that works server-side and is undetectable in the picture. Shape (a) has
+this for free, which is a real point in its favour.
+
+**⚑ Under shape (b), mobs share the definitions too.** `SkillComponent` is the
+same type for both (`Spellbook` is nil for mobs, which is how `Discover` no-ops).
+Augments would need to be explicitly player-only, or mobs need an augment source
+— and "an augmented elite" is a tempting content lever, so decide it rather than
+inherit it.
+
+**⚑ It trades DISCOVERY for BUILD EXPRESSION — that is the actual design
+question, not the mechanism.** The GDD is explicit that combination recipes are
+**curated, secret, and never documented in-game**; the community discovers and
+shares them. Augmentation-by-leveling is the opposite by construction: an
+explicit, presented, in-UI choice at a known level. That is not worse — a
+visible fork ("slow or heal?") is a real build decision the current system does
+not offer, and it is legible to a new player in a way secret recipes are not —
+but it is a **different pillar**. ⚑ Is augmentation a **replacement** for
+recipes (the PO's word was "alternative") or a **second track** alongside them?
+Recipes are shipped and live (`api/recipes/`, 10 loaded); replacing them is a
+content deletion, not just a new system.
+
+**⚑ It would be the first PERMANENT character decision — and that collides with
+free respec.** Skill points are fully refundable today: `LowerSkillLevel`
+(`skills/component.go:478`) is a free respec down to discovery level. If augment
+choices are reversible, the fork is a menu, not a decision, and most of the
+appeal evaporates. If they are permanent, augmentation becomes the first thing a
+player can get *wrong* — which is exactly what §5's restart loop wants (*"each
+run can be built differently"*), and it is the strongest link between this idea
+and **§36**: permanent augment choices are what would make a second character in
+a second bloodline feel like a different character rather than the same one
+again.
+
+**Not scheduled.** Needs a design pass, and the (a)-vs-(b) call should be made
+before anything is authored — they diverge immediately and shape (a) is not a
+stepping stone to shape (b).
