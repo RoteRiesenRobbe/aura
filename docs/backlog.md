@@ -3169,7 +3169,7 @@ level-1 Damage aura with collision fully enforced. The focus-fire problem is a
 ## 35. One value, many homes — the tuning-value duplication sweep
 
 > **✅ TIER 1 FULLY DONE 2026-07-28** — `docs/archive/plan-pre-accounts-hygiene.md`
-> (ledgers there, §11). **Row 1** closed by session 2 (`[uncommitted]`): both Go
+> (ledgers there, §11). **Row 1** closed by session 2 (`50a1e5c9`): both Go
 > defaults now hold 0.2, and the sim's copy with them. ⚑ **The drift turned out
 > to be latent, not active** — *no* battery scenario makes a mob approach
 > (facetank spawns at `distance = 0`, kite pins the mob at `Speed = 0`, the 1v1

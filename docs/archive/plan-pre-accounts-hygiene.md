@@ -1,7 +1,7 @@
 # plan-pre-accounts-hygiene.md — config truth + wire vestiges, before step 8
 
 **✅ COMPLETE — planned `ec0732e9`, session 1 `c183ce12`, session 2
-`[uncommitted]`, all 2026-07-28.** One chunk, four parts, run as two sessions
+`50a1e5c9`, all 2026-07-28.** One chunk, four parts, run as two sessions
 (§9.1) and taken as the last thing before the accounts & persistence design
 session. Everything in it was already recorded as a finding somewhere else; this
 doc is where those findings got a shape, an order and an acceptance test.
@@ -416,7 +416,7 @@ profile; `forced` still emits the line and the banner.
   file list that `flatcgen`'s `cleanOutputFolders` deletes mid-run. A second run
   is clean; there is nothing to fix.
 
-### Session 2 — H1a ✅ DONE 2026-07-28, committed `[uncommitted]`
+### Session 2 — H1a ✅ DONE 2026-07-28, committed `50a1e5c9`
 
 The chase margin. 3 files, +38/−5 — the part that was priced as *"the only one
 that moves a number"*.
