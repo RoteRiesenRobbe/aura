@@ -10,7 +10,6 @@
  */
 import {Container, Graphics, Text} from 'pixi.js';
 import {meter2px} from '../../../client-data/BasicConfig';
-import {GraphicsConfig} from '../../../client-data/Graphics';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {requireAll} from '../../common/logic/Utils';
 import {IGame} from '../../core/logic/IGame';

@@ -30,7 +30,6 @@
         ],
         "options": [
           {
-            "blockedLine": "Woof?",
             "grants": [
               {
                 "kind": "teach_skill",

@@ -76,7 +76,7 @@ type fakePlayer struct {
 	aura            *phy.Circle
 	body            *phy.Circle // main physical body (Bodies()[0], player layer)
 	god             bool
-	maxHealthFactor float32
+	poolFactor      float32
 	maxHealth       vitals.VitalSign
 	level           uint32
 	xp              []uint64
@@ -135,7 +135,7 @@ func (f *fakePlayer) Config() *cfg.PlayerConfig              { return &f.conf }
 func (f *fakePlayer) AuraCollider() *phy.Circle              { return f.aura }
 func (f *fakePlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vitalSigns }
 func (f *fakePlayer) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
-func (f *fakePlayer) MaxHealthFactor() float32               { return f.maxHealthFactor }
+func (f *fakePlayer) PoolFactor() float32                    { return f.poolFactor }
 func (f *fakePlayer) PowerScale() float32                    { return f.powerScale }
 func (f *fakePlayer) IsGod() bool                            { return f.god }
 func (f *fakePlayer) MaxHealth() vitals.VitalSign            { return f.maxHealth }
@@ -236,7 +236,7 @@ func newFakePlayer() *fakePlayer {
 		sc:              skills.NewSkillComponent(true),
 		vitalSigns:      model.PlayerVitalSigns{Health: 100}, // full = maxHealth (absolute HP, item 11)
 		statusEffects:   model.NewStatusEffects(),
-		maxHealthFactor: 1.0,
+		poolFactor:      1.0,
 		maxHealth:       100,
 		level:           1,
 		powerScale:      1.0, // f(1) — the un-inflated baseline (C0)
@@ -532,7 +532,7 @@ func TestApplyHealAura_SelfDamageOnSuccessfulHeal(t *testing.T) {
 
 func TestApplyHealAura_SelfDamageIsFlatHP(t *testing.T) {
 	caster := newFakePlayer()
-	caster.maxHealthFactor = 2.0 // no longer affects the self-cost (item 11 Phase 1)
+	caster.poolFactor = 2.0 // no longer affects the self-cost (item 11 Phase 1)
 	ally := newFakePlayer()
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
@@ -540,7 +540,7 @@ func TestApplyHealAura_SelfDamageIsFlatHP(t *testing.T) {
 	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health,
-		"self-damage is a flat HP cost, independent of MaxHealthFactor")
+		"self-damage is a flat HP cost, independent of PoolFactor")
 }
 
 func TestApplyHealAura_GodModePaysNoSelfDamage(t *testing.T) {
@@ -2592,8 +2592,11 @@ func TestTotemAuraDamage_CreditsOwnerXPAndKillRewards(t *testing.T) {
 func TestApplyDamageAura_OwnedCasterScalesPower(t *testing.T) {
 	// Owner-level power multiplies the damage AMOUNT (chunk-1 decision 4).
 	owner := newFakePlayer()
+	// The multiplier is now the authored RATE read against the owner's CURRENT
+	// level (R5), so the fixture states both: 1 + (11-1)x0.05 = 1.5.
+	owner.level = 11
 	totem := newTestTotem(owner)
-	totem.SetSummonPower(1.5)
+	totem.SetSummonPowerPerLevel(0.05)
 
 	target := &touchRecorder{}
 	effect := damageEffect(1)
@@ -2601,21 +2604,27 @@ func TestApplyDamageAura_OwnedCasterScalesPower(t *testing.T) {
 
 	applyDamageAura(totem, 1, effect, colliderSetOf(target), testRNG())
 
+	// The curve rides in through the summon's own PowerScale (it stands at its
+	// owner's level, chunk 1b), so it must be stated explicitly now that the
+	// fixture is no longer at level 1.
+	f11 := float32(math.Pow(1.12, 10))
 	require.Len(t, target.touches, 1)
-	assert.InDelta(t, 15, target.touches[0], 1e-6, "10 HP × power 1.5")
+	assert.InDelta(t, 10*1.5*f11, target.touches[0], 1e-5, "10 HP × power 1.5 × f(owner level 11)")
 }
 
 func TestApplyDotEffect_OwnedCasterScalesPower(t *testing.T) {
 	// Power is frozen into the dot at application time, like the level.
 	owner := newFakePlayer()
+	owner.level = 11 // 1 + (11-1)x0.05 = 1.5
 	totem := newTestTotem(owner)
-	totem.SetSummonPower(1.5)
+	totem.SetSummonPowerPerLevel(0.05)
 
 	target := &dotRecorder{basic: ecs.NewBasic()}
 	applyDotEffect(totem, 106, 1, dotEffect(), colliderSetOf(target))
 
+	f11 := float32(math.Pow(1.12, 10))
 	require.Len(t, target.dots, 1)
-	assert.InDelta(t, 7.5, target.dots[0].HP, 1e-6, "5 HP × power 1.5")
+	assert.InDelta(t, 5*1.5*f11, target.dots[0].HP, 1e-5, "5 HP × power 1.5 × f(owner level 11)")
 	assert.Same(t, any(totem), target.dots[0].Caster,
 		"the summon stays the stored caster — the owner is resolved at tick time")
 }
@@ -3974,7 +3983,7 @@ func TestApplyDamageAura_OwnedCaster_ComposesOwnerCurveScale(t *testing.T) {
 	owner := newFakePlayer()
 	owner.level = 7
 	totem := newTestTotem(owner)
-	totem.SetSummonPower(1.5)
+	totem.SetSummonPowerPerLevel(0.05) // 1 + (7-1)x0.05 = 1.3
 	f7 := float32(math.Pow(1.12, 6))
 	require.InDelta(t, f7, totem.PowerScale(), 1e-6, "the summon evaluates f at the owner's level")
 
@@ -3985,7 +3994,7 @@ func TestApplyDamageAura_OwnedCaster_ComposesOwnerCurveScale(t *testing.T) {
 	applyDamageAura(totem, 1, effect, colliderSetOf(target), testRNG())
 
 	require.Len(t, target.touches, 1)
-	assert.InDelta(t, 10*1.5*f7, target.touches[0], 1e-5, "10 HP × power 1.5 × f(owner level 7)")
+	assert.InDelta(t, 10*1.3*f7, target.touches[0], 1e-5, "10 HP × power 1.3 × f(owner level 7)")
 }
 
 // --- combat factors are conf knobs (backlog §25 B) ---

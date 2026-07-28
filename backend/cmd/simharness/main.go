@@ -126,7 +126,7 @@ func main() {
 	mobTick := flag.Int("mob-tick", 20, "mob aura tick interval (game ticks)")
 	mobRadius := flag.Float64("mob-radius", 1.0, "mob aura radius")
 	mobSpeed := flag.Float64("mob-speed", 0.5, "mob chase speed factor (0 = stands still)")
-	mobRole := flag.String("mob-role", "creature", "mob actor role: creature (aura gates on aggro) or structure (aura always on)")
+	mobRole := flag.String("mob-role", "creature", "mob actor role, one of "+mobs.RoleNames()+" (creature gates its aura on aggro, structure runs it always-on, follower acquires from its owner)")
 	mobBody := flag.Float64("mob-body", 0.35, "mob body radius")
 	mobAggro := flag.Float64("mob-aggro", 4.0, "mob aggro sensor radius")
 	mobVariance := flag.Float64("mob-variance", 0, "mob per-hit variance band")
@@ -173,7 +173,7 @@ func main() {
 	// Validated here rather than deep in the world builder: this is where a
 	// typo can still be reported to the person who typed it (chunk 2).
 	if _, ok := mobs.ParseRole(*mobRole); !ok {
-		fmt.Fprintf(os.Stderr, "unknown -mob-role %q: expected creature, structure or follower\n", *mobRole)
+		fmt.Fprintf(os.Stderr, "unknown -mob-role %q: expected one of %s\n", *mobRole, mobs.RoleNames())
 		os.Exit(2)
 	}
 	mob := sim.MobSpec{

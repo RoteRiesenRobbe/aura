@@ -39,7 +39,7 @@ func (r *runRequest) validate() error {
 	// The role is authored text, so a typo is reported here rather than
 	// panicking in the world builder (chunk 2).
 	if _, ok := mobs.ParseRole(r.Mob.Role); !ok {
-		return fmt.Errorf("mob.role %q must be creature, structure or follower", r.Mob.Role)
+		return fmt.Errorf("mob.role %q must be one of %s", r.Mob.Role, mobs.RoleNames())
 	}
 	return nil
 }

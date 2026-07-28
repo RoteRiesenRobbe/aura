@@ -81,7 +81,9 @@ export interface SpawnParams {
     mobName: string;
     ttlTicks: number;
     ttlTicksPerLevel: number;
-    maxHealthPerOwnerLevel: number;
+    // No maxHealthPerOwnerLevel: entity-model chunk 1b made a summon's HP fully
+    // derived from the OWNER's live level, and retired the key server-side — the
+    // loader now hard-fails on it, so it can never appear in this payload again.
     powerPerOwnerLevel: number;
 }
 

@@ -299,9 +299,6 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
         case 'spawn': {
             const spawn = effect.spawn;
             lines.push(`Summons ${spacedName(spawn.mobName)} for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
-            if (spawn.maxHealthPerOwnerLevel > 0) {
-                lines.push(`Summon HP: +${fmt(spawn.maxHealthPerOwnerLevel)} per player level`);
-            }
             if (spawn.powerPerOwnerLevel > 0) {
                 lines.push(`Summon power: +${pct(spawn.powerPerOwnerLevel)} per player level`);
             }

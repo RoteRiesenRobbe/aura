@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 // fakeMobRegistry resolves only the names it was given, so an unknown spawn
@@ -80,46 +79,6 @@ func (r *fakePropRegistry) Props() []*PropDefinition {
 	return out
 }
 
-// fakeSkillRegistry resolves only the skill names it was given, so an unknown
-// NPC teaching skill surfaces as a load error. IDs are assigned in argument
-// order starting at 1 (values are irrelevant to these tests).
-type fakeSkillRegistry struct {
-	byName map[string]*skills.SkillDefinition
-}
-
-func newFakeSkillRegistry(names ...string) *fakeSkillRegistry {
-	r := &fakeSkillRegistry{byName: map[string]*skills.SkillDefinition{}}
-	for i, n := range names {
-		r.byName[n] = &skills.SkillDefinition{ID: skills.SkillID(i + 1), Name: n}
-	}
-	return r
-}
-
-func (r *fakeSkillRegistry) Get(id skills.SkillID) (*skills.SkillDefinition, error) {
-	for _, d := range r.byName {
-		if d.ID == id {
-			return d, nil
-		}
-	}
-	return nil, fmt.Errorf("skill ID %d not found", id)
-}
-
-func (r *fakeSkillRegistry) GetByName(name string) (*skills.SkillDefinition, error) {
-	d, ok := r.byName[name]
-	if !ok {
-		return nil, fmt.Errorf("skill %q not found", name)
-	}
-	return d, nil
-}
-
-func (r *fakeSkillRegistry) All() []*skills.SkillDefinition {
-	out := make([]*skills.SkillDefinition, 0, len(r.byName))
-	for _, d := range r.byName {
-		out = append(out, d)
-	}
-	return out
-}
-
 func mapFS(json string) fstest.MapFS {
 	return fstest.MapFS{"zone.json": {Data: []byte(json)}}
 }
@@ -138,7 +97,7 @@ func TestZone_LoadsValid(t *testing.T) {
 		]
 	}`
 
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry("Rock"), newFakeSkillRegistry())
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry("Rock"))
 	require.NoError(t, err)
 
 	assert.Equal(t, "Scaffold", z.Name)
@@ -161,7 +120,7 @@ func TestZone_LoadsValid(t *testing.T) {
 func TestZone_LoadsEmptyPropsAndSpawns(t *testing.T) {
 	const doc = `{ "name": "Empty", "bounds": { "width": 60, "height": 40 } }`
 
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	assert.Empty(t, z.Props)
 	assert.Empty(t, z.Spawns)
@@ -174,7 +133,7 @@ func TestZone_ParsesCampfires(t *testing.T) {
 		"campfires": [ { "x": 3, "y": -4.5, "startingSpawn": true }, { "x": 0, "y": 0 } ]
 	}`
 
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	require.Len(t, z.Campfires, 2)
 	assert.EqualValues(t, 3, z.Campfires[0].X)
@@ -192,7 +151,7 @@ func TestZone_RejectsCampfiresWithNoStartingSpawn(t *testing.T) {
 		"campfires": [ { "x": 3, "y": -4.5 }, { "x": 0, "y": 0 } ]
 	}`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "startingSpawn")
 }
@@ -202,20 +161,20 @@ func TestZone_RejectsCampfiresWithNoStartingSpawn(t *testing.T) {
 func TestZone_AllowsNoCampfires(t *testing.T) {
 	const doc = `{ "name": "X", "bounds": { "width": 60, "height": 40 } }`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 }
 
 // --- legacy tag (step-7 A.5) ---
 
-// legacyZoneFixtures: mob "Mammoth" and skill "ReviveOld" are legacy-tagged,
-// "Wolf"/"FirstAid" are live.
-func legacyZoneFixtures() (*fakeMobRegistry, *fakeSkillRegistry) {
+// legacyZoneFixtures: mob "Mammoth" is legacy-tagged, "Wolf" is live. Spawn
+// mobs are the zone's only content reference since the NPC merge (chunk 3a), so
+// there is no skill side to this fixture any more — a legacy TAUGHT skill now
+// surfaces through the mob definition that teaches it, in items/mobs.
+func legacyZoneFixtures() *fakeMobRegistry {
 	mr := newFakeMobRegistry("Mammoth", "Wolf")
 	mr.byName["Mammoth"].Legacy = true
-	sr := newFakeSkillRegistry("ReviveOld", "FirstAid")
-	sr.byName["ReviveOld"].Legacy = true
-	return mr, sr
+	return mr
 }
 
 func TestZone_CollectsLegacyRefs(t *testing.T) {
@@ -231,8 +190,8 @@ func TestZone_CollectsLegacyRefs(t *testing.T) {
 		]
 	}`
 
-	mr, sr := legacyZoneFixtures()
-	z, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry(), sr)
+	mr := legacyZoneFixtures()
+	z, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry())
 	require.NoError(t, err)
 	// Spawn mobs are the zone's only content reference since the NPC merge —
 	// a legacy skill now surfaces through the MOB definition that teaches it
@@ -249,8 +208,8 @@ func TestZone_LegacyZoneMayReferenceLegacyContent(t *testing.T) {
 		"spawns": [ { "mob": "Mammoth", "x": 1, "y": 1 } ]
 	}`
 
-	mr, sr := legacyZoneFixtures()
-	z, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry(), sr)
+	mr := legacyZoneFixtures()
+	z, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry())
 	require.NoError(t, err)
 	assert.True(t, z.Legacy)
 	assert.Empty(t, z.LegacyRefs, "legacy referencing legacy is the expected shape")
@@ -263,8 +222,8 @@ func TestZone_LiveRefsCollectNothing(t *testing.T) {
 		"spawns": [ { "mob": "Wolf", "x": 3, "y": 3 } ]
 	}`
 
-	mr, sr := legacyZoneFixtures()
-	z, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry(), sr)
+	mr := legacyZoneFixtures()
+	z, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry())
 	require.NoError(t, err)
 	assert.False(t, z.Legacy)
 	assert.Empty(t, z.LegacyRefs)
@@ -277,7 +236,7 @@ func TestZone_RejectsUnknownCampfireKey(t *testing.T) {
 		"campfires": [ { "x": 3, "y": -4.5, "radius": 2 } ]
 	}`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "radius")
 }
@@ -289,7 +248,7 @@ func TestZone_ParsesDarkAreas(t *testing.T) {
 		"darkAreas": [ { "x": 3, "y": -4.5, "radius": 6 } ]
 	}`
 
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	require.Len(t, z.DarkAreas, 1)
 	assert.EqualValues(t, 3, z.DarkAreas[0].X)
@@ -305,7 +264,7 @@ func TestZone_RejectsNonPositiveDarkAreaRadius(t *testing.T) {
 			"darkAreas": [ { "x": 3, "y": -4.5, "radius": ` + radius + ` } ]
 		}`
 
-		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 		require.Error(t, err, "radius %s must be rejected", radius)
 		assert.Contains(t, err.Error(), "radius")
 	}
@@ -314,7 +273,7 @@ func TestZone_RejectsNonPositiveDarkAreaRadius(t *testing.T) {
 func TestZone_RejectsUnknownKey(t *testing.T) {
 	const doc = `{ "name": "X", "bounds": { "width": 60, "height": 40 }, "radius": 20 }`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "radius")
 }
@@ -325,7 +284,7 @@ func TestZone_RejectsNonPositiveBounds(t *testing.T) {
 		`{ "name": "X", "bounds": { "width": 60, "height": -1 } }`,
 		`{ "name": "X" }`,
 	} {
-		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "bounds")
 	}
@@ -334,7 +293,7 @@ func TestZone_RejectsNonPositiveBounds(t *testing.T) {
 func TestZone_RejectsMissingName(t *testing.T) {
 	const doc = `{ "bounds": { "width": 60, "height": 40 } }`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "name")
 }
@@ -345,7 +304,7 @@ func TestZone_RejectsUnknownSpawnMob(t *testing.T) {
 		"spawns": [ { "mob": "Nonexistent", "x": 0, "y": 0 } ]
 	}`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry("Rock"), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry("Rock"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Nonexistent")
 }
@@ -356,7 +315,7 @@ func TestZone_RejectsUnknownPropType(t *testing.T) {
 		"props": [ { "type": "Nonexistent", "x": 0, "y": 0 } ]
 	}`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry("Rock"), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry("Rock"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Nonexistent")
 }
@@ -374,7 +333,7 @@ func TestZone_ParsesWanderAndWaypoints(t *testing.T) {
 		]
 	}`
 
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo", "SaberToothCat"), newFakePropRegistry(), newFakeSkillRegistry())
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo", "SaberToothCat"), newFakePropRegistry())
 	require.NoError(t, err)
 	require.Len(t, z.Spawns, 2)
 	require.NotNil(t, z.Spawns[0].WanderRadius)
@@ -397,7 +356,7 @@ func TestZone_ParsesIdleOverridesAndPatrolMode(t *testing.T) {
 		]
 	}`
 
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
 	require.NoError(t, err)
 	// Explicit 0 = stationary override despite a wandering species (the
 	// "bridge guard" case) — distinct from absent.
@@ -413,7 +372,7 @@ func TestZone_RejectsInvalidIdleSpeedFactor(t *testing.T) {
 		doc := `{ "name": "X", "bounds": { "width": 60, "height": 40 },
 			"spawns": [ { "mob": "Dodo", "x": 0, "y": 0, "idleSpeedFactor": ` + factor + ` } ] }`
 
-		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
 		require.Error(t, err, "idleSpeedFactor %s must be rejected", factor)
 		assert.Contains(t, err.Error(), "idleSpeedFactor")
 	}
@@ -430,7 +389,7 @@ func TestZone_RejectsBadPatrolMode(t *testing.T) {
 		doc := `{ "name": "X", "bounds": { "width": 60, "height": 40 },
 			"spawns": [ ` + spawn + ` ] }`
 
-		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
+		_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "patrolMode")
 	}
@@ -442,7 +401,7 @@ func TestZone_RejectsNegativeWanderRadius(t *testing.T) {
 		"spawns": [ { "mob": "Dodo", "x": 0, "y": 0, "wanderRadius": -1 } ]
 	}`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "wanderRadius")
 }
@@ -454,7 +413,7 @@ func TestZone_RejectsWanderAndWaypointsTogether(t *testing.T) {
 		              "waypoints": [ { "x": 1, "y": 1 }, { "x": 2, "y": 2 } ] } ]
 	}`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "wanderRadius")
 	assert.Contains(t, err.Error(), "waypoints")
@@ -467,7 +426,7 @@ func TestZone_RejectsSingleWaypoint(t *testing.T) {
 		              "waypoints": [ { "x": 1, "y": 1 } ] } ]
 	}`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "waypoints")
 }
@@ -484,7 +443,7 @@ func TestZone_RejectsPatrolOnStationaryMob(t *testing.T) {
 		mr := newFakeMobRegistry("Totem")
 		mr.byName["Totem"].Factors.Speed = 0
 
-		_, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry(), newFakeSkillRegistry())
+		_, err := LoadZoneFS(mapFS(doc), "", mr, newFakePropRegistry())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "stationary")
 	}
@@ -497,7 +456,7 @@ func TestZone_RejectsUnknownWaypointKey(t *testing.T) {
 		              "waypoints": [ { "x": 1, "y": 1, "z": 3 }, { "x": 2, "y": 2 } ] } ]
 	}`
 
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry("Dodo"), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "z")
 }
@@ -511,7 +470,7 @@ func twoZoneFS() fstest.MapFS {
 }
 
 func TestZone_SelectsByName(t *testing.T) {
-	z, err := LoadZoneFS(twoZoneFS(), "b", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	z, err := LoadZoneFS(twoZoneFS(), "b", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	assert.Equal(t, "b", z.ID)
 	assert.Equal(t, "Beta", z.Name)
@@ -519,7 +478,7 @@ func TestZone_SelectsByName(t *testing.T) {
 }
 
 func TestZone_RejectsUnknownName(t *testing.T) {
-	_, err := LoadZoneFS(twoZoneFS(), "c", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(twoZoneFS(), "c", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 	// the error lists the available zones so the mistake is obvious
@@ -530,7 +489,7 @@ func TestZone_RejectsUnknownName(t *testing.T) {
 // With multiple zones and no selection, the loader refuses and asks for -zone
 // rather than guessing.
 func TestZone_RequiresNameWhenMultiple(t *testing.T) {
-	_, err := LoadZoneFS(twoZoneFS(), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(twoZoneFS(), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "multiple zone")
 }
@@ -542,13 +501,13 @@ func TestZone_IgnoresUnselectedMalformedZone(t *testing.T) {
 		"good.json":  {Data: []byte(`{ "name": "Good", "bounds": { "width": 60, "height": 40 } }`)},
 		"broken.json": {Data: []byte(`{ this is not json`)},
 	}
-	z, err := LoadZoneFS(fsys, "good", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	z, err := LoadZoneFS(fsys, "good", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	assert.Equal(t, "good", z.ID)
 }
 
 func TestZone_RejectsNoZone(t *testing.T) {
-	_, err := LoadZoneFS(fstest.MapFS{}, "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(fstest.MapFS{}, "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no zone file")
 }
@@ -562,7 +521,7 @@ func TestZone_ParsesTerrain(t *testing.T) {
 			{ "type": "Sand", "x": 1.5, "y": -2.5, "size": 3, "rotation": 0.7, "flipped": "vertical" }
 		]
 	}`
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	require.Len(t, z.Terrain, 1)
 	assert.Equal(t, "Sand", z.Terrain[0].Type)
@@ -575,7 +534,7 @@ func TestZone_RejectsUnknownTerrainKey(t *testing.T) {
 		"name": "T", "bounds": { "width": 60, "height": 40 },
 		"terrain": [ { "type": "Sand", "x": 0, "y": 0, "size": 1, "flip": "vertical" } ]
 	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "flip")
 }
@@ -588,7 +547,7 @@ func TestZone_ParsesAnchorsAndLooksThemUp(t *testing.T) {
 			{ "name": "wave-mouth", "x": 22, "y": -8 }
 		]
 	}`
-	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.NoError(t, err)
 	require.Len(t, z.Anchors, 2)
 
@@ -609,7 +568,7 @@ func TestZone_RejectsDuplicateAnchorName(t *testing.T) {
 			{ "name": "spot", "x": 3, "y": 4 }
 		]
 	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "duplicate")
 }
@@ -619,7 +578,7 @@ func TestZone_RejectsEmptyAnchorName(t *testing.T) {
 		"name": "A", "bounds": { "width": 60, "height": 40 },
 		"anchors": [ { "name": "  ", "x": 1, "y": 2 } ]
 	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "name")
 }
@@ -629,7 +588,7 @@ func TestZone_RejectsOutOfBoundsAnchor(t *testing.T) {
 		"name": "A", "bounds": { "width": 60, "height": 40 },
 		"anchors": [ { "name": "way-out", "x": 31, "y": 0 } ]
 	}`
-	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry(), newFakeSkillRegistry())
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "bounds")
 }

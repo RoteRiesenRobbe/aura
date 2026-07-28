@@ -506,11 +506,17 @@ type Mob struct {
 	// player — nil for world mobs; the ref may go stale on owner death
 	// (accepted, §8.4/2). ttlTicks counts down in Update (0 = no TTL);
 	// expiry reports death through the normal removal path, granting no kill
-	// rewards. summonPower is the owner-level output multiplier (see
-	// model.Owned); 0 means "unset" and reads as neutral 1.
-	owner       model.PlayerEntity
-	ttlTicks    int
-	summonPower float32
+	// rewards.
+	//
+	// summonPowerPerLevel is the summon skill's authored powerPerOwnerLevel
+	// RATE, not the computed multiplier — SummonPower() evaluates it against the
+	// owner's CURRENT level so a companion's output tracks its owner exactly as
+	// its pool already does (entity-model R5; before this it was stamped once at
+	// spawn and a summon that outlived a ding stayed behind forever). 0 means
+	// "unset" and reads as neutral 1.
+	owner               model.PlayerEntity
+	ttlTicks            int
+	summonPowerPerLevel float32
 
 	// damageTaken accumulates health lost this tick (VitalSign units) for the
 	// floating damage number (roadmap item 11); reset every tick.
@@ -651,10 +657,17 @@ func (m *Mob) Faction() model.Faction {
 	return m.faction
 }
 
-// SetFaction flips the mob's allegiance at runtime — first caller: the spawn
-// effect aligning a summon with its caster. A flipped mob's aggro set becomes
-// hostile-to-all-others (findAggroTarget's equality skip still protects the
-// new own faction); the sensor mask follows.
+// SetFaction flips the mob's allegiance at runtime. TWO callers today: the
+// spawn effect aligning a summon with its caster (sys/skills.go), and campfire
+// placement (cmd/aurad).
+//
+// ⚑ LANDMINE (plan-entity-model.md L2): this DISCARDS the authored aggro mask
+// and replaces it with "hostile to everything that is not my new faction"
+// (findAggroTarget's equality skip still protects the new own faction). That is
+// inert for both current callers, because neither target authors a curated
+// hostileTo set — but it is silent, and any charm / side-switch / quest-turns-
+// hostile feature routes through here. The symptom would be a flipped friendly
+// attacking the townsfolk, with nothing logged and nothing failing.
 func (m *Mob) SetFaction(f model.Faction) {
 	m.faction = f
 	m.aggroMask = ^f.Bit()
@@ -733,19 +746,36 @@ func (m *Mob) SetTTLTicks(t int) {
 	m.ttlTicks = t
 }
 
-// SetSummonPower sets the owner-level output multiplier (spawn site only).
-func (m *Mob) SetSummonPower(p float32) {
-	m.summonPower = p
+// SetSummonPowerPerLevel sets the summon skill's authored powerPerOwnerLevel
+// rate (spawn site only). Deliberately the RATE and not the product: the product
+// would freeze the owner's level at spawn.
+func (m *Mob) SetSummonPowerPerLevel(perLevel float32) {
+	m.summonPowerPerLevel = perLevel
 }
 
-// SummonPower is the owner-level damage/heal multiplier (model.Owned). The
-// zero value reads as neutral so directly-constructed mobs (tests, world
+// SummonPower is the owner-level damage/heal multiplier (model.Owned),
+// evaluated LIVE at the owner's current level — Level() already returns the
+// owner's level for an owned mob, so this is the same read the pool and the
+// curve make.
+//
+// ⚑ This was the last half-frozen term in the summon chain (entity-model R5).
+// Chunk 1b made the pool and f(L) track the owner live but left this one stamped
+// at spawn, so a companion summoned at 9 that survived the ding to 10 stayed
+// ~5 % under one summoned at 10, permanently, against PO ruling ② ("levels
+// dynamic for every actor"). A summon SPAWNED at a given level is unaffected —
+// which is why no battery could see the difference.
+//
+// The zero value reads as neutral so directly-constructed mobs (tests, world
 // spawns) deal authored damage.
 func (m *Mob) SummonPower() float32 {
-	if m.summonPower <= 0 {
+	// The owner check is not redundant with the rate check: without an owner
+	// Level() falls back to the mob's own authored curveLevel, so a rate left on
+	// an unowned mob would silently scale off the wrong level. Owner-less means
+	// neutral, full stop.
+	if m.owner == nil || m.summonPowerPerLevel <= 0 {
 		return 1
 	}
-	return m.summonPower
+	return skills.Scaled(float32(1), m.summonPowerPerLevel, m.Level())
 }
 
 // Level is where this mob stands on f(L) — the mob-side counterpart of the

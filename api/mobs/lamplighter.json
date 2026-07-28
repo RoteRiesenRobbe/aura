@@ -30,7 +30,6 @@
         ],
         "options": [
           {
-            "blockedLine": "Rest a moment, wanderer.",
             "grants": [
               {
                 "kind": "teach_skill",

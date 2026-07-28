@@ -70,7 +70,7 @@ func main() {
 	if zoneName == "" {
 		zoneName = config.Game.Zone
 	}
-	zone := loadZone(content.zones, zoneName, mobsRegistry, propsRegistry, skillsRegistry)
+	zone := loadZone(content.zones, zoneName, mobsRegistry, propsRegistry)
 
 	tokens := loadOrCreateTokens("./tokens.list")
 	slog.Info("👮‍♀️ read tokens", slog.Int("token_count", len(tokens)))

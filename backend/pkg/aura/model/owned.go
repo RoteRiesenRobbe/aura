@@ -19,7 +19,9 @@ type Owned interface {
 
 // PowerScaled is implemented by casters whose HP-side skill output rides the
 // f(character level) inflation curve (GDD §5, C0): players return
-// f(character level), mobs their load-time tier+baseline scale f(curveLevel).
+// f(character level), mobs f(Level()) — evaluated LIVE, not frozen at load
+// (entity-model chunk 1b). For a summon that means the OWNER's current level, so
+// a companion's scale tracks its owner as they ding.
 // The SkillSystem multiplies damage / heal / dot / hot / shield / self-heal /
 // self-cost HP values by it — never radius, tick rate, target count, or the
 // relative multiplier vocabulary (crit/execute/berserker/variance/lifesteal).

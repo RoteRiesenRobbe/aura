@@ -22,7 +22,7 @@ func catalogTestRegistry(t *testing.T) Registry {
 		  "type": "MOB",
 		  "tier": "elite",
 		  "curveLevel": 10,
-		  "baseMaxHealth": 80,
+		  "factors": {"baseMaxHealth": 80},
 		  "body": {"radius": 0.35, "aggroRadius": 4}
 		}`)},
 		"wolf.json": {Data: []byte(`{
@@ -30,7 +30,7 @@ func catalogTestRegistry(t *testing.T) Registry {
 		  "name": "Wolf",
 		  "type": "MOB",
 		  "curveLevel": 2,
-		  "baseMaxHealth": 20,
+		  "factors": {"baseMaxHealth": 20},
 		  "body": {"radius": 0.3, "aggroRadius": 3}
 		}`)},
 		"orc-warlord.json": {Data: []byte(`{
@@ -39,7 +39,7 @@ func catalogTestRegistry(t *testing.T) Registry {
 		  "type": "MOB",
 		  "tier": "boss",
 		  "curveLevel": 20,
-		  "baseMaxHealth": 400,
+		  "factors": {"baseMaxHealth": 400},
 		  "body": {"radius": 1.2, "aggroRadius": 8}
 		}`)},
 	})

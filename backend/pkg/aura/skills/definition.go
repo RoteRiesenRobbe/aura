@@ -157,7 +157,7 @@ const DamageTagPhysical = "physical"
 
 // Supported stat_multiplier stat names. A stat listed here must actually be
 // applied somewhere (movementSpeed: core/input.go; maxHealth:
-// player.MaxHealthFactor) — accepting an unapplied stat would be a silent
+// player.PoolFactor) — accepting an unapplied stat would be a silent
 // no-op, which is why unknown names hard-fail at load.
 const (
 	StatMovementSpeed   = "movementSpeed"
@@ -584,11 +584,10 @@ func (p *SpawnParams) TTLAt(level int) int {
 	return ttl
 }
 
-// PowerAt is the damage/heal output multiplier granted by the OWNER's player
-// level (1 = neutral).
-func (p *SpawnParams) PowerAt(ownerLevel int) float32 {
-	return Scaled(1, p.PowerPerOwnerLevel, ownerLevel)
-}
+// NOTE: there is deliberately no PowerAt(ownerLevel) helper here. It existed
+// until R5 and computing the multiplier at the spawn site is exactly what froze
+// a summon's output at its spawn level — the spawn site now hands over the RATE
+// and Mob.SummonPower derives the multiplier live from the owner.
 
 // StatParams is the stat_multiplier payload: an additive bonus to the named
 // stat (see validStats — every stat needs a hand-placed application site).

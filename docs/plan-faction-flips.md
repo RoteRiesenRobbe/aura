@@ -44,8 +44,10 @@ faction registry.
 
 ### And two callers, not one
 
-The `mob.go:654` comment (*"first caller"*) is stale — the code audit for
-`plan-entity-model.md` already caught this, and it still reads wrong:
+The `mob.go:654` comment (*"first caller"*) **was** stale — the code audit for
+`plan-entity-model.md` caught it twice. ✅ **Fixed in chunk R1 (2026-07-28):** the
+comment now names both callers and carries the L2 warning inline, so the trap is
+visible at the function rather than only in this plan. The two callers:
 
 - `sys/skills.go:1519` — `spawnSummon`, aligning a summon with its caster
 - `cmd/aurad/aurad.go:157` — campfire placement at zone boot

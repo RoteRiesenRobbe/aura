@@ -39,10 +39,15 @@ type skillEntity interface {
 // deliberate limitation: mob support behaviors ("move to allied mobs with a
 // mob-only heal aura", roadmap.md item 7) will need heal_aura target flags
 // plus a vitals abstraction here.
+// ⚑ PoolFactor is the FULL pool multiplier (PowerScale × passive), NOT
+// DerivedStats.MaxHealthFactor(), which is the passive alone. When *Mob is given
+// this method, returning the passive term drops the whole inflation curve and
+// puts every mob self-heal on a level-1 baseline — it compiles and satisfies the
+// interface, and asserting on Derived would not catch it.
 type healCaster interface {
 	VitalSigns() *model.PlayerVitalSigns
 	StatusEffects() *model.StatusEffects
-	MaxHealthFactor() float32
+	PoolFactor() float32
 	MaxHealth() vitals.VitalSign
 	IsGod() bool
 }
@@ -1528,7 +1533,11 @@ func (s *SkillSystem) spawnSummon(e skillEntity, es *skills.EquippedSkill, p *sk
 		// needed because the pool only widens once the owner is bound.
 		m.SetOwner(owner)
 		m.RestoreToFullHealth()
-		m.SetSummonPower(p.PowerAt(int(owner.Progression().Level)))
+		// The RATE, not the product (R5): binding the owner is the output
+		// scaling exactly as it is the body scaling two lines up, so the
+		// multiplier is evaluated against the owner's current level rather than
+		// frozen at this instant.
+		m.SetSummonPowerPerLevel(p.PowerPerOwnerLevel)
 	}
 	m.SetPosition(s.summonPosition(e, m.Radius()))
 	s.game.AddEntity(m)

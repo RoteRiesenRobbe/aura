@@ -29,7 +29,6 @@
         ],
         "options": [
           {
-            "blockedLine": "There's always money in farming.",
             "grants": [
               {
                 "kind": "teach_skill",

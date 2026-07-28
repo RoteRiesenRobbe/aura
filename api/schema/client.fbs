@@ -81,10 +81,22 @@ table Interact {
     close:bool = false;
 }
 
-// APPEND-ONLY. Union members are positional: their wire values are the
-// declaration order, so reordering or removing one silently remaps every
-// message type (plan-entity-model.md L16). Interact is value 8.
-union ClientMessageBody { Input, Join, Cheat, ChatMessage, Equip, SpendSkillPoint, Respawn, Interact }
+// Values are PERMANENTLY PINNED (plan-entity-model.md L16), the same discipline
+// EntityType/StatusEffect/EntityMessageKind carry in server.fbs. Union members
+// would otherwise take their wire value from declaration order, so reordering or
+// removing one silently remaps every message type — with no compile error on
+// either side, because generated Go and TS agree with each other and not with a
+// deployed peer. Add new members at the next free value; never reuse a gap.
+union ClientMessageBody {
+  Input = 1,
+  Join = 2,
+  Cheat = 3,
+  ChatMessage = 4,
+  Equip = 5,
+  SpendSkillPoint = 6,
+  Respawn = 7,
+  Interact = 8
+}
 table ClientMessage { body:ClientMessageBody; }
 
 root_type ClientMessage;

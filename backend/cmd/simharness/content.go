@@ -22,7 +22,8 @@ import (
 // mobPreset is one entry of the explorer's mob dropdown: an authored mob's
 // name plus its numbers mapped onto the sim's MobSpec — a prefill
 // convenience, not a fidelity promise (the sim models one damage or dot
-// aura; a mob whose loadout has neither maps to a harmless turret).
+// aura; a mob whose loadout has neither maps to a harmless no-op — it keeps its
+// authored role, which since chunk 2 is stated rather than implied by speed 0).
 type mobPreset struct {
 	Name string      `json:"name"`
 	Spec sim.MobSpec `json:"spec"`

@@ -209,9 +209,6 @@ Preloading.registerGameObjectSVG(House, houseCfg.file, houseCfg.maxSize);
 // The NPC sprites that used to live here moved to Mobs.ts with the actor
 // merge (plan-entity-model.md chunk 3a) — NPCs ride the Mob wire path now.
 
-// The "missing art" marker an NPC renders as when its zone entry names no
-// entityType (server npc.PlaceholderSprite → EntityType.NpcPlaceholder). Kept
-// deliberately un-gamelike so an unconfigured NPC cannot pass for content.
 // The square rampart block prop (content pass C4): City Gates flanks + the
 // blocked roads. Square body, so the plain square SVG scaling is already
 // correct — no aspect correction needed (unlike House).

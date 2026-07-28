@@ -42,6 +42,15 @@ var roles = map[string]Role{
 	string(RoleFollower):  RoleFollower,
 }
 
+// RoleNames renders the authorable roles for an error message, sorted. Every
+// "must be one of ..." string reads from here rather than spelling the list out,
+// so adding a role cannot leave a message naming only the old ones — which had
+// already happened: the simharness web explorer offered creature/structure only
+// and made follower unselectable.
+func RoleNames() string {
+	return names(roles)
+}
+
 // ParseRole resolves an authored role name. Empty means absent, which is
 // creature — the default has to be applied by every caller, including the ones
 // building definitions directly (tests, the sim harness), or a zero-value

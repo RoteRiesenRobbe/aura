@@ -268,26 +268,32 @@ func (p *player) StatusEffects() *model.StatusEffects {
 	return &p.statusEffects
 }
 
-func (p *player) maxHealthFactor() float32 {
+func (p *player) poolFactor() float32 {
 	// f(level) × (1 + passive bonus), C0: the curve carries inflation, the
 	// passive stays relative at every level (Philosophy A, GDD §5).
 	// Leveling raises maxHealth; current HP stays and regenerates up.
 	// The passive half is DerivedStats' shared formula (chunk 1a) — the mob
 	// side of MaxHealth() calls the same method.
+	//
+	// ⚑ Deliberately NOT called maxHealthFactor: DerivedStats.MaxHealthFactor()
+	// is the passive term ALONE, and two same-named methods meaning different
+	// things is how the curve gets dropped. Mob.MaxHealth() writes this same
+	// product inline; whoever gives *Mob a healCaster-shaped method (sys/skills.go
+	// documents that as coming) must return the PRODUCT, not the passive.
 	return p.PowerScale() * p.skills.Derived.MaxHealthFactor()
 }
 
 // PowerScale is f(character level) — the global HP-value inflation multiplier
 // (model.PowerScaled, GDD §5). The SkillSystem multiplies the player's
-// HP-side skill output by it; maxHealthFactor rides the same curve.
+// HP-side skill output by it; poolFactor rides the same curve.
 func (p *player) PowerScale() float32 {
 	return float32(p.config.LevelCurve.F(int(p.progression.Level)))
 }
 
 // MaxHealth is the player's absolute HP pool (item 11 Phase 1):
-// round(baseHealth × maxHealthFactor). Serialized as the max_health wire field.
+// round(baseHealth × poolFactor). Serialized as the max_health wire field.
 func (p *player) MaxHealth() vitals.VitalSign {
-	return vitals.VitalSign(vitals.HP(float32(p.config.BaseHealth) * p.maxHealthFactor()))
+	return vitals.VitalSign(vitals.HP(float32(p.config.BaseHealth) * p.poolFactor()))
 }
 
 // HealthRatio is the current/max health fraction (0..1), read by the
@@ -301,7 +307,7 @@ func (p *player) HealthRatio() float32 {
 }
 
 // takeDamage subtracts absolute HP (item 11 Phase 1). Damage no longer scales
-// by maxHealthFactor — a hit removes flat HP regardless of the player's pool.
+// by poolFactor — a hit removes flat HP regardless of the player's pool.
 // The hit's damage tags are carried for tag resistances (Phase 2); players
 // have no base resistances, transient resist-aura buffs land in Step 3.
 // Returns the "damage dealt" that feeds lifesteal and threat: shield-absorbed
@@ -911,8 +917,8 @@ func (p *player) AuraCollider() *phy.Circle {
 	return p.aura
 }
 
-func (p *player) MaxHealthFactor() float32 {
-	return p.maxHealthFactor()
+func (p *player) PoolFactor() float32 {
+	return p.poolFactor()
 }
 
 func (p *player) OwnedEntities() model.BasicEntities {

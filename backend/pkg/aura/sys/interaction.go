@@ -148,6 +148,10 @@ func (s *InteractionSystem) sense() {
 		id := a.Basic().ID()
 		prev := s.seen[id]
 		current := map[uint64]bool{}
+		// An actor that has been pulled into a fight stops offering to talk, to
+		// every player at once (D21) — hoisted out of the loop because it does
+		// not vary per player.
+		actorCanTalk := !a.InCombat()
 		for c := range a.Sensor().Collisions() {
 			p, ok := c.Shape().UserData.(model.PlayerEntity)
 			if !ok {
@@ -160,7 +164,23 @@ func (s *InteractionSystem) sense() {
 			// grant path below this is NOT edge-gated — it is live state, so a
 			// player standing still keeps the badge, and a player who logs in
 			// already in range gets one.
-			p.NoteInteractable(id, p.Position().DistanceToSquared(a.Position()))
+			//
+			// ⚑ Combat is part of the OFFER, not just of the teardown. D21 says
+			// combat ends a conversation; if that rule lived only in
+			// refreshConversations, the sensor would keep stamping through the
+			// whole recent-combat window and the client would keep drawing a lit
+			// badge over an actor that refuses to talk — a prompt that does
+			// nothing, which is exactly what handleInteracts' contract below says
+			// must never happen. Withdrawing the offer instead makes the badge go
+			// dark, makes `E` a legitimate no-op, and keeps range/combat/session
+			// agreeing on ONE number.
+			//
+			// Ambient lines below are deliberately NOT gated: they are
+			// independent of the conversation (D18), and a town crier calling out
+			// as you sprint past mid-fight is the behaviour, not a bug.
+			if actorCanTalk && !p.InCombat() {
+				p.NoteInteractable(id, p.Position().DistanceToSquared(a.Position()))
+			}
 
 			if prev[pid] {
 				continue // still in range since last tick — not a rising edge
@@ -271,6 +291,12 @@ func (s *InteractionSystem) refreshConversations() {
 			// ⚑ D21, and the rule that makes a non-blocking panel safe: a player
 			// cannot be left reading dialogue while something eats them, and an
 			// actor that has been pulled into a fight stops talking.
+			//
+			// Belt and braces since the R2 fix: sense() already withdraws the
+			// OFFER in combat, so the range comparison above catches this too.
+			// Kept explicit because this is a safety rule about session state, not
+			// about what the badge draws — if the offer logic ever changes, the
+			// panel must still close.
 			p.InCombat(), a.InCombat():
 			p.SetConversingWith(0)
 			continue

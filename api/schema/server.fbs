@@ -75,9 +75,11 @@ enum EntityType : ushort {
   FireElemental = 71,
   GreaterFireElemental = 72,
   FireTotem = 73,
-  // The sprite an NPC renders as when its zone entry names no entityType
-  // (npc.PlaceholderSprite). Deliberately not a real-looking character: a
-  // red "?" on a purple disc, so missing art reads as missing art.
+  // The "missing art" sprite, selected by authoring "entityType":
+  // "NpcPlaceholder" on a mob definition. (Before the actor merge it was a
+  // server-side fallback for a zone NPC entry naming no entityType; zone
+  // entries cannot name NPCs any more.) Deliberately not a real-looking
+  // character: a red "?" on a purple disc, so missing art reads as missing art.
   NpcPlaceholder = 74
 }
 
@@ -97,8 +99,13 @@ struct AABB {
   upper:Vec2f;
 }
 
-// Workaround to make vector of union possible
-union AnyEntity { Character, Mob, Resource }
+// Workaround to make vector of union possible.
+// Values PERMANENTLY PINNED — see ClientMessageBody in client.fbs (L16).
+union AnyEntity {
+  Character = 1,
+  Mob = 2,
+  Resource = 3
+}
 table Entity { e:AnyEntity; }
 
 table Resource {
@@ -323,7 +330,11 @@ table Spectator {
   pos:Vec2f;
 }
 
-union Player { Character, Spectator }
+// Values PERMANENTLY PINNED — see ClientMessageBody in client.fbs (L16).
+union Player {
+  Character = 1,
+  Spectator = 2
+}
 
 // --- the conversation tree (plan-entity-model.md chunk 3b-ii) ---
 //
@@ -487,10 +498,17 @@ table Pong {
     // nothing to send with it, purely for signaling
 }
 
-// APPEND-ONLY, same rule as ClientMessageBody: members are positional and
-// unpinned (plan-entity-model.md L16). 3b-i deliberately adds nothing here —
-// the in-range signal rides GameState instead.
-union ServerMessageBody { Welcome, GameState, Accept, Obituary, EntityMessage, Pong }
+// Values PERMANENTLY PINNED, same rule as ClientMessageBody (L16). 3b-i and
+// 3b-ii both deliberately added nothing here — the in-range signal and the whole
+// conversation tree ride GameState instead.
+union ServerMessageBody {
+  Welcome = 1,
+  GameState = 2,
+  Accept = 3,
+  Obituary = 4,
+  EntityMessage = 5,
+  Pong = 6
+}
 table ServerMessage { body:ServerMessageBody; }
 
 root_type ServerMessage;

@@ -1801,6 +1801,15 @@ pin it instead of assuming it. It also means the 50-mob preset roster is
 (the 10 structures to 0, plus the two follower dummies to an authored 3.5 under
 D1) and nothing else.
 
+> ⚑ **Correction (R1 review, 2026-07-28): the mechanism is now stale.** Support
+> reach is no longer `aggroRadius + targetRadius` at `support.go:109` — it reads
+> **`SenseRadius()`** (`mob.go:253-256`), i.e. `max(aggroRadius,
+> interaction.range)`, which is what makes an NPC's sensor sizing work. The
+> landmine's conclusion held (both structures now author no `aggroRadius` at all,
+> pinned by `role_content_test.go:62-71`), but note what is *not* covered:
+> **no test exercises Campfire/WarbannerTotem support reach by name** — the
+> guarantee is content-level only.
+
 **L11 — a passive faction's aggro sensor is BLIND, so "approach is aggro" needs
 one extra line.** `refreshSensorMask` (`mob.go:651`) derives the sensor mask
 from the *aggro* mask, and `aggroSensorMask(0)` returns `LayerNoneCollision`
@@ -1850,8 +1859,18 @@ playing, so it belongs in the in-game checklist, not just the diff. Free letters
 after the move: `T`, `G`, `X`, `C`, `V`, `Z`, `Space`. ⚑ Second half of the same
 landmine: putting interact on `Controls`' edge-triggered hotkey path inherits
 the dead-spectator guard (`Game.state !== PLAYING`) for free but **not**
-chat/console suppression — that lives in `KeyboardManager`, so "press `E` with
-the chat box open" is an explicit test case, not an assumption.
+chat/console suppression, so "press `E` with the chat box open" is an explicit
+test case, not an assumption.
+
+> ⚑ **Correction (R1 review, 2026-07-28): the pointer was wrong, the conclusion
+> holds.** This attributed chat/console suppression to `KeyboardManager`, which
+> contains none — `KeyboardManager` listens on `window`. What actually protects
+> the key is `stopPropagation()` on the input's own `keydown`
+> (`Chat.ts:28-31`, `Console.ts:66`), so typing "e" in chat genuinely cannot
+> reach `interactKey.isDown`. Verified in the range; still pinned by no test.
+> Related asymmetry found in the same pass: **Escape does not close the
+> conversation while the chat box has focus** (`Controls.handleFunctionKeys`
+> returns early at `Controls.ts:101` when chat is open).
 
 **L16 — `ServerMessageBody` is positional and unpinned too, not just
 `ClientMessageBody`.** `server.fbs:417`. §28 Chunk 3 pinned `EntityType` and
@@ -1863,6 +1882,22 @@ not a new union member — but 3b-ii's node payload will be tempted to add one.
 Ask first whether it can ride `GameState`. If a member is genuinely needed,
 **pin both unions' values explicitly in the same change** rather than adding one
 more positional entry.
+
+> ✅ **CLOSED (R1 review, 2026-07-28)** — but first, a correction: the status
+> banner recorded L16 as "unexercised for the second chunk running". That was
+> true of `ServerMessageBody` only. **3b-i DID extend `ClientMessageBody`**
+> (appending `Interact` as value 8) and did *not* pin either union — it added an
+> `APPEND-ONLY` comment instead, which is exactly what this landmine said was
+> not enough. 3b-ii then genuinely added nothing to either.
+>
+> All **four** unions are now pinned with explicit permanent values —
+> `ClientMessageBody`, `ServerMessageBody`, `AnyEntity`, `Player` — matching the
+> `EntityType`/`StatusEffect`/`EntityMessageKind` contract from §28 Chunk 3.
+> Verified no-op three ways: the repo's own `flatc_Linux_v24_3_25` emits the same
+> numbering for pinned union values, and regenerating **both** the Go and the TS
+> bindings after the change produced a **zero diff**. The window for doing this
+> for free is now closed permanently — every future member takes the next free
+> value, and a removal leaves a gap.
 
 **L17 — the interact sensor is one tick stale, and overlapping sensors need a
 tie-break.** `InteractionSystem` (priority 20) reads `Sensor().Collisions()`,
@@ -1949,11 +1984,23 @@ nothing. Strip the content in the same step as the Go change (§6b.17 step 2) an
 pin it with a raw-JSON content assertion — the loader cannot give you that one.
 
 **L23 — the hold flag is one tick stale by construction, and that is fine.**
-`InteractionSystem` and `MobSystem` share priority **20**, so within a tick their
-order is registration order, not design. An actor can therefore take one extra
-33 ms step after a conversation opens or ends. Build nothing on same-tick
-ordering here; the visible behaviour is "it stops", and one frame of drift is
-imperceptible. (The sensor is *already* a tick stale by design — L17.)
+`InteractionSystem` and `MobSystem` share priority **20**. An actor can therefore
+take one extra 33 ms step after a conversation opens or ends. Build nothing on
+same-tick ordering here; the visible behaviour is "it stops", and one frame of
+drift is imperceptible. (The sensor is *already* a tick stale by design — L17.)
+
+> ⚑ **Correction (R1 review, 2026-07-28): the stated mechanism was WRONG, and
+> the wrong version is more dangerous than the landmine.** This said equal
+> priorities resolve to *registration order*. They do not. `ecs.World.AddSystem`
+> calls **`sort.Sort`**, which is **not stable**, and re-runs it on **every**
+> `AddSystem` call (`ecs@v1.0.5/world.go:22`, `system.go:52-63`). Equal-priority
+> ordering is therefore an artefact of pdqsort's pivot choices at whatever system
+> count happens to exist — it can flip when *any* system is added or removed
+> anywhere in `core/game.go`, with no change to either system involved. The same
+> applies to the three-way `EquipSystem`/`PhysicsSystem`/`ChatSystem` tie at
+> priority 0. The benign conclusion stands; the guarantee does not. Anyone who
+> needs deterministic same-tick ordering must give the systems **distinct
+> priorities** rather than rely on this.
 
 **L24 — the reply the panel shows is optimistic.** `present()` ships each row's
 `reply` inside the tree so the NPC answers instantly on click (§6b.12), which
@@ -1982,6 +2029,73 @@ conversants and let the PO tune it in-game. ⚑ For the harness this compounds
 0.5 s bursts and stop on the badge, now against a moving target.
 
 ---
+
+## 8b. Latent traps found by the R1 code review (2026-07-28) — RECORDED, NOT BUILT
+
+A six-dimension review of the whole entity-model range (`cf9a10c7~1..HEAD`) ran
+after 3b-ii landed. The hygiene findings shipped as chunk **R1**; the following
+were deliberately **not** built (PO call: they arm nothing today). Every one of
+them arms the day quest-style content is authored — which decision 6 explicitly
+plans for — so this is the list to re-read before that content pass, not after.
+
+**N1 — `present()` and `applyGrant()` disagree on a hidden row.** `presentOptions`
+skips an option whose `next` names a node whose conditions currently fail
+(`sys/interaction.go:404`). `applyGrant` has **no equivalent check**: it validates
+node conditions, indices, grant kind, `HasDiscovered` and level, but never whether
+`opt.Next` resolves. So a row that is invisible in the panel is still grantable by
+a crafted or replayed `Interact` naming its authored indices. ⚑ `TestPresentAndApplyGrant_CannotDisagree` cannot catch this — it iterates only rows `present()`
+emitted, so it proves presented⇒accepted and never the converse, which is the
+direction L24 actually asked for. Latent: no shipped content authors `grants` and
+`next` on one option.
+
+**The same authored shape is ALSO broken client-side.** `ConversationModel.take()`
+sets `spokenReply` from the row, then clears it two lines later when it follows
+`next` (`ConversationModel.ts:156-166`). Correct for a navigation row; never
+considered for a row that both grants and navigates — the grant's authored `line`
+is silently swallowed and the destination node's lines show instead. Two
+independent defects in one shape, found by two reviewers who never spoke.
+
+**L12's content pin is a tautology.** `interaction_content_test.go:193` asserts
+`CollisionLayer & 2 == 0` on the **raw authored int**. An omitted field is `0`,
+which passes trivially — while `mob.go:150` then substitutes
+`LayerViewportCollision|LayerActionCollision`. So the 15th NPC whose author
+forgets `"collisionLayer": 97` is walk-through **and aura-targetable**: players
+damage it, it can die, boot is green and the suite is green. Fix shape: assert on
+`mob.NewMob(def, ...).Bodies()[0].Shape().Layer`, or add a loader guard the way
+`SenseRadius` has one at `definitions.go:496`.
+
+**Node array order silently selects the greeting.** `selectNode` returns the first
+node whose conditions pass (`sys/interaction.go:519`), and an unconditional node
+always passes. Inserting a new unconditional node above the intended greeting
+changes what every player sees, and every branch still works — so it reads as a
+content typo rather than a structural rule.
+
+**Option-level `conditions` are silently dropped.** The field exists on a *node*,
+so it is the obvious thing to reach for when gating a quest row; `jsonInteractionOption` has no such field. (R1's `DisallowUnknownFields` now makes this fail loudly
+at boot — worth re-verifying it does when someone first tries it.)
+
+**Index sentinels sit at the top of the wire range.** `option_index`/`grant_index`
+are `ubyte` with **255 = none**, cast with a bare `uint8()`, and the loader imposes
+no count limit. ≥256 options under one node wraps silently; at exactly 255 the
+client reads a real grant as a navigation row. Absurd today (largest authored list
+is 3), two lines to guard.
+
+**`Conversation.ts` has no unit test.** The 17 `ConversationModel` cases pin the
+model. Nothing exercises `render()` — not the view-signature comparison, not the
+`view === null` teardown. The ~30 Hz rebuild bug 3b-ii fixed lived in `render()`,
+and the check now preventing its return is the untested part. (The check itself
+was reviewed and is **correct**: the signature covers every drawn field, is built
+only from wire strings/bools/small ints, and the row handlers read
+`currentNodeId()`/`entityId()` live rather than from the closure.)
+
+**Three pre-existing wire orphans**, in the schemas this range touched but not
+this range's debt (they date to the original import, step 1b and the step-7
+rebrand): `Character.is_hit` is dead at **both** ends, `Character.active_skill_id`
+is written every tick and read by nothing, and `Vec3f` is an entirely unreferenced
+struct. ⚑ Unlike the enums, **table field IDs are positional**, so deleting
+`is_hit` renumbers the 20+ `Character` fields after it — the in-repo precedent is
+replace-in-place (`level_progress`/`level` reused the `satiety`/`body_temperature`
+slots). `Vec3f` is the one clean delete.
 
 ## 9. Test strategy
 
@@ -2036,10 +2150,107 @@ content counts recorded.
 
 ---
 
+## 10b. Post-review chunks R1/R2/R5 — and R4, which needs the PO
+
+A six-dimension code review of the whole entity-model range ran on 2026-07-28
+(findings recorded in §8b). Four follow-up chunks were scoped; three shipped in
+the same session.
+
+**R1 — pin + prune ✅** (zero behaviour change). All four FlatBuffers unions
+pinned; `RoleNames()`; the dead `skills.Registry` thread out of the `world`
+package; `DisallowUnknownFields` on the mob loader; `MaxHealthFactor()` →
+`PoolFactor()`; three unreachable `blockedLine` strings; the dead frontend
+`maxHealthPerOwnerLevel` tooltip branch; 8 stale comments; the two content
+manuals. **⚑ `DisallowUnknownFields` found a live bug on its first run**:
+`catalog_test.go` authored `baseMaxHealth` at the ROOT where it is declared
+inside `factors`, so three fixture mobs had been loading with a zero base pool.
+
+**R2 — combat withdraws the OFFER ✅.** The bug: `sense()` stamped
+`interactable_entity_id` unconditionally while `refreshConversations` dropped the
+session on `InCombat`, so for the whole ~3.3 s recent-combat window the badge
+stayed lit over an actor that refused to talk — and since the key is
+edge-triggered, the player had to release and re-press repeatedly to no effect.
+⚑ **The fix belongs in the offer, not the client.** `handleInteracts`' own
+contract says range enforcement must be *one comparison against the value the
+client was told*, precisely so the server cannot disagree with the badge it drew;
+combat was a second gate that violated it. Withdrawing the offer makes the badge
+dark, `E` a legitimate no-op and the session consistent, with **zero client
+change**. Ambient lines are deliberately NOT gated (D18) — the crier still calls
+out mid-fight. ⚑ This is the direction the browser harness reports as SKIP (no
+cheat can stamp player combat), so the Go tests are the only eyes on it.
+
+**R5 — summon output tracks the owner live ✅.** The last half-frozen term in the
+summon chain: 1b made the pool and f(L) read the owner live but left
+`SummonPower` stamped at spawn, so a companion that outlived a ding stayed
+permanently behind an identical one summoned a moment later — against ruling ②.
+`Mob` now stores the authored `powerPerOwnerLevel` **rate** instead of the
+product and evaluates it against `Level()`, the same live read the pool makes.
+`SpawnParams.PowerAt()` is deleted: computing the multiplier at the spawn site is
+exactly what froze it. ⚑ **A summon SPAWNED at a given level is unaffected**,
+which is why every battery stays byte-identical and why only a targeted test can
+see this at all.
+
+**R4 — visual polish ⏳ NEEDS THE PO.** Deliberately not built: it is a
+by-eye chunk and the PO's own list has not been handed over yet. Two items the
+review found, to fold in when it is:
+
+- **The interact badge's vertical anchor is measured once, from the whole shape
+  subtree.** `InteractBadge.ts:104` calls `getLocalBounds()` on `Mob.shape` at
+  `build()` time, and that group also holds the aura-ring stack. Correct today
+  **only** because all 14 conversants author `"skills": []`, so the ring graphic
+  stays invisible and Pixi v8 skips it. Give any conversant an aura — the
+  "teaching guard that fights bandits" case this plan names by hand — and
+  `bounds.y` becomes `-ringRadius`, parking the key cap one aura radius above the
+  NPC, permanently, since `build()` runs once. Measure `actualShape`, or subtract
+  the known-decorative children.
+- **The badge rides a fading corpse for up to 1.5 s.** `EntityManager.newSnapshot`
+  hands the object to `fadeOutAndHide` and removes it from `objects`, so the next
+  tick's `retargetInteractBadge` cannot resolve the previous id and
+  `setInteractable(false)` never lands. Cosmetic, but it shows "press E" over
+  something that can no longer be talked to.
+
 ## 11. Chunk ledger
 
 *(filled in as chunks land — one entry per chunk: what was decided inside it,
 what shipped, which commit, what was verified.)*
+
+- **Post-review chunks R1 + R2 + R5 — ✅ DONE 2026-07-28**, backend + frontend +
+  content + docs, 40 files, committed `[uncommitted]`. Full write-up §10b;
+  findings that produced them in §8b. **R1 pin + prune** (zero behaviour change):
+  all four FlatBuffers unions pinned while the mapping was still the identity —
+  regenerating **both** binding sets produced a **zero diff**, which is the proof
+  it was free; `RoleNames()` over the one table (`follower` was missing from the
+  simharness explorer and unselectable there); the dead `skills.Registry` thread
+  out of `world` (took a 4-method fake and 35 call sites with it, and the
+  package's whole `skills` import); `DisallowUnknownFields` on the mob loader —
+  **the last content loader without it**, which is why a retired key had needed a
+  hand-written tombstone; `MaxHealthFactor()` → `PoolFactor()`; 3 unreachable
+  `blockedLine` strings; the dead frontend `maxHealthPerOwnerLevel` tooltip
+  branch; 8 stale comments; both content manuals (§1c and the zone editor's §5c
+  still documented `zone.npcs` and a deleted editor mode). ⚑ **`DisallowUnknown\
+  Fields` found a live bug on its first run** — `catalog_test.go` authored
+  `baseMaxHealth` at the ROOT where it is declared inside `factors`, so three
+  fixture mobs had been loading with a zero base pool. **R2 combat withdraws the
+  OFFER**: the badge stayed lit for the whole ~3.3 s recent-combat window over an
+  actor that refused to talk, and the edge-triggered key made it a
+  release-and-re-press dead end. ⚑ **The fix belongs in the offer, not the
+  client** — `handleInteracts`' own contract says range enforcement must be one
+  comparison against the value the client was told, and combat was a second gate
+  violating it; withdrawing the offer needs **zero client change**. Ambient lines
+  deliberately stay ungated (D18). This is the direction the browser harness
+  reports as SKIP, so the Go tests are the only eyes on it. **R5 summon output
+  live**: `Mob` stores the authored `powerPerOwnerLevel` **rate** and evaluates it
+  against `Level()`; `SpawnParams.PowerAt()` deleted, because computing the
+  multiplier at the spawn site is what froze it. A summon SPAWNED at a level is
+  unaffected — only one outliving a ding moves (1.40 → 1.45 across 9→10) — which
+  is why no battery can see it. **Verified:** `go build`/`vet`/`test ./...` clean,
+  guardrails + alloc `-count=2`, frontend typecheck + **44 vitest** + prod build;
+  boot both ways 0 errors 0 warnings 0 panics — 83 skills/15 factions/64 mobs/777
+  props/485 spawns/5 campfires. **⭐ Sim battery BYTE-IDENTICAL after each of the
+  three chunks** (default · `-chain` · `-levels` · `-content ../api` roster; TTK
+  6.67s / TTD 8.70s), measured against a pre-R1 worktree. ⏳ **R4 (visual polish)
+  stays OPEN — needs the PO's list**; its two review-found items are written up in
+  §10b.
 
 - **Chunk 1a — one derived-stat formula: ✅ DONE 2026-07-26**, backend only,
   10 files + 1 new test file, committed `cf9a10c7`. ⏳ PO in-game check not

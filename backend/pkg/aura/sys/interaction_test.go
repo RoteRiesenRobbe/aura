@@ -1142,6 +1142,77 @@ func TestSession_ClosesWhenEitherPartyEntersCombat(t *testing.T) {
 	})
 }
 
+// ⚑ The OFFER side of D21, and the half no in-game harness can reach: no cheat
+// can stamp player combat (DAMAGE bypasses takeDamage, THREAT is read-only), so
+// the browser harness reports SKIP here and these are the only eyes on it.
+//
+// Combat must withdraw the offer, not merely tear down the session. If it only
+// tore down, sense() would keep stamping through the whole recent-combat window
+// (~3.3 s, the shared combatRegenGraceTicks) and the client — which draws the
+// badge straight from this value — would light a key cap over an actor that
+// refuses to talk. Since the interact key is edge-triggered, the player would
+// press it, get nothing, and have to release and press again until the window
+// expired. A prompt that does nothing is precisely what handleInteracts'
+// contract says must never exist.
+func TestInteractionSystem_CombatWithdrawsTheOffer(t *testing.T) {
+	t.Run("the player is in combat", func(t *testing.T) {
+		s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+		step := stepper(s, space, p)
+
+		step()
+		require.Equal(t, m.Basic().ID(), p.Interactable(), "offered while out of combat")
+
+		p.inCombat = true
+		step()
+		assert.Zero(t, p.Interactable(), "the badge goes dark rather than lying")
+
+		// And the verb agrees, because it validates against that same number.
+		pressInteract(p, m.Basic().ID())
+		step()
+		assert.Zero(t, p.ConversingWith(), "E cannot open what was never offered")
+
+		// The offer returns on its own once the window passes — no re-entry
+		// bookkeeping, because the stamp is live state rather than an event.
+		p.inCombat = false
+		step()
+		assert.Equal(t, m.Basic().ID(), p.Interactable(), "and comes back by itself")
+	})
+
+	t.Run("the actor is in combat", func(t *testing.T) {
+		s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+		step := stepper(s, space, p)
+
+		step()
+		require.Equal(t, m.Basic().ID(), p.Interactable())
+
+		m.PlayerTouches(p, model.Damage{HP: 5})
+		step()
+
+		require.True(t, m.InCombat(), "the actor really is in combat")
+		assert.Zero(t, p.Interactable(), "a fighting actor stops offering to talk")
+	})
+}
+
+// Ambient lines are deliberately NOT gated by combat: they are independent of
+// the conversation (D18), and the town crier calling out as the player sprints
+// past mid-fight is the behaviour rather than a bug. Pinned because the obvious
+// reading of "combat suppresses talking" would sweep these up too.
+func TestInteractionSystem_AmbientStillFiresInCombat(t *testing.T) {
+	s, space, _, p := interactFixture(t, &mobs.Interaction{
+		Ambient: []string{"Hear ye!"},
+		Nodes:   []mobs.InteractionNode{{ID: "root", Lines: []string{"lore"}}},
+	})
+	step := stepper(s, space, p)
+
+	p.inCombat = true
+	step()
+
+	assert.Zero(t, p.Interactable(), "no offer while fighting")
+	require.Len(t, sentOf(p), 1, "but the crier still calls out")
+	_, msg := decodeEntityMessage(t, sentOf(p)[0])
+	assert.Equal(t, "Hear ye!", msg)
+}
+
 // The actor dying or despawning takes the panel with it — ecs.World calls
 // Remove on every system, and a session naming an actor that is gone must not
 // survive as a tree pointing at nothing.

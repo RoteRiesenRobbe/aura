@@ -1,7 +1,7 @@
 # Zone Editor — Step-by-Step Manual
 
 How to author a zone file (`api/zones/<id>.json` — world bounds, terrain,
-props, mob spawns, campfires, dark areas, NPCs, anchors) directly in-game, and
+props, mob spawns, campfires, dark areas, anchors) directly in-game, and
 how to make the server load your result. No coding required. Current as of
 2026-07-19. Two zones ship today: `world.json` (the live game world — the
 default via conf `game.zone`) and `proving-grounds.json` (the debug/test map,
@@ -80,13 +80,14 @@ world actually match a zone, export it and restart the server with
 ## 3. Pick a mode
 
 Top of the panel: **Off / Terrain / Props / Spawns / Campfires / Dark /
-NPCs / Anchors**.
+Anchors**. (There is no NPCs mode — see §5c.)
 
 - **Off** — clicking does nothing special (default, so you can play normally).
 - **Terrain** — paint ground textures; they are now part of the zone (see §8).
 - **Props** — place/edit props.
-- **Spawns** — place/edit mob spawn points.
-- **Campfires / Dark / NPCs** — the later sections work the same way:
+- **Spawns** — place/edit mob spawn points. **This is also how NPCs are
+  placed** (§5c).
+- **Campfires / Dark** — the later sections work the same way:
   click to place, click a marker to select, Update/Delete.
 - **Anchors** — named points encounter scripts look up (see §5b).
 
@@ -186,47 +187,30 @@ Two rules the server enforces at boot:
   boot** — deliberately loud, never a silent fallback position. Move
   anchors freely; rename only together with the Go script.
 
-## 5c. NPCs mode — author an NPC end-to-end (placement half)
+## 5c. NPCs mode — REMOVED
 
-Teaching/lore NPCs are zone content: everything below lives in the zone JSON
-and is editor-authorable. The **definition/art half** — which sprite renders,
-how big it draws, brand-new art — is covered in
-`docs/manual-content-authoring.md` §1c (hand-off at the end of this list).
+⚑ **There is no NPCs mode any more** (entity-model chunk 3a, decision D1). An
+NPC is not a zone entity: it is an ordinary **mob definition carrying an
+`interaction` block**, placed with the ordinary **Spawns** tool (§5).
 
-1. **Place it.** NPCs mode → type a **Type** label (free text, e.g. `Farmer` —
-   the display/marker name, *not* the sprite), set the **Radius** (server
-   units — this is the **sensor radius**, the approach circle that triggers
-   teachings/lore, NOT the visual size), then click the map (or **"Place at
-   my position"**). Click a marker to select it, **Update**/**Delete** as
-   usual.
-2. **Too-low line.** One line spoken to a player below the next teaching's
-   level gate. **Required for every teaching NPC** — the server refuses to
-   boot a teaching NPC without one, so NPCs whose teachings are all ungated
-   still carry a flavor line that never fires (the Hermit/Dog pattern).
-3. **Lore lines.** The textarea holds idle lines, one per line. Every NPC
-   must have teachings or lore lines (or both) — one empty of both fails the
-   boot.
-4. **Ordered teachings.** With the NPC selected, the teaching sub-row appends
-   to its list: pick a **skill** (dropdown from the skill registry), a
-   **required level**, and the **line** spoken when it is granted. Teachings
-   are granted **in order** on approach; a player below a gate hears the
-   too-low line and gets nothing further — so "Harvest ungated, then
-   Damage @L2" works in one NPC. Each list row has a remove button.
-5. **Sprite binding — JSON-only, deliberately.** The zone entry's
-   `"entityType"` field names the sprite (a Resource-backed `EntityType` enum
-   name, validated at boot; absent = the Flower placeholder). There is **no
-   panel control** — hand-edit the exported JSON; the editor round-trips the
-   field untouched. Details: `manual-content-authoring.md` §1c.
-6. **Visual size is NOT in zone data.** The authored radius is only the
-   sensor; the wire sprite radius is a fixed placeholder
-   (`model/npc/npc.go`), and the drawn size comes from the matching
-   `Graphics.ts` `npcs:` entry (`maxSize`) — a frontend edit, see
-   `manual-content-authoring.md` §1c.
-7. **Export + restart** (§7) and check the boot log's NPC count.
+What this means in practice:
 
-**New art?** A brand-new NPC sprite is the usual 5-file path (enum append →
-regen → SVG → Resource render class → `gameObjectClasses` slot) — steps in
-`manual-content-authoring.md` §1c.
+- **Placement** — use Spawns mode and pick the NPC's mob name from the same
+  dropdown as any other mob. Nothing NPC-specific to set here.
+- **The conversation is JSON-only content**, authored in
+  `api/mobs/<name>.json`, not in the editor. That was a deliberate call: a
+  conversation tree is content that belongs with the actor, not with the
+  placement, so the same NPC placed twice cannot end up with two different
+  scripts.
+- **Sensor radius / talk range** come from the mob definition
+  (`body.aggroRadius` and `interaction.range`), not from the placement.
+- **The old model** — a `zone.npcs` array, per-placement radius and
+  `tooLowLine`, an ordered teaching list granted on approach — is **gone**.
+  Approach no longer teaches anything; the player presses **`E`** and browses a
+  conversation tree, and clicking a row teaches exactly that row.
+
+Everything about authoring one now lives in
+`docs/manual-content-authoring.md` §1c.
 
 ## 6. Choose a zone, or start a new one
 

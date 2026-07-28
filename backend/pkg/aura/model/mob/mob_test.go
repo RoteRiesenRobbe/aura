@@ -898,15 +898,51 @@ func TestMob_SetFactionAndOwner(t *testing.T) {
 	require.Nil(t, m.Owner(), "an unowned mob has no owner")
 	assert.InDelta(t, 1.0, m.SummonPower(), 1e-6, "unowned/unset power is neutral")
 
+	owner.prog = model.PlayerProgression{Level: 5}
 	m.SetFaction(model.FactionAligned)
 	m.SetOwner(owner)
-	m.SetSummonPower(1.2)
+	m.SetSummonPowerPerLevel(0.05)
 
 	assert.Equal(t, model.FactionAligned, m.Faction())
 	assert.Same(t, model.PlayerEntity(owner), m.Owner())
-	assert.InDelta(t, 1.2, m.SummonPower(), 1e-6)
+	assert.InDelta(t, 1.2, m.SummonPower(), 1e-6, "1 + (5-1)×0.05")
 
 	var _ model.Owned = m
+}
+
+// ⚑ R5, the last half-frozen term in the summon chain. Chunk 1b made a summon's
+// POOL and curve position track its owner live, but the output multiplier stayed
+// stamped at spawn — so a companion that outlived its owner's ding was
+// permanently weaker than an identical one summoned a moment later, contradicting
+// PO ruling ② ("levels dynamic for every actor").
+//
+// No automated battery could catch this: the sim never levels an owner mid-run,
+// and a summon SPAWNED at a given level is unaffected either way. This test is
+// the only thing that can see it.
+func TestMob_SummonPowerTracksTheOwnersLevelLive(t *testing.T) {
+	m := newTestMob()
+	owner := newFakeAuraPlayer()
+	owner.prog = model.PlayerProgression{Level: 9}
+	m.SetOwner(owner)
+	m.SetSummonPowerPerLevel(0.05)
+
+	require.InDelta(t, 1.40, m.SummonPower(), 1e-6, "summoned at 9")
+
+	// The owner dings while the summon is still alive.
+	owner.prog = model.PlayerProgression{Level: 10}
+
+	assert.InDelta(t, 1.45, m.SummonPower(), 1e-6,
+		"the summon keeps up instead of staying at its spawn-level multiplier")
+	assert.InDelta(t, 1.45, m.SummonPower(), 1e-6, "and it is a read, not a latch")
+}
+
+// An unowned mob ignores the rate entirely — world spawns and directly-built
+// test mobs deal authored damage, the SummonPower neutral-1 convention.
+func TestMob_SummonPowerIsNeutralWithoutAnOwner(t *testing.T) {
+	m := newTestMob()
+	m.SetSummonPowerPerLevel(0.05)
+
+	assert.InDelta(t, 1.0, m.SummonPower(), 1e-6)
 }
 
 // --- flee movement mode (mob-depth chunk 2) ---

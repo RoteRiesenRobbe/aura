@@ -57,11 +57,14 @@ faction and skills without a schema append (see §5 and
      classification label (`normal`/`elite`/`boss` — eliteness lives in the
      baseline numbers, the tier multiplies nothing); `curveLevel` is the
      mob's position on the shared `f(L)` curve (zone number = curve
-     position). The loader derives `maxHealth = baseMaxHealth ×
-     f(curveLevel)` and applies the same `f(curveLevel)` to the mob's skill
-     HP values at cast time — so **author the mob's skills (damage/heal HP)
-     as curve-position-1 baselines too**, and a growth change re-derives
-     everything with one conf knob. Raw `factors.maxHealth` **hard-fails at
+     position). The loader stores `baseMaxHealth` **verbatim** and
+     `*Mob.MaxHealth()` derives the pool live as `baseMaxHealth × f(Level()) ×
+     MaxHealthFactor()` (entity-model chunk 1b — for a **summon**, `Level()` is
+     the *owner's* current level, so its pool tracks the owner as they ding).
+     The same `f(Level())` applies to the mob's skill HP values at cast time —
+     so **author the mob's skills (damage/heal HP) as curve-position-1
+     baselines too**, and a growth change re-derives everything with one conf
+     knob. Raw `factors.maxHealth` **hard-fails at
      load**; raw absolute numbers sized to a zone are a review reject.
      (Absent `tier`/`curveLevel` default to `normal`/1 — for synthetic/test
      defs only, content always authors them explicitly.)
@@ -204,29 +207,43 @@ behavior — movement blockers + visuals). One JSON per type in `api/props/`:
 - Placement: `zone.props` entries (`type`, `x`, `y`, `blocksMovement`) via the
   zone editor — rect props draw and hit-test as rectangles there.
 
-## 1c. NPC sprite & size (zone-JSON `entityType`, C2)
+## 1c. NPC sprite & size
 
-This is the **definition/art half** of authoring an NPC. The placement half —
-position, sensor radius, `tooLowLine`, lore lines, ordered teachings, all
-editor-authorable — is the end-to-end walkthrough in
-`docs/manual-zone-editor.md` §5c.
+⚑ **Rewritten for the actor merge (entity-model chunk 3a).** There is no such
+thing as an NPC type any more. **An NPC is an ordinary mob definition carrying
+an `interaction` block**, placed as an ordinary `zone.spawns` entry. The
+`model/npc` package, the `zone.npcs` array and the zone editor's NPC mode are
+all **deleted** — if you find a doc telling you to author `zone.npcs`, it is
+stale and the JSON will hard-fail at boot.
 
-- **Sprite binding — JSON-only, deliberately.** Zone-JSON NPCs (`zone.npcs`)
-  render as the Flower placeholder unless the entry names a sprite:
-  `"entityType": "Signpost"` (validated against the `EntityType` enum at zone
-  load; must be a **Resource-backed** entry — NPCs ride the Resource wire
-  path, a Mob sprite class would expect health/aura fields). The zone editor
-  round-trips the field (no panel control — hand-authored in the JSON). First
-  user: the C2 forest signpost.
-- **Visual size.** Not in zone data: the authored NPC radius is the *sensor*
-  circle, and the wire sprite radius is a fixed placeholder
-  (`model/npc/npc.go`). The drawn size comes from the matching entry in
-  `frontend/src/client-data/Graphics.ts` `npcs:` (`maxSize`, sized like
-  props) — edit that entry to resize an NPC on screen.
-- **New art.** A **new** NPC sprite is the usual 5-file path: enum append →
-  regen → SVG → a Resource render class (`Resources.ts`, mirror `Signpost`)
-  → `gameObjectClasses` slot — plus its `Graphics.ts` `npcs:` entry. Follow
-  the portrait style checklist in §4.
+So authoring an NPC is §1a (a new mob) plus an `interaction` block. What is
+specific to the talking half:
+
+- **Sprite binding.** Same as any mob: `"entityType"` on the **mob**
+  definition, validated against the `EntityType` enum at load. Since NPCs now
+  ride the **Mob** wire path, the sprite class lives in `Mobs.ts`, not
+  `Resources.ts`. Omit it and you get the name-based fallback; author
+  `"entityType": "NpcPlaceholder"` for the deliberate missing-art marker.
+- **Visual size.** NPCs are the one actor kind that sizes from the **wire**
+  rather than from `GraphicsConfig` — `body.radius` is both the sensor and the
+  drawn size. (`Mob.radius` had been in the schema unwritten since the project
+  began; 3a's one-NPC pilot is what found it.)
+- **Health bars.** NPCs get them, accepted deliberately (D3). Nameplates and
+  tier frames are gated off for free.
+- **Talk range.** `interaction.range` (all 14 currently author `2.0`
+  **[PLACEHOLDER]**). The sensor is `max(body.aggroRadius, interaction.range)`;
+  a conversant with neither hard-fails at boot. Range is enforced continuously —
+  walking out of it **tears down** an open conversation.
+- **The conversation itself** is a tree of `nodes`, each with `lines` and
+  `options`; an option either `grants` something or navigates via `next`. See
+  `api/mobs/emberkeeper.json` for the fullest authored example (a teaching list
+  plus a directions branch) and `api/mobs/town-crier.json` for the only
+  `ambient` lines in the game.
+- **Unknown keys are rejected at boot** (as of the R1 hygiene pass) — a typo
+  fails by name rather than silently dropping the line you wrote.
+- **New art.** The usual 5-file path: enum append → regen → SVG → a **Mob**
+  render class (`Mobs.ts`) → `gameObjectClasses` slot, plus its `Graphics.ts`
+  `npcs:` entry. Follow the portrait style checklist in §4.
 
 ## 2. New ability (aura / passive / cooldown)
 

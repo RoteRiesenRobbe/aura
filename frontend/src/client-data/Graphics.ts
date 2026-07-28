@@ -340,11 +340,13 @@ export const GraphicsConfig = {
         },
     },
 
-    // NPC sprites (content pass C2): Resource-backed, referenced by the
-    // zone-JSON npc entityType (server npc.SpriteFor). Sized like props.
+    // NPC sprites (content pass C2). Since the actor merge (chunk 3a) an NPC is
+    // an ordinary mob carrying an interaction block, so these ride the Mob wire
+    // path and are referenced by the MOB definition's entityType. Sized like props.
     npcs: {
-        // "Missing art" marker for an NPC whose zone entry names no
-        // entityType (server npc.PlaceholderSprite). Loud on purpose.
+        // "Missing art" marker, rendered by authoring "entityType":
+        // "NpcPlaceholder" on a mob definition. Loud on purpose, so an
+        // unconfigured NPC cannot pass for content.
         placeholder: {
             file: require('../features/game-objects/assets/resources/npcPlaceholder.svg'),
             maxSize: <number> 60,

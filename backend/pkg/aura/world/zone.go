@@ -17,7 +17,6 @@ import (
 	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 // Bounds is the rectangular world size in server units ("Points"), a rectangle
@@ -183,7 +182,7 @@ type Zone struct {
 // so every anomaly aborts at boot (mirrors RecipesFromFS): malformed or
 // unknown-key JSON, non-positive bounds, empty name, an unknown spawn mob, or
 // an unknown prop type.
-func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry, sr skills.Registry) (*Zone, error) {
+func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry) (*Zone, error) {
 	// Enumerate candidate zone files by stem without parsing them.
 	paths := map[string]string{} // stem -> path
 	var stems []string
@@ -230,7 +229,7 @@ func LoadZoneFS(fileSystem fs.FS, name string, mr mobs.Registry, pr PropRegistry
 	if err != nil {
 		return nil, fmt.Errorf("zone %q: %w", p, err)
 	}
-	if err := z.resolve(mr, pr, sr); err != nil {
+	if err := z.resolve(mr, pr); err != nil {
 		return nil, fmt.Errorf("zone %q: %w", p, err)
 	}
 	z.ID = target
@@ -332,9 +331,11 @@ func (z *Zone) AnchorPos(name string) (x, y float32, ok bool) {
 	return 0, 0, false
 }
 
-// resolve binds each spawn's mob name, each prop's type name, and each NPC
-// teaching's skill name to their definitions.
-func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry, sr skills.Registry) error {
+// resolve binds each spawn's mob name and each prop's type name to their
+// definitions. Teaching-skill resolution used to live here too and moved into
+// the mob loader with the NPC merge (chunk 3a) — an NPC is an ordinary spawn
+// carrying an interaction block, so the zone no longer references skills at all.
+func (z *Zone) resolve(mr mobs.Registry, pr PropRegistry) error {
 	// Legacy-leak collection (step-7 A.5): a live zone pointing at
 	// legacy-tagged content means the tag went stale — the boot loader warns.
 	// Distinct names only; a legacy zone referencing legacy content is its

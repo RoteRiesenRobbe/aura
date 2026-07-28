@@ -150,7 +150,7 @@ func NewWorld(sc Scenario, seed int64) *World {
 	// the harness exists to produce (chunk 2, L9).
 	role, ok := mobs.ParseRole(sc.Mob.Role)
 	if !ok {
-		panic(fmt.Sprintf("sim: mob role %q is not one of creature/structure/follower", sc.Mob.Role))
+		panic(fmt.Sprintf("sim: mob role %q is not one of %s", sc.Mob.Role, mobs.RoleNames()))
 	}
 
 	pack := make([]*mob.Mob, packSize)

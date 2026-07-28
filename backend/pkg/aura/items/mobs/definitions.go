@@ -1,6 +1,7 @@
 package mobs
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -224,6 +225,12 @@ type MobDefinition struct {
 }
 
 type mobDefinition struct {
+	// Comment is parsed and discarded: the _comment key is the content
+	// convention for authoring notes (the factions precedent), and it has to be
+	// declared for DisallowUnknownFields to let it through. 60 of 64 mob files
+	// carry one.
+	Comment string `json:"_comment"`
+
 	Id         uint64 `json:"id"`
 	Name       string `json:"name"`
 	Type       string `json:"type"`
@@ -277,12 +284,19 @@ type mobDefinition struct {
 	} `json:"unlocks"`
 }
 
-// parseItemDefinition parses a json string from a byte array into the
-// appropriate recipe object
+// parseMobDefinition parses one authored mob definition. Unknown keys are
+// rejected so typos and stale renames fail by name rather than silently drop —
+// the same contract zones, props and factions have always had. This loader was
+// the last one without it, which is why a retired key needed a hand-written
+// tombstone to be noticed at all (see jsonInteraction.Trigger); content here is
+// hand-edited against -content ../api by someone who does not run `go test`, so
+// a silently-ignored key is a line of authored content nobody ever sees.
 func parseMobDefinition(data []byte) (*mobDefinition, error) {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+
 	var mob mobDefinition
-	err := json.Unmarshal(data, &mob)
-	if err != nil {
+	if err := dec.Decode(&mob); err != nil {
 		return nil, err
 	}
 
@@ -294,7 +308,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	// checks because the sensor rule depends on it.
 	role, ok := ParseRole(m.Role)
 	if !ok {
-		return nil, fmt.Errorf("mob %q: role %q must be one of creature/structure/follower", m.Name, m.Role)
+		return nil, fmt.Errorf("mob %q: role %q must be one of %s", m.Name, m.Role, RoleNames())
 	}
 
 	// Mobs need an aggro territory; the former 4x-damage-radius fallback died
