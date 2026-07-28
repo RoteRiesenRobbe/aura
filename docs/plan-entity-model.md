@@ -2215,7 +2215,7 @@ review found, to fold in when it is:
 what shipped, which commit, what was verified.)*
 
 - **Post-review chunks R1 + R2 + R5 — ✅ DONE 2026-07-28**, backend + frontend +
-  content + docs, 40 files, committed `[uncommitted]`. Full write-up §10b;
+  content + docs, 40 files, committed `759ddfb6`. Full write-up §10b;
   findings that produced them in §8b. **R1 pin + prune** (zero behaviour change):
   all four FlatBuffers unions pinned while the mapping was still the identity —
   regenerating **both** binding sets produced a **zero diff**, which is the proof
