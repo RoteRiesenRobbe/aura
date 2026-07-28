@@ -2503,7 +2503,7 @@ any VLQ mappings.
 
 ## 30. Berryhunter render/asset vestiges surfaced by the §28 Chunk 3 audit
 
-> **✅ §30 IS NOW FULLY DONE.** Item 1 landed 2026-07-28, committed `[uncommitted]`,
+> **✅ §30 IS NOW FULLY DONE.** Item 1 landed 2026-07-28, committed `c183ce12`,
 > as H4 of `docs/plan-pre-accounts-hygiene.md` (ledger there, §11): `capacity`/`stock`
 > deleted at both ends and the **`aabb` renumber accepted** (D3), taking
 > `ResourceStockChangedEvent`, `baseScale`, both empty override stubs and
@@ -3168,7 +3168,7 @@ level-1 Damage aura with collision fully enforced. The focus-fire problem is a
 
 ## 35. One value, many homes — the tuning-value duplication sweep
 
-> **✅ TIER-1 ROWS 2, 3, 4 DONE 2026-07-28, committed `[uncommitted]`** — session 1
+> **✅ TIER-1 ROWS 2, 3, 4 DONE 2026-07-28, committed `c183ce12`** — session 1
 > of `docs/plan-pre-accounts-hygiene.md` (ledger there, §11). Row 2: the embedded
 > default's `game` block hand-synced and pinned by a map-comparison **drift test**
 > (mechanism 2 below, in its cheapest form — the `server` block is deliberately

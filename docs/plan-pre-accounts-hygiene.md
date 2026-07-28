@@ -319,7 +319,7 @@ index line.
 
 ## 11. Chunk ledger
 
-### Session 1 — H2 → H1b/H1c → H3 → H4 ✅ DONE 2026-07-28, committed `[uncommitted]`
+### Session 1 — H2 → H1b/H1c → H3 → H4 ✅ DONE 2026-07-28, committed `c183ce12`
 
 Backend + frontend + wire + config + docs, 25 files. **H1a untouched — that is
 session 2**, and the standing baselines (TTK 6.67 s / TTD 8.70 s) therefore
