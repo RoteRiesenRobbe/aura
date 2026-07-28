@@ -63,23 +63,13 @@ radius():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
-capacity():number {
-  const offset = this.bb!.__offset(this.bb_pos, 14);
-  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
-}
-
-stock():number {
-  const offset = this.bb!.__offset(this.bb_pos, 16);
-  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
-}
-
 aabb(obj?:AABB):AABB|null {
-  const offset = this.bb!.__offset(this.bb_pos, 18);
+  const offset = this.bb!.__offset(this.bb_pos, 14);
   return offset ? (obj || new AABB()).__init(this.bb_pos + offset, this.bb!) : null;
 }
 
 static startResource(builder:flatbuffers.Builder) {
-  builder.startObject(8);
+  builder.startObject(6);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -114,16 +104,8 @@ static addRadius(builder:flatbuffers.Builder, radius:number) {
   builder.addFieldInt16(4, radius, 0);
 }
 
-static addCapacity(builder:flatbuffers.Builder, capacity:number) {
-  builder.addFieldInt8(5, capacity, 0);
-}
-
-static addStock(builder:flatbuffers.Builder, stock:number) {
-  builder.addFieldInt8(6, stock, 0);
-}
-
 static addAabb(builder:flatbuffers.Builder, aabbOffset:flatbuffers.Offset) {
-  builder.addFieldStruct(7, aabbOffset, 0);
+  builder.addFieldStruct(5, aabbOffset, 0);
 }
 
 static endResource(builder:flatbuffers.Builder):flatbuffers.Offset {

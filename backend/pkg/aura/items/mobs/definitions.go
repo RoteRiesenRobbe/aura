@@ -510,6 +510,16 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 	if mob.Interaction != nil && mob.SenseRadius() <= 0 {
 		return nil, fmt.Errorf("mob %q: an interaction needs a sensor — author interaction.range or body.aggroRadius", m.Name)
 	}
+	// L12: an omitted collisionLayer is 0, and model/mob substitutes
+	// LayerViewportCollision|LayerActionCollision for it — so the DEFAULT for a
+	// conversant is walk-through and aura-targetable, i.e. killable. This does
+	// NOT say what a conversant's layer must be (a teaching guard that fights
+	// bandits is a legal actor — role and capabilities are orthogonal); it only
+	// removes "unset" as a way of saying it, for exactly the defs where the
+	// substituted default is dangerous.
+	if mob.Interaction != nil && m.Body.CollisionLayer <= 0 {
+		return nil, fmt.Errorf("mob %q: a mob carrying an interaction must author body.collisionLayer explicitly — the unset default is aura-targetable", m.Name)
+	}
 
 	mob.LegacyRefs = legacyRefs
 	return mob, nil

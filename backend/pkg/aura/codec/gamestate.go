@@ -446,9 +446,11 @@ func EntitiesMarshalFlatbuf(entities []model.Entity, builder *flatbuffers.Builde
 }
 
 // PropEntityFlatbufMarshal marshals a static prop through the Resource wire
-// table. The client's resource classes scale their sprite by stock/capacity,
-// so a constant 1/1 renders the prop at full size; props carry no status
-// effects, so the vector is always empty.
+// table. Props carry no status effects, so the vector is always empty.
+// (The harvest-era capacity/stock pair went with the pre-accounts hygiene
+// chunk: the client scaled a resource sprite by stock/capacity, and this wrote
+// a constant 1/1 for every prop — a ratio that could only ever be 1 once the
+// §26 prune emptied the resource system.)
 func PropEntityFlatbufMarshal(e model.PropEntity, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	builder.StartVector(1, 0, 0)
 	statusEffects := builder.EndVector(0)
@@ -465,9 +467,6 @@ func PropEntityFlatbufMarshal(e model.PropEntity, builder *flatbuffers.Builder) 
 
 	AuraApi.ResourceAddRadius(builder, f32ToU16Px(e.Radius()))
 	AuraApi.ResourceAddEntityType(builder, AuraApi.EntityType(e.Type()))
-
-	AuraApi.ResourceAddCapacity(builder, 1)
-	AuraApi.ResourceAddStock(builder, 1)
 
 	return AuraApi.ResourceEnd(builder)
 }

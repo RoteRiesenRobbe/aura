@@ -123,7 +123,8 @@ function setupVitalSigns() {
 
 // updateCastBar renders the owning player's running cast (skill-vocab
 // chunk 4, bare rendering): fill = elapsed fraction, text = skill name +
-// remaining seconds (ticks × 33 ms, the cooldown convention). All-zero
+// remaining seconds (ticks × the server tick interval, the cooldown
+// convention — never a rounded 33, see Constants.SERVER_TICKRATE). All-zero
 // hides the bar — no cast, or the cast was canceled/completed.
 export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: number) {
     if (!castBarElement) {
@@ -137,7 +138,7 @@ export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: nu
     const progress = Math.min(Math.max(1 - ticksLeft / ticksTotal, 0), 1);
     castBarIndicatorElement.style.width = `${progress * 100}%`;
     castBarTextElement.textContent =
-        `${skillDisplayName(skillId)} ${(ticksLeft * 33 / 1000).toFixed(1)}s`;
+        `${skillDisplayName(skillId)} ${(ticksLeft * Constants.SERVER_TICKRATE / 1000).toFixed(1)}s`;
 }
 
 // updateCombatIndicator shows/hides the red sword next to the zoom control
@@ -624,7 +625,8 @@ export function updatePassiveLoadout(slots: number[]) {
 }
 
 // updateCooldownLoadout renders the server-authoritative cooldown slots and
-// their remaining time (ticks × 33 ms), which doubles as the fired/ready state.
+// their remaining time (ticks × the server tick interval), which doubles as the
+// fired/ready state.
 export function updateCooldownLoadout(slots: number[], remainingTicks: number[]) {
     if (!cooldownSlotListElement) return;
     currentCooldownSlots = slots;
@@ -637,7 +639,7 @@ export function updateCooldownLoadout(slots: number[], remainingTicks: number[])
         label.textContent = slots[i] !== 0 ? skillDisplayName(slots[i]) : '— Empty —';
         li.dataset.skillId = String(slots[i]);
         const remaining = remainingTicks[i] ?? 0;
-        cd.textContent = remaining > 0 ? `${(remaining * 33 / 1000).toFixed(1)}s` : '';
+        cd.textContent = remaining > 0 ? `${(remaining * Constants.SERVER_TICKRATE / 1000).toFixed(1)}s` : '';
         li.classList.toggle('onCooldown', remaining > 0);
     }
 }

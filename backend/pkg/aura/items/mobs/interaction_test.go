@@ -13,23 +13,33 @@ import (
 // in sys/interaction.go, and the "does it actually teach" pins live with it.
 
 // interactionMobJSON wraps an interaction block in the smallest legal mob so
-// each case reads as the block under test and nothing else.
-func interactionMobJSON(interaction string) []byte {
+// each case reads as the block under test and nothing else. The body is a
+// parameter because an interaction block makes collisionLayer mandatory (H2),
+// so the body is no longer incidental to every case.
+func interactionMobJSON(body, interaction string) []byte {
 	return []byte(`{
 	  "id": 90,
 	  "name": "Farmer",
 	  "type": "MOB",
 	  "entityType": "Farmer",
 	  "factors": {"baseMaxHealth": 200, "speed": 0},
-	  "body": {"radius": 0.35, "aggroRadius": 1.0},
+	  "body": ` + body + `,
 	  "skills": [],
 	  "interaction": ` + interaction + `
 	}`)
 }
 
+// the body all 14 migrated NPCs author: viewport-only, so nothing can target it
+const conversantBodyJSON = `{"radius": 0.35, "aggroRadius": 1.0, "collisionLayer": 97}`
+
 func mapInteraction(t *testing.T, interaction string) (*MobDefinition, error) {
 	t.Helper()
-	raw, err := parseMobDefinition(interactionMobJSON(interaction))
+	return mapInteractionWithBody(t, conversantBodyJSON, interaction)
+}
+
+func mapInteractionWithBody(t *testing.T, body, interaction string) (*MobDefinition, error) {
+	t.Helper()
+	raw, err := parseMobDefinition(interactionMobJSON(body, interaction))
 	require.NoError(t, err)
 	return raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 }
@@ -333,7 +343,7 @@ func TestMapMobDefinition_RejectsConversantWithNoSenseRadius(t *testing.T) {
 	  "entityType": "Farmer",
 	  "role": "structure",
 	  "factors": {"baseMaxHealth": 200, "speed": 0},
-	  "body": {"radius": 0.35},
+	  "body": {"radius": 0.35, "collisionLayer": 97},
 	  "interaction": {"nodes": [{"id": "root", "lines": ["hi"]}]}
 	}`))
 	require.NoError(t, err)
@@ -341,6 +351,29 @@ func TestMapMobDefinition_RejectsConversantWithNoSenseRadius(t *testing.T) {
 	_, err = raw.mapToMobDefinition(testSkillRegistry(t), nil, testCurve())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "range")
+}
+
+// L12 (plan-pre-accounts-hygiene.md H2): an omitted collisionLayer is 0, which
+// model/mob then substitutes with Viewport|Action — i.e. the DEFAULT for a
+// conversant is aura-targetable and killable, and the content pin that was
+// meant to catch that reads the same authored 0 and passes trivially. The guard
+// constrains authoring rather than policy: the value stays entirely the
+// author's (a teaching guard that fights bandits is a legal actor), only
+// "unset" stops being a legal way to say it.
+func TestMapMobDefinition_RejectsConversantWithoutCollisionLayer(t *testing.T) {
+	_, err := mapInteractionWithBody(t, `{"radius": 0.35, "aggroRadius": 1.0}`, teachOneJSON)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "collisionLayer")
+}
+
+// The author stays free to pick the value — including one that keeps the actor
+// on the Action layer, which is what a fighting conversant needs.
+func TestMapMobDefinition_AcceptsAnyAuthoredCollisionLayer(t *testing.T) {
+	def, err := mapInteractionWithBody(t,
+		`{"radius": 0.35, "aggroRadius": 1.0, "collisionLayer": 99}`, teachOneJSON)
+	require.NoError(t, err)
+	require.NotNil(t, def.Interaction)
+	assert.Equal(t, 99, def.Body.CollisionLayer)
 }
 
 func TestMapMobDefinition_RejectsNegativeRange(t *testing.T) {

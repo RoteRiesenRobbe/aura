@@ -252,7 +252,6 @@ export const VitalSignChangedEvent: PayloadEvent<VitalSignMsg> = new PayloadEven
 export const CameraUpdatedEvent: PayloadEvent<Vector> = new PayloadEvent<Vector>();
 export const ControlsRotateEvent: PayloadEvent<radians> = new PayloadEvent<radians>();
 export const ControlsMovementEvent: PayloadEvent<Vector> = new PayloadEvent<Vector>();
-export const ResourceStockChangedEvent: PayloadEvent<{ entityType: string, newStock: number, oldStock: number, position: Vector }> = new PayloadEvent();
 export const GameSettingChangedEvent: PayloadEvent<{ path: string, newValue: any, oldValue: any }> = new PayloadEvent();
 
 /**

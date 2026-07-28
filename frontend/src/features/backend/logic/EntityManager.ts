@@ -5,7 +5,6 @@ import {DebugCircle} from '../../internal-tools/develop/logic/DebugCircle';
 import {GameObject, hpToDisplay} from '../../game-objects/logic/_GameObject';
 import {StatusEffect} from '../../game-objects/logic/StatusEffect';
 import {Character} from '../../game-objects/logic/Character';
-import {Resource} from '../../game-objects/logic/Resources';
 import {Mob} from '../../game-objects/logic/Mobs';
 import {AuraApi} from './AuraApi';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
@@ -48,9 +47,6 @@ export class EntityManager {
                 }
             }
 
-            if (gameObject instanceof Resource) {
-                gameObject.stock = entity.stock;
-            }
         } else {
             switch (entity.type) {
                 case Character:
@@ -63,11 +59,6 @@ export class EntityManager {
                 // Fallthrough
                 default:
                     gameObject = new entity.type(entity.id, entity.position.x, entity.position.y, entity.radius);
-            }
-
-            if (gameObject instanceof Resource) {
-                gameObject.capacity = entity.capacity;
-                gameObject.stock = entity.stock;
             }
 
             this.objects[entity.id] = gameObject;

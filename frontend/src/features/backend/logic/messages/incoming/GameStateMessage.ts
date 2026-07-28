@@ -224,8 +224,6 @@ function unmarshalEntity(entity, eType) {
         radius: entity.radius(),
         type: unmarshalEntityType(entity.entityType()),
         aabb: unmarshalAABB(entity.aabb()),
-        capacity: undefined,
-        stock: undefined,
         rotation: undefined,
         isSpectator: undefined,
         isHit: undefined,
@@ -260,11 +258,6 @@ function unmarshalEntity(entity, eType) {
         // buff/debuff kinds currently applied TO the entity — drives the pips
         appliedEffects: undefined,
     };
-
-    if (eType === AuraApi.AnyEntity.Resource) {
-        result.capacity = entity.capacity();
-        result.stock = entity.stock();
-    }
 
     if (eType === AuraApi.AnyEntity.Mob) {
         result.rotation = entity.rotation();

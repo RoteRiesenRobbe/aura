@@ -2055,7 +2055,15 @@ considered for a row that both grants and navigates — the grant's authored `li
 is silently swallowed and the destination node's lines show instead. Two
 independent defects in one shape, found by two reviewers who never spoke.
 
-**L12's content pin is a tautology.** `interaction_content_test.go:193` asserts
+**L12's content pin is a tautology.** ✅ **CLOSED 2026-07-28** as H2 of
+`plan-pre-accounts-hygiene.md` — by the second option below, a **loader guard**:
+a def carrying an `interaction` block must author `body.collisionLayer`. ⚑ Note
+what was *rejected*: "a conversant must be unattackable" would have hard-blocked
+the teaching guard that fights bandits, i.e. this plan's own proof that role and
+capabilities are orthogonal. The guard constrains **authoring**, not policy — it
+kills the "0 means unset" path and leaves the value entirely to the author. The
+assertion below is unchanged and no longer trivially true.
+`interaction_content_test.go:193` asserts
 `CollisionLayer & 2 == 0` on the **raw authored int**. An omitted field is `0`,
 which passes trivially — while `mob.go:150` then substitutes
 `LayerViewportCollision|LayerActionCollision`. So the 15th NPC whose author
@@ -2096,6 +2104,11 @@ struct. ⚑ Unlike the enums, **table field IDs are positional**, so deleting
 `is_hit` renumbers the 20+ `Character` fields after it — the in-repo precedent is
 replace-in-place (`level_progress`/`level` reused the `satiety`/`body_temperature`
 slots). `Vec3f` is the one clean delete.
+
+✅ **`Vec3f` deleted 2026-07-28** (H4 of `plan-pre-accounts-hygiene.md`, together
+with `Resource.capacity`/`stock` and the `aabb` renumber those forced). **The two
+`Character` orphans stay** — same argument, but they renumber 20+ fields and that
+chunk did not need to carry them.
 
 ## 9. Test strategy
 

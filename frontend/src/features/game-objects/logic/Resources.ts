@@ -5,10 +5,9 @@ import {randomRotation, TwoDimensional} from '../../common/logic/Utils';
 import {createInjectedSVG} from '../../core/logic/InjectedSVG';
 import {GraphicsConfig} from '../../../client-data/Graphics';
 import {IGame} from '../../core/logic/IGame';
-import {GameSetupEvent, ResourceStockChangedEvent} from '../../core/logic/Events';
+import {GameSetupEvent} from '../../core/logic/Events';
 import {StatusEffect} from './StatusEffect';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
-import './ResourceJuice';
 import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
 
 let Game: IGame = null;
@@ -16,11 +15,12 @@ GameSetupEvent.subscribe((game: IGame) => {
     Game = game;
 });
 
+// The wire table this rides is still called Resource, but nothing harvestable
+// is left on it — props are its only occupants since the actor merge moved NPCs
+// to the Mob path. The stock/capacity yield pair (and the sprite rescale it
+// drove) went with the pre-accounts hygiene chunk: the server had been sending
+// a constant 1/1 ever since the §26 prune emptied the resource system.
 export abstract class Resource extends GameObject implements IMiniMapRendered {
-    capacity: number;
-    baseScale: number;
-    private _stock: number;
-
     protected constructor(
         id: number,
         gameLayer: Container,
@@ -31,35 +31,6 @@ export abstract class Resource extends GameObject implements IMiniMapRendered {
         svg: Texture,
     ) {
         super(id, gameLayer, x, y, size, rotation, svg);
-
-        this.baseScale = this.shape.scale.x;
-    }
-
-    get stock() {
-        return this._stock;
-    }
-
-    set stock(newStock: number) {
-        if (this._stock !== newStock) {
-            this.onStockChange(newStock, this._stock);
-            this._stock = newStock;
-        }
-    }
-
-    /**
-     * @param newStock
-     * @param oldStock
-     * @protected
-     */
-    protected onStockChange(newStock: number, oldStock: number) {
-        ResourceStockChangedEvent.trigger({
-            entityType: this.constructor.name,
-            newStock: newStock,
-            oldStock: oldStock,
-            position: this.getPosition(),
-        });
-        const scale = newStock / this.capacity;
-        this.shape.scale.set(this.baseScale * scale);
     }
 
     createStatusEffects() {
@@ -192,11 +163,6 @@ export class House extends Resource {
         return sprite;
     }
 
-    // Props stream a constant stock/capacity of 1/1; the base setter's
-    // uniform rescale would squash the non-square sprite, so skip it.
-    protected onStockChange(newStock: number, oldStock: number) {
-    }
-
     createMinimapIcon(): ViewContainer {
         throw new Error('Method not implemented.');
     }
@@ -218,11 +184,6 @@ export class GateWall extends Resource {
     constructor(id: number, x: number, y: number, size: number) {
         super(id, Game.layers.resources.trees, x, y, size, 0, GateWall.svg);
         this.visibleOnMinimap = false;
-    }
-
-    // Props stream a constant stock/capacity of 1/1; skip the base setter's
-    // rescale (House precedent).
-    protected onStockChange(newStock: number, oldStock: number) {
     }
 
     createMinimapIcon(): ViewContainer {

@@ -23,7 +23,6 @@ export const GraphicsConfig = {
          */
         size: <number> 30,
         file: require('../features/game-objects/assets/characters/player.svg'),
-        damageAuraRadiusMeters: <number> 1,
         /**
          * Physical collider radius used by backend for player body.
          *

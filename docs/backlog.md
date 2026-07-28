@@ -2503,9 +2503,17 @@ any VLQ mappings.
 
 ## 30. Berryhunter render/asset vestiges surfaced by the §28 Chunk 3 audit
 
-> **✅ ITEMS 2, 3, 4 DONE 2026-07-24, committed `f095514a`** (item 1 stays open —
-> it is the only one that touches the wire and should still ride along with
-> another schema regen). Headless-verified, **not PO-verified in-game**.
+> **✅ §30 IS NOW FULLY DONE.** Item 1 landed 2026-07-28, committed `[uncommitted]`,
+> as H4 of `docs/plan-pre-accounts-hygiene.md` (ledger there, §11): `capacity`/`stock`
+> deleted at both ends and the **`aabb` renumber accepted** (D3), taking
+> `ResourceStockChangedEvent`, `baseScale`, both empty override stubs and
+> `ResourceJuice.ts` + its two mp3s with it. ⚑ The caveat below was the whole
+> risk, and it is pinned rather than argued: a new codec test reads every field
+> a prop writes back off the wire, **including the moved `aabb`**, because a
+> mid-table renumber decodes as garbage rather than as an error.
+>
+> **✅ ITEMS 2, 3, 4 DONE 2026-07-24, committed `f095514a`.**
+> Headless-verified, **not PO-verified in-game**.
 > - **Item 3 (the big one):** the whole `layers.placeables` group deleted — 7
 >   containers, both stage-assembly blocks, the no-op `nightExempt` entry and the
 >   `IGame` field. `cameraGroup` children **30 → 23**. Behaviour-neutral as
@@ -3159,6 +3167,30 @@ level-1 Damage aura with collision fully enforced. The focus-fire problem is a
 ---
 
 ## 35. One value, many homes — the tuning-value duplication sweep
+
+> **✅ TIER-1 ROWS 2, 3, 4 DONE 2026-07-28, committed `[uncommitted]`** — session 1
+> of `docs/plan-pre-accounts-hygiene.md` (ledger there, §11). Row 2: the embedded
+> default's `game` block hand-synced and pinned by a map-comparison **drift test**
+> (mechanism 2 below, in its cheapest form — the `server` block is deliberately
+> excluded, since `frontendDir` vs `path` is the one real per-environment delta).
+> Row 3: both bare `33`s → `Constants.SERVER_TICKRATE`. Row 4: `heatFractionPerSecond`
+> and `damageAuraRadiusMeters` deleted.
+> - **⚑ Row 1 (`sim/world.go`'s 0.05 vs the live 0.2) is still OPEN — it is
+>   session 2**, deliberately split off as the only part that moves a number.
+>   The finding sharpened in planning: it is **not a stale comment**, it is *two
+>   Go defaults for one value that disagree*, and the live path always
+>   normalizes to 0.2 (`gameconf.go:48`), so `mob.go:305`'s 0.05 is a **test-only**
+>   default the harness copied.
+> - **⚑ Deviation, widened:** the sweep above says four `backend/` conf files;
+>   there are **five tracked**, because `devops/conf.json` is the live server's
+>   and carried the dead key too. It is **also drifted** — no `mob` or `combat`
+>   block, so the live server runs on Go fallbacks for both. Not closed here.
+> - **⚑ `cfg.ReadConfig` has no `DisallowUnknownFields`** — that is *why* row 2's
+>   7 dead keys survived. Adding it would hard-fail every existing local **and
+>   deployed** `conf.json` on the next start, so it needs a deploy plan, not a
+>   hygiene chunk. Recorded in the plan doc §7.
+> - **Tiers 2, 3 and 4 stay open.** The drift test is the pattern that would
+>   close tier 2/3; scaling it up is its own chunk.
 
 **Origin:** PO 2026-07-26, while retuning mob out-of-combat regen from ~2 s to
 5 s. That one-number change touched **three conf files plus a Go constant**, and

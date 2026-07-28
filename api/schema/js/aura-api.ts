@@ -34,5 +34,4 @@ export { Spectator } from './aura-api/spectator.js';
 export { SpendSkillPoint } from './aura-api/spend-skill-point.js';
 export { StatusEffect } from './aura-api/status-effect.js';
 export { Vec2f } from './aura-api/vec2f.js';
-export { Vec3f } from './aura-api/vec3f.js';
 export { Welcome } from './aura-api/welcome.js';

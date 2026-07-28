@@ -4,7 +4,6 @@
     "path": "/game"
   },
   "game": {
-    "heatFractionPerSecond": 0.04,
     "totalDayCycleSeconds": 600,
     "dayTimeSeconds": 400,
     "player": {

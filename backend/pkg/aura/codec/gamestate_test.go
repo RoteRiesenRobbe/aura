@@ -471,6 +471,44 @@ func TestEntitiesMarshalFlatbuf_LengthAndOrder(t *testing.T) {
 	}
 }
 
+// L-H5: deleting Resource.capacity/stock RENUMBERED aabb, which is the one
+// field that sits after them — and a mid-table renumber is the failure mode
+// that decodes as garbage rather than as an error. This reads every field a
+// prop actually writes back off the wire, so a slot that shifted out from under
+// its reader shows up as a wrong value here instead of as a misplaced collider
+// in-game.
+func TestPropEntityFlatbufMarshal_FieldsSurviveTheRenumber(t *testing.T) {
+	p := prop.New(model.EntityType(26), phy.Vec2f{X: 3, Y: -4}, 0.75, true)
+
+	b := flatbuffers.NewBuilder(256)
+	b.Finish(PropEntityFlatbufMarshal(p, b))
+
+	var res AuraApi.Resource
+	res.Init(b.FinishedBytes(), flatbuffers.UOffsetT(flatbuffers.GetUOffsetT(b.FinishedBytes())))
+
+	assert.Equal(t, p.Basic().ID(), res.Id())
+	assert.Equal(t, AuraApi.EntityType(26), res.EntityType())
+	assert.Equal(t, f32ToU16Px(p.Radius()), res.Radius())
+	assert.Zero(t, res.StatusEffectsLength())
+
+	var pos AuraApi.Vec2f
+	require.NotNil(t, res.Pos(&pos))
+	assert.InDelta(t, float64(f32ToPx(3)), pos.X(), 0.0001)
+	assert.InDelta(t, float64(f32ToPx(-4)), pos.Y(), 0.0001)
+
+	// the field the renumber moved
+	var aabb AuraApi.AABB
+	require.NotNil(t, res.Aabb(&aabb))
+	var lower, upper AuraApi.Vec2f
+	require.NotNil(t, aabb.Lower(&lower))
+	require.NotNil(t, aabb.Upper(&upper))
+	box := p.AABB()
+	assert.InDelta(t, float64(f32ToPx(box.Left)), lower.X(), 0.0001)
+	assert.InDelta(t, float64(f32ToPx(box.Bottom)), lower.Y(), 0.0001)
+	assert.InDelta(t, float64(f32ToPx(box.Right)), upper.X(), 0.0001)
+	assert.InDelta(t, float64(f32ToPx(box.Upper)), upper.Y(), 0.0001)
+}
+
 func TestEntitiesMarshalFlatbuf_Empty(t *testing.T) {
 	b := flatbuffers.NewBuilder(64)
 	vec := EntitiesMarshalFlatbuf(nil, b)

@@ -1,11 +1,5 @@
 namespace AuraApi;
 
-struct Vec3f {
-  x:float;
-  y:float;
-  z:float;
-}
-
 struct Vec2f {
   x:float;
   y:float;

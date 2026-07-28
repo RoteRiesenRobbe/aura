@@ -116,9 +116,11 @@ table Resource {
   pos:Vec2f;
   radius:ushort;
 
-  capacity:ubyte;
-  stock:ubyte;
-
+  // NOTE: capacity/stock (the harvest-era 0..n yield pair) were REMOVED in the
+  // pre-accounts hygiene chunk, which renumbered `aabb` — deliberate and safe
+  // only because both binding sets regenerate and deploy together. Props are
+  // the only thing left on this wire path since NPCs moved to the Mob path,
+  // and a prop's stock had been a hardcoded 1/1 since the §26 prune.
   aabb:AABB;
 }
 

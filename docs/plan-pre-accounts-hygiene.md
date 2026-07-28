@@ -319,5 +319,99 @@ index line.
 
 ## 11. Chunk ledger
 
-*(filled in when the chunk lands — what was decided inside it, what shipped,
-which commit, what was verified, and the H1a battery delta.)*
+### Session 1 — H2 → H1b/H1c → H3 → H4 ✅ DONE 2026-07-28, committed `[uncommitted]`
+
+Backend + frontend + wire + config + docs, 25 files. **H1a untouched — that is
+session 2**, and the standing baselines (TTK 6.67 s / TTD 8.70 s) therefore
+still stand.
+
+**⭐ The headline held: the sim battery came out BYTE-IDENTICAL**, `diff -r` over
+all four runs (default · `-chain` · `-levels` · `-content ../api` roster) against
+a baseline taken before the first edit. That is the whole point of the §9.1
+split — *"everything else is byte-identical"* was a live check here, not a claim
+made after H1a had already moved the instrument.
+
+**H2 — the L12 collision guard (red-first).** `definitions.go:513` rejects any
+def carrying an `interaction` block that does not author `body.collisionLayer`.
+⚑ **The guard constrains authoring, not policy** — it does not say what a
+conversant's layer must be, so the teaching-guard-that-fights-bandits stays a
+legal actor; it removes *"unset"* as a way of saying it, for exactly the defs
+where `mob.go:150`'s substituted `Viewport|Action` default is dangerous. Two new
+pins (rejection names the field · an authored `99` is accepted, which is the
+orthogonality case in test form), and `interactionMobJSON` grew a `body`
+parameter because the body stopped being incidental to every case. The existing
+content assertion is **unchanged** and has stopped being a tautology. Content
+impact **zero**: all 14 conversants already author `97`.
+
+**H1b/H1c — one truth per config.** `cmd/aurad/conf.default.json`'s `game` block
+hand-synced (7 dead keys out; `zone`, `totalDayCycleSeconds`, `dayTimeSeconds`,
+`baseHealth`, `skillPointsPerLevel`, `critChance` and the whole `mob` and
+`combat` blocks in), pinned by a new map-comparison drift test that excludes
+`server` and says why in its own comment (L-H4). It was **red first and
+enumerated the drift exactly**. `heatFractionPerSecond` deleted; the sweep is
+now zero hits.
+
+⚑ **Deviation, widened: the plan's "four tracked files" missed `devops/conf.json`.**
+It is tracked, it is the LIVE server's config, and it carried the dead key —
+deleted there too. **Follow-up worth its own line: that file has also drifted** —
+it has no `mob` or `combat` block, so the live server runs on the Go fallbacks
+for both. Out of scope here (D2 pins the embedded default only), but it is the
+same defect class, and step 8 is when a server gets stood up next to a database.
+
+⚑ **A fresh server was never actually broken by the drift**, checked rather than
+assumed: `gameconf.go:38` normalizes `BaseHealth` to 100 exactly the way
+`gameconf.go:48` normalizes the chase margin to 0.2 (the H1a finding). The
+embedded file was silently resolving to Go defaults, not to wrong values — so
+this is the tidiness half of §35 tier 1, and H1a is the defect half.
+
+**H3 — frontend constants.** Both bare `33`s → `Constants.SERVER_TICKRATE`
+(`HUD.ts` cast bar + cooldown labels), and the dead
+`Graphics.ts damageAuraRadiusMeters` deleted.
+
+**H4 — the wire prune.** `Vec3f` gone; `Resource.capacity`/`stock` gone and
+`aabb` **renumbered** (D3); both binding sets regenerated. Consumers removed in
+the plan's order: codec write → `GameStateMessage` decode → `EntityManager`
+assignments (and its now-unused `Resource` import) → `Resources.ts` (`capacity`,
+`_stock` + getter/setter, `onStockChange`, `baseScale`, and **both** empty
+`House`/`GateWall` overrides that existed only to dodge the rescale) →
+`ResourceStockChangedEvent` → `ResourceJuice.ts` + its two mp3s (D4).
+
+**New pin for the renumber:** `TestPropEntityFlatbufMarshal_FieldsSurviveTheRenumber`
+reads **every** field a prop writes back off the wire — id, entity type, radius,
+status-effect vector, pos, and the moved `aabb`. A mid-table renumber decodes as
+*garbage*, not as an error (L-H5), so a slot that shifted out from under its
+reader has to fail as a wrong value or it fails as a misplaced collider in-game.
+
+**Verified.** `go build` / `go vet` / `go test -timeout 120s ./...` all green;
+guardrails and the alloc pins `-count=2` green. Frontend `npm run typecheck`
+clean, **44 vitest** pass, webpack prod build green. Boot `-content ../api`:
+**0 errors / 0 warnings / 0 panics — 83 skills / 15 factions / 64 mobs / 10
+recipes / 5 props / 1 milestone / 777 props / 485 spawns / 5 campfires**,
+unchanged. Fresh-directory boot with **no `conf.json`** writes one from the
+embedded default and reports the **same `🎚️ tuning knobs` line** as a
+repo-default boot (H1b's acceptance).
+
+**Join smoke** — new `.claude/skills/verify/hygiene-wire-prune.mjs`, which exists
+because props are the **only** thing left on the Resource wire path since the
+actor merge, so "props render" *is* the renumber's assertion: 634 sprites off
+that path, House props still at their authored non-square aspect (the aspect
+correction survives losing `onStockChange`), **0 console errors, 0 WebGL context
+losses** (`/tmp/hygiene-houses-props.png`). **L-H6 re-run:** `ctxloss-warning.mjs`
+PASS both ways — `clean` still **0** warnings with **5 GL contexts / 2 probe
+losses**, so removing two `registerPreload` calls did not move the boot GL
+profile; `forced` still emits the line and the banner.
+
+**2 harness notes worth keeping.**
+- The first join-smoke run hit the **§29 lost-WebGL-context flake** — an
+  *invalid run*, not a failure, and the §29 banner self-reported it by name.
+  Re-run clean. It is the ~1-in-6 rate the backlog predicts, and it is why the
+  banner shipped.
+- The first `go generate ./...` after a schema **deletion** prints
+  `open …/Vec3f.go: no such file or directory`. Harmless: `go generate` walks a
+  file list that `flatcgen`'s `cleanOutputFolders` deletes mid-run. A second run
+  is clean; there is nothing to fix.
+
+### Session 2 — H1a
+
+*(not started — the chase margin, the only part that moves a number, and the one
+that re-baselines the battery. Its baseline is session 1's output above.)*
