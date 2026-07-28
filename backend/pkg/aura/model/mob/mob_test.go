@@ -908,7 +908,7 @@ func TestMob_TTLDeathCheckStaysFirst(t *testing.T) {
 	assert.False(t, m.Update(0))
 }
 
-func TestMob_SetFactionAndOwner(t *testing.T) {
+func TestMob_AlignAndOwner(t *testing.T) {
 	m := newTestMob()
 	owner := newFakeAuraPlayer()
 
@@ -916,7 +916,7 @@ func TestMob_SetFactionAndOwner(t *testing.T) {
 	assert.InDelta(t, 1.0, m.SummonPower(), 1e-6, "unowned/unset power is neutral")
 
 	owner.prog = model.PlayerProgression{Level: 5}
-	m.SetFaction(model.FactionAligned)
+	m.Align()
 	m.SetOwner(owner)
 	m.SetSummonPowerPerLevel(0.05)
 
@@ -1177,7 +1177,7 @@ func TestMob_PlayerTouches_DeadSourceFallsBackToToucher(t *testing.T) {
 func TestMob_MobTouches_OnlyEnemyFactionBuildsThreat(t *testing.T) {
 	m := newTestMob() // hostile
 	aligned := newTestMob()
-	aligned.SetFaction(model.FactionAligned)
+	aligned.Align()
 	hostile := newTestMob()
 
 	m.MobTouches(aligned, mobs.Factors{Damage: 5})

@@ -919,7 +919,7 @@ func (r *friendlyTouchRecorder) MobTouches(m model.MobEntity, factors mobs.Facto
 var _ model.PlayerFriendly = (*friendlyTouchRecorder)(nil)
 
 // gatedAlignedMob is an owned-summon-shaped caster: aligned faction with a
-// permissive HostilityGate (SetFaction gives real summons an all-others aggro
+// permissive HostilityGate (Align gives real summons an all-others aggro
 // set). The friendly check must fire BEFORE the gate for the aligned side.
 type gatedAlignedMob struct{ fakeMob }
 
@@ -2301,7 +2301,7 @@ func TestCooldown_TauntForcesCasterToTopOfThreat(t *testing.T) {
 
 func TestCooldown_TauntSkipsAlliedTarget(t *testing.T) {
 	m := mob.NewMob(hostileMobDef(), 0, nil)
-	m.SetFaction(model.FactionAligned) // an aligned summon/companion — not an enemy
+	m.Align() // an aligned summon/companion — not an enemy
 
 	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerPlayerCollision), m))
 	caster.sc.EquipCooldown(0, tauntDef(), 1)
@@ -2536,6 +2536,11 @@ func TestCooldown_SpawnPlacementFallsBackToCasterPosition(t *testing.T) {
 func TestCooldown_MobCastSpawnHasNoOwner(t *testing.T) {
 	// A mob-cast spawn comes nearly free: no owner, the caster's (hostile)
 	// faction, and no owner-level scaling.
+	//
+	// The faction assertion is the shipped pin; the MASK assertion is new
+	// (plan-faction-flips.md chunk 1). Adopting the faction while inventing an
+	// all-others mask is exactly L2 — a summoned squad would have hunted every
+	// neutral it walked past. EnlistUnder hands over both together.
 	g := newFakeGame()
 	g.mobReg = fakeMobRegistry{"Totem": totemMobDef()}
 
@@ -2553,6 +2558,8 @@ func TestCooldown_MobCastSpawnHasNoOwner(t *testing.T) {
 	m := g.added[0].(*mob.Mob)
 	assert.Nil(t, m.Owner())
 	assert.Equal(t, model.FactionHostile, m.Faction(), "summon adopts the casting mob's faction")
+	assert.Equal(t, caster.AggroMask(), m.AggroMask(),
+		"and its reaction table with it — it hunts what its summoner hunts, nothing more")
 	assert.Equal(t, vitals.VitalSign(50), m.MaxHealth(), "no owner → no owner-level HP bonus")
 	assert.InDelta(t, 1.0, m.SummonPower(), 1e-6)
 }
@@ -2562,7 +2569,7 @@ func TestCooldown_MobCastSpawnHasNoOwner(t *testing.T) {
 // newTestTotem builds an owned, player-aligned summon around the given owner.
 func newTestTotem(owner *fakePlayer) *mob.Mob {
 	totem := mob.NewMob(totemMobDef(), 0, nil)
-	totem.SetFaction(model.FactionAligned)
+	totem.Align()
 	totem.SetOwner(owner)
 	totem.SetPosition(phy.Vec2f{X: 1, Y: 1})
 	return totem
@@ -2659,7 +2666,7 @@ func TestTotem_KillableByHostileMobAura(t *testing.T) {
 	totemDef.Body.CollisionLayer = int(model.LayerViewportCollision | model.LayerPlayerCollision)
 	totemDef.Body.CollisionMask = int(model.LayerBorderCollision)
 	totem := mob.NewMob(totemDef, 0, nil)
-	totem.SetFaction(model.FactionAligned)
+	totem.Align()
 
 	effect := damageEffect(1)
 	effect.Damage = &skills.DamageParams{HP: 10}
@@ -2808,7 +2815,7 @@ func TestApplyHealAura_UntargetableHealerDrawsNoThreat(t *testing.T) {
 	// forever. Design rule: aligned world fixtures never draw mob threat.
 	s := testSkillSystem()
 	campfire := mob.NewMob(campfireMobDef(), 0, nil)
-	campfire.SetFaction(model.FactionAligned)
+	campfire.Align()
 
 	ally := newFakePlayer()
 	ally.vitalSigns.Health = 50

@@ -45,7 +45,7 @@ func companionDefinition() *mobs.MobDefinition {
 // newTestCompanion builds an owned, moving mob (= follower) at the origin.
 func newTestCompanion(owner *fakeOwner) *Mob {
 	m := NewMob(companionDefinition(), 0, nil)
-	m.SetFaction(model.FactionAligned)
+	m.Align()
 	m.SetOwner(owner)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	return m
@@ -439,7 +439,7 @@ func medicCompanionDefinition() *mobs.MobDefinition {
 func TestMob_MedicCompanion_HealsAWoundedAllyWhileFollowing(t *testing.T) {
 	owner := newFakeOwner()
 	m := NewMob(medicCompanionDefinition(), 0, nil)
-	m.SetFaction(model.FactionAligned)
+	m.Align()
 	m.SetOwner(owner)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 
@@ -483,15 +483,15 @@ func TestMob_PlainCompanion_KeepsOwnerSignalAcquisitionOnly(t *testing.T) {
 	assert.Nil(t, m.aggroTarget, "and no owner signal → nothing acquired")
 }
 
-// SetFaction re-derives the sensor mask from the aggro set. A summoned companion
+// Align re-derives the sensor mask from the aggro set. A summoned companion
 // has its faction set from the caster AFTER construction, so a support widening
 // applied only in NewMob would be narrowed straight back — blind medic, no
 // error. The widening is part of the derivation for exactly this reason.
-func TestMob_SetFaction_KeepsTheSupportSensorWidening(t *testing.T) {
+func TestMob_Align_KeepsTheSupportSensorWidening(t *testing.T) {
 	m := NewMob(medicCompanionDefinition(), 0, nil)
 	require.Equal(t, int(model.LayerCombatants), m.aggroAura.Shape().Mask)
 
-	m.SetFaction(model.FactionAligned) // what spawnSummon does
+	m.Align() // what spawnSummon does
 
 	assert.Equal(t, int(model.LayerCombatants), m.aggroAura.Shape().Mask,
 		"a support carrier must still see both combatant layers after re-factioning")
@@ -499,10 +499,10 @@ func TestMob_SetFaction_KeepsTheSupportSensorWidening(t *testing.T) {
 
 // The same call on a damage mob must still narrow to the aggro set — the
 // widening is not a blanket "everyone sees everything".
-func TestMob_SetFaction_LeavesDamageMobSensorNarrow(t *testing.T) {
+func TestMob_Align_LeavesDamageMobSensorNarrow(t *testing.T) {
 	m := newTestMob()
 
-	m.SetFaction(model.FactionAligned)
+	m.Align()
 
 	assert.Equal(t, aggroSensorMask(m.aggroMask), m.aggroAura.Shape().Mask)
 	assert.NotEqual(t, int(model.LayerCombatants), m.aggroAura.Shape().Mask)
@@ -515,7 +515,7 @@ func TestMob_SetFaction_LeavesDamageMobSensorNarrow(t *testing.T) {
 func TestMob_MedicCompanion_IgnoresTheOwnersAttacker(t *testing.T) {
 	owner := newFakeOwner()
 	m := NewMob(medicCompanionDefinition(), 0, nil)
-	m.SetFaction(model.FactionAligned)
+	m.Align()
 	m.SetOwner(owner)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	require.True(t, m.isFollower())

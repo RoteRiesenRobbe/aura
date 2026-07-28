@@ -401,7 +401,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 
 	// Faction (chunk 6.6): absent = the built-in hostile default; an explicit
 	// name resolves against the factions registry ("aligned" is summon-only,
-	// set at spawn via SetFaction, never authored on a species).
+	// set at spawn via mob.Align(), never authored on a species).
 	faction := factions.Hostile
 	aggroMask := factions.Bit(factions.Aligned)
 	friendlyToPlayers := false

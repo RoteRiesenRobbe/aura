@@ -50,3 +50,16 @@ type PlayerFriendly interface {
 type Factioned interface {
 	Faction() Faction
 }
+
+// Allegiance is a side to fight on: an entity's faction TOGETHER WITH the
+// reaction table that goes with it. Only mobs carry one — a player's harm
+// rights are ungated, so it has no aggro set to hand out.
+//
+// It exists as a pair because splitting it is what caused plan-entity-model.md
+// L2: adopting a faction while inventing a mask ("aggro everything that is not
+// my new side") silently discarded the species' authored hostileTo set. The
+// two are handed over together or not at all — see mob.EnlistUnder.
+type Allegiance interface {
+	Factioned
+	AggroMask() uint64
+}

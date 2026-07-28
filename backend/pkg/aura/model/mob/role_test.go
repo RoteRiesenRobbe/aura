@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 )
 
@@ -57,7 +56,7 @@ func TestMob_OwnedStructureDoesNotFollowItsOwner(t *testing.T) {
 	def.Role = mobs.RoleStructure
 	def.Factors.Speed = 0.7 // it COULD walk; a structure does not
 	m := NewMob(def, 0, nil)
-	m.SetFaction(model.FactionAligned)
+	m.Align()
 	m.SetOwner(owner)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 
@@ -74,7 +73,7 @@ func TestMob_OwnedCreatureDoesNotFollowItsOwner(t *testing.T) {
 	owner.pos = phy.Vec2f{X: 5, Y: 0}
 	def := testMobDefinition() // role absent → creature
 	m := NewMob(def, 0, nil)
-	m.SetFaction(model.FactionAligned)
+	m.Align()
 	m.SetOwner(owner)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 

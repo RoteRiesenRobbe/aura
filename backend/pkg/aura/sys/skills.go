@@ -400,7 +400,7 @@ func casterPowerScale(e any) float32 {
 // mayHarm is THE hostility seam for enemy-flagged harmful effects (chunk 6.6
 // in-game fix): a caster without a model.HostilityGate (players) may harm any
 // different-faction target; a gated caster (every mob, incl. owned summons —
-// whose SetFaction sets an all-others aggro set, so their behavior is
+// whose Align() sets an all-others aggro set, so their behavior is
 // unchanged) needs declared hostility or an active combat link with the
 // target. Route EVERY new harmful effect type's enemy eligibility through
 // this — a per-site copy is how the gate gets forgotten (the AuraMaskFor
@@ -1521,7 +1521,17 @@ func (s *SkillSystem) spawnSummon(e skillEntity, es *skills.EquippedSkill, p *sk
 	}
 
 	m := mob.NewMob(def, s.game.Config().MobChaseIntoAuraMargin, s.space)
-	m.SetFaction(e.Faction())
+	// A summon fights on its summoner's side. For a player that is Align (the
+	// player side, ungated harm rights); for a mob it is the caster's own
+	// allegiance — faction AND reaction table together, which is the pair the
+	// old SetFaction(e.Faction()) split (plan-faction-flips.md chunk 1). No mob
+	// equips a spawn skill in shipped content today, but processCooldowns fires
+	// mob cooldowns and the behaviour is pinned by test, so the path is real.
+	if summoner, ok := e.(model.Allegiance); ok {
+		m.EnlistUnder(summoner)
+	} else {
+		m.Align()
+	}
 	m.SetTTLTicks(p.TTLAt(es.Level))
 	m.SkillComponent().RaiseLoadoutLevels(es.Level)
 	if owner, ok := e.(model.PlayerEntity); ok {

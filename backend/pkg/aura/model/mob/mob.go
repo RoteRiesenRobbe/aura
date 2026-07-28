@@ -240,16 +240,8 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	aura.Shape().Mask = auraMask
 	aura.Shape().IsSensor = true
 
-	// Faction + aggro set from the definition (chunk 6.6). The loader always
-	// resolves both (absent key → hostile default); the zero-value guard
-	// catches directly-constructed definitions (tests) — FactionAligned is the
-	// zero value, and no authored species is ever aligned.
-	faction := model.Faction(d.Faction)
-	aggroMask := d.AggroMask
-	if faction == model.FactionAligned {
-		faction = model.FactionHostile
-		aggroMask = model.FactionAligned.Bit()
-	}
+	// Faction + aggro set from the definition (chunk 6.6).
+	faction, aggroMask := definitionAllegiance(d)
 
 	// AggroRadius is validated > 0 at definition load time. The sensor's mask
 	// follows the aggro set: no mob faction in the set = no action-layer bit =
@@ -668,27 +660,94 @@ func (m *Mob) Faction() model.Faction {
 	return m.faction
 }
 
-// SetFaction flips the mob's allegiance at runtime. TWO callers today: the
-// spawn effect aligning a summon with its caster (sys/skills.go), and campfire
-// placement (cmd/aurad).
+// definitionAllegiance derives a mob's authored faction and aggro set from its
+// definition. The loader always resolves both (absent key → hostile default);
+// the zero-value guard catches directly-constructed definitions (tests) —
+// FactionAligned is the zero value, and no authored species is ever aligned
+// (items/mobs/definitions.go rejects it by name).
 //
-// ⚑ LANDMINE (plan-entity-model.md L2): this DISCARDS the authored aggro mask
-// and replaces it with "hostile to everything that is not my new faction"
-// (findAggroTarget's equality skip still protects the new own faction). That is
-// inert for both current callers, because neither target authors a curated
-// hostileTo set — but it is silent, and any charm / side-switch / quest-turns-
-// hostile feature routes through here. The symptom would be a flipped friendly
-// attacking the townsfolk, with nothing logged and nothing failing.
-func (m *Mob) SetFaction(f model.Faction) {
-	m.faction = f
-	m.aggroMask = ^f.Bit()
+// Shared by NewMob and RevertFaction, so a reverted mob lands on exactly the
+// allegiance it was born with rather than on the raw definition fields — the
+// aligned→hostile rewrite above is precisely the difference.
+func definitionAllegiance(d *mobs.MobDefinition) (model.Faction, uint64) {
+	if model.Faction(d.Faction) == model.FactionAligned {
+		return model.FactionHostile, model.FactionAligned.Bit()
+	}
+	return model.Faction(d.Faction), d.AggroMask
+}
+
+// Align joins the player side: faction aligned, hostile to everything that is
+// not. TWO callers today — the spawn effect raising a PLAYER's summon
+// (sys/skills.go; a mob caster hands over its own side instead, see
+// EnlistUnder) and campfire placement (cmd/aurad) — both immediately after
+// NewMob, so the aggro reset below is inert for them.
+//
+// ⚑ The all-but-aligned mask is a DERIVATION, not a shortcut: it mirrors the
+// player's own ungated harm rights (sys/skills.go — a caster without a
+// HostilityGate may harm any different-faction target), and sys/skills.go's
+// mayHarm depends on it, so every companion, totem and campfire would silently
+// lose its harm rights if this were derived from the built-in aligned faction's
+// own (retaliation-only) authored mask instead.
+//
+// This replaces the former general SetFaction(f), whose ^f.Bit() was correct
+// for aligned and UNDEFINED for every other destination — it discarded the
+// species' authored hostileTo set with nothing logged and nothing failing
+// (plan-entity-model.md L2 / plan-faction-flips.md §2). Any further destination
+// wants its own named verb, not a resurrected setter.
+func (m *Mob) Align() {
+	m.faction = model.FactionAligned
+	m.aggroMask = ^model.FactionAligned.Bit()
 	m.refreshSensorMask()
+	// The player is still on a flipped mob's threat table, and
+	// updateEnemyTargeting reads highestThreatTarget FIRST — so without this it
+	// re-latches as the aggro target and the mob chases menacingly while
+	// MayHarm grants it nothing (plan-faction-flips.md §4.2 / L-A).
+	m.resetAggro()
+}
+
+// RevertFaction returns the mob to the allegiance its species authors — the
+// exact faction and aggro mask it was constructed with, read back off the
+// definition rather than reconstructed, so no curated hostileTo set can be lost
+// in the round trip.
+//
+// The empty threat table is load-bearing on this edge too: the mob re-acquires
+// through its RESTORED authored mask, so "the charm wears off and it turns on
+// you" falls out of the ordinary acquisition path with no re-engage code — the
+// same property SetFleeOverride relies on.
+func (m *Mob) RevertFaction() {
+	m.faction, m.aggroMask = definitionAllegiance(m.definition)
+	m.refreshSensorMask()
+	m.resetAggro()
+}
+
+// EnlistUnder makes this mob fight on its summoner's side — the summoner's
+// faction AND its reaction table, handed over as one (model.Allegiance). The
+// only caller is the spawn effect with a MOB caster; a player caster has no
+// aggro set to hand out and gets Align instead.
+//
+// ⚑ Adopting the faction alone is the L2 defect in miniature: the old
+// SetFaction(caster.Faction()) gave an orc's summons "hostile to everything
+// that is not orc", so a squad raised at the front would also have hunted the
+// wildlife and the townsfolk it walked past. Inheriting the summoner's set is
+// both narrower and the thing content actually authored.
+func (m *Mob) EnlistUnder(summoner model.Allegiance) {
+	m.faction = summoner.Faction()
+	m.aggroMask = summoner.AggroMask()
+	m.refreshSensorMask()
+	m.resetAggro()
+}
+
+// AggroMask is the set of factions this mob PROACTIVELY acquires, exposed for
+// model.Allegiance. Read-only by design: it is derived from the faction, never
+// assigned (see Align / RevertFaction / EnlistUnder).
+func (m *Mob) AggroMask() uint64 {
+	return m.aggroMask
 }
 
 // refreshSensorMask re-derives the aggro sensor's mask from the aggro set, plus
 // the support widening. It has to be a derivation rather than a one-off at
-// construction: spawnSummon calls SetFaction after NewMob (a companion inherits
-// its caster's faction), which would otherwise narrow the mask straight back and
+// construction: spawnSummon calls Align after NewMob (a companion joins the
+// player side), which would otherwise narrow the mask straight back and
 // leave every summoned medic blind to the allies it exists to heal.
 func (m *Mob) refreshSensorMask() {
 	// Any mob carrying a support aura senses fellow COMBATANTS (both body
@@ -1439,7 +1498,7 @@ func (m *Mob) MayHarm(f model.Faction, id uint64) bool {
 
 // FriendlyToPlayers implements model.PlayerFriendly (§9 lift 6, C5): the
 // species' faction flag, read by the sys damage-eligibility seam. Runtime
-// faction flips (SetFaction — summons) don't touch it: friendliness is
+// faction flips (Align/RevertFaction) don't touch it: friendliness is
 // authored on the species, and no summoned species is friendly.
 func (m *Mob) FriendlyToPlayers() bool {
 	return m.definition.FriendlyToPlayers

@@ -1,7 +1,18 @@
 # Plan: Runtime allegiance — fix L2 and ship charm as its first consumer
 
-**Status:** planned 2026-07-28 (PO design session, via choice prompts). **DOCS
-ONLY — no code written.** Two chunks, neither started.
+**Status:** planned 2026-07-28 (PO design session, via choice prompts), **extended
+2026-07-28 in a second design session** (D6–D13, the WoW framing, calm added as
+its own chunk). **Chunk 1 ✅ SHIPPED 2026-07-28** (§9) — chunks 2 (calm) and 3
+(charm) not started. ⚑ **§4.1 item 2 was WRONG and is corrected in place** — the
+summon path has a mob-caster leg, which shipped as a third verb (L-N).
+
+⭐ **The second session's reframe: charm is a temporary PET, not a debuff.** The
+PO named the reference — WoW's *Subjugate Demon*: specific mobs only, fights for
+you for a limited time, reverts when the link breaks. That framing made the work
+**smaller, not bigger**, because "acts like a companion" is already shipped
+behaviour gated behind exactly **four `isFollower()` call sites**, and it closed
+the one blocking open question (see D9). It also added a second, cheaper verb —
+**calm** — which needs none of the faction machinery.
 
 Successor to **`plan-entity-model.md` §8 L2** (*"`SetFaction` nukes the authored
 aggro mask"*), which that plan deliberately left open: *"fix it when runtime
@@ -116,7 +127,7 @@ with a content feature that exercises it, rather than being proven by test only.
 (Rejected: correctness-only; a full generic allegiance-flip API; diagnose-only.)
 
 **D2 — a charmed mob is credited to its charmer but keeps its own level.**
-See §5.1 for why this does **not** re-open the chunk-1b ruling. (Rejected: no
+See §6.1 for why this does **not** re-open the chunk-1b ruling. (Rejected: no
 owner / no XP credit; full owner binding with live re-levelling.)
 
 **D3 — charm is a cooldown that hits the nearest enemy in radius.** GDD §9
@@ -125,15 +136,89 @@ forbids target-clicking, so delivery is radius-based: an instant effect with
 Positioning is the skill expression — you walk to the mob you want. (Rejected:
 charm every enemy in radius; a continuous charm aura.)
 
-**D4 — charmability is an authored per-mob flag.** A `charmable` key on the mob
-definition; content opts a boss or a scripted encounter out explicitly.
-Consistent with chunk 2's ruling that role is authored, not inferred from an
-incidental number. (Rejected: gating by tier rank — that is exactly the
-inferred-from-a-number pattern chunk 2 spent a session retiring; and no gate at
-all.)
+**D4 — charmability is an authored per-mob flag.** ⚠ **SUPERSEDED BY D8** in the
+second session: the gate moved from the *mob* to the *skill*. The reasoning that
+produced D4 survives intact — charmability is **authored, never inferred from a
+number** — only its location changed. (Rejected then and still rejected: gating
+by tier rank, and no gate at all.)
 
-**D5 — plan now, execute next session.** Two chunks, each in its own session,
-per the house planning/execution split.
+**D5 — plan now, execute next session.** ~~Two~~ **three** chunks, each in its
+own session, per the house planning/execution split.
+
+---
+
+## 3b. Decisions — second session (PO, 2026-07-28, via choice prompts)
+
+**D6 — ⭐ a charmed mob is a full COMPANION, not a pacified one.** It fights for
+the charmer, attacks what the charmer attacks, and follows them, for a limited
+time; when the link breaks it reverts to an ordinary world mob. This is the WoW
+*Subjugate Demon* model, named by the PO as the reference. It **supersedes open
+question 1's proposal** (*"no, it fights what is near it"*), and it is cheaper
+than that proposal implied — see §6.1b. (Rejected: charm as pure crowd control.)
+
+**D7 — ⭐ calm is a separate spell and its own chunk.** "Put the mob out of
+combat until it is attacked." It **does not flip faction**, so it needs none of
+chunk 1's seam, carries none of charm's open questions, and is the cheapest of
+the three pieces of work. Scoped to wildlife for now. See §5.
+
+**D8 — ⭐ targeting scope is authored on the SKILL as a faction allowlist, not on
+the mob.** The PO is authoring **two** charm spells — *charm wildlife* and *charm
+elementals* — explicitly *"so we ensure we can do it smartly twice and don't
+hardcode anything"*. That requirement kills the per-mob boolean of D4: a flag
+answers *"can anything charm me?"* when the real question is *"which spell reaches
+which factions?"*. So the skill authors faction **names**, resolved to a bitmask
+at content load (the faction registry is boot-only — finding 2 — so names are not
+available at runtime, bits are), and the cast tests one mask.
+
+**One mechanism, three consumers on day one:** charm-wildlife, charm-elementals,
+calm-wildlife. That is the "smartly twice" proof the PO asked for, and it makes a
+later *charm bandits* a content edit rather than a code change.
+
+**D9 — ⭐ allied players CANNOT harm a charmed mob, and this CLOSES open question
+4.** The PO's ruling: *"no allied player should be able to harm the charmed mob,
+similar to WoW. The mob is now also friendly to the player anyway."* This is
+**exactly what the global faction flip already produces** — L-E was written up as
+a hazard and is hereby **adopted as the intended behaviour**. The charmed mob
+also stops harming players, in both directions, via auras and cooldowns alike, by
+the same faction equality. ⚑ **The griefing question is not answered, it is
+DEFERRED by explicit PO decision** — *"making sure this does not result in
+griefing is a topic for later, when authoring who can charm what with what
+spell"*. D8's per-skill scope is the lever that will answer it. (Rejected:
+another player's damage breaking the charm — that would be a griefing lever in
+itself; and a distance leash.)
+
+**D10 — charm breaks on expiry, or when the charmer dies or disconnects.**
+Revert immediately in both cases, which keeps the dangling-charmer window at zero
+and matches WoW (your pet turns on you when you die). Closes open question 3.
+(Rejected: surviving the charmer's death; breaking on distance.)
+
+**D11 — an already-charmed mob is NOT a valid charm target.** Delivery is
+radius-based with the `nearest` selector (D3), so the cast simply passes over it
+and takes the next-nearest eligible mob. No timer refresh, no pet stealing, no
+new failure case for the client to explain. ⚑ **Consequence the PO accepted:
+you cannot extend a charm** — when it runs out you re-charm from scratch, and
+during the gap the mob is hostile again. Closes open question 2. (Rejected:
+refresh-on-recast; refresh-yours-refuse-theirs.)
+
+**D12 — elites are charmable; faction scope alone decides.** Both scoped factions
+contain exactly one elite (`elite-wolf`, `greater-fire-elemental`) and **no
+boss**. A charmed elite keeps its own level (D2), so it is a genuinely strong pet
+— which is the enslave fantasy. No second gate is built. (Rejected: normal-tier
+only — tier-gating is the infer-from-a-number pattern entity-model chunk 2
+retired, already rejected once as D4; and a per-mob opt-out built speculatively.)
+
+**D13 — the client tell is a status-effect pip, for now.** PO: *"reuse the status
+effect pip for now — we'll have to redo the entire frontend display later on
+anyway to show more information."* No schema change, no wire field, no touching
+the pinned unions. Closes open question 5 **as an interim measure**, and records
+that a proper pet frame (name / health / time remaining) is expected to arrive
+with that frontend rework, not before.
+
+**D14 — numbers: long and committal [PLACEHOLDER].** Charm ~60 s duration /
+~120 s cooldown — the pet is a real part of the kit for a whole encounter rather
+than a tactical blip. Calm and the radii still need values; see open question 3.
+⚑ A long duration makes **L-G** (charmer leaves) and **L-F** (the no-op gap)
+more likely to be hit in play, not less.
 
 ---
 
@@ -153,9 +238,12 @@ acceptance test.
      mirrors the player's ungated harm rights (`sys/skills.go:414` — a caster
      without a `HostilityGate` may harm any different-faction target). It is a
      derivation, not a shortcut.
-2. **`sys/skills.go:1519`** — `m.SetFaction(e.Faction())` → `m.Align()`. Note the
+2. **`sys/skills.go:1519`** — `m.SetFaction(e.Faction())` → `m.Align()`. ~~Note the
    call is already effectively `Align` today: `e` is the casting player, whose
-   faction is always `FactionAligned`.
+   faction is always `FactionAligned`.~~ ⚑ **WRONG — corrected during execution,
+   see L-N.** Mobs fire their own cooldowns (`processCooldowns`), the mob-caster
+   spawn path is pinned by a shipped test, and a plain `Align()` turns it red.
+   Shipped as a **third verb**, `EnlistUnder(model.Allegiance)`.
 3. **`cmd/aurad/aurad.go:157`** — `m.SetFaction(model.FactionAligned)` →
    `m.Align()`.
 4. **`factions/factions.go:109`** — make the built-in `aligned` entry honest:
@@ -200,9 +288,88 @@ Not cosmetic — required, and the reason is subtle:
 
 ---
 
-## 5. Chunk 2 — charm
+## 5. Chunk 2 — calm (D7)
 
-### 5.1 ⭐ D2, and why it does not re-open chunk 1b
+**"Out of combat until it is attacked."** Scoped to wildlife. This chunk exists
+because the PO asked for a second, gentler verb — and it turns out to need
+**none** of the faction machinery, which makes it the cheapest real feature in
+the plan and the natural place to build D8's authoring seam.
+
+### 5.1 Why it is cheap — no faction flip
+
+Calm never leaves its own faction. Everything that makes charm expensive is
+therefore absent: no `Align()`/`RevertFaction()`, no credit question, no level
+question, no L-E untargetability, no client tell beyond D13's pip, no schema
+pressure. A calmed wolf is still a wolf that anyone can damage — it has simply
+stopped swinging.
+
+⚑ **The corollary matters for scheduling: calm does NOT exercise chunk 1's
+seam.** D1 requires the seam ship with a consumer that proves it *by use*. Calm
+cannot be that consumer — only charm can. Calm can run before or after chunk 1;
+it does not substitute for chunk 3.
+
+### 5.2 What exists already
+
+| calm needs | what is there |
+|---|---|
+| drop the current target | `resetAggro()` |
+| acquire nothing while calmed | the **pacifist** branch in `updateAggro` (`support.go:98`) is already *"acquires no enemy at all"* |
+| a runtime boolean override on the AI | `fleeOverride` (`mob.go:1097`) is the precedent, comment and all |
+| a break signal | `tookDamage`, already set by damage and read at the top of `updateEnemyTargeting` |
+| a countdown | `ttlTicks` (`mob.go:854`) is the shape to mirror |
+
+### 5.3 What is new
+
+1. **`calmTicks` on `Mob`** — countdown in `Update`, mirroring `ttlTicks` but
+   expiring into "resume normal acquisition" rather than death.
+2. **A branch in `updateAggro`**, ahead of the pacifist case: while calmed,
+   `resetAggro()` and acquire nothing.
+3. **Break on damage** — any `tookDamage` clears `calmTicks` immediately (D-calm
+   below).
+4. **`EffectTypeCalm` + `CalmParams{DurationTicks, DurationTicksPerLevel}`**, with
+   the `mapToEffectDef` `default:` guard covering it (§27.3.1 — a new EffectType
+   must not be able to ship a nil-payload no-op).
+5. **The faction-allowlist seam (D8)** — authored names on the skill, resolved to
+   a mask at content load, one mask test at cast. **Built here, reused by chunk 3
+   twice.**
+6. **Content** — one cooldown skill scoped to `wildlife_prey` +
+   `wildlife_predator`.
+
+### 5.4 ⚑ The design snag, ruled
+
+**Your aura ticks automatically on everything in range**, so standing next to a
+calmed mob with a damage aura active breaks your own calm instantly. In WoW you
+can choose not to attack; here you cannot, short of switching to a non-damaging
+aura (the loadout allows exactly one active aura, so this is a real option).
+
+**PO ruling: that is the intent — calm is a DISENGAGE tool.** Any damage breaks
+it, the calmer's own aura included. No per-caster exemption, no exceptions in
+code. Calm means *"stop this fight so I can leave"*, not *"hold this one while I
+kill that one"*. (Rejected: exempting the calmer's own damage — that is a
+per-caster relation, exactly what the global faction model avoids; and breaking
+only on player damage.)
+
+⚑ **Consequence to watch in playtest:** calm is useless as crowd control, and a
+player who expects sheep-and-kill will read it as broken. The pip (D13) is the
+only feedback that it was ever applied.
+
+### 5.5 Test plan
+
+- **Unit** — a calmed mob drops its target and acquires nothing; damage from any
+  source breaks it the same tick; expiry restores normal acquisition; a
+  non-wildlife mob is refused at cast; the faction mask resolves from authored
+  names at load and hard-fails an unknown name.
+- **Sim** — unaffected (no sim mob authors calm), but re-run the battery to prove
+  the new field costs nothing (L4 / the alloc pins).
+- **In-game harness** — calm a wolf mid-chase, assert it stops chasing and stops
+  damaging; walk away and confirm it does not re-acquire; hit it and confirm it
+  immediately does.
+
+---
+
+## 6. Chunk 3 — charm
+
+### 6.1 ⭐ D2, and why it does not re-open chunk 1b
 
 Today `owner` answers **two different questions at once**:
 
@@ -232,38 +399,116 @@ re-levelling" look expensive was one accessor doing two jobs.
 **acting** entity, so the player's crit chance and damage factor correctly do
 **not** leak into a charmed mob's hits. Nothing to change there.
 
-### 5.2 The pieces
+### 6.1b ⭐ D6 — the pet behaviour is four call sites away
+
+The second session's key finding. "Acts like a companion" is **already shipped,
+in-game-verified behaviour** (`chunk2-follower.mjs`, 6/6), and every part of the
+WoW pet fantasy already exists somewhere:
+
+| Subjugate Demon does | this engine already has |
+|---|---|
+| fights for you, attacks what you attack | `updateCompanionTargeting` (`companion.go:122`) — `RecentAttacker()` then `RecentAttackTarget()`, defend-before-assist |
+| follows you around | `updateFollow` — follow ring, per-pet angle offset, teleport catch-up |
+| stays near you | the owner tether bounds acquisition *and* stickiness |
+| limited duration | `ttlTicks` (`mob.go:854`), the only timed-state seam on a mob |
+| reverts, turns on you | `RevertFaction()` + an empty threat table ⇒ re-acquisition through the **restored** authored mask, free (§4.2) |
+| only specific mobs | D8's per-skill faction allowlist |
+| keeps its own level | D2 |
+
+**And the whole package is gated behind one predicate with four call sites:**
+
+| site | what it gates |
+|---|---|
+| `companion.go:68` | the predicate itself — `role == RoleFollower && m.owner != nil` |
+| `mob.go:1143` | targeting → `updateCompanionTargeting` |
+| `patrol.go:89` | movement → `updateFollow` |
+| `patrol.go:116` | `noteCombatEntry` skips the evade point |
+
+#### The third question
+
+Making that predicate true for a charmed mob must **not** go through `owner` —
+that is **L-B**: `Level():765` reads the owner's level live, so binding a charmed
+elite would shrink it to the charmer's level and re-open chunk 1b.
+
+So apply §6.1's move a second time. `owner` was answering two questions; a pet
+needs a third:
+
+| question | answered by |
+|---|---|
+| *whose level do I stand at?* | `owner` — **unchanged**, 1b untouched |
+| *who gets credit for my kills?* | `CreditTo()` = charmer ?? owner (D2) |
+| *whose combat signals do I follow, and whom do I trail?* | **`leader()` = charmer ?? owner** — new |
+
+Then:
+
+- `isFollower()` becomes *"has a leader, and is either an authored follower or
+  currently charmed"*.
+- The `owner` reads **inside `companion.go`** (`ownerCombatant`,
+  `withinOwnerTether`, `updateFollow`, `updateCompanionTargeting`) become
+  `leader()` reads — a mechanical substitution in one file.
+- `Level()`, `MaxHealth()` and `PowerScale()` never see it. `Owner()` stays nil
+  for a charmed mob.
+
+**No runtime role mutation.** `m.role` has only two non-test readers
+(`companion.go:68`, `support.go:198`), and neither is written after construction
+— keeping it that way preserves entity-model chunk 2's authored-role property.
+
+⚑ **Check during implementation, not assumed:** `updateCompanionTargeting`
+type-asserts the leader to `model.CombatSignals`. Players satisfy it; confirm the
+assertion is on `leader()` and not re-derived from `owner`, or a charmed mob will
+silently acquire nothing and just stand there looking obedient.
+
+### 6.2 The pieces
 
 1. **`charmTicks` on `Mob`** — a countdown decremented in `Mob.Update`, reverting
    at zero. Direct mirror of `ttlTicks` (`mob.go:512`, `:813`), which is the only
    existing timed-state seam on a mob; the difference is that TTL kills and charm
    reverts.
-2. **`charmer` field + `CreditTo()`**, per §5.1.
-3. **`EffectTypeCharm` + `CharmParams{DurationTicks, DurationTicksPerLevel}`** —
+2. **`charmer` field + `CreditTo()`**, per §6.1.
+3. **`leader()` + the `isFollower()` widening + the `companion.go` substitution**,
+   per §6.1b (D6). The pet behaviour itself is not written — it is re-pointed.
+4. **`EffectTypeCharm` + `CharmParams{DurationTicks, DurationTicksPerLevel}`** —
    a new effect type in `skills/definition.go`, with the `default:` guard in
    `mapToEffectDef` covering it (§27.3.1: a new EffectType must not be able to
    ship a nil-payload no-op).
-4. **`charmable` on `MobDefinition`** (D4) — validated at load, checked at cast.
-5. **Content** — one cooldown skill in `api/skills/`, plus the `charmable` key
-   on any mob that opts out.
+5. **The already-charmed check (D11)** — a charmed mob is not an eligible target,
+   so the `nearest` selector passes over it.
+6. **Break on charmer death/disconnect (D10)** — revert immediately.
+7. **The status-effect pip (D13)** — the interim client tell, no wire change.
+8. **Content — TWO skills (D8):** *charm wildlife* (`wildlife_prey` +
+   `wildlife_predator`) and *charm elementals* (`elemental`), both riding the same
+   faction-allowlist seam built in chunk 2. **Authoring both is the acceptance
+   test for D8** — if the second one needs a code change, the mechanism was
+   hardcoded and the chunk is not done.
 
-### 5.3 Implementation order
+**Not built:** `charmable` on `MobDefinition` (D4, superseded by D8) and any
+tier gate (D12).
 
-1. `charmable` on the definition + loader validation, no consumer yet (boot
-   stays green with the pinned counts).
-2. `charmer` + `CreditTo()` + the three attribution sites, no consumer yet — and
+### 6.3 Implementation order
+
+1. `charmer` + `CreditTo()` + the three attribution sites, no consumer yet — and
    a test proving `Level()` is unaffected by a charmer.
-3. `charmTicks` + `Charm(by, ticks)` / revert on expiry, driven directly in a
-   unit test.
-4. `EffectTypeCharm` + params + the cast-site wiring.
-5. Content authoring + the in-game harness run.
+2. `leader()` + `isFollower()` + the `companion.go` substitution, with the
+   existing follower tests still green — **this step must move no summon
+   behaviour at all**, which the shipped companion tests already pin.
+3. `charmTicks` + `Charm(by, ticks)` / revert on expiry / revert on charmer loss,
+   driven directly in a unit test.
+4. `EffectTypeCharm` + params + the cast-site wiring + the D11 eligibility check.
+5. The D13 pip.
+6. Content authoring — **wildlife first, then elementals as a pure content
+   edit** — and the in-game harness run.
 
-### 5.4 Test plan
+### 6.4 Test plan
 
 - **Unit** — `Level()` and `MaxHealth()` are byte-identical before and after a
-  charm (the L-B pin); credit routes to the charmer while the mob's own stats
-  drive the damage; the timer reverts exactly at zero; `charmable: false` is
-  refused at cast; expiry restores the exact authored faction *and* mask.
+  charm (the L-B pin); `Owner()` stays nil; credit routes to the charmer while
+  the mob's own stats drive the damage; the timer reverts exactly at zero; a
+  faction outside the skill's allowlist is refused at cast; an already-charmed
+  mob is not eligible (D11); charmer death reverts on the same tick (D10);
+  expiry restores the exact authored faction *and* mask.
+- **Regression** — the shipped summon/companion suite must stay green through
+  the `leader()` substitution, unmodified. If a companion test needs editing,
+  the substitution changed behaviour it should not have.
 - **Sim** — unaffected; no sim mob authors charm. Re-run the battery anyway to
   prove the new fields cost nothing (L4 / the alloc pins).
 - **In-game harness** (`.claude/skills/verify`) — the acceptance surface. Charm
@@ -271,10 +516,15 @@ re-levelling" look expensive was one accessor doing two jobs.
   it (its former faction reads it as aligned — free, via the other mob's own
   authored mask), that the player's aura no longer damages it, that XP credits
   on a charmed-mob kill, and that on expiry it turns on the player again.
+  **Plus, for D6:** that it **follows** the player across a walk, and that it
+  **attacks what the player attacks** — the `chunk2-follower.mjs` run is the
+  template, and its two hard-won harness lessons apply directly (a killed player
+  nulls `Character.plate`, and `Cam Boundaries: On` means the player is **not**
+  at screen centre, so never measure follow distance in screen space).
 
 ---
 
-## 6. Landmines
+## 7. Landmines
 
 **L-A — the flip must reset aggro on both edges.** §4.2. Skipping the flip side
 gives a charmed mob that chases the player and deals nothing; skipping the
@@ -282,7 +532,7 @@ revert side loses the free re-engage.
 
 **L-B — `SetOwner` is no longer bookkeeping.** Since chunk 1b, `Level():765`
 reads the owner's level **live**, so binding a charmed mob via `SetOwner` would
-re-level it — a charmed elite would shrink to the charmer's level. §5.1 defuses
+re-level it — a charmed elite would shrink to the charmer's level. §6.1 defuses
 this by not using `owner` at all, but the trap survives for anyone who later
 reaches for the obvious field. Pin it with a test, not a comment.
 
@@ -298,27 +548,76 @@ So a charmed mob is inert against townsfolk and the Human Army for the charm's
 duration. Almost certainly desirable, but it is a behaviour nobody authored — it
 falls out of the flip.
 
-**L-E — ⚑ charm makes a mob untargetable by *every* player, not just the
-charmer.** Faction is a global property of the entity. In a shared open world,
-charming a mob mid-fight makes it immune to everyone else's auras too, and it
-stops attacking them. GDD §9 says *"no griefing possible by design"*. D4's
-authored `charmable` flag contains the worst case (a boss opts out), but the
-general shape is a real design question — open question 4, and the one most
-worth settling before chunk 2 starts.
+**L-E — ✅ RESOLVED BY D9 — charm makes a mob untargetable by *every* player, not
+just the charmer.** Faction is a global property of the entity, so charming a mob
+makes it immune to everyone else's auras too, and it stops attacking them. This
+was written up as the plan's most serious hazard against GDD §9 (*"no griefing
+possible by design"*). **The PO has adopted it as the intended behaviour** — it
+is what WoW does, and the mob stops harming everyone in both directions. ⚑ **The
+griefing question itself is deferred, not answered** (D9): the lever that will
+answer it is D8's per-skill faction scope — *who can charm what with what spell*.
+Keep the landmine on file; it is now a design constraint rather than a defect.
 
-**L-F — double-charm.** Re-casting on an already-charmed mob must be defined:
-refresh the timer, or no-op. Open question 2.
+**L-F — ⚑ the charm gap (D11).** An already-charmed mob is not a valid target, so
+a charm **cannot be extended** — when the timer runs out the mob is hostile again
+until a fresh cast lands. With D14's long duration (~60 s) and longer cooldown
+(~120 s), that gap can be **a full minute of an elite pet turning on you** with
+no way to pre-empt it. The `nearest` selector also means the re-cast may well
+grab a *different* mob than the one that just reverted. Both are consequences the
+PO accepted; neither is visible in code review.
 
 **L-G — the charmer can leave.** Death, disconnect or zone change while a charm
-is live leaves a dangling `charmer` pointer. The `Owned` path has the same shape
-and handles it by reading dead (`highestThreatTarget` prunes as it reads,
-`mob.go:1407`), but charm must decide explicitly. Open question 3.
+is live leaves a dangling `charmer` pointer. ✅ **D10 rules: revert immediately**,
+which keeps the window at zero. The `Owned` path has the same shape and handles it
+by reading dead (`highestThreatTarget` prunes as it reads, `mob.go:1407`) — but
+charm must do it *explicitly*, because `leader()` is read by the movement path
+too, and a follower whose leader is nil stands still rather than reverting.
 
-**L-H — a charmed mob does not follow you.** `isFollower()` reads the *authored*
-role since chunk 2, and a charmed creature stays `creature`. It runs
-`updateEnemyTargeting` and fights whatever is near it, standing where it stood.
-That is a coherent design (charm is a control tool, not a pet), but it is a
-consequence, not a decision. Open question 1.
+**L-H — ✅ SUPERSEDED BY D6 — a charmed mob does not follow you.** Originally:
+`isFollower()` reads the *authored* role, a charmed creature stays `creature`, so
+it would fight whatever is near it and stand where it stood. **D6 rules the
+opposite** — it is a full companion — and §6.1b is how, without mutating role and
+without touching `owner`. The landmine survives inverted: **if the `leader()`
+substitution misses a site, the mob silently falls back to exactly this
+behaviour** — standing still, fighting whatever wanders past — which looks like a
+tuning problem rather than a missed call site. The four sites are listed in
+§6.1b; a companion-behaviour regression test is the guard.
+
+**L-K — ⚑ NEW: calm's break condition is the player's own aura (§5.4).** A
+calmed mob standing in the calmer's damage aura breaks the calm on the next tick.
+Ruled as intended, but it means **calm is untestable in the harness without
+either walking away or switching to a non-damaging aura** — a naive harness run
+that casts calm and then stands there will report calm as broken. Write the test
+to move.
+
+**L-L — ⚑ NEW: two spells is the acceptance test for D8, not a content detail.**
+*Charm wildlife* and *charm elementals* exist specifically to prove the faction
+scope is data, not code. If the second skill requires any Go change, the
+mechanism was hardcoded — that is the failure the PO named in advance.
+
+**L-M — ⚑ NEW: `leader()` must not leak into the stat path.** The whole point of
+§6.1b is that three questions stay separate. A future reader who sees
+`leader()` returning a player and reaches for it in `Level()`, `MaxHealth()` or
+`PowerScale()` re-opens chunk 1b and shrinks charmed elites. Pin it with a test
+(`Level()` unchanged across a charm), not a comment — the same instruction L-B
+already carries, now with a second field to guard.
+
+**L-N — ⚑ NEW, found in execution: `spawnSummon` has a MOB caster path, and it
+is pinned by a shipped test.** §4.1's *"`e` is the casting player, whose faction
+is always `FactionAligned`"* is false. `processCooldowns` (`sys/skills.go`) fires
+**mob** cooldowns as soon as they are ready, and
+`TestCooldown_MobCastSpawnHasNoOwner` asserts *"summon adopts the casting mob's
+faction"* — so `m.Align()` on that path turns an orc's summons into the player's
+squad, and the test catches it. **Unreachable in content today** (no mob among
+the 64 defs equips any of the 6 spawn skills — checked, not assumed), which is
+why the plan could get it wrong and still trace clean. ✅ **Resolved by a third
+verb**, `EnlistUnder(model.Allegiance)`: the summon adopts its summoner's faction
+**and** its aggro mask, handed over as one. ⚑ **That is a behaviour change on
+that path** — the old code adopted the faction and *invented* `^casterBit`, i.e.
+L2 in miniature: an orc squad would have hunted every neutral it walked past.
+The durable lesson is the plan's own thesis applied one level down: a faction and
+its reaction table are **a pair**, and every place that takes one without the
+other is a defect.
 
 **L-I — safe zones.** A charmed mob inside a campfire safe zone becomes a target
 that hostile mobs are blocked from chasing (`blockedBySafeZone:1129`). Untested
@@ -333,30 +632,106 @@ editing, and keep the boot count pinned at 15.
 
 ---
 
-## 7. Open questions (resolve before or inside chunk 2)
+## 8. Open questions
 
-1. **Does a charmed mob follow the charmer?** (L-H) *Proposal: no.* It fights
-   what is near it. Following means giving it the `follower` role at runtime,
-   which re-introduces exactly the owner-centric coupling §5.1 avoids.
-2. **Re-charming an already-charmed mob** — refresh the timer, or no-op?
-   *Proposal: refresh.*
-3. **Does charm survive the charmer's death or disconnect?** *Proposal: revert
-   immediately* — it keeps the dangling-pointer window at zero.
-4. **⚑ L-E: shared-world untargetability.** Accept it (charm is short and
-   cooperative, and the mob stops attacking everyone too), or constrain charm to
-   mobs where it cannot matter? D4's flag is the containment mechanism either
-   way. **The one to settle first.**
-5. **Visual tell** (L-C) — does the client need to show a charmed mob as
-   friendly? Cheapest is an existing status-effect pip; a faction-on-the-wire
-   change is a schema edit and should not be taken casually.
-6. **`charmable` default** — true (opt out) or false (opt in)? *Proposal: true*,
-   matching D4's framing, with bosses opting out.
-7. **Numbers** — duration, cooldown, radius, and whether duration scales with
-   skill level. All **[PLACEHOLDER]** until the PO sets them.
+### ✅ Closed in the second session (2026-07-28)
+
+| # | question | closed by |
+|---|---|---|
+| 1 | does a charmed mob follow the charmer? | **D6** — yes, full companion (§6.1b) |
+| 2 | re-charming an already-charmed mob | **D11** — not a valid target, no refresh |
+| 3 | does charm survive the charmer's death? | **D10** — no, revert immediately |
+| 4 | ⚑ shared-world untargetability (L-E) | **D9** — adopted as intended; griefing deferred to per-skill authoring |
+| 5 | visual tell (L-C) | **D13** — status-effect pip, interim until the frontend rework |
+| 6 | `charmable` default, opt-in or opt-out | **D8** — the flag does not exist; scope is per-skill |
+
+### Still open
+
+1. **Calm's numbers.** D14 set charm's (~60 s / ~120 s [PLACEHOLDER]). Calm's
+   duration and cooldown, both radii, and whether either duration scales with
+   skill level are unset. Not blocking — chunk 2 can author obvious placeholders
+   and the values are a tuning pass.
+2. **Does calm apply to a mob that is already attacking you?** Assumed **yes**
+   (that is the disengage case it exists for), but it has not been ruled. If yes,
+   calm drops an active aggro link, which is a slightly stronger effect than
+   "prevents acquisition".
+3. **What does a charmed mob's XP kill credit do to the shared-XP rule?** D2
+   routes credit to the charmer. All combat participants get XP today (GDD, no
+   formal groups), so this probably needs no special handling — but it has not
+   been traced against `PlayerTouches`.
+4. **Does the pip (D13) show duration?** A plain pip does not. With a 60 s charm,
+   *time remaining* is the single most useful thing to display, and its absence is
+   the strongest argument for pulling the pet frame forward.
 
 ---
 
-## 8. Chunk ledger
+## 9. Chunk ledger
 
-*(filled in as chunks land — one entry per chunk: what was decided inside it,
-what shipped, which commit, what was verified.)*
+*(one entry per chunk: what was decided inside it, what shipped, which commit,
+what was verified.)*
+
+### Chunk 1 — the allegiance seam ✅ DONE 2026-07-28, backend-only, committed `[uncommitted]`
+
+**`SetFaction` is gone.** One general-looking setter with exactly one defined
+destination became **three named verbs**, and the tombstone test guards the
+*shape* returning under any name, not just the name.
+
+| verb | destination | callers |
+|---|---|---|
+| `Align()` | the player side — mask `^Bit(Aligned)` | `spawnSummon` (player caster), campfire placement |
+| `RevertFaction()` | the species' authored faction + mask, off `m.definition` | none yet — chunk 3 is its first consumer |
+| `EnlistUnder(model.Allegiance)` | the summoner's side, faction **and** mask | `spawnSummon` (mob caster) |
+
+⭐ **The third verb is the finding, and it is a correction to this plan.** §4.1
+claimed the summon path's caster is always a player. It is not: `processCooldowns`
+fires mob cooldowns, and `TestCooldown_MobCastSpawnHasNoOwner` is a **shipped
+test** asserting *"summon adopts the casting mob's faction"* — a plain `Align()`
+turns it red, and would have raised an orc warlord's squad **fighting for the
+player**. Full write-up as **L-N**. It is unreachable in content (no mob among
+the 64 defs equips any of the 6 spawn skills — checked), which is exactly why the
+design session traced clean and missed it. ⚑ **`EnlistUnder` is therefore the one
+behaviour change in an otherwise behaviour-neutral chunk**: the old code adopted
+the caster's faction and *invented* `^casterBit`, so an orc squad would have
+hunted every neutral faction it walked past. The new `model.Allegiance` capability
+(`Faction()` + `AggroMask()`) exists to make the pair inseparable — splitting it
+**is** L2.
+
+**Also shipped, none of it behaviour-visible:**
+
+- **`definitionAllegiance(d)`** — extracted from `NewMob` and shared with
+  `RevertFaction`. ⚑ Not cosmetic: `NewMob` **rewrites** a zero-value (=aligned)
+  definition faction to hostile, so a `RevertFaction` reading `d.Faction`/
+  `d.AggroMask` raw would land a reverted test mob permanently player-aligned.
+  Reverting must restore what the mob was *born with*, not what the definition
+  *says*. Pinned by its own test.
+- **`resetAggro()` on every edge (L-A)** — inert for both existing callers (both
+  flip immediately after `NewMob`), load-bearing for chunk 3 on both directions.
+- **`factions.go`'s built-in `aligned` entry** now carries `AggroMask:
+  ^Bit(Aligned)` instead of an implicit `0`. Inert (L-J re-checked: nothing walks
+  `registry.All()` acting on masks; `faction: "aligned"` is rejected on mob
+  definitions), but the implicit `0` read as *retaliation-only* and was half of
+  why `Align`'s mask looked wrong in the first place.
+- **A reflection tombstone** — `TestMob_NoGeneralFactionSetterExists` fails on
+  `SetFaction` **or** `SetAggroMask` reappearing on `*Mob`.
+- 8 stale comments across `sys/skills.go`, `items/mobs/definitions.go`,
+  `cmd/aurad/aurad.go` and `mob.go`; the `SetFaction`-named tests renamed.
+
+**Considered and NOT taken:** a content pin forbidding mobs from equipping spawn
+skills. Written, then deleted — once the behaviour is *defined*, constraining
+authoring is the wrong tool (it would have blocked a legitimate content addition
+to protect an engine gap that no longer exists).
+
+**Verified:** `go build` / `go vet` / `go test -timeout 180s ./...` green;
+guardrails + alloc pins `-count=2` green. **Sim battery BYTE-IDENTICAL** against a
+pre-change worktree across all four legs (default · `-chain` · `-levels` ·
+`-content ../api`) — **TTK 6.67 s / TTD 8.70 s stand**. Boot `-content ../api`:
+**0 errors 0 warnings 0 panics — 83 skills / 15 factions / 64 mobs / 10 recipes /
+1 milestone / 777 props / 485 spawns / 5 campfires placed.** No frontend surface,
+no wire change, no content change.
+
+⚑ **Byte-identical on every *reachable* path, not literally every path** — the
+mob-caster summon leg changed, and it is invisible to every instrument the project
+has, because no content reaches it. Say so rather than claiming a clean sweep.
+
+**Next:** chunk 2 (calm) or chunk 3 (charm), each its own session (D5). Chunk 1
+is D1's seam; only **chunk 3** proves it by use (§5.1 — calm never flips faction).

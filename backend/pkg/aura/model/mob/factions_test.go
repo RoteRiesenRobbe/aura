@@ -7,6 +7,7 @@ package mob
 // player-only sensor, a passive faction's sensor sees nothing at all.
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -156,18 +157,147 @@ func TestMob_MobTouches_SameFactionHitNeverBuildsThreat(t *testing.T) {
 	assert.False(t, a.HasThreat(b.Basic().ID()))
 }
 
-func TestMob_SetFactionRecomputesAggroSet(t *testing.T) {
+func TestMob_AlignRecomputesAggroSet(t *testing.T) {
 	// A summon flipped to aligned must not keep hunting the aligned faction;
 	// flipped mobs default to hostile-to-all-others (equality still protects
 	// the own faction in findAggroTarget).
 	m := NewMob(testMobDefinition(), 0, nil)
 
-	m.SetFaction(model.FactionAligned)
+	m.Align()
 
 	assert.Zero(t, m.aggroMask&model.FactionAligned.Bit(), "never aggro the own faction")
 	assert.NotZero(t, m.aggroMask&model.FactionHostile.Bit())
 	assert.Equal(t, int(model.LayerActionCollision), m.aggroAura.Shape().Mask,
 		"sensor mask follows the recomputed set — own (aligned) faction rides the player layer, so only the action layer is needed")
+}
+
+// --- the allegiance seam (plan-faction-flips.md chunk 1) ---
+//
+// SetFaction was one general-looking setter whose ^f.Bit() destination was
+// defined for exactly one faction (aligned) and silently destroyed the
+// species' authored hostileTo set for every other. It is now two named verbs.
+
+func TestMob_Align_KeepsHarmRightsAgainstEveryOtherFaction(t *testing.T) {
+	// The load-bearing property (plan §2 finding 3): sys/skills.go routes every
+	// harmful effect through MayHarm, so a summon, totem or campfire that lost
+	// its all-others aggro set would silently stop being able to hurt anything.
+	// Derive Align's mask from the built-in aligned faction's own authored
+	// (retaliation-only) mask and this test is what goes red.
+	m := NewMob(predatorDefinition(), 0, nil)
+
+	m.Align()
+
+	require.Equal(t, model.FactionAligned, m.Faction())
+	for _, f := range []model.Faction{
+		model.FactionHostile, testFactionPredator, testFactionPrey, testFactionOther,
+	} {
+		assert.True(t, m.MayHarm(f, 0), "aligned may harm faction %d", f)
+	}
+	assert.False(t, m.MayHarm(model.FactionAligned, 0), "never the own side")
+}
+
+func TestMob_RevertFaction_RestoresTheExactAuthoredMask(t *testing.T) {
+	// Asserted against the definition rather than a hand-written constant: the
+	// point of the verb is that a curated hostileTo set survives the round
+	// trip, so the test must not be able to agree with a reconstruction.
+	def := predatorDefinition()
+	m := NewMob(def, 0, nil)
+	wantFaction, wantMask := m.Faction(), m.aggroMask
+	wantSensor := m.aggroAura.Shape().Mask
+	require.Equal(t, def.AggroMask, wantMask, "fixture sanity: a curated set")
+
+	m.Align()
+	require.NotEqual(t, wantMask, m.aggroMask)
+
+	m.RevertFaction()
+
+	assert.Equal(t, wantFaction, m.Faction())
+	assert.Equal(t, wantMask, m.aggroMask)
+	assert.Equal(t, wantSensor, m.aggroAura.Shape().Mask,
+		"a round trip is identity on the sensor mask too")
+}
+
+func TestMob_RevertFaction_HonoursTheAlignedRewriteAtConstruction(t *testing.T) {
+	// A directly-constructed definition leaves Faction at its zero value, which
+	// IS FactionAligned — NewMob rewrites it to the hostile default. Reverting
+	// must land on what the mob was born with, not on the raw definition
+	// fields, or a reverted test mob comes back permanently player-aligned.
+	m := NewMob(testMobDefinition(), 0, nil)
+	require.Equal(t, model.FactionHostile, m.Faction())
+
+	m.Align()
+	m.RevertFaction()
+
+	assert.Equal(t, model.FactionHostile, m.Faction())
+	assert.Equal(t, model.FactionAligned.Bit(), m.aggroMask)
+}
+
+func TestMob_EnlistUnder_AdoptsTheSummonersWholeAllegiance(t *testing.T) {
+	// Faction AND reaction table, together. The old SetFaction(caster.Faction())
+	// took the first and invented the second, which is why a summoned squad
+	// would have hunted every neutral faction it walked past.
+	summoner := NewMob(predatorDefinition(), 0, nil)
+	summon := NewMob(testMobDefinition(), 0, nil)
+	require.NotEqual(t, summoner.aggroMask, summon.aggroMask)
+
+	summon.EnlistUnder(summoner)
+
+	assert.Equal(t, summoner.Faction(), summon.Faction())
+	assert.Equal(t, summoner.AggroMask(), summon.AggroMask())
+	assert.Zero(t, summon.aggroMask&testFactionOther.Bit(),
+		"a neutral faction the summoner ignores stays ignored")
+	assert.Equal(t, summoner.aggroAura.Shape().Mask, summon.aggroAura.Shape().Mask,
+		"the sensor follows the adopted set")
+
+	var _ model.Allegiance = summoner
+}
+
+func TestMob_AllegianceFlipsClearAggroOnBothEdges(t *testing.T) {
+	// L-A. On the flip edge: updateEnemyTargeting reads highestThreatTarget
+	// FIRST, so a player left on the table re-latches and the flipped mob
+	// chases menacingly while MayHarm grants it nothing. On the revert edge an
+	// empty table is what makes "it turns on you" fall out of ordinary
+	// acquisition through the RESTORED mask, with no re-engage code.
+	for _, tc := range []struct {
+		name string
+		flip func(*Mob)
+	}{
+		{"Align", (*Mob).Align},
+		{"RevertFaction", (*Mob).RevertFaction},
+		{"EnlistUnder", func(m *Mob) { m.EnlistUnder(NewMob(preyDefinition(), 0, nil)) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := NewMob(predatorDefinition(), 0, nil)
+			attacker := NewMob(testMobDefinition(), 0, nil)
+			m.MobTouches(attacker, mobs.Factors{Damage: 5})
+			m.aggroTarget = attacker
+			m.leashTicks = 7
+			require.True(t, m.HasThreat(attacker.Basic().ID()))
+
+			tc.flip(m)
+
+			assert.Nil(t, m.aggroTarget)
+			assert.False(t, m.HasThreat(attacker.Basic().ID()))
+			assert.Zero(t, m.leashTicks)
+		})
+	}
+}
+
+func TestMob_NoGeneralFactionSetterExists(t *testing.T) {
+	// Tombstone (the jsonInteraction.Trigger precedent). The trap this chunk
+	// closes is not a wrong value, it is a general-looking setter with exactly
+	// one defined destination — so the guard is against the SHAPE returning,
+	// under any name, years from now.
+	forbidden := map[string]string{
+		"SetFaction":   "use Align() or RevertFaction() — a faction is not a value to be set, it is a side to be joined or left",
+		"SetAggroMask": "the aggro set is derived from the faction, never assigned",
+	}
+	typ := reflect.TypeOf(&Mob{})
+	for i := 0; i < typ.NumMethod(); i++ {
+		if why, bad := forbidden[typ.Method(i).Name]; bad {
+			t.Errorf("*Mob.%s is back: %s", typ.Method(i).Name, why)
+		}
+	}
 }
 
 // --- kill rewards on a mob killing blow (chunk 6.6) ---

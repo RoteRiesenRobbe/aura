@@ -106,7 +106,12 @@ type factionDoc struct {
 // deterministic across boots.
 func RegistryFromFS(fileSystem fs.FS) (Registry, error) {
 	r := &registry{factions: map[string]*Definition{
-		"aligned": {Name: "aligned", ID: Aligned},
+		// AggroMask mirrors mob.Align() — the player side is hostile to
+		// everything that is not it, which is the player's own ungated harm
+		// rights. Inert (nothing resolves this entry: faction "aligned" is
+		// rejected on mob definitions), but an implicit 0 here read as
+		// "retaliation-only" and was half of why Align's mask looked wrong.
+		"aligned": {Name: "aligned", ID: Aligned, AggroMask: ^Bit(Aligned)},
 		"hostile": {Name: "hostile", ID: Hostile, AggroMask: Bit(Aligned)},
 	}}
 

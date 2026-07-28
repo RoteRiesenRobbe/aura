@@ -737,7 +737,7 @@ func TestMapMobDefinition_UnknownFactionFails(t *testing.T) {
 }
 
 func TestMapMobDefinition_AlignedFactionFails(t *testing.T) {
-	// Mobs never author "aligned" — summons get it via SetFaction at spawn.
+	// Mobs never author "aligned" — summons get it via mob.Align() at spawn.
 	raw, err := parseMobDefinition([]byte(`{
 	  "id": 1,
 	  "name": "Dodo",

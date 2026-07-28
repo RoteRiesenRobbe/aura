@@ -142,8 +142,8 @@ func main() {
 	// heal fixtures placed Go-side like props — NOT zone spawns (they never
 	// die, need no respawn machinery, and chunk 4 reads them as respawn
 	// anchors). Def-level aligned authoring is impossible by design (the mob
-	// loader rewrites aligned→hostile), so the faction is set
-	// post-construction — the spawnSummon pattern.
+	// loader rewrites aligned→hostile), so the side is joined
+	// post-construction via Align() — the spawnSummon pattern.
 	if len(zone.Campfires) > 0 {
 		campfireDef, err := mobsRegistry.GetByName("Campfire")
 		if err != nil {
@@ -155,7 +155,7 @@ func main() {
 		for _, c := range zone.Campfires {
 			m := mob.NewMob(campfireDef, g.Config().MobChaseIntoAuraMargin, nil)
 			m.SetPosition(phy.Vec2f{X: c.X, Y: c.Y})
-			m.SetFaction(model.FactionAligned)
+			m.Align()
 			// Respawn anchor (chunk 4): bind radius = heal radius × factor, so
 			// players can heal at the edge of the fire without binding to it.
 			// Streamed as Mob.dwell_radius — the client draws the bind circle

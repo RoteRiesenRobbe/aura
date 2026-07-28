@@ -95,7 +95,7 @@ func TestMob_AlignedMobsIgnoreSafeZones(t *testing.T) {
 	withSafeZone(t, phy.VEC2F_ZERO, 1.5)
 
 	m := newTestMob()
-	m.SetFaction(model.FactionAligned)
+	m.Align()
 	m.SetPosition(phy.Vec2f{X: 1.9, Y: 0})
 
 	for i := 0; i < 200; i++ {
