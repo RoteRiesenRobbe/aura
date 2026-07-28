@@ -45,7 +45,7 @@ import (
 )
 
 func TestContent_NoAuthoredMobIsAHybridYet(t *testing.T) {
-	sr, err := skills.RegistryFromFS(askills.Skills)
+	sr, err := skills.RegistryFromFS(askills.Skills, mustFactions(t))
 	require.NoError(t, err)
 	fr, err := factions.RegistryFromFS(afactions.Factions)
 	require.NoError(t, err)
@@ -66,4 +66,13 @@ func TestContent_NoAuthoredMobIsAHybridYet(t *testing.T) {
 			"(backlog §31 gap 5). This test is the tripwire, not a prohibition: once "+
 			"those two read the right slot, replace it with real hybrid behaviour pins.",
 		hybrids)
+}
+
+// mustFactions loads the embedded faction registry; skills resolve their
+// authored targetFactions allowlist against it at load (plan-faction-flips D8).
+func mustFactions(t *testing.T) factions.Registry {
+	t.Helper()
+	fr, err := factions.RegistryFromFS(afactions.Factions)
+	require.NoError(t, err)
+	return fr
 }

@@ -23,7 +23,7 @@ func testSkillRegistry(t *testing.T) skills.Registry {
 	t.Helper()
 	r, err := skills.RegistryFromFS(fstest.MapFS{
 		"dodo-aura.json": {Data: testAuraSkillJSON},
-	})
+	}, nil)
 	require.NoError(t, err)
 	return r
 }
@@ -489,7 +489,7 @@ func TestRegistry_SpawnEffectUnknownMobFails(t *testing.T) {
 	}`)
 	sr, err := skills.RegistryFromFS(fstest.MapFS{
 		"summon-totem.json": {Data: summonSkillJSON},
-	})
+	}, nil)
 	require.NoError(t, err)
 
 	totemMobJSON := []byte(`{
@@ -573,7 +573,7 @@ func legacyLeakFixtures(t *testing.T) (skills.Registry, factions.Registry) {
 		  "id": 102, "name": "WolfBite", "category": "active_aura", "maxLevel": 5,
 		  "effects": [{"type": "damage_aura", "radius": 0.6, "damageHP": 2, "targetsEnemies": true}]
 		}`)},
-	})
+	}, nil)
 	require.NoError(t, err)
 	fr, err := factions.RegistryFromFS(fstest.MapFS{
 		"predator.json": {Data: []byte(`{"name": "predator", "hostileTo": ["aligned", "prey"], "legacy": true}`)},

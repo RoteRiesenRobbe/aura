@@ -2,7 +2,9 @@ package skills
 
 import (
 	"testing"
+	"testing/fstest"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -83,7 +85,7 @@ func mustParse(t *testing.T, data []byte) *SkillDefinition {
 	t.Helper()
 	raw, err := parseSkillDefinition(data)
 	require.NoError(t, err)
-	def, err := raw.mapToSkillDefinition()
+	def, err := raw.mapToSkillDefinition(nil)
 	require.NoError(t, err)
 	return def
 }
@@ -200,7 +202,7 @@ func TestHealParams_SelfDamageAtScalesDownAndClampsAtZero(t *testing.T) {
 func TestParse_HealSelfDamagePerLevel(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":5,"effects":[{"type":"heal_aura","radius":1,"healHP":12,"selfDamageHP":10,"selfDamageHPPerLevel":-2,"tickInterval":120}]}`))
 	require.NoError(t, err)
-	def, err := raw.mapToSkillDefinition()
+	def, err := raw.mapToSkillDefinition(nil)
 	require.NoError(t, err)
 	assert.InDelta(t, -2, def.Effects[0].Heal.SelfDamageHPPerLevel, 1e-6)
 }
@@ -217,7 +219,7 @@ func TestHealParams_FractionAt(t *testing.T) {
 func TestParse_HealFractionOfMax(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"heal_aura","radius":1.5,"healFractionOfMax":0.12,"maxTargets":0,"tickInterval":60}]}`))
 	require.NoError(t, err)
-	def, err := raw.mapToSkillDefinition()
+	def, err := raw.mapToSkillDefinition(nil)
 	require.NoError(t, err)
 	assert.InDelta(t, 0.12, def.Effects[0].Heal.FractionOfMax, 1e-6)
 	assert.InDelta(t, 0, def.Effects[0].Heal.HP, 1e-6, "no flat HP authored")
@@ -226,7 +228,7 @@ func TestParse_HealFractionOfMax(t *testing.T) {
 func TestMap_HealFlatAndFractionMutuallyExclusiveFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"heal_aura","radius":1,"healHP":5,"healFractionOfMax":0.1,"tickInterval":60}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "mutually exclusive")
 }
 
@@ -301,21 +303,21 @@ func TestParse_DamageTagsAbsentOnNonDamageEffects(t *testing.T) {
 func TestMap_EmptyDamageTagFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageTags":[""]}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
 func TestMap_DuplicateDamageTagFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageTags":["fire","fire"]}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
 func TestMap_DamageTagsOnNonDamageEffectFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"heal_aura","damageTags":["fire"]}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
@@ -343,7 +345,7 @@ func TestMap_GatedWithoutExplicitTagsFails(t *testing.T) {
 	// nothing that doesn't author "physical" — a footgun, not content.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"gatedDamageTags":true}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "gatedDamageTags")
 }
@@ -377,7 +379,7 @@ func TestParse_VarianceValidOnAllRollingEffects(t *testing.T) {
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
-		def, err := raw.mapToSkillDefinition()
+		def, err := raw.mapToSkillDefinition(nil)
 		require.NoError(t, err, "variance must be accepted on %s", effect)
 		e := def.Effects[0]
 		var variance float32
@@ -397,7 +399,7 @@ func TestMap_VarianceOutOfBoundsFails(t *testing.T) {
 	for _, variance := range []string{"-0.1", "1", "1.5"} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":7,"variance":` + variance + `}]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		assert.Error(t, err, "variance %s must be rejected (valid: 0 <= v < 1)", variance)
 	}
 }
@@ -410,7 +412,7 @@ func TestMap_VarianceOnNonRollingEffectFails(t *testing.T) {
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		assert.Error(t, err, "variance must be rejected on %s", effect)
 	}
 }
@@ -453,21 +455,21 @@ func TestParse_ResistPassive(t *testing.T) {
 func TestMap_ResistAuraWithoutTagsFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"resist_aura","radius":1,"resistFactor":0.5,"targetsAllies":true}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
 func TestMap_NegativeResistFactorFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"resist_aura","radius":1,"resistTags":["fire"],"resistFactor":-0.1,"targetsAllies":true}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
 func TestMap_ResistTagsOnNonResistEffectFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"resistTags":["fire"]}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
@@ -479,21 +481,21 @@ func TestParse_InvalidJSON(t *testing.T) {
 func TestMap_UnknownCategory(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"unknown","maxLevel":1,"effects":[]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
 func TestMap_UnknownEffectType(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"no_such_type"}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
 func TestMap_UnknownSelector(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"selector":"no_such_selector"}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
@@ -578,7 +580,7 @@ func TestMap_DashZeroDistanceFails(t *testing.T) {
 	// A zero-distance dash is a do-nothing cooldown — reject it loud.
 	raw, err := parseSkillDefinition([]byte(`{"id":33,"name":"Dash","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"dash","dashDistance":0}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "dashDistance")
 }
 
@@ -586,7 +588,7 @@ func TestMap_DashKeyOnOtherEffectFails(t *testing.T) {
 	// dashDistance on a non-dash effect is a silent no-op — the allowlist rejects it.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"self_heal","healHP":0.2,"dashDistance":2.5}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
@@ -608,7 +610,7 @@ func TestParse_TickRate(t *testing.T) {
 func TestMap_TickRateNonPositiveFactorFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":34,"name":"Haste","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"tick_rate","tickRateFactor":0,"tickRateDurationTicks":90}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "tickRateFactor")
 }
 
@@ -616,14 +618,14 @@ func TestMap_TickRateUnityFactorFails(t *testing.T) {
 	// A factor of 1 is neither haste nor slow — a silent no-op cooldown.
 	raw, err := parseSkillDefinition([]byte(`{"id":34,"name":"Haste","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"tick_rate","tickRateFactor":1,"tickRateDurationTicks":90}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "tickRateFactor")
 }
 
 func TestMap_TickRateZeroDurationFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":34,"name":"Haste","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"tick_rate","tickRateFactor":0.5,"tickRateDurationTicks":0}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "tickRateDurationTicks")
 }
 
@@ -631,7 +633,7 @@ func TestMap_TickRateKeyOnOtherEffectFails(t *testing.T) {
 	// tickRateFactor on a non-tick_rate effect is a silent no-op — the allowlist rejects it.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"self_heal","healHP":0.2,"tickRateFactor":0.5}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
@@ -650,7 +652,7 @@ func TestMap_UnknownStat(t *testing.T) {
 	// An unapplied stat would be a silent no-op — unknown names must fail loud.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"luck","statBonus":0.1}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "unknown stat")
 }
 
@@ -658,7 +660,7 @@ func TestMap_StatMultiplierNoScalingFails(t *testing.T) {
 	// Both statBonus and statBonusPerLevel zero would be a do-nothing passive.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"movementSpeed"}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "no scaling")
 }
 
@@ -668,7 +670,7 @@ func TestMap_StaleAdditivePerLevelKeyFails(t *testing.T) {
 	// json.Unmarshal silently dropping it.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"passive","maxLevel":1,"effects":[{"type":"stat_multiplier","stat":"movementSpeed","additivePerLevel":0.05}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "additivePerLevel")
 }
 
@@ -681,7 +683,7 @@ func TestMap_RetiredTargetFlagKeysFailWithHint(t *testing.T) {
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		assert.ErrorContains(t, err, "targetsEnemies", "stale flag must name the successor: %s", effect)
 	}
 }
@@ -691,7 +693,7 @@ func TestMap_UnknownEffectKeyFails(t *testing.T) {
 	// the key and load a silently mis-tuned effect.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"radiusPerLvl":0.5}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "radiusPerLvl")
 }
 
@@ -759,7 +761,7 @@ func TestMap_DotMissingCadenceOrDamageFails(t *testing.T) {
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		assert.Error(t, err, "underspecified dot must be rejected: %s", effect)
 	}
 }
@@ -768,7 +770,7 @@ func TestMap_DotKeysOnOtherEffectsFail(t *testing.T) {
 	// dotTicks on a plain damage_aura would be silently ignored.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":7,"dotTicks":3}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "dotTicks")
 }
 
@@ -804,7 +806,7 @@ func TestMap_TauntZeroMarginFails(t *testing.T) {
 	for _, margin := range []string{"0", "-5"} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":100,"effects":[{"type":"taunt","radius":2,"targetsEnemies":true,"threatMargin":` + margin + `}]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		assert.ErrorContains(t, err, "threatMargin", "margin %s must be rejected", margin)
 	}
 }
@@ -813,7 +815,7 @@ func TestMap_ThreatMarginOnDetauntFails(t *testing.T) {
 	// threatMargin on detaunt would be a silent no-op — the allowlist rejects it.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":100,"effects":[{"type":"detaunt","radius":2,"targetsEnemies":true,"threatMargin":50}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "threatMargin")
 }
 
@@ -825,7 +827,7 @@ func TestMap_StatFieldsOnNonStatEffectFails(t *testing.T) {
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		assert.Error(t, err, "stat fields must be rejected on %s", effect)
 	}
 }
@@ -898,7 +900,7 @@ func TestMap_SpawnEffectInvalid(t *testing.T) {
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":23,"name":"X","category":"cooldown","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		assert.Error(t, err, "invalid spawn must be rejected: %s", effect)
 	}
 }
@@ -907,7 +909,7 @@ func TestMap_SpawnKeysOnOtherEffectsFail(t *testing.T) {
 	// spawnMob/ttlTicks on a non-spawn effect would be silently ignored.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":7,"spawnMob":"Totem"}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "spawnMob")
 }
 
@@ -946,7 +948,7 @@ func TestMap_LightAuraRejectsNonGeometryKeys(t *testing.T) {
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":6,"name":"Light","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		assert.ErrorContains(t, err, "not valid on this effect type", "light_aura must reject: %s", effect)
 	}
 }
@@ -963,7 +965,7 @@ func TestParse_PayloadlessTypesStillParse(t *testing.T) {
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		require.NoError(t, err, "payload-less type must still parse: %s", effect)
 	}
 }
@@ -973,7 +975,7 @@ func TestMap_DamageWithNoAmountFails(t *testing.T) {
 	// deals nothing (§27.3.2).
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","radius":1,"targetsEnemies":true}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no damage authored")
 }
@@ -989,7 +991,7 @@ func TestParse_SiegeDamageAuraStaysValid(t *testing.T) {
 func TestMap_HealAuraWithNoHealFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"heal_aura","radius":1,"tickInterval":60}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no heal authored")
 }
@@ -997,7 +999,7 @@ func TestMap_HealAuraWithNoHealFails(t *testing.T) {
 func TestMap_SelfHealWithNoHealFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"self_heal"}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no heal authored")
 }
@@ -1014,7 +1016,7 @@ func TestMap_ZeroRadiusGeometryEffectFails(t *testing.T) {
 	} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		require.Error(t, err, "zero-radius geometry effect must fail: %s", effect)
 		assert.Contains(t, err.Error(), "radius must be > 0", "for: %s", effect)
 	}
@@ -1073,7 +1075,7 @@ func mustFailMap(t *testing.T, effect string, wantErr string) {
 	t.Helper()
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[` + effect + `]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, wantErr, "effect: %s", effect)
 }
 
@@ -1095,7 +1097,7 @@ func TestMap_CritChanceAloneIsValid(t *testing.T) {
 	// convention.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":5,"effects":[{"type":"damage_aura","radius":1,"targetsEnemies":true,"damageHP":6,"critChance":0.01,"critChancePerLevel":0.01}]}`))
 	require.NoError(t, err)
-	def, err := raw.mapToSkillDefinition()
+	def, err := raw.mapToSkillDefinition(nil)
 	require.NoError(t, err)
 	d := def.Effects[0].Damage
 	assert.InDelta(t, 0.01, d.CritChance, 1e-6)
@@ -1195,14 +1197,14 @@ func TestMap_ShieldNoPoolAuthoredFails(t *testing.T) {
 	// no-scaling guards.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"shield_aura","radius":1,"targetsAllies":true}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
 func TestMap_NegativeShieldHPFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"shield_aura","radius":1,"shieldHP":-5,"targetsAllies":true}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.Error(t, err)
 }
 
@@ -1211,7 +1213,7 @@ func TestMap_InstantShieldWithoutDurationFails(t *testing.T) {
 	// would expire on application — unauthorable rather than a silent no-op.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":10,"effects":[{"type":"instant_shield","radius":1,"shieldHP":20,"targetsAllies":true}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "shieldDurationTicks")
 }
 
@@ -1220,14 +1222,14 @@ func TestMap_ShieldDurationOnShieldAuraFails(t *testing.T) {
 	// (interval + 1); an authored duration would be a silent no-op.
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"shield_aura","radius":1,"shieldHP":20,"shieldDurationTicks":300,"targetsAllies":true}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "shieldDurationTicks")
 }
 
 func TestMap_ShieldKeysOnNonShieldEffectFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"shieldHP":20}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "shieldHP")
 }
 
@@ -1272,21 +1274,21 @@ func TestParse_InstantHot(t *testing.T) {
 func TestMap_HotNoHealAuthoredFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"hot_aura","radius":1,"hotTicks":3,"hotTickInterval":10}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "no heal authored")
 }
 
 func TestMap_HotWithoutCadenceFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"hot_aura","radius":1,"healHP":5}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "hotTicks")
 }
 
 func TestMap_HotKeysOnNonHotEffectFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"hotTicks":3}]}`))
 	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "hotTicks")
 }
 
@@ -1307,7 +1309,7 @@ func TestMap_ReviveFractionOutOfBoundsFails(t *testing.T) {
 	for _, frac := range []string{"0", "-0.1", "1.5"} {
 		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":10,"effects":[{"type":"revive","radius":3,"reviveHealthFraction":` + frac + `}]}`))
 		require.NoError(t, err)
-		_, err = raw.mapToSkillDefinition()
+		_, err = raw.mapToSkillDefinition(nil)
 		assert.ErrorContains(t, err, "reviveHealthFraction", "fraction %s must fail", frac)
 	}
 }
@@ -1342,7 +1344,7 @@ func TestMap_NegativeCastTicksFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "castTicks")
 }
 
@@ -1356,7 +1358,7 @@ func TestMap_CastInterruptedByDamageWithoutCastTicksFails(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "castInterruptedByDamage")
 }
 
@@ -1369,6 +1371,122 @@ func TestParse_RecallEffectRejectsPayloadKeys(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 
-	_, err = raw.mapToSkillDefinition()
+	_, err = raw.mapToSkillDefinition(nil)
 	assert.ErrorContains(t, err, "radius")
+}
+
+// --- calm + the faction allowlist (plan-faction-flips chunk 2) ---
+
+// calmFactions is the two-faction fixture the calm tests scope against, plus a
+// third the allowlist deliberately excludes — a one-faction fixture could not
+// tell "resolved the names" from "let everything through".
+func calmFactions(t *testing.T) factions.Registry {
+	t.Helper()
+	fr, err := factions.RegistryFromFS(fstest.MapFS{
+		"prey.json":     {Data: []byte(`{"name": "prey", "hostileTo": []}`)},
+		"predator.json": {Data: []byte(`{"name": "predator", "hostileTo": ["aligned", "prey"]}`)},
+		"bandit.json":   {Data: []byte(`{"name": "bandit", "hostileTo": ["aligned"]}`)},
+	})
+	require.NoError(t, err)
+	return fr
+}
+
+const calmSkillJSON = `{
+  "id": 62, "name": "Calm", "category": "cooldown", "maxLevel": 3,
+  "cooldownTicks": 600,
+  "targetFactions": ["prey", "predator"],
+  "effects": [{"type": "calm", "radius": 4.0, "targetsEnemies": true,
+               "calmTicks": 300, "calmTicksPerLevel": 60}]
+}`
+
+func TestMap_CalmResolvesTargetFactionsToAMask(t *testing.T) {
+	fr := calmFactions(t)
+	raw, err := parseSkillDefinition([]byte(calmSkillJSON))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition(fr)
+	require.NoError(t, err)
+
+	prey, err := fr.GetByName("prey")
+	require.NoError(t, err)
+	predator, err := fr.GetByName("predator")
+	require.NoError(t, err)
+	bandit, err := fr.GetByName("bandit")
+	require.NoError(t, err)
+
+	want := factions.Bit(prey.ID) | factions.Bit(predator.ID)
+	assert.Equal(t, want, def.TargetFactionMask, "authored names resolve to their bits")
+	assert.Zero(t, def.TargetFactionMask&factions.Bit(bandit.ID), "an unlisted faction is outside the mask")
+
+	// ⭐ D8's whole point: the runtime gate reads the EFFECT, so the skill's
+	// mask has to reach it. A mask that resolved but never got stamped would
+	// pass every test above and let calm reach every faction in the game.
+	require.Len(t, def.Effects, 1)
+	assert.Equal(t, want, def.Effects[0].TargetFactionMask, "the skill's mask is stamped onto its effects")
+
+	require.NotNil(t, def.Effects[0].Calm)
+	assert.Equal(t, 300, def.Effects[0].Calm.DurationTicks)
+	assert.Equal(t, 60, def.Effects[0].Calm.DurationTicksPerLevel)
+}
+
+func TestMap_CalmWithoutTargetFactionsFails(t *testing.T) {
+	// The typo guard (factionScopedEffects): skill-level JSON is parsed without
+	// DisallowUnknownFields, so a mistyped `targetFaction` key vanishes
+	// silently. Requiring the allowlist turns that into a boot error instead of
+	// a calm that reaches every faction in the game.
+	raw, err := parseSkillDefinition([]byte(`{
+	  "id": 62, "name": "Calm", "category": "cooldown", "maxLevel": 3,
+	  "targetFaction": ["prey"],
+	  "effects": [{"type": "calm", "radius": 4.0, "targetsEnemies": true, "calmTicks": 300}]
+	}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(calmFactions(t))
+	assert.ErrorContains(t, err, "targetFactions")
+}
+
+func TestMap_UnknownTargetFactionFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{
+	  "id": 62, "name": "Calm", "category": "cooldown", "maxLevel": 3,
+	  "targetFactions": ["prey", "nosuchfaction"],
+	  "effects": [{"type": "calm", "radius": 4.0, "targetsEnemies": true, "calmTicks": 300}]
+	}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(calmFactions(t))
+	assert.ErrorContains(t, err, "nosuchfaction")
+}
+
+func TestMap_CalmEffectInvalid(t *testing.T) {
+	for _, effect := range []string{
+		// no duration — a cast that applies nothing
+		`{"type": "calm", "radius": 4.0, "targetsEnemies": true}`,
+		`{"type": "calm", "radius": 4.0, "targetsEnemies": true, "calmTicks": 0}`,
+		// no radius — a circle that reaches nothing
+		`{"type": "calm", "targetsEnemies": true, "calmTicks": 300}`,
+		// calm has no cadence: it fires on activation, not per tick
+		`{"type": "calm", "radius": 4.0, "targetsEnemies": true, "calmTicks": 300, "tickInterval": 5}`,
+		// and no cap/selector — it takes everything in the circle by design
+		`{"type": "calm", "radius": 4.0, "targetsEnemies": true, "calmTicks": 300, "maxTargets": 1}`,
+	} {
+		raw, err := parseSkillDefinition([]byte(`{"id":62,"name":"Calm","category":"cooldown","maxLevel":1,"targetFactions":["prey"],"effects":[` + effect + `]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition(calmFactions(t))
+		assert.Error(t, err, "invalid calm must be rejected: %s", effect)
+	}
+}
+
+func TestMap_CalmKeysOnOtherEffectsFail(t *testing.T) {
+	// calmTicks on a non-calm effect would be silently ignored.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"damageHP":7,"calmTicks":300}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, "calmTicks")
+}
+
+func TestMap_SkillsWithoutAnAllowlistStayUnrestricted(t *testing.T) {
+	// 0 = unrestricted is what makes this chunk behaviour-neutral for the other
+	// 83 skills: none authors targetFactions, so none gains a gate.
+	def := mustParse(t, damageAuraJSON)
+	assert.Zero(t, def.TargetFactionMask)
+	for _, e := range def.Effects {
+		assert.Zero(t, e.TargetFactionMask)
+	}
 }

@@ -581,3 +581,73 @@ func TestEffectiveTickInterval_Rounds(t *testing.T) {
 	assert.Equal(t, 3, EffectiveTickInterval(e, 1, 0.33), "3.3 rounds to 3")
 	assert.Equal(t, 4, EffectiveTickInterval(e, 1, 0.36), "3.6 rounds to 4")
 }
+
+// --- calm (plan-faction-flips chunk 2) ---
+
+func TestBuffs_CalmAgesAndExpires(t *testing.T) {
+	var b Buffs
+	b.ApplyCalm(1, 3)
+	assert.True(t, b.Calmed())
+	assert.Equal(t, AppliedEffectCalm, b.AppliedEffects(), "calm carries a pip")
+
+	b.Tick()
+	b.Tick()
+	assert.True(t, b.Calmed(), "still one tick left")
+	b.Tick()
+	assert.False(t, b.Calmed(), "expired")
+	assert.Equal(t, AppliedEffectNone, b.AppliedEffects(), "and the pip goes out with it")
+}
+
+func TestBuffs_CalmRefreshesNeverShortens(t *testing.T) {
+	var b Buffs
+	b.ApplyCalm(1, 10)
+	b.ApplyCalm(1, 3) // a weaker recast must not cut the live calm short
+	for i := 0; i < 9; i++ {
+		b.Tick()
+	}
+	assert.True(t, b.Calmed(), "the longer application still stands")
+
+	b.ApplyCalm(1, 5)
+	for i := 0; i < 4; i++ {
+		b.Tick()
+	}
+	assert.True(t, b.Calmed(), "a longer recast extends it")
+	b.Tick()
+	assert.False(t, b.Calmed())
+}
+
+func TestBuffs_CalmDoesNotStackAcrossOneSource(t *testing.T) {
+	var b Buffs
+	b.ApplyCalm(1, 5)
+	b.ApplyCalm(1, 5)
+	b.ApplyCalm(1, 5)
+	for i := 0; i < 5; i++ {
+		b.Tick()
+	}
+	assert.False(t, b.Calmed(), "one stream per source — three casts are not 15 ticks")
+}
+
+func TestBuffs_DropCalmLeavesEveryOtherBuffAlone(t *testing.T) {
+	// Break-on-damage removes calm and ONLY calm: a slow or dot the same mob is
+	// carrying has nothing to do with the calm ending. Cleanse (remove all) was
+	// the store's only removal before this and would have taken them too.
+	var b Buffs
+	b.ApplyCalm(1, 100)
+	b.ApplySlow(1, 0.5, 100) // same source skill — the harder case
+	b.ApplyResist(2, []string{"fire"}, 0.5, 100)
+
+	b.DropCalm()
+
+	assert.False(t, b.Calmed())
+	assert.InDelta(t, 0.5, b.SlowFraction(), 0.0001, "the slow from the same source survives")
+	assert.InDelta(t, 0.5, b.ResistMultiplier([]string{"fire"}), 0.0001, "so does another source's resist")
+	assert.Zero(t, b.AppliedEffects()&AppliedEffectCalm)
+}
+
+func TestBuffs_DropCalmClearsEverySource(t *testing.T) {
+	var b Buffs
+	b.ApplyCalm(1, 100)
+	b.ApplyCalm(2, 100)
+	b.DropCalm()
+	assert.False(t, b.Calmed(), "damage breaks calm from every source, not just the newest")
+}

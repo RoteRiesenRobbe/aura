@@ -127,7 +127,7 @@ func skillTestGame(t *testing.T) *fakeSkillGame {
 		  "id": 40, "name": "FireWard", "category": "active_aura", "maxLevel": 3,
 		  "effects": [{"type": "resist_aura", "radius": 1.5, "resistTags": ["fire"], "resistFactor": 0.6, "targetsAllies": true, "targetsSelf": true}]
 		}`)},
-	})
+	}, nil)
 	require.NoError(t, err)
 	return &fakeSkillGame{registry: r}
 }

@@ -18,6 +18,7 @@ export const enum AppliedEffectBit {
     Hot = 1 << 2,
     Resist = 1 << 3,
     TickRate = 1 << 4,
+    Calm = 1 << 5,
 }
 
 interface PipStyle {
@@ -28,10 +29,16 @@ interface PipStyle {
 /**
  * Pip colours and display order (debuffs first, then buffs). Dot/slow/hot/resist
  * reuse the aura-ring category language so "purple around a mob" and "purple pip
- * on me" mean the same thing; tick-rate has no ring category, so its colour is
- * new here. All colours [PLACEHOLDER] — tune in-game.
+ * on me" mean the same thing; tick-rate and calm have no ring category, so their
+ * colours are new here. All colours [PLACEHOLDER] — tune in-game.
+ *
+ * Calm sits first: it is the only pip that means "this thing has stopped
+ * fighting you", which is the one a player needs to read at a glance, and its
+ * pale blue is deliberately far from the slow blue next to it — a slowed wolf
+ * is still coming for you, a calmed one is not.
  */
 const PIP_STYLES: readonly PipStyle[] = [
+    {bit: AppliedEffectBit.Calm, color: 0xa8d8f0},
     {bit: AppliedEffectBit.Dot, color: AURA_CATEGORY_COLORS.dot},
     {bit: AppliedEffectBit.Slow, color: AURA_CATEGORY_COLORS.slow},
     {bit: AppliedEffectBit.Hot, color: AURA_CATEGORY_COLORS.heal},

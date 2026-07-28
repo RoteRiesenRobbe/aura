@@ -174,3 +174,37 @@ function damageParams(hp: number) {
         critChance: 0, critChancePerLevel: 0, critFactor: 0, lifestealFraction: 0,
     };
 }
+
+// Calm (plan-faction-flips chunk 2). The tooltip has a default-case warn for
+// unknown effect types, so a missing case is a console warning and a literal
+// "(calm)" in the panel rather than a build error — which is exactly the kind
+// of thing that ships unnoticed.
+describe('calm', () => {
+    const calm = skill({
+        displayName: 'Calm', category: 'cooldown', maxLevel: 3, cooldownTicks: 600,
+        effects: [effect({
+            type: 'calm', radius: 4, targetsEnemies: true,
+            calm: {durationTicks: 300, durationTicksPerLevel: 60},
+        })],
+    });
+
+    it('states the duration and the break condition', () => {
+        const out = lines(calm, 1, 1);
+        // 300 ticks at 33 ms = 9.9 s, with the next-level preview the other
+        // progression lines already use.
+        expect(out).toContain('Calms enemies in range for 9.9s → 11.88s');
+        expect(out).toContain('Any damage breaks it — including your own aura');
+        expect(out.join('\n')).not.toContain('(calm)');
+    });
+
+    it('scales the duration with skill level', () => {
+        // At max level there is no next-level preview: 300 + 2 × 60 = 420.
+        expect(lines(calm, 3, 1)).toContain('Calms enemies in range for 13.86s');
+    });
+
+    it('does not scale the duration with character power', () => {
+        // casterPowerScale touches HP values only. A duration that moved with
+        // it would be the over-application the round-4 fix warns about.
+        expect(lines(calm, 1, SCALE_AT_30)).toContain('Calms enemies in range for 9.9s → 11.88s');
+    });
+});

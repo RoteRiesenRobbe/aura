@@ -26,7 +26,7 @@ import (
 
 func contentRegistry(t *testing.T) Registry {
 	t.Helper()
-	sr, err := skills.RegistryFromFS(askills.Skills)
+	sr, err := skills.RegistryFromFS(askills.Skills, mustFactions(t))
 	require.NoError(t, err)
 	fr, err := factions.RegistryFromFS(afactions.Factions)
 	require.NoError(t, err)
@@ -69,4 +69,14 @@ func TestContent_OnlyStructuresOmitTheirSensor(t *testing.T) {
 		assert.Greater(t, def.Body.AggroRadius, float32(0),
 			"%s moves toward things and must author a sensor", def.Name)
 	}
+}
+
+// mustFactions loads the embedded faction registry — the counterpart to the
+// embedded skills the tests here parse, needed since a skill may author a
+// targetFactions allowlist resolved at load (plan-faction-flips D8).
+func mustFactions(t *testing.T) factions.Registry {
+	t.Helper()
+	fr, err := factions.RegistryFromFS(afactions.Factions)
+	require.NoError(t, err)
+	return fr
 }

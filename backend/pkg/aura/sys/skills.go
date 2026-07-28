@@ -456,6 +456,15 @@ func eligibleByTargetFlags[Capability any](effect skills.EffectDef, caster model
 		} else if !effect.TargetsEnemies || !mayHarm(caster, target) {
 			return false
 		}
+		// The skill's authored faction allowlist (plan-faction-flips D8),
+		// resolved to bits at content load. 0 = unrestricted, which is every
+		// skill authored before chunk 2. It lives HERE, in the one predicate
+		// every targeted effect passes through, so a second scoped skill —
+		// charm-elementals is the named acceptance test — is a JSON file and
+		// not a Go change.
+		if effect.TargetFactionMask != 0 && effect.TargetFactionMask&target.Faction().Bit() == 0 {
+			return false
+		}
 		if _, ok := usr.(Capability); !ok {
 			return false
 		}
@@ -1293,6 +1302,12 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			}
 			continue
 		}
+		if effect.Type == skills.EffectTypeCalm {
+			if s.applyCalm(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+			continue
+		}
 		if effect.Type == skills.EffectTypeRecall {
 			if s.applyRecall(e) {
 				hitAny = true
@@ -1492,6 +1507,56 @@ func (s *SkillSystem) applyThreatEffect(e skillEntity, level int, effect skills.
 		case skills.EffectTypeDetaunt:
 			target.DropThreat(casterID)
 		}
+		hitAny = true
+	}
+	return hitAny
+}
+
+// calmable is the calm capability (plan-faction-flips chunk 2): an entity with
+// an AI that can be put out of combat. Only mobs implement it — a player has no
+// acquisition loop to suspend, so calming one would be a pip over nothing.
+// That makes the capability check in eligibleByTargetFlags the whole
+// players-are-not-valid-targets rule; no extra guard is needed here.
+type calmable interface {
+	ApplyCalm(source skills.SkillID, ticks int)
+}
+
+// applyCalm fires a calm cooldown (plan-faction-flips chunk 2, D7): a query
+// circle of eligible mobs, each dropped out of combat for the authored
+// duration. Shaped like applyThreatEffect — the other targeted cooldown that
+// changes AI state rather than health — with two deliberate differences:
+//
+//   - No selector or cap. Calm is a DISENGAGE tool and a pack aggros as a pack
+//     (PO 2026-07-28), so it takes everything in the circle. That is also why
+//     it does not route through selectTargets.
+//   - The skill's faction allowlist narrows eligibility, applied inside
+//     eligibleByTargetFlags along with the ordinary flag and mayHarm gates.
+//
+// Whiffs when the circle is empty, like every other targeted cooldown.
+func (s *SkillSystem) applyCalm(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	if effect.Calm == nil {
+		return false
+	}
+	ticks := skills.Scaled(effect.Calm.DurationTicks, effect.Calm.DurationTicksPerLevel, level)
+	if ticks < 1 {
+		// A negative perLevel can scale the duration away entirely; one tick of
+		// calm is still a cast that did something, and 0 would be a buff entry
+		// that expires before it is ever read.
+		ticks = 1
+	}
+
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	query := phy.NewCircle(e.AuraCollider().Position(), radius)
+	query.Shape().Mask = model.InstantDamageMask(effect)
+
+	eligible := eligibleByTargetFlags[calmable](effect, e, e.Basic().ID(), true)
+
+	hitAny := false
+	for _, h := range s.space.QueryCircle(query) {
+		if !eligible(h) {
+			continue
+		}
+		h.Shape().UserData.(calmable).ApplyCalm(source, ticks)
 		hitAny = true
 	}
 	return hitAny

@@ -79,6 +79,15 @@ type shieldPayload struct {
 	remaining float32
 }
 
+// calmPayload is the out-of-combat debuff (plan-faction-flips chunk 2, D7).
+// It is deliberately EMPTY: calm has no strength axis — a mob is calmed or it
+// is not — so the entry's remaining ticks are the entire state, and one stream
+// per source skill is all there can be. It lives here rather than as a Mob
+// field because the applied-effect pip is derived from this store, and because
+// the store already owns the two things calm would otherwise re-implement:
+// aging and per-skill refresh.
+type calmPayload struct{}
+
 type hotPayload struct {
 	hot HotBuff
 	// age is the acting accumulator, the dotPayload twin: game ticks since
@@ -95,6 +104,7 @@ func (*tickRatePayload) isBuffPayload() {}
 func (*dotPayload) isBuffPayload()      {}
 func (*shieldPayload) isBuffPayload()   {}
 func (*hotPayload) isBuffPayload()      {}
+func (*calmPayload) isBuffPayload()     {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -274,6 +284,55 @@ func (b *Buffs) Tick() {
 // everything is cleansable, no dispel classes in v1).
 func (b *Buffs) Cleanse() {
 	b.entries = nil
+}
+
+// ApplyCalm puts the holder out of combat for ticks (plan-faction-flips chunk
+// 2). One stream per source skill — calm carries no strength to key on, so a
+// recast from the same skill refreshes rather than stacking. A LONGER remaining
+// calm is never shortened by a weaker recast, matching every other Apply* here.
+func (b *Buffs) ApplyCalm(source SkillID, ticks int) {
+	for _, e := range b.entries[source] {
+		if _, ok := e.payload.(*calmPayload); ok {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			return
+		}
+	}
+	b.apply(source, &calmPayload{}, ticks)
+}
+
+// Calmed reports whether any calm application is live.
+func (b *Buffs) Calmed() bool {
+	for _, list := range b.entries {
+		for _, e := range list {
+			if _, ok := e.payload.(*calmPayload); ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// DropCalm removes every calm application, from every source — the break-on-
+// damage path (plan-faction-flips chunk 2 / §5.4: ANY damage breaks calm,
+// including the calmer's own aura, by PO ruling). It is the store's only
+// targeted removal: expiry and Cleanse-everything were the two shapes before
+// it, and neither can express "this one mechanic ended early".
+func (b *Buffs) DropCalm() {
+	for source, list := range b.entries {
+		kept := list[:0]
+		for _, e := range list {
+			if _, ok := e.payload.(*calmPayload); !ok {
+				kept = append(kept, e)
+			}
+		}
+		if len(kept) == 0 {
+			delete(b.entries, source)
+		} else {
+			b.entries[source] = kept
+		}
+	}
 }
 
 // ResistMultiplier is the combined incoming-damage multiplier of all active

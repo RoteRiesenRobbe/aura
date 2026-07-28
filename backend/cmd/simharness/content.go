@@ -84,13 +84,13 @@ func loadContent(contentDir string) ([]*mobs.MobDefinition, skills.Registry, err
 		return nil, nil, err
 	}
 
-	sr, err := skills.RegistryFromFS(skillsFS)
-	if err != nil {
-		return nil, nil, fmt.Errorf("loading skills: %w", err)
-	}
 	fr, err := factions.RegistryFromFS(factionsFS)
 	if err != nil {
 		return nil, nil, fmt.Errorf("loading factions: %w", err)
+	}
+	sr, err := skills.RegistryFromFS(skillsFS, fr)
+	if err != nil {
+		return nil, nil, fmt.Errorf("loading skills: %w", err)
 	}
 	mr, err := mobs.RegistryFromFS(sr, fr, curve.Default(), mobsFS)
 	if err != nil {
@@ -160,11 +160,15 @@ func playerAuraSpecByName(contentDir, ref string) (sim.AuraSpec, error) {
 		}
 	}
 
-	skillsFS, _, _, err := contentFS(contentDir)
+	skillsFS, factionsFS, _, err := contentFS(contentDir)
 	if err != nil {
 		return sim.AuraSpec{}, err
 	}
-	sr, err := skills.RegistryFromFS(skillsFS)
+	fr, err := factions.RegistryFromFS(factionsFS)
+	if err != nil {
+		return sim.AuraSpec{}, fmt.Errorf("loading factions: %w", err)
+	}
+	sr, err := skills.RegistryFromFS(skillsFS, fr)
 	if err != nil {
 		return sim.AuraSpec{}, fmt.Errorf("loading skills: %w", err)
 	}

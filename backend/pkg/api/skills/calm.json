@@ -1,0 +1,19 @@
+{
+  "_comment": "plan-faction-flips chunk 2 (D7): the disengage cooldown. Puts every wildlife mob in range out of combat until it is attacked — it drops its current target, acquires nothing, and its aura gates off. It does NOT flip faction: a calmed wolf is still a wolf anyone can damage, it has simply stopped swinging. ANY damage breaks it, INCLUDING the caster's own damage aura (PO 2026-07-28) — calm means 'stop this fight so I can leave', not 'hold this one while I kill that one'. targetFactions is the D8 allowlist: authored names, resolved to a faction bitmask at content load, so widening the scope is a content edit and not a code change. All values [PLACEHOLDER].",
+  "id": 62,
+  "name": "Calm",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 600,
+  "targetFactions": ["wildlife_prey", "wildlife_predator"],
+  "effects": [
+    {
+      "type": "calm",
+      "radius": 4.0,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "calmTicks": 300,
+      "calmTicksPerLevel": 60
+    }
+  ]
+}

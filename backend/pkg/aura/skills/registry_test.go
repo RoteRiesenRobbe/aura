@@ -32,14 +32,14 @@ func TestRegistry_LoadsMultipleSkills(t *testing.T) {
 		"damage.json": {Data: damageAuraJSON},
 		"heal.json":   {Data: healAuraJSON},
 	}
-	r, err := RegistryFromFS(fsys)
+	r, err := RegistryFromFS(fsys, nil)
 	require.NoError(t, err)
 	assert.Len(t, r.All(), 2)
 }
 
 func TestRegistry_GetByID_Found(t *testing.T) {
 	fsys := fstest.MapFS{"damage.json": {Data: damageAuraJSON}}
-	r, err := RegistryFromFS(fsys)
+	r, err := RegistryFromFS(fsys, nil)
 	require.NoError(t, err)
 
 	def, err := r.Get(SkillID(1))
@@ -49,7 +49,7 @@ func TestRegistry_GetByID_Found(t *testing.T) {
 
 func TestRegistry_GetByID_NotFound(t *testing.T) {
 	fsys := fstest.MapFS{"damage.json": {Data: damageAuraJSON}}
-	r, err := RegistryFromFS(fsys)
+	r, err := RegistryFromFS(fsys, nil)
 	require.NoError(t, err)
 
 	_, err = r.Get(SkillID(999))
@@ -58,7 +58,7 @@ func TestRegistry_GetByID_NotFound(t *testing.T) {
 
 func TestRegistry_GetByName_Found(t *testing.T) {
 	fsys := fstest.MapFS{"damage.json": {Data: damageAuraJSON}}
-	r, err := RegistryFromFS(fsys)
+	r, err := RegistryFromFS(fsys, nil)
 	require.NoError(t, err)
 
 	def, err := r.GetByName("Damage")
@@ -68,7 +68,7 @@ func TestRegistry_GetByName_Found(t *testing.T) {
 
 func TestRegistry_GetByName_NotFound(t *testing.T) {
 	fsys := fstest.MapFS{"damage.json": {Data: damageAuraJSON}}
-	r, err := RegistryFromFS(fsys)
+	r, err := RegistryFromFS(fsys, nil)
 	require.NoError(t, err)
 
 	_, err = r.GetByName("NoSuchSkill")
@@ -77,7 +77,7 @@ func TestRegistry_GetByName_NotFound(t *testing.T) {
 
 func TestRegistry_MalformedJSON(t *testing.T) {
 	fsys := fstest.MapFS{"bad.json": {Data: []byte(`{invalid`)}}
-	_, err := RegistryFromFS(fsys)
+	_, err := RegistryFromFS(fsys, nil)
 	assert.Error(t, err)
 }
 
@@ -86,7 +86,7 @@ func TestRegistry_DuplicateID(t *testing.T) {
 		"damage.json": {Data: damageAuraJSON},
 		"also-id-1.json":   {Data: duplicateIDJSON},
 	}
-	_, err := RegistryFromFS(fsys)
+	_, err := RegistryFromFS(fsys, nil)
 	assert.Error(t, err)
 }
 
@@ -95,20 +95,20 @@ func TestRegistry_DuplicateName(t *testing.T) {
 		"damage.json":    {Data: damageAuraJSON},
 		"duplicate-name.json": {Data: duplicateNameJSON},
 	}
-	_, err := RegistryFromFS(fsys)
+	_, err := RegistryFromFS(fsys, nil)
 	assert.Error(t, err)
 }
 
 func TestRegistry_EmptyDirectory(t *testing.T) {
 	fsys := fstest.MapFS{}
-	r, err := RegistryFromFS(fsys)
+	r, err := RegistryFromFS(fsys, nil)
 	require.NoError(t, err)
 	assert.Empty(t, r.All())
 }
 
 func TestRegistry_LoadsFromDisk(t *testing.T) {
 	fsys := os.DirFS("../../../../api/skills")
-	r, err := RegistryFromFS(fsys)
+	r, err := RegistryFromFS(fsys, realFactions(t))
 	require.NoError(t, err)
 	// 25 player skills (incl. Swift/Tough, NovaBurst/FirstAid,
 	// Slow, the Paladin combination result, the FireWard resist
@@ -144,7 +144,8 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// FireElementalAura / FireTotemAura, 2026-07-21)
 	// + GiantVenomSpit, the farm-band GiantSpider's own poison (it wore the
 	// cL4 VenomSpider's baseline and landed under a cL2 Wolf, 2026-07-22)
-	assert.Len(t, r.All(), 83)
+	// + Calm, the plan-faction-flips chunk-2 disengage cooldown (2026-07-28)
+	assert.Len(t, r.All(), 84)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

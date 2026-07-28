@@ -24,7 +24,7 @@ func TestDiskContent_RepoApiLoadsEndToEnd(t *testing.T) {
 	content, err := diskContent("../../../api")
 	require.NoError(t, err)
 
-	skillsRegistry, err := skills.RegistryFromFS(content.skills)
+	skillsRegistry, err := skills.RegistryFromFS(content.skills, mustLoadFactions(t, content))
 	require.NoError(t, err)
 	assert.NotEmpty(t, skillsRegistry.All())
 
@@ -114,7 +114,7 @@ func TestDiskContent_LegacyTagging(t *testing.T) {
 	content, err := diskContent("../../../api")
 	require.NoError(t, err)
 
-	skillsRegistry, err := skills.RegistryFromFS(content.skills)
+	skillsRegistry, err := skills.RegistryFromFS(content.skills, mustLoadFactions(t, content))
 	require.NoError(t, err)
 	factionsRegistry, err := factions.RegistryFromFS(content.factions)
 	require.NoError(t, err)
@@ -186,4 +186,14 @@ func TestEmbeddedMilestones_MatchSource(t *testing.T) {
 
 	assert.JSONEq(t, string(want), string(got),
 		"embedded milestone table is stale — run `make -C backend cp-defs`")
+}
+
+// mustLoadFactions loads the faction registry a skill's targetFactions
+// allowlist resolves against (plan-faction-flips D8) — the reason boot now
+// loads factions before skills.
+func mustLoadFactions(t *testing.T, c contentSources) factions.Registry {
+	t.Helper()
+	fr, err := factions.RegistryFromFS(c.factions)
+	require.NoError(t, err)
+	return fr
 }

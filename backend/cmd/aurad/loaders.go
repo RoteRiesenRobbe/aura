@@ -140,9 +140,11 @@ func loadMobs(sr skills.Registry, fr factions.Registry, c curve.Curve, fsys fs.F
 	return registry
 }
 
-// loadSkills parses the skill definitions from the definition files
-func loadSkills(fsys fs.FS) skills.Registry {
-	registry, err := skills.RegistryFromFS(fsys)
+// loadSkills parses the skill definitions from the definition files, resolving
+// any authored targetFactions allowlist against the already-loaded faction
+// registry (plan-faction-flips D8).
+func loadSkills(fsys fs.FS, fr factions.Registry) skills.Registry {
+	registry, err := skills.RegistryFromFS(fsys, fr)
 	if err != nil {
 		slog.Error("failed to load skills", slog.Any("err", err))
 		panic(err)

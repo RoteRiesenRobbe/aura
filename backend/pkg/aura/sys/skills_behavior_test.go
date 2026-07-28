@@ -4044,3 +4044,112 @@ func TestApplyDamageAura_ConfiguredCritFactorDrivesTheHit(t *testing.T) {
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 50.0, target.touches[0], 1e-4, "10 HP × the configured factor 5")
 }
+
+// --- calm cooldown + the per-skill faction allowlist (plan-faction-flips
+// chunk 2, D7/D8) ---
+
+// The two content factions the calm tests scope against. Bits, not names —
+// names exist only at content load (the faction registry is boot-only), which
+// is exactly why the allowlist is resolved to a mask there.
+const (
+	calmTestPrey   = factions.Faction(2)
+	calmTestBandit = factions.Faction(3)
+)
+
+func calmTestMob(f factions.Faction) *mob.Mob {
+	def := hostileMobDef()
+	def.Faction = f
+	def.AggroMask = factions.Bit(factions.Aligned)
+	return mob.NewMob(def, 0, nil)
+}
+
+// calmDef is the skill under test. mask is what the loader would have produced
+// from the authored targetFactions names.
+func calmDef(mask uint64) *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 62, Name: "Calm", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 600,
+		TargetFactionMask: mask,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeCalm, Radius: 4.0, TargetsEnemies: true,
+			TargetFactionMask: mask,
+			Calm:              &skills.CalmParams{DurationTicks: 300, DurationTicksPerLevel: 60},
+		}},
+	}
+}
+
+func TestCooldown_CalmPutsAnAllowedFactionOutOfCombat(t *testing.T) {
+	m := calmTestMob(calmTestPrey)
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), m))
+	caster.sc.EquipCooldown(0, calmDef(factions.Bit(calmTestPrey)), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.True(t, m.Calmed(), "a mob in the allowlist is calmed")
+	assert.Equal(t, 600, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed")
+}
+
+func TestCooldown_CalmSkipsAFactionOutsideTheAllowlist(t *testing.T) {
+	// D8: the skill decides which factions it reaches. A bandit is just as
+	// hostile and just as in-range as a boar; the allowlist is the only thing
+	// standing between them.
+	m := calmTestMob(calmTestBandit)
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), m))
+	caster.sc.EquipCooldown(0, calmDef(factions.Bit(calmTestPrey)), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.False(t, m.Calmed(), "an unlisted faction is not a valid target")
+}
+
+// TestCooldown_CalmScopeIsDataNotCode is L-L: the PO authored TWO scoped spells
+// specifically to prove the mechanism is content. If reaching a different
+// faction ever needs a Go change, the scope was hardcoded — that is the failure
+// named in advance. Here the ONLY difference between the two casts is the mask
+// the loader resolved.
+func TestCooldown_CalmScopeIsDataNotCode(t *testing.T) {
+	m := calmTestMob(calmTestBandit)
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), m))
+	caster.sc.EquipCooldown(0, calmDef(factions.Bit(calmTestBandit)), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.True(t, m.Calmed(), "a second skill scoped to another faction needs no engine change")
+}
+
+func TestCooldown_CalmDurationScalesWithLevel(t *testing.T) {
+	// 300 + 60 per level over the level-1 baseline: level 3 = 420 ticks.
+	m := calmTestMob(calmTestPrey)
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), m))
+	caster.sc.EquipCooldown(0, calmDef(factions.Bit(calmTestPrey)), 3)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+	require.True(t, m.Calmed())
+
+	for i := 0; i < 419; i++ {
+		m.ResetTickNumbers()
+	}
+	assert.True(t, m.Calmed(), "a level-3 calm lasts 420 ticks, not 300")
+	m.ResetTickNumbers()
+	assert.False(t, m.Calmed())
+}
+
+func TestCooldown_CalmSkipsAlliedTarget(t *testing.T) {
+	m := calmTestMob(calmTestPrey)
+	m.Align() // a summon/companion — same faction as the caster
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerPlayerCollision), m))
+	caster.sc.EquipCooldown(0, calmDef(factions.Bit(calmTestPrey)), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.False(t, m.Calmed(), "targetsEnemies gates out same-faction targets — no calming your own pet")
+}

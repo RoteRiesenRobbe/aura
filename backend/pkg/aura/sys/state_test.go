@@ -99,7 +99,7 @@ func stateTestSkillRegistry(t *testing.T) skills.Registry {
 	t.Helper()
 	r, err := skills.RegistryFromFS(fstest.MapFS{
 		"harvest.json": {Data: stateTestHarvestJSON},
-	})
+	}, nil)
 	require.NoError(t, err)
 	return r
 }

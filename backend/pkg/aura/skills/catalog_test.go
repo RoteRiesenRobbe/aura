@@ -58,7 +58,7 @@ var catalogTestFS = fstest.MapFS{
 
 func catalogTestRegistry(t *testing.T) Registry {
 	t.Helper()
-	r, err := RegistryFromFS(catalogTestFS)
+	r, err := RegistryFromFS(catalogTestFS, nil)
 	if err != nil {
 		t.Fatalf("RegistryFromFS: %v", err)
 	}

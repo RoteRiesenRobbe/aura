@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 )
 
 type SkillID int
@@ -54,6 +56,7 @@ const (
 	EffectTypeRevive
 	EffectTypeDash
 	EffectTypeTickRate
+	EffectTypeCalm
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -103,6 +106,7 @@ var effectTypeMap = map[string]EffectType{
 	"revive":          EffectTypeRevive,
 	"dash":            EffectTypeDash,
 	"tick_rate":       EffectTypeTickRate,
+	"calm":            EffectTypeCalm,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -215,6 +219,12 @@ type EffectDef struct {
 	TargetsAllies      bool     `json:"targetsAllies"`
 	TargetsStructures  bool     `json:"targetsStructures"`
 
+	// TargetFactionMask is the owning skill's resolved faction allowlist,
+	// stamped here at load (see SkillDefinition.TargetFactionMask — it is
+	// authored once, on the skill). 0 = unrestricted; a non-zero mask narrows
+	// eligibility to exactly those factions in eligibleByTargetFlags.
+	TargetFactionMask uint64 `json:"targetFactionMask,omitempty"`
+
 	// Per-type payloads — exactly one non-nil, matching Type.
 	Damage   *DamageParams   `json:"damage,omitempty"`   // damage_aura, instant_damage
 	Heal     *HealParams     `json:"heal,omitempty"`     // heal_aura
@@ -230,6 +240,7 @@ type EffectDef struct {
 	Revive   *ReviveParams   `json:"revive,omitempty"`   // revive
 	Dash     *DashParams     `json:"dash,omitempty"`     // dash
 	TickRate *TickRateParams `json:"tickRate,omitempty"` // tick_rate
+	Calm     *CalmParams     `json:"calm,omitempty"`     // calm
 }
 
 // ThreatParams is the taunt / detaunt payload (mob-depth chunk 7). Margin is
@@ -552,6 +563,15 @@ type TickRateParams struct {
 	DurationTicks int     `json:"durationTicks"`
 }
 
+// CalmParams is the calm payload (plan-faction-flips chunk 2, D7): how long a
+// hit mob stays out of combat. There is no strength axis — a mob is calmed or
+// it is not — so duration is the whole payload, and the only thing skill level
+// scales. All values [PLACEHOLDER].
+type CalmParams struct {
+	DurationTicks         int `json:"durationTicks"`
+	DurationTicksPerLevel int `json:"durationTicksPerLevel"`
+}
+
 // SpawnParams is the spawn payload (effect foundations Step 3 / mob-depth
 // chunk 1): a cooldown-fired summon of an owned, caster-aligned mob. Two
 // scaling sources compose (chunk-1 decision): the SUMMON SKILL's level scales
@@ -635,6 +655,19 @@ type SkillDefinition struct {
 	CastTicks               int  `json:"castTicks"`
 	CastTicksPerLevel       int  `json:"castTicksPerLevel"`
 	CastInterruptedByDamage bool `json:"castInterruptedByDamage"`
+
+	// TargetFactionMask is the authored `targetFactions` name list resolved to
+	// a faction bitmask at content load (plan-faction-flips chunk 2, D8): the
+	// closed set of factions this skill may reach. 0 = unrestricted, which is
+	// every skill authored before this existed.
+	//
+	// ⭐ Authored on the SKILL (PO ruling) but STAMPED onto each of the skill's
+	// effects below, because the runtime gate belongs in eligibleByTargetFlags
+	// — the one predicate every targeted effect already passes through. A
+	// per-apply-site copy is exactly how the mayHarm gate warns it gets
+	// forgotten. Authoring vocabulary is what the ruling fixes; where the
+	// resolved bits are carried is an implementation detail.
+	TargetFactionMask uint64 `json:"targetFactionMask,omitempty"`
 
 	Effects []EffectDef `json:"effects"`
 }
@@ -720,6 +753,9 @@ type effectDef struct {
 
 	TickRateFactor        float32 `json:"tickRateFactor"`        // tick_rate: cadence multiplier (<1 haste, >1 slow)
 	TickRateDurationTicks int     `json:"tickRateDurationTicks"` // tick_rate: buff lifetime in game ticks
+
+	CalmTicks         int `json:"calmTicks"`         // calm: ticks out of combat
+	CalmTicksPerLevel int `json:"calmTicksPerLevel"` // calm: per skill level
 }
 
 type skillDefinition struct {
@@ -736,6 +772,9 @@ type skillDefinition struct {
 	CastTicks               int  `json:"castTicks"`
 	CastTicksPerLevel       int  `json:"castTicksPerLevel"`
 	CastInterruptedByDamage bool `json:"castInterruptedByDamage"`
+
+	// Faction names this skill is allowed to reach (plan-faction-flips D8).
+	TargetFactions []string `json:"targetFactions"`
 
 	// Kept raw so mapping can hard-fail keys the effect type does not read
 	// (see effectKeys).
@@ -832,6 +871,24 @@ var effectKeys = map[EffectType][]string{
 	// factor plus a lifetime. No geometry, no targeting, no cadence (it MODIFIES
 	// cadence rather than having one).
 	EffectTypeTickRate: {"tickRateFactor", "tickRateDurationTicks"},
+	// Calm (plan-faction-flips chunk 2): a query circle of enemy mobs, each
+	// dropped out of combat for the authored duration. No cadence (it fires on
+	// cooldown activation) and no selector/cap on purpose — calm is a DISENGAGE
+	// tool, and a pack aggros as a pack, so it takes everything in the circle
+	// (PO 2026-07-28). The faction allowlist that decides WHICH mobs are
+	// eligible is authored on the skill, not here (D8).
+	EffectTypeCalm: mergeKeys(keysGeometry, keysTargetFlags,
+		[]string{"calmTicks", "calmTicksPerLevel"}),
+}
+
+// factionScopedEffects are the effect types whose skill MUST author a
+// targetFactions allowlist (plan-faction-flips D8). The requirement is the
+// guard, not a convenience: skill-level JSON is parsed without
+// DisallowUnknownFields, so a typo'd `targetFaction` key would vanish silently
+// and the effect would reach EVERY faction — the widest possible failure, and
+// invisible. Making the allowlist mandatory turns that typo into a boot error.
+var factionScopedEffects = map[EffectType]bool{
+	EffectTypeCalm: true,
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -886,10 +943,41 @@ func parseSkillDefinition(data []byte) (*skillDefinition, error) {
 	return &s, nil
 }
 
-func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
+// resolveTargetFactions turns the authored faction NAMES into the bitmask the
+// runtime gate tests (plan-faction-flips D8). Names, not bits, are the
+// authoring vocabulary; bits, not names, are what exists at runtime — the
+// faction registry is boot-only, so this conversion has exactly one chance to
+// happen and every anomaly aborts the boot, like every other content loader.
+//
+// ⚑ This is why skills now load AFTER factions (cmd/aurad/aurad.go): before
+// chunk 2 the order was the other way round, and no skill needed a faction.
+func resolveTargetFactions(names []string, fr factions.Registry) (uint64, error) {
+	if len(names) == 0 {
+		return 0, nil
+	}
+	if fr == nil {
+		return 0, fmt.Errorf("targetFactions authored but no faction registry available")
+	}
+	var mask uint64
+	for _, name := range names {
+		def, err := fr.GetByName(name)
+		if err != nil {
+			return 0, fmt.Errorf("targetFactions: %w", err)
+		}
+		mask |= factions.Bit(def.ID)
+	}
+	return mask, nil
+}
+
+func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefinition, error) {
 	category, ok := skillCategoryMap[s.Category]
 	if !ok {
 		return nil, fmt.Errorf("unknown skill category: %q", s.Category)
+	}
+
+	targetFactionMask, err := resolveTargetFactions(s.TargetFactions, fr)
+	if err != nil {
+		return nil, fmt.Errorf("skill %q: %w", s.Name, err)
 	}
 
 	if s.CastTicks < 0 {
@@ -907,6 +995,13 @@ func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
 		if err != nil {
 			return nil, fmt.Errorf("skill %q: %w", s.Name, err)
 		}
+		// A faction-scoped effect without an allowlist would reach every
+		// faction — see factionScopedEffects for why that is a hard-fail and
+		// not a permissive default.
+		if factionScopedEffects[effect.Type] && targetFactionMask == 0 {
+			return nil, fmt.Errorf("skill %q: effect type %v requires a non-empty targetFactions allowlist", s.Name, effect.Type)
+		}
+		effect.TargetFactionMask = targetFactionMask
 		effects = append(effects, effect)
 	}
 
@@ -927,6 +1022,7 @@ func (s *skillDefinition) mapToSkillDefinition() (*SkillDefinition, error) {
 		CastTicks:               s.CastTicks,
 		CastTicksPerLevel:       s.CastTicksPerLevel,
 		CastInterruptedByDamage: s.CastInterruptedByDamage,
+		TargetFactionMask:       targetFactionMask,
 		Effects:                 effects,
 	}, nil
 }
@@ -1021,6 +1117,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Dash, err = e.dashParams()
 	case EffectTypeTickRate:
 		def.TickRate, err = e.tickRateParams()
+	case EffectTypeCalm:
+		def.Calm, err = e.calmParams()
 	case EffectTypeLightAura, EffectTypeRecall:
 		// Payload-less by design: light_aura is pure geometry (its radius
 		// streams as the wire light_radius) and recall's destination is the
@@ -1331,6 +1429,17 @@ func (e *effectDef) tickRateParams() (*TickRateParams, error) {
 		return nil, fmt.Errorf("tickRateDurationTicks: must be > 0, got %v", e.TickRateDurationTicks)
 	}
 	return &TickRateParams{Factor: e.TickRateFactor, DurationTicks: e.TickRateDurationTicks}, nil
+}
+
+// calmParams builds the calm payload. A calm of zero ticks is a cast that
+// applies nothing — the same silent no-op every other duration guard here
+// rejects. A negative perLevel is legal (calm may shorten as it levels, and
+// the apply site floors the effective duration at 1).
+func (e *effectDef) calmParams() (*CalmParams, error) {
+	if e.CalmTicks < 1 {
+		return nil, fmt.Errorf("calmTicks: must be >= 1, got %v", e.CalmTicks)
+	}
+	return &CalmParams{DurationTicks: e.CalmTicks, DurationTicksPerLevel: e.CalmTicksPerLevel}, nil
 }
 
 // tauntParams builds the taunt payload. Margin must be strictly positive — a

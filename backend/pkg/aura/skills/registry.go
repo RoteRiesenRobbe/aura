@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/fs"
 	"strings"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 )
 
 // Registry is the read-only interface for looking up loaded skill definitions.
@@ -21,7 +23,11 @@ type registry struct {
 // RegistryFromFS walks fileSystem for .json files, parses each as a SkillDefinition,
 // and returns a Registry. Fails on malformed JSON, unknown categories/effect types,
 // duplicate IDs, or duplicate names.
-func RegistryFromFS(fileSystem fs.FS) (Registry, error) {
+//
+// fr resolves the authored targetFactions allowlist (plan-faction-flips D8) and
+// may be nil only where no skill authors one — production always passes the
+// loaded registry, which is why boot now loads factions FIRST.
+func RegistryFromFS(fileSystem fs.FS, fr factions.Registry) (Registry, error) {
 	r := &registry{
 		byID:   make(map[SkillID]*SkillDefinition),
 		byName: make(map[string]*SkillDefinition),
@@ -45,7 +51,7 @@ func RegistryFromFS(fileSystem fs.FS) (Registry, error) {
 			return fmt.Errorf("cannot parse %q: %w", path, err)
 		}
 
-		def, err := raw.mapToSkillDefinition()
+		def, err := raw.mapToSkillDefinition(fr)
 		if err != nil {
 			return fmt.Errorf("cannot map %q: %w", path, err)
 		}

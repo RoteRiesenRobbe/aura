@@ -19,7 +19,7 @@ func testSkillRegistry(t *testing.T) Registry {
 		"heal.json":          {Data: healAuraJSON},
 		"swift-passive.json": {Data: swiftPassiveJSON},
 	}
-	r, err := RegistryFromFS(fsys)
+	r, err := RegistryFromFS(fsys, nil)
 	require.NoError(t, err)
 	return r
 }
@@ -124,7 +124,7 @@ func TestRecipes_DuplicateID(t *testing.T) {
 // recipe JSONs resolve against the real skill registry, and the Paladin Aura
 // combination (Damage L5 + Heal L5 -> Paladin) both loads and fires.
 func TestRecipes_LoadsRealContent(t *testing.T) {
-	sr, err := RegistryFromFS(os.DirFS("../../../../api/skills"))
+	sr, err := RegistryFromFS(os.DirFS("../../../../api/skills"), realFactions(t))
 	require.NoError(t, err)
 	rr, err := RecipesFromFS(os.DirFS("../../../../api/recipes"), sr)
 	require.NoError(t, err)
@@ -156,7 +156,7 @@ func TestRecipes_LoadsRealContent(t *testing.T) {
 // including the Warbanner capstone and Barrier's recipe home (the pre-existing
 // skill as a result).
 func TestRecipes_C7Net(t *testing.T) {
-	sr, err := RegistryFromFS(os.DirFS("../../../../api/skills"))
+	sr, err := RegistryFromFS(os.DirFS("../../../../api/skills"), realFactions(t))
 	require.NoError(t, err)
 	rr, err := RecipesFromFS(os.DirFS("../../../../api/recipes"), sr)
 	require.NoError(t, err)

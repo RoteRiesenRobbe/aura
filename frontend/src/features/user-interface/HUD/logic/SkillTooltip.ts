@@ -343,6 +343,16 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
         case 'dash':
             lines.push(`Dash ${prog(effect.dash.distance, effect.dash.distancePerLevel, level, maxLevel)} units in your movement direction`);
             break;
+        case 'calm': {
+            // Say what it is FOR, like light_aura: "calms enemies" reads as a
+            // damage-free nothing, and the one thing a player must know is that
+            // their own aura will break it (PO 2026-07-28 — calm is a disengage
+            // tool, and any damage ends it).
+            const calm = effect.calm;
+            lines.push(`Calms enemies in range for ${prog(calm.durationTicks, calm.durationTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            lines.push('Any damage breaks it — including your own aura');
+            break;
+        }
         case 'tick_rate': {
             const tickRate = effect.tickRate;
             const speed = tickRate.factor < 1

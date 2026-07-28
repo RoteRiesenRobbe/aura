@@ -33,7 +33,7 @@ func respawnTestHardyDef(t *testing.T) *skills.SkillDefinition {
 	t.Helper()
 	r, err := skills.RegistryFromFS(fstest.MapFS{
 		"hardy.json": {Data: respawnTestHardyJSON},
-	})
+	}, nil)
 	require.NoError(t, err)
 	def, err := r.GetByName("Hardy")
 	require.NoError(t, err)

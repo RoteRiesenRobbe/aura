@@ -5,6 +5,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -74,7 +75,7 @@ func TestMilestoneUnlocksFromFS_MissingFile(t *testing.T) {
 // Resolves against the real content in api/skills so a renamed skill fails
 // here, not at boot.
 func TestMilestoneUnlocksFromFS_PinnedTable(t *testing.T) {
-	r, err := RegistryFromFS(os.DirFS("../../../../api/skills"))
+	r, err := RegistryFromFS(os.DirFS("../../../../api/skills"), realFactions(t))
 	require.NoError(t, err)
 
 	unlocks, err := MilestoneUnlocksFromFS(os.DirFS("../../../../api/milestones"), r)
@@ -87,4 +88,15 @@ func TestMilestoneUnlocksFromFS_PinnedTable(t *testing.T) {
 	assert.Equal(t, map[string]uint32{
 		"Haste": 7,
 	}, got)
+}
+
+// realFactions loads the repo faction registry. Skills resolve their authored
+// targetFactions allowlist against it at load (plan-faction-flips D8), so any
+// test that parses REAL api/skills content needs the real names available —
+// nil is only safe for fixtures that author no allowlist.
+func realFactions(t *testing.T) factions.Registry {
+	t.Helper()
+	r, err := factions.RegistryFromFS(os.DirFS("../../../../api/factions"))
+	require.NoError(t, err)
+	return r
 }

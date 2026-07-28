@@ -2,9 +2,11 @@
 
 **Status:** planned 2026-07-28 (PO design session, via choice prompts), **extended
 2026-07-28 in a second design session** (D6–D13, the WoW framing, calm added as
-its own chunk). **Chunk 1 ✅ SHIPPED 2026-07-28** (§9) — chunks 2 (calm) and 3
-(charm) not started. ⚑ **§4.1 item 2 was WRONG and is corrected in place** — the
-summon path has a mob-caster leg, which shipped as a third verb (L-N).
+its own chunk). **Chunk 1 ✅ SHIPPED 2026-07-28 · chunk 2 ✅ SHIPPED 2026-07-29**
+(§9) — **chunk 3 (charm) is the only one left**. ⚑ **Two plan claims were WRONG
+and are corrected in place:** §4.1 item 2 (the summon path has a mob-caster leg,
+which shipped as a third verb — L-N) and §5.3 item 1 (calm's countdown belongs in
+the buff store, not a `Mob` field — L-O).
 
 ⭐ **The second session's reframe: charm is a temporary PET, not a debuff.** The
 PO named the reference — WoW's *Subjugate Demon*: specific mobs only, fights for
@@ -320,8 +322,14 @@ it does not substitute for chunk 3.
 
 ### 5.3 What is new
 
-1. **`calmTicks` on `Mob`** — countdown in `Update`, mirroring `ttlTicks` but
-   expiring into "resume normal acquisition" rather than death.
+1. ~~**`calmTicks` on `Mob`** — countdown in `Update`, mirroring `ttlTicks`.~~
+   ⚠ **WRONG, corrected in execution (L-O):** the countdown belongs in the
+   existing **`skills.Buffs`** store as an empty `calmPayload`. The pip is
+   *derived* from that store (`AppliedEffects()` ORs `appliedBit()` over live
+   entries), and `buffPayload` is a closed interface whose stated purpose is
+   that a new kind cannot compile without deciding its pip — so a `Mob` field
+   would have had to bypass the one mechanism that guarantees the client tell.
+   The store also already owns aging and per-skill refresh. See §9.
 2. **A branch in `updateAggro`**, ahead of the pacifist case: while calmed,
    `resetAggro()` and acquire nothing.
 3. **Break on damage** — any `tookDamage` clears `calmTicks` immediately (D-calm
@@ -331,7 +339,11 @@ it does not substitute for chunk 3.
    must not be able to ship a nil-payload no-op).
 5. **The faction-allowlist seam (D8)** — authored names on the skill, resolved to
    a mask at content load, one mask test at cast. **Built here, reused by chunk 3
-   twice.**
+   twice.** ⚑ Two things the plan did not know: **skills loaded BEFORE factions**
+   at boot, so the resolution had nowhere to happen (order swapped); and the
+   resolved mask is **stamped onto the skill's effects**, because the runtime
+   gate lives in `eligibleByTargetFlags` — the one predicate every targeted
+   effect already passes through. See §9.
 6. **Content** — one cooldown skill scoped to `wildlife_prey` +
    `wildlife_predator`.
 
@@ -583,12 +595,26 @@ behaviour** — standing still, fighting whatever wanders past — which looks l
 tuning problem rather than a missed call site. The four sites are listed in
 §6.1b; a companion-behaviour regression test is the guard.
 
-**L-K — ⚑ NEW: calm's break condition is the player's own aura (§5.4).** A
-calmed mob standing in the calmer's damage aura breaks the calm on the next tick.
-Ruled as intended, but it means **calm is untestable in the harness without
-either walking away or switching to a non-damaging aura** — a naive harness run
-that casts calm and then stands there will report calm as broken. Write the test
-to move.
+**L-K — ⚑ calm's break condition is the player's own aura (§5.4).** A calmed mob
+standing in the calmer's damage aura breaks the calm on the next tick. Ruled as
+intended, but it means **calm is untestable in the harness without either walking
+away or switching to a non-damaging aura** — a naive harness run that casts calm
+and then stands there will report calm as broken. Write the test to move.
+✅ **Handled in chunk 2's harness, which walks away — but it did NOT bite**, for
+a reason worth knowing: a fresh player's aura slots are all **Empty**, so there
+was no self-damage to break anything. ⚑ **The first playtester with Damage
+equipped will hit it immediately**, and it will read as "calm is broken".
+
+**L-O — ⚑ NEW, found in execution: skill-level JSON is parsed WITHOUT
+`DisallowUnknownFields`.** Only *effects* get the strict key check (`effectKeys`);
+a mistyped skill-level key is silently dropped by `json.Unmarshal`. For an
+allowlist that is the widest possible failure and an invisible one — a typo'd
+`targetFaction` would leave the mask 0, which reads as *unrestricted*, and calm
+would reach every faction in the game. ✅ **Resolved by making the allowlist
+mandatory** for faction-scoped effect types (`factionScopedEffects`), which turns
+the typo into a boot error. ⚑ **Chunk 3 must add charm to that table** — the
+guard is per-effect-type, not automatic. The same gap is still open for every
+*other* skill-level key; closing it generally is a separate hygiene item.
 
 **L-L — ⚑ NEW: two spells is the acceptance test for D8, not a content detail.**
 *Charm wildlife* and *charm elementals* exist specifically to prove the faction
@@ -645,23 +671,30 @@ editing, and keep the boot count pinned at 15.
 | 5 | visual tell (L-C) | **D13** — status-effect pip, interim until the frontend rework |
 | 6 | `charmable` default, opt-in or opt-out | **D8** — the flag does not exist; scope is per-skill |
 
+### ✅ Closed in chunk 2's execution session (2026-07-29)
+
+| # | question | closed by |
+|---|---|---|
+| 1 | calm's numbers | **PO** — 300 ticks (9.9 s) / 600 cooldown / radius 4.0, **+60 ticks per skill level**, all [PLACEHOLDER] |
+| 2 | does calm apply to a mob already attacking you? | **PO — yes**, it drops the live aggro link (`ApplyCalm` calls `resetAggro`) |
+| — | calm's delivery (never asked in the design session) | **PO — everything in radius**, uncapped, no selector: a pack aggros as a pack |
+| — | does chunk 2 ship a client tell? | **PO — yes**, the D13 pip, `AppliedEffectCalm` |
+
 ### Still open
 
-1. **Calm's numbers.** D14 set charm's (~60 s / ~120 s [PLACEHOLDER]). Calm's
-   duration and cooldown, both radii, and whether either duration scales with
-   skill level are unset. Not blocking — chunk 2 can author obvious placeholders
-   and the values are a tuning pass.
-2. **Does calm apply to a mob that is already attacking you?** Assumed **yes**
-   (that is the disengage case it exists for), but it has not been ruled. If yes,
-   calm drops an active aggro link, which is a slightly stronger effect than
-   "prevents acquisition".
-3. **What does a charmed mob's XP kill credit do to the shared-XP rule?** D2
+1. **Calm is unreachable in normal play.** No milestone, drop or teaching
+   authors it, so only the `SKILL` cheat grants it. Deliberate — the chunk was
+   scoped to the mechanism — but it means calm cannot be playtested by anyone
+   without console access until an unlock is authored.
+2. **What does a charmed mob's XP kill credit do to the shared-XP rule?** D2
    routes credit to the charmer. All combat participants get XP today (GDD, no
    formal groups), so this probably needs no special handling — but it has not
    been traced against `PlayerTouches`.
-4. **Does the pip (D13) show duration?** A plain pip does not. With a 60 s charm,
+3. **Does the pip (D13) show duration?** A plain pip does not. With a 60 s charm,
    *time remaining* is the single most useful thing to display, and its absence is
-   the strongest argument for pulling the pet frame forward.
+   the strongest argument for pulling the pet frame forward. ⚑ Chunk 2 shipped
+   the pip and confirmed it renders, so the question is now concrete rather than
+   hypothetical: a calmed wolf shows **a dot, and nothing else**.
 
 ---
 
@@ -735,3 +768,111 @@ has, because no content reaches it. Say so rather than claiming a clean sweep.
 
 **Next:** chunk 2 (calm) or chunk 3 (charm), each its own session (D5). Chunk 1
 is D1's seam; only **chunk 3** proves it by use (§5.1 — calm never flips faction).
+
+---
+
+### Chunk 2 — calm ✅ DONE 2026-07-29, backend + frontend + content, committed `[uncommitted]`
+
+**A wolf can now be told to stop.** Calm ships as ruled: it never touches
+faction, it drops the live aggro link, it takes **everything** in the radius, and
+**any** damage ends it — the calmer's own aura included.
+
+**Two plan corrections, both found by auditing §5 against HEAD before the first
+edit** (the same habit that caught 3b's missing step and chunk 1's L-N):
+
+⭐ **① Calm is a `Buffs` payload, not a `Mob` field (§5.3 item 1 was wrong).**
+`AppliedEffects()` is *derived* from the buff store, and `buffPayload` is a
+closed interface whose whole purpose is that a new kind cannot compile without
+deciding its pip. A bare `calmTicks` would have had to bypass the one mechanism
+that guarantees the client tell — and would have re-implemented aging and
+per-skill refresh, which the store already owns. The payload is **empty**: calm
+has no strength axis, so remaining ticks are the entire state. It cost exactly
+one new thing, **`DropCalm()`** — the store's only *targeted* removal, where
+expiry and Cleanse-everything were the two shapes that existed before.
+
+⚑ **② Skills loaded BEFORE factions at boot** (`aurad.go:62-63`), so D8's
+"resolved at content load" had nowhere to happen. Factions now load first; they
+depend on nothing, so the swap is free. Three call sites (`aurad.go`,
+`simharness/content.go` ×2) plus a test-helper pass — real-content tests need a
+**real** faction registry, `nil` is only safe for fixtures authoring no
+allowlist.
+
+**⭐ The D8 seam, and the one place the PO's ruling met the code.** The PO chose
+*authored on the skill* over *authored on the effect*. Shipped as: authored on
+the skill, resolved to a mask at load, and **stamped onto that skill's effects**
+— because the runtime gate belongs in `eligibleByTargetFlags`, the one predicate
+every targeted effect already passes through, whose own comment warns that a
+per-site copy *is* how the gate gets forgotten. Authoring vocabulary is what the
+ruling fixes; where the resolved bits are carried is implementation.
+`TestCooldown_CalmScopeIsDataNotCode` is **L-L's acceptance test**: a second
+skill scoped to a different faction needs no Go change.
+
+**⚑ L-O, the new landmine:** skill-level JSON has **no `DisallowUnknownFields`**
+— only effects get the strict key check. A typo'd `targetFaction` would leave the
+mask 0, which reads as *unrestricted*. Resolved by making the allowlist
+**mandatory** for faction-scoped effect types, so the typo is a boot error.
+**Chunk 3 must add charm to `factionScopedEffects`** — the guard is per-type.
+
+**Also shipped:**
+
+- **The break is checked AHEAD of the calm branch** in `updateAggro`, not inside
+  it: the hit that breaks a calm has already written its threat row, so
+  retaliation lands on the **same tick**. Pinned by a test.
+- **Calm gates `updateSupportTarget` too.** "Out of combat" has to mean it stops
+  healing its pack. No authored calm reaches a support mob today (the wildlife
+  allowlist has none) — leaving it ungated would have made that a latent bug
+  rather than a decision.
+- **The aura gates off for free**: no target → `selectMode` falls to `modeIdle`.
+- **The pip** — `AppliedEffectCalm` (bit 5) + one `PIP_STYLES` entry, pale blue
+  and listed first. No schema change: `applied_effects` is already a wire ubyte.
+- **Tooltip case + `CalmParams` on the catalog type.** The tooltip has a
+  `default:` warn for unknown effect types, so a missing case is a console
+  warning and a literal `(calm)` in the panel — not a build error.
+- **Content:** `api/skills/calm.json`, id **62**, cooldown, maxLevel 3, cooldown
+  600 ticks, radius 4.0, `calmTicks` 300 `+60`/level, `targetFactions:
+  [wildlife_prey, wildlife_predator]`. All [PLACEHOLDER].
+
+**Verified:** `go build` / `go vet` / `go test -count=1 -timeout 300s ./...`
+green (**14 new Go tests** across the load layer, the buff store, the mob AI and
+the apply site); frontend typecheck + **47 vitest** (3 new) + prod build.
+**Sim battery BYTE-IDENTICAL** against a pre-change worktree across all four legs
+(default · `-chain` · `-levels` · `-content ../api`) — **TTK 6.67 s / TTD 8.70 s
+stand**. Boot `-content ../api`: **0 errors 0 warnings 0 panics — 15 factions /
+84 skills (83 + Calm) / 64 mobs / 10 recipes / 1 milestone / 777 props / 485
+spawns / 5 campfires.**
+
+**In-game harness 7/7** — new `.claude/skills/verify/chunk2-calm.mjs`, clean run,
+0 console errors, 0 WebGL losses. An engaged wolf at 0.59 units goes **0.59 →
+2.88 and holds** while still inside its 5.4 aggro radius; after expiry the player
+walks back in and it **closes again, 1.35 → 1.03**. The pip is confirmed by an
+**in-picture control** — present under the mobs during the calm, absent on the
+same species after expiry.
+
+⚑ **Three harness iterations were needed and all three failures were the
+HARNESS, not the product** — pinned in the script, because each one produced a
+plausible "calm is broken" report: ① after the 20 s camera settle the wolf has
+usually **already arrived**, so demanding a shrinking distance fails while calm
+works perfectly; ② the observation window must fit inside calm's **9.9 s**, or it
+is measuring expiry; ③ a calmed mob **walks home past its own 5.4 sensor**, so
+"it never came back" was really "it could not see me". There is also no single
+`mob` layer in the scene graph — there is one **per species** (`wildlife`,
+`bossMobs`, `dodo`, …), and the script tags its target by **object identity** so
+a second wolf wandering in cannot fake either result.
+
+**Considered and NOT taken:** a per-caster exemption so your own aura spares your
+own calm. Already rejected in the design session (§5.4) and re-confirmed here —
+it is a per-caster *relation*, exactly what the global faction model avoids.
+
+**Two things the PO should know:**
+
+1. **Calm is unreachable in normal play** — no milestone, drop or teaching
+   authors it, so only the `SKILL` cheat grants it (open question 1).
+2. **L-K did not bite in the harness** because a fresh player's aura slots are
+   all **Empty** — there was no self-damage to break the calm. The first
+   playtester with Damage equipped will hit it immediately, and it will read as
+   a bug rather than as the ruling.
+
+**Next:** **chunk 3 (charm)** is the only chunk left, and its own session (D5).
+It is the first consumer of chunk 1's seam (§5.1 — calm never flips faction, so
+chunk 2 did **not** prove it). Read **L-B / L-M** before touching `Level()`, and
+**L-O** before authoring the charm skills.

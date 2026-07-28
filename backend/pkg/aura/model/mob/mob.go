@@ -1185,7 +1185,28 @@ const combatRegenGraceTicks = 100
 // which is why a healer never leashed, never retaliated, never respected the
 // campfire safe-zone, and a follower with a heal aura never healed at all.
 func (m *Mob) updateAggro() {
+	// Calm breaks on ANY damage, from any source, including the calmer's own
+	// aura (plan-faction-flips §5.4, PO ruling: calm is a disengage tool, not
+	// crowd control). Checked BEFORE the switch on purpose: the damage that
+	// broke the calm already wrote its threat row, so clearing the flag here
+	// lets updateEnemyTargeting retaliate on the SAME tick. Doing it inside the
+	// calm case would swallow the hit and cost a tick of retaliation.
+	if m.buffs.Calmed() && m.tookDamage {
+		m.buffs.DropCalm()
+	}
+
 	switch {
+	// A calmed mob acquires nothing and holds no target — it has walked out of
+	// the fight. Ahead of the pacifist branch because calm is the stronger
+	// statement: a pacifist still supports allies and still flees, a calmed mob
+	// does neither. resetAggro every tick (not just on apply) is what keeps
+	// threat written by a friendly-fire tick from re-latching a target, and the
+	// aura gates off for free — no target means selectMode falls to modeIdle.
+	case m.buffs.Calmed():
+		m.tookDamage = false
+		m.resetAggro()
+		m.supportTarget = nil
+
 	// A mob that can support but cannot fight acquires no enemy at all: it has
 	// nothing to answer one with (PO 2026-07-25 — pacifist healers ignore their
 	// attacker). Note this is now a statement about its LOADOUT, not its type,
@@ -1209,8 +1230,15 @@ func (m *Mob) updateAggro() {
 
 	// Support acquisition runs for every mob carrying a support aura, follower
 	// or not — the collision between the two old early returns is exactly what
-	// left MedicCompanion and ShieldbearerCompanion unable to heal.
-	m.updateSupportTarget()
+	// left MedicCompanion and ShieldbearerCompanion unable to heal. A calmed
+	// mob is the one exception: "out of combat" has to mean it stops healing
+	// its pack too, or calm would silently keep a support mob fighting the
+	// player's fight for it. (No authored calm reaches a support mob today —
+	// the wildlife allowlist has none — but leaving it ungated would make that
+	// a latent bug rather than a decision.)
+	if !m.buffs.Calmed() {
+		m.updateSupportTarget()
+	}
 
 	m.selectMode()
 }
@@ -1713,6 +1741,23 @@ func (m *Mob) ApplyShield(source skills.SkillID, hp float32, ticks int) {
 // tick via TickRateFactor.
 func (m *Mob) ApplyTickRate(source skills.SkillID, factor float32, ticks int) {
 	m.buffs.ApplyTickRate(source, factor, ticks)
+}
+
+// ApplyCalm puts this mob out of combat for ticks (plan-faction-flips chunk 2,
+// D7). It drops the CURRENT aggro link, not just future acquisition (PO
+// 2026-07-28): calm is the tool you reach for because something is already
+// chewing on you, and "prevents acquisition" would do nothing about that.
+//
+// The countdown lives in the buff store, not in a Mob field, so it ages on the
+// existing Tick() and carries its own applied-effect pip.
+func (m *Mob) ApplyCalm(source skills.SkillID, ticks int) {
+	m.buffs.ApplyCalm(source, ticks)
+	m.resetAggro()
+}
+
+// Calmed reports whether this mob is currently out of combat by calm.
+func (m *Mob) Calmed() bool {
+	return m.buffs.Calmed()
 }
 
 // ShieldHP is the current total absorb capacity across all active pools;

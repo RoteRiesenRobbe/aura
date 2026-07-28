@@ -59,8 +59,12 @@ func main() {
 	slog.Info("Loading content", slog.String("source", contentSource))
 
 	config := loadConf()
-	skillsRegistry := loadSkills(content.skills)
+	// Factions load FIRST: since plan-faction-flips chunk 2 a skill may author
+	// a targetFactions allowlist, resolved to bits at load (D8 — the faction
+	// registry is boot-only, so names have exactly one chance to become bits).
+	// Factions themselves depend on nothing.
 	factionsRegistry := loadFactions(content.factions)
+	skillsRegistry := loadSkills(content.skills, factionsRegistry)
 	levelCurve := config.LevelCurve()
 	mobsRegistry := loadMobs(skillsRegistry, factionsRegistry, levelCurve, content.mobs)
 	milestoneUnlocks := loadMilestoneUnlocks(content.milestones, skillsRegistry)
