@@ -771,7 +771,7 @@ is D1's seam; only **chunk 3** proves it by use (§5.1 — calm never flips fact
 
 ---
 
-### Chunk 2 — calm ✅ DONE 2026-07-29, backend + frontend + content, committed `[uncommitted]`
+### Chunk 2 — calm ✅ DONE 2026-07-29, backend + frontend + content, committed `216f733b`
 
 **A wolf can now be told to stop.** Calm ships as ruled: it never touches
 faction, it drops the live aggro link, it takes **everything** in the radius, and
