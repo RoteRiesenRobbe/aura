@@ -84,6 +84,13 @@ func HealthGainTick() float32 { return healthGainTick }
 // (plan-entity-model.md landmine L1).
 const defaultMobWalkingSpeedPerTick float32 = 0.055
 
+// defaultChaseIntoAuraMargin [PLACEHOLDER] is how far past its own aura edge a
+// mob closes before it stops (shouldApproach). It must equal the value
+// core/gameconf.go normalizes a non-positive game.mobChaseIntoAuraMargin to —
+// this fallback only ever fires for callers that pass 0, and until H1a the two
+// disagreed 4× (0.05 here vs 0.2 there), so no running mob ever used this one.
+const defaultChaseIntoAuraMargin float32 = 0.2
+
 // walkingSpeedPerTick is the base step in the SAME unit and under the SAME
 // name as the player's game.player.walkingSpeedPerTick, so the two mechanics
 // are one vocabulary in two config blocks (the game.mob.healthGainTick
@@ -301,8 +308,12 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 	// Spawns at full health — MaxHealth is derived, so the pool only exists
 	// once the definition and skill component are in place.
 	m.health = m.MaxHealth()
+	// Unreachable in the running game — every non-test caller passes the value
+	// core/gameconf.go has already normalized. It exists for callers that pass
+	// 0, and it holds the same number that normalizer does, so there is one
+	// chase margin in the codebase rather than two that disagree (H1a).
 	if m.chaseIntoAuraMargin <= 0 {
-		m.chaseIntoAuraMargin = 0.05
+		m.chaseIntoAuraMargin = defaultChaseIntoAuraMargin
 	}
 	// Absent in the definition → support anything short of full health, which
 	// is what the pre-round-3 seek-healer did (validated to [0, 1] at load).

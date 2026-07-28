@@ -2504,7 +2504,7 @@ any VLQ mappings.
 ## 30. Berryhunter render/asset vestiges surfaced by the §28 Chunk 3 audit
 
 > **✅ §30 IS NOW FULLY DONE.** Item 1 landed 2026-07-28, committed `c183ce12`,
-> as H4 of `docs/plan-pre-accounts-hygiene.md` (ledger there, §11): `capacity`/`stock`
+> as H4 of `docs/archive/plan-pre-accounts-hygiene.md` (ledger there, §11): `capacity`/`stock`
 > deleted at both ends and the **`aabb` renumber accepted** (D3), taking
 > `ResourceStockChangedEvent`, `baseScale`, both empty override stubs and
 > `ResourceJuice.ts` + its two mp3s with it. ⚑ The caveat below was the whole
@@ -3168,19 +3168,25 @@ level-1 Damage aura with collision fully enforced. The focus-fire problem is a
 
 ## 35. One value, many homes — the tuning-value duplication sweep
 
-> **✅ TIER-1 ROWS 2, 3, 4 DONE 2026-07-28, committed `c183ce12`** — session 1
-> of `docs/plan-pre-accounts-hygiene.md` (ledger there, §11). Row 2: the embedded
+> **✅ TIER 1 FULLY DONE 2026-07-28** — `docs/archive/plan-pre-accounts-hygiene.md`
+> (ledgers there, §11). **Row 1** closed by session 2 (`[uncommitted]`): both Go
+> defaults now hold 0.2, and the sim's copy with them. ⚑ **The drift turned out
+> to be latent, not active** — *no* battery scenario makes a mob approach
+> (facetank spawns at `distance = 0`, kite pins the mob at `Speed = 0`, the 1v1
+> and level sweeps start at `-distance 0.5`, inside `stopDistance` under either
+> margin), so the whole battery came out byte-identical and TTK 6.67 s /
+> TTD 8.70 s **stand**. It was one `-distance 3` away from being a real defect.
+> ⚑ **Not unified across packages:** `gameconf.go:48` and `mob.go`'s new
+> `defaultChaseIntoAuraMargin` are still two independent 0.2s naming each other
+> in comments — collapsing them is **tier 3**, still open, and the obvious fix
+> would drag config normalization into a model package.
+>
+> **Rows 2, 3, 4 done by session 1, committed `c183ce12`.** Row 2: the embedded
 > default's `game` block hand-synced and pinned by a map-comparison **drift test**
 > (mechanism 2 below, in its cheapest form — the `server` block is deliberately
 > excluded, since `frontendDir` vs `path` is the one real per-environment delta).
 > Row 3: both bare `33`s → `Constants.SERVER_TICKRATE`. Row 4: `heatFractionPerSecond`
 > and `damageAuraRadiusMeters` deleted.
-> - **⚑ Row 1 (`sim/world.go`'s 0.05 vs the live 0.2) is still OPEN — it is
->   session 2**, deliberately split off as the only part that moves a number.
->   The finding sharpened in planning: it is **not a stale comment**, it is *two
->   Go defaults for one value that disagree*, and the live path always
->   normalizes to 0.2 (`gameconf.go:48`), so `mob.go:305`'s 0.05 is a **test-only**
->   default the harness copied.
 > - **⚑ Deviation, widened:** the sweep above says four `backend/` conf files;
 >   there are **five tracked**, because `devops/conf.json` is the live server's
 >   and carried the dead key too. It is **also drifted** — no `mob` or `combat`
@@ -3227,7 +3233,7 @@ for free.
 
 | # | Where | Finding |
 |---|---|---|
-| 1 | `pkg/aura/sim/world.go:75` | `MobChaseIntoAuraMargin: 0.05, // conf.default.json value` — `conf.default.json` says **0.2**. The comment asserts a mirror that is **4× off**, inside the balancing harness that authored content numbers are derived from. A wrong harness number gets baked into content and stays there. |
+| 1 ✅ | `pkg/aura/sim/world.go:75` | `MobChaseIntoAuraMargin: 0.05, // conf.default.json value` — `conf.default.json` says **0.2**. The comment asserts a mirror that is **4× off**, inside the balancing harness that authored content numbers are derived from. A wrong harness number gets baked into content and stays there. **Sharpened in planning:** not a stale comment but *two Go defaults for one value that disagree* — the live path always normalizes to 0.2 (`gameconf.go:48`), so `mob.go:305`'s 0.05 was a **test-only** default the harness copied. **Closed 2026-07-28; it never reached content** — see the banner above. |
 | 2 | `cmd/aurad/conf.default.json` | Stale vs `backend/conf.default.json`: **7 dead keys** (`damageAuraRadius`, `damageAuraDamageFraction`, `damageAuraLevelGainFraction`, `healAuraRadius`, `healAuraHealTickFraction`, `healAuraLevelGainFraction`, `healAuraSelfDamageTickFraction` — none exist in `cfg.Config` any more, so they are silently ignored), and **missing** `zone`, `totalDayCycleSeconds`, `dayTimeSeconds`, `baseHealth`, `skillPointsPerLevel`, `critChance`, plus the entire `mob` and `combat` blocks. |
 | 3 | `HUD.ts:138`, `HUD.ts:638` | Ticks→seconds via a bare `33`, twice, while `BasicConfig.SERVER_TICKRATE` exists as `1000/30`. ⚑ `BasicConfig.ts:128` **documents the rounded 33 as a past bug** ("made the reactive lerp finish ~0.333 ms early every tick"), so two live call sites use the value the codebase already recorded as wrong. Effect is cosmetic (a cooldown label). |
 | 4 | vestiges | `heatFractionPerSecond` is authored in **all four** `backend/` conf files and read by **nothing** (the heater system went with step 7). `Graphics.ts:26` `damageAuraRadiusMeters: 1` likewise — both `mob.go:475` and `Mobs.ts:230` state it was retired by the served `aura_radius`. (Possible overlap with §30's vestige list.) |

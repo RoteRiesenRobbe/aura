@@ -617,16 +617,33 @@ func TestNewMob_AggroRadiusFromBody(t *testing.T) {
 }
 
 func TestMob_StopsChasingInsideAuraStopDistance(t *testing.T) {
-	m := newTestMob() // at origin; default chaseIntoAuraMargin 0.05
+	// The margin is authored, not taken from NewMob's fallback: this test is
+	// about the stop-distance geometry, and until H1a that fallback was 0.05
+	// while every mob in the running game used 0.2 — so taking the default
+	// silently pinned the geometry against a number the game never ran on.
+	const margin float32 = 0.2
+	m := NewMob(testMobDefinition(), margin, nil) // at origin
 	p := newFakeAuraPlayer()
 	m.aggroTarget = p
 
-	// stopDistance = damageAura.Radius + player.Radius - margin = 0.5 + 0.25 - 0.05 = 0.7
+	// stopDistance = damageAura.Radius + player.Radius - margin = 0.5 + 0.25 - 0.2 = 0.55
 	p.pos = phy.Vec2f{X: 0.8, Y: 0}
 	assert.True(t, m.shouldApproach(m.aggroTarget), "outside stop distance → keep approaching")
 
-	p.pos = phy.Vec2f{X: 0.6, Y: 0}
+	p.pos = phy.Vec2f{X: 0.5, Y: 0}
 	assert.False(t, m.shouldApproach(m.aggroTarget), "inside stop distance → hold position")
+}
+
+// The fallback and core/gameconf.go's normalizer are two Go defaults for one
+// value; H1a made them agree. This pins the one the model package owns, so a
+// future edit to either has to face the other (they cannot reference a single
+// constant without pulling config normalization into a model package — that is
+// backlog §35 tier 3, deliberately still open).
+func TestNewMob_ZeroChaseMarginTakesTheLiveDefault(t *testing.T) {
+	m := NewMob(testMobDefinition(), 0, nil)
+
+	assert.InDelta(t, 0.2, m.chaseIntoAuraMargin, 1e-6,
+		"a caller passing 0 must land on the value gameconf normalizes to")
 }
 
 func TestMob_FindAggroTarget_PicksNearestLivingPlayer(t *testing.T) {

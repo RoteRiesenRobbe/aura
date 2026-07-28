@@ -1,9 +1,14 @@
 # plan-pre-accounts-hygiene.md — config truth + wire vestiges, before step 8
 
-**Planned 2026-07-28 (docs only, no code).** One chunk, four parts, taken as the
-last thing before the accounts & persistence design session. Everything in it is
-already recorded as a finding somewhere else; this doc is where those findings
-get a shape, an order and an acceptance test.
+**✅ COMPLETE — planned `ec0732e9`, session 1 `c183ce12`, session 2
+`[uncommitted]`, all 2026-07-28.** One chunk, four parts, run as two sessions
+(§9.1) and taken as the last thing before the accounts & persistence design
+session. Everything in it was already recorded as a finding somewhere else; this
+doc is where those findings got a shape, an order and an acceptance test.
+
+**Outcome:** all five parts landed and **the whole chunk came out
+byte-identical** — including H1a, which had been priced as the one part that
+would move a number. Ledgers in §11.
 
 Sources: `backlog.md` §35 (tier 1), §30 item 1, `plan-entity-model.md` §8b
 (L12 + the wire orphans), §35 tier 4.
@@ -411,7 +416,79 @@ profile; `forced` still emits the line and the banner.
   file list that `flatcgen`'s `cleanOutputFolders` deletes mid-run. A second run
   is clean; there is nothing to fix.
 
-### Session 2 — H1a
+### Session 2 — H1a ✅ DONE 2026-07-28, committed `[uncommitted]`
 
-*(not started — the chase margin, the only part that moves a number, and the one
-that re-baselines the battery. Its baseline is session 1's output above.)*
+The chase margin. 3 files, +38/−5 — the part that was priced as *"the only one
+that moves a number"*.
+
+**⭐ It moved nothing, and that is the finding.** Both steps came out
+**byte-identical** across all four battery legs. **TTK 6.67 s / TTD 8.70 s
+STAND** — they are not superseded, and every later chunk keeps measuring its
+byte-identity claim against them. D1's *"accepted cost: a one-time re-baseline"*
+was a price that never came due.
+
+⚑ **Chased down rather than accepted as a lucky green: no battery scenario ever
+makes a mob approach**, so `chaseIntoAuraMargin` is not exercised by the
+instrument at all.
+
+| leg | why the margin cannot bite |
+|---|---|
+| 1v1 `-runs 200` | starts at `-distance 0.5`; `stopDistance` = `1.0 + 0.25 − margin` = **1.20 or 1.05** — inside under either value, so `shouldApproach` is false from tick 0 |
+| `-levels` | same `-distance 0.5` |
+| `-chain` | facetank spawns the mob **on** the player (`distance = 0`); kite pins it at the ring centre with `Speed = 0` + `Role = structure` (`chain.go:150-160`) so it explicitly cannot close |
+| guardrails (the roster leg) | `RunChain` facetank ⇒ `distance = 0` |
+
+So the 4× drift was **latent, not active** — which does not make the fix
+pointless, it makes it cheap: the harness was one `-distance 3` away from
+silently modelling a game that stops 0.15 units short of the real one.
+
+**Step 1 — `sim/world.go:75` → 0.2.** The comment now names *why* it mirrors
+conf: it mirrors `core/gameconf.go`'s **normalizer**, not the JSON literal.
+Battery byte-identical.
+
+**Step 2 — `mob.go`'s fallback → 0.2**, as a named
+`defaultChaseIntoAuraMargin` carrying the invariant in its doc comment. Battery
+byte-identical again; full suite green.
+
+**The one red test is the measurement, reported not re-fitted.** Exactly one of
+the 155 test `NewMob` call sites leaned on the fallback —
+`TestMob_StopsChasingInsideAuraStopDistance` — and it leaned on it *invisibly*:
+`stopDistance` went `0.7 → 0.55`, flipping its "hold position" probe at 0.6,
+while its own comment did the arithmetic with 0.05. ⚑ **The probe was not moved
+to fit.** The test now **authors** `margin = 0.2` and passes it to `NewMob`, so
+the geometry it pins is the geometry the game has; new
+`TestNewMob_ZeroChaseMarginTakesTheLiveDefault` pins the fallback value itself,
+since that number *is* the finding.
+
+⚑ **Deliberately NOT done: `gameconf.go:48`'s literal and the new `mob` constant
+are still two independent 0.2s**, with comments naming each other. Unifying them
+is backlog **§35 tier 3** (Go constants restating conf values), which §7 defers —
+and the DRY fix would drag config normalization into a model package.
+
+**Verified.** `go build` / `go vet` / `go test -timeout 180s ./...` green;
+guardrails and alloc pins `-count=2` green. Boot `-content ../api`: **0 errors /
+0 warnings / 0 panics — 83 skills / 15 factions / 64 mobs / 10 recipes / 5 prop
+defs / 1 milestone / 777 props / 485 spawns / 5 campfires**, with the live config
+reporting `MobChaseIntoAuraMargin: 0.2`. No frontend surface.
+
+**⚑ Harness note worth keeping — three guardrail log lines reorder run to run.**
+The tier-band membership lists (`guardrail_test.go:256`) and the
+`strongest non-ceiling: … at 0.670 ev/tick` tie (`:179`) come out of Go map
+iteration: three consecutive runs named three different skills for the same
+0.670 value, and the band lists permute. **Set-equality is identical and every
+survival-rate line is byte-identical.** Diff that output raw and it will look
+like a regression; compare sets, or grep `guardrail_test.go:22[0-9]` for the
+measurements.
+
+**The battery, pinned — session 1 ran four legs but did not write down the
+commands.** For the next chunk that needs a byte-identity claim:
+
+```
+./simharness -runs 200 -out ''                            # 1v1 TTK/TTD (the 6.67/8.70 headline)
+./simharness -chain  -out ''                              # kills/hour chain (facetank + kite)
+./simharness -levels -out ''                              # f(level) curve sweep
+go test -run Guardrails ./cmd/simharness/ -v              # the real-roster leg
+```
+
+⚑ The roster leg is a **test**, not a CLI run: `-content` is a serve/preset flag
+(`main.go:138`) and does nothing in one-shot CLI mode.

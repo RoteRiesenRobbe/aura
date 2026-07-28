@@ -72,7 +72,12 @@ func NewWorld(sc Scenario, seed int64) *World {
 			// [PLACEHOLDER] arena size; only the border wall reads it, and a
 			// 1v1 at the center never touches the wall.
 			Bounds:                 cfg.Bounds{Width: 60, Height: 40},
-			MobChaseIntoAuraMargin: 0.05, // conf.default.json value
+			// The value the LIVE game always runs on: every non-test NewMob
+			// caller passes g.Config().MobChaseIntoAuraMargin, which
+			// core/gameconf.go normalizes to 0.2 for any non-positive conf
+			// value. Mirroring the normalizer, not the JSON literal, is what
+			// keeps the harness predicting the game it tunes (H1a).
+			MobChaseIntoAuraMargin: 0.2,
 			PlayerConfig: cfg.PlayerConfig{
 				// Out-of-combat regen, gated off during combat so it never
 				// moves a fight — the chunk-4 chain runner's recovery knob.
