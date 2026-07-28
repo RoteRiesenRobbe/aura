@@ -670,7 +670,7 @@ editing, and keep the boot count pinned at 15.
 *(one entry per chunk: what was decided inside it, what shipped, which commit,
 what was verified.)*
 
-### Chunk 1 — the allegiance seam ✅ DONE 2026-07-28, backend-only, committed `[uncommitted]`
+### Chunk 1 — the allegiance seam ✅ DONE 2026-07-28, backend-only, committed `ec73634e`
 
 **`SetFaction` is gone.** One general-looking setter with exactly one defined
 destination became **three named verbs**, and the tombstone test guards the
