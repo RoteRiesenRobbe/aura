@@ -272,9 +272,38 @@ and the counts recorded — **83 skills / 15 factions / 64 mobs / 777 props /
 H1a's two recorded steps.* If any other part moves the battery, that part is
 wrong.
 
-**Suggested order:** H2 → H1b/H1c → H3 → H4 → **H1a last**. H1a is the only
-irreversible-ish one (it re-baselines the battery), so it goes after everything
-that must prove byte-identity against the old baseline.
+### 9.1 Order and session split — ⭐ two sessions, split at H1a
+
+**Order:** H2 → H1b/H1c → H3 → H4 → **H1a last**.
+
+**Session 1 — H2 → H1b/H1c → H3 → H4.** One session, because these four are one
+chunk in the real sense: they share a *single* acceptance criterion (byte-
+identical battery, boot counts unchanged), so one battery run at the end proves
+all four at once. Splitting them further costs more in re-establishing context —
+rebuild, boot `-content ../api`, battery baseline, frontend prod build — than any
+individual part takes to do. H4 carries the only real verification tail (schema
+regen, both binding sets, join smoke, the asset-count and `ctxloss-warning.mjs`
+re-run from L-H6) and still rides the same gate as the rest.
+
+**Session 2 — H1a alone.** It is different in kind from everything above it: the
+only part that moves a number, the only one needing a PO sign-off on a delta, and
+the only one that re-baselines the battery. Reviewing *"four diffs that changed
+nothing"* and *"one diff that changed the balancing instrument"* in the same pass
+is how a moved number gets waved through.
+
+**What the split buys, concretely:** it keeps *"everything else is
+byte-identical"* a **live check** rather than an after-the-fact claim. Session 1
+runs the battery against today's baseline; if it moves, something in H2–H4 is
+wrong and that is known immediately. Session 2 then takes session 1's output as
+its own baseline, so H1a costs **no extra baseline run** despite being separate.
+
+⚑ **Ordering consequence, and the reason H1a goes last of everything:** H1a is
+therefore the final chunk before the step-8 design session, and it **supersedes
+the standing battery baselines** (TTK 6.67 s / TTD 8.70 s). Whatever the new
+numbers are, they must land in §11 *and* in the CLAUDE.md status banner in the
+same session — every subsequent chunk in the project measures its
+byte-identity claim against them, so a superseded baseline that is not written
+down turns the next chunk's green run into a false negative.
 
 ---
 
