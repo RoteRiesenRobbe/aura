@@ -3724,3 +3724,149 @@ player:
 come **after** the persistence/step-8 stretch (it touches the wire, and step 8's
 schema work is the other thing that does), and it **supersedes** rather than
 extends D13's pip — do not invest further in per-effect overlay art before it.
+
+## 40. Wanted effect-type archetypes — the WoW-Classic gap review, PO-ruled
+
+**Origin:** PO session 2026-07-29. The 25 shipped effect types were compared
+against WoW Classic's archetype vocabulary; the PO ruled on every gap in one
+pass. Six archetypes are **wanted** (rulings below), one is **rejected**, and
+one supposed gap turned out not to exist. Everything here is validated against
+HEAD (`a29fe986`); nothing is scheduled or sized as a chunk yet.
+
+**The non-gap, for the record: lifesteal already exists.** `lifestealFraction`
+rides the shared damage payload (`damage_aura` + `instant_damage` both build
+`DamageParams`), applied post-mitigation with overkill excluded via
+`model.ApplyLifesteal` (`model/healable.go:26`), and an owned summon leeches for
+itself. Live content: `reaper.json` (player), `spider-bite.json`,
+`elite-wolf-bite.json`. A drain-life build is authorable **today** with zero
+engine work.
+
+### The two cross-cutting facts, before the per-item list
+
+1. **⚑ The pip budget is spent.** Four of the six wanted items (stun, immunity,
+   thorns-granting aura, ally-buff aura) put a **new kind into the closed
+   `buffPayload` union** (`skills/buffs.go:44`), and the union compile-forces a
+   pip decision (`appliedBit()`) — but **bit 7 of the `applied_effects` ubyte
+   was the LAST bit** (taken by `speed_burst`, `applied_effects.go`). Every new
+   buff kind must either take `AppliedEffectNone` as a deliberate stopgap (the
+   shield precedent — legitimate where another wire signal already shows the
+   state) or wait for the **§39 wire widening**, which replaces presence-bits
+   with durations anyway. §39 is therefore the natural gate in front of this
+   whole section's presentation half; the *server mechanics* of each item are
+   not blocked.
+2. **Three items want the same new lever: "this actor cannot act."** Stun
+   (suppress everything), immunity variant (a) (suppress own attacks), and
+   invisibility-on-mobs (a hidden mob does not attack) all need the aura tick
+   loop (`sys/skills.go:192`) and/or the cooldown path (`processCooldowns`) to
+   check a suppression predicate on the actor. Today **nothing suppresses a
+   live actor's own effects** — calm is the nearest neighbour and it only
+   drops *incoming* aggro. Build the predicate once (a `Buffs`-derived check,
+   the calm/charm pattern) and all three items consume it.
+
+### The rulings, validated
+
+1. **Hard CC — stun, wanted.** A cooldown that stuns all enemies in range, with
+   an optional per-mob **stun resistance** authorable on bosses/elites/anything.
+   *Validation:* the movement half is nearly free — `Buffs.MovementFactor()`
+   is the single composition point both movement sites read (Swift session), so
+   a stun payload flooring it to 0 stops movement without touching either
+   reader. The action half is the shared suppression lever above. New buff
+   kind ⇒ pip fact applies. **Stun resistance needs a new authoring knob**:
+   `factors.resistances` is keyed by *damage tags* and a stun carries none —
+   either a dedicated `stunResistance` factor on `MobDefinition` or a reserved
+   non-damage tag in the existing map (decide at design time; the latter risks
+   colliding with the gated-damage machinery reading the same map). ⚑ L-O
+   applies in full: an enemy-targeted control effect **must** join
+   `factionScopedEffects` (`definition.go:952`, today calm + charm only) so the
+   allowlist is mandatory. Under no-PvP, "all enemies" is mobs-only for free
+   (players share `FactionAligned`), so GDD §9 holds without extra code.
+2. **Dispel/purge — wanted, and priced per removal.** Works with auras,
+   cooldowns or passives; first build: an **aura that removes one debuff on an
+   ally in range per tick and costs resources per removed debuff**.
+   *Validation:* `Buffs.Cleanse()` exists but is all-or-nothing (F10,
+   `plan-effect-foundations`: "everything cleansable, no dispel classes in
+   v1" — this item is the planned successor F10 anticipated). Needed: a
+   harmful/helpful classification (derivable per payload type — dot/slow
+   harmful; resist/speed/tickRate/shield/hot helpful; calm/charm decide at
+   design time), a selective-removal API beside `Cleanse()`, and a new ally-
+   targeted aura effect type (`applyResistAura` is the per-tick ally-buff
+   template). ⚑ **Cost-per-removed-debuff is a new cost shape**: today's only
+   cost is `selfDamageHP`, fixed per fire; this one is priced by *outcome*.
+   Sequence it behind **Pass 1a.2** (the cost generalization) or it will
+   invent a second cost seam — and it inherits 1a.2's four heal-cost rules
+   (never-kill clamp · powerScale ride · mobs pay nothing · GOD skips).
+3. **Immunity — wanted, as two cooldowns.** (a) immunity that stops all your
+   own attacks (Divine Shield-shaped… inverted: protection at the price of
+   output), (b) immunity that stops all your movement (Ice Block-shaped).
+   *Validation:* **cheapest item in the list — both gates already exist.**
+   Mob-side, `SetInvulnerable` (encounter chunk 9b) has fully defined
+   non-event semantics including the accepted v1 leaks
+   (`manual-content-authoring.md` §Immunity); player-side, `takeDamage`'s
+   `IsGod()` short-circuit sits at exactly the right pipeline position to
+   template a buff-driven gate. Variant (a) consumes the shared suppression
+   lever; variant (b) reuses the MovementFactor floor. New buff kind ⇒ pip
+   fact — though immunity may legitimately take `AppliedEffectNone` short-term
+   since the caster's own HUD shows the cooldown active.
+4. **Ally offensive buffs — wanted in all three categories, one proof-of-concept
+   each.** *Validation:* the receiving side is one new buff payload (e.g. a
+   damage-dealt factor) plus **one new composition point**:
+   `casterDamageFactor` (`sys/skills.go:641`) today reads `Derived` (passives)
+   only and must additionally read the caster's buff store — mirror the
+   `MovementFactor()` lesson, ONE accessor, both-multiply semantics decided
+   there. Aura leg: `applyResistAura` is the exact template. Cooldown leg:
+   ally-targeted instants exist (`instant_shield`/`instant_hot`) — a sibling,
+   not new machinery. ⚑ **The passive leg is the odd one out**: passives have
+   no radius and no tick (the only ally-reaching passive today is `light_aura`,
+   which is snapshot-read geometry, not an applied effect). Either passives
+   enter a tick path (new machinery, weigh against KISS) or the PoC passive is
+   defined radius-free (e.g. buffs the owner's summons via ownership) — open
+   design question for the session that picks this up. Note a *self* damage
+   passive already exists (`stat_multiplier` + `damageDealt`), so the passive
+   leg is only novel in its ally reach.
+5. **Invisibility — wanted against mobs AND on mobs; never against players.**
+   WoW semantics: an invisible mob is unseen until it attacks or you get close
+   enough; symmetric for players vs mob senses. *Validation:* the send path is
+   already per-viewer (`core/net.go:playerSendState` filters by
+   `p.Viewport().Collisions()` per player), so per-viewer omission has a clean
+   seam and the client already handles entities entering/leaving its set.
+   The player-invisible-to-mobs half is a gate at mob target acquisition plus
+   break-on-harm (the `noteHarmDealt` seam exists) and a detect radius. ⚑ Most
+   *new-concept* item of the six: per-viewer visibility state, two independent
+   directions, reveal rules, and interplay with mob aura targeting, the
+   minimap, spectators, and the headless harness (an invisible mob is
+   indistinguishable from a missing one — the harness needs a cheat to see it).
+   The hidden-mob-does-not-attack rule consumes the shared suppression lever.
+6. **Thorns — wanted as a passive AND as an ally-granting aura.** Returns some
+   damage per hit taken to the attacker. *Validation:* the victim side already
+   knows its attacker — `model.Damage.Source` (else the toucher) arrives at
+   both `takeDamage` sites, and lifesteal proves the "derived from damage
+   actually dealt" plumbing pattern. Passive leg: a new passive effect type
+   beside `resist_passive` (NOT a `validStat` — it modifies the *incoming* hit
+   path, not a stat), read at both `takeDamage` sites. Aura leg: buff payload
+   (pip fact applies) + the same read. ⚑ Two semantics to decide before
+   building: a **recursion guard** (reflected damage must not re-reflect —
+   a `Reflected` flag on `Damage`, the `Gated`/`Crit` pattern) and **credit**
+   (does reflected damage feed threat/XP/lifesteal? Recommendation: threat
+   yes, XP no, lifesteal no — but that is a design call, not a default).
+
+**Rejected: displacement of others** (knockback, forced movement). PO 2026-07-29:
+not intended — `dash` stays the only positional effect and moves the caster
+only. On record so it is not re-proposed as a "missing archetype".
+
+### Complexity ranking (least → most), for whenever these get scheduled
+
+1. **Immunity** — both damage gates exist with defined semantics; the two
+   restriction halves reuse existing levers.
+2. **Thorns** — plumbing exists end to end; the cost is the recursion guard
+   and the credit semantics.
+3. **Ally offensive buffs** — aura and cooldown legs are siblings of shipped
+   machinery; the passive leg carries the one open design question.
+4. **Stun** — the suppression lever (first consumer builds it), a new
+   authoring knob for resistance, input/AI touchpoints on both entity kinds.
+5. **Dispel** — selective removal + classification are easy; the
+   outcome-priced cost is a new shape and sequences behind Pass 1a.2.
+6. **Invisibility** — per-viewer visibility is a genuinely new concept with
+   the widest blast radius (wire, targeting, minimap, spectators, harness).
+
+Presentation for all six rides §39; none of them justifies a seventh
+independently-anchored overlay before it.
