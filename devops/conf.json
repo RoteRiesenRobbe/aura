@@ -1,24 +1,10 @@
 {
+  "_comment": "The live server's conf, copied verbatim by deploy.sh (§35 L4). Only genuine per-environment deltas live here (§35 C1, D1); every absent game key resolves to the Go defaults, documented in full in conf.default.json. zone stays authored: its Go default is empty, which aborts the boot when more than one zone exists.",
   "server": {
-    "path": "/game",
     "tlsHost": "aura-game.duckdns.org",
     "frontendDir": "./frontend"
   },
   "game": {
-    "zone": "world",
-    "totalDayCycleSeconds": 600,
-    "dayTimeSeconds": 400,
-    "mobChaseIntoAuraMargin": 0.2,
-    "player": {
-      "healthGainTick": 0.00033,
-      "walkingSpeedPerTick": 0.05,
-      "baseHealth": 100,
-      "levelGrowth": 1.12,
-      "maxLevel": 30,
-      "levelUpXPBase": 300,
-      "levelUpXPGrowthFactor": 1.2,
-      "skillPointsPerLevel": 1,
-      "critChance": 0.05
-    }
+    "zone": "world"
   }
 }

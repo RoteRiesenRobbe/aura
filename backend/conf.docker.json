@@ -1,20 +1,6 @@
 {
+  "_comment": "Only genuine per-environment deltas live here (§35 C1, D1); every absent game key resolves to the Go defaults, documented in full in conf.default.json.",
   "server": {
-    "port": 80,
-    "path": "/game"
-  },
-  "game": {
-    "totalDayCycleSeconds": 600,
-    "dayTimeSeconds": 400,
-    "player": {
-      "healthGainTick": 0.00033,
-      "walkingSpeedPerTick": 0.05,
-      "levelGrowth": 1.12,
-      "maxLevel": 30,
-      "levelUpXPBase": 300,
-      "levelUpXPGrowthFactor": 1.2,
-      "skillPointsPerLevel": 1,
-      "critChance": 0.05
-    }
+    "port": 80
   }
 }

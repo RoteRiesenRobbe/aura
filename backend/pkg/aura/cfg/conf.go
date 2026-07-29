@@ -3,6 +3,7 @@ package cfg
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
@@ -96,6 +97,16 @@ func ReadConfig(filename string) (*Config, error) {
 		return nil, err
 	}
 
+	// Unknown keys WARN, they never fail the boot (§35 D2): a hard fail on a
+	// deployed or local conf would block the next boot for zero gain, while
+	// the warning gives the same drift signal. The struct parse above
+	// succeeded, so the map parse inside UnknownKeys cannot fail.
+	unknown, _ := UnknownKeys(dat)
+	for _, key := range unknown {
+		slog.Warn("unknown config key — not a config key; delete it, or prefix it with _ to keep it as a comment",
+			slog.String("key", key), slog.String("file", filename))
+	}
+
 	// Default if values are missing
 	if config.Game.TotalDayCycleSeconds <= 0 {
 		config.Game.TotalDayCycleSeconds = 600
@@ -116,6 +127,12 @@ func ReadConfig(filename string) (*Config, error) {
 	}
 	if config.Game.Player.CritChance <= 0 {
 		config.Game.Player.CritChance = 0.05
+	}
+	// An absent port on a plain-HTTP boot would otherwise bind ":0" — a random
+	// ephemeral port. TLS boots serve on 443 and warn about any configured
+	// port, so they keep the honest zero.
+	if config.Server.Port == 0 && config.Server.TlsHost == "" {
+		config.Server.Port = 2000
 	}
 	// Validate
 	if config.Game.DayTimeSeconds > config.Game.TotalDayCycleSeconds {

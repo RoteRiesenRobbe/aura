@@ -38,6 +38,15 @@ func Config(conf *cfg.Config) Configuration {
 		if g.PlayerConfig.BaseHealth <= 0 {
 			g.PlayerConfig.BaseHealth = 100 // [PLACEHOLDER] item 11 Phase 1
 		}
+		// Defaulting must be TOTAL (§35 C1 L1): the environment confs omit the
+		// whole player block by design, so an absent key is the normal case,
+		// not an authoring mistake. Values restate conf.default.json exactly.
+		if g.PlayerConfig.HealthGainTick <= 0 {
+			g.PlayerConfig.HealthGainTick = 0.00033 // ≈1%/s, regen lock Session ③ FINAL
+		}
+		if g.PlayerConfig.WalkingSpeedPerTick <= 0 {
+			g.PlayerConfig.WalkingSpeedPerTick = 0.05
+		}
 		if g.PlayerConfig.LevelUpXPBase == 0 {
 			g.PlayerConfig.LevelUpXPBase = 300
 		}

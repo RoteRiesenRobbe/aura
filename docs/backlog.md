@@ -3212,6 +3212,22 @@ level-1 Damage aura with collision fully enforced. The focus-fire problem is a
 > **fifth tier-5 mirror** this entry missed: `Mobs.ts:48`'s `TierRank` table.
 > This entry stays the findings record; the plan doc carries the ledgers.
 >
+> **✅ C1 SHIPPED 2026-07-29 `[uncommitted]`** (plan §7): defaulting made
+> total, env confs shrunk to deltas, all five tracked confs pinned to
+> identical resolved tuning. Three findings beyond this entry's survey:
+> absent `server.port` bound a random port (now defaults 2000, plain-HTTP
+> only) · `server.path` was dead config everywhere it appeared · the default
+> files' `mob.healthGainTick: 0.0066667` was a rounded restatement that split
+> the fleet at float32 (production ran the true Go default; snapped to the
+> exact decimal `0.006666667`). C2–C4 open.
+>
+> **✅ C2 SHIPPED 2026-07-29 `[uncommitted]`** (plan §7): unknown conf keys now
+> WARN at boot, path-qualified, `_`-exempt, warn-not-fail (D2) — plus a
+> permanent test pinning all five tracked confs at zero unknown keys. The
+> historical fixture (`c183ce12^`) carried **8** dead keys, not the 7 the
+> hygiene ledger counted; and case-insensitive matches are accepted because
+> `encoding/json` applies them. C3–C4 open.
+>
 > **✅ TIER 1 FULLY DONE 2026-07-28** — `docs/archive/plan-pre-accounts-hygiene.md`
 > (ledgers there, §11). **Row 1** closed by session 2 (`50a1e5c9`): both Go
 > defaults now hold 0.2, and the sim's copy with them. ⚑ **The drift turned out

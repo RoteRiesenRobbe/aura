@@ -17,9 +17,12 @@ import (
 // accumulated 7 keys that no longer exist on cfg.Config while missing every
 // block added since (mob, combat, zone, …).
 //
-// ⚑ The `server` block is deliberately NOT compared (L-H4): frontendDir vs path
-// is the one real per-environment difference between the two files, and pinning
-// it would invite someone to "fix" the drift by deleting that difference.
+// ⚑ The `server` block is deliberately NOT compared (L-H4): it is the one block
+// that legitimately differs per environment (the embedded copy authors
+// frontendDir so a fresh -dev boot serves the built frontend), and pinning it
+// would invite someone to "fix" the drift by deleting that difference. (The
+// old `server.path` key this comment used to cite was dead — cfg.Server never
+// had the field and /game is hardcoded; removed in §35 C1.)
 //
 // ⚑ Compared as maps, not as cfg.Config values (L-H4): a struct round-trip
 // drops unknown keys, which is exactly the drift this test exists to catch.

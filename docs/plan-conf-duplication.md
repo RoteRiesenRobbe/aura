@@ -1,6 +1,6 @@
 # Plan: §35 — one value, many homes (the conf-duplication sweep)
 
-**Status: PLANNED 2026-07-29 — no code yet. Chunks C1–C4 below, none started.**
+**Status: C1 + C2 ✅ SHIPPED 2026-07-29 `[uncommitted]` (ledgers §7) · C3–C4 open.**
 Origin: `docs/backlog.md` §35 (PO 2026-07-26: *"doesn't seem good that we need to
 adjust it at 4 places"*). Tier 1 of that survey shipped with
 `docs/archive/plan-pre-accounts-hygiene.md`; this plan is tiers 2–5. The §35
@@ -28,6 +28,9 @@ either language watching it.
   `server.frontendDir`, `server.tlsHost` (devops), and `conf.local-windows.json`'s
   `_walkingSpeedPerTick` stash. `devops/conf.json` (the live server's; copied
   verbatim by `devops/deploy.sh:31`) still has **no `mob`/`combat` block**.
+  ⚑ **C1 correction:** `server.path` was never a genuine delta — `cfg.Server`
+  has no such field and `/game` is hardcoded in both boot paths; the key was
+  dead in all four files that carried it (removed in C1, see §7).
 - ⚑ **NEW FINDING — the defaulting layer is not total.**
   `player.healthGainTick` and `player.walkingSpeedPerTick` are copied raw
   (`core/gameconf.go:18-19`) with **no fallback anywhere**: a conf omitting the
@@ -188,4 +191,115 @@ warnings after C1's shrink).
 
 ## 7. Chunk ledgers
 
-*(filled per chunk as they ship)*
+### C1 — total defaulting + shrink-to-deltas ✅ DONE 2026-07-29, committed `[uncommitted]`
+
+Backend + devops + conf files; behavior-identical for production, see the ⚑
+below for the one deliberate bit-level move. 2 production files touched
+(`core/gameconf.go`, `cfg/conf.go`), 3 test files (2 new), 5 conf files.
+
+**What shipped, in plan order:**
+
+1. **C1.1 — the player pair is defaulted** (test-first;
+   `core/gameconf_test.go` pinned the 0/0 failure before the fix).
+   `healthGainTick` → `0.00033`, `walkingSpeedPerTick` → `0.05`, same `<= 0`
+   idiom, beside the `BaseHealth` normalization. L1 ordering held: this landed
+   before any file shrank.
+2. **C1.2 — the audit found TWO more gaps, one closed, one dead key removed:**
+   - ⚑ **`server.port` absent on a plain-HTTP boot bound `":0"` — a random
+     ephemeral port**, silently. Now defaults to `2000` in `cfg.ReadConfig`,
+     **only when `tlsHost` is empty** — a TLS boot serves 443 regardless and
+     warns about any configured port, so inventing one there would make every
+     production boot cry wolf (pinned by all three cases in the new
+     `cfg/conf_test.go`).
+   - ⚑ **`server.path` was DEAD config** — `cfg.Server` never had the field
+     and `/game` is hardcoded in both `bootServer` and `bootTlsServer`. Four
+     files carried it (§2's survey had listed it as a genuine delta); removed
+     from repo default + docker + devops, and the drift test's L-H4 comment no
+     longer cites it.
+   - Full absent-behavior map after C1 (the audit deliverable): `zone` →
+     sole-zone-or-loud-error (a *selector*, deliberately outside the resolved
+     comparison) · day cycle 600/400, curve 1.12×30, critChance 0.05 →
+     `ReadConfig` · margin 0.2, baseHealth 100, XP 300/1.2, skillPoints 1,
+     **and now the player pair** → `core.Config` · mob pair → `mob.SetX`
+     normalization · combat pair → accessor normalization · `port` → 2000 when
+     plain-HTTP · `tlsHost` absent → plain HTTP · `frontendDir` → only read
+     under `-dev`; absent serves the CWD — noted, left as-is (dev-only, loud).
+3. **C1.3 — the resolved-equality test went WIDER than planned and found a
+   live fleet split.** `conf_resolved_test.go` resolves `{"game":{}}` **and
+   all five tracked confs** through the full chain (`ReadConfig` +
+   `core.Config` + combat accessors + mob setters) and asserts identical
+   tuning — so "every tracked conf runs the documented numbers" is the
+   invariant, not just the default file. First run: **3 of 5 red** on
+   `mob.healthGainTick` — the authored `0.0066667` was a *rounded* restatement
+   of the Go default `1/150`, ≠ at float32. ⚑ **The fleet was split in
+   production's favour:** files WITH a mob block resolved `0.0066666998…`,
+   files WITHOUT (docker **and devops = the live server**) resolved the true
+   `0.0066666668…`. Both default copies snapped to `0.006666667` (the exact
+   shortest float32 decimal), comment updated to say the restatement is
+   bit-exact and why.
+4. **C1.4 — the shrink.** `conf.local-windows.json` → `frontendDir` + the
+   `_walkingSpeedPerTick` stash (L2 kept) · `conf.docker.json` → `port: 80` ·
+   `devops/conf.json` → `tlsHost` + `frontendDir` + `zone: "world"` (zone's Go
+   default is empty, which aborts a multi-zone boot — a genuine delta). Each
+   carries a one-line `_comment` pointing at `conf.default.json`. Both default
+   copies stay FULL (L3).
+
+**⚑ The one number that moved:** resolved `mob.healthGainTick` for any boot
+off the default files or old local-windows shifts by **3.3e-8/tick** onto the
+Go default — deliberate (the JSON comment always named model/mob the source of
+truth, and production already ran the Go value). docker + devops resolve
+**bit-identically** before vs after. Everything else: the fleet-wide
+`PlayerConfig` dump and tuning-knob log line are identical old vs new, and now
+identical *across all four variants* (previously split at the 8th decimal).
+
+**Verified:** `go build`/`vet`/`test -timeout 120s ./...` all clean · sim
+battery **byte-identical** on all four legs (default · `-chain` · `-levels` ·
+`-content ../api`; TTK 6.67 s / TTD 8.70 s stand) — trivially expected per L9,
+which is exactly why the boot check also ran · **all four conf variants
+booted** (`AURAD_CONF=…`, `-zone world -content ../api`): 0 errors 0 warnings,
+15 factions/86 skills/64 mobs/10 recipes/1 milestone/5 prop defs/777
+props/485 spawns/5 campfires, docker on `:80`, local-windows on `:2000` via
+the new port default, devops on TLS `aura-game.duckdns.org` · the
+resolved-equality test was written BEFORE the shrink and stayed green across
+it — that sequence **is** the L4 old-vs-new proof. No browser harness owns
+conf resolution (coverage map checked; no game-surface behavior changed).
+
+**Hand-forward:** C2's boot-noise expectation ("0 warnings after C1's shrink")
+now holds — every key left in the five tracked files is either a live struct
+field or `_`-prefixed. The embedded copy's `server` block still deliberately
+differs (L6).
+
+### C2 — unknown-key boot warning ✅ DONE 2026-07-29, committed `[uncommitted]`
+
+Backend only, as planned. 1 new production file (`cfg/unknownkeys.go`), the
+`ReadConfig` wiring, tests on both sides.
+
+- **`cfg.UnknownKeys(raw)`** decodes the raw JSON to a map beside the struct
+  and walks it against `cfg.Config`'s json tags recursively, returning sorted
+  path-qualified keys. Two exemptions: `_`-prefixed keys at any depth (L2),
+  and **case-insensitive field matches** — a subtlety the plan didn't name:
+  `encoding/json` accepts and *applies* them, so warning on `"Port"` would cry
+  wolf on a key that actually works (pinned by its own subtest).
+- **`ReadConfig` logs one WARN per key**, message naming the fix as D2/L10
+  require: *"unknown config key — not a config key; delete it, or prefix it
+  with _ to keep it as a comment"*, with `key` (path-qualified) and `file`.
+  Warn-not-fail: the struct parse has already succeeded, nothing can abort.
+- **Test-first, and the fixture corrected the record:** the regression fixture
+  is the exact pre-hygiene embedded conf (`c183ce12^`, kept verbatim in the
+  test) — it carried **8 dead keys, not the 7 the hygiene ledger counted**
+  (7 in `game.player` + `game.heatFractionPerSecond`).
+- **The boot-noise check is a permanent test, not a one-off:**
+  `TestTrackedConfs_HaveNoUnknownKeys` (cmd/aurad) asserts all five tracked
+  confs report zero unknown keys, sharing the hoisted `trackedConfs` table
+  with the C1 resolved-equality test. A future retired field goes red here
+  the moment the files aren't pruned.
+
+**Verified:** `go build`/`vet` clean, full `go test ./...` green (27 pkgs) ·
+booted all five tracked confs **plus the gitignored local `conf.json`** →
+**0 warnings** (the local file predates the shrink but every key on it is a
+live field, so L10's noisy-boot round didn't materialize on this machine) · a
+deliberate stale-key conf (`heatFractionPerSecond` + `damageAuraRadius` +
+a `_` stash) **booted to a running server and warned exactly twice**,
+path-qualified — D2's warn-not-fail proven at the real boot surface, and the
+`_` key stayed silent · sim battery default leg byte-identical vs the pre-C1
+baseline (`ReadConfig` is not in the sim path — L9 — run anyway).
