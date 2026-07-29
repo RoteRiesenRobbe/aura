@@ -69,6 +69,74 @@ Copy the browser-launch pattern from
   like a broken feature. Raw `window` keydown listeners (Escape, chat, console)
   are unaffected, which makes the failure look even more selective.
 
+## Coverage map — which harness owns what
+
+**Run the harnesses whose "re-run it when" column matches what you changed,
+BEFORE writing a chunk's status banner** (the `chunk-wrap` skill requires it).
+Rot in this suite has always come from a chunk changing behaviour a script
+asserts and nobody re-running it: 3b-ii moved teaching behind a panel row click
+and left `chunk3b-interact.mjs` red at 6/15 for two chunks, reading as a
+regression to everyone who ran it afterwards.
+
+| harness | owns | re-run it when you touch |
+|---|---|---|
+| `chunk3b-interact.mjs` | the interact **verb**: who is offered, badge lifecycle, `E` opens/closes, the `E`→`R` rebind | the offer (`sense`, `interactable_entity_id`), `Interact`, the badge, cooldown keybinds |
+| `chunk3b-ii-conversation.mjs` | everything **inside** the panel: tree browsing, grants, level walls, refusals, Back/Leave, unlock banner, ambient lines, the Wanderer hold | conversation content or the panel UI |
+| `npc-portraits.mjs` | NPC **presentation**: sprite size off the wire, health bars, nameplates absent | mob wire fields, NPC art, nameplate/health-bar gating |
+| `r4-badge.mjs` | the badge's **anchor** and its removal with the actor | any overlay hung on `Mob.shape`, or `EntityManager` removal |
+| `chunk2-roles.mjs` | the authored `role` discriminator; a structure's always-on aura | `mobs.ParseRole`, `applyMode`, structure behaviour |
+| `chunk2-follower.mjs` | the **summon path** end to end: spellbook → cooldown slot → spawn → follow → engage | summoning, follower steering, owner/level plumbing |
+| `chunk2-calm.mjs` | calm: aggro drops, the mob holds, any damage ends it | the `calm` payload, the buff store, aggro release |
+| `chunk3-charm.mjs` | charm: allegiance flip, pip, follows, fights for its charmer, reverts | `Align`/`RevertFaction`/`EnlistUnder`, `CreditTo`, charm content |
+| `swift-cooldown.mjs` | `speed_burst` and the movement axis | `Buffs.MovementFactor()`, movement speed, slows |
+| `round4-tooltip.mjs` | skill tooltips scaled to character level; the `/skills` payload shape | `SkillTooltip.ts`, the skills catalog endpoint |
+| `filler-batch.mjs` | `DAMAGE <pct>`, damage numbers in darkness, minimap-on-death, Ctrl +/− | darkness suppression, minimap lifecycle, dev cheats |
+| `hygiene-wire-prune.mjs` | the join smoke for wire renumbering — garbage decode rather than a clean error | **any `.fbs` field add or remove** |
+| `mob-separation.mjs` | soft separation, by screenshot | `steer`, `AppendCircleDynamics`, the separation weight |
+| `ctxloss-warning.mjs` | the WebGL context-loss banner; `clean` must report **0** warnings | the client boot path |
+
+**Report-style, not pass/fail** — they print counts and screenshots for a human
+to read, and "passing" means 0 console errors and sane numbers:
+`npc-portraits`, `mob-separation`, `hygiene-wire-prune`. **Diagnostic tools, not
+regressions** (never expect them green): `ctxloss-repro`, `hunt-null-split`.
+
+**Invocation is NOT uniform.** Most take `[label] [url]`, but `round4-tooltip`
+and `filler-batch` take the **URL as the first argument** — passing a label makes
+them die on `Cannot navigate to invalid URL`, which looks like a product failure
+in a sweep. `ctxloss-warning` takes `clean|forced`. `r4-badge`'s `aura` leg needs
+a throwaway content edit (documented in its header); its `vanilla` leg runs as-is.
+
+## Writing or repairing a harness
+
+Rules distilled from the 2026-07-29 full-suite sweep, where four scripts were red
+for reasons unrelated to any recent change:
+
+1. **Never assert a content COUNT.** `rows.length === 3` encoded how much content
+   existed that week and went red the day a fourth teaching was authored. Assert
+   the rows that matter **by name**.
+2. **Don't let two harnesses assert the same content**, or one content edit
+   breaks two. Give each a boundary and say so in its header.
+3. **No knife-edge comparisons.** `last >= first` failed by 0.11 units on a
+   settling mob and passed on the next run. Use a tolerance and state the
+   invariant you actually mean.
+4. **Never assert a condition the design forbids.** Two scripts required a pet
+   alive and visible during a fight while D9 says it gets focused and killed in
+   ~8 s. Assert the *evidence* (XP rose with every aura slot empty), not the
+   tableau, and go **tri-state** — INCONCLUSIVE when the thing was unobservable.
+   Check evidence BEFORE observability, or a genuine pass (XP 0 → 70) reports as
+   inconclusive.
+5. **Assert the precondition that makes the subject the subject.** See the
+   conversant-cluster gotcha below: a run that measures the wrong actor goes
+   green and proves nothing.
+6. **Restart the server first.** Mobs wander far from their authored spawns on a
+   long-lived one, so a venue picked by reading `world.json` stops describing the
+   world. A restart alone fixed three checks with no code change.
+7. **Prefer a Go test.** The browser's unique contribution is what only pixels
+   and real input can show; most of this suite's flakiness came from browser
+   scripts asserting *server* behaviour through a 10 FPS headless window.
+8. **A harness whose premise a later chunk reverses is that chunk's problem** —
+   rewrite or delete it *with* the change, never leave it red.
+
 ## Gotchas
 
 - The `-dev` server can die mid-session with `Overload! Systems at: 103%`

@@ -66,9 +66,39 @@ chunks already lives in the plan-doc banners — so in CLAUDE.md, past chunks ar
 plan-content-zones12.md §13 C6`), only the *current* chunk gets a full banner.
 When wrapping up, if you see stale full `Prior:` banners piled up, collapse them.
 
+## The harness gate — run it BEFORE writing the banner
+
+A chunk that changes behaviour a browser harness asserts **owns that harness**.
+Consult the `verify` skill's **Coverage map** (harness → what it owns → re-run it
+when you touch X), run every script whose row matches this chunk, and act on the
+result *in this chunk*:
+
+- **green** → record the tally in the banner (`14/14`, `29/29 + 1 SKIP`).
+- **red because the behaviour deliberately changed** → rewrite or delete the
+  script **now**, as part of this chunk. Never leave it red.
+- **red for an unrelated reason** → prove it: `git stash` + rebuild + re-run
+  against HEAD. If it fails identically, it predates you — say so in the banner
+  rather than silently ignoring it.
+
+⚑ **Why this step exists.** 3b-ii moved teaching behind a conversation-panel row
+click and did not touch `chunk3b-interact.mjs`, which had been written for the
+world where `E` taught directly. It sat red at 6/15 across two chunks, and every
+later session that ran it read the failure as a regression in whatever *they* had
+just changed — it cost two runs to settle on 2026-07-29. `chunk3a-npc-merge.mjs`
+died the same way and had to be deleted outright, because 3b-i had reversed its
+entire premise. **The cheapest moment to fix a harness is the chunk that
+invalidates it; every later moment costs someone a false diagnosis.**
+
+⚑ **Restart the server before the run.** Mobs wander far from their authored
+spawns on a long-lived one, so a venue a script picked by reading `world.json`
+stops describing the world — three checks in one script were "failing" for this
+alone, and a restart fixed them with no code change.
+
 ## Before declaring wrap-up done
 
 - The three surfaces above agree on chunk name, date, commit state, and next.
-- Sanity checks were actually run (`go build`, `go test`, in-game if it has a
-  runtime surface) — record their real output, don't claim green unseen.
+- Sanity checks were actually run (`go build`, `go test`, `npm test`, in-game if
+  it has a runtime surface) — record their real output, don't claim green unseen.
+- The harness gate above was applied: every harness this chunk owns was run, and
+  any that went red was fixed, deleted, or proven pre-existing.
 - You did **not** commit unless explicitly asked.
