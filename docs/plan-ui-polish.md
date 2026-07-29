@@ -195,3 +195,39 @@ restyle · panel chrome · aura-VFX/tick-indicator polish pass · avatar picker
 + icon-unlock track (`plan-avatar-system.md`; naturally follows the accounts
 half) · flavor-description authoring pass (~47 one-liners, drafted for PO
 review).
+
+### Tooltip maintenance debt (found 2026-07-29, shipping the faction-scope line)
+
+Chunk 1's thesis is that tooltips are *"auto-generated from the skill catalog so
+they stay correct through every balance retune"*. That holds for **numbers**. It
+does not hold for **words**, and the gap has three shapes, worst first:
+
+1. **⚑ The per-effect-type cases restate DESIGN RULINGS in client English, with
+   no link back to the ruling.** `'Any damage breaks it — including your own
+   aura'` is `plan-faction-flips.md` §5.4 retold; `'It keeps its own level, and
+   turns on you when the charm ends'` is D2 plus D11/L-F retold. Also taunt,
+   detaunt, recall and light. **If a ruling changes, the tooltip lies and nothing
+   catches it** — no test can, because the string *is* the assertion. A retune
+   cannot break these; a re-design silently does.
+2. **Content-keyed label tables degrade silently.** `GATED_TAG_LINES` knows
+   `smash` and `harvest`; a new gated tag falls back to *"Only affects targets
+   vulnerable to: X"* — the exact phrasing playtest feedback B#5 complained
+   about. `STAT_LABELS` holds one entry per `validStat`, so the resource-cost
+   pass's cost-reduction passive (the sixth) would render unlabelled.
+   `SELECTOR_LABELS` prints the raw enum name for an unmapped selector.
+3. **24 `case` clauses against 24 authored effect types.** A new effect *type*
+   needs a case or the `default:` emits a console warning and a literal
+   `(charm)`. That tripwire works — it is how chunk 3 knew to add its case — but
+   it fires in a browser at runtime, not at build.
+
+⭐ **The counter-example, shipped 2026-07-29 (`2fffe9ee`):** the faction-scope
+line renders from `def.targetFactions` in the **skill-level** section, never as a
+case in the per-effect switch, so a new faction-scoped skill needs no frontend
+change at all — pinned by a vitest case using an invented skill scoped to an
+invented faction. That is the shape the three items above should move toward:
+**data the server already resolved, rendered generically.** Item 1 is the one
+that cannot fully get there — a design ruling has to be authored as words
+somewhere — but authoring it as skill **content** (a `description` on the skill
+JSON) would at least put the words next to the ruling instead of in a switch.
+
+Related: `backlog.md` §35 tier 5 (the enum mirrors in the same file).

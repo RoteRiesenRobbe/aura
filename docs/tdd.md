@@ -276,12 +276,23 @@ This is the authoritative list of open, cross-cutting debt. (Fixed items are rec
 - ⚠️ **`go:embed` testing gotcha:** patterns don't include subdirectories (`*.json **/*.json`!), and disk-based registry tests can't catch embed gaps — pinned by `pkg/api/skills/skills_test.go`. Before manual tests: `pkill aurad`, rebuild, and check the boot log (`Loaded skill definitions count=…`) — a stale server process silently masks new behavior.
 - **`backend/pkg/aura/net/net_test.go`** is a manual `ListenAndServe` WebSocket smoke script (not a real test); it starts with `t.Skip` so the full suite runs. Remove the skip to run it explicitly.
 - Frontend FlatBuffers toolchain is on **flatc v24.3.25**.
+- ⚠️ **The client mirrors several Go wire enums by hand, and nothing checks the
+  mirror.** `Skills.ts`'s `ActivationRejectionMessages` is keyed by **bare
+  numbers** against `model.ActivationRejection`'s `iota`; `EffectPips.ts`'s
+  `AppliedEffectBit` and `AuraRings.ts`'s category bits mirror
+  `skills/applied_effects.go` and `skills/aura_category.go`. The Go sides are
+  compile- or test-enforced exhaustive; the mirrors are not, so **appending is
+  safe and renumbering silently shows the wrong thing**. Before touching a wire
+  enum, grep the client for its mirror. Inventory and the fix options:
+  `backlog.md` §35 tier 5.
 
 **Closed since (kept as pointers, don't re-open):** player passive regen *is* combat-gated
 now (`model/player/update.go` → `if p.InCombat()`, step 3 / `plan-atmosphere-recovery.md`);
 the frontend `Skills.ts` id→name/maxLevel/category hand-sync maps are **gone** — the client
 fetches the server's parsed registry via `GET /skills` (`plan-ui-polish.md` Chunk 1), so skill
-metadata no longer needs manual syncing.
+metadata no longer needs manual syncing. ⚑ **That last one is narrower than it reads:** the
+catalog killed the id→metadata maps, but `ActivationRejectionMessages` in the *same file* is
+still hand-synced (see the enum-mirror bullet above).
 
 **Code-health debt** (dead-code prunes, registration matrix, per-file findings) is tracked in
 `backlog.md` §24–§28 with the current state in CLAUDE.md's Status banner — not duplicated here.

@@ -2061,6 +2061,15 @@ no-op of exactly the kind the rest of the file exists to prevent.
    duplicate entries when key groups overlap (`variance` sits in both
    `keysDamagePayload` and `keysDotPayload`) — harmless against a linear
    `slices.Contains`, and a *dropped* entry fails loudly rather than silently.
+6. **`TargetFactionMask` is now dead payload on the wire (found 2026-07-29).**
+   `/skills` marshals `SkillDefinition` verbatim, so the resolved mask ships to
+   the client on the **skill and on every effect** — and since `2fffe9ee` the
+   client reads the display **names** instead, leaving **0 client readers** of
+   either mask. It cannot be decoded there anyway (the faction registry is
+   boot-only and the bits depend on registry load order). Both fields are still
+   load-bearing *server-side* — the effect-level one is the runtime gate in
+   `eligibleByTargetFlags` — so this is a `json:"-"` on the serialization, not a
+   deletion. Cosmetic; the kind of vestige the R1 prune existed to catch.
 
 ### 27.4 Suggested order, if any of this is ever scheduled
 
@@ -3284,6 +3293,46 @@ is restatement — and restatement of values that already have a Go home.
   duplicated — `Skills.ts:195` reads `payload.curve` off the catalog, so
   growth × maxLevel exists once. Anything the client needs *can* ride the wire.
 
+### Tier 5 — wire enums + client label tables (added 2026-07-29)
+
+**This tier is the gap this entry's own Scope notes declared** (*"it did not
+audit … the wire enums"*). Surfaced while shipping the faction-scope tooltip
+line (`2fffe9ee`), which is itself **mechanism 3 applied**: the skill catalog now
+serves resolved faction display NAMES because the bitmask it already served is
+undecodable client-side. Same shape as tier 4, different subject — these
+duplicate an **enum or a rule**, not a tuning value.
+
+Ordered by how quietly they fail:
+
+1. **⚑ `ActivationRejectionMessages` (`Skills.ts:265`)** — a map keyed by **bare
+   numbers** (`1: 'No campfire bound'`, `2: 'No valid target'`) hand-synced with
+   Go's `model.ActivationRejection` `iota`. **No generated binding, no test**
+   (the vitest suite is 5 files and `Skills.ts` is not one). Renumber the Go enum
+   and the client shows the wrong message with nothing failing. ⭐ **The irony
+   worth recording:** `tdd.md` §8 already celebrates that *"the frontend
+   `Skills.ts` id→name/maxLevel/category hand-sync maps are gone"* — killed by the
+   `/skills` catalog. This map lives in **that same file** and survived.
+   ⚑ Arms immediately if backlog §38's level-gated charm is built: it needs two
+   new reasons.
+2. **`AppliedEffectBit` + `PIP_STYLES` (`EffectPips.ts`)** ↔
+   `skills/applied_effects.go`. Honestly labelled *SYNCED WITH BACKEND*. Go's
+   side is compile-enforced exhaustive (`buffPayload.appliedBit`); the client's
+   is not — `AppliedEffectCharm = 1 << 6` was hand-added in chunk 3.
+3. **`AURA_CATEGORY_COLORS` / the category bits (`AuraRings.ts`)** ↔
+   `skills/aura_category.go`. Same shape; Go's table is guarded by an
+   exhaustiveness test, the mirror is not.
+4. **`spacedName()` (`SkillTooltip.ts:150`)** — a client-side reimplementation of
+   the server's CamelCase `DeriveDisplayName`, applied to summoned mob names —
+   while `/mobs` **already serves `displayName`** for every species. A duplicated
+   *rule* rather than a value, and exactly the drift `DeriveDisplayName`'s own
+   comment warns about (*"two copies of a naming convention are exactly the kind
+   of knowledge that drifts apart"*). The cheapest of these to close.
+
+**Mechanism 3 kills 1 and 4 outright** (serve the string, drop the mirror). 2 and
+3 are genuinely per-frame render data where a lookup table is the right shape —
+for those the fix is a **drift test** (mechanism 2) or generated bindings, not
+serving.
+
 ### Three mechanisms a plan would choose between
 
 1. **Overlay loading** kills tier 2: read `conf.default.json` first, then
@@ -3311,6 +3360,8 @@ None of the three requires the others; they address disjoint tiers.
   the conf files, Go tuning constants/defaults, the sim harness and frontend
   constants. It did **not** audit content JSON ↔ Go (tier ranks, faction bits,
   skill enums), the wire enums, or the docs.
+  - ⚑ **Partly closed 2026-07-29: the wire enums are now tier 5 above.** Content
+    JSON ↔ Go and the docs remain unaudited.
 
 ---
 
