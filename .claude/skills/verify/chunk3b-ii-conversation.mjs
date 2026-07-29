@@ -269,8 +269,13 @@ const torchRow = list?.rows.find((r) => /light to carry/i.test(r.text));
 const igniteRow = list?.rows.find((r) => /fire for my enemies/i.test(r.text));
 const immolateRow = list?.rows.find((r) => /Everything you have/i.test(r.text));
 
+// ⚑ No exact row COUNT. This asserted `=== 3` and went red the day `3b1b3ef6`
+// authored a fourth teaching on this NPC (BindElemental, the charm teacher) —
+// a harness reporting "the teaching list broke" because the teaching list grew.
+// The rows that matter are each asserted by name below, which is what the check
+// was actually for; the count only encoded how much content existed that week.
 check('Following a branch reaches the teaching list',
-  list !== null && list.rows.length === 3 && list.canGoBack === true,
+  list !== null && list.rows.length >= 3 && list.canGoBack === true,
   `${list?.rows.length} rows, canGoBack ${list?.canGoBack}: ${JSON.stringify(list?.rows.map((r) => r.text))}`);
 check('Torch is available at level 1',
   torchRow !== undefined && torchRow.locked === false, `${JSON.stringify(torchRow)}`);
@@ -278,6 +283,11 @@ check('Ignite is LOCKED and names its wall — level 7 (D20)',
   igniteRow?.locked === true && /level 7/.test(igniteRow.text), `${JSON.stringify(igniteRow)}`);
 check('Immolate is LOCKED and names level 12',
   immolateRow?.locked === true && /level 12/.test(immolateRow.text), `${JSON.stringify(immolateRow)}`);
+// The fourth teaching, authored in `3b1b3ef6` — cover it rather than merely
+// tolerate it, so this NPC's whole authored wall set is under test.
+const bindRow = list?.rows.find((r) => /servant of the flame/i.test(r.text));
+check('BindElemental is LOCKED and names level 15',
+  bindRow?.locked === true && /level 15/.test(bindRow.text), `${JSON.stringify(bindRow)}`);
 
 // ================= 3. a locked row refuses, and teaches nothing =================
 const beforeLocked = await spellbook();

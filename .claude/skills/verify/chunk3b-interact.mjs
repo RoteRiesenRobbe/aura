@@ -10,14 +10,23 @@
 //                          (every conversant authors lore lines, so the bubble
 //                          would look fine) — it presents as the pre-3b ambush.
 //                          Assert on the SPELLBOOK, not on the bubble.
-//   2. Farmer, press E   → bubble + "Taught by: Farmer" + Harvest learned
+//   2. Farmer, press E   → the panel OPENS on the Farmer and teaches nothing by
+//                          itself; pressing E again closes it
 //   3. walk away         → the badge goes out
-//   4. return, press E   → re-triggers, and the already-known Harvest is
-//                          skipped: the LORE line speaks, not the teach line
-//   5. Emberkeeper       → one press runs the ordered walk and stops at the
-//                          first gate (Torch@1 granted, Ignite@7 blocked)
+//   4. return, press E   → the badge re-lights and the verb still opens
+//   5. Emberkeeper       → a second, different conversant is offered and opens
 //   6. the D9 rebind     → R fires cooldown slot 2; E, with no badge lit, does
 //                          not — the key really moved
+//
+// ⚑ SCOPE (rewritten 2026-07-29). This script owns the VERB — who is offered,
+// what the key does, and the badge lifecycle. Everything INSIDE the panel —
+// grants, level walls, refusal lines, Back/Leave, the unlock banner — belongs to
+// chunk3b-ii-conversation.mjs. It used to assert those too, from the 3b-i world
+// where `E` taught directly, and 3b-ii's move of the grant onto a row click left
+// it permanently red at 9/15 across two chunks, reading as a regression to
+// everyone who ran it. Duplicating that coverage here would also mean every
+// content edit to a teaching NPC breaks two harnesses instead of one — which is
+// exactly what `3b1b3ef6` did.
 //
 // ⚑ Harness traps carried from chunks 2/3a, all still live:
 //   · the dev console input stopPropagation()s keydown — blur() before walking
@@ -42,8 +51,15 @@ const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), pro
 
 // WARP takes 1/120 units and wants whole units.
 const w = (x, y) => `${Math.round(x) * 120} ${Math.round(y) * 120}`;
-const NEAR_FARMER = w(-57, 26);        // Farmer (-57, 28.6), approached from a smaller y
-const NEAR_EMBERKEEPER = w(35, -22);   // Emberkeeper (34.52, -19.6)
+// ⚑ The badge lifecycle runs on the EMBERKEEPER because it is ISOLATED — 30.5
+// units from the nearest other conversant. The town cluster cannot host these
+// checks: Farmer (-57, 28.6), Hermit (-54.9, 25.6) and TownCrier (-55.7, 22.0)
+// stand within ~3 units of each other, so the server offers whichever is
+// nearest (the Hermit, from the old warp point) and "walk away until the badge
+// goes out" just walks into the next one's range. That cost 3 of 14 checks on
+// the 2026-07-29 rewrite, all reading as feature failures.
+const NEAR_EMBERKEEPER = w(35, -22);   // Emberkeeper (34.52, -19.6), approached from a smaller y
+const TOWN_CLUSTER = w(-57, 26);       // three conversants inside ~3 units
 const EMPTY_GROUND = w(-57, 16);       // far from every conversant, for the E/R check
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
@@ -108,6 +124,15 @@ const badgeCount = () => page.evaluate(() => {
   return n;
 });
 
+// The conversation panel (3b-ii). This script cares only about WHETHER the verb
+// opens it and on whom — everything inside it (grants, walls, Back, Leave, the
+// unlock banner) belongs to chunk3b-ii-conversation.mjs.
+const panel = () => page.evaluate(() => {
+  const el = document.getElementById('conversation');
+  if (!el || el.classList.contains('hidden')) return null;
+  return { actor: el.querySelector('.conversationActor')?.textContent?.trim() ?? '' };
+});
+
 const spellbook = () => page.evaluate(() =>
   [...document.querySelectorAll('#spellbookList li')].map((li) => li.textContent.trim()));
 
@@ -158,11 +183,11 @@ const results = [];
 const check = (name, pass, detail) => results.push({ check: name, pass, detail });
 
 // --- 1. approach must no longer teach (L18) ---
-await cmd(`WARP ${NEAR_FARMER}`);
+await cmd(`WARP ${NEAR_EMBERKEEPER}`);
 await page.waitForTimeout(20_000); // camera + position settle across the warp (§20)
 
 const beforeApproach = await spellbook();
-await walkUntilBadge('s', true); // toward the larger y the Farmer stands at
+await walkUntilBadge('s', true); // toward the larger y the Emberkeeper stands at
 await page.waitForTimeout(1200);
 
 const approachSpellbook = await spellbook();
@@ -171,11 +196,11 @@ const approachBanner = await bannerText();
 const approachBadges = await badgeCount();
 await page.screenshot({ path: `/tmp/chunk3b-${label}-1-approach.png` });
 
-check('Approaching the Farmer teaches NOTHING (L18)',
-  !approachSpellbook.some((s) => /Harvest/i.test(s)),
+check('Approaching the Emberkeeper teaches NOTHING (L18)',
+  !approachSpellbook.some((s) => /Torch/i.test(s)),
   `spellbook ${JSON.stringify(beforeApproach)} → ${JSON.stringify(approachSpellbook)} at ${JSON.stringify(await pos())}`);
 check('...and says nothing',
-  !approachBubbles.some((t) => t.includes('there is always farming')) && !/Taught by/.test(approachBanner),
+  !approachBubbles.some((t) => t.includes('a light for you in dark places')) && !/Taught by/.test(approachBanner),
   `bubbles: ${JSON.stringify(approachBubbles.slice(-3))}; banner: ${JSON.stringify(approachBanner)}`);
 check('The E badge is lit over the actor in range',
   approachBadges > 0,
@@ -183,20 +208,27 @@ check('The E badge is lit over the actor in range',
 
 // --- 2. the verb: pressing E opens the conversation ---
 await press('e');
+const taughtPanel = await panel();
 const taughtSpellbook = await spellbook();
-const taughtBubbles = await worldText();
-const taughtBanner = await bannerText();
 await page.screenshot({ path: `/tmp/chunk3b-${label}-2-pressed.png` });
 
-check('Pressing E teaches Harvest',
-  taughtSpellbook.some((s) => /Harvest/i.test(s)),
-  `spellbook → ${JSON.stringify(taughtSpellbook)}`);
-check('It speaks its authored teaching line',
-  taughtBubbles.some((t) => t.includes('there is always farming')),
-  `bubbles: ${JSON.stringify(taughtBubbles.slice(-3))}`);
-check('The unlock is attributed to the Farmer',
-  /Taught by: Farmer/.test(taughtBanner),
-  `banner: ${JSON.stringify(taughtBanner)}`);
+check('Pressing E opens the conversation panel on the Emberkeeper',
+  taughtPanel !== null && /Emberkeeper/i.test(taughtPanel.actor),
+  `panel actor ${JSON.stringify(taughtPanel?.actor)}`);
+// ⚑ THE 3b-i/3b-ii BOUNDARY, and the reason this check replaced "E teaches
+// Harvest". In 3b-i the key taught directly; 3b-ii made the key OPEN a tree and
+// moved the grant onto a row click. Asserting the old behaviour left this
+// script permanently red at 9/15 across two chunks, reading as a regression to
+// everyone who ran it (found by the full-harness sweep, 2026-07-29).
+check('...and by itself teaches NOTHING — the grant needs a row click (D17)',
+  !taughtSpellbook.some((t) => /Torch/i.test(t)),
+  `spellbook after the keypress: ${JSON.stringify(taughtSpellbook)}`);
+
+// Close it again with the same key: the verb toggles, which is also what puts
+// the world back in a known state for the badge checks below.
+await press('e');
+check('Pressing E again closes the panel',
+  (await panel()) === null, `panel after the second press: ${JSON.stringify(await panel())}`);
 
 // --- 3. leaving range puts the badge out ---
 await walkUntilBadge('w', false); // back toward the smaller y, out of the sensor
@@ -212,38 +244,41 @@ await walkUntilBadge('s', true);
 await page.waitForTimeout(1200);
 const returnBadges = await badgeCount();
 await press('e');
-const returnBubbles = await worldText();
+const returnPanel = await panel();
 await page.screenshot({ path: `/tmp/chunk3b-${label}-4-return.png` });
 
 check('Returning re-lights the badge',
   returnBadges > 0,
   `visible "E" badges after returning: ${returnBadges}`);
-// Harvest is known now, so the grant walk produces nothing and the node's LORE
-// line is the fallback. That is the whole "already-known skills are skipped"
-// behaviour, visible from outside.
-check('A second conversation skips the known grant and speaks the lore line',
-  returnBubbles.some((t) => t.includes('Tend to the field')),
-  `bubbles: ${JSON.stringify(returnBubbles.slice(-3))}`);
+check('...and the verb still works on the way back',
+  returnPanel !== null && /Emberkeeper/i.test(returnPanel.actor),
+  `panel actor ${JSON.stringify(returnPanel?.actor)}`);
+await press('e'); // close again
 
-// --- 5. the Emberkeeper's ordered walk, on one press ---
-await cmd(`WARP ${NEAR_EMBERKEEPER}`);
+// --- 5. a SECOND, different conversant is offered the same way ---
+// ⚑ Only the OFFER and the open are checked here. The teaching content — grants,
+// level walls, refusal lines — is chunk3b-ii-conversation.mjs's job; this script
+// used to assert it too, which meant every content edit to a teaching NPC broke
+// two harnesses instead of one (`3b1b3ef6` did exactly that).
+//
+// ⚑ And the actor is NOT named. Three conversants stand within ~3 units here and
+// the server offers whichever is nearest, so naming one asserts a positional
+// accident rather than a behaviour. Assert that SOME town conversant answered.
+await cmd(`WARP ${TOWN_CLUSTER}`);
 await page.waitForTimeout(20_000);
-const beforeEmber = await spellbook();
 await walkUntilBadge('s', true);
 await page.waitForTimeout(1200);
-const emberBadges = await badgeCount();
+const townBadges = await badgeCount();
 await press('e');
-const afterEmber = await spellbook();
-const emberBubbles = await worldText();
-await page.screenshot({ path: `/tmp/chunk3b-${label}-5-emberkeeper.png` });
+const townPanel = await panel();
+await page.screenshot({ path: `/tmp/chunk3b-${label}-5-town.png` });
 
-check('The Emberkeeper is offered, then grants Torch@1 and stops at Ignite@7',
-  emberBadges > 0 && afterEmber.some((s) => /Torch/i.test(s)) && !afterEmber.some((s) => /Ignite|Immolate/i.test(s)),
-  `badges ${emberBadges}; spellbook ${JSON.stringify(beforeEmber)} → ${JSON.stringify(afterEmber)}`);
-check('It speaks the grant line AND the blocked line',
-  emberBubbles.some((t) => t.includes('a light for you in dark places'))
-    && emberBubbles.some((t) => t.includes("Fire doesn't suffer the careless")),
-  `bubbles: ${JSON.stringify(emberBubbles.slice(-3))}`);
+check('A second, different conversant is offered and opens on the key',
+  townBadges > 0 && townPanel !== null
+    && /Farmer|Hermit|Town ?Crier/i.test(townPanel.actor)
+    && !/Emberkeeper/i.test(townPanel.actor),
+  `badges ${townBadges}; panel actor ${JSON.stringify(townPanel?.actor)}`);
+await press('e'); // close before the rebind section
 
 // --- 6. the D9 rebind: cooldown slot 2 is R, and E is not a cooldown key ---
 // Done on empty ground so E has no badge to act on: what is under test is that

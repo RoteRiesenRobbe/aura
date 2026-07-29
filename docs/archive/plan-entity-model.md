@@ -2291,6 +2291,17 @@ what shipped, which commit, what was verified.)*
     a regression in whatever is under test**; it cost two runs here before the
     control settled it. Not fixed in this chunk — recorded so the next reader
     does not re-diagnose it.
+
+    > **⚑ Annotation 2026-07-29 — both are now FIXED.** `chunk3b-interact.mjs`
+    > was **narrowed to the verb** it uniquely owns (who is offered, what the key
+    > does, the badge lifecycle), leaving `chunk3b-ii-conversation.mjs` to own
+    > everything inside the panel — so a content edit to a teaching NPC now
+    > breaks one harness instead of two. The latter's own rot was an exact
+    > teaching-row **count** that `3b1b3ef6` grew. Both green: **14/14** and
+    > **29/29 + 1 SKIP**. Two of the causes were environmental rather than code:
+    > a long-lived server invalidates any venue picked from `world.json` (mobs
+    > wander), and conversants stand in clusters where the server offers the
+    > *nearest*, so badge-lifecycle work needs an isolated NPC.
   - **⚑⚑ The harness faked the product bug THREE times, each in a different
     way** — all now pinned in the script's own header and in the `verify` skill.
     ① It warped to the Farmer and the server offered the **Hermit** (0.6 units

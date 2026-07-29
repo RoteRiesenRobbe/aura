@@ -149,21 +149,31 @@ Copy the browser-launch pattern from
   viewport constantly and sample 0 already showed two. Latch on the thing you
   actually caused (the player's own position), and read the whole sample atomically.
 - **⚑ A red harness is not automatically a regression — check it against HEAD.**
-  `chunk3b-interact.mjs` has been **permanently red at 6/15 since chunk 3b-ii**:
-  it was written for 3b-i, where `E` taught directly, and 3b-ii moved teaching
-  behind a conversation-panel row click without updating it.
-  `chunk3b-ii-conversation.mjs` is at 25/28 + 1 skip: one content
-  drift (the teaching list gained `"A servant of the flame. level 15"` in
-  `3b1b3ef6`) and two Wanderer checks that never resolve the actor.
-  **`chunk3a-npc-merge.mjs` was DELETED 2026-07-29** — it had gone
-  0/6 because every check asserted that *approaching* an NPC teaches you, which
-  is precisely what 3b-i reversed (L18). Not repairable: its premise was the
-  behaviour, and the behaviour it covered now belongs to the two scripts above.
-  ⚑ **A harness whose premise a later chunk reverses should be deleted with that
-  chunk, not left to rot** — this one stayed red for two chunks and read as a
-  regression to everyone who ran it. Both read exactly like a break in
-  whatever you just changed. `git stash` + rebuild + re-run is the cheap
-  settlement, and it is worth doing before diagnosing anything.
+  `git stash` + rebuild + re-run is the cheap settlement, and it is worth doing
+  before diagnosing anything. The full-harness sweep of 2026-07-29 found three
+  scripts red for reasons that had nothing to do with any recent change:
+  `chunk3b-interact.mjs` (6/15) had been written for 3b-i where `E` taught
+  directly, and 3b-ii moved teaching behind a panel row click without updating
+  it; `chunk3b-ii-conversation.mjs` asserted an exact teaching-row COUNT that
+  `3b1b3ef6` grew; and `chunk3a-npc-merge.mjs` (0/6) asserted that *approaching*
+  an NPC teaches you, which 3b-i reversed (L18). All three are now resolved —
+  the first two rewritten, the third **deleted**, because its premise *was* the
+  behaviour. ⚑ **Two rules came out of it.** A harness whose premise a later
+  chunk reverses should be deleted or rewritten *with* that chunk, not left to
+  rot — these stayed red across two chunks and read as a regression to everyone
+  who ran them. And **two harnesses should not assert the same content**: the
+  verb script now owns who-is-offered and what-the-key-does, while everything
+  *inside* the panel belongs to the conversation script, so a content edit
+  breaks one file instead of two.
+- **⚑ Conversants stand in CLUSTERS, and the server offers the nearest.** In
+  town the Farmer (-57, 28.6), Hermit (-54.9, 25.6) and TownCrier (-55.7, 22.0)
+  sit within ~3 units, so a script that warps "to the Farmer" gets the Hermit,
+  and *walking away until the badge goes out* merely walks into the next one's
+  range. Three separate checks failed that way in one run. For badge-lifecycle
+  work use an **isolated** conversant — the Emberkeeper (34.5, -19.6) is 30.5
+  units from any other, the Wanderer (-15.5, 30.7) is 39.7 but moves. Where a
+  cluster is unavoidable, assert that *some* conversant answered rather than
+  naming one, or you are pinning a positional accident.
 - **`WARP` moves only the PLAYER.** Summons, followers and anything else owned
   stay where they were and drop out of the client's view — so a check that warps
   and then scores "did my companion do that" is scoring damage it could not have
