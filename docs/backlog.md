@@ -3203,6 +3203,15 @@ level-1 Damage aura with collision fully enforced. The focus-fire problem is a
 ## 35. One value, many homes — the tuning-value duplication sweep
 
 **WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
+> **⭐ TIERS 2–5 PLANNED IN FULL 2026-07-29 → `docs/plan-conf-duplication.md`**
+> (D1 shrink-to-deltas · D2 warn-at-boot on unknown keys, `_`-prefix exempt ·
+> D3 per-item serve/generate for the frontend mirrors; chunks C1–C4). The
+> planning survey found one **new landmine** — the Go defaulting layer is NOT
+> total: `player.healthGainTick` and `player.walkingSpeedPerTick` have no
+> fallback anywhere, so the shrink is unsafe until C1 closes that — and a
+> **fifth tier-5 mirror** this entry missed: `Mobs.ts:48`'s `TierRank` table.
+> This entry stays the findings record; the plan doc carries the ledgers.
+>
 > **✅ TIER 1 FULLY DONE 2026-07-28** — `docs/archive/plan-pre-accounts-hygiene.md`
 > (ledgers there, §11). **Row 1** closed by session 2 (`50a1e5c9`): both Go
 > defaults now hold 0.2, and the sim's copy with them. ⚑ **The drift turned out
@@ -3239,8 +3248,9 @@ the PO's response was the right one: *"doesn't seem good that we need to adjust
 it at 4 places — make a list of all values that need to be changed in multiple
 fields and tackle it as a code cleanup topic."*
 
-**Status: SURVEYED, not planned.** This section is the overview the PO asked
-for. A plan doc comes later; nothing here is scheduled and nothing here blocks.
+**Status: PLANNED 2026-07-29** (was: surveyed) — the plan doc the paragraph
+below anticipated is `docs/plan-conf-duplication.md`, see the banner above.
+Nothing here blocks anything else.
 The regen retune itself is **not** part of this item — it shipped separately
 (rate `1/(5·TicksPerSecond)` + a fractional carry mirroring the player's).
 

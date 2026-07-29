@@ -40,6 +40,7 @@ Everything else that ever had a plan doc lives in `archive/` (see the Archive se
 - **plan-playtest-deploy.md** — the live server (2026-07-21, `a7a2267d`): Hetzner VPS, `devops/deploy.sh`, server-only cheat token, **no persistence** (restarts wipe characters). Live-ops reference; its §Ops & security posture is a required input to step-8 persistence
 - **plan-onboarding-cleanup.md** — **not started** (2026-07-23): documentation & repo cleanup for human coworkers across code/art/audio/design. Its Workstream B is what created `archive/`; Workstreams A/C–G are still open
 - **plan-avatar-system.md** — design sketch, unscheduled: join-screen portrait picker + icon-unlock track, for step 8
+- **plan-conf-duplication.md** — backlog §35 tiers 2–5 (planned 2026-07-29): shrink environment confs to real deltas, unknown-key boot warning, kill/pin the frontend mirrors. D1–D3 PO-ruled, chunks C1–C4, none started
 
 ## Content (catalogs + zone design intent)
 
