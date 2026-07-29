@@ -3982,6 +3982,15 @@ aura-gated harvest mobs yield an implicit quest schema *"without needing a
 dedicated one."* This entry therefore records a **standing design tension to be
 ruled on**, not a plan; a ruling *for* dedicated quests amends GDD §7/§8.
 
+> **✅ RULED 2026-07-29 (same day):** the PO amended the GDD — quests exist as a
+> concept, **carried by journal entries** (Gothic-diary style: what NPCs said,
+> what the player undertook); **no quest markers, ever**; a **sidebar tracker
+> is a maybe**. GDD §7's rule now reads "no markers" alone, and §8 gained
+> **"Quests & the Journal"** with the ruling. The implicit-quest schema stays
+> underneath. The remaining open questions below (verbs, rewards, crediting,
+> scoping, quest-turns-hostile) are all still open — this ruling settled only
+> the pillar.
+
 **⚑ The reference reading cuts the pillar in half.** Both reference games have
 quests *without markers*. Gothic 1+2 have a full quest system with a
 diary/journal — no map markers, no tracking arrows; legibility comes from what
@@ -4018,10 +4027,11 @@ was designed with this day in mind):
 
 **⚑ Open questions:**
 
-- **The pillar question, first:** amend "no quest log" (GDD §7/§8), or keep it
-  and scope this to *strengthening the implicit schema* (more legible NPC
-  hints, no ledger)? The Gothic diary is the middle option: a log of what NPCs
-  said, still no markers, no tracking.
+- ~~**The pillar question, first:** amend "no quest log" (GDD §7/§8), or keep
+  it and scope this to *strengthening the implicit schema* (more legible NPC
+  hints, no ledger)?~~ **RESOLVED (PO 2026-07-29): amended — the Gothic-diary
+  middle path taken.** Journal entries yes, markers never, sidebar tracker
+  maybe. See the ruling banner above and GDD §8 → Quests & the Journal.
 - Minimal verb set for a first pass — kill-N / talk-to / discover-location /
   harvest-N? (All four have existing server-side events or near-events.)
 - Turn-in rewards under the GDD constraint are XP + skill unlocks only — is XP
@@ -4036,6 +4046,6 @@ was designed with this day in mind):
 
 **Not scheduled.** Quest state is per-character persistence, so **step 8 should
 know the shape** — raise it in the accounts & persistence design session
-alongside §32, §36 and §41. The pillar ruling (dedicated vs. implicit) is a PO
-design call and can happen before or during that session; authoring actual
-quest content is a separate, later concern.
+alongside §32, §36 and §41. The pillar ruling is done (banner above); what
+remains for a design session are the open questions below it, and authoring
+actual quest content is a separate, later concern.

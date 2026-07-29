@@ -523,7 +523,7 @@ Clue types:
 
 **Rewards** are exclusively: actives, passives, cooldowns, XP. No loot, no items.
 
-The clue's wording and the reward must fit together logically in hindsight — not obvious, but comprehensible. No quest log, no markers.
+The clue's wording and the reward must fit together logically in hindsight — not obvious, but comprehensible. No markers. *(This rule originally read "no quest log, no markers" — the quest-log half was **amended 2026-07-29**: a journal now exists, see §8 → Quests & the Journal. Whether a found clue anchor also writes a journal entry, or clues stay entirely outside the journal to protect their obfuscation, is open — `backlog.md` §42.)*
 
 ```
    Sign in the woods              NPC in the village
@@ -593,6 +593,16 @@ Examples of possible variants:
 Effect: a soft "profession" identity without a class system, plus an incentive to explore the world to find special NPCs.
 
 ⚑ Peaceful NPCs do not yet exist as an entity behavior. The behavior scope (interaction trigger, contextual/stateful dialogue, whether choices affect outcomes) is captured in `backlog.md` item 2; the implementation reuse map (faction = peaceful, mob aggro-sensor = on-approach, `Prop` = static placement, 3.7 event = teaching payoff) is in `roadmap.md` item 9.
+
+### Quests & the Journal
+
+**Decided 2026-07-29 (amends the former "no quest log" rule, §7):** Aura has the concept of **quests, carried by journal entries** — there is a reason essentially every RPG converges on them. The implicit schema above **stays**; the journal layers legibility on top of it rather than replacing it.
+
+- **The journal is Gothic-diary style:** it records what NPCs told the player and what the player undertook — text the player has already seen, nothing more. Quest state lives on the player and is advanced by events, never stored on the NPC (`backlog.md` §42 has the machinery reading; the interaction container was designed so quest offer/accept/turn-in are additive grant kinds, not a schema migration).
+- **Still no quest markers.** No map arrows, no minimap pins, no in-world highlighting of goals. Finding the place or mob remains the player's job, guided by the entry's wording and world knowledge.
+- **Maybe: a sidebar tracker** — a small HUD list of active journal entries. Under consideration, not decided.
+- **Rewards constraint unchanged:** actives, passives, cooldowns, XP — no items (§7). The native quest verbs are kill-N, talk-to, discover-location, harvest-N; fetch quests are impossible by construction.
+- Quest state is per-character persistent state → depends on accounts & persistence (execution step 8); raise the shape there alongside `backlog.md` §32/§36/§41.
 
 ---
 
