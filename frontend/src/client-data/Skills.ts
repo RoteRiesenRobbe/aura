@@ -173,6 +173,14 @@ export interface SkillDefinition {
     castTicks: number;
     castTicksPerLevel: number;
     castInterruptedByDamage: boolean;
+
+    // targetFactions is the skill's faction allowlist as DISPLAY NAMES, in
+    // authoring order — absent on every unscoped skill (the server omits it).
+    // The catalog also carries the resolved bitmask, but that is server-side
+    // runtime state: the bits depend on faction registry load order and there
+    // is no faction catalog here to decode them against. Names travel.
+    targetFactions?: string[];
+
     effects: SkillEffect[];
 }
 

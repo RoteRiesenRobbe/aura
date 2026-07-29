@@ -683,6 +683,18 @@ type SkillDefinition struct {
 	// resolved bits are carried is an implementation detail.
 	TargetFactionMask uint64 `json:"targetFactionMask,omitempty"`
 
+	// TargetFactions is the same allowlist as DISPLAY NAMES, in authoring
+	// order — what the tooltip prints, and the reason it exists at all: the
+	// /skills catalog marshals this struct verbatim, so the mask reaches the
+	// client already, but a bitmask is undecodable there (the faction registry
+	// is boot-only server state, and the bits depend on registry load order).
+	// Resolved names travel; bits do not.
+	//
+	// Skill-level only — deliberately NOT stamped onto the effects the way the
+	// mask is. The mask is stamped because the runtime gate lives per effect;
+	// this is presentation, and the scope is a property of the SKILL (D8).
+	TargetFactions []string `json:"targetFactions,omitempty"`
+
 	Effects []EffectDef `json:"effects"`
 }
 
@@ -976,22 +988,27 @@ func parseSkillDefinition(data []byte) (*skillDefinition, error) {
 //
 // ⚑ This is why skills now load AFTER factions (cmd/aurad/aurad.go): before
 // chunk 2 the order was the other way round, and no skill needed a faction.
-func resolveTargetFactions(names []string, fr factions.Registry) (uint64, error) {
+// It returns the display names alongside the mask, in authoring order: the
+// same registry walk answers both, and the tooltip needs words where the gate
+// needs bits.
+func resolveTargetFactions(names []string, fr factions.Registry) (uint64, []string, error) {
 	if len(names) == 0 {
-		return 0, nil
+		return 0, nil, nil
 	}
 	if fr == nil {
-		return 0, fmt.Errorf("targetFactions authored but no faction registry available")
+		return 0, nil, fmt.Errorf("targetFactions authored but no faction registry available")
 	}
 	var mask uint64
+	display := make([]string, 0, len(names))
 	for _, name := range names {
 		def, err := fr.GetByName(name)
 		if err != nil {
-			return 0, fmt.Errorf("targetFactions: %w", err)
+			return 0, nil, fmt.Errorf("targetFactions: %w", err)
 		}
 		mask |= factions.Bit(def.ID)
+		display = append(display, def.DisplayName)
 	}
-	return mask, nil
+	return mask, display, nil
 }
 
 func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefinition, error) {
@@ -1000,7 +1017,7 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		return nil, fmt.Errorf("unknown skill category: %q", s.Category)
 	}
 
-	targetFactionMask, err := resolveTargetFactions(s.TargetFactions, fr)
+	targetFactionMask, targetFactionNames, err := resolveTargetFactions(s.TargetFactions, fr)
 	if err != nil {
 		return nil, fmt.Errorf("skill %q: %w", s.Name, err)
 	}
@@ -1048,6 +1065,7 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		CastTicksPerLevel:       s.CastTicksPerLevel,
 		CastInterruptedByDamage: s.CastInterruptedByDamage,
 		TargetFactionMask:       targetFactionMask,
+		TargetFactions:          targetFactionNames,
 		Effects:                 effects,
 	}, nil
 }

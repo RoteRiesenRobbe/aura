@@ -1,6 +1,7 @@
 {
   "_comment": "Mammoth kind: attacks players and predators on sight (the frontline counterpart) — [PLACEHOLDER] chunk-6.6 smoke content",
   "name": "tusker",
+  "displayName": "Tuskers",
   "legacy": true,
   "hostileTo": ["aligned", "predator"]
 }

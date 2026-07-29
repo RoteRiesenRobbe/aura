@@ -1,5 +1,6 @@
 {
   "_comment": "Z2 road bandits (content pass C4, plan-content-zones12.md §4): camp in the NE dark forest + the middle-road horde gate. Hostile to players only — they rob travelers, they don't hunt wildlife (so the forest wolves and the camp ignore each other by construction). [PLACEHOLDER]",
   "name": "bandit",
+  "displayName": "Bandits",
   "hostileTo": ["aligned"]
 }

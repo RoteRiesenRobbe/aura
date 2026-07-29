@@ -48,7 +48,15 @@ func Bit(f Faction) uint64 { return 1 << f }
 // side: player and player-summon damage skips its members entirely, while
 // every other faction fights it through the normal hostility rules.
 type Definition struct {
-	Name              string
+	Name string
+	// DisplayName is the player-facing wording — what a tooltip prints when a
+	// skill is scoped to this faction (plan-faction-flips D8). Name is an
+	// internal identifier (`wildlife_prey`) and is not fit to show; absent →
+	// the name, so a missing key degrades to something readable rather than to
+	// a blank. Authored rather than derived: no mechanical rule turns
+	// `wildlife_prey` into "Prey", and inventing one would be a second naming
+	// convention beside skills.DeriveDisplayName's CamelCase rule.
+	DisplayName       string
 	ID                Faction
 	AggroMask         uint64
 	FriendlyToPlayers bool
@@ -93,6 +101,7 @@ func (r *registry) All() []*Definition {
 type factionDoc struct {
 	Comment           string    `json:"_comment"`
 	Name              string    `json:"name"`
+	DisplayName       string    `json:"displayName"` // absent → Name
 	HostileTo         *[]string `json:"hostileTo"`
 	FriendlyToPlayers bool      `json:"friendlyToPlayers"`
 	Legacy            bool      `json:"legacy"` // absent → live content (step-7 A.5)
@@ -111,8 +120,8 @@ func RegistryFromFS(fileSystem fs.FS) (Registry, error) {
 		// rights. Inert (nothing resolves this entry: faction "aligned" is
 		// rejected on mob definitions), but an implicit 0 here read as
 		// "retaliation-only" and was half of why Align's mask looked wrong.
-		"aligned": {Name: "aligned", ID: Aligned, AggroMask: ^Bit(Aligned)},
-		"hostile": {Name: "hostile", ID: Hostile, AggroMask: Bit(Aligned)},
+		"aligned": {Name: "aligned", DisplayName: "aligned", ID: Aligned, AggroMask: ^Bit(Aligned)},
+		"hostile": {Name: "hostile", DisplayName: "hostile", ID: Hostile, AggroMask: Bit(Aligned)},
 	}}
 
 	docs := map[string]*factionDoc{}
@@ -157,8 +166,13 @@ func RegistryFromFS(fileSystem fs.FS) (Registry, error) {
 	}
 	sort.Strings(names)
 	for i, name := range names {
+		displayName := docs[name].DisplayName
+		if strings.TrimSpace(displayName) == "" {
+			displayName = name
+		}
 		r.factions[name] = &Definition{
 			Name:              name,
+			DisplayName:       displayName,
 			ID:                firstContentID + Faction(i),
 			FriendlyToPlayers: docs[name].FriendlyToPlayers,
 			Legacy:            docs[name].Legacy,

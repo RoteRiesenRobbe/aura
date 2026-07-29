@@ -1,5 +1,6 @@
 {
   "_comment": "Z1 grazing wildlife (content pass C2, plan-content-zones12.md §4): boar, stag. Never proactively aggro anyone; retaliation and flee ride the threat table per each mob's own rules (boar fights back, stag flees). [PLACEHOLDER]",
   "name": "wildlife_prey",
+  "displayName": "Prey",
   "hostileTo": []
 }

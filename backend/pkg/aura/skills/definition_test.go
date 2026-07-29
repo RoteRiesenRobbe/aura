@@ -1383,8 +1383,8 @@ func TestParse_RecallEffectRejectsPayloadKeys(t *testing.T) {
 func calmFactions(t *testing.T) factions.Registry {
 	t.Helper()
 	fr, err := factions.RegistryFromFS(fstest.MapFS{
-		"prey.json":     {Data: []byte(`{"name": "prey", "hostileTo": []}`)},
-		"predator.json": {Data: []byte(`{"name": "predator", "hostileTo": ["aligned", "prey"]}`)},
+		"prey.json":     {Data: []byte(`{"name": "prey", "displayName": "Prey", "hostileTo": []}`)},
+		"predator.json": {Data: []byte(`{"name": "predator", "displayName": "Predators", "hostileTo": ["aligned", "prey"]}`)},
 		"bandit.json":   {Data: []byte(`{"name": "bandit", "hostileTo": ["aligned"]}`)},
 	})
 	require.NoError(t, err)
@@ -1426,6 +1426,49 @@ func TestMap_CalmResolvesTargetFactionsToAMask(t *testing.T) {
 	require.NotNil(t, def.Effects[0].Calm)
 	assert.Equal(t, 300, def.Effects[0].Calm.DurationTicks)
 	assert.Equal(t, 60, def.Effects[0].Calm.DurationTicksPerLevel)
+}
+
+func TestMap_TargetFactionsCarryTheirDisplayNamesToTheCatalog(t *testing.T) {
+	// The mask is the runtime gate; these are what a player READS. The client
+	// gets the parsed SkillDefinition verbatim over /skills, so carrying the
+	// resolved display names here is the whole delivery mechanism — the bits
+	// alone are undecodable client-side (there is no faction catalog), and the
+	// authored identifiers are not fit to show.
+	fr := calmFactions(t)
+	raw, err := parseSkillDefinition([]byte(calmSkillJSON))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition(fr)
+	require.NoError(t, err)
+
+	// Authoring order, not registry order: the tooltip should read the way the
+	// content author wrote it.
+	assert.Equal(t, []string{"Prey", "Predators"}, def.TargetFactions)
+}
+
+func TestMap_TargetFactionsFallBackToTheIdentifier(t *testing.T) {
+	// A faction with no authored displayName still renders something.
+	fr := calmFactions(t)
+	raw, err := parseSkillDefinition([]byte(`{
+	  "id": 99, "name": "Hush", "category": "cooldown", "maxLevel": 1,
+	  "cooldownTicks": 100, "targetFactions": ["bandit"],
+	  "effects": [{"type": "calm", "radius": 4.0, "targetsEnemies": true, "calmTicks": 30}]
+	}`))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition(fr)
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"bandit"}, def.TargetFactions)
+}
+
+func TestMap_AnUnscopedSkillCarriesNoTargetFactions(t *testing.T) {
+	// omitempty + nil: every skill authored before chunk 2 must stay absent
+	// from the payload, so the tooltip renders no scope line for them.
+	raw, err := parseSkillDefinition([]byte(damageAuraJSON))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition(nil)
+	require.NoError(t, err)
+
+	assert.Nil(t, def.TargetFactions)
 }
 
 func TestMap_CalmWithoutTargetFactionsFails(t *testing.T) {

@@ -238,3 +238,55 @@ describe('charm', () => {
         expect(lines(charm, 1, SCALE_AT_30)).toContain('Charms the nearest enemy to fight for you for 59.4s → 69.3s');
     });
 });
+
+// The faction scope line (plan-faction-flips D8). It renders from the SKILL's
+// data in the shared section, never from a per-effect case — so these tests use
+// invented faction names and an invented effect type on purpose: if either had
+// to be known to the formatter, the mechanism would be hardcoded.
+describe('faction scope', () => {
+    it('names every faction the skill is scoped to', () => {
+        const calm = skill({
+            displayName: 'Calm', category: 'cooldown', maxLevel: 3, cooldownTicks: 600,
+            targetFactions: ['Prey', 'Predators'],
+            effects: [effect({
+                type: 'calm', radius: 4, targetsEnemies: true,
+                calm: {durationTicks: 300, durationTicksPerLevel: 60},
+            })],
+        });
+        expect(lines(calm, 1, 1)).toContain('Affects: Prey, Predators');
+    });
+
+    it('renders nothing for an unscoped skill', () => {
+        // Every skill authored before the allowlist existed: the server omits
+        // targetFactions entirely, so the line must not appear at all.
+        const unscoped = skill({
+            displayName: 'Hush', category: 'cooldown', maxLevel: 1, cooldownTicks: 300,
+            effects: [effect({type: 'calm', radius: 2, targetsEnemies: true,
+                calm: {durationTicks: 60, durationTicksPerLevel: 0}})],
+        });
+        expect(lines(unscoped, 1, 1).some(l => l.startsWith('Affects:'))).toBe(false);
+    });
+
+    it('is data, not code: an unknown skill scoped to unknown factions still renders', () => {
+        // The acceptance test, one layer up from the server's L-L pin: a third
+        // faction-scoped skill must need no frontend change. Nothing here is
+        // known to the formatter — not the skill, not the factions.
+        const invented = skill({
+            displayName: 'Rebuke', category: 'cooldown', maxLevel: 1, cooldownTicks: 300,
+            targetFactions: ['Cultists'],
+            effects: [effect({type: 'calm', radius: 2, targetsEnemies: true,
+                calm: {durationTicks: 60, durationTicksPerLevel: 0}})],
+        });
+        expect(lines(invented, 1, 1)).toContain('Affects: Cultists');
+    });
+
+    it('collapses two factions that share one display name', () => {
+        const both = skill({
+            displayName: 'Hunt', category: 'cooldown', maxLevel: 1, cooldownTicks: 300,
+            targetFactions: ['Predators', 'Predators'],
+            effects: [effect({type: 'calm', radius: 2, targetsEnemies: true,
+                calm: {durationTicks: 60, durationTicksPerLevel: 0}})],
+        });
+        expect(lines(both, 1, 1)).toContain('Affects: Predators');
+    });
+});

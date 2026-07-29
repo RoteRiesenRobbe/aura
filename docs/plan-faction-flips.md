@@ -1019,6 +1019,34 @@ the script:
    JSON** (nearest hostile-to-`aligned` spawn 14 units away, nearest other prey
    5.5) rather than guessed — and only visits the pack for the fight leg.
 
+**Follow-up shipped the same day — the tooltip now names the factions a skill
+reaches.** PO feedback from hand-testing: *"the tooltip does not specify the
+faction the spell targets — with Charm Beast and Bind Elemental that is implied,
+but Calm does not specify it."* Two findings:
+
+- **The mask was already on the wire and always had been** — `/skills` marshals
+  the parsed `SkillDefinition` verbatim, so the client had `targetFactionMask:
+  24576` since chunk 2. It is **undecodable there**: the faction registry is
+  boot-only server state and the bits depend on registry load order, so a cached
+  catalog could decode stale bits. **Resolved names travel; bits do not.**
+  `SkillDefinition.TargetFactions []string` now carries the display names.
+- **Faction identifiers are not player-facing.** `wildlife_prey` needed a
+  `displayName`, authored on the faction JSON (PO pick over deriving it
+  client-side — a snake_case rule would be a *second* naming convention beside
+  `DeriveDisplayName`'s CamelCase one, exactly the drift that function's comment
+  warns against). Absent → falls back to the identifier, which is also what the
+  code-declared built-ins get. All 13 content factions authored.
+
+⭐ **The line renders in the SKILL-level section beside Cooldown and Cast time —
+never as a case in the per-effect switch**, which is where it would have become
+per-spell hardcoding. The scope is a property of the skill (D8); the mask is
+stamped onto effects only because the runtime gate reads it there. So **a new
+faction-scoped skill needs no frontend change** — L-L's property one layer up,
+pinned by a vitest case using an invented skill scoped to an invented faction.
+PO pick on wording: **list every faction** (`Affects: Prey, Predators`) rather
+than collapsing to a category. In-game: Calm and Charm Beast read *"Affects:
+Prey, Predators"*, Bind Elemental *"Affects: Elementals"*.
+
 **Two things the PO should know:**
 
 1. **Charm is unreachable in normal play**, exactly like calm — no milestone,

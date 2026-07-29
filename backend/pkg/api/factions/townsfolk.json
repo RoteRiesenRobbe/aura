@@ -1,6 +1,7 @@
 {
   "_comment": "The peaceful settled population (plan-entity-model.md chunk 3a): the teaching and lore NPCs that used to be a separate statless type. Deliberately passive — hostileTo [] means it proactively acquires nobody, so a townsfolk actor never starts a fight — and friendlyToPlayers means player damage skips it entirely, so no threat link ever forms. Unattackability is TWO authored knobs (D5): this flag, plus a body collisionLayer that omits the Action bit, which puts townsfolk out of reach of hostile mob auras as well. Both are content, so making one specific NPC killable later is a JSON edit, not a code change. [PLACEHOLDER]",
   "name": "townsfolk",
+  "displayName": "Townsfolk",
   "hostileTo": [],
   "friendlyToPlayers": true
 }

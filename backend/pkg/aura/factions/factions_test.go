@@ -182,3 +182,39 @@ func TestRegistryFromFS_AllIsSortedByID(t *testing.T) {
 		assert.Less(t, all[i-1].ID, all[i].ID)
 	}
 }
+
+// --- displayName: the player-facing wording (tooltip faction scope) ---
+
+func TestRegistryFromFS_DisplayNameIsAuthored(t *testing.T) {
+	// The faction NAME is an internal identifier (`wildlife_prey`); the display
+	// name is what a player reads in a tooltip. It is authored here rather than
+	// derived because deriving it would be a second naming convention beside
+	// skills.DeriveDisplayName's CamelCase rule — and no rule turns
+	// `wildlife_prey` into "Prey".
+	r, err := RegistryFromFS(factionFS(map[string]string{
+		"wildlife_prey.json": `{"name": "wildlife_prey", "displayName": "Prey", "hostileTo": []}`,
+	}))
+	require.NoError(t, err)
+
+	prey, err := r.GetByName("wildlife_prey")
+	require.NoError(t, err)
+	assert.Equal(t, "Prey", prey.DisplayName)
+}
+
+func TestRegistryFromFS_DisplayNameFallsBackToTheName(t *testing.T) {
+	// An unauthored display name degrades to the identifier rather than to
+	// nothing: a tooltip reading "Affects: kobold" is poor, one reading
+	// "Affects: " is broken. Also what the code-declared built-ins get.
+	r, err := RegistryFromFS(factionFS(map[string]string{
+		"kobold.json": `{"name": "kobold", "hostileTo": []}`,
+	}))
+	require.NoError(t, err)
+
+	kobold, err := r.GetByName("kobold")
+	require.NoError(t, err)
+	assert.Equal(t, "kobold", kobold.DisplayName)
+
+	aligned, err := r.GetByName("aligned")
+	require.NoError(t, err)
+	assert.Equal(t, "aligned", aligned.DisplayName)
+}

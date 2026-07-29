@@ -426,6 +426,22 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
         }
     }
 
+    // The faction scope is a property of the SKILL, not of any one effect
+    // (plan-faction-flips D8: authored on the skill, then stamped onto its
+    // effects purely so the runtime gate can read it per effect). So it renders
+    // HERE, beside cooldown and cast time, and never as a case in the per-effect
+    // switch — that switch is where it would become per-spell hardcoding.
+    //
+    // ⭐ The consequence is the acceptance test: a NEW faction-scoped skill, or
+    // an existing one rescoped to another faction, needs no frontend change at
+    // all. Same property L-L pins server-side, one layer up.
+    //
+    // The Set only collapses EXACT repeats — two distinct factions that share a
+    // display name (`predator` and `wildlife_predator` are both "Predators")
+    // would otherwise print the same word twice.
+    if (def.targetFactions?.length) {
+        lines.push({text: `Affects: ${[...new Set(def.targetFactions)].join(', ')}`});
+    }
     if (def.cooldownTicks > 0) {
         lines.push({text: `Cooldown: ${prog(def.cooldownTicks, def.cooldownTicksPerLevel, level, def.maxLevel, ticksToSecs)}`});
     }

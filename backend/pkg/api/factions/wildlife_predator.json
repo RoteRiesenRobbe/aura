@@ -1,5 +1,6 @@
 {
   "_comment": "Z1 wildlife hunters (content pass C2, plan-content-zones12.md §4): wolves, elite wolf, bear. Hunt players and grazing wildlife on sight — the ambient-predation ecology. Directional: prey never lists predators back. [PLACEHOLDER]",
   "name": "wildlife_predator",
+  "displayName": "Predators",
   "hostileTo": ["aligned", "wildlife_prey"]
 }
