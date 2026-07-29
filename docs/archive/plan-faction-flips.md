@@ -1,9 +1,11 @@
 # Plan: Runtime allegiance — fix L2 and ship charm as its first consumer
 
-**Status:** planned 2026-07-28 (PO design session, via choice prompts), **extended
-2026-07-28 in a second design session** (D6–D13, the WoW framing, calm added as
-its own chunk). **Chunk 1 ✅ SHIPPED 2026-07-28 · chunk 2 ✅ SHIPPED 2026-07-29**
-(§9) — **chunk 3 (charm) is the only one left**. ⚑ **Two plan claims were WRONG
+**Status:** ✅ **COMPLETE 2026-07-29.** Planned 2026-07-28 (PO design session, via
+choice prompts), **extended 2026-07-28 in a second design session** (D6–D13, the
+WoW framing, calm added as its own chunk). **Chunk 1 ✅ `ec73634e` · chunk 2 ✅
+`216f733b` · chunk 3 ✅ `153c0032`** (§9), in-world teachers ✅ `3b1b3ef6`, and
+**every §8 open question closed 2026-07-29** — the one thing it hands forward is
+`backlog.md` §39 (the entity presentation rework). ⚑ **Two plan claims were WRONG
 and are corrected in place:** §4.1 item 2 (the summon path has a mob-caster leg,
 which shipped as a third verb — L-N) and §5.3 item 1 (calm's countdown belongs in
 the buff store, not a `Mob` field — L-O).
@@ -687,26 +689,17 @@ editing, and keep the boot count pinned at 15.
 | 2 | the charmed mob's XP credit vs the shared-XP rule | **traced** — `CreditTo()` routes the hit through `PlayerTouches(charmer)`, the identical path an owned summon uses, so participation and kill credit need no special handling (`TestCharmedMobAuraDamage_CreditsTheCharmerNotItself`) |
 | — | charm's numbers (never asked in the design session) | **PO** — D14 as written: 1800 ticks (59.4 s) **+300/level**, cooldown 3600 (118.8 s), radius 4.0, maxLevel 3; the elemental variant tuned **differently** on purpose (1200 +200, cooldown 4200, radius 3.5), which widens L-L's proof from "a faction list is data" to "the numbers are too" |
 
-### Still open
+### ✅ Closed 2026-07-29 — the last three, and with them the plan
 
-1. **Neither calm nor charm is reachable in normal play.** No milestone, drop or
-   teaching authors any of the three skills, so only the `SKILL` cheat grants
-   them. Deliberate — every chunk was scoped to the mechanism — but it means
-   nothing this plan shipped can be playtested without console access until an
-   unlock is authored. **This is now the plan's largest open item.**
-2. **⚑ How long should a charmed mob actually survive?** Chunk 3 measured it: a
-   pet charmed inside a wolf pack is focused by its three former packmates and
-   dies in **~8 s**, against a 59.4 s duration. That is D9/L-E behaving exactly
-   as ruled, so it is a tuning/design question rather than a defect — but the
-   spell as authored promises a minute and delivers eight seconds in the one
-   place a player is most likely to cast it. Levers, none taken: the duration and
-   cooldown numbers, a charm-time heal or damage reduction, or scoping charm to
-   solitary mobs by design.
-3. **Does the pip (D13) show duration?** A plain pip does not. With a 60 s charm,
-   *time remaining* is the single most useful thing to display, and its absence is
-   the strongest argument for pulling the pet frame forward. ⚑ Chunk 2 shipped
-   the pip and confirmed it renders, so the question is now concrete rather than
-   hypothetical: a calmed wolf shows **a dot, and nothing else**.
+| # | question | closed by |
+|---|---|---|
+| 1 | neither calm nor charm is reachable in normal play | **SHIPPED** — `3b1b3ef6` gives all three an in-world source: **Hermit @10** teaches Calm + CharmBeast (own nameless option, own `blockedLine`), **Emberkeeper @15** teaches BindElemental as a fourth row on the fire ladder (1/7/12/15). Content only, no Go, no wire |
+| 2 | how long should a charmed mob actually survive? | **PO — ACCEPTED AS-IS.** The ~8 s life in a pack is the intended price of D9; numbers stay [PLACEHOLDER] and the question re-opens only if a playtester raises it. None of the four levers taken |
+| 3 | does the pip (D13) show duration? | **PO — the pip stays, and the real answer is a much bigger piece of work.** Duration is not bolted onto a dot: mob and player presentation needs *one comprehensive rework* covering active buffs, debuffs and their durations, allegiance, faction and cast bars. Recorded as **`backlog.md` §39**; D13 is explicitly the interim until that lands |
+
+**⚑ Nothing in this plan is open any more.** The three chunks shipped, the
+in-world sources are authored, and the two design questions above are ruled.
+The doc moves to `archive/`; §39 carries the only thing it hands forward.
 
 ---
 

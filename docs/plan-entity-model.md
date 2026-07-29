@@ -2134,10 +2134,13 @@ content counts recorded.
    any other actor; an owned one (FireTotem, Totem) stands at its owner's level,
    an authored one at its `curveLevel`. Nothing tests for `speed <= 0` on this
    path.
-2. **Should non-players get a base crit chance?** (gap 2 remnant) `casterCritChance`
-   explicitly special-cases `model.PlayerEntity` for the flat base. Under decision 1
-   the *passive* half already converges; the flat base is a separate design call.
-   Not needed for any chunk here.
+2. ~~**Should non-players get a base crit chance?**~~ **RESOLVED (PO 2026-07-29):
+   NO — crit stays players-only.** `casterCritChance` keeps its
+   `model.PlayerEntity` special-case for the flat base; a mob crits only if its
+   ability authors `critChance` itself, as `EliteBanditSlash` does. Crit is a
+   player identity stat, and converging it would move every TTD number for no
+   design gain. ⚑ The §25 A#4 warning still stands: a mob ability that authors
+   chance but **not** factor starts riding player crit tuning.
 3. ~~**Do the 14 NPCs stay a distinct `zone.npcs` section or fold into
    `spawns`?**~~ **RESOLVED (PO 2026-07-27): fold into `spawns`** — §6a.5 / D1.
    `zone.npcs` and the editor's whole NPC mode are deleted; teachings become
@@ -2155,15 +2158,16 @@ content counts recorded.
 7. ~~**Summon level: assigned at spawn or tracked live?**~~ **RESOLVED in 1b
    (PO 2026-07-26): tracked LIVE** — `Level()` reads the owner's current level,
    with no synced field (§11). The recommendation was taken.
-8. **What aggro radius do `Companion` and `SoldierCompanion` get?** (Chunk 2, D1)
-   They lose the `0.1` dummy and must author a real value; the plan proposes
-   **3.5 [PLACEHOLDER]**, mirroring `MedicCompanion`. Inert today (a non-support
-   follower's sensor is read by nothing), so it is a forward-looking number the
-   PO can set to anything at execution time.
+8. ~~**What aggro radius do `Companion` and `SoldierCompanion` get?**~~
+   **RESOLVED in chunk 2: 3.5 [PLACEHOLDER]**, the proposed value, mirroring
+   `MedicCompanion` — authored in `api/mobs/companion.json` and
+   `soldier-companion.json` with the reasoning in their `_comment`. Still inert
+   (a non-support follower rides owner combat signals), and still the number to
+   revisit the day a follower carries a support aura.
 
 ---
 
-## 10b. Post-review chunks R1/R2/R5 — and R4, which needs the PO
+## 10b. Post-review chunks R1/R2/R5 — and R4, now scoped and ready to run
 
 A six-dimension code review of the whole entity-model range ran on 2026-07-28
 (findings recorded in §8b). Four follow-up chunks were scoped; three shipped in
@@ -2203,9 +2207,13 @@ exactly what froze it. ⚑ **A summon SPAWNED at a given level is unaffected**,
 which is why every battery stays byte-identical and why only a targeted test can
 see this at all.
 
-**R4 — visual polish ⏳ NEEDS THE PO.** Deliberately not built: it is a
-by-eye chunk and the PO's own list has not been handed over yet. Two items the
-review found, to fold in when it is:
+**R4 — ✅ SCOPED 2026-07-29 (PO): the two review-found fixes ONLY.** The chunk
+was waiting on the PO's own polish list; the ruling is that R4 does **not** wait
+for it. Fix the two latent defects the review found, close R4, and let any
+by-eye polish arrive later on its own terms — most of it is superseded anyway by
+`backlog.md` §39 (the entity presentation rework), which absorbs the whole
+overlay stack including the badge these two items live in. **What R4 is now, in
+full** (frontend-only, no wire, no backend):
 
 - **The interact badge's vertical anchor is measured once, from the whole shape
   subtree.** `InteractBadge.ts:104` calls `getLocalBounds()` on `Mob.shape` at
@@ -2261,9 +2269,10 @@ what shipped, which commit, what was verified.)*
   boot both ways 0 errors 0 warnings 0 panics — 83 skills/15 factions/64 mobs/777
   props/485 spawns/5 campfires. **⭐ Sim battery BYTE-IDENTICAL after each of the
   three chunks** (default · `-chain` · `-levels` · `-content ../api` roster; TTK
-  6.67s / TTD 8.70s), measured against a pre-R1 worktree. ⏳ **R4 (visual polish)
-  stays OPEN — needs the PO's list**; its two review-found items are written up in
-  §10b.
+  6.67s / TTD 8.70s), measured against a pre-R1 worktree. ⏳ **R4 stays OPEN but
+  is no longer waiting on anyone** — PO 2026-07-29 scoped it down to exactly the
+  two review-found items (§10b); the by-eye polish it was holding a slot for is
+  superseded by `backlog.md` §39.
 
 - **Chunk 1a — one derived-stat formula: ✅ DONE 2026-07-26**, backend only,
   10 files + 1 new test file, committed `cf9a10c7`. ⏳ PO in-game check not

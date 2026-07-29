@@ -79,17 +79,17 @@ split within the zone would use named sub-regions
   **Stag**, **Kobolds** (melee + ranged), **Spiders** (normal + venom),
   poison pools, brambles, rockfalls → `content-mobs.md`
 
-## Open questions (content-pass)
+## ~~Open questions (content-pass)~~ — ✅ CLOSED 2026-07-29 (PO)
 
-- **Campfire location(s)** — death-respawn anchor + social hub (respawn
-  point set by dwelling in the fire aura, step 3).
-- **Light-aura clue** — exact wording + world location (no quest log, no
-  markers; the tunnel guard points at it).
-- **Rough zone geography** — village / farm / forest / wolf territory /
-  tunnel-mouth layout.
-- **Resistances & damage types** for the Zone 1 mobs — the tag-resist
-  mechanic is built (item 11 Phase 2) but every mob defaults to `physical`;
-  assign real tags here.
-- **Wild boars' role** in the flow.
-- **Turnip / chore fantasy per start** — destructive "pull" vs. constructive
-  "close a molehill" (mechanically identical, GDD §5).
+The list is retired: three of the six were answered by content that has since
+shipped, one moved to a plan doc, and the remaining two are ordinary authoring
+the PO does in the editor rather than questions anyone is waiting on.
+
+| former question | disposition |
+|---|---|
+| Campfire location(s) | **Built** — 5 campfires ship in the zone; the respawn-anchor rule is live |
+| Rough zone geography | **Built** — village / farm / forest / wolf territory / tunnel mouth all placed (777 props, 485 spawns) |
+| Resistances & damage types | **Moved** to `plan-playtest-feedback.md` §Open questions 5b — PO 2026-07-29 rules they are authored **with the Pass 1 retune**, since they are a build-identity lever and the retune rewrites every damage number anyway. ⚑ Today **no skill authors a `damageType` at all** and only 4 mobs author `resistances`, so every hit in the game is physical |
+| Light-aura clue (wording + location) | **Authoring**, not a question — no in-world source exists yet, and it is the zone-1→2 tunnel tutorial's whole setup, so it is the one worth not forgetting |
+| Wild boars' role | **Authoring** — placement/flow call in the editor |
+| Turnip / chore fantasy per start | **Authoring** — GDD §5 already rules the two variants mechanically identical |

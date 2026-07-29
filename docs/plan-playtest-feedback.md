@@ -1056,6 +1056,12 @@ and produce exactly the jiggle-in-place limit cycle the steering comments warn
 about twice; a *tangential* settle nudge would sidestep that, but it is scope
 beyond the approved decision and is offered, not taken.
 
+> **✅ CLOSED 2026-07-29 (PO): both halves accepted as shipped.** Settled packs
+> keeping their arrival spacing is fine, and `mobSeparationWeight` **0.45 stands
+> as the value** — not merely as an unchallenged placeholder. The tangential
+> settle nudge is **withdrawn**, not deferred; re-propose it only if a later
+> playtest actually complains about ring spacing.
+
 **Measured** (throwaway probe, 4 wolf-like mobs, real `phy.Space`, 900 ticks;
 bodies touch at 0.6, every configuration static across ticks 300/600/900 ⇒ no
 weight in the sweep jittered):
@@ -1427,6 +1433,15 @@ stickiness is right for `nearest` damage and *wrong* for `lowest_health` heals,
 which must always chase the most wounded. **Not scheduled** — it is a Pass-1b
 neighbour (it changes how every damage aura feels) but blocks nothing.
 
+> **✅ RULED 2026-07-29: LEAVE IT AS IT IS.** PO: *"we will only tackle this if
+> the unnecessary 30× checks per second becomes a performance issue. For now, it
+> stays."* So the trigger to re-open is **cost**, not feel. ⚑ Recorded for
+> whoever picks it up: the *behavioural* half above (a `maxTargets: 1` aura
+> smearing damage across a clump instead of killing anything) is unchanged by
+> this ruling and is the thing a playtester would actually report — if that
+> complaint arrives, this entry is its cause, and the fix is per-selector
+> stickiness rather than anything in the perf budget.
+
 ---
 
 ## Rolling-filler batch ledger
@@ -1710,32 +1725,74 @@ a multiplayer playtest, not a solo one.
 
 ## Open questions
 
-1. **What the raised caps actually are.** The curve is agreed; whether skills
-   go to 10, 15, or stay uneven per-skill determines how much of the catalog is
-   rewritten — every `damageHPPerLevel` needs rederiving against the new
-   ceiling. Blocks Pass 1a.
-2. **What refills the freed drop slots.** Deleting Wild strips EliteWolf's 0.5
-   kill-drop; a Swift ruling moves Wolf's 0.04 "first drop" moment. Two wolves
-   would teach nothing. Blocks Pass 1b item 3.
-3. **What "affected the fight" means for passive-ish effects** (decision 4) —
-   does a resist aura that never resisted anything count? Does light that lit
-   nobody? Blocks Pass 3 item 1.
-4. **Swift's fate** (decision 7) — cooldown, deleted, or weakened passive.
+> **⭐ Sweep 2026-07-29 — questions 1, 2, 3, 4, 6, 7 and 9 are all RULED**
+> (PO, via choice prompts, in a session that went through every open question in
+> the live docs at once). The rulings are inline below. **Passes 1a, 1b item 3
+> and Pass 3 item 1 are unblocked.**
+
+1. ~~**What the raised caps actually are.**~~ **✅ RULED 2026-07-29: UNEVEN,
+   PER-SKILL** — and with a caveat that is bigger than the answer. PO: *"we will
+   have to rework the skill level system to a degree. It will be uneven and
+   per-skill, but might also get the 'augmentation' concept where auras can be
+   augmented with extra effects — i.e. a damage aura gains either the slow or the
+   heal effect at level 10, per player choice. For now, we assume that skill
+   levels will be uneven."* ⚑ **So Pass 1a authors per-skill ceilings, but should
+   not treat them as final**: the skill-progression rework (`backlog.md` §37,
+   now cross-linked to this ruling) may move where a cap sits and what happens
+   when you reach it. Rederive `damageHPPerLevel` against the authored ceiling
+   per skill; expect to do it again if §37 is picked up.
+2. ~~**What refills the freed drop slots.**~~ **✅ RULED 2026-07-29: leave them
+   empty — but Wolf still drops Swift.** No new content is authored to backfill
+   EliteWolf's stripped kill-drop; not every mob needs to teach something,
+   especially now that the NPC teachers cover early unlock density
+   (`3b1b3ef6`). ⚑ **The one thing that must survive the prune: Wolf keeps its
+   "first drop" moment, now dropping Swift *as a cooldown*** (question 4) rather
+   than as the passive it teaches today.
+3. ~~**What "affected the fight" means for passive-ish effects.**~~ **✅ RULED
+   2026-07-29: PRESENCE COUNTS.** Having the relevant aura active during the
+   fight is enough — no measurable proc required. A resist aura that never
+   resisted anything and a light that lit nobody both earn credit. Rationale: it
+   is the only rule that cannot deny a support player XP by luck, it is
+   impossible to grief, and it is the simplest thing to implement. Pass 3 item 1
+   is unblocked.
+4. ~~**Swift's fate** (decision 7).~~ **✅ RULED 2026-07-29: RE-ROLE AS A
+   COOLDOWN.** Not deleted, not kept as a weakened passive — Swift becomes a
+   burst movement cooldown, which is the direct answer to the §Findings
+   "movement slot is empty" observation and gives the slot a real occupant.
+   Pass 1b item 3 and question 2 both hang off this.
 5. All new numbers are **[PLACEHOLDER]** until felt in-game: the cost curve
    steps, every `selfDamageHP` value, every retuned radius/dps, pulse
    amplitude and period.
+   - **Damage types & resistances ✅ RULED 2026-07-29: author them WITH the Pass
+     1 retune** (inherited from `content-zone1.md`'s content-pass list, now
+     closed). The tag-resist mechanic is built but unused — **no skill authors a
+     `damageType` at all**, and only 4 mobs author `resistances` (mostly
+     structure wildcards), so every hit in the game is physical. PO reasoning:
+     they are a build-identity lever, so they belong in the pass that rewrites
+     every damage number anyway, not in a separate content chunk.
 
 **Round 3 (2026-07-25):**
 
-6. **A shield is preventive, but the mode rule fires reactively.** Round-3
-   decision 5 triggers on *"an ally is below `supportThreshold`"* and picks the
-   most-wounded ally (the existing `findWoundedAlly` pick), so a guardian shields
-   the wolf that is nearly dead rather than the one about to get hit. Might be
-   exactly right; might argue for shield-carrying mobs triggering on *"an ally is
-   in combat"* instead. **Blocks nothing** — it is a trigger swap inside one
-   rule, decidable after it is felt in-game.
-7. **What the mode-thrash hysteresis window actually is** — a hold time, a
-   tick-boundary-only switch, or both. Needs feeling, not deriving.
+6. ~~**A shield is preventive, but the mode rule fires reactively.**~~ **✅ RULED
+   2026-07-29: TRIGGER ON ALLY-IN-COMBAT.** Round-3 decision 5 triggers on *"an
+   ally is below `supportThreshold`"* and picks the most-wounded ally (the
+   existing `findWoundedAlly` pick), so a guardian shields the wolf that is
+   nearly dead rather than the one about to get hit. The PO took the preventive
+   reading: shield-carrying mobs enter support mode when an ally **enters
+   combat**, not when one is wounded — a shield exists to be up *before* the
+   hit. ⚑ Scope note: this is a trigger swap inside one rule, but it **splits
+   the support mode's entry condition by carried aura category** (heal keeps the
+   wounded trigger, shield gets the combat trigger), so the role-as-loadout
+   derivation now feeds two different entry rules rather than one. Unscheduled;
+   fold into whichever pass next touches `support.go`.
+7. ~~**What the mode-thrash hysteresis window actually is.**~~ **✅ RULED
+   2026-07-29: DO NOTHING UNTIL IT IS SEEN.** No hold time, no tick-boundary
+   switching — nothing has reported mode flicker in any playtest or harness run,
+   and a window tuned against a hypothetical is a number nobody chose. Re-opens
+   the first time a mob is observed thrashing. ⚑ Note that ruling 6 above adds a
+   second entry condition to the support mode, which is exactly the kind of
+   change that could produce the flicker this question was reserved for — watch
+   for it when 6 lands.
 8. **Does the pacifist healer's threat table have any consumer?** Decision 4
    says it tracks threat but ignores the attacker. Taunt already reads it
    (`ForceThreatToTop`); nothing else does. If nothing consumes it, the ruling is
@@ -1743,7 +1800,12 @@ a multiplayer playtest, not a solo one.
 
 **Round 4 (2026-07-25):**
 
-9. **Do the `of max HP` tooltip lines also want an absolute number?** The round-4
+9. ~~**Do the `of max HP` tooltip lines also want an absolute number?**~~ **✅
+   RULED 2026-07-29: NO — the percentage stays, alone.** It is the honest
+   description of the mechanic (the heal genuinely *is* a fraction of the pool),
+   and the divergence between authored and experienced numbers is accepted on
+   this one line. Nothing to build. Original write-up kept below for the
+   reasoning. The round-4
    ruling is "show what the player actually will see", and `FirstAid` reads
    `Heal self: 20 % → 25 % of max HP` — correct, curve-free, and *not* what the
    player watches land (≈535 HP at level 30). Adding the absolute alongside the
