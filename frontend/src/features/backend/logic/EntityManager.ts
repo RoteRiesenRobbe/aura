@@ -226,6 +226,13 @@ function fadeOutAndHide(gameObject: GameObject) {
     if (isFunction(gameObject['setAuraRadius'])) {
         gameObject['setAuraRadius'](0);
     }
+    // Same reason, and it has to happen HERE (R4): the object is already out of
+    // `this.objects`, so Backend's next retarget cannot resolve the id and its
+    // setInteractable(false) never lands — the "press E" cap would ride the
+    // corpse for the whole fade over something that can no longer be talked to.
+    if (isFunction(gameObject['setInteractable'])) {
+        gameObject['setInteractable'](false);
+    }
     const start = performance.now();
     const fade = () => {
         const t = (performance.now() - start) / MOB_FADE_DURATION_MS;

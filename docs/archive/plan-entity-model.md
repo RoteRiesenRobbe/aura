@@ -1,7 +1,9 @@
 # Plan: One entity, many roles — the Actor model
 
-**Status:** in progress — **Chunks 1a + 1b done 2026-07-26, Chunk 2 done
-2026-07-27** (see §11), **3a next**.
+**Status: COMPLETE 2026-07-29** — every chunk shipped and the doc is archived.
+1a `cf9a10c7` · 1b `ee01ccdb` · 2 `0be771bd` · 3a `ba124ceb` · 3b-i `6368b2e5` ·
+3b-ii `ef4355f1` · post-review R1/R2/R5 `759ddfb6` · **R4 `ce022042`**
+(see §11 for the per-chunk ledgers).
 Design session 2026-07-26 (PO, via choice prompts). Supersedes the "not scheduled" note on `backlog.md` §31 — that entry
 stays as the *findings* record; this doc is the *plan*. §5 (Chunk 2) was planned
 and executed in one session 2026-07-27, plan-first within it; everything else
@@ -2207,7 +2209,8 @@ exactly what froze it. ⚑ **A summon SPAWNED at a given level is unaffected**,
 which is why every battery stays byte-identical and why only a targeted test can
 see this at all.
 
-**R4 — ✅ SCOPED 2026-07-29 (PO): the two review-found fixes ONLY.** The chunk
+**R4 — ✅ DONE 2026-07-29** (`ce022042`; ledger in §11). Scoped by the PO
+the same day to the two review-found fixes ONLY. The chunk
 was waiting on the PO's own polish list; the ruling is that R4 does **not** wait
 for it. Fix the two latent defects the review found, close R4, and let any
 by-eye polish arrive later on its own terms — most of it is superseded anyway by
@@ -2234,6 +2237,73 @@ full** (frontend-only, no wire, no backend):
 
 *(filled in as chunks land — one entry per chunk: what was decided inside it,
 what shipped, which commit, what was verified.)*
+
+- **R4 — the last two badge defects ✅ DONE 2026-07-29**, frontend only, 3 files
+  + 1 new harness, committed `ce022042`. **The chunk that closes the plan**;
+  the doc is archived with it. Both fixes are latent-by-content, which is the
+  whole character of the chunk: neither is reachable with anything authored
+  today, and both arm the moment content moves one step.
+  - **The anchor.** `InteractBadge` now takes the container it is drawn INTO and
+    the container it MEASURES as two separate arguments — attached to
+    `Mob.shape` (so the cap still fades and darkens with the mob), anchored off
+    `actualShape` (the art alone). The group it used to measure also carries the
+    aura ring stack, the dwell ring, the tick indicator and the health bar.
+    ⚑ **Measured, not argued:** with a throwaway aura on the badged actor the
+    group's top goes −42 → **−211.5 px**, so the pre-R4 code would have parked
+    the key cap at **−232.5 instead of −62.5 — 170 px above the NPC's head,
+    permanently**, since `build()` runs once.
+  - **The corpse.** `EntityManager.fadeOutAndHide` now calls
+    `setInteractable(false)` beside the existing `setAuraRadius(0)` — the same
+    idiom for the same reason ("a fading corpse must read as harmless"). The
+    ordering the review claimed is confirmed at `Backend.receiveSnapshot`:
+    `newSnapshot` at :294, `updateInteractBadge` at :373, so on the removal tick
+    the object is already out of `objects` and the client-side retarget can
+    never land. ⚑ It has to be fixed HERE and not in `Backend`, which has no
+    handle on an object it can no longer resolve.
+  - **⚑ The health bar was never part of the defect** — it hangs BELOW the mob
+    (`bar.y = max(30, size*0.9)`), so it only ever inflated the group's bottom
+    edge. The review named it among the confounders; only the ring actually
+    reaches above the art. Worth knowing before anyone "fixes" the same class of
+    bug elsewhere by excluding the bar.
+  - **Verified.** New `.claude/skills/verify/r4-badge.mjs`, run **twice against
+    the same build** with a throwaway `role: structure` + `TotemAura` on the
+    Hermit (reverted; the `aura` leg needs it because a *creature* only
+    activates its aura in modeEngage/modeSupport and a townsfolk NPC never
+    engages a player, while `mob.go:217` activates slot 0 at spawn for a
+    structure). **7/7 both legs**, 0 console errors, 0 WebGL losses:
+    **aura leg** group top −211.5 → badge y **−62.5** (pre-R4 −232.5, delta
+    170 px); **vanilla leg** group top −42 → badge y **−62.5** (pre-R4 −63,
+    delta **0.5 px**) — i.e. on shipped content the fix is a no-op, which is
+    exactly why the defect was latent. Corpse leg: 0 badges across ~12 samples
+    while 10–20 fading corpses are on screen. Also `go build`/`vet`/`test ./...`
+    clean (no Go changed), frontend typecheck + **57 vitest** + prod build; boot
+    `-content ../api` **0 errors 0 warnings** — 15 factions/86 skills/64 mobs/
+    10 recipes/1 milestone/5 props/777 props/485 spawns/5 campfires;
+    `npc-portraits.mjs` clean on all four NPCs.
+  - **⚑ FINDING — `chunk3b-interact.mjs` is STALE AND PERMANENTLY RED, 6/15
+    failing, and it is not R4.** Proven by stashing the change, rebuilding HEAD
+    and re-running: **identical 6 failures**. The script was written for 3b-i
+    where `E` taught directly; **3b-ii moved teaching behind a panel row click**
+    and the script was never updated. `chunk3b-ii-conversation.mjs` covers the
+    real flow (25/28 + 1 documented SKIP) and its own single failure is also
+    content drift — one extra authored row, `"A servant of the flame. level 15"`,
+    added by `3b1b3ef6` after the harness was written. **A red harness reads as
+    a regression in whatever is under test**; it cost two runs here before the
+    control settled it. Not fixed in this chunk — recorded so the next reader
+    does not re-diagnose it.
+  - **⚑⚑ The harness faked the product bug THREE times, each in a different
+    way** — all now pinned in the script's own header and in the `verify` skill.
+    ① It warped to the Farmer and the server offered the **Hermit** (0.6 units
+    vs the Farmer's 2.6, the only one inside the 2.0 talk range), so the first
+    clean-looking **7/7 measured an actor with no aura and proved nothing** —
+    hence the script now asserts its own precondition instead of assuming the
+    intended actor was the one reached. ② The removal latch fired on the live,
+    legitimately-badged NPC because *"some corpse is fading somewhere"* is not
+    the same event as *"my actor was removed"* — mobs drop out of the viewport
+    constantly, and sample 0 already showed two. ③ Reading badge, corpses and
+    position as **three round trips** let the warp land between them, so one
+    sample reported the old frame's badge against the new frame's position. The
+    probe is now a **single atomic `page.evaluate`**.
 
 - **Post-review chunks R1 + R2 + R5 — ✅ DONE 2026-07-28**, backend + frontend +
   content + docs, 40 files, committed `759ddfb6`. Full write-up §10b;

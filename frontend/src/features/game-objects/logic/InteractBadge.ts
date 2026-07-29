@@ -14,10 +14,21 @@ import * as PIXI from 'pixi.js';
  * it labels when the light does, whereas a nameplate deliberately stays legible
  * above the darkness layer and pays for that with an explicit isHidden test.
  *
- * ⚑ The vertical anchor reads the parent's rendered bounds, never the wire
+ * ⚑ The vertical anchor reads the sprite's rendered bounds, never the wire
  * radius: mob sprite classes size from GraphicsConfig and ignore Mob.radius,
  * while the merged NPCs size from the wire — a permanently-unwritten radius is
  * exactly how chunk 3a's invisible Farmer happened (L19).
+ *
+ * ⚑ ATTACHED to the mob's shape group, MEASURED against its art alone (R4).
+ * The two are different containers on purpose: the group also carries the aura
+ * ring stack, the dwell ring, the tick indicator and the health bar, so
+ * measuring it anchors the cap to whichever decoration happens to be widest.
+ * Measuring the group was correct only by accident — all 14 conversants author
+ * `"skills": []`, so the ring graphic stays invisible and Pixi skips it, and
+ * the health bar hangs BELOW the mob where it never reached the top edge. Give
+ * a conversant an aura (the teaching guard that fights bandits) and the cap
+ * would park one aura radius above its head, permanently, since build() runs
+ * once.
  */
 
 // Key cap geometry, in px. [PLACEHOLDER — no keybinding UI exists yet, so the
@@ -36,7 +47,13 @@ const FONT_SIZE = 13;
 export class InteractBadge {
     private container: PIXI.Container = null;
 
-    constructor(private readonly parent: PIXI.Container) {
+    /**
+     * @param parent the container the cap is drawn into — the mob's whole
+     *               shape group, so the prompt fades and darkens with it
+     * @param sprite the mob's art alone, the thing the cap is anchored above
+     */
+    constructor(private readonly parent: PIXI.Container,
+                private readonly sprite: PIXI.Container) {
     }
 
     /**
@@ -94,15 +111,16 @@ export class InteractBadge {
         this.parent.addChild(this.container);
     }
 
-    // How far the parent's TOP edge sits above its origin, measured — never
-    // derived from an authored or wire size (L19).
+    // How far the sprite's TOP edge sits above its origin, measured — never
+    // derived from an authored or wire size (L19), and never from the shape
+    // group, whose bounds include every overlay hung on the mob (R4).
     //
-    // ⚑ Read `bounds.y`, not `height / 2`. A mob's shape is not centred on its
+    // ⚑ Read `bounds.y`, not `height / 2`. A mob's art is not centred on its
     // origin: the Farmer measures y −73.5 with height 115.5, so half-height is
     // 16 px short of the top and the cap lands on the NPC's face instead of
     // above its head. Measured in-game, not reasoned about.
     private spriteTopOffset(): number {
-        const bounds = this.parent.getLocalBounds();
+        const bounds = this.sprite.getLocalBounds();
         return Math.max(0, -bounds.y);
     }
 }

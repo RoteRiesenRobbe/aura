@@ -2589,7 +2589,7 @@ regen rather than earning one on its own.
 
 ## 31. One entity, many roles — converge the player/mob/NPC stat model
 
-**Status 2026-07-26: PLANNED AND IN PROGRESS — `docs/plan-entity-model.md`.**
+**Status 2026-07-26: PLANNED AND IN PROGRESS — `docs/archive/plan-entity-model.md`.**
 This section stays the *findings* record (the five gaps and why they matter);
 the plan doc is where the chunks, the 7 PO rulings and the landmines live.
 **Chunks 1a + 1b are done** (2026-07-26): **gap 1 is closed** — the three

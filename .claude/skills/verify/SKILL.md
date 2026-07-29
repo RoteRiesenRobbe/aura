@@ -130,6 +130,32 @@ Copy the browser-launch pattern from
   `box.x + 25`, then assert `#spellbookList li.selected` before clicking the
   slot. `chunk2-follower.mjs` is the worked example (spellbook → cooldown slot →
   long-hold `Q`, including waiting out a running cooldown).
+- **⚑ Warping "to" an NPC does not mean the server picks THAT NPC.** The
+  interact offer goes to the nearest eligible conversant, and zone 1 stands them
+  close together — a warp aimed at the Farmer (−57, 28.6) is answered by the
+  **Hermit** (−54.9, 25.6), the only one inside the 2.0 talk range from
+  (−57, 26). The badge lights, every assertion goes green, and the run measures
+  the wrong actor: R4's first 7/7 was scored against an NPC that did not carry
+  the aura the whole test was about (2026-07-29). **Assert the precondition that
+  makes the subject the subject** — not just that *something* was reached.
+  Conversants near the zone-1 start: Farmer (−57, 28.6), Hermit (−54.9, 25.6),
+  TownCrier (−55.7, 22.0).
+- **⚑ One sample = one `page.evaluate`.** Reading two or three facts about the
+  same moment as separate round trips lets the world move between them: an
+  R4 probe read the badge from the old frame and the position from the new one
+  after a `WARP` landed mid-sample, and scored a legitimately-lit badge as the
+  defect. Same class of error as latching on the wrong event — *"some corpse is
+  fading somewhere"* is not *"my actor was removed"*, since mobs leave the
+  viewport constantly and sample 0 already showed two. Latch on the thing you
+  actually caused (the player's own position), and read the whole sample atomically.
+- **⚑ A red harness is not automatically a regression — check it against HEAD.**
+  `chunk3b-interact.mjs` has been **permanently red at 6/15 since chunk 3b-ii**:
+  it was written for 3b-i, where `E` taught directly, and 3b-ii moved teaching
+  behind a conversation-panel row click without updating it.
+  `chunk3b-ii-conversation.mjs` has the same rot in miniature (one row that
+  `3b1b3ef6` authored after it was written). Both read exactly like a break in
+  whatever you just changed. `git stash` + rebuild + re-run is the cheap
+  settlement, and it is worth doing before diagnosing anything.
 - **`WARP` moves only the PLAYER.** Summons, followers and anything else owned
   stay where they were and drop out of the client's view — so a check that warps
   and then scores "did my companion do that" is scoring damage it could not have
