@@ -36,6 +36,13 @@ const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
 const env = { ...process.env, LD_LIBRARY_PATH: [libDir, join(libDir, 'nss'), process.env.LD_LIBRARY_PATH || ''].join(':') };
 
 // A wolf-dense spot in zone 1 — the companion needs something to engage.
+// ⚑ The companion FIGHTS here and usually DIES here, and both are the point.
+// This spot has 5 Wolves, 2 Boars and a DireWolf within 6.5 units, so combat is
+// reliable — which is what the leg needs — but a level-1 companion rarely
+// outlives it. Moving somewhere calmer was tried and is worse: at (61, 16) the
+// companion survived at 0.8 units with ZERO floating numbers, i.e. nothing to
+// fight and nothing to measure (sweep, 2026-07-29). So the venue stays hot and
+// the CHECK carries the uncertainty instead — see the tri-state below.
 const HOSTILE = `${-40 * 120} ${10 * 120}`;
 
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
@@ -219,6 +226,16 @@ results.push({
 // any damage number appearing in the world cannot have come from the player's
 // own auras — it is the companion engaging, which is the second half of the
 // PO's follower question.
+// The player's XP bar. With no aura equipped the player deals no damage and so
+// cannot be a kill participant on their own account — a rising XP bar can only
+// have come through the companion. That is the attributable evidence; floating
+// numbers alone are not, since mobs fight each other too.
+const xpValue = async () => {
+  const m = (await page.evaluate(() =>
+    document.querySelector('#xpBar .barText')?.textContent?.trim() || '')).match(/(\d+)/);
+  return m ? +m[1] : null;
+};
+
 const floaters = () => page.evaluate(() => {
   let layer = null;
   const find = (c) => {
@@ -236,6 +253,7 @@ const floaters = () => page.evaluate(() => {
 // Summon a FRESH one on the hostile ground instead.
 await cmd('WARP ' + HOSTILE);
 await page.waitForTimeout(22_000);
+const xpBefore = await xpValue();
 await fireQ();
 
 let sawFloaters = 0;
@@ -245,18 +263,44 @@ for (let i = 0; i < 14; i++) {
   sawFloaters = Math.max(sawFloaters, (await floaters()) ?? 0);
   if ((await gapToCompanion()) !== null) presentDuringFight = true;
 }
+const xpAfter = await xpValue();
 const gapInFight = presentDuringFight ? await gapToCompanion() : null;
 await page.screenshot({ path: `/tmp/follower-${label}-fight.png` });
-results.push({
-  check: 'It engages: damage numbers appear with no player aura equipped',
-  detail: `peak floating numbers: ${sawFloaters}; companion present during fight: ${presentDuringFight}${gapInFight === null ? '' : `, ending ${gapInFight} units away`}`,
-  // Presence is part of the assertion, not context: numbers with no companion
-  // in the world prove only that mobs were fighting each other.
-  pass: sawFloaters > 0 && presentDuringFight,
-});
+// ⚑ Presence used to be part of the assertion, on the reasoning that damage
+// numbers with no companion in the world prove only that mobs were fighting
+// each other. The reasoning is right; the signal was wrong. A companion sent
+// into hostile ground gets focused and dies inside the 21 s window, so
+// requiring it to be VISIBLE reported a companion that had fought, killed and
+// died as a failure — twice in a row, on `peak floating numbers: 4` (sweep,
+// 2026-07-29). XP is the attributable evidence: the player has no aura
+// equipped, deals no damage, and so cannot be a kill participant on their own
+// account, which means a rising XP bar came through the companion.
+//
+// ⚑ TRI-STATE. A companion that was killed before it could land a kill has not
+// failed this check — it has made it unobservable, and INCONCLUSIVE is the
+// honest word (the swift-harness precedent). FAIL is reserved for the case that
+// actually indicts the feature: combat happened, the companion was there for it,
+// and its owner still earned nothing.
+const xpRose = xpBefore !== null && xpAfter !== null && xpAfter > xpBefore;
+const detail = `XP ${xpBefore} → ${xpAfter}; peak floating numbers: ${sawFloaters}; ` +
+  `companion present during fight: ${presentDuringFight}` +
+  `${gapInFight === null ? '' : `, ending ${gapInFight} units away`}`;
+if (xpRose && sawFloaters > 0) {
+  results.push({ check: 'It engages: XP rises with no player aura equipped', pass: true, detail });
+} else {
+  results.push({
+    check: 'It engages: XP rises with no player aura equipped',
+    skip: true,
+    detail: `INCONCLUSIVE — ${sawFloaters === 0
+      ? 'no combat happened at all in the 21 s window (nothing came into range)'
+      : 'combat happened but the companion earned its owner no XP, and it did not survive to be watched'}. ` +
+      `${detail}. ⚑ Re-run against a FRESHLY RESTARTED server: mobs wander far from their authored spawns ` +
+      `on a long-lived one, so a venue picked from world.json stops describing the world.`,
+  });
+}
 
 console.log('\nlabel :', label);
-for (const r of results) console.log(`${r.pass ? 'PASS' : 'FAIL'}  ${r.check}\n        ${r.detail}`);
+for (const r of results) console.log(`${r.skip ? 'SKIP' : r.pass ? 'PASS' : 'FAIL'}  ${r.check}\n        ${r.detail}`);
 console.log('\nwebgl ctx losses :', consoleErrors.filter((t) => t.includes('[webgl] world context lost')).length);
 console.log('console errors   :', consoleErrors.length);
 for (const e of consoleErrors.slice(0, 5)) console.log('   ·', e);

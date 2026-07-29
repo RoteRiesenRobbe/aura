@@ -236,9 +236,20 @@ for (let i = 0; i < 5; i++) {
 }
 const dv = during.filter((d) => d !== null);
 const elapsedDuring = ((Date.now() - castAt) / 1000).toFixed(1);
-const didNotChase = dv.length >= 2 && dv[dv.length - 1] >= dv[0] && dv[0] < 5.4;
+// ⚑ Tolerance, not a strict `last >= first`. A calmed mob walks home and
+// SETTLES, so it can drift a fraction closer between the first sample (taken
+// mid-retreat) and the last while doing nothing that resembles a chase. The
+// strict form failed by 0.11 units on [1.73, 1.62, 1.62, 1.62, 1.62] — data
+// that shows the calm working perfectly (0.93 at cast → 1.6+ and flat), and it
+// passed on the very next run. A knife-edge assertion on a settling body
+// reports a working feature as broken every few runs (sweep, 2026-07-29).
+const SETTLE_TOLERANCE = 0.25; // units
+const didNotChase = dv.length >= 2 && dv[0] < 5.4 &&
+  dv[dv.length - 1] >= dv[0] - SETTLE_TOLERANCE &&
+  dv[dv.length - 1] > gapAtCast; // never re-closed to where it stood at cast
 check('A calmed mob does not chase, while still well within its aggro radius', didNotChase,
-  `t+${elapsedDuring}s, gap at cast ${gapAtCast}, then ${JSON.stringify(dv)} (aggro radius 5.4)`);
+  `t+${elapsedDuring}s, gap at cast ${gapAtCast}, then ${JSON.stringify(dv)} ` +
+  `(aggro radius 5.4, settle tolerance ${SETTLE_TOLERANCE})`);
 
 // --- expiry: the state ENDS ---
 // Level-1 calm is 300 ticks = 9.9 s. Wait it out, then walk BACK IN.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // plan-entity-model.md chunk 3a — the PO's in-game taste check, framed.
 //
-// chunk3a-npc-merge.mjs already proves the BEHAVIOUR (teaches, speaks,
+// chunk3b-interact.mjs / chunk3b-ii-conversation.mjs prove the BEHAVIOUR (teaches, speaks,
 // attributes). This script exists for the half a smoke test cannot give you:
 // does each merged NPC LOOK right. It frames one NPC at a time in clear screen
 // space and pairs the picture with the three assertions you would otherwise be

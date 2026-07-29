@@ -152,8 +152,16 @@ Copy the browser-launch pattern from
   `chunk3b-interact.mjs` has been **permanently red at 6/15 since chunk 3b-ii**:
   it was written for 3b-i, where `E` taught directly, and 3b-ii moved teaching
   behind a conversation-panel row click without updating it.
-  `chunk3b-ii-conversation.mjs` has the same rot in miniature (one row that
-  `3b1b3ef6` authored after it was written). Both read exactly like a break in
+  `chunk3b-ii-conversation.mjs` is at 25/28 + 1 skip: one content
+  drift (the teaching list gained `"A servant of the flame. level 15"` in
+  `3b1b3ef6`) and two Wanderer checks that never resolve the actor.
+  **`chunk3a-npc-merge.mjs` was DELETED 2026-07-29** — it had gone
+  0/6 because every check asserted that *approaching* an NPC teaches you, which
+  is precisely what 3b-i reversed (L18). Not repairable: its premise was the
+  behaviour, and the behaviour it covered now belongs to the two scripts above.
+  ⚑ **A harness whose premise a later chunk reverses should be deleted with that
+  chunk, not left to rot** — this one stayed red for two chunks and read as a
+  regression to everyone who ran it. Both read exactly like a break in
   whatever you just changed. `git stash` + rebuild + re-run is the cheap
   settlement, and it is worth doing before diagnosing anything.
 - **`WARP` moves only the PLAYER.** Summons, followers and anything else owned

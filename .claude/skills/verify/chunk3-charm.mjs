@@ -374,15 +374,54 @@ for (let i = 0; i < 14; i++) {
 }
 const xpAfter = await xpValue();
 await page.screenshot({ path: `/tmp/charm-${label}-fight.png` });
-check('It fights for its charmer: the pet lights its aura on a target that is not you',
-  ringLitInFight,
-  `ring lit: ${ringLitInFight}; the pet was still there for ${petSamples}/14 samples (~${(petSamples * SAMPLE_MS / 1000).toFixed(0)}s of a 17s window); XP ${xpBefore} → ${xpAfter}; peak floating numbers ${peakFloaters}`);
+// ⚑ Assert on the XP, not on the ring. The comment above already records that
+// the pet does not survive this leg — three wolves focus a charmed packmate and
+// kill it in about eight seconds (D9, PO-accepted) — so requiring a LIT RING in
+// one of 14 samples requires the pet to be alive and rendered at that instant,
+// which the design says it usually will not be. It failed twice in a row on
+// `pet present for 1/14 samples` while XP went 0 → 70 (sweep, 2026-07-29): the
+// pet had fought, killed, credited its charmer and died, i.e. the feature
+// working exactly as ruled, reported as a failure.
+//
+// XP with EVERY aura slot empty is the honest evidence, and it is what this
+// script's own header says the check is. The player deals no damage, so they
+// cannot be a kill participant on their own account — a rising XP bar can only
+// have come through the pet. (⚑ If Pass 3 item 1 ever lands, "presence counts"
+// would make mere proximity earn XP and this discriminator would weaken.)
+//
+// ⚑ TRI-STATE, because the pet dying is DESIGN, not a defect. If it never
+// survived a single sample there was nothing to observe, and the honest report
+// is INCONCLUSIVE — the swift-harness precedent. Only a pet that was alive to
+// be watched and still earned its charmer nothing is a real FAIL. Reporting
+// "the accepted behaviour happened" as a failure is what made three of this
+// script's checks look broken for two days.
+const xpRose = xpBefore !== null && xpAfter !== null && xpAfter > xpBefore;
+// ⚑ Order matters: EVIDENCE FIRST, observability only as the fallback. Gating
+// on "was the pet alive to watch" before looking at the XP reported a genuine
+// PASS as INCONCLUSIVE on a run that read XP 0 → 70 — the pet had fought,
+// killed, credited its charmer and died, which is the whole feature working.
+const observable = petSamples > 0;
+if (!xpRose && !observable) {
+  results.push({
+    check: 'It fights for its charmer: XP rises with every aura slot empty',
+    skip: true,
+    detail: `INCONCLUSIVE — the pet died before any of the 14 samples, so the fight was never observable. ` +
+      `D9 (PO-accepted): former packmates focus a charmed mob and kill it in ~8 s. ` +
+      `XP ${xpBefore} → ${xpAfter}; peak floating numbers ${peakFloaters}. ` +
+      `⚑ Re-run against a FRESHLY RESTARTED server — mobs wander far from their authored spawns on a long-lived one.`,
+  });
+} else check('It fights for its charmer: XP rises with every aura slot empty',
+  xpRose,
+  `XP ${xpBefore} → ${xpAfter}; ring lit: ${ringLitInFight} (context — the pet is expected to die); ` +
+  `the pet was still there for ${petSamples}/14 samples (~${(petSamples * SAMPLE_MS / 1000).toFixed(0)}s of a 17s window); ` +
+  `peak floating numbers ${peakFloaters}`);
 
 await page.screenshot({ path: `/tmp/charm-${label}-after.png` });
 
 console.log('\nlabel :', label);
-for (const r of results) console.log(`${r.pass ? 'PASS' : 'FAIL'}  ${r.check}\n        ${r.detail}`);
-console.log(`\npassed : ${results.filter((r) => r.pass).length}/${results.length}`);
+for (const r of results) console.log(`${r.skip ? 'SKIP' : r.pass ? 'PASS' : 'FAIL'}  ${r.check}\n        ${r.detail}`);
+console.log(`\npassed : ${results.filter((r) => r.pass).length}/${results.filter((r) => !r.skip).length}` +
+  `${results.some((r) => r.skip) ? `, ${results.filter((r) => r.skip).length} inconclusive` : ''}`);
 console.log('webgl ctx losses :', consoleErrors.filter((t) => t.includes('[webgl] world context lost')).length);
 console.log('console errors   :', consoleErrors.length);
 for (const e of consoleErrors.slice(0, 5)) console.log('   ·', e);

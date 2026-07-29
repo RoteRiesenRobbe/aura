@@ -2285,7 +2285,7 @@ what shipped, which commit, what was verified.)*
     and re-running: **identical 6 failures**. The script was written for 3b-i
     where `E` taught directly; **3b-ii moved teaching behind a panel row click**
     and the script was never updated. `chunk3b-ii-conversation.mjs` covers the
-    real flow (25/28 + 1 documented SKIP) and its own single failure is also
+    real flow (25/28 + 1 documented SKIP) and one of its three failures is also
     content drift — one extra authored row, `"A servant of the flame. level 15"`,
     added by `3b1b3ef6` after the harness was written. **A red harness reads as
     a regression in whatever is under test**; it cost two runs here before the
@@ -2690,7 +2690,21 @@ what shipped, which commit, what was verified.)*
   exactly 14 rows and moves 0 cells** among the 50 survivors — the predicted L14
   delta and nothing else.
 
-  **In-game smoke** (`.claude/skills/verify/chunk3a-npc-merge.mjs`, kept): **6/6,
+  > **⚑ Annotation 2026-07-29 — `chunk3a-npc-merge.mjs` has been DELETED.** A
+  > full sweep of every browser harness found it at **0/6**: all six checks
+  > assert that *approaching* an NPC teaches you, and **3b-i deliberately
+  > reversed exactly that** (L18 — approach only *offers*, the player presses
+  > `E`). It was therefore asserting the pre-3b behaviour for two chunks, going
+  > red for everyone who ran it and reading as a regression in whatever they
+  > were testing. Not repairable — its premise *was* the behaviour — and what it
+  > covered now belongs to `chunk3b-interact.mjs` and
+  > `chunk3b-ii-conversation.mjs`. **The 6/6 recorded above was true on
+  > 2026-07-27 and is kept as the record of what 3a proved.** The transferable
+  > rule: *a harness whose premise a later chunk reverses should be deleted with
+  > that chunk, not left to rot.*
+
+  **In-game smoke** (`.claude/skills/verify/chunk3a-npc-merge.mjs`, since
+  DELETED — see the annotation on this chunk's header above): **6/6,
   0 console errors, 0 WebGL context losses.** Farmer teaches Harvest with the
   authored bubble and a `Taught by: Farmer` banner; **the Emberkeeper's 3-grant
   walk stops at the first gate** — a level-1 player gets Torch@1 and then the
