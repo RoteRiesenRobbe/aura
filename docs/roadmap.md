@@ -957,6 +957,16 @@ system ships blind.
    ops tooling (step 9) hardcodes names — which it now is. Residual PO
    calls: replacement art (mascot/splash/favicon), wiki-generator
    keep-or-delete, domain (berryhunter.io URLs kept meanwhile).
+> **Pre-step-8 insert: the quest system** (backlog §42 → `plan-quests.md`,
+> designed 2026-07-29, D1–D13 PO-ruled). Ruling **D12** put the first pass
+> **before** step 8, session-scoped exactly like the spellbook is today, so
+> persistence receives a **live** quest ledger instead of a paper shape.
+> Chunks C0–C4: interaction hardening (the §8b N1 fix — prerequisite) →
+> ledger + lifetime counters + stage engine → dialogue vocabulary
+> (offer/advance/turn-in grant kinds + lints) → wire + journal panel → first
+> authored quests incl. the two-NPC branch proof. Step 8 then persists
+> `quests` / `killCounts` / `talkedTo` per-character (plan §10).
+
 8. **Accounts & persistence** (item 3) **+ UI polish / avatar / audio** (item 8) —
    deliberately **after** content: the game proves out session-based first, then
    we invest in persistence, the anonymous-first account service (built fresh —

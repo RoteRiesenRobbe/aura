@@ -4070,8 +4070,20 @@ was designed with this day in mind):
   (`archive/plan-faction-flips.md` chunk 1) were built with it as a named
   future consumer.
 
-**Not scheduled.** Quest state is per-character persistence, so **step 8 should
-know the shape** — raise it in the accounts & persistence design session
-alongside §32, §36 and §41. The pillar ruling is done (banner above); what
-remains for a design session are the open questions below it, and authoring
-actual quest content is a separate, later concern.
+> **✅ DESIGNED 2026-07-29 (second same-day session) → `docs/plan-quests.md`.**
+> Every open question below is ruled there (D1–D13): verbs = kill-N / talk-to /
+> harvest-N (discover-location deferred), retroactive lifetime-counter credit
+> with presence-counts, per-character state, one-shot + repeatable schema room,
+> branching stages with multi-NPC turn-in choice (the camps seam), skill-trade
+> and consequences as schema room only, conversant-only starts — and, ruling
+> D12, the first pass **builds before step 8**, session-scoped, so persistence
+> receives a live ledger. Quest-turns-hostile enters as an unauthored
+> `consequences` kind. This entry stays the tension/pillar record.
+
+**Not scheduled** ~~(superseded — see the DESIGNED banner above; chunks C0–C4
+are scoped in the plan doc and run before step 8)~~. Quest state is
+per-character persistence, so **step 8 should know the shape** — raise it in
+the accounts & persistence design session alongside §32, §36 and §41. The
+pillar ruling is done (banner above); what remains for a design session are the
+open questions below it, and authoring actual quest content is a separate,
+later concern.

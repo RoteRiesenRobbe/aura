@@ -41,6 +41,7 @@ Everything else that ever had a plan doc lives in `archive/` (see the Archive se
 - **plan-onboarding-cleanup.md** — **not started** (2026-07-23): documentation & repo cleanup for human coworkers across code/art/audio/design. Its Workstream B is what created `archive/`; Workstreams A/C–G are still open
 - **plan-avatar-system.md** — design sketch, unscheduled: join-screen portrait picker + icon-unlock track, for step 8
 - **plan-conf-duplication.md** — backlog §35 tiers 2–5 (planned 2026-07-29): shrink environment confs to real deltas, unknown-key boot warning, kill/pin the frontend mirrors. D1–D3 PO-ruled, chunks C1–C4, none started
+- **plan-quests.md** — the quest system (designed 2026-07-29, backlog §42 + GDD §8 "Quests & the Journal"): journal-carried multi-stage branching quests on the interaction container, retroactive lifetime-counter credit, D1–D13 PO-ruled, chunks C0–C4, none started; builds before step 8
 
 ## Content (catalogs + zone design intent)
 
