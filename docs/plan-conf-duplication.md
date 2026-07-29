@@ -1,6 +1,6 @@
 # Plan: §35 — one value, many homes (the conf-duplication sweep)
 
-**Status: C1 + C2 ✅ SHIPPED 2026-07-29 `[uncommitted]` (ledgers §7) · C3–C4 open.**
+**Status: C1 + C2 ✅ SHIPPED 2026-07-29 `e7531444` (ledgers §7) · C3–C4 open.**
 Origin: `docs/backlog.md` §35 (PO 2026-07-26: *"doesn't seem good that we need to
 adjust it at 4 places"*). Tier 1 of that survey shipped with
 `docs/archive/plan-pre-accounts-hygiene.md`; this plan is tiers 2–5. The §35
@@ -191,7 +191,7 @@ warnings after C1's shrink).
 
 ## 7. Chunk ledgers
 
-### C1 — total defaulting + shrink-to-deltas ✅ DONE 2026-07-29, committed `[uncommitted]`
+### C1 — total defaulting + shrink-to-deltas ✅ DONE 2026-07-29, committed `e7531444`
 
 Backend + devops + conf files; behavior-identical for production, see the ⚑
 below for the one deliberate bit-level move. 2 production files touched
@@ -269,7 +269,7 @@ now holds — every key left in the five tracked files is either a live struct
 field or `_`-prefixed. The embedded copy's `server` block still deliberately
 differs (L6).
 
-### C2 — unknown-key boot warning ✅ DONE 2026-07-29, committed `[uncommitted]`
+### C2 — unknown-key boot warning ✅ DONE 2026-07-29, committed `e7531444`
 
 Backend only, as planned. 1 new production file (`cfg/unknownkeys.go`), the
 `ReadConfig` wiring, tests on both sides.
