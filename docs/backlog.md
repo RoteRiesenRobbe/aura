@@ -3870,3 +3870,68 @@ only. On record so it is not re-proposed as a "missing archetype".
 
 Presentation for all six rides §39; none of them justifies a seventh
 independently-anchored overlay before it.
+
+---
+
+## 41. Fast travel — campfire network vs. flight paths
+
+**Origin:** PO idea 2026-07-29. Two options are under discussion; neither is
+chosen, neither is scoped.
+
+**Option 1 — campfire network.** Travel between **all discovered campfires**
+through a simple UI. Quick loading, instantly at the destination.
+
+**Option 2 — WoW-Classic-style griffons.** Discover **flight paths** and travel
+between them **over the open world**: camera zooms out, movement is locked, the
+player sees everything under them — and **players on the ground cannot see the
+flyer passing over**.
+
+**What each option leans on:**
+
+- Option 1's anchor already exists twice over: campfires are authored world
+  content (5 placed today) *and* the respawn anchor — the GDD's death rule is
+  respawn at the **last visited fixed world campfire** (gdd.md §146), so
+  "campfire the player has touched" is already a concept the server tracks in
+  one-slot form. "All discovered" widens that slot into a **set**, which is new
+  per-character persistent state (a step-8 input, same shape as §32/§36).
+  Mechanically, instant relocation is trivial — the WARP cheat is exactly this.
+- Option 2 is almost entirely new machinery: a flight-path graph as authored
+  content, a locked-movement travel state on the player, a client camera mode
+  (zoom-out is presentation), and — the expensive part — *"players can't see
+  you flying over"* is **per-viewer visibility**, the same concept §40 ranks as
+  the widest-blast-radius archetype of all (wire, targeting, minimap,
+  spectators, harness). A cheaper reading that sidesteps it: the flyer is
+  simply **not in the world** during transit (despawned, position interpolated
+  server-side, respawned at the destination) — then nobody can see them because
+  there is nothing to see, and only the flyer's own client renders the journey.
+
+**⚑ The design tension between them is the death penalty.** Dying deep in the
+world costing a walk back from the last campfire is an explicit GDD rule
+(§152). Option 1 makes the respawn anchors *also* the teleport network, which
+risks deleting that cost entirely (die → respawn at campfire A → teleport to
+the campfire nearest the fight). Option 2's separate flight-path nodes keep
+travel and respawn as distinct networks. If option 1 is taken, the interaction
+needs an explicit ruling (cooldown on travel, cost, or campfires-near-content
+placement discipline).
+
+**⚑ Open questions:**
+
+- Does fast travel exist **inside** a zone, or only between zones? The GDD's
+  environmental-storytelling pillar and the dark-tunnel-as-tutorial design
+  (zone 1 → zone 2) assume the world is *walked*; a teleport that skips the
+  tunnel skips the role-concept tutorial with it.
+- Is discovery **per character** or per account? (Couples to §36's bloodline
+  scoping — same question, same session.)
+- Does travel cost anything? The one-resource pillar means any cost is paid in
+  the combat resource; free is also defensible for a convenience feature.
+- Option 2 only: can a flight be interrupted / can the flyer bail out mid-way,
+  or is it a committed channel? Committed is simpler and matches the reference.
+- What does the *discovery* moment look like — walking into range (like the
+  interact badge), or an explicit interaction with a campfire / flight master
+  NPC? The interaction container from the entity model (`teach_skill`'s
+  siblings) is the natural home for a flight-master conversation row.
+
+**Not scheduled.** Both options carry per-character persistent state
+(discovered set), so whichever is chosen, **step 8 should know the shape** —
+raise it in the accounts & persistence design session alongside §32 and §36
+rather than designing it independently.
