@@ -27,6 +27,7 @@ that doc absorbs item 6 below (heal self-cost floating number) for execution.
 
 ## 1. Gold as a second resource
 
+**WoW/Gothic fit: medium** *(ranked 2026-07-29, PO-confirmed)*
 A per-character currency, separate from the existing combat Resource. Mobs
 drop both XP and Gold on death. Gold can be spent to buy unique auras /
 passives / cooldowns.
@@ -268,6 +269,7 @@ Context from current state:
 
 ## 4. Location-bound leveling conditions
 
+**WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 Certain skills can only be leveled up (spending skill points) at a specific
 location — example given: passives can only be upgraded near a forge.
 
@@ -353,6 +355,7 @@ Context from current state:
 
 ## 6. Floating damage number on self-heal
 
+**WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 When a player uses a heal aura (which costs Resource per tick as
 self-damage, per the existing skill system), show a floating number above
 the player to make that Resource cost visible.
@@ -386,6 +389,7 @@ Answered by current state:
 
 ## 7. Skill hover info + spellbook UI pagination
 
+**WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 Add hover tooltips for skills, and a spellbook UI with pagination.
 
 Answered by current state:
@@ -423,6 +427,7 @@ Context from current state:
 
 ## 8. Destructible/respawning movement obstacles via aura hits
 
+**WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
 World objects that block movement (~~and likely line-of-sight~~ — aura LoS
 cut 2026-07-10) can be removed when hit by an aura. They can reappear either **(a)** once the aura is no
 longer active/present, or **(b)** via a respawn timer independent of aura
@@ -662,6 +667,7 @@ a medium half:
 
 ## 9. Recall to last safe place
 
+**WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 Teleport back to the last visited safe place (campfire, town, or other
 designed safe point), with a 10-second cast time [PLACEHOLDER] during which
 the player cannot take damage, or the cast is interrupted.
@@ -715,6 +721,7 @@ Context from current state:
 
 ## 10. Social minigames (campfire-anchored)
 
+**WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
 Purely social/flavor minigames with **no XP and no progression hooks**, isolated
 from the core aura loop. Two kinds: **solo highscore games** (darts, spinning
 wheel) and **PvP-style duels** (a coin-flip wager vs. another player). Tied to
@@ -741,6 +748,7 @@ technical substrate, so they are tracked separately):
 
 ## 11. Personal zone (housing / hideout / island)
 
+**WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 A per-player instanced space (house, island, hideout) with limitable access for
 other players.
 
@@ -760,6 +768,7 @@ Far-future; do not build until the no-instances stance is explicitly revisited.
 
 ## 12. Völker / races — different starts
 
+**WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
 Selectable races with different **start locations / spawn points**, a lore hook,
 and different **starting skill selections**.
 
@@ -781,6 +790,7 @@ per-race starts.
 
 ## 13. Mounts
 
+**WoW/Gothic fit: medium** *(ranked 2026-07-29, PO-confirmed)*
 Rideable mounts granting a **speed buff**, possibly with their own
 abilities/auras.
 
@@ -797,6 +807,7 @@ trivial (a buff/passive); a mount with its own kit is a **loadout swap**
 
 ## 14. Transformation cooldown (e.g. bear form)
 
+**WoW/Gothic fit: medium** *(ranked 2026-07-29, PO-confirmed)*
 A cooldown ability that temporarily transforms the player (e.g. into a bear),
 **swapping the active auras/passives** for a preset loadout for the duration.
 
@@ -817,6 +828,7 @@ cooldown, not a new category). Doesn't block anything.
 
 ## 15. Camp/faction membership with exclusive teaching (Gothic-style)
 
+**WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 *(Captured 2026-07-09.)* A character joins one of several **camps**; joining
 is **per-character and permanent**. Exclusivity lives at the **unlock level,
 not the skill-point level**: camp A's teachers teach auras that camp B's
@@ -900,6 +912,7 @@ Context from current state:
 
 ## 16. Single-charge respawn campfire
 
+**WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
 *(Captured 2026-07-10 — explicitly **not** a current decision; a potential
 future content idea only.)* A player-placed campfire that allows **one**
 respawn and then goes out; banned near boss/elite areas.
@@ -1091,6 +1104,7 @@ Answered by current state:
 
 ## 19. Client memory: stop decode-everything-at-boot audio
 
+**WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 Deferred 2026-07-16 (PO call after the C0-session benchmark; measurements +
 scripts recorded in that session).
 
@@ -1201,6 +1215,7 @@ maxing Spearhead then unlocks it).
 
 ## 22. Standalone browser map editor (bypass the in-game zone editor)
 
+**WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** Session ④ density pass (2026-07-19). The pass rendered
 `api/zones/world.json` as a top-down overview image (pure-stdlib Python
 rasterizer + seeded placement generator, session scratchpad) and drove a
@@ -1420,6 +1435,7 @@ with a real design decision in front of it.
 
 ## 25. Tech debt: `sys/skills.go` — size is warranted, the cleanup layer on top is not
 
+**WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 > **PARTIALLY DONE — options A#4 and B landed 2026-07-24 (`2ec03ee7`),
 > option C landed 2026-07-25** (A#1–3, D, E still open).
 > - **C (`applySlowAura` eligibility): FIXED, not pinned — and it was a LIVE
@@ -1754,6 +1770,7 @@ the very path this touches). **Not scheduled**; PO signalled intent to do it.
 
 ## 27. Tech debt: `model/mob/mob.go`, `sys/mob.go`, `skills/definition.go` — one live bug + uneven guard coverage
 
+**WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 **Written 2026-07-24**, same code-health prompt that produced §25 (`sys/skills.go`)
 — "the other two big files, are they also carrying smells?". Reviewed:
 `sys/mob.go` (187 l), `model/mob/mob.go` (1418 l), `skills/definition.go`
@@ -2144,6 +2161,7 @@ same (`go build`/`go test`/`tsc --noEmit` + boot count + join smoke).
 
 ## 29. ~~Investigate:~~ intermittent `null.split` page error + black world — **lost WebGL context**
 
+**WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 > **✅ DIAGNOSED 2026-07-26 — root cause found and reproduced deterministically.**
 > It is **a lost WebGL context**, and the `null.split` is PixiJS's *error
 > reporter* crashing on the way to reporting it. Full write-up in
@@ -2516,6 +2534,7 @@ any VLQ mappings.
 
 ## 30. Berryhunter render/asset vestiges surfaced by the §28 Chunk 3 audit
 
+**WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 > **✅ §30 IS NOW FULLY DONE.** Item 1 landed 2026-07-28, committed `c183ce12`,
 > as H4 of `docs/archive/plan-pre-accounts-hygiene.md` (ledger there, §11): `capacity`/`stock`
 > deleted at both ends and the **`aabb` renumber accepted** (D3), taking
@@ -2898,6 +2917,7 @@ tutorial is built on.
 
 ## 32. Consumable cooldowns — charges in the spellbook
 
+**WoW/Gothic fit: medium** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO idea 2026-07-25, recorded alongside the healer-regen bug
 (`plan-playtest-feedback.md` §Intake round 3). *"Cooldowns that are very
 powerful, that can be farmed and used up, because the spellbook carries them
@@ -2944,6 +2964,7 @@ question is on the table anyway.
 
 ## 33. `hot_aura` cannot pre-hot — the wounded-only gate is inherited, not designed
 
+**WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO question 2026-07-26: *"is it intended that Rejuvenation, the
 heal-over-time aura, only applies a HoT if the target has taken damage? So
 pre-hotting is not possible?"* Answer: **yes, intended — and recorded as
@@ -3181,6 +3202,7 @@ level-1 Damage aura with collision fully enforced. The focus-fire problem is a
 
 ## 35. One value, many homes — the tuning-value duplication sweep
 
+**WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 > **✅ TIER 1 FULLY DONE 2026-07-28** — `docs/archive/plan-pre-accounts-hygiene.md`
 > (ledgers there, §11). **Row 1** closed by session 2 (`50a1e5c9`): both Go
 > defaults now hold 0.2, and the sim's copy with them. ⚑ **The drift turned out
@@ -3371,6 +3393,7 @@ None of the three requires the others; they address disjoint tiers.
 
 ## 36. Three character slots, three bloodlines — sacrifice unlocks scoped per slot
 
+**WoW/Gothic fit: medium** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO idea 2026-07-29. *"For accounts: 3 character slots. Each slot has
 its own 'bloodline', and sacrifice as a feature unlocks abilities only for this
 bloodline. So 3 character slots, 3 bloodlines."*
@@ -3443,6 +3466,7 @@ they want answering together.
 
 ## 37. Aura augmentation — auras gain effects instead of combining into new ones
 
+**WoW/Gothic fit: medium** *(ranked 2026-07-29, PO-confirmed)*
 > **⚑ 2026-07-29 — this is now coupled to the skill-level-cap ruling.** Asked in
 > the open-questions sweep what the raised caps should be (the blocker on
 > `plan-playtest-feedback.md` Pass 1a), the PO answered that the **skill level
@@ -3543,6 +3567,10 @@ stepping stone to shape (b).
 
 ## 38. One species, many levels — a per-SPAWN level override
 
+**WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)* — demoted from the
+top tier in the ranking session: per-species leveling already covers the WoW
+pattern (a named mob type owns a narrow band; different levels get different
+names), so what remains here is authoring convenience, not a genre gap.
 **Origin:** PO ask 2026-07-29, immediately after the charm level-gate question
 (§ the `plan-faction-flips.md` chunk-3 session). *"I want to be able to author a
 single mob in all levels — so be able to spawn the same wolf on level 1 and
@@ -3675,6 +3703,7 @@ schema regen; the open questions — especially XP — need a PO design pass fir
 
 ## 39. Entity presentation rework — one frame that says what is happening to an actor
 
+**WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO ruling 2026-07-29, in the open-questions sweep. Raised by
 `plan-faction-flips.md` §8 question 3 (*does the charm pip show duration?*) and
 deliberately answered **wider than the question asked**: *"we will need a full
@@ -3727,6 +3756,7 @@ extends D13's pip — do not invest further in per-effect overlay art before it.
 
 ## 40. Wanted effect-type archetypes — the WoW-Classic gap review, PO-ruled
 
+**WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO session 2026-07-29. The 25 shipped effect types were compared
 against WoW Classic's archetype vocabulary; the PO ruled on every gap in one
 pass. Six archetypes are **wanted** (rulings below), one is **rejected**, and
@@ -3875,6 +3905,7 @@ independently-anchored overlay before it.
 
 ## 41. Fast travel — campfire network vs. flight paths
 
+**WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO idea 2026-07-29. Two options are under discussion; neither is
 chosen, neither is scoped.
 
@@ -3935,3 +3966,76 @@ placement discipline).
 (discovered set), so whichever is chosen, **step 8 should know the shape** —
 raise it in the accounts & persistence design session alongside §32 and §36
 rather than designing it independently.
+
+---
+
+## 42. Quests — a dedicated quest layer vs. the GDD's implicit-quest stance
+
+**WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
+**Origin:** PO request 2026-07-29 (the WoW/Gothic backlog-fit ranking session).
+Quests came up as the single biggest missing WoW-Classic loop driver — and had
+no backlog entry. **The reason there was none is a design decision, not an
+oversight:** the GDD explicitly rules a dedicated quest system out. §7
+(World-Exploration Clues) says *"no quest log, no markers"*; §8 has a whole
+section titled *"Quest-like Content Through Existing Systems"* — NPC teaching +
+aura-gated harvest mobs yield an implicit quest schema *"without needing a
+dedicated one."* This entry therefore records a **standing design tension to be
+ruled on**, not a plan; a ruling *for* dedicated quests amends GDD §7/§8.
+
+**⚑ The reference reading cuts the pillar in half.** Both reference games have
+quests *without markers*. Gothic 1+2 have a full quest system with a
+diary/journal — no map markers, no tracking arrows; legibility comes from what
+NPCs said and the player's world knowledge. WoW Classic has a quest log and
+`!`/`?` NPC badges, but no map guidance either. So "quests" and "no markers"
+are compatible — the half of the pillar a ruling would actually need to touch
+is **"no quest log"**, and Gothic's diary (a journal that records what NPCs
+*told you*, nothing more) is the natural middle path.
+
+**What already exists — the machinery is mostly paid for** (the entity model
+was designed with this day in mind):
+
+- **The interaction container was shaped for it.** Entity-model ruling ⑥
+  defined the full container (nodes / conditions / options / typed grant list)
+  precisely so quest offer / accept / turn-in become **new `GrantKind`s on the
+  identical row — no schema migration**
+  (`archive/plan-entity-model.md`, "the container is what buys the future").
+- **The quest-state shape is already ruled:** state lives **on the PLAYER and
+  is advanced by EVENTS, never stored on the NPC**. The named precedent is the
+  spellbook + `EntityMessage.kind=Unlock` (`2bfee286`) as the event-attribution
+  channel — *"a journal is the same ledger fed by the same event."*
+- **The conversation tree panel is shipped** (chunk 3b-ii) — offer/accept
+  dialogue is pure content once the grant kinds exist.
+- **The reward constraint stands and helps:** GDD §7 — rewards are exclusively
+  actives / passives / cooldowns / XP, **no items**. Item-fetch quests are
+  impossible by construction; the native verbs are kill-N, go-talk-to,
+  discover-location, harvest-N.
+- ⚑ **Read `archive/plan-entity-model.md` §8b first** — its R3 latent-trap set
+  explicitly arms "the day quest-style content is authored."
+- **What does NOT exist:** the quest ledger itself (deliberately out of scope
+  in the entity-model plan, §10 item 5 — the typed grant list is all that plan
+  owed it), kill/discovery event hooks feeding such a ledger, any journal UI,
+  and per-character persistence for quest state (step 8).
+
+**⚑ Open questions:**
+
+- **The pillar question, first:** amend "no quest log" (GDD §7/§8), or keep it
+  and scope this to *strengthening the implicit schema* (more legible NPC
+  hints, no ledger)? The Gothic diary is the middle option: a log of what NPCs
+  said, still no markers, no tracking.
+- Minimal verb set for a first pass — kill-N / talk-to / discover-location /
+  harvest-N? (All four have existing server-side events or near-events.)
+- Turn-in rewards under the GDD constraint are XP + skill unlocks only — is XP
+  alone motivating enough, given the Session-⑥ XP band lock?
+- Repeatability; and crediting — no formal groups exist, so does a kill credit
+  every participant's quest (consistent with the "presence counts" XP ruling)?
+- Per-character or per-account quest state? (Couples to §36's bloodline
+  scoping — same question as §41's discovery scoping, same session.)
+- Does **quest-turns-hostile** enter here? The allegiance verbs
+  (`archive/plan-faction-flips.md` chunk 1) were built with it as a named
+  future consumer.
+
+**Not scheduled.** Quest state is per-character persistence, so **step 8 should
+know the shape** — raise it in the accounts & persistence design session
+alongside §32, §36 and §41. The pillar ruling (dedicated vs. implicit) is a PO
+design call and can happen before or during that session; authoring actual
+quest content is a separate, later concern.
