@@ -1624,8 +1624,12 @@ total work, one settling point.
    it can pay in resource.
 7. **Recover** — fractional scaling, or re-role as upkeep for expensive auras
    (decision 2 gives it a job it doesn't have today).
-8. **Swift** — ruling open (decision 7); the empty-movement-slot finding above
-   is the input.
+8. ~~**Swift** — ruling open (decision 7).~~ **✅ RULED AND SHIPPED 2026-07-29,
+   `a29fe986`** — re-roled from a passive into a `speed_burst` movement
+   cooldown, ahead of the rest of the pass because it adds something to *do*
+   rather than retunes a number. Its values (1.5× for 150 t, CD 600) are
+   [PLACEHOLDER] like the rest and are still this pass's to settle. Ledger at
+   §Ledgers.
 
 Authoring rules still apply: tier + baseline for any touched mob, band-check
 guardrails, sim battery after the pass.
@@ -1756,10 +1760,11 @@ a multiplayer playtest, not a solo one.
    impossible to grief, and it is the simplest thing to implement. Pass 3 item 1
    is unblocked.
 4. ~~**Swift's fate** (decision 7).~~ **✅ RULED 2026-07-29: RE-ROLE AS A
-   COOLDOWN.** Not deleted, not kept as a weakened passive — Swift becomes a
-   burst movement cooldown, which is the direct answer to the §Findings
-   "movement slot is empty" observation and gives the slot a real occupant.
-   Pass 1b item 3 and question 2 both hang off this.
+   COOLDOWN — and SHIPPED the same day, `a29fe986`.** Not deleted, not kept as a
+   weakened passive — Swift became a burst movement cooldown, the direct answer
+   to the §Findings "movement slot is empty" observation. Pass 1b item 3 and
+   question 2 both hung off this. Ledger at §Ledgers; the engine half is a new
+   `speed_burst` effect type, and it made players slowable for the first time.
 5. All new numbers are **[PLACEHOLDER]** until felt in-game: the cost curve
    steps, every `selfDamageHP` value, every retuned radius/dps, pulse
    amplitude and period.
@@ -1847,4 +1852,99 @@ longer tracking-for-nothing.
 
 ## Ledgers
 
-*(none yet — one section per executed pass, newest last)*
+*(one section per executed pass, newest last)*
+
+### Swift → a movement cooldown ✅ DONE 2026-07-29, committed `a29fe986`
+
+**The first item picked off the 2026-07-29 open-questions sweep** (§Open
+questions 4, and Pass 1b item 8 with it). Backend + frontend + content + docs,
+27 files. Not a numbers-pass item — it is the answer to the §Findings
+observation that **the movement slot is empty**: Dash is a blink, Haste is aura
+cadence despite its name, and there was no sustained-speed ability in the game
+at all, so a flat `stat_multiplier` passive was the weakest thing that could
+occupy the space.
+
+**PO decisions taken in-session (choice prompts):** ① shape = a **steerable
+sprint** (1.5× for ~5 s) over a short escape burst or a long travel buff —
+distinct from Dash by construction; ② the wolf-line drops stay **unchanged** on
+all four wolves, so only *what* Swift is changed, not who teaches it; ③ read
+both movement factors while in the movement path, closing the slow gap below.
+
+**⭐ The engine shape: `speed_burst` is the movement twin of `tick_rate`.** Both
+are self-targeted cooldown-fired buffs with a factor and a duration, so the new
+type is the existing one's mirror rather than a new pattern — payload in
+`skills.Buffs`, same stream rules (per skill the strongest wins, across skills
+they multiply), same `applier` seam so mob content can carry a sprint too.
+`tickRateDistance` generalised to `unityDistance` and shared.
+
+**⭐ `Buffs.MovementFactor()` is the one place the movement axis composes** —
+speed buffs × (1 − strongest slow), floored at 0, read by *both* movement sites.
+That was the design point: two independent readers would eventually disagree
+about which wins.
+
+**⚑ It closed a latent asymmetry nobody had noticed: `SlowFraction()` had
+exactly ONE reader** (`mob.stepLength`), so a slow applied to a **player** sat
+in the buff store and was never read. Players are now slowable. Nothing applies
+one today — no mob authors a `slow_aura` — so no behaviour moved, but the
+content surface did: **a mob slow aura is now a content decision rather than
+silently inert.** ⚑ Enemy-targeted slows still cannot reach another player
+(targeting is faction-relative and two players share `FactionAligned`), but an
+**ally**-targeted slow now would — a working griefing lever against GDD §9 where
+before it was inert. Review rule for future authoring, not a defect today.
+
+**⚑ The pip took bit 7 — the LAST bit of the `applied_effects` ubyte.** The next
+payload wanting a pip must widen the wire first; `backlog.md` §39 does that
+anyway. Recorded in the code at the constant.
+
+**Content:** `swift.json` → `category: cooldown`, 1.5× (+0.1/level) for 150 t
+(+30/level), CD 600 (−60/level), all [PLACEHOLDER] — Pass 1b will re-touch them.
+Keeps id 10 and its four wolf drops, so Wolf's first-drop moment is unchanged.
+
+**Also retired:** `TestContent_TeachingOrderMatchesPreMigrationZone` (PO). It
+proved the 3a and 3b-ii moves were payload-preserving and content has since
+deliberately moved past it (`3b1b3ef6`); the half that was never about the
+migration survives as `TestContent_EveryGrantIsAResolvedTeach`.
+
+**Verified:** `go build`/`vet`/`test ./...` clean (**24 new Go tests**), frontend
+typecheck + **57 vitest** + prod build; boot `-content ../api` **0 errors 0
+warnings 0 panics — 15 factions/86 skills/64 mobs/10 recipes/1 milestone/777
+props/485 spawns**; **sim battery BYTE-IDENTICAL against HEAD on all four legs**
+(default · `-chain` · `-levels` · `-content` roster), diffed against a HEAD
+worktree build — TTK 6.67 s / TTD 8.70 s stand. In-game harness
+`swift-cooldown.mjs` **6/6**, 0 console errors, 0 WebGL losses: unbuffed
+**1.32 u/s** → sprinting **2.01 u/s** = **1.52×** against the authored 1.5, clean
+separation across all 8 legs.
+
+**⚑⚑ The harness lesson, now pinned in the verify skill — it cost four runs and
+faked two different product failures.** The first warp target sat in a ~2-unit
+pocket between blocking props, so **every walk measured the pocket instead of
+the pace**: identical 2.04 u legs whether sprinting or not (a flat 1.00× "the
+buff does nothing"), plus 0.00 u legs whenever two consecutive walks pushed the
+same way, which correlated so perfectly with key reuse that it sent the script
+chasing an input-handling theory that did not exist. On open ground the player
+walks a clean, time-proportional **1.5 u/s** — the throttled headless rAF does
+*not* slow it, because the server coasts on held movement for up to
+`maxHoldTicks` (15). The script now warps to the most open whole-unit tile in
+the zone (computed from `world.json`: −23,14 at 7.23 units of clearance) and
+reports **INCONCLUSIVE** if the unbuffed baseline is slow, rather than printing
+a ratio that can only flatter or fake the result.
+
+### Skill-inventory regeneration ✅ DONE 2026-07-29, committed `c723d82a`
+
+Docs only, and strictly speaking not a pass — but it belongs on the record
+because of **how far the generated doc had drifted**: three skills missing
+(Calm/CharmBeast/**BindElemental** — note the authored name), `Light` still
+named that a week after it became `Lantern`, KeenEye no longer line-wide across
+the wolves, the proving-grounds Sages teaching nothing while the doc still
+listed them, and ~10 drop sources moved mob or chance. Counts are now 20 auras /
+7 passives / 23 cooldowns = **50** player skills (+36 mob-only = the 86 in the
+boot log); table cross-checked against `api/` by script. ⚑ **The doc's own
+regeneration recipe was the trap** — it said to read teachings from
+`zones/*.json` `npcs[].teachings[]`, which entity-model chunk 3a deleted, so a
+script following it finds zero teachers and reports every taught skill as
+unreachable. Fixed to point at the mob `interaction` trees. Also filled the two
+catalog gaps it exposed: `content-cooldowns.md` had no design-intent rows for
+the three faction-flips cooldowns (written from
+`archive/plan-faction-flips.md` D2/D3/D6–D13), and `content-auras.md` still
+called skill 6 `Light`. The cooldown catalog now cross-checks 23-for-23 against
+`api/`.
