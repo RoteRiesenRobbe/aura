@@ -208,3 +208,33 @@ describe('calm', () => {
         expect(lines(calm, 1, SCALE_AT_30)).toContain('Calms enemies in range for 9.9s → 11.88s');
     });
 });
+
+// Charm (plan-faction-flips chunk 3, D3/D6). Same tripwire as calm: a missing
+// case is a console warning and a literal "(charm)" in the panel, not a build
+// error.
+describe('charm', () => {
+    const charm = skill({
+        displayName: 'Charm Beast', category: 'cooldown', maxLevel: 3, cooldownTicks: 3600,
+        effects: [effect({
+            type: 'charm', radius: 4, targetsEnemies: true, maxTargets: 1,
+            charm: {durationTicks: 1800, durationTicksPerLevel: 300},
+        })],
+    });
+
+    it('says what it does and for how long', () => {
+        const out = lines(charm, 1, 1);
+        // 1800 ticks at 33 ms = 59.4 s, with the next-level preview.
+        expect(out).toContain('Charms the nearest enemy to fight for you for 59.4s → 69.3s');
+        expect(out).toContain('It keeps its own level, and turns on you when the charm ends');
+        expect(out.join('\n')).not.toContain('(charm)');
+    });
+
+    it('scales the duration with skill level', () => {
+        // At max level there is no next-level preview: 1800 + 2 × 300 = 2400.
+        expect(lines(charm, 3, 1)).toContain('Charms the nearest enemy to fight for you for 79.2s');
+    });
+
+    it('does not scale the duration with character power', () => {
+        expect(lines(charm, 1, SCALE_AT_30)).toContain('Charms the nearest enemy to fight for you for 59.4s → 69.3s');
+    });
+});

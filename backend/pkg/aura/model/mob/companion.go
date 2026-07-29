@@ -55,23 +55,34 @@ func (m *Mob) companionHoldAngleOffset() float64 {
 	return (float64(h)/float64(companionJitterBuckets)*2 - 1) * companionJitterAngle
 }
 
-// isFollower reports whether this mob follows an owner: authored as a follower
-// AND actually owned.
+// isFollower reports whether this mob follows a leader: authored as a follower
+// AND actually owned, or charmed right now.
 //
 // The role is the authored intent (chunk 2 — it used to be inferred from
 // "owned and able to move", which made a totem's stillness the only thing
 // keeping it planted). Ownership stays a runtime precondition on top of it:
-// every follower path needs an owner to follow or to take combat signals from,
+// every follower path needs someone to follow or to take combat signals from,
 // so an ownerless follower — a companion def placed from the zone editor —
 // degrades to ordinary creature behaviour rather than standing inert.
+//
+// Charm widens it WITHOUT mutating the role (plan-faction-flips D6): a charmed
+// wolf is a creature that is temporarily somebody's pet, and m.role is still
+// never written after construction — entity-model chunk 2's property survives.
 func (m *Mob) isFollower() bool {
+	if m.charmer != nil {
+		return true
+	}
 	return m.role == mobs.RoleFollower && m.owner != nil
 }
 
-// ownerCombatant is the owner as combat sees it (position/liveness); nil when
-// the owner shape doesn't support it.
-func (m *Mob) ownerCombatant() model.Combatant {
-	c, _ := m.owner.(model.Combatant)
+// leaderCombatant is the leader as combat sees it (position/liveness); nil when
+// there is none, or when its shape doesn't support it.
+//
+// ⚑ Every owner-read in this file goes through leader() (D6/§6.1b): a charmed
+// mob follows and defends its CHARMER while keeping its own level, and the two
+// links are separate fields precisely so the stat path never sees this one.
+func (m *Mob) leaderCombatant() model.Combatant {
+	c, _ := m.leader().(model.Combatant)
 	return c
 }
 
@@ -80,11 +91,11 @@ func (m *Mob) ownerCombatant() model.Combatant {
 // it. Never the idle amble — the owner (player speed 0.05/tick) outruns every
 // current mob's idle pace. A dead/absent owner means stand; the TTL cleans up.
 func (m *Mob) updateFollow() {
-	owner := m.ownerCombatant()
-	if owner == nil || owner.HealthRatio() == 0 {
+	leader := m.leaderCombatant()
+	if leader == nil || leader.HealthRatio() == 0 {
 		return
 	}
-	ownerPos := owner.Position()
+	ownerPos := leader.Position()
 	delta := m.Position().Sub(ownerPos)
 	distance := delta.Abs()
 	if distance <= companionFollowDistance {
@@ -127,7 +138,7 @@ func (m *Mob) updateCompanionTargeting() {
 		return
 	}
 
-	signals, ok := m.owner.(model.CombatSignals)
+	signals, ok := m.leader().(model.CombatSignals)
 	if !ok {
 		return
 	}
@@ -172,9 +183,9 @@ func (m *Mob) auraCanReach(t model.Combatant) bool {
 // OWNER (not the companion) — the companion fights beside its owner, so both
 // acquisition and stickiness are bounded there.
 func (m *Mob) withinOwnerTether(t model.Combatant) bool {
-	owner := m.ownerCombatant()
-	if owner == nil {
+	leader := m.leaderCombatant()
+	if leader == nil {
 		return false
 	}
-	return t.Position().Sub(owner.Position()).Abs() <= companionTetherRadius
+	return t.Position().Sub(leader.Position()).Abs() <= companionTetherRadius
 }

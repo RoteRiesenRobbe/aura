@@ -680,16 +680,28 @@ editing, and keep the boot count pinned at 15.
 | — | calm's delivery (never asked in the design session) | **PO — everything in radius**, uncapped, no selector: a pack aggros as a pack |
 | — | does chunk 2 ship a client tell? | **PO — yes**, the D13 pip, `AppliedEffectCalm` |
 
+### ✅ Closed in chunk 3's execution session (2026-07-29)
+
+| # | question | closed by |
+|---|---|---|
+| 2 | the charmed mob's XP credit vs the shared-XP rule | **traced** — `CreditTo()` routes the hit through `PlayerTouches(charmer)`, the identical path an owned summon uses, so participation and kill credit need no special handling (`TestCharmedMobAuraDamage_CreditsTheCharmerNotItself`) |
+| — | charm's numbers (never asked in the design session) | **PO** — D14 as written: 1800 ticks (59.4 s) **+300/level**, cooldown 3600 (118.8 s), radius 4.0, maxLevel 3; the elemental variant tuned **differently** on purpose (1200 +200, cooldown 4200, radius 3.5), which widens L-L's proof from "a faction list is data" to "the numbers are too" |
+
 ### Still open
 
-1. **Calm is unreachable in normal play.** No milestone, drop or teaching
-   authors it, so only the `SKILL` cheat grants it. Deliberate — the chunk was
-   scoped to the mechanism — but it means calm cannot be playtested by anyone
-   without console access until an unlock is authored.
-2. **What does a charmed mob's XP kill credit do to the shared-XP rule?** D2
-   routes credit to the charmer. All combat participants get XP today (GDD, no
-   formal groups), so this probably needs no special handling — but it has not
-   been traced against `PlayerTouches`.
+1. **Neither calm nor charm is reachable in normal play.** No milestone, drop or
+   teaching authors any of the three skills, so only the `SKILL` cheat grants
+   them. Deliberate — every chunk was scoped to the mechanism — but it means
+   nothing this plan shipped can be playtested without console access until an
+   unlock is authored. **This is now the plan's largest open item.**
+2. **⚑ How long should a charmed mob actually survive?** Chunk 3 measured it: a
+   pet charmed inside a wolf pack is focused by its three former packmates and
+   dies in **~8 s**, against a 59.4 s duration. That is D9/L-E behaving exactly
+   as ruled, so it is a tuning/design question rather than a defect — but the
+   spell as authored promises a minute and delivers eight seconds in the one
+   place a player is most likely to cast it. Levers, none taken: the duration and
+   cooldown numbers, a charm-time heal or damage reduction, or scoping charm to
+   solitary mobs by design.
 3. **Does the pip (D13) show duration?** A plain pip does not. With a 60 s charm,
    *time remaining* is the single most useful thing to display, and its absence is
    the strongest argument for pulling the pet frame forward. ⚑ Chunk 2 shipped
@@ -876,3 +888,141 @@ it is a per-caster *relation*, exactly what the global faction model avoids.
 It is the first consumer of chunk 1's seam (§5.1 — calm never flips faction, so
 chunk 2 did **not** prove it). Read **L-B / L-M** before touching `Level()`, and
 **L-O** before authoring the charm skills.
+
+### Chunk 3 — charm ✅ DONE 2026-07-29, backend + frontend + content, committed `[uncommitted]`
+
+**A wolf can now be told whose side it is on.** Charm ships as ruled: the
+nearest eligible mob in radius joins the player side as a full companion (D6) —
+it follows, it defends, it assists — **keeps its own level** (D2), credits its
+kills to its charmer, and reverts to the exact allegiance its species authors
+when the timer runs out or the charmer leaves the world (D10). It is the seam's
+first real consumer: `RevertFaction()` finally has a caller and `Align()`'s
+charm direction is exercised for the first time.
+
+**⭐ The shape that carried the chunk:** `owner` used to answer three questions
+at once, and charm needed each of them answered differently. They are now three
+separate reads — `owner` (*whose level do I stand at*), `CreditTo()` (*who gets
+my credit*), `leader()` (*whose signals do I follow*) — and the stat path never
+sees the last two. `Level()`, `MaxHealth()` and `PowerScale()` are byte-identical
+across a charm, pinned by test rather than by comment (L-B/L-M).
+
+**Four plan corrections, all found by auditing §6 against HEAD before the first
+edit** — the same habit that caught chunk 2's two and 3b's missing step:
+
+⭐ **① D11 needs NO code (§6.2 item 5 was a phantom piece).** A charmed mob is
+player-**aligned**, so a second cast rejects it twice through gates that already
+exist: same-faction + `targetsAllies:false`, and its faction is no longer in any
+charm allowlist. Shipped as a pin (`TestCooldown_CharmPassesOverAnAlreadyCharmedMob`),
+not a branch. The in-game run strengthened it by accident: with **two** prey
+inside the 4.0 radius exactly one was charmed, which is also D3's
+maxTargets-1-nearest proof.
+
+⭐ **② `charmTicks` on `Mob` is wrong the same way `calmTicks` was (§6.2 item 1)**
+— the pip is *derived* from the buff store, and `buffPayload` is closed so a new
+kind cannot compile without deciding its pip. But charm differs from calm in the
+one way that matters: **its expiry has to ACT** (revert the faction), and the
+store has no expiry hook. So the split is `charmer` on the Mob (the link, typed,
+read several times a tick) + `charmPayload` in the store (the timer and the
+pip), with `Update` polling `charmer != nil && !Charmed()` — the shape
+`ttlTicks` already had.
+
+⚑ **③ D10's disconnect half has no per-tick signal.** A disconnected player's
+entity is gone from the world but the mob's pointer stays valid and its
+`HealthRatio()` stays above 0, so polling would leave a pet following a ghost for
+the rest of a 60-second charm. Death **and** disconnect both end in
+`game.RemoveEntity(player)`, whose fan-out reaches every system's `Remove` — so
+the break rides **`MobSystem.Remove`**, one hook for both, on the branch that
+already exists for "not one of my mobs".
+
+⚑ **④ "Three attribution sites" is two.** `sys/skills.go:394` (`casterPowerScale`)
+is the **stat** path — it reads `SummonPower`, not credit — and must keep reading
+`Owner()`. That is L-M with a third field to guard. Only the dot replay and
+`applyDamageAura` moved to `model.Credited`.
+
+**Also shipped:**
+
+- **`model.Credited { CreditTo() PlayerEntity }`** — the attribution seam, named
+  as a capability so the two dispatch sites stop asking an ownership question
+  they never meant.
+- **`leader()` + the `isFollower()` widening** — the whole pet fantasy is
+  re-pointed, not written: four call sites, one file. `m.role` is still never
+  written after construction, so entity-model chunk 2's authored-role property
+  survives a charmed creature being a follower.
+- **`EffectTypeCharm` + `CharmParams`**, with charm added to
+  **`factionScopedEffects`** (L-O — the guard is per-type, so a typo'd
+  `targetFactions` is a boot error rather than a silently universal charm).
+- **The pip** — `AppliedEffectCharm` (bit 6) + one `PIP_STYLES` entry, warm
+  violet, listed first beside calm. No schema change.
+- **Tooltip case + `CharmParams` on the catalog type**, because the tooltip's
+  `default:` warn makes a missing case a console warning and a literal
+  `(charm)`, not a build error.
+- **A DRY pass on the buff store**: `Calmed`/`DropCalm` and `Charmed`/`DropCharm`
+  now share one generic `hasPayload`/`dropPayload` pair instead of a copied loop.
+- **Content: TWO skills (D8/L-L).** `api/skills/charm-beast.json` id **63**
+  (`wildlife_prey` + `wildlife_predator`, radius 4.0, 1800 ticks +300/level,
+  cooldown 3600) and `api/skills/charm-elemental.json` id **64** (`elemental`,
+  radius 3.5, 1200 ticks +200/level, cooldown 4200). **The PO chose to tune the
+  second differently** — elementals hold the other charmable elite (D12) — so it
+  proves the seam carries authored numbers as well as an authored faction list.
+  It needed **zero** Go changes, which is L-L's acceptance test. All values
+  [PLACEHOLDER].
+
+**Verified:** `go build` / `go vet` / `go test -count=1 -timeout 300s ./...`
+green (**24 new Go tests** across the buff store, the mob, the removal fan-out
+and the apply site); frontend typecheck + **50 vitest** (3 new) + prod build.
+**Sim battery BYTE-IDENTICAL** against a pre-change worktree across all four legs
+(default · `-chain` · `-levels` · `-content ../api`) — **TTK 6.67 s / TTD 8.70 s
+stand**. Boot `-content ../api`: **0 errors 0 warnings 0 panics — 15 factions /
+86 skills (84 + 2 charms) / 64 mobs / 10 recipes / 1 milestone / 777 props /
+485 spawns / 5 campfires.**
+
+**In-game harness 9/9** — new `.claude/skills/verify/chunk3-charm.mjs`, clean
+run, 0 console errors, 0 WebGL losses. The pip lands on the charmed mob while a
+same-species control 2.86 units away stays bare; the pet **follows** (player
+moved 11.4 units, pet gap **1.98** against a 1.5 follow ring) while the control
+drops out of view entirely; the charm **expires on its own** (pip true at
+t+15.8 s, false at t+67.2 s — the first end-to-end proof of the poll); and in the
+wolf pack the pet **lights its aura on a target that cannot be the player**,
+since they now share a faction.
+
+**⚑ THE FINDING — a charmed mob is focused by its former packmates, and can die
+in about eight seconds.** A `THREAT` dump caught it exactly: the charmed Wolf
+carried three ex-packmates as threat rows and all three carried it as their
+target. This is D9/L-E working precisely as ruled — the mob left their side, so
+they treat it as an enemy — but it means a **59.4 s duration / 118.8 s cooldown**
+spell can deliver an **eight-second pet** when cast into a pack. Whether that is
+the intended price of the enslave fantasy or a tuning problem is a PO call; the
+numbers are all [PLACEHOLDER] and open question 4 records it. ⚑ **GOD mode makes
+it worse and is why the harness met it head-on**: a god player takes no damage,
+so `noteThreat` credits zero and the pack's threat tables stay empty — with
+nobody holding threat, every wolf re-acquires the nearest enemy, and that is the
+pet.
+
+⚑ **Three harness lessons, each of which faked a product failure**, pinned in
+the script:
+
+1. **A dead or out-of-view mob's sprite is UNPARENTED, not `destroyed`** — and it
+   keeps its last drawn frame forever. Reading only `destroyed` made a pet that
+   had been killed five seconds in look like a live pet whose pip never went
+   out, and cost a full investigation into a charm timer that was working
+   correctly the whole time (confirmed by rebuilding with `charmTicks: 90`: the
+   pip cleared in under two seconds).
+2. **`visible` is stale-true on a Graphics whose mask has never changed.**
+   `EffectPips.setMask` early-returns when the mask matches what it drew, so on a
+   mob that never carried an effect the redraw never runs and the Graphics keeps
+   its constructed `visible = true` with nothing in it. **Drawn instructions are
+   the honest signal** — and the pip's own colour (`0xc98ae0`) is in them, so the
+   metric can say *charm* rather than *some pip*.
+3. **Where you cast decides what you can measure.** The wolf-dense spot the other
+   scripts use kills the pet before any longer-horizon check can run. The script
+   now uses the most isolated prey spawn in the zone — **computed from the zone
+   JSON** (nearest hostile-to-`aligned` spawn 14 units away, nearest other prey
+   5.5) rather than guessed — and only visits the pack for the fight leg.
+
+**Two things the PO should know:**
+
+1. **Charm is unreachable in normal play**, exactly like calm — no milestone,
+   drop or teaching authors either skill, so only the `SKILL` cheat grants them.
+   Every skill this plan shipped is now cheat-only (open question 1).
+2. **The pet's short life in a pack** (the finding above) is the first thing a
+   playtester will hit, and it will read as a bug rather than as D9.

@@ -191,5 +191,35 @@ func (n *MobSystem) Remove(b ecs.BasicEntity) {
 	}
 	if delete >= 0 {
 		n.mobs = append(n.mobs[:delete], n.mobs[delete+1:]...)
+		return
 	}
+	n.breakCharmsBy(b.ID())
+}
+
+// breakCharmsBy reverts every mob charmed by the entity that just left the
+// world (plan-faction-flips chunk 3, D10 / L-G). Death AND disconnect both end
+// in game.RemoveEntity(player), whose fan-out reaches every system's Remove —
+// which makes this the one hook covering both, and the only one available: a
+// disconnected player's entity is gone but the mob's pointer stays valid and
+// its HealthRatio stays above 0, so a per-tick poll would leave a pet following
+// a ghost for the rest of a 60-second charm.
+//
+// It runs only on the non-mob branch above, so the hot path (a mob dying) is
+// untouched; what reaches here is a player, corpse or prop leaving, and the
+// scan is a nil-pointer compare per mob.
+func (n *MobSystem) breakCharmsBy(id uint64) {
+	for _, m := range n.mobs {
+		if c, ok := m.(charmBreaker); ok && c.CharmedBy(id) {
+			c.EndCharm()
+		}
+	}
+}
+
+// charmBreaker is the charm link as the removal fan-out sees it: an id to match
+// (the fan-out holds ecs ids, never player refs) and the verb to end it. A
+// capability rather than a MobEntity method, like every other narrow contract
+// the systems assert.
+type charmBreaker interface {
+	CharmedBy(id uint64) bool
+	EndCharm()
 }

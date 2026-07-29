@@ -287,16 +287,17 @@ func (s *SkillSystem) tickBuffEvents(e skillEntity) {
 			// Every event rolls its own variance and is mitigated by the
 			// target's CURRENT resistances (roll-then-mitigate, per hit).
 			damageHP := vitals.RollVariance(hit.HP, hit.Variance, s.rng)
-			// An owned summon's dot replays through its owner — checked before
-			// the MobEntity case (a totem IS a mob), so burn damage keeps
-			// crediting the owner even after the summon is gone. The summon
-			// itself rides along as the hit's Source: threat credits it while it
-			// lives, and falls back to the owner once it reads dead (chunk 3).
+			// A summon's — or a charmed mob's — dot replays through the player
+			// it is CREDITED to, checked before the MobEntity case (a totem IS a
+			// mob), so burn damage keeps crediting that player even after the
+			// caster is gone. The caster itself rides along as the hit's Source:
+			// threat credits it while it lives, and falls back to the player
+			// once it reads dead (chunk 3).
 			storedCaster := hit.Caster
 			var source model.Combatant
-			if owned, ok := storedCaster.(model.Owned); ok && owned.Owner() != nil {
+			if credited, ok := storedCaster.(model.Credited); ok && credited.CreditTo() != nil {
 				source, _ = storedCaster.(model.Combatant)
-				storedCaster = owned.Owner()
+				storedCaster = credited.CreditTo()
 			}
 			switch caster := storedCaster.(type) {
 			case model.PlayerEntity:
@@ -479,17 +480,22 @@ func eligibleByTargetFlags[Capability any](effect skills.EffectDef, caster model
 
 // applyDamageAura dispatches on the caster type: player and mob auras use
 // different Interacter entry points (PlayerTouches vs. MobTouches double
-// dispatch), mirroring the two legacy damage paths 1:1. An owned summon is
-// checked FIRST — it IS a MobEntity, and falling into the mob case would
-// silently drop attribution (no XP, no kill credit, no participants): its
-// damage routes through PlayerTouches(owner) with the summon's own faction
-// and position, scaled by the owner-level power (mob-depth chunk 1).
+// dispatch), mirroring the two legacy damage paths 1:1. A mob acting for a
+// player — an owned summon, or a charmed mob (plan-faction-flips chunk 3) — is
+// checked FIRST: it IS a MobEntity, and falling into the mob case would
+// silently drop attribution (no XP, no kill credit, no participants). Its
+// damage routes through PlayerTouches(the credited player) with the ACTING
+// mob's own faction, position and output.
+//
+// ⛑ Credited, not Owned: a charmed mob is credited to its charmer while
+// standing at its OWN level, and casterPowerScale below still reads Owned so
+// the summon-only SummonPower knob stays off it (D2 / L-M).
 func applyDamageAura(e skillEntity, level int, effect skills.EffectDef, collisions phy.ColliderSet, rng *rand.Rand) {
-	if owned, ok := e.(model.Owned); ok && owned.Owner() != nil {
-		// The summon rides along as the hit's Source: threat credits the
-		// summon itself, XP the owner (mob-depth chunk 3, gotcha #9).
+	if credited, ok := e.(model.Credited); ok && credited.CreditTo() != nil {
+		// The acting mob rides along as the hit's Source: threat credits the
+		// mob itself, XP the player (mob-depth chunk 3, gotcha #9).
 		source, _ := e.(model.Combatant)
-		applyPlayerDamageAura(owned.Owner(), source, e.AuraCollider().Position(), level, effect, collisions, rng, casterPowerScale(e))
+		applyPlayerDamageAura(credited.CreditTo(), source, e.AuraCollider().Position(), level, effect, collisions, rng, casterPowerScale(e))
 		return
 	}
 	switch caster := e.(type) {
@@ -1308,6 +1314,12 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			}
 			continue
 		}
+		if effect.Type == skills.EffectTypeCharm {
+			if s.applyCharm(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+			continue
+		}
 		if effect.Type == skills.EffectTypeRecall {
 			if s.applyRecall(e) {
 				hitAny = true
@@ -1560,6 +1572,67 @@ func (s *SkillSystem) applyCalm(e skillEntity, source skills.SkillID, level int,
 		hitAny = true
 	}
 	return hitAny
+}
+
+// charmable is the charm capability (plan-faction-flips chunk 3): an entity
+// whose allegiance can be flipped to the caster's side for a while. Only mobs
+// implement it — a player has no authored faction to revert to — so the
+// capability check in eligibleByTargetFlags is the whole
+// players-are-not-valid-targets rule, exactly as it is for calm.
+type charmable interface {
+	Charm(by model.PlayerEntity, source skills.SkillID, ticks int)
+}
+
+// applyCharm fires a charm cooldown (plan-faction-flips chunk 3, D3/D8): a
+// query circle whose NEAREST eligible mob joins the player side as a full
+// companion for the authored duration. Shaped like applyCalm — the other
+// targeted cooldown that changes AI state rather than health — with two
+// deliberate differences:
+//
+//   - It goes through selectTargets. D3 makes charm a capped, nearest-first
+//     pick because the GDD forbids target-clicking: positioning IS the
+//     targeting, so "walk to the mob you want" has to be honoured exactly.
+//   - A MOB caster whiffs. processCooldowns fires mob cooldowns as soon as they
+//     are ready (the chunk-1 L-N lesson: that path is real even though no
+//     content reaches it), and charm's whole payload is a PLAYER link —
+//     attribution and the combat signals a pet follows. A mob has neither.
+//
+// D11 (an already-charmed mob is not a valid target) needs no check here: a
+// charmed mob is player-aligned, so targetsEnemies rejects it, and its faction
+// is no longer in any charm allowlist. Pinned by test, not by a branch.
+func (s *SkillSystem) applyCharm(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	if effect.Charm == nil {
+		return false
+	}
+	charmer, ok := e.(model.PlayerEntity)
+	if !ok {
+		return false
+	}
+	ticks := skills.Scaled(effect.Charm.DurationTicks, effect.Charm.DurationTicksPerLevel, level)
+	if ticks < 1 {
+		// A negative perLevel can scale the duration away entirely; one tick of
+		// charm still flips and reverts, which is at least honest — 0 would be a
+		// buff entry that expires before Update ever polls it, leaving the mob
+		// aligned forever.
+		ticks = 1
+	}
+
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	query := phy.NewCircle(e.AuraCollider().Position(), radius)
+	query.Shape().Mask = model.InstantDamageMask(effect)
+
+	hits := s.space.QueryCircle(query)
+	candidates := make(phy.ColliderSet, len(hits))
+	for _, h := range hits {
+		candidates[h] = struct{}{}
+	}
+	eligible := eligibleByTargetFlags[charmable](effect, e, e.Basic().ID(), true)
+	targets := selectTargets(candidates, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+
+	for _, c := range targets {
+		c.Shape().UserData.(charmable).Charm(charmer, source, ticks)
+	}
+	return len(targets) > 0
 }
 
 // Summon placement (mob-depth chunk 1, decision §8.4/6): offset from the

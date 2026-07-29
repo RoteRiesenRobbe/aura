@@ -88,6 +88,18 @@ type shieldPayload struct {
 // aging and per-skill refresh.
 type calmPayload struct{}
 
+// charmPayload is the charm TIMER (plan-faction-flips chunk 3, D2/D6). Like
+// calm it is empty — charm has no strength axis — and for the same two reasons
+// it lives in the store rather than as a Mob field: the pip is derived from
+// here, and aging is already owned here.
+//
+// ⚑ It carries the duration, NOT the link. The charmer is a typed field on the
+// Mob (model.PlayerEntity, which this package cannot name — model imports
+// skills), read several times per tick by leader()/CreditTo(); and charm's
+// expiry has to ACT (revert the faction), which the store has no hook for. So
+// the mob polls Charmed() and the two are kept in step by Charm/EndCharm.
+type charmPayload struct{}
+
 type hotPayload struct {
 	hot HotBuff
 	// age is the acting accumulator, the dotPayload twin: game ticks since
@@ -105,6 +117,7 @@ func (*dotPayload) isBuffPayload()      {}
 func (*shieldPayload) isBuffPayload()   {}
 func (*hotPayload) isBuffPayload()      {}
 func (*calmPayload) isBuffPayload()     {}
+func (*charmPayload) isBuffPayload()    {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -303,10 +316,46 @@ func (b *Buffs) ApplyCalm(source SkillID, ticks int) {
 }
 
 // Calmed reports whether any calm application is live.
-func (b *Buffs) Calmed() bool {
+func (b *Buffs) Calmed() bool { return hasPayload[*calmPayload](b) }
+
+// DropCalm removes every calm application, from every source — the break-on-
+// damage path (plan-faction-flips chunk 2 / §5.4: ANY damage breaks calm,
+// including the calmer's own aura, by PO ruling).
+func (b *Buffs) DropCalm() { dropPayload[*calmPayload](b) }
+
+// ApplyCharm starts (or refreshes) the charm timer from the given source skill
+// (plan-faction-flips chunk 3). Same one-stream-per-source rule as calm — charm
+// carries no strength to key on. In shipped content a refresh cannot happen: a
+// charmed mob is player-aligned, so the next cast's eligibility check passes
+// over it (D11, and it is pinned by test rather than by a branch).
+//
+// ⚑ Use Mob.Charm, never this directly: the timer and the charmer link have to
+// start together, or the mob is aligned with nobody to follow.
+func (b *Buffs) ApplyCharm(source SkillID, ticks int) {
+	for _, e := range b.entries[source] {
+		if _, ok := e.payload.(*charmPayload); ok {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			return
+		}
+	}
+	b.apply(source, &charmPayload{}, ticks)
+}
+
+// Charmed reports whether the charm timer is still running. The mob polls it
+// every tick, because charm's expiry has to act (revert) — see charmPayload.
+func (b *Buffs) Charmed() bool { return hasPayload[*charmPayload](b) }
+
+// DropCharm ends the charm timer early — the charmer-left path (D10), where the
+// break is an event rather than an expiry.
+func (b *Buffs) DropCharm() { dropPayload[*charmPayload](b) }
+
+// hasPayload reports whether any live application carries payload kind T.
+func hasPayload[T buffPayload](b *Buffs) bool {
 	for _, list := range b.entries {
 		for _, e := range list {
-			if _, ok := e.payload.(*calmPayload); ok {
+			if _, ok := e.payload.(T); ok {
 				return true
 			}
 		}
@@ -314,16 +363,15 @@ func (b *Buffs) Calmed() bool {
 	return false
 }
 
-// DropCalm removes every calm application, from every source — the break-on-
-// damage path (plan-faction-flips chunk 2 / §5.4: ANY damage breaks calm,
-// including the calmer's own aura, by PO ruling). It is the store's only
-// targeted removal: expiry and Cleanse-everything were the two shapes before
-// it, and neither can express "this one mechanic ended early".
-func (b *Buffs) DropCalm() {
+// dropPayload removes every application of payload kind T, from every source —
+// the store's targeted removal, where expiry and Cleanse-everything were the two
+// shapes that existed before calm (chunk 2) and neither can express "this one
+// mechanic ended early".
+func dropPayload[T buffPayload](b *Buffs) {
 	for source, list := range b.entries {
 		kept := list[:0]
 		for _, e := range list {
-			if _, ok := e.payload.(*calmPayload); !ok {
+			if _, ok := e.payload.(T); !ok {
 				kept = append(kept, e)
 			}
 		}

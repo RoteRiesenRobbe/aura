@@ -19,6 +19,7 @@ export const enum AppliedEffectBit {
     Resist = 1 << 3,
     TickRate = 1 << 4,
     Calm = 1 << 5,
+    Charm = 1 << 6,
 }
 
 interface PipStyle {
@@ -32,12 +33,16 @@ interface PipStyle {
  * on me" mean the same thing; tick-rate and calm have no ring category, so their
  * colours are new here. All colours [PLACEHOLDER] — tune in-game.
  *
- * Calm sits first: it is the only pip that means "this thing has stopped
- * fighting you", which is the one a player needs to read at a glance, and its
- * pale blue is deliberately far from the slow blue next to it — a slowed wolf
- * is still coming for you, a calmed one is not.
+ * Charm and calm sit first: they are the two pips that mean "this thing is not
+ * fighting you", which is what a player needs to read at a glance. Calm's pale
+ * blue is deliberately far from the slow blue next to it — a slowed wolf is
+ * still coming for you, a calmed one is not — and charm's warm violet is far
+ * from both, because a charmed mob is not merely passive, it is YOURS
+ * (plan-faction-flips chunk 3, D13; the interim tell until the pet frame
+ * arrives with the frontend rework).
  */
 const PIP_STYLES: readonly PipStyle[] = [
+    {bit: AppliedEffectBit.Charm, color: 0xc98ae0},
     {bit: AppliedEffectBit.Calm, color: 0xa8d8f0},
     {bit: AppliedEffectBit.Dot, color: AURA_CATEGORY_COLORS.dot},
     {bit: AppliedEffectBit.Slow, color: AURA_CATEGORY_COLORS.slow},

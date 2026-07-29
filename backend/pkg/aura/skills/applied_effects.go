@@ -19,6 +19,7 @@ const (
 	AppliedEffectResist   AppliedEffect = 1 << 3
 	AppliedEffectTickRate AppliedEffect = 1 << 4
 	AppliedEffectCalm     AppliedEffect = 1 << 5
+	AppliedEffectCharm    AppliedEffect = 1 << 6
 	// Shields carry AppliedEffectNone: shield_hp is already on the wire and the
 	// overhead bar renders the absorb segment — a pip would double-display it.
 )
@@ -44,3 +45,4 @@ func (*resistPayload) appliedBit() AppliedEffect   { return AppliedEffectResist 
 func (*tickRatePayload) appliedBit() AppliedEffect { return AppliedEffectTickRate }
 func (*shieldPayload) appliedBit() AppliedEffect   { return AppliedEffectNone }
 func (*calmPayload) appliedBit() AppliedEffect     { return AppliedEffectCalm }
+func (*charmPayload) appliedBit() AppliedEffect    { return AppliedEffectCharm }

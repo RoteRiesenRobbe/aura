@@ -521,6 +521,20 @@ type Mob struct {
 	ttlTicks            int
 	summonPowerPerLevel float32
 
+	// charmer is the player this mob currently fights for (plan-faction-flips
+	// chunk 3, D2/D6), nil for everything else. It is deliberately NOT owner:
+	// owner answers "whose level do I stand at", and a charmed mob keeps its
+	// own (L-B/L-M — Level() reads the owner's level live since entity-model
+	// chunk 1b, so binding here would shrink a charmed elite to its charmer).
+	// The two other questions owner used to answer alone are CreditTo() (who
+	// gets my XP and kill credit) and leader() (whose combat signals do I
+	// follow), and both prefer the charmer.
+	//
+	// The DURATION is not here: it is a charmPayload in the buff store, so the
+	// client pip comes for free. Charm/EndCharm keep the two in step; Update
+	// polls for expiry, because charm's expiry has to act.
+	charmer model.PlayerEntity
+
 	// damageTaken accumulates health lost this tick (VitalSign units) for the
 	// floating damage number (roadmap item 11); reset every tick.
 	damageTaken vitals.VitalSign
@@ -917,6 +931,10 @@ func (m *Mob) Update(dt float32) bool {
 			return false
 		}
 	}
+
+	// Charm expiry before acquisition, so a reverted mob acquires through its
+	// restored authored mask on this very tick (plan-faction-flips chunk 3).
+	m.updateCharm()
 
 	// Aura damage is applied by the SkillSystem (Phase 6.1); Update only
 	// handles aggro, movement, regeneration and death.

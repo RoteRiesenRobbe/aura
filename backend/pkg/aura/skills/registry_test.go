@@ -145,7 +145,10 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + GiantVenomSpit, the farm-band GiantSpider's own poison (it wore the
 	// cL4 VenomSpider's baseline and landed under a cL2 Wolf, 2026-07-22)
 	// + Calm, the plan-faction-flips chunk-2 disengage cooldown (2026-07-28)
-	assert.Len(t, r.All(), 84)
+	// + CharmBeast and BindElemental, the chunk-3 charm pair — TWO skills on
+	// purpose (L-L): a second faction scope has to be a JSON file, or the
+	// mechanism was hardcoded (2026-07-29)
+	assert.Len(t, r.All(), 86)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

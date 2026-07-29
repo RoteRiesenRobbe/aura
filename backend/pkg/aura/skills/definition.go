@@ -57,6 +57,7 @@ const (
 	EffectTypeDash
 	EffectTypeTickRate
 	EffectTypeCalm
+	EffectTypeCharm
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -107,6 +108,7 @@ var effectTypeMap = map[string]EffectType{
 	"dash":            EffectTypeDash,
 	"tick_rate":       EffectTypeTickRate,
 	"calm":            EffectTypeCalm,
+	"charm":           EffectTypeCharm,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -241,6 +243,7 @@ type EffectDef struct {
 	Dash     *DashParams     `json:"dash,omitempty"`     // dash
 	TickRate *TickRateParams `json:"tickRate,omitempty"` // tick_rate
 	Calm     *CalmParams     `json:"calm,omitempty"`     // calm
+	Charm    *CharmParams    `json:"charm,omitempty"`    // charm
 }
 
 // ThreatParams is the taunt / detaunt payload (mob-depth chunk 7). Margin is
@@ -572,6 +575,17 @@ type CalmParams struct {
 	DurationTicksPerLevel int `json:"durationTicksPerLevel"`
 }
 
+// CharmParams is the charm payload (plan-faction-flips chunk 3): how long the
+// hit mob fights for its charmer before reverting. Like calm there is no
+// strength axis — a mob is charmed or it is not — so duration is the whole
+// payload. What the pet HITS FOR is never authored here: a charmed mob keeps
+// its own level and its own output (D2), which is the difference between charm
+// and a summon. All values [PLACEHOLDER].
+type CharmParams struct {
+	DurationTicks         int `json:"durationTicks"`
+	DurationTicksPerLevel int `json:"durationTicksPerLevel"`
+}
+
 // SpawnParams is the spawn payload (effect foundations Step 3 / mob-depth
 // chunk 1): a cooldown-fired summon of an owned, caster-aligned mob. Two
 // scaling sources compose (chunk-1 decision): the SUMMON SKILL's level scales
@@ -756,6 +770,9 @@ type effectDef struct {
 
 	CalmTicks         int `json:"calmTicks"`         // calm: ticks out of combat
 	CalmTicksPerLevel int `json:"calmTicksPerLevel"` // calm: per skill level
+
+	CharmTicks         int `json:"charmTicks"`         // charm: ticks fighting for the charmer
+	CharmTicksPerLevel int `json:"charmTicksPerLevel"` // charm: per skill level
 }
 
 type skillDefinition struct {
@@ -879,6 +896,13 @@ var effectKeys = map[EffectType][]string{
 	// eligible is authored on the skill, not here (D8).
 	EffectTypeCalm: mergeKeys(keysGeometry, keysTargetFlags,
 		[]string{"calmTicks", "calmTicksPerLevel"}),
+	// Charm (plan-faction-flips chunk 3): the same query circle as calm, but
+	// CAPPED — D3 makes it maxTargets/selector territory (an instant that takes
+	// the nearest eligible mob), because "walk to the one you want" is the whole
+	// skill expression under the GDD's no-targeting rule. The faction allowlist
+	// deciding WHICH mobs are charmable is authored on the skill (D8).
+	EffectTypeCharm: mergeKeys(keysGeometry, keysCapped, keysTargetFlags,
+		[]string{"charmTicks", "charmTicksPerLevel"}),
 }
 
 // factionScopedEffects are the effect types whose skill MUST author a
@@ -888,7 +912,8 @@ var effectKeys = map[EffectType][]string{
 // and the effect would reach EVERY faction — the widest possible failure, and
 // invisible. Making the allowlist mandatory turns that typo into a boot error.
 var factionScopedEffects = map[EffectType]bool{
-	EffectTypeCalm: true,
+	EffectTypeCalm:  true,
+	EffectTypeCharm: true,
 }
 
 func mergeKeys(groups ...[]string) []string {
@@ -1119,6 +1144,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.TickRate, err = e.tickRateParams()
 	case EffectTypeCalm:
 		def.Calm, err = e.calmParams()
+	case EffectTypeCharm:
+		def.Charm, err = e.charmParams()
 	case EffectTypeLightAura, EffectTypeRecall:
 		// Payload-less by design: light_aura is pure geometry (its radius
 		// streams as the wire light_radius) and recall's destination is the
@@ -1440,6 +1467,16 @@ func (e *effectDef) calmParams() (*CalmParams, error) {
 		return nil, fmt.Errorf("calmTicks: must be >= 1, got %v", e.CalmTicks)
 	}
 	return &CalmParams{DurationTicks: e.CalmTicks, DurationTicksPerLevel: e.CalmTicksPerLevel}, nil
+}
+
+// charmParams builds the charm payload, the calmParams twin: a zero-tick charm
+// would flip a mob's allegiance and hand it straight back, which is worse than
+// a no-op — it is a visible one.
+func (e *effectDef) charmParams() (*CharmParams, error) {
+	if e.CharmTicks < 1 {
+		return nil, fmt.Errorf("charmTicks: must be >= 1, got %v", e.CharmTicks)
+	}
+	return &CharmParams{DurationTicks: e.CharmTicks, DurationTicksPerLevel: e.CharmTicksPerLevel}, nil
 }
 
 // tauntParams builds the taunt payload. Margin must be strictly positive — a

@@ -353,6 +353,16 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             lines.push('Any damage breaks it — including your own aura');
             break;
         }
+        case 'charm': {
+            // Two things a player cannot see anywhere else: a charmed mob is a
+            // pet at ITS OWN level (which is why charming an elite is worth a
+            // two-minute cooldown), and it is temporary — it turns on you when
+            // the timer runs out, with no way to extend it (D11/L-F).
+            const charm = effect.charm;
+            lines.push(`Charms the nearest enemy to fight for you for ${prog(charm.durationTicks, charm.durationTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            lines.push('It keeps its own level, and turns on you when the charm ends');
+            break;
+        }
         case 'tick_rate': {
             const tickRate = effect.tickRate;
             const speed = tickRate.factor < 1

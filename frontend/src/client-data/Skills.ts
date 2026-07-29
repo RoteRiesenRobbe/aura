@@ -126,6 +126,11 @@ export interface CalmParams {
     durationTicksPerLevel: number;
 }
 
+export interface CharmParams {
+    durationTicks: number;
+    durationTicksPerLevel: number;
+}
+
 export interface SkillEffect {
     type: string;
     radius: number;
@@ -153,6 +158,7 @@ export interface SkillEffect {
     dash?: DashParams;
     tickRate?: TickRateParams;
     calm?: CalmParams;
+    charm?: CharmParams;
 }
 
 export interface SkillDefinition {

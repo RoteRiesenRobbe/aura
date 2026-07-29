@@ -1,0 +1,21 @@
+{
+  "_comment": "plan-faction-flips chunk 3 (D2/D3/D6/D8): charm, the enslave cooldown. The nearest wildlife mob in range joins the player side as a full companion — it follows the charmer, attacks what the charmer attacks, defends them, and its kills credit the charmer's XP — while KEEPING ITS OWN LEVEL (D2), which is what makes charming an elite worth a two-minute cooldown. It does flip faction, so for the charm's duration no player can harm it and it can harm no player (D9, adopted from WoW). When the timer runs out it reverts to the exact allegiance its species authors and turns on whoever is nearest, and there is no way to extend it (D11): re-charming is a fresh cast. targetFactions is the D8 allowlist, resolved to a bitmask at content load — charm-elemental.json is the same mechanism scoped elsewhere, which is the proof it is content and not code. All values [PLACEHOLDER].",
+  "id": 63,
+  "name": "CharmBeast",
+  "category": "cooldown",
+  "maxLevel": 3,
+  "cooldownTicks": 3600,
+  "targetFactions": ["wildlife_prey", "wildlife_predator"],
+  "effects": [
+    {
+      "type": "charm",
+      "radius": 4.0,
+      "selector": "nearest",
+      "maxTargets": 1,
+      "targetsEnemies": true,
+      "targetsAllies": false,
+      "charmTicks": 1800,
+      "charmTicksPerLevel": 300
+    }
+  ]
+}

@@ -7,6 +7,20 @@ package model
 // rolls, recipe cascade and floating numbers all ride the existing player
 // path. The owner ref may go stale (owner died/disconnected) — accepted by
 // decision §8.4/2; a nil owner falls through to the plain mob path.
+// Credited is THE attribution seam: who receives the XP, kill credit, drop
+// rolls and floating numbers for what this entity does. A summon answers its
+// owner; a charmed mob answers its charmer (plan-faction-flips chunk 3, D2);
+// everything else answers nil and is credited to itself.
+//
+// ⚑ It is a DIFFERENT question from Owned.Owner, which asks "whose level do I
+// stand at" — and that distinction is the whole reason a charmed elite can be
+// credited to a level-3 charmer without shrinking to level 3 (L-B/L-M).
+// Attribution reads this; the stat path (Level/MaxHealth/PowerScale/
+// SummonPower) reads Owner and must keep doing so.
+type Credited interface {
+	CreditTo() PlayerEntity
+}
+
 type Owned interface {
 	Owner() PlayerEntity
 

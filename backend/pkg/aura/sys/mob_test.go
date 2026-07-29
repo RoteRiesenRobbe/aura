@@ -348,3 +348,63 @@ func TestSpawnPoint_TTLExpiredOrphanStaysDead(t *testing.T) {
 	assert.Equal(t, totem.Basic().ID(), g.removed[0])
 	assert.Empty(t, g.added, "a TTL-expired summon is never respawned")
 }
+
+// --- charm breaks when the charmer leaves the world (plan-faction-flips
+// chunk 3, D10 / L-G) ---
+
+func TestMobSystem_RemovingTheCharmerRevertsItsCharmedMob(t *testing.T) {
+	// Death and disconnect BOTH route through game.RemoveEntity(player), which
+	// fans out to every system's Remove — so this one hook covers both, and it
+	// is the only signal available: a disconnected player's entity is gone from
+	// the world but the mob's pointer stays valid and its HealthRatio stays
+	// above 0, so polling would leave a pet following a ghost for the rest of a
+	// 60-second charm.
+	ms, g := newMobSystemWith(nil)
+	ms.Update(0)
+
+	charmer := newFakePlayer()
+	m := mob.NewMob(hostileMobDef(), 0, nil)
+	g.AddEntity(m)
+	m.Charm(charmer, 63, 1800)
+	require.Equal(t, model.FactionAligned, m.Faction())
+
+	ms.Remove(charmer.Basic())
+
+	assert.NotEqual(t, model.FactionAligned, m.Faction(), "the pet reverts the moment its charmer leaves")
+	assert.Nil(t, m.CreditTo(), "and no dangling link is left behind")
+}
+
+func TestMobSystem_RemovingAnUnrelatedEntityLeavesCharmsAlone(t *testing.T) {
+	// Remove() fires for every entity leaving the world — corpses, props, other
+	// mobs. Only the charmer's own id may break a charm.
+	ms, g := newMobSystemWith(nil)
+	ms.Update(0)
+
+	charmer := newFakePlayer()
+	m := mob.NewMob(hostileMobDef(), 0, nil)
+	g.AddEntity(m)
+	m.Charm(charmer, 63, 1800)
+
+	ms.Remove(newFakePlayer().Basic())
+	ms.Remove(ecs.NewBasic())
+
+	assert.Equal(t, model.FactionAligned, m.Faction(), "somebody else's departure is not your charm's business")
+	assert.Equal(t, model.PlayerEntity(charmer), m.CreditTo())
+}
+
+func TestMobSystem_RemovingACharmedMobItselfIsJustARemoval(t *testing.T) {
+	// The mob-removal path must stay the early return it is: a dying pet is
+	// dropped from the slice, not walked over looking for charms to break.
+	ms, g := newMobSystemWith(nil)
+	ms.Update(0)
+
+	charmer := newFakePlayer()
+	m := mob.NewMob(hostileMobDef(), 0, nil)
+	g.AddEntity(m)
+	m.Charm(charmer, 63, 1800)
+	require.Len(t, ms.mobs, 1)
+
+	ms.Remove(m.Basic())
+
+	assert.Empty(t, ms.mobs)
+}

@@ -65,6 +65,9 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	// Calm is cooldown-fired and leaves no ring; the client tell is the
 	// applied-effect pip on the calmed mob (plan-faction-flips chunk 2).
 	EffectTypeCalm: AuraCategoryNone,
+	// Charm is cooldown-fired and leaves no ring either; its tell is the
+	// applied-effect pip on the charmed mob (D13, plan-faction-flips chunk 3).
+	EffectTypeCharm: AuraCategoryNone,
 }
 
 // AuraCategoryOf is the ring category a single effect contributes.

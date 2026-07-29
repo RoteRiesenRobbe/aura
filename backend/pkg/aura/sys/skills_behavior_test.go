@@ -4153,3 +4153,149 @@ func TestCooldown_CalmSkipsAlliedTarget(t *testing.T) {
 
 	assert.False(t, m.Calmed(), "targetsEnemies gates out same-faction targets — no calming your own pet")
 }
+
+// --- charm: attribution + the cooldown (plan-faction-flips chunk 3, D2/D3/D8) ---
+
+// charmDef is the skill under test. mask is what the loader would have produced
+// from the authored targetFactions names; maxTargets 1 + nearest is D3 (no
+// target-clicking — you walk to the mob you want).
+func charmDef(mask uint64) *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 63, Name: "CharmBeast", Category: skills.SkillCategoryCooldown, MaxLevel: 3, CooldownTicks: 3600,
+		TargetFactionMask: mask,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeCharm, Radius: 4.0, TargetsEnemies: true,
+			MaxTargets: 1, Selector: skills.SelectorNearest,
+			TargetFactionMask: mask,
+			Charm:             &skills.CharmParams{DurationTicks: 1800, DurationTicksPerLevel: 300},
+		}},
+	}
+}
+
+func TestCharmedMobAuraDamage_CreditsTheCharmerNotItself(t *testing.T) {
+	// D2's whole point: a charmed mob's kills feed its charmer's XP through the
+	// player reward path, exactly as an owned summon's do — while the mob itself
+	// stays ownerless. Without the Credited dispatch this falls into MobTouches
+	// and nobody gets anything.
+	charmer := newFakePlayer()
+	wolf := mob.NewMob(hostileMobDef(), 0, nil)
+	wolf.Charm(charmer, 63, 1800)
+
+	targetDef := testMobDef()
+	targetDef.Factors.Experience = 42
+	target := mob.NewMob(targetDef, 0, nil)
+
+	effect := damageEffect(1)
+	effect.Damage = &skills.DamageParams{HP: 1000} // overkill
+
+	applyDamageAura(wolf, 1, effect, colliderSetOf(target), testRNG())
+
+	assert.Equal(t, vitals.VitalSign(0), target.Health(), "the pet's hit lands")
+	assert.Equal(t, []uint64{42}, charmer.xp, "kill XP rides PlayerTouches(charmer)")
+	assert.Nil(t, wolf.Owner(), "…and it is still nobody's summon")
+}
+
+func TestCharmedMobAuraDamage_UsesItsOwnPowerNotItsCharmers(t *testing.T) {
+	// The stat half of D2. applyPlayerDamageAura already splits caster
+	// (attribution) from acting (stats); this pins that a charmed mob composes
+	// its own output — no SummonPower knob, no charmer's crit or damage factor.
+	charmer := newFakePlayer()
+	charmer.level = 30
+	charmer.powerScale = 8 // a maxed player's inflation
+	wolf := mob.NewMob(hostileMobDef(), 0, nil)
+	wolf.Charm(charmer, 63, 1800)
+
+	target := &touchRecorder{}
+	effect := damageEffect(1)
+	effect.Damage = &skills.DamageParams{HP: 10}
+
+	applyDamageAura(wolf, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.touches, 1)
+	assert.InDelta(t, 10.0, target.touches[0], 1e-4,
+		"the wolf's own f(level)=1 drives the hit, not the charmer's ×8")
+}
+
+func TestCooldown_CharmTakesTheNearestAllowedMob(t *testing.T) {
+	m := calmTestMob(calmTestPrey)
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), m))
+	caster.sc.EquipCooldown(0, charmDef(factions.Bit(calmTestPrey)), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.Equal(t, model.FactionAligned, m.Faction(), "it fights on the player side now")
+	assert.Equal(t, model.PlayerEntity(caster), m.CreditTo())
+	assert.Equal(t, 3600, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed")
+}
+
+func TestCooldown_CharmSkipsAFactionOutsideTheAllowlist(t *testing.T) {
+	m := calmTestMob(calmTestBandit)
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), m))
+	caster.sc.EquipCooldown(0, charmDef(factions.Bit(calmTestPrey)), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.NotEqual(t, model.FactionAligned, m.Faction(), "an unlisted faction is not charmable")
+	assert.Nil(t, m.CreditTo())
+}
+
+// TestCooldown_CharmScopeIsDataNotCode is L-L for charm: the PO authored TWO
+// charm spells (wildlife and elementals) precisely so that reaching a different
+// faction is a JSON edit. The only difference between the two casts here is the
+// mask the loader resolved.
+func TestCooldown_CharmScopeIsDataNotCode(t *testing.T) {
+	m := calmTestMob(calmTestBandit)
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), m))
+	caster.sc.EquipCooldown(0, charmDef(factions.Bit(calmTestBandit)), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.Equal(t, model.FactionAligned, m.Faction(),
+		"a second charm scoped to another faction needs no engine change")
+}
+
+func TestCooldown_CharmPassesOverAnAlreadyCharmedMob(t *testing.T) {
+	// D11, and the audit finding that it needs no code: a charmed mob IS
+	// player-aligned, so targetsEnemies rejects it — and its faction is no
+	// longer in the allowlist either. Two independent existing gates, which is
+	// why this is a pin rather than a branch.
+	m := calmTestMob(calmTestPrey)
+	first := newFakePlayer()
+	m.Charm(first, 63, 1800)
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerPlayerCollision), m))
+	caster.sc.EquipCooldown(0, charmDef(factions.Bit(calmTestPrey)), 1)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+
+	assert.Equal(t, model.PlayerEntity(first), m.CreditTo(), "no pet stealing, no timer refresh")
+}
+
+func TestCooldown_CharmDurationScalesWithLevel(t *testing.T) {
+	// 1800 + 300 per level over the level-1 baseline: level 3 = 2400 ticks.
+	m := calmTestMob(calmTestPrey)
+
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), m))
+	caster.sc.EquipCooldown(0, charmDef(factions.Bit(calmTestPrey)), 3)
+	caster.sc.RequestCooldownActivation(0)
+
+	sk.Update(33.0)
+	require.Equal(t, model.FactionAligned, m.Faction())
+
+	for i := 0; i < 2399; i++ {
+		m.ResetTickNumbers()
+	}
+	require.True(t, m.Update(0))
+	assert.Equal(t, model.FactionAligned, m.Faction(), "a level-3 charm lasts 2400 ticks, not 1800")
+
+	m.ResetTickNumbers()
+	require.True(t, m.Update(0))
+	assert.NotEqual(t, model.FactionAligned, m.Faction(), "…and reverts the tick it runs out")
+}
