@@ -2,7 +2,7 @@
 
 **Status: COMPLETE 2026-07-29** — every chunk shipped and the doc is archived.
 1a `cf9a10c7` · 1b `ee01ccdb` · 2 `0be771bd` · 3a `ba124ceb` · 3b-i `6368b2e5` ·
-3b-ii `ef4355f1` · post-review R1/R2/R5 `759ddfb6` · **R4 `ce022042`**
+3b-ii `ef4355f1` · post-review R1/R2/R5 `759ddfb6` · **R4 `a4225e8b`**
 (see §11 for the per-chunk ledgers).
 Design session 2026-07-26 (PO, via choice prompts). Supersedes the "not scheduled" note on `backlog.md` §31 — that entry
 stays as the *findings* record; this doc is the *plan*. §5 (Chunk 2) was planned
@@ -2209,7 +2209,7 @@ exactly what froze it. ⚑ **A summon SPAWNED at a given level is unaffected**,
 which is why every battery stays byte-identical and why only a targeted test can
 see this at all.
 
-**R4 — ✅ DONE 2026-07-29** (`ce022042`; ledger in §11). Scoped by the PO
+**R4 — ✅ DONE 2026-07-29** (`a4225e8b`; ledger in §11). Scoped by the PO
 the same day to the two review-found fixes ONLY. The chunk
 was waiting on the PO's own polish list; the ruling is that R4 does **not** wait
 for it. Fix the two latent defects the review found, close R4, and let any
@@ -2239,7 +2239,7 @@ full** (frontend-only, no wire, no backend):
 what shipped, which commit, what was verified.)*
 
 - **R4 — the last two badge defects ✅ DONE 2026-07-29**, frontend only, 3 files
-  + 1 new harness, committed `ce022042`. **The chunk that closes the plan**;
+  + 1 new harness, committed `a4225e8b`. **The chunk that closes the plan**;
   the doc is archived with it. Both fixes are latent-by-content, which is the
   whole character of the chunk: neither is reachable with anything authored
   today, and both arm the moment content moves one step.
