@@ -495,6 +495,23 @@ func (p *player) ApplyShield(source skills.SkillID, hp float32, ticks int) {
 	p.buffs.ApplyShield(source, hp, ticks)
 }
 
+// ApplySpeed grants a movement-speed buff from a speed_burst cooldown (Swift);
+// the movement site reads the composed value each tick via MovementFactor.
+func (p *player) ApplySpeed(source skills.SkillID, factor float32, ticks int) {
+	p.buffs.ApplySpeed(source, factor, ticks)
+}
+
+// MovementFactor is this player's transient movement-speed multiplier: speed
+// buffs composed with the strongest active slow, 1.0 with nothing applied.
+//
+// ⚑ This is the first thing that lets a buff touch player movement. Slows have
+// been in the store all along but only mobs ever read them (mob.stepLength), so
+// a slow_aura pointed at a player was silently inert; going through the shared
+// MovementFactor closes that on both sides at once.
+func (p *player) MovementFactor() float32 {
+	return p.buffs.MovementFactor()
+}
+
 // ApplyTickRate grants a haste / tick-slow buff scaling this player's own aura
 // cadence (skill-vocab chunk 6); the SkillSystem reads the composed factor each
 // tick via TickRateFactor.

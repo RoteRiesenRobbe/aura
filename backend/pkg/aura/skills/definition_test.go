@@ -637,6 +637,55 @@ func TestMap_TickRateKeyOnOtherEffectFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestParse_SpeedBurst(t *testing.T) {
+	data := []byte(`{
+      "id": 10, "name": "Swift", "category": "cooldown", "maxLevel": 3, "cooldownTicks": 600,
+      "effects": [{"type": "speed_burst", "speedFactor": 1.5, "speedFactorPerLevel": 0.1,
+                   "speedDurationTicks": 150, "speedDurationTicksPerLevel": 30}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeSpeedBurst, e.Type)
+	require.NotNil(t, e.Speed)
+	assert.InDelta(t, 1.5, e.Speed.Factor, 1e-6)
+	assert.InDelta(t, 0.1, e.Speed.FactorPerLevel, 1e-6)
+	assert.Equal(t, 150, e.Speed.DurationTicks)
+	assert.Equal(t, 30, e.Speed.DurationTicksPerLevel)
+}
+
+func TestMap_SpeedBurstNonPositiveFactorFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":10,"name":"Swift","category":"cooldown","maxLevel":1,"cooldownTicks":600,"effects":[{"type":"speed_burst","speedFactor":0,"speedDurationTicks":150}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, "speedFactor")
+}
+
+func TestMap_SpeedBurstUnityFactorFails(t *testing.T) {
+	// A factor of 1 neither hastens nor slows — a silent no-op cooldown, the
+	// tickRateFactor rule.
+	raw, err := parseSkillDefinition([]byte(`{"id":10,"name":"Swift","category":"cooldown","maxLevel":1,"cooldownTicks":600,"effects":[{"type":"speed_burst","speedFactor":1,"speedDurationTicks":150}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, "speedFactor")
+}
+
+func TestMap_SpeedBurstZeroDurationFails(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":10,"name":"Swift","category":"cooldown","maxLevel":1,"cooldownTicks":600,"effects":[{"type":"speed_burst","speedFactor":1.5,"speedDurationTicks":0}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, "speedDurationTicks")
+}
+
+func TestMap_SpeedBurstKeyOnOtherEffectFails(t *testing.T) {
+	// speedFactor on a non-speed_burst effect is a silent no-op — the allowlist rejects it.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[{"type":"self_heal","healHP":0.2,"speedFactor":1.5}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.Error(t, err)
+}
+
 func TestParse_DamageReductionStat(t *testing.T) {
 	data := []byte(`{
       "id": 11, "name": "Tough", "category": "passive", "maxLevel": 3,

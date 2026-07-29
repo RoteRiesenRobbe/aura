@@ -174,6 +174,10 @@ func (f *fakePlayer) ApplyShield(source skills.SkillID, hp float32, ticks int) {
 func (f *fakePlayer) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
 	f.hots = append(f.hots, appliedHot{source, hot, ticks})
 }
+func (f *fakePlayer) ApplySpeed(source skills.SkillID, factor float32, ticks int) {
+	f.buffs.ApplySpeed(source, factor, ticks)
+}
+func (f *fakePlayer) MovementFactor() float32 { return f.buffs.MovementFactor() }
 func (f *fakePlayer) ApplyTickRate(source skills.SkillID, factor float32, ticks int) {
 	f.buffs.ApplyTickRate(source, factor, ticks)
 }
@@ -4298,4 +4302,89 @@ func TestCooldown_CharmDurationScalesWithLevel(t *testing.T) {
 	m.ResetTickNumbers()
 	require.True(t, m.Update(0))
 	assert.NotEqual(t, model.FactionAligned, m.Faction(), "…and reverts the tick it runs out")
+}
+
+// --- speed_burst: Swift as a cooldown. Self-targeted, so unlike the burst
+// cooldowns there is no query circle and no target — the assertions are on the
+// caster's own composed movement factor. ---
+
+func speedBurstDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 10, Name: "Swift", Category: skills.SkillCategoryCooldown, MaxLevel: 3,
+		CooldownTicks: 600, CooldownTicksPerLevel: -60,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeSpeedBurst,
+			Speed: &skills.SpeedParams{
+				Factor: 1.5, FactorPerLevel: 0.1,
+				DurationTicks: 150, DurationTicksPerLevel: 30,
+			},
+		}},
+	}
+}
+
+func TestCooldown_SpeedBurstBuffsTheCaster(t *testing.T) {
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipCooldown(0, speedBurstDef(), 1)
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.AddEntity(caster)
+
+	require.InDelta(t, 1.0, caster.buffs.MovementFactor(), 1e-6, "no sprint before firing")
+
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+
+	assert.InDelta(t, 1.5, caster.buffs.MovementFactor(), 1e-6, "the sprint is live")
+	assert.Equal(t, 600, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+}
+
+func TestCooldown_SpeedBurstScalesWithLevel(t *testing.T) {
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipCooldown(0, speedBurstDef(), 3)
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.AddEntity(caster)
+
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+
+	assert.InDelta(t, 1.7, caster.buffs.MovementFactor(), 1e-6, "1.5 + 2×0.1")
+	assert.Equal(t, 480, caster.sc.CooldownSlots[0].CdTicks, "600 − 2×60")
+}
+
+func TestCooldown_SpeedBurstExpires(t *testing.T) {
+	// The duration is what makes it a burst rather than a passive: it has to
+	// run out on its own, with no expiry hook anywhere.
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	def := speedBurstDef()
+	def.Effects[0].Speed.DurationTicks = 3
+	def.Effects[0].Speed.DurationTicksPerLevel = 0
+	caster.sc.EquipCooldown(0, def, 1)
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.AddEntity(caster)
+
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+	require.InDelta(t, 1.5, caster.buffs.MovementFactor(), 1e-6)
+
+	for i := 0; i < 3; i++ {
+		caster.buffs.Tick()
+	}
+	assert.InDelta(t, 1.0, caster.buffs.MovementFactor(), 1e-6, "back to normal pace")
+}
+
+func TestCooldown_SpeedBurstSetsThePip(t *testing.T) {
+	// The only client tell besides moving faster (bit 7 of applied_effects).
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipCooldown(0, speedBurstDef(), 1)
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.AddEntity(caster)
+
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+
+	assert.NotZero(t, caster.buffs.AppliedEffects()&skills.AppliedEffectSpeed,
+		"a sprinting caster carries the speed pip")
 }

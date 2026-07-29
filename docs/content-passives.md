@@ -10,7 +10,6 @@ In-game entries: authoritative definition is `api/skills/*.json`; all values
 
 | Name | Status | Effect | Design notes |
 |---|---|---|---|
-| Swift | in-game | +move speed (stat multiplier). | Pyromancer combo component. Deliberately spread **line-wide** across the wolves (2026-07-21): it was the wolf line's only non-legacy source, so narrowing it to one wolf would have made it world-unreachable and regressed the step-7 A.5 guarantee. |
 | Hardy | in-game *(C2)* | +max HP (stat multiplier, composes with f(L)). | Barrier recipe ingredient. `api/skills/hardy.json`. |
 | ThickHide | in-game *(C2)* | First authored `resist_passive`: ×0.85 physical, stronger per level. | Physical = the default tag, so it resists most of Z1 — deliberate. `api/skills/thick-hide.json`. |
 | Tough | in-game | +damage reduction (stat multiplier). | Vocab smoke content; Barrier recipe ingredient. |

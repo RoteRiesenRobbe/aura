@@ -339,9 +339,13 @@ func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.
 				p.SkillComponent().CancelCast()
 				p.SetLastMoveDir(v)
 			}
-			// Passive movement-speed bonus (DerivedStats); config stays
-			// untouched. The mob's stepLength applies the same factor (chunk 1a).
-			speed := p.Config().WalkingSpeedPerTick * p.SkillComponent().Derived.MovementSpeedFactor()
+			// Passive movement-speed bonus (DerivedStats) times the transient
+			// one (speed_burst buffs vs. slows, composed in skills.Buffs);
+			// config stays untouched. The mob's stepLength applies both of the
+			// same factors (chunk 1a; Swift-as-a-cooldown).
+			speed := p.Config().WalkingSpeedPerTick *
+				p.SkillComponent().Derived.MovementSpeedFactor() *
+				p.MovementFactor()
 			if f := p.SpeedCheatFactor(); f > 0 {
 				speed *= f
 			}

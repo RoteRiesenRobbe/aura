@@ -251,14 +251,20 @@ If it composes an **already-supported effect type**, this is mostly JSON with no
 wire changes — skills ride the existing spellbook stream. A **brand-new effect
 type** is Go work (payload struct + `effectKeys` allowlist + validator in
 `backend/pkg/aura/skills/definition.go`, plus a dispatch case in
-`backend/pkg/aura/sys/skills.go`).
+`backend/pkg/aura/sys/skills.go`) **and two hand-synced frontend edits** — the
+params interface in `frontend/src/client-data/Skills.ts` and a case in
+`SkillTooltip.ts`. Without them the skill works and its tooltip renders a bare
+`(your_type)` with a console warning; the warning is the tripwire, not a build
+error. If the type also puts a buff on an entity, it needs a pip decision in
+`applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go` — 22 as of 2026-07-22):
+`backend/pkg/aura/skills/definition.go` — 25 as of 2026-07-29):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `stat_multiplier`, `light_aura`,
-`taunt`, `detaunt`, `spawn`, `recall`, `revive`, `dash`, `tick_rate`.
+`taunt`, `detaunt`, `spawn`, `recall`, `revive`, `dash`, `tick_rate`, `calm`,
+`charm`, `speed_burst`.
 
 Each type has its **own allowlist of legal fields** (`effectKeys`), enforced at
 load: an unknown or renamed key hard-fails the boot naming the field and its

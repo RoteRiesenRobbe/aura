@@ -239,6 +239,36 @@ describe('charm', () => {
     });
 });
 
+// Swift as a cooldown (PO ruling 2026-07-29). Both halves of the payload scale
+// with skill level, which is what separates it from the tick_rate case above.
+describe('speed burst', () => {
+    const swift = skill({
+        displayName: 'Swift', category: 'cooldown', maxLevel: 3, cooldownTicks: 600,
+        effects: [effect({
+            type: 'speed_burst',
+            speed: {factor: 1.5, factorPerLevel: 0.1, durationTicks: 150, durationTicksPerLevel: 30},
+        })],
+    });
+
+    it('names the pace and the window, both with a next-level preview', () => {
+        // 150 ticks at 33 ms = 4.95 s; the next level is 180 → 5.94 s.
+        const out = lines(swift, 1, 1);
+        expect(out).toContain('Move 1.5× → 1.6× as fast for 4.95s → 5.94s');
+        expect(out.join('\n')).not.toContain('(speed_burst)');
+    });
+
+    it('drops the preview at max level', () => {
+        // 1.5 + 2 × 0.1 = 1.7; 150 + 2 × 30 = 210 ticks = 6.93 s.
+        expect(lines(swift, 3, 1)).toContain('Move 1.7× as fast for 6.93s');
+    });
+
+    it('does not scale with character power', () => {
+        // Movement speed is not a damage number — the power curve must not
+        // touch it, or the tooltip would promise a sprint that grows on level-up.
+        expect(lines(swift, 1, SCALE_AT_30)).toContain('Move 1.5× → 1.6× as fast for 4.95s → 5.94s');
+    });
+});
+
 // The faction scope line (plan-faction-flips D8). It renders from the SKILL's
 // data in the shared section, never from a per-effect case — so these tests use
 // invented faction names and an invented effect type on purpose: if either had

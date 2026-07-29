@@ -121,6 +121,13 @@ export interface TickRateParams {
     durationTicks: number;
 }
 
+export interface SpeedParams {
+    factor: number;
+    factorPerLevel: number;
+    durationTicks: number;
+    durationTicksPerLevel: number;
+}
+
 export interface CalmParams {
     durationTicks: number;
     durationTicksPerLevel: number;
@@ -157,6 +164,7 @@ export interface SkillEffect {
     revive?: ReviveParams;
     dash?: DashParams;
     tickRate?: TickRateParams;
+    speed?: SpeedParams;
     calm?: CalmParams;
     charm?: CharmParams;
 }

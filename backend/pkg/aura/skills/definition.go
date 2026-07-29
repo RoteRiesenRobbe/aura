@@ -58,6 +58,7 @@ const (
 	EffectTypeTickRate
 	EffectTypeCalm
 	EffectTypeCharm
+	EffectTypeSpeedBurst
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -109,6 +110,7 @@ var effectTypeMap = map[string]EffectType{
 	"tick_rate":       EffectTypeTickRate,
 	"calm":            EffectTypeCalm,
 	"charm":           EffectTypeCharm,
+	"speed_burst":     EffectTypeSpeedBurst,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -242,6 +244,7 @@ type EffectDef struct {
 	Revive   *ReviveParams   `json:"revive,omitempty"`   // revive
 	Dash     *DashParams     `json:"dash,omitempty"`     // dash
 	TickRate *TickRateParams `json:"tickRate,omitempty"` // tick_rate
+	Speed    *SpeedParams    `json:"speed,omitempty"`    // speed_burst
 	Calm     *CalmParams     `json:"calm,omitempty"`     // calm
 	Charm    *CharmParams    `json:"charm,omitempty"`    // charm
 }
@@ -566,6 +569,19 @@ type TickRateParams struct {
 	DurationTicks int     `json:"durationTicks"`
 }
 
+// SpeedParams is the speed_burst payload (Swift as a cooldown): a
+// cooldown-fired, self-targeted movement-speed change. Factor scales the
+// caster's OWN movement for DurationTicks game ticks — > 1 sprints, < 1 drags.
+// Self-only: no target flags, no radius, exactly like tick_rate, which it is
+// the movement twin of. Unlike tick_rate both halves scale per level, because
+// this one is authored at maxLevel 3 rather than 1.
+type SpeedParams struct {
+	Factor                float32 `json:"factor"`
+	FactorPerLevel        float32 `json:"factorPerLevel"`
+	DurationTicks         int     `json:"durationTicks"`
+	DurationTicksPerLevel int     `json:"durationTicksPerLevel"`
+}
+
 // CalmParams is the calm payload (plan-faction-flips chunk 2, D7): how long a
 // hit mob stays out of combat. There is no strength axis — a mob is calmed or
 // it is not — so duration is the whole payload, and the only thing skill level
@@ -780,6 +796,11 @@ type effectDef struct {
 	TickRateFactor        float32 `json:"tickRateFactor"`        // tick_rate: cadence multiplier (<1 haste, >1 slow)
 	TickRateDurationTicks int     `json:"tickRateDurationTicks"` // tick_rate: buff lifetime in game ticks
 
+	SpeedFactor                float32 `json:"speedFactor"`                // speed_burst: movement multiplier (>1 sprint, <1 drag)
+	SpeedFactorPerLevel        float32 `json:"speedFactorPerLevel"`        // speed_burst: multiplier added per level
+	SpeedDurationTicks         int     `json:"speedDurationTicks"`         // speed_burst: buff lifetime in game ticks
+	SpeedDurationTicksPerLevel int     `json:"speedDurationTicksPerLevel"` // speed_burst: lifetime added per level
+
 	CalmTicks         int `json:"calmTicks"`         // calm: ticks out of combat
 	CalmTicksPerLevel int `json:"calmTicksPerLevel"` // calm: per skill level
 
@@ -900,6 +921,11 @@ var effectKeys = map[EffectType][]string{
 	// factor plus a lifetime. No geometry, no targeting, no cadence (it MODIFIES
 	// cadence rather than having one).
 	EffectTypeTickRate: {"tickRateFactor", "tickRateDurationTicks"},
+	// Speed burst (Swift as a cooldown): the movement twin of tick_rate — a
+	// scalar factor plus a lifetime, both level-scaled. No geometry, no
+	// targeting, no cadence; it modifies movement, it does not project.
+	EffectTypeSpeedBurst: {"speedFactor", "speedFactorPerLevel",
+		"speedDurationTicks", "speedDurationTicksPerLevel"},
 	// Calm (plan-faction-flips chunk 2): a query circle of enemy mobs, each
 	// dropped out of combat for the authored duration. No cadence (it fires on
 	// cooldown activation) and no selector/cap on purpose — calm is a DISENGAGE
@@ -1160,6 +1186,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.Dash, err = e.dashParams()
 	case EffectTypeTickRate:
 		def.TickRate, err = e.tickRateParams()
+	case EffectTypeSpeedBurst:
+		def.Speed, err = e.speedParams()
 	case EffectTypeCalm:
 		def.Calm, err = e.calmParams()
 	case EffectTypeCharm:
@@ -1474,6 +1502,30 @@ func (e *effectDef) tickRateParams() (*TickRateParams, error) {
 		return nil, fmt.Errorf("tickRateDurationTicks: must be > 0, got %v", e.TickRateDurationTicks)
 	}
 	return &TickRateParams{Factor: e.TickRateFactor, DurationTicks: e.TickRateDurationTicks}, nil
+}
+
+// speedParams builds the speed_burst payload, validated on the tickRateParams
+// rules: a factor of 0 or below is nonsense (it would stop or reverse the
+// caster), exactly 1 is a silent no-op cooldown, and a zero lifetime is a buff
+// that expires before it is ever read. Per-level scaling is unconstrained here
+// — a negative perLevel is a legitimate authoring choice (a burst that trades
+// speed for duration), and the firing site floors the scaled values.
+func (e *effectDef) speedParams() (*SpeedParams, error) {
+	if e.SpeedFactor <= 0 {
+		return nil, fmt.Errorf("speedFactor: must be > 0, got %v", e.SpeedFactor)
+	}
+	if e.SpeedFactor == 1 {
+		return nil, fmt.Errorf("speedFactor: 1 is a no-op (neither faster nor slower)")
+	}
+	if e.SpeedDurationTicks <= 0 {
+		return nil, fmt.Errorf("speedDurationTicks: must be > 0, got %v", e.SpeedDurationTicks)
+	}
+	return &SpeedParams{
+		Factor:                e.SpeedFactor,
+		FactorPerLevel:        e.SpeedFactorPerLevel,
+		DurationTicks:         e.SpeedDurationTicks,
+		DurationTicksPerLevel: e.SpeedDurationTicksPerLevel,
+	}, nil
 }
 
 // calmParams builds the calm payload. A calm of zero ticks is a cast that

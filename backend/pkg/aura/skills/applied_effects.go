@@ -20,8 +20,14 @@ const (
 	AppliedEffectTickRate AppliedEffect = 1 << 4
 	AppliedEffectCalm     AppliedEffect = 1 << 5
 	AppliedEffectCharm    AppliedEffect = 1 << 6
+	AppliedEffectSpeed    AppliedEffect = 1 << 7
 	// Shields carry AppliedEffectNone: shield_hp is already on the wire and the
 	// overhead bar renders the absorb segment — a pip would double-display it.
+
+	// ⚑ Bit 7 is the LAST bit of the ubyte. The next payload kind that wants a
+	// pip has to widen the wire field first — a natural part of backlog §39
+	// (the entity presentation rework), which replaces presence-only pips with
+	// durations anyway.
 )
 
 // AppliedEffects is the union of pip bits across every live application — the
@@ -40,6 +46,7 @@ func (b *Buffs) AppliedEffects() AppliedEffect {
 
 func (*dotPayload) appliedBit() AppliedEffect      { return AppliedEffectDot }
 func (*slowPayload) appliedBit() AppliedEffect     { return AppliedEffectSlow }
+func (*speedPayload) appliedBit() AppliedEffect    { return AppliedEffectSpeed }
 func (*hotPayload) appliedBit() AppliedEffect      { return AppliedEffectHot }
 func (*resistPayload) appliedBit() AppliedEffect   { return AppliedEffectResist }
 func (*tickRatePayload) appliedBit() AppliedEffect { return AppliedEffectTickRate }

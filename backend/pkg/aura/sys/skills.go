@@ -1350,6 +1350,12 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 			}
 			continue
 		}
+		if effect.Type == skills.EffectTypeSpeedBurst {
+			if s.applySpeedBurst(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+			continue
+		}
 		if effect.Type != skills.EffectTypeInstantDamage && effect.Type != skills.EffectTypeInstantDot {
 			continue
 		}
@@ -1478,6 +1484,36 @@ func (s *SkillSystem) applyTickRate(e skillEntity, source skills.SkillID, effect
 		return false
 	}
 	self.ApplyTickRate(source, effect.TickRate.Factor, effect.TickRate.DurationTicks)
+	return true
+}
+
+// speedApplier is the self-buff capability for the movement burst (Swift as a
+// cooldown), the tickRateApplier twin. Players and mobs both implement it via
+// their Buffs store, so mob content can carry a sprint too.
+type speedApplier interface {
+	ApplySpeed(source skills.SkillID, factor float32, ticks int)
+}
+
+// applySpeedBurst fires a speed_burst cooldown: a self-targeted movement-speed
+// change. Like tick_rate there is no query circle — the buff scales the
+// CASTER's own movement — but both halves scale with skill level, so they are
+// floored here: a factor at or below unity would be a cast that did nothing (or
+// slowed the caster it was meant to speed up), and a sub-1-tick duration would
+// expire before the movement site ever read it.
+func (s *SkillSystem) applySpeedBurst(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	self, ok := e.(speedApplier)
+	if !ok || effect.Speed == nil {
+		return false
+	}
+	factor := skills.Scaled(effect.Speed.Factor, effect.Speed.FactorPerLevel, level)
+	if factor <= 0 {
+		return false
+	}
+	ticks := skills.Scaled(effect.Speed.DurationTicks, effect.Speed.DurationTicksPerLevel, level)
+	if ticks < 1 {
+		ticks = 1
+	}
+	self.ApplySpeed(source, factor, ticks)
 	return true
 }
 

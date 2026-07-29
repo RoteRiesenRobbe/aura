@@ -20,6 +20,7 @@ export const enum AppliedEffectBit {
     TickRate = 1 << 4,
     Calm = 1 << 5,
     Charm = 1 << 6,
+    Speed = 1 << 7,
 }
 
 interface PipStyle {
@@ -49,6 +50,9 @@ const PIP_STYLES: readonly PipStyle[] = [
     {bit: AppliedEffectBit.Hot, color: AURA_CATEGORY_COLORS.heal},
     {bit: AppliedEffectBit.Resist, color: AURA_CATEGORY_COLORS.resist},
     {bit: AppliedEffectBit.TickRate, color: 0xe0812e},
+    // Distinct from tick_rate's orange: both are self-buffs on the same actor
+    // and telling "faster auras" from "faster feet" apart matters. [PLACEHOLDER]
+    {bit: AppliedEffectBit.Speed, color: 0x6ee06e},
 ];
 
 /** Pip radius in px. [PLACEHOLDER] */

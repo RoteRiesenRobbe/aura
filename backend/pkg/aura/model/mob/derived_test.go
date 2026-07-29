@@ -132,3 +132,45 @@ func TestMob_MovementSpeedPassive_MovesFarther(t *testing.T) {
 		"+50% movement speed is a longer step, and it rides the CONSUMPTION site "+
 			"(stepLength) so a later-equipped passive is not frozen into velocity")
 }
+
+func TestMob_SpeedBurst_MovesFarther(t *testing.T) {
+	// The mob half of the shared movement factor (Swift as a cooldown): mob
+	// content can carry a sprint, and it rides the same consumption site as
+	// the passive. Asserted on distance moved, not on the buff store.
+	far := phy.Vec2f{X: 100, Y: 0}
+
+	plain := newTestMob()
+	plain.SetPosition(phy.VEC2F_ZERO)
+	plain.moveTowards(far)
+	base := plain.Position().X
+	require.Greater(t, base, float32(0), "baseline: the mob moves at all")
+
+	sprinting := newTestMob()
+	sprinting.SetPosition(phy.VEC2F_ZERO)
+	sprinting.ApplySpeed(10, 1.5, 5)
+	sprinting.moveTowards(far)
+
+	assert.InDelta(t, float64(base*1.5), float64(sprinting.Position().X), 1e-5,
+		"a 1.5× speed buff is a 1.5× step")
+}
+
+func TestMob_SpeedBurstAndSlowCompose(t *testing.T) {
+	// A sprint and a slow multiply out rather than one silently winning — the
+	// composition rule lives in one place (Buffs.MovementFactor) precisely so
+	// player and mob cannot disagree about it.
+	far := phy.Vec2f{X: 100, Y: 0}
+
+	plain := newTestMob()
+	plain.SetPosition(phy.VEC2F_ZERO)
+	plain.moveTowards(far)
+	base := plain.Position().X
+
+	both := newTestMob()
+	both.SetPosition(phy.VEC2F_ZERO)
+	both.ApplySpeed(10, 1.5, 5)
+	both.ApplySlow(4, 0.5, 5)
+	both.moveTowards(far)
+
+	assert.InDelta(t, float64(base*0.75), float64(both.Position().X), 1e-5,
+		"1.5 × (1 − 0.5) = 0.75 of the baseline step")
+}

@@ -127,6 +127,12 @@ type PlayerEntity interface {
 	// this player (wire applied_effects — the client draws the pips from it;
 	// the received-status mirror of AuraCategories).
 	AppliedEffects() skills.AppliedEffect
+	// MovementFactor is this player's transient movement-speed multiplier —
+	// speed_burst buffs composed with the strongest slow (skills.Buffs). Read
+	// at the movement site (core/input.go), the same shape as the passive
+	// MovementSpeedFactor next to it; 1.0 = nothing applied. The mob twin is
+	// internal to stepLength, since a mob moves itself.
+	MovementFactor() float32
 	HealReceived() vitals.VitalSign
 	XpGained() uint64
 	NoteHealReceived(delta vitals.VitalSign)

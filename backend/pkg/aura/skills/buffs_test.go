@@ -651,3 +651,84 @@ func TestBuffs_DropCalmClearsEverySource(t *testing.T) {
 	b.DropCalm()
 	assert.False(t, b.Calmed(), "damage breaks calm from every source, not just the newest")
 }
+
+// --- speed payload (Swift as a cooldown): the movement-speed twin of
+// tick_rate, and the other half of the movement axis slow already owns. ---
+
+func TestBuffs_SpeedDefaultIsUnity(t *testing.T) {
+	var b Buffs
+	assert.InDelta(t, 1.0, b.SpeedFactor(), 1e-6, "no speed buff = no change")
+}
+
+func TestBuffs_SpeedSingleFactor(t *testing.T) {
+	var b Buffs
+	b.ApplySpeed(10, 1.5, 2)
+	assert.InDelta(t, 1.5, b.SpeedFactor(), 1e-6)
+}
+
+func TestBuffs_SpeedDifferentSkillsMultiply(t *testing.T) {
+	// Distinct source skills compose multiplicatively, the tick_rate rule.
+	var b Buffs
+	b.ApplySpeed(10, 1.5, 2)
+	b.ApplySpeed(11, 1.2, 2)
+	assert.InDelta(t, 1.8, b.SpeedFactor(), 1e-6)
+}
+
+func TestBuffs_SpeedSameSkillStrongestWins(t *testing.T) {
+	// The same skill never stacks with itself — the application furthest from
+	// unity applies, and a weaker one neither overwrites it nor keeps it alive.
+	var b Buffs
+	b.ApplySpeed(10, 1.2, 2)
+	b.ApplySpeed(10, 1.5, 2)
+	assert.InDelta(t, 1.5, b.SpeedFactor(), 1e-6)
+
+	b.ApplySpeed(10, 1.1, 3)
+	assert.InDelta(t, 1.5, b.SpeedFactor(), 1e-6)
+	b.Tick()
+	b.Tick()
+	assert.InDelta(t, 1.1, b.SpeedFactor(), 1e-6, "1.2/1.5 expired; the 3-tick 1.1 remains")
+}
+
+func TestBuffs_SpeedExpiry(t *testing.T) {
+	var b Buffs
+	b.ApplySpeed(10, 1.5, 2)
+
+	b.Tick()
+	assert.InDelta(t, 1.5, b.SpeedFactor(), 1e-6, "survives one tick boundary")
+
+	b.Tick()
+	assert.InDelta(t, 1.0, b.SpeedFactor(), 1e-6, "expired without re-application")
+}
+
+func TestBuffs_SpeedSameFactorRefreshes(t *testing.T) {
+	var b Buffs
+	b.ApplySpeed(10, 1.5, 2)
+	b.Tick()
+	b.ApplySpeed(10, 1.5, 2) // refresh
+	b.Tick()
+	assert.InDelta(t, 1.5, b.SpeedFactor(), 1e-6, "refreshed stream still alive")
+}
+
+// --- MovementFactor: the one place the two movement-speed buff kinds compose.
+// Both movement sites (player input, mob step) read this, so a sprint and a
+// slow can never disagree about which one wins. ---
+
+func TestBuffs_MovementFactorComposesSpeedAndSlow(t *testing.T) {
+	var b Buffs
+	assert.InDelta(t, 1.0, b.MovementFactor(), 1e-6, "nothing applied")
+
+	b.ApplySpeed(10, 1.5, 2)
+	assert.InDelta(t, 1.5, b.MovementFactor(), 1e-6)
+
+	// A 50 % slow lands on top of the sprint: they multiply out to a wash
+	// rather than one silently winning.
+	b.ApplySlow(4, 0.5, 2)
+	assert.InDelta(t, 0.75, b.MovementFactor(), 1e-6)
+}
+
+func TestBuffs_MovementFactorNeverNegative(t *testing.T) {
+	// A slow fraction above 1 would otherwise reverse the direction of travel.
+	var b Buffs
+	b.ApplySlow(4, 1.5, 2)
+	assert.InDelta(t, 0.0, b.MovementFactor(), 1e-6)
+}

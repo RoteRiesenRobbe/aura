@@ -33,6 +33,7 @@ type fakeInputPlayer struct {
 	lastMoveDir phy.Vec2f
 	speedCheat  float32
 	basic       ecs.BasicEntity
+	buffs       skills.Buffs
 }
 
 func (f *fakeInputPlayer) Basic() ecs.BasicEntity    { return f.basic }
@@ -41,6 +42,7 @@ func (f *fakeInputPlayer) SpeedCheatFactor() float32 { return f.speedCheat }
 func (f *fakeInputPlayer) Hand() *model.Hand                      { return &f.hand }
 func (f *fakeInputPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeInputPlayer) LastMoveDir() phy.Vec2f                 { return f.lastMoveDir }
+func (f *fakeInputPlayer) MovementFactor() float32                { return f.buffs.MovementFactor() }
 func (f *fakeInputPlayer) SetLastMoveDir(v phy.Vec2f)             { f.lastMoveDir = v }
 
 func newFakeInputPlayer() *fakeInputPlayer {
@@ -377,6 +379,48 @@ func TestUpdateInput_SpeedCheatMultipliesMovement(t *testing.T) {
 	p.speedCheat = 2
 	sys.updateInput(p, move, nil)
 	assert.InDelta(t, 0.15, p.pos.X, 1e-6, "factor 2 doubles the per-tick step")
+}
+
+func TestUpdateInput_SpeedBurstMultipliesMovement(t *testing.T) {
+	// Swift as a cooldown: the transient speed buff scales the per-tick step,
+	// on top of config × passive. Asserted on distance moved, never on the
+	// buff store — the store being populated says nothing about the player
+	// actually going faster, which is the whole point of the movement site.
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	p.vitalSigns.Health = 100
+	p.config.WalkingSpeedPerTick = 0.05
+
+	move := &model.PlayerInput{
+		ActiveAuraSlot: model.ActiveAuraSlotNoChange,
+		Movement:       &phy.Vec2f{X: 1, Y: 0},
+	}
+
+	sys.updateInput(p, move, nil)
+	assert.InDelta(t, 0.05, p.pos.X, 1e-6, "no buff = plain config speed")
+
+	p.buffs.ApplySpeed(10, 1.5, 2)
+	sys.updateInput(p, move, nil)
+	assert.InDelta(t, 0.125, p.pos.X, 1e-6, "a 1.5× sprint moves 1.5× as far in one tick")
+}
+
+func TestUpdateInput_SlowReachesThePlayer(t *testing.T) {
+	// The other half of the shared movement factor: slows have lived in the
+	// buff store since the effect-foundations step but only mobs ever read
+	// them, so a slow on a player was inert. Going through MovementFactor
+	// closes that — pinned here so it cannot silently regress.
+	sys := &PlayerInputSystem{}
+	p := newFakeInputPlayer()
+	p.vitalSigns.Health = 100
+	p.config.WalkingSpeedPerTick = 0.05
+	p.buffs.ApplySlow(4, 0.5, 2)
+
+	sys.updateInput(p, &model.PlayerInput{
+		ActiveAuraSlot: model.ActiveAuraSlotNoChange,
+		Movement:       &phy.Vec2f{X: 1, Y: 0},
+	}, nil)
+
+	assert.InDelta(t, 0.025, p.pos.X, 1e-6, "a 50 % slow halves the step")
 }
 
 func TestUpdateInput_ZeroMovementVectorKeepsCast(t *testing.T) {

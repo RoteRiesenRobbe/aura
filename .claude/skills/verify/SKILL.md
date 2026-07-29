@@ -107,6 +107,22 @@ Copy the browser-launch pattern from
   sprite's `.position` and `window.game.character.getX()/getY()` are in the
   **same** space (`character.shape.position` equals `getX/getY`), so the
   difference is a true distance in wire units — divide by 120 for world units.
+- **⚑ Measuring a PACE? Check the ground first.** The world has 777 blocking
+  props, so an arbitrary `WARP` target can sit in a pocket only a couple of units
+  wide — and then every walk measures the pocket, not the speed. That cost four
+  runs on the Swift chunk (2026-07-29): identical `2.04u` walks whether sprinting
+  or not (a flat "the buff does nothing"), plus `0.00u` legs whenever two
+  consecutive walks pushed the same way, which read convincingly as an
+  input-handling bug and sent the script chasing key-repeat theories. On open
+  ground the player walks a clean **1.5 u/s** (`WalkingSpeedPerTick` 0.05 × 30
+  ticks), time-proportional over 2/4/6 s — the throttled rAF does *not* slow it,
+  because the server coasts on held movement for up to `maxHoldTicks` (15).
+  Pick the target by scanning `api/zones/world.json` for the whole-unit tile
+  furthest from any `blocksMovement` prop and the border (currently **-23, 14**
+  at 7.23 units), keep legs short enough not to reach that edge, and **assert the
+  unbuffed baseline is near 1.5 u/s** — a slow baseline means obstruction, and
+  the run should say INCONCLUSIVE rather than print a ratio. Worked example:
+  `swift-cooldown.mjs`.
 - **Equipping from the spellbook: click the skill NAME, not the row centre.**
   Each row is `<name> [−] <lvl>/<max> [+]`, and the spend/unspend buttons sit
   mid-row with explicit precedence in the `pointerdown` handler — a centre click

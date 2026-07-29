@@ -55,6 +55,19 @@ type slowPayload struct {
 	fraction float32
 }
 
+// speedPayload is the movement-speed buff behind Swift-as-a-cooldown: the
+// other half of the axis slowPayload already owns. Kept as its own payload
+// rather than a signed slow because the two are authored, applied and read as
+// different things — a slow is a debuff put on someone else by an aura, a
+// speed burst is a self-buff fired on cooldown — and because their combining
+// rules differ (slows take the strongest globally, speed composes per skill
+// like tick_rate). MovementFactor is where the two meet.
+type speedPayload struct {
+	// factor scales the caster's own movement per tick: > 1 = sprint, < 1 =
+	// a self-imposed drag. Streams are keyed by factor, like slow and tick_rate.
+	factor float32
+}
+
 type tickRatePayload struct {
 	// factor scales the caster's own aura tick interval: < 1 = haste (faster
 	// ticks), > 1 = tick-slow. Streams are keyed by factor, like slow. The
@@ -112,6 +125,7 @@ type hotPayload struct {
 
 func (*resistPayload) isBuffPayload()   {}
 func (*slowPayload) isBuffPayload()     {}
+func (*speedPayload) isBuffPayload()    {}
 func (*tickRatePayload) isBuffPayload() {}
 func (*dotPayload) isBuffPayload()      {}
 func (*shieldPayload) isBuffPayload()   {}
@@ -202,6 +216,22 @@ func (b *Buffs) ApplySlow(source SkillID, fraction float32, ticks int) {
 		}
 	}
 	b.apply(source, &slowPayload{fraction: fraction}, ticks)
+}
+
+// ApplySpeed grants (or refreshes) a movement-speed buff from the given source
+// skill (Swift as a cooldown): factor > 1 sprints, < 1 drags. Same stream rules
+// as slow and tick_rate, keyed by factor — an identical factor refreshes that
+// stream, a different factor opens its own.
+func (b *Buffs) ApplySpeed(source SkillID, factor float32, ticks int) {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*speedPayload); ok && p.factor == factor {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			return
+		}
+	}
+	b.apply(source, &speedPayload{factor: factor}, ticks)
 }
 
 // ApplyTickRate grants (or refreshes) a tick-rate buff from the given source
@@ -427,6 +457,50 @@ func (b *Buffs) SlowFraction() float32 {
 	return strongest
 }
 
+// SpeedFactor is the combined movement-speed multiplier currently in effect on
+// the entity's own movement. Per skill only the most extreme active application
+// counts (furthest from unity — the tick_rate rule, so a skill never
+// self-stacks); across skills the factors multiply. No active buff = 1.0.
+//
+// ⚑ Not the whole movement story on its own: slows live in their own payload
+// with their own combining rule. MovementFactor is the composed value the
+// movement sites read.
+func (b *Buffs) SpeedFactor() float32 {
+	factor := float32(1)
+	for _, list := range b.entries {
+		var strongest *speedPayload
+		for _, e := range list {
+			p, ok := e.payload.(*speedPayload)
+			if !ok {
+				continue
+			}
+			if strongest == nil || unityDistance(p.factor) > unityDistance(strongest.factor) {
+				strongest = p
+			}
+		}
+		if strongest != nil {
+			factor *= strongest.factor
+		}
+	}
+	return factor
+}
+
+// MovementFactor is the entity's total transient movement-speed multiplier:
+// the speed buffs composed with the strongest slow. This is the ONE place the
+// two halves of the movement axis meet — both movement sites (the player's
+// input step and the mob's stepLength) read it, so a sprint and a slow can
+// never disagree about which one wins depending on who is moving.
+//
+// Floored at 0: a slow fraction above 1 would otherwise reverse the direction
+// of travel.
+func (b *Buffs) MovementFactor() float32 {
+	f := b.SpeedFactor() * (1 - b.SlowFraction())
+	if f < 0 {
+		return 0
+	}
+	return f
+}
+
 // TickRateFactor is the combined tick-rate multiplier currently in effect on
 // the caster's own aura cadence (skill-vocab chunk 6). Per skill only the most
 // extreme active application counts (furthest from unity — the resist-style
@@ -441,7 +515,7 @@ func (b *Buffs) TickRateFactor() float32 {
 			if !ok {
 				continue
 			}
-			if strongest == nil || tickRateDistance(p.factor) > tickRateDistance(strongest.factor) {
+			if strongest == nil || unityDistance(p.factor) > unityDistance(strongest.factor) {
 				strongest = p
 			}
 		}
@@ -452,9 +526,10 @@ func (b *Buffs) TickRateFactor() float32 {
 	return factor
 }
 
-// tickRateDistance ranks tick-rate factors by how far they pull from unity, so
-// "strongest" is well-defined for both hastes (< 1) and tick-slows (> 1).
-func tickRateDistance(factor float32) float32 {
+// unityDistance ranks multiplicative factors by how far they pull from unity,
+// so "strongest" is well-defined in both directions — for tick_rate (hastes
+// < 1, tick-slows > 1) and for speed (sprints > 1, drags < 1) alike.
+func unityDistance(factor float32) float32 {
 	if factor < 1 {
 		return 1 - factor
 	}

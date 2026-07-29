@@ -1,14 +1,18 @@
 {
+  "_comment": "Swift, re-roled from a passive to a movement cooldown (PO ruling 2026-07-29, plan-playtest-feedback.md §Open questions 4). The movement space held only Dash (a blink) and Haste (which is aura cadence, not movement), so the sustained-speed slot was empty and a flat stat_multiplier passive was the weakest possible occupant of it. Shape picked by the PO: a steerable sprint rather than a short escape burst — at L1 that is 11.25 units of travel across the 5 s window against 7.5 walking. Keeps id 10 and its wolf-line drops (Wolf 0.04 / EliteWolf 0.25 / DireWolf 0.12 / AlphaWolf 0.15), so the first-drop moment is unchanged; only what it drops changed. All values [PLACEHOLDER]",
   "id": 10,
   "name": "Swift",
-  "category": "passive",
+  "category": "cooldown",
   "maxLevel": 3,
+  "cooldownTicks": 600,
+  "cooldownTicksPerLevel": -60,
   "effects": [
     {
-      "type": "stat_multiplier",
-      "stat": "movementSpeed",
-      "statBonus": 0.05,
-      "statBonusPerLevel": 0.05
+      "type": "speed_burst",
+      "speedFactor": 1.5,
+      "speedFactorPerLevel": 0.1,
+      "speedDurationTicks": 150,
+      "speedDurationTicksPerLevel": 30
     }
   ]
 }

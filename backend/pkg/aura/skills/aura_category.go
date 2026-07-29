@@ -62,6 +62,9 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	EffectTypeRevive:         AuraCategoryNone,
 	EffectTypeDash:           AuraCategoryNone,
 	EffectTypeTickRate:       AuraCategoryNone,
+	// A speed burst is self-targeted and projects nothing; its tell is the
+	// applied-effect pip on the caster (plus visibly moving faster).
+	EffectTypeSpeedBurst: AuraCategoryNone,
 	// Calm is cooldown-fired and leaves no ring; the client tell is the
 	// applied-effect pip on the calmed mob (plan-faction-flips chunk 2).
 	EffectTypeCalm: AuraCategoryNone,

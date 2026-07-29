@@ -21,28 +21,23 @@ import (
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 )
 
-// grant is one expected teaching: skill name and the level it unlocks at.
-type grant struct {
-	skill string
-	level uint32
-}
-
-// The pre-migration payload of all 14 world NPCs, in authored order.
-var expectedNpcTeachings = map[string][]grant{
-	"Farmer":            {{"Harvest", 1}},
-	"Hermit":            {{"FirstAid", 2}, {"Heal", 3}},
-	"Lamplighter":       {{"Torch", 0}},
-	"Dog":               {{"SummonCompanion", 0}},
-	"Miner":             {{"Pickaxe", 4}},
-	"CityGuard":         {{"Strong", 3}},
-	"VillageHealer":     {{"FirstAid", 2}, {"Revive", 8}},
-	"FrontCaptain":      {{"Vanguard", 15}},
-	"Shaman":            {{"Recover", 4}, {"SummonTotem", 5}},
-	"Wanderer":          {{"Recall", 3}},
-	"LamplessTraveller": nil, // pure flavour, and that is a first-class case
-	"TownCrier":         {{"Damage", 1}, {"Recall", 3}},
-	"ForestSign":        nil, // a sign-post: lore only
-	"Emberkeeper":       {{"Torch", 1}, {"Ignite", 7}, {"Immolate", 12}},
+// The 14 world NPCs that carry an interaction.
+//
+// ⚑ This used to be a map of name → the exact teaching payload each NPC had
+// before the 3a migration, and a companion test asserted the grants had not
+// moved. That pin was RETIRED 2026-07-29 (PO): it had done its job — it proved
+// the zone-entry → mob-definition move (3a) and the flat-option → tree move
+// (3b-ii) were payload-preserving — and content has since deliberately moved
+// past it (`3b1b3ef6` gave the Hermit Calm@10 and CharmBeast@10), so from then
+// on it only reported that authoring had happened. The census below is the part
+// that still earns its keep: it says WHO can talk, which no other test does.
+var expectedConversants = []string{
+	"Farmer", "Hermit", "Lamplighter", "Dog", "Miner", "CityGuard",
+	"VillageHealer", "FrontCaptain", "Shaman", "Wanderer",
+	"LamplessTraveller", // pure flavour, and that is a first-class case
+	"TownCrier",
+	"ForestSign", // a sign-post: lore only
+	"Emberkeeper",
 }
 
 func conversants(t *testing.T) map[string]*MobDefinition {
@@ -63,39 +58,27 @@ func TestContent_ConversantCensus(t *testing.T) {
 	for name := range found {
 		names = append(names, name)
 	}
-	want := make([]string, 0, len(expectedNpcTeachings))
-	for name := range expectedNpcTeachings {
-		want = append(want, name)
-	}
-	assert.ElementsMatch(t, want, names, "exactly the merged NPCs carry an interaction")
+	assert.ElementsMatch(t, expectedConversants, names, "exactly the merged NPCs carry an interaction")
 }
 
-// The teaching payload survived BOTH moves intact: zone entry → mob definition
-// (3a), and one flat multi-grant option → a browsable tree (3b-ii). Same skills,
-// same order, same level gates.
-//
-// ⚑ 3a's version asserted a single node, because that was all anyone authored.
-// 3b-ii authors real trees for three NPCs, so this walks every node — but the
-// EXPECTATION is unchanged, which is the whole point: rearranging a conversation
-// must not quietly change what it hands out.
-func TestContent_TeachingOrderMatchesPreMigrationZone(t *testing.T) {
+// Every grant an NPC hands out is a resolved teach-skill grant. This is the part
+// of the retired teaching-order pin that was never about the migration: an
+// unresolved skill or a grant kind nobody implemented is a load-time defect at
+// any point in the content's life, whereas WHICH skills an NPC teaches is
+// authoring the PO changes on purpose.
+func TestContent_EveryGrantIsAResolvedTeach(t *testing.T) {
 	found := conversants(t)
+	require.NotEmpty(t, found)
 
-	for name, want := range expectedNpcTeachings {
-		def, ok := found[name]
-		require.True(t, ok, "%s must carry an interaction", name)
-
-		var got []grant
+	for name, def := range found {
 		for _, node := range def.Interaction.Nodes {
 			for _, opt := range node.Options {
 				for _, g := range opt.Grants {
-					require.Equal(t, GrantTeachSkill, g.Kind, "%s", name)
-					require.NotNil(t, g.Skill, "%s: the skill must be resolved at load", name)
-					got = append(got, grant{g.Skill.Name, g.RequiredLevel})
+					assert.Equal(t, GrantTeachSkill, g.Kind, "%s", name)
+					assert.NotNil(t, g.Skill, "%s: the skill must be resolved at load", name)
 				}
 			}
 		}
-		assert.Equal(t, want, got, "%s: teaching order/levels", name)
 	}
 }
 

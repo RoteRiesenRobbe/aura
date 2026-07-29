@@ -70,11 +70,10 @@ without the `SKILL` cheat.
 | 58 | Wildfire | 5 | fire dot 10.5 +2.1/L ×2 tgt (4×60t) @20t, r1.4 + self-only fire resist ×0.6 −0.05/L + light r4 +1/L (2026-07-21) | Recipe: Ignite 3 + Immolate 5 |
 | 59 | Suppression | 5 | dmg 6.5 +1.4/L r2.6 +.1/L + slow 7% +7%/L | Recipe: Slow 5 + LongRangeStrike 5 |
 
-## Passives (8)
+## Passives (7)
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
-| 10 | Swift | 3 | move speed +5% +5%/L | Drop: every wolf .1 (line-wide 2026-07-21) |
 | 11 | Tough | 3 | damage reduction +10% +10%/L | Drop: Troll .25 (+ PG Dodo .05) |
 | 42 | Hardy | 3 | max health +8% +8%/L | Drop: Boar .03 |
 | 43 | ThickHide | 3 | physical resist ×0.85 −.05/L | Drop: Bear .04 |
@@ -83,10 +82,11 @@ without the `SKILL` cheat.
 | 60 | KeenEye | 5 | crit chance +2% +2%/L | Drop: every wolf .06 (line-wide 2026-07-21) |
 | 136 | Strong | 5 | all outgoing damage +4% +2%/L (direct + dots) | NPC-W CityGuard @L3 (the "inform the city" reward, 2026-07-21) |
 
-## Cooldowns (19)
+## Cooldowns (20)
 
 | ID | Name | MaxLv | Values (CD in ticks) | Source |
 |---|---|---|---|---|
+| 10 | Swift | 3 | move speed ×1.5 +0.1/L for 150t +30/L; CD 600 −60/L | Drop: every wolf .1 (line-wide 2026-07-21) |
 | 20 | NovaBurst | 3 | burst 18 +4/L **fire** r2.0 +.1/L **+ fire dot 5 +1.2/L** (3×30t); CD 300 | Drop: BanditPyromancer .05 |
 | 21 | FirstAid | 3 | self-heal 20% +5%/L of max; CD 900 | NPC-W Hermit @L2 (left the milestone table 2026-07-21) |
 | 22 | Ignite | 3 | fire dot 6.3 +1.6/L (3×30t), r1.5 +.1/L; CD 300 | NPC-W Emberkeeper @L3 |

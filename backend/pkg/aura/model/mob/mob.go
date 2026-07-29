@@ -1133,19 +1133,16 @@ func (m *Mob) moveAwayFrom(threat phy.Vec2f) {
 }
 
 // stepLength is this tick's movement distance: base velocity raised by the
-// movement-speed passive and reduced by the strongest active slow (shared by
-// chase, walk-home and flee).
+// movement-speed passive and scaled by the transient buffs — speed_burst
+// against the strongest active slow (shared by chase, walk-home and flee).
 //
 // ⚑ The passive applies HERE, at the consumption site, not to the stored
 // velocity (chunk 1a): velocity is set once at construction, so folding the
 // factor in there would freeze whatever loadout the mob spawned with. The
-// player's equivalent site (core/input.go) is the same shape.
+// player's equivalent site (core/input.go) is the same shape, and both read the
+// transient half from the same skills.Buffs.MovementFactor.
 func (m *Mob) stepLength() float32 {
-	step := m.velocity * m.skills.Derived.MovementSpeedFactor()
-	if slow := m.buffs.SlowFraction(); slow > 0 {
-		step *= 1 - slow
-	}
-	return step
+	return m.velocity * m.skills.Derived.MovementSpeedFactor() * m.buffs.MovementFactor()
 }
 
 // shouldFlee reports the flee trigger (mob-depth chunk 2): a definition-level
@@ -1751,6 +1748,13 @@ func (m *Mob) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
 // is entity-agnostic; drained by takeDamage before HP.
 func (m *Mob) ApplyShield(source skills.SkillID, hp float32, ticks int) {
 	m.buffs.ApplyShield(source, hp, ticks)
+}
+
+// ApplySpeed grants a movement-speed buff from a speed_burst cooldown; read
+// each tick by stepLength via the composed MovementFactor. Mob content can
+// carry a sprint of its own, the same way it can carry a self-haste.
+func (m *Mob) ApplySpeed(source skills.SkillID, factor float32, ticks int) {
+	m.buffs.ApplySpeed(source, factor, ticks)
 }
 
 // ApplyTickRate grants a haste / tick-slow buff scaling this mob's own aura

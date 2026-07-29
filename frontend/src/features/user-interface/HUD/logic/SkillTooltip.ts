@@ -363,6 +363,18 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             lines.push('It keeps its own level, and turns on you when the charm ends');
             break;
         }
+        case 'speed_burst': {
+            // Both halves scale, so both go through prog() — the whole point of
+            // the re-role is that the sprint gets longer AND faster with levels,
+            // which the passive it replaced could not express.
+            const speed = effect.speed;
+            // The × rides the per-value renderer, not the joined string, or the
+            // next-level preview reads "1.5 → 1.6×" with only one unit.
+            const pace = prog(speed.factor, speed.factorPerLevel, level, maxLevel, n => `${fmt(n)}×`);
+            const duration = prog(speed.durationTicks, speed.durationTicksPerLevel, level, maxLevel, ticksToSecs);
+            lines.push(`Move ${pace} as fast for ${duration}`);
+            break;
+        }
         case 'tick_rate': {
             const tickRate = effect.tickRate;
             const speed = tickRate.factor < 1
