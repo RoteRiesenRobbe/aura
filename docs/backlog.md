@@ -3472,3 +3472,135 @@ again.
 **Not scheduled.** Needs a design pass, and the (a)-vs-(b) call should be made
 before anything is authored — they diverge immediately and shape (a) is not a
 stepping stone to shape (b).
+
+---
+
+## 38. One species, many levels — a per-SPAWN level override
+
+**Origin:** PO ask 2026-07-29, immediately after the charm level-gate question
+(§ the `plan-faction-flips.md` chunk-3 session). *"I want to be able to author a
+single mob in all levels — so be able to spawn the same wolf on level 1 and
+level 30, for example."*
+
+### Is it possible today? **No.**
+
+A mob's level is authored **per species**, once, as
+`MobDefinition.CurveLevel` (`items/mobs/definitions.go:176` — *"the mob's
+hand-picked position on the f(L) curve; zone number = curve position, GDD §5"*).
+`world.Spawn` (`world/zone.go:65`) carries position, angle, respawn timing,
+wander radius, waypoints, patrol mode and idle speed — **no level** — and
+`MobSystem.spawnAt` never sets one. `Mob.Level()` is therefore
+`owner ?? definition.CurveLevel`, and every Wolf in the world stands at the same
+level no matter where it is placed.
+
+The only way to get a level-30 wolf today is to author a **second definition**
+that happens to be called something else — which is what the wolf family already
+is (`Wolf` cL2 → `AlphaWolf` → `EliteWolf` → `DireWolf`), except those also differ
+in tier, stats and loadout. There is no way to reuse one definition at two
+levels.
+
+### ⭐ The good news: entity-model chunk 1b already did the hard half
+
+This idea would have been expensive before 2026-07-26 and is now mostly free,
+because **the pool and the output are already derived live from `Level()`**:
+
+- `factors.baseMaxHealth` is authored **at the baseline** (f = 1), NOT at the
+  species' curve level — the doc comment on `Factors` says so explicitly — and
+  `Mob.MaxHealth()` is `baseMaxHealth × PowerScale() × MaxHealthFactor()`.
+- `PowerScale()` is `definition.Curve.F(Level())`, evaluated **at the mob's
+  current level**, and `casterPowerScale` routes every HP-valued skill output
+  through it.
+
+So a per-instance level would scale **HP and damage automatically, with no
+re-authoring and no number moving for existing content** (an absent override
+inherits `CurveLevel`, exactly as today). That is the whole reason this is worth
+writing down as a small change rather than a system.
+
+### What it needs
+
+1. **`world.Spawn.level`** (`level` in the zone JSON) + loader validation
+   (1 … `maxLevel` 30). Absent → inherit `def.CurveLevel`. The tri-state
+   `wanderRadius` / `idleSpeedFactor` already establish the "absent = inherit the
+   species default" pattern, including its `*float32`-style encoding.
+2. **`spawnPoint.level`** in `MobSystem` — a respawn must reproduce the same
+   level, not fall back to the species value.
+3. **A per-instance level on `Mob`**, with the precedence
+   **`owner ?? spawn override ?? definition.CurveLevel`**. ⚑ The override must sit
+   **after** `owner`: entity-model chunk 1b makes a summon stand at its owner's
+   level *live*, and `plan-faction-flips.md` L-B/L-M pin that a charmed mob keeps
+   its own — putting the override first would quietly re-open both.
+4. **⚑ A wire field and a client change — the biggest single cost, and easy to
+   miss.** The nameplate renders `"<displayName> <curveLevel>"` from the
+   **catalog** (`Mobs.ts:167`), i.e. per species and static, and the
+   nameplate **tint** (how far the mob's level sits from the player's) reads the
+   same number. With per-spawn levels **every nameplate and every tint would be
+   wrong**. So `Mob.level` has to go on the wire (`server.fbs`, appended at the
+   table end like `max_health`), both binding sets regenerated, and `Mobs.ts`
+   switched to the wire value.
+5. **Zone editor** — a level field on the spawn tool (`ZoneModel.ts` spawn record
+   + the panel), or the PO authors `level` by hand in the zone JSON.
+
+### ⚑ What does NOT scale with level — where the real questions are
+
+Everything above is mechanical. These are not:
+
+- **XP reward.** `factors.experience` is a flat per-species number, so a
+  level-30 Wolf would grant a level-1 Wolf's XP. That directly breaks the
+  standing **Session-⑥ XP band rule** (facetank kills-per-hour, else kite ×0.5),
+  which is a CLAUDE.md standing lock. Either XP is derived from level (a formula
+  nobody has designed) or it is authored per spawn alongside the level.
+- **Drops and unlock tables.** Authored per species. Is a level-30 Wolf still
+  dropping the level-1 aura correct (the aura is the species' identity) or wrong
+  (rewards should track difficulty)?
+- **Skill loadout levels are a SEPARATE axis.** A mob's skills carry their own
+  authored `MobSkill.Level`. HP-valued output rides `PowerScale`, so it scales —
+  but **CC parameters do not**: slow fraction and duration, radii, tick rates and
+  target counts ride the *skill* level only. A level-30 Wolf would therefore hit
+  ~an order of magnitude harder while slowing you for exactly as long as a
+  level-1 one. Probably wrong, and not obviously the same fix.
+- **Tier** (`normal`/`elite`/`boss`) stays per species — it is a classification,
+  not a stat, and the client's tier frame reads it. A level-30 *normal* Wolf is
+  coherent; whether it should look different from a level-1 one is a visual call.
+- **Flat per-species and presumably intended to stay:** resistances, speed, aggro
+  radius, body radius.
+
+### Open questions
+
+1. **Absolute level or offset?** `level: 30` is explicit and readable in the JSON;
+   `levelOffset: +5` (relative to the species' `curveLevel`) survives a rebalance
+   of the species without touching every spawn. A per-**zone** band (*"every mob
+   in this zone stands at the zone's level"*) is a third shape and would match
+   GDD §5's *"zone number = curve position"* more literally than either.
+2. **Does XP have to move with it?** See above — this is the one that decides
+   whether the idea is a small change or a balance project.
+3. **What happens to the CC axis?** Leave skill levels flat (a strong-but-slow
+   scaler), scale them with the mob level, or author them per spawn too.
+4. **Should the sim harness see it?** `sim/world.go` builds inline definitions and
+   the explorer's roster is species-keyed, so per-spawn levels are **invisible to
+   the balancing harness** — a level-30 Wolf could not be balanced there without
+   new plumbing. That may be acceptable (the harness balances *species*, and this
+   feature is about placement) or may be the thing that makes the feature safe.
+5. **Is this a replacement for the wolf family or an addition?** If a Wolf can be
+   authored at any level, `AlphaWolf`/`EliteWolf`/`DireWolf` become a question:
+   are they levels of one species, or genuinely different creatures with their own
+   art, tier and loadout? Answering "levels" would shrink the mob roster
+   noticeably; answering "creatures" keeps it and this feature is purely additive.
+
+### Why it is worth doing
+
+It is the lever that makes several existing things work properly:
+
+- **Level-gated charm** (the question that produced this entry) is currently
+  meaningless as a *placement* tool: a mob's level is constant world-wide, so
+  *"this species is out of your band"* is a fact about the species, not about
+  where you met it.
+- **Zone difficulty becomes authorable without new content.** A second zone can
+  reuse the whole zone-1 bestiary at a higher level instead of needing new
+  definitions, which is exactly the v1 scope pressure (2–3 zones).
+- **It fits the direction the entity model already took:** levels became dynamic
+  per actor in chunk 1b, and this is the same idea applied to placement rather
+  than ownership.
+
+**Not scheduled.** Requirements 1–3 are perhaps half a session; requirement 4
+(the wire + nameplate) is the real cost and should be bundled with any other
+schema regen; the open questions — especially XP — need a PO design pass first.
