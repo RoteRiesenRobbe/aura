@@ -602,7 +602,7 @@ Effect: a soft "profession" identity without a class system, plus an incentive t
 - **Still no quest markers.** No map arrows, no minimap pins, no in-world highlighting of goals. Finding the place or mob remains the player's job, guided by the entry's wording and world knowledge.
 - **Maybe: a sidebar tracker** — a small HUD list of active journal entries. Under consideration, not decided.
 - **Rewards constraint unchanged:** actives, passives, cooldowns, XP — no items (§7). The native quest verbs are kill-N, talk-to, discover-location, harvest-N; fetch quests are impossible by construction.
-- Quest state is per-character persistent state → depends on accounts & persistence (execution step 8); raise the shape there alongside `backlog.md` §32/§36/§41.
+- Quest state is per-character. The first pass runs **session-scoped, before step 8** (`plan-quests.md` D12, 2026-07-29 — like the spellbook today, wiped on restart); step 8 then persists the live ledger — raise the shape there alongside `backlog.md` §32/§36/§41.
 
 ---
 

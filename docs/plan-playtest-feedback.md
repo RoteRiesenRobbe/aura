@@ -1676,6 +1676,10 @@ Both reward the co-op fantasy, and neither is *felt* solo — so this pass wants
 a multiplayer playtest, not a solo one.
 
 1. **XP credit for any aura that affected the fight** (decision 4).
+   **Sequenced 2026-07-30 (PO, during the quest-plan code review): this item
+   ships BEFORE quest chunk C1** (`plan-quests.md` D15) — quest kill counters
+   hook the same credit event (`rewardPlayer`) and must launch on the final
+   attribution rule, not the interim damage-touch one.
 2. **CallForAid combo recipes** (decision 5) — heal minions / damage minions.
    Warbanner itself unchanged.
 
