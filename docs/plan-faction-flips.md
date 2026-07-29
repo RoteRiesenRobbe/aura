@@ -889,7 +889,7 @@ It is the first consumer of chunk 1's seam (§5.1 — calm never flips faction, 
 chunk 2 did **not** prove it). Read **L-B / L-M** before touching `Level()`, and
 **L-O** before authoring the charm skills.
 
-### Chunk 3 — charm ✅ DONE 2026-07-29, backend + frontend + content, committed `[uncommitted]`
+### Chunk 3 — charm ✅ DONE 2026-07-29, backend + frontend + content, committed `153c0032`
 
 **A wolf can now be told whose side it is on.** Charm ships as ruled: the
 nearest eligible mob in radius joins the player side as a full companion (D6) —
