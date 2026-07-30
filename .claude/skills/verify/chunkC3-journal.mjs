@@ -1,31 +1,36 @@
 #!/usr/bin/env node
 // quest chunk C3 — the journal panel, its wire and its abandon verb
-// (plan-quests.md §6, D7/D13/D14/D16/D17).
+// (plan-quests.md §6, D7/D13/D14/D16/D17) — rewritten for the Q3 two-pane
+// journal (plan-conversation-journal.md §4.5): a quest LIST on the left, the
+// selected quest's diary on the right, Abandon in the detail pane.
 //
 // Boundary: this script owns the JOURNAL — the panel, the /quests catalog, the
-// ledger arriving on GameState, the D17 banner, and abandon. It does not assert
-// anything about conversations (chunk3b-*) beyond using one talk as an event
-// source, and it never asserts how much quest content exists (verify rule 1).
+// ledger arriving on GameState, the D17 banner, selection, and abandon. It does
+// not assert anything about conversations (chunk3b-*) beyond using one talk as
+// an event source, and it never asserts how much quest content exists (verify
+// rule 1).
 //
-// Two halves:
+// Four parts:
 //
 //   A. Always runs — the catalog is reachable, J and the HUD button open and
 //      close the panel, and an empty journal SAYS it is empty rather than
 //      looking like a broken one (the D14 degrade this chunk exists to get
 //      right).
 //   B. Content-driven, and SKIPped when the probe quest is not loaded: accept →
-//      the running section shows the stage's diary + a banner → abandon → gone
-//      and offerable again → re-accept → talk to the Emberkeeper → the objective
-//      auto-advances, a second entry appears, the quest moves to Completed and
-//      pings "Quest complete". Since Q2 it also asserts the server-composed
-//      objective LINE (plan-conversation-journal.md R2): "Talk to the
-//      Emberkeeper" while running, and no line once completed.
-//
+//      the list shows the quest, auto-selected, its diary + Q2 objective line in
+//      the detail pane → abandon (via the detail pane) → gone and offerable
+//      again → re-accept → talk to the Emberkeeper → the objective
+//      auto-advances, a second entry appears, the quest moves to Completed AND
+//      the selection follows it there (Q3: selection is by id).
 //   C. The Q2 counter leg, guarded on the shipped wolves quest: accept
-//      wolves-on-the-road by cheat, read the derived "n/8 Wolf slain" line,
-//      then kill real wolves and assert the LINE MOVES. Tri-state: no kill
-//      inside the deadline is INCONCLUSIVE, not red. Runs last — a slow hunt
-//      must not cost the cheap legs.
+//      wolves-on-the-road by cheat, select it (the Q3 row-click leg), verify the
+//      selection survives close/reopen (PO ruling 2026-07-30), read the derived
+//      "n/8 Wolf slain" line, then kill real wolves and assert the LINE MOVES.
+//      Tri-state: no kill inside the deadline is INCONCLUSIVE, not red.
+//   D. The Q3 sizing invariant: with the panel open, #journal's rect intersects
+//      neither #bottomCenter, #vitalSigns nor #leftColumn — asserted at the
+//      default 1280×800 AND at 2560×1440, with a screenshot each. Runs last
+//      because it resizes the viewport.
 //
 // To run half B, install the fixture next door and restart aurad:
 //     cp .claude/skills/verify/chunkC3-probe-quest.json api/quests/
@@ -84,6 +89,8 @@ const cmd = async (text) => {
   await page.waitForTimeout(900);
 };
 
+// The Q3 DOM: the list rows are titles with a .selected flag; the words live in
+// the detail pane.
 const journal = () => page.evaluate(() => {
   const panel = document.getElementById('journal');
   if (!panel) return null;
@@ -92,22 +99,41 @@ const journal = () => page.evaluate(() => {
     return {
       visible: el && !el.classList.contains('hidden'),
       quests: [...el.querySelectorAll('.journalQuest')].map((q) => ({
-        title: q.querySelector('.journalQuestTitle')?.textContent ?? '',
-        entries: [...q.querySelectorAll('.journalEntry')].map((p) => p.textContent),
-        // Q2: the server-composed objective lines, rendered verbatim.
-        objectives: [...q.querySelectorAll('.journalObjective')].map((p) => p.textContent),
-        hasAbandon: !!q.querySelector('.journalAbandon'),
+        title: q.textContent,
+        selected: q.classList.contains('selected'),
       })),
     };
   };
+  const detailBody = panel.querySelector('.journalDetailBody');
   return {
     open: !panel.classList.contains('hidden'),
     status: panel.querySelector('.journalStatus')?.textContent ?? '',
     statusVisible: !panel.querySelector('.journalStatus')?.classList.contains('hidden'),
+    panesVisible: !panel.querySelector('.journalPanes')?.classList.contains('hidden'),
     running: section('.journalRunning'),
     completed: section('.journalCompleted'),
+    detail: {
+      title: panel.querySelector('.journalDetailTitle')?.textContent ?? '',
+      entries: [...(detailBody?.querySelectorAll('.journalEntry') ?? [])].map((p) => p.textContent),
+      // Q2: the server-composed objective lines, rendered verbatim.
+      objectives: [...(detailBody?.querySelectorAll('.journalObjective') ?? [])].map((p) => p.textContent),
+      hasAbandon: !!detailBody?.querySelector('.journalAbandon'),
+    },
   };
 });
+
+// Click the list row carrying this title (Q3 selection).
+const selectQuest = async (title) => {
+  const handle = await page.evaluateHandle((t) =>
+    [...document.querySelectorAll('#journal .journalQuest')].find((li) => li.textContent === t) ?? null, title);
+  const el = handle.asElement();
+  if (!el) return false;
+  const box = await el.boundingBox();
+  if (!box) return false;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForTimeout(500);
+  return true;
+};
 
 const banner = () => page.evaluate(() => document.getElementById('alertBanner')?.textContent ?? '');
 
@@ -240,7 +266,9 @@ const opened = await journal();
 check('J opens the journal (D16)', opened?.open === true, `open=${opened?.open}`);
 
 // The degrade this chunk exists for: an empty journal must SAY it is empty, or
-// it is indistinguishable from a journal whose catalog failed to load.
+// it is indistinguishable from a journal whose catalog failed to load. Since
+// Q3 the panes hide behind the status line — an empty list beside an empty
+// diary would read as broken.
 const emptyWorld = !Array.isArray(catalog.body) || catalog.body.length === 0;
 if (emptyWorld) {
   check('an empty journal says so, rather than looking broken',
@@ -251,6 +279,9 @@ if (emptyWorld) {
     !/unavailable/i.test(opened?.status ?? ''),
     `status "${opened?.status || '(none)'}"`);
 }
+check('an empty journal hides the panes behind its status line (Q3)',
+  opened?.panesVisible === false && opened?.statusVisible === true,
+  `panesVisible=${opened?.panesVisible}, status "${opened?.status}"`);
 
 await page.keyboard.press('KeyJ');
 await page.waitForTimeout(600);
@@ -287,35 +318,43 @@ if (!probeLoaded) {
   await cmd(`QUEST ACCEPT ${PROBE_QUEST}`);
   const acceptBanner = await banner();
   const afterAccept = await waitForJournal((j) => j.running.quests.length > 0);
-  check('accepting puts the quest in Running with the stage it entered (D7, L6)',
+  check('accepting lists the quest under Running, auto-selected as the first running quest (D7, Q3)',
     afterAccept?.running.visible
     && afterAccept.running.quests[0]?.title === probeTitle
-    && afterAccept.running.quests[0]?.entries[0] === seekProse,
-    `running: ${JSON.stringify(afterAccept?.running.quests)}`);
+    && afterAccept.running.quests[0]?.selected === true,
+    `running rows: ${JSON.stringify(afterAccept?.running.quests)}`);
+
+  check('the detail pane shows its title and the stage prose it entered (L6)',
+    afterAccept?.detail.title === probeTitle
+    && afterAccept?.detail.entries[0] === seekProse,
+    `detail: ${JSON.stringify(afterAccept?.detail)}`);
 
   // Q2 (R2): the server composes the talk_to line from the load-resolved
   // display name; the panel renders it verbatim under the diary.
   check('the running stage shows its server-composed objective line (Q2)',
-    JSON.stringify(afterAccept?.running.quests[0]?.objectives) === JSON.stringify(['Talk to the Emberkeeper']),
-    `objectives: ${JSON.stringify(afterAccept?.running.quests[0]?.objectives)}`);
+    JSON.stringify(afterAccept?.detail.objectives) === JSON.stringify(['Talk to the Emberkeeper']),
+    `objectives: ${JSON.stringify(afterAccept?.detail.objectives)}`);
 
   check('and pings the journal banner (D17)',
     /journal updated/i.test(acceptBanner),
     `banner "${acceptBanner}"`);
 
-  check('a running quest offers Abandon; nothing else does (D13)',
-    afterAccept?.running.quests[0]?.hasAbandon === true && afterAccept?.completed.visible !== true,
-    `abandon row present=${afterAccept?.running.quests[0]?.hasAbandon}`);
+  check('a running quest offers Abandon in its detail pane (D13, Q3)',
+    afterAccept?.detail.hasAbandon === true && afterAccept?.completed.visible !== true,
+    `abandon present=${afterAccept?.detail.hasAbandon}`);
 
-  // Abandon by CLICKING the row — the whole point of the verb living in the
-  // panel, and the reason the view signature has to hold still (a rebuilt row
-  // drops the click).
-  const abandonBox = await (await page.$('.journalAbandon')).boundingBox();
+  // Abandon by CLICKING it in the detail pane — the verb moved there with Q3,
+  // and the view signature has to hold still for the click to land at all.
+  const abandonBox = await (await page.$('#journal .journalAbandon')).boundingBox();
   await page.mouse.click(abandonBox.x + abandonBox.width / 2, abandonBox.y + abandonBox.height / 2);
   const afterAbandon = await waitForJournal((j) => j.running.quests.length === 0);
   check('abandoning removes it from the journal entirely (D13)',
     afterAbandon?.running.quests.length === 0 && afterAbandon?.completed.quests.length === 0,
     `running=${afterAbandon?.running.quests.length}, completed=${afterAbandon?.completed.quests.length}`);
+
+  check('the emptied journal clears the detail pane and says it is empty again (Q3)',
+    afterAbandon?.detail.title === '' && afterAbandon?.panesVisible === false,
+    `detail title "${afterAbandon?.detail.title}", panesVisible=${afterAbandon?.panesVisible}`);
 
   // ...and it is offerable again, which is what "back to not-started" means.
   await cmd(`QUEST ACCEPT ${PROBE_QUEST}`);
@@ -359,17 +398,24 @@ if (!probeLoaded) {
     afterTalk?.completed.quests.length === 1 && afterTalk?.running.quests.length === 0,
     `completed=${afterTalk?.completed.quests.length}, running=${afterTalk?.running.quests.length}`);
 
+  // Q3: selection is by quest id, so completing moves the quest AND the
+  // selection into the Completed section — the detail pane keeps showing it.
+  check('the selection follows the quest into Completed (Q3)',
+    afterTalk?.completed.quests[0]?.selected === true
+    && afterTalk?.detail.title === probeTitle,
+    `completed row: ${JSON.stringify(afterTalk?.completed.quests[0])}, detail "${afterTalk?.detail.title}"`);
+
   check('the completed quest carries BOTH entries, in the order walked (L6)',
-    JSON.stringify(afterTalk?.completed.quests[0]?.entries) === JSON.stringify([seekProse, spokenProse]),
-    `entries: ${JSON.stringify(afterTalk?.completed.quests[0]?.entries)}`);
+    JSON.stringify(afterTalk?.detail.entries) === JSON.stringify([seekProse, spokenProse]),
+    `entries: ${JSON.stringify(afterTalk?.detail.entries)}`);
 
   check('a completed quest cannot be abandoned (D13)',
-    afterTalk?.completed.quests[0]?.hasAbandon === false,
-    `abandon row present=${afterTalk?.completed.quests[0]?.hasAbandon}`);
+    afterTalk?.detail.hasAbandon === false,
+    `abandon present=${afterTalk?.detail.hasAbandon}`);
 
   check('a completed quest carries no objective line — the diary is its record (Q2 §7.1)',
-    (afterTalk?.completed.quests[0]?.objectives ?? []).length === 0,
-    `objectives: ${JSON.stringify(afterTalk?.completed.quests[0]?.objectives)}`);
+    (afterTalk?.detail.objectives ?? []).length === 0,
+    `objectives: ${JSON.stringify(afterTalk?.detail.objectives)}`);
 
   check('completion pings its own banner (D17)',
     /quest complete/i.test(completeBanner),
@@ -383,7 +429,9 @@ if (!probeLoaded) {
 // first stage is kill 8 Wolf with no authored tracker, so the line on screen is
 // the ledger's derived composition end to end. The count is read as a pattern,
 // never as a fixed number (verify rule 1/3) — lifetime counters mean a re-run
-// against an old character legitimately starts above 0.
+// against an old character legitimately starts above 0. Since Q3 the line lives
+// in the detail pane, so the wolves quest must be SELECTED to read it — which
+// is what makes this half carry the row-click and close/reopen selection legs.
 
 const WOLVES_QUEST = 'wolves-on-the-road';
 const wolvesLoaded = Array.isArray(catalog.body) && catalog.body.some((q) => q.id === WOLVES_QUEST);
@@ -392,8 +440,8 @@ if (!wolvesLoaded) {
     `INCONCLUSIVE — the shipped quest "${WOLVES_QUEST}" is not loaded, nothing to count against.`);
 } else {
   const wolvesTitle = catalog.body.find((q) => q.id === WOLVES_QUEST).title;
-  const lineOf = (j) => (j?.running.quests.find((q) => q.title === wolvesTitle)?.objectives ?? [])[0] ?? '';
-  const entriesOf = (j) => j?.running.quests.find((q) => q.title === wolvesTitle)?.entries ?? [];
+  const lineOf = (j) => (j?.detail.title === wolvesTitle ? j.detail.objectives : [])[0] ?? '';
+  const entriesOf = (j) => (j?.detail.title === wolvesTitle ? j.detail.entries : []);
 
   // The panel only renders while open (visibility is the client's) — make sure
   // it is, whether or not half B ran.
@@ -403,8 +451,31 @@ if (!wolvesLoaded) {
   }
 
   await cmd(`QUEST ACCEPT ${WOLVES_QUEST}`);
-  const accepted = await waitForJournal((j) => lineOf(j) !== '');
-  const startLine = lineOf(accepted);
+  const accepted = await waitForJournal((j) => j.running.quests.some((q) => q.title === wolvesTitle));
+
+  // Q3: clicking a list row selects it and swaps the detail pane. When half B
+  // completed the probe quest, the selection is sitting on it (it followed the
+  // quest into Completed), so this click genuinely switches quests.
+  const before = accepted?.detail.title ?? '';
+  const clicked = await selectQuest(wolvesTitle);
+  const afterSelect = await journal();
+  check('clicking a list row selects it and swaps the detail pane (Q3)',
+    clicked
+    && afterSelect?.detail.title === wolvesTitle
+    && afterSelect?.running.quests.find((q) => q.title === wolvesTitle)?.selected === true,
+    `detail "${before}" → "${afterSelect?.detail.title}"`);
+
+  // PO ruling 2026-07-30: the journal remembers the selection across
+  // close/reopen — it lands on the quest last read, not the first running one.
+  await page.keyboard.press('KeyJ');
+  await page.waitForTimeout(600);
+  await page.keyboard.press('KeyJ');
+  await page.waitForTimeout(600);
+  check('the selection survives close/reopen (Q3, PO ruling)',
+    (await journal())?.detail.title === wolvesTitle,
+    `detail after reopen: "${(await journal())?.detail.title}"`);
+
+  const startLine = lineOf(await journal());
   const startCount = Number(/^(\d+)\/8 Wolf slain$/.exec(startLine)?.[1] ?? NaN);
   check('the kill stage shows the derived "n/8 Wolf slain" line (Q2)',
     Number.isInteger(startCount),
@@ -455,7 +526,48 @@ if (!wolvesLoaded) {
   }
 }
 
-await page.screenshot({ path: `/tmp/chunkC3-journal-${label}.png` });
+// --- half D: the Q3 sizing invariant — no overlap with the HUD --------------
+//
+// §4.5: the panel may never overlap the bottom HUD strip or the spellbook
+// column, enforced by positioning rather than by a third hand-copy of the
+// strip's geometry — so the assertion here is the enforcement. Runs last
+// because it resizes the viewport.
+
+const overlapLeg = async (name) => {
+  if (!(await journal())?.open) {
+    await page.keyboard.press('KeyJ');
+    await page.waitForTimeout(600);
+  }
+  const r = await page.evaluate(() => {
+    const rect = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const b = el.getBoundingClientRect();
+      return { left: b.left, right: b.right, top: b.top, bottom: b.bottom };
+    };
+    const j = rect('journal');
+    const intersects = (a, b) => !!(a && b
+      && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom);
+    return {
+      journal: j,
+      strip: intersects(j, rect('bottomCenter')),
+      vitals: intersects(j, rect('vitalSigns')),
+      leftColumn: intersects(j, rect('leftColumn')),
+      stripTop: rect('bottomCenter')?.top,
+    };
+  });
+  check(`the open journal overlaps neither the HUD strip nor the left column (Q3) — ${name}`,
+    r.journal !== null && !r.strip && !r.vitals && !r.leftColumn,
+    `journal ${JSON.stringify(r.journal)}, strip=${r.strip} (top ${Math.round(r.stripTop ?? -1)}), vitals=${r.vitals}, leftColumn=${r.leftColumn}`);
+};
+
+await overlapLeg('1280×800');
+await page.screenshot({ path: `/tmp/chunkC3-journal-${label}-800.png` });
+
+await page.setViewportSize({ width: 2560, height: 1440 });
+await page.waitForTimeout(1500);
+await overlapLeg('2560×1440');
+await page.screenshot({ path: `/tmp/chunkC3-journal-${label}-1440.png` });
 
 console.log('\nlabel :', label);
 for (const r of results) console.log(`${r.skip ? 'SKIP' : r.pass ? 'PASS' : 'FAIL'}  ${r.check}\n        ${r.detail}`);

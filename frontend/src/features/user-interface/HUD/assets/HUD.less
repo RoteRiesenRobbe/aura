@@ -1171,22 +1171,35 @@
 	}
 }
 
-// Journal panel (plan-quests.md chunk C3, D7/D16): a centered overlay, because a
-// journal is READ rather than glanced at — it needs room for several stages of
-// prose, and it must not compete with the bottom-center conversation stack.
+// Journal panel (plan-quests.md chunk C3, D7/D16; two-pane since
+// plan-conversation-journal.md Q3): the quest list on the left, the selected
+// quest's diary on the right.
 //
 // Deliberately plain: backlog §39's presentation rework will restyle every panel
 // together, so this reuses the shared @panel-* vocabulary and adds nothing of
 // its own beyond layout.
+//
+// ⚑ The positioning states the Q3 sizing invariant: the panel may never overlap
+// the bottom HUD strip or the spellbook column. Vertically that is a top anchor
+// plus a viewport-relative max-height chosen to clear the strip at an 800px-tall
+// viewport (the measured worst case: the strip's top sits at ~79vh there and
+// rises with taller viewports) — deliberately NOT a restatement of the strip's
+// own y-geometry, which already exists in two hand-copies too many (the 13vh
+// pair above). Horizontally the panel centers in the space RIGHT of the left
+// column; the reserve below is the one stated constant for that clearance (the
+// column is content-sized and authors no width anywhere, so this is a new
+// value, not a copy). The harness screenshot gate is what enforces both.
+@journal-left-reserve: 26rem;
+
 #journal {
 	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
+	top: 7vh;
+	left: calc(50% + (0.5 * @journal-left-reserve));
+	transform: translateX(-50%);
 
-	width: 52rem;
-	max-width: 90vw;
-	max-height: 70vh;
+	width: 64rem;
+	max-width: calc(96vw - @journal-left-reserve);
+	max-height: 60vh;
 
 	// Same rule as #conversation: the PANEL does not scroll, only its body does,
 	// so the ✕ never ends up under a scrollbar.
@@ -1231,15 +1244,16 @@
 		}
 	}
 
-	// The only scrolling region. min-height: 0 or the flex child refuses to
-	// shrink below its content and the panel overflows instead. The right
-	// padding keeps text off the scrollbar the moment one appears (Q1 ⑤).
+	// The body does not scroll — each PANE does, independently: a long quest
+	// list must not drag the diary along, and vice versa. min-height: 0 on
+	// every flex level or a child refuses to shrink below its content and the
+	// panel overflows instead.
 	> .journalBody {
 		flex: 1 1 auto;
 		min-height: 0;
-		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
 		padding-top: 1rem;
-		padding-right: 0.8rem;
 
 		.journalStatus {
 			color: @panel-title-color;
@@ -1248,6 +1262,29 @@
 			&.hidden {
 				display: none;
 			}
+		}
+
+		> .journalPanes {
+			flex: 1 1 auto;
+			display: flex;
+			gap: 1.5rem;
+			// A floor rather than the usual min-height: 0 — without it the
+			// panel collapses to a strip around a one-line diary and resizes
+			// with every selection click. The ceiling is the panel's 60vh.
+			min-height: 22rem;
+
+			&.hidden {
+				display: none;
+			}
+		}
+
+		.journalList {
+			flex: 0 0 20rem;
+			min-height: 0;
+			overflow-y: auto;
+			// Q1 ⑤: keeps text off the scrollbar the moment one appears.
+			padding-right: 0.8rem;
+			border-right: 1px solid @panel-row-divider;
 		}
 
 		.journalRunning,
@@ -1276,23 +1313,49 @@
 			padding: 0;
 		}
 
+		// A list row is a title to click; the words live in the detail pane.
 		.journalQuest {
-			padding: 0.8rem 0;
+			padding: 0.5rem 0.8rem;
+			cursor: pointer;
+			border-radius: 0.5rem;
 
-			+ .journalQuest {
-				border-top: 1px solid @panel-row-divider;
+			&:hover {
+				color: white;
+			}
+
+			&.selected {
+				background: fade(white, 10%);
+				color: white;
 			}
 		}
 
-		.journalQuestTitle {
-			color: white;
+		.journalDetail {
+			flex: 1 1 auto;
+			min-width: 0;
+			min-height: 0;
+			display: flex;
+			flex-direction: column;
+
+			> .journalDetailTitle {
+				color: white;
+				padding-bottom: 0.3rem;
+				border-bottom: 1px solid @panel-row-divider;
+			}
+
+			// The detail pane's own scrolling region.
+			> .journalDetailBody {
+				flex: 1 1 auto;
+				min-height: 0;
+				overflow-y: auto;
+				padding-right: 0.8rem;
+			}
 		}
 
 		// Diary prose: the only thing a journal entry ever is (D7) — never a
 		// checklist, never a counter. The counter lives in .journalObjective
 		// below, a separate element beside the diary (Q2).
 		.journalEntry {
-			margin: 0.4rem 0 0 1.5rem;
+			margin: 0.6rem 0 0;
 			font-size: @panel-title-size;
 			font-style: italic;
 			color: @panel-color;
@@ -1302,14 +1365,14 @@
 		// slain") — upright and brighter, so it reads as the live tracker
 		// against the italic diary prose above it.
 		.journalObjective {
-			margin: 0.4rem 0 0 1.5rem;
+			margin: 0.6rem 0 0;
 			font-size: @panel-title-size;
 			color: white;
 		}
 
 		.journalAbandon {
 			display: inline-block;
-			margin: 0.6rem 0 0 1.5rem;
+			margin: 0.8rem 0 0;
 			cursor: pointer;
 			color: @panel-title-color;
 			font-size: @panel-title-size;

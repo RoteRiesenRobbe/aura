@@ -61,10 +61,12 @@
         <button id="zoomOutButton" class="zoomButton">&minus;</button>
     </div>
 
-    <!-- Journal (plan-quests.md chunk C3, D7/D16): a centered overlay, opened by
-         J or the button below, dismissed by J / Esc / its ✕. Rendered entirely
-         by Journal.render(); §39's presentation rework will restyle it, so the
-         first pass is deliberately plain. -->
+    <!-- Journal (plan-quests.md chunk C3, D7/D16; two-pane since
+         plan-conversation-journal.md Q3): opened by J or the button below,
+         dismissed by J / Esc / its ✕. Left pane lists the quests (Running /
+         Completed), the right pane holds the selected quest's diary and its
+         Abandon. Rendered entirely by Journal.render(); §39's presentation
+         rework will restyle it, so it stays deliberately plain. -->
     <div id="journal" class="hidden">
         <div class="journalHeader">
             <span class="journalTitle">Journal</span>
@@ -72,13 +74,21 @@
         </div>
         <div class="journalBody">
             <div class="journalStatus hidden"></div>
-            <div class="journalRunning hidden">
-                <div class="journalSectionTitle">Running</div>
-                <ul class="journalQuests"></ul>
-            </div>
-            <div class="journalCompleted hidden">
-                <div class="journalSectionTitle">Completed</div>
-                <ul class="journalQuests"></ul>
+            <div class="journalPanes hidden">
+                <div class="journalList">
+                    <div class="journalRunning hidden">
+                        <div class="journalSectionTitle">Running</div>
+                        <ul class="journalQuests"></ul>
+                    </div>
+                    <div class="journalCompleted hidden">
+                        <div class="journalSectionTitle">Completed</div>
+                        <ul class="journalQuests"></ul>
+                    </div>
+                </div>
+                <div class="journalDetail">
+                    <div class="journalDetailTitle"></div>
+                    <div class="journalDetailBody"></div>
+                </div>
             </div>
         </div>
     </div>
