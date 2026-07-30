@@ -1,6 +1,6 @@
 # Plan: the quest system — journal-carried quests on the interaction container
 
-**Status: chunk C3 ✅ DONE 2026-07-30 (ledger §14, [uncommitted]) — the wire and
+**Status: chunk C3 ✅ DONE 2026-07-30 (ledger §14, `604f3f4d`) — the wire and
 the journal. Prior: C0 ✅ `2a3b137d` + C2 ✅ `2dc6973a` (§12/§13), C1 ✅
 `d3b89328` (§11), prerequisite chunk P ✅ `d45ba07c`. Next: **C4, the first
 authored quests** — the last chunk of this plan.**
@@ -619,7 +619,7 @@ in the feature under test. Run them **sequentially, alone**, on a freshly
 restarted server — a stale server also degraded `chunkP-presence` to 3 PASS + a
 no-kill SKIP until restarted.
 
-## 14. Chunk C3 ledger — the wire + the journal ✅ DONE 2026-07-30 [uncommitted]
+## 14. Chunk C3 ledger — the wire + the journal ✅ DONE 2026-07-30 `604f3f4d`
 
 **Scope delivered as §8 priced it**: the D14 catalog, the ledger on `GameState`,
 the `Journal` EntityMessageKind, the journal panel on `J` + a HUD button, the
