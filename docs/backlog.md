@@ -665,7 +665,24 @@ a medium half:
 - **Rotation stays out** either way — the whole `phy` broadphase is
   AABB-based; "square" means axis-aligned.
 
-## 9. Recall to last safe place
+## 9. Recall — ✅ DONE 2026-07-14, shipped `4287977e`
+
+> **✅ BUILT AND LIVE.** Shipped as skill-vocabulary chunk 4 (*"cast-time +
+> interrupt + Recall"*, execution step 4) — exactly where the 2026-07-09 status
+> below placed it; this banner was simply never written. **`api/skills/recall.json`:**
+> id 28, `category: cooldown`, `maxLevel: 1`, `cooldownTicks: 9000` (5 min),
+> `castTicks: 300` (**10 s, matching the placeholder below**),
+> `castInterruptedByDamage: true`, one `{"type": "recall"}` effect. Engine:
+> `skills.EffectTypeRecall` (`skills/definition.go:53`), teleport at
+> `sys/skills.go:1377`, and an **activation precondition** at
+> `sys/skills.go:1253` that rejects with `ActivationRejectedNoAnchor` when the
+> player has no campfire anchor bound — so the mechanic below resolved as
+> *interrupted by damage*, not invulnerable-while-casting, and the target set
+> resolved as the **campfire anchor** (`connState.AnchorOf`), i.e. the same
+> tracker as death-respawn, not a broader "safe place" set. §20's teleport-snap
+> was fixed in the same commit, as the ⚠ note below required. The ⚑ open
+> questions further down are all answered by the shipped skill; they are kept
+> as the design record only.
 
 **WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 Teleport back to the last visited safe place (campfire, town, or other

@@ -1,11 +1,11 @@
 # Plan: the conversation & journal pass — what the quest pass surfaced
 
-**Status: PLANNED 2026-07-30 (docs only, no code). Four chunks Q1–Q4, none
-started.** Origin: the PO's in-game walk of quest chunk C4 the same day — *"this
-works very well and can be read as quests and understood. No major bugs, but
-some issues and change requests."* Thirteen items, every one verified against
-the running game before this doc was written (measurements below are real, not
-estimates).
+**Status: Q1 ✅ DONE 2026-07-30 `d23670d7` (ledger §6) · Q2–Q4 open, Q2 next.**
+Planned 2026-07-30 (docs only). Origin: the PO's in-game walk of quest chunk C4
+the same day — *"this works very well and can be read as quests and understood.
+No major bugs, but some issues and change requests."* Thirteen items, every one
+verified against the running game before this doc was written (measurements
+below are real, not estimates).
 
 Read together with: `archive/plan-quests.md` (the system these items sit on —
 D7 the journal shape, D14 the minimal catalog, D17 the banner, and §15's
@@ -323,7 +323,65 @@ root                     "You there! Good. Somebody who still walks toward troub
   `content-npcs.md`, the GDD §5 peasant-onboarding note). Update them with Q4 or
   they document a world that no longer exists.
 
-## 6. Open questions
+## 6. Chunk ledgers
+
+### Q1 — the dialogue system ✅ DONE 2026-07-30, committed `d23670d7`
+
+All five parts, each test-first, no wire change (the `reply` field simply rides
+empty on locked rows; only its `server.fbs` comment moved).
+
+- **② The show-rule shipped exactly as §4.1 drew it, and L3 held the pen:**
+  `Ledger.CanApply(grant)` switches on the two quest kinds and calls
+  `canAccept` / `canAdvanceDialogue` — the judgements **extracted from**
+  `Accept`/`AdvanceDialogue`, which now call them before mutating, so the row on
+  screen and the click's verdict are one code path. ⚑ The predicates deliberately
+  avoid `progressOf()`, which *creates* the map entry it looks up — a predicate
+  built on it would have grown the ledger per tick just by being asked
+  (`TestLedger_CanApplyMutatesNothing` pins this). `presentOptions` gained one
+  guard line. Pins: a CanApply-agrees-with-the-ops sweep over every quest state,
+  the R1-headline test (Accept row gone, sibling question stays, turn-in appears
+  exactly when walkable), and the C0-converse over quest rows on an UNGATED
+  shared node (`TestApplyGrant_AcceptsOnlyWhatPresentEmitted_QuestRows`) — the
+  fixture the old model could not have passed.
+- **① `blockedLine` deleted at every layer:** struct field gone; the JSON key a
+  tombstone whose error names the replacement (L3b — twelve authored lines in
+  nine NPC files deleted, plus the hermit `_comment`'s prose mention); the
+  *"blockedLine is required when gated"* loader rule gone; locked rows presented
+  with an empty `Reply`; `applyTeach`'s level wall now an ordinary silent
+  refusal. The §4.1 twin is pinned: `TestPresentAndApplyGrant_CannotDisagree`
+  asserts locked ⇒ (empty Reply ∧ refused) in the same sweep that asserts
+  available ⇒ (spoken Reply = returned reply).
+- **③ Combat gates deleted** (`sense`'s actor gate, the offer's player gate, the
+  `refreshConversations` teardown pair). L1 held: `TestSession_SurvivesCombat` +
+  `TestInteractionSystem_CombatDoesNotWithdrawTheOffer` are the D21/R2 tests
+  inverted in place, and the ambient test now asserts the offer *stands* beside
+  the call-out.
+- **④ The Leave row is client-only** as §4.3 demanded: `view.showLeave`
+  (= `!canGoBack`) keeps the DOM layer logic-free, the handler is `leave()`
+  never `take()`, and locked rows lost their click handler with a matching
+  guard in `ConversationModel.take()` — both vitest-covered (77/77, +2).
+  **⑤** `padding-right: 0.8rem` on `.conversationBody` and `.journalBody`.
+- **Verified:** full Go suite + vet green · guardrails + alloc `-count=2` ·
+  typecheck + 77 vitest · prod build · boot embedded AND `-content ../api`,
+  identical: 86 skills/15 factions/64 mobs/10 recipes/1 milestone/4 quests/
+  777 props/485 spawns/5 campfires, 0 errors 0 warnings · harness each SOLO on
+  a fresh server: **`chunk3b-ii-conversation` 31/31** (rewritten *with* the
+  chunk per L2: inert locked-row leg, two Leave-row legs, by-name root
+  assertions, the permanent combat SKIP **deleted**), `chunk3b-interact`
+  **14/14**, `chunkC4-quests` **28/28 + 1 deliberate SKIP** (C7's
+  road-not-taken still closes under the show-rule), `chunkC3-journal` **17/17**
+  incl. the probe-quest legs.
+- ⚑ **Two false alarms worth keeping:** one conversation-harness run was
+  invalidated by the known §29 WebGL context loss (the Wanderer's drift froze at
+  0 — rendering had stopped, not the hold), and one journal run failed its
+  abandon leg on a missed coordinate click — both green on a fresh-server
+  re-run, neither a regression.
+- **Knock-on for Q4:** every root row list now ends in `"Leave."`, and C4's
+  `quest_at_stage` gates on offer nodes are **redundant with the show-rule but
+  harmless** — Q4 decides per conversant whether the greeting should still
+  change (node conditions) or the row alone should vanish (now free).
+
+## 7. Open questions
 
 1. **Does the objective line show for completed stages too**, or only the
    current one? (Recommendation: current only — a completed stage's diary entry
