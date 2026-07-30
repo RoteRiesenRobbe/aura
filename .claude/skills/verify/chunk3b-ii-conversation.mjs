@@ -402,6 +402,19 @@ check('Walking out of talk range closes the panel (D21/L26)',
   `open before ${openBeforeWalk}, after ${await panelOpen()} at ${JSON.stringify(await pos())}`);
 
 // ================= 7. the Wanderer holds position (D22) =================
+// ⚑ KNOWN ROTTEN (diagnosed 2026-07-30, quest-C1 wrap): the "...and walks on
+// afterwards" check FAILS with drift exactly 0 across 12 s — at C1 AND at
+// pre-C1 HEAD, so it is not a product regression: the D22 hold+release is
+// correct and now pinned server-side in Go
+// (TestMob_ConversingHoldsThenReleasesWander, model/mob). The rot is in the
+// PIN: since R4 (`a4225e8b`) the badge is drawn into the mob's shape GROUP
+// (Mobs.ts setInteractable → new InteractBadge(this.shape, …)), and the
+// container this leg pins can end up one that never changes position (the
+// tell: driftBefore passes only via the findMover fallback — 5.351 units/4 s
+// is the camera/a boar, not a 0.29 u/s ambler — while during AND after read
+// exactly 0). Repair needs one instrumented run to see which container gets
+// pinned vs where the live entity is; do it in the next session that touches
+// conversations (C2/C3), NOT by re-diagnosing the red as a regression.
 await cmd(`WARP ${WANDERER_SPAWN}`);
 await page.waitForTimeout(20_000);
 

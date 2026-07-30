@@ -418,8 +418,15 @@ green (they own the touched `handleInteracts`/`rewardPlayer` paths);
 `chunk3b-ii-conversation.mjs` 28 PASS + 1 deliberate SKIP + **1 FAIL that is
 NOT this chunk's** — *"…and walks on afterwards"* (the Wanderer resuming
 patrol after a conversation, D22) fails **identically at pre-chunk HEAD**,
-proven by stash + rebuild + re-run on a fresh server; recorded here per the
-chunk-wrap rule instead of silently ignored, still open. ⚑ One first run was
+proven by stash + rebuild + re-run on a fresh server. **Follow-up diagnosis
+2026-07-30: the product is CORRECT** — the hold+release is now pinned
+server-side (`TestMob_ConversingHoldsThenReleasesWander`, model/mob; the
+resume half previously had only harness eyes) — **the harness leg is rotten**:
+its drift pin can land on a container whose position never changes (the badge
+rides the shape group since R4), reading exactly-0 drift while the real actor
+demonstrably ambles. Marked KNOWN ROTTEN in the script header + the verify
+skill's coverage map; repair belongs to the next conversation-touching session
+(C2/C3), with one instrumented run to see which container gets pinned. ⚑ One first run was
 invalidated by a WebGL context loss (§29's ~1-in-6) — rerun clean, the
 standing rule held. Pre-existing repo-wide `gofmt -l` drift (44 files at HEAD)
 was left untouched; none of the new code is affected.
