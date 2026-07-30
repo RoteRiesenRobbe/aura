@@ -30,6 +30,8 @@ type fakeClient struct {
 	interacts []*model.Interact
 	sent      [][]byte
 	unlocks   []capturedUnlock
+	journals  []string
+	abandons  []*model.AbandonQuest
 }
 
 // capturedUnlock records one SendUnlock call for the attribution tests.
@@ -78,9 +80,25 @@ func (c *fakeClient) NextEquip() *model.EquipSkill        { return nil }
 func (c *fakeClient) NextSpendSkillPoint() *model.SpendSkillPoint {
 	return nil
 }
+
+// A real queue like the interacts above: the abandon verb's whole server half
+// is what happens when this drains (chunk C3, D13).
+func (c *fakeClient) NextAbandonQuest() *model.AbandonQuest {
+	if len(c.abandons) == 0 {
+		return nil
+	}
+	a := c.abandons[0]
+	c.abandons = c.abandons[1:]
+	return a
+}
+
 func (c *fakeClient) SendMessage(b []byte) error { c.sent = append(c.sent, b); return nil }
 func (c *fakeClient) SendUnlock(id uint64, source string) error {
 	c.unlocks = append(c.unlocks, capturedUnlock{id, source})
+	return nil
+}
+func (c *fakeClient) SendJournal(text string) error {
+	c.journals = append(c.journals, text)
 	return nil
 }
 func (c *fakeClient) Close()          {}
@@ -879,4 +897,33 @@ func TestJoinWhileDead_CarriesQuestLedger(t *testing.T) {
 	np := joinPlayer(t, s, g, c, "Bob") // name change instead of Respawn
 
 	assertQuestProgressCarried(t, np, ledger)
+}
+
+// ⚑ The carried ledger must ping the NEW client (chunk C3, D17). The ledger
+// outlives the player struct, so a notifier captured once at ledger construction
+// would keep firing journal banners into the dead player's closed client — the
+// banner would simply stop existing after the first death, with nothing failing.
+// Ownership and notification change hands together, which is what this pins.
+func TestReconnect_JournalBannerFollowsTheNewClient(t *testing.T) {
+	s, g := newStateFixture(t)
+	g.questReg = stateTestQuestRegistry(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	startQuestProgress(t, p)
+	require.Len(t, c.journals, 1, "accepting pinged the original client")
+	token := s.tokenByClient[c.UUID()]
+
+	g.RemoveEntity(p.Basic()) // disconnect
+	c2 := newFakeClient()
+	reconnect(t, s, g, c2, "ignored-name", token)
+	require.Len(t, g.players, 2)
+
+	// Four more kills finish the objective stage and complete the quest.
+	for i := 0; i < 4; i++ {
+		g.players[1].QuestLedger().NoteKill(7)
+	}
+
+	assert.Len(t, c.journals, 1, "the closed client hears nothing more")
+	require.Len(t, c2.journals, 1, "the live client gets the banner")
+	assert.Equal(t, "Quest complete: Cull", c2.journals[0])
 }

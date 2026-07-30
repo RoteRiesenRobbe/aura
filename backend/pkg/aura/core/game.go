@@ -123,6 +123,11 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	interactionSys := sys.NewInteractionSystem()
 	g.AddSystem(interactionSys)
 
+	// The journal's one upstream verb (plan-quests.md chunk C3, D13): abandon.
+	// Its own system because the journal is not a conversation — no actor, no
+	// range, no session, just a player acting on their own ledger.
+	g.AddSystem(sys.NewQuestSystem())
+
 	// Chat is constructed before the encounter + command systems so both can
 	// take it as their Announcer (server-wide system messages, content pass C6).
 	chatSys := chat.New()
@@ -370,6 +375,8 @@ func (g *game) addPlayer(p model.PlayerEntity) {
 		case *sys.InteractionSystem:
 			// The mob branch registers conversants; this side registers who
 			// can talk TO them, which is every player (chunk 3b-i).
+			s.AddPlayer(p)
+		case *sys.QuestSystem:
 			s.AddPlayer(p)
 		}
 	}

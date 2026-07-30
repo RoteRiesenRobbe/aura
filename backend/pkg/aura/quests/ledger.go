@@ -35,6 +35,31 @@ type Ledger struct {
 	killCounts map[mobs.MobID]uint64
 	talkedTo   map[mobs.MobID]bool
 	quests     map[string]*Progress
+
+	// notify pings the owning player's client when a quest moves (D17). Nil
+	// until an owner installs it — the sim and the tests run without one, and a
+	// carried ledger has none until its new owner adopts it (L11).
+	notify func(Notice)
+}
+
+// Notice is one journal event: a quest reached a new stage, or ended. It carries
+// the Title because the banner is a sentence and only the registry knows the
+// words; everything durable rides GameState instead (L8).
+type Notice struct {
+	QuestID   string
+	Title     string
+	StageID   string
+	Completed bool
+}
+
+// SetNotifier installs the journal-ping callback.
+//
+// ⚑ Installed by the player that OWNS the ledger right now, not once at
+// construction: the ledger survives death and reconnect while the player struct
+// and its client do not (L11), so a callback fixed at birth would fire a banner
+// at a client that has been closed since.
+func (l *Ledger) SetNotifier(fn func(Notice)) {
+	l.notify = fn
 }
 
 func NewLedger(reg Registry) *Ledger {
@@ -108,6 +133,43 @@ func (l *Ledger) MatchesStage(questID, want string) bool {
 	default:
 		return ok && p.Running && len(p.Path) > 0 && p.Path[len(p.Path)-1] == want
 	}
+}
+
+// ProgressEntry is one quest as the wire carries it (chunk C3, §6): its id, the
+// ordered stages this character entered, and whether it is finished. Ids only —
+// the titles and diary prose live in the /quests catalog (D14).
+type ProgressEntry struct {
+	QuestID   string
+	Path      []string
+	Completed bool
+}
+
+// Snapshot projects every running and completed quest for the per-tick
+// GameState, sorted by quest id and nil when there is nothing to send.
+//
+// ⚑ The sort is load-bearing, not tidiness: the client diffs this with a view
+// signature, and Go randomises map iteration order, so an unsorted projection
+// would rebuild the journal panel ~30×/s and drop clicks on its abandon rows —
+// exactly what the signature exists to prevent (the same lesson the conversation
+// panel learned the hard way).
+//
+// Quests that are neither running nor completed are absent: an abandoned quest
+// is back to not-started (D13), and it must leave the journal with its diary.
+func (l *Ledger) Snapshot() []ProgressEntry {
+	if l == nil || len(l.quests) == 0 {
+		// Fails closed like MatchesStage: a world without quest state sends an
+		// empty journal, it does not panic in the marshaller.
+		return nil
+	}
+	entries := make([]ProgressEntry, 0, len(l.quests))
+	for id, p := range l.quests {
+		if !p.Running && !p.Completed {
+			continue
+		}
+		entries = append(entries, ProgressEntry{QuestID: id, Path: p.Path, Completed: p.Completed})
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].QuestID < entries[j].QuestID })
+	return entries
 }
 
 // Accept moves a quest from not-started onto its first stage — and cascades
@@ -194,18 +256,25 @@ func (l *Ledger) progressOf(questID string) *Progress {
 // enter appends the stage to the walked path and cascades: a terminal stage
 // completes the quest, a satisfied objective stage falls through to its next.
 // The loader's acyclic guarantee bounds the walk.
+//
+// It pings the journal ONCE at the end of the cascade (D17), reporting where the
+// quest came to rest — a retroactive accept can walk several stages in one go
+// (D3), and that is one player action, so it is one banner.
 func (l *Ledger) enter(q *QuestDefinition, p *Progress, s *Stage) {
 	for {
 		p.Path = append(p.Path, s.ID)
 		if q.IsTerminal(s) {
 			p.Running = false
 			p.Completed = true
-			return
+			break
 		}
 		if len(s.Objectives) == 0 || !l.satisfied(s) {
-			return // waiting: on a dialogue edge, or on the counters
+			break // waiting: on a dialogue edge, or on the counters
 		}
 		s = q.Stage(s.Next)
+	}
+	if l.notify != nil {
+		l.notify(Notice{QuestID: q.ID, Title: q.Title, StageID: s.ID, Completed: p.Completed})
 	}
 }
 

@@ -128,6 +128,22 @@ func unmarshalInteract(i *AuraApi.Interact) *model.Interact {
 	}
 }
 
+func unwrapAbandonQuest(msg *AuraApi.ClientMessage) *AuraApi.AbandonQuest {
+	i := &AuraApi.AbandonQuest{}
+	err := fbutil.UnwrapUnion[AuraApi.ClientMessageBody](msg, i)
+	if err != nil {
+		return nil
+	}
+	return i
+}
+
+func unmarshalAbandonQuest(a *AuraApi.AbandonQuest) *model.AbandonQuest {
+	if a == nil {
+		return nil
+	}
+	return &model.AbandonQuest{QuestID: string(a.QuestId())}
+}
+
 func unwrapSpendSkillPoint(msg *AuraApi.ClientMessage) *AuraApi.SpendSkillPoint {
 	i := &AuraApi.SpendSkillPoint{}
 	err := fbutil.UnwrapUnion[AuraApi.ClientMessageBody](msg, i)
@@ -205,6 +221,11 @@ func InteractMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.Inter
 func SpendSkillPointMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.SpendSkillPoint {
 	fbutil.AssertBodyType[AuraApi.ClientMessageBody](msg, AuraApi.ClientMessageBodySpendSkillPoint)
 	return unmarshalSpendSkillPoint(unwrapSpendSkillPoint(msg))
+}
+
+func AbandonQuestMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.AbandonQuest {
+	fbutil.AssertBodyType[AuraApi.ClientMessageBody](msg, AuraApi.ClientMessageBodyAbandonQuest)
+	return unmarshalAbandonQuest(unwrapAbandonQuest(msg))
 }
 
 func ClientMessageFlatbufferUnmarshal(bytes []byte) *AuraApi.ClientMessage {

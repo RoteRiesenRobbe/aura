@@ -4,26 +4,27 @@ import (
 	"log"
 	"sync/atomic"
 
-	"github.com/google/flatbuffers/go"
-	"github.com/google/uuid"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/net"
+	"github.com/google/flatbuffers/go"
+	"github.com/google/uuid"
 )
 
 var _ = model.Client(&client{})
 
 type client struct {
-	c      *net.Client
-	joins  chan *model.Join
-	inputs chan *model.PlayerInput
-	cheats chan *model.Cheat
-	chat   chan *model.ChatMessage
+	c         *net.Client
+	joins     chan *model.Join
+	inputs    chan *model.PlayerInput
+	cheats    chan *model.Cheat
+	chat      chan *model.ChatMessage
 	equips    chan *model.EquipSkill
 	spends    chan *model.SpendSkillPoint
 	respawns  chan *model.Respawn
 	interacts chan *model.Interact
+	abandons  chan *model.AbandonQuest
 	uuid      uuid.UUID
 
 	// Input-transport instrumentation (plan-input-jitter.md chunk 1). Written on
@@ -122,6 +123,15 @@ func (c *client) NextInteract() *model.Interact {
 	return nil
 }
 
+func (c *client) NextAbandonQuest() *model.AbandonQuest {
+	select {
+	case msg := <-c.abandons:
+		return msg
+	default:
+	}
+	return nil
+}
+
 func (c *client) Close() {
 	c.c.Close()
 	close(c.inputs)
@@ -139,6 +149,16 @@ func (c *client) SendMessage(bytes []byte) error {
 func (c *client) SendUnlock(skillID uint64, source string) error {
 	builder := flatbuffers.NewBuilder(64)
 	msg := codec.EntityMessageFlatbufMarshal(builder, skillID, source, AuraApi.EntityMessageKindUnlock)
+	builder.Finish(msg)
+	return c.SendMessage(builder.FinishedBytes())
+}
+
+// SendJournal marshals a kind=Journal EntityMessage carrying the banner line
+// (plan-quests.md C3, D17) and enqueues it. entity_id is unused — the client
+// branches on the kind before it reads it, exactly as it does for Unlock.
+func (c *client) SendJournal(text string) error {
+	builder := flatbuffers.NewBuilder(64)
+	msg := codec.EntityMessageFlatbufMarshal(builder, 0, text, AuraApi.EntityMessageKindJournal)
 	builder.Finish(msg)
 	return c.SendMessage(builder.FinishedBytes())
 }
@@ -237,20 +257,28 @@ func (c *client) routeMessage(msg *AuraApi.ClientMessage) {
 		default:
 			log.Print("Interact dropped.")
 		}
+	case AuraApi.ClientMessageBodyAbandonQuest:
+		m := codec.AbandonQuestMessageFlatbufferUnmarshal(msg)
+		select {
+		case c.abandons <- m:
+		default:
+			log.Print("AbandonQuest dropped.")
+		}
 	}
 }
 
 func NewClient(c *net.Client) model.Client {
 	newClient := &client{
-		c:      c,
-		inputs: make(chan *model.PlayerInput, 2),
-		joins:  make(chan *model.Join, 2),
-		cheats: make(chan *model.Cheat, 2),
-		chat:   make(chan *model.ChatMessage, 2),
+		c:         c,
+		inputs:    make(chan *model.PlayerInput, 2),
+		joins:     make(chan *model.Join, 2),
+		cheats:    make(chan *model.Cheat, 2),
+		chat:      make(chan *model.ChatMessage, 2),
 		equips:    make(chan *model.EquipSkill, 2),
 		spends:    make(chan *model.SpendSkillPoint, 2),
 		respawns:  make(chan *model.Respawn, 2),
 		interacts: make(chan *model.Interact, 2),
+		abandons:  make(chan *model.AbandonQuest, 2),
 		uuid:      uuid.New(),
 	}
 

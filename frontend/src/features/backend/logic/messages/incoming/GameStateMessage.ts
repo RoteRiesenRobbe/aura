@@ -12,6 +12,7 @@ import {
     ConversationRow,
     ConversationTree,
 } from '../../../../conversation/logic/ConversationModel';
+import {QuestProgress} from '../../../../journal/logic/JournalModel';
 
 export class Spectator {
     id: number;
@@ -62,6 +63,9 @@ export class GameStateMessage {
     // condition (range, combat, death, disconnect) reaches the client as the
     // field simply going absent.
     conversation: ConversationTree | null;
+    // the owning player's running + completed quests, ids only (chunk C3); the
+    // titles and diary prose come from the /quests catalog
+    questProgress: QuestProgress[];
 
     constructor(gameState: AuraApi.GameState) {
         this.tick = Number(gameState.tick());
@@ -125,7 +129,33 @@ export class GameStateMessage {
 
         this.interactableEntityId = Number(gameState.interactableEntityId());
         this.conversation = unmarshalConversation(gameState.conversation(null));
+        this.questProgress = unmarshalQuestProgress(gameState);
     }
+}
+
+/**
+ * Read the quest ledger out of a snapshot (chunk C3, §6). An absent vector is an
+ * empty journal — the shipped state until a quest is accepted.
+ */
+function unmarshalQuestProgress(gameState: AuraApi.GameState): QuestProgress[] {
+    const entries: QuestProgress[] = [];
+    for (let i = 0; i < gameState.questProgressLength(); ++i) {
+        const e = gameState.questProgress(i);
+
+        const stages: string[] = [];
+        for (let j = 0; j < e.stagesLength(); ++j) {
+            stages.push(e.stages(j));
+        }
+
+        entries.push({
+            questId: e.questId() ?? '',
+            // ⚑ ORDERED: the walked path, oldest stage first (L6). The journal
+            // renders the diary in this order, so it is data, not a set.
+            stages,
+            completed: e.completed(),
+        });
+    }
+    return entries;
 }
 
 /**

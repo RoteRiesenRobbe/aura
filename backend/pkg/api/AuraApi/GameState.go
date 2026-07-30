@@ -367,8 +367,28 @@ func (rcv *GameState) Conversation(obj *Conversation) *Conversation {
 	return nil
 }
 
+func (rcv *GameState) QuestProgress(obj *QuestProgress, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *GameState) QuestProgressLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(19)
+	builder.StartObject(20)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -447,6 +467,12 @@ func GameStateAddInteractableEntityId(builder *flatbuffers.Builder, interactable
 }
 func GameStateAddConversation(builder *flatbuffers.Builder, conversation flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(18, flatbuffers.UOffsetT(conversation), 0)
+}
+func GameStateAddQuestProgress(builder *flatbuffers.Builder, questProgress flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(19, flatbuffers.UOffsetT(questProgress), 0)
+}
+func GameStateStartQuestProgressVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

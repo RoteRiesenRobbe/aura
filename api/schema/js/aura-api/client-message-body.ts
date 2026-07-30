@@ -2,6 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, @typescript-eslint/no-non-null-assertion */
 
+import { AbandonQuest } from '../aura-api/abandon-quest.js';
 import { ChatMessage } from '../aura-api/chat-message.js';
 import { Cheat } from '../aura-api/cheat.js';
 import { Equip } from '../aura-api/equip.js';
@@ -21,13 +22,14 @@ export enum ClientMessageBody {
   Equip = 5,
   SpendSkillPoint = 6,
   Respawn = 7,
-  Interact = 8
+  Interact = 8,
+  AbandonQuest = 9
 }
 
 export function unionToClientMessageBody(
   type: ClientMessageBody,
-  accessor: (obj:ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint) => ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint|null
-): ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint|null {
+  accessor: (obj:AbandonQuest|ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint) => AbandonQuest|ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint|null
+): AbandonQuest|ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint|null {
   switch(ClientMessageBody[type]) {
     case 'NONE': return null; 
     case 'Input': return accessor(new Input())! as Input;
@@ -38,15 +40,16 @@ export function unionToClientMessageBody(
     case 'SpendSkillPoint': return accessor(new SpendSkillPoint())! as SpendSkillPoint;
     case 'Respawn': return accessor(new Respawn())! as Respawn;
     case 'Interact': return accessor(new Interact())! as Interact;
+    case 'AbandonQuest': return accessor(new AbandonQuest())! as AbandonQuest;
     default: return null;
   }
 }
 
 export function unionListToClientMessageBody(
   type: ClientMessageBody, 
-  accessor: (index: number, obj:ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint) => ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint|null, 
+  accessor: (index: number, obj:AbandonQuest|ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint) => AbandonQuest|ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint|null, 
   index: number
-): ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint|null {
+): AbandonQuest|ChatMessage|Cheat|Equip|Input|Interact|Join|Respawn|SpendSkillPoint|null {
   switch(ClientMessageBody[type]) {
     case 'NONE': return null; 
     case 'Input': return accessor(index, new Input())! as Input;
@@ -57,6 +60,7 @@ export function unionListToClientMessageBody(
     case 'SpendSkillPoint': return accessor(index, new SpendSkillPoint())! as SpendSkillPoint;
     case 'Respawn': return accessor(index, new Respawn())! as Respawn;
     case 'Interact': return accessor(index, new Interact())! as Interact;
+    case 'AbandonQuest': return accessor(index, new AbandonQuest())! as AbandonQuest;
     default: return null;
   }
 }

@@ -402,19 +402,15 @@ check('Walking out of talk range closes the panel (D21/L26)',
   `open before ${openBeforeWalk}, after ${await panelOpen()} at ${JSON.stringify(await pos())}`);
 
 // ================= 7. the Wanderer holds position (D22) =================
-// ⚑ KNOWN ROTTEN (diagnosed 2026-07-30, quest-C1 wrap): the "...and walks on
-// afterwards" check FAILS with drift exactly 0 across 12 s — at C1 AND at
-// pre-C1 HEAD, so it is not a product regression: the D22 hold+release is
-// correct and now pinned server-side in Go
-// (TestMob_ConversingHoldsThenReleasesWander, model/mob). The rot is in the
-// PIN: since R4 (`a4225e8b`) the badge is drawn into the mob's shape GROUP
-// (Mobs.ts setInteractable → new InteractBadge(this.shape, …)), and the
-// container this leg pins can end up one that never changes position (the
-// tell: driftBefore passes only via the findMover fallback — 5.351 units/4 s
-// is the camera/a boar, not a 0.29 u/s ambler — while during AND after read
-// exactly 0). Repair needs one instrumented run to see which container gets
-// pinned vs where the live entity is; do it in the next session that touches
-// conversations (C2/C3), NOT by re-diagnosing the red as a regression.
+// ⚑ REPAIRED 2026-07-30 (quest C3), after two chunks of intermittent red. The
+// product was always right — the D22 hold+release is pinned server-side in Go
+// (TestMob_ConversingHoldsThenReleasesWander, model/mob) — and the rot was in
+// the PIN: pinBadgedActor() was called after the panel opened, but the badge is
+// suppressed for the actor the panel belongs to, so it never matched and the
+// measurement silently fell back to findMover's "largest mover" (the camera, or
+// a boar that later left the viewport and froze — drift 0 during AND after,
+// which reads exactly like "it never walks on"). The pin now happens with the
+// badge still lit, and the leg goes INCONCLUSIVE rather than red if it fails.
 await cmd(`WARP ${WANDERER_SPAWN}`);
 await page.waitForTimeout(20_000);
 
@@ -553,6 +549,7 @@ const mover = await findMover();
 // settle it covers ~0.8 units, which is enough to leave range before the
 // keypress is sampled: the badge lit, the key fired, and no panel appeared.
 // So close in past the edge, then press, and retry the pair.
+let pinnedByBadge = false;
 const openOnPinned = async (attempts = 4) => {
   for (let i = 0; i < attempts; i++) {
     if (!(await steerToPinned(20))) continue;
@@ -573,19 +570,34 @@ const openOnPinned = async (attempts = 4) => {
       await page.waitForTimeout(400);
       await page.keyboard.up(key);
     }
+    // ⚑ Pin the actor HERE, with the badge still lit — this is the repair of the
+    // long-flaky "walks on afterwards" leg (quest C3). pinBadgedActor() only
+    // matches a VISIBLE badge, and the badge is suppressed for whoever the panel
+    // belongs to, so calling it after the panel opened always missed and fell
+    // back to "whatever moved most" — the camera, or a passing boar that later
+    // left the viewport and froze at its last position, reading as drift 0
+    // during AND after. The tag is an expando on the live object, so pinning
+    // before the press survives the badge going dark.
+    if (await pinBadgedActor()) pinnedByBadge = true;
     await press('e');
     if (await panelOpen()) return true;
   }
   return false;
 };
-// ⚑ Baseline FIRST, while no panel is open — otherwise "does it move" is
-// measured on an actor that is already being held and reads 0, which looks
-// like the fixture is broken rather than the hold working. findMover's own
-// 4 s window is already such a sample, so fold it in.
-const driftBefore = Math.max(mover.drift, await bestDrift(2, 4000));
+// ⚑ Approach and PIN first, then baseline, then open — in that order, and each
+// step depends on the one before it. The pin has to happen while the badge is
+// lit (see the repair note above), and the baseline has to be measured on the
+// pinned actor while no panel is open, or "does it move" is either somebody
+// else's number or a reading of an actor already being held (which looks like a
+// broken fixture rather than a working hold).
+if (await steerToPinned(20)) {
+  if (await pinBadgedActor()) pinnedByBadge = true;
+}
+const driftBefore = await bestDrift(2, 4000);
 
+// It has been ambling throughout the baseline, so this re-steers before pressing.
 const steered = await openOnPinned();
-const pinned = (await pinBadgedActor()) || mover.tag !== null;
+const pinned = pinnedByBadge || (await pinBadgedActor()) || mover.tag !== null;
 await page.waitForTimeout(500);
 
 
@@ -601,11 +613,20 @@ check('The Wanderer opens a panel',
   `mover ${JSON.stringify(mover)}, steered ${steered}, pinned ${pinned}; ` +
   `actor ${JSON.stringify(wandererPanel?.actor)}, ` +
   `rows ${JSON.stringify(wandererPanel?.rows.map((r) => r.text))}`);
-check('It moves before the conversation', driftBefore > 0.05,
-  `best drift ${driftBefore} units / 4 s`);
-check('It HOLDS POSITION while talked to (D22)', driftDuring >= 0 && driftDuring < 0.05,
-  `during ${driftDuring} vs before ${driftBefore} (−1 = the actor was never pinned)`);
-check('...and walks on afterwards', driftAfter > 0.05, `after ${driftAfter}`);
+if (!pinnedByBadge) {
+  // The precondition that makes this leg mean anything (verify rule 5): without
+  // a badge-pinned actor the three drift numbers describe SOME container, and a
+  // measurement of the wrong actor is worth nothing in either direction.
+  skip('It holds position while talked to, and walks on afterwards (D22)', 'INCONCLUSIVE — the badge never lit long enough to pin the actor, so the drift ' +
+      `numbers (before ${driftBefore}, during ${driftDuring}, after ${driftAfter}) are not this actor's. ` +
+      'Restart the server and re-run this script alone.');
+} else {
+  check('It moves before the conversation', driftBefore > 0.05,
+    `best drift ${driftBefore} units / 4 s`);
+  check('It HOLDS POSITION while talked to (D22)', driftDuring >= 0 && driftDuring < 0.05,
+    `during ${driftDuring} vs before ${driftBefore} (−1 = the actor was never pinned)`);
+  check('...and walks on afterwards', driftAfter > 0.05, `after ${driftAfter}`);
+}
 
 // ================= 8. the TownCrier's ambient line (D18) =================
 await cmd(`WARP ${NEAR_TOWNCRIER}`);

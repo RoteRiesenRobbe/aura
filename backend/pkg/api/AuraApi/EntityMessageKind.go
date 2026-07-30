@@ -7,18 +7,21 @@ import "strconv"
 type EntityMessageKind byte
 
 const (
-	EntityMessageKindChat   EntityMessageKind = 0
-	EntityMessageKindUnlock EntityMessageKind = 1
+	EntityMessageKindChat    EntityMessageKind = 0
+	EntityMessageKindUnlock  EntityMessageKind = 1
+	EntityMessageKindJournal EntityMessageKind = 2
 )
 
 var EnumNamesEntityMessageKind = map[EntityMessageKind]string{
-	EntityMessageKindChat:   "Chat",
-	EntityMessageKindUnlock: "Unlock",
+	EntityMessageKindChat:    "Chat",
+	EntityMessageKindUnlock:  "Unlock",
+	EntityMessageKindJournal: "Journal",
 }
 
 var EnumValuesEntityMessageKind = map[string]EntityMessageKind{
-	"Chat":   EntityMessageKindChat,
-	"Unlock": EntityMessageKindUnlock,
+	"Chat":    EntityMessageKindChat,
+	"Unlock":  EntityMessageKindUnlock,
+	"Journal": EntityMessageKindJournal,
 }
 
 func (v EntityMessageKind) String() string {

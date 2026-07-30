@@ -9,6 +9,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -320,6 +321,51 @@ func ConversationMarshalFlatbuf(c *model.Conversation, builder *flatbuffers.Buil
 	return AuraApi.ConversationEnd(builder)
 }
 
+// QuestProgressMarshalFlatbuf serializes the owning player's quest ledger
+// (plan-quests.md chunk C3, §6): one entry per running or completed quest, ids
+// only — the titles and diary prose come from the /quests catalog. 0 = nothing
+// to send, and the caller then writes no field at all, which the client reads as
+// an empty journal.
+//
+// ⚑ Same inside-out rule as ConversationMarshalFlatbuf: each entry's strings and
+// its stage vector must be finished before the entry table is started, and the
+// whole thing before GameStateStart.
+func QuestProgressMarshalFlatbuf(entries []quests.ProgressEntry, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if len(entries) == 0 {
+		return 0
+	}
+
+	offsets := make([]flatbuffers.UOffsetT, 0, len(entries))
+	for i := range entries {
+		e := &entries[i]
+
+		stageOffsets := make([]flatbuffers.UOffsetT, 0, len(e.Path))
+		for _, s := range e.Path {
+			stageOffsets = append(stageOffsets, builder.CreateString(s))
+		}
+		AuraApi.QuestProgressStartStagesVector(builder, len(stageOffsets))
+		// Prepend in reverse so index 0 lands at the lowest address — the walked
+		// path is ORDERED (L6), so this is what keeps the diary readable.
+		for k := len(stageOffsets) - 1; k >= 0; k-- {
+			builder.PrependUOffsetT(stageOffsets[k])
+		}
+		stages := builder.EndVector(len(stageOffsets))
+
+		questID := builder.CreateString(e.QuestID)
+		AuraApi.QuestProgressStart(builder)
+		AuraApi.QuestProgressAddQuestId(builder, questID)
+		AuraApi.QuestProgressAddStages(builder, stages)
+		AuraApi.QuestProgressAddCompleted(builder, e.Completed)
+		offsets = append(offsets, AuraApi.QuestProgressEnd(builder))
+	}
+
+	AuraApi.GameStateStartQuestProgressVector(builder, len(offsets))
+	for k := len(offsets) - 1; k >= 0; k-- {
+		builder.PrependUOffsetT(offsets[k])
+	}
+	return builder.EndVector(len(offsets))
+}
+
 // MarshalFlatbuf implements FlatbufCodec for GameState
 func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	entities := EntitiesMarshalFlatbuf(gs.Entities, builder)
@@ -331,6 +377,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	cooldownSlots := CooldownSlotsMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	cooldownRemaining := CooldownRemainingMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	conversation := ConversationMarshalFlatbuf(gs.Player.Conversation(), builder)
+	questProgress := QuestProgressMarshalFlatbuf(gs.Player.QuestLedger().Snapshot(), builder)
 
 	AuraApi.GameStateStart(builder)
 	AuraApi.GameStateAddTick(builder, gs.Tick)
@@ -374,6 +421,12 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// so every server-side end condition needs no client counterpart.
 	if conversation != 0 {
 		AuraApi.GameStateAddConversation(builder, conversation)
+	}
+	// The quest ledger (chunk C3): live STATE re-sent every tick like the
+	// spellbook, because EntityMessage is a garnish channel that drops on a full
+	// buffer (L8). Nothing written while the player has no quests.
+	if questProgress != 0 {
+		AuraApi.GameStateAddQuestProgress(builder, questProgress)
 	}
 
 	return AuraApi.GameStateEnd(builder)

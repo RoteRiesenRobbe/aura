@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, @typescript-eslint/no-non-null-assertion */
 
 export { AABB } from './aura-api/aabb.js';
+export { AbandonQuest } from './aura-api/abandon-quest.js';
 export { Accept } from './aura-api/accept.js';
 export { ActivationRejection } from './aura-api/activation-rejection.js';
 export { AnyEntity } from './aura-api/any-entity.js';
@@ -27,6 +28,7 @@ export { Mob } from './aura-api/mob.js';
 export { Obituary } from './aura-api/obituary.js';
 export { Player } from './aura-api/player.js';
 export { Pong } from './aura-api/pong.js';
+export { QuestProgress } from './aura-api/quest-progress.js';
 export { Resource } from './aura-api/resource.js';
 export { Respawn } from './aura-api/respawn.js';
 export { ServerMessage } from './aura-api/server-message.js';

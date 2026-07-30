@@ -10,6 +10,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -520,4 +521,53 @@ func TestEntitiesMarshalFlatbuf_Empty(t *testing.T) {
 
 	result := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
 	assert.Zero(t, result.EntitiesLength())
+}
+
+// --- the quest ledger wire (plan-quests.md chunk C3, §6) ---
+
+// The second vector-of-tables-inside-a-table on this channel, with the same
+// inside-out build hazard as the conversation tree above: a nested string vector
+// (the walked path) inside each entry. Round-tripped so a mis-ordered build
+// shows up as scrambled paths rather than as nothing at all.
+func TestGameStateQuestProgress_RoundTrip(t *testing.T) {
+	entries := []quests.ProgressEntry{
+		{QuestID: "choice", Path: []string{"choose", "a-end"}, Completed: true},
+		{QuestID: "wolf-cull", Path: []string{"cull"}},
+	}
+
+	b := flatbuffers.NewBuilder(256)
+	offset := QuestProgressMarshalFlatbuf(entries, b)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddQuestProgress(b, offset)
+	b.Finish(AuraApi.GameStateEnd(b))
+
+	got := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	require.Equal(t, 2, got.QuestProgressLength())
+
+	var done, running AuraApi.QuestProgress
+	require.True(t, got.QuestProgress(&done, 0))
+	require.True(t, got.QuestProgress(&running, 1))
+
+	assert.Equal(t, "choice", string(done.QuestId()), "entry order survives the reversal")
+	require.Equal(t, 2, done.StagesLength())
+	assert.Equal(t, "choose", string(done.Stages(0)), "the walked path keeps its order (L6)")
+	assert.Equal(t, "a-end", string(done.Stages(1)))
+	assert.True(t, done.Completed())
+
+	assert.Equal(t, "wolf-cull", string(running.QuestId()))
+	require.Equal(t, 1, running.StagesLength())
+	assert.Equal(t, "cull", string(running.Stages(0)))
+	assert.False(t, running.Completed())
+}
+
+// A player with no quests writes no vector at all, which the client reads as an
+// empty journal — the shipped state until C4 authors content.
+func TestGameStateQuestProgress_EmptyWritesNothing(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	assert.Zero(t, QuestProgressMarshalFlatbuf(nil, b), "nil writes no vector at all")
+
+	AuraApi.GameStateStart(b)
+	b.Finish(AuraApi.GameStateEnd(b))
+
+	assert.Zero(t, AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).QuestProgressLength())
 }

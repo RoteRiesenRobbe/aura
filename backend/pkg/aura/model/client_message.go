@@ -59,3 +59,15 @@ type SpendSkillPoint struct {
 	SkillID skills.SkillID
 	Unspend bool
 }
+
+// AbandonQuest is the journal panel's one upstream message (plan-quests.md C3,
+// D13): give up a running quest. It returns to not-started — path and diary
+// cleared — and becomes offerable again; lifetime counters and the completed set
+// are untouched by construction.
+//
+// Validated on its own merits (is this quest running for this player) and
+// refused silently: a stale click from a player whose quest moved a tick ago is
+// ordinary, not an error.
+type AbandonQuest struct {
+	QuestID string
+}

@@ -4,5 +4,6 @@
 
 export enum EntityMessageKind {
   Chat = 0,
-  Unlock = 1
+  Unlock = 1,
+  Journal = 2
 }

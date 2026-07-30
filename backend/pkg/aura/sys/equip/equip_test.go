@@ -6,11 +6,11 @@ import (
 	"testing/fstest"
 
 	"github.com/EngoEngine/ecs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 // --- stubs ---
@@ -73,16 +73,18 @@ func (c *stubClient) NextSpendSkillPoint() *model.SpendSkillPoint {
 	c.spend = nil
 	return m
 }
-func (c *stubClient) NextInput() *model.PlayerInput       { return nil }
-func (c *stubClient) NextJoin() *model.Join               { return nil }
-func (c *stubClient) NextCheat() *model.Cheat             { return nil }
-func (c *stubClient) NextChatMessage() *model.ChatMessage { return nil }
-func (c *stubClient) NextRespawn() *model.Respawn         { return nil }
-func (c *stubClient) NextInteract() *model.Interact       { return nil }
-func (c *stubClient) SendMessage([]byte) error            { return nil }
-func (c *stubClient) SendUnlock(uint64, string) error     { return nil }
-func (c *stubClient) Close()                              {}
-func (c *stubClient) UUID() uuid.UUID                     { return uuid.UUID{} }
+func (c *stubClient) NextInput() *model.PlayerInput         { return nil }
+func (c *stubClient) NextJoin() *model.Join                 { return nil }
+func (c *stubClient) NextCheat() *model.Cheat               { return nil }
+func (c *stubClient) NextChatMessage() *model.ChatMessage   { return nil }
+func (c *stubClient) NextRespawn() *model.Respawn           { return nil }
+func (c *stubClient) NextInteract() *model.Interact         { return nil }
+func (c *stubClient) SendMessage([]byte) error              { return nil }
+func (c *stubClient) NextAbandonQuest() *model.AbandonQuest { return nil }
+func (c *stubClient) SendUnlock(uint64, string) error       { return nil }
+func (c *stubClient) SendJournal(string) error              { return nil }
+func (c *stubClient) Close()                                {}
+func (c *stubClient) UUID() uuid.UUID                       { return uuid.UUID{} }
 
 // stubEquipEntity satisfies the narrow equipEntity interface.
 type stubEquipEntity struct {

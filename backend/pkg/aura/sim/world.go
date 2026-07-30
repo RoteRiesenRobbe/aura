@@ -72,7 +72,7 @@ func NewWorld(sc Scenario, seed int64) *World {
 		config: &cfg.GameConfig{
 			// [PLACEHOLDER] arena size; only the border wall reads it, and a
 			// 1v1 at the center never touches the wall.
-			Bounds:                 cfg.Bounds{Width: 60, Height: 40},
+			Bounds: cfg.Bounds{Width: 60, Height: 40},
 			// The value the LIVE game always runs on: every non-test NewMob
 			// caller passes g.Config().MobChaseIntoAuraMargin, which
 			// core/gameconf.go normalizes to 0.2 for any non-positive conf
@@ -312,7 +312,9 @@ func (nopClient) NextEquip() *model.EquipSkill                { return nil }
 func (nopClient) NextSpendSkillPoint() *model.SpendSkillPoint { return nil }
 func (nopClient) NextRespawn() *model.Respawn                 { return nil }
 func (nopClient) NextInteract() *model.Interact               { return nil }
+func (nopClient) NextAbandonQuest() *model.AbandonQuest       { return nil }
 func (nopClient) SendMessage([]byte) error                    { return nil }
 func (nopClient) SendUnlock(uint64, string) error             { return nil }
+func (nopClient) SendJournal(string) error                    { return nil }
 func (nopClient) Close()                                      {}
 func (nopClient) UUID() uuid.UUID                             { return uuid.Nil }

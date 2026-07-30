@@ -1,8 +1,9 @@
 # Plan: the quest system — journal-carried quests on the interaction container
 
-**Status: chunks C0 ✅ and C2 ✅ DONE 2026-07-30 (ledgers §12 `2a3b137d` and §13 `2dc6973a`). Prior:
-C1 ✅ `d3b89328` (the ledger + events, §11); prerequisite chunk P ✅
-`d45ba07c`. Next: C3 (wire + journal), then C4 (authored content).**
+**Status: chunk C3 ✅ DONE 2026-07-30 (ledger §14, [uncommitted]) — the wire and
+the journal. Prior: C0 ✅ `2a3b137d` + C2 ✅ `2dc6973a` (§12/§13), C1 ✅
+`d3b89328` (§11), prerequisite chunk P ✅ `d45ba07c`. Next: **C4, the first
+authored quests** — the last chunk of this plan.**
 **CODE-REVIEWED 2026-07-30** — three line-level sweeps (interaction container ·
 XP/credit path · wire + content loading) checked every claim against HEAD;
 corrections are folded in below, tagged *(code review)*. Four follow-up PO
@@ -323,14 +324,14 @@ case behind the existing hard-fail loaders:
 | **P** *(external prerequisite, D15)* | **Pass 3 item 1 of `plan-playtest-feedback.md`**: presence-counts attribution (aura active during the fight = participant). Owned by that plan, executed as its own chunk before C1. **Planned in full 2026-07-30** (that doc's §Chunk P plan — P1 fixed conf radius `game.combat.presenceRadius` [PLACEHOLDER 8] · P2 presence joins a player fight, never starts one (≥1 existing participant, closes the NPC-battle watch-farm) · P3 one participant class, unlock rolls included — so quest counters count presence participants with zero quest-side code, per D4). | Per that plan's test strategy: TDD Go test on the participant-map precedent + a two-client smoke (`chunkP-presence.mjs`) |
 | **C1** | The ledger + events, backend only: lifetime counters at the kill-credit fan-out (`rewardPlayer`, D4 — increment on participation, not XP amount, L13), talked-to stamping at session open, **ledger survival across death/reconnect (L11 — the five stash sites)**, `MobID` keys + the duplicate-id boot guard (L12), the `api/quests/` loader + all L5 registration edits (incl. the verify-skill grep), stage engine (objective satisfaction against counters, advance, journal append, completion, abandon per D13), a `QUEST` debug cheat to inspect/drive it. `model.PlayerEntity` widening updates the four fakes (L14). | TDD on the engine (retroactive satisfaction at accept · presence-credited kill advances · branch edges exclusive · one-shot refuses re-offer · repeatable flag round-trips unauthored · abandon clears the path, leaves counters + completed set, re-offer works · **ledger survives death and reconnect** · counter increments for an `experience: 0` species); sim battery byte-identical (nothing existing moves); boot `-content ../api` with the new count pinned |
 | **C2** ✅ **DONE, ledger §13** | Dialogue vocabulary: `offer_quest` / `advance_quest` / `grant_xp` grant kinds (**per-kind payload resolution** — the loader's unconditional skill lookup becomes conditional, the `TestContent_EveryGrantIsAResolvedTeach` pin relaxes, the two `!=` dispatches become switches, §5), `quest_at_stage` condition (widening `learner`, O(1) read, L15), `costs`/`consequences` schema room (D8/D10 — validated, unauthorable beyond parse), loader cross-validation (unknown quest/stage hard-fails; **legacy species rejected as targets**, L12), the L3 dead-node lint decision, the L10 `grant_xp`-terminal-only lint, the `selectNode` visibility-map hoist (L15). | Evaluator tests per kind; a fixture quest walkable end-to-end through `present()`/`applyGrant()` in Go tests alone |
-| **C3** | Wire + journal: the D14 minimal-projection catalog (+ a test asserting the projection leaks nothing beyond titles/prose), ledger on `GameState` every tick + client view-signature diff (§6, L8), the `Journal` EntityMessageKind pinned = 2 (D17), the journal panel (D7) with `J` + HUD button (D16), the "journal unavailable" degrade state, incl. the abandon action (D13). | Codec round-trips; vitest on the journal view model; headless harness: offer → kill → auto-advance journal entry + banner → turn-in → completed section; abandon → quest gone from running, re-offerable |
+| **C3** ✅ **DONE, ledger §14** | Wire + journal: the D14 minimal-projection catalog (+ a test asserting the projection leaks nothing beyond titles/prose), ledger on `GameState` every tick + client view-signature diff (§6, L8), the `Journal` EntityMessageKind pinned = 2 (D17), the journal panel (D7) with `J` + HUD button (D16), the "journal unavailable" degrade state, incl. the abandon action (D13). | Codec round-trips; vitest on the journal view model; headless harness: offer → kill → auto-advance journal entry + banner → turn-in → completed section; abandon → quest gone from running, re-offerable |
 | **C4** | First authored content: 3–4 quests exercising every first-pass verb + **one branch with two turn-in NPCs and different rewards** (D9's proof), placed on existing conversants. XP amounts sized against the band-lock *budget* by hand (L9). | The content itself is the test: full harness pass per quest path, both branch legs; boot counts pinned; manual PO walk |
 
 Sequencing per D12/D15: **P → C1→C2→C3→C4**, all **before step 8**. C0 was
 nominally independent filler, but shipped **immediately before C2 in the same
 session** — L1 is literal, and the both-ends N1 defect is exactly the shape of
-the turn-in rows C2 makes authorable. **P ✅ · C1 ✅ · C0 ✅ · C2 ✅ — C3 is
-next.**
+the turn-in rows C2 makes authorable. **P ✅ · C1 ✅ · C0 ✅ · C2 ✅ · C3 ✅ —
+C4 is next, and closes the plan.**
 
 ## 9. Open questions (deliberately not ruled this session)
 
@@ -617,3 +618,101 @@ harness loop mid-run. Both failure modes read exactly like a product regression
 in the feature under test. Run them **sequentially, alone**, on a freshly
 restarted server — a stale server also degraded `chunkP-presence` to 3 PASS + a
 no-kill SKIP until restarted.
+
+## 14. Chunk C3 ledger — the wire + the journal ✅ DONE 2026-07-30 [uncommitted]
+
+**Scope delivered as §8 priced it**: the D14 catalog, the ledger on `GameState`,
+the `Journal` EntityMessageKind, the journal panel on `J` + a HUD button, the
+degrade state, and abandon — backend, wire and frontend, no authored content
+(`api/quests/` still boots `count: 0` until C4). **PO call this session: the
+panel is a CENTERED OVERLAY**, not a left-column or bottom-centre panel — a
+journal is read rather than glanced at, it needs room for several stages of
+prose, and the bottom-centre stack is already the conversation panel's.
+
+**The wire.** `QuestProgress { quest_id, stages[], completed }` +
+`GameState.quest_progress`, appended at the table end; `EntityMessageKind.Journal
+= 2` and `ClientMessageBody.AbandonQuest = 9`, both **pinned at birth** (§28).
+Nothing renumbered — the wire-prune smoke decoded 649 sprites with 0 errors.
+
+⚑ **`Ledger.Snapshot()` sorts, and the sort is load-bearing.** Go randomises map
+iteration order, so an unsorted projection would hand the client a different
+byte string every tick, defeat its view signature, and rebuild the journal's
+abandon rows ~30×/s — the exact click-in-the-teardown-gap hazard the signature
+was written for in 3b-ii. It also returns `nil` when empty (and on a nil ledger,
+failing closed like `MatchesStage`), so a quest-less player allocates nothing on
+the per-tick path.
+
+⚑ **The D17 notifier is installed by the OWNER, not at construction** — this is
+the one trap of the chunk and it is L11's shadow. The ledger outlives the player
+struct: it rides `deadState`/`reconnectStash` across death and reconnect, so a
+callback captured in `NewLedger` would keep firing banners into a client that
+has been closed since — the banner would simply stop existing after the first
+death, with nothing failing. `player.adoptQuestLedger` is now the single site
+where ownership and notification change hands together, and
+`TestReconnect_JournalBannerFollowsTheNewClient` pins it (proven red first: the
+new client heard nothing).
+
+**One notice per player action, not per stage.** `enter()` cascades — a
+retroactive accept can walk several stages at once (D3) — so it pings once at
+the end of the walk with where the quest came to rest. Abandon is silent: it is
+a click in the panel the player is already reading.
+
+**Abandon is its own system.** `sys.QuestSystem` drains one `AbandonQuest` per
+player per tick. It is not a branch of the InteractionSystem because the journal
+is not a conversation — no actor, no range, no session, just a player acting on
+their own ledger — and a refusal is silent, because the panel re-renders from
+the next snapshot either way.
+
+**The degrade is explicit, and that is the point of D14's split.** A missing
+skill name renders as "Skill #7"; a journal with no words is indistinguishable
+from a journal with no quests. So `Quests.ts` tracks `loading | ready |
+unavailable`, `JournalModel` carries that state through instead of collapsing it
+to an empty list, and the panel says *"Journal unavailable"*, *"Opening the
+journal…"* or *"Nothing written here yet."* The model takes its catalog
+**injected** rather than imported, which is what keeps it fetch-free and
+unit-testable.
+
+**Verified:** 20 new Go tests + 9 new vitest cases, the two behavioural hooks
+proven red first · `go build`/`vet`/full suite clean · guardrails + alloc
+`-count=2` · **sim battery BYTE-IDENTICAL all 4 legs** vs a HEAD worktree
+(TTK 6.67 s / TTD 8.70 s stand) · typecheck + **76/76 vitest** + prod build ·
+boot embedded AND `-content ../api`: 15 factions/86 skills/64 mobs/1 milestone/
+10 recipes/**0 quests**/5 prop defs/777 props/485 spawns/5 campfires, 0 errors
+0 warnings · harness, each run SOLO on a fresh server: **new
+`chunkC3-journal.mjs` 14/14**, `chunk3b-ii-conversation.mjs` **29/29 + 1 SKIP**,
+`chunk3b-interact.mjs` **14/14**, `hygiene-wire-prune.mjs` clean (the `.fbs`
+gate), 0 WebGL context losses. ⚑ One run was invalidated by a context loss
+(§29's ~1-in-6) and re-run clean — the standing rule held again.
+
+**The harness needed real content, and C4 owns `api/quests/`.** So
+`chunkC3-journal.mjs` ships in two halves: half A always runs (catalog reachable,
+J and the button open/close, the empty-vs-broken degrade), half B **SKIPs** unless
+the fixture beside it is installed — `cp .claude/skills/verify/chunkC3-probe-quest.json
+api/quests/`, restart, run, delete. Half B walked the full path this session:
+accept → the running section with its diary + *"Journal updated"* → abandon by
+CLICKING the row → gone → re-accept (proving not-started) → a real conversation
+with the Emberkeeper satisfies the `talk_to` objective → auto-advance → both
+entries in walked order in Completed → *"Quest complete"*. The probe's objective
+is a talk rather than a kill deliberately: talking is the one reliable headless
+event, and it needs no combat.
+
+⚑ **The flaky D22 Wanderer leg is REPAIRED** (PO asked for it this session, and
+it was worth it — the diagnosis in §11/§12 was half right). `pinBadgedActor()`
+ran *after* the panel opened, but the badge is suppressed for whoever the panel
+belongs to, so the pin never matched and the measurement silently fell back to
+`findMover`'s "largest mover" — the camera, or a boar that later left the
+viewport and froze at its last position, giving drift 0 during AND after. It now
+pins while the badge is still lit, measures the baseline on that same actor, and
+goes **INCONCLUSIVE** rather than red if it cannot pin at all. The numbers are
+meaningful for the first time: **before 1.206 / during 0 / after 1.178** units
+per 4 s (the old fallback read 5.351 — the camera pan).
+
+**Shape decisions C4 inherits:** ① the catalog is the only place words live, so a
+quest with no `journal` prose is invisible in the panel even though the loader
+already refuses one (`missing journal prose`) — nothing to do, just do not expect
+the panel to invent a line for an unknown stage, it skips it; ② the banner text
+is composed server-side (`Journal updated: <title>` / `Quest complete: <title>`)
+unlike the unlock banner, whose line the client composes from its catalog —
+because the journal's title is already on the wire's other end and the banner is
+one sentence; ③ `J` sits in `Controls.handleFunctionKeys`, behind the same
+chat/console guards as Escape, so typing "journal" in chat cannot open it.

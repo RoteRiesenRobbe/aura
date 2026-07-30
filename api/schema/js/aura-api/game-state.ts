@@ -8,6 +8,7 @@ import { ActivationRejection } from '../aura-api/activation-rejection.js';
 import { Conversation } from '../aura-api/conversation.js';
 import { Entity } from '../aura-api/entity.js';
 import { Player, unionToPlayer, unionListToPlayer } from '../aura-api/player.js';
+import { QuestProgress } from '../aura-api/quest-progress.js';
 
 
 export class GameState {
@@ -188,8 +189,18 @@ conversation(obj?:Conversation):Conversation|null {
   return offset ? (obj || new Conversation()).__init(this.bb!.__indirect(this.bb_pos + offset), this.bb!) : null;
 }
 
+questProgress(index: number, obj?:QuestProgress):QuestProgress|null {
+  const offset = this.bb!.__offset(this.bb_pos, 42);
+  return offset ? (obj || new QuestProgress()).__init(this.bb!.__indirect(this.bb!.__vector(this.bb_pos + offset) + index * 4), this.bb!) : null;
+}
+
+questProgressLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 42);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(19);
+  builder.startObject(20);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -375,6 +386,22 @@ static addInteractableEntityId(builder:flatbuffers.Builder, interactableEntityId
 
 static addConversation(builder:flatbuffers.Builder, conversationOffset:flatbuffers.Offset) {
   builder.addFieldOffset(18, conversationOffset, 0);
+}
+
+static addQuestProgress(builder:flatbuffers.Builder, questProgressOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(19, questProgressOffset, 0);
+}
+
+static createQuestProgressVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startQuestProgressVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

@@ -2,6 +2,7 @@ import {isDefined, nearlyEqual} from '../../common/logic/Utils';
 import {BackendState} from "./IBackend";
 import _clone = require('lodash/clone');
 import {ConversationTree} from '../../conversation/logic/ConversationModel';
+import {QuestProgress} from '../../journal/logic/JournalModel';
 import {GameStateMessage} from './messages/incoming/GameStateMessage';
 
 
@@ -27,6 +28,7 @@ export class Snapshot {
     activationRejectedReason: number;
     interactableEntityId: number; // conversant in talking range (3b-i); 0 = none
     conversation: ConversationTree | null; // open conversation tree (3b-ii); null = no panel
+    questProgress: QuestProgress[]; // running + completed quests, ids only (C3)
 }
 
 export function newSnapshot(backendState: BackendState, gameState: GameStateMessage) {
@@ -79,6 +81,11 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         // would leave the panel open after the server ended the conversation —
         // exactly the desync every end condition exists to prevent.
         snapshot.conversation = gameState.conversation;
+        // Always carried, like the spellbook above: it is live state, and an
+        // abandoned quest leaving the list is exactly the kind of change a delta
+        // snapshot would drop — the journal would keep showing a quest the
+        // player just gave up.
+        snapshot.questProgress = gameState.questProgress;
     } else {
         // First snapshot: assign the whole GameStateMessage, which already carries spellbook.
         snapshot = gameState;

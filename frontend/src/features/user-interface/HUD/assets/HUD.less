@@ -1154,3 +1154,164 @@
 		margin-bottom: 0.35rem;
 	}
 }
+
+// Journal panel (plan-quests.md chunk C3, D7/D16): a centered overlay, because a
+// journal is READ rather than glanced at — it needs room for several stages of
+// prose, and it must not compete with the bottom-center conversation stack.
+//
+// Deliberately plain: backlog §39's presentation rework will restyle every panel
+// together, so this reuses the shared @panel-* vocabulary and adds nothing of
+// its own beyond layout.
+#journal {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+
+	width: 52rem;
+	max-width: 90vw;
+	max-height: 70vh;
+
+	// Same rule as #conversation: the PANEL does not scroll, only its body does,
+	// so the ✕ never ends up under a scrollbar.
+	display: flex;
+	flex-direction: column;
+
+	background: @panel-bg;
+	border: 1px solid @panel-border;
+	border-radius: @panel-border-radius;
+	padding: @panel-padding;
+	color: @panel-color;
+	font-size: @panel-font-size;
+
+	&.hidden {
+		display: none;
+	}
+
+	> .journalHeader {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+
+		padding-bottom: 0.5rem;
+		border-bottom: 1px solid @panel-row-divider;
+
+		> .journalTitle {
+			color: @panel-title-color;
+			font-size: @panel-title-size;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+
+		> .journalClose {
+			cursor: pointer;
+			color: @panel-title-color;
+			padding: 0 0.5rem;
+
+			&:hover {
+				color: white;
+			}
+		}
+	}
+
+	// The only scrolling region. min-height: 0 or the flex child refuses to
+	// shrink below its content and the panel overflows instead.
+	> .journalBody {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+		padding-top: 1rem;
+
+		.journalStatus {
+			color: @panel-title-color;
+			font-size: @panel-title-size;
+
+			&.hidden {
+				display: none;
+			}
+		}
+
+		.journalRunning,
+		.journalCompleted {
+			&.hidden {
+				display: none;
+			}
+
+			+ .journalCompleted {
+				margin-top: 1.5rem;
+			}
+		}
+
+		.journalSectionTitle {
+			color: @panel-title-color;
+			font-size: @panel-title-size;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+			border-bottom: 1px solid @panel-row-divider;
+			padding-bottom: 0.3rem;
+		}
+
+		.journalQuests {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+		}
+
+		.journalQuest {
+			padding: 0.8rem 0;
+
+			+ .journalQuest {
+				border-top: 1px solid @panel-row-divider;
+			}
+		}
+
+		.journalQuestTitle {
+			color: white;
+		}
+
+		// Diary prose: the only thing a journal entry ever is (D7) — never a
+		// checklist, never a counter.
+		.journalEntry {
+			margin: 0.4rem 0 0 1.5rem;
+			font-size: @panel-title-size;
+			font-style: italic;
+			color: @panel-color;
+		}
+
+		.journalAbandon {
+			display: inline-block;
+			margin: 0.6rem 0 0 1.5rem;
+			cursor: pointer;
+			color: @panel-title-color;
+			font-size: @panel-title-size;
+
+			&:hover {
+				color: white;
+			}
+		}
+	}
+}
+
+// The D16 HUD button, sitting at the top of the left column above the
+// spellbook. Shares the panel vocabulary so it reads as part of the same HUD.
+#journalButton {
+	background: @panel-bg;
+	border: 1px solid @panel-border;
+	border-radius: @panel-border-radius;
+	padding: 0.5rem 1.5rem;
+
+	cursor: pointer;
+	color: @panel-color;
+	font-size: @panel-font-size;
+
+	&:hover {
+		color: white;
+	}
+
+	> .journalButtonHotkey {
+		color: @panel-title-color;
+		font-size: @panel-title-size;
+		margin-right: 0.8rem;
+	}
+}

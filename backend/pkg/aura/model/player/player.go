@@ -60,7 +60,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.skills = sc
 	p.milestoneUnlocks = g.Config().MilestoneUnlocks
 	p.recipes = g.Config().Recipes
-	p.questLedger = quests.NewLedger(g.Quests())
+	p.adoptQuestLedger(quests.NewLedger(g.Quests()))
 	// A fresh spawn only has Harvest at level 1, but run the cascade anyway
 	// so a starter recipe keyed on that would still fire — keeps discovery paths
 	// uniform.
@@ -932,8 +932,35 @@ func (p *player) QuestLedger() *quests.Ledger {
 // SetSkillComponent below.
 func (p *player) SetQuestLedger(l *quests.Ledger) {
 	if l != nil {
-		p.questLedger = l
+		p.adoptQuestLedger(l)
 	}
+}
+
+// adoptQuestLedger takes ownership of a ledger and points its journal pings at
+// THIS player's client (chunk C3, D17).
+//
+// ⚑ Why every owner re-points it, rather than the ledger being born with a
+// notifier: the ledger outlives the player struct (L11 — it rides the death and
+// reconnect stashes), so a callback captured at birth would keep firing banners
+// into a client that has been closed since. Ownership and notification change
+// hands together, at the single site where the carry happens.
+func (p *player) adoptQuestLedger(l *quests.Ledger) {
+	p.questLedger = l
+	l.SetNotifier(p.announceJournal)
+}
+
+// announceJournal sends the D17 banner for a quest that just moved. Garnish
+// only — the journal's durable state rides GameState every tick (L8), so a
+// dropped banner costs nothing but the sentence.
+func (p *player) announceJournal(n quests.Notice) {
+	if p.client == nil {
+		return
+	}
+	text := "Journal updated: " + n.Title
+	if n.Completed {
+		text = "Quest complete: " + n.Title
+	}
+	p.client.SendJournal(text)
 }
 
 // SetSkillComponent replaces the freshly-initialized skill component with a

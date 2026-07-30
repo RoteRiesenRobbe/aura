@@ -305,3 +305,134 @@ func TestLedger_ProgressOfUntouchedQuest(t *testing.T) {
 	assert.False(t, running)
 	assert.False(t, completed)
 }
+
+// --- the wire projection (chunk C3, §6) ---
+
+func TestSnapshot_CarriesTheWalkedPathAndCompletion(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
+
+	got := l.Snapshot()
+	require.Len(t, got, 1)
+	assert.Equal(t, "wolf-cull", got[0].QuestID)
+	assert.Equal(t, []string{"cull"}, got[0].Path)
+	assert.False(t, got[0].Completed)
+
+	// The counters carry it to the terminal stage; the path is what the journal
+	// renders, so both stages must be on it (L6).
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+
+	got = l.Snapshot()
+	require.Len(t, got, 1)
+	assert.Equal(t, []string{"cull", "report"}, got[0].Path)
+	assert.True(t, got[0].Completed)
+}
+
+// An abandoned quest is not-started (D13), so it leaves the journal entirely —
+// path cleared, no running section entry, and NOT in the completed one.
+func TestSnapshot_AbandonedQuestIsAbsent(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
+	require.NoError(t, l.Abandon("wolf-cull"))
+
+	assert.Empty(t, l.Snapshot())
+}
+
+// ⚑ Sorted, and that is a requirement rather than tidiness: the client diffs
+// this with a view signature (§6), and Go map iteration order is randomised, so
+// an unsorted projection would re-render the journal panel ~30×/s and drop
+// clicks on the abandon row — the exact hazard the signature exists to prevent.
+func TestSnapshot_IsSortedByQuestID(t *testing.T) {
+	l := testLedger(t, cullQuest(), branchQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
+	require.NoError(t, l.Accept("choice"))
+
+	for i := 0; i < 20; i++ {
+		got := l.Snapshot()
+		require.Len(t, got, 2)
+		assert.Equal(t, "choice", got[0].QuestID)
+		assert.Equal(t, "wolf-cull", got[1].QuestID)
+	}
+}
+
+// The overwhelmingly common case today, and the one that runs every tick for
+// every player: nothing to send, nothing allocated.
+func TestSnapshot_EmptyLedgerAllocatesNothing(t *testing.T) {
+	l := NewLedger(nil)
+	assert.Nil(t, l.Snapshot())
+
+	allocs := testing.AllocsPerRun(100, func() { l.Snapshot() })
+	assert.Zero(t, allocs, "an empty ledger's snapshot must not allocate per tick")
+}
+
+// A nil ledger reaches the marshaller in worlds that have no quest state at all
+// (fakes, the sim). Failing closed here keeps that from being a per-tick panic.
+func TestSnapshot_NilLedgerIsEmpty(t *testing.T) {
+	var l *Ledger
+	assert.Nil(t, l.Snapshot())
+}
+
+// --- the D17 journal notice (chunk C3) ---
+
+func TestNotifier_FiresOncePerLedgerOp(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	var got []Notice
+	l.SetNotifier(func(n Notice) { got = append(got, n) })
+
+	require.NoError(t, l.Accept("wolf-cull"))
+	require.Len(t, got, 1, "accepting a quest pings once")
+	assert.Equal(t, "wolf-cull", got[0].QuestID)
+	assert.Equal(t, "The Wolf Cull", got[0].Title, "the banner needs the title, which only the registry has")
+	assert.Equal(t, "cull", got[0].StageID)
+	assert.False(t, got[0].Completed)
+
+	// Counting up to the threshold moves nothing until it is met — a banner per
+	// kill would be noise, so silence is the assertion here.
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+	assert.Len(t, got, 1)
+
+	l.NoteKill(wolf)
+	require.Len(t, got, 2, "the kill that satisfies the stage pings")
+	assert.True(t, got[1].Completed, "and the cascade to the terminal stage reports completion")
+	assert.Equal(t, "report", got[1].StageID)
+}
+
+// A retroactive accept can walk several stages in one go (D3 — the veteran who
+// auto-completes). That is ONE player action, so it is one banner, reporting
+// where the quest ended up.
+func TestNotifier_ARetroactiveCascadeFiresOnce(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+
+	var got []Notice
+	l.SetNotifier(func(n Notice) { got = append(got, n) })
+	require.NoError(t, l.Accept("wolf-cull"))
+
+	require.Len(t, got, 1)
+	assert.Equal(t, "report", got[0].StageID)
+	assert.True(t, got[0].Completed)
+}
+
+// Abandon is a deliberate click in the journal panel the player is already
+// looking at (D13), so it needs no banner telling them what they just did.
+func TestNotifier_AbandonIsSilent(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
+
+	var got []Notice
+	l.SetNotifier(func(n Notice) { got = append(got, n) })
+	require.NoError(t, l.Abandon("wolf-cull"))
+	assert.Empty(t, got)
+}
+
+// The ledger outlives the player struct (L11), so a ledger with no notifier —
+// or one carried between owners — must never panic on a stage entry.
+func TestNotifier_UnsetIsHarmless(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	assert.NotPanics(t, func() { require.NoError(t, l.Accept("wolf-cull")) })
+}

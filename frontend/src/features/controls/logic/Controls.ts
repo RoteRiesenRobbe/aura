@@ -13,6 +13,7 @@ import {Character} from '../../game-objects/logic/Character';
 import {GameState, IGame} from '../../core/logic/IGame';
 import {InputMessage} from '../../backend/logic/messages/outgoing/InputMessage';
 import * as Conversation from '../../conversation/logic/Conversation';
+import * as Journal from '../../journal/logic/Journal';
 import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMessage';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {Vector} from '../../core/logic/Vector';
@@ -127,8 +128,20 @@ export class Controls {
         // item 1). No preventDefault — Escape keeps its browser meanings
         // (leaving fullscreen above all), and the call is a no-op when no
         // skill is pending.
+        // Journal (plan-quests.md C3, D16). J was free — E is interact, R is
+        // cooldown slot 2 — and this sits behind the same chat/console guards
+        // above, so typing "journal" in chat cannot open it.
+        if (event.code === 'KeyJ') {
+            Journal.toggle();
+            event.preventDefault();
+            return;
+        }
+
         if (event.code === 'Escape') {
             HUD.cancelEquipSelection();
+            // ...and closes the journal, which is client-owned visibility (C3)
+            // rather than a request to the server. A no-op when it is shut.
+            Journal.close();
             // ...and dismisses an open conversation (chunk 3b-ii, D21). Also a
             // no-op when no panel is open. It only ASKS: the panel closes when
             // the server drops the tree from the next snapshot.

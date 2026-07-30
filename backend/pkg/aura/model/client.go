@@ -37,6 +37,10 @@ type Client interface {
 	// from the client. Returns nil if none available.
 	NextInteract() *Interact
 
+	// NextAbandonQuest deques an AbandonQuest message received
+	// from the client (plan-quests.md C3, D13)
+	NextAbandonQuest() *AbandonQuest
+
 	// SendMessage enqueues a message in the outgoing
 	// messages queue
 	SendMessage([]byte) error
@@ -47,6 +51,13 @@ type Client interface {
 	// line from its catalog and shows the source label beneath it — see
 	// plan-unlock-attribution.md.
 	SendUnlock(skillID uint64, source string) error
+
+	// SendJournal enqueues a journal ping (kind=Journal) carrying only the
+	// banner line — a quest entered a new stage, or finished (plan-quests.md
+	// D17). ⚑ GARNISH ONLY: this channel drops on a full buffer, so nothing
+	// durable may ride it; the journal's actual state is re-sent every tick on
+	// GameState.quest_progress (L8).
+	SendJournal(text string) error
 
 	// Close closes the connection and disconnects the client
 	Close()

@@ -20,6 +20,7 @@ import {BackendState, IBackend} from "./IBackend";
 import {Session} from "../../accounts/logic/Session";
 import {Badgeable, retargetInteractBadge} from "./InteractBadgeTargeting";
 import * as Conversation from "../../conversation/logic/Conversation";
+import * as Journal from "../../journal/logic/Journal";
 import {Develop} from "../../internal-tools/develop/logic/_Develop";
 import {
     BackendConnectionFailureEvent,
@@ -244,6 +245,13 @@ export class Backend implements IBackend {
                         + (source ? `\n${source}` : '');
                     AlertBanner.show(text, 'unlock');
                 }
+                // Journal ping (plan-quests.md D17): a quest entered a new stage
+                // or finished. Garnish — the message carries only the line; the
+                // journal's state rides GameState every tick (L8), so a dropped
+                // banner loses nothing but the sentence.
+                else if (entityMessage.kind() === AuraApi.EntityMessageKind.Journal) {
+                    AlertBanner.show(entityMessage.message(), 'unlock');
+                }
                 // Entity id 0 = server announcement (chat.SystemEntityID) —
                 // routed to the alert banner, not a speech bubble (C6).
                 else if (Number(entityMessage.entityId()) === 0) {
@@ -353,6 +361,11 @@ export class Backend implements IBackend {
         // Conversation panel (chunk 3b-ii). Before the badge, because the badge
         // suppresses itself for whoever the panel belongs to.
         Conversation.update(snapshot.conversation ?? null);
+
+        // The quest ledger (plan-quests.md chunk C3): live state, re-sent every
+        // tick like the tree above. The panel's own visibility is the client's;
+        // only its CONTENT comes from here.
+        Journal.update(snapshot.questProgress ?? []);
 
         // Interact badge (chunk 3b-i). After addOrUpdate, so an actor that
         // entered the viewport this same tick already has a game object to

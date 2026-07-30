@@ -81,6 +81,18 @@ table Interact {
     close:bool = false;
 }
 
+// Abandon a running quest from the journal (plan-quests.md chunk C3, D13): it
+// returns to not-started — its stage path, and with it its diary entries, are
+// cleared — and it becomes offerable again. The completed set is untouchable,
+// so a finished one-shot can never be abandoned back into circulation.
+//
+// The server validates on its own merits (is this quest running for this
+// player) and refuses silently: a stale click from a player whose quest moved a
+// tick ago looks exactly like an invalid one.
+table AbandonQuest {
+    quest_id:string;
+}
+
 // Values are PERMANENTLY PINNED (plan-entity-model.md L16), the same discipline
 // EntityType/StatusEffect/EntityMessageKind carry in server.fbs. Union members
 // would otherwise take their wire value from declaration order, so reordering or
@@ -95,7 +107,8 @@ union ClientMessageBody {
   Equip = 5,
   SpendSkillPoint = 6,
   Respawn = 7,
-  Interact = 8
+  Interact = 8,
+  AbandonQuest = 9
 }
 table ClientMessage { body:ClientMessageBody; }
 

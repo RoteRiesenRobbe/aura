@@ -406,6 +406,24 @@ table Conversation {
   nodes:[ConversationNode];
 }
 
+// --- the quest ledger (plan-quests.md chunk C3, §6) ---
+//
+// One running or completed quest of the owning player. IDS ONLY: the words —
+// the quest's title and each stage's diary prose — come from the /quests
+// catalog (D14), so this stays far smaller than the conversation tree already
+// re-sent 30×/s beside it.
+table QuestProgress {
+  quest_id:string;
+  // The ordered list of stages this character actually ENTERED, not a position
+  // (L6): branch paths differ per character, and the journal renders the diary
+  // of the path walked. Order is the authoring order of entry, oldest first.
+  stages:[string];
+  // Sticky forever once set (D13): a completed one-shot stays completed, and
+  // abandoning never touches it. A quest that is neither running nor completed
+  // is simply absent — an abandoned quest returns to not-started.
+  completed:bool = false;
+}
+
 table GameState {
   tick:ulong;
 
@@ -474,6 +492,16 @@ table GameState {
   // later optimisation, not a design requirement. Appended at the table end so
   // existing field IDs stay stable.
   conversation:Conversation;
+
+  // The owning player's quest ledger (chunk C3, §6): every running and every
+  // completed quest, ids only. Sent as STATE every tick like the spellbook and
+  // the conversation above — EntityMessage is a garnish channel and cannot
+  // carry this (L8) — and the client diffs it with the view-signature pattern,
+  // which is load-bearing here because the journal has clickable rows (abandon).
+  // Own player only. Absent (the common case until a quest is accepted) reads
+  // as an empty journal. Appended at the table end so existing field IDs stay
+  // stable.
+  quest_progress:[QuestProgress];
 }
 
 table Welcome {
@@ -500,9 +528,15 @@ table Obituary {
 }
 
 // Distinguishes a plain speech-bubble/announcement (Chat) from a skill-unlock
-// notification (Unlock). Appended field defaults to Chat, so old clients that
-// never read `kind` treat every EntityMessage as chat exactly as before.
-enum EntityMessageKind:ubyte { Chat = 0, Unlock = 1 }
+// notification (Unlock) or a journal ping (Journal). Appended field defaults to
+// Chat, so old clients that never read `kind` treat every EntityMessage as chat
+// exactly as before.
+//
+// Values PERMANENTLY PINNED (§28): Journal = 2 at birth. Journal is GARNISH —
+// it carries only the banner line for a stage entry or a completion (D17); the
+// durable journal state rides GameState.quest_progress every tick, because this
+// channel drops on a full buffer (L8).
+enum EntityMessageKind:ubyte { Chat = 0, Unlock = 1, Journal = 2 }
 
 table EntityMessage {
     entity_id:ulong;   // on Unlock: repurposed to carry the unlocked skill id

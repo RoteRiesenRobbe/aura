@@ -19,6 +19,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 	"github.com/RoteRiesenRobbe/aura/pkg/logging"
@@ -252,6 +253,14 @@ func main() {
 		slog.Error("failed to build mob catalog", slog.Any("error", err))
 		panic(err)
 	}
+	// /quests is the journal's words (plan-quests.md C3, D14): the wire carries
+	// only quest + stage ids, so titles and diary prose come from here. A minimal
+	// projection — nothing about objectives, the stage graph or rewards.
+	questsHandler, err := quests.CatalogHandler(questsRegistry)
+	if err != nil {
+		slog.Error("failed to build quest catalog", slog.Any("error", err))
+		panic(err)
+	}
 	counter, ok := g.(playerCounter)
 	if !ok {
 		panic("game does not report a player count")
@@ -259,6 +268,7 @@ func main() {
 	sidecars := map[string]http.Handler{
 		"/skills":  skillsHandler,
 		"/mobs":    mobsHandler,
+		"/quests":  questsHandler,
 		"/players": playersHandler(counter),
 	}
 
