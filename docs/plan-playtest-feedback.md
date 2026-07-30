@@ -1833,6 +1833,45 @@ context = invalid run, not a failure; assert on the XP readout, not on
 `model/mob/mob.go` (`NotePresence`) · `sys/skills.go` (the scan) · tests as
 above · this doc's ledger on completion.
 
+## Intake — round 7 (2026-07-30): the PO's walk of quest chunk C4
+
+The first play of the shipped quest system. Verdict: *"this works very well and
+can be read as quests and understood. No major bugs, but some issues and change
+requests."* **13 items, all verified against the running game the same day and
+planned in full → `plan-conversation-journal.md`** (chunks Q1–Q4, three PO
+rulings R1–R3). Recorded here only as the intake; that doc is the plan.
+
+The four that were worth the investigation, because the obvious reading was
+wrong:
+
+1. **"NPCs always say their too-low line"** — measured: clicking a locked row
+   *replaces* the greeting with that option's `blockedLine`, and it is one line
+   per **option**, so the Village Healer answers identically for FirstAid @2 and
+   Revive @8. Ruled (R1, as amended): the mechanism is **deleted, not repaired** —
+   a greyed row is inert, and the panel's text belongs to the node the player is
+   standing on. The amendment brought a second requirement with it: an **Accept
+   row must vanish once the quest is taken while its sibling questions stay**,
+   which is the first thing the container genuinely could not express.
+2. **"Can't talk in combat, reads like a bug"** — three gates, and the window is
+   `combatRegenGraceTicks` = **3.33 s re-stamped by the player's own aura ticking
+   on anything**, so a fighting player is un-talkable throughout. Being removed
+   in Q1; it partly reverses `archive/plan-entity-model.md` R2 and D21.
+3. **"The Shaman's teachings aren't gated behind a row — is that systemic?"** —
+   **no, content**: one multi-grant option auto-expands per D17, the deliberate
+   path for the six NPCs never re-authored into trees.
+4. **"The lamp quest doesn't make sense"** — correct, and worse: there is no item
+   system at all (§28), so "the lamp" is the **Lantern skill unlock**, still a
+   5 % Kobold drop, and the traveller hands over a skill he does not have.
+   Ruled (R3, as amended): **remove the Lantern drop from Kobold and
+   KoboldRanged** and let the quest be its only source — *"the kobolds are
+   unbearable, kill them and the lamp is yours"*. The aura the tunnel is designed
+   around stops being a 5 % roll and becomes a guaranteed reward.
+
+Also raised and answered: a `kill` objective counts exactly **one** MobID, so
+`Wolf` does not include DireWolf/EliteWolf/AlphaWolf. Not changing it — but the
+cheap version would be a species *list*, and the tempting shortcut is wrong
+(`wildlife_predator` also contains Bear and DireBear).
+
 ## Rolling filler — blocks nothing, do any time
 
 > **4 of 6 ✅ DONE 2026-07-26** in one batch, committed `dab4dae0` —
