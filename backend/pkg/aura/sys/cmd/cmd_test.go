@@ -6,14 +6,15 @@ import (
 	"testing/fstest"
 
 	"github.com/EngoEngine/ecs"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // fakeXpPlayer implements just enough of model.PlayerEntity for the XP
@@ -319,4 +320,62 @@ func TestDamageCommand_RejectsBadArguments(t *testing.T) {
 	assert.Error(t, commands["DAMAGE"](nil, p, strPtr("")))
 	assert.Error(t, commands["DAMAGE"](nil, p, strPtr("lots")))
 	assert.Equal(t, vitals.VitalSign(200), p.vitals.Health, "a rejected command changes nothing")
+}
+
+// --- QUEST (plan-quests.md C1: inspect and drive the ledger) ---
+
+// fakeQuestPlayer carries a real ledger over fixture content; everything else
+// panics via the embedded nil interface.
+type fakeQuestPlayer struct {
+	model.PlayerEntity
+	ledger *quests.Ledger
+}
+
+func (f *fakeQuestPlayer) QuestLedger() *quests.Ledger { return f.ledger }
+func (f *fakeQuestPlayer) Name() string                { return "tester" }
+
+func newFakeQuestPlayer(t *testing.T) *fakeQuestPlayer {
+	t.Helper()
+	branch := &quests.QuestDefinition{
+		ID: "choice", Title: "The Choice",
+		Stages: []*quests.Stage{
+			{ID: "choose", Journal: "j"},
+			{ID: "a-end", Journal: "j"},
+		},
+	}
+	branch.NoteDialogueEdgeFrom("choose")
+	reg, err := quests.NewRegistry(branch)
+	require.NoError(t, err)
+	return &fakeQuestPlayer{ledger: quests.NewLedger(reg)}
+}
+
+func TestQuestCommand_AcceptAbandonAdvance(t *testing.T) {
+	p := newFakeQuestPlayer(t)
+
+	require.NoError(t, commands["QUEST"](nil, p, strPtr("ACCEPT choice")))
+	_, running, _ := p.ledger.Progress("choice")
+	assert.True(t, running)
+
+	require.NoError(t, commands["QUEST"](nil, p, strPtr("ABANDON choice")))
+	_, running, _ = p.ledger.Progress("choice")
+	assert.False(t, running)
+
+	require.NoError(t, commands["QUEST"](nil, p, strPtr("ACCEPT choice")))
+	require.NoError(t, commands["QUEST"](nil, p, strPtr("ADVANCE choice choose a-end")))
+	_, _, completed := p.ledger.Progress("choice")
+	assert.True(t, completed)
+}
+
+func TestQuestCommand_DumpNeverErrors(t *testing.T) {
+	p := newFakeQuestPlayer(t)
+	assert.NoError(t, commands["QUEST"](nil, p, nil), "bare QUEST dumps the ledger")
+	assert.NoError(t, commands["QUEST"](nil, p, strPtr("")))
+}
+
+func TestQuestCommand_BadInput(t *testing.T) {
+	p := newFakeQuestPlayer(t)
+	assert.Error(t, commands["QUEST"](nil, p, strPtr("FROBNICATE choice")), "unknown subcommand")
+	assert.Error(t, commands["QUEST"](nil, p, strPtr("ACCEPT")), "missing quest id")
+	assert.Error(t, commands["QUEST"](nil, p, strPtr("ACCEPT no-such-quest")), "ledger errors surface to the sender")
+	assert.Error(t, commands["QUEST"](nil, p, strPtr("ADVANCE choice choose")), "ADVANCE needs from AND to")
 }

@@ -13,7 +13,7 @@ fmt:
 cp-defs:
 	$(info "bundling mobs, skills and recipe definitions")
 	@find ./pkg/api -type f -name '*.json' -delete
-	@cp -rf ../api/mobs ../api/skills ../api/recipes ../api/zones ../api/props ../api/factions ../api/milestones ./pkg/api
+	@cp -rf ../api/mobs ../api/skills ../api/recipes ../api/zones ../api/props ../api/factions ../api/milestones ../api/quests ./pkg/api
 
 %.build: gen cp-defs
 	go build -o $* ./cmd/$*

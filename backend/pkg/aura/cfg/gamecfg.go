@@ -6,6 +6,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
@@ -28,6 +29,7 @@ type GameConfig struct {
 	SkillRegistry    skills.Registry
 	MilestoneUnlocks []skills.MilestoneUnlock
 	Recipes          skills.RecipeRegistry
+	QuestRegistry    quests.Registry
 
 	// Spawns are the authored mob spawn points from the zone (world foundation
 	// chunk 4). The MobSystem spawns one mob per point and respawns it at the

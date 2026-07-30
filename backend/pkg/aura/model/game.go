@@ -6,6 +6,7 @@ import (
 	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -31,6 +32,10 @@ type Game interface {
 
 	// Skills returns the registry with all available skill definitions
 	Skills() skills.Registry
+
+	// Quests returns the registry with all available quest definitions
+	// (plan-quests.md C1); nil in worlds without quest content (the sim).
+	Quests() quests.Registry
 
 	// Ticks returns the number of ticks
 	Ticks() uint64

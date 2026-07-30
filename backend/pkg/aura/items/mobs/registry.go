@@ -40,8 +40,15 @@ func (r *registry) Mobs() []*MobDefinition {
 	return mobs
 }
 
-func (r *registry) add(m *MobDefinition) {
+// add registers a definition; a duplicate authored id hard-fails — the quest
+// ledger keys lifetime counters by MobID (plan-quests.md L12), so a silent
+// overwrite would merge two species.
+func (r *registry) add(m *MobDefinition) error {
+	if existing, dup := r.mobs[m.ID]; dup {
+		return fmt.Errorf("duplicate mob id %d: %q and %q", m.ID, existing.Name, m.Name)
+	}
 	r.mobs[m.ID] = m
+	return nil
 }
 
 func newRegistry() *registry {
@@ -82,7 +89,9 @@ func RegistryFromFS(sr skills.Registry, fr factions.Registry, c curve.Curve, fil
 		if err != nil {
 			return fmt.Errorf("cannot map '%s': %w\n", path, err)
 		}
-		mobs.add(mob)
+		if err := mobs.add(mob); err != nil {
+			return fmt.Errorf("cannot register '%s': %w", path, err)
+		}
 		return nil
 	})
 	if err != nil {

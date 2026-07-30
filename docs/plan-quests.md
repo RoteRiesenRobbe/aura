@@ -1,6 +1,8 @@
 # Plan: the quest system — journal-carried quests on the interaction container
 
-**Status: DESIGNED 2026-07-29 (docs only, no code). No chunk started.**
+**Status: chunk C1 ✅ DONE 2026-07-30 (the ledger + events, backend only — full
+ledger §11). Prerequisite chunk P ✅ 2026-07-30 `d45ba07c`. Next: C2 (dialogue
+vocabulary); C0 remains standalone filler.**
 **CODE-REVIEWED 2026-07-30** — three line-level sweeps (interaction container ·
 XP/credit path · wire + content loading) checked every claim against HEAD;
 corrections are folded in below, tagged *(code review)*. Four follow-up PO
@@ -359,3 +361,65 @@ per-character (D5); §36's bloodline / account scoping
 question does not move quest state per this session's ruling, but step 8 should
 confirm that alongside §41. Everything is small, append-mostly, and — per D12 —
 already live by the time step 8 designs the schema.
+
+## 11. Chunk C1 ledger — the ledger + events ✅ DONE 2026-07-30
+
+**Scope delivered exactly as §8 priced it** (backend only: 25 files modified +
+4 new; no wire, no frontend, no authored content — `api/quests/` ships a README
+and `count: 0` until C4). New package **`pkg/aura/quests`**: definitions +
+loader (species/NPC authored by *name*, resolved to `MobID` at load, L12;
+`DisallowUnknownFields` + `_comment`; binary stage shape enforced — objectives
+⇒ single `next`, dialogue ⇒ neither; dangling/self `next` and **objective-chain
+cycles** hard-fail, because a cycle would loop the retroactive cascade forever)
+and the **`Ledger`** (lifetime `killCounts` + `talkedTo` + per-quest walked
+path, L6). `Accept` cascades retroactively (D3 — a veteran auto-completes on
+the spot), `Abandon` clears the path and leaves counters + the completed set
+(D13), `AdvanceDialogue` walks one branch edge — the C2 `advance_quest` seam,
+driven by the new `QUEST` cheat (dump / `ACCEPT` / `ABANDON` / `ADVANCE`) until
+rows exist. **The hooks:** `rewardPlayer` → `NoteKill(m.definition.ID)` (D4 —
+participation not XP amount, L13, pinned by an `experience: 0` test; presence
+participants and healers inherit for free, pinned by a `NotePresence` test);
+session open in `handleInteracts` → `NoteTalkedTo(a.MobID())`. **L11 held:**
+the ledger joins `deadState` + `reconnectStash` at all five sites,
+pointer-carried like `SkillComponent`, pinned by four tests (respawn · alive
+reconnect · dead-reconnect→respawn · join-while-dead). **L12's boot guard:**
+`registry.add` hard-fails a duplicate authored mob id (proven red first).
+**L14 played out as predicted:** the encounter fake's nil-interface tripwire
+caught the widening at test-run time, not compile time.
+
+**Shape decisions for C2 to build on:** ① *terminality is derived, not
+authored* — a dialogue stage with no outgoing edge is terminal, and
+`QuestDefinition.NoteDialogueEdgeFrom(stageID)` is the hook C2's interaction
+loader calls per `advance_quest` row so a mid-quest dialogue stage waits
+instead of completing (tests register edges the same way). ② The ledger holds
+the boot registry; **nil is a supported registry** (the sim) — counters count,
+nothing advances. ③ `Progress` is `{Path, Running, Completed}` with `Completed`
+**sticky forever** (D13); a repeatable re-accept resets only the path.
+④ `quests.NewRegistry(defs...)` is the in-memory fixture seam other packages'
+tests use. ⑤ `model.Game` gained `Quests()`; `PlayerEntity` gained
+`QuestLedger()`/`SetQuestLedger()`; the sys-internal `interactor` widened by
+`QuestLedger()` only.
+
+**L5 played out in full:** loaders.go ×3 · new embed pkg `pkg/api/quests`
+(⚑ pattern `*`, not `*.json` — go:embed rejects a pattern matching nothing and
+the directory holds only a README until C4; the loader skips non-`.json`) ·
+Makefile `cp-defs` · `Loaded quest definitions` boot line · the verify-skill
+grep + its stale canonical counts refreshed · CLAUDE.md "eight directories".
+
+**Verified:** 34 new Go tests, **every hook proven red first** · build/vet/full
+suite clean · guardrails + alloc `-count=2` · **sim battery BYTE-IDENTICAL all
+4 legs** vs a pre-chunk worktree (TTK 6.67 s / TTD 8.70 s stand) ·
+`make -C backend build` (cp-defs picks up `quests/`) · boot embedded **and**
+`-content ../api`: counts pinned (15 factions/86 skills/64 mobs/1 milestone/10
+recipes/5 props/777 props/485 spawns/5 campfires) + `Loaded quest definitions
+count=0`, 0 errors 0 warnings · 66/66 vitest + typecheck (frontend untouched) ·
+harness gate: `chunk3b-interact.mjs` 14/14 and `chunkP-presence.mjs` 6/6 re-run
+green (they own the touched `handleInteracts`/`rewardPlayer` paths);
+`chunk3b-ii-conversation.mjs` 28 PASS + 1 deliberate SKIP + **1 FAIL that is
+NOT this chunk's** — *"…and walks on afterwards"* (the Wanderer resuming
+patrol after a conversation, D22) fails **identically at pre-chunk HEAD**,
+proven by stash + rebuild + re-run on a fresh server; recorded here per the
+chunk-wrap rule instead of silently ignored, still open. ⚑ One first run was
+invalidated by a WebGL context loss (§29's ~1-in-6) — rerun clean, the
+standing rule held. Pre-existing repo-wide `gofmt -l` drift (44 files at HEAD)
+was left untouched; none of the new code is affected.

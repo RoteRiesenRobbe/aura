@@ -1402,3 +1402,21 @@ func TestInteractionSystem_NpcBodyIsNotAnAuraTarget(t *testing.T) {
 		assert.NotSame(t, m.Bodies()[0], c, "an NPC body must never surface as an aura target")
 	}
 }
+
+// --- quest talked-to stamping (plan-quests.md C1) ---
+
+// Opening a session stamps the conversant's species id (MobID, L12) into the
+// quest ledger's talked-to set. Merely standing in range stamps nothing — the
+// badge is an offer, not a conversation.
+func TestSession_OpeningStampsTalkedTo(t *testing.T) {
+	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{{ID: "root", Lines: []string{"hello"}}}}
+	s, space, m, p := interactFixture(t, in)
+	step := stepper(s, space, p)
+
+	step()
+	assert.False(t, p.ledger.HasTalkedTo(51), "standing in range is not talking (D18)")
+
+	pressInteract(p, m.Basic().ID())
+	step()
+	assert.True(t, p.ledger.HasTalkedTo(51), "opening the panel stamps the conversant")
+}

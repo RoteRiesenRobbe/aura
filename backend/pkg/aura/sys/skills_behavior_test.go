@@ -24,6 +24,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -69,29 +70,30 @@ var (
 // loudly if the code under test starts using more of the interface.
 type fakePlayer struct {
 	model.PlayerEntity
-	basic           ecs.BasicEntity
-	sc              *skills.SkillComponent
-	vitalSigns      model.PlayerVitalSigns
-	statusEffects   model.StatusEffects
-	aura            *phy.Circle
-	body            *phy.Circle // main physical body (Bodies()[0], player layer)
-	god             bool
-	poolFactor      float32
-	maxHealth       vitals.VitalSign
-	level           uint32
-	xp              []uint64
-	healedBy        []model.PlayerEntity
-	healReceived    vitals.VitalSign
-	resists         []appliedResist
-	shields         []appliedShield
-	hots            []appliedHot
-	inCombat        bool                 // reported by InCombat (chunk 1 combat-gate tests)
-	combatActions   int                  // NoteCombatAction call count (chunk 1)
-	client          model.Client         // recall reads Client().UUID() (chunk 4)
-	rejections      []rejectedActivation // NoteActivationRejected calls (chunk 4)
-	lastMoveDir     phy.Vec2f            // dash aim source (chunk 5)
-	buffs           skills.Buffs         // real store for tick_rate (chunk 6); zero value = factor 1.0
-	powerScale      float32              // f(character level) (C0); newFakePlayer sets neutral 1
+	basic         ecs.BasicEntity
+	sc            *skills.SkillComponent
+	ledger        *quests.Ledger
+	vitalSigns    model.PlayerVitalSigns
+	statusEffects model.StatusEffects
+	aura          *phy.Circle
+	body          *phy.Circle // main physical body (Bodies()[0], player layer)
+	god           bool
+	poolFactor    float32
+	maxHealth     vitals.VitalSign
+	level         uint32
+	xp            []uint64
+	healedBy      []model.PlayerEntity
+	healReceived  vitals.VitalSign
+	resists       []appliedResist
+	shields       []appliedShield
+	hots          []appliedHot
+	inCombat      bool                 // reported by InCombat (chunk 1 combat-gate tests)
+	combatActions int                  // NoteCombatAction call count (chunk 1)
+	client        model.Client         // recall reads Client().UUID() (chunk 4)
+	rejections    []rejectedActivation // NoteActivationRejected calls (chunk 4)
+	lastMoveDir   phy.Vec2f            // dash aim source (chunk 5)
+	buffs         skills.Buffs         // real store for tick_rate (chunk 6); zero value = factor 1.0
+	powerScale    float32              // f(character level) (C0); newFakePlayer sets neutral 1
 	// The per-tick interactable stamp (chunk 3b-i). Nothing clears these
 	// between ticks the way ResetTickNumbers does for a real player — the
 	// clearing is pinned in model/player, these doubles only need to carry the
@@ -103,7 +105,7 @@ type fakePlayer struct {
 	// condition, which is precisely what the end-condition tests assert on.
 	conversingWith uint64
 	conversation   *model.Conversation
-	conf            cfg.PlayerConfig     // zero value = no base crit (§4.3 v2); tests set CritChance explicitly
+	conf           cfg.PlayerConfig // zero value = no base crit (§4.3 v2); tests set CritChance explicitly
 }
 
 // appliedResist records one ApplyResist call on a test double.
@@ -131,6 +133,7 @@ type appliedHot struct {
 func (f *fakePlayer) Basic() ecs.BasicEntity                 { return f.basic }
 func (f *fakePlayer) Faction() model.Faction                 { return model.FactionAligned }
 func (f *fakePlayer) SkillComponent() *skills.SkillComponent { return f.sc }
+func (f *fakePlayer) QuestLedger() *quests.Ledger            { return f.ledger }
 func (f *fakePlayer) Config() *cfg.PlayerConfig              { return &f.conf }
 func (f *fakePlayer) AuraCollider() *phy.Circle              { return f.aura }
 func (f *fakePlayer) VitalSigns() *model.PlayerVitalSigns    { return &f.vitalSigns }
@@ -236,14 +239,15 @@ var (
 
 func newFakePlayer() *fakePlayer {
 	return &fakePlayer{
-		basic:           ecs.NewBasic(),
-		sc:              skills.NewSkillComponent(true),
-		vitalSigns:      model.PlayerVitalSigns{Health: 100}, // full = maxHealth (absolute HP, item 11)
-		statusEffects:   model.NewStatusEffects(),
-		poolFactor:      1.0,
-		maxHealth:       100,
-		level:           1,
-		powerScale:      1.0, // f(1) — the un-inflated baseline (C0)
+		basic:         ecs.NewBasic(),
+		sc:            skills.NewSkillComponent(true),
+		ledger:        quests.NewLedger(nil),
+		vitalSigns:    model.PlayerVitalSigns{Health: 100}, // full = maxHealth (absolute HP, item 11)
+		statusEffects: model.NewStatusEffects(),
+		poolFactor:    1.0,
+		maxHealth:     100,
+		level:         1,
+		powerScale:    1.0, // f(1) — the un-inflated baseline (C0)
 		// Non-nil so applyDamageAura/applyHealAura can read the caster position
 		// for selector ordering; tests that need a real space overwrite it.
 		aura:   phy.NewCircle(phy.VEC2F_ZERO, 1.0),

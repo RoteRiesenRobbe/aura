@@ -7,8 +7,6 @@ import (
 	"sync/atomic"
 
 	"github.com/EngoEngine/ecs"
-	"github.com/google/flatbuffers/go"
-	"github.com/google/uuid"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -18,7 +16,10 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/spectator"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/google/flatbuffers/go"
+	"github.com/google/uuid"
 )
 
 type stringSet map[string]struct{}
@@ -50,6 +51,10 @@ type deadState struct {
 	corpse      model.CorpseEntity
 	progression model.PlayerProgression
 	skills      *skills.SkillComponent
+	// quests is the character's quest ledger (plan-quests.md C1, L11): the
+	// player struct is rebuilt on respawn, so like the skill component the
+	// ledger pointer must ride the stash or every death wipes quest progress.
+	quests *quests.Ledger
 }
 
 // reconnectStashTTLTicks is how long a disconnected character (and its name
@@ -66,14 +71,15 @@ const reconnectStashTTLTicks = 10 * 60 * constant.TicksPerSecond
 // stashed; the TTL sweep frees both. Buffs and casting state are NOT carried
 // (the death-respawn precedent).
 type reconnectStash struct {
-	name        string
-	progression model.PlayerProgression
-	skills      *skills.SkillComponent
-	health      vitals.VitalSign // alive-stash only; dead reconnects respawn normally
-	position    phy.Vec2f        // alive: last position; dead: the deathspot
-	anchor      phy.Vec2f
-	hasAnchor   bool
-	dead        bool
+	name           string
+	progression    model.PlayerProgression
+	skills         *skills.SkillComponent
+	quests         *quests.Ledger   // the L11 carry, exactly like deadState's
+	health         vitals.VitalSign // alive-stash only; dead reconnects respawn normally
+	position       phy.Vec2f        // alive: last position; dead: the deathspot
+	anchor         phy.Vec2f
+	hasAnchor      bool
+	dead           bool
 	disconnectTick uint64
 }
 
@@ -282,6 +288,7 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 	p := player.New(s.game, client, dead.name)
 	p.SetProgression(dead.progression)
 	p.SetSkillComponent(dead.skills)
+	p.SetQuestLedger(dead.quests)
 	p.SetPosition(s.respawnPosition(client.UUID()))
 	// Re-stamp full health AFTER progression/skills (triage item 14): the
 	// constructor stamped the base pool before +maxHealth passives were back.
@@ -333,6 +340,7 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	if wasDead {
 		p.SetProgression(dead.progression)
 		p.SetSkillComponent(dead.skills)
+		p.SetQuestLedger(dead.quests)
 	}
 
 	// spawn the player at a random campfire (default spawn)
@@ -374,6 +382,7 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 			corpse:      c,
 			progression: stash.progression,
 			skills:      stash.skills,
+			quests:      stash.quests,
 		}
 		s.game.AddEntity(spectator.NewSpectator(stash.position, client))
 		return
@@ -383,6 +392,7 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 	p := player.New(s.game, client, stash.name)
 	p.SetProgression(stash.progression)
 	p.SetSkillComponent(stash.skills)
+	p.SetQuestLedger(stash.quests)
 	p.SetPosition(stash.position)
 	// Exact stashed HP, clamped AFTER progression/skills are back (triage
 	// item 14 ordering) in case the max pool shrank.
@@ -428,6 +438,7 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 		corpse:      c,
 		progression: p.Progression(),
 		skills:      p.SkillComponent(),
+		quests:      p.QuestLedger(),
 	}
 
 	// Drain stale lifecycle messages: a Join/Respawn banked while alive would
@@ -600,6 +611,7 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 				name:           dead.name,
 				progression:    dead.progression,
 				skills:         dead.skills,
+				quests:         dead.quests,
 				position:       dead.corpse.Position(),
 				anchor:         anchor,
 				hasAnchor:      hasAnchor,
@@ -635,6 +647,7 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 			name:           p.Name(),
 			progression:    p.Progression(),
 			skills:         p.SkillComponent(),
+			quests:         p.QuestLedger(),
 			health:         p.VitalSigns().Health,
 			position:       p.Position(),
 			anchor:         anchor,

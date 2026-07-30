@@ -17,6 +17,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/player"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys/statuseffects"
@@ -215,6 +216,10 @@ func (g *simGame) Bounds() (float32, float32) {
 // Mobs is unused by the sim's system set (no spawn effect in chunk 1); nil
 // keeps an accidental dependency loud.
 func (g *simGame) Mobs() mobs.Registry { return nil }
+
+// Quests is nil by design: the sim has no quest content, and a nil-registry
+// ledger still counts kills without advancing anything (plan-quests.md C1).
+func (g *simGame) Quests() quests.Registry { return nil }
 
 // Handler / Loop belong to the net layer the sim deliberately does not
 // stand up (plan §2).

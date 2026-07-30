@@ -147,6 +147,32 @@ var commands = map[string]Command{
 
 		return nil
 	},
+	// QUEST inspects and drives the quest ledger (plan-quests.md C1) — the
+	// only driver for dialogue edges until C2 authors advance_quest rows.
+	//   QUEST                        dump the ledger to the server log
+	//   QUEST ACCEPT <id>            start a quest
+	//   QUEST ABANDON <id>           abandon a running quest (D13)
+	//   QUEST ADVANCE <id> <from> <to>  walk one dialogue branch edge
+	"QUEST": func(g model.Game, p model.PlayerEntity, arg *string) error {
+		if arg == nil || len(*arg) == 0 {
+			log.Printf("📜 quest ledger of '%s':", p.Name())
+			for _, line := range p.QuestLedger().DebugLines() {
+				log.Println("📜   " + line)
+			}
+			return nil
+		}
+		argv := strings.Split(*arg, " ")
+		sub, rest := argv[0], argv[1:]
+		switch {
+		case sub == "ACCEPT" && len(rest) == 1:
+			return p.QuestLedger().Accept(rest[0])
+		case sub == "ABANDON" && len(rest) == 1:
+			return p.QuestLedger().Abandon(rest[0])
+		case sub == "ADVANCE" && len(rest) == 3:
+			return p.QuestLedger().AdvanceDialogue(rest[0], rest[1], rest[2])
+		}
+		return fmt.Errorf("usage: 'QUEST', 'QUEST ACCEPT <id>', 'QUEST ABANDON <id>' or 'QUEST ADVANCE <id> <from> <to>'")
+	},
 	"DAMAGE": func(g model.Game, p model.PlayerEntity, arg *string) error {
 		if arg == nil || len(*arg) == 0 {
 			return fmt.Errorf("no argument, usage: 'DAMAGE <percentage>'")

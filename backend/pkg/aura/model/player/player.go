@@ -13,6 +13,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -59,6 +60,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.skills = sc
 	p.milestoneUnlocks = g.Config().MilestoneUnlocks
 	p.recipes = g.Config().Recipes
+	p.questLedger = quests.NewLedger(g.Quests())
 	// A fresh spawn only has Harvest at level 1, but run the cascade anyway
 	// so a starter recipe keyed on that would still fire — keeps discovery paths
 	// uniform.
@@ -124,6 +126,11 @@ type player struct {
 	skills           *skills.SkillComponent
 	milestoneUnlocks []skills.MilestoneUnlock
 	recipes          skills.RecipeRegistry
+
+	// questLedger is the character's lifetime quest state (plan-quests.md C1).
+	// Like the skill component it outlives this struct: the connection-state
+	// stash carries the pointer across death and reconnect (L11).
+	questLedger *quests.Ledger
 
 	// healers inside the participation window (roadmap item 10);
 	// lazily initialized by NoteHealedBy
@@ -914,6 +921,19 @@ func (p *player) updateHand() {
 
 func (p *player) SkillComponent() *skills.SkillComponent {
 	return p.skills
+}
+
+func (p *player) QuestLedger() *quests.Ledger {
+	return p.questLedger
+}
+
+// SetQuestLedger replaces the freshly-created ledger with a carried one — the
+// death/reconnect restore path (plan-quests.md L11), mirroring
+// SetSkillComponent below.
+func (p *player) SetQuestLedger(l *quests.Ledger) {
+	if l != nil {
+		p.questLedger = l
+	}
 }
 
 // SetSkillComponent replaces the freshly-initialized skill component with a

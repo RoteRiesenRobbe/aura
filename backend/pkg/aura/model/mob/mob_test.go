@@ -19,6 +19,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -69,6 +70,7 @@ type fakeAuraPlayer struct {
 	healers []model.PlayerEntity
 	sc      *skills.SkillComponent
 	client  *mobFakeClient
+	ledger  *quests.Ledger
 }
 
 // mobFakeClient captures SendUnlock for the kill-drop attribution test; the rest
@@ -100,6 +102,7 @@ func (f *fakeAuraPlayer) Progression() model.PlayerProgression   { return f.prog
 func (f *fakeAuraPlayer) AddExperience(xp uint64)                { f.xp = append(f.xp, xp) }
 func (f *fakeAuraPlayer) RecentHealers() []model.PlayerEntity    { return f.healers }
 func (f *fakeAuraPlayer) SkillComponent() *skills.SkillComponent { return f.sc }
+func (f *fakeAuraPlayer) QuestLedger() *quests.Ledger            { return f.ledger }
 func (f *fakeAuraPlayer) ApplyRecipeCascade()                    {}
 func (f *fakeAuraPlayer) Client() model.Client                   { return f.client }
 
@@ -110,6 +113,7 @@ func newFakeAuraPlayer() *fakeAuraPlayer {
 		vs:     model.PlayerVitalSigns{Health: vitals.Max},
 		sc:     skills.NewSkillComponent(true),
 		client: &mobFakeClient{},
+		ledger: quests.NewLedger(nil),
 	}
 }
 
@@ -2152,4 +2156,49 @@ func TestMob_KillCreditNames_ParticipantsPlusHealersDeduped(t *testing.T) {
 
 func TestMob_KillCreditNames_EmptyWithoutParticipants(t *testing.T) {
 	assert.Empty(t, newTestMob().KillCreditNames())
+}
+
+// --- quest kill credit (plan-quests.md C1, D4: quest credit = XP credit) ---
+
+// The lifetime counter increments at the same event that grants kill XP — for
+// every participant class, including a presence bystander — and an increment
+// advances a running quest.
+func TestMob_KillCredit_IncrementsQuestCounterAndAdvancesQuest(t *testing.T) {
+	reg, err := quests.NewRegistry(&quests.QuestDefinition{
+		ID: "dodo-cull", Title: "The Dodo Cull",
+		Stages: []*quests.Stage{
+			{ID: "cull", Journal: "j", Objectives: []quests.Objective{{Kind: quests.ObjectiveKill, Target: 1, Count: 1}}, Next: "done"},
+			{ID: "done", Journal: "j"},
+		},
+	})
+	require.NoError(t, err)
+
+	m := newTestMob()
+	damager := newFakeAuraPlayer()
+	bystander := newFakeAuraPlayer()
+	bystander.ledger = quests.NewLedger(reg)
+	require.NoError(t, bystander.ledger.Accept("dodo-cull"))
+
+	m.PlayerTouches(damager, model.Damage{HP: 5})
+	m.NotePresence(bystander)
+	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
+
+	assert.Equal(t, uint64(1), damager.ledger.KillCount(1), "the damage participant's counter increments")
+	assert.Equal(t, uint64(1), bystander.ledger.KillCount(1), "the presence participant's counter increments (D15/D4)")
+	_, _, completed := bystander.ledger.Progress("dodo-cull")
+	assert.True(t, completed, "the credited kill advances the running quest at the same event")
+}
+
+// L13: 28 of 64 defs author experience: 0 and the reward fan-out still runs —
+// the counter fires on participation, not XP amount, or every harvest quest
+// is impossible.
+func TestMob_KillCredit_CountsZeroExperienceSpecies(t *testing.T) {
+	def := testMobDefinition()
+	def.Factors.Experience = 0
+	m := NewMob(def, 0, nil)
+	harvester := newFakeAuraPlayer()
+
+	m.PlayerTouches(harvester, model.Damage{HP: 1000})
+
+	assert.Equal(t, uint64(1), harvester.ledger.KillCount(1), "an experience: 0 harvest still counts")
 }

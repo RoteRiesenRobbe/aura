@@ -13,6 +13,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -62,6 +63,7 @@ func (g *fakeGame) Mobs() mobs.Registry {
 	return g.mobReg
 }
 func (g *fakeGame) Skills() skills.Registry { panic("unused") }
+func (g *fakeGame) Quests() quests.Registry { return nil }
 
 // fakeRegistry is a name-keyed mobs.Registry over hand-built definitions.
 type fakeRegistry struct {

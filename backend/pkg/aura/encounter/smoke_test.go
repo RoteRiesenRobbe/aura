@@ -10,6 +10,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -17,9 +18,10 @@ import (
 // touches; unimplemented methods panic via the embedded nil interface.
 type fakePlayer struct {
 	model.PlayerEntity
-	basic ecs.BasicEntity
-	name  string
-	pos   phy.Vec2f
+	basic  ecs.BasicEntity
+	name   string
+	pos    phy.Vec2f
+	ledger *quests.Ledger
 }
 
 func (f *fakePlayer) Basic() ecs.BasicEntity              { return f.basic }
@@ -32,9 +34,10 @@ func (f *fakePlayer) HealthRatio() float32                { return 1 }
 func (f *fakePlayer) InCombat() bool                      { return false }
 func (f *fakePlayer) AddExperience(xp uint64)             {}
 func (f *fakePlayer) RecentHealers() []model.PlayerEntity { return nil }
+func (f *fakePlayer) QuestLedger() *quests.Ledger         { return f.ledger }
 
 func newFakePlayer(pos phy.Vec2f) *fakePlayer {
-	return &fakePlayer{basic: ecs.NewBasic(), pos: pos}
+	return &fakePlayer{basic: ecs.NewBasic(), pos: pos, ledger: quests.NewLedger(nil)}
 }
 
 func smokeAuraSkill() *skills.SkillDefinition {

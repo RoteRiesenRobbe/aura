@@ -6,6 +6,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -178,6 +179,14 @@ type PlayerEntity interface {
 	// (the same flag that gates out-of-combat regen). The EquipSystem reads it
 	// to lock loadout editing in combat.
 	InCombat() bool
+	// QuestLedger is this character's lifetime quest state (plan-quests.md
+	// C1): kill counters increment at the mob's death-reward fan-out,
+	// conversants stamp at session open, and the connection-state stash
+	// carries it across death and reconnect (L11).
+	QuestLedger() *quests.Ledger
+	// SetQuestLedger replaces the fresh ledger with a carried one — the
+	// death/reconnect restore, mirroring SetSkillComponent.
+	SetQuestLedger(l *quests.Ledger)
 	SkillComponent() *skills.SkillComponent
 	// SetSkillComponent replaces the player's skill component wholesale.
 	// Used on respawn to restore the spellbook + loadout the player died with.

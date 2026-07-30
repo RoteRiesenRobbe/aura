@@ -16,6 +16,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/encounter"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/client"
@@ -38,6 +39,7 @@ type game struct {
 	config        *cfg.GameConfig
 	mobRegistry   mobs.Registry
 	skillRegistry skills.Registry
+	questRegistry quests.Registry
 
 	entities entitiesMap
 
@@ -76,6 +78,7 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 		joinQueue:     make(chan model.Client, 16),
 		mobRegistry:   gc.MobRegistry,
 		skillRegistry: gc.SkillRegistry,
+		questRegistry: gc.QuestRegistry,
 		boundsWidth:   gc.Bounds.Width,
 		boundsHeight:  gc.Bounds.Height,
 		config:        gc,
@@ -197,6 +200,10 @@ func (g *game) Mobs() mobs.Registry {
 
 func (g *game) Skills() skills.Registry {
 	return g.skillRegistry
+}
+
+func (g *game) Quests() quests.Registry {
+	return g.questRegistry
 }
 
 func (g *game) Handler() http.Handler {

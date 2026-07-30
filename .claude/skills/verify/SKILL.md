@@ -26,12 +26,12 @@ After a content add/edit, confirm the server actually loaded the new definitions
 structured slog JSON; each definition type logs its own `count`:
 
 ```bash
-grep -E '"msg":"(Loaded (skill|faction|mob|item|recipe|prop) definitions|Loaded milestone unlocks|Loaded zone|placed (campfires|npcs))"' /tmp/bh.log
+grep -E '"msg":"(Loaded (skill|faction|mob|item|recipe|prop|quest) definitions|Loaded milestone unlocks|Loaded zone|placed (campfires|npcs))"' /tmp/bh.log
 ```
 
 Confirm each count went up by exactly what you added. The canonical good line to
-compare against (as of the current content pass) is
-`75 skills / 12 factions / 40 mobs / 10 recipes / 5 props / 4 milestone unlocks`,
+compare against (as of quest chunk C1, 2026-07-30) is
+`86 skills / 15 factions / 64 mobs / 10 recipes / 5 props / 1 milestone unlock / 0 quests`,
 plus the `Loaded zone` line's `props`/`spawns` (e.g. 620 / 185) and the
 `placed campfires` / `placed npcs` counts. Cross-check that the skill/recipe
 counts match the pins in `skills/registry_test.go` and `skills/recipe_test.go`

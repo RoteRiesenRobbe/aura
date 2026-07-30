@@ -18,6 +18,7 @@ import (
 	amilestones "github.com/RoteRiesenRobbe/aura/pkg/api/milestones"
 	amobs "github.com/RoteRiesenRobbe/aura/pkg/api/mobs"
 	aprops "github.com/RoteRiesenRobbe/aura/pkg/api/props"
+	aquests "github.com/RoteRiesenRobbe/aura/pkg/api/quests"
 	arecipes "github.com/RoteRiesenRobbe/aura/pkg/api/recipes"
 	askills "github.com/RoteRiesenRobbe/aura/pkg/api/skills"
 	azones "github.com/RoteRiesenRobbe/aura/pkg/api/zones"
@@ -25,6 +26,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/factions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
@@ -44,6 +46,7 @@ type contentSources struct {
 	props      fs.FS
 	factions   fs.FS
 	milestones fs.FS
+	quests     fs.FS
 }
 
 func embeddedContent() contentSources {
@@ -55,12 +58,14 @@ func embeddedContent() contentSources {
 		props:      aprops.Props,
 		factions:   afactions.Factions,
 		milestones: amilestones.Milestones,
+		quests:     aquests.Quests,
 	}
 }
 
 // diskContent loads content from dir, which must have the repo api/ layout
-// (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/). Missing subdirectories
-// hard-fail here — content errors are loud, matching the registry ethos.
+// (mobs/, skills/, recipes/, zones/, props/, factions/, milestones/, quests/).
+// Missing subdirectories hard-fail here — content errors are loud, matching
+// the registry ethos.
 func diskContent(dir string) (contentSources, error) {
 	root := os.DirFS(dir)
 	sub := func(name string) (fs.FS, error) {
@@ -91,6 +96,9 @@ func diskContent(dir string) (contentSources, error) {
 		return contentSources{}, err
 	}
 	if c.milestones, err = sub("milestones"); err != nil {
+		return contentSources{}, err
+	}
+	if c.quests, err = sub("quests"); err != nil {
 		return contentSources{}, err
 	}
 	return c, nil
@@ -150,6 +158,19 @@ func loadSkills(fsys fs.FS, fr factions.Registry) skills.Registry {
 		panic(err)
 	}
 	slog.Info("Loaded skill definitions", slog.Int("count", len(registry.All())))
+	return registry
+}
+
+// loadQuests parses the quest definitions, resolving authored species and
+// conversant names against the mob registry (plan-quests.md C1, L12).
+// Curated content: any validation failure aborts startup.
+func loadQuests(fsys fs.FS, mr mobs.Registry) quests.Registry {
+	registry, err := quests.RegistryFromFS(fsys, mr)
+	if err != nil {
+		slog.Error("failed to load quests", slog.Any("err", err))
+		panic(err)
+	}
+	slog.Info("Loaded quest definitions", slog.Int("count", len(registry.All())))
 	return registry
 }
 

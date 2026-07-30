@@ -11,6 +11,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -56,6 +57,9 @@ type interactor interface {
 	ConversingWith() uint64
 	SetConversingWith(id uint64)
 	SetConversation(c *model.Conversation)
+	// QuestLedger receives the talked-to stamp at session open
+	// (plan-quests.md C1).
+	QuestLedger() *quests.Ledger
 	// InCombat ends the conversation (D21) — the rule that makes a non-blocking
 	// panel safe, because a player cannot be trapped reading dialogue while
 	// something eats them.
@@ -233,8 +237,12 @@ func (s *InteractionSystem) handleInteracts() {
 
 		if msg.NodeID == "" {
 			// Open. refreshConversations builds the tree this same tick, so the
-			// very next snapshot carries the panel.
+			// very next snapshot carries the panel. The quest ledger stamps the
+			// conversant here — the single session-open point (plan-quests.md
+			// C1) — keyed by the definition's MobID, never the process-local
+			// entity id (L12); a set makes re-opens harmless.
 			p.SetConversingWith(msg.EntityID)
+			p.QuestLedger().NoteTalkedTo(a.MobID())
 			continue
 		}
 

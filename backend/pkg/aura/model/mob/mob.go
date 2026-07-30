@@ -1937,6 +1937,10 @@ func (m *Mob) tryGrantKillRewards() {
 // fresh unlock into the glow animation with no extra wire event.
 func (m *Mob) rewardPlayer(p model.PlayerEntity, xp uint64) {
 	p.AddExperience(xp)
+	// Quest credit rides the same fan-out as XP credit (plan-quests.md D4) and
+	// fires on participation, not XP amount — an experience: 0 harvest species
+	// still counts (L13). Keyed by the authored species id (L12).
+	p.QuestLedger().NoteKill(m.definition.ID)
 	for _, u := range m.definition.Unlocks {
 		// The roll is always consumed (RNG stream unchanged); only a genuinely
 		// new discovery announces its source (plan-unlock-attribution.md).

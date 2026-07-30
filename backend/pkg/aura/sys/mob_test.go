@@ -13,6 +13,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
@@ -62,7 +63,8 @@ func (g *fakeGame) Mobs() mobs.Registry {
 	}
 	return g.mobReg
 }
-func (g *fakeGame) Skills() skills.Registry                     { panic("unused") }
+func (g *fakeGame) Skills() skills.Registry { panic("unused") }
+func (g *fakeGame) Quests() quests.Registry { return nil }
 
 // testMobDef is a minimal Dodo-shaped definition — enough for NewMob (a full HP
 // pool, a valid aggro radius, no skills).

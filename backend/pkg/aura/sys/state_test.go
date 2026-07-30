@@ -17,6 +17,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/spectator"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -70,10 +71,10 @@ func (c *fakeClient) NextInteract() *model.Interact {
 	return i
 }
 
-func (c *fakeClient) NextInput() *model.PlayerInput             { return nil }
-func (c *fakeClient) NextCheat() *model.Cheat                   { return nil }
-func (c *fakeClient) NextChatMessage() *model.ChatMessage       { return nil }
-func (c *fakeClient) NextEquip() *model.EquipSkill              { return nil }
+func (c *fakeClient) NextInput() *model.PlayerInput       { return nil }
+func (c *fakeClient) NextCheat() *model.Cheat             { return nil }
+func (c *fakeClient) NextChatMessage() *model.ChatMessage { return nil }
+func (c *fakeClient) NextEquip() *model.EquipSkill        { return nil }
 func (c *fakeClient) NextSpendSkillPoint() *model.SpendSkillPoint {
 	return nil
 }
@@ -82,8 +83,8 @@ func (c *fakeClient) SendUnlock(id uint64, source string) error {
 	c.unlocks = append(c.unlocks, capturedUnlock{id, source})
 	return nil
 }
-func (c *fakeClient) Close()                     {}
-func (c *fakeClient) UUID() uuid.UUID            { return c.uuid }
+func (c *fakeClient) Close()          {}
+func (c *fakeClient) UUID() uuid.UUID { return c.uuid }
 
 // minimal skill content so the real player.New can initialize its component
 // (the C1 peasant start equips Harvest).
@@ -108,14 +109,15 @@ func stateTestSkillRegistry(t *testing.T) skills.Registry {
 // ConnectionStateSystem: players/spectators register with the system, removal
 // fans out synchronously to system.Remove. Corpses are only recorded.
 type stateFakeGame struct {
-	cs        *ConnectionStateSystem
-	cfg       *cfg.GameConfig
-	skillReg  skills.Registry
-	players   []model.PlayerEntity
-	corpses   []model.CorpseEntity
-	removed   []uint64
+	cs         *ConnectionStateSystem
+	cfg        *cfg.GameConfig
+	skillReg   skills.Registry
+	questReg   quests.Registry
+	players    []model.PlayerEntity
+	corpses    []model.CorpseEntity
+	removed    []uint64
 	spectators []model.Spectator
-	tick      uint64
+	tick       uint64
 }
 
 func newStateFakeGame(t *testing.T) *stateFakeGame {
@@ -184,6 +186,7 @@ func (g *stateFakeGame) Handler() http.Handler                       { panic("un
 func (g *stateFakeGame) Loop()                                       { panic("unused") }
 func (g *stateFakeGame) GetEntity(uint64) (model.BasicEntity, error) { panic("unused") }
 func (g *stateFakeGame) Mobs() mobs.Registry                         { panic("unused") }
+func (g *stateFakeGame) Quests() quests.Registry                     { return g.questReg }
 
 // newStateFixture wires a ConnectionStateSystem to a fake game and returns both.
 func newStateFixture(t *testing.T) (*ConnectionStateSystem, *stateFakeGame) {
@@ -768,4 +771,112 @@ func TestReconnect_LiveTokenDegradesToFreshJoin(t *testing.T) {
 	tokens := sentAcceptTokens(t, c2)
 	require.Len(t, tokens, 1)
 	assert.NotEqual(t, token, tokens[0], "the duplicate gets its own fresh token")
+}
+
+// --- quest-ledger carry (plan-quests.md C1, L11) ---
+
+func stateTestQuestRegistry(t *testing.T) quests.Registry {
+	t.Helper()
+	r, err := quests.NewRegistry(&quests.QuestDefinition{
+		ID: "cull", Title: "Cull",
+		Stages: []*quests.Stage{
+			{ID: "kill", Journal: "j", Objectives: []quests.Objective{{Kind: quests.ObjectiveKill, Target: 7, Count: 5}}, Next: "done"},
+			{ID: "done", Journal: "j"},
+		},
+	})
+	require.NoError(t, err)
+	return r
+}
+
+// startQuestProgress accepts the fixture quest and banks one kill, returning
+// the ledger for identity assertions.
+func startQuestProgress(t *testing.T, p model.PlayerEntity) *quests.Ledger {
+	t.Helper()
+	require.NoError(t, p.QuestLedger().Accept("cull"))
+	p.QuestLedger().NoteKill(7)
+	return p.QuestLedger()
+}
+
+func assertQuestProgressCarried(t *testing.T, p model.PlayerEntity, ledger *quests.Ledger) {
+	t.Helper()
+	assert.Same(t, ledger, p.QuestLedger(), "the whole ledger is carried — the SkillComponent pointer pattern")
+	assert.Equal(t, uint64(1), p.QuestLedger().KillCount(7), "lifetime counters survive")
+	path, running, _ := p.QuestLedger().Progress("cull")
+	assert.True(t, running, "the running quest survives")
+	assert.Equal(t, []string{"kill"}, path)
+}
+
+// L11: the player struct is destroyed and rebuilt on death — without the
+// deadState carry every death silently wipes quest progress, and no other gate
+// would notice.
+func TestRespawn_CarriesQuestLedger(t *testing.T) {
+	s, g := newStateFixture(t)
+	g.questReg = stateTestQuestRegistry(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	ledger := startQuestProgress(t, p)
+
+	kill(t, s, p)
+	c.respawns = append(c.respawns, &model.Respawn{})
+	s.Update(0)
+
+	require.Len(t, g.players, 2)
+	assertQuestProgressCarried(t, g.players[1], ledger)
+}
+
+// L11, reconnect half: an alive disconnect stashes the ledger and reattach
+// restores it.
+func TestReconnect_CarriesQuestLedger(t *testing.T) {
+	s, g := newStateFixture(t)
+	g.questReg = stateTestQuestRegistry(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	ledger := startQuestProgress(t, p)
+	token := s.tokenByClient[c.UUID()]
+
+	g.RemoveEntity(p.Basic()) // disconnect
+
+	c2 := newFakeClient()
+	reconnect(t, s, g, c2, "ignored-name", token)
+
+	require.Len(t, g.players, 2)
+	assertQuestProgressCarried(t, g.players[1], ledger)
+}
+
+// L11, the long way round: death → disconnect while dead → reconnect (death
+// scene rebuilt) → respawn. The ledger rides deadState → reconnectStash →
+// deadState → the respawned player.
+func TestReconnectWhileDead_CarriesQuestLedgerThroughRespawn(t *testing.T) {
+	s, g := newStateFixture(t)
+	g.questReg = stateTestQuestRegistry(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	ledger := startQuestProgress(t, p)
+	token := s.tokenByClient[c.UUID()]
+
+	kill(t, s, p)
+	g.RemoveEntity(g.livingSpectators()[0].Basic()) // disconnect while dead
+
+	c2 := newFakeClient()
+	reconnect(t, s, g, c2, "ignored-name", token)
+	c2.respawns = append(c2.respawns, &model.Respawn{})
+	s.Update(0)
+
+	require.Len(t, g.players, 2)
+	assertQuestProgressCarried(t, g.players[1], ledger)
+}
+
+// L11: a dead client joining under a new name keeps its carried progression —
+// the ledger included.
+func TestJoinWhileDead_CarriesQuestLedger(t *testing.T) {
+	s, g := newStateFixture(t)
+	g.questReg = stateTestQuestRegistry(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	ledger := startQuestProgress(t, p)
+
+	kill(t, s, p)
+	np := joinPlayer(t, s, g, c, "Bob") // name change instead of Respawn
+
+	assertQuestProgressCarried(t, np, ledger)
 }

@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/world"
 )
@@ -86,6 +87,13 @@ func MilestoneUnlocks(unlocks []skills.MilestoneUnlock) Configuration {
 func Recipes(r skills.RecipeRegistry) Configuration {
 	return func(g *cfg.GameConfig) error {
 		g.Recipes = r
+		return nil
+	}
+}
+
+func QuestRegistry(r quests.Registry) Configuration {
+	return func(g *cfg.GameConfig) error {
+		g.QuestRegistry = r
 		return nil
 	}
 }

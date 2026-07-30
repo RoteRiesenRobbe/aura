@@ -69,6 +69,7 @@ func main() {
 	mobsRegistry := loadMobs(skillsRegistry, factionsRegistry, levelCurve, content.mobs)
 	milestoneUnlocks := loadMilestoneUnlocks(content.milestones, skillsRegistry)
 	recipeRegistry := loadRecipes(content.recipes, skillsRegistry)
+	questsRegistry := loadQuests(content.quests, mobsRegistry)
 	propsRegistry := loadProps(content.props)
 	// -zone flag overrides the game.zone config default.
 	if zoneName == "" {
@@ -122,6 +123,7 @@ func main() {
 		core.SkillRegistry(skillsRegistry),
 		core.MilestoneUnlocks(milestoneUnlocks),
 		core.Recipes(recipeRegistry),
+		core.QuestRegistry(questsRegistry),
 		core.Tokens(tokens),
 		core.Bounds(zone.Bounds.Width, zone.Bounds.Height),
 		core.ZoneName(zone.ID),
