@@ -118,6 +118,48 @@ describe('ConversationModel', () => {
         expect(m.currentNodeId()).toBe('teachings');
     });
 
+    // N1's client half (plan-quests.md C0): take() used to set spokenReply and
+    // then clear it two lines later when it followed `next`, so a row that both
+    // GRANTED and NAVIGATED had its authored line silently swallowed and the
+    // destination node's lines showed instead. Correct for a pure navigation row
+    // (which has no reply to begin with); wrong for the shape every quest
+    // turn-in has — reward plus follow-up node.
+    it('keeps a granting row reply above the node it navigates to', () => {
+        const m = new ConversationModel();
+        m.update(tree({
+            nodes: [
+                {
+                    id: 'root',
+                    lines: ['Fire remembers who feeds it.'],
+                    rows: [row({
+                        optionIndex: 0, grantIndex: 0, text: 'Here are the pelts.',
+                        next: 'epilogue', reply: 'You have my thanks. Take this.',
+                    })],
+                },
+                {id: 'epilogue', lines: ['Now go, before the light fails.'], rows: []},
+            ],
+        }));
+
+        m.take(m.view()!.rows[0]);
+
+        expect(m.currentNodeId()).toBe('epilogue');
+        expect(m.view()?.lines).toEqual([
+            'You have my thanks. Take this.',
+            'Now go, before the light fails.',
+        ]);
+    });
+
+    // The discriminator: a row that ONLY navigates has nothing to say, so the
+    // destination speaks for itself and no reply is invented.
+    it('shows only the destination lines for a pure navigation row', () => {
+        const m = new ConversationModel();
+        m.update(tree());
+
+        m.take(m.view()!.rows[1]); // "Anything new around here?" → news
+
+        expect(m.view()?.lines).toEqual(['They burned this forest to hide their camp.']);
+    });
+
     it('clears a spoken reply on navigation', () => {
         const m = new ConversationModel();
         m.update(tree());

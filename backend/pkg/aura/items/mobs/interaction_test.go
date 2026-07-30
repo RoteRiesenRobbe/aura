@@ -1,6 +1,7 @@
 package mobs
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -309,6 +310,62 @@ func TestMapMobDefinition_RejectsGrantWithoutLine(t *testing.T) {
 	}]}`)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "line")
+}
+
+// --- the wire index ceiling (L4, plan-quests.md C0) ---
+
+// option_index and grant_index are ubyte on the wire, and present() truncates
+// with a bare uint8() cast — so a 256th entry silently aliases index 0 and hands
+// over the wrong thing. The cap is 254, not 255, because grant_index defaults to
+// 255 as the client's "this row only navigates" sentinel (server.fbs:375) while
+// option_index has NO default (:372), which makes an authored 255 a legitimate
+// index colliding with that sentinel. Quest content is what grows option lists,
+// so the guard lands before the vocabulary that grows them.
+func optionsJSON(n int) string {
+	opts := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		opts = append(opts, `{"text": "row", "next": "more"}`)
+	}
+	return `{"nodes": [
+	  {"id": "root", "lines": ["hi"], "options": [` + strings.Join(opts, ",") + `]},
+	  {"id": "more", "lines": ["more"]}
+	]}`
+}
+
+func grantsJSON(n int) string {
+	grants := make([]string, 0, n)
+	for i := 0; i < n; i++ {
+		grants = append(grants, `{"kind": "teach_skill", "skill": "DodoAura", "line": "take it"}`)
+	}
+	return `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "options": [{"text": "learn", "grants": [` + strings.Join(grants, ",") + `]}]
+	}]}`
+}
+
+func TestMapMobDefinition_AcceptsTheLastAddressableOption(t *testing.T) {
+	def, err := mapInteraction(t, optionsJSON(255))
+	require.NoError(t, err)
+	assert.Len(t, def.Interaction.Nodes[0].Options, 255, "indices 0..254 all fit in a ubyte")
+}
+
+func TestMapMobDefinition_RejectsUnaddressableOptionCount(t *testing.T) {
+	_, err := mapInteraction(t, optionsJSON(256))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "254")
+}
+
+func TestMapMobDefinition_AcceptsTheLastAddressableGrant(t *testing.T) {
+	def, err := mapInteraction(t, grantsJSON(255))
+	require.NoError(t, err)
+	assert.Len(t, def.Interaction.Nodes[0].Options[0].Grants, 255)
+}
+
+func TestMapMobDefinition_RejectsUnaddressableGrantCount(t *testing.T) {
+	_, err := mapInteraction(t, grantsJSON(256))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "254")
 }
 
 // --- the sensor (D7) ---

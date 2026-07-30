@@ -82,6 +82,14 @@ export class ConversationModel {
      * spellbook.
      */
     private spokenReply = '';
+    /**
+     * Whether the current node's own lines still belong UNDER the reply. True
+     * only for a row that both granted and navigated (N1's client half): the
+     * destination's lines are text the player has not read yet, so the answer
+     * leads and the new node speaks below it. For a grant row that stays put the
+     * reply replaces the greeting instead — see view().
+     */
+    private replyLeadsNode = false;
 
     /**
      * Apply a snapshot's conversation field.
@@ -103,16 +111,20 @@ export class ConversationModel {
             this.nodeId = tree.entryNode;
             this.backStack = [];
             this.spokenReply = '';
+            this.replyLeadsNode = false;
             return true;
         }
 
         this.tree = tree;
         // The node can vanish under the player's feet — a condition that stopped
         // passing, most plausibly because they just learned something. Falling
-        // back to the entry node beats rendering an empty panel.
+        // back to the entry node beats rendering an empty panel. A standing reply
+        // survives this exactly as it always has; only its lead-in role drops, so
+        // the greeting does not surface under an answer to a row that is gone.
         if (!this.nodeById(this.nodeId)) {
             this.nodeId = tree.entryNode;
             this.backStack = [];
+            this.replyLeadsNode = false;
         }
         return true;
     }
@@ -130,8 +142,9 @@ export class ConversationModel {
             actorName: this.tree.actorName,
             // The reply replaces the node's lines while it stands: the actor
             // answered, and showing the greeting underneath would read as if it
-            // had not.
-            lines: this.spokenReply ? [this.spokenReply] : node.lines,
+            // had not. The exception is a row that answered AND moved — there the
+            // lines below are new, so the answer leads them (N1).
+            lines: this.replyLines(node),
             rows: node.rows,
             canGoBack: this.backStack.length > 0,
         };
@@ -155,12 +168,20 @@ export class ConversationModel {
      */
     take(row: ConversationRow): ConversationRow {
         this.spokenReply = row.reply;
+        this.replyLeadsNode = false;
         if (row.next && this.nodeById(row.next)) {
             this.backStack.push(this.nodeId);
             this.nodeId = row.next;
-            // Navigating past a reply clears it; the destination node's own
-            // lines take over.
-            this.spokenReply = '';
+            if (row.grantIndex === NO_GRANT) {
+                // A pure navigation row has nothing to say — the destination node's
+                // own lines take over.
+                this.spokenReply = '';
+            } else {
+                // ⚑ N1: a row that both grants and navigates. This used to fall into
+                // the branch above and swallow the grant's authored line, which is
+                // the shape every quest turn-in has (reward plus follow-up node).
+                this.replyLeadsNode = true;
+            }
         }
         return row;
     }
@@ -168,6 +189,7 @@ export class ConversationModel {
     /** Pop the back-stack. No-op at the root, where Back is not drawn. */
     back(): void {
         this.spokenReply = '';
+        this.replyLeadsNode = false;
         const previous = this.backStack.pop();
         if (previous !== undefined) {
             this.nodeId = previous;
@@ -185,6 +207,18 @@ export class ConversationModel {
         this.nodeId = '';
         this.backStack = [];
         this.spokenReply = '';
+        this.replyLeadsNode = false;
+    }
+
+    /**
+     * The lines to draw: the standing reply alone, the node's own lines, or —
+     * for a row that granted and moved — the reply leading the new node's lines.
+     */
+    private replyLines(node: ConversationNode): string[] {
+        if (!this.spokenReply) {
+            return node.lines;
+        }
+        return this.replyLeadsNode ? [this.spokenReply, ...node.lines] : [this.spokenReply];
     }
 
     private nodeById(id: string): ConversationNode | null {

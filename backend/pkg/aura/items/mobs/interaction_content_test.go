@@ -130,11 +130,13 @@ func TestContent_AuthoredTrees(t *testing.T) {
 // it is the only behaviour there is. This inverts 3b-i's
 // TestContent_EveryConversantWaitsForTheKey, which pinned the opposite.
 //
-// ⚑ The check is on the RAW JSON, not the loaded definition, and that is the
-// point (L22): the mob loader is the one loader without DisallowUnknownFields,
-// so a stale `"trigger"` would be silently ignored rather than rejected. The
-// loader carries a tombstone that hard-fails it at boot — this pin is what
-// says the 14 files were actually cleaned rather than merely capable of being.
+// ⚑ The check is on the RAW JSON, not the loaded definition. That used to be
+// load-bearing because the mob loader was the one loader without
+// DisallowUnknownFields, so a stale `"trigger"` would have been silently
+// ignored; R1 closed that gap (definitions.go:296) and the loader also carries a
+// tombstone, so an authored trigger now fails boot twice over. What the raw probe
+// still buys is the DIAGNOSIS: a loader failure fails every test that touches
+// contentRegistry at once, whereas this one names the file.
 func TestContent_NoConversantAuthorsTheRetiredTrigger(t *testing.T) {
 	entries, err := amobs.Mobs.ReadDir(".")
 	require.NoError(t, err)

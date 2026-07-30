@@ -101,6 +101,19 @@ type InteractionCondition struct {
 	Value int
 }
 
+// maxAddressableIndex is the highest option/grant index a row can carry (L4,
+// plan-quests.md C0). option_index and grant_index are `ubyte` on the wire and
+// present() narrows with a bare uint8() cast, so a 256th entry aliases index 0
+// and hands over the wrong thing — silently, and only for the player who clicks
+// the row nobody tested.
+//
+// ⚑ 254, not 255: grant_index defaults to 255 as the client's "this row only
+// navigates" sentinel (server.fbs:375), while option_index has no default at all
+// (:372) — so an authored index 255 would be a legitimate value colliding with
+// that sentinel. Capping both at the same number keeps the two indices'
+// authoring rule identical instead of off by one for a reason nobody remembers.
+const maxAddressableIndex = 254
+
 // GrantKind is what an option hands over.
 type GrantKind string
 
@@ -137,11 +150,14 @@ func ParseConditionKind(name string) (ConditionKind, bool) {
 // jsonInteraction is the authored shape. Kept beside the resolved types rather
 // than in definitions.go so the whole container reads in one place.
 type jsonInteraction struct {
-	// ⚑ Trigger is a TOMBSTONE, kept solely to reject it (D18). The mob loader
-	// is the one loader without DisallowUnknownFields (definitions.go:284), so
-	// simply deleting the field would let all 14 stale content files boot green
-	// with a key that means nothing — and the PO authors these files by hand
-	// (L22). Four lines buy a named boot failure instead of a silent no-op.
+	// ⚑ Trigger is a TOMBSTONE, kept solely to reject it (D18) — and the reason
+	// has changed since it was written. It used to be that the mob loader was the
+	// one loader WITHOUT DisallowUnknownFields, so deleting the field outright
+	// would have let a stale content file boot green with a key that means
+	// nothing. R1 closed that (definitions.go:296), so deleting it would now
+	// hard-fail too — but as `unknown field "trigger"`, which says the key is a
+	// typo. The tombstone is what turns that into a sentence naming its
+	// replacement, for a PO who authors these files by hand (L22).
 	Trigger string                `json:"trigger"`
 	Ambient []string              `json:"ambient"` // absent → says nothing unprompted
 	Range   float32               `json:"range"`   // absent → body.aggroRadius
@@ -220,9 +236,18 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 			node.Conditions = append(node.Conditions, InteractionCondition{Kind: kind, Value: jc.Value})
 		}
 
+		if len(jn.Options) > maxAddressableIndex+1 {
+			return nil, fmt.Errorf("mob %q: interaction node %q: %d options, but only indices 0..%d are addressable on the wire",
+				m.Name, jn.ID, len(jn.Options), maxAddressableIndex)
+		}
+
 		grants := 0
 		for j := range jn.Options {
 			jo := &jn.Options[j]
+			if len(jo.Grants) > maxAddressableIndex+1 {
+				return nil, fmt.Errorf("mob %q: interaction node %q option %d: %d grants, but only indices 0..%d are addressable on the wire",
+					m.Name, jn.ID, j, len(jo.Grants), maxAddressableIndex)
+			}
 			opt := InteractionOption{Text: jo.Text, BlockedLine: jo.BlockedLine, Next: jo.Next}
 			gated := false
 			for k, jg := range jo.Grants {

@@ -520,6 +520,101 @@ func TestApplyGrant_ConditionPassedNodeGrants(t *testing.T) {
 	assert.EqualValues(t, 9, *taught)
 }
 
+// N1, the both-ends defect (plan-quests.md C0, archive/plan-entity-model.md
+// §8b): presentOptions hides a row whose `next` names a node this player cannot
+// see, and applyGrant had no equivalent check — so an invisible row stayed
+// grantable by a replayed or crafted Interact naming its authored indices.
+//
+// ⚑ This is the shape of every quest turn-in row (reward plus follow-up node),
+// which is why the fix lands before the vocabulary that authors it (L1).
+func TestApplyGrant_RefusesARowNavigatingToAHiddenNode(t *testing.T) {
+	build := func() *mobs.Interaction {
+		return &mobs.Interaction{Nodes: []mobs.InteractionNode{
+			{ID: "root", Lines: []string{"hello"}, Options: []mobs.InteractionOption{{
+				Text:   "take the badge and step inside",
+				Grants: []mobs.InteractionGrant{namedGrant(1, "Torch", 1, "light")},
+				Next:   "vault",
+			}}},
+			{
+				ID:         "vault",
+				Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
+				Lines:      []string{"the vault"},
+			},
+		}}
+	}
+
+	// The row is invisible to a level-1 player: its destination is gated.
+	assert.Empty(t, rowsOf(t, present(build(), newLearner(1)), "root"),
+		"the row is hidden — its destination node is condition-failed")
+
+	p := newLearner(1)
+	reply, taught, ok := applyGrant(build(), p, "root", 0, 0)
+
+	assert.False(t, ok, "a hidden row is refused, not granted")
+	assert.Empty(t, reply)
+	assert.Nil(t, taught)
+	assert.False(t, p.sc.HasDiscovered(1), "and the spellbook is untouched")
+
+	// ...and it discriminates: the same row is grantable once the destination is
+	// visible, or the fix would have disabled grant+navigate rows outright.
+	high := newLearner(10)
+	_, taught, ok = applyGrant(build(), high, "root", 0, 0)
+	require.True(t, ok)
+	require.NotNil(t, taught)
+}
+
+// The converse direction of TestPresentAndApplyGrant_CannotDisagree, which L24
+// asked for and which that test structurally cannot cover: it iterates only the
+// rows present() emitted, so it proves presented ⇒ accepted and never
+// accepted ⇒ presented. This one enumerates EVERY authored index triple and
+// asserts that anything applyGrant accepts was on screen.
+func TestApplyGrant_AcceptsOnlyWhatPresentEmitted(t *testing.T) {
+	build := func() *mobs.Interaction {
+		return &mobs.Interaction{Nodes: []mobs.InteractionNode{
+			{ID: "root", Lines: []string{"hello"}, Options: []mobs.InteractionOption{
+				{Text: "learn", BlockedLine: "too low", Grants: []mobs.InteractionGrant{
+					namedGrant(1, "Torch", 1, "light"),
+					namedGrant(2, "Ignite", 7, "fire"),
+				}},
+				{Text: "step inside", Grants: []mobs.InteractionGrant{
+					namedGrant(3, "Vault", 1, "the way in"),
+				}, Next: "vault"},
+				{Text: "gossip", Next: "news"},
+			}},
+			{
+				ID:         "vault",
+				Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
+				Lines:      []string{"the vault"},
+			},
+			{ID: "news", Lines: []string{"news"}},
+		}}
+	}
+
+	for _, level := range []uint32{1, 7, 10, 30} {
+		in := build()
+		presented := map[[2]int]bool{}
+		for _, node := range present(in, newLearner(level)).Nodes {
+			for _, row := range node.Options {
+				presented[[2]int{int(row.OptionIndex), int(row.GrantIndex)}] = true
+			}
+		}
+
+		for ni := range in.Nodes {
+			node := &in.Nodes[ni]
+			for oi := range node.Options {
+				for gi := range node.Options[oi].Grants {
+					_, _, ok := applyGrant(build(), newLearner(level), node.ID, oi, gi)
+					if ok {
+						assert.True(t, presented[[2]int{oi, gi}],
+							"level %d: node %q option %d grant %d was accepted but never shown",
+							level, node.ID, oi, gi)
+					}
+				}
+			}
+		}
+	}
+}
+
 // A navigation row is not a grant, so taking one through applyGrant is a
 // mistake the server refuses rather than a no-op it accepts.
 func TestApplyGrant_RefusesANavigationRow(t *testing.T) {

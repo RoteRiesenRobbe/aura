@@ -434,7 +434,8 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 		opt := &node.Options[oi]
 		// A row leading to a node this player cannot see would be a button that
 		// goes nowhere. The loader guarantees Next names a real node; conditions
-		// are what make it conditionally absent.
+		// are what make it conditionally absent. ⚑ applyGrant enforces the same
+		// rule via destinationVisible — the two ends disagreeing was N1.
 		if opt.Next != "" && !visible[opt.Next] {
 			continue
 		}
@@ -516,6 +517,16 @@ func applyGrant(in *mobs.Interaction, p learner, nodeID string, option, grant in
 		return "", nil, false
 	}
 	opt := &node.Options[option]
+	// N1 (plan-quests.md C0): presentOptions hides a row whose `next` names a
+	// node this player cannot see, so accepting one here would grant something
+	// that was never on screen. ⚑ The two directions are NOT symmetric by
+	// accident — TestPresentAndApplyGrant_CannotDisagree iterates only presented
+	// rows and proves presented ⇒ accepted; this is the converse L24 asked for,
+	// and it is the shape of every quest turn-in row (reward plus follow-up
+	// node), which is why it is fixed before the vocabulary that authors it.
+	if !destinationVisible(in, opt, p) {
+		return "", nil, false
+	}
 	if grant < 0 || grant >= len(opt.Grants) {
 		return "", nil, false
 	}
@@ -537,6 +548,21 @@ func applyGrant(in *mobs.Interaction, p learner, nodeID string, option, grant in
 	p.ApplyRecipeCascade()
 	id := g.Skill.ID
 	return g.Line, &id, true
+}
+
+// destinationVisible reports whether an option's `next` names a node this
+// player can see — the rule presentOptions applies when it hides a row, stated
+// once so applyGrant cannot drift from it (N1). presentOptions itself reads the
+// visibility map it already built rather than calling this, which is the same
+// predicate one lookup cheaper; the one case only this form covers is a `next`
+// naming no node at all, which the loader rejects at boot and which therefore
+// fails closed here rather than panicking.
+func destinationVisible(in *mobs.Interaction, opt *mobs.InteractionOption, p learner) bool {
+	if opt.Next == "" {
+		return true
+	}
+	dest := nodeByID(in, opt.Next)
+	return dest != nil && conditionsPass(dest.Conditions, p)
 }
 
 func nodeByID(in *mobs.Interaction, id string) *mobs.InteractionNode {

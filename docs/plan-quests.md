@@ -1,8 +1,8 @@
 # Plan: the quest system — journal-carried quests on the interaction container
 
-**Status: chunk C1 ✅ DONE 2026-07-30 `d3b89328` (the ledger + events, backend
-only — full ledger §11). Prerequisite chunk P ✅ 2026-07-30 `d45ba07c`. Next:
-C2 (dialogue vocabulary); C0 remains standalone filler.**
+**Status: chunks C0 ✅ and C2 ✅ DONE 2026-07-30 (ledgers §12 and §13). Prior:
+C1 ✅ `d3b89328` (the ledger + events, §11); prerequisite chunk P ✅
+`d45ba07c`. Next: C3 (wire + journal), then C4 (authored content).**
 **CODE-REVIEWED 2026-07-30** — three line-level sweeps (interaction container ·
 XP/credit path · wire + content loading) checked every claim against HEAD;
 corrections are folded in below, tagged *(code review)*. Four follow-up PO
@@ -319,7 +319,7 @@ case behind the existing hard-fail loaders:
 
 | chunk | scope | gate |
 |---|---|---|
-| **C0** | Interaction hardening: fix N1 at both ends (server: `applyGrant` refuses what `present()` hides, converse-direction test; client: a grant+navigate row keeps its authored line), the L4 count guard (**≤254**, options AND grants), fix the two stale no-`DisallowUnknownFields` comments (L2). Zero behaviour change on shipped content. | `go test ./...` + vitest green; boot counts unchanged; existing conversation harnesses (`chunk3b-interact`, `chunk3b-ii-conversation`) green untouched |
+| **C0** ✅ | Interaction hardening: fix N1 at both ends (server: `applyGrant` refuses what `present()` hides, converse-direction test; client: a grant+navigate row keeps its authored line), the L4 count guard (**≤254**, options AND grants), fix the two stale no-`DisallowUnknownFields` comments (L2). Zero behaviour change on shipped content. | `go test ./...` + vitest green; boot counts unchanged; existing conversation harnesses (`chunk3b-interact`, `chunk3b-ii-conversation`) green untouched — **DONE, ledger §12** |
 | **P** *(external prerequisite, D15)* | **Pass 3 item 1 of `plan-playtest-feedback.md`**: presence-counts attribution (aura active during the fight = participant). Owned by that plan, executed as its own chunk before C1. **Planned in full 2026-07-30** (that doc's §Chunk P plan — P1 fixed conf radius `game.combat.presenceRadius` [PLACEHOLDER 8] · P2 presence joins a player fight, never starts one (≥1 existing participant, closes the NPC-battle watch-farm) · P3 one participant class, unlock rolls included — so quest counters count presence participants with zero quest-side code, per D4). | Per that plan's test strategy: TDD Go test on the participant-map precedent + a two-client smoke (`chunkP-presence.mjs`) |
 | **C1** | The ledger + events, backend only: lifetime counters at the kill-credit fan-out (`rewardPlayer`, D4 — increment on participation, not XP amount, L13), talked-to stamping at session open, **ledger survival across death/reconnect (L11 — the five stash sites)**, `MobID` keys + the duplicate-id boot guard (L12), the `api/quests/` loader + all L5 registration edits (incl. the verify-skill grep), stage engine (objective satisfaction against counters, advance, journal append, completion, abandon per D13), a `QUEST` debug cheat to inspect/drive it. `model.PlayerEntity` widening updates the four fakes (L14). | TDD on the engine (retroactive satisfaction at accept · presence-credited kill advances · branch edges exclusive · one-shot refuses re-offer · repeatable flag round-trips unauthored · abandon clears the path, leaves counters + completed set, re-offer works · **ledger survives death and reconnect** · counter increments for an `experience: 0` species); sim battery byte-identical (nothing existing moves); boot `-content ../api` with the new count pinned |
 | **C2** | Dialogue vocabulary: `offer_quest` / `advance_quest` / `grant_xp` grant kinds (**per-kind payload resolution** — the loader's unconditional skill lookup becomes conditional, the `TestContent_EveryGrantIsAResolvedTeach` pin relaxes, the two `!=` dispatches become switches, §5), `quest_at_stage` condition (widening `learner`, O(1) read, L15), `costs`/`consequences` schema room (D8/D10 — validated, unauthorable beyond parse), loader cross-validation (unknown quest/stage hard-fails; **legacy species rejected as targets**, L12), the L3 dead-node lint decision, the L10 `grant_xp`-terminal-only lint, the `selectNode` visibility-map hoist (L15). | Evaluator tests per kind; a fixture quest walkable end-to-end through `present()`/`applyGrant()` in Go tests alone |
@@ -430,3 +430,70 @@ skill's coverage map; repair belongs to the next conversation-touching session
 invalidated by a WebGL context loss (§29's ~1-in-6) — rerun clean, the
 standing rule held. Pre-existing repo-wide `gofmt -l` drift (44 files at HEAD)
 was left untouched; none of the new code is affected.
+
+## 12. Chunk C0 ledger — interaction hardening ✅ DONE 2026-07-30 `[uncommitted]`
+
+**Scope delivered exactly as §8 priced it** (7 files, zero behaviour change on
+shipped content — no content edit, no wire change, no new vocabulary). Run
+FIRST in the same session as C2 rather than as standalone filler, because L1 is
+literal: a row that both grants and navigates is broken independently at both
+ends, and that is the shape of every quest turn-in row C2 makes authorable.
+
+**N1, the server half.** `applyGrant` now refuses a row whose `next` names a
+condition-failed node, via a single `destinationVisible()` that states the rule
+`presentOptions` applies — so the two ends cannot drift again. `presentOptions`
+keeps reading the visibility map it already built (the same predicate, one
+lookup cheaper); the only case the shared form covers alone is a `next` naming
+no node at all, which the loader rejects at boot and which now fails closed
+rather than panicking.
+
+**N1, the converse test §8b explicitly asked for.**
+`TestPresentAndApplyGrant_CannotDisagree` iterates only the rows `present()`
+emitted, so it proves *presented ⇒ accepted* and structurally cannot prove the
+converse. The new `TestApplyGrant_AcceptsOnlyWhatPresentEmitted` enumerates
+EVERY authored (node, option, grant) triple across four levels and asserts that
+anything `applyGrant` accepts was on screen. Red first, in exactly the
+direction L24 wanted.
+
+**N1, the client half.** `ConversationModel.take()` set `spokenReply` and then
+cleared it two lines later when following `next` — correct for a pure
+navigation row, and it silently swallowed the grant's authored line for a row
+that did both. ⚑ **A visible presentation decision, not a pure bug fix:** the
+grant's line now *leads* the destination node's lines rather than replacing
+them (new `replyLeadsNode` + `replyLines()`), because on a navigating row the
+text underneath is prose the player has not read yet, so either choice alone
+loses content. A pure grant row still replaces the greeting (unchanged — that
+text was already read) and a pure navigation row still shows only the
+destination (unchanged). `ConversationView.lines`' own doc comment already said
+"plus any reply already spoken", so this is the shape originally intended.
+
+**L4, the 255 sentinel.** `maxAddressableIndex = 254` guards **both** options
+per node and grants per option, paired with accept-at-255-entries tests so the
+boundary is pinned from both sides. ⚑ 254 and not 255 because `grant_index`
+defaults to 255 as the client's none-sentinel (`server.fbs:375`) while
+`option_index` has no default at all (`:372`), making an authored 255 a
+legitimate value colliding with that sentinel; capping both identically keeps
+the authoring rule from being off by one for a reason nobody remembers.
+
+**L2.** Both stale comments claiming the mob loader lacks
+`DisallowUnknownFields` corrected (`items/mobs/interaction.go`,
+`interaction_content_test.go`) — R1 closed that gap, so the Trigger tombstone's
+value is now the *named* error rather than the only error, and the raw-JSON
+probe's value is the *diagnosis* (it names the file; a loader failure fails
+every `contentRegistry` test at once).
+
+**Verified:** 4 new tests, every one red first · `go build`/`vet`/full suite
+clean · guardrails + alloc `-count=2` · 68/68 vitest (+2 new) + typecheck ·
+boot embedded AND `-content ../api`, counts unchanged (15 factions/86 skills/64
+mobs/1 milestone/10 recipes/0 quests/5 prop defs/777 props/485 spawns/5
+campfires), 0 errors 0 warnings 0 panics · harness gate on the two scripts C0
+owns, each run SOLO: `chunk3b-interact.mjs` **14/14**,
+`chunk3b-ii-conversation.mjs` **29/29 + 1 deliberate SKIP**, 0 WebGL context
+losses.
+
+⚑ **Correction to §11's harness note:** C1 recorded the D22 Wanderer *"…and
+walks on afterwards"* leg as a pre-existing FAIL and marked it KNOWN ROTTEN. It
+**passed in both clean solo runs here**, so it is **flaky, not deterministically
+rotten** — the drift pin sometimes lands on the container that does move. The
+rot diagnosis stands as a description of the failure mode; "always fails" does
+not. Repair is still worth doing, but it is not blocking and not C2's.
