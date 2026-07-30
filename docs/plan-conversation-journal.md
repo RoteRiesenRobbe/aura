@@ -57,10 +57,14 @@ problems and are not, and one looks systemic and is not.
 - **Journal overlap is measured:** at a 1280×800 viewport the journal spans
   y=120..**680** while the aura/cooldown strip starts at y=**630** — a 50 px
   overlap, plus it covers the spellbook column on the left.
-- **⚑ The Shaman is CONTENT, not systemic.** His definition has one node with
-  one multi-grant option, and D17 auto-expands that into a row per skill — the
-  deliberate path for NPCs never re-authored into trees. **Six NPCs are still in
-  that shape:** Shaman, VillageHealer, CityGuard, Miner, Lamplighter, Dog.
+- **⚑ The Shaman is CONTENT, not systemic.** His root is one unnamed
+  multi-grant option (his C4 `wolves_report` quest node sits beside it), and D17
+  auto-expands that into a row per skill — the deliberate path for NPCs never
+  re-authored into trees. *(Corrected against the content 2026-07-30:)* **Nine
+  NPCs still open on that flat unnamed teach row:** VillageHealer, Shaman and
+  Hermit (multi-grant — the wall-of-rows openers), plus CityGuard, Miner,
+  Lamplighter, Dog, FrontCaptain and Farmer (single-grant, same shape). Only the
+  Emberkeeper — and partially the TownCrier — has the named-row tree Q4 targets.
 - **⚑ There is no item system.** §28 deleted it; "the lamp" is the **Lantern
   skill unlock**, still a 5 % Kobold drop. The quest's lore break is therefore
   real and cannot be fixed by making it an item fetch.
@@ -93,11 +97,17 @@ single new authored field.**
 loader rejects it as a **tombstone** (the retired-`trigger` precedent, L22) —
 a stale key must say what replaced it rather than fail as an unknown field. The
 loader rule *"blockedLine is required when a grant has a requiredLevel"*
-(`interaction.go:416`) goes with it. `present()` stops putting a reply on a
-locked row, and the client stops sending one; `applyTeach`'s
-`return opt.BlockedLine, nil, true` becomes an ordinary silent refusal, which is
-the path a stale click already takes. **No wire change** — the reply field simply
-stays empty on those rows.
+(`items/mobs/interaction.go:415`; note it actually triggers on
+`requiredLevel > 1` — level-1 grants never needed one) goes with it.
+`presentOptions` stops putting a reply on a locked row, and the client stops
+speaking one; `applyTeach`'s `return opt.BlockedLine, nil, true` becomes an
+ordinary silent refusal, which is the path a stale click already takes.
+⚑ Those two are a **deliberate twin** — the presenter's `Reply` and applyTeach's
+return exist so a test can prove they cannot disagree
+(`model/conversation.go:69` / `sys/interaction.go:557`) — so that both-ends test
+changes *with* the deletion, not after it. **No wire change** — the reply field
+simply stays empty on those rows (and the `reply` field's schema comment at
+`server.fbs:386`, which names `blockedLine`, gets updated in the same edit).
 
 **② A quest row is shown iff its ledger op would succeed.** This is what makes
 *"Accept disappears once accepted, its sibling questions stay"* work, and it
@@ -113,11 +123,14 @@ behaviour for free — including the turn-in row that should only appear when it
 can actually be taken.
 
 ⚑ **The show-rule and the apply-rule must be ONE function.** `applyQuestRow`
-already decides whether the ledger accepts an op; if `present()` grows a second,
-parallel copy of that judgement, the two will drift — and that is N1 verbatim,
-the defect C0 shipped to fix at both ends. Extract one predicate
-(`ledger.CanApply(grant)`), call it from both, and pin it with the converse test
-C0 already established (*everything applyGrant accepts was on screen*).
+already decides whether the ledger accepts an op — but note *how*: the judgement
+lives **inside** `Ledger.Accept` / `Ledger.AdvanceDialogue` as their error
+returns, not in the sys layer. So the extracted predicate
+(`ledger.CanApply(grant)`) must be the code path those mutating ops themselves
+call — a `CanApply` written beside them would be the second copy from day one.
+If `present()` instead grew its own judgement, that is N1 verbatim, the defect
+C0 shipped to fix at both ends. Pin it with the converse test C0 already
+established (*everything applyGrant accepts was on screen*).
 
 **What this leaves node conditions for:** genuinely state-dependent *greetings*
 ("different fallback lines based on whether a condition is met" — e.g. an NPC who
@@ -151,15 +164,26 @@ disconnect, and the actor despawning.
 ### 4.3 Q1 — the "Leave." row
 
 Client-only, ~10 lines. Rendered last, **only at root** (`!canGoBack`, where
-Back is absent), doing exactly what ✕ does; ✕ stays. It is synthetic, so it
-carries no `optionIndex` and must short-circuit before `take()` sends anything.
+Back is absent), doing exactly what ✕ does; ✕ stays (it already *is* the Leave
+affordance — `.conversationLeave`, titled "Leave (Esc)", `HUD.html:122`). It is
+synthetic, so it carries no `optionIndex` — and its handler must call the
+existing `leave()` (`Conversation.ts:95`), **never `take()`**: `take()`
+navigates the local model before sending, while `leave()` deliberately mutates
+nothing and waits for the server to drop the tree
+(`ConversationModel.ts:199` — the one close path; do not build a second one).
 ⚑ It changes the row list every harness asserts at a root node — update those
 assertions in the same chunk (by name, never by count).
 
 ### 4.4 Q2 — composing the objective line
 
-- Shape: `objectives: [string]` on `QuestProgress`, appended at the table end,
-  values pinned (§28).
+- Shape: `objectives: [string]` on `QuestProgress`, appended **last** — after
+  `completed`. ⚑ `server.fbs` has **no explicit field ids anywhere**; every
+  table is positional, held append-only by discipline (the same finding R1 of
+  the entity-model review recorded for the unions), so an insert beside `stages`
+  would silently renumber `completed` for every client. And the client reads
+  this table by **hand-written unmarshal**, not generated code — both copies
+  need the same edit: `unmarshalQuestProgress`
+  (`GameStateMessage.ts:140`) and the mirror interface in `JournalModel.ts:17`.
 - Derived for the **current stage only**, from its objectives:
   `kill`/`harvest` → `"3/8 Wolves slain"`, `talk_to` → `"Talk to the Hermit"`.
   Display names come from `skills.DeriveDisplayName(def.Name)` — the same source
@@ -190,6 +214,17 @@ assertions in the same chunk (by name, never by count).
 - Sizing invariant, stated rather than a magic number: **the panel may never
   overlap the bottom HUD strip or the spellbook column.** Measured today at
   680 px vs a strip starting at 630 px.
+- ⚑ **There is no shared constant for that geometry, and the invariant must not
+  mint a third hand-copy of it.** The bottom band is assembled from independent
+  hardcoded values in three files (`#bottomCenter` `bottom: 1rem`,
+  `#vitalSigns` `12vh` in `vitalSigns.less`, `#inventory` `bottom: 0`), and two
+  places already hand-copy it as a magic `13vh` with apologetic comments
+  (`HUD.less:1039`, `:1067`); the spellbook column's bound is another one,
+  `max-height: calc(100vh - 24rem)` (`HUD.less:735`). Enforce the invariant
+  with viewport-relative `max-height`/positioning on the panel itself plus the
+  screenshot gate — do **not** encode the HUD strip's y-geometry a third time.
+  (The journal's current numbers being replaced: `width: 52rem`,
+  `max-height: 70vh`, centered — `HUD.less:1165`.)
 
 ### 4.6 Q4 — content
 
@@ -208,20 +243,27 @@ root                     "You there! Good. Somebody who still walks toward troub
 └─ "Leave."
 ```
 
-- Quest prose ≥50 % shorter across all 16 stages, and **geographic claims
-  removed** unless the PO supplies real ones — §15's prose invented directions
-  against a world layout the author could not see.
-- The six flat NPCs get real trees; that is also what stops a first window that
-  is nothing but a wall of greyed skill rows (the Village Healer, the Shaman and
-  the Miner all open that way today).
+- Quest prose ≥50 % shorter across all 14 stages (4+3+3+4 across the four
+  quests), and **geographic claims removed** unless the PO supplies real ones —
+  §15's prose invented directions against a world layout the author could not
+  see.
+- The nine flat NPCs (§2's corrected list) get real trees; that is also what
+  stops a first window that is nothing but a wall of greyed skill rows (the
+  Village Healer, the Shaman and the Hermit all open as multi-row walls today).
 - Dead-end navigation rows removed (the traveller's post-completion *"Something
-  else."* leading to a node with nothing on it).
+  else."* points `next: "root"` — and his root is the mob set's only
+  **optionless** greeting node, so the row lands on a single line with no way
+  onward).
 - **R3's lamp rewrite**, and it is two edits, not one: the quest text, **and
   deleting the `Lantern` unlock from `kobold.json` and `kobold-ranged.json`**
-  (0.05 each). ⚑ Lantern then has exactly **one** source in the world. That is
-  the point — a guaranteed reward instead of a 5 % roll on the gate to the
-  tunnel — but it means `content-skill-inventory.md`'s reachability sweep must be
-  re-run, and the quest becomes load-bearing for an aura rather than a bonus.
+  (0.05 each). ⚑ Lantern then has exactly **one** source in the world — and be
+  precise about where it lives: the grant is a `teach_skill` on the traveller's
+  `lamp_turnin` **dialogue row** (`lampless-traveller.json:90`), not anything in
+  `api/quests/the-lost-lamp.json` (that file is only id/title/stages — rewards
+  can only ride a turn-in row, §15). That is the point — a guaranteed reward
+  instead of a 5 % roll on the gate to the tunnel — but it means
+  `content-skill-inventory.md`'s reachability sweep must be re-run, and the
+  quest becomes load-bearing for an aura rather than a bonus.
 - ⚑ **One authoring question the shape raises:** should a quest node's brief
   *change* once the quest is running (*"Eight wolves. Get to it."* instead of the
   pitch)? Node conditions can do it, but only by splitting the node in two — and
@@ -235,12 +277,14 @@ root                     "You there! Good. Somebody who still walks toward troub
   the definition's `name` also resolves his `EntityType`, so a rename is a wire
   enum change for a cosmetic gain.
 - **Damage at level 1:** author `{"level": 1, "skillName": "Damage"}` and call
-  `applyMilestoneUnlocks(1, level)` at character creation. ⚑ Two details: the
+  `applyMilestoneUnlocks(1, level)` at character creation. ⚑ Three details: the
   call must tolerate a client that is not wired yet (the unlock banner fires
-  from there), and it is idempotent by `HasDiscovered`, so the death/reconnect
-  stash path is safe. Also fixes the stale comment at `player.go:65` claiming a
-  fresh spawn has Harvest. The crier's Damage row goes; `content-skill-inventory.md`
-  gains a *milestone* source for Damage and loses an NPC one.
+  from there); it is idempotent by `HasDiscovered`, so the death/reconnect
+  stash path is safe; and `milestones_test.go:77` pins the whole table as
+  `{Haste: 7}`, so the new entry is a deliberate test edit, not a silent one.
+  Also fixes the stale comment at `player.go:64` claiming a fresh spawn has
+  Harvest. The crier's Damage row goes; `content-skill-inventory.md` gains a
+  *milestone* source for Damage and loses an NPC one.
 
 ## 5. Landmines
 
@@ -253,18 +297,23 @@ root                     "You there! Good. Somebody who still walks toward troub
   paid for twice.
 - **L3 — the show-rule and the apply-rule for quest rows must be one function.**
   §4.1 ②. Two copies of "can the ledger take this?" is N1 in a new costume, and
-  N1 is the defect C0 was written to close at both ends.
+  N1 is the defect C0 was written to close at both ends. The judgement lives
+  inside `Ledger.Accept`/`AdvanceDialogue` today, so `CanApply` must be
+  extracted *from* them, not written beside them.
 - **L3b — deleting `blockedLine` deletes content, silently, unless the loader
-  speaks.** Nine NPCs author eleven of them. A tombstone that names the
-  replacement is the difference between "the panel got quieter" and "somebody
-  understands why".
+  speaks.** Nine NPCs author **twelve** of them (an earlier count said eleven —
+  the hermit's `_comment` mentions the word in prose, which fools a naive grep).
+  A tombstone that names the replacement is the difference between "the panel
+  got quieter" and "somebody understands why".
 - **L4 — Q2 must not allocate per tick.** §4.4.
 - **L5 — the objective line is per-player state and must stay off the catalog.**
   R2 chose the wire precisely so thresholds for unreached stages stay unserved;
   an "optimisation" that moves them into `/quests` reverses D14 by accident.
 - **L5b — R3 makes a quest load-bearing for an aura.** With the kobold drop gone,
-  `the-lost-lamp` is the *only* source of Lantern, and Lantern is the light the
-  tunnel is designed around. Anything that makes the quest unfinishable —
+  the traveller's turn-in row on `the-lost-lamp` is the *only* source of Lantern
+  (the grant is authored on the mob's dialogue row, not in the quest file —
+  §4.6), and Lantern is the light the tunnel is designed around. Anything that
+  makes the quest unfinishable —
   abandoning it is fine (it re-offers), but a content edit that breaks the chain
   is not — takes the tunnel with it. Worth a content test asserting Lantern has a
   source at all, which is the reachability guarantee `content-skill-inventory.md`
@@ -286,7 +335,9 @@ root                     "You there! Good. Somebody who still walks toward troub
    reading is a three-stage quest with no Miner. ⚑ But his row is the game's
    **only non-terminal `advance_quest` edge**, and dropping it leaves that
    mechanism with no content exercising it (and
-   `TestContent_TheLampChainHasANonTerminalDialogueEdge` with nothing to pin).
+   `TestContent_TheLampChainHasANonTerminalDialogueEdge` with nothing to pin —
+   plus `TestContent_EveryStageIsReachable` in the same file walks every
+   `advance_quest` edge, so removing or repointing the row is a two-test edit).
    Recommendation: drop it here — the lore is better without it — and give the
    edge to a quest that actually wants a middle step, rather than keeping a leg
    alive to satisfy a test.
