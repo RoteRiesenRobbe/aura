@@ -22,6 +22,7 @@ type resolvedTuning struct {
 	Game                   cfg.GameConfig
 	CritFactor             float32
 	HealerThreat           float32
+	PresenceRange          float32
 	MobHealthGainTick      float32
 	MobWalkingSpeedPerTick float32
 }
@@ -50,6 +51,7 @@ func resolveTuning(t *testing.T, raw []byte) resolvedTuning {
 		Game:                   g,
 		CritFactor:             g.CombatConfig.CritFactor(),
 		HealerThreat:           g.CombatConfig.HealerThreat(),
+		PresenceRange:          g.CombatConfig.PresenceRange(),
 		MobHealthGainTick:      mob.HealthGainTick(),
 		MobWalkingSpeedPerTick: mob.WalkingSpeedPerTick(),
 	}

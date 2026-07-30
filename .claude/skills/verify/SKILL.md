@@ -89,6 +89,7 @@ regression to everyone who ran it afterwards.
 | `chunk2-calm.mjs` | calm: aggro drops, the mob holds, any damage ends it | the `calm` payload, the buff store, aggro release |
 | `chunk3-charm.mjs` | charm: allegiance flip, pip, follows, fights for its charmer, reverts | `Align`/`RevertFaction`/`EnlistUnder`, `CreditTo`, charm content |
 | `swift-cooldown.mjs` | `speed_burst` and the movement axis | `Buffs.MovementFactor()`, movement speed, slows |
+| `chunkP-presence.mjs` | presence-counts XP attribution at the game surface: aura-on bystander earns, bare bystander doesn't | the presence scan (`sys/skills.go notePresence`), `NotePresence`/the participant map, `presenceRadius`, `rewardPlayer` |
 | `round4-tooltip.mjs` | skill tooltips scaled to character level; the `/skills` payload shape | `SkillTooltip.ts`, the skills catalog endpoint |
 | `filler-batch.mjs` | `DAMAGE <pct>`, damage numbers in darkness, minimap-on-death, Ctrl +/− | darkness suppression, minimap lifecycle, dev cheats |
 | `hygiene-wire-prune.mjs` | the join smoke for wire renumbering — garbage decode rather than a clean error | **any `.fbs` field add or remove** |
@@ -198,6 +199,21 @@ for reasons unrelated to any recent change:
   `box.x + 25`, then assert `#spellbookList li.selected` before clicking the
   slot. `chunk2-follower.mjs` is the worked example (spellbook → cooldown slot →
   long-hold `Q`, including waiting out a running cooldown).
+- **⚑ HUD loadout state is GameState-driven on the throttled rAF loop — WAIT
+  for the UI to show the state, never sleep a fixed interval.** Two concrete
+  instances from the chunk-P harness (2026-07-30), both of which read as the
+  feature under test failing: `toggleAuraSlot` refuses an activation click
+  until `currentAuraSlots` has synced from the server (so equip-click →
+  700 ms → activate-click intermittently no-ops — `waitForFunction` on the
+  slot's text, then retry the activation until `.auraSlot.activeSlot`
+  appears), and the spellbook row for a just-cheated `SKILL <name>` renders
+  seconds late (wait for the row, don't findIndex immediately).
+  `chunkP-presence.mjs` is the worked example, including multi-client joins.
+- **⚑ `Torch` is a PASSIVE; the active light aura is `Lantern`.** Equipping a
+  passive into an aura slot silently no-ops (nothing errors, the slot just
+  never fills), so a script that cheats `SKILL Torch` and clicks it into an
+  aura slot reports "aura never activates" against a perfectly healthy game.
+  Check `api/skills/<name>.json` `category` before scripting an equip.
 - **⚑ Warping "to" an NPC does not mean the server picks THAT NPC.** The
   interact offer goes to the nearest eligible conversant, and zone 1 stands them
   close together — a warp aimed at the Farmer (−57, 28.6) is answered by the

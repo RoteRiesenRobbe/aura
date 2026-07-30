@@ -1880,6 +1880,22 @@ func (m *Mob) KillCreditNames() []string {
 	return names
 }
 
+// NotePresence records a bystander with an active aura as a combat
+// participant (chunk P, presence-counts attribution — model.PresenceNoter).
+// The gate is P2: presence joins a player fight, it never starts one — the mob
+// must be in combat AND already hold ≥1 participant (a player damage-touch, or
+// player-credited summon/charm damage via CreditTo, both of which land in
+// PlayerTouches). An NPC-vs-NPC fight has participants empty, so standing at
+// the army-vs-orc skirmish earns nothing. From here the bystander is an
+// ordinary participant (P3): same rewardPlayer fan-out — full XP, kill-unlock
+// rolls, the C6 kill-broadcast name — and the same clear-on-full-regen.
+func (m *Mob) NotePresence(p model.PlayerEntity) {
+	if !m.InCombat() || len(m.participants) == 0 {
+		return
+	}
+	m.noteParticipant(p)
+}
+
 // noteParticipant records a damage contributor for the death rewards.
 func (m *Mob) noteParticipant(p model.PlayerEntity) {
 	if m.participants == nil {

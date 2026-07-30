@@ -4388,3 +4388,140 @@ func TestCooldown_SpeedBurstSetsThePip(t *testing.T) {
 	assert.NotZero(t, caster.buffs.AppliedEffects()&skills.AppliedEffectSpeed,
 		"a sprinting caster carries the speed pip")
 }
+
+// --- presence scan (chunk P, presence-counts attribution) ---
+
+// presenceMobDef is a plain creature worth 42 XP, the scan tests' fight anchor.
+func presenceMobDef() *mobs.MobDefinition {
+	return &mobs.MobDefinition{
+		ID: 7, Name: "Boar",
+		Body:    mobs.Body{Radius: 0.3, AggroRadius: 2.0},
+		Factors: mobs.Factors{BaseMaxHealth: 100, Experience: 42},
+	}
+}
+
+// presenceFixture builds a real space holding one mob body at mobPos, a
+// SkillSystem on that space, and a bystander fakePlayer at the origin with an
+// active aura equipped and ON. The mob is NOT in the skill system — the scan
+// under test is player-side, the mob is scenery it probes for.
+func presenceFixture(t *testing.T, def *mobs.MobDefinition, mobPos phy.Vec2f) (*SkillSystem, *mob.Mob, *fakePlayer) {
+	t.Helper()
+
+	m := mob.NewMob(def, 0, nil)
+	m.SetPosition(mobPos)
+
+	space := phy.NewSpace()
+	space.AddShape(m.Bodies()[0])
+	space.Update()
+
+	bystander := newFakePlayer()
+	auraDef := &skills.SkillDefinition{
+		ID: 99, Name: "TestAura", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
+		Effects: []skills.EffectDef{damageEffect(1)},
+	}
+	bystander.sc.EquipAura(0, auraDef, 1)
+	bystander.sc.SetActiveAura(0)
+
+	s := NewSkillSystem(space, nil)
+	s.rng = testRNG()
+	s.AddEntity(bystander)
+	return s, m, bystander
+}
+
+// A bystander with an aura on, standing inside the presence radius of a
+// player-fought mob, joins the participant set through the scan and earns the
+// kill XP without ever touching the mob.
+func TestPresenceScan_BystanderInsideRadiusEarnsKillXP(t *testing.T) {
+	s, m, bystander := presenceFixture(t, presenceMobDef(), phy.Vec2f{X: 5, Y: 0})
+	fighter := newFakePlayer()
+	m.PlayerTouches(fighter, model.Damage{HP: 5}) // opens the fight: participant + combat window
+
+	s.Update(33.0)
+	m.PlayerTouches(fighter, model.Damage{HP: 1000}) // kill
+
+	assert.Equal(t, []uint64{42}, bystander.xp, "the scan must register the bystander as a participant")
+	assert.Equal(t, []uint64{42}, fighter.xp)
+}
+
+// Aura off (no active slot) → the scan skips the player entirely: presence
+// requires an active aura ON, not merely standing nearby.
+func TestPresenceScan_AuraOff_NoCredit(t *testing.T) {
+	s, m, bystander := presenceFixture(t, presenceMobDef(), phy.Vec2f{X: 5, Y: 0})
+	bystander.sc.SetActiveAura(-1)
+	fighter := newFakePlayer()
+	m.PlayerTouches(fighter, model.Damage{HP: 5})
+
+	s.Update(33.0)
+	m.PlayerTouches(fighter, model.Damage{HP: 1000})
+
+	assert.Empty(t, bystander.xp, "no active aura → no presence credit")
+	assert.Equal(t, []uint64{42}, fighter.xp)
+}
+
+// Beyond presenceRadius + the mob's body radius → no credit. The default
+// radius is 8 (cfg.DefaultPresenceRadius); the mob body adds 0.3, so 9 units
+// is clearly outside while 5 (the test above) is clearly inside.
+func TestPresenceScan_OutOfRange_NoCredit(t *testing.T) {
+	s, m, bystander := presenceFixture(t, presenceMobDef(), phy.Vec2f{X: 9, Y: 0})
+	fighter := newFakePlayer()
+	m.PlayerTouches(fighter, model.Damage{HP: 5})
+
+	s.Update(33.0)
+	m.PlayerTouches(fighter, model.Damage{HP: 1000})
+
+	assert.Empty(t, bystander.xp, "outside the presence radius → no credit")
+}
+
+// A dead bystander is not scanned — a participant ref recorded after death
+// would write XP into the abandoned struct (L-P1's defect class).
+func TestPresenceScan_DeadBystander_NoCredit(t *testing.T) {
+	s, m, bystander := presenceFixture(t, presenceMobDef(), phy.Vec2f{X: 5, Y: 0})
+	bystander.vitalSigns.Health = 0
+	fighter := newFakePlayer()
+	m.PlayerTouches(fighter, model.Damage{HP: 5})
+
+	s.Update(33.0)
+	m.PlayerTouches(fighter, model.Damage{HP: 1000})
+
+	assert.Empty(t, bystander.xp, "a dead player earns no presence credit")
+}
+
+// The tunnel scenario, pinned (P1's rationale): a passive harvest-mob's own
+// sensor is masked to see nothing (AggroMask 0 → aggroSensorMask none), which
+// is exactly why the mob-sensor geometry was rejected — yet the player-side
+// scan still credits the lantern-carrier standing beside the harvester.
+func TestPresenceScan_SensorBlindHarvestMob_StillCredits(t *testing.T) {
+	def := presenceMobDef()
+	def.Name = "Turnip" // a real harvest-mob species name (valid entity type)
+	// A non-aligned, non-default faction id with an empty aggro set: NewMob's
+	// definitionAllegiance keeps both verbatim, and aggroSensorMask(0) masks
+	// the sensor to LayerNoneCollision. (The zero-value Faction would take the
+	// built-in hostile default, whose sensor DOES see players.)
+	def.Faction = 9
+	def.AggroMask = 0
+
+	s, m, bystander := presenceFixture(t, def, phy.Vec2f{X: 5, Y: 0})
+	harvester := newFakePlayer()
+	m.PlayerTouches(harvester, model.Damage{HP: 5}) // the harvest aura's touch
+
+	s.Update(33.0)
+	m.PlayerTouches(harvester, model.Damage{HP: 1000})
+
+	assert.Equal(t, []uint64{42}, bystander.xp,
+		"presence is a player-side probe — a sensor-blind mob still credits the bystander")
+}
+
+// The scan allocates nothing in steady state (the chunk-B reusable-probe
+// pattern): probe circle and hit buffer are system-owned and reused.
+func TestPresenceScan_ZeroAllocSteadyState(t *testing.T) {
+	s, m, bystander := presenceFixture(t, presenceMobDef(), phy.Vec2f{X: 5, Y: 0})
+	fighter := newFakePlayer()
+	m.PlayerTouches(fighter, model.Damage{HP: 5})
+
+	s.notePresence(bystander) // warm-up: lazily builds the probe, first map insert
+
+	allocs := testing.AllocsPerRun(100, func() {
+		s.notePresence(bystander)
+	})
+	assert.Zero(t, allocs, "the presence probe must not allocate per tick")
+}

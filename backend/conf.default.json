@@ -26,7 +26,8 @@
     "combat": {
       "_comment": "Factors that apply to EVERY acting entity — player, mob, summon (backlog §25 B). Absent = the built-in defaults below. [PLACEHOLDER]",
       "defaultCritFactor": 2.0,
-      "healerThreatFactor": 0.5
+      "healerThreatFactor": 0.5,
+      "presenceRadius": 8
     }
   }
 }

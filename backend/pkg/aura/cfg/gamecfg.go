@@ -49,6 +49,10 @@ type GameConfig struct {
 const (
 	DefaultCritFactor         = 2.0
 	DefaultHealerThreatFactor = 0.5
+	// DefaultPresenceRadius is the presence-participation range (chunk P, P1)
+	// [PLACEHOLDER 8]: the viewport is 20×12 units, so ~8 reads as "clearly at
+	// the fight, on your screen".
+	DefaultPresenceRadius = 8.0
 )
 
 // CombatConfig holds combat factors that apply to EVERY acting entity — player,
@@ -64,6 +68,13 @@ type CombatConfig struct {
 	// 2026-07-10): healedHP × factor, credited on every mob in combat with the
 	// heal target.
 	HealerThreatFactor float32
+
+	// PresenceRadius is the presence-participation range (chunk P, P1): a
+	// player with an active aura ON within this range of a player-fought mob
+	// joins its participant set — one fixed radius, flat for all mobs. The
+	// mob's body radius is added at the query (the withinSensor convention),
+	// so a large boss body doesn't shrink the effective ring.
+	PresenceRadius float32
 }
 
 // CritFactor is DefaultCritFactor with the zero value normalized to the
@@ -83,6 +94,16 @@ func (c CombatConfig) HealerThreat() float32 {
 		return DefaultHealerThreatFactor
 	}
 	return c.HealerThreatFactor
+}
+
+// PresenceRange is PresenceRadius with the zero value normalized to the
+// built-in default. Per the standing conf ruling, authoring 0 restores the
+// default — it does not disable presence credit.
+func (c CombatConfig) PresenceRange() float32 {
+	if c.PresenceRadius <= 0 {
+		return DefaultPresenceRadius
+	}
+	return c.PresenceRadius
 }
 
 func (g *GameConfig) LogValue() slog.Value {

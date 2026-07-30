@@ -87,6 +87,13 @@ type SkillSystem struct {
 	// the summon-placement direction. Free-running by design — reproducibility
 	// only matters in tests, which overwrite it with a seeded source.
 	rng *rand.Rand
+
+	// presenceProbe/presenceHits are the presence scan's reused query pair
+	// (chunk P): the probe circle is re-aimed per player per tick and the hit
+	// buffer handed back as buf[:0] — the chunk-B AppendCircleDynamics pattern,
+	// zero per-tick allocation (steering_alloc_test.go's lesson).
+	presenceProbe *phy.Circle
+	presenceHits  []phy.DynamicCollider
 }
 
 // SetConnState wires the ConnectionStateSystem seam (chunk 4); called from
@@ -148,6 +155,14 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 		return
 	}
 
+	// Presence-counts attribution (chunk P): a live player whose aura is ON is
+	// offered as a participant to every nearby entity that takes presence —
+	// the SkillSystem owns "is an aura on", so the scan lives here. Every tick
+	// on purpose: participation latches (the map persists until full regen),
+	// so the P2 gate's one-tick lag after a fight's first player hit is the
+	// only timing artifact, invisible at 30 tps.
+	s.notePresence(e)
+
 	// Keep the single aura sensor sized and targeted per the active skill.
 	// The SkillSystem runs after physics resolution, so a new radius/mask
 	// takes effect on the next tick's collisions — consistent with the
@@ -203,6 +218,45 @@ func (s *SkillSystem) processEntity(e skillEntity) {
 			applyShieldAura(e, equip.Def.ID, equip.Level, effect, targets)
 		case skills.EffectTypeHotAura:
 			applyHotAura(e, equip.Def.ID, equip.Level, effect, targets)
+		}
+	}
+}
+
+// notePresence probes the space around a player whose active aura is on and
+// offers them as a combat participant to every body implementing
+// model.PresenceNoter — presence-counts XP attribution (chunk P; the entry
+// rule itself, in-combat + ≥1 participant, lives with the participant map in
+// model/mob). A dedicated player-side probe rather than either "free"
+// geometry, both rejected in the plan: a passive harvest-mob's sensor is
+// masked to see nothing (the dark-tunnel lantern-carrier would earn nothing),
+// and support-aura colliders pair with allies, never the enemy mob.
+//
+// The probe is a circle of PresenceRange around the player; circle-vs-body
+// intersection makes the effective reach presenceRadius + target body radius,
+// the withinSensor convention. Mob casters fail the PlayerEntity assert and
+// are never scanned; a dead player (rebuilt struct, L-P1) is skipped.
+func (s *SkillSystem) notePresence(e skillEntity) {
+	p, ok := e.(model.PlayerEntity)
+	if !ok {
+		return
+	}
+	if c, ok := e.(model.Combatant); !ok || c.HealthRatio() == 0 {
+		return
+	}
+	if s.presenceProbe == nil {
+		s.presenceProbe = phy.NewCircle(p.Position(), combatFactors.PresenceRange())
+		// Viewport is the only layer every mob body shares (an authored
+		// collisionLayer replaces the default wholesale — mobSeparation's
+		// finding); the interface assert below does the actual filtering.
+		s.presenceProbe.Shape().Mask = int(model.LayerViewportCollision)
+	}
+	probe := s.presenceProbe
+	probe.SetPosition(p.Position())
+	probe.SetRadius(combatFactors.PresenceRange())
+	s.presenceHits = s.space.AppendCircleDynamics(s.presenceHits[:0], probe)
+	for _, hit := range s.presenceHits {
+		if n, ok := hit.Shape().UserData.(model.PresenceNoter); ok {
+			n.NotePresence(p)
 		}
 	}
 }

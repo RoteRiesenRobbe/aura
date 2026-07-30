@@ -530,6 +530,126 @@ func TestMob_FullOutOfCombatRegenClearsParticipants(t *testing.T) {
 	assert.Equal(t, []uint64{42}, killer.xp)
 }
 
+// --- presence participation (chunk P, plan-playtest-feedback.md §Chunk P plan) ---
+
+// A bystander noted by presence earns the full XP on the kill without ever
+// touching the mob (P3: one participant class, same rewardPlayer fan-out).
+func TestMob_Presence_BystanderEarnsFullXPOnKill(t *testing.T) {
+	m := newTestMob()
+	damager := newFakeAuraPlayer()
+	bystander := newFakeAuraPlayer()
+
+	m.PlayerTouches(damager, model.Damage{HP: 5}) // opens the fight: participant + combat window
+	m.NotePresence(bystander)
+	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
+
+	assert.Equal(t, []uint64{42}, bystander.xp, "a presence participant gets the full XP")
+	assert.Equal(t, []uint64{42}, damager.xp)
+}
+
+// The P2 gate, InCombat half: a mob that has a recorded participant but is no
+// longer in combat accepts no presence entry. A zero-HP touch records the
+// participant without opening the damage-recency window (dealt == 0), so the
+// gate under test is isolated from the ≥1-participant half.
+func TestMob_Presence_NotInCombat_NoEntry(t *testing.T) {
+	m := newTestMob()
+	damager := newFakeAuraPlayer()
+	bystander := newFakeAuraPlayer()
+
+	m.PlayerTouches(damager, model.Damage{HP: 0})
+	require.False(t, m.InCombat(), "a zero-damage touch must not open the combat window")
+
+	m.NotePresence(bystander)
+	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
+
+	assert.Empty(t, bystander.xp, "presence never joins a mob that is not in combat")
+}
+
+// The P2 gate, ≥1-participant half: an NPC-vs-NPC fight (in combat, zero
+// player participants) accepts no presence entry — the AFK watch-farm at the
+// army-vs-orc skirmish stays closed.
+func TestMob_Presence_NPCFightWithoutParticipants_NoEntry(t *testing.T) {
+	m := newTestMob()
+	bystander := newFakeAuraPlayer()
+
+	m.MobTouches(nil, mobs.Factors{Damage: 5}) // mob-sourced: combat window opens, no participant
+	require.True(t, m.InCombat(), "the mob hit must open the combat window")
+
+	m.NotePresence(bystander)
+	m.MobTouches(nil, mobs.Factors{Damage: 1e6}) // mob-sourced kill
+
+	assert.Empty(t, bystander.xp, "presence joins a player fight, it never starts one (P2)")
+}
+
+// Presence + damage from the same player dedupes to one grant, and a recent
+// healer of a presence participant rides the same fan-out as one of a damage
+// participant.
+func TestMob_Presence_DedupesAndFansOutToHealers(t *testing.T) {
+	m := newTestMob()
+	damager := newFakeAuraPlayer()
+	bystander := newFakeAuraPlayer()
+	healer := newFakeAuraPlayer()
+	bystander.healers = []model.PlayerEntity{healer}
+
+	m.PlayerTouches(damager, model.Damage{HP: 5})
+	m.NotePresence(bystander)
+	m.NotePresence(damager)                       // presence on an existing damage participant
+	m.PlayerTouches(bystander, model.Damage{HP: 5}) // damage on an existing presence participant
+	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
+
+	assert.Equal(t, []uint64{42}, damager.xp, "presence + damage is still one grant")
+	assert.Equal(t, []uint64{42}, bystander.xp, "damage + presence is still one grant")
+	assert.Equal(t, []uint64{42}, healer.xp, "a presence participant's recent healer earns like any participant's")
+}
+
+// P3: a guaranteed kill unlock rolls for a presence participant exactly like
+// for a damage participant (GuaranteedUnlockGoesToAllRewardedPlayers precedent).
+func TestMob_Presence_GuaranteedUnlockReachesBystander(t *testing.T) {
+	unlockSkill := &skills.SkillDefinition{ID: 3, Name: "Wild", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	d := testMobDefinition()
+	d.Unlocks = []mobs.MobUnlock{{Skill: unlockSkill, Chance: 1.0}}
+	m := NewMob(d, 0, nil)
+
+	damager := newFakeAuraPlayer()
+	bystander := newFakeAuraPlayer()
+
+	m.PlayerTouches(damager, model.Damage{HP: 5})
+	m.NotePresence(bystander)
+	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
+
+	assert.True(t, bystander.sc.HasDiscovered(unlockSkill.ID),
+		"a presence participant rolls (and wins) the guaranteed unlock — no second-class participant")
+}
+
+// Full out-of-combat regen clears presence participants exactly like damage
+// ones — same map, same reset.
+func TestMob_Presence_FullRegenClearsBystander(t *testing.T) {
+	m := newTestMob()
+	early := newFakeAuraPlayer()
+	early.pos = phy.Vec2f{X: 100, Y: 0} // far out of aura reach
+	bystander := newFakeAuraPlayer()
+	bystander.pos = phy.Vec2f{X: 100, Y: 0}
+
+	m.PlayerTouches(early, model.Damage{HP: 5})
+	m.NotePresence(bystander)
+
+	for i := 0; i < leashCountdownTicks+2; i++ {
+		m.Update(0)
+	}
+	require.Nil(t, m.aggroTarget, "leash must have reset before regen starts")
+	for i := 0; i < 3*constant.TicksPerSecond && m.Health() < m.MaxHealth(); i++ {
+		m.Update(0)
+	}
+	require.Equal(t, m.MaxHealth(), m.Health(), "mob must fully regenerate")
+
+	killer := newFakeAuraPlayer()
+	m.PlayerTouches(killer, model.Damage{HP: 1000})
+
+	assert.Empty(t, early.xp, "full regen clears damage participants")
+	assert.Empty(t, bystander.xp, "full regen clears presence participants the same way")
+	assert.Equal(t, []uint64{42}, killer.xp)
+}
+
 func TestMob_KillGrantsExperienceExactlyOnce(t *testing.T) {
 	m := newTestMob()
 	p := newFakeAuraPlayer()

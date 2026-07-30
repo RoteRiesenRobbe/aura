@@ -28,6 +28,7 @@ func Config(conf *cfg.Config) Configuration {
 		// defaulting here as well would be the same knob enforced two ways.
 		g.CombatConfig.DefaultCritFactor = conf.Game.Combat.DefaultCritFactor
 		g.CombatConfig.HealerThreatFactor = conf.Game.Combat.HealerThreatFactor
+		g.CombatConfig.PresenceRadius = conf.Game.Combat.PresenceRadius
 		if g.PlayerConfig.SkillPointsPerLevel <= 0 {
 			g.PlayerConfig.SkillPointsPerLevel = 1
 		}

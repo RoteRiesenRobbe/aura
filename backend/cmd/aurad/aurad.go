@@ -102,6 +102,7 @@ func main() {
 	combat := cfg.CombatConfig{
 		DefaultCritFactor:  config.Game.Combat.DefaultCritFactor,
 		HealerThreatFactor: config.Game.Combat.HealerThreatFactor,
+		PresenceRadius:     config.Game.Combat.PresenceRadius,
 	}
 	sys.SetCombatFactors(combat)
 	// Logged post-normalization: these live behind setters rather than in the
@@ -111,7 +112,8 @@ func main() {
 		slog.Float64("mob.healthGainTick", float64(mob.HealthGainTick())),
 		slog.Float64("mob.walkingSpeedPerTick", float64(mob.WalkingSpeedPerTick())),
 		slog.Float64("combat.defaultCritFactor", float64(combat.CritFactor())),
-		slog.Float64("combat.healerThreatFactor", float64(combat.HealerThreat())))
+		slog.Float64("combat.healerThreatFactor", float64(combat.HealerThreat())),
+		slog.Float64("combat.presenceRadius", float64(combat.PresenceRange())))
 
 	g, err := core.NewGameWith(
 		rnd.Int63(),

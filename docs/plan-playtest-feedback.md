@@ -1,9 +1,10 @@
 # Plan: Playtest Feedback (rolling collection)
 
 **Status:** **Collection doc.** Latest: **chunk P — presence-counts XP
-attribution (Pass 3 item 1) — PLANNED IN FULL 2026-07-30** (§Chunk P plan
-below; 3 PO rulings P1–P3, 5 landmines, not started). It is quest prerequisite
-**chunk P** (`plan-quests.md` D15) and ships before quest C1. Shipped earlier
+attribution (Pass 3 item 1) — ✅ DONE 2026-07-30** `[uncommitted]` (§Chunk P
+ledger at the end; plan at §Chunk P plan, 3 PO rulings P1–P3, 5 landmines).
+It is quest prerequisite **chunk P** (`plan-quests.md` D15); quest C1 is
+unblocked. Shipped earlier
 from this doc, all ✅ PO-verified in-game: **Swift → movement cooldown**
 `a29fe986` 2026-07-29 · **round-6 chunks A + B** (WebGL-loss banner
 `6c8bde2e` · mob soft separation `8b045395`) 2026-07-26 · **rounds 3/4/5 +
@@ -1679,11 +1680,16 @@ a multiplayer playtest, not a solo one.
    attribution rule, not the interim damage-touch one.
    **⭐ PLANNED IN FULL 2026-07-30 → §Chunk P plan below** (P1–P3 PO-ruled:
    fixed conf radius · joins-never-starts gate · one participant class).
+   **✅ EXECUTED 2026-07-30** `[uncommitted]` — full ledger at §Chunk P ledger.
 2. **CallForAid combo recipes** (decision 5) — heal minions / damage minions.
    Warbanner itself unchanged.
 
 ## Chunk P plan — presence-counts attribution (Pass 3 item 1)
 
+> **✅ EXECUTED 2026-07-30** `[uncommitted]` — full ledger at §Chunk P ledger
+> below. The plan held with no deviations; the PO in-game checklist below is
+> still open (per the standing per-bug model, not blocking).
+>
 > **PLANNED 2026-07-30** (design session, no code). This is quest prerequisite
 > **chunk P** (`plan-quests.md` D15): it ships **before quest C1** so quest
 > counters launch on the final attribution rule. Ruling basis: decision 4
@@ -2106,3 +2112,84 @@ the three faction-flips cooldowns (written from
 `archive/plan-faction-flips.md` D2/D3/D6–D13), and `content-auras.md` still
 called skill 6 `Light`. The cooldown catalog now cross-checks 23-for-23 against
 `api/`.
+
+### Chunk P — presence-counts attribution ✅ DONE 2026-07-30, `[uncommitted]`
+
+**Pass 3 item 1, quest prerequisite chunk P (`plan-quests.md` D15) — quest C1
+is unblocked.** Backend only (12 files + 1 new harness); no wire change, no
+frontend change, no content change. **The plan (§Chunk P plan) held with no
+deviations** — the rule shipped exactly as ruled: a live player with an active
+aura ON (`ActiveAuraSlot >= 0`), within `presenceRadius` (+ mob body radius) of
+a mob that is `InCombat()` **and already holds ≥1 participant**, joins the
+existing `participants` map. Damage-touch entry, the 10 s healer window,
+`CreditTo()` routing and clear-on-full-regen untouched — presence is a third
+entry into the existing set, exactly one participant class (P3).
+
+**The shape, as built:**
+
+- **`model.PresenceNoter`** (`model/combatant.go`) — the small named interface
+  (`NotePresence(p PlayerEntity)`), the AttackNotifier/Credited precedent;
+  `model.MobEntity` NOT widened, the four fakes untouched (L14 stays quest
+  C1's problem).
+- **`Mob.NotePresence`** (`model/mob/mob.go`) — the P2 gate
+  (`InCombat() && len(participants) > 0`) then `noteParticipant`. The gate and
+  the map live together in model/mob; the scan does not know the rule.
+- **The scan** (`sys/skills.go notePresence`) — called from `processEntity`
+  right after the active-aura check (the SkillSystem owns "is an aura on");
+  asserts PlayerEntity (mob casters never scan) + `HealthRatio() > 0` (a dead
+  player's rebuilt-struct ref is L-P1's defect class — skipped, not half-fixed).
+  Probe = reused system-owned circle + hit buffer via `AppendCircleDynamics`
+  (the chunk-B pattern), mask `LayerViewportCollision` (the one layer every
+  mob body shares), filter by interface assert. Circle-vs-body intersection
+  gives `presenceRadius + target.Radius()` — the withinSensor convention —
+  for free. **Zero per-tick allocation, pinned by test.**
+- **Conf:** `game.combat.presenceRadius` — `cfg.DefaultPresenceRadius = 8`
+  [PLACEHOLDER] (P1), `PresenceRange()` zero-normalizing accessor (the
+  CritFactor pattern; 0 = default per the standing conf ruling), copied raw in
+  `core/gameconf.go` + `aurad.go`, logged in the boot tuning-knob line, added
+  to BOTH full `conf.default.json` copies (delta confs untouched), and joined
+  `resolvedTuning` in `conf_resolved_test.go` — **red direction proven by
+  perturbing the JSON to 9** (`PresenceRange: 9 vs 8`), restored green.
+
+**Tests (TDD, red-first):** 6 model-level (`mob_test.go TestMob_Presence_*`):
+bystander earns full XP · the P2 gate both halves — not-in-combat (isolated
+via a 0-HP touch, which records a participant without opening the combat
+window) and the NPC-fight zero-participant case (`MobTouches(nil, …)`) ·
+dedupe + healer fan-out · guaranteed unlock reaches the bystander (P3) · full
+regen clears presence like damage. 6 sys-level (`skills_behavior_test.go
+TestPresenceScan_*`, real space + real `*Mob`): inside-radius earns · aura off
+→ nothing · out of range → nothing · dead bystander → nothing · **the tunnel
+scenario pinned** (a sensor-blind mob — non-default faction, `AggroMask: 0` ⇒
+`aggroSensorMask` none — still credits the bystander, the test that outlives
+the P1 rationale) · zero-alloc steady state.
+
+**Verified:** `go build`/`vet`/full `go test ./...` clean · guardrails + sim +
+phy + alloc suites `-count=2` clean · **sim battery BYTE-IDENTICAL on all four
+legs** (default · `-chain` · `-levels` · `-content ../api` roster) against a
+pre-chunk HEAD worktree build — TTK 6.67 s / TTD 8.70 s stand (L-P2 confirmed:
+the batteries are single-fighter, so presence changes nothing) · boot
+`-content ../api` **0 errors 0 warnings** — 15 factions/86 skills/64 mobs/1
+milestone/10 recipes/5 prop defs/777 props/485 spawns/5 campfires, and the
+tuning line prints `combat.presenceRadius: 8` · frontend untouched: 66/66
+vitest + typecheck green · **new harness `chunkP-presence.mjs` 6/6, 0 console
+errors, 0 ctx losses** — three clients on one server: fighter A (Damage aura)
+kills wolves at (−40, 10); witness B stands 4 units away with a **Lantern** on
+(a light aura pairs with nobody hostile, so B structurally cannot touch a mob)
+and earned **the identical 52 XP** A did; control C at the same distance with
+NO aura stayed at **0**. Both smoke legs on one kill.
+
+**⚑ Two harness lessons, pinned in the verify skill:** ① the HUD is
+GameState-driven on a throttled rAF loop, so **wait for the UI to show the
+state, never sleep a fixed interval** — `toggleAuraSlot` refuses activation
+until `currentAuraSlots` has synced from the server, and the spellbook row for
+a just-cheated skill renders seconds late; both produced "slot never lit"
+false FAILs on fixed 700 ms waits. ② **`Torch` is a PASSIVE** (the Hermit's
+light passive) — the active light aura is **`Lantern`**; equipping Torch into
+an aura slot silently no-ops and reads exactly like the feature under test
+failing.
+
+**Open:** the PO in-game checklist (§Chunk P plan) — two characters both
+level · aura-off bystander earns nothing · army-vs-orc skirmish pays nothing ·
+the kill broadcast names both (L-P4). Per the standing per-bug model, not
+blocking. **L-P1 (participant-ref XP loss on death) stays on record,
+untouched** — fix vehicle quest L11 / step 8.

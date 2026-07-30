@@ -68,6 +68,7 @@ type Config struct {
 		Combat struct {
 			DefaultCritFactor  float32 `json:"defaultCritFactor"`
 			HealerThreatFactor float32 `json:"healerThreatFactor"`
+			PresenceRadius     float32 `json:"presenceRadius"`
 		} `json:"combat"`
 	} `json:"game"`
 }

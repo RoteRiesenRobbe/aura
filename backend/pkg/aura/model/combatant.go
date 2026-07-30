@@ -42,6 +42,19 @@ type AttackNotifier interface {
 	NoteAttackDealt(target Combatant)
 }
 
+// PresenceNoter receives the presence-participation stamp (presence-counts
+// attribution, plan-playtest-feedback.md chunk P): the SkillSystem's per-tick
+// scan offers every player with an active aura on to each nearby entity that
+// implements this, and the entity decides whether they join its participant
+// set (a mob requires being in combat with ≥1 existing participant — presence
+// joins a player fight, it never starts one). Implemented by *Mob; a small
+// named interface rather than a MobEntity widening so the scan's filter stays
+// capability-shaped and the MobEntity fakes stay untouched (the AttackNotifier
+// / Credited precedent).
+type PresenceNoter interface {
+	NotePresence(p PlayerEntity)
+}
+
 // CombatSignals exposes the owner-centric acquisition signals a companion
 // reads off its owner (mob-depth chunk 6, §3.6): the last mob the owner
 // directly damaged (assist) and the last mob that damaged the owner (defend).
