@@ -1,6 +1,6 @@
 # Plan: the quest system — journal-carried quests on the interaction container
 
-**Status: chunks C0 ✅ and C2 ✅ DONE 2026-07-30 (ledgers §12 and §13). Prior:
+**Status: chunks C0 ✅ and C2 ✅ DONE 2026-07-30 (ledgers §12 `2a3b137d` and §13 `004077e2`). Prior:
 C1 ✅ `d3b89328` (the ledger + events, §11); prerequisite chunk P ✅
 `d45ba07c`. Next: C3 (wire + journal), then C4 (authored content).**
 **CODE-REVIEWED 2026-07-30** — three line-level sweeps (interaction container ·
@@ -322,12 +322,15 @@ case behind the existing hard-fail loaders:
 | **C0** ✅ | Interaction hardening: fix N1 at both ends (server: `applyGrant` refuses what `present()` hides, converse-direction test; client: a grant+navigate row keeps its authored line), the L4 count guard (**≤254**, options AND grants), fix the two stale no-`DisallowUnknownFields` comments (L2). Zero behaviour change on shipped content. | `go test ./...` + vitest green; boot counts unchanged; existing conversation harnesses (`chunk3b-interact`, `chunk3b-ii-conversation`) green untouched — **DONE, ledger §12** |
 | **P** *(external prerequisite, D15)* | **Pass 3 item 1 of `plan-playtest-feedback.md`**: presence-counts attribution (aura active during the fight = participant). Owned by that plan, executed as its own chunk before C1. **Planned in full 2026-07-30** (that doc's §Chunk P plan — P1 fixed conf radius `game.combat.presenceRadius` [PLACEHOLDER 8] · P2 presence joins a player fight, never starts one (≥1 existing participant, closes the NPC-battle watch-farm) · P3 one participant class, unlock rolls included — so quest counters count presence participants with zero quest-side code, per D4). | Per that plan's test strategy: TDD Go test on the participant-map precedent + a two-client smoke (`chunkP-presence.mjs`) |
 | **C1** | The ledger + events, backend only: lifetime counters at the kill-credit fan-out (`rewardPlayer`, D4 — increment on participation, not XP amount, L13), talked-to stamping at session open, **ledger survival across death/reconnect (L11 — the five stash sites)**, `MobID` keys + the duplicate-id boot guard (L12), the `api/quests/` loader + all L5 registration edits (incl. the verify-skill grep), stage engine (objective satisfaction against counters, advance, journal append, completion, abandon per D13), a `QUEST` debug cheat to inspect/drive it. `model.PlayerEntity` widening updates the four fakes (L14). | TDD on the engine (retroactive satisfaction at accept · presence-credited kill advances · branch edges exclusive · one-shot refuses re-offer · repeatable flag round-trips unauthored · abandon clears the path, leaves counters + completed set, re-offer works · **ledger survives death and reconnect** · counter increments for an `experience: 0` species); sim battery byte-identical (nothing existing moves); boot `-content ../api` with the new count pinned |
-| **C2** | Dialogue vocabulary: `offer_quest` / `advance_quest` / `grant_xp` grant kinds (**per-kind payload resolution** — the loader's unconditional skill lookup becomes conditional, the `TestContent_EveryGrantIsAResolvedTeach` pin relaxes, the two `!=` dispatches become switches, §5), `quest_at_stage` condition (widening `learner`, O(1) read, L15), `costs`/`consequences` schema room (D8/D10 — validated, unauthorable beyond parse), loader cross-validation (unknown quest/stage hard-fails; **legacy species rejected as targets**, L12), the L3 dead-node lint decision, the L10 `grant_xp`-terminal-only lint, the `selectNode` visibility-map hoist (L15). | Evaluator tests per kind; a fixture quest walkable end-to-end through `present()`/`applyGrant()` in Go tests alone |
+| **C2** ✅ **DONE, ledger §13** | Dialogue vocabulary: `offer_quest` / `advance_quest` / `grant_xp` grant kinds (**per-kind payload resolution** — the loader's unconditional skill lookup becomes conditional, the `TestContent_EveryGrantIsAResolvedTeach` pin relaxes, the two `!=` dispatches become switches, §5), `quest_at_stage` condition (widening `learner`, O(1) read, L15), `costs`/`consequences` schema room (D8/D10 — validated, unauthorable beyond parse), loader cross-validation (unknown quest/stage hard-fails; **legacy species rejected as targets**, L12), the L3 dead-node lint decision, the L10 `grant_xp`-terminal-only lint, the `selectNode` visibility-map hoist (L15). | Evaluator tests per kind; a fixture quest walkable end-to-end through `present()`/`applyGrant()` in Go tests alone |
 | **C3** | Wire + journal: the D14 minimal-projection catalog (+ a test asserting the projection leaks nothing beyond titles/prose), ledger on `GameState` every tick + client view-signature diff (§6, L8), the `Journal` EntityMessageKind pinned = 2 (D17), the journal panel (D7) with `J` + HUD button (D16), the "journal unavailable" degrade state, incl. the abandon action (D13). | Codec round-trips; vitest on the journal view model; headless harness: offer → kill → auto-advance journal entry + banner → turn-in → completed section; abandon → quest gone from running, re-offerable |
 | **C4** | First authored content: 3–4 quests exercising every first-pass verb + **one branch with two turn-in NPCs and different rewards** (D9's proof), placed on existing conversants. XP amounts sized against the band-lock *budget* by hand (L9). | The content itself is the test: full harness pass per quest path, both branch legs; boot counts pinned; manual PO walk |
 
-Sequencing per D12/D15: **P → C1→C2→C3→C4**, all **before step 8**. C0 is
-independent of everything and could ship as a filler chunk any time.
+Sequencing per D12/D15: **P → C1→C2→C3→C4**, all **before step 8**. C0 was
+nominally independent filler, but shipped **immediately before C2 in the same
+session** — L1 is literal, and the both-ends N1 defect is exactly the shape of
+the turn-in rows C2 makes authorable. **P ✅ · C1 ✅ · C0 ✅ · C2 ✅ — C3 is
+next.**
 
 ## 9. Open questions (deliberately not ruled this session)
 
@@ -431,7 +434,7 @@ invalidated by a WebGL context loss (§29's ~1-in-6) — rerun clean, the
 standing rule held. Pre-existing repo-wide `gofmt -l` drift (44 files at HEAD)
 was left untouched; none of the new code is affected.
 
-## 12. Chunk C0 ledger — interaction hardening ✅ DONE 2026-07-30 `[uncommitted]`
+## 12. Chunk C0 ledger — interaction hardening ✅ DONE 2026-07-30 `2a3b137d`
 
 **Scope delivered exactly as §8 priced it** (7 files, zero behaviour change on
 shipped content — no content edit, no wire change, no new vocabulary). Run
@@ -497,3 +500,120 @@ walks on afterwards"* leg as a pre-existing FAIL and marked it KNOWN ROTTEN. It
 rotten** — the drift pin sometimes lands on the container that does move. The
 rot diagnosis stands as a description of the failure mode; "always fails" does
 not. Repair is still worth doing, but it is not blocking and not C2's.
+
+## 13. Chunk C2 ledger — the dialogue vocabulary ✅ DONE 2026-07-30 `004077e2`
+
+**Scope delivered as §8 priced it**, backend only: 3 new grant kinds, 1 new
+condition kind, the D8/D10 schema room, the loader cross-validation, the L3 and
+L10 lints, and the L15 hoist. No wire, no frontend, no authored content — the
+quest count still boots at 0 until C4.
+
+**⭐ The one design gap §5 left open, PO-ruled this session: the turn-in
+bundle.** §5 said `advance_quest` "carries the row's other grants as the
+reward", but the shipped model is strictly ONE row per grant, and a multi-grant
+option means the opposite of a bundle — it is the flat teaching MENU the 11
+un-re-authored NPCs render from (D17). The PO ruled **option-as-atomic-row**:
+an option carrying a quest grant renders as exactly one row (labelled by the
+authored `text`, which the loader now requires because a bundle has no skill
+name to fall back on), and taking it applies every grant in that option in
+authored order. Rejected: reward-rides-the-destination-node (two clicks, the
+player can walk away from the reward, and it cannot express "same stage, two
+different rewards") and one-grant-per-row-strictly (which would duplicate every
+other grant kind inside `advance_quest`'s payload).
+
+⚑ **The ordering is the transaction, not tidiness.** `applyQuestRow` runs the
+ledger op FIRST and abandons the whole row if it is refused, which is what stops
+a re-clicked turn-in paying out twice — the ledger is the only thing that knows
+the quest already moved, so nothing may be handed over before it has spoken.
+That is why the loader *hard-fails a quest grant that does not sit at index 0*:
+a reward above the advance would already be paid by the time the refusal
+arrives. Pinned by a test asserting a second click grants **no** XP and **no**
+skill, and by another asserting a turn-in taken at the wrong stage pays nothing
+at all rather than "everything except the advance".
+
+**Per-kind payload resolution.** The loader resolved a `skill` for EVERY grant
+unconditionally, so any new kind would have had to author a dummy skill name to
+boot. `mapGrant` now states per kind which keys are required and which are
+refused — a quest grant carrying a `skill`, a teach carrying quest keys, a quest
+grant carrying a `requiredLevel` (the quest's own stage graph is its gate) are
+each a named boot failure.
+
+**⭐ `quests.CrossValidate` — a new post-load pass, and it had to be one.** Mobs
+load BEFORE quests (objectives resolve species *names* against the mob registry,
+L12), so at `mapToInteraction` time there is no quest registry to check against.
+The pass runs from `loaders.go` once both registries stand, in **two phases**,
+and the split is load-bearing rather than tidy: **terminality is derived, not
+authored** (C1's shape decision ①), so every `advance_quest` edge in the world
+must be registered via C1's `NoteDialogueEdgeFrom` before any question about a
+stage being terminal can be answered — which is exactly what L10 asks. Phase 1
+validates references and registers edges; phase 2 answers the terminal question.
+
+**The lints.** L10 in both halves — the mob loader refuses a standalone
+`grant_xp` (an infinite faucet needing no stage graph to see), and
+cross-validation refuses `grant_xp` on an edge that does not END the quest,
+because abandon leaves the lifetime counters standing so objective stages
+re-complete instantly, while completion is protected by the completed set
+abandon never touches. **L3 hard-fails** a conditional node sitting below an
+unconditional one (dead as a greeting, invisible in play — the NPC just says the
+wrong thing); free to add now because no shipped content authors conditions at
+all, and quest-conditional greetings are precisely the shape that trips it.
+**L12** rejects a legacy-tagged species as an objective target — elsewhere a
+legacy reference is a warning, here it is fatal, because the target is not in
+the world and the quest is unwinnable while looking authored and loaded.
+**D8/D10** parse their kind tables first (so a typo reads as a typo) and then
+hard-fail the well-formed entry with a named "schema room only" error — the L-O
+lesson from `archive/plan-faction-flips.md`: authored content that silently does
+nothing is the failure mode to design out.
+
+**Dead content warns rather than fails.** A quest no conversant offers cannot be
+started in play (D11), but it is a `slog.Warn`, not a boot failure, because the
+QUEST cheat deliberately drives a quest before its rows exist — which is how C4
+will iterate.
+
+**L15.** `selectNode` is **deleted**: it picked the first node whose conditions
+pass, which is exactly the first entry `present()` already puts in its
+visibility map, so it was a second implementation of one rule that also doubled
+`conditionsPass` evaluations on a path that runs per tick per conversing player.
+`quest_at_stage` is answered by `Ledger.MatchesStage`, an O(1) map read that
+fails closed on a nil ledger.
+
+**Shape decisions C3 inherits:** ① the stage sentinels `not_started` /
+`completed` live in **`mobs`**, not `quests` — quests imports mobs, so the
+reverse is an import cycle; ② `MatchesStage` treats a completed quest as
+matching `completed` and NOT its terminal stage id, so a turn-in row gated on
+that stage cannot stay clickable forever; ③ `learner` gained `QuestLedger()` +
+`AddExperience()` and `interactor`'s duplicate declaration was dropped — **no
+`model.PlayerEntity` widening and no L14 fake cost**, since both methods already
+exist there.
+
+**Verified:** 40 new Go tests, every hook red first · `go build`/`vet`/full suite
+clean · guardrails + alloc `-count=2` · **sim battery BYTE-IDENTICAL all 4 legs**
+vs a HEAD worktree (TTK 6.67 s / TTD 8.70 s stand) · boot embedded AND
+`-content ../api`, counts unchanged (15 factions/86 skills/64 mobs/1 milestone/10
+recipes/**0 quests**/5 prop defs/777 props/485 spawns/5 campfires), 0 errors 0
+warnings 0 panics · 68/68 vitest + typecheck (frontend untouched by C2) ·
+harness gate, each script run SOLO: `chunk3b-ii-conversation.mjs` **29/29 + 1
+SKIP**, `chunk3b-interact.mjs` **14/14**, `chunkP-presence.mjs` **6/6**, 0 WebGL
+context losses.
+
+**Also proven against REAL content**, not only fixtures: a genuine
+`api/quests/*.json` plus a Farmer patched with an offer node and a turn-in bundle
+boots clean (`count: 1`, no warnings, terminality derived correctly), and all
+nine failure modes are refused on real files with "nobody offers" warning
+instead. ⚑ Two incidental findings from that probe: **the mob loader registers
+every file in its directory regardless of extension** (a stray `farmer.json.bak`
+tripped C1's duplicate-id guard — unplanned live proof that guard works, and a
+reason content dirs must not hold scratch files), and the mob loader's
+one-quest-op-per-row rule fires *before* cross-validation, so a probe for the
+L10 terminal rule must put the second edge on a different node.
+
+**⚑ Harness lesson, learned the expensive way twice:** these browser harnesses
+**cannot be run in parallel, or alongside anything else touching the server**.
+Two concurrent runs produced 17 wholesale FAILs including "E opens the panel"
+(one harness summons a companion and fires cooldowns beside the NPCs the other is
+talking to, and `sense()` withdraws the talk offer for EVERY player at once when
+an actor is in combat); later, probe boots competing for port 2000 killed a
+harness loop mid-run. Both failure modes read exactly like a product regression
+in the feature under test. Run them **sequentially, alone**, on a freshly
+restarted server — a stale server also degraded `chunkP-presence` to 3 PASS + a
+no-kill SKIP until restarted.

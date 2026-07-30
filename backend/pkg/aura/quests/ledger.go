@@ -81,6 +81,35 @@ func (l *Ledger) Progress(questID string) (path []string, running, completed boo
 	return p.Path, p.Running, p.Completed
 }
 
+// MatchesStage answers a `quest_at_stage` dialogue condition (C2): does this
+// character's ledger have questID at want, where want is a stage id or one of
+// mobs.QuestStageNotStarted / mobs.QuestStageCompleted.
+//
+// ⚑ O(1), and that is a requirement rather than a nicety (L15): present() runs
+// per tick per conversing player and evaluates node conditions on the way, so
+// anything that walked the stage graph here would multiply into the render path.
+// It is also the reason this reads the ledger's own maps and never the registry.
+//
+// The three cases are mutually exclusive by construction: an abandoned quest is
+// not-started (D13), and a completed one matches `completed` but NOT the terminal
+// stage it ended on — otherwise a turn-in row gated on that stage would stay
+// clickable forever after the quest was over.
+func (l *Ledger) MatchesStage(questID, want string) bool {
+	if l == nil {
+		return false // fail closed: a conversation is not the place to panic
+	}
+	p, ok := l.quests[questID]
+
+	switch want {
+	case mobs.QuestStageNotStarted:
+		return !ok || (!p.Running && !p.Completed)
+	case mobs.QuestStageCompleted:
+		return ok && p.Completed
+	default:
+		return ok && p.Running && len(p.Path) > 0 && p.Path[len(p.Path)-1] == want
+	}
+}
+
 // Accept moves a quest from not-started onto its first stage — and cascades
 // immediately, so a veteran whose lifetime counters already satisfy the
 // objectives auto-completes on the spot (D3, the accepted consequence).

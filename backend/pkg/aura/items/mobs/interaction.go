@@ -90,15 +90,33 @@ type InteractionGrant struct {
 	Line string
 	// Skill is the definition resolved at load for GrantTeachSkill — the same
 	// discipline as the skill loadout and the kill unlocks: an unknown name is
-	// a boot failure, never a runtime surprise.
+	// a boot failure, never a runtime surprise. nil for every other kind.
 	Skill *skills.SkillDefinition
+
+	// Quest is the quest id an offer/advance drives; FromStage and ToStage are
+	// the branch edge an advance walks (C2).
+	//
+	// ⚑ These stay STRINGS rather than a resolved *quests.QuestDefinition, unlike
+	// Skill above: the quests package resolves species names against this one, so
+	// a pointer here would be an import cycle. They are validated instead by a
+	// post-load cross-validation pass, once both registries exist — which is also
+	// the only point at which terminality is knowable (see quests.CrossValidate).
+	Quest     string
+	FromStage string
+	ToStage   string
+	// XP is the amount GrantXP awards.
+	XP uint64
 }
 
-// InteractionCondition gates a node. 3a implements minLevel only; the shape
-// exists so quest state slots in without touching authored files.
+// InteractionCondition gates a node — minLevel, or a quest's position in the
+// player's ledger.
 type InteractionCondition struct {
 	Kind  ConditionKind
 	Value int
+	// Quest and Stage carry ConditionQuestAtStage's payload. Stage is a stage id
+	// or one of the two sentinels; validated against the quest graph at boot.
+	Quest string
+	Stage string
 }
 
 // maxAddressableIndex is the highest option/grant index a row can carry (L4,
@@ -117,11 +135,38 @@ const maxAddressableIndex = 254
 // GrantKind is what an option hands over.
 type GrantKind string
 
-// GrantTeachSkill adds a skill to the player's spellbook (the only kind today).
-const GrantTeachSkill GrantKind = "teach_skill"
+const (
+	// GrantTeachSkill adds a skill to the player's spellbook.
+	GrantTeachSkill GrantKind = "teach_skill"
+
+	// GrantOfferQuest moves a quest from not-started onto its first stage
+	// (plan-quests.md C2 / D11 — every quest begins at a dialogue row).
+	GrantOfferQuest GrantKind = "offer_quest"
+	// GrantAdvanceQuest walks one authored branch edge: this quest, out of this
+	// stage, into that one (D1/D9). Several rows on several NPCs may move the
+	// same stage to DIFFERENT next stages with different rewards, which is how
+	// "two NPCs complete the quest" is content rather than a feature.
+	GrantAdvanceQuest GrantKind = "advance_quest"
+	// GrantXP is the second GDD-legal reward (no items, ever). It rides the
+	// normal AddExperience path — level derivation, heal-to-new-full, milestone
+	// unlocks — because a second XP path would be a second set of level-up bugs
+	// (L9). ⚑ Amounts are an offline authoring budget with no runtime clamp.
+	GrantXP GrantKind = "grant_xp"
+)
 
 var grantKinds = map[string]GrantKind{
-	string(GrantTeachSkill): GrantTeachSkill,
+	string(GrantTeachSkill):   GrantTeachSkill,
+	string(GrantOfferQuest):   GrantOfferQuest,
+	string(GrantAdvanceQuest): GrantAdvanceQuest,
+	string(GrantXP):           GrantXP,
+}
+
+// IsQuestKind reports whether the kind drives the quest ledger. Such a grant
+// LEADS its option and makes the whole option one atomic row: the quest op is
+// applied first and, if it is refused, nothing else in the option is handed over
+// (§5, the PO's ruling). That is what stops a re-clicked turn-in paying twice.
+func (k GrantKind) IsQuestKind() bool {
+	return k == GrantOfferQuest || k == GrantAdvanceQuest
 }
 
 // ParseGrantKind resolves an authored grant kind. Unlike a trigger there is no
@@ -134,17 +179,67 @@ func ParseGrantKind(name string) (GrantKind, bool) {
 // ConditionKind is what a node checks before it speaks.
 type ConditionKind string
 
-// ConditionMinLevel passes when the player's level is at least Value.
-const ConditionMinLevel ConditionKind = "minLevel"
+const (
+	// ConditionMinLevel passes when the player's level is at least Value.
+	ConditionMinLevel ConditionKind = "minLevel"
+
+	// ConditionQuestAtStage passes when the player's ledger has Quest at Stage —
+	// a stage id, or the two sentinels below. This is what makes an NPC's dialogue
+	// change as a quest progresses: it hides the offer once the quest is running
+	// and shows the turn-in only when it is earned. Node-level like every
+	// condition (L2), which reaches rows through present()'s existing rule that an
+	// option pointing at a hidden node is itself hidden.
+	ConditionQuestAtStage ConditionKind = "quest_at_stage"
+)
+
+// The two stage sentinels a quest_at_stage condition may name instead of a stage
+// id. ⚑ They live HERE, in the package that parses them, rather than with the
+// ledger that answers them: quests imports mobs (species names resolve to MobIDs
+// at load), so the reverse direction is an import cycle. The ledger's matcher
+// reads these constants.
+const (
+	QuestStageNotStarted = "not_started"
+	QuestStageCompleted  = "completed"
+)
 
 var conditionKinds = map[string]ConditionKind{
-	string(ConditionMinLevel): ConditionMinLevel,
+	string(ConditionMinLevel):     ConditionMinLevel,
+	string(ConditionQuestAtStage): ConditionQuestAtStage,
 }
 
 // ParseConditionKind resolves an authored condition kind.
 func ParseConditionKind(name string) (ConditionKind, bool) {
 	k, ok := conditionKinds[name]
 	return k, ok
+}
+
+// CostKind and ConsequenceKind are D8/D10's reserved vocabulary: named so the
+// eventual implementation is an additive case, and refused at boot so nothing
+// half-implemented can ship. See jsonInteractionOption for why.
+type CostKind string
+
+// CostUnlearnSkill trades a known skill away — the only "fetch quest" shape the
+// GDD's no-items rule permits (D8). BLOCKED on §9 question 1.
+const CostUnlearnSkill CostKind = "unlearn_skill"
+
+var costKinds = map[string]CostKind{
+	string(CostUnlearnSkill): CostUnlearnSkill,
+}
+
+type ConsequenceKind string
+
+const (
+	// ConsequenceFactionHostile flips a faction against the player — the named
+	// consumer the allegiance verbs of archive/plan-faction-flips.md were built
+	// for (D10). BLOCKED on the camps design session.
+	ConsequenceFactionHostile ConsequenceKind = "faction_hostile"
+	// ConsequenceFactionStanding moves standing with a faction (D10).
+	ConsequenceFactionStanding ConsequenceKind = "faction_standing"
+)
+
+var consequenceKinds = map[string]ConsequenceKind{
+	string(ConsequenceFactionHostile):  ConsequenceFactionHostile,
+	string(ConsequenceFactionStanding): ConsequenceFactionStanding,
 }
 
 // jsonInteraction is the authored shape. Kept beside the resolved types rather
@@ -176,6 +271,16 @@ type jsonInteractionOption struct {
 	BlockedLine string                 `json:"blockedLine"`
 	Grants      []jsonInteractionGrant `json:"grants"`
 	Next        string                 `json:"next"`
+
+	// Costs and Consequences are D8/D10 SCHEMA ROOM: the vocabulary is fixed here
+	// so the day un-learning is ruled (§9 question 1) and camps are designed, both
+	// arrive as an additive case rather than a schema migration. Authoring either
+	// is a named boot failure today — see mapToInteraction. ⚑ Do not "just
+	// implement" one: an unlearn that leaves an evicted skill's slot assignment,
+	// its combinations and its invested levels undefined is the open question, not
+	// the code.
+	Costs        []jsonInteractionCost        `json:"costs"`
+	Consequences []jsonInteractionConsequence `json:"consequences"`
 }
 
 type jsonInteractionGrant struct {
@@ -183,11 +288,28 @@ type jsonInteractionGrant struct {
 	Skill         string `json:"skill"`
 	RequiredLevel uint32 `json:"requiredLevel"`
 	Line          string `json:"line"`
+
+	Quest     string `json:"quest"`
+	FromStage string `json:"fromStage"`
+	ToStage   string `json:"toStage"`
+	XP        uint64 `json:"xp"`
 }
 
 type jsonInteractionCondition struct {
 	Kind  string `json:"kind"`
 	Value int    `json:"value"`
+	Quest string `json:"quest"`
+	Stage string `json:"stage"`
+}
+
+type jsonInteractionCost struct {
+	Kind  string `json:"kind"`
+	Skill string `json:"skill"`
+}
+
+type jsonInteractionConsequence struct {
+	Kind    string `json:"kind"`
+	Faction string `json:"faction"`
 }
 
 // mapToInteraction validates and resolves an authored interaction block. Every
@@ -233,7 +355,12 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 				return nil, fmt.Errorf("mob %q: interaction node %q condition %d: kind %q must be one of %s",
 					m.Name, jn.ID, j, jc.Kind, names(conditionKinds))
 			}
-			node.Conditions = append(node.Conditions, InteractionCondition{Kind: kind, Value: jc.Value})
+			cond := InteractionCondition{Kind: kind, Value: jc.Value, Quest: jc.Quest, Stage: jc.Stage}
+			if kind == ConditionQuestAtStage && (cond.Quest == "" || cond.Stage == "") {
+				return nil, fmt.Errorf("mob %q: interaction node %q condition %d: quest_at_stage needs a quest and a stage "+
+					"(a stage id, %q or %q)", m.Name, jn.ID, j, QuestStageNotStarted, QuestStageCompleted)
+			}
+			node.Conditions = append(node.Conditions, cond)
 		}
 
 		if len(jn.Options) > maxAddressableIndex+1 {
@@ -248,6 +375,9 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 				return nil, fmt.Errorf("mob %q: interaction node %q option %d: %d grants, but only indices 0..%d are addressable on the wire",
 					m.Name, jn.ID, j, len(jo.Grants), maxAddressableIndex)
 			}
+			if err := m.checkSchemaRoom(jn.ID, j, jo); err != nil {
+				return nil, err
+			}
 			opt := InteractionOption{Text: jo.Text, BlockedLine: jo.BlockedLine, Next: jo.Next}
 			gated := false
 			for k, jg := range jo.Grants {
@@ -260,13 +390,10 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 					return nil, fmt.Errorf("mob %q: interaction node %q option %d grant %d: line must not be empty",
 						m.Name, jn.ID, j, k)
 				}
-				def, err := sr.GetByName(jg.Skill)
+				where := fmt.Sprintf("mob %q: interaction node %q option %d grant %d", m.Name, jn.ID, j, k)
+				g, err := m.mapGrant(where, kind, jg, sr, legacyRefs)
 				if err != nil {
-					return nil, fmt.Errorf("mob %q: interaction node %q option %d grant %d: skill %q not found: %w",
-						m.Name, jn.ID, j, k, jg.Skill, err)
-				}
-				if def.Legacy && !m.Legacy {
-					*legacyRefs = append(*legacyRefs, "teaching "+def.Name)
+					return nil, err
 				}
 				// ⚑ > 1, not > 0: players start at level 1, so a requiredLevel
 				// of 1 can never refuse anybody and demanding a refusal line for
@@ -277,12 +404,10 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 				if jg.RequiredLevel > 1 {
 					gated = true
 				}
-				opt.Grants = append(opt.Grants, InteractionGrant{
-					Kind:          kind,
-					RequiredLevel: jg.RequiredLevel,
-					Line:          jg.Line,
-					Skill:         def,
-				})
+				opt.Grants = append(opt.Grants, g)
+			}
+			if err := m.checkQuestRowShape(jn.ID, j, &opt); err != nil {
+				return nil, err
 			}
 			// Today's rule, moved from the zone loader: a level-gated grant has
 			// to have something to say when it is refused, or a player who is
@@ -310,6 +435,30 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		in.Nodes = append(in.Nodes, node)
 	}
 
+	// L3: selectNode speaks the FIRST node whose conditions all pass, so an
+	// unconditional node makes every conditional node BELOW it unreachable as a
+	// greeting — silently, and the symptom is an NPC saying the wrong thing rather
+	// than anything failing. Quest-conditional greetings are the shape that trips
+	// this, so the rule lands with the vocabulary that introduces them. The
+	// authoring shape it enforces: conditional nodes first, the unconditional
+	// fallback last.
+	//
+	// ⚑ A node below the fallback is not useless — options can still navigate to
+	// it. Only its use as a GREETING is dead, which is why the message names that.
+	for i := range in.Nodes {
+		if len(in.Nodes[i].Conditions) > 0 {
+			continue
+		}
+		for _, later := range in.Nodes[i+1:] {
+			if len(later.Conditions) > 0 {
+				return nil, fmt.Errorf("mob %q: interaction node %q is conditional but sits below the unconditional "+
+					"node %q, so it can never be selected as the greeting — put conditional nodes first (L3)",
+					m.Name, later.ID, in.Nodes[i].ID)
+			}
+		}
+		break
+	}
+
 	// A next that names no node is a conversation dead-ending mid-sentence.
 	// Nothing in 3a follows a link, which is exactly why this is checked here:
 	// the bug would otherwise surface only once 3b starts walking the graph.
@@ -322,6 +471,147 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 		}
 	}
 	return in, nil
+}
+
+// mapGrant resolves one grant's payload FOR ITS KIND (C2, §5). Before quests
+// there was one kind, so the loader resolved a `skill` unconditionally — which
+// would have forced every new kind to author a dummy skill name to boot at all.
+// Each kind now states which keys it needs and which it refuses, because a key
+// that means nothing for the kind it sits on is exactly the silently-ignored
+// authored line DisallowUnknownFields exists to prevent.
+func (m *mobDefinition) mapGrant(where string, kind GrantKind, jg jsonInteractionGrant,
+	sr skills.Registry, legacyRefs *[]string,
+) (InteractionGrant, error) {
+	g := InteractionGrant{Kind: kind, RequiredLevel: jg.RequiredLevel, Line: jg.Line}
+
+	if kind != GrantTeachSkill && jg.Skill != "" {
+		return g, fmt.Errorf("%s: a %s grant hands over no skill — drop the `skill` key", where, kind)
+	}
+	if kind == GrantTeachSkill && (jg.Quest != "" || jg.FromStage != "" || jg.ToStage != "" || jg.XP != 0) {
+		return g, fmt.Errorf("%s: a teach_skill grant takes no quest/stage/xp keys — a reward that also advances "+
+			"a quest is two grants on one option, not one grant doing both", where)
+	}
+	// A quest edge is walkable when the ledger says so; a level wall is a
+	// property of a teachable skill. Mixing them would put the same gate in two
+	// vocabularies with only one of them enforced at the ledger.
+	if kind != GrantTeachSkill && jg.RequiredLevel != 0 {
+		return g, fmt.Errorf("%s: a %s grant takes no requiredLevel — the quest's own stage graph is its gate", where, kind)
+	}
+
+	switch kind {
+	case GrantTeachSkill:
+		def, err := sr.GetByName(jg.Skill)
+		if err != nil {
+			return g, fmt.Errorf("%s: skill %q not found: %w", where, jg.Skill, err)
+		}
+		if def.Legacy && !m.Legacy {
+			*legacyRefs = append(*legacyRefs, "teaching "+def.Name)
+		}
+		g.Skill = def
+
+	case GrantOfferQuest:
+		if jg.Quest == "" {
+			return g, fmt.Errorf("%s: offer_quest needs a quest id", where)
+		}
+		if jg.FromStage != "" || jg.ToStage != "" {
+			return g, fmt.Errorf("%s: offer_quest carries no edge — the quest file's first stage is where an "+
+				"accept lands, so drop fromStage/toStage", where)
+		}
+		g.Quest = jg.Quest
+
+	case GrantAdvanceQuest:
+		if jg.Quest == "" {
+			return g, fmt.Errorf("%s: advance_quest needs a quest id", where)
+		}
+		if jg.FromStage == "" || jg.ToStage == "" {
+			return g, fmt.Errorf("%s: advance_quest needs fromStage and toStage — the edge IS the row", where)
+		}
+		if jg.FromStage == jg.ToStage {
+			return g, fmt.Errorf("%s: advance_quest edge %q → itself never progresses", where, jg.FromStage)
+		}
+		g.Quest, g.FromStage, g.ToStage = jg.Quest, jg.FromStage, jg.ToStage
+
+	case GrantXP:
+		if jg.XP == 0 {
+			return g, fmt.Errorf("%s: grant_xp needs an xp amount", where)
+		}
+		if jg.Quest != "" || jg.FromStage != "" || jg.ToStage != "" {
+			return g, fmt.Errorf("%s: grant_xp is a reward on a quest row, not a quest op — it takes no "+
+				"quest/stage keys", where)
+		}
+		g.XP = jg.XP
+	}
+	return g, nil
+}
+
+// checkQuestRowShape enforces what makes an atomic turn-in row safe (§5, the
+// PO's ruling): a quest-bearing option is ONE row whose grants are applied
+// together, so the quest op must LEAD — applyGrant walks the option in authored
+// order and abandons the row if the quest op is refused, which is the whole
+// defence against a re-clicked turn-in paying out twice. A reward above the
+// advance would already have been handed over by then.
+func (m *mobDefinition) checkQuestRowShape(nodeID string, j int, opt *InteractionOption) error {
+	where := fmt.Sprintf("mob %q: interaction node %q option %d", m.Name, nodeID, j)
+
+	questGrants, xpGrants, questFirst := 0, 0, false
+	for i := range opt.Grants {
+		switch {
+		case opt.Grants[i].Kind.IsQuestKind():
+			questGrants++
+			questFirst = questFirst || i == 0
+		case opt.Grants[i].Kind == GrantXP:
+			xpGrants++
+		}
+	}
+
+	if questGrants > 1 {
+		return fmt.Errorf("%s: one quest op per row — a row that advanced two quests at once could half-fail", where)
+	}
+	if questGrants == 1 && !questFirst {
+		return fmt.Errorf("%s: the quest grant must come first, or its rewards are handed over before anything "+
+			"checks whether the quest can advance at all", where)
+	}
+	// L10's authorable half: a grant_xp nobody gates is a row a player clicks
+	// forever. (The other half — that the edge must END the quest, because
+	// abandoning leaves the lifetime counters standing so objective stages
+	// re-complete instantly — needs the stage graph, and lives in
+	// quests.CrossValidate.)
+	if xpGrants > 0 && questGrants == 0 {
+		return fmt.Errorf("%s: grant_xp needs an advance_quest on the same row, or it is an XP faucet "+
+			"(plan-quests.md L10)", where)
+	}
+	// A flat multi-grant option labels each row from its skill (D17); a bundle is
+	// one row and has nothing to derive a label from.
+	if questGrants == 1 && strings.TrimSpace(opt.Text) == "" {
+		return fmt.Errorf("%s: a quest row needs an authored text — it renders as one row and has no skill "+
+			"name to fall back on", where)
+	}
+	return nil
+}
+
+// checkSchemaRoom refuses D8/D10's reserved lists. The kinds are parsed first so
+// a typo inside the reserved vocabulary reports as a typo; only a well-formed
+// entry gets the "not implemented yet" answer. ⚑ Parsing and ignoring these
+// instead would be the L-O failure from archive/plan-faction-flips.md: authored
+// content that silently does nothing.
+func (m *mobDefinition) checkSchemaRoom(nodeID string, j int, jo *jsonInteractionOption) error {
+	where := fmt.Sprintf("mob %q: interaction node %q option %d", m.Name, nodeID, j)
+
+	for i, jc := range jo.Costs {
+		if _, ok := costKinds[jc.Kind]; !ok {
+			return fmt.Errorf("%s cost %d: kind %q must be one of %s", where, i, jc.Kind, names(costKinds))
+		}
+		return fmt.Errorf("%s cost %d: costs are schema room only (plan-quests.md D8) — un-learning is unruled "+
+			"(§9 question 1: slot eviction, combination ingredients, invested levels), so nothing may author one yet", where, i)
+	}
+	for i, jc := range jo.Consequences {
+		if _, ok := consequenceKinds[jc.Kind]; !ok {
+			return fmt.Errorf("%s consequence %d: kind %q must be one of %s", where, i, jc.Kind, names(consequenceKinds))
+		}
+		return fmt.Errorf("%s consequence %d: consequences are schema room only (plan-quests.md D10) — camps get "+
+			"their own design session, so nothing may author one yet", where, i)
+	}
+	return nil
 }
 
 // names renders a parse table's keys for an error message, sorted so the text

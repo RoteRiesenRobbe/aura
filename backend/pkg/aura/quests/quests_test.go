@@ -15,6 +15,7 @@ import (
 type fakeMobs struct {
 	mobs.Registry
 	byName map[string]mobs.MobID
+	legacy map[string]bool
 }
 
 func (f *fakeMobs) GetByName(name string) (*mobs.MobDefinition, error) {
@@ -22,11 +23,16 @@ func (f *fakeMobs) GetByName(name string) (*mobs.MobDefinition, error) {
 	if !ok {
 		return nil, assert.AnError
 	}
-	return &mobs.MobDefinition{ID: id, Name: name}, nil
+	return &mobs.MobDefinition{ID: id, Name: name, Legacy: f.legacy[name]}, nil
 }
 
 func testMobs() *fakeMobs {
-	return &fakeMobs{byName: map[string]mobs.MobID{"Wolf": 3, "Bramble": 7, "Farmer": 40}}
+	return &fakeMobs{
+		byName: map[string]mobs.MobID{"Wolf": 3, "Bramble": 7, "Farmer": 40, "Rabbit": 61},
+		// 10 defs are legacy: true — proving-grounds content the live world never
+		// spawns (L12).
+		legacy: map[string]bool{"Rabbit": true},
+	}
 }
 
 func loadOne(t *testing.T, quest string) Registry {
@@ -118,6 +124,14 @@ func TestLoad_Rejections(t *testing.T) {
 			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Wolf", "count": 1}], "next": "nowhere"}]}`,
 		"next to self": `{"id": "q", "title": "Q", "stages": [
 			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Wolf", "count": 1}], "next": "s"}]}`,
+		// L12: 10 defs are legacy: true — proving-grounds content the live world
+		// never spawns. `kill Rabbit` would boot green and be uncompletable.
+		"legacy species as a kill target": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "objectives": [{"kind": "kill", "species": "Rabbit", "count": 1}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		"legacy npc as a talk_to target": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "objectives": [{"kind": "talk_to", "npc": "Rabbit"}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
 	}
 	for name, quest := range cases {
 		t.Run(name, func(t *testing.T) { loadErr(t, quest) })

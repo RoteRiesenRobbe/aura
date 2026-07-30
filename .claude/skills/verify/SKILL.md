@@ -81,7 +81,7 @@ regression to everyone who ran it afterwards.
 | harness | owns | re-run it when you touch |
 |---|---|---|
 | `chunk3b-interact.mjs` | the interact **verb**: who is offered, badge lifecycle, `E` opens/closes, the `E`→`R` rebind | the offer (`sense`, `interactable_entity_id`), `Interact`, the badge, cooldown keybinds |
-| `chunk3b-ii-conversation.mjs` | everything **inside** the panel: tree browsing, grants, level walls, refusals, Back/Leave, unlock banner, ambient lines, the Wanderer hold — ⚑ leg 7's "walks on afterwards" check is KNOWN ROTTEN (see its header; product pinned green in Go), repair it in the next conversation-touching session | conversation content or the panel UI |
+| `chunk3b-ii-conversation.mjs` | everything **inside** the panel: tree browsing, grants, level walls, refusals, Back/Leave, unlock banner, ambient lines, the Wanderer hold — ⚑ leg 7's "walks on afterwards" check is **FLAKY, not always-failing** (corrected 2026-07-30 in quest C0/C2 — it passed both clean solo runs; its drift pin can land on a container whose position never changes, since the badge rides the shape group post-R4. Product pinned green in Go). Repair when convenient; do not read a single failure as a regression | conversation content or the panel UI |
 | `npc-portraits.mjs` | NPC **presentation**: sprite size off the wire, health bars, nameplates absent | mob wire fields, NPC art, nameplate/health-bar gating |
 | `r4-badge.mjs` | the badge's **anchor** and its removal with the actor | any overlay hung on `Mob.shape`, or `EntityManager` removal |
 | `chunk2-roles.mjs` | the authored `role` discriminator; a structure's always-on aura | `mobs.ParseRole`, `applyMode`, structure behaviour |
@@ -93,6 +93,26 @@ regression to everyone who ran it afterwards.
 | `round4-tooltip.mjs` | skill tooltips scaled to character level; the `/skills` payload shape | `SkillTooltip.ts`, the skills catalog endpoint |
 | `filler-batch.mjs` | `DAMAGE <pct>`, damage numbers in darkness, minimap-on-death, Ctrl +/− | darkness suppression, minimap lifecycle, dev cheats |
 | `hygiene-wire-prune.mjs` | the join smoke for wire renumbering — garbage decode rather than a clean error | **any `.fbs` field add or remove** |
+
+### ⚑ Run them ONE AT A TIME, alone, on a freshly restarted server
+
+Not a style preference — it has faked a product failure three times (all
+2026-07-30, quest C0/C2):
+
+- **Two harnesses at once → 17 wholesale FAILs**, including "E opens the panel".
+  They share one world: `chunk3b-interact` summons a companion and fires
+  cooldowns beside the NPCs `chunk3b-ii-conversation` is talking to, and
+  `sense()` withdraws the talk offer for **every player at once** when an actor
+  is in combat (D21). Nothing was wrong with the panel.
+- **Anything else touching the server mid-run kills the run.** Booting a second
+  `aurad` to probe content competed for port 2000 and broke a harness loop after
+  its first script.
+- **A long-lived server degrades runs silently.** `chunkP-presence` reported
+  3 PASS + a no-kill SKIP (vs its real 6/6) purely from server age; a restart
+  fixed it with no code change. This is the same class as the wander-drift
+  gotcha below.
+
+So: restart `aurad`, run one script, read its result, then the next.
 | `mob-separation.mjs` | soft separation, by screenshot | `steer`, `AppendCircleDynamics`, the separation weight |
 | `ctxloss-warning.mjs` | the WebGL context-loss banner; `clean` must report **0** warnings | the client boot path |
 

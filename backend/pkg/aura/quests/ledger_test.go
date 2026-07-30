@@ -231,6 +231,73 @@ func TestLedger_AcceptUnknownQuest(t *testing.T) {
 	assert.Error(t, NewLedger(nil).Accept("wolf-cull"), "a nil registry offers nothing")
 }
 
+// --- MatchesStage: what a quest_at_stage condition asks (C2, L15) ---
+
+func TestLedger_MatchesStage_NotStarted(t *testing.T) {
+	l := testLedger(t, cullQuest())
+
+	assert.True(t, l.MatchesStage("wolf-cull", mobs.QuestStageNotStarted),
+		"an untouched quest is not started")
+	assert.False(t, l.MatchesStage("wolf-cull", "cull"))
+	assert.False(t, l.MatchesStage("wolf-cull", mobs.QuestStageCompleted))
+
+	require.NoError(t, l.Accept("wolf-cull"))
+	assert.False(t, l.MatchesStage("wolf-cull", mobs.QuestStageNotStarted),
+		"...and stops being once accepted — this is what hides an offer row")
+}
+
+// D13: abandoning returns the quest to not-started, so the offer comes back.
+func TestLedger_MatchesStage_AbandonedIsNotStarted(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
+	require.NoError(t, l.Abandon("wolf-cull"))
+
+	assert.True(t, l.MatchesStage("wolf-cull", mobs.QuestStageNotStarted))
+	assert.False(t, l.MatchesStage("wolf-cull", "cull"))
+}
+
+func TestLedger_MatchesStage_CurrentStageOnly(t *testing.T) {
+	l := testLedger(t, branchQuest())
+	require.NoError(t, l.Accept("choice"))
+
+	assert.True(t, l.MatchesStage("choice", "choose"), "the stage the player is standing on")
+	assert.False(t, l.MatchesStage("choice", "a-end"), "not a stage they might reach")
+
+	require.NoError(t, l.AdvanceDialogue("choice", "choose", "a-end"))
+	assert.False(t, l.MatchesStage("choice", "choose"), "a walked-past stage no longer matches")
+}
+
+// ⚑ A completed quest matches `completed` and NOT its terminal stage id, so the
+// two are unambiguous: a turn-in row gated on the terminal stage would otherwise
+// stay clickable forever after the quest ended.
+func TestLedger_MatchesStage_CompletedIsNotItsTerminalStage(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	for i := 0; i < 3; i++ {
+		l.NoteKill(wolf)
+	}
+	require.NoError(t, l.Accept("wolf-cull"))
+
+	_, running, completed := l.Progress("wolf-cull")
+	require.False(t, running)
+	require.True(t, completed)
+
+	assert.True(t, l.MatchesStage("wolf-cull", mobs.QuestStageCompleted))
+	assert.False(t, l.MatchesStage("wolf-cull", "report"), "completed, not standing on the terminal stage")
+	assert.False(t, l.MatchesStage("wolf-cull", mobs.QuestStageNotStarted))
+}
+
+// The evaluator calls this per tick per conversing player, so it must tolerate
+// the states a fixture or a quest-less world can be in rather than panicking
+// somewhere inside a render path.
+func TestLedger_MatchesStage_DegradesSafely(t *testing.T) {
+	assert.False(t, (*Ledger)(nil).MatchesStage("wolf-cull", mobs.QuestStageNotStarted),
+		"a nil ledger fails closed")
+	assert.True(t, NewLedger(nil).MatchesStage("wolf-cull", mobs.QuestStageNotStarted),
+		"a registry-less ledger has genuinely started nothing")
+	assert.False(t, testLedger(t, cullQuest()).MatchesStage("wolf-cull", "no-such-stage"),
+		"an unknown stage name matches nothing (the loader rejects one at boot)")
+}
+
 func TestLedger_ProgressOfUntouchedQuest(t *testing.T) {
 	l := testLedger(t, cullQuest())
 	path, running, completed := l.Progress("wolf-cull")

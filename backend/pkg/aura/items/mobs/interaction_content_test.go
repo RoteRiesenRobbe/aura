@@ -61,12 +61,18 @@ func TestContent_ConversantCensus(t *testing.T) {
 	assert.ElementsMatch(t, expectedConversants, names, "exactly the merged NPCs carry an interaction")
 }
 
-// Every grant an NPC hands out is a resolved teach-skill grant. This is the part
+// Every grant an NPC hands out is fully resolved FOR ITS KIND. This is the part
 // of the retired teaching-order pin that was never about the migration: an
-// unresolved skill or a grant kind nobody implemented is a load-time defect at
-// any point in the content's life, whereas WHICH skills an NPC teaches is
-// authoring the PO changes on purpose.
-func TestContent_EveryGrantIsAResolvedTeach(t *testing.T) {
+// unresolved skill or a half-authored payload is a load-time defect at any point
+// in the content's life, whereas WHICH skills an NPC teaches is authoring the PO
+// changes on purpose.
+//
+// ⚑ It used to assert every grant was a teach_skill. C2 relaxed that: the quest
+// vocabulary makes three more kinds legal, and C4 authors them. What survives is
+// the invariant that actually catches defects — each kind carries exactly the
+// payload its runtime case reads, and nothing is left nil for the player who
+// clicks the row nobody tested.
+func TestContent_EveryGrantIsResolvedForItsKind(t *testing.T) {
 	found := conversants(t)
 	require.NotEmpty(t, found)
 
@@ -74,8 +80,22 @@ func TestContent_EveryGrantIsAResolvedTeach(t *testing.T) {
 		for _, node := range def.Interaction.Nodes {
 			for _, opt := range node.Options {
 				for _, g := range opt.Grants {
-					assert.Equal(t, GrantTeachSkill, g.Kind, "%s", name)
-					assert.NotNil(t, g.Skill, "%s: the skill must be resolved at load", name)
+					switch g.Kind {
+					case GrantTeachSkill:
+						assert.NotNil(t, g.Skill, "%s: the skill must be resolved at load", name)
+						assert.Empty(t, g.Quest, "%s: a teach carries no quest", name)
+					case GrantOfferQuest:
+						assert.NotEmpty(t, g.Quest, "%s", name)
+						assert.Nil(t, g.Skill, "%s: a quest grant resolves no skill", name)
+					case GrantAdvanceQuest:
+						assert.NotEmpty(t, g.Quest, "%s", name)
+						assert.NotEmpty(t, g.FromStage, "%s: the edge is the row", name)
+						assert.NotEmpty(t, g.ToStage, "%s: the edge is the row", name)
+					case GrantXP:
+						assert.NotZero(t, g.XP, "%s", name)
+					default:
+						t.Errorf("%s: grant kind %q has no content invariant — add one here", name, g.Kind)
+					}
 				}
 			}
 		}

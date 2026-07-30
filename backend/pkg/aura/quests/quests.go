@@ -323,6 +323,16 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 	if err != nil {
 		return Objective{}, fmt.Errorf("objective %q: unknown target %q", jo.Kind, name)
 	}
+	// L12: ten definitions are legacy: true — proving-grounds content the live
+	// world never spawns. Naming one boots green and produces a quest no player
+	// can ever finish, which is the worst class of content defect: it looks
+	// authored, it looks loaded, and it is unwinnable. Elsewhere a legacy
+	// reference is a warning (a live mob teaching a legacy skill still works);
+	// here it is fatal, because the objective's target simply is not in the world.
+	if def.Legacy {
+		return Objective{}, fmt.Errorf("objective %q names %q, which is legacy: true — the live world never spawns "+
+			"it, so the objective could never be completed", jo.Kind, name)
+	}
 
 	count := jo.Count
 	if count == 0 {

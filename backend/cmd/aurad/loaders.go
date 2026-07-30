@@ -171,6 +171,25 @@ func loadQuests(fsys fs.FS, mr mobs.Registry) quests.Registry {
 		panic(err)
 	}
 	slog.Info("Loaded quest definitions", slog.Int("count", len(registry.All())))
+
+	// Cross-validate the quest references authored on conversation rows, and
+	// register the dialogue edges those rows create (plan-quests.md C2).
+	//
+	// ⚑ It has to happen HERE rather than in either loader: mobs load first (quest
+	// objectives resolve species names against them, L12), so mapToInteraction has
+	// no quest registry to check against, and a stage's terminality is knowable
+	// only once every row in the world has been seen.
+	warnings, err := quests.CrossValidate(mr, registry)
+	if err != nil {
+		slog.Error("failed to cross-validate quest dialogue", slog.Any("err", err))
+		panic(err)
+	}
+	// Content that loads and runs but cannot be reached in play — a warning rather
+	// than a boot failure, because the QUEST cheat deliberately drives a quest
+	// before its rows exist, which is how quest content is iterated on.
+	for _, w := range warnings {
+		slog.Warn("unreachable quest content", slog.String("detail", w))
+	}
 	return registry
 }
 

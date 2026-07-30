@@ -312,6 +312,327 @@ func TestMapMobDefinition_RejectsGrantWithoutLine(t *testing.T) {
 	assert.Contains(t, err.Error(), "line")
 }
 
+// --- the quest vocabulary (plan-quests.md C2, §5) ---
+//
+// Three new grant kinds and one new condition kind, every piece an additive case
+// behind the loader's existing hard-fails. What these pin is the AUTHORING
+// contract: which keys each kind requires, which it refuses, and the placement
+// rules that keep a turn-in row atomic. The runtime behaviour lives in
+// sys/interaction.go, and the ledger ops it drives live in pkg/aura/quests.
+
+// A quest-bearing option is ONE row (the PO's ruling, §5): the quest grant leads
+// and the rest of the option is its reward, applied together or not at all.
+const questTurnInJSON = `{
+  "nodes": [{
+    "id": "root",
+    "lines": ["Any luck with the wolves?"],
+    "options": [{
+      "text": "Here are the pelts.",
+      "grants": [
+        {"kind": "advance_quest", "quest": "pelts", "fromStage": "turn_in", "toStage": "done", "line": "You have my thanks."},
+        {"kind": "grant_xp", "xp": 250, "line": "Experience is its own reward."},
+        {"kind": "teach_skill", "skill": "DodoAura", "line": "And this, besides."}
+      ]
+    }]
+  }]
+}`
+
+func TestParseGrantKind_ResolvesTheQuestKinds(t *testing.T) {
+	for authored, want := range map[string]GrantKind{
+		"offer_quest":   GrantOfferQuest,
+		"advance_quest": GrantAdvanceQuest,
+		"grant_xp":      GrantXP,
+	} {
+		kind, ok := ParseGrantKind(authored)
+		require.True(t, ok, authored)
+		assert.Equal(t, want, kind)
+	}
+}
+
+func TestParseConditionKind_ResolvesQuestAtStage(t *testing.T) {
+	kind, ok := ParseConditionKind("quest_at_stage")
+	require.True(t, ok)
+	assert.Equal(t, ConditionQuestAtStage, kind)
+}
+
+func TestMapMobDefinition_ResolvesAQuestTurnIn(t *testing.T) {
+	def, err := mapInteraction(t, questTurnInJSON)
+	require.NoError(t, err)
+
+	grants := def.Interaction.Nodes[0].Options[0].Grants
+	require.Len(t, grants, 3)
+
+	assert.Equal(t, GrantAdvanceQuest, grants[0].Kind)
+	assert.Equal(t, "pelts", grants[0].Quest)
+	assert.Equal(t, "turn_in", grants[0].FromStage)
+	assert.Equal(t, "done", grants[0].ToStage)
+	assert.Nil(t, grants[0].Skill, "a quest grant resolves no skill")
+
+	assert.Equal(t, GrantXP, grants[1].Kind)
+	assert.EqualValues(t, 250, grants[1].XP)
+
+	assert.Equal(t, GrantTeachSkill, grants[2].Kind)
+	require.NotNil(t, grants[2].Skill, "and the reward teach still resolves")
+}
+
+func TestMapMobDefinition_ResolvesAQuestOffer(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["Wolves again."],
+	  "options": [{
+	    "text": "I'll help.",
+	    "grants": [{"kind": "offer_quest", "quest": "pelts", "line": "Then go."}]
+	  }]
+	}]}`)
+	require.NoError(t, err)
+
+	g := def.Interaction.Nodes[0].Options[0].Grants[0]
+	assert.Equal(t, GrantOfferQuest, g.Kind)
+	assert.Equal(t, "pelts", g.Quest)
+}
+
+func TestMapMobDefinition_ResolvesAQuestCondition(t *testing.T) {
+	def, err := mapInteraction(t, `{"nodes": [
+	  {
+	    "id": "mid_quest",
+	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn_in"}],
+	    "lines": ["Back already?"]
+	  },
+	  {"id": "root", "lines": ["Wolves again."]}
+	]}`)
+	require.NoError(t, err)
+
+	c := def.Interaction.Nodes[0].Conditions[0]
+	assert.Equal(t, ConditionQuestAtStage, c.Kind)
+	assert.Equal(t, "pelts", c.Quest)
+	assert.Equal(t, "turn_in", c.Stage)
+}
+
+// Per-kind payload resolution (§5's code-review item): the loader used to resolve
+// a `skill` for EVERY grant unconditionally, so every new kind would have had to
+// author a dummy skill name to boot at all.
+func TestMapMobDefinition_QuestGrantNeedsNoSkill(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "options": [{"text": "yes", "grants": [{"kind": "offer_quest", "quest": "pelts", "line": "go"}]}]
+	}]}`)
+	assert.NoError(t, err, "resolving a skill for a quest grant would be a boot failure with nothing wrong")
+}
+
+func TestMapMobDefinition_RejectsAQuestGrantCarryingASkill(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "options": [{"text": "yes", "grants": [
+	    {"kind": "offer_quest", "quest": "pelts", "skill": "DodoAura", "line": "go"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "skill")
+}
+
+func TestMapMobDefinition_RejectsATeachCarryingQuestKeys(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "options": [{"text": "yes", "grants": [
+	    {"kind": "teach_skill", "skill": "DodoAura", "quest": "pelts", "line": "take it"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "quest")
+}
+
+func TestMapMobDefinition_RejectsAQuestGrantWithoutAQuest(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root",
+	  "lines": ["hi"],
+	  "options": [{"text": "yes", "grants": [{"kind": "offer_quest", "line": "go"}]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "quest")
+}
+
+func TestMapMobDefinition_RejectsAnAdvanceWithoutStages(t *testing.T) {
+	for _, grant := range []string{
+		`{"kind": "advance_quest", "quest": "pelts", "toStage": "done", "line": "x"}`,
+		`{"kind": "advance_quest", "quest": "pelts", "fromStage": "turn_in", "line": "x"}`,
+		`{"kind": "advance_quest", "quest": "pelts", "fromStage": "same", "toStage": "same", "line": "x"}`,
+	} {
+		_, err := mapInteraction(t, `{"nodes": [{
+		  "id": "root", "lines": ["hi"],
+		  "options": [{"text": "yes", "grants": [`+grant+`]}]
+		}]}`)
+		assert.Error(t, err, grant)
+	}
+}
+
+// An offer carries no edge: which stage it lands on is the quest file's business
+// (its first), so authoring one here is a misunderstanding worth naming.
+func TestMapMobDefinition_RejectsAnOfferCarryingStages(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "yes", "grants": [
+	    {"kind": "offer_quest", "quest": "pelts", "fromStage": "a", "toStage": "b", "line": "go"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Stage")
+}
+
+// --- the atomic-row rules that make a bundle safe (§5, the PO's ruling) ---
+
+// The quest grant must lead, because applyGrant applies the option in authored
+// order and aborts the whole row if the quest op is refused. A reward sitting
+// ABOVE the advance would be handed over before anything checked whether the
+// quest could advance at all — which on a re-click is a free second payout.
+func TestMapMobDefinition_RejectsAQuestGrantThatDoesNotLead(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "here", "grants": [
+	    {"kind": "grant_xp", "xp": 10, "line": "reward"},
+	    {"kind": "advance_quest", "quest": "pelts", "fromStage": "a", "toStage": "b", "line": "thanks"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "first")
+}
+
+func TestMapMobDefinition_RejectsTwoQuestGrantsInOneOption(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "here", "grants": [
+	    {"kind": "advance_quest", "quest": "a", "fromStage": "x", "toStage": "y", "line": "1"},
+	    {"kind": "advance_quest", "quest": "b", "fromStage": "x", "toStage": "y", "line": "2"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "one")
+}
+
+// A bundle renders as one row, so it cannot fall back to a skill's display name
+// the way a flat teaching list does — an unlabelled bundle is a blank button.
+func TestMapMobDefinition_RejectsAnUnlabelledQuestRow(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"grants": [{"kind": "offer_quest", "quest": "pelts", "line": "go"}]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "text")
+}
+
+// L10's first half, enforceable without the quest registry: a standalone
+// grant_xp row is an XP faucet a player can click forever. The terminal-edge half
+// needs the stage graph and lives in the quests cross-validation.
+func TestMapMobDefinition_RejectsStandaloneGrantXP(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "gift", "grants": [{"kind": "grant_xp", "xp": 500, "line": "here"}]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "advance_quest")
+}
+
+func TestMapMobDefinition_RejectsGrantXPWithoutAnAmount(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "here", "grants": [
+	    {"kind": "advance_quest", "quest": "pelts", "fromStage": "a", "toStage": "b", "line": "thanks"},
+	    {"kind": "grant_xp", "line": "reward"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "xp")
+}
+
+// A level gate is a property of a teachable skill, not of a quest edge: the quest
+// file's own stage graph is what says when an edge is walkable.
+func TestMapMobDefinition_RejectsARequiredLevelOnAQuestGrant(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "yes", "blockedLine": "not yet", "grants": [
+	    {"kind": "offer_quest", "quest": "pelts", "requiredLevel": 5, "line": "go"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "requiredLevel")
+}
+
+// --- D8/D10 schema room: the vocabulary exists, authoring it does not ---
+
+func TestMapMobDefinition_RejectsAuthoredCosts(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "trade", "costs": [{"kind": "unlearn_skill", "skill": "DodoAura"}], "grants": [
+	    {"kind": "advance_quest", "quest": "pelts", "fromStage": "a", "toStage": "b", "line": "thanks"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "schema room")
+}
+
+func TestMapMobDefinition_RejectsAuthoredConsequences(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "betray", "consequences": [{"kind": "faction_hostile", "faction": "orc"}], "grants": [
+	    {"kind": "advance_quest", "quest": "pelts", "fromStage": "a", "toStage": "b", "line": "thanks"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "schema room")
+}
+
+// An unknown cost/consequence KIND is still named as such, so a typo inside the
+// reserved vocabulary reads as a typo rather than as the reservation.
+func TestMapMobDefinition_RejectsUnknownCostKind(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [{
+	  "id": "root", "lines": ["hi"],
+	  "options": [{"text": "trade", "costs": [{"kind": "pay_gold"}], "grants": [
+	    {"kind": "advance_quest", "quest": "pelts", "fromStage": "a", "toStage": "b", "line": "thanks"}
+	  ]}]
+	}]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "pay_gold")
+}
+
+// --- L3: node order silently selects the greeting ---
+
+// selectNode speaks the FIRST node whose conditions pass, so a conditional node
+// below an unconditional one can never be reached. Nothing authors conditions
+// today, which is exactly why the rule is free to make now: quest-conditional
+// greetings are the shape that trips it, and a dead greeting is invisible in play
+// (the NPC simply says the wrong thing).
+func TestMapMobDefinition_RejectsAConditionalNodeBelowAnUnconditionalOne(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [
+	  {"id": "root", "lines": ["Wolves again."]},
+	  {
+	    "id": "mid_quest",
+	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn_in"}],
+	    "lines": ["Back already?"]
+	  }
+	]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "mid_quest")
+}
+
+func TestMapMobDefinition_AcceptsConditionalNodesAboveTheFallback(t *testing.T) {
+	_, err := mapInteraction(t, `{"nodes": [
+	  {
+	    "id": "mid_quest",
+	    "conditions": [{"kind": "quest_at_stage", "quest": "pelts", "stage": "turn_in"}],
+	    "lines": ["Back already?"]
+	  },
+	  {
+	    "id": "veteran",
+	    "conditions": [{"kind": "minLevel", "value": 10}],
+	    "lines": ["You've the look of someone who has seen things."]
+	  },
+	  {"id": "root", "lines": ["Wolves again."]}
+	]}`)
+	assert.NoError(t, err, "the unconditional fallback last is the authoring shape quests need")
+}
+
 // --- the wire index ceiling (L4, plan-quests.md C0) ---
 
 // option_index and grant_index are ubyte on the wire, and present() truncates

@@ -57,9 +57,12 @@ type interactor interface {
 	ConversingWith() uint64
 	SetConversingWith(id uint64)
 	SetConversation(c *model.Conversation)
-	// QuestLedger receives the talked-to stamp at session open
-	// (plan-quests.md C1).
-	QuestLedger() *quests.Ledger
+	// ⚑ QuestLedger is NOT declared here any more: C2 moved it onto `learner`,
+	// which this embeds, because the evaluator itself reads the ledger now (a
+	// quest_at_stage condition) and writes it (the quest grant kinds). The
+	// talked-to stamp at session open, C1's original reason for it, is the same
+	// accessor reached through the same embed.
+	//
 	// InCombat ends the conversation (D21) — the rule that makes a non-blocking
 	// panel safe, because a player cannot be trapped reading dialogue while
 	// something eats them.
@@ -374,6 +377,17 @@ type learner interface {
 	SkillComponent() *skills.SkillComponent
 	Progression() model.PlayerProgression
 	ApplyRecipeCascade()
+	// QuestLedger is what a quest_at_stage condition reads and what the quest
+	// grant kinds drive (plan-quests.md C2). ⚑ It is read on the PRESENT path, per
+	// tick per conversing player, so every call it takes must be an O(1) map read
+	// (L15). It is also the evaluator's only new input surface — the one real
+	// coupling point between the conversation container and the quest system.
+	QuestLedger() *quests.Ledger
+	// AddExperience is grant_xp's front door, deliberately the same one the XP
+	// cheat and every kill use: level derivation, the clamp at 1, heal-to-new-full
+	// and the milestone-unlock cascade all live behind it, and a second XP path
+	// would be a second set of level-up bugs (L9).
+	AddExperience(experience uint64)
 }
 
 // present builds the personalised conversation tree for p (chunk 3b-ii, D16).
@@ -389,22 +403,31 @@ type learner interface {
 //
 // The caller stamps EntityID and ActorName — this function only knows content.
 func present(in *mobs.Interaction, p learner) *model.Conversation {
-	entry := selectNode(in, p)
-	if entry == nil {
-		return nil
-	}
-
 	// Which nodes survive their conditions, so an option pointing at a hidden
 	// one can be hidden too. Built once per call rather than re-checked per
 	// option, and only while a panel is actually open.
+	//
+	// ⚑ The entry node is read off this map rather than from a second pass (L15):
+	// conditionsPass used to run TWICE per node — once in selectNode, once here —
+	// and quest conditions multiply whatever this costs, since present() runs per
+	// tick for every conversing player. Same answer, half the evaluations: the
+	// entry node IS the first visible one, which is selectNode's definition.
 	visible := make(map[string]bool, len(in.Nodes))
+	entry := ""
 	for i := range in.Nodes {
-		if conditionsPass(in.Nodes[i].Conditions, p) {
-			visible[in.Nodes[i].ID] = true
+		if !conditionsPass(in.Nodes[i].Conditions, p) {
+			continue
+		}
+		visible[in.Nodes[i].ID] = true
+		if entry == "" {
+			entry = in.Nodes[i].ID
 		}
 	}
+	if entry == "" {
+		return nil // nothing to say to this player right now
+	}
 
-	c := &model.Conversation{EntryNode: entry.ID}
+	c := &model.Conversation{EntryNode: entry}
 	for i := range in.Nodes {
 		node := &in.Nodes[i]
 		if !visible[node.ID] {
@@ -450,10 +473,34 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 			continue
 		}
 
+		// ⭐ A quest-bearing option is ONE row, not one row per grant (§5, PO-ruled):
+		// its grants are a BUNDLE — the quest op plus its rewards — applied together
+		// or not at all. That is the opposite of a flat teaching list, where several
+		// grants under one option are a MENU of independent teachings. The loader
+		// guarantees the quest grant leads, so the row addresses index 0.
+		//
+		// Availability is authored with quest_at_stage conditions rather than derived
+		// here: unlike a skill, a quest op has no "already known" the panel could
+		// read, and applyGrant refuses the row on its own merits if the ledger
+		// disagrees.
+		if opt.Grants[0].Kind.IsQuestKind() {
+			rows = append(rows, model.ConversationOption{
+				OptionIndex: uint8(oi),
+				GrantIndex:  0,
+				Text:        opt.Text,
+				Next:        opt.Next,
+				Reply:       opt.Grants[0].Line,
+			})
+			continue
+		}
+
 		for gi := range opt.Grants {
 			g := &opt.Grants[gi]
 			if g.Kind != mobs.GrantTeachSkill {
-				continue // no other kind exists yet; a new one adds a case here
+				// A reward inside a quest bundle is reached through its row, above;
+				// it is never separately takeable. Nothing else can appear here — the
+				// loader refuses a grant_xp with no quest op on the same option.
+				continue
 			}
 			// "Things already learned are not shown in that list" — the PO brief
 			// verbatim. Under 3a this was a silent skip mid-walk; it is
@@ -494,6 +541,8 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 
 // applyGrant hands over exactly ONE grant — the row the player clicked, and
 // nothing else (D17: a list is not a walk, so clicking Ignite teaches Ignite).
+// The one exception is a QUEST row, which is one row made of several grants and is
+// applied as a unit; see applyQuestRow.
 //
 // ⚑ Every check is on the row's OWN merits, never on the path taken to reach
 // it: that is precisely what lets the server keep two session fields and no node
@@ -531,10 +580,20 @@ func applyGrant(in *mobs.Interaction, p learner, nodeID string, option, grant in
 		return "", nil, false
 	}
 	g := &opt.Grants[grant]
-	if g.Kind != mobs.GrantTeachSkill {
+	switch {
+	case g.Kind == mobs.GrantTeachSkill:
+		return applyTeach(opt, g, p)
+	case grant == 0 && g.Kind.IsQuestKind():
+		return applyQuestRow(opt, p)
+	default:
+		// A quest row's rewards are reached through the row itself (grant 0), never
+		// addressed directly — and a bare navigation row is not a grant at all.
 		return "", nil, false
 	}
+}
 
+// applyTeach adds one skill to the spellbook: the original kind, unchanged.
+func applyTeach(opt *mobs.InteractionOption, g *mobs.InteractionGrant, p learner) (string, *skills.SkillID, bool) {
 	sc := p.SkillComponent()
 	if sc.HasDiscovered(g.Skill.ID) {
 		// Not presented, so this can only be a stale click or a crafted one.
@@ -550,13 +609,68 @@ func applyGrant(in *mobs.Interaction, p learner, nodeID string, option, grant in
 	return g.Line, &id, true
 }
 
+// applyQuestRow applies a whole quest row: the quest op that leads it, then every
+// reward behind it (§5, PO-ruled).
+//
+// ⚑ The order is the transaction. The ledger op runs FIRST and a refusal abandons
+// the entire row, which is what stops a re-clicked turn-in from paying out twice —
+// the ledger is the only thing that knows the quest has already moved, so nothing
+// may be handed over before it has spoken. This is why the loader forces the quest
+// grant to sit at index 0 rather than merely somewhere in the option.
+//
+// A refusal is silent and ordinary: a stale click from a player whose quest state
+// changed a tick ago looks exactly like this.
+func applyQuestRow(opt *mobs.InteractionOption, p learner) (string, *skills.SkillID, bool) {
+	lead := &opt.Grants[0]
+	ledger := p.QuestLedger()
+	if ledger == nil {
+		return "", nil, false
+	}
+
+	switch lead.Kind {
+	case mobs.GrantOfferQuest:
+		if err := ledger.Accept(lead.Quest); err != nil {
+			return "", nil, false
+		}
+	case mobs.GrantAdvanceQuest:
+		if err := ledger.AdvanceDialogue(lead.Quest, lead.FromStage, lead.ToStage); err != nil {
+			return "", nil, false
+		}
+	default:
+		return "", nil, false
+	}
+
+	// The quest moved, so the rewards are owed. Each is idempotent or additive on
+	// its own, and the ledger op above cannot succeed twice for the same edge.
+	var taught *skills.SkillID
+	for i := 1; i < len(opt.Grants); i++ {
+		g := &opt.Grants[i]
+		switch g.Kind {
+		case mobs.GrantXP:
+			p.AddExperience(g.XP)
+		case mobs.GrantTeachSkill:
+			sc := p.SkillComponent()
+			if sc.HasDiscovered(g.Skill.ID) {
+				continue // already knows it; the quest still advanced
+			}
+			sc.Discover(g.Skill.ID)
+			p.ApplyRecipeCascade()
+			id := g.Skill.ID
+			taught = &id
+		}
+	}
+	// The reply is the QUEST grant's line — the actor's answer to the row, which is
+	// what the panel already spoke from the streamed row (D19/L24).
+	return lead.Line, taught, true
+}
+
 // destinationVisible reports whether an option's `next` names a node this
 // player can see — the rule presentOptions applies when it hides a row, stated
 // once so applyGrant cannot drift from it (N1). presentOptions itself reads the
 // visibility map it already built rather than calling this, which is the same
-// predicate one lookup cheaper; the one case only this form covers is a `next`
-// naming no node at all, which the loader rejects at boot and which therefore
-// fails closed here rather than panicking.
+// predicate one lookup cheaper (L15); the one case only this form covers is a
+// `next` naming no node at all, which the loader rejects at boot and which
+// therefore fails closed here rather than panicking.
 func destinationVisible(in *mobs.Interaction, opt *mobs.InteractionOption, p learner) bool {
 	if opt.Next == "" {
 		return true
@@ -574,22 +688,23 @@ func nodeByID(in *mobs.Interaction, id string) *mobs.InteractionNode {
 	return nil
 }
 
-// selectNode picks the first node every condition of which passes; nil when
-// none does (an actor that has nothing to say to this player right now).
-func selectNode(in *mobs.Interaction, p learner) *mobs.InteractionNode {
-	for i := range in.Nodes {
-		if conditionsPass(in.Nodes[i].Conditions, p) {
-			return &in.Nodes[i]
-		}
-	}
-	return nil
-}
+// ⚑ selectNode is GONE (L15). It picked the first node whose conditions pass —
+// which is exactly the first entry present() puts in its visibility map, so it was
+// a second implementation of one rule that also doubled the condition evaluations
+// on the per-tick present() path. The rule now lives there, once.
 
 func conditionsPass(conditions []mobs.InteractionCondition, p learner) bool {
 	for _, c := range conditions {
 		switch c.Kind {
 		case mobs.ConditionMinLevel:
 			if p.Progression().Level < uint32(c.Value) {
+				return false
+			}
+		case mobs.ConditionQuestAtStage:
+			// One O(1) map read (L15). A nil ledger fails closed with everything
+			// else here — a conversation is not the place to panic, and the
+			// unconditional fallback node still speaks.
+			if !p.QuestLedger().MatchesStage(c.Quest, c.Stage) {
 				return false
 			}
 		default:

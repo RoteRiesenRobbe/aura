@@ -22,6 +22,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -33,18 +34,37 @@ type fakeLearner struct {
 	sc           *skills.SkillComponent
 	level        uint32
 	cascadeCalls int
+	// The quest surface the C2 vocabulary reads and writes. nil is a state a real
+	// player is never in, and the evaluator is pinned to fail closed on it rather
+	// than panic inside a per-tick render path.
+	ledger *quests.Ledger
+	xp     []uint64
 }
 
 func (f *fakeLearner) SkillComponent() *skills.SkillComponent { return f.sc }
 func (f *fakeLearner) Progression() model.PlayerProgression {
 	return model.PlayerProgression{Level: f.level}
 }
-func (f *fakeLearner) ApplyRecipeCascade() { f.cascadeCalls++ }
+func (f *fakeLearner) ApplyRecipeCascade()             { f.cascadeCalls++ }
+func (f *fakeLearner) QuestLedger() *quests.Ledger     { return f.ledger }
+func (f *fakeLearner) AddExperience(experience uint64) { f.xp = append(f.xp, experience) }
 
 var _ learner = (*fakeLearner)(nil)
 
 func newLearner(level uint32) *fakeLearner {
 	return &fakeLearner{sc: skills.NewSkillComponent(true), level: level}
+}
+
+// newQuestLearner is a learner with a real ledger over the given quest content,
+// so the evaluator's quest cases run against the actual ledger ops rather than a
+// stub that cannot refuse anything.
+func newQuestLearner(t *testing.T, level uint32, defs ...*quests.QuestDefinition) *fakeLearner {
+	t.Helper()
+	reg, err := quests.NewRegistry(defs...)
+	require.NoError(t, err)
+	l := newLearner(level)
+	l.ledger = quests.NewLedger(reg)
+	return l
 }
 
 // addPlayerCollider puts a fake player into the space on the real player body
@@ -663,6 +683,308 @@ func TestPresentAndApplyGrant_CannotDisagree(t *testing.T) {
 					"level %d, known %d, row %d (%s): the panel already said this", level, known, i, row.Text)
 				assert.Equal(t, !row.Locked, taught != nil,
 					"level %d, known %d, row %d (%s): locked iff nothing is taught", level, known, i, row.Text)
+			}
+		}
+	}
+}
+
+// --- the quest vocabulary at the evaluator (plan-quests.md C2, §5) ---
+
+const (
+	questID   = "pelts"
+	stageHunt = "hunt"
+	stageTurn = "turn_in"
+	stageDone = "done"
+)
+
+// peltsQuest is the three-stage shape C4 authors: an objective stage, a dialogue
+// stage a turn-in row leaves, and a terminal stage. The edge is registered the way
+// quests.CrossValidate registers it at boot, so `turn_in` waits instead of
+// completing on entry.
+func peltsQuest() *quests.QuestDefinition {
+	q := &quests.QuestDefinition{
+		ID: questID, Title: "Pelts",
+		Stages: []*quests.Stage{
+			{ID: stageHunt, Journal: "Hunt wolves.", Next: stageTurn,
+				Objectives: []quests.Objective{{Kind: quests.ObjectiveKill, Target: 3, Count: 2}}},
+			{ID: stageTurn, Journal: "Bring the pelts back."},
+			{ID: stageDone, Journal: "Done."},
+		},
+	}
+	q.NoteDialogueEdgeFrom(stageTurn)
+	return q
+}
+
+func offerGrant() mobs.InteractionGrant {
+	return mobs.InteractionGrant{Kind: mobs.GrantOfferQuest, Quest: questID, Line: "Then go."}
+}
+
+func advanceGrant() mobs.InteractionGrant {
+	return mobs.InteractionGrant{
+		Kind: mobs.GrantAdvanceQuest, Quest: questID,
+		FromStage: stageTurn, ToStage: stageDone, Line: "You have my thanks.",
+	}
+}
+
+// oneOption wraps grants in the single-option node shape every quest row has.
+func oneOption(text string, grants ...mobs.InteractionGrant) *mobs.Interaction {
+	return &mobs.Interaction{Nodes: []mobs.InteractionNode{{
+		ID: "root", Lines: []string{"Wolves again."},
+		Options: []mobs.InteractionOption{{Text: text, Grants: grants}},
+	}}}
+}
+
+// ⭐ The load-bearing shape decision (§5, PO-ruled): a quest-bearing option is ONE
+// row, not one row per grant the way a flat teaching list is. Otherwise a player
+// could click the reward without advancing the quest.
+func TestPresent_QuestOptionIsOneRow(t *testing.T) {
+	in := oneOption("Here are the pelts.",
+		advanceGrant(),
+		mobs.InteractionGrant{Kind: mobs.GrantXP, XP: 250, Line: "experience"},
+		namedGrant(1, "Torch", 0, "and this"))
+
+	rows := rowsOf(t, present(in, newQuestLearner(t, 1, peltsQuest())), "root")
+
+	require.Len(t, rows, 1, "three grants, ONE row — the option is the atomic unit")
+	assert.Equal(t, "Here are the pelts.", rows[0].Text, "labelled by the authored text, never by a reward")
+	assert.EqualValues(t, 0, rows[0].GrantIndex, "the quest grant leads, so the row addresses index 0")
+	assert.Equal(t, "You have my thanks.", rows[0].Reply, "the quest grant's line is the actor's answer")
+}
+
+// A quest row is NOT hidden by the already-known rule that hides a learned skill:
+// its availability is authored with quest_at_stage conditions, and applyGrant
+// refuses it on its own merits if the ledger disagrees.
+func TestPresent_QuestRowShownRegardlessOfRewardsAlreadyKnown(t *testing.T) {
+	in := oneOption("Here are the pelts.", advanceGrant(), namedGrant(1, "Torch", 0, "and this"))
+	p := newQuestLearner(t, 1, peltsQuest())
+	p.sc.Discover(1) // already knows the reward skill
+
+	rows := rowsOf(t, present(in, p), "root")
+	require.Len(t, rows, 1, "the quest op still needs taking")
+}
+
+func TestApplyGrant_OfferAcceptsTheQuest(t *testing.T) {
+	in := oneOption("I'll help.", offerGrant())
+	p := newQuestLearner(t, 1, peltsQuest())
+
+	reply, taught, ok := applyGrant(in, p, "root", 0, 0)
+
+	require.True(t, ok)
+	assert.Equal(t, "Then go.", reply)
+	assert.Nil(t, taught, "an offer teaches nothing, so no unlock banner fires")
+
+	path, running, completed := p.ledger.Progress(questID)
+	assert.Equal(t, []string{stageHunt}, path)
+	assert.True(t, running)
+	assert.False(t, completed)
+}
+
+// D3's retroactive credit, through the dialogue row rather than the cheat: a
+// veteran who already has the kills completes the objective stage on accept.
+func TestApplyGrant_OfferCascadesRetroactively(t *testing.T) {
+	in := oneOption("I'll help.", offerGrant())
+	p := newQuestLearner(t, 1, peltsQuest())
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+
+	_, _, ok := applyGrant(in, p, "root", 0, 0)
+	require.True(t, ok)
+
+	path, running, _ := p.ledger.Progress(questID)
+	assert.Equal(t, []string{stageHunt, stageTurn}, path, "the objective stage fell through on accept")
+	assert.True(t, running, "and it waits at the dialogue stage rather than completing")
+}
+
+// ⚑ The anti-double-dip guard, and the reason the loader forces the quest grant
+// to lead: the whole option is applied in authored order and abandoned entirely if
+// the quest op is refused.
+func TestApplyGrant_ReClickingAnOfferGrantsNothing(t *testing.T) {
+	in := oneOption("I'll help.", offerGrant(),
+		mobs.InteractionGrant{Kind: mobs.GrantXP, XP: 100, Line: "a little something"})
+	p := newQuestLearner(t, 1, peltsQuest())
+
+	_, _, ok := applyGrant(in, p, "root", 0, 0)
+	require.True(t, ok)
+	require.Equal(t, []uint64{100}, p.xp)
+
+	_, _, ok = applyGrant(in, p, "root", 0, 0)
+
+	assert.False(t, ok, "the quest is already running, so the row is refused outright")
+	assert.Equal(t, []uint64{100}, p.xp, "and the reward is NOT paid a second time")
+}
+
+// The turn-in: one click advances the quest AND hands over every reward on the row.
+func TestApplyGrant_TurnInAdvancesAndPaysOut(t *testing.T) {
+	in := oneOption("Here are the pelts.",
+		advanceGrant(),
+		mobs.InteractionGrant{Kind: mobs.GrantXP, XP: 250, Line: "experience"},
+		namedGrant(7, "Torch", 0, "and this"))
+	p := newQuestLearner(t, 1, peltsQuest())
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3) // now waiting at turn_in
+
+	reply, taught, ok := applyGrant(in, p, "root", 0, 0)
+
+	require.True(t, ok)
+	assert.Equal(t, "You have my thanks.", reply)
+	require.NotNil(t, taught, "the reward skill still reports for its unlock banner")
+	assert.EqualValues(t, 7, *taught)
+
+	_, running, completed := p.ledger.Progress(questID)
+	assert.False(t, running)
+	assert.True(t, completed, "the edge lands on a terminal stage")
+	assert.Equal(t, []uint64{250}, p.xp)
+	assert.True(t, p.sc.HasDiscovered(7))
+	assert.Equal(t, 1, p.cascadeCalls, "and the recipe cascade ran for the taught skill")
+}
+
+// The transaction, from the other side: a turn-in taken at the wrong time pays
+// out NOTHING, not "everything except the advance".
+func TestApplyGrant_TurnInAtTheWrongStageGrantsNothing(t *testing.T) {
+	in := oneOption("Here are the pelts.",
+		advanceGrant(),
+		mobs.InteractionGrant{Kind: mobs.GrantXP, XP: 250, Line: "experience"},
+		namedGrant(7, "Torch", 0, "and this"))
+	p := newQuestLearner(t, 1, peltsQuest())
+	require.NoError(t, p.ledger.Accept(questID)) // still on `hunt`, no kills
+
+	_, taught, ok := applyGrant(in, p, "root", 0, 0)
+
+	assert.False(t, ok)
+	assert.Nil(t, taught)
+	assert.Empty(t, p.xp, "no XP")
+	assert.False(t, p.sc.HasDiscovered(7), "no skill")
+	assert.Zero(t, p.cascadeCalls)
+}
+
+// A quest grant addressed at a non-zero index is a crafted message: the loader
+// guarantees the quest grant leads, so only index 0 can ever be presented.
+func TestApplyGrant_RefusesAQuestGrantAddressedByARewardIndex(t *testing.T) {
+	in := oneOption("Here are the pelts.",
+		advanceGrant(),
+		mobs.InteractionGrant{Kind: mobs.GrantXP, XP: 250, Line: "experience"})
+	p := newQuestLearner(t, 1, peltsQuest())
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+
+	_, _, ok := applyGrant(in, p, "root", 0, 1) // the XP grant, addressed directly
+
+	assert.False(t, ok, "a reward inside a bundle is not separately takeable")
+	assert.Empty(t, p.xp)
+}
+
+// A ledger-less learner must not panic the evaluator; refusing is the safe answer.
+func TestApplyGrant_QuestRowWithoutALedgerIsRefused(t *testing.T) {
+	in := oneOption("I'll help.", offerGrant())
+
+	_, _, ok := applyGrant(in, newLearner(1), "root", 0, 0)
+	assert.False(t, ok)
+}
+
+// --- quest_at_stage node gating ---
+
+// questGatedInteraction is the authoring shape D11/L3 produce: conditional nodes
+// first, the unconditional greeting last.
+func questGatedInteraction() *mobs.Interaction {
+	return &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{
+			ID:         "turn_in_node",
+			Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: stageTurn}},
+			Lines:      []string{"You have them?"},
+			Options:    []mobs.InteractionOption{{Text: "Here are the pelts.", Grants: []mobs.InteractionGrant{advanceGrant()}}},
+		},
+		{
+			ID:         "thanks_node",
+			Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: mobs.QuestStageCompleted}},
+			Lines:      []string{"The road is safer for it."},
+		},
+		{
+			ID:         "offer_node",
+			Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionQuestAtStage, Quest: questID, Stage: mobs.QuestStageNotStarted}},
+			Lines:      []string{"Wolves have taken the road."},
+			Options:    []mobs.InteractionOption{{Text: "I'll help.", Grants: []mobs.InteractionGrant{offerGrant()}}},
+		},
+		{ID: "root", Lines: []string{"Mind the road."}},
+	}}
+}
+
+// ⭐ The whole point of the condition: one NPC, four things to say, chosen by
+// where the player stands in the quest. This is what makes an offer disappear once
+// taken and a turn-in appear only when earned.
+func TestPresent_QuestStageSelectsTheGreeting(t *testing.T) {
+	in := questGatedInteraction()
+
+	p := newQuestLearner(t, 1, peltsQuest())
+	assert.Equal(t, "offer_node", present(in, p).EntryNode, "not started → the offer")
+
+	require.NoError(t, p.ledger.Accept(questID))
+	assert.Equal(t, "root", present(in, p).EntryNode,
+		"running but mid-objective → neither the offer nor the turn-in, so the fallback")
+
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	assert.Equal(t, "turn_in_node", present(in, p).EntryNode, "objective met → the turn-in")
+
+	_, _, ok := applyGrant(in, p, "turn_in_node", 0, 0)
+	require.True(t, ok)
+	assert.Equal(t, "thanks_node", present(in, p).EntryNode, "completed → the epilogue")
+}
+
+// The offer row is not merely deprioritised once the quest is running — its node
+// is gone, and with it the row.
+func TestPresent_OfferNodeVanishesOnceRunning(t *testing.T) {
+	in := questGatedInteraction()
+	p := newQuestLearner(t, 1, peltsQuest())
+	require.NoError(t, p.ledger.Accept(questID))
+
+	assert.NotContains(t, nodeIDs(present(in, p)), "offer_node")
+}
+
+// A quest condition with no ledger fails closed, like every unknown condition.
+func TestConditionsPass_QuestConditionWithoutALedgerFailsClosed(t *testing.T) {
+	in := questGatedInteraction()
+	c := present(in, newLearner(1))
+
+	require.NotNil(t, c, "the unconditional fallback still speaks")
+	assert.Equal(t, "root", c.EntryNode)
+	assert.Equal(t, []string{"root"}, nodeIDs(c), "every quest-gated node is hidden")
+}
+
+// The converse direction (C0's rule) over the quest vocabulary: nothing the
+// ledger refuses may be reachable through a presented row.
+func TestPresentAndApplyGrant_CannotDisagreeOnQuestRows(t *testing.T) {
+	states := []func(p *fakeLearner){
+		func(p *fakeLearner) {},
+		func(p *fakeLearner) { _ = p.ledger.Accept(questID) },
+		func(p *fakeLearner) {
+			_ = p.ledger.Accept(questID)
+			p.ledger.NoteKill(3)
+			p.ledger.NoteKill(3)
+		},
+		func(p *fakeLearner) {
+			_ = p.ledger.Accept(questID)
+			p.ledger.NoteKill(3)
+			p.ledger.NoteKill(3)
+			_ = p.ledger.AdvanceDialogue(questID, stageTurn, stageDone)
+		},
+	}
+
+	for i, setup := range states {
+		in := questGatedInteraction()
+		seen := newQuestLearner(t, 1, peltsQuest())
+		setup(seen)
+
+		for _, node := range present(in, seen).Nodes {
+			for _, row := range node.Options {
+				taker := newQuestLearner(t, 1, peltsQuest())
+				setup(taker)
+
+				reply, _, ok := applyGrant(questGatedInteraction(), taker, node.ID, int(row.OptionIndex), int(row.GrantIndex))
+
+				assert.True(t, ok, "state %d: presented row %q on node %q was refused", i, row.Text, node.ID)
+				assert.Equal(t, row.Reply, reply, "state %d: the panel already said this", i)
 			}
 		}
 	}
