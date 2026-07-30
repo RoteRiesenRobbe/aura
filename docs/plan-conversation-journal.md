@@ -1,6 +1,6 @@
 # Plan: the conversation & journal pass — what the quest pass surfaced
 
-**Status: Q1 ✅ DONE 2026-07-30 `d23670d7` (ledger §6) · Q2–Q4 open, Q2 next.**
+**Status: Q1 ✅ DONE 2026-07-30 `d23670d7` · Q2 ✅ DONE 2026-07-30 `1dfb57d8` (ledgers §6) · Q3–Q4 open, Q3 next.**
 Planned 2026-07-30 (docs only). Origin: the PO's in-game walk of quest chunk C4
 the same day — *"this works very well and can be read as quests and understood.
 No major bugs, but some issues and change requests."* Thirteen items, every one
@@ -381,11 +381,58 @@ empty on locked rows; only its `server.fbs` comment moved).
   harmless** — Q4 decides per conversant whether the greeting should still
   change (node conditions) or the row alone should vanish (now free).
 
+### Q2 — objective tracking ✅ DONE 2026-07-30, committed `1dfb57d8`
+
+R2 shipped end to end, with three PO rulings taken at chunk start: **current
+stage only** (§7.1 closed — a completed quest carries no line, its diary is the
+record) · the authored `tracker` override keeps its count via **`{n}/{m}`
+placeholders** substituted live from the stage's first countable objective ·
+**mechanism only** — Q4 authors the trackers, so until then a quest resting on
+a dialogue stage shows no line at all.
+
+- **Wire:** `objectives:[string]` appended **after** `completed` exactly as
+  §4.4 demanded (the schema comment now says why); both binding sets
+  regenerated with only `QuestProgress` moving; marshal + round-trip test
+  extended. The §4.4 hand-unmarshal warning held: `unmarshalQuestProgress`
+  (`GameStateMessage.ts`) and the `QuestProgress` interface
+  (`JournalModel.ts`) got the same edit, and the panel renders the lines
+  verbatim (`.journalObjective`, upright against the italic diary prose).
+- **Composition:** `Stage.Tracker` + `Objective.TargetName` — the display name
+  resolved at **load** via `skills.DeriveDisplayName` (§35 C3's one
+  display-name path), so composing never touches the mob registry. Derived:
+  `kill` → `"3/8 Wolf slain"`, `harvest` → `"…harvested"`, `talk_to` →
+  `"Talk to the Farmer"` ✓-marked once satisfied; counts are
+  `min(lifetime, needed)` because lifetime counters keep climbing while a
+  sibling objective holds the stage (D3). The loader rejects `{n}/{m}` on a
+  stage with nothing to count.
+- **⚑ The L4 cache held the pen:** lines live on `Progress`, recomputed only
+  in `enter()` / `recheck()` (i.e. at accept/advance and at the credit
+  events) and cleared on abandon/completion — `Snapshot()` copies the slice
+  header and never composes, pinned by
+  `TestObjectiveLines_SnapshotDoesNotRecompose` asserting two snapshots share
+  one backing array.
+- **Verified:** full Go suite + vet · guardrails + alloc `-count=2` ·
+  79 vitest + typecheck + prod build · boot embedded AND `-content ../api`
+  identical (86 skills/15 factions/64 mobs/10 recipes/1 milestone/4 quests/
+  777 props/485 spawns/5 campfires, 0 errors 0 warnings) ·
+  `chunkC3-journal` rewritten *with* the chunk (L2): the probe-quest legs
+  assert the composed `"Talk to the Emberkeeper"` line and its absence on
+  completion, and a new half C rides the shipped wolves quest — **21/21 on a
+  fresh server incl. the ⭐ real-kill leg (`0/8 Wolf slain` → `1/8 Wolf
+  slain`)** · `hygiene-wire-prune` clean after the field append (637 sprites
+  decoded, 0 errors). ⚑ One harness run hit the known §29 WebGL context loss
+  and was discarded per the standing rule; fresh-server re-runs were clean,
+  three times over.
+- **Knock-on for Q4:** the five non-terminal dialogue stages (village-welcome
+  `back`, turnip `handover`, wolves `carry_word`, lamp `ask_miner` +
+  `bring_it_back`) are the ones whose journals stay line-less until Q4 authors
+  their trackers — pure content now, the loader guard is already live.
+
 ## 7. Open questions
 
-1. **Does the objective line show for completed stages too**, or only the
-   current one? (Recommendation: current only — a completed stage's diary entry
-   is already the record of it.)
+1. ✅ **RULED with Q2 (2026-07-30): current stage only** — a completed stage's
+   diary entry is already the record of it, and a completed quest carries no
+   objective line at all.
 2. **Should the two-pane journal remember its selection across open/close**, or
    always land on the first running quest?
 3. **Does the simplified lamp quest keep the Miner in the middle?** R3's lore
