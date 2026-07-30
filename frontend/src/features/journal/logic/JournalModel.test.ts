@@ -22,8 +22,8 @@ function catalogOf(state: JournalCatalogState = 'ready'): JournalCatalog {
     };
 }
 
-const cullRunning: QuestProgress = {questId: 'wolf-cull', stages: ['cull'], completed: false};
-const cullDone: QuestProgress = {questId: 'wolf-cull', stages: ['cull', 'report'], completed: true};
+const cullRunning: QuestProgress = {questId: 'wolf-cull', stages: ['cull'], completed: false, objectives: ['0/3 Wolf slain']};
+const cullDone: QuestProgress = {questId: 'wolf-cull', stages: ['cull', 'report'], completed: true, objectives: []};
 
 describe('JournalModel', () => {
     it('is empty before any snapshot', () => {
@@ -43,7 +43,18 @@ describe('JournalModel', () => {
             questId: 'wolf-cull',
             title: 'The Wolf Cull',
             entries: ['Old Miller says the pack has taken three lambs.'],
+            objectives: ['0/3 Wolf slain'],
         }]);
+    });
+
+    // Q2 (R2): the server composes the line, the client renders it verbatim —
+    // the model passes it through untouched, no words of its own.
+    it('passes the server-composed objective lines through verbatim', () => {
+        const model = new JournalModel(catalogOf());
+        model.update([{questId: 'wolf-cull', stages: ['cull'], completed: false,
+            objectives: ['2/3 Wolf slain', 'Talk to the Farmer ✓']}]);
+
+        expect(model.view().running[0].objectives).toEqual(['2/3 Wolf slain', 'Talk to the Farmer ✓']);
     });
 
     // L6: the walked path is ordered, and the diary reads in that order.
@@ -59,7 +70,7 @@ describe('JournalModel', () => {
 
     it('splits running from completed (D7)', () => {
         const model = new JournalModel(catalogOf());
-        model.update([{questId: 'choice', stages: ['choose'], completed: false}, cullDone]);
+        model.update([{questId: 'choice', stages: ['choose'], completed: false, objectives: []}, cullDone]);
 
         const view = model.view();
         expect(view.running.map(q => q.questId)).toEqual(['choice']);
@@ -91,9 +102,9 @@ describe('JournalModel', () => {
 
     it('keeps an unknown quest visible under its id, and skips prose it has no words for', () => {
         const model = new JournalModel(catalogOf());
-        model.update([{questId: 'ghost-quest', stages: ['gone'], completed: false}]);
+        model.update([{questId: 'ghost-quest', stages: ['gone'], completed: false, objectives: []}]);
 
-        expect(model.view().running).toEqual([{questId: 'ghost-quest', title: 'ghost-quest', entries: []}]);
+        expect(model.view().running).toEqual([{questId: 'ghost-quest', title: 'ghost-quest', entries: [], objectives: []}]);
     });
 
     // The panel diffs on a signature of the view, which is only sound if an
@@ -105,7 +116,7 @@ describe('JournalModel', () => {
         model.update([cullRunning]);
         const first = JSON.stringify(model.view());
 
-        model.update([{questId: 'wolf-cull', stages: ['cull'], completed: false}]);
+        model.update([{questId: 'wolf-cull', stages: ['cull'], completed: false, objectives: ['0/3 Wolf slain']}]);
         expect(JSON.stringify(model.view())).toBe(first);
     });
 });

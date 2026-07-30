@@ -18,7 +18,7 @@ func cullQuest() *QuestDefinition {
 	return &QuestDefinition{
 		ID: "wolf-cull", Title: "The Wolf Cull",
 		Stages: []*Stage{
-			{ID: "cull", Journal: "Kill wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, Count: 3}}, Next: "report"},
+			{ID: "cull", Journal: "Kill wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 3}}, Next: "report"},
 			{ID: "report", Journal: "Report back."},
 		},
 	}
@@ -435,6 +435,140 @@ func TestNotifier_AbandonIsSilent(t *testing.T) {
 func TestNotifier_UnsetIsHarmless(t *testing.T) {
 	l := testLedger(t, cullQuest())
 	assert.NotPanics(t, func() { require.NoError(t, l.Accept("wolf-cull")) })
+}
+
+// --- objective lines (plan-conversation-journal.md Q2, R2) ---
+//
+// The server sends the finished line; the client renders it verbatim. Composed
+// event-driven and CACHED on the progress entry (L4) — Snapshot only copies.
+
+const turnip = mobs.MobID(9)
+
+func TestObjectiveLines_KillDerived(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
+
+	got := l.Snapshot()
+	require.Len(t, got, 1)
+	assert.Equal(t, []string{"0/3 Wolf slain"}, got[0].Objectives)
+
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+	assert.Equal(t, []string{"2/3 Wolf slain"}, l.Snapshot()[0].Objectives)
+
+	// Completion (the §7.1 ruling: current stage only): a finished quest's
+	// diary is its record — it carries no objective line at all.
+	l.NoteKill(wolf)
+	got = l.Snapshot()
+	require.True(t, got[0].Completed)
+	assert.Empty(t, got[0].Objectives)
+}
+
+// A multi-objective stage gets one line per objective, in authored order; a
+// satisfied talk_to is ✓-marked, and a counter that keeps climbing while a
+// sibling objective holds the stage is capped at its threshold.
+func TestObjectiveLines_HarvestAndTalkTo(t *testing.T) {
+	l := testLedger(t, &QuestDefinition{
+		ID: "chore", Title: "The Chore",
+		Stages: []*Stage{
+			{ID: "work", Journal: "Work.", Objectives: []Objective{
+				{Kind: ObjectiveHarvest, Target: turnip, TargetName: "Turnip", Count: 2},
+				{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1},
+			}, Next: "done"},
+			{ID: "done", Journal: "Done."},
+		},
+	})
+	require.NoError(t, l.Accept("chore"))
+	assert.Equal(t, []string{"0/2 Turnip harvested", "Talk to the Farmer"}, l.Snapshot()[0].Objectives)
+
+	// Three pulled while the farmer waits: lifetime counters keep climbing
+	// (D3), the display does not.
+	l.NoteKill(turnip)
+	l.NoteKill(turnip)
+	l.NoteKill(turnip)
+	assert.Equal(t, []string{"2/2 Turnip harvested", "Talk to the Farmer"}, l.Snapshot()[0].Objectives)
+
+	l.NoteTalkedTo(farmer)
+	assert.True(t, l.Snapshot()[0].Completed)
+}
+
+func TestObjectiveLines_TalkToCheckmark(t *testing.T) {
+	crier := mobs.MobID(62)
+	l := testLedger(t, &QuestDefinition{
+		ID: "meet", Title: "Meet",
+		Stages: []*Stage{
+			{ID: "go", Journal: "Go.", Objectives: []Objective{
+				{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1},
+				{Kind: ObjectiveTalkTo, Target: crier, TargetName: "Town Crier", Count: 1},
+			}, Next: "back"},
+			{ID: "back", Journal: "Back."},
+		},
+	})
+	require.NoError(t, l.Accept("meet"))
+
+	l.NoteTalkedTo(farmer)
+	assert.Equal(t, []string{"Talk to the Farmer ✓", "Talk to the Town Crier"},
+		l.Snapshot()[0].Objectives, "one done, one open — the stage holds and says which is which")
+}
+
+// The authored override (Q2 ruling: {n}/{m} placeholders): tracker wins over
+// the derived lines, and the placeholders keep the count live — substituted
+// from the stage's first countable objective.
+func TestObjectiveLines_TrackerOverride(t *testing.T) {
+	q := cullQuest()
+	q.Stages[0].Tracker = "Wolves thinned: {n}/{m}"
+	l := testLedger(t, q)
+	require.NoError(t, l.Accept("wolf-cull"))
+
+	assert.Equal(t, []string{"Wolves thinned: 0/3"}, l.Snapshot()[0].Objectives)
+
+	l.NoteKill(wolf)
+	assert.Equal(t, []string{"Wolves thinned: 1/3"}, l.Snapshot()[0].Objectives)
+}
+
+// A dialogue stage has nothing derivable — its line exists iff authored. This
+// is what Q4's "Return to the crier" trackers will ride.
+func TestObjectiveLines_DialogueStage(t *testing.T) {
+	plain := testLedger(t, branchQuest())
+	require.NoError(t, plain.Accept("choice"))
+	assert.Empty(t, plain.Snapshot()[0].Objectives, "no tracker → no line")
+
+	q := branchQuest()
+	q.Stages[0].Tracker = "Pick a side."
+	tracked := testLedger(t, q)
+	require.NoError(t, tracked.Accept("choice"))
+	assert.Equal(t, []string{"Pick a side."}, tracked.Snapshot()[0].Objectives)
+}
+
+// The line moves when the quest moves: entering the next stage recomposes.
+func TestObjectiveLines_FollowTheCurrentStage(t *testing.T) {
+	l := testLedger(t, &QuestDefinition{
+		ID: "two-step", Title: "Two Steps",
+		Stages: []*Stage{
+			{ID: "first", Journal: "j", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 1}}, Next: "second"},
+			{ID: "second", Journal: "j", Objectives: []Objective{{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1}}, Next: "end"},
+			{ID: "end", Journal: "j"},
+		},
+	})
+	require.NoError(t, l.Accept("two-step"))
+	assert.Equal(t, []string{"0/1 Wolf slain"}, l.Snapshot()[0].Objectives)
+
+	l.NoteKill(wolf)
+	assert.Equal(t, []string{"Talk to the Farmer"}, l.Snapshot()[0].Objectives,
+		"the satisfied stage fell through; the line is the NEW current stage's")
+}
+
+// ⚑ L4: composition is event-driven, never per tick. Two snapshots with no
+// event in between must hand out the SAME cached strings — recomposing in
+// Snapshot would be a per-tick allocation on every questing player.
+func TestObjectiveLines_SnapshotDoesNotRecompose(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
+
+	first := l.Snapshot()[0].Objectives
+	second := l.Snapshot()[0].Objectives
+	require.NotEmpty(t, first)
+	assert.Same(t, &first[0], &second[0], "same backing array: Snapshot copies the slice header, it does not compose")
 }
 
 // --- CanApply: the quest-row show-rule (plan-conversation-journal.md Q1 §4.1 ②) ---

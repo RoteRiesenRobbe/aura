@@ -351,11 +351,29 @@ func QuestProgressMarshalFlatbuf(entries []quests.ProgressEntry, builder *flatbu
 		}
 		stages := builder.EndVector(len(stageOffsets))
 
+		// The current stage's composed objective lines (Q2, R2) — one string
+		// per objective, same reversal rule. Absent for completed quests.
+		var objectives flatbuffers.UOffsetT
+		if len(e.Objectives) > 0 {
+			objectiveOffsets := make([]flatbuffers.UOffsetT, 0, len(e.Objectives))
+			for _, line := range e.Objectives {
+				objectiveOffsets = append(objectiveOffsets, builder.CreateString(line))
+			}
+			AuraApi.QuestProgressStartObjectivesVector(builder, len(objectiveOffsets))
+			for k := len(objectiveOffsets) - 1; k >= 0; k-- {
+				builder.PrependUOffsetT(objectiveOffsets[k])
+			}
+			objectives = builder.EndVector(len(objectiveOffsets))
+		}
+
 		questID := builder.CreateString(e.QuestID)
 		AuraApi.QuestProgressStart(builder)
 		AuraApi.QuestProgressAddQuestId(builder, questID)
 		AuraApi.QuestProgressAddStages(builder, stages)
 		AuraApi.QuestProgressAddCompleted(builder, e.Completed)
+		if objectives != 0 {
+			AuraApi.QuestProgressAddObjectives(builder, objectives)
+		}
 		offsets = append(offsets, AuraApi.QuestProgressEnd(builder))
 	}
 

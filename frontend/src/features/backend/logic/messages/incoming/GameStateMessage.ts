@@ -147,12 +147,20 @@ function unmarshalQuestProgress(gameState: AuraApi.GameState): QuestProgress[] {
             stages.push(e.stages(j));
         }
 
+        // The current stage's server-composed objective lines (Q2) — verbatim,
+        // absent (= empty) on completed quests.
+        const objectives: string[] = [];
+        for (let j = 0; j < e.objectivesLength(); ++j) {
+            objectives.push(e.objectives(j));
+        }
+
         entries.push({
             questId: e.questId() ?? '',
             // ⚑ ORDERED: the walked path, oldest stage first (L6). The journal
             // renders the diary in this order, so it is data, not a set.
             stages,
             completed: e.completed(),
+            objectives,
         });
     }
     return entries;

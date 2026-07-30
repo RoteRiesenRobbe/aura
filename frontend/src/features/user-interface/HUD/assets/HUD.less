@@ -1289,12 +1289,22 @@
 		}
 
 		// Diary prose: the only thing a journal entry ever is (D7) — never a
-		// checklist, never a counter.
+		// checklist, never a counter. The counter lives in .journalObjective
+		// below, a separate element beside the diary (Q2).
 		.journalEntry {
 			margin: 0.4rem 0 0 1.5rem;
 			font-size: @panel-title-size;
 			font-style: italic;
 			color: @panel-color;
+		}
+
+		// The current stage's server-composed objective line ("3/8 Wolf
+		// slain") — upright and brighter, so it reads as the live tracker
+		// against the italic diary prose above it.
+		.journalObjective {
+			margin: 0.4rem 0 0 1.5rem;
+			font-size: @panel-title-size;
+			color: white;
 		}
 
 		.journalAbandon {

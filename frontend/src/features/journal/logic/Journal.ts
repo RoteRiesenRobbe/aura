@@ -148,6 +148,15 @@ function renderSection(section: HTMLElement, quests: JournalQuestView[], running
             li.appendChild(p);
         }
 
+        // The current stage's objective lines (Q2) — server-composed, rendered
+        // verbatim under the diary. Completed quests arrive with none.
+        for (const objective of quest.objectives) {
+            const p = document.createElement('p');
+            p.className = 'journalObjective';
+            p.textContent = objective;
+            li.appendChild(p);
+        }
+
         // Only a running quest can be given up — a completed one is sealed
         // forever (D13), so it gets no row to click.
         if (running) {

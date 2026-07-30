@@ -3,6 +3,7 @@ package quests
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
@@ -14,10 +15,16 @@ import (
 // the quest has ever been completed. Completed never unsets (D13: a sealed
 // branch is forever); a repeatable re-accept starts a fresh path with the flag
 // still standing.
+//
+// Objectives is the CURRENT stage's composed objective lines (Q2/R2 — "3/8
+// Wolf slain"), cached here and recomputed only when a counter or the stage
+// moves (L4): Snapshot copies the slice header per tick, it never composes.
+// Nil while the quest is not running — a completed quest's diary is its record.
 type Progress struct {
-	Path      []string
-	Running   bool
-	Completed bool
+	Path       []string
+	Running    bool
+	Completed  bool
+	Objectives []string
 }
 
 // Ledger is a character's lifetime quest state (D3/D5): per-species kill
@@ -137,11 +144,15 @@ func (l *Ledger) MatchesStage(questID, want string) bool {
 
 // ProgressEntry is one quest as the wire carries it (chunk C3, §6): its id, the
 // ordered stages this character entered, and whether it is finished. Ids only —
-// the titles and diary prose live in the /quests catalog (D14).
+// the titles and diary prose live in the /quests catalog (D14) — plus the
+// CURRENT stage's composed objective lines (Q2/R2), which are per-player state
+// and deliberately NOT on the catalog: serving thresholds for unreached stages
+// would reverse D14 (L5).
 type ProgressEntry struct {
-	QuestID   string
-	Path      []string
-	Completed bool
+	QuestID    string
+	Path       []string
+	Completed  bool
+	Objectives []string
 }
 
 // Snapshot projects every running and completed quest for the per-tick
@@ -166,7 +177,7 @@ func (l *Ledger) Snapshot() []ProgressEntry {
 		if !p.Running && !p.Completed {
 			continue
 		}
-		entries = append(entries, ProgressEntry{QuestID: id, Path: p.Path, Completed: p.Completed})
+		entries = append(entries, ProgressEntry{QuestID: id, Path: p.Path, Completed: p.Completed, Objectives: p.Objectives})
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].QuestID < entries[j].QuestID })
 	return entries
@@ -220,6 +231,7 @@ func (l *Ledger) Abandon(questID string) error {
 	}
 	p.Running = false
 	p.Path = nil
+	p.Objectives = nil
 	return nil
 }
 
@@ -324,6 +336,13 @@ func (l *Ledger) enter(q *QuestDefinition, p *Progress, s *Stage) {
 		}
 		s = q.Stage(s.Next)
 	}
+	// The objective line follows the stage the quest came to rest on (Q2);
+	// a completed quest carries none — its diary is the record (§7.1 ruling).
+	if p.Running {
+		p.Objectives = l.objectiveLines(s)
+	} else {
+		p.Objectives = nil
+	}
 	if l.notify != nil {
 		l.notify(Notice{QuestID: q.ID, Title: q.Title, StageID: s.ID, Completed: p.Completed})
 	}
@@ -345,11 +364,57 @@ func (l *Ledger) recheck() {
 			continue // defensive: content changed under a live ledger
 		}
 		s := q.Stage(p.Path[len(p.Path)-1])
-		if len(s.Objectives) == 0 || !l.satisfied(s) {
+		if len(s.Objectives) == 0 {
+			continue // a dialogue stage: no counter can move it, or its line
+		}
+		if !l.satisfied(s) {
+			// The stage holds, but a counter moved — the "3/8" must move with
+			// it (Q2). Event-driven: this is a credit event, never a tick.
+			p.Objectives = l.objectiveLines(s)
 			continue
 		}
 		l.enter(q, p, q.Stage(s.Next))
 	}
+}
+
+// objectiveLines composes the current stage's journal lines (Q2/R2): the
+// server sends the finished sentence, the client renders it verbatim. An
+// authored Tracker wins outright, with {n}/{m} substituted live; otherwise one
+// line per objective is derived from its load-resolved display name. The
+// count shown is capped at the threshold — lifetime counters keep climbing
+// while a sibling objective holds the stage (D3), the display must not.
+//
+// ⚑ Never called per tick (L4): callers cache the result on Progress and
+// recompute only at credit events and stage entries.
+func (l *Ledger) objectiveLines(s *Stage) []string {
+	if s.Tracker != "" {
+		line := s.Tracker
+		if o := firstCountable(s); o != nil {
+			line = strings.ReplaceAll(line, "{n}", strconv.FormatUint(min(l.killCounts[o.Target], o.Count), 10))
+			line = strings.ReplaceAll(line, "{m}", strconv.FormatUint(o.Count, 10))
+		}
+		return []string{line}
+	}
+	if len(s.Objectives) == 0 {
+		return nil // a dialogue stage without a tracker has nothing derivable
+	}
+	lines := make([]string, 0, len(s.Objectives))
+	for i := range s.Objectives {
+		o := &s.Objectives[i]
+		switch o.Kind {
+		case ObjectiveTalkTo:
+			line := "Talk to the " + o.TargetName
+			if l.talkedTo[o.Target] {
+				line += " ✓"
+			}
+			lines = append(lines, line)
+		case ObjectiveHarvest:
+			lines = append(lines, fmt.Sprintf("%d/%d %s harvested", min(l.killCounts[o.Target], o.Count), o.Count, o.TargetName))
+		default:
+			lines = append(lines, fmt.Sprintf("%d/%d %s slain", min(l.killCounts[o.Target], o.Count), o.Count, o.TargetName))
+		}
+	}
+	return lines
 }
 
 // satisfied checks an objective stage against the lifetime state (D3:

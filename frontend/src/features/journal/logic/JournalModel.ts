@@ -19,6 +19,12 @@ export interface QuestProgress {
     /** The stages entered, oldest first — the walked path, not a position. */
     stages: string[];
     completed: boolean;
+    /**
+     * The CURRENT stage's objective lines, composed by the server and rendered
+     * verbatim (Q2, R2): "3/8 Wolf slain", "Talk to the Farmer ✓". Empty for
+     * completed quests — the diary is their record.
+     */
+    objectives: string[];
 }
 
 export type JournalCatalogState = 'loading' | 'ready' | 'unavailable';
@@ -35,6 +41,8 @@ export interface JournalQuestView {
     title: string;
     /** The diary of the stages walked, in order. */
     entries: string[];
+    /** The current stage's server-composed objective lines, verbatim (Q2). */
+    objectives: string[];
 }
 
 export interface JournalView {
@@ -86,7 +94,9 @@ export class JournalModel {
             }
         }
         // The id as a last-resort title keeps an unknown quest visible — and
-        // abandonable — instead of silently vanishing from the panel.
-        return {questId: p.questId, title: this.catalog.title(p.questId) ?? p.questId, entries};
+        // abandonable — instead of silently vanishing from the panel. The
+        // objective lines pass through verbatim: the server composed them (R2),
+        // this model adds no words of its own.
+        return {questId: p.questId, title: this.catalog.title(p.questId) ?? p.questId, entries, objectives: p.objectives};
     }
 }

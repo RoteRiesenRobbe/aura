@@ -28,7 +28,7 @@ func (f *fakeMobs) GetByName(name string) (*mobs.MobDefinition, error) {
 
 func testMobs() *fakeMobs {
 	return &fakeMobs{
-		byName: map[string]mobs.MobID{"Wolf": 3, "Bramble": 7, "Farmer": 40, "Rabbit": 61},
+		byName: map[string]mobs.MobID{"Wolf": 3, "Bramble": 7, "Farmer": 40, "Rabbit": 61, "TownCrier": 62},
 		// 10 defs are legacy: true — proving-grounds content the live world never
 		// spawns (L12).
 		legacy: map[string]bool{"Rabbit": true},
@@ -88,6 +88,33 @@ func TestLoad_TalkToResolvesNPC(t *testing.T) {
 	assert.Equal(t, uint64(1), o.Count, "talk_to defaults to count 1")
 }
 
+// Q2: the objective line's display name is resolved at LOAD, through the one
+// display-name path (§35 C3: skills.DeriveDisplayName, the same rule /mobs
+// serves) — composition never touches the mob registry at runtime.
+func TestLoad_ObjectiveTargetDisplayName(t *testing.T) {
+	r := loadOne(t, `{"id": "q", "title": "Q", "stages": [
+		{"id": "s", "journal": "j", "objectives": [{"kind": "talk_to", "npc": "TownCrier"}], "next": "t"},
+		{"id": "t", "journal": "done"}
+	]}`)
+	q, err := r.Get("q")
+	require.NoError(t, err)
+	assert.Equal(t, "Town Crier", q.Stages[0].Objectives[0].TargetName)
+}
+
+// Q2: the authored tracker override rides any stage — an objective stage to
+// fix wording the deriver gets wrong, a dialogue stage because it has nothing
+// derivable at all.
+func TestLoad_TrackerRoundTrips(t *testing.T) {
+	r := loadOne(t, `{"id": "q", "title": "Q", "stages": [
+		{"id": "s", "journal": "j", "tracker": "Wolves thinned: {n}/{m}", "objectives": [{"kind": "kill", "species": "Wolf", "count": 3}], "next": "t"},
+		{"id": "t", "journal": "done", "tracker": "Report back to nobody in particular."}
+	]}`)
+	q, err := r.Get("q")
+	require.NoError(t, err)
+	assert.Equal(t, "Wolves thinned: {n}/{m}", q.Stages[0].Tracker)
+	assert.Equal(t, "Report back to nobody in particular.", q.Stages[1].Tracker)
+}
+
 func loadErr(t *testing.T, quest string) error {
 	t.Helper()
 	_, err := RegistryFromFS(fstest.MapFS{"q.json": &fstest.MapFile{Data: []byte(quest)}}, testMobs())
@@ -131,6 +158,13 @@ func TestLoad_Rejections(t *testing.T) {
 			{"id": "t", "journal": "done"}]}`,
 		"legacy npc as a talk_to target": `{"id": "q", "title": "Q", "stages": [
 			{"id": "s", "journal": "j", "objectives": [{"kind": "talk_to", "npc": "Rabbit"}], "next": "t"},
+			{"id": "t", "journal": "done"}]}`,
+		// Q2: {n}/{m} substitute from a countable (kill/harvest) objective; on a
+		// stage without one they would render literally forever.
+		"count placeholder on a dialogue stage": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "tracker": "Kill {n} of {m} things"}]}`,
+		"count placeholder on a talk_to-only stage": `{"id": "q", "title": "Q", "stages": [
+			{"id": "s", "journal": "j", "tracker": "{n}/{m} met", "objectives": [{"kind": "talk_to", "npc": "Farmer"}], "next": "t"},
 			{"id": "t", "journal": "done"}]}`,
 	}
 	for name, quest := range cases {

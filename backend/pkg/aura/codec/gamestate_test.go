@@ -532,7 +532,7 @@ func TestEntitiesMarshalFlatbuf_Empty(t *testing.T) {
 func TestGameStateQuestProgress_RoundTrip(t *testing.T) {
 	entries := []quests.ProgressEntry{
 		{QuestID: "choice", Path: []string{"choose", "a-end"}, Completed: true},
-		{QuestID: "wolf-cull", Path: []string{"cull"}},
+		{QuestID: "wolf-cull", Path: []string{"cull"}, Objectives: []string{"1/3 Wolf slain", "Talk to the Farmer"}},
 	}
 
 	b := flatbuffers.NewBuilder(256)
@@ -553,11 +553,17 @@ func TestGameStateQuestProgress_RoundTrip(t *testing.T) {
 	assert.Equal(t, "choose", string(done.Stages(0)), "the walked path keeps its order (L6)")
 	assert.Equal(t, "a-end", string(done.Stages(1)))
 	assert.True(t, done.Completed())
+	assert.Zero(t, done.ObjectivesLength(), "a completed quest carries no objective line (Q2 §7.1)")
 
 	assert.Equal(t, "wolf-cull", string(running.QuestId()))
 	require.Equal(t, 1, running.StagesLength())
 	assert.Equal(t, "cull", string(running.Stages(0)))
 	assert.False(t, running.Completed())
+	// Q2: the composed lines ride beside the path, order preserved — the same
+	// prepend-reversal rule as the stages vector.
+	require.Equal(t, 2, running.ObjectivesLength())
+	assert.Equal(t, "1/3 Wolf slain", string(running.Objectives(0)))
+	assert.Equal(t, "Talk to the Farmer", string(running.Objectives(1)))
 }
 
 // A player with no quests writes no vector at all, which the client reads as an

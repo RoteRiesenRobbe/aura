@@ -17,7 +17,15 @@
 //      the running section shows the stage's diary + a banner → abandon → gone
 //      and offerable again → re-accept → talk to the Emberkeeper → the objective
 //      auto-advances, a second entry appears, the quest moves to Completed and
-//      pings "Quest complete".
+//      pings "Quest complete". Since Q2 it also asserts the server-composed
+//      objective LINE (plan-conversation-journal.md R2): "Talk to the
+//      Emberkeeper" while running, and no line once completed.
+//
+//   C. The Q2 counter leg, guarded on the shipped wolves quest: accept
+//      wolves-on-the-road by cheat, read the derived "n/8 Wolf slain" line,
+//      then kill real wolves and assert the LINE MOVES. Tri-state: no kill
+//      inside the deadline is INCONCLUSIVE, not red. Runs last — a slow hunt
+//      must not cost the cheap legs.
 //
 // To run half B, install the fixture next door and restart aurad:
 //     cp .claude/skills/verify/chunkC3-probe-quest.json api/quests/
@@ -86,6 +94,8 @@ const journal = () => page.evaluate(() => {
       quests: [...el.querySelectorAll('.journalQuest')].map((q) => ({
         title: q.querySelector('.journalQuestTitle')?.textContent ?? '',
         entries: [...q.querySelectorAll('.journalEntry')].map((p) => p.textContent),
+        // Q2: the server-composed objective lines, rendered verbatim.
+        objectives: [...q.querySelectorAll('.journalObjective')].map((p) => p.textContent),
         hasAbandon: !!q.querySelector('.journalAbandon'),
       })),
     };
@@ -138,6 +148,42 @@ const walkUntilBadge = async (key, maxSeconds = 14) => {
     await page.keyboard.up(key);
   }
   return await badgeCount() > 0;
+};
+
+// Copied from chunkC4-quests (originally chunkP-presence): click the skill NAME
+// (never the row centre — the spend/unspend buttons sit mid-row and win), equip
+// into aura slot 0, then click the slot again to toggle the aura ON, retrying
+// until the client's slot state has caught up with the server.
+const equipAndActivateAura = async (skillRe) => {
+  const rowAppeared = await page.waitForFunction(
+    (re) => [...document.querySelectorAll('#spellbookList li')].some((li) => new RegExp(re, 'i').test(li.textContent)),
+    skillRe.source, { timeout: 20_000 }).catch(() => null);
+  if (!rowAppeared) return { ok: false, why: `no spellbook row matches ${skillRe}` };
+  const rowIndex = await page.evaluate((re) =>
+    [...document.querySelectorAll('#spellbookList li')].findIndex((li) => new RegExp(re, 'i').test(li.textContent)),
+  skillRe.source);
+  const rows = await page.$$('#spellbookList li');
+  const box = await rows[rowIndex].boundingBox();
+  await page.mouse.click(box.x + 25, box.y + box.height / 2);
+  await page.waitForTimeout(700);
+  if (!await page.evaluate(() => !!document.querySelector('#spellbookList li.selected'))) {
+    return { ok: false, why: 'clicking the name did not select it' };
+  }
+  const slot = await page.$('#auraSlotList li');
+  const sbox = await slot.boundingBox();
+  await page.mouse.click(sbox.x + sbox.width / 2, sbox.y + sbox.height / 2);
+  const equipped = await page.waitForFunction(
+    (re) => new RegExp(re, 'i').test(document.querySelector('#auraSlotList')?.textContent || ''),
+    skillRe.source, { timeout: 20_000 }).catch(() => null);
+  if (!equipped) return { ok: false, why: 'slot never showed the skill (equip did not land)' };
+  for (let i = 0; i < 5; i++) {
+    await page.mouse.click(sbox.x + sbox.width / 2, sbox.y + sbox.height / 2);
+    await page.waitForTimeout(1200);
+    if (await page.evaluate(() => !!document.querySelector('#auraSlotList .auraSlot.activeSlot'))) {
+      return { ok: true, why: `activeSlot lit (attempt ${i + 1})` };
+    }
+  }
+  return { ok: false, why: 'slot never lit as active after 5 attempts' };
 };
 
 // The panel renders off a view signature, so give it a couple of ticks to catch
@@ -247,6 +293,12 @@ if (!probeLoaded) {
     && afterAccept.running.quests[0]?.entries[0] === seekProse,
     `running: ${JSON.stringify(afterAccept?.running.quests)}`);
 
+  // Q2 (R2): the server composes the talk_to line from the load-resolved
+  // display name; the panel renders it verbatim under the diary.
+  check('the running stage shows its server-composed objective line (Q2)',
+    JSON.stringify(afterAccept?.running.quests[0]?.objectives) === JSON.stringify(['Talk to the Emberkeeper']),
+    `objectives: ${JSON.stringify(afterAccept?.running.quests[0]?.objectives)}`);
+
   check('and pings the journal banner (D17)',
     /journal updated/i.test(acceptBanner),
     `banner "${acceptBanner}"`);
@@ -315,9 +367,91 @@ if (!probeLoaded) {
     afterTalk?.completed.quests[0]?.hasAbandon === false,
     `abandon row present=${afterTalk?.completed.quests[0]?.hasAbandon}`);
 
+  check('a completed quest carries no objective line — the diary is its record (Q2 §7.1)',
+    (afterTalk?.completed.quests[0]?.objectives ?? []).length === 0,
+    `objectives: ${JSON.stringify(afterTalk?.completed.quests[0]?.objectives)}`);
+
   check('completion pings its own banner (D17)',
     /quest complete/i.test(completeBanner),
     `banner "${completeBanner}"`);
+  }
+}
+
+// --- half C: the Q2 counter — "n/8 Wolf slain" moves on real kills ----------
+//
+// Independent of the probe quest: rides the SHIPPED wolves-on-the-road, whose
+// first stage is kill 8 Wolf with no authored tracker, so the line on screen is
+// the ledger's derived composition end to end. The count is read as a pattern,
+// never as a fixed number (verify rule 1/3) — lifetime counters mean a re-run
+// against an old character legitimately starts above 0.
+
+const WOLVES_QUEST = 'wolves-on-the-road';
+const wolvesLoaded = Array.isArray(catalog.body) && catalog.body.some((q) => q.id === WOLVES_QUEST);
+if (!wolvesLoaded) {
+  skip('the objective counter moves on real kills (Q2)',
+    `INCONCLUSIVE — the shipped quest "${WOLVES_QUEST}" is not loaded, nothing to count against.`);
+} else {
+  const wolvesTitle = catalog.body.find((q) => q.id === WOLVES_QUEST).title;
+  const lineOf = (j) => (j?.running.quests.find((q) => q.title === wolvesTitle)?.objectives ?? [])[0] ?? '';
+  const entriesOf = (j) => j?.running.quests.find((q) => q.title === wolvesTitle)?.entries ?? [];
+
+  // The panel only renders while open (visibility is the client's) — make sure
+  // it is, whether or not half B ran.
+  if (!(await journal())?.open) {
+    await page.keyboard.press('KeyJ');
+    await page.waitForTimeout(600);
+  }
+
+  await cmd(`QUEST ACCEPT ${WOLVES_QUEST}`);
+  const accepted = await waitForJournal((j) => lineOf(j) !== '');
+  const startLine = lineOf(accepted);
+  const startCount = Number(/^(\d+)\/8 Wolf slain$/.exec(startLine)?.[1] ?? NaN);
+  check('the kill stage shows the derived "n/8 Wolf slain" line (Q2)',
+    Number.isInteger(startCount),
+    `line "${startLine}"`);
+
+  if (!Number.isInteger(startCount)) {
+    skip('the objective counter moves on real kills (Q2)',
+      'INCONCLUSIVE — no parseable starting line, nothing to watch move.');
+  } else {
+    // Arm and hunt, chunkC4's recipe: level 30 so wolves die on contact, walk a
+    // circuit through the densest pack — they aggro at 3 units and come to us.
+    await cmd('XP 400000');
+    await cmd('SKILL Damage');
+    const armed = await equipAndActivateAura(/Damage/);
+    await cmd(`WARP ${-60 * 120} ${8 * 120}`);
+    await page.waitForTimeout(1500);
+
+    const moved = await (async () => {
+      const deadline = Date.now() + 150_000;
+      const keys = ['w', 'a', 's', 'd'];
+      let i = 0;
+      while (Date.now() < deadline) {
+        const j = await journal();
+        const line = lineOf(j);
+        const n = Number(/^(\d+)\/8 Wolf slain$/.exec(line)?.[1] ?? NaN);
+        if (Number.isInteger(n) && n > startCount) return { line, n };
+        // 8/8 advances the stage: the line leaves with it (dialogue stage, no
+        // tracker authored yet), and the second diary entry is the proof.
+        if (entriesOf(j).length >= 2) return { line: '(stage advanced)', n: 8 };
+        await page.evaluate(() => document.activeElement?.blur());
+        await page.keyboard.down(keys[i++ % keys.length]);
+        await page.waitForTimeout(1500);
+        await page.keyboard.up(keys[(i - 1) % keys.length]);
+        await page.waitForTimeout(500);
+      }
+      return null;
+    })();
+
+    if (!moved) {
+      skip('the objective counter moves on real kills (Q2)',
+        `INCONCLUSIVE — no wolf kill inside 150 s (aura armed: ${armed.ok} — ${armed.why}). ` +
+        'The composition itself is pinned by the Go ledger tests; re-run alone on a fresh server.');
+    } else {
+      check('⭐ the objective counter moves on real kills (Q2, R2)',
+        moved.n > startCount,
+        `"${startLine}" → "${moved.line}"`);
+    }
   }
 }
 

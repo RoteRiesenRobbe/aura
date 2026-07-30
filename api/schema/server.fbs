@@ -423,6 +423,14 @@ table QuestProgress {
   // abandoning never touches it. A quest that is neither running nor completed
   // is simply absent — an abandoned quest returns to not-started.
   completed:bool = false;
+  // The CURRENT stage's objective lines, composed server-side and rendered
+  // verbatim by the client (plan-conversation-journal.md Q2, R2): "3/8 Wolf
+  // slain", "Talk to the Farmer ✓", or a stage's authored tracker. Per-player
+  // state, deliberately NOT on the /quests catalog — thresholds for unreached
+  // stages stay unserved (D14/L5). Empty while completed or nothing to track.
+  // ⚑ Appended LAST: this table is positional (no field ids), so an insert
+  // above would silently renumber `completed` for every client.
+  objectives:[string];
 }
 
 table GameState {
