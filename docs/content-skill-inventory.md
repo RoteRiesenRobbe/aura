@@ -1,4 +1,4 @@
-# Skill Inventory — generated from data (2026-07-29)
+# Skill Inventory — generated from data (2026-07-29, quest sources added 2026-07-30)
 
 **Every value in this table is [PLACEHOLDER]** per the project rule. Generated
 from the actual data files on the `main` tree at 2026-07-29 (post Swift-as-a-
@@ -18,7 +18,10 @@ than repeating them. Regenerate after any content chunk.
 (id/name/category/maxLevel/cooldownTicks + each effect's key params), then
 cross-reference sources from `api/mobs/*.json` — **both** `unlocks[]`
 (`skillName`, `chance`) **and** `interaction.nodes[].options[].grants[]`
-(`skill`, `requiredLevel`) — plus `api/recipes/*.json` (`result`,
+(`skill`, `requiredLevel`; ⚑ since C4 a `teach_skill` grant may sit on a quest
+turn-in row beside an `advance_quest`, where it is a **quest reward** rather than
+a teaching — same key, different meaning, and the gate is the quest rather than
+`requiredLevel`) — plus `api/recipes/*.json` (`result`,
 `ingredients[].skill`/`.level`) and `api/milestones/milestone-unlocks.json`.
 
 > **⚑ NPC teachings moved.** They used to live in `zones/*.json` under
@@ -62,9 +65,9 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 | 1 | Damage | 5 | dmg 14 +3.2/L @40t, r1.0, 1 tgt nearest, var ±15% | NPC TownCrier @L1 |
 | 2 | Heal | 5 | heal 12 +6/L @80t, r1.5 +.1/L, lowest_health 1 tgt, **self-cost 10 −2/L** (FINAL) | NPC Hermit @L3 |
 | 3 | Wild | 5 | dmg 10 +2.4/L @40t, r1.4 +.05/L | Drop: EliteWolf .5 (+ AngryMammoth 1.0 / SaberToothCat .2, legacy) |
-| 4 | Slow | 5 | slow 10% +10%/L, r1.5 | Drop: BanditRanged .2 (+ Mammoth .2, legacy) |
+| 4 | Slow | 5 | slow 10% +10%/L, r1.5 | Drop: BanditRanged .2 (+ Mammoth .2, legacy) · **Quest: `wolves-on-the-road`, shaman leg** |
 | 5 | Immolate | 5 | fire dot 10.5 +2.1/L (3×60t) @20t, r1.0 | NPC Emberkeeper @L12 |
-| 6 | Lantern | 3 | light r4 +1/L | Drop: Kobold / KoboldRanged .05 |
+| 6 | Lantern | 3 | light r4 +1/L | Drop: Kobold / KoboldRanged .05 · **Quest: `the-lost-lamp`** |
 | 7 | Reaper | 3 | dmg 12 +3/L @40t r2.0; execute <35% ×2; lifesteal 50%; berserker ×2 at low HP | Drop: AlphaWolf .35 |
 | 29 | Rejuvenation | 3 | HoT 4 +2/L (6×60t) @60t, r2.5 +.2/L | Drop: OrcWarlord .25 (boss-rare) |
 | 30 | Paladin | 5 | dmg 10 +2.2/L @40t + heal 8 +4/L @120t (no self-cost), r1.0 | Recipe: Damage 5 + Heal 5 |
@@ -102,7 +105,7 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 | 22 | Ignite | 3 | fire dot 6.3 +1.6/L (3×30t), r1.5 +.1/L; CD 300 −20/L | NPC Emberkeeper @L7 |
 | 23 | SummonTotem | 3 | spawn Totem, TTL 300 +60/L; CD 450 | NPC Shaman @L5 |
 | 24 | SummonCompanion | 3 | spawn Companion, TTL 1800 +300/L; CD 2400 | NPC Dog (no gate) |
-| 25 | Taunt | 3 | taunt r2.0, threat +50; CD 300 −20/L | Drop: RallyDrummer 1.0 |
+| 25 | Taunt | 3 | taunt r2.0, threat +50; CD 300 −20/L | Drop: RallyDrummer 1.0 · **Quest: `wolves-on-the-road`, militia leg** |
 | 26 | Fade | 3 | detaunt r2.0; CD 300 −20/L | Drop: EliteBandit .35 |
 | 27 | Barrier | 3 | shield 20 +5/L (300t) allies+self, r1.5 +.1/L; CD 300 −20/L | Recipe: Hardy 3 + Tough 3 |
 | 28 | Recall | 1 | teleport, cast 300t interruptible; CD 9000 | NPC TownCrier @L3 + Wanderer @L3 |
@@ -136,9 +139,20 @@ the milestone table:
   (Lamplighter) · SummonCompanion (Dog) · Pickaxe (Miner) · FirstAid, Revive
   (VillageHealer) · Vanguard (FrontCaptain) · Recover, SummonTotem (Shaman) ·
   Recall (Wanderer) · Torch, Ignite, Immolate, BindElemental (Emberkeeper) ·
-  Strong (CityGuard). Two of the 14 conversants teach nothing on purpose
-  (LamplessTraveller, ForestSign — flavour and lore).
+  Strong (CityGuard). ⚑ Since C4 only ONE of the 14 conversants teaches nothing
+  (ForestSign, a sign-post): the LamplessTraveller hands over Lantern as a quest
+  reward, which is a `teach_skill` grant on a turn-in row rather than a teaching
+  in its own right.
 - **Milestone unlocks, 1:** Haste @L7.
+- **Quest rewards, 3 (new 2026-07-30, `plan-quests.md` C4):** Taunt and Slow —
+  the two legs of `wolves-on-the-road`, which is the whole point of D9's branch
+  being a *choice* — and Lantern from `the-lost-lamp`. ⚑ All three were
+  **drop-only** before, and Lantern's only source was a 5 % Kobold roll, i.e. a
+  brutal gate on the light the tunnel tutorial is built around. A quest source is
+  not authored in `unlocks[]`: it is a `teach_skill` grant riding an
+  `advance_quest` row in a conversant's `interaction` block, so a regeneration
+  script that reads only `unlocks[]` and top-level teachings will report these
+  three as drop-only and be wrong.
 
 ### What changed since the 2026-07-22 generation
 
@@ -164,6 +178,14 @@ any of it is new work:
   Bear → DireBear, ThickHide Bear → DireBear, Hardy Boar → EliteWolf, Dash
   Boar → EliteWolf, Fade Bandit → EliteBandit, Antivenom lost its Spider
   source, Tough gained Orc. Chances moved on ~10 skills.
+
+### Quest XP (not a skill source, but the same authoring budget)
+
+`grant_xp` rows pay 150 (`village-welcome`), 150 (`turnip-chore`), 400 (either
+leg of `wolves-on-the-road`) and 700 (`the-lost-lamp`). PO-ruled 2026-07-30
+("punchy — about half a level each"); **the Session-⑥ band lock has no runtime
+existence** (L9), so these are an offline budget only, pinned by
+`quests/content_test.go`.
 
 > Both the drop table and the milestone table are **tuning-open**, not frozen
 > (PO ruling 2026-07-21) — "FINAL" on them meant *first-pass settled*.

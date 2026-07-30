@@ -1,9 +1,10 @@
 # Plan: the quest system — journal-carried quests on the interaction container
 
-**Status: chunk C3 ✅ DONE 2026-07-30 (ledger §14, `604f3f4d`) — the wire and
-the journal. Prior: C0 ✅ `2a3b137d` + C2 ✅ `2dc6973a` (§12/§13), C1 ✅
-`d3b89328` (§11), prerequisite chunk P ✅ `d45ba07c`. Next: **C4, the first
-authored quests** — the last chunk of this plan.**
+**Status: ✅ COMPLETE — chunk C4 DONE 2026-07-30 (ledger §15), the first four
+authored quests, and with it the whole plan. Prior: C3 ✅ `604f3f4d` (§14),
+C0 ✅ `2a3b137d` + C2 ✅ `2dc6973a` (§12/§13), C1 ✅ `d3b89328` (§11),
+prerequisite chunk P ✅ `d45ba07c`. Nothing here is open; the deferrals are
+listed in §9 and the step-8 handoff in §10.**
 **CODE-REVIEWED 2026-07-30** — three line-level sweeps (interaction container ·
 XP/credit path · wire + content loading) checked every claim against HEAD;
 corrections are folded in below, tagged *(code review)*. Four follow-up PO
@@ -325,13 +326,13 @@ case behind the existing hard-fail loaders:
 | **C1** | The ledger + events, backend only: lifetime counters at the kill-credit fan-out (`rewardPlayer`, D4 — increment on participation, not XP amount, L13), talked-to stamping at session open, **ledger survival across death/reconnect (L11 — the five stash sites)**, `MobID` keys + the duplicate-id boot guard (L12), the `api/quests/` loader + all L5 registration edits (incl. the verify-skill grep), stage engine (objective satisfaction against counters, advance, journal append, completion, abandon per D13), a `QUEST` debug cheat to inspect/drive it. `model.PlayerEntity` widening updates the four fakes (L14). | TDD on the engine (retroactive satisfaction at accept · presence-credited kill advances · branch edges exclusive · one-shot refuses re-offer · repeatable flag round-trips unauthored · abandon clears the path, leaves counters + completed set, re-offer works · **ledger survives death and reconnect** · counter increments for an `experience: 0` species); sim battery byte-identical (nothing existing moves); boot `-content ../api` with the new count pinned |
 | **C2** ✅ **DONE, ledger §13** | Dialogue vocabulary: `offer_quest` / `advance_quest` / `grant_xp` grant kinds (**per-kind payload resolution** — the loader's unconditional skill lookup becomes conditional, the `TestContent_EveryGrantIsAResolvedTeach` pin relaxes, the two `!=` dispatches become switches, §5), `quest_at_stage` condition (widening `learner`, O(1) read, L15), `costs`/`consequences` schema room (D8/D10 — validated, unauthorable beyond parse), loader cross-validation (unknown quest/stage hard-fails; **legacy species rejected as targets**, L12), the L3 dead-node lint decision, the L10 `grant_xp`-terminal-only lint, the `selectNode` visibility-map hoist (L15). | Evaluator tests per kind; a fixture quest walkable end-to-end through `present()`/`applyGrant()` in Go tests alone |
 | **C3** ✅ **DONE, ledger §14** | Wire + journal: the D14 minimal-projection catalog (+ a test asserting the projection leaks nothing beyond titles/prose), ledger on `GameState` every tick + client view-signature diff (§6, L8), the `Journal` EntityMessageKind pinned = 2 (D17), the journal panel (D7) with `J` + HUD button (D16), the "journal unavailable" degrade state, incl. the abandon action (D13). | Codec round-trips; vitest on the journal view model; headless harness: offer → kill → auto-advance journal entry + banner → turn-in → completed section; abandon → quest gone from running, re-offerable |
-| **C4** | First authored content: 3–4 quests exercising every first-pass verb + **one branch with two turn-in NPCs and different rewards** (D9's proof), placed on existing conversants. XP amounts sized against the band-lock *budget* by hand (L9). | The content itself is the test: full harness pass per quest path, both branch legs; boot counts pinned; manual PO walk |
+| **C4** ✅ **DONE, ledger §15** | First authored content: 3–4 quests exercising every first-pass verb + **one branch with two turn-in NPCs and different rewards** (D9's proof), placed on existing conversants. XP amounts sized against the band-lock *budget* by hand (L9). | The content itself is the test: full harness pass per quest path, both branch legs; boot counts pinned; manual PO walk |
 
 Sequencing per D12/D15: **P → C1→C2→C3→C4**, all **before step 8**. C0 was
 nominally independent filler, but shipped **immediately before C2 in the same
 session** — L1 is literal, and the both-ends N1 defect is exactly the shape of
-the turn-in rows C2 makes authorable. **P ✅ · C1 ✅ · C0 ✅ · C2 ✅ · C3 ✅ —
-C4 is next, and closes the plan.**
+the turn-in rows C2 makes authorable. **P ✅ · C1 ✅ · C0 ✅ · C2 ✅ · C3 ✅ ·
+C4 ✅ — all six shipped 2026-07-30, and the plan is closed.**
 
 ## 9. Open questions (deliberately not ruled this session)
 
@@ -716,3 +717,121 @@ unlike the unlock banner, whose line the client composes from its catalog —
 because the journal's title is already on the wire's other end and the banner is
 one sentence; ③ `J` sits in `Controls.handleFunctionKeys`, behind the same
 chat/console guards as Escape, so typing "journal" in chat cannot open it.
+
+## 15. Chunk C4 ledger — the first authored quests ✅ DONE 2026-07-30
+
+**Scope delivered as §8 priced it, and the shape of the diff is the result worth
+recording: four quest files, seven conversants' `interaction` blocks, one Go test
+file and one harness — and NOT ONE LINE of engine code.** C1–C3 built a
+vocabulary; C4 is the proof it was the right one, because authoring a branching,
+multi-NPC, three-verb quest set needed no new kind, no new field and no
+migration. The quest count boots at **4**.
+
+**The four quests, and what each is for:**
+
+| id | wiring | verb / shape |
+|---|---|---|
+| `village-welcome` | Hermit offers **and** turns in; Farmer + TownCrier are the targets | **talk_to**, and D3's retroactive credit met head-on: most players have already spoken to both (the crier teaches the first ability), so accepting cascades on the spot and the journal shows two entries at once |
+| `turnip-chore` | Farmer offers and turns in | **harvest**, on the cheapest venue in the game — and its offer row navigates to the node where he teaches the very aura the objective needs |
+| `wolves-on-the-road` | TownCrier offers; **CityGuard or Shaman** turns in | **kill**, and ⭐ **D9's proof**: one stage, two authored edges, two terminal stages, two different rewards (Taunt + 400 XP / Slow + 400 XP), and no code anywhere knows there is a choice |
+| `the-lost-lamp` | LamplessTraveller offers → **Miner** advances → traveller turns in | a three-conversant chain carrying the game's only **non-terminal** `advance_quest` edge — the thing C1's derived terminality and C2's two-phase cross-validation exist for |
+
+**PO calls this session.** ① Rewards may create **new sources for drop-only
+skills**, not just XP: Taunt (RallyDrummer-only), Slow (BanditRanged-only) and
+**Lantern** — whose only source was a 5 % Kobold roll, i.e. a brutal gate on the
+light the tunnel tutorial is built around. ② Four quests rather than three, which
+is what buys the non-terminal edge. ③ XP **"punchy — about half a level each"**:
+150 / 150 / 400 per leg / 700. ⚑ The flag raised with the option stands on
+record: punchy quest XP bends the Session-⑥ kills-per-hour band the sim battery
+is tuned against, and L9 means nothing clamps it at runtime — the numbers are
+pinned in `quests/content_test.go` because a budget nobody can see is a budget
+nobody keeps.
+
+⭐ **The authoring shape C4 discovered, now written down in
+`manual-content-authoring.md` § 6.** None of it is new mechanism; all of it is
+what the shipped mechanism *implies*, and it was only visible once real trees
+were authored:
+
+① **A quest-conditional greeting HIJACKS the greeting, and that is L3's
+consequence rather than a bug.** Conditional nodes must sit above the
+unconditional root, and the greeting is the first node whose conditions pass — so
+whenever a quest state is live at an NPC, that state *is* what they open with.
+It reads as Gothic (the NPC leads with what is happening) and it costs one row:
+**every quest node needs a way back to `root`**, or the NPC's ordinary teachings
+are unreachable while a quest runs. ⚑ The TownCrier needed more than that — he
+hands out the player's **first ability**, and behind a quest greeting that ability
+sat three clicks deep behind a row labelled as a refusal, so his offer node
+carries a direct row to `teachings`. That was a genuine onboarding regression,
+found by reading the authored tree rather than by any test.
+
+② **A quest row's `next` must name a node visible BEFORE the row is taken.**
+`destinationVisible` runs ahead of the ledger op (C0's N1 fix), so pointing an
+offer row at a node gated on "quest running" hides the row from itself. Every
+quest row here points at the unconditional `root` — which also sidesteps the
+panel snapping when the node under the player's feet vanishes a tick later.
+
+③ **Rewards can only ride a turn-in row**, so the only quest shape that pays is
+`objective stage → dialogue stage → terminal stage entered by a rewarding row`.
+An objective stage that completes a quest hands over nothing, silently. L10's
+lint enforces the same shape from the other end.
+
+④ Minor, but it cost a boot: **`_comment` exists only at the top level of a mob
+definition**. Nested nodes and options are `DisallowUnknownFields` all the way
+down, so per-node authoring rationale has nowhere to live — it goes in the
+definition's own `_comment`, which is what every touched NPC now carries.
+
+⚑ **The trap the tests found, and it is not a test artefact.** A `Ledger` built
+on a quest registry that never went through `quests.CrossValidate` reads **every
+dialogue stage as terminal**, because terminality is derived from the edges the
+world authors (C1 ①) and cross-validation is what registers them. The first draft
+of the veteran-cascade test asserted its way into exactly that: `village-welcome`
+"completed" the instant it was accepted, with nothing turned in. `loaders.go`
+guarantees the order in production; the fix was to make the test helper reproduce
+the **boot sequence** rather than just the loaders, and to say why in a comment.
+
+**Content pins** (`pkg/aura/quests/content_test.go`, 8 tests over the real
+embedded content): the census, cross-validation with **no** unreachable quest,
+all three first-pass verbs still authored, D9's branch (two NPCs → two terminal
+stages → two different rewards), the non-terminal edge, **every stage reachable**
+(nothing else checks that — the loader only checks that edges point AT stages,
+never that a stage has anything pointing at it), the XP budget, and two ledger
+walks over the real graph.
+
+**The harness.** New **`chunkC4-quests.mjs`**, four legs, and it walks the real
+world rather than a fixture: A `village-welcome` end to end (offer row → two real
+conversations → the objective advancing off the counters with no click → turn-in
+→ **XP 0 → 150** on the bar), B `turnip-chore` end to end including learning
+Harvest inside the same conversation, equipping it and harvesting **five real
+turnips**, D the Miner's row proving the quest advances **without** completing,
+and C **eight real wolf kills** followed by both branch legs — the Shaman's row
+seen and left, the CityGuard's taken, Taunt landing in the spellbook, and the
+Shaman's row **gone** afterwards (C2's shape decision ②: a completed quest matches
+`completed`, never its terminal stage). Only the kobold objective is deliberately
+not walked (the kill path is already proven twice, and six kobolds cost what eight
+wolves cost).
+
+⚑ **C4 broke one existing harness assertion, and fixing it was C4's job** (the
+standing rule that a chunk repairs what its premise reverses):
+`chunk3b-ii-conversation` asserted the TownCrier's greeting had **exactly two
+rows** — a content count, which the verify skill's rule 1 forbids for exactly this
+reason. It now asserts the row it means, by name. Note also that C4 *strengthened*
+`chunkC3-journal`: its minimal-projection leg had been SKIPping for want of any
+quest to project.
+
+**Verified:** 8 new Go content pins (the CrossValidate trap proven red first) ·
+`go build`/`vet`/full suite clean · guardrails + alloc `-count=2` · **sim battery
+BYTE-IDENTICAL all 4 legs** vs a HEAD worktree (TTK 6.67 s / TTD 8.70 s stand) ·
+typecheck + **76/76 vitest** (frontend untouched) · boot embedded **and**
+`-content ../api`, identical: 15 factions/86 skills/64 mobs/1 milestone/10
+recipes/**4 quests**/5 prop defs/777 props/485 spawns/5 campfires, **0 errors 0
+warnings** · harness, each run SOLO on a freshly restarted server:
+**`chunkC4-quests.mjs` 28/28 + 1 deliberate SKIP**, `chunk3b-ii-conversation.mjs`
+**29/29 + 1 SKIP** (after the repair), `chunk3b-interact.mjs` **14/14**,
+`chunkC3-journal.mjs` **8/8 + 1 SKIP** (half B still wants its probe fixture),
+0 WebGL context losses on the runs of record. ⚑ One earlier C4 run was invalidated
+by a context loss (§29's ~1-in-6) and re-run clean — the standing rule held again.
+
+**What C4 deliberately did not do:** author `repeatable` (D6 — schema room),
+`costs`/`consequences` (D8/D10 — both still hard-fail at boot), or
+discover-location (§9 question 4). The Session-⑥ band question (§9 question 2) is
+answered only as far as *these* four quests go, by hand.

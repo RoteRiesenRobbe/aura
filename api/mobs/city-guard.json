@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Strong at the settlement gate.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Strong at the settlement gate. ⚑ QUESTS (plan-quests.md C4): the MILITIA leg of D9's branch — `wolves-on-the-road` carry_word → told_militia, rewarding Taunt (until now a RallyDrummer-only drop) + 400 XP. The Shaman carries the other leg, to a different stage with a different reward, and no code knows there is a choice. The existing Strong@L3 teaching is untouched: the turn-in row navigates back to root so it stays reachable.",
   "id": 56,
   "name": "CityGuard",
   "type": "MOB",
@@ -22,6 +22,41 @@
   "interaction": {
     "range": 2.0,
     "nodes": [
+      {
+        "id": "wolves_report",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "wolves-on-the-road", "stage": "carry_word" }
+        ],
+        "lines": [
+          "Village business? Speak plainly, I've a gate to hold."
+        ],
+        "options": [
+          {
+            "text": "The wolves on the west road. Eight of them are dealt with.",
+            "grants": [
+              {
+                "kind": "advance_quest",
+                "quest": "wolves-on-the-road",
+                "fromStage": "carry_word",
+                "toStage": "told_militia",
+                "line": "Eight. Written down, and the commander will have it before nightfall. We don't thank people — we pay them."
+              },
+              {
+                "kind": "teach_skill",
+                "skill": "Taunt",
+                "line": "Here. A beast that's looking at you isn't looking at the man behind you. Learn to make it look."
+              },
+              {
+                "kind": "grant_xp",
+                "xp": 400,
+                "line": "Stand up straight. You've done more for that road than the last three patrols."
+              }
+            ],
+            "next": "root"
+          },
+          { "text": "Something else.", "next": "root" }
+        ]
+      },
       {
         "id": "root",
         "lines": [

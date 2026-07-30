@@ -666,8 +666,14 @@ check('...WITHOUT opening a panel — the two are independent',
 
 await press('e');
 const crierPanel = await panel();
+// ⚑ Asserted BY NAME, not by count (verify rule 1). This read `rows.length === 2`
+// until quest chunk C4 gave the crier a quest-conditional greeting node — which
+// sits above root by L3, so the row set a fresh player sees is now the offer
+// node's, and the count moved. What this leg is actually about is that ambient
+// speech and the conversation are independent (D18), so the check is that a tree
+// opens with the crier's own navigation in it.
 check('...and the same NPC still opens a tree on the key',
-  crierPanel !== null && crierPanel.rows.length === 2,
+  crierPanel !== null && crierPanel.rows.some((r) => /teach me something/i.test(r.text)),
   `rows: ${JSON.stringify(crierPanel?.rows.map((r) => r.text))}`);
 
 // ================= 9. combat closes it (opportunistic) =================

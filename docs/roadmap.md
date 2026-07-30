@@ -966,6 +966,12 @@ system ships blind.
 > (offer/advance/turn-in grant kinds + lints) → wire + journal panel → first
 > authored quests incl. the two-NPC branch proof. Step 8 then persists
 > `quests` / `killCounts` / `talkedTo` per-character (plan §10).
+> **✅ COMPLETE 2026-07-30 — P → C1 → C0 → C2 → C3 → C4 all shipped in one day,
+> and `plan-quests.md` is closed.** The world holds four authored quests
+> (`village-welcome` · `turnip-chore` · `wolves-on-the-road`, whose two turn-in
+> NPCs pay different rewards · `the-lost-lamp`), a `J` journal, and a live
+> per-character ledger that survives death and reconnect — which is exactly the
+> shape D12 wanted step 8 to inherit rather than invent.
 
 8. **Accounts & persistence** (item 3) **+ UI polish / avatar / audio** (item 8) —
    deliberately **after** content: the game proves out session-based first, then

@@ -3,9 +3,11 @@
 Roster of friendly/teaching NPCs: identity, speech, what they teach or point
 to. Conventions (status column, placement split) → `README.md` → Content.
 Placement here is **design intent only** — runtime positions live in the
-zone JSON authored via the zone editor. NPC substrate: `model/npc`
-(unattackable, teach-on-approach — `plan-npc-teaching.md`); interaction depth
-beyond that (branching dialogue) is the open fork in `backlog.md` §2.
+zone JSON authored via the zone editor. **NPC substrate (current):** an NPC is
+an ordinary actor carrying an `interaction` block on its mob definition —
+`model/npc` was deleted by entity-model chunk 3a, and teach-on-approach was
+reversed by 3b-i (talking is a verb the player performs, on `E`). Branching
+dialogue shipped with 3b-ii; quest rows on top of it with `plan-quests.md` C2/C4.
 
 > Teaching lists here are design intent. The **generated** truth for who
 > teaches what at which level is `content-skill-inventory.md`; runtime
@@ -31,3 +33,22 @@ beyond that (branching dialogue) is the open fork in `backlog.md` §2.
 | Tunnel guard | superseded *(C3)* | Zone 1, tunnel mouth | ~~Warns about the tunnel darkness~~ | Superseded by the signpost-only clue ruling (plan-content-zones12 §8). |
 | Troll-territory guide *(working title)* | idea | TBD (leads to troll territory) | Clue NPC — leads the player toward troll territory. | Clue anchor chain (→ `content-world.md`). |
 | Sage | in-game, **legacy** | Proving grounds | Teaches Heal @L1, Dash @L5, Revive @L5, Reaper @L10; has lore lines. | First shipped teaching NPC (step 5). Lives in the `legacy: true` proving-grounds zone — **not world-reachable**, so it does not count as an unlock source. |
+
+## Quest roles (plan-quests.md C4, 2026-07-30)
+
+A quest file never names who talks about it — the rows live on the conversants
+and reference the quest (D11), so this table is the only place the world's quest
+wiring reads as one picture. Diary prose lives in `api/quests/*.json`; rewards
+live in the NPCs' `interaction` blocks and are served by nothing.
+
+| NPC | quest | role |
+|---|---|---|
+| Hermit | `village-welcome` | offers **and** turns in — the talk_to tutorial, and the quest that meets D3's retroactive credit head-on (most players have already met both targets, so it cascades on accept) |
+| Farmer | `village-welcome` | a talk_to target |
+| Farmer | `turnip-chore` | offers and turns in; the offer row navigates to the node where he teaches **Harvest**, the aura the objective needs |
+| Town crier | `village-welcome` | a talk_to target |
+| Town crier | `wolves-on-the-road` | offers it, and turns in **nothing** — his `carry_word` node is where the player learns there is a choice at all |
+| City guard | `wolves-on-the-road` | **branch leg A** → `told_militia`, rewards **Taunt** + 400 XP |
+| Shaman | `wolves-on-the-road` | **branch leg B** → `told_shaman`, rewards **Slow** + 400 XP |
+| Lampless traveller | `the-lost-lamp` | offers and turns in; rewards **Lantern** + 700 XP |
+| Miner | `the-lost-lamp` | the middle of the chain — the game's only **non-terminal** `advance_quest` row, and it may carry no reward (L10) |

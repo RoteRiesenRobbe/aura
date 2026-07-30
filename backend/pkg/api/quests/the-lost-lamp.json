@@ -1,0 +1,25 @@
+{
+  "_comment": "plan-quests.md C4, quest 4 of 4 — the chain across three conversants, and the only quest in the first pass whose middle is a NON-TERMINAL dialogue edge: the Miner's row advances ask_miner → clear_den and ends nothing. That is what C1's derived terminality (NoteDialogueEdgeFrom) and C2's two-phase cross-validation exist for, and no other authored content exercises it. It also carries no reward, which is why L10's grant_xp-is-terminal-only lint permits it. Reward at the end: 700 XP and the Lantern aura — until now a 5 % Kobold drop, which was a brutal gate on the light the tunnel tutorial is built around (GDD, World Design). The traveller sits at (-20.6, -24.4) beside the tunnel mouth, the Miner at (-27, -26.4), the kobolds north of both.",
+  "id": "the-lost-lamp",
+  "title": "The Lost Lamp",
+  "stages": [
+    {
+      "id": "ask_miner",
+      "journal": "A traveller is sitting in the dark by the tunnel mouth with no lamp and no intention of moving. Kobolds took it, he says, and he has no idea where they nest. The miner works that tunnel — he would know."
+    },
+    {
+      "id": "clear_den",
+      "journal": "The miner knows. They hole up north of the tunnel, where the trees thin out and the ground turns to scree. Six of them, he reckons, before the rest remember they are afraid of people. Nobody has ever got anything back from a kobold by asking.",
+      "objectives": [{ "kind": "kill", "species": "Kobold", "count": 6 }],
+      "next": "bring_it_back"
+    },
+    {
+      "id": "bring_it_back",
+      "journal": "Six kobolds down, and the lamp was in the nest under a pile of things they had no use for. Dented, but whole. The traveller is still sitting where I left him, in the dark."
+    },
+    {
+      "id": "lit",
+      "journal": "He had it lit before I finished handing it over. Then he showed me the trick of it — a lamp is not a thing you carry, he said, it is a thing you learn. The tunnel does not look quite so black from here."
+    }
+  ]
+}

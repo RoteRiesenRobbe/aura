@@ -477,6 +477,84 @@ in Go. `System.Despawn` removes a live encounter mob (empty-arena beats);
 `Mob.KillCreditNames` feeds the server-wide kill broadcast
 (`System.Announce`).
 
+## 6. New quest
+
+Two files minimum: the quest (`api/quests/<id>.json` — the stage graph and the
+diary prose) and at least one conversant's `interaction` block (the rows that
+offer, advance and turn it in). A quest file deliberately does **not** know who
+talks about it (`plan-quests.md` D11), so the wiring lives on the NPCs.
+
+**Content-only.** No Go, no `.fbs`, no frontend — the vocabulary shipped with
+chunks C1–C3. `make -C backend build` (or `-content ../api`) picks it up.
+
+### The stage graph
+
+A stage is one of exactly two shapes, and the loader enforces it:
+
+- **objective stage** — `objectives[]` (`kill` / `harvest` / `talk_to`) plus a
+  single `next`. It advances by itself the moment the character's **lifetime**
+  counters satisfy it.
+- **dialogue stage** — neither. It waits for an authored row somewhere in the
+  world.
+
+A stage nothing advances out of is **terminal**: entering it completes the quest.
+That is *derived*, never authored — `quests.CrossValidate` learns it from the
+rows at boot.
+
+⚑ **Thresholds are lifetime totals** (D3/L7). `"count": 8` means *has ever killed
+eight*, not *kill eight more* — a veteran who accepts the quest completes the
+stage on the spot. There is no opt-out flag yet, deliberately.
+
+⚑ **Rewards can only ride a turn-in row**, so a quest that ends on an objective
+stage pays nothing. The shape every authored quest uses is
+`objective stage → dialogue stage → terminal stage entered by a rewarding row`.
+
+### The rows
+
+```json
+{ "text": "I've spoken to them both.",
+  "grants": [
+    { "kind": "advance_quest", "quest": "village-welcome",
+      "fromStage": "back", "toStage": "known", "line": "..." },
+    { "kind": "grant_xp", "xp": 150, "line": "..." } ],
+  "next": "root" }
+```
+
+- A quest grant makes the whole option **one atomic row**, applied together —
+  which is why it must sit at index 0 (the ledger op runs first and a refusal
+  abandons the row; that is what stops a re-clicked turn-in paying twice) and why
+  an authored `text` is required (there is no skill name to fall back on).
+- `grant_xp` is legal **only** on an edge that ENDS the quest (L10): abandon
+  leaves the counters standing, so anything else is a loopable faucet.
+- A quest grant takes no `requiredLevel` — the stage graph is its gate.
+
+### Node conditions, and the two traps
+
+Gate nodes with `quest_at_stage` (`{"quest", "stage"}`, where `stage` is a stage
+id or `not_started` / `completed`). Options have no conditions of their own; an
+option pointing at a hidden node is hidden with it.
+
+1. ⚑ **Conditional nodes must sit ABOVE the unconditional root** — the loader
+   hard-fails otherwise (L3), because the greeting is the first node whose
+   conditions pass. The consequence is a feature: whenever a quest state is live
+   at an NPC, that state IS the greeting. **Give every quest node a row back to
+   `root`**, or the NPC's ordinary teachings are unreachable while a quest runs.
+2. ⚑ **A quest row's `next` must name a node that is visible BEFORE the row is
+   taken.** The destination is checked against the pre-op state, so pointing an
+   offer row at a node gated on "quest running" hides the row from itself. Point
+   it at the unconditional `root` — which also avoids the panel snapping when the
+   node it is standing on vanishes a tick later.
+
+`api/mobs/hermit.json` (offer + running + turn-in on one NPC) and
+`api/mobs/miner.json` (a mid-quest, non-rewarding, non-terminal edge) are the
+worked examples; `api/quests/README.md` documents the file format itself.
+
+### Verify
+
+`go test ./pkg/aura/quests/` (the content pins: census, cross-validation,
+reachability, the XP budget), boot with the quest count in the log, and
+`node .claude/skills/verify/chunkC4-quests.mjs` for the rows at the game surface.
+
 ## Known hand-sync points
 
 These duplicate a single source of truth and must be updated together — easy to
@@ -508,5 +586,6 @@ forget:
 | New skill (existing effect types) | ✅ | — | — | — (served via `GET /skills`) |
 | New effect *type* | ✅ | ✅ | — | ✅ |
 | Scripted encounter (existing seams) | ✅ (mob defs) | ✅ (one struct + registration) | — | — |
+| New quest (existing verbs) | ✅ (quest + the conversants' rows) | — | — | — (prose served via `GET /quests`) |
 | Replace ability VFX | — | — | — | ✅ |
 | Replace mob / player icon | — | — | — | ✅ |

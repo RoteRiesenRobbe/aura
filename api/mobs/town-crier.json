@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. ⚑ D23's AMBIENT NPC (chunk 3b-ii) and the one D18 exists for: it calls out as you walk past AND opens a tree on E. Those are two independent fields now — under the retired single-valued `trigger` an actor could only ever do one of them, which is what forced the enum's deletion. Its `ambient` lines are the only ones in the game, so they are also the regression test for walk-by speech; the hint branch (news → news_who) is D23's second required shape. Teaches the base Damage aura and Recall — the closest thing the world has to a starting trainer.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. ⚑ D23's AMBIENT NPC (chunk 3b-ii) and the one D18 exists for: it calls out as you walk past AND opens a tree on E. Those are two independent fields now — under the retired single-valued `trigger` an actor could only ever do one of them, which is what forced the enum's deletion. Its `ambient` lines are the only ones in the game, so they are also the regression test for walk-by speech; the hint branch (news → news_who) is D23's second required shape. Teaches the base Damage aura and Recall — the closest thing the world has to a starting trainer. ⚑ QUESTS (plan-quests.md C4): the crier OFFERS `wolves-on-the-road` (he already spoke its brief before it existed, in the `news` node) but turns in NOTHING — that is D9's branch, and it is finished east, by either the CityGuard or the Shaman, for different rewards. `wolves_carry` is where the player learns there is a choice at all: written directions, no marker (GDD 8). ⚑ The offer node carries a DIRECT row to `teachings`, and that is not decoration: a quest-conditional greeting sits in front of the unconditional root (L3), and this NPC hands out the player's first ability (Damage @L1) — without that row a brand-new player would reach it three clicks deep, behind a row labelled as a refusal. Quest nodes above root, back-to-root rows on each: see docs/manual-content-authoring.md § Quests.",
   "id": 62,
   "name": "TownCrier",
   "type": "MOB",
@@ -26,6 +26,53 @@
       "The militia wants word of every attack — east, to the city!"
     ],
     "nodes": [
+      {
+        "id": "wolves_offer",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "wolves-on-the-road", "stage": "not_started" }
+        ],
+        "lines": [
+          "You there! Good. Somebody who still walks toward trouble instead of away from it.",
+          "Wolves. Out of the forest, onto the road, bolder every week. Thin them out and get word east to the militia — that is the whole of it."
+        ],
+        "options": [
+          {
+            "text": "How many wolves?",
+            "grants": [
+              {
+                "kind": "offer_quest",
+                "quest": "wolves-on-the-road",
+                "line": "Eight. Eight and the road is walkable again — then east with the word, and let somebody with a banner decide what it means."
+              }
+            ],
+            "next": "root"
+          },
+          { "text": "Teach me something.", "next": "teachings" },
+          { "text": "Who else should I speak to?", "next": "news_who" },
+          { "text": "Later.", "next": "root" }
+        ]
+      },
+      {
+        "id": "wolves_thin",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "wolves-on-the-road", "stage": "thin" }
+        ],
+        "lines": [
+          "Still counting? Then there are still wolves. Come back when there are eight fewer."
+        ],
+        "options": [{ "text": "Something else.", "next": "root" }]
+      },
+      {
+        "id": "wolves_carry",
+        "conditions": [
+          { "kind": "quest_at_stage", "quest": "wolves-on-the-road", "stage": "carry_word" }
+        ],
+        "lines": [
+          "Eight fewer on that road. Good. Now the word — east, to the militia at the city gate, and do not dawdle about it.",
+          "Though there's a shaman keeps a fire by the road, well short of the gate. He'd want to hear it too, if the whole walk east is more than you fancy."
+        ],
+        "options": [{ "text": "Something else.", "next": "root" }]
+      },
       {
         "id": "root",
         "lines": [

@@ -4021,6 +4021,14 @@ aura-gated harvest mobs yield an implicit quest schema *"without needing a
 dedicated one."* This entry therefore records a **standing design tension to be
 ruled on**, not a plan; a ruling *for* dedicated quests amends GDD §7/§8.
 
+> **✅ BUILT 2026-07-30 — `plan-quests.md` is complete and archived.** All six
+> chunks (P, C1, C0, C2, C3, C4) shipped the same day: lifetime counters and a
+> per-character ledger that survives death, the dialogue vocabulary, the wire and
+> the `J` journal, and four authored quests — including `wolves-on-the-road`,
+> where two different NPCs finish the same quest for different rewards, which is
+> content rather than a feature. This section stays the tension record and the
+> place to read *why*; the plan doc is the record of *what*.
+>
 > **✅ RULED 2026-07-29 (same day):** the PO amended the GDD — quests exist as a
 > concept, **carried by journal entries** (Gothic-diary style: what NPCs said,
 > what the player undertook); **no quest markers, ever**; a **sidebar tracker
@@ -4083,7 +4091,7 @@ was designed with this day in mind):
   (`archive/plan-faction-flips.md` chunk 1) were built with it as a named
   future consumer.
 
-> **✅ DESIGNED 2026-07-29 (second same-day session) → `docs/plan-quests.md`.**
+> **✅ DESIGNED 2026-07-29 (second same-day session) → `docs/archive/plan-quests.md`.**
 > Every open question below is ruled there (D1–D13): verbs = kill-N / talk-to /
 > harvest-N (discover-location deferred), retroactive lifetime-counter credit
 > with presence-counts, per-character state, one-shot + repeatable schema room,
