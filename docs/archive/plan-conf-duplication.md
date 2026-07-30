@@ -1,6 +1,6 @@
 # Plan: §35 — one value, many homes (the conf-duplication sweep)
 
-**Status: COMPLETE — C1 + C2 ✅ 2026-07-29 `e7531444` · C3 + C4 ✅ 2026-07-30 (ledgers §7). Archived 2026-07-30.**
+**Status: COMPLETE — C1 + C2 ✅ 2026-07-29 `e7531444` · C3 + C4 ✅ 2026-07-30 `e7e14c71` (ledgers §7). Archived 2026-07-30.**
 Origin: `docs/backlog.md` §35 (PO 2026-07-26: *"doesn't seem good that we need to
 adjust it at 4 places"*). Tier 1 of that survey shipped with
 `docs/archive/plan-pre-accounts-hygiene.md`; this plan is tiers 2–5. The §35
@@ -304,7 +304,7 @@ path-qualified — D2's warn-not-fail proven at the real boot surface, and the
 `_` key stayed silent · sim battery default leg byte-identical vs the pre-C1
 baseline (`ReadConfig` is not in the sim path — L9 — run anyway).
 
-### C3 — tier-3 pins ✅ DONE 2026-07-30, committed `[uncommitted]`
+### C3 — tier-3 pins ✅ DONE 2026-07-30, committed `e7e14c71`
 
 Tests only, exactly as planned — 3 new test files, zero production code.
 
@@ -328,7 +328,7 @@ Tests only, exactly as planned — 3 new test files, zero production code.
 
 **Verified:** `go build`/`vet` clean, full `go test ./...` green.
 
-### C4 — tier 5 + tier 4, per item ✅ DONE 2026-07-30, committed `[uncommitted]`
+### C4 — tier 5 + tier 4, per item ✅ DONE 2026-07-30, committed `e7e14c71`
 
 **a. `spacedName()` is GONE.** The tooltip's summon line resolves through a
 new `mobDisplayName()` in `client-data/Mobs.ts` — the served `/mobs`
