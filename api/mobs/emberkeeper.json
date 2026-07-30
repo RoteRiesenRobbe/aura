@@ -53,7 +53,6 @@
           },
           {
             "text": "A fire for my enemies.",
-            "blockedLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
             "grants": [
               {
                 "kind": "teach_skill",
@@ -65,7 +64,6 @@
           },
           {
             "text": "Everything you have.",
-            "blockedLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
             "grants": [
               {
                 "kind": "teach_skill",
@@ -77,7 +75,6 @@
           },
           {
             "text": "A servant of the flame.",
-            "blockedLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
             "grants": [
               {
                 "kind": "teach_skill",

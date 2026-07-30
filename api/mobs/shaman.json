@@ -65,7 +65,6 @@
         ],
         "options": [
           {
-            "blockedLine": "I see great potential in you! Come back later and I might have something for you.",
             "grants": [
               {
                 "kind": "teach_skill",

@@ -176,24 +176,38 @@ func (l *Ledger) Snapshot() []ProgressEntry {
 // immediately, so a veteran whose lifetime counters already satisfy the
 // objectives auto-completes on the spot (D3, the accepted consequence).
 func (l *Ledger) Accept(questID string) error {
-	if l.reg == nil {
-		return fmt.Errorf("no quest content loaded")
-	}
-	q, err := l.reg.Get(questID)
+	q, err := l.canAccept(questID)
 	if err != nil {
 		return err
 	}
 	p := l.progressOf(questID)
-	if p.Running {
-		return fmt.Errorf("quest %q is already running", questID)
-	}
-	if p.Completed && !q.Repeatable {
-		return fmt.Errorf("quest %q is completed and not repeatable", questID)
-	}
 	p.Running = true
 	p.Path = nil
 	l.enter(q, p, q.First())
 	return nil
+}
+
+// canAccept is Accept's whole judgement, extracted so CanApply and the op
+// cannot disagree (Q1 L3 — a second copy of "can the ledger take this?" is N1
+// in a new costume). ⚑ A pure read: it must not touch progressOf, which
+// creates the map entry it looks for — CanApply runs on the present path.
+func (l *Ledger) canAccept(questID string) (*QuestDefinition, error) {
+	if l.reg == nil {
+		return nil, fmt.Errorf("no quest content loaded")
+	}
+	q, err := l.reg.Get(questID)
+	if err != nil {
+		return nil, err
+	}
+	if p, ok := l.quests[questID]; ok {
+		if p.Running {
+			return nil, fmt.Errorf("quest %q is already running", questID)
+		}
+		if p.Completed && !q.Repeatable {
+			return nil, fmt.Errorf("quest %q is completed and not repeatable", questID)
+		}
+	}
+	return q, nil
 }
 
 // Abandon returns a running quest to not-started (D13): its stage path — and
@@ -211,34 +225,71 @@ func (l *Ledger) Abandon(questID string) error {
 
 // AdvanceDialogue walks one authored branch edge (D1/D9): the current stage
 // must be the named dialogue stage, and the destination one of the quest's
-// stages. This is the op behind C2's advance_quest rows; until then the QUEST
-// cheat drives it.
+// stages. This is the op behind C2's advance_quest rows; the QUEST cheat
+// drives it too.
 func (l *Ledger) AdvanceDialogue(questID, from, to string) error {
-	if l.reg == nil {
-		return fmt.Errorf("no quest content loaded")
-	}
-	q, err := l.reg.Get(questID)
+	q, p, toStage, err := l.canAdvanceDialogue(questID, from, to)
 	if err != nil {
 		return err
 	}
+	l.enter(q, p, toStage)
+	return nil
+}
+
+// canAdvanceDialogue is AdvanceDialogue's whole judgement, extracted for the
+// same L3 reason as canAccept, and a pure read like it.
+func (l *Ledger) canAdvanceDialogue(questID, from, to string) (*QuestDefinition, *Progress, *Stage, error) {
+	if l.reg == nil {
+		return nil, nil, nil, fmt.Errorf("no quest content loaded")
+	}
+	q, err := l.reg.Get(questID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	p, ok := l.quests[questID]
 	if !ok || !p.Running {
-		return fmt.Errorf("quest %q is not running", questID)
+		return nil, nil, nil, fmt.Errorf("quest %q is not running", questID)
 	}
 	current := p.Path[len(p.Path)-1]
 	if current != from {
-		return fmt.Errorf("quest %q is at stage %q, not %q", questID, current, from)
+		return nil, nil, nil, fmt.Errorf("quest %q is at stage %q, not %q", questID, current, from)
 	}
 	fromStage := q.Stage(from)
 	if len(fromStage.Objectives) > 0 {
-		return fmt.Errorf("quest %q stage %q is an objective stage; it advances off its counters", questID, from)
+		return nil, nil, nil, fmt.Errorf("quest %q stage %q is an objective stage; it advances off its counters", questID, from)
 	}
 	toStage := q.Stage(to)
 	if toStage == nil {
-		return fmt.Errorf("quest %q has no stage %q", questID, to)
+		return nil, nil, nil, fmt.Errorf("quest %q has no stage %q", questID, to)
 	}
-	l.enter(q, p, toStage)
-	return nil
+	return q, p, toStage, nil
+}
+
+// CanApply reports whether a quest row's ledger op would succeed right now —
+// the quest-row show-rule (plan-conversation-journal.md Q1 §4.1 ②): present()
+// shows an offer_quest or advance_quest row iff this says so, which is what
+// makes an Accept row vanish once taken while its sibling questions stay.
+//
+// It is D17's existing already-known rule applied to a second grant kind, and
+// deliberately the SAME code path the mutating ops run (L3): canAccept /
+// canAdvanceDialogue are their extracted judgements, so the row on screen and
+// the click's verdict cannot disagree.
+//
+// Nil-safe and fail-closed like MatchesStage — it runs on the present path.
+func (l *Ledger) CanApply(g *mobs.InteractionGrant) bool {
+	if l == nil {
+		return false
+	}
+	switch g.Kind {
+	case mobs.GrantOfferQuest:
+		_, err := l.canAccept(g.Quest)
+		return err == nil
+	case mobs.GrantAdvanceQuest:
+		_, _, _, err := l.canAdvanceDialogue(g.Quest, g.FromStage, g.ToStage)
+		return err == nil
+	default:
+		return false
+	}
 }
 
 func (l *Ledger) progressOf(questID string) *Progress {

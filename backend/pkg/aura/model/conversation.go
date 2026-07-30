@@ -66,11 +66,12 @@ type ConversationOption struct {
 	// omitted entirely rather than locked.
 	Locked        bool
 	RequiredLevel uint8
-	// Reply is what the actor says when this row is taken: the grant's line, or
-	// the option's blockedLine while locked. ⚑ Carried in the tree so the panel
-	// answers on click with no round-trip, which makes it optimistic by design
-	// (L24) — correct only because the row's state was computed by the same
-	// server from the same spellbook, and nothing but this player's own action
-	// changes it.
+	// Reply is what the actor says when this row is taken: the grant's line.
+	// Empty on a locked row — a locked row is inert and says nothing (Q1/R1);
+	// the greying and the named wall are the message. ⚑ Carried in the tree so
+	// the panel answers on click with no round-trip, which makes it optimistic
+	// by design (L24) — correct only because the row's state was computed by the
+	// same server from the same spellbook, and nothing but this player's own
+	// action changes it.
 	Reply string
 }

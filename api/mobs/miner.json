@@ -54,7 +54,6 @@
         ],
         "options": [
           {
-            "blockedLine": "Careful! The tunnel is dark and dangerous.",
             "grants": [
               {
                 "kind": "teach_skill",

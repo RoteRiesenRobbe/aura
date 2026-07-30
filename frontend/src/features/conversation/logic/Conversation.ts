@@ -158,17 +158,31 @@ function render() {
         li.appendChild(label);
 
         // D20: name the wall on a locked row, so the panel reads as a signpost
-        // ("come back at 7") rather than as something broken.
+        // ("come back at 7") rather than as something broken. Q1/R1: that IS
+        // the whole answer — a locked row gets no handler, so clicking it does
+        // nothing (model.take() guards the same way, the belt to this braces).
         if (row.locked) {
             const wall = document.createElement('span');
             wall.className = 'conversationWall';
             wall.textContent = `level ${row.requiredLevel}`;
             li.appendChild(wall);
+        } else {
+            li.addEventListener('pointerdown', () => take(row));
         }
-
-        li.addEventListener('pointerdown', () => take(row));
         return li;
     });
+
+    // The synthetic "Leave." row (Q1 §4.3): last, only at root, doing exactly
+    // what ✕ does. It is not a server row — no indices, and its handler is
+    // leave(), never take(): leave() mutates nothing and waits for the server
+    // to drop the tree, which is the one close path.
+    if (view.showLeave) {
+        const li = document.createElement('li');
+        li.className = 'conversationLeaveRow';
+        li.textContent = 'Leave.';
+        li.addEventListener('pointerdown', leave);
+        items.push(li);
+    }
     rowsElement.replaceChildren(...items);
 
     // Back and Leave are automatic, never authored (D15) — content carries only

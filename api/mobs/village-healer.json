@@ -29,7 +29,6 @@
         ],
         "options": [
           {
-            "blockedLine": "I see you have a long way ahead of you. But I also see much potential. Come back later.",
             "grants": [
               {
                 "kind": "teach_skill",

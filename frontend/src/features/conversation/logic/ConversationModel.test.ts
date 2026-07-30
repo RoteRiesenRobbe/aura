@@ -106,16 +106,39 @@ describe('ConversationModel', () => {
         expect(m.currentNodeId()).toBe('teachings');
     });
 
-    it('speaks a locked row refusal and stays put', () => {
+    // Q1/R1 (plan-conversation-journal.md): a locked row is INERT. The greying
+    // and the named wall are the whole message — taking one speaks nothing,
+    // navigates nowhere, and must not be sent (the server refuses it silently).
+    // The fixture row deliberately carries a stale reply to prove it is the
+    // GUARD that silences it, not an empty string.
+    it('treats a locked row as inert', () => {
         const m = new ConversationModel();
         m.update(tree());
-        m.take(m.view()!.rows[0]);
+        m.take(m.view()!.rows[0]); // to "teachings"
+        const before = JSON.stringify(m.view());
 
         const taken = m.take(m.view()!.rows[1]); // "Immolate", locked
 
         expect(taken.locked).toBe(true);
-        expect(m.view()?.lines).toEqual(["Fire doesn't suffer the careless."]);
+        expect(JSON.stringify(m.view())).toBe(before);
+        expect(m.view()?.lines).toEqual(['What would you have of the flame?']);
         expect(m.currentNodeId()).toBe('teachings');
+    });
+
+    // Q1 §4.3: the synthetic "Leave." row renders last, ONLY at root — where
+    // Back is absent. The view says when, so the DOM half stays logic-free.
+    it('shows Leave exactly where Back is absent', () => {
+        const m = new ConversationModel();
+        m.update(tree());
+        expect(m.view()?.showLeave).toBe(true);
+        expect(m.view()?.canGoBack).toBe(false);
+
+        m.take(m.view()!.rows[0]); // to "teachings"
+        expect(m.view()?.showLeave).toBe(false);
+        expect(m.view()?.canGoBack).toBe(true);
+
+        m.back();
+        expect(m.view()?.showLeave).toBe(true);
     });
 
     // N1's client half (plan-quests.md C0): take() used to set spokenReply and

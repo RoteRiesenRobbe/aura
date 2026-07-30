@@ -606,10 +606,13 @@
 
 	// The only scrolling region. min-height: 0 is required or a flex child
 	// refuses to shrink below its content and the panel overflows instead.
+	// The right padding keeps text off the scrollbar the moment one appears
+	// (Q1 ⑤ — measured flush at 0px before).
 	> .conversationBody {
 		flex: 1 1 auto;
 		min-height: 0;
 		overflow-y: auto;
+		padding-right: 0.8rem;
 	}
 
 	.conversationLines {
@@ -633,15 +636,28 @@
 			}
 
 			// D20: a row the player is too low for is SHOWN, greyed, with the
-			// wall named — each NPC becomes a signpost for progression. It stays
-			// clickable on purpose: the actor answers with its authored refusal.
+			// wall named — each NPC becomes a signpost for progression. It is
+			// INERT (Q1/R1): no handler, no hover invitation — the greying and
+			// the named wall are the whole answer.
 			&.locked {
 				color: fade(white, 35%);
+				cursor: default;
+
+				&:hover {
+					background: none;
+				}
 
 				> .conversationWall {
 					float: right;
 					font-size: @panel-title-size;
 				}
+			}
+
+			// The synthetic "Leave." row (Q1 §4.3): rendered last, only at the
+			// root, doing exactly what ✕ does. Styled like the Back footer so it
+			// reads as an exit, not as one of the actor's offers.
+			&.conversationLeaveRow {
+				color: @panel-title-color;
 			}
 		}
 	}
@@ -1216,12 +1232,14 @@
 	}
 
 	// The only scrolling region. min-height: 0 or the flex child refuses to
-	// shrink below its content and the panel overflows instead.
+	// shrink below its content and the panel overflows instead. The right
+	// padding keeps text off the scrollbar the moment one appears (Q1 ⑤).
 	> .journalBody {
 		flex: 1 1 auto;
 		min-height: 0;
 		overflow-y: auto;
 		padding-top: 1rem;
+		padding-right: 0.8rem;
 
 		.journalStatus {
 			color: @panel-title-color;

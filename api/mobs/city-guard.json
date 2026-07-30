@@ -65,7 +65,6 @@
         ],
         "options": [
           {
-            "blockedLine": "The village needs help? Hmph. Did you even try to help?",
             "grants": [
               {
                 "kind": "teach_skill",

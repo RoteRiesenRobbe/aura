@@ -436,3 +436,129 @@ func TestNotifier_UnsetIsHarmless(t *testing.T) {
 	l := testLedger(t, cullQuest())
 	assert.NotPanics(t, func() { require.NoError(t, l.Accept("wolf-cull")) })
 }
+
+// --- CanApply: the quest-row show-rule (plan-conversation-journal.md Q1 §4.1 ②) ---
+
+func offerGrantFor(quest string) *mobs.InteractionGrant {
+	return &mobs.InteractionGrant{Kind: mobs.GrantOfferQuest, Quest: quest}
+}
+
+func advanceGrantFor(quest, from, to string) *mobs.InteractionGrant {
+	return &mobs.InteractionGrant{Kind: mobs.GrantAdvanceQuest, Quest: quest, FromStage: from, ToStage: to}
+}
+
+// ⭐ R1's headline: an Accept row disappears the moment the quest is running,
+// and comes back when an abandon returns it to not-started.
+func TestLedger_CanApplyOffer(t *testing.T) {
+	l := testLedger(t, branchQuest())
+	g := offerGrantFor("choice")
+
+	assert.True(t, l.CanApply(g), "not started → the offer row shows")
+
+	require.NoError(t, l.Accept("choice"))
+	assert.False(t, l.CanApply(g), "running → the offer row is gone")
+
+	require.NoError(t, l.Abandon("choice"))
+	assert.True(t, l.CanApply(g), "abandoned = not-started (D13), so the offer returns")
+
+	require.NoError(t, l.Accept("choice"))
+	require.NoError(t, l.AdvanceDialogue("choice", "choose", "a-end"))
+	assert.False(t, l.CanApply(g), "a finished one-shot is never re-offered")
+}
+
+func TestLedger_CanApplyOffer_RepeatableReturnsAfterCompletion(t *testing.T) {
+	q := branchQuest()
+	q.Repeatable = true
+	l := testLedger(t, q)
+	require.NoError(t, l.Accept("choice"))
+	require.NoError(t, l.AdvanceDialogue("choice", "choose", "a-end"))
+
+	assert.True(t, l.CanApply(offerGrantFor("choice")))
+}
+
+// The turn-in half: an advance_quest row shows exactly while its edge is
+// walkable — which is what makes a turn-in appear only when it can be taken.
+func TestLedger_CanApplyAdvance(t *testing.T) {
+	l := testLedger(t, cullQuest(), branchQuest())
+	edge := advanceGrantFor("choice", "choose", "a-end")
+
+	assert.False(t, l.CanApply(edge), "not running → no turn-in")
+
+	require.NoError(t, l.Accept("choice"))
+	assert.True(t, l.CanApply(edge), "standing on the dialogue stage → the row shows")
+	assert.False(t, l.CanApply(advanceGrantFor("choice", "a-end", "b-end")), "wrong from-stage")
+	assert.False(t, l.CanApply(advanceGrantFor("choice", "choose", "nowhere")), "destination must exist")
+
+	require.NoError(t, l.AdvanceDialogue("choice", "choose", "a-end"))
+	assert.False(t, l.CanApply(edge), "completed → the row is gone for good")
+
+	require.NoError(t, l.Accept("wolf-cull"))
+	assert.False(t, l.CanApply(advanceGrantFor("wolf-cull", "cull", "report")),
+		"an objective stage advances off its counters, never off a row")
+}
+
+func TestLedger_CanApplyFailsClosed(t *testing.T) {
+	var nilLedger *Ledger
+	assert.False(t, nilLedger.CanApply(offerGrantFor("choice")), "a nil ledger refuses rather than panics")
+
+	assert.False(t, NewLedger(nil).CanApply(offerGrantFor("choice")), "no quest content loaded")
+
+	l := testLedger(t, cullQuest())
+	assert.False(t, l.CanApply(offerGrantFor("no-such-quest")))
+	assert.False(t, l.CanApply(&mobs.InteractionGrant{Kind: mobs.GrantTeachSkill}),
+		"a non-quest kind is not this predicate's question")
+}
+
+// ⚑ CanApply runs on the PRESENT path, per tick per conversing player, so it
+// must be a pure read: Accept's progressOf() creates a map entry, and a
+// predicate that did the same would grow the ledger by looking at it.
+func TestLedger_CanApplyMutatesNothing(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	l.CanApply(offerGrantFor("wolf-cull"))
+	l.CanApply(advanceGrantFor("wolf-cull", "cull", "report"))
+	assert.Empty(t, l.quests, "no progress entry appears from being asked")
+	assert.Nil(t, l.Snapshot())
+}
+
+// ⚑ L3: the show-rule and the apply-rule must be ONE function. CanApply is
+// extracted FROM Accept/AdvanceDialogue, and this sweep is the pin: across
+// every quest state, what CanApply promises is exactly what the op does.
+func TestLedger_CanApplyAgreesWithTheOps(t *testing.T) {
+	states := map[string]func(t *testing.T, l *Ledger){
+		"untouched": func(t *testing.T, l *Ledger) {},
+		"running":   func(t *testing.T, l *Ledger) { require.NoError(t, l.Accept("choice")) },
+		"completed": func(t *testing.T, l *Ledger) {
+			require.NoError(t, l.Accept("choice"))
+			require.NoError(t, l.AdvanceDialogue("choice", "choose", "a-end"))
+		},
+		"abandoned": func(t *testing.T, l *Ledger) {
+			require.NoError(t, l.Accept("choice"))
+			require.NoError(t, l.Abandon("choice"))
+		},
+	}
+	grants := []*mobs.InteractionGrant{
+		offerGrantFor("choice"),
+		advanceGrantFor("choice", "choose", "a-end"),
+		advanceGrantFor("choice", "choose", "b-end"),
+	}
+
+	for name, setup := range states {
+		t.Run(name, func(t *testing.T) {
+			for _, g := range grants {
+				l := testLedger(t, branchQuest())
+				setup(t, l)
+				promised := l.CanApply(g)
+
+				var err error
+				switch g.Kind {
+				case mobs.GrantOfferQuest:
+					err = l.Accept(g.Quest)
+				case mobs.GrantAdvanceQuest:
+					err = l.AdvanceDialogue(g.Quest, g.FromStage, g.ToStage)
+				}
+				assert.Equal(t, promised, err == nil,
+					"state %q grant %+v: CanApply said %v but the op said %v", name, g, promised, err)
+			}
+		})
+	}
+}

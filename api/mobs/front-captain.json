@@ -30,7 +30,6 @@
         ],
         "options": [
           {
-            "blockedLine": "Careful, the Orc assault camp lies just south of here. This is no place for you yet — and when it is, remember: no blade touches the Orc Commander while his war banners stand.",
             "grants": [
               {
                 "kind": "teach_skill",

@@ -59,6 +59,12 @@ export interface ConversationView {
     rows: ConversationRow[];
     /** Whether a Back button belongs on screen (never authored — D15). */
     canGoBack: boolean;
+    /**
+     * Whether the synthetic "Leave." row belongs on screen: last, ONLY at the
+     * root, where Back is absent (Q1 §4.3). Its handler must call leave() —
+     * never take() — because it is not a server row and mutates nothing.
+     */
+    showLeave: boolean;
 }
 
 /**
@@ -147,6 +153,7 @@ export class ConversationModel {
             lines: this.replyLines(node),
             rows: node.rows,
             canGoBack: this.backStack.length > 0,
+            showLeave: this.backStack.length === 0,
         };
     }
 
@@ -167,6 +174,13 @@ export class ConversationModel {
      * I/O, which is what keeps it testable without a socket.
      */
     take(row: ConversationRow): ConversationRow {
+        // Q1/R1: a locked row is INERT. The server presents it with an empty
+        // reply and refuses the click silently; this guard is the client's half
+        // of that twin, so nothing is spoken and nothing navigates even if a
+        // stale tree carried a reply.
+        if (row.locked) {
+            return row;
+        }
         this.spokenReply = row.reply;
         this.replyLeadsNode = false;
         if (row.next && this.nodeById(row.next)) {

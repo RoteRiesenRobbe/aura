@@ -382,9 +382,10 @@ table ConversationOption {
   // entirely rather than locked.
   locked:bool = false;
   required_level:ubyte = 0;
-  // What the actor says when this row is taken: the grant's line, or the
-  // option's blockedLine while locked. ⚑ Carried in the tree so the panel can
-  // answer instantly, which makes it optimistic by design — see L24.
+  // What the actor says when this row is taken: the grant's line. Empty on a
+  // locked row — a locked row is inert and says nothing (Q1/R1). ⚑ Carried in
+  // the tree so the panel can answer instantly, which makes it optimistic by
+  // design — see L24.
   reply:string;
 }
 

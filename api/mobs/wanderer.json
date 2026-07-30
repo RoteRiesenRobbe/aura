@@ -35,7 +35,6 @@
           {"text": "Which way is safe?", "next": "roads"},
           {
             "text": "Teach me to find my way back.",
-            "blockedLine": "Are you sure you should be out here? Anyways, don't go further east.",
             "grants": [
               {
                 "kind": "teach_skill",
