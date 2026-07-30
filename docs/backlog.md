@@ -4021,7 +4021,7 @@ aura-gated harvest mobs yield an implicit quest schema *"without needing a
 dedicated one."* This entry therefore records a **standing design tension to be
 ruled on**, not a plan; a ruling *for* dedicated quests amends GDD §7/§8.
 
-> **✅ BUILT 2026-07-30 — `plan-quests.md` is complete and archived.** All six
+> **✅ BUILT 2026-07-30 — `plan-quests.md` is complete and archived** (C4 `395177e4`). All six
 > chunks (P, C1, C0, C2, C3, C4) shipped the same day: lifetime counters and a
 > per-character ledger that survives death, the dialogue vocabulary, the wire and
 > the `J` journal, and four authored quests — including `wolves-on-the-road`,

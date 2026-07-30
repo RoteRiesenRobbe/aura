@@ -966,7 +966,7 @@ system ships blind.
 > (offer/advance/turn-in grant kinds + lints) → wire + journal panel → first
 > authored quests incl. the two-NPC branch proof. Step 8 then persists
 > `quests` / `killCounts` / `talkedTo` per-character (plan §10).
-> **✅ COMPLETE 2026-07-30 — P → C1 → C0 → C2 → C3 → C4 all shipped in one day,
+> **✅ COMPLETE 2026-07-30 — P → C1 → C0 → C2 → C3 → C4 (`395177e4`) all shipped in one day,
 > and `plan-quests.md` is closed.** The world holds four authored quests
 > (`village-welcome` · `turnip-chore` · `wolves-on-the-road`, whose two turn-in
 > NPCs pay different rewards · `the-lost-lamp`), a `J` journal, and a live

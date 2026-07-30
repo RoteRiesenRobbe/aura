@@ -1,6 +1,6 @@
 # Plan: the quest system — journal-carried quests on the interaction container
 
-**Status: ✅ COMPLETE — chunk C4 DONE 2026-07-30 (ledger §15), the first four
+**Status: ✅ COMPLETE — chunk C4 DONE 2026-07-30 `395177e4` (ledger §15), the first four
 authored quests, and with it the whole plan. Prior: C3 ✅ `604f3f4d` (§14),
 C0 ✅ `2a3b137d` + C2 ✅ `2dc6973a` (§12/§13), C1 ✅ `d3b89328` (§11),
 prerequisite chunk P ✅ `d45ba07c`. Nothing here is open; the deferrals are
@@ -332,7 +332,7 @@ Sequencing per D12/D15: **P → C1→C2→C3→C4**, all **before step 8**. C0 w
 nominally independent filler, but shipped **immediately before C2 in the same
 session** — L1 is literal, and the both-ends N1 defect is exactly the shape of
 the turn-in rows C2 makes authorable. **P ✅ · C1 ✅ · C0 ✅ · C2 ✅ · C3 ✅ ·
-C4 ✅ — all six shipped 2026-07-30, and the plan is closed.**
+C4 ✅ `395177e4` — all six shipped 2026-07-30, and the plan is closed.**
 
 ## 9. Open questions (deliberately not ruled this session)
 
@@ -718,7 +718,7 @@ because the journal's title is already on the wire's other end and the banner is
 one sentence; ③ `J` sits in `Controls.handleFunctionKeys`, behind the same
 chat/console guards as Escape, so typing "journal" in chat cannot open it.
 
-## 15. Chunk C4 ledger — the first authored quests ✅ DONE 2026-07-30
+## 15. Chunk C4 ledger — the first authored quests ✅ DONE 2026-07-30 `395177e4`
 
 **Scope delivered as §8 priced it, and the shape of the diff is the result worth
 recording: four quest files, seven conversants' `interaction` blocks, one Go test
