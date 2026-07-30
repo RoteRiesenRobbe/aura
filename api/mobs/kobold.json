@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 hideout melee kobold (content pass C3, plan-content-zones12.md §4): individually weak swarm fighter — KoboldStab is small/fast (volley contrast partner). fleeBelowHealthRatio 0.25 = the first flee-at-low-HP combat mob (§10 coverage home). curveLevel 3: post-forest, pre-tunnel. Hoards shiny stuff — low-chance Lantern kill-drop, the zone's only Lantern source (§12 flag). Speed under the 0.7 PO ceiling for normal enemies. All values [PLACEHOLDER]",
+  "_comment": "Z1 hideout melee kobold (content pass C3, plan-content-zones12.md §4): individually weak swarm fighter — KoboldStab is small/fast (volley contrast partner). fleeBelowHealthRatio 0.25 = the first flee-at-low-HP combat mob (§10 coverage home). curveLevel 3: post-forest, pre-tunnel. Speed under the 0.7 PO ceiling for normal enemies. ⚑ The 5 % Lantern kill-drop was DELETED with conversation-journal Q4 (R3, 2026-07-30): Lantern's only source is now the-lost-lamp's turn-in row on the LamplessTraveller — a guaranteed reward instead of a coin-flip on the gate to the tunnel. All values [PLACEHOLDER]",
   "id": 21,
   "name": "Kobold",
   "type": "MOB",
@@ -28,8 +28,5 @@
       "skillName": "KoboldStab",
       "level": 1
     }
-  ],
-  "unlocks": [
-    { "skillName": "Lantern", "chance": 0.05 }
   ]
 }

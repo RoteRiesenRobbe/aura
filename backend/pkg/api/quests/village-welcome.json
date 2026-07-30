@@ -1,11 +1,11 @@
 {
-  "_comment": "plan-quests.md C4, quest 1 of 4 — the talk_to verb, and the quest that demonstrates D3's retroactive credit on purpose: almost every player has already spoken to the crier (he teaches the base Damage aura) and often the farmer too, so accepting this cascades straight to the report stage and the journal shows two entries at once. That is the accepted Gothic consequence of D3, and it is better met on a deliberately trivial errand than on a real one. Offered and turned in by the Hermit, who stands ~3 units from both targets. Reward: 150 XP (half of the level-1 requirement) and nothing else — this is the tutorial-shaped quest.",
+  "_comment": "plan-quests.md C4, quest 1 of 4 — the talk_to verb, and the quest that demonstrates D3's retroactive credit on purpose: a player who has already spoken to the farmer or the crier cascades straight to the report stage on accepting, and that is better met on a deliberately trivial errand than on a real one. Offered and turned in by the Hermit, who stands ~3 units from both targets. Reward: 150 XP (half of the level-1 requirement) and nothing else — this is the tutorial-shaped quest. Prose cut ≥50 % + tracker authored with conversation-journal Q4 (the 'north field' direction went with the cut — §15's invented-geography rule).",
   "id": "village-welcome",
   "title": "Faces of the Village",
   "stages": [
     {
       "id": "meet",
-      "journal": "The hermit says a stranger who knows nobody dies quicker than one who does. Two people worth the walk, by his reckoning: the farmer at the north field, and the crier who shouts himself hoarse in the square. I should speak with them both before I go anywhere at all.",
+      "journal": "Two people worth knowing, says the hermit: the farmer at his field and the crier in the square. Be seen by both.",
       "objectives": [
         { "kind": "talk_to", "npc": "Farmer" },
         { "kind": "talk_to", "npc": "TownCrier" }
@@ -14,11 +14,12 @@
     },
     {
       "id": "back",
-      "journal": "I have met the farmer and I have heard the crier. The hermit wanted to know how it went — he is sitting where he always sits, a little uphill of the fire."
+      "journal": "I have met the farmer and heard the crier. The hermit wanted to know how it went.",
+      "tracker": "Return to the hermit"
     },
     {
       "id": "known",
-      "journal": "The hermit heard me out, grunted, and said that was the whole of it: the village knows my face now, and out here a face is worth more than a sharp edge."
+      "journal": "The village knows my face now. Out here, the hermit says, that is worth more than a sharp edge."
     }
   ]
 }

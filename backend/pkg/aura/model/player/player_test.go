@@ -14,6 +14,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -471,6 +472,66 @@ func TestMilestoneUnlock_EmitsLevelReward(t *testing.T) {
 	require.Len(t, unlocksOf(p), 1, "one unlock for the level-2 milestone")
 	assert.Equal(t, uint64(defHealAura.ID), unlocksOf(p)[0].skillID)
 	assert.Equal(t, "Level 2 reward", unlocksOf(p)[0].source)
+}
+
+// fakeGame is the minimal model.Game New() needs. Embedding the interface
+// leaves the rest nil — a call panics, which is the tripwire if New starts
+// touching more of the game.
+type fakeGame struct {
+	model.Game
+	cfg cfg.GameConfig
+	reg skills.Registry
+}
+
+func (g *fakeGame) Config() *cfg.GameConfig { return &g.cfg }
+func (g *fakeGame) Skills() skills.Registry { return g.reg }
+func (g *fakeGame) Quests() quests.Registry { return nil }
+func (g *fakeGame) Ticks() uint64           { return 0 }
+
+// TestNew_AppliesLevel1MilestoneAtCreation pins the Q4 creation-time milestones
+// (plan-conversation-journal.md §4.6): a level-1 milestone is in the spellbook
+// the moment the character exists — applyMilestoneUnlocks had one call site
+// (AddExperience) so a level-1 entry could never fire. Discovery is SILENT:
+// there is no unlock event to announce (the character never existed without
+// it), and the respawn/reconnect paths overwrite the spellbook right after
+// New, so a banner here would flash "Level 1 reward" on every death.
+func TestNew_AppliesLevel1MilestoneAtCreation(t *testing.T) {
+	g := &fakeGame{reg: newStubRegistry(defDamageAura, defHarvest)}
+	g.cfg.PlayerConfig = cfg.PlayerConfig{LevelUpXPBase: 100, LevelUpXPGrowthFactor: 2.0, BaseHealth: 100}
+	g.cfg.MilestoneUnlocks = []skills.MilestoneUnlock{
+		{Level: 1, Skill: defDamageAura},
+		{Level: 7, Skill: defHealAura},
+	}
+	c := &fakePlayerClient{}
+
+	p := New(g, c, "fresh").(*player)
+
+	assert.True(t, p.skills.HasDiscovered(defDamageAura.ID),
+		"the level-1 milestone must be in the spellbook before the first tick")
+	assert.False(t, p.skills.HasDiscovered(defHealAura.ID),
+		"higher milestones stay level-up business")
+	assert.Empty(t, c.unlocks, "creation discovers silently — no banner")
+}
+
+// TestNew_CreationMilestonesRunTheRecipeCascade pins that the creation path
+// still ends in the recipe cascade (the uniform-discovery rule the old bare
+// ApplyRecipeCascade call in New existed for): a recipe keyed on a level-1
+// milestone fires at creation.
+func TestNew_CreationMilestonesRunTheRecipeCascade(t *testing.T) {
+	defWild := &skills.SkillDefinition{ID: 3, Name: "Wild", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
+	g := &fakeGame{reg: newStubRegistry(defDamageAura, defHarvest)}
+	g.cfg.PlayerConfig = cfg.PlayerConfig{LevelUpXPBase: 100, LevelUpXPGrowthFactor: 2.0, BaseHealth: 100}
+	g.cfg.MilestoneUnlocks = []skills.MilestoneUnlock{{Level: 1, Skill: defDamageAura}}
+	g.cfg.Recipes = &stubRecipeRegistry{recipes: []*skills.RecipeDefinition{{
+		ID:          1,
+		Result:      defWild,
+		Ingredients: []skills.RecipeIngredient{{Skill: defDamageAura, Level: 1}},
+	}}}
+
+	p := New(g, &fakePlayerClient{}, "fresh").(*player)
+
+	assert.True(t, p.skills.HasDiscovered(defWild.ID),
+		"a recipe satisfied by a creation milestone fires at creation")
 }
 
 // TestMilestoneUnlock_MultiLevelJumpAttributesEach pins that a multi-level XP

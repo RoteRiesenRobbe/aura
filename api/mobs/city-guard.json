@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Strong at the settlement gate. ⚑ QUESTS (plan-quests.md C4): the MILITIA leg of D9's branch — `wolves-on-the-road` carry_word → told_militia, rewarding Taunt (until now a RallyDrummer-only drop) + 400 XP. The Shaman carries the other leg, to a different stage with a different reward, and no code knows there is a choice. The existing Strong@L3 teaching is untouched: the turn-in row navigates back to root so it stays reachable.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Strong at the settlement gate. ⚑ QUESTS: the MILITIA leg of D9's branch — `wolves-on-the-road` carry_word → told_militia, rewarding Taunt + 400 XP; the Shaman carries the other leg to a different stage with a different reward, and no code knows there is a choice. ⚑ Q4 SHAPE (conversation-journal §4.6, R1): the turn-in is a row directly at root — the quest is not his, so there is no quest node; the Q1 show-rule keeps the row invisible except at carry_word. The teaching is a named row; the front is a lore answer-node.",
   "id": 56,
   "name": "CityGuard",
   "type": "MOB",
@@ -23,16 +23,13 @@
     "range": 2.0,
     "nodes": [
       {
-        "id": "wolves_report",
-        "conditions": [
-          { "kind": "quest_at_stage", "quest": "wolves-on-the-road", "stage": "carry_word" }
-        ],
+        "id": "root",
         "lines": [
-          "Village business? Speak plainly, I've a gate to hold."
+          "Sorry, can't let you in — the orcs are too close."
         ],
         "options": [
           {
-            "text": "The wolves on the west road. Eight of them are dealt with.",
+            "text": "Word from the west road: eight wolves are dealt with.",
             "grants": [
               {
                 "kind": "advance_quest",
@@ -51,29 +48,26 @@
                 "xp": 400,
                 "line": "Stand up straight. You've done more for that road than the last three patrols."
               }
-            ],
-            "next": "root"
+            ]
           },
-          { "text": "Something else.", "next": "root" }
-        ]
-      },
-      {
-        "id": "root",
-        "lines": [
-          "Sorry, can't let you in, the Orcs are too close.",
-          "But maybe you can help out at the front in the south?"
-        ],
-        "options": [
           {
+            "text": "Teach me to stand like a soldier.",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Strong",
                 "requiredLevel": 3,
-                "line": "Wolves at the village? I will let the commander know. Let me teach you something for your trouble."
+                "line": "Strength is drilled, not wished for. Let me show you."
               }
             ]
-          }
+          },
+          { "text": "Where can I make myself useful?", "next": "front" }
+        ]
+      },
+      {
+        "id": "front",
+        "lines": [
+          "The front in the south wants every hand that can hold a line. Prove yourself there."
         ]
       }
     ]

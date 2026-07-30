@@ -119,10 +119,12 @@ func TestContent_EveryConversantSpeaks(t *testing.T) {
 	}
 }
 
-// D23: three NPCs are authored as real trees, and they are the ones the in-game
-// pass looks at. A pin, not a rule — but a rule would be wrong here, since the
-// other eleven are deliberately left flat to prove D17's auto-expansion renders
-// them with zero content work.
+// D23's three original authored trees, still the ones the in-game pass looks
+// at first. ⚑ Since conversation-journal Q4 EVERY conversant is authored to
+// R1's tree shape (greeting at root, teachings behind named rows, quests
+// behind their own rows) — the nameless multi-grant option D17 auto-expands is
+// no longer authored anywhere, so that presenter path is covered only by the
+// unit tests beside it.
 func TestContent_AuthoredTrees(t *testing.T) {
 	found := conversants(t)
 

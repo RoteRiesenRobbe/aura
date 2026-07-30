@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 hideout ranged kobold (content pass C3, plan-content-zones12.md §4): the uncapped-volley showcase — KoboldVolley hits EVERY valid target in its large radius on a slow tick (selector 'all', §10 coverage). Stands behind the melee line in the hideout block-out. Flees low HP like its melee kin; same low-chance Lantern drop. All values [PLACEHOLDER]",
+  "_comment": "Z1 hideout ranged kobold (content pass C3, plan-content-zones12.md §4): the uncapped-volley showcase — KoboldVolley hits EVERY valid target in its large radius on a slow tick (selector 'all', §10 coverage). Stands behind the melee line in the hideout block-out. Flees low HP like its melee kin. ⚑ The 5 % Lantern drop was DELETED with conversation-journal Q4 (R3, 2026-07-30) — see kobold.json; the quest is the aura's only source now. All values [PLACEHOLDER]",
   "id": 22,
   "name": "KoboldRanged",
   "type": "MOB",
@@ -28,8 +28,5 @@
       "skillName": "KoboldVolley",
       "level": 1
     }
-  ],
-  "unlocks": [
-    { "skillName": "Lantern", "chance": 0.05 }
   ]
 }

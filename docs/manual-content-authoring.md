@@ -509,15 +509,37 @@ stage on the spot. There is no opt-out flag yet, deliberately.
 stage pays nothing. The shape every authored quest uses is
 `objective stage → dialogue stage → terminal stage entered by a rewarding row`.
 
-### The rows
+**The journal's objective line** (conversation-journal Q2) is composed
+server-side from the current stage. An optional `tracker` string on the stage
+wins over the derived line, with `{n}/{m}` substituted live from the stage's
+first countable objective — it is the plural fix (`"3/8 wolves slain"` instead
+of the derived `"3/8 Wolf slain"`) and the ONLY way a dialogue stage gets a
+line at all (`"Return to the farmer"`), so author one on every non-terminal
+dialogue stage. The loader rejects `{n}/{m}` on a stage with nothing to count.
+
+### The rows — and the show-rule that replaced the old gating
+
+⚑ **A quest row is shown iff its ledger op would succeed** (Q1's show-rule):
+an `offer_quest` row vanishes the moment the quest is accepted, and a turn-in
+row appears exactly when its edge is walkable. So **quest rows need no
+`quest_at_stage` gates at all**, and since Q4 the content pattern is:
+
+- the NPC's **root** is an ordinary unconditional greeting with rows;
+- each quest sits **behind its own row** on root (`"Any issues around here?"`),
+  its brief as that quest node's text — written once, so it reads correctly
+  before and after acceptance (§4.6 of the plan);
+- the Accept row, the turn-in row and any follow-up question rows all live on
+  that one node; the show-rule sorts out which are visible. Grant rows author
+  no `next` — the player stays on the node and the grant's `line` is spoken;
+- an NPC turning in a quest that is not otherwise his (the wolves branch legs)
+  puts the turn-in row directly on root.
 
 ```json
 { "text": "I've spoken to them both.",
   "grants": [
     { "kind": "advance_quest", "quest": "village-welcome",
       "fromStage": "back", "toStage": "known", "line": "..." },
-    { "kind": "grant_xp", "xp": 150, "line": "..." } ],
-  "next": "root" }
+    { "kind": "grant_xp", "xp": 150, "line": "..." } ] }
 ```
 
 - A quest grant makes the whole option **one atomic row**, applied together —
@@ -528,26 +550,29 @@ stage pays nothing. The shape every authored quest uses is
   leaves the counters standing, so anything else is a loopable faucet.
 - A quest grant takes no `requiredLevel` — the stage graph is its gate.
 
-### Node conditions, and the two traps
+### Node conditions — for greetings now, not for quest plumbing
 
 Gate nodes with `quest_at_stage` (`{"quest", "stage"}`, where `stage` is a stage
 id or `not_started` / `completed`). Options have no conditions of their own; an
-option pointing at a hidden node is hidden with it.
+option pointing at a hidden node is hidden with it. Since the show-rule took
+over the rows, conditions are for **state-dependent greetings** only (the
+traveller greets differently once his quest is done).
 
 1. ⚑ **Conditional nodes must sit ABOVE the unconditional root** — the loader
    hard-fails otherwise (L3), because the greeting is the first node whose
-   conditions pass. The consequence is a feature: whenever a quest state is live
-   at an NPC, that state IS the greeting. **Give every quest node a row back to
-   `root`**, or the NPC's ordinary teachings are unreachable while a quest runs.
-2. ⚑ **A quest row's `next` must name a node that is visible BEFORE the row is
-   taken.** The destination is checked against the pre-op state, so pointing an
-   offer row at a node gated on "quest running" hides the row from itself. Point
-   it at the unconditional `root` — which also avoids the panel snapping when the
-   node it is standing on vanishes a tick later.
+   conditions pass. *(The C4-era corollary — quest-state nodes hijacking the
+   greeting, each needing a row back to `root` — is retired: quest nodes are
+   unconditional now and reached by a row, so Back covers the way out.)*
+2. ⚑ **If a row authors a `next`, it must name a node that is visible BEFORE
+   the row is taken.** The destination is checked against the pre-op state, so
+   pointing a row at a node gated on the state the row is about to create hides
+   the row from itself. Grant rows authoring no `next` (the Q4 convention)
+   sidestep this entirely.
 
-`api/mobs/hermit.json` (offer + running + turn-in on one NPC) and
-`api/mobs/miner.json` (a mid-quest, non-rewarding, non-terminal edge) are the
-worked examples; `api/quests/README.md` documents the file format itself.
+`api/mobs/hermit.json` (offer + turn-in + follow-up question on one quest node)
+and `api/mobs/lampless-traveller.json` (the same plus a conditional completed
+greeting) are the worked examples; `api/quests/README.md` documents the file
+format itself.
 
 ### Verify
 

@@ -423,15 +423,17 @@ if (!probeLoaded) {
   }
 }
 
-// --- half C: the Q2 counter — "n/8 Wolf slain" moves on real kills ----------
+// --- half C: the Q2 counter — "n/8 wolves slain" moves on real kills --------
 //
-// Independent of the probe quest: rides the SHIPPED wolves-on-the-road, whose
-// first stage is kill 8 Wolf with no authored tracker, so the line on screen is
-// the ledger's derived composition end to end. The count is read as a pattern,
-// never as a fixed number (verify rule 1/3) — lifetime counters mean a re-run
-// against an old character legitimately starts above 0. Since Q3 the line lives
-// in the detail pane, so the wolves quest must be SELECTED to read it — which
-// is what makes this half carry the row-click and close/reopen selection legs.
+// Independent of the probe quest: rides the SHIPPED wolves-on-the-road. ⚑
+// Since Q4 its kill stage authors the tracker "{n}/{m} wolves slain" (the
+// plural fix), so the line on screen is the AUTHORED override with the {n}/{m}
+// substitution live — which is exactly the half of Q2 the derived path could
+// not show. The count is read as a pattern, never as a fixed number (verify
+// rule 1/3) — lifetime counters mean a re-run against an old character
+// legitimately starts above 0. Since Q3 the line lives in the detail pane, so
+// the wolves quest must be SELECTED to read it — which is what makes this half
+// carry the row-click and close/reopen selection legs.
 
 const WOLVES_QUEST = 'wolves-on-the-road';
 const wolvesLoaded = Array.isArray(catalog.body) && catalog.body.some((q) => q.id === WOLVES_QUEST);
@@ -476,8 +478,8 @@ if (!wolvesLoaded) {
     `detail after reopen: "${(await journal())?.detail.title}"`);
 
   const startLine = lineOf(await journal());
-  const startCount = Number(/^(\d+)\/8 Wolf slain$/.exec(startLine)?.[1] ?? NaN);
-  check('the kill stage shows the derived "n/8 Wolf slain" line (Q2)',
+  const startCount = Number(/^(\d+)\/8 wolves slain$/.exec(startLine)?.[1] ?? NaN);
+  check('the kill stage shows the authored "{n}/{m} wolves slain" tracker, substituted (Q2/Q4)',
     Number.isInteger(startCount),
     `line "${startLine}"`);
 
@@ -500,10 +502,10 @@ if (!wolvesLoaded) {
       while (Date.now() < deadline) {
         const j = await journal();
         const line = lineOf(j);
-        const n = Number(/^(\d+)\/8 Wolf slain$/.exec(line)?.[1] ?? NaN);
+        const n = Number(/^(\d+)\/8 wolves slain$/.exec(line)?.[1] ?? NaN);
         if (Number.isInteger(n) && n > startCount) return { line, n };
-        // 8/8 advances the stage: the line leaves with it (dialogue stage, no
-        // tracker authored yet), and the second diary entry is the proof.
+        // 8/8 advances the stage: the counter line gives way to carry_word's
+        // authored tracker (Q4), and the second diary entry is the proof.
         if (entriesOf(j).length >= 2) return { line: '(stage advanced)', n: 8 };
         await page.evaluate(() => document.activeElement?.blur());
         await page.keyboard.down(keys[i++ % keys.length]);

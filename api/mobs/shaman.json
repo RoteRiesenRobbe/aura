@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Recover and SummonTotem. Shares the Hermit sprite (entityType override). ⚑ QUESTS (plan-quests.md C4): the SHAMAN leg of D9's branch — `wolves-on-the-road` carry_word → told_shaman, rewarding Slow (until now a BanditRanged-only drop) + 400 XP. The CityGuard carries the other leg, to a different stage with a different reward. He stands by the road at (18, 6), most of the map short of the city gate — that distance IS the trade the crier names.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Recover and SummonTotem. Shares the Hermit sprite (entityType override). ⚑ QUESTS: the SHAMAN leg of D9's branch — `wolves-on-the-road` carry_word → told_shaman, rewarding Slow + 400 XP. The CityGuard carries the other leg. He stands by the road at (18, 6), most of the map short of the city gate — that distance IS the trade the crier names. ⚑ Q4 SHAPE (conversation-journal §4.6, R1): the turn-in is a row directly at root — the quest is not his, so there is no quest node; the Q1 show-rule keeps the row invisible except at carry_word. Teachings behind one row as named one-grant rows.",
   "id": 59,
   "name": "Shaman",
   "type": "MOB",
@@ -24,16 +24,13 @@
     "range": 2.0,
     "nodes": [
       {
-        "id": "wolves_report",
-        "conditions": [
-          { "kind": "quest_at_stage", "quest": "wolves-on-the-road", "stage": "carry_word" }
-        ],
+        "id": "root",
         "lines": [
-          "You've the smell of the forest road on you, and it isn't the good half of it."
+          "Let nature guide you. But also be aware of nature. It's complicated."
         ],
         "options": [
           {
-            "text": "The wolves on the west road. Eight of them are dealt with.",
+            "text": "The wolves on the west road — eight of them are dealt with.",
             "grants": [
               {
                 "kind": "advance_quest",
@@ -52,26 +49,31 @@
                 "xp": 400,
                 "line": "You listened to the end. That is rarer than a dead wolf."
               }
-            ],
-            "next": "root"
+            ]
           },
-          { "text": "Something else.", "next": "root" }
+          { "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
-        "id": "root",
+        "id": "teachings",
         "lines": [
-          "Let nature guide you. But also be aware of nature. It's complicated."
+          "Nature gives to those who ask it properly. Ask."
         ],
         "options": [
           {
+            "text": "Mending.",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Recover",
                 "requiredLevel": 4,
                 "line": "Nature mends what it can. Breathe, and let this close your wounds."
-              },
+              }
+            ]
+          },
+          {
+            "text": "A totem to stand by me.",
+            "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "SummonTotem",

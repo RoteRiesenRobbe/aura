@@ -3,8 +3,10 @@
 Authored quest definitions, one file per quest (`plan-quests.md`). The first
 four shipped with chunk C4 (2026-07-30): `village-welcome` (talk_to),
 `turnip-chore` (harvest), `wolves-on-the-road` (kill, and the two-NPC branch),
-`the-lost-lamp` (a three-conversant chain). The loader skips non-`.json` files,
-which is what lets this README live here.
+`the-lost-lamp` (simplified to a two-conversant errand by conversation-journal
+Q4/R3 the same day — and load-bearing since then: its turn-in row is the only
+source of the Lantern aura). The loader skips non-`.json` files, which is what
+lets this README live here.
 
 ⚑ **This directory is shipped content — keep scratch files out of it.** Every
 `.json` here is loaded, and the mob loader next door registers every file in its
@@ -34,10 +36,15 @@ at boot.
     {
       "id": "cull",
       "journal": "Diary prose appended when this stage is entered.",
+      "tracker": "{n}/{m} wolves slain",
       "objectives": [{ "kind": "kill", "species": "Wolf", "count": 8 }],
       "next": "report"
     },
-    { "id": "report", "journal": "The deed stands. Someone should hear of it." }
+    {
+      "id": "report",
+      "journal": "The deed stands. Someone should hear of it.",
+      "tracker": "Return to whoever asked"
+    }
   ]
 }
 ```
@@ -45,3 +52,9 @@ at boot.
 Thresholds are **lifetime totals** (retroactive credit, D3/L7): `"count": 8`
 means "has ever killed 8", not "kills 8 more". A `repeatable` flag exists but
 nothing may author it yet (D6).
+
+`tracker` (conversation-journal Q2) overrides the server-derived journal
+objective line; `{n}/{m}` substitutes the stage's first countable objective and
+is rejected on stages with nothing to count. A non-terminal **dialogue** stage
+has no derivable line at all, so authoring a tracker on it is what keeps the
+journal from going silent between the deed and the turn-in.

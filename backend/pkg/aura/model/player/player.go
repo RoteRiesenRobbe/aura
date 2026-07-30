@@ -61,10 +61,12 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.milestoneUnlocks = g.Config().MilestoneUnlocks
 	p.recipes = g.Config().Recipes
 	p.adoptQuestLedger(quests.NewLedger(g.Quests()))
-	// A fresh spawn only has Harvest at level 1, but run the cascade anyway
-	// so a starter recipe keyed on that would still fire — keeps discovery paths
-	// uniform.
-	p.ApplyRecipeCascade()
+	// A fresh spawn starts at level 1 with an otherwise-empty spellbook
+	// (triage item 11) — everything beyond the level-1 milestones (Damage, Q4)
+	// comes through the discovery paths. The seeding ends in the recipe
+	// cascade, so this is also the uniform-discovery call the bare cascade
+	// used to be.
+	p.applyCreationMilestones()
 
 	//--- setup vital signs
 	p.PlayerVitalSigns.Health = p.MaxHealth() // absolute HP (item 11 Phase 1)
@@ -811,6 +813,21 @@ func (p *player) LevelProgressXP() (gained, required uint64) {
 		gained = required
 	}
 	return gained, required
+}
+
+// applyCreationMilestones seeds the spellbook with every level-1 milestone
+// (Q4: Damage — the free baseline, GDD §3) and runs the recipe cascade.
+// Deliberately SILENT, unlike the level-up path: there is no unlock event to
+// announce — the character never existed without these — and the respawn/
+// reconnect paths overwrite the spellbook right after New, so a SendUnlock
+// here would flash "Level 1 reward" on every death.
+func (p *player) applyCreationMilestones() {
+	for _, u := range p.milestoneUnlocks {
+		if u.Level <= 1 && !p.skills.HasDiscovered(u.Skill.ID) {
+			p.skills.Discover(u.Skill.ID)
+		}
+	}
+	p.ApplyRecipeCascade()
 }
 
 // applyMilestoneUnlocks discovers any skills whose unlock level falls in [from, to].

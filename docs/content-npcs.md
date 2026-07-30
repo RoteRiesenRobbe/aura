@@ -8,6 +8,12 @@ an ordinary actor carrying an `interaction` block on its mob definition —
 `model/npc` was deleted by entity-model chunk 3a, and teach-on-approach was
 reversed by 3b-i (talking is a verb the player performs, on `E`). Branching
 dialogue shipped with 3b-ii; quest rows on top of it with `plan-quests.md` C2/C4.
+**Since conversation-journal Q4 (2026-07-30) every conversant is authored to
+R1's tree shape:** the greeting at root, teachings behind named rows, each quest
+behind its own row with its brief as that node's text. Quest rows carry no
+`quest_at_stage` gate — a row is shown iff its ledger op would succeed (the Q1
+show-rule) — and the `tooLowLine`/`blockedLine` mechanism is GONE (Q1): a
+locked row greys inert with its level wall named, and says nothing.
 
 > Teaching lists here are design intent. The **generated** truth for who
 > teaches what at which level is `content-skill-inventory.md`; runtime
@@ -15,8 +21,8 @@ dialogue shipped with 3b-ii; quest rows on top of it with `plan-quests.md` C2/C4
 
 | NPC | Status | Place (intent) | Teaches / role | Notes |
 |---|---|---|---|---|
-| Town crier | in-game *(C8 Session ⑦)* | Zone 1, village centre | Teaches **Damage** then **Recall**; idle line sends the player east to the militia. | The village-arrival intro anchor — the player's first ability comes from here (PO-verified 2026-07-21: "the intro feels much better now"). Sprite `entityType: "TownCrier"`. |
-| Farmer | in-game *(C1)* | Zone 1, farm field south of the village | Teaches **Harvest**; `tooLowLine` ("pull some turnips for me first"); idle line sends the player east. | The peasant onboarding anchor (GDD §5 as amended in C1) + first harvest-mob loop (GDD §8). Harvest is *taught*, not granted — players spawn with an empty spellbook. |
+| Town crier | in-game *(C8 Session ⑦)* | Zone 1, village centre | Teaches **Recall**; ambient call-outs; offers `wolves-on-the-road`. | The village-arrival intro anchor. ⚑ Taught **Damage** until conversation-journal Q4 (2026-07-30): Damage is now a **level-1 milestone seeded at character creation**, so a peasant can always fight before meeting anyone. Sprite `entityType: "TownCrier"`. |
+| Farmer | in-game *(C1)* | Zone 1, farm field south of the village | Teaches **Harvest**; offers and turns in `turnip-chore`. | The peasant onboarding anchor (GDD §5 as amended in C1) + first harvest-mob loop (GDD §8). Harvest is *taught*, not granted — a fresh spellbook holds exactly the level-1 milestone (Damage, Q4). |
 | Village hermit | in-game *(C8 Session ⑦)* | Zone 1, inside the village | Teaches **FirstAid** then the **Heal** aura. | The healer hermit moved into the village in Session ⑦. Teaching FirstAid here is why it left the milestone table (2026-07-21) — the milestone granted it *later* than this NPC does, making the milestone dead weight. |
 | Forest hermit | in-game *(C2)* | Zone 1, dark forest, deep NW pocket | Plain teaching **Torch** ("Oh, all alone out here? Here, take this."); idle lore line about carrying your own light. | No level gate (PO 2026-07-17) — surviving the walk-in is the gate; the mandatory `tooLowLine` field is flavor-only. Sprite `entityType: "Hermit"`. |
 | Dog | in-game *(C2)* | Zone 1, mid-forest clearing | Says **"Woof."**; plain teaching **SummonCompanion** (teach line "Woof!"). | The player-companion showcase; sprite `entityType: "DogNpc"`, the summoned companion reuses the dog look. |
@@ -24,7 +30,7 @@ dialogue shipped with 3b-ii; quest rows on top of it with `plan-quests.md` C2/C4
 | Shaman | in-game | Zone 2 approach | Teaches **SummonTotem**. | The totem line's world source. |
 | Emberkeeper | in-game | Zone 2, north | Teaches the whole fire line in order: **Torch**, then **Ignite**, then **Immolate**. | The fire-identity ladder in one NPC — and the reason Ignite/Immolate are no longer cheat-only (both are Wildfire ingredients). |
 | Village healer | in-game *(C4; purpose settled since)* | Zone 2 village, by the campfire | Teaches **Revive** — the group-support capstone. | Was placed lore-only in C4 as a spot reservation with its purpose left open (§11); that question is now closed — it is the world source for Revive, which was previously proving-grounds-only. Sprite `entityType: "VillageHealer"`. |
-| Front captain ("FrontCaptain") | in-game *(C5)* | Zone 2, front staging area east of the checkpoint | **Level-gated teaching Vanguard** (the Front-Aura, §A): tooLowLine "The front is no place for you yet…" below the anchor; teach line "Take the Vanguard: hold the line, and the line holds you." Idle lore: the orcs hold the south passage. | The story-spine beat 6 NPC — first REAL TooLowLine gate in content. The anchor level = the journey's final step in v1 (PO 2026-07-18; closes the §11 level-anchor item). Sprite `entityType: "FrontCaptain"`. |
+| Front captain ("FrontCaptain") | in-game *(C5)* | Zone 2, front staging area east of the checkpoint | **Level-gated teaching Vanguard** (the Front-Aura, §A); war-banner briefing behind a lore row. Idle lore: the orcs hold the south passage. | The story-spine beat 6 NPC — historically the first real refusal-line gate in content (that mechanism died in Q1; the row greys inert now). The anchor level = the journey's final step in v1 (PO 2026-07-18; closes the §11 level-anchor item). Sprite `entityType: "FrontCaptain"`. |
 | City guard | in-game *(C4)* | Zone 2, before the City Gates wall | Lore-only (no teachings): gates shut while the front burns; quest-completion line ("I'll pass word inside"); points the player south to the army. | The story-spine beat 5 NPC (plan-content-zones12 §3) + Zone 3 teaser. Sprite `entityType: "CityGuard"`. |
 | Forest signpost ("ForestSign") | in-game *(C2)* | Zone 1, dark-forest south entrance | Lore-only clue: "Something big prowls the dark forest." (→ Elite Wolf, plan-content-zones12.md §8). | First NPC with an authored sprite — zone-JSON `entityType: "Signpost"` (C2 NPC-sprite lift). |
 | Wanderer / Traveller | in-game *(C8 Session ⑥)* | Zone 1–2 roads, ambient | Lore-only flavor; the "LamplessTraveller" variant seeds the light beat. | Ambient world-population pass (EntityType 63/64). PO places them in the editor. |
@@ -47,8 +53,7 @@ live in the NPCs' `interaction` blocks and are served by nothing.
 | Farmer | `village-welcome` | a talk_to target |
 | Farmer | `turnip-chore` | offers and turns in; the offer row navigates to the node where he teaches **Harvest**, the aura the objective needs |
 | Town crier | `village-welcome` | a talk_to target |
-| Town crier | `wolves-on-the-road` | offers it, and turns in **nothing** — his `carry_word` node is where the player learns there is a choice at all |
+| Town crier | `wolves-on-the-road` | offers it, and turns in **nothing** — his quest node's brief is where the player learns there is a choice at all |
 | City guard | `wolves-on-the-road` | **branch leg A** → `told_militia`, rewards **Taunt** + 400 XP |
 | Shaman | `wolves-on-the-road` | **branch leg B** → `told_shaman`, rewards **Slow** + 400 XP |
-| Lampless traveller | `the-lost-lamp` | offers and turns in; rewards **Lantern** + 700 XP |
-| Miner | `the-lost-lamp` | the middle of the chain — the game's only **non-terminal** `advance_quest` row, and it may carry no reward (L10) |
+| Lampless traveller | `the-lost-lamp` ("The Traveller's Lamp") | offers and turns in the simple three-stage version (Q4/R3); rewards **Lantern** + 700 XP — ⚑ the turn-in row is the aura's **only source in the world** (L5b; the kobold drops died with Q4) |

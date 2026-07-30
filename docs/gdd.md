@@ -401,10 +401,21 @@ must be combat-gated first (§3).
 New characters begin as a "poor peasant" holding a **mundane utility aura** (e.g. *Harvest*, *Molehill-Close*) — not a combat aura.
 
 - The utility aura is *mechanically* a damage aura with a **unique tag**; the passive chore-mobs it works on (turnips, molehills — stationary harvest-mobs, see section 8) **resist every tag except that one**. So the gate is fully **deterministic** (the tag-resist system, item 11 Phase 2): the peasant aura pops chores and does *nothing* to wolves, and — conversely — a combat Damage Aura does *nothing* to chores.
-- "Defeating" chore-mobs yields **XP only** (no drops — this resolves the turnip / "no item drops" tension: chores are harvest-mobs). At **level 2 [PLACEHOLDER] the Farmer teaches the Damage Aura** (plus Recall), at which point the player can fight wolves — mobs that fight back. The farmer-taught Damage Aura thus stays a *genuine narrative unlock*, not a spawn freebie. *(Amended in the content pass, step 6 C1 — this was originally a level-1 milestone; the teaching beat replaces it per `plan-content-zones12.md` §3.)*
+- "Defeating" chore-mobs yields **XP only** (no drops — this resolves the turnip / "no item drops" tension: chores are harvest-mobs). *(Amended twice: step 6 C1 moved the Damage aura from a level-1 milestone to a taught beat; **conversation-journal Q4 (2026-07-30) moved it back** — Damage is a level-1 milestone seeded silently at character creation, per the round-6 free-baseline ruling in §3: there must never be no combat option. The peasant flavour survives in the content — Harvest is still the Farmer's taught chore gate — but fighting is possible from the first tick.)*
 - **Generalizes to per-race / per-start-area variation:** a different starting utility aura + chore-mob + start location per race (see `backlog.md`, Races). This onboarding is the mechanical seed for that, not a bolt-on.
 
-> **Dev note (flipped in step 6 C1):** new players now spawn with exactly Harvest (né Turnip-Pull, renamed C2 Part 2) — equipped but NOT active (activating it is the player's first act, PO 2026-07-17); the Damage Aura rides the Farmer's ordered teachings @L2. The chore gate is mechanically **opt-in damage** (`gatedDamageTags`): the utility aura only damages targets whose resistances explicitly name its tag — so turnips (and later bramble walls) opt in, and every combat mob is immune with zero per-mob authoring (`manual-content-authoring.md` §1).
+> **Dev note (current since conversation-journal Q4, 2026-07-30):** a new
+> player's spellbook holds exactly **Damage** — the level-1 milestone, seeded
+> silently at character creation (nothing equipped; equipping and activating
+> stay the player's first acts). Harvest is the Farmer's taught chore gate
+> (@L1), and the TownCrier no longer teaches Damage. *(History: triage item 11
+> made the spawn truly empty; step 6 C1 had Harvest as the spawn skill with
+> Damage on the Farmer @L2; C8 moved Damage to the TownCrier @L1; Q4 made it
+> the creation milestone.)* The chore gate is mechanically **opt-in damage**
+> (`gatedDamageTags`): the utility aura only damages targets whose resistances
+> explicitly name its tag — so turnips (and later bramble walls) opt in, and
+> every combat mob is immune with zero per-mob authoring
+> (`manual-content-authoring.md` §1).
 
 ### Milestone Unlocks
 

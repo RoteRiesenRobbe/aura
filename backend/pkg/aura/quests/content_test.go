@@ -6,11 +6,13 @@ package quests
 // harness is where a quest is actually walked in a browser. What lives here is
 // what the harness cannot see cheaply and what would rot silently: that every
 // authored quest is REACHABLE and CONSISTENT with the rows scattered across
-// seven conversants' interaction blocks, and that the four shapes C4 exists to
-// prove are still authored — all three first-pass verbs, D9's two-turn-in
-// branch, the one non-terminal dialogue edge, and the XP budget (L9: the band
-// lock has no runtime existence, so an authored amount is only ever as correct
-// as somebody's memory of it).
+// the conversants' interaction blocks, and that the shapes the first pass
+// exists to prove are still authored — all three first-pass verbs, D9's
+// two-turn-in branch, and the XP budget (L9: the band lock has no runtime
+// existence, so an authored amount is only ever as correct as somebody's
+// memory of it). The non-terminal dialogue edge left content with Q4 (§7 q3,
+// PO 2026-07-30): the Miner's lamp leg was dropped, so the derivation's
+// non-terminal direction lives only in the ledger's fixture tests now.
 //
 // ⚑ It reads the EMBEDDED content (pkg/api/...), which `make cp-defs` syncs from
 // api/. A quest edited in api/ and not copied fails here, which is the intended
@@ -63,7 +65,7 @@ var expectedQuests = map[string]string{
 	"village-welcome":    "Faces of the Village",
 	"turnip-chore":       "The Turnip Row",
 	"wolves-on-the-road": "Wolves on the Road",
-	"the-lost-lamp":      "The Lost Lamp",
+	"the-lost-lamp":      "The Traveller's Lamp", // retitled with Q4/R3 — nothing is lost any more
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -169,23 +171,47 @@ func TestContent_TheWolfQuestBranchesToTwoTurnInsWithDifferentRewards(t *testing
 	}
 }
 
-// The one edge in the first pass that advances a quest WITHOUT ending it: the
-// Miner pointing the way to the kobold den. Terminality is derived rather than
-// authored (C1 shape decision ①), so this is the only content that exercises the
-// derivation — and it is exercised in the direction that matters, since a stage
-// wrongly read as terminal would complete the quest three stages early.
-func TestContent_TheLampChainHasANonTerminalDialogueEdge(t *testing.T) {
-	_, qr := contentRegistries(t)
+// ⚑ L5b (conversation-journal Q4/R3): Lantern is QUEST-ONLY. The 5 % kobold
+// drops were deleted with Q4, so the traveller's turn-in row on the-lost-lamp
+// is the aura's SINGLE source — and Lantern is the light the zone-1/2 tunnel
+// is designed around. This is the reachability guarantee
+// content-skill-inventory.md states in prose and nothing else enforces: a
+// content edit that loses the row (or quietly re-adds a drop) changes an
+// authored decision, and this test is where it says so.
+func TestContent_LanternIsQuestOnlyAndHasASource(t *testing.T) {
+	mr, _ := contentRegistries(t)
 
-	q, err := qr.Get("the-lost-lamp")
-	require.NoError(t, err)
-
-	mid := q.Stage("ask_miner")
-	require.NotNil(t, mid)
-	assert.Empty(t, mid.Objectives, "it is a dialogue stage: it waits for a row, not for a counter")
-	assert.False(t, q.IsTerminal(mid), "a row advances out of it, so entering it must NOT complete the quest")
-
-	assert.True(t, q.IsTerminal(q.Stage("lit")), "and the real end still ends it")
+	var sources []string
+	for _, def := range mr.Mobs() {
+		for _, u := range def.Unlocks {
+			assert.NotEqual(t, "Lantern", u.Skill.Name,
+				"%s: the Lantern kill-drop was deleted with Q4 (R3) — the quest is the only source", def.Name)
+		}
+		if def.Interaction == nil {
+			continue
+		}
+		for _, node := range def.Interaction.Nodes {
+			for _, opt := range node.Options {
+				turnInOf := ""
+				teachesLantern := false
+				for _, g := range opt.Grants {
+					switch {
+					case g.Kind == mobs.GrantAdvanceQuest:
+						turnInOf = g.Quest
+					case g.Kind == mobs.GrantTeachSkill && g.Skill.Name == "Lantern":
+						teachesLantern = true
+					}
+				}
+				if teachesLantern {
+					sources = append(sources, def.Name)
+					assert.Equal(t, "the-lost-lamp", turnInOf,
+						"Lantern rides the lamp quest's turn-in row — a guaranteed reward, not a re-teach")
+				}
+			}
+		}
+	}
+	assert.Equal(t, []string{"LamplessTraveller"}, sources,
+		"exactly one row in the world grants Lantern")
 }
 
 // Every stage a quest defines can actually be walked into. An orphan stage is

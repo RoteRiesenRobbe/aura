@@ -30,8 +30,8 @@ grep -E '"msg":"(Loaded (skill|faction|mob|item|recipe|prop|quest) definitions|L
 ```
 
 Confirm each count went up by exactly what you added. The canonical good line to
-compare against (as of quest chunk C4, 2026-07-30) is
-`86 skills / 15 factions / 64 mobs / 10 recipes / 5 props / 1 milestone unlock / 4 quests`,
+compare against (as of conversation-journal Q4, 2026-07-30) is
+`86 skills / 15 factions / 64 mobs / 10 recipes / 5 props / 2 milestone unlocks / 4 quests`,
 plus the `Loaded zone` line's `props`/`spawns` (e.g. 620 / 185) and the
 `placed campfires` / `placed npcs` counts. Cross-check that the skill/recipe
 counts match the pins in `skills/registry_test.go` and `skills/recipe_test.go`
@@ -83,7 +83,7 @@ regression to everyone who ran it afterwards.
 | `chunk3b-interact.mjs` | the interact **verb**: who is offered, badge lifecycle, `E` opens/closes, the `E`→`R` rebind | the offer (`sense`, `interactable_entity_id`), `Interact`, the badge, cooldown keybinds |
 | `chunk3b-ii-conversation.mjs` | everything **inside** the panel: tree browsing, grants, level walls, refusals, Back/Leave, unlock banner, ambient lines, the Wanderer hold — ⚑ leg 7's long-flaky drift pin was **REPAIRED in quest C3 (2026-07-30)**: it pinned the actor *after* the panel opened, but the badge is suppressed for whoever the panel belongs to, so the pin silently fell back to "largest mover" (the camera, or a boar that left the viewport and froze at drift 0). It now pins while the badge is lit and reports INCONCLUSIVE rather than red if it cannot | conversation content or the panel UI |
 | `chunkC3-journal.mjs` | the **journal**: the `/quests` minimal projection, the ledger on `GameState`, J + the HUD button, the empty-vs-unavailable degrade, the D17 banners, abandon-by-click. Half B needs the probe quest documented in its header (`cp .claude/skills/verify/chunkC3-probe-quest.json api/quests/`, restart, then delete it) and SKIPs without it | quest wire/ledger, the journal panel, the quest catalog, `AbandonQuest` |
-| `chunkC4-quests.mjs` | the **authored quest content**: offer / advance / turn-in rows on the right conversants at the right ledger states, what a turn-in pays, and D9's two-NPC branch. Four legs; the wolf branch kills eight real wolves and goes INCONCLUSIVE rather than red if the hunt comes up short, and the lamp chain deliberately stops before the kobolds | `api/quests/*`, any conversant's `interaction` nodes, the quest grant kinds, `quest_at_stage` |
+| `chunkC4-quests.mjs` | the **authored quest content**: offer / advance / turn-in rows on the right conversants at the right ledger states, the R1 row lifecycle (Accept vanishes, turn-in appears), the authored Q2 trackers, what a turn-in pays, D9's two-NPC branch, and Damage-at-creation. Five legs; the wolf branch kills eight real wolves and goes INCONCLUSIVE rather than red if the hunt comes up short, and the lamp errand deliberately stops before the kobolds | `api/quests/*`, any conversant's `interaction` nodes, the quest grant kinds, the milestone table |
 | `npc-portraits.mjs` | NPC **presentation**: sprite size off the wire, health bars, nameplates absent | mob wire fields, NPC art, nameplate/health-bar gating |
 | `r4-badge.mjs` | the badge's **anchor** and its removal with the actor | any overlay hung on `Mob.shape`, or `EntityManager` removal |
 | `chunk2-roles.mjs` | the authored `role` discriminator; a structure's always-on aura | `mobs.ParseRole`, `applyMode`, structure behaviour |

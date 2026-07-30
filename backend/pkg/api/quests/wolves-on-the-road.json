@@ -1,25 +1,27 @@
 {
-  "_comment": "plan-quests.md C4, quest 3 of 4 — the kill verb, and D9's PROOF: one dialogue stage (carry_word) with TWO authored turn-in rows on two different NPCs, each walking to a DIFFERENT terminal stage with different diary prose and a different reward. The branch is pure content — no code knows there is a choice. Geographically it is also the trade: the Shaman's fire sits by the road at (18, 6), the city gate at (62, 10) is most of the map further east, and the crier names both so the player chooses with written directions and no marker (GDD 8). Rewards: 400 XP either way, plus Taunt (militia) or Slow (shaman) — both drop-only until now, so each leg is a real new source rather than a re-teach.",
+  "_comment": "plan-quests.md C4, quest 3 of 4 — the kill verb, and D9's PROOF: one dialogue stage (carry_word) with TWO authored turn-in rows on two different NPCs, each walking to a DIFFERENT terminal stage with different diary prose and a different reward. The branch is pure content — no code knows there is a choice. Geographically it is also the trade: the Shaman's fire sits by the road at (18, 6), the city gate at (62, 10) is most of the map further east, and the crier names both so the player chooses with written directions and no marker (GDD 8). Rewards: 400 XP either way, plus Taunt (militia) or Slow (shaman) — both drop-only before, so each leg is a real new source rather than a re-teach. Prose cut ≥50 % + trackers authored with conversation-journal Q4.",
   "id": "wolves-on-the-road",
   "title": "Wolves on the Road",
   "stages": [
     {
       "id": "thin",
-      "journal": "The crier has been shouting it for weeks: wolves out of the forest and onto the road, bolder every week. Eight of them thinned out, he says, and then word carried east — that is the whole of the errand.",
+      "journal": "Wolves on the road, bolder every week, says the crier. Eight of them thinned out, then word carried east — that is the whole of it.",
+      "tracker": "{n}/{m} wolves slain",
       "objectives": [{ "kind": "kill", "species": "Wolf", "count": 8 }],
       "next": "carry_word"
     },
     {
       "id": "carry_word",
-      "journal": "Eight wolves lie in the grass. Now somebody east of here has to hear of it. The crier said the militia at the city gate — but the road east passes a shaman's fire long before the gate, and by all accounts he keeps his own kind of watch."
+      "journal": "Eight wolves lie in the grass. Somebody east has to hear it: the militia at the city gate, or the shaman whose fire sits by the road well short of it.",
+      "tracker": "Carry word east — the city gate, or the shaman's fire"
     },
     {
       "id": "told_militia",
-      "journal": "The guard at the city gate wrote down every word and said the commander would hear it before nightfall. Soldiers do not thank you, they pay you: he showed me how a soldier makes a beast look at him and nothing else, so that the ones behind him can work."
+      "journal": "The guard wrote down every word. Soldiers do not thank you, they pay: he showed me how to make a beast look at me and nothing else."
     },
     {
       "id": "told_shaman",
-      "journal": "The shaman by the road heard me out and did not look surprised. Wolves leave a forest when something worse walks into it, he said, and I should remember that the next time somebody counts corpses and calls it solved. Then he showed me how to ask the grass to hold onto their legs."
+      "journal": "The shaman was not surprised. Wolves leave a forest when something worse walks in, he said. Then he showed me how to ask the grass to hold their legs."
     }
   ]
 }
