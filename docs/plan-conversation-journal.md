@@ -1,6 +1,6 @@
 # Plan: the conversation & journal pass — what the quest pass surfaced
 
-**Status: Q1 ✅ DONE 2026-07-30 `d23670d7` · Q2 ✅ DONE 2026-07-30 `1dfb57d8` (ledgers §6) · Q3–Q4 open, Q3 next.**
+**Status: Q1 ✅ DONE 2026-07-30 `d23670d7` · Q2 ✅ DONE 2026-07-30 `1dfb57d8` · Q3 ✅ DONE 2026-07-30 `49b49857` (ledgers §6) · Q4 open, Q4 next.**
 Planned 2026-07-30 (docs only). Origin: the PO's in-game walk of quest chunk C4
 the same day — *"this works very well and can be read as quests and understood.
 No major bugs, but some issues and change requests."* Thirteen items, every one
@@ -428,13 +428,64 @@ a dialogue stage shows no line at all.
   `bring_it_back`) are the ones whose journals stay line-less until Q4 authors
   their trackers — pure content now, the loader guard is already live.
 
+### Q3 — the two-pane journal ✅ DONE 2026-07-30, committed `49b49857`
+
+Frontend-only (no Go, no wire): the journal became the §4.5 two-pane panel —
+quest list left, the selected diary right, Abandon relocated to the detail
+pane. Two PO rulings taken at chunk start: **selection is remembered across
+close/reopen** (§7.2 closed — reopening lands on the quest last read) · the
+fallback when the selected quest leaves the list is **first running → first
+completed → empty state**.
+
+- **Selection lives in `JournalModel` by quest ID**, which is what makes both
+  §4.5 hazards non-events: the ~30×/s ledger re-send cannot reset an ID, and a
+  completing quest carries its selection into the Completed section for free.
+  The fallback resolves in `update()`, **not** `view()` — `view()` stays pure,
+  so *unchanged ledger ⇒ identical view* stays a provable property (pinned by
+  the stability test, now including selection), and the signature check that
+  keeps clicks from landing in a rebuild gap keeps holding. `select()` ignores
+  IDs not in the journal. 15 vitest cases, written red-first.
+- **The DOM:** `.journalPanes` (hidden behind the status line when the journal
+  is empty/loading/unavailable — an empty list beside an empty diary would
+  read as broken) → `.journalList` (Running/Completed sections, rows are
+  titles with a `.selected` highlight, `pointerdown` per the HUD rule) +
+  `.journalDetail` (title, italic diary, upright Q2 objective lines, Abandon
+  only while running). Each pane scrolls independently with the Q1 ⑤
+  scrollbar padding.
+- **The sizing invariant, enforced as §4.5 demanded** — positioning on the
+  panel itself plus the screenshot gate, no third hand-copy of the strip's
+  y-geometry: top-anchored `7vh` + `max-height: 60vh` (bottom ≤ 67vh; the
+  strip's top sits at ~79vh at the measured 800px worst case and rises with
+  taller viewports), horizontally centered in the space right of the left
+  column via **one stated constant** (`@journal-left-reserve: 26rem` — a new
+  clearance value, not a copy: the column is content-sized and authors no
+  width anywhere). The old `width: 52rem / max-height: 70vh / centered` block
+  is gone.
+- **Verified:** 84 vitest + typecheck + prod build · `go build ./...` clean
+  (nothing Go-side changed) · boot 86 skills/15 factions/64 mobs/10 recipes/
+  1 milestone/4 quests/777 props/485 spawns/5 campfires, 0 errors 0 warnings ·
+  `chunkC3-journal` rewritten *with* the chunk (L2): **29/29 on a fresh
+  server** incl. the ⭐ real-kill leg (`0/8 Wolf slain` → `2/8`), the three new
+  selection legs (row click swaps the detail · selection survives close/reopen
+  · selection follows completion), and the new half D — a rect-intersection
+  overlap gate (`#journal` vs `#bottomCenter`/`#vitalSigns`/`#leftColumn`)
+  **asserted, not eyeballed**, at 1280×800 AND 2560×1440, screenshots both. ⚑
+  One earlier run hit the known §29 WebGL context loss and was discarded per
+  the standing rule (it had passed everything anyway); the fresh-server re-run
+  was clean.
+- **Knock-on for Q4:** none structural — Q3 was the independent chunk. The
+  detail pane renders whatever prose Q4 authors; long briefs scroll in their
+  own pane now, which slightly lowers the pressure behind the ≥50 % prose cut
+  (the cut stands — it is about reading, not fitting).
+
 ## 7. Open questions
 
 1. ✅ **RULED with Q2 (2026-07-30): current stage only** — a completed stage's
    diary entry is already the record of it, and a completed quest carries no
    objective line at all.
-2. **Should the two-pane journal remember its selection across open/close**, or
-   always land on the first running quest?
+2. ✅ **RULED with Q3 (2026-07-30): remembered** — reopening lands on the quest
+   last read while it is still in the journal; the fallback when it leaves is
+   first running → first completed → empty state.
 3. **Does the simplified lamp quest keep the Miner in the middle?** R3's lore
    (*"kill them and the lamp is yours"*) needs no directions leg, so the natural
    reading is a three-stage quest with no Miner. ⚑ But his row is the game's
