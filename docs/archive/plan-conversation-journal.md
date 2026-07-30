@@ -1,6 +1,6 @@
 # Plan: the conversation & journal pass — what the quest pass surfaced
 
-**Status: Q1 ✅ DONE 2026-07-30 `d23670d7` · Q2 ✅ DONE 2026-07-30 `1dfb57d8` · Q3 ✅ DONE 2026-07-30 `49b49857` (ledgers §6) · Q4 open, Q4 next.**
+**Status: COMPLETE — Q1 ✅ `d23670d7` · Q2 ✅ `1dfb57d8` · Q3 ✅ `49b49857` (all 2026-07-30) · Q4 ✅ `3ccadb5e` 2026-07-30 (ledgers §6). Nothing open; archived.**
 Planned 2026-07-30 (docs only). Origin: the PO's in-game walk of quest chunk C4
 the same day — *"this works very well and can be read as quests and understood.
 No major bugs, but some issues and change requests."* Thirteen items, every one
@@ -478,6 +478,72 @@ completed → empty state**.
   own pane now, which slightly lowers the pressure behind the ≥50 % prose cut
   (the cut stands — it is about reading, not fitting).
 
+### Q4 — the content pass ✅ DONE 2026-07-30, committed `3ccadb5e` — closes the plan
+
+The restructure §4.6 drew, with one PO ruling taken at chunk start (**the Miner
+is dropped** — §7 q3) and one Go change (the milestone seam; everything else is
+content, tests, docs and harnesses).
+
+- **Damage at level 1:** `{"level":1,"skillName":"Damage"}` +
+  `applyCreationMilestones()` called in `player.New` (it ends in the recipe
+  cascade, replacing the bare `ApplyRecipeCascade` call; the stale "fresh spawn
+  has Harvest" comment died with it). ⚑ **One deliberate deviation from §4.6's
+  parenthetical: creation seeds SILENTLY.** The client banners every Unlock
+  message unconditionally, and all three respawn/reconnect paths overwrite the
+  spellbook right after `New` — a banner-sending call would have flashed
+  "Level 1 reward" on every death. `TestNew_AppliesLevel1MilestoneAtCreation`
+  pins the silence; a second test pins the cascade. The pinned table is
+  `{Damage:1, Haste:7}`; the crier's Damage row is gone.
+- **R3's lamp rewrite:** "The Traveller's Lamp" (retitled — nothing is lost any
+  more), three stages `cull → bring_it_back → lit`, no Miner (he keeps Pickaxe;
+  the kobold-nest lore became his answer-node). The Lampless name is lored away:
+  he HAS a lamp and is done travelling — the kobolds are why. Both kobolds lost
+  their 0.05 Lantern drop, so the turn-in row is the aura's **only source**
+  (L5b), pinned by the new `TestContent_LanternIsQuestOnlyAndHasASource`
+  (replacing the lamp-chain non-terminal-edge test, whose content left with the
+  Miner).
+- **Every conversant on R1's shape:** greeting at root, teachings behind named
+  one-grant rows (multi-skill NPCs) or a named grant row at root (single-skill —
+  Lamplighter, Dog, Miner, CityGuard, FrontCaptain, Farmer), each quest behind
+  its own row with its brief as that node's text (written once, reading
+  correctly before and after acceptance, per §4.6), Accept + turn-in + question
+  rows all on the one quest node with the Q1 show-rule sorting visibility, and
+  turn-ins directly at root on the branch NPCs (CityGuard/Shaman — the quest is
+  not theirs). **Zero `quest_at_stage` gates on quest rows**; the only
+  conditional node left in content is the traveller's completed-state greeting.
+  The greeting-hijack pattern (`plan-quests.md` §15) is retired from content
+  AND from `manual-content-authoring.md` §6, which now documents the show-rule
+  shape and the Q2 `tracker` vocabulary.
+- **Prose + trackers:** all four quests' journal prose cut ≥50 %, the invented
+  "north field" direction removed (§15's rule); `{n}/{m}` overrides on the
+  three count stages (`"3/8 wolves slain"` — the plural fix) and "Return to …"
+  lines on the four non-terminal dialogue stages, so no journal goes silent
+  between deed and turn-in.
+- **Docs (L6):** `content-skill-inventory.md` (Damage = MS L1, Lantern =
+  quest-only, 20 teachings/2 milestones), `content-npcs.md`, GDD §5's
+  onboarding dev note (history preserved), `api/quests/README.md`, the verify
+  skill's canonical boot line (2 milestone unlocks).
+- **Verified:** full Go suite + vet · guardrails + alloc `-count=2` ·
+  84 vitest + typecheck + prod build · boot embedded AND `-content ../api`
+  identical: 86 skills/15 factions/64 mobs/10 recipes/**2 milestone unlocks**/
+  4 quests/777 props/485 spawns/5 campfires, 0 errors 0 warnings · harnesses
+  each SOLO on a fresh server: **`chunkC4-quests` rewritten with the chunk
+  (L2) — 38/38 + 1 deliberate SKIP** (new legs: Damage-at-creation ·
+  Accept-vanishes/turn-in-appears at the surface · all four authored trackers ·
+  crier-teaches-no-Damage · answer-node + Back; ⚑ it also needed the **Q3
+  two-pane journal DOM**, which Q3's gate had not carried into this script — it
+  read the pre-Q3 selectors and would have been red at HEAD) ·
+  `chunkC3-journal` **29/29** (half C moved to the authored "wolves slain"
+  tracker — now proving the `{n}/{m}` substitution live) ·
+  `chunk3b-ii-conversation` **31/31** and `chunk3b-interact` **14/14**
+  (unchanged — their Emberkeeper/crier anchors survived the restructure). ⚑ One
+  chunkC4 run hit the known §29 WebGL context loss and was discarded per the
+  standing rule; the fresh-server re-run was clean.
+- **Knock-on:** none — this was the plan's last chunk. What the content no
+  longer exercises: the D17 nameless multi-grant auto-expansion and the
+  non-terminal `advance_quest` edge are unit/fixture-covered only, noted in
+  their tests.
+
 ## 7. Open questions
 
 1. ✅ **RULED with Q2 (2026-07-30): current stage only** — a completed stage's
@@ -486,17 +552,13 @@ completed → empty state**.
 2. ✅ **RULED with Q3 (2026-07-30): remembered** — reopening lands on the quest
    last read while it is still in the journal; the fallback when it leaves is
    first running → first completed → empty state.
-3. **Does the simplified lamp quest keep the Miner in the middle?** R3's lore
-   (*"kill them and the lamp is yours"*) needs no directions leg, so the natural
-   reading is a three-stage quest with no Miner. ⚑ But his row is the game's
-   **only non-terminal `advance_quest` edge**, and dropping it leaves that
-   mechanism with no content exercising it (and
-   `TestContent_TheLampChainHasANonTerminalDialogueEdge` with nothing to pin —
-   plus `TestContent_EveryStageIsReachable` in the same file walks every
-   `advance_quest` edge, so removing or repointing the row is a two-test edit).
-   Recommendation: drop it here — the lore is better without it — and give the
-   edge to a quest that actually wants a middle step, rather than keeping a leg
-   alive to satisfy a test.
+3. ✅ **RULED at Q4 chunk start (2026-07-30): the Miner is DROPPED** — per the
+   recommendation. The lamp quest is three stages, the game's only non-terminal
+   `advance_quest` edge left content with it (the derivation's non-terminal
+   direction lives in the ledger's fixture tests now), and
+   `TestContent_TheLampChainHasANonTerminalDialogueEdge` was replaced by the
+   L5b pin `TestContent_LanternIsQuestOnlyAndHasASource`. The edge goes to a
+   future quest that actually wants a middle step.
 4. **Extending `kill` objectives to a species family** (`Wolf` +
    `DireWolf`/`EliteWolf`/`AlphaWolf`) — the PO asked, and answered: not now.
    Recorded because the cheap version is a species *list* per objective, while
