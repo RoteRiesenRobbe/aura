@@ -1,6 +1,6 @@
 # Plan: the quest system — journal-carried quests on the interaction container
 
-**Status: chunks C0 ✅ and C2 ✅ DONE 2026-07-30 (ledgers §12 `2a3b137d` and §13 `004077e2`). Prior:
+**Status: chunks C0 ✅ and C2 ✅ DONE 2026-07-30 (ledgers §12 `2a3b137d` and §13 `2dc6973a`). Prior:
 C1 ✅ `d3b89328` (the ledger + events, §11); prerequisite chunk P ✅
 `d45ba07c`. Next: C3 (wire + journal), then C4 (authored content).**
 **CODE-REVIEWED 2026-07-30** — three line-level sweeps (interaction container ·
@@ -501,7 +501,7 @@ rotten** — the drift pin sometimes lands on the container that does move. The
 rot diagnosis stands as a description of the failure mode; "always fails" does
 not. Repair is still worth doing, but it is not blocking and not C2's.
 
-## 13. Chunk C2 ledger — the dialogue vocabulary ✅ DONE 2026-07-30 `004077e2`
+## 13. Chunk C2 ledger — the dialogue vocabulary ✅ DONE 2026-07-30 `2dc6973a`
 
 **Scope delivered as §8 priced it**, backend only: 3 new grant kinds, 1 new
 condition kind, the D8/D10 schema room, the loader cross-validation, the L3 and
