@@ -1,22 +1,19 @@
 # Plan: Playtest Feedback (rolling collection)
 
-**Status:** **Collection doc.** Latest: **round-6 chunk B (mob-vs-mob soft
-separation) DONE 2026-07-26, ⏳ PO in-game check pending** — ledger
-§Round-6 chunk B ledger. Before it: both designed chunks executed, plus a filler
-batch — **all three ✅ PO-VERIFIED IN-GAME 2026-07-26** (one session, every
-checklist item passed): **Round 3** (healer combat state + role-as-loadout)
-`03b152f4` 2026-07-25 · **Round 4** (tooltip power scale) `eaae2e69` 2026-07-26 ·
-**Rolling-filler batch** (4 of the 6 filler items) `dab4dae0` 2026-07-26.
-That verification session raised **2 new items (§Intake round 5), and both are
-✅ DONE and PO-verified in-game the same day** (`f06b2161`), ledger at
-§Round-5 chunk ledger: the missing shield-aura tick indicator, and pacifist mobs fleeing when
-attacked with nothing to support (design decided by choice prompts, all four
-answers minimal).
-This is the **standing home for issues
-arising from playtests**: new rounds append to §Intake, items get sorted into
-the passes below, and we pick targets from here. Successor to
-`archive/plan-playtest1-feedback.md` (first external playtest, fully executed
-2026-07-22 + `2bfee286`).
+**Status:** **Collection doc.** Latest: **chunk P — presence-counts XP
+attribution (Pass 3 item 1) — PLANNED IN FULL 2026-07-30** (§Chunk P plan
+below; 3 PO rulings P1–P3, 5 landmines, not started). It is quest prerequisite
+**chunk P** (`plan-quests.md` D15) and ships before quest C1. Shipped earlier
+from this doc, all ✅ PO-verified in-game: **Swift → movement cooldown**
+`a29fe986` 2026-07-29 · **round-6 chunks A + B** (WebGL-loss banner
+`6c8bde2e` · mob soft separation `8b045395`) 2026-07-26 · **rounds 3/4/5 +
+the filler batch** (`03b152f4` · `eaae2e69` · `dab4dae0` · `f06b2161`)
+2026-07-25/26 — ledgers in the § sections below. The 2026-07-29
+open-questions sweep ruled questions 1–4, 6, 7 and 9 (inline at §Open
+questions). This is the **standing home for issues arising from playtests**:
+new rounds append to §Intake, items get sorted into the passes below, and we
+pick targets from here. Successor to `archive/plan-playtest1-feedback.md`
+(first external playtest, fully executed 2026-07-22 + `2bfee286`).
 
 **How to use it:** pick a pass (or a slice of one), open an execution session
 for it, record the result in a ledger section at the end. Items move down the
@@ -1680,8 +1677,155 @@ a multiplayer playtest, not a solo one.
    ships BEFORE quest chunk C1** (`plan-quests.md` D15) — quest kill counters
    hook the same credit event (`rewardPlayer`) and must launch on the final
    attribution rule, not the interim damage-touch one.
+   **⭐ PLANNED IN FULL 2026-07-30 → §Chunk P plan below** (P1–P3 PO-ruled:
+   fixed conf radius · joins-never-starts gate · one participant class).
 2. **CallForAid combo recipes** (decision 5) — heal minions / damage minions.
    Warbanner itself unchanged.
+
+## Chunk P plan — presence-counts attribution (Pass 3 item 1)
+
+> **PLANNED 2026-07-30** (design session, no code). This is quest prerequisite
+> **chunk P** (`plan-quests.md` D15): it ships **before quest C1** so quest
+> counters launch on the final attribution rule. Ruling basis: decision 4
+> ("any aura that affected the fight"), open question 3 (**presence counts**,
+> 2026-07-29), and the three P-rulings below (PO choice prompts, 2026-07-30).
+
+### The rule, in one sentence
+
+A player whose active aura is on (`ActiveAuraSlot >= 0`), standing within
+`game.combat.presenceRadius` of a mob that is `InCombat()` **and already has
+≥1 participant**, becomes a participant — same `participants` map, same
+`tryGrantKillRewards` fan-out, same everything. Damage-touch entry
+(`PlayerTouches` → `noteParticipant`), the `RecentHealers()` 10 s window, the
+charm/summon `CreditTo()` routing, and clear-on-full-regen are all unchanged;
+presence is a **third entry** into the existing set, not a new set.
+
+### The three P-rulings (PO 2026-07-30)
+
+| # | Ruling |
+|---|--------|
+| **P1** | **Range = one fixed conf radius**, `game.combat.presenceRadius`, flat for all mobs. **[PLACEHOLDER] 8 units** (viewport is 20×12, so ~8 reads as "clearly at the fight, on your screen"). Per the standing conf ruling, authoring `0` restores the default — it does not disable. |
+| **P2** | **Presence joins a player fight, it never starts one.** The gate is ≥1 existing participant (player damage-touch, or player-credited via `CreditTo()`). Closes the AFK watch-farm at NPC-vs-NPC battles (ArmySoldiers grinding orc waves would otherwise be an infinite passive XP faucet); the gate resolves within a tick of the first player-credited hit, because the scan repeats every tick. |
+| **P3** | **One participant class.** Presence-credited players go through the same `rewardPlayer` — XP **and** kill-unlock rolls (a bystander can win Wolf's Swift drop) — and quest counters (D4) will later count them identically. No second-class participant exists anywhere in the code. |
+
+### Why the two "free" geometries were rejected (don't re-propose them)
+
+- **The mob's own sensor** (`aggroAura.Collisions()`, zero new queries): a
+  passive faction's sensor is **masked to see nothing** (`aggroSensorMask`),
+  so a harvest-mob never senses the lantern-carrier standing beside the
+  harvester in a dark tunnel — it fails the exact co-op scenario the presence
+  ruling was made for. Sense radii are also per-species and small (~5.4).
+- **The player's active-aura collider**: heal/light/resist aura masks pair
+  with **allies**, not enemy mobs (`AuraMaskFor`), so "my aura's collision set
+  contains the mob" is structurally false for exactly the support auras this
+  rule exists to credit.
+
+Hence: a dedicated probe query, player-side.
+
+### Mechanism
+
+1. **`Mob.NotePresence(p model.PlayerEntity)`** (new, `model/mob/mob.go`):
+   gate `m.InCombat() && len(m.participants) > 0`, then `noteParticipant(p)`.
+   Exposed through a small named interface in `model` (the `AttackNotifier` /
+   `Credited` precedent — do **not** widen `model.MobEntity`; the four fakes
+   stay untouched, that widening is quest C1's problem, L14).
+2. **The scan** lives in `SkillSystem` (it owns "is an aura on"): once per
+   tick per **player** entity that is alive with `ActiveAuraSlot >= 0`, probe
+   `AppendCircleDynamics` at the player's position with `presenceRadius`,
+   filter colliders whose `UserData` implements the interface, call
+   `NotePresence`. Probe circle + dst slice are **system-owned and reused**
+   (the chunk-B separation / `space_alloc_test.go` reusable-probe pattern —
+   zero per-tick allocation). Distance math includes the mob's body radius
+   (`presenceRadius + target.Radius()`, the `withinSensor` convention), so a
+   large boss body doesn't shrink the effective ring.
+3. **Conf**: `presenceRadius` joins `CombatConfig` (`cfg/gamecfg.go`) with a
+   total Go default (**§35 C1 discipline** — the resolved-equality drift test
+   makes "key in conf.default.json without a Go default" a red test) and a
+   zero-normalizing accessor (the `CritFactor()` pattern). Both
+   `conf.default.json` copies get the key (both stay FULL files); the three
+   delta confs don't (absent = default is the live pattern).
+4. **No wire change, no frontend change.** XP already flows; the client sees
+   nothing new.
+
+Scan cadence every tick is deliberate: participation latches (map persists
+until full regen), so the P2 gate's one-tick lag after the first hit is the
+only timing artifact, invisible at 30 tps.
+
+### Landmines
+
+- **L-P1 — stale-ref XP loss on death is an EXISTING defect this chunk must
+  not accidentally half-fix.** `PlayerProgression` is a plain value struct;
+  death/reconnect rebuilds the player struct and stashes a *copy*
+  (`sys/state.go`), so `rewardPlayer` on a participant ref recorded before a
+  death writes XP into the abandoned struct — silently lost. True for damage
+  participants today; presence just widens how many refs sit in the map.
+  **Out of scope here** — the fix vehicle is the quest-side stash join (L11)
+  / step 8; record, don't touch.
+- **L-P2 — sim battery: expect byte-identical, but verify the rosters.** The
+  batteries are effectively single-player (H1a: no scenario even makes a mob
+  approach), and a lone fighter is already a damage participant, so presence
+  should change nothing. If any scenario diffs, first check whether it has a
+  second non-fighting player — that would be a *legitimate semantic change*
+  to document, not a regression.
+- **L-P3 — more participants = more RNG draws.** `rewardPlayer` consumes one
+  `m.rand` roll per declared unlock per participant, so a presence participant
+  shifts the mob's drop-RNG stream. Harmless live (per-process salt), but a
+  deterministic test asserting drop outcomes after adding a bystander will
+  see different rolls.
+- **L-P4 — the C6 kill broadcast names bystanders.** `KillCreditNames()`
+  reads the same map, so presence participants appear in the server-wide kill
+  line. Uniform per P3, deliberate; if a playtester reports "I got named for
+  a kill I watched", this is why.
+- **L-P5 — `experience: 0` mobs still latch participants** (28/64 defs).
+  0 XP is granted but unlock rolls fire and (later) quest counters will
+  increment — that is exactly L13's requirement, working as intended.
+
+### Test strategy (TDD, per the quest plan's chunk-P row)
+
+Model-level first (`model/mob/mob_test.go`, the `TestMob_Kill_*` family is
+the precedent), failing tests before code:
+
+1. Presence-noted player on an in-combat, already-touched mob earns **full XP**
+   on the kill without ever touching it.
+2. The P2 gate both ways: not-in-combat mob → no entry; in-combat mob with
+   **zero** participants (the NPC-fight case) → no entry.
+3. Dedupe: presence + damage + healer of a presence participant → one grant
+   each (`rewarded` map), and a guaranteed unlock reaches the presence
+   participant (P3, `GuaranteedUnlockGoesToAllRewardedPlayers` precedent).
+4. Full regen clears presence participants like damage ones.
+
+Sys-level (`sys/skills_behavior_test.go` style, real space + scan): fighter +
+bystander at d < R with aura on → both earn; aura off → fighter only; d > R →
+fighter only; and **the tunnel scenario pinned**: a passive-faction
+harvest-mob (sensor sees nothing) still credits the bystander — the test that
+outlives the P1 rationale.
+
+Then: `go build ./...` + full suite, guardrails + alloc `-count=2` (the probe
+must not show up), sim battery diffed against a pre-chunk worktree (L-P2),
+boot `-content ../api` against the pinned counts (no content change — counts
+identical), frontend untouched (vitest + typecheck run anyway, expect green).
+
+**Two-client smoke** (the pass-level requirement): new verify-skill script
+`chunkP-presence.mjs` — two Playwright pages on one server; A kills a Boar
+while B stands adjacent, aura on, never touching → B's XP moves from 0; rerun
+with B's aura off → B stays 0. Standing harness rules apply (lost WebGL
+context = invalid run, not a failure; assert on the XP readout, not on
+`Derived`).
+
+### PO in-game checklist
+
+- Fight something with a second character nearby holding a resist/light aura
+  on: **both** level.
+- Same, bystander's aura toggled off: only the fighter earns.
+- Stand at the army-vs-orc skirmish doing nothing: **no** XP ticks.
+- The kill broadcast names both characters (L-P4 — confirm it reads okay).
+
+### Files touched (estimate: small, one session)
+
+`cfg/gamecfg.go` · `cfg/conf.go` (if the JSON block needs the field) ·
+`backend/conf.default.json` + embedded copy · `model/` (one small interface) ·
+`model/mob/mob.go` (`NotePresence`) · `sys/skills.go` (the scan) · tests as
+above · this doc's ledger on completion.
 
 ## Rolling filler — blocks nothing, do any time
 
