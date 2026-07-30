@@ -1,8 +1,8 @@
 # Plan: the quest system — journal-carried quests on the interaction container
 
-**Status: chunk C1 ✅ DONE 2026-07-30 (the ledger + events, backend only — full
-ledger §11). Prerequisite chunk P ✅ 2026-07-30 `d45ba07c`. Next: C2 (dialogue
-vocabulary); C0 remains standalone filler.**
+**Status: chunk C1 ✅ DONE 2026-07-30 `d3b89328` (the ledger + events, backend
+only — full ledger §11). Prerequisite chunk P ✅ 2026-07-30 `d45ba07c`. Next:
+C2 (dialogue vocabulary); C0 remains standalone filler.**
 **CODE-REVIEWED 2026-07-30** — three line-level sweeps (interaction container ·
 XP/credit path · wire + content loading) checked every claim against HEAD;
 corrections are folded in below, tagged *(code review)*. Four follow-up PO
@@ -362,7 +362,7 @@ question does not move quest state per this session's ruling, but step 8 should
 confirm that alongside §41. Everything is small, append-mostly, and — per D12 —
 already live by the time step 8 designs the schema.
 
-## 11. Chunk C1 ledger — the ledger + events ✅ DONE 2026-07-30
+## 11. Chunk C1 ledger — the ledger + events ✅ DONE 2026-07-30 `d3b89328`
 
 **Scope delivered exactly as §8 priced it** (backend only: 25 files modified +
 4 new; no wire, no frontend, no authored content — `api/quests/` ships a README
