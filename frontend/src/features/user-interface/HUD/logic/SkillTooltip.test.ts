@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 
 import {SkillDefinition, SkillEffect} from '../../../../client-data/Skills';
+import {loadMobCatalog} from '../../../../client-data/Mobs';
 import {formatSkillTooltip} from './SkillTooltip';
 
 // Round-4 tooltip fix. The tooltip modelled only the SKILL-level axis; the
@@ -266,6 +267,49 @@ describe('speed burst', () => {
         // Movement speed is not a damage number — the power curve must not
         // touch it, or the tooltip would promise a sprint that grows on level-up.
         expect(lines(swift, 1, SCALE_AT_30)).toContain('Move 1.5× → 1.6× as fast for 4.95s → 5.94s');
+    });
+});
+
+// The summon line's mob name (§35 C4a). The client used to re-derive the
+// display name with its own CamelCase-splitting rule — a copy of the server's
+// skills.DeriveDisplayName, and the exact drift class §35 exists to retire.
+// Now the /mobs catalog's served displayName is the source of truth, with the
+// raw authored name as the degrade path (matching the stubbed-fetch design:
+// the game never blocks on the catalog).
+describe('spawn mob name', () => {
+    const summon = skill({
+        displayName: 'Summon Soldier', category: 'cooldown', maxLevel: 1, cooldownTicks: 600,
+        effects: [effect({
+            type: 'spawn',
+            spawn: {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0},
+        })],
+    });
+
+    // Drives the module-level catalog into a known state — the same
+    // loadMobCatalog the app calls, against a locally resolving fetch, so the
+    // test exercises the real load path rather than a test-only backdoor.
+    async function loadCatalog(entries: object[]) {
+        const stubbedFetch = globalThis.fetch;
+        globalThis.fetch = () => Promise.resolve({ok: true, json: () => Promise.resolve(entries)} as Response);
+        try {
+            await loadMobCatalog();
+        } finally {
+            globalThis.fetch = stubbedFetch;
+        }
+    }
+
+    it('falls back to the raw authored name while the catalog is unavailable', async () => {
+        await loadCatalog([]); // pin the empty state; import-time fetch is stubbed to reject
+        expect(lines(summon, 1, 1)).toContain('Summons SoldierCompanion for 9.9s');
+    });
+
+    it('renders the served displayName once the catalog is loaded', async () => {
+        await loadCatalog([{id: 5, name: 'SoldierCompanion', displayName: 'Soldier Companion', curveLevel: 1, tier: 0, combatTarget: false}]);
+        try {
+            expect(lines(summon, 1, 1)).toContain('Summons Soldier Companion for 9.9s');
+        } finally {
+            await loadCatalog([]); // other tests expect the degraded state
+        }
     });
 });
 

@@ -330,16 +330,16 @@ func (rcv *GameState) MutateActivationRejectedSkillId(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(34, n)
 }
 
-func (rcv *GameState) ActivationRejectedReason() byte {
+func (rcv *GameState) ActivationRejectedReason() ActivationRejection {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
 	if o != 0 {
-		return rcv._tab.GetByte(o + rcv._tab.Pos)
+		return ActivationRejection(rcv._tab.GetByte(o + rcv._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *GameState) MutateActivationRejectedReason(n byte) bool {
-	return rcv._tab.MutateByteSlot(36, n)
+func (rcv *GameState) MutateActivationRejectedReason(n ActivationRejection) bool {
+	return rcv._tab.MutateByteSlot(36, byte(n))
 }
 
 func (rcv *GameState) InteractableEntityId() uint64 {
@@ -439,8 +439,8 @@ func GameStateAddCastTicksTotal(builder *flatbuffers.Builder, castTicksTotal uin
 func GameStateAddActivationRejectedSkillId(builder *flatbuffers.Builder, activationRejectedSkillId uint16) {
 	builder.PrependUint16Slot(15, activationRejectedSkillId, 0)
 }
-func GameStateAddActivationRejectedReason(builder *flatbuffers.Builder, activationRejectedReason byte) {
-	builder.PrependByteSlot(16, activationRejectedReason, 0)
+func GameStateAddActivationRejectedReason(builder *flatbuffers.Builder, activationRejectedReason ActivationRejection) {
+	builder.PrependByteSlot(16, byte(activationRejectedReason), 0)
 }
 func GameStateAddInteractableEntityId(builder *flatbuffers.Builder, interactableEntityId uint64) {
 	builder.PrependUint64Slot(17, interactableEntityId, 0)

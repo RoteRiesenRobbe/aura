@@ -1,6 +1,6 @@
 # Plan: §35 — one value, many homes (the conf-duplication sweep)
 
-**Status: C1 + C2 ✅ SHIPPED 2026-07-29 `e7531444` (ledgers §7) · C3–C4 open.**
+**Status: COMPLETE — C1 + C2 ✅ 2026-07-29 `e7531444` · C3 + C4 ✅ 2026-07-30 (ledgers §7). Archived 2026-07-30.**
 Origin: `docs/backlog.md` §35 (PO 2026-07-26: *"doesn't seem good that we need to
 adjust it at 4 places"*). Tier 1 of that survey shipped with
 `docs/archive/plan-pre-accounts-hygiene.md`; this plan is tiers 2–5. The §35
@@ -303,3 +303,84 @@ a `_` stash) **booted to a running server and warned exactly twice**,
 path-qualified — D2's warn-not-fail proven at the real boot surface, and the
 `_` key stayed silent · sim battery default leg byte-identical vs the pre-C1
 baseline (`ReadConfig` is not in the sim path — L9 — run anyway).
+
+### C3 — tier-3 pins ✅ DONE 2026-07-30, committed `[uncommitted]`
+
+Tests only, exactly as planned — 3 new test files, zero production code.
+
+- **`sim/conf_pin_test.go`** — `DefaultRegenTick` and the `world.go` literals
+  (`LevelUpXPBase` 300 · growth 1.2 · chase margin 0.2 · the zero-RegenTick
+  default) pinned against `conf.default.json` read repo-relative. The literals
+  are asserted on **the config a built world actually runs**
+  (`NewWorld(...).game.config`), not restated in the test — so the pin covers
+  the wiring, not just the constant. A struct decode + nonzero guard keeps a
+  renamed JSON key from silently comparing 0 == 0.
+- **`model/mob/conf_pin_test.go`** — `defaultChaseIntoAuraMargin` pinned
+  against `game.mobChaseIntoAuraMargin` (transitively pinning the H1a pair:
+  the `gameconf.go` twin's own side is held by C1.3's resolved-equality test),
+  and `combatRegenGraceTicks = 100` pinned with the test naming its
+  `model/player` twin (L11 — in-package, no new coupling, mirror stays
+  deliberate).
+- **`model/player/conf_pin_test.go`** — the mirror-side grace-ticks pin.
+- **Red direction proven, not assumed:** perturbing `mobChaseIntoAuraMargin`
+  0.2 → 0.25 in `conf.default.json` turned both packages red; reverted,
+  `git diff` empty.
+
+**Verified:** `go build`/`vet` clean, full `go test ./...` green.
+
+### C4 — tier 5 + tier 4, per item ✅ DONE 2026-07-30, committed `[uncommitted]`
+
+**a. `spacedName()` is GONE.** The tooltip's summon line resolves through a
+new `mobDisplayName()` in `client-data/Mobs.ts` — the served `/mobs`
+`displayName`, which the server derives once via `skills.DeriveDisplayName`,
+i.e. exactly the rule the client had copied. Degrade path = the raw authored
+name (the catalog design: the game never blocks on it). Test-first, and the
+fallback case was **genuinely red against the old code** — the rule copy split
+"SoldierCompanion" even with no catalog loaded, which is the drift class D3
+retires. The vitest drives the real `loadMobCatalog()` path against a locally
+resolving fetch — no test-only backdoor into the catalog map.
+
+**b. `ActivationRejection` is a wire enum.** `server.fbs` now carries the
+pinned values (None 0 · NoAnchor 1 · NoTarget 2 — L8, §28 discipline), the
+GameState field is retyped (same ubyte on the wire; the enum only names the
+values), and **regenerating both binding sets was a zero diff apart from the
+new enum + the retyped accessors** — the C4 acceptance's proof the window was
+free. The Go model constants now derive from the generated enum (the
+`status_effects.go` pattern; the `iota` block is gone), the codec casts to the
+enum type instead of `byte()`, and the client map keys by the generated names
+— a renumber now goes red in tests instead of showing the wrong message. New
+`Skills.test.ts` asserts every enum member has a message + the generic
+fallback. ⚑ **One wrinkle worth keeping:** the client imports the enum *file*
+(`api/schema/js/aura-api/activation-rejection`), NOT the `AuraApi` barrel —
+the barrel drags the whole binding graph and its `flatbuffers` dependency into
+the catalog module, and vitest cannot resolve `flatbuffers` from a file
+outside `frontend/` (webpack can, via its `paths` alias), which reads as a
+mysterious import error in an unrelated test.
+
+**c. `api/shared-constants.json` — the cross-language contract fixture.**
+`appliedEffectBits` (8) · `auraCategoryBits` (7) · `tierRanks` (3) ·
+`viewportMeters` 20×12 · `ticksPerSecond` 30. Asserted by
+`cmd/aurad/shared_constants_test.go` **and** `client-data/SharedConstants.test.ts`.
+The TS side is **exhaustive in both directions** (a fixture entry with no enum
+member fails, and vice versa); the Go side is spelled out (Go constants cannot
+be enumerated) with the comment naming the consequence — a NEW bit must touch
+the fixture and both tables together. Red proven: one perturbed bit value
+failed **both languages**. Knock-ons: the client's positional tier-frame array
+became a table keyed by a new `TierRank` enum in `client-data/Mobs.ts` (the
+rank ↔ meaning contract now has a name on the client), and the three client
+bit enums went `const enum` → `enum` — member enumeration is a **compile
+error** on a const enum; a regular enum emits the object, behavior-identical.
+The fixture is deliberately outside `cp-defs` and the loaders: tests read it
+from the repo, the game never does.
+
+**Verified:** `go build`/`vet`/full `go test ./...` clean · 66/66 vitest ·
+`tsc --noEmit` clean · prod build clean (standing bundle-size warnings only) ·
+boot `-content ../api`: 0 errors 0 warnings, 15 factions/86 skills/64 mobs/
+10 recipes/1 milestone/5 prop defs/777 props/485 spawns/5 campfires · harness
+gate per the coverage map: `round4-tooltip.mjs` **all checks passed** (first
+run invalidated by a §29 context loss, re-run clean — the standing rule held)
+and `hygiene-wire-prune.mjs` 647 sprites / 0 console errors / 0 ctx losses.
+No sim battery: the rejection field's wire bytes are identical and nothing
+behavior-bearing moved (and per L9 the codec is outside the sim path anyway).
+The one open acceptance item — the manual in-game rejection-message check —
+is handed to the PO as a checklist under the per-bug working model.

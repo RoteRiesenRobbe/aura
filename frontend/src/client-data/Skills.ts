@@ -10,6 +10,10 @@
 // blocks on the catalog.
 
 import {catalogUrl} from '../features/backend/logic/Urls';
+// The enum file directly, not the AuraApi barrel: the barrel drags the whole
+// wire-binding graph (and its flatbuffers dependency) into this catalog
+// module, which only needs the three named values.
+import {ActivationRejection} from '../../../api/schema/js/aura-api/activation-rejection';
 
 export type SkillCategory = 'aura' | 'passive' | 'cooldown';
 
@@ -276,11 +280,12 @@ export function skillCategory(id: number): SkillCategory {
 }
 
 // Static rejection-reason → feedback text map (skill-vocab chunk 4, §3.5):
-// keyed by the wire activation_rejected_reason; rendered as floating text
-// over the own character. Hand-synced with model.ActivationRejection.
+// keyed by the wire ActivationRejection enum (§35 C4b — server.fbs is the
+// single authored home, values pinned there); rendered as floating text over
+// the own character. Skills.test.ts asserts every enum member has an entry.
 export const ActivationRejectionMessages: { [reason: number]: string } = {
-    1: 'No campfire bound',
-    2: 'No valid target',
+    [ActivationRejection.NoAnchor]: 'No campfire bound',
+    [ActivationRejection.NoTarget]: 'No valid target',
 };
 
 export function activationRejectionMessage(reason: number): string {

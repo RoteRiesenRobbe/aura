@@ -14,7 +14,7 @@
 // absolute number the player will actually see.
 
 import {DamageParams, SkillDefinition, SkillEffect, powerScaleAt, skillDefinition} from '../../../../client-data/Skills';
-import {getLocalPlayerLevel} from '../../../../client-data/Mobs';
+import {getLocalPlayerLevel, mobDisplayName} from '../../../../client-data/Mobs';
 import {AURA_CATEGORY_COLORS} from '../../../game-objects/logic/AuraRings';
 
 const TICK_MS = 33;
@@ -144,12 +144,6 @@ const TICKING_TYPES = new Set([
     'damage_aura', 'heal_aura', 'dot_aura', 'hot_aura',
     'slow_aura', 'resist_aura', 'shield_aura',
 ]);
-
-// spacedName splits CamelCase for incidental names (summoned mobs) — skill
-// names come pre-derived from the server.
-function spacedName(name: string): string {
-    return name.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
-}
 
 function targetsLine(effect: SkillEffect, level: number, maxLevel: number): string | null {
     const groups: string[] = [];
@@ -298,7 +292,9 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
         }
         case 'spawn': {
             const spawn = effect.spawn;
-            lines.push(`Summons ${spacedName(spawn.mobName)} for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
+            // The mob catalog serves the display name (§35 C4a) — the client
+            // does not re-derive it; before the catalog loads, the raw name.
+            lines.push(`Summons ${mobDisplayName(spawn.mobName)} for ${prog(spawn.ttlTicks, spawn.ttlTicksPerLevel, level, maxLevel, ticksToSecs)}`);
             if (spawn.powerPerOwnerLevel > 0) {
                 lines.push(`Summon power: +${pct(spawn.powerPerOwnerLevel)} per player level`);
             }

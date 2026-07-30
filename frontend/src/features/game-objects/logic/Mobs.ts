@@ -8,7 +8,7 @@ import {IGame} from '../../core/logic/IGame';
 import {GameSetupEvent, ISubscriptionToken, PrerenderEvent} from '../../core/logic/Events';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import * as TextDisplay from '../../../client-data/TextDisplay';
-import {difficultyColor, getLocalPlayerLevel, mobDefinition} from '../../../client-data/Mobs';
+import {difficultyColor, getLocalPlayerLevel, mobDefinition, TierRank} from '../../../client-data/Mobs';
 import * as PIXI from 'pixi.js';
 import {createInjectedSVG} from "../../core/logic/InjectedSVG";
 import {AuraTickIndicator} from './AuraTickIndicator';
@@ -42,19 +42,18 @@ function file(mob: keyof typeof GraphicsConfig.mobs) {
 }
 
 /**
- * Portrait frame ring per mob tier, indexed by the wire `Mob.tier` rank
- * (triage item 15).
+ * Portrait frame ring per mob tier, keyed by the wire `Mob.tier` rank
+ * (triage item 15). The rank ↔ meaning contract is TierRank
+ * (client-data/Mobs.ts), pinned against the backend by
+ * api/shared-constants.json (§35 C4c); only the styles live here.
  *
- * SYNCED WITH BACKEND (backend/pkg/aura/items/mobs/definitions.go TierRank)
- *
- * Index 0 (normal) is deliberately absent: the common case stays unmarked, so
- * a frame always means "this one is above baseline". All values [PLACEHOLDER].
+ * Normal is deliberately absent: the common case stays unmarked, so a frame
+ * always means "this one is above baseline". All values [PLACEHOLDER].
  */
-const TIER_FRAME_STYLES: readonly { color: number, width: number, alpha: number }[] = [
-    undefined,                                      // 0 normal — no frame
-    {color: 0xc8ccd4, width: 2, alpha: 0.85},       // 1 elite  — silver
-    {color: 0xe8c04a, width: 3, alpha: 0.95},       // 2 boss   — gold
-];
+const TIER_FRAME_STYLES: { readonly [rank: number]: { color: number, width: number, alpha: number } | undefined } = {
+    [TierRank.Elite]: {color: 0xc8ccd4, width: 2, alpha: 0.85},  // silver
+    [TierRank.Boss]: {color: 0xe8c04a, width: 3, alpha: 0.95},   // gold
+};
 
 // Nameplate offset below the overhead HP bar, in px. [PLACEHOLDER]
 const NAMEPLATE_GAP = 16;

@@ -9,6 +9,16 @@
 
 import {catalogUrl} from '../features/backend/logic/Urls';
 
+// Wire `Mob.tier` rank ↔ meaning, mirroring the backend's mobs.TierRank —
+// pinned on both sides by api/shared-constants.json (§35 C4c), so a renumber
+// goes red instead of silently gilding the wrong mobs. A regular enum on
+// purpose: the pin test enumerates its members, which a const enum forbids.
+export enum TierRank {
+    Normal = 0,
+    Elite = 1,
+    Boss = 2,
+}
+
 export interface MobDefinition {
     id: number;
     name: string;
@@ -16,7 +26,7 @@ export interface MobDefinition {
     // Authored combat level (cL) — the nameplate tint reads its distance from
     // the local player's level.
     curveLevel: number;
-    // 0 normal / 1 elite / 2 boss, same rank as the wire Mob.tier.
+    // TierRank (0 normal / 1 elite / 2 boss), same rank as the wire Mob.tier.
     tier: number;
     // Server-derived: is this species something the player fights? False for
     // fixtures (campfires, braziers), summons (companions, totems), obstacles
@@ -51,6 +61,21 @@ loadMobCatalog();
 
 export function mobDefinition(id: number): MobDefinition | undefined {
     return catalog.get(id);
+}
+
+// mobDisplayName resolves a species' authored name (how skill payloads
+// reference mobs, e.g. spawn.mobName) to the catalog's served displayName —
+// the server derives it once (skills.DeriveDisplayName) and the catalog is
+// the source of truth, so the client never re-implements the naming rule
+// (§35 C4a). Falls back to the raw name until the fetch lands or if it fails.
+// Linear scan on purpose: called on tooltip render, over a ~64-entry catalog.
+export function mobDisplayName(name: string): string {
+    for (const def of catalog.values()) {
+        if (def.name === name) {
+            return def.displayName;
+        }
+    }
+    return name;
 }
 
 // --- difficulty tint (decision 5: WoW-style nameplate colors) ---

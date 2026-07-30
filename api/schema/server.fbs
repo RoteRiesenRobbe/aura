@@ -94,6 +94,20 @@ enum StatusEffect : ushort {
   BurstFired = 6
 }
 
+// Why a cooldown activation was refused (skill-vocab chunk 4, §3.5) — rides
+// GameState.activation_rejected_reason and keys the client's feedback text.
+// Explicit and permanent, same contract as EntityType above (§35 C4b): this
+// enum is the single authored home; the Go model constants and the client
+// message map are both generated/keyed from it, so a renumber cannot silently
+// show the wrong message any more.
+enum ActivationRejection : ubyte {
+  None = 0,
+  // recall: no campfire anchor bound
+  NoAnchor = 1,
+  // reserved: revive with no corpse in range
+  NoTarget = 2
+}
+
 struct AABB {
   lower:Vec2f;
   upper:Vec2f;
@@ -435,12 +449,12 @@ table GameState {
   cast_ticks_total:ushort = 0;
 
   // One-tick rejection feedback (skill-vocab chunk 4, §3.5): a cooldown
-  // activation refused by its precondition — which skill and why (1 = no
-  // campfire anchor bound, 2 = no valid target [chunk 3]). Per-tick one-shot
-  // like campfire_bound. Appended at the table end so existing field IDs
-  // stay stable.
+  // activation refused by its precondition — which skill and why. Per-tick
+  // one-shot like campfire_bound. Appended at the table end so existing field
+  // IDs stay stable. Same ubyte on the wire as before §35 C4b — the enum only
+  // names the values.
   activation_rejected_skill_id:ushort = 0;
-  activation_rejected_reason:ubyte = 0;
+  activation_rejected_reason:ActivationRejection = None;
 
   // Entity id of the conversant the owning player can talk to right now; 0 =
   // none (entity ids start at 1). Own player only, and live STATE rather than

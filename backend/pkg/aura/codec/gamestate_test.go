@@ -290,7 +290,7 @@ func TestGameStateCastAndRejection_RoundTrip(t *testing.T) {
 	assert.Equal(t, uint16(120), result.CastTicksLeft())
 	assert.Equal(t, uint16(300), result.CastTicksTotal())
 	assert.Equal(t, uint16(28), result.ActivationRejectedSkillId())
-	assert.Equal(t, byte(1), result.ActivationRejectedReason())
+	assert.Equal(t, AuraApi.ActivationRejectionNoAnchor, result.ActivationRejectedReason())
 }
 
 func TestGameStateCastAndRejection_AbsentReadsZero(t *testing.T) {

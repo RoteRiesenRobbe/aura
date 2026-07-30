@@ -360,7 +360,7 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// lifecycle — stamped by the SkillSystem, cleared in ResetTickNumbers.
 	if id, reason := gs.Player.ActivationRejected(); reason != model.ActivationRejectedNone {
 		AuraApi.GameStateAddActivationRejectedSkillId(builder, uint16(id))
-		AuraApi.GameStateAddActivationRejectedReason(builder, byte(reason))
+		AuraApi.GameStateAddActivationRejectedReason(builder, AuraApi.ActivationRejection(reason))
 	}
 	// Who the player can talk to right now (chunk 3b-i). Unlike the fields
 	// above this is live STATE, not a one-shot: it is re-stamped every tick by

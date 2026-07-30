@@ -4,12 +4,14 @@ import {Container, Graphics} from 'pixi.js';
  * Client mirror of the backend `skills.AuraCategory` bitmask, serialized as the
  * `aura_category` wire ubyte on both Character and Mob (triage item 7).
  *
- * SYNCED WITH BACKEND (backend/pkg/aura/skills/aura_category.go)
+ * SYNCED WITH BACKEND (backend/pkg/aura/skills/aura_category.go), pinned on
+ * both sides by api/shared-constants.json (§35 C4c) — a regular enum on
+ * purpose, so the pin test can enumerate its members.
  *
  * Only the bit values are synced — which skills carry which categories is
  * resolved server-side, so this file never needs a skill-ID table.
  */
-export const enum AuraCategoryBit {
+export enum AuraCategoryBit {
     Damage = 1 << 0,
     Heal = 1 << 1,
     Shield = 1 << 2,

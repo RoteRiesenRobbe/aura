@@ -4,6 +4,7 @@
 
 import * as flatbuffers from 'flatbuffers';
 
+import { ActivationRejection } from '../aura-api/activation-rejection.js';
 import { Conversation } from '../aura-api/conversation.js';
 import { Entity } from '../aura-api/entity.js';
 import { Player, unionToPlayer, unionListToPlayer } from '../aura-api/player.js';
@@ -172,9 +173,9 @@ activationRejectedSkillId():number {
   return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
 }
 
-activationRejectedReason():number {
+activationRejectedReason():ActivationRejection {
   const offset = this.bb!.__offset(this.bb_pos, 36);
-  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : ActivationRejection.None;
 }
 
 interactableEntityId():bigint {
@@ -364,8 +365,8 @@ static addActivationRejectedSkillId(builder:flatbuffers.Builder, activationRejec
   builder.addFieldInt16(15, activationRejectedSkillId, 0);
 }
 
-static addActivationRejectedReason(builder:flatbuffers.Builder, activationRejectedReason:number) {
-  builder.addFieldInt8(16, activationRejectedReason, 0);
+static addActivationRejectedReason(builder:flatbuffers.Builder, activationRejectedReason:ActivationRejection) {
+  builder.addFieldInt8(16, activationRejectedReason, ActivationRejection.None);
 }
 
 static addInteractableEntityId(builder:flatbuffers.Builder, interactableEntityId:bigint) {

@@ -1,0 +1,32 @@
+{
+  "_comment": "The cross-language contract fixture (§35 C4c, plan-conf-duplication.md D3): wire-riding values that Go and the client both restate by hand. Each side asserts its own table against this file — Go: backend/cmd/aurad/shared_constants_test.go, client: frontend/src/client-data/SharedConstants.test.ts — so a drift goes red on whichever side moved. Contract only (names ↔ values); colors, styles and pixel scaling stay client-side. Not loaded by the game: tests read it from the repo, so it needs no cp-defs/embed entry.",
+  "appliedEffectBits": {
+    "dot": 1,
+    "slow": 2,
+    "hot": 4,
+    "resist": 8,
+    "tickRate": 16,
+    "calm": 32,
+    "charm": 64,
+    "speed": 128
+  },
+  "auraCategoryBits": {
+    "damage": 1,
+    "heal": 2,
+    "shield": 4,
+    "dot": 8,
+    "slow": 16,
+    "light": 32,
+    "resist": 64
+  },
+  "tierRanks": {
+    "normal": 0,
+    "elite": 1,
+    "boss": 2
+  },
+  "viewportMeters": {
+    "width": 20,
+    "height": 12
+  },
+  "ticksPerSecond": 30
+}

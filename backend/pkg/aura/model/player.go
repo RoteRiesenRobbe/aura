@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/EngoEngine/ecs"
+	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
@@ -29,12 +30,17 @@ type PlayerProgression struct {
 // precondition (plan-skill-vocab chunk 4, §3.5): no cast starts, no cooldown
 // is consumed, and the client renders feedback keyed by this value. Grows one
 // entry per precondition; serialized as activation_rejected_reason.
+//
+// The values are the wire enum's (§35 C4b, the status_effects.go pattern) —
+// server.fbs is the single authored home, and the client keys its feedback
+// text by the same generated names, so a renumber can no longer show the
+// wrong message silently.
 type ActivationRejection byte
 
 const (
-	ActivationRejectedNone     ActivationRejection = iota
-	ActivationRejectedNoAnchor                     // recall: no campfire anchor bound
-	ActivationRejectedNoTarget                     // reserved: revive with no corpse in range (chunk 3)
+	ActivationRejectedNone     = ActivationRejection(AuraApi.ActivationRejectionNone)
+	ActivationRejectedNoAnchor = ActivationRejection(AuraApi.ActivationRejectionNoAnchor) // recall: no campfire anchor bound
+	ActivationRejectedNoTarget = ActivationRejection(AuraApi.ActivationRejectionNoTarget) // reserved: revive with no corpse in range (chunk 3)
 )
 
 type Players []PlayerEntity

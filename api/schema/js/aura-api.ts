@@ -4,6 +4,7 @@
 
 export { AABB } from './aura-api/aabb.js';
 export { Accept } from './aura-api/accept.js';
+export { ActivationRejection } from './aura-api/activation-rejection.js';
 export { AnyEntity } from './aura-api/any-entity.js';
 export { Character } from './aura-api/character.js';
 export { ChatMessage } from './aura-api/chat-message.js';

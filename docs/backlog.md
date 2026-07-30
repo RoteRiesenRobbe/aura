@@ -3203,7 +3203,7 @@ level-1 Damage aura with collision fully enforced. The focus-fire problem is a
 ## 35. One value, many homes — the tuning-value duplication sweep
 
 **WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
-> **⭐ TIERS 2–5 PLANNED IN FULL 2026-07-29 → `docs/plan-conf-duplication.md`**
+> **⭐ TIERS 2–5 PLANNED IN FULL 2026-07-29 → `docs/archive/plan-conf-duplication.md`**
 > (D1 shrink-to-deltas · D2 warn-at-boot on unknown keys, `_`-prefix exempt ·
 > D3 per-item serve/generate for the frontend mirrors; chunks C1–C4). The
 > planning survey found one **new landmine** — the Go defaulting layer is NOT
@@ -3226,7 +3226,20 @@ level-1 Damage aura with collision fully enforced. The focus-fire problem is a
 > permanent test pinning all five tracked confs at zero unknown keys. The
 > historical fixture (`c183ce12^`) carried **8** dead keys, not the 7 the
 > hygiene ledger counted; and case-insensitive matches are accepted because
-> `encoding/json` applies them. C3–C4 open.
+> `encoding/json` applies them.
+>
+> **✅ C3 + C4 SHIPPED 2026-07-30 (plan §7) — §35 IS COMPLETE, plan archived.**
+> C3: the tier-3 Go literals (sim XP base/growth/margin/regen, the chase-margin
+> pair, both `combatRegenGraceTicks`) pinned by tests against
+> `conf.default.json` — mirrors stay deliberate, drift now goes red. C4:
+> `spacedName()` deleted for the served `/mobs` `displayName`,
+> `ActivationRejection` moved into `server.fbs` with pinned values (both
+> binding sets regenerated as a zero diff; the Go model derives its constants
+> from the generated enum, the client keys its messages by the generated
+> names), and the new **`api/shared-constants.json`** pins the pip/ring/tier
+> bit tables + viewport 20×12 + tickrate 30 via one Go test AND one vitest,
+> exhaustive on the TS side. The client tier-frame table is now keyed by a
+> named `TierRank` enum instead of position.
 >
 > **✅ TIER 1 FULLY DONE 2026-07-28** — `docs/archive/plan-pre-accounts-hygiene.md`
 > (ledgers there, §11). **Row 1** closed by session 2 (`50a1e5c9`): both Go
@@ -3264,9 +3277,9 @@ the PO's response was the right one: *"doesn't seem good that we need to adjust
 it at 4 places — make a list of all values that need to be changed in multiple
 fields and tackle it as a code cleanup topic."*
 
-**Status: PLANNED 2026-07-29** (was: surveyed) — the plan doc the paragraph
-below anticipated is `docs/plan-conf-duplication.md`, see the banner above.
-Nothing here blocks anything else.
+**Status: ✅ COMPLETE 2026-07-30** (was: surveyed → planned) — the plan doc the
+paragraph below anticipated is `docs/archive/plan-conf-duplication.md`, see the
+banner above. Nothing here blocks anything else.
 The regen retune itself is **not** part of this item — it shipped separately
 (rate `1/(5·TicksPerSecond)` + a fractional carry mirroring the player's).
 

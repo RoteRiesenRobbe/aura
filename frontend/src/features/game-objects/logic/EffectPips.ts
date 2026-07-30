@@ -7,12 +7,14 @@ import {AURA_CATEGORY_COLORS} from './AuraRings';
  * kinds currently applied TO an entity — the received-status opposite of
  * `aura_category`, which describes what the entity projects.
  *
- * SYNCED WITH BACKEND (backend/pkg/aura/skills/applied_effects.go)
+ * SYNCED WITH BACKEND (backend/pkg/aura/skills/applied_effects.go), pinned on
+ * both sides by api/shared-constants.json (§35 C4c) — a regular enum on
+ * purpose, so the pin test can enumerate its members.
  *
  * Shields have no bit on purpose: the overhead bar's absorb segment
  * (shield_hp) already shows them.
  */
-export const enum AppliedEffectBit {
+export enum AppliedEffectBit {
     Dot = 1 << 0,
     Slow = 1 << 1,
     Hot = 1 << 2,
