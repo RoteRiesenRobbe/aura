@@ -1698,10 +1698,20 @@ a multiplayer playtest, not a solo one.
 - **Totem/companion tooltips don't describe the summon's effects** — the
   tooltip reads the caster's `spawn` effect, not the summoned mob's loadout.
   Needs the tooltip to follow the spawn into the mob's own skills.
-  **Deliberately left out of the 2026-07-26 batch:** it lives in
-  `SkillTooltip.ts`, which the round-4 chunk had already changed and which was
-  ⏳ PO-test-pending at the time — stacking a second unverified change into that
-  file would have muddied the round-4 test pass. Pick it up after round 4 clears.
+  *(Originally deferred 2026-07-26 because `SkillTooltip.ts` was round-4
+  test-pending; that cleared long ago.)* **Re-raised by the PO 2026-07-30**
+  during the §35 C4 in-game check, with a second observation on the same
+  surface: **Call for Aid renders "Summons Soldier Companion …" three times**
+  — one line per `spawn` effect, technically true, not pretty; wants a dedupe
+  ("3× Soldier Companion") or a grouped render, same shape as the existing
+  radius/targets generic-line dedupe. ⚑ PO note on scope: hover info may get
+  a broader rework later anyway — treat both as one item on that surface, and
+  don't gold-plate the current renderer before that call is made. The summon
+  side has a data prerequisite either way: the `/skills` catalog serves only
+  the caster's effects, so describing the companion means either following
+  `spawn.mobName` into a served mob loadout (the `/mobs` catalog deliberately
+  omits skills — zero-hint policy would need a carve-out for player-owned
+  summons) or serving a curated description line.
 - **Haste's name promises movement, delivers cadence** (see §Findings).
 - ~~**A shield aura draws no tick indicator** (round 5, 2026-07-26).~~
   ✅ 2026-07-26 — `shield_aura` was missing from the `HasVisibleTickCadence`

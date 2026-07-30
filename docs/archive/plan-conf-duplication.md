@@ -382,5 +382,9 @@ run invalidated by a §29 context loss, re-run clean — the standing rule held)
 and `hygiene-wire-prune.mjs` 647 sprites / 0 console errors / 0 ctx losses.
 No sim battery: the rejection field's wire bytes are identical and nothing
 behavior-bearing moved (and per L9 the codec is outside the sim path anyway).
-The one open acceptance item — the manual in-game rejection-message check —
-is handed to the PO as a checklist under the per-bug working model.
+**✅ PO-VERIFIED IN-GAME 2026-07-30** — the full checklist passed (rejection
+message "No campfire bound" on an unbound Recall · spaced summon names · tier
+frames · pip/ring colors), closing the last acceptance item. The pass
+re-raised a pre-existing tooltip item (summon effects undescribed + Call for
+Aid's triple spawn line) — recorded at `plan-playtest-feedback.md` §Rolling
+intake, not part of this plan.
