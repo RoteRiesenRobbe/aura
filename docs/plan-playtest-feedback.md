@@ -1,7 +1,7 @@
 # Plan: Playtest Feedback (rolling collection)
 
 **Status:** **Collection doc.** Latest: **chunk P — presence-counts XP
-attribution (Pass 3 item 1) — ✅ DONE 2026-07-30** `[uncommitted]` (§Chunk P
+attribution (Pass 3 item 1) — ✅ DONE 2026-07-30** `d45ba07c` (§Chunk P
 ledger at the end; plan at §Chunk P plan, 3 PO rulings P1–P3, 5 landmines).
 It is quest prerequisite **chunk P** (`plan-quests.md` D15); quest C1 is
 unblocked. Shipped earlier
@@ -1680,13 +1680,13 @@ a multiplayer playtest, not a solo one.
    attribution rule, not the interim damage-touch one.
    **⭐ PLANNED IN FULL 2026-07-30 → §Chunk P plan below** (P1–P3 PO-ruled:
    fixed conf radius · joins-never-starts gate · one participant class).
-   **✅ EXECUTED 2026-07-30** `[uncommitted]` — full ledger at §Chunk P ledger.
+   **✅ EXECUTED 2026-07-30** `d45ba07c` — full ledger at §Chunk P ledger.
 2. **CallForAid combo recipes** (decision 5) — heal minions / damage minions.
    Warbanner itself unchanged.
 
 ## Chunk P plan — presence-counts attribution (Pass 3 item 1)
 
-> **✅ EXECUTED 2026-07-30** `[uncommitted]` — full ledger at §Chunk P ledger
+> **✅ EXECUTED 2026-07-30** `d45ba07c` — full ledger at §Chunk P ledger
 > below. The plan held with no deviations; the PO in-game checklist below is
 > still open (per the standing per-bug model, not blocking).
 >
@@ -2113,7 +2113,7 @@ the three faction-flips cooldowns (written from
 called skill 6 `Light`. The cooldown catalog now cross-checks 23-for-23 against
 `api/`.
 
-### Chunk P — presence-counts attribution ✅ DONE 2026-07-30, `[uncommitted]`
+### Chunk P — presence-counts attribution ✅ DONE 2026-07-30, `d45ba07c`
 
 **Pass 3 item 1, quest prerequisite chunk P (`plan-quests.md` D15) — quest C1
 is unblocked.** Backend only (12 files + 1 new harness); no wire change, no
