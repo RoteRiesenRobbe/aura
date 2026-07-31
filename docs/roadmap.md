@@ -973,15 +973,40 @@ system ships blind.
 > per-character ledger that survives death and reconnect — which is exactly the
 > shape D12 wanted step 8 to inherit rather than invent.
 
-8. **Accounts & persistence** (item 3) **+ UI polish / avatar / audio** (item 8) —
-   deliberately **after** content: the game proves out session-based first, then
-   we invest in persistence, the anonymous-first account service (built fresh —
-   chieftain deleted 2026-07-09), the styling pass, and avatar selection.
+8. **Accounts & persistence + UI polish / avatar / audio** — deliberately
+   **after** content: the game proves out session-based first, then we invest in
+   persistence and presentation. ⚑ **Split into 8a and 8b (2026-07-30)** because
+   it bundled two different roadmap *items* (3 and 8) that share only their
+   position in the sequence, which made "is step 8 done?" unanswerable — 8a could
+   be complete while a cuttable audio rider held the step open. They are
+   independently completable; 8a is the one with a plan.
+
+   **8a — Accounts & persistence** (item 3). The anonymous-first account service,
+   built fresh (chieftain deleted 2026-07-09).
+   ✅ **DESIGNED 2026-07-30, not started** → `plan-accounts-schema.md` +
+   `plan-accounts-implementation.md` + `plan-accounts-frontend.md`;
+   `plan-accounts-password-reset.md` is split out to run *after* those three
+   (it needs outbound email, which aura has no capability for, and would
+   otherwise gate login behind a mail-provider decision).
+   ✅ **Its quest-pass prerequisite is SATISFIED** — D12 put chunks P + C0–C4 in
+   front of 8a so persistence would receive a *live* quest ledger rather than a
+   paper one, and whose duplicate-`MobID` boot guard had to exist before any of
+   it persisted. All of it shipped 2026-07-30 (`archive/plan-quests.md`), so 8a
+   now inherits both.
+   ⚑ **The one remaining prerequisite is manual, not code:** stand up Postgres
+   locally (`plan-accounts-implementation.md` §0 "MANUAL STEP") — chunk 1a's
+   first line of Go needs a database and the disposable `aura_test` to exist.
    **The character-sacrifice loop (pulled into v1 scope, PO 2026-07-19 —
-   `plan-intermission-triage.md` item 10) slots directly after this step as
-   persistence's first consumer** (max-level detection, retire flow,
-   account-wide unlock storage, memorial — all cheap once account identity +
-   storage exist).
+   `plan-intermission-triage.md` item 10) slots directly after 8a as
+   persistence's first consumer** (max-level detection, retire flow, unlock
+   storage — now **per-slot bloodline**, backlog §36 — memorial; all cheap once
+   account identity + storage exist).
+
+   **8b — UI polish / avatar / audio** (item 8). The styling pass
+   (`plan-ui-polish.md`, chunk 1 done, rest deferred) and avatar selection
+   (`plan-avatar-system.md`, design sketch, unscheduled). Largely independent of
+   8a — only avatar *persistence* (`plan-avatar-system.md` §7 chunk 4) needs 8a's
+   storage; that plan's chunks 1–3 ship without accounts.
    **Audio — location-music half only (added 2026-07-09; combat SFX split to
    step 6 on 2026-07-14; needs a go/no-go review when reached; may still be cut):**
    location-based background music (forest vs. cave *within* a zone), music

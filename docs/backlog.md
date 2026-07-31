@@ -4108,3 +4108,131 @@ the accounts & persistence design session alongside §32, §36 and §41. The
 pillar ruling is done (banner above); what remains for a design session are the
 open questions below it, and authoring actual quest content is a separate,
 later concern.
+
+---
+
+## 43. Two web-transport defaults that persistence turns into vulnerabilities
+
+**Found 2026-07-29**, during an adversarial review of the step-8 persistence
+plans (`plan-accounts-implementation.md` §7b holds the full write-up and the
+fixes). Recorded here because both live in **existing, shipped code** and are
+independent of whether persistence is built — but both are **harmless today and
+exploitable the moment a credential cookie exists**, which is exactly what step
+8 introduces.
+
+Neither is a bug in anything the code currently does. They are permissive
+defaults that were correct for a public, credential-free game and stop being
+correct the instant there is a session worth stealing.
+
+### 43.1 `CheckOrigin` accepts every origin (Cross-Site WebSocket Hijacking)
+
+`backend/pkg/aura/net/main.go:38-40`:
+
+```go
+CheckOrigin: func(r *http.Request) bool { return true },
+```
+
+Today: harmless. There are no credentials on the connection, and the world is
+public — accepting a socket from any page costs nothing.
+
+After step 8: any website can open `new WebSocket('wss://<host>/game')`, and
+the browser will attach the victim's session cookie to the handshake.
+⚑ **WebSocket handshakes are not subject to CORS**, so no preflight and no
+`Access-Control-*` header intervenes — `CheckOrigin` is the only gate, and it
+is open. The attacker gets an authenticated game session as the victim.
+
+`SameSite=Lax` on the cookie does block this in current browsers, and the
+persistence plan recommends exactly that — but that makes the protection
+**incidental**: it depends on a cookie attribute chosen for CSRF reasons, and
+disappears if anyone later switches to `SameSite=None` (which is the natural
+"fix" for §43.2). Defence in depth wants both.
+
+**Fix:** an origin allowlist, shared with §43.2's CORS allowlist.
+
+### 43.2 Wildcard CORS is incompatible with credentialed requests
+
+`items/mobs/catalog.go:79` and `skills/catalog.go:108` both set:
+
+```go
+w.Header().Set("Access-Control-Allow-Origin", "*")
+```
+
+Correct for what they are — public, read-only content catalogs, deliberately
+open so the dev client on another port can fetch them.
+
+The trap is that this is the **only in-repo precedent** for an HTTP endpoint,
+so it is what a step-8 implementer would copy for `/api/auth/*` — and browsers
+**reject** `Access-Control-Allow-Origin: *` on any request sent with
+`credentials: 'include'`. Auth endpoints need an echoed specific origin plus
+`Access-Control-Allow-Credentials: true`.
+
+⚑ **This is genuinely cross-origin, not theoretical:** `frontend/.../Urls.ts`
+derives HTTP endpoints from the **WebSocket** URL, so `/api/*` resolves to
+aurad's port while webpack serves the client from another one in dev.
+
+⚑ **The tempting wrong fix** is to keep the wildcard and move the JWT into
+`localStorage` so no credentials ride the request — trading a CSRF-shaped
+problem for an XSS-shaped one and discarding `httpOnly`.
+
+**Not scheduled, and not urgent while the game ships no credentials.** Both
+should be fixed **as part of step 8**, before the first cookie is set, rather
+than as follow-ups — after that point they are live vulnerabilities rather than
+permissive defaults.
+
+---
+
+## 44. Cheat authority is a shared secret, and persistence changes what it costs
+
+**Found 2026-07-31**, while designing the 8a browser harness. Not a bug today;
+a risk profile that changes the day step 8a ships.
+
+### How it works now
+
+`backend/tokens.list` holds one token per line, loaded at boot
+(`cmd/aurad/aurad.go:79`). The token rides on each `Cheat` message and is
+compared against that list (`sys/cmd/cmd.go:341-349`). The browser supplies it
+via `?token=plz`.
+
+⚑ **It is a shared bearer secret with no relationship to identity.** There is no
+notion of *who* is cheating — only whether the string matches. Consequences that
+follow: it cannot be revoked for one person without rotating it for everyone,
+rotation means editing a file and restarting, and nothing records that a cheat
+was used or by whom.
+
+### Why persistence changes the calculus
+
+Today `GOD`, `XP`, `SKILL`, `WARP` and the rest write to **memory that is wiped
+on every restart** — the live server already loses all characters on restart, so
+a leaked token is embarrassing rather than damaging.
+
+**After 8a those same cheats write to the database permanently.** Anyone who
+learns the token string can grant themselves max level, a full spellbook and
+bloodline unlocks on the live server, and it persists. The exposure is not new,
+but its cost is.
+
+### The shape of the fix (NOT scheduled — deliberately after 8a)
+
+Bind cheat authority to an **account flag** (`accounts.is_developer`) rather than
+to a shared string:
+
+- Revocable per person, no rotation, no shared secret.
+- The `Cheat` handler already has the connection, and after 8a the connection
+  carries `account_id` (the session-registry change in
+  `plan-accounts-frontend.md` §8) — so the check is a flag lookup, not new
+  plumbing.
+- Cheat use becomes auditable via `game.audit_log`, which is exactly the case
+  that table exists for.
+
+⚑ **Deliberately not part of 8a** (PO 2026-07-31). It would land a second
+identity-shaped system in the same chunk as the first, and the token works. The
+flag wants an account table to hang off, which is what 8a delivers — so this is
+the natural piece immediately after, not a parallel one.
+
+⚑ **The browser harness keeps using `tokens.list` either way.** The two systems
+are orthogonal today and the harness does not care which gates cheats; if the
+flag lands, the harness accounts (`plan-accounts-frontend.md` §11) get
+`is_developer` set and the `?token=` parameter retires.
+
+⚑ **Interim mitigation, free:** the live `tokens.list` should not contain `plz`.
+It is the documented dev token, it appears in this repo's README and in every
+harness invocation, and it is the first string anyone would try.
