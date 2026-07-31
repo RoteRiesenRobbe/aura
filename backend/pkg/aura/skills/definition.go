@@ -227,7 +227,11 @@ type EffectDef struct {
 	// stamped here at load (see SkillDefinition.TargetFactionMask — it is
 	// authored once, on the skill). 0 = unrestricted; a non-zero mask narrows
 	// eligibility to exactly those factions in eligibleByTargetFlags.
-	TargetFactionMask uint64 `json:"targetFactionMask,omitempty"`
+	//
+	// Server-only, like its skill-level twin: `json:"-"` because /skills
+	// marshals this struct verbatim and the client has no use for bits it
+	// cannot decode (backlog §27.3.6).
+	TargetFactionMask uint64 `json:"-"`
 
 	// Per-type payloads — exactly one non-nil, matching Type.
 	Damage   *DamageParams   `json:"damage,omitempty"`   // damage_aura, instant_damage
@@ -697,7 +701,13 @@ type SkillDefinition struct {
 	// per-apply-site copy is exactly how the mayHarm gate warns it gets
 	// forgotten. Authoring vocabulary is what the ruling fixes; where the
 	// resolved bits are carried is an implementation detail.
-	TargetFactionMask uint64 `json:"targetFactionMask,omitempty"`
+	//
+	// ⚑ Server-only (`json:"-"`, backlog §27.3.6). /skills marshals this struct
+	// verbatim, so until the pin below the resolved bits shipped to a client
+	// that had zero readers for them and could not have decoded them anyway —
+	// the faction registry is boot-only and the bits depend on registry load
+	// order. TargetFactions (the display names) is what travels.
+	TargetFactionMask uint64 `json:"-"`
 
 	// TargetFactions is the same allowlist as DISPLAY NAMES, in authoring
 	// order — what the tooltip prints, and the reason it exists at all: the

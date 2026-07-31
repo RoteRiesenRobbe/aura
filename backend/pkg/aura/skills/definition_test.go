@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"encoding/json"
 	"testing"
 	"testing/fstest"
 
@@ -1492,6 +1493,33 @@ func TestMap_TargetFactionsCarryTheirDisplayNamesToTheCatalog(t *testing.T) {
 	// Authoring order, not registry order: the tooltip should read the way the
 	// content author wrote it.
 	assert.Equal(t, []string{"Prey", "Predators"}, def.TargetFactions)
+}
+
+func TestMap_TargetFactionMaskIsNotServedToTheClient(t *testing.T) {
+	// The mask is server-only state (backlog §27.3.6). /skills marshals
+	// SkillDefinition verbatim, so before this pin the resolved bits shipped on
+	// the skill AND on every one of its effects — with zero client readers, and
+	// undecodable there anyway: the faction registry is boot-only and the bits
+	// depend on registry load order. The DISPLAY NAMES are the thing that
+	// travels (see the test above); the bits stay home.
+	fr := calmFactions(t)
+	raw, err := parseSkillDefinition([]byte(calmSkillJSON))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition(fr)
+	require.NoError(t, err)
+
+	// Still load-bearing in memory — this is a serialization change, not a
+	// deletion. eligibleByTargetFlags reads the effect-level copy every tick.
+	require.NotZero(t, def.TargetFactionMask)
+	require.Len(t, def.Effects, 1)
+	require.NotZero(t, def.Effects[0].TargetFactionMask)
+
+	payload, err := json.Marshal(def)
+	require.NoError(t, err)
+	assert.NotContains(t, string(payload), "targetFactionMask",
+		"the resolved mask must not reach the client, on the skill or on any effect")
+	assert.Contains(t, string(payload), "targetFactions",
+		"the display names still travel — that is the whole delivery mechanism")
 }
 
 func TestMap_TargetFactionsFallBackToTheIdentifier(t *testing.T) {
