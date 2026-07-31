@@ -14,3 +14,5 @@ node_modules/
 
 *:Zone.Identifier
 /devops/bundle/
+.vscode/extensions.json
+frontend/package-lock.json
