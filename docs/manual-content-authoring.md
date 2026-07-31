@@ -271,6 +271,25 @@ load: an unknown or renamed key hard-fails the boot naming the field and its
 replacement, rather than silently reading as zero. Authoring against the wrong
 type is therefore a boot error, not a mystery in play.
 
+⚑ **The two healing types do NOT target alike, and it is not authorable.**
+`heal_aura` only ever affects a **wounded** ally (`HealthRatio() < 1`, hardcoded
+in `applyHealAura`); `hot_aura`, `instant_hot` and every other type affect
+eligible targets regardless of health. The asymmetry is deliberate (backlog §33,
+PO 2026-07-31): the gate exists because a heal aura authors `selfDamageHP` per
+healing tick and typically `maxTargets: 1`, so a tick spent on a full-HP target
+bills the caster real HP and burns its only slot. A heal-over-time authors
+neither, so it is free to **pre-hot** — placing the buff before the damage
+arrives, which is legitimate support play.
+
+Two consequences when authoring:
+
+- **A `heal_aura` with `maxTargets: 0` still cannot top anybody off.** If you
+  want "keeps the party topped up", that is a `hot_aura`.
+- **A HoT on a full-health target is inert, not wasted.** `tickHotEvents` drops
+  any tick healing ≤ 0 *before* participation XP, healer threat and combat
+  entry, so a pre-hot generates no credit and pulls nothing until real damage
+  lands.
+
 ### Backend / data
 
 1. **`api/skills/newskill.json`** — copy `api/skills/damage-aura.json`:

@@ -327,16 +327,37 @@ build-out (through `3e9ab8e4`, `tick_rate` — the last effect type added), then
 rather than compounding. Keep it in the metrics table; do not act on it yet.
 
 Four mechanical cleanups (~70 lines, no behavior change) and four hardcoded
-balance constants are recorded in §25, plus one latent gap worth naming here
-because it belongs to this doc's lineage:
+balance constants are recorded in §25. **All four cleanups are now done**
+(A#4 + the constants 2026-07-24 `2ec03ee7`; A#1 + A#3 2026-07-31 `1bfd6677`;
+A#2 superseded rather than executed — see the first bullet below). ⚑ **A#1's
+own prediction came true while it waited:** the if-chain it described as "the
+extension point that grows" grew from eight branches to twelve before anyone
+touched it, which is the argument against filing a growing-extension-point
+cleanup as *opportunistic*. Two latent gaps are worth naming here because they
+belong to this doc's lineage:
 
-- **§3.4's residual.** `eligibleByTargetFlags` closed the flag-gated
-  duplication (§7.1), but heal and hot auras carry a *bespoke* implicit-ally
-  predicate deliberately left outside that seam — and it is now duplicated
-  verbatim between `applyHealAura:716` and `applyHotAura:815`. The generic seam
-  fixed the general case and the exception quietly re-grew. Worth remembering as
-  a pattern: **an "intentionally excluded from the shared helper" comment is a
-  duplication forecast.**
+- **§3.4's residual. ✅ RESOLVED 2026-07-31 — but not the way this bullet
+  assumed, and the correction is the more useful finding.**
+  `eligibleByTargetFlags` closed the flag-gated duplication (§7.1), but heal and
+  hot auras carry a *bespoke* implicit-ally predicate deliberately left outside
+  that seam — and it was duplicated verbatim between `applyHealAura:716` and
+  `applyHotAura:815`. The generic seam fixed the general case and the exception
+  quietly re-grew. Worth remembering as a pattern: **an "intentionally excluded
+  from the shared helper" comment is a duplication forecast.**
+
+  The obvious remedy — extract a shared `woundedAllyPredicate()`, filed as
+  §25 A#1–3's item 2 — was **the wrong fix, and doing it would have been worse
+  than leaving the duplication.** Backlog §33 asked whether the two copies
+  *should* agree, and the PO ruled they should not: the wounded-only gate is
+  load-bearing on `heal_aura` (it authors `selfDamageHP` per healing tick and
+  `maxTargets: 1`) and pure inheritance on `hot_aura` (which authors neither).
+  So the hot-side copy was **deleted**, and the duplication resolved to a single
+  remaining rule with no helper at all. ⚑ **The sharper lesson, superseding the
+  forecast above: identical code is not the same as one rule. Before deduping,
+  ask whether the copies are obliged to agree — if that question is open, the
+  dedupe is a design commitment wearing hygiene's clothes**, and it will have to
+  be un-done when the design lands. (§25 A#1 and A#3 shipped the same day and
+  were safe precisely because nothing about them was an open question.)
 - **`applySlowAura:1544` has no faction eligibility at all** — the one aura path
   skipping both the faction check and the `mayHarm` hostility gate. Unreachable
   today (no mob authors a slow aura; players implement no `ApplySlow`), and its
