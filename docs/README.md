@@ -91,6 +91,15 @@ than patch. PDF renders of the first two sit in the repo root.
   the `plan-accounts-*.md` docs win on any disagreement. Written to be importable into
   Google Docs, hence HTML.
 
+`docs/accounts/` also carries **session handovers** — working notes for picking a chunk up
+cold, not snapshots. ⚑ **Disposable: delete one when its chunk lands**, so the folder never
+accumulates stale instructions. Durable content belongs in the plan doc's chunk ledger.
+
+- **accounts/chunk-1b-handover.md** — what a fresh session needs to start 8a chunk 1b
+  (auth & sessions): reading order, the state 1a left, the five pieces, the traps that fail
+  *silently*, dependency versions pre-checked against the `go 1.22` floor, this dev box's
+  quirks, and **one open scoping decision** to settle first.
+
 ## Research (investigations / assessments)
 
 *Point-in-time when written; most are still forward-looking inputs to unbuilt work.*
