@@ -1,5 +1,5 @@
 {
-  "_comment": "Wildfire (content pass C7, plan-content-zones12.md §13): Ignite L3 + Immolate L5 combo — reworked 2026-07-21 (PO: 'the ultimate fire fantasy this version has to offer') from the ~70% side-grade into a strict Immolate upgrade: full Immolate per-burn damage on TWO targets, bigger radius, one extra dot tick, plus caster-only fire resistance. Also emits light (triage 2026-07-21) — same radius + per-level gain as the Light aura. Secret recipe. All values [PLACEHOLDER]",
+  "_comment": "Wildfire (content pass C7, plan-content-zones12.md §13): Ignite L3 + Immolate L5 combo — reworked 2026-07-21 (PO: 'the ultimate fire fantasy this version has to offer') from the ~70% side-grade into a strict Immolate upgrade: full Immolate per-burn damage on TWO targets, bigger radius, one extra dot tick, plus caster-only fire resistance. Also emits light (triage 2026-07-21) — same radius + per-level gain as the Light aura. Secret recipe. All values [PLACEHOLDER] ⚑ NUMBERS REWRITE C2b/C2c: authored at the C2b rate this skill KILLED its caster in the standing chain battery (facetank survival 100% → 0%). The first diagnosis blamed the cadence — the dot line re-applies every 20 ticks while its dot fires every 60, so the caster is charged three times per hit landed — but MEASURING the 20 → 60 fix showed it cost real damage in short fights (a 2 s delay to the first tick against a ~5 s kill) and left the skill weaker still. The actual cause was WEAKNESS: at 9.45 HP/s this sat barely above half the output of the permanently FREE Damage aura, which inverted D16b, so any price at all was unpayable. C2c raised the damage instead, kept the 20-tick cadence (the 2026-07-21 dot-responsiveness halving stands) and priced the effect at a third to match. Survival is back to 100%.",
   "id": 58,
   "name": "Wildfire",
   "category": "active_aura",
@@ -7,10 +7,12 @@
   "effects": [
     {
       "type": "dot_aura",
+      "costFractionOfMax": 0.0046,
+      "costFractionOfMaxPerLevel": 0.00215,
       "radius": 1.4,
       "radiusPerLevel": 0.0,
       "damageHP": 10.5,
-      "damageHPPerLevel": 2.1,
+      "damageHPPerLevel": 6.875,
       "damageTags": ["fire"],
       "dotTicks": 4,
       "dotTickInterval": 60,

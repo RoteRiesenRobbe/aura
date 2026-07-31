@@ -105,7 +105,10 @@ enum ActivationRejection : ubyte {
   // recall: no campfire anchor bound
   NoAnchor = 1,
   // reserved: revive with no corpse in range
-  NoTarget = 2
+  NoTarget = 2,
+  // the caster cannot pay the skill's resource cost and live
+  // (plan-numbers-rewrite D9)
+  NotEnoughResource = 3
 }
 
 struct AABB {

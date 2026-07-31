@@ -412,7 +412,7 @@ New characters begin as a "poor peasant" holding a **mundane utility aura** (e.g
 > made the spawn truly empty; step 6 C1 had Harvest as the spawn skill with
 > Damage on the Farmer @L2; C8 moved Damage to the TownCrier @L1; Q4 made it
 > the creation milestone.)* The chore gate is mechanically **opt-in damage**
-> (`gatedDamageTags`): the utility aura only damages targets whose resistances
+> (`gateKey`, D4): the utility aura only damages targets whose `factors.gateKeys`
 > explicitly name its tag — so turnips (and later bramble walls) opt in, and
 > every combat mob is immune with zero per-mob authoring
 > (`manual-content-authoring.md` §1).

@@ -23,7 +23,9 @@ export interface DamageParams {
     hp: number;
     hpPerLevel: number;
     tags: string[];
-    gated: boolean;
+    // The lock-and-key tag (D4): non-empty means this payload damages ONLY mobs
+    // that name the key, and it carries no damage types at all.
+    gateKey: string;
     variance: number;
     hitStyle: string;
     structureDamageFraction: number;
@@ -39,8 +41,6 @@ export interface DamageParams {
 export interface HealParams {
     hp: number;
     hpPerLevel: number;
-    selfDamageHp: number;
-    selfDamageHpPerLevel: number;
     fractionOfMax: number;
     fractionOfMaxPerLevel: number;
     variance: number;
@@ -105,6 +105,10 @@ export interface ShieldParams {
 export interface HotParams {
     hp: number;
     hpPerLevel: number;
+    // Percent-of-max healing per event, mutually exclusive with hp (D14 —
+    // Recover is the first content to use it; the server hard-fails on both).
+    fractionOfMax: number;
+    fractionOfMaxPerLevel: number;
     variance: number;
     tickCount: number;
     interval: number;
@@ -144,6 +148,12 @@ export interface CharmParams {
 
 export interface SkillEffect {
     type: string;
+    // What one application of this effect costs its caster, as a share of the
+    // caster's max HP (plan-numbers-rewrite D5/D7). It lives on the EFFECT, not
+    // on a payload type, so any effect can be priced; a skill's total cost is
+    // the sum of its effects', each charged on its own cadence.
+    costFractionOfMax: number;
+    costFractionOfMaxPerLevel: number;
     radius: number;
     radiusPerLevel: number;
     tickInterval: number;
@@ -257,6 +267,38 @@ export function skillMaxLevel(id: number): number {
     return catalog.get(id)?.maxLevel ?? 1;
 }
 
+// The D10 escalating skill-point curve (plan-numbers-rewrite), mirroring
+// skills.PointCost: the first half of a skill's OWN levels cost 1 point, the
+// third quarter 2, the last quarter 3, thresholds rounded up. Level 1 is free
+// on unlock, so the first purchased level is 2.
+//
+// ⚑ Cross-language mirror (L2): the thresholds are authored in
+// api/shared-constants.json and both sides assert against it
+// (SharedConstants.test.ts here, cmd/aurad/shared_constants_test.go there).
+// The server is still the authority — this only decides what the + button
+// SHOWS, and an out-of-sync client can at worst mislabel a spend the server
+// then refuses.
+export const SKILL_POINT_COST = {
+    tier1Points: 1,
+    tier2Points: 2,
+    tier3Points: 3,
+    tier2AboveFraction: 0.5,
+    tier3AboveFraction: 0.75,
+};
+
+export function skillPointCost(maxLevel: number, level: number): number {
+    if (level <= 1 || level > maxLevel) {
+        return 0;
+    }
+    if (level <= Math.ceil(SKILL_POINT_COST.tier2AboveFraction * maxLevel)) {
+        return SKILL_POINT_COST.tier1Points;
+    }
+    if (level <= Math.ceil(SKILL_POINT_COST.tier3AboveFraction * maxLevel)) {
+        return SKILL_POINT_COST.tier2Points;
+    }
+    return SKILL_POINT_COST.tier3Points;
+}
+
 // powerScaleAt is f(character level) — the number-inflation multiplier the
 // server applies to every HP-valued output (casterPowerScale, GDD §5).
 // Mirrors curve.F exactly, including both of its degenerate cases: an
@@ -270,6 +312,31 @@ export function powerScaleAt(characterLevel: number): number {
         return 1;
     }
     return Math.pow(levelCurve.growth, Math.max(1, characterLevel) - 1);
+}
+
+// The local player's max HP, mirrored here by Player.updateFromBackend — the
+// setLocalPlayerLevel precedent, kept in this module because the only reader is
+// the skill tooltip.
+//
+// ⚑ It is what makes the resource-cost line honest. The server prices a cost as
+// a fraction of max HP but charges it through vitals.HP, which floors any
+// positive amount at 1 HP (the rule that stops a small heal rounding away to
+// nothing). So while the pool is smaller than 1/fraction, the real charge is a
+// flat 1 HP and the authored fraction understates it — 0.26 % reads on a
+// 100 HP pool as 1 %, and 12 of the 20 costed aura effects are floored somewhere
+// in character levels 1–12.
+//
+// Defaults to 0, which reads as "not known yet" and renders the authored
+// fraction untouched: a tooltip opened before the first snapshot is merely
+// imprecise, never wrong-shaped.
+let localPlayerMaxHealth = 0;
+
+export function setLocalPlayerMaxHealth(maxHealth: number) {
+    localPlayerMaxHealth = maxHealth;
+}
+
+export function getLocalPlayerMaxHealth(): number {
+    return localPlayerMaxHealth;
 }
 
 // Unknown IDs default to 'aura' — the most common category; keeps a skill
@@ -286,6 +353,7 @@ export function skillCategory(id: number): SkillCategory {
 export const ActivationRejectionMessages: { [reason: number]: string } = {
     [ActivationRejection.NoAnchor]: 'No campfire bound',
     [ActivationRejection.NoTarget]: 'No valid target',
+    [ActivationRejection.NotEnoughResource]: 'Not enough resource',
 };
 
 export function activationRejectionMessage(reason: number): string {

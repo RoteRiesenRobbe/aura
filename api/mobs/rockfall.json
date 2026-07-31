@@ -10,10 +10,8 @@
     "baseMaxHealth": 40,
     "experience": 0,
     "speed": 0,
-    "resistances": {
-      "*": 0,
-      "smash": 1
-    }
+    "resistances": { "*": 0 },
+    "gateKeys": ["smash"]
   },
   "body": {
     "radius": 0.9,

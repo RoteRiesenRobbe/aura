@@ -80,15 +80,30 @@ faction and skills without a schema append (see §5 and
      follower), which is why old defs carried a dummy `aggroRadius`.
    - `factors`: `baseMaxHealth`, `maxHealthVariance`, `experience`, `speed`,
      `deltaPhi`, `turnRate`, optional `resistances` / `damageTags`
-   - **Chore/gate tags are opt-in (C1):** gate-style damage (Harvest)
-     carries `"gatedDamageTags": true` on its effect, which flips the resist
-     default — the hit only damages mobs whose `resistances` **explicitly
-     name** one of its tags (the `"*"` wildcard does not opt in). Combat
-     mobs therefore need NO harvest entry; things the gate aura should
-     affect opt in, like the turnip (`{ "*": 0, "harvest": 1 }`, see
-     `api/mobs/turnip.json`), the C2 bramble walls and the C3 rockfall
-     (`{ "*": 0, "smash": 1 }` — each gate obstacle picks its own tag +
-     opener skill).
+   - **Chore/gate keys are opt-in (C1; the vocabulary split is D4):**
+     gate-style damage (Harvest) carries `"gateKey": "harvest"` on its effect,
+     and a mob opts in by listing that key in **`factors.gateKeys`**. Combat
+     mobs therefore need no entry at all; things the gate aura should affect
+     opt in, like the turnip (`"resistances": { "*": 0 }` +
+     `"gateKeys": ["harvest"]`, see `api/mobs/turnip.json`), the C2 bramble
+     walls and the C3 rockfall (`"gateKeys": ["smash"]`).
+   - ⚑ **`resistances` and `gateKeys` are DIFFERENT QUESTIONS and must not be
+     mixed.** `resistances` maps a **damage type** to an incoming multiplier
+     (`0.5` half, `1.5` vulnerable, `0` immune, `"*"` the per-type fallback);
+     `gateKeys` is a list of locks. Both vocabularies are closed and each
+     rejects the other's words by name, because until D4 they shared one map —
+     which meant "a turnip resists everything except harvest" and "a troll takes
+     half damage from bleed" were written identically, and a mistyped key
+     shipped as a skill that silently hit nothing.
+   - ⚑ **A `"*"` wildcard covers damage types that do not exist yet.** A mob at
+     `{"*": 0}` is automatically immune to any type added later — right for a
+     turnip, wrong the first time someone uses the wildcard as shorthand for
+     "tough".
+   - ⚑ **Think twice before authoring a `physical` resistance.** The C8 tier
+     guardrail drives its bot with authored `Damage` at L1, which is physical,
+     so a physical entry anywhere re-calibrates the tier thresholds — a test
+     (`TestNoCuratedResistanceTouchesPhysical`) makes that a deliberate act
+     rather than a surprise.
    - `body`: `radius`, `aggroRadius` (required and `> 0` for `creature` and
      `follower`; **omit it on a `structure`** — a structure acquires nothing,
      and requiring one is what produced the old `0.1` dummies)
@@ -275,11 +290,13 @@ type is therefore a boot error, not a mystery in play.
 `heal_aura` only ever affects a **wounded** ally (`HealthRatio() < 1`, hardcoded
 in `applyHealAura`); `hot_aura`, `instant_hot` and every other type affect
 eligible targets regardless of health. The asymmetry is deliberate (backlog §33,
-PO 2026-07-31): the gate exists because a heal aura authors `selfDamageHP` per
-healing tick and typically `maxTargets: 1`, so a tick spent on a full-HP target
-bills the caster real HP and burns its only slot. A heal-over-time authors
-neither, so it is free to **pre-hot** — placing the buff before the damage
-arrives, which is legitimate support play.
+PO 2026-07-31): the gate exists because a heal aura authors a `costFractionOfMax`
+per healing tick and typically `maxTargets: 1`, so a tick spent on a full-HP
+target bills the caster real HP and burns its only slot. A heal-over-time
+typically authors neither, so it is free to **pre-hot** — placing the buff
+before the damage arrives, which is legitimate support play. (The cost used to
+be a heal-only `selfDamageHP`; the numbers rewrite moved it onto the effect so
+any effect type can be priced, but the reasoning is unchanged.)
 
 Two consequences when authoring:
 
@@ -294,6 +311,23 @@ Two consequences when authoring:
 
 1. **`api/skills/newskill.json`** — copy `api/skills/damage-aura.json`:
    - `id`, `name`, `category` (`active_aura` / `passive` / `cooldown`), `maxLevel`
+   - **`maxLevel` is drawn from a closed vocabulary: `{1, 5, 10}`**
+     (plan-numbers-rewrite D2/D11, authored 2026-07-31). **10** = a
+     build-defining core aura, the kind a build is named after — today Damage,
+     Heal, Immolate, LongRangeStrike, Reaper plus the four combo ceilings
+     (Vanguard, Spearhead, Lifewarden, Warbanner). **5** = everything
+     supporting. **1** = a binary ability with nothing to scale (Recall,
+     Revive, Haste, Recover).
+   - ⚑ **The cap is a PRICE, not just a ceiling.** Point cost is *cap-relative*
+     (D10): the first half of a skill's levels cost 1 point, the third quarter
+     2, the last quarter 3 — so maxing a cap-10 skill costs **16** points and a
+     cap-5 skill **7**, against a ~29-point level-30 budget. Raising a cap
+     without re-deriving the `*PerLevel` slopes therefore both inflates the
+     ceiling *and* re-prices the skill.
+   - ⚑ **Raising a cap silently re-times every recipe that names the skill.**
+     `recipe.go` only checks `level ≤ maxLevel`, so `Damage 5` stays valid when
+     Damage moves to cap 10 — it just stops meaning "maxed" and starts meaning
+     "half-way". Re-read `api/recipes/` after any cap change.
    - `effects[]`: one payload per effect; params follow
      `base + (level−1) × perLevel` (e.g. `damageHP` + `damageHPPerLevel`)
    - targeting is faction-relative: `targetsEnemies` / `targetsAllies`
@@ -350,8 +384,8 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | Authored (content JSON) | Served (`GET /skills`) | Effect types |
 |---|---|---|
 | `damageHP` / `damageHPPerLevel` | `damage.hp` / `damage.hpPerLevel` | damage_aura, instant_damage |
-| `damageTags` | `damage.tags` | ⚑ also `dot.tags` on the dot types |
-| `gatedDamageTags` (bool) | `damage.gated` | ⚑ the tag list itself stays `damage.tags`; gating requires explicit `damageTags` or it hard-fails |
+| `damageTags` | `damage.tags` | ⚑ also `dot.tags` on the dot types. **Closed vocabulary** (D4): `physical` `fire` `frost` `nature` `poison` `bleed` — anything else hard-fails |
+| `gateKey` (string) | `damage.gateKey` | ⚑ the lock-and-key mechanism, **not** a damage type. Closed vocabulary: `harvest` `smash`. Mutually exclusive with `damageTags` — a gated hit declares no type |
 | `variance` | `<payload>.variance` | damage / dot / heal / hot / selfHeal |
 | `hitStyle`, `structureDamageFraction` | `damage.hitStyle`, `damage.structureDamageFraction` | damage_aura, instant_damage |
 | `executeBelowFraction`, `executeBonusFactor`, `berserkerMaxBonusFactor`, `critChance`, `critChancePerLevel`, `critFactor`, `lifestealFraction` | `damage.<same name>` | damage_aura, instant_damage |
@@ -361,7 +395,7 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `healHP` / `healHPPerLevel` | `selfHeal.healHp` / `selfHeal.healHpPerLevel` | ⚑ self_heal — the payload keeps the `heal` prefix here |
 | `healHP` / `healHPPerLevel` | `hot.hp` / `hot.hpPerLevel` | hot_aura, instant_hot |
 | `healFractionOfMax` / `…PerLevel` | `heal.fractionOfMax` / `selfHeal.fractionOfMax` | heal_aura / self_heal |
-| `selfDamageHP` / `selfDamageHPPerLevel` | `heal.selfDamageHp` / `heal.selfDamageHpPerLevel` | ⚑ heal_aura — note the lowercase `p` |
+| `costFractionOfMax` / `…PerLevel` | `costFractionOfMax` / `costFractionOfMaxPerLevel` | ⚑ the ONE key that is not inside a payload — it sits on the effect itself and is valid on **every** effect type, so it is checked outside `effectKeys` |
 | `hotTicks` / `hotTickInterval` | `hot.tickCount` / `hot.interval` | hot_aura, instant_hot |
 | `shieldHP` / `shieldHPPerLevel` | `shield.hp` / `shield.hpPerLevel` | shield_aura, instant_shield |
 | `shieldDurationTicks` | `shield.durationTicks` | instant_shield only |

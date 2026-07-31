@@ -82,8 +82,9 @@ func TestSkillSystem_NoActiveAura_TicksNothing(t *testing.T) {
 	def := &skills.SkillDefinition{
 		ID: 2, Name: "Heal", Category: skills.SkillCategoryActiveAura, MaxLevel: 5,
 		Effects: []skills.EffectDef{{
-			Type: skills.EffectTypeHealAura,
-			Heal: &skills.HealParams{HP: 0.5, SelfDamageHP: 0.5},
+			Type:              skills.EffectTypeHealAura,
+			Heal:              &skills.HealParams{HP: 0.5},
+			CostFractionOfMax: 0.005,
 		}},
 	}
 	e.sc.EquipAura(0, def, 1)

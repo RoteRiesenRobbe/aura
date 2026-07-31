@@ -10,6 +10,7 @@
   "effects": [
     {
       "type": "revive",
+      "costFractionOfMax": 0.1,
       "radius": 3,
       "reviveHealthFraction": 0.3
     }

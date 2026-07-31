@@ -3,7 +3,13 @@ import * as Conversation from '../../../conversation/logic/Conversation';
 import * as Journal from '../../../journal/logic/Journal';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
-import {skillDisplayName, skillMaxLevel, skillCategory, SkillCategory} from '../../../../client-data/Skills';
+import {
+    skillDisplayName,
+    skillMaxLevel,
+    skillCategory,
+    skillPointCost,
+    SkillCategory,
+} from '../../../../client-data/Skills';
 import {attachSkillTooltips} from './SkillTooltip';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
@@ -466,6 +472,11 @@ let knownSpellbookIds: number[] | null = null;
 // Previous tick's per-skill levels, parallel to knownSpellbookIds; level
 // changes trigger a list rebuild but never the unlock glow.
 let knownSpellbookLevels: number[] = [];
+// Previous tick's unspent point count. Part of the rebuild key since the +
+// buttons grey on affordability (L9): a level-up hands out a point without
+// touching ids or levels, and the buttons it makes affordable would otherwise
+// stay greyed until the next unrelated spellbook change.
+let knownSpellbookPoints = -1;
 
 function sameIds(a: number[], b: number[]) {
     return a.length === b.length && a.every((id, i) => id === b[i]);
@@ -491,7 +502,8 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
     if (!spellbookListElement) return;
     updateSkillPointsDisplay(points);
     if (knownSpellbookIds !== null
-        && sameIds(ids, knownSpellbookIds) && sameIds(levels, knownSpellbookLevels)) return;
+        && sameIds(ids, knownSpellbookIds) && sameIds(levels, knownSpellbookLevels)
+        && points === knownSpellbookPoints) return;
 
     const isBaseline = knownSpellbookIds === null;
     const known = new Set(knownSpellbookIds ?? []);
@@ -545,10 +557,21 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
             levelBadge.textContent = `${level}/${maxLevel}`;
             controls.appendChild(levelBadge);
 
+            // The + button shows what the NEXT level costs and greys when it
+            // cannot be afforded (L9). Before the D10 curve every level cost
+            // one point, so "you have points" and "you can buy this" were the
+            // same question and the button only ever greyed at the cap — an
+            // unaffordable spend was refused server-side with a log line the
+            // player never saw. With a variable cost that silence would be the
+            // normal case, not an edge one.
+            const nextCost = skillPointCost(maxLevel, level + 1);
             const spendBtn = document.createElement('button');
             spendBtn.className = 'spendBtn';
-            spendBtn.textContent = '+';
-            spendBtn.classList.toggle('inactive', level >= maxLevel);
+            spendBtn.textContent = level >= maxLevel ? '+' : `+${nextCost}`;
+            spendBtn.classList.toggle('inactive', level >= maxLevel || points < nextCost);
+            if (level < maxLevel) {
+                spendBtn.title = `Costs ${nextCost} skill point${nextCost === 1 ? '' : 's'}`;
+            }
             controls.appendChild(spendBtn);
 
             li.appendChild(controls);
@@ -575,6 +598,7 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
 
     knownSpellbookIds = ids.slice();
     knownSpellbookLevels = levels.slice();
+    knownSpellbookPoints = points;
 }
 
 // updateActiveAuraSlot applies the server-authoritative active aura slot

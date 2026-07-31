@@ -38,7 +38,7 @@ import (
 type touchRecorder struct {
 	touches    []float32 // damage HP per hit
 	touchTags  [][]string
-	gated      []bool            // Damage.Gated per hit (content pass C1)
+	gateKeys   []string          // Damage.GateKey per hit (content pass C1)
 	sources    []model.Combatant // Damage.Source per hit (threat attribution, chunk 3)
 	crits      []bool            // Damage.Crit per hit (chunk 1)
 	lifesteals []float32         // Damage.Lifesteal per hit (chunk 1)
@@ -49,7 +49,7 @@ func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {}
 func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	r.touches = append(r.touches, damage.HP)
 	r.touchTags = append(r.touchTags, damage.Tags)
-	r.gated = append(r.gated, damage.Gated)
+	r.gateKeys = append(r.gateKeys, damage.GateKey)
 	r.sources = append(r.sources, damage.Source)
 	r.crits = append(r.crits, damage.Crit)
 	r.lifesteals = append(r.lifesteals, damage.Lifesteal)
@@ -309,9 +309,10 @@ func damageEffect(interval int) skills.EffectDef {
 
 func healEffect() skills.EffectDef {
 	return skills.EffectDef{
-		Type:         skills.EffectTypeHealAura,
-		TickInterval: 1,
-		Heal:         &skills.HealParams{HP: 10, SelfDamageHP: 2},
+		Type:              skills.EffectTypeHealAura,
+		TickInterval:      1,
+		Heal:              &skills.HealParams{HP: 10},
+		CostFractionOfMax: 0.02, // 2 % of the fake player's 100 pool = the old absolute 2
 	}
 }
 
@@ -369,20 +370,20 @@ func TestApplyDamageAura_CarriesDamageTags(t *testing.T) {
 	assert.Equal(t, []string{"fire", "boss_x_lava"}, mobTarget.factors[0].DamageTags)
 }
 
-func TestApplyDamageAura_CarriesGatedFlag(t *testing.T) {
-	// Gated damage tags (content pass C1): the effect's opt-in flag rides the
-	// Damage payload (player path) and the Factors payload (mob path), so the
-	// target's takeDamage can close the gate on unauthored resistances.
+func TestApplyDamageAura_CarriesGateKey(t *testing.T) {
+	// The gate key (content pass C1, D4's split) rides the Damage payload
+	// (player path) and the Factors payload (mob path), so the target's
+	// takeDamage can close the gate on a mob that never named the key.
 	caster := newFakePlayer()
 	target := &touchRecorder{}
 	effect := damageEffect(1)
-	effect.Damage.Tags = []string{"turnip"}
-	effect.Damage.Gated = true
+	effect.Damage.Tags = nil // a gated hit declares no damage type
+	effect.Damage.GateKey = "harvest"
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
-	require.Len(t, target.gated, 1)
-	assert.True(t, target.gated[0])
+	require.Len(t, target.gateKeys, 1)
+	assert.Equal(t, "harvest", target.gateKeys[0])
 
 	mobCaster := newFakeMob()
 	mobTarget := &mobTouchRecorder{}
@@ -390,7 +391,7 @@ func TestApplyDamageAura_CarriesGatedFlag(t *testing.T) {
 	applyDamageAura(mobCaster, 1, effect, colliderSetOf(mobTarget), testRNG())
 
 	require.Len(t, mobTarget.factors, 1)
-	assert.True(t, mobTarget.factors[0].Gated)
+	assert.Equal(t, "harvest", mobTarget.factors[0].GateKey)
 }
 
 func TestApplyDamageAura_TagsFireStyleForFastTick(t *testing.T) {
@@ -532,7 +533,7 @@ func TestApplyHealAura_SelfDamageOnSuccessfulHeal(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyAuraEffect(caster, 0, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health)
 	assert.Contains(t, caster.statusEffects.Effects(), model.StatusEffectDamagedAmbient)
@@ -545,7 +546,7 @@ func TestApplyHealAura_SelfDamageIsFlatHP(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyAuraEffect(caster, 0, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health,
 		"self-damage is a flat HP cost, independent of PoolFactor")
@@ -1328,7 +1329,7 @@ func TestApplyHealAura_VarianceRollsWithinBand(t *testing.T) {
 	caster := newFakePlayer()
 	effect := healEffect()
 	effect.Heal.HP = 50
-	effect.Heal.SelfDamageHP = 0
+	effect.CostFractionOfMax = 0
 	effect.Heal.Variance = 0.2
 
 	s := testSkillSystem()
@@ -1931,7 +1932,12 @@ type hotTargetRecorder struct {
 	basic ecs.BasicEntity
 	hots  []appliedHot
 	ratio float32
+	// maxHealth backs the percent-of-max HoT (D14). Left 0 by the flat-heal
+	// tests, which never read it.
+	maxHealth vitals.VitalSign
 }
+
+func (r *hotTargetRecorder) MaxHealth() vitals.VitalSign { return r.maxHealth }
 
 func (r *hotTargetRecorder) Basic() ecs.BasicEntity          { return r.basic }
 func (r *hotTargetRecorder) Faction() model.Faction          { return model.FactionAligned }
@@ -3914,16 +3920,23 @@ func TestApplyDamageAura_MobCaster_PowerScaleMultipliesDamage(t *testing.T) {
 func TestApplyHealAura_PowerScaleMultipliesHealAndSelfCost(t *testing.T) {
 	caster := newFakePlayer()
 	caster.powerScale = 2
+	// ⚑ The pool has to move WITH the power scale here, because that is now the
+	// only route by which a cost scales. The old absolute selfDamageHp was
+	// multiplied by casterPowerScale at the apply site; the fraction model
+	// (D7) drops that second mechanism entirely — a cost is a share of max
+	// health, and max health is what already carries f(L)
+	// (baseHealth × PowerScale × MaxHealthFactor). One mechanism, same result,
+	// and it can no longer go free as the pool grows.
+	caster.maxHealth = 200
+
 	ally := newFakePlayer()
 	ally.vitalSigns.Health = 10 // wounded
 
-	// healEffect: HP 10, SelfDamageHP 2 — both HP-side values scale
-	// (GDD §5 lists self-damage explicitly: costs stay proportional to the
-	// inflated pool).
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+	// healEffect: HP 10 healed (× f 2), costing 2 % of a 200 pool.
+	testSkillSystem().applyAuraEffect(caster, 0, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
 
 	assert.Equal(t, vitals.VitalSign(20), ally.healReceived, "10 HP × f 2")
-	assert.Equal(t, vitals.VitalSign(96), caster.vitalSigns.Health, "self-cost 2 × f 2")
+	assert.Equal(t, vitals.VitalSign(96), caster.vitalSigns.Health, "self-cost 2 % of the f-2 pool")
 }
 
 func TestApplyShieldAura_PowerScaleMultipliesPool(t *testing.T) {
@@ -4558,4 +4571,58 @@ func TestPresenceScan_ZeroAllocSteadyState(t *testing.T) {
 		s.notePresence(bystander)
 	})
 	assert.Zero(t, allocs, "the presence probe must not allocate per tick")
+}
+
+// --- percent-of-max heal-over-time (plan-numbers-rewrite D14) ---
+
+// fractionHotEffect is the shape Recover takes in C2: a share of the target's
+// pool per event instead of a flat HP amount.
+func fractionHotEffect(frac float32) skills.EffectDef {
+	return skills.EffectDef{
+		Type:         skills.EffectTypeHotAura,
+		TickInterval: 10,
+		Hot:          &skills.HotParams{FractionOfMax: frac, FractionOfMaxPerLevel: 0.01, TickCount: 5, Interval: 30},
+	}
+}
+
+func TestApplyHotAura_FractionOfMax_ResolvesAgainstEachTargetsPool(t *testing.T) {
+	// The heal aura's percent branch, mirrored onto the HoT: a small and a
+	// large pool healed by the same tick restore the same SHARE. This is what
+	// stops a heal-over-time becoming dead content as pools grow ~26× over 30
+	// levels (Recover: 36 flat HP, a full heal at L1 and a rounding error at
+	// L30).
+	caster := newFakePlayer()
+	small := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5, maxHealth: 100}
+	big := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5, maxHealth: 2600}
+
+	applyHotAura(caster, 30, 1, fractionHotEffect(0.02), colliderSetOf(model.Healable(small)))
+	applyHotAura(caster, 30, 1, fractionHotEffect(0.02), colliderSetOf(model.Healable(big)))
+
+	require.Len(t, small.hots, 1)
+	require.Len(t, big.hots, 1)
+	assert.InDelta(t, 2, small.hots[0].hot.HP, 1e-6, "2% of 100")
+	assert.InDelta(t, 52, big.hots[0].hot.HP, 1e-6, "2% of 2600 — the same share, not the same number")
+}
+
+func TestApplyHotAura_FractionOfMax_ScalesPerSkillLevel(t *testing.T) {
+	caster := newFakePlayer()
+	ally := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5, maxHealth: 100}
+
+	applyHotAura(caster, 30, 3, fractionHotEffect(0.02), colliderSetOf(model.Healable(ally)))
+
+	require.Len(t, ally.hots, 1)
+	assert.InDelta(t, 4, ally.hots[0].hot.HP, 1e-6, "(0.02 + 2×0.01) × 100")
+}
+
+func TestApplyHotAura_FractionOfMax_IgnoresCasterPowerScale(t *testing.T) {
+	// Max HP already carries f(level) — scaling the fraction again would
+	// double-inflate (the selfHealHP precedent).
+	caster := newFakePlayer()
+	caster.powerScale = 4
+	ally := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5, maxHealth: 100}
+
+	applyHotAura(caster, 30, 1, fractionHotEffect(0.02), colliderSetOf(model.Healable(ally)))
+
+	require.Len(t, ally.hots, 1)
+	assert.InDelta(t, 2, ally.hots[0].hot.HP, 1e-6)
 }

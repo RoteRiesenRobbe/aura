@@ -115,15 +115,20 @@ type Factors struct {
 	IdleDwellMinTicks    int
 	IdleDwellMaxTicks    int
 	Resistances          map[string]float32
-	Damage               float32
-	DamageTags           []string
-	// Lifesteal / Crit / Gated are payload-only like DamageTags
+	// GateKeys are the lock-and-key tags this mob opts into (D4): a gated hit
+	// damages it only if its key is named here. Separate from Resistances so a
+	// gate cannot be typo'd into a resistance or vice versa, and so adding a
+	// damage type can never change what a gated hit reaches.
+	GateKeys   []string
+	Damage     float32
+	DamageTags []string
+	// Lifesteal / Crit / GateKey are payload-only like DamageTags
 	// (plan-skill-vocab chunk 1): the SkillSystem fills them per hit from the
-	// casting effect; they are not part of the mob JSON. Gated marks opt-in
-	// damage tags (content pass C1, skills.GateOpensFor).
+	// casting effect; they are not part of the mob JSON. GateKey is the
+	// lock-and-key tag (content pass C1, skills.GateOpensFor).
 	Lifesteal               float32
 	Crit                    bool
-	Gated                   bool
+	GateKey                 string
 	Speed                   float32
 	DeltaPhi                float32
 	TurnRate                float32
@@ -260,6 +265,7 @@ type mobDefinition struct {
 		IdleDwellMinTicks    int                `json:"idleDwellMinTicks"`
 		IdleDwellMaxTicks    int                `json:"idleDwellMaxTicks"`
 		Resistances          map[string]float32 `json:"resistances"`
+		GateKeys             []string           `json:"gateKeys"`
 		Speed                float32            `json:"speed"`
 		DeltaPhi             float32            `json:"deltaPhi"`
 		TurnRate             float32            `json:"turnRate"`
@@ -378,13 +384,33 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 		return nil, fmt.Errorf("mob %q: idleDwellMinTicks %d exceeds idleDwellMaxTicks %d", m.Name, m.Factors.IdleDwellMinTicks, m.Factors.IdleDwellMaxTicks)
 	}
 
-	// Resistances: 0 = immune is valid, negative would heal on hit.
+	// Resistances: 0 = immune is valid, negative would heal on hit. Keys are
+	// DAMAGE TYPES from the closed vocabulary, or the "*" wildcard — a gate key
+	// here is the exact confusion D4 split apart, so it is named and rejected.
 	for tag, multiplier := range m.Factors.Resistances {
 		if tag == "" {
 			return nil, fmt.Errorf("mob %q: resistances: empty tag", m.Name)
 		}
+		if tag != skills.ResistWildcard && !skills.DamageTypes[tag] {
+			if skills.GateKeys[tag] {
+				return nil, fmt.Errorf("mob %q: resistances[%q]: that is a GATE KEY, not a damage type — author it in factors.gateKeys", m.Name, tag)
+			}
+			return nil, fmt.Errorf("mob %q: resistances[%q]: unknown damage type", m.Name, tag)
+		}
 		if multiplier < 0 {
 			return nil, fmt.Errorf("mob %q: resistances[%q]: must be >= 0, got %v", m.Name, tag, multiplier)
+		}
+	}
+
+	// gateKeys: the lock-and-key tags this mob opts into. Closed vocabulary for
+	// the same reason the skill side is — a typo here is a gate that can never
+	// be opened, and nothing else would fail.
+	for _, key := range m.Factors.GateKeys {
+		if !skills.GateKeys[key] {
+			if skills.DamageTypes[key] {
+				return nil, fmt.Errorf("mob %q: gateKeys: %q is a DAMAGE TYPE, not a gate key — author it in factors.resistances", m.Name, key)
+			}
+			return nil, fmt.Errorf("mob %q: gateKeys: unknown gate key %q", m.Name, key)
 		}
 	}
 
@@ -450,6 +476,7 @@ func (m *mobDefinition) mapToMobDefinition(sr skills.Registry, fr factions.Regis
 			IdleDwellMinTicks:    m.Factors.IdleDwellMinTicks,
 			IdleDwellMaxTicks:    m.Factors.IdleDwellMaxTicks,
 			Resistances:          m.Factors.Resistances,
+			GateKeys:             m.Factors.GateKeys,
 			Speed:                m.Factors.Speed,
 			DeltaPhi:             m.Factors.DeltaPhi,
 			TurnRate:             m.Factors.TurnRate,

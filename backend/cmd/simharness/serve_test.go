@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sim"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 func postRun(t *testing.T, body string) *httptest.ResponseRecorder {
@@ -66,8 +68,19 @@ func TestLoadMobPresets_EmbeddedContent(t *testing.T) {
 // Player-aura presets (content pass C5, §A "never a surprise"): every
 // player-authored skill (id < 100 — mob skills number from 101) carrying a
 // damage_aura maps onto AuraSpecs at L1 and max level. Pinned against the
-// Vanguard (14 HP +3.2/lvl, tick 40, r1.2, 2 targets) and Damage.
+// Vanguard (14 HP at L1, tick 40, r1.2, 2 targets) and Damage.
+//
+// ⚑ The max-level leg resolves the cap and the slope FROM the registry rather
+// than restating them: `maxLevel` is authored per skill from the {1, 5, 10}
+// vocabulary and moves with a balance pass (plan-numbers-rewrite C2a took
+// Vanguard 5 → 10), so a hardcoded "Vanguard L5" pins the cap of the day
+// instead of the derivation rule this test exists to check.
 func TestLoadPlayerAuraPresets_EmbeddedContent(t *testing.T) {
+	_, sr, err := loadContent("")
+	require.NoError(t, err)
+	vanguard, err := sr.GetByName("Vanguard")
+	require.NoError(t, err)
+
 	_, presets, err := loadPresets("")
 	require.NoError(t, err)
 	require.NotEmpty(t, presets)
@@ -84,9 +97,12 @@ func TestLoadPlayerAuraPresets_EmbeddedContent(t *testing.T) {
 	assert.InDelta(t, 1.2, v1.Radius, 1e-6)
 	assert.Equal(t, 2, v1.MaxTargets)
 
-	v5, ok := byName["Vanguard L5"]
+	vMax, ok := byName[fmt.Sprintf("Vanguard L%d", vanguard.MaxLevel)]
 	require.True(t, ok, "roster must contain the Vanguard at max level")
-	assert.InDelta(t, 14+4*3.2, v5.DamageHP, 1e-6)
+	direct := vanguard.Effects[0].Damage
+	require.NotNil(t, direct, "Vanguard's first effect is the damage payload")
+	assert.InDelta(t, skills.Scaled(direct.HP, direct.HPPerLevel, vanguard.MaxLevel),
+		vMax.DamageHP, 1e-6)
 
 	_, ok = byName["Damage L1"]
 	assert.True(t, ok, "plain damage skills derive too")
@@ -144,6 +160,13 @@ func TestLoadPlayerAuraPresets_DotSkillsDerive(t *testing.T) {
 	require.True(t, ok, "roster must contain Immolate at L1")
 	assert.InDelta(t, 10.5, imm.DamageHP, 1e-6)
 	assert.Equal(t, 3, imm.DotTicks)
+	// ⚑ The 20-tick application cadence against a 60-tick dot cadence is
+	// deliberate and SURVIVED the cost pass: C2c briefly moved it to 60 (three
+	// applications per dot event means the caster is charged three times per hit
+	// landed), then measured that the change cost real damage in short fights —
+	// a 2 s delay to the first tick against a ~5 s kill — and reverted it,
+	// pricing the effect at a third instead. The 2026-07-21 dot-responsiveness
+	// halving stands.
 	assert.Equal(t, 60, imm.DotTickInterval)
 	assert.Equal(t, 20, imm.TickInterval)
 

@@ -3,17 +3,19 @@
   "id": 40,
   "name": "FireWard",
   "category": "active_aura",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "effects": [
     {
       "type": "resist_aura",
+      "costFractionOfMax": 0.006,
+      "costFractionOfMaxPerLevel": 0.00075,
       "radius": 1.5,
       "resistTags": ["fire"],
       "resistFactor": 0.6,
-      "resistFactorPerLevel": -0.1,
+      "resistFactorPerLevel": -0.05,
       "targetsAllies": true,
       "targetsSelf": true,
-      "tickInterval": 1
+      "tickInterval": 30
     }
   ]
 }

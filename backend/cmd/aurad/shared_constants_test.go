@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"math"
 	"os"
 	"testing"
 
@@ -32,6 +33,48 @@ type sharedConstants struct {
 		Height float64 `json:"height"`
 	} `json:"viewportMeters"`
 	TicksPerSecond int `json:"ticksPerSecond"`
+	SkillPointCost struct {
+		Tier1Points        int     `json:"tier1Points"`
+		Tier2Points        int     `json:"tier2Points"`
+		Tier3Points        int     `json:"tier3Points"`
+		Tier2AboveFraction float64 `json:"tier2AboveFraction"`
+		Tier3AboveFraction float64 `json:"tier3AboveFraction"`
+	} `json:"skillPointCost"`
+}
+
+// TestSharedConstants_SkillPointCurve pins skills.PointCost against the
+// fixture — L2 (plan-numbers-rewrite): the moment the client shows what a
+// level costs, the curve is a cross-language mirror, and §35 just closed
+// exactly this class of duplication. Rather than restating the five numbers in
+// Go (which would drift in lockstep with nothing failing), this reconstructs
+// the curve FROM the fixture and asserts the shipped implementation agrees.
+func TestSharedConstants_SkillPointCurve(t *testing.T) {
+	raw, err := os.ReadFile("../../../api/shared-constants.json")
+	require.NoError(t, err)
+	var fixture sharedConstants
+	require.NoError(t, json.Unmarshal(raw, &fixture))
+	c := fixture.SkillPointCost
+	require.NotZero(t, c.Tier1Points, "the fixture must carry a skillPointCost block")
+
+	// The three caps the {1, 5, 10} authoring vocabulary allows (D2), plus a
+	// couple of odd ones so the rounding rule is exercised rather than assumed.
+	for _, maxLevel := range []int{1, 3, 5, 7, 10} {
+		for level := 0; level <= maxLevel+1; level++ {
+			want := 0
+			switch {
+			case level <= 1 || level > maxLevel:
+				want = 0 // free on unlock; nothing to buy past the cap
+			case float64(level) <= math.Ceil(c.Tier2AboveFraction*float64(maxLevel)):
+				want = c.Tier1Points
+			case float64(level) <= math.Ceil(c.Tier3AboveFraction*float64(maxLevel)):
+				want = c.Tier2Points
+			default:
+				want = c.Tier3Points
+			}
+			assert.Equal(t, want, skills.PointCost(maxLevel, level),
+				"skills.PointCost has drifted from api/shared-constants.json (cap %d, level %d)", maxLevel, level)
+		}
+	}
 }
 
 func TestSharedConstants_MatchGoTables(t *testing.T) {

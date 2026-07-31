@@ -1,5 +1,5 @@
 {
-  "_comment": "Z2 dire bear (intermission triage Session ②, item 18): the tank half of the Z2 wildlife step-up. Own sprite/EntityType since the unique-art pass (PO 2026-07-21 — every mob reads distinctly, higher tier looks meaner); shares the BearSwipe skill; curveLevel 4 → 7 makes it markedly tankier and hits harder while staying slow. Drops Recover (C8 milestone settlement, PO 2026-07-19 — the Z2 dires' loot identity; chance kph-derived, C8 drop-rate pass FINAL 2026-07-20). All values [PLACEHOLDER]",
+  "_comment": "Z2 dire bear (intermission triage Session ②, item 18): the tank half of the Z2 wildlife step-up. Own sprite/EntityType since the unique-art pass (PO 2026-07-21 — every mob reads distinctly, higher tier looks meaner); shares the BearSwipe skill; curveLevel 4 → 7 makes it markedly tankier and hits harder while staying slow. Drops Recover (C8 milestone settlement, PO 2026-07-19 — the Z2 dires' loot identity; chance kph-derived, C8 drop-rate pass FINAL 2026-07-20). All values [PLACEHOLDER] ⚑ NUMBERS REWRITE C2d (D4): partial resistances. Before this pass resistances existed ONLY as lock-and-key gates ({\"*\": 0, \"harvest\": 1}) — never as mitigation — so every hit in the game landed for full and a damage type meant nothing. These are the curated set that gives the type axis teeth: thick winter fur. Deliberately NON-physical — the C8 tier-threshold guardrail drives its bot with authored Damage at L1, which is physical, so a physical entry here would silently move a calibration this pass has no business moving. All values [PLACEHOLDER].",
   "id": 44,
   "name": "DireBear",
   "type": "MOB",
@@ -7,6 +7,7 @@
   "tier": "normal",
   "curveLevel": 7,
   "factors": {
+    "resistances": {"frost": 0.5},
     "baseMaxHealth": 284,
     "maxHealthVariance": 0.1,
     "experience": 148,

@@ -2,13 +2,13 @@
   "id": 11,
   "name": "Tough",
   "category": "passive",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "effects": [
     {
       "type": "stat_multiplier",
       "stat": "damageReduction",
       "statBonus": 0.1,
-      "statBonusPerLevel": 0.1
+      "statBonusPerLevel": 0.05
     }
   ]
 }

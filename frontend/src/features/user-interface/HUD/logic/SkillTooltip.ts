@@ -13,7 +13,14 @@
 // character it was actually healing for ~107. PO ruling 2026-07-25: show the
 // absolute number the player will actually see.
 
-import {DamageParams, SkillDefinition, SkillEffect, powerScaleAt, skillDefinition} from '../../../../client-data/Skills';
+import {
+    DamageParams,
+    SkillDefinition,
+    SkillEffect,
+    getLocalPlayerMaxHealth,
+    powerScaleAt,
+    skillDefinition,
+} from '../../../../client-data/Skills';
 import {getLocalPlayerLevel, mobDisplayName} from '../../../../client-data/Mobs';
 import {AURA_CATEGORY_COLORS} from '../../../game-objects/logic/AuraRings';
 
@@ -121,21 +128,18 @@ const SELECTOR_LABELS: { [selector: string]: string } = {
     lowest_health: 'most wounded',
 };
 
-// Gated damage tags (gatedDamageTags: the aura hits ONLY targets that opt in
-// by naming the tag) rendered as what the player DOES with it. Feedback pass
-// B item 5: "Only affects targets vulnerable to: smash" left the playtester
-// with no idea Pickaxe is the key to the tunnel's boulders. An unmapped tag
-// falls back to the passive phrasing rather than inventing a verb.
-const GATED_TAG_LINES: { [tag: string]: string } = {
+// A gate key (D4: the aura damages ONLY mobs that name the key) rendered as
+// what the player DOES with it. Feedback pass B item 5: "Only affects targets
+// vulnerable to: smash" left the playtester with no idea Pickaxe is the key to
+// the tunnel's boulders. An unmapped key falls back to the passive phrasing
+// rather than inventing a verb.
+const GATE_KEY_LINES: { [key: string]: string } = {
     smash: 'Smashes boulders and rockfalls — nothing else',
     harvest: 'Harvests plants and brambles — nothing else',
 };
 
-function gatedLine(tags: string[]): string {
-    if (tags.length === 1 && GATED_TAG_LINES[tags[0]] !== undefined) {
-        return GATED_TAG_LINES[tags[0]];
-    }
-    return `Only affects targets vulnerable to: ${tags.join(', ')}`;
+function gatedLine(key: string): string {
+    return GATE_KEY_LINES[key] ?? `Only affects targets vulnerable to: ${key}`;
 }
 
 // Aura-form effects with a real tick cadence; every other type's
@@ -170,12 +174,17 @@ function targetsLine(effect: SkillEffect, level: number, maxLevel: number): stri
 // berserker, lifesteal) or damage-type text — casterPowerScale touches none
 // of them, so this whole function is power-scale-free on purpose.
 function damageExtraLines(damage: DamageParams, level: number, maxLevel: number, lines: string[]) {
-    const nonPhysical = damage.tags.length > 1 || damage.tags[0] !== 'physical';
-    if (nonPhysical && !damage.gated) {
-        lines.push(`Damage type: ${damage.tags.join(', ')}`);
-    }
-    if (damage.gated) {
-        lines.push(gatedLine(damage.tags));
+    // ⚑ The gate key is checked FIRST and `tags` is not touched on that branch.
+    // A gated payload carries no damage types (D4), so Go marshals its nil Tags
+    // slice as JSON `null` — reading .length on it throws, and it would throw
+    // inside a tooltip for a skill every new player is taught.
+    if (damage.gateKey) {
+        lines.push(gatedLine(damage.gateKey));
+    } else {
+        const nonPhysical = damage.tags.length > 1 || damage.tags[0] !== 'physical';
+        if (nonPhysical) {
+            lines.push(`Damage type: ${damage.tags.join(', ')}`);
+        }
     }
     if (damage.variance > 0) {
         lines.push(`Variance: ±${pct(damage.variance)}`);
@@ -210,7 +219,21 @@ interface EffectBlock {
     generics: Partial<Record<GenericKind, string>>;
 }
 
-function effectBlock(effect: SkillEffect, level: number, maxLevel: number, powerScale: number): EffectBlock {
+// minChargeFraction is the smallest share of the pool the server can actually
+// deduct, given that vitals.HP floors every positive cost at 1 HP. Below it the
+// authored fraction is not what the player pays, so the cost lines round up to
+// it. 0 when the pool is unknown (no snapshot yet) — then nothing is corrected.
+//
+// Only the FLOOR is modelled, not vitals.HP's rounding. The floor is a
+// systematic understatement of up to ~4× and always in the same direction; the
+// rounding is sub-0.5 HP noise in both directions, and folding it in would make
+// the authored number invisible even where it is already right.
+function minChargeFraction(maxHealth: number): number {
+    return maxHealth > 0 ? 1 / maxHealth : 0;
+}
+
+function effectBlock(effect: SkillEffect, level: number, maxLevel: number, powerScale: number,
+                     isCosted: boolean, minCost: number): EffectBlock {
     const lines: string[] = [];
 
     // Cadence folds into the main line instead of its own "Ticks every" line
@@ -241,13 +264,6 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
                 lines.push(`Heal: ${prog(heal.hp, heal.hpPerLevel, level, maxLevel, hpFmt, powerScale)}${perTick}`);
             }
             if (heal.variance > 0) lines.push(`Variance: ±${pct(heal.variance)}`);
-            // The self-cost is an HP value, so it rides the curve with the
-            // heal — costs stay proportional to the pool (GDD §5). hpFmt
-            // already floors a negative (over-levelled) cost at 0, which is
-            // both what vitals.HP does and what suppresses the line.
-            if (hpFmt(scaled(heal.selfDamageHp, heal.selfDamageHpPerLevel, level) * powerScale) !== '0') {
-                lines.push(`Costs you: ${prog(heal.selfDamageHp, heal.selfDamageHpPerLevel, level, maxLevel, hpFmt, powerScale)} HP per tick`);
-            }
             break;
         }
         case 'self_heal': {
@@ -329,7 +345,15 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
         case 'instant_hot': {
             const hot = effect.hot;
             const duration = ticksToSecs(hot.tickCount * hot.interval);
-            lines.push(`Heal over time: ${prog(hot.hp, hot.hpPerLevel, level, maxLevel, hpFmt, powerScale)} × ${hot.tickCount} over ${duration}${refresh}`);
+            if (hot.fractionOfMax > 0) {
+                // Curve-free, as on the heal branches: max HP already carries
+                // f(L), so the server skips powerScale here too. Recover is the
+                // first content to take this branch (D14) — before it, a
+                // fractional HoT would have rendered "Heal over time: 0".
+                lines.push(`Heal over time: ${prog(hot.fractionOfMax, hot.fractionOfMaxPerLevel, level, maxLevel, pct)} of max HP × ${hot.tickCount} over ${duration}${refresh}`);
+            } else {
+                lines.push(`Heal over time: ${prog(hot.hp, hot.hpPerLevel, level, maxLevel, hpFmt, powerScale)} × ${hot.tickCount} over ${duration}${refresh}`);
+            }
             if (hot.targetsSelf) lines.push('Also heals you');
             break;
         }
@@ -386,6 +410,22 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             lines.push(`(${effect.type})`);
     }
 
+    // The resource cost (plan-numbers-rewrite D5/D7). Rendered as a PERCENTAGE
+    // rather than absolute HP — the PO ruled the "% of max HP" shape keeps the
+    // percentage alone (2026-07-29 sweep); the fraction-of-max heal lines above
+    // set the same precedent. `perTick` carries this effect's own cadence, which
+    // is the point: each effect pays on its own beat.
+    //
+    // ⚑ The percentage shown is the EFFECTIVE one — the authored fraction raised
+    // to whatever the 1-HP floor makes it on this player's pool. The fraction
+    // alone is a systematic understatement while the pool is small (Immolate
+    // authors 0.26 % and charges 1 % of a 100 HP pool), and it is the early game
+    // where a player reads tooltips hardest.
+    if (isCosted) {
+        const costPct = (fraction: number) => pct(Math.max(fraction, minCost));
+        lines.push(`Costs you: ${prog(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel, level, maxLevel, costPct)} of max HP${perTick}`);
+    }
+
     const generics: EffectBlock['generics'] = {};
     if (effect.radius > 0) {
         generics.radius = `Radius: ${prog(effect.radius, effect.radiusPerLevel, level, maxLevel)}`;
@@ -404,11 +444,23 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
 
 const GENERIC_KINDS: GenericKind[] = ['radius', 'targets'];
 
-// powerScale is f(character level) — passed in rather than read here so the
-// whole formatter stays pure and DOM-free (and testable at both ends of the
-// curve without a loaded catalog).
-export function formatSkillTooltip(def: SkillDefinition, level: number, powerScale: number): TooltipContent {
-    const blocks = def.effects.map(effect => effectBlock(effect, level, def.maxLevel, powerScale));
+// powerScale is f(character level) and maxHealth is the live pool — both passed
+// in rather than read here so the whole formatter stays pure and DOM-free (and
+// testable at both ends of the curve without a loaded catalog). maxHealth 0
+// means "unknown", and leaves every authored cost fraction untouched.
+export function formatSkillTooltip(def: SkillDefinition, level: number, powerScale: number,
+                                   maxHealth: number = 0): TooltipContent {
+    const minCost = minChargeFraction(maxHealth);
+    // Where the cost line goes follows how the cost is CHARGED (D8): an aura
+    // pays per effect on each effect's own cadence, so each block prints its
+    // own; a cooldown pays the SUM of its effects once on cast, so it prints
+    // once beside the cooldown — three summon effects at 2 % each must not read
+    // as "2 %" three times when the cast takes 6 %.
+    const perEffectCost = def.category !== 'cooldown';
+    const blocks = def.effects.map(effect =>
+        effectBlock(effect, level, def.maxLevel, powerScale,
+            perEffectCost && scaled(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel, level) > 0,
+            minCost));
 
     // A generic kind is shared when every effect that renders it renders it
     // identically — then it prints once at the bottom instead of per effect.
@@ -449,6 +501,21 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     // would otherwise print the same word twice.
     if (def.targetFactions?.length) {
         lines.push({text: `Affects: ${[...new Set(def.targetFactions)].join(', ')}`});
+    }
+    if (def.category === 'cooldown') {
+        const castCost = (l: number) => def.effects.reduce(
+            (sum, e) => sum + Math.max(0, scaled(e.costFractionOfMax, e.costFractionOfMaxPerLevel, l)), 0);
+        if (castCost(level) > 0) {
+            // prog() scales one base+perLevel pair; a summed cost needs the sum
+            // evaluated at each level, so the sum itself is passed as the base
+            // with its own per-level delta.
+            const step = def.maxLevel > 1 ? (castCost(def.maxLevel) - castCost(1)) / (def.maxLevel - 1) : 0;
+            // The 1-HP floor applies to the SUM here, not per effect: a cooldown
+            // pays every effect in one deduction, so cooldownCostHP totals the
+            // raw fractions and converts once (sys/skill_cost.go).
+            const castCostPct = (fraction: number) => pct(Math.max(fraction, minCost));
+            lines.push({text: `Costs you: ${prog(castCost(1), step, level, def.maxLevel, castCostPct)} of max HP per cast`});
+        }
     }
     if (def.cooldownTicks > 0) {
         lines.push({text: `Cooldown: ${prog(def.cooldownTicks, def.cooldownTicksPerLevel, level, def.maxLevel, ticksToSecs)}`});
@@ -497,7 +564,8 @@ function showTooltip(anchor: HTMLElement, skillId: number, level: number) {
     // getLocalPlayerLevel lives in the mob catalog because the nameplate
     // difficulty tint (its first consumer) already owned the mob side; it is
     // live-updated from every snapshot by Player.updateFromBackend.
-    const content = formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()));
+    const content = formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()),
+        getLocalPlayerMaxHealth());
 
     element.innerHTML = '';
     const title = document.createElement('div');

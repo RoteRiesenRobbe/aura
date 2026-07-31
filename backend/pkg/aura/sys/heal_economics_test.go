@@ -1,7 +1,7 @@
 package sys
 
 // Apply-site tests for the heal-aura economics (plan-intermission-triage.md):
-//   item 2 — the self-cost scales per level (SelfDamageHPPerLevel), authored
+//   item 2 — the self-cost scales per level (costFractionOfMaxPerLevel), authored
 //     negative so leveling makes the aura cheaper; clamped at 0.
 //   item 13 — a percent-of-max heal (FractionOfMax) restores a share of the
 //     TARGET's max HP, so a campfire heals big and small pools at the same rate.
@@ -21,9 +21,11 @@ import (
 // self-cost 10 falling by 2/level.
 func fadingCostHealEffect() skills.EffectDef {
 	return skills.EffectDef{
-		Type:         skills.EffectTypeHealAura,
-		TickInterval: 1,
-		Heal:         &skills.HealParams{HP: 12, SelfDamageHP: 10, SelfDamageHPPerLevel: -2},
+		Type:                      skills.EffectTypeHealAura,
+		TickInterval:              1,
+		Heal:                      &skills.HealParams{HP: 12},
+		CostFractionOfMax:         0.10,
+		CostFractionOfMaxPerLevel: -0.02,
 	}
 }
 
@@ -41,7 +43,7 @@ func TestApplyHealAura_SelfCostScalesDownPerLevel(t *testing.T) {
 		ally.vitalSigns.Health = 50
 		set := colliderSetOf(model.PlayerEntity(ally))
 
-		testSkillSystem().applyHealAura(caster, tc.level, fadingCostHealEffect(), set)
+		testSkillSystem().applyAuraEffect(caster, 0, tc.level, fadingCostHealEffect(), set)
 
 		assert.Equal(t, vitals.VitalSign(100)-tc.wantCost, caster.vitalSigns.Health,
 			"level %d self-cost", tc.level)
@@ -57,7 +59,7 @@ func TestApplyHealAura_SelfCostNeverExceedsHealAtL1(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, fadingCostHealEffect(), set)
+	testSkillSystem().applyAuraEffect(caster, 0, 1, fadingCostHealEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(62), ally.vitalSigns.Health, "ally healed 12")
 	assert.Equal(t, vitals.VitalSign(90), caster.vitalSigns.Health, "caster paid 10 < 12")
@@ -71,7 +73,7 @@ func TestApplyHealAura_SelfCostClampsAtZeroForOverGenerousCurve(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 7, fadingCostHealEffect(), set) // 10 - 12 < 0
+	testSkillSystem().applyAuraEffect(caster, 0, 7, fadingCostHealEffect(), set) // 10 - 12 < 0
 
 	assert.Equal(t, vitals.VitalSign(100), caster.vitalSigns.Health, "cost floored at 0")
 	assert.Greater(t, ally.vitalSigns.Health, vitals.VitalSign(50), "ally still healed")
@@ -98,8 +100,8 @@ func TestApplyHealAura_FractionOfMax_HealsShareOfTargetMax(t *testing.T) {
 	big.maxHealth = 200 // MaxHealth 200
 	big.vitalSigns.Health = 50
 
-	testSkillSystem().applyHealAura(caster, 1, fractionHealEffect(0.2), colliderSetOf(model.PlayerEntity(small)))
-	testSkillSystem().applyHealAura(caster, 1, fractionHealEffect(0.2), colliderSetOf(model.PlayerEntity(big)))
+	testSkillSystem().applyAuraEffect(caster, 0, 1, fractionHealEffect(0.2), colliderSetOf(model.PlayerEntity(small)))
+	testSkillSystem().applyAuraEffect(caster, 0, 1, fractionHealEffect(0.2), colliderSetOf(model.PlayerEntity(big)))
 
 	assert.Equal(t, vitals.VitalSign(70), small.vitalSigns.Health, "20% of 100 = 20 HP")
 	assert.Equal(t, vitals.VitalSign(90), big.vitalSigns.Health, "20% of 200 = 40 HP")
@@ -113,7 +115,7 @@ func TestApplyHealAura_FractionOfMax_CasterPaysNoCost(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, fractionHealEffect(0.1), set)
+	testSkillSystem().applyAuraEffect(caster, 0, 1, fractionHealEffect(0.1), set)
 
 	require.Equal(t, vitals.VitalSign(60), ally.vitalSigns.Health, "10% of 100 = 10 HP")
 	assert.Equal(t, vitals.VitalSign(100), caster.vitalSigns.Health, "no self-cost on a fraction heal")

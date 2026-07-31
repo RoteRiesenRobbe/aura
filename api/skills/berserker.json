@@ -7,10 +7,13 @@
   "effects": [
     {
       "type": "damage_aura",
+      "costFractionOfMax": 0.0082,
+      "costFractionOfMaxPerLevel": 0.00195,
       "radius": 1.0,
       "radiusPerLevel": 0.0,
       "damageHP": 11,
       "damageHPPerLevel": 2.6,
+      "damageTags": ["physical"],
       "berserkerMaxBonusFactor": 1.0,
       "variance": 0.15,
       "targetsEnemies": true,

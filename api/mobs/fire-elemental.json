@@ -1,5 +1,5 @@
 {
-  "_comment": "Fire elemental, normal tier (2026-07-21): a high-band burn hazard on par with the Z2 front. curveLevel 18 sits it at ArmySoldier/front difficulty — dangerous but below the Orc elite. Carries FireElementalAura (shared with the greater elemental). Drops FireWard @0.2 — the drop pair authored against its own source (the mob that burns you drops the fire resist), Antivenom/spider precedent; this is also what finally gives FireWard a world unlock source, closing the last reachability gap. Slow (0.55) — it advances, it doesn't chase. PO places spawns in the editor. All values [PLACEHOLDER]",
+  "_comment": "Fire elemental, normal tier (2026-07-21): a high-band burn hazard on par with the Z2 front. curveLevel 18 sits it at ArmySoldier/front difficulty — dangerous but below the Orc elite. Carries FireElementalAura (shared with the greater elemental). Drops FireWard @0.2 — the drop pair authored against its own source (the mob that burns you drops the fire resist), Antivenom/spider precedent; this is also what finally gives FireWard a world unlock source, closing the last reachability gap. Slow (0.55) — it advances, it doesn't chase. PO places spawns in the editor. All values [PLACEHOLDER] ⚑ NUMBERS REWRITE C2d (D4): partial resistances. Before this pass resistances existed ONLY as lock-and-key gates ({\"*\": 0, \"harvest\": 1}) — never as mitigation — so every hit in the game landed for full and a damage type meant nothing. These are the curated set that gives the type axis teeth: made of it, and undone by its opposite. Deliberately NON-physical — the C8 tier-threshold guardrail drives its bot with authored Damage at L1, which is physical, so a physical entry here would silently move a calibration this pass has no business moving. All values [PLACEHOLDER].",
   "id": 48,
   "name": "FireElemental",
   "type": "MOB",
@@ -7,6 +7,7 @@
   "tier": "normal",
   "curveLevel": 18,
   "factors": {
+    "resistances": {"fire": 0.25, "frost": 1.5},
     "baseMaxHealth": 165,
     "maxHealthVariance": 0.1,
     "experience": 285,

@@ -2,14 +2,16 @@
   "id": 21,
   "name": "FirstAid",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 900,
   "cooldownTicksPerLevel": 0,
   "effects": [
     {
       "type": "self_heal",
+      "costFractionOfMax": 0.0149,
+      "costFractionOfMaxPerLevel": 0.001875,
       "healFractionOfMax": 0.20,
-      "healFractionOfMaxPerLevel": 0.05
+      "healFractionOfMaxPerLevel": 0.025
     }
   ]
 }

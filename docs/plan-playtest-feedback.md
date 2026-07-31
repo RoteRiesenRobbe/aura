@@ -1572,6 +1572,21 @@ stay small.
 
 ## Pass 1 — the numbers rewrite
 
+> **⭐ PLANNED IN FULL AND THEN BUILT 2026-07-31 → `docs/plan-numbers-rewrite.md`**
+> (16 PO rulings D1–D16, **16** landmines, two chunks — **C1 + C2 both ✅,
+> uncommitted, awaiting the PO feel pass**). **That doc is now the
+> implementation record; this section stays the origin** — round-2 decisions 1
+> and 2, the round-6 resource ruling at §Intake round 6 item 1, and the
+> 2026-07-29 sweep are what it was planned from. ⚑ **The bundling described
+> immediately below is SUPERSEDED by D1**: the split is engine-first
+> (byte-identical) then one numbers chunk, which retunes once *and* keeps an
+> acceptance test. ⚑ Two claims in this document were corrected against HEAD
+> while planning: **8 player skills already author `damageTags`** (the sweep's
+> "no skill authors a damageType at all" is wrong — the real gap is that
+> resistances are only ever key-gates), and **Recover was never made
+> fractional** (§Findings is accurate; `HotParams` has no fraction field at
+> all, so it is engine work).
+
 **Both systemic changes together, then a single retune on top.** They each
 rewrite every number across the skill catalog; splitting them means retuning
 the whole catalog twice and invalidating a playtest twice. Bigger chunk, less

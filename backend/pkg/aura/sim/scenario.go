@@ -46,6 +46,23 @@ type AuraSpec struct {
 	DotApplyInterval int `json:"dotApplyInterval,omitempty"`
 	// DotMaxTargets caps the dot's nearest-N selection; 0 = MaxTargets.
 	DotMaxTargets int `json:"dotMaxTargets,omitempty"`
+
+	// CostFractionOfMax is what one application of the DIRECT payload costs its
+	// caster, as a share of their max HP (plan-numbers-rewrite D15). Without
+	// it the battery would be blind to the pass's main change: player costs
+	// reduce effective throughput, so TTK/TTD would read unchanged while the
+	// real game got slower (L8) — and D3 makes "the pacing band held" the
+	// acceptance claim.
+	//
+	// The real cost path runs: the sim player is a real *player, so it is a
+	// costPayer, and the never-kill clamp applies exactly as in the live game.
+	// A dot-only spec prices the dot instead (there is no direct effect to
+	// carry it).
+	CostFractionOfMax float32 `json:"costFractionOfMax,omitempty"`
+	// DotCostFractionOfMax prices the dot payload separately on a spec that
+	// carries both; 0 = the dot is free, the D5 "sum of the effects' costs"
+	// rule with one term authored.
+	DotCostFractionOfMax float32 `json:"dotCostFractionOfMax,omitempty"`
 }
 
 // HasDirect reports whether the spec carries a direct-hit payload. A dot-only
@@ -105,6 +122,7 @@ func (a AuraSpec) definition(id skills.SkillID, name string) *skills.SkillDefini
 	if a.HasDirect() || a.DotTicks <= 0 {
 		direct := base
 		direct.Type = skills.EffectTypeDamageAura
+		direct.CostFractionOfMax = a.CostFractionOfMax
 		direct.Damage = &skills.DamageParams{
 			HP:         a.DamageHP,
 			Variance:   a.Variance,
@@ -126,6 +144,12 @@ func (a AuraSpec) definition(id skills.SkillID, name string) *skills.SkillDefini
 		dot.Type = skills.EffectTypeDotAura
 		dot.TickInterval = applyInterval
 		dot.MaxTargets = a.DotTargetCap()
+		// A dot-only spec has no direct effect to carry the cost, so the
+		// single authored value prices the one payload that exists.
+		dot.CostFractionOfMax = a.DotCostFractionOfMax
+		if !a.HasDirect() && a.DotTicks > 0 {
+			dot.CostFractionOfMax = a.CostFractionOfMax
+		}
 		dot.Dot = &skills.DotParams{
 			HP:        a.DotPayloadHP(),
 			Variance:  a.Variance,

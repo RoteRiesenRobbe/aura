@@ -4,16 +4,18 @@
   "name": "DamageBurst",
   "displayName": "Damage-Burst",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 300,
-  "cooldownTicksPerLevel": -20,
+  "cooldownTicksPerLevel": -10,
   "effects": [
     {
       "type": "instant_damage",
+      "costFractionOfMax": 0.0214,
+      "costFractionOfMaxPerLevel": 0.002425,
       "radius": 1.5,
-      "radiusPerLevel": 0.1,
+      "radiusPerLevel": 0.05,
       "damageHP": 22,
-      "damageHPPerLevel": 5,
+      "damageHPPerLevel": 2.5,
       "damageTags": ["physical", "bleed"],
       "targetsEnemies": true,
       "targetsAllies": false

@@ -1,4 +1,5 @@
 [
   { "level": 1, "skillName": "Damage" },
+  { "level": 5, "skillName": "Discipline" },
   { "level": 7, "skillName": "Haste" }
 ]

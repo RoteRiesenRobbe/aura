@@ -42,6 +42,9 @@ const (
 	ActivationRejectedNone     = ActivationRejection(AuraApi.ActivationRejectionNone)
 	ActivationRejectedNoAnchor = ActivationRejection(AuraApi.ActivationRejectionNoAnchor) // recall: no campfire anchor bound
 	ActivationRejectedNoTarget = ActivationRejection(AuraApi.ActivationRejectionNoTarget) // reserved: revive with no corpse in range (chunk 3)
+	// ActivationRejectedNotEnoughResource: the caster cannot pay the skill's
+	// resource cost and live (plan-numbers-rewrite D9).
+	ActivationRejectedNotEnoughResource = ActivationRejection(AuraApi.ActivationRejectionNotEnoughResource)
 )
 
 type Players []PlayerEntity

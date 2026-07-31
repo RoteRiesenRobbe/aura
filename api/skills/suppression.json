@@ -7,10 +7,13 @@
   "effects": [
     {
       "type": "damage_aura",
+      "costFractionOfMax": 0.0084,
+      "costFractionOfMaxPerLevel": 0.0018,
       "radius": 2.6,
       "radiusPerLevel": 0.1,
       "damageHP": 6.5,
-      "damageHPPerLevel": 1.4,
+      "damageHPPerLevel": 3.375,
+      "damageTags": ["frost"],
       "variance": 0.15,
       "targetsAllies": false,
       "targetsEnemies": true,

@@ -6,6 +6,9 @@
   "effects": [
     {
       "type": "slow_aura",
+      "costFractionOfMax": 0.006,
+      "costFractionOfMaxPerLevel": 0.00075,
+      "tickInterval": 30,
       "radius": 1.5,
       "radiusPerLevel": 0.0,
       "slowFraction": 0.1,

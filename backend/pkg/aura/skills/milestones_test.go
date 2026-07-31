@@ -73,7 +73,10 @@ func TestMilestoneUnlocksFromFS_MissingFile(t *testing.T) {
 // than the L3 milestone granted it — so the milestone was dead weight. Damage
 // JOINED at level 1 with conversation-journal Q4 (2026-07-30): the free
 // baseline aura is seeded at character creation instead of being the
-// TownCrier's first teaching, so a peasant can always fight.
+// TownCrier's first teaching, so a peasant can always fight. Discipline JOINED
+// at level 5 with the numbers rewrite (C2b): once every skill outside the free
+// floor costs resource, the cost-reduction passive is the build's answer to the
+// economy, and level 5 is roughly where costs start to bite.
 // Resolves against the real content in api/skills so a renamed skill fails
 // here, not at boot.
 func TestMilestoneUnlocksFromFS_PinnedTable(t *testing.T) {
@@ -88,8 +91,9 @@ func TestMilestoneUnlocksFromFS_PinnedTable(t *testing.T) {
 		got[u.Skill.Name] = u.Level
 	}
 	assert.Equal(t, map[string]uint32{
-		"Damage": 1,
-		"Haste":  7,
+		"Damage":     1,
+		"Discipline": 5,
+		"Haste":      7,
 	}, got)
 }
 

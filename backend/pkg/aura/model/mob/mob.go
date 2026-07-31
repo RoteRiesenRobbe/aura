@@ -1646,10 +1646,13 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	if m.invulnerable {
 		return 0
 	}
-	// Gated hits (content pass C1) are opt-in: without an explicit base
-	// entry for one of the hit's tags the mob was never a valid target —
-	// same non-event as a fully resisted hit.
-	if damage.Gated && !skills.GateOpensFor(damage.Tags, m.definition.Factors.Resistances) {
+	// A gated hit (content pass C1) is opt-in: a mob that does not name the key
+	// in factors.gateKeys was never a valid target — the same non-event as a
+	// fully resisted hit. ⚑ D4 moved this OFF the resistance map: "immune to
+	// everything except harvest" and "takes half damage from fire" are not the
+	// same idea, and writing them in the same words is what made a mistyped tag
+	// a silently-inert skill.
+	if damage.GateKey != "" && !skills.GateOpensFor(damage.GateKey, m.definition.Factors.GateKeys) {
 		return 0
 	}
 	multiplier := skills.ResistMultiplier(damage.Tags, m.definition.Factors.Resistances) *
@@ -1829,7 +1832,7 @@ func (m *Mob) ResetTickNumbers() {
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, Gated: factors.Gated, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
+	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
 	// always its own recipient.
 	model.ApplyLifesteal(lost, factors.Lifesteal, nil, e)

@@ -403,30 +403,83 @@ func TestLowerSkillLevel(t *testing.T) {
 	})
 }
 
+// defRegistry is a Registry over a handful of definitions — the minimum
+// SpentPoints needs now that the point cost is cap-relative (L1).
+type defRegistry map[SkillID]*SkillDefinition
+
+func (r defRegistry) Get(id SkillID) (*SkillDefinition, error) {
+	if def, ok := r[id]; ok {
+		return def, nil
+	}
+	return nil, assert.AnError
+}
+func (r defRegistry) GetByName(string) (*SkillDefinition, error) { return nil, assert.AnError }
+func (r defRegistry) All() []*SkillDefinition                    { return nil }
+
+// The D10 table, straight from the plan doc: the first half of a skill's own
+// levels cost 1 point, the third quarter 2, the last quarter 3.
+func TestPointCost_EscalatesRelativeToTheSkillsOwnCap(t *testing.T) {
+	t.Run("cap 10 — the build-defining core auras (D11)", func(t *testing.T) {
+		for level, want := range map[int]int{1: 0, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 2, 8: 2, 9: 3, 10: 3} {
+			assert.Equal(t, want, PointCost(10, level), "level %d", level)
+		}
+		assert.Equal(t, 16, BoundPoints(10, 10), "16 points to max a 10-cap skill")
+	})
+
+	t.Run("cap 5 — the supporting skills, quarters rounded up", func(t *testing.T) {
+		for level, want := range map[int]int{1: 0, 2: 1, 3: 1, 4: 2, 5: 3} {
+			assert.Equal(t, want, PointCost(5, level), "level %d", level)
+		}
+		assert.Equal(t, 7, BoundPoints(5, 5), "7 points to max a 5-cap skill")
+	})
+
+	t.Run("cap 1 — binary abilities cost nothing at all", func(t *testing.T) {
+		assert.Equal(t, 0, PointCost(1, 1))
+		assert.Equal(t, 0, BoundPoints(1, 1))
+	})
+
+	t.Run("level 1 is free on unlock, and past the cap is unbuyable", func(t *testing.T) {
+		// The free first level is load-bearing for the free floor (D6): every
+		// discovered skill is usable before any investment.
+		assert.Equal(t, 0, PointCost(10, 1))
+		assert.Equal(t, 0, PointCost(10, 11))
+	})
+
+	t.Run("the same level costs differently under a different cap", func(t *testing.T) {
+		// This is the whole point of a cap-relative curve (D2/D10): §37 moving
+		// a cap re-prices the skill instead of needing a new table.
+		assert.Equal(t, 1, PointCost(10, 5), "mid-run of a 10-cap skill")
+		assert.Equal(t, 3, PointCost(5, 5), "the last level of a 5-cap one")
+	})
+}
+
 func TestSpentPoints(t *testing.T) {
+	other := &SkillDefinition{ID: 2, Name: "Other", MaxLevel: 5}
+	defs := defRegistry{testDef.ID: testDef, other.ID: other}
+
 	t.Run("fresh spellbook has spent nothing", func(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.Discover(testDef.ID)
 
-		assert.Equal(t, 0, sc.SpentPoints())
+		assert.Equal(t, 0, sc.SpentPoints(defs))
 	})
 
-	t.Run("sums level minus one across skills", func(t *testing.T) {
-		other := &SkillDefinition{ID: 2, Name: "Other", MaxLevel: 5}
+	t.Run("sums the cap-relative cost across skills", func(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.Discover(testDef.ID)
 		sc.Discover(other.ID)
-		require.True(t, sc.RaiseSkillLevel(testDef)) // level 2 = 1 point
-		require.True(t, sc.RaiseSkillLevel(testDef)) // level 3 = 2 points
-		require.True(t, sc.RaiseSkillLevel(other))   // level 2 = 1 point
+		require.True(t, sc.RaiseSkillLevel(testDef)) // to L2 = 1 point
+		require.True(t, sc.RaiseSkillLevel(testDef)) // to L3 = 1 point
+		require.True(t, sc.RaiseSkillLevel(testDef)) // to L4 = 2 points
+		require.True(t, sc.RaiseSkillLevel(other))   // to L2 = 1 point
 
-		assert.Equal(t, 3, sc.SpentPoints())
+		assert.Equal(t, 5, sc.SpentPoints(defs))
 	})
 
 	t.Run("nil spellbook has spent nothing", func(t *testing.T) {
 		sc := NewSkillComponent(false)
 
-		assert.Equal(t, 0, sc.SpentPoints())
+		assert.Equal(t, 0, sc.SpentPoints(defs))
 	})
 }
 

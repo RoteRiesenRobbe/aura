@@ -248,13 +248,12 @@ func TestMob_PlayerTouches_ImmuneTagNoHit(t *testing.T) {
 	assert.NotContains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)
 }
 
-func TestMob_PlayerTouches_GatedTagNeedsOptIn(t *testing.T) {
-	// Gated damage (content pass C1, "gatedDamageTags") is opt-in: a mob
-	// whose base resistances never mention the tag is immune — the wolf
-	// case, with zero authoring on the wolf.
-	m := newTestMob() // no resistances at all
+func TestMob_PlayerTouches_GateClosedIsANonEvent(t *testing.T) {
+	// A gated hit (content pass C1) is opt-in: a mob that names no gate keys is
+	// immune — the wolf case, with zero authoring on the wolf.
+	m := newTestMob() // no gate keys at all
 
-	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"turnip"}, Gated: true})
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, GateKey: "harvest"})
 
 	assert.Equal(t, m.MaxHealth(), m.Health())
 	assert.Zero(t, m.DamageTaken())
@@ -262,24 +261,30 @@ func TestMob_PlayerTouches_GatedTagNeedsOptIn(t *testing.T) {
 		"a gate-closed hit is a non-event like a fully resisted one")
 }
 
-func TestMob_PlayerTouches_GatedTagWildcardDoesNotOptIn(t *testing.T) {
+func TestMob_PlayerTouches_ResistancesCannotOpenAGate(t *testing.T) {
+	// ⚑ The D4 split's load-bearing property: the two vocabularies no longer
+	// meet. A mob can carry any resistance map it likes — wildcard included —
+	// and it still opts into no gate, because the gate reads gateKeys only.
 	def := testMobDefinition()
-	def.Factors.Resistances = map[string]float32{"*": 0.5}
+	def.Factors.Resistances = map[string]float32{"*": 0.5, "physical": 1}
 	m := NewMob(def, 0, nil)
 
-	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"turnip"}, Gated: true})
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, GateKey: "harvest"})
 
-	assert.Equal(t, m.MaxHealth(), m.Health(),
-		"a wildcard entry is a fallback, not an opt-in")
+	assert.Equal(t, m.MaxHealth(), m.Health())
 }
 
-func TestMob_PlayerTouches_GatedTagExplicitEntryTakesDamage(t *testing.T) {
-	// The turnip case: {"*": 0, "turnip": 1} opts in, damage lands normally.
+func TestMob_PlayerTouches_NamedGateKeyTakesDamage(t *testing.T) {
+	// The turnip case: immune to every damage type, opened by one key.
 	def := testMobDefinition()
-	def.Factors.Resistances = map[string]float32{"*": 0, "turnip": 1}
+	def.Factors.Resistances = map[string]float32{"*": 0}
+	def.Factors.GateKeys = []string{"harvest"}
 	m := NewMob(def, 0, nil)
 
-	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, Tags: []string{"turnip"}, Gated: true})
+	// ⚑ A gated hit carries no damage types, so the "*": 0 wildcard never
+	// applies to it — the resistance map and the gate are simply different
+	// questions now.
+	m.PlayerTouches(newFakeAuraPlayer(), model.Damage{HP: 10, GateKey: "harvest"})
 
 	assert.Equal(t, m.MaxHealth()-10, m.Health())
 	assert.Contains(t, m.StatusEffects().Effects(), model.StatusEffectDamagedAmbient)

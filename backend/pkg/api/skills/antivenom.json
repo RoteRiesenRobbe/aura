@@ -3,13 +3,13 @@
   "id": 47,
   "name": "Antivenom",
   "category": "passive",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "effects": [
     {
       "type": "resist_passive",
       "resistTags": ["poison"],
       "resistFactor": 0.7,
-      "resistFactorPerLevel": -0.1
+      "resistFactorPerLevel": -0.05
     }
   ]
 }

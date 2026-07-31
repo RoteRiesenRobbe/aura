@@ -5,6 +5,7 @@ import {AppliedEffectBit} from '../features/game-objects/logic/EffectPips';
 import {AuraCategoryBit} from '../features/game-objects/logic/AuraRings';
 import {TierRank} from './Mobs';
 import {BasicConfig, meter2px} from './BasicConfig';
+import {SKILL_POINT_COST, skillPointCost} from './Skills';
 
 // §35 C4c (plan-conf-duplication.md D3): the client half of the
 // shared-constants contract. api/shared-constants.json is the one authored
@@ -54,5 +55,33 @@ describe('shared constants (api/shared-constants.json)', () => {
 
     it('pins the tick rate (fixture in ticks/s, config as ms/tick)', () => {
         expect(BasicConfig.SERVER_TICKRATE).toBe(1000 / shared.ticksPerSecond);
+    });
+
+    // L2 (plan-numbers-rewrite): the D10 point curve became a cross-language
+    // mirror the moment the spellbook + button started showing what a level
+    // costs. Both the table and the resulting curve are pinned — a threshold
+    // could match while the formula that reads it drifted.
+    it('pins the skill-point cost table', () => {
+        expect(SKILL_POINT_COST).toEqual(shared.skillPointCost);
+    });
+
+    it('pins the skill-point curve the table produces', () => {
+        const c = shared.skillPointCost;
+        for (const maxLevel of [1, 3, 5, 7, 10]) {
+            for (let level = 0; level <= maxLevel + 1; level++) {
+                let want: number;
+                if (level <= 1 || level > maxLevel) {
+                    want = 0;
+                } else if (level <= Math.ceil(c.tier2AboveFraction * maxLevel)) {
+                    want = c.tier1Points;
+                } else if (level <= Math.ceil(c.tier3AboveFraction * maxLevel)) {
+                    want = c.tier2Points;
+                } else {
+                    want = c.tier3Points;
+                }
+                expect(skillPointCost(maxLevel, level),
+                    `cap ${maxLevel}, level ${level}`).toBe(want);
+            }
+        }
     });
 });

@@ -29,12 +29,14 @@ type Damage struct {
 	// applied caster-side.
 	Crit bool
 
-	// Gated flips the resist default for this hit (content pass C1, the
-	// chore gate): the target takes damage only if its BASE resistances
-	// explicitly name one of Tags (skills.GateOpensFor) — otherwise the hit
-	// is a non-event, exactly like a fully resisted tag. Filled from the
-	// effect's gatedDamageTags at cast time, like Tags/Crit/Lifesteal.
-	Gated bool
+	// GateKey makes this a lock-and-key hit (content pass C1, the chore gate;
+	// the damage-type/gate-key split is plan-numbers-rewrite D4): the target
+	// takes damage only if its authored factors.gateKeys name this key —
+	// otherwise the hit is a non-event. Empty on ordinary damage. Filled from
+	// the effect's gateKey at cast time, like Tags/Crit/Lifesteal.
+	//
+	// ⚑ A gated hit carries no Tags, so it never enters resistance math at all.
+	GateKey string
 }
 
 type Interacter interface {

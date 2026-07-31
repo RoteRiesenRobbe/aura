@@ -3,16 +3,18 @@
   "id": 10,
   "name": "Swift",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 600,
-  "cooldownTicksPerLevel": -60,
+  "cooldownTicksPerLevel": -30,
   "effects": [
     {
       "type": "speed_burst",
+      "costFractionOfMax": 0.015,
+      "costFractionOfMaxPerLevel": 0.00375,
       "speedFactor": 1.5,
-      "speedFactorPerLevel": 0.1,
+      "speedFactorPerLevel": 0.05,
       "speedDurationTicks": 150,
-      "speedDurationTicksPerLevel": 30
+      "speedDurationTicksPerLevel": 15
     }
   ]
 }

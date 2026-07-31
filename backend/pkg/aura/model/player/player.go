@@ -30,6 +30,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 		name:           name,
 		ownedEntitites: model.NewBasicEntities(),
 		config:         &g.Config().PlayerConfig,
+		skillDefs:      g.Skills(),
 		stats:          model.Stats{BirthTick: g.Ticks()},
 		progression:    model.PlayerProgression{Level: 1, Experience: 0},
 		statusEffects:  model.NewStatusEffects(),
@@ -128,6 +129,13 @@ type player struct {
 	skills           *skills.SkillComponent
 	milestoneUnlocks []skills.MilestoneUnlock
 	recipes          skills.RecipeRegistry
+
+	// skillDefs resolves a spellbook entry to its definition. Needed because
+	// the D10 point cost is relative to each skill's own cap, and the
+	// spellbook stores levels only (plan-numbers-rewrite L1). Boot-global and
+	// immutable, so a rebuilt player (death, reconnect, revive) simply takes it
+	// from the game again.
+	skillDefs skills.Registry
 
 	// questLedger is the character's lifetime quest state (plan-quests.md C1).
 	// Like the skill component it outlives this struct: the connection-state
@@ -323,10 +331,10 @@ func (p *player) HealthRatio() float32 {
 // damage + actual HP lost after clamping — overkill never counts
 // (plan-skill-vocab chunk 2, F6 §3.1/9; mirrors the mob site).
 func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.VitalSign {
-	// Gated hits (content pass C1) are opt-in via BASE resistances, and
-	// players have none — a gated hit never damages a player (defensive;
+	// A gated hit (content pass C1) damages only mobs that name its key, and a
+	// player has no gateKeys at all — so it never damages a player (defensive;
 	// nothing casts gated damage at players under no-PvP).
-	if damage.Gated {
+	if damage.GateKey != "" {
 		return 0
 	}
 	// Tag resistances (Phase 2): resist passives (Derived) and transient
@@ -590,7 +598,7 @@ func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 		p.attacker = c
 		p.attackerTicks = combatSignalWindowTicks
 	}
-	dealt := p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, Gated: factors.Gated, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
 	// always its own recipient.
 	model.ApplyLifesteal(dealt, factors.Lifesteal, nil, e)
@@ -703,7 +711,7 @@ func (p *player) Progression() model.PlayerProgression {
 // earns minus the points bound in the spellbook. Derived on every call so free
 // respec can never make the numbers drift.
 func (p *player) AvailableSkillPoints() int {
-	return skills.TotalSkillPoints(p.progression.Level, p.config.SkillPointsPerLevel) - p.skills.SpentPoints()
+	return skills.TotalSkillPoints(p.progression.Level, p.config.SkillPointsPerLevel) - p.skills.SpentPoints(p.skillDefs)
 }
 
 func (p *player) SetProgression(progression model.PlayerProgression) {

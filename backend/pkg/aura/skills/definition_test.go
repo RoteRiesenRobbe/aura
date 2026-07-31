@@ -42,7 +42,7 @@ var healAuraJSON = []byte(`{
       "radiusPerLevel": 0.05,
       "healHP": 0.001,
       "healHPPerLevel": 0.0005,
-      "selfDamageHP": 0.0015
+      "costFractionOfMax": 0.0015
     }
   ]
 }`)
@@ -183,29 +183,32 @@ func TestParse_HealAura(t *testing.T) {
 	assert.InDelta(t, 0.05, e.RadiusPerLevel, 1e-6)
 	assert.InDelta(t, 0.001, e.Heal.HP, 1e-6)
 	assert.InDelta(t, 0.0005, e.Heal.HPPerLevel, 1e-6)
-	assert.InDelta(t, 0.0015, e.Heal.SelfDamageHP, 1e-6)
 	assert.Equal(t, 1, e.TickInterval)
 }
 
-// --- triage item 2: per-level self-cost curve ---
+// --- triage item 2's falling self-cost, now on the EFFECT (numbers rewrite
+// D5/D7): the guarantee did not change, only where it lives. Heal is still the
+// authored case — 10 % of the pool at level 1, falling to 2 % at its cap — and
+// the clamp is still what stops an over-levelled curve refunding health.
 
-func TestHealParams_SelfDamageAtScalesDownAndClampsAtZero(t *testing.T) {
-	// The authored curve mirrors heal.json: cost 10 falling by 2/level.
-	p := &HealParams{SelfDamageHP: 10, SelfDamageHPPerLevel: -2}
-	assert.InDelta(t, 10, p.SelfDamageAt(1), 1e-6)
-	assert.InDelta(t, 8, p.SelfDamageAt(2), 1e-6)
-	assert.InDelta(t, 2, p.SelfDamageAt(5), 1e-6)
-	// A curve that would go negative clamps at 0 — leveling never heals the
-	// caster.
-	assert.InDelta(t, 0, p.SelfDamageAt(7), 1e-6, "cost floors at 0, never negative")
+func TestEffectDef_CostFractionAtScalesDownAndClampsAtZero(t *testing.T) {
+	// The authored curve mirrors heal.json at its cap-10 shape: 0.10 falling
+	// by 0.008889/level, i.e. 0.02 at level 10.
+	e := &EffectDef{CostFractionOfMax: 0.10, CostFractionOfMaxPerLevel: -0.008889}
+	assert.InDelta(t, 0.10, e.CostFractionAt(1), 1e-6)
+	assert.InDelta(t, 0.091111, e.CostFractionAt(2), 1e-6)
+	assert.InDelta(t, 0.02, e.CostFractionAt(10), 1e-6)
+	// Past the cap the curve would go negative; it clamps at 0 — a cost never
+	// becomes a refund.
+	assert.InDelta(t, 0, e.CostFractionAt(20), 1e-6, "cost floors at 0, never negative")
 }
 
-func TestParse_HealSelfDamagePerLevel(t *testing.T) {
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":5,"effects":[{"type":"heal_aura","radius":1,"healHP":12,"selfDamageHP":10,"selfDamageHPPerLevel":-2,"tickInterval":120}]}`))
+func TestParse_EffectCostPerLevel(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":5,"effects":[{"type":"heal_aura","radius":1,"healHP":12,"costFractionOfMax":0.1,"costFractionOfMaxPerLevel":-0.02,"tickInterval":120}]}`))
 	require.NoError(t, err)
 	def, err := raw.mapToSkillDefinition(nil)
 	require.NoError(t, err)
-	assert.InDelta(t, -2, def.Effects[0].Heal.SelfDamageHPPerLevel, 1e-6)
+	assert.InDelta(t, -0.02, def.Effects[0].CostFractionOfMaxPerLevel, 1e-6)
 }
 
 // --- triage item 13: percent-of-max heal (campfire) ---
@@ -272,15 +275,21 @@ func TestParse_NovaBurst(t *testing.T) {
 
 // --- damage tags (item 11 Phase 2) ---
 
+// ⚑ This used to pin the opposite: damage tags were "arbitrary strings by
+// design", so a bespoke `boss_x_lava` composed with a general `fire`. D4 closed
+// the vocabulary — an unknown type is a typo, not an extension point — which
+// RETIRES that bespoke-tag capability. It was documented but unused: no content
+// ever authored one. If boss content wants a bespoke axis later it needs a
+// deliberate re-opening, not a silent one.
 func TestParse_DamageTags(t *testing.T) {
 	data := []byte(`{
       "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
-      "effects": [{"type": "damage_aura", "radius": 1, "damageHP": 5, "targetsEnemies": true, "damageTags": ["fire", "boss_x_lava"]}]
+      "effects": [{"type": "damage_aura", "radius": 1, "damageHP": 5, "targetsEnemies": true, "damageTags": ["fire", "bleed"]}]
     }`)
 	def := mustParse(t, data)
 
 	require.Len(t, def.Effects, 1)
-	assert.Equal(t, []string{"fire", "boss_x_lava"}, def.Effects[0].Damage.Tags)
+	assert.Equal(t, []string{"fire", "bleed"}, def.Effects[0].Damage.Tags)
 }
 
 func TestParse_DamageTagsDefaultToPhysical(t *testing.T) {
@@ -322,33 +331,56 @@ func TestMap_DamageTagsOnNonDamageEffectFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// --- gated damage tags (content pass C1) ---
+// --- gate keys and the closed damage-type vocabulary (D4) ---
 
-func TestParse_GatedDamageTags(t *testing.T) {
+func TestParse_GateKey(t *testing.T) {
 	data := []byte(`{
       "id": 1, "name": "X", "category": "active_aura", "maxLevel": 5,
-      "effects": [{"type": "damage_aura", "radius": 1, "damageHP": 5, "targetsEnemies": true, "damageTags": ["turnip"], "gatedDamageTags": true}]
+      "effects": [{"type": "damage_aura", "radius": 1, "damageHP": 5, "targetsEnemies": true, "gateKey": "harvest"}]
     }`)
 	def := mustParse(t, data)
 
 	require.Len(t, def.Effects, 1)
-	assert.True(t, def.Effects[0].Damage.Gated)
+	assert.Equal(t, "harvest", def.Effects[0].Damage.GateKey)
+	assert.Empty(t, def.Effects[0].Damage.Tags,
+		"a gated hit declares no damage type — its targets are an explicit list")
 }
 
-func TestParse_GatedDefaultsToFalse(t *testing.T) {
+func TestParse_GateKeyDefaultsToEmpty(t *testing.T) {
 	damage := mustParse(t, damageAuraJSON)
 	require.Len(t, damage.Effects, 1)
-	assert.False(t, damage.Effects[0].Damage.Gated)
+	assert.Empty(t, damage.Effects[0].Damage.GateKey)
 }
 
-func TestMap_GatedWithoutExplicitTagsFails(t *testing.T) {
-	// Gating the implicit [physical] default would make the skill damage
-	// nothing that doesn't author "physical" — a footgun, not content.
-	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","targetsEnemies":true,"gatedDamageTags":true}]}`))
-	require.NoError(t, err)
-	_, err = raw.mapToSkillDefinition(nil)
+// The whole point of closing the two vocabularies (D4) is that neither can be
+// typo'd into the other, and that a mistake NAMES itself instead of shipping as
+// a skill that silently hits nothing.
+func TestMap_VocabularyMixUpsAreNamed(t *testing.T) {
+	effect := func(body string) error {
+		raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"damage_aura","radius":1,"targetsEnemies":true,"damageHP":5,` + body + `}]}`))
+		require.NoError(t, err)
+		_, err = raw.mapToSkillDefinition(nil)
+		return err
+	}
+
+	err := effect(`"damageTags": ["harvest"]`)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "gatedDamageTags")
+	assert.Contains(t, err.Error(), "GATE KEY", "a gate key in damageTags says so")
+
+	err = effect(`"gateKey": "fire"`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DAMAGE TYPE", "a damage type in gateKey says so")
+
+	err = effect(`"damageTags": ["frost", "flame"]`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown damage type", "a typo is rejected, not silently carried")
+
+	err = effect(`"gateKey": "harvest", "damageTags": ["physical"]`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no damageTags", "the two concepts are mutually exclusive")
+
+	require.NoError(t, effect(`"damageTags": ["frost"]`), "a real damage type loads")
+	require.NoError(t, effect(`"gateKey": "smash"`), "a real gate key loads")
 }
 
 // --- per-hit variance (item 11 Phase 3) ---
@@ -1609,4 +1641,53 @@ func TestMap_SkillsWithoutAnAllowlistStayUnrestricted(t *testing.T) {
 	for _, e := range def.Effects {
 		assert.Zero(t, e.TargetFactionMask)
 	}
+}
+
+// --- resource cost on the effect (plan-numbers-rewrite D5/D7) ---
+
+func TestParse_CostFractionIsValidOnAnyEffectType(t *testing.T) {
+	// D5's PO requirement: the cost must not be hard-coded per effect type.
+	// slow_aura has no cost-shaped payload field of its own and never could.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":5,"effects":[{"type":"slow_aura","radius":2,"slowFraction":0.3,"costFractionOfMax":0.04,"costFractionOfMaxPerLevel":-0.005,"tickInterval":30}]}`))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition(nil)
+	require.NoError(t, err)
+
+	assert.InDelta(t, 0.04, def.Effects[0].CostFractionOfMax, 1e-6)
+	assert.InDelta(t, 0.04, def.Effects[0].CostFractionAt(1), 1e-6)
+	assert.InDelta(t, 0.03, def.Effects[0].CostFractionAt(3), 1e-6, "an authored negative makes it cheaper per level")
+	assert.InDelta(t, 0, def.Effects[0].CostFractionAt(10), 1e-6, "floored at 0, never a refund")
+}
+
+func TestParse_CostFractionOfWholePoolIsRejected(t *testing.T) {
+	// A cost nothing can pay reads as a silently dead skill: the aura path
+	// would clamp it away every tick and the cooldown path would reject every
+	// activation, with nothing failing at load.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"slow_aura","radius":2,"slowFraction":0.3,"costFractionOfMax":1,"tickInterval":30}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "costFractionOfMax")
+}
+
+// --- percent-of-max HoT (D14 / L11) ---
+
+func TestParse_HotFractionOfMax(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":5,"cooldownTicks":600,"effects":[{"type":"instant_hot","radius":1,"healFractionOfMax":0.05,"healFractionOfMaxPerLevel":0.01,"hotTicks":9,"hotTickInterval":30,"targetsSelf":true}]}`))
+	require.NoError(t, err)
+	def, err := raw.mapToSkillDefinition(nil)
+	require.NoError(t, err)
+
+	assert.InDelta(t, 0.05, def.Effects[0].Hot.FractionOfMax, 1e-6)
+	assert.InDelta(t, 0.07, def.Effects[0].Hot.FractionAt(3), 1e-6)
+}
+
+func TestParse_HotFlatAndFractionAreMutuallyExclusive(t *testing.T) {
+	// L11: authoring both is a content bug that must hard-fail rather than
+	// silently pick one — the same rule HealParams already carries.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":1,"effects":[{"type":"hot_aura","radius":1,"healHP":4,"healFractionOfMax":0.05,"hotTicks":9,"hotTickInterval":30,"tickInterval":30}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "mutually exclusive")
 }

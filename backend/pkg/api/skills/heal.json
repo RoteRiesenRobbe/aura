@@ -3,16 +3,16 @@
   "id": 2,
   "name": "Heal",
   "category": "active_aura",
-  "maxLevel": 5,
+  "maxLevel": 10,
   "effects": [
     {
       "type": "heal_aura",
+      "costFractionOfMax": 0.1,
+      "costFractionOfMaxPerLevel": -0.008889,
       "radius": 1.5,
-      "radiusPerLevel": 0.1,
+      "radiusPerLevel": 0.0444,
       "healHP": 12,
-      "healHPPerLevel": 6,
-      "selfDamageHP": 10,
-      "selfDamageHPPerLevel": -2,
+      "healHPPerLevel": 2.6667,
       "selector": "lowest_health",
       "maxTargets": 1,
       "tickInterval": 80

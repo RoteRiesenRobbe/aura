@@ -3,14 +3,15 @@
   "id": 1,
   "name": "Damage",
   "category": "active_aura",
-  "maxLevel": 5,
+  "maxLevel": 10,
   "effects": [
     {
       "type": "damage_aura",
       "radius": 1.0,
       "radiusPerLevel": 0.0,
       "damageHP": 14,
-      "damageHPPerLevel": 3.2,
+      "damageHPPerLevel": 0.2222,
+      "damageTags": ["physical"],
       "variance": 0.15,
       "targetsEnemies": true,
       "targetsAllies": false,

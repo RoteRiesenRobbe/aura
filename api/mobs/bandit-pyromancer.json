@@ -1,5 +1,5 @@
 {
-  "_comment": "Bandit pyromancer (intermission triage Session ②, item 20): a fire-mage bandit that hangs back in the camps behind the melee line, cooking travelers with a medium-range burning aura (EmberAura, fire DoT). curveLevel 6 sits in the Z2 bandit band. Drops NovaBurst, giving the fire-burst cooldown a world source. Own portrait sprite (EntityType BanditPyromancer). All values [PLACEHOLDER]",
+  "_comment": "Bandit pyromancer (intermission triage Session ②, item 20): a fire-mage bandit that hangs back in the camps behind the melee line, cooking travelers with a medium-range burning aura (EmberAura, fire DoT). curveLevel 6 sits in the Z2 bandit band. Drops NovaBurst, giving the fire-burst cooldown a world source. Own portrait sprite (EntityType BanditPyromancer). All values [PLACEHOLDER] ⚑ NUMBERS REWRITE C2d (D4): partial resistances. Before this pass resistances existed ONLY as lock-and-key gates ({\"*\": 0, \"harvest\": 1}) — never as mitigation — so every hit in the game landed for full and a damage type meant nothing. These are the curated set that gives the type axis teeth: works with fire and has the scars to prove it. Deliberately NON-physical — the C8 tier-threshold guardrail drives its bot with authored Damage at L1, which is physical, so a physical entry here would silently move a calibration this pass has no business moving. All values [PLACEHOLDER].",
   "id": 42,
   "name": "BanditPyromancer",
   "type": "MOB",
@@ -7,6 +7,7 @@
   "tier": "normal",
   "curveLevel": 6,
   "factors": {
+    "resistances": {"fire": 0.5},
     "baseMaxHealth": 96,
     "maxHealthVariance": 0.1,
     "experience": 132,

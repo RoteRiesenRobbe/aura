@@ -1,5 +1,5 @@
 {
-  "_comment": "Z1 dark-forest pack leader (content pass C2): the 'something big' the signpost warns about. tier elite as a pure label — eliteness lives in the baseline + curveLevel 5. EliteWolfBite feeds on wounded prey (execute + lifesteal). Guards the Hermit approach. Drop set reshuffled across the wolf line (PO 2026-07-21): Swift 0.1 + KeenEye 0.06 are now line-wide, and this one carries Wild 0.5 (LongRangeStrike moved to DireWolf, Reaper up to AlphaWolf). All values [PLACEHOLDER]",
+  "_comment": "Z1 dark-forest pack leader (content pass C2): the 'something big' the signpost warns about. tier elite as a pure label — eliteness lives in the baseline + curveLevel 5. EliteWolfBite feeds on wounded prey (execute + lifesteal). Guards the Hermit approach. Drop set reshuffled across the wolf line (PO 2026-07-21): Swift 0.1 + KeenEye 0.06 are now line-wide, and this one carries Wild 0.5 (LongRangeStrike moved to DireWolf, Reaper up to AlphaWolf). All values [PLACEHOLDER] ⚑ NUMBERS REWRITE C2c: the Wild drop is GONE — Wild itself was deleted (D12 item 4, \"we had these to proof concepts, not to be final\"), and the freed slot stays EMPTY by PO ruling rather than being back-filled with an existing skill.",
   "id": 19,
   "name": "EliteWolf",
   "type": "MOB",
@@ -26,7 +26,6 @@
     { "skillName": "EliteWolfBite", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "Wild", "chance": 0.5 },
     { "skillName": "Swift", "chance": 0.25 },
     { "skillName": "KeenEye", "chance": 0.2 },
     { "skillName": "Dash", "chance": 0.2 },

@@ -11,6 +11,7 @@ import {MiniMap} from '../../mini-map/logic/MiniMap';
 import {PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {setLocalPlayerLevel} from '../../../client-data/Mobs';
+import {setLocalPlayerMaxHealth} from '../../../client-data/Skills';
 import './PlayerJuice';
 
 export class Player {
@@ -74,6 +75,12 @@ export class Player {
         );
         if (isDefined(entity.health)) {
             this.character.setHealth(entity.health, entity.maxHealth);
+        }
+        if (isDefined(entity.maxHealth)) {
+            // The skill tooltip needs the real pool to show what a resource cost
+            // will actually charge: the server floors every positive cost at
+            // 1 HP, so on a small pool the authored fraction understates it.
+            setLocalPlayerMaxHealth(entity.maxHealth);
         }
         // Shield segment on the HUD bar + own overhead bar (skill-vocab
         // chunk 2); 0 hides both.

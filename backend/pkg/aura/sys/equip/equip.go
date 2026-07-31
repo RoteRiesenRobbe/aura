@@ -173,10 +173,16 @@ func (es *EquipSystem) handleSpendSkillPoint(player equipEntity) {
 			return
 		}
 	} else {
-		if player.AvailableSkillPoints() <= 0 {
-			slog.Warn("spend: no skill points available",
+		// "Can you afford the NEXT level", not "do you have a point":
+		// a level's cost is cap-relative now (D10), so the last level of a
+		// 5-cap skill costs 3 and a player holding 2 points cannot buy it.
+		cost := skills.PointCost(def.MaxLevel, sc.SkillLevel(def.ID)+1)
+		if player.AvailableSkillPoints() < cost {
+			slog.Warn("spend: not enough skill points",
 				slog.String("player", player.Name()),
-				slog.String("skill", def.Name))
+				slog.String("skill", def.Name),
+				slog.Int("cost", cost),
+				slog.Int("available", player.AvailableSkillPoints()))
 			return
 		}
 		if !sc.RaiseSkillLevel(def) {

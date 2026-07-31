@@ -20,6 +20,7 @@ const SCALE_AT_30 = Math.pow(1.12, 29);
 
 function effect(partial: Partial<SkillEffect> & { type: string }): SkillEffect {
     return {
+        costFractionOfMax: 0, costFractionOfMaxPerLevel: 0,
         radius: 0, radiusPerLevel: 0,
         tickInterval: 0, tickIntervalPerLevel: 0,
         selector: 'all', maxTargets: 0, maxTargetsPerLevel: 0,
@@ -38,8 +39,9 @@ function skill(partial: Partial<SkillDefinition> & { effects: SkillEffect[] }): 
     };
 }
 
-function lines(def: SkillDefinition, skillLevel: number, powerScale: number): string[] {
-    return formatSkillTooltip(def, skillLevel, powerScale).lines.map(line => line.text);
+function lines(def: SkillDefinition, skillLevel: number, powerScale: number,
+               maxHealth: number = 0): string[] {
+    return formatSkillTooltip(def, skillLevel, powerScale, maxHealth).lines.map(line => line.text);
 }
 
 // Rejuvenation as authored (api/skills/rejuvenation.json) — the skill the PO
@@ -50,7 +52,7 @@ const rejuvenation = skill({
         type: 'hot_aura',
         radius: 2.5, radiusPerLevel: 0.2,
         tickInterval: 60,
-        hot: {hp: 4, hpPerLevel: 2, variance: 0, tickCount: 6, interval: 60, targetsSelf: false},
+        hot: {hp: 4, hpPerLevel: 2, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0, tickCount: 6, interval: 60, targetsSelf: false},
     })],
 });
 
@@ -79,7 +81,7 @@ describe('character power scale', () => {
                 effect({type: 'instant_damage', damage: damageParams(10)}),
                 effect({type: 'instant_dot', dot: {hp: 12, hpPerLevel: 0, tags: ['physical'], variance: 0, tickCount: 3, interval: 30}}),
                 effect({type: 'instant_shield', shield: {hp: 6.3, hpPerLevel: 0, durationTicks: 90, targetsSelf: false}}),
-                effect({type: 'heal_aura', heal: {hp: 4, hpPerLevel: 0, selfDamageHp: 1.2, selfDamageHpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}}),
+                effect({type: 'heal_aura', costFractionOfMax: 0.012, heal: {hp: 4, hpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}}),
                 effect({type: 'self_heal', selfHeal: {healHp: 8.4, healHpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}}),
             ],
         });
@@ -91,7 +93,7 @@ describe('character power scale', () => {
             'Damage over time: 12 × 3 hits over 2.97s',
             'Shield: 6 HP for 2.97s',
             'Heal: 4 per tick',
-            'Costs you: 1 HP per tick',
+            'Costs you: 1.2% of max HP per tick',
             'Heal self: 8 HP',
             'Targets: all allies in range',
         ]);
@@ -100,7 +102,7 @@ describe('character power scale', () => {
             'Damage over time: 321 × 3 hits over 2.97s',
             'Shield: 169 HP for 2.97s',
             'Heal: 107 per tick',
-            'Costs you: 32 HP per tick',
+            'Costs you: 1.2% of max HP per tick',
             'Heal self: 225 HP',
             'Targets: all allies in range',
         ]);
@@ -143,7 +145,7 @@ describe('character power scale', () => {
         const fractional = skill({
             maxLevel: 1,
             effects: [
-                effect({type: 'heal_aura', heal: {hp: 0, hpPerLevel: 0, selfDamageHp: 0, selfDamageHpPerLevel: 0, fractionOfMax: 0.05, fractionOfMaxPerLevel: 0, variance: 0}}),
+                effect({type: 'heal_aura', heal: {hp: 0, hpPerLevel: 0, fractionOfMax: 0.05, fractionOfMaxPerLevel: 0, variance: 0}}),
                 effect({type: 'self_heal', selfHeal: {healHp: 0, healHpPerLevel: 0, fractionOfMax: 0.3, fractionOfMaxPerLevel: 0, variance: 0}}),
             ],
         });
@@ -154,6 +156,62 @@ describe('character power scale', () => {
             'Heal self: 30% of max HP',
             'Targets: all allies in range',
         ]);
+    });
+
+    // A cooldown pays the SUM of its effects once on cast (D8), so the line
+    // belongs to the skill, not to each effect. CallForAid's three summons at
+    // 2 % each cost 6 % per cast — printing "2 %" three times would understate
+    // it by a factor of three and read as if the player could pick one.
+    it('sums a cooldown cost across its effects and prints it once', () => {
+        const squad = skill({
+            category: 'cooldown', maxLevel: 5, cooldownTicks: 2400,
+            effects: [
+                effect({type: 'spawn', costFractionOfMax: 0.02, costFractionOfMaxPerLevel: 0.003, spawn: {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}}),
+                effect({type: 'spawn', costFractionOfMax: 0.02, costFractionOfMaxPerLevel: 0.003, spawn: {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}}),
+                effect({type: 'spawn', costFractionOfMax: 0.02, costFractionOfMaxPerLevel: 0.003, spawn: {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}}),
+            ],
+        });
+
+        const rendered = lines(squad, 1, 1);
+        expect(rendered.filter(l => l.startsWith('Costs you'))).toEqual([
+            'Costs you: 6% → 6.9% of max HP per cast',
+        ]);
+        // ...and it is a percentage, so it does not move with the power scale.
+        expect(lines(squad, 1, SCALE_AT_30)).toEqual(rendered);
+    });
+
+    // D14 / Recover: HotParams gained fractionOfMax in C1 and NO content used it
+    // until C2c, so this branch shipped unrendered — a fractional HoT read
+    // "Heal over time: 0 × 9 over 18s", taking the flat-hp path against hp: 0.
+    it('renders a fractional heal-over-time as a percentage, unscaled', () => {
+        const recover = skill({
+            maxLevel: 1, category: 'cooldown', cooldownTicks: 1200,
+            effects: [effect({
+                type: 'instant_hot', radius: 2,
+                hot: {hp: 0, hpPerLevel: 0, fractionOfMax: 0.03, fractionOfMaxPerLevel: 0, variance: 0, tickCount: 9, interval: 60, targetsSelf: true},
+            })],
+        });
+
+        const at1 = lines(recover, 1, 1);
+        expect(at1).toContain('Heal over time: 3% of max HP × 9 over 17.82s');
+        expect(lines(recover, 1, SCALE_AT_30)).toEqual(at1);
+    });
+
+    // D4's split at the tooltip. ⚑ The gated branch must not read `tags`: a
+    // gated payload carries none, so Go marshals the nil slice as JSON null and
+    // `tags.length` would throw — inside the tooltip for Harvest, which every
+    // new player is taught.
+    it('renders a gate key as a verb and never reads tags on that branch', () => {
+        const harvest = skill({
+            maxLevel: 1,
+            effects: [effect({
+                type: 'damage_aura', radius: 1, tickInterval: 40,
+                damage: {...damageParams(14), tags: null as any, gateKey: 'harvest'},
+            })],
+        });
+
+        expect(lines(harvest, 1, 1)).toContain('Harvests plants and brambles — nothing else');
+        expect(lines(harvest, 1, 1).some(l => l.startsWith('Damage type'))).toBe(false);
     });
 
     it('rounds HP the way the server does (vitals.HP: half up, min 1)', () => {
@@ -169,7 +227,7 @@ describe('character power scale', () => {
 
 function damageParams(hp: number) {
     return {
-        hp, hpPerLevel: 0, tags: ['physical'], gated: false, variance: 0,
+        hp, hpPerLevel: 0, tags: ['physical'], gateKey: '', variance: 0,
         hitStyle: 'all', structureDamageFraction: 0,
         executeBelowFraction: 0, executeBonusFactor: 0, berserkerMaxBonusFactor: 0,
         critChance: 0, critChancePerLevel: 0, critFactor: 0, lifestealFraction: 0,
@@ -362,5 +420,71 @@ describe('faction scope', () => {
                 calm: {durationTicks: 60, durationTicksPerLevel: 0}})],
         });
         expect(lines(both, 1, 1)).toContain('Affects: Predators');
+    });
+});
+
+// The resource cost the tooltip prints must be the one the server will charge.
+// It prices a cost as a fraction of max HP but deducts it through vitals.HP,
+// which floors any positive amount at 1 HP — so while the pool is smaller than
+// 1/fraction the real charge is a flat 1 HP and the authored fraction
+// understates it. Immolate authors 0.26 % and takes 1 % of a 100 HP pool.
+//
+// This is not a corner: 12 of the 20 costed aura effects are floored somewhere
+// in character levels 1–12, which is exactly where a player reads tooltips.
+describe('resource cost and the 1-HP floor', () => {
+    // Immolate as authored (api/skills/immolate.json).
+    const immolate = skill({
+        displayName: 'Immolate', maxLevel: 10,
+        effects: [effect({
+            type: 'dot_aura', radius: 2, tickInterval: 20,
+            costFractionOfMax: 0.0026, costFractionOfMaxPerLevel: 0.00065,
+            targetsEnemies: true,
+            dot: {hp: 3, hpPerLevel: 1, tags: ['fire'], variance: 0, tickCount: 3, interval: 60},
+        })],
+    });
+
+    it('raises the printed cost to what a small pool actually pays', () => {
+        // 0.26 % of 100 HP is 0.26 HP, charged as 1 HP — 1 % of the pool.
+        //
+        // The missing "→ 1%" is prog() collapsing two endpoints that render
+        // alike, and it is the truth: level 2 costs 0.325 % of the pool, which
+        // is still under 1 HP, so on this pool levelling Immolate does not
+        // change what it takes out of you.
+        expect(lines(immolate, 1, 1, 100)).toContain(
+            'Costs you: 1% of max HP every 0.66s');
+    });
+
+    it('prints the authored fraction once the pool outgrows the floor', () => {
+        // 0.26 % of 2600 HP is 6.8 HP: above the floor, so nothing is corrected
+        // and the authored number is what shows.
+        expect(lines(immolate, 1, 1, 2600)).toContain(
+            'Costs you: 0.26% → 0.33% of max HP every 0.66s');
+    });
+
+    it('leaves the authored fraction alone when the pool is unknown', () => {
+        // No snapshot yet (maxHealth 0). Imprecise beats invented: this is the
+        // pre-fix rendering, unchanged.
+        expect(lines(immolate, 1, 1, 0)).toContain(
+            'Costs you: 0.26% → 0.33% of max HP every 0.66s');
+    });
+
+    // ⚑ The floor applies to the SUM for a cooldown, not to each effect:
+    // cooldownCostHP totals the raw fractions and converts once, because a
+    // cooldown pays all its effects in a single deduction. Flooring per effect
+    // would print 3 % here — three times the truth, and the same class of
+    // overstatement the per-cast line exists to avoid.
+    it('floors a cooldown cost once, on the sum', () => {
+        const squad = skill({
+            category: 'cooldown', maxLevel: 1, cooldownTicks: 2400,
+            effects: [
+                effect({type: 'spawn', costFractionOfMax: 0.002, spawn: {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}}),
+                effect({type: 'spawn', costFractionOfMax: 0.002, spawn: {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}}),
+                effect({type: 'spawn', costFractionOfMax: 0.002, spawn: {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}}),
+            ],
+        });
+
+        expect(lines(squad, 1, 1, 100).filter(l => l.startsWith('Costs you'))).toEqual([
+            'Costs you: 1% of max HP per cast',
+        ]);
     });
 });

@@ -86,33 +86,33 @@ func TestResistMultiplier_WildcardComposesAcrossSources(t *testing.T) {
 	assert.InDelta(t, 0.25, m, 1e-6)
 }
 
-func TestGateOpensFor_ExplicitEntryOpens(t *testing.T) {
-	// The turnip mob's map: explicitly opted into the turnip tag.
-	base := map[string]float32{"*": 0, "turnip": 1}
-	assert.True(t, GateOpensFor([]string{"turnip"}, base))
+// GateOpensFor is a membership test since the D4 split: a mob opts into a gate
+// by naming the key in factors.gateKeys, full stop.
+//
+// ⚑ Four tests died here, and their deaths are the argument for the split. They
+// pinned edge cases that existed ONLY because the gate was overloaded onto the
+// resistance map: that the "*" wildcard must not accidentally open every gate;
+// that an explicit `{"turnip": 0}` opens the gate and is then zeroed by the
+// multiplier math; that a multi-tag hit opens on any one entry. None of those
+// questions can be asked any more — a key list has no wildcard, no multiplier
+// and no second meaning. This is what "each concept gets the right validation"
+// buys beyond the typo check.
+func TestGateOpensFor_NamedKeyOpens(t *testing.T) {
+	assert.True(t, GateOpensFor("harvest", []string{"harvest"}))
+	assert.True(t, GateOpensFor("harvest", []string{"smash", "harvest"}))
 }
 
-func TestGateOpensFor_ExplicitZeroStillOpens(t *testing.T) {
-	// An explicit 0 entry is deliberate immunity — the gate opens and the
-	// normal multiplier math produces the non-event.
-	base := map[string]float32{"turnip": 0}
-	assert.True(t, GateOpensFor([]string{"turnip"}, base))
+func TestGateOpensFor_UnnamedKeyStaysClosed(t *testing.T) {
+	assert.False(t, GateOpensFor("harvest", []string{"smash"}))
+	assert.False(t, GateOpensFor("harvest", nil),
+		"every mob that never mentions the key is immune with zero authoring")
+	assert.False(t, GateOpensFor("", []string{"harvest"}),
+		"ordinary damage carries no key and must never open a gate")
 }
 
-func TestGateOpensFor_WildcardDoesNotOptIn(t *testing.T) {
-	// A wildcard-resisting mob has NOT opted into the gated tag.
-	base := map[string]float32{"*": 0.5}
-	assert.False(t, GateOpensFor([]string{"turnip"}, base))
-}
-
-func TestGateOpensFor_AbsentOrNilMapStaysClosed(t *testing.T) {
-	assert.False(t, GateOpensFor([]string{"turnip"}, map[string]float32{"physical": 0.8}))
-	assert.False(t, GateOpensFor([]string{"turnip"}, nil))
-}
-
-func TestGateOpensFor_AnyTagOpens(t *testing.T) {
-	// A multi-tag hit needs only one explicit entry to pass the gate; the
-	// per-tag multipliers then rule as usual.
-	base := map[string]float32{"turnip": 1}
-	assert.True(t, GateOpensFor([]string{"physical", "turnip"}, base))
+func TestGateOpensFor_IgnoresResistanceVocabulary(t *testing.T) {
+	// The wildcard is a resistance concept and has no meaning in a key list —
+	// it cannot open a gate by being present, which used to need a special case
+	// inside the function itself.
+	assert.False(t, GateOpensFor("harvest", []string{ResistWildcard}))
 }

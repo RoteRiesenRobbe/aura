@@ -1,5 +1,5 @@
 {
-  "_comment": "Dark Tunnel venom spider (content pass C3, plan-content-zones12.md §4): VenomSpit leaves the world's first poison DoT — venom lingers after escaping the radius. Lives deeper in the dark than its normal kin; densest in the rockfall nest (PO 2026-07-17: the side-passage secret = venom-spider nest, best Antivenom odds in the game). All values [PLACEHOLDER]",
+  "_comment": "Dark Tunnel venom spider (content pass C3, plan-content-zones12.md §4): VenomSpit leaves the world's first poison DoT — venom lingers after escaping the radius. Lives deeper in the dark than its normal kin; densest in the rockfall nest (PO 2026-07-17: the side-passage secret = venom-spider nest, best Antivenom odds in the game). All values [PLACEHOLDER] ⚑ NUMBERS REWRITE C2d (D4): partial resistances. Before this pass resistances existed ONLY as lock-and-key gates ({\"*\": 0, \"harvest\": 1}) — never as mitigation — so every hit in the game landed for full and a damage type meant nothing. These are the curated set that gives the type axis teeth: venomous things are not poisoned easily. Deliberately NON-physical — the C8 tier-threshold guardrail drives its bot with authored Damage at L1, which is physical, so a physical entry here would silently move a calibration this pass has no business moving. All values [PLACEHOLDER].",
   "id": 24,
   "name": "VenomSpider",
   "type": "MOB",
@@ -7,6 +7,7 @@
   "tier": "normal",
   "curveLevel": 4,
   "factors": {
+    "resistances": {"poison": 0.25},
     "baseMaxHealth": 72,
     "maxHealthVariance": 0.1,
     "experience": 102,

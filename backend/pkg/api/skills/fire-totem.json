@@ -3,14 +3,16 @@
   "id": 61,
   "name": "FireTotem",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 450,
   "effects": [
     {
       "type": "spawn",
+      "costFractionOfMax": 0.02,
+      "costFractionOfMaxPerLevel": 0.00375,
       "spawnMob": "FireTotem",
       "ttlTicks": 300,
-      "ttlTicksPerLevel": 60,
+      "ttlTicksPerLevel": 30,
       "powerPerOwnerLevel": 0.05
     }
   ]

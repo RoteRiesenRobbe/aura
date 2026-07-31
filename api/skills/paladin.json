@@ -7,10 +7,13 @@
   "effects": [
     {
       "type": "damage_aura",
+      "costFractionOfMax": 0.0075,
+      "costFractionOfMaxPerLevel": 0.001625,
       "radius": 1.0,
       "radiusPerLevel": 0.0,
       "damageHP": 10,
-      "damageHPPerLevel": 2.2,
+      "damageHPPerLevel": 2.5,
+      "damageTags": ["physical"],
       "targetsEnemies": true,
       "targetsAllies": false,
       "selector": "nearest",
@@ -19,11 +22,12 @@
     },
     {
       "type": "heal_aura",
+      "costFractionOfMax": 0.006,
+      "costFractionOfMaxPerLevel": 0.002975,
       "radius": 1.0,
       "radiusPerLevel": 0.0,
       "healHP": 8,
       "healHPPerLevel": 4,
-      "selfDamageHP": 0.0,
       "selector": "lowest_health",
       "maxTargets": 1,
       "tickInterval": 120

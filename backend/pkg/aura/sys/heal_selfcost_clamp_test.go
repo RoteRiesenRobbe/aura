@@ -22,9 +22,10 @@ import (
 // authored flat 18 of api/skills/heal.json).
 func costlyHealEffect() skills.EffectDef {
 	return skills.EffectDef{
-		Type:         skills.EffectTypeHealAura,
-		TickInterval: 1,
-		Heal:         &skills.HealParams{HP: 10, SelfDamageHP: 18},
+		Type:              skills.EffectTypeHealAura,
+		TickInterval:      1,
+		Heal:              &skills.HealParams{HP: 10},
+		CostFractionOfMax: 0.18,
 	}
 }
 
@@ -35,7 +36,7 @@ func TestApplyHealAura_SelfCostClampedToLeaveCasterAtOneHP(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, costlyHealEffect(), set)
+	testSkillSystem().applyAuraEffect(caster, 0, 1, costlyHealEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(60), ally.vitalSigns.Health, "the ally is still healed in full")
 	assert.Equal(t, vitals.VitalSign(1), caster.vitalSigns.Health,
@@ -49,7 +50,7 @@ func TestApplyHealAura_CasterAtOneHP_SkipsEffectEntirely(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, costlyHealEffect(), set)
+	testSkillSystem().applyAuraEffect(caster, 0, 1, costlyHealEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(50), ally.vitalSigns.Health, "no heal is emitted")
 	assert.Empty(t, ally.healedBy, "no participation is recorded")
@@ -68,8 +69,8 @@ func TestApplyHealAura_ZeroCostEffect_StillHealsAtOneHP(t *testing.T) {
 	set := colliderSetOf(model.PlayerEntity(ally))
 
 	effect := costlyHealEffect()
-	effect.Heal.SelfDamageHP = 0
-	testSkillSystem().applyHealAura(caster, 1, effect, set)
+	effect.CostFractionOfMax = 0
+	testSkillSystem().applyAuraEffect(caster, 0, 1, effect, set)
 
 	require.Equal(t, vitals.VitalSign(60), ally.vitalSigns.Health, "the free heal still fires")
 	assert.Equal(t, vitals.VitalSign(1), caster.vitalSigns.Health, "and still costs nothing")
@@ -84,7 +85,7 @@ func TestApplyHealAura_LowHPCaster_NoWoundedAlly_PaysNothing(t *testing.T) {
 	ally := newFakePlayer() // full health
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, costlyHealEffect(), set)
+	testSkillSystem().applyAuraEffect(caster, 0, 1, costlyHealEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(10), caster.vitalSigns.Health,
 		"no one was healed, so the caster pays nothing — clamp aside")
