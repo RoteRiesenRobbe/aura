@@ -569,12 +569,19 @@ graveyard entry of the same name) was rejected.
 
 ## 10. Suggested chunking
 
-⚑ **This work is not next.** `CLAUDE.md` sequences **quest chunks P + C0–C4**
-(`plan-quests.md`) before step 8, per quest ruling D12 — the ledger is built
-session-scoped first so persistence receives a *live* structure rather than a
-designed-on-paper one. Two hard dependencies run that way: the ledger shape
-(`plan-accounts-schema.md` §"The quest ledger") and C1's **duplicate-`MobID` boot
-guard**, which `plan-quests.md` requires *"before any of this persists"*.
+✅ **The quest prerequisite is satisfied.** D12 sequenced **chunks P + C0–C4**
+ahead of step 8 so the ledger would be built session-scoped first and
+persistence would receive a *live* structure rather than a designed-on-paper
+one. All of it shipped 2026-07-30 (`archive/plan-quests.md`), so both hard
+dependencies are met: the ledger shape (`plan-accounts-schema.md` §"The quest
+ledger") exists in Go, and C1's **duplicate-`MobID` boot guard** — required
+*"before any of this persists"* — is in place.
+
+⚑ **Re-read §"The quest ledger" against the shipped code before writing 1a.**
+It was written from `plan-quests.md` §10 while the ledger was still a paper
+shape; the built `quests`/`killCounts`/`talkedTo` structures are now the
+authority, and any drift between them and the schema is a defect in this plan,
+not in the code.
 
 ⚑ **Chunk 0 is a MANUAL PO step, not code: stand up Postgres locally**
 (implementation.md §0 "MANUAL STEP"). Chunk 1a's first line of Go needs a
