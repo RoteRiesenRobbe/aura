@@ -1,6 +1,6 @@
 # Plan: The Numbers Rewrite (Pass 1)
 
-> **Status: BUILT 2026-07-31, committed 2026-08-01 `[hash]` — C1 ✅ + C2 ✅.
+> **Status: BUILT 2026-07-31, committed 2026-08-01 `40d9b204` — C1 ✅ + C2 ✅.
 > The PO feel pass has RUN (2026-08-01) and the premise landed** — *"resource
 > cost changes feel good actually"*. Its checklist is `plan-numbers-feel-pass.md`
 > and its findings — 11 PO items plus a 9-finding technical review of the cost

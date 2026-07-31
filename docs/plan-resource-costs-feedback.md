@@ -1,6 +1,7 @@
 # Resource costs — feedback intake (Pass 1, C1 + C2)
 
-The numbers rewrite is built but uncommitted (`plan-numbers-rewrite.md` §7).
+The numbers rewrite is built and committed — `40d9b204`, 2026-08-01
+(`plan-numbers-rewrite.md` §7).
 This doc is the intake for what came back from it: the **PO feel pass**
 (2026-08-01, the first real play of the priced catalog) and a **technical
 review** of the cost system run against HEAD the same day.
@@ -8,8 +9,9 @@ review** of the cost system run against HEAD the same day.
 Two separate lenses on one change. Neither is scheduled yet — this is the
 findings record, and the chunking decision comes after the PO reads it.
 
-⚑ Nothing here is committed. Two technical findings were fixed in the review
-session itself (§3.1, §3.3); everything else is recorded, not acted on.
+⚑ Two technical findings were fixed in the review session itself (§3.1, §3.3)
+and rode into `40d9b204` with the pass; everything else here is **recorded, not
+acted on**, and nothing in §6 is scheduled.
 
 ---
 
