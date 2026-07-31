@@ -1395,11 +1395,25 @@ type threatEntry struct {
 // post-mitigation HP (§6.3, decided 2026-07-10); allied, dead and empty
 // credits are dropped, so a faction gate never needs re-checking on read.
 func (m *Mob) noteThreat(source model.Combatant, amount float32) {
-	if source == nil || amount <= 0 {
+	if amount <= 0 {
 		return
 	}
+	if e := m.threatEntryFor(source); e != nil {
+		e.threat += amount
+	}
+}
+
+// threatEntryFor resolves the row to credit for source, creating it — and the
+// table — on first credit. It returns nil when source is not creditable at
+// all: nil, same-faction, or dead. That gate is shared by every crediting
+// path, which is what lets the readers skip re-checking faction on a row that
+// is already on the table.
+func (m *Mob) threatEntryFor(source model.Combatant) *threatEntry {
+	if source == nil {
+		return nil
+	}
 	if source.Faction() == m.faction || source.HealthRatio() == 0 {
-		return
+		return nil
 	}
 	if m.threat == nil {
 		m.threat = make(map[uint64]*threatEntry)
@@ -1410,7 +1424,20 @@ func (m *Mob) noteThreat(source model.Combatant, amount float32) {
 		e = &threatEntry{entity: source}
 		m.threat[id] = e
 	}
-	e.threat += amount
+	return e
+}
+
+// pruneDeadThreat drops every row whose entity is dead (a TTL-expired summon
+// zeroes its health, so stale refs read as dead). The readers that act on a
+// row call it first, which is why a threat table shrinks without anyone
+// owning a cleanup pass. ThreatSnapshot deliberately does NOT call it: a
+// read-only debug dump must not mutate what it is dumping.
+func (m *Mob) pruneDeadThreat() {
+	for id, e := range m.threat {
+		if e.entity.HealthRatio() == 0 {
+			delete(m.threat, id)
+		}
+	}
 }
 
 // NoteThreat is the exported crediting seam for threat that does not arrive
@@ -1431,38 +1458,28 @@ func (m *Mob) HasThreat(id uint64) bool {
 // the taunt primitive (mob-depth chunk 7, decided: force-to-top, no separate
 // target lock). margin is the head start above the old top; because it lands
 // on the table, MayHarm grants the mob the right to hit the taunter for free
-// (chunk 6.6). Gates match noteThreat: nil, allied, dead and non-positive
-// sources are dropped.
+// (chunk 6.6). Gates match noteThreat because both go through
+// threatEntryFor: nil, allied and dead sources are dropped, as are
+// non-positive margins.
 func (m *Mob) ForceThreatToTop(source model.Combatant, margin float32) {
-	if source == nil || margin <= 0 {
+	if margin <= 0 {
 		return
-	}
-	if source.Faction() == m.faction || source.HealthRatio() == 0 {
-		return
-	}
-	if m.threat == nil {
-		m.threat = make(map[uint64]*threatEntry)
 	}
 
-	// Current max over living entries (pruning dead on the way, like retention).
+	// Current max over living entries. Measured BEFORE the taunter's own row is
+	// created: a first-time taunter must not count itself as the bar it has to
+	// clear, and a repeat taunter must.
+	m.pruneDeadThreat()
 	var max float32
-	for id, e := range m.threat {
-		if e.entity.HealthRatio() == 0 {
-			delete(m.threat, id)
-			continue
-		}
+	for _, e := range m.threat {
 		if e.threat > max {
 			max = e.threat
 		}
 	}
 
-	id := source.Basic().ID()
-	e := m.threat[id]
-	if e == nil {
-		e = &threatEntry{entity: source}
-		m.threat[id] = e
+	if e := m.threatEntryFor(source); e != nil {
+		e.threat = max + margin
 	}
-	e.threat = max + margin
 }
 
 // DropThreat removes exactly one threat entry — the Fade / detaunt primitive
@@ -1551,13 +1568,11 @@ func (m *Mob) FriendlyToPlayers() bool {
 // entries on the way (a TTL-expired summon zeroes its health, so stale refs
 // read as dead). Ties break toward the lower entity ID for determinism.
 func (m *Mob) highestThreatTarget() model.Combatant {
+	m.pruneDeadThreat()
+
 	var best *threatEntry
 	var bestID uint64
 	for id, e := range m.threat {
-		if e.entity.HealthRatio() == 0 {
-			delete(m.threat, id)
-			continue
-		}
 		if best == nil || e.threat > best.threat || (e.threat == best.threat && id < bestID) {
 			best = e
 			bestID = id
@@ -1861,23 +1876,37 @@ func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 // server-wide kill broadcast reads it in OnMobDeath, where the participant
 // map is still intact: it clears on full regen, never on death).
 func (m *Mob) KillCreditNames() []string {
-	seen := make(map[uint64]bool, len(m.participants))
 	var names []string
+	m.forEachCredited(func(p model.PlayerEntity) { names = append(names, p.Name()) })
+	sort.Strings(names)
+	return names
+}
+
+// forEachCredited visits everyone this mob's death rewards reach, each exactly
+// once: every participant plus their recent healers. It is the single
+// statement of the credit RULE — tryGrantKillRewards grants against it and
+// KillCreditNames names against it, and the two must never disagree about who
+// is on the list.
+//
+// ⚑ Visits in participant-map order, i.e. Go's randomized one. Do not sort
+// here: rewardPlayer draws from the mob's RNG per unlock roll, so imposing an
+// order would shift that stream on every multi-participant kill. Callers
+// needing a stable result sort their own output, as KillCreditNames does.
+func (m *Mob) forEachCredited(visit func(model.PlayerEntity)) {
+	seen := make(map[uint64]bool, len(m.participants))
 	for id, p := range m.participants {
 		if !seen[id] {
 			seen[id] = true
-			names = append(names, p.Name())
+			visit(p)
 		}
 		for _, healer := range p.RecentHealers() {
 			hid := healer.Basic().ID()
 			if !seen[hid] {
 				seen[hid] = true
-				names = append(names, healer.Name())
+				visit(healer)
 			}
 		}
 	}
-	sort.Strings(names)
-	return names
 }
 
 // NotePresence records a bystander with an active aura as a combat
@@ -1915,20 +1944,7 @@ func (m *Mob) tryGrantKillRewards() {
 	m.deathRewardGiven = true
 
 	xp := uint64(m.definition.Factors.Experience)
-	rewarded := make(map[uint64]bool, len(m.participants))
-	for id, p := range m.participants {
-		if !rewarded[id] {
-			rewarded[id] = true
-			m.rewardPlayer(p, xp)
-		}
-		for _, healer := range p.RecentHealers() {
-			hid := healer.Basic().ID()
-			if !rewarded[hid] {
-				rewarded[hid] = true
-				m.rewardPlayer(healer, xp)
-			}
-		}
-	}
+	m.forEachCredited(func(p model.PlayerEntity) { m.rewardPlayer(p, xp) })
 }
 
 // rewardPlayer grants one participant their death rewards: the full XP amount

@@ -1453,8 +1453,58 @@ with a real design decision in front of it.
 ## 25. Tech debt: `sys/skills.go` — size is warranted, the cleanup layer on top is not
 
 **WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
-> **PARTIALLY DONE — options A#4 and B landed 2026-07-24 (`2ec03ee7`),
-> option C landed 2026-07-25** (A#1–3, D, E still open).
+> **PARTIALLY DONE — A#4 + B landed 2026-07-24 (`2ec03ee7`), C landed
+> 2026-07-25, A#1 + A#3 landed 2026-07-31 (`[uncommitted]`).** Only **A#2**
+> (blocked on §33 — see below), **D** and **E** remain open.
+>
+> - **A#1 + A#3 (the mechanical cleanups): DONE 2026-07-31**, together with
+>   §27.2.8, as the opportunistic sitting the recommendation below reserves for
+>   "if the file is being opened anyway" — taken before step 8 goes near this
+>   file. **Zero behaviour change, and that was the acceptance test**: the sim
+>   battery is byte-identical against a clean HEAD worktree across all five
+>   runs (default · `-chain` · `-levels` · `-matrix` · `-content ../api`).
+>   - **A#1** — the if-chain became one `switch`, and the negated two-type
+>     guard plus the nested `switch`-on-the-same-value at the tail both
+>     dissolved into ordinary sibling cases. ⚑ **The survey below recorded
+>     eight if-blocks; there were twelve** — `calm`, `charm` and `speed_burst`
+>     each appended one after it was written. That is this finding's own
+>     prediction ("every new cooldown effect appends another if-block")
+>     measured three effects later, and the reason it was worth doing rather
+>     than re-deferring.
+>   - **A#3** — two helpers, not one: `instantQueryCircle` (radius → circle →
+>     mask, 4 sites) and `queryInstantTargets` (that plus hits→`ColliderSet`
+>     minus the caster, 3 sites). ⚑ **The survey's "four sites, three
+>     byte-identical loops" was slightly off**: `applyThreatEffect` builds no
+>     set at all and `fireCooldown`'s loop carries an inline caster-skip, so
+>     only two were truly identical. `applyThreatEffect` deliberately keeps its
+>     **slice** iteration — a `ColliderSet` would trade deterministic order for
+>     Go's randomized map order for no gain, in the one file where the
+>     guardrail replay is the safety net.
+>   - ⚑ **What made the caster-skip unification safe, and is worth reusing:**
+>     `selectTargets` applies `eligible` BEFORE it sorts and caps
+>     (`targeting.go:109-128`), so dropping the caster from the candidate set
+>     early cannot change which targets survive the cap. Conversely
+>     `fireCooldown` sets `hitAny` on a non-empty **raw** set, before
+>     eligibility runs — so the helper must NOT filter, or landed cooldowns
+>     would silently become whiffs.
+>   - **A#2 was deliberately left**, per §33's ordering constraint: if
+>     `hot_aura`'s wounded-only gate is ever lifted, heal and hot stop sharing
+>     a rule and want separate predicates, and deduping first would cement the
+>     coupling §33 questions. **Decide §33 before taking A#2.**
+>   - ⚑ **`gofmt -l pkg/` reports 34 files at HEAD**, including both files this
+>     pass touched. Proven pre-existing by stash-testing, and deliberately not
+>     folded in — a repo-wide reformat does not belong inside a behaviour-neutral
+>     hygiene diff. It is a genuine one-command cleanup for its own commit.
+>   - **Verified:** full suite green (28 pkgs, exit 0) + `vet`; guardrails +
+>     alloc `-count=2`; boot both ways identical, 0 errors 0 warnings; five
+>     browser harnesses each solo on a fresh server — presence 6/6, follower
+>     6/6, calm 7/7, charm 8/8 + 1 D9 SKIP, swift green.
+> - ⚑ **A#4 was already done and the list below did not say so** — it landed
+>   with B in `2ec03ee7`, and only this banner recorded it, so a later reader
+>   planning off the numbered list would have re-planned finished work. Item 4
+>   is struck through in place now. **The lesson generalizes: when a §-banner
+>   and the prose beneath it disagree, the prose is the stale one** — banners
+>   get amended per chunk, survey bodies almost never do.
 > - **C (`applySlowAura` eligibility): FIXED, not pinned — and it was a LIVE
 >   bug, not the latent one recorded below.** The assessment under
 >   "⚑ Latent correctness gap" was wrong on its central fact: it assumed
@@ -1557,13 +1607,15 @@ but the reading today is benign.
 
 ### Cleanup layer (mechanical, no behavior change, ~70 lines / ~7%)
 
-1. **`fireCooldown` is a `switch` written as an if-chain** (`skills.go:1233–1337`).
+1. ~~**`fireCooldown` is a `switch` written as an if-chain**~~ ✅ **DONE
+   2026-07-31** (`skills.go:1233–1337`; it had grown to twelve branches by then).
    Eight sequential `if effect.Type == X { …; continue }` blocks, then a negated
    two-type guard, then an actual `switch` for the last two. Every new cooldown
    effect appends another if-block. One `switch` collapses ~25 lines and makes
    the exhaustiveness visible. **Highest value of the four** — this is the
    extension point that grows.
-2. **Copy-pasted "wounded ally" predicate** — `applyHealAura:716–728` and
+2. **Copy-pasted "wounded ally" predicate** — ⚑ **BLOCKED on §33, do not take
+   in isolation** (see the banner). `applyHealAura:716–728` and
    `applyHotAura:815–827` are logically identical (`Healable` + same faction +
    not self + `HealthRatio() < 1`). This is the **residual of §3.4 in
    `research-code-quality.md`**: the flag-gated predicates were unified into
@@ -1571,7 +1623,8 @@ but the reading today is benign.
    that was deliberately left out of that seam — and then duplicated. Extract it
    as a named `woundedAllyPredicate(e)`; both call sites already comment that
    they share the rule.
-3. **Four copies of the instant-query preamble** — `applyInstantShield:977–990`,
+3. ~~**Four copies of the instant-query preamble**~~ ✅ **DONE 2026-07-31** —
+   `applyInstantShield:977–990`,
    `applyInstantHot:1023–1036`, `applyThreatEffect:1453–1455`, and the
    instant-damage path in `fireCooldown:1308–1321` all do: `skills.Scaled`
    radius → `NewCircle` at aura pos → `InstantDamageMask` → `QueryCircle` →
@@ -1582,7 +1635,9 @@ but the reading today is benign.
    different buff payload — merging them needs generics over two unrelated apply
    signatures, which costs more clarity than the ~40 lines buy. KISS says leave
    the pair.)
-4. **A doc comment got merged into its neighbour** (`skills.go:594–616`).
+4. ~~**A doc comment got merged into its neighbour**~~ ✅ **DONE 2026-07-24**
+   (`2ec03ee7`, alongside option B — it sat in the same hunk as the deleted
+   `defaultCritFactor` const) (`skills.go:594–616`).
    `casterCritChance`'s doc paragraph runs straight into `casterDamageFactor`'s
    with no break, and the function that actually follows the block is
    `casterDamageFactor`. Net effect: **`casterCritChance` (line 617) has no doc
@@ -1655,10 +1710,11 @@ Flagged only so the ratio is a **choice on record** rather than drift.
 
 ### Options (none chosen)
 
-- **A — Do the four mechanical cleanups.** ~70 lines removed, no behavior
-  change, `skills_behavior_test.go` (3839 lines) is the regression net. **~1–2
-  hours, low risk.** #4 alone is 2 minutes and should ride along with any
-  future touch of that file.
+- ~~**A — Do the four mechanical cleanups.**~~ ✅ **A#1 + A#3 + A#4 DONE**
+  (A#4 2026-07-24, A#1 + A#3 2026-07-31); **A#2 remains, blocked on §33.** No
+  behavior change, `skills_behavior_test.go` (3839 lines) plus the byte-identical
+  sim battery were the regression net. Actual cost for A#1 + A#3 was well under
+  the ~1–2 h estimate, mostly because the survey had already located every site.
 - **B — Move the two balance constants into `conf.json`.** ~30 min, independent
   of A.
 - ~~**C — Pin `applySlowAura`'s gap with a test**~~ ✅ **FIXED 2026-07-25** (see
@@ -1674,14 +1730,24 @@ Flagged only so the ratio is a **choice on record** rather than drift.
 - **E — Do nothing.** Fully defensible. Nothing here is a live bug; the file
   is readable, tested, and its size is earned.
 
-**Recommendation on record (2026-07-24, amended 2026-07-25):** **A + B if the
-file is being opened anyway** (they are the kind of thing that is cheap on a
-visit and never worth a dedicated session); ~~C whenever a mob slow aura is
-first considered~~ — **C is done, and it should not have waited on mob content
-at all**; D and E otherwise. **A#1–3 not scheduled.**
+**Recommendation on record (2026-07-24, amended 2026-07-25, closed
+2026-07-31):** **A + B if the file is being opened anyway** (they are the kind
+of thing that is cheap on a visit and never worth a dedicated session);
+~~C whenever a mob slow aura is first considered~~ — **C is done, and it should
+not have waited on mob content at all**; D and E otherwise. ⚑ **The
+"opportunistic" framing turned out to be the wrong bet on A#1**: nobody opened
+the file for an unrelated reason in the seven days it sat there, three new
+effect types appended three new if-blocks in the meantime, and it ended up
+taking a dedicated (if short) sitting anyway. **A cleanup on the extension
+point that is actively growing should be scheduled, not left to a passing
+visit.**
 
-**Scope guess:** A ~1–2 h; D ~15 min. (B took ~30 min; C took ~40 min including
-the four pins.) None of them interact, so they can be taken individually.
+**What is left: A#2** (decide §33 first), **D** (~15 min, still not
+recommended — the file is cohesive), **E**.
+
+**Scope guess:** ~~A ~1–2 h~~ (A#1 + A#3 came in well under it); D ~15 min.
+(B took ~30 min; C took ~40 min including the four pins.) None of the remainder
+interact, so they can be taken individually.
 
 ---
 
@@ -1997,14 +2063,37 @@ Ranked by consequence, not by size.
    `TODO use walkingSpeedPerTick from global config`. That hardcoded
    tick-coupled constant is exactly what makes **`plan-input-jitter.md` chunk 3
    (client/server rate alignment) non-trivial** — worth reading together.
-8. Smaller, all one-sitting fixes: `highestThreatTarget()` (line 1074) **prunes
-   dead entries while reading** — a getter that mutates, as does
-   `ForceThreatToTop`; the threat-entry gate (nil / same-faction / dead + lazy
-   map init + get-or-create) is **copy-pasted** between `noteThreat` (923) and
-   `ForceThreatToTop` (962); `tryGrantKillRewards` (1372) and `KillCreditNames`
-   (1340) walk the **same** participants × `RecentHealers()` dedupe twice, one to
-   grant and one to name, so a change to the credit rule must land in both;
-   `NoteThreat` is an exported one-line wrapper around `noteThreat`.
+8. ~~Smaller, all one-sitting fixes~~ ✅ **DONE 2026-07-31** (with §25 A#1 +
+   A#3, one sitting, zero behaviour change — sim battery byte-identical):
+   `highestThreatTarget()` (line 1074) **prunes dead entries while reading** —
+   a getter that mutates, as does `ForceThreatToTop`; the threat-entry gate
+   (nil / same-faction / dead + lazy map init + get-or-create) is
+   **copy-pasted** between `noteThreat` (923) and `ForceThreatToTop` (962);
+   `tryGrantKillRewards` (1372) and `KillCreditNames` (1340) walk the **same**
+   participants × `RecentHealers()` dedupe twice, one to grant and one to name,
+   so a change to the credit rule must land in both; `NoteThreat` is an
+   exported one-line wrapper around `noteThreat`.
+
+   **What shipped:** `threatEntryFor` (the shared gate), `pruneDeadThreat`
+   (the mutation, now named — both threat readers call it first) and
+   `forEachCredited` (the credit walk, stated once; `tryGrantKillRewards` is
+   three lines now). **`NoteThreat` was deliberately KEPT** — it is the
+   documented crediting seam, `companion_test.go:310` calls the unexported
+   `noteThreat` directly while five other tests call the exported one, and
+   collapsing them only moves where the export marker sits.
+
+   ⚑ **Two constraints found while doing it, both worth knowing before anyone
+   touches this area again:**
+   - **`ThreatSnapshot` must NOT get the prune.** It deliberately *skips* dead
+     rows without deleting them, being the read-only `THREAT` cheat dump — a
+     debug read that mutates what it dumps is a worse bug than the duplication.
+   - **`forEachCredited` must not sort.** `rewardPlayer` draws from the mob's
+     RNG per unlock roll, so imposing an order would shift that stream on
+     every multi-participant kill. It follows participant-map order and
+     `KillCreditNames` sorts its own output afterwards, exactly as before.
+
+   **Harness note:** `chunkP-presence` owns `rewardPlayer` / the participant
+   map, so it is the eyes on `forEachCredited` — 6/6 on a fresh server.
 9. **Layering note, knowingly taken:** `rewardPlayer` (1406) composes the
    user-facing English string — `p.Client().SendUnlock(id, "Dropped by: "+…)` —
    so a domain entity reaches through to the network client *and* authors UI
@@ -2119,7 +2208,7 @@ no-op of exactly the kind the rest of the file exists to prevent.
 | 4 | ~~§27.3.2 even out the zero-value payload guards~~ **✅ DONE 2026-07-24** (`eee10331`, same session as #2) | ~15 lines | authoring-safety, same session as #2 |
 | 5 | ~~§27.2.2 drop-RNG determinism~~ **✅ DONE 2026-07-24** (`b4b0e66d`) | ~1 h, test-first | **PO-ruled a bug** — now random per run via a per-process salt |
 | 6 | ~~§27.2.3 mob regen → `conf.json`~~ **✅ DONE 2026-07-24** (`2ec03ee7`) | ~30 min, test-first | now `game.mob.healthGainTick`, mirroring the player block's vocabulary |
-| 7 | ~~§27.3.3~~ **✅ DONE 2026-07-24** (`f095514a`) · §27.2.8 still open | opportunistic | pure hygiene |
+| 7 | ~~§27.3.3~~ **✅ DONE 2026-07-24** (`f095514a`) · ~~§27.2.8~~ **✅ DONE 2026-07-31** (with §25 A#1 + A#3) | opportunistic | pure hygiene |
 | — | §27.2.4 `Mob` god struct | do **not** act pre-emptively | watch item, like §25's |
 
 ---

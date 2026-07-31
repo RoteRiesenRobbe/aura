@@ -1046,6 +1046,43 @@ func applyShieldAura(e skillEntity, source skills.SkillID, level int, effect ski
 	}
 }
 
+// instantQueryCircle builds the one-shot query circle every instant cooldown
+// casts: the effect's level-scaled radius at the caster's aura position,
+// masked by the effect's own target flags. Auras reuse their standing
+// collider instead; this is the cooldown-only path.
+func instantQueryCircle(e skillEntity, effect skills.EffectDef, level int) *phy.Circle {
+	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
+	query := phy.NewCircle(e.AuraCollider().Position(), radius)
+	query.Shape().Mask = model.InstantDamageMask(effect)
+	return query
+}
+
+// queryInstantTargets is instantQueryCircle plus the collision set every
+// set-taking consumer wants: the raw hits minus the caster's own shapes.
+//
+// Eligibility is deliberately NOT applied here. It stays with each caller's
+// eligibleByTargetFlags, which carries the capability type parameter this
+// helper cannot know — and fireCooldown counts a non-empty set as a hit
+// BEFORE eligibility runs, so filtering here would silently turn landed
+// cooldowns into whiffs. Callers that pass skipCaster: true to
+// eligibleByTargetFlags get the same caster exclusion twice over, harmlessly:
+// selectTargets filters before it sorts and caps, so dropping the caster early
+// cannot change which targets survive the cap.
+func (s *SkillSystem) queryInstantTargets(e skillEntity, effect skills.EffectDef, level int) phy.ColliderSet {
+	casterID := e.Basic().ID()
+	hits := s.space.QueryCircle(instantQueryCircle(e, effect, level))
+	targets := make(phy.ColliderSet, len(hits))
+	for _, h := range hits {
+		// Never hit the caster's own shapes (a self-targeting flag combo
+		// would otherwise burst the caster).
+		if usr, ok := h.Shape().UserData.(model.BasicEntity); ok && usr.Basic().ID() == casterID {
+			continue
+		}
+		targets[h] = struct{}{}
+	}
+	return targets
+}
+
 // applyInstantShield fires an instant_shield cooldown (plan-skill-vocab
 // chunk 2): the caster's pool on targetsSelf plus a one-shot query circle of
 // eligible allies, each granted the pool with the effect's own authored
@@ -1065,19 +1102,10 @@ func (s *SkillSystem) applyInstantShield(e skillEntity, source skills.SkillID, l
 		}
 	}
 
-	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
-	query := phy.NewCircle(e.AuraCollider().Position(), radius)
-	query.Shape().Mask = model.InstantDamageMask(effect)
-
 	casterPos := e.AuraCollider().Position()
-	casterID := e.Basic().ID()
-	eligible := eligibleByTargetFlags[shieldBuffable](effect, e, casterID, true)
+	eligible := eligibleByTargetFlags[shieldBuffable](effect, e, e.Basic().ID(), true)
 
-	hits := s.space.QueryCircle(query)
-	candidates := make(phy.ColliderSet, len(hits))
-	for _, h := range hits {
-		candidates[h] = struct{}{}
-	}
+	candidates := s.queryInstantTargets(e, effect, level)
 	targets := selectTargets(candidates, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		c.Shape().UserData.(shieldBuffable).ApplyShield(source, hp, ticks)
@@ -1111,19 +1139,10 @@ func (s *SkillSystem) applyInstantHot(e skillEntity, source skills.SkillID, leve
 		}
 	}
 
-	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
-	query := phy.NewCircle(e.AuraCollider().Position(), radius)
-	query.Shape().Mask = model.InstantDamageMask(effect)
-
 	casterPos := e.AuraCollider().Position()
-	casterID := e.Basic().ID()
-	eligible := eligibleByTargetFlags[hotBuffable](effect, e, casterID, true)
+	eligible := eligibleByTargetFlags[hotBuffable](effect, e, e.Basic().ID(), true)
 
-	hits := s.space.QueryCircle(query)
-	candidates := make(phy.ColliderSet, len(hits))
-	for _, h := range hits {
-		candidates[h] = struct{}{}
-	}
+	candidates := s.queryInstantTargets(e, effect, level)
 	targets := selectTargets(candidates, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		c.Shape().UserData.(hotBuffable).ApplyHot(source, hot, ticks)
@@ -1324,7 +1343,8 @@ func noteActivationRejected(e skillEntity, id skills.SkillID, reason model.Activ
 func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool {
 	hitAny := false
 	for _, effect := range es.Def.Effects {
-		if effect.Type == skills.EffectTypeSelfHeal {
+		switch effect.Type {
+		case skills.EffectTypeSelfHeal:
 			// Needs player vitals — mobs cannot self-heal (same deliberate
 			// limitation as heal_aura casting).
 			caster, ok := e.(healCaster)
@@ -1342,104 +1362,80 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 				pe.NoteHealReceived(vs.Health - before)
 			}
 			hitAny = true
-			continue
-		}
-		if effect.Type == skills.EffectTypeSpawn {
+
+		case skills.EffectTypeSpawn:
 			if s.spawnSummon(e, es, effect.Spawn) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type == skills.EffectTypeTaunt || effect.Type == skills.EffectTypeDetaunt {
+
+		case skills.EffectTypeTaunt, skills.EffectTypeDetaunt:
 			if s.applyThreatEffect(e, es.Level, effect) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type == skills.EffectTypeInstantShield {
+
+		case skills.EffectTypeInstantShield:
 			if s.applyInstantShield(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type == skills.EffectTypeCalm {
+
+		case skills.EffectTypeCalm:
 			if s.applyCalm(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type == skills.EffectTypeCharm {
+
+		case skills.EffectTypeCharm:
 			if s.applyCharm(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type == skills.EffectTypeRecall {
+
+		case skills.EffectTypeRecall:
 			if s.applyRecall(e) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type == skills.EffectTypeInstantHot {
+
+		case skills.EffectTypeInstantHot:
 			if s.applyInstantHot(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type == skills.EffectTypeRevive {
+
+		case skills.EffectTypeRevive:
 			if s.applyRevive(e, effect, es.Level) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type == skills.EffectTypeDash {
+
+		case skills.EffectTypeDash:
 			if s.applyDash(e, effect, es.Level) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type == skills.EffectTypeTickRate {
+
+		case skills.EffectTypeTickRate:
 			if s.applyTickRate(e, es.Def.ID, effect) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type == skills.EffectTypeSpeedBurst {
+
+		case skills.EffectTypeSpeedBurst:
 			if s.applySpeedBurst(e, es.Def.ID, es.Level, effect) {
 				hitAny = true
 			}
-			continue
-		}
-		if effect.Type != skills.EffectTypeInstantDamage && effect.Type != skills.EffectTypeInstantDot {
-			continue
-		}
 
-		radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, es.Level)
-		query := phy.NewCircle(e.AuraCollider().Position(), radius)
-		query.Shape().Mask = model.InstantDamageMask(effect)
-
-		hits := s.space.QueryCircle(query)
-		targets := make(phy.ColliderSet, len(hits))
-		for _, h := range hits {
-			// Never hit the caster's own shapes (a self-targeting flag combo
-			// would otherwise burst the caster).
-			if usr, ok := h.Shape().UserData.(model.BasicEntity); ok && usr.Basic().ID() == e.Basic().ID() {
-				continue
-			}
-			targets[h] = struct{}{}
-		}
-		if len(targets) == 0 {
-			continue
-		}
-		hitAny = true
-
-		// Same dispatch and target-flag filtering as the per-tick auras —
-		// PlayerTouches feeds participation XP, MobTouches the double dispatch.
-		switch effect.Type {
+		// The two instant damage paths share a query but not a dispatch. A
+		// non-empty set counts as a hit BEFORE eligibility runs — the aura
+		// appliers do their own target-flag filtering, and a cooldown that
+		// found bodies is not a whiff even if none of them turn out eligible.
 		case skills.EffectTypeInstantDamage:
-			applyDamageAura(e, es.Level, effect, targets, s.rng)
+			// Same dispatch and target-flag filtering as the per-tick auras —
+			// PlayerTouches feeds participation XP, MobTouches the double
+			// dispatch.
+			if targets := s.queryInstantTargets(e, effect, es.Level); len(targets) > 0 {
+				applyDamageAura(e, es.Level, effect, targets, s.rng)
+				hitAny = true
+			}
+
 		case skills.EffectTypeInstantDot:
-			applyDotEffect(e, es.Def.ID, es.Level, effect, targets)
+			if targets := s.queryInstantTargets(e, effect, es.Level); len(targets) > 0 {
+				applyDotEffect(e, es.Def.ID, es.Level, effect, targets)
+				hitAny = true
+			}
 		}
 	}
 	return hitAny
@@ -1589,16 +1585,15 @@ type threatManipulable interface {
 // reaches any different-faction mob; the player is the threat source. Scoped
 // to player casts in v1 (attribution shortcut).
 func (s *SkillSystem) applyThreatEffect(e skillEntity, level int, effect skills.EffectDef) bool {
-	radius := skills.Scaled(effect.Radius, effect.RadiusPerLevel, level)
-	query := phy.NewCircle(e.AuraCollider().Position(), radius)
-	query.Shape().Mask = model.InstantDamageMask(effect)
-
 	casterID := e.Basic().ID()
 	source, _ := e.(model.Combatant)
 	eligible := eligibleByTargetFlags[threatManipulable](effect, e, casterID, true)
 
+	// Iterates the query slice rather than a ColliderSet on purpose: threat
+	// manipulation is per-target and order-independent, and the slice's order
+	// is deterministic where a map's is not.
 	hitAny := false
-	for _, h := range s.space.QueryCircle(query) {
+	for _, h := range s.space.QueryCircle(instantQueryCircle(e, effect, level)) {
 		if !eligible(h) {
 			continue
 		}
