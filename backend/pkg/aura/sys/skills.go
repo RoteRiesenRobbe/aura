@@ -916,10 +916,15 @@ func applyHotAura(e skillEntity, source skills.SkillID, level int, effect skills
 		if other.Faction() != casterFaction {
 			return false
 		}
-		if other.Basic().ID() == casterID {
-			return false // skip self — self-HoT is the instant_hot cooldown's job
-		}
-		return other.HealthRatio() < 1 // wounded only
+		// Applies regardless of current health — pre-hotting a target before
+		// the damage arrives is legitimate support play (backlog §33, PO
+		// 2026-07-31), and it is what instant_hot (Recover) has always done.
+		// heal_aura keeps its wounded-only gate: there it is load-bearing
+		// (selfDamageHP per healing tick, maxTargets 1), and Rejuvenation
+		// authors neither, so the gate was inherited here, not designed.
+		// A HoT on a full-HP ally is inert until they are hurt — tickHotEvents
+		// drops any tick healing <= 0 before XP, threat and combat entry.
+		return other.Basic().ID() != casterID // skip self — self-HoT is the instant_hot cooldown's job
 	}
 
 	targets := selectTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)

@@ -94,6 +94,7 @@ regression to everyone who ran it afterwards.
 | `chunkP-presence.mjs` | presence-counts XP attribution at the game surface: aura-on bystander earns, bare bystander doesn't | the presence scan (`sys/skills.go notePresence`), `NotePresence`/the participant map, `presenceRadius`, `rewardPlayer` |
 | `round4-tooltip.mjs` | skill tooltips scaled to character level; the `/skills` payload shape | `SkillTooltip.ts`, the skills catalog endpoint |
 | `filler-batch.mjs` | `DAMAGE <pct>`, damage numbers in darkness, minimap-on-death, Ctrl +/− | darkness suppression, minimap lifecycle, dev cheats |
+| `backlog33-prehot.mjs` | the §33 split: `hot_aura` applies to a FULL-health ally (pre-hotting, PO 2026-07-31) while `heal_aura` still refuses one. 3 clients — healer, unhurt ally, out-of-range control | `applyHotAura` / `applyHealAura` eligibility, `HotParams`, Rejuvenation or Heal content |
 | `hygiene-wire-prune.mjs` | the join smoke for wire renumbering — garbage decode rather than a clean error | **any `.fbs` field add or remove** |
 
 ### ⚑ Run them ONE AT A TIME, alone, on a freshly restarted server
@@ -113,6 +114,33 @@ Not a style preference — it has faked a product failure three times (all
   3 PASS + a no-kill SKIP (vs its real 6/6) purely from server age; a restart
   fixed it with no code change. This is the same class as the wander-drift
   gotcha below.
+
+### ⚑ Reading HUD slot text: match `.slotLabel`, never the `li`
+
+An aura/cooldown slot's `li.textContent` **glues the hotkey onto the name** —
+slot 1 holding Heal reads `"2Heal"`, not `"2 Heal"`. So a perfectly reasonable
+`/\bHeal\b/` matches **nothing**: there is no word boundary between `2` and
+`H`. The equip has landed, the HUD is correct, and the script reports "equip
+did not land" — a pure false negative that survived three debugging rounds
+in `backlog33-prehot` (2026-07-31), including two wrong theories (slot
+occupancy, then rAF throttling on a backgrounded page). A single-client probe
+running the identical clicks passed every time, because the probe dumped the
+whole list and read `"1Rejuvenation 2Heal"` with human eyes.
+
+**Match `li[data-slot="N"] .slotLabel`.** It holds the name alone. The same
+trap applies to any regex with a leading `\b` against concatenated HUD text.
+
+⚑ **And when a harness leg fails, make it dump the DOM it is asserting on
+before theorising.** The dump solved this in one run after two rounds of
+plausible, wrong hypotheses cost several server restarts each.
+
+### ⚑ Residual buffs outlive the loadout switch
+
+Swapping the active aura does **not** clear what the previous one applied.
+Rejuvenation's HoT lives `hotTicks × hotTickInterval` = 12 s and is topped up
+until the instant you switch, so a leg that switches auras and immediately
+reads a pip is reading the OLD aura's buff and blaming the new one. Wait out
+the buff lifetime plus margin (16 s here) before asserting absence.
 
 So: restart `aurad`, run one script, read its result, then the next.
 | `mob-separation.mjs` | soft separation, by screenshot | `steer`, `AppendCircleDynamics`, the separation weight |

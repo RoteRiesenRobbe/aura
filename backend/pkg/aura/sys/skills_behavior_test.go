@@ -1974,13 +1974,43 @@ func TestApplyHotAura_AppliesLingeringBuffToWoundedAlly(t *testing.T) {
 	assert.Equal(t, model.PlayerEntity(caster), got.hot.Caster)
 }
 
-func TestApplyHotAura_SkipsFullHealthAlly(t *testing.T) {
+// Pre-hotting is legitimate (backlog §33, PO 2026-07-31): hot_aura applies
+// regardless of the target's current health, matching instant_hot (Recover),
+// which never had the gate. The wounded-only rule stays on applyHealAura,
+// where it is load-bearing — heal pays selfDamageHP per healing tick and caps
+// at maxTargets 1, so a tick spent on a full-HP ally costs the caster real HP
+// and burns its only slot. Rejuvenation authors neither, which is why the gate
+// was inherited rather than designed.
+//
+// A HoT on a full-HP ally is inert until they are hurt: tickHotEvents skips
+// any tick that heals <= 0, before participation XP, healer threat and combat
+// entry. So this buys pre-placement, not free healing or free threat.
+func TestApplyHotAura_AppliesToFullHealthAlly(t *testing.T) {
 	caster := newFakePlayer()
 	full := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 1.0}
 
 	applyHotAura(caster, 30, 1, hotAuraEffect(), colliderSetOf(model.Healable(full)))
 
-	assert.Empty(t, full.hots, "wounded-only: a full-health ally gets no HoT")
+	assert.Len(t, full.hots, 1, "pre-hot: a full-health ally receives the HoT")
+}
+
+// The half that read as a bug in play (§33): the gate blocked RE-application,
+// not just first application, so a HoT that healed its target back to full
+// stopped being topped up and decayed while they still stood in the aura —
+// the aura was weakest at the moment it succeeded. Re-application must keep
+// working across the wounded → full transition.
+func TestApplyHotAura_RefreshesAllyHealedBackToFull(t *testing.T) {
+	caster := newFakePlayer()
+	ally := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5}
+	targets := colliderSetOf(model.Healable(ally))
+
+	applyHotAura(caster, 30, 1, hotAuraEffect(), targets)
+	require.Len(t, ally.hots, 1, "wounded ally gets the initial HoT")
+
+	ally.ratio = 1.0 // the HoT did its job
+	applyHotAura(caster, 30, 1, hotAuraEffect(), targets)
+
+	assert.Len(t, ally.hots, 2, "still in range at full health: the stream keeps refreshing")
 }
 
 func TestApplyHotAura_SkipsSelf(t *testing.T) {

@@ -1487,10 +1487,16 @@ with a real design decision in front of it.
 >     `fireCooldown` sets `hitAny` on a non-empty **raw** set, before
 >     eligibility runs — so the helper must NOT filter, or landed cooldowns
 >     would silently become whiffs.
->   - **A#2 was deliberately left**, per §33's ordering constraint: if
->     `hot_aura`'s wounded-only gate is ever lifted, heal and hot stop sharing
->     a rule and want separate predicates, and deduping first would cement the
->     coupling §33 questions. **Decide §33 before taking A#2.**
+>   - **A#2 was deliberately left**, per §33's ordering constraint — and that
+>     call paid off within a day: **§33 was ruled 2026-07-31 (lift the gate),
+>     which SUPERSEDES A#2 outright.** Heal and hot stop sharing a rule, so the
+>     hot-side copy gets *deleted* rather than deduped, and the shared
+>     `woundedAllyPredicate()` A#2 proposed would have been the wrong
+>     abstraction — taken opportunistically alongside A#1/A#3, it would have had
+>     to be un-done a day later. ⚑ **The generalizable lesson: a "mechanical,
+>     no-behaviour-change" dedupe is only safe when the duplication is genuinely
+>     ONE rule. While an open question asks whether the two copies *should*
+>     agree, the dedupe is a design commitment wearing hygiene's clothes.**
 >   - ⚑ **`gofmt -l pkg/` reports 34 files at HEAD**, including both files this
 >     pass touched. Proven pre-existing by stash-testing, and deliberately not
 >     folded in — a repo-wide reformat does not belong inside a behaviour-neutral
@@ -1614,8 +1620,12 @@ but the reading today is benign.
    effect appends another if-block. One `switch` collapses ~25 lines and makes
    the exhaustiveness visible. **Highest value of the four** — this is the
    extension point that grows.
-2. **Copy-pasted "wounded ally" predicate** — ⚑ **BLOCKED on §33, do not take
-   in isolation** (see the banner). `applyHealAura:716–728` and
+2. ~~**Copy-pasted "wounded ally" predicate**~~ ⚑ **SUPERSEDED by §33's ruling
+   2026-07-31 — do NOT extract this.** The PO lifted the wounded-only gate on
+   `hot_aura`, so heal and hot no longer share a rule: the hot-side copy is
+   *deleted*, not deduped, and a shared `woundedAllyPredicate()` would be
+   exactly the wrong abstraction. Close this item when §33 lands.
+   `applyHealAura:716–728` and
    `applyHotAura:815–827` are logically identical (`Healable` + same faction +
    not self + `HealthRatio() < 1`). This is the **residual of §3.4 in
    `research-code-quality.md`**: the flag-gated predicates were unified into
@@ -3069,6 +3079,51 @@ question is on the table anyway.
 ---
 
 ## 33. `hot_aura` cannot pre-hot — the wounded-only gate is inherited, not designed
+
+> **✅ RULED AND SHIPPED 2026-07-31 (`[uncommitted]`): OPTION 1 — THE GATE IS
+> LIFTED FOR `hot_aura` ONLY.** `HealthRatio() < 1` is gone from
+> `applyHotAura` and **kept** on `applyHealAura`. Pre-hotting works, an
+> in-range HoT keeps refreshing instead of decaying the moment it succeeds,
+> and `instant_hot`/`hot_aura` no longer disagree.
+>
+> **Test-first, three pins:** `TestApplyHotAura_SkipsFullHealthAlly` inverted
+> into `..._AppliesToFullHealthAlly`, plus a new
+> `..._RefreshesAllyHealedBackToFull` for the second-order half — the one that
+> actually read as a bug in play, where a HoT that healed its target to full
+> stopped being topped up and decayed while they still stood in the aura.
+> Both were watched failing before the line came out.
+>
+> **New harness `backlog33-prehot.mjs` (4/4, twice, registered in the verify
+> skill's coverage map):** three clients — healer, unhurt ally, out-of-range
+> control. It asserts the *split*, not just the change: the full-health ally
+> gets the HoT pip, the control does not, and switching the healer to `Heal`
+> leaves the same full-health ally unpipped. ⚑ It reads the **pip**, not the
+> HP bar, because a HoT on a full-HP ally is inert by design — which is the
+> point of the ruling: the buff is *placed*, ready for damage that has not
+> arrived. Leg 2 asserts the ally is at ratio 1.0 when the pip is read and
+> reports INCONCLUSIVE otherwise, since a wounded ally would have passed under
+> the OLD behaviour too.
+>
+> **Verified:** suite green (28 pkgs) + vet, guardrails + alloc `-count=2`,
+> **sim battery byte-identical** across all five runs (no sim scenario equips
+> Rejuvenation, so this was expected and is stated rather than claimed as
+> evidence of nothing changing).
+>
+> ⚑ **Consequence for §25 A#2, which is what this ruling was blocking:** heal
+> and hot now stop sharing a rule, so they want **separate** predicates. A#2's
+> proposed shared `woundedAllyPredicate()` is therefore **the wrong change** —
+> do not extract it. The heal-side gate stays where it is; the hot-side one
+> ceases to exist, which is a deletion rather than a dedupe. **A#2 should be
+> closed as superseded once this lands.**
+>
+> **Claims re-verified against HEAD 2026-07-31** (the line numbers below
+> predate the §25 A#1/A#3 refactor; the substance held): the gate is still the
+> literal tail of `applyHotAura`'s eligibility closure; `rejuvenation.json`
+> authors **no** `selfDamageHP`, `maxTargets` or `selector`, so none of the
+> heal-side justifications apply; it is still the only `hot_aura` in `api/`;
+> and `tickHotEvents` still guards `healed <= 0 → continue` **before**
+> participation XP, healer threat and combat entry, so a HoT ticking on a
+> full-HP ally is inert and lifting the gate opens no exploit.
 
 **WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO question 2026-07-26: *"is it intended that Rejuvenation, the
