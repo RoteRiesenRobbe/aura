@@ -266,11 +266,37 @@ CREATE TABLE game.audit_log (
 `plan-quests.md` §10 (*"Step-8 handoff — what persistence must know"*) names
 three structures this schema must hold:
 
-| Ledger field | Shape | Home |
+⚑ **Corrected 2026-07-31 against the shipped code (chunk 1a).** The section
+below was written from `plan-quests.md` §10 while the ledger was still a paper
+shape. `quests.Ledger` is now live Go, and it is the authority — the table is
+restated against `pkg/aura/quests/ledger.go` rather than against the plan.
+`killCounts` and `talkedTo` matched as designed; the per-quest row did **not**.
+
+| Ledger field | Shape (as SHIPPED) | Home |
 |---|---|---|
-| `quests` | quest id → **ordered list** of stage ids entered + completed flag | `character_flags`, one row per quest, `flag_value` a JSONB object |
-| `killCounts` | `MobID` → lifetime count | `character_flags`, JSONB map in **one** row |
-| `talkedTo` | set of `MobID` | `character_flags`, JSONB array in **one** row |
+| `quests` | quest id → `Progress{Path []string, Running bool, Completed bool}` — the **ordered** list of stages entered, plus **two** independent flags | `character_flags`, one row per quest, `flag_value` a JSONB object with **all three** members |
+| `killCounts` | `map[MobID]uint64` — lifetime count | `character_flags`, JSONB map in **one** row |
+| `talkedTo` | `map[MobID]bool` — a set | `character_flags`, JSONB array in **one** row |
+
+⚑ **`running` is a third field and must be persisted; do not derive it.** The
+original wording named only *"stage path + completed flag"*, which drops it.
+Today `running == !completed` happens to hold for every persistable entry — but
+only because no quest authors `repeatable: true`. `Ledger.Accept` explicitly
+permits re-accepting a *completed* repeatable quest (`ledger.go`: it refuses
+only when `p.Completed && !q.Repeatable`), which produces `Running && Completed`
+simultaneously. Deriving the flag would silently drop a live run the first time
+a repeatable quest is authored — a defect that would appear long after the code
+that caused it, in content rather than in Go.
+
+**Which entries are worth a row:** exactly those with `Running || Completed`, the
+same rule `Ledger.Snapshot()` already applies. An abandoned quest returns to
+`{nil, false, false}` (D13), which is indistinguishable from never-started and
+needs no row. ⚑ A *completed* quest that was later re-accepted and abandoned
+keeps `Completed`, so the rule cannot be shortened to "running only".
+
+**JSONB keys are strings**, so both `MobID` maps serialise with their numeric ids
+as object keys. Harmless, but it means the load path parses them back rather than
+scanning integers.
 
 **The generic key/value table holds all three without a schema change**, which
 is what it was built for. Three consequences that are *not* free:

@@ -36,6 +36,29 @@ versioned SQL with **`go:embed`**, matching how content is already embedded
 (`backend/pkg/api/`) — otherwise the binary is no longer self-contained and the
 single-binary deploy stops being true.
 
+### Pinned versions, and why they are pinned (chunk 1a)
+
+**`golang-migrate v4.17.1` + `pgx v5.6.0`, deliberately not the latest**, because
+**`backend/go.mod` stays at `go 1.22`** (PO-ruled 2026-07-31). The current
+releases of both declare a newer floor — migrate v4.18+ wants `go 1.23.0`, pgx
+v5.7+ wants `1.23.0` and v5.10 wants `1.25.0` — so taking them would raise the
+minimum toolchain for the whole project. The pinned pair was verified against the
+live **Postgres 18.4** before being adopted, so "older" here does not mean
+"unproven against the server we run".
+
+⚑ **`github.com/rogpeppe/go-internal` is pinned to v1.12.0 for the same reason,
+and it is the non-obvious one.** It is a test dependency of a test dependency
+(pgx → `gopkg.in/check.v1` → `kr/text` → here), so nothing aura writes will ever
+import it — but `go mod tidy` resolves it to the newest version, and every
+release from **v1.13.1 onward requires go ≥ 1.22 / 1.23**, which makes `go mod
+tidy` fail outright with *"requires go@1.25, but 1.22 is requested"*. Remove the
+pin and tidy breaks; that is the whole reason the line exists.
+
+⚑ **`go mod tidy` will silently raise the `go` directive** (it moved 1.22 → 1.25
+unasked during this chunk, and upgraded `golang.org/x/crypto` with it). Run it as
+**`go mod tidy -go=1.22`** until the floor is deliberately moved, and check the
+`go.mod` diff afterwards.
+
 ### Where Postgres runs
 
 **On the same VPS as `aurad`, installed as an OS package, managed by systemd,
@@ -101,6 +124,35 @@ record of what was actually run.
 3. Set the environment for local runs. **`AURA_DB_URL`** =
    `postgres://aura:<dev-password>@localhost:5432/aura`, **`AURA_TEST_DB_URL`** =
    the same with `/aura_test`.
+
+   ⚑ **PERCENT-ENCODE THE PASSWORD. This bit chunk 1a for real, and the four
+   verification checks below do not catch it**, because they use `psql`. libpq's
+   URI parser is lenient; **Go's `net/url` is not**, and it rejects characters
+   like `^`, `>`, `<`, spaces and braces in the userinfo section outright. Both
+   `pgx` and `golang-migrate` parse the string as a URL, so a connection string
+   that works perfectly in `psql` fails in Go with `net/url: invalid userinfo` —
+   an error that reads like a malformed host. Encoded values keep working in
+   `psql`, so encoding is strictly safer:
+
+   ```powershell
+   # Re-encode in place. Skips any value already containing '%', so it is safe
+   # to re-run after rotating the password.
+   foreach ($n in 'AURA_DB_URL','AURA_TEST_DB_URL') {
+     $raw = [Environment]::GetEnvironmentVariable($n,'User')
+     if ($raw -match '^(?<s>postgres(?:ql)?://)(?<u>[^:@/]+):(?<p>.*)@(?<r>[^@]+)$' -and -not $matches['p'].Contains('%')) {
+       [Environment]::SetEnvironmentVariable($n,
+         $matches['s'] + $matches['u'] + ':' + [System.Uri]::EscapeDataString($matches['p']) + '@' + $matches['r'], 'User')
+     }
+   }
+   ```
+
+   ⚑ A **fifth check** belongs beside the four below, and it is the only one that
+   would have caught this: connect **from Go**, not from `psql`.
+
+   ⚑ `[Environment]::SetEnvironmentVariable(…,'User')` writes the registry, so
+   **already-open shells and editors do not see it** — the same trap as `psql`
+   not being on `PATH`. Start a new shell, or read the value back with
+   `[Environment]::GetEnvironmentVariable($n,'User')`.
 
    ⚑ **`AURA_JWT_KEY` must come from a CSPRNG**, not from a convenience helper.
    It signs every session; anyone who can reproduce it can forge any token.
@@ -974,6 +1026,17 @@ Smaller items, none of which have a home elsewhere:
   construction. `golang-migrate` takes its own advisory lock and the deployment
   runs a single instance, so the concurrent-start race is not live — ⚑ but that
   assumption becomes load-bearing the day a second instance exists.
+- ⚑ **A FAILED MIGRATION BRICKS EVERY LATER BOOT, and the state is misleading**
+  (found the hard way in chunk 1a). `golang-migrate` marks the version dirty
+  *before* running a migration and clears it after, so a migration that fails
+  leaves `public.schema_migrations.dirty = true` — while the DDL itself has
+  rolled back cleanly, since each file runs as one implicit transaction. From
+  then on `aurad` refuses to start, and inspecting the database shows **no
+  schema at all**, which reads as "migrations never ran" rather than "a
+  migration failed". `store.Migrate` therefore appends recovery instructions to
+  the dirty error; keep them accurate if the migration set grows. Recovery when
+  the schema is genuinely absent is `DELETE FROM public.schema_migrations;`,
+  then fix the migration and restart.
 - **Postgres unreachable at boot: refuse to start.** Exit non-zero with an
   explicit error rather than starting a server nobody can log into. ⚑ This is
   deliberately *different* from the running-server behaviour in §5, which keeps

@@ -60,6 +60,20 @@ func main() {
 	slog.Info("Loading content", slog.String("source", contentSource))
 
 	config := loadConf()
+
+	// Persistence (step 8a chunk 1a). First thing after the conf, so a broken
+	// database aborts before the content load rather than after it.
+	//
+	// ⚑ Nothing reads or writes it yet — chunk 1a's whole deliverable is that the
+	// schema exists and round-trips. The pool is opened here anyway because
+	// proving the connection at boot is the point: a lazily-opened pool hides an
+	// unreachable database until whichever query happens to run first.
+	db := openDatabase()
+	// Unreachable today — Loop() below never returns, and the process is killed
+	// outright. It becomes live with the graceful-shutdown flush (§2), which is
+	// the chunk that gives shutdown something to do.
+	defer db.Close()
+
 	// Factions load FIRST: since plan-faction-flips chunk 2 a skill may author
 	// a targetFactions allowlist, resolved to bits at load (D8 — the faction
 	// registry is boot-only, so names have exactly one chance to become bits).

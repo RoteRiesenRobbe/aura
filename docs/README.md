@@ -81,10 +81,15 @@ go to `backlog.md`; this section is content only.
 ## Onboarding artifacts (human-facing, standalone HTML)
 
 Point-in-time snapshots for humans, not maintained alongside the code — re-generate rather
-than patch. PDF renders of both sit in the repo root.
+than patch. PDF renders of the first two sit in the repo root.
 
 - **developer-onboarding.html** — "Aura — Developer Onboarding" (2026-07-22)
 - **feature-inventory.html** — "Aura — Feature Inventory" (2026-07-22)
+- **accounts/chunk-1a-summary.html** — "Step 8a, Chunk 1a: the database foundation"
+  (2026-07-31). Plain-language summary of what shipped, what it deliberately does not do,
+  the three defects found, and where the code lives. ⚑ A *snapshot*, not a source of truth —
+  the `plan-accounts-*.md` docs win on any disagreement. Written to be importable into
+  Google Docs, hence HTML.
 
 ## Research (investigations / assessments)
 

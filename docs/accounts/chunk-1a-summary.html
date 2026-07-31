@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aura — Step 8a, Chunk 1a: Database Foundation</title>
+</head>
+<body>
+
+<h1>Aura — Accounts &amp; Persistence</h1>
+<h2>Step 8a, Chunk 1a: the database foundation</h2>
+
+<p><em>Point-in-time summary &middot; 31 July 2026 &middot; branch <code>accounts-8a</code></em></p>
+
+<p><strong>This is a human-facing snapshot, not a maintained document.</strong> The authoritative
+sources are <code>docs/plan-accounts-schema.md</code> (the schema and the reasoning behind every
+shape), <code>docs/plan-accounts-implementation.md</code> (tech stack, save/load, auth) and
+<code>docs/plan-accounts-frontend.md</code> §10 (the chunk breakdown). Where this document and
+those disagree, they win.</p>
+
+<hr>
+
+<h2>In one sentence</h2>
+
+<p>Aura now has a database. The full account-and-character schema exists, it is created
+automatically when the server starts, and it can be torn back down cleanly — but no part of
+the game reads from or writes to it yet. That is deliberate: this chunk proves the
+foundation works before anything is built on top of it.</p>
+
+<hr>
+
+<h2>What now exists</h2>
+
+<p>Eight tables, in a dedicated <strong>game</strong> schema:</p>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">Table</th>
+  <th align="left">Holds</th>
+</tr>
+<tr>
+  <td><strong>accounts</strong></td>
+  <td>The human being. Deliberately tiny — it holds no sensitive data at all.</td>
+</tr>
+<tr>
+  <td><strong>account_credentials</strong></td>
+  <td>Login material, kept in a separate table so ordinary game queries can never
+      accidentally read a password hash.</td>
+</tr>
+<tr>
+  <td><strong>characters</strong></td>
+  <td>One life. Name, level, experience, which slot it occupies, and its link to the
+      character it succeeded.</td>
+</tr>
+<tr>
+  <td><strong>bloodline_unlocks</strong></td>
+  <td>Rewards earned by sacrificing a character, which outlive that character.</td>
+</tr>
+<tr>
+  <td><strong>character_spellbook</strong></td>
+  <td>Which skills a character knows, and at what level.</td>
+</tr>
+<tr>
+  <td><strong>character_loadout_slots</strong></td>
+  <td>What is equipped in each aura / passive / cooldown slot.</td>
+</tr>
+<tr>
+  <td><strong>character_flags</strong></td>
+  <td>Quest progress and NPC state — the live quest ledger's permanent home.</td>
+</tr>
+<tr>
+  <td><strong>audit_log</strong></td>
+  <td>Successful account events (logins, registrations, erasures) for support purposes.
+      Failed logins are deliberately absent — an attacker can generate those at will.</td>
+</tr>
+</table>
+
+<p>Alongside them: a connection layer that talks to Postgres, and the machinery that keeps
+the schema in step with the code.</p>
+
+<h3>Three details worth knowing</h3>
+
+<ul>
+  <li><strong>The "one alive character per slot" rule is enforced by the database itself</strong>,
+      not by application code remembering to count first. A second living character can
+      simply never be created in an occupied slot, and a slot frees up the moment its
+      occupant is sacrificed or deleted. This is why the tests need a real Postgres rather
+      than a mock — the invariant <em>is</em> the database.</li>
+  <li><strong>The session-revocation counter shipped now, not later.</strong> It is what makes
+      "log out" actually mean something — without it, logging out only clears the browser's
+      cookie and does nothing about a token copied off the machine. Everything built later
+      that needs to <em>cancel</em> a session depends on it existing first.</li>
+  <li><strong>Nothing is ever hard-deleted.</strong> There are no cascading deletes anywhere, on
+      purpose: a graveyard that can be silently broken by a stray delete is worse than one
+      that refuses to be broken. Characters are soft-deleted; accounts are anonymised.</li>
+</ul>
+
+<hr>
+
+<h2>How it runs</h2>
+
+<p>The schema is created and updated <strong>automatically when the server starts</strong>,
+rather than as a separate manual step during deployment. Two reasons:</p>
+
+<ul>
+  <li>It is one less thing to forget during a deploy.</li>
+  <li>It makes it impossible for the running code and the database to disagree about
+      what the schema looks like.</li>
+</ul>
+
+<p>The schema definitions are baked into the server binary itself, so the deploy stays what
+it has always been — copy one file across, restart it. No database tooling needs to be
+installed on the server.</p>
+
+<hr>
+
+<h2>What this chunk deliberately does not do</h2>
+
+<ul>
+  <li><strong>No game code touches the database.</strong> No saving, no loading, no logins.</li>
+  <li><strong>No player-facing change whatsoever.</strong> The game plays exactly as it did
+      yesterday.</li>
+  <li><strong>The server still starts fine without a database configured</strong> — it prints a
+      warning and carries on. This keeps every existing test script and local setup working.
+      That will be tightened to a hard requirement in chunk 1c, once there is actually
+      something to log into; a database that <em>is</em> configured but unreachable already
+      stops the server.</li>
+  <li><strong>The "home campfire" column ships empty by design.</strong> Nothing writes it yet,
+      and nothing needs to — characters spawn exactly where they do today.</li>
+</ul>
+
+<hr>
+
+<h2>For developers: where the code is</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">Path</th>
+  <th align="left">What it is</th>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/store/store.go</code></td>
+  <td>Connection pool, environment-variable names, connection-string validation.</td>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/store/migrate.go</code></td>
+  <td>Applies and reverses schema versions; embeds the SQL into the binary.</td>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/store/migrations/</code></td>
+  <td>The schema itself, as a matched up/down pair. One version so far.</td>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/store/store_test.go</code></td>
+  <td>Ten tests. Skip cleanly when no test database is configured.</td>
+</tr>
+<tr>
+  <td><code>backend/cmd/aurad/database.go</code></td>
+  <td>Boot wiring, and the comment explaining what chunk 1c must change.</td>
+</tr>
+</table>
+
+<h3>Running it locally</h3>
+
+<p>Three environment variables are needed, all set once by hand and documented in
+<code>plan-accounts-implementation.md</code> §0: a connection string for the working database,
+one for a disposable test database, and a signing key. Without them, the server runs
+without persistence and the database tests skip — which is intentional, so nobody is forced
+to install Postgres to work on the game.</p>
+
+<ul>
+  <li><code>go test ./pkg/aura/store/...</code> — the schema tests. They roll the test database
+      all the way down and back up, so point them only at the disposable one.</li>
+  <li><code>go test ./...</code> — the full suite; passes with or without a database present.</li>
+</ul>
+
+<p><strong>One trap worth knowing before you set this up:</strong> Postgres' own command-line tool
+is more forgiving about passwords than Go is. A connection string that works perfectly by
+hand can be rejected outright by the server if the password contains characters like
+<code>^</code>, <code>&gt;</code> or a space. Percent-encode it — the setup instructions carry a
+one-liner that does this safely.</p>
+
+<hr>
+
+<h2>Decisions taken during the work</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">Decision</th>
+  <th align="left">Outcome</th>
+</tr>
+<tr>
+  <td>Which database libraries, and at what version</td>
+  <td>Slightly older, pinned versions — so the project's minimum Go version does not have
+      to move. They were tested against the actual Postgres 18.4 server before being
+      adopted, so "older" does not mean "unproven". The pins are explained in the
+      implementation plan; one of them exists purely to stop the dependency tooling
+      raising the language version behind our backs.</td>
+</tr>
+<tr>
+  <td>What happens when no database is configured</td>
+  <td>Warn and continue, for now. Flipping this to a hard failure is explicitly assigned
+      to chunk 1c and flagged in the code where the decision lives.</td>
+</tr>
+<tr>
+  <td>One schema file or several</td>
+  <td>One. These tables are created together and no subset of them is meaningful alone.</td>
+</tr>
+</table>
+
+<hr>
+
+<h2>Problems found and fixed</h2>
+
+<p>Three genuine defects surfaced during the work. All three are fixed, and the two in our
+own code were each demonstrated failing before the fix was applied — a test that has never
+failed proves nothing.</p>
+
+<h3>1. The database password could leak into the server log</h3>
+
+<p>The database library carefully hides the password in its own error messages — but the
+lower-level error it passes along contains the full connection string in plain text.
+A single mistyped setting would have written the password straight into the boot log.
+Connection details are now validated up front and errors never echo the input.</p>
+
+<h3>2. A failed schema update would silently jam every future start-up</h3>
+
+<p>If a schema change fails part-way, the tooling marks the database as "dirty" and refuses
+to run again — but the failed change itself has already been undone, so an inspection shows
+<em>no schema at all</em>. It looks like the update never ran, when in fact it ran and failed.
+The server now prints exactly what state the database is in and how to recover from it.</p>
+
+<p>This was found the hard way: it happened during the work.</p>
+
+<h3>3. A defect in the plan itself, found by re-reading it against the shipped code</h3>
+
+<p>The plan described how quest progress should be stored, and it was written before the
+quest system was actually built. Comparing it against the finished code found it named
+<strong>two</strong> pieces of information per quest where the real system has
+<strong>three</strong>.</p>
+
+<p>Today the missing third piece happens to be redundant — but only because no quest is yet
+marked repeatable. The moment one is, the omission would silently lose a player's
+in-progress quest run, and the cause would show up in content long after the code that
+caused it. The plan has been corrected.</p>
+
+<hr>
+
+<h2>Pre-existing issues noticed (not caused by this work, not fixed)</h2>
+
+<ul>
+  <li><strong>Mob content is excluded from version control</strong> in the folder that gets baked
+      into the server binary — uniquely among all eight content types, which are all tracked
+      normally. The practical effect: a fresh copy of the project cannot run its tests green
+      until someone does a build first. This machine's copy was also out of date, which had
+      seven quest tests failing before this work started. Worth a look.</li>
+  <li>The local config does not name a zone, so the server refuses to start without being
+      told which one to load.</li>
+</ul>
+
+<hr>
+
+<h2>Verification</h2>
+
+<ul>
+  <li>The full backend test suite passes — <strong>29 of 29 packages</strong>.</li>
+  <li>Ten new tests covering the schema, run twice back-to-back to prove they leave no
+      residue behind.</li>
+  <li><strong>The chunk's stated goal is met and demonstrated:</strong> the schema builds onto an
+      empty database and tears back down to a genuinely empty database, repeatedly.</li>
+  <li>The server was started for real, both with and without a database. With one
+      configured, it created the schema and then reported <strong>zero errors and zero
+      warnings</strong>, with all content loading exactly as before: 64 mobs, 86 skills,
+      15 factions, 4 quests, 777 props, 485 spawns, 5 campfires.</li>
+</ul>
+
+<hr>
+
+<h2>What comes next</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">Chunk</th>
+  <th align="left">Scope</th>
+</tr>
+<tr>
+  <td><strong>1b</strong></td>
+  <td>Password handling, login tokens, and the rule that one account can only be playing
+      once at a time. Internal logic only — still nothing a player can see.</td>
+</tr>
+<tr>
+  <td><strong>1c</strong></td>
+  <td>The eight web endpoints: create / list / delete / choose a character, and
+      register / log in / log out / refresh. Also tightens two permissive settings that
+      are harmless today but become security holes the moment a login exists.</td>
+</tr>
+<tr>
+  <td><strong>2</strong></td>
+  <td>The screens players actually use — character select, character creation, login and
+      register forms.</td>
+</tr>
+<tr>
+  <td><strong>3</strong></td>
+  <td>Connecting a chosen character to the running game world.</td>
+</tr>
+</table>
+
+</body>
+</html>

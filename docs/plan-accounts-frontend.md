@@ -594,12 +594,13 @@ proves the database setup before anything depends on it** — a migration proble
 found while debugging an endpoint is much more expensive than one found on its
 own.
 
-1. **1a — Schema & migrations.** The whole `game` schema (accounts, credentials,
-   characters, bloodline unlocks, child tables, `audit_log`), `golang-migrate`
-   wired **as a library** to run at boot with the SQL `go:embed`-ed, the
-   `pgx/v5` + `pgxpool` connection layer, and the disposable `aura_test`
-   database from §11. Deliverable: migrations apply to an empty database and roll
-   back cleanly. No Go game code touches it yet. ⚑ Includes `token_generation`.
+1. **1a — Schema & migrations. ✅ DONE 2026-07-31, `[uncommitted]`** — see the
+   ledger below. The whole `game` schema (accounts, credentials, characters,
+   bloodline unlocks, child tables, `audit_log`), `golang-migrate` wired **as a
+   library** to run at boot with the SQL `go:embed`-ed, the `pgx/v5` + `pgxpool`
+   connection layer, and the disposable `aura_test` database from §11.
+   Deliverable: migrations apply to an empty database and roll back cleanly. No
+   Go game code touches it yet. ⚑ Includes `token_generation`.
    ⚑ **Read implementation.md §0 first** — driver, pool, query style and where
    Postgres runs are all decided there, and this chunk is the first consumer of
    every one of them.
@@ -639,6 +640,92 @@ content-pipeline change wearing a persistence costume.
 **Password recovery is not a chunk here** — it is its own plan, sequenced after
 all of the above, because outbound email is net-new infrastructure that would
 otherwise gate everything.
+
+---
+
+## 10a. Chunk ledger
+
+### Chunk 1a — schema, migrations & the connection layer ✅ DONE 2026-07-31, `[uncommitted]`
+
+Backend + docs, 8 files. **Aura has a database.** No game code touches it, which
+is the point: the deliverable is that the foundation round-trips *before*
+anything depends on it.
+
+**Shipped** — new package `backend/pkg/aura/store/`:
+
+| File | What |
+|---|---|
+| `store.go` | `Open()` → `pgxpool`, `MaxConns = 10 [PLACEHOLDER]`, `Ping` with timeout, `EnvURL`/`EnvTestURL` constants, connection-string validation |
+| `migrate.go` | `go:embed migrations/*.sql`, `Migrate()` / `Rollback()` via `iofs` + the `pgx5` driver, dirty-state recovery hint |
+| `migrations/000001_accounts_and_characters.{up,down}.sql` | The whole `game` schema — 8 tables, both indexes, every CHECK and composite FK |
+| `store_test.go` | 10 tests; `t.Skip` without `AURA_TEST_DB_URL` |
+
+Plus `cmd/aurad/database.go` and three lines at `cmd/aurad/aurad.go:62`.
+
+**Constraint compliance.** ⚑ `token_generation` shipped here, not with the reset
+plan — it is the revocation primitive and 8a builds logout + silent refresh.
+⚑ `CREATE EXTENSION citext` is in migration 001, so a fresh database is
+reproducible from migrations alone; the down migration drops it too, which is
+what makes the round-trip land on a genuinely empty database. ⚑ §"The quest
+ledger" was re-read against the shipped code — see defect ③.
+
+**Three defects, two of them ours, all red-proven before fixing:**
+
+1. **The DB password could leak into the boot log.** pgx redacts it in its own
+   message (`xxxxxx`) but wraps a `net/url` error carrying the raw connection
+   string verbatim, so one mistyped setting writes the password to disk.
+   `store.Open` now pre-validates via `parseURL` and never echoes input.
+2. **A failed migration bricks every later boot, misleadingly.** golang-migrate
+   marks `dirty` *before* running and clears it after, so a failure leaves the
+   flag set **while the DDL has rolled back** — the database then shows *no
+   schema at all*, which reads as "migrations never ran". `Migrate` now appends
+   recovery SQL to that error. Hit for real during the chunk (a BOM broke the
+   SQL), which is why the hint exists.
+3. **A defect in this plan set.** The schema doc named **two** fields per quest
+   where the shipped `quests.Progress` has **three**. `Running` is independent:
+   `Ledger.Accept` permits re-accepting a *completed repeatable* quest, giving
+   `Running && Completed` at once. Today it is redundant only because nothing
+   authors `repeatable: true`; deriving it would silently drop a live run the
+   first time content does — a failure appearing in content long after the code
+   that caused it. `plan-accounts-schema.md` is corrected, with the persist-if
+   rule (`Running || Completed`, matching `Snapshot()`).
+
+**Decisions taken during execution:**
+
+| Decision | Outcome |
+|---|---|
+| Library versions | `go.mod` **stays at `go 1.22`** (PO-ruled) ⇒ **migrate v4.17.1 + pgx v5.6.0**, verified against the live **PG 18.4** before adoption. ⚑ `rogpeppe/go-internal` pinned to v1.12.0 purely so `go mod tidy` does not fail at that floor. ⚑ **`go mod tidy` raised the go directive 1.22 → 1.25 unasked** — use `go mod tidy -go=1.22` |
+| Unset `AURA_DB_URL` | **Warns and continues.** §8's "refuse to start" is about not presenting a healthy-but-unusable server; nothing can log in yet, and hard-requiring it would break every harness script on a machine without Postgres. ⚑ **1c must flip this**, flagged at the decision site. A *configured-but-unreachable* database is already fatal |
+| One migration file or several | One. These tables are created together and no subset is meaningful alone |
+
+**Verified.** `go build ./...` · `go vet ./...` · **full suite 29/29 packages** ·
+store tests at **`-count=2`** (they share a real database, so residue would show)
+· they **skip cleanly without `AURA_TEST_DB_URL`** · boot **both ways**: without
+a DB it warns and runs; with one it applied version 1 (`dirty=false`) then **0
+errors 0 warnings**, 15 factions/86 skills/64 mobs/4 quests/777 props/485
+spawns/5 campfires. ⚑ **Boot without a DB now emits 1 deliberate WARN**, so the
+standing "0 errors 0 warnings" check means *with* `AURA_DB_URL` set.
+
+**Harness gate: no browser harness owns this chunk** — no client code, no game
+logic, no content changed, so nothing the 17 scripts assert can have moved. Boot
+verification stands in. Stated rather than assumed, per the gate's own rule.
+
+**Pre-existing, found not fixed.** ⚑ `backend/pkg/api/mobs/.gitignore` holds
+`*.json`, so the embedded mob content is **untracked** — alone among all 8
+content types (0 tracked vs 64 on disk). A fresh clone therefore cannot run
+`go test ./...` green until someone builds; this machine's copies also predated
+C4, leaving **7 quest content tests red at HEAD** before the chunk began (fixed
+locally by `cp-defs`). ⚑ **`make` is not installed on this machine** — run the
+`cp-defs` target's two lines by hand. Also: local `conf.json` names no zone, so a
+bare `./aurad` needs `-zone world`.
+
+**Environment fix.** `AURA_DB_URL`/`AURA_TEST_DB_URL` had to be
+**percent-encoded**: psql's parser is lenient, Go's `net/url` is not, so a
+connection string that works by hand is rejected by the server with
+`invalid userinfo`. The encoder one-liner and a "connect from Go, not psql"
+fifth verification check are now in `plan-accounts-implementation.md` §0.
+
+**Plain-language summary for humans:** `docs/accounts/chunk-1a-summary.html`.
 
 ---
 
