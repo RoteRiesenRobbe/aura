@@ -83,8 +83,8 @@ func TestRegistry_MalformedJSON(t *testing.T) {
 
 func TestRegistry_DuplicateID(t *testing.T) {
 	fsys := fstest.MapFS{
-		"damage.json": {Data: damageAuraJSON},
-		"also-id-1.json":   {Data: duplicateIDJSON},
+		"damage.json":    {Data: damageAuraJSON},
+		"also-id-1.json": {Data: duplicateIDJSON},
 	}
 	_, err := RegistryFromFS(fsys, nil)
 	assert.Error(t, err)
@@ -92,7 +92,7 @@ func TestRegistry_DuplicateID(t *testing.T) {
 
 func TestRegistry_DuplicateName(t *testing.T) {
 	fsys := fstest.MapFS{
-		"damage.json":    {Data: damageAuraJSON},
+		"damage.json":         {Data: damageAuraJSON},
 		"duplicate-name.json": {Data: duplicateNameJSON},
 	}
 	_, err := RegistryFromFS(fsys, nil)

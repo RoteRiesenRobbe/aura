@@ -9,8 +9,8 @@ package sim
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDefinition_DamageOnly(t *testing.T) {

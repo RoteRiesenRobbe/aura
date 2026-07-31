@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/EngoEngine/ecs"
-	"github.com/google/uuid"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
@@ -16,6 +15,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/google/uuid"
 )
 
 // skillEntity is the minimal interface SkillSystem requires; players and mobs

@@ -3,15 +3,15 @@ package codec
 import (
 	"testing"
 
-	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	flatbuffers "github.com/google/flatbuffers/go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSpellbookMarshalFlatbuf_RoundTrip(t *testing.T) {

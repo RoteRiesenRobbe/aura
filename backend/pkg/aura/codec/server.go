@@ -1,8 +1,8 @@
 package codec
 
 import (
-	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
+	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 func ServerMessageWrapFlatbufMarshal(builder *flatbuffers.Builder, body flatbuffers.UOffsetT, bodyType AuraApi.ServerMessageBody) flatbuffers.UOffsetT {

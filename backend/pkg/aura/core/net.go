@@ -5,9 +5,9 @@ import (
 	"log/slog"
 
 	"github.com/EngoEngine/ecs"
-	"github.com/google/flatbuffers/go"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/google/flatbuffers/go"
 )
 
 type NetSystem struct {

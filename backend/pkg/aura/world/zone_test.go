@@ -498,7 +498,7 @@ func TestZone_RequiresNameWhenMultiple(t *testing.T) {
 // zone is the one selected (candidates are enumerated, not parsed).
 func TestZone_IgnoresUnselectedMalformedZone(t *testing.T) {
 	fsys := fstest.MapFS{
-		"good.json":  {Data: []byte(`{ "name": "Good", "bounds": { "width": 60, "height": 40 } }`)},
+		"good.json":   {Data: []byte(`{ "name": "Good", "bounds": { "width": 60, "height": 40 } }`)},
 		"broken.json": {Data: []byte(`{ this is not json`)},
 	}
 	z, err := LoadZoneFS(fsys, "good", newFakeMobRegistry(), newFakePropRegistry())

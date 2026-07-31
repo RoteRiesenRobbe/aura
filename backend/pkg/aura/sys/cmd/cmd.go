@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	"github.com/EngoEngine/ecs"
-	"github.com/google/flatbuffers/go"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/google/flatbuffers/go"
 )
 
 var commands = map[string]Command{

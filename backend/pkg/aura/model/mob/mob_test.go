@@ -11,8 +11,6 @@ import (
 	"testing"
 
 	"github.com/EngoEngine/ecs"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -21,6 +19,8 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testAuraSkill() *skills.SkillDefinition {
@@ -597,8 +597,8 @@ func TestMob_Presence_DedupesAndFansOutToHealers(t *testing.T) {
 
 	m.PlayerTouches(damager, model.Damage{HP: 5})
 	m.NotePresence(bystander)
-	m.NotePresence(damager)                       // presence on an existing damage participant
-	m.PlayerTouches(bystander, model.Damage{HP: 5}) // damage on an existing presence participant
+	m.NotePresence(damager)                          // presence on an existing damage participant
+	m.PlayerTouches(bystander, model.Damage{HP: 5})  // damage on an existing presence participant
 	m.PlayerTouches(damager, model.Damage{HP: 1000}) // kill
 
 	assert.Equal(t, []uint64{42}, damager.xp, "presence + damage is still one grant")
@@ -1360,7 +1360,7 @@ func TestMob_Update_DeadThreatEntryPrunedNextHighestWins(t *testing.T) {
 }
 
 func TestMob_FindAggroTarget_AcquiresEnemyFactionSummon(t *testing.T) {
-	m := newTestMob() // hostile
+	m := newTestMob()           // hostile
 	totem := newFakeCombatant() // aligned → enemy of the mob
 	totem.pos = phy.Vec2f{X: 0.5, Y: 0}
 	packMate := newFakeCombatant() // hostile → same faction, nearer

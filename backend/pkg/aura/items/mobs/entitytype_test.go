@@ -3,8 +3,8 @@ package mobs
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestResolveEntityType(t *testing.T) {

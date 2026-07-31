@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/EngoEngine/ecs"
-	"github.com/stretchr/testify/assert"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/stretchr/testify/assert"
 )
 
 // fakeSkillEntity implements skillEntity for unit tests.
@@ -26,7 +26,7 @@ func (f *fakeSkillEntity) SkillComponent() *skills.SkillComponent { return f.sc 
 func (f *fakeSkillEntity) AuraCollider() *phy.Circle              { return nil }
 func (f *fakeSkillEntity) VitalSigns() *model.PlayerVitalSigns    { return &f.vitalSigns }
 func (f *fakeSkillEntity) StatusEffects() *model.StatusEffects    { return &f.statusEffects }
-func (f *fakeSkillEntity) PoolFactor() float32                         { return 1.0 }
+func (f *fakeSkillEntity) PoolFactor() float32                    { return 1.0 }
 func (f *fakeSkillEntity) MaxHealth() vitals.VitalSign            { return vitals.Max }
 func (f *fakeSkillEntity) IsGod() bool                            { return false }
 

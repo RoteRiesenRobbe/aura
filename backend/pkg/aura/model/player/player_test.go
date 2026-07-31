@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/EngoEngine/ecs"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/curve"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
@@ -16,6 +14,8 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // stubRegistry implements skills.Registry for tests.

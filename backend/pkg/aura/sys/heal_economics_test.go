@@ -10,11 +10,11 @@ package sys
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // fadingCostHealEffect mirrors the authored heal-aura curve (item 2): heal 12,

@@ -201,9 +201,9 @@ func TestComponentLightRadius_ActiveAndPassiveTakeMax(t *testing.T) {
 // GDD §7 trade-off resolution.
 func TestComponentLightRadius_PassivePersistsAcrossAuraSwitch(t *testing.T) {
 	sc := NewSkillComponent(true)
-	sc.EquipAura(0, lightAuraDef, 3)                             // 6.0
-	sc.EquipAura(1, &SkillDefinition{ID: 93, MaxLevel: 1}, 1)    // no light
-	sc.EquipPassive(1, lightPassiveDef, 1)                       // 2.5
+	sc.EquipAura(0, lightAuraDef, 3)                          // 6.0
+	sc.EquipAura(1, &SkillDefinition{ID: 93, MaxLevel: 1}, 1) // no light
+	sc.EquipPassive(1, lightPassiveDef, 1)                    // 2.5
 	sc.SetActiveAura(0)
 	assert.Equal(t, float32(6.0), sc.LightRadius())
 

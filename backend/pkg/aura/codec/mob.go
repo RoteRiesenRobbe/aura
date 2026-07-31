@@ -1,9 +1,9 @@
 package codec
 
 import (
-	"github.com/google/flatbuffers/go"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/google/flatbuffers/go"
 )
 
 func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) flatbuffers.UOffsetT {

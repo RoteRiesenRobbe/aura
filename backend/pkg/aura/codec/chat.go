@@ -1,8 +1,8 @@
 package codec
 
 import (
-	"github.com/google/flatbuffers/go"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
+	"github.com/google/flatbuffers/go"
 )
 
 // EntityMessageFlatbufMarshal wraps an EntityMessage in a ServerMessage. `kind`

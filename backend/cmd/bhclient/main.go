@@ -9,8 +9,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
+	"github.com/gorilla/websocket"
 )
 
 var addr = flag.String("addr", "localhost:2000", "http service address")
