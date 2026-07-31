@@ -65,13 +65,28 @@ the same runbook as the backup commands (§8) — the deploy path stays
 database to exist. Two separate environments, both manual, both one-time.
 
 **A. Local dev (Windows) — needed before chunk 1a starts.**
+✅ **Done and verified 2026-07-31** on Postgres **18.4**; the steps below are the
+record of what was actually run.
 
-1. Install Postgres (17 or newer): `winget install PostgreSQL.PostgreSQL.17`,
-   or the installer from postgresql.org. Accept the default port **5432** and
-   record the superuser password.
+1. Install Postgres (17 or newer): `winget install PostgreSQL.PostgreSQL.17`, or
+   the installer from postgresql.org. Accept port **5432** and record the
+   superuser password.
+
+   ⚑ **`psql` will not be on `PATH`, and the installer's `pg_env.bat` does not
+   fix it.** That script uses `SET`, which affects only the console process it
+   runs in — double-clicking it sets the path in a window that then closes.
+   Nothing is wrong and no restart helps. Either call `psql` by full path, or
+   add it to `PATH` once:
+
+   ```powershell
+   [Environment]::SetEnvironmentVariable('Path',
+     [Environment]::GetEnvironmentVariable('Path','User') + ';<install-dir>\bin', 'User')
+   ```
+
 2. Create the role and **two** databases — the dev one, and the disposable
    `aura_test` that DB-touching tests skip when absent
-   (`plan-accounts-frontend.md` §11):
+   (`plan-accounts-frontend.md` §11). One invocation prompts for the superuser
+   password once:
 
    ```sql
    CREATE ROLE aura WITH LOGIN PASSWORD '<dev-password>';
@@ -79,12 +94,39 @@ database to exist. Two separate environments, both manual, both one-time.
    CREATE DATABASE aura_test OWNER aura;
    ```
 
-   `CREATE EXTENSION citext` is **not** done by hand — it belongs in the first
-   migration, so a fresh database is reproducible from migrations alone.
-3. Set the environment for local runs: **`AURA_DB_URL`** =
-   `postgres://aura:<dev-password>@localhost:5432/aura`, **`AURA_TEST_DB_URL`**
-   = same with `/aura_test`, and **`AURA_JWT_KEY`** = any long random string
-   locally.
+   ⚑ **`CREATE EXTENSION citext` is NOT done by hand** — it belongs in the first
+   migration, so a fresh database is reproducible from migrations alone. Doing it
+   manually makes 1a's migration appear to work here and fail everywhere else.
+
+3. Set the environment for local runs. **`AURA_DB_URL`** =
+   `postgres://aura:<dev-password>@localhost:5432/aura`, **`AURA_TEST_DB_URL`** =
+   the same with `/aura_test`.
+
+   ⚑ **`AURA_JWT_KEY` must come from a CSPRNG**, not from a convenience helper.
+   It signs every session; anyone who can reproduce it can forge any token.
+   PowerShell's `Get-Random` is `System.Random` — seeded and predictable — and
+   sampling a character set *without replacement* also silently caps the length
+   at the size of that set. Use:
+
+   ```powershell
+   $b = [byte[]]::new(48)
+   [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
+   [Environment]::SetEnvironmentVariable('AURA_JWT_KEY',[Convert]::ToBase64String($b),'User')
+   ```
+
+4. **Verify before starting 1a** — these four checks are the actual gate:
+
+   | Check | Expect |
+   |---|---|
+   | `psql "$AURA_DB_URL" -tAc "SELECT current_database(), current_user;"` | `aura\|aura` |
+   | same against `AURA_TEST_DB_URL` | `aura_test\|aura` |
+   | `SELECT count(*) FROM pg_extension WHERE extname='citext';` | **0** — not pre-installed |
+   | `CREATE EXTENSION citext;` then `DROP EXTENSION citext;` as the **`aura`** role, in **both** databases | succeeds |
+
+   ⚑ **The last check is the one worth keeping.** `citext` is a *trusted*
+   extension only from PG13 onward, so on an older server a non-superuser cannot
+   install it — and 1a's very first migration would fail with a permissions error
+   that reads like a broken migration rather than a privilege gap.
 
 **B. Live server (Hetzner VPS) — needed only before 8a deploys, not before it
 is written.**

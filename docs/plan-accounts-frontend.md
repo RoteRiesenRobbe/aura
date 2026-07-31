@@ -583,10 +583,11 @@ shape; the built `quests`/`killCounts`/`talkedTo` structures are now the
 authority, and any drift between them and the schema is a defect in this plan,
 not in the code.
 
-⚑ **Chunk 0 is a MANUAL PO step, not code: stand up Postgres locally**
-(implementation.md §0 "MANUAL STEP"). Chunk 1a's first line of Go needs a
-database and the disposable `aura_test` to exist. The live-server install is
-separate and needed only before 8a *deploys*, not before it is written.
+✅ **Chunk 0 — stand up Postgres locally — is DONE (2026-07-31).** Postgres 18.4,
+role `aura`, databases `aura` + `aura_test`, all three environment variables set,
+verified against the four checks in implementation.md §0 "MANUAL STEP". The
+live-server install is separate and needed only before 8a *deploys*, not before
+it is written.
 
 **Chunk 1 is split three ways.** Each part is independently testable, and **1a
 proves the database setup before anything depends on it** — a migration problem
