@@ -3080,7 +3080,7 @@ question is on the table anyway.
 
 ## 33. `hot_aura` cannot pre-hot — the wounded-only gate is inherited, not designed
 
-> **✅ RULED AND SHIPPED 2026-07-31 (`[uncommitted]`): OPTION 1 — THE GATE IS
+> **✅ RULED AND SHIPPED 2026-07-31 (`dc21ad81`): OPTION 1 — THE GATE IS
 > LIFTED FOR `hot_aura` ONLY.** `HealthRatio() < 1` is gone from
 > `applyHotAura` and **kept** on `applyHealAura`. Pre-hotting works, an
 > in-range HoT keeps refreshing instead of decaying the moment it succeeds,
