@@ -330,6 +330,63 @@ connectivity/CORS symptom, not a missing frontend entry.
 > No `.fbs` / FlatBuffers regen is needed for new skills, and no frontend edit
 > at all. A new ability is **pure JSON + restart**.
 
+### Authored key → catalog path (two vocabularies for the same data)
+
+What you author is **not** what `GET /skills` serves, and both halves are
+deliberate: content JSON is **flat and prefixed** (`damageHP`, `resistTags`) so
+an effect is one readable block; the catalog is **nested** (`damage.hp`,
+`resist.tags`) so the payload matching `type` is the only non-nil one. The cost
+is that a key you see in devtools cannot be grepped back to the file you author
+— hence this table (backlog §27.3.4).
+
+**The general rule:** the type prefix moves into the payload name and drops off
+the key. `damageHP` → `damage.hp`. `PerLevel` suffixes always survive intact.
+
+**Flat keys that stay flat** (they live on `EffectDef` itself, not in a
+payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
+`selector`, `maxTargets`, `maxTargetsPerLevel`, `targetsEnemies`,
+`targetsAllies`, `targetsStructures`.
+
+| Authored (content JSON) | Served (`GET /skills`) | Effect types |
+|---|---|---|
+| `damageHP` / `damageHPPerLevel` | `damage.hp` / `damage.hpPerLevel` | damage_aura, instant_damage |
+| `damageTags` | `damage.tags` | ⚑ also `dot.tags` on the dot types |
+| `gatedDamageTags` (bool) | `damage.gated` | ⚑ the tag list itself stays `damage.tags`; gating requires explicit `damageTags` or it hard-fails |
+| `variance` | `<payload>.variance` | damage / dot / heal / hot / selfHeal |
+| `hitStyle`, `structureDamageFraction` | `damage.hitStyle`, `damage.structureDamageFraction` | damage_aura, instant_damage |
+| `executeBelowFraction`, `executeBonusFactor`, `berserkerMaxBonusFactor`, `critChance`, `critChancePerLevel`, `critFactor`, `lifestealFraction` | `damage.<same name>` | damage_aura, instant_damage |
+| `damageHP` / `damageHPPerLevel` | `dot.hp` / `dot.hpPerLevel` | ⚑ dot_aura, instant_dot — **same authored key, different path** |
+| `dotTicks` / `dotTickInterval` | `dot.tickCount` / `dot.interval` | dot_aura, instant_dot |
+| `healHP` / `healHPPerLevel` | `heal.hp` / `heal.hpPerLevel` | heal_aura |
+| `healHP` / `healHPPerLevel` | `selfHeal.healHp` / `selfHeal.healHpPerLevel` | ⚑ self_heal — the payload keeps the `heal` prefix here |
+| `healHP` / `healHPPerLevel` | `hot.hp` / `hot.hpPerLevel` | hot_aura, instant_hot |
+| `healFractionOfMax` / `…PerLevel` | `heal.fractionOfMax` / `selfHeal.fractionOfMax` | heal_aura / self_heal |
+| `selfDamageHP` / `selfDamageHPPerLevel` | `heal.selfDamageHp` / `heal.selfDamageHpPerLevel` | ⚑ heal_aura — note the lowercase `p` |
+| `hotTicks` / `hotTickInterval` | `hot.tickCount` / `hot.interval` | hot_aura, instant_hot |
+| `shieldHP` / `shieldHPPerLevel` | `shield.hp` / `shield.hpPerLevel` | shield_aura, instant_shield |
+| `shieldDurationTicks` | `shield.durationTicks` | instant_shield only |
+| `slowFraction` / `slowFractionPerLevel` | `slow.fraction` / `slow.fractionPerLevel` | slow_aura |
+| `resistTags` / `resistFactor` / `resistFactorPerLevel` | `resist.tags` / `resist.factor` / `resist.factorPerLevel` | resist_aura, resist_passive |
+| `stat` / `statBonus` / `statBonusPerLevel` | `stat.name` / `stat.bonus` / `stat.bonusPerLevel` | stat_multiplier |
+| `targetsSelf` | `<payload>.targetsSelf` | ⚑ resist / shield / hot — inside the payload, unlike the other target flags |
+| `spawnMob` / `ttlTicks` / `ttlTicksPerLevel` / `powerPerOwnerLevel` | `spawn.mobName` / `spawn.ttlTicks` / … | spawn |
+| `threatMargin` | `threat.margin` | taunt (detaunt ignores it) |
+| `reviveHealthFraction` | `revive.healthFraction` | revive |
+| `dashDistance` / `dashDistancePerLevel` | `dash.distance` / `dash.distancePerLevel` | dash |
+| `tickRateFactor` / `tickRateDurationTicks` | `tickRate.factor` / `tickRate.durationTicks` | tick_rate |
+| `speedFactor` / `speedDurationTicks` (+`PerLevel`) | `speed.factor` / `speed.durationTicks` | ⚑ speed_burst — the payload is `speed`, not `speedBurst` |
+| `calmTicks` / `calmTicksPerLevel` | `calm.durationTicks` / `calm.durationTicksPerLevel` | calm |
+| `charmTicks` / `charmTicksPerLevel` | `charm.durationTicks` / `charm.durationTicksPerLevel` | charm |
+
+**Skill level, not effect level:** `targetFactions` keeps its key but **changes
+its values** — you author faction *identifiers* (`["prey"]`), the catalog serves
+resolved *display names* (`["Prey"]`). The bitmask those names resolve to is
+server-only and is **not** served at all (`json:"-"`, backlog §27.3.6).
+
+The authoritative lists are `effectKeys` (what each type accepts) and the
+payload structs' json tags, both in `backend/pkg/aura/skills/definition.go`. If
+this table and that file ever disagree, the file wins.
+
 ---
 
 ## 3. Replacing ability VFX
