@@ -4,8 +4,10 @@ What the player actually clicks through, from a cold page load to being in the
 world and back out again. Companion to `plan-accounts-schema.md` (the DDL) and
 `plan-accounts-implementation.md` (save/load mechanics, auth, transport).
 
-**Docs-only plan, no code yet.** All numbers below (max alive characters,
-cooldown seconds) are placeholders per the project convention.
+**Status: in execution.** Chunk 0 (local Postgres) and **chunk 1a (schema,
+migrations, connection layer) shipped 2026-07-31** — ledgers in §10a. Chunks
+1b → 1c → 2 → 3 remain. All numbers below (max alive characters, cooldown
+seconds) are placeholders per the project convention.
 
 ---
 
@@ -594,7 +596,7 @@ proves the database setup before anything depends on it** — a migration proble
 found while debugging an endpoint is much more expensive than one found on its
 own.
 
-1. **1a — Schema & migrations. ✅ DONE 2026-07-31, `[uncommitted]`** — see the
+1. **1a — Schema & migrations. ✅ DONE 2026-07-31, `6d5cc695`** — see the
    ledger below. The whole `game` schema (accounts, credentials, characters,
    bloodline unlocks, child tables, `audit_log`), `golang-migrate` wired **as a
    library** to run at boot with the SQL `go:embed`-ed, the `pgx/v5` + `pgxpool`
@@ -645,7 +647,7 @@ otherwise gate everything.
 
 ## 10a. Chunk ledger
 
-### Chunk 1a — schema, migrations & the connection layer ✅ DONE 2026-07-31, `[uncommitted]`
+### Chunk 1a — schema, migrations & the connection layer ✅ DONE 2026-07-31, `6d5cc695`
 
 Backend + docs, 8 files. **Aura has a database.** No game code touches it, which
 is the point: the deliverable is that the foundation round-trips *before*
