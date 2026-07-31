@@ -1501,6 +1501,12 @@ with a real design decision in front of it.
 >     pass touched. Proven pre-existing by stash-testing, and deliberately not
 >     folded in — a repo-wide reformat does not belong inside a behaviour-neutral
 >     hygiene diff. It is a genuine one-command cleanup for its own commit.
+>     **✅ TAKEN 2026-07-31 as exactly that, its own commit** (`e1ed7468`) — and the count was
+>     **36, not 34**: `gofmt -l pkg/` misses `cmd/`, where `bhclient/main.go` and
+>     `simharness/guardrail_test.go` had drifted too. All of it import ordering
+>     and struct-literal alignment; **no generated file was affected** (the
+>     `AuraApi` bindings and `collisionlayer_enumer.go` were already clean), so
+>     the generators will not fight it on the next `make gen`.
 >   - **Verified:** full suite green (28 pkgs, exit 0) + `vet`; guardrails +
 >     alloc `-count=2`; boot both ways identical, 0 errors 0 warnings; five
 >     browser harnesses each solo on a fresh server — presence 6/6, follower
@@ -2185,8 +2191,32 @@ no-op of exactly the kind the rest of the file exists to prevent.
    away: an authored `"tickInterval": 0` or `-5` is rewritten to 1 instead of
    hard-failing, in the one file whose entire thesis is that a value the engine
    ignores must not load. 3-line fix.
-4. **Authors and the catalog speak different vocabularies for the same data.**
-   Content JSON is flat and prefixed (`damageHP`, `healHP`, `resistTags` — the
+4. ✅ **DONE 2026-07-31** `389f3935` (docs only, with §27.3.6 in one hygiene sitting).
+   **Authors and the catalog speak different vocabularies for the same data.**
+
+   > **The table now lives in `manual-content-authoring.md` §2 → "Authored key →
+   > catalog path (two vocabularies for the same data)"**, derived from
+   > `effectKeys` + the payload structs' json tags rather than written from
+   > memory — which is what turned up more asymmetry than this finding
+   > described. ⚑ **The general rule (`damageHP` → `damage.hp`) has three
+   > documented exceptions worth knowing before authoring:** the *same* authored
+   > key maps to **different catalog paths depending on `type`** — `damageHP` is
+   > `damage.hp` on the damage types but `dot.hp` on the dot types, and `healHP`
+   > is `heal.hp` / `hot.hp` / `selfHeal.healHp` across three payloads (the
+   > self-heal payload keeps the `heal` prefix its siblings drop); `selfDamageHP`
+   > lands as `heal.selfDamageHp`, the one place the capital `HP` becomes `Hp`;
+   > and `targetsSelf` lives **inside** the payload while every other target flag
+   > stays flat on `EffectDef`. The table ends by naming `definition.go` as the
+   > authority, so a future drift resolves without a second survey.
+   >
+   > ⚑ **One row was wrong on the first pass and caught against the mapper:**
+   > `gatedDamageTags` reads like "one key becomes two" (`damage.tags` +
+   > `damage.gated`), but `definition.go:1240` shows it is a plain bool authored
+   > *alongside* `damageTags` that hard-fails without it. Writing this table from
+   > the struct tags alone would have shipped that error — the payload builders
+   > are the thing to read.
+
+   Original finding: Content JSON is flat and prefixed (`damageHP`, `healHP`, `resistTags` — the
    private `effectDef` shape); `GET /skills` serves nested payloads
    (`damage.hp`, `heal.hp`, `resist.tags` — the public `EffectDef` shape). Both
    halves are deliberate and well-documented, but the consequence is that a
@@ -2198,8 +2228,32 @@ no-op of exactly the kind the rest of the file exists to prevent.
    duplicate entries when key groups overlap (`variance` sits in both
    `keysDamagePayload` and `keysDotPayload`) — harmless against a linear
    `slices.Contains`, and a *dropped* entry fails loudly rather than silently.
-6. **`TargetFactionMask` is now dead payload on the wire (found 2026-07-29).**
-   `/skills` marshals `SkillDefinition` verbatim, so the resolved mask ships to
+6. ✅ **FIXED 2026-07-31, test-first** `af7925d0` (with §27.3.4, one hygiene sitting).
+   **`TargetFactionMask` is now dead payload on the wire (found 2026-07-29).**
+
+   > `json:"-"` on **both** fields — the skill-level one and the per-effect copy
+   > — with the comment at each site naming the other, since the pair is the
+   > whole point (the mask is authored once and stamped onto every effect, so a
+   > half-fix would keep shipping it). Pinned by
+   > `TestMap_TargetFactionMaskIsNotServedToTheClient`, which asserts the mask is
+   > **still non-zero in memory on the skill and on its effects** before
+   > asserting it is absent from `json.Marshal` — a deletion and a
+   > de-serialization look identical to a test that only checks the payload, and
+   > the effect-level copy is the live runtime gate (`sys/skills.go:520`).
+   >
+   > **Verified end to end rather than by unit test alone:** a HEAD binary and a
+   > patched one were booted against the same content and their `/skills`
+   > payloads compared — HEAD served **6** mask occurrences (3 faction-scoped
+   > skills × skill-level + effect-level), the patched build serves **0**, and
+   > the two documents are **structurally identical once the key is removed**,
+   > so nothing else moved. 61 167 → 61 019 bytes. `Calm → [Prey, Predators]`,
+   > `CharmBeast → [Prey, Predators]`, `BindElemental → [Elementals]` still
+   > render, which is the half that had to survive. Frontend `tsc --noEmit`
+   > clean + 84 vitest green + `round4-tooltip.mjs` (which owns the `/skills`
+   > payload shape) green on a real browser client — the "0 client readers"
+   > claim proven at the surface, not just by grep.
+
+   Original finding: `/skills` marshals `SkillDefinition` verbatim, so the resolved mask ships to
    the client on the **skill and on every effect** — and since `2fffe9ee` the
    client reads the display **names** instead, leaving **0 client readers** of
    either mask. It cannot be decoded there anyway (the faction registry is
@@ -2218,8 +2272,12 @@ no-op of exactly the kind the rest of the file exists to prevent.
 | 4 | ~~§27.3.2 even out the zero-value payload guards~~ **✅ DONE 2026-07-24** (`eee10331`, same session as #2) | ~15 lines | authoring-safety, same session as #2 |
 | 5 | ~~§27.2.2 drop-RNG determinism~~ **✅ DONE 2026-07-24** (`b4b0e66d`) | ~1 h, test-first | **PO-ruled a bug** — now random per run via a per-process salt |
 | 6 | ~~§27.2.3 mob regen → `conf.json`~~ **✅ DONE 2026-07-24** (`2ec03ee7`) | ~30 min, test-first | now `game.mob.healthGainTick`, mirroring the player block's vocabulary |
-| 7 | ~~§27.3.3~~ **✅ DONE 2026-07-24** (`f095514a`) · ~~§27.2.8~~ **✅ DONE 2026-07-31** (with §25 A#1 + A#3) | opportunistic | pure hygiene |
+| 7 | ~~§27.3.3~~ **✅ DONE 2026-07-24** (`f095514a`) · ~~§27.2.8~~ **✅ DONE 2026-07-31** (with §25 A#1 + A#3) · ~~§27.3.4 + §27.3.6~~ **✅ DONE 2026-07-31** (`389f3935` + `af7925d0`) | opportunistic | pure hygiene |
 | — | §27.2.4 `Mob` god struct | do **not** act pre-emptively | watch item, like §25's |
+| — | §27.2.5 / §27.2.6 / §27.2.7 | **re-survey before acting** | §27.2.6's two "zero means unset" read sites are partly stale — entity-model 1b deleted `MobDefinition.PowerScale` and R5 re-shaped `SummonPower` into an authored rate, so the finding names code that has moved |
+
+> **§27.3 is now fully closed** — findings 1–4 and 6 are done, and 5 is the one
+> explicitly ruled not worth acting on. §27.2 keeps 4–7 open, all watch items.
 
 ---
 
