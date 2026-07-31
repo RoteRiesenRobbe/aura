@@ -1454,7 +1454,7 @@ with a real design decision in front of it.
 
 **WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 > **PARTIALLY DONE — A#4 + B landed 2026-07-24 (`2ec03ee7`), C landed
-> 2026-07-25, A#1 + A#3 landed 2026-07-31 (`[uncommitted]`).** Only **A#2**
+> 2026-07-25, A#1 + A#3 landed 2026-07-31 (`1bfd6677`).** Only **A#2**
 > (blocked on §33 — see below), **D** and **E** remain open.
 >
 > - **A#1 + A#3 (the mechanical cleanups): DONE 2026-07-31**, together with
