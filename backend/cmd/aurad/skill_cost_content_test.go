@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,6 +11,20 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
+
+// chargeableAuraTypes are the SEVEN effect types applyAuraEffect's switch
+// dispatches, and therefore the only ones an active aura can ever be charged
+// for. A second list, deliberately: it fails LOUD (a new chargeable type trips
+// the asserts that read it) rather than escaping them.
+var chargeableAuraTypes = map[skills.EffectType]bool{
+	skills.EffectTypeDamageAura: true,
+	skills.EffectTypeHealAura:   true,
+	skills.EffectTypeSlowAura:   true,
+	skills.EffectTypeResistAura: true,
+	skills.EffectTypeDotAura:    true,
+	skills.EffectTypeShieldAura: true,
+	skills.EffectTypeHotAura:    true,
+}
 
 // workGatedCharge is the R2 split of the seven chargeable types: which of them
 // charge only for a genuinely NEW application rather than for every application.
@@ -20,15 +36,74 @@ import (
 // charge recurs at most once per target ENTRY, which is a property of the world,
 // not of the cadence.
 //
-// This is a second list, like TestNoCostOnAnEffectThatCanNeverBeCharged's: it
-// fails LOUD rather than silently, because a type missing from it is measured
-// strictly (the haste term is included), never leniently.
-var workGatedCharge = map[skills.EffectType]bool{
-	skills.EffectTypeDotAura:    true,
-	skills.EffectTypeHotAura:    true,
-	skills.EffectTypeResistAura: true,
-	skills.EffectTypeSlowAura:   true,
-	skills.EffectTypeShieldAura: true,
+// ⚑ It is DERIVED from api/shared-constants.json rather than spelled out here,
+// because the client needs the same split and got it wrong: R1's cost line
+// printed the tick cadence for all seven, so after R2 a shield billed per refill
+// advertised itself as "every 1.32s". Two restatements of one taxonomy is the
+// §35 class exactly, so there is now one authored home and both sides read it —
+// the client picks its cost wording from it (SkillTooltip.ts COST_TRIGGER_TEXT,
+// exhaustive against the fixture in SharedConstants.test.ts) and this picks
+// which effects the haste term applies to.
+//
+// ⚑ The fixture is not the authority either — what each applier RETURNS in
+// sys/skills.go is. No file can derive that; this only stops the two
+// restatements drifting from each other, which is the failure that actually
+// happened.
+func workGatedChargeTypes(t *testing.T) map[skills.EffectType]bool {
+	t.Helper()
+	raw, err := os.ReadFile("../../../api/shared-constants.json")
+	require.NoError(t, err)
+	var fixture struct {
+		CostChargeTrigger map[string]string `json:"costChargeTrigger"`
+	}
+	require.NoError(t, json.Unmarshal(raw, &fixture))
+	require.NotEmpty(t, fixture.CostChargeTrigger, "the charge-trigger taxonomy is missing from the fixture")
+
+	gated := make(map[skills.EffectType]bool, len(fixture.CostChargeTrigger))
+	for name, trigger := range fixture.CostChargeTrigger {
+		effectType, ok := skills.ParseEffectType(name)
+		require.Truef(t, ok, "api/shared-constants.json names an unknown effect type %q", name)
+		switch trigger {
+		case "work":
+			gated[effectType] = true
+		case "application":
+			// Charged every time it lands: the cadence IS the charge rate.
+		default:
+			require.Failf(t, "unknown charge trigger", "%q on %s", trigger, name)
+		}
+	}
+	return gated
+}
+
+// TestChargeTriggerTaxonomyCoversEveryChargeableType keeps the fixture honest
+// against the one list the engine really does enforce. A new chargeable type
+// added to applyAuraEffect's switch without a trigger entry would otherwise be
+// measured as application-charged by default — the lenient direction — and
+// would silently get the wrong tooltip sentence too.
+func TestChargeTriggerTaxonomyCoversEveryChargeableType(t *testing.T) {
+	raw, err := os.ReadFile("../../../api/shared-constants.json")
+	require.NoError(t, err)
+	var fixture struct {
+		CostChargeTrigger map[string]string `json:"costChargeTrigger"`
+	}
+	require.NoError(t, json.Unmarshal(raw, &fixture))
+
+	named := make(map[skills.EffectType]bool, len(fixture.CostChargeTrigger))
+	for name := range fixture.CostChargeTrigger {
+		effectType, ok := skills.ParseEffectType(name)
+		require.Truef(t, ok, "unknown effect type %q in the fixture", name)
+		named[effectType] = true
+	}
+
+	for effectType := range chargeableAuraTypes {
+		assert.Truef(t, named[effectType],
+			"effect type id %d is chargeable on an aura but api/shared-constants.json does not say WHEN "+
+				"it is charged — the drain guard would measure it at its cadence and the tooltip would "+
+				"print that cadence, both of which are only right for application-charged effects",
+			int(effectType))
+	}
+	assert.Len(t, named, len(chargeableAuraTypes),
+		"the fixture names an effect type that cannot be charged on an aura at all")
 }
 
 // Content guards for the authored resource costs (plan-numbers-rewrite C2b).
@@ -96,6 +171,7 @@ func TestAuraCostDrainIsSurvivableAtLevelOne(t *testing.T) {
 
 	defs := playerSkillDefs(t)
 	factor, duty := worstSustainableHaste(defs)
+	workGatedCharge := workGatedChargeTypes(t)
 
 	for _, def := range defs {
 		if def.Category != skills.SkillCategoryActiveAura {
@@ -192,23 +268,13 @@ func worstSustainableHaste(defs []*skills.SkillDefinition) (factor float32, duty
 // and in the tooltip while costing nothing, which is the failure mode that
 // survives longest because it looks like a balance opinion rather than a bug.
 func TestNoCostOnAnEffectThatCanNeverBeCharged(t *testing.T) {
-	chargeable := map[skills.EffectType]bool{
-		skills.EffectTypeDamageAura: true,
-		skills.EffectTypeHealAura:   true,
-		skills.EffectTypeSlowAura:   true,
-		skills.EffectTypeResistAura: true,
-		skills.EffectTypeDotAura:    true,
-		skills.EffectTypeShieldAura: true,
-		skills.EffectTypeHotAura:    true,
-	}
-
 	for _, def := range playerSkillDefs(t) {
 		if def.Category == skills.SkillCategoryCooldown {
 			continue // cooldownCostHP sums EVERY effect, whatever its type
 		}
 		for i := range def.Effects {
 			effect := def.Effects[i]
-			if def.Category == skills.SkillCategoryActiveAura && chargeable[effect.Type] {
+			if def.Category == skills.SkillCategoryActiveAura && chargeableAuraTypes[effect.Type] {
 				continue
 			}
 			for level := 1; level <= def.MaxLevel; level++ {

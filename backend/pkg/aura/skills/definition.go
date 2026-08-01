@@ -86,6 +86,20 @@ func HasVisibleTickCadence(t EffectType) bool {
 	}
 }
 
+// ParseEffectType resolves an authored effect-type name to its EffectType, the
+// mobs.ParseRole shape. Reports false for an unknown name rather than a zero
+// value that would silently read as damage_aura.
+//
+// It exists so a caller outside the loader can talk about effect types in the
+// authored vocabulary without keeping a second copy of the table — which is the
+// §35 duplication class. Its first caller is the cost-drain content guard,
+// which reads api/shared-constants.json's charge-trigger taxonomy (authored as
+// "dot_aura", …) and has to reach the enum from it.
+func ParseEffectType(name string) (EffectType, bool) {
+	t, ok := effectTypeMap[name]
+	return t, ok
+}
+
 var effectTypeMap = map[string]EffectType{
 	"damage_aura":     EffectTypeDamageAura,
 	"heal_aura":       EffectTypeHealAura,

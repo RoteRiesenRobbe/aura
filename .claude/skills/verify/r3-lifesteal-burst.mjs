@@ -179,6 +179,21 @@ const equipFromSpellbook = async (re, slotSel) => {
   return false;
 };
 
+// ⚑ HUD loadout state is GameState-driven on the throttled rAF loop, so a single
+// equip click lands intermittently — the slot label is the only thing that says
+// it took. Retry rather than sleep; a run that measures an empty aura slot looks
+// exactly like a broken buff.
+const equipUntilShown = async (re, slotSel, labelSel, labelRe) => {
+  for (let i = 0; i < 5; i++) {
+    await equipFromSpellbook(re, slotSel);
+    const ok = await page.waitForFunction(
+      ([sel, src]) => new RegExp(src, 'i').test(document.querySelector(sel)?.textContent ?? ''),
+      [labelSel, labelRe.source], { timeout: 6_000 }).then(() => true).catch(() => false);
+    if (ok) return true;
+  }
+  return false;
+};
+
 // ⚑ LongRangeStrike, not the seeded Damage aura. Damage has a radius of 1.0 and
 // mobs at this venue settle 2.5–3 units out, so a run with it equipped measures
 // a player who is reaching nothing — floating numbers everywhere (other mobs
@@ -190,12 +205,11 @@ await page.waitForFunction(
   () => [...document.querySelectorAll('#spellbookList [data-skill-id]')]
     .some(e => /Long[- ]?Range[- ]?Strike/i.test(e.textContent)),
   null, { timeout: 20_000 }).catch(() => {});
-await equipFromSpellbook(/Long[- ]?Range[- ]?Strike/i, '#auraSlotList li[data-slot="0"]');
+await equipUntilShown(/Long[- ]?Range[- ]?Strike/i, '#auraSlotList li[data-slot="0"]',
+  '#auraSlotList li[data-slot="0"] .slotLabel', /Strike/);
 // ⚑ toggleAuraSlot refuses the activation click until currentAuraSlots has
-// synced from the server — wait for the slot to show the skill, then activate.
-await page.waitForFunction(
-  () => /Strike/i.test(document.querySelector('#auraSlotList li[data-slot="0"] .slotLabel')?.textContent ?? ''),
-  null, { timeout: 15_000 }).catch(() => {});
+// synced from the server, so the activation needs its own retry loop on top of
+// the equip's.
 for (let i = 0; i < 8; i++) {
   const active = await page.evaluate(() => !!document.querySelector('#auraSlotList .activeSlot'));
   if (active) break;
@@ -204,7 +218,8 @@ for (let i = 0; i < 8; i++) {
   if (sb) await page.mouse.click(sb.x + sb.width / 2, sb.y + sb.height / 2);
   await page.waitForTimeout(900);
 }
-await equipFromSpellbook(/Bloodthirst/i, '#cooldownSlotList li:first-child');
+await equipUntilShown(/Bloodthirst/i, '#cooldownSlotList li:first-child',
+  '#cooldownSlotList li:first-child', /Bloodthirst/);
 
 const loadout = await page.evaluate(() => ({
   aura: document.querySelector('#auraSlotList li[data-slot="0"] .slotLabel')?.textContent?.trim() ?? '',
@@ -266,24 +281,25 @@ const health = () => page.evaluate(() => {
 // — walking in is what makes the aura the subject of the measurement rather
 // than a bystander. Short bursts, re-aimed each time, and it gives up rather
 // than wandering the map.
-for (let i = 0; i < 10; i++) {
-  const v = await nearestMobVec();
-  if (!v || v.d < 2.0) break;
-  await page.evaluate(() => document.activeElement?.blur());
-  const keys = [];
-  if (Math.abs(v.dx) > 0.3) keys.push(v.dx > 0 ? 'd' : 'a');
-  if (Math.abs(v.dy) > 0.3) keys.push(v.dy > 0 ? 's' : 'w');
-  for (const k of keys) await page.keyboard.down(k);
-  await page.waitForTimeout(900);
-  for (const k of keys) await page.keyboard.up(k);
-  await page.waitForTimeout(400);
-}
-console.log('approach done, nearest mob:', await nearestMob());
+const approach = async (tries) => {
+  for (let i = 0; i < tries; i++) {
+    const v = await nearestMobVec();
+    if (!v || v.d < 1.8) break;
+    await page.evaluate(() => document.activeElement?.blur());
+    const keys = [];
+    if (Math.abs(v.dx) > 0.3) keys.push(v.dx > 0 ? 'd' : 'a');
+    if (Math.abs(v.dy) > 0.3) keys.push(v.dy > 0 ? 's' : 'w');
+    for (const k of keys) await page.keyboard.down(k);
+    await page.waitForTimeout(900);
+    for (const k of keys) await page.keyboard.up(k);
+    await page.waitForTimeout(400);
+  }
+  return nearestMob();
+};
+console.log('approach done, nearest mob:', await approach(10));
 
-// Open a wound so the leech has somewhere to go, and let combat latch (an
-// in-combat player does not regenerate, so any RISE can only be the leech).
-await cmd('DAMAGE 60');
-await page.waitForTimeout(3000);
+// The loop below opens a wound before each attempt (an in-combat player does not
+// regenerate, so any RISE can only be the leech).
 
 // Poll rather than sleep: the number layer is transient, so a single read at the
 // end of a five-second window sees whatever happened to be on screen that frame.
@@ -300,20 +316,47 @@ const sample = async (seconds) => {
   return { before, after, numbers, closest, delta: (after?.cur ?? 0) - (before?.cur ?? 0) };
 };
 
-const control = await sample(5);
-console.log('control window:', JSON.stringify(control));
+// ⚑ Measure, and RE-measure if a level-up lands inside the window. Killing
+// things is how the leech gets damage to leech from, kills grant XP, and a ding
+// refills the pool — which arrives as a +70 that has nothing to do with the
+// buff (observed in two runs out of three at this venue). The pool guard below
+// catches it, but catching it every time would just make the leg permanently
+// inconclusive. A ding is a one-off transition: after it, the next level costs
+// far more XP than a ten-second window produces, so a retry is a clean
+// measurement rather than a re-roll of the same dice.
+let control, burst;
+for (let attempt = 1; attempt <= 4; attempt++) {
+  // Wait out the cooldown from the previous attempt — the slot renders a timer.
+  for (let i = 0; i < 60; i++) {
+    const busy = await page.evaluate(() =>
+      /\d+(\.\d+)?s/.test(document.querySelector('#cooldownSlotList li:first-child')?.textContent || ''));
+    if (!busy) break;
+    await page.waitForTimeout(1000);
+  }
+  await approach(6);
+  await cmd('DAMAGE 60');
+  await page.waitForTimeout(2000);
 
-// ⚑ ~1.4 s hold: slot hotkeys are edge-triggered from Controls.update on an
-// rAF-driven clock, and a headless page throttles rAF hard enough that a short
-// press falls between two samples.
-await page.evaluate(() => document.activeElement?.blur());
-await page.keyboard.down('q');
-await page.waitForTimeout(1400);
-await page.keyboard.up('q');
-await page.waitForTimeout(300);
+  control = await sample(5);
+  console.log(`control window (attempt ${attempt}):`, JSON.stringify(control));
 
-const burst = await sample(5);
-console.log('burst window:', JSON.stringify(burst));
+  console.log('re-approach before the burst, nearest mob:', await approach(6));
+
+  // ⚑ ~1.4 s hold: slot hotkeys are edge-triggered from Controls.update on an
+  // rAF-driven clock, and a headless page throttles rAF hard enough that a
+  // short press falls between two samples.
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.keyboard.down('q');
+  await page.waitForTimeout(1400);
+  await page.keyboard.up('q');
+  await page.waitForTimeout(300);
+
+  burst = await sample(5);
+  console.log(`burst window (attempt ${attempt}):`, JSON.stringify(burst));
+
+  if (control.before?.max === burst.after?.max) break;
+  console.log('a level-up landed inside the measurement — re-measuring');
+}
 await page.screenshot({ path: join(outdir, 'burst-window.png') });
 
 const cooldownFired = await page.evaluate(() =>
@@ -326,15 +369,19 @@ const cooldownFired = await page.evaluate(() =>
 // script reported a textbook run (control 0, burst +20) as inconclusive because
 // its observability probe guessed a container name wrong, which is the mirror
 // image of the same mistake.
+// A moving maxHealth means a level-up landed mid-measurement: the pool refills,
+// which shows up as a large positive delta that has nothing to do with the leech.
+const poolHeld = control.before?.max === burst.after?.max;
 const fought = (control.numbers + burst.numbers) > 0;
 const inRange = [control.closest, burst.closest].some(d => d !== null && d < 2.0);
 const wounded = (control.before?.cur ?? 0) < (control.before?.max ?? 1);
 
-if (!inRange || !fought || !wounded) {
+if (!inRange || !fought || !wounded || !poolHeld) {
   check('INCONCLUSIVE — the venue did not produce a fight to measure', null,
     `nearest mob ${control.closest}u / ${burst.closest}u, floating numbers ` +
-    `${control.numbers}+${burst.numbers}, wounded: ${wounded} — ` +
-    `the leech had no damage to leech from, so a flat health line proves nothing`);
+    `${control.numbers}+${burst.numbers}, wounded: ${wounded}, pool held: ${poolHeld} ` +
+    `(${control.before?.max} -> ${burst.after?.max}) — the leech had no damage to leech ` +
+    `from, or a level-up refilled the pool underneath the measurement`);
 } else {
   check(
     'Firing Bloodthirst heals the caster from their own hits',

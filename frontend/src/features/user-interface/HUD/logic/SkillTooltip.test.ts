@@ -485,13 +485,13 @@ describe('resource cost in absolute Focus', () => {
         // under a point, so on this pool levelling Immolate does not change what
         // it takes out of you. That is a fact the percentage could not state.
         expect(lines(immolate, 1, 1, 100)).toContain(
-            'Costs you: 1 Focus every 0.66s');
+            'Costs you: 1 Focus when it sets something alight');
     });
 
     it('resolves the level curve once the pool outgrows the floor', () => {
         // 0.26 % of 2600 is 6.76 → 7; level 2 is 8.45 → 8.
         expect(lines(immolate, 1, 1, 2600)).toContain(
-            'Costs you: 7 → 8 Focus every 0.66s');
+            'Costs you: 7 → 8 Focus when it sets something alight');
     });
 
     // F2: the PO reported the cost reduction working but invisible. It is
@@ -499,7 +499,7 @@ describe('resource cost in absolute Focus', () => {
     // to reconcile when the floor and the reduction both bind.
     it('folds the cost-reduction passive into the number', () => {
         expect(lines(immolate, 1, 1, 2600, 0.8)).toContain(
-            'Costs you: 5 → 7 Focus every 0.66s');
+            'Costs you: 5 → 7 Focus when it sets something alight');
     });
 
     it('never prints a free cost for a priced effect', () => {
@@ -509,14 +509,56 @@ describe('resource cost in absolute Focus', () => {
             effects: [effect({type: 'slow_aura', tickInterval: 40, costFractionOfMax: 0.0001,
                 targetsEnemies: true, slow: {fraction: 0.3, fractionPerLevel: 0}})],
         });
-        expect(lines(trivial, 1, 1, 100)).toContain('Costs you: 1 Focus every 1.32s');
+        expect(lines(trivial, 1, 1, 100)).toContain('Costs you: 1 Focus when it catches someone new');
+    });
+
+    // The R1/R2 discrepancy this pair exists to keep closed. R2 changed WHEN
+    // five of the seven chargeable types are charged; R1's wording predated it
+    // and kept printing the effect's tick cadence, so a shield billed per refill
+    // advertised itself as "every 1.32s". Damage and heal still pay on every
+    // application and must keep the cadence — that half is what makes this a
+    // fix rather than a blanket rewording.
+    it('prints the charge TRIGGER, not the cadence, for work-gated effects', () => {
+        const warbanner = skill({
+            displayName: 'Warbanner', maxLevel: 10,
+            effects: [
+                effect({type: 'damage_aura', radius: 1.2, tickInterval: 40, targetsEnemies: true,
+                    costFractionOfMax: 0.0184, damage: damageParams(15)}),
+                effect({type: 'heal_aura', radius: 1.2, tickInterval: 40,
+                    costFractionOfMax: 0.0106,
+                    heal: {hp: 4.3333, hpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}}),
+                effect({type: 'shield_aura', radius: 1.2, tickInterval: 40, targetsAllies: true,
+                    costFractionOfMax: 0.0049,
+                    shield: {hp: 8, hpPerLevel: 0, durationTicks: 0, targetsSelf: true}}),
+            ],
+        });
+
+        const costs = lines(warbanner, 1, 1, 2600).filter(l => l.startsWith('Costs you'));
+        expect(costs).toEqual([
+            'Costs you: 48 Focus every 1.32s',
+            'Costs you: 28 Focus every 1.32s',
+            'Costs you: 13 Focus when a shield goes up or is refilled',
+        ]);
+    });
+
+    // The cadence is not lost when the cost line stops claiming it — it still
+    // rides the effect's own line. Without this, "fixing" the cost line could
+    // quietly remove the only place a player learns how often a shield lands.
+    it('keeps the cadence on the effect line it belongs to', () => {
+        const shieldOnly = skill({
+            maxLevel: 1,
+            effects: [effect({type: 'shield_aura', radius: 1.2, tickInterval: 40, targetsAllies: true,
+                costFractionOfMax: 0.0049,
+                shield: {hp: 8, hpPerLevel: 0, durationTicks: 0, targetsSelf: true}})],
+        });
+        expect(lines(shieldOnly, 1, 1, 2600)).toContain('Shield: 8 Focus, refreshed every 1.32s');
     });
 
     it('falls back to the authored percentage when the pool is unknown', () => {
         // No snapshot yet (maxHealth 0). Imprecise beats invented — and the
         // shape changes with it, so the number is never read as points.
         expect(lines(immolate, 1, 1, 0)).toContain(
-            'Costs you: 0.26% → 0.33% of max Focus every 0.66s');
+            'Costs you: 0.26% → 0.33% of max Focus when it sets something alight');
     });
 
     // ⚑ The conversion happens on the SUM for a cooldown, not per effect:

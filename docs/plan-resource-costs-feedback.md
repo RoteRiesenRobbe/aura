@@ -1042,15 +1042,47 @@ on cast, hit or whiff. Six behaviour tests were green over an inert feature.
 lifesteal_burst, both directions) — proven red by removing one method, with the
 six behaviour tests staying green throughout, which is the whole demonstration.
 
-**⚑ A finding R3 surfaced but did not fix: the cost line's cadence is now
-wrong for work-gated effects.** Read off a real tooltip in the harness —
-Warbanner says *"Costs you: 1 Focus **every 1.32 s**"* for its heal and shield,
-Immolate *"1 Focus **every 0.66 s**"*. After R2 those charge per target-ENTRY
-and per IGNITION. R2 changed *when* a cost is taken and R1's wording still says
-*per beat*, so the two passes disagree on the surface a player reads. Not in
-R3's scope and deliberately untouched — but it is exactly the sort of thing that
-arrives in a feel pass looking like a balance complaint, so it is on record
-here rather than waiting to be re-discovered.
+**⚑ The R1/R2 discrepancy R3 surfaced — and then closed.** Read off a real
+tooltip in the harness, Warbanner said *"Costs you: 1 Focus **every 1.32 s**"*
+for its heal and shield and Immolate *"1 Focus **every 0.66 s**"*. R2 had changed
+*when* five of the seven chargeable types are charged; R1's cost wording predated
+it and kept printing the effect's tick cadence for all seven. The number was
+right and the sentence around it was a leftover from the previous pass.
+
+Fixed in the same chunk rather than left for the feel pass, because it would have
+arrived there looking like a balance opinion. The cost line now prints the
+**charge trigger**, not the cadence:
+
+| type | cost line reads |
+|---|---|
+| damage_aura, heal_aura | `every 1.32s` — unchanged; they really do pay per application |
+| dot_aura | `when it sets something alight` |
+| hot_aura, resist_aura | `when it reaches someone new` |
+| slow_aura | `when it catches someone new` |
+| shield_aura | `when a shield goes up or is refilled` |
+
+⚑ Phrased as **when**, never as per-what: a cost is charged once per
+*application* (§3.5), so an aura that ignites two enemies in one tick pays once
+and *"per enemy set alight"* would be a different and wrong promise. And the
+cadence is **not lost** — it still rides the effect's own line, which reads
+*"refreshed every 1.32 s"* for all five; only the cost line stops claiming it.
+
+⚑ **The taxonomy is authored once, because two restatements of it is what caused
+the bug.** `api/shared-constants.json` gains `costChargeTrigger`, and both sides
+read it: the client picks its wording from it (`COST_TRIGGER_TEXT`, asserted
+exhaustively in **both directions** by `SharedConstants.test.ts` — a work-gated
+type with no wording, or wording for an application-charged type, both fail) and
+the Go drain guard **derives** `workGatedCharge` from it rather than keeping the
+copy R3 originally gave it. That needed one small export,
+`skills.ParseEffectType` (the `mobs.ParseRole` shape), so a caller outside the
+loader can reach the enum from the authored vocabulary without a second table.
+A new content guard then keeps the fixture honest against the seven types
+`applyAuraEffect` actually dispatches, in both directions. ⚑ **The fixture is
+not the authority either** — what each applier *returns* in `sys/skills.go` is,
+and no file can derive that; this only stops the two restatements drifting from
+each other, which is the failure that actually happened. Both guards proven red
+against real drifts (flip `shield_aura` to `application` → 2 vitest failures;
+drop `hot_aura` → the Go coverage guard names the missing type).
 
 **Verified**
 
@@ -1075,7 +1107,10 @@ here rather than waiting to be re-discovered.
   **`swift-cooldown`** all legs (owns the movement axis; the buff store gained a
   payload kind) · **`chunk2-calm` 7/7** (owns the buff store). 0 console errors,
   0 WebGL losses.
-- **New harness `r3-lifesteal-burst.mjs`, 7/7 on two consecutive fresh
+- The wording fix re-read **off a real tooltip**: Warbanner now prints
+  `every 1.32s` for damage and heal and `when a shield goes up or is refilled`
+  for the shield, Immolate `when it sets something alight`.
+- **New harness `r3-lifesteal-burst.mjs`, 7/7 on three consecutive fresh
   servers.** It exists for the two seams neither Go nor vitest can see: that
   `GET /skills` really serves the new `lifesteal` payload (a missing json tag
   renders `(lifesteal_burst)` and nothing else fails), and that the buff reaches
@@ -1088,7 +1123,14 @@ here rather than waiting to be re-discovered.
   equips **Long-Range Strike**, not the seeded Damage aura, because Damage's
   radius is 1.0 while mobs at the venue settle 2.5–3 units out: a run with
   Damage measures a player reaching nothing, with floating numbers everywhere
-  from *other* mobs fighting, which reads exactly like a broken buff.
+  from *other* mobs fighting, which reads exactly like a broken buff. ⚑ A third:
+  **a level-up refills the pool**, so a ding inside the measurement window
+  arrives as a +70 health delta that has nothing to do with the leech (it
+  happened in two runs of three). Capping the level first removes the cause and
+  replaces it with a worse one — at CL30 the player one-shots everything and
+  nothing survives into the burst window — so the leg guards on `maxHealth`
+  holding and **re-measures**, a ding being a one-off transition rather than a
+  re-roll of the same dice.
 
 **⚑ The sim battery is byte-identical, and again that means less than it looks.**
 Default · `-chain` · `-levels` · the `-content ../api` roster all diff clean
@@ -1102,7 +1144,8 @@ damage aura R3 did not touch — so the heal / shield / slow re-authoring has
 Survival stays **100 %** in every row.
 
 **Open after R3:** the numbers are [PLACEHOLDER] until played, so this ends in a
-**PO feel pass**, then **R4** (the downtime design session — designed against a
+**PO feel pass** — with the cost lines now saying what the server actually does,
+which was the one thing that would have polluted it — then **R4** (the downtime design session — designed against a
 world where First Aid is now free). Bloodthirst has **no unlock source** and is
 dev-obtainable via `SKILL Bloodthirst`, like FireWard; placement is a
 content-pass call, and the obvious home is the wolf line Reaper already drops

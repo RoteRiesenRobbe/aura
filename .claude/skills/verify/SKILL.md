@@ -228,6 +228,18 @@ for reasons unrelated to any recent change:
   sprite's `.position` and `window.game.character.getX()/getY()` are in the
   **same** space (`character.shape.position` equals `getX/getY`), so the
   difference is a true distance in wire units — divide by 120 for world units.
+- **⚑ Measuring a HEALTH delta? A level-up refills the pool.** Killing things is
+  usually how a damage-side measurement gets its subject, kills grant XP, and a
+  ding raises `maxHealth` and fills it — arriving in the delta as a large
+  positive number that has nothing to do with the thing under test. It cost
+  `r3-lifesteal-burst` two runs in three (a control window read 40/100 → 112/112
+  and scored a +72 "heal"). ⚑ **Capping the level first removes the cause and
+  replaces it with a worse one:** at CL30 with GOD the player one-shots
+  everything, so nothing survives into the measurement window and every run goes
+  inconclusive for lack of a fight. What works is to **guard on `maxHealth`
+  holding across the window and re-measure when it moves** — a ding is a one-off
+  transition, so the retry is a clean measurement rather than a re-roll of the
+  same dice. Read `max` in the same `page.evaluate` as `cur`.
 - **⚑ Measuring a PACE? Check the ground first.** The world has 777 blocking
   props, so an arbitrary `WARP` target can sit in a pocket only a couple of units
   wide — and then every walk measures the pocket, not the speed. That cost four

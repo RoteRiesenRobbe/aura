@@ -46,6 +46,16 @@
     [11.4, 11],
     [11.6, 12]
   ],
+  "_costChargeTriggerComment": "WHEN an aura effect's cost is taken, which is not the same question as how often the effect fires. R2 (plan-resource-costs-feedback §5.2) made five of the seven chargeable types pay only for work DONE: they report new-vs-refresh out of the buff store and are charged off that answer, so holding one on a target set that is not changing is free. Only damage_aura and heal_aura still pay on every application, and only they can honestly print a cadence on their cost line. Cross-language because BOTH sides restate it: the client picks the cost line's wording (SkillTooltip.ts COST_TRIGGER_TEXT) and the Go content guard picks which effects the haste term applies to (cmd/aurad workGatedCharge). ⚑ The real authority is what each applier RETURNS in sys/skills.go — this file cannot derive that, it can only stop the two restatements drifting apart from each other. A new chargeable type must be added here, and both sides then fail until they agree.",
+  "costChargeTrigger": {
+    "damage_aura": "application",
+    "heal_aura": "application",
+    "dot_aura": "work",
+    "hot_aura": "work",
+    "resist_aura": "work",
+    "slow_aura": "work",
+    "shield_aura": "work"
+  },
   "viewportMeters": {
     "width": 20,
     "height": 12

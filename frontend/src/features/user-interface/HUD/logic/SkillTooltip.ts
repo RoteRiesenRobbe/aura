@@ -153,6 +153,35 @@ const TICKING_TYPES = new Set([
     'slow_aura', 'resist_aura', 'shield_aura',
 ]);
 
+// What a cost line says about WHEN it is taken, for the five types that do not
+// pay on every application.
+//
+// ⚑ R2 (plan-resource-costs-feedback §5.2) made these charge only for work
+// DONE — they report new-vs-refresh out of the buff store and are charged off
+// that answer — while R1's cost wording was written before it and kept printing
+// the effect's tick cadence. So Warbanner read "Costs you: 1 Focus every 1.32s"
+// for a shield the server bills per refill, and Immolate "every 0.66s" for a dot
+// it bills per ignition. The number was right and the sentence around it was a
+// leftover from the previous pass.
+//
+// Phrased as WHEN, never as per-what: a cost is charged once per APPLICATION
+// (§3.5), so an aura that ignites two enemies in one tick pays once, and "per
+// enemy set alight" would be a different and wrong promise.
+//
+// The cadence is not lost — it still rides the effect's own line, which reads
+// "refreshed every 1.32s" for all five. Only the COST line stops claiming it.
+//
+// Exhaustive against api/shared-constants.json in both directions
+// (SharedConstants.test.ts), so a new chargeable type cannot land with the
+// wrong sentence, and the Go content guard reads the same taxonomy.
+export const COST_TRIGGER_TEXT: { [type: string]: string } = {
+    dot_aura: 'when it sets something alight',
+    hot_aura: 'when it reaches someone new',
+    resist_aura: 'when it reaches someone new',
+    slow_aura: 'when it catches someone new',
+    shield_aura: 'when a shield goes up or is refilled',
+};
+
 function targetsLine(effect: SkillEffect, level: number, maxLevel: number): string | null {
     const groups: string[] = [];
     if (effect.targetsEnemies) groups.push('enemies');
@@ -470,12 +499,16 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
     // The cost closes the block (plan-numbers-rewrite D5/D7), in the Focus
     // color rather than the effect's own: it is the one line that talks about
     // the player's pool instead of what the effect does to somebody else.
-    // `perTick` carries this effect's own cadence, which is the point — each
-    // effect pays on its own beat.
+    //
+    // What follows the amount is the CHARGE TRIGGER, not the tick cadence — the
+    // two are only the same thing for damage and heal auras, which pay on every
+    // application. See COST_TRIGGER_TEXT.
     if (isCosted) {
         const amount = prog(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel,
             level, maxLevel, cost.render);
-        rendered.push({text: `Costs you: ${amount}${cost.unit}${perTick}`, labelColor: FOCUS_COLOR});
+        const trigger = COST_TRIGGER_TEXT[effect.type];
+        const when = trigger ? ` ${trigger}` : perTick;
+        rendered.push({text: `Costs you: ${amount}${cost.unit}${when}`, labelColor: FOCUS_COLOR});
     }
 
     return {lines: rendered, generics};

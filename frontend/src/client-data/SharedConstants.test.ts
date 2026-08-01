@@ -6,6 +6,7 @@ import {AuraCategoryBit} from '../features/game-objects/logic/AuraRings';
 import {TierRank} from './Mobs';
 import {BasicConfig, meter2px} from './BasicConfig';
 import {SKILL_POINT_COST, roundHP, skillPointCost} from './Skills';
+import {COST_TRIGGER_TEXT} from '../features/user-interface/HUD/logic/SkillTooltip';
 
 // §35 C4c (plan-conf-duplication.md D3): the client half of the
 // shared-constants contract. api/shared-constants.json is the one authored
@@ -61,6 +62,27 @@ describe('shared constants (api/shared-constants.json)', () => {
     // mirror the moment the spellbook + button started showing what a level
     // costs. Both the table and the resulting curve are pinned — a threshold
     // could match while the formula that reads it drifted.
+    // R3 follow-up: R2 changed WHEN five of the seven chargeable types are
+    // charged, and R1's cost wording predated it — so the tooltip claimed a
+    // cadence ("every 1.32s") for effects that actually pay per target-entry.
+    // The two sides now restate one authored taxonomy, and both directions are
+    // exhaustive: a work-gated type with no wording, or wording for a type the
+    // fixture calls application-charged, fails here.
+    it('gives every work-gated type its own cost wording, and only those', () => {
+        const workGated = Object.entries(shared.costChargeTrigger)
+            .filter(([, trigger]) => trigger === 'work')
+            .map(([type]) => type);
+        expect(Object.keys(COST_TRIGGER_TEXT).sort()).toEqual(workGated.sort());
+    });
+
+    it('leaves the application-charged types on the cadence they really pay at', () => {
+        for (const [type, trigger] of Object.entries(shared.costChargeTrigger)) {
+            if (trigger === 'application') {
+                expect(COST_TRIGGER_TEXT[type]).toBeUndefined();
+            }
+        }
+    });
+
     it('pins the skill-point cost table', () => {
         expect(SKILL_POINT_COST).toEqual(shared.skillPointCost);
     });
