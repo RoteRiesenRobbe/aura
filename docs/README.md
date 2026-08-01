@@ -98,14 +98,17 @@ than patch. PDF renders of the first two sit in the repo root.
   proposal and why it was rejected, and the three rules that keep a future machine split
   a deploy decision. ⚑ Same snapshot caveat as 1a's.
 
+- **accounts/chunk-1c-summary.html** — "Step 8a, Chunk 1c: the eight endpoints"
+  (2026-08-01). Plain-language summary of what a player can now do (create with no signup,
+  come back, sign up without losing progress, log in, log out everywhere, delete), the
+  character-name ruling and why `Barney Rubble` had to survive it, the two old permissive
+  transport defaults that were closed, and the twelve deliberate breakages — eleven caught,
+  the twelfth a wrong comment rather than a missing test. ⚑ Same snapshot caveat as 1a's.
+
 `docs/accounts/` also carries **session handovers** — working notes for picking a chunk up
 cold, not snapshots. ⚑ **Disposable: delete one when its chunk lands**, so the folder never
 accumulates stale instructions. Durable content belongs in the plan doc's chunk ledger.
-
-- **accounts/chunk-1c-handover.md** — what a fresh session needs to start 8a chunk 1c
-  (the eight endpoints): reading order, the `auth`/`store` API 1b left as actual signatures,
-  the three invariants 1c must not break, nine traps that fail *silently*, the one open PO
-  decision (character-name charset), this dev box's quirks, and a definition of done.
+There is none open right now; 1c's was deleted when it landed.
 
 ## Research (investigations / assessments)
 

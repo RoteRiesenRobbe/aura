@@ -13,6 +13,16 @@ type Server struct {
 	Port        int    `json:"port"`
 	TlsHost     string `json:"tlsHost"`
 	FrontendDir string `json:"frontendDir"`
+
+	// AllowedOrigins is the browser-origin allowlist guarding both the WebSocket
+	// handshake and the credentialed /api endpoints (backlog §43).
+	//
+	// ⚑ Usually EMPTY, and that is correct: a TLS deployment derives
+	// https://<tlsHost> automatically and -dev allows loopback on any port, so
+	// this exists for the case neither covers — a second front-end host, or a
+	// staging origin. Origins are not secrets, so conf.json is the right home
+	// (unlike AURA_DB_URL and AURA_JWT_KEY, which are not).
+	AllowedOrigins []string `json:"allowedOrigins"`
 }
 
 type Config struct {
@@ -45,6 +55,17 @@ type Config struct {
 			// has (§4.3 v2, PO 2026-07-20) [PLACEHOLDER 0.05]; skill-authored
 			// chance and the critChance passive stat add on top.
 			CritChance float32 `json:"critChance"`
+
+			// MaxAliveCharacters is how many characters an account may have
+			// alive at once — the character-select slot count (8a chunk 1c).
+			// [PLACEHOLDER 3]
+			//
+			// ⚑ An APPLICATION concern by design: nothing in the schema bounds
+			// slot_index, because the cap is a config knob while the database
+			// invariant is only "at most one alive character per slot".
+			// ⚑ RAISING it is safe; LOWERING it strands anyone sitting in a slot
+			// the UI no longer renders (plan-accounts-frontend.md §9 item 2).
+			MaxAliveCharacters int `json:"maxAliveCharacters"`
 		} `json:"player"`
 
 		// Mob mirrors the player block's vocabulary for stats both entity kinds
@@ -128,6 +149,12 @@ func ReadConfig(filename string) (*Config, error) {
 	}
 	if config.Game.Player.CritChance <= 0 {
 		config.Game.Player.CritChance = 0.05
+	}
+	// Defaulted here, like every other player knob, so an absent key and a key
+	// restating the default resolve identically (§35 D1) — the property the
+	// shrink-to-deltas confs depend on.
+	if config.Game.Player.MaxAliveCharacters <= 0 {
+		config.Game.Player.MaxAliveCharacters = 3
 	}
 	// An absent port on a plain-HTTP boot would otherwise bind ":0" — a random
 	// ephemeral port. TLS boots serve on 443 and warn about any configured

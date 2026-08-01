@@ -223,8 +223,8 @@ func (g *simGame) Quests() quests.Registry { return nil }
 
 // Handler / Loop belong to the net layer the sim deliberately does not
 // stand up (plan §2).
-func (g *simGame) Handler() http.Handler { panic("sim: no net layer") }
-func (g *simGame) Loop()                 { panic("sim: the runner drives ticks via World.Step") }
+func (g *simGame) Handler(func(*http.Request) bool) http.Handler { panic("sim: no net layer") }
+func (g *simGame) Loop()                                         { panic("sim: the runner drives ticks via World.Step") }
 
 func (g *simGame) GetEntity(id uint64) (model.BasicEntity, error) {
 	e, ok := g.entities[id]

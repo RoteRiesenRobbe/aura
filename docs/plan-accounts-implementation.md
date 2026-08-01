@@ -707,6 +707,39 @@ Nothing is inherited from anywhere, so these are decisions rather than defaults.
 | Password composition | **At least one special character** (non-alphanumeric) |
 | Password blocklist | Reject trivial sequences — `12345678`, `1234567890`, `abcdefgh`, `password`, keyboard runs like `qwertyui`, and the username itself |
 | Password maximum length | 72 bytes (a bcrypt limit, not a policy choice) |
+| **Character name length** | **3–20 characters** |
+| **Character name charset** | **The "human name" rule (PO 2026-08-01, chunk 1c).** Letters of any script and digits, joined by single interior separators — space, apostrophe (`'` or `’`), hyphen, underscore — beginning and ending on a letter or digit |
+
+**The character-name charset was deliberately left open by chunk 1b and ruled in
+1c.** 1b enforced length, surrounding whitespace, control characters and the
+`hrnss_` rule, and invented no composition rule, because quietly imposing
+`[A-Za-z0-9_-]` would have been a design decision wearing a validator's clothes.
+
+What the rule keeps and what it refuses:
+
+```
+Barney Rubble ✓   M'reth ✓   Zoë ✓   Grimm-Ash ✓   hrnss_01_a ✓
+Barney  Rubble ✗ (repeated separator)   -Bob- ✗ (separator at the edge)
+Bob🔥 ✗ (emoji)   B̸o̸b̸ ✗ (combining marks)   Bob<RLO>eht ✗ (bidi override)
+```
+
+- ⚑ **`Barney Rubble` had to survive**, because it is what the game's own
+  `NameGenerator.generate()` proposes — a rule rejecting it would have aura
+  suggesting names it then refuses. That alone rules out strict ASCII.
+- ⚑ **The refusals need no rule of their own.** An emoji is a symbol, zalgo is a
+  combining *mark*, an RTL override is a *format* character, and a zero-width
+  space is neither a letter nor a digit — so the single charset loop refuses all
+  of them without naming any.
+- ⚑ **`_` is a separator BECAUSE OF THE HARNESS.** `hrnss_01_a` has to be a legal
+  character name (frontend §11), and carving out an exemption for the prefix
+  would give the harness a name shape no player could hold — the exact special
+  case the prefix rule itself avoids.
+- ⚑ **Consequence, stated rather than discovered:** requiring precomposed
+  characters excludes scripts that cannot be written without combining marks
+  (Devanagari, Hebrew niqqud, Thai). Latin, Greek and Cyrillic diacritics all
+  have precomposed forms, so `Zoë` typed on any ordinary keyboard passes while
+  the same name in decomposed form does not. The fix, if a player ever needs it,
+  is NFC normalisation plus a per-base mark limit — not loosening the loop.
 
 The **blocklist** is the load-bearing half: NIST SP 800-63B's central
 recommendation is exactly this — screen candidate passwords against known-weak

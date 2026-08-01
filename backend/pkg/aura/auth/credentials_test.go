@@ -117,16 +117,39 @@ func TestValidateCharacterName(t *testing.T) {
 	}{
 		{"ordinary", "Barney", "barney", nil},
 		{"anonymous account", "Barney", "", nil},
+		// The four shapes the human-name rule exists to keep (PO 2026-08-01).
+		// ⚑ The first is what NameGenerator.generate() actually emits, so a rule
+		// rejecting it would have the game proposing names it then refuses.
 		{"a space inside", "Barney Rubble", "barney", nil},
 		{"an apostrophe", "M'reth", "barney", nil},
+		{"a typographic apostrophe", "M’reth", "barney", nil},
+		{"a hyphen", "Grimm-Ash", "barney", nil},
+		{"a non-ASCII letter", "Zoë", "barney", nil},
+		{"a digit", "Barney2", "barney", nil},
 		{"at the maximum", strings.Repeat("a", 20), "barney", nil},
 
 		{"too short", "Bo", "barney", auth.ErrCharacterNameLength},
 		{"empty", "", "barney", auth.ErrCharacterNameLength},
 		{"over the wire limit", strings.Repeat("a", 21), "barney", auth.ErrCharacterNameLength},
-		{"leading space", " Barney", "barney", auth.ErrCharacterNameWhitespace},
-		{"trailing space", "Barney ", "barney", auth.ErrCharacterNameWhitespace},
-		{"a newline inside", "Bar\nney", "barney", auth.ErrCharacterNameControl},
+
+		// ⚑ Charset rejections that need no rule of their own: an emoji is a
+		// symbol, zalgo is a combining MARK and an RTL override is a FORMAT
+		// character — none is a letter or a digit, so one loop refuses all three.
+		{"an emoji", "Bob🔥", "barney", auth.ErrCharacterNameCharset},
+		{"combining marks", "B̸o̸b̸", "barney", auth.ErrCharacterNameCharset},
+		{"a right-to-left override", "Bob‮eht", "barney", auth.ErrCharacterNameCharset},
+		{"a zero-width space", "Bo​b", "barney", auth.ErrCharacterNameCharset},
+		{"circled letters", "Ⓐⓤⓡⓐ", "barney", auth.ErrCharacterNameCharset},
+		{"a newline inside", "Bar\nney", "barney", auth.ErrCharacterNameCharset},
+		{"punctuation", "Bob!", "barney", auth.ErrCharacterNameCharset},
+
+		{"leading space", " Barney", "barney", auth.ErrCharacterNameShape},
+		{"trailing space", "Barney ", "barney", auth.ErrCharacterNameShape},
+		{"leading hyphen", "-Barney", "barney", auth.ErrCharacterNameShape},
+		{"trailing apostrophe", "Barney'", "barney", auth.ErrCharacterNameShape},
+		{"a doubled space", "Barney  Rubble", "barney", auth.ErrCharacterNameShape},
+		{"mixed doubled separators", "Barney -Rubble", "barney", auth.ErrCharacterNameShape},
+		{"separators only", "---", "barney", auth.ErrCharacterNameShape},
 
 		{"the prefix, from a player", "hrnss_01_a", "barney", auth.ErrCharacterNameReserved},
 		{"the prefix, from anonymous", "hrnss_01_a", "", auth.ErrCharacterNameReserved},

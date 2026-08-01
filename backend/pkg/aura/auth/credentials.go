@@ -54,10 +54,10 @@ var (
 	ErrPasswordSpecial = &RuleError{"Passwords must contain at least one special character."}
 	ErrPasswordCommon  = &RuleError{"That password is too common. Please choose another."}
 
-	ErrCharacterNameLength     = &RuleError{"Character names must be between 3 and 20 characters."}
-	ErrCharacterNameWhitespace = &RuleError{"Character names may not start or end with a space."}
-	ErrCharacterNameControl    = &RuleError{"Character names may not contain control characters."}
-	ErrCharacterNameReserved   = &RuleError{"That character name is not available."}
+	ErrCharacterNameLength   = &RuleError{"Character names must be between 3 and 20 characters."}
+	ErrCharacterNameCharset  = &RuleError{"Character names may only contain letters, numbers, spaces, apostrophes, hyphens and underscores."}
+	ErrCharacterNameShape    = &RuleError{"Character names must begin and end with a letter or number, and may not repeat a space, apostrophe, hyphen or underscore."}
+	ErrCharacterNameReserved = &RuleError{"That character name is not available."}
 )
 
 // passwordBlocklist is the load-bearing half of the password rules. NIST
@@ -202,27 +202,71 @@ func normalisePassword(password string) string {
 // register — which is every player, by design (plan-accounts-implementation.md
 // §7).
 //
-// ⚑ The CHARSET is deliberately permissive: length, surrounding whitespace and
-// control characters are checked, but "Barney Rubble" and "M'reth" are allowed.
-// No plan rules character-name composition, and inventing a policy here would
-// be a silent design decision. Chunk 1c owns tightening it if the PO wants it.
+// ⚑ THE CHARSET IS THE "HUMAN NAME" RULE (PO 2026-08-01, chunk 1c). 1b shipped
+// length/whitespace/control checks and deliberately invented no composition
+// rule, leaving the call open; this is that call. Letters of any script and
+// digits, joined by single interior separators, beginning and ending on a
+// letter or digit:
+//
+//	Barney Rubble ✓   M'reth ✓   Zoë ✓   Grimm-Ash ✓   hrnss_01_a ✓
+//	Barney  Rubble ✗ (repeated separator)      -Bob- ✗ (separator at the edge)
+//	Bob🔥 ✗            B̸o̸b̸ ✗ (combining marks)   Bob<RLO>eht ✗
+//
+// The rejections need no code of their own: emoji are symbols, zalgo is a
+// combining MARK, and an RTL override is a FORMAT character — none of them is a
+// letter or a digit, so the one charset loop refuses all three.
+//
+// ⚑ Consequence worth stating rather than discovering: requiring precomposed
+// characters excludes scripts that cannot be written without combining marks
+// (Devanagari, Hebrew niqqud, Thai). Latin, Greek and Cyrillic diacritics all
+// have precomposed forms, so "Zoë" typed on any ordinary keyboard passes while
+// the same name in decomposed form does not. The fix, if a player ever needs
+// it, is NFC normalisation plus a per-base mark limit — not loosening the loop.
+//
+// ⚑ `_` IS A SEPARATOR BECAUSE OF THE HARNESS. "hrnss_01_a" has to be a legal
+// character name (plan-accounts-frontend.md §11), and carving out an exemption
+// for the prefix would give the harness a name shape no player could hold —
+// exactly the special case the prefix rule itself avoids.
 func ValidateCharacterName(name, callerUsername string) error {
 	runes := []rune(name)
 	if len(runes) < CharacterNameMinLength || len(runes) > CharacterNameMaxLength {
 		return ErrCharacterNameLength
 	}
-	if strings.TrimSpace(name) != name {
-		return ErrCharacterNameWhitespace
-	}
 	for _, r := range runes {
-		if unicode.IsControl(r) {
-			return ErrCharacterNameControl
+		if !isNameCoreRune(r) && !isNameSeparatorRune(r) {
+			return ErrCharacterNameCharset
+		}
+	}
+	if !isNameCoreRune(runes[0]) || !isNameCoreRune(runes[len(runes)-1]) {
+		return ErrCharacterNameShape
+	}
+	for i := 1; i < len(runes); i++ {
+		if isNameSeparatorRune(runes[i]) && isNameSeparatorRune(runes[i-1]) {
+			return ErrCharacterNameShape
 		}
 	}
 	if hasHarnessPrefix(name) && !hasHarnessPrefix(callerUsername) {
 		return ErrCharacterNameReserved
 	}
 	return nil
+}
+
+// isNameCoreRune reports whether r may begin or end a character name.
+func isNameCoreRune(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsDigit(r)
+}
+
+// isNameSeparatorRune reports whether r may sit BETWEEN two core runes.
+//
+// ⚑ U+2019 is accepted alongside the plain apostrophe because phone keyboards
+// and word processors substitute it silently. Rejecting it would read as "the
+// game does not like my name" rather than as a rule.
+func isNameSeparatorRune(r rune) bool {
+	switch r {
+	case ' ', '\'', '’', '-', '_':
+		return true
+	}
+	return false
 }
 
 // hasHarnessPrefix matches case-insensitively — usernames are CITEXT, so

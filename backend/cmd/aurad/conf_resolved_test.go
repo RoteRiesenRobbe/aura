@@ -25,6 +25,11 @@ type resolvedTuning struct {
 	PresenceRange          float32
 	MobHealthGainTick      float32
 	MobWalkingSpeedPerTick float32
+	// MaxAliveCharacters reaches the accounts endpoints straight off cfg.Config
+	// rather than through GameConfig — it is not combat tuning — so it is pulled
+	// in explicitly. Without this line the key would be the one player knob no
+	// drift test watches.
+	MaxAliveCharacters int
 }
 
 func resolveTuning(t *testing.T, raw []byte) resolvedTuning {
@@ -54,6 +59,7 @@ func resolveTuning(t *testing.T, raw []byte) resolvedTuning {
 		PresenceRange:          g.CombatConfig.PresenceRange(),
 		MobHealthGainTick:      mob.HealthGainTick(),
 		MobWalkingSpeedPerTick: mob.WalkingSpeedPerTick(),
+		MaxAliveCharacters:     conf.Game.Player.MaxAliveCharacters,
 	}
 	// CombatConfig is copied raw by design (its accessors normalize), so the
 	// raw struct legitimately differs between an empty conf (0,0) and the

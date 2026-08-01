@@ -10,7 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/store"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/store/storetest"
 )
+
+// ⚑ Every test here rolls the schema down and back up, and `go test ./...` runs
+// packages in parallel against ONE database — so this package and pkg/aura/
+// accounts would tear each other's schema out mid-run without the lock.
+func TestMain(m *testing.M) { os.Exit(storetest.RunSerialised(m)) }
 
 // These tests need a real Postgres, and that is not incidental: the slot cap is
 // enforced by a PARTIAL UNIQUE INDEX, so the invariant *is* the database. A mock

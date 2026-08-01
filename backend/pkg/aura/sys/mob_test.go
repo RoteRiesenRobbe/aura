@@ -51,12 +51,12 @@ func (g *fakeGame) RemoveEntity(e ecs.BasicEntity) {
 	g.ms.Remove(e)
 }
 
-func (g *fakeGame) Ticks() uint64                               { return g.tick }
-func (g *fakeGame) Bounds() (float32, float32)                  { return 60, 40 }
-func (g *fakeGame) Config() *cfg.GameConfig                     { return g.cfg }
-func (g *fakeGame) Handler() http.Handler                       { panic("unused") }
-func (g *fakeGame) Loop()                                       { panic("unused") }
-func (g *fakeGame) GetEntity(uint64) (model.BasicEntity, error) { panic("unused") }
+func (g *fakeGame) Ticks() uint64                                 { return g.tick }
+func (g *fakeGame) Bounds() (float32, float32)                    { return 60, 40 }
+func (g *fakeGame) Config() *cfg.GameConfig                       { return g.cfg }
+func (g *fakeGame) Handler(func(*http.Request) bool) http.Handler { panic("unused") }
+func (g *fakeGame) Loop()                                         { panic("unused") }
+func (g *fakeGame) GetEntity(uint64) (model.BasicEntity, error)   { panic("unused") }
 func (g *fakeGame) Mobs() mobs.Registry {
 	if g.mobReg == nil {
 		panic("unused")

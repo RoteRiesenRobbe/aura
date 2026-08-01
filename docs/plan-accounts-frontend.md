@@ -4,10 +4,11 @@ What the player actually clicks through, from a cold page load to being in the
 world and back out again. Companion to `plan-accounts-schema.md` (the DDL) and
 `plan-accounts-implementation.md` (save/load mechanics, auth, transport).
 
-**Status: in execution.** Chunk 0 (local Postgres) and **chunk 1a (schema,
-migrations, connection layer) shipped 2026-07-31** — ledgers in §10a. Chunks
-1b → 1c → 2 → 3 remain. All numbers below (max alive characters, cooldown
-seconds) are placeholders per the project convention.
+**Status: in execution.** Chunk 0 (local Postgres), **1a** (schema, migrations,
+connection layer), **1b** (auth & sessions) and **1c** (the eight endpoints) have
+shipped — ledgers in §10a. **Chunks 2 (frontend), 3 (wire) and 4 (save & load)
+remain.** All numbers below (max alive characters, cooldown seconds) are
+placeholders per the project convention.
 
 ---
 
@@ -81,6 +82,77 @@ browsers reject outright for credentialed requests.
 along with the columns behind them. They need outbound email, which aura has no
 capability for; keeping them here would have blocked this entire plan behind a
 mail-provider decision.
+
+### 3a. The wire contract (built in chunk 1c, consumed by chunk 2)
+
+Recorded here because chunk 2 codes against it and nothing else writes it down.
+
+**How identity travels — two mechanisms, deliberately not one:**
+
+| Credential | Carried as | Why |
+|---|---|---|
+| Auth JWT | the `aura_session` cookie, set by the server | `httpOnly`, so script cannot read it — which is the main thing protecting it from an XSS |
+| Anonymous secret | the **`X-Aura-Anonymous-Secret` request header** | It lives in `localStorage`, so the client reads it and attaches it explicitly. Moving it into a cookie would put it back in reach of script for no gain |
+
+⚑ **When both are present the JWT wins.** A registered player is not supposed to
+carry a local anonymous secret at all (§5.3), so the overlap is a leftover — and
+between a signed, revocable, expiring token and an unrevocable bearer string, the
+token is the stronger claim. Deciding it by order is what stops a stale
+`localStorage` entry silently downgrading a logged-in player onto an old account.
+
+⚑ **Every request is `credentials: 'include'` and every response carries an
+echoed specific origin.** The header must also appear in the preflight's
+`Access-Control-Allow-Headers`, or every cross-origin call carrying it fails —
+which in dev is all of them.
+
+**Every refusal is `{error, code, ref?}`.** `error` is the sentence to show;
+`code` is what the client branches on; `ref` appears only when the server logged
+an internal cause, and is the correlation id of that log line — quotable in a bug
+report. ⚑ **Branch on `code`, never on `error`** — several distinct causes share
+one sentence on purpose (§5b).
+
+| `code` | Status | Means |
+|---|---|---|
+| `rule` | 400 | A validation rule failed; `error` names *which*, and is safe to show verbatim |
+| `name_taken` | 409 | That character name is taken |
+| `username_taken` | 409 | ⚑ The one accepted enumeration vector — a registration form must say why it failed |
+| `slots_full` | 409 | At `maxAliveCharacters`. Should be unreachable; the UI hides the affordance |
+| `invalid_credentials` | 401 | Wrong password **or** no such username — deliberately one code |
+| `already_logged_in` | 409 | `/select` refusing an account that is already in the world |
+| `already_registered` | 409 | That account already has credentials |
+| `character_playing` | 409 | Delete refused: that character is in the world |
+| `no_identity` | 401 | Nothing was presented → show the creation form |
+| `session_expired` | 401 | Something *was* presented and no longer resolves → sign out |
+| `forbidden_origin` | 403 | The origin is not on the allowlist |
+| `bad_request` | 400/404 | Malformed body, unparseable id, or an id that is not the caller's |
+| `busy` | 503 | The bcrypt gate was full. ⚑ **Not a failed login** — retry is correct |
+| `database_unavailable` | 503 | §5b's honest database message |
+| `internal` | 500 | Anything else; the real cause is in the log under `ref` |
+
+**Payload shapes worth pinning:**
+
+- `POST /api/characters` → `201 {character, anonymousSecret?}`. ⚑ The secret
+  appears **only** when the request minted a new account, and that response is
+  the only time it exists in readable form anywhere — the server stores its
+  SHA-256. A client that drops it has permanently lost the account.
+- `GET /api/characters` → `{characters[], maxAliveCharacters, hasProgress, registered}`.
+  ⚑ `hasProgress` answers §6's predicate **server-side**, counting bloodline
+  unlocks as well as alive characters. Inferring it from the list would be right
+  today and wrong the day sacrifice ships, when an account whose only character
+  was sacrificed still holds unlocks. `registered` is what gates Logout (§5.3)
+  and the nag (§5.4).
+- `POST /api/characters/{id}/select` → `{characterId, ticket, ticketTtlSeconds}`.
+  ⚑ The ticket is **opaque** — the client presents it on `Join` and parses
+  nothing out of it (§10 invariant ②).
+- `POST /api/auth/login` → `{username, expiresInSeconds}`, and accepts an
+  optional **`discardAnonymous: true`**. That is §6's confirmed discard: the
+  anonymous account whose secret rides the same request is abandoned. ⚑ **Absent
+  or false, login never touches it** — switching accounts must not destroy the
+  one you came from by accident, so the client sets it only after the player has
+  confirmed a warning naming what is lost.
+- `POST /api/auth/register` and `POST /api/session/refresh` → the same
+  `{username, expiresInSeconds}`. The client schedules its silent refresh at
+  roughly half that, rather than hardcoding the server's lifetime.
 
 ---
 
@@ -623,10 +695,17 @@ own.
    **chunk 3 wires it into `sys/state.go`**, where the `Join` path and the stash
    already live. That splits along a seam which exists rather than inventing one,
    and hands chunk 3 a tested component instead of a design problem.
-3. **1c — The eight endpoints.** Character CRUD, register/login/logout,
-   `/select`, `/session/refresh`, plus slot assignment and cap enforcement.
-   **CORS and the `CheckOrigin` allowlist land here**, since this is where the
-   first credentialed request exists.
+3. **1c — The eight endpoints. ✅ DONE 2026-08-01** — see the ledger below.
+   Character CRUD, register/login/logout, `/select`, `/session/refresh`, plus
+   slot assignment and cap enforcement. **CORS and the `CheckOrigin` allowlist
+   landed here**, since this is where the first credentialed request exists —
+   `backlog.md` §43 is closed. The unset-`AURA_DB_URL` warning became a hard boot
+   failure and `AURA_JWT_KEY` is read for the first time.
+   ⚑ **One specified behaviour deferred to chunk 3, deliberately:** logout
+   revokes every token but does **not** end the account's live world session,
+   because that means closing a socket the game owns and `SessionRegistry` is not
+   wired into `sys/state.go` until then. Releasing the slot here without closing
+   the socket would be worse than not touching it.
 
    ⚑ **Three invariants 1c must not break** (PO 2026-08-01). They exist so that
    moving auth to a **separate machine** stays a later deploy decision rather
@@ -731,6 +810,190 @@ otherwise gate everything.
 ---
 
 ## 10a. Chunk ledger
+
+### Chunk 1c — the eight endpoints ✅ DONE 2026-08-01
+
+Backend + docs. **Aura has accounts you can actually use.** The eight HTTP/JSON
+endpoints, the transport hardening that had to arrive with them, and the two boot
+requirements 1a and 1b deferred. Still no frontend (chunk 2), no `Join` and no
+ticket redemption (chunk 3), no save or load (chunk 4).
+
+**Shipped** — new package `backend/pkg/aura/accounts/`:
+
+| File | What |
+|---|---|
+| `server.go` | The routes, the config, and the CORS middleware |
+| `identity.go` | Caller resolution, the session cookie, the client IP |
+| `characters.go` | Create / list / delete / select |
+| `auth.go` | Register / login / logout, and §6's discard |
+| `session.go` | Silent refresh |
+| `respond.go` | §5b's error strings, the codes, and the correlation id |
+
+Plus new `backend/pkg/aura/origins/` (the one allowlist), ~18 queries across
+`store/accounts.go` + `store/characters.go`, `auth/anonymous.go`, and
+`store/storetest/` (see the parallel-test finding below).
+
+**Verified:** `go build ./...` · `go vet ./...` · gofmt clean · **full suite
+32/32 packages** (30 + `accounts` + `origins`), green **both** with
+`AURA_TEST_DB_URL` set and unset · the four touched packages at **`-count=2`** ·
+a `-dev` boot with `AURA_DB_URL` + `AURA_JWT_KEY`: schema version 1
+`dirty=false`, **0 errors 0 warnings**, 15 factions / 86 skills / 64 mobs /
+4 quests / 777 props / 485 spawns / 5 campfires · **25/25 on a curl pass over the
+live endpoints** · three live WebSocket handshakes proving §43.1 closed
+(allowed origin **101**, foreign origin **403**, no-Origin client **101**) ·
+and — **after the browser harness was made to run on this box, see below** —
+`chunk3b-interact.mjs` **14/14** and `ctxloss-warning.mjs clean` **PASS**
+(5 GL contexts / 2 deliberate probe losses / **0** warnings), each on a freshly
+restarted server, **0 console errors and 0 context losses** on both.
+
+⭐ **The browser harness runs on the Windows dev box, and always could have.**
+Chunks 1a, 1b and 1c each recorded "no browser harness ran" on the reading that
+`.claude/skills/run-simharness/setup-browser.sh` is Linux-only — it opens by
+extracting `libnspr4`/`libnss3`/`libasound2` from Ubuntu `.deb`s with `dpkg-deb`,
+which does not exist here. ⚑ **That half was never part of installing playwright:
+it exists because the CONTAINER the script was written in lacks three shared libs
+Windows already ships.** The universal half is two npm lines. The script now
+skips the deb extraction when `dpkg-deb` is absent and ends by launching chromium
+to prove itself, so it is the one-command setup everywhere. Two Windows gotchas
+are recorded in the verify skill because both present as a broken harness rather
+than as configuration: **`./aurad` needs `-zone world`** (the local `conf.json`
+names none, and without it the boot panics inside `loadZone`), and **the scripts
+must run from Git Bash**, which sets `HOME` — PowerShell usually does not, and
+the playwright path join throws before anything else happens.
+
+⭐ **The chunk's real yield was again the mutation runs: twelve deliberate
+breakages, eleven caught, and the twelfth was a finding rather than a gap.**
+Serve an unknown origin instead of refusing it ⇒ the CORS refusal test · restore
+`CheckOrigin: return true` ⇒ the CSWSH test · short-circuit login when the
+username matches nothing ⇒ **the endpoint-level timing test** · delete
+`Throttle.Wait` ⇒ the throttle test · have logout clear the cookie without
+bumping the generation ⇒ the copied-token test · drop `account_id` from the
+character read ⇒ the ownership test · make the live-session check **per
+character** ⇒ the different-characters test · unbound the slot loop ⇒ the cap
+table · drop `AND username IS NULL` from the discard ⇒ the registered-account
+guard · drop the repeated-separator check ⇒ six rows of the name table · set
+`HttpOnly: false` ⇒ the cookie-flags test.
+
+⚑ **The survivor corrected a comment that claimed the wrong guard.** Removing
+`discardPresentedAnonymousAccount`'s "never discard the account being logged
+into" check left its test green — because the account you just logged into is by
+definition *registered*, so `store.DiscardAnonymousAccount`'s `AND username IS
+NULL` refuses it anyway. The handler check is an **early out** that skips a write
+which would always fail and a warning that would fire on an ordinary login; the
+store's WHERE clause is the protection, and that one *is* mutation-pinned. Both
+comments now say so.
+
+⭐ **Two tests exist because the mutation run showed nothing else could catch
+them**, and both are timing-based: `TestLoginTimingDoesNotRevealWhetherAnAccountExists`
+(a handler that skips `Gate.Verify` for an unknown username defeats 1b's
+structural equalisation, and equal *messages* are worthless against a stopwatch)
+and `TestRepeatedFailuresAreThrottled`. ⚑ The timing test takes its two
+measurements from **different source addresses** — sharing one would put a
+throttle delay on the second and measure that instead.
+
+**Decisions taken:**
+
+- ⭐ **Character-name charset — the human-name rule (PO 2026-08-01)**, the open
+  call 1b deliberately left. Written into `plan-accounts-implementation.md` §7
+  beside the username rules, not only in code. `Barney Rubble` had to survive
+  because it is what `NameGenerator.generate()` proposes; the emoji / zalgo /
+  bidi refusals need no rule of their own; and ⚑ **`_` is a separator because of
+  the harness** (`hrnss_01_a` must be legal, and an exemption would give the
+  harness a name shape no player could hold).
+- ⭐ **The anonymous secret travels as a HEADER, the JWT as the cookie**, and
+  **the JWT wins when both are present**. Contract in §3a.
+- ⭐ **An unknown origin is REFUSED (403), not merely served without CORS
+  headers.** Omitting the headers stops a browser handing the *response* to an
+  attacker's script, but the request still executes — and a cross-site form POST
+  is a "simple" request that is never preflighted. For state-changing endpoints
+  the refusal is the protection; the headers are the ergonomics.
+- **A request with no `Origin` header passes.** Browsers always send one;
+  absence means a non-browser client with no cookie jar to ride. Refusing it
+  would break curl, the load bot and every probe while blocking no attack.
+- **The allowlist is derived, not authored, in the two cases that matter:**
+  `https://<tlsHost>` for a TLS deployment (so the live server is protected
+  without anyone remembering) and loopback-on-any-port under `-dev` (webpack
+  serves :2001 while aurad answers :2000, so the port cannot be enumerated).
+  `server.allowedOrigins` exists for anything else and is normally empty.
+- **`game.player.maxAliveCharacters`, default 3**, defaulted in `ReadConfig` like
+  every other player knob and added to `conf_resolved_test.go`'s comparison — it
+  reaches the endpoints straight off `cfg.Config` rather than through
+  `GameConfig`, so without that line it would be the one player knob no drift
+  test watches.
+- **`Throttle.Wait` runs after the bcrypt compare and BEFORE `Throttle.Fail`**,
+  so the delay reflects the failures *before* this one: a single honest typo
+  costs nothing, the second attempt costs a second, and it doubles. Recording
+  first would make every first mistake wait.
+- **A taken username costs a throttle step on the IP axis** — §5b answers that
+  enumeration vector with rate limiting rather than ambiguity, and reusing the
+  login counters is the mechanism already there.
+- **`auth.UnverifiedAccountID` was added rather than a lax `Verify`.** Something
+  has to read the account id before the generation can be looked up, and 1b's
+  rule is that the generation is a *required argument* to `Verify` — an API where
+  the caller could forget the comparison eventually gets called by someone who
+  did. The name is the guard.
+
+**⚑ Traps closed structurally rather than by discipline:** ownership is a **WHERE
+clause**, not a Go comparison after the read, so "not yours" and "no such id" are
+the same answer and no new code path can forget it · the slot-race **retry lives
+in `store.CreateCharacter`**, not in the handler, and is scoped to the slot
+conflict only — a name conflict is a decision the player has to make, not a race
+to re-run · `refuseRule` will only show an **`*auth.RuleError`** verbatim, so an
+internal cause cannot reach a player through it · the audit write **never fails
+the request** (a login that worked must not 500 because a support row did not) ·
+`clientIP` **ignores `X-Forwarded-For`** (there is no proxy, so it would be
+attacker-controlled, and a throttle keyed on a spoofable value has no per-source
+axis at all).
+
+**⚑ Findings worth carrying forward:**
+
+- ⭐ **`go test ./...` runs packages in parallel and they share ONE test
+  database.** Every DB-touching test rolls the schema down and re-applies it —
+  fine within a package, destructive across two. Adding `accounts` turned the
+  whole suite red with *"relation game.accounts does not exist"*, which reads as
+  a broken migration rather than as two test binaries fighting. Fixed with a
+  **Postgres advisory lock** in `store/storetest`, taken in each package's
+  `TestMain`: the contenders are separate processes, so a Go mutex cannot span
+  them and `-p 1` would serialise the entire suite to fix two packages. **Any
+  future DB-touching package must call it.**
+- ⚑ **`Secure` cookies over `http://localhost` are a BROWSER allowance, and this
+  chunk could not verify it.** Playwright is not installed on this box, and both
+  curl and .NET's `HttpClient` correctly refuse to send a Secure cookie over
+  http — which is exactly what an `httptest`-based Go test does not model. The
+  flag stays unconditional per §7b; **chunk 2 should confirm it in a real browser
+  first**, and if it does not hold the fix is https or a same-origin dev server,
+  never dropping the flag.
+- ⚑ **Every `aurad` boot now needs `AURA_DB_URL` *and* `AURA_JWT_KEY`**,
+  including every headless harness run. A note is in the verify skill.
+- ⚑ **A non-`-dev` boot with no `tlsHost` and no `allowedOrigins` warns**, and
+  correctly: it refuses every browser. The standing "0 errors 0 warnings" check
+  is a **`-dev` boot**, which is how the game is run locally and how the harness
+  runs it.
+
+**Deliberately NOT built, and why:**
+
+- ⚑ **Logout does not end the live world session**, though §3 specifies it. It
+  revokes every token and clears the cookie; ending a session means closing a
+  socket the game owns, and `SessionRegistry` is not wired into `sys/state.go`
+  until **chunk 3**. Calling `Release` here without closing the socket would be
+  *worse* than not touching it — it would free the account's slot while the
+  player is still in the world, which is the one thing the registry exists to
+  prevent. Recorded on `accounts`' package comment.
+- **`/select`'s live-session check is wired but inert.** Nothing claims the
+  registry yet, so it is correct-by-construction and becomes live in chunk 3.
+- **No harness-account seed script.** §11's recipe stands, but the first script
+  that needs it is chunk 2's, and nothing could exercise it here. The Go tests
+  seed directly.
+- **No browser harness *owns* this chunk**, which is different from none having
+  run. 1c changed no client code, no game logic, no wire and no content, so
+  nothing the 17 scripts assert can have moved — the two run above are a
+  regression check, not coverage of the endpoints. The endpoints themselves are
+  covered by Go tests plus the live curl pass. ⚑ **Chunk 2 owns the first script
+  that drives them**, and it is a new category: pre-game **DOM**, not the PixiJS
+  scene graph (§11).
+
+**Closed:** `backlog.md` §43, both halves. Full ledger below; §3a is the wire
+contract chunk 2 codes against.
 
 ### Chunk 1b — auth & sessions ✅ DONE 2026-08-01, `31ebebcb`
 

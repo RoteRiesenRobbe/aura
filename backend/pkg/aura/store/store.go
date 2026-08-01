@@ -24,9 +24,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	nurl "net/url"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -118,6 +120,33 @@ func Open(ctx context.Context, url string) (*Store, error) {
 	}
 
 	return &Store{Pool: pool}, nil
+}
+
+// IsUnavailable reports whether err looks like "the database could not be
+// reached" rather than "the database answered, and said no".
+//
+// ⚑ It is a HEURISTIC, and its only job is choosing which of two player-facing
+// sentences a failed request gets (implementation.md §5b): an honest "Aura is
+// having trouble reaching its database" when Postgres is down, and the generic
+// apology otherwise. The server log carries the real error either way, so a
+// wrong guess costs a word, not a diagnosis.
+//
+// A *pgconn.PgError is the decisive negative: Postgres itself composed that
+// message, so whatever went wrong, reaching it was not the problem.
+func IsUnavailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return false
+	}
+	var connErr *pgconn.ConnectError
+	if errors.As(err, &connErr) {
+		return true
+	}
+	var netErr net.Error
+	return errors.As(err, &netErr)
 }
 
 // Close releases every pooled connection. Safe on a nil Store so a caller that

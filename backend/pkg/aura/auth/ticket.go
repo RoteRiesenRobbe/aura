@@ -2,9 +2,7 @@ package auth
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
@@ -134,6 +132,5 @@ func (s *TicketStore) sweepLocked(now time.Time) {
 // attacker nothing (plan-accounts-schema.md §"Hashing: lookup keys vs.
 // verifiers").
 func ticketKey(token string) string {
-	sum := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(sum[:])
+	return sha256Hex(token)
 }

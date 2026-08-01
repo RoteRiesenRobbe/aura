@@ -196,15 +196,15 @@ func (g *stateFakeGame) livingSpectators() []model.Spectator {
 	return out
 }
 
-func (g *stateFakeGame) Ticks() uint64                               { return g.tick }
-func (g *stateFakeGame) Bounds() (float32, float32)                  { return 60, 40 }
-func (g *stateFakeGame) Config() *cfg.GameConfig                     { return g.cfg }
-func (g *stateFakeGame) Skills() skills.Registry                     { return g.skillReg }
-func (g *stateFakeGame) Handler() http.Handler                       { panic("unused") }
-func (g *stateFakeGame) Loop()                                       { panic("unused") }
-func (g *stateFakeGame) GetEntity(uint64) (model.BasicEntity, error) { panic("unused") }
-func (g *stateFakeGame) Mobs() mobs.Registry                         { panic("unused") }
-func (g *stateFakeGame) Quests() quests.Registry                     { return g.questReg }
+func (g *stateFakeGame) Ticks() uint64                                 { return g.tick }
+func (g *stateFakeGame) Bounds() (float32, float32)                    { return 60, 40 }
+func (g *stateFakeGame) Config() *cfg.GameConfig                       { return g.cfg }
+func (g *stateFakeGame) Skills() skills.Registry                       { return g.skillReg }
+func (g *stateFakeGame) Handler(func(*http.Request) bool) http.Handler { panic("unused") }
+func (g *stateFakeGame) Loop()                                         { panic("unused") }
+func (g *stateFakeGame) GetEntity(uint64) (model.BasicEntity, error)   { panic("unused") }
+func (g *stateFakeGame) Mobs() mobs.Registry                           { panic("unused") }
+func (g *stateFakeGame) Quests() quests.Registry                       { return g.questReg }
 
 // newStateFixture wires a ConnectionStateSystem to a fake game and returns both.
 func newStateFixture(t *testing.T) (*ConnectionStateSystem, *stateFakeGame) {

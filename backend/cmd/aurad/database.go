@@ -9,7 +9,7 @@ import (
 )
 
 // openDatabase brings up persistence: it applies any pending migrations, then
-// opens the connection pool. Returns nil when no database is configured.
+// opens the connection pool.
 //
 // Migrations run here rather than as a deploy step (plan-accounts-implementation
 // §8): one less thing to forget, and it makes a schema/binary mismatch
@@ -19,23 +19,24 @@ import (
 // so a failed migration costs no pool — and a pool that exists against a schema
 // that failed to migrate is a pool aimed at a database nobody should be querying.
 //
-// ⚑ An UNSET AURA_DB_URL is a warning, not a fatal error, and that is a
-// scoped-to-now decision. §8 rules that an unreachable Postgres must refuse the
-// boot — but that reasoning is "never present as healthy while being unusable",
-// and until chunk 1c there is nothing to log into: no endpoint, no account, no
-// save path. Hard-requiring it today would only break every harness script and
-// local run on a machine without Postgres, for no protection at all.
+// ⚑ AN UNSET AURA_DB_URL IS NOW FATAL (chunk 1c flipped this; 1a warned and
+// carried on). §8's rule is "refuse to start rather than present as healthy
+// while being unusable", and until 1c there was genuinely nothing to log into —
+// no endpoint, no account, no save path — so requiring it would have broken
+// every local run and harness script for no protection at all. That is no longer
+// true: without a database the eight accounts endpoints cannot answer, so a
+// server that boots is a server nobody can get into.
 //
-// ⚑ CHUNK 1c MUST FLIP THIS. Once the accounts endpoints exist, an unset URL
-// means a game nobody can enter, which is exactly the case §8 describes. A
-// CONFIGURED-but-unreachable database is already fatal below, which is the half
-// that matters today.
+// ⚑ Consequence, stated because it bites the next person to run the harness:
+// EVERY aurad boot now needs AURA_DB_URL and AURA_JWT_KEY set, including headless
+// smoke runs.
 func openDatabase() *store.Store {
 	url := os.Getenv(store.EnvURL)
 	if url == "" {
-		slog.Warn("🗄️ no database configured — running without persistence",
-			slog.String("env", store.EnvURL))
-		return nil
+		slog.Error("🗄️ no database configured — aura cannot run without one",
+			slog.String("env", store.EnvURL),
+			slog.String("hint", "set it to postgres://user:password@host:port/database, percent-encoding the password"))
+		os.Exit(1)
 	}
 
 	if err := store.Migrate(url); err != nil {

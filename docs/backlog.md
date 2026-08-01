@@ -4113,6 +4113,36 @@ later concern.
 
 ## 43. Two web-transport defaults that persistence turns into vulnerabilities
 
+✅ **CLOSED 2026-08-01 — both halves, in step 8a chunk 1c**, the same chunk that
+set the first cookie. Ledger: `plan-accounts-frontend.md` §10a chunk 1c.
+
+**What shipped:** one allowlist (`pkg/aura/origins`) built once at boot and
+handed to **both** surfaces — the WebSocket upgrader's `CheckOrigin` and the CORS
+headers on `/api` — because a second copy of a security policy is one that
+eventually disagrees with the first. It is derived rather than authored in the
+two cases that matter: `https://<tlsHost>` for a TLS deployment, and
+loopback-on-any-port under `-dev`. Cookies ship `httpOnly; Secure; SameSite=Lax`
+in the same chunk, as ruled.
+
+⚑ **An unknown origin is REFUSED (403), not merely served without CORS headers.**
+Omitting the headers stops a browser handing the *response* to an attacker's
+script, but the request still executes — and a cross-site form POST is a "simple"
+request that is never preflighted at all. ⚑ **A request with no `Origin` passes
+through**: browsers always send one, so absence means a non-browser client with
+no cookie jar to ride.
+
+⚑ **The catalogs keep their wildcard, deliberately** (§43.2 below is about not
+*copying* it, not about narrowing it): `/skills` and `/mobs` are public,
+read-only and uncredentialed, and narrowing them would break the dev client for
+nothing.
+
+Verified live: WebSocket handshakes from an allowed origin **101**, a foreign
+origin **403**, and a no-`Origin` client **101**; `/api` refusing
+`https://evil.test` with `forbidden_origin` while echoing a specific origin to
+the dev client; `/skills` still `*`.
+
+*The original write-up follows, as the record of why.*
+
 **Found 2026-07-29**, during an adversarial review of the step-8 persistence
 plans (`plan-accounts-implementation.md` §7b holds the full write-up and the
 fixes). Recorded here because both live in **existing, shipped code** and are
@@ -4177,7 +4207,7 @@ problem for an XSS-shaped one and discarding `httpOnly`.
 **Not scheduled, and not urgent while the game ships no credentials.** Both
 should be fixed **as part of step 8**, before the first cookie is set, rather
 than as follow-ups — after that point they are live vulnerabilities rather than
-permissive defaults.
+permissive defaults. *(Done — see the banner above.)*
 
 ---
 

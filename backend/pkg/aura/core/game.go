@@ -16,14 +16,14 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/encounter"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/client"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/spectator"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/net"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys/chat"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys/cmd"
@@ -211,7 +211,7 @@ func (g *game) Quests() quests.Registry {
 	return g.questRegistry
 }
 
-func (g *game) Handler() http.Handler {
+func (g *game) Handler(checkOrigin func(*http.Request) bool) http.Handler {
 	return net.NewHandleFunc(func(c *net.Client) {
 		client := client.NewClient(c)
 		g.sendWelcomeMessage(client)
@@ -222,7 +222,7 @@ func (g *game) Handler() http.Handler {
 			slog.Info("😱 Join queue full! Dropping client.", slog.String("uuid", client.UUID().String()))
 			client.Close()
 		}
-	})
+	}, checkOrigin)
 }
 
 func (g *game) Loop() {

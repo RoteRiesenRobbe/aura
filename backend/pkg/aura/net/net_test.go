@@ -32,7 +32,7 @@ func TestClient_Run(t *testing.T) {
 	// Deferred Tech Debt.
 	t.Skip("manual WebSocket smoke script, blocks forever — not part of the automated suite")
 
-	http.HandleFunc("/ws", NewHandleFunc(OnConnected))
+	http.HandleFunc("/ws", NewHandleFunc(OnConnected, func(*http.Request) bool { return true }))
 
 	err := http.ListenAndServe(":3000", nil)
 	if err != nil {

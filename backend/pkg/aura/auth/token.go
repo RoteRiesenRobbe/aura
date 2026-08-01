@@ -159,6 +159,32 @@ func (k *Keys) Verify(token string, currentGeneration int) (Claims, error) {
 	}, nil
 }
 
+// UnverifiedAccountID reads the account id out of a token WITHOUT CHECKING
+// ANYTHING — not the signature, not the expiry, not the issuer, not the
+// generation.
+//
+// ⚑ IT HAS EXACTLY ONE LEGITIMATE USE: choosing which account's
+// token_generation to read, so that value can be passed to Verify. Verify needs
+// the generation as an argument (deliberately — see its comment), and the
+// generation lives on a row that has to be found by account id, so something has
+// to read the id first. Nothing else may act on this result: a caller that
+// authorises anything on it has authorised a value the presenter chose.
+//
+// The name is the guard. It is spelled this way so that any line using it reads
+// as suspicious at a glance, and so a reviewer asking "is the verified id used
+// here?" gets an answer from the identifier alone.
+func UnverifiedAccountID(token string) (int64, error) {
+	var claims tokenClaims
+	if _, _, err := jwt.NewParser().ParseUnverified(token, &claims); err != nil {
+		return 0, ErrTokenInvalid
+	}
+	accountID, err := strconv.ParseInt(claims.Subject, 10, 64)
+	if err != nil || accountID <= 0 {
+		return 0, ErrTokenInvalid
+	}
+	return accountID, nil
+}
+
 // Refresh verifies a token and mints a replacement — the server half of silent
 // session refresh.
 //

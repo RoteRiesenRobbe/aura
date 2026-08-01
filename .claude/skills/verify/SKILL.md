@@ -19,6 +19,44 @@ cd backend && setsid nohup ./aurad -dev -content ../api > /tmp/bh.log 2>&1 < /de
 the webpack **prod build**, not just a dev server. Game URL:
 `http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop`.
 
+⚑ **Since step 8a chunk 1c, `aurad` REFUSES TO BOOT without `AURA_DB_URL` and
+`AURA_JWT_KEY`.** Both are set at User scope on the dev box, but a shell opened
+before they were set does not see them — read them back with
+`[Environment]::GetEnvironmentVariable('NAME','User')`. An unset `AURA_DB_URL`
+exits 1 with an explicit message; an unset `AURA_JWT_KEY` panics. Neither looks
+like a harness problem, so check the log's first lines before chasing anything
+else.
+
+⚑ **Run the harness with `-dev`, which is what these commands already do.** A
+non-`-dev` boot with no `tlsHost` allows no browser origin at all — correct, and
+it would refuse the harness's own WebSocket handshake (`backlog.md` §43). Under
+`-dev` any `localhost`/`127.0.0.1` port is allowed, so nothing changes for these
+scripts.
+
+### ⚑ On the Windows dev box
+
+The harness **does** run here — three chunks recorded "no browser harness ran"
+before anyone checked, because `setup-browser.sh` reads as Linux-only. It is not:
+its second half (extracting `libnspr4`/`libnss3`/`libasound2` from Ubuntu debs)
+exists solely because the container it was written in lacks libs Windows already
+ships. That half now skips itself when `dpkg-deb` is absent, so the script is the
+one-liner setup everywhere:
+
+```bash
+bash .claude/skills/run-simharness/setup-browser.sh   # idempotent; ends by launching chromium to prove it
+```
+
+Two Windows-specific gotchas, both of which look like a broken harness:
+
+- ⚑ **`./aurad` needs `-zone world` here** — the local `conf.json` names no zone,
+  so the command above becomes
+  `./aurad -dev -zone world -content ../api`. Without it the boot **panics in
+  `loadZone`**, which reads as a content problem rather than a missing flag.
+- ⚑ **Run the scripts from Git Bash, not PowerShell.** They resolve playwright
+  through `join(process.env.HOME, '.cache/aurahunter-run')`, and `HOME` is set by
+  Git Bash but usually *not* by PowerShell — where the join throws before
+  anything else happens. Setting `AURA_RUN_DIR` explicitly also works.
+
 ## Boot-count sanity check
 
 After a content add/edit, confirm the server actually loaded the new definitions

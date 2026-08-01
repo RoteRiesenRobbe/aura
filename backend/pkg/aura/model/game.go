@@ -12,8 +12,13 @@ import (
 
 type Game interface {
 	// Handler returns a http request HandlerFunc that upgrades
-	// requests to a websocket connection and starts the game protocol
-	Handler() http.Handler
+	// requests to a websocket connection and starts the game protocol.
+	//
+	// checkOrigin decides which pages may open a socket. ⚑ It is threaded in
+	// rather than owned here because ONE allowlist has to serve both this and the
+	// CORS headers on /api (backlog §43) — and the game has no business holding a
+	// transport policy it never reads.
+	Handler(checkOrigin func(*http.Request) bool) http.Handler
 
 	// Loop starts and runs the games loop tick per tick
 	Loop()

@@ -64,10 +64,9 @@ func main() {
 	// Persistence (step 8a chunk 1a). First thing after the conf, so a broken
 	// database aborts before the content load rather than after it.
 	//
-	// ⚑ Nothing reads or writes it yet — chunk 1a's whole deliverable is that the
-	// schema exists and round-trips. The pool is opened here anyway because
-	// proving the connection at boot is the point: a lazily-opened pool hides an
-	// unreachable database until whichever query happens to run first.
+	// ⚑ Since chunk 1c this is REQUIRED, not optional: the accounts endpoints
+	// cannot answer without it, so a server that booted anyway would be one
+	// nobody could get into. See openDatabase.
 	db := openDatabase()
 	// Unreachable today — Loop() below never returns, and the process is killed
 	// outright. It becomes live with the graceful-shutdown flush (§2), which is
@@ -286,7 +285,22 @@ func main() {
 		"/players": playersHandler(counter),
 	}
 
-	if err := bootHttp(g.Handler(), sidecars, config.Server, dev); err != nil {
+	// Accounts & identity (step 8a chunk 1c): the eight HTTP/JSON endpoints,
+	// mounted as one subtree. ⚑ The origin policy is built ONCE and handed to
+	// both surfaces — the CORS headers below and the WebSocket handshake's
+	// CheckOrigin — because a second copy of a security allowlist is one that
+	// eventually disagrees with the first (backlog §43).
+	originPolicy := buildOriginPolicy(config, dev)
+	accountsServer, err := buildAccountsServer(db, originPolicy, config)
+	if err != nil {
+		slog.Error("failed to start the accounts endpoints", slog.Any("err", err))
+		panic(err)
+	}
+	// A subtree pattern: the accounts server routes /api/* itself, including the
+	// method and {id} matching, so nothing here has to know its paths.
+	sidecars["/api/"] = accountsServer.Handler()
+
+	if err := bootHttp(g.Handler(originPolicy.CheckRequest), sidecars, config.Server, dev); err != nil {
 		slog.Error("failed to boot HTTP server", slog.Any("error", err))
 		panic(err)
 	}

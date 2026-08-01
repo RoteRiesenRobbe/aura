@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aura — Step 8a, Chunk 1c: The Eight Endpoints</title>
+</head>
+<body>
+
+<h1>Aura — Accounts &amp; Persistence</h1>
+<h2>Step 8a, Chunk 1c: the eight endpoints</h2>
+
+<p><em>Point-in-time summary &middot; 1 August 2026 &middot; branch <code>accounts-8a</code></em></p>
+
+<p><strong>This is a human-facing snapshot, not a maintained document.</strong> The authoritative
+sources are <code>docs/plan-accounts-frontend.md</code> §3 and §3a (the endpoints and the wire
+contract) and §10a (the full chunk ledger), plus
+<code>docs/plan-accounts-implementation.md</code> §5b (the exact player-facing wordings) and
+§7b (transport and session security). Where this document and those disagree, they win.</p>
+
+<hr>
+
+<h2>In one sentence</h2>
+
+<p>Chunk 1b built every part a login needs but left them unreachable; this chunk connects
+them to the web, so aura now has working accounts — you can create a character with no
+signup at all, come back to it later, sign up without losing anything, log in, log out
+everywhere at once, and delete a character.</p>
+
+<p>There is still <strong>nothing to click</strong>. The screens are chunk 2. What exists is
+the machinery behind them, exercised by tests and by hand over HTTP.</p>
+
+<hr>
+
+<h2>The eight endpoints</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">What a player is doing</th>
+  <th align="left">What happens</th>
+</tr>
+<tr>
+  <td><strong>Creating their first character</strong></td>
+  <td>No signup, no form beyond a name. An account is minted <em>behind</em> them and its
+      secret is handed to the browser once, to be kept in local storage. Account, credentials
+      and character are written together or not at all.</td>
+</tr>
+<tr>
+  <td><strong>Coming back later</strong></td>
+  <td>The browser presents that secret and gets their characters back.</td>
+</tr>
+<tr>
+  <td><strong>Creating a second or third character</strong></td>
+  <td>The server picks the lowest free slot and refuses beyond the configured limit
+      (three). Character names are unique across the whole game, case-insensitively.</td>
+</tr>
+<tr>
+  <td><strong>Deleting a character</strong></td>
+  <td>The row is kept as history but marked deleted, and the name is released for anyone to
+      use immediately. Refused while that character is in the world.</td>
+</tr>
+<tr>
+  <td><strong>Choosing a character to play</strong></td>
+  <td>Ownership is proven here, and the server issues a one-time 30-second pass tied to that
+      one character. The game connection presents only that pass.</td>
+</tr>
+<tr>
+  <td><strong>Signing up</strong></td>
+  <td>A username and password are added to the account they have <em>already been playing
+      on</em>, so signing up costs no progress. That is the whole point of the design.</td>
+</tr>
+<tr>
+  <td><strong>Logging in / logging out</strong></td>
+  <td>Login sets a session cookie the browser cannot read. Logout does not merely clear that
+      cookie — it cancels every session for the account, including a copy of the token taken
+      off the machine.</td>
+</tr>
+<tr>
+  <td><strong>Staying logged in while playing</strong></td>
+  <td>The client quietly renews its session on a timer, so a session never expires
+      mid-fight. Renewal is refused once the account has logged out, been erased, or had its
+      sessions cancelled — otherwise "quiet renewal" would mean "a stolen session lasts
+      forever".</td>
+</tr>
+</table>
+
+<hr>
+
+<h2>Two decisions worth knowing about</h2>
+
+<h3>What a character may be called</h3>
+
+<p>Chunk 1b deliberately left this open rather than inventing a rule. It is now decided:
+letters (in any alphabet) and digits, joined by single spaces, apostrophes, hyphens or
+underscores, starting and ending on a letter or digit.</p>
+
+<p>So <code>Barney Rubble</code>, <code>M'reth</code>, <code>Zoë</code> and
+<code>Grimm-Ash</code> are fine; <code>Barney&nbsp;&nbsp;Rubble</code> (two spaces),
+<code>-Bob-</code>, emoji, and the stacked-accent "zalgo" text that turns a name into a
+smear are not.</p>
+
+<p>The deciding argument was that the game's own name suggester proposes
+<code>Barney Rubble</code> — a stricter rule would have aura suggesting names it then
+refuses.</p>
+
+<h3>Two old, deliberate holes were closed</h3>
+
+<p>Two settings had been correct for years and stopped being correct the moment a login
+cookie existed:</p>
+
+<ul>
+<li><strong>Any website could open a game connection.</strong> Harmless while there was
+    nothing to steal; once a browser carries a session, another site could have opened a
+    connection and the browser would have attached your session to it.</li>
+<li><strong>The existing web endpoints advertised themselves as open to everyone.</strong>
+    Correct for the two public catalogues of game content, and impossible to reuse for
+    anything carrying a login — browsers refuse that combination outright.</li>
+</ul>
+
+<p>Both now consult one shared list of permitted sites, built once when the server starts.
+A request from anywhere else is refused rather than quietly served, and the session cookie
+ships with the three protective flags in the same change — so no part of the protection
+rests on any other part.</p>
+
+<hr>
+
+<h2>How it was checked</h2>
+
+<p>Beyond the ordinary tests: <strong>twelve deliberate acts of sabotage</strong>, each
+breaking one important rule to confirm a test actually notices. Eleven were caught. Examples:
+making logout clear the cookie without really cancelling sessions; letting an unknown website
+through; making the "you are already logged in" rule apply per character instead of per
+account (which would have let one player run all three of their characters at once); and
+removing the check that makes a wrong password and an unknown username take the same amount
+of time — because if they do not, the identical error messages protect nothing against
+anyone with a stopwatch.</p>
+
+<p>The twelfth survivor was not a missing test but a wrong comment: a guard the code claimed
+was protecting something turned out to be an optimisation, with the real protection one layer
+below it. Both comments were corrected.</p>
+
+<p>The endpoints were also driven by hand against a running server — 25 checks, all passing —
+and the connection-origin rule was confirmed against the live game socket.</p>
+
+<hr>
+
+<h2>What is deliberately not here</h2>
+
+<ul>
+<li><strong>Any screen.</strong> Chunk 2 builds character-select, the login and register
+    forms, and the delete confirmation.</li>
+<li><strong>Entering the world as a chosen character.</strong> Chunk 3 connects the one-time
+    pass to the game.</li>
+<li><strong>Saving progress.</strong> Chunk 4. Until then the <em>account</em> persists and
+    the <em>progress</em> does not, which is no worse than today but will look broken to
+    anyone testing it.</li>
+<li><strong>Logging out throwing you out of the world.</strong> It cancels your sessions, but
+    disconnecting a live game connection needs machinery that arrives in chunk 3.</li>
+<li><strong>Password recovery.</strong> Its own plan, last, because it is the only part that
+    needs the ability to send email — which aura does not have. Until then a forgotten
+    password cannot be recovered, and the sign-up form will say so.</li>
+</ul>
+
+<hr>
+
+<h2>One thing to watch</h2>
+
+<p>The session cookie is marked as requiring a secure connection, always — including during
+local development, where browsers make a documented exception for <code>localhost</code>.
+That exception could not be confirmed here because there is no browser installed on this
+machine to test with, and two non-browser tools correctly refused to co-operate. It is the
+first thing chunk 2 should check in a real browser. If it does not hold, the fix is to serve
+the development client differently, never to remove the flag.</p>
+
+</body>
+</html>
