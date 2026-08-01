@@ -20,6 +20,23 @@ import (
 //     effect's own tick interval;
 //   - a cooldown is a committed act: it pays on cast, hit or whiff, and one it
 //     cannot afford is REJECTED rather than silently skipped (D9).
+//
+// ⚑ "Lands" is ONE rule across every aura applier, and R2 is where that became
+// true (plan-resource-costs-feedback §5.2). It means WORK DONE, which each
+// applier answers in its own vocabulary but never by mere proximity:
+//   - damage / heal — something was actually damaged or actually healed;
+//   - dot / hot / resist / slow — at least one target got a genuinely NEW
+//     application. A refresh at the same strength changes nothing but an expiry
+//     timer, so it is not work; you pay to ignite, not to keep burning;
+//   - shield — a pool newly granted, or a drained one restored. The absorb pool
+//     is the one payload carrying its own sustain signal, so a shield aura keeps
+//     costing exactly while it is being consumed.
+//
+// Before R2, shield and resist answered `hitAny || len(targets) > 0` and hot
+// answered `len(targets) > 0` — a proximity tax — and a targetsSelf effect set
+// the flag BEFORE the target set was read, so Warbanner charged full price
+// standing alone in an empty field. The comment above described the rule; the
+// code implemented three.
 
 // effectCostHP prices ONE application of an effect for its caster, in absolute
 // HP, before any never-kill clamping.
@@ -33,10 +50,19 @@ import (
 // HP passives, so a caster running Tough or Hardy now pays 10 % of their
 // LARGER pool. That is the scale-invariance D7 asked for, not a regression.
 func effectCostHP(e skillEntity, payer costPayer, effect skills.EffectDef, level int) float32 {
-	cost := effect.CostFractionAt(level) * float32(payer.MaxHealth())
+	// ⚑ The free-floor early-out comes FIRST (§3.8): MaxHealth() is a math.Pow
+	// through curve.F, and the permanently-free Damage aura is the most-executed
+	// aura in the game — before R2 it paid for a Pow per effect per tick that was
+	// then multiplied by zero. It allocates nothing, so the alloc guards
+	// structurally cannot see it. CostFractionAt already floors at 0, so <= 0 and
+	// == 0 are the same test.
+	fraction := effect.CostFractionAt(level)
+	if fraction <= 0 {
+		return 0
+	}
 	// The cost-reduction passive (D13) — the first stat that modifies an input.
 	// Neutral (×1) for every actor with no such passive equipped.
-	return cost * e.SkillComponent().Derived.CostFactor()
+	return fraction * float32(payer.MaxHealth()) * e.SkillComponent().Derived.CostFactor()
 }
 
 // auraEffectCost prices one aura effect tick and pre-clamps it against the

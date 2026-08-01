@@ -168,14 +168,17 @@ func (f *fakePlayer) AddExperience(xp uint64)             { f.xp = append(f.xp, 
 func (f *fakePlayer) RecentHealers() []model.PlayerEntity { return nil }
 func (f *fakePlayer) ApplyRecipeCascade()                 {}
 
-func (f *fakePlayer) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+func (f *fakePlayer) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool {
 	f.resists = append(f.resists, appliedResist{source, tags, factor, ticks})
+	return f.buffs.ApplyResist(source, tags, factor, ticks)
 }
-func (f *fakePlayer) ApplyShield(source skills.SkillID, hp float32, ticks int) {
+func (f *fakePlayer) ApplyShield(source skills.SkillID, hp float32, ticks int) bool {
 	f.shields = append(f.shields, appliedShield{source, hp, ticks})
+	return f.buffs.ApplyShield(source, hp, ticks)
 }
-func (f *fakePlayer) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
+func (f *fakePlayer) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool {
 	f.hots = append(f.hots, appliedHot{source, hot, ticks})
+	return f.buffs.ApplyHot(source, hot, ticks)
 }
 func (f *fakePlayer) ApplySpeed(source skills.SkillID, factor float32, ticks int) {
 	f.buffs.ApplySpeed(source, factor, ticks)
@@ -1606,6 +1609,10 @@ type slowRecorder struct {
 	sources   []skills.SkillID
 	fractions []float32
 	ticks     []int
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 // newSlowTarget builds a hostile slowable — the ordinary target of a player's
@@ -1617,10 +1624,11 @@ func newSlowTarget() *slowRecorder {
 func (r *slowRecorder) Basic() ecs.BasicEntity  { return r.basic }
 func (r *slowRecorder) Faction() model.Faction  { return r.faction }
 func (r *slowRecorder) FriendlyToPlayers() bool { return r.friendly }
-func (r *slowRecorder) ApplySlow(source skills.SkillID, fraction float32, ticks int) {
+func (r *slowRecorder) ApplySlow(source skills.SkillID, fraction float32, ticks int) bool {
 	r.sources = append(r.sources, source)
 	r.fractions = append(r.fractions, fraction)
 	r.ticks = append(r.ticks, ticks)
+	return r.buffs.ApplySlow(source, fraction, ticks)
 }
 
 func TestSlowAura_AppliesLevelScaledSlow(t *testing.T) {
@@ -1757,12 +1765,17 @@ type resistTargetRecorder struct {
 	model.PlayerEntity
 	basic   ecs.BasicEntity
 	resists []appliedResist
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *resistTargetRecorder) Basic() ecs.BasicEntity { return r.basic }
 func (r *resistTargetRecorder) Faction() model.Faction { return model.FactionAligned }
-func (r *resistTargetRecorder) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+func (r *resistTargetRecorder) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool {
 	r.resists = append(r.resists, appliedResist{source, tags, factor, ticks})
+	return r.buffs.ApplyResist(source, tags, factor, ticks)
 }
 
 func resistEffect() skills.EffectDef {
@@ -1822,12 +1835,17 @@ type shieldTargetRecorder struct {
 	model.PlayerEntity
 	basic   ecs.BasicEntity
 	shields []appliedShield
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *shieldTargetRecorder) Basic() ecs.BasicEntity { return r.basic }
 func (r *shieldTargetRecorder) Faction() model.Faction { return model.FactionAligned }
-func (r *shieldTargetRecorder) ApplyShield(source skills.SkillID, hp float32, ticks int) {
+func (r *shieldTargetRecorder) ApplyShield(source skills.SkillID, hp float32, ticks int) bool {
 	r.shields = append(r.shields, appliedShield{source, hp, ticks})
+	return r.buffs.ApplyShield(source, hp, ticks)
 }
 
 func shieldEffect() skills.EffectDef {
@@ -1935,6 +1953,10 @@ type hotTargetRecorder struct {
 	// maxHealth backs the percent-of-max HoT (D14). Left 0 by the flat-heal
 	// tests, which never read it.
 	maxHealth vitals.VitalSign
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *hotTargetRecorder) MaxHealth() vitals.VitalSign { return r.maxHealth }
@@ -1946,8 +1968,9 @@ func (r *hotTargetRecorder) InCombat() bool                  { return false }
 func (r *hotTargetRecorder) Position() phy.Vec2f             { return phy.VEC2F_ZERO }
 func (r *hotTargetRecorder) Radius() float32                 { return 0.25 }
 func (r *hotTargetRecorder) Heal(hp uint32) vitals.VitalSign { return vitals.VitalSign(hp) }
-func (r *hotTargetRecorder) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
+func (r *hotTargetRecorder) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool {
 	r.hots = append(r.hots, appliedHot{source, hot, ticks})
+	return r.buffs.ApplyHot(source, hot, ticks)
 }
 
 var _ model.Healable = (*hotTargetRecorder)(nil)
@@ -2116,13 +2139,18 @@ type dotRecorder struct {
 	basic ecs.BasicEntity
 	dots  []skills.DotBuff
 	ticks []int
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *dotRecorder) Basic() ecs.BasicEntity { return r.basic }
 func (r *dotRecorder) Faction() model.Faction { return model.FactionHostile }
-func (r *dotRecorder) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
+func (r *dotRecorder) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) bool {
 	r.dots = append(r.dots, dot)
 	r.ticks = append(r.ticks, ticks)
+	return r.buffs.ApplyDot(source, dot, ticks)
 }
 
 func dotEffect() skills.EffectDef {
@@ -2964,12 +2992,17 @@ type alignedMobResistTarget struct {
 	model.MobEntity
 	basic   ecs.BasicEntity
 	resists []appliedResist
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *alignedMobResistTarget) Basic() ecs.BasicEntity { return r.basic }
 func (r *alignedMobResistTarget) Faction() model.Faction { return model.FactionAligned }
-func (r *alignedMobResistTarget) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+func (r *alignedMobResistTarget) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool {
 	r.resists = append(r.resists, appliedResist{source, tags, factor, ticks})
+	return r.buffs.ApplyResist(source, tags, factor, ticks)
 }
 
 func TestApplyResistAura_ReachesAlignedMobAlly(t *testing.T) {
@@ -3034,11 +3067,16 @@ func TestApplyMobDamageAura_ThreatTableAttackerIsFairGame(t *testing.T) {
 type factionedDotRecorder struct {
 	faction model.Faction
 	dots    []skills.SkillID
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *factionedDotRecorder) Faction() model.Faction { return r.faction }
-func (r *factionedDotRecorder) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
+func (r *factionedDotRecorder) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) bool {
 	r.dots = append(r.dots, source)
+	return r.buffs.ApplyDot(source, dot, ticks)
 }
 
 func TestApplyDotEffect_MobCasterRespectsHostility(t *testing.T) {

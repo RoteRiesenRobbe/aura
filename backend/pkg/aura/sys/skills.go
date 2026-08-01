@@ -304,14 +304,17 @@ func (s *SkillSystem) notePresence(e skillEntity) {
 
 // dotBuffable is implemented by entities that can carry a damage-over-time
 // debuff (players and mobs — the generic buff store).
+// Reports whether this application ignited the target rather than refreshing a
+// burn already running (§5.1).
 type dotBuffable interface {
-	ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int)
+	ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) bool
 }
 
 // hotBuffable is implemented by entities that can carry a heal-over-time buff
 // (players and mobs — the generic buff store), the dotBuffable twin.
+// Reports whether the buff was genuinely new rather than a refresh (§5.2).
 type hotBuffable interface {
-	ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int)
+	ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool
 }
 
 // buffEventCarrier is the entity-side seam the acting site drains each tick —
@@ -332,8 +335,11 @@ type tickRateBuffed interface {
 // duration — continuous burn while in range) and the one-shot instant_dot
 // cooldown path. Either way the debuff then runs on the target independent
 // of the delivery and the caster's presence (skills.Buffs).
-// Reports whether the debuff reached at least one target (D8: an aura pays
-// only for a landed effect).
+//
+// Reports whether at least one target was genuinely IGNITED — pay to ignite, not
+// to keep burning (R2 / §5.1). ⚑ Only the AURA path spends this: the instant_dot
+// cooldown in fireCooldown counts a non-empty target set as its hit and pays on
+// cast regardless (D9), so a re-ignite with a cooldown is never free.
 func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {
 	// The caster's power scale (f(level) / tier scale / summon composition,
 	// C0) is frozen into the dot at application time, like the level
@@ -352,17 +358,22 @@ func applyDotEffect(e skillEntity, source skills.SkillID, level int, effect skil
 	// (only relevant if content ever sets targetsAllies on a dot).
 	eligible := eligibleByTargetFlags[dotBuffable](effect, e, 0, false)
 	targets := selectTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	ignitedAny := false
 	for _, c := range targets {
-		c.Shape().UserData.(dotBuffable).ApplyDot(source, dot, ticks)
+		if c.Shape().UserData.(dotBuffable).ApplyDot(source, dot, ticks) {
+			ignitedAny = true
+		}
 	}
 	// Applying a dot enters combat (chunk 1). e is the direct caster (player on
 	// a player cast, the summon on an owned cast — the latter is not a
 	// CombatActor and is skipped). Combat decays on the caster's own last
 	// action, not the dot's lifetime — the accepted divergence (§3.1).
+	// Combat entry is a separate question from cost and stays on "reached
+	// anyone": refreshing a burn is still an act of hostility.
 	if len(targets) > 0 {
 		noteHarmDealt(e)
 	}
-	return len(targets) > 0
+	return ignitedAny
 }
 
 // tickBuffEvents drains this entity's due acting-buff events for the tick —
@@ -915,7 +926,11 @@ func (s *SkillSystem) applyHealAura(e skillEntity, level int, effect skills.Effe
 // outlasts the aura cadence, so it keeps ticking after the target leaves range.
 // Reuses the heal aura's implicit same-faction, wounded-only, never-self
 // predicate (no target flags).
-// Reports whether the buff reached at least one target (D8).
+//
+// Reports whether at least one target received a genuinely NEW buff rather than
+// a refresh (R2 / §5.2, the ApplyDot rule its payload is the twin of). It used
+// to answer `len(targets) > 0`, which charged for an ally merely standing in
+// range — the same proximity tax §3.2 found on shield and resist.
 func applyHotAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {
 	// Power scale frozen at application, the dot convention (C0).
 	hp := effect.Hot.HPAt(level) * casterPowerScale(e)
@@ -943,11 +958,14 @@ func applyHotAura(e skillEntity, source skills.SkillID, level int, effect skills
 	}
 
 	targets := selectTargets(collisions, e.AuraCollider().Position(), effect.Selector, effectiveMaxTargets(effect, level), eligible)
+	freshAny := false
 	for _, c := range targets {
 		usr := c.Shape().UserData
-		usr.(hotBuffable).ApplyHot(source, hotBuffFor(e, usr, hp, effect, level), ticks)
+		if usr.(hotBuffable).ApplyHot(source, hotBuffFor(e, usr, hp, effect, level), ticks) {
+			freshAny = true
+		}
 	}
-	return len(targets) > 0
+	return freshAny
 }
 
 // maxHealthed is the target-side pool accessor every percent-of-max heal
@@ -1030,8 +1048,10 @@ func healerTargetable(healer model.Combatant) bool {
 
 // resistBuffable is implemented by entities that can receive transient
 // tag-resistance buffs from a resist_aura (mobs and players; item 11 Phase 2).
+// Reports whether the application was genuinely new (R2 / §5.2) — what the
+// aura cost path charges off.
 type resistBuffable interface {
-	ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int)
+	ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool
 }
 
 // applyResistAura grants the effect's tag-resistance buff to eligible targets
@@ -1039,18 +1059,22 @@ type resistBuffable interface {
 // The buff lifetime is the effect's tick interval + 1, so it always survives
 // to the next re-application regardless of cadence, and fades roughly one
 // aura cycle after leaving the aura (see skills.ResistBuffs).
-// Reports whether the buff reached at least one target — the self-apply
-// included, matching applyInstantShield's rule that a support cast on yourself
-// with nobody around is not a whiff (D8).
+//
+// Reports whether the application did WORK — i.e. whether at least one target
+// (the self-apply included) received a genuinely new buff rather than a refresh
+// at the same factor (R2 / §5.2). It used to answer `hitAny || len(targets) > 0`,
+// which made it charge for mere proximity, and — because targetsSelf set hitAny
+// before the target set was even read — for standing alone in an empty field.
+// ⚑ The instant twins deliberately keep the old rule: a COOLDOWN pays on cast,
+// hit or whiff (D9), so §5.2 is a ruling about auras only.
 func applyResistAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {
 	factor := effect.Resist.FactorAt(level)
 	ticks := effectiveTickInterval(effect, level) + 1
 
-	hitAny := false
+	freshAny := false
 	if effect.Resist.TargetsSelf {
 		if self, ok := e.(resistBuffable); ok {
-			self.ApplyResist(source, effect.Resist.Tags, factor, ticks)
-			hitAny = true
+			freshAny = self.ApplyResist(source, effect.Resist.Tags, factor, ticks)
 		}
 	}
 
@@ -1063,16 +1087,19 @@ func applyResistAura(e skillEntity, source skills.SkillID, level int, effect ski
 
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
-		c.Shape().UserData.(resistBuffable).ApplyResist(source, effect.Resist.Tags, factor, ticks)
+		if c.Shape().UserData.(resistBuffable).ApplyResist(source, effect.Resist.Tags, factor, ticks) {
+			freshAny = true
+		}
 	}
-	return hitAny || len(targets) > 0
+	return freshAny
 }
 
 // shieldBuffable is implemented by entities that can carry an absorb pool
 // from a shield effect (players and mobs — the generic buff store;
 // plan-skill-vocab chunk 2).
+// Reports whether the pool was newly granted or a drained one restored (§5.2).
 type shieldBuffable interface {
-	ApplyShield(source skills.SkillID, hp float32, ticks int)
+	ApplyShield(source skills.SkillID, hp float32, ticks int) bool
 }
 
 // applyShieldAura grants the effect's absorb pool to eligible targets in
@@ -1080,18 +1107,21 @@ type shieldBuffable interface {
 // Support effect: ally-side eligibility only, no mayHarm involvement. The
 // buff lifetime is the effect's tick interval + 1 (the aura convention), so
 // staying in range keeps topping the pool up.
-// Reports whether the pool reached at least one target, the self-apply
-// included (D8, the applyResistAura rule).
+//
+// Reports whether the application did WORK, the applyResistAura rule (R2 /
+// §5.2) — but shield carries its own sustain signal: a pool NEWLY granted counts,
+// and so does a refresh that replaced HP the target actually absorbed. A full
+// pool topped up to full does not. So a shield aura keeps costing while it is
+// being consumed and costs nothing while nothing is hitting the people under it.
 func applyShieldAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {
 	// The absorb pool is an HP value — it rides the caster's power scale (C0).
 	hp := effect.Shield.HPAt(level) * casterPowerScale(e)
 	ticks := effectiveTickInterval(effect, level) + 1
 
-	hitAny := false
+	freshAny := false
 	if effect.Shield.TargetsSelf {
 		if self, ok := e.(shieldBuffable); ok {
-			self.ApplyShield(source, hp, ticks)
-			hitAny = true
+			freshAny = self.ApplyShield(source, hp, ticks)
 		}
 	}
 
@@ -1104,9 +1134,11 @@ func applyShieldAura(e skillEntity, source skills.SkillID, level int, effect ski
 
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
-		c.Shape().UserData.(shieldBuffable).ApplyShield(source, hp, ticks)
+		if c.Shape().UserData.(shieldBuffable).ApplyShield(source, hp, ticks) {
+			freshAny = true
+		}
 	}
-	return hitAny || len(targets) > 0
+	return freshAny
 }
 
 // instantQueryCircle builds the one-shot query circle every instant cooldown
@@ -1152,6 +1184,11 @@ func (s *SkillSystem) queryInstantTargets(e skillEntity, effect skills.EffectDef
 // lifetime (+1 to survive the tick boundary, the dot convention). The
 // self-apply counts as a hit — a Barrier cast with nobody around is not a
 // whiff.
+//
+// ⚑ Deliberately NOT swept up in R2's "pay for work done" rule (§5.2), which is
+// a ruling about AURAS: a cooldown is a committed act and pays on cast, hit or
+// whiff (D9). So ApplyShield's new-vs-restored answer is discarded here on
+// purpose — re-casting Barrier on a full pool still costs.
 func (s *SkillSystem) applyInstantShield(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
 	// The absorb pool is an HP value — it rides the caster's power scale (C0).
 	hp := effect.Shield.HPAt(level) * casterPowerScale(e)
@@ -1181,7 +1218,8 @@ func (s *SkillSystem) applyInstantShield(e skillEntity, source skills.SkillID, l
 // 2 + 3), the applyInstantShield twin: the caster's own heal-over-time buff on
 // targetsSelf plus a one-shot query circle of eligible allies (targetsAllies).
 // The self-apply counts as a hit — a self-recovery cast with nobody around is
-// not a whiff. Applies the buff regardless of the target's current health (a
+// not a whiff, and for the same D9 reason as its twin it keeps that rule
+// through R2 (§5.2 rules auras, not cooldowns). Applies the buff regardless of the target's current health (a
 // preemptive HoT is legitimate); the healing itself runs later in tickHotEvents.
 func (s *SkillSystem) applyInstantHot(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
 	// Power scale frozen at application, the dot convention (C0).
@@ -1213,8 +1251,9 @@ func (s *SkillSystem) applyInstantHot(e skillEntity, source skills.SkillID, leve
 // slow_aura (mobs). The slow is transient: it must be re-applied every tick
 // the target stays in range, and wears off on its own shortly after (buff
 // lifetime = effect tick interval + 1, the aura convention).
+// Reports whether the application was genuinely new (R2 / §5.2).
 type slowable interface {
-	ApplySlow(source skills.SkillID, fraction float32, ticks int)
+	ApplySlow(source skills.SkillID, fraction float32, ticks int) bool
 }
 
 // processCooldowns ticks all cooldown slots down and fires cooldown skills:
@@ -1893,7 +1932,11 @@ func (s *SkillSystem) summonPosition(e skillEntity, summonRadius float32) phy.Ve
 // a player's slow also hit friendly NPCs and their own summons. The caster is
 // not skipped — same-faction protection is the targetsAllies rule, matching
 // applyDamageAura.
-// Reports whether at least one target was slowed (D8).
+// Reports whether at least one target was NEWLY slowed (R2 / §5.2): re-applying
+// the same fraction to a mob already slowed changes nothing but the expiry
+// timer, so it is not work and is not charged. Combat entry below is a separate
+// question and stays on "anyone slowed at all" — a refresh is still an act of
+// hostility.
 func applySlowAura(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef, collisions phy.ColliderSet) bool {
 	fraction := effect.Slow.FractionAt(level)
 	if fraction <= 0 {
@@ -1905,12 +1948,15 @@ func applySlowAura(e skillEntity, source skills.SkillID, level int, effect skill
 	ticks := effectiveTickInterval(effect, level) + 1
 	eligible := eligibleByTargetFlags[slowable](effect, e, 0, false)
 	slowedAny := false
+	freshAny := false
 	for c := range collisions {
 		if !eligible(c) {
 			continue
 		}
 		if target, ok := c.Shape().UserData.(slowable); ok {
-			target.ApplySlow(source, fraction, ticks)
+			if target.ApplySlow(source, fraction, ticks) {
+				freshAny = true
+			}
 			slowedAny = true
 		}
 	}
@@ -1921,7 +1967,7 @@ func applySlowAura(e skillEntity, source skills.SkillID, level int, effect skill
 	if slowedAny {
 		noteHarmDealt(e)
 	}
-	return slowedAny
+	return freshAny
 }
 
 // selfHealHP is the self_heal center amount in HP (pre-variance-roll): a

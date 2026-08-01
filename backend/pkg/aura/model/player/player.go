@@ -487,29 +487,34 @@ func (p *player) NoteAuraHit(style model.AuraHitStyle) { p.auraHitStyle = style 
 // ApplyResist grants a transient tag-resistance buff from a resist aura
 // (item 11 Phase 2); re-applied each aura tick, it expires on the same
 // per-tick lifecycle as the floating-number accumulators.
-func (p *player) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
-	p.buffs.ApplyResist(source, tags, factor, ticks)
+// Reports whether the buff was genuinely new rather than a refresh (§5.2).
+func (p *player) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool {
+	return p.buffs.ApplyResist(source, tags, factor, ticks)
 }
 
 // ApplyDot grants a damage-over-time debuff (effect foundations Step 2); it
 // runs its full authored duration independent of re-application, ticked by
 // the SkillSystem via DueBuffEvents.
-func (p *player) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
-	p.buffs.ApplyDot(source, dot, ticks)
+// Reports whether this application ignited the player rather than refreshing a
+// burn already running (§5.1).
+func (p *player) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) bool {
+	return p.buffs.ApplyDot(source, dot, ticks)
 }
 
 // ApplyHot grants a heal-over-time buff (plan-skill-vocab chunk 3); it runs its
 // full authored duration independent of re-application (the linger that makes a
 // hot_aura keep healing after leaving range), ticked by the SkillSystem via
 // DueBuffEvents.
-func (p *player) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
-	p.buffs.ApplyHot(source, hot, ticks)
+// Reports whether the buff was genuinely new rather than a refresh (§5.2).
+func (p *player) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool {
+	return p.buffs.ApplyHot(source, hot, ticks)
 }
 
 // ApplyShield grants (or tops up) an absorb pool from a shield effect
 // (plan-skill-vocab chunk 2); drained by takeDamage before HP.
-func (p *player) ApplyShield(source skills.SkillID, hp float32, ticks int) {
-	p.buffs.ApplyShield(source, hp, ticks)
+// Reports whether the pool was newly granted or a drained one restored (§5.2).
+func (p *player) ApplyShield(source skills.SkillID, hp float32, ticks int) bool {
+	return p.buffs.ApplyShield(source, hp, ticks)
 }
 
 // ApplySpeed grants a movement-speed buff from a speed_burst cooldown (Swift);

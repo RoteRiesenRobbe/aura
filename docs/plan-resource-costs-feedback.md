@@ -17,7 +17,7 @@ and rode into `40d9b204` with the pass.
 > are ruled** (§5), and the work is chunked into **R1 → R2 → R3** plus one
 > design session (§6). §6 is the schedule and the order in it is load-bearing.
 >
-> **Progress: R1 ✅ built 2026-08-01 (ledger §8). R2 → R3 → R4 open.**
+> **Progress: R1 ✅ + R2 ✅ built 2026-08-01 (ledgers §8). R3 → R4 open.**
 
 ---
 
@@ -583,7 +583,7 @@ added to), the cross-language rounding pin, `tsc` + prod build, and a `verify`
 harness run that reads a real tooltip in a real client — this is a
 presentation chunk, so a screenshot is the acceptance test.
 
-### R2 — What "landed" MEANS (engine)
+### R2 — What "landed" MEANS (engine) ✅ **BUILT 2026-08-01** (ledger §8)
 
 **Moves real prices without moving one authored number**, which is exactly why
 it runs before R3 and gets measured on its own.
@@ -788,3 +788,117 @@ question *"Name of the resource (Essence / Focus / Power?)"* is closed;
 halves of it — the justifying claim was false *and* the ruling is superseded);
 the CLAUDE.md sweep bullet carries the same reversal. The manuals needed
 nothing — their only "resource" hits are the legacy `Resources.ts` render class.
+
+---
+
+### R2 — What "landed" MEANS ✅ **DONE 2026-08-01, committed `[uncommitted]`**
+
+Engine only. **Not one authored number moved**, and no wire field, content key
+or presentation string changed — what moved is *when* the server charges.
+
+**The one rule**
+
+`Buffs.Apply{Resist,Slow,Dot,Hot,Shield}` now **return** the new-vs-refresh
+answer they had always computed internally, through the thin `*Mob` / `*player`
+wrappers into the five `sys` interfaces. The readiness note's third fact held
+exactly: no lookup had to be added anywhere, only a `return`.
+
+| applier | answered | now answers |
+|---|---|---|
+| `applyResistAura` | `hitAny \|\| len(targets) > 0` | a target got a genuinely new buff |
+| `applyShieldAura` | `hitAny \|\| len(targets) > 0` | pool newly granted **or** a drained one restored |
+| `applyHotAura` | `len(targets) > 0` | a target was newly buffed |
+| `applyDotEffect` | `len(targets) > 0` | a target was newly **ignited** (§5.1) |
+| `applySlowAura` | `slowedAny` | a target was newly slowed |
+
+`applyDamageAura` and `applyHealAura` were already right and are untouched.
+**Shield keeps a sustain cost** because its pool *is* a work signal — it charges
+exactly while it is being consumed, and nothing while nothing is hitting the
+people under it. `noteHarmDealt` deliberately stayed on *"reached anyone"*: a
+refresh is still an act of hostility, just not a billable one.
+
+⚠ **The instant twins were NOT swept up** (readiness note 2, honoured):
+`applyInstantShield` / `applyInstantHot` / `instant_dot` discard the new bool.
+D9 — a cooldown pays on cast, hit or whiff — and §5.2 is a ruling about auras.
+Both carry a comment saying so, and `TestCooldownCost_InstantShieldPaysOnEvery
+CastIncludingARefresh` pins it: three Barrier casts onto a full pool, three
+charges. That test is green on **both** sides of the change, which is the point.
+
+**§3.8** — `effectCostHP` early-returns on a zero fraction before evaluating
+`payer.MaxHealth()`, so the permanently-free `Damage` aura stops doing a
+`math.Pow` per effect per tick to multiply it by zero. `CostFractionAt` already
+floors at 0, so `<= 0` and `== 0` are the same test. D8's comment in
+`skill_cost.go` is rewritten to state the one rule — it had been describing a
+rule the code did not implement.
+
+**PO decisions (2026-08-01, both taken as recommended)**
+
+- **Scope: all five buff appliers**, not the readiness note's narrower
+  resist + shield + dot. §5.2 says *"one rule across all seven appliers"* and
+  names slow; leaving two appliers on the old rule would have been an exception
+  nobody could explain later.
+- **Maintained buffs charge once per target-entry, and that is accepted.**
+  Their lifetime is `interval + 1` (or longer), so they never expire while the
+  target stays in range — holding FireWard is free after the first tick. The
+  counterweight is already in the design: exactly one aura is active at a time,
+  so the real price of holding a support aura is the damage aura you are not
+  holding. ⚑ **R3 prices the entry**, the way §5.1 prices a dot to its whole burn.
+
+**Findings**
+
+- ⚑ **Two corrections to this doc, from the content survey.** §4.1's *"both of
+  those slow effects are currently unpriced"* is true of Warbanner's and
+  Suppression's **embedded** slows — but the standalone `Slow` skill **is**
+  costed (`slow_aura`, 0.006 @ tick 30). And **`applyHotAura` is missing from
+  §3.2's table entirely** while answering `len(targets) > 0`, the same proximity
+  tax — with **Rejuvenation costed** (0.0051 @ tick 60) and its 360-tick HoT
+  re-applied every 60, so it never expired in range. Both were live money, which
+  is what made the scope question worth asking rather than assuming.
+- ⚑ **The appliers reach targets through RUNTIME `UserData.(slowable)` asserts,
+  so widening an interface breaks test doubles SILENTLY.** Eight recorders in
+  `skills_behavior_test.go` stopped satisfying their interfaces the moment the
+  methods gained a return value — no compile error, just appliers finding zero
+  targets, which reads exactly like a regression in the feature under test. They
+  are now **backed by a real `skills.Buffs`** rather than stubbed with a
+  constant, so their new-vs-refresh answers are the shipped ones; an
+  always-`true` stub would have let a refresh-charges-nothing regression through.
+
+**Verified**
+
+- **Every new leg proven RED** against a `git worktree` at `ceb09300` carrying
+  only the new test file — including §3.8's guard, whose payer panics if
+  anything prices a free effect's pool.
+- **The regression §3.2 names, on real content:** real Warbanner (four effects,
+  four cadences), caster beside a healthy ally, no enemy, 10 s —
+  **100 → 89 before R2, ≥ 99 after**. `TestAuraCost_WarbannerNextToAnAllyWith
+  NoEnemyDoesNotDrain`.
+- New Go legs: 5 store-level (`buffs_test.go`) + 8 system-level
+  (`sys/skill_cost_landed_test.go`) — per-applier refresh (5 sub-legs),
+  leave-and-return pays again, self-target-alone charges once, shield recharges
+  after absorbing, dot ignites once across 10 re-applications, the cooldown
+  invariant, the free-floor pricing guard.
+- Full Go suite (28 pkgs) + `vet` + `gofmt` clean · guardrails + alloc `-count=2`
+  · the §3.1 drain guard, `TestNoCostOnAnEffectThatCanNeverBeCharged` and the
+  free-floor guard all green.
+- Boot `-content ../api`, 0 errors 0 warnings 0 panics —
+  **86 skills/15 factions/64 mobs/10 recipes/3 milestone unlocks/4 quests/5 prop
+  definitions/777 props/485 spawns/5 campfires**.
+- Harness gate, one at a time on freshly restarted servers: **`r1-focus-cost`
+  5/5** (owns `skill_cost.go`) · **`backlog33-prehot` 4/4** (owns
+  `applyHotAura`) · **`chunk2-calm` 7/7** (owns the buff store) ·
+  **`swift-cooldown` 7/7** (owns the movement axis / `ApplySlow`) — 0 console
+  errors, 0 WebGL losses. ⚑ The first `r1-focus-cost` run lost a WebGL context
+  mid-run (backlog §29) — an **invalid run, not a failure**; every functional
+  leg had printed its correct value. It passed clean on the re-run.
+
+**⚑ The sim battery is byte-identical, and that means LESS than it looks.**
+Default · `-chain` · `-levels` · `-content ../api` roster · and a
+`-player-aura Warbanner:10 -chain` all diff clean against a pre-R2 worktree
+(TTK 6.67 s / TTD 8.70 s stand). But `-player-aura` is **damage-effect-only by
+construction** (C5), so the harness **cannot exercise a single applier R2
+changed**. Byte-identity here is evidence of *no collateral*, not a measurement
+of the fix — the Go regressions are the only eyes on it, exactly as §6 predicted.
+
+**Hands to R3:** every maintained buff now charges once per target-entry, so its
+authored cost is an **entry price**, not a sustain rate — re-author accordingly,
+and remember §3.10 (a subdivided cost is 3× at a level-1 pool, not neutral).

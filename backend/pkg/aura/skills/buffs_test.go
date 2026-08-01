@@ -732,3 +732,64 @@ func TestBuffs_MovementFactorNeverNegative(t *testing.T) {
 	b.ApplySlow(4, 1.5, 2)
 	assert.InDelta(t, 0.0, b.MovementFactor(), 1e-6)
 }
+
+// --- new-vs-refresh reporting (plan-resource-costs-feedback R2 / §5.2) ---
+//
+// The store has always branched on new-vs-refresh internally; R2 is where it
+// says so, because "did this application do work" is what an aura's cost is
+// charged off. Every Apply* below reports TRUE only for an application that
+// changed something a refresh would not have.
+
+func TestBuffs_ApplyResistReportsNewOnly(t *testing.T) {
+	var b Buffs
+	assert.True(t, b.ApplyResist(40, []string{"fire"}, 0.5, 2), "first application is new")
+	assert.False(t, b.ApplyResist(40, []string{"fire"}, 0.5, 2), "same factor is a refresh")
+	assert.True(t, b.ApplyResist(40, []string{"fire"}, 0.4, 2), "a different factor opens its own stream")
+	assert.True(t, b.ApplyResist(41, []string{"fire"}, 0.5, 2), "a different skill is its own source")
+
+	// An expired application is new again — this is what makes a target that
+	// left the aura and came back pay a second time.
+	b.Tick()
+	b.Tick()
+	assert.True(t, b.ApplyResist(40, []string{"fire"}, 0.5, 2), "lapsed, so new again")
+}
+
+func TestBuffs_ApplySlowReportsNewOnly(t *testing.T) {
+	var b Buffs
+	assert.True(t, b.ApplySlow(4, 0.5, 2))
+	assert.False(t, b.ApplySlow(4, 0.5, 2), "same fraction is a refresh")
+	assert.True(t, b.ApplySlow(4, 0.3, 2), "a different fraction opens its own stream")
+}
+
+func TestBuffs_ApplyDotReportsNewOnly(t *testing.T) {
+	var b Buffs
+	dot := DotBuff{HP: 10, Interval: 2}
+	assert.True(t, b.ApplyDot(7, dot, 5), "the ignition")
+	assert.False(t, b.ApplyDot(7, dot, 5), "already burning — a refresh only bumps the duration")
+	assert.True(t, b.ApplyDot(7, DotBuff{HP: 12, Interval: 2}, 5), "a stronger dot is its own stream")
+}
+
+func TestBuffs_ApplyHotReportsNewOnly(t *testing.T) {
+	var b Buffs
+	hot := HotBuff{HP: 4, Interval: 2}
+	assert.True(t, b.ApplyHot(29, hot, 5))
+	assert.False(t, b.ApplyHot(29, hot, 5), "already running")
+	assert.True(t, b.ApplyHot(29, HotBuff{HP: 6, Interval: 2}, 5))
+}
+
+func TestBuffs_ApplyShieldReportsNewOrRestoredPool(t *testing.T) {
+	// Shield is the one payload with a sustain signal of its own (§5.2): a full
+	// pool topped up to full is not work, but a DRAINED pool restored is.
+	var b Buffs
+	assert.True(t, b.ApplyShield(50, 20, 3), "newly granted")
+	assert.False(t, b.ApplyShield(50, 20, 3), "full pool topped up to full — nothing restored")
+
+	assert.InDelta(t, 5.0, b.AbsorbShield(5), 1e-6)
+	assert.True(t, b.ApplyShield(50, 20, 3), "the drained 5 was restored — that is work")
+	assert.False(t, b.ApplyShield(50, 20, 3), "back at full")
+
+	// A pool drained to nothing is dropped outright, so the next application is
+	// new rather than a top-up.
+	assert.InDelta(t, 20.0, b.AbsorbShield(20), 1e-6)
+	assert.True(t, b.ApplyShield(50, 20, 3), "broken shields are gone, not empty")
+}

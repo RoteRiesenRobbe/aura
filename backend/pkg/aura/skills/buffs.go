@@ -191,31 +191,38 @@ func (b *Buffs) apply(source SkillID, payload buffPayload, ticks int) {
 // ApplyResist grants (or refreshes) a tag-resistance buff from the given
 // source skill: an identical factor refreshes that stream, a different factor
 // opens its own.
-func (b *Buffs) ApplyResist(source SkillID, tags []string, factor float32, ticks int) {
+//
+// Reports whether the application was genuinely NEW — the "did this do work"
+// answer an aura's cost is charged off (plan-resource-costs-feedback §5.2). A
+// refresh at the same factor changes nothing but the expiry timer.
+func (b *Buffs) ApplyResist(source SkillID, tags []string, factor float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*resistPayload); ok && p.factor == factor {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
 			p.tags = tags
-			return
+			return false
 		}
 	}
 	b.apply(source, &resistPayload{tags: tags, factor: factor}, ticks)
+	return true
 }
 
 // ApplySlow grants (or refreshes) a movement-slow debuff from the given
-// source skill; same stream rules as resist, keyed by fraction.
-func (b *Buffs) ApplySlow(source SkillID, fraction float32, ticks int) {
+// source skill; same stream rules as resist, keyed by fraction. Reports
+// whether the application was genuinely new (the ApplyResist rule, §5.2).
+func (b *Buffs) ApplySlow(source SkillID, fraction float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*slowPayload); ok && p.fraction == fraction {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
-			return
+			return false
 		}
 	}
 	b.apply(source, &slowPayload{fraction: fraction}, ticks)
+	return true
 }
 
 // ApplySpeed grants (or refreshes) a movement-speed buff from the given source
@@ -254,17 +261,21 @@ func (b *Buffs) ApplyTickRate(source SkillID, factor float32, ticks int) {
 // source skill; streams are keyed by per-event damage. A refresh resets the
 // remaining duration and hands the stream to the latest application (caster,
 // tags, cadence) but keeps the acting accumulator running.
-func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) {
+//
+// Reports whether the target was genuinely IGNITED rather than kept burning —
+// what "pay to ignite" is charged off (§5.1).
+func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*dotPayload); ok && p.dot.HP == dot.HP {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
 			p.dot = dot
-			return
+			return false
 		}
 	}
 	b.apply(source, &dotPayload{dot: dot}, ticks)
+	return true
 }
 
 // ApplyHot grants (or refreshes) a heal-over-time buff from the given source
@@ -272,35 +283,46 @@ func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) {
 // the remaining duration and hands the stream to the latest application (caster,
 // cadence) but keeps the acting accumulator running — so a hot_aura re-applying
 // every tick tops the duration up while in range, and the buff keeps ticking
-// down once the target leaves (plan-skill-vocab §3.7).
-func (b *Buffs) ApplyHot(source SkillID, hot HotBuff, ticks int) {
+// down once the target leaves (plan-skill-vocab §3.7). Reports whether the
+// buff was genuinely new, the ApplyDot rule (§5.1/§5.2).
+func (b *Buffs) ApplyHot(source SkillID, hot HotBuff, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*hotPayload); ok && p.hot.HP == hot.HP {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
 			p.hot = hot
-			return
+			return false
 		}
 	}
 	b.apply(source, &hotPayload{hot: hot}, ticks)
+	return true
 }
 
 // ApplyShield grants (or refreshes) an absorb pool from the given source
 // skill; streams are keyed by the authored pool size. A refresh with the
 // identical strength renews the remaining lifetime AND tops the pool back up
 // to the authored amount (plan-skill-vocab chunk 2, §3.2).
-func (b *Buffs) ApplyShield(source SkillID, hp float32, ticks int) {
+//
+// Reports whether the application did work: newly granted, OR a refresh that
+// actually restored a drained pool. Shield is the one payload with a sustain
+// signal of its own, which is why its rule is wider than resist's — a full pool
+// topped up to full is not work, but replacing absorbed HP is (§5.2). A broken
+// pool is dropped rather than kept at zero (dropDepletedShields), so re-shielding
+// after a break reports new rather than restored.
+func (b *Buffs) ApplyShield(source SkillID, hp float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*shieldPayload); ok && p.authored == hp {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
+			restored := p.remaining < p.authored
 			p.remaining = p.authored
-			return
+			return restored
 		}
 	}
 	b.apply(source, &shieldPayload{authored: hp, remaining: hp}, ticks)
+	return true
 }
 
 // Tick advances the per-tick lifecycle: applications not refreshed within
