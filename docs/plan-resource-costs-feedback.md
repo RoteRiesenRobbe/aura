@@ -905,7 +905,7 @@ and remember §3.10 (a subdivided cost is 3× at a level-1 pool, not neutral).
 
 ---
 
-### R3 — One beat, one price ✅ **DONE 2026-08-01, committed `[uncommitted]`**
+### R3 — One beat, one price ✅ **DONE 2026-08-01, committed `f4ab5bc9`**
 
 The catalog re-authoring, last, against rules that were finally final. Mostly
 content — plus one thing the PO added on the way past that turned out to be an
