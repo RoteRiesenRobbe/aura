@@ -606,15 +606,67 @@ own.
    ⚑ **Read implementation.md §0 first** — driver, pool, query style and where
    Postgres runs are all decided there, and this chunk is the first consumer of
    every one of them.
-2. **1b — Auth & sessions.** bcrypt hashing, JWT issue/verify including the
-   `token_generation` claim, the play-ticket TTL map, the account-scoped live
-   session registry, and the failed-login throttle (⚑ the delay applies *after*
-   the dummy bcrypt comparison, or it reintroduces the timing oracle). Pure Go
-   with unit tests, no HTTP surface yet.
+2. **1b — Auth & sessions. ✅ DONE 2026-08-01** — see the ledger below. bcrypt
+   hashing, JWT issue/verify including the `token_generation` claim, the
+   play-ticket TTL map, the account-scoped live session registry, and the
+   failed-login throttle (⚑ the delay applies *after* the dummy bcrypt
+   comparison, or it reintroduces the timing oracle). Pure Go with unit tests,
+   no HTTP surface yet.
+   ⚑ **The live-session registry splits across 1b and 3, decided 2026-08-01.**
+   Its scope line read as though 1b built the whole thing, which does not fit
+   "pure Go, no HTTP surface": the registry is the existing
+   `ConnectionStateSystem` (`sys/state.go`) extended to carry `account_id`, so
+   building it wholly here means editing live game code — and chunk 3 already
+   owns the atomic account-slot claim on that same structure plus the reconnect
+   identity check. **1b builds the TYPE** (`auth.SessionRegistry`, self-contained
+   and unit-tested, owning "which account is live, claimed atomically");
+   **chunk 3 wires it into `sys/state.go`**, where the `Join` path and the stash
+   already live. That splits along a seam which exists rather than inventing one,
+   and hands chunk 3 a tested component instead of a design problem.
 3. **1c — The eight endpoints.** Character CRUD, register/login/logout,
    `/select`, `/session/refresh`, plus slot assignment and cap enforcement.
    **CORS and the `CheckOrigin` allowlist land here**, since this is where the
    first credentialed request exists.
+
+   ⚑ **Three invariants 1c must not break** (PO 2026-08-01). They exist so that
+   moving auth to a **separate machine** stays a later deploy decision rather
+   than a refactor. All three are free today and expensive to retrofit; none of
+   them asks for an abstraction layer, an `AuthProvider` interface or an RPC
+   seam — building those speculatively would cost more than the split they
+   insure against, and §7 already rejected a second runtime on its own merits.
+
+   1. **The game server never sees a credential.** No password, no JWT, no read
+      of `account_credentials` on the game path — it receives a ticket and
+      exchanges it for `(account_id, character_id)`. **Already true**, and the
+      play ticket is the mechanism. Broken by anything that puts a JWT on the
+      socket or has `Join` verify a cookie.
+   2. **The ticket stays opaque outside `auth`.** Bytes in, bytes out — nothing
+      parses it, derives anything from it, or puts its parts in `client.fbs`.
+      This is what keeps a later swap from *opaque-random-in-a-map* to
+      *signed-and-self-describing* contained to one file instead of a wire
+      change plus the frontend plus the harness. ⚑ A cross-machine split needs
+      that swap, because a ticket minted on one process and redeemed on another
+      cannot live in an in-memory map. `TicketStore`'s `Mint`/`Redeem` API is
+      already the right shape for it; the usage discipline is the fragile half.
+   3. **HTTP handlers depend on `store` + `auth` only, never on `core.Game` or
+      the ECS world.** True today by construction — both packages import **zero**
+      aura packages, and only `cmd/aurad/database.go` reaches for them. The
+      tempting violation is `/select`'s live-session check, which the endpoint
+      table already softens to *"a courtesy check; `Join` remains the
+      authority"*. Keep it that way.
+
+   ⚑ **The one known exception, recorded rather than designed around:** logout
+   is specified to **end the live world session** for the account, which is a
+   handler reaching into the running game. On a machine split it becomes either
+   a small internal call or an accepted gap (logout revokes future tokens; the
+   live socket dies on its own). Decide it *if* that day comes.
+
+   ⚑ **A separate accounts DATABASE was considered and rejected** (PO
+   2026-08-01) — see §10a's note. Short version: anonymous-first fuses account +
+   credentials + character creation into **one transaction on the most common
+   write in the product**, and `characters.account_id → accounts.id` is a
+   foreign key Postgres cannot express across databases. The wanted isolation
+   already exists one level down, at the `account_credentials` table split.
 4. **2 — Frontend.** Character-select screen, the character-creation form's
    second mount, login/register forms, delete-confirmation dialog, HUD nag, and
    the ticket silent-retry — against the 1c API.
@@ -646,6 +698,243 @@ otherwise gate everything.
 ---
 
 ## 10a. Chunk ledger
+
+### Chunk 1b — auth & sessions ✅ DONE 2026-08-01
+
+Backend + docs. **Aura can tell who you are.** Still no HTTP surface and still no
+game code touching it — the deliverable is that every auth primitive the eight
+endpoints need exists, is unit-tested in isolation, and each one's failure mode
+is pinned by a test that has been *proven to fail*.
+
+**Shipped** — new package `backend/pkg/aura/auth/`:
+
+| File | What |
+|---|---|
+| `password.go` | bcrypt hash/verify behind a **`Gate`**, **cost 11 stated explicitly**, `MaxPasswordBytes = 72`, and the constant-cost dummy compare |
+| `credentials.go` | Username / password / character-name validation, the blocklist, the `hrnss_` rules, `RuleError` |
+| `token.go` | HS512 issue/verify/refresh carrying the `gen` claim; `EnvJWTKey`, `TokenLifetime = 1 h [PLACEHOLDER]` |
+| `ticket.go` | The play-ticket TTL map — CSPRNG, 256-bit, single-use, `TicketTTL = 30 s [PLACEHOLDER]`, keys stored SHA-256'd |
+| `throttle.go` | Two-axis progressive delay, `0/1/2/4/8 … s` capped at 30 s, decaying after 15 min, **no lockout** |
+| `sessions.go` | `SessionRegistry` — one live session per **account**, claimed atomically |
+
+Plus `store/sessions.go` (`TokenGeneration` / `BumpTokenGeneration` + `ErrNoAccount`)
+and six test files. **New dependency: `golang-jwt/jwt/v5 v5.3.0`**, which
+declares `go 1.21` and so leaves the `go 1.22` floor untouched — `go.mod`'s
+directive is unchanged. bcrypt needed nothing: `x/crypto` was already direct.
+
+**The scoping question is ruled** — option A, written into §10 above: 1b builds
+the registry **type**, chunk 3 wires it into `sys/state.go`.
+
+**Decisions taken during execution:**
+
+| Decision | Outcome |
+|---|---|
+| bcrypt cost | **11**, chosen against measurement rather than convention. Cost 10 (the library default) is 130 ms on the dev box, 11 is 263 ms, 12 is 526 ms. 12 is the usual recommendation, but half a second is already visible login latency and aurad answers logins **in the same process that runs a 30 Hz game loop** — every bcrypt is CPU stolen from the tick. 11 sits above the default, so the value is a decision rather than an inheritance. ⚑ **Re-measure on the VPS before 8a deploys** — see the capacity note below |
+| Bounding that CPU — **added mid-chunk on a PO question** (*"will this slow the game down if many people sign in?"*) | **`auth.Gate`, a semaphore around every bcrypt call, `DefaultGateSlots = 2`.** The question was worth asking and the answer is measured: the game loop is a **single goroutine** that structurally **cannot use the second core** of the 2-vCPU box (`architecture.md` §1; measured peak 147 % of one core at ~60–70 clustered players), so **one hash is genuinely free** — it runs on capacity the loop could never spend. HTTP handlers share no lock with the loop, so a hash cannot *block* a tick, only compete for CPU. What is unbounded is *concurrency*: ⚑ **the throttle bounds attempts per IP and per account but never the global total**, and the first attempt from any pair is deliberately free, so N distinct sources each get one free hash. Two slots bound the worst case to a constant factor of tick slowdown instead of one that scales with arrivals. ⚑ **The Gate is the only route to bcrypt** — the package-level `HashPassword`/`VerifyPassword` are gone, so a handler cannot hash unbounded by forgetting something |
+| ⚑ A second process or sidecar for auth — **considered and rejected**, recorded because it is the intuitive answer | **On the same VPS it changes nothing.** CPU is the shared resource and the OS time-slices across processes exactly as it does across goroutines; it would add IPC, a second Go runtime and a second GC for zero isolation. Real isolation needs a **different machine**, which contradicts the single-binary deploy (implementation.md §7: no second runtime, no second deployment artifact) and buys nothing at a login rate three orders of magnitude below the threshold |
+| ⚑ The capacity number itself | Extrapolating cost 11 by the live box's measured **~3.4× slower** vCPU (`plan-intermission-triage.md`) gives **~0.9 s per hash there**, and roughly **0.5 sustained logins/sec** before logins start stealing from the loop at peak player count. Organic rate for a friends-and-family playtest is a handful per **hour**. ⚑ That extrapolation is from *loop work*, not from bcrypt — an estimate, not a reading. **Measure bcrypt on the VPS while provisioning it** and re-pick the cost factor against that, since 0.9 s is past "visible" and into "bad" |
+| Does 1b touch the database at all | **Two queries, deliberately.** `TokenGeneration` / `BumpTokenGeneration` are the revocation primitive itself, not endpoint SQL. Without them `Verify`'s generation comparison has nothing real to compare against and *"a token whose account was erased is refused"* is an assertion nobody can make |
+| Where the generation comes from | **A required argument to `Verify`, never a lookup inside it.** An API where the caller *could* forget the comparison is one that eventually gets called by someone who did — and forgetting it turns silent refresh into an immortal session |
+| Durations as constructor parameters | `NewKeys` / `NewTicketStore` / `NewThrottle` take their lifetimes; the decided values are exported constants 1c passes in. It buys the expiry tests: a negative lifetime mints an already-expired token, and a 10 ms decay window tests the throttle's 15 min one — no clock injection, no `time.Now` seam, no sleeping for a quarter of an hour |
+| Character-name **charset** | **Deliberately NOT invented.** Length (3–20), surrounding whitespace, control characters and the `hrnss_` rule are enforced; composition is left open, so `Barney Rubble` and `M'reth` pass. No plan rules it, and quietly imposing `[A-Za-z0-9_-]` would be a design decision wearing a validator's clothes. ⚑ **Flagged for 1c/the PO.** The 20 promotes `sys/state.go`'s existing silent truncation into an error — same reasoning as the 72-byte password ceiling |
+
+**Six mutation runs, because a test that cannot fail is decoration.** Every
+load-bearing assertion was proven by breaking the code under it and watching the
+test go red:
+
+| Mutation | Caught by |
+|---|---|
+| Drop the dummy bcrypt compare | the timing test — `0s` vs `264 ms` |
+| Consult the blocklist without stripping trailing punctuation | 6 rows of the password table, `password!` first |
+| Skip the `token_generation` comparison | the stale-generation test **and** the refresh-refusal test |
+| Trust the token's own `alg` header | the HS256-forgery row |
+| Check-then-set instead of an atomic claim | `TestClaimIsAtomic` — **2 grants where 1 is allowed** |
+| Redeem without burning the ticket | the single-use test |
+| Remove the gate's bound | `TestGateBoundsConcurrency`, all three slot counts |
+| Drop the gate's early context check | the refusal test, **2 runs in 5** — see below |
+
+⚑ **The gate's context check is a defect the test found, not a rule someone
+remembered.** `do` originally left the decision to a bare `select` over "a slot
+is free" and "the context is done" — and when both are ready, Go picks at
+random, so a caller who had already gone away still burned a hash about half the
+time. That is precisely the CPU the gate exists to protect. It now checks
+`ctx.Err()` first, and mutation confirms the difference is a coin flip rather
+than a theoretical one.
+
+⚑ **The `alg` run corrected a wrong assumption, and the fix went into the test's
+comment.** Deleting `WithValidMethods` leaves the **alg-none** forgery still
+rejected — golang-jwt refuses `SigningMethodNone` unless the keyfunc explicitly
+opts in — while letting the **HS256** forgery straight through. So the two rows
+are not two views of one guard: the HS256 row pins aura's algorithm allowlist,
+the alg-none row pins a library behaviour aura depends on but does not own.
+
+**Traps closed, each structurally rather than by discipline:**
+
+- **The timing oracle lives inside `VerifyPassword`, not in the caller.** An
+  empty hash means "no such account" and still costs a full bcrypt round. The
+  login handler cannot forget the rule because there is no rule to remember —
+  pass the hash you found, or `""` if you found none.
+- **The dummy hash is a literal, guarded by `TestDummyHashMatchesCost`.**
+  Computing it at init costs a bcrypt round on every process start; the risk that
+  trades against — someone raises the cost and leaves the literal behind, quietly
+  restoring the oracle with every test still green — is closed by asserting
+  `bcrypt.Cost(dummyHash) == bcryptCost`.
+- **The ticket's character binding is structural.** The character id comes *out*
+  of the ticket and `Join` carries no character field, so "a ticket for A cannot
+  join as B" is not a comparison anyone could omit — there is nowhere to say B.
+- **Play tickets are stored SHA-256'd even in memory.** Same rule as the token
+  columns: a heap dump or a stray debugger session then yields nothing
+  redeemable, at the cost of one hash per lookup.
+- **`Throttle.Wait` carries the ordering warning at the point of use** — after
+  the bcrypt compare, never instead of it — because that is where whoever
+  reintroduces the oracle will be reading.
+
+**Verified.** `go build ./...` · `go vet ./...` · `gofmt` clean ·
+**full suite 30/30 packages** (29 + the new `auth`), green **both** with
+`AURA_TEST_DB_URL` set and with it unset · store + auth at **`-count=2`** ·
+boot with `AURA_DB_URL`: schema version 1 `dirty=false`, then **0 errors 0
+warnings**, 15 factions / 86 skills / 64 mobs / 4 quests / 777 props / 485
+spawns. ⚑ **`-race` cannot run on this dev box** — it needs cgo and there is no C
+toolchain — so `TestClaimIsAtomic` counts grants instead of leaning on the race
+detector, and was mutation-checked to confirm it fails without it.
+
+**Harness gate: no browser harness owns this chunk.** No client code, no game
+logic, no content and no wire change — nothing the 17 scripts assert can have
+moved. Boot verification stands in. Stated rather than assumed, per the gate's
+own rule. The first harness script for accounts arrives with chunk 2, and §11's
+"harness accounts" recipe is what it starts from.
+
+### Capacity: what 100 concurrent players would actually cost (PO question, 2026-08-01)
+
+Asked during the chunk and answered against `devops/loadtest.md`'s measured
+break-ramps rather than by extrapolation. **Recorded because the conclusion is
+counter-intuitive and because two of its supporting properties are easy to
+delete by accident.**
+
+**Auth is not the constraint at 100 concurrent — the game loop is, and it is
+already measured to break there.** Live box, real instrumented bots, clustered,
+target 30 snap/s:
+
+| bots | Damage L1 | max build |
+|---|---|---|
+| 60 | **30.0** | 24.2 |
+| 80 | 27.9 | 13.6 |
+| **100** | **18.2** | **9.2** |
+| 140 | 9.8 | 4.4 |
+
+**Dispersed, 120+ held a full 30 Hz and the ceiling was never reached.** So 100
+concurrent is comfortable spread out and broken clustered; the wall is named in
+that doc as **single-threaded per-player GameState encoding**, and CPU never
+saturated the 2-vCPU box in any run.
+
+**Auth against that:** ~100 fresh logins/hour at 100 concurrent is 0.028/s ×
+~0.9 s ≈ **2.5 % of one core**, and the gate's ceiling is ~2.2 logins/s
+(~8,000/hour) — roughly 80× the demand.
+
+⚑ **The two properties that make it that cheap, both breakable:** a **reconnect**
+presents the JWT cookie to `/select` (HMAC, microseconds), so a post-deploy herd
+of 100 reconnects does **no hashing**; and an **anonymous** player presents a
+SHA-256 lookup key, not a verifier, so under an anonymous-first design most
+players never reach bcrypt at all. Requiring a password on reconnect, or
+"hardening" `anonymous_secret_sha256` to bcrypt, would each turn a free path into
+a hashing one. Pinned in the comment on `auth.Gate`.
+
+⚑ **A correction that belongs on record: "one hash is free" was too strong.** The
+second core is not idle under load — the measured 147 % peak decomposes as
+roughly `loop 1.0 + websocket write goroutines 0.47`, leaving ~0.53 cores spare.
+A hash is close to free at idle and moderate load; at the break point it
+oversubscribes the box by ~20 % for its duration. That is what the gate bounds.
+
+**Persistence at that scale was already sanity-checked** — implementation.md §4:
+100 players on a 5-minute autosave is *one write per 3 seconds*. The half that
+runs inside the tick (snapshot now, write later) is ~one snapshot per 90 ticks
+against an encoding pass that already runs 100× per tick. ⚑ `MaxConns = 10`
+stays a [PLACEHOLDER] worth re-checking if autosave ever becomes synchronous
+per-player.
+
+**What would actually have to change for a sustained 100** is in
+`devops/loadtest.md` §"The wall": a faster single-core VPS → pooled/reused
+FlatBuffers builders and no re-encoding of static skill data → delta/shared
+snapshot encoding. None of it is auth or persistence work, so **8a needs no
+change for a 100-player target**. ⚑ Worth noticing that the cheapest lever —
+a faster single core — is the same lever for both problems: it raises the player
+ceiling *and* drops bcrypt from ~0.9 s toward the 0.26 s measured on the dev box.
+
+---
+
+### Considered and rejected: a separate accounts & auth database (PO 2026-08-01)
+
+Raised as *"isn't it cleaner for the future, and we could even do it now?"* — a
+fair instinct (a separate auth database is standard in larger systems) and the
+timing argument is real, since nothing is deployed and the database is
+disposable. Rejected on three specifics, all of which are properties of **this**
+design rather than general objections:
+
+1. ⚑ **Anonymous-first fuses account creation to character creation.**
+   Implementation.md §0 names three transaction sites and the first is
+   *character creation (accounts + credentials + characters)* — one atomic write
+   across all three tables, and under anonymous-first it is **the most common
+   write in the product**, since every new player mints an account behind them.
+   That fusion is deliberate: it is what makes "registering later never costs
+   progress" true. A database boundary cuts straight through it and turns the
+   hottest path into a distributed transaction (2PC, whose unresolved prepared
+   transactions block vacuum and hold locks, or a saga with compensating writes).
+   ⚑ **In a conventional register-then-create-a-character design this cost does
+   not exist** — those are two transactions and the split is cheap. Aura's flow
+   is what makes it expensive.
+2. **Two foreign keys cannot survive it, and one is the schema's spine.**
+   Postgres has no cross-database FKs, so `characters.account_id → accounts.id`
+   and `bloodline_unlocks.account_id → accounts.id` would become application
+   code — the exact class of invariant this plan deliberately pushed into the
+   database (§11's reasoning for the slot cap: the invariant *is* the database).
+3. **Backup/restore doubles and gains a requirement it does not have today.**
+   §8 makes "a backup that has never been restored is a hypothesis" a principle;
+   two databases means two runbooks **plus** restoring both to a consistent
+   point in time, or characters point at accounts that do not exist with no FK
+   left to catch it. One `pg_dump` gives that consistency for free.
+
+**And it buys less than it looks like.** The isolation actually wanted already
+exists one level down: `account_credentials` is a separate TABLE precisely so
+game-path queries never read password material (§"Credential isolation",
+shipped in 1a). A second database adds ops surface, not security. It also does
+nothing for CPU isolation, which is a *machine* question, not a database one.
+
+⚑ **The reframe that decided it: the costs of a split database here are RUNNING
+costs, not migration costs.** Doing it early buys down only the one-time part.
+Not splitting and never needing it costs nothing; splitting and never needing it
+costs FK enforcement, a distributed transaction on the most common write, and
+doubled ops for the life of the project. Splitting *later*, if the day comes, is
+a contained migration — drop two FKs, convert one transaction to a saga — done
+with knowledge of why.
+
+**Middle option, offered and not taken: two SCHEMAS in one instance**
+(`auth.*` + `game.*`). Cross-schema FKs and transactions work fine, so it keeps
+everything above while making the boundary visible in every query, and it is
+nearly free. Judged mostly aesthetic: it pre-solves the *easy* half of a future
+split (renaming tables) and nothing of the hard half. ⚑ Note the plan already
+considered an `auth`+`game` schema split once and dropped it — for the unrelated
+reason that it existed only to bridge to the rejected external Java service
+(implementation.md §7).
+
+---
+
+⚑ **Warning that arms in chunk 3:** never hold a lock the game loop needs across
+a bcrypt call or a database query. Nothing does today — HTTP handlers and the
+loop share no mutex — but chunk 3 wires `SessionRegistry` into
+`ConnectionStateSystem`, which is the first structure both touch. The gate
+bounds CPU contention; it does nothing about a lock held across 0.9 s of hashing.
+
+**Plain-language summary for humans:** `docs/accounts/chunk-1b-summary.html`.
+
+**Left for 1c, flagged here so it is not rediscovered:** `AURA_JWT_KEY` is
+**read by nothing yet** — `EnvJWTKey` is declared and `NewKeys` validates a
+secret's length, but the process never reaches for the variable, because 1b has
+no endpoint to sign anything for. 1c wires it, and that is also where the
+*unset* `AURA_DB_URL` warning becomes a hard boot failure, and where the
+`CheckOrigin` allowlist + specific-origin CORS land with the first credentialed
+request (backlog §43).
+
+---
 
 ### Chunk 1a — schema, migrations & the connection layer ✅ DONE 2026-07-31, `6d5cc695`
 

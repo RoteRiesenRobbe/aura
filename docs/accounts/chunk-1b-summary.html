@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aura — Step 8a, Chunk 1b: Auth &amp; Sessions</title>
+</head>
+<body>
+
+<h1>Aura — Accounts &amp; Persistence</h1>
+<h2>Step 8a, Chunk 1b: auth &amp; sessions</h2>
+
+<p><em>Point-in-time summary &middot; 1 August 2026 &middot; branch <code>accounts-8a</code> &middot;
+not yet committed</em></p>
+
+<p><strong>This is a human-facing snapshot, not a maintained document.</strong> The authoritative
+sources are <code>docs/plan-accounts-implementation.md</code> §7 and §7b (what auth is, and how
+identity reaches the server), <code>docs/plan-accounts-schema.md</code> (the schema and the
+hashing rules) and <code>docs/plan-accounts-frontend.md</code> §10a (the full chunk ledger).
+Where this document and those disagree, they win.</p>
+
+<hr>
+
+<h2>In one sentence</h2>
+
+<p>Aura can now tell who you are. Every building block a login needs — password hashing,
+the rules a password must satisfy, session tokens, the one-time pass that gets a chosen
+character into the world, the defence against password guessing, and the rule that one
+account can only be playing once — exists and is tested. None of it is reachable yet:
+there are no web endpoints, no screens, and no change a player could notice.</p>
+
+<hr>
+
+<h2>What now exists</h2>
+
+<p>A new self-contained package, <strong>auth</strong>, holding six pieces:</p>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">Piece</th>
+  <th align="left">What it does</th>
+</tr>
+<tr>
+  <td><strong>Password hashing</strong></td>
+  <td>Turns a password into something safe to store, using a deliberately slow algorithm so
+      that stealing the database does not hand anyone the passwords.</td>
+</tr>
+<tr>
+  <td><strong>Credential rules</strong></td>
+  <td>Username length and characters, password length, the requirement for a special
+      character, and a blocklist of the passwords attackers try first.</td>
+</tr>
+<tr>
+  <td><strong>Session tokens</strong></td>
+  <td>Issues, checks and renews the token that keeps a player logged in — including the
+      counter that makes "log out" actually cancel a session.</td>
+</tr>
+<tr>
+  <td><strong>Play tickets</strong></td>
+  <td>A one-time, 30-second pass, tied to one specific character, that the game connection
+      presents instead of any password or login token.</td>
+</tr>
+<tr>
+  <td><strong>Failed-login throttle</strong></td>
+  <td>Slows repeated wrong guesses down, counting both by the address they come from and by
+      the account being guessed at.</td>
+</tr>
+<tr>
+  <td><strong>Live-session registry</strong></td>
+  <td>Tracks which accounts are currently playing, so one account cannot be in the world
+      twice.</td>
+</tr>
+</table>
+
+<h3>The two rules that shape most of the above</h3>
+
+<ul>
+  <li><strong>A login for a username that does not exist must take exactly as long as one with
+      the wrong password.</strong> If it returns faster, anyone can discover which usernames are
+      registered simply by timing the response — and the deliberately vague error message
+      ("incorrect username or password") stops protecting anything. So a login for an unknown
+      account still performs a full, pointless password check against a fixed dummy value.
+      This is built into the password check itself rather than left as a rule the login code
+      has to remember.</li>
+  <li><strong>Logging out has to cancel the token, not just forget it.</strong> A session token is
+      self-contained — the server signs it once and afterwards recognises it without looking
+      anything up, which is what makes it cheap. It also means the server has no list of
+      issued tokens and cannot simply revoke one. The counter shipped in chunk 1a solves
+      this: it is stamped into every token and checked on every use, so bumping it kills every
+      token for that account at once. Without it, "log out" would only clear the browser's
+      cookie and do nothing about a copy taken off the machine.</li>
+</ul>
+
+<h3>Three smaller details worth knowing</h3>
+
+<ul>
+  <li><strong>There is no account lockout, on purpose.</strong> Repeated wrong guesses get slower
+      and slower, up to a 30-second delay, but the account is never locked. A hard lockout
+      would let anyone who knows your username lock you out deliberately — a defence that
+      turns into a griefing tool, which the game's design principles rule out.</li>
+  <li><strong>The play ticket cannot be pointed at the wrong character.</strong> The character's
+      identity comes <em>out of</em> the ticket, and the game connection carries no character
+      field at all — so "a ticket for character A cannot be used to play character B" is not a
+      check that could be forgotten. There is nowhere to say B.</li>
+  <li><strong>The password blocklist is checked after stripping trailing punctuation.</strong>
+      Requiring a special character pushes real people towards <code>password!</code>, which
+      would otherwise sail straight through a check that <code>password</code> would have
+      failed — the rule intended to strengthen passwords quietly defeating the rule that
+      does the real work.</li>
+</ul>
+
+<hr>
+
+<h2>What this chunk deliberately does not do</h2>
+
+<ul>
+  <li><strong>No web endpoints.</strong> Nothing can be logged into yet. The eight endpoints are
+      chunk 1c.</li>
+  <li><strong>No screens.</strong> Character select, login and register forms are chunk 2.</li>
+  <li><strong>No connection to the game world.</strong> Getting a chosen character into the world
+      is chunk 3.</li>
+  <li><strong>No password recovery.</strong> That is its own plan, sequenced last, because it is
+      the only part of accounts that needs outbound email — which the project has no
+      capability for at all.</li>
+  <li><strong>No player-facing change whatsoever.</strong> The game plays exactly as it did
+      yesterday.</li>
+</ul>
+
+<hr>
+
+<h2>The distinguishing feature of this chunk: the tests were proven able to fail</h2>
+
+<p>A test that has never failed proves nothing. Every load-bearing rule above was verified by
+deliberately breaking the code underneath it and confirming the test went red — then putting
+the code back. Eight such runs, all caught:</p>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">What was broken</th>
+  <th align="left">What noticed</th>
+</tr>
+<tr>
+  <td>Let an unknown username skip the pointless password check</td>
+  <td>The timing test — 0 seconds against 0.26 seconds</td>
+</tr>
+<tr>
+  <td>Check the blocklist without stripping trailing punctuation</td>
+  <td>Six rows of the password table, <code>password!</code> first</td>
+</tr>
+<tr>
+  <td>Skip the session-cancellation check</td>
+  <td>Both the revoked-token test and the renewal-refusal test</td>
+</tr>
+<tr>
+  <td>Trust a token's own claim about how it was signed</td>
+  <td>The forged-token test</td>
+</tr>
+<tr>
+  <td>Check "is this account already playing?" separately from claiming the slot</td>
+  <td>The concurrency test — <strong>two sessions granted where one is allowed</strong></td>
+</tr>
+<tr>
+  <td>Let a play ticket be used more than once</td>
+  <td>The single-use test</td>
+</tr>
+<tr>
+  <td>Remove the limit on simultaneous password hashing</td>
+  <td>The concurrency-bound test, at every setting</td>
+</tr>
+<tr>
+  <td>Drop one early check in that limit</td>
+  <td>The refusal test — but only <strong>2 runs in 5</strong>, see below</td>
+</tr>
+</table>
+
+<h3>One of those runs corrected a wrong belief</h3>
+
+<p>Removing the check that pins <em>how</em> a token was signed left one kind of forgery still
+rejected and let another straight through. The two were being treated as one protection;
+they are not. The test now says so explicitly, so nobody later concludes the check is
+redundant because one of the two tests still passes without it.</p>
+
+<h3>One of those runs found a real defect</h3>
+
+<p>The limit on simultaneous password hashing originally decided between "a slot is free" and
+"the requester has given up" by asking both at once — and when both are true, the language
+picks at random. So a request whose sender had already disconnected still consumed a full
+password hash about half the time, which is precisely the work the limit exists to avoid.
+It now checks the requester first. The mutation run above is what proved the difference is
+a coin flip rather than a theoretical concern.</p>
+
+<hr>
+
+<h2>Two architecture questions raised during the work, and their answers</h2>
+
+<h3>1. "Will logins slow the game down when many people sign in?"</h3>
+
+<p>A fair concern: password hashing is deliberately expensive, and it happens inside the same
+program that runs the game. The answer, measured rather than assumed:</p>
+
+<ul>
+  <li>The game loop is a <strong>single thread</strong>, so it can never use more than one of the
+      server's two processor cores however busy it gets. Web requests run separately and
+      share no locks with it, so a password hash can never <em>freeze</em> the game — only
+      compete with it for processing time.</li>
+  <li>At an idle or moderately busy server there is spare capacity and a hash is close to
+      free. <strong>At the server's measured breaking point there is not</strong> — roughly half a
+      core is genuinely spare, so a hash competes and both slow down. An earlier version of
+      this analysis claimed a hash was simply "free"; that was too strong and has been
+      corrected.</li>
+  <li>What was genuinely unbounded was <em>how many at once</em>. The guessing throttle limits
+      each address and each account but never the total, so many different sources could each
+      demand one hash simultaneously. A limit on concurrent hashing was added.</li>
+</ul>
+
+<p><strong>Moving login to a second program on the same server would not have helped</strong> — the
+processor is shared either way, and the operating system divides time between programs
+exactly as it does within one. It would have added complexity for no isolation.</p>
+
+<h3>2. "What about 100 concurrent players, permanently?"</h3>
+
+<p>At that scale <strong>logins are not the constraint — the game loop is</strong>, and it is already
+measured to struggle there. Load tests against the live server show a comfortable full frame
+rate with <strong>120+ players spread across the world</strong>, but a ceiling of roughly
+<strong>60&ndash;70 when everyone is clustered in one place and fighting</strong>. Logins at 100
+concurrent players work out to about 2.5% of one processor core.</p>
+
+<p>Two properties keep it that cheap, and <strong>both could be removed by accident later</strong>,
+so they are now recorded in the code:</p>
+
+<ul>
+  <li><strong>Reconnecting costs no password hashing at all.</strong> A returning player presents
+      their existing session token, which is checked in microseconds. So the rush of everyone
+      reconnecting after a server restart is cheap.</li>
+  <li><strong>Players who have not registered never reach password hashing either</strong>, because
+      an anonymous account is identified by a fast lookup key rather than a password. Since
+      the design is anonymous-first, most players never touch the expensive path.</li>
+</ul>
+
+<p>The things that would actually need to change for a sustained 100 players are all in the
+game loop, not in accounts — and the cheapest of them, <strong>a server with a faster single
+core</strong>, happens to improve both problems at once.</p>
+
+<hr>
+
+<h2>Two proposals considered and not taken</h2>
+
+<h3>A separate database for accounts and login</h3>
+
+<p>Rejected, for reasons specific to this design rather than general ones:</p>
+
+<ul>
+  <li><strong>Creating a character and creating an account are one indivisible act here.</strong>
+      Because players start anonymously, a new player's very first character creation writes
+      the account, its credentials and the character together, all-or-nothing. That is the
+      most common write in the whole product, and it is deliberate — it is what makes signing
+      up later cost no progress. A database boundary runs straight through the middle of it.</li>
+  <li><strong>The link between an account and its characters could no longer be enforced.</strong>
+      Databases cannot enforce that relationship across a boundary, so "this character belongs
+      to a real account" would become ordinary code that can be got wrong — exactly the kind
+      of rule this project has been pushing <em>into</em> the database.</li>
+  <li><strong>Backups would double and gain a new requirement</strong>: both databases would have to
+      be restored to the same instant, or characters end up pointing at accounts that do not
+      exist. A single backup gives that for free.</li>
+</ul>
+
+<p>The separation actually wanted already exists one level down: login material lives in its
+own <em>table</em> precisely so ordinary game queries can never read it. The decisive point is
+that a split database's costs are <strong>ongoing</strong>, not one-time — doing it early only saves
+the cheap part, while the expensive part is paid forever.</p>
+
+<h3>An abstraction layer for "auth might move elsewhere one day"</h3>
+
+<p>Also not taken, but the goal behind it <em>was</em> addressed — see below.</p>
+
+<hr>
+
+<h2>Keeping the door open: three rules for chunk 1c</h2>
+
+<p>Moving login to a separate machine later should stay a deployment decision rather than a
+rewrite. That is largely already true, mostly as a side effect of the play-ticket design.
+Three rules preserve it, all free today and expensive to retrofit:</p>
+
+<ol>
+  <li><strong>The game server never sees a credential.</strong> No password and no login token ever
+      reaches it — it receives a ticket and exchanges it for an account and a character.
+      Already true.</li>
+  <li><strong>The ticket stays opaque to everyone but the auth code.</strong> Nothing else reads
+      inside it. This keeps a future change of ticket format contained to one file instead of
+      rippling through the network protocol, the browser client and the test harness.</li>
+  <li><strong>Web request handlers never reach into the running game.</strong> They talk to the
+      database layer and the auth package only — which is verifiably true today, since neither
+      of those packages depends on any game code at all.</li>
+</ol>
+
+<p>One known exception is recorded rather than designed around: logging out is meant to end a
+live game session, which does reach into the running game. If the split ever happens, that
+becomes either a small internal call or an accepted gap.</p>
+
+<hr>
+
+<h2>For developers: where the code is</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">Path</th>
+  <th align="left">What it is</th>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/auth/password.go</code></td>
+  <td>Password hashing and checking, the concurrency limit, and the reasoning behind the
+      chosen slowness setting.</td>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/auth/credentials.go</code></td>
+  <td>Username, password and character-name rules, plus the blocklist.</td>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/auth/token.go</code></td>
+  <td>Session tokens: issue, verify, renew.</td>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/auth/ticket.go</code></td>
+  <td>Play tickets.</td>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/auth/throttle.go</code></td>
+  <td>The failed-login slowdown.</td>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/auth/sessions.go</code></td>
+  <td>One-live-session-per-account tracking.</td>
+</tr>
+<tr>
+  <td><code>backend/pkg/aura/store/sessions.go</code></td>
+  <td>The only database access in this chunk: reading and bumping the session-cancellation
+      counter.</td>
+</tr>
+</table>
+
+<p>Six test files alongside them. One new third-party dependency, chosen at a version that
+does not force the project's minimum language version upwards.</p>
+
+<h3>Running it locally</h3>
+
+<ul>
+  <li><code>go test ./pkg/aura/auth/...</code> — needs nothing but Go. Takes a few seconds,
+      because it performs real password hashing.</li>
+  <li><code>go test ./...</code> — the full suite; passes with or without a database present.</li>
+</ul>
+
+<hr>
+
+<h2>Decisions taken during the work</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">Decision</th>
+  <th align="left">Outcome</th>
+</tr>
+<tr>
+  <td>How slow password hashing should be</td>
+  <td>One step above the library's default, chosen by measuring rather than by convention:
+      the usual recommendation measured at over half a second here, which is already
+      noticeable when logging in. <strong>The live server is roughly three times slower than the
+      development machine</strong>, so this should be measured there and re-chosen while the
+      server is being set up.</td>
+</tr>
+<tr>
+  <td>How many passwords may be hashed at once</td>
+  <td>Two. A stricter limit of one would protect the game loop slightly better; two was
+      chosen for tolerance of a burst of simultaneous logins. Both alternatives and their
+      trade-off are written down at the setting itself.</td>
+</tr>
+<tr>
+  <td>Whether this chunk touches the database at all</td>
+  <td>Two queries only — reading and bumping the session-cancellation counter. Without them,
+      "a token belonging to a deleted account is refused" would be a claim nobody could
+      test.</td>
+</tr>
+<tr>
+  <td>Where the live-session tracking belongs</td>
+  <td>Built here as a standalone, tested component; connected to the running game in chunk 3,
+      where the join path and reconnection handling already live. This was an open question
+      left by the previous session and is now settled in writing.</td>
+</tr>
+<tr>
+  <td>What characters a character name may contain</td>
+  <td><strong>Deliberately left open.</strong> Length, surrounding spaces, invisible characters and
+      the reserved test-harness prefix are all enforced; which letters and symbols are allowed
+      is not, because no plan decides it and quietly inventing a rule would be a design
+      decision in disguise. Flagged for chunk 1c.</td>
+</tr>
+</table>
+
+<hr>
+
+<h2>Verification</h2>
+
+<ul>
+  <li>The full backend test suite passes — <strong>30 of 30 packages</strong> (29 plus the new
+      one), both with and without a test database available.</li>
+  <li>The new tests run twice back-to-back, to prove they leave nothing behind.</li>
+  <li><strong>Eight deliberate breakages, all caught</strong> — the table above.</li>
+  <li>The server was started for real with a database configured: it reported <strong>zero
+      errors and zero warnings</strong>, with all content loading exactly as before — 64 mobs,
+      86 skills, 15 factions, 4 quests, 777 props, 485 spawns.</li>
+  <li>No browser test applies to this chunk: no game code, no content and no network protocol
+      changed, so nothing the existing 17 browser scripts check could have moved.</li>
+</ul>
+
+<p><strong>One environment note:</strong> the tool that detects certain concurrency bugs automatically
+cannot run on this development machine, as it requires a C compiler that is not installed.
+The affected test was written to detect the problem by counting outcomes instead, and was
+confirmed to catch it that way.</p>
+
+<hr>
+
+<h2>What comes next</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">Chunk</th>
+  <th align="left">Scope</th>
+</tr>
+<tr>
+  <td><strong>1c</strong></td>
+  <td>The eight web endpoints: create / list / delete / choose a character, and
+      register / log in / log out / refresh. Also tightens two permissive settings that are
+      harmless today but become security holes the moment a login exists, and makes a missing
+      database configuration stop the server rather than warn.</td>
+</tr>
+<tr>
+  <td><strong>2</strong></td>
+  <td>The screens players actually use — character select, character creation, login and
+      register forms.</td>
+</tr>
+<tr>
+  <td><strong>3</strong></td>
+  <td>Connecting a chosen character to the running game world, and enforcing one live session
+      per account for real.</td>
+</tr>
+</table>
+
+<p>One item is deliberately left dangling for 1c and recorded so it is not rediscovered: the
+signing key for session tokens is <strong>read by nothing yet</strong>. The name is defined and
+the strength of the key is validated, but no part of the running program reaches for it,
+because this chunk has nothing to sign anything for.</p>
+
+</body>
+</html>

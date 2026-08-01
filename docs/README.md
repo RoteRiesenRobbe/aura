@@ -91,14 +91,18 @@ than patch. PDF renders of the first two sit in the repo root.
   the `plan-accounts-*.md` docs win on any disagreement. Written to be importable into
   Google Docs, hence HTML.
 
+- **accounts/chunk-1b-summary.html** — "Step 8a, Chunk 1b: auth & sessions"
+  (2026-08-01). Plain-language summary of the six auth primitives, the eight deliberate
+  breakages that proved the tests can fail, the two architecture questions answered
+  (login CPU vs the game loop; 100 concurrent players), the separate-accounts-database
+  proposal and why it was rejected, and the three rules that keep a future machine split
+  a deploy decision. ⚑ Same snapshot caveat as 1a's.
+
 `docs/accounts/` also carries **session handovers** — working notes for picking a chunk up
 cold, not snapshots. ⚑ **Disposable: delete one when its chunk lands**, so the folder never
 accumulates stale instructions. Durable content belongs in the plan doc's chunk ledger.
-
-- **accounts/chunk-1b-handover.md** — what a fresh session needs to start 8a chunk 1b
-  (auth & sessions): reading order, the state 1a left, the five pieces, the traps that fail
-  *silently*, dependency versions pre-checked against the `go 1.22` floor, this dev box's
-  quirks, and **one open scoping decision** to settle first.
+*(None open — the 1b handover was deleted when 1b landed 2026-08-01, its durable content
+folded into `plan-accounts-frontend.md` §10a.)*
 
 ## Research (investigations / assessments)
 
