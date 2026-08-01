@@ -1,9 +1,11 @@
 import '../assets/gameSettings.less';
 import * as Preloading from '../../core/logic/Preloading';
 import {GameSettings} from './GameSettings';
-import {DevelopSetupEvent} from '../../core/logic/Events';
+import {BackendStateChangedEvent, DevelopSetupEvent} from '../../core/logic/Events';
 import {parseInt} from 'lodash';
 import {preventShortcutPropagation, resetFocus} from '../../common/logic/Utils';
+import * as AccountSettings from './AccountSettings';
+import {BackendState} from '../../backend/logic/IBackend';
 
 const gameSettings = GameSettings.get();
 let rootElement: HTMLElement;
@@ -47,6 +49,7 @@ function setupPanel() {
         .forEach(preventShortcutPropagation);
 
     setupAudioSettings();
+    AccountSettings.setup(panelElement);
 }
 
 function setupAudioSettings() {
@@ -115,14 +118,41 @@ function setupRange(
 function show() {
     showButton.classList.add('hidden');
     panelElement.classList.remove('hidden');
+    // Registering mid-session changes what belongs in the Account group, so it
+    // is rebuilt on open rather than once at boot.
+    AccountSettings.refresh(panelElement);
 }
 
-function hide() {
+/**
+ * Close the settings panel. Exported so other modules can force-close it when
+ * a higher-priority screen takes over (account creation, entering the world).
+ */
+export function hide() {
+    if (!panelElement) return;
     showButton.classList.remove('hidden');
     panelElement.classList.add('hidden');
 
     resetFocus();
 }
+
+function isOpen(): boolean {
+    return panelElement && !panelElement.classList.contains('hidden');
+}
+
+// ⚑ Live-react to state changes while the panel is open.
+//   - Entering the world (PLAYING) force-closes the panel — the player is past
+//     every screen the panel could navigate to.
+//   - Any other state change refreshes the Account group so "Leave to character
+//     select" and the register button update without reopening.
+BackendStateChangedEvent.subscribe((msg) => {
+    if (msg.newState === BackendState.PLAYING) {
+        if (isOpen()) hide();
+        return;
+    }
+    if (isOpen()) {
+        AccountSettings.refresh(panelElement);
+    }
+});
 
 DevelopSetupEvent.subscribe(() => {
     rootElement.classList.add('develop-offset');

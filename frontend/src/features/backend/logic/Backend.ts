@@ -9,6 +9,8 @@ import * as Chat from '../../chat/logic/Chat';
 import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
 import * as DayCycle from '../../day-cycle/logic/DayCycle';
 import * as StartScreen from '../../user-interface/start-screen/logic/StartScreen';
+import * as AccountScreens from '../../user-interface/account-screens/logic/AccountScreens';
+import * as AccountFlow from '../../accounts/logic/AccountFlow';
 import * as EndScreen from '../../user-interface/end-screen/logic/EndScreen';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {activationRejectionMessage, skillCategory, skillDisplayName} from '../../../client-data/Skills';
@@ -86,6 +88,21 @@ export class Backend implements IBackend {
             }
         };
         this.webSocket.onclose = () => {
+            // ⚑ A close while a join is IN FLIGHT is the server refusing it
+            // (step 8a chunk 3): an expired play ticket, or the account already
+            // playing elsewhere. The server closes rather than sending a refusal
+            // message, so this is where the client learns of it — AccountFlow
+            // re-mints a ticket and retries exactly once, then falls back to
+            // character-select with a plain message (§7b).
+            //
+            // It must be checked BEFORE the state is cleared, and it is
+            // deliberately distinguished from a mid-game drop: a refused join
+            // never became a session, so "Connection lost" would be wrong.
+            if (AccountFlow.isJoinInFlight()) {
+                this.setState(BackendState.DISCONNECTED);
+                void AccountFlow.onJoinRefused();
+                return;
+            }
             // Only announce a drop of an established session — pre-join
             // failures are handled by the onerror/start-screen path. The
             // character is stashed server-side; a reload reconnects it.
@@ -209,6 +226,10 @@ export class Backend implements IBackend {
                 }
 
                 StartScreen.hide();
+                // The account screens sit above the start screen, so hiding
+                // only the latter would leave character-select over the world.
+                AccountScreens.hide();
+                AccountFlow.onJoinAccepted();
                 EndScreen.hide();
                 HUD.show();
 

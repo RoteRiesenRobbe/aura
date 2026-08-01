@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aura — Step 8a, Chunk 3: The Authenticated Door</title>
+</head>
+<body>
+
+<h1>Aura — Accounts &amp; Persistence</h1>
+<h2>Step 8a, Chunk 3: the authenticated door</h2>
+
+<p><em>Point-in-time summary &middot; 2 August 2026 &middot; branch <code>accounts-8a</code> &middot;
+commit <code>[uncommitted]</code></em></p>
+
+<p><strong>This is a human-facing snapshot, not a maintained document.</strong> The authoritative
+sources are <code>docs/plan-accounts-frontend.md</code> §10a (the chunk ledger, including the
+hand-testing pass) and <code>docs/plan-accounts-implementation.md</code> §7b (transport and
+session security). Where this document and those disagree, they win.</p>
+
+<hr>
+
+<h2>In one sentence</h2>
+
+<p>Chunk 2 gave the game a front door but left it unlocked — anyone could still walk into the
+world claiming to be anyone. This chunk locks it: entering the world now requires proof that you
+own the character you asked to play, and that proof is checked before you arrive.</p>
+
+<p>From the outside almost nothing changed, which is the point. You log in, pick your character,
+and play. What changed is that the game now knows, for certain, who is playing.</p>
+
+<hr>
+
+<h2>What actually happens when you press Play</h2>
+
+<ol>
+  <li>The browser asks the server to select that character, over the ordinary web connection where
+      your login already applies.</li>
+  <li>The server checks the character is <em>yours</em>, and hands back a <strong>play ticket</strong> —
+      a single-use pass that expires in 30 seconds.</li>
+  <li>The browser opens the game connection and presents the ticket, and nothing else.</li>
+  <li>The server exchanges the ticket for your identity, destroys it, and puts your character in
+      the world.</li>
+</ol>
+
+<p><strong>The game connection carries no password and no login cookie</strong> — only that
+one-use pass. So even if the connection itself were compromised, there is nothing on it worth
+stealing, and a stolen ticket is worthless seconds later.</p>
+
+<p>The character's name comes off the ticket rather than being typed by the browser, which means
+you can no longer enter the world under a name that isn't yours.</p>
+
+<hr>
+
+<h2>Three rules that now hold</h2>
+
+<h3>One player, one place at a time</h3>
+
+<p>An account can be in the world exactly once. Open a second tab and it is refused — the first
+is never kicked out. That last part is deliberate: if a second login <em>evicted</em> the first,
+anyone in trouble could make their character vanish on demand by opening another tab.</p>
+
+<h3>Refreshing the page still works, and now proves who you are</h3>
+
+<p>Reloading mid-game resumes your character, as before. Previously that resume needed nothing
+but a token the browser was holding — anyone who obtained it could take over your session. It now
+also has to prove the account matches.</p>
+
+<p>This is the delicate part of the chunk. A disconnected character still <em>occupies</em> your
+one slot for ten minutes, so the server has to tell "this player is coming back" apart from "this
+is a second login" — the same situation, needing opposite answers. It does so by tracking whether
+a session is merely stashed or genuinely connected.</p>
+
+<h3>Logging out ends the game session too</h3>
+
+<p>Logging out previously invalidated future logins but left any window already playing untouched.
+It now closes that connection as well, so "log out" means what it says on a shared machine.</p>
+
+<hr>
+
+<h2>How it was checked</h2>
+
+<ul>
+  <li>Server test suite <strong>32 of 32</strong>, browser-code tests <strong>87 of 87</strong>,
+      a clean start with <strong>no errors and no warnings</strong>.</li>
+  <li>The full click-through — create, play, return, register, log out, log in, delete —
+      <strong>21 of 21</strong>, now running over the authenticated connection.</li>
+  <li><strong>The load-test bot works without a browser</strong>: 3 of 3 bots connected at full
+      speed. It obtains its pass exactly the way a real player does, which matters because it is
+      the only evidence we have about how many players the server can hold.</li>
+  <li>A hand-testing pass by the product owner, which found eight defects — all fixed, see below.</li>
+</ul>
+
+<hr>
+
+<h2>What the hand-testing pass found</h2>
+
+<p>Seven were what they looked like: a character being renamed on its second entry, an error
+message that said "something went wrong" instead of the real reason, a leftover name box on the
+loading screen, a badly-placed prompt, a mislabelled button, and two navigation dead-ends.</p>
+
+<p><strong>The eighth was hiding a much worse bug.</strong> The report was that after registering,
+the settings panel forgot you had an account. Chasing it revealed that <em>refreshing the page was
+completely broken</em> — this chunk had started requiring proof on resume without teaching the
+browser to provide it, so every refresh was silently refused and left the player on a loading
+screen that never finished.</p>
+
+<p>It survived because it arrived as two unrelated-sounding complaints: "sometimes F5 gets me
+stuck" and "settings forgot my account". Only the second was investigated. The word
+<em>sometimes</em> was the clue — it only happens once you have played long enough for the server
+to be holding your character.</p>
+
+<p><strong>One finding is worth remembering beyond this chunk.</strong> The "something went wrong"
+bug existed because of how the browser code is compiled: a certain kind of error-type check
+silently never matches, so every helpful server message was replaced by a generic one. The
+automated tests could not catch it — they compile differently, and the relevant test passed the
+entire time the real game was broken. It was found only by driving an actual browser.</p>
+
+<hr>
+
+<h2>What is still missing</h2>
+
+<p><strong>Your progress still does not survive a server restart.</strong> The account and the
+character persist; their level, skills and quests do not. That is chunk 4, and it is the reason
+persistence was started at all.</p>
+
+<p>Said plainly so it is not mistaken for a bug: play, come back after a restart, and your
+character is there with the right name and back at level 1.</p>
+
+</body>
+</html>

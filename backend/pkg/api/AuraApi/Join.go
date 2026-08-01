@@ -57,14 +57,25 @@ func (rcv *Join) ReconnectToken() []byte {
 	return nil
 }
 
+func (rcv *Join) PlayTicket() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func JoinStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+	builder.StartObject(3)
 }
 func JoinAddPlayerName(builder *flatbuffers.Builder, playerName flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(playerName), 0)
 }
 func JoinAddReconnectToken(builder *flatbuffers.Builder, reconnectToken flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(reconnectToken), 0)
+}
+func JoinAddPlayTicket(builder *flatbuffers.Builder, playTicket flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(playTicket), 0)
 }
 func JoinEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

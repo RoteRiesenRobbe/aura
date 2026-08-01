@@ -1,21 +1,21 @@
 /**
- * This module represents a player account. As long as accounts are not persisted
- * in the backend, the account is held in the local storage of the browser.
+ * Browser-local UI preferences. Not an account, and never sent anywhere.
+ *
+ * ⚑ This is the honest half of what used to be `features/accounts/Account.ts`,
+ * whose docstring claimed to hold an account "as long as accounts are not
+ * persisted in the backend". Three of its four properties never were an
+ * account: they are device settings that stay device settings **after**
+ * persistence ships, because they describe this browser rather than this
+ * player. The fourth, `playerName`, was retired outright — see PlayerName.ts.
+ *
+ * ⚑ The split is not cosmetic (plan-accounts-frontend.md §4c).
+ * `plan-accounts-schema.md` §Naming makes `accounts` the server-side identity
+ * table; leaving a client class called `Account` that stores fullscreen state
+ * and dev-panel coordinates would recreate, on the client, exactly the
+ * ambiguity that rename existed to remove.
  */
 
-export class Account {
-    static reset(property: string) {
-        resetValue(property);
-    }
-
-    static get playerName(): string | null {
-        return getString('playerName', null);
-    }
-
-    static set playerName(playerName: string) {
-        setValue('playerName', playerName);
-    }
-
+export class DevicePrefs {
     static get fullScreen(): boolean {
         return getBoolean('fullScreen', false);
     }
@@ -49,10 +49,6 @@ export class Account {
     }
 }
 
-function isSet(key: string) {
-    return localStorage.getItem(key) !== null;
-}
-
 function getString(key: string, defaultValue: string | null = ''): string | null {
     const value = localStorage.getItem(key);
     if (value === null) return defaultValue;
@@ -77,8 +73,4 @@ function setValue(key: string, value: string) {
     } else {
         localStorage.removeItem(key);
     }
-}
-
-function resetValue(key: string) {
-    localStorage.removeItem(key);
 }

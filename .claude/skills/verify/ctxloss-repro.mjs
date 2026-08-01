@@ -19,6 +19,7 @@ import { join } from 'node:path';
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
+import { joinAsNewCharacter } from './lib/join.mjs';
 
 const url = process.argv[2] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const delay = Number(process.argv[3] ?? 1500);   // ms after context creation
@@ -92,9 +93,7 @@ await page.addInitScript((cfg) => {
 }, { delayMs: delay, restore: process.env.HUNT_RESTORE === "1", perCtx: process.env.HUNT_PERCTX === "1" });
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
-await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 120_000 });
-await page.fill('#startForm .playerNameInput', 'Ctx' + String(process.pid).slice(-4));
-await page.click('#startForm .playerNameSubmit');
+await joinAsNewCharacter(page, 'ctx');
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 }).catch(() => {});
 await page.waitForTimeout(delay + 8_000);
 

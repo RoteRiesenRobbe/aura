@@ -68,6 +68,13 @@ type listCharactersResponse struct {
 	// Registered tells the client whether to offer Logout and the registration
 	// nag (plan-accounts-frontend.md §5.3, §5.4).
 	Registered bool `json:"registered"`
+	// Username is present only for a registered account, and is what the
+	// settings panel shows as "Signed in as …".
+	//
+	// ⚑ It lives here because this is the ONE call the client makes to ask "who
+	// am I". Without it the only other source is /session/refresh, which mints a
+	// new token as a side effect — reading a name should not rotate a session.
+	Username string `json:"username,omitempty"`
 }
 
 // handleCreateCharacter creates a character, minting an account behind it when
@@ -105,7 +112,7 @@ func (s *Server) handleCreateCharacter(w http.ResponseWriter, r *http.Request) {
 	// character may carry hrnss_ only when the creating account's username does.
 	// An anonymous caller passes "", which reads as "no username ⇒ no prefix" —
 	// never as "unchecked".
-	if err := auth.ValidateCharacterName(body.Name, who.username); err != nil {
+	if err := auth.ValidateCharacterName(body.Name, who.username, s.cfg.AllowHarnessNames); err != nil {
 		refuseRule(w, err)
 		return
 	}
@@ -182,6 +189,7 @@ func (s *Server) handleListCharacters(w http.ResponseWriter, r *http.Request) {
 		MaxAliveCharacters: s.cfg.MaxAliveCharacters,
 		HasProgress:        hasProgress,
 		Registered:         who.registered(),
+		Username:           who.username,
 	})
 }
 
@@ -253,9 +261,13 @@ func (s *Server) handleSelectCharacter(w http.ResponseWriter, r *http.Request) {
 	// that does not exist yet. `Join` claims the account slot atomically, and
 	// chunk 3 owns that claim (implementation.md §5).
 	//
-	// ⚑ Today the registry is never populated — chunk 3 wires it into
-	// sys/state.go — so this is inert and correct rather than live and correct.
-	if _, playing := s.cfg.Sessions.Live(who.accountID); playing {
+	// ⚑ CONNECTED, not Live. A stashed session still holds the account's slot,
+	// but it is a player whose socket dropped — and the reconnect path needs a
+	// ticket to prove who it is (plan-accounts-frontend.md §10b, PO 2026-08-01).
+	// Refusing on Live() here would make "refresh the page mid-fight" fail for
+	// the full 10-minute stash window, which is the one scenario the reconnect
+	// feature exists for.
+	if _, playing := s.cfg.Sessions.Connected(who.accountID); playing {
 		refuse(w, http.StatusConflict, codeAlreadyLoggedIn, msgAlreadyLoggedIn)
 		return
 	}
@@ -270,7 +282,17 @@ func (s *Server) handleSelectCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ticket, err := s.cfg.Tickets.Mint(auth.Ticket{AccountID: who.accountID, CharacterID: character.ID})
+	// ⚑ The character's identity rides the ticket so the game loop never reads
+	// the database to answer a Join — this row has just been read to prove
+	// ownership, and reading it again inside the single-goroutine tick would
+	// stall every player. See auth.Ticket.
+	ticket, err := s.cfg.Tickets.Mint(auth.Ticket{
+		AccountID:   who.accountID,
+		CharacterID: character.ID,
+		Name:        character.Name,
+		Avatar:      character.Avatar,
+		Faction:     character.Faction,
+	})
 	if err != nil {
 		fail(w, r, http.StatusInternalServerError, codeInternal, msgGeneric, err)
 		return

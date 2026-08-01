@@ -57,7 +57,7 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	// no player can ever claim that namespace — which is exactly why the harness
 	// accounts are SEEDED into the dev database rather than registered
 	// (plan-accounts-frontend.md §11).
-	if err := auth.ValidateUsername(body.Username); err != nil {
+	if err := auth.ValidateUsername(body.Username, s.cfg.AllowHarnessNames); err != nil {
 		refuseRule(w, err)
 		return
 	}
@@ -238,6 +238,20 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.clearSessionCookie(w)
+
+	// ⚑ End the LIVE WORLD SESSION too, which is what makes logout mean what it
+	// says (§3, PO 2026-08-01). Bumping the generation revokes every token, but
+	// a socket already in the world carries no token to revoke — it was
+	// authenticated once, by a play ticket, and would otherwise keep playing.
+	// That is the gap chunk 1c recorded and deferred to here.
+	//
+	// ⚑ It runs AFTER the revocation, deliberately: if the bump fails we return
+	// above without touching the world, so we can never drop a player from the
+	// game while leaving their tokens valid.
+	if s.cfg.World != nil {
+		s.cfg.World.EndSessionFor(who.accountID)
+	}
+
 	s.audit(r.Context(), who.accountID, store.AuditLogout, clientIP(r))
 	writeJSON(w, http.StatusOK, map[string]bool{"loggedOut": true})
 }

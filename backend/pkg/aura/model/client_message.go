@@ -6,10 +6,15 @@ import "github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 // These are merely structs or type alias holding data.
 
 type Join struct {
+	// PlayerName is legacy and IGNORED since step 8a chunk 3: a character's
+	// name comes off the play ticket, which got it from the row at /select.
 	PlayerName string
 	// ReconnectToken is empty on a first join; when it matches a stashed
 	// disconnected character, that character is restored instead.
 	ReconnectToken string
+	// PlayTicket proves who is joining. Minted by POST /api/characters/{id}/select
+	// over authenticated HTTP; the socket carries no other credential.
+	PlayTicket string
 }
 
 type Cheat struct {

@@ -30,5 +30,36 @@
                 <label for="backgroundAudioToggle">Play audio in background</label>
             </div>
         </div>
+
+        <!--
+          Account (plan-accounts-frontend.md §4, §5.4, §10b ruling 3 & 6).
+
+          ⚑ There is deliberately NO "Log in" here. Login is reachable only
+          while logged out, from the home screen: §6's discard soft-deletes
+          every alive character on the anonymous account — which, in-world,
+          would include the one being played — and /api/auth/login has no
+          live-session check. Restricting reachability makes the case
+          unreachable rather than guarded.
+        -->
+        <div id="accountSection">
+        <h3>Account</h3>
+        <div class="setting-group" id="accountSettings">
+            <div id="accountAnonymous" class="hidden">
+                <p class="settingNote">
+                    You are playing without an account. Your progress lives only
+                    on this device.
+                </p>
+                <a href="#" class="button" id="settingsRegisterButton">Create an account</a>
+            </div>
+            <div id="accountRegistered" class="hidden">
+                <p class="settingNote">
+                    Signed in as <span id="accountUsername"></span>.
+                </p>
+            </div>
+            <a href="#" class="button secondary" id="leaveToCharacterSelect">
+                Leave to character select
+            </a>
+        </div>
+        </div>
     </section>
 </div>

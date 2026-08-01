@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/core"
@@ -291,7 +292,22 @@ func main() {
 	// CheckOrigin — because a second copy of a security allowlist is one that
 	// eventually disagrees with the first (backlog §43).
 	originPolicy := buildOriginPolicy(config, dev)
-	accountsServer, err := buildAccountsServer(db, originPolicy, config)
+
+	// ⚑ Tickets and sessions are created HERE and shared by both surfaces
+	// (step 8a chunk 3). /select mints a ticket into this store and the game
+	// redeems it from the same one; /select checks the account slot the game
+	// claims. Two instances would each work perfectly in isolation and enforce
+	// nothing between them — every ticket unknown, every account free.
+	tickets := auth.NewTicketStore(auth.TicketTTL)
+	sessions := auth.NewSessionRegistry()
+
+	identity, ok := g.(sys.IdentitySink)
+	if !ok {
+		panic("game does not accept an identity seam")
+	}
+	identity.SetIdentity(tickets, sessions)
+
+	accountsServer, err := buildAccountsServer(db, originPolicy, config, dev, tickets, sessions, identity)
 	if err != nil {
 		slog.Error("failed to start the accounts endpoints", slog.Any("err", err))
 		panic(err)

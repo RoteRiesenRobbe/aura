@@ -1,0 +1,15 @@
+<div id="registrationNag" class="hidden">
+	<!--
+	  The registration nag (plan-accounts-frontend.md §5.4).
+
+	  Anonymous players only, and it lives OUTSIDE #accountScreens on purpose:
+	  that container is hidden wholesale on Accept, and this banner has to
+	  survive into the world. It is dismissible, and reopens on every fresh
+	  login — the character-select → Play path — but NOT on a same-session page
+	  refresh that resumes via reconnectToken, because that path is explicitly
+	  designed to be invisible and a nag would fight its purpose.
+	-->
+	<span class="nagText">Your progress lives only on this device.</span>
+	<a href="#" class="button" id="nagRegisterButton">Create an account</a>
+	<a href="#" class="nagDismiss" id="nagDismissButton" title="Dismiss">&times;</a>
+</div>

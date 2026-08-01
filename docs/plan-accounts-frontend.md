@@ -17,7 +17,7 @@ placeholders per the project convention.
 | Decision | Value |
 |---|---|
 | Max alive characters per account | 3, configurable (`game.player.maxAliveCharacters`) |
-| Character-delete confirm cooldown | 5 s, configurable (`game.player.characterDeleteConfirmCooldownSeconds`) |
+| Character-delete confirm cooldown | **5 s, hardcoded client-side (PO 2026-08-01, §10b ruling 4).** Earlier drafts called it configurable via `game.player.characterDeleteConfirmCooldownSeconds`; that knob exists in no conf file and no Go struct, and was never served. It is UI friction, not policy — see §7 |
 | Character deletion | soft-delete (`deleted_at`), distinct from sacrifice — no hard `DELETE` |
 | Anonymous-secret minting | bundled into first-character creation |
 | Anonymous-secret storage | `localStorage` (extends the existing `Account` module) |
@@ -428,7 +428,7 @@ Two different actions, deliberately not unified:
 
 | | Register | Login |
 |---|---|---|
-| Reachable from | settings panel / HUD nag, anonymous only | home screen (no token) or settings/HUD (has token) |
+| Reachable from | settings panel / HUD nag, anonymous only | **the home screen only — never while logged in or in the world** (PO 2026-08-01, §10b ruling 3) |
 | Input | new username + password | existing username + password |
 | Effect on current identity | **sets credentials on** the current account | **switches** to a different, already-existing account |
 | Warns before proceeding? | no | conditionally — see §6 |
@@ -747,13 +747,20 @@ own.
    foreign key Postgres cannot express across databases. The wanted isolation
    already exists one level down, at the `account_credentials` table split.
 4. **2 — Frontend.** Character-select screen, the character-creation form's
-   second mount, login/register forms, delete-confirmation dialog, HUD nag, and
-   the ticket silent-retry — against the 1c API.
+   second mount, login/register forms, delete-confirmation dialog and HUD nag —
+   against the 1c API. ⚑ **Scope corrected 2026-08-01 (§10b):** the ticket
+   silent-retry **moved to chunk 3** (it is triggered by a `Join` refusal, and
+   `Join` has no ticket field until then), while §4c's module split and §4b's
+   NameGenerator re-roll — both required by this plan but named in neither chunk
+   line — are **in**. Chunk 2 is not purely frontend: it also extends the
+   `hrnss_` character-name rule to accounts with no username, and owns the
+   harness seed/cleanup script.
 5. **3 — Wire.** The `Join`/character-selection connection (§8) — the only chunk
    that touches `client.fbs`: one `Join` field consuming 1b's TTL map. ⚑ It also
    carries the reconnect path checking *identity* rather than mere token
    possession, and the **atomic account-slot claim** that makes "one session per
-   account" real.
+   account" real. ⚑ **Plus the ticket silent-retry** (§7b), moved here from
+   chunk 2 — including its vitest loop-guard test from §11.
    ⚑ **It carries a MINIMAL character read, and deliberately not the load path.**
    Once character-select exists, the name no longer arrives on `Join` — it has to
    come from the row — so chunk 3 reads `name`, `avatar` and `faction` and
@@ -809,7 +816,460 @@ otherwise gate everything.
 
 ---
 
+## 10b. Chunk 2 — execution rulings (PO 2026-08-01)
+
+Ten rulings taken in the pre-execution review of chunk 2. They are recorded here
+rather than only in code because six of them **correct or contradict** something
+written above; each names the section it amends.
+
+### The rulings
+
+1. **The ticket silent-retry moves to chunk 3.** §10's chunk-2 line was simply
+   wrong: the retry is triggered by a `Join` refusal for an expired ticket, and
+   `Join` carries no ticket field until chunk 3 touches `client.fbs`. There is
+   nothing to build in 2.
+   ⚑ **But chunk 2's Play button still calls `/select`**, then joins by name on
+   today's `JoinMessage(name, reconnectToken)` path, discarding the ticket. That
+   looks like ceremony and is not: it exercises `/select` from a real browser
+   (ownership, CORS on that route), it gives the `already_logged_in` message a UI
+   home, and it reduces chunk 3 to *one wire field plus one refusal branch*
+   instead of "wire `/select` from scratch". **Accepted residual:** the
+   `already_logged_in` branch is built in 2 and untestable until 3 claims the
+   registry.
+
+2. **Harness and load-bot clients mint their own identity through the anonymous
+   path — they do not log in.** `POST /api/characters` with no credentials
+   returns account + character + secret, costs a SHA-256 rather than a bcrypt,
+   needs no seeded pool, and self-scales to any bot count. ⚑ It is also the path
+   most real players use, so the harness measures the common case rather than an
+   artificial one.
+   **A seeded pool was considered and rejected** for the general case: 400 bcrypt
+   logins through the 2-slot gate adds ~3 min (dev) / ~7 min (live) to a ramp,
+   and that cost lands *inside* the measurement. ⚑ **Only 2–4 seeded `hrnss_`
+   accounts are needed**, for the one script that tests login / register / logout
+   and the two-session rejection. This **supersedes §11's delete-then-create
+   recipe** — see the amendment there.
+   ⚑ **Bot and harness characters take the `hrnss_` prefix**, so cleanup is one
+   exactly-scoped statement and collision with a real player stays **impossible**
+   rather than merely unlikely. That requires extending the existing rule, which
+   today admits only an account *whose username carries the prefix*.
+
+   ⭐ **CORRECTED DURING EXECUTION 2026-08-01 — the extension is a `-dev` FLAG,
+   not "the account is anonymous".** This ruling originally read *"extend it to
+   accounts with no username"*, which is the obvious-looking version and is
+   **wrong**: harness clients mint their identity through the anonymous path, so
+   keying on "no username" looks equivalent — but **every new player is anonymous
+   at exactly the moment they create a character**, so it would hand the reserved
+   namespace to the entire playerbase and turn the collision guarantee back into
+   a coincidence. `accounts.Config.AllowHarnessNames` is set from `-dev`, so
+   **production refuses the prefix outright — strictly stronger than before the
+   flag existed** — and the flag opens the prefix and nothing else (charset and
+   shape rules still apply, pinned by test).
+   ⚑ **1b had already pinned the trap**: `TestValidateCharacterName` carries a
+   *"the prefix, from anonymous → reserved"* row with a comment saying "no
+   username" must read as "no prefix", not as "nothing to compare against, so
+   allow". The naive extension would have turned that row red.
+   ⚑ **A dev-only name-only `Join` bypass was rejected** — it is a second
+   authentication path, exactly the kind of parallel route §5.3 argues against
+   for ticket minting, and a total bypass if it ever reached production.
+
+3. **Login is reachable only while logged out — from the home screen, never from
+   settings or the HUD.** Amends §5.2.
+   ⚑ **This dissolves a hazard rather than merely tidying the UI.** §5.2
+   previously made Login reachable in-game while §6's discard soft-deletes *every
+   alive character* on the anonymous account — including the one being played —
+   and `/api/auth/login` has no live-session check (only `/select` does). With
+   this ruling no live session can exist when login runs, so the case cannot
+   arise. The settings panel keeps only Register (anonymous) or the username
+   (registered).
+
+4. **The delete-confirm cooldown is hardcoded at 5 s client-side.** Amends §1.
+   The `game.player.characterDeleteConfirmCooldownSeconds` knob was never built —
+   it appears in no conf file, no Go struct, and no endpoint response. It is UI
+   friction against a misclick (§7), not policy, and does not need to be tunable
+   without a redeploy.
+
+5. **The WebSocket still connects at boot, as today.** The client sits as a
+   spectator while the DOM screens run on top; Play sends `Join`. Least
+   disruption — preloading, `FirstGameStateHandledEvent` and the
+   "Couldn't connect" path all keep working.
+   ⚑ **Low cost to reverse, and chunk 2 lowers it further:** today the Play
+   button is gated on `FirstGameStateHandledEvent` (`StartScreen.ts:115`), which
+   is what welds the form to the socket. Character-select is pure HTTP, so that
+   coupling disappears regardless; moving the connection to the Play click later
+   is a contained change across three events.
+   ⚑ **A PO concern is recorded and deliberately NOT answered here:** an attacker
+   opening the page a million times. It is real, it **predates accounts**, and
+   deferring the socket does not help — an attacker opens sockets directly rather
+   than loading pages, and 1c's (correct) ruling that a request with no `Origin`
+   passes means `CheckOrigin` does not stop a non-browser client. The mitigations
+   are per-IP connection limits and a reverse proxy: **infrastructure, not client
+   code**, belonging with `plan-playtest-deploy.md` §Ops & security posture.
+
+6. **Leaving the world is a settings entry that reloads the page.** Clears the
+   `reconnectToken`, calls `location.reload()`, lands on character-select. ~5
+   lines and no game-teardown code, which the client does not have today.
+   ⚑ **This exists because of ruling 3:** with login restricted to the logged-out
+   state, there would otherwise be **no in-game route to any account action at
+   all**, and a player has no way to know that refreshing is the answer. A clean
+   in-client teardown was rejected as meaningful new work on a client built to
+   boot once, and a likely source of leaked state and context-loss bugs.
+
+7. **Character-select is slot cards in a row, not a list.** The layout makes
+   *"slots are fixed positions, not a list"* (§5.3) visible at a glance, which
+   matches the bloodline model where a sacrifice successor inherits its
+   predecessor's slot. `GET /api/characters` already serves `slotIndex`, `name`,
+   `avatar` and `level`, so **no backend change is needed** for it.
+
+   ```
+                     Aura
+
+     ┌─────────┐ ┌─────────┐ ┌─────────┐
+     │  ◉      │ │  ◉      │ │         │
+     │ Grimwald│ │  Mera   │ │    +    │
+     │  Lv 14  │ │  Lv 3   │ │ Create  │
+     │         │ │         │ │         │
+     │ [ Play ]│ │ [ Play ]│ │         │
+     │  Delete │ │  Delete │ │         │
+     └─────────┘ └─────────┘ └─────────┘
+
+                [ Log out ]        ← registered accounts only (§5.3)
+   ```
+
+   Login, register and the delete dialog have no mockup and need none — they
+   follow the existing centered-panel `.hidden`-class idiom used by
+   settings/credits/changelog (§4).
+
+8. **§4c's module split and §4b's NameGenerator re-roll are in chunk 2.** Both
+   are required by this plan and named in **neither** chunk line, which is how
+   they would have been dropped.
+
+9. **The six unmapped error codes get copy.** §3a defines 15 codes;
+   implementation.md §5b gives 9 strings. The remainder:
+
+   | `code` | Player sees |
+   |---|---|
+   | `character_playing` | "That character is currently in the world." |
+   | `already_registered` | "This account already has a username." |
+   | `no_identity` | *(nothing — route to the creation form)* |
+   | `session_expired` | *(nothing — sign out to the home screen)* |
+   | `bad_request` · `forbidden_origin` · `internal` | the §5b generic, with `ref` appended when present |
+   | `busy` | **one automatic retry after ~1 s**, then "Aura is busy right now. Please try again in a moment." |
+
+   ⚑ `busy` is the only judgement call: 1c is explicit that a full bcrypt gate is
+   **not a failed login** and that retry is correct, so failing straight to a
+   message would misreport a transient condition as a rejection.
+
+10. **Live environments are off-limits for the duration of 8a.** Raised by the
+    PO. Concretely: the load bot already defaults to localhost and needs explicit
+    `-addr`/`-scheme` to go remote, so it stays untouched; **the cleanup script
+    refuses any non-loopback database host** — a guard, not a convention;
+    `AURA_DB_URL` on the dev box stays on local `aura` / `aura_test`; and no live
+    load runs happen while 8a is in flight.
+
+### Ruling 11 — the character's identity rides the ticket (PO 2026-08-01)
+
+Taken during chunk 3, and it changes what chunk 3 touches.
+
+`/select` already reads the character row to prove ownership. It now puts
+**`Name`, `Avatar` and `Faction` on the in-memory `auth.Ticket`**, so `Join`
+resolves a character entirely from the redeemed ticket and **the game loop never
+reads the database at all**.
+
+⚑ **This is a latency decision, not a convenience.** The loop is a **single
+goroutine**: a synchronous query inside `tryJoin` stalls *every* player's tick
+for its duration. Reading a row that was read moments earlier, the second time on
+the hot path, is paying twice for one fact in the one place that cannot afford
+it. It also removes the need to hand `*store.Store` to `sys` at all.
+
+⚑ **It does not weaken §10 invariant ②.** Opacity is a property of the token
+**string** — the random, single-use, SHA-256'd key the client presents and never
+parses. `auth.Ticket` is server-side memory the client never sees; adding fields
+changes nothing that crosses the wire. A later swap to a signed, self-describing
+token would carry these as claims, which is the same shape.
+
+⚑ **Recorded consequence:** the three fields are a **snapshot taken at
+`/select`**. A rename between `/select` and `Join` would enter the world under
+the old name — harmless today because nothing renames a character, and worth
+knowing before something does.
+
+**Pinned by test**, and mutation-checked: dropping the three fields from the mint
+fails `TestSelectMintsATicketBoundToItsCharacter`. Without that assertion the
+loss would be silent — nothing else fails, it would just move a database round
+trip onto the hot path, or join the player as a nameless character.
+
+### Findings from the pre-execution review
+
+- ⭐ **The 17 existing harness scripts break in chunk 2, not chunk 3 — and the
+  auto-select ruling is what makes that cheap.** Every script targets
+  `#startForm .playerNameInput` and clicks submit, which chunk 2 replaces. But a
+  fresh browser profile now goes creation-form → type name → Create →
+  **auto-select** → world in one click: the *same shape* as today. It is a
+  selector update across 17 files, not a rewrite.
+  ⚑ **Two rules ride along.** Names need a stronger unique suffix than
+  `'Fol' + pid` — PIDs recycle and character names are now permanently unique —
+  and **every script must start from clean `localStorage`**, because a leftover
+  anonymous secret routes to character-select instead of the creation form. That
+  is a different flow, and it would read as a failure in the feature under test.
+- ⭐ **THE COOKIE GATE IS ANSWERED — VERIFIED IN CHROMIUM, 8/8, 2026-08-01.**
+  1c set `Secure` unconditionally per §7b and could not test it (curl and .NET
+  both correctly refuse to send a Secure cookie over http, which is exactly what
+  an `httptest`-based Go test does not model). Driven in a real browser against a
+  live `-dev` aurad:
+
+  | Leg | Result |
+  |---|---|
+  | Same-origin (:2000 → :2000) | The browser **stores** `secure=true httpOnly=true sameSite=Lax` over plain `http://localhost` **and replays it** |
+  | Cross-origin (:2001 → :2000), the real dev topology | Login allowed, cookie stored, **cookie replayed** |
+  | `127.0.0.1` page → `localhost` API | **401 `no_identity`** — the cookie is dropped |
+
+  **No https and no same-origin dev server is needed.** `Secure` is honoured
+  because `localhost` is a secure context, and `SameSite=Lax` survives the
+  webpack→aurad port change because **SameSite is per-*site* and ports do not
+  count**.
+  ⚑ **The `localhost` / `127.0.0.1` trap is now a measurement, not a warning** —
+  those two ARE different sites, so mixing spellings between the page URL and
+  `wsUrl` silently signs the player out. **One spelling everywhere.**
+- ⚑ **New harness landmine, found while building that gate: a page served by
+  Playwright's `route.fulfill()` cannot reach loopback.** A fulfilled document
+  has no network peer, so Chrome's **Private Network Access** check treats the
+  page as public and blocks every request to a local address. It surfaces as a
+  bare `TypeError: Failed to fetch` with no status — **indistinguishable from a
+  CORS refusal**, and it sent the first gate run chasing a server-side CORS bug
+  that did not exist (the preflight was verified correct by curl in the same
+  minute). **Stand up a real `http.createServer` on the origin instead.** Chunk
+  2's DOM harness script will want a stub origin for exactly this reason.
+- **`Urls.ts` needs an `apiUrl()` sibling to `catalogUrl()`**, same WS-derived
+  pattern. Small, but it is the single definition point for the `/api/*` origin —
+  and that derivation is precisely what makes these calls cross-origin
+  (implementation.md §7b).
+- **Chunk 2's test strategy is §11's, minus the ticket-retry test** (which
+  follows the retry into chunk 3): vitest for the anon-empty predicate, the
+  cooldown timer and token storage, plus the first DOM-category harness script.
+
+---
+
 ## 10a. Chunk ledger
+
+### Chunk 3 — the wire ✅ DONE 2026-08-01
+
+Backend + frontend + wire + docs. **You log in, pick your character, and enter
+the world as that character.** The socket is authenticated for the first time:
+`Join` carries a play ticket and nothing else, and a join without one is refused.
+
+**Shipped:** `play_ticket` on `Join` (`client.fbs`, both binding sets
+regenerated) · `Session.Stashed` + `Stash()`/`Connected()` · the `PlayTickets` /
+`AccountSessions` / `IdentitySink` seams in `sys` · ticket redemption, the atomic
+account-slot claim, `accountByClient`, the stash's `accountID`, and the reconnect
+identity check in `ConnectionStateSystem` · `WorldSessions` so **logout ends the
+live world session** · the client presenting the ticket plus the **silent retry**
+· `cmd/loadbot` minting through the anonymous path.
+
+**Verified.** `go build` · `go vet` · gofmt clean on every touched file · **full
+Go suite 32/32** · **vitest 87/87** · typecheck clean · `-dev` boot **0 errors 0
+warnings** · **`chunk2-accounts.mjs` 21/21** now over the authenticated join ·
+**`chunk3b-interact.mjs` 14/14** · `hygiene-wire-prune.mjs` clean (the mandatory
+row for any `.fbs` change) · **`loadbot` 3/3 bots at 30.0 snap/s**, proving the
+no-browser path · 0 console errors and 0 context losses throughout.
+
+**Decisions taken (PO 2026-08-01):**
+
+- ⭐ **The ticket is MANDATORY; name-join is gone.** Keeping it as a fallback
+  would leave a permanent unauthenticated route into the world beside the
+  authenticated one — the parallel path the ticket exists to remove. `player_name`
+  survives on the wire but is ignored on every path.
+- ⭐ **The load bot is not a special case.** It mints identity exactly like the
+  browser harness: `POST /api/characters` then `/select`, with `hrnss_` names
+  that `harnessdb -cleanup` can find. ⚑ **No bcrypt anywhere on that path** — the
+  anonymous secret is a SHA-256 lookup key, not a verifier, which is what keeps
+  400 bots cheap. A seeded pool would have pushed every ramp through the 2-slot
+  bcrypt gate and spent minutes hashing *inside the measurement*.
+- ⭐ **Logout now ends the live world session**, the gap 1c recorded and deferred.
+  It is the one acknowledged place an HTTP handler reaches into the running game
+  (§10), expressed as a **one-method** `WorldSessions` interface so a future
+  machine split stays cheap. ⚑ It runs **after** the token revocation, so a
+  failed bump can never drop someone from the world while leaving tokens valid.
+- **A refused join closes the socket; no refusal message was added to the wire.**
+  The client falls back to character-select and re-calls `/select`, which answers
+  over HTTP where the wording already exists (§5b). Chunk 3 was the only chance
+  to add a wire message, and spending it on something the HTTP layer can already
+  explain was rejected.
+
+**⚑ Traps closed structurally:**
+
+- **The stash sweep releases the account slot ONLY if the slot is still that
+  stash's.** A player who leaves to character-select and plays a *different*
+  character replaces the session while the old stash lingers to its TTL —
+  releasing unconditionally would then free a slot belonging to a live session,
+  reintroducing two-live-copies **ten minutes after the action that caused it**.
+- **The reconnect exemption lives inside `Claim`**, not in the caller, so it
+  cannot be split into a racy check-then-claim.
+- **The character comes out of the ticket**, so "a ticket for A cannot join as B"
+  is not a comparison anyone could omit — there is nowhere to say B.
+- **The logout inbox is a `sync.Map`** drained by the loop. Everything else on
+  `ConnectionStateSystem` is loop-only; a handler touching `s.players` directly
+  would race the game goroutine.
+
+**⚑ Findings worth carrying forward:**
+
+- ⭐ **The `sys` tests had to change, and that was the right signal.** Nine failed
+  the moment a ticket became mandatory — the behaviour genuinely changed. They
+  now install the **real** `TicketStore` and `SessionRegistry` (both pure
+  in-memory Go, no database) and mint real tickets, so they exercise the actual
+  join path rather than a test-only fallback. ⚑ Two of them assert *degrade to a
+  fresh join* for an unknown or already-live token, which has **no stash** — so
+  the helper mints a reconnect ticket only when a stash exists.
+- ⚑ **A nil identity seam is a supported state and is deliberately NOT a
+  name-join fallback.** `SetIdentity` may be left unset (tests, sim), but a
+  fresh join still requires a ticket — otherwise forgetting to wire it in
+  production would silently reopen the unauthenticated route.
+- ⚑ **The two instances must be shared.** Tickets and sessions are created in
+  `aurad` **above** the game and handed to both it and the accounts server. Two
+  copies would each work perfectly in isolation and enforce nothing between
+  them: every ticket unknown, every account free.
+
+**Deliberately NOT built:** save & load (chunk 4 — ⚑ **between 3 and 4 the
+account persists and the progress does not**; a returning character is level 1
+with the right name) · a `JoinRefused` wire message · `home_campfire_id`.
+
+**Open, deferred:** a **live** capacity run cannot take `hrnss_` names, because
+the prefix is `-dev`-gated — so those rows would not be identifiable for cleanup.
+Ruling 10 bars live load runs during 8a, so it waits.
+
+#### The PO pass, 2026-08-01/02 — eight reports, and the one that mattered most
+
+The PO played chunks 2 + 3 by hand and reported eight defects. Seven were as
+described; the eighth turned out to be covering a worse bug.
+
+⭐ **THE RECONNECT PATH WAS COMPLETELY BROKEN, and chunk 3 broke it.** Chunk 3
+made the server refuse a stashed character to anyone who cannot prove they own it
+— and the client was never taught to present a ticket on that path. Every page
+refresh was therefore *refused*: the socket closed and the player sat on the
+loading screen forever.
+
+⚑ **It was reported as two unrelated symptoms, which is why it survived.** The PO
+saw *"F5 sometimes gets me stuck on the loading screen"* (the refusal) and
+separately *"after registering, settings shows Create an account again"* (the
+identity gap). Only the second was diagnosed — and fixing it surfaced the first.
+The "sometimes" was the tell: it bites only once the player has been in the world
+long enough to own a stash.
+
+`AccountFlow.reconnect()` now mints a ticket through `/select` — which succeeds
+precisely because the session is **stashed rather than connected**, the entire
+reason `Session.Stashed` exists — and resolves identity without showing a panel.
+⚑ `Session.playingCharacterId` had to be added: the reconnect token identifies
+the character server-side, but the client cannot read it and `/select` needs an
+id. ⚑ `GET /api/characters` had to start returning `username`; it never did, so
+even calling it could not have populated "Signed in as".
+
+**The other seven:**
+
+| Report | Cause |
+|---|---|
+| A character re-entering the world became "HEer the ugly" | Leaving to character-select stashes the character and **keeps its name reserved** — so re-entering collided with itself and the de-duplicator renamed the player. It was doing its job on the wrong input. Fixed by `discardStashFor`, mutation-checked |
+| A short password said "Something went wrong" instead of the rule | ⭐ **`tsconfig` targets ES5, where subclassing `Error` breaks the prototype chain**, so `instanceof ApiError` was ALWAYS false in the shipped bundle and every server message degraded to the generic. Fixed with `Object.setPrototypeOf` |
+| F5 left a name field and a dead "Loading..." button | The start screen still carried the retired join form. It is now pure loading; `PlayerName.ts` is down to one predicate |
+| The nag sat bottom-centre | Now under the settings gear, right edges aligned, 20 % larger |
+| Creation said "Back" | Says "Close" |
+| Register from settings at character-select closed everything | The return path knew only "world"; it now remembers where it was opened from |
+| Guests had no way to reach an existing account | Character-select offers **Log in** to guests, behind §6's progress-loss warning |
+
+⚑ **A latent bug was fixed alongside them:** `start()` only queried the server
+when a local anonymous secret existed, so a returning **registered** player —
+cookie valid, no localStorage — was sent to the character-creation form. Identity
+can be the cookie, which script cannot see, so the question belongs to the server.
+
+⭐ **The ES5 finding is the one to carry forward, because no unit test can catch
+it.** Vitest compiles with esbuild to modern JS, where subclassing built-ins
+works natively — `AccountsApi.test.ts` asserts `toBeInstanceOf(ApiError)` and
+passed green the entire time the shipped bundle was broken. **Anything relying on
+`instanceof` across a class hierarchy must be proven in a real browser**, not in
+the test runner.
+
+**Re-verified after the pass:** Go **32/32** · vitest **87/87** · typecheck clean
+· `-dev` boot **0 errors 0 warnings** · a browser pass over all eight reports.
+
+---
+
+### Chunk 2 — the frontend ✅ DONE 2026-08-01
+
+Frontend + a little backend + docs. **Aura has a front door.** A cold browser
+goes page-load → name → world in one click; a returning one lands on
+character-select with its characters in their slots. The eight endpoints from 1c
+now have a consumer.
+
+**Shipped** — new `frontend/src/features/user-interface/account-screens/`
+(creation both mounts, character-select slot cards, login, register, the delete
+dialog, the HUD nag) plus `features/accounts/` becoming genuinely
+identity-scoped: `Identity.ts` (the anonymous secret), `AccountsApi.ts` (all
+eight endpoints, typed `ApiError`), `AccountFlow.ts` (the routing).
+`Account.ts` is **deleted**; its three device preferences moved to
+`common/logic/DevicePrefs.ts` and `playerName` was retired outright.
+Backend: `AllowHarnessNames`, and `cmd/harnessdb` (seed + cleanup).
+
+**Verified.** `go build ./...` · `go vet ./...` · gofmt clean on every touched
+file · **full Go suite 32/32** · **vitest 87/87** (was 76; 11 new) · typecheck
+clean · `-dev` boot **0 errors 0 warnings** · **`chunk2-accounts.mjs` 21/21**
+(the new DOM category) · **`chunk3b-interact.mjs` 14/14** and
+**`ctxloss-warning.mjs clean` PASS** (5 GL contexts / 2 probe losses / 0
+warnings) after the retrofit · the cookie gate **8/8**.
+
+⭐ **The `hrnss_` ruling was corrected mid-flight — see ruling 2.** "Extend the
+prefix to accounts with no username" would have handed the reserved namespace to
+every new player, because every new player is anonymous at exactly the moment
+they create a character. It is a `-dev` flag instead, and **1b had already
+pinned the trap** with a *"the prefix, from anonymous → reserved"* row.
+⚑ **`ValidateUsername` took the same flag for a reason that only appears at
+cleanup time:** without it the login/register script must register an ORDINARY
+username, which is indistinguishable from a real player's — so `harnessdb
+-cleanup` could not remove it and every run would leave a credentialed account
+behind forever. **The prefix is what makes the residue identifiable, and cleanup
+is why the prefix has to be reachable at all.**
+
+**⚑ Findings worth carrying forward** — three of the four cost real debugging
+time, and each presented as something other than what it was:
+
+- ⭐ **A leading HTML comment silently deletes an entire screen.**
+  `Preloading.renderPartial` appends `template.content.firstChild`, so a partial
+  whose file opens with a comment **is** that comment and the real markup is
+  dropped. The null lookups that follow throw during module init and take the
+  **whole bundle** with them — it presented as "`#startForm` no longer exists",
+  which reads as an unrelated regression. Every other partial happens to open
+  with its root element; that was luck.
+- ⭐ **`waitForSelector` defaults to VISIBLE, and `.hidden` is `display:none`.**
+  Waiting on a hidden element needs `state: 'attached'`. Without it the
+  "did the player reach the world" assertion times out for 60 s **while the
+  product works perfectly** — a hang indistinguishable from a product bug.
+  Centralised in `lib/join.mjs` so the next script cannot rediscover it.
+- ⭐ **A stale `aurad` masked the new binary for three debugging cycles.**
+  `taskkill /IM aurad.exe` matches nothing when the binary is built as `aurad`
+  with no extension, so an old process kept port 2000 and served old code — the
+  `-dev` flag "did not work", twice. **Kill `aurad`, not `aurad.exe`**, and
+  check for more than one process.
+- ⚑ **`isVisible('#gameUI')` is the wrong HUD probe** — it is a container of
+  absolutely-positioned children with no box of its own, so it reads invisible
+  while fully working. Assert the class `HUD.show()` removes.
+- ⚑ **Playwright's `route.fulfill()` pages cannot reach loopback.** A fulfilled
+  document has no network peer, so Chrome's Private Network Access check treats
+  it as public and blocks every local request — surfacing as a bare
+  `TypeError: Failed to fetch`, **indistinguishable from a CORS refusal**. Use a
+  real `http.createServer`.
+- ⚑ **`game.audit_log` has an FK to `accounts` and is easy to miss in cleanup.**
+  It records successes only, so an account that merely created a character has
+  no rows — the constraint only fires once an account has actually registered or
+  logged in, long after the cleanup appeared to work.
+- ⚑ **`.button` is NOT a global class** — the start screen's copy is scoped to
+  `#chromeWarning`. New UI needs its own, or every button is an unstyled anchor
+  that no functional test will notice.
+
+**Deliberately NOT built:** the ticket **silent-retry** (moved to chunk 3 with
+the wire field — ruling 1) · the **avatar picker** (§4b: shown, inert, no
+"change" affordance) · a **graveyard/history view** (out of scope for this
+screen) · **in-game login** (ruling 3).
+
+**Plain-language summary for humans:** `docs/accounts/chunk-2-summary.html`.
+
+---
 
 ### Chunk 1c — the eight endpoints ✅ DONE 2026-08-01, `9c19c5f2`
 
@@ -1375,6 +1835,23 @@ scene graph**. Every screen in this plan is *pre*-game and ordinary **DOM**, so
 the first script here establishes a new category rather than extending one.
 
 ### Harness accounts (designed 2026-07-31, so the first script has a recipe)
+
+> ⚑ **SUPERSEDED IN PART by §10b ruling 2 (PO 2026-08-01).** The reasoning below
+> stands and is why the `hrnss_` prefix exists — but the **delete-then-create
+> recipe is retired**. Harness clients and load bots now mint their own identity
+> through the **anonymous path** (`POST /api/characters` with no credentials),
+> which is cheaper (SHA-256, not bcrypt), needs no seeded pool, self-scales to
+> 400 bots, and is **pristine by construction** — a brand-new account every run
+> is the property delete-then-create was invented to fake.
+>
+> **What survives:** the `hrnss_` prefix (now also grantable to accounts with *no*
+> username, so anonymous harness clients can take it), the credentials-from-env
+> rule, and the never-point-at-production rule. **What replaces it:** a cleanup
+> statement deleting accounts joined to a `hrnss\_%` character, guarded against
+> any non-loopback database host (§10b ruling 10). **What still needs seeding:**
+> 2–4 accounts, for the one script that tests login / register / logout and the
+> two-session rejection — those cannot use the anonymous path, because they are
+> testing credentials.
 
 Four mismatches with the existing suite, and how each is answered:
 

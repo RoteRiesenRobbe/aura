@@ -36,8 +36,15 @@ reconnectToken(optionalEncoding?:any):string|Uint8Array|null {
   return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
 }
 
+playTicket():string|null
+playTicket(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+playTicket(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 8);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
 static startJoin(builder:flatbuffers.Builder) {
-  builder.startObject(2);
+  builder.startObject(3);
 }
 
 static addPlayerName(builder:flatbuffers.Builder, playerNameOffset:flatbuffers.Offset) {
@@ -48,15 +55,20 @@ static addReconnectToken(builder:flatbuffers.Builder, reconnectTokenOffset:flatb
   builder.addFieldOffset(1, reconnectTokenOffset, 0);
 }
 
+static addPlayTicket(builder:flatbuffers.Builder, playTicketOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(2, playTicketOffset, 0);
+}
+
 static endJoin(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createJoin(builder:flatbuffers.Builder, playerNameOffset:flatbuffers.Offset, reconnectTokenOffset:flatbuffers.Offset):flatbuffers.Offset {
+static createJoin(builder:flatbuffers.Builder, playerNameOffset:flatbuffers.Offset, reconnectTokenOffset:flatbuffers.Offset, playTicketOffset:flatbuffers.Offset):flatbuffers.Offset {
   Join.startJoin(builder);
   Join.addPlayerName(builder, playerNameOffset);
   Join.addReconnectToken(builder, reconnectTokenOffset);
+  Join.addPlayTicket(builder, playTicketOffset);
   return Join.endJoin(builder);
 }
 }

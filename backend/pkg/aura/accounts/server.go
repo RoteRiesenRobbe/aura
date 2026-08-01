@@ -51,6 +51,20 @@ const preflightMaxAge = "600"
 
 // Config is everything the endpoints need. Every field is required; New refuses
 // a partial one rather than nil-panicking on the first request that needs it.
+// WorldSessions is the running game, seen from the HTTP side, and it is
+// deliberately ONE method wide.
+//
+// ⚑ Narrow on purpose. The game is the thing the accounts package must not
+// depend on (§10 invariant 3), so the exception logout needs is expressed as
+// the smallest possible seam rather than as a *core.Game reference that would
+// let anything else creep across later.
+//
+// Implemented by core's game via sys.IdentitySink. Safe to call from a net/http
+// goroutine: it queues the disconnect and the game loop performs it.
+type WorldSessions interface {
+	EndSessionFor(accountID int64)
+}
+
 type Config struct {
 	Store    *store.Store
 	Keys     *auth.Keys
@@ -62,6 +76,33 @@ type Config struct {
 
 	// MaxAliveCharacters is game.player.maxAliveCharacters.
 	MaxAliveCharacters int
+
+	// World ends an account's live world session. Nil is supported — the
+	// endpoints then behave exactly as they did in chunk 1c.
+	//
+	// ⚑ THIS IS THE ONE PLACE A HANDLER REACHES INTO THE RUNNING GAME, and it is
+	// the acknowledged exception to §10 invariant 3 rather than a hole in it.
+	// §3 specifies that logout ends the world session; chunk 1c could not honour
+	// that because the registry was not wired into the game yet, and calling
+	// Release without closing the socket would have been WORSE than nothing —
+	// it frees the account's slot while the player is still in the world, the
+	// single thing the registry exists to prevent.
+	//
+	// ⚑ On a future machine split this becomes a small internal call or an
+	// accepted gap. It is deliberately the narrowest possible interface so that
+	// decision stays cheap.
+	World WorldSessions
+
+	// AllowHarnessNames opens the reserved `hrnss_` character-name prefix to
+	// accounts that do not carry it. Set from -dev, and false in production.
+	//
+	// ⚑ It exists so harness clients and load bots, which mint their identity
+	// through the ANONYMOUS path (plan-accounts-frontend.md §10b ruling 2), can
+	// still take identifiable reserved names — which is what makes their
+	// cleanup one exactly-scoped statement. Keying this on "the account has no
+	// username" instead would be wrong: every new player is anonymous at the
+	// moment they create a character.
+	AllowHarnessNames bool
 
 	// DefaultAvatar and DefaultFaction are [PLACEHOLDER] constants.
 	//

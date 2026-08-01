@@ -8,6 +8,11 @@
 	left: 0;
 	background-color: rgba(25, 25, 25, 0.6);
 
+	body.creditsVisible &,
+	body.changelogVisible & {
+		z-index: 105;
+	}
+
 	> header {
 		position: absolute;
 		top: 41%;
@@ -187,6 +192,7 @@
 	}
 
 	> .closeButton {
+		z-index: 201;
 		top: 10%;
 		// right is set in JS
 
@@ -337,6 +343,7 @@
 
 #startScreen {
 	> .panel {
+		z-index: 200;
 		position: absolute;
 		top: 10%;
 		bottom: 106px; // enough space for the bottom info container

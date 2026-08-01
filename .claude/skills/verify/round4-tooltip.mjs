@@ -12,6 +12,7 @@ import { join } from 'node:path';
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
+import { joinAsNewCharacter } from './lib/join.mjs';
 
 const url = process.argv[2] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const outdir = process.argv[3] || '/tmp/round4-shots';
@@ -34,9 +35,7 @@ const fail = (msg) => { errors.push('CHECK FAILED: ' + msg); };
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 
 // --- join ---
-await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 30_000 });
-await page.fill('#startForm .playerNameInput', 'Round4Probe');
-await page.click('#startForm .playerNameSubmit');
+await joinAsNewCharacter(page, 'tip', { timeout: 30_000 });
 // #gameUI is zero-size (Playwright's visibility wait never resolves) and its
 // class is not 'active' in this build — wait on the live scene graph instead.
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 30_000 });

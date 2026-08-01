@@ -14,12 +14,36 @@ table Input {
 }
 
 table Join {
+    // ⚑ Ignored whenever play_ticket is present, and ignored on the reconnect
+    // path too (the stash reuses the character's reserved name verbatim). It
+    // survives because the pre-accounts path — a name typed on the start screen
+    // — is what the load bot still uses.
     player_name:string;
     // Session-scoped reconnect token (empty on a first join). When it matches
     // a server-side stash of a disconnected character, that character is
     // restored instead of minting a fresh one; unknown tokens degrade to a
     // normal fresh join.
     reconnect_token:string;
+
+    // The play ticket minted by POST /api/characters/{id}/select
+    // (plan-accounts-implementation.md §7b). It is the ONLY thing on this
+    // socket that proves who the player is: the connection carries no cookie,
+    // no JWT and no account id, and the server exchanges the ticket for
+    // (account_id, character_id), burning it in the process.
+    //
+    // ⚑ IT IS OPAQUE AND MUST STAY OPAQUE (§10 invariant ②). Bytes in, bytes
+    // out — nothing outside the auth package parses it, derives anything from
+    // it, or splits its parts across wire fields. That discipline is what keeps
+    // a later swap from "random string in an in-memory map" to "signed and
+    // self-describing" contained to one file, instead of becoming a wire change
+    // plus the frontend plus the harness. A cross-machine auth split needs
+    // exactly that swap, because a ticket minted on one process and redeemed on
+    // another cannot live in a map.
+    //
+    // ⚑ There is deliberately NO character_id field beside it. The character
+    // comes OUT of the ticket, so "a ticket for A cannot join as B" is not a
+    // comparison anyone could forget to write — there is nowhere to say B.
+    play_ticket:string;
 }
 
 table Cheat {

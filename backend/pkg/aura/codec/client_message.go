@@ -65,6 +65,7 @@ func unmarshalJoin(j *AuraApi.Join) *model.Join {
 	join := &model.Join{
 		PlayerName:     string(j.PlayerName()),
 		ReconnectToken: string(j.ReconnectToken()),
+		PlayTicket:     string(j.PlayTicket()),
 	}
 	return join
 }

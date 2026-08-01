@@ -20,6 +20,7 @@ import { join } from 'node:path';
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
+import { joinAsNewCharacter } from './lib/join.mjs';
 
 const url = process.argv[2] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
 const outdir = process.argv[3] || '/tmp/filler-shots';
@@ -43,10 +44,7 @@ const pass = (msg) => console.log('  ✓ ' + msg);
 
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 
-const playerName = 'Filler' + String(process.pid).slice(-4);
-await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 30_000 });
-await page.fill('#startForm .playerNameInput', playerName);
-await page.click('#startForm .playerNameSubmit');
+const playerName = await joinAsNewCharacter(page, 'fill', { timeout: 30_000 });
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 30_000 });
 console.log('joined as ' + playerName);
 

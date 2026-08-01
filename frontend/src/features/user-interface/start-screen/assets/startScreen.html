@@ -25,13 +25,15 @@
 		</div>
 	</div>
 
-	<form id="startForm" class="playerForm layout-column hideForCredits hideForChangelog">
-		<div class="inputContainer layout-row">
-			<input class="playerNameInput flex"
-			       placeholder="Some Name"
-			       maxlength="20"
-			       tabindex="0" />
-		</div>
+	<!--
+	  ⚑ PURE LOADING SCREEN. It used to carry the name field and the Play button;
+	  a character now comes from the account screens, and leaving a dead form
+	  here meant a slow boot (or a stalled one) showed the player a name box and
+	  a button reading "Loading..." that never became clickable — it looked like
+	  the game had hung on a form it was waiting for them to fill in.
+	  The fullscreen toggle stays: it is a device preference, not a join step.
+	-->
+	<div id="startForm" class="playerForm layout-column hideForCredits hideForChangelog">
 		<div class="optionsContainer layout-row layout-align-space-around-center">
 			<div class="layout-row layout-align-center-end startFormToggle">
 				<div class="switch">
@@ -43,7 +45,7 @@
 			</div>
 		</div>
 		<div class="submitContainer">
-			<input type="submit" value="Loading..." class="playerNameSubmit" disabled="disabled"/>
+			<div id="loadingStatus">Loading…</div>
 			<div id="loadingBar"></div>
 		</div>
 
@@ -63,7 +65,7 @@
 		<!--		<a href="#changelog" id="betaStamp"><img src="./betaStamp.svg" /></a>-->
 <!--		<a href="#changelog" id="betaStamp" class="text-mode">Playtest<br />20.10.2024</a>-->
 		<a href="#changelog" id="betaStamp" class="text-mode off-season">Prototype</a>
-	</form>
+	</div>
 
 	<div class="menu infoContainer center bottom layout-row">
 		<a href="#credits">Credits</a>

@@ -13,9 +13,11 @@ package main
 // The server must be running with -profile :6060 for tick stats.
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"math"
 	"math/rand"
@@ -127,11 +129,15 @@ func (b *bot) close() {
 	})
 }
 
-func buildJoin(name string) []byte {
+func buildJoin(name, ticket string) []byte {
 	bl := flatbuffers.NewBuilder(64)
 	n := bl.CreateString(name)
+	tk := bl.CreateString(ticket)
 	AuraApi.JoinStart(bl)
 	AuraApi.JoinAddPlayerName(bl, n)
+	// ⚑ Since step 8a chunk 3 a join without a play ticket is REFUSED. The bot
+	// mints one the same way a browser does — see mintPlayTicket.
+	AuraApi.JoinAddPlayTicket(bl, tk)
 	body := AuraApi.JoinEnd(bl)
 	AuraApi.ClientMessageStart(bl)
 	AuraApi.ClientMessageAddBodyType(bl, AuraApi.ClientMessageBodyJoin)
@@ -322,7 +328,94 @@ func setupSeq(id int) [][]byte {
 	return msgs
 }
 
+// mintPlayTicket gives a bot an identity the way a brand-new player gets one
+// (step 8a chunk 3, and ruling 2's anonymous path).
+//
+// Two ordinary HTTP calls, exactly what the browser makes:
+//
+//	POST /api/characters          → mints an anonymous account + character,
+//	                                returns the one readable copy of its secret
+//	POST /api/characters/{id}/select → exchanges that secret for a play ticket
+//
+// ⚑ NO bcrypt anywhere on this path — the anonymous secret is a SHA-256 lookup
+// key, not a verifier. That is what keeps 400 bots cheap; a seeded pool of
+// password logins would push a ramp through the 2-slot bcrypt gate and spend
+// minutes hashing inside the very measurement it is meant to take.
+//
+// ⚑ Names carry the reserved `hrnss_` prefix so `go run ./cmd/harnessdb
+// -cleanup` can find and delete every row a run leaves behind. The prefix is
+// only grantable under `-dev`; a capacity run against a non-dev server needs
+// that question answered first (recorded, deferred — ruling 10 bars live load
+// runs for now).
+func mintPlayTicket(id int) (name, ticket string, err error) {
+	base := "http://"
+	if *scheme == "wss" {
+		base = "https://"
+	}
+	base += *addr
+
+	name = fmt.Sprintf("hrnss_bot_%04d", id)
+	created := struct {
+		Character struct {
+			ID int64 `json:"id"`
+		} `json:"character"`
+		AnonymousSecret string `json:"anonymousSecret"`
+	}{}
+	if err = postJSON(base+"/api/characters", "", map[string]string{"name": name}, &created); err != nil {
+		return "", "", fmt.Errorf("creating a bot character: %w", err)
+	}
+
+	selected := struct {
+		Ticket string `json:"ticket"`
+	}{}
+	url := fmt.Sprintf("%s/api/characters/%d/select", base, created.Character.ID)
+	if err = postJSON(url, created.AnonymousSecret, nil, &selected); err != nil {
+		return "", "", fmt.Errorf("selecting a bot character: %w", err)
+	}
+	return name, selected.Ticket, nil
+}
+
+// postJSON posts body (may be nil) and decodes the reply into out. secret, when
+// non-empty, rides the anonymous-secret header — the same one the browser sends.
+func postJSON(url, secret string, body any, out any) error {
+	var payload io.Reader
+	if body != nil {
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			return err
+		}
+		payload = bytes.NewReader(encoded)
+	}
+	req, err := http.NewRequest(http.MethodPost, url, payload)
+	if err != nil {
+		return err
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if secret != "" {
+		req.Header.Set("X-Aura-Anonymous-Secret", secret)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		reason, _ := io.ReadAll(io.LimitReader(resp.Body, 300))
+		return fmt.Errorf("%s: %s", resp.Status, bytes.TrimSpace(reason))
+	}
+	return json.NewDecoder(resp.Body).Decode(out)
+}
+
 func spawnBot(id int) (*bot, error) {
+	// Identity first: a socket without a play ticket is refused, and there is no
+	// point dialling before we can prove who we are.
+	name, ticket, err := mintPlayTicket(id)
+	if err != nil {
+		return nil, err
+	}
+
 	u := url.URL{Scheme: *scheme, Host: *addr, Path: "/game"}
 	dialer := &websocket.Dialer{HandshakeTimeout: 10 * time.Second}
 	c, _, err := dialer.Dial(u.String(), nil)
@@ -331,8 +424,8 @@ func spawnBot(id int) (*bot, error) {
 	}
 	c.SetReadLimit(1 << 22)
 
-	b := &bot{name: fmt.Sprintf("bot%03d", id), conn: c, stop: make(chan struct{})}
-	if err := b.send(buildJoin(b.name)); err != nil {
+	b := &bot{name: name, conn: c, stop: make(chan struct{})}
+	if err := b.send(buildJoin(b.name, ticket)); err != nil {
 		c.Close()
 		return nil, err
 	}

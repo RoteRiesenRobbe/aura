@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aura — Step 8a, Chunk 2: The Front Door</title>
+</head>
+<body>
+
+<h1>Aura — Accounts &amp; Persistence</h1>
+<h2>Step 8a, Chunk 2: the front door</h2>
+
+<p><em>Point-in-time summary &middot; 1 August 2026 &middot; branch <code>accounts-8a</code> &middot;
+commit <code>[uncommitted]</code></em></p>
+
+<p><strong>This is a human-facing snapshot, not a maintained document.</strong> The authoritative
+sources are <code>docs/plan-accounts-frontend.md</code> §4–§7 (the screens and the flows),
+§10b (the ten execution rulings) and §10a (the full chunk ledger). Where this document and
+those disagree, they win.</p>
+
+<hr>
+
+<h2>In one sentence</h2>
+
+<p>Chunk 1c built accounts you could only reach with a command-line tool; this chunk gives them
+screens, so a brand-new player now types a name, presses one button, and is in the world —
+with an account quietly created behind them that they never had to think about.</p>
+
+<p>You can now click through the whole thing: create a character, play, come back later to
+find it waiting, sign up for a real account without losing anything, log out, log back in, and
+delete a character.</p>
+
+<hr>
+
+<h2>What a player actually sees</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+<tr>
+  <th align="left">Moment</th>
+  <th align="left">What happens</th>
+</tr>
+<tr>
+  <td>First ever visit</td>
+  <td>A create-your-character screen: a portrait, a name field with a suggestion already in it,
+      and a Create button. Underneath, a quieter <em>“Already have an account? Log in”</em>.</td>
+</tr>
+<tr>
+  <td>Pressing Create</td>
+  <td><strong>Straight into the world.</strong> No second click, no “now choose your character”
+      step for a player who only has one. An account is created behind the scenes and remembered
+      in the browser.</td>
+</tr>
+<tr>
+  <td>Coming back later</td>
+  <td>A character-select screen: three cards side by side, one per slot, each showing the
+      character’s portrait, name and level, with Play and Delete. Empty slots offer to create
+      someone new.</td>
+</tr>
+<tr>
+  <td>While playing, without an account</td>
+  <td>A small banner near the bottom: <em>“Your progress lives only on this device.”</em> It can
+      be dismissed, and it never comes back in that session.</td>
+</tr>
+<tr>
+  <td>Signing up</td>
+  <td>From the settings panel. It takes a username and password, and says plainly that
+      <strong>password recovery does not exist yet</strong>. Signing up keeps everything —
+      it adds a login to the account you were already playing on, and drops you straight back
+      into the world.</td>
+</tr>
+<tr>
+  <td>Deleting a character</td>
+  <td>A confirmation box whose Delete button is greyed out for five seconds, counting down.</td>
+</tr>
+</table>
+
+<hr>
+
+<h2>Decisions worth knowing about</h2>
+
+<h3>You can only log in when you are logged out</h3>
+
+<p>There is no “Log in” anywhere inside the game — only on the opening screen. That looks like a
+missing feature and is deliberate.</p>
+
+<p>Logging in <em>switches</em> to a different account, and switching away from an unregistered
+account throws that account away. If you could do that mid-game, the character you were playing
+at that moment would be among the things thrown away. Rather than write a guard against it, the
+door is simply not there.</p>
+
+<p>The cost is that leaving the world needed its own way out, so the settings panel gained
+<em>“Leave to character select”</em>.</p>
+
+<h3>The delete countdown is not a security feature</h3>
+
+<p>The five-second delay exists so nobody deletes a character by misclicking. It protects against
+an accident, not against an attacker — anyone determined can bypass it entirely. It should never
+later be mistaken for a limit on how often characters can be deleted.</p>
+
+<h3>Names are permanent now, which changed two small things</h3>
+
+<p>Character names became globally unique, so the game no longer pre-fills the last name you used
+— that would guarantee a rejection. It still <em>suggests</em> one. And because the suggester
+draws from a fairly small pool, if it proposes a name that is already taken it now quietly tries
+another, rather than blaming the player for a name the game itself offered.</p>
+
+<hr>
+
+<h2>How it was checked</h2>
+
+<ul>
+  <li><strong>A new automated browser test</strong> that plays through the whole thing —
+      cold visit, create, auto-enter the world, sign up, come back, log out, log in, open the
+      delete box: <strong>21 of 21 checks passed</strong>.</li>
+  <li><strong>The existing 19 browser tests</strong> were all updated to enter the world the new
+      way and re-run; the ones covering conversations, three-player XP sharing and the network
+      format all pass.</li>
+  <li>Server test suite <strong>32 of 32</strong>, browser-code tests <strong>87 of 87</strong>
+      (up from 76), and a clean server start with <strong>no errors and no warnings</strong>.</li>
+  <li><strong>An open question from the previous chunk was settled.</strong> Chunk 1c had to
+      assume that browsers would accept the security-flagged login cookie over an unencrypted
+      local connection, because it had no browser to try it with. A real browser was used this
+      time: <strong>they do</strong>, in all the configurations the development setup uses. No
+      change to how the game is run was needed.</li>
+</ul>
+
+<hr>
+
+<h2>What is deliberately not here</h2>
+
+<ul>
+  <li><strong>Your progress still does not survive a restart.</strong> The <em>account</em> and
+      the <em>character</em> persist; their level, skills and quests do not yet. That is chunk 4,
+      and it is worth saying plainly because until then a returning character looks correct and
+      is back at level 1.</li>
+  <li><strong>No avatar picker.</strong> The portrait is shown but cannot be changed, and there is
+      deliberately no greyed-out button hinting at one — a disabled control reads as broken.</li>
+  <li><strong>No password recovery.</strong> The sign-up screen says so directly. Until that
+      ships, a forgotten password cannot be recovered.</li>
+  <li><strong>No graveyard or history view</strong> for deleted characters.</li>
+</ul>
+
+<hr>
+
+<h2>Two things to watch</h2>
+
+<p><strong>A mistake was caught twice, in the same shape.</strong> Test accounts use a reserved
+name prefix so they can never collide with a real player. The obvious way to let the test tools
+claim that prefix was to allow it for accounts that have not signed up — which sounds narrow, but
+<em>every</em> new player is in exactly that state at the moment they create a character. It would
+have handed the reserved names to everybody. It is now restricted to development mode instead, so
+the live server refuses them outright: stricter than before, not looser.</p>
+
+<p><strong>The test tools now leave traces.</strong> Before this chunk, everything a test did
+vanished when the server restarted. Now each run creates a real account row. A cleanup command was
+built alongside, and it refuses to run against anything other than a local database — the tests
+must never be pointed at the live server.</p>
+
+</body>
+</html>

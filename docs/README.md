@@ -105,10 +105,26 @@ than patch. PDF renders of the first two sit in the repo root.
   transport defaults that were closed, and the twelve deliberate breakages — eleven caught,
   the twelfth a wrong comment rather than a missing test. ⚑ Same snapshot caveat as 1a's.
 
+- **accounts/chunk-2-summary.html** — "Step 8a, Chunk 2: the front door" (2026-08-01).
+  What a player now clicks through, and the three decisions worth explaining: why Log in
+  vanished from inside the game, why the delete countdown is not a security feature, and
+  why the name suggester changed. ⚑ Same snapshot caveat as 1a's.
+
+- **accounts/chunk-3-summary.html** — "Step 8a, Chunk 3: the authenticated door"
+  (2026-08-02). How the play ticket works in plain terms, the three rules it makes true
+  (one player one place, refresh proves identity, logout ends the game session), and what
+  the PO hand-testing pass found — including the reconnect break that was hiding behind
+  two unrelated-sounding reports. ⚑ Same snapshot caveat as 1a's.
+
 `docs/accounts/` also carries **session handovers** — working notes for picking a chunk up
 cold, not snapshots. ⚑ **Disposable: delete one when its chunk lands**, so the folder never
 accumulates stale instructions. Durable content belongs in the plan doc's chunk ledger.
-There is none open right now; 1c's was deleted when it landed.
+
+- **accounts/chunk-4-handover.md** — ⭐ **OPEN.** Save & load: the goal, what chunk 3 hands
+  forward (the ticket already carries `Avatar`/`Faction`, unused), the six traps in the
+  order they bite — starting with "the game loop is a single goroutine, and a query blocks
+  every player" — the testing notes, and the environment gotchas. **Delete it when chunk 4
+  lands.**
 
 ## Research (investigations / assessments)
 

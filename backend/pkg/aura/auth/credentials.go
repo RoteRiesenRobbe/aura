@@ -103,10 +103,17 @@ var passwordBlocklist = map[string]bool{
 
 // ValidateUsername applies the registration rules to a username.
 //
-// ⚑ It rejects the harness prefix outright. That is the registration half of the
-// rule; the character-creation half is in ValidateCharacterName and is
-// deliberately different.
-func ValidateUsername(username string) error {
+// ⚑ It rejects the harness prefix in production, which is what reserves the
+// namespace from real players. allowHarnessNames (set from -dev, same flag
+// ValidateCharacterName takes) opens it, so the harness can register the
+// throwaway accounts its login/register/logout script needs.
+//
+// ⚑ That is not merely symmetry: without it those accounts must carry ORDINARY
+// usernames, and an ordinary username is indistinguishable from a real player's
+// — so `harnessdb -cleanup` could not remove them, and every run would leave a
+// credentialed account behind forever. The prefix is what makes the residue
+// identifiable, and cleanup is the reason the prefix has to be reachable.
+func ValidateUsername(username string, allowHarnessNames bool) error {
 	runes := []rune(username)
 	if len(runes) < UsernameMinLength || len(runes) > UsernameMaxLength {
 		return ErrUsernameLength
@@ -116,7 +123,7 @@ func ValidateUsername(username string) error {
 			return ErrUsernameCharset
 		}
 	}
-	if hasHarnessPrefix(username) {
+	if hasHarnessPrefix(username) && !allowHarnessNames {
 		return ErrUsernameReserved
 	}
 	return nil
@@ -227,7 +234,17 @@ func normalisePassword(password string) string {
 // character name (plan-accounts-frontend.md §11), and carving out an exemption
 // for the prefix would give the harness a name shape no player could hold —
 // exactly the special case the prefix rule itself avoids.
-func ValidateCharacterName(name, callerUsername string) error {
+// allowHarnessNames opens the reserved prefix to an account that does NOT carry
+// it — set only under -dev (plan-accounts-frontend.md §10b ruling 2).
+//
+// ⚑ IT IS A DEV-MODE FLAG AND NOT "the account is anonymous", which is the
+// obvious-looking version and is wrong. Harness clients and load bots mint
+// their identity through the anonymous path, so keying on "no username" looks
+// equivalent — but EVERY new player is anonymous at exactly that moment, so it
+// would hand the reserved namespace to the entire playerbase and turn the
+// collision guarantee back into a coincidence. Production refuses the prefix
+// outright, which is strictly stronger than before this flag existed.
+func ValidateCharacterName(name, callerUsername string, allowHarnessNames bool) error {
 	runes := []rune(name)
 	if len(runes) < CharacterNameMinLength || len(runes) > CharacterNameMaxLength {
 		return ErrCharacterNameLength
@@ -245,7 +262,7 @@ func ValidateCharacterName(name, callerUsername string) error {
 			return ErrCharacterNameShape
 		}
 	}
-	if hasHarnessPrefix(name) && !hasHarnessPrefix(callerUsername) {
+	if hasHarnessPrefix(name) && !hasHarnessPrefix(callerUsername) && !allowHarnessNames {
 		return ErrCharacterNameReserved
 	}
 	return nil

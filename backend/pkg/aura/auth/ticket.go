@@ -39,6 +39,30 @@ var ErrTicketUnknown = errors.New("auth: unknown or expired play ticket")
 type Ticket struct {
 	AccountID   int64
 	CharacterID int64
+
+	// Name, Avatar and Faction are the character's identity, carried so the
+	// GAME LOOP NEVER HAS TO READ THE DATABASE TO ANSWER A JOIN
+	// (PO 2026-08-01, plan-accounts-frontend.md §10b).
+	//
+	// ⚑ This is a latency decision, not a convenience. The loop is a single
+	// goroutine, so a synchronous query inside `tryJoin` stalls every player's
+	// tick for its duration — and `/select` has ALREADY read this exact row a
+	// moment earlier, to prove ownership. Reading it twice, the second time on
+	// the hot path, would be paying for the same fact in the one place that
+	// cannot afford it.
+	//
+	// ⚑ It does NOT weaken the opacity rule (§10 invariant ②). Opacity is a
+	// property of the token STRING — the random, single-use, SHA-256'd key the
+	// client presents and never parses. This struct is server-side memory that
+	// the client never sees. Adding fields here changes nothing about what
+	// crosses the wire.
+	//
+	// ⚑ These are a SNAPSHOT taken at /select. A rename between /select and
+	// Join would join under the old name — harmless today (nothing renames a
+	// character) and worth knowing before something does.
+	Name    string
+	Avatar  string
+	Faction string
 }
 
 type ticketEntry struct {

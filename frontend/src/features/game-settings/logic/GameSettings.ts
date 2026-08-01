@@ -1,6 +1,6 @@
 import onChange from 'on-change';
 import {GameSettingChangedEvent} from '../../core/logic/Events';
-import {Account} from '../../accounts/logic/Account';
+import {DevicePrefs} from '../../common/logic/DevicePrefs';
 import _merge = require('lodash/merge');
 import _debounce = require('lodash/debounce');
 
@@ -10,7 +10,7 @@ export class GameSettings {
 
     public static get(): GameSettings {
         if (this.instance === null) {
-            const gameSettings: GameSettings = _merge(new GameSettings(), JSON.parse(Account.rawGameSettings));
+            const gameSettings: GameSettings = _merge(new GameSettings(), JSON.parse(DevicePrefs.rawGameSettings));
 
             this.instance = onChange(gameSettings, (path, value, previousValue) => {
                 GameSettingChangedEvent.trigger({
@@ -35,7 +35,7 @@ export class GameSettings {
      * Debounced save function to ensure the settings are not saved more than once every 250ms into the account.
      */
     private static save = _debounce((gameSettings) => {
-        Account.rawGameSettings = JSON.stringify(gameSettings);
+        DevicePrefs.rawGameSettings = JSON.stringify(gameSettings);
     }, 250);
 }
 

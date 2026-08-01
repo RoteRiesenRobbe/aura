@@ -31,7 +31,41 @@ else.
 non-`-dev` boot with no `tlsHost` allows no browser origin at all — correct, and
 it would refuse the harness's own WebSocket handshake (`backlog.md` §43). Under
 `-dev` any `localhost`/`127.0.0.1` port is allowed, so nothing changes for these
-scripts.
+scripts. ⚑ **`-dev` also unlocks the reserved `hrnss_` name prefix**
+(`AllowHarnessNames`), without which every script fails at character creation
+with *"That character name is not available."*
+
+⚑ **`taskkill //F //IM aurad.exe` MATCHES NOTHING.** The binary is built as
+`aurad` with no extension, so the old process survives, keeps port 2000, and
+serves **stale code** — which presents as "my change did nothing", not as a
+stale server. It cost three debugging cycles in chunk 2. Use
+`taskkill //F //IM aurad` and check for more than one:
+
+```bash
+# there should be exactly one, and it should be younger than your last build
+powershell -NoProfile -Command "Get-Process aurad | Select-Object Id,StartTime"
+```
+
+### Getting into the world (since step 8a chunk 2)
+
+The start-screen name form is **gone** — a character now comes from the account
+screens. Every script joins through one helper:
+
+```js
+import { joinAsNewCharacter } from './lib/join.mjs';
+await joinAsNewCharacter(page, 'tag');   // creation OR character-select, then world
+```
+
+It mints a **fresh anonymous account per run**, exactly like a new player, so
+every run starts pristine — which is what assertions like *"the spellbook is
+empty"* and *"XP goes 0 → 70"* depend on. Names are `hrnss_<tag>_<unique>`;
+the prefix is what makes the residue removable.
+
+⚑ **Clean the database afterwards**, or accounts accumulate one per client per
+run: `cd backend && go run ./cmd/harnessdb -cleanup`. It refuses any
+non-loopback database, and spares the two seeded accounts. The credentialed pair
+(`hrnss_01`/`hrnss_02`, needed only by the login/register script) comes from
+`AURA_HARNESS_PW go run ./cmd/harnessdb -seed`.
 
 ### ⚑ On the Windows dev box
 
@@ -133,6 +167,7 @@ regression to everyone who ran it afterwards.
 | `round4-tooltip.mjs` | skill tooltips scaled to character level; the `/skills` payload shape | `SkillTooltip.ts`, the skills catalog endpoint |
 | `filler-batch.mjs` | `DAMAGE <pct>`, damage numbers in darkness, minimap-on-death, Ctrl +/− | darkness suppression, minimap lifecycle, dev cheats |
 | `hygiene-wire-prune.mjs` | the join smoke for wire renumbering — garbage decode rather than a clean error | **any `.fbs` field add or remove** |
+| `chunk2-accounts.mjs` | the **pre-game account screens**: cold load → creation → auto-select into the world, the anonymous secret, the nag, register-from-settings, character-select slot cards, Logout gating, logout→login, the delete dialog's countdown. ⚑ A **new category** — it asserts against the **DOM**, not the PixiJS scene graph, and it is the only script that needs a clean profile *as a rule* rather than by accident | the account screens, `AccountsApi`/`AccountFlow`, the eight endpoints, cookie/CORS behaviour, the `hrnss_` rules |
 
 ### ⚑ Run them ONE AT A TIME, alone, on a freshly restarted server
 
@@ -210,7 +245,24 @@ for reasons unrelated to any recent change:
   For a plain dev restart prefer `./scripts/dev-restart.sh`, which encapsulates
   this.
 - Player names are reserved while the corpse persists — use a fresh name per
-  run if a prior run's player just died.
+  run if a prior run's player just died. ⚑ Since chunk 2 they are also
+  **globally unique and persistent**, so `tag + process.pid` is no longer safe:
+  PIDs recycle, and a name that worked on Monday fails on Friday as a baffling
+  "that name is taken" in a script that has nothing to do with names.
+  `harnessCharacterName()` handles it.
+- ⚑ **`waitForSelector` waits for VISIBLE by default, and `.hidden` is
+  `display:none` in this codebase.** Waiting on a hidden element without
+  `state: 'attached'` times out for the full timeout **while the product works
+  perfectly** — a hang indistinguishable from a product bug. It cost a 60 s
+  false failure on the "did the player reach the world" assertion.
+- ⚑ **`isVisible('#gameUI')` is the wrong HUD probe** — it is a container of
+  absolutely-positioned children with no box of its own, so it reads invisible
+  while fully working. Assert the class `HUD.show()` removes instead.
+- ⚑ **A page served by Playwright's `route.fulfill()` cannot reach loopback.**
+  A fulfilled document has no network peer, so Chrome's Private Network Access
+  check treats it as public and blocks every local request — surfacing as a bare
+  `TypeError: Failed to fetch`, **indistinguishable from a CORS refusal**. Stand
+  up a real `http.createServer` when a script needs a second origin.
 - **After `WARP`, wait ~20 s before screenshotting.** The client interpolates
   the camera very slowly across a large jump (backlog §20), so a shot taken
   ~1.5 s after the command renders the *previous* position — silently, with no

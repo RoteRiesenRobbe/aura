@@ -1,0 +1,156 @@
+<div id="accountScreens" class="hidden">
+	<!--
+	  The pre-game account screens (plan-accounts-frontend.md §4, §4b, §5.3, §10b).
+
+	  One container, five panels, exactly one visible at a time. They sit above
+	  the world canvas exactly as the start screen does — the WebSocket is
+	  already connected and spectating behind them (§10b ruling 5).
+
+	  ⚑ Character creation is ONE panel with TWO mounts (§4b). The mount differs
+	  only in what sits below the form: the home mount offers Log in (there is
+	  nowhere to go back to — this is the entry point), the character-select
+	  mount offers Back (without it, a player who clicks an empty slot is stuck).
+
+	  ⚑ THIS FILE MUST BEGIN WITH ITS ROOT ELEMENT. Preloading.renderPartial
+	  appends `template.content.firstChild`, so a leading HTML comment IS the
+	  partial and the real markup is silently dropped — which then nulls out
+	  every lookup here and throws during module init, taking the whole bundle
+	  (start screen included) down with it. Every other partial happens to open
+	  with its div; this comment is inside for that reason.
+	-->
+
+	<div id="characterCreation" class="accountPanel hidden">
+		<h2>Create your character</h2>
+
+		<!--
+		  ⚑ Shown but inert, and deliberately carrying NO "change" affordance
+		  (§4b): a disabled control reads as broken, and promising a feature
+		  before it exists is worse than staying quiet. plan-avatar-system.md
+		  adds the picker here later and will shift this layout — known,
+		  accepted rework.
+		-->
+		<div class="characterPortrait default"><p>AVATAR</p></div>
+
+		<form id="characterCreationForm" class="accountForm layout-column">
+			<input class="characterNameInput" maxlength="20" autocomplete="off"
+			       spellcheck="false" tabindex="0"/>
+			<p class="formError hidden"></p>
+			<input type="submit" class="button characterCreateSubmit" value="Create"/>
+		</form>
+
+		<div class="accountPanelFooter">
+			<div class="creationHomeMount">
+				<p>Already have an account?</p>
+				<a href="#" class="button secondary" id="creationLoginButton">Log in</a>
+			</div>
+			<a href="#" class="button secondary hidden" id="creationBackButton">Close</a>
+		</div>
+	</div>
+
+	<!--
+	  Slot CARDS, not a list (§10b ruling 7): each card is a slot_index, and a
+	  sacrifice successor inherits its predecessor's slot, so a slot is a
+	  continuous bloodline. Rendering them as fixed positions is what stops a
+	  player's slots reshuffling under them.
+	-->
+	<div id="characterSelect" class="accountPanel hidden">
+		<h2>Choose your character</h2>
+		<div class="slotCards layout-row layout-align-center-center"></div>
+		<p class="formError hidden"></p>
+		<div class="accountPanelFooter">
+			<!-- Registered accounts only (§5.3). For an anonymous player the
+			     only thing "log out" could mean is abandoning the account with
+			     no recovery path — the most destructive control in the game
+			     wearing the most routine label in software. -->
+			<a href="#" class="button secondary hidden" id="logoutButton">Log out</a>
+			<!-- The mirror image: shown to GUESTS only (PO 2026-08-01), so a
+			     player who started without an account can still reach one they
+			     already have. It carries §6's warning, because logging in
+			     abandons the guest characters listed right above it. -->
+			<div id="selectLoginPrompt" class="hidden">
+				<p>Already have an account?</p>
+				<a href="#" class="button secondary" id="selectLoginButton">Log in</a>
+			</div>
+		</div>
+	</div>
+
+	<div id="loginPanel" class="accountPanel hidden">
+		<h2>Log in</h2>
+		<form id="loginForm" class="accountForm layout-column">
+			<label for="loginUsername">Username</label>
+			<input id="loginUsername" type="text" autocomplete="username"
+			       maxlength="32" spellcheck="false"/>
+			<label for="loginPassword">Password</label>
+			<input id="loginPassword" type="password" autocomplete="current-password"
+			       maxlength="72"/>
+			<!-- §6's conditional warning. Shown only when the local anonymous
+			     account has real progress to lose; filled in by AuthForms. -->
+			<p class="panelWarning anonymousWarning hidden"></p>
+			<p class="formError hidden"></p>
+			<input type="submit" class="button" value="Log in"/>
+		</form>
+		<div class="accountPanelFooter">
+			<a href="#" class="button secondary" id="loginBackButton">Back</a>
+		</div>
+	</div>
+
+	<div id="registerPanel" class="accountPanel hidden">
+		<h2>Create an account</h2>
+		<p class="panelNote">
+			Your characters and progress stay exactly as they are — registering
+			just adds a username and password to the account you are already
+			playing on.
+		</p>
+		<form id="registerForm" class="accountForm layout-column">
+			<label for="registerUsername">Username</label>
+			<input id="registerUsername" type="text" autocomplete="username"
+			       maxlength="32" spellcheck="false"/>
+			<label for="registerPassword">Password</label>
+			<input id="registerPassword" type="password" autocomplete="new-password"
+			       maxlength="72"/>
+
+			<label for="registerPasswordRepeat">Repeat Password</label>
+    		<input id="registerPasswordRepeat"
+           type="password"
+           autocomplete="new-password"
+           maxlength="72" />
+				   
+			<p class="formError hidden"></p>
+			<input type="submit" class="button" value="Create account"/>
+		</form>
+		<!--
+		  ⚑ Says plainly that recovery does not exist yet. Until
+		  plan-accounts-password-reset.md ships a forgotten password is
+		  unrecoverable, and saying so up front is the difference between a known
+		  limitation and a betrayal. REMOVE THIS COPY AS PART OF THAT PLAN, not
+		  before.
+		-->
+		<p class="panelWarning">
+			Password recovery is not available yet. If you forget this password,
+			the account cannot be recovered.
+		</p>
+		<div class="accountPanelFooter">
+			<a href="#" class="button secondary" id="registerBackButton">Back</a>
+		</div>
+	</div>
+
+	<!--
+	  Net-new UI: no modal/confirm pattern existed anywhere in the frontend
+	  before this (§4). It reuses the show/hide .hidden-class idiom the
+	  settings/credits/changelog panels already use.
+	-->
+	<div id="deleteDialog" class="accountDialog hidden">
+		<div class="accountDialogInner">
+			<h2>Delete this character?</h2>
+			<p class="deleteDialogBody"></p>
+			<p class="deleteDialogWarning">This cannot be undone.</p>
+			<p class="formError hidden"></p>
+			<div class="layout-row deleteDialogButtons">
+				<a href="#" class="button secondary flex-50" id="deleteCancelButton">Cancel</a>
+				<span class="deleteDialogSpacer"></span>
+				<a href="#" class="button danger flex-50 disabled" id="deleteConfirmButton">Delete</a>
+			</div>
+		</div>
+	</div>
+
+</div>

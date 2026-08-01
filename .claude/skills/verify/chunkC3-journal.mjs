@@ -35,6 +35,7 @@ import { join } from 'node:path';
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
+import { joinAsNewCharacter } from './lib/join.mjs';
 
 const label = process.argv[2] || 'run';
 const url = process.argv[3] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
@@ -59,9 +60,7 @@ const check = (name, pass, detail) => results.push({ check: name, pass, detail }
 const skip = (name, detail) => results.push({ check: name, skip: true, detail });
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
-await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 120_000 });
-await page.fill('#startForm .playerNameInput', 'Diary' + String(process.pid).slice(-4));
-await page.click('#startForm .playerNameSubmit');
+await joinAsNewCharacter(page, 'diary');
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
 await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });
 // The develop panel overlays the right half of the screen and eats clicks.

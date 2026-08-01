@@ -20,6 +20,7 @@ import { join } from 'node:path';
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
+import { joinAsNewCharacter } from './lib/join.mjs';
 
 const mode = process.argv[2] === 'forced' ? 'forced' : 'clean';
 const url = process.argv[3] || 'http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop';
@@ -54,9 +55,7 @@ await page.addInitScript((cfg) => {
 }, { delayMs: delay, forced: mode === 'forced' });
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
-await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 120_000 });
-await page.fill('#startForm .playerNameInput', 'Ctw' + String(process.pid).slice(-4));
-await page.click('#startForm .playerNameSubmit');
+await joinAsNewCharacter(page, 'ctw');
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 }).catch(() => {});
 if (mode === 'forced') {
   // The banner auto-hides after 4.5 s, so catch it while it is still up.

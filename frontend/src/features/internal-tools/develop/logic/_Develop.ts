@@ -27,7 +27,7 @@ import {
 import {BackendState, IBackend} from '../../../backend/logic/IBackend';
 import _isObject = require('lodash/isObject');
 import {QueryParameters} from '../../logic/QueryParameters';
-import {Account} from '../../../accounts/logic/Account';
+import {DevicePrefs} from '../../../common/logic/DevicePrefs';
 
 let Game: IGame = null;
 let Backend: IBackend = null;
@@ -177,16 +177,16 @@ export class Develop implements IDevelop {
                 developPanel.style.left = newX + 'px';
                 developPanel.style.top = newY + 'px';
                 developPanel.style.right = 'unset';
-                Account.developPanelPositionX = newX;
-                Account.developPanelPositionY = newY;
+                DevicePrefs.developPanelPositionX = newX;
+                DevicePrefs.developPanelPositionY = newY;
             });
 
-            const savedX = Account.developPanelPositionX;
+            const savedX = DevicePrefs.developPanelPositionX;
             if (savedX !== null) {
                 developPanel.style.left = savedX + 'px';
                 developPanel.style.right = 'unset';
             }
-            const savedY = Account.developPanelPositionY;
+            const savedY = DevicePrefs.developPanelPositionY;
             if (savedX !== null) {
                 developPanel.style.top = savedY + 'px';
             }

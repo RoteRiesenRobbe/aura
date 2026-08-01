@@ -4,9 +4,11 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"sync"
 	"sync/atomic"
 
 	"github.com/EngoEngine/ecs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/minions"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -81,6 +83,45 @@ type reconnectStash struct {
 	hasAnchor      bool
 	dead           bool
 	disconnectTick uint64
+
+	// accountID owns this stash; 0 for a character that joined before accounts
+	// existed (nothing does after chunk 3, but a stash outlives a deploy).
+	//
+	// ⚑ It is what turns reconnect from POSSESSION into IDENTITY. Before chunk 3
+	// a valid reconnect token alone resumed a live character and nothing checked
+	// who presented it — acceptable when nothing was staked on it, and a real
+	// hole once a character carries progress (plan-accounts-frontend.md §8).
+	accountID int64
+}
+
+// PlayTickets redeems a play ticket into the identity it was minted for.
+// Implemented by *auth.TicketStore.
+//
+// ⚑ Declared HERE, as the narrowest thing the game needs, rather than importing
+// auth's concrete type. The game must never be able to reach a password, a JWT
+// or the credentials table (§10 invariant 1) — an interface with exactly one
+// method is the cheapest way to make that structural instead of a rule someone
+// remembers.
+type PlayTickets interface {
+	Redeem(token string) (auth.Ticket, error)
+}
+
+// AccountSessions enforces one live world session per account.
+// Implemented by *auth.SessionRegistry.
+type AccountSessions interface {
+	Claim(s auth.Session) (existing auth.Session, ok bool)
+	Stash(accountID int64) bool
+	Release(accountID int64) bool
+	Live(accountID int64) (auth.Session, bool)
+}
+
+// IdentitySink is the game seen from cmd/aurad's wiring, following the
+// CampfireAnchorSink precedent: the interface lives here, `core.game`
+// implements it, and aurad type-asserts rather than widening model.Game — which
+// every mock and test double would then have to grow two methods for.
+type IdentitySink interface {
+	SetIdentity(tickets PlayTickets, sessions AccountSessions)
+	EndSessionFor(accountID int64)
 }
 
 // CampfireDwellRadiusFactor scales a campfire's heal radius down to its bind
@@ -133,6 +174,22 @@ type ConnectionStateSystem struct {
 	// stashByToken holds disconnected characters awaiting reconnect, keyed by
 	// their token; swept by TTL.
 	stashByToken map[string]reconnectStash
+	// accountByClient maps a live connection to the account playing on it, so a
+	// disconnect knows whose session slot to stash.
+	accountByClient map[uuid.UUID]int64
+	// tickets and sessions are chunk 3's identity seam. Both are nil in tests
+	// and in any build that has not wired them, and every use is guarded — the
+	// game must keep working without a database behind it.
+	tickets  PlayTickets
+	sessions AccountSessions
+	// logoutRequests holds account ids whose world session the logout endpoint
+	// asked to end, drained once per tick.
+	//
+	// ⚑ A sync.Map, not a plain map, because it is written from net/http
+	// goroutines and read by the game loop. Everything else in this struct is
+	// loop-only; this is the one cross-goroutine inbox, and it exists so the
+	// handler never touches s.players.
+	logoutRequests sync.Map
 	// playerCount mirrors len(players), republished at the end of every
 	// Update. The players slice itself may only be touched by the game-loop
 	// goroutine; this is the cross-goroutine window onto it (see PlayerCount).
@@ -158,14 +215,45 @@ func (s *ConnectionStateSystem) SetCampfireAnchors(campfires []CampfireAnchor) {
 
 func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
 	return &ConnectionStateSystem{
-		game:          g,
-		names:         stringSet{},
-		deadByClient:  map[uuid.UUID]deadState{},
-		anchors:       map[uuid.UUID]phy.Vec2f{},
-		dwell:         map[uint64]int{},
-		tokenByClient: map[uuid.UUID]string{},
-		stashByToken:  map[string]reconnectStash{},
+		game:            g,
+		names:           stringSet{},
+		deadByClient:    map[uuid.UUID]deadState{},
+		anchors:         map[uuid.UUID]phy.Vec2f{},
+		dwell:           map[uint64]int{},
+		tokenByClient:   map[uuid.UUID]string{},
+		stashByToken:    map[string]reconnectStash{},
+		accountByClient: map[uuid.UUID]int64{},
 	}
+}
+
+// SetIdentity installs the play-ticket store and the session registry.
+//
+// ⚑ Injected after construction rather than taken as constructor arguments,
+// because the game is built before the accounts server and every existing test
+// constructs this system with a bare game. Leaving both nil is a supported
+// state: a build with no database still runs, it just cannot honour a ticket.
+func (s *ConnectionStateSystem) SetIdentity(tickets PlayTickets, sessions AccountSessions) {
+	s.tickets = tickets
+	s.sessions = sessions
+}
+
+// EndSessionFor drops the account's live world session: the socket closes and
+// the character leaves the world.
+//
+// ⚑ Called from the LOGOUT HTTP handler, and it is the one acknowledged place a
+// handler reaches into the running game (§10, "the one known exception"). §3
+// specifies that logout ends the world session, and chunk 1c could not honour
+// it because the registry was not wired yet.
+//
+// ⚑ It is safe to call from a net/http goroutine because it only queues the
+// disconnect; the loop performs it. Touching s.players here would race the
+// game-loop goroutine, which is exactly the class of bug the PlayerCount
+// snapshot exists to avoid.
+func (s *ConnectionStateSystem) EndSessionFor(accountID int64) {
+	if accountID == 0 {
+		return
+	}
+	s.logoutRequests.Store(accountID, struct{}{})
 }
 
 func (*ConnectionStateSystem) Priority() int {
@@ -217,6 +305,7 @@ func (s *ConnectionStateSystem) defaultSpawnPosition() phy.Vec2f {
 
 func (s *ConnectionStateSystem) Update(dt float32) {
 	s.sweepExpiredStashes()
+	s.drainLogoutRequests()
 
 	// Both loops iterate SNAPSHOT copies: RemoveEntity fans out synchronously
 	// into removeFromPlayers/removeFromSpectators, which shift the live slices
@@ -256,6 +345,83 @@ func (s *ConnectionStateSystem) sweepExpiredStashes() {
 			log.Printf("⌛ stashed character '%s' expired.", stash.name)
 			s.names.remove(stash.name)
 			delete(s.stashByToken, tok)
+			s.releaseExpiredSession(stash)
+		}
+	}
+}
+
+// discardStashFor drops any stashed character belonging to an account and frees
+// its reserved name.
+//
+// ⚑ The name release is the point. A stash holds its character's name reserved
+// so a reconnect can resume under it; when the player instead returns through
+// character-select, that reservation is what makes their own name look taken.
+func (s *ConnectionStateSystem) discardStashFor(accountID int64) {
+	if accountID == 0 {
+		return
+	}
+	for token, stash := range s.stashByToken {
+		if stash.accountID != accountID {
+			continue
+		}
+		s.names.remove(stash.name)
+		delete(s.stashByToken, token)
+	}
+}
+
+// releaseExpiredSession frees the account slot a swept stash was holding.
+//
+// ⚑ ONLY IF THE SLOT IS STILL THAT STASH'S. The player may have come back in
+// the meantime on a DIFFERENT character — "leave to character select" does
+// exactly that — which replaces the session while the old stash lingers to its
+// TTL. Releasing unconditionally would then free a slot belonging to a session
+// that is live right now, and the account could be joined twice: precisely the
+// two-live-copies bug the registry exists to prevent, arriving ten minutes after
+// the action that caused it.
+func (s *ConnectionStateSystem) releaseExpiredSession(stash reconnectStash) {
+	if s.sessions == nil || stash.accountID == 0 {
+		return
+	}
+	live, ok := s.sessions.Live(stash.accountID)
+	if !ok || !live.Stashed {
+		return
+	}
+	s.sessions.Release(stash.accountID)
+}
+
+// drainLogoutRequests ends the world sessions the logout endpoint asked for.
+//
+// ⚑ Runs on the game loop, draining an inbox the HTTP handler filled. The
+// handler cannot close the socket itself: s.players belongs to this goroutine.
+func (s *ConnectionStateSystem) drainLogoutRequests() {
+	s.logoutRequests.Range(func(key, _ any) bool {
+		s.logoutRequests.Delete(key)
+		accountID, _ := key.(int64)
+		for client, account := range s.accountByClient {
+			if account != accountID {
+				continue
+			}
+			// Dropping the connection routes through the ordinary disconnect
+			// path, which stashes the character and marks the session stashed.
+			// The Release below is what makes logout different from a dropped
+			// socket: the account is free again immediately, so the player can
+			// log in elsewhere without waiting out the stash TTL.
+			s.closeClient(client)
+		}
+		if s.sessions != nil {
+			s.sessions.Release(accountID)
+		}
+		return true
+	})
+}
+
+// closeClient drops a live connection by its client UUID.
+func (s *ConnectionStateSystem) closeClient(clientUUID uuid.UUID) {
+	for _, p := range s.players {
+		if p.Client().UUID() == clientUUID {
+			log.Printf("👋 ending '%s' world session (logged out)", p.Name())
+			p.Client().Close()
+			return
 		}
 	}
 }
@@ -297,6 +463,55 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 	return true
 }
 
+// redeemTicket exchanges a play ticket for the identity it names, burning it.
+//
+// ⚑ A ticket is SINGLE USE, so this may be called at most once per Join. An
+// unknown or expired one is not an error worth logging loudly: the client's
+// answer is to call /select again and retry exactly once (§7b), and expiry
+// firing here is the mechanism working — every server restart forgets them all.
+func (s *ConnectionStateSystem) redeemTicket(token string) (auth.Ticket, bool) {
+	if s.tickets == nil || token == "" {
+		return auth.Ticket{}, false
+	}
+	t, err := s.tickets.Redeem(token)
+	if err != nil {
+		return auth.Ticket{}, false
+	}
+	return t, true
+}
+
+// claimSession takes the account's one live session slot, refusing the join if
+// somebody already holds it. It reports whether the join may proceed.
+//
+// ⚑ THE CLAIM IS THE AUTHORITY, not /select's courtesy check (§5). Two tabs can
+// pass /select simultaneously and both receive valid tickets — a mint-time check
+// cannot be atomic with a session that does not exist yet. Exactly one of them
+// wins here.
+func (s *ConnectionStateSystem) claimSession(client model.Client, t auth.Ticket) bool {
+	if s.sessions == nil || t.AccountID == 0 {
+		return true
+	}
+	if _, ok := s.sessions.Claim(auth.Session{AccountID: t.AccountID, CharacterID: t.CharacterID}); !ok {
+		log.Printf("🚫 join refused: account %d is already playing", t.AccountID)
+		s.refuseJoin(client)
+		return false
+	}
+	s.accountByClient[client.UUID()] = t.AccountID
+	return true
+}
+
+// refuseJoin turns a rejected Join away.
+//
+// ⚑ It closes the socket rather than sending a refusal message, and that is a
+// decision (PO 2026-08-01): the client falls back to character-select and calls
+// /select again, which answers over HTTP where the exact wording already exists
+// (§5b, "This account is already logged in."). Adding a wire message for a case
+// the HTTP layer can already explain would spend the one chunk that may touch
+// client.fbs on a redundant one.
+func (s *ConnectionStateSystem) refuseJoin(client model.Client) {
+	client.Close()
+}
+
 // tryJoin upgrades a spectator to a fresh player — the brand-new-client path.
 // A Join presenting a known reconnect token restores the stashed character
 // instead (see reattach). A DEAD client may also Join (name change instead of
@@ -309,10 +524,62 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 		return
 	}
 	client := sp.Client()
+
+	// The ticket is the only proof of identity this socket carries. Redeem it
+	// first, because BOTH paths below need the account it names — the reconnect
+	// path to check the stash belongs to the same account, the fresh-join path
+	// to claim that account's session slot.
+	//
+	// ⚑ Redeeming BURNS the ticket, so it must happen exactly once per Join and
+	// the result must be carried, never re-redeemed.
+	ticket, hasTicket := s.redeemTicket(j.PlayTicket)
+
 	if stash, ok := s.stashByToken[j.ReconnectToken]; ok && j.ReconnectToken != "" {
+		// ⚑ IDENTITY, NOT POSSESSION (plan-accounts-frontend.md §8). Before
+		// chunk 3 a valid token alone resumed a live character, so a leaked one
+		// — XSS, a shared machine, a stray log line — let someone else take over
+		// your session. A stash that belongs to an account now requires a ticket
+		// naming that same account.
+		if stash.accountID != 0 {
+			if !hasTicket || ticket.AccountID != stash.accountID {
+				log.Printf("🚫 reconnect refused: token presented without a matching identity")
+				s.refuseJoin(client)
+				return
+			}
+		}
+		if hasTicket && !s.claimSession(client, ticket) {
+			return
+		}
 		s.reattach(sp, j.ReconnectToken, stash)
 		return
 	}
+
+	// ⚑ A fresh join REQUIRES a ticket (PO 2026-08-01). `player_name` is dead
+	// weight on the wire: keeping a name-only route would leave a permanent
+	// unauthenticated way into the world beside the authenticated one, which is
+	// exactly the parallel path the play ticket exists to remove. The load bot
+	// and the browser harness both mint one through the ordinary anonymous
+	// endpoints, so nothing legitimate needs the old route.
+	if !hasTicket {
+		log.Printf("🚫 join refused: no play ticket presented")
+		s.refuseJoin(client)
+		return
+	}
+	if !s.claimSession(client, ticket) {
+		return
+	}
+	// ⚑ Drop this account's own stale stash BEFORE naming the character, or the
+	// player collides with themselves: leaving to character-select stashes the
+	// character and KEEPS ITS NAME RESERVED (that is what the stash is for), so
+	// playing the same character again finds "HEer" taken and joins them as
+	// "HEer the ugly". The mangler was doing its job on the wrong input.
+	//
+	// It is safe here and only here: the reconnect path returned above, so
+	// reaching this line means the player deliberately came back through
+	// character-select and the old stash is obsolete by definition — its session
+	// slot has just been re-claimed above.
+	s.discardStashFor(ticket.AccountID)
+
 	dead, wasDead := s.deadByClient[client.UUID()]
 	if wasDead {
 		delete(s.deadByClient, client.UUID())
@@ -323,12 +590,22 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	s.game.RemoveEntity(sp.Basic())
 
 	// upgrade to p
-	name := j.PlayerName // resolve collisions!
-	if len(name) > 20 {  // limit user input to 20 characters
+	//
+	// ⚑ The name comes off the TICKET, not the wire. /select read it from the
+	// character row a moment ago (it had to, to prove ownership), so the game
+	// loop never queries the database to answer a Join — a synchronous read
+	// inside this single-goroutine tick would stall every player (ruling 11).
+	//
+	// ⚑ It is still passed through manglePlayerName. Character names are
+	// globally unique in the DATABASE, but the in-world name set also holds
+	// stashed and dead characters whose rows are gone, so a collision is still
+	// reachable and the de-duplicator still earns its place.
+	name := ticket.Name
+	if len(name) > 20 { // the column allows 20; the wire never carries it now
 		name = name[:20]
 	}
 	name = s.manglePlayerName(name)
-	log.Printf("☺️ '%s' joined!", name)
+	log.Printf("☺️ '%s' joined! (account %d, character %d)", name, ticket.AccountID, ticket.CharacterID)
 	token, ok := s.tokenByClient[client.UUID()]
 	if !ok { // first join on this connection: mint the character's token
 		token = uuid.NewString()
@@ -364,6 +641,11 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 	s.game.RemoveEntity(sp.Basic())
 
 	s.tokenByClient[client.UUID()] = token
+	// The account moves to the NEW connection, or the next disconnect would
+	// stash nothing and the slot would never be released.
+	if stash.accountID != 0 {
+		s.accountByClient[client.UUID()] = stash.accountID
+	}
 	if stash.hasAnchor {
 		s.anchors[client.UUID()] = stash.anchor
 	}
@@ -617,6 +899,7 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 				hasAnchor:      hasAnchor,
 				dead:           true,
 				disconnectTick: s.game.Ticks(),
+				accountID:      s.accountByClient[client],
 			}
 			delete(s.tokenByClient, client)
 		} else {
@@ -653,11 +936,20 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 			anchor:         anchor,
 			hasAnchor:      hasAnchor,
 			disconnectTick: s.game.Ticks(),
+			accountID:      s.accountByClient[clientUUID],
 		}
 		delete(s.tokenByClient, clientUUID)
 	} else {
 		s.names.remove(p.Name())
 	}
+
+	// The socket is gone but the character is held: the account's slot stays
+	// OCCUPIED — a second cold login must still be refused — while becoming
+	// resumable by a reconnect. That distinction is the whole of Session.Stashed.
+	if account := s.accountByClient[clientUUID]; account != 0 && s.sessions != nil {
+		s.sessions.Stash(account)
+	}
+	delete(s.accountByClient, clientUUID)
 	delete(s.anchors, clientUUID)
 	delete(s.dwell, p.Basic().ID())
 	s.players = append(arr[:idx], arr[idx+1:]...)

@@ -63,7 +63,8 @@ func buildOriginPolicy(config *cfg.Config, dev bool) *origins.Policy {
 // nothing to sign for. An absent or short key fails the boot loudly: HS512 is
 // symmetric, so this one secret both signs and verifies every session, and
 // anyone who can reproduce it can forge any of them.
-func buildAccountsServer(db *store.Store, policy *origins.Policy, config *cfg.Config) (*accounts.Server, error) {
+func buildAccountsServer(db *store.Store, policy *origins.Policy, config *cfg.Config, dev bool,
+	tickets *auth.TicketStore, sessions *auth.SessionRegistry, world accounts.WorldSessions) (*accounts.Server, error) {
 	secret := os.Getenv(auth.EnvJWTKey)
 	if secret == "" {
 		return nil, fmt.Errorf("%s is not set; it signs every session and must come from a CSPRNG "+
@@ -78,16 +79,23 @@ func buildAccountsServer(db *store.Store, policy *origins.Policy, config *cfg.Co
 		Store:    db,
 		Keys:     keys,
 		Gate:     auth.NewGate(auth.DefaultGateSlots),
-		Tickets:  auth.NewTicketStore(auth.TicketTTL),
+		Tickets:  tickets,
 		Throttle: auth.NewThrottle(auth.ThrottleDecay),
-		// ⚑ Constructed here and, for now, never populated: chunk 3 wires it into
-		// ConnectionStateSystem, where Join claims the account slot atomically.
-		// Until then /select's live-session check is correct and inert.
-		Sessions: auth.NewSessionRegistry(),
-		Origins:  policy,
+		// ⚑ THE SAME instances the game holds (chunk 3). /select mints into this
+		// ticket store and the game redeems from it; /select reads the account
+		// slot the game claims. Two copies would each work perfectly in
+		// isolation and enforce nothing between them.
+		Sessions: sessions,
+		// World lets logout end a live world session — the one place a handler
+		// reaches into the running game (§10, the acknowledged exception).
+		World:   world,
+		Origins: policy,
 
 		MaxAliveCharacters: config.Game.Player.MaxAliveCharacters,
-		DefaultAvatar:      defaultCharacterAvatar,
-		DefaultFaction:     defaultCharacterFaction,
+		// Reserved harness names are a DEV affordance only; production refuses
+		// the prefix outright (plan-accounts-frontend.md §10b ruling 2).
+		AllowHarnessNames: dev,
+		DefaultAvatar:     defaultCharacterAvatar,
+		DefaultFaction:    defaultCharacterFaction,
 	})
 }

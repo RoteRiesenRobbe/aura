@@ -28,6 +28,7 @@ import { join } from 'node:path';
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
 const { chromium } = require('playwright');
+import { joinAsNewCharacter } from './lib/join.mjs';
 
 const runs = Number(process.argv[2] || 6);
 const url = process.argv[3] || 'http://localhost:2001/?token=plz&wsUrl=ws://localhost:2000/game&develop';
@@ -127,9 +128,7 @@ for (let run = 1; run <= runs; run++) {
   let frameProbe = null;
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
-    await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 180_000 });
-    await page.fill('#startForm .playerNameInput', 'Hunt' + process.pid.toString().slice(-3) + run);
-    await page.click('#startForm .playerNameSubmit');
+    await joinAsNewCharacter(page, 'hunt', { timeout: 180_000 });
     await page.waitForFunction(() => !!window.game?.character, null, { timeout: 180_000 });
     joined = true;
     // Let the first frames land under throttling before probing / shooting.

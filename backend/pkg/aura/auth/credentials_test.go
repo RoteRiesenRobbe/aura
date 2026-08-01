@@ -38,7 +38,8 @@ func TestValidateUsername(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.ErrorIs(t, auth.ValidateUsername(tc.username), tc.want)
+			// Every row is PRODUCTION behaviour: allowHarnessNames off.
+			assert.ErrorIs(t, auth.ValidateUsername(tc.username, false), tc.want)
 		})
 	}
 }
@@ -161,9 +162,44 @@ func TestValidateCharacterName(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.ErrorIs(t, auth.ValidateCharacterName(tc.characterName, tc.callerUsername), tc.want)
+			// Every row above is PRODUCTION behaviour: allowHarnessNames off.
+			assert.ErrorIs(t, auth.ValidateCharacterName(tc.characterName, tc.callerUsername, false), tc.want)
 		})
 	}
+}
+
+// TestHarnessNamesAreADevAffordance pins the -dev flag that lets an anonymous
+// harness client take a reserved name (plan-accounts-frontend.md §10b ruling 2).
+//
+// ⚑ The pairing is the whole point, so the rows are deliberately adjacent: the
+// SAME anonymous caller and the SAME name must be refused in production and
+// allowed under -dev. Harness clients and load bots mint their identity through
+// the anonymous path, so the tempting implementation is "no username ⇒ allow the
+// prefix" — which hands the reserved namespace to every new player, since every
+// new player is anonymous at exactly that moment. Keying on dev mode instead
+// leaves production STRICTER than it was before the flag existed.
+func TestHarnessNamesAreADevAffordance(t *testing.T) {
+	const anonymous = ""
+
+	assert.ErrorIs(t,
+		auth.ValidateCharacterName("hrnss_01_a", anonymous, false),
+		auth.ErrCharacterNameReserved,
+		"production must refuse the reserved prefix to an anonymous caller")
+
+	assert.NoError(t,
+		auth.ValidateCharacterName("hrnss_01_a", anonymous, true),
+		"-dev must allow it, or the harness cannot create its own characters")
+
+	// The flag opens the prefix and nothing else — a name that is invalid for
+	// another reason stays invalid, so this cannot become a general bypass.
+	assert.ErrorIs(t,
+		auth.ValidateCharacterName("hrnss_01_a!", anonymous, true),
+		auth.ErrCharacterNameCharset,
+		"the dev flag must not waive the charset rule")
+	assert.ErrorIs(t,
+		auth.ValidateCharacterName("hrnss_01__a", anonymous, true),
+		auth.ErrCharacterNameShape,
+		"the dev flag must not waive the shape rule")
 }
 
 // TestRuleErrorsAreSafeToShow pins §5b's constraint on the messages themselves:

@@ -588,6 +588,17 @@ func TestSelectMintsATicketBoundToItsCharacter(t *testing.T) {
 	assert.Equal(t, characterID, ticket.CharacterID)
 	assert.NotZero(t, ticket.AccountID)
 
+	// ⚑ The character's identity rides the ticket, and this assertion is what
+	// keeps it there (PO 2026-08-01). Without it the game loop has to read the
+	// database to answer a Join — a synchronous query inside a SINGLE-GOROUTINE
+	// tick, for a row /select has already read a moment earlier to prove
+	// ownership. Dropping these three fields would not fail any other test; it
+	// would just quietly move a database round trip onto the hot path, or join
+	// the player as a nameless character.
+	assert.Equal(t, "Barney", ticket.Name)
+	assert.NotEmpty(t, ticket.Avatar, "the avatar default must ride along too")
+	assert.NotEmpty(t, ticket.Faction, "faction is NOT NULL and the game needs it at spawn")
+
 	// Single use: a replayed ticket is worthless.
 	_, err = h.tickets.Redeem(got.str("ticket"))
 	assert.ErrorIs(t, err, auth.ErrTicketUnknown)

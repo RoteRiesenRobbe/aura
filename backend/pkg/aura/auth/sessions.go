@@ -7,6 +7,22 @@ import "sync"
 type Session struct {
 	AccountID   int64
 	CharacterID int64
+
+	// Stashed marks a session whose socket has dropped but whose character is
+	// still held in the reconnect stash — the page-refresh-during-play window
+	// (~10 min).
+	//
+	// ⚑ IT IS THE DIFFERENCE BETWEEN "resuming" AND "duplicating"
+	// (plan-accounts-implementation.md §5). A stashed session still occupies the
+	// account's slot, so without this flag a reconnecting player is
+	// indistinguishable from a second tab: /select refuses to mint them a
+	// ticket, and the reconnect path — the one feature that exists for exactly
+	// this case — cannot prove who it is.
+	//
+	// ⚑ The registry carries it rather than the game because /select has to read
+	// it, and an HTTP handler must not reach into the ECS world (§10 invariant
+	// 3). This keeps the handler depending on `auth` alone.
+	Stashed bool
 }
 
 // SessionRegistry enforces ONE LIVE SESSION PER ACCOUNT.
@@ -49,11 +65,51 @@ func (r *SessionRegistry) Claim(s Session) (existing Session, ok bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if held, taken := r.live[s.AccountID]; taken {
+	// ⚑ A STASHED session does not block a claim — it is taken over. That is the
+	// reconnect exemption, and putting it here rather than in the caller is what
+	// keeps it atomic: a check-then-claim split would let a second tab win the
+	// slot between the two calls, which is the exact race the atomicity exists
+	// to prevent. A CONNECTED session always blocks, whoever asks.
+	if held, taken := r.live[s.AccountID]; taken && !held.Stashed {
 		return held, false
 	}
 	r.live[s.AccountID] = s
 	return Session{}, true
+}
+
+// Stash marks the account's session as disconnected-but-held, reporting whether
+// one was there to mark.
+//
+// ⚑ Called when the socket drops, NOT when the player leaves. The slot stays
+// occupied — an account with a stashed session is still "in the world" as far
+// as a second cold login is concerned — but a reconnect may now take it over.
+func (r *SessionRegistry) Stash(accountID int64) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	held, ok := r.live[accountID]
+	if !ok || held.Stashed {
+		return false
+	}
+	held.Stashed = true
+	r.live[accountID] = held
+	return true
+}
+
+// Connected reports whether the account holds a session with a live socket —
+// the question /select asks before minting a ticket.
+//
+// ⚑ NOT the same as Live(). A stashed session is live (it holds the slot) but
+// not connected, and refusing a ticket for it would break the reconnect path.
+func (r *SessionRegistry) Connected(accountID int64) (Session, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	s, ok := r.live[accountID]
+	if !ok || s.Stashed {
+		return Session{}, false
+	}
+	return s, true
 }
 
 // Release frees an account's slot, reporting whether one was held.

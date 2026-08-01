@@ -70,3 +70,22 @@ export function catalogUrl(path: string): string {
     url.search = '';
     return url.toString();
 }
+
+/**
+ * URL of an account endpoint (`/api/*`), derived from the game socket exactly
+ * as catalogUrl does — one definition, so the protocol swap a deployed wss://
+ * host depends on cannot drift between the two.
+ *
+ * ⚑ This derivation is *why* the account calls are cross-origin: webpack serves
+ * the client on :2001 while aurad answers on :2000, which is what makes the
+ * echoed-origin CORS rule mandatory (implementation.md §7b).
+ *
+ * ⚑ It also means the host spelling must match the page's. `localhost` and
+ * `127.0.0.1` are different SITES, so a session cookie set under one is not
+ * sent to the other — measured, not assumed (plan-accounts-frontend.md §10b).
+ * Deriving from `gameServer` rather than from window.location is what keeps the
+ * two spellings from being mixed by accident.
+ */
+export function apiUrl(path: string): string {
+    return catalogUrl(`api/${path}`);
+}

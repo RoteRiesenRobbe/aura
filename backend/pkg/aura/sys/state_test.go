@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
@@ -207,12 +208,62 @@ func (g *stateFakeGame) Mobs() mobs.Registry                           { panic("
 func (g *stateFakeGame) Quests() quests.Registry                       { return g.questReg }
 
 // newStateFixture wires a ConnectionStateSystem to a fake game and returns both.
+//
+// ⚑ It installs the REAL ticket store and session registry, not stubs. Both are
+// pure in-memory Go with no database behind them, so the tests exercise the
+// actual join path — ticket required, account slot claimed atomically — rather
+// than a fallback that only exists in tests.
 func newStateFixture(t *testing.T) (*ConnectionStateSystem, *stateFakeGame) {
 	t.Helper()
 	g := newStateFakeGame(t)
 	s := NewConnectionStateSystem(g)
+	s.SetIdentity(auth.NewTicketStore(auth.TicketTTL), auth.NewSessionRegistry())
 	g.cs = s
 	return s, g
+}
+
+// nextTestAccountID hands each test character its own account, so the
+// one-session-per-account rule does not make two unrelated joins collide.
+var nextTestAccountID int64
+
+// ticketFor mints a real play ticket for a name, the way /select would.
+func ticketFor(t *testing.T, s *ConnectionStateSystem, name string) string {
+	t.Helper()
+	nextTestAccountID++
+	store, ok := s.tickets.(*auth.TicketStore)
+	require.True(t, ok, "the fixture installs a real TicketStore")
+	token, err := store.Mint(auth.Ticket{
+		AccountID:   nextTestAccountID,
+		CharacterID: nextTestAccountID,
+		Name:        name,
+		Avatar:      "default",
+		Faction:     "aligned",
+	})
+	require.NoError(t, err)
+	return token
+}
+
+// reconnectTicket mints a ticket for the account that owns a stashed character.
+//
+// ⚑ A reconnect must prove IDENTITY, not just possession of the token
+// (plan-accounts-frontend.md §8): the stash records which account it belongs to,
+// and a ticket naming a different one is refused. Tests therefore have to mint
+// against the stash's account rather than a fresh one.
+func reconnectTicket(t *testing.T, s *ConnectionStateSystem, token, name string) string {
+	t.Helper()
+	stash, ok := s.stashByToken[token]
+	require.True(t, ok, "no stash for token %q", token)
+	store, ok := s.tickets.(*auth.TicketStore)
+	require.True(t, ok)
+	minted, err := store.Mint(auth.Ticket{
+		AccountID:   stash.accountID,
+		CharacterID: stash.accountID,
+		Name:        name,
+		Avatar:      "default",
+		Faction:     "aligned",
+	})
+	require.NoError(t, err)
+	return minted
 }
 
 // joinPlayer runs the full join flow for a fresh client and returns the player.
@@ -220,7 +271,9 @@ func joinPlayer(t *testing.T, s *ConnectionStateSystem, g *stateFakeGame, c *fak
 	t.Helper()
 	sp := spectatorFor(c)
 	g.AddEntity(sp)
-	c.joins = append(c.joins, &model.Join{PlayerName: name})
+	// ⚑ The name rides the TICKET now, not the wire: a fresh join without one is
+	// refused outright (step 8a chunk 3).
+	c.joins = append(c.joins, &model.Join{PlayTicket: ticketFor(t, s, name)})
 	before := len(g.players)
 	s.Update(0)
 	require.Len(t, g.players, before+1, "join should create a player")
@@ -409,7 +462,7 @@ func TestJoinWhileDead_FreesOldNameAndCorpse(t *testing.T) {
 	kill(t, s, p)
 	corpse := g.livingCorpses()[0]
 
-	c.joins = append(c.joins, &model.Join{PlayerName: "Bob"})
+	c.joins = append(c.joins, &model.Join{PlayTicket: ticketFor(t, s, "Bob")})
 	s.Update(0)
 
 	require.Len(t, g.players, 2)
@@ -445,7 +498,7 @@ func TestStaleJoin_DrainedOnDeath(t *testing.T) {
 	p := joinPlayer(t, s, g, c, "Alice")
 
 	// a Join banked while alive must not auto-revive the player on death
-	c.joins = append(c.joins, &model.Join{PlayerName: "Alice"})
+	c.joins = append(c.joins, &model.Join{PlayTicket: ticketFor(t, s, "Alice")})
 	kill(t, s, p)
 	s.Update(0)
 
@@ -478,7 +531,7 @@ func TestReconnectRestore_EmitsNoUnlockSpam(t *testing.T) {
 	c2 := newFakeClient()
 	sp := spectatorFor(c2)
 	g.AddEntity(sp)
-	c2.joins = append(c2.joins, &model.Join{PlayerName: "Alice", ReconnectToken: token})
+	c2.joins = append(c2.joins, &model.Join{ReconnectToken: token, PlayTicket: reconnectTicket(t, s, token, "Alice")})
 	s.Update(0)
 
 	np := g.players[len(g.players)-1]
@@ -610,7 +663,15 @@ func reconnect(t *testing.T, s *ConnectionStateSystem, g *stateFakeGame, c *fake
 	t.Helper()
 	sp := spectatorFor(c)
 	g.AddEntity(sp)
-	c.joins = append(c.joins, &model.Join{PlayerName: name, ReconnectToken: token})
+	// ⚑ A reconnect for a KNOWN stash must present a ticket for that stash's
+	// account (identity, not possession); an unknown or already-live token has no
+	// stash to match, so it carries an ordinary fresh ticket and degrades to a
+	// fresh join — which is exactly what those two tests assert.
+	ticket := ticketFor(t, s, name)
+	if _, stashed := s.stashByToken[token]; stashed {
+		ticket = reconnectTicket(t, s, token, name)
+	}
+	c.joins = append(c.joins, &model.Join{ReconnectToken: token, PlayTicket: ticket})
 	s.Update(0)
 }
 
@@ -926,4 +987,49 @@ func TestReconnect_JournalBannerFollowsTheNewClient(t *testing.T) {
 	assert.Len(t, c.journals, 1, "the closed client hears nothing more")
 	require.Len(t, c2.journals, 1, "the live client gets the banner")
 	assert.Equal(t, "Quest complete: Cull", c2.journals[0])
+}
+
+// TestRejoiningTheSameCharacterKeepsItsName is the "HEer the ugly" regression
+// (PO 2026-08-01).
+//
+// ⚑ A player who leaves to character-select and plays the SAME character again
+// used to collide with their own stash. The stash deliberately keeps the name
+// reserved so a reconnect can resume under it — so the second join found the
+// name taken and the mangler renamed the player to "Alice the ugly".
+//
+// ⚑ It only reproduces on the SECOND entry, which is why nothing caught it: a
+// first join has no stash to collide with, and the reconnect path (which does
+// want the stash) returns before this code.
+func TestRejoiningTheSameCharacterKeepsItsName(t *testing.T) {
+	s, g := newStateFixture(t)
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	require.Equal(t, "Alice", p.Name())
+
+	account := s.accountByClient[c.UUID()]
+	require.NotZero(t, account, "the join must record the owning account")
+
+	// Leave to character-select: the socket drops and the character is stashed
+	// with its name still reserved.
+	g.RemoveEntity(p.Basic())
+	require.True(t, s.names.contains("Alice"), "the stash reserves the name")
+
+	// Play the same character again, on a new connection and a fresh ticket for
+	// the SAME account — which is exactly what character-select → Play does.
+	c2 := newFakeClient()
+	sp := spectatorFor(c2)
+	g.AddEntity(sp)
+	store, ok := s.tickets.(*auth.TicketStore)
+	require.True(t, ok)
+	token, err := store.Mint(auth.Ticket{
+		AccountID: account, CharacterID: account,
+		Name: "Alice", Avatar: "default", Faction: "aligned",
+	})
+	require.NoError(t, err)
+	c2.joins = append(c2.joins, &model.Join{PlayTicket: token})
+	s.Update(0)
+
+	rejoined := g.players[len(g.players)-1]
+	assert.Equal(t, "Alice", rejoined.Name(),
+		"a player returning to their own character must keep its name, not be mangled")
 }

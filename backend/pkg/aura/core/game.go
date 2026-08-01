@@ -195,6 +195,22 @@ func (g *game) PlayerCount() int {
 	return g.connState.PlayerCount()
 }
 
+// SetIdentity gives the join path its play-ticket store and session registry
+// (step 8a chunk 3). Both are the SAME instances the accounts HTTP server
+// holds — a ticket minted by /select is redeemed here, and the account slot
+// /select checks is the one Join claims.
+func (g *game) SetIdentity(tickets sys.PlayTickets, sessions sys.AccountSessions) {
+	g.connState.SetIdentity(tickets, sessions)
+}
+
+// EndSessionFor ends an account's live world session, for the logout endpoint.
+//
+// ⚑ Safe to call from a net/http goroutine: it only queues the request, and the
+// game loop performs the disconnect.
+func (g *game) EndSessionFor(accountID int64) {
+	g.connState.EndSessionFor(accountID)
+}
+
 func (g *game) Bounds() (width, height float32) {
 	return g.boundsWidth, g.boundsHeight
 }
