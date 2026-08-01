@@ -1042,7 +1042,8 @@ on cast, hit or whiff. Six behaviour tests were green over an inert feature.
 lifesteal_burst, both directions) — proven red by removing one method, with the
 six behaviour tests staying green throughout, which is the whole demonstration.
 
-**⚑ The R1/R2 discrepancy R3 surfaced — and then closed.** Read off a real
+**⚑ The R1/R2 discrepancy R3 surfaced — and then closed** (follow-up commit
+`194036c8`). Read off a real
 tooltip in the harness, Warbanner said *"Costs you: 1 Focus **every 1.32 s**"*
 for its heal and shield and Immolate *"1 Focus **every 0.66 s**"*. R2 had changed
 *when* five of the seven chargeable types are charged; R1's cost wording predated
@@ -1109,7 +1110,13 @@ drop `hot_aura` → the Go coverage guard names the missing type).
   0 WebGL losses.
 - The wording fix re-read **off a real tooltip**: Warbanner now prints
   `every 1.32s` for damage and heal and `when a shield goes up or is refilled`
-  for the shield, Immolate `when it sets something alight`.
+  for the shield, Immolate `when it sets something alight`, Rejuvenation
+  `when it reaches someone new`. ⚑ The two harnesses that read cost lines were
+  re-run **after** the wording moved — `r1-focus-cost` 5/5 and `round4-tooltip`
+  all legs — because both match the cost line by regex and a wording change is
+  exactly what silently stops a regex matching. (The first `r1-focus-cost`
+  attempt lost a WebGL context: an **invalid run, not a failure** (§29) — every
+  functional leg had printed its correct value. Clean on the re-run.)
 - **New harness `r3-lifesteal-burst.mjs`, 7/7 on three consecutive fresh
   servers.** It exists for the two seams neither Go nor vitest can see: that
   `GET /skills` really serves the new `lifesteal` payload (a missing json tag
