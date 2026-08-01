@@ -675,6 +675,39 @@ own.
    carries the reconnect path checking *identity* rather than mere token
    possession, and the **atomic account-slot claim** that makes "one session per
    account" real.
+   ⚑ **It carries a MINIMAL character read, and deliberately not the load path.**
+   Once character-select exists, the name no longer arrives on `Join` — it has to
+   come from the row — so chunk 3 reads `name`, `avatar` and `faction` and
+   nothing else. Level, experience, spellbook, loadout and the quest ledger stay
+   at their fresh-character defaults, which is exactly what a player gets today.
+   Spawn position needs no read at all: `home_campfire_id` is NULL by design and
+   falls through to the existing `defaultSpawnPosition()`.
+   **Shipped alone it means: you log in, pick your character, and enter the world
+   as that character.** Coherent and demoable — the same discipline as 1a.
+6. **4 — Save & load.** The part persistence is actually *for*:
+   implementation.md **§2** (the five save triggers), **§4** (snapshot mechanics,
+   the field-by-field mapping, and the write transaction) and **§6** (the load
+   path). Deliverable: **a character's progress survives a restart** — level,
+   experience, spellbook, loadout slots and the quest ledger.
+   ⚑ **Added 2026-08-01, because it was designed in full and owned by no chunk.**
+   The original list — 1a schema, 1b auth, 1c endpoints, 2 frontend, 3 wire —
+   named none of §2/§4/§6, and §8 above does not defer them either. That gap is
+   exactly the kind that makes *"is step 8a done?"* unanswerable, which is why
+   step 8 was split in the first place.
+
+   **Why load and save belong in ONE chunk, rather than load riding along with
+   chunk 3:** §4's field-by-field mapping is a single artefact and the two halves
+   must agree on it exactly — a load/save mismatch is *the* classic persistence
+   bug, and it is silent. Writing both against one reading of that table makes
+   **round-trip the acceptance test** (snapshot → write → load → identical), and
+   a round-trip test is only possible when both halves exist in the same chunk.
+
+   ⚑ **The cost of the 3/4 split, stated so it is not mistaken for a regression:**
+   between them there is a window where the *account* persists and the *progress*
+   does not. A player creates a character, levels it, logs out and returns to a
+   level-1 character of the right name. That is not worse than today — restarts
+   already wipe everything — but it **looks** like persistence is broken to
+   anyone testing it. Land 4 promptly after 3, and say so in the 3 ledger.
 
 ⚑ **`home_campfire_id` ships as a column nobody writes.** Populating it needs
 the **anchor object identity** work — zone-editor-assigned UUIDs on campfires, an

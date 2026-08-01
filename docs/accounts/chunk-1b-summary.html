@@ -437,9 +437,22 @@ confirmed to catch it that way.</p>
 <tr>
   <td><strong>3</strong></td>
   <td>Connecting a chosen character to the running game world, and enforcing one live session
-      per account for real.</td>
+      per account for real. Shipped alone this means: you log in, pick your character, and
+      enter the world as that character — but progress does not yet survive.</td>
+</tr>
+<tr>
+  <td><strong>4</strong></td>
+  <td><strong>Saving and loading</strong> — the part persistence is actually for. Level,
+      experience, skills, equipped slots and quest progress surviving a restart.
+      ⚑ Added on 1 August 2026 after a review found it fully designed but assigned to no
+      chunk at all.</td>
 </tr>
 </table>
+
+<p>⚑ Between chunks 3 and 4 there is a window where the <em>account</em> persists and the
+<em>progress</em> does not: create a character, level it, come back, and it is level 1 again
+with the right name. That is not worse than today — restarts already wipe everything — but it
+will look like a bug to anyone testing, so 4 should follow 3 promptly.</p>
 
 <p>One item is deliberately left dangling for 1c and recorded so it is not rediscovered: the
 signing key for session tokens is <strong>read by nothing yet</strong>. The name is defined and
