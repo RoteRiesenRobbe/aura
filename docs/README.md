@@ -101,8 +101,11 @@ than patch. PDF renders of the first two sit in the repo root.
 `docs/accounts/` also carries **session handovers** — working notes for picking a chunk up
 cold, not snapshots. ⚑ **Disposable: delete one when its chunk lands**, so the folder never
 accumulates stale instructions. Durable content belongs in the plan doc's chunk ledger.
-*(None open — the 1b handover was deleted when 1b landed 2026-08-01, its durable content
-folded into `plan-accounts-frontend.md` §10a.)*
+
+- **accounts/chunk-1c-handover.md** — what a fresh session needs to start 8a chunk 1c
+  (the eight endpoints): reading order, the `auth`/`store` API 1b left as actual signatures,
+  the three invariants 1c must not break, nine traps that fail *silently*, the one open PO
+  decision (character-name charset), this dev box's quirks, and a definition of done.
 
 ## Research (investigations / assessments)
 
