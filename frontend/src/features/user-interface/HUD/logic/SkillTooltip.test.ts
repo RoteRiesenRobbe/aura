@@ -226,9 +226,9 @@ describe('character power scale', () => {
     });
 });
 
-function damageParams(hp: number) {
+function damageParams(hp: number, hpPerLevel: number = 0) {
     return {
-        hp, hpPerLevel: 0, tags: ['physical'], gateKey: '', variance: 0,
+        hp, hpPerLevel, tags: ['physical'], gateKey: '', variance: 0,
         hitStyle: 'all', structureDamageFraction: 0,
         executeBelowFraction: 0, executeBonusFactor: 0, berserkerMaxBonusFactor: 0,
         critChance: 0, critChancePerLevel: 0, critFactor: 0, lifestealFraction: 0,
@@ -628,5 +628,77 @@ describe('self-targeting lines', () => {
         });
         expect(lines(ward, 1, 1)).toContain('Shields you');
         expect(lines(ward, 1, 1)).toContain('Applies to you');
+    });
+});
+
+// The next-level preview answers ONE question — "what do I get for the point
+// I am about to spend?" — so it only belongs on screen while there is a point
+// to spend. With no point available it is noise at best, and at worst reads as
+// a promise about numbers the player cannot reach yet. Every "→" in the
+// tooltip funnels through prog(), so the whole feature is one preview cap.
+describe('next-level preview gating', () => {
+    const scaling = skill({
+        maxLevel: 5,
+        cooldownTicks: 300, cooldownTicksPerLevel: -30,
+        castTicks: 60, castTicksPerLevel: -6,
+        effects: [effect({
+            type: 'damage_aura', radius: 3, radiusPerLevel: 0.5,
+            tickInterval: 20, tickIntervalPerLevel: -2,
+            costFractionOfMax: 0.02, costFractionOfMaxPerLevel: 0.01,
+            selector: 'nearest', maxTargets: 1, maxTargetsPerLevel: 1,
+            targetsEnemies: true,
+            damage: damageParams(6, 2),
+        })],
+    });
+
+    function gated(showNext: boolean): string[] {
+        return formatSkillTooltip(scaling, 2, 1, 100, 1, showNext).lines.map(l => l.text);
+    }
+
+    it('previews every scaling line while a point can be spent', () => {
+        expect(gated(true)).toEqual([
+            'Damage: 8 → 10 every 0.59s → 0.53s',
+            'Costs you: 3 → 4 Focus every 0.59s → 0.53s',
+            'Radius: 3.5 → 4',
+            'Targets: nearest 2 → 3 enemies',
+            'Cooldown: 8.91s → 7.92s',
+            'Cast time: 1.78s → 1.58s',
+        ]);
+    });
+
+    it('shows the current values alone when no point can be spent', () => {
+        expect(gated(false)).toEqual([
+            'Damage: 8 every 0.59s',
+            'Costs you: 3 Focus every 0.59s',
+            'Radius: 3.5',
+            'Targets: nearest 2 enemies',
+            'Cooldown: 8.91s',
+            'Cast time: 1.78s',
+        ]);
+    });
+
+    it('keeps the subtitle showing the real cap either way', () => {
+        // previewMax is a rendering cap, not the skill's max level — the
+        // player must still see how far the skill can go.
+        for (const showNext of [true, false]) {
+            expect(formatSkillTooltip(scaling, 2, 1, 100, 1, showNext).subtitle)
+                .toBe('Aura · Lv 2/5');
+        }
+    });
+
+    it('gates a cooldown skill\'s summed per-cast cost too', () => {
+        const squad = skill({
+            category: 'cooldown', maxLevel: 5, cooldownTicks: 600,
+            effects: [
+                effect({type: 'spawn', costFractionOfMax: 0.02, costFractionOfMaxPerLevel: 0.01,
+                    spawn: {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}}),
+                effect({type: 'spawn', costFractionOfMax: 0.02, costFractionOfMaxPerLevel: 0.01,
+                    spawn: {mobName: 'SoldierCompanion', ttlTicks: 300, ttlTicksPerLevel: 0, powerPerOwnerLevel: 0}}),
+            ],
+        });
+        const cost = (showNext: boolean) => formatSkillTooltip(squad, 2, 1, 100, 1, showNext)
+            .lines.map(l => l.text).filter(t => t.startsWith('Costs you'));
+        expect(cost(true)).toEqual(['Costs you: 6 → 8 Focus per cast']);
+        expect(cost(false)).toEqual(['Costs you: 6 Focus per cast']);
     });
 });

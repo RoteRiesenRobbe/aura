@@ -6,7 +6,8 @@
 //
 // Values scale along BOTH of the game's axes (round-4 tooltip fix):
 //   · the SKILL level, rendered with a next-level preview ("14.7 → 16.8")
-//     while below max level, answering the spend-a-point decision directly;
+//     while the next level is below the cap AND affordable right now, so the
+//     preview only appears when it answers a decision the player can act on;
 //   · the CHARACTER level, via the caller-supplied power scale — the same
 //     f(L) the server multiplies HP-valued output by (casterPowerScale).
 // Modelling only the first is what made Rejuvenation read "4" on a level-30
@@ -22,6 +23,7 @@ import {
     powerScaleAt,
     roundHP,
     skillDefinition,
+    skillPointCost,
 } from '../../../../client-data/Skills';
 import {getLocalPlayerLevel, mobDisplayName} from '../../../../client-data/Mobs';
 import {AURA_CATEGORY_COLORS} from '../../../game-objects/logic/AuraRings';
@@ -96,6 +98,10 @@ function ticksToSecs(ticks: number): string {
 
 // prog renders a level-scaled value as "current → next" while a next level
 // exists and actually changes it, else just the current value.
+//
+// ⚑ `maxLevel` here is the PREVIEW cap, not necessarily the skill's max level:
+// formatSkillTooltip passes the current level when no point can be spent, which
+// suppresses every "→" in the tooltip at once. See its previewMax.
 //
 // `scale` is the character-level power scale and defaults to neutral, so the
 // decision "does this line ride f(character level)?" stays visible at every
@@ -521,9 +527,24 @@ const GENERIC_KINDS: GenericKind[] = ['radius', 'targets'];
 // read here so the whole formatter stays pure and DOM-free (and testable at
 // both ends of the curve without a loaded catalog). maxHealth 0 means
 // "unknown", and falls the cost lines back to the authored percentage.
+//
+// showNextLevel is whether the caller can actually buy the next level right now
+// (PO 2026-08-01: the same affordability rule the + button greys on). The
+// next-level preview answers exactly one question — "what does the point I am
+// about to spend get me?" — so with no point to spend it is noise, and a
+// tooltip is the wrong place to advertise numbers the player cannot reach yet.
 export function formatSkillTooltip(def: SkillDefinition, level: number, powerScale: number,
-                                   maxHealth: number = 0, costFactor: number = 1): TooltipContent {
+                                   maxHealth: number = 0, costFactor: number = 1,
+                                   showNextLevel: boolean = true): TooltipContent {
     const cost = costRenderer(maxHealth, costFactor);
+    // One cap gates every "→" in the tooltip, because every level-scaled value
+    // renders through prog() and prog() previews only while level < cap. Capping
+    // at the current level is therefore the whole feature — no per-line work,
+    // and a new effect type inherits the gating for free.
+    //
+    // It is a RENDERING cap only: the subtitle below still reads def.maxLevel,
+    // so the player keeps seeing how far the skill can go.
+    const previewMax = showNextLevel ? def.maxLevel : level;
     // Where the cost line goes follows how the cost is CHARGED (D8): an aura
     // pays per effect on each effect's own cadence, so each block prints its
     // own; a cooldown pays the SUM of its effects once on cast, so it prints
@@ -531,7 +552,7 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     // as "2 %" three times when the cast takes 6 %.
     const perEffectCost = def.category !== 'cooldown';
     const blocks = def.effects.map(effect =>
-        effectBlock(effect, level, def.maxLevel, powerScale,
+        effectBlock(effect, level, previewMax, powerScale,
             perEffectCost && scaled(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel, level) > 0,
             cost));
 
@@ -582,6 +603,8 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
             // prog() scales one base+perLevel pair; a summed cost needs the sum
             // evaluated at each level, so the sum itself is passed as the base
             // with its own per-level delta.
+            // The slope stays measured across the REAL level range — previewMax
+            // decides whether a next value is shown, never what it would be.
             const step = def.maxLevel > 1 ? (castCost(def.maxLevel) - castCost(1)) / (def.maxLevel - 1) : 0;
             // The conversion to points happens on the SUM here, not per effect:
             // a cooldown pays every effect in one deduction, so cooldownCostHP
@@ -589,17 +612,17 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
             // Rounding per effect would print 3 points for three 0.2 % summons
             // that cost 1.
             lines.push({
-                text: `Costs you: ${prog(castCost(1), step, level, def.maxLevel, cost.render)}${cost.unit} per cast`,
+                text: `Costs you: ${prog(castCost(1), step, level, previewMax, cost.render)}${cost.unit} per cast`,
                 labelColor: FOCUS_COLOR,
             });
         }
     }
     if (def.cooldownTicks > 0) {
-        lines.push({text: `Cooldown: ${prog(def.cooldownTicks, def.cooldownTicksPerLevel, level, def.maxLevel, ticksToSecs)}`});
+        lines.push({text: `Cooldown: ${prog(def.cooldownTicks, def.cooldownTicksPerLevel, level, previewMax, ticksToSecs)}`});
     }
     if (def.castTicks > 0) {
         const interrupt = def.castInterruptedByDamage ? ' (interrupted by damage)' : '';
-        lines.push({text: `Cast time: ${prog(def.castTicks, def.castTicksPerLevel, level, def.maxLevel, ticksToSecs)}${interrupt}`});
+        lines.push({text: `Cast time: ${prog(def.castTicks, def.castTicksPerLevel, level, previewMax, ticksToSecs)}${interrupt}`});
     }
     return {
         title: def.displayName,
@@ -612,6 +635,14 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
 
 let tooltipElement: HTMLElement | null = null;
 let currentAnchor: HTMLElement | null = null;
+
+// Unspent skill points, pushed in by HUD.updateSkillPointsDisplay every time
+// the server count changes. Only the next-level preview reads it.
+let availableSkillPoints = 0;
+
+export function setAvailableSkillPoints(points: number) {
+    availableSkillPoints = points;
+}
 
 function ensureTooltipElement(): HTMLElement {
     if (!tooltipElement) {
@@ -641,8 +672,15 @@ function showTooltip(anchor: HTMLElement, skillId: number, level: number) {
     // getLocalPlayerLevel lives in the mob catalog because the nameplate
     // difficulty tint (its first consumer) already owned the mob side; it is
     // live-updated from every snapshot by Player.updateFromBackend.
+    // "Can I buy the next level right now?" — deliberately the affordability
+    // rule the + button already greys on (HUD.updateSpellbook), not the weaker
+    // "do I hold any point at all": levels cost 1–3 points on the D10 curve, so
+    // the two answers differ, and a preview showing while the button is dead
+    // would be advertising a spend the player cannot make.
+    const nextCost = skillPointCost(def.maxLevel, level + 1);
+    const canSpend = nextCost > 0 && availableSkillPoints >= nextCost;
     const content = formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()),
-        getLocalPlayerMaxHealth(), getLocalPlayerCostFactor());
+        getLocalPlayerMaxHealth(), getLocalPlayerCostFactor(), canSpend);
 
     element.innerHTML = '';
     const title = document.createElement('div');

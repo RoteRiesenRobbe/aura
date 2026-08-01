@@ -10,7 +10,7 @@ import {
     skillPointCost,
     SkillCategory,
 } from '../../../../client-data/Skills';
-import {attachSkillTooltips} from './SkillTooltip';
+import {attachSkillTooltips, setAvailableSkillPoints} from './SkillTooltip';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
 import {VitalSignBar} from '../../../vital-signs/logic/VitalSignBar';
@@ -488,6 +488,10 @@ function sameIds(a: number[], b: number[]) {
 // class (which lights up the spend buttons) in sync with the server count.
 function updateSkillPointsDisplay(points: number) {
     currentSkillPoints = points;
+    // The hover tooltips show their next-level preview only while the point is
+    // there to spend, so they need the same live count the + buttons grey on.
+    // Pushed rather than pulled: SkillTooltip cannot import this module back.
+    setAvailableSkillPoints(points);
     if (skillPointsBadgeElement) {
         skillPointsBadgeElement.textContent = points === 1 ? '1 Point' : `${points} Points`;
         skillPointsBadgeElement.classList.toggle('hidden', points <= 0);
