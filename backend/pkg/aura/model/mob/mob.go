@@ -1789,6 +1789,20 @@ func (m *Mob) ApplyTickRate(source skills.SkillID, factor float32, ticks int) {
 	m.buffs.ApplyTickRate(source, factor, ticks)
 }
 
+// ApplyLifesteal grants a damage-leech buff from a lifesteal_burst cooldown
+// (R3 / §5.6) — entity-agnostic like the rest of the burst machinery, so mob
+// content can carry one; the damage site reads it via LifestealFraction when it
+// builds the hit's Factors.
+func (m *Mob) ApplyLifesteal(source skills.SkillID, fraction float32, ticks int) {
+	m.buffs.ApplyLifesteal(source, fraction, ticks)
+}
+
+// LifestealFraction is the share of damage dealt this mob's hits currently leech
+// back, on top of whatever the firing effect authors; 0 with no burst up.
+func (m *Mob) LifestealFraction() float32 {
+	return m.buffs.LifestealFraction()
+}
+
 // ApplyCalm puts this mob out of combat for ticks (plan-faction-flips chunk 2,
 // D7). It drops the CURRENT aggro link, not just future acquisition (PO
 // 2026-07-28): calm is the tool you reach for because something is already

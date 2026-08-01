@@ -1,5 +1,5 @@
 {
-  "_comment": "Skill-vocab chunk 3 smoke content (HoT case 1): a healing AURA whose heal-over-time lingers on allies after they leave range. The buff duration (hotTicks*hotTickInterval) outlasts the aura re-apply cadence (tickInterval), so walking out keeps the HoT ticking. Unlike heal_aura this is NOT wounded-only — it pre-hots unhurt allies and keeps refreshing in range (backlog §33, PO 2026-07-31); a tick on a full-HP target is inert, not wasted. Live source: OrcWarlord rare re-farm drop at 0.25 (C8 drop-rate pass, PO 2026-07-20; raised 0.1 -> 0.25 in playtest-1 Pass A - this comment said 0.1 until 2026-07-31, the mob JSON is authoritative). All values [PLACEHOLDER].",
+  "_comment": "Skill-vocab chunk 3 smoke content (HoT case 1): a healing AURA whose heal-over-time lingers on allies after they leave range. The buff duration (hotTicks*hotTickInterval) outlasts the aura re-apply cadence (tickInterval), so walking out keeps the HoT ticking. Unlike heal_aura this is NOT wounded-only — it pre-hots unhurt allies and keeps refreshing in range (backlog §33, PO 2026-07-31); a tick on a full-HP target is inert, not wasted. Live source: OrcWarlord rare re-farm drop at 0.25 (C8 drop-rate pass, PO 2026-07-20; raised 0.1 -> 0.25 in playtest-1 Pass A - this comment said 0.1 until 2026-07-31, the mob JSON is authoritative). All values [PLACEHOLDER]. ⚑ R3 (plan-resource-costs-feedback §5.1/§5.2): this cost is now an ENTRY price, not a sustain rate — R2 made a HoT charge only when it starts a genuinely new one, and its 360-tick buff outlasts the 60-tick re-apply cadence, so an ally who stays in range is topped up for free. Priced x6, the HoT's own tick count, exactly the rule §5.1 gives the dots: you pay for the whole heal-over-time when you start it. ⚑ Read with backlog §33: this aura pre-hots UNHURT allies, so the entry charge lands the moment an ally walks in, healthy or not.",
   "id": 29,
   "name": "Rejuvenation",
   "category": "active_aura",
@@ -7,8 +7,8 @@
   "effects": [
     {
       "type": "hot_aura",
-      "costFractionOfMax": 0.0051,
-      "costFractionOfMaxPerLevel": 0.001275,
+      "costFractionOfMax": 0.0306,
+      "costFractionOfMaxPerLevel": 0.00765,
       "radius": 2.5,
       "radiusPerLevel": 0.1,
       "healHP": 4,

@@ -547,6 +547,19 @@ func (p *player) TickRateFactor() float32 {
 	return p.buffs.TickRateFactor()
 }
 
+// ApplyLifesteal grants a damage-leech buff from a lifesteal_burst cooldown
+// (Bloodthirst, R3 / §5.6); the damage site reads the composed value when it
+// builds each hit's payload, via LifestealFraction.
+func (p *player) ApplyLifesteal(source skills.SkillID, fraction float32, ticks int) {
+	p.buffs.ApplyLifesteal(source, fraction, ticks)
+}
+
+// LifestealFraction is the share of damage dealt this player's hits currently
+// leech back, on top of whatever the firing effect authors; 0 with no burst up.
+func (p *player) LifestealFraction() float32 {
+	return p.buffs.LifestealFraction()
+}
+
 // ShieldHP is the current total absorb capacity across all active pools;
 // serialized as the shield_hp wire field. A live value, not a per-tick
 // accumulator — no ResetTickNumbers involvement.

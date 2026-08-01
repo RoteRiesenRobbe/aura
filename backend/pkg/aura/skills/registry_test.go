@@ -148,7 +148,10 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + CharmBeast and BindElemental, the chunk-3 charm pair — TWO skills on
 	// purpose (L-L): a second faction scope has to be a JSON file, or the
 	// mechanism was hardcoded (2026-07-29)
-	assert.Len(t, r.All(), 86)
+	// + Bloodthirst, the R3 lifesteal_burst cooldown — the rider Reaper dropped
+	// in §5.6, re-shaped as a six-second window you spend a cooldown on
+	// (2026-08-01)
+	assert.Len(t, r.All(), 87)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

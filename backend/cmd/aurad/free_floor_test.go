@@ -18,7 +18,14 @@ import (
 // ⚑ D16b, stated so no later tuning pass "fixes" it: Damage stays free at all
 // of its levels and is deliberately the weakest damage aura in the game. Its
 // value is that it always works, not that it competes.
-var freeFloorSkills = []string{"Damage", "Torch", "Lantern", "Harvest", "Pickaxe"}
+//
+// ⚑ FirstAid joined the set in R3 (plan-resource-costs-feedback §5.8), and it is
+// the only member that is not a base aura or a utility: a self-heal that spends
+// resource to restore resource reads as a contradiction the moment R1 made the
+// cost legible in absolute Focus. It is here rather than merely authored at 0
+// because §4.3 is explicit — a free floor enforced for five skills and hoped for
+// on the sixth is not a property.
+var freeFloorSkills = []string{"Damage", "Torch", "Lantern", "Harvest", "Pickaxe", "FirstAid"}
 
 // TestFreeFloorSkillsCostNothingAtEveryLevel is L10's guard. Authoring `0` IS
 // the whole mechanism, which means one careless content edit could tax the

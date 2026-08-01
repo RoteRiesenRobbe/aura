@@ -643,12 +643,16 @@ func applyPlayerDamageAura(caster model.PlayerEntity, source model.Combatant, ca
 
 	style := auraHitStyleFor(effect, level)
 	critChance := effect.Damage.CritChanceAt(level) + casterCritChance(acting)
+	// A live lifesteal_burst ADDS to the effect's authored leech rather than
+	// replacing it, the critChance rule — an aura that already leeches leeches
+	// more while the burst is up.
+	lifesteal := effect.Damage.LifestealFraction + casterLifesteal(acting)
 	targets := selectTargets(collisions, casterPos, effect.Selector, effectiveMaxTargets(effect, level), eligible)
 	for _, c := range targets {
 		// F6 §3.1 steps 3–5 per hit: execute × crit roll × variance roll; the
 		// target's resistance then multiplies the rolled value (decision C3).
 		hitHP, crit := rollHitDamage(damageHP, effect.Damage, c, rng, critChance)
-		damage := model.Damage{HP: hitHP, Tags: effect.Damage.Tags, GateKey: effect.Damage.GateKey, Source: source, Lifesteal: effect.Damage.LifestealFraction, Crit: crit}
+		damage := model.Damage{HP: hitHP, Tags: effect.Damage.Tags, GateKey: effect.Damage.GateKey, Source: source, Lifesteal: lifesteal, Crit: crit}
 		c.Shape().UserData.(model.Interacter).PlayerTouches(caster, damage)
 		noteAuraHit(c, style)
 	}
@@ -678,7 +682,7 @@ func applyMobDamageAura(caster model.MobEntity, casterPos phy.Vec2f, level int, 
 		DamageTags:              effect.Damage.Tags,
 		GateKey:                 effect.Damage.GateKey,
 		StructureDamageFraction: effect.Damage.StructureDamageFraction,
-		Lifesteal:               effect.Damage.LifestealFraction,
+		Lifesteal:               effect.Damage.LifestealFraction + casterLifesteal(caster),
 	}
 
 	casterFaction := caster.Faction()
@@ -1538,6 +1542,11 @@ func (s *SkillSystem) fireCooldown(e skillEntity, es *skills.EquippedSkill) bool
 				hitAny = true
 			}
 
+		case skills.EffectTypeLifestealBurst:
+			if s.applyLifestealBurst(e, es.Def.ID, es.Level, effect) {
+				hitAny = true
+			}
+
 		// The two instant damage paths share a query but not a dispatch. A
 		// non-empty set counts as a hit BEFORE eligibility runs — the aura
 		// appliers do their own target-flag filtering, and a cooldown that
@@ -1685,6 +1694,47 @@ func (s *SkillSystem) applySpeedBurst(e skillEntity, source skills.SkillID, leve
 	}
 	self.ApplySpeed(source, factor, ticks)
 	return true
+}
+
+// lifestealApplier is the self-buff capability for the damage-leech burst (R3 /
+// §5.6), the speedApplier twin. Players and mobs both implement it via their
+// Buffs store, so mob content can carry a leech burst too.
+type lifestealApplier interface {
+	ApplyLifesteal(source skills.SkillID, fraction float32, ticks int)
+}
+
+// applyLifestealBurst fires a lifesteal_burst cooldown: for a while, the
+// caster's own hits leech. No query circle — like speed_burst it changes what
+// the CASTER does rather than reaching anyone — and the scaled values are
+// floored in the payload (FractionAt / TicksAt), because a zero leech is a cast
+// that did nothing and a sub-1-tick buff expires before a hit can read it.
+//
+// ⚑ It reports true unconditionally once the entity can carry the buff, and that
+// is D9, not sloppiness: a cooldown pays on cast, hit or whiff. Firing this with
+// no enemy in sight still costs — you spent the cooldown.
+func (s *SkillSystem) applyLifestealBurst(e skillEntity, source skills.SkillID, level int, effect skills.EffectDef) bool {
+	self, ok := e.(lifestealApplier)
+	if !ok || effect.Lifesteal == nil {
+		return false
+	}
+	fraction := effect.Lifesteal.FractionAt(level)
+	if fraction <= 0 {
+		return false
+	}
+	self.ApplyLifesteal(source, fraction, effect.Lifesteal.TicksAt(level))
+	return true
+}
+
+// casterLifesteal is the leech a live lifesteal_burst adds to every hit the
+// caster lands, on top of whatever the firing effect authors — the
+// casterCritChance shape, for the same reason: the value belongs to the caster's
+// current state, not to the effect definition, so it has to be read at the
+// moment the damage payload is built rather than baked into content.
+func casterLifesteal(acting any) float32 {
+	if h, ok := acting.(interface{ LifestealFraction() float32 }); ok {
+		return h.LifestealFraction()
+	}
+	return 0
 }
 
 // threatManipulable is the taunt/detaunt capability (mob-depth chunk 7): a mob

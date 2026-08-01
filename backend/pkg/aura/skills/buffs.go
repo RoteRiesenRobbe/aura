@@ -68,6 +68,16 @@ type speedPayload struct {
 	factor float32
 }
 
+// lifestealPayload is the damage-side burst (R3 / §5.6): while it is alive the
+// caster leeches this share of the damage its own hits deal, on top of whatever
+// the firing effect authors. Its own payload rather than a field on the damage
+// effect, because the two answer different questions — the authored fraction is
+// "what this aura always does", this is "what the caster is doing right now" —
+// and because a buff is the only shape that can expire.
+type lifestealPayload struct {
+	fraction float32
+}
+
 type tickRatePayload struct {
 	// factor scales the caster's own aura tick interval: < 1 = haste (faster
 	// ticks), > 1 = tick-slow. Streams are keyed by factor, like slow. The
@@ -123,15 +133,16 @@ type hotPayload struct {
 	age int
 }
 
-func (*resistPayload) isBuffPayload()   {}
-func (*slowPayload) isBuffPayload()     {}
-func (*speedPayload) isBuffPayload()    {}
-func (*tickRatePayload) isBuffPayload() {}
-func (*dotPayload) isBuffPayload()      {}
-func (*shieldPayload) isBuffPayload()   {}
-func (*hotPayload) isBuffPayload()      {}
-func (*calmPayload) isBuffPayload()     {}
-func (*charmPayload) isBuffPayload()    {}
+func (*resistPayload) isBuffPayload()    {}
+func (*slowPayload) isBuffPayload()      {}
+func (*speedPayload) isBuffPayload()     {}
+func (*tickRatePayload) isBuffPayload()  {}
+func (*dotPayload) isBuffPayload()       {}
+func (*shieldPayload) isBuffPayload()    {}
+func (*hotPayload) isBuffPayload()       {}
+func (*calmPayload) isBuffPayload()      {}
+func (*charmPayload) isBuffPayload()     {}
+func (*lifestealPayload) isBuffPayload() {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -239,6 +250,54 @@ func (b *Buffs) ApplySpeed(source SkillID, factor float32, ticks int) {
 		}
 	}
 	b.apply(source, &speedPayload{factor: factor}, ticks)
+}
+
+// ApplyLifesteal grants (or refreshes) a damage-leech buff from the given source
+// skill; same stream rules as speed and tick_rate, keyed by fraction — an
+// identical fraction refreshes that stream, a different one opens its own (which
+// is what a level-up mid-buff produces, and why LifestealFraction takes the
+// strongest per source rather than summing blindly within one).
+func (b *Buffs) ApplyLifesteal(source SkillID, fraction float32, ticks int) {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*lifestealPayload); ok && p.fraction == fraction {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			return
+		}
+	}
+	b.apply(source, &lifestealPayload{fraction: fraction}, ticks)
+}
+
+// LifestealFraction is the leech the caster's hits carry right now: the
+// strongest live application per source skill, SUMMED across skills.
+//
+// Additive across skills rather than multiplicative, because a leech is a share
+// of one damage event and shares add — two 0.3 bursts leech 0.6 of the hit, not
+// 0.51. Strongest-within-a-skill is the SpeedFactor rule and is what stops a
+// level-up mid-buff (a second stream at a different fraction) double-counting.
+//
+// The damage path composes this with the effect's own authored
+// LifestealFraction, so an aura that already leeches gets more while a burst is
+// up rather than being overridden by it.
+func (b *Buffs) LifestealFraction() float32 {
+	var total float32
+	for _, list := range b.entries {
+		var strongest *lifestealPayload
+		for _, e := range list {
+			p, ok := e.payload.(*lifestealPayload)
+			if !ok {
+				continue
+			}
+			if strongest == nil || p.fraction > strongest.fraction {
+				strongest = p
+			}
+		}
+		if strongest != nil {
+			total += strongest.fraction
+		}
+	}
+	return total
 }
 
 // ApplyTickRate grants (or refreshes) a tick-rate buff from the given source

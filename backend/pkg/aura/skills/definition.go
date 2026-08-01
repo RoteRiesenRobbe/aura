@@ -59,6 +59,7 @@ const (
 	EffectTypeCalm
 	EffectTypeCharm
 	EffectTypeSpeedBurst
+	EffectTypeLifestealBurst
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -111,6 +112,7 @@ var effectTypeMap = map[string]EffectType{
 	"calm":            EffectTypeCalm,
 	"charm":           EffectTypeCharm,
 	"speed_burst":     EffectTypeSpeedBurst,
+	"lifesteal_burst": EffectTypeLifestealBurst,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -321,6 +323,8 @@ type EffectDef struct {
 	Speed    *SpeedParams    `json:"speed,omitempty"`    // speed_burst
 	Calm     *CalmParams     `json:"calm,omitempty"`     // calm
 	Charm    *CharmParams    `json:"charm,omitempty"`    // charm
+
+	Lifesteal *LifestealParams `json:"lifesteal,omitempty"` // lifesteal_burst
 }
 
 // CostFractionAt is the level-scaled share of the caster's max health one
@@ -676,6 +680,46 @@ type SpeedParams struct {
 	DurationTicksPerLevel int     `json:"durationTicksPerLevel"`
 }
 
+// LifestealParams is the lifesteal_burst payload (plan-resource-costs-feedback
+// R3 / §5.6): for DurationTicks game ticks, the caster leeches Fraction of the
+// damage its hits actually deal, on top of whatever the effect itself authors.
+// Self-only — no target flags, no radius — exactly like speed_burst and
+// tick_rate, the two bursts it is modelled on.
+//
+// It exists because Reaper carried lifesteal as a permanent rider next to
+// berserker, and the two multiplied: berserker scales damage with health
+// MISSING, lifesteal returns a share of that damage, so the lower Reaper's
+// caster went the faster it healed back up. Splitting the rider out turns a loop
+// into a choice — the leech is now something you spend a cooldown and a resource
+// cost on, for six seconds, while berserker keeps the low-health identity.
+type LifestealParams struct {
+	Fraction              float32 `json:"fraction"`
+	FractionPerLevel      float32 `json:"fractionPerLevel"`
+	DurationTicks         int     `json:"durationTicks"`
+	DurationTicksPerLevel int     `json:"durationTicksPerLevel"`
+}
+
+// FractionAt is the level-scaled share of damage dealt that comes back as
+// healing, floored at 0 — a negative leech is not a thing the damage path can
+// express (ApplyLifesteal early-returns on it).
+func (p *LifestealParams) FractionAt(level int) float32 {
+	f := Scaled(p.Fraction, p.FractionPerLevel, level)
+	if f < 0 {
+		return 0
+	}
+	return f
+}
+
+// TicksAt is the level-scaled buff lifetime, floored at 1 — the SpeedParams
+// firing-site rule, kept here so both callers cannot drift.
+func (p *LifestealParams) TicksAt(level int) int {
+	ticks := Scaled(p.DurationTicks, p.DurationTicksPerLevel, level)
+	if ticks < 1 {
+		ticks = 1
+	}
+	return ticks
+}
+
 // CalmParams is the calm payload (plan-faction-flips chunk 2, D7): how long a
 // hit mob stays out of combat. There is no strength axis — a mob is calmed or
 // it is not — so duration is the whole payload, and the only thing skill level
@@ -902,6 +946,14 @@ type effectDef struct {
 	SpeedDurationTicks         int     `json:"speedDurationTicks"`         // speed_burst: buff lifetime in game ticks
 	SpeedDurationTicksPerLevel int     `json:"speedDurationTicksPerLevel"` // speed_burst: lifetime added per level
 
+	// lifesteal_burst reuses the damage payload's lifestealFraction key — it is
+	// the same quantity (a share of damage dealt that comes back), just granted
+	// for a while instead of welded to one effect. The per-type key allowlist is
+	// what keeps the two from being authorable in the same place.
+	LifestealFractionPerLevel float32 `json:"lifestealFractionPerLevel"` // lifesteal_burst: leech added per level
+	LifestealDurationTicks    int     `json:"lifestealDurationTicks"`    // lifesteal_burst: buff lifetime in game ticks
+	LifestealDurationPerLevel int     `json:"lifestealDurationTicksPerLevel"`
+
 	CalmTicks         int `json:"calmTicks"`         // calm: ticks out of combat
 	CalmTicksPerLevel int `json:"calmTicksPerLevel"` // calm: per skill level
 
@@ -1035,6 +1087,11 @@ var effectKeys = map[EffectType][]string{
 	// targeting, no cadence; it modifies movement, it does not project.
 	EffectTypeSpeedBurst: {"speedFactor", "speedFactorPerLevel",
 		"speedDurationTicks", "speedDurationTicksPerLevel"},
+	// Lifesteal burst (R3 / §5.6): the damage-side twin of speed_burst — a
+	// scalar leech fraction plus a lifetime. It projects nothing and targets
+	// nobody; it changes what the caster's own hits do while it is up.
+	EffectTypeLifestealBurst: {"lifestealFraction", "lifestealFractionPerLevel",
+		"lifestealDurationTicks", "lifestealDurationTicksPerLevel"},
 	// Calm (plan-faction-flips chunk 2): a query circle of enemy mobs, each
 	// dropped out of combat for the authored duration. No cadence (it fires on
 	// cooldown activation) and no selector/cap on purpose — calm is a DISENGAGE
@@ -1179,6 +1236,9 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 			return nil, fmt.Errorf("skill %q: effect type %v requires a non-empty targetFactions allowlist", s.Name, effect.Type)
 		}
 		effect.TargetFactionMask = targetFactionMask
+		if err := checkOverTimeLifetime(effect, s.MaxLevel); err != nil {
+			return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+		}
 		effects = append(effects, effect)
 	}
 
@@ -1203,6 +1263,52 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		TargetFactions:          targetFactionNames,
 		Effects:                 effects,
 	}, nil
+}
+
+// checkOverTimeLifetime enforces the property an over-time AURA is held together
+// by: its buff must outlive the gap between re-applications, at every level.
+//
+// dot_aura and hot_aura keep a target under their effect by REFRESHING it — the
+// aura re-applies every tickInterval and each application resets a buff whose own
+// lifetime is dotTicks × dotTickInterval, authored independently. Author the
+// lifetime shorter than the cadence and a debuff the player reads as permanent
+// becomes a blinking one: it expires, the target is briefly free, and it returns
+// on the next application. Nothing else fails — the skill loads, the tooltip is
+// right, and the symptom is a flickering icon.
+//
+// Scope, both halves deliberate:
+//
+//   - Only the AURA forms. instant_dot and instant_hot fire once per cast and
+//     have no re-apply cadence, so a short burn there is the authored intent.
+//   - Only this pair. resist_aura, slow_aura and shield_aura derive their
+//     lifetime as effectiveTickInterval + 1 at the apply site (sys/skills.go),
+//     so the refresh structurally outruns the expiry whatever the cadence — this
+//     is the one place the two numbers are independent, and therefore the one
+//     place the property is authorable at all.
+//
+// Checked at maxLevel because tickIntervalPerLevel scales the cadence while the
+// lifetime is flat: the realistic content mistake is a per-level cadence tweak
+// that is correct at the level it was eyeballed.
+func checkOverTimeLifetime(e EffectDef, maxLevel int) error {
+	var lifetime int
+	switch e.Type {
+	case EffectTypeDotAura:
+		lifetime = e.Dot.DurationTicks()
+	case EffectTypeHotAura:
+		lifetime = e.Hot.DurationTicks()
+	default:
+		return nil
+	}
+	if maxLevel < 1 {
+		maxLevel = 1
+	}
+	if interval := EffectiveTickInterval(e, maxLevel, 1); lifetime <= interval {
+		return fmt.Errorf(
+			"effect type %v: the buff lifetime (%d ticks) must outlast the re-apply cadence (%d ticks at level %d), "+
+				"or the effect expires between applications and blinks instead of holding",
+			e.Type, lifetime, interval, maxLevel)
+	}
+	return nil
 }
 
 // mapEffect parses one effect object: resolve the type, hard-fail any JSON
@@ -1311,6 +1417,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.TickRate, err = e.tickRateParams()
 	case EffectTypeSpeedBurst:
 		def.Speed, err = e.speedParams()
+	case EffectTypeLifestealBurst:
+		def.Lifesteal, err = e.lifestealParams()
 	case EffectTypeCalm:
 		def.Calm, err = e.calmParams()
 	case EffectTypeCharm:
@@ -1666,6 +1774,27 @@ func (e *effectDef) speedParams() (*SpeedParams, error) {
 		FactorPerLevel:        e.SpeedFactorPerLevel,
 		DurationTicks:         e.SpeedDurationTicks,
 		DurationTicksPerLevel: e.SpeedDurationTicksPerLevel,
+	}, nil
+}
+
+// lifestealParams builds the lifesteal_burst payload on the speedParams rules:
+// a leech of 0 or below is a cooldown that does nothing, and a zero lifetime is
+// a buff that expires before a single hit can read it. Unlike speed there is no
+// no-op value to exclude at the top end — a leech of 1 (full damage back) is a
+// legitimate, if strong, authoring choice. Per-level scaling is unconstrained;
+// the firing site floors both scaled values (LifestealParams.FractionAt/TicksAt).
+func (e *effectDef) lifestealParams() (*LifestealParams, error) {
+	if e.LifestealFraction <= 0 {
+		return nil, fmt.Errorf("lifestealFraction: must be > 0, got %v", e.LifestealFraction)
+	}
+	if e.LifestealDurationTicks <= 0 {
+		return nil, fmt.Errorf("lifestealDurationTicks: must be > 0, got %v", e.LifestealDurationTicks)
+	}
+	return &LifestealParams{
+		Fraction:              e.LifestealFraction,
+		FractionPerLevel:      e.LifestealFractionPerLevel,
+		DurationTicks:         e.LifestealDurationTicks,
+		DurationTicksPerLevel: e.LifestealDurationPerLevel,
 	}, nil
 }
 

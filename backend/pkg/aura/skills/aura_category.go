@@ -65,6 +65,10 @@ var auraCategoryByEffect = map[EffectType]AuraCategory{
 	// A speed burst is self-targeted and projects nothing; its tell is the
 	// applied-effect pip on the caster (plus visibly moving faster).
 	EffectTypeSpeedBurst: AuraCategoryNone,
+	// A lifesteal burst projects nothing either — it changes what the caster's
+	// OWN damage does when it lands, so its tell is the heal-back numbers
+	// floating off whatever aura the player already had on.
+	EffectTypeLifestealBurst: AuraCategoryNone,
 	// Calm is cooldown-fired and leaves no ring; the client tell is the
 	// applied-effect pip on the calmed mob (plan-faction-flips chunk 2).
 	EffectTypeCalm: AuraCategoryNone,

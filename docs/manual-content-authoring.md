@@ -274,12 +274,12 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go` — 25 as of 2026-07-29):
+`backend/pkg/aura/skills/definition.go` — 26 as of 2026-08-01):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `stat_multiplier`, `light_aura`,
 `taunt`, `detaunt`, `spawn`, `recall`, `revive`, `dash`, `tick_rate`, `calm`,
-`charm`, `speed_burst`.
+`charm`, `speed_burst`, `lifesteal_burst`.
 
 Each type has its **own allowlist of legal fields** (`effectKeys`), enforced at
 load: an unknown or renamed key hard-fails the boot naming the field and its
@@ -306,6 +306,29 @@ Two consequences when authoring:
   any tick healing ≤ 0 *before* participation XP, healer threat and combat
   entry, so a pre-hot generates no credit and pulls nothing until real damage
   lands.
+
+⚑ **The ORDER of a multi-effect skill's `effects[]` array carries meaning near
+the resource floor** (plan-resource-costs-feedback §3.7 — documented rather than
+engineered away, PO 2026-08-01). Effects charge **sequentially within one tick**,
+each pricing against the health the previous one left, and `auraEffectCost`
+skips an effect the caster cannot afford (L4 — a cost may never kill its caster).
+So on a nearly-dead caster **the effect authored first is the one that still
+fires**, and the one authored last is the one that gets skipped. Nothing
+validates or surfaces this: reordering the array is a silent balance change.
+
+Two things keep the surface small, and neither removes it:
+
+- **One shared beat.** Since R3/F5 every multi-effect aura authors the same
+  `tickInterval` on all its effects, so they price against the same health in
+  the same tick rather than drifting in and out of each other. Ordering now
+  decides only *which* effect wins the last affordable charge, not which of them
+  sees a stale pool.
+- **The free floor.** The base damage aura is permanently free (D6) and is never
+  the effect being skipped.
+
+⇒ When authoring a multi-effect skill, put the effect the skill is *for* first.
+A Warbanner that heals before it damages is a different skill at 5 % health than
+one that damages before it heals.
 
 ### Backend / data
 
@@ -409,6 +432,7 @@ payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
 | `dashDistance` / `dashDistancePerLevel` | `dash.distance` / `dash.distancePerLevel` | dash |
 | `tickRateFactor` / `tickRateDurationTicks` | `tickRate.factor` / `tickRate.durationTicks` | tick_rate |
 | `speedFactor` / `speedDurationTicks` (+`PerLevel`) | `speed.factor` / `speed.durationTicks` | ⚑ speed_burst — the payload is `speed`, not `speedBurst` |
+| `lifestealFraction` / `lifestealDurationTicks` (+`PerLevel`) | `lifesteal.fraction` / `lifesteal.durationTicks` | ⚑ lifesteal_burst — `lifestealFraction` is **shared with the damage payload**; on `damage_aura` / `instant_damage` it is a permanent rider on that effect and lands at `damage.lifestealFraction` instead |
 | `calmTicks` / `calmTicksPerLevel` | `calm.durationTicks` / `calm.durationTicksPerLevel` | calm |
 | `charmTicks` / `charmTicksPerLevel` | `charm.durationTicks` / `charm.durationTicksPerLevel` | charm |
 

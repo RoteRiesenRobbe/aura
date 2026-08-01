@@ -1,5 +1,5 @@
 {
-  "_comment": "Skill-vocab chunk 1 smoke content: one aura exercising execute + berserker + lifesteal together; AlphaWolf drop 0.2 since the wolf-line drop reshuffle (PO 2026-07-21); was EliteWolf from Session ②. Authored crit pair REMOVED in the §4.3 v2 crit rework (PO 2026-07-20): Reaper crits only via the character's own crit chance (base 5% + critChance stat) at the default factor. All values [PLACEHOLDER].",
+  "_comment": "AlphaWolf drop 0.2 since the wolf-line drop reshuffle (PO 2026-07-21); was EliteWolf from Session ②. Authored crit pair REMOVED in the §4.3 v2 crit rework (PO 2026-07-20): Reaper crits only via the character's own crit chance (base 5% + critChance stat) at the default factor. All values [PLACEHOLDER]. ⚑ R3 (plan-resource-costs-feedback §5.6, PO feel pass F8): lifestealFraction 0.3 REMOVED. The PO's complaint was that Reaper returns more resource than it costs, and two earlier linear nerfs (radius 2.0 -> 1.5, lifesteal 0.5 -> 0.3 in C2c) bounced off it because the problem was not a magnitude, it was a LOOP: berserker is 1 + factor x (1 - casterHealthRatio), so damage doubles as the caster's health drops, while lifesteal returns a fixed share OF THAT DAMAGE. Lower health -> more damage -> more leech -> back up. A cost that is a flat fraction of MAX health cannot counterweight a return that scales with health MISSING. Dropping the rider leaves Reaper one identity (a low-health executioner) instead of two that multiply, and the leech moved to Bloodthirst, where it is a six-second cooldown you choose to spend rather than a permanent passive attached to the thing that makes it grow. ⚑ This skill WAS the skill-vocab chunk 1 smoke content for 'one aura exercising execute + berserker + lifesteal together'; that combination now lives only in a test fixture (sys/skills_behavior_test.go).",
   "id": 7,
   "name": "Reaper",
   "category": "active_aura",
@@ -17,7 +17,6 @@
       "executeBelowFraction": 0.35,
       "executeBonusFactor": 2,
       "berserkerMaxBonusFactor": 1,
-      "lifestealFraction": 0.3,
       "targetsEnemies": true,
       "targetsAllies": false,
       "selector": "nearest",

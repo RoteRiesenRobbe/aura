@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,6 +9,27 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
+
+// workGatedCharge is the R2 split of the seven chargeable types: which of them
+// charge only for a genuinely NEW application rather than for every application.
+//
+// damage_aura and heal_aura pay every time they land, so their cost recurs at
+// the aura's cadence and haste really does multiply it. The other five report
+// new-from-refresh out of the buff store (skills.Buffs) and are charged off that
+// answer, so holding one on a target set that is not changing is free — the
+// charge recurs at most once per target ENTRY, which is a property of the world,
+// not of the cadence.
+//
+// This is a second list, like TestNoCostOnAnEffectThatCanNeverBeCharged's: it
+// fails LOUD rather than silently, because a type missing from it is measured
+// strictly (the haste term is included), never leniently.
+var workGatedCharge = map[skills.EffectType]bool{
+	skills.EffectTypeDotAura:    true,
+	skills.EffectTypeHotAura:    true,
+	skills.EffectTypeResistAura: true,
+	skills.EffectTypeSlowAura:   true,
+	skills.EffectTypeShieldAura: true,
+}
 
 // Content guards for the authored resource costs (plan-numbers-rewrite C2b).
 // Both catch mistakes that are SILENT — no boot warning, no failing unit test,
@@ -57,6 +79,15 @@ func playerSkillDefs(t *testing.T) []*skills.SkillDefinition {
 // guard blind to the one live mechanism that moves the very cadence it is about:
 // under Haste's authored 0.5, Heal drains 7.5 %/s at skill level 1 and Spearhead
 // 7.8 %/s at 10 — both over this bound, with the guard green.
+//
+// ⚑ The haste term applies to TWO of the seven types, not all seven (R3, after
+// R2 changed what "landed" means). A work-gated applier charges only for a
+// genuinely new application, and the number of those over a window is bounded by
+// how many target ENTRIES happen — not by how often the aura scans for them. A
+// hasted dot re-applies twice as often, but the extra applications land on
+// targets that are already burning, so they are refreshes and cost nothing.
+// Weighting them by haste asserts a drain the engine cannot produce, and it does
+// so at the bound, which is where it blocks real content.
 func TestAuraCostDrainIsSurvivableAtLevelOne(t *testing.T) {
 	const (
 		levelOnePool   = 100.0 // conf.default.json game.player.baseHealth
@@ -86,12 +117,19 @@ func TestAuraCostDrainIsSurvivableAtLevelOne(t *testing.T) {
 				interval := float64(skills.EffectiveTickInterval(effect, level, 1))
 				hasted := float64(skills.EffectiveTickInterval(effect, level, factor))
 				perSec := func(ticks float64) float64 { return cost / levelOnePool * 30 / ticks }
-				drain := (1-duty)*perSec(interval) + duty*perSec(hasted)
+				drain := perSec(interval)
+				if !workGatedCharge[effect.Type] {
+					drain = (1-duty)*perSec(interval) + duty*perSec(hasted)
+				}
+				hasteNote := fmt.Sprintf("every %.0f while hasted %.0f%% of the time", hasted, duty*100)
+				if workGatedCharge[effect.Type] {
+					hasteNote = "haste excluded — this type charges per target ENTRY, not per application"
+				}
 				assert.LessOrEqualf(t, drain, maxDrainPerSec,
 					"%s effect %d (type id %d) drains %.1f%% of a level-1 pool per second at level %d "+
-						"(cost %.2f HP every %.0f ticks, every %.0f while hasted %.0f%% of the time) — "+
+						"(cost %.2f HP every %.0f ticks, %s) — "+
 						"cadence, not the authored fraction, is usually the cause",
-					def.Name, i, int(effect.Type), drain*100, level, cost, interval, hasted, duty*100)
+					def.Name, i, int(effect.Type), drain*100, level, cost, interval, hasteNote)
 			}
 		}
 	}

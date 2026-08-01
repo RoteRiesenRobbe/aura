@@ -28,6 +28,15 @@ const (
 	// pip has to widen the wire field first — a natural part of backlog §39
 	// (the entity presentation rework), which replaces presence-only pips with
 	// durations anyway.
+	//
+	// ⚑ That day has arrived and the answer was to WAIT. lifestealPayload (R3,
+	// the burst Reaper's rider became) carries AppliedEffectNone — not because a
+	// leech is invisible the way a shield is, but because there is no bit left to
+	// give it and widening the wire for one buff is §39's job, not a cooldown's.
+	// The burst is not silent in play — every hit floats a heal number off the
+	// caster and the cooldown icon runs its own timer — but it is the first buff
+	// with NO pip and a real duration, so it is the concrete cost of the missing
+	// bit and should be the first thing §39 gives one to.
 )
 
 // AppliedEffects is the union of pip bits across every live application — the
@@ -51,5 +60,9 @@ func (*hotPayload) appliedBit() AppliedEffect      { return AppliedEffectHot }
 func (*resistPayload) appliedBit() AppliedEffect   { return AppliedEffectResist }
 func (*tickRatePayload) appliedBit() AppliedEffect { return AppliedEffectTickRate }
 func (*shieldPayload) appliedBit() AppliedEffect   { return AppliedEffectNone }
-func (*calmPayload) appliedBit() AppliedEffect     { return AppliedEffectCalm }
-func (*charmPayload) appliedBit() AppliedEffect    { return AppliedEffectCharm }
+
+// No bit left in the ubyte — see the ⚑ note above.
+func (*lifestealPayload) appliedBit() AppliedEffect { return AppliedEffectNone }
+
+func (*calmPayload) appliedBit() AppliedEffect  { return AppliedEffectCalm }
+func (*charmPayload) appliedBit() AppliedEffect { return AppliedEffectCharm }

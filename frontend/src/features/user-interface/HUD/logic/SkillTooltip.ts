@@ -427,6 +427,18 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             lines.push(`Move ${pace} as fast for ${duration}`);
             break;
         }
+        case 'lifesteal_burst': {
+            // The leech scales with level, the window deliberately does not —
+            // the PO fixed it at six seconds, so only the fraction goes through
+            // prog(). Worded as "of the damage you deal" rather than a bare
+            // percentage because the number is meaningless without the base it
+            // is a share of.
+            const lifesteal = effect.lifesteal;
+            const share = prog(lifesteal.fraction, lifesteal.fractionPerLevel, level, maxLevel, pct);
+            lines.push(`Heals you for ${share} of the damage you deal, for ${ticksToSecs(lifesteal.durationTicks)}`);
+            lines.push('Works with whichever aura you have on');
+            break;
+        }
         case 'tick_rate': {
             const tickRate = effect.tickRate;
             const speed = tickRate.factor < 1

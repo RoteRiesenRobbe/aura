@@ -631,7 +631,7 @@ facts to start from, so none of them is discovered mid-edit:
    It genuinely only needs to *report* which happened; no lookup has to be
    added.
 
-### R3 — One beat, one price (content)
+### R3 — One beat, one price (content) ✅ **BUILT 2026-08-01** (ledger §8)
 
 The catalog re-authoring, last, once the rules underneath it are final.
 
@@ -902,3 +902,208 @@ of the fix — the Go regressions are the only eyes on it, exactly as §6 predic
 **Hands to R3:** every maintained buff now charges once per target-entry, so its
 authored cost is an **entry price**, not a sustain rate — re-author accordingly,
 and remember §3.10 (a subdivided cost is 3× at a level-1 pool, not neutral).
+
+---
+
+### R3 — One beat, one price ✅ **DONE 2026-08-01, committed `[uncommitted]`**
+
+The catalog re-authoring, last, against rules that were finally final. Mostly
+content — plus one thing the PO added on the way past that turned out to be an
+engine chunk of its own.
+
+**4 PO rulings (2026-08-01)**
+
+| question | ruling |
+|---|---|
+| the dot re-price (§5.1) | **×3 for both**, not ×dotTicks. Wildfire's own 4 ticks would drain **7.9 %/s** of a level-1 pool against the drain guard's 6 % bound, and raising a survivability bound to admit a number is the wrong way round |
+| the drain guard | **drop the haste weighting for work-gated types** — rigorous, not a weakening; see below |
+| the entry prices (§5.2) | **Rejuvenation ×6** (its own `hotTicks` — the dot rule exactly), **FireWard ×3 / Slow ×3** (no natural burn to price against, so the dot's heuristic stands in as an activation charge) |
+| Reaper's rider (§5.6) | **drop `lifestealFraction`** — *and author a cooldown that grants lifesteal for six seconds instead* |
+
+**F5 / §5.5 — one beat.** `applyAuraEffects` fires each effect on
+`accumulator % interval`, so equal intervals put every effect of an aura on the
+same tick. Magnitude **and** cost divided by the ratio; verified exactly
+throughput-neutral at a CL30 pool (Warbanner heal `9.75 HP/s → 9.75`,
+`21.34 Focus/s → 21.33`; Vanguard shield `2.67 HP/s` both sides, the figure the
+C8 walkthrough cut it to).
+
+| aura | effect | interval | magnitude | cost |
+|---|---|---|---|---|
+| Paladin | heal | 120 → **40** | 8 → 2.6667 | 0.006 → 0.002 |
+| Vanguard | heal | 120 → **40** | 12 → 4 | 0.0098 → 0.003267 |
+| Vanguard | shield | 90 → **40** | 4 → 1.7778 | 0.0033 → 0.001467 |
+| Warbanner | heal | 120 → **40** | 13 → 4.3333 | 0.0106 → 0.003533 |
+| Warbanner | shield | 30 → **40** | 6 → 8 | 0.0049 → 0.006533 |
+| Warbanner / Suppression | slow | absent (= 1) → **40** | — (a state, not a per-application magnitude) | unpriced, unchanged |
+| Wildfire | resist | 1 → **20** | — (a state) | unpriced, unchanged |
+
+Wildfire's `light_aura` is untouched: the loader **rejects** `tickInterval` on
+light (`TestMap_LightAuraRejectsNonGeometryKeys`), and light is not a cadence.
+
+**The re-prices.** Immolate 0.0026 → **0.0078**, Wildfire dot 0.0046 →
+**0.0138** (pay to ignite, not to keep burning). Rejuvenation 0.0051 →
+**0.0306**, FireWard 0.006 → **0.018**, Slow 0.006 → **0.018** (entry prices).
+First Aid → **0**, and it joins `freeFloorSkills` — §4.3's point exactly: a free
+floor enforced for five skills and hoped for on the sixth is not a property.
+
+**The `lifetime > interval` pin, and where it actually lives.** §4.1 asked for
+it at the loader. Tracing it found the property is only **authorable** on one
+pair: `resist` / `slow` / `shield` derive their lifetime as
+`effectiveTickInterval + 1` at the apply site, so the refresh structurally
+outruns the expiry however the cadence is authored — but `dot_aura` and
+`hot_aura` author theirs as `dotTicks × dotTickInterval`, independently of
+`tickInterval`. So `skills.checkOverTimeLifetime` guards **that** pair, at
+`maxLevel` (`tickIntervalPerLevel` scales the cadence while the lifetime is
+flat, so the realistic mistake is a per-level tweak correct at the level it was
+eyeballed). The instant twins are exempt: a cooldown has no re-apply cadence.
+
+The other half of §4.1 — *"a permanent debuff must stay permanent"* — became two
+content guards in `cmd/aurad/maintained_buff_content_test.go`. One is a
+**tombstone**: the lifetime is derived at factor 1.0 while the firing cadence
+takes the caster's live `TickRateFactor`, so a tick-**slow** (> 1) would fire
+*later* than the buff lives and the debuff would blink. No content authors one,
+so it passes at factor 1 — which is the point; the first one authored trips it
+at the moment the number is written. The other pins the PO's condition as a
+bound rather than a value: a slow may re-apply at most every 40 ticks, so a mob
+entering the ring is unslowed ≤ 1.33 s and one leaving stays slowed ≤ 41 ticks.
+Both proven red against a real drift (65 failures at factor 2), green after.
+
+**⚑ The drain guard now measures two cadences, not one.** The guard modelled
+every effect as charged once per application and duty-weighted 30 % of the time
+at Haste's 0.5 factor. R2 made five of the seven charge only for NEW work, and
+the number of ignitions over a window is bounded by **target entries**, which
+haste does not change — a hasted dot re-applies twice as often, but the extra
+applications land on targets already burning and cost nothing. So `damage_aura`
+and `heal_aura` keep the full model and the other five are measured at their
+authored cadence. This is a narrowing of a claim that had become false, not a
+loosening to fit a number: it is what makes ×3 Wildfire legal (5.94 %) while
+×4 still fails (7.92 %) — checked.
+
+**⚑ §3.10, measured rather than argued.** Every subdivided cost was read at CL 1
+as well as at cap. At a level-1 pool the 1-HP floor swallows the arithmetic
+whole: Paladin's heal goes from 1 HP per 120 ticks to 1 HP per 40 — a **3×**
+real price rise off a cost that was divided by three. Accepted under §5.3 (the
+price list is coarse below ~CL 12 by construction), and visible in the batteries
+from the other direction: `Immolate:1` and `Wildfire:1 -chain` come out
+**byte-identical** across the whole re-price, because 0.26 % and 0.78 % of 100
+both floor to the same 1 HP.
+
+**§3.7 documented, not engineered away** (`manual-content-authoring.md`, in the
+ability section): effects charge sequentially within a tick, each pricing
+against the health the previous one left, and an unaffordable one is skipped —
+so on a nearly-dead caster **the effect authored first is the one that still
+fires**. Reordering an `effects[]` array is a silent balance change. F5 shrinks
+the surface (one beat means they all price against the same health in the same
+tick) and the free floor means the base damage aura is never the one skipped,
+but neither removes it.
+
+**Reaper, and the cooldown that replaced its rider.** `lifestealFraction: 0.3`
+is gone; execute + berserker stay. §4.4's loop is what made the two earlier
+linear nerfs bounce — berserker scales damage with health **missing** while
+lifesteal returns a share **of that damage**, so the lower the caster went the
+faster it healed. ⚑ Reaper was the skill-vocab chunk-1 smoke content for *"one
+aura exercising execute + berserker + lifesteal together"*; that combination
+survives only in `TestApplyDamageAura_CompositionOrderF6`, whose effect already
+authors all three — its comment now says so, so nobody simplifies it down to the
+terms its arithmetic strictly needs.
+
+The PO's replacement is **Bloodthirst** (id 8, cooldown, maxLevel 5, cost 0.02,
+900 ticks): 30 % → 50 % of the damage you deal comes back, for a fixed 6 s, on
+whatever aura you have on. That needed a **new effect type end to end** —
+`lifesteal_burst`, modelled on `speed_burst`: `LifestealParams`, a
+`lifestealPayload` in the buff store, `Buffs.LifestealFraction()`, an applier +
+dispatch case, a `casterLifesteal(acting)` term folded into **both** damage
+payload sites (player and mob), the catalog JSON, and the tooltip case. The
+leech **adds** to an effect's own authored `lifestealFraction` rather than
+replacing it (the `casterCritChance` rule — otherwise a leech aura would be
+strictly worse to pair with the cooldown built for leeching), and it composes
+**additively across skills, strongest within one** (shares of one damage event
+add; strongest-within is what stops a level-up mid-buff double-counting).
+
+⚑ **No pip, and it is the first buff for which that is a real cost.**
+`applied_effects` is a full ubyte — bit 7 went to speed — so `lifestealPayload`
+takes `AppliedEffectNone`. Shield does too, but shield has a wire justification
+(`shield_hp` renders the absorb segment). This is the first buff with a real
+duration and *no* overhead indicator; the tells are the floating heal numbers
+and the cooldown timer. Pinned by `TestCooldown_LifestealBurstHasNoPipYet` so
+**backlog §39 has a concrete first customer** for a widened field.
+
+**⚑ The landmine, and it is the R2 landmine wearing a new hat.** The whole
+feature was built, dispatched and tested green while `*player` and `*Mob` had
+**neither** `ApplyLifesteal` nor `LifestealFraction`. The self-buff cooldowns
+reach the caster through *structural* asserts (`e.(speedApplier)`), which is the
+right pattern — but a real type missing a method fails **silently and
+completely**: the applier's `ok` is false so nothing is granted, the reader falls
+back to its neutral value so no arithmetic looks wrong, and the cooldown still
+fires, still charges and still starts its timer, because D9 says a cooldown pays
+on cast, hit or whiff. Six behaviour tests were green over an inert feature.
+`sys/self_buff_capabilities_test.go` now asserts the real `*player` and
+`*mob.Mob` against **every** self-buff capability (tick_rate, speed_burst,
+lifesteal_burst, both directions) — proven red by removing one method, with the
+six behaviour tests staying green throughout, which is the whole demonstration.
+
+**⚑ A finding R3 surfaced but did not fix: the cost line's cadence is now
+wrong for work-gated effects.** Read off a real tooltip in the harness —
+Warbanner says *"Costs you: 1 Focus **every 1.32 s**"* for its heal and shield,
+Immolate *"1 Focus **every 0.66 s**"*. After R2 those charge per target-ENTRY
+and per IGNITION. R2 changed *when* a cost is taken and R1's wording still says
+*per beat*, so the two passes disagree on the surface a player reads. Not in
+R3's scope and deliberately untouched — but it is exactly the sort of thing that
+arrives in a feel pass looking like a balance complaint, so it is on record
+here rather than waiting to be re-discovered.
+
+**Verified**
+
+- Full Go suite (28 pkgs) + `vet` + `gofmt` clean; `tsc` + **103 vitest** +
+  prod build; guardrails + alloc `-count=2`.
+- The loader pin and both maintained-buff guards **proven RED** against real
+  drifts before going green; the capability guard proven red the same way.
+- Content guards green: the drain guard, the free floor (now six skills), the
+  seven-type guard, the damage-types guard. The R2 idle-drain regression was
+  **rewritten, not re-tuned** — it asserted a surviving health of ≥ 99, which
+  pinned the shield's *price*, so F5 broke it legitimately. It now asserts the
+  property (health after 10 s == health after 20 s: the grant is work and is
+  paid for once, time is not), which no re-pricing can move.
+- Boot `-content ../api`: 0 errors 0 warnings 0 panics — **87 skills** (+1,
+  Bloodthirst; pin updated) **/15 factions/64 mobs/10 recipes/3 milestone
+  unlocks/4 quests/5 prop definitions/777 props/485 spawns/5 campfires**.
+- Harness gate, one at a time on freshly restarted servers: **`r1-focus-cost`
+  5/5** (Immolate is its subject skill and now reads **21 → 26 Focus** at CL30
+  where R1 recorded 7 → 9 — the ×3 is legible, and Discipline still moves it) ·
+  **`round4-tooltip`** all legs (owns the `/skills` payload shape, which gained
+  `lifesteal`) · **`backlog33-prehot` 4/4** (owns Rejuvenation content) ·
+  **`swift-cooldown`** all legs (owns the movement axis; the buff store gained a
+  payload kind) · **`chunk2-calm` 7/7** (owns the buff store). 0 console errors,
+  0 WebGL losses.
+- **New harness `r3-lifesteal-burst.mjs`, 7/7 on two consecutive fresh
+  servers.** It exists for the two seams neither Go nor vitest can see: that
+  `GET /skills` really serves the new `lifesteal` payload (a missing json tag
+  renders `(lifesteal_burst)` and nothing else fails), and that the buff reaches
+  the damage path on a real player in a real fight — control window flat at
+  40/100 across 95 combat numbers, burst window **40 → 43** and **42 → 51** on
+  the two runs. ⚑ Two harness-authoring lessons went into it: its first
+  precondition walked a scene-graph layer whose name it guessed wrong, and
+  reported a textbook run (control 0, burst +20) as INCONCLUSIVE — the tableau
+  failing while the evidence sat right there (rule 4, in the mirror). And it
+  equips **Long-Range Strike**, not the seeded Damage aura, because Damage's
+  radius is 1.0 while mobs at the venue settle 2.5–3 units out: a run with
+  Damage measures a player reaching nothing, with floating numbers everywhere
+  from *other* mobs fighting, which reads exactly like a broken buff.
+
+**⚑ The sim battery is byte-identical, and again that means less than it looks.**
+Default · `-chain` · `-levels` · the `-content ../api` roster all diff clean
+against a pre-R3 worktree (**TTK 6.67 s / TTD 8.70 s stand**). Per-aura
+`-player-aura … -chain`: Warbanner / Vanguard / Paladin / Reaper **identical**,
+because `-player-aura` is damage-effect-only (C5) and their `effect[0]` is the
+damage aura R3 did not touch — so the heal / shield / slow re-authoring has
+**only the Go regressions watching it**. The two that did move are the two whose
+`effect[0]` is a re-priced dot: **Wildfire:5** kph 53.87 → 51.53 facetank,
+196.36 → 168.49 kite; **Immolate:10** 53.87 → 52.27 and 196.36 → 177.05.
+Survival stays **100 %** in every row.
+
+**Open after R3:** the numbers are [PLACEHOLDER] until played, so this ends in a
+**PO feel pass**, then **R4** (the downtime design session — designed against a
+world where First Aid is now free). Bloodthirst has **no unlock source** and is
+dev-obtainable via `SKILL Bloodthirst`, like FireWard; placement is a
+content-pass call, and the obvious home is the wolf line Reaper already drops
+from.

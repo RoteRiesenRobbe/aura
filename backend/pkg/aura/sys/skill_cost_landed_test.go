@@ -201,9 +201,11 @@ var _ costPayer = pricelessPayer{}
 
 // warbannerDef reads the authored Warbanner straight from the api/ tree. The
 // per-applier tests above use synthetic effects; this one is here because
-// Warbanner is the skill the finding was computed on and because its four
-// effects run on four cadences (damage@40 · heal@120 · shield@30 · slow@1) —
-// the composed case a per-applier test cannot see.
+// Warbanner is the skill the finding was computed on and because all four of its
+// effects are priced and dispatched together — the composed case a per-applier
+// test cannot see. (Its four cadences were 40/120/30/1 when this was written;
+// R3/F5 put all four on the damage beat of 40. The property below does not
+// depend on either arrangement.)
 func warbannerDef(t *testing.T) *skills.SkillDefinition {
 	t.Helper()
 	fr, err := factions.RegistryFromFS(os.DirFS("../../../../api/factions"))
@@ -227,18 +229,36 @@ func TestAuraCost_WarbannerNextToAnAllyWithNoEnemyDoesNotDrain(t *testing.T) {
 	set := colliderSetOf(ally)
 	s := testSkillSystem()
 
-	// Ten seconds of standing still, every effect on its own authored cadence —
-	// the applyAuraEffects dispatch loop, without needing a live phy space.
-	for tick := 1; tick <= 10*33; tick++ {
-		for _, effect := range def.Effects {
-			if tick%skills.EffectiveTickInterval(effect, def.MaxLevel, 1) != 0 {
-				continue
+	// Seconds of standing still, every effect on its own authored cadence — the
+	// applyAuraEffects dispatch loop, without needing a live phy space.
+	run := func(seconds int) {
+		for tick := 1; tick <= seconds*33; tick++ {
+			for _, effect := range def.Effects {
+				if tick%skills.EffectiveTickInterval(effect, def.MaxLevel, 1) != 0 {
+					continue
+				}
+				s.applyAuraEffect(caster, def.ID, def.MaxLevel, effect, set)
 			}
-			s.applyAuraEffect(caster, def.ID, def.MaxLevel, effect, set)
 		}
 	}
 
-	// The shield going up once is work and is paid for; nothing after it is.
-	assert.GreaterOrEqual(t, int(caster.vitalSigns.Health), 99,
-		"holding a support aura next to a healthy ally with no enemy is not a running cost")
+	run(10)
+	afterTen := int(caster.vitalSigns.Health)
+	run(10)
+	afterTwenty := int(caster.vitalSigns.Health)
+
+	// The real property, and the one R3 had to restate: putting the shield up is
+	// work and is paid for once; TIME is not. Asserting a specific surviving
+	// health would pin the shield's price instead, which is a number the content
+	// passes move on purpose — this failed for exactly that reason when F5
+	// re-authored the shield beat, with the drain it was written to catch long
+	// gone.
+	assert.Equal(t, afterTen, afterTwenty,
+		"holding a support aura next to a healthy ally with no enemy is not a RUNNING cost")
+
+	// And the one-off is genuinely one-off, not a slow leak under a coarse
+	// second-hand: a handful of HP at most, against the ~46 the pre-R2 drain
+	// took over the same 20 seconds.
+	assert.Greater(t, afterTwenty, 90,
+		"the initial application should cost a few HP, not a measurable share of the pool")
 }

@@ -188,8 +188,12 @@ func (f *fakePlayer) ApplyTickRate(source skills.SkillID, factor float32, ticks 
 	f.buffs.ApplyTickRate(source, factor, ticks)
 }
 func (f *fakePlayer) TickRateFactor() float32 { return f.buffs.TickRateFactor() }
-func (f *fakePlayer) InCombat() bool          { return f.inCombat }
-func (f *fakePlayer) NoteCombatAction()       { f.combatActions++ }
+func (f *fakePlayer) ApplyLifesteal(source skills.SkillID, fraction float32, ticks int) {
+	f.buffs.ApplyLifesteal(source, fraction, ticks)
+}
+func (f *fakePlayer) LifestealFraction() float32 { return f.buffs.LifestealFraction() }
+func (f *fakePlayer) InCombat() bool             { return f.inCombat }
+func (f *fakePlayer) NoteCombatAction()          { f.combatActions++ }
 
 func (f *fakePlayer) Client() model.Client    { return f.client }
 func (f *fakePlayer) SetPosition(v phy.Vec2f) { f.aura.SetPosition(v) }
@@ -3461,6 +3465,12 @@ func TestApplyDamageAura_LifestealRidesDamagePayload(t *testing.T) {
 // one hit walked through berserker × execute × crit with hand-computed values.
 // base 10 × berserker(half HP, max 1 → 1.5) × execute(0.2 < 0.35 → 2) ×
 // crit(chance 1 → 2) = 60.
+//
+// ⚑ It is also, since R3, the ONLY place execute + berserker + lifesteal are
+// exercised together. Reaper was authored as the live smoke content for exactly
+// that combination and dropped its lifesteal rider in R3 (§5.6), so this fixture
+// is what stands in for it — do not simplify the effect down to the terms this
+// test's arithmetic strictly needs.
 func TestApplyDamageAura_CompositionOrderF6(t *testing.T) {
 	effect := vocabEffect(func(d *skills.DamageParams) {
 		d.BerserkerMaxBonusFactor = 1
@@ -4472,6 +4482,126 @@ func TestCooldown_SpeedBurstSetsThePip(t *testing.T) {
 
 	assert.NotZero(t, caster.buffs.AppliedEffects()&skills.AppliedEffectSpeed,
 		"a sprinting caster carries the speed pip")
+}
+
+// --- lifesteal_burst: Bloodthirst, the rider Reaper lost (R3 / §5.6). The
+// speed_burst twin — self-targeted, no query circle — but where a sprint is read
+// by the movement site, this is read by the DAMAGE site, so the assertions that
+// matter are on what a hit carries while it is up. ---
+
+func lifestealBurstDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 8, Name: "Bloodthirst", Category: skills.SkillCategoryCooldown, MaxLevel: 5,
+		CooldownTicks: 900, CooldownTicksPerLevel: -60,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeLifestealBurst,
+			Lifesteal: &skills.LifestealParams{
+				Fraction: 0.3, FractionPerLevel: 0.05, DurationTicks: 180,
+			},
+		}},
+	}
+}
+
+func fireLifestealBurst(t *testing.T, caster *fakePlayer, level int) {
+	t.Helper()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipCooldown(0, lifestealBurstDef(), level)
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.AddEntity(caster)
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+}
+
+func TestCooldown_LifestealBurstBuffsTheCaster(t *testing.T) {
+	caster := newFakePlayer()
+	require.Zero(t, caster.buffs.LifestealFraction(), "no leech before firing")
+
+	fireLifestealBurst(t, caster, 1)
+
+	assert.InDelta(t, 0.3, caster.buffs.LifestealFraction(), 1e-6, "the leech is live")
+	assert.Equal(t, 900, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+}
+
+func TestCooldown_LifestealBurstScalesWithLevel(t *testing.T) {
+	caster := newFakePlayer()
+	fireLifestealBurst(t, caster, 5)
+
+	assert.InDelta(t, 0.5, caster.buffs.LifestealFraction(), 1e-6, "0.3 + 4×0.05")
+	assert.Equal(t, 660, caster.sc.CooldownSlots[0].CdTicks, "900 − 4×60")
+}
+
+// This is the whole feature: a burst that never reaches the damage payload is a
+// buff nobody reads. It is asserted through applyDamageAura on an effect that
+// authors NO lifesteal of its own, so the fraction on the hit can only have come
+// from the caster's buff store.
+func TestCooldown_LifestealBurstRidesTheCastersHits(t *testing.T) {
+	caster := newFakePlayer()
+	effect := vocabEffect(func(*skills.DamageParams) {})
+	target := &touchRecorder{}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	require.Len(t, target.lifesteals, 1)
+	require.Zero(t, target.lifesteals[0], "an unbuffed caster's hits do not leech")
+
+	fireLifestealBurst(t, caster, 1)
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.lifesteals, 2)
+	assert.InDelta(t, 0.3, target.lifesteals[1], 1e-6, "the same hit now leeches")
+}
+
+// The burst ADDS to an aura that already leeches rather than replacing it — the
+// casterCritChance rule. Overriding would make a leech aura strictly worse to
+// pair with the cooldown built for leeching, which is backwards.
+func TestCooldown_LifestealBurstComposesWithAnAuthoredLeech(t *testing.T) {
+	caster := newFakePlayer()
+	fireLifestealBurst(t, caster, 1)
+
+	effect := vocabEffect(func(d *skills.DamageParams) { d.LifestealFraction = 0.25 })
+	target := &touchRecorder{}
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.lifesteals, 1)
+	assert.InDelta(t, 0.55, target.lifesteals[0], 1e-6, "0.25 authored + 0.3 burst")
+}
+
+func TestCooldown_LifestealBurstExpires(t *testing.T) {
+	// The duration is what makes it a burst rather than the passive it used to
+	// be on Reaper — the entire point of §5.6 is that it runs out.
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	def := lifestealBurstDef()
+	def.Effects[0].Lifesteal.DurationTicks = 3
+	caster.sc.EquipCooldown(0, def, 1)
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.AddEntity(caster)
+
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+	require.InDelta(t, 0.3, caster.buffs.LifestealFraction(), 1e-6)
+
+	for i := 0; i < 3; i++ {
+		caster.buffs.Tick()
+	}
+	assert.Zero(t, caster.buffs.LifestealFraction(), "the leech ends with the window")
+
+	target := &touchRecorder{}
+	applyDamageAura(caster, 1, vocabEffect(func(*skills.DamageParams) {}), colliderSetOf(target), testRNG())
+	require.Len(t, target.lifesteals, 1)
+	assert.Zero(t, target.lifesteals[0], "and hits after it stop leeching")
+}
+
+// ⚑ The one place it is deliberately invisible: applied_effects is a full ubyte
+// (bit 7 went to speed), so this is the first buff in the game with a real
+// duration and NO pip. Pinned rather than left to be discovered, so backlog §39
+// has a concrete first customer for a widened field.
+func TestCooldown_LifestealBurstHasNoPipYet(t *testing.T) {
+	caster := newFakePlayer()
+	fireLifestealBurst(t, caster, 1)
+
+	require.InDelta(t, 0.3, caster.buffs.LifestealFraction(), 1e-6, "the buff IS live")
+	assert.Zero(t, caster.buffs.AppliedEffects(),
+		"no bit left in applied_effects — the tells are the floating heal numbers and the cooldown timer")
 }
 
 // --- presence scan (chunk P, presence-counts attribution) ---

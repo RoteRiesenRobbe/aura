@@ -688,6 +688,59 @@ func TestParse_SpeedBurst(t *testing.T) {
 	assert.Equal(t, 30, e.Speed.DurationTicksPerLevel)
 }
 
+func TestParse_LifestealBurst(t *testing.T) {
+	data := []byte(`{
+      "id": 8, "name": "Bloodthirst", "category": "cooldown", "maxLevel": 5, "cooldownTicks": 900,
+      "effects": [{"type": "lifesteal_burst", "lifestealFraction": 0.3,
+                   "lifestealFractionPerLevel": 0.05, "lifestealDurationTicks": 180}]
+    }`)
+	def := mustParse(t, data)
+
+	require.Len(t, def.Effects, 1)
+	e := def.Effects[0]
+	assert.Equal(t, EffectTypeLifestealBurst, e.Type)
+	require.NotNil(t, e.Lifesteal)
+	assert.InDelta(t, 0.3, e.Lifesteal.Fraction, 1e-6)
+	assert.InDelta(t, 0.05, e.Lifesteal.FractionPerLevel, 1e-6)
+	assert.Equal(t, 180, e.Lifesteal.DurationTicks)
+
+	assert.InDelta(t, 0.5, e.Lifesteal.FractionAt(5), 1e-6, "0.3 + 4×0.05")
+	assert.Equal(t, 180, e.Lifesteal.TicksAt(5), "the window is fixed — level buys strength, not uptime")
+}
+
+func TestMap_LifestealBurstNonPositiveFails(t *testing.T) {
+	// A zero leech is a cooldown that costs resource and does nothing; a zero
+	// lifetime is a buff that expires before a single hit can read it.
+	mustFailMapCooldown(t, `{"type":"lifesteal_burst","lifestealFraction":0,"lifestealDurationTicks":180}`, "lifestealFraction")
+	mustFailMapCooldown(t, `{"type":"lifesteal_burst","lifestealFraction":0.3,"lifestealDurationTicks":0}`, "lifestealDurationTicks")
+}
+
+// lifesteal_burst SHARES the lifestealFraction key with the damage payload —
+// same quantity, granted for a while instead of welded to one effect. The
+// per-type allowlist is the only thing keeping the two apart, so the halves that
+// do NOT transfer are worth pinning: a burst has no geometry and no targets.
+func TestMap_LifestealBurstRejectsGeometryAndTargeting(t *testing.T) {
+	for _, effect := range []string{
+		`{"type": "lifesteal_burst", "lifestealFraction": 0.3, "lifestealDurationTicks": 180, "radius": 2}`,
+		`{"type": "lifesteal_burst", "lifestealFraction": 0.3, "lifestealDurationTicks": 180, "targetsEnemies": true}`,
+		`{"type": "lifesteal_burst", "lifestealFraction": 0.3, "lifestealDurationTicks": 180, "maxTargets": 1}`,
+		`{"type": "lifesteal_burst", "lifestealFraction": 0.3, "lifestealDurationTicks": 180, "damageHP": 5}`,
+	} {
+		mustFailMapCooldown(t, effect, "not valid on this effect type")
+	}
+}
+
+// mustFailMapCooldown is mustFailMap for effects that only make sense on a
+// cooldown — an active_aura wrapper would fail on the category rather than on
+// the thing under test.
+func mustFailMapCooldown(t *testing.T, effect string, wantErr string) {
+	t.Helper()
+	raw, err := parseSkillDefinition([]byte(`{"id":8,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":600,"effects":[` + effect + `]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, wantErr, "effect: %s", effect)
+}
+
 func TestMap_SpeedBurstNonPositiveFactorFails(t *testing.T) {
 	raw, err := parseSkillDefinition([]byte(`{"id":10,"name":"Swift","category":"cooldown","maxLevel":1,"cooldownTicks":600,"effects":[{"type":"speed_burst","speedFactor":0,"speedDurationTicks":150}]}`))
 	require.NoError(t, err)
@@ -931,6 +984,54 @@ func TestMap_ExplicitTickInterval(t *testing.T) {
 func TestMap_NonPositiveTickIntervalFails(t *testing.T) {
 	mustFailMap(t, `{"type":"damage_aura","radius":1,"targetsEnemies":true,"damageHP":5,"tickInterval":0}`, "tickInterval")
 	mustFailMap(t, `{"type":"damage_aura","radius":1,"targetsEnemies":true,"damageHP":5,"tickInterval":-5}`, "tickInterval")
+}
+
+// --- the buff-lifetime property (plan-resource-costs-feedback R3 / §4.1) ---
+
+// A dot_aura or hot_aura holds its target through REFRESH: the aura re-applies
+// every tickInterval, and each application resets a buff whose own lifetime is
+// dotTicks × dotTickInterval. Authoring the lifetime shorter than the cadence
+// turns a debuff the player experiences as permanent into a blinking one — it
+// expires, the target walks free, and it comes back on the next application.
+//
+// This is the ONE place the property is authorable. resist / slow / shield
+// derive their lifetime as `effectiveTickInterval + 1` at the apply site, so the
+// refresh structurally outruns the expiry however the cadence is authored; the
+// over-time pair is the pair where the two numbers are independent.
+//
+// It matters now because F5 moved four effects onto a slower shared beat. The
+// failure is silent in every other channel: the skill loads, the tooltip reads
+// right, and only a player watching a dot icon flicker would ever notice.
+func TestMap_DotAuraLifetimeMustOutlastItsReapplyCadence(t *testing.T) {
+	// lifetime 2 × 10 + 1 = 21 ticks, re-applied every 30 — it expires first.
+	mustFailMap(t, `{"type":"dot_aura","radius":1,"targetsEnemies":true,"damageHP":5,"dotTicks":2,"dotTickInterval":10,"tickInterval":30}`,
+		"outlast")
+	mustFailMap(t, `{"type":"hot_aura","radius":1,"healHP":5,"hotTicks":2,"hotTickInterval":10,"tickInterval":30}`,
+		"outlast")
+}
+
+// The cadence scales with level and the lifetime does not, so the property has
+// to hold at maxLevel, not at level 1. Authored here as the level-1-passes /
+// level-5-fails case, because that is the shape a real content edit takes: a
+// per-level cadence tweak, correct where it was checked.
+func TestMap_DotAuraLifetimeCheckedAtMaxLevel(t *testing.T) {
+	// lifetime 61; interval 10 at L1 (fine) but 10 + 4×15 = 70 at L5.
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"active_aura","maxLevel":5,"effects":[` +
+		`{"type":"dot_aura","radius":1,"targetsEnemies":true,"damageHP":5,"dotTicks":2,"dotTickInterval":30,"tickInterval":10,"tickIntervalPerLevel":15}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.ErrorContains(t, err, "outlast")
+}
+
+// The instant twins carry no re-apply cadence — a cooldown fires once per cast,
+// so a short-lived dot from Ignite or NovaBurst is the authored intent, not a
+// blinking permanent one. Guarding them would reject live content.
+func TestMap_InstantDotIsNotSubjectToTheLifetimeRule(t *testing.T) {
+	raw, err := parseSkillDefinition([]byte(`{"id":1,"name":"X","category":"cooldown","maxLevel":1,"cooldownTicks":300,"effects":[` +
+		`{"type":"instant_dot","radius":1.5,"targetsEnemies":true,"damageHP":6,"dotTicks":2,"dotTickInterval":10}]}`))
+	require.NoError(t, err)
+	_, err = raw.mapToSkillDefinition(nil)
+	assert.NoError(t, err)
 }
 
 // --- spawn (effect foundations Step 3 / mob-depth chunk 1) ---

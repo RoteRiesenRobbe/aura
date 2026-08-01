@@ -136,6 +136,16 @@ export interface SpeedParams {
     durationTicksPerLevel: number;
 }
 
+// The lifesteal_burst payload (Bloodthirst): for a window, a share of the damage
+// the caster's hits deal comes back as healing. The damage-side twin of
+// SpeedParams — same scalar-plus-lifetime shape, read at a different site.
+export interface LifestealParams {
+    fraction: number;
+    fractionPerLevel: number;
+    durationTicks: number;
+    durationTicksPerLevel: number;
+}
+
 export interface CalmParams {
     durationTicks: number;
     durationTicksPerLevel: number;
@@ -179,6 +189,7 @@ export interface SkillEffect {
     dash?: DashParams;
     tickRate?: TickRateParams;
     speed?: SpeedParams;
+    lifesteal?: LifestealParams;
     calm?: CalmParams;
     charm?: CharmParams;
 }

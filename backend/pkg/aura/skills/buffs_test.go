@@ -652,6 +652,68 @@ func TestBuffs_DropCalmClearsEverySource(t *testing.T) {
 	assert.False(t, b.Calmed(), "damage breaks calm from every source, not just the newest")
 }
 
+// --- lifesteal payload (Bloodthirst, R3 / §5.6): the damage-side burst. Its
+// combining rule is deliberately NOT speed's: shares of one damage event ADD
+// across skills, they do not multiply. Strongest-within-a-skill is shared,
+// because that is what a level-up mid-buff needs. ---
+
+func TestBuffs_LifestealDefaultIsZero(t *testing.T) {
+	var b Buffs
+	assert.Zero(t, b.LifestealFraction(), "no burst up = no leech")
+}
+
+func TestBuffs_LifestealSingleFraction(t *testing.T) {
+	var b Buffs
+	b.ApplyLifesteal(8, 0.3, 2)
+	assert.InDelta(t, 0.3, b.LifestealFraction(), 1e-6)
+}
+
+func TestBuffs_LifestealDifferentSkillsAdd(t *testing.T) {
+	// Two 0.3 leeches return 0.6 of the hit, not 0.51 — a leech is a SHARE of
+	// one damage event, and shares add. This is where it parts company with
+	// SpeedFactor, which multiplies.
+	var b Buffs
+	b.ApplyLifesteal(8, 0.3, 2)
+	b.ApplyLifesteal(9, 0.3, 2)
+	assert.InDelta(t, 0.6, b.LifestealFraction(), 1e-6)
+}
+
+func TestBuffs_LifestealSameSkillStrongestWins(t *testing.T) {
+	// The same skill never stacks with itself. This is not theoretical for a
+	// burst: re-firing after a level-up applies a DIFFERENT fraction, which opens
+	// a second stream — summing blindly within a skill would double it.
+	var b Buffs
+	b.ApplyLifesteal(8, 0.3, 2)
+	b.ApplyLifesteal(8, 0.5, 2)
+	assert.InDelta(t, 0.5, b.LifestealFraction(), 1e-6)
+
+	b.ApplyLifesteal(8, 0.2, 3)
+	assert.InDelta(t, 0.5, b.LifestealFraction(), 1e-6)
+	b.Tick()
+	b.Tick()
+	assert.InDelta(t, 0.2, b.LifestealFraction(), 1e-6, "0.3/0.5 expired; the 3-tick 0.2 remains")
+}
+
+func TestBuffs_LifestealRefreshExtends(t *testing.T) {
+	var b Buffs
+	b.ApplyLifesteal(8, 0.3, 2)
+	b.Tick()
+	b.ApplyLifesteal(8, 0.3, 2) // same fraction: refreshes the stream in place
+	b.Tick()
+	assert.InDelta(t, 0.3, b.LifestealFraction(), 1e-6, "re-firing extends rather than stacking")
+}
+
+func TestBuffs_LifestealExpiry(t *testing.T) {
+	var b Buffs
+	b.ApplyLifesteal(8, 0.3, 2)
+
+	b.Tick()
+	assert.InDelta(t, 0.3, b.LifestealFraction(), 1e-6, "survives one tick boundary")
+
+	b.Tick()
+	assert.Zero(t, b.LifestealFraction(), "expired without re-application")
+}
+
 // --- speed payload (Swift as a cooldown): the movement-speed twin of
 // tick_rate, and the other half of the movement axis slow already owns. ---
 

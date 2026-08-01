@@ -329,6 +329,37 @@ describe('speed burst', () => {
     });
 });
 
+// Bloodthirst (R3 / §5.6), the rider Reaper dropped. The speed_burst twin with
+// one deliberate difference: the WINDOW is fixed, so only the leech previews.
+describe('lifesteal burst', () => {
+    const bloodthirst = skill({
+        displayName: 'Bloodthirst', category: 'cooldown', maxLevel: 5, cooldownTicks: 900,
+        effects: [effect({
+            type: 'lifesteal_burst',
+            lifesteal: {fraction: 0.3, fractionPerLevel: 0.05, durationTicks: 180, durationTicksPerLevel: 0},
+        })],
+    });
+
+    it('names the leech and the window, and says it rides any aura', () => {
+        // 180 ticks at 33 ms = 5.94 s. The window does not scale, so it shows
+        // one figure while the leech shows two.
+        const out = lines(bloodthirst, 1, 1);
+        expect(out).toContain('Heals you for 30% → 35% of the damage you deal, for 5.94s');
+        expect(out).toContain('Works with whichever aura you have on');
+        expect(out.join('\n')).not.toContain('(lifesteal_burst)');
+    });
+
+    it('drops the preview at max level', () => {
+        expect(lines(bloodthirst, 5, 1)).toContain('Heals you for 50% of the damage you deal, for 5.94s');
+    });
+
+    it('does not scale with character power', () => {
+        // A share of damage dealt is already relative to the damage — applying
+        // the power curve to it would promise a leech that grows twice.
+        expect(lines(bloodthirst, 1, SCALE_AT_30)).toContain('Heals you for 30% → 35% of the damage you deal, for 5.94s');
+    });
+});
+
 // The summon line's mob name (§35 C4a). The client used to re-derive the
 // display name with its own CamelCase-splitting rule — a copy of the server's
 // skills.DeriveDisplayName, and the exact drift class §35 exists to retire.
