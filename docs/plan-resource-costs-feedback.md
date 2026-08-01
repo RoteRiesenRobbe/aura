@@ -17,7 +17,19 @@ and rode into `40d9b204` with the pass.
 > are ruled** (§5), and the work is chunked into **R1 → R2 → R3** plus one
 > design session (§6). §6 is the schedule and the order in it is load-bearing.
 >
-> **Progress: R1 ✅ + R2 ✅ built 2026-08-01 (ledgers §8). R3 → R4 open.**
+> **Progress: R1 ✅ + R2 ✅ + R3 ✅ built 2026-08-01 (ledgers §8), plus the
+> follow-up `194036c8` that closed the R1/R2 cost-wording discrepancy R3
+> surfaced. All build work in this plan is DONE.**
+>
+> ⭐ **The PO feel pass it ended owing has RUN (2026-08-01) — its intake and
+> plan are `plan-feel-pass-2.md`.** The R-series landed: entry pricing reads
+> correctly *and* generates tactics, and R3's one beat reads *"much better and
+> more legible"*. What came back is presentation, one live bug (**no dot has
+> ever leeched** — R3 fixed two of the three damage payload sites) and two
+> design questions, chunked there as **N1 → N5**. ⚑ **F4** (§6, quest progress
+> only after acceptance) is picked up by that plan as **N4**, with the ruling
+> that baselines are **per stage entry**. **R4 — the downtime design session —
+> is now unblocked and is the last thing this plan is waiting on.**
 
 ---
 

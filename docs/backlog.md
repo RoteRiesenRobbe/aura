@@ -3821,6 +3821,59 @@ again.
 before anything is authored — they diverge immediately and shape (a) is not a
 stepping stone to shape (b).
 
+### ⭐ 2026-08-01 — this entry now inherits a MEASURED problem, and a parked fix
+
+Feel pass 2 (`plan-feel-pass-2.md` §3.2) arrived at this entry from two
+directions in one session. The PO's checklist reply on the premise was *"we need
+more choice and identity on the base damage aura, it's very samey and bland"*,
+pointed here explicitly — and separately, that **leveling the Damage aura does
+nothing visible**. They are the same defect seen from two sides, so the
+augmentation session inherits both, along with the measurement rather than
+having to re-derive it.
+
+Damage is dealt as `vitals.HP(...)` — integer, **rounded per hit** — so a
+per-level step below ~0.5 HP is zero in play. `Damage` authors `damageHP: 14`
+with `damageHPPerLevel: 0.2222`, an order of magnitude flatter than anything
+else in the catalog (Vanguard +1.42, LongRangeStrike +1.44, Reaper +1.56,
+Wildfire +6.88). That flatness is **deliberate** — D16b of the numbers rewrite
+made Damage the worst damage aura at cap, reversing the inversion where the
+starter aura was the best — but nobody priced the side effect.
+
+**The survey.** Every levelable skill, every level-up, checked for whether *any*
+rendered number changes at `powerScale` 1, using the tooltip's own renderers
+(`roundHP` for absolute Focus, 2-decimal trim elsewhere) — i.e. exactly the
+condition under which `prog()` suppresses every `→` in the tooltip:
+
+```
+skill                  cat            cap  dead level-ups
+Damage                 active_aura     10  7/9: [1, 2, 4, 5, 6, 8, 9]
+1 of 48 levelable skills has at least one dead level-up
+```
+
+**It is Damage alone** — not a catalog-wide rounding problem, so a uniform
+scale-up of every number in the game would be the wrong instrument.
+
+⚑ **It is an early-game problem specifically**, because `powerScale` multiplies
+the step: 2/9 level-ups do something at character level 1, 3/9 at CL5, 5/9 at
+CL10, and **9/9 from CL15**. The quantization bites hardest exactly where new
+players are. ⚑ **But the second half survives at every level:** even at CL30
+where all nine move a number, the full **16-point** investment buys
+**374 → 428, +14 %**. Invisible early, poor value throughout.
+
+**Directions surveyed, none taken:** cut `maxLevel` to 1 (the free floor stops
+pretending to be levelable — cap-1 is free in the point curve, so no budget is
+lost) · level a different axis, `radiusPerLevel` / `maxTargetsPerLevel` /
+`costFractionOfMaxPerLevel` all being authorable today and `tickIntervalPerLevel`
+being the one to avoid, since dropping one effect's interval desyncs R3's
+one-beat rule · steepen the slope and raise the cap, which re-opens D16b.
+
+**PO ruling 2026-08-01: parked, to be answered here with the augmentation
+concept.** ⚑ **A catalog guard test is parked with it** — "every level must move
+at least one rendered number at `powerScale` 1" would be the durable form of
+this finding, but it goes **red on Damage the moment it is written**, so it can
+only ship alongside the content answer, or with an explicit Damage exemption
+that would be a tombstone for a decision not yet taken.
+
 ---
 
 ## 38. One species, many levels — a per-SPAWN level override
