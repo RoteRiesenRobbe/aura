@@ -1,23 +1,23 @@
 {
-  "_comment": "Q4 (plan-conversation-journal.md R3 + §7 q3, PO 2026-07-30): the simple version — three stages, no Miner leg. The traveller sits at (-20.6, -24.4) beside the tunnel mouth WITH a lamp he is done using (the kobolds are why he stopped travelling — that is how the Lampless name survives him handing one over); kill 6 kobolds (they nest north of the tunnel) and it is yours. Reward on the turn-in row (lampless-traveller.json): the Lantern aura + 700 XP. ⚑ L5b: with the 5 % Kobold drops deleted in the same chunk, that turn-in row is the ONLY source of Lantern in the world, and Lantern is the light the zone-1/2 tunnel is designed around — the quest is load-bearing content, pinned by TestContent_LanternHasAConversantSource. Abandon is safe (it re-offers, and the lifetime kill counters make re-acceptance instant).",
+  "_comment": "Q4 (plan-conversation-journal.md R3 + §7 q3, PO 2026-07-30): the simple version — three stages, no Miner leg. The traveller sits at (-20.6, -24.4) beside the tunnel mouth WITH a lamp he is done using; kill 6 kobolds (they nest north of the tunnel) and it is yours. Reward on the turn-in row (lampless-traveller.json): the Lantern aura + 700 XP. ⚑ L5b: with the 5 % Kobold drops deleted in the same chunk, that turn-in row is the ONLY source of Lantern in the world, and Lantern is the light the zone-1/2 tunnel is designed around — the quest is load-bearing content, pinned by TestContent_LanternHasAConversantSource. Abandon is safe (it re-offers, and the lifetime kill counters make re-acceptance instant). Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet — simple, direct wording only).",
   "id": "the-lost-lamp",
-  "title": "The Traveller's Lamp",
+  "title": "The Lost Lamp",
   "stages": [
     {
       "id": "cull",
-      "journal": "A traveller sits by the tunnel mouth, done travelling — the kobolds saw to that. Six of them dead, he says, and the lamp he has no more use for is mine.",
-      "tracker": "{n}/{m} kobolds slain",
+      "journal": "Kill 6 kobolds north of the tunnel.",
+      "tracker": "{n}/{m} kobolds killed",
       "objectives": [{ "kind": "kill", "species": "Kobold", "count": 6 }],
       "next": "bring_it_back"
     },
     {
       "id": "bring_it_back",
-      "journal": "Six kobolds down. The traveller is where I left him, lamp and all.",
-      "tracker": "Return to the traveller at the tunnel mouth"
+      "journal": "Return to the Traveller at the tunnel mouth.",
+      "tracker": "Return to the Traveller"
     },
     {
       "id": "lit",
-      "journal": "He handed the lamp over and showed me the trick of it — a lamp is not a thing you carry, it is a thing you learn. The tunnel looks less black already."
+      "journal": "Done. Learned Lantern."
     }
   ]
 }

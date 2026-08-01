@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Stands at the mouth of the dark forest and hands out Torch — the zone-1/2 tunnel's light/damage trade-off starts here. Shares the Hermit sprite (entityType override); named by the PO 2026-07-27. ⚑ Q4 SHAPE (conversation-journal §4.6, R1): single-teach NPC — the teaching is a NAMED row at root instead of the old nameless auto-expanded one.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Stands at the mouth of the dark forest and hands out Torch — the zone-1/2 tunnel's light/damage trade-off starts here. Shares the Hermit sprite (entityType override); named by the PO 2026-07-27. ⚑ TEXT SHAPE (PO 2026-08-02): single-teach NPC — teaching behind the unified 'Teach me something.' row as a row that NAMES the skill directly.",
   "id": 53,
   "name": "Lamplighter",
   "type": "MOB",
@@ -29,13 +29,22 @@
           "The dark is only dark until you carry your own light."
         ],
         "options": [
+          { "text": "Teach me something.", "next": "teachings" }
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": [
+          "What do you want to learn?"
+        ],
+        "options": [
           {
-            "text": "Show me.",
+            "text": "Torch",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Torch",
-                "line": "Oh, all alone out here? Here, take this."
+                "line": "I'll teach you Torch."
               }
             ]
           }

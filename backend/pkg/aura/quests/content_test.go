@@ -62,10 +62,10 @@ func contentRegistries(t *testing.T) (mobs.Registry, Registry) {
 
 // The authored census. A pin, not a rule: a fifth quest means a line here.
 var expectedQuests = map[string]string{
-	"village-welcome":    "Faces of the Village",
-	"turnip-chore":       "The Turnip Row",
+	"village-welcome":    "Village Welcome",
+	"turnip-chore":       "Turnip Chore",
 	"wolves-on-the-road": "Wolves on the Road",
-	"the-lost-lamp":      "The Traveller's Lamp", // retitled with Q4/R3 — nothing is lost any more
+	"the-lost-lamp":      "The Lost Lamp", // retitled 2026-08-02 with the plain-text pass (no stylized quest text yet)
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -346,7 +346,10 @@ func TestContent_TheWolfQuestWalksEndToEnd(t *testing.T) {
 // instant they accept. Every player will have spoken to the crier (he teaches the
 // base damage aura), so this is the normal path through village-welcome, not a
 // corner case.
-func TestContent_VillageWelcomeAutoCompletesForAVeteran(t *testing.T) {
+func TestContent_VillageWelcomeRequiresFreshTalksForAVeteran(t *testing.T) {
+	// N4/D4 reversed D3 here: a veteran who has already met both villagers no
+	// longer auto-advances at accept — every objective means "since this stage
+	// started", and a talk target must be spoken to again.
 	mr, qr := contentRegistries(t)
 
 	farmer, err := mr.GetByName("Farmer")
@@ -360,6 +363,12 @@ func TestContent_VillageWelcomeAutoCompletesForAVeteran(t *testing.T) {
 
 	require.NoError(t, l.Accept("village-welcome"))
 	path, running, _ := l.Progress("village-welcome")
-	assert.Equal(t, []string{"meet", "back"}, path, "accept cascades straight past the satisfied objective (D3)")
-	assert.True(t, running, "and rests on the turn-in stage — the reward still has to be collected")
+	assert.Equal(t, []string{"meet"}, path, "the old talks do not satisfy the fresh stage")
+	assert.True(t, running)
+
+	l.NoteTalkedTo(farmer.ID)
+	l.NoteTalkedTo(crier.ID)
+	path, running, _ = l.Progress("village-welcome")
+	assert.Equal(t, []string{"meet", "back"}, path, "fresh talks advance to the turn-in stage")
+	assert.True(t, running, "the reward still has to be collected")
 }

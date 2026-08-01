@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. ⚑ QUESTS (conversation-journal Q4/R3): offers AND turns in `the-lost-lamp`, now the simple three-stage version — he HAS a lamp and is done travelling (the kobolds are why he stopped, which is how the Lampless name survives him handing one over); kill 6 kobolds and it is yours. His turn-in row is the ONLY source of the Lantern aura in the world (L5b — the kobold drops died with this chunk) plus 700 XP. ⚑ Q4 SHAPE (R1): the greeting at root, the quest behind its own row with its brief as that node's text. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule), so Accept vanishes once taken and the turn-in appears exactly when walkable, while the question row stays askable. The one conditional node left is the completed-state greeting: it sits ABOVE root because the entry node is the first visible one.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. ⚑ QUESTS (conversation-journal Q4/R3): offers AND turns in `the-lost-lamp`, the simple three-stage version — kill 6 kobolds and his lamp is yours. His turn-in row is the ONLY source of the Lantern aura in the world (L5b — the kobold drops died with this chunk) plus 700 XP. ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet; the brief states the task, accept is 'I'll do it.', the turn-in states the completed fact and names the taught skill. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule). The one conditional node left is the completed-state greeting: it sits ABOVE root because the entry node is the first visible one.",
   "id": 61,
   "name": "LamplessTraveller",
   "type": "MOB",
@@ -29,7 +29,7 @@
           { "kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "completed" }
         ],
         "lines": [
-          "Still here, aye. But lit. There's a difference, and you're the reason for it."
+          "You have the lamp now. Thanks again."
         ]
       },
       {
@@ -38,45 +38,45 @@
           "Sitting is free. Walking in the dark is not."
         ],
         "options": [
-          { "text": "Why are you sitting out here?", "next": "lamp" }
+          { "text": "Do you have a task for me?", "next": "lamp" }
         ]
       },
       {
         "id": "lamp",
         "lines": [
-          "Kobolds. They made the road theirs, and I am done walking it.",
-          "Six of them dead and my lamp is yours — a man going nowhere has no use for one."
+          "Kill 6 kobolds north of the tunnel, then come back to me.",
+          "My lamp is yours when it is done."
         ],
         "options": [
           {
-            "text": "I'll kill your six kobolds.",
+            "text": "I'll do it.",
             "grants": [
               {
                 "kind": "offer_quest",
                 "quest": "the-lost-lamp",
-                "line": "Then it's settled. North of the tunnel — you'll hear them before you see them."
+                "line": "Good."
               }
             ]
           },
           {
-            "text": "Six kobolds, dealt with.",
+            "text": "The 6 kobolds are dead.",
             "grants": [
               {
                 "kind": "advance_quest",
                 "quest": "the-lost-lamp",
                 "fromStage": "bring_it_back",
                 "toStage": "lit",
-                "line": "...So they are. Then it's yours. Watch, now —"
+                "line": "Good."
               },
               {
                 "kind": "teach_skill",
                 "skill": "Lantern",
-                "line": "A lamp is not a thing you carry. It is a thing you learn. Hold it like so, and the dark stops being a wall."
+                "line": "I'll teach you Lantern."
               },
               {
                 "kind": "grant_xp",
                 "xp": 700,
-                "line": "Go on into that tunnel, then. It's only black until somebody walks in lit."
+                "line": "Here is your reward."
               }
             ]
           },
@@ -86,7 +86,7 @@
       {
         "id": "lamp_where",
         "lines": [
-          "North of the tunnel, where the trees thin to scree. Follow the chittering."
+          "North of the tunnel."
         ]
       }
     ]

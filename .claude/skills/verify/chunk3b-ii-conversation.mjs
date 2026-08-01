@@ -274,9 +274,10 @@ await clickRow('Teach me something');
 const list = await panel();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-2-teachings.png` });
 
-const torchRow = list?.rows.find((r) => /light to carry/i.test(r.text));
-const igniteRow = list?.rows.find((r) => /fire for my enemies/i.test(r.text));
-const immolateRow = list?.rows.find((r) => /Everything you have/i.test(r.text));
+// Rows NAME the skill directly since the 2026-08-02 plain-text pass.
+const torchRow = list?.rows.find((r) => /Torch/i.test(r.text));
+const igniteRow = list?.rows.find((r) => /Ignite/i.test(r.text));
+const immolateRow = list?.rows.find((r) => /Immolate/i.test(r.text));
 
 // ⚑ No exact row COUNT. This asserted `=== 3` and went red the day `3b1b3ef6`
 // authored a fourth teaching on this NPC (BindElemental, the charm teacher) —
@@ -294,7 +295,7 @@ check('Immolate is LOCKED and names level 12',
   immolateRow?.locked === true && /level 12/.test(immolateRow.text), `${JSON.stringify(immolateRow)}`);
 // The fourth teaching, authored in `3b1b3ef6` — cover it rather than merely
 // tolerate it, so this NPC's whole authored wall set is under test.
-const bindRow = list?.rows.find((r) => /servant of the flame/i.test(r.text));
+const bindRow = list?.rows.find((r) => /Bind Elemental/i.test(r.text));
 check('BindElemental is LOCKED and names level 15',
   bindRow?.locked === true && /level 15/.test(bindRow.text), `${JSON.stringify(bindRow)}`);
 
@@ -303,7 +304,7 @@ check('BindElemental is LOCKED and names level 15',
 // so clicking a locked row changes nothing — no reply, no navigation, no grant.
 const beforeLocked = await panel();
 const beforeLockedBook = await spellbook();
-await clickRow('fire for my enemies');
+await clickRow('Ignite');
 const afterLockedPanel = await panel();
 const afterLockedBook = await spellbook();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-3-inert.png` });
@@ -316,14 +317,14 @@ check('...and teaches NOTHING',
   `spellbook ${JSON.stringify(beforeLockedBook)} → ${JSON.stringify(afterLockedBook)}`);
 
 // ================= 4. taking a row teaches exactly that row (D17) =============
-await clickRow('A light to carry');
+await clickRow('Torch');
 const taught = await panel();
 const afterTorch = await spellbook();
 const banner = await bannerText();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-4-taught.png` });
 
 check('Clicking Torch speaks its grant line',
-  /a light for you in dark places/i.test(taught?.lines ?? ''), `lines: ${JSON.stringify(taught?.lines)}`);
+  /I'll teach you Torch/i.test(taught?.lines ?? ''), `lines: ${JSON.stringify(taught?.lines)}`);
 check('...teaches Torch AND ONLY Torch (D17 retires the ordered walk)',
   afterTorch.some((s) => /Torch/i.test(s))
     && !afterTorch.some((s) => /Ignite|Immolate/i.test(s)),
@@ -331,7 +332,7 @@ check('...teaches Torch AND ONLY Torch (D17 retires the ordered walk)',
 check('...fires the attribution banner',
   /Taught by: Emberkeeper/.test(banner), `banner: ${JSON.stringify(banner)}`);
 check('...and the taught row vanishes from the next snapshot',
-  (await panel())?.rows.every((r) => !/light to carry/i.test(r.text)) === true,
+  (await panel())?.rows.every((r) => !/Torch/i.test(r.text)) === true,
   `rows now: ${JSON.stringify((await panel())?.rows.map((r) => r.text))}`);
 
 // ================= 5. Back, and the hint branch =================

@@ -1,23 +1,23 @@
 {
-  "_comment": "plan-quests.md C4, quest 2 of 4 — the harvest verb. D2: harvest-N is kill-N of a harvest species, so this rides the same lifetime counters as a wolf cull; the Turnip is damageable ONLY by a `harvest`-tagged aura, which is the one the Farmer teaches in the same conversation. Six turnips stand in the row north of him and respawn on 600 ticks, so five is a chore rather than a wait. Reward: 150 XP. Prose cut ≥50 % + trackers authored with conversation-journal Q4.",
+  "_comment": "plan-quests.md C4, quest 2 of 4 — the harvest verb. D2: harvest-N is kill-N of a harvest species, so this rides the same lifetime counters as a wolf cull; the Turnip is damageable ONLY by a `harvest`-tagged aura, which is the one the Farmer teaches in the same conversation. Six turnips stand in the row north of him and respawn on 600 ticks, so five is a chore rather than a wait. Reward: 150 XP. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet — simple, direct wording only).",
   "id": "turnip-chore",
-  "title": "The Turnip Row",
+  "title": "Turnip Chore",
   "stages": [
     {
       "id": "pull",
-      "journal": "Five turnips out of the north row before the boars get them. Not by hand — the farmer will show me how it is done if I ask.",
-      "tracker": "{n}/{m} turnips pulled",
+      "journal": "Harvest 5 turnips from the row north of the Farmer.",
+      "tracker": "{n}/{m} turnips harvested",
       "objectives": [{ "kind": "harvest", "species": "Turnip", "count": 5 }],
       "next": "handover"
     },
     {
       "id": "handover",
-      "journal": "Five turnips out of the ground. The farmer will want to count them.",
-      "tracker": "Return to the farmer"
+      "journal": "Return to the Farmer.",
+      "tracker": "Return to the Farmer"
     },
     {
       "id": "paid",
-      "journal": "He counted all five and allowed that the row would have rotted without me. From a farmer, that is thanks."
+      "journal": "Done. Reported back to the Farmer."
     }
   ]
 }

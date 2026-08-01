@@ -18,15 +18,17 @@
 //   Z  Damage is in the spellbook at CREATION (the Q4 level-1 milestone) —
 //      before any conversation. (The silence of the seeding is pinned in Go.)
 //   A  village-welcome — talk_to, and the R1 headline at the surface: the
-//      quest sits behind a row, its Accept row VANISHES once taken while the
-//      sibling question stays, and the turn-in row appears exactly when
-//      walkable. Plus the authored "Return to the hermit" tracker.
+//      quest sits behind a row, its Accept row VANISHES once taken, and the
+//      turn-in row appears exactly when walkable. Plus the authored
+//      "Return to the Hermit" tracker. (Row texts follow the 2026-08-02
+//      plain-text pass: entry rows are "Do you have a task for me?", accepts
+//      are "I'll do it.", turn-ins state the completed fact.)
 //   B  turnip-chore — harvest. Accept, then Back to root for the Harvest
-//      teaching (the Q4 shape: the offer no longer navigates; Back is the way
-//      out of a quest node) → five real turnips → turn-in. Plus the
-//      "{n}/{m} turnips pulled" tracker.
+//      teaching (behind the unified 'Teach me something.' row; the offer no
+//      longer navigates, Back is the way out of a quest node) → five real
+//      turnips → turn-in. Plus the "{n}/{m} turnips harvested" tracker.
 //   D  the-lost-lamp — the simplified R3 version on the traveller alone:
-//      follow-up answer-node + Back, accept, the "{n}/{m} kobolds slain"
+//      follow-up answer-node + Back, accept, the "{n}/{m} kobolds killed"
 //      tracker. Deliberately stops before the kobolds — the kill path is
 //      proven by B/C and the turn-in reward is pinned by
 //      TestContent_LanternIsQuestOnlyAndHasASource.
@@ -317,18 +319,17 @@ try {
   await warpTo(AT.Hermit);
   const hermit = await talkTo('Hermit');
   check('A1 the Hermit greets at ROOT, the quest behind its own row (R1 — no greeting hijack)',
-    hermit?.actor === 'Hermit' && hermit.rows.some((r) => r.includes('Any advice for a newcomer')),
+    hermit?.actor === 'Hermit' && hermit.rows.some((r) => r.includes('Do you have a task for me')),
     `actor=${hermit?.actor} rows=${JSON.stringify(hermit?.rows)}`);
 
-  await clickRow('Any advice for a newcomer');
+  await clickRow('Do you have a task for me');
   const questNode = await panel();
-  check('A2 the quest node speaks the brief and offers Accept + a follow-up question',
-    questNode?.rows.some((r) => r.includes("I'll go and be seen"))
-    && questNode.rows.some((r) => r.includes('Why does it matter'))
-    && !questNode.rows.some((r) => r.includes('spoken to them both')),
-    `rows=${JSON.stringify(questNode?.rows)} (turn-in must be hidden before the deed)`);
+  check('A2 the quest node speaks the brief and offers Accept (turn-in hidden before the deed)',
+    questNode?.rows.some((r) => r.includes("I'll do it"))
+    && !questNode.rows.some((r) => r.includes('I talked to the Farmer')),
+    `rows=${JSON.stringify(questNode?.rows)}`);
 
-  await clickRow("I'll go and be seen");
+  await clickRow("I'll do it");
   const afterOffer = await waitForJournal((j) => inList(j.running, titleOf('village-welcome')));
   const welcomeDetail = await detailOf(titleOf('village-welcome'));
   check('A3 clicking Accept starts the quest and writes its first diary entry',
@@ -342,20 +343,13 @@ try {
     `objectives=${JSON.stringify(welcomeDetail?.objectives)}`);
 
   const reOffered = await panel();
-  check('A6 ⭐ the Accept row VANISHED the moment the quest started, its sibling question STAYS (R1/Q1 show-rule)',
+  check('A6 ⭐ the Accept row VANISHED the moment the quest started (R1/Q1 show-rule)',
     reOffered !== null
-    && !reOffered.rows.some((r) => r.includes("I'll go and be seen"))
-    && reOffered.rows.some((r) => r.includes('Why does it matter')),
+    && !reOffered.rows.some((r) => r.includes("I'll do it")),
     `rows after accepting=${JSON.stringify(reOffered?.rows)}`);
-
-  const answered = await clickRow('Why does it matter');
-  const answerNode = await panel();
-  const wentBack = await clickBack();
-  const backOnQuestNode = await panel();
-  check('A7 the follow-up question is an answer-node, and Back returns to the quest node (R1)',
-    answered && answerNode?.canGoBack && wentBack
-    && backOnQuestNode?.rows.some((r) => r.includes('Why does it matter')),
-    `answer lines="${(answerNode?.lines ?? '').slice(0, 60)}", rows after Back=${JSON.stringify(backOnQuestNode?.rows)}`);
+  // A7 (answer-node + Back off a quest node) retired with the 2026-08-02
+  // plain-text pass — the Hermit's lore follow-up went with the stylized text.
+  // The same mechanism is still covered by D2/D3 (the Traveller's nest question).
   await leave();
 
   await warpTo(AT.Farmer);
@@ -374,20 +368,20 @@ try {
     advancedDetail?.entries.length === 2 && advancedDetail.entries[1] === prose('village-welcome', 'back'),
     `entries=${JSON.stringify(advancedDetail?.entries)}`);
   check('A11 ...and the dialogue stage shows its AUTHORED tracker (Q2 override, Q4 content)',
-    (advancedDetail?.objectives ?? []).some((o) => o.includes('Return to the hermit')),
+    (advancedDetail?.objectives ?? []).some((o) => o.includes('Return to the Hermit')),
     `objectives=${JSON.stringify(advancedDetail?.objectives)}`);
 
   await warpTo(AT.Hermit);
   await talkTo('Hermit');
-  await clickRow('Any advice for a newcomer');
+  await clickRow('Do you have a task for me');
   const turnInNode = await panel();
   check('A12 ⭐ the turn-in row APPEARED on the same quest node, exactly when walkable (show-rule)',
-    turnInNode?.rows.some((r) => r.includes('spoken to them both'))
-    && !turnInNode.rows.some((r) => r.includes("I'll go and be seen")),
+    turnInNode?.rows.some((r) => r.includes('I talked to the Farmer'))
+    && !turnInNode.rows.some((r) => r.includes("I'll do it")),
     `rows=${JSON.stringify(turnInNode?.rows)}`);
 
   const xpBefore = await xpInLevel();
-  await clickRow('spoken to them both');
+  await clickRow('I talked to the Farmer');
   const done = await waitForJournal((j) => inList(j.completed, titleOf('village-welcome')));
   const xpAfter = await xpInLevel();
   check('A13 the turn-in completes the quest and moves it to Completed (D7)',
@@ -407,28 +401,29 @@ try {
   await warpTo(AT.Farmer);
   const farmer = await talkTo('Farmer');
   check('B1 the Farmer greets at root with the chore behind its own row',
-    farmer?.rows.some((r) => r.includes('Need a hand with anything')),
+    farmer?.rows.some((r) => r.includes('Do you have a task for me')),
     `rows=${JSON.stringify(farmer?.rows)}`);
 
-  await clickRow('Need a hand with anything');
+  await clickRow('Do you have a task for me');
   const chore = await panel();
   check('B2 the chore node offers Accept (turn-in hidden before the deed)',
-    chore?.rows.some((r) => r.includes("I'll clear the row"))
-    && !chore.rows.some((r) => r.includes('out of the ground')),
+    chore?.rows.some((r) => r.includes("I'll do it"))
+    && !chore.rows.some((r) => r.includes('I harvested the 5 turnips')),
     `rows=${JSON.stringify(chore?.rows)}`);
 
-  await clickRow("I'll clear the row");
+  await clickRow("I'll do it");
   await waitForJournal((j) => inList(j.running, titleOf('turnip-chore')));
   const choreDetail = await detailOf(titleOf('turnip-chore'));
-  check('B3 accepting writes the diary and shows the "{n}/{m} turnips pulled" tracker (Q2/Q4)',
+  check('B3 accepting writes the diary and shows the "{n}/{m} turnips harvested" tracker (Q2/Q4)',
     choreDetail?.entries[0] === prose('turnip-chore', 'pull')
-    && (choreDetail?.objectives ?? []).some((o) => /^\d+\/5 turnips pulled$/.test(o)),
+    && (choreDetail?.objectives ?? []).some((o) => /^\d+\/5 turnips harvested$/.test(o)),
     `entries=${JSON.stringify(choreDetail?.entries)} objectives=${JSON.stringify(choreDetail?.objectives)}`);
 
   // The Q4 shape: the offer row no longer navigates — Back to root is the way
-  // to the teaching the chore needs.
+  // to the teaching the chore needs (behind the unified 'Teach me something.').
   await clickBack();
-  await clickRow('harvesting is done');
+  await clickRow('Teach me something');
+  await clickRow('Harvest');
   await page.waitForTimeout(1200);
   const book = await spellbook();
   check('B4 Back → root → the named teaching row: Harvest learned in the same conversation',
@@ -449,16 +444,16 @@ try {
     check('B6 five real harvests advance the objective stage off the lifetime counters (D2/D3)',
       pulled.entries[1] === prose('turnip-chore', 'handover'), `entries=${JSON.stringify(pulled.entries)}`);
     check('B7 ...and the handover stage shows its authored tracker',
-      (pulled.objectives ?? []).some((o) => o.includes('Return to the farmer')),
+      (pulled.objectives ?? []).some((o) => o.includes('Return to the Farmer')),
       `objectives=${JSON.stringify(pulled.objectives)}`);
 
     await warpTo(AT.Farmer);
     await talkTo('Farmer');
-    await clickRow('Need a hand with anything');
+    await clickRow('Do you have a task for me');
     const turnIn = await panel();
     check('B8 the turn-in row appeared behind the same chore row',
-      turnIn?.rows.some((r) => r.includes('out of the ground')), `rows=${JSON.stringify(turnIn?.rows)}`);
-    await clickRow('out of the ground');
+      turnIn?.rows.some((r) => r.includes('I harvested the 5 turnips')), `rows=${JSON.stringify(turnIn?.rows)}`);
+    await clickRow('I harvested the 5 turnips');
     const done = await waitForJournal((j) => inList(j.completed, titleOf('turnip-chore')));
     check('B9 the chore completes',
       inList(done?.completed ?? [], titleOf('turnip-chore')),
@@ -479,30 +474,30 @@ try {
   await warpTo(AT.Traveller);
   const traveller = await talkTo('Lampless Traveller');
   check('D1 the traveller greets at root, the lamp behind its own row',
-    traveller?.rows.some((r) => r.includes('Why are you sitting out here')),
+    traveller?.rows.some((r) => r.includes('Do you have a task for me')),
     `actor=${traveller?.actor} rows=${JSON.stringify(traveller?.rows)}`);
 
-  await clickRow('Why are you sitting out here');
+  await clickRow('Do you have a task for me');
   const lampNode = await panel();
   check('D2 the lamp node offers Accept + the nest question (turn-in hidden)',
-    lampNode?.rows.some((r) => r.includes('kill your six'))
+    lampNode?.rows.some((r) => r.includes("I'll do it"))
     && lampNode.rows.some((r) => r.includes('Where do they nest'))
-    && !lampNode.rows.some((r) => r.includes('dealt with')),
+    && !lampNode.rows.some((r) => r.includes('kobolds are dead')),
     `rows=${JSON.stringify(lampNode?.rows)}`);
 
   await clickRow('Where do they nest');
   const nest = await panel();
   await clickBack();
   check('D3 the nest question is an answer-node with Back (R1 follow-ups)',
-    /North of the tunnel/i.test(nest?.lines ?? '') && (await panel())?.rows.some((r) => r.includes('kill your six')),
+    /North of the tunnel/i.test(nest?.lines ?? '') && (await panel())?.rows.some((r) => r.includes("I'll do it")),
     `lines="${nest?.lines}"`);
 
-  await clickRow('kill your six');
+  await clickRow("I'll do it");
   await waitForJournal((j) => inList(j.running, titleOf('the-lost-lamp')));
   const lampDetail = await detailOf(titleOf('the-lost-lamp'));
-  check('D4 accepting writes the diary and shows the "{n}/{m} kobolds slain" tracker (Q2/Q4)',
+  check('D4 accepting writes the diary and shows the "{n}/{m} kobolds killed" tracker (Q2/Q4)',
     lampDetail?.entries[0] === prose('the-lost-lamp', 'cull')
-    && (lampDetail?.objectives ?? []).some((o) => /^\d+\/6 kobolds slain$/.test(o)),
+    && (lampDetail?.objectives ?? []).some((o) => /^\d+\/6 kobolds killed$/.test(o)),
     `entries=${JSON.stringify(lampDetail?.entries)} objectives=${JSON.stringify(lampDetail?.objectives)}`);
   await leave();
 
@@ -519,8 +514,8 @@ try {
 try {
   await warpTo(AT.TownCrier);
   const crier = await talkTo('Town Crier');
-  check('C1 the crier greets at root with the wolves behind "What needs doing?"',
-    crier?.rows.some((r) => r.includes('What needs doing')), `rows=${JSON.stringify(crier?.rows)}`);
+  check('C1 the crier greets at root with the wolves behind "Do you have a task for me?"',
+    crier?.rows.some((r) => r.includes('Do you have a task for me')), `rows=${JSON.stringify(crier?.rows)}`);
 
   // Q4: the crier's teachings no longer offer Damage — it is the creation
   // milestone now. Recall must still be there (locked or not: the row shows).
@@ -529,12 +524,12 @@ try {
   check('C2 ⭐ the crier TEACHES NO DAMAGE any more (Q4) — Recall remains',
     teachings !== null
     && !teachings.rows.some((r) => /damage/i.test(r))
-    && teachings.rows.some((r) => r.includes('A way back here')),
+    && teachings.rows.some((r) => r.includes('Recall')),
     `teaching rows=${JSON.stringify(teachings?.rows)}`);
   await clickBack();
 
-  await clickRow('What needs doing');
-  await clickRow('thin them out');
+  await clickRow('Do you have a task for me');
+  await clickRow("I'll do it");
   await waitForJournal((j) => inList(j.running, titleOf('wolves-on-the-road')));
   await leave();
 
@@ -570,24 +565,24 @@ try {
     check('C3 eight real wolf kills advance the cull off the counters',
       hunted.entries[1] === prose('wolves-on-the-road', 'carry_word'), `entries=${JSON.stringify(hunted.entries)}`);
     check('C4 ...and the carry stage shows its authored tracker (the choice, in the journal)',
-      (hunted.objectives ?? []).some((o) => /Carry word east/.test(o)),
+      (hunted.objectives ?? []).some((o) => /Report to the City Guard or the Shaman/.test(o)),
       `objectives=${JSON.stringify(hunted.objectives)}`);
 
     await warpTo(AT.Shaman);
     const shaman = await talkTo('Shaman');
     check('C5 ⭐ the Shaman carries a turn-in row AT ROOT for a quest given by somebody else (D9)',
-      shaman?.rows.some((r) => r.includes('eight of them are dealt with')),
+      shaman?.rows.some((r) => r.includes('8 wolves on the west road are dead')),
       `actor=${shaman?.actor} rows=${JSON.stringify(shaman?.rows)}`);
     await leave(); // deliberately NOT taken: the other leg is the one we walk
 
     await warpTo(AT.CityGuard);
     const guard = await talkTo('City Guard');
     check('C6 ⭐ ...and so does the City Guard — the same stage, two eligible NPCs (D9)',
-      guard?.rows.some((r) => r.includes('eight wolves are dealt with')),
+      guard?.rows.some((r) => r.includes('8 wolves on the west road are dead')),
       `actor=${guard?.actor} rows=${JSON.stringify(guard?.rows)}`);
 
     const bookBefore = await spellbook();
-    await clickRow('eight wolves are dealt with');
+    await clickRow('8 wolves on the west road are dead');
     const done = await waitForJournal((j) => inList(j.completed, titleOf('wolves-on-the-road')));
     const bookAfter = await spellbook();
     const doneDetail = await detailOf(titleOf('wolves-on-the-road'));
@@ -605,7 +600,7 @@ try {
     await warpTo(AT.Shaman);
     const shamanAfter = await talkTo('Shaman');
     check('C9 ⭐ the road not taken is closed — the Shaman\'s turn-in row is gone once the quest is finished',
-      !(shamanAfter?.rows ?? []).some((r) => r.includes('eight of them are dealt with')),
+      !(shamanAfter?.rows ?? []).some((r) => r.includes('8 wolves on the west road are dead')),
       `rows=${JSON.stringify(shamanAfter?.rows)}`);
     await leave();
   }

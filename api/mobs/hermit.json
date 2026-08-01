@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. The village hermit: first aid for yourself, then healing for others — and, from level 10, the two beast-handling cooldowns (Calm, CharmBeast) plan-faction-flips.md shipped without a source. ⚑ QUESTS: offers and turns in `village-welcome`, the tutorial-shaped talk_to errand. ⚑ Q4 SHAPE (conversation-journal §4.6, R1): greeting at root, teachings behind one row as four NAMED one-grant rows (the old nameless multi-grant walls opened the panel on a wall of greyed skill rows), the quest behind its own row with its brief as that node's text plus a follow-up answer-node. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule), so Accept vanishes once taken, the turn-in appears exactly when walkable, and the question stays askable throughout.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. The village hermit: first aid for yourself, then healing for others — and, from level 10, the two beast-handling cooldowns (Calm, CharmBeast) plan-faction-flips.md shipped without a source. ⚑ QUESTS: offers and turns in `village-welcome`, the tutorial-shaped talk_to errand. ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet. Teaching is always behind a root 'Teach me something.' row leading to a teachings node whose rows NAME the skill directly; quest briefs state the task, accept rows are 'I'll do it.', turn-in rows state the completed fact. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule), so Accept vanishes once taken, the turn-in appears exactly when walkable, and the question stays askable throughout.",
   "id": 52,
   "name": "Hermit",
   "type": "MOB",
@@ -28,101 +28,92 @@
           "Did you break your nose recently? Doesn't look good."
         ],
         "options": [
-          { "text": "Any advice for a newcomer?", "next": "welcome" },
+          { "text": "Do you have a task for me?", "next": "welcome" },
           { "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
         "id": "welcome",
         "lines": [
-          "A stranger dies quicker than a face people know.",
-          "Two faces worth the walk: the farmer at his field, the crier in the square. Be seen by both, then come back."
+          "Talk to the Farmer and the Town Crier, then come back to me."
         ],
         "options": [
           {
-            "text": "I'll go and be seen.",
+            "text": "I'll do it.",
             "grants": [
               {
                 "kind": "offer_quest",
                 "quest": "village-welcome",
-                "line": "The farmer and the crier. Neither of them bites, whatever the crier would have you believe."
+                "line": "Good."
               }
             ]
           },
           {
-            "text": "I've spoken to them both.",
+            "text": "I talked to the Farmer and the Town Crier.",
             "grants": [
               {
                 "kind": "advance_quest",
                 "quest": "village-welcome",
                 "fromStage": "back",
                 "toStage": "known",
-                "line": "Good. That's the whole of it — the village knows your face now."
+                "line": "Good."
               },
               {
                 "kind": "grant_xp",
                 "xp": 150,
-                "line": "You listened. Most don't."
+                "line": "Here is your reward."
               }
             ]
-          },
-          { "text": "Why does it matter?", "next": "welcome_why" }
-        ]
-      },
-      {
-        "id": "welcome_why",
-        "lines": [
-          "A known face gets pulled out of the ditch. A stranger gets stepped over.",
-          "Out here that is the whole of the law."
+          }
         ]
       },
       {
         "id": "teachings",
         "lines": [
-          "Sit still, then. What is it you need?"
+          "What do you want to learn?"
         ],
         "options": [
           {
-            "text": "Patching my own wounds.",
+            "text": "First Aid",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "FirstAid",
                 "requiredLevel": 2,
-                "line": "Let me show you how to tend to those wounds..."
+                "line": "I'll teach you First Aid."
               }
             ]
           },
           {
-            "text": "Tending to others.",
+            "text": "Heal",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Heal",
                 "requiredLevel": 3,
-                "line": "Let me show you how to tend to the wounds of your allies..."
+                "line": "I'll teach you Heal."
               }
             ]
           },
           {
-            "text": "A word for wild things.",
+            "text": "Calm",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Calm",
                 "requiredLevel": 10,
-                "line": "Most things that snarl at you would rather not. Let me show you how to ask them to stop."
+                "line": "I'll teach you Calm."
               }
             ]
           },
           {
-            "text": "A companion from the wild.",
+            "text": "Charm Beast",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "CharmBeast",
                 "requiredLevel": 10,
-                "line": "And if you ask well enough, some of them will walk beside you for a while."
+                "line": "I'll teach you Charm Beast."
               }
             ]
           }

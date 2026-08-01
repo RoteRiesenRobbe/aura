@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Harvest at the Ruebenfeld, the peasant-onboarding chore gate (GDD 5). ⚑ QUESTS: offers and turns in `turnip-chore` — its target species is only damageable by the `harvest`-tagged aura he teaches, which is why the quest brief points back at his teaching row. ⚑ Q4 SHAPE (conversation-journal §4.6, R1): greeting at root, the quest behind its own row with its brief as that node's text, the teaching a named row at root. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule).",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Harvest at the Ruebenfeld, the peasant-onboarding chore gate (GDD 5). ⚑ QUESTS: offers and turns in `turnip-chore` — its target species is only damageable by the `harvest`-tagged aura he teaches, which is why the quest brief points back at his teaching row. ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): quest and teach text is deliberately plain — no lore or stylized wording yet. Teaching is behind a root 'Teach me something.' row leading to a teachings node whose row NAMES the skill directly. Quest rows carry NO quest_at_stage gate — a row is shown iff its ledger op would succeed (the Q1 show-rule).",
   "id": 51,
   "name": "Farmer",
   "type": "MOB",
@@ -28,51 +28,60 @@
           "Tend the field or go out there adventuring — I know what I would pick."
         ],
         "options": [
-          { "text": "Need a hand with anything?", "next": "turnips" },
-          {
-            "text": "Show me how the harvesting is done.",
-            "grants": [
-              {
-                "kind": "teach_skill",
-                "skill": "Harvest",
-                "requiredLevel": 1,
-                "line": "If adventuring becomes too stressful, there is always farming!"
-              }
-            ]
-          }
+          { "text": "Do you have a task for me?", "next": "turnips" },
+          { "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
         "id": "turnips",
         "lines": [
-          "The north row is ready and I am not. Five turnips out of the ground before the boars find them.",
-          "And not by hand — ask me to show you the harvesting first. I'll not have you bruising the crop."
+          "Harvest 5 turnips from the row north of here, then come back to me.",
+          "You need the Harvest skill for that — ask me to teach you first."
         ],
         "options": [
           {
-            "text": "I'll clear the row.",
+            "text": "I'll do it.",
             "grants": [
               {
                 "kind": "offer_quest",
                 "quest": "turnip-chore",
-                "line": "Five will do. And mind the treeline while you're bent over."
+                "line": "Good."
               }
             ]
           },
           {
-            "text": "Your turnips are out of the ground.",
+            "text": "I harvested the 5 turnips.",
             "grants": [
               {
                 "kind": "advance_quest",
                 "quest": "turnip-chore",
                 "fromStage": "handover",
                 "toStage": "paid",
-                "line": "...Aye. All five. The row would have rotted without you, and I'll not pretend otherwise."
+                "line": "Good."
               },
               {
                 "kind": "grant_xp",
                 "xp": 150,
-                "line": "Honest work. It counts for something, whatever the crier says."
+                "line": "Here is your reward."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": [
+          "What do you want to learn?"
+        ],
+        "options": [
+          {
+            "text": "Harvest",
+            "grants": [
+              {
+                "kind": "teach_skill",
+                "skill": "Harvest",
+                "requiredLevel": 1,
+                "line": "I'll teach you Harvest."
               }
             ]
           }
