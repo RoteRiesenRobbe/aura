@@ -2247,3 +2247,74 @@ level · aura-off bystander earns nothing · army-vs-orc skirmish pays nothing �
 the kill broadcast names both (L-P4). Per the standing per-bug model, not
 blocking. **L-P1 (participant-ref XP loss on death) stays on record,
 untouched** — fix vehicle quest L11 / step 8.
+
+### The next-level preview is gated on affordability ✅ DONE 2026-08-01, `66646743`
+
+**A PO ask, raised straight into a session and shipped in one sitting** —
+*"we should only show the effects a level up of a skill will give once a skill
+point is actually available; otherwise the tooltip should just show the current
+effects."* Frontend only, 3 files + 1 harness. Not a numbers item and not part
+of R1–R3, though it lands on the surface all three of them re-authored.
+
+**What was wrong:** the round-4 tooltip fix gave every level-scaled value a
+`current → next` preview whenever the skill was below its cap, which is a
+different condition from *the player can act on this*. A level-1 character
+holds **zero** points (`TotalSkillPoints` is `(level−1) × pointsPerLevel`), so
+from creation until the first ding every hovered skill advertised an upgrade
+with no way to buy it — and the same returns the moment the last point is
+spent, which at the cap is the permanent state.
+
+**The shape, as built:**
+
+- **One preview cap.** Every `→` in the tooltip renders through `prog()`, which
+  previews only while `level < maxLevel`, so the whole feature is
+  `previewMax = showNextLevel ? def.maxLevel : level` threaded to the effect
+  blocks and the four skill-level `prog` calls. Damage, cost, radius, targets,
+  tick cadence, cooldown and cast time are gated by that one line, and **a new
+  effect type inherits the gating without knowing it exists**.
+- **A RENDERING cap only** — the subtitle still reads `def.maxLevel`, so the
+  player keeps seeing how far the skill can go, and the cooldown branch's
+  summed per-cast cost still measures its slope across the real level range:
+  `previewMax` decides *whether* a next value is shown, never what it would be.
+- **PO ruling (choice prompt): the trigger is AFFORDABILITY, not possession.**
+  Levels cost 1–3 points on the D10 curve, so *"I hold a point"* and *"I can
+  buy this level"* are different questions. `showTooltip` asks
+  `skillPointCost(def.maxLevel, level + 1)` against the live count — the same
+  rule `updateSpellbook` already greys the `+` button on — so the preview
+  appears **exactly when the button is live**.
+- **The count is pushed, not pulled.** `SkillTooltip` cannot import `HUD` back,
+  so `updateSkillPointsDisplay` hands it over on every change. It starts at 0,
+  the conservative direction: before the first snapshot there is no preview
+  rather than a wrong one.
+
+**⚑ The wiring is invisible to vitest, by construction.** `formatSkillTooltip`
+stays pure and takes the flag as an argument, so **a HUD that never pushed the
+count would leave all 111 unit tests green with the feature dead on screen** —
+which is why `round4-tooltip.mjs` grew the leg that watches it (no preview at
+character level 1, preview after the XP cheat hands out 29 points).
+
+**⚑ And that harness needed a real repair — the same failure mode the R1/R2
+cost-wording fix had just been through.** Its radius check proves radius does
+*not* ride the character curve by comparing the whole rendered line, and the XP
+cheat between its two hovers is precisely what turns the preview on: so an
+unmoved radius (`Radius: 2.5` vs `Radius: 2.5 → 2.6`) reported as **moved**,
+i.e. as an over-applied power scale. It now compares the current value alone.
+**A harness that asserts on rendered text is broken by any change to what is
+rendered**, not only by a change to what it measures.
+
+**Verified:** **111 vitest** (4 new — previews present when affordable, absent
+when not, the subtitle unaffected either way, and a cooldown's summed per-cast
+cost gated too) · `tsc` · prod build · harnesses one at a time on fresh
+servers: **`round4-tooltip` all legs** and **`r1-focus-cost` 5/5** (cost
+reduction still visible, `21,26 → 20,25` Focus). Read off a real client:
+Rejuvenation at character level 1 with no points renders `Heal over time: 4 × 6
+over 11.88s | Costs you: 3 Focus | Radius: 2.5`, and after XP to the cap
+`107 → 134 | 82 → 102 Focus | Radius: 2.5 → 2.6`.
+
+**⚑ Harness gotcha worth keeping, cost two red runs:** a **second Claude
+session on the same machine** was running `swift-cooldown.mjs` and restarting
+`aurad` on port 2000 underneath this one — presenting as a dead XP cheat, a
+missing Discipline and a stray `equip Swift` by a player this script never
+created. `AURAD_CONF=<copy with server.port changed>` gives a private server
+(`./aurad -dev -content ../api` reads the env var, `loaders.go:262`) and the
+harnesses take the URL, so a parallel run needs no coordination.
