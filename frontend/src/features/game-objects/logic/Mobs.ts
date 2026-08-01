@@ -15,6 +15,8 @@ import {AuraTickIndicator} from './AuraTickIndicator';
 import {AuraRingStack} from './AuraRings';
 import {EffectPips} from './EffectPips';
 import {InteractBadge} from './InteractBadge';
+import {shieldBarSegments} from './ShieldBarMath';
+import {BeatDetector} from './AuraBeat';
 import {meter2px} from "../../../client-data/BasicConfig";
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {ISvgContainer} from "../../core/logic/ISvgContainer";
@@ -64,8 +66,11 @@ export abstract class Mob extends GameObject {
     private healthFillGroup: PIXI.Container;
     // Absorb segment on the overhead bar (skill-vocab chunk 2, bare).
     private shieldFillGroup: PIXI.Container;
-    private healthFraction: number = 1;
-    private shieldFraction: number = 0;
+    // Raw wire values, kept so either setter can re-derive BOTH bar segments —
+    // the split depends on health + shield together (N1, shieldBarSegments).
+    private lastHealth: number = 1;
+    private lastMaxHealth: number = 1;
+    private lastShieldHp: number = 0;
     private barInnerX: number = 0;
     private barInnerWidth: number = 0;
     private auraRings: AuraRingStack = null;
@@ -87,6 +92,8 @@ export abstract class Mob extends GameObject {
     // once per effective tick interval — reading a mob's beat to dodge its
     // ticks is the design-critical use case.
     private auraTickIndicator: AuraTickIndicator = null;
+    // Beat inference for the N5 ring pulse — see setAuraTick.
+    private readonly auraBeat = new BeatDetector();
     // Interact prompt (chunk 3b-i): shown only while the server names this
     // entity in GameState.interactable_entity_id. Created lazily on the first
     // show, so the overwhelming majority of mobs — which nobody can talk to —
@@ -302,12 +309,20 @@ export abstract class Mob extends GameObject {
     }
 
     // setAuraTick drives the bare tick indicator from the wire
-    // aura_tick_interval / aura_tick_phase fields (skill-vocab chunk 6).
-    setAuraTick(interval: number, phase: number) {
+    // aura_tick_interval / aura_tick_phase fields (skill-vocab chunk 6), and
+    // since N5 the ring pulse (Character's twin). Mobs carry no active skill
+    // id on the wire, so the stream key is 0 — mobs never re-equip, and the
+    // interval guard still covers the aura-gating edge.
+    setAuraTick(interval: number, phase: number): boolean {
         if (this.auraTickIndicator === null) {
             this.auraTickIndicator = new AuraTickIndicator(this.shape);
         }
         this.auraTickIndicator.setTick(interval, phase);
+        const landed = this.auraBeat.observe(0, interval, phase);
+        // The ring stack is created lazily with the first visible radius; a
+        // gated aura has no ring to pulse.
+        this.auraRings?.beat(landed);
+        return landed;
     }
 
     initShape(svg: PIXI.Texture, x: number, y: number, size: number, rotation: number, anchor?: IVector): PIXI.Container {
@@ -370,30 +385,32 @@ export abstract class Mob extends GameObject {
     }
 
     setHealth(health: number, maxHealth: number) {
-        const relativeHealth = maxHealth > 0 ? Math.max(0, Math.min(1, health / maxHealth)) : 0;
-        this.healthFillGroup.scale.x = relativeHealth;
-        this.healthFraction = relativeHealth;
-        this.layoutShieldFill();
+        this.lastHealth = health;
+        this.lastMaxHealth = maxHealth;
+        this.layoutBars();
     }
 
-    // setShield renders the absorb segment (skill-vocab chunk 2, bare):
-    // width per shieldHp/maxHealth, anchored at the end of the HP fill —
-    // sliding left over it when the bar is too full to fit, so an active
-    // shield is always visible. 0 hides it. Mirrors Character.setShield (the
-    // two overhead bars share no base).
+    // setShield renders the absorb segment (skill-vocab chunk 2, bare);
+    // 0 hides it. Mirrors Character.setShield (the two overhead bars share
+    // no base); split maths shared via shieldBarSegments (N1) — the shield
+    // sits directly after the health fill and always fits, because the bar's
+    // denominator is total effective HP.
     setShield(shieldHp: number, maxHealth: number) {
-        this.shieldFraction = maxHealth > 0 ? Math.max(0, Math.min(1, shieldHp / maxHealth)) : 0;
-        this.layoutShieldFill();
+        this.lastShieldHp = shieldHp;
+        this.lastMaxHealth = maxHealth;
+        this.layoutBars();
     }
 
-    private layoutShieldFill() {
+    private layoutBars() {
+        const {healthFraction, shieldFraction} =
+            shieldBarSegments(this.lastHealth, this.lastShieldHp, this.lastMaxHealth);
+        this.healthFillGroup.scale.x = healthFraction;
         if (!this.shieldFillGroup) {
             return;
         }
-        this.shieldFillGroup.visible = this.shieldFraction > 0;
-        this.shieldFillGroup.scale.x = this.shieldFraction;
-        this.shieldFillGroup.position.x = this.barInnerX +
-            Math.min(this.healthFraction, 1 - this.shieldFraction) * this.barInnerWidth;
+        this.shieldFillGroup.visible = shieldFraction > 0;
+        this.shieldFillGroup.scale.x = shieldFraction;
+        this.shieldFillGroup.position.x = this.barInnerX + healthFraction * this.barInnerWidth;
     }
 
     protected override createStatusEffects() {

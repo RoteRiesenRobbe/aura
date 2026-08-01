@@ -183,23 +183,35 @@ function rejectEquipInCombat(): boolean {
     return true;
 }
 
-// updateShield renders the absorb segment on the health bar (skill-vocab
-// chunk 2, bare rendering): width proportional to shieldHp/maxHealth,
-// anchored at the end of the HP fill — sliding left over it when the bar is
-// too full to fit, so an active shield is always visible.
-export function updateShield(shieldHp: number, maxHealth: number, healthFraction: number) {
+// updateShield renders the absorb segment on the health bar. Both fractions
+// come from shieldBarSegments (N1): the bar's denominator is total effective
+// HP, so the segment sits directly after the health fill and always fits —
+// healthFraction + shieldFraction <= 1 by construction. The old slide-left
+// anchoring (shield sliding back over a full HP fill so it stayed visible)
+// was only needed while the pool was the denominator; do not reintroduce it.
+export function updateShield(healthFraction: number, shieldFraction: number) {
     if (!shieldIndicatorElement) {
         return;
     }
-    if (!(shieldHp > 0) || !(maxHealth > 0)) {
+    if (!(shieldFraction > 0)) {
         shieldIndicatorElement.style.display = 'none';
         return;
     }
-    const width = Math.min(shieldHp / maxHealth, 1);
-    const left = Math.min(healthFraction, 1 - width);
     shieldIndicatorElement.style.display = 'block';
-    shieldIndicatorElement.style.left = `${left * 100}%`;
-    shieldIndicatorElement.style.width = `${width * 100}%`;
+    shieldIndicatorElement.style.left = `${healthFraction * 100}%`;
+    shieldIndicatorElement.style.width = `${shieldFraction * 100}%`;
+}
+
+// pulseAuraMetronome pops the beat pip on the active aura slot (N5/D3): the
+// own player calls it when a tick of their active aura lands (the beat is
+// inferred client-side — Character.setAuraTick / BeatDetector own the
+// inference and its switch-reset guard; this only renders). The pip itself is
+// only visible on .activeSlot, so an inactive loadout shows no metronome.
+export function pulseAuraMetronome() {
+    const pip = auraSlotListElement?.querySelector('.auraSlot.activeSlot .beatPip') as HTMLElement | null;
+    if (pip) {
+        playCssAnimation(pip, 'beatPulse');
+    }
 }
 
 // updateBarTexts renders the absolute numbers over the HUD bars each tick:

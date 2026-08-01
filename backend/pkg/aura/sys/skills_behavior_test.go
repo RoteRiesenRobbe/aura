@@ -2294,6 +2294,122 @@ func TestTickDots_VarianceRollsPerEvent(t *testing.T) {
 	assert.Greater(t, len(distinct), 1, "every event rolls independently")
 }
 
+// --- dots leech (N3, plan-feel-pass-2.md §5 / D1) ---
+//
+// R3 folded casterLifesteal into both DIRECT damage payload sites and missed
+// this third one: tickBuffEvents built its payload with no Lifesteal field at
+// all, so no dot ever leeched — the *Touches consumers were wired and waiting
+// on a field that was never set. D1 rules the leech is read LIVE at each burn
+// tick off the POST-credit caster (the entity whose buff store carries the
+// burst), deliberately diverging from the dot model's freeze-at-ignition:
+// "Bloodthirst is up, so my damage leeches" is the promise the tooltip makes.
+
+func TestTickDots_LiveBurstRidesTheDotPayload(t *testing.T) {
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	caster := newFakePlayer()
+	caster.ApplyLifesteal(70, 0.3, 100)
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(5, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: model.PlayerEntity(caster)}, 2)
+
+	v.buffs.Tick()
+	sk.tickBuffEvents(v)
+
+	require.Len(t, v.playerHits, 1)
+	assert.InDelta(t, 0.3, v.playerHits[0].Lifesteal, 1e-6,
+		"a live burst reaches the burn tick's payload — the *Touches consumers do the healing from there")
+}
+
+func TestTickDots_BurstStartingMidBurnTakesEffect(t *testing.T) {
+	// The D1 divergence, and the exact thing the PO reported: firing
+	// Bloodthirst on an ALREADY-burning target starts leeching immediately.
+	// Frozen-at-ignition would read 0 here forever.
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	caster := newFakePlayer()
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(5, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: model.PlayerEntity(caster)}, 4)
+
+	v.buffs.Tick()
+	sk.tickBuffEvents(v)
+	caster.ApplyLifesteal(70, 0.3, 100) // burst fired mid-burn
+	v.buffs.Tick()
+	sk.tickBuffEvents(v)
+
+	require.Len(t, v.playerHits, 2)
+	assert.Zero(t, v.playerHits[0].Lifesteal, "no burst up yet — no leech")
+	assert.InDelta(t, 0.3, v.playerHits[1].Lifesteal, 1e-6, "the burst reaches the running burn")
+}
+
+func TestTickDots_ExpiredBurstStopsLeeching(t *testing.T) {
+	// The other edge of D1's live read: the burst expires, the burn keeps
+	// running, and the leech stops with the burst.
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	caster := newFakePlayer()
+	// 2 ticks: aging runs at tick start, so the burst is live for the first
+	// burn tick and expired for the second (the buff lifetime convention).
+	caster.ApplyLifesteal(70, 0.3, 2)
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(5, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: model.PlayerEntity(caster)}, 4)
+
+	v.buffs.Tick()
+	caster.buffs.Tick() // the caster's own per-tick aging, as PreUpdate runs it
+	sk.tickBuffEvents(v)
+	v.buffs.Tick()
+	caster.buffs.Tick() // burst expires here; the burn does not
+	sk.tickBuffEvents(v)
+
+	require.Len(t, v.playerHits, 2)
+	assert.InDelta(t, 0.3, v.playerHits[0].Lifesteal, 1e-6, "burst still up on the first burn tick")
+	assert.Zero(t, v.playerHits[1].Lifesteal, "burst gone — the burn stops leeching, and keeps burning")
+}
+
+func TestTickDots_CreditedCasterBurstReachesSummonBurns(t *testing.T) {
+	// The leech reads off the POST-credit caster — the owner whose buff store
+	// carries the burst — not the summon stored on the buff (which has no
+	// burst and would read 0). A charmed pet's burn leeches while its
+	// charmer's Bloodthirst is up, because the burn credits the charmer.
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	owner := newFakePlayer()
+	owner.ApplyLifesteal(70, 0.25, 100)
+	totem := newTestTotem(owner)
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(106, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: totem}, 2)
+
+	v.buffs.Tick()
+	sk.tickBuffEvents(v)
+
+	require.Len(t, v.playerHits, 1)
+	assert.InDelta(t, 0.25, v.playerHits[0].Lifesteal, 1e-6,
+		"the owner's burst rides the credited burn tick")
+	assert.Same(t, any(totem), any(v.playerHits[0].Source),
+		"the summon stays the Source, so the leech-back heals it while it lives (§4.2)")
+}
+
+func TestTickDots_MobCasterBurstRidesTheFactorsPayload(t *testing.T) {
+	// The mob double dispatch gets the same live read: a mob carrying a
+	// lifesteal_burst (content-possible, R3) leeches on its burn ticks too.
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	caster := mob.NewMob(testMobDef(), 0, nil)
+	caster.ApplyLifesteal(70, 0.4, 100)
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(104, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: caster}, 2)
+
+	v.buffs.Tick()
+	sk.tickBuffEvents(v)
+
+	require.Len(t, v.mobHits, 1)
+	assert.InDelta(t, 0.4, v.mobHits[0].Lifesteal, 1e-6)
+}
+
 func instantDotDef() *skills.SkillDefinition {
 	return &skills.SkillDefinition{
 		ID: 22, Name: "Ignite", Category: skills.SkillCategoryCooldown, MaxLevel: 3,

@@ -1045,6 +1045,43 @@
 		&.onCooldown > .slotLabel {
 			opacity: 0.45;
 		}
+
+		// N5 HUD metronome: a small pip on the ACTIVE aura slot that pops on
+		// every landed tick (HUD.pulseAuraMetronome), so the beat is readable
+		// on the ability bar — where the eyes are while switching auras.
+		// Faintly present between beats rather than blinking from nothing:
+		// the same no-on/off-stutter rule as the ring's baseline alpha.
+		> .beatPip {
+			flex: none;
+			width: 0.55em;
+			height: 0.55em;
+			border-radius: 50%;
+			background: fade(white, 45%);
+			display: none;
+		}
+
+		&.activeSlot > .beatPip {
+			display: block;
+		}
+
+		> .beatPip.beatPulse {
+			animation: hudBeatPulse 0.28s ease-out;
+		}
+	}
+}
+
+@keyframes hudBeatPulse {
+	0% {
+		transform: scale(1);
+		background-color: fade(white, 45%);
+	}
+	25% {
+		transform: scale(1.7);
+		background-color: fade(white, 95%);
+	}
+	100% {
+		transform: scale(1);
+		background-color: fade(white, 45%);
 	}
 }
 

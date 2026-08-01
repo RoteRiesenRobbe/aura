@@ -12,6 +12,7 @@ import {PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {setLocalPlayerLevel} from '../../../client-data/Mobs';
 import {setLocalPlayerMaxHealth} from '../../../client-data/Skills';
+import {shieldBarSegments} from '../../game-objects/logic/ShieldBarMath';
 import './PlayerJuice';
 
 export class Player {
@@ -59,8 +60,12 @@ export class Player {
         }
 
         // Health is absolute HP now (item 11 Phase 1); the HUD bar works in a
-        // 0..MAXIMUM_VALUES.health scale, so feed it the health/maxHealth fraction.
-        const healthFraction = entity.maxHealth > 0 ? (entity.health / entity.maxHealth) : 0;
+        // 0..MAXIMUM_VALUES.health scale, so feed it the health fraction.
+        // The fraction's denominator is total effective HP (N1,
+        // shieldBarSegments) — with a shield up that exceeds the pool, the
+        // health segment shrinks so health + shield together read as one bar.
+        const {healthFraction, shieldFraction} = shieldBarSegments(
+            entity.health ?? 0, entity.shieldHp ?? 0, entity.maxHealth ?? 0);
         let newVitalSigns: VitalSignValues = {
             health: Math.round(healthFraction * VitalSigns.MAXIMUM_VALUES.health),
             xp: Math.round((entity.levelProgress || 0) * VitalSigns.MAXIMUM_VALUES.xp),
@@ -85,7 +90,7 @@ export class Player {
         // Shield segment on the HUD bar + own overhead bar (skill-vocab
         // chunk 2); 0 hides both.
         if (isDefined(entity.shieldHp)) {
-            HUD.updateShield(entity.shieldHp, entity.maxHealth, healthFraction);
+            HUD.updateShield(healthFraction, shieldFraction);
             this.character.setShield(entity.shieldHp, entity.maxHealth);
         }
         if (isDefined(entity.auraCategory)) {
@@ -101,9 +106,15 @@ export class Player {
         }
         // Own bare aura tick indicator (skill-vocab chunk 6): the wire cadence
         // + phase drive the orbiting dot, so a haste visibly speeds up your own
-        // ring. Fed after setAuraRadius so the ring radius is set.
+        // ring. Fed after setAuraRadius so the ring radius is set. Since N5 the
+        // landed beat also drives the HUD metronome on the active aura slot —
+        // the rhythm stays readable where the eyes are while switching loadout.
         if (isDefined(entity.auraTickInterval)) {
-            this.character.setAuraTick(entity.auraTickInterval, entity.auraTickPhase);
+            const beatLanded = this.character.setAuraTick(
+                entity.auraTickInterval, entity.auraTickPhase, entity.activeSkillId ?? 0);
+            if (beatLanded) {
+                HUD.pulseAuraMetronome();
+            }
         }
         // Own light hole in the darkness overlay (chunk 3). Floored at a TINY
         // self-glow (PO ruling 2026-07-17: darkness stays fully dark — the

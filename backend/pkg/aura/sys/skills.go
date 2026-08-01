@@ -408,11 +408,21 @@ func (s *SkillSystem) tickBuffEvents(e skillEntity) {
 				source, _ = storedCaster.(model.Combatant)
 				storedCaster = credited.CreditTo()
 			}
+			// The leech is read LIVE at each burn tick (N3/D1) — deliberately
+			// diverging from the dot model's freeze-at-ignition, so firing
+			// Bloodthirst on an already-burning target leeches immediately and
+			// stops when the burst expires. Read off the POST-credit caster:
+			// that is the entity whose buff store carries the burst (a summon's
+			// or charmed pet's burn credits its owner, and it is the owner's
+			// Bloodthirst that should make it leech). The *Touches consumers
+			// pick the heal recipient from the payload as on direct hits —
+			// the living Source leeches for itself, else the credited toucher.
+			lifesteal := casterLifesteal(storedCaster)
 			switch caster := storedCaster.(type) {
 			case model.PlayerEntity:
-				target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Source: source})
+				target.PlayerTouches(caster, model.Damage{HP: damageHP, Tags: hit.Tags, Source: source, Lifesteal: lifesteal})
 			case model.MobEntity:
-				target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags})
+				target.MobTouches(caster, mobs.Factors{Damage: damageHP, DamageTags: hit.Tags, Lifesteal: lifesteal})
 			default:
 				continue
 			}

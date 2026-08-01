@@ -159,6 +159,19 @@ const TICKING_TYPES = new Set([
     'slow_aura', 'resist_aura', 'shield_aura',
 ]);
 
+// The rendered tick cadence of an aura-form effect, with its next-level
+// preview; null when the effect has no real cadence (non-ticking type, or
+// interval 1 = continuous). One function so the collapse decision in
+// formatSkillTooltip and the suffixes in effectBlock can never disagree on
+// what "the same cadence" means.
+function effectIntervalString(effect: SkillEffect, level: number, maxLevel: number): string | null {
+    if (!TICKING_TYPES.has(effect.type) || effect.tickInterval <= 1) {
+        return null;
+    }
+    return prog(effect.tickInterval, effect.tickIntervalPerLevel, level, maxLevel,
+        (ticks) => ticksToSecs(Math.max(1, ticks)));
+}
+
 // What a cost line says about WHEN it is taken, for the five types that do not
 // pay on every application.
 //
@@ -253,9 +266,19 @@ function damageExtraLines(damage: DamageParams, level: number, maxLevel: number,
 // targets — printing them four times was pure noise).
 type GenericKind = 'radius' | 'targets';
 
+// What a costed effect hands back instead of printing its own line (N2/D5):
+// the rendered charge trigger IS the grouping key, so effects charged at the
+// same moment merge into one "Costs you" line at the skill level.
+interface EffectCostEntry {
+    when: string;
+    fraction: number;
+    fractionPerLevel: number;
+}
+
 interface EffectBlock {
     lines: TooltipLine[];
     generics: Partial<Record<GenericKind, string>>;
+    cost?: EffectCostEntry;
 }
 
 // How a cost renders (R1/F6, superseding the 2026-07-29 "percentage alone"
@@ -274,17 +297,33 @@ interface EffectBlock {
 // next-level preview reads "1 → 2 Focus" rather than repeating the unit.
 // A pool of 0 means "no snapshot yet" and falls back to the authored
 // percentage: imprecise beats invented.
+//
+// ⚑ sum() adds the ROUNDED per-effect amounts, never rounding the summed
+// fraction (N2): the server bills each effect separately through vitals.HP,
+// which floors a positive cost at 1 — on a level-1 pool Warbanner's damage
+// (0.0184 → 2) and heal (0.003533 → 1) really cost 3, while rounding the
+// summed fraction would print 2. This is the INVERSE of the cooldown path
+// below (cooldownCostHP deducts once and rounds once), so the two must not
+// be "unified". The percentage fallback has no rounding, so there the sum of
+// fractions is exact.
 interface CostRenderer {
     render: (fraction: number) => string;
+    sum: (fractions: number[]) => string;
     unit: string;
 }
 
 function costRenderer(maxHealth: number, costFactor: number): CostRenderer {
     if (maxHealth <= 0) {
-        return {render: pct, unit: ' of max Focus'};
+        return {
+            render: pct,
+            sum: (fractions) => pct(fractions.reduce((total, f) => total + f, 0)),
+            unit: ' of max Focus',
+        };
     }
+    const one = (fraction: number) => roundHP(fraction * maxHealth * costFactor);
     return {
-        render: (fraction: number) => String(roundHP(fraction * maxHealth * costFactor)),
+        render: (fraction: number) => String(one(fraction)),
+        sum: (fractions) => String(fractions.reduce((total, f) => total + one(f), 0)),
         unit: ' Focus',
     };
 }
@@ -300,20 +339,26 @@ function selfTargetLine(effect: SkillEffect, verb: string): string {
 }
 
 function effectBlock(effect: SkillEffect, level: number, maxLevel: number, powerScale: number,
-                     isCosted: boolean, cost: CostRenderer): EffectBlock {
+                     isCosted: boolean, suppressCadence: boolean): EffectBlock {
     const lines: string[] = [];
 
     // Cadence folds into the main line instead of its own "Ticks every" line
     // (PO text-size pass 2026-07-21): hit auras read "every Xs", state/
     // over-time auras "refreshed every Xs". Interval 1 (continuous) shows
     // nothing but the hit auras' "per tick".
-    const renderInterval = (ticks: number) => ticksToSecs(Math.max(1, ticks));
-    const interval = TICKING_TYPES.has(effect.type) && effect.tickInterval > 1
-        ? prog(effect.tickInterval, effect.tickIntervalPerLevel, level, maxLevel, renderInterval)
-        : null;
-    const perTick = interval !== null ? ` every ${interval}`
+    //
+    // N2 exception: when every ticking effect of the skill shares one beat,
+    // the caller suppresses these suffixes and the cadence prints once at the
+    // bottom instead. The cost trigger below is computed BEFORE the
+    // suppression — "when am I charged" stays tied to the amount either way.
+    const interval = effectIntervalString(effect, level, maxLevel);
+    const cadence = interval !== null ? ` every ${interval}`
         : (TICKING_TYPES.has(effect.type) ? ' per tick' : '');
-    const refresh = interval !== null ? `, refreshed every ${interval}` : '';
+    const trigger = COST_TRIGGER_TEXT[effect.type];
+    const when = trigger ? ` ${trigger}` : cadence;
+    const suppressed = suppressCadence && interval !== null;
+    const perTick = suppressed ? '' : cadence;
+    const refresh = interval !== null && !suppressed ? `, refreshed every ${interval}` : '';
 
     switch (effect.type) {
         case 'damage_aura':
@@ -502,22 +547,18 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
     const rendered: TooltipLine[] = lines.map((text, i) =>
         i === 0 && color ? {text, labelColor: color} : {text});
 
-    // The cost closes the block (plan-numbers-rewrite D5/D7), in the Focus
-    // color rather than the effect's own: it is the one line that talks about
-    // the player's pool instead of what the effect does to somebody else.
-    //
-    // What follows the amount is the CHARGE TRIGGER, not the tick cadence — the
-    // two are only the same thing for damage and heal auras, which pay on every
-    // application. See COST_TRIGGER_TEXT.
-    if (isCosted) {
-        const amount = prog(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel,
-            level, maxLevel, cost.render);
-        const trigger = COST_TRIGGER_TEXT[effect.type];
-        const when = trigger ? ` ${trigger}` : perTick;
-        rendered.push({text: `Costs you: ${amount}${cost.unit}${when}`, labelColor: FOCUS_COLOR});
-    }
-
-    return {lines: rendered, generics};
+    // The cost is handed back rather than rendered here (N2/D5): effects
+    // charged at the same trigger merge into one line at the skill level.
+    // What keys the merge is the CHARGE TRIGGER, not the tick cadence — the
+    // two are only the same thing for damage and heal auras, which pay on
+    // every application. See COST_TRIGGER_TEXT.
+    return {
+        lines: rendered,
+        generics,
+        cost: isCosted
+            ? {when, fraction: effect.costFractionOfMax, fractionPerLevel: effect.costFractionOfMaxPerLevel}
+            : undefined,
+    };
 }
 
 const GENERIC_KINDS: GenericKind[] = ['radius', 'targets'];
@@ -545,16 +586,28 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     // It is a RENDERING cap only: the subtitle below still reads def.maxLevel,
     // so the player keeps seeing how far the skill can go.
     const previewMax = showNextLevel ? def.maxLevel : level;
-    // Where the cost line goes follows how the cost is CHARGED (D8): an aura
-    // pays per effect on each effect's own cadence, so each block prints its
-    // own; a cooldown pays the SUM of its effects once on cast, so it prints
-    // once beside the cooldown — three summon effects at 2 % each must not read
-    // as "2 %" three times when the cast takes 6 %.
+    // N2 cadence collapse: when MORE THAN ONE ticking effect renders the same
+    // cadence (post-R3 the normal case — every multi-effect aura is on one
+    // beat), the per-line suffixes come off and the beat prints once at the
+    // bottom with the shared generics. A single ticking effect keeps its
+    // inline cadence: "Damage: 14 every 1.32s" reads better than a two-line
+    // split, and the 2026-07-21 no-"Ticks every"-line ruling still binds
+    // there.
+    const intervals = def.effects
+        .map(effect => effectIntervalString(effect, level, previewMax))
+        .filter(interval => interval !== null);
+    const sharedCadence = intervals.length > 1 && intervals.every(i => i === intervals[0])
+        ? intervals[0] : null;
+    // Where the cost lines go follows how the cost is CHARGED (D8 + D5): an
+    // aura pays per effect, grouped by charge trigger below; a cooldown pays
+    // the SUM of its effects once on cast, so it prints once beside the
+    // cooldown — three summon effects at 2 % each must not read as "2 %"
+    // three times when the cast takes 6 %.
     const perEffectCost = def.category !== 'cooldown';
     const blocks = def.effects.map(effect =>
         effectBlock(effect, level, previewMax, powerScale,
             perEffectCost && scaled(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel, level) > 0,
-            cost));
+            sharedCadence !== null));
 
     // A generic kind is shared when every effect that renders it renders it
     // identically — then it prints once at the bottom instead of per effect.
@@ -578,6 +631,42 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
         if (isShared[kind]) {
             lines.push({text: blocks.find(b => b.generics[kind] !== undefined).generics[kind]});
         }
+    }
+    // The shared beat, once (N2). Deliberately NOT a GenericKind: an unshared
+    // cadence renders as an inline suffix, not as a per-block line, so the
+    // radius/targets machinery (which prints unshared kinds inside blocks)
+    // would double-print it.
+    if (sharedCadence !== null) {
+        lines.push({text: `Ticks every ${sharedCadence}`});
+    }
+
+    // Cost lines, grouped by charge trigger (N2/D5) in first-appearance
+    // order. One combined per-tick figure was offered and rejected (D5):
+    // Warbanner's damage and heal really are charged every beat, but its
+    // shield only when one goes up or is refilled and its slow is free — one
+    // number would claim a price the server does not charge, reintroducing
+    // exactly the discrepancy 194036c8 closed.
+    const costGroups = new Map<string, EffectCostEntry[]>();
+    for (const block of blocks) {
+        if (!block.cost) continue;
+        const group = costGroups.get(block.cost.when);
+        if (group) group.push(block.cost);
+        else costGroups.set(block.cost.when, [block.cost]);
+    }
+    for (const [when, entries] of costGroups) {
+        const fractionsAt = (l: number) =>
+            entries.map(e => Math.max(0, scaled(e.fraction, e.fractionPerLevel, l)));
+        // prog()'s preview semantics on a summed value: show "cur → next" only
+        // below the preview cap and only when the endpoints render apart.
+        const current = cost.sum(fractionsAt(level));
+        let amount = current;
+        if (level < previewMax) {
+            const next = cost.sum(fractionsAt(level + 1));
+            if (next !== current) {
+                amount = `${current} → ${next}`;
+            }
+        }
+        lines.push({text: `Costs you: ${amount}${cost.unit}${when}`, labelColor: FOCUS_COLOR});
     }
 
     // The faction scope is a property of the SKILL, not of any one effect

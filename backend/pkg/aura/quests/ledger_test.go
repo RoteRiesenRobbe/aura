@@ -63,8 +63,12 @@ func TestLedger_TalkedToIsASet(t *testing.T) {
 	assert.True(t, l.HasTalkedTo(farmer))
 }
 
-// D3: a veteran auto-completes on accept — the whole retroactive ruling.
-func TestLedger_RetroactiveSatisfactionAtAccept(t *testing.T) {
+// N4/D4 (plan-feel-pass-2.md §4, REVERSING plan-quests.md D3): every objective
+// means "since this stage started". Counters stay lifetime — the baseline
+// snapshot on the Progress entry is what turns them into per-stage progress.
+func TestLedger_KillsBeforeAcceptanceDoNotCredit(t *testing.T) {
+	// The old D3 ruling auto-completed a veteran on the spot; that reversal is
+	// the point of N4, so the quest must now WAIT for three fresh kills.
 	l := testLedger(t, cullQuest())
 	l.NoteKill(wolf)
 	l.NoteKill(wolf)
@@ -73,9 +77,107 @@ func TestLedger_RetroactiveSatisfactionAtAccept(t *testing.T) {
 	require.NoError(t, l.Accept("wolf-cull"))
 
 	path, running, completed := l.Progress("wolf-cull")
-	assert.Equal(t, []string{"cull", "report"}, path, "the cascade walks every satisfied stage (L6: the path is stored)")
-	assert.False(t, running)
+	assert.Equal(t, []string{"cull"}, path, "a veteran no longer auto-completes at accept")
+	assert.True(t, running)
+	assert.False(t, completed)
+
+	// Fresh kills credit; the pre-acceptance three never do.
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+	_, running, completed = l.Progress("wolf-cull")
+	assert.True(t, running, "2 of 3 fresh kills")
+	l.NoteKill(wolf)
+	_, _, completed = l.Progress("wolf-cull")
+	assert.True(t, completed, "3 fresh kills complete the stage")
+}
+
+func TestLedger_StageOneKillsDoNotCreditStageTwo(t *testing.T) {
+	// D4 is per STAGE ENTRY, not per accept: kills during stage 1 do not
+	// credit stage 2, even for the same species.
+	l := testLedger(t, &QuestDefinition{
+		ID: "double-cull", Title: "The Double Cull",
+		Stages: []*Stage{
+			{ID: "first", Journal: "Kill 2 wolves.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 2}}, Next: "second"},
+			{ID: "second", Journal: "Kill 2 more.", Objectives: []Objective{{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 2}}, Next: "done"},
+			{ID: "done", Journal: "Done."},
+		},
+	})
+	require.NoError(t, l.Accept("double-cull"))
+
+	// Overshoot stage 1 by one kill in the same credit stream: the third kill
+	// lands AFTER stage 2 was entered (each NoteKill rechecks), so exactly one
+	// of the three credits stage 2.
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+
+	path, running, _ := l.Progress("double-cull")
+	assert.Equal(t, []string{"first", "second"}, path)
+	assert.True(t, running)
+	assert.Equal(t, []string{"1/2 Wolf slain"}, l.quests["double-cull"].Objectives,
+		"stage 2 starts from its own entry, with the post-entry kill counted")
+
+	l.NoteKill(wolf)
+	_, _, completed := l.Progress("double-cull")
 	assert.True(t, completed)
+}
+
+func TestLedger_AbandonAndReacceptRebaselines(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+
+	require.NoError(t, l.Abandon("wolf-cull"))
+	require.NoError(t, l.Accept("wolf-cull"))
+
+	assert.Equal(t, []string{"0/3 Wolf slain"}, l.quests["wolf-cull"].Objectives,
+		"re-accept re-baselines: the previous run's kills stop counting")
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+	_, running, _ := l.Progress("wolf-cull")
+	assert.True(t, running, "two fresh kills are not three")
+}
+
+func TestLedger_TalkToRequiresAFreshTalk(t *testing.T) {
+	// D4's second half: an NPC already spoken to must be spoken to AGAIN once
+	// the stage is entered — the lifetime set alone no longer satisfies.
+	l := testLedger(t, &QuestDefinition{
+		ID: "meet-again", Title: "Meet the Farmer Again",
+		Stages: []*Stage{
+			{ID: "go", Journal: "Find the farmer.", Objectives: []Objective{{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1}}, Next: "done"},
+			{ID: "done", Journal: "Met."},
+		},
+	})
+	l.NoteTalkedTo(farmer) // known from long before the quest
+
+	require.NoError(t, l.Accept("meet-again"))
+	_, running, completed := l.Progress("meet-again")
+	assert.True(t, running, "the old talk does not satisfy the fresh stage")
+	assert.False(t, completed)
+	assert.Equal(t, []string{"Talk to the Farmer"}, l.quests["meet-again"].Objectives,
+		"no ✓ for a talk that predates the stage")
+
+	l.NoteTalkedTo(farmer) // the fresh talk (a session re-open)
+	_, _, completed = l.Progress("meet-again")
+	assert.True(t, completed)
+}
+
+func TestLedger_TrackerCountsSinceStageEntry(t *testing.T) {
+	// The {n} substitution is the third read site (with satisfied and the
+	// derived lines): it must show progress since entry, clamped at 0 — never
+	// the lifetime total.
+	q := cullQuest()
+	q.Stages[0].Tracker = "{n}/{m} wolves culled"
+	l := testLedger(t, q)
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+
+	require.NoError(t, l.Accept("wolf-cull"))
+	assert.Equal(t, []string{"0/3 wolves culled"}, l.quests["wolf-cull"].Objectives)
+
+	l.NoteKill(wolf)
+	assert.Equal(t, []string{"1/3 wolves culled"}, l.quests["wolf-cull"].Objectives)
 }
 
 func TestLedger_KillsAdvanceARunningQuest(t *testing.T) {
@@ -185,10 +287,10 @@ func TestLedger_RepeatableReAcceptsAfterCompletion(t *testing.T) {
 // instantly (the L10 shape C2's lint exists for).
 func TestLedger_AbandonClearsPathLeavesCountersReOfferWorks(t *testing.T) {
 	l := testLedger(t, cullQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
 	l.NoteKill(wolf)
 	l.NoteKill(wolf)
 	l.NoteKill(wolf)
-	require.NoError(t, l.Accept("wolf-cull")) // completes retroactively
 	_, _, completed := l.Progress("wolf-cull")
 	require.True(t, completed)
 
@@ -207,11 +309,14 @@ func TestLedger_AbandonClearsPathLeavesCountersReOfferWorks(t *testing.T) {
 	assert.Equal(t, []string{"choose"}, choicePath, "abandoning one quest leaves the others alone")
 	assert.True(t, choiceRunning)
 
+	// Re-accept works — and re-baselines (N4): the pre-abandon kill is gone,
+	// so completion takes three fresh kills.
 	require.NoError(t, l2.Accept("wolf-cull"))
 	l2.NoteKill(wolf)
 	l2.NoteKill(wolf)
+	l2.NoteKill(wolf)
 	_, _, wolfDone = l2.Progress("wolf-cull")
-	assert.True(t, wolfDone, "re-accepted quest completes against the lifetime counters")
+	assert.True(t, wolfDone, "re-accepted quest completes on kills since the re-accept")
 }
 
 func TestLedger_AbandonValidation(t *testing.T) {
@@ -272,10 +377,10 @@ func TestLedger_MatchesStage_CurrentStageOnly(t *testing.T) {
 // stay clickable forever after the quest ended.
 func TestLedger_MatchesStage_CompletedIsNotItsTerminalStage(t *testing.T) {
 	l := testLedger(t, cullQuest())
+	require.NoError(t, l.Accept("wolf-cull"))
 	for i := 0; i < 3; i++ {
 		l.NoteKill(wolf)
 	}
-	require.NoError(t, l.Accept("wolf-cull"))
 
 	_, running, completed := l.Progress("wolf-cull")
 	require.False(t, running)
@@ -403,16 +508,21 @@ func TestNotifier_FiresOncePerLedgerOp(t *testing.T) {
 // A retroactive accept can walk several stages in one go (D3 — the veteran who
 // auto-completes). That is ONE player action, so it is one banner, reporting
 // where the quest ended up.
-func TestNotifier_ARetroactiveCascadeFiresOnce(t *testing.T) {
+// A cascade — however many stages it walks — is one player-visible event and
+// fires ONE banner, reporting where the quest came to rest. Since N4 the
+// cascade lives on the CREDIT path (accept cannot skip a fresh-baselined
+// stage any more): the completing kill walks cull → report in one go.
+func TestNotifier_ACreditCascadeFiresOnce(t *testing.T) {
 	l := testLedger(t, cullQuest())
-	l.NoteKill(wolf)
-	l.NoteKill(wolf)
-	l.NoteKill(wolf)
+	require.NoError(t, l.Accept("wolf-cull"))
 
 	var got []Notice
 	l.SetNotifier(func(n Notice) { got = append(got, n) })
-	require.NoError(t, l.Accept("wolf-cull"))
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+	assert.Empty(t, got, "a counter moving under a holding stage is not a stage event")
 
+	l.NoteKill(wolf)
 	require.Len(t, got, 1)
 	assert.Equal(t, "report", got[0].StageID)
 	assert.True(t, got[0].Completed)

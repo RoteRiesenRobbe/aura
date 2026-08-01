@@ -268,9 +268,19 @@ three structures this schema must hold:
 
 | Ledger field | Shape | Home |
 |---|---|---|
-| `quests` | quest id → **ordered list** of stage ids entered + completed flag | `character_flags`, one row per quest, `flag_value` a JSONB object |
+| `quests` | quest id → **ordered list** of stage ids entered + completed flag **+ the N4 baselines** (see below) | `character_flags`, one row per quest, `flag_value` a JSONB object |
 | `killCounts` | `MobID` → lifetime count | `character_flags`, JSONB map in **one** row |
 | `talkedTo` | set of `MobID` | `character_flags`, JSONB array in **one** row |
+
+⚑ **The N4 baselines are part of the per-quest object** *(added 2026-08-02 with
+feel-pass-2 chunk N4, which landed before this schema's first migration on
+purpose)*: `Progress` now carries `KillBase` (`MobID` → lifetime count at the
+current stage's entry) and `TalkBase` (set of `MobID`s needing a fresh talk),
+rewritten whole at every stage entry (`quests/ledger.go`). They persist in the
+same per-quest JSONB object as the path — **dropping them on a reload would
+hand every in-flight objective its lifetime totals back**, silently restoring
+the reversed D3 behaviour for exactly one stage per quest. Same `MobID`
+stability constraint as the two lifetime maps below.
 
 **The generic key/value table holds all three without a schema change**, which
 is what it was built for. Three consequences that are *not* free:

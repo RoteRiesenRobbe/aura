@@ -89,23 +89,25 @@ describe('character power scale', () => {
 
         // Even unscaled, HP lines now read as whole points: an authored 6.3
         // shield grants vitals.HP(6.3) = 6, so 6 is what the player sees.
+        // (Cost lines close the tooltip body since N2 — they group by charge
+        // trigger at the skill level rather than closing each effect's block.)
         expect(lines(all, 1, 1)).toEqual([
             'Damage: 10',
             'Damage over time: 12 × 3 hits over 2.97s',
             'Shield: 6 Focus for 2.97s',
             'Heal: 4 per tick',
-            'Costs you: 1.2% of max Focus per tick',
             'Heal self: 8 Focus',
             'Targets: all allies in range',
+            'Costs you: 1.2% of max Focus per tick',
         ]);
         expect(lines(all, 1, SCALE_AT_30)).toEqual([
             'Damage: 267',
             'Damage over time: 321 × 3 hits over 2.97s',
             'Shield: 169 Focus for 2.97s',
             'Heal: 107 per tick',
-            'Costs you: 1.2% of max Focus per tick',
             'Heal self: 225 Focus',
             'Targets: all allies in range',
+            'Costs you: 1.2% of max Focus per tick',
         ]);
     });
 
@@ -518,7 +520,11 @@ describe('resource cost in absolute Focus', () => {
     // advertised itself as "every 1.32s". Damage and heal still pay on every
     // application and must keep the cadence — that half is what makes this a
     // fix rather than a blanket rewording.
-    it('prints the charge TRIGGER, not the cadence, for work-gated effects', () => {
+    //
+    // N2/D5 added the grouping on top: effects charged at the SAME trigger
+    // merge into one line, so Warbanner's damage + heal print one beat-charged
+    // amount and the shield keeps its own trigger line.
+    it('groups cost lines by charge trigger', () => {
         const warbanner = skill({
             displayName: 'Warbanner', maxLevel: 10,
             effects: [
@@ -533,10 +539,10 @@ describe('resource cost in absolute Focus', () => {
             ],
         });
 
+        // 0.0184 × 2600 = 47.84 → 48, 0.0106 × 2600 = 27.56 → 28; one line, 76.
         const costs = lines(warbanner, 1, 1, 2600).filter(l => l.startsWith('Costs you'));
         expect(costs).toEqual([
-            'Costs you: 48 Focus every 1.32s',
-            'Costs you: 28 Focus every 1.32s',
+            'Costs you: 76 Focus every 1.32s',
             'Costs you: 13 Focus when a shield goes up or is refilled',
         ]);
     });
@@ -589,6 +595,89 @@ describe('resource cost in absolute Focus', () => {
         expect(cost).toHaveLength(1);
         expect(cost[0].labelColor).toBe('crimson');
         expect(content.lines.filter(l => l.labelColor === 'crimson')).toEqual(cost);
+    });
+});
+
+// N2 (plan-feel-pass-2.md §5, D5): one cadence line, cost lines grouped by
+// charge trigger. Warbanner printed "every 1.32s" five times and four separate
+// Focus costs; a tooltip should say the beat once and price each trigger once.
+describe('N2: grouped costs and the shared cadence', () => {
+    // Warbanner as authored post-R3 (api/skills/warbanner.json): four effects
+    // on one 40-tick beat, slow free, the other three costed.
+    const warbanner = skill({
+        displayName: 'Warbanner', maxLevel: 10,
+        effects: [
+            effect({type: 'damage_aura', radius: 1.2, tickInterval: 40, targetsEnemies: true,
+                selector: 'nearest', maxTargets: 2,
+                costFractionOfMax: 0.0184, damage: damageParams(15)}),
+            effect({type: 'heal_aura', radius: 1.2, tickInterval: 40,
+                selector: 'lowest_health', maxTargets: 1,
+                costFractionOfMax: 0.003533,
+                heal: {hp: 4.3333, hpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}}),
+            effect({type: 'shield_aura', radius: 1.2, tickInterval: 40, targetsAllies: true,
+                costFractionOfMax: 0.006533,
+                shield: {hp: 8, hpPerLevel: 0, durationTicks: 0, targetsSelf: true}}),
+            effect({type: 'slow_aura', radius: 1.2, tickInterval: 40, targetsEnemies: true,
+                slow: {fraction: 0.1, fractionPerLevel: 0.0133}}),
+        ],
+    });
+
+    // ⚑ The plan's worked example, and the trap it names: the server bills each
+    // effect separately through vitals.HP's 1-point floor, so on a level-1 pool
+    // Warbanner's damage (1.84 → 2) and heal (0.35 → 1) really cost 3 — while
+    // rounding the summed fraction (2.19 → 2) would print 2. This is the
+    // INVERSE of the cooldown path, which deducts once and rounds once; the
+    // two must not be unified.
+    it('sums the rounded per-effect amounts, never the rounded sum', () => {
+        expect(lines(warbanner, 1, 1, 100)).toContain('Costs you: 3 Focus every 1.32s');
+    });
+
+    it('collapses a shared beat to one cadence line', () => {
+        const rendered = lines(warbanner, 1, 1, 100);
+        // The beat prints once at the bottom...
+        expect(rendered).toContain('Ticks every 1.32s');
+        // ...and comes OFF the effect lines: the only other line allowed to
+        // carry it is the beat-charged cost line, where it is the charge
+        // trigger tied to the amount.
+        const carrying = rendered.filter(l => l.includes('every 1.32s'));
+        expect(carrying).toEqual(['Ticks every 1.32s', 'Costs you: 3 Focus every 1.32s']);
+        expect(rendered).toContain('Slow: 10% → 11.33%');
+        expect(rendered).toContain('Shield: 8 Focus');
+    });
+
+    it('keeps the cadence inline when effects tick on different beats', () => {
+        const mixed = skill({
+            maxLevel: 1,
+            effects: [
+                effect({type: 'damage_aura', tickInterval: 40, targetsEnemies: true, damage: damageParams(10)}),
+                effect({type: 'dot_aura', tickInterval: 20, targetsEnemies: true,
+                    dot: {hp: 3, hpPerLevel: 0, tags: ['fire'], variance: 0, tickCount: 3, interval: 60}}),
+            ],
+        });
+        const rendered = lines(mixed, 1, 1);
+        expect(rendered).toContain('Damage: 10 every 1.32s');
+        expect(rendered.some(l => l.startsWith('Ticks every'))).toBe(false);
+    });
+
+    it('previews a grouped cost across the level curve', () => {
+        // Both beat-charged fractions scale; the preview sums the rounded
+        // amounts at each endpoint. 2600-pool: L1 48 + 9 = 57, L2 53 + 11 = 64.
+        const scaling = skill({
+            maxLevel: 10,
+            effects: [
+                effect({type: 'damage_aura', tickInterval: 40, targetsEnemies: true,
+                    costFractionOfMax: 0.0184, costFractionOfMaxPerLevel: 0.001856,
+                    damage: damageParams(15)}),
+                effect({type: 'heal_aura', tickInterval: 40,
+                    costFractionOfMax: 0.003533, costFractionOfMaxPerLevel: 0.000789,
+                    heal: {hp: 4.3333, hpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}}),
+            ],
+        });
+        expect(lines(scaling, 1, 1, 2600)).toContain('Costs you: 57 → 64 Focus every 1.32s');
+    });
+
+    it('sums the percentage fallback when the pool is unknown', () => {
+        expect(lines(warbanner, 1, 1, 0)).toContain('Costs you: 2.19% of max Focus every 1.32s');
     });
 });
 
@@ -658,9 +747,9 @@ describe('next-level preview gating', () => {
     it('previews every scaling line while a point can be spent', () => {
         expect(gated(true)).toEqual([
             'Damage: 8 → 10 every 0.59s → 0.53s',
-            'Costs you: 3 → 4 Focus every 0.59s → 0.53s',
             'Radius: 3.5 → 4',
             'Targets: nearest 2 → 3 enemies',
+            'Costs you: 3 → 4 Focus every 0.59s → 0.53s',
             'Cooldown: 8.91s → 7.92s',
             'Cast time: 1.78s → 1.58s',
         ]);
@@ -669,9 +758,9 @@ describe('next-level preview gating', () => {
     it('shows the current values alone when no point can be spent', () => {
         expect(gated(false)).toEqual([
             'Damage: 8 every 0.59s',
-            'Costs you: 3 Focus every 0.59s',
             'Radius: 3.5',
             'Targets: nearest 2 enemies',
+            'Costs you: 3 Focus every 0.59s',
             'Cooldown: 8.91s',
             'Cast time: 1.78s',
         ]);

@@ -63,6 +63,11 @@ const BAND_ALPHA = 0.75;
 /** Opacity of the interior area wash. [PLACEHOLDER] */
 const FILL_ALPHA = 0.1;
 
+/** Ring pulse overshoot on the beat (N5/D3): scale peaks at 1 + this. [PLACEHOLDER] */
+const PULSE_AMPLITUDE = 0.06;
+/** Per-snapshot pulse decay (~30 Hz → settles in ~250 ms). [PLACEHOLDER] */
+const PULSE_DECAY = 0.82;
+
 /**
  * The aura ring: an interior area wash plus one coloured band per effect
  * category, stacked INWARD from the aura edge so a multi-category aura simply
@@ -106,6 +111,35 @@ export class AuraRingStack {
     setRadius(radiusPx: number) {
         this.radiusPx = radiusPx;
         this.redraw();
+    }
+
+    // Pulse energy for the N5 beat pulse: 1 at the beat, decayed per snapshot.
+    private pulseEnergy = 0;
+
+    /**
+     * Drive the ring pulse (N5/D3): on a landed beat the ring scales up
+     * ~PULSE_AMPLITUDE and settles by decay — motion reads where more
+     * brightness does not, particularly with several overlapping rings. The
+     * overshoot is deliberately brief so the ring's resting edge stays the
+     * true aura radius, which is the gameplay-critical line.
+     *
+     * Called once per snapshot from setAuraTick (the beat surface), so the
+     * decay runs at snapshot cadence — no per-frame ticker needed. ⚑ No snap
+     * flash: offered and not taken (D3); do not add one here "as part of the
+     * pulse".
+     */
+    beat(landed: boolean) {
+        if (landed) {
+            this.pulseEnergy = 1;
+        } else if (this.pulseEnergy > 0) {
+            this.pulseEnergy *= PULSE_DECAY;
+            if (this.pulseEnergy < 0.02) {
+                this.pulseEnergy = 0;
+            }
+        } else {
+            return; // settled — leave the scale untouched
+        }
+        this.container.scale.set(1 + PULSE_AMPLITUDE * this.pulseEnergy);
     }
 
     private redraw() {

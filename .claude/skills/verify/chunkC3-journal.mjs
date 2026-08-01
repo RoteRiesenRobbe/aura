@@ -430,8 +430,9 @@ if (!probeLoaded) {
 // plural fix), so the line on screen is the AUTHORED override with the {n}/{m}
 // substitution live — which is exactly the half of Q2 the derived path could
 // not show. The count is read as a pattern, never as a fixed number (verify
-// rule 1/3) — lifetime counters mean a re-run against an old character
-// legitimately starts above 0. Since Q3 the line lives in the detail pane, so
+// rule 1/3) — and since N4 (plan-feel-pass-2.md) it counts kills SINCE this
+// accept, so it starts at 0 however many wolves the character has ever slain.
+// Since Q3 the line lives in the detail pane, so
 // the wolves quest must be SELECTED to read it — which is what makes this half
 // carry the row-click and close/reopen selection legs.
 

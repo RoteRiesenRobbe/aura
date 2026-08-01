@@ -853,7 +853,10 @@ func TestApplyGrant_OfferAcceptsTheQuest(t *testing.T) {
 
 // D3's retroactive credit, through the dialogue row rather than the cheat: a
 // veteran who already has the kills completes the objective stage on accept.
-func TestApplyGrant_OfferCascadesRetroactively(t *testing.T) {
+// N4/D4 reversed the old retroactive cascade at this grant: kills from before
+// the accept no longer credit — the click lands the quest on its objective
+// stage, and only kills since then move it (the baseline is per stage entry).
+func TestApplyGrant_OfferDoesNotCreditOldKills(t *testing.T) {
 	in := oneOption("I'll help.", offerGrant())
 	p := newQuestLearner(t, 1, peltsQuest())
 	p.ledger.NoteKill(3)
@@ -863,7 +866,13 @@ func TestApplyGrant_OfferCascadesRetroactively(t *testing.T) {
 	require.True(t, ok)
 
 	path, running, _ := p.ledger.Progress(questID)
-	assert.Equal(t, []string{stageHunt, stageTurn}, path, "the objective stage fell through on accept")
+	assert.Equal(t, []string{stageHunt}, path, "the veteran's old kills do not fall through the stage")
+	assert.True(t, running)
+
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	path, running, _ = p.ledger.Progress(questID)
+	assert.Equal(t, []string{stageHunt, stageTurn}, path, "two kills since accept clear the stage")
 	assert.True(t, running, "and it waits at the dialogue stage rather than completing")
 }
 

@@ -9,13 +9,14 @@ where the C1+C2 rewrite did — owing a **play session**, because the numbers ar
 
 That session ran **2026-08-01**. This doc is its intake and its plan.
 
-> **Status: PLANNED 2026-08-01, docs only.** Seven checklist areas answered,
-> four items of general feedback raised, all six actionable findings traced to
-> the line that causes them, **five PO decisions taken** (§4), work chunked into
+> **Status: COMPLETE ✅ — all five chunks N1 → N5 BUILT 2026-08-02** (one
+> execution session; planned 2026-08-01). Seven checklist areas answered, four
+> items of general feedback raised, all six actionable findings traced to the
+> line that causes them, **five PO decisions taken** (§4), work chunked into
 > **N1 → N5** (§5). Two items deliberately **parked**, one of them with its
-> measurement attached (§6).
+> measurement attached (§6). Per-chunk ledgers in §8.
 >
-> **Progress: nothing built yet.**
+> **Progress: N1 ✅ · N2 ✅ · N3 ✅ · N4 ✅ · N5 ✅ (all 2026-08-02, one commit).**
 
 ---
 
@@ -482,6 +483,142 @@ Kept as the record of what was asked, in the shape it was asked. Replies are
 
 ## 8. Chunk ledgers
 
-Filled in as each chunk lands, newest first.
+Filled in as each chunk lands, newest first. All five landed 2026-08-02 in one
+execution session, committed together as `[uncommitted]`. Common verification:
+full Go suite (0 failures) + `vet` + `gofmt` · 130 vitest (+19 across the
+session) · `tsc` · prod build · boot `-content ../api` 0 errors 0 warnings 0
+panics — 87 skills/15 factions/64 mobs/10 recipes/3 milestone unlocks/4
+quests/5 prop definitions/777 props/485 spawns/5 campfires.
 
-*(nothing built yet)*
+### N5 ledger — tick legibility: ring pulse + HUD metronome ✅ 2026-08-02
+
+Implements D3; the snap flash was NOT added (offered and not taken — the
+comment in `AuraRingStack.beat()` says so). **The stutter trap is why the beat
+detector is a class:** `BeatDetector` (`AuraBeat.ts`, pure) counts a beat only
+on a phase decrease within the SAME stream — stream = `activeSkillId` + the
+effective interval — so the server's accumulator reset on an aura switch
+cannot fire a pulse **even between two auras with the same interval, which
+phase alone cannot distinguish**. Haste (interval change) and deactivation
+reseed silently: a missed pulse degrades gracefully, a spurious one reads as
+broken. `Character.setAuraTick` gained the key (the first consumer
+`active_skill_id` has ever had) and returns the landed beat so Player drives
+`HUD.pulseAuraMetronome()` without game-objects importing the HUD; mobs key on
+0 (they never re-equip). Ring: `AuraRingStack.beat()` scales the container to
+~1.06 and settles by per-snapshot decay (~250 ms) — the resting edge stays the
+true aura radius. Metronome: a `beatPip` span per aura slot, visible only on
+`.activeSlot`, popped via `playCssAnimation`; faintly present between beats
+(the same no-on/off-stutter rule as the ring's baseline alpha). **Verified:**
+6 new vitest pins red-first (incl. the same-interval switch trap and the
+reactivation ghost-beat) · `chunk2-calm` cleanliness runs — 7/7 on the third
+run, two prior 6/7s on the same leg with the calm demonstrably working (the
+wolf closed before the cast landed — cast-timing flake, and the diff is
+frontend presentation that cannot move a mob); 0 console errors / 0 ctx losses
+in all three. **The actual acceptance test is the PO's eyes** (by design):
+watch the pulse, the pip, and switch auras mid-fight — no pulse may fire at
+the switch.
+
+### N4 ledger — quest progress starts at acceptance (F4) ✅ 2026-08-02
+
+Implements D4; **reverses `archive/plan-quests.md` D3, annotated there in
+place** (⚑ REVERSED banner ahead of the original ruling, the D11/D13/D14
+pattern). Counters stay lifetime — `Progress` gained `KillBase`/`TalkBase`
+baselines, rewritten whole at every stage entry by `enter()` (which owns the
+write path, so `canAccept` stays the pure read L3 requires); the three read
+sites — `satisfied()`, `objectiveLines()`, the `{n}` tracker substitution — go
+through `countSince()` (**clamped at 0**: content reloaded under a live ledger
+must never render "-2/5") and `talkedSince()`. Fresh-talk semantics fall out
+of the event flow: `NoteTalkedTo` fires only at the session-OPEN edge, so
+firing is by definition a talk after stage entry and lifts the stale-talk
+mark — which preserves D4's documented awkward case (giver-as-target needs a
+re-open) with zero special-casing. A freshly-baselined stage is unsatisfied by
+construction, so the D3 veteran cascade at accept died with no code knowing
+about it; the cascade survives on the credit path. ⚑ **The baselines are
+persisted state**: shape recorded in `plan-accounts-schema.md` §The quest
+ledger *as part of this chunk* — dropping them on a reload silently restores
+D3 for one stage per quest. Landing before 8a's first migration was the point
+of the queue position. **Verified:** 5 new red-first Go tests (pre-accept
+kills don't credit · stage-1 kills don't credit stage 2 · abandon/re-accept
+re-baselines · fresh talk required · tracker counts since entry) · **5
+existing tests premised on D3 rewritten with the chunk** (rule 8: the
+retroactive-accept pin, the village-welcome veteran content test, the
+sys-level offer cascade, two setup uses) · `chunkC3-journal` **29/29** (probe
+quest in; `0/8 → 1/8` live) · `chunkC4-quests` **38/38 + 1 deliberate SKIP**
+incl. eight real wolf kills advancing the cull after acceptance. ⚑ One stale
+harness comment (half C premised lifetime counts) updated with the chunk.
+⚑ A `chunkC4` re-run against the parallel session's prose pass was first
+voided by a §29 context loss (30 PASS, wolf legs INCONCLUSIVE, `aura armed:
+false` — the equip died with the render), then **settled by that session's own
+private-port run: 37 PASS + 1 deliberate SKIP against the combined tree**
+(`ac0f8a11`, which also carried this chunk's co-touched `content_test.go`
+rewrite).
+
+### N3 ledger — dots leech ✅ 2026-08-02
+
+Implements D1; closes the one live bug of the pass. One site:
+`tickBuffEvents` (`sys/skills.go`) computes `lifesteal :=
+casterLifesteal(storedCaster)` **after** the `CreditTo()` replay and puts it
+on both payloads (`model.Damage.Lifesteal`, `mobs.Factors.Lifesteal`). The
+`*Touches` consumers on both real types were already wired and waiting on a
+field that was never set — the payload was the entire bug, exactly as §3
+diagnosed. The comment records the D1 divergence (live read at each burn tick
+vs the dot model's freeze-at-ignition) and why post-credit is the right
+caster (the owner's buff store is where Bloodthirst lives; the summon stays
+`Source`, so it leeches for itself while alive per §4.2). **Verified:** 5
+red-first behavior tests (payload ride · **burst fired mid-burn takes effect**
+— the exact PO report; frozen-at-ignition reads 0 forever · expiry stops the
+leech with the burn still running · credited summon/charm case · mob-caster
+`Factors` path) · **sim battery byte-identical, TTK 6.67 s / TTD 8.70 s
+stand** (no sim scenario carries a burst) · `r3-lifesteal-burst` **7/7** incl.
+the live-fight leg (+5 health over 5 s with the burst vs 0 without). ⚑
+Test-side lesson: a 1-tick buff is expired at the first read (aging runs at
+tick start) — the expiry test uses 2 ticks with a comment.
+
+### N2 ledger — one cadence line, cost lines grouped by trigger ✅ 2026-08-02
+
+Implements D5, all in `SkillTooltip.ts`. **Cadence:** new
+`effectIntervalString` is the single definition of "same cadence"; when more
+than one ticking effect shares it (post-R3, every multi-effect aura), the
+per-line suffixes come off and one **`Ticks every 1.32s`** line prints with
+the shared generics — deliberately NOT a `GenericKind`, because an unshared
+cadence renders as an inline suffix, not a per-block line, and the
+radius/targets machinery would double-print it. A single ticking effect keeps
+its inline cadence (the 2026-07-21 no-"Ticks every"-line ruling still binds
+there). **Costs:** `effectBlock` hands back `{when, fraction, perLevel}`
+instead of printing; the rendered charge-trigger string IS the grouping key
+(so `COST_TRIGGER_TEXT` stays the only taxonomy), groups render in
+first-appearance order and close the tooltip body. Warbanner: 3 cost lines →
+2. ⚑ **The plan's trap, pinned in code and test:** `CostRenderer.sum` adds
+the ROUNDED per-effect amounts (damage 1.84→2 + heal 0.35→1 = **3**, where
+the rounded sum prints 2), commented as the INVERSE of the cooldown path
+directly below, which is untouched. **Verified:** 5 new vitest pins red-first
++ 1 rewritten (the per-effect Warbanner trigger test — its premise is what D5
+reverses) + 3 order-sensitive `toEqual` updates · both regex-reading
+harnesses on fresh servers per the plan's warning — `r1-focus-cost` all
+checks passed (floor, CL30 curve, Discipline 21,26 → 20,25) ·
+`round4-tooltip` all checks passed. ⚑ Invocation gotcha found:
+`r1-focus-cost` takes the URL as its FIRST argument, like `round4-tooltip` —
+a label dies on `Cannot navigate to invalid URL`.
+
+### N1 ledger — the Focus bar tells the truth about shields ✅ 2026-08-02
+
+Closes §3.4. One new pure module owns the split for ALL bars:
+`ShieldBarMath.shieldBarSegments(health, shieldHp, maxHealth)`, denominator
+**`max(maxHealth, health + shield)`** — one stated judgment call: the plan's
+literal "health + shield" would render a damaged shieldless player as a full
+bar, so the denominator only grows past the pool when the total actually
+exceeds it; every case that existed before renders byte-identically.
+Consumers: `Player.ts` (fraction computed ONCE, shield now read before it) →
+the vitals bar + a render-only `HUD.updateShield(healthFraction,
+shieldFraction)` (slide-left clamp deleted, with the comment saying why it is
+safe: segments sum ≤ 1 by construction); `Character.layoutBars()`; and ⚑
+**`Mobs.ts` — an addition to the plan doc**: it mirrors `Character.setShield`
+line-for-line ("the two overhead bars share no base"), so shielded mobs had
+the identical defect. ⚑ Cosmetic knock-on accepted and on record for the PO:
+a large shield popping shrinks the red segment, so the bar's delta-ghost
+flashes — it genuinely shows where the segment was. **Verified:** 8 vitest
+pins red-first (below/equal/several-times the pool, the full-bar case the
+slide-left existed for, invariants) · new harness **`n1-shield-bar.mjs`
+4/4** on a fresh server (first run voided per §29): a real CL30 Warbanner
+shields a real level-1 player — Focus 100/100 + implied shield 214 renders
+**31.8 % / 68.2 %** on BOTH bars (overhead anchor agreeing to 0.1 px) against
+the old 0 % + 100 %; the caster's own bar stays sane (92.6/7.4).

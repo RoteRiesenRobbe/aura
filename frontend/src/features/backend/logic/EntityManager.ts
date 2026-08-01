@@ -119,8 +119,11 @@ export class EntityManager {
         // Bare aura tick indicator (skill-vocab chunk 6): the wire cadence +
         // phase drive a dot orbiting the ring; characters and mobs alike, 0
         // interval hides it. Fed after setAuraRadius so the ring radius is set.
+        // The active skill id keys the N5 beat detection on characters (an
+        // aura switch resets the server accumulator, and the key is what stops
+        // that reset reading as a beat); mobs carry none → 0.
         if (isDefined(entity.auraTickInterval) && isFunction(gameObject['setAuraTick'])) {
-            gameObject['setAuraTick'](entity.auraTickInterval, entity.auraTickPhase);
+            gameObject['setAuraTick'](entity.auraTickInterval, entity.auraTickPhase, entity.activeSkillId ?? 0);
         }
 
         // Campfire bind circle (chunk 4): wire-driven dwell radius in px,

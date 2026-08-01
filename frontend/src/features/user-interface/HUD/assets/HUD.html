@@ -153,9 +153,11 @@
             <div id="auraLoadout">
                 <div class="auraLoadoutTitle">Aura Slots</div>
                 <ul id="auraSlotList">
-                    <li class="auraSlot hotkeySlot" data-slot="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span></li>
-                    <li class="auraSlot hotkeySlot" data-slot="1"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span></li>
-                    <li class="auraSlot hotkeySlot" data-slot="2"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span></li>
+                    <!-- .beatPip: the N5 HUD metronome — visible on the active slot only,
+                         pulsed by HUD.pulseAuraMetronome each time the aura's tick lands. -->
+                    <li class="auraSlot hotkeySlot" data-slot="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                    <li class="auraSlot hotkeySlot" data-slot="1"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                    <li class="auraSlot hotkeySlot" data-slot="2"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
                 </ul>
             </div>
 
