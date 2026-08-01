@@ -791,7 +791,7 @@ nothing — their only "resource" hits are the legacy `Resources.ts` render clas
 
 ---
 
-### R2 — What "landed" MEANS ✅ **DONE 2026-08-01, committed `[uncommitted]`**
+### R2 — What "landed" MEANS ✅ **DONE 2026-08-01, committed `47074d63`**
 
 Engine only. **Not one authored number moved**, and no wire field, content key
 or presentation string changed — what moved is *when* the server charges.
