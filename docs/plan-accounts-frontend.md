@@ -695,7 +695,7 @@ own.
    **chunk 3 wires it into `sys/state.go`**, where the `Join` path and the stash
    already live. That splits along a seam which exists rather than inventing one,
    and hands chunk 3 a tested component instead of a design problem.
-3. **1c — The eight endpoints. ✅ DONE 2026-08-01** — see the ledger below.
+3. **1c — The eight endpoints. ✅ DONE 2026-08-01, `9c19c5f2`** — see the ledger below.
    Character CRUD, register/login/logout, `/select`, `/session/refresh`, plus
    slot assignment and cap enforcement. **CORS and the `CheckOrigin` allowlist
    landed here**, since this is where the first credentialed request exists —
@@ -811,7 +811,7 @@ otherwise gate everything.
 
 ## 10a. Chunk ledger
 
-### Chunk 1c — the eight endpoints ✅ DONE 2026-08-01
+### Chunk 1c — the eight endpoints ✅ DONE 2026-08-01, `9c19c5f2`
 
 Backend + docs. **Aura has accounts you can actually use.** The eight HTTP/JSON
 endpoints, the transport hardening that had to arrive with them, and the two boot
