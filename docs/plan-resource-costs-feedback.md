@@ -6,12 +6,17 @@ This doc is the intake for what came back from it: the **PO feel pass**
 (2026-08-01, the first real play of the priced catalog) and a **technical
 review** of the cost system run against HEAD the same day.
 
-Two separate lenses on one change. Neither is scheduled yet — this is the
-findings record, and the chunking decision comes after the PO reads it.
+Two separate lenses on one change.
 
 ⚑ Two technical findings were fixed in the review session itself (§3.1, §3.3)
-and rode into `40d9b204` with the pass; everything else here is **recorded, not
-acted on**, and nothing in §6 is scheduled.
+and rode into `40d9b204` with the pass.
+
+> **⭐ TRIAGED 2026-08-01 — this doc is now a PLAN.** Every finding was
+> re-checked against HEAD line by line (that pass **corrected §3.2** and found
+> the new §3.10), the eight open decisions were put to the PO and **all eight
+> are ruled** (§5), and the work is chunked into **R1 → R2 → R3** plus one
+> design session (§6). Nothing is built yet; §6 is the schedule and the order in
+> it is load-bearing.
 
 ---
 
@@ -72,6 +77,7 @@ HP` tooltip keeps the percentage alone") and it *supersedes* the fix made in
 **F7 — The resource needs a name and a colour code**, so UI can reference it
 consistently. Today it is "HP" in some places and "resource" in others, and the
 cost line has no visual identity tying it to the bar it drains.
+✅ **RULED: it is called "Focus"** — see §5.7.
 
 ### 2.2 Skill-specific
 
@@ -143,7 +149,7 @@ a slow and would let the guard argue itself down).
 **Proven to bite** on both axes: window 90 → 300 ticks goes red on Spearhead,
 factor 0.5 → 0.25 goes red on Heal and Spearhead. Green on real content.
 
-### 3.2 ⚠ OPEN — "landed" is three different rules, and D8 describes one
+### 3.2 ✅ RULED (§5.2) → **R2** — "landed" is three different rules, and D8 describes one
 
 D8 states *"an aura is a field: it pays only when its effect actually lands."*
 Read across all seven appliers, that is implemented three different ways:
@@ -169,13 +175,24 @@ high character level.
 pool to the 1-HP clamp in ~110 s of doing nothing. FireWard at cap is marginally
 net-negative the same way.
 
-⇒ The `targetsSelf` half is **latent, not live** — no costed skill authors it
-today. It is one JSON key away and nothing would fail.
+⚑ **CORRECTION (triage code check, 2026-08-01).** The original write-up said the
+`targetsSelf` half is *"latent, not live — no costed skill authors it today"*.
+**That is wrong.** Three costed effects author it right now:
 
-**Not fixed deliberately:** changing three appliers' pay condition is a design
-call, and *"should a ward cost you for standing near a friend"* is a PO
-question. But the current answer reads like a bug a playtester would report, and
-D8's own wording says it is not what was intended.
+| skill | effect | tick | cost at cap | charge while **completely alone** |
+| --- | --- | --- | --- | --- |
+| Warbanner | `shield_aura` `targetsSelf: true` | 30 | 1.31 % | **1.31 %/s** |
+| FireWard | `resist_aura` `targetsSelf: true` | 30 | 0.90 % | **0.90 %/s** |
+| Vanguard | `shield_aura` `targetsSelf: true` | 90 | 0.65 % | **0.22 %/s** |
+
+`applyShieldAura` / `applyResistAura` set `hitAny = true` on the self-apply and
+return it, so the "did it land" question is answered **true before the target
+set is even looked at**. No ally is required — no *entity* is required. Warbanner
+alone in an empty field out-drains the 0.40 %/s tapered regen by 3×, and the
+proximity tax described above is the *milder* case, not the failure mode.
+
+⇒ ✅ **RULED (§5.2): pay for work done.** One rule across all seven appliers.
+See §6 R2 for what that means per applier.
 
 ### 3.3 ✅ FIXED (superseded — see §4.2) — the tooltip understated costs
 
@@ -207,7 +224,7 @@ server applies the passive in `effectCostHP`; the tooltip renders the authored
 fraction and cannot know about it. The PO's report is exactly right, and the fix
 is the same plumbing — the reduction has to reach the client.
 
-### 3.4 ⚠ OPEN — the 1-HP floor quantizes the entire price list
+### 3.4 ✅ RULED (§5.3) — ACCEPTED — the 1-HP floor quantizes the entire price list
 
 Measured at a level-1 pool: **15 of the 20 costed aura effects collapse to
 exactly 1 HP**. The authored **38.5× spread compresses to 10×** (3× excluding
@@ -245,7 +262,7 @@ grantable capability**. `backlog.md` §31's direction is one Actor core with
 optional capabilities; the day a companion, structure or charmed pet should pay
 for something, this seam has to move in `model`, not in `sys`.
 
-### 3.7 ⚠ OPEN (minor) — authored effect order is now load-bearing
+### 3.7 → **R3** (documented, not engineered) — authored effect order is now load-bearing
 
 Effects charge sequentially within one tick, each pricing against the health the
 previous one left. For a multi-effect aura near the floor, **JSON ordering
@@ -254,7 +271,7 @@ documents that authored order carries meaning.
 
 ⇒ F5 (tick together) makes this sharper, not softer — see §4.1.
 
-### 3.8 ⚠ OPEN (minor) — the free floor pays for its own pricing
+### 3.8 → **R2** — the free floor pays for its own pricing
 
 `effectCostHP` evaluates `payer.MaxHealth()` — a `math.Pow` through `curve.F` —
 **before** the zero test, so the permanently-free `Damage` aura, the
@@ -268,6 +285,42 @@ cannot see it. Two-line reorder.
 that `applyAuraEffect`'s switch dispatches — a second list, but it fails **loud**
 (a new chargeable type trips the assert rather than escaping it). Worth knowing,
 not worth fixing.
+
+### 3.10 ⚑ NEW (triage code check) — re-pricing for F5 *raises* low-level costs
+
+The interaction that fixes the chunk order. `vitals.HP` is
+`round-half-up, floored at 1` (`vitals.go:96-105`), so **dividing an authored
+cost does not divide what a low-level player pays — it multiplies it**, because
+the smaller number floors to the same 1 HP while the cadence gets faster.
+
+Worked on Warbanner's heal at a level-1 pool of 100 HP:
+
+| | cadence | authored | HP charged | real price |
+| --- | --- | --- | --- | --- |
+| today | 120 | 0.0106 | `round(1.06)` = 1 | **0.25 HP/s** |
+| unified at 40, cost ÷ 3 | 40 | 0.0035 | `round(0.35)` → floor **1** | **0.75 HP/s** |
+
+Throughput-neutral re-pricing is exactly neutral at a large pool and **3×** at a
+small one. Every effect F5 subdivides hits this, and it is silent: the authored
+number goes down, the guard in §3.1 is a per-second bound that would catch a
+gross case but not a 3×, and the batteries run at high level where the floor
+does not bind.
+
+⇒ **This is why R3 (content) must not run before R2 (engine) and R1 (display)**:
+R2 changes what is charged at all, and R1 is what makes the floored number
+*visible* so the re-price can be judged by eye rather than by arithmetic.
+
+### 3.11 ⚑ NEW (triage code check) — F6 puts a Go rounding rule in TypeScript
+
+Showing absolute HP means the client must reproduce `vitals.HP` exactly —
+`round half up, then floor at 1` — or the tooltip and the health bar disagree by
+a point and the player watches a "1 HP" cost take 2. That is a **cross-language
+mirror** of live server arithmetic, the class §35 spent a whole chunk closing.
+
+⇒ R1 pins it the way `SKILL_POINT_COST` is pinned: one shared statement of the
+rule, asserted by **both** a Go test and a vitest test
+(`api/shared-constants.json` + `SharedConstants.test.ts` +
+`cmd/aurad/shared_constants_test.go` are the working precedent).
 
 ---
 
@@ -302,6 +355,30 @@ after the cadence change, not just its intervals.
 price against the same health in the same tick, so ordering only matters for
 which one wins the clamp — a much smaller surface.
 
+✅ **RULED (§5.5): unify at the aura's DAMAGE beat, rescale the rest.** Not the
+slowest — the slowest turns Warbanner into a single 4-second pulse and makes its
+slow sluggish. The beat is 40 for Paladin / Suppression / Vanguard / Warbanner
+and 20 for Wildfire; every slower effect has its per-application magnitude **and**
+its cost divided by the ratio, so HP/s and price/s are unchanged at a large pool
+(⚑ **not** at a small one — that is §3.10, and it is the reason R3 runs last).
+
+⚑ **The PO's condition on the ruling: a permanent debuff must stay permanent.**
+Moving Warbanner's and Suppression's slow from the default interval of **1** to
+the shared beat of 40 is safe *by construction* — `applySlowAura` and its
+siblings author the buff lifetime as `effectiveTickInterval(effect) + 1`, so the
+refresh always outruns the expiry and the debuff never drops. But it is safe by
+an invariant nobody has written a test for, and it has two visible consequences
+R3 must check rather than assume:
+
+- a mob entering the ring is unslowed for up to **40 ticks (~1.3 s)** instead of
+  one tick — the responsiveness price of the shared beat;
+- a mob leaving the ring stays slowed for up to **41 ticks** instead of 2 — the
+  debuff now lingers, which is a *buff* to the kiting build.
+
+⇒ R3 pins `lifetime > interval` as a loader-level property, not a per-skill
+hope: an authored `tickInterval` that ever exceeds the lifetime silently turns a
+permanent debuff into a blinking one.
+
 ### 4.2 F6 (absolute HP) supersedes §3.3 and absorbs F2
 
 Showing absolute HP computed from current max HP is **strictly better** than the
@@ -312,7 +389,14 @@ become implicit: the number shown is the number charged.
 the `maxHealth` plumbing §3.3 already added.
 ⇒ It reverses the 2026-07-29 "percentage alone" ruling — that ruling should be
 marked superseded rather than silently contradicted.
-⇒ Same treatment is wanted for the **spellbook point cost** (checklist §3).
+⇒ ⚑ It also drags in §3.11: the client has to reproduce `vitals.HP`'s rounding
+or the shown number and the charged number disagree.
+
+⚑ **Checklist §3's "the point cost should be absolute" is NOT about skill
+points** — clarified by the PO 2026-08-01. The `+` button already shows the real
+figure (`+2`, tooltip *"Costs 2 skill points"*), and the only spellbook complaint
+was the scrollbar (F3). The ask was always the **resource** cost. So there is no
+point-economy presentation work in this plan.
 
 ### 4.3 F1 (First Aid free) needs the free-floor guard extended
 
@@ -328,65 +412,245 @@ same gap: the cost is a fixed per-application charge with no relationship to
 what the effect *returned*. Any Reaper fix should be checked against §3.2 rather
 than tuned in isolation.
 
----
+⚑ **The code check found the mechanical root, and it explains why C2c did not
+land.** `reaper.json` carries **both** `lifestealFraction: 0.3` **and**
+`berserkerMaxBonusFactor: 1`, and berserker is
+`1 + factor × (1 − casterHealthRatio)` (`definition.go:448`) — damage scales to
+**2× as the caster's health drops**, while lifesteal returns a fixed *share of
+that damage*. So the lower you go the more you heal:
 
-## 5. Open questions for the PO
+> low HP → more damage → more lifesteal → back up → repeat.
 
-### 5.1 F9 — how should a dot aura pay?
+A cost that is a flat fraction of **max** health cannot counterweight a return
+that scales with health **missing**. C2c cut the radius (2.0 → 1.5) and the
+lifesteal (0.5 → 0.3) — both linear terms against a loop — which is why the PO's
+verdict after the nerf was unchanged.
 
-PO asked for options. Four, with the trade named:
-
-1. **Pay per re-application (today).** Simple, but charges 3× per damage tick on
-   Immolate and reads as paying for nothing.
-2. **Pay only when the dot is genuinely new** (not a refresh). Fixes the feel,
-   but then holding the aura on a single target is free after the first tick —
-   which the PO already flagged as *"also not ideal."*
-3. **Pay on the dot's own cadence, not the aura's** — charge when the dot
-   *ticks*, so cost tracks damage dealt exactly. Needs the cost to move to the
-   dot payload; the dot currently fires from a buff store, not from the applier.
-4. **Align the re-application interval to the dot interval** (20 → 60), so
-   options 1 and 3 converge. Pure content change, no engine work. ⚑ Interacts
-   with F5.
-
-Recommendation: **4 first** (free, and it is the same cadence-hygiene move F5
-asks for), then re-judge whether 3 is still wanted.
-
-### 5.2 §3.2 — should shield/resist pay for presence?
-
-Options: pay only when the buff *changed* something (matches heal, three
-appliers change); keep proximity payment but gate it on the ally being in
-combat (matches the 2026-07-29 shield ruling); or accept it and re-price the
-affected auras so idle drain cannot exceed regen.
-
-### 5.3 §3.4 — is 1-HP quantization acceptable?
-
-Accepting it means the careful relative pricing only exists past roughly
-character level 12. Rejecting it means either losing sub-1-HP costs entirely or
-carrying fractional debt.
-
-### 5.4 §2.3 — the downtime agency loop
-
-Campfire-granted charges is the PO's own sketch. Needs a design session; couples
-to `backlog.md` §32 and §36.
+✅ **RULED (§5.6): Reaper drops one rider.** Content-only, and it gives the skill
+one identity instead of two that multiply. **Which** rider is the R3 call, with
+a recommendation on record: **drop `lifestealFraction`, keep execute +
+berserker.** The complaint is literally *"it gives more resource back than it
+costs"*, berserker is the more distinctive half, and dropping lifesteal leaves
+the priced-aura economy intact rather than handing Reaper a free pass on it.
+⚑ Knock-on to note in the commit: Reaper was authored as the smoke content for
+*"one aura exercising execute + berserker + lifesteal together"*
+(skill-vocab chunk 1) — dropping a rider means that combination is no longer
+covered by any live skill, so the test that wants it needs a fixture.
 
 ---
 
-## 6. Suggested chunking (not scheduled)
+## 5. PO decisions (all ruled 2026-08-01)
 
-Grouped by what shares a surface, cheapest and most-blocking first.
+Eight decisions, taken after the triage code check re-read every finding against
+HEAD. Two of the options originally offered here were **withdrawn before the
+question was asked**, because the code says they do not work — recorded in 5.1,
+since "we already tried that" is the kind of thing a later pass re-proposes.
 
-- **R1 — presentation.** F6 absolute HP + F2 cost reduction on the wire + F7
-  resource name/colour + F3 scrollbar + F10 "Also heals you". One frontend pass,
-  one small wire addition, no balance movement.
-- **R2 — cadence hygiene.** F5 tick-together across the five multi-effect auras,
-  §5.1 option 4 for the dots, and the cost re-authoring that §4.1 forces. Guard
-  in §3.1 covers it.
-- **R3 — the free heal baseline.** F1 First Aid, plus §4.3's guard extension and
-  whatever the heal line needs re-balancing around it.
-- **R4 — the pay-condition question.** §3.2 / §5.2, and F8 Reaper with it.
-- **Unscheduled watch items:** §3.4, §3.5, §3.6, §3.7, §3.8.
-- **Separate plans:** F4 → the quest plan. §2.3 downtime → its own design
-  session. F11 → `backlog.md` §37.
+### 5.1 F9 — how a dot aura pays ✅ **PAY TO IGNITE**
+
+Charge only when the application creates a **genuinely new** dot on at least one
+target, never on a refresh — and re-price it to the **whole burn** (~3× today's
+per-application figure). You pay to set something alight, not to keep it
+burning. `Buffs.ApplyDot` (`buffs.go:257-268`) already distinguishes the two
+internally — the refresh path returns early — so the change is to *report* what
+it already knows, up through `ApplyDot` on player and mob to `applyDotEffect`.
+
+The PO's objection to this option was *"then holding it on one target is free
+after the first tick"*. Re-pricing to the full burn is the answer: the first
+application costs what three ticks of burning is worth, so a single target is
+paid for in full, up front.
+
+⚑ **Two of the four original options are dead, and the code is why:**
+
+- **Option 4 (align the 20-tick re-application to the 60-tick dot) was already
+  tried and measured.** It is written up in `immolate.json` / `wildfire.json`'s
+  own `_comment` from C2c: the 2-second delay to the first tick *"cost real
+  damage in short fights… and left the skill weaker still"*, so C2c **reverted
+  it** and raised damage instead. Proposing it as the free option was this doc
+  contradicting its own ledger.
+- **Option 3 (charge on the dot's own tick) breaks L4.** The whole cost system
+  is built on computing and clamping the charge **before** the effect, so a cost
+  can never kill its caster and an unaffordable one skips cleanly. A dot ticking
+  out of the buff store is damage *already committed* — there is nothing left to
+  skip, and no pre-clamp is possible. It is not a harder version of option 2, it
+  is a different invariant.
+
+### 5.2 §3.2 — what "landed" means ✅ **PAY FOR WORK DONE**
+
+One rule across all seven appliers, matching heal's, which is the only one that
+implements D8 as written. Per applier, in R2:
+
+- **shield** — charge when the absorb pool was actually consumed and restored, or
+  newly granted. A full pool topped up to full is not work.
+- **resist / slow** — charge on a genuinely new application only. A refresh at
+  the same factor changes nothing but the expiry timer (`buffs.go:194-208`).
+- **`targetsSelf`** — stops being a free `true`. It answers the same question as
+  every other target: did this do anything.
+
+This kills the idle drain outright, including the §3.2-correction case of an
+aura charging full price with nobody in the world nearby.
+
+### 5.3 §3.4 — the 1-HP floor ✅ **KEEP IT, MAKE IT VISIBLE**
+
+No engine change. The floor stays; **R1 is the fix** — an absolute-HP tooltip
+shows the number actually charged, so quantization stops being a lie the tooltip
+tells. Accepted consequence, on record so no later pass re-opens it as a bug:
+**the reach / multi-target / sustain terms C2b priced only resolve past roughly
+character level 12**; below that the price list is coarse by construction, the
+same way `conf.default.json` already documents the floor quantizing mob regen.
+
+### 5.4 §2.3 — the downtime agency loop ✅ **ITS OWN DESIGN SESSION**
+
+Campfire-granted charges is the PO's own sketch. Not part of R1–R3; couples to
+`backlog.md` §32 (does a charge survive death) and §36. See §6 R4.
+
+### 5.5 F5 — the shared beat ✅ **UNIFY AT THE DAMAGE BEAT**
+
+With the PO's condition that permanent debuffs stay permanent. Full ruling and
+its two behavioural consequences in §4.1.
+
+### 5.6 F8 — Reaper ✅ **DROP ONE RIDER**
+
+Full ruling and the loop that made it necessary in §4.4.
+
+### 5.7 F7 — the resource's name ✅ **"FOCUS"**
+
+**Focus** is HP and resource in one — the single pool GDD §3 describes, under a
+word that carries both meanings without being medical. **"Aura" stays the name
+of the field around you**, which is what the game already calls it and what the
+whole skill vocabulary is built on.
+
+⇒ The two words name two different things and cannot be confused in a sentence:
+*"you spend Focus to project an aura"*. This is the reason the pool is not
+called Aura — that reading would have put one word on the pool and on the
+active-aura skill category at once, in sentences where both appear
+(*"switch aura when your aura is low"*).
+
+This is a vocabulary migration, not a rename of one string: HUD bar text, every
+tooltip cost and heal line, the `NotEnoughResource` rejection message, the GDD
+and the manuals. ⚑ It is **presentation only** — no Go identifier, wire field or
+content key is renamed in R1 (`vitals.HP`, `costFractionOfMax`, `health`,
+`max_health` all stay), because a vocabulary pass that also renames the schema
+is two changes wearing one commit message. Whether the code follows the word is
+a later, separate call.
+
+### 5.8 F1 — First Aid ✅ **FIRST AID ONLY**
+
+Zero its cost, add it to the `freeFloorSkills` guard, touch no other heal. The
+follow-on in F1 (*other generators may cost something to differentiate*) is
+**not scheduled** — the locked 10 %→2 % heal cost curve stays where it is.
+
+⚑ Worth feeling before anything else moves: a **free** 30-second self-heal for
+20–30 % of max pool is already a partial answer to §2.3's downtime gap. R4 should
+be designed against a world where First Aid is free, not before it.
+
+---
+
+## 6. The plan
+
+Three build chunks and one design session. **The order is load-bearing**, and
+§3.10 is why: R2 changes what gets charged at all, and R1 is what makes a charge
+legible — re-authoring the catalog (R3) before either means authoring numbers
+against rules that are about to change, and judging them through a tooltip that
+misreports them.
+
+> Each chunk is its own execution session, per the working-style rule. Nothing
+> here is started.
+
+### R1 — What a cost SAYS (frontend + one wire field)
+
+**No balance movement.** Everything the PO could not read, made readable.
+
+| item | change |
+| --- | --- |
+| **F6** | Every cost line renders **absolute HP**, computed from the live `maxHealth` (plumbing already landed with §3.3) — auras per beat, cooldowns per cast. |
+| **F2** | `cost_factor` joins `GameState` beside `skill_points` (owner-only data, existing home) → mirrored in `Skills.ts` → folded into the number shown, so **Discipline becomes visible** for the first time. |
+| **F7** | The resource is **Focus** — bar text, tooltips, rejection message, GDD, manuals — plus the colour tie from a cost line to the bar it drains. Presentation only: no Go identifier, wire field or content key is renamed (§5.7). |
+| **F10** | `SkillTooltip.ts:357` — *"Also heals you"* only when `targetsAllies`; Recover says *"Heals you"*. |
+| **F3** | `#spellbookList > li` gets right padding so SimpleBar's overlay scrollbar stops sitting on the `+`/`−` buttons. The precedent is 20 lines up in the same file (`HUD.less:609`, *"the right padding keeps text off the scrollbar the moment one appears"*). |
+
+⚑ **Landmines.** ① §3.11 — the absolute number is `vitals.HP` arithmetic in
+TypeScript; pin the rounding on both sides against one shared statement, the
+`SKILL_POINT_COST` pattern. ② A wire field means **both binding sets regenerate
+and deploy together** — the standing rule. ③ The §3.3 tooltip fix is
+**superseded here, not extended**: effective-percentage logic comes out, it does
+not gain a second mode. ④ The 2026-07-29 *"percentage alone"* ruling gets marked
+**superseded** where it is written down, not silently contradicted.
+
+**Verified by:** vitest legs per line (the 4 from §3.3 are rewritten, not
+added to), the cross-language rounding pin, `tsc` + prod build, and a `verify`
+harness run that reads a real tooltip in a real client — this is a
+presentation chunk, so a screenshot is the acceptance test.
+
+### R2 — What "landed" MEANS (engine)
+
+**Moves real prices without moving one authored number**, which is exactly why
+it runs before R3 and gets measured on its own.
+
+- **§5.2** — shield / resist / slow / `targetsSelf` charge only for work done.
+  The buff store already knows new-from-refresh in all three payloads
+  (`ApplyShield`, `ApplyResist`, `ApplySlow`); it needs to **say so**, and the
+  three appliers need to stop answering `hitAny || len(targets) > 0`.
+- **§5.1** — `ApplyDot` reports new-vs-refresh the same way; `applyDotEffect`
+  lands only when at least one target was newly ignited.
+- **§3.8** — `effectCostHP` returns before evaluating `payer.MaxHealth()` when
+  the authored fraction is zero, so the permanently-free `Damage` aura stops
+  paying for a `math.Pow` per effect per tick. Two-line reorder, zero behaviour
+  change, invisible to the alloc guards by construction.
+- **D8's comment in `skill_cost.go`** is rewritten to state the one rule. It
+  currently describes a rule the code does not implement.
+
+⚑ **The measurement problem is the same one the rewrite hit** (`§7` of
+`plan-numbers-rewrite.md`): TTK/TTD is the idle-player scenario and cannot see a
+cost. Measure in **`-chain`, A/B against a pre-R2 worktree**, and add the
+regression the finding actually describes: **stand a Warbanner caster next to an
+ally with no enemy present — net HP must not fall.** That test fails today.
+
+**Verified by:** per-applier "a refresh charges nothing" tests, the idle-drain
+regression above, the §3.1 drain guard re-run, full suite + `vet` + `gofmt`,
+`-chain` A/B recorded in the ledger.
+
+### R3 — One beat, one price (content)
+
+The catalog re-authoring, last, once the rules underneath it are final.
+
+- **F5 / §5.5** — the five multi-effect auras unify at their damage beat
+  (40, 40, 40, 40, 20); every slower effect's magnitude **and** cost divided by
+  the ratio. Plus the `lifetime > interval` property pinned at the loader so a
+  permanent debuff cannot be authored into a blinking one.
+- **§5.1's re-price** — Immolate and Wildfire pay the full burn on ignition.
+- **F8 / §5.6** — Reaper drops a rider (recommendation: lifesteal), re-measured.
+- **F1 / §5.8** — First Aid's cost → 0, and it **joins `freeFloorSkills`** in
+  `cmd/aurad/free_floor_test.go`, or the free-floor property is enforced for
+  five skills and merely hoped for on the sixth (§4.3).
+- **§3.7** — authored effect order is load-bearing near the floor. F5 shrinks
+  the surface; R3 **documents** it in `manual-content-authoring.md` rather than
+  engineering it away.
+
+⚑ **The trap is §3.10**: throughput-neutral re-pricing is 3× at a level-1 pool.
+Every subdivided cost gets checked at **CL 1 as well as at cap** — R1 is what
+makes that a reading rather than a calculation.
+
+**Verified by:** the drain guard, `-chain` A/B for survival and kph, boot against
+the pinned content counts, and a PO feel pass — this chunk is numbers, and
+numbers are [PLACEHOLDER] until played.
+
+### R4 — Downtime agency (design session, no code)
+
+§2.3. The PO's sketch is campfire-granted food charges; raising out-of-combat
+regen is **explicitly rejected**. Couples to `backlog.md` §32 (does a charge
+survive death — a persistence question, so it wants schema room in step 8a) and
+§36. Design after R3 has been felt, and against a **free First Aid** (§5.8).
+
+### Not in this plan
+
+| item | goes to |
+| --- | --- |
+| **F4** — quest progress must only count after acceptance | the quest plan; it reverses `archive/plan-quests.md`'s retroactive-credit ruling and has nothing to do with costs |
+| **F11** — losing conviction in the combo upgrade system | `backlog.md` §37, coupled to aura augmentation |
+| **§3.5** — cost is per application, never per target | watch item. No skill scales `maxTargets` with level today, so nothing drifts; the first one that does invalidates its own price silently |
+| **§3.6** — `costPayer` is welded to a concrete type | watch item, and it belongs to `backlog.md` §31's capability direction, not here |
+| **§3.9** — the seven-type list in the test | accepted; it fails loud |
 
 ---
 
@@ -407,9 +671,12 @@ more testing on. Downtime is the weak spot — §2.3.
 never died through using an ability or aura."*
 
 **3. Point economy.** *"Meeeh, it's alright"* — accepted but not loved; couples
-to the parked aura-augmentation idea. The `+` button greys correctly, but the
-point cost should be **absolute** (F6's sibling). Caps of 5 read *"early if
-anything but not overly so."*
+to the parked aura-augmentation idea. The `+` button greys correctly. Caps of 5
+read *"early if anything but not overly so."*
+⚑ *"The point cost should be absolute"* was originally read as a skill-point ask
+and filed as F6's sibling. **Clarified 2026-08-01: it meant the resource cost**
+— the `+` button already shows the real point figure, and the only spellbook
+complaint was F3's scrollbar. There is no point-economy work in §6.
 
 **4. Retuned skills.** Immolate/Wildfire → F9. **Reaper still far too strong**
 → F8. LongRangeStrike reads fine and worth its reach price. Recover *"feels
