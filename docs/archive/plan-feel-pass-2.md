@@ -484,7 +484,7 @@ Kept as the record of what was asked, in the shape it was asked. Replies are
 ## 8. Chunk ledgers
 
 Filled in as each chunk lands, newest first. All five landed 2026-08-02 in one
-execution session, committed together as `[uncommitted]`. Common verification:
+execution session, committed together as `14b35f98`. Common verification:
 full Go suite (0 failures) + `vet` + `gofmt` · 130 vitest (+19 across the
 session) · `tsc` · prod build · boot `-content ../api` 0 errors 0 warnings 0
 panics — 87 skills/15 factions/64 mobs/10 recipes/3 milestone unlocks/4
