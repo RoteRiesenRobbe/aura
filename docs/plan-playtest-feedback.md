@@ -2248,6 +2248,92 @@ the kill broadcast names both (L-P4). Per the standing per-bug model, not
 blocking. **L-P1 (participant-ref XP loss on death) stays on record,
 untouched** — fix vehicle quest L11 / step 8.
 
+### Cooldown re-slot exploit — a cooldown belongs to the SKILL ✅ DONE 2026-08-01, committed `abdb5673`
+
+**PO bug report, per the standing per-bug model:** *"if I place a cooldown in a
+cooldown slot, it can instantly be used, even if it was used before. A cooldown
+is always placed in a slot with a zero second cooldown."* Backend only, 8 files.
+
+**The defect in one line: remaining cooldown was stored on the SLOT, and
+`EquipCooldown` builds a fresh `&EquippedSkill{}`.** So `CdTicks` was 0 by
+construction on every equip, and re-slotting was a free reset of any cooldown in
+the game — Recall (300 s), Revive, Bloodthirst, the lot.
+
+**⚑ The in-combat equip lock was never a fix, only a lid.** `sys/equip` has
+rejected mid-combat loadout edits since the first report of this, with a comment
+claiming it *"closes the cooldown-refresh exploit"*. It does not: `InCombat()` is
+a 100-tick recency window, so the exploit is fully open **3.3 s after your last
+hit** — i.e. between every pull, which is exactly when a player edits their
+loadout anyway. The shipped test even asserted the mid-combat half and left the
+out-of-combat half unwritten, so the gap was *pinned open* by the suite. **The
+lesson is the general one: a guard on the ACCESS PATH is not a fix for state that
+is reconstructible.** As long as the counter died with the slot, every path that
+could ever re-create a slot was a hole, and only some of them are equips.
+
+**The fix: `SkillComponent.cooldowns map[SkillID]int`, and `EquippedSkill.CdTicks`
+is DELETED, not mirrored.** Keyed by skill because that is what a cooldown
+belongs to; an absent key means ready. Deleting the old field rather than syncing
+the two is the point — a mirrored copy is the drift class this repo keeps getting
+bitten by (§35's two conf restatements, R3's two taxonomy restatements), and a
+mirror here would have re-opened the exploit the first time someone wrote to the
+wrong one. Five accessors carry it: `CooldownRemaining` / `SlotCooldownRemaining`
+/ `SetCooldownRemaining` / `StartCooldown` / `TickCooldowns`.
+
+**PO decision (choice prompt): the in-combat equip lock STAYS.** With the timer
+on the skill, re-slotting mid-fight gains nothing, so the lock became a design
+choice rather than a security control — lifting it would have made the loadout a
+free mid-fight lever and softened the 3/3/3 slot limit. Kept as authored:
+loadout editing is an out-of-combat build activity, and switching the ACTIVE AURA
+(a separate input path) remains the intended mid-fight lever.
+
+**⚑ Unslotted cooldowns keep ticking, and that is load-bearing.** `processCooldowns`
+now calls `sc.TickCooldowns()` once per entity per tick instead of walking the
+three slots. Had the map ticked only while slotted, parking a skill outside the
+loadout would FREEZE its recovery — a worse exploit than the one being closed
+(you would hold the cooldown at 1 tick remaining indefinitely and re-slot it the
+moment you wanted it). Absent-key-is-ready plus tick-everything is the shape with
+no privileged state.
+
+**Free knock-ons, none of them designed for:** the wire is unchanged
+(`codec/gamestate.go` reads through `SlotCooldownRemaining(i)`), so **no frontend
+change at all** — the HUD is server-driven and greys a re-slotted skill for its
+true remaining time on the next tick. Death and reconnect were already safe:
+`sys/state.go` carries the whole `SkillComponent` pointer through both stashes,
+so the map rides along exactly like the slots do.
+
+**Verified:** the three new tests **proven RED first** — the old behaviour was
+re-introduced as a one-line probe in `EquipCooldown` and
+`TestCooldownMemory/survives moving the skill to another slot`,
+`TestEquipSystem_OutOfCombatReslotKeepsCooldown` and
+`TestEquipSystem_ParkingOutsideTheLoadoutDoesNotResetCooldown` all failed, then
+restored. Full Go suite (28 pkgs) + `vet` + `gofmt` clean; simharness guardrails
+`-count=2`. **Sim battery unchanged — TTK 6.67 s / TTD 8.70 s stand** (mobs never
+re-equip, so the mob fire path is behaviour-identical by construction).
+`TickCooldowns` on an idle component allocates **zero** (pinned by test — it runs
+for every entity every tick, and the idle-loop alloc pins are why). Boot
+`-content ../api` 0 errors 0 warnings 0 panics — **87 skills/15 factions/64 mobs/
+10 recipes/3 milestone unlocks/4 quests/5 prop definitions/777 props/485 spawns/
+5 campfires**.
+
+**Harness gate**, one at a time on freshly restarted servers: `swift-cooldown.mjs`
+**7/7**, and `chunk2-follower.mjs` **5/5 + 1 SKIP** — the summon path end to end
+(spellbook → cooldown slot → **fire** → follow), including its wait-out-a-running-
+cooldown loop, with the engage leg going INCONCLUSIVE on the **accepted D9
+fragility** (the pet is focused by its former packmates and died before it could
+be watched — not a cooldown signal either way). Both runs 0 console errors /
+0 WebGL losses.
+
+**⚑ And the harness gate is why this ledger can say that honestly.** The first
+clean `swift-cooldown` run scored **5/7** at a 1.20× sprint ratio — nothing in
+the diff touches `Buffs.MovementFactor()`, so the tempting move was to call it a
+flake. Settled instead per the verify skill's own rule: `git stash` + rebuild →
+HEAD baseline **7/7 at 1.39×**, restore + rebuild → **7/7 at 1.43×**. The bad run
+carried a **0.90 u/s unbuffed leg** against a nominal 1.5 — the documented
+obstruction signature — so it was the venue, not the change. A fourth run before
+that was void on a lost WebGL context (§29), which is an INVALID run, not a
+failure. Three runs to settle one number, and the alternative was shipping a
+guess in a ledger.
+
 ### The next-level preview is gated on affordability ✅ DONE 2026-08-01, `66646743`
 
 **A PO ask, raised straight into a session and shipped in one sitting** —
