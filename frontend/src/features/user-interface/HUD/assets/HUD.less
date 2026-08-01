@@ -809,7 +809,13 @@
 			align-items: center;
 			justify-content: space-between;
 			gap: 0.5rem;
-			padding: 0.4rem 0;
+			// The right padding keeps the +/− buttons out from under SimpleBar's
+			// overlay scrollbar (F3 feel pass — the PO reported it sitting on
+			// them). Same fix and the same 0.8rem as .conversationBody above;
+			// it lives on the ROW rather than the scroll host because SimpleBar
+			// positions its track against the host's padding box, so padding
+			// there moves the bar instead of the content.
+			padding: 0.4rem 0.8rem 0.4rem 0;
 			border-bottom: 1px solid @panel-row-divider;
 
 			&:last-child {

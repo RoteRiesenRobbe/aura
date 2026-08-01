@@ -5,7 +5,7 @@ import {AppliedEffectBit} from '../features/game-objects/logic/EffectPips';
 import {AuraCategoryBit} from '../features/game-objects/logic/AuraRings';
 import {TierRank} from './Mobs';
 import {BasicConfig, meter2px} from './BasicConfig';
-import {SKILL_POINT_COST, skillPointCost} from './Skills';
+import {SKILL_POINT_COST, roundHP, skillPointCost} from './Skills';
 
 // §35 C4c (plan-conf-duplication.md D3): the client half of the
 // shared-constants contract. api/shared-constants.json is the one authored
@@ -82,6 +82,18 @@ describe('shared constants (api/shared-constants.json)', () => {
                 expect(skillPointCost(maxLevel, level),
                     `cap ${maxLevel}, level ${level}`).toBe(want);
             }
+        }
+    });
+
+    // §3.11 (plan-resource-costs-feedback): R1's absolute-Focus cost line makes
+    // vitals.HP's rounding live arithmetic in TWO languages. If the client
+    // rounds a fraction differently from the server, the tooltip promises a
+    // price the health bar does not lose — so the same input/output pairs are
+    // asserted here and by the Go twin against model/vitals.HP.
+    it('pins the HP rounding rule the cost tooltip renders through', () => {
+        expect(shared.hpRounding.length).toBeGreaterThan(0);
+        for (const [amount, want] of shared.hpRounding) {
+            expect(roundHP(amount), `roundHP(${amount})`).toBe(want);
         }
     });
 });

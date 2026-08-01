@@ -412,6 +412,12 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	AuraApi.GameStateAddCooldownRemainingTicks(builder, cooldownRemaining)
 	AuraApi.GameStateAddActiveAuraSlot(builder, int8(gs.Player.SkillComponent().ActiveAuraSlot))
 	AuraApi.GameStateAddSkillPoints(builder, uint16(max(gs.Player.AvailableSkillPoints(), 0)))
+	// The cost-reduction passive's multiplier (R1/F2). The server has always
+	// applied it in effectCostHP; without it on the wire the tooltip renders a
+	// price the player is not charged, which is exactly what the PO reported
+	// after the feel pass. Neutral 1 is the field default, so an unmodified
+	// player adds no bytes.
+	AuraApi.GameStateAddCostFactor(builder, gs.Player.SkillComponent().Derived.CostFactor())
 
 	// Cast bar (skill-vocab chunk 4): the running cast, read live off the
 	// component each tick; absent fields read as 0 = no cast.

@@ -203,15 +203,17 @@ export function updateShield(shieldHp: number, maxHealth: number, healthFraction
 }
 
 // updateBarTexts renders the absolute numbers over the HUD bars each tick:
-// health as currentHP/maxHP, XP as within-level progress toward the next
-// level (server-authoritative — resets to 0/needed on level-up and on the
-// death XP penalty).
+// Focus as current/max, XP as within-level progress toward the next level
+// (server-authoritative — resets to 0/needed on level-up and on the death XP
+// penalty).
 //
-// The XP bar carries an explicit "XP" prefix (feedback pass B item 5): the
-// playtester did not recognise the bare "12/40" as an experience bar at all.
+// Both bars carry an explicit prefix. The XP one came from feedback pass B
+// item 5 (the playtester did not recognise the bare "12/40" as an experience
+// bar at all); the Focus one from F7 — the resource is spent by every tooltip
+// in the game and had no name anywhere on screen to spend.
 export function updateBarTexts(health: number, maxHealth: number, xpInLevel: number, xpForNextLevel: number) {
     if (healthBarTextElement) {
-        healthBarTextElement.textContent = `${health}/${maxHealth}`;
+        healthBarTextElement.textContent = `Focus ${health}/${maxHealth}`;
     }
     if (xpBarTextElement) {
         xpBarTextElement.textContent = `XP ${xpInLevel}/${xpForNextLevel}`;

@@ -17,8 +17,10 @@ import {
     DamageParams,
     SkillDefinition,
     SkillEffect,
+    getLocalPlayerCostFactor,
     getLocalPlayerMaxHealth,
     powerScaleAt,
+    roundHP,
     skillDefinition,
 } from '../../../../client-data/Skills';
 import {getLocalPlayerLevel, mobDisplayName} from '../../../../client-data/Mobs';
@@ -54,6 +56,12 @@ const EFFECT_COLOR_KEYS: { [type: string]: keyof typeof AURA_CATEGORY_COLORS } =
     light_aura: 'light',
 };
 
+// The Focus color (F7): the health bar's own fill (vitalSigns.less #healthBar
+// > .indicator), so a cost line points at the bar it drains. The resource has a
+// name AND a color code now — that was the whole ask; a tooltip saying "Costs
+// you" in neutral text made spending look like just another stat.
+const FOCUS_COLOR = 'crimson';
+
 function effectColor(type: string): string | undefined {
     const key = EFFECT_COLOR_KEYS[type];
     if (key === undefined) {
@@ -71,15 +79,11 @@ function fmt(n: number): string {
     return String(parseFloat(n.toFixed(2)));
 }
 
-// hpFmt renders an absolute HP amount the way the server deals it —
-// vitals.HP: rounded half up to a whole point, and never rounded away to
-// nothing when it is positive (the min-1 rule). Without this a scaled heal
-// would read "106.99" for a 107 HP tick: precise, and still not what lands.
+// hpFmt renders an absolute Focus amount the way the server deals it —
+// roundHP, the client's mirror of vitals.HP. Without it a scaled heal would
+// read "106.99" for a 107-point tick: precise, and still not what lands.
 function hpFmt(n: number): string {
-    if (n <= 0) {
-        return '0';
-    }
-    return String(Math.max(1, Math.trunc(n + 0.5)));
+    return String(roundHP(n));
 }
 
 function pct(fraction: number): string {
@@ -117,7 +121,7 @@ const CATEGORY_LABELS: { [category: string]: string } = {
 
 const STAT_LABELS: { [stat: string]: string } = {
     movementSpeed: 'Movement speed',
-    maxHealth: 'Max health',
+    maxHealth: 'Max Focus',
     damageReduction: 'Damage reduction',
     critChance: 'Crit chance',
     damageDealt: 'All damage',
@@ -194,10 +198,10 @@ function damageExtraLines(damage: DamageParams, level: number, maxLevel: number,
         lines.push(`Crit: ${prog(damage.critChance, damage.critChancePerLevel, level, maxLevel, pct)}${factor}`);
     }
     if (damage.executeBonusFactor > 0) {
-        lines.push(`Execute: ×${fmt(damage.executeBonusFactor)} below ${pct(damage.executeBelowFraction)} HP`);
+        lines.push(`Execute: ×${fmt(damage.executeBonusFactor)} below ${pct(damage.executeBelowFraction)} Focus`);
     }
     if (damage.berserkerMaxBonusFactor > 0) {
-        lines.push(`Berserker: up to +${pct(damage.berserkerMaxBonusFactor)} damage at low HP`);
+        lines.push(`Berserker: up to +${pct(damage.berserkerMaxBonusFactor)} damage at low Focus`);
     }
     if (damage.lifestealFraction > 0) {
         lines.push(`Lifesteal: ${pct(damage.lifestealFraction)}`);
@@ -219,21 +223,49 @@ interface EffectBlock {
     generics: Partial<Record<GenericKind, string>>;
 }
 
-// minChargeFraction is the smallest share of the pool the server can actually
-// deduct, given that vitals.HP floors every positive cost at 1 HP. Below it the
-// authored fraction is not what the player pays, so the cost lines round up to
-// it. 0 when the pool is unknown (no snapshot yet) — then nothing is corrected.
+// How a cost renders (R1/F6, superseding the 2026-07-29 "percentage alone"
+// ruling): the ABSOLUTE number of Focus points the server will take, computed
+// from the live pool and the player's cost-reduction multiplier.
 //
-// Only the FLOOR is modelled, not vitals.HP's rounding. The floor is a
-// systematic understatement of up to ~4× and always in the same direction; the
-// rounding is sub-0.5 HP noise in both directions, and folding it in would make
-// the authored number invisible even where it is already right.
-function minChargeFraction(maxHealth: number): number {
-    return maxHealth > 0 ? 1 / maxHealth : 0;
+// ⚑ This is what makes both of the server's corrections legible instead of
+// merely true. A cost is charged through vitals.HP, so it is floored at 1 point
+// while the pool is small — Immolate authors 0.26 % and takes 1 % of a
+// 100-point pool — and it is scaled by the cost-reduction passive, which the
+// client could not see at all before R1. Neither needs explaining once the
+// number shown is the number charged.
+//
+// The returned renderer takes the level-scaled fraction (what prog() hands it)
+// and returns the number alone; its unit is the caller's suffix, so a
+// next-level preview reads "1 → 2 Focus" rather than repeating the unit.
+// A pool of 0 means "no snapshot yet" and falls back to the authored
+// percentage: imprecise beats invented.
+interface CostRenderer {
+    render: (fraction: number) => string;
+    unit: string;
+}
+
+function costRenderer(maxHealth: number, costFactor: number): CostRenderer {
+    if (maxHealth <= 0) {
+        return {render: pct, unit: ' of max Focus'};
+    }
+    return {
+        render: (fraction: number) => String(roundHP(fraction * maxHealth * costFactor)),
+        unit: ' Focus',
+    };
+}
+
+// "Also heals you" is only correct alongside ally targeting (F10). Recover
+// targets the caster and nobody else, so "Also" promised a second effect that
+// does not exist. The shield and resist lines carry the same word in the same
+// shape — one helper, rather than three chances to get it wrong.
+function selfTargetLine(effect: SkillEffect, verb: string): string {
+    return effect.targetsAllies
+        ? `Also ${verb} you`
+        : verb.charAt(0).toUpperCase() + verb.slice(1) + ' you';
 }
 
 function effectBlock(effect: SkillEffect, level: number, maxLevel: number, powerScale: number,
-                     isCosted: boolean, minCost: number): EffectBlock {
+                     isCosted: boolean, cost: CostRenderer): EffectBlock {
     const lines: string[] = [];
 
     // Cadence folds into the main line instead of its own "Ticks every" line
@@ -259,7 +291,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             if (heal.fractionOfMax > 0) {
                 // Curve-free by construction: max HP already carries f(L),
                 // which is why the server skips powerScale on this branch too.
-                lines.push(`Heal: ${prog(heal.fractionOfMax, heal.fractionOfMaxPerLevel, level, maxLevel, pct)} of max HP${perTick}`);
+                lines.push(`Heal: ${prog(heal.fractionOfMax, heal.fractionOfMaxPerLevel, level, maxLevel, pct)} of max Focus${perTick}`);
             } else {
                 lines.push(`Heal: ${prog(heal.hp, heal.hpPerLevel, level, maxLevel, hpFmt, powerScale)}${perTick}`);
             }
@@ -270,9 +302,9 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             const selfHeal = effect.selfHeal;
             if (selfHeal.fractionOfMax > 0) {
                 // Curve-free, as above.
-                lines.push(`Heal self: ${prog(selfHeal.fractionOfMax, selfHeal.fractionOfMaxPerLevel, level, maxLevel, pct)} of max HP`);
+                lines.push(`Heal self: ${prog(selfHeal.fractionOfMax, selfHeal.fractionOfMaxPerLevel, level, maxLevel, pct)} of max Focus`);
             } else {
-                lines.push(`Heal self: ${prog(selfHeal.healHp, selfHeal.healHpPerLevel, level, maxLevel, hpFmt, powerScale)} HP`);
+                lines.push(`Heal self: ${prog(selfHeal.healHp, selfHeal.healHpPerLevel, level, maxLevel, hpFmt, powerScale)} Focus`);
             }
             if (selfHeal.variance > 0) lines.push(`Variance: ±${pct(selfHeal.variance)}`);
             break;
@@ -287,7 +319,7 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             // render as the reduction players think in.
             const renderReduction = (factor: number) => pct(1 - Math.max(0, factor));
             lines.push(`Resist ${resist.tags.join(', ')}: −${prog(resist.factor, resist.factorPerLevel, level, maxLevel, renderReduction)} damage taken${refresh}`);
-            if (resist.targetsSelf) lines.push('Also applies to you');
+            if (resist.targetsSelf) lines.push(selfTargetLine(effect, 'applies to'));
             break;
         }
         case 'stat_multiplier': {
@@ -330,12 +362,12 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
         case 'shield_aura':
         case 'instant_shield': {
             const shield = effect.shield;
-            let line = `Shield: ${prog(shield.hp, shield.hpPerLevel, level, maxLevel, hpFmt, powerScale)} HP`;
+            let line = `Shield: ${prog(shield.hp, shield.hpPerLevel, level, maxLevel, hpFmt, powerScale)} Focus`;
             if (effect.type === 'instant_shield') {
                 line += ` for ${ticksToSecs(shield.durationTicks)}`;
             }
             lines.push(line + refresh);
-            if (shield.targetsSelf) lines.push('Also shields you');
+            if (shield.targetsSelf) lines.push(selfTargetLine(effect, 'shields'));
             break;
         }
         case 'recall':
@@ -350,15 +382,15 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
                 // f(L), so the server skips powerScale here too. Recover is the
                 // first content to take this branch (D14) — before it, a
                 // fractional HoT would have rendered "Heal over time: 0".
-                lines.push(`Heal over time: ${prog(hot.fractionOfMax, hot.fractionOfMaxPerLevel, level, maxLevel, pct)} of max HP × ${hot.tickCount} over ${duration}${refresh}`);
+                lines.push(`Heal over time: ${prog(hot.fractionOfMax, hot.fractionOfMaxPerLevel, level, maxLevel, pct)} of max Focus × ${hot.tickCount} over ${duration}${refresh}`);
             } else {
                 lines.push(`Heal over time: ${prog(hot.hp, hot.hpPerLevel, level, maxLevel, hpFmt, powerScale)} × ${hot.tickCount} over ${duration}${refresh}`);
             }
-            if (hot.targetsSelf) lines.push('Also heals you');
+            if (hot.targetsSelf) lines.push(selfTargetLine(effect, 'heals'));
             break;
         }
         case 'revive':
-            lines.push(`Revives the nearest fallen player at ${pct(effect.revive.healthFraction)} HP`);
+            lines.push(`Revives the nearest fallen player at ${pct(effect.revive.healthFraction)} Focus`);
             break;
         case 'dash':
             lines.push(`Dash ${prog(effect.dash.distance, effect.dash.distancePerLevel, level, maxLevel)} units in your movement direction`);
@@ -410,22 +442,6 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
             lines.push(`(${effect.type})`);
     }
 
-    // The resource cost (plan-numbers-rewrite D5/D7). Rendered as a PERCENTAGE
-    // rather than absolute HP — the PO ruled the "% of max HP" shape keeps the
-    // percentage alone (2026-07-29 sweep); the fraction-of-max heal lines above
-    // set the same precedent. `perTick` carries this effect's own cadence, which
-    // is the point: each effect pays on its own beat.
-    //
-    // ⚑ The percentage shown is the EFFECTIVE one — the authored fraction raised
-    // to whatever the 1-HP floor makes it on this player's pool. The fraction
-    // alone is a systematic understatement while the pool is small (Immolate
-    // authors 0.26 % and charges 1 % of a 100 HP pool), and it is the early game
-    // where a player reads tooltips hardest.
-    if (isCosted) {
-        const costPct = (fraction: number) => pct(Math.max(fraction, minCost));
-        lines.push(`Costs you: ${prog(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel, level, maxLevel, costPct)} of max HP${perTick}`);
-    }
-
     const generics: EffectBlock['generics'] = {};
     if (effect.radius > 0) {
         generics.radius = `Radius: ${prog(effect.radius, effect.radiusPerLevel, level, maxLevel)}`;
@@ -436,21 +452,33 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
     }
 
     const color = effectColor(effect.type);
-    return {
-        lines: lines.map((text, i) => i === 0 && color ? {text, labelColor: color} : {text}),
-        generics,
-    };
+    const rendered: TooltipLine[] = lines.map((text, i) =>
+        i === 0 && color ? {text, labelColor: color} : {text});
+
+    // The cost closes the block (plan-numbers-rewrite D5/D7), in the Focus
+    // color rather than the effect's own: it is the one line that talks about
+    // the player's pool instead of what the effect does to somebody else.
+    // `perTick` carries this effect's own cadence, which is the point — each
+    // effect pays on its own beat.
+    if (isCosted) {
+        const amount = prog(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel,
+            level, maxLevel, cost.render);
+        rendered.push({text: `Costs you: ${amount}${cost.unit}${perTick}`, labelColor: FOCUS_COLOR});
+    }
+
+    return {lines: rendered, generics};
 }
 
 const GENERIC_KINDS: GenericKind[] = ['radius', 'targets'];
 
-// powerScale is f(character level) and maxHealth is the live pool — both passed
-// in rather than read here so the whole formatter stays pure and DOM-free (and
-// testable at both ends of the curve without a loaded catalog). maxHealth 0
-// means "unknown", and leaves every authored cost fraction untouched.
+// powerScale is f(character level), maxHealth is the live Focus pool and
+// costFactor the player's cost-reduction multiplier — all passed in rather than
+// read here so the whole formatter stays pure and DOM-free (and testable at
+// both ends of the curve without a loaded catalog). maxHealth 0 means
+// "unknown", and falls the cost lines back to the authored percentage.
 export function formatSkillTooltip(def: SkillDefinition, level: number, powerScale: number,
-                                   maxHealth: number = 0): TooltipContent {
-    const minCost = minChargeFraction(maxHealth);
+                                   maxHealth: number = 0, costFactor: number = 1): TooltipContent {
+    const cost = costRenderer(maxHealth, costFactor);
     // Where the cost line goes follows how the cost is CHARGED (D8): an aura
     // pays per effect on each effect's own cadence, so each block prints its
     // own; a cooldown pays the SUM of its effects once on cast, so it prints
@@ -460,7 +488,7 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     const blocks = def.effects.map(effect =>
         effectBlock(effect, level, def.maxLevel, powerScale,
             perEffectCost && scaled(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel, level) > 0,
-            minCost));
+            cost));
 
     // A generic kind is shared when every effect that renders it renders it
     // identically — then it prints once at the bottom instead of per effect.
@@ -510,11 +538,15 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
             // evaluated at each level, so the sum itself is passed as the base
             // with its own per-level delta.
             const step = def.maxLevel > 1 ? (castCost(def.maxLevel) - castCost(1)) / (def.maxLevel - 1) : 0;
-            // The 1-HP floor applies to the SUM here, not per effect: a cooldown
-            // pays every effect in one deduction, so cooldownCostHP totals the
-            // raw fractions and converts once (sys/skill_cost.go).
-            const castCostPct = (fraction: number) => pct(Math.max(fraction, minCost));
-            lines.push({text: `Costs you: ${prog(castCost(1), step, level, def.maxLevel, castCostPct)} of max HP per cast`});
+            // The conversion to points happens on the SUM here, not per effect:
+            // a cooldown pays every effect in one deduction, so cooldownCostHP
+            // totals the raw fractions and rounds once (sys/skill_cost.go).
+            // Rounding per effect would print 3 points for three 0.2 % summons
+            // that cost 1.
+            lines.push({
+                text: `Costs you: ${prog(castCost(1), step, level, def.maxLevel, cost.render)}${cost.unit} per cast`,
+                labelColor: FOCUS_COLOR,
+            });
         }
     }
     if (def.cooldownTicks > 0) {
@@ -565,7 +597,7 @@ function showTooltip(anchor: HTMLElement, skillId: number, level: number) {
     // difficulty tint (its first consumer) already owned the mob side; it is
     // live-updated from every snapshot by Player.updateFromBackend.
     const content = formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()),
-        getLocalPlayerMaxHealth());
+        getLocalPlayerMaxHealth(), getLocalPlayerCostFactor());
 
     element.innerHTML = '';
     const title = document.createElement('div');

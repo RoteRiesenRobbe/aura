@@ -314,21 +314,21 @@ export function powerScaleAt(characterLevel: number): number {
     return Math.pow(levelCurve.growth, Math.max(1, characterLevel) - 1);
 }
 
-// The local player's max HP, mirrored here by Player.updateFromBackend — the
-// setLocalPlayerLevel precedent, kept in this module because the only reader is
-// the skill tooltip.
+// The local player's max Focus pool, mirrored here by Player.updateFromBackend
+// — the setLocalPlayerLevel precedent, kept in this module because the only
+// reader is the skill tooltip.
 //
-// ⚑ It is what makes the resource-cost line honest. The server prices a cost as
-// a fraction of max HP but charges it through vitals.HP, which floors any
-// positive amount at 1 HP (the rule that stops a small heal rounding away to
-// nothing). So while the pool is smaller than 1/fraction, the real charge is a
-// flat 1 HP and the authored fraction understates it — 0.26 % reads on a
-// 100 HP pool as 1 %, and 12 of the 20 costed aura effects are floored somewhere
-// in character levels 1–12.
+// ⚑ It is what lets a cost be shown as the number it actually is (R1/F6). The
+// server prices a cost as a fraction of the max pool and charges it through
+// vitals.HP, so the fraction alone is not what the player pays: it is floored
+// at 1 point while the pool is small (0.26 % of a 100-point pool is charged as
+// 1, and 12 of the 20 costed aura effects are floored somewhere in character
+// levels 1–12) and it is reduced by the cost-reduction passive below. Both
+// corrections are implicit once the tooltip shows absolute points.
 //
-// Defaults to 0, which reads as "not known yet" and renders the authored
-// fraction untouched: a tooltip opened before the first snapshot is merely
-// imprecise, never wrong-shaped.
+// Defaults to 0, which reads as "not known yet" and falls the cost lines back
+// to the authored percentage: a tooltip opened before the first snapshot is
+// merely imprecise, never wrong.
 let localPlayerMaxHealth = 0;
 
 export function setLocalPlayerMaxHealth(maxHealth: number) {
@@ -337,6 +337,39 @@ export function setLocalPlayerMaxHealth(maxHealth: number) {
 
 export function getLocalPlayerMaxHealth(): number {
     return localPlayerMaxHealth;
+}
+
+// The cost-reduction multiplier the server applies to every cost this player
+// pays (GameState.cost_factor, R1/F2): 1 = no reduction, 0.8 = pays 80 %.
+// Mirrored by Backend from every snapshot.
+//
+// ⚑ Before R1 the client had no knowledge of this whatsoever — the passive
+// worked and was invisible, which is exactly what the PO reported after the
+// feel pass. Neutral 1 is both the wire default and the pre-snapshot value.
+let localPlayerCostFactor = 1;
+
+export function setLocalPlayerCostFactor(costFactor: number) {
+    localPlayerCostFactor = costFactor;
+}
+
+export function getLocalPlayerCostFactor(): number {
+    return localPlayerCostFactor;
+}
+
+// roundHP mirrors the server's vitals.HP: round half up to a whole point, and
+// never round a positive amount away to nothing. Every absolute Focus number
+// the UI shows goes through it, so what the tooltip promises is what the health
+// bar loses.
+//
+// ⚑ This is live server arithmetic restated in a second language — the drift
+// class §35 spent a chunk closing — so it is pinned against
+// api/shared-constants.json by BOTH sides (SharedConstants.test.ts and
+// backend/cmd/aurad/shared_constants_test.go).
+export function roundHP(amount: number): number {
+    if (amount <= 0) {
+        return 0;
+    }
+    return Math.max(1, Math.trunc(amount + 0.5));
 }
 
 // Unknown IDs default to 'aura' — the most common category; keeps a skill
@@ -353,7 +386,7 @@ export function skillCategory(id: number): SkillCategory {
 export const ActivationRejectionMessages: { [reason: number]: string } = {
     [ActivationRejection.NoAnchor]: 'No campfire bound',
     [ActivationRejection.NoTarget]: 'No valid target',
-    [ActivationRejection.NotEnoughResource]: 'Not enough resource',
+    [ActivationRejection.NotEnoughResource]: 'Not enough Focus',
 };
 
 export function activationRejectionMessage(reason: number): string {

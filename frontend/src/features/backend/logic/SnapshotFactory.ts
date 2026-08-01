@@ -16,6 +16,7 @@ export class Snapshot {
     spellbook: number[]; // discovered skill IDs, owning player only
     spellbookLevels: number[]; // per-skill levels, positionally parallel to spellbook
     skillPoints: number; // unspent skill points, owning player only
+    costFactor: number; // cost-reduction multiplier, owning player only; 1 = none
     auraSlots: number[]; // equipped aura slot contents, positional (index i = slot i, 0 = empty)
     passiveSlots: number[]; // equipped passive slot contents, positional (index i = slot i, 0 = empty)
     cooldownSlots: number[]; // equipped cooldown slot contents, positional (index i = slot i, 0 = empty)
@@ -56,6 +57,9 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         snapshot.spellbook = gameState.spellbook;
         snapshot.spellbookLevels = gameState.spellbookLevels;
         snapshot.skillPoints = gameState.skillPoints;
+        // Scalar, always carried: it changes the moment a cost-reduction passive
+        // is equipped or unequipped, and the tooltip folds it into every price.
+        snapshot.costFactor = gameState.costFactor;
 
         // Aura/passive/cooldown slots: positional, always carry the full arrays
         snapshot.auraSlots = gameState.auraSlots;

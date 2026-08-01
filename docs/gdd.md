@@ -65,9 +65,26 @@ Everything revolves around the Resource (section 3) and the auras (section 4).
 
 ---
 
-## 3. The Resource
+## 3. The Resource — **Focus**
 
 Every player and every NPC has exactly **one resource**. It represents HP, mana, and everything else at once. Drops to 0 → death.
+
+**⭐ It is called Focus (PO ruling 2026-08-01, feel pass F7).** One word for a
+pool that is health and action economy at once, without being medical — and it
+cannot be confused with **aura**, which stays the name of the *field around
+you*: you spend Focus to project an aura. (That collision is exactly why the
+pool is not called Aura: *"switch aura when your aura is low"* names two
+different things with one word.) ⚑ **The name is presentation.** The bar, the
+tooltips and the rejection messages say Focus; no Go identifier, wire field or
+content key was renamed with it (`vitals.HP`, `costFractionOfMax`, `health`,
+`max_health` all stand), because a vocabulary pass that also renames the schema
+is two changes wearing one commit message.
+
+⚑ **Costs are shown in absolute Focus, not percentages** (F6, R1 — this
+*reverses* the 2026-07-29 sweep ruling that the `% of max HP` tooltip keeps the
+percentage alone). The number the tooltip prints is the number the server takes:
+it already carries the 1-point rounding floor and the cost-reduction passive,
+neither of which a percentage could express.
 
 ### Consumption
 - Damage from enemy auras reduces the resource
@@ -740,7 +757,7 @@ PvP, formal group system, economy, mobile, endgame raid events
 *(Technical questions: see the separate tech document.)*
 
 ### Mechanics
-- [ ] Name of the resource (Essence / Focus / Power?)
+- [x] ~~Name of the resource (Essence / Focus / Power?)~~ → **Decided 2026-08-01: Focus** (feel pass F7; see section 3). Presentation only — the code vocabulary is unchanged.
 - [ ] Exact slot count per category and growth per level
 - [ ] Are passive and cooldown slots the same thing?
 - [ ] Skill points per level final (currently ~30 at max level envisioned)

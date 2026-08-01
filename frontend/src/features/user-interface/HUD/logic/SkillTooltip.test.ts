@@ -40,8 +40,9 @@ function skill(partial: Partial<SkillDefinition> & { effects: SkillEffect[] }): 
 }
 
 function lines(def: SkillDefinition, skillLevel: number, powerScale: number,
-               maxHealth: number = 0): string[] {
-    return formatSkillTooltip(def, skillLevel, powerScale, maxHealth).lines.map(line => line.text);
+               maxHealth: number = 0, costFactor: number = 1): string[] {
+    return formatSkillTooltip(def, skillLevel, powerScale, maxHealth, costFactor)
+        .lines.map(line => line.text);
 }
 
 // Rejuvenation as authored (api/skills/rejuvenation.json) — the skill the PO
@@ -91,19 +92,19 @@ describe('character power scale', () => {
         expect(lines(all, 1, 1)).toEqual([
             'Damage: 10',
             'Damage over time: 12 × 3 hits over 2.97s',
-            'Shield: 6 HP for 2.97s',
+            'Shield: 6 Focus for 2.97s',
             'Heal: 4 per tick',
-            'Costs you: 1.2% of max HP per tick',
-            'Heal self: 8 HP',
+            'Costs you: 1.2% of max Focus per tick',
+            'Heal self: 8 Focus',
             'Targets: all allies in range',
         ]);
         expect(lines(all, 1, SCALE_AT_30)).toEqual([
             'Damage: 267',
             'Damage over time: 321 × 3 hits over 2.97s',
-            'Shield: 169 HP for 2.97s',
+            'Shield: 169 Focus for 2.97s',
             'Heal: 107 per tick',
-            'Costs you: 1.2% of max HP per tick',
-            'Heal self: 225 HP',
+            'Costs you: 1.2% of max Focus per tick',
+            'Heal self: 225 Focus',
             'Targets: all allies in range',
         ]);
     });
@@ -152,8 +153,8 @@ describe('character power scale', () => {
 
         expect(lines(fractional, 1, SCALE_AT_30)).toEqual(lines(fractional, 1, 1));
         expect(lines(fractional, 1, SCALE_AT_30)).toEqual([
-            'Heal: 5% of max HP per tick',
-            'Heal self: 30% of max HP',
+            'Heal: 5% of max Focus per tick',
+            'Heal self: 30% of max Focus',
             'Targets: all allies in range',
         ]);
     });
@@ -174,7 +175,7 @@ describe('character power scale', () => {
 
         const rendered = lines(squad, 1, 1);
         expect(rendered.filter(l => l.startsWith('Costs you'))).toEqual([
-            'Costs you: 6% → 6.9% of max HP per cast',
+            'Costs you: 6% → 6.9% of max Focus per cast',
         ]);
         // ...and it is a percentage, so it does not move with the power scale.
         expect(lines(squad, 1, SCALE_AT_30)).toEqual(rendered);
@@ -193,7 +194,7 @@ describe('character power scale', () => {
         });
 
         const at1 = lines(recover, 1, 1);
-        expect(at1).toContain('Heal over time: 3% of max HP × 9 over 17.82s');
+        expect(at1).toContain('Heal over time: 3% of max Focus × 9 over 17.82s');
         expect(lines(recover, 1, SCALE_AT_30)).toEqual(at1);
     });
 
@@ -423,15 +424,17 @@ describe('faction scope', () => {
     });
 });
 
-// The resource cost the tooltip prints must be the one the server will charge.
-// It prices a cost as a fraction of max HP but deducts it through vitals.HP,
-// which floors any positive amount at 1 HP — so while the pool is smaller than
-// 1/fraction the real charge is a flat 1 HP and the authored fraction
-// understates it. Immolate authors 0.26 % and takes 1 % of a 100 HP pool.
+// The cost the tooltip prints must be the one the server will charge (R1/F6,
+// superseding the 2026-07-29 "percentage alone" ruling). It is authored as a
+// fraction of the max pool, but what is deducted is that fraction of THIS
+// player's pool, rounded through vitals.HP and scaled by the cost-reduction
+// passive — so the authored percentage was neither of the two corrections the
+// player experiences.
 //
-// This is not a corner: 12 of the 20 costed aura effects are floored somewhere
-// in character levels 1–12, which is exactly where a player reads tooltips.
-describe('resource cost and the 1-HP floor', () => {
+// Neither is a corner: 12 of the 20 costed aura effects are floored somewhere in
+// character levels 1–12, which is exactly where a player reads tooltips hardest,
+// and the reduction passive was invisible in the client entirely.
+describe('resource cost in absolute Focus', () => {
     // Immolate as authored (api/skills/immolate.json).
     const immolate = skill({
         displayName: 'Immolate', maxLevel: 10,
@@ -443,37 +446,54 @@ describe('resource cost and the 1-HP floor', () => {
         })],
     });
 
-    it('raises the printed cost to what a small pool actually pays', () => {
-        // 0.26 % of 100 HP is 0.26 HP, charged as 1 HP — 1 % of the pool.
+    it('prints what a small pool actually pays, floor included', () => {
+        // 0.26 % of 100 is 0.26, charged as 1 — the min-1 rule.
         //
-        // The missing "→ 1%" is prog() collapsing two endpoints that render
-        // alike, and it is the truth: level 2 costs 0.325 % of the pool, which
-        // is still under 1 HP, so on this pool levelling Immolate does not
-        // change what it takes out of you.
+        // The missing "→ 2" is prog() collapsing two endpoints that render
+        // alike, and it is the truth: level 2 costs 0.325 of the pool, still
+        // under a point, so on this pool levelling Immolate does not change what
+        // it takes out of you. That is a fact the percentage could not state.
         expect(lines(immolate, 1, 1, 100)).toContain(
-            'Costs you: 1% of max HP every 0.66s');
+            'Costs you: 1 Focus every 0.66s');
     });
 
-    it('prints the authored fraction once the pool outgrows the floor', () => {
-        // 0.26 % of 2600 HP is 6.8 HP: above the floor, so nothing is corrected
-        // and the authored number is what shows.
+    it('resolves the level curve once the pool outgrows the floor', () => {
+        // 0.26 % of 2600 is 6.76 → 7; level 2 is 8.45 → 8.
         expect(lines(immolate, 1, 1, 2600)).toContain(
-            'Costs you: 0.26% → 0.33% of max HP every 0.66s');
+            'Costs you: 7 → 8 Focus every 0.66s');
     });
 
-    it('leaves the authored fraction alone when the pool is unknown', () => {
-        // No snapshot yet (maxHealth 0). Imprecise beats invented: this is the
-        // pre-fix rendering, unchanged.
+    // F2: the PO reported the cost reduction working but invisible. It is
+    // folded into the number, so there is no second line to read — and nothing
+    // to reconcile when the floor and the reduction both bind.
+    it('folds the cost-reduction passive into the number', () => {
+        expect(lines(immolate, 1, 1, 2600, 0.8)).toContain(
+            'Costs you: 5 → 7 Focus every 0.66s');
+    });
+
+    it('never prints a free cost for a priced effect', () => {
+        // Rounding alone would say 0; vitals.HP says 1, and 1 is what is taken.
+        const trivial = skill({
+            maxLevel: 1,
+            effects: [effect({type: 'slow_aura', tickInterval: 40, costFractionOfMax: 0.0001,
+                targetsEnemies: true, slow: {fraction: 0.3, fractionPerLevel: 0}})],
+        });
+        expect(lines(trivial, 1, 1, 100)).toContain('Costs you: 1 Focus every 1.32s');
+    });
+
+    it('falls back to the authored percentage when the pool is unknown', () => {
+        // No snapshot yet (maxHealth 0). Imprecise beats invented — and the
+        // shape changes with it, so the number is never read as points.
         expect(lines(immolate, 1, 1, 0)).toContain(
-            'Costs you: 0.26% → 0.33% of max HP every 0.66s');
+            'Costs you: 0.26% → 0.33% of max Focus every 0.66s');
     });
 
-    // ⚑ The floor applies to the SUM for a cooldown, not to each effect:
-    // cooldownCostHP totals the raw fractions and converts once, because a
-    // cooldown pays all its effects in a single deduction. Flooring per effect
-    // would print 3 % here — three times the truth, and the same class of
+    // ⚑ The conversion happens on the SUM for a cooldown, not per effect:
+    // cooldownCostHP totals the raw fractions and rounds once, because a
+    // cooldown pays all its effects in a single deduction. Rounding per effect
+    // would print 3 here — three times the truth, and the same class of
     // overstatement the per-cast line exists to avoid.
-    it('floors a cooldown cost once, on the sum', () => {
+    it('rounds a cooldown cost once, on the sum', () => {
         const squad = skill({
             category: 'cooldown', maxLevel: 1, cooldownTicks: 2400,
             effects: [
@@ -484,7 +504,56 @@ describe('resource cost and the 1-HP floor', () => {
         });
 
         expect(lines(squad, 1, 1, 100).filter(l => l.startsWith('Costs you'))).toEqual([
-            'Costs you: 1% of max HP per cast',
+            'Costs you: 1 Focus per cast',
         ]);
+    });
+
+    it('marks the cost line in the Focus color, and only the cost line', () => {
+        // F7's other half: the line that talks about the player's pool points at
+        // the bar it drains, rather than wearing the effect's own category color.
+        const content = formatSkillTooltip(immolate, 1, 1, 100);
+        const cost = content.lines.filter(l => l.text.startsWith('Costs you'));
+        expect(cost).toHaveLength(1);
+        expect(cost[0].labelColor).toBe('crimson');
+        expect(content.lines.filter(l => l.labelColor === 'crimson')).toEqual(cost);
+    });
+});
+
+// F10: "Also heals you" was emitted whenever the effect targets its caster,
+// which is wrong for the case that has no other target at all — Recover heals
+// you and nobody else. The word promises a second effect that does not exist.
+describe('self-targeting lines', () => {
+    function selfHot(targetsAllies: boolean) {
+        return skill({
+            maxLevel: 1,
+            effects: [effect({
+                type: 'instant_hot', radius: 2, targetsAllies,
+                hot: {hp: 2, hpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0, tickCount: 3, interval: 60, targetsSelf: true},
+            })],
+        });
+    }
+
+    it('says "Heals you" when the caster is the only target', () => {
+        expect(lines(selfHot(false), 1, 1)).toContain('Heals you');
+    });
+
+    it('says "Also heals you" alongside ally targeting', () => {
+        expect(lines(selfHot(true), 1, 1)).toContain('Also heals you');
+    });
+
+    // Same shape, same helper: no live content trips these today, which is
+    // exactly why they are worth pinning — the wrong word would ship unseen.
+    it('applies the same rule to shields and resists', () => {
+        const ward = skill({
+            maxLevel: 1,
+            effects: [
+                effect({type: 'shield_aura', tickInterval: 90,
+                    shield: {hp: 10, hpPerLevel: 0, durationTicks: 120, targetsSelf: true}}),
+                effect({type: 'resist_aura', tickInterval: 90,
+                    resist: {tags: ['fire'], factor: 0.8, factorPerLevel: 0, targetsSelf: true}}),
+            ],
+        });
+        expect(lines(ward, 1, 1)).toContain('Shields you');
+        expect(lines(ward, 1, 1)).toContain('Applies to you');
     });
 });

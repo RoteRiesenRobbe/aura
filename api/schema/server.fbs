@@ -514,6 +514,18 @@ table GameState {
   // as an empty journal. Appended at the table end so existing field IDs stay
   // stable.
   quest_progress:[QuestProgress];
+
+  // The multiplier the cost-reduction passive (Discipline, D13) puts on every
+  // resource cost this player pays: 1 = no reduction, 0.8 = pays 80 %. Own
+  // player only, and owner-only DATA like skill_points beside it rather than
+  // per-tick state — the client folds it into the cost the skill tooltip
+  // shows, which is the whole point (R1/F2: the passive worked and was
+  // invisible, because the client had no knowledge of it whatsoever).
+  //
+  // Default 1 is the neutral value, so a player with no such passive costs
+  // nothing on the wire. Appended at the table end so existing field IDs stay
+  // stable.
+  cost_factor:float = 1.0;
 }
 
 table Welcome {

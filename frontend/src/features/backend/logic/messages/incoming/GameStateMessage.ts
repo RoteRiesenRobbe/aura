@@ -38,6 +38,9 @@ export class GameStateMessage {
     spellbookLevels: number[];
     // unspent skill points of the owning player
     skillPoints: number;
+    // multiplier the cost-reduction passive puts on every resource cost the
+    // owning player pays (R1/F2); 1 = no reduction
+    costFactor: number;
     auraSlots: number[];
     // equipped passive slot contents, positional (index i = slot i, 0 = empty)
     passiveSlots: number[];
@@ -97,6 +100,7 @@ export class GameStateMessage {
         }
 
         this.skillPoints = gameState.skillPoints();
+        this.costFactor = gameState.costFactor();
 
         this.auraSlots = [];
         for (let i = 0; i < gameState.auraSlotsLength(); ++i) {

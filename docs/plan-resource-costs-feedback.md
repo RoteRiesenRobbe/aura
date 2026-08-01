@@ -15,8 +15,9 @@ and rode into `40d9b204` with the pass.
 > re-checked against HEAD line by line (that pass **corrected §3.2** and found
 > the new §3.10), the eight open decisions were put to the PO and **all eight
 > are ruled** (§5), and the work is chunked into **R1 → R2 → R3** plus one
-> design session (§6). Nothing is built yet; §6 is the schedule and the order in
-> it is load-bearing.
+> design session (§6). §6 is the schedule and the order in it is load-bearing.
+>
+> **Progress: R1 ✅ built 2026-08-01 (ledger §8). R2 → R3 → R4 open.**
 
 ---
 
@@ -557,7 +558,7 @@ misreports them.
 > Each chunk is its own execution session, per the working-style rule. Nothing
 > here is started.
 
-### R1 — What a cost SAYS (frontend + one wire field)
+### R1 — What a cost SAYS (frontend + one wire field) ✅ **BUILT 2026-08-01** (ledger §8)
 
 **No balance movement.** Everything the PO could not read, made readable.
 
@@ -695,3 +696,75 @@ clean. Unaffordable cooldowns are rejected with feedback — D9 works.
 
 **7. Discipline.** Arrives at the right level, worth the slot, cannot cheapen
 the free floor (confirmed). Its reduction is invisible in the UI → F2.
+
+---
+
+## 8. Chunk ledgers
+
+### R1 — What a cost SAYS ✅ **DONE 2026-08-01, committed `[uncommitted]`**
+
+Presentation + one wire field. **No authored number moved**, and none of the
+five items changes what the server charges — only what the player is told.
+
+**What shipped**
+
+| item | what landed |
+|---|---|
+| **F6** | Every cost line renders **absolute Focus**: `roundHP(fraction × maxHealth × costFactor)`, per beat for an aura, summed once per cast for a cooldown. `minChargeFraction` and its effective-percentage arithmetic are **deleted** — the number shown is the number charged, so the 1-HP floor and the reduction passive are both implicit (§4.2, landmine ③). |
+| **F2** | New `GameState.cost_factor:float = 1.0`, appended at the table end and written from `Derived.CostFactor()`; mirrored client-side on the `skill_points` path (`GameStateMessage` → `SnapshotFactory` → `Backend` → `setLocalPlayerCostFactor`). |
+| **F7** | **Focus**, everywhere "HP" appeared (PO pick 2026-08-01, the widest of the three options offered): bar text `Focus 87/120`, `Shield: 20 Focus`, `of max Focus`, `below 25% Focus`, `at low Focus`, `Max Focus`, and the rejection `Not enough Focus`. The cost line is tinted **crimson** — the health-bar fill colour — so it points at the bar it drains. ⚑ Presentation only: no Go identifier, wire field or content key renamed (§5.7). |
+| **F10** | One `selfTargetLine()` helper: *"Also heals you"* only when `targetsAllies`, else *"Heals you"*. Applied to the shield and resist twins as well — no live content trips those today, which is exactly why they were worth closing. |
+| **F3** | `#spellbookList > li` gets `padding-right: 0.8rem`, following `HUD.less:609`'s precedent. Measured **12.8 px** clearance in-game against a flush 0 before. |
+
+**§3.11's pin, both directions.** `api/shared-constants.json` gains an
+`hpRounding` case table — the one statement of *round half up, floored at 1* —
+asserted by `vitals.HP` in Go (`cmd/aurad/shared_constants_test.go`) and by the
+new exported `roundHP` in the client (`SharedConstants.test.ts`). **Both halves
+were proven red** against a real drift (Go: `[1.5, 3]` in the fixture; client:
+truncation instead of half-up). `hpFmt` now calls `roundHP` rather than
+restating it, so the tooltip's HP formatting and its cost arithmetic round
+through one function.
+
+**Findings**
+
+- ⚑ **The floor is now visible instead of explained, and it makes the level-1
+  endpoint look inert.** Immolate at CL30 reads `7 → 9 Focus`; with Discipline
+  equipped it reads `7 → 8` — the level-2 price drops while level 1 stays 7,
+  because `6.96 × 0.94 = 6.54` still rounds up to 7. That is correct and is the
+  accepted consequence of §5.3; it also means **a cost-reduction check that
+  reads only the first number scores a working passive as broken**, which is
+  exactly what the first harness run did.
+- ⚑ **The tooltip had two "HP" vocabularies and only one was the pool.** The
+  sweep found `Shield: 20 HP`, `Revives at 30% HP`, `below 25% HP`, `at low HP`
+  and `Max health` alongside the cost lines. The PO took the widest option, so
+  there is no "HP" left in the UI at all.
+- A pool of 0 (no snapshot yet) falls the cost line back to the authored
+  percentage **and changes its shape** (`0.26% of max Focus`), so a
+  pre-snapshot number can never be misread as points.
+
+**Verified**
+
+- Go: full suite (28 pkgs) + `vet` + `gofmt` clean · guardrails + alloc
+  `-count=2` · new `TestGameStateCostFactor_RoundTrip`, including the half that
+  matters — **an absent field must read as neutral 1, not 0**.
+- Frontend: `tsc` clean · **100 vitest** (was 89; the four §3.3 floor legs were
+  **rewritten**, not added to) · prod build.
+- Boot `-content ../api`, 0 errors 0 warnings 0 panics —
+  **86 skills/15 factions/64 mobs/10 recipes/3 milestone unlocks/4 quests/5 prop
+  definitions/777 props/485 spawns/5 campfires**.
+- Harness gate, one at a time on freshly restarted servers: **new
+  `r1-focus-cost.mjs` 5/5** (`1 Focus` at CL1 → `7 → 9` at CL30 → `7 → 8` with
+  Discipline equipped · `Focus 100/100` · 12.8 px row clearance) ·
+  `round4-tooltip` green · **`hygiene-wire-prune` clean** (640 sprites, 0 console
+  errors, 0 WebGL losses) — the required check for any `.fbs` field add.
+- ⚑ The first `r1-focus-cost` run reported two failures that were **the script's,
+  not the product's**: the spellbook row's name span is `.skillName` (not
+  `.slotLabel`, which is the *slot* markup), and a passive slot renders its name
+  as bare `textContent`. Both fixed in the script before the recorded run.
+
+**Docs touched:** `gdd.md` §3 is now *"The Resource — **Focus**"* and its open
+question *"Name of the resource (Essence / Focus / Power?)"* is closed;
+`plan-numbers-rewrite.md` §7's cost-tooltip entry is marked **reversed** (both
+halves of it — the justifying claim was false *and* the ruling is superseded);
+the CLAUDE.md sweep bullet carries the same reversal. The manuals needed
+nothing — their only "resource" hits are the legacy `Resources.ts` render class.

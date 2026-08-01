@@ -11,7 +11,12 @@ import * as DayCycle from '../../day-cycle/logic/DayCycle';
 import * as StartScreen from '../../user-interface/start-screen/logic/StartScreen';
 import * as EndScreen from '../../user-interface/end-screen/logic/EndScreen';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
-import {activationRejectionMessage, skillCategory, skillDisplayName} from '../../../client-data/Skills';
+import {
+    activationRejectionMessage,
+    setLocalPlayerCostFactor,
+    skillCategory,
+    skillDisplayName,
+} from '../../../client-data/Skills';
 import {AuraApi} from './AuraApi';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
@@ -313,6 +318,12 @@ export class Backend implements IBackend {
                     snapshot.player.position.y,
                     snapshot.player.name);
             }
+
+            // The tooltip prices every cost through it (R1/F2). Mirrored before
+            // the spellbook update below, so the panel that opens on an unlock
+            // already prices with it; `?? 1` is the neutral value, which is what
+            // an absent field means on the wire too.
+            setLocalPlayerCostFactor(snapshot.costFactor ?? 1);
 
             // snapshot.spellbook is always defined ([] for empty); isDefined guard
             // matches inventory pattern and is safe against the first-tick edge case.

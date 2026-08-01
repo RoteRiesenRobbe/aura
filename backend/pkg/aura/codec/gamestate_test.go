@@ -132,6 +132,29 @@ func TestGameStateSkillPoints_RoundTrip(t *testing.T) {
 	assert.Equal(t, uint16(7), result.SkillPoints())
 }
 
+// The cost factor rides the same owner-only slot as skill_points (R1/F2). Its
+// neutral value is the FIELD DEFAULT, which is the half worth pinning: an
+// unmodified player writes nothing and the client must still read 1, or every
+// tooltip on every player without Discipline reads a cost of zero.
+func TestGameStateCostFactor_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddCostFactor(b, 0.8)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	assert.Equal(t, float32(0.8), AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).CostFactor())
+
+	unwritten := flatbuffers.NewBuilder(64)
+	AuraApi.GameStateStart(unwritten)
+	unwritten.Finish(AuraApi.GameStateEnd(unwritten))
+
+	assert.Equal(t, float32(1),
+		AuraApi.GetRootAsGameState(unwritten.FinishedBytes(), 0).CostFactor(),
+		"an absent cost factor must read as neutral, not as zero")
+}
+
 func TestSpellbookMarshalFlatbuf_Empty(t *testing.T) {
 	sc := skills.NewSkillComponent(true)
 

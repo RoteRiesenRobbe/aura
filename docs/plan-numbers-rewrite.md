@@ -697,7 +697,12 @@ inverts D16b.
   `SkillEffect` now carries them and the tooltip renders them **as a
   percentage**, not absolute HP: the client has no `baseHealth` to convert with,
   and the PO already ruled the "% of max HP" shape keeps the percentage alone
-  (2026-07-29 sweep). ⚑ **Where the line goes follows how the cost is charged**
+  (2026-07-29 sweep). ⚑ **Both halves of that sentence are now dead** — the
+  justifying claim was false (the client already drives the health bar from the
+  real `maxHealth`), and the ruling itself was **reversed by the feel pass**
+  (F6): as of R1 a cost renders in **absolute Focus**, computed from the live
+  pool and the cost-reduction multiplier. See
+  `plan-resource-costs-feedback.md` §4.2. ⚑ **Where the line goes follows how the cost is charged**
   — per effect on its own cadence for an aura, once beside `Cooldown:` for a
   cooldown, because CallForAid's three summons at 2 % each cost **6 %** per cast
   and printing "2 %" three times would understate it threefold. Pinned by a new

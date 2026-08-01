@@ -11,6 +11,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
@@ -32,7 +33,8 @@ type sharedConstants struct {
 		Width  float64 `json:"width"`
 		Height float64 `json:"height"`
 	} `json:"viewportMeters"`
-	TicksPerSecond int `json:"ticksPerSecond"`
+	TicksPerSecond int          `json:"ticksPerSecond"`
+	HPRounding     [][2]float64 `json:"hpRounding"`
 	SkillPointCost struct {
 		Tier1Points        int     `json:"tier1Points"`
 		Tier2Points        int     `json:"tier2Points"`
@@ -74,6 +76,25 @@ func TestSharedConstants_SkillPointCurve(t *testing.T) {
 			assert.Equal(t, want, skills.PointCost(maxLevel, level),
 				"skills.PointCost has drifted from api/shared-constants.json (cap %d, level %d)", maxLevel, level)
 		}
+	}
+}
+
+// TestSharedConstants_HPRounding pins vitals.HP against the fixture — §3.11
+// (plan-resource-costs-feedback): R1's absolute-HP cost line makes this
+// rounding rule live arithmetic in TWO languages, so the tooltip and the health
+// bar can now disagree by a point. The client half asserts the same pairs
+// against its own roundHP.
+func TestSharedConstants_HPRounding(t *testing.T) {
+	raw, err := os.ReadFile("../../../api/shared-constants.json")
+	require.NoError(t, err)
+	var fixture sharedConstants
+	require.NoError(t, json.Unmarshal(raw, &fixture))
+	require.NotEmpty(t, fixture.HPRounding, "the fixture must carry an hpRounding table")
+
+	for _, pair := range fixture.HPRounding {
+		amount, want := pair[0], pair[1]
+		assert.Equal(t, uint32(want), vitals.HP(float32(amount)),
+			"vitals.HP has drifted from api/shared-constants.json at %v — the tooltip shows what this returns", amount)
 	}
 }
 
