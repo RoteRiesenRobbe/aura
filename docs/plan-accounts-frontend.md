@@ -606,7 +606,7 @@ own.
    ⚑ **Read implementation.md §0 first** — driver, pool, query style and where
    Postgres runs are all decided there, and this chunk is the first consumer of
    every one of them.
-2. **1b — Auth & sessions. ✅ DONE 2026-08-01** — see the ledger below. bcrypt
+2. **1b — Auth & sessions. ✅ DONE 2026-08-01, `31ebebcb`** — see the ledger below. bcrypt
    hashing, JWT issue/verify including the `token_generation` claim, the
    play-ticket TTL map, the account-scoped live session registry, and the
    failed-login throttle (⚑ the delay applies *after* the dummy bcrypt
@@ -699,7 +699,7 @@ otherwise gate everything.
 
 ## 10a. Chunk ledger
 
-### Chunk 1b — auth & sessions ✅ DONE 2026-08-01
+### Chunk 1b — auth & sessions ✅ DONE 2026-08-01, `31ebebcb`
 
 Backend + docs. **Aura can tell who you are.** Still no HTTP surface and still no
 game code touching it — the deliverable is that every auth primitive the eight
