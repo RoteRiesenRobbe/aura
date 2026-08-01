@@ -1272,29 +1272,28 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 		if !ok {
 			return
 		}
-		for _, es := range sc.CooldownSlots {
-			if es != nil && es.CdTicks > 0 && es.EffectiveCooldownTicks()-es.CdTicks < skills.BurstVFXTicks {
+		for i, es := range sc.CooldownSlots {
+			cd := sc.SlotCooldownRemaining(i)
+			if es != nil && cd > 0 && es.EffectiveCooldownTicks()-cd < skills.BurstVFXTicks {
 				se.StatusEffects().Add(model.StatusEffectBurstFired)
 				return
 			}
 		}
 	}()
 
-	for _, es := range sc.CooldownSlots {
-		if es != nil && es.CdTicks > 0 {
-			es.CdTicks--
-		}
-	}
+	// Every running cooldown, slotted or not — a skill parked outside the
+	// loadout keeps recovering.
+	sc.TickCooldowns()
 
 	if _, isMob := e.(model.MobEntity); isMob {
-		for _, es := range sc.CooldownSlots {
-			if es == nil || es.CdTicks > 0 {
+		for i, es := range sc.CooldownSlots {
+			if es == nil || sc.SlotCooldownRemaining(i) > 0 {
 				continue
 			}
 			// Only consume the cooldown when the burst actually hit something,
 			// so the mob keeps it ready until a target wanders into range.
 			if s.fireCooldown(e, es) {
-				es.CdTicks = es.EffectiveCooldownTicks()
+				sc.StartCooldown(es)
 			}
 		}
 		return
@@ -1308,7 +1307,7 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 	s.advanceCast(e, sc)
 	for _, slot := range sc.PendingCooldowns {
 		es := sc.CooldownSlots[slot]
-		if es == nil || es.CdTicks > 0 {
+		if es == nil || sc.SlotCooldownRemaining(slot) > 0 {
 			continue
 		}
 		if sc.IsCasting() {
@@ -1372,7 +1371,7 @@ func (s *SkillSystem) fireAndCharge(e skillEntity, es *skills.EquippedSkill) {
 	if payer != nil {
 		chargeCost(payer, cost)
 	}
-	es.CdTicks = es.EffectiveCooldownTicks()
+	e.SkillComponent().StartCooldown(es)
 }
 
 // activationPrecondition checks the per-effect-type requirements a cooldown

@@ -186,7 +186,7 @@ func TestCooldownCost_PaidOnFireEvenWhenItWhiffs(t *testing.T) {
 
 	assert.Equal(t, vitals.VitalSign(90), caster.vitalSigns.Health,
 		"a cooldown is a committed act — it pays on cast (D8)")
-	assert.Greater(t, es.CdTicks, 0, "and the cooldown is consumed")
+	assert.Greater(t, caster.sc.CooldownRemaining(es.Def.ID), 0, "and the cooldown is consumed")
 }
 
 func TestCooldownCost_UnaffordableIsRejectedNotClamped(t *testing.T) {
@@ -226,7 +226,7 @@ func TestCooldownCost_RejectionSpendsNothingAndStartsNoCooldown(t *testing.T) {
 	testSkillSystem().processCooldowns(caster, sc)
 
 	assert.Equal(t, vitals.VitalSign(10), caster.vitalSigns.Health, "nothing spent")
-	assert.Equal(t, 0, es.CdTicks, "no cooldown started")
+	assert.Equal(t, 0, sc.CooldownRemaining(es.Def.ID), "no cooldown started")
 	require.Len(t, caster.rejections, 1, "and the player is told")
 	assert.Equal(t, rejectedActivation{es.Def.ID, model.ActivationRejectedNotEnoughResource},
 		caster.rejections[0])

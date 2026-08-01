@@ -1432,20 +1432,20 @@ func TestCooldown_PlayerActivationFiresBurst(t *testing.T) {
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.15, target.touches[0], 1e-6)
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 	assert.Empty(t, caster.sc.PendingCooldowns, "pending activations are consumed")
 }
 
 func TestCooldown_ActivationWhileOnCooldownIsIgnored(t *testing.T) {
 	target := &touchRecorder{}
 	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
-	caster.sc.CooldownSlots[0].CdTicks = 5
+	caster.sc.SetCooldownRemaining(caster.sc.CooldownSlots[0].Def.ID, 5)
 	caster.sc.RequestCooldownActivation(0)
 
 	sk.Update(33.0)
 
 	assert.Empty(t, target.touches)
-	assert.Equal(t, 4, caster.sc.CooldownSlots[0].CdTicks, "still ticking down")
+	assert.Equal(t, 4, caster.sc.SlotCooldownRemaining(0), "still ticking down")
 	assert.Empty(t, caster.sc.PendingCooldowns, "request is consumed, not queued")
 }
 
@@ -1459,7 +1459,7 @@ func TestCooldown_PlayerWhiffConsumesCooldown(t *testing.T) {
 
 	sk.Update(33.0)
 
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks)
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0))
 }
 
 func TestCooldown_LevelScalesDamageAndCooldown(t *testing.T) {
@@ -1472,7 +1472,7 @@ func TestCooldown_LevelScalesDamageAndCooldown(t *testing.T) {
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.21, target.touches[0], 1e-6) // 0.15 + 2×0.03
-	assert.Equal(t, 260, caster.sc.CooldownSlots[0].CdTicks, "300 − 2×20")
+	assert.Equal(t, 260, caster.sc.SlotCooldownRemaining(0), "300 − 2×20")
 }
 
 func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
@@ -1499,7 +1499,7 @@ func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
 
 	require.Len(t, target.factors, 1)
 	assert.InDelta(t, 0.2, target.factors[0].Damage, 1e-6)
-	assert.Equal(t, 450, caster.sc.CooldownSlots[0].CdTicks)
+	assert.Equal(t, 450, caster.sc.SlotCooldownRemaining(0))
 }
 
 func TestCooldown_MobHoldsFireWithoutTarget(t *testing.T) {
@@ -1525,7 +1525,7 @@ func TestCooldown_MobHoldsFireWithoutTarget(t *testing.T) {
 	sk.Update(33.0)
 	sk.Update(33.0)
 
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "cooldown not consumed on a whiff — stays ready")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "cooldown not consumed on a whiff — stays ready")
 }
 
 func TestCooldown_BurstFiredStatusEffect(t *testing.T) {
@@ -1541,7 +1541,7 @@ func TestCooldown_BurstFiredStatusEffect(t *testing.T) {
 
 	// Simulate the per-tick clear + the VFX window running out.
 	caster.statusEffects.Clear()
-	caster.sc.CooldownSlots[0].CdTicks = caster.sc.CooldownSlots[0].EffectiveCooldownTicks() - skills.BurstVFXTicks
+	caster.sc.SetCooldownRemaining(caster.sc.CooldownSlots[0].Def.ID, caster.sc.CooldownSlots[0].EffectiveCooldownTicks()-skills.BurstVFXTicks)
 	sk.Update(33.0)
 
 	assert.NotContains(t, caster.statusEffects.Effects(), model.StatusEffectBurstFired,
@@ -1571,7 +1571,7 @@ func TestCooldown_SelfHealHealsCaster(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.Equal(t, start.Add(25), caster.vitalSigns.Health, "20 + 1×5 HP at level 2")
-	assert.Equal(t, 900, caster.sc.CooldownSlots[0].CdTicks, "self-heal always consumes the cooldown")
+	assert.Equal(t, 900, caster.sc.SlotCooldownRemaining(0), "self-heal always consumes the cooldown")
 }
 
 func TestCooldown_SelfHealFractionOfMaxAndNumber(t *testing.T) {
@@ -1929,7 +1929,7 @@ func TestCooldown_InstantShieldBuffsSelfAndAllies(t *testing.T) {
 	assert.Equal(t, 300+1, caster.shields[0].ticks,
 		"instant lifetime = authored duration + 1 (the dot convention)")
 	require.Len(t, ally.shields, 1, "allies in the circle are shielded too")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 }
 
 func TestCooldown_InstantShieldSelfOnlyStillFires(t *testing.T) {
@@ -1942,7 +1942,7 @@ func TestCooldown_InstantShieldSelfOnlyStillFires(t *testing.T) {
 	sk.Update(33.0)
 
 	require.Len(t, caster.shields, 1)
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks)
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0))
 }
 
 // --- hot_aura / instant_hot + tickHotEvents (plan-skill-vocab chunk 3) ---
@@ -2080,7 +2080,7 @@ func TestCooldown_InstantHotBuffsSelfAndAllies(t *testing.T) {
 	assert.InDelta(t, 4, caster.hots[0].hot.HP, 1e-6)
 	assert.Equal(t, 6*20+1, caster.hots[0].ticks, "instant lifetime = authored duration + 1")
 	require.Len(t, ally.hots, 1, "allies in the circle are HoT'd too, regardless of full health")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 }
 
 func TestCooldown_InstantHotSelfOnlyStillFires(t *testing.T) {
@@ -2091,7 +2091,7 @@ func TestCooldown_InstantHotSelfOnlyStillFires(t *testing.T) {
 	sk.Update(33.0)
 
 	require.Len(t, caster.hots, 1, "the self-apply is a hit, not a whiff")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks)
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0))
 }
 
 // hotCarrier is a real-Buffs-backed PlayerEntity heal target for the
@@ -2320,7 +2320,7 @@ func TestCooldown_InstantDotAppliesDotOnce(t *testing.T) {
 	require.Len(t, target.dots, 1, "one activation applies the dot once")
 	assert.InDelta(t, 6, target.dots[0].HP, 1e-6)
 	assert.Equal(t, 3*30+1, target.ticks[0])
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 }
 
 // --- taunt / detaunt cooldowns (mob-depth chunk 7) ---
@@ -2372,7 +2372,7 @@ func TestCooldown_TauntForcesCasterToTopOfThreat(t *testing.T) {
 	assert.True(t, m.TargetsEntity(caster.basic.ID()),
 		"taunt forced the caster above the 100-threat holder → retention swings onto it")
 	assert.False(t, m.TargetsEntity(other.basic.ID()))
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown consumed")
 }
 
 func TestCooldown_TauntSkipsAlliedTarget(t *testing.T) {
@@ -2481,7 +2481,7 @@ func TestCooldown_SpawnAddsOwnedAlignedMobWithTTL(t *testing.T) {
 	m := g.added[0].(*mob.Mob)
 	assert.Equal(t, model.FactionAligned, m.Faction(), "summon adopts its caster's faction")
 	assert.Same(t, model.PlayerEntity(caster), m.Owner())
-	assert.Equal(t, caster.sc.CooldownSlots[0].EffectiveCooldownTicks(), caster.sc.CooldownSlots[0].CdTicks,
+	assert.Equal(t, caster.sc.CooldownSlots[0].EffectiveCooldownTicks(), caster.sc.SlotCooldownRemaining(0),
 		"the cooldown is consumed")
 
 	// Owner level 5 (chunk 1b): the summon STANDS at level 5, so its pool is
@@ -3590,7 +3590,7 @@ func TestCast_ActivationStartsCastNotFire(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.Empty(t, target.touches, "cast winds up, nothing fires yet")
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed only at completion")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "cooldown consumed only at completion")
 	assert.True(t, caster.sc.IsCasting())
 	assert.Equal(t, 0, caster.sc.CastingSlot)
 }
@@ -3606,7 +3606,7 @@ func TestCast_CompletionFiresAndConsumesCooldown(t *testing.T) {
 	}
 
 	require.Len(t, target.touches, 1, "cast completed → burst fired")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts at completion")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown starts at completion")
 	assert.False(t, caster.sc.IsCasting())
 }
 
@@ -3642,8 +3642,8 @@ func TestCast_DifferentSlotActivationCancelsAndFires(t *testing.T) {
 
 	assert.False(t, caster.sc.IsCasting(), "different-slot activation cancels the cast")
 	require.Len(t, target.touches, 1, "the canceling cooldown still fires normally")
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "interrupted cast consumes no cooldown")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[1].CdTicks)
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "interrupted cast consumes no cooldown")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(1))
 }
 
 func TestCast_UnequipMidCastCancelsSafely(t *testing.T) {
@@ -3672,7 +3672,7 @@ func TestRecall_NoAnchorRejectsActivation(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.False(t, caster.sc.IsCasting(), "precondition fails → no cast starts")
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "no cooldown consumed")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "no cooldown consumed")
 	require.Len(t, caster.rejections, 1)
 	assert.Equal(t, skills.SkillID(28), caster.rejections[0].skill)
 	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
@@ -3695,7 +3695,7 @@ func TestRecall_CompletionTeleportsToAnchorWithJitter(t *testing.T) {
 	dist := caster.Position().DistanceToSquared(anchor)
 	assert.LessOrEqual(t, dist, float32(respawnJitterRadius*respawnJitterRadius),
 		"teleported into the jitter disc around the anchor")
-	assert.Equal(t, 9000, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed on success")
+	assert.Equal(t, 9000, caster.sc.SlotCooldownRemaining(0), "cooldown consumed on success")
 	assert.Empty(t, caster.rejections)
 }
 
@@ -3719,7 +3719,7 @@ func TestRecall_AnchorLostMidCastRejectsAtCompletion(t *testing.T) {
 
 	assert.False(t, caster.sc.IsCasting())
 	assert.Equal(t, phy.VEC2F_ZERO, caster.Position(), "no teleport")
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "cooldown refunded (never consumed)")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "cooldown refunded (never consumed)")
 	require.Len(t, caster.rejections, 1)
 	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
 }
@@ -3776,7 +3776,7 @@ func TestRevive_NoCorpseRejectsActivation(t *testing.T) {
 
 	sk.Update(33.0)
 
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "no corpse in range → no cooldown consumed")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "no corpse in range → no cooldown consumed")
 	require.Len(t, caster.rejections, 1)
 	assert.Equal(t, skills.SkillID(33), caster.rejections[0].skill)
 	assert.Equal(t, model.ActivationRejectedNoTarget, caster.rejections[0].reason)
@@ -3795,7 +3795,7 @@ func TestRevive_FiresReviveAtNearestCorpse(t *testing.T) {
 
 	assert.Equal(t, c.Basic().ID(), cs.revivedCorpseID, "revive targets the corpse in range")
 	assert.InDelta(t, 0.3, cs.revivedFraction, 1e-6, "the authored health fraction is passed through")
-	assert.Equal(t, 600, caster.sc.CooldownSlots[0].CdTicks, "a landed revive consumes the cooldown")
+	assert.Equal(t, 600, caster.sc.SlotCooldownRemaining(0), "a landed revive consumes the cooldown")
 	assert.Empty(t, caster.rejections)
 }
 
@@ -3926,8 +3926,8 @@ func TestDash_CancelsRunningCast(t *testing.T) {
 
 	assert.False(t, caster.sc.IsCasting(), "dash cancels the running cast")
 	assert.InDelta(t, 2.5, caster.Position().X, 1e-4, "dash displaced the caster")
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "interrupted cast consumes no cooldown")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[1].CdTicks, "dash consumed its own cooldown")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "interrupted cast consumes no cooldown")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(1), "dash consumed its own cooldown")
 }
 
 // --- C0: caster power scale — f(character level) on HP-side values ---
@@ -4186,7 +4186,7 @@ func TestCooldown_CalmPutsAnAllowedFactionOutOfCombat(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.True(t, m.Calmed(), "a mob in the allowlist is calmed")
-	assert.Equal(t, 600, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed")
+	assert.Equal(t, 600, caster.sc.SlotCooldownRemaining(0), "cooldown consumed")
 }
 
 func TestCooldown_CalmSkipsAFactionOutsideTheAllowlist(t *testing.T) {
@@ -4326,7 +4326,7 @@ func TestCooldown_CharmTakesTheNearestAllowedMob(t *testing.T) {
 
 	assert.Equal(t, model.FactionAligned, m.Faction(), "it fights on the player side now")
 	assert.Equal(t, model.PlayerEntity(caster), m.CreditTo())
-	assert.Equal(t, 3600, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed")
+	assert.Equal(t, 3600, caster.sc.SlotCooldownRemaining(0), "cooldown consumed")
 }
 
 func TestCooldown_CharmSkipsAFactionOutsideTheAllowlist(t *testing.T) {
@@ -4430,7 +4430,7 @@ func TestCooldown_SpeedBurstBuffsTheCaster(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.InDelta(t, 1.5, caster.buffs.MovementFactor(), 1e-6, "the sprint is live")
-	assert.Equal(t, 600, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 600, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 }
 
 func TestCooldown_SpeedBurstScalesWithLevel(t *testing.T) {
@@ -4444,7 +4444,7 @@ func TestCooldown_SpeedBurstScalesWithLevel(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.InDelta(t, 1.7, caster.buffs.MovementFactor(), 1e-6, "1.5 + 2×0.1")
-	assert.Equal(t, 480, caster.sc.CooldownSlots[0].CdTicks, "600 − 2×60")
+	assert.Equal(t, 480, caster.sc.SlotCooldownRemaining(0), "600 − 2×60")
 }
 
 func TestCooldown_SpeedBurstExpires(t *testing.T) {
@@ -4519,7 +4519,7 @@ func TestCooldown_LifestealBurstBuffsTheCaster(t *testing.T) {
 	fireLifestealBurst(t, caster, 1)
 
 	assert.InDelta(t, 0.3, caster.buffs.LifestealFraction(), 1e-6, "the leech is live")
-	assert.Equal(t, 900, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 900, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 }
 
 func TestCooldown_LifestealBurstScalesWithLevel(t *testing.T) {
@@ -4527,7 +4527,7 @@ func TestCooldown_LifestealBurstScalesWithLevel(t *testing.T) {
 	fireLifestealBurst(t, caster, 5)
 
 	assert.InDelta(t, 0.5, caster.buffs.LifestealFraction(), 1e-6, "0.3 + 4×0.05")
-	assert.Equal(t, 660, caster.sc.CooldownSlots[0].CdTicks, "900 − 4×60")
+	assert.Equal(t, 660, caster.sc.SlotCooldownRemaining(0), "900 − 4×60")
 }
 
 // This is the whole feature: a burst that never reaches the damage payload is a

@@ -96,7 +96,7 @@ func TestCooldownSlotsMarshalFlatbuf_ContentsAndRemaining(t *testing.T) {
 	sc := skills.NewSkillComponent(true)
 	nova := &skills.SkillDefinition{ID: 20, Name: "NovaBurst", CooldownTicks: 300}
 	sc.EquipCooldown(1, nova, 1)
-	sc.CooldownSlots[1].CdTicks = 120
+	sc.SetCooldownRemaining(nova.ID, 120)
 
 	b := flatbuffers.NewBuilder(128)
 

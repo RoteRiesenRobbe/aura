@@ -509,7 +509,7 @@ func TestEquipCooldown(t *testing.T) {
 		require.NotNil(t, sc.CooldownSlots[1])
 		assert.Equal(t, testNova.ID, sc.CooldownSlots[1].Def.ID)
 		assert.Equal(t, 2, sc.CooldownSlots[1].Level)
-		assert.Equal(t, 0, sc.CooldownSlots[1].CdTicks, "equips ready to fire")
+		assert.Equal(t, 0, sc.SlotCooldownRemaining(1), "equips ready to fire")
 	})
 
 	t.Run("equipping the same cooldown again moves it", func(t *testing.T) {
@@ -522,6 +522,59 @@ func TestEquipCooldown(t *testing.T) {
 
 		assert.Nil(t, sc.CooldownSlots[0], "old slot must be cleared")
 		require.NotNil(t, sc.CooldownSlots[1])
+	})
+}
+
+// A cooldown belongs to the skill, not to the slot: the counter must survive
+// every way a slot can be emptied, or re-slotting resets it (the exploit).
+func TestCooldownMemory(t *testing.T) {
+	t.Run("survives moving the skill to another slot", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(0, testNova, 1)
+		sc.StartCooldown(sc.CooldownSlots[0])
+
+		sc.EquipCooldown(2, testNova, 1)
+
+		assert.Equal(t, 300, sc.SlotCooldownRemaining(2),
+			"re-slotting must not mint a ready copy")
+		assert.Equal(t, 0, sc.SlotCooldownRemaining(0), "the old slot is empty")
+	})
+
+	t.Run("keeps ticking while the skill is unslotted", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(0, testNova, 1)
+		sc.StartCooldown(sc.CooldownSlots[0])
+		sc.CooldownSlots[0] = nil // pushed out of the loadout
+
+		for i := 0; i < 10; i++ {
+			sc.TickCooldowns()
+		}
+
+		assert.Equal(t, 290, sc.CooldownRemaining(testNova.ID),
+			"parking a skill must not freeze its recovery")
+	})
+
+	t.Run("clears at zero", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.SetCooldownRemaining(testNova.ID, 2)
+
+		sc.TickCooldowns()
+		assert.Equal(t, 1, sc.CooldownRemaining(testNova.ID))
+		sc.TickCooldowns()
+		assert.Equal(t, 0, sc.CooldownRemaining(testNova.ID), "ready again")
+	})
+
+	t.Run("undiscovered and unslotted skills read ready", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		assert.Equal(t, 0, sc.CooldownRemaining(testNova.ID))
+		assert.Equal(t, 0, sc.SlotCooldownRemaining(0), "empty slot")
+		assert.Equal(t, 0, sc.SlotCooldownRemaining(99), "out of range")
+	})
+
+	t.Run("ticking allocates nothing on an idle component", func(t *testing.T) {
+		// processCooldowns calls this every tick for every entity in the world.
+		sc := NewSkillComponent(false)
+		assert.Zero(t, testing.AllocsPerRun(100, sc.TickCooldowns))
 	})
 }
 
@@ -555,7 +608,7 @@ func TestBurstRadius(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.EquipCooldown(0, testNova, 3)
 		es := sc.CooldownSlots[0]
-		es.CdTicks = es.EffectiveCooldownTicks() // just fired
+		sc.StartCooldown(es) // just fired
 
 		assert.InDelta(t, 1.7, sc.BurstRadius(BurstVFXTicks), 1e-6) // 1.5 + 2×0.1
 	})
@@ -564,7 +617,7 @@ func TestBurstRadius(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.EquipCooldown(0, testNova, 1)
 		es := sc.CooldownSlots[0]
-		es.CdTicks = es.EffectiveCooldownTicks() - BurstVFXTicks
+		sc.SetCooldownRemaining(es.Def.ID, es.EffectiveCooldownTicks()-BurstVFXTicks)
 
 		assert.Equal(t, float32(0), sc.BurstRadius(BurstVFXTicks))
 	})
@@ -580,7 +633,7 @@ func TestBurstRadius(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.EquipCooldown(0, ignite, 3)
 		es := sc.CooldownSlots[0]
-		es.CdTicks = es.EffectiveCooldownTicks() // just fired
+		sc.StartCooldown(es) // just fired
 
 		assert.InDelta(t, 1.7, sc.BurstRadius(BurstVFXTicks), 1e-6) // 1.5 + 2×0.1
 	})
@@ -592,7 +645,7 @@ func TestBurstRadius(t *testing.T) {
 		}
 		sc := NewSkillComponent(true)
 		sc.EquipCooldown(0, selfHeal, 1)
-		sc.CooldownSlots[0].CdTicks = 900 // just fired
+		sc.SetCooldownRemaining(selfHeal.ID, 900) // just fired
 
 		assert.Equal(t, float32(0), sc.BurstRadius(BurstVFXTicks))
 	})

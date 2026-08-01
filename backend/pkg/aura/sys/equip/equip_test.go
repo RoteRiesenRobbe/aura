@@ -115,7 +115,8 @@ var (
 	defHeal   = &skills.SkillDefinition{ID: 2, Name: "Heal", Category: skills.SkillCategoryActiveAura, MaxLevel: 5}
 	defSwift  = &skills.SkillDefinition{ID: 10, Name: "Swift", Category: skills.SkillCategoryPassive, MaxLevel: 3,
 		Effects: []skills.EffectDef{{Type: skills.EffectTypeStatMultiplier, Stat: &skills.StatParams{Name: skills.StatMovementSpeed, Bonus: 0.05, BonusPerLevel: 0.05}}}}
-	defNova = &skills.SkillDefinition{ID: 20, Name: "NovaBurst", Category: skills.SkillCategoryCooldown, MaxLevel: 3}
+	defNova   = &skills.SkillDefinition{ID: 20, Name: "NovaBurst", Category: skills.SkillCategoryCooldown, MaxLevel: 3}
+	defRecall = &skills.SkillDefinition{ID: 21, Name: "Recall", Category: skills.SkillCategoryCooldown, MaxLevel: 1}
 )
 
 func newSystem(defs ...*skills.SkillDefinition) (*EquipSystem, *stubEquipEntity) {
@@ -256,14 +257,14 @@ func TestEquipSystem_RejectedInCombat(t *testing.T) {
 	assert.Nil(t, player.sc.CooldownSlots[0], "equip must be dropped while in combat")
 }
 
-// The reported abuse case: re-slotting a cooldown mints a fresh, ready
-// EquippedSkill (CdTicks 0). Combat-locking the equip closes it — a mid-combat
-// re-equip is dropped, so the running cooldown survives and no slot is refreshed.
+// The reported abuse case: re-slotting a cooldown used to mint a fresh, ready
+// EquippedSkill. The combat lock drops a mid-combat re-equip, so the running
+// cooldown survives and no slot is refreshed.
 func TestEquipSystem_InCombatDoesNotRefreshCooldown(t *testing.T) {
 	es, player := newSystem(defNova)
 	player.sc.Discover(defNova.ID)
 	player.sc.EquipCooldown(0, defNova, 1)
-	player.sc.CooldownSlots[0].CdTicks = 42 // mid-cooldown
+	player.sc.SetCooldownRemaining(defNova.ID, 42) // mid-cooldown
 
 	// Player fired the cooldown, then tries to dodge it by re-slotting mid-fight.
 	player.inCombat = true
@@ -272,8 +273,53 @@ func TestEquipSystem_InCombatDoesNotRefreshCooldown(t *testing.T) {
 	es.Update(0)
 
 	require.NotNil(t, player.sc.CooldownSlots[0], "original slot must be untouched")
-	assert.Equal(t, 42, player.sc.CooldownSlots[0].CdTicks, "cooldown must not be refreshed")
+	assert.Equal(t, 42, player.sc.SlotCooldownRemaining(0), "cooldown must not be refreshed")
 	assert.Nil(t, player.sc.CooldownSlots[1], "no fresh, ready copy in the new slot")
+}
+
+// The half the combat lock never covered: out of combat — which is ~3.3 s after
+// the last hit, i.e. between every pull — the equip goes through, and it must
+// still not refresh the cooldown. Remaining ticks are keyed by SKILL, so the
+// new slot inherits the running cooldown instead of arriving ready.
+func TestEquipSystem_OutOfCombatReslotKeepsCooldown(t *testing.T) {
+	es, player := newSystem(defNova)
+	player.sc.Discover(defNova.ID)
+	player.sc.EquipCooldown(0, defNova, 1)
+	player.sc.SetCooldownRemaining(defNova.ID, 42) // mid-cooldown
+
+	player.inCombat = false
+	player.client.msg = &model.EquipSkill{SkillID: defNova.ID, Slot: 1}
+
+	es.Update(0)
+
+	require.NotNil(t, player.sc.CooldownSlots[1], "the edit itself is allowed")
+	assert.Nil(t, player.sc.CooldownSlots[0], "equipping the same cooldown moves it")
+	assert.Equal(t, 42, player.sc.SlotCooldownRemaining(1),
+		"the cooldown belongs to the skill — re-slotting must not reset it")
+}
+
+// Unequipping entirely (another skill takes the slot) must not launder the
+// cooldown either: the timer keeps running while the skill sits outside the
+// loadout, and coming back mid-cooldown is still not ready.
+func TestEquipSystem_ParkingOutsideTheLoadoutDoesNotResetCooldown(t *testing.T) {
+	es, player := newSystem(defNova, defRecall)
+	player.sc.Discover(defNova.ID)
+	player.sc.Discover(defRecall.ID)
+	player.sc.EquipCooldown(0, defNova, 1)
+	player.sc.SetCooldownRemaining(defNova.ID, 42)
+
+	// Push Nova out of the loadout...
+	player.client.msg = &model.EquipSkill{SkillID: defRecall.ID, Slot: 0}
+	es.Update(0)
+	require.Equal(t, defRecall.ID, player.sc.CooldownSlots[0].Def.ID)
+	assert.Equal(t, 42, player.sc.CooldownRemaining(defNova.ID),
+		"an unslotted skill keeps its remaining cooldown")
+
+	// ...and bring it back.
+	player.client.msg = &model.EquipSkill{SkillID: defNova.ID, Slot: 1}
+	es.Update(0)
+
+	assert.Equal(t, 42, player.sc.SlotCooldownRemaining(1), "still on cooldown on return")
 }
 
 // Out of combat the same edit goes through unchanged — build tweaks between

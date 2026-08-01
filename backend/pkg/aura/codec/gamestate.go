@@ -219,11 +219,7 @@ func CooldownRemainingMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuf
 	n := skills.MaxCooldownSlots
 	AuraApi.GameStateStartCooldownRemainingTicksVector(builder, n)
 	for i := n - 1; i >= 0; i-- {
-		var cd uint16
-		if sc.CooldownSlots[i] != nil {
-			cd = uint16(sc.CooldownSlots[i].CdTicks)
-		}
-		builder.PrependUint16(cd)
+		builder.PrependUint16(uint16(sc.SlotCooldownRemaining(i)))
 	}
 	return builder.EndVector(n)
 }

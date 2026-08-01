@@ -15,17 +15,21 @@ const (
 // There is deliberately no per-skill physics collider: since exactly one aura
 // is active at a time, each entity owns a single aura sensor that the
 // SkillSystem resizes to the active skill's EffectiveRadius.
+//
+// ⚑ Remaining cooldown deliberately does NOT live here. It is keyed by skill
+// on the component (see SkillComponent.cooldowns): a per-slot field is
+// destroyed by unequip, so re-slotting minted a fresh, ready copy — the
+// cooldown-refresh exploit.
 type EquippedSkill struct {
 	Def   *SkillDefinition
 	Level int
 
-	CdTicks         int // cooldown only: ticks remaining (0 = ready)
 	TickAccumulator int // active_aura only: ticks since last effect application
 }
 
 // BurstVFXTicks is how long the burst VFX (BurstFired status effect + wire
 // burst_radius) stays on after a cooldown fires — ~1.5 s [PLACEHOLDER].
-// Derived from CdTicks, so no extra state is needed anywhere.
+// Derived from the remaining cooldown, so no extra state is needed anywhere.
 const BurstVFXTicks = 45
 
 // EffectiveCooldownTicks is the level-scaled cooldown: base plus
@@ -105,6 +109,18 @@ type SkillComponent struct {
 	// SkillSystem in the same tick. Mobs don't use it — their AI fires
 	// ready cooldowns directly.
 	PendingCooldowns []int
+
+	// cooldowns maps a skill to the ticks remaining until it is ready again;
+	// an absent key means ready. Keyed by SkillID rather than by slot because
+	// a cooldown belongs to the SKILL, not to the slot it happens to sit in:
+	// with the counter on the EquippedSkill, unequipping destroyed it and
+	// re-equipping minted a ready copy, so any cooldown could be reset by
+	// re-slotting it between fights. Entries keep ticking down while the skill
+	// is unslotted — parking a skill must not freeze its recovery.
+	//
+	// Lazily allocated (nil until the first cooldown fires) so a mob that
+	// never fires one carries no map, mirroring Spellbook's nil-for-mobs shape.
+	cooldowns map[SkillID]int
 
 	// Casting state (plan-skill-vocab chunk 4): the cooldown slot currently
 	// winding up (-1 = idle) and the ticks left until it fires. One cast at a
@@ -305,6 +321,52 @@ func (sc *SkillComponent) EquipCooldown(slot int, def *SkillDefinition, level in
 	sc.CooldownSlots[slot] = &EquippedSkill{Def: def, Level: level}
 }
 
+// CooldownRemaining is the ticks left until the given skill is ready to fire
+// again; 0 = ready. Answers for any skill, slotted or not.
+func (sc *SkillComponent) CooldownRemaining(id SkillID) int {
+	return sc.cooldowns[id]
+}
+
+// SlotCooldownRemaining is CooldownRemaining for whatever occupies the given
+// cooldown slot; 0 for an empty or out-of-range slot.
+func (sc *SkillComponent) SlotCooldownRemaining(slot int) int {
+	if slot < 0 || slot >= MaxCooldownSlots || sc.CooldownSlots[slot] == nil {
+		return 0
+	}
+	return sc.cooldowns[sc.CooldownSlots[slot].Def.ID]
+}
+
+// SetCooldownRemaining puts a skill on cooldown for the given ticks; ≤ 0
+// clears it (ready). Test/cheat seam — the fire path uses StartCooldown.
+func (sc *SkillComponent) SetCooldownRemaining(id SkillID, ticks int) {
+	if ticks <= 0 {
+		delete(sc.cooldowns, id)
+		return
+	}
+	if sc.cooldowns == nil {
+		sc.cooldowns = make(map[SkillID]int, MaxCooldownSlots)
+	}
+	sc.cooldowns[id] = ticks
+}
+
+// StartCooldown puts the skill on its full level-scaled cooldown — what firing
+// it consumes.
+func (sc *SkillComponent) StartCooldown(es *EquippedSkill) {
+	sc.SetCooldownRemaining(es.Def.ID, es.EffectiveCooldownTicks())
+}
+
+// TickCooldowns advances every running cooldown by one tick, dropping the ones
+// that reach zero. Skill-keyed, so unslotted skills recover too.
+func (sc *SkillComponent) TickCooldowns() {
+	for id, ticks := range sc.cooldowns {
+		if ticks <= 1 {
+			delete(sc.cooldowns, id)
+			continue
+		}
+		sc.cooldowns[id] = ticks - 1
+	}
+}
+
 // BurstRadius is the effective radius of the largest instant-AoE effect
 // (instant_damage or instant_dot — e.g. Ignite) among cooldowns fired within
 // the last `window` ticks; 0 = none. Serialized as the wire burst_radius so
@@ -313,7 +375,11 @@ func (sc *SkillComponent) EquipCooldown(slot int, def *SkillDefinition, level in
 func (sc *SkillComponent) BurstRadius(window int) float32 {
 	var max float32
 	for _, es := range sc.CooldownSlots {
-		if es == nil || es.CdTicks == 0 || es.EffectiveCooldownTicks()-es.CdTicks >= window {
+		if es == nil {
+			continue
+		}
+		cd := sc.cooldowns[es.Def.ID]
+		if cd == 0 || es.EffectiveCooldownTicks()-cd >= window {
 			continue
 		}
 		for _, e := range es.Def.Effects {
