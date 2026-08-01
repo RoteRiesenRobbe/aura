@@ -701,7 +701,7 @@ the free floor (confirmed). Its reduction is invisible in the UI → F2.
 
 ## 8. Chunk ledgers
 
-### R1 — What a cost SAYS ✅ **DONE 2026-08-01, committed `[uncommitted]`**
+### R1 — What a cost SAYS ✅ **DONE 2026-08-01, committed `b2116ba3`**
 
 Presentation + one wire field. **No authored number moved**, and none of the
 five items changes what the server charges — only what the player is told.
