@@ -611,6 +611,26 @@ ally with no enemy present — net HP must not fall.** That test fails today.
 regression above, the §3.1 drain guard re-run, full suite + `vet` + `gofmt`,
 `-chain` A/B recorded in the ledger.
 
+**⚑ Readiness note (checked against HEAD 2026-08-01, after R1 shipped).** Three
+facts to start from, so none of them is discovered mid-edit:
+
+1. **Only TWO appliers actually answer `hitAny || len(targets) > 0`** —
+   `applyResistAura` (`skills.go:1068`) and `applyShieldAura` (`:1109`).
+   `applySlowAura` already returns `slowedAny`, i.e. it already pays for work
+   done; `applyHealAura` always did. So §5.2's engine change is **narrower than
+   the finding reads**: two aura appliers plus `applyDotEffect` for §5.1.
+2. ⚠ **The instant twins must NOT be swept up with them.** `applyInstantShield`
+   and `applyInstantHot` count the self-apply as a hit **on purpose** — their
+   own comments say so (*"a Barrier cast with nobody around is not a whiff"*),
+   and D9 is explicit that a **cooldown pays on cast, hit or whiff**. §5.2 is a
+   ruling about **auras**. Changing the instant path would be a second,
+   unruled design change wearing this chunk's commit message.
+3. **The buff store already branches on new-vs-refresh internally** —
+   `ApplyShield`/`ApplyResist`/`ApplySlow`/`ApplyDot` each walk their stream,
+   refresh in place and `return`, or fall through to `b.apply` for a new entry.
+   It genuinely only needs to *report* which happened; no lookup has to be
+   added.
+
 ### R3 — One beat, one price (content)
 
 The catalog re-authoring, last, once the rules underneath it are final.
