@@ -56,11 +56,7 @@ type saveWatch struct {
 	level    uint32
 	skillRev uint64
 	questRev uint64
-	// anchor is the bound spawn-point id. Binding a campfire is a deliberate
-	// player act with a visible confirmation, so it must not wait up to five
-	// minutes to become durable — a crash in between would send them back to a
-	// fire they watched themselves leave.
-	anchor string
+	anchor   string
 }
 
 // SetCharacterSaves installs the persistence writer.

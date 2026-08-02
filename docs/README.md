@@ -77,6 +77,7 @@ go to `backlog.md`; this section is content only.
 
 - **manual-zone-editor.md** — step-by-step user manual for the in-game zone editor: setup, modes, placing/editing props+spawns, export→server round-trip
 - **manual-content-authoring.md** — adding/replacing content by hand: new mobs (5-file EntityType path + `entityType` variant shortcut), new abilities, ability VFX, mob/player icons, scripted encounters/boss fights (§5); wire-touch table + hand-sync points
+- **manual-db-migrations.md** — step-by-step user manual and runbook for database migrations: embedded `golang-migrate` architecture, up/down SQL authoring, testing, dirty-state recovery, and production operations
 
 ## Onboarding artifacts (human-facing, standalone HTML)
 
