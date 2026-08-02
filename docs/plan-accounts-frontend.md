@@ -1053,7 +1053,7 @@ trip onto the hot path, or join the player as a nameless character.
 
 ## 10a. Chunk ledger
 
-### Chunk 4 — save & load ✅ DONE 2026-08-02
+### Chunk 4 — save & load ✅ DONE 2026-08-02, `7639503b`
 
 Backend only — no wire change, no frontend change, no schema change. **A
 character's progress survives leaving the world:** level, experience, spellbook,
@@ -1210,7 +1210,7 @@ console that can deliver Ctrl-C. Its two halves are covered by Go tests
 `TestWriterReportsWhatItCouldNotSave`); signal delivery itself is stdlib, and the
 live server is Linux under systemd, where SIGTERM is the normal stop.
 
-### Chunk 3 — the wire ✅ DONE 2026-08-01
+### Chunk 3 — the wire ✅ DONE 2026-08-01, `de8d6910`
 
 Backend + frontend + wire + docs. **You log in, pick your character, and enter
 the world as that character.** The socket is authenticated for the first time:
@@ -1350,7 +1350,7 @@ the test runner.
 
 ---
 
-### Chunk 2 — the frontend ✅ DONE 2026-08-01
+### Chunk 2 — the frontend ✅ DONE 2026-08-01, `de8d6910`
 
 Frontend + a little backend + docs. **Aura has a front door.** A cold browser
 goes page-load → name → world in one click; a returning one lands on
