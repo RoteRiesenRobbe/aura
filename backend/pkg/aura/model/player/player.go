@@ -4,6 +4,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"log/slog"
 	"math"
+	"sort"
 	"strconv"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
@@ -52,6 +53,14 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.viewport.Shape().IsSensor = true
 	p.viewport.Shape().Mask = int(model.LayerViewportCollision)
 	p.viewport.Shape().Group = shapeGroup
+
+	// Build the XP table now rather than on first use. Encoding reads it for
+	// every character in every viewport, so a lazy build would write to one
+	// player's table during another player's snapshot — harmless while the
+	// loop is single-threaded, and a data race the moment NetSystem fans out
+	// (plan-server-performance.md chunk 2). The lazy path stays for players
+	// built by struct literal (sim, unit tests).
+	p.xpCumulative()
 
 	//--- initialize skill component
 	sc, err := initializePlayerSkills(g.Skills())
@@ -113,6 +122,8 @@ type player struct {
 	model.PlayerVitalSigns
 
 	config *cfg.PlayerConfig
+	// xpTable memoizes the cumulative XP curve — see xpCumulative.
+	xpTable []uint64
 
 	ownedEntitites model.BasicEntities
 
@@ -944,13 +955,52 @@ func (p *player) experienceForNextLevel(level uint32) uint64 {
 	return uint64(math.Round(required))
 }
 
+// xpTableUncappedLevels is how far the cumulative table reaches when the conf
+// sets no maxLevel. Any lookup past it falls back to the summation loop, so
+// this is a memory/coverage tradeoff, not a cap.
+const xpTableUncappedLevels = 128
+
+// xpCumulative returns the cumulative XP table: index L holds the total XP
+// required to REACH level L, so [0] and [1] are both 0 and the slice is
+// non-decreasing. Built once per player, on first use.
+//
+// The curve is a pure function of the conf pair and would ideally be computed
+// once per PlayerConfig — but PlayerConfig is built by struct literal in
+// several places (sim/world.go, unit tests) with no single construction point
+// to hook, and a per-player table is 30 float ops at join for a slice of
+// ~250 bytes. The game loop is the only writer, so no lock is needed.
+func (p *player) xpCumulative() []uint64 {
+	if p.xpTable != nil {
+		return p.xpTable
+	}
+	levels := uint32(p.config.LevelCurve.MaxLevel)
+	if levels == 0 {
+		levels = xpTableUncappedLevels
+	}
+	table := make([]uint64, levels+2)
+	var total uint64
+	for l := uint32(1); l <= levels; l++ {
+		total += p.experienceForNextLevel(l)
+		table[l+1] = total
+	}
+	p.xpTable = table
+	return table
+}
+
 func (p *player) totalXPForLevel(level uint32) uint64 {
 	if level <= 1 {
 		return 0
 	}
-
-	var total uint64
-	for l := uint32(1); l < level; l++ {
+	table := p.xpCumulative()
+	if int(level) < len(table) {
+		return table[level]
+	}
+	// Past the table's end (uncapped conf only): resume the summation from
+	// where the table stops, in the same order, so the uint64 arithmetic —
+	// overflow included — is identical to the pre-table loop.
+	last := uint32(len(table) - 1)
+	total := table[last]
+	for l := last; l < level; l++ {
 		total += p.experienceForNextLevel(l)
 	}
 	return total
@@ -961,6 +1011,31 @@ func (p *player) levelForExperience(xp uint64) uint32 {
 	// points, milestones) clamps at the conf maxLevel (C0, GDD §5 linked
 	// triple — [WORKING LOCK] 30).
 	maxLevel := uint32(p.config.LevelCurve.MaxLevel)
+
+	// The table is non-decreasing, so the level for xp is the largest L with
+	// table[L] <= xp — a binary search instead of walking the levels and
+	// re-summing the curve at each one.
+	table := p.xpCumulative()
+	i := sort.Search(len(table), func(i int) bool { return table[i] > xp })
+	level := uint32(1)
+	if i >= 2 {
+		level = uint32(i - 1)
+	}
+	if maxLevel > 0 && level >= maxLevel {
+		return maxLevel
+	}
+	if i == len(table) {
+		// xp runs off the end of the table (uncapped conf, or a zero-XP curve
+		// where every entry ties): finish on the original loop.
+		return p.levelForExperienceUntabled(xp, maxLevel)
+	}
+	return level
+}
+
+// levelForExperienceUntabled is the pre-table resolution loop, kept verbatim
+// for the cases the table cannot answer. totalXPForLevel still serves it, so
+// it costs the summation only past the table's end.
+func (p *player) levelForExperienceUntabled(xp uint64, maxLevel uint32) uint32 {
 	level := uint32(1)
 	for {
 		if maxLevel > 0 && level >= maxLevel {
