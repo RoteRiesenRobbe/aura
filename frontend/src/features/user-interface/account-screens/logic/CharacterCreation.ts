@@ -108,8 +108,22 @@ async function submit(): Promise<void> {
     const panel = AccountScreens.element('characterCreation');
     const input = nameInput();
 
-    const typed = input.value.trim();
-    // An empty field means "I'll take the one you offered".
+    const raw = input.value;
+    const typed = raw.trim();
+
+    // ⚑ An EMPTY field means "I'll take the one you offered" — a field the player
+    // typed whitespace into does not. Trimming first conflated the two, so
+    // submitting " " silently created a character under the generated name the
+    // player never accepted. Whitespace-only is a typo, and it is refused here
+    // rather than sent: the server would reject it too (auth.ValidateCharacterName
+    // ErrCharacterNameShape — a name may not begin on a separator), but with a
+    // message about name shape rather than about the field being blank.
+    if (typed.length === 0 && raw.length > 0) {
+        AccountScreens.showError(panel, 'Please enter a name, or leave the field empty to use the suggested one.');
+        input.focus();
+        return;
+    }
+
     const usedSuggestion = typed.length === 0;
     let name = (usedSuggestion ? input.getAttribute('placeholder') : typed).substr(0, MAX_LENGTH);
 
