@@ -14,6 +14,7 @@ import {GameState, IGame} from '../../core/logic/IGame';
 import {InputMessage} from '../../backend/logic/messages/outgoing/InputMessage';
 import * as Conversation from '../../conversation/logic/Conversation';
 import * as Journal from '../../journal/logic/Journal';
+import * as Help from '../../help/logic/Help';
 import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMessage';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {Vector} from '../../core/logic/Vector';
@@ -142,6 +143,8 @@ export class Controls {
             // ...and closes the journal, which is client-owned visibility (C3)
             // rather than a request to the server. A no-op when it is shut.
             Journal.close();
+            // ...and the help panel — purely client-side, same rule.
+            Help.close();
             // ...and dismisses an open conversation (chunk 3b-ii, D21). Also a
             // no-op when no panel is open. It only ASKS: the panel closes when
             // the server drops the tree from the next snapshot.

@@ -1,6 +1,7 @@
 import '../assets/HUD.less';
 import * as Conversation from '../../../conversation/logic/Conversation';
 import * as Journal from '../../../journal/logic/Journal';
+import * as Help from '../../../help/logic/Help';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
 import {
@@ -86,6 +87,7 @@ export function setup(game) {
     setupCooldownLoadout();
     Conversation.setup();
     Journal.setup();
+    Help.setup();
 }
 
 // Zoom control: steps through the fixed-FOV zoom levels (camera/logic/Zoom.ts).

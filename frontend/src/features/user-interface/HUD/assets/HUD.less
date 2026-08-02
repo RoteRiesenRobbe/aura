@@ -1130,6 +1130,29 @@
 	align-items: center;
 	gap: 0.6vh;
 
+	// The help button rides at the top of the zoom column ("by the zoom
+	// control", PO 2026-08-02) — a circled ? opening the #help panel.
+	> #helpButton {
+		width: (0.45 * @uiElementHeight);
+		height: (0.45 * @uiElementHeight);
+		margin-bottom: 0.6vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: fade(white, 10%);
+		border: 1px solid @panel-border;
+		border-radius: 50%;
+		color: @panel-color;
+		font-size: (0.28 * @uiElementHeight);
+		font-weight: 700;
+		cursor: pointer;
+
+		&:hover {
+			background: fade(white, 22%);
+			color: white;
+		}
+	}
+
 	> .zoomIcon {
 		width: (0.32 * @uiElementHeight);
 		height: (0.32 * @uiElementHeight);
@@ -1422,6 +1445,90 @@
 
 			&:hover {
 				color: white;
+			}
+		}
+	}
+}
+
+// The help panel (placeholder tutorial): same overlay pattern as #journal —
+// the panel does not scroll, only its body does, so the ✕ never ends up under
+// a scrollbar.
+#help {
+	position: absolute;
+	top: 7vh;
+	left: calc(50% + (0.5 * @journal-left-reserve));
+	transform: translateX(-50%);
+
+	width: 56rem;
+	max-width: calc(96vw - @journal-left-reserve);
+	max-height: 70vh;
+
+	display: flex;
+	flex-direction: column;
+
+	background: @panel-bg;
+	border: 1px solid @panel-border;
+	border-radius: @panel-border-radius;
+	padding: @panel-padding;
+	color: @panel-color;
+	font-size: @panel-font-size;
+
+	&.hidden {
+		display: none;
+	}
+
+	> .helpHeader {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+
+		padding-bottom: 0.5rem;
+		border-bottom: 1px solid @panel-row-divider;
+
+		> .helpTitle {
+			color: @panel-title-color;
+			font-size: @panel-title-size;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+
+		> .helpClose {
+			cursor: pointer;
+			color: @panel-title-color;
+			padding: 0 0.5rem;
+
+			&:hover {
+				color: white;
+			}
+		}
+	}
+
+	> .helpBody {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+		padding-top: 1rem;
+		padding-right: 0.8rem;
+
+		> section {
+			> h3 {
+				margin: 1.2rem 0 0.3rem;
+				color: @panel-title-color;
+				font-size: @panel-title-size;
+				font-weight: 400;
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+			}
+
+			&:first-child > h3 {
+				margin-top: 0;
+			}
+
+			> p {
+				margin: 0;
+				font-size: @panel-title-size;
+				line-height: 1.45;
 			}
 		}
 	}
