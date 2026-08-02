@@ -73,9 +73,15 @@ const xp = () => page.evaluate(() => {
   const m = document.querySelector('#xpBar .barText')?.textContent?.match(/XP\s+(\d+)/);
   return m ? +m[1] : null;
 });
-// The aura panel's spellbook list, i.e. GameState.spellbook.
+// The aura panel's spellbook list, i.e. GameState.spellbook. Used as a
+// before/after comparator, so the `.sectionHeader` rows it includes are
+// harmless — they round-trip like anything else.
 const spellbookNames = () => page.evaluate(() =>
   [...document.querySelectorAll('#spellbookList li')].map((li) => li.textContent.trim()).sort());
+// ⚑ The same list WITHOUT the category headers ("Auras", "Passives"), which are
+// `li`s too. Counting rows without this reports a one-skill spellbook as two.
+const spellbookSkills = () => page.evaluate(() =>
+  [...document.querySelectorAll('#spellbookList li:not(.sectionHeader)')].map((li) => li.textContent.trim()).sort());
 // The aura loadout as the HUD renders it, plus which slot is lit — the two
 // halves of character_loadout_slots and characters.active_aura_slot.
 const auraLoadout = () => page.evaluate(() =>
@@ -122,8 +128,18 @@ try {
   await enterWorld();
 
   check(await level() === 1, 'a new character starts at level 1', `level ${await level()}`);
-  const startingSkills = await spellbookNames();
-  check(startingSkills.length === 0, 'a new character knows nothing', `${startingSkills.length} skills`);
+  // ⚑ NOT "knows nothing" — that premise was reversed on the main line while the
+  // accounts line was being built, and the two met at the merge. A creation
+  // milestone (`api/milestones/milestone-unlocks.json`, level 1 → Damage) seeds
+  // Damage into the spellbook AND pre-equips it into aura slot 1, deliberately
+  // left INACTIVE so the player's first press of "1" turns it on (PO ruling,
+  // `0e161de8`, 2026-08-02). So the pristine state is the seeded one, and
+  // asserting an empty spellbook scores shipped, PO-verified behaviour as a
+  // persistence defect.
+  const startingSkills = await spellbookSkills();
+  check(startingSkills.length === 1 && /damage/i.test(startingSkills[0]),
+    'a new character knows only the creation-seeded Damage', startingSkills.join(', ') || 'nothing');
+  check(await activeAuraSlot() === -1, 'and it is seeded inactive', `active slot ${await activeAuraSlot()}`);
 
   // --- 2. earn something worth losing -------------------------------------
   await cmd('XP 900');
