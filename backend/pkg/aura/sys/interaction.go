@@ -409,6 +409,16 @@ func present(in *mobs.Interaction, p learner) *model.Conversation {
 		return nil // nothing to say to this player right now
 	}
 
+	rows := make(map[string][]model.ConversationOption, len(in.Nodes))
+	for i := range in.Nodes {
+		node := &in.Nodes[i]
+		if !visible[node.ID] {
+			continue
+		}
+		rows[node.ID] = presentOptions(node, p, visible)
+	}
+	pruneEmptyDestinations(in, rows)
+
 	c := &model.Conversation{EntryNode: entry}
 	for i := range in.Nodes {
 		node := &in.Nodes[i]
@@ -418,10 +428,43 @@ func present(in *mobs.Interaction, p learner) *model.Conversation {
 		c.Nodes = append(c.Nodes, model.ConversationNode{
 			ID:      node.ID,
 			Lines:   node.Lines,
-			Options: presentOptions(node, p, visible),
+			Options: rows[node.ID],
 		})
 	}
 	return c
+}
+
+// pruneEmptyDestinations drops every pure-navigation row whose target node has
+// nothing left to show (PO 2026-08-02): a node that AUTHORED options but
+// currently presents none of them is nothing but Back, and a row promising it
+// is a button that leads nowhere. Lore leaves — nodes that never authored
+// options — stay reachable, their lines are the content. Grant-bearing rows are
+// never touched here; their visibility is CanApply's and the spellbook's call.
+//
+// Runs to a fixed point so the prune cascades through pure selection nodes
+// (the nesting shape ruled for multi-quest NPCs). Each pass only ever removes
+// rows, so it terminates regardless of authored cycles — the same reason
+// present() itself needs no cycle check.
+func pruneEmptyDestinations(in *mobs.Interaction, rows map[string][]model.ConversationOption) {
+	hasAuthored := make(map[string]bool, len(in.Nodes))
+	for i := range in.Nodes {
+		hasAuthored[in.Nodes[i].ID] = len(in.Nodes[i].Options) > 0
+	}
+	for changed := true; changed; {
+		changed = false
+		for id, rs := range rows {
+			kept := rs[:0]
+			for _, r := range rs {
+				if r.GrantIndex == model.ConversationNoGrant &&
+					hasAuthored[r.Next] && len(rows[r.Next]) == 0 {
+					changed = true
+					continue
+				}
+				kept = append(kept, r)
+			}
+			rows[id] = kept
+		}
+	}
 }
 
 // presentOptions turns one node's authored options into the rows a player sees.

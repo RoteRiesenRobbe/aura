@@ -835,6 +835,115 @@ func TestPresent_QuestRowHiddenWithoutALedger(t *testing.T) {
 	assert.Empty(t, rowsOf(t, present(in, newLearner(1)), "root"))
 }
 
+// --- the empty-destination prune (PO 2026-08-02): a row that leads to nothing
+// but Back is not shown. A navigation row promises the node behind it has
+// something to take or ask; when every one of that node's authored options is
+// currently hidden, the promise is empty and the row goes with them. Lore
+// leaves — nodes that never authored options — stay reachable: their lines ARE
+// the content.
+
+// hubInteraction is the authored hub shape (farmer.json): a root whose rows
+// NAVIGATE — one to the quest node, one to a lore leaf.
+func hubInteraction() *mobs.Interaction {
+	return &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "root", Lines: []string{"Well?"}, Options: []mobs.InteractionOption{
+			{Text: "Do you have a task for me?", Next: "quest_node"},
+			{Text: "Who are you?", Next: "about"},
+		}},
+		{ID: "quest_node", Lines: []string{"The brief."}, Options: []mobs.InteractionOption{
+			{Text: "I'll do it.", Grants: []mobs.InteractionGrant{offerGrant()}},
+			{Text: "Here are the pelts.", Grants: []mobs.InteractionGrant{advanceGrant()}},
+		}},
+		{ID: "about", Lines: []string{"Nobody."}},
+	}}
+}
+
+func rowTextsOf(t *testing.T, in *mobs.Interaction, p *fakeLearner, nodeID string) []string {
+	t.Helper()
+	var texts []string
+	for _, r := range rowsOf(t, present(in, p), nodeID) {
+		texts = append(texts, r.Text)
+	}
+	return texts
+}
+
+func TestPresent_NavRowHiddenWhileItsQuestNodeHasNothingTakeable(t *testing.T) {
+	in := hubInteraction()
+	p := newQuestLearner(t, 1, peltsQuest())
+
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Do you have a task for me?",
+		"not started: the offer is takeable, so the way to it shows")
+
+	require.NoError(t, p.ledger.Accept(questID))
+	assert.NotContains(t, rowTextsOf(t, in, p, "root"), "Do you have a task for me?",
+		"mid-quest: offer refused, turn-in not yet walkable — the node is nothing but Back")
+
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Do you have a task for me?",
+		"turn-in walkable: the way back to it shows again")
+
+	require.NoError(t, p.ledger.AdvanceDialogue(questID, stageTurn, stageDone))
+	assert.NotContains(t, rowTextsOf(t, in, p, "root"), "Do you have a task for me?",
+		"completed: the quest is spent and the row is gone for good")
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Who are you?",
+		"the lore leaf never authored options, so the way to it survives every state")
+}
+
+func TestPresent_NavRowHiddenWhenEveryTeachingIsKnown(t *testing.T) {
+	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "root", Lines: []string{"hm"}, Options: []mobs.InteractionOption{
+			{Text: "Teach me something.", Next: "teachings"},
+		}},
+		{ID: "teachings", Lines: []string{"What do you want to learn?"}, Options: []mobs.InteractionOption{
+			{Grants: []mobs.InteractionGrant{
+				namedGrant(1, "Heal", 1, "yours"),
+				namedGrant(2, "Dash", 5, "yours"),
+			}},
+		}},
+	}}
+	p := newLearner(1)
+
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Teach me something.")
+
+	p.sc.Discover(1)
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Teach me something.",
+		"Dash is level-locked but SHOWN (D20's signpost), so the node is still worth entering")
+
+	p.sc.Discover(2)
+	assert.NotContains(t, rowTextsOf(t, in, p, "root"), "Teach me something.",
+		"everything behind the row is known: nothing but Back left, so the row goes")
+}
+
+// The prune cascades: a pure selection node (the nesting shape ruled for
+// multi-quest NPCs) whose every row just got pruned is itself nothing but Back,
+// so the row pointing at IT goes too.
+func TestPresent_PruneCascadesThroughAPureSelectionNode(t *testing.T) {
+	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "root", Lines: []string{"Well?"}, Options: []mobs.InteractionOption{
+			{Text: "Something to do?", Next: "selection"},
+		}},
+		{ID: "selection", Lines: []string{"Pick."}, Options: []mobs.InteractionOption{
+			{Text: "The pelts.", Next: "quest_node"},
+		}},
+		{ID: "quest_node", Lines: []string{"The brief."}, Options: []mobs.InteractionOption{
+			{Text: "I'll do it.", Grants: []mobs.InteractionGrant{offerGrant()}},
+			{Text: "Here are the pelts.", Grants: []mobs.InteractionGrant{advanceGrant()}},
+		}},
+	}}
+	p := newQuestLearner(t, 1, peltsQuest())
+
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Something to do?")
+
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	require.NoError(t, p.ledger.AdvanceDialogue(questID, stageTurn, stageDone))
+
+	assert.Empty(t, rowsOf(t, present(in, p), "root"),
+		"quest done: the quest node empties, the selection row goes with it, and root's row follows")
+}
+
 func TestApplyGrant_OfferAcceptsTheQuest(t *testing.T) {
 	in := oneOption("I'll help.", offerGrant())
 	p := newQuestLearner(t, 1, peltsQuest())
