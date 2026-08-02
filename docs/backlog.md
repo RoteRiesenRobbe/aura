@@ -4266,3 +4266,34 @@ flag lands, the harness accounts (`plan-accounts-frontend.md` §11) get
 ⚑ **Interim mitigation, free:** the live `tokens.list` should not contain `plz`.
 It is the documented dev token, it appears in this repo's README and in every
 harness invocation, and it is the first string anyone would try.
+
+---
+
+## 45. Login form — "stay logged in" / auto-login toggle
+
+*(added during capture, 2026-08-02, no PO ruling yet)*
+
+The login form (`plan-accounts-frontend.md` chunk 2) always relies on the
+silent-session-refresh cookie (ruling from the 2026-07-30 design session) to
+keep a player logged in on return visits. There is currently no way for a
+player to opt out — every successful password login behaves the same way,
+whether the player wants to be remembered on this device or not.
+
+**Idea:** add a toggle ("Stay logged in" / "Auto-login") to the login form.
+When off, a returning visit after closing the browser (or after the session
+cookie's natural expiry/refresh window) requires re-entering credentials
+rather than silently resuming. When on (today's behavior), the existing
+cookie-based silent refresh applies as-is.
+
+⚑ **Open questions, not yet designed:**
+- What does "off" actually withhold — the cookie itself (`Max-Age`/session
+  cookie vs. persistent), or just the silent-refresh behavior while still
+  setting a short-lived cookie?
+- Does this need a new column/flag, or is it purely a client-side cookie
+  attribute decision at login time?
+- Interacts with the anonymous-first flow — does an anonymous (no password)
+  session have an opinion here, or does the toggle only ever show once
+  credentials are involved?
+
+Not scoped, not estimated. Revisit alongside any future accounts/session UX
+pass.
