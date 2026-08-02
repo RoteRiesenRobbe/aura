@@ -113,9 +113,15 @@ go run ./cmd/loadbot -scheme wss -addr aura-game.duckdns.org:443 -stats "" \
   -steps 20,40,60,80,100,140 -hold 30s             # clustered (default)
 ```
 
-### Measured 2026-08-02, first run after step 8a went live
+### Measured 2026-08-02, 19:03–19:14 UTC — WALKING BOTS, not part of the A/B series
 
-Walking bots (no `-skills`), Hetzner CX-class box, client on a WAN link:
+⚑ **Do not compare this table to the numbered runs below.** These are walking
+bots with **no `-skills`**, so the aura sensor sits at radius 0 and none of the
+sensor / broadphase / SkillSystem cost is paid. It measures the join + movement +
+snapshot path only. The skill-mode A/B series (runs 1–3) is further down and is
+the thing the ceiling figures come from; this ran ~20 minutes before run 3.
+
+Hetzner CX-class box, client on a WAN link:
 
 | bots | dispersed snap/s | clustered snap/s |
 |---|---|---|
@@ -460,15 +466,40 @@ same "the loop cannot spend the second vCPU" signature as every prior run. RSS
 `Systems at: 957%` (~316 ms) vs 809 % on 07-26 and 772 % on 07-22 — the tail got
 worse too.
 
-## Results — 2026-08-02, on the round-7 build
+---
+
+# 2026-08-02 — three runs in one day, in order
+
+⚑ **Read this before the three sections below.** They were originally labelled
+"morning / evening / night" and those labels were wrong *and* self-contradictory
+— run 1 described itself as happening "this evening" while run 2 called that
+same run "the morning run". Everything is now keyed to the clock instead.
+
+**All times are UTC — the live box's clock.** Local (CEST) is +02:00, which is
+what git commit timestamps show, so a run recorded at `15:32 UTC` appears as
+`17:32 +0200` in `git log`.
+
+| | when | build under test | one-line result |
+|---|---|---|---|
+| **run 1** | ~14:00 UTC (recorded 15:32) | round-7 stack, binary built 11:47 UTC | the six-week regression: max build never hit 30 Hz at any population |
+| **run 2** | 15:38–15:52 UTC | + chunk 0, the XP-curve fix `00bd0549` | both ceilings roughly doubled |
+| **run 3** | 19:23–19:33 UTC ⭐ **most recent** | + step 8a, accounts & persistence | ceiling held; memory 3–5× |
+
+⚑ Run 1's exact measurement window is the one soft timestamp here: it is
+inferred from run 2's "~100 minutes after" plus its own commit at 15:32 UTC.
+Runs 2 and 3 are measured windows.
+
+---
+
+## Results — 2026-08-02 run 1 of 3, on the round-7 build (~14:00 UTC, recorded 15:32 UTC)
 
 Same live box, same spot `(38,31)`, clustered, same two ramps, 30 s hold (run B
-`-settle 15s`). Deployed binary built 13:47 that afternoon — everything through
+`-settle 15s`). Deployed binary built 11:47 UTC (13:47 local) — everything through
 `0e161de8`, i.e. the first live perf run carrying the **numbers rewrite, R1–R3,
 feel pass N1–N5, the quest system, and all of intake round 7**. Six weeks of
 game systems since the last measurement.
 
-**⚑ The path was clean this evening — no 0.91 correction.** A local control
+**⚑ The path was clean on this run — no 0.91 correction.** A local control
 minutes before read a full **30.0** (p95 4.3 ms), and live run A read a full
 **30.0 at 20 bots**. Both columns below are raw. This matters for reading run B,
 which reads 27.3 at 20 bots: that is the same figure as the old network-floor
@@ -543,10 +574,10 @@ far too low — sample `utime+stime` instead):
 - **0 panics, 0 OOM, 0 dropped connections**, `connected` == requested at every
   step of both runs, and no restart — so no characters were wiped.
 
-## Results — 2026-08-02 evening, chunk 0 deployed
+## Results — 2026-08-02 run 2 of 3, chunk 0 deployed (measured 15:38–15:52 UTC)
 
-Same box, same spot `(38,31)`, same two ramps, ~100 minutes after the morning
-run. Deployed binary 15:38 UTC carrying `00bd0549` (the XP-curve table) on top
+Same box, same spot `(38,31)`, same two ramps, ~100 minutes after run 1.
+Deployed binary 15:38 UTC carrying `00bd0549` (the XP-curve table) on top
 of the same round-7 stack. Boot clean: 0 errors, 0 warnings, 87 skills.
 `auras CONFIRMED LIVE` N/N at every step of both runs; server empty.
 
@@ -557,7 +588,7 @@ window the box sat at **32–56 % of one core with ONE over-budget tick in 30 s*
 and 40 and 60 bots read *exactly* the same 27.3 while CPU climbed to 91 %. A
 server limit cannot be flat across three populations.
 
-| bots | A: morning (pre-fix) | A: evening (corrected) | B: morning (pre-fix) | B: evening (corrected) |
+| bots | A: run 1 (pre-fix) | A: run 2 (corrected) | B: run 1 (pre-fix) | B: run 2 (corrected) |
 |---|---|---|---|---|
 | 20 | 30.0 | 27.3 (30.0) | 27.3 | 27.3 (30.0) |
 | 40 | 28.8 | 27.3 (30.0) | 27.3 | 27.3 (30.0) |
@@ -567,15 +598,15 @@ server limit cannot be flat across three populations.
 | 140 | 8.2 | 9.0 (9.9) | 3.8 | 7.9 (**8.7**) |
 
 **Both ceilings roughly doubled, and the max build is the big winner.** L1 holds
-a full 30 Hz to 60 and is only 4 % off at 80 (morning: off 30 Hz already at 40).
-The maxed build — which in the morning never reached 30 Hz at *any* population,
+a full 30 Hz to 60 and is only 4 % off at 80 (run 1: off 30 Hz already at 40).
+The maxed build — which in run 1 never reached 30 Hz at *any* population,
 including 20 — now holds 30 Hz to 60 and 28.1 at 80. At 80 bots it went
 11.5 → 28.1, at 100 7.5 → 18.9.
 
-⚑ **One honest caveat on the comparison.** The morning's run B also read 27.3 at
-20/40, and it was argued NOT to be the path because that morning's run A read a
+⚑ **One honest caveat on the comparison.** Run 1's run B also read 27.3 at
+20/40, and it was argued NOT to be the path because run 1's run A read a
 clean 30.0 ten minutes earlier. That inference stands, but if the path had in
-fact degraded between the two morning runs, the morning B column should also be
+fact degraded between run 1's two ramps, run 1's B column should also be
 divided by 0.91 — which would make it 30.0 / 30.0 / 23.0 / 12.6 / 8.2 / 4.2.
 The improvement at 60–140 survives either reading, so the conclusion does not
 depend on which is right.
@@ -587,15 +618,15 @@ column is once more an understatement.
 Server-side: peak **146 % of one core** (up from 135 % — it is delivering more
 snapshots per second, which is the point), RSS 26 → 44 MB, idle 25 % / 49 MB
 afterwards. **Worst tick `Systems at: 518%` ≈ 171 ms, against 987 % ≈ 326 ms in
-the morning** — the tail nearly halved too. 0 panics, 0 OOM, 0 dropped
+run 1** — the tail nearly halved too. 0 panics, 0 OOM, 0 dropped
 connections, no restart.
 
-## Results — 2026-08-02 night, step 8a (accounts & persistence) deployed
+## Results — 2026-08-02 run 3 of 3 ⭐ MOST RECENT, step 8a accounts & persistence (measured 19:23–19:33 UTC)
 
-Same box, same spot `(38,31)`, same two ramps, ~90 minutes after the evening
-table. **The question this run answers: did accounts + persistence cost
+Same box, same spot `(38,31)`, same two ramps, ~3.5 hours after run 2
+(run A 19:23–19:28 UTC, run B 19:28–19:33 UTC). **The question this run answers: did accounts + persistence cost
 throughput?** The deployed binary now mints a play ticket per join, holds a
-`pgxpool`, and saves character snapshots — all new work since the evening row.
+`pgxpool`, and saves character snapshots — all new work since run 2.
 
 ⚑ **NOT AN EMPTY SERVER — 2 to 4 real players were in the world throughout**
 (`/players` read 3 at run A's start, 2 at run B's). Every previous row in this
@@ -605,7 +636,7 @@ Recorded rather than hidden, because the alternative was not running at all.
 `auras CONFIRMED LIVE` N/N at every step of both runs, `points spent 18.0`,
 `passives 3.00`, `cooldowns equipped 3.00` — the builds did land.
 
-| bots | A: evening (corrected) | **A: night (corrected)** | B: evening (corrected) | **B: night (corrected)** |
+| bots | A: run 2 (corrected) | **A: run 3 (corrected)** | B: run 2 (corrected) | **B: run 3 (corrected)** |
 |---|---|---|---|---|
 | 20 | 30.0 | 27.3 (30.0) | 30.0 | 27.3 (30.0) |
 | 40 | 30.0 | 27.3 (30.0) | 30.0 | 26.4 (29.0) |
@@ -614,24 +645,24 @@ Recorded rather than hidden, because the alternative was not running at all.
 | 100 | 20.2 | 21.2 (**23.3**) | 18.9 | 20.8 (**22.9**) |
 | 140 | 9.9 | 10.1 (**11.1**) | 8.7 | 9.1 (**10.0**) |
 
-**Accounts did not cost the ceiling.** Run A is identical to the evening through
+**Accounts did not cost the ceiling.** Run A is identical to run 2 through
 80 bots and *better* at 100 (20.2 → 23.3) and 140 (9.9 → 11.1). Peak CPU 148 %
 of one core vs 146 %, and the tail improved again: **worst tick `Systems at:
-424%` ≈ 140 ms, against 518 % ≈ 171 ms in the evening and 987 % ≈ 326 ms in the
-morning.** 0 panics, 0 OOM, **0 dropped connections**, 0 restarts.
+424%` ≈ 140 ms, against 518 % ≈ 171 ms in run 2 and 987 % ≈ 326 ms in
+run 1.** 0 panics, 0 OOM, **0 dropped connections**, 0 restarts.
 
 ⚑ **Run B's mid-range is the one soft spot, and its own floor says so.** Run A
 read a flat 27.3 / 27.3 / 27.2 at 20/40/60 — the path floor, exactly as on 07-26,
-07-27 and the evening — so its corrected column is on the usual footing. **Run B
+07-27 and run 2 — so its corrected column is on the usual footing. **Run B
 did not**: 27.3 / 26.4 / 24.3 is already sloping at 40. So either the path
 degraded during run B (in which case the 0.91 divisor understates it) or the
 loop genuinely starts losing ground at 40 with the max build. The mob field does
-not explain it — B's `aggroed` was 5.7–7.0 against the evening B's 5.7–6.4, i.e.
+not explain it — B's `aggroed` was 5.7–7.0 against run 2's B at 5.7–6.4, i.e.
 the same thin field. **Worth one clean empty-server re-run of B before anyone
 treats the 40–80 dip as real.**
 
 ⚑ **MEMORY IS THE REAL CHANGE, and it is large.** RSS ran **129 MB idle → 281 MB
-peak**, against the evening's **44 MB peak / 49 MB idle** — roughly 3× idle and
+peak**, against run 2's **44 MB peak / 49 MB idle** — roughly 3× idle and
 5× under load. On a 4 GB box that is comfortable, and it is the expected shape
 (connection pool + per-character persistence state + the accounts layer), but it
 is the first time this file has had to state a memory figure in hundreds of MB.
