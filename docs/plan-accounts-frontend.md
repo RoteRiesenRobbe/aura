@@ -1053,6 +1053,108 @@ trip onto the hot path, or join the player as a nameless character.
 
 ## 10a. Chunk ledger
 
+### Bugfix — a save that can never succeed ✅ DONE 2026-08-02, `c368ff1c`
+
+**The report was an outage, not a bug: zero database writes in 37 minutes, the
+consecutive-failure counter at 78 unbroken from 1.** The trigger was procedural —
+`devops/cleanup-loadbots.sql` run against the live database while the server still
+held those characters **stashed in the reconnect window**. Disconnecting does not
+make the server forget a character; it sits in `stashByToken` for ~10 minutes, and
+when those TTLs expired together the §2 session-expiry trigger enqueued a final
+save for each. Every one hit a row that no longer existed.
+
+⚑ **The stash window is invisible from the database**, which is what makes this a
+systemic finding rather than a typo: the script documented WHICH rows are safe to
+delete at length and said nothing about WHEN. A careful operator reading that file
+walks straight into it. ⚑ And **no record of who ran it** — `/root/.bash_history`
+and both psql histories empty, Postgres on `log_statement = none`.
+
+**Three causes compounded, and only the first is the obvious one.**
+
+1. **The re-queue was unconditional.** `store.ErrNoCharacter` can never succeed —
+   the row is gone — and was retried like a connection blip.
+2. **`failures` was ONE GLOBAL COUNTER**, so a single unwritable snapshot drove the
+   backoff to its 30 s cap for every character and pinned `Failing()` true for
+   every live player's warning banner.
+3. ⭐ **The backoff was a sleep in the run loop, and `takeLocked` picks in Go's
+   random map order.** With 44 poison entries a healthy save had a **~1-in-45
+   chance of being attempted per 30-second cycle** — and the fingerprint dedupe
+   skips an idle player's entry without resetting the counter either. **This is why
+   one deleted row became a total outage instead of 44 skipped writes**, and it is
+   the cause that reading only the re-queue line would miss.
+
+**Shipped:**
+
+① **`persist.ErrGone`**, wrapped by `store.SaveCharacter` when its UPDATE matches
+no live row. ⚑ It lives in `persist`, not `store`, because that package depends on
+nothing else in aura — the writer cannot ask `store` what its errors mean, but
+`store` already imports `persist`, so the arrow points the right way. ⚑ The wrap is
+**scoped to the save path** rather than folded into the sentinel: the other three
+`ErrNoCharacter` sites answer HTTP requests, where *terminal* means nothing.
+Terminal errors are dropped after one attempt and **deliberately do not count
+toward `Failing()`** — a deleted row is not a database that stopped accepting
+writes, and warning every live player about one is the false alarm §5b's grace
+period exists to prevent.
+
+② **Per-character `entry`** carrying its own attempts, `retryAfter` and give-up
+clock. ⚑ **`takeLocked` SKIPS an ineligible entry rather than waiting on it** —
+that one word is the difference between this and the version that produced the
+outage. `sync.Cond` became a `wake` channel, because the loop now needs a *timed*
+wait and a Cond cannot do that.
+
+③ **`abandonAfter` = 30 min**, bounding a failure nobody classified as terminal
+into one lost character, loudly logged, instead of an entry outliving the process.
+⚑ Generous on purpose: a live character is re-snapshotted every 5 minutes, so
+abandoning one costs almost nothing; the irreplaceable snapshot is a stash's
+expiry save, which does not usefully survive a half-hour outage anyway.
+
+④ **Bounded `writer.Close()` on shutdown**, after `Flush` has reported. ⚑ Until
+now it was called only from tests — which left the shutdown escape inside the retry
+ladder **unreachable code**, so the 10 s flush window was spent watching a writer
+asleep in a 30 s backoff.
+
+⚑ **A newer snapshot supersedes the failed one in place and INHERITS its backoff.**
+It can cost staleness, never ordering — the stale state is discarded, so the retry
+writes the newest. Inheriting is deliberate: resetting the ladder on every forced
+save would hammer a sick database precisely when it can least answer.
+
+⭐ **The finding worth carrying forward: a mutation that came back GREEN.** Removing
+`requeueLocked`'s handover reddened nothing — which showed the spin test pinned
+`Save`'s branch, not the handover, because by the time those saves arrive the entry
+has normally already been re-queued. The handover's only reachable window is a
+snapshot landing **while a failing write is in flight**, and its comment had been
+claiming a property nothing tested;
+`TestWriterCarriesFailureBookkeepingOntoASupersedingSnapshot` now covers it with
+the blocking sink. **A green mutation run is evidence about the test, not about the
+code.**
+
+**Verified:** Go **full suite** green (33 packages; `store` at 74 s against real
+Postgres, so the new terminal-error assertion ran against a live database) ·
+**five mutation runs, each reddening exactly its own test and nothing else** ·
+`-count=8`/`-count=10` on the timing-sensitive tests · build + vet clean.
+⚑ **`-race` is unavailable on this box** (no gcc; `CGO_ENABLED=1` fails on the
+toolchain) — worth a run wherever gcc exists; the concurrency argument rests on
+every `entry` mutation happening under `w.mu`, with an in-flight entry owned
+exclusively by the run goroutine. ⚑ **`pkg/aura/auth`'s
+`TestMissingAccountStillCostsABcryptCompare` flaked once under parallel suite
+load** — it is a wall-clock bcrypt timing comparison and passes in isolation;
+unrelated to this work, but expect it.
+
+**The operational half is not code.** The live server needed a restart — the queue
+is in-process memory with no admin surface, entries leave only on success or exit,
+and making them succeed would mean re-creating deleted rows whose accounts are gone
+too. ⚑ Restarting sooner loses strictly less: the last good save predates the
+outage, so that loss is already banked and grows every minute the wedged writer
+stays up.
+
+**Deliberately not done:** **`backlog.md` §50** (the transient second queue entry —
+a readability item, ruled not worth touching verified concurrency code for) · a
+queue-depth / oldest-entry-age log line when `Failing()`, which had to be
+*inferred* from the logs here · the Postgres audit question · a character-name
+content filter for the spam registrations noticed the same day
+(`CS2SKINBARON dot GG` passes `ValidateCharacterName` legitimately — it is a
+charset guard, and this is a content problem).
+
 ### Bugfix — two tabs, one account ✅ DONE 2026-08-02, `99d15fd8`
 
 **The reported bug: "logging in twice in two tabs reaches character selection.

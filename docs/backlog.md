@@ -4777,3 +4777,56 @@ shape and a round trip still passes for the counters a fresh character accumulat
 — the defect only appears for someone who killed two wolves and met the farmer
 *before* accepting, which is why the fixture pre-loads exactly that. A test built
 from a clean character would have gone green over the bug.
+
+## 50. One character, two queue entries — the window that made the retry bookkeeping hard
+
+*(added 2026-08-02, out of the save-writer fix `c368ff1c`; a readability item, not
+a defect — the behaviour is correct today and pinned by a test)*
+
+`persist.Writer`'s queue is `map[int64]*entry`: one snapshot per character, newest
+wins. That is the whole data model, and it is right — two snapshots for one
+character would only ever write the same rows twice.
+
+**But `takeLocked` DELETES the entry from `pending` when it starts a write**, so a
+`Save` landing while that write is in flight finds nothing to replace and creates a
+**second, zero-initialised entry** for the same character. Three constructs exist
+only to paper over that window:
+
+- `Writer.inflight *CharacterState` — the taken copy, kept so `Flush` still counts
+  the write as unfinished business.
+- `Pending()`'s dedup branch — skip the pending copy when the in-flight copy names
+  the same character.
+- `requeueLocked` — hand `attempts` / `retryAfter` / `firstFailure` from the dying
+  entry onto the new one, or the backoff and the give-up clock reset.
+
+**The fix, if it is ever taken: leave the entry in `pending` for the duration.** The
+writer is one goroutine and the sink call is synchronous, so `takeLocked` can never
+run while a write is in flight — *"in flight"* needs no representation in the queue
+at all. All three constructs delete themselves, replaced by one `superseded bool`
+on `entry` (set by `Save` on the replace path, cleared at take, read on success to
+decide whether the entry stays for another pass).
+
+⚑ **`superseded`, not a fingerprint re-compare.** Deferring to the next pass's
+`written[id] == fingerprint` check would also work, except that branch is guarded
+by `fingerprint != ""` — so an entry hitting `Fingerprint()`'s
+documented-unreachable marshal failure would never be deleted and the writer would
+rewrite it forever.
+
+**Why it is not urgent.** The window is negligible in healthy operation: it needs
+two forced saves for the *same* character inside one write's few milliseconds,
+against a 5-minute autosave interval. ⚑ **It widens by orders of magnitude during
+an outage**, where a failing write blocks for a connect timeout and a level-up
+forced save can land on top of it — which is exactly when a reset give-up clock
+would matter. That is an argument for the test that now pins it
+(`TestWriterCarriesFailureBookkeepingOntoASupersedingSnapshot`), not for the
+refactor.
+
+⚑ **How this was found is the part worth keeping.** A mutation removing
+`requeueLocked`'s handover came back **GREEN** — which is what showed the spin test
+pinned `Save`'s branch rather than the handover, because by the time those saves
+arrive the entry has normally already been re-queued. The handover's only reachable
+window is a snapshot landing mid-flight, and the comment describing it had been
+claiming a property nothing tested.
+
+**Acceptance criterion if it is built:** all eight existing writer tests pass
+**unedited**. If any needs changing, the refactor is wrong.
