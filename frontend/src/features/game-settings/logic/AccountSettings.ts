@@ -2,6 +2,7 @@ import {Session} from '../../accounts/logic/Session';
 import * as AccountFlow from '../../accounts/logic/AccountFlow';
 import {BackendState} from '../../backend/logic/IBackend';
 import {BackendStateChangedEvent} from '../../core/logic/Events';
+import * as GameSettingsUI from './GameSettingsUI';
 
 /**
  * The settings panel's Account group (plan-accounts-frontend.md §4, §10b).
@@ -34,6 +35,7 @@ export function setup(panel: HTMLElement): void {
     panel.querySelector('#settingsRegisterButton')
         .addEventListener('pointerdown', (event) => {
             event.preventDefault();
+            GameSettingsUI.hide();
             AccountFlow.showRegisterFromSettings();
         });
 
