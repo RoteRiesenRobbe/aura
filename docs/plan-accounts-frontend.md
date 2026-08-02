@@ -1053,7 +1053,7 @@ trip onto the hot path, or join the player as a nameless character.
 
 ## 10a. Chunk ledger
 
-### Bugfix — two tabs, one account ✅ DONE 2026-08-02, `[uncommitted]`
+### Bugfix — two tabs, one account ✅ DONE 2026-08-02, `99d15fd8`
 
 **The reported bug: "logging in twice in two tabs reaches character selection.
 The logout button there doesn't work and says *That request could not be
