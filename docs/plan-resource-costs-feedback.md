@@ -30,6 +30,12 @@ and rode into `40d9b204` with the pass.
 > only after acceptance) is picked up by that plan as **N4**, with the ruling
 > that baselines are **per stage entry**. **R4 — the downtime design session —
 > is now unblocked and is the last thing this plan is waiting on.**
+>
+> ⭐ **R4 WIDENED 2026-08-02** (`plan-playtest-feedback.md` §Intake round 8
+> item 1): it also owns **a free, baseline Recall**. PO ruling — the way back to
+> safety and the way back to fighting shape are **one loop, designed together**,
+> both available to a level-1 character from the start. Constraints + the five
+> open questions: §2.3's *"Recall belongs to this design"* sub-section.
 
 ---
 
@@ -132,6 +138,69 @@ is a consumable-ish agency loop, WoW-Classic eating / Gothic food:
 ⇒ This is a **new design item**, not a tuning knob. It couples to `backlog.md`
 §32 (consumable cooldowns / spellbook charges — *does a charge survive death?*)
 and to the campfire system already in v1 scope.
+
+#### ⭐ Widened 2026-08-02 — Recall belongs to this design, not beside it
+
+PO, against the accounts build (`plan-playtest-feedback.md` §Intake round 8
+item 1):
+
+> *"recall should not have a cost and become a baseline ability. author that
+> design together with the downtime recovery changes that still need a design.
+> both should be designed together. both options should be available from the
+> start. the out-of-combat regen might scale up in charges or otherwise with
+> level."*
+
+**Why they are one design.** Recall and downtime recovery are the same loop seen
+from its two ends — *get back to safety* and *recover once you are there*. The
+campfire-charges sketch above already makes the campfire the recovery anchor;
+Recall is the transport to it. Price one without the other and half a loop is
+priced: a free recovery charge is worth little if reaching the fire costs 5 % of
+a pool you are trying to refill, and a free Recall is worth little if arriving
+buys nothing but the same 10 s lock.
+
+**What the widening adds as CONSTRAINTS on R4** (not as questions):
+
+| constraint | consequence |
+| --- | --- |
+| **Recall costs nothing.** | Drop `costFractionOfMax: 0.05` from `api/skills/recall.json`. Same argument as F1/First Aid and GDD §3's free damage aura: a skill whose job is to *end* a bad state must not deepen it. ⚑ It joins the `freeFloorSkills` guard, exactly as First Aid did (§5.8) — otherwise the guard reads a free skill as an authoring mistake. |
+| **Recall is baseline.** | It is not something you are taught. Today it is: `town-crier.json` and `wanderer.json` both carry a `teach_skill` row for it, and a fresh character has nothing. |
+| **Both available from the start.** | Whatever the recovery mechanism turns out to be, a **level-1 character holds it and Recall on their first minute** — the design may not gate either behind a teacher, a level, or a quest. |
+| **Out-of-combat regen may scale with level** — *"in charges or otherwise"*. | The first PO signal that the recovery mechanism is allowed to *grow*. ⚑ It is not a reversal of the standing **rejection of simply raising out-of-combat regen** (§2.3): what is sanctioned is scaling the agency loop, not deleting it by making passive regen fast enough that nobody uses it. |
+
+**What R4 must still RULE** — the open questions, collected so the design
+session does not have to rediscover them:
+
+1. **What "baseline" means mechanically.** A level-1 entry in
+   `api/milestones/milestone-unlocks.json` (the `Damage` precedent, plus the
+   2026-08-02 follow-on that pre-equips a creation-seeded active aura in its
+   slot) — or a new *"every character always has this"* concept? ⚑ The milestone
+   route is the cheap one and it already has a pre-equip rule, but Recall is a
+   **cooldown**, and that rule fills the first free *aura* slot only.
+2. **What happens to the two teachers.** The Town Crier's `teachings` node holds
+   *only* Recall (`town-crier.json`) and the Wanderer's holds only Recall
+   (`wanderer.json`) — so removing the row empties both nodes, and the
+   2026-08-02 empty-destination prune then removes the *"Teach me something."*
+   rows that lead to them. Both NPCs lose their teaching function entirely
+   unless they are given something else to teach.
+3. **Whether the 10 s cast and 5 min cooldown survive.** Free changes what the
+   cooldown is *for*: with a cost, the price was the brake; without one, the
+   cast time and cooldown are the only brakes left. ⚑ `castInterruptedByDamage`
+   is what keeps it from being an escape button, and it should be defended
+   explicitly rather than inherited.
+4. **What the level scaling actually scales** — charge *count*, charge
+   *strength*, regen *rate* while resting, or the campfire's grant size. The PO
+   left this open (*"in charges or otherwise"*).
+5. **Whether recovery is a spellbook entry at all.** §32's charge concept would
+   make it one; a campfire-granted consumable need not be. This is the question
+   that decides whether R4 touches the skill schema.
+
+⚑ **Persistence is now live, which changes one of R4's inputs.** When §2.3 was
+written, `backlog.md` §32's *does a charge survive death?* was a schema question
+for a step 8a that had not been built. 8a is code-complete: `persist` carries
+level, XP, spellbook, loadout, active aura, the quest ledger and
+`home_campfire_id`. A charge count is a new persisted field — small, but a
+**migration**, so R4 should answer §32 rather than leave it, and say so in the
+same breath as choosing the mechanism.
 
 ---
 
@@ -517,6 +586,10 @@ same way `conf.default.json` already documents the floor quantizing mob regen.
 Campfire-granted charges is the PO's own sketch. Not part of R1–R3; couples to
 `backlog.md` §32 (does a charge survive death) and §36. See §6 R4.
 
+⭐ **Widened 2026-08-02:** that session also owns **a free, baseline Recall** —
+the PO's ruling that the two are one design, with both available from the start.
+The constraints and the five open questions are in §2.3.
+
 ### 5.5 F5 — the shared beat ✅ **UNIFY AT THE DAMAGE BEAT**
 
 With the PO's condition that permanent debuffs stay permanent. Full ruling and
@@ -668,12 +741,24 @@ makes that a reading rather than a calculation.
 the pinned content counts, and a PO feel pass — this chunk is numbers, and
 numbers are [PLACEHOLDER] until played.
 
-### R4 — Downtime agency (design session, no code)
+### R4 — Downtime agency **+ a free, baseline Recall** (design session, no code)
 
-§2.3. The PO's sketch is campfire-granted food charges; raising out-of-combat
-regen is **explicitly rejected**. Couples to `backlog.md` §32 (does a charge
-survive death — a persistence question, so it wants schema room in step 8a) and
-§36. Design after R3 has been felt, and against a **free First Aid** (§5.8).
+§2.3, **widened 2026-08-02** — see §2.3's *"Recall belongs to this design"*
+sub-section for the full ruling, the four constraints and the five open
+questions. In one line: **the way back to safety and the way back to fighting
+shape are one loop and get designed as one**, both available to a level-1
+character on their first minute.
+
+- The PO's sketch for recovery is campfire-granted food charges; **simply
+  raising out-of-combat regen stays rejected** — though the loop itself may
+  now scale with level (*"in charges or otherwise"*).
+- Recall loses its 5 % cost and stops being taught; what "baseline" means, and
+  what the Town Crier and the Wanderer teach instead, are R4's to rule.
+- Couples to `backlog.md` §32 (does a charge survive death) and §36. ⚑ §32 is
+  no longer a *"wants schema room in step 8a"* note — 8a is code-complete, so a
+  charge count is a **migration**, and R4 should answer §32 rather than defer
+  it.
+- Design after R3 has been felt, and against a **free First Aid** (§5.8).
 
 ### Not in this plan
 
