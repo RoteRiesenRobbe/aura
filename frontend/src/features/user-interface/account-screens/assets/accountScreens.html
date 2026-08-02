@@ -45,6 +45,20 @@
 			</div>
 			<a href="#" class="button secondary hidden" id="creationBackButton">Close</a>
 		</div>
+
+		<!--
+		  The same device preference the start screen carries, on the screens a
+		  returning player actually lands on. Registered by AccountScreens.ts, so
+		  all three switches show one value.
+		-->
+		<div class="accountPanelOptions">
+			<div class="switch">
+				<input type="checkbox" id="creationFullscreenToggle">
+				<label><i></i></label>
+				<span></span>
+			</div>
+			<label for="creationFullscreenToggle">Fullscreen</label>
+		</div>
 	</div>
 
 	<!--
@@ -75,6 +89,15 @@
 				<p>Already have an account?</p>
 				<a href="#" class="button secondary" id="selectLoginButton">Log in</a>
 			</div>
+		</div>
+
+		<div class="accountPanelOptions">
+			<div class="switch">
+				<input type="checkbox" id="selectFullscreenToggle">
+				<label><i></i></label>
+				<span></span>
+			</div>
+			<label for="selectFullscreenToggle">Fullscreen</label>
 		</div>
 	</div>
 

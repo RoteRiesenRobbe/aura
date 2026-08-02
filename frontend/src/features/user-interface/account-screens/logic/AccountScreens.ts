@@ -1,6 +1,7 @@
 import '../assets/accountScreens.less';
 import * as Preloading from '../../../core/logic/Preloading';
 import {preventInputPropagation} from '../../../common/logic/Utils';
+import {registerFullscreenToggle} from '../../../full-screen/logic/FullScreen';
 
 /**
  * The DOM shell for the pre-game account screens
@@ -22,6 +23,13 @@ function onDomReady() {
     // Without this, typing a character name walks the player around the world:
     // the input-system listens on the document, not on the canvas.
     preventInputPropagation(rootElement);
+
+    // ⚑ Registered here, not in each panel's module: the two switches and the
+    // start screen's are three views of one preference, and FullScreen keeps
+    // them agreeing. (preventInputPropagation only stops propagation — it never
+    // preventDefaults — so the checkbox still toggles and still fires `change`.)
+    registerFullscreenToggle(element<HTMLInputElement>('creationFullscreenToggle'));
+    registerFullscreenToggle(element<HTMLInputElement>('selectFullscreenToggle'));
 
     isDomReady = true;
     domReadyCallbacks.forEach((callback) => callback());
