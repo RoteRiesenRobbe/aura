@@ -4777,3 +4777,82 @@ shape and a round trip still passes for the counters a fresh character accumulat
 — the defect only appears for someone who killed two wolves and met the farmer
 *before* accepting, which is why the fixture pre-loads exactly that. A test built
 from a clean character would have gone green over the bug.
+
+## 50. What going 3D would take — DISCUSSION ITEM, unlikely to happen
+
+*(added 2026-08-02 on a PO question; no work scheduled, no decision asked. Recorded
+so the answer does not have to be re-derived if the question returns.)*
+
+**The question:** what would it take to turn Aura into a 3D game that still runs in
+the browser? Renderer swap away from PixiJS at minimum — what else?
+
+**The fork that sizes everything: 3D *presentation* vs 3D *gameplay*.**
+
+- **Option A — 3D presentation over the unchanged 2D simulation.** The server keeps
+  its flat world; the client renders models on a ground plane, `Vec2f` → `(x, 0, z)`.
+  This is the only version worth considering. Backend, wire, accounts: zero changes.
+- **Option B — true 3D gameplay** (terrain height, elevation, falling). A backend
+  rewrite: `phy/` is 2D end to end (19 files — circles, AABBs, 2D spatial hash),
+  steering/targeting/zone format are planar, and the wire is *deliberately* 2D —
+  hygiene H4 pruned `Vec3f` as dead weight. It also re-opens settled design
+  (line-of-sight was CUT; auras pass through everything). Ruled out unless the game
+  design itself changes.
+
+**Renderer swap (Option A).** 32 files import PixiJS, concentrated in:
+`game-objects/` (Character, Mobs, Corpse, Resources, AuraRings, EffectPips,
+plates/badges), `core/` (Game.ts, SVG injection, preloading), `ground-textures/`,
+`darkness/`, `mini-map/`, `zone-editor/`, dev tools. Replacement: **three.js** (closer
+fit to the house style — hand-rolled feature modules, KISS, own every system) or
+**Babylon.js** (more engine bought, more framework imposed).
+
+**Survives untouched:** the entire Go backend and FlatBuffers protocol ·
+accounts/persistence · the whole DOM HUD (spellbook, journal, conversation panel,
+account screens, chat, tooltips, mobile sheet) · `input-system/`/`controls/` and the
+websocket/snapshot layer, minus camera and screen↔world math.
+
+**Rebuilt, in order of pain:**
+
+1. Every in-world visual: entity meshes, the aura ring (a ground decal — arguably
+   *easier* in 3D), floating numbers + nameplates (billboards or CSS2D), pips,
+   interact badge, corpse fade, tier frames.
+2. Ground/terrain: the SVG ground-texture system has no 3D equivalent.
+3. Darkness/light: 2D overlay → real lights; nicer, but the light-aura tutorial
+   trade-off needs visual re-tuning.
+4. Minimap: already its own WebGL context (a known perf item) → render-to-texture
+   or a cheap 2D canvas.
+5. Zone editor: port it, or keep authoring 2D-on-a-plane (defensible — the sim is
+   still 2D) with the 3D client only visualizing.
+
+**The two costs bigger than the code:**
+
+- ⭐ **Art.** Today's art is SVG sprites. 3D means modeling/rigging/animating 64 mob
+  species, characters, 777 placed props, NPCs, campfires. Dwarfs the renderer port —
+  and it **contradicts the GDD's stated art direction** (Hotline Miami / Monaco /
+  Rimworld are 2D top-down references). Going 3D is a *vision* change before it is a
+  tech change; that is a PO decision, not an engineering one.
+- ⭐ **Readability of the core mechanic.** The game is built on judging circular
+  ranges top-down; a perspective camera foreshortens circles into ellipses, and
+  positioning is the game's *only* skill expression. Mitigations exist
+  (near-orthographic / high-angle fixed camera, strong ground-projected ring decals),
+  but the camera becomes a first-order design decision, not polish.
+
+**Second-order consequences:**
+
+- **Mobile fill rate**: the 2026-08-02 mobile pass fixed a fill-rate crisis by
+  capping DPR at 2 and killing MSAA; 3D raises the per-pixel floor (depth buffer,
+  lighting, overdraw on transparent rings/billboards). The same phones need LOD and
+  a lower resolution cap from day one.
+- **Test harnesses**: all 19+ Playwright harnesses and the verify skill assume the
+  Pixi display tree (`Character.plate`, the "5 contexts / 2 probe losses" §29
+  baseline). All re-ported; the §29 context-loss diagnosis redone per engine.
+- **Bundle/boot**: three.js/Babylon + GLTF assets ⇒ asset streaming work to keep the
+  current instant-boot feel.
+
+**Rough size:** Option A at feature parity with placeholder art ≈ the entire
+entity-model plan plus the mobile pass combined — a multi-week frontend rewrite of
+~40 files with the backend idle; the art pipeline is open-ended and larger. Option B
+multiplies that by `phy/`, AI, the wire, and the zone format.
+
+**The cheaper intermediate if the appetite is "more visual depth":** keep Pixi and go
+**2.5D** — layered parallax, drop shadows, normal-mapped lighting on sprites. Most of
+the perceived depth for a fraction of the cost, and no art-direction reversal.
