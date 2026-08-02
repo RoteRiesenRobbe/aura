@@ -367,6 +367,20 @@ export function getLocalPlayerCostFactor(): number {
     return localPlayerCostFactor;
 }
 
+// The outgoing-damage multiplier the server applies to every point of damage
+// this player deals (GameState.damage_factor, round-7 item 5): 1 = no bonus,
+// 1.1 = Strong at +10 %. The costFactor mirror's twin — before it, Strong
+// worked and was invisible, the exact defect R1 fixed for Discipline.
+let localPlayerDamageFactor = 1;
+
+export function setLocalPlayerDamageFactor(damageFactor: number) {
+    localPlayerDamageFactor = damageFactor;
+}
+
+export function getLocalPlayerDamageFactor(): number {
+    return localPlayerDamageFactor;
+}
+
 // roundHP mirrors the server's vitals.HP: round half up to a whole point, and
 // never round a positive amount away to nothing. Every absolute Focus number
 // the UI shows goes through it, so what the tooltip promises is what the health

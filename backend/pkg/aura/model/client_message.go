@@ -60,6 +60,12 @@ type SpendSkillPoint struct {
 	Unspend bool
 }
 
+// Respec is the spellbook's reset-all request (round-7 item 8): every skill
+// back to level 1, all spent points refunded in one step. Free (PO 2026-08-02),
+// rejected while in combat (the equip-lock precedent), and level 1 is the
+// floor — the milestone-seeded free baseline survives it by construction.
+type Respec struct{}
+
 // AbandonQuest is the journal panel's one upstream message (plan-quests.md C3,
 // D13): give up a running quest. It returns to not-started — path and diary
 // cleared — and becomes offerable again; lifetime counters and the completed set

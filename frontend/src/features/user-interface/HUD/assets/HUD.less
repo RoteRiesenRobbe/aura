@@ -795,6 +795,29 @@
 				display: none;
 			}
 		}
+
+		// The reset-all button (round-7 item 8). Deliberately quiet next to
+		// the points badge; the armed state goes warning-red because the next
+		// press wipes every spent point.
+		> #respecButton {
+			margin-left: auto;
+			color: fade(#ffffff, 55%);
+			text-transform: none;
+			letter-spacing: normal;
+			font-size: @panel-font-size;
+			font-weight: 400;
+			white-space: nowrap;
+			cursor: pointer;
+
+			&:hover {
+				color: fade(#ffffff, 85%);
+			}
+
+			&.armed {
+				color: #ff6b6b;
+				font-weight: 700;
+			}
+		}
 	}
 
 	// Descendant (not child) selector: SimpleBar nests its own wrappers

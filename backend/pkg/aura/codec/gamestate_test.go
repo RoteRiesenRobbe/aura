@@ -155,6 +155,29 @@ func TestGameStateCostFactor_RoundTrip(t *testing.T) {
 		"an absent cost factor must read as neutral, not as zero")
 }
 
+// The damage factor is cost_factor's twin (round-7 item 5, Strong): the same
+// owner-only slot, the same neutral-by-field-default contract — an unmodified
+// player writes nothing and the client must still read 1, or every damage
+// tooltip on a player without Strong reads zero.
+func TestGameStateDamageFactor_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddDamageFactor(b, 1.1)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	assert.Equal(t, float32(1.1), AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).DamageFactor())
+
+	unwritten := flatbuffers.NewBuilder(64)
+	AuraApi.GameStateStart(unwritten)
+	unwritten.Finish(AuraApi.GameStateEnd(unwritten))
+
+	assert.Equal(t, float32(1),
+		AuraApi.GetRootAsGameState(unwritten.FinishedBytes(), 0).DamageFactor(),
+		"an absent damage factor must read as neutral, not as zero")
+}
+
 func TestSpellbookMarshalFlatbuf_Empty(t *testing.T) {
 	sc := skills.NewSkillComponent(true)
 

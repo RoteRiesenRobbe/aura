@@ -54,6 +54,8 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	AuraApi.CharacterAddDamageTaken(builder, p.DamageTaken().UInt32())
 	// Crit-flagged share of damage taken (skill-vocab chunk 1, §4.3).
 	AuraApi.CharacterAddCritTaken(builder, p.CritTaken().UInt32())
+	// Resource cost paid this tick (round-7 item 7) — the blue number.
+	AuraApi.CharacterAddCostPaid(builder, p.CostPaid().UInt32())
 	// Current total absorb capacity — a live value (skill-vocab chunk 2).
 	AuraApi.CharacterAddShieldHp(builder, p.ShieldHP().UInt32())
 	AuraApi.CharacterAddHealReceived(builder, p.HealReceived().UInt32())
@@ -414,6 +416,10 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// after the feel pass. Neutral 1 is the field default, so an unmodified
 	// player adds no bytes.
 	AuraApi.GameStateAddCostFactor(builder, gs.Player.SkillComponent().Derived.CostFactor())
+	// The damageDealt passive's multiplier (round-7 item 5) — Strong's answer
+	// to the same worked-but-invisible defect. Neutral 1 is the field default,
+	// so an unmodified player adds no bytes.
+	AuraApi.GameStateAddDamageFactor(builder, gs.Player.SkillComponent().Derived.DamageFactor())
 
 	// Cast bar (skill-vocab chunk 4): the running cast, read live off the
 	// component each tick; absent fields read as 0 = no cast.

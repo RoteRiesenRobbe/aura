@@ -59,3 +59,19 @@ func TestRealEntitiesSatisfyTheSelfBuffCapabilities(t *testing.T) {
 		assert.Truef(t, c.holds(m), "*mob.Mob must satisfy %s, or the cooldown that needs it charges and does nothing", c.name)
 	}
 }
+
+// costPayer is the same structural-assert class with the opposite polarity on
+// mobs: *player must satisfy it (or every cost in the game is silently free —
+// widening the interface for cost_paid is exactly how that would happen), and
+// *mob.Mob must NOT (L5: the gate is what stops every caster mob paying a cost
+// and suiciding).
+func TestRealEntitiesAndTheCostPayerCapability(t *testing.T) {
+	var p any = player.New(newStateFakeGame(t), nil, "capability-probe")
+	var m any = &mob.Mob{}
+
+	_, playerPays := p.(costPayer)
+	assert.True(t, playerPays, "*player must satisfy costPayer, or every resource cost is silently free")
+
+	_, mobPays := m.(costPayer)
+	assert.False(t, mobPays, "*mob.Mob must never satisfy costPayer (L5) — a paying caster mob suicides")
+}

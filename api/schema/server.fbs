@@ -342,6 +342,15 @@ table Character {
   // (shield_hp already carries them). Appended at the table end so existing
   // field IDs stay stable.
   applied_effects:ubyte = 0;
+
+  // Resource cost paid this tick (round-7 item 7): the damage_taken twin for
+  // what the player SPENT rather than what hit them. Same absolute-HP scale,
+  // reset every tick; the client pops it as a blue floating number. Costs
+  // deliberately do NOT ride damage_taken — that accumulator feeds the crit
+  // share and the damage-interrupt at the same choke point, and an aura pulse
+  // must not read as being attacked. Appended at the table end so existing
+  // field IDs stay stable.
+  cost_paid:uint = 0;
 }
 
 table Spectator {
@@ -526,6 +535,18 @@ table GameState {
   // nothing on the wire. Appended at the table end so existing field IDs stay
   // stable.
   cost_factor:float = 1.0;
+
+  // The multiplier the damageDealt passive (Strong) puts on every point of
+  // damage this player deals: 1 = no bonus, 1.1 = +10 %. The cost_factor
+  // pattern verbatim (round-7 item 5): the server has always applied it at
+  // the damage base-composition sites, and without it on the wire the
+  // tooltip renders numbers the passive silently beats — the same
+  // worked-but-invisible class as Discipline before R1. Own player only.
+  //
+  // Default 1 is the neutral value, so a player with no such passive costs
+  // nothing on the wire. Appended at the table end so existing field IDs stay
+  // stable.
+  damage_factor:float = 1.0;
 }
 
 table Welcome {

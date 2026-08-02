@@ -59,8 +59,9 @@ func (g *stubGame) Skills() skills.Registry { return g.registry }
 
 // stubClient queues at most one message per type, then returns nil.
 type stubClient struct {
-	msg   *model.EquipSkill
-	spend *model.SpendSkillPoint
+	msg    *model.EquipSkill
+	spend  *model.SpendSkillPoint
+	respec *model.Respec
 }
 
 func (c *stubClient) NextEquip() *model.EquipSkill {
@@ -71,6 +72,11 @@ func (c *stubClient) NextEquip() *model.EquipSkill {
 func (c *stubClient) NextSpendSkillPoint() *model.SpendSkillPoint {
 	m := c.spend
 	c.spend = nil
+	return m
+}
+func (c *stubClient) NextRespec() *model.Respec {
+	m := c.respec
+	c.respec = nil
 	return m
 }
 func (c *stubClient) NextInput() *model.PlayerInput         { return nil }
@@ -494,4 +500,42 @@ func TestEquipSystem_SwapIntoInactiveSlotKeepsActive(t *testing.T) {
 
 	assert.Equal(t, 0, player.sc.ActiveAuraSlot, "active slot must be untouched by other-slot equips")
 	require.NotNil(t, player.sc.AuraSlots[1])
+}
+
+// --- Respec (round-7 item 8): free · blocked in combat · level 1 is the floor ---
+
+func TestRespec_ResetsEverySkillToItsFloor(t *testing.T) {
+	es, player := newSystem(defDamage, defSwift)
+	player.sc.Discover(defDamage.ID)
+	player.sc.Discover(defSwift.ID)
+	for player.sc.RaiseSkillLevel(defDamage) {
+	} // to the 5-cap
+	player.sc.RaiseSkillLevel(defSwift) // to 2
+	player.sc.EquipAura(0, defDamage, player.sc.SkillLevel(defDamage.ID))
+	player.sc.EquipPassive(0, defSwift, player.sc.SkillLevel(defSwift.ID))
+
+	player.client.respec = &model.Respec{}
+	es.Update(0)
+
+	assert.Equal(t, 1, player.sc.SkillLevel(defDamage.ID), "back to the discovery floor")
+	assert.Equal(t, 1, player.sc.SkillLevel(defSwift.ID))
+	assert.Equal(t, 1, player.sc.AuraSlots[0].Level, "equipped instances follow the spellbook")
+	assert.Equal(t, 1, player.sc.PassiveSlots[0].Level)
+	assert.InDelta(t, 0.05, player.sc.Derived.MovementSpeedBonus, 1e-6,
+		"derived stats recomputed at the floor level, not left at the old one")
+	assert.Zero(t, player.sc.SpentPoints(es.g.Skills()),
+		"the refund is total — SpentPoints is derived, so nothing else to credit")
+}
+
+func TestRespec_RejectedInCombat(t *testing.T) {
+	es, player := newSystem(defDamage)
+	player.sc.Discover(defDamage.ID)
+	player.sc.RaiseSkillLevel(defDamage)
+	player.inCombat = true
+
+	player.client.respec = &model.Respec{}
+	es.Update(0)
+
+	assert.Equal(t, 2, player.sc.SkillLevel(defDamage.ID),
+		"respec follows the equip lock: no loadout surgery mid-fight")
 }

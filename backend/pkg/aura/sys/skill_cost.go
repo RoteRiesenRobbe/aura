@@ -127,5 +127,6 @@ func canAfford(payer costPayer, cost uint32) bool {
 func chargeCost(payer costPayer, cost uint32) {
 	vs := payer.VitalSigns()
 	vs.Health = vs.Health.Sub(cost)
+	payer.NoteCostPaid(vitals.VitalSign(cost))
 	payer.StatusEffects().Add(model.StatusEffectDamagedAmbient)
 }

@@ -129,6 +129,10 @@ type PlayerEntity interface {
 	// CritTaken is the crit-flagged share of DamageTaken (plan-skill-vocab
 	// chunk 1, §4.3), serialized as crit_taken so the client pops it big.
 	CritTaken() vitals.VitalSign
+	// CostPaid is the resource cost charged this tick (round-7 item 7),
+	// serialized as cost_paid so the client pops it blue — the spend's own
+	// accumulator, deliberately separate from DamageTaken.
+	CostPaid() vitals.VitalSign
 	// ShieldHP is the current total absorb capacity (plan-skill-vocab
 	// chunk 2), serialized as shield_hp — a live value, not a per-tick
 	// accumulator.

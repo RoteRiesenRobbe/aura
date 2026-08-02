@@ -168,6 +168,11 @@ export class EntityManager {
         if (entity.healReceived > 0) {
             gameObject.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');
         }
+        // Resource spent (round-7 item 7), blue — visible over other players
+        // too, same as their damage and heal numbers.
+        if (entity.costPaid > 0) {
+            gameObject.showFloatingNumber(hpToDisplay(entity.costPaid), 'cost');
+        }
         if (entity.xpGained > 0) {
             gameObject.showFloatingNumber(entity.xpGained, 'xp');
         }

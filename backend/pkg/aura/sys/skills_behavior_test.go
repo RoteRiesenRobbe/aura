@@ -87,6 +87,7 @@ type fakePlayer struct {
 	resists       []appliedResist
 	shields       []appliedShield
 	hots          []appliedHot
+	costPaid      vitals.VitalSign     // NoteCostPaid accumulator (round-7 item 7)
 	inCombat      bool                 // reported by InCombat (chunk 1 combat-gate tests)
 	combatActions int                  // NoteCombatAction call count (chunk 1)
 	client        model.Client         // recall reads Client().UUID() (chunk 4)
@@ -143,6 +144,7 @@ func (f *fakePlayer) PowerScale() float32                    { return f.powerSca
 func (f *fakePlayer) IsGod() bool                            { return f.god }
 func (f *fakePlayer) MaxHealth() vitals.VitalSign            { return f.maxHealth }
 func (f *fakePlayer) NoteHealedBy(h model.PlayerEntity)      { f.healedBy = append(f.healedBy, h) }
+func (f *fakePlayer) NoteCostPaid(paid vitals.VitalSign)     { f.costPaid += paid }
 func (f *fakePlayer) HealthRatio() float32 {
 	if f.maxHealth == 0 {
 		return 0

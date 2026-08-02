@@ -19,6 +19,7 @@ import {
     SkillDefinition,
     SkillEffect,
     getLocalPlayerCostFactor,
+    getLocalPlayerDamageFactor,
     getLocalPlayerMaxHealth,
     powerScaleAt,
     roundHP,
@@ -125,13 +126,22 @@ const CATEGORY_LABELS: { [category: string]: string } = {
     cooldown: 'Cooldown',
 };
 
+// One entry per stat the server dispatches in recomputeDerived — a stat
+// missing here renders its raw JSON key on screen (how Discipline shipped
+// reading "costReduction: +6%", round-7 item 10).
 const STAT_LABELS: { [stat: string]: string } = {
     movementSpeed: 'Movement speed',
     maxHealth: 'Max Focus',
-    damageReduction: 'Damage reduction',
+    damageReduction: 'Damage taken',
     critChance: 'Crit chance',
     damageDealt: 'All damage',
+    costReduction: 'All costs',
 };
+
+// The subtractive stats (server: value × (1 − bonus)) phrase as what the
+// player pays/takes with the −X% shape the resist lines already use — one
+// reduction vocabulary across passives and resists (PO 2026-08-02, item 10).
+const REDUCTION_STATS = new Set(['damageReduction', 'costReduction']);
 
 const SELECTOR_LABELS: { [selector: string]: string } = {
     nearest: 'nearest',
@@ -339,7 +349,8 @@ function selfTargetLine(effect: SkillEffect, verb: string): string {
 }
 
 function effectBlock(effect: SkillEffect, level: number, maxLevel: number, powerScale: number,
-                     isCosted: boolean, suppressCadence: boolean): EffectBlock {
+                     isCosted: boolean, suppressCadence: boolean,
+                     damageFactor: number = 1): EffectBlock {
     const lines: string[] = [];
 
     // Cadence folds into the main line instead of its own "Ticks every" line
@@ -363,7 +374,10 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
     switch (effect.type) {
         case 'damage_aura':
         case 'instant_damage':
-            lines.push(`Damage: ${prog(effect.damage.hp, effect.damage.hpPerLevel, level, maxLevel, hpFmt, powerScale)}${perTick}`);
+            // damageFactor rides only the damage lines (here and the dot case
+            // below) — the server applies casterDamageFactor at the damage
+            // base-composition sites, never to heals, shields or CC.
+            lines.push(`Damage: ${prog(effect.damage.hp, effect.damage.hpPerLevel, level, maxLevel, hpFmt, powerScale * damageFactor)}${perTick}`);
             damageExtraLines(effect.damage, level, maxLevel, lines);
             break;
         case 'heal_aura': {
@@ -405,14 +419,15 @@ function effectBlock(effect: SkillEffect, level: number, maxLevel: number, power
         case 'stat_multiplier': {
             const stat = effect.stat;
             const label = STAT_LABELS[stat.name] ?? stat.name;
-            lines.push(`${label}: +${prog(stat.bonus, stat.bonusPerLevel, level, maxLevel, pct)}`);
+            const sign = REDUCTION_STATS.has(stat.name) ? '−' : '+';
+            lines.push(`${label}: ${sign}${prog(stat.bonus, stat.bonusPerLevel, level, maxLevel, pct)}`);
             break;
         }
         case 'dot_aura':
         case 'instant_dot': {
             const dot = effect.dot;
             const duration = ticksToSecs(dot.tickCount * dot.interval);
-            lines.push(`Damage over time: ${prog(dot.hp, dot.hpPerLevel, level, maxLevel, hpFmt, powerScale)} × ${dot.tickCount} hits over ${duration}${refresh}`);
+            lines.push(`Damage over time: ${prog(dot.hp, dot.hpPerLevel, level, maxLevel, hpFmt, powerScale * damageFactor)} × ${dot.tickCount} hits over ${duration}${refresh}`);
             const nonPhysical = dot.tags.length > 1 || dot.tags[0] !== 'physical';
             if (nonPhysical) lines.push(`Damage type: ${dot.tags.join(', ')}`);
             if (dot.variance > 0) lines.push(`Variance: ±${pct(dot.variance)}`);
@@ -576,7 +591,8 @@ const GENERIC_KINDS: GenericKind[] = ['radius', 'targets'];
 // tooltip is the wrong place to advertise numbers the player cannot reach yet.
 export function formatSkillTooltip(def: SkillDefinition, level: number, powerScale: number,
                                    maxHealth: number = 0, costFactor: number = 1,
-                                   showNextLevel: boolean = true): TooltipContent {
+                                   showNextLevel: boolean = true,
+                                   damageFactor: number = 1): TooltipContent {
     const cost = costRenderer(maxHealth, costFactor);
     // One cap gates every "→" in the tooltip, because every level-scaled value
     // renders through prog() and prog() previews only while level < cap. Capping
@@ -607,7 +623,7 @@ export function formatSkillTooltip(def: SkillDefinition, level: number, powerSca
     const blocks = def.effects.map(effect =>
         effectBlock(effect, level, previewMax, powerScale,
             perEffectCost && scaled(effect.costFractionOfMax, effect.costFractionOfMaxPerLevel, level) > 0,
-            sharedCadence !== null));
+            sharedCadence !== null, damageFactor));
 
     // A generic kind is shared when every effect that renders it renders it
     // identically — then it prints once at the bottom instead of per effect.
@@ -769,7 +785,8 @@ function showTooltip(anchor: HTMLElement, skillId: number, level: number) {
     const nextCost = skillPointCost(def.maxLevel, level + 1);
     const canSpend = nextCost > 0 && availableSkillPoints >= nextCost;
     const content = formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()),
-        getLocalPlayerMaxHealth(), getLocalPlayerCostFactor(), canSpend);
+        getLocalPlayerMaxHealth(), getLocalPlayerCostFactor(), canSpend,
+        getLocalPlayerDamageFactor());
 
     element.innerHTML = '';
     const title = document.createElement('div');

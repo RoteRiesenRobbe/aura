@@ -104,37 +104,58 @@ export function candidates(subject, seed) {
 	const local = pick(LOCALS, seed, 'local');
 
 	const topical = [
-		`${s}${agent} the ${s}`,        // QuestDoer the Quest
-		`${s}y Mc${s}face`,             // Questy McQuestface
-		`${s} the ${title}`,            // Charm the Doomed
-		`${honorific} ${s}alot`,        // Sir Questalot
-		`${honorific} ${s}${agent}`,    // Baron CharmPoker
-		`${s}${agent} ${numeral}`,      // PruneSniffer IX
-		`${s}, the ${title}`,           // Prune, the Unpaid
-		`${honorific} ${s} ${numeral}`, // Old Charm XL
-		`${s}bane the ${title}`,        // Wolfbane the Mild
-	].filter((n) => n.length <= MAX_LENGTH);
+		{form: 'agent-echo', name: `${s}${agent} the ${s}`},   // QuestDoer the Quest
+		{form: 'mcface', name: `${s}y Mc${s}face`},            // Questy McQuestface
+		{form: 'the-title', name: `${s} the ${title}`},        // Charm the Doomed
+		{form: 'alot', name: `${honorific} ${s}alot`},         // Sir Questalot
+		{form: 'hon-agent', name: `${honorific} ${s}${agent}`},// Baron CharmPoker
+		{form: 'agent-numeral', name: `${s}${agent} ${numeral}`}, // PruneSniffer IX
+		{form: 'comma-title', name: `${s}, the ${title}`},     // Prune, the Unpaid
+		{form: 'hon-numeral', name: `${honorific} ${s} ${numeral}`}, // Old Charm XL
+		{form: 'bane', name: `${s}bane the ${title}`},         // Wolfbane the Mild
+	].filter((c) => c.name.length <= MAX_LENGTH);
 
 	if (topical.length > 0) return topical;
 
 	return [
-		`${local} the ${title}`, // Turnip the Untested
-		`${honorific} ${local}`, // Auntie Fencepost
-		local,                   // Beetroot — always fits
-	].filter((n) => n.length <= MAX_LENGTH);
+		{form: 'local-title', name: `${local} the ${title}`}, // Turnip the Untested
+		{form: 'hon-local', name: `${honorific} ${local}`},   // Auntie Fencepost
+		{form: 'local', name: local},                         // Beetroot — always fits
+	].filter((c) => c.name.length <= MAX_LENGTH);
 }
+
+/** Every form id, in template order. */
+export const FORMS = [
+	'agent-echo', 'mcface', 'the-title', 'alot', 'hon-agent',
+	'agent-numeral', 'comma-title', 'hon-numeral', 'bane',
+];
 
 /**
  * @param {string} topic  what this run is testing, e.g. 'quest journal'
- * @param {{seed?: string|number}} [opts]  seed defaults to the pid, so two
- *        concurrent runs of the same harness get different bots; pass one to
- *        make a run reproducible.
- * @returns {string} a character name of at most 20 characters
+ * @param {{seed?: string|number, form?: string}} [opts]  seed defaults to the
+ *        pid, so two concurrent runs of the same harness get different bots;
+ *        pass one to make a run reproducible. `form` pins the template (see
+ *        FORMS) — it searches seeds for one where that form fits the 20-char
+ *        budget, and returns null if the subject can never wear it.
+ * @returns {string|null} a character name of at most 20 characters
  */
 export function botName(topic, opts = {}) {
-	const seed = `${topic}|${opts.seed ?? process.pid}`;
-	const fits = candidates(subjectOf(topic), seed);
-	return pick(fits, seed, 'name');
+	const subject = subjectOf(topic);
+	const base = `${topic}|${opts.seed ?? process.pid}`;
+
+	if (!opts.form) {
+		const fits = candidates(subject, base);
+		return pick(fits, base, 'name').name;
+	}
+
+	// A form's fit depends on the words drawn into it ("Sir Questalot" fits,
+	// "Professor Questalot" does not), so walk seeds until the form appears.
+	for (let i = 0; i < 200; i++) {
+		const seed = i === 0 ? base : `${base}#${i}`;
+		const hit = candidates(subject, seed).find((c) => c.form === opts.form);
+		if (hit) return hit.name;
+	}
+	return null;
 }
 
 // --- CLI ---------------------------------------------------------------
@@ -144,12 +165,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 	const topic = argv.filter((a) => !a.startsWith('--')).join(' ');
 	const opts = seedArg ? {seed: seedArg.split('=')[1]} : {};
 
+	const formArg = argv.find((a) => a.startsWith('--form='));
+	if (formArg) opts.form = formArg.split('=')[1];
+
 	if (argv.includes('--all')) {
 		const seed = `${topic}|${opts.seed ?? process.pid}`;
-		for (const n of candidates(subjectOf(topic), seed)) {
-			console.log(`${String(n.length).padStart(2)}  ${n}`);
+		for (const c of candidates(subjectOf(topic), seed)) {
+			console.log(`${String(c.name.length).padStart(2)}  ${c.form.padEnd(14)} ${c.name}`);
 		}
 	} else {
-		console.log(botName(topic, opts));
+		console.log(botName(topic, opts) ?? '');
 	}
 }

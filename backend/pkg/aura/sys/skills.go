@@ -66,6 +66,10 @@ type costPayer interface {
 	StatusEffects() *model.StatusEffects
 	MaxHealth() vitals.VitalSign
 	IsGod() bool
+	// NoteCostPaid records the HP a charge actually took, for the cost_paid
+	// floating-number accumulator (round-7 item 7) — costs deliberately do
+	// not ride damageTaken, which feeds the crit share and damage-interrupt.
+	NoteCostPaid(paid vitals.VitalSign)
 }
 
 // ConnState is the ConnectionStateSystem capability the SkillSystem needs:
@@ -769,7 +773,7 @@ func casterDamageFactor(acting any) float32 {
 		SkillComponent() *skills.SkillComponent
 	}); ok {
 		if sc := h.SkillComponent(); sc != nil {
-			return 1 + sc.Derived.DamageDealtBonus
+			return sc.Derived.DamageFactor()
 		}
 	}
 	return 1

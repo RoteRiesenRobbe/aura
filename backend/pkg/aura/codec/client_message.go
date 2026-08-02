@@ -228,6 +228,13 @@ func AbandonQuestMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.A
 	return unmarshalAbandonQuest(unwrapAbandonQuest(msg))
 }
 
+// Respec carries no fields, the Respawn precedent: the asserted body type is
+// the whole payload (round-7 item 8).
+func RespecMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.Respec {
+	fbutil.AssertBodyType[AuraApi.ClientMessageBody](msg, AuraApi.ClientMessageBodyRespec)
+	return &model.Respec{}
+}
+
 func ClientMessageFlatbufferUnmarshal(bytes []byte) *AuraApi.ClientMessage {
 	return AuraApi.GetRootAsClientMessage(bytes, 0)
 }

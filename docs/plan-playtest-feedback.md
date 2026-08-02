@@ -1938,7 +1938,7 @@ it: grunts are **encounter wave-spawned** (`warlord.go`), so a generous value
 turns the warlord's waves into a repeatable XP faucet — 75 keeps a wave worth
 less than one elite Orc.
 
-### 5. Does Strong work? (server: YES; UI: invisible — the Discipline problem again)
+### 5. Does Strong work? (server: YES; UI: invisible) — ✅ BUILT 2026-08-02 (round-7 session 2)
 
 `strong.json` → `stat_multiplier damageDealt` → `Derived.DamageDealtBonus` →
 `outgoingDamageFactor` (`sys/skills.go:763-772`), applied at the damage
@@ -1951,7 +1951,15 @@ sibling on `GameState`, tooltip damage lines multiply through it — the R1
 pattern verbatim, including the harness leg (`r1-focus-cost.mjs` is the
 worked example; the wiring is invisible to vitest by construction).
 
-### 6. Two players, same dot, same target — do both tick? (answered; design Q recorded)
+**Built exactly to that shape** (session 2, see §Round-7 session-2 ledger):
+`GameState.damage_factor` (field default 1, appended), `DerivedStats.
+DamageFactor()` as the ONE place the 1+bonus composition lives —
+`casterDamageFactor` and the codec both read it, so the tooltip cannot drift
+from what the server deals — and the tooltip multiplies its damage and dot
+lines through it, never heals/shields/CC (pinned by vitest). Harness
+`r7-strong.mjs`: baseline `Damage: 14` → `15` with Strong equipped.
+
+### 6. Two players, same dot, same target — do both tick? — ✅ RULED + BUILT 2026-08-02 (round-7 session 2)
 
 **No.** `Buffs.ApplyDot` (`skills/buffs.go:326`) keys streams by
 (source `SkillID`, per-tick `HP`): two casters with the same skill at the same
@@ -1965,7 +1973,24 @@ acceptable for group PvE, or should streams key per-caster (WoW-style — both
 tick, credit stays split)? Per-caster keying is a one-line key change with a
 real damage-throughput consequence (N dot players = N× dot damage on a boss).
 
-### 7. Floating numbers: focus spent should be BLUE (small chunk — needs a wire field)
+**PO ruling (2026-08-02): per-caster streams.** `ApplyDot` now keys on
+(caster, per-event HP) — two casters with the same skill at the same strength
+each ignite their own stream, both tick, credit stays split, and under R2's
+work-done rule the second caster pays their own entry rather than riding the
+first ignition for free. ⚑ **The "one-line key change" claim was optimistic:**
+the acting site (`DueBuffEvents`) had its own second collapse — per source
+skill only the STRONGEST dot acted, across casters — so the suppression rule
+had to become per-caster too (a high-level player's dot no longer silences a
+low-level ally's; a caster's own weaker stream is still suppressed by their
+stronger one). ⚑ No map in the acting path — the per-caster check is a nested
+scan, because `DueBuffEvents` runs per entity per tick under the idle-loop
+alloc pins. **HoTs deliberately stay last-writer-wins** (PO, same day): the
+result matches **WoW Classic exactly** — dots per-caster on mobs, same-spell
+HoTs exclusive on players (one Renew per target; per-caster HoTs are the
+modern-retail design) — and Classic is the stated reference. The asymmetry is
+a ruling, not an oversight.
+
+### 7. Floating numbers: focus spent should be BLUE — ✅ BUILT 2026-08-02 (round-7 session 2)
 
 Ask: focus spent blue, heal green, incoming damage red; later a damage-type
 icon in front of incoming damage (fire → flame). Heal green and damage red
@@ -1981,7 +2006,19 @@ share and damage-interrupt logic at the same choke point). Damage-type icons:
 **later** per the PO's own phrasing; parked with §39 (entity presentation
 rework) where overlay/indicator art is pooled.
 
-### 8. Spellbook: a reset-all (respec) button (feature — needs 2 PO calls first)
+**Built exactly to that shape:** `NoteCostPaid` on the `costPayer` interface
+(charged by `chargeCost` with the post-clamp amount — the number shown is what
+actually left the pool), `Character.cost_paid` appended (per-tick accumulator,
+reset with damage_taken), floating kind `'cost'` in `0x4D9EFF` with the `-`
+sign, own player + other players. ⚑ The costPayer widening is the R3
+silent-wiring landmine class, so `TestRealEntitiesAndTheCostPayerCapability`
+now pins BOTH polarities on real types: `*player` must satisfy it (or every
+cost is silently free) and `*Mob` must NOT (L5 — a paying caster mob
+suicides). ⚑ Harness note (`r7-respec-cost.mjs` leg A): the health-bar text is
+NOT a witness for a cost — paying does not enter combat, so ~1 %/s regen tops
+the pool back up before an after-read; the blue number itself is the evidence.
+
+### 8. Spellbook: a reset-all (respec) button — ✅ RULED + BUILT 2026-08-02 (round-7 session 2)
 
 Refund every spent skill point in one click. Engine-real: a new
 `ClientMessageBody` message (pinned union, append-only), a server-side refund
@@ -1992,6 +2029,20 @@ priced? (GDD lists respec cost as a placeholder concept) ② allowed mid-combat?
 (the equip lock precedent says no) ③ do milestone-seeded skills (Damage@L1)
 reset to level 1 or keep their floor? Not a filler item — schedule as a small
 chunk once ruled.
+
+**The three rulings (PO 2026-08-02): ① FREE ② BLOCKED IN COMBAT ③ level 1 is
+the floor** — every discovered skill returns to its discovery level, so the
+milestone-seeded free baseline survives a respec by construction. **Built:**
+`ClientMessageBody.Respec = 10` (pinned, empty table — the Respawn precedent),
+`SkillComponent.ResetSkillLevels()` (walks the spellbook through the existing
+`setSkillLevel`, so equipped instances and derived stats follow), the
+`EquipSystem` handler gated on `InCombat()` like equip, and a quiet "Reset"
+button in the spellbook title with a two-press arm ("Confirm?", 4 s window) —
+a native `confirm()` would freeze the render loop. ⭐ **The refund needed ZERO
+point arithmetic**: `SpentPoints` is derived from the spellbook ("deriving
+makes free respec drift-proof" — the comment predates the feature), so
+resetting levels IS the refund. Harness `r7-respec-cost.mjs` leg B: Swift
+3 → 1, badge 27 → 29 points.
 
 ### 9. Pending spellbook selection: an illegal key should clear it — ✅ `fd6fe48e` 2026-08-02
 
@@ -2007,7 +2058,7 @@ immediately — so the handler must WHITELIST the legal keys rather than
 clear-on-anything, or pressing "1" to bind a pending aura would clear the
 selection before Controls ever samples the key.
 
-### 10. Passive tooltip wording audit — does the text match the effect? (audit sitting)
+### 10. Passive tooltip wording audit — ✅ DONE 2026-08-02 (round-7 session 2)
 
 Raised 2026-08-02, second batch, "things like Tough". Passives author no prose;
 every tooltip line is generated (`SkillTooltip.ts` `stat_multiplier` case:
@@ -2018,6 +2069,19 @@ sites), for all five `validStat`s and the passive-adjacent lines (Hardy's
 "Max Focus", Discipline's cost line). Small sitting, not a one-liner — each
 stat needs its formula read before its wording is judged. Fold in item 5's
 finding (Strong works but is invisible) — same surface.
+
+**Audit result: every VALUE was correct; one real bug and one ruling.**
+⚑ The bug: `costReduction` had no `STAT_LABELS` entry, so Discipline's stat
+line rendered its raw JSON key on screen (`costReduction: +6%`) — the
+fallback `STAT_LABELS[name] ?? name` fails silently by design. A vitest now
+walks every stat `recomputeDerived` dispatches, so the next passive cannot
+ship with its internal name showing. **The ruling (PO 2026-08-02): one
+reduction vocabulary** — the two subtractive stats phrase as what the player
+pays/takes with the resist lines' −X% shape: Tough `Damage taken: −10%`,
+Discipline `All costs: −6%`; the four bonus stats keep their `+`. Verified
+per formula: maxHealth ×(1+b) on the pool ✓ · damageReduction incoming ×(1−b)
+✓ · critChance additive percentage points ✓ · damageDealt ×(1+b) direct+dots
+✓ · costReduction cost ×(1−b) ✓ · resist passives multiply per tag ✓.
 
 ### 11. Warlord cleave: one slow beat, duckable — ✅ `3b415fa2` 2026-08-02 (beat 90, PO duck-feel check owed)
 
@@ -2032,7 +2096,7 @@ throughput-neutral — cleave 20 → 50 (0.571 → 0.556 HP/tick), bleed per-tic
 6 → 11 (application-rate compensation). All values [PLACEHOLDER]; the duck
 window is a feel call for the PO by eye.
 
-### 12. Journal turn-in stages say the same thing twice (diagnosed, decision pending)
+### 12. Journal turn-in stages say the same thing twice — ✅ RULED + FIXED 2026-08-02 (round-7 session 2)
 
 Raised 2026-08-02 (the Turnip Chore screenshot). Not a code bug: the panel
 renders each stage's authored `journal` prose (italic, accumulating) plus the
@@ -2044,6 +2108,18 @@ carried, so every turn-in stage now duplicates ("Return to the Farmer." /
 recommendation on record: **drop the `tracker` field on turn-in stages** (the
 prose alone states the task) vs. re-differentiate the prose (fact + place vs.
 terse instruction). Awaiting the PO's pick.
+
+**PO pick (2026-08-02): re-differentiate the prose — AGAINST the
+recommendation on record.** The tracker stays the terse instruction; the
+journal prose now carries fact + place, still inside the "deliberately plain"
+text rule: turnip-chore *"The turnips are gathered; the Farmer waits by his
+field."* · village-welcome *"The Farmer and the Town Crier have been met; the
+Hermit waits nearby."* · the-lost-lamp *"The kobolds are dealt with; the
+Traveller waits at the tunnel mouth."* · wolves-on-the-road *"The wolves are
+thinned; word should reach the City Guard at the city gate far to the east,
+or the Shaman at his fire east along the road."* Content-only, 4 lines. ⚑ Safe
+against the harnesses by construction: `chunkC4-quests`/`chunkC3-journal`
+assert the TRACKER lines, which did not move (re-verified 37 + 1 SKIP).
 
 ### Round-7 ledger (what shipped 2026-08-02, same day as the intake)
 
@@ -2076,6 +2152,46 @@ terse instruction). Awaiting the PO's pick.
   grunt-XP faucet check at the warlord fight (item 4), and the prune walked
   through in-game (Farmer/Hermit/Crier/Traveller before and after their
   quests).
+
+### Round-7 session-2 ledger (2026-08-02, the remaining six items in one session)
+
+Every open round-7 item except totem tooltips (item 3 — the PO deliberately
+left it queued; it needs catalog/data design). Rulings collected up front as
+choice prompts, then built small → large. Details pinned inline in each item's
+section above; this is the summary.
+
+- **Item 12 ✅** — turn-in prose re-differentiated (PO pick: AGAINST the
+  drop-the-tracker recommendation). 4 content lines, trackers untouched.
+- **Item 6 ✅** — **per-caster dot streams** (PO ruling): `ApplyDot` keys on
+  (caster, HP), and the `DueBuffEvents` strongest-dot suppression became
+  per-caster too — the advertised "one-line key change" was really two sites.
+  **HoTs stay last-writer-wins by ruling**: the result matches WoW Classic
+  (per-caster dots on mobs, exclusive same-spell HoTs on players), which is
+  the stated reference. No alloc added to the per-tick path (nested scan, not
+  a map).
+- **Item 5 ✅** — Strong visible: `GameState.damage_factor`, the R1
+  `cost_factor` pattern verbatim; `DerivedStats.DamageFactor()` is the one
+  composition site. New harness `r7-strong.mjs` (14 → 15).
+- **Item 7 ✅** — blue cost numbers: `Character.cost_paid` +
+  `costPayer.NoteCostPaid` + floating kind `'cost'` (0x4D9EFF, '-' sign).
+  Capability guard pins *player pays / *Mob must not, both on real types.
+- **Item 10 ✅** — wording audit: all values correct; Discipline's stat line
+  was rendering its raw JSON key (`costReduction` missing from STAT_LABELS);
+  PO ruled one −X% reduction vocabulary (Tough `Damage taken: −10%`,
+  Discipline `All costs: −6%`), bonus stats keep `+`.
+- **Item 8 ✅** — respec: FREE · blocked in combat · level-1 floor (3 PO
+  rulings). `ClientMessageBody.Respec = 10`, `ResetSkillLevels()`, the
+  EquipSystem handler, a two-press-arm Reset button in the spellbook title.
+  The refund is zero arithmetic — `SpentPoints` is derived.
+- **Verified:** full Go suite + vet + gofmt (both trees) · 133 vitest (+3) ·
+  tsc · prod build · alloc pins `-count=2` + simharness guardrails ·
+  boot `-content ../api` 0 errors 0 warnings (87 skills / 4 quests) ·
+  harnesses one-at-a-time on fresh servers: `hygiene-wire-prune` (3 wire
+  fields added) · `r7-strong` · `r1-focus-cost` 5/5 · `round4-tooltip` ·
+  `chunkC4-quests` 37 + 1 SKIP · new `r7-respec-cost.mjs` (blue number seen
+  in-scene; respec Swift 3 → 1, badge 27 → 29).
+- **Owed to the PO by eye:** the blue cost number in a real fight, the Reset
+  button's arm/confirm feel, and the new turn-in prose in the journal.
 
 ## Rolling filler — blocks nothing, do any time
 

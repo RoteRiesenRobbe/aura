@@ -21,6 +21,7 @@ import {VitalSign} from '../../../vital-signs/logic/VitalSigns';
 import {InputMessage, DEACTIVATE_AURA_SLOT} from '../../../backend/logic/messages/outgoing/InputMessage';
 import {EquipMessage} from '../../../backend/logic/messages/outgoing/EquipMessage';
 import {SpendSkillPointMessage} from '../../../backend/logic/messages/outgoing/SpendSkillPointMessage';
+import {RespecMessage} from '../../../backend/logic/messages/outgoing/RespecMessage';
 import * as Zoom from '../../../camera/logic/Zoom';
 import SimpleBar from 'simplebar';
 
@@ -186,6 +187,42 @@ function rejectEquipInCombat(): boolean {
     return true;
 }
 
+// setupRespecButton wires the spellbook's reset-all (round-7 item 8). The
+// confirm is a two-press arm — the first press turns the button into
+// "Confirm?", the second within the window sends — rather than a native
+// confirm(), which would freeze the render loop mid-game. pointerdown, not
+// click: MouseManager preventDefaults mousedown, so click never fires on HUD
+// panels (the documented gotcha).
+function setupRespecButton(button: HTMLElement) {
+    if (!button) {
+        return;
+    }
+    let armed: ReturnType<typeof setTimeout> | null = null;
+    const disarm = () => {
+        if (armed !== null) {
+            clearTimeout(armed);
+            armed = null;
+        }
+        button.textContent = 'Reset';
+        button.classList.remove('armed');
+    };
+    button.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (rejectEquipInCombat()) {
+            disarm();
+            return;
+        }
+        if (armed === null) {
+            button.textContent = 'Confirm?';
+            button.classList.add('armed');
+            armed = setTimeout(disarm, 4000);
+            return;
+        }
+        disarm();
+        new RespecMessage().send();
+    });
+}
+
 // updateShield renders the absorb segment on the health bar. Both fractions
 // come from shieldBarSegments (N1): the bar's denominator is total effective
 // HP, so the segment sits directly after the health fill and always fits —
@@ -266,6 +303,7 @@ export function getChat(): HTMLElement {
 function setupSpellbook() {
     spellbookListElement = document.getElementById('spellbookList');
     skillPointsBadgeElement = document.getElementById('skillPointsBadge');
+    setupRespecButton(document.getElementById('respecButton'));
     // Explicit init: the HUD partial lands after DOMContentLoaded, so
     // simplebar's data-attribute auto-init never sees it. SimpleBar's own
     // MutationObserver tracks the list re-renders in updateSpellbook.

@@ -41,6 +41,9 @@ export class GameStateMessage {
     // multiplier the cost-reduction passive puts on every resource cost the
     // owning player pays (R1/F2); 1 = no reduction
     costFactor: number;
+    // multiplier the damageDealt passive (Strong) puts on every point of
+    // damage the owning player deals (round-7 item 5); 1 = no bonus
+    damageFactor: number;
     auraSlots: number[];
     // equipped passive slot contents, positional (index i = slot i, 0 = empty)
     passiveSlots: number[];
@@ -101,6 +104,7 @@ export class GameStateMessage {
 
         this.skillPoints = gameState.skillPoints();
         this.costFactor = gameState.costFactor();
+        this.damageFactor = gameState.damageFactor();
 
         this.auraSlots = [];
         for (let i = 0; i < gameState.auraSlotsLength(); ++i) {
@@ -281,6 +285,7 @@ function unmarshalEntity(entity, eType) {
         burstRadius: undefined,
         damageTaken: undefined,
         critTaken: undefined,
+        costPaid: undefined,
         shieldHp: undefined,
         healReceived: undefined,
         xpGained: undefined,
@@ -360,6 +365,8 @@ function unmarshalEntity(entity, eType) {
         result.damageTaken = entity.damageTaken();
         // crit-flagged share of damageTaken — rendered big (skill-vocab chunk 1)
         result.critTaken = entity.critTaken();
+        // resource cost paid this tick — the blue number (round-7 item 7)
+        result.costPaid = entity.costPaid();
         // current absorb capacity, 0 = unshielded (skill-vocab chunk 2)
         result.shieldHp = entity.shieldHp();
         result.healReceived = entity.healReceived();

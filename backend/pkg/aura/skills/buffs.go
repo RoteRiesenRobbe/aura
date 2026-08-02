@@ -317,15 +317,18 @@ func (b *Buffs) ApplyTickRate(source SkillID, factor float32, ticks int) {
 }
 
 // ApplyDot grants (or refreshes) a damage-over-time debuff from the given
-// source skill; streams are keyed by per-event damage. A refresh resets the
-// remaining duration and hands the stream to the latest application (caster,
-// tags, cadence) but keeps the acting accumulator running.
+// source skill; streams are keyed by (caster, per-event damage) — round-7
+// item 6 (PO 2026-08-02): two casters with the same skill at the same
+// strength each own their own stream, both tick, credit stays split. A
+// refresh (same caster, same strength) resets the remaining duration and
+// takes over tags/cadence but keeps the acting accumulator running.
 //
 // Reports whether the target was genuinely IGNITED rather than kept burning —
-// what "pay to ignite" is charged off (§5.1).
+// what "pay to ignite" is charged off (§5.1), so a second caster pays their
+// own entry rather than riding the first ignition for free.
 func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) bool {
 	for _, e := range b.entries[source] {
-		if p, ok := e.payload.(*dotPayload); ok && p.dot.HP == dot.HP {
+		if p, ok := e.payload.(*dotPayload); ok && p.dot.HP == dot.HP && p.dot.Caster == dot.Caster {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
@@ -696,23 +699,23 @@ func (b *Buffs) dropDepletedShields() {
 // DueBuffEvents advances every acting payload's accumulator by one game tick
 // and returns the events due now — damage (dots) and healing (hots) in one
 // drain, so the SkillSystem's tick-order story stays single (plan-skill-vocab
-// §3.7). Per source skill only the strongest active dot deals damage and only
-// the strongest active hot heals (same skill never stacks with itself);
-// suppressed weaker streams keep aging and acting on their own cadence once the
-// stronger one expires. Called once per tick per entity by the SkillSystem.
+// §3.7). Per (source skill, caster) only the strongest active dot deals
+// damage — same skill never stacks with ITSELF, but two casters' streams both
+// tick (round-7 item 6, PO 2026-08-02); per source skill only the strongest
+// active hot heals. Suppressed weaker streams keep aging and acting on their
+// own cadence once the stronger one expires. Called once per tick per entity
+// by the SkillSystem — no per-call allocation beyond the returned slices (the
+// idle-loop alloc pins), which is why the per-caster check is a nested scan
+// rather than a map.
 func (b *Buffs) DueBuffEvents() ([]DotHit, []HotEvent) {
 	var dots []DotHit
 	var hots []HotEvent
 	for _, list := range b.entries {
-		var strongestDot *dotPayload
 		var strongestHot *hotPayload
 		for _, e := range list {
 			switch p := e.payload.(type) {
 			case *dotPayload:
 				p.age++
-				if strongestDot == nil || p.dot.HP > strongestDot.dot.HP {
-					strongestDot = p
-				}
 			case *hotPayload:
 				p.age++
 				if strongestHot == nil || p.hot.HP > strongestHot.hot.HP {
@@ -720,13 +723,19 @@ func (b *Buffs) DueBuffEvents() ([]DotHit, []HotEvent) {
 				}
 			}
 		}
-		if strongestDot != nil && strongestDot.age%strongestDot.dot.Interval == 0 {
-			dots = append(dots, DotHit{
-				HP:       strongestDot.dot.HP,
-				Tags:     strongestDot.dot.Tags,
-				Variance: strongestDot.dot.Variance,
-				Caster:   strongestDot.dot.Caster,
-			})
+		for _, e := range list {
+			p, ok := e.payload.(*dotPayload)
+			if !ok || dotSuppressed(list, p) {
+				continue
+			}
+			if p.age%p.dot.Interval == 0 {
+				dots = append(dots, DotHit{
+					HP:       p.dot.HP,
+					Tags:     p.dot.Tags,
+					Variance: p.dot.Variance,
+					Caster:   p.dot.Caster,
+				})
+			}
 		}
 		if strongestHot != nil && strongestHot.age%strongestHot.hot.Interval == 0 {
 			hots = append(hots, HotEvent{
@@ -737,4 +746,17 @@ func (b *Buffs) DueBuffEvents() ([]DotHit, []HotEvent) {
 		}
 	}
 	return dots, hots
+}
+
+// dotSuppressed reports whether a stronger dot stream from the SAME caster is
+// active in list. Within one caster HPs are distinct (an equal-strength
+// re-application is a refresh, not a second stream), so strict > needs no
+// tie-break.
+func dotSuppressed(list []*buffEntry, p *dotPayload) bool {
+	for _, e := range list {
+		if q, ok := e.payload.(*dotPayload); ok && q != p && q.dot.Caster == p.dot.Caster && q.dot.HP > p.dot.HP {
+			return true
+		}
+	}
+	return false
 }

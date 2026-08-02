@@ -156,6 +156,11 @@ export class Player {
         if (entity.healReceived > 0) {
             this.character.showFloatingNumber(hpToDisplay(entity.healReceived), 'heal');
         }
+        // Resource spent (round-7 item 7): blue, so paying a cost never reads
+        // as being attacked — before this, a cost was only the bar dropping.
+        if (entity.costPaid > 0) {
+            this.character.showFloatingNumber(hpToDisplay(entity.costPaid), 'cost');
+        }
         if (entity.xpGained > 0) {
             this.character.showFloatingNumber(entity.xpGained, 'xp');
         }

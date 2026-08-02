@@ -87,6 +87,32 @@ func TestAuraCost_UnlandedEffectPaysNothing(t *testing.T) {
 	assert.Empty(t, caster.statusEffects.Effects())
 }
 
+// --- round-7 item 7: what was paid must be visible ---
+
+func TestAuraCost_ChargeFeedsTheCostPaidAccumulator(t *testing.T) {
+	// Paying used to be invisible: chargeCost subtracts Health directly and
+	// deliberately bypasses damageTaken (an aura pulse must not read as being
+	// attacked, nor trip the crit share / damage-interrupt at that choke
+	// point). cost_paid is the spend's own accumulator — the blue number.
+	caster := newFakePlayer()
+	target := &touchRecorder{}
+
+	testSkillSystem().applyAuraEffect(caster, 1, 1, costed(damageEffect(1), 0.05), colliderSetOf(target))
+
+	assert.Equal(t, vitals.VitalSign(5), caster.costPaid, "the charge lands in cost_paid")
+}
+
+func TestAuraCost_ClampedChargeRecordsWhatWasActuallyPaid(t *testing.T) {
+	caster := newFakePlayer()
+	caster.vitalSigns.Health = 10 // the 20-HP price clamps to 9 (floor at 1 HP)
+	target := &touchRecorder{}
+
+	testSkillSystem().applyAuraEffect(caster, 1, 1, costed(damageEffect(1), 0.2), colliderSetOf(target))
+
+	assert.Equal(t, vitals.VitalSign(9), caster.costPaid,
+		"the number shown is the HP that actually left the pool, not the list price")
+}
+
 // --- L4: the never-kill clamp, carried verbatim from the heal path ---
 
 func TestAuraCost_ClampsToLeaveTheCasterAtOneHP(t *testing.T) {

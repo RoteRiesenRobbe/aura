@@ -40,8 +40,9 @@ function skill(partial: Partial<SkillDefinition> & { effects: SkillEffect[] }): 
 }
 
 function lines(def: SkillDefinition, skillLevel: number, powerScale: number,
-               maxHealth: number = 0, costFactor: number = 1): string[] {
-    return formatSkillTooltip(def, skillLevel, powerScale, maxHealth, costFactor)
+               maxHealth: number = 0, costFactor: number = 1,
+               damageFactor: number = 1): string[] {
+    return formatSkillTooltip(def, skillLevel, powerScale, maxHealth, costFactor, true, damageFactor)
         .lines.map(line => line.text);
 }
 
@@ -109,6 +110,39 @@ describe('character power scale', () => {
             'Targets: all allies in range',
             'Costs you: 1.2% of max Focus per tick',
         ]);
+    });
+
+    it('multiplies damage and dot lines through the damage factor, and nothing else', () => {
+        // Round-7 item 5 (Strong): the server applies casterDamageFactor at
+        // the damage base-composition sites — direct hits and dots, never
+        // heals, shields or CC. The tooltip must draw the same line, or
+        // equipping Strong either stays invisible (the reported bug) or
+        // advertises bigger heals it does not deliver (a new one).
+        const all = skill({
+            maxLevel: 1,
+            effects: [
+                effect({type: 'instant_damage', damage: damageParams(10)}),
+                effect({type: 'instant_dot', dot: {hp: 12, hpPerLevel: 0, tags: ['physical'], variance: 0, tickCount: 3, interval: 30}}),
+                effect({type: 'instant_shield', shield: {hp: 6.3, hpPerLevel: 0, durationTicks: 90, targetsSelf: false}}),
+                effect({type: 'heal_aura', heal: {hp: 4, hpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}}),
+                effect({type: 'self_heal', selfHeal: {healHp: 8.4, healHpPerLevel: 0, fractionOfMax: 0, fractionOfMaxPerLevel: 0, variance: 0}}),
+            ],
+        });
+
+        expect(lines(all, 1, 1, 0, 1, 1.2)).toEqual([
+            'Damage: 12',
+            'Damage over time: 14 × 3 hits over 2.97s',
+            'Shield: 6 Focus for 2.97s',
+            'Heal: 4 per tick',
+            'Heal self: 8 Focus',
+            'Targets: all allies in range',
+        ]);
+    });
+
+    it('composes the damage factor with the character power scale', () => {
+        const direct = skill({maxLevel: 1, effects: [effect({type: 'instant_damage', damage: damageParams(10)})]});
+        // 10 × 1.12²⁹ × 1.1 ≈ 294 — the same order the server multiplies in.
+        expect(lines(direct, 1, SCALE_AT_30, 0, 1, 1.1)).toEqual(['Damage: 294']);
     });
 
     it('leaves every non-HP line byte-identical across the scale', () => {
@@ -241,6 +275,30 @@ function damageParams(hp: number, hpPerLevel: number = 0) {
 // unknown effect types, so a missing case is a console warning and a literal
 // "(calm)" in the panel rather than a build error — which is exactly the kind
 // of thing that ships unnoticed.
+describe('passive stat labels (round-7 item 10)', () => {
+    it('renders every authored validStat with a player-facing label', () => {
+        // The audit's one real bug: costReduction had no STAT_LABELS entry, so
+        // Discipline's stat line fell back to the raw JSON key
+        // ("costReduction: +6%"). The table must cover every stat the server
+        // dispatches in recomputeDerived, or the next passive ships with its
+        // internal name on screen.
+        const statLine = (name: string, bonus: number) => lines(skill({
+            maxLevel: 5, category: 'passive',
+            effects: [effect({type: 'stat_multiplier', stat: {name, bonus, bonusPerLevel: 0.03}})],
+        }), 1, 1)[0];
+
+        // The two REDUCTION stats phrase as what the player pays/takes, with
+        // the −X% shape the resist lines already use (PO 2026-08-02, item 10:
+        // one reduction vocabulary). The four bonus stats keep their +.
+        expect(statLine('costReduction', 0.06)).toBe('All costs: −6% → 9%');
+        expect(statLine('damageReduction', 0.1)).toBe('Damage taken: −10% → 13%');
+        expect(statLine('maxHealth', 0.08)).toBe('Max Focus: +8% → 11%');
+        expect(statLine('critChance', 0.02)).toBe('Crit chance: +2% → 5%');
+        expect(statLine('damageDealt', 0.04)).toBe('All damage: +4% → 7%');
+        expect(statLine('movementSpeed', 0.1)).toBe('Movement speed: +10% → 13%');
+    });
+});
+
 describe('calm', () => {
     const calm = skill({
         displayName: 'Calm', category: 'cooldown', maxLevel: 3, cooldownTicks: 600,

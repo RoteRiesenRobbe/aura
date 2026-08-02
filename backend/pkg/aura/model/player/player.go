@@ -151,6 +151,7 @@ type player struct {
 	// tick by ResetTickNumbers.
 	damageTaken  vitals.VitalSign
 	critTaken    vitals.VitalSign // crit-flagged share of damageTaken (chunk 1)
+	costPaid     vitals.VitalSign // resource cost paid this tick (round-7 item 7)
 	healReceived vitals.VitalSign
 	xpGained     uint64
 
@@ -396,6 +397,15 @@ func (p *player) CritTaken() vitals.VitalSign    { return p.critTaken }
 func (p *player) HealReceived() vitals.VitalSign { return p.healReceived }
 func (p *player) XpGained() uint64               { return p.xpGained }
 
+// CostPaid is the resource cost charged this tick (round-7 item 7): the
+// damage-taken twin for what the player SPENT — serialized as the cost_paid
+// wire field, popped as a blue floating number. NoteCostPaid is called by the
+// SkillSystem's chargeCost, the one place a cost leaves the pool.
+func (p *player) CostPaid() vitals.VitalSign { return p.costPaid }
+func (p *player) NoteCostPaid(paid vitals.VitalSign) {
+	p.costPaid += paid
+}
+
 // NoteHealReceived records healing applied to this player this tick; the
 // SkillSystem calls it when a heal aura lands.
 func (p *player) NoteHealReceived(delta vitals.VitalSign) {
@@ -586,6 +596,7 @@ func (p *player) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {
 func (p *player) ResetTickNumbers() {
 	p.damageTaken = 0
 	p.critTaken = 0
+	p.costPaid = 0
 	p.healReceived = 0
 	p.xpGained = 0
 	p.auraHitStyle = model.AuraHitStyleNone

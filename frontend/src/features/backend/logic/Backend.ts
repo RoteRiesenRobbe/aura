@@ -14,6 +14,7 @@ import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {
     activationRejectionMessage,
     setLocalPlayerCostFactor,
+    setLocalPlayerDamageFactor,
     skillCategory,
     skillDisplayName,
 } from '../../../client-data/Skills';
@@ -324,6 +325,8 @@ export class Backend implements IBackend {
             // already prices with it; `?? 1` is the neutral value, which is what
             // an absent field means on the wire too.
             setLocalPlayerCostFactor(snapshot.costFactor ?? 1);
+            // Same contract for the damage side (round-7 item 5, Strong).
+            setLocalPlayerDamageFactor(snapshot.damageFactor ?? 1);
 
             // snapshot.spellbook is always defined ([] for empty); isDefined guard
             // matches inventory pattern and is safe against the first-tick edge case.

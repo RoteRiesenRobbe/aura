@@ -204,8 +204,13 @@ costFactor():number {
   return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 1.0;
 }
 
+damageFactor():number {
+  const offset = this.bb!.__offset(this.bb_pos, 46);
+  return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 1.0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(21);
+  builder.startObject(22);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -411,6 +416,10 @@ static startQuestProgressVector(builder:flatbuffers.Builder, numElems:number) {
 
 static addCostFactor(builder:flatbuffers.Builder, costFactor:number) {
   builder.addFieldFloat32(20, costFactor, 1.0);
+}
+
+static addDamageFactor(builder:flatbuffers.Builder, damageFactor:number) {
+  builder.addFieldFloat32(21, damageFactor, 1.0);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

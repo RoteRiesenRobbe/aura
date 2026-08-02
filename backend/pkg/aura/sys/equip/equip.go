@@ -59,7 +59,27 @@ func (es *EquipSystem) Update(dt float32) {
 	for _, player := range es.players {
 		es.handleEquip(player)
 		es.handleSpendSkillPoint(player)
+		es.handleRespec(player)
 	}
+}
+
+// handleRespec resets the whole spellbook to level 1 (round-7 item 8): free —
+// the per-level unspend below always was — but atomic, so a full rebuild is
+// one click rather than a walk of every skill. Blocked in combat like equip:
+// it is loadout surgery, and every equipped instance's level drops with it.
+func (es *EquipSystem) handleRespec(player equipEntity) {
+	if player.Client().NextRespec() == nil {
+		return
+	}
+	if player.InCombat() {
+		slog.Info("respec: rejected in combat",
+			slog.String("player", player.Name()))
+		return
+	}
+	player.SkillComponent().ResetSkillLevels()
+	slog.Info("respec",
+		slog.String("player", player.Name()),
+		slog.Int("availablePoints", player.AvailableSkillPoints()))
 }
 
 func (es *EquipSystem) handleEquip(player equipEntity) {

@@ -222,17 +222,49 @@ func TestBuffs_DotDistinctSkillsBothAct(t *testing.T) {
 	assert.Len(t, hits, 2, "distinct source skills are distinct dots")
 }
 
-func TestBuffs_DotCarriesCasterThroughRefresh(t *testing.T) {
-	// The caster reference rides the payload for attribution (XP
-	// participation, kill credit); a refresh hands the stream to the latest
-	// caster of that strength.
+func TestBuffs_DotStreamsArePerCaster(t *testing.T) {
+	// Round-7 item 6 (PO 2026-08-02): two casters applying the same skill at
+	// the same strength each own their own stream — both tick, credit stays
+	// split, and neither application is a free takeover of the other's work.
 	var b Buffs
-	b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2)
-	b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "bob"}, 2)
+	assert.True(t, b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2), "alice ignites her stream")
+	assert.True(t, b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "bob"}, 2), "bob's is a second ignition, not a refresh")
 
 	hits := cycleDot(&b)
-	assert.Len(t, hits, 1)
-	assert.Equal(t, "bob", hits[0].Caster)
+	assert.Len(t, hits, 2, "both streams tick")
+	casters := []any{hits[0].Caster, hits[1].Caster}
+	assert.Contains(t, casters, "alice")
+	assert.Contains(t, casters, "bob")
+}
+
+func TestBuffs_DotSuppressionIsPerCaster(t *testing.T) {
+	// The strongest-stream-only rule holds within one caster (their level-up
+	// stream suppresses their old weaker one) but never across casters — a
+	// high-level player's dot does not silence a low-level ally's.
+	var b Buffs
+	b.ApplyDot(5, DotBuff{HP: 8, Interval: 1, Caster: "alice"}, 2)
+	b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2)
+	b.ApplyDot(5, DotBuff{HP: 2, Interval: 1, Caster: "bob"}, 2)
+
+	hits := cycleDot(&b)
+	assert.Len(t, hits, 2, "alice's strongest + bob's — alice's weaker stream is the only one suppressed")
+	var hps []float32
+	for _, h := range hits {
+		hps = append(hps, h.HP)
+	}
+	assert.Contains(t, hps, float32(8))
+	assert.Contains(t, hps, float32(2))
+}
+
+func TestBuffs_DotSameCasterStillRefreshes(t *testing.T) {
+	// The per-caster split must not break the aura case: one caster's aura
+	// re-applying every tick refreshes their own stream rather than stacking.
+	var b Buffs
+	assert.True(t, b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2))
+	assert.False(t, b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2), "a refresh, not a new stream")
+
+	hits := cycleDot(&b)
+	assert.Len(t, hits, 1, "one stream only")
 }
 
 // --- hot payload (heal-over-time, the dot twin — plan-skill-vocab §3.7) ---

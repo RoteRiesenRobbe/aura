@@ -201,6 +201,14 @@ func (d DerivedStats) MovementSpeedFactor() float32 {
 	return 1 + d.MovementSpeedBonus
 }
 
+// DamageFactor is the multiplier a damageDealt passive (Strong) puts on every
+// point of damage the owner deals: base × (1 + bonus). The one place the
+// 1+bonus composition is written — the damage sites and the wire both read it,
+// so the tooltip cannot drift from what the server charges (round-7 item 5).
+func (d DerivedStats) DamageFactor() float32 {
+	return 1 + d.DamageDealtBonus
+}
+
 // CostFactor is the multiplier a cost-reduction passive puts on an effect's
 // resource cost: cost × (1 − bonus). Clamped to [0, 1] like
 // DamageReductionFactor, so a stacked build can reach free but never a refund,
@@ -571,6 +579,21 @@ func (sc *SkillComponent) LowerSkillLevel(def *SkillDefinition) bool {
 	}
 	sc.setSkillLevel(def.ID, level-1)
 	return true
+}
+
+// ResetSkillLevels returns every discovered skill to level 1 in one step —
+// the whole-book respec (round-7 item 8). Level 1 is the discovery floor
+// (LowerSkillLevel's own rule), so the milestone-seeded free baseline
+// survives by construction; equipped instances and derived stats follow via
+// setSkillLevel. The refund needs no point arithmetic at all: SpentPoints is
+// derived from the spellbook, which is exactly what made free respec
+// drift-proof.
+func (sc *SkillComponent) ResetSkillLevels() {
+	for id, level := range sc.Spellbook {
+		if level > 1 {
+			sc.setSkillLevel(id, 1)
+		}
+	}
 }
 
 func (sc *SkillComponent) setSkillLevel(id SkillID, level int) {
