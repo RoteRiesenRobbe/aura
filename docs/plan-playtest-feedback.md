@@ -2597,7 +2597,7 @@ created. `AURAD_CONF=<copy with server.port changed>` gives a private server
 (`./aurad -dev -content ../api` reads the env var, `loaders.go:262`) and the
 harnesses take the URL, so a parallel run needs no coordination.
 
-### Help panel — a placeholder tutorial ✅ DONE 2026-08-02, `8cc3ef82`
+### Help panel — a placeholder tutorial ✅ DONE 2026-08-02, `8cc3ef82` — PO-VERIFIED IN-GAME 2026-08-02
 
 **A direct PO ask, not an intake item:** get the game's mechanics into the game
 as readable text NOW, as a stand-in until a real tutorial exists. A circled `?`
