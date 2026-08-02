@@ -80,6 +80,7 @@ export function setup(game) {
     setupVitalSigns();
     setupZoomControl();
     setupSpellbook();
+    setupPendingSelectionEscape();
     setupAuraLoadout();
     setupPassiveLoadout();
     setupCooldownLoadout();
@@ -466,6 +467,34 @@ function clearActiveSlotHighlight() {
     activeSlotIndex = null;
     if (!auraSlotListElement) return;
     auraSlotListElement.querySelectorAll('.auraSlot').forEach(el => el.classList.remove('activeSlot'));
+}
+
+// While a spellbook selection is pending, any key that is not a legal bind for
+// it clears the selection (intake round 7 item 9) — movement excepted, so
+// repositioning never costs the selection. This must stay a WHITELIST, not
+// clear-on-anything: the slot hotkeys are rAF-sampled by Controls, so this
+// keydown handler runs before the "1" that should BIND the pending aura is
+// ever sampled — clearing here would kill the equip the key was pressed for.
+const MOVEMENT_KEY_CODES = new Set(
+    ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+const BIND_KEY_CODES: { [category in SkillCategory]: Set<string> } = {
+    aura: new Set(['Digit1', 'Digit2', 'Digit3']),
+    cooldown: new Set(['KeyQ', 'KeyR', 'KeyF']),
+    passive: new Set(), // passives bind by click only — every non-movement key clears
+};
+
+function setupPendingSelectionEscape() {
+    window.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (selectedSkillId === null) return;
+        // Typing (chat, console) is not slot input.
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+        // A bare modifier is not a button press in this flow.
+        if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return;
+        if (MOVEMENT_KEY_CODES.has(e.code)) return;
+        if (BIND_KEY_CODES[skillCategory(selectedSkillId)].has(e.code)) return;
+        clearEquipSelection();
+    });
 }
 
 function clearEquipSelection() {
