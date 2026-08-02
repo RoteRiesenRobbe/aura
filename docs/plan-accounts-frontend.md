@@ -1053,7 +1053,7 @@ trip onto the hot path, or join the player as a nameless character.
 
 ## 10a. Chunk ledger
 
-### Bugfix — the campfire bind survives a login ✅ DONE 2026-08-02, `[uncommitted]`
+### Bugfix — the campfire bind survives a login ✅ DONE 2026-08-02, `3c9e17ba`
 
 **The reported bug: "the character does not spawn at the last campfire they
 bound to when entering the world through login."** It is not a regression — it
