@@ -349,7 +349,7 @@ const hint = await panel();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-5-hint.png` });
 check('The hint branch is a leaf reply: lines, no rows, Back available',
   hint !== null && hint.rows.length === 0 && hint.canGoBack === true
-    && /burned this forest/i.test(hint.lines),
+    && /Bandits hide in the dark forest/i.test(hint.lines),
   `rows ${hint?.rows.length}, canGoBack ${hint?.canGoBack}, lines ${JSON.stringify(hint?.lines)}`);
 
 // ================= 6. Leave, re-open, E toggles, range =================
@@ -683,9 +683,9 @@ const ambientPanel = await panelOpen();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-8-ambient.png` });
 
 check('The TownCrier CALLS OUT as you pass (D18: ambient is its own field)',
-  ambientBubbles.some((t) => /Wolves on the forest road|militia wants word/i.test(t)),
+  ambientBubbles.some((t) => /Hail Adventurer/i.test(t)),
   `reached ${crierReached} at ${JSON.stringify(await pos())}; matched: ` +
-  JSON.stringify(ambientBubbles.filter((t) => /Wolves on the forest road|militia wants word/i.test(t))));
+  JSON.stringify(ambientBubbles.filter((t) => /Hail Adventurer/i.test(t))));
 check('...WITHOUT opening a panel — the two are independent',
   ambientPanel === false, `panel open: ${ambientPanel}`);
 

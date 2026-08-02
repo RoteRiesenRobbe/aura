@@ -25,7 +25,7 @@
       {
         "id": "root",
         "lines": [
-          "You've walked far enough south to be useful. Good."
+          "This is the southern front."
         ],
         "options": [
           { "text": "How do I bring down the Orc Commander?", "next": "commander" },
@@ -54,8 +54,8 @@
       {
         "id": "commander",
         "lines": [
-          "Not while his war banners stand — steel won't touch him.",
-          "Break the banners in his camp west of here. Then bring him down."
+          "He cannot be hurt while his war banners stand.",
+          "Break the banners in his camp west of here, then kill him."
         ]
       }
     ]

@@ -25,7 +25,7 @@
       {
         "id": "root",
         "lines": [
-          "Sorry, can't let you in — the orcs are too close."
+          "The gate is closed. The orcs are too close."
         ],
         "options": [
           {
@@ -76,7 +76,7 @@
       {
         "id": "front",
         "lines": [
-          "The front in the south wants every hand that can hold a line. Prove yourself there."
+          "The front is in the south. They need fighters."
         ]
       }
     ]

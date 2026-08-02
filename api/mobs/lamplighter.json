@@ -26,7 +26,7 @@
       {
         "id": "root",
         "lines": [
-          "The dark is only dark until you carry your own light."
+          "I can teach you to make light."
         ],
         "options": [
           { "text": "Teach me something.", "next": "teachings" }

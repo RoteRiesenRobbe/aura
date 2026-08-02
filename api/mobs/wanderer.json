@@ -29,7 +29,7 @@
       {
         "id": "root",
         "lines": [
-          "Oh — sorry. Wasn't expecting anyone out this way. Don't let me keep you standing."
+          "I am passing through."
         ],
         "options": [
           { "text": "Which way is safe?", "next": "roads" },
@@ -58,8 +58,8 @@
       {
         "id": "roads",
         "lines": [
-          "Head up north, through the tunnel — bring a light.",
-          "East only with a strong group. Bandits are watching that road."
+          "North, through the tunnel. Bring a light.",
+          "East is dangerous. Bandits watch that road."
         ]
       }
     ]

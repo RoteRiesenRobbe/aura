@@ -21,15 +21,12 @@
   "skills": [],
   "interaction": {
     "range": 2.0,
-    "ambient": [
-      "Wolves on the forest road! Travel armed or not at all!",
-      "The militia wants word of every attack — east, to the city!"
-    ],
+    "ambient": ["Hail Adventurer"],
     "nodes": [
       {
         "id": "root",
         "lines": [
-          "You there! Good. Somebody who still walks toward trouble instead of away from it."
+          "I call out the news here."
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "wolves" },
@@ -59,8 +56,7 @@
       {
         "id": "news_who",
         "lines": [
-          "The farmer, if you want to eat. The keeper of the fire east of here, if you want to survive the dark.",
-          "Neither will thank you for the visit. Go anyway."
+          "Talk to the Hermit and the Farmer."
         ]
       },
       {

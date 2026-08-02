@@ -29,13 +29,13 @@
           { "kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "completed" }
         ],
         "lines": [
-          "You have the lamp now. Thanks again."
+          "You have the lamp now."
         ]
       },
       {
         "id": "root",
         "lines": [
-          "Sitting is free. Walking in the dark is not."
+          "What are you doing out here?"
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "lamp" }
@@ -45,7 +45,7 @@
         "id": "lamp",
         "lines": [
           "Kill 6 kobolds north of the tunnel, then come back to me.",
-          "My lamp is yours when it is done."
+          "You get my lamp when it is done."
         ],
         "options": [
           {

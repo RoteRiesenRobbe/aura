@@ -25,7 +25,7 @@
       {
         "id": "root",
         "lines": [
-          "Did you break your nose recently? Doesn't look good."
+          "What do you need?"
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "welcome" },

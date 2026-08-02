@@ -26,7 +26,7 @@
       {
         "id": "root",
         "lines": [
-          "Fire remembers who feeds it. Sit, if you like — the flame does not mind company."
+          "You can rest at my fire."
         ],
         "options": [
           {"text": "Teach me something.", "next": "teachings"},
@@ -89,13 +89,13 @@
       {
         "id": "news",
         "lines": [
-          "They burned this forest to hide their camp, and thought the ash would keep their secret.",
-          "Ash keeps nothing. Walk east far enough and you will smell them before you see them."
+          "Bandits hide in the dark forest.",
+          "The camp is east of here."
         ]
       },
       {
         "id": "directions",
-        "lines": ["Speak the name. I have walked most of what is left."],
+        "lines": ["Ask about a place."],
         "options": [
           {"text": "The mill.", "next": "dir_mill"},
           {"text": "The tunnel north.", "next": "dir_tunnel"},
@@ -104,18 +104,18 @@
       },
       {
         "id": "dir_mill",
-        "lines": ["Downhill, past the broken fence. The wheel still turns; nobody grinds anything."]
+        "lines": ["Downhill, past the broken fence."]
       },
       {
         "id": "dir_tunnel",
         "lines": [
-          "North, where the hills close in. Take a light — the dark in there is the old kind, and it is patient."
+          "North, where the hills close in. Take a light."
         ]
       },
       {
         "id": "dir_fires",
         "lines": [
-          "Scattered. Sit at one and it remembers you; die far from it and you will find your way back."
+          "Campfires are scattered around. Sit at one and you respawn there."
         ]
       }
     ]

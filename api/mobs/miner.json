@@ -25,7 +25,7 @@
       {
         "id": "root",
         "lines": [
-          "The tunnel's overrun and the militia is useless. Mind where you swing."
+          "The tunnel is overrun."
         ],
         "options": [
           { "text": "What happened down there?", "next": "tunnel" },
@@ -54,8 +54,7 @@
       {
         "id": "tunnel",
         "lines": [
-          "Kobolds. They nest north of the tunnel and breed faster than I can complain.",
-          "Nobody has ever got anything back off a kobold by asking."
+          "First the Kobolds, now the Spiders. Things are getting worse every day."
         ]
       }
     ]

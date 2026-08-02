@@ -25,7 +25,7 @@
       {
         "id": "root",
         "lines": [
-          "Tend the field or go out there adventuring — I know what I would pick."
+          "I work this field."
         ],
         "options": [
           { "text": "Do you have a task for me?", "next": "turnips" },
