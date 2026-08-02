@@ -61,7 +61,44 @@ var (
 	// explicit activation does. Without this the equipped cooldown slots are
 	// dead weight in the measurement.
 	castEvery = flag.Duration("cast", 0, "request activation of every equipped cooldown slot this often; 0 = never")
+
+	// ---- demo mode: a legible formation instead of a load pattern. -orbit
+	// parks each bot on a concentric ring around a point and walks it round,
+	// so a watching client sees ordered circles rather than a milling crowd.
+	// It replaces -warp's jittered blob placement (they are mutually exclusive).
+	orbit    = flag.String("orbit", "", "world coords 'x,y' to circle: bots ring out from it instead of -warp's blob")
+	orbitR0  = flag.Float64("orbitr0", 4, "radius of the innermost ring, in world units")
+	orbitGap = flag.Float64("orbitgap", 2, "radius added per ring")
+	orbitPer = flag.Int("orbitper", 5, "bots per ring")
+	// Names carry the point of a demo run — see .claude/skills/verify/botname.mjs,
+	// which generates them. Cycled by bot index; falls back to bot%03d.
+	// ⚑ SEMICOLON-separated, not comma: a generated name may itself contain a
+	// comma ("Quest, the Untested" — the shape the server's own name mangler
+	// uses), and comma-splitting silently turns 45 names into 50 half-names.
+	nameList = flag.String("names", "", "semicolon-separated bot names, assigned in order (default bot000, bot001, …)")
 )
+
+// orbitOf returns the ring index, radius and starting angle for a bot.
+func orbitOf(id int) (ring int, radius, angle float64) {
+	per := *orbitPer
+	if per < 1 {
+		per = 1
+	}
+	ring = id / per
+	radius = *orbitR0 + float64(ring)**orbitGap
+	angle = 2 * math.Pi * float64(id%per) / float64(per)
+	return ring, radius, angle
+}
+
+func nameOf(id int) string {
+	if *nameList != "" {
+		names := strings.Split(*nameList, ";")
+		if len(names) > 0 {
+			return strings.TrimSpace(names[id%len(names)])
+		}
+	}
+	return fmt.Sprintf("bot%03d", id)
+}
 
 // ---- metrics shared across bots
 
@@ -106,7 +143,13 @@ var (
 
 var castsSent atomic.Int64
 
+// walkPerTick mirrors game.player.walkingSpeedPerTick (conf.default.json). The
+// orbit turn rate w = v/r needs the real step size; a wrong value just makes
+// the circle a slowly opening or closing spiral.
+const walkPerTick = 0.05
+
 type bot struct {
+	id      int
 	name    string
 	conn    *websocket.Conn
 	stop    chan struct{}
@@ -311,9 +354,17 @@ func setupSeq(id int) [][]byte {
 	for _, l := range equipPlan {
 		msgs = append(msgs, buildEquip(l.id, l.slot))
 	}
-	if *warpTo != "" {
-		// WARP integer-divides by 120 before the float cast (sys/cmd/cmd.go:76),
-		// so this lands on whole world units — jitter has to be >= 1 unit to bite.
+	// WARP integer-divides by 120 before the float cast (sys/cmd/cmd.go:76),
+	// so both placements land on whole world units — jitter has to be >= 1 unit
+	// to bite, and a ring narrower than ~1 unit collapses onto its centre.
+	switch {
+	case *orbit != "":
+		_, r, a := orbitOf(id)
+		msgs = append(msgs, buildCheat(*token,
+			fmt.Sprintf("WARP %d %d",
+				int(math.Round((warpX+r*math.Cos(a))*120)),
+				int(math.Round((warpY+r*math.Sin(a))*120)))))
+	case *warpTo != "":
 		jx := (float64(id%7) - 3) / 3 * *warpJit
 		jy := (float64((id/7)%7) - 3) / 3 * *warpJit
 		msgs = append(msgs, buildCheat(*token,
@@ -331,7 +382,7 @@ func spawnBot(id int) (*bot, error) {
 	}
 	c.SetReadLimit(1 << 22)
 
-	b := &bot{name: fmt.Sprintf("bot%03d", id), conn: c, stop: make(chan struct{})}
+	b := &bot{id: id, name: nameOf(id), conn: c, stop: make(chan struct{})}
 	if err := b.send(buildJoin(b.name)); err != nil {
 		c.Close()
 		return nil, err
@@ -436,7 +487,7 @@ func spawnBot(id int) (*bot, error) {
 
 	// setup: grant + equip + warp, once snapshots confirm the bot has an entity.
 	// Spaced out because each one-shot channel is depth 2, drained once per tick.
-	if len(equipPlan) > 0 || *god || *warpTo != "" {
+	if len(equipPlan) > 0 || *god || *warpTo != "" || *orbit != "" {
 		go func() {
 			for lastTick.Load() == 0 {
 				select {
@@ -468,6 +519,13 @@ func spawnBot(id int) (*bot, error) {
 		defer t.Stop()
 		phase := rand.Float64() * math.Pi * 2
 		heading := rand.Float64() * math.Pi * 2 // fixed per-bot walk direction
+		orbitRadius := 1.0
+		if *orbit != "" {
+			// Start on the tangent of the ring the bot was warped onto, so it
+			// travels along the circle instead of cutting across it.
+			_, r, a := orbitOf(b.id)
+			orbitRadius, heading = r, a+math.Pi/2
+		}
 		// stagger the mash across bots so 140 activations don't land on one tick
 		castCounter := rand.Intn(max(1, castTicks))
 		for {
@@ -481,10 +539,19 @@ func spawnBot(id int) (*bot, error) {
 				}
 				phase += 0.01
 				var mx, my float32
-				if *disperse {
+				switch {
+				case *orbit != "":
+					// Open loop: walk the tangent and turn at w = v/r, which
+					// traces a circle of radius r. The bot never reads its own
+					// position back, so physics nudges accumulate as drift —
+					// fine for a demo, useless as a precise measurement.
+					heading += walkPerTick / orbitRadius
 					mx = float32(math.Cos(heading) * *roam)
 					my = float32(math.Sin(heading) * *roam)
-				} else {
+				case *disperse:
+					mx = float32(math.Cos(heading) * *roam)
+					my = float32(math.Sin(heading) * *roam)
+				default:
 					mx = float32(math.Cos(phase) * *roam)
 					my = float32(math.Sin(phase) * *roam)
 				}
@@ -556,8 +623,8 @@ func main() {
 		steps = append(steps, n)
 	}
 
-	if (*skillList != "" || *warpTo != "" || *god) && *token == "" {
-		log.Fatal("-skills / -warp / -god need -token (the server's tokens.list entry)")
+	if (*skillList != "" || *warpTo != "" || *orbit != "" || *god) && *token == "" {
+		log.Fatal("-skills / -warp / -orbit / -god need -token (the server's tokens.list entry)")
 	}
 	if *skillList != "" {
 		var names []string
@@ -590,17 +657,24 @@ func main() {
 			log.Fatal("-cast needs at least one cooldown skill in -skills")
 		}
 	}
-	if *warpTo != "" {
-		p := strings.Split(*warpTo, ",")
+	if *warpTo != "" && *orbit != "" {
+		log.Fatal("-warp and -orbit both place the bots; pick one")
+	}
+	if centre := *warpTo + *orbit; centre != "" {
+		which := "-warp"
+		if *orbit != "" {
+			which = "-orbit"
+		}
+		p := strings.Split(centre, ",")
 		if len(p) != 2 {
-			log.Fatalf("bad -warp %q, want 'x,y'", *warpTo)
+			log.Fatalf("bad %s %q, want 'x,y'", which, centre)
 		}
 		var err error
 		if warpX, err = strconv.ParseFloat(strings.TrimSpace(p[0]), 64); err != nil {
-			log.Fatalf("bad -warp x: %v", err)
+			log.Fatalf("bad %s x: %v", which, err)
 		}
 		if warpY, err = strconv.ParseFloat(strings.TrimSpace(p[1]), 64); err != nil {
-			log.Fatalf("bad -warp y: %v", err)
+			log.Fatalf("bad %s y: %v", which, err)
 		}
 	}
 
@@ -670,7 +744,7 @@ func main() {
 		// radius in the snapshot is the real proof, checked separately.
 		// Printed for the no-loadout control too: comparing an aura run against a
 		// control is only valid if both saw a similar mob population.
-		if len(equipPlan) > 0 || *warpTo != "" {
+		if len(equipPlan) > 0 || *warpTo != "" || *orbit != "" {
 			n := math.Max(1, float64(mobSamples.Load()))
 			fmt.Fprintf(os.Stderr,
 				"   (setup sent %d/%d, activations %d, auras CONFIRMED LIVE %d/%d | mobs/viewport %.1f, aggroed %.1f)\n",
