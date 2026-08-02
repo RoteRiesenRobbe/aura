@@ -590,6 +590,54 @@ afterwards. **Worst tick `Systems at: 518%` ≈ 171 ms, against 987 % ≈ 326 ms
 the morning** — the tail nearly halved too. 0 panics, 0 OOM, 0 dropped
 connections, no restart.
 
+## Results — 2026-08-02 night, step 8a (accounts & persistence) deployed
+
+Same box, same spot `(38,31)`, same two ramps, ~90 minutes after the evening
+table. **The question this run answers: did accounts + persistence cost
+throughput?** The deployed binary now mints a play ticket per join, holds a
+`pgxpool`, and saves character snapshots — all new work since the evening row.
+
+⚑ **NOT AN EMPTY SERVER — 2 to 4 real players were in the world throughout**
+(`/players` read 3 at run A's start, 2 at run B's). Every previous row in this
+file was taken empty. Their per-player snapshot encoding lands on exactly the
+bottleneck being measured, so treat the low-population rows as the soft ones.
+Recorded rather than hidden, because the alternative was not running at all.
+`auras CONFIRMED LIVE` N/N at every step of both runs, `points spent 18.0`,
+`passives 3.00`, `cooldowns equipped 3.00` — the builds did land.
+
+| bots | A: evening (corrected) | **A: night (corrected)** | B: evening (corrected) | **B: night (corrected)** |
+|---|---|---|---|---|
+| 20 | 30.0 | 27.3 (30.0) | 30.0 | 27.3 (30.0) |
+| 40 | 30.0 | 27.3 (30.0) | 30.0 | 26.4 (29.0) |
+| 60 | 30.0 | 27.2 (29.9) | 30.0 | 24.3 (26.7) |
+| 80 | 28.7 | 26.1 (28.7) | 28.1 | 21.7 (23.8) |
+| 100 | 20.2 | 21.2 (**23.3**) | 18.9 | 20.8 (**22.9**) |
+| 140 | 9.9 | 10.1 (**11.1**) | 8.7 | 9.1 (**10.0**) |
+
+**Accounts did not cost the ceiling.** Run A is identical to the evening through
+80 bots and *better* at 100 (20.2 → 23.3) and 140 (9.9 → 11.1). Peak CPU 148 %
+of one core vs 146 %, and the tail improved again: **worst tick `Systems at:
+424%` ≈ 140 ms, against 518 % ≈ 171 ms in the evening and 987 % ≈ 326 ms in the
+morning.** 0 panics, 0 OOM, **0 dropped connections**, 0 restarts.
+
+⚑ **Run B's mid-range is the one soft spot, and its own floor says so.** Run A
+read a flat 27.3 / 27.3 / 27.2 at 20/40/60 — the path floor, exactly as on 07-26,
+07-27 and the evening — so its corrected column is on the usual footing. **Run B
+did not**: 27.3 / 26.4 / 24.3 is already sloping at 40. So either the path
+degraded during run B (in which case the 0.91 divisor understates it) or the
+loop genuinely starts losing ground at 40 with the max build. The mob field does
+not explain it — B's `aggroed` was 5.7–7.0 against the evening B's 5.7–6.4, i.e.
+the same thin field. **Worth one clean empty-server re-run of B before anyone
+treats the 40–80 dip as real.**
+
+⚑ **MEMORY IS THE REAL CHANGE, and it is large.** RSS ran **129 MB idle → 281 MB
+peak**, against the evening's **44 MB peak / 49 MB idle** — roughly 3× idle and
+5× under load. On a 4 GB box that is comfortable, and it is the expected shape
+(connection pool + per-character persistence state + the accounts layer), but it
+is the first time this file has had to state a memory figure in hundreds of MB.
+Track it: the ceiling here has always been CPU, and nothing says it stays that
+way.
+
 ## Diagnosis — 2026-08-02, where the time actually goes
 
 The live table above is a single number per population with nothing inside it
