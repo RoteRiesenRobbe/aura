@@ -472,6 +472,53 @@ far too low — sample `utime+stime` instead):
 - **0 panics, 0 OOM, 0 dropped connections**, `connected` == requested at every
   step of both runs, and no restart — so no characters were wiped.
 
+## Results — 2026-08-02 evening, chunk 0 deployed
+
+Same box, same spot `(38,31)`, same two ramps, ~100 minutes after the morning
+run. Deployed binary 15:38 UTC carrying `00bd0549` (the XP-curve table) on top
+of the same round-7 stack. Boot clean: 0 errors, 0 warnings, 87 skills.
+`auras CONFIRMED LIVE` N/N at every step of both runs; server empty.
+
+**⚑ The 27.3 floor is back and this time it is proven to be the path.** Both
+runs read a flat 27.3 at 20 / 40 / 60 bots, so the corrected column divides by
+0.91 as on 07-26 and 07-27. The proof is server-side: during run A's 20-bot
+window the box sat at **32–56 % of one core with ONE over-budget tick in 30 s**,
+and 40 and 60 bots read *exactly* the same 27.3 while CPU climbed to 91 %. A
+server limit cannot be flat across three populations.
+
+| bots | A: morning (pre-fix) | A: evening (corrected) | B: morning (pre-fix) | B: evening (corrected) |
+|---|---|---|---|---|
+| 20 | 30.0 | 27.3 (30.0) | 27.3 | 27.3 (30.0) |
+| 40 | 28.8 | 27.3 (30.0) | 27.3 | 27.3 (30.0) |
+| 60 | 27.6 | 27.3 (**30.0**) | 20.9 | 27.3 (**30.0**) |
+| 80 | 25.4 | 26.1 (28.7) | 11.5 | 25.6 (**28.1**) |
+| 100 | 16.5 | 18.4 (20.2) | 7.5 | 17.2 (**18.9**) |
+| 140 | 8.2 | 9.0 (9.9) | 3.8 | 7.9 (**8.7**) |
+
+**Both ceilings roughly doubled, and the max build is the big winner.** L1 holds
+a full 30 Hz to 60 and is only 4 % off at 80 (morning: off 30 Hz already at 40).
+The maxed build — which in the morning never reached 30 Hz at *any* population,
+including 20 — now holds 30 Hz to 60 and 28.1 at 80. At 80 bots it went
+11.5 → 28.1, at 100 7.5 → 18.9.
+
+⚑ **One honest caveat on the comparison.** The morning's run B also read 27.3 at
+20/40, and it was argued NOT to be the path because that morning's run A read a
+clean 30.0 ten minutes earlier. That inference stands, but if the path had in
+fact degraded between the two morning runs, the morning B column should also be
+divided by 0.91 — which would make it 30.0 / 30.0 / 23.0 / 12.6 / 8.2 / 4.2.
+The improvement at 60–140 survives either reading, so the conclusion does not
+depend on which is right.
+
+Run B's mob field was again thinner and less aggroed than run A's (10–13.8 per
+viewport, **5.7–6.4 aggroed**, vs run A's 12.4–18.8 and 10.6–16.5), so its
+column is once more an understatement.
+
+Server-side: peak **146 % of one core** (up from 135 % — it is delivering more
+snapshots per second, which is the point), RSS 26 → 44 MB, idle 25 % / 49 MB
+afterwards. **Worst tick `Systems at: 518%` ≈ 171 ms, against 987 % ≈ 326 ms in
+the morning** — the tail nearly halved too. 0 panics, 0 OOM, 0 dropped
+connections, no restart.
+
 ## Diagnosis — 2026-08-02, where the time actually goes
 
 The live table above is a single number per population with nothing inside it

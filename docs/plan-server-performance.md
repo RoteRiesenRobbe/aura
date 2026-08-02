@@ -45,9 +45,13 @@ Always the same way, or the numbers are not comparable:
 
 ---
 
-## Chunk 0 — the XP curve ✅ BUILT (uncommitted)
+## Chunk 0 — the XP curve ✅ SHIPPED `00bd0549`, DEPLOYED 2026-08-02
 
-**Cost: done. Bought: tick p50 13.9 → 7.0 ms at 50 clustered bots.**
+**Bought: tick p50 13.9 → 7.0 ms at 50 clustered bots locally, and on the live
+box both ceilings roughly doubled — the maxed build went 11.5 → 28.1 snap/s at
+80 bots and now holds a full 30 Hz to 60, where before the fix it never reached
+30 Hz at any population. Worst tick 326 → 171 ms.** Full table in
+`devops/loadtest.md` §Results — 2026-08-02 evening.
 
 The level curve was evaluated twice per character *per viewer* per tick, each
 a summation of `math.Pow` calls, plus O(level²) to resolve a level from XP on
