@@ -22,11 +22,12 @@
 --   sudo -u postgres psql -d aura -c "SELECT id, name FROM game.characters
 --        WHERE name LIKE 'loadbot\_%' ORDER BY id;"
 --
--- ⚑ It refuses to touch anything that is not a bot. A bot account is
--- ANONYMOUS and owns only characters whose names match the prefix. A row
--- failing either test is a real player who happens to have picked a colliding
--- name, and the whole transaction aborts rather than deleting them — the
--- collision risk that taking a non-reserved prefix buys.
+-- ⚑ It refuses to touch anything that is not a bot. A bot account is either
+-- ANONYMOUS or REGISTERED UNDER THE PREFIX, and owns only characters whose
+-- names match the prefix. A row failing either test is a real player who
+-- happens to have picked a colliding name, and the whole transaction aborts
+-- rather than deleting them — the collision risk that taking a non-reserved
+-- prefix buys.
 --
 -- ⚑ ANONYMOUS IS `username IS NULL`, NOT "no credentials row". Every account has
 -- an account_credentials row from birth — it is where the anonymous secret
@@ -34,6 +35,17 @@
 -- row. Guarding on the row's absence matches nothing and silently deletes
 -- nothing, which is exactly how this was first written and how it failed: a
 -- clean "nothing to do" over ten rows sitting right there.
+--
+-- ⚑ AND ANONYMOUS ALONE IS NOT ENOUGH SINCE `cmd/authbench`. That tool measures
+-- the credentialed path, so its bots REGISTER — and a registered bot is not
+-- anonymous. Claiming only `username IS NULL` does not merely miss those rows:
+-- it excludes them from the doomed set, whereupon their characters match the
+-- pattern while belonging to an account outside it, the guard below fires, and
+-- the transaction aborts. **One registered bot would strand every other bot row
+-- from the same run.** Hence the username may also match the prefix — which is
+-- why authbench registers usernames under the SAME `-name-prefix` it gives
+-- characters, and why that is a contract between the two files, not a
+-- convention.
 --
 -- ⚑ No ON DELETE CASCADE anywhere in this schema (deliberate, see
 -- manual-db-migrations.md §3), so children are deleted explicitly, in order.
@@ -52,12 +64,21 @@ DECLARE
     n_chars  INT;
     n_accts  INT;
     bad      INT;
+    stray    INT;
 BEGIN
-    -- Candidate accounts: anonymous, and every character they own matches.
+    -- Candidate accounts: no username that is not ours (i.e. anonymous, or
+    -- registered under the prefix), and every character they own matches.
+    --
+    -- ⚑ Phrased as "no FOREIGN username" rather than "NULL or ours" on purpose:
+    -- an account carries at most one credentials row, but writing the positive
+    -- form means an account with no row at all would fail it, and the negative
+    -- form is what keeps the anonymous case working through the same clause.
     SELECT array_agg(a.id) INTO doomed
     FROM game.accounts a
     WHERE NOT EXISTS (SELECT 1 FROM game.account_credentials c
-                       WHERE c.account_id = a.id AND c.username IS NOT NULL)
+                       WHERE c.account_id = a.id
+                         AND c.username IS NOT NULL
+                         AND c.username NOT LIKE pat)
       AND EXISTS (SELECT 1 FROM game.characters ch WHERE ch.account_id = a.id AND ch.name LIKE pat)
       AND NOT EXISTS (SELECT 1 FROM game.characters ch WHERE ch.account_id = a.id AND ch.name NOT LIKE pat);
 
@@ -77,6 +98,21 @@ BEGIN
         RAISE EXCEPTION
             '% character(s) match % but belong to accounts that are not bots '
             '(registered, or owning other characters). Refusing to delete anything.', bad, pat;
+    END IF;
+
+    -- Residue this script cannot claim: a username under the prefix on an
+    -- account that missed the doomed set because it also owns a character named
+    -- something else. NOT a reason to refuse — deleting nothing here risks
+    -- nobody's rows — but the operator has to hear it, because that account now
+    -- sits in the database forever unless someone removes it by hand.
+    SELECT count(*) INTO stray
+    FROM game.account_credentials c
+    WHERE c.username LIKE pat
+      AND (doomed IS NULL OR NOT (c.account_id = ANY(doomed)));
+    IF stray > 0 THEN
+        RAISE NOTICE
+            '% account(s) carry a username matching % but own other characters — '
+            'left in place, remove by hand', stray, pat;
     END IF;
 
     IF doomed IS NULL THEN

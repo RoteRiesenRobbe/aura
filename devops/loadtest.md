@@ -19,6 +19,12 @@ keep 30 Hz".
   and `/tickstats` (p50/p95/p99/max of per-tick wall-clock vs the 33 ms budget).
   **Off unless `-profile` is passed** — production never binds it.
 - `backend/pkg/aura/core/tickstats.go` — the 8192-sample ring behind `/tickstats`.
+- `backend/cmd/authbench/` — the **credentialed** account path (register/login)
+  under concurrency. A different question from the ramp, deliberately kept in a
+  different binary: `loadbot` creates an account per bot but only on the
+  ANONYMOUS path, which is bcrypt-free by design so that a capacity ramp
+  measures the game loop instead of a password hash. See "Auth: the credentialed
+  path" below.
 
 ## The break signal
 
@@ -146,6 +152,112 @@ never restarted.
 run (`-token` + `-skills`). Without them a bot's aura sensor stays at radius 0
 and the whole sensor + broadphase + SkillSystem cost is unpaid — see "What the
 walking-bot numbers miss". A like-for-like re-measure needs the cheat token.
+
+## Auth: the credentialed path (`cmd/authbench`)
+
+`loadbot` mints a real account per bot, but only the **anonymous** one — a
+SHA-256 lookup key, no bcrypt, deliberately, so a ramp measures the game loop.
+Register and login, the two calls that actually hash, were therefore unmeasured
+on the live box. `cmd/authbench` measures them, and answers the question
+`pkg/aura/auth/password.go` leaves open in as many words: *"Revisit against a
+measurement on the VPS."*
+
+```shell
+cd backend
+go run ./cmd/authbench -addr aura-game.duckdns.org:443 -name-prefix loadbot_ -n 8  -c 2   # baseline
+go run ./cmd/authbench -addr aura-game.duckdns.org:443 -name-prefix loadbot_ -n 40 -c 20  # gate pressure
+```
+
+Each virtual player makes three calls: `POST /api/characters` (no bcrypt — the
+**control**, and unavoidable anyway since registration upgrades an existing
+anonymous account), then `/api/auth/register`, then optionally `/api/auth/login`.
+Having the control in the same run on the same connection is what separates "the
+box is slow" from "the gate is queueing".
+
+⚑ **Usernames take `-name-prefix` too**, because `cleanup-loadbots.sql` claims a
+bot as *anonymous OR registered under the prefix*. That is a contract between the
+two files: a registered bot outside the prefix does not merely survive cleanup,
+it lands outside the doomed set, its characters then match the pattern from an
+unclaimed account, the guard fires, and **the whole transaction aborts** — one
+stray bot strands the entire run's rows.
+
+### Results — 2026-08-02, ~19:53–19:57 UTC, live (2 vCPU Hetzner, 1 real player on)
+
+| calls | concurrency | control (create) p50 | register p50 | register p95 | max | wall |
+|---|---|---|---|---|---|---|
+| 5   | 1   | 32 ms  | 229 ms   | 235 ms   | 235 ms   | — |
+| 16  | 8   | 93 ms  | 645 ms   | 758 ms   | 758 ms   | 1.4 s |
+| 40  | 20  | 111 ms | 1.885 s  | 2.047 s  | 2.05 s   | 4.3 s |
+| 150 | 150 | 389 ms | 7.286 s  | 13.709 s | 14.244 s | **14.79 s** |
+
+⭐ **Throughput is flat at ~10.1 registrations/second — 2 slots ÷ 197 ms — and
+concurrency does not change it.** The 150-at-once run was predicted at
+`150 × 197 ms ÷ 2 = 14.8 s` and measured **14.791 s**, inside 0.1 %. So the wall
+for a burst of N is simply `N ÷ 10.1` seconds however they arrive; what
+concurrency changes is only *who waits how long*. At 150 the median caller sat
+behind ~75 hashes (7.3 s) and the last behind 149 (14.2 s).
+
+⚑ **Under a burst the system does not refuse anyone — it makes them wait,
+silently.** All 150 succeeded: 0 refused, 0 busy, 0 timeouts. Combined with the
+unreachable 503 below, that means a 150-deep burst gives a real browser **14
+seconds of spinner and no feedback**, and nothing sheds load. Degradation is
+pure latency, with no back-pressure signal at any layer.
+
+⚑ **The ANONYMOUS path degrades too, and it is not bcrypt.** The control call
+went 32 → 111 → 389 ms as concurrency rose; that is the 10-connection pgx pool
+(`store.go:50`, `[PLACEHOLDER]`) plus 150 TLS handshakes. Far milder than the
+hash queue, but it means an auth burst slows down character creation for players
+who are not registering at all.
+
+⭐ **`bcryptCost = 11` costs ~197 ms on the live box, not the ~0.9 s on record.**
+229 ms register minus a 32 ms same-connection control. The comment's estimate was
+extrapolated from *game-loop work per second* (~3.4× slower than the dev box) and
+applied to bcrypt, which is a different workload — the dev box measured 263 ms for
+cost 11, so **the VPS is in fact slightly FASTER at hashing than the dev machine**,
+not 3.4× slower. The comment flagged itself as "an estimate, not a reading"; the
+direction of caution was right and the magnitude was wrong by ~4.5×.
+
+⭐ **Consequence for `DefaultGateSlots = 2`:** the worked example in `password.go`
+says *"20 simultaneous fresh logins serialise into ~18 s at one slot against ~9 s
+at two"*. Measured, 20 concurrent register calls tail out at **2.0 s**, and 40 at
+concurrency 20 drain in **4.3 s wall**. The 2-vs-1-slot trade is real but costs
+about a fifth of what it was priced at, which makes **1 slot** (the principled
+`GOMAXPROCS-1` bound the comment weighed and declined) considerably cheaper than
+it looked — a 20-deep burst would tail at ~4 s rather than ~18 s.
+
+⚑ **The 503 never fires, and the tail does NOT get one.** `Gate.do` returns
+`ErrBusy` only when the **caller's** request context is done, and
+`cmd/aurad/aurad.go` builds its `http.Server` with no `ReadTimeout`, no
+`WriteTimeout` and no `TimeoutHandler` — so `r.Context()` ends only on client
+disconnect. A queued caller waits as long as the queue takes; one that hangs up
+first has its 503 written into a closed connection. Across 97 live registers:
+**0 busy, 0 timeouts, 0 failures.** The overflow path described in the comment is
+unreachable in production as deployed. That is not automatically wrong — waiting
+2 s beats being refused — but it means the gate's back-pressure is *latency*, not
+rejection, and nothing sheds load if a burst ever does get big.
+
+**No measurable game-loop impact, at either size.** Two witness bots held through
+two identical windows with the burst fired into the second only:
+
+| burst | control window | during burst |
+|---|---|---|
+| 40 at c=20 (4.3 s) | 27.2 snap/s/bot | 27.3 |
+| 150 at c=150 (14.8 s) | 27.3 snap/s/bot | 27.3 |
+
+⭐ **~15 s of a saturated core did not disturb the 30 Hz loop measurably.** This
+is the strongest operational result here: the gate does what it was built for.
+A full stall would have pulled the 30-bot average down hard even diluted across
+a 30 s window, and nothing moved.
+
+⚑ Both windows sit at ~27.3, not the healthy 30.0 — equal across every A/B so it
+does not affect these results, but unexplained, and worth a look before anyone
+reads 27 as normal.
+
+⚑ **Name stamps are per-SECOND for a reason.** An earlier minute-resolution stamp
+put two runs in the same minute and 5 of 16 bots took `409 name_taken` on
+`/api/characters`. That costs no throttle step (only `username_taken` does, in
+`handleRegister`) so nothing looks wrong — the run just silently measures a
+smaller sample at a lower real concurrency than the flag says.
 
 ## Key flags
 
