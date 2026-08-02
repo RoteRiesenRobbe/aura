@@ -160,6 +160,39 @@
 		}
 	}
 
+	// The fullscreen toggle, mirroring the start screen's control (same
+	// preference, same switch markup). Its own row under the footer divider: it
+	// is a device setting, not a step in the flow, and must not read as one.
+	.accountPanelOptions {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		// Deliberately far below the footer's buttons: it is a device setting
+		// sharing a panel with the flow's actions, and sitting close to "Log in"
+		// made it read as part of that decision.
+		margin-top: 2.5rem;
+		font-size: 1.1rem;
+		opacity: 0.8;
+		cursor: pointer;
+
+		&:hover {
+			opacity: 1;
+		}
+
+		> .switch {
+			margin-right: 12px;
+		}
+
+		> label {
+			cursor: pointer;
+			transition: color 0.18s;
+		}
+
+		&:hover > label {
+			color: #e37313;
+		}
+	}
+
 	.characterPortrait {
 		width: 6rem;
 		height: 6rem;
