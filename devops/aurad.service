@@ -6,7 +6,16 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/aurad
-ExecStart=/opt/aurad/aurad -dev -content ./api
+# Secrets: AURA_DB_URL + AURA_JWT_KEY (step 8a). Read by systemd as root before
+# DynamicUser drops privileges, so the file is 0600 root:root. Provisioned by
+# hand on the server — deliberately NOT in conf.json (tracked, game tuning only)
+# and NOT in deploy.sh, whose virtue is that it is rsync + restart.
+EnvironmentFile=/etc/aurad/aurad.env
+# ⚑ NO -dev. The client is served because devops/conf.json sets
+# server.frontendDir (see serveFrontend in cmd/aurad/aurad.go). -dev additionally
+# opens the reserved `hrnss_` name prefix and the loopback origin exception,
+# neither of which belongs on a public server.
+ExecStart=/opt/aurad/aurad -content ./api
 DynamicUser=yes
 CacheDirectory=cache
 StateDirectory=state

@@ -384,6 +384,8 @@ func bootTlsServer(gameHandler http.Handler, sidecars map[string]http.Handler, c
 
 	if dev {
 		slog.Info("🔥 dev server running", slog.String("url", fmt.Sprintf("https://%s?wsUrl=wss://%s/game", host, host)))
+	}
+	if serveFrontend(cfg, dev) {
 		mux.Handle("/", frontendHandler(cfg.FrontendDir))
 	} else {
 		// 'ping' endpoint
@@ -436,6 +438,8 @@ func bootServer(gameHandler http.Handler, sidecars map[string]http.Handler, cfg 
 
 	if dev {
 		slog.Info("🔥 dev server running", slog.String("url", fmt.Sprintf("http://localhost:%d?wsUrl=ws://localhost:%d/game", port, port)))
+	}
+	if serveFrontend(cfg, dev) {
 		mux.Handle("/", frontendHandler(cfg.FrontendDir))
 	} else {
 		// 'ping' endpoint for liveness probe
@@ -449,6 +453,30 @@ func bootServer(gameHandler http.Handler, sidecars map[string]http.Handler, cfg 
 	}
 	// start server
 	go http.ListenAndServe(addr, mux)
+}
+
+// serveFrontend reports whether this boot mounts the game client at "/".
+//
+// ⚑ THIS USED TO BE `-dev` ALONE, AND THAT MADE `-dev` LOAD-BEARING IN
+// PRODUCTION. The live systemd unit therefore ran with it, which was harmless
+// until step 8a gave the flag two security jobs it never had before: it opens
+// the reserved `hrnss_` character-name prefix (buildAccountsServer's
+// AllowHarnessNames) and the loopback origin exception (buildOriginPolicy). The
+// deployment could neither drop the flag — the site would serve a bare 204 and
+// no client — nor keep it without contradicting both of those rules.
+//
+// Serving the client is a DEPLOYMENT question, so it is answered by the
+// deployment's own conf: `server.frontendDir`. -dev still implies it, so every
+// local workflow and harness script is unchanged.
+//
+// ⚑ conf.default.json ships a frontendDir, so this is true on essentially every
+// boot and the 204 ping below survives only where frontendDir is explicitly
+// empty. That is the intent — the ping exists for a deployment that serves no
+// client, not as the common case. A frontendDir naming a directory that does not
+// exist yields 404s rather than a boot failure (frontendHandler only takes the
+// absolute path; it does not stat).
+func serveFrontend(cfg cfg.Server, dev bool) bool {
+	return dev || cfg.FrontendDir != ""
 }
 
 func frontendHandler(fsPath string) http.Handler {
