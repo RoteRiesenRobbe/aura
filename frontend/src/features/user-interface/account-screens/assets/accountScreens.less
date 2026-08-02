@@ -56,15 +56,20 @@
 		}
 	}
 
+	// ⚑ `auto` side margins, not just the panel's `text-align: center`. These
+	// three are 24rem-wide BLOCKS: in a narrow panel the block fills the panel
+	// and the two look identical, but character-select is as wide as three slot
+	// cards, so the block sat flush left and its centred text was centred inside
+	// a left-hanging box rather than under the cards.
 	.panelNote {
-		margin: 0 0 1rem;
+		margin: 0 auto 1rem;
 		max-width: 24rem;
 		opacity: 0.85;
 		font-size: 1.2rem;
 	}
 
 	.panelWarning {
-		margin: 1rem 0 0;
+		margin: 1rem auto 0;
 		max-width: 24rem;
 		font-size: 1.2rem;
 		color: #ffb95e;
@@ -130,7 +135,7 @@
 	// Failures are shown, never swallowed. Hidden until there is something to
 	// say, so an empty row never reserves space.
 	.formError {
-		margin: 0.75rem 0 0;
+		margin: 0.75rem auto 0;
 		max-width: 24rem;
 		color: #ff8080;
 		font-size: 0.9rem;
@@ -258,6 +263,19 @@
 	.slotCard.locked {
 		opacity: 0.35;
 		cursor: not-allowed;
+	}
+
+	// The character in the world, in another window. It keeps its portrait and
+	// name — it is still the player's character, not a disabled slot — and
+	// simply carries a state where its controls would be.
+	.slotCard.inWorld {
+		border-color: #ffb95e;
+
+		.slotInWorld {
+			margin-top: 0.6rem;
+			font-size: 1rem;
+			color: #ffb95e;
+		}
 	}
 
 	// ---------------------------------------------------------------- dialog

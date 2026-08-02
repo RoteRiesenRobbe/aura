@@ -11,12 +11,17 @@ import * as AccountScreens from './AccountScreens';
  *   Login     SWITCHES to a different, already-existing account — so the
  *             account you came from may have to be discarded (§6).
  *
- * ⚑ Login is reachable ONLY while logged out, from the home screen
- * (§10b ruling 3). That is not merely tidier: §6's discard soft-deletes every
- * alive character on the anonymous account, and while playing that would
- * include the character currently in the world — `/api/auth/login` has no
- * live-session check, only `/select` does. Restricting reachability makes the
- * case unreachable instead of guarding it.
+ * ⚑ Login is reachable only while logged out — from the home screen, and from
+ * character-select for a guest (§10b ruling 3).
+ *
+ * ⚑ THAT IS NO LONGER THE GUARD IT WAS CLAIMED TO BE, and the difference is
+ * worth knowing: "logged out" is not "not playing". A guest can be at
+ * character-select in one tab while the FIRST is playing that very anonymous
+ * character, so §6's discard — which soft-deletes every alive character on the
+ * account — could take one out from under a live session. Both halves are now
+ * enforced on the server instead: login refuses an account that is already in
+ * the world, and the discard ends the abandoned account's world session before
+ * deleting its characters (accounts/auth.go).
  */
 
 export interface AnonymousState {

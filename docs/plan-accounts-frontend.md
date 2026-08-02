@@ -1053,6 +1053,125 @@ trip onto the hot path, or join the player as a nameless character.
 
 ## 10a. Chunk ledger
 
+### Bugfix — two tabs, one account ✅ DONE 2026-08-02, `[uncommitted]`
+
+**The reported bug: "logging in twice in two tabs reaches character selection.
+The logout button there doesn't work and says *That request could not be
+understood*."** Then, after the first fix attempt: **"pressing logout on the
+second tab kills the session of the first tab and the game freezes."** Three
+defects and one architectural smell came out of it.
+
+**The reframe that decided the shape of the fix.** The PO's instinct was to stop
+the *second login*. Read against the code, the second login is not the way in:
+the session cookie is **browser-wide** and `sessionStorage` is per-tab, so a
+second tab takes the `AccountFlow.start()` branch, `GET /api/characters`
+succeeds on the shared cookie, and character-select renders **with no
+credentials typed at all**. A login guard closes the cross-browser case and
+cannot close the reported one. ⚑ The PO then asked the right follow-up — *could
+we just forbid a second character-select?* — and the answer is no, for a reason
+worth keeping: **the cookie identifies an ACCOUNT, not a TAB**, so a per-tab rule
+needs a per-tab token invented for it, plus a TTL and a heartbeat (HTTP has no
+"I left this screen" event), plus a take-over rule — `Stashed` vs `Connected`
+reinvented in a second registry. And it would still not remove the failure: two
+tabs can press Delete in the same tick and one loses the race. **The list is a
+snapshot; the fix is to make a stale snapshot self-correcting, not to forbid a
+second reader.**
+
+**Shipped — the four defects:**
+
+1. **Login is refused while the account is in the world** (`handleLogin`, after
+   `Throttle.Succeed` so correct credentials cost no throttle step, before the
+   §6 discard so a refusal has no destructive side effect). ⚑ **`Connected`, not
+   `Live`** — a stashed session is a dropped socket, and refusing it would kill
+   the reconnect path for the full 10-minute stash window.
+2. **Logout is idempotent** (`handleLogout` checks the **cookie first**). This is
+   the reported 400: the browser-wide cookie means one tab's logout clears every
+   tab's, so a second tab's Log out arrived carrying only a **leftover anonymous
+   secret** — `resolveCaller` resolved that, found a caller that had not come in
+   on a token, and answered an already-completed logout with `msgBadRequest`. The
+   leftovers existed because `AccountsApi.login()` forgot the secret and
+   `register()` did not; it now does too (§5.3). `caller.viaJWT` became dead with
+   this and is deleted.
+3. **The §6 discard no longer deletes a character out of the world.** Login is
+   reachable from character-select for a guest, so a guest playing in tab 1 could
+   log into a registered account from tab 2 and soft-delete the character
+   standing in the world — releasing its name to the next player.
+   `discardPresentedAnonymousAccount` now calls `World.EndSessionFor` on the
+   account it is abandoning first. ⚑ `handleDeleteCharacter` refuses exactly this;
+   the discard path went round it, because it re-resolves a **second identity
+   out of band, mid-request, from a raw header**.
+4. **`playingCharacterId` + refresh-on-refusal.** The server reports the
+   account's live session; character-select renders the played character as
+   **"In world"** with no Play and no Delete, warns at panel level, and requires
+   **two presses** to log out. `bad_request` / `already_logged_in` /
+   `character_playing` on Play or Delete now **re-read the list and then say
+   why** — the card disappears, or it stops offering Play. ⚑ The message goes on
+   AFTER the refresh: `show()` clears the error slot.
+
+**Then the smell, raised by the PO: "semantically the char list should not be an
+auth."** Correct, and the code admitted it — `GET /api/characters` also answered
+*who am I*, *have I progress worth warning about*, and *am I in the world*.
+`resolveIdentityQuietly()` fetched a whole character list **from inside the
+world** and discarded the characters; a cold load with nobody signed in was
+answered **401**, an error standing in for an ordinary answer, which two harness
+scripts had to filter out of their console-error checks to stay useful.
+
+**Shipped: `GET /api/session`** — a pure read (mints nothing, sets nothing,
+records nothing) returning `hasAccount` / `registered` / `username` /
+`hasProgress` / `playingCharacterId`, answering **200 with `hasAccount: false`**
+for "nobody". `/characters` lists characters and nothing else; character-select
+fetches both with `Promise.all`. ⚑ The one side effect kept: a **stale identity
+clears the cookie**, because a dead cookie *shadows* a good anonymous secret
+(`resolveCaller` prefers the cookie and never reaches the header) and is
+unrefreshable anyway — `Keys.Refresh` goes through `Verify`, which rejects
+expired tokens.
+
+**⚑ The proof that the split was real: both harnesses had their 401 filters
+REMOVED, and both still report 0 console errors.** A clean start is now genuinely
+clean, and a 401 reaching those listeners again is a defect.
+
+**Verified:** Go **full suite green**, `vet`/`gofmt` clean · frontend typecheck +
+**92/92** vitest + prod build · `-dev` boot **0 errors 0 warnings** (86 skills/15
+factions/64 mobs/10 recipes/5 props/1 milestone/4 quests/777 props/485
+spawns/5 campfires) · **`chunk2-accounts.mjs` 24/24** (+3, unfiltered) ·
+**`chunk4-persistence.mjs` 15/15** · harness DB cleaned.
+
+**Tests, both mutation-checked** (the PO asked for no extra tests, then asked for
+these two once the gap was named):
+- `TestLoginRefusesAnAccountThatIsPlaying` — ⚑ its **stashed** half is the point:
+  flipping `Connected` → `Live` fails **exactly** that assertion and nothing
+  else, so the test pins the *word*, not just the behaviour.
+- `TestSessionReportsTheCharacterInTheWorld` — nothing, the character, then
+  nothing once stashed.
+- `chunk2-accounts.mjs` leg **4b** — ⚑ a second **PAGE in the same context**; a
+  second *context* has its own cookie jar and would prove nothing about a
+  browser-wide cookie. Mutation-proved by making the server always report
+  `playingCharacterId: 0`: all three legs go red and the third reports
+  `stillHere=false` — **the original bug reproduced verbatim**.
+
+**⚑ Two harness traps, both of which produced a run that proved nothing:**
+- **A second `aurad` from 14:30 held port 2000** and `taskkill //F //IM aurad`
+  killed only one of the two, so `chunk4-persistence` came back **10/15 with the
+  character at level 1** — indistinguishable from a save regression. Use
+  `Get-Process aurad | Stop-Process -Force` and **check the PID's StartTime**.
+- **A mutation run that does not compile leaves the OLD binary serving**, and the
+  harness comes back green having tested nothing. A suspiciously green mutation
+  run means "read the build output" before it means anything else.
+
+**Deliberately NOT done, now `backlog.md` §46–§48:** §46 fold the anonymous
+secret into the session (exchange once instead of carrying it on every request —
+**most likely next**), §47 the *"Connection lost — reload to reconnect"* banner
+the other window still shows after a logout elsewhere (wrong twice: not a
+connection loss, and the reload lands on the creation screen), §48 the reconnect
+token may be deletable outright.
+
+**⚑ One known property:** the "In world" card does not self-heal. If the server
+has not yet noticed a dropped socket the card shows "In world" until the next
+fetch — but `/select` would have 409'd in that window anyway, so it is never
+worse than the button it replaced, only not self-correcting.
+
+---
+
 ### Bugfix — the campfire bind survives a login ✅ DONE 2026-08-02, `3c9e17ba`
 
 **The reported bug: "the character does not spawn at the last campfire they

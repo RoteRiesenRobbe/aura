@@ -83,9 +83,33 @@ export interface Character {
     createdAt: string;
 }
 
+/** What the caller owns. ⚑ Who the caller IS lives on SessionState. */
 export interface CharacterList {
     characters: Character[];
     maxAliveCharacters: number;
+}
+
+/**
+ * Who the caller is, from `GET /api/session`.
+ *
+ * ⚑ All of this used to ride the character list, which is why this interface
+ * reads like a grab bag: it is not one, it is the session state that had
+ * nowhere else to live. `resolveIdentityQuietly` fetched a whole character list
+ * to read `username` and discarded the characters; a cold load with nobody
+ * signed in came back 401, an error standing in for the perfectly ordinary
+ * answer "nobody".
+ */
+export interface SessionState {
+    /**
+     * False for a first-ever visitor AND for a stored identity that no longer
+     * resolves. ⚑ Either way it is the cue to forget any stored anonymous
+     * secret: if a secret were good, this would be true.
+     */
+    hasAccount: boolean;
+    /** Gates Logout (§5.3) and the registration nag (§5.4). */
+    registered: boolean;
+    /** Present only when registered — the settings panel's "Signed in as …". */
+    username?: string;
     /**
      * ⚑ Answers §6's "is this anonymous account worth warning about" on the
      * SERVER. Inferring it from the character list would be right today and
@@ -93,10 +117,15 @@ export interface CharacterList {
      * sacrificed still holds bloodline unlocks.
      */
     hasProgress: boolean;
-    /** Gates Logout (§5.3) and the registration nag (§5.4). */
-    registered: boolean;
-    /** Present only when registered — the settings panel's "Signed in as …". */
-    username?: string;
+    /**
+     * The character this account has in the world right now; absent for none.
+     *
+     * ⚑ The session cookie is browser-WIDE, so a second tab reaches
+     * character-select with no login at all. Without this the screen lies: a
+     * Play button that can only 409, a Delete that can only be refused, and a
+     * Log out that silently drops the other window out of the world.
+     */
+    playingCharacterId?: number;
 }
 
 export interface CreatedCharacter {
@@ -207,6 +236,19 @@ export const AccountsApi = {
         return request<CharacterList>('GET', 'characters');
     },
 
+    /**
+     * Ask the server who we are.
+     *
+     * ⚑ A PURE READ that never refuses for want of an identity: "nobody is
+     * signed in" comes back as `hasAccount: false` with a 200, because that is
+     * an ordinary state of the product rather than a failed request. Do not
+     * reach for `refresh()` to answer this — it mints a new token as a side
+     * effect, and reading a name should not rotate a session.
+     */
+    session(): Promise<SessionState> {
+        return request<SessionState>('GET', 'session');
+    },
+
     deleteCharacter(id: number): Promise<void> {
         return request<void>('POST', `characters/${id}/delete`);
     },
@@ -224,8 +266,16 @@ export const AccountsApi = {
     },
 
     /** Sets credentials on the CURRENT (anonymous) account — never creates one. */
-    register(username: string, password: string): Promise<Session> {
-        return request<Session>('POST', 'auth/register', {username, password});
+    async register(username: string, password: string): Promise<Session> {
+        const session = await request<Session>('POST', 'auth/register', {username, password});
+        // ⚑ Same rule as login (§5.3): a registered player carries no local
+        // anonymous secret. The server deliberately leaves the column in place,
+        // so forgetting it is the client's job — and leaving it behind was not
+        // merely untidy. Once the session cookie went away the secret became the
+        // only identity on the request, which is how pressing Log out could
+        // answer "That request could not be understood."
+        Identity.forgetAnonymous();
+        return session;
     },
 
     /**

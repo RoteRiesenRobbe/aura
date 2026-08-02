@@ -152,6 +152,7 @@ func New(cfg Config) (*Server, error) {
 	s.mux.HandleFunc("POST /api/auth/register", s.handleRegister)
 	s.mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	s.mux.HandleFunc("POST /api/auth/logout", s.handleLogout)
+	s.mux.HandleFunc("GET /api/session", s.handleSession)
 	s.mux.HandleFunc("POST /api/session/refresh", s.handleRefresh)
 	return s, nil
 }

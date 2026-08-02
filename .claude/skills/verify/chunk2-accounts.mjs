@@ -48,13 +48,14 @@ const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
 const page = await ctx.newPage();
 
 const consoleErrors = [];
-// ⚑ A 401 on a COLD load is expected, not a defect: the client always asks the
-// server "who am I" (identity can be the httpOnly cookie, which script cannot
-// see), and `no_identity` is the honest answer when nobody is signed in. The
-// browser logs every 401 as a console error regardless. The assertion that this
-// is handled correctly is "cold load shows character creation", below.
+// ⚑ NO FILTER, and that is now an assertion in itself. A cold load used to log a
+// 401 every time — the client asks "who am I" before it can know, and refusing
+// for want of an identity made an ordinary answer into an error the browser
+// reports — so this listener had to skip 401s to stay useful. `GET /api/session`
+// answers "nobody" with a 200, so a clean start is genuinely clean, and any 401
+// reaching here again is a real defect.
 page.on('console', (m) => {
-  if (m.type() === 'error' && !/\b401\b/.test(m.text())) consoleErrors.push(m.text());
+  if (m.type() === 'error') consoleErrors.push(m.text());
 });
 page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message}`));
 
@@ -156,6 +157,55 @@ try {
 
 const nagGone = await page.locator('#registrationNag').evaluate((el) => el.classList.contains('hidden'));
 nagGone ? pass('the nag retires once registered') : fail('the nag retires once registered');
+
+// --- 4b. a SECOND TAB while the first is playing ----------------------------
+// ⚑ The reported two-tab bug, and the one case no login guard can reach: the
+// session cookie is browser-WIDE, so a second tab lands on character-select
+// having typed no credentials at all. It used to render a screen that lied —
+// a Play that could only 409, a Delete that could only be refused, and a Log
+// out that dropped this window out of the world with no warning.
+//
+// ⚑ A second PAGE in the same context, not a second context: contexts have
+// their own cookie jars, so a new context would be a different browser and
+// would prove nothing about the case being tested.
+const tab2 = await ctx.newPage();
+tab2.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(`tab2: ${m.text()}`); });
+tab2.on('pageerror', (e) => consoleErrors.push(`tab2 pageerror: ${e.message}`));
+try {
+  await tab2.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+  await tab2.waitForSelector('#characterSelect:not(.hidden)', { state: 'visible', timeout: 120_000 });
+
+  const card = await tab2.$$eval('#characterSelect .slotCard', (els, name) => {
+    const el = els.find((e) => (e.querySelector('.slotCharacterName') || {}).textContent === name);
+    if (!el) return null;
+    return {
+      inWorld: !!el.querySelector('.slotInWorld'),
+      offersPlay: !!el.querySelector('.button'),
+      offersDelete: !!el.querySelector('.slotDelete'),
+    };
+  }, charName);
+  card && card.inWorld && !card.offersPlay && !card.offersDelete
+    ? pass('the second tab shows the character as In world, with no Play or Delete')
+    : fail('the second tab shows the character as In world, with no Play or Delete', JSON.stringify(card));
+
+  const warned = await tab2.isVisible('#characterSelect .playingWarning');
+  warned ? pass('the second tab warns the account is in the world')
+    : fail('the second tab warns the account is in the world');
+
+  // ⚑ ONE press must not log out. Ending the other window's session is what
+  // logout does here, so it has to be deliberate — the first press only warns
+  // and relabels.
+  await tab2.click('#logoutButton');
+  await tab2.waitForTimeout(1500);
+  const stillHere = await tab2.isVisible('#characterSelect');
+  const label = ((await tab2.textContent('#logoutButton')) || '').trim();
+  stillHere && /leave the world/i.test(label)
+    ? pass('one press of Log out only confirms', `label "${label}"`)
+    : fail('one press of Log out only confirms', `stillHere=${stillHere} label="${label}"`);
+} catch (e) {
+  fail('second tab while the first is playing', String(e).slice(0, 160));
+}
+await tab2.close();
 
 // --- 5. return as a registered player ---------------------------------------
 await page.evaluate(() => sessionStorage.clear());  // drop reconnectToken: force the cold path

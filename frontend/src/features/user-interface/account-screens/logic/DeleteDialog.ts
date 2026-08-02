@@ -21,7 +21,7 @@ import * as AccountScreens from './AccountScreens';
 const CONFIRM_COOLDOWN_MS = 5000;
 
 let target: Character | null = null;
-let onDeleted: () => void = () => undefined;
+let onDeleted: (staleViewMessage?: string) => void = () => undefined;
 let countdownTimer: number | null = null;
 let isWired = false;
 
@@ -48,7 +48,12 @@ function wire(): void {
         });
 }
 
-export function open(character: Character, onSuccess: () => void): void {
+/**
+ * @param onSuccess re-read the list. Called with a message when the refusal
+ *   said the caller's view of that character was already out of date — see
+ *   CharacterSelect.refreshWithMessage.
+ */
+export function open(character: Character, onSuccess: (staleViewMessage?: string) => void): void {
     AccountScreens.whenReady(() => {
         wire();
         target = character;
@@ -118,6 +123,22 @@ async function confirm(): Promise<void> {
         close();
         onDeleted();
     } catch (error) {
+        // ⚑ Two refusals mean the CARD BEHIND THIS DIALOG IS STALE, not that
+        // anything went wrong: the character was already deleted in another tab
+        // (the server answers "no such character of yours" the same way it
+        // answers "not yours" — ids are guessable), or it has since entered the
+        // world. Keeping the dialog open on an error the player cannot act on
+        // leaves them staring at a card that should not be there; closing and
+        // re-reading resolves it either way, and in the already-deleted case
+        // that IS the outcome they asked for.
+        if (error instanceof ApiError
+            && (error.code === 'bad_request' || error.code === 'character_playing')) {
+            close();
+            onDeleted(error.code === 'bad_request'
+                ? 'That character is already gone.'
+                : error.message);
+            return;
+        }
         const message = error instanceof ApiError
             ? error.message
             : 'Something went wrong. Please try again.';

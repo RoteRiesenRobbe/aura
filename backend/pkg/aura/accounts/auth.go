@@ -157,6 +157,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	s.cfg.Throttle.Succeed(ip, credentials.AccountID)
 
+	if _, playing := s.cfg.Sessions.Connected(credentials.AccountID); playing {
+		refuse(w, http.StatusConflict, codeAlreadyLoggedIn, msgAlreadyLoggedIn)
+		return
+	}
+
 	// §6: abandon the anonymous account this browser was on, but only when the
 	// player has confirmed it, and never the account they just logged into.
 	if body.DiscardAnonymous {
@@ -197,6 +202,25 @@ func (s *Server) discardPresentedAnonymousAccount(r *http.Request, loggedInAccou
 	if credentials.AccountID == loggedInAccountID {
 		return
 	}
+
+	// ⚑ TAKE THE ABANDONED ACCOUNT OUT OF THE WORLD FIRST. Login is reachable
+	// from character-select, and a second tab can be sitting there while the
+	// FIRST is playing that very anonymous character — so without this the
+	// discard soft-deletes a character that is still standing in the world, and
+	// releases its name to the next player. handleDeleteCharacter refuses
+	// exactly that ("deleting the row under a live session leaves the game
+	// holding a character that no longer exists"); this path went round it.
+	//
+	// ⚑ Ending it rather than refusing the login is what the player confirmed:
+	// §6's warning says the progress is abandoned permanently, and a character
+	// left playing in another tab is that progress. The disconnect is queued and
+	// performed by the game loop, so the two are not atomic — but they converge,
+	// and a save landing in the window between them is a no-op anyway (the save
+	// UPDATE carries its own alive check).
+	if s.cfg.World != nil {
+		s.cfg.World.EndSessionFor(credentials.AccountID)
+	}
+
 	if err := s.cfg.Store.DiscardAnonymousAccount(r.Context(), credentials.AccountID); err != nil {
 		// ErrNotAnonymous is the guard doing its job on a registered account.
 		slog.Warn("could not discard an anonymous account",
@@ -212,20 +236,37 @@ func (s *Server) discardPresentedAnonymousAccount(r *http.Request, loggedInAccou
 // self-contained, so bumping token_generation is the only thing that can cancel
 // one already signed (plan-accounts-schema.md §"Session revocation").
 //
-// ⚑ Ending the account's live WORLD session is specified and is NOT done here —
-// see the package comment. It needs the session registry wired into
-// sys/state.go, which is chunk 3.
+// ⚑ It also ends the account's live WORLD session, at the bottom. That is the
+// one acknowledged place an HTTP handler reaches into the running game (§10) —
+// see the package comment.
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
-	who, ok := s.requireCaller(w, r)
-	if !ok {
+	// ⚑ LOGOUT IS IDEMPOTENT, AND THE COOKIE IS WHAT DECIDES. With no session
+	// cookie there is no session to end: the browser is already in the state
+	// being asked for, so this answers success rather than resolving an identity
+	// it has no use for.
+	//
+	// ⚑ It has to come FIRST, and that is the bug this closes. The cookie is
+	// browser-WIDE, so logging out in one tab clears it for every tab — and a
+	// second tab pressing Log out then arrived here carrying only a leftover
+	// anonymous secret (registration deliberately leaves one in place).
+	// resolveCaller resolved THAT, found a caller that had not come in on a
+	// token, and answered an already-completed logout with "That request could
+	// not be understood."
+	//
+	// ⚑ It also subsumes plan-accounts-frontend.md §5.3's refusal for a genuinely
+	// anonymous account, which likewise presents no cookie: it is told it has no
+	// session, which is true, instead of being offered a "logout" that for one of
+	// those could only mean permanently abandoning the account. The button is not
+	// rendered for one either (the list's `registered` gates it), so this is the
+	// second line of defence, not the first.
+	if cookie, err := r.Cookie(sessionCookieName); err != nil || cookie.Value == "" {
+		s.clearSessionCookie(w)
+		writeJSON(w, http.StatusOK, map[string]bool{"loggedOut": true})
 		return
 	}
-	if !who.viaJWT {
-		// An anonymous account has no session to end. "Logging out" of one would
-		// mean discarding the local secret, which is permanent abandonment wearing
-		// the most routine label in software — deliberately not offered
-		// (plan-accounts-frontend.md §5.3).
-		refuse(w, http.StatusBadRequest, codeBadRequest, msgBadRequest)
+
+	who, ok := s.requireCaller(w, r)
+	if !ok {
 		return
 	}
 

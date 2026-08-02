@@ -44,10 +44,6 @@ type caller struct {
 	// harness-prefix rule needs it: a character named hrnss_* is legal only when
 	// the creating account's username is too.
 	username string
-	// viaJWT records which credential resolved this caller. register refuses a
-	// JWT (a registered account cannot register again) and logout/refresh require
-	// one, so the distinction is authorisation, not bookkeeping.
-	viaJWT bool
 }
 
 func (c caller) registered() bool { return c.username != "" }
@@ -103,7 +99,7 @@ func (s *Server) callerFromToken(ctx context.Context, token string) (caller, err
 	if err != nil {
 		return caller{}, errSessionStale
 	}
-	return caller{accountID: claims.AccountID, username: credentials.Username, viaJWT: true}, nil
+	return caller{accountID: claims.AccountID, username: credentials.Username}, nil
 }
 
 // callerFromAnonymousSecret resolves the localStorage secret.

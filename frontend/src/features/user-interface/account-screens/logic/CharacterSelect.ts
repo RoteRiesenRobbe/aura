@@ -1,4 +1,6 @@
-import {AccountsApi, ApiError, Character, CharacterList} from '../../../accounts/logic/AccountsApi';
+import {
+    AccountsApi, ApiError, Character, CharacterList, SessionState,
+} from '../../../accounts/logic/AccountsApi';
 import * as AccountScreens from './AccountScreens';
 import * as DeleteDialog from './DeleteDialog';
 
@@ -15,7 +17,11 @@ let onPlay: (character: Character) => void = () => undefined;
 let onCreate: (characterCount: number) => void = () => undefined;
 let onLoggedOut: () => void = () => undefined;
 let onLoginRequested: () => void = () => undefined;
-let current: CharacterList | null = null;
+let currentState: SessionState | null = null;
+/** The account's live world session, from the server; null for none. */
+let playingCharacterId: number | null = null;
+/** Whether the "logging out ends that world session" warning has been seen. */
+let logoutConfirmed = false;
 
 export function setup(handlers: {
     onPlay: (character: Character) => void,
@@ -51,18 +57,32 @@ export function setup(handlers: {
  *   a returning player whose only character is their last one could then never
  *   reach this screen — and this is where Delete and Logout live.
  */
-export function show(list: CharacterList, autoSelectFirst = false): void {
-    current = list;
+export function show(list: CharacterList, state: SessionState, autoSelectFirst = false): void {
+    currentState = state;
+    playingCharacterId = state.playingCharacterId || null;
+    logoutConfirmed = false;
 
     const panel = AccountScreens.element('characterSelect');
     AccountScreens.clearError(panel);
     render(list);
 
+    // ⚑ Say it out loud rather than letting the player discover it by pressing
+    // things. Reaching this screen while the account is in the world takes no
+    // login — the session cookie is browser-wide — and every action here then
+    // behaves differently from how it reads.
+    const warning = panel.querySelector('.playingWarning') as HTMLElement;
+    warning.classList.toggle('hidden', playingCharacterId === null);
+    if (playingCharacterId !== null) {
+        warning.textContent = 'This account is in the world in another window. '
+            + 'Logging out will end that session.';
+    }
+    AccountScreens.element('logoutButton').textContent = 'Log out';
+
     // Logout for registered accounts, Log in for guests — never both, and never
     // neither. A guest reaching this screen has characters they could lose, so
     // the login it offers routes through §6's warning.
-    AccountScreens.element('logoutButton').classList.toggle('hidden', !list.registered);
-    AccountScreens.element('selectLoginPrompt').classList.toggle('hidden', list.registered);
+    AccountScreens.element('logoutButton').classList.toggle('hidden', !state.registered);
+    AccountScreens.element('selectLoginPrompt').classList.toggle('hidden', state.registered);
     AccountScreens.showPanel('characterSelect');
 
     if (autoSelectFirst && list.characters.length === 1) {
@@ -71,9 +91,36 @@ export function show(list: CharacterList, autoSelectFirst = false): void {
 }
 
 export function refresh(): Promise<void> {
-    return AccountsApi.listCharacters().then((list) => {
-        show(list);
-    });
+    // ⚑ Both, in parallel: a re-read exists to correct a stale view, and "who is
+    // in the world" goes stale exactly as readily as "which characters exist".
+    return Promise.all([AccountsApi.listCharacters(), AccountsApi.session()])
+        .then(([list, state]) => {
+            show(list, state);
+        });
+}
+
+/**
+ * Re-read the list from the server, then say why.
+ *
+ * ⚑ THIS IS THE ANSWER TO EVERY STALE-VIEW CASE, and it is why none of them
+ * needed a lock. The list is a snapshot: another tab can delete a character,
+ * enter the world, or leave it, and this one keeps rendering what it fetched.
+ * Every such refusal means "your snapshot is old" — so re-fetching on one is
+ * self-correcting, including for cases nobody has thought of, because the
+ * server's rows are the only authority. Forbidding a second reader would not
+ * even have helped: two tabs can press Delete in the same tick and one still
+ * loses the race.
+ *
+ * ⚑ The message goes on AFTER the refresh, never before — `show()` clears the
+ * error slot, so setting it first would paint it and then wipe it.
+ */
+export function refreshWithMessage(message: string, ref?: string): Promise<void> {
+    const panel = AccountScreens.element('characterSelect');
+    return refresh()
+        .catch(() => undefined) // a failed re-read still owes the player the message
+        .then(() => {
+            AccountScreens.showError(panel, message, ref);
+        });
 }
 
 function render(list: CharacterList): void {
@@ -126,6 +173,20 @@ function characterCard(character: Character): HTMLElement {
     level.textContent = `Level ${character.level}`;
     card.appendChild(level);
 
+    // ⚑ The character in the world gets a LABEL, not controls. Both of the
+    // controls below would be refused by the server for it — `/select` because
+    // the account already holds a live session, delete because the row would go
+    // out from under it — and offering an action whose only outcome is a
+    // refusal is worse than showing the state that causes it.
+    if (character.id === playingCharacterId) {
+        const inWorld = document.createElement('div');
+        inWorld.className = 'slotInWorld';
+        inWorld.textContent = 'In world';
+        card.appendChild(inWorld);
+        card.classList.add('inWorld');
+        return card;
+    }
+
     const play = document.createElement('a');
     play.className = 'button';
     play.href = '#';
@@ -142,8 +203,8 @@ function characterCard(character: Character): HTMLElement {
     remove.textContent = 'Delete';
     remove.addEventListener('pointerdown', (event) => {
         event.preventDefault();
-        DeleteDialog.open(character, () => {
-            void refresh();
+        DeleteDialog.open(character, (message) => {
+            void (message ? refreshWithMessage(message) : refresh());
         });
     });
     card.appendChild(remove);
@@ -188,20 +249,36 @@ function emptyCard(): HTMLElement {
 async function logout(): Promise<void> {
     const panel = AccountScreens.element('characterSelect');
     AccountScreens.clearError(panel);
+
+    // ⚑ Logging out ENDS THE WORLD SESSION (§3), which from a second tab means
+    // dropping the window the player is actually playing in — it freezes on
+    // "Connection lost" with no idea why. The warning is already on screen; this
+    // makes them press through it, and relabels the button so the second press
+    // says what it does.
+    if (playingCharacterId !== null && !logoutConfirmed) {
+        logoutConfirmed = true;
+        AccountScreens.element('logoutButton').textContent = 'Log out and leave the world';
+        return;
+    }
+
     AccountScreens.setFormBusy(panel, true);
     try {
         await AccountsApi.logout();
-        onLoggedOut();
     } catch (error) {
-        const message = error instanceof ApiError
-            ? error.message
-            : 'Something went wrong. Please try again.';
-        AccountScreens.showError(panel, message, error instanceof ApiError ? error.ref : undefined);
+        if (!(error instanceof ApiError) || (error.code !== 'no_identity' && error.code !== 'session_expired')) {
+            const message = error instanceof ApiError
+                ? error.message
+                : 'Something went wrong. Please try again.';
+            AccountScreens.showError(panel, message, error instanceof ApiError ? error.ref : undefined);
+            return;
+        }
     } finally {
         AccountScreens.setFormBusy(panel, false);
     }
+    onLoggedOut();
 }
 
-export function currentList(): CharacterList | null {
-    return current;
+/** The session behind the screen on display — who the player is, per the server. */
+export function currentSession(): SessionState | null {
+    return currentState;
 }

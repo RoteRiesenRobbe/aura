@@ -56,6 +56,10 @@
 	<div id="characterSelect" class="accountPanel hidden">
 		<h2>Choose your character</h2>
 		<div class="slotCards layout-row layout-align-center-center"></div>
+		<!-- Shown when this account has a character in the world — which takes
+		     no login to reach, because the session cookie is browser-wide.
+		     Filled in by CharacterSelect. -->
+		<p class="panelWarning playingWarning hidden"></p>
 		<p class="formError hidden"></p>
 		<div class="accountPanelFooter">
 			<!-- Registered accounts only (§5.3). For an anonymous player the

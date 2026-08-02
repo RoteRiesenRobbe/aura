@@ -47,11 +47,11 @@ const check = (ok, name, note) => {
 const browser = await chromium.launch({ args: ['--no-sandbox'], env });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 const page = await context.newPage();
-// ⚑ A 401 on a cold load is expected, not a defect: the client always asks the
-// server who it is before it can know, and the browser logs every 401 as a
-// console error regardless. Same filter, same reason, as chunk2-accounts.mjs.
+// ⚑ No 401 filter any more — a cold load is genuinely clean now that
+// `GET /api/session` answers "nobody is signed in" with a 200 instead of an
+// error. Same reason, same note, as chunk2-accounts.mjs.
 page.on('console', (m) => {
-  if (m.type() === 'error' && !/\b401\b/.test(m.text())) consoleErrors.push(m.text());
+  if (m.type() === 'error') consoleErrors.push(m.text());
 });
 page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
 

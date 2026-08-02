@@ -57,24 +57,18 @@ type createCharacterResponse struct {
 	AnonymousSecret string `json:"anonymousSecret,omitempty"`
 }
 
+// listCharactersResponse is character-select's data and NOTHING ELSE.
+//
+// ⚑ It used to carry the caller's username, whether they were registered,
+// whether they had progress worth warning about, and which character was in the
+// world — four facts about the SESSION, riding a list of characters because this
+// was the one call the client made on startup. They live on GET /api/session
+// now (see sessionStateResponse). Anything tempted back in here should go there
+// instead: "what do I own" and "who am I" are different questions, and one
+// caller only ever wanted the second.
 type listCharactersResponse struct {
 	Characters         []characterView `json:"characters"`
 	MaxAliveCharacters int             `json:"maxAliveCharacters"`
-	// HasProgress answers §6's "is this anon account worth warning about" without
-	// the client having to infer it. ⚑ Inferring it from the character list would
-	// be right today and wrong the day sacrifice ships, because an account whose
-	// only character was sacrificed still holds bloodline unlocks.
-	HasProgress bool `json:"hasProgress"`
-	// Registered tells the client whether to offer Logout and the registration
-	// nag (plan-accounts-frontend.md §5.3, §5.4).
-	Registered bool `json:"registered"`
-	// Username is present only for a registered account, and is what the
-	// settings panel shows as "Signed in as …".
-	//
-	// ⚑ It lives here because this is the ONE call the client makes to ask "who
-	// am I". Without it the only other source is /session/refresh, which mints a
-	// new token as a side effect — reading a name should not rotate a session.
-	Username string `json:"username,omitempty"`
 }
 
 // handleCreateCharacter creates a character, minting an account behind it when
@@ -174,12 +168,6 @@ func (s *Server) handleListCharacters(w http.ResponseWriter, r *http.Request) {
 		failStore(w, r, err, "listing characters")
 		return
 	}
-	hasProgress, err := s.cfg.Store.HasProgress(r.Context(), who.accountID)
-	if err != nil {
-		failStore(w, r, err, "checking an account for progress")
-		return
-	}
-
 	views := make([]characterView, 0, len(characters))
 	for _, c := range characters {
 		views = append(views, viewOf(c))
@@ -187,9 +175,6 @@ func (s *Server) handleListCharacters(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, listCharactersResponse{
 		Characters:         views,
 		MaxAliveCharacters: s.cfg.MaxAliveCharacters,
-		HasProgress:        hasProgress,
-		Registered:         who.registered(),
-		Username:           who.username,
 	})
 }
 

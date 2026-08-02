@@ -4297,3 +4297,106 @@ cookie-based silent refresh applies as-is.
 
 Not scoped, not estimated. Revisit alongside any future accounts/session UX
 pass.
+
+---
+
+## 46. Two ways to prove who you are — fold the anonymous secret into the session
+
+*(added 2026-08-02 after the two-tab login/logout bug fix; PO calls this the
+most likely next one)*
+
+The server can be told who you are in **two** ways: the session JWT cookie, and
+the anonymous secret the browser keeps in localStorage and attaches as
+`X-Aura-Anonymous-Secret` on **every request**. `resolveCaller` therefore needs
+a precedence rule — "the JWT wins when both are present" — and that rule is
+where the 2026-08-02 logout bug lived: with the cookie gone (it is browser-wide,
+so one tab's logout clears every tab's), a leftover secret silently became the
+identity, and logout answered *"That request could not be understood."*
+
+⚑ **The reconnect token is NOT a third one, and that is the precedent for this
+entry.** Chunk 3 already demoted it: `tryJoin` requires `ticket.AccountID ==
+stash.accountID`, so possessing the token proves nothing on its own — it is a
+handle naming a parked character. The same funnelling is available here.
+
+**The proposal: exchange the secret once, instead of carrying it always.**
+`POST /api/session/anonymous` takes the secret and sets the ordinary session
+cookie. After that the product has exactly **one** authenticator, and the secret
+is what a password is — presented at a login endpoint, never on an ordinary
+request.
+
+**What collapses:**
+- `resolveCaller` becomes one branch. The precedence rule, and the whole class
+  of bug where a stale localStorage entry answers for a request the cookie
+  should have owned, stop existing.
+- The header leaves every request and `Access-Control-Allow-Headers`.
+- ⚑ Anonymous accounts inherit **expiry and revocation**. `token_generation`
+  protects registered players and does nothing at all for anonymous ones today —
+  the weakest credential in the system is the one carried most often.
+- `discardPresentedAnonymousAccount` stops re-resolving a SECOND identity
+  out of band, mid-request, from a raw header. That out-of-band read is what
+  produced the delete-a-live-character hole fixed on 2026-08-02.
+
+**Steps:**
+1. Add the exchange endpoint.
+2. Have character creation set the cookie alongside minting the secret, so a
+   brand-new player is on the normal path immediately.
+3. Client calls the exchange only when it has no session — not per request.
+4. Stop sending the header; drop it from the CORS allowlist.
+5. Delete the JWT-wins rule; there is one credential left to check.
+6. Make the §6 discard name its target account explicitly instead of reading
+   the ambient header.
+
+⚑ **Honest costs.** An anonymous session then expires like a registered one, so
+a returning guest needs a silent re-exchange — a new path, but the same shape as
+silent refresh, replacing "attach this to everything". §2's two-storages ruling
+is untouched: the secret still lives in localStorage and the JWT still stays
+httpOnly. That reasoning justified *where the secret lives*; it never justified
+*sending it on every request*. No migration needed — existing stored secrets are
+exactly what the exchange endpoint takes.
+
+⚑ **Prerequisite already done:** `GET /api/session` (2026-08-02) separated "who
+am I" from "what do I own", which is what makes this reasonable to reason about.
+
+---
+
+## 47. "Connection lost" is the wrong thing to say after a logout elsewhere
+
+*(added 2026-08-02, small, independent)*
+
+Logging out ends the account's world session (§3, by design — `EndSessionFor`).
+The other window then freezes on **"Connection lost — reload to reconnect"**,
+which is wrong twice: it was not a connection loss, and reloading will not
+reconnect, because `token_generation` was bumped and the reload lands on the
+character-creation screen.
+
+Since 2026-08-02 the player is *warned* before this happens (character-select
+shows "This account is in the world in another window" and the Log out button
+requires a second press), so this is polish rather than a defect — but the
+message still misdescribes what happened.
+
+**Fix (~10 lines):** close that socket with a distinguishable close code/reason
+on the logout path, and map it in `Backend.ts`'s `onclose` to "You were logged
+out." ⚑ The client genuinely cannot tell the two cases apart today — the server
+closes without a reason and the close event is identical to a mid-game drop,
+which is why the banner has to guess.
+
+---
+
+## 48. The reconnect token may be deletable outright
+
+*(added 2026-08-02; investigate before scheduling — lower confidence than §46)*
+
+The reconnect token used to prove identity. Since chunk 3 it does not: the play
+ticket carries `(account, character)` and `tryJoin` refuses a stash whose
+`accountID` does not match it. What is left is a lookup key — `stashByToken` —
+naming a parked character the ticket could already identify.
+
+**If that holds, it can go:** look the stash up by character id from the ticket,
+drop `ReconnectToken` from the wire message and from `sessionStorage`, and the
+system loses a whole token. `claimSession` already governs who may take over a
+stashed session, which is the rule that would matter.
+
+⚑ **Not yet traced.** Every reader of `stashByToken` needs checking first —
+notably `discardStashFor` (which exists because leaving to character-select
+keeps a character's NAME reserved) and the expiry sweep. Do this **after** §46,
+when there is a single way to prove identity and the reasoning is simpler.

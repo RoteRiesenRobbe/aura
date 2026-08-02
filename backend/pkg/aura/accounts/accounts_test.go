@@ -195,8 +195,13 @@ func TestAnonymousFirstCreation(t *testing.T) {
 	require.Len(t, characters, 1)
 	assert.Equal(t, "Barney Rubble", characters[0].(map[string]any)["name"])
 	assert.Equal(t, float64(3), listed.body["maxAliveCharacters"])
-	assert.Equal(t, true, listed.body["hasProgress"])
-	assert.Equal(t, false, listed.body["registered"], "creating a character does not register anyone")
+
+	// ⚑ Who the caller is lives on /api/session, not on their character list.
+	session := h.do(http.MethodGet, "/api/session", nil)
+	require.Equal(t, http.StatusOK, session.code)
+	assert.Equal(t, true, session.body["hasAccount"])
+	assert.Equal(t, true, session.body["hasProgress"])
+	assert.Equal(t, false, session.body["registered"], "creating a character does not register anyone")
 
 	// A second character on the SAME account carries no new secret — the browser
 	// already has one, and minting another would strand this account.
@@ -368,7 +373,7 @@ func TestRegisterUpgradesTheAccountInPlace(t *testing.T) {
 	require.Equal(t, http.StatusOK, listed.code)
 	characters, _ := listed.body["characters"].([]any)
 	require.Len(t, characters, 1, "the progress made anonymously survives registering")
-	assert.Equal(t, true, listed.body["registered"])
+	assert.Equal(t, true, h.do(http.MethodGet, "/api/session", nil).body["registered"])
 
 	// Registering twice is refused rather than silently overwriting.
 	assert.Equal(t, http.StatusConflict, h.register("Wilma", "s3cret!pass").code)
@@ -445,6 +450,75 @@ func TestLoginRefusalsAreIndistinguishable(t *testing.T) {
 	// generates at will, so writing a row per attempt would make the audit table
 	// an amplification target.
 	assert.Equal(t, 0, scalarInt(t, h, `SELECT count(*) FROM game.audit_log WHERE event = 'login'`))
+}
+
+// TestLoginRefusesAnAccountThatIsPlaying stops a second login while the account
+// is in the world — reported 2026-08-02 as "logging in twice reaches character
+// selection", where the second screen offered a Play that could only 409 and a
+// Log out that dropped the first window out of the world without warning.
+//
+// ⚑ THE STASHED HALF IS THE POINT OF THIS TEST. Refusing on Connected is one
+// word away from refusing on Live, which passes the obvious assertion and breaks
+// the reconnect path: a stashed session is a player whose socket dropped, so
+// "refresh the page mid-fight, then log in again" would fail for the full
+// 10-minute stash window. Both halves are asserted here because only the pair
+// pins the right word.
+//
+// ⚑ It does NOT close the same-browser case, deliberately — the session cookie
+// is browser-wide, so a second tab reaches character-select with no login at
+// all. That is what GET /api/session's playingCharacterId is for
+// (TestSessionReportsTheCharacterInTheWorld).
+func TestLoginRefusesAnAccountThatIsPlaying(t *testing.T) {
+	h := newHarness(t)
+	created := h.createCharacter("Barney")
+	require.Equal(t, http.StatusCreated, created.code)
+	require.Equal(t, http.StatusOK, h.register("barney", "s3cret!pass").code)
+	characterID := h.characterID(created)
+	accountID := int64(scalarInt(t, h, `SELECT id FROM game.accounts LIMIT 1`))
+
+	// The account is in the world (what Join's claim does).
+	_, claimed := h.sessions.Claim(auth.Session{AccountID: accountID, CharacterID: characterID})
+	require.True(t, claimed)
+
+	elsewhere := newBrowser(h)
+	refused := elsewhere.login("barney", "s3cret!pass")
+	assert.Equal(t, http.StatusConflict, refused.code, "%v", refused.body)
+	assert.Equal(t, "already_logged_in", refused.errCode())
+	assert.Equal(t, "This account is already logged in.", refused.str("error"))
+	assert.Empty(t, elsewhere.cookies["aura_session"], "a refused login starts no session")
+
+	// ⚑ A STASHED session must NOT refuse: the socket dropped and the player is
+	// coming back, which is the one scenario the reconnect path exists for.
+	require.True(t, h.sessions.Stash(accountID))
+	returning := newBrowser(h)
+	got := returning.login("barney", "s3cret!pass")
+	require.Equal(t, http.StatusOK, got.code, "a dropped socket must not lock its own player out: %v", got.body)
+	assert.NotEmpty(t, returning.cookies["aura_session"])
+}
+
+// TestSessionReportsTheCharacterInTheWorld is what character-select renders the
+// "In world" state from — the same-browser half of the two-tab report, which no
+// login guard can reach because the session cookie is browser-wide.
+//
+// ⚑ CONNECTED, not Live, for the same reason as above: a stashed session must
+// still be offered Play.
+func TestSessionReportsTheCharacterInTheWorld(t *testing.T) {
+	h := newHarness(t)
+	created := h.createCharacter("Barney")
+	require.Equal(t, http.StatusCreated, created.code)
+	characterID := h.characterID(created)
+	accountID := int64(scalarInt(t, h, `SELECT id FROM game.accounts LIMIT 1`))
+
+	assert.Nil(t, h.do(http.MethodGet, "/api/session", nil).body["playingCharacterId"],
+		"nobody is in the world yet")
+
+	_, claimed := h.sessions.Claim(auth.Session{AccountID: accountID, CharacterID: characterID})
+	require.True(t, claimed)
+	assert.Equal(t, float64(characterID), h.do(http.MethodGet, "/api/session", nil).body["playingCharacterId"])
+
+	require.True(t, h.sessions.Stash(accountID))
+	assert.Nil(t, h.do(http.MethodGet, "/api/session", nil).body["playingCharacterId"],
+		"a stashed session is a dropped socket, not a player standing in the world")
 }
 
 // TestLoginSucceedsAndIsAudited is the ordinary path.
@@ -694,7 +768,8 @@ func TestDeleteReleasesTheNameAndRefusesALiveCharacter(t *testing.T) {
 	listed := h.do(http.MethodGet, "/api/characters", nil)
 	characters, _ := listed.body["characters"].([]any)
 	assert.Empty(t, characters)
-	assert.Equal(t, false, listed.body["hasProgress"], "an emptied account has nothing to warn about")
+	assert.Equal(t, false, h.do(http.MethodGet, "/api/session", nil).body["hasProgress"],
+		"an emptied account has nothing to warn about")
 
 	// The name is free immediately — which is what lets the browser harness do
 	// delete-then-create and get a pristine character every run.

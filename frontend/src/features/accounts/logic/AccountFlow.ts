@@ -1,4 +1,6 @@
-import {AccountsApi, ApiError, Character, CharacterList, PlayTicket} from './AccountsApi';
+import {
+    AccountsApi, ApiError, ApiErrorCode, Character, CharacterList, PlayTicket, SessionState,
+} from './AccountsApi';
 import {Identity} from './Identity';
 import {Session} from './Session';
 import * as AccountScreens from '../../user-interface/account-screens/logic/AccountScreens';
@@ -38,6 +40,18 @@ let retriedTicket = false;
  */
 type RegisterOrigin = 'none' | 'world' | 'select';
 let registerOrigin: RegisterOrigin = 'none';
+
+/**
+ * The refusals that mean "the list you are looking at is out of date".
+ *
+ * ⚑ `bad_request` is what a 404 carries here: the server answers "no such
+ * character of yours" exactly as it answers "not yours", because ids are
+ * BIGSERIAL and guessable. On this screen, acting on a character the list just
+ * handed us, it can only be the first.
+ */
+function isStaleView(code: ApiErrorCode): boolean {
+    return code === 'bad_request' || code === 'already_logged_in' || code === 'character_playing';
+}
 
 export function setup(): void {
     CharacterCreation.setup({
@@ -166,25 +180,22 @@ export async function start(): Promise<void> {
     // ⚑ ASK THE SERVER even with no local secret. Identity can also be the
     // session COOKIE, which script cannot see — so gating this call on
     // localStorage would send every returning REGISTERED player to the
-    // character-creation form instead of their own characters. `no_identity`
-    // below is the honest answer to "nobody is signed in", and it is the
-    // server's to give.
+    // character-creation form instead of their own characters.
     try {
-        const list = await AccountsApi.listCharacters();
-        adoptIdentity(list);
-        CharacterSelect.show(list);
-    } catch (error) {
-        if (error instanceof ApiError
-            && (error.code === 'no_identity' || error.code === 'session_expired')) {
-            // The stored secret no longer resolves to anything — treat it as
-            // absent and fall through, rather than stranding the player on an
-            // error for an account that is gone.
+        const state = await AccountsApi.session();
+        adoptIdentity(state);
+        if (!state.hasAccount) {
+            // Nobody is signed in — an ordinary answer, not an error, and now
+            // shaped like one. ⚑ Any stored secret is dead by definition: had it
+            // resolved, the server would have said so.
             Identity.forgetAnonymous();
             CharacterCreation.show('home', 0);
             return;
         }
-        // Anything else is a real failure and must not masquerade as "you have
-        // no characters", which would invite creating a duplicate.
+        CharacterSelect.show(await AccountsApi.listCharacters(), state);
+    } catch (error) {
+        // Only a real failure reaches here now, and it must not masquerade as
+        // "you have no characters", which would invite creating a duplicate.
         CharacterCreation.show('home', 0);
         AccountScreens.showError(
             AccountScreens.element('characterCreation'),
@@ -236,10 +247,10 @@ export async function reconnect(): Promise<void> {
 }
 
 /** Take the server's answer to "who am I" as this session's identity. */
-function adoptIdentity(list: CharacterList): void {
-    hasAccount = true;
-    registered = list.registered;
-    signedInAs = list.username || null;
+function adoptIdentity(state: SessionState): void {
+    hasAccount = state.hasAccount;
+    registered = state.registered;
+    signedInAs = state.username || null;
 }
 
 /**
@@ -258,7 +269,10 @@ function adoptIdentity(list: CharacterList): void {
  */
 export async function resolveIdentityQuietly(): Promise<void> {
     try {
-        adoptIdentity(await AccountsApi.listCharacters());
+        // ⚑ One call, and it asks the question it actually has: this used to
+        // fetch the player's whole character list from inside the world and
+        // throw the characters away, because "who am I" had nowhere else to live.
+        adoptIdentity(await AccountsApi.session());
     } catch {
         // A reconnect that cannot resolve an account is still a valid session —
         // the reconnect token is its own credential. Leave the defaults alone
@@ -278,8 +292,12 @@ export function accountExists(): boolean {
 
 async function toCharacterSelect(autoSelectFirst: boolean): Promise<void> {
     let list: CharacterList;
+    let state: SessionState;
     try {
-        list = await AccountsApi.listCharacters();
+        // ⚑ In parallel, not in sequence. They answer two independent questions
+        // ("what do I own", "who am I") and neither needs the other's answer, so
+        // the split costs a connection rather than a round trip.
+        [list, state] = await Promise.all([AccountsApi.listCharacters(), AccountsApi.session()]);
     } catch (error) {
         AccountScreens.showError(
             AccountScreens.element('characterCreation'),
@@ -289,21 +307,21 @@ async function toCharacterSelect(autoSelectFirst: boolean): Promise<void> {
     // The server is the authority on whether this account has credentials —
     // it is what gates Logout and the nag, and a client-side guess would be
     // wrong for an account registered in another tab.
-    adoptIdentity(list);
-    CharacterSelect.show(list, autoSelectFirst);
+    adoptIdentity(state);
+    CharacterSelect.show(list, state, autoSelectFirst);
 }
 
 function showLogin(origin: RegisterOrigin = 'none'): void {
     // Closing the login panel returns where it was opened from — the home
     // screen's creation form, or character-select for a guest.
     registerOrigin = origin;
-    const list = CharacterSelect.currentList();
+    const state = CharacterSelect.currentSession();
     AuthForms.showLogin({
         hasSecret: Identity.anonymousSecret !== null,
         // ⚑ Server-answered (§3a). Inferring it from the character list would be
         // right today and wrong once sacrifice ships, when an account whose only
         // character was sacrificed still holds unlocks worth warning about.
-        hasProgress: list ? list.hasProgress : false,
+        hasProgress: state ? state.hasProgress : false,
     });
 }
 
@@ -328,6 +346,16 @@ async function enterWorld(character: Character): Promise<void> {
         ticket = await AccountsApi.selectCharacter(character.id);
     } catch (error) {
         AccountScreens.setFormBusy(panel, false);
+        // ⚑ These three all mean the SCREEN IS STALE rather than that Play
+        // failed: the character was deleted in another tab, or the account
+        // entered the world in one. Re-reading the list is what makes the next
+        // thing the player sees agree with the message — the card disappears, or
+        // it stops offering Play and says "In world" instead. Without it they
+        // are told no and left looking at the same button that just said no.
+        if (error instanceof ApiError && isStaleView(error.code)) {
+            void CharacterSelect.refreshWithMessage(error.message, error.ref);
+            return;
+        }
         AccountScreens.showError(
             panel,
             error instanceof ApiError ? error.message : 'Something went wrong. Please try again.',
