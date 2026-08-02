@@ -1887,6 +1887,196 @@ Also raised and answered: a `kill` objective counts exactly **one** MobID, so
 cheap version would be a species *list*, and the tempting shortcut is wrong
 (`wildlife_predator` also contains Bear and DireBear).
 
+## Intake — round 7 (2026-08-02): first round against the live N-session deploy
+
+Twelve items in two same-day batches, raised right after the 2026-08-02 live
+deploy (feel pass 2 + R-series + quests). Triaged same-day; investigation
+findings recorded inline so nobody re-derives them. **Items 1/2/4/9/11 plus
+the empty-destination prune shipped the same day — §Round-7 ledger below;
+still open: 3 (totems, third raise), 5 (Strong visibility), 6 (dot-keying
+design Q), 7 (blue cost numbers), 8 (respec), 10 (passive wording audit),
+12 (turn-in duplication, decision pending).**
+
+### 1. Quest text: say WHERE the City Guard and the Shaman stand — ✅ `3b415fa2` 2026-08-02
+
+`wolves-on-the-road`'s carry stage says *"at the city gate"* / *"at his fire by
+the road"* with no directions. PO wants compass directions. The map answers
+(+x = east — the crier's own ambient line says "east, to the city"; north = −y,
+anchored by the Wanderer's "tunnel up north" pointing at the kobold field):
+from the west road both lie **east** — the Shaman (18, 6) east along the road,
+the City Guard (62.4, 9.6) far east at the city gate.
+⚑ `chunkC4-quests.mjs` asserts these journal strings **by name** (C3/C4/C7
+legs) — the harness must be updated in the same edit or it goes red as a fake
+regression (verify-skill rule 8).
+
+### 2. Wanderer road advice: drop "stay put" — ✅ `3b415fa2` 2026-08-02
+
+`wanderer.json` `roads` node line 2: *"The tunnel up north, if you've a light.
+If you haven't, then nowhere — stay put a while."* PO wording: head up north;
+east only with a strong group. Replaces the fatalistic line and folds the
+east-warning (currently line 1's bandit note) into the strong-group framing.
+
+### 3. Totem tooltips say nothing about what the totem does — WHERE IT LIVES
+
+Already recorded: **§Rolling filler, "Totem/companion tooltips don't describe
+the summon's effects"** (deferred 2026-07-26, re-raised by the PO 2026-07-30
+with the Call-for-Aid triple-line, **re-raised again 2026-08-02 — third time**).
+The data prerequisite recorded there still holds: the `/skills` catalog serves
+only the caster's `spawn` effect, so describing the totem means following
+`spawn.mobName` into a served loadout or serving a curated line. Third raise =
+it should stop being filler and get scheduled.
+
+### 4. OrcGrunt XP is still 5 — ✅ `3b415fa2` 2026-08-02 (experience 75)
+
+`orc-grunt.json`: `curveLevel` 20, tier normal, `experience` **5** — the old
+deliberately-starved wave-fodder value, from before the front paid like real
+content (the elite Orc went 15 → 300 in the 2026-07-21 balancing pass; the
+grunt was never revisited). PO 2026-08-02: the human NPCs are weak enough that
+full XP is fair. Proposed value: **75** (elite ≈4× normal precedent → 300/4;
+cross-check: Wolf CL2 pays 70). ⚑ One consideration for the PO before locking
+it: grunts are **encounter wave-spawned** (`warlord.go`), so a generous value
+turns the warlord's waves into a repeatable XP faucet — 75 keeps a wave worth
+less than one elite Orc.
+
+### 5. Does Strong work? (server: YES; UI: invisible — the Discipline problem again)
+
+`strong.json` → `stat_multiplier damageDealt` → `Derived.DamageDealtBonus` →
+`outgoingDamageFactor` (`sys/skills.go:763-772`), applied at the damage
+base-composition sites, direct hits and dots. **The passive works.** What the
+PO saw is the UI gap: no tooltip or HUD surface folds the multiplier in, so
+equipping it changes nothing on screen — the **same class as Discipline before
+R1**, which needed `GameState.cost_factor` on the wire before the tooltip
+could show it. Fix shape (small chunk, not a filler line): a `damage_factor`
+sibling on `GameState`, tooltip damage lines multiply through it — the R1
+pattern verbatim, including the harness leg (`r1-focus-cost.mjs` is the
+worked example; the wiring is invisible to vitest by construction).
+
+### 6. Two players, same dot, same target — do both tick? (answered; design Q recorded)
+
+**No.** `Buffs.ApplyDot` (`skills/buffs.go:326`) keys streams by
+(source `SkillID`, per-tick `HP`): two casters with the same skill at the same
+level match one stream, and the second application is a REFRESH — duration
+tops up and `p.dot = dot` hands the stream to the **latest caster** (credit,
+cadence, and since N3 the live lifesteal read all follow). So one dot ticks,
+last applier owns it, and under R2's work-done rule the second caster paid
+nothing for the takeover. Different levels = different per-tick HP = separate
+streams, both tick. **Design question for the PO:** is last-writer-wins
+acceptable for group PvE, or should streams key per-caster (WoW-style — both
+tick, credit stays split)? Per-caster keying is a one-line key change with a
+real damage-throughput consequence (N dot players = N× dot damage on a boss).
+
+### 7. Floating numbers: focus spent should be BLUE (small chunk — needs a wire field)
+
+Ask: focus spent blue, heal green, incoming damage red; later a damage-type
+icon in front of incoming damage (fire → flame). Heal green and damage red
+**already exist** (`_GameObject.ts` `FLOATING_NUMBER_COLORS`: damage `0xFF4D4D`,
+crit, heal `0x4DFF88`, xp). The real gap: **paying a cost produces no floating
+number at all** — `chargeCost` (`sys/skill_cost.go:127`) subtracts Health
+directly and never touches the `damageTaken` accumulator, so costs are only
+visible as the bar dropping. Fix shape: a `cost_paid` per-tick accumulator on
+the player + a Character wire field (append-only, both binding sets), client
+renders kind `'cost'` in blue. ⚑ Do NOT route costs through `damageTaken` —
+that would make every aura pulse read as being attacked (and trip the crit
+share and damage-interrupt logic at the same choke point). Damage-type icons:
+**later** per the PO's own phrasing; parked with §39 (entity presentation
+rework) where overlay/indicator art is pooled.
+
+### 8. Spellbook: a reset-all (respec) button (feature — needs 2 PO calls first)
+
+Refund every spent skill point in one click. Engine-real: a new
+`ClientMessageBody` message (pinned union, append-only), a server-side refund
+op (walk the spellbook, reset levels, recredit points — through the existing
+point-accounting so the D10 curve refunds exactly what was paid), and the
+button + confirm in the spellbook. Open PO calls before building: ① free or
+priced? (GDD lists respec cost as a placeholder concept) ② allowed mid-combat?
+(the equip lock precedent says no) ③ do milestone-seeded skills (Damage@L1)
+reset to level 1 or keep their floor? Not a filler item — schedule as a small
+chunk once ruled.
+
+### 9. Pending spellbook selection: an illegal key should clear it — ✅ `fd6fe48e` 2026-08-02
+
+Raised 2026-08-02, second batch. With a skill selected in the spellbook
+(pending equip), pressing any key that is not a legal bind for that thing
+should reset the selection — except WASD, which keeps moving. Today the
+selection survives every keypress; only clicking elsewhere clears it
+(`clearEquipSelection`, `HUD.ts`). Legal keys per pending category: aura →
+slot keys 1–3, cooldown → Q/R/F, passive → none (click-only), so for a
+pending passive any non-movement key clears. ⚑ Implementation trap: slot
+hotkeys are rAF-sampled by `Controls`, while a raw `keydown` listener fires
+immediately — so the handler must WHITELIST the legal keys rather than
+clear-on-anything, or pressing "1" to bind a pending aura would clear the
+selection before Controls ever samples the key.
+
+### 10. Passive tooltip wording audit — does the text match the effect? (audit sitting)
+
+Raised 2026-08-02, second batch, "things like Tough". Passives author no prose;
+every tooltip line is generated (`SkillTooltip.ts` `stat_multiplier` case:
+`STAT_LABELS[stat] + ': +X%'` — Tough renders "Damage reduction: +10%"). The
+audit is per-stat: verify each label + the flat `+pct` phrasing against the
+server's actual composition (`component.go` recomputeDerived + the apply
+sites), for all five `validStat`s and the passive-adjacent lines (Hardy's
+"Max Focus", Discipline's cost line). Small sitting, not a one-liner — each
+stat needs its formula read before its wording is judged. Fold in item 5's
+finding (Strong works but is invisible) — same surface.
+
+### 11. Warlord cleave: one slow beat, duckable — ✅ `3b415fa2` 2026-08-02 (beat 90, PO duck-feel check owed)
+
+Raised 2026-08-02, second batch. PO: the boss aura should tick MUCH slower
+with all effects on the same beat, so ducking in and out of range is real
+play. Today `WarlordCleave` is two cadences — `damage_aura` 20 HP every 35
+ticks (3 targets) + a bleed `dot_aura` applied every 50 ticks — so there is
+no gap to duck through. Fix shape = R3's one-beat rule applied to the boss:
+both effects `tickInterval` 90 (3 s; Frenzy's tick_rate 0.5 halves it to
+1.5 s during windows, preserving the burn-through design), magnitudes scaled
+throughput-neutral — cleave 20 → 50 (0.571 → 0.556 HP/tick), bleed per-tick
+6 → 11 (application-rate compensation). All values [PLACEHOLDER]; the duck
+window is a feel call for the PO by eye.
+
+### 12. Journal turn-in stages say the same thing twice (diagnosed, decision pending)
+
+Raised 2026-08-02 (the Turnip Chore screenshot). Not a code bug: the panel
+renders each stage's authored `journal` prose (italic, accumulating) plus the
+current stage's tracker line (bold). The `ac0f8a11` plain-text pass rewrote
+turn-in journal prose into exactly the instruction the tracker already
+carried, so every turn-in stage now duplicates ("Return to the Farmer." /
+"Return to the Farmer") — `village-welcome` and `turnip-chore` exact,
+`the-lost-lamp` and `wolves-on-the-road` near. Two content-only ways out,
+recommendation on record: **drop the `tracker` field on turn-in stages** (the
+prose alone states the task) vs. re-differentiate the prose (fact + place vs.
+terse instruction). Awaiting the PO's pick.
+
+### Round-7 ledger (what shipped 2026-08-02, same day as the intake)
+
+- **The empty-destination prune ✅ `5f2925b9`** — the PO ruling that came out
+  of item 12's conversation, wider than the question asked: *"you should not
+  be able to see an option that leads to nothing but Back"* — teaching lists
+  and quest entries alike; multi-quest NPCs will nest one deeper
+  ("something to do" → selection → quest). Built as a derived rule in
+  `present()` (`pruneEmptyDestinations`): a pure-navigation row is dropped
+  when its target node authored options but currently presents none; runs to
+  a fixed point so it cascades through pure selection nodes; lore leaves
+  (nodes that never authored options) stay reachable; grant rows untouched
+  (CanApply/spellbook own those). ⚑ Consequences accepted with the ruling:
+  mid-quest the entry row disappears too (accept spent, turn-in not yet
+  walkable — the journal carries the brief), and a locked teaching keeps its
+  node reachable (D20's signpost). 3 red-first Go tests (quest lifecycle,
+  all-teachings-known, the selection-node cascade). No content edits needed —
+  no `quest_not_at_stage` condition vocabulary, deliberately.
+- **Items 1/2/4 ✅ `3b415fa2`** (quest directions + crier brief · Wanderer
+  advice · OrcGrunt 75) · **item 9 ✅ `fd6fe48e`** (selection-escape
+  whitelist) · **item 11 ✅ `3b415fa2`** (Warlord one-beat 90).
+- **Verified:** full Go suite + `vet` + `gofmt` · 130 vitest · `tsc` · prod
+  build · `chunk3b-ii-conversation` **31/31** · `chunkC4-quests` **37 PASS +
+  1 deliberate SKIP** (twice: after the prune, and again after the content
+  edits — C7 read the new compass text back from the journal) · a 7-leg
+  ad-hoc probe for item 9 (illegal key clears, WASD/Escape behave, long-hold
+  "1" still binds — the whitelist race the item's ⚑ warns about, proven at
+  the real surface). Boot `-content ../api` 0 errors 0 warnings.
+- **Owed to the PO by eye:** the warlord duck-window feel (item 11), the
+  grunt-XP faucet check at the warlord fight (item 4), and the prune walked
+  through in-game (Farmer/Hermit/Crier/Traveller before and after their
+  quests).
+
 ## Rolling filler — blocks nothing, do any time
 
 > **4 of 6 ✅ DONE 2026-07-26** in one batch, committed `dab4dae0` —
@@ -1903,7 +2093,9 @@ cheap version would be a species *list*, and the tempting shortcut is wrong
   tooltip reads the caster's `spawn` effect, not the summoned mob's loadout.
   Needs the tooltip to follow the spawn into the mob's own skills.
   *(Originally deferred 2026-07-26 because `SkillTooltip.ts` was round-4
-  test-pending; that cleared long ago.)* **Re-raised by the PO 2026-07-30**
+  test-pending; that cleared long ago.)* **⚑ Re-raised AGAIN 2026-08-02 —
+  third time (§Intake round 7 item 3); should stop being filler and get
+  scheduled.** **Re-raised by the PO 2026-07-30**
   during the §35 C4 in-game check, with a second observation on the same
   surface: **Call for Aid renders "Summons Soldier Companion …" three times**
   — one line per `spawn` effect, technically true, not pretty; wants a dedupe
