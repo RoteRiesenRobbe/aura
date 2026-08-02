@@ -11,7 +11,10 @@ module.exports = {
 			title: 'Aura',
 			xhtml: true,
 			meta: {
-				viewport: 'width=device-width, initial-scale=1, user-scalable=no, interactive-widget=resizes-content'
+				viewport: 'width=device-width, initial-scale=1, user-scalable=no, interactive-widget=resizes-content',
+				// Address-bar tint on mobile. Used to come from the favicons android
+				// platform; that platform is off (see below), so it is authored here.
+				'theme-color': '#E66CEF'
 			}
 		}),
 		new FaviconWebpackPlugin({
@@ -24,11 +27,21 @@ module.exports = {
 				appDescription: 'A 2D multiplayer stone age survival game',
 				developerName: 'Team Dodo',
 				developerURL: 'https://berryhunter.io',
-				display: 'fullscreen',
-				orientation: 'landscape',
-				start_url: '',
 				theme_color: '#E66CEF',
-				version: 'Open Beta'
+				version: 'Open Beta',
+				icons: {
+					// Aura is played in the browser; it is deliberately NOT installable.
+					// The android platform is the one that writes manifest.webmanifest and
+					// injects <link rel="manifest">, which is all Chrome needs to offer
+					// "Install Aura" on a phone. Leaving it on shipped a broken install:
+					// the plugin's start_url is a relative URL resolved against the
+					// manifest, so the empty string we passed pointed the shortcut at the
+					// manifest file itself and the installed app rendered raw JSON.
+					// Turning the platform off removes the manifest, the link tag and the
+					// install offer together. Turn it back on (with a real start_url of
+					// '/') only if a PWA is actually wanted.
+					android: false
+				}
 			}
 		}),
 	],

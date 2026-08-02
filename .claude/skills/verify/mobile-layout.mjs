@@ -41,7 +41,8 @@ const base = process.argv[2] || 'http://localhost:2000/?token=plz&wsUrl=ws://loc
 const outdir = process.argv[3] || '/tmp/mobile-layout-shots';
 mkdirSync(outdir, { recursive: true });
 
-// A phone in landscape — the orientation the web manifest already declares.
+// A phone in landscape — the orientation the HUD is designed around. (Leg 8 runs
+// portrait too; nothing declares or locks an orientation, the web manifest is gone.)
 const PHONE = { width: 844, height: 390 };
 
 const libDir = join(workdir, 'libs/usr/lib/x86_64-linux-gnu');
