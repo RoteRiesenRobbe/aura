@@ -112,7 +112,23 @@ type SkillComponent struct {
 	// in v1 — the mob fire path ignores cast time.
 	CastingSlot   int
 	CastTicksLeft int
+
+	// revision counts changes to the PERSISTED half of this component — the
+	// spellbook, the three slot arrays and the active aura index. Cast state,
+	// cooldown timers and tick accumulators deliberately do not bump it.
+	//
+	// ⚑ It exists so the save path can notice a forced-save event
+	// (plan-accounts-implementation.md §2 — "skill learned / spellbook change")
+	// with ONE comparison per player per tick. The alternative, re-deriving
+	// "did anything change" by walking the spellbook every tick, is a scan the
+	// idle loop does not need; and a dirty flag someone has to remember to set
+	// at each mutation site is exactly what this counter replaces, because the
+	// bump lives beside the mutation.
+	revision uint64
 }
+
+// Revision is the persisted-state change counter. See the field.
+func (sc *SkillComponent) Revision() uint64 { return sc.revision }
 
 // DerivedStats accumulates stat_multiplier bonuses from equipped passives.
 // Bonuses are additive multipliers on the base value: effective = base × (1 + bonus).
@@ -236,6 +252,7 @@ func (sc *SkillComponent) CancelCastOnDamage() {
 // EquipAura installs a skill into the given aura slot.
 func (sc *SkillComponent) EquipAura(slot int, def *SkillDefinition, level int) {
 	sc.AuraSlots[slot] = &EquippedSkill{Def: def, Level: level}
+	sc.revision++
 }
 
 // UnequipAura removes the skill from the given aura slot.
@@ -245,6 +262,7 @@ func (sc *SkillComponent) UnequipAura(slot int) {
 	if sc.ActiveAuraSlot == slot {
 		sc.ActiveAuraSlot = -1
 	}
+	sc.revision++
 }
 
 // EquipPassive installs a skill into the given passive slot. All equipped
@@ -263,12 +281,14 @@ func (sc *SkillComponent) EquipPassive(slot int, def *SkillDefinition, level int
 		}
 	}
 	sc.PassiveSlots[slot] = &EquippedSkill{Def: def, Level: level}
+	sc.revision++
 	sc.recomputeDerived()
 }
 
 // UnequipPassive removes the skill from the given passive slot.
 func (sc *SkillComponent) UnequipPassive(slot int) {
 	sc.PassiveSlots[slot] = nil
+	sc.revision++
 	sc.recomputeDerived()
 }
 
@@ -282,6 +302,7 @@ func (sc *SkillComponent) EquipCooldown(slot int, def *SkillDefinition, level in
 		}
 	}
 	sc.CooldownSlots[slot] = &EquippedSkill{Def: def, Level: level}
+	sc.revision++
 }
 
 // BurstRadius is the effective radius of the largest instant-AoE effect
@@ -400,6 +421,7 @@ func (sc *SkillComponent) SetActiveAura(slot int) {
 		return
 	}
 	sc.ActiveAuraSlot = slot
+	sc.revision++
 	if slot >= 0 && sc.AuraSlots[slot] != nil {
 		sc.AuraSlots[slot].TickAccumulator = 0
 	}
@@ -446,6 +468,7 @@ func (sc *SkillComponent) LightRadius() float32 {
 func (sc *SkillComponent) Discover(id SkillID) {
 	if sc.Spellbook != nil && sc.Spellbook[id] == 0 {
 		sc.Spellbook[id] = 1
+		sc.revision++
 	}
 }
 
@@ -486,6 +509,7 @@ func (sc *SkillComponent) LowerSkillLevel(def *SkillDefinition) bool {
 
 func (sc *SkillComponent) setSkillLevel(id SkillID, level int) {
 	sc.Spellbook[id] = level
+	sc.revision++
 	for _, slots := range [][]*EquippedSkill{sc.AuraSlots[:], sc.PassiveSlots[:], sc.CooldownSlots[:]} {
 		for _, es := range slots {
 			if es != nil && es.Def.ID == id {

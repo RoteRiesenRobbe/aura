@@ -40,6 +40,23 @@ type Ledger struct {
 	// until an owner installs it — the sim and the tests run without one, and a
 	// carried ledger has none until its new owner adopts it (L11).
 	notify func(Notice)
+
+	// revision counts QUEST STATE changes — a stage entered, a quest abandoned.
+	//
+	// ⚑ The counters deliberately do NOT bump it. Accepting or finishing a quest
+	// is a forced-save event (plan-accounts-implementation.md §2: visible,
+	// memorable progress); a kill counter ticking is not, and bumping on NoteKill
+	// would force a database write on every mob the player kills. Counters ride
+	// the 5-minute interval like XP does.
+	revision uint64
+}
+
+// Revision is the quest-state change counter. See the field.
+func (l *Ledger) Revision() uint64 {
+	if l == nil {
+		return 0
+	}
+	return l.revision
 }
 
 // Notice is one journal event: a quest reached a new stage, or ended. It carries
@@ -206,6 +223,7 @@ func (l *Ledger) Abandon(questID string) error {
 	}
 	p.Running = false
 	p.Path = nil
+	l.revision++
 	return nil
 }
 
@@ -273,6 +291,7 @@ func (l *Ledger) enter(q *QuestDefinition, p *Progress, s *Stage) {
 		}
 		s = q.Stage(s.Next)
 	}
+	l.revision++
 	if l.notify != nil {
 		l.notify(Notice{QuestID: q.ID, Title: q.Title, StageID: s.ID, Completed: p.Completed})
 	}

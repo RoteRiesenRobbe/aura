@@ -92,6 +92,10 @@ type reconnectStash struct {
 	// who presented it — acceptable when nothing was staked on it, and a real
 	// hole once a character carries progress (plan-accounts-frontend.md §8).
 	accountID int64
+	// characterID is the row this stash saves to (chunk 4). It rides the stash
+	// for the same reason the ledger does (L11): the player struct is gone, and
+	// the session-expiry save has nothing else to ask which row it is writing.
+	characterID int64
 }
 
 // PlayTickets redeems a play ticket into the identity it was minted for.
@@ -177,6 +181,30 @@ type ConnectionStateSystem struct {
 	// accountByClient maps a live connection to the account playing on it, so a
 	// disconnect knows whose session slot to stash.
 	accountByClient map[uuid.UUID]int64
+	// characterByClient maps a live connection to the character row it plays, so
+	// a save knows which row to write (chunk 4). Separate from accountByClient
+	// rather than one struct because an account and a character are different
+	// scopes — the session registry is keyed by the first, persistence by the
+	// second, and merging them would invite one to be used for the other.
+	characterByClient map[uuid.UUID]int64
+	// saves queues character snapshots for the writer goroutine; nil in tests
+	// and in any build without persistence wired (see SetCharacterSaves).
+	saves CharacterSaves
+	// saveWatch is what each live character's last save was taken against, so a
+	// forced-save event is three integer comparisons rather than a rebuild.
+	saveWatch map[uuid.UUID]saveWatch
+	// These four drive §5b's "your progress is not being saved" warning:
+	// whether writes are currently failing, since when, when players were last
+	// told, and whether they have been told at all.
+	saveFailureActive bool
+	failingSince      uint64
+	lastSaveWarning   uint64
+	saveWarningSent   bool
+	// flushRequests holds shutdown flush requests, drained once per tick.
+	//
+	// ⚑ A sync.Map for the same reason logoutRequests is one: it is written from
+	// the signal handler's goroutine and read by the game loop.
+	flushRequests sync.Map
 	// tickets and sessions are chunk 3's identity seam. Both are nil in tests
 	// and in any build that has not wired them, and every use is guarded — the
 	// game must keep working without a database behind it.
@@ -223,6 +251,9 @@ func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
 		tokenByClient:   map[uuid.UUID]string{},
 		stashByToken:    map[string]reconnectStash{},
 		accountByClient: map[uuid.UUID]int64{},
+
+		characterByClient: map[uuid.UUID]int64{},
+		saveWatch:         map[uuid.UUID]saveWatch{},
 	}
 }
 
@@ -306,6 +337,7 @@ func (s *ConnectionStateSystem) defaultSpawnPosition() phy.Vec2f {
 func (s *ConnectionStateSystem) Update(dt float32) {
 	s.sweepExpiredStashes()
 	s.drainLogoutRequests()
+	s.drainFlushRequests()
 
 	// Both loops iterate SNAPSHOT copies: RemoveEntity fans out synchronously
 	// into removeFromPlayers/removeFromSpectators, which shift the live slices
@@ -327,6 +359,12 @@ func (s *ConnectionStateSystem) Update(dt float32) {
 	}
 
 	s.trackCampfireDwell()
+	// ⚑ AFTER the join/death loops and the dwell tracker, never inside them —
+	// §4 Rule 2. A snapshot taken mid-tick can catch a player whose health has
+	// been decremented but whose death has not been processed yet; taken here it
+	// sees a world that has finished moving for this tick.
+	s.trackCharacterSaves()
+	s.warnAboutFailingSaves()
 
 	// Publish the count last, after this tick's joins and deaths have settled.
 	s.playerCount.Store(int64(len(s.players)))
@@ -343,6 +381,9 @@ func (s *ConnectionStateSystem) sweepExpiredStashes() {
 	for tok, stash := range s.stashByToken {
 		if now-stash.disconnectTick >= reconnectStashTTLTicks {
 			log.Printf("⌛ stashed character '%s' expired.", stash.name)
+			// §2's session-expiry save, taken before the stash is dropped —
+			// this is the last moment its state exists anywhere.
+			s.saveStash(stash)
 			s.names.remove(stash.name)
 			delete(s.stashByToken, tok)
 			s.releaseExpiredSession(stash)
@@ -497,6 +538,7 @@ func (s *ConnectionStateSystem) claimSession(client model.Client, t auth.Ticket)
 		return false
 	}
 	s.accountByClient[client.UUID()] = t.AccountID
+	s.characterByClient[client.UUID()] = t.CharacterID
 	return true
 }
 
@@ -618,9 +660,23 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 		p.SetProgression(dead.progression)
 		p.SetSkillComponent(dead.skills)
 		p.SetQuestLedger(dead.quests)
+	} else {
+		// ⚑ THE COLD LOAD, and only the cold load (§5, §6). The persisted state
+		// rides the ticket because /select already read this character's row over
+		// authenticated HTTP; the loop never queries the database (ruling 11).
+		//
+		// ⚑ Carried in-memory state WINS when it exists. A dead player rejoining
+		// through character-select holds progress newer than anything on disk —
+		// "load-from-DB is for cold logins only" is exactly this branch.
+		restoreCharacterState(p, ticket.State, s.game.Skills())
 	}
 
 	// spawn the player at a random campfire (default spawn)
+	//
+	// ⚑ home_campfire_id is a column nobody writes and that is correct: NULL
+	// falls through to this existing path, which is what every player already
+	// gets. Populating it needs the anchor-identity work the schema doc places
+	// outside 8a.
 	p.SetPosition(s.defaultSpawnPosition())
 
 	s.game.AddEntity(p)
@@ -642,9 +698,13 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 
 	s.tokenByClient[client.UUID()] = token
 	// The account moves to the NEW connection, or the next disconnect would
-	// stash nothing and the slot would never be released.
+	// stash nothing and the slot would never be released. The character moves
+	// with it, or the resumed session would save to nowhere.
 	if stash.accountID != 0 {
 		s.accountByClient[client.UUID()] = stash.accountID
+	}
+	if stash.characterID != 0 {
+		s.characterByClient[client.UUID()] = stash.characterID
 	}
 	if stash.hasAnchor {
 		s.anchors[client.UUID()] = stash.anchor
@@ -698,6 +758,8 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 	name := p.Name()
 	anchor, hasAnchor := s.anchors[client.UUID()]
 	token, hasToken := s.tokenByClient[client.UUID()]
+	account := s.accountByClient[client.UUID()]
+	character := s.characterByClient[client.UUID()]
 
 	// The removal fan-out runs the full disconnect bookkeeping (funeral, name
 	// stashed, anchor dropped); death deliberately re-adds name + anchor +
@@ -711,6 +773,22 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 	if hasToken {
 		delete(s.stashByToken, token)
 		s.tokenByClient[client.UUID()] = token
+	}
+	// ⚑ DEATH IS NOT A DISCONNECT, and the same fan-out that stashes the name
+	// also marked the account's session stashed and forgot which character this
+	// connection plays — while the socket is still open and the player is one
+	// click from respawning. Re-registering is what keeps logout, the
+	// one-session-per-account rule and the save path pointed at a player who is
+	// still very much present; without it, dying quietly freed the account's
+	// slot to a second tab.
+	if account != 0 {
+		s.accountByClient[client.UUID()] = account
+		if s.sessions != nil {
+			s.sessions.Claim(auth.Session{AccountID: account, CharacterID: character})
+		}
+	}
+	if character != 0 {
+		s.characterByClient[client.UUID()] = character
 	}
 
 	c := corpse.New(deathspot)
@@ -900,11 +978,22 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 				dead:           true,
 				disconnectTick: s.game.Ticks(),
 				accountID:      s.accountByClient[client],
+				characterID:    s.characterByClient[client],
 			}
 			delete(s.tokenByClient, client)
 		} else {
 			s.names.remove(dead.name)
 		}
+		// The dead player's socket is gone for real this time: the account's
+		// session goes back to stashed and the connection's identity bindings go
+		// with it. handleDeath deliberately put them back when the death itself
+		// ran through removeFromPlayers, so this is the only place that undoes
+		// them for a dead client.
+		if account := s.accountByClient[client]; account != 0 && s.sessions != nil {
+			s.sessions.Stash(account)
+		}
+		delete(s.accountByClient, client)
+		delete(s.characterByClient, client)
 		s.game.RemoveEntity(dead.corpse.Basic())
 		delete(s.deadByClient, client)
 		delete(s.anchors, client)
@@ -920,6 +1009,16 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 	p := arr[idx]
 	s.doFuneral(p)
 	clientUUID := p.Client().UUID()
+
+	// §2's disconnect save — the cheap trigger that covers the common case.
+	//
+	// ⚑ DEATH ROUTES THROUGH HERE TOO, and that is wanted rather than tolerated:
+	// handleDeath has already applied LoseCurrentLevelExperience, so this
+	// persists the post-death numbers. Saving the pre-death ones would hand a
+	// player their lost XP back for the price of a crash.
+	s.saveCharacter(p)
+	s.forgetSaveWatch(clientUUID)
+
 	// Stash the character for a reconnect instead of freeing it (the name
 	// stays reserved while stashed). Death routes through here too — it drops
 	// the spurious stash and re-registers the token right after the fan-out
@@ -937,6 +1036,7 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 			hasAnchor:      hasAnchor,
 			disconnectTick: s.game.Ticks(),
 			accountID:      s.accountByClient[clientUUID],
+			characterID:    s.characterByClient[clientUUID],
 		}
 		delete(s.tokenByClient, clientUUID)
 	} else {
@@ -950,6 +1050,7 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 		s.sessions.Stash(account)
 	}
 	delete(s.accountByClient, clientUUID)
+	delete(s.characterByClient, clientUUID)
 	delete(s.anchors, clientUUID)
 	delete(s.dwell, p.Basic().ID())
 	s.players = append(arr[:idx], arr[idx+1:]...)

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 )
 
 // TicketTTL is how long a play ticket stays redeemable. [PLACEHOLDER]
@@ -63,6 +65,22 @@ type Ticket struct {
 	Name    string
 	Avatar  string
 	Faction string
+
+	// State is the character's persisted progress — level, experience,
+	// spellbook, loadout and quest flags (step 8a chunk 4).
+	//
+	// ⚑ IT RIDES THE TICKET FOR THE SAME REASON THE NAME DOES, and it is the
+	// whole load path. /select is already reading this character's rows over
+	// authenticated HTTP to prove ownership; loading the rest there means the
+	// game loop still never touches the database, which is the constraint that
+	// made the ticket exist in the first place. A read inside `tryJoin` would
+	// stall every player in the world for its duration.
+	//
+	// ⚑ A RECONNECT DISCARDS IT. The reconnect path resumes the stashed live
+	// character, which is newer than any row — "load-from-DB is for cold logins
+	// only" (plan-accounts-implementation.md §5). The wasted read is the price
+	// of /select having one shape.
+	State persist.CharacterState
 }
 
 type ticketEntry struct {

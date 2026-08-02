@@ -211,6 +211,23 @@ func (g *game) EndSessionFor(accountID int64) {
 	g.connState.EndSessionFor(accountID)
 }
 
+// SetCharacterSaves gives the save triggers somewhere to queue snapshots
+// (step 8a chunk 4). Satisfies sys.PersistenceSink together with the flush
+// below, following the SetCampfireAnchors precedent: the interface lives in
+// sys, the game forwards, and cmd/aurad type-asserts.
+func (g *game) SetCharacterSaves(saves sys.CharacterSaves) {
+	g.connState.SetCharacterSaves(saves)
+}
+
+// FlushLiveCharacters queues a snapshot of every live character, for the
+// graceful-shutdown path.
+//
+// ⚑ Safe to call from the signal handler's goroutine: it only queues the
+// request, and the game loop takes the snapshots.
+func (g *game) FlushLiveCharacters(done chan<- struct{}) {
+	g.connState.FlushLiveCharacters(done)
+}
+
 func (g *game) Bounds() (width, height float32) {
 	return g.boundsWidth, g.boundsHeight
 }

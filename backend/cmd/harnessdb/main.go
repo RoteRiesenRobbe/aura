@@ -166,6 +166,31 @@ func runCleanup(ctx context.Context, db *store.Store) error {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	// The character-scoped tables go first, and they are keyed by character_id
+	// rather than account_id — which is why they need their own loop.
+	//
+	// ⚑ THE ORDER INSIDE THIS LIST IS THE FK ORDER: character_loadout_slots has
+	// a composite foreign key into character_spellbook, so slots leave first.
+	// The schema carries no ON DELETE CASCADE anywhere, deliberately (a
+	// graveyard that a stray delete can silently break is worse than one that
+	// refuses to be broken) — so every child table is this tool's problem.
+	//
+	// ⚑ Step 8a chunk 4 is what made these rows exist. Before it, a harness
+	// character had none and the cleanup ran green against exactly the same
+	// list; the day saving shipped it started failing on a foreign key, which is
+	// a good enough reason to state the rule here rather than rediscover it.
+	const ofTheseAccounts = ` WHERE character_id IN
+		(SELECT id FROM game.characters WHERE account_id = ANY($1))`
+	for _, table := range []string{
+		"game.character_loadout_slots",
+		"game.character_spellbook",
+		"game.character_flags",
+	} {
+		if _, err := tx.Exec(ctx, "DELETE FROM "+table+ofTheseAccounts, ids); err != nil {
+			return fmt.Errorf("%s: %w", table, err)
+		}
+	}
+
 	// ⚑ audit_log is in this list and is easy to forget: it records SUCCESSES
 	// only, so an account that merely created a character has no rows and the
 	// missing FK never bites. It only fails once a harness account has actually

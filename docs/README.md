@@ -116,15 +116,17 @@ than patch. PDF renders of the first two sit in the repo root.
   the PO hand-testing pass found — including the reconnect break that was hiding behind
   two unrelated-sounding reports. ⚑ Same snapshot caveat as 1a's.
 
+- **accounts/chunk-4-summary.html** — "Step 8a, Chunk 4: your progress survives"
+  (2026-08-02). Why saving and loading had to be one piece of work, how a snapshot reaches
+  the database without the game loop ever waiting for it, when a save fires, and the three
+  things that were nearly wrong — including the cleanup tool that broke while every test
+  stayed green. ⚑ Same snapshot caveat as 1a's.
+
 `docs/accounts/` also carries **session handovers** — working notes for picking a chunk up
 cold, not snapshots. ⚑ **Disposable: delete one when its chunk lands**, so the folder never
 accumulates stale instructions. Durable content belongs in the plan doc's chunk ledger.
-
-- **accounts/chunk-4-handover.md** — ⭐ **OPEN.** Save & load: the goal, what chunk 3 hands
-  forward (the ticket already carries `Avatar`/`Faction`, unused), the six traps in the
-  order they bite — starting with "the game loop is a single goroutine, and a query blocks
-  every player" — the testing notes, and the environment gotchas. **Delete it when chunk 4
-  lands.**
+There are none open: `chunk-4-handover.md` was deleted when chunk 4 landed on 2026-08-02,
+per that rule.
 
 ## Research (investigations / assessments)
 

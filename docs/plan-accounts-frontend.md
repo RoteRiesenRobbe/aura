@@ -4,11 +4,13 @@ What the player actually clicks through, from a cold page load to being in the
 world and back out again. Companion to `plan-accounts-schema.md` (the DDL) and
 `plan-accounts-implementation.md` (save/load mechanics, auth, transport).
 
-**Status: in execution.** Chunk 0 (local Postgres), **1a** (schema, migrations,
-connection layer), **1b** (auth & sessions) and **1c** (the eight endpoints) have
-shipped — ledgers in §10a. **Chunks 2 (frontend), 3 (wire) and 4 (save & load)
-remain.** All numbers below (max alive characters, cooldown seconds) are
-placeholders per the project convention.
+**Status: code-complete.** Chunk 0 (local Postgres), **1a** (schema, migrations,
+connection layer), **1b** (auth & sessions), **1c** (the eight endpoints),
+**2** (the frontend), **3** (the wire) and **4** (save & load) have all shipped —
+ledgers in §10a. What remains of step 8a is **§8's operational work** (backups
+with a proven restore, off-machine storage, live-server provisioning), which is
+runbook work rather than a code chunk. All numbers below (max alive characters,
+cooldown seconds) are placeholders per the project convention.
 
 ---
 
@@ -1050,6 +1052,163 @@ trip onto the hot path, or join the player as a nameless character.
 ---
 
 ## 10a. Chunk ledger
+
+### Chunk 4 — save & load ✅ DONE 2026-08-02
+
+Backend only — no wire change, no frontend change, no schema change. **A
+character's progress survives leaving the world:** level, experience, spellbook,
+loadout slots, active aura and the quest ledger. This is what persistence was
+for; everything before it built the road.
+
+**Shipped:**
+
+- **`pkg/aura/persist`** — `CharacterState`, the single value struct both halves
+  of the mapping agree on, plus the async `Writer`. It depends on **nothing else
+  in aura**, which is what lets `store` write it, `auth` carry it and `sys` build
+  it without any of the three depending on each other.
+- **`store.SaveCharacter` / `store.LoadCharacterState`** — §4's write transaction
+  (`SET LOCAL synchronous_commit = off`, full replacement of the three child
+  tables in FK order) and its exact inverse.
+- **`quests.EncodeFlags` / `DecodeFlags` / `Ledger.Restore`** — the ledger as
+  **three** `character_flags` rows, with `Running` persisted rather than derived.
+- **`sys/persist.go`** — `characterState()` and `restoreCharacterState()` kept
+  adjacent on purpose, the five save triggers, the `CharacterSaves` /
+  `PersistenceSink` seams, and §5b's save-failure warning.
+- **`cmd/aurad/shutdown.go`** — SIGTERM/SIGINT flushes every live character
+  before exit, with two bounded waits and a per-character log line for anything
+  it could not save.
+- **The load path rides the play ticket.** `/select` already read the character
+  row to prove ownership, so it reads the rest there too and hands it over on
+  `auth.Ticket.State`. **The game loop still never touches the database.**
+
+**Verified.** `go build` · `go vet` · gofmt clean on every touched file · **full
+Go suite 33/33 packages** (the new one is `persist`), DB-backed rows included ·
+**vitest 87/87** · typecheck clean · `-dev` boot **0 errors 0 warnings**: 86
+skills / 15 factions / 64 mobs / 10 recipes / 4 quests / 777 props / 485 spawns /
+5 campfires, 0 panics. Harnesses, each run solo on a freshly restarted server:
+**new `chunk4-persistence.mjs` 15/15** · `chunk2-accounts.mjs` **21/21** ·
+`chunk3b-interact.mjs` **14/14** · `chunkC3-journal.mjs` **8/8 + 1 deliberate
+SKIP** (no probe quest installed). 0 webgl context losses throughout.
+
+⚑ `hygiene-wire-prune.mjs` was **not** run and does not apply: no `.fbs` field
+was added or removed.
+
+**Decisions taken:**
+
+- ⭐ **The load rides the ticket; the game gets no `*store.Store`.** The handover
+  called this the single biggest decision in the chunk, and ruling 11 had already
+  answered it: the loop is one goroutine, so a read inside `tryJoin` stalls every
+  player in the world, and `/select` has read that character a moment earlier
+  anyway. The alternative — a store on the game, loading asynchronously after
+  spawn — buys a visible window where a returning character is level 1.
+- ⭐ **One struct for save and load, and round-trip is the acceptance test.**
+  `TestCharacterStateRoundTrips` (real Postgres) and
+  `TestCharacterStateRoundTripsThroughAPlayer` (a real player) are the two halves:
+  the first proves the SQL agrees with itself, the second that the game agrees
+  with the mapping. A field the builder writes and the restore path ignores
+  passes the first and fails the second.
+- **Forced-save detection is a revision counter, not a rescan.** `SkillComponent`
+  and `Ledger` each carry one, bumped beside the mutations that matter, so §2's
+  forced events cost three integer comparisons per player per tick instead of
+  walking the spellbook 30 times a second.
+  ⚑ **`NoteKill` deliberately does NOT bump the ledger's** — accepting or
+  finishing a quest is memorable progress, a kill counter ticking is not, and
+  bumping there would force a write on every mob a player kills. Counters ride
+  the interval like XP does.
+- **"If dirty" is implemented as a fingerprint in the writer**, not as a flag
+  callers must remember to set: an identical snapshot is dropped before the
+  transaction opens. That is what makes the session-expiry trigger free rather
+  than a guaranteed duplicate of the disconnect save.
+- **§5b's save-failure warning rides the existing journal banner.** The client
+  already renders a `Journal` EntityMessage's text verbatim in the alert banner,
+  so the warning needs no schema change, no regenerated bindings and no frontend
+  work. ⚑ It waits **30 s** before speaking: the writer reports `Failing()` after
+  ONE failed attempt, which a database restart produces routinely and the retry
+  ladder then fixes by itself — warning on that trains players to ignore the
+  message that matters.
+- **`avatar` and `faction` stay unwired**, as §4 specifies. Both columns are
+  written at creation from placeholder constants and neither has a runtime source
+  (`player.Faction()` is hardcoded, and there is no avatar field on the player at
+  all). Storing them on the player with no consumer would be state nobody reads.
+
+**⚑ Traps closed structurally:**
+
+- **The FK ordering is pinned by a test that would fail either way round.**
+  `character_loadout_slots` references `character_spellbook`, so slots are deleted
+  *before* the spellbook and inserted *after* it.
+  `TestSaveCharacterOrdersItsStatements` exercises the case that breaks first — a
+  second save that shrinks the spellbook while a slot still names the departing
+  skill — and was **proven red** by swapping the two DELETEs.
+- **An empty spellbook means "never saved"**, and the restore path leans on it to
+  leave a brand-new character's component alone. A played character always knows
+  at least one skill, so the two cannot be confused.
+- **`active_aura_slot` NULL loads as −1, not slot 0.** Slot 0 is a real slot; a
+  NULL silently becoming it would switch an aura on for a character who never
+  chose one.
+- **A loadout slot naming a retired skill is skipped, not fatal** — content can
+  retire a skill, and refusing to load would lock a player out over a slot they
+  can re-fill in one click.
+- **`Ledger.Restore` does not cascade.** Accept and NoteKill re-check objectives
+  and can walk a quest several stages; a load installs settled state. Replaying
+  the D3 retroactive walk on every login would re-fire banners for quests that
+  finished weeks ago, and could advance a quest whose content changed under a
+  character who was never there.
+- **The save UPDATE carries the alive check** (`deleted_at IS NULL AND
+  sacrificed_at IS NULL`), so an autosave in flight when a player deletes their
+  own character from character-select cannot write progress back into a dead row.
+
+**⚑ Findings:**
+
+- ⭐ **The chunk broke `harnessdb -cleanup`, and only the verification tail found
+  it.** Cleanup hard-DELETEs harness characters; the moment characters had
+  spellbook rows, the foreign key refused — and the schema carries no
+  `ON DELETE CASCADE` anywhere, deliberately. Fixed by deleting the three
+  character-scoped tables first, in FK order. **Every Go test and every browser
+  harness was green while this was broken**, because nothing but the cleanup tool
+  deletes a character.
+- ⭐ **JSONB is not a string column, and that silently breaks byte round-trip.**
+  Postgres parses a `jsonb` value and re-renders it — whitespace gone, object keys
+  in its own order — so what comes back is never what went in. Without
+  `persist.CanonicalFlags` on both sides, the round-trip test would compare
+  semantically-equal-but-different bytes, *and* the writer's fingerprint would
+  consider every reloaded character dirty and write on every interval forever.
+- ⭐ **`Running && Completed` is unreachable with an objective-only repeatable
+  quest**, which is why the test that pins it uses a **dialogue** first stage.
+  Objective thresholds are lifetime totals (D3), so re-accepting an objective-only
+  repeatable quest satisfies it inside the same call and completes it immediately
+  — the state the schema doc warns about would never be observable, and the test
+  would pass for the wrong reason. Mutation-checked: encoding `running` as
+  `!completed` turns it red.
+- ⭐ **Chunk 3 left a real hole that this chunk had to close: DYING FREED THE
+  ACCOUNT'S SESSION SLOT.** Death routes through `removeFromPlayers`, which runs
+  the full disconnect bookkeeping — `sessions.Stash(account)` and
+  `delete(accountByClient)` — while the socket is still open and the player is one
+  click from respawning. A stashed session is not "connected", so `/select` would
+  happily mint a second ticket: **die in one tab, open another, and be in the
+  world twice.** `handleDeath` now re-claims the session and re-registers both
+  identity maps after the fan-out, exactly as it already did for the name, anchor
+  and reconnect token. Pinned by `TestDeathKeepsTheAccountConnected`.
+- **A zero tick is a real tick.** The save-failure warning first used
+  `failingSince == 0` as "not failing yet", which left a failure starting on tick
+  0 permanently "just noticed" and never warned about — caught by the test asking
+  for the warning on a fixture whose clock starts at 0.
+- **Nine `sys` tests had to learn the character id**, because a snapshot with
+  `CharacterID == 0` is dropped by design (tests and any pre-accounts join build
+  players with no row). The fixture mints it on the ticket, which is where it
+  comes from in production too.
+
+**Deliberately NOT built:** the sacrifice transaction (§3 — the mechanic does not
+exist in Go yet) · `home_campfire_id` (a column nobody writes, and NULL correctly
+falls through to `defaultSpawnPosition()`) · `bloodline_unlocks` writes · a
+sticky HUD banner for save failure (the alert banner carries the sentence; a
+persistent element would need a wire addition) · avatar/faction wiring.
+
+⚑ **Known local limitation:** the SIGTERM flush cannot be exercised on this
+Windows box — `taskkill /F` is uncatchable, and the process is not attached to a
+console that can deliver Ctrl-C. Its two halves are covered by Go tests
+(`TestFlushLiveCharactersSnapshotsEveryone`,
+`TestWriterReportsWhatItCouldNotSave`); signal delivery itself is stdlib, and the
+live server is Linux under systemd, where SIGTERM is the normal stop.
 
 ### Chunk 3 — the wire ✅ DONE 2026-08-01
 

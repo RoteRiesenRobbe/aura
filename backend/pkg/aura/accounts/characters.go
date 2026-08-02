@@ -282,16 +282,28 @@ func (s *Server) handleSelectCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ⚑ The character's identity rides the ticket so the game loop never reads
-	// the database to answer a Join — this row has just been read to prove
-	// ownership, and reading it again inside the single-goroutine tick would
-	// stall every player. See auth.Ticket.
+	// ⚑ THE COLD LOAD HAPPENS HERE (chunk 4, implementation.md §6). The
+	// character's identity AND its persisted progress ride the ticket so the
+	// game loop never reads the database to answer a Join — this character has
+	// just been read to prove ownership, and reading it again inside the
+	// single-goroutine tick would stall every player. See auth.Ticket.
+	//
+	// ⚑ A reconnect calls /select too and throws this away: the stashed live
+	// character is newer than any row. Paying for one wasted read keeps /select
+	// a single shape rather than two that must agree.
+	state, err := s.cfg.Store.LoadCharacterState(r.Context(), who.accountID, character.ID)
+	if err != nil {
+		failStore(w, r, err, "loading a character for selection")
+		return
+	}
+
 	ticket, err := s.cfg.Tickets.Mint(auth.Ticket{
 		AccountID:   who.accountID,
 		CharacterID: character.ID,
 		Name:        character.Name,
 		Avatar:      character.Avatar,
 		Faction:     character.Faction,
+		State:       state,
 	})
 	if err != nil {
 		fail(w, r, http.StatusInternalServerError, codeInternal, msgGeneric, err)

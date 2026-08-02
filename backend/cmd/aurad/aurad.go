@@ -19,6 +19,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -306,6 +307,18 @@ func main() {
 		panic("game does not accept an identity seam")
 	}
 	identity.SetIdentity(tickets, sessions)
+
+	// Persistence (step 8a chunk 4). The writer owns the only goroutine that
+	// talks SQL for character state; the game hands it plain value snapshots and
+	// never blocks on a write — §4's "snapshot inside the tick, write outside
+	// it", which is the rule the single-goroutine game loop makes non-negotiable.
+	characterWriter := persist.NewWriter(db)
+	persistence, ok := g.(sys.PersistenceSink)
+	if !ok {
+		panic("game does not accept a persistence seam")
+	}
+	persistence.SetCharacterSaves(characterWriter)
+	installShutdownFlush(persistence, characterWriter, db)
 
 	accountsServer, err := buildAccountsServer(db, originPolicy, config, dev, tickets, sessions, identity)
 	if err != nil {

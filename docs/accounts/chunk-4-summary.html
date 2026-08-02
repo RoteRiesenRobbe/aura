@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aura — Step 8a, Chunk 4: Your Progress Survives</title>
+</head>
+<body>
+
+<h1>Aura — Accounts &amp; Persistence</h1>
+<h2>Step 8a, Chunk 4: your progress survives</h2>
+
+<p><em>Point-in-time summary &middot; 2 August 2026 &middot; branch <code>accounts-8a</code> &middot;
+commit <code>[uncommitted]</code></em></p>
+
+<p><strong>This is a human-facing snapshot, not a maintained document.</strong> The authoritative
+sources are <code>docs/plan-accounts-frontend.md</code> §10a (the chunk ledger) and
+<code>docs/plan-accounts-implementation.md</code> §2/§4/§6 (save triggers, snapshot mechanics,
+the load path). Where this document and those disagree, they win.</p>
+
+<hr>
+
+<h2>In one sentence</h2>
+
+<p>Until today, aura remembered <em>who you were</em> and forgot <em>everything you had done</em>.
+Now your level, your experience, the abilities you have learned, how you have arranged them and
+which quests you are on all survive leaving the world and coming back.</p>
+
+<p>This is the thing the previous five chunks were building the road to. A database, a login, a
+front door and a locked door are all preparation; this is the part a player would actually
+notice was missing.</p>
+
+<hr>
+
+<h2>What a player sees</h2>
+
+<p>Nothing new on screen — and that is the whole result. Play, earn a few levels, learn some
+abilities, leave to character select, come back tomorrow, and your character is where you left
+it. Before this chunk, the character came back with the right name and nothing else.</p>
+
+<p>One thing is deliberately <em>not</em> remembered: where you were standing, and how much health
+you had. You come back at full health at a campfire, which is what happens after any death
+anyway. Remembering the exact spot would mostly mean logging out mid-fight and returning to the
+same fight, which is a worse experience than it sounds.</p>
+
+<hr>
+
+<h2>How it works, in plain terms</h2>
+
+<h3>Saving: never make the world wait</h3>
+
+<p>The game world runs as a single, strictly ordered loop — every player, every creature, thirty
+times a second, one after another. Anything that loop stops to wait for, <em>everyone</em> waits
+for. A database write takes milliseconds, which is an eternity at that scale.</p>
+
+<p>So saving happens in two steps that are deliberately kept apart. The game loop takes a
+<strong>snapshot</strong> — a plain copy of your numbers into memory, which costs microseconds and
+cannot fail. A separate worker then writes that snapshot to the database at its own pace. If the
+database is slow, or down, the world does not notice.</p>
+
+<p>The worker keeps only the <em>newest</em> snapshot per character. Older ones are not a backlog
+to work through; they are simply superseded. That has a pleasant side effect: a database outage
+degrades into staleness rather than into a queue that grows until the server runs out of memory.</p>
+
+<h3>When a save happens</h3>
+
+<ul>
+  <li><strong>Every five minutes</strong>, staggered so a hundred players who arrived together do
+      not all save on the same instant.</li>
+  <li><strong>The moment you disconnect</strong>, which covers the ordinary case.</li>
+  <li><strong>Immediately on anything memorable</strong> — a level up, learning an ability,
+      rearranging your loadout, accepting or finishing a quest. Losing five minutes of experience
+      to a crash is forgivable; losing the level you just earned is not.</li>
+  <li><strong>Ten minutes after you disconnect</strong>, when the server finally lets go of your
+      character — a last chance in case the disconnect save happened while the database was down.</li>
+  <li><strong>On shutdown.</strong> Without this, every routine server update would be
+      indistinguishable from a crash for everyone online.</li>
+</ul>
+
+<p>Routine things — experience ticking up, creatures killed — ride the five-minute timer. A save
+on every kill would be a database write on every kill.</p>
+
+<h3>Loading: the game still never reads the database</h3>
+
+<p>This is the part that took the most thought. Loading a character means reading several
+database tables — and doing that inside the game loop would stall the world for every player,
+which is exactly the problem saving was designed around.</p>
+
+<p>The answer was already sitting there from the last chunk. When you press Play, the web server
+reads your character's row to check it is really yours, then hands the game a one-use pass. It is
+now reading the rest of your character at the same moment and putting it on that pass. By the
+time the game hears about you, everything it needs has already arrived — it never has to ask.</p>
+
+<p>Reconnecting after a dropped connection deliberately <em>ignores</em> all of that: your live
+character is still held in memory for ten minutes, and memory is more current than any saved row.
+Loading from the database is for genuinely fresh arrivals only.</p>
+
+<h3>When saving goes wrong</h3>
+
+<p>If writes start failing, the worker retries with growing pauses, and after thirty seconds of
+sustained failure everyone in the world is told plainly that their progress is not being saved.
+The thirty seconds matter: a database restart produces a failed write routinely and fixes itself,
+and a warning that cries wolf is a warning nobody reads.</p>
+
+<p>If the server is shut down and some progress genuinely cannot be written in time, it logs
+exactly whose — by name and level. Otherwise the one situation where progress is knowingly
+discarded would also be the one situation with no record that it happened, and a player reporting
+lost progress after an update could never be believed or disproved.</p>
+
+<hr>
+
+<h2>The idea that shaped the whole chunk</h2>
+
+<p><strong>Saving and loading were written as one thing, against one description.</strong></p>
+
+<p>The classic way this goes wrong is quiet: someone adds a field, remembers to save it, forgets
+to load it. Nothing crashes. Every test passes. The bug shows up days later as "my settings keep
+resetting", by which time nobody connects it to the change that caused it — because from either
+side alone, the code looks correct.</p>
+
+<p>So there is a single description of what a character is, used by both directions, and the
+central test is a <strong>round trip</strong>: save a character, load it back, and demand the two
+be identical. A field that only one half handles cannot pass that test. It is the reason saving
+and loading were not allowed to be separate pieces of work.</p>
+
+<hr>
+
+<h2>Three things that were nearly wrong</h2>
+
+<h3>The database quietly rewrites what you store</h3>
+
+<p>Quest progress is stored in a flexible format that Postgres understands rather than treats as
+plain text — which means it takes the value apart and reassembles it in its own preferred order.
+What comes back is the same information arranged differently. Compared literally, it never
+matches what went in. Left unhandled, the round-trip test would have failed for a reason that
+has nothing to do with saving, <em>and</em> the "has anything changed?" check would have
+concluded "yes, everything" on every single character, forever.</p>
+
+<h3>Dying logged you out of your own account</h3>
+
+<p>Not a new bug, but this chunk is what found it. Dying reuses the same internal cleanup as
+disconnecting — reasonable, since in both cases your character leaves the world. But part of that
+cleanup marks your account as no longer actively playing, while in fact you are sitting on the
+death screen about to respawn. The consequence: die, open a second tab, and you could be in the
+world twice. Fixed, and pinned by a test.</p>
+
+<h3>The cleanup tool broke, and nothing noticed</h3>
+
+<p>Test characters are removed from the database by a small maintenance command. The moment
+characters started having saved abilities attached, that command started refusing to delete them
+— the database will not let a character disappear while things still point at it, which is
+deliberate protection against silently corrupting history. Every test and every automated
+browser check was green while this was broken, because nothing else in the project ever deletes a
+character. It was caught by running the cleanup at the end of the verification pass, which is the
+argument for having such a pass at all.</p>
+
+<hr>
+
+<h2>What this deliberately does not do</h2>
+
+<ul>
+  <li><strong>Character sacrifice</strong> — the loop where a maxed character is given up for a
+      permanent account-wide reward. The database is ready for it; the game mechanic does not
+      exist yet.</li>
+  <li><strong>Remembering your home campfire.</strong> The column exists and stays empty on
+      purpose: nothing placed in the world has a stable identity yet, so there is nothing for it
+      to point at. Empty falls back to the normal starting campfires, which is what everyone gets
+      today.</li>
+  <li><strong>Appearance and faction.</strong> Both are stored, both are placeholders, and neither
+      has anywhere in the game to come from yet. Wiring them now would be storing something
+      nothing reads.</li>
+</ul>
+
+<hr>
+
+<h2>Where step 8a stands</h2>
+
+<p>The code is complete. Accounts, logins, character slots, an authenticated connection into the
+world, and now persistence — all shipped.</p>
+
+<p>What remains is not code: <strong>backups that have actually been restored at least once</strong>,
+storing them somewhere other than the machine they came from, and installing the database on the
+live server. A backup nobody has ever restored is a hypothesis, and this is the first point in
+the project's life where a lost disk would cost players something real.</p>
+
+</body>
+</html>
