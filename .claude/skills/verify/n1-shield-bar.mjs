@@ -29,6 +29,7 @@
 // Usage: node .claude/skills/verify/n1-shield-bar.mjs [label] [url]
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { botName } from './botname.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -146,9 +147,8 @@ const sampleBars = (page) => page.evaluate(() => {
   };
 });
 
-const tag = String(process.pid).slice(-4);
-const caster = await newPlayer('ShldA' + tag);
-const ally = await newPlayer('ShldB' + tag);
+const caster = await newPlayer(botName('caster'));
+const ally = await newPlayer(botName('ally'));
 
 for (const p of [caster, ally]) await cmd(p, 'GOD');
 await cmd(caster, 'XP 99999999');

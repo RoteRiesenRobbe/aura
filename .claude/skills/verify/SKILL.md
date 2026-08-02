@@ -50,6 +50,18 @@ Copy the browser-launch pattern from
   `#startForm .playerNameInput`, click submit. **Scope to `#startForm`** — a
   second hidden `.playerNameSubmit` ("Respawn") exists on the end screen and
   breaks unscoped selectors.
+- **Name the bot with `botname.mjs`**, never a hand-rolled `'Quest' + pid`:
+  `import {botName} from './botname.mjs'` then
+  `page.fill('#startForm .playerNameInput', botName('quest'))` →
+  *QuestDoer the Quest*. The topic is whatever the run is testing; the name is
+  built from it, so a screenshot's nameplate says what the screenshot is for.
+  Seeded from the pid, so two concurrent runs get different bots — pass
+  `{seed}` for a reproducible one. In a multi-bot harness, give each bot its
+  role as the topic (`botName('healer')`, `botName('patient')`); distinct
+  topics always yield distinct names. `node botname.mjs --all <topic>` shows
+  every candidate. ⚑ The 20-char cap in `PlayerName.ts` (`MAX_LENGTH`, and
+  `maxlength="20"` on the input) is why the generator drops over-budget
+  candidates instead of truncating: a clipped name reads as a crash.
 - **Server commands (GOD, SKILL <name>, WARP …):** the `&start-cmds=` query
   param is DEAD (defined in `BasicConfig.ts`, no consumer). Use the dev
   console instead (`&develop` + valid `&token=`): wait for `#console_command`

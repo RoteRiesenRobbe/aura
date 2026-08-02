@@ -32,6 +32,7 @@
 // Usage: node .claude/skills/verify/backlog33-prehot.mjs [label] [url]
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { botName } from './botname.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -171,10 +172,9 @@ const equipAndActivateAura = async (page, skillRe, slotIndex = 0) => {
   return { ok: false, why: `slot ${slotIndex} never lit as active after 5 attempts` };
 };
 
-const tag = String(process.pid).slice(-4);
-const healer = await newPlayer('HotA' + tag);
-const ally = await newPlayer('HotB' + tag);
-const control = await newPlayer('HotC' + tag);
+const healer = await newPlayer(botName('healer'));
+const ally = await newPlayer(botName('patient'));
+const control = await newPlayer(botName('control'));
 
 for (const p of [healer, ally, control]) await cmd(p, 'GOD');
 await cmd(healer, 'WARP ' + wire(HEALER));

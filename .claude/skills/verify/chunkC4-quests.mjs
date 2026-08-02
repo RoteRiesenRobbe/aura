@@ -45,6 +45,7 @@
 // Usage: node .claude/skills/verify/chunkC4-quests.mjs [label] [url]
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { botName } from './botname.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -83,7 +84,7 @@ const skip = (name, detail) => results.push({ check: name, skip: true, detail })
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
 await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 120_000 });
-await page.fill('#startForm .playerNameInput', 'Quest' + String(process.pid).slice(-4));
+await page.fill('#startForm .playerNameInput', botName('quest'));
 await page.click('#startForm .playerNameSubmit');
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
 await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });

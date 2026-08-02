@@ -21,6 +21,7 @@
 // Usage: node .claude/skills/verify/hygiene-wire-prune.mjs [label] [url]
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { botName } from './botname.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -46,7 +47,7 @@ page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
 await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 120_000 });
-await page.fill('#startForm .playerNameInput', 'Hy' + String(process.pid).slice(-4));
+await page.fill('#startForm .playerNameInput', botName('hygiene'));
 await page.click('#startForm .playerNameSubmit');
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 });
 await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });

@@ -16,6 +16,7 @@
 import { createRequire } from 'node:module';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { botName } from './botname.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -43,7 +44,7 @@ const pass = (msg) => console.log('  ✓ ' + msg);
 
 await page.goto(url, { waitUntil: 'domcontentloaded' });
 
-const playerName = 'Filler' + String(process.pid).slice(-4);
+const playerName = botName('filler');
 await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 30_000 });
 await page.fill('#startForm .playerNameInput', playerName);
 await page.click('#startForm .playerNameSubmit');

@@ -26,6 +26,7 @@
 // Usage: node .claude/skills/verify/chunkP-presence.mjs [label] [url]
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { botName } from './botname.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -124,10 +125,9 @@ const equipAndActivateAura = async (page, skillRe) => {
   return { ok: false, why: 'slot never lit as active after 5 attempts' };
 };
 
-const tag = String(process.pid).slice(-4);
-const fighter = await newPlayer('PresA' + tag);
-const witness = await newPlayer('PresB' + tag);
-const control = await newPlayer('PresC' + tag);
+const fighter = await newPlayer(botName('fighter'));
+const witness = await newPlayer(botName('witness'));
+const control = await newPlayer(botName('control'));
 
 for (const [page, name] of [[fighter, 'A'], [witness, 'B'], [control, 'C']]) {
   await cmd(page, 'GOD');

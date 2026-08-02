@@ -15,6 +15,7 @@
 // while programs are still being compiled) and observe.
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import { botName } from './botname.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -93,7 +94,7 @@ await page.addInitScript((cfg) => {
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120_000 });
 await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 120_000 });
-await page.fill('#startForm .playerNameInput', 'Ctx' + String(process.pid).slice(-4));
+await page.fill('#startForm .playerNameInput', botName('context loss'));
 await page.click('#startForm .playerNameSubmit');
 await page.waitForFunction(() => !!window.game?.character, null, { timeout: 120_000 }).catch(() => {});
 await page.waitForTimeout(delay + 8_000);

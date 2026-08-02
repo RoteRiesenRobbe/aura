@@ -8,6 +8,7 @@
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { botName } from './botname.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -35,7 +36,7 @@ await page.goto(url, { waitUntil: 'domcontentloaded' });
 
 // --- join ---
 await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 30_000 });
-await page.fill('#startForm .playerNameInput', 'Round4Probe');
+await page.fill('#startForm .playerNameInput', botName('tooltip'));
 await page.click('#startForm .playerNameSubmit');
 // #gameUI is zero-size (Playwright's visibility wait never resolves) and its
 // class is not 'active' in this build — wait on the live scene graph instead.
