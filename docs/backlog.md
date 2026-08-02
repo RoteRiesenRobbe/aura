@@ -267,7 +267,11 @@ Context from current state:
   recipe path? (Replacement would be the first *non-monotonic* spellbook
   operation — the cascade evaluator currently assumes levels only grow.)
 
-## 4. Location-bound leveling conditions
+## 4. Location-bound leveling conditions — ✗ DECIDED AGAINST 2026-08-02
+
+> **✗ DECIDED AGAINST (PO ruling 2026-08-02) — not happening for now.** The
+> entry is kept as the design record; the open questions below stay
+> unanswered on purpose. Re-opens only on an explicit PO request.
 
 **WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 Certain skills can only be leveled up (spending skill points) at a specific
@@ -4280,7 +4284,7 @@ rather than designing it independently.
 
 ---
 
-## 42. Quests — a dedicated quest layer vs. the GDD's implicit-quest stance
+## 42. Quests — a dedicated quest layer vs. the GDD's implicit-quest stance — ✅ BUILT 2026-07-30, in the game
 
 **WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO request 2026-07-29 (the WoW/Gothic backlog-fit ranking session).
