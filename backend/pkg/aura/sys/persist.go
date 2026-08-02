@@ -56,6 +56,11 @@ type saveWatch struct {
 	level    uint32
 	skillRev uint64
 	questRev uint64
+	// anchor is the bound spawn-point id. Binding a campfire is a deliberate
+	// player act with a visible confirmation, so it must not wait up to five
+	// minutes to become durable — a crash in between would send them back to a
+	// fire they watched themselves leave.
+	anchor string
 }
 
 // SetCharacterSaves installs the persistence writer.
@@ -120,6 +125,7 @@ func (s *ConnectionStateSystem) trackCharacterSaves() {
 			level:    p.Progression().Level,
 			skillRev: p.SkillComponent().Revision(),
 			questRev: p.QuestLedger().Revision(),
+			anchor:   s.anchors[clientUUID],
 		}
 		watch, known := s.saveWatch[clientUUID]
 		if !known {
@@ -132,7 +138,8 @@ func (s *ConnectionStateSystem) trackCharacterSaves() {
 		}
 		forced := current.level != watch.level ||
 			current.skillRev != watch.skillRev ||
-			current.questRev != watch.questRev
+			current.questRev != watch.questRev ||
+			current.anchor != watch.anchor
 		if !forced && now < watch.nextTick {
 			continue
 		}
@@ -152,7 +159,8 @@ func (s *ConnectionStateSystem) saveCharacter(p model.PlayerEntity) {
 	if characterID == 0 {
 		return
 	}
-	s.saves.Save(characterState(characterID, p.Name(), p.Progression(), p.SkillComponent(), p.QuestLedger()))
+	s.saves.Save(characterState(characterID, p.Name(), s.anchors[p.Client().UUID()],
+		p.Progression(), p.SkillComponent(), p.QuestLedger()))
 }
 
 // saveStash queues a snapshot of a DISCONNECTED character from its stash — §2's
@@ -168,7 +176,8 @@ func (s *ConnectionStateSystem) saveStash(stash reconnectStash) {
 	if s.saves == nil || stash.characterID == 0 {
 		return
 	}
-	s.saves.Save(characterState(stash.characterID, stash.name, stash.progression, stash.skills, stash.quests))
+	s.saves.Save(characterState(stash.characterID, stash.name, stash.anchor,
+		stash.progression, stash.skills, stash.quests))
 }
 
 // characterState is THE save half of plan-accounts-implementation.md §4's
@@ -179,12 +188,17 @@ func (s *ConnectionStateSystem) saveStash(stash reconnectStash) {
 //
 // It takes the pieces rather than a player because the session-expiry trigger
 // snapshots a stash, which has no player left to ask.
-func characterState(characterID int64, name string, prog model.PlayerProgression,
+//
+// ⚑ homeCampfireID is passed in rather than read off the player because a
+// character's bind is CONNECTION state (s.anchors), not player state — and the
+// session-expiry save has neither, only a stash.
+func characterState(characterID int64, name, homeCampfireID string, prog model.PlayerProgression,
 	sc *skills.SkillComponent, ledger *quests.Ledger) persist.CharacterState {
 
 	state := persist.CharacterState{
 		CharacterID:    characterID,
 		Name:           name,
+		HomeCampfireID: homeCampfireID,
 		Level:          int(prog.Level),
 		Experience:     int64(prog.Experience),
 		ActiveAuraSlot: persist.NoActiveAura,

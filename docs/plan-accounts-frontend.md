@@ -1053,6 +1053,105 @@ trip onto the hot path, or join the player as a nameless character.
 
 ## 10a. Chunk ledger
 
+### Bugfix — the campfire bind survives a login ✅ DONE 2026-08-02, `[uncommitted]`
+
+**The reported bug: "the character does not spawn at the last campfire they
+bound to when entering the world through login."** It is not a regression — it
+is chunk 4's deliberately-deferred `home_campfire_id`, which §8 parked on the
+"anchor object-identity work". This closes it, and closes a second defect the
+verification found underneath it.
+
+**Why it happened.** The bind lived only in `ConnectionStateSystem.anchors`,
+keyed by **connection**. It survived death (re-added by `handleDeath`) and
+reconnect (carried in `reconnectStash`) and nothing else — so a cold login
+started with an empty map and fell through to `defaultSpawnPosition()`, a random
+`startingSpawn` fire. `characters.home_campfire_id` was a column nothing wrote.
+
+**PO rulings (2026-08-02).** ① **Authored object ids, not a synthesized position
+key** — explicitly *"to prepare for the deferred object identity work"*, over the
+cheaper `"<zone>@<x>,<y>"` option that needed no content change. ② The id is
+spelled **`spawnpoint-N`, not `campfire-N`**, so the next bindable object kind
+can join the namespace rather than start its own. ③ **Uniqueness is asserted at
+load.** ④ A bind whose spawn point was deleted **falls back to the zone's default
+spawn**. ⑤ A fresh bind is a **forced save trigger**, not an interval wait.
+
+**What shipped.**
+
+- **`world.Campfire.ID`** (`api/zones/*.json`, 8 fires seeded) — non-empty and
+  **zone-wide** unique, enforced in `Zone.Validate()` beside the anchor-name
+  check. The map is zone-wide even though campfires are its only members today;
+  that is ruling ② made structural rather than aspirational.
+- **`sys.CampfireAnchor.ID` + `campfireByID`**, and `s.anchors` now holds the
+  **id, not a position**. `respawnPosition`, `AnchorOf` and the join path all
+  resolve through one lookup, so an unresolvable id reads as *unbound*
+  everywhere at once instead of in each caller's own way.
+- **`persist.CharacterState.HomeCampfireID`** ↔ `home_campfire_id`, `""` ↔ NULL
+  in both directions (`store.nullableString`). The save UPDATE and the load
+  SELECT moved together, per §4's one-struct rule.
+- **The join path re-installs the bind**, not just the position — otherwise
+  recall and the next death would ignore a fire the player is standing in.
+  In-memory wins over the ticket, matching the state-restore branch above it.
+- **The zone editor mints and serializes ids** (`ZoneModel.addCampfire` →
+  `spawnpoint-<highest + 1>`, monotonic within a session).
+
+⚑ **Second defect, found by the browser harness and not by reasoning: the dwell
+counter only reset when a player was near NO fire.** Moving straight from one
+bind radius into another kept incrementing the *first* fire's count — and since
+the bind fires on the count being **exactly** at the threshold, it never fired
+again. The player stayed bound to a campfire they had left. Reachable on foot
+wherever two bind radii touch, instantly with a warp, and it predates this work
+entirely. `dwellProgress` now carries *which* fire, and a different one restarts
+the count. Without this the whole feature looked broken: the first harness run
+persisted `spawnpoint-1` for a character that had stood at fire 2 for twenty
+seconds, because it had bound to the fire it *spawned* at during the three
+seconds before the warp.
+
+⚑ **The zone editor would have silently deleted every id.** `getZoneAsJSON` is a
+field **whitelist**, so one PO round-trip through the editor drops any field it
+does not name — and with ids now mandatory, that turns into a zone that refuses
+to boot. Found by reading the serializer before writing the ids, not by hitting
+it. `ZoneModel.test.ts` (new, 5 tests) pins the round trip, the mint, and that a
+deleted fire's number is never re-issued.
+
+⚑ **`"" ↔ NULL` is load-bearing in the delete case.** A bind whose spawn point
+is gone resolves to unbound at join, which leaves `s.anchors` empty, which makes
+the next save write NULL — so the dead id is *cleared* rather than re-resolved
+and re-failed on every future login.
+
+**Verified.** Go **full suite green** (`build`/`vet` clean), including
+`store.TestCharacterStateRoundTrips` against real Postgres with the new column ·
+vitest **92/92** (+5) · typecheck clean · `-dev` boot **0 errors 0 warnings**
+(86 skills/15 factions/64 mobs/10 recipes/4 quests/777 props/485 spawns/**5
+campfires**) · harnesses re-run one at a time on a fresh server: new
+**`campfire-bind-persistence.mjs` 6/6** (binds at the eastern fire, leaves to
+character-select, returns **0.6 units from the bound fire and 102 from the
+starting one**), `chunk4-persistence.mjs` **15/15**, `chunk2-accounts.mjs`
+**21/21**, `chunk2-roles.mjs` **3/3**, 0 webgl losses.
+
+⚑ **One property is pinned in Go only, deliberately.** *Does dying after a cold
+login return you to the bound fire* cannot be read from the browser harness:
+`window.game.character` is **not re-pointed at the respawned entity**, so every
+post-respawn position read returns the PRE-DEATH position — 20 s of polling never
+moved it while the server log showed the respawn landing correctly. A leg
+asserting on that reports a working product as broken, so it was removed and the
+reason written into the script.
+`sys.TestColdJoin_SpawnsAtThePersistedSpawnPoint` asserts the bind is
+re-installed into `s.anchors`, which is the same map `respawnPosition` and recall
+read.
+
+⚑ **Harness note worth keeping:** the death-screen **Respawn button cannot be
+clicked** from Playwright — `MouseManager` preventDefaults `mousedown` on
+`documentElement`, which suppresses the synthetic click, so the run hangs on a
+death screen that never closes. Dispatch `submit` on `#endForm` instead. And
+every non-starting campfire has hostile company (DireWolves ~8 units from the
+eastern fire), so a level-1 character respawning there dies again in **74 ms**,
+before anything can be read.
+
+**Not built:** `home_campfire_id` for anything other than campfires (the
+namespace is ready, no second object kind exists) · a UI showing which fire you
+are bound to · cross-zone binds (one zone loads at a time; a bind from another
+zone resolves to unbound, which is correct).
+
 ### Chunk 4 — save & load ✅ DONE 2026-08-02, `7639503b`
 
 Backend only — no wire change, no frontend change, no schema change. **A

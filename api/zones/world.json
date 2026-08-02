@@ -13934,23 +13934,28 @@
   ],
   "campfires": [
     {
+      "id": "spawnpoint-1",
       "x": -58.2,
       "y": 24,
       "startingSpawn": true
     },
     {
+      "id": "spawnpoint-2",
       "x": 44,
       "y": 10.5
     },
     {
+      "id": "spawnpoint-3",
       "x": -16.47,
       "y": 31.53
     },
     {
+      "id": "spawnpoint-4",
       "x": -21.26,
       "y": -23.51
     },
     {
+      "id": "spawnpoint-5",
       "x": 34.19,
       "y": -20.68
     }

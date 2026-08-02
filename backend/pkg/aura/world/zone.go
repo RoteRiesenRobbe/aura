@@ -112,8 +112,23 @@ type TerrainTexture struct {
 // machinery, and chunk 4 consumes them as a first-class list of respawn
 // anchors.
 type Campfire struct {
-	X float32 `json:"x"`
-	Y float32 `json:"y"`
+	// ID is this fire's stable spawn-point identity — what a character's
+	// campfire bind is PERSISTED as (characters.home_campfire_id), so it must
+	// outlive edits to the zone file and must never be reused.
+	//
+	// ⚑ It is deliberately spelled "spawnpoint-N", not "campfire-N", and its
+	// uniqueness is checked ZONE-WIDE rather than within the campfire list. A
+	// campfire is simply the only bindable object that exists today; a waystone
+	// or a bound totem should be able to join this namespace by adding one
+	// field, and two kinds minting numbers independently is precisely how a
+	// character would silently come back bound to the wrong object.
+	//
+	// ⚑ An id that no longer resolves is treated as UNBOUND, not as an error:
+	// deleting a fire in the editor must not lock its dwellers out of the world,
+	// so they fall back to the zone's default spawn (sys.defaultSpawnPosition).
+	ID string  `json:"id"`
+	X  float32 `json:"x"`
+	Y  float32 `json:"y"`
 	// StartingSpawn marks a campfire as a first-arrival spawn point (triage
 	// item 5). Fresh / unbound players spawn at a random flagged fire — kept
 	// data-driven so future selectable start locations reuse the same flag. A
@@ -301,6 +316,19 @@ func (z *Zone) validate() error {
 		if !hasStart {
 			return fmt.Errorf("zone has %d campfire(s) but none is flagged startingSpawn", len(z.Campfires))
 		}
+	}
+	// Spawn-point identity. The map is zone-wide by design (Campfire.ID) even
+	// though campfires are its only members today.
+	spawnPointIDs := make(map[string]bool, len(z.Campfires))
+	for i := range z.Campfires {
+		id := strings.TrimSpace(z.Campfires[i].ID)
+		if id == "" {
+			return fmt.Errorf("campfire %d: id must not be empty", i)
+		}
+		if spawnPointIDs[id] {
+			return fmt.Errorf("campfire %d: duplicate spawn point id %q", i, id)
+		}
+		spawnPointIDs[id] = true
 	}
 	anchorNames := make(map[string]bool, len(z.Anchors))
 	for i := range z.Anchors {

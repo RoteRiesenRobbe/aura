@@ -52,11 +52,17 @@ func (s *Store) SaveCharacter(ctx context.Context, state persist.CharacterState)
 	//
 	// ⚑ `name` is NOT in the SET list. The row owns the name (it is globally
 	// unique and decided at creation); the game only ever read it.
+	//
+	// ⚑ home_campfire_id goes in as NULL when the character is unbound, and
+	// writing that NULL is the point: a bind whose spawn point was deleted from
+	// the zone resolves to unbound at join, and this is what clears the dead id
+	// instead of leaving it to fail resolution on every future login.
 	tag, err := tx.Exec(ctx,
 		`UPDATE game.characters
-		    SET level = $2, experience = $3, active_aura_slot = $4
+		    SET level = $2, experience = $3, active_aura_slot = $4, home_campfire_id = $5
 		  WHERE id = $1 AND sacrificed_at IS NULL AND deleted_at IS NULL`,
-		state.CharacterID, state.Level, state.Experience, state.ActiveAuraSlot)
+		state.CharacterID, state.Level, state.Experience, state.ActiveAuraSlot,
+		nullableString(state.HomeCampfireID))
 	if err != nil {
 		return fmt.Errorf("saving a character: %w", err)
 	}
@@ -106,6 +112,17 @@ func (s *Store) SaveCharacter(ctx context.Context, state persist.CharacterState)
 	return nil
 }
 
+// nullableString maps the empty string to SQL NULL. The game says "unbound"
+// with "", the column says it with NULL, and the two must agree in both
+// directions or an unbound character round-trips as one bound to a spawn point
+// named "".
+func nullableString(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 // LoadCharacterState reads everything SaveCharacter writes, plus the name.
 //
 // ⚑ OWNERSHIP IS PART OF THE QUERY, exactly as in AliveCharacter: a caller who
@@ -127,12 +144,16 @@ func (s *Store) LoadCharacterState(ctx context.Context, accountID, characterID i
 	// active_aura_slot is nullable, and NULL is what a never-saved character
 	// carries — map it to "no aura active" rather than to slot 0.
 	var activeAuraSlot *int
+	// home_campfire_id is nullable too, and NULL is the ordinary state of any
+	// character that has not dwelled at a fire yet — "" for the game, which
+	// spawns it at the zone's default spawn.
+	var homeCampfireID *string
 	err := s.Pool.QueryRow(ctx,
-		`SELECT name, level, experience, active_aura_slot
+		`SELECT name, level, experience, active_aura_slot, home_campfire_id
 		   FROM game.characters
 		  WHERE id = $1 AND account_id = $2 AND sacrificed_at IS NULL AND deleted_at IS NULL`,
 		characterID, accountID).
-		Scan(&state.Name, &state.Level, &state.Experience, &activeAuraSlot)
+		Scan(&state.Name, &state.Level, &state.Experience, &activeAuraSlot, &homeCampfireID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return persist.CharacterState{}, ErrNoCharacter
 	}
@@ -142,6 +163,9 @@ func (s *Store) LoadCharacterState(ctx context.Context, accountID, characterID i
 	state.ActiveAuraSlot = persist.NoActiveAura
 	if activeAuraSlot != nil {
 		state.ActiveAuraSlot = *activeAuraSlot
+	}
+	if homeCampfireID != nil {
+		state.HomeCampfireID = *homeCampfireID
 	}
 
 	rows, err := s.Pool.Query(ctx,

@@ -79,8 +79,7 @@ type reconnectStash struct {
 	quests         *quests.Ledger   // the L11 carry, exactly like deadState's
 	health         vitals.VitalSign // alive-stash only; dead reconnects respawn normally
 	position       phy.Vec2f        // alive: last position; dead: the deathspot
-	anchor         phy.Vec2f
-	hasAnchor      bool
+	anchor         string           // bound spawn-point id; "" for unbound
 	dead           bool
 	disconnectTick uint64
 
@@ -143,11 +142,25 @@ const campfireDwellTicks = 17 * constant.TicksPerSecond / 10
 // position + pre-scaled bind radius. Built in cmd/aurad right after
 // the campfire mobs are placed and handed over via CampfireAnchorSink.
 type CampfireAnchor struct {
+	// ID is the authored spawn-point id (world.Campfire.ID) — the identity a
+	// character's bind is stored under, and the key everything else resolves
+	// through. Zone validation guarantees it is non-empty and unique.
+	ID          string
 	Pos         phy.Vec2f
 	DwellRadius float32
 	// StartingSpawn marks this fire as a first-arrival spawn point (triage
 	// item 5): fresh / unbound players spawn only at flagged fires.
 	StartingSpawn bool
+}
+
+// dwellProgress is how long a player has stood at ONE campfire, and which.
+//
+// ⚑ The spawn point is half of it on purpose: a bare counter cannot tell
+// "still at the same fire" from "now at a different one", and that is exactly
+// the distinction the bind depends on.
+type dwellProgress struct {
+	spawnPoint string
+	ticks      int
 }
 
 // CampfireAnchorSink is implemented by the game so cmd/aurad can hand
@@ -164,13 +177,23 @@ type ConnectionStateSystem struct {
 	names        stringSet
 	deadByClient map[uuid.UUID]deadState
 	campfires    []CampfireAnchor
-	// anchors is the campfire a client last bound to (dwell completed); their
-	// respawn point. Keyed by client so it survives death; dropped on
-	// disconnect (client UUIDs are per-connection).
-	anchors map[uuid.UUID]phy.Vec2f
-	// dwell counts a player's consecutive ticks inside a campfire's bind
-	// radius, keyed by player entity ID (reset on leave, dropped on removal).
-	dwell map[uint64]int
+	// campfireByID resolves a spawn-point id back to the placed fire. Rebuilt
+	// with the campfire list, never mutated after.
+	campfireByID map[string]CampfireAnchor
+	// anchors is the SPAWN-POINT ID of the campfire a client last bound to
+	// (dwell completed); their respawn point. Keyed by client so it survives
+	// death; dropped on disconnect (client UUIDs are per-connection).
+	//
+	// ⚑ An id rather than a position, because this is also what gets persisted.
+	// Holding a position here and an id in the database would be two answers to
+	// "where is home", and they would drift the first time a fire is moved.
+	// Everything that needs coordinates resolves through campfireByID, so an id
+	// that no longer resolves behaves as unbound everywhere at once.
+	anchors map[uuid.UUID]string
+	// dwell tracks a player's bind progress at ONE campfire, keyed by player
+	// entity ID (reset on leave or on reaching a different fire, dropped on
+	// removal).
+	dwell map[uint64]dwellProgress
 	// tokenByClient maps a live connection to its character's reconnect token
 	// (minted on first join, reused across reconnects). Kept as a side map so
 	// the token stays out of the model.Client interface.
@@ -239,6 +262,23 @@ func (s *ConnectionStateSystem) PlayerCount() int {
 // SetCampfireAnchors installs the placed campfires as respawn anchors.
 func (s *ConnectionStateSystem) SetCampfireAnchors(campfires []CampfireAnchor) {
 	s.campfires = campfires
+	s.campfireByID = make(map[string]CampfireAnchor, len(campfires))
+	for _, c := range campfires {
+		s.campfireByID[c.ID] = c
+	}
+}
+
+// campfireFor resolves a bound spawn-point id to the fire it names. Not ok for
+// "" (never bound) and for an id the loaded zone no longer places — a fire
+// deleted in the editor, or a bind made in another zone. Both mean UNBOUND, and
+// deliberately so: refusing the join instead would lock a player out of the
+// world over a content edit they did not make.
+func (s *ConnectionStateSystem) campfireFor(id string) (CampfireAnchor, bool) {
+	if id == "" {
+		return CampfireAnchor{}, false
+	}
+	c, ok := s.campfireByID[id]
+	return c, ok
 }
 
 func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
@@ -246,8 +286,8 @@ func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
 		game:            g,
 		names:           stringSet{},
 		deadByClient:    map[uuid.UUID]deadState{},
-		anchors:         map[uuid.UUID]phy.Vec2f{},
-		dwell:           map[uint64]int{},
+		anchors:         map[uuid.UUID]string{},
+		dwell:           map[uint64]dwellProgress{},
 		tokenByClient:   map[uuid.UUID]string{},
 		stashByToken:    map[string]reconnectStash{},
 		accountByClient: map[uuid.UUID]int64{},
@@ -671,13 +711,33 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 		restoreCharacterState(p, ticket.State, s.game.Skills())
 	}
 
-	// spawn the player at a random campfire (default spawn)
+	// Spawn at the bound campfire, or at a random starting fire when there is no
+	// usable bind.
 	//
-	// ⚑ home_campfire_id is a column nobody writes and that is correct: NULL
-	// falls through to this existing path, which is what every player already
-	// gets. Populating it needs the anchor-identity work the schema doc places
-	// outside 8a.
-	p.SetPosition(s.defaultSpawnPosition())
+	// ⚑ THE BIND IS RE-INSTALLED, not just read. s.anchors is keyed by
+	// connection, so a cold login starts with nothing in it — and a player who
+	// spawned at their home fire but stayed *unbound* would find recall refused
+	// and their next death sending them across the map, until they happened to
+	// dwell at the fire they are already standing in.
+	//
+	// ⚑ An unresolvable id leaves them unbound on purpose (campfireFor): the
+	// next save then writes NULL and the dead id is cleared, rather than being
+	// re-resolved and re-failing on every login for the life of the character.
+	//
+	// ⚑ A bind ALREADY on this connection wins over the ticket's, for the same
+	// reason the state restore above prefers carried state: joining while dead
+	// reuses the connection, and its live bind is newer than the snapshot
+	// /select read.
+	home := s.anchors[client.UUID()]
+	if home == "" {
+		home = ticket.State.HomeCampfireID
+	}
+	if fire, ok := s.campfireFor(home); ok {
+		s.anchors[client.UUID()] = fire.ID
+		p.SetPosition(jitterAround(fire.Pos, respawnJitterRadius))
+	} else {
+		p.SetPosition(s.defaultSpawnPosition())
+	}
 
 	s.game.AddEntity(p)
 }
@@ -706,7 +766,7 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 	if stash.characterID != 0 {
 		s.characterByClient[client.UUID()] = stash.characterID
 	}
-	if stash.hasAnchor {
+	if stash.anchor != "" {
 		s.anchors[client.UUID()] = stash.anchor
 	}
 	sendAcceptMessage(client, token)
@@ -819,11 +879,11 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 const respawnJitterRadius = 1.0
 
 func (s *ConnectionStateSystem) respawnPosition(id uuid.UUID) phy.Vec2f {
-	anchor, ok := s.anchors[id]
+	fire, ok := s.campfireFor(s.anchors[id])
 	if !ok {
 		return s.defaultSpawnPosition()
 	}
-	return jitterAround(anchor, respawnJitterRadius)
+	return jitterAround(fire.Pos, respawnJitterRadius)
 }
 
 // jitterAround spreads positions in a small disc around pos so simultaneous
@@ -839,9 +899,13 @@ func jitterAround(pos phy.Vec2f, radius float32) phy.Vec2f {
 
 // AnchorOf is the ConnState seam (plan-skill-vocab chunk 4): the campfire
 // anchor a client last bound to, feeding recall's precondition + destination.
+//
+// ⚑ A bind whose spawn point no longer exists reports false, i.e. recall
+// refuses with "no campfire anchor bound" rather than teleporting the caster to
+// a fire that is not there any more.
 func (s *ConnectionStateSystem) AnchorOf(id uuid.UUID) (phy.Vec2f, bool) {
-	anchor, ok := s.anchors[id]
-	return anchor, ok
+	fire, ok := s.campfireFor(s.anchors[id])
+	return fire.Pos, ok
 }
 
 // ReviveAtCorpse is the ConnState seam behind the revive effect (plan-skill-vocab
@@ -926,11 +990,22 @@ func (s *ConnectionStateSystem) trackCampfireDwell() {
 			delete(s.dwell, id)
 			continue
 		}
-		s.dwell[id]++
+		// ⚑ A DIFFERENT fire restarts the count. Only checking "near nothing"
+		// left a player who moved straight from one bind radius into another
+		// still accumulating the first fire's ticks — and since the bind fires
+		// on the count being exactly at the threshold, it never fired again:
+		// they stayed bound to a campfire they had left. Reachable on foot
+		// wherever two bind radii touch, and instantly with a warp.
+		progress := s.dwell[id]
+		if progress.spawnPoint != near.ID {
+			progress = dwellProgress{spawnPoint: near.ID}
+		}
+		progress.ticks++
+		s.dwell[id] = progress
 		// Exactly-at-threshold: bind once per dwell (leaving and returning
 		// re-binds) and stamp the one-tick feedback for the client.
-		if s.dwell[id] == campfireDwellTicks {
-			s.anchors[p.Client().UUID()] = near.Pos
+		if progress.ticks == campfireDwellTicks {
+			s.anchors[p.Client().UUID()] = near.ID
 			p.NoteCampfireBound()
 		}
 	}
@@ -966,15 +1041,13 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 	client := sp.Client().UUID()
 	if dead, ok := s.deadByClient[client]; ok {
 		if token, hasToken := s.tokenByClient[client]; hasToken {
-			anchor, hasAnchor := s.anchors[client]
 			s.stashByToken[token] = reconnectStash{
 				name:           dead.name,
 				progression:    dead.progression,
 				skills:         dead.skills,
 				quests:         dead.quests,
 				position:       dead.corpse.Position(),
-				anchor:         anchor,
-				hasAnchor:      hasAnchor,
+				anchor:         s.anchors[client],
 				dead:           true,
 				disconnectTick: s.game.Ticks(),
 				accountID:      s.accountByClient[client],
@@ -1024,7 +1097,6 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 	// the spurious stash and re-registers the token right after the fan-out
 	// returns (see handleDeath). Without a token (defensive): old free path.
 	if token, hasToken := s.tokenByClient[clientUUID]; hasToken {
-		anchor, hasAnchor := s.anchors[clientUUID]
 		s.stashByToken[token] = reconnectStash{
 			name:           p.Name(),
 			progression:    p.Progression(),
@@ -1032,8 +1104,7 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 			quests:         p.QuestLedger(),
 			health:         p.VitalSigns().Health,
 			position:       p.Position(),
-			anchor:         anchor,
-			hasAnchor:      hasAnchor,
+			anchor:         s.anchors[clientUUID],
 			disconnectTick: s.game.Ticks(),
 			accountID:      s.accountByClient[clientUUID],
 			characterID:    s.characterByClient[clientUUID],

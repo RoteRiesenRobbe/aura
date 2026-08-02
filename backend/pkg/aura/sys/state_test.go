@@ -17,6 +17,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/spectator"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -342,7 +343,7 @@ func TestRespawn_WithoutDeadStateIsIgnored(t *testing.T) {
 
 func TestDwell_BindsAnchorAfterThresholdInsideDwellRadius(t *testing.T) {
 	s, g := newStateFixture(t)
-	fire := CampfireAnchor{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
 	s.SetCampfireAnchors([]CampfireAnchor{fire})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
@@ -371,8 +372,7 @@ func TestDwell_BindsAnchorAfterThresholdInsideDwellRadius(t *testing.T) {
 	assert.False(t, p.CampfireBound(), "no bind stamp before the threshold")
 	s.Update(0)
 	require.Len(t, s.anchors, 1)
-	anchor := s.anchors[c.UUID()]
-	assert.Equal(t, fire.Pos, anchor)
+	assert.Equal(t, fire.ID, s.anchors[c.UUID()])
 	assert.True(t, p.CampfireBound(), "completing the dwell must stamp campfire_bound")
 
 	// the stamp is one-shot: staying at the fire doesn't re-stamp
@@ -383,7 +383,7 @@ func TestDwell_BindsAnchorAfterThresholdInsideDwellRadius(t *testing.T) {
 
 func TestRespawn_SpawnsAtAnchorWithJitter(t *testing.T) {
 	s, g := newStateFixture(t)
-	fire := CampfireAnchor{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
 	s.SetCampfireAnchors([]CampfireAnchor{fire})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
@@ -411,8 +411,8 @@ func TestRespawn_SpawnsAtAnchorWithJitter(t *testing.T) {
 // fire is the deterministic start.
 func TestDefaultSpawn_OnlyAtStartingSpawnFires(t *testing.T) {
 	s, _ := newStateFixture(t)
-	start := CampfireAnchor{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75, StartingSpawn: true}
-	other := CampfireAnchor{Pos: phy.Vec2f{X: -30, Y: -30}, DwellRadius: 0.75}
+	start := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75, StartingSpawn: true}
+	other := CampfireAnchor{ID: "spawnpoint-2", Pos: phy.Vec2f{X: -30, Y: -30}, DwellRadius: 0.75}
 	// Unflagged fire first, on purpose — a naive random pick would hit it ~half
 	// the time.
 	s.SetCampfireAnchors([]CampfireAnchor{other, start})
@@ -425,9 +425,130 @@ func TestDefaultSpawn_OnlyAtStartingSpawnFires(t *testing.T) {
 	}
 }
 
+// joinPlayerWithState runs the join flow for a client whose play ticket carries
+// persisted character state — the COLD LOGIN path, the only one that reads
+// home_campfire_id.
+func joinPlayerWithState(t *testing.T, s *ConnectionStateSystem, g *stateFakeGame,
+	c *fakeClient, name string, state persist.CharacterState) model.PlayerEntity {
+	t.Helper()
+	sp := spectatorFor(c)
+	g.AddEntity(sp)
+	nextTestAccountID++
+	store, ok := s.tickets.(*auth.TicketStore)
+	require.True(t, ok, "the fixture installs a real TicketStore")
+	token, err := store.Mint(auth.Ticket{
+		AccountID:   nextTestAccountID,
+		CharacterID: nextTestAccountID,
+		Name:        name,
+		Avatar:      "default",
+		Faction:     "aligned",
+		State:       state,
+	})
+	require.NoError(t, err)
+	c.joins = append(c.joins, &model.Join{PlayTicket: token})
+	before := len(g.players)
+	s.Update(0)
+	require.Len(t, g.players, before+1, "join should create a player")
+	return g.players[len(g.players)-1]
+}
+
+// The bind records the fire's SPAWN-POINT ID, not its position: the id is what
+// survives a restart, and resolving it back to a position through the placed
+// campfires is what lets a moved fire keep its dwellers.
+func TestDwell_BindsSpawnPointID(t *testing.T) {
+	s, g := newStateFixture(t)
+	fire := CampfireAnchor{ID: "spawnpoint-7", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{fire})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+
+	p.SetPosition(phy.Vec2f{X: 10, Y: 10})
+	for i := 0; i < campfireDwellTicks; i++ {
+		s.Update(0)
+	}
+
+	require.Len(t, s.anchors, 1)
+	assert.Equal(t, "spawnpoint-7", s.anchors[c.UUID()])
+	pos, ok := s.AnchorOf(c.UUID())
+	require.True(t, ok, "the bind must resolve back to a position")
+	assert.Equal(t, fire.Pos, pos)
+}
+
+// ⚑ Found by the browser harness, not by reasoning: the dwell counter only ever
+// reset when a player was near NO fire, so going straight from one fire's bind
+// radius into another's kept incrementing the FIRST fire's count. Past the
+// threshold the exactly-equal bind check never fires again, and the player stays
+// bound to a campfire they have left — which is a wrong "last campfire" long
+// before persistence gets involved.
+func TestDwell_RebindsWhenMovingStraightToAnotherFire(t *testing.T) {
+	s, g := newStateFixture(t)
+	first := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75, StartingSpawn: true}
+	second := CampfireAnchor{ID: "spawnpoint-2", Pos: phy.Vec2f{X: -30, Y: -30}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{first, second})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+
+	p.SetPosition(first.Pos)
+	for i := 0; i < campfireDwellTicks+20; i++ { // well past the threshold
+		s.Update(0)
+	}
+	require.Equal(t, "spawnpoint-1", s.anchors[c.UUID()])
+
+	// Straight from one bind radius into the other, never standing clear of both.
+	p.SetPosition(second.Pos)
+	for i := 0; i < campfireDwellTicks; i++ {
+		s.Update(0)
+	}
+
+	assert.Equal(t, "spawnpoint-2", s.anchors[c.UUID()],
+		"dwelling at a second fire must re-bind to it")
+}
+
+// The bug this whole change exists for: logging in put the character at a random
+// starting fire because the bind lived only in memory.
+func TestColdJoin_SpawnsAtThePersistedSpawnPoint(t *testing.T) {
+	s, g := newStateFixture(t)
+	start := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: -20, Y: -20}, DwellRadius: 0.75, StartingSpawn: true}
+	bound := CampfireAnchor{ID: "spawnpoint-2", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{start, bound})
+
+	c := newFakeClient()
+	p := joinPlayerWithState(t, s, g, c, "Alice", persist.CharacterState{
+		CharacterID: 1, Level: 3, HomeCampfireID: "spawnpoint-2",
+	})
+
+	dist := p.Position().Sub(bound.Pos).Abs()
+	assert.LessOrEqual(t, dist, float32(respawnJitterRadius)+1e-5,
+		"a cold login must land at the bound fire, not at a starting fire")
+	// ⚑ The bind is re-installed, not merely used once: recall and the next
+	// death both read s.anchors, and a player who logged in at their fire would
+	// otherwise be unbound until they dwelled there again.
+	assert.Equal(t, "spawnpoint-2", s.anchors[c.UUID()])
+}
+
+// A spawn point deleted in the zone editor must not strand or block its
+// dwellers: the id simply stops resolving and the character is unbound, which
+// falls through to the zone's default spawn — and the empty anchor map is what
+// makes the next save write NULL and clear the dead id for good.
+func TestColdJoin_UnknownSpawnPointFallsBackToDefaultSpawn(t *testing.T) {
+	s, g := newStateFixture(t)
+	start := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: -20, Y: -20}, DwellRadius: 0.75, StartingSpawn: true}
+	s.SetCampfireAnchors([]CampfireAnchor{start})
+
+	c := newFakeClient()
+	p := joinPlayerWithState(t, s, g, c, "Alice", persist.CharacterState{
+		CharacterID: 1, Level: 3, HomeCampfireID: "spawnpoint-deleted",
+	})
+
+	dist := p.Position().Sub(start.Pos).Abs()
+	assert.LessOrEqual(t, dist, float32(start.DwellRadius)+1e-4,
+		"a retired spawn point must fall back to the zone's default spawn")
+	assert.Empty(t, s.anchors, "an unresolvable id must leave the character UNBOUND, so the next save clears it")
+}
+
 func TestDisconnectWhileDead_StashesDeathSceneAndRemovesCorpse(t *testing.T) {
 	s, g := newStateFixture(t)
-	s.SetCampfireAnchors([]CampfireAnchor{{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}})
+	s.SetCampfireAnchors([]CampfireAnchor{{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 	p.SetPosition(phy.Vec2f{X: 10, Y: 10})
@@ -450,7 +571,7 @@ func TestDisconnectWhileDead_StashesDeathSceneAndRemovesCorpse(t *testing.T) {
 	require.Len(t, s.stashByToken, 1, "disconnect-while-dead must stash the death scene")
 	for _, stash := range s.stashByToken {
 		assert.True(t, stash.dead)
-		assert.True(t, stash.hasAnchor, "the campfire bind must be stashed")
+		assert.NotEmpty(t, stash.anchor, "the campfire bind must be stashed")
 	}
 }
 
@@ -704,7 +825,7 @@ func TestDisconnectAlive_StashesAndKeepsNameReserved(t *testing.T) {
 
 func TestReconnect_RestoresCharacter(t *testing.T) {
 	s, g := newStateFixture(t)
-	fire := CampfireAnchor{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
 	s.SetCampfireAnchors([]CampfireAnchor{fire})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
@@ -733,7 +854,7 @@ func TestReconnect_RestoresCharacter(t *testing.T) {
 	assert.InDelta(t, spot.X, np.Position().X, 1e-5, "reconnect restores the last position")
 	assert.InDelta(t, spot.Y, np.Position().Y, 1e-5)
 	assert.EqualValues(t, 42, np.VitalSigns().Health, "reconnect restores the exact HP, not full")
-	assert.Equal(t, fire.Pos, s.anchors[c2.UUID()], "the campfire bind survives the reconnect")
+	assert.Equal(t, fire.ID, s.anchors[c2.UUID()], "the campfire bind survives the reconnect")
 	assert.Empty(t, s.stashByToken, "the stash is consumed")
 	assert.Equal(t, token, s.tokenByClient[c2.UUID()], "the token is re-registered for the new connection")
 
@@ -760,7 +881,7 @@ func TestReconnect_UnknownTokenJoinsFresh(t *testing.T) {
 
 func TestReconnectWhileDead_RebuildsDeathScene(t *testing.T) {
 	s, g := newStateFixture(t)
-	s.SetCampfireAnchors([]CampfireAnchor{{Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}})
+	s.SetCampfireAnchors([]CampfireAnchor{{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}})
 	c := newFakeClient()
 	p := joinPlayer(t, s, g, c, "Alice")
 	p.SetProgression(model.PlayerProgression{Level: 5})

@@ -63,6 +63,11 @@ export interface ZoneSpawn {
 // backend hard-fails at boot unless exactly one campfire in a zone carries it,
 // so it must survive editor round-trips.
 export interface ZoneCampfire {
+    // Stable spawn-point identity. A character's campfire bind is persisted as
+    // this string, so it must survive editor round-trips and must never be
+    // handed to a different fire — see mintSpawnPointId. The backend hard-fails
+    // at boot on a missing or duplicate id.
+    id: string;
     x: number;
     y: number;
     startingSpawn?: boolean;
@@ -106,6 +111,14 @@ export interface ZoneData {
     anchors?: ZoneAnchor[];
 }
 
+// spawnPointNumber reads the <n> out of "spawnpoint-<n>", or 0 for any id that
+// is not in that shape — a hand-authored name is legal, it just does not
+// participate in the numbering.
+function spawnPointNumber(id: string): number {
+    let match = /^spawnpoint-(\d+)$/.exec(id || '');
+    return match === null ? 0 : parseInt(match[1], 10);
+}
+
 function round(value: number, digits: number): number {
     const factor = Math.pow(10, digits);
     return Math.round(value * factor) / factor;
@@ -123,6 +136,8 @@ export class ZoneModel {
     campfires: ZoneCampfire[];
     darkAreas: ZoneDarkArea[];
     anchors: ZoneAnchor[];
+    // 0 until the first mint, which seeds it from the loaded zone.
+    private nextSpawnPointNumber: number = 0;
 
     constructor(name: string, bounds: ZoneBounds, terrain: ZoneTerrain[], props: ZoneProp[], spawns: ZoneSpawn[], campfires: ZoneCampfire[], darkAreas: ZoneDarkArea[], anchors: ZoneAnchor[]) {
         this.name = name;
@@ -177,8 +192,33 @@ export class ZoneModel {
         this.spawns.splice(index, 1);
     }
 
+    // The id is minted HERE rather than at the call site so no path can add a
+    // fire without one — a campfire with no id fails zone validation at boot.
     addCampfire(campfire: ZoneCampfire): number {
-        return this.campfires.push(campfire) - 1;
+        return this.campfires.push({...campfire, id: campfire.id || this.mintSpawnPointId()}) - 1;
+    }
+
+    // mintSpawnPointId hands out spawnpoint-<n> above every number currently in
+    // the zone, and the counter only ever climbs — deleting a fire does not free
+    // its number, because re-minting it would silently hand a retired spawn
+    // point's bound characters to whatever new object took the name.
+    //
+    // ⚑ It scans EVERY id-bearing object, not just campfires. Campfires are the
+    // only kind today; the namespace is deliberately generic so the next one
+    // (a waystone, a bound totem) joins it without a rework, and two kinds
+    // counting independently is exactly the collision this guards against.
+    //
+    // ⚑ Monotonic within a session and re-seeded from the file on load, which
+    // leaves one narrow case: deleting the highest-numbered fire, saving, and
+    // adding a new one in a later session re-issues that number. Its worst
+    // outcome is a character arriving at a different campfire than they
+    // remember — the fire they bound to no longer exists either way.
+    private mintSpawnPointId(): string {
+        if (this.nextSpawnPointNumber === 0) {
+            this.nextSpawnPointNumber = 1 + this.campfires.reduce(
+                (highest, c) => Math.max(highest, spawnPointNumber(c.id)), 0);
+        }
+        return `spawnpoint-${this.nextSpawnPointNumber++}`;
     }
 
     removeCampfire(index: number) {
@@ -250,7 +290,12 @@ export class ZoneModel {
             campfires: this.campfires.length > 0
                 // startingSpawn only serializes when true — non-spawn fires
                 // stay bare {x, y} like the hand-written file.
+                // ⚑ The id is serialized FIRST and unconditionally. This
+                // whitelist is the whole reason a hand-authored id could be
+                // silently dropped by a round-trip through the editor, which
+                // would unbind every character bound to that fire.
                 ? this.campfires.map(c => ({
+                    id: c.id,
                     x: round(c.x, 2),
                     y: round(c.y, 2),
                     startingSpawn: c.startingSpawn ? true : undefined,

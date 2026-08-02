@@ -10,6 +10,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/auth"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
@@ -80,8 +81,21 @@ func TestCharacterStateRoundTripsThroughAPlayer(t *testing.T) {
 	harvest, err := g.Skills().Get(41)
 	require.NoError(t, err)
 
-	origin := joinPlayer(t, s, g, newFakeClient(), "Barney")
+	s.SetCampfireAnchors([]CampfireAnchor{
+		{ID: "spawnpoint-1", Pos: phy.Vec2f{X: -20, Y: -20}, DwellRadius: 0.75, StartingSpawn: true},
+		{ID: "spawnpoint-2", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75},
+	})
+
+	originClient := newFakeClient()
+	origin := joinPlayer(t, s, g, originClient, "Barney")
 	origin.SetProgression(model.PlayerProgression{Level: 9, Experience: 4321})
+	// Bind by really dwelling: the snapshot must pick up what the game wrote,
+	// not what the test wished for.
+	origin.SetPosition(phy.Vec2f{X: 10, Y: 10})
+	for i := 0; i < campfireDwellTicks; i++ {
+		s.Update(0)
+	}
+	require.Equal(t, "spawnpoint-2", s.anchors[originClient.UUID()])
 	sc := origin.SkillComponent()
 	sc.Discover(harvest.ID)
 	sc.EquipAura(1, harvest, 1)
@@ -91,13 +105,14 @@ func TestCharacterStateRoundTripsThroughAPlayer(t *testing.T) {
 	origin.QuestLedger().NoteKill(7)
 	origin.QuestLedger().NoteTalkedTo(11)
 
-	saved := characterState(99, origin.Name(), origin.Progression(),
-		origin.SkillComponent(), origin.QuestLedger())
+	saved := characterState(99, origin.Name(), s.anchors[originClient.UUID()],
+		origin.Progression(), origin.SkillComponent(), origin.QuestLedger())
 
 	// Apply it to a brand-new player and snapshot again.
-	restored := joinWithState(t, s, g, newFakeClient(), "Fred", saved)
-	reSaved := characterState(99, "Barney", restored.Progression(),
-		restored.SkillComponent(), restored.QuestLedger())
+	restoredClient := newFakeClient()
+	restored := joinWithState(t, s, g, restoredClient, "Fred", saved)
+	reSaved := characterState(99, "Barney", s.anchors[restoredClient.UUID()],
+		restored.Progression(), restored.SkillComponent(), restored.QuestLedger())
 
 	assert.Equal(t, saved, reSaved, "a restored character must snapshot identically")
 	assert.Equal(t, uint32(9), restored.Progression().Level)
@@ -381,7 +396,7 @@ func TestCharacterStateEncodesTheQuestLedgerAsThreeRows(t *testing.T) {
 	ledger.NoteKill(3)
 	ledger.NoteTalkedTo(9)
 
-	state := characterState(7, "Barney", model.PlayerProgression{Level: 1},
+	state := characterState(7, "Barney", "", model.PlayerProgression{Level: 1},
 		skills.NewSkillComponent(true), ledger)
 
 	assert.Equal(t, json.RawMessage(`{"3":1}`), state.Flags[quests.FlagKillCounts])

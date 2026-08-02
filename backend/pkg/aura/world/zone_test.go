@@ -130,7 +130,10 @@ func TestZone_ParsesCampfires(t *testing.T) {
 	const doc = `{
 		"name": "X",
 		"bounds": { "width": 60, "height": 40 },
-		"campfires": [ { "x": 3, "y": -4.5, "startingSpawn": true }, { "x": 0, "y": 0 } ]
+		"campfires": [
+			{ "id": "spawnpoint-1", "x": 3, "y": -4.5, "startingSpawn": true },
+			{ "id": "spawnpoint-2", "x": 0, "y": 0 }
+		]
 	}`
 
 	z, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
@@ -138,8 +141,44 @@ func TestZone_ParsesCampfires(t *testing.T) {
 	require.Len(t, z.Campfires, 2)
 	assert.EqualValues(t, 3, z.Campfires[0].X)
 	assert.EqualValues(t, -4.5, z.Campfires[0].Y)
+	assert.Equal(t, "spawnpoint-1", z.Campfires[0].ID)
 	assert.True(t, z.Campfires[0].StartingSpawn, "the flagged fire parses its startingSpawn flag")
 	assert.False(t, z.Campfires[1].StartingSpawn, "an unflagged fire defaults to false")
+}
+
+// The spawn-point id is what a character's campfire bind is persisted AS, so an
+// unnamed fire is a fire nobody can stay bound to across a restart — boot
+// hard-fails rather than silently persisting NULL for everyone who binds there.
+func TestZone_RejectsCampfireWithoutID(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"campfires": [ { "x": 3, "y": -4.5, "startingSpawn": true } ]
+	}`
+
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "id")
+}
+
+// ⚑ Uniqueness is ZONE-WIDE, not campfire-array-wide, and the message says
+// "spawn point" rather than "campfire" on purpose: the id namespace is meant to
+// serve the next bindable object kind (a waystone, a bound totem) without a
+// rework, and two kinds minting into one namespace is exactly how a character
+// would silently end up bound to the wrong object.
+func TestZone_RejectsDuplicateSpawnPointID(t *testing.T) {
+	const doc = `{
+		"name": "X",
+		"bounds": { "width": 60, "height": 40 },
+		"campfires": [
+			{ "id": "spawnpoint-1", "x": 3, "y": -4.5, "startingSpawn": true },
+			{ "id": "spawnpoint-1", "x": 0, "y": 0 }
+		]
+	}`
+
+	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "duplicate")
 }
 
 // Triage item 5: a zone that places campfires must flag at least one as a
@@ -148,7 +187,10 @@ func TestZone_RejectsCampfiresWithNoStartingSpawn(t *testing.T) {
 	const doc = `{
 		"name": "X",
 		"bounds": { "width": 60, "height": 40 },
-		"campfires": [ { "x": 3, "y": -4.5 }, { "x": 0, "y": 0 } ]
+		"campfires": [
+			{ "id": "spawnpoint-1", "x": 3, "y": -4.5 },
+			{ "id": "spawnpoint-2", "x": 0, "y": 0 }
+		]
 	}`
 
 	_, err := LoadZoneFS(mapFS(doc), "", newFakeMobRegistry(), newFakePropRegistry())

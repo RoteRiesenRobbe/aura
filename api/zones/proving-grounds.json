@@ -26064,15 +26064,18 @@
   ],
   "campfires": [
     {
+      "id": "spawnpoint-1",
       "x": 0,
       "y": 0,
       "startingSpawn": true
     },
     {
+      "id": "spawnpoint-2",
       "x": -46,
       "y": -25
     },
     {
+      "id": "spawnpoint-3",
       "x": 30,
       "y": 18
     }

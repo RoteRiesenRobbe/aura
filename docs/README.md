@@ -122,6 +122,13 @@ than patch. PDF renders of the first two sit in the repo root.
   things that were nearly wrong — including the cleanup tool that broke while every test
   stayed green. ⚑ Same snapshot caveat as 1a's.
 
+- **accounts/campfire-bind-fix.html** — "Bugfix: your campfire remembers you"
+  (2026-08-02). The first reported bug against step 8a, and why it was a missing piece
+  rather than a break: campfires had no name stable enough to write down. Covers why the
+  bind is stored as an id and not a location, what happens to your bind when a campfire is
+  deleted, and the second bug found while testing the first — a counter that kept counting
+  the fire you had walked away from. ⚑ Same snapshot caveat as 1a's.
+
 `docs/accounts/` also carries **session handovers** — working notes for picking a chunk up
 cold, not snapshots. ⚑ **Disposable: delete one when its chunk lands**, so the folder never
 accumulates stale instructions. Durable content belongs in the plan doc's chunk ledger.

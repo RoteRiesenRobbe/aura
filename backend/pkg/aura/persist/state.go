@@ -77,6 +77,21 @@ type CharacterState struct {
 	// ActiveAuraSlot is an index into the aura array, or NoActiveAura.
 	ActiveAuraSlot int `json:"activeAuraSlot"`
 
+	// HomeCampfireID is the spawn point this character last bound to — the
+	// authored `id` of a zone campfire (world.Campfire.ID) — or "" for a
+	// character that has never dwelled at a fire.
+	//
+	// ⚑ "" IS A LEGITIMATE PERSISTED VALUE, not "not loaded": it maps to SQL
+	// NULL both ways, and the join path spawns an unbound character at the
+	// zone's default spawn exactly as every player was spawned before this
+	// existed.
+	//
+	// ⚑ An id, not a position, because a position cannot be re-authored. A fire
+	// nudged two metres in the zone editor keeps its dwellers; a fire deleted
+	// stops resolving and its dwellers quietly become unbound, which is the one
+	// failure mode that must never lock anyone out of the world.
+	HomeCampfireID string `json:"homeCampfireId"`
+
 	// Spellbook is skill id → level, mirroring SkillComponent.Spellbook.
 	//
 	// ⚑ An EMPTY spellbook means "this character has never been saved", and the

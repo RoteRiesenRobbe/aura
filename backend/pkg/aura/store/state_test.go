@@ -30,6 +30,7 @@ func TestCharacterStateRoundTrips(t *testing.T) {
 		Level:          14,
 		Experience:     123456,
 		ActiveAuraSlot: 2,
+		HomeCampfireID: "spawnpoint-3",
 		Spellbook:      map[int32]int{1: 3, 7: 1, 42: 9},
 		Loadout: []persist.LoadoutSlot{
 			{Type: persist.SlotAura, Index: 2, SkillID: 42},
@@ -57,6 +58,9 @@ func TestCharacterStateRoundTrips(t *testing.T) {
 	saved.Loadout = []persist.LoadoutSlot{{Type: persist.SlotPassive, Index: 0, SkillID: 1}}
 	saved.Flags = map[string]json.RawMessage{}
 	saved.ActiveAuraSlot = persist.NoActiveAura
+	// Unbinding must round-trip too: "" has to reach the column as NULL and come
+	// back as "", or a spawn point deleted from the zone could never be cleared.
+	saved.HomeCampfireID = ""
 	require.NoError(t, db.SaveCharacter(ctx, saved))
 
 	loaded, err = db.LoadCharacterState(ctx, accountID, created.ID)
@@ -84,6 +88,7 @@ func TestLoadCharacterStateOfANeverSavedCharacter(t *testing.T) {
 	assert.Equal(t, 1, loaded.Level)
 	assert.Equal(t, int64(0), loaded.Experience)
 	assert.Equal(t, persist.NoActiveAura, loaded.ActiveAuraSlot)
+	assert.Empty(t, loaded.HomeCampfireID, "a character that never dwelled at a fire loads unbound")
 	assert.Empty(t, loaded.Spellbook, "an empty spellbook is what marks a character as never saved")
 	assert.Empty(t, loaded.Loadout)
 	assert.Empty(t, loaded.Flags)

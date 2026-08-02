@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aura — Your Campfire Remembers You</title>
+</head>
+<body>
+
+<h1>Aura — Accounts &amp; Persistence</h1>
+<h2>Bugfix: your campfire remembers you</h2>
+
+<p><em>Point-in-time summary &middot; 2 August 2026 &middot; branch <code>accounts-8a</code></em></p>
+
+<p><strong>This is a human-facing snapshot, not a maintained document.</strong> The authoritative
+source is <code>docs/plan-accounts-frontend.md</code> §10a. Where this document and that one
+disagree, it wins.</p>
+
+<hr>
+
+<h2>In one sentence</h2>
+
+<p>Standing at a campfire long enough makes it your home, and until today that only lasted until
+you logged out — now it survives, so logging back in puts you where you left off rather than at
+whichever starting fire the world felt like.</p>
+
+<hr>
+
+<h2>The bug, as reported</h2>
+
+<p><em>"The character does not spawn at the last campfire they bound to when entering the world
+through login."</em></p>
+
+<p>Exactly right, and worth saying plainly: this was not something that broke. It is a piece the
+previous chunk deliberately left out. Chunk 4 taught aura to remember your level, your abilities
+and your quests; it explicitly did not teach it to remember your campfire, because at the time
+nothing placed in the world had a name stable enough to write down.</p>
+
+<h3>Why it behaved the way it did</h3>
+
+<p>Your campfire bind was remembered <em>per connection</em>. That was enough to survive dying —
+you respawn at your fire, which has always worked — and enough to survive a dropped connection,
+because a reconnect picks the whole session back up. It was not enough to survive closing the
+game, because the connection is exactly the thing that ends.</p>
+
+<p>So on every fresh login the game had nothing to consult, and did what it does for a brand-new
+character: put you at one of the world's starting campfires, chosen at random.</p>
+
+<hr>
+
+<h2>What changed</h2>
+
+<h3>Campfires have names now</h3>
+
+<p>Every campfire in a zone carries an id — <code>spawnpoint-1</code>, <code>spawnpoint-2</code>
+and so on. That is the thing your character's bind is written down as. It has to be a name rather
+than a location, because a location cannot be edited: if a campfire is nudged a couple of metres
+in the zone editor, everyone bound to it should stay bound to it, and a stored pair of coordinates
+would quietly point at open ground instead.</p>
+
+<p>The ids are deliberately called <em>spawn points</em> rather than <em>campfires</em>. Campfires
+are the only thing you can bind to today, but they will not be the last, and a name that already
+covers the general case is cheaper than renaming everything later.</p>
+
+<h3>Placing a campfire in the editor names it automatically</h3>
+
+<p>Nothing to type, nothing to remember. The editor assigns the next number and never re-uses one
+it has handed out, which matters more than it sounds: if a deleted campfire's name were given to a
+new one, every character bound to the old fire would silently start waking up at the new one.</p>
+
+<h3>Deleting a campfire does not strand anyone</h3>
+
+<p>If a fire you were bound to is removed from the world, your bind simply stops meaning anything
+and you spawn at a starting campfire, exactly as you did before any of this existed. The game then
+forgets the dead bind rather than failing to look it up once per login forever.</p>
+
+<p>This is the case that had to be got right first. The alternative — refusing to let a character
+into the world because a campfire they once slept at no longer exists — turns a content edit into
+a locked-out player.</p>
+
+<h3>Binding is saved immediately</h3>
+
+<p>Not on the next five-minute autosave. Binding to a fire is something you did on purpose and
+watched confirm on screen, so a crash a minute later must not send you back to a campfire you
+remember leaving.</p>
+
+<hr>
+
+<h2>A second bug, found while testing this one</h2>
+
+<p>Worth reading even though it was never reported, because it made "my last campfire" wrong on
+its own terms — no logging out required.</p>
+
+<p>Becoming bound to a fire takes a couple of seconds of standing near it. The game counted those
+seconds, but it only reset the count when you were near <em>no</em> fire at all. Walk directly out
+of one campfire's circle and into another's — or teleport between them — and it kept counting the
+<em>first</em> fire. Since the bind happens at the exact moment the count reaches its threshold,
+and the count had already sailed past it, the bind never happened again. You stayed bound to a
+campfire you had walked away from.</p>
+
+<p>The automated test caught this immediately and unmistakably: a character that had stood at the
+eastern fire for twenty seconds saved its home as the western one, because it had bound to the
+fire it <em>spawned</em> at during the few seconds before it travelled. The counter now remembers
+which fire it is counting for, and a different fire starts it over.</p>
+
+<hr>
+
+<h2>How it was checked</h2>
+
+<ul>
+  <li>The full Go test suite, including a round trip through a real database with the new
+      column.</li>
+  <li>92 browser-side unit tests, five of them new and all about the zone editor keeping campfire
+      names intact — the editor rewrites the whole zone file on save, and a field it does not
+      explicitly know about is a field it deletes.</li>
+  <li>A new end-to-end script that plays the actual game: it binds to the <em>eastern</em>
+      campfire on purpose, because binding to a starting campfire would pass whether the fix works
+      or not. It then leaves to character select and comes back, landing 0.6 units from the fire it
+      bound to and 102 units from the one it would have got before.</li>
+  <li>The three existing account and persistence scripts, re-run one at a time on a freshly
+      started server: 15/15, 21/21 and 3/3.</li>
+</ul>
+
+<h3>One thing the automated test cannot see</h3>
+
+<p>Whether dying <em>after</em> a login sends you back to your bound fire. Not because it doesn't
+work — the server log shows it working — but because after a respawn the browser test is still
+reading the position your character had before it died, and no amount of waiting changes that. A
+check that reports a working game as broken is worse than no check, so that one is covered by a
+test on the server side instead, and the reason is written into the script for whoever reads it
+next.</p>
+
+<hr>
+
+<h2>What this still does not do</h2>
+
+<ul>
+  <li><strong>Show you which campfire is yours.</strong> There is no marker on the map and no line
+      in the interface; you find out by dying or by logging in.</li>
+  <li><strong>Bind to anything other than a campfire.</strong> The naming scheme is ready for it.
+      Nothing else in the world is bindable yet.</li>
+  <li><strong>Carry a bind across zones.</strong> One zone is loaded at a time, and a bind made in
+      another one is treated as no bind — which is the right answer, just not an exciting one.</li>
+</ul>
+
+</body>
+</html>

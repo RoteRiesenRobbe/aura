@@ -521,7 +521,9 @@ function placeAt(x: number, y: number) {
         }
         ZoneEditor.placeSpawn(spawn);
     } else if (mode === 'campfire') {
-        ZoneEditor.placeCampfire({x, y});
+        // The spawn-point id is minted by the model (ZoneModel.addCampfire), so
+        // placing a fire needs no id here and cannot forget one.
+        ZoneEditor.placeCampfire({id: '', x, y});
     } else if (mode === 'dark') {
         let radius = readDarkRadius();
         if (radius === null) {
