@@ -162,10 +162,21 @@ on the live box. `cmd/authbench` measures them, and answers the question
 `pkg/aura/auth/password.go` leaves open in as many words: *"Revisit against a
 measurement on the VPS."*
 
+⚑⚑ **NOT CLEARED FOR LIVE — the 2026-08-02 run broke save games.** Not through
+the measurement, through the CLEANUP. Every successful register ends in
+`startSession`, so each bot leaves a live server-side session; `authbench` drives
+an `http.Client` with no cookie jar, so it discards the session cookie and cannot
+log any of them out. Deleting those 251 accounts with `cleanup-loadbots.sql`
+while `aurad` kept running left sessions held for accounts that no longer
+existed. ⚑ **Every row count reconciled exactly on both sides, which is exactly
+why it looked clean** — the damage was in the running process, not the rows.
+Another session owns the fix. Until it lands: run `authbench` against a LOCAL
+server, and never delete rows underneath a running `aurad`.
+
 ```shell
 cd backend
-go run ./cmd/authbench -addr aura-game.duckdns.org:443 -name-prefix loadbot_ -n 8  -c 2   # baseline
-go run ./cmd/authbench -addr aura-game.duckdns.org:443 -name-prefix loadbot_ -n 40 -c 20  # gate pressure
+go run ./cmd/authbench -addr localhost:2000 -scheme http -name-prefix loadbot_ -n 8  -c 2   # baseline
+go run ./cmd/authbench -addr localhost:2000 -scheme http -name-prefix loadbot_ -n 40 -c 20  # gate pressure
 ```
 
 Each virtual player makes three calls: `POST /api/characters` (no bcrypt — the
@@ -181,7 +192,11 @@ it lands outside the doomed set, its characters then match the pattern from an
 unclaimed account, the guard fires, and **the whole transaction aborts** — one
 stray bot strands the entire run's rows.
 
-### Results — 2026-08-02, ~19:53–19:57 UTC, live (2 vCPU Hetzner, 1 real player on)
+### Results — 2026-08-02, ~19:53–20:11 UTC, live (2 vCPU Hetzner, 1–2 real players on)
+
+⚑ The numbers below stand — they were measured before the cleanup. What did not
+stand is the cleanup that followed them; see the warning above before treating
+this run as a template.
 
 | calls | concurrency | control (create) p50 | register p50 | register p95 | max | wall |
 |---|---|---|---|---|---|---|

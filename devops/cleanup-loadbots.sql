@@ -1,5 +1,31 @@
 -- Delete the accounts a LIVE capacity run leaves behind.
 --
+-- ⚑⚑ DO NOT RUN THIS WHILE `aurad` IS RUNNING. ⚑⚑
+--
+-- It broke save games on 2026-08-02. A row is not the whole account: the server
+-- holds session state IN MEMORY keyed on account id, and a DELETE does not reach
+-- it, so this leaves sessions held for accounts that no longer exist — guest
+-- sessions in particular. The damage is not in the rows (that pass deleted 251
+-- bot accounts and every real row reconciled exactly on both sides); it is in
+-- the running process, which is why the counts looked clean while something was
+-- badly wrong.
+--
+-- How the sessions get there, so the trap is recognisable rather than
+-- memorised:
+--
+--   - `handleRegister` ends in `startSession`, so EVERY registered bot holds a
+--     live session in the SessionRegistry the moment it registers. There is no
+--     subset of bots this does not apply to.
+--   - `cmd/authbench` drives an http.Client with no cookie jar, so it discards
+--     the session cookie and CANNOT log those sessions out. It creates
+--     server-side state it has no means to clean up.
+--   - A `loadbot` bot that just disconnects does not end its session either:
+--     removeFromPlayers STASHES it.
+--
+-- Until that interaction is fixed, the safe sequences are: run this only with
+-- `aurad` stopped, or restart `aurad` immediately afterwards. The dry-run
+-- SELECT below is always safe — it was the DELETE that was not.
+--
 -- ⚑ WHY THIS EXISTS SEPARATELY FROM `harnessdb -cleanup`. That tool matches the
 -- reserved prefix `hrnss\_%` only, and the reserved prefix is grantable only
 -- under -dev — which the live server does not run (see serveFrontend in

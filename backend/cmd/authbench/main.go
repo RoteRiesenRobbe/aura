@@ -58,9 +58,25 @@
 // progressively delay this machine up to ThrottleMaxDelay and quietly corrupt
 // the very latencies being measured.
 //
-// Usage against live (start small; each step is seconds):
+// # ⚑⚑ NOT CLEARED FOR LIVE — it leaves sessions it cannot clean up
 //
-//	go run ./cmd/authbench -addr aura-game.duckdns.org:443 -name-prefix loadbot_ -n 8 -c 2
+// Every successful register ends in startSession, so each bot leaves a live
+// server-side session in the SessionRegistry — and this tool drives an
+// http.Client with NO COOKIE JAR, so it throws the session cookie away and has
+// no way to log any of them out. It creates server-side state it cannot remove.
+//
+// On 2026-08-02 that combination broke save games on the live box: 251 bot
+// accounts were deleted with `devops/cleanup-loadbots.sql` while aurad kept
+// running, leaving sessions held for accounts that no longer existed. Every row
+// count reconciled exactly, which is precisely why it looked fine.
+//
+// Until that is fixed, run this against a LOCAL server. If it must go at live
+// again, either give it a cookie jar and log each bot out, or stop/restart aurad
+// around the cleanup — and never delete the rows underneath a running process.
+//
+// Usage (start small; each step is seconds):
+//
+//	go run ./cmd/authbench -addr localhost:2000 -scheme http -name-prefix loadbot_ -n 8 -c 2
 package main
 
 import (
@@ -195,7 +211,14 @@ func main() {
 	}
 	fmt.Printf("wall %s for %d account(s) at concurrency %d\n", wall.Round(time.Millisecond), *n, *conc)
 	if regs.count(ok) > 0 {
-		fmt.Printf("\n⚑ %d account(s) now hold credentials under %q. Clean up on the box:\n", regs.count(ok), *namePrefix)
+		// ⚑ This used to print the psql line as a plain next step. It is not one:
+		// running that DELETE against a live box while aurad is up broke save
+		// games on 2026-08-02, because every registered bot is still holding a
+		// session this tool cannot end (see the package comment).
+		fmt.Printf("\n⚑ %d account(s) now hold credentials under %q, AND a live server-side\n", regs.count(ok), *namePrefix)
+		fmt.Printf("  session each that this tool cannot log out (no cookie jar).\n")
+		fmt.Printf("  Do NOT delete them while aurad is running — stop or restart it around\n")
+		fmt.Printf("  the cleanup, or the sessions outlive the rows:\n")
 		fmt.Printf("   sudo -u postgres psql -d aura -v ON_ERROR_STOP=1 -v prefix=%s -f /tmp/cleanup-loadbots.sql\n", *namePrefix)
 	}
 }
