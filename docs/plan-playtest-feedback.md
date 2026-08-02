@@ -2200,7 +2200,8 @@ section above; this is the summary.
   genuinely new characters keep it, because respawn/reconnect overwrite the
   loadout right after `New` — the same property the silent-discovery rule
   already leans on. Pinned by `TestNew_CreationAuraIsPreEquippedButNotActive`;
-  probed live (`slot0: "1Damage"`, no active slot).
+  probed live (`slot0: "1Damage"`, no active slot). ✅ **PO-VERIFIED
+  IN-GAME 2026-08-02**, committed `0e161de8`.
 
 ## Rolling filler — blocks nothing, do any time
 
