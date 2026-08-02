@@ -2203,6 +2203,138 @@ section above; this is the summary.
   probed live (`slot0: "1Damage"`, no active slot). ✅ **PO-VERIFIED
   IN-GAME 2026-08-02**, committed `0e161de8`.
 
+## Intake — round 8 (2026-08-02): against the accounts build
+
+Three items, raised after the step-8a stack (accounts, persistence, the
+campfire bind, the two-tab fix). Investigation findings recorded inline so
+nobody re-derives them.
+
+**Routing:** item 1 is *not* a fix, it is a **scope widening of the R4 design
+session** — it is written up where R4 lives (`plan-resource-costs-feedback.md`
+§2.3 + §6 R4) and only summarised here. Items 2 and 3 are ordinary intake.
+
+### 1. Recall must be free and baseline — and it is the same design as downtime → **R4**
+
+> *"recall should not have a cost and become a baseline ability. author that
+> design together with the downtime recovery changes that still need a design.
+> both should be designed together. both options should be available from the
+> start. the out-of-combat regen might scale up in charges or otherwise with
+> level."*
+
+**Today** (`api/skills/recall.json`): `costFractionOfMax: 0.05`, `castTicks`
+300 (10 s, interrupted by damage), `cooldownTicks` 9000 (5 min), `maxLevel` 1,
+destination = the bound campfire anchor. It is **taught**, by the Town Crier
+and the Wanderer — so it is not baseline, and a new character does not have it.
+
+⭐ **Why this is one design item and not two.** Recall and the downtime loop are
+the same mechanic seen from the two ends: *get back to safety* and *recover once
+you are there*. §2.3's campfire-charges sketch already makes the campfire the
+recovery anchor, and Recall is the transport to it; pricing one without the
+other prices half a loop. The PO's *"both options should be available from the
+start"* is the constraint that binds them — a level-1 character must hold both
+the way out and the way back to fighting shape, which is the same argument
+GDD §3 makes for the permanently free damage aura.
+
+⇒ **R4 is widened, not joined by a second session.** Everything from this
+paragraph — free Recall, baseline availability, both-from-the-start, and the
+*"out-of-combat regen might scale up in charges or otherwise with level"* hint
+— lands in `plan-resource-costs-feedback.md` §6 R4, which now carries the open
+questions R4 must rule on (what "baseline" means mechanically, what happens to
+the two NPC teachers, whether the 10 s cast and 5 min cooldown survive a free
+Recall, and whether the level scaling is charge count / charge strength /
+regen rate).
+
+### 2. Quest-related extra info stays readable after the quest is done
+
+> *"extra info related to tasks can still be read even after the quest is done.
+> that's probably something to fix in the dialogue tree. example: lampless
+> traveller, you can still ask where the kobolds are after completing the
+> quest"*
+
+**The PO's instinct is right — it is content, not engine** — but the reachable
+window is narrower and stranger than it looks, and there is a vocabulary gap
+underneath it. Both halves, traced against HEAD:
+
+**① The window is the turn-in itself.** `lampless-traveller.json` authors
+`root_lit` first, gated `quest_at_stage / the-lost-lamp / completed`, and
+`present()`'s entry node is *the first visible node* — so a **fresh** talk after
+completion correctly opens on *"You have the lamp now."* with no rows. But the
+turn-in row lives on node `lamp` and carries no `next`, so it **stays put**
+(`ConversationModel.update()` only re-enters at `entryNode` when the actor
+changes or the current node disappears — `ConversationModel.ts:115-134`). Node
+`lamp` never disappears (it is unconditional), so the moment the player turns
+the quest in they are still standing on it, both quest rows correctly gone
+(`CanApply`), and **"Where do they nest?" still there**. That is the observed
+report, verbatim.
+
+**② The rows have no visibility rule, and the vocabulary cannot express one.**
+Quest *grant* rows are hidden by `CanApply` (Q1 §4.1 ②) — pure-navigation info
+rows have no equivalent. The natural gate is *"while this quest is running"*,
+and `quest_at_stage` cannot say it: conditions are **AND**-ed
+(`sys/interaction.go:729`), the only sentinels are `not_started` and `completed`
+(`items/mobs/interaction.go:196`), and there is no negation — so covering a
+two-running-stage quest today means duplicating the node once per stage
+(`cull`, `bring_it_back`).
+
+⇒ **Recommended shape: a third sentinel, `running`**, answered by
+`Ledger.MatchesStage` (`quests/ledger.go:171`) as `ok && p.Running` — one arm on
+an existing switch, one loader-side name, no new condition kind. Then gate
+`lamp_where` on it and **the existing prune does the rest**: with its last row
+gone, `lamp` presents nothing, and `pruneEmptyDestinations`
+(`sys/interaction.go:447`) walks the *"Do you have a task for me?"* row off
+`root` too — the PO's own 2026-08-02 *"no option that leads to nothing but
+Back"* rule, cascading for free.
+
+⚑ **Audit the whole cast, not just the traveller** — every quest NPC has the
+same shape and none gates its info rows: Town Crier `news_who`, City Guard
+`front`, Front Captain `commander`, Emberkeeper's three `dir_*` nodes, Wanderer
+`roads`, Miner `tunnel`. ⚑ **Not all of them should be gated**: the PO's
+complaint is scoped to *"extra info related to tasks"*. Pure lore that happens
+to sit next to a quest (the Emberkeeper's directions, the Wanderer's road
+advice) is content the player may want to re-read forever. The authoring rule
+to write down is *a row that answers a question only a running quest asks*.
+
+### 3. Auto-walk, and stop moving when the window loses focus
+
+> *"auto walk feature but no longer walking in a direction continuously when
+> tabbing out, just stop the movement when focus ends unless auto walk is
+> enabled"*
+
+Two halves of one item: today the game has **the bug and not the feature** —
+tabbing out mid-run *is* the auto-walk, and it is the only one there is.
+
+**The bug.** `Key.isDown` (`input-system/logic/keyboard/keys/Key.ts:23`) is set
+by `keydown` and cleared by `keyup`. A window that loses focus never receives
+the `keyup`, so the key stays down; `Controls.ts`' Tock clock keeps reading
+`this.upKeys.isDown` etc. (`controls/logic/Controls.ts:213-223`) and keeps
+sending movement to a server that has no idea the player left. **There is no
+`blur` or `visibilitychange` handler anywhere in `input-system/`** — the only
+two in the client are `Audio.ts:28` and `Chat.ts:52`, neither of which touches
+key state. ⚑ A `ResetKey` helper already exists
+(`input-system/logic/keyboard/keys/ResetKey.ts`), so the fix is a listener that
+sweeps held keys, not new state.
+
+⚑ **Do not fix this by zeroing the movement vector.** `Controls` already has a
+deliberate *stop tail* — an explicit `(0,0)` for a short window after release,
+then silence (`Controls.ts:254-261`), added by the input-jitter work — and the
+held-key state is what feeds it. Clearing the keys lets that existing tail send
+the stop; clearing only the vector would leave the keys down and the tail
+un-armed, so the *next* real keypress would behave oddly.
+
+**The feature.** Auto-walk is a toggle that makes continued movement
+*deliberate* — and it is what makes the blur fix safe to ship (a player who
+tabs out on purpose while travelling keeps travelling only if they asked to).
+Open design questions for whoever picks it up: the keybinding (no free letter
+is obvious — see the §35 C4 hotkey audit), whether it holds the last movement
+vector or a facing, what cancels it (any movement key? damage? a menu?), and
+whether it survives the blur/focus round trip at all. ⚑ It also needs a mobile
+answer or an explicit *desktop-only* ruling — the joystick has no held state to
+inherit.
+
+⇒ **The two halves can ship separately, and the bug should not wait for the
+feature.** The blur fix is small and self-contained; the *"unless auto-walk is
+enabled"* clause is one condition added to it later.
+
 ## Rolling filler — blocks nothing, do any time
 
 > **4 of 6 ✅ DONE 2026-07-26** in one batch, committed `dab4dae0` —

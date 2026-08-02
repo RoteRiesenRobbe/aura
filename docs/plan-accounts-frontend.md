@@ -1147,7 +1147,7 @@ too. ⚑ Restarting sooner loses strictly less: the last good save predates the
 outage, so that loss is already banked and grows every minute the wedged writer
 stays up.
 
-**Deliberately not done:** **`backlog.md` §50** (the transient second queue entry —
+**Deliberately not done:** **`backlog.md` §51** (the transient second queue entry —
 a readability item, ruled not worth touching verified concurrency code for) · a
 queue-depth / oldest-entry-age log line when `Failing()`, which had to be
 *inferred* from the logs here · the Postgres audit question · a character-name
