@@ -858,10 +858,25 @@ func (p *player) LevelProgressXP() (gained, required uint64) {
 // announce — the character never existed without these — and the respawn/
 // reconnect paths overwrite the spellbook right after New, so a SendUnlock
 // here would flash "Level 1 reward" on every death.
+//
+// A seeded ACTIVE AURA is also pre-equipped into the first free aura slot
+// (round-7 follow-up, PO 2026-08-02) — a fresh character should fight without
+// a spellbook trip — but deliberately NOT activated: the player's first press
+// of "1" switches it on. Only genuinely new characters keep the pre-equip,
+// for the same reason the discovery is silent: respawn/reconnect overwrite
+// the loadout right after New.
 func (p *player) applyCreationMilestones() {
 	for _, u := range p.milestoneUnlocks {
 		if u.Level <= 1 && !p.skills.HasDiscovered(u.Skill.ID) {
 			p.skills.Discover(u.Skill.ID)
+			if u.Skill.Category == skills.SkillCategoryActiveAura {
+				for slot := range p.skills.AuraSlots {
+					if p.skills.AuraSlots[slot] == nil {
+						p.skills.EquipAura(slot, u.Skill, 1)
+						break
+					}
+				}
+			}
 		}
 	}
 	p.ApplyRecipeCascade()

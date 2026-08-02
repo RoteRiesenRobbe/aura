@@ -2190,8 +2190,17 @@ section above; this is the summary.
   fields added) · `r7-strong` · `r1-focus-cost` 5/5 · `round4-tooltip` ·
   `chunkC4-quests` 37 + 1 SKIP · new `r7-respec-cost.mjs` (blue number seen
   in-scene; respec Swift 3 → 1, badge 27 → 29).
-- **Owed to the PO by eye:** the blue cost number in a real fight, the Reset
-  button's arm/confirm feel, and the new turn-in prose in the journal.
+- ✅ **PO-VERIFIED IN-GAME 2026-08-02, all six items** — same day, committed
+  `7c30b3e8`.
+- **Follow-up from the verification pass (PO 2026-08-02): a new character
+  spawns with Damage pre-equipped in aura slot 1 — equipped, deliberately NOT
+  active** (the PO's pick: the first press of "1" turns it on). Built as a
+  derived rule in `applyCreationMilestones`: a creation-seeded ACTIVE AURA
+  fills the first free aura slot (passives stay spellbook-only); only
+  genuinely new characters keep it, because respawn/reconnect overwrite the
+  loadout right after `New` — the same property the silent-discovery rule
+  already leans on. Pinned by `TestNew_CreationAuraIsPreEquippedButNotActive`;
+  probed live (`slot0: "1Damage"`, no active slot).
 
 ## Rolling filler — blocks nothing, do any time
 

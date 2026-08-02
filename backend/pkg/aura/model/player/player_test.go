@@ -513,6 +513,36 @@ func TestNew_AppliesLevel1MilestoneAtCreation(t *testing.T) {
 	assert.Empty(t, c.unlocks, "creation discovers silently — no banner")
 }
 
+// TestNew_CreationAuraIsPreEquippedButNotActive pins the round-7 follow-up
+// (PO 2026-08-02): a creation-seeded ACTIVE AURA lands pre-equipped in the
+// first free aura slot, so a fresh character fights without a spellbook trip —
+// but deliberately NOT active; the player's first press of "1" switches it on.
+// Only genuinely new characters keep this: the respawn/reconnect paths
+// overwrite the spellbook (and loadout) right after New, which is the same
+// property the silent-discovery rule above already leans on.
+func TestNew_CreationAuraIsPreEquippedButNotActive(t *testing.T) {
+	defToughPassive := &skills.SkillDefinition{ID: 9, Name: "Tough", Category: skills.SkillCategoryPassive, MaxLevel: 5}
+	g := &fakeGame{reg: newStubRegistry(defDamageAura, defHarvest)}
+	g.cfg.PlayerConfig = cfg.PlayerConfig{LevelUpXPBase: 100, LevelUpXPGrowthFactor: 2.0, BaseHealth: 100}
+	g.cfg.MilestoneUnlocks = []skills.MilestoneUnlock{
+		{Level: 1, Skill: defToughPassive}, // a non-aura seed must NOT ride into an aura slot
+		{Level: 1, Skill: defDamageAura},
+		{Level: 7, Skill: defHealAura},
+	}
+
+	p := New(g, &fakePlayerClient{}, "fresh").(*player)
+
+	if assert.NotNil(t, p.skills.AuraSlots[0], "the seeded aura is equipped at creation") {
+		assert.Equal(t, defDamageAura.ID, p.skills.AuraSlots[0].Def.ID)
+		assert.Equal(t, 1, p.skills.AuraSlots[0].Level)
+	}
+	assert.Equal(t, -1, p.skills.ActiveAuraSlot,
+		"equipped but NOT active (PO 2026-08-02) — the first press of 1 turns it on")
+	for _, es := range p.skills.PassiveSlots {
+		assert.Nil(t, es, "a seeded passive stays spellbook-only")
+	}
+}
+
 // TestNew_CreationMilestonesRunTheRecipeCascade pins that the creation path
 // still ends in the recipe cascade (the uniform-discovery rule the old bare
 // ApplyRecipeCascade call in New existed for): a recipe keyed on a level-1
