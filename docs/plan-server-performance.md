@@ -151,3 +151,8 @@ and this one costs a client rewrite plus per-client server state.
   hour, buys understanding rather than throughput.
 - **A faster single-core VPS.** Still the cheapest ceiling increase available
   that requires no code at all, and it composes with everything above.
+- **Client render cost.** A different problem with no shared mechanism: the
+  phone client was asking for 2.97 Mpx a frame and starving its own input clock
+  (fixed 2026-08-02 `59dfe266`, ledger in `plan-playtest-feedback.md` §Ledgers,
+  and still open as *"needs some love"*). A laggy phone is not evidence about
+  this plan's ceiling, and vice versa — measure them separately.

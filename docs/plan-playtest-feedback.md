@@ -2750,3 +2750,178 @@ fresh server (button present, panel opens by real click, all 12 sections in
 order, Esc and ✕ close, 0 console errors) + screenshot. The smoke was NOT
 promoted into the verify suite — a static panel with no server state isn't
 worth a coverage-map row.
+
+### A mobile layout — the HUD stops covering the world on a phone ✅ DONE 2026-08-02 — PO-VERIFIED ON A REAL PHONE 2026-08-02
+
+*(Moved here from the CLAUDE.md status banner 2026-08-02 when the render-cost
+entry below superseded it as "last completed" — it had no plan-doc ledger, and
+the collapse rule needs one. Prose is the banner's, unedited except this note.)*
+
+PO ask (*"the UI elements all block the movement and view"*), **frontend only,
+no backend/wire change**, 4 PO rulings taken up front. **One class does
+everything:** `Mobile.ts` decides once at boot (`matchMedia('(pointer: coarse)')`,
+`?mobile`/`?desktop` overriding) and stamps **`html.mobile`**; every rule lives
+under it in the new `HUD.mobile.less`, so **the desktop HUD is unaffected by
+construction, not by inspection**. ⭐ **The sheet needed no DOM surgery** —
+`#leftColumn` (journal button + spellbook + passives) *becomes* the full-screen
+menu, and `#zoomControl`/`#minimap`/`#gameSettings`, which are SIBLINGS, are
+pulled into it by position + z-index, so every existing handler keeps working
+untouched. Always on screen: Focus/XP bars (moved off the thumb corner to the
+top edge), six tap tiles in one row, combat indicator, alerts.
+
+⚑ **Two defects found while building, both invisible to the layout work
+itself:** ① **read-only overlays were eating movement input** — `#inputAreas`
+(the joystick) sits BELOW `#gameUI`, so `#bottomCenter`'s full-width transparent
+strip and the bars swallowed touches across two wide bands (15 of 81 hit-test
+points); display-only elements are now `pointer-events: none` with the tappable
+children opting back in, worth **+20 points of world visibility on its own**;
+② **equipping was impossible for two of three categories** — the spellbook is
+inside the sheet but aura/cooldown slots are the tiles BEHIND it, so selecting a
+non-passive now closes the sheet (passives keep it open, their slots are in it).
+Tapping a tile already activated auras and fired cooldowns, so the tile bar
+itself needed **zero logic change**.
+
+**Scaling is ONE knob** — `html.mobile { font-size: clamp(15px, 4.1vmin, 28px) }`
+— keyed to **vmin so portrait and landscape agree**; a phone lands on 15.99px
+(the browser default the layout was verified at, so nothing phone-side moves)
+while a tablet/forced-desktop scales to 28px. ⚑ **Set on `<html>` directly
+rather than via `html:has(body.mobile)`**: rem is root-relative, and a `:has()`
+on the ROOT is evaluated against the whole document — the class goes on the root
+so a desktop page carries no `:has()` bookkeeping it did not already have.
+⚑ **The multi-viewport harness leg caught a real bug on its first run**: in
+PORTRAIT six 90px tiles + gaps need 591px on a 390px screen and the last
+cooldown fell off — hence `@mobile-tile: min(5.6rem, 15vh, 13vw)`, where **the
+13vw term binds in portrait only**.
+
+**Verified — desktop invariance MEASURED, not asserted:** a computed-state probe
+(rect + 18 computed properties for 33 HUD elements, every slot row, every
+hotkey) diffed against a HEAD rebuild is **identical except `domNodes` 417 →
+418**, the one hidden `#mobileMenuButton`; a selector audit shows **46 mobile
+rules, exactly 1 unscoped** (that button's `display: none`); 400 forced style
+recalcs cost **0.4–0.6ms on BOTH builds** (529 → 575 CSS rules, unmeasurable),
+desktop registers **zero** new listeners (`MobileMenu.setup` early-returns off
+`isMobile()`) and adds no per-frame work; CSS +4,967 B, JS +1,983 B. Plus `tsc`
+· 133 vitest · prod build · new `mobile-layout.mjs` all checks (world visibility
+**28% → 85%** at 844×390) · desktop control `r1-focus-cost` 5/5 ·
+`chunkC3-journal` journal geometry unchanged at both desktop viewports.
+
+**Follow-up same day: the interact verb got a tappable twin.** A phone has no E,
+so on mobile the badge over the actor's head is **REPLACED, not accompanied**
+(PO wording) by a gold speech-bubble button at the bottom right. ⭐
+**`Interact.trigger()` is the ONE definition of what an interact press does** —
+the key and the button both call it, so the second-press-closes rule (D21)
+cannot drift between them, the same shape as `toggleAuraSlot` serving both the
+hotkey and the click. Both surfaces are driven from **`Backend.applyGameState`'s
+single site** off the same `badged` id (`updateInteractBadge(isMobile() ? 0 :
+badged)` + `Interact.updateButton(badged)`), so badge and button can never name
+different actors; `InteractBadgeTargeting` and `Mobs.setInteractable` are
+untouched. ⚑ **The button must restate `.hidden` itself** — the global
+`.hidden {display:none}` is a bare class (0,1,0) and loses to
+`html.mobile #interactButton` (1,2,1), so without it the button would never
+hide. Position is `bottom: calc(tile + 2×edge)` rather than the true corner: in
+portrait the six tiles span nearly the full width. New harness
+`mobile-interact.mjs` **14/14** — badge absent + button shown on mobile, the
+desktop CONTROL inverted (badge shown, button absent), tap opens the panel, the
+button steps aside while it is open, comes back on leave, and hides out of
+range. **Desktop re-verified against the commit before it: the computed-state
+diff is again `domNodes` 418 → 421** — the button's div + svg + path,
+`display:none` — with 0 console errors both sides; `chunk3b-interact` (the E
+verb) and `r4-badge` (the badge anchor) both re-run green.
+
+### Mobile render cost — the phone was asked for 3 Mpx a frame ✅ DONE 2026-08-02, `59dfe266` — PO-VERIFIED ON A REAL PHONE 2026-08-02, DEPLOYED LIVE same day
+
+**A direct PO report against the live mobile deploy:** *"mobile performance and
+especially movement is quite laggy"* — with the open question of whether it was
+something obvious or a deep problem. It was obvious, it was **one** root cause,
+and the fix is two expressions in one file.
+
+`Game.ts` initialised the renderer with `resolution: window.devicePixelRatio`
+and `antialias: true` **unconditionally**. A phone reports DPR 3, so the canvas
+was a **1170×2532 backbuffer — 2.97 Mpx per frame with MSAA on top**, more
+pixels than a 1440p desktop monitor, on a phone GPU.
+
+⭐ **The measurement that named the cause: frame time is very nearly LINEAR in
+pixel count** (0.34 Mpx → 85.7 ms, 1.33 → 270.5, 2.97 → 621.9; fitting gives
+~16 ms fixed + ~204 ms/Mpx). The scene is **fill-bound, not JS-bound** — the
+per-frame JS is already a small constant, and the `AuraRings` / `updatePlate`
+dirty checks were all doing their job. That is what made this a one-knob fix
+rather than an optimisation pass.
+
+⚑ **The reported symptom was MOVEMENT, and movement is a CONSEQUENCE, not a
+second bug.** `Controls`' Tock clock is `setTimeout`-based at 33 ms and so is
+nominally independent of rendering — but it still needs the main thread, and a
+saturated one starves it. Measured input sends **tracked the frame rate 1:1**:
+**1.8/s at DPR 3, 10.4/s at DPR 1, against a 30/s target.** The server then
+coasts between inputs and corrects, which reads as lurching and rubber-banding
+*on top of* the low framerate. Anyone chasing this from the input side —
+joystick, `INPUT_TICKRATE`, the stop-tail, packet loss — would have found
+nothing wrong there, because nothing is.
+
+**Two things were checked and CLEARED**, both plausible suspects: the drag
+reaches the joystick correctly (`.nipple` spawns, `elementFromPoint` hits
+`.left-input-area` — the mobile-layout `pointer-events` work is sound), and
+there are **no passive-listener / `preventDefault` warnings**, because nipplejs
+sets `touch-action: none` on its own zone. `html`/`body` are still `touch-action:
+auto`, which is a minor iOS double-tap-zoom arbitration cost on HUD taps —
+recorded, not fixed.
+
+**PO ruling:** cap at **2** and turn antialias **off on mobile**.
+
+**Shape: frontend-only, ONE file, both knobs gated on the existing
+`isMobile()`.** Desktop is unchanged **by construction, not by inspection** —
+off mobile `antialias: !isMobile()` is `true` and `renderResolution()`
+early-returns the bare `window.devicePixelRatio`, which are literally the two
+previous expressions. ⭐ **`renderResolution()` is ONE definition read by both
+`init()` and the resize handler**: a second `window.devicePixelRatio` left at
+the resize site would have silently dropped the cap on the first orientation
+change — the exact drift class that handler's own comment exists to close.
+`MOBILE_MAX_RESOLUTION = 2` is a named `[PLACEHOLDER]` constant, so 1.5 is a
+one-line turn.
+
+⚑ **MSAA was close to pure cost here:** it antialiases *geometry* edges only, so
+in a sprite-based 2D game it touched nothing but the vector `Graphics` — aura
+rings, bars, tier frames — while being paid for over the whole framebuffer.
+Measured **−26 % frame time at DPR 3** on its own. It very slightly hardens
+those ring edges on mobile; PO accepted by eye.
+
+**Verified:** `tsc` · 133 vitest · prod build · `ctxloss-warning clean` at the
+documented baseline (**5 GL contexts / 2 probe losses / 0 warnings** — this
+changes the renderer boot path, so CLAUDE.md requires it) · `mobile-layout` all
+checks · `mobile-interact` 14/14 incl. its desktop control · `r1-focus-cost`
+5/5 as the desktop control. Live boot 0 errors 0 warnings, 87 skills/15
+factions/64 mobs/10 recipes/5 props/4 quests/5 campfires.
+
+**A/B, interleaved so machine load cannot favour either arm** (one phone
+viewport 390×844 at device DPR 3, `?desktop` vs `?mobile` in the *same* build):
+
+| | backing | Mpx | frame mean | input sends/s |
+|---|---|---|---|---|
+| before | 1170×2532 | 2.96 | 559.4 ms | 1.3 |
+| after | 780×1688 | 1.32 | 230.9 ms | 2.5 |
+
+**2.25× fewer pixels → 2.42× faster frames → 2× the input rate.** ⚑ **Read the
+ratios, never the absolutes** — headless Chromium rasterizes in software, so the
+fps figures are not device predictions; the pixel-count drop is the hard fact.
+Confirmed on the **deployed** bundle: phone path `780×1688`, `SAMPLES=0`;
+desktop control `1170×2532`, `SAMPLES=4`.
+
+⚑ **Two near-misses worth keeping.** ① A single-context run of the fixed build
+reported **16.7 ms / exactly 60 fps** — a 14× beat on the predicted 2.4×, which
+is the *blank-world* signature (§29). It was real, proven by screenshot before
+being believed, but the absolute was a quiet-machine artifact; the interleaved
+A/B is the number that survived. **A suspiciously good result deserves the same
+scepticism as a bad one.** ② A pixel-readback probe reported the canvas as 100 %
+black — `preserveDrawingBuffer` is false, so reading the WebGL buffer outside a
+frame is *always* black. **The probe was broken, not the render**; a Playwright
+screenshot goes through the compositor and shows the truth.
+
+**Open — PO: *"works fine for now, needs some love"*.** Not a regression, a
+ceiling: this recovered ~2.4× and stopped the input starvation, but mobile is
+not yet *good*. The cheapest next turns, in order — `MOBILE_MAX_RESOLUTION`
+1.5 (one line, measurably faster, near-indistinguishable at phone viewing
+distance) · the minimap is a **second WebGL context** rendering every frame,
+which costs a driver-level context switch per frame for a 94×94 canvas · the
+`touch-action: auto` on `html`/`body` above · and only then anything structural.
+⚑ **Not to be confused with `plan-server-performance.md`**, which is the
+*server's* concurrent-player ceiling; this is client render cost and the two
+share no mechanism.
