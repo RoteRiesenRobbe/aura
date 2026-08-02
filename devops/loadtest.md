@@ -60,15 +60,86 @@ go run ./cmd/loadbot -disperse -steps 50,100,200,400 -hold 40s
 
 No profiler on the deployed binary, so pass `-stats ""` and read `snap/s/bot`.
 **Only when the server is empty** — a ramp-to-break makes the loop stutter for
-any real players, and a crash wipes characters (no persistence).
+any real players. ⚑ Check `/players` rather than the log: `curl -s
+https://aura-game.duckdns.org/players` answers `{"players":N}` directly, and
+grepping journalctl for join lines reports 0 whether the server is empty or your
+pattern is simply wrong.
+
+⚑ **A crash no longer wipes characters** — that warning predates step 8a. They
+live in Postgres now, so the worst a crash costs is the unsaved autosave window
+(~5 min) and systemd restarts `aurad` on its own. The reason to wait for an
+empty server is the stutter, not data loss.
+
+### ⚑ Since step 8a: names, and cleaning up after a live run
+
+Two things bite a live run, both new:
+
+- **`-name-prefix` is REQUIRED on live.** Bots default to the reserved `hrnss_`
+  prefix, which is grantable only under `-dev`, and the live server does not run
+  `-dev`. Without the flag every bot's `POST /api/characters` is refused **400
+  "That character name is not available."** and the ramp never gets one socket
+  up — which reads as a server refusing connections, not as a naming rule. Pass
+  something distinctive and non-reserved: `-name-prefix loadbot_`.
+- **Character names are globally unique and PERSISTENT.** Bot names are derived
+  from the bot index, so a second run collides with the first run's rows on
+  every id. **Clean up between runs**, not just at the end.
+
+Cleanup is `devops/cleanup-loadbots.sql`, run **on the box** (its loopback
+connection is what satisfies ruling 10; `harnessdb -cleanup` matches `hrnss_%`
+only and will not see these rows):
+
+```shell
+scp devops/cleanup-loadbots.sql root@<host>:/tmp/     # ⚑ NOT /root — `postgres`
+                                                      # cannot read it there, and
+                                                      # psql fails with a lowercase
+                                                      # "psql: error: … Permission
+                                                      # denied" that an uppercase
+                                                      # ERROR grep hides entirely
+ssh root@<host> "sudo -u postgres psql -d aura -v ON_ERROR_STOP=1 \
+    -v prefix=loadbot_ -f /tmp/cleanup-loadbots.sql"
+```
+
+It refuses to delete anything if a matching name belongs to a registered or
+multi-character account — the collision risk a non-reserved prefix buys.
 
 ```shell
 cd backend
 go run ./cmd/loadbot -scheme wss -addr aura-game.duckdns.org:443 -stats "" \
+  -name-prefix loadbot_ \
   -disperse -steps 20,40,60,80,100,120 -hold 30s   # spread out
+# clean up between runs — the names collide otherwise
 go run ./cmd/loadbot -scheme wss -addr aura-game.duckdns.org:443 -stats "" \
+  -name-prefix loadbot_ \
   -steps 20,40,60,80,100,140 -hold 30s             # clustered (default)
 ```
+
+### Measured 2026-08-02, first run after step 8a went live
+
+Walking bots (no `-skills`), Hetzner CX-class box, client on a WAN link:
+
+| bots | dispersed snap/s | clustered snap/s |
+|---|---|---|
+| 20–100 | 27.3 flat | 27.1–27.8 flat |
+| 120 | 27.3 | — |
+| 140 | — | **20.9** |
+
+⚑ **The 27.x plateau is a floor, not degradation.** It is flat from 20 to 120 and
+matches nothing about load; a local control on the same build reads **30.0**. It
+is client/WAN overhead, and it is exactly why the note above says to take a local
+control before trusting a live absolute.
+
+⚑ **`snap/s` is a LAGGING signal, and the server log disagrees with it.** Client
+throughput held ~27 all the way to 100 bots while `aurad` was already logging
+`Overload! Systems at:` up to **260 %** — the loop goes over budget well before
+the clients can tell. If the server is reachable, count overload lines per minute
+(`journalctl -u aurad | grep -c Overload`) alongside the ramp; do not read a flat
+`snap/s` as headroom. Overload stopped the second the bots left and the service
+never restarted.
+
+⚑ **Not comparable to the ~60–70 ceiling on record**, which was a **skill-mode**
+run (`-token` + `-skills`). Without them a bot's aura sensor stays at radius 0
+and the whole sensor + broadphase + SkillSystem cost is unpaid — see "What the
+walking-bot numbers miss". A like-for-like re-measure needs the cheat token.
 
 ## Key flags
 

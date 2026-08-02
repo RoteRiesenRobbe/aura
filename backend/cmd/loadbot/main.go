@@ -78,6 +78,32 @@ var (
 	// comma ("Quest, the Untested" — the shape the server's own name mangler
 	// uses), and comma-splitting silently turns 45 names into 50 half-names.
 	nameList = flag.String("names", "", "semicolon-separated bot names, assigned in order (default bot000, bot001, …)")
+
+	// namePrefix is what makes a run against a NON-dev server possible.
+	//
+	// ⚑ The default is unchanged, so every existing local invocation behaves
+	// exactly as before: `hrnss_` is reserved, un-take-able by a real player, and
+	// what `harnessdb -cleanup` matches.
+	//
+	// ⚑ But the prefix is only grantable under -dev (accounts.Config
+	// AllowHarnessNames), and the live server does not run -dev — so on live every
+	// bot's POST /api/characters is refused 400 "That character name is not
+	// available." and the ramp never gets a single socket up. That reads as a
+	// server that will not accept connections rather than as a naming rule, which
+	// is why it is called out here.
+	//
+	// For a live capacity run, pass a distinctive prefix that is NOT reserved
+	// (`-name-prefix loadbot_`). The trade is explicit: those rows are ordinary
+	// accounts for the life of the run, so they are collision-possible rather than
+	// collision-impossible, and they must be deleted afterwards by pattern — from
+	// the box itself, where the connection string is loopback and `harnessdb`'s
+	// ruling-10 guard passes.
+	//
+	// ⚑ Keep it legal for auth.ValidateCharacterName: 3–20 chars total including
+	// the %04d, letters/digits joined by SINGLE interior separators, starting and
+	// ending on a letter or digit.
+	namePrefix = flag.String("name-prefix", "hrnss_bot_",
+		"character-name prefix for bots; the default is -dev-only, so a non-dev server needs a non-reserved one")
 )
 
 // orbitOf returns the ring index, radius and starting angle for a bot.
@@ -393,11 +419,10 @@ func setupSeq(id int) [][]byte {
 // password logins would push a ramp through the 2-slot bcrypt gate and spend
 // minutes hashing inside the very measurement it is meant to take.
 //
-// ⚑ Names carry the reserved `hrnss_` prefix so `go run ./cmd/harnessdb
-// -cleanup` can find and delete every row a run leaves behind. The prefix is
-// only grantable under `-dev`; a capacity run against a non-dev server needs
-// that question answered first (recorded, deferred — ruling 10 bars live load
-// runs for now).
+// ⚑ Names carry the reserved `hrnss_` prefix by default so `go run
+// ./cmd/harnessdb -cleanup` can find and delete every row a run leaves behind.
+// The prefix is only grantable under `-dev`, so a run against a NON-dev server
+// (i.e. live) must pass `-name-prefix` — see the flag, which carries the trade.
 func mintPlayTicket(id int) (name, ticket string, err error) {
 	base := "http://"
 	if *scheme == "wss" {
@@ -405,7 +430,7 @@ func mintPlayTicket(id int) (name, ticket string, err error) {
 	}
 	base += *addr
 
-	name = fmt.Sprintf("hrnss_bot_%04d", id)
+	name = fmt.Sprintf("%s%04d", *namePrefix, id)
 	created := struct {
 		Character struct {
 			ID int64 `json:"id"`
