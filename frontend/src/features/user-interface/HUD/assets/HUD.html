@@ -5,6 +5,13 @@
          Driven by AlertBanner.ts. -->
     <div id="alertBanner"></div>
 
+    <!-- Mobile menu button (2026-08-02): hidden unless <body> carries the
+         `mobile` class. Owns everything the phone layout takes off screen —
+         spellbook, passives, journal, help, minimap, zoom — by turning
+         #leftColumn into a full-screen sheet. Glyph (☰ / ✕) comes from CSS,
+         wiring from MobileMenu.ts. -->
+    <div id="mobileMenuButton" title="Menu"></div>
+
     <div id="minimap">
         <div class="wrapper">
             <!-- pixi.js instance here, to display minimap icons -->

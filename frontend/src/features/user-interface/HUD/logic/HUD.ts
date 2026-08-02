@@ -2,6 +2,8 @@ import '../assets/HUD.less';
 import * as Conversation from '../../../conversation/logic/Conversation';
 import * as Journal from '../../../journal/logic/Journal';
 import * as Help from '../../../help/logic/Help';
+import * as MobileMenu from './MobileMenu';
+import * as Mobile from '../../logic/Mobile';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
 import {
@@ -73,6 +75,9 @@ let castBarTextElement: HTMLElement;
 
 Preloading.renderPartial(require('../assets/HUD.html'), () => {
     rootElement = document.getElementById('gameUI');
+    // Stamped here, not in setup(): #gameUI is still hidden at this point, so
+    // the desktop layout never flashes before the mobile class lands.
+    Mobile.apply();
     UserInteraceDomReadyEvent.trigger(rootElement);
 });
 
@@ -89,6 +94,9 @@ export function setup(game) {
     Conversation.setup();
     Journal.setup();
     Help.setup();
+    // After Journal/Help: it adds a second pointerdown listener to their
+    // buttons, and both handlers should run in the order they were added.
+    MobileMenu.setup();
 }
 
 // Zoom control: steps through the fixed-FOV zoom levels (camera/logic/Zoom.ts).
@@ -342,6 +350,14 @@ function setupSpellbook() {
             auraLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'aura');
             passiveLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'passive');
             cooldownLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'cooldown');
+
+            // Mobile: the spellbook lives inside the menu sheet, but the aura
+            // and cooldown slots it equips into are TILES BEHIND it — leaving
+            // the sheet open makes those two categories unequippable. Passives
+            // keep the sheet open, because their slots are in it.
+            if (skillCategory(id) !== 'passive') {
+                MobileMenu.close();
+            }
         }
     });
 }
