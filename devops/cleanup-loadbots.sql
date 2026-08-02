@@ -22,6 +22,28 @@
 --   sudo -u postgres psql -d aura -c "SELECT id, name FROM game.characters
 --        WHERE name LIKE 'loadbot\_%' ORDER BY id;"
 --
+-- ⚑ WHEN it is safe to run — a different question from WHICH ROWS are safe to
+-- delete, and the one this file used to be silent about while documenting the
+-- other at length. A disconnected bot is NOT gone from the server: its character
+-- sits in the reconnect stash for ~10 minutes (reconnectStashTTLTicks,
+-- pkg/aura/sys/state.go), invisible from the database, and when that expires the
+-- session-expiry trigger takes one last save of it. Delete the rows first and
+-- those saves land on rows that are no longer there.
+--
+-- That is now HARMLESS. store.SaveCharacter marks the refusal terminal
+-- (persist.ErrGone) and the writer drops the snapshot, one line per bot:
+--   💾 dropped a character save: its row no longer exists
+-- Those lines after a cleanup are the expected outcome, not a fault.
+--
+-- ⚑ It was not always harmless, which is why the note is here: before the
+-- terminal-error rule every such save was re-queued forever, and the retry
+-- ladder those 44 dead rows drove starved every real player's save for 37
+-- minutes (2026-08-02). The trap was the stash window being written down
+-- nowhere — a careful operator reading this file walked straight into it.
+--
+-- To run it without the log noise at all, wait out the stash window after the
+-- last bot disconnects, or stop the server first.
+--
 -- ⚑ It refuses to touch anything that is not a bot. A bot account is
 -- ANONYMOUS and owns only characters whose names match the prefix. A row
 -- failing either test is a real player who happens to have picked a colliding

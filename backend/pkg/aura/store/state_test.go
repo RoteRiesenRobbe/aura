@@ -122,6 +122,12 @@ func TestSaveCharacterRefusesADeletedCharacter(t *testing.T) {
 		CharacterID: created.ID, Level: 30, ActiveAuraSlot: persist.NoActiveAura,
 	})
 	assert.ErrorIs(t, err, store.ErrNoCharacter)
+	// ⚑ And it must say so in the writer's vocabulary, not just the HTTP layer's.
+	// This is the wire the save queue reads to drop a doomed snapshot instead of
+	// retrying it forever; without it the refusal above is indistinguishable from
+	// a database having a bad minute.
+	assert.ErrorIs(t, err, persist.ErrGone,
+		"a save refused because the row is gone must be marked terminal")
 }
 
 // TestSaveCharacterOrdersItsStatements is the FK-ordering pin.

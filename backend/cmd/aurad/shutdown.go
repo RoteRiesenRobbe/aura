@@ -13,15 +13,19 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
 )
 
-// snapshotTimeout bounds the wait for the game loop to take its snapshots, and
-// flushTimeout the wait for those snapshots to reach Postgres. [PLACEHOLDER]
+// snapshotTimeout bounds the wait for the game loop to take its snapshots,
+// flushTimeout the wait for those snapshots to reach Postgres, and closeTimeout
+// the wait for the writer goroutine to stop afterwards. [PLACEHOLDER]
 //
-// ⚑ TWO timeouts, not one, because the two steps fail for different reasons and
-// want different diagnoses: a loop that never answers is a hung game, a flush
-// that never finishes is a hung database.
+// ⚑ THREE timeouts, not one, because the three steps fail for different reasons
+// and want different diagnoses: a loop that never answers is a hung game, a flush
+// that never finishes is a hung database, and a writer that will not stop is
+// working through the last of its queue against one. The process is exiting
+// either way; each bound only decides how long it waits for the courtesy.
 const (
 	snapshotTimeout = 3 * time.Second
 	flushTimeout    = 10 * time.Second
+	closeTimeout    = 2 * time.Second
 )
 
 // installShutdownFlush saves every live character on SIGTERM/SIGINT before the
@@ -61,6 +65,24 @@ func installShutdownFlush(world sys.PersistenceSink, writer *persist.Writer, db 
 				slog.Int64("character_id", lost.CharacterID),
 				slog.String("name", lost.Name),
 				slog.Int("level", lost.Level))
+		}
+
+		// ⚑ Close AFTER Flush has reported, and bounded. Before, it would empty
+		// the queue Flush exists to name; unbounded, a stuck write would hold the
+		// process open exactly as the flush timeout above refuses to.
+		//
+		// ⚑ It is not decoration: it is what stops the writer, so the pool below
+		// is not closed underneath an open transaction — and until it was called
+		// the shutdown escape inside the retry ladder was unreachable code.
+		stopped := make(chan struct{})
+		go func() {
+			writer.Close()
+			close(stopped)
+		}()
+		select {
+		case <-stopped:
+		case <-time.After(closeTimeout):
+			slog.Warn("the save writer did not stop in time; exiting anyway")
 		}
 
 		db.Close()

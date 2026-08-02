@@ -67,7 +67,15 @@ func (s *Store) SaveCharacter(ctx context.Context, state persist.CharacterState)
 		return fmt.Errorf("saving a character: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
-		return ErrNoCharacter
+		// ⚑ Wrapped as persist.ErrGone so the writer can tell "this can never
+		// succeed" from "the database is unwell" and stop retrying it — the
+		// distinction the save queue has no other way to make, and whose absence
+		// once turned a routine row deletion into a 37-minute save outage.
+		//
+		// ⚑ Scoped to the SAVE path deliberately, rather than folded into the
+		// sentinel itself. The other ErrNoCharacter sites answer HTTP requests,
+		// where "terminal" means nothing and would only be a claim nobody reads.
+		return fmt.Errorf("%w: %w", ErrNoCharacter, persist.ErrGone)
 	}
 
 	if _, err := tx.Exec(ctx,
