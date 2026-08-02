@@ -31,6 +31,7 @@ export { Pong } from './aura-api/pong.js';
 export { QuestProgress } from './aura-api/quest-progress.js';
 export { Resource } from './aura-api/resource.js';
 export { Respawn } from './aura-api/respawn.js';
+export { Respec } from './aura-api/respec.js';
 export { ServerMessage } from './aura-api/server-message.js';
 export { ServerMessageBody } from './aura-api/server-message-body.js';
 export { Spectator } from './aura-api/spectator.js';

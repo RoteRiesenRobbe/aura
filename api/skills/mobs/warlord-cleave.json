@@ -1,5 +1,5 @@
 {
-  "_comment": "Orc Warlord cleave (content pass C6, plan-content-zones12.md §B): the boss's single active aura — multi-effect on the Vanguard precedent, because exactly one aura is active at a time (mobs included): a heavier OrcCleave sweep (3 targets, brute physical) PLUS a lingering bleed dot (physical+bleed, DamageBurst's tag pair) that keeps pressure on whoever rotates out. Sustained healer stress between Frenzy windows is the design point (PO kit pick: Cleave + Frenzy + bleed). Curve-position-1 baseline. All values [PLACEHOLDER]",
+  "_comment": "Orc Warlord cleave (content pass C6, plan-content-zones12.md §B): the boss's single active aura — multi-effect on the Vanguard precedent, because exactly one aura is active at a time (mobs included): a heavier OrcCleave sweep (3 targets, brute physical) PLUS a lingering bleed dot (physical+bleed, DamageBurst's tag pair) that keeps pressure on whoever rotates out. Sustained healer stress between Frenzy windows is the design point (PO kit pick: Cleave + Frenzy + bleed). ⚑ ONE 90-tick beat for BOTH effects (PO 2026-08-02, intake round 7 item 11): the boss swings every 3 s (1.5 s in Frenzy windows) so ducking in and out of range is real play — magnitudes scaled throughput-neutral from the old 35/50-tick pair (cleave 20→50, bleed 6→11). Curve-position-1 baseline. All values [PLACEHOLDER]",
   "id": 128,
   "name": "WarlordCleave",
   "category": "active_aura",
@@ -9,21 +9,21 @@
       "type": "damage_aura",
       "radius": 1.6,
       "radiusPerLevel": 0.0,
-      "damageHP": 20,
-      "damageHPPerLevel": 3.0,
+      "damageHP": 50,
+      "damageHPPerLevel": 7.5,
       "variance": 0.15,
       "targetsAllies": false,
       "targetsEnemies": true,
       "selector": "nearest",
       "maxTargets": 3,
-      "tickInterval": 35
+      "tickInterval": 90
     },
     {
       "type": "dot_aura",
       "radius": 1.6,
       "radiusPerLevel": 0.0,
-      "damageHP": 6,
-      "damageHPPerLevel": 1.0,
+      "damageHP": 11,
+      "damageHPPerLevel": 2.0,
       "damageTags": ["physical", "bleed"],
       "dotTicks": 4,
       "dotTickInterval": 45,
@@ -32,7 +32,7 @@
       "targetsEnemies": true,
       "selector": "nearest",
       "maxTargets": 1,
-      "tickInterval": 50
+      "tickInterval": 90
     }
   ]
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"log/slog"
 	"math"
+	"sort"
 	"strconv"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
@@ -30,6 +31,7 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 		name:           name,
 		ownedEntitites: model.NewBasicEntities(),
 		config:         &g.Config().PlayerConfig,
+		skillDefs:      g.Skills(),
 		stats:          model.Stats{BirthTick: g.Ticks()},
 		progression:    model.PlayerProgression{Level: 1, Experience: 0},
 		statusEffects:  model.NewStatusEffects(),
@@ -52,6 +54,14 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.viewport.Shape().Mask = int(model.LayerViewportCollision)
 	p.viewport.Shape().Group = shapeGroup
 
+	// Build the XP table now rather than on first use. Encoding reads it for
+	// every character in every viewport, so a lazy build would write to one
+	// player's table during another player's snapshot — harmless while the
+	// loop is single-threaded, and a data race the moment NetSystem fans out
+	// (plan-server-performance.md chunk 2). The lazy path stays for players
+	// built by struct literal (sim, unit tests).
+	p.xpCumulative()
+
 	//--- initialize skill component
 	sc, err := initializePlayerSkills(g.Skills())
 	if err != nil {
@@ -61,10 +71,12 @@ func New(g model.Game, c model.Client, name string) model.PlayerEntity {
 	p.milestoneUnlocks = g.Config().MilestoneUnlocks
 	p.recipes = g.Config().Recipes
 	p.adoptQuestLedger(quests.NewLedger(g.Quests()))
-	// A fresh spawn only has Harvest at level 1, but run the cascade anyway
-	// so a starter recipe keyed on that would still fire — keeps discovery paths
-	// uniform.
-	p.ApplyRecipeCascade()
+	// A fresh spawn starts at level 1 with an otherwise-empty spellbook
+	// (triage item 11) — everything beyond the level-1 milestones (Damage, Q4)
+	// comes through the discovery paths. The seeding ends in the recipe
+	// cascade, so this is also the uniform-discovery call the bare cascade
+	// used to be.
+	p.applyCreationMilestones()
 
 	//--- setup vital signs
 	p.PlayerVitalSigns.Health = p.MaxHealth() // absolute HP (item 11 Phase 1)
@@ -110,6 +122,8 @@ type player struct {
 	model.PlayerVitalSigns
 
 	config *cfg.PlayerConfig
+	// xpTable memoizes the cumulative XP curve — see xpCumulative.
+	xpTable []uint64
 
 	ownedEntitites model.BasicEntities
 
@@ -127,6 +141,13 @@ type player struct {
 	milestoneUnlocks []skills.MilestoneUnlock
 	recipes          skills.RecipeRegistry
 
+	// skillDefs resolves a spellbook entry to its definition. Needed because
+	// the D10 point cost is relative to each skill's own cap, and the
+	// spellbook stores levels only (plan-numbers-rewrite L1). Boot-global and
+	// immutable, so a rebuilt player (death, reconnect, revive) simply takes it
+	// from the game again.
+	skillDefs skills.Registry
+
 	// questLedger is the character's lifetime quest state (plan-quests.md C1).
 	// Like the skill component it outlives this struct: the connection-state
 	// stash carries the pointer across death and reconnect (L11).
@@ -141,6 +162,7 @@ type player struct {
 	// tick by ResetTickNumbers.
 	damageTaken  vitals.VitalSign
 	critTaken    vitals.VitalSign // crit-flagged share of damageTaken (chunk 1)
+	costPaid     vitals.VitalSign // resource cost paid this tick (round-7 item 7)
 	healReceived vitals.VitalSign
 	xpGained     uint64
 
@@ -321,10 +343,10 @@ func (p *player) HealthRatio() float32 {
 // damage + actual HP lost after clamping — overkill never counts
 // (plan-skill-vocab chunk 2, F6 §3.1/9; mirrors the mob site).
 func (p *player) takeDamage(damage model.Damage, s model.StatusEffect) vitals.VitalSign {
-	// Gated hits (content pass C1) are opt-in via BASE resistances, and
-	// players have none — a gated hit never damages a player (defensive;
+	// A gated hit (content pass C1) damages only mobs that name its key, and a
+	// player has no gateKeys at all — so it never damages a player (defensive;
 	// nothing casts gated damage at players under no-PvP).
-	if damage.Gated {
+	if damage.GateKey != "" {
 		return 0
 	}
 	// Tag resistances (Phase 2): resist passives (Derived) and transient
@@ -385,6 +407,15 @@ func (p *player) DamageTaken() vitals.VitalSign { return p.damageTaken }
 func (p *player) CritTaken() vitals.VitalSign    { return p.critTaken }
 func (p *player) HealReceived() vitals.VitalSign { return p.healReceived }
 func (p *player) XpGained() uint64               { return p.xpGained }
+
+// CostPaid is the resource cost charged this tick (round-7 item 7): the
+// damage-taken twin for what the player SPENT — serialized as the cost_paid
+// wire field, popped as a blue floating number. NoteCostPaid is called by the
+// SkillSystem's chargeCost, the one place a cost leaves the pool.
+func (p *player) CostPaid() vitals.VitalSign { return p.costPaid }
+func (p *player) NoteCostPaid(paid vitals.VitalSign) {
+	p.costPaid += paid
+}
 
 // NoteHealReceived records healing applied to this player this tick; the
 // SkillSystem calls it when a heal aura lands.
@@ -477,29 +508,34 @@ func (p *player) NoteAuraHit(style model.AuraHitStyle) { p.auraHitStyle = style 
 // ApplyResist grants a transient tag-resistance buff from a resist aura
 // (item 11 Phase 2); re-applied each aura tick, it expires on the same
 // per-tick lifecycle as the floating-number accumulators.
-func (p *player) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
-	p.buffs.ApplyResist(source, tags, factor, ticks)
+// Reports whether the buff was genuinely new rather than a refresh (§5.2).
+func (p *player) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool {
+	return p.buffs.ApplyResist(source, tags, factor, ticks)
 }
 
 // ApplyDot grants a damage-over-time debuff (effect foundations Step 2); it
 // runs its full authored duration independent of re-application, ticked by
 // the SkillSystem via DueBuffEvents.
-func (p *player) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
-	p.buffs.ApplyDot(source, dot, ticks)
+// Reports whether this application ignited the player rather than refreshing a
+// burn already running (§5.1).
+func (p *player) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) bool {
+	return p.buffs.ApplyDot(source, dot, ticks)
 }
 
 // ApplyHot grants a heal-over-time buff (plan-skill-vocab chunk 3); it runs its
 // full authored duration independent of re-application (the linger that makes a
 // hot_aura keep healing after leaving range), ticked by the SkillSystem via
 // DueBuffEvents.
-func (p *player) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
-	p.buffs.ApplyHot(source, hot, ticks)
+// Reports whether the buff was genuinely new rather than a refresh (§5.2).
+func (p *player) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool {
+	return p.buffs.ApplyHot(source, hot, ticks)
 }
 
 // ApplyShield grants (or tops up) an absorb pool from a shield effect
 // (plan-skill-vocab chunk 2); drained by takeDamage before HP.
-func (p *player) ApplyShield(source skills.SkillID, hp float32, ticks int) {
-	p.buffs.ApplyShield(source, hp, ticks)
+// Reports whether the pool was newly granted or a drained one restored (§5.2).
+func (p *player) ApplyShield(source skills.SkillID, hp float32, ticks int) bool {
+	return p.buffs.ApplyShield(source, hp, ticks)
 }
 
 // ApplySpeed grants a movement-speed buff from a speed_burst cooldown (Swift);
@@ -532,6 +568,19 @@ func (p *player) TickRateFactor() float32 {
 	return p.buffs.TickRateFactor()
 }
 
+// ApplyLifesteal grants a damage-leech buff from a lifesteal_burst cooldown
+// (Bloodthirst, R3 / §5.6); the damage site reads the composed value when it
+// builds each hit's payload, via LifestealFraction.
+func (p *player) ApplyLifesteal(source skills.SkillID, fraction float32, ticks int) {
+	p.buffs.ApplyLifesteal(source, fraction, ticks)
+}
+
+// LifestealFraction is the share of damage dealt this player's hits currently
+// leech back, on top of whatever the firing effect authors; 0 with no burst up.
+func (p *player) LifestealFraction() float32 {
+	return p.buffs.LifestealFraction()
+}
+
 // ShieldHP is the current total absorb capacity across all active pools;
 // serialized as the shield_hp wire field. A live value, not a per-tick
 // accumulator — no ResetTickNumbers involvement.
@@ -558,6 +607,7 @@ func (p *player) DueBuffEvents() ([]skills.DotHit, []skills.HotEvent) {
 func (p *player) ResetTickNumbers() {
 	p.damageTaken = 0
 	p.critTaken = 0
+	p.costPaid = 0
 	p.healReceived = 0
 	p.xpGained = 0
 	p.auraHitStyle = model.AuraHitStyleNone
@@ -588,7 +638,7 @@ func (p *player) MobTouches(e model.MobEntity, factors mobs.Factors) {
 		p.attacker = c
 		p.attackerTicks = combatSignalWindowTicks
 	}
-	dealt := p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, Gated: factors.Gated, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
+	dealt := p.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
 	// always its own recipient.
 	model.ApplyLifesteal(dealt, factors.Lifesteal, nil, e)
@@ -701,7 +751,7 @@ func (p *player) Progression() model.PlayerProgression {
 // earns minus the points bound in the spellbook. Derived on every call so free
 // respec can never make the numbers drift.
 func (p *player) AvailableSkillPoints() int {
-	return skills.TotalSkillPoints(p.progression.Level, p.config.SkillPointsPerLevel) - p.skills.SpentPoints()
+	return skills.TotalSkillPoints(p.progression.Level, p.config.SkillPointsPerLevel) - p.skills.SpentPoints(p.skillDefs)
 }
 
 func (p *player) SetProgression(progression model.PlayerProgression) {
@@ -813,6 +863,36 @@ func (p *player) LevelProgressXP() (gained, required uint64) {
 	return gained, required
 }
 
+// applyCreationMilestones seeds the spellbook with every level-1 milestone
+// (Q4: Damage — the free baseline, GDD §3) and runs the recipe cascade.
+// Deliberately SILENT, unlike the level-up path: there is no unlock event to
+// announce — the character never existed without these — and the respawn/
+// reconnect paths overwrite the spellbook right after New, so a SendUnlock
+// here would flash "Level 1 reward" on every death.
+//
+// A seeded ACTIVE AURA is also pre-equipped into the first free aura slot
+// (round-7 follow-up, PO 2026-08-02) — a fresh character should fight without
+// a spellbook trip — but deliberately NOT activated: the player's first press
+// of "1" switches it on. Only genuinely new characters keep the pre-equip,
+// for the same reason the discovery is silent: respawn/reconnect overwrite
+// the loadout right after New.
+func (p *player) applyCreationMilestones() {
+	for _, u := range p.milestoneUnlocks {
+		if u.Level <= 1 && !p.skills.HasDiscovered(u.Skill.ID) {
+			p.skills.Discover(u.Skill.ID)
+			if u.Skill.Category == skills.SkillCategoryActiveAura {
+				for slot := range p.skills.AuraSlots {
+					if p.skills.AuraSlots[slot] == nil {
+						p.skills.EquipAura(slot, u.Skill, 1)
+						break
+					}
+				}
+			}
+		}
+	}
+	p.ApplyRecipeCascade()
+}
+
 // applyMilestoneUnlocks discovers any skills whose unlock level falls in [from, to].
 // Called on level-up; from/to are both inclusive so a multi-level jump catches all entries.
 func (p *player) applyMilestoneUnlocks(from, to uint32) {
@@ -875,13 +955,52 @@ func (p *player) experienceForNextLevel(level uint32) uint64 {
 	return uint64(math.Round(required))
 }
 
+// xpTableUncappedLevels is how far the cumulative table reaches when the conf
+// sets no maxLevel. Any lookup past it falls back to the summation loop, so
+// this is a memory/coverage tradeoff, not a cap.
+const xpTableUncappedLevels = 128
+
+// xpCumulative returns the cumulative XP table: index L holds the total XP
+// required to REACH level L, so [0] and [1] are both 0 and the slice is
+// non-decreasing. Built once per player, on first use.
+//
+// The curve is a pure function of the conf pair and would ideally be computed
+// once per PlayerConfig — but PlayerConfig is built by struct literal in
+// several places (sim/world.go, unit tests) with no single construction point
+// to hook, and a per-player table is 30 float ops at join for a slice of
+// ~250 bytes. The game loop is the only writer, so no lock is needed.
+func (p *player) xpCumulative() []uint64 {
+	if p.xpTable != nil {
+		return p.xpTable
+	}
+	levels := uint32(p.config.LevelCurve.MaxLevel)
+	if levels == 0 {
+		levels = xpTableUncappedLevels
+	}
+	table := make([]uint64, levels+2)
+	var total uint64
+	for l := uint32(1); l <= levels; l++ {
+		total += p.experienceForNextLevel(l)
+		table[l+1] = total
+	}
+	p.xpTable = table
+	return table
+}
+
 func (p *player) totalXPForLevel(level uint32) uint64 {
 	if level <= 1 {
 		return 0
 	}
-
-	var total uint64
-	for l := uint32(1); l < level; l++ {
+	table := p.xpCumulative()
+	if int(level) < len(table) {
+		return table[level]
+	}
+	// Past the table's end (uncapped conf only): resume the summation from
+	// where the table stops, in the same order, so the uint64 arithmetic —
+	// overflow included — is identical to the pre-table loop.
+	last := uint32(len(table) - 1)
+	total := table[last]
+	for l := last; l < level; l++ {
 		total += p.experienceForNextLevel(l)
 	}
 	return total
@@ -892,6 +1011,31 @@ func (p *player) levelForExperience(xp uint64) uint32 {
 	// points, milestones) clamps at the conf maxLevel (C0, GDD §5 linked
 	// triple — [WORKING LOCK] 30).
 	maxLevel := uint32(p.config.LevelCurve.MaxLevel)
+
+	// The table is non-decreasing, so the level for xp is the largest L with
+	// table[L] <= xp — a binary search instead of walking the levels and
+	// re-summing the curve at each one.
+	table := p.xpCumulative()
+	i := sort.Search(len(table), func(i int) bool { return table[i] > xp })
+	level := uint32(1)
+	if i >= 2 {
+		level = uint32(i - 1)
+	}
+	if maxLevel > 0 && level >= maxLevel {
+		return maxLevel
+	}
+	if i == len(table) {
+		// xp runs off the end of the table (uncapped conf, or a zero-XP curve
+		// where every entry ties): finish on the original loop.
+		return p.levelForExperienceUntabled(xp, maxLevel)
+	}
+	return level
+}
+
+// levelForExperienceUntabled is the pre-table resolution loop, kept verbatim
+// for the cases the table cannot answer. totalXPForLevel still serves it, so
+// it costs the summation only past the table's end.
+func (p *player) levelForExperienceUntabled(xp uint64, maxLevel uint32) uint32 {
 	level := uint32(1)
 	for {
 		if maxLevel > 0 && level >= maxLevel {

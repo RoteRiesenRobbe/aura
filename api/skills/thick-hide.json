@@ -3,13 +3,13 @@
   "id": 43,
   "name": "ThickHide",
   "category": "passive",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "effects": [
     {
       "type": "resist_passive",
       "resistTags": ["physical"],
       "resistFactor": 0.85,
-      "resistFactorPerLevel": -0.05
+      "resistFactorPerLevel": -0.025
     }
   ]
 }

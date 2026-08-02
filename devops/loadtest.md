@@ -389,11 +389,258 @@ same "the loop cannot spend the second vCPU" signature as every prior run. RSS
 `Systems at: 957%` (~316 ms) vs 809 % on 07-26 and 772 % on 07-22 — the tail got
 worse too.
 
+## Results — 2026-08-02, on the round-7 build
+
+Same live box, same spot `(38,31)`, clustered, same two ramps, 30 s hold (run B
+`-settle 15s`). Deployed binary built 13:47 that afternoon — everything through
+`0e161de8`, i.e. the first live perf run carrying the **numbers rewrite, R1–R3,
+feel pass N1–N5, the quest system, and all of intake round 7**. Six weeks of
+game systems since the last measurement.
+
+**⚑ The path was clean this evening — no 0.91 correction.** A local control
+minutes before read a full **30.0** (p95 4.3 ms), and live run A read a full
+**30.0 at 20 bots**. Both columns below are raw. This matters for reading run B,
+which reads 27.3 at 20 bots: that is the same figure as the old network-floor
+artefact, but here it is **not the path** — run A hit 30.0 on the same path,
+minutes apart.
+
+**⚑ The server was NOT empty** — two real players on the box (PO ruling: run
+anyway), same exception as 07-27. Their load is negligible; recorded so the
+table is not read as a clean-room measurement.
+
+`auras CONFIRMED LIVE` was N/N at every step of both runs.
+
+| bots | A: Damage L1 (07-22) | A: 07-27 (corr) | **A: 08-02** | B: max build (07-22) | B: 07-27 (corr) | **B: 08-02** |
+|---|---|---|---|---|---|---|
+| 20 | 30.0 | 30.0 | **30.0** | 30.0 | 30.0 | **27.3** |
+| 40 | 30.0 | 30.0 | **28.8** | 30.0 | 30.0 | **27.3** |
+| 60 | 30.0 | 29.8 | **27.6** | 29.8 | 24.2 | **20.9** |
+| 80 | 28.7 | 27.9 | **25.4** | 18.8 | 13.6 | **11.5** |
+| 100 | 20.7 | 18.2 | **16.5** | 11.1 | 9.2 | **7.5** |
+| 140 | 10.1 | 9.8 | **8.2** | 5.2 | 4.4 | **3.8** |
+
+**Both ceilings have fallen, and the max-build regression flagged on 07-27 is
+confirmed and larger.**
+
+- **L1 ceiling: ~60–70 → ~20–40.** 60 held a full 30 Hz on every prior run and
+  is now 27.6; 40 is already 4 % off with over-budget ticks logged in its
+  window. Only 20 still holds 30 Hz.
+- **Maxed ceiling: ~60 → below 20.** No step in run B reached 30 Hz, including
+  20 bots. A maxed build now costs measurably at *twenty* players.
+- The 07-27 note said "treat the max-build drop as a regression candidate, not a
+  finding, and re-run B before anyone bisects." This is that re-run: 60 went
+  29.8 → 24.2 → 20.9 across the three builds, monotonically. It is a finding.
+
+**Both confounds again make run B's deficit an understatement:** its mob field
+was thinner and far less aggroed throughout (10–14 per viewport, **7.3–7.8
+aggroed**, vs run A's 12–19 and **8.7–17.6**) despite a 4-minute inter-run gap,
+and at 140 the bring-up itself degraded (`passives 2.69`, `cooldowns equipped
+2.61`). Run B did less work than run A and was slower at every step.
+
+⚑ **Leading suspect, not yet pinned: per-player `GameState` grew.** The
+bottleneck has always been single-threaded per-player snapshot encoding on the
+loop, and since 07-27 that message gained the quest ledger projection (composed
+and sorted per player per tick), the personalised conversation tree, and the
+R1/R7 wire fields (`cost_factor`, `damage_factor`, `cost_paid`). That is new
+work in exactly the place the wall is. **Cheapest confirmation before anyone
+bisects:** a local `-profile` ramp with pprof on the encode path, not a bisect.
+
+### Harness notes from this run
+
+- **The max-build loadout changed** — `Swift` is a **cooldown** now (the
+  `speed_burst` rework), so it can no longer fill a passive slot. Current
+  9-slot max build: `Suppression,Damage,Wildfire` (auras) ·
+  `Strong,KeenEye,Tough` (passives) · `NovaBurst,DamageBurst,Barrier`
+  (cooldowns).
+- **`points spent` is now 18, not 28, with every skill still at its cap.** The
+  numbers rewrite's cap-relative point curve made maxing all nine slots cost 18
+  of the 29 available points. The build is now **slot-bound, not point-bound** —
+  11 points are spare and there is nothing left to spend them on. The "spends 28
+  of 29" note in the max-build section above is stale.
+
+### Server-side during the ramps
+
+`/proc` deltas on the live box (`ps %cpu` is an average-since-start and reads
+far too low — sample `utime+stime` instead):
+
+- Peak **135 % of one core**, i.e. ~68 % of the 2-vCPU box. **Never saturated** —
+  the same "the loop cannot spend the second vCPU" signature as every prior run.
+  Idle baseline 23 %, back to 21 % after.
+- RSS 40 → 55 MB, back to 48 MB idle.
+- Worst tick `Systems at: 987%` ≈ 326 ms, vs 957 % (07-27), 809 % (07-26),
+  772 % (07-22). The tail keeps getting worse.
+- **0 panics, 0 OOM, 0 dropped connections**, `connected` == requested at every
+  step of both runs, and no restart — so no characters were wiped.
+
+## Results — 2026-08-02 evening, chunk 0 deployed
+
+Same box, same spot `(38,31)`, same two ramps, ~100 minutes after the morning
+run. Deployed binary 15:38 UTC carrying `00bd0549` (the XP-curve table) on top
+of the same round-7 stack. Boot clean: 0 errors, 0 warnings, 87 skills.
+`auras CONFIRMED LIVE` N/N at every step of both runs; server empty.
+
+**⚑ The 27.3 floor is back and this time it is proven to be the path.** Both
+runs read a flat 27.3 at 20 / 40 / 60 bots, so the corrected column divides by
+0.91 as on 07-26 and 07-27. The proof is server-side: during run A's 20-bot
+window the box sat at **32–56 % of one core with ONE over-budget tick in 30 s**,
+and 40 and 60 bots read *exactly* the same 27.3 while CPU climbed to 91 %. A
+server limit cannot be flat across three populations.
+
+| bots | A: morning (pre-fix) | A: evening (corrected) | B: morning (pre-fix) | B: evening (corrected) |
+|---|---|---|---|---|
+| 20 | 30.0 | 27.3 (30.0) | 27.3 | 27.3 (30.0) |
+| 40 | 28.8 | 27.3 (30.0) | 27.3 | 27.3 (30.0) |
+| 60 | 27.6 | 27.3 (**30.0**) | 20.9 | 27.3 (**30.0**) |
+| 80 | 25.4 | 26.1 (28.7) | 11.5 | 25.6 (**28.1**) |
+| 100 | 16.5 | 18.4 (20.2) | 7.5 | 17.2 (**18.9**) |
+| 140 | 8.2 | 9.0 (9.9) | 3.8 | 7.9 (**8.7**) |
+
+**Both ceilings roughly doubled, and the max build is the big winner.** L1 holds
+a full 30 Hz to 60 and is only 4 % off at 80 (morning: off 30 Hz already at 40).
+The maxed build — which in the morning never reached 30 Hz at *any* population,
+including 20 — now holds 30 Hz to 60 and 28.1 at 80. At 80 bots it went
+11.5 → 28.1, at 100 7.5 → 18.9.
+
+⚑ **One honest caveat on the comparison.** The morning's run B also read 27.3 at
+20/40, and it was argued NOT to be the path because that morning's run A read a
+clean 30.0 ten minutes earlier. That inference stands, but if the path had in
+fact degraded between the two morning runs, the morning B column should also be
+divided by 0.91 — which would make it 30.0 / 30.0 / 23.0 / 12.6 / 8.2 / 4.2.
+The improvement at 60–140 survives either reading, so the conclusion does not
+depend on which is right.
+
+Run B's mob field was again thinner and less aggroed than run A's (10–13.8 per
+viewport, **5.7–6.4 aggroed**, vs run A's 12.4–18.8 and 10.6–16.5), so its
+column is once more an understatement.
+
+Server-side: peak **146 % of one core** (up from 135 % — it is delivering more
+snapshots per second, which is the point), RSS 26 → 44 MB, idle 25 % / 49 MB
+afterwards. **Worst tick `Systems at: 518%` ≈ 171 ms, against 987 % ≈ 326 ms in
+the morning** — the tail nearly halved too. 0 panics, 0 OOM, 0 dropped
+connections, no restart.
+
+## Diagnosis — 2026-08-02, where the time actually goes
+
+The live table above is a single number per population with nothing inside it
+(the `Overload!` log is whole-tick; there is no per-system timing). So the
+decline was chased locally instead, with `-profile` and an A/B against the
+07-27 build (`9231c96d`) in a worktree — **no live server involved, and both
+builds measured sequentially on the same machine so neither competes for CPU.**
+
+### The A/B: the six-week decline is NOT in the server code
+
+50 bots, clustered at `(38,31)`, maxed loadout, `-cast 2s`:
+
+| | p50 tick | p95 tick |
+|---|---|---|
+| 07-27 build, each at its own cap | 20.0 ms | 39.4 ms |
+| today's build, each at its own cap | 13.9 ms | 18.3 ms |
+| 07-27 build, both at `-skilllevel 3` | 11.4 ms | 16.9 ms |
+| today's build, both at `-skilllevel 3` | 13.1 ms | 17.2 ms |
+
+At an identical loadout today's build is ~15 % slower at p50, and the `pprof`
+diff accounts for only **3.5 % of samples** — no six-week regression of the
+size the live table shows. At each build's own ceiling today's build is
+**substantially faster**, and the reason is content, not code: **R3's "one beat,
+one price" is a large performance win nobody costed.** Old Suppression's
+`slow_aura` and old Wildfire's `resist_aura` had `tickInterval` 1 — they ran
+*every tick*; they are now 40 and 20.
+
+⚑ So the live decline is a **measurement/venue** effect, not a code regression:
+the live comparisons sit past the knee on a 2-vCPU box where the curve is
+near-vertical, while 50 local bots sit at ~55 % util where a 15 % per-tick
+difference is invisible. `vmstat` on the live box shows **zero steal**, so it is
+not a noisy neighbour either. To explain the live table rather than acquit the
+code, reproduce the knee (`taskset -c 0,1`) — not done yet.
+
+### What the profile did find: the XP curve, ~50 % of the tick ✅ FIXED
+
+`characterCommonMarshalFlatbuf` evaluated the level curve **twice per character
+per viewer per tick** (`gamestate.go:46` via `LevelProgressFraction`, and `:69`
+via `LevelProgressXP`) — and each evaluation was a summation loop of
+`base × growth^(L-1)` calls, i.e. O(level) `math.Pow` per lookup and O(level²)
+to resolve a level from an XP total. At 50 clustered bots that is ~5 000
+evaluations per tick; at level 30 each cost ~2.9 µs.
+
+It is a pure function of `(level, config)`, both static after boot, so it is now
+a cumulative table built once per player (`player.xpCumulative`), with a binary
+search replacing the resolution loop and the original loop kept verbatim for
+lookups past the table's end.
+
+| | before | after |
+|---|---|---|
+| `LevelProgressXP` @ L30 (per character per viewer per tick) | 2 920 ns | 14.2 ns |
+| `levelForExperience` @ L28 (every XP award) | 16 700 ns | 32.3 ns |
+| **tick p50, 50 bots maxed** | **13.9 ms** | **7.0 ms** |
+| **tick p95, 50 bots maxed** | **18.3 ms** | **9.6 ms** |
+
+⚑ The XP-award path mattered more than the XP bar: `levelForExperience` runs on
+**every** award, and presence-counts attribution means one mob death awards XP
+to every nearby participant — 50 players × 16.7 µs for a single kill.
+
+Pinned by `player_xp_curve_test.go`, which checks the table against the original
+formula as an oracle (values, level boundaries, the maxLevel clamp, and the
+uncapped-conf fallback) plus benchmarks. Sim battery **byte-identical** on all
+three legs, TTK 6.67 s / TTD 8.70 s unchanged.
+
+### Second finding, real but small: per-caster dot streams are O(k²)
+
+Round-7 item 6 re-keyed dots by `(caster, HP)` while `Buffs.entries` stays keyed
+by `SkillID` alone (`buffs.go:32`), so k casters of one skill on one target hold
+k entries in one slice — and `DueBuffEvents` calls `dotSuppressed` per dot,
+which rescans the whole slice (`buffs.go:755`) ⇒ **O(k²) per entity per tick**.
+Measured (`buffs_bench_test.go`): 102 ns at k=1, 1 097 at k=10, 12 983 at k=50,
+~98 000 at k=140 — 50→140 rises 7.5× for a 2.8× rise in k, i.e. quadratic.
+
+Scaled to ~20 mobs in the cluster that is ~2 ms/tick, **~6 % of budget** — worth
+fixing (it is quadratic in players-attacking-one-target, the raid case), but it
+is not what moved the live numbers. Fix: key by `(SkillID, caster)` or hold a
+per-caster strongest-stream pointer; both keep the allocation-free property the
+nested scan was chosen for.
+
 ## The wall (and how to move it)
 
-The bottleneck is **single-threaded per-player GameState encoding on the game
-loop** — a fresh FlatBuffers builder per player, full skill component re-encoded
-every tick, no delta. So one core is the ceiling and a second vCPU barely helps.
-To raise it (cheap → structural): faster single-core VPS → pool/reuse builders +
-stop re-encoding static skill data → delta/shared snapshot encoding (encode each
-visible entity once/tick, reuse across viewers).
+Still **single-threaded per-player GameState encoding on the game loop**, and
+now measured rather than asserted. Post-XP-fix profile, 50 clustered bots
+(`% of the tick`, i.e. of `runTick`, which is itself 52 % of all samples — the
+rest is GC and the per-client `writePump` goroutines):
+
+| | % of tick |
+|---|---|
+| `NetSystem.Update` (snapshot encoding) | **57 %** |
+| ├ `EntitiesMarshalFlatbuf` | 45 % |
+| └ `characterCommonMarshalFlatbuf` (other players) | 27 % |
+| `PhysicsSystem.Update` | 24 % |
+| └ `bruteIntersectShapes` (O(n²) per cell) | 20 % |
+
+**Message COUNT is not the problem and has not grown** — it is still exactly one
+`GameState` per player per tick (`core/net.go:86`), the only per-tick send site,
+plus a spectator twin. Payload is ~5.8 kB/snapshot at 50 clustered bots and grew
+~2 % between the two builds. The cost is not sending, it is **re-encoding the
+same entities once per viewer**: 50 players each encoding ~50 characters is
+2 500 character encodings per tick for 50 distinct characters.
+
+**Writes are already parallel** — `SendMessage` is a non-blocking enqueue onto a
+per-client buffered channel drained by that client's own `writePump` goroutine
+(`net/client.go:124`), which is why CPU exceeds one core while the loop cannot.
+A full channel returns an error, and NetSystem treats that as a disconnect —
+**that is exactly the "dropped connections" signal**.
+
+To raise the ceiling, cheapest first:
+
+1. **Encode each entity once per tick, reuse across viewers.** Attacks the 45 %
+   directly and turns the clustered O(players × entities) into O(entities).
+2. **Parallelise `NetSystem.Update` across cores.** Each player's snapshot is an
+   independent read-only pass over settled world state, so this is a fan-out
+   over the player list — up to ~2× of 57 % on the 2-vCPU box. Needs an audit
+   that nothing mutates during encode (the one-shot fields cleared in
+   `ResetTickNumbers` are the thing to check).
+3. **Stop re-encoding static data.** Spellbook, spellbook levels and all three
+   slot vectors are rebuilt every tick and change rarely.
+4. **Delta encoding** — the structural endpoint, and the biggest change.
+5. **Broadphase**: `bruteIntersectShapes` is O(n²) per cell and a clustered
+   raid puts everyone in the same cells.
+
+Also noted, not measured as hot here: `QuestLedger().Snapshot()` allocates and
+sorts per player per tick, but early-returns for a questless player — so the
+bots never paid it and a real player with quests does.

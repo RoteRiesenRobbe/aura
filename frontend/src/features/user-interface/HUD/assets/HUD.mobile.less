@@ -1,0 +1,509 @@
+/* ============================================================================
+ * Mobile layout (2026-08-02) — everything here is scoped under `html.mobile`,
+ * the single class Mobile.ts stamps at boot. The desktop HUD is therefore
+ * unaffected by construction: no rule below applies without that class.
+ *
+ * The shape, PO-ruled 2026-08-02:
+ *   · permanently on screen — the Focus/XP bars, the six action tiles, the
+ *     combat indicator and the alert banner. Nothing else.
+ *   · everything else (spellbook, passives, journal, help, minimap, zoom)
+ *     lives behind the ☰ button, which turns #leftColumn into a full-screen
+ *     sheet.
+ *   · one sheet at a time — MobileMenu.ts enforces that half.
+ *
+ * ⚑ Every absolutely-positioned HUD child resolves against the VIEWPORT, not
+ * against #gameUI (which deliberately has no `position`), so each element is
+ * repositioned individually — there is no single container to move. That is
+ * also why #zoomControl and #minimap, which are SIBLINGS of #leftColumn, are
+ * pulled into the sheet by position + z-index rather than by re-parenting.
+ *
+ * ⚑ This file is imported AFTER HUD.less, and several rules here override
+ * desktop rules of equal specificity. Source order is doing real work: do not
+ * move the @import in userInterface.less above HUD's.
+ */
+
+@import "../../assets/variables";
+
+// Tiles and bars are capped in rem but shrink with the viewport — a phone in
+// landscape is ~390px tall, where a fixed 5.6rem tile eats a quarter of the
+// screen. Escaped so Less passes min() through to CSS instead of evaluating
+// it (its own min() rejects mixed units).
+//
+// ⚑ The 13vw term is the PORTRAIT cap and is load-bearing: six tiles plus
+// their gaps need ~6t + 74px of width, so without it a 390px-wide portrait
+// phone lays out 591px of tiles and pushes the last cooldown off screen. It
+// binds in portrait only — in landscape and on a tablet the 15vh term is
+// smaller, so those sizes are untouched.
+@mobile-tile:   ~"min(5.6rem, 15vh, 13vw)";
+@mobile-health: ~"min(1.7rem, 4.5vh)";
+@mobile-xp:     ~"min(1.1rem, 3vh)";
+
+@mobile-edge:   0.7rem;
+@mobile-button: 4.4rem;
+// The sheet's footer bar — sized by the minimap it carries, not by the zoom
+// buttons, so the map has somewhere to live that overlaps no content.
+@mobile-map:    6rem;
+@mobile-footer: (@mobile-map + 2 * @mobile-edge);
+// Above the HUD panels, below #skillTooltip (100) and #gameSettings (101).
+@mobile-menu-z: 50;
+
+// ⚑ The one knob that scales the whole mobile layout. Everything below is
+// sized in rem, which is root-relative — so this single rule grows tiles,
+// buttons, panels and text together instead of each needing its own vh dance.
+//
+// Keyed to vmin (the SMALLER screen dimension) so portrait and landscape agree:
+// keying to vh would size a portrait phone off its long edge and blow the
+// layout up. A phone resolves to ~16px either way — identical to the browser
+// default, so the verified phone layout does not move — while a tablet or a
+// desktop window forced with ?mobile scales up to 28px instead of rendering a
+// phone-sized UI across a monitor.
+//
+// ⚑ Set on <html> itself rather than reached via `html:has(body.mobile)`:
+// rem is root-relative, and a :has() on the ROOT element is evaluated against
+// the whole document. Mobile.apply stamps the root directly so this is a plain
+// class match and a desktop page pays nothing for it.
+html.mobile {
+	font-size: clamp(15px, 4.1vmin, 28px);
+}
+
+// Desktop-only by default; the phone layout opts these in below. Desktop keeps
+// the E key and the badge over the actor's head, so neither is ever shown.
+#mobileMenuButton,
+#interactButton {
+	display: none;
+}
+
+html.mobile {
+
+	/* --- the ☰ / ✕ button --------------------------------------------- */
+	// Stays put and on top while the sheet is open, so it doubles as the
+	// sheet's close control — the sheet needs no ✕ of its own.
+	#mobileMenuButton {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		position: fixed;
+		top: @mobile-edge;
+		left: @mobile-edge;
+		z-index: (@mobile-menu-z + 3);
+
+		width: @mobile-button;
+		height: @mobile-button;
+
+		background: fade(black, 65%);
+		border: 1px solid @panel-border;
+		border-radius: 0.8rem;
+		color: @panel-color;
+		font-size: 2.1rem;
+		line-height: 1;
+		cursor: pointer;
+
+		&::before {
+			content: '☰';
+		}
+	}
+
+	&.menuOpen #mobileMenuButton::before {
+		content: '✕';
+	}
+
+	/* --- touch passes through everything that is not a control --------- */
+	// ⚑ #inputAreas (the joystick) sits BELOW #gameUI, so any HUD element
+	// that takes pointer events swallows the touch that would have started a
+	// drag — and on a phone the left half of the screen IS the joystick. The
+	// read-only overlays span most of the top and bottom edges, so before
+	// this they ate movement input across two wide bands (measured: 15 of 81
+	// hit-test points landed on a bar or on #bottomCenter's transparent
+	// full-width strip). Display-only elements therefore go transparent to
+	// touch, and the genuinely tappable children opt back in.
+	//
+	// Deliberately mobile-only: with a mouse the same overlap is harmless,
+	// and this is not the pass that re-audits the desktop HUD.
+	#vitalSigns,
+	#alertBanner,
+	#combatIndicator,
+	#castBar,
+	#bottomCenter {
+		pointer-events: none;
+	}
+
+	#conversation,
+	#actionBars {
+		pointer-events: auto;
+	}
+
+	/* --- always on: Focus + XP ---------------------------------------- */
+	// Off the bottom-right corner, which is where the right thumb and the
+	// action tiles are, and onto the top edge beside the ☰.
+	#vitalSigns {
+		top: @mobile-edge;
+		right: @mobile-edge;
+		bottom: auto;
+		left: (@mobile-button + 2 * @mobile-edge);
+
+		width: auto;
+		height: auto;
+
+		> .bar {
+			margin: 0 0 0.3rem 0;
+			flex: none;
+
+			> .barText {
+				font-size: 1.1rem;
+			}
+		}
+
+		> #healthBar {
+			height: @mobile-health;
+		}
+
+		// XP is the least urgent number on the screen; it gets the thinner
+		// strip so the pair costs ~7vh of a landscape phone rather than 20.
+		> #xpBar {
+			height: @mobile-xp;
+
+			> .barText {
+				font-size: 0.9rem;
+			}
+		}
+	}
+
+	// Just below the bars, top-right — its desktop anchor (bottom: 13vh) is
+	// inside the action-tile band now.
+	#combatIndicator {
+		top: ~"calc(min(1.7rem, 4.5vh) + min(1.1rem, 3vh) + 1.6rem)";
+		right: @mobile-edge;
+		bottom: auto;
+	}
+
+	// 7vh is ~27px on a landscape phone — under the bars. Push it clear.
+	#alertBanner {
+		top: 7rem;
+		max-width: 90vw;
+	}
+
+	/* --- the interact button ------------------------------------------- */
+	// The tappable twin of E, and on mobile the ONLY interact surface — the
+	// badge over the actor's head is suppressed (Backend.applyGameState).
+	// Bottom right, under the right thumb, but lifted clear of the tile row:
+	// in portrait the six tiles span nearly the full width, so the true corner
+	// is not free at every size.
+	//
+	// ⚑ It must restate `.hidden` itself. The global `.hidden { display: none }`
+	// is a bare class (0,1,0) and loses to `html.mobile #interactButton`
+	// (1,2,1), so without this the button would never hide and would sit lit
+	// over the world permanently.
+	#interactButton {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		position: fixed;
+		right: @mobile-edge;
+		bottom: ~"calc(min(5.6rem, 15vh, 13vw) + 2 * 0.7rem)";
+		z-index: (@mobile-menu-z - 1);
+
+		width: @mobile-button;
+		height: @mobile-button;
+		padding: 0.9rem;
+
+		background: fade(black, 65%);
+		border: 2px solid fade(#ffd75e, 80%);
+		border-radius: 50%;
+		color: #ffd75e;
+		cursor: pointer;
+
+		> svg {
+			display: block;
+			width: 100%;
+			height: 100%;
+		}
+
+		&.hidden {
+			display: none;
+		}
+	}
+
+	/* --- always on: the six action tiles ------------------------------- */
+	#bottomCenter {
+		left: 0;
+		right: 0;
+		bottom: @mobile-edge;
+		transform: none;
+		gap: 0.5rem;
+		padding: 0 @mobile-edge;
+	}
+
+	#conversation {
+		width: 100%;
+		max-width: none;
+		max-height: 45vh;
+	}
+
+	#castBar {
+		width: 100%;
+	}
+
+	#actionBars {
+		gap: 1.2rem;
+		align-items: center;
+	}
+
+	// The two loadouts stop being panels and become a single row of tap
+	// targets: 3 auras, a gap, 3 cooldowns. Panel chrome and the titles go —
+	// the tile IS the affordance.
+	#auraLoadout,
+	#cooldownLoadout {
+		min-width: 0;
+		padding: 0;
+		background: none;
+		border: none;
+
+		> .auraLoadoutTitle {
+			display: none;
+		}
+
+		> ul {
+			display: flex;
+			flex-direction: row;
+			gap: 0.5rem;
+
+			> .auraSlot {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				gap: 0.25rem;
+
+				width: @mobile-tile;
+				height: @mobile-tile;
+				padding: 0.3rem;
+
+				background: @panel-bg;
+				border: 1px solid @panel-border;
+				border-radius: 0.8rem;
+
+				font-size: 1.1rem;
+				line-height: 1.15;
+				text-align: center;
+				overflow: hidden;
+				overflow-wrap: anywhere;
+
+				// The desktop rows separate with a bottom divider and drop it
+				// on the last child; a tile carries its own full border.
+				&:last-child {
+					border: 1px solid @panel-border;
+				}
+
+				// Hotkeys are meaningless without a keyboard.
+				> .hotkey {
+					display: none;
+				}
+
+				> .slotLabel {
+					flex: 0 1 auto;
+					overflow: hidden;
+				}
+			}
+
+			// The desktop active/pending states shift padding to make room for
+			// a left border; on a fixed-size tile that would push the label
+			// off-centre, so both restate the whole box.
+			> .auraSlot.activeSlot {
+				padding: 0.3rem;
+				border: 1px solid fade(white, 70%);
+				border-left: 1px solid fade(white, 70%);
+				background: fade(white, 20%);
+			}
+		}
+
+		&.hasPendingSkill > ul > .auraSlot {
+			padding: 0.3rem;
+			border: 1px dashed fade(#ffd75e, 70%);
+			background: fade(#ffd75e, 10%);
+		}
+	}
+
+	/* --- behind the ☰: #leftColumn becomes the sheet ------------------- */
+	#leftColumn {
+		display: none;
+	}
+
+	&.menuOpen #leftColumn {
+		display: flex;
+
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: @mobile-menu-z;
+
+		// Room for the ☰ above and the footer bar below.
+		padding: (@mobile-button + 2 * @mobile-edge) @mobile-edge (@mobile-footer + @mobile-edge) @mobile-edge;
+		gap: 0.8rem;
+
+		background: fade(black, 95%);
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+
+		> * {
+			flex: none;
+			width: 100%;
+			min-width: 0;
+		}
+
+		// ⚑ The sheet is the ONE scroll surface. The desktop panel clamps
+		// #spellbookScroll to calc(100vh - 24rem) — on a landscape phone that
+		// resolves to roughly nothing, and nesting a second scroller inside a
+		// scrolling sheet is miserable on touch. SimpleBar tolerates this: with
+		// no max-height its wrapper lays out at content height and simply never
+		// overflows, so no internal scrollbar appears.
+		#spellbookScroll {
+			max-height: none;
+		}
+	}
+
+	// Kept in the layout (a display:none pixi canvas measures 0×0 and would
+	// render nothing once shown) but invisible and inert until the sheet
+	// opens, where it rides the right end of the footer bar. ⚑ Inside the bar
+	// rather than floating above it: at 24vh it covered the spellbook's Reset
+	// row, and the sheet SCROLLS, so any free-floating overlay eventually
+	// shadows some row or other.
+	#minimap {
+		top: auto;
+		right: @mobile-edge;
+		bottom: @mobile-edge;
+		width: @mobile-map;
+		height: @mobile-map;
+		margin: 0;
+
+		opacity: 0;
+		pointer-events: none;
+
+		// Opaque rather than the desktop 50% — nothing shows through it now,
+		// but a translucent map disc reads as a rendering fault regardless.
+		background-color: Cornsilk;
+
+		// Four cardinals around a 96px disc are clutter, and the sheet is not
+		// where navigation happens.
+		> .compass {
+			display: none;
+		}
+	}
+
+	&.menuOpen #minimap {
+		opacity: 1;
+		z-index: (@mobile-menu-z + 3);
+	}
+
+	// Settings: the gear steps left of the minimap on desktop
+	// (right: calc(15vw + 1vw)), which on a phone parks it on top of the Focus
+	// bar. It belongs with everything else that is not needed mid-fight —
+	// in the sheet, opposite the ✕. Guarded on #gameUI like the desktop rule,
+	// so the start and end screens keep their own corner placement.
+	& body:has(#gameUI:not(.hidden)) #gameSettings {
+		display: none;
+	}
+
+	&.menuOpen body:has(#gameUI:not(.hidden)) #gameSettings {
+		display: block;
+		top: @mobile-edge;
+		right: @mobile-edge;
+		z-index: (@mobile-menu-z + 3);
+	}
+
+	// The zoom column (and the ? that opens Help) is a sibling of the sheet,
+	// so it is placed INTO it: a horizontal row along the sheet's bottom edge.
+	#zoomControl {
+		display: none;
+	}
+
+	// A full-width footer bar, not a floating cluster: the sheet scrolls, so
+	// its content passes UNDER this row and needs something to pass under.
+	&.menuOpen #zoomControl {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 1rem;
+
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: (@mobile-menu-z + 2);
+
+		// Sized by the minimap that sits at its right end, so the two never
+		// disagree about how tall the footer is.
+		min-height: @mobile-footer;
+		padding: @mobile-edge;
+		background: fade(black, 96%);
+
+		> .zoomIcon {
+			display: none;
+		}
+
+		> #helpButton,
+		> .zoomButton {
+			width: @mobile-button;
+			height: @mobile-button;
+			margin-bottom: 0;
+			font-size: 2rem;
+		}
+
+		> #zoomLevelDisplay {
+			font-size: 1.8rem;
+		}
+	}
+
+	/* --- full-screen panels ------------------------------------------- */
+	// Journal and Help drop their centred-panel geometry entirely: no
+	// transform, no width, no max-height. The top padding clears the ☰, which
+	// stays on top and switches the sheet in (closing the panel behind it).
+	#journal,
+	#help {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		transform: none;
+
+		width: auto;
+		max-width: none;
+		max-height: none;
+
+		border: none;
+		border-radius: 0;
+		background: fade(black, 95%);
+		padding: (@mobile-button + 2 * @mobile-edge) @mobile-edge @mobile-edge @mobile-edge;
+		z-index: (@mobile-menu-z + 2);
+	}
+
+	// The two journal panes stack instead of sitting side by side — 20rem of
+	// quest list plus a diary does not fit across a phone.
+	#journal > .journalBody > .journalPanes {
+		flex-direction: column;
+		gap: 0.8rem;
+		min-height: 0;
+	}
+
+	#journal > .journalBody .journalList {
+		flex: 0 0 auto;
+		max-height: 35%;
+		padding-right: 0;
+		border-right: none;
+		border-bottom: 1px solid @panel-row-divider;
+	}
+
+	// Comfortable tap targets on the rows that are tapped, not hovered.
+	#journalButton,
+	#spellbookList > li,
+	#passiveSlotList > .auraSlot,
+	#journal .journalQuests > li {
+		min-height: 3rem;
+		display: flex;
+		align-items: center;
+	}
+}

@@ -42,6 +42,9 @@ const (
 	ActivationRejectedNone     = ActivationRejection(AuraApi.ActivationRejectionNone)
 	ActivationRejectedNoAnchor = ActivationRejection(AuraApi.ActivationRejectionNoAnchor) // recall: no campfire anchor bound
 	ActivationRejectedNoTarget = ActivationRejection(AuraApi.ActivationRejectionNoTarget) // reserved: revive with no corpse in range (chunk 3)
+	// ActivationRejectedNotEnoughResource: the caster cannot pay the skill's
+	// resource cost and live (plan-numbers-rewrite D9).
+	ActivationRejectedNotEnoughResource = ActivationRejection(AuraApi.ActivationRejectionNotEnoughResource)
 )
 
 type Players []PlayerEntity
@@ -126,6 +129,10 @@ type PlayerEntity interface {
 	// CritTaken is the crit-flagged share of DamageTaken (plan-skill-vocab
 	// chunk 1, §4.3), serialized as crit_taken so the client pops it big.
 	CritTaken() vitals.VitalSign
+	// CostPaid is the resource cost charged this tick (round-7 item 7),
+	// serialized as cost_paid so the client pops it blue — the spend's own
+	// accumulator, deliberately separate from DamageTaken.
+	CostPaid() vitals.VitalSign
 	// ShieldHP is the current total absorb capacity (plan-skill-vocab
 	// chunk 2), serialized as shield_hp — a live value, not a per-tick
 	// accumulator.

@@ -54,6 +54,8 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	AuraApi.CharacterAddDamageTaken(builder, p.DamageTaken().UInt32())
 	// Crit-flagged share of damage taken (skill-vocab chunk 1, §4.3).
 	AuraApi.CharacterAddCritTaken(builder, p.CritTaken().UInt32())
+	// Resource cost paid this tick (round-7 item 7) — the blue number.
+	AuraApi.CharacterAddCostPaid(builder, p.CostPaid().UInt32())
 	// Current total absorb capacity — a live value (skill-vocab chunk 2).
 	AuraApi.CharacterAddShieldHp(builder, p.ShieldHP().UInt32())
 	AuraApi.CharacterAddHealReceived(builder, p.HealReceived().UInt32())
@@ -219,11 +221,7 @@ func CooldownRemainingMarshalFlatbuf(sc *skills.SkillComponent, builder *flatbuf
 	n := skills.MaxCooldownSlots
 	AuraApi.GameStateStartCooldownRemainingTicksVector(builder, n)
 	for i := n - 1; i >= 0; i-- {
-		var cd uint16
-		if sc.CooldownSlots[i] != nil {
-			cd = uint16(sc.CooldownSlots[i].CdTicks)
-		}
-		builder.PrependUint16(cd)
+		builder.PrependUint16(uint16(sc.SlotCooldownRemaining(i)))
 	}
 	return builder.EndVector(n)
 }
@@ -351,11 +349,29 @@ func QuestProgressMarshalFlatbuf(entries []quests.ProgressEntry, builder *flatbu
 		}
 		stages := builder.EndVector(len(stageOffsets))
 
+		// The current stage's composed objective lines (Q2, R2) — one string
+		// per objective, same reversal rule. Absent for completed quests.
+		var objectives flatbuffers.UOffsetT
+		if len(e.Objectives) > 0 {
+			objectiveOffsets := make([]flatbuffers.UOffsetT, 0, len(e.Objectives))
+			for _, line := range e.Objectives {
+				objectiveOffsets = append(objectiveOffsets, builder.CreateString(line))
+			}
+			AuraApi.QuestProgressStartObjectivesVector(builder, len(objectiveOffsets))
+			for k := len(objectiveOffsets) - 1; k >= 0; k-- {
+				builder.PrependUOffsetT(objectiveOffsets[k])
+			}
+			objectives = builder.EndVector(len(objectiveOffsets))
+		}
+
 		questID := builder.CreateString(e.QuestID)
 		AuraApi.QuestProgressStart(builder)
 		AuraApi.QuestProgressAddQuestId(builder, questID)
 		AuraApi.QuestProgressAddStages(builder, stages)
 		AuraApi.QuestProgressAddCompleted(builder, e.Completed)
+		if objectives != 0 {
+			AuraApi.QuestProgressAddObjectives(builder, objectives)
+		}
 		offsets = append(offsets, AuraApi.QuestProgressEnd(builder))
 	}
 
@@ -394,6 +410,16 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	AuraApi.GameStateAddCooldownRemainingTicks(builder, cooldownRemaining)
 	AuraApi.GameStateAddActiveAuraSlot(builder, int8(gs.Player.SkillComponent().ActiveAuraSlot))
 	AuraApi.GameStateAddSkillPoints(builder, uint16(max(gs.Player.AvailableSkillPoints(), 0)))
+	// The cost-reduction passive's multiplier (R1/F2). The server has always
+	// applied it in effectCostHP; without it on the wire the tooltip renders a
+	// price the player is not charged, which is exactly what the PO reported
+	// after the feel pass. Neutral 1 is the field default, so an unmodified
+	// player adds no bytes.
+	AuraApi.GameStateAddCostFactor(builder, gs.Player.SkillComponent().Derived.CostFactor())
+	// The damageDealt passive's multiplier (round-7 item 5) — Strong's answer
+	// to the same worked-but-invisible defect. Neutral 1 is the field default,
+	// so an unmodified player adds no bytes.
+	AuraApi.GameStateAddDamageFactor(builder, gs.Player.SkillComponent().Derived.DamageFactor())
 
 	// Cast bar (skill-vocab chunk 4): the running cast, read live off the
 	// component each tick; absent fields read as 0 = no cast.

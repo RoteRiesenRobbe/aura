@@ -23,7 +23,9 @@ export interface DamageParams {
     hp: number;
     hpPerLevel: number;
     tags: string[];
-    gated: boolean;
+    // The lock-and-key tag (D4): non-empty means this payload damages ONLY mobs
+    // that name the key, and it carries no damage types at all.
+    gateKey: string;
     variance: number;
     hitStyle: string;
     structureDamageFraction: number;
@@ -39,8 +41,6 @@ export interface DamageParams {
 export interface HealParams {
     hp: number;
     hpPerLevel: number;
-    selfDamageHp: number;
-    selfDamageHpPerLevel: number;
     fractionOfMax: number;
     fractionOfMaxPerLevel: number;
     variance: number;
@@ -105,6 +105,10 @@ export interface ShieldParams {
 export interface HotParams {
     hp: number;
     hpPerLevel: number;
+    // Percent-of-max healing per event, mutually exclusive with hp (D14 —
+    // Recover is the first content to use it; the server hard-fails on both).
+    fractionOfMax: number;
+    fractionOfMaxPerLevel: number;
     variance: number;
     tickCount: number;
     interval: number;
@@ -132,6 +136,16 @@ export interface SpeedParams {
     durationTicksPerLevel: number;
 }
 
+// The lifesteal_burst payload (Bloodthirst): for a window, a share of the damage
+// the caster's hits deal comes back as healing. The damage-side twin of
+// SpeedParams — same scalar-plus-lifetime shape, read at a different site.
+export interface LifestealParams {
+    fraction: number;
+    fractionPerLevel: number;
+    durationTicks: number;
+    durationTicksPerLevel: number;
+}
+
 export interface CalmParams {
     durationTicks: number;
     durationTicksPerLevel: number;
@@ -144,6 +158,12 @@ export interface CharmParams {
 
 export interface SkillEffect {
     type: string;
+    // What one application of this effect costs its caster, as a share of the
+    // caster's max HP (plan-numbers-rewrite D5/D7). It lives on the EFFECT, not
+    // on a payload type, so any effect can be priced; a skill's total cost is
+    // the sum of its effects', each charged on its own cadence.
+    costFractionOfMax: number;
+    costFractionOfMaxPerLevel: number;
     radius: number;
     radiusPerLevel: number;
     tickInterval: number;
@@ -169,6 +189,7 @@ export interface SkillEffect {
     dash?: DashParams;
     tickRate?: TickRateParams;
     speed?: SpeedParams;
+    lifesteal?: LifestealParams;
     calm?: CalmParams;
     charm?: CharmParams;
 }
@@ -257,6 +278,38 @@ export function skillMaxLevel(id: number): number {
     return catalog.get(id)?.maxLevel ?? 1;
 }
 
+// The D10 escalating skill-point curve (plan-numbers-rewrite), mirroring
+// skills.PointCost: the first half of a skill's OWN levels cost 1 point, the
+// third quarter 2, the last quarter 3, thresholds rounded up. Level 1 is free
+// on unlock, so the first purchased level is 2.
+//
+// ⚑ Cross-language mirror (L2): the thresholds are authored in
+// api/shared-constants.json and both sides assert against it
+// (SharedConstants.test.ts here, cmd/aurad/shared_constants_test.go there).
+// The server is still the authority — this only decides what the + button
+// SHOWS, and an out-of-sync client can at worst mislabel a spend the server
+// then refuses.
+export const SKILL_POINT_COST = {
+    tier1Points: 1,
+    tier2Points: 2,
+    tier3Points: 3,
+    tier2AboveFraction: 0.5,
+    tier3AboveFraction: 0.75,
+};
+
+export function skillPointCost(maxLevel: number, level: number): number {
+    if (level <= 1 || level > maxLevel) {
+        return 0;
+    }
+    if (level <= Math.ceil(SKILL_POINT_COST.tier2AboveFraction * maxLevel)) {
+        return SKILL_POINT_COST.tier1Points;
+    }
+    if (level <= Math.ceil(SKILL_POINT_COST.tier3AboveFraction * maxLevel)) {
+        return SKILL_POINT_COST.tier2Points;
+    }
+    return SKILL_POINT_COST.tier3Points;
+}
+
 // powerScaleAt is f(character level) — the number-inflation multiplier the
 // server applies to every HP-valued output (casterPowerScale, GDD §5).
 // Mirrors curve.F exactly, including both of its degenerate cases: an
@@ -270,6 +323,78 @@ export function powerScaleAt(characterLevel: number): number {
         return 1;
     }
     return Math.pow(levelCurve.growth, Math.max(1, characterLevel) - 1);
+}
+
+// The local player's max Focus pool, mirrored here by Player.updateFromBackend
+// — the setLocalPlayerLevel precedent, kept in this module because the only
+// reader is the skill tooltip.
+//
+// ⚑ It is what lets a cost be shown as the number it actually is (R1/F6). The
+// server prices a cost as a fraction of the max pool and charges it through
+// vitals.HP, so the fraction alone is not what the player pays: it is floored
+// at 1 point while the pool is small (0.26 % of a 100-point pool is charged as
+// 1, and 12 of the 20 costed aura effects are floored somewhere in character
+// levels 1–12) and it is reduced by the cost-reduction passive below. Both
+// corrections are implicit once the tooltip shows absolute points.
+//
+// Defaults to 0, which reads as "not known yet" and falls the cost lines back
+// to the authored percentage: a tooltip opened before the first snapshot is
+// merely imprecise, never wrong.
+let localPlayerMaxHealth = 0;
+
+export function setLocalPlayerMaxHealth(maxHealth: number) {
+    localPlayerMaxHealth = maxHealth;
+}
+
+export function getLocalPlayerMaxHealth(): number {
+    return localPlayerMaxHealth;
+}
+
+// The cost-reduction multiplier the server applies to every cost this player
+// pays (GameState.cost_factor, R1/F2): 1 = no reduction, 0.8 = pays 80 %.
+// Mirrored by Backend from every snapshot.
+//
+// ⚑ Before R1 the client had no knowledge of this whatsoever — the passive
+// worked and was invisible, which is exactly what the PO reported after the
+// feel pass. Neutral 1 is both the wire default and the pre-snapshot value.
+let localPlayerCostFactor = 1;
+
+export function setLocalPlayerCostFactor(costFactor: number) {
+    localPlayerCostFactor = costFactor;
+}
+
+export function getLocalPlayerCostFactor(): number {
+    return localPlayerCostFactor;
+}
+
+// The outgoing-damage multiplier the server applies to every point of damage
+// this player deals (GameState.damage_factor, round-7 item 5): 1 = no bonus,
+// 1.1 = Strong at +10 %. The costFactor mirror's twin — before it, Strong
+// worked and was invisible, the exact defect R1 fixed for Discipline.
+let localPlayerDamageFactor = 1;
+
+export function setLocalPlayerDamageFactor(damageFactor: number) {
+    localPlayerDamageFactor = damageFactor;
+}
+
+export function getLocalPlayerDamageFactor(): number {
+    return localPlayerDamageFactor;
+}
+
+// roundHP mirrors the server's vitals.HP: round half up to a whole point, and
+// never round a positive amount away to nothing. Every absolute Focus number
+// the UI shows goes through it, so what the tooltip promises is what the health
+// bar loses.
+//
+// ⚑ This is live server arithmetic restated in a second language — the drift
+// class §35 spent a chunk closing — so it is pinned against
+// api/shared-constants.json by BOTH sides (SharedConstants.test.ts and
+// backend/cmd/aurad/shared_constants_test.go).
+export function roundHP(amount: number): number {
+    if (amount <= 0) {
+        return 0;
+    }
+    return Math.max(1, Math.trunc(amount + 0.5));
 }
 
 // Unknown IDs default to 'aura' — the most common category; keeps a skill
@@ -286,6 +411,7 @@ export function skillCategory(id: number): SkillCategory {
 export const ActivationRejectionMessages: { [reason: number]: string } = {
     [ActivationRejection.NoAnchor]: 'No campfire bound',
     [ActivationRejection.NoTarget]: 'No valid target',
+    [ActivationRejection.NotEnoughResource]: 'Not enough Focus',
 };
 
 export function activationRejectionMessage(reason: number): string {

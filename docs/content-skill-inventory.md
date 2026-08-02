@@ -1,4 +1,4 @@
-# Skill Inventory — generated from data (2026-07-29, quest sources added 2026-07-30)
+# Skill Inventory — generated from data (2026-07-29, quest sources added 2026-07-30, Q4 source moves swept in 2026-07-30)
 
 **Every value in this table is [PLACEHOLDER]** per the project rule. Generated
 from the actual data files on the `main` tree at 2026-07-29 (post Swift-as-a-
@@ -51,9 +51,12 @@ Scaling notation: `12 +6/L` = base 12, +6 per skill level. Ticks: 30 ticks =
 **NPC** = taught (`@Ln` = required character level) · **Recipe** = combination
 result · **NONE** = unobtainable without the `SKILL` cheat.
 
-> **Players spawn with an empty spellbook** (`NewSkillComponent`) — there is no
-> "starting skill" any more. The first ability comes from the village
-> TownCrier (Damage @L1) or the Farmer (Harvest @L1).
+> **Players spawn with exactly the level-1 milestone in the spellbook:
+> Damage** (conversation-journal Q4, 2026-07-30 — seeded silently at character
+> creation, so a peasant can always fight; GDD §3's free-baseline ruling made
+> concrete). Everything else still arrives through the discovery paths; the
+> first *taught* ability is the Farmer's Harvest @L1. The TownCrier no longer
+> teaches Damage.
 
 > Sources on **legacy** (`legacy: true`) proving-grounds mobs do not count as
 > world-reachable; they are marked *(legacy)* where they exist.
@@ -62,12 +65,12 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 
 | ID | Name | MaxLv | Values | Source |
 |---|---|---|---|---|
-| 1 | Damage | 5 | dmg 14 +3.2/L @40t, r1.0, 1 tgt nearest, var ±15% | NPC TownCrier @L1 |
+| 1 | Damage | 5 | dmg 14 +3.2/L @40t, r1.0, 1 tgt nearest, var ±15% | **MS L1** — seeded at character creation (Q4) |
 | 2 | Heal | 5 | heal 12 +6/L @80t, r1.5 +.1/L, lowest_health 1 tgt, **self-cost 10 −2/L** (FINAL) | NPC Hermit @L3 |
 | 3 | Wild | 5 | dmg 10 +2.4/L @40t, r1.4 +.05/L | Drop: EliteWolf .5 (+ AngryMammoth 1.0 / SaberToothCat .2, legacy) |
 | 4 | Slow | 5 | slow 10% +10%/L, r1.5 | Drop: BanditRanged .2 (+ Mammoth .2, legacy) · **Quest: `wolves-on-the-road`, shaman leg** |
 | 5 | Immolate | 5 | fire dot 10.5 +2.1/L (3×60t) @20t, r1.0 | NPC Emberkeeper @L12 |
-| 6 | Lantern | 3 | light r4 +1/L | Drop: Kobold / KoboldRanged .05 · **Quest: `the-lost-lamp`** |
+| 6 | Lantern | 3 | light r4 +1/L | **Quest: `the-lost-lamp` — the ONLY source** (Q4/R3 deleted the .05 kobold drops; pinned by `TestContent_LanternIsQuestOnlyAndHasASource`) |
 | 7 | Reaper | 3 | dmg 12 +3/L @40t r2.0; execute <35% ×2; lifesteal 50%; berserker ×2 at low HP | Drop: AlphaWolf .35 |
 | 29 | Rejuvenation | 3 | HoT 4 +2/L (6×60t) @60t, r2.5 +.2/L | Drop: OrcWarlord .25 (boss-rare) |
 | 30 | Paladin | 5 | dmg 10 +2.2/L @40t + heal 8 +4/L @120t (no self-cost), r1.0 | Recipe: Damage 5 + Heal 5 |
@@ -112,7 +115,7 @@ result · **NONE** = unobtainable without the `SKILL` cheat.
 | 31 | Recover | 1 | instant HoT 4 (9×60t) **self only**, r2; CD 1200 | Drop: DireBear .25 · NPC Shaman @L4 |
 | 32 | Revive | 1 | revive @30% max, r3, cast 150t interruptible; CD 600 | NPC VillageHealer @L8 |
 | 33 | Dash | 3 | dash 2.5 +0.5/L; CD 300 | Drop: EliteWolf .2 |
-| 34 | Haste | 1 | aura tick rate ×0.5 for 90t (**not** movement); CD 300 | **MS L7 — the only milestone unlock** |
+| 34 | Haste | 1 | aura tick rate ×0.5 for 90t (**not** movement); CD 300 | **MS L7** |
 | 49 | DamageBurst | 3 | burst 22 +5/L phys+bleed, r1.5 +.1/L; CD 300 −20/L | Drop: EliteBandit .5 |
 | 51 | CallForAid | 3 | spawn 3× SoldierCompanion, TTL 1800 +300/L; CD 2400 | Drop: OrcWarlord 1.0 |
 | 54 | Shockwave | 3 | burst 44 +10/L phys+bleed, r2.0 +.1/L; CD 240 −20/L | Recipe: Vanguard 5 + DamageBurst 3 |
@@ -134,25 +137,31 @@ the milestone table:
   guarantee (`plan-rebrand-cleanup.md`) still holding.
 - **All 10 recipe results are craftable in the world zone** — every ingredient
   has a world source.
-- **NPC-taught, 21 teachings across 12 NPCs:** Damage, Recall (TownCrier) ·
+- **NPC-taught, 20 teachings across 12 NPCs:** Recall (TownCrier) ·
   Harvest (Farmer) · FirstAid, Heal, Calm, CharmBeast (Hermit) · Torch
   (Lamplighter) · SummonCompanion (Dog) · Pickaxe (Miner) · FirstAid, Revive
   (VillageHealer) · Vanguard (FrontCaptain) · Recover, SummonTotem (Shaman) ·
   Recall (Wanderer) · Torch, Ignite, Immolate, BindElemental (Emberkeeper) ·
-  Strong (CityGuard). ⚑ Since C4 only ONE of the 14 conversants teaches nothing
+  Strong (CityGuard). ⚑ Damage LEFT the TownCrier with Q4 (2026-07-30) — it is
+  the level-1 milestone now. Only ONE of the 14 conversants teaches nothing
   (ForestSign, a sign-post): the LamplessTraveller hands over Lantern as a quest
   reward, which is a `teach_skill` grant on a turn-in row rather than a teaching
   in its own right.
-- **Milestone unlocks, 1:** Haste @L7.
-- **Quest rewards, 3 (new 2026-07-30, `plan-quests.md` C4):** Taunt and Slow —
-  the two legs of `wolves-on-the-road`, which is the whole point of D9's branch
-  being a *choice* — and Lantern from `the-lost-lamp`. ⚑ All three were
-  **drop-only** before, and Lantern's only source was a 5 % Kobold roll, i.e. a
-  brutal gate on the light the tunnel tutorial is built around. A quest source is
-  not authored in `unlocks[]`: it is a `teach_skill` grant riding an
-  `advance_quest` row in a conversant's `interaction` block, so a regeneration
-  script that reads only `unlocks[]` and top-level teachings will report these
-  three as drop-only and be wrong.
+- **Milestone unlocks, 2:** Damage @L1 (seeded at character creation — the
+  creation-time call shipped with Q4; before it, a level-1 entry could never
+  fire) · Haste @L7.
+- **Quest rewards, 3 (`plan-quests.md` C4, sources final since Q4):** Taunt and
+  Slow — the two legs of `wolves-on-the-road`, which is the whole point of D9's
+  branch being a *choice* — and Lantern from `the-lost-lamp`. ⚑ All three were
+  **drop-only** before C4. Since Q4 (R3) Lantern's kobold drops are DELETED, so
+  the quest's turn-in row is the aura's **only source** — the guaranteed reward
+  replaced the 5 % roll on the gate to the tunnel, and
+  `TestContent_LanternIsQuestOnlyAndHasASource` enforces the reachability this
+  section used to state in prose only. A quest source is not authored in
+  `unlocks[]`: it is a `teach_skill` grant riding an `advance_quest` row in a
+  conversant's `interaction` block, so a regeneration script that reads only
+  `unlocks[]` and top-level teachings will report these three as drop-only and
+  be wrong.
 
 ### What changed since the 2026-07-22 generation
 

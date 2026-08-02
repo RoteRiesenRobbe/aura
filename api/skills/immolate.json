@@ -1,16 +1,18 @@
 {
-  "_comment": "Effect foundations Step 2 placeholder content: an aura that leaves a fire dot on the nearest enemy. damageHP +5% (§4.3 v2 base-crit rework, PO 2026-07-20: dots never crit, so dot skills missed the ~5% EV lift every direct-hit skill got). All values [PLACEHOLDER].",
+  "_comment": "Effect foundations Step 2 placeholder content: an aura that leaves a fire dot on the nearest enemy. damageHP +5% (§4.3 v2 base-crit rework, PO 2026-07-20: dots never crit, so dot skills missed the ~5% EV lift every direct-hit skill got). All values [PLACEHOLDER]. ⚑ NUMBERS REWRITE C2b/C2c: authored at the C2b rate this skill KILLED its caster in the standing chain battery (facetank survival 100% → 0%). The first diagnosis blamed the cadence — the dot line re-applies every 20 ticks while its dot fires every 60, so the caster is charged three times per hit landed — but MEASURING the 20 → 60 fix showed it cost real damage in short fights (a 2 s delay to the first tick against a ~5 s kill) and left the skill weaker still. The actual cause was WEAKNESS: at 9.45 HP/s this sat barely above half the output of the permanently FREE Damage aura, which inverted D16b, so any price at all was unpayable. C2c raised the damage instead, kept the 20-tick cadence (the 2026-07-21 dot-responsiveness halving stands) and priced the effect at a third to match. Survival is back to 100%. ⚑ R3 (plan-resource-costs-feedback §5.1): PAY TO IGNITE, NOT TO KEEP BURNING. R2 made a dot charge only when it creates a genuinely new burn, never on a refresh, so the price is now per IGNITION rather than per application and was multiplied by the burn's own 3 ticks to match. The 20-tick cadence stays: it is what makes the dot responsive, and after R2 the extra applications it produces are refreshes that cost nothing. Holding one target is close to free; the cost lands when you set something new alight.",
   "id": 5,
   "name": "Immolate",
   "category": "active_aura",
-  "maxLevel": 5,
+  "maxLevel": 10,
   "effects": [
     {
       "type": "dot_aura",
+      "costFractionOfMax": 0.0078,
+      "costFractionOfMaxPerLevel": 0.00195,
       "radius": 1.0,
       "radiusPerLevel": 0.0,
       "damageHP": 10.5,
-      "damageHPPerLevel": 2.1,
+      "damageHPPerLevel": 2.6111,
       "damageTags": ["fire"],
       "dotTicks": 3,
       "dotTickInterval": 60,

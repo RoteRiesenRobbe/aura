@@ -1,5 +1,5 @@
 {
-  "_comment": "Miner-taught utility aura (content pass C3, PO 2026-07-17: rockfall gate = its own 'smash' tag on a Miner NPC teaching): the second gated harvest-style aura after Harvest. gatedDamageTags makes the damage opt-in — it only hits targets whose base resistances explicitly name 'smash' (the tunnel Rockfall) and does nothing to combat mobs or vegetation (Harvest and Pickaxe deliberately do NOT overlap: plants vs rocks). Numbers mirror Harvest's shape. All values [PLACEHOLDER]",
+  "_comment": "Miner-taught utility aura (content pass C3, PO 2026-07-17: rockfall gate = its own 'smash' tag on a Miner NPC teaching): the second gated harvest-style aura after Harvest. the gateKey makes the damage opt-in — it only hits mobs that name 'smash' in factors.gateKeys (the tunnel Rockfall) and does nothing to combat mobs or vegetation (Harvest and Pickaxe deliberately do NOT overlap: plants vs rocks). Numbers mirror Harvest's shape. All values [PLACEHOLDER] ⚑ NUMBERS REWRITE C2d (D4): the gate moved OFF damageTags and off the resistance map onto its own `gateKey` field, against a closed vocabulary. A lock-and-key ('a turnip resists everything except harvest') and a resistance ('takes half damage from fire') were being written in the same words, which made a mistyped key a silently inert skill. A gated hit now declares NO damage type — its targets are an explicit list, so mitigation has nothing to say about it — and authoring both hard-fails.",
   "id": 48,
   "name": "Pickaxe",
   "category": "active_aura",
@@ -11,8 +11,7 @@
       "radiusPerLevel": 0.0,
       "damageHP": 14,
       "damageHPPerLevel": 3.2,
-      "damageTags": ["smash"],
-      "gatedDamageTags": true,
+      "gateKey": "smash",
       "variance": 0.15,
       "targetsEnemies": true,
       "targetsAllies": false,

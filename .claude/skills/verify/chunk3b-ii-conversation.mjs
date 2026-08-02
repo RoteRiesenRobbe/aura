@@ -5,24 +5,28 @@
 // TREE you browse. Everything is an option (D15), the server owns availability
 // and the client owns position (D16).
 //
-//   1. Emberkeeper, E     → the panel opens on the greeting with 3 branch rows
+//   1. Emberkeeper, E     → the panel opens on the greeting; its named branch
+//                           rows are all present, plus the synthetic "Leave."
+//                           row LAST and only at root (Q1 §4.3)
 //   2. "Teach me…"        → the teaching list: Torch available, Ignite locked
 //                           reading "level 7", Immolate locked "level 12" (D20)
-//   3. click Ignite       → speaks the authored refusal, teaches NOTHING (D17)
+//   3. click Ignite       → INERT (Q1/R1): the panel text does not change and
+//                           nothing is taught — the greying is the message
 //   4. click Torch        → teaches Torch AND ONLY Torch, the row vanishes on
 //                           the next snapshot, the unlock banner fires
 //   5. Back               → returns to the greeting
 //   6. hint branch        → "Anything new around here?" is a leaf reply
-//   7. Leave              → closes; walking out of range closes; E toggles
+//   7. Leave              → the ✕ closes; the "Leave." row closes; walking out
+//                           of range closes; E toggles
 //   8. Wanderer           → stops while talked to, walks on afterwards (D22)
 //   9. TownCrier          → calls out its ambient line as you pass WITHOUT
 //                           opening anything (D18 — the NPC that does both)
-//  10. combat             → being hit closes the panel (D21). ⚑ Opportunistic:
-//                           no cheat stamps player combat (DAMAGE writes health
-//                           directly, THREAT is read-only), so this waits for a
-//                           forest mob and reports SKIP rather than FAIL if none
-//                           engages. Both directions are pinned deterministically
-//                           in Go (TestSession_ClosesWhenEitherPartyEntersCombat).
+//
+// ⚑ The old leg 10 ("being hit closes the panel", a permanent SKIP) is GONE
+// with the gates themselves: Q1 §4.2 deleted every combat gate, so combat ends
+// neither the offer nor the session. The inverted coverage lives in Go
+// (TestSession_SurvivesCombat / TestInteractionSystem_CombatDoesNotWithdrawTheOffer),
+// which remains the only place player combat can be stamped at all.
 //
 // ⚑ Harness traps carried from chunks 2/3a/3b-i, all still live:
 //   · the dev console input stopPropagation()s keydown — blur() before walking
@@ -193,8 +197,6 @@ const spellbook = () => page.evaluate(() =>
 
 const bannerText = () => page.evaluate(() => document.getElementById('alertBanner')?.textContent?.trim() || '');
 
-const health = () => page.evaluate(() => window.game?.player?.character?.health ?? -1);
-
 // Walk in short bursts until the badge state becomes `want`, then STOP.
 const walkUntilBadge = async (key, want, maxSeconds = 16) => {
   await page.evaluate(() => document.activeElement?.blur());
@@ -251,11 +253,18 @@ await press('e');
 const greeting = await panel();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-1-greeting.png` });
 
+// ⚑ By NAME, never by count (verify rule 1 — and Q1's Leave row is exactly the
+// kind of change a count assertion would misreport as "the greeting broke").
 check('E opens the panel on the greeting node',
-  greeting !== null && /Emberkeeper/i.test(greeting.actor) && greeting.rows.length === 3,
+  greeting !== null && /Emberkeeper/i.test(greeting.actor)
+    && greeting.rows.some((r) => /teach me something/i.test(r.text))
+    && greeting.rows.some((r) => /anything new around here/i.test(r.text)),
   `actor ${JSON.stringify(greeting?.actor)}, ${greeting?.rows.length} rows: ${JSON.stringify(greeting?.rows.map((r) => r.text))}`);
 check('The greeting has no Back (it is the root)',
   greeting?.canGoBack === false, `canGoBack ${greeting?.canGoBack}`);
+check('The synthetic "Leave." row renders LAST at the root (Q1 §4.3)',
+  greeting !== null && greeting.rows.length > 0 && /^Leave\.$/.test(greeting.rows[greeting.rows.length - 1].text),
+  `last row: ${JSON.stringify(greeting?.rows[greeting?.rows.length - 1]?.text)}`);
 check('The badge goes out while its own conversation is open',
   (await badgeCount()) === 0, `visible "E" badges: ${await badgeCount()}`);
 
@@ -264,9 +273,10 @@ await clickRow('Teach me something');
 const list = await panel();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-2-teachings.png` });
 
-const torchRow = list?.rows.find((r) => /light to carry/i.test(r.text));
-const igniteRow = list?.rows.find((r) => /fire for my enemies/i.test(r.text));
-const immolateRow = list?.rows.find((r) => /Everything you have/i.test(r.text));
+// Rows NAME the skill directly since the 2026-08-02 plain-text pass.
+const torchRow = list?.rows.find((r) => /Torch/i.test(r.text));
+const igniteRow = list?.rows.find((r) => /Ignite/i.test(r.text));
+const immolateRow = list?.rows.find((r) => /Immolate/i.test(r.text));
 
 // ⚑ No exact row COUNT. This asserted `=== 3` and went red the day `3b1b3ef6`
 // authored a fourth teaching on this NPC (BindElemental, the charm teacher) —
@@ -284,32 +294,36 @@ check('Immolate is LOCKED and names level 12',
   immolateRow?.locked === true && /level 12/.test(immolateRow.text), `${JSON.stringify(immolateRow)}`);
 // The fourth teaching, authored in `3b1b3ef6` — cover it rather than merely
 // tolerate it, so this NPC's whole authored wall set is under test.
-const bindRow = list?.rows.find((r) => /servant of the flame/i.test(r.text));
+const bindRow = list?.rows.find((r) => /Bind Elemental/i.test(r.text));
 check('BindElemental is LOCKED and names level 15',
   bindRow?.locked === true && /level 15/.test(bindRow.text), `${JSON.stringify(bindRow)}`);
 
-// ================= 3. a locked row refuses, and teaches nothing =================
-const beforeLocked = await spellbook();
-await clickRow('fire for my enemies');
-const refused = await panel();
-const afterLocked = await spellbook();
-await page.screenshot({ path: `/tmp/chunk3bii-${label}-3-refused.png` });
+// ================= 3. a locked row is INERT (Q1/R1) =================
+// blockedLine is deleted: the greying and the named wall are the whole answer,
+// so clicking a locked row changes nothing — no reply, no navigation, no grant.
+const beforeLocked = await panel();
+const beforeLockedBook = await spellbook();
+await clickRow('Ignite');
+const afterLockedPanel = await panel();
+const afterLockedBook = await spellbook();
+await page.screenshot({ path: `/tmp/chunk3bii-${label}-3-inert.png` });
 
-check('Clicking a locked row speaks the authored refusal',
-  /Fire doesn't suffer the careless/.test(refused?.lines ?? ''), `lines: ${JSON.stringify(refused?.lines)}`);
+check('Clicking a locked row says NOTHING — the panel text is unchanged (Q1/R1)',
+  afterLockedPanel !== null && afterLockedPanel.lines === beforeLocked?.lines,
+  `lines before ${JSON.stringify(beforeLocked?.lines)} → after ${JSON.stringify(afterLockedPanel?.lines)}`);
 check('...and teaches NOTHING',
-  !afterLocked.some((s) => /Ignite/i.test(s)),
-  `spellbook ${JSON.stringify(beforeLocked)} → ${JSON.stringify(afterLocked)}`);
+  !afterLockedBook.some((s) => /Ignite/i.test(s)),
+  `spellbook ${JSON.stringify(beforeLockedBook)} → ${JSON.stringify(afterLockedBook)}`);
 
 // ================= 4. taking a row teaches exactly that row (D17) =============
-await clickRow('A light to carry');
+await clickRow('Torch');
 const taught = await panel();
 const afterTorch = await spellbook();
 const banner = await bannerText();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-4-taught.png` });
 
 check('Clicking Torch speaks its grant line',
-  /a light for you in dark places/i.test(taught?.lines ?? ''), `lines: ${JSON.stringify(taught?.lines)}`);
+  /I'll teach you Torch/i.test(taught?.lines ?? ''), `lines: ${JSON.stringify(taught?.lines)}`);
 check('...teaches Torch AND ONLY Torch (D17 retires the ordered walk)',
   afterTorch.some((s) => /Torch/i.test(s))
     && !afterTorch.some((s) => /Ignite|Immolate/i.test(s)),
@@ -317,22 +331,23 @@ check('...teaches Torch AND ONLY Torch (D17 retires the ordered walk)',
 check('...fires the attribution banner',
   /Taught by: Emberkeeper/.test(banner), `banner: ${JSON.stringify(banner)}`);
 check('...and the taught row vanishes from the next snapshot',
-  (await panel())?.rows.every((r) => !/light to carry/i.test(r.text)) === true,
+  (await panel())?.rows.every((r) => !/Torch/i.test(r.text)) === true,
   `rows now: ${JSON.stringify((await panel())?.rows.map((r) => r.text))}`);
 
 // ================= 5. Back, and the hint branch =================
 await clickPanelControl('.conversationBack');
 const backAtRoot = await panel();
 check('Back returns to the greeting',
-  backAtRoot !== null && backAtRoot.canGoBack === false && backAtRoot.rows.length === 3,
-  `canGoBack ${backAtRoot?.canGoBack}, ${backAtRoot?.rows.length} rows`);
+  backAtRoot !== null && backAtRoot.canGoBack === false
+    && backAtRoot.rows.some((r) => /anything new around here/i.test(r.text)),
+  `canGoBack ${backAtRoot?.canGoBack}, rows ${JSON.stringify(backAtRoot?.rows.map((r) => r.text))}`);
 
 await clickRow('Anything new around here');
 const hint = await panel();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-5-hint.png` });
 check('The hint branch is a leaf reply: lines, no rows, Back available',
   hint !== null && hint.rows.length === 0 && hint.canGoBack === true
-    && /burned this forest/i.test(hint.lines),
+    && /Bandits hide in the dark forest/i.test(hint.lines),
   `rows ${hint?.rows.length}, canGoBack ${hint?.canGoBack}, lines ${JSON.stringify(hint?.lines)}`);
 
 // ================= 6. Leave, re-open, E toggles, range =================
@@ -380,6 +395,15 @@ const reopened = await panelOpen();
 await press('e');
 check('E re-opens, and a second E closes it again',
   reopened === true && !(await panelOpen()), `reopened ${reopened}, still open ${await panelOpen()}`);
+
+// The synthetic "Leave." row does exactly what ✕ does (Q1 §4.3): its handler
+// calls leave(), which sends close and waits for the server to drop the tree.
+await press('e');
+const openBeforeLeaveRow = await panelOpen();
+await clickRow('Leave.');
+check('Clicking the "Leave." row closes the panel (Q1 §4.3)',
+  openBeforeLeaveRow === true && !(await panelOpen()),
+  `open before ${openBeforeLeaveRow}, after ${await panelOpen()}`);
 
 await press('e');
 const openBeforeWalk = await panelOpen();
@@ -657,9 +681,9 @@ const ambientPanel = await panelOpen();
 await page.screenshot({ path: `/tmp/chunk3bii-${label}-8-ambient.png` });
 
 check('The TownCrier CALLS OUT as you pass (D18: ambient is its own field)',
-  ambientBubbles.some((t) => /Wolves on the forest road|militia wants word/i.test(t)),
+  ambientBubbles.some((t) => /Hail Adventurer/i.test(t)),
   `reached ${crierReached} at ${JSON.stringify(await pos())}; matched: ` +
-  JSON.stringify(ambientBubbles.filter((t) => /Wolves on the forest road|militia wants word/i.test(t))));
+  JSON.stringify(ambientBubbles.filter((t) => /Hail Adventurer/i.test(t))));
 check('...WITHOUT opening a panel — the two are independent',
   ambientPanel === false, `panel open: ${ambientPanel}`);
 
@@ -675,34 +699,9 @@ check('...and the same NPC still opens a tree on the key',
   crierPanel !== null && crierPanel.rows.some((r) => /teach me something/i.test(r.text)),
   `rows: ${JSON.stringify(crierPanel?.rows.map((r) => r.text))}`);
 
-// ================= 9. combat closes it (opportunistic) =================
-// ⚑ No cheat stamps player combat: DAMAGE writes health directly (bypassing
-// takeDamage) and THREAT is read-only. So this waits for a real mob. Both
-// directions are pinned deterministically in Go — see the header.
-await cmd('GOD'); // toggle off, so a mob can actually land a hit
-const hpBefore = await health();
-let combatClosed = null;
-if (await panelOpen()) {
-  for (let i = 0; i < 24; i++) {
-    await page.waitForTimeout(1000);
-    if (!(await panelOpen())) { combatClosed = true; break; }
-  }
-  if (combatClosed === null) combatClosed = false;
-}
-const hpAfter = await health();
-await cmd('GOD'); // back on
-
-if (combatClosed === true && hpAfter < hpBefore) {
-  check('Being hit closes the panel (D21)', true, `HP ${hpBefore} → ${hpAfter}`);
-} else if (hpAfter >= hpBefore) {
-  skip('Being hit closes the panel (D21)',
-    `SKIPPED — nothing attacked the player in 24 s (HP ${hpBefore} → ${hpAfter}). ` +
-    `No cheat can stamp player combat; both directions are pinned in Go ` +
-    `(TestSession_ClosesWhenEitherPartyEntersCombat).`);
-} else {
-  check('Being hit closes the panel (D21)', false,
-    `HP dropped ${hpBefore} → ${hpAfter} but the panel stayed open`);
-}
+// (The old leg 9 — "being hit closes the panel", a permanent SKIP — was deleted
+// with the combat gates themselves, Q1 §4.2. The inverted coverage is Go-only:
+// TestSession_SurvivesCombat / TestInteractionSystem_CombatDoesNotWithdrawTheOffer.)
 
 // ================= report =================
 await browser.close();

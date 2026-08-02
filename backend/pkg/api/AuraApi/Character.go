@@ -425,8 +425,20 @@ func (rcv *Character) MutateAppliedEffects(n byte) bool {
 	return rcv._tab.MutateByteSlot(64, n)
 }
 
+func (rcv *Character) CostPaid() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(66))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateCostPaid(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(66, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(31)
+	builder.StartObject(32)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -523,6 +535,9 @@ func CharacterAddAuraCategory(builder *flatbuffers.Builder, auraCategory byte) {
 }
 func CharacterAddAppliedEffects(builder *flatbuffers.Builder, appliedEffects byte) {
 	builder.PrependByteSlot(30, appliedEffects, 0)
+}
+func CharacterAddCostPaid(builder *flatbuffers.Builder, costPaid uint32) {
+	builder.PrependUint32Slot(31, costPaid, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

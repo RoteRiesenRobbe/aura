@@ -102,8 +102,8 @@ grep -E '"msg":"(Loaded (skill|faction|mob|item|recipe|prop|quest) definitions|L
 ```
 
 Confirm each count went up by exactly what you added. The canonical good line to
-compare against (as of quest chunk C4, 2026-07-30) is
-`86 skills / 15 factions / 64 mobs / 10 recipes / 5 props / 1 milestone unlock / 4 quests`,
+compare against (as of conversation-journal Q4, 2026-07-30) is
+`86 skills / 15 factions / 64 mobs / 10 recipes / 5 props / 2 milestone unlocks / 4 quests`,
 plus the `Loaded zone` line's `props`/`spawns` (e.g. 620 / 185) and the
 `placed campfires` / `placed npcs` counts. Cross-check that the skill/recipe
 counts match the pins in `skills/registry_test.go` and `skills/recipe_test.go`
@@ -122,6 +122,18 @@ Copy the browser-launch pattern from
   `#startForm .playerNameInput`, click submit. **Scope to `#startForm`** — a
   second hidden `.playerNameSubmit` ("Respawn") exists on the end screen and
   breaks unscoped selectors.
+- **Name the bot with `botname.mjs`**, never a hand-rolled `'Quest' + pid`:
+  `import {botName} from './botname.mjs'` then
+  `page.fill('#startForm .playerNameInput', botName('quest'))` →
+  *QuestDoer the Quest*. The topic is whatever the run is testing; the name is
+  built from it, so a screenshot's nameplate says what the screenshot is for.
+  Seeded from the pid, so two concurrent runs get different bots — pass
+  `{seed}` for a reproducible one. In a multi-bot harness, give each bot its
+  role as the topic (`botName('healer')`, `botName('patient')`); distinct
+  topics always yield distinct names. `node botname.mjs --all <topic>` shows
+  every candidate. ⚑ The 20-char cap in `PlayerName.ts` (`MAX_LENGTH`, and
+  `maxlength="20"` on the input) is why the generator drops over-budget
+  candidates instead of truncating: a clipped name reads as a crash.
 - **Server commands (GOD, SKILL <name>, WARP …):** the `&start-cmds=` query
   param is DEAD (defined in `BasicConfig.ts`, no consumer). Use the dev
   console instead (`&develop` + valid `&token=`): wait for `#console_command`
@@ -155,7 +167,7 @@ regression to everyone who ran it afterwards.
 | `chunk3b-interact.mjs` | the interact **verb**: who is offered, badge lifecycle, `E` opens/closes, the `E`→`R` rebind | the offer (`sense`, `interactable_entity_id`), `Interact`, the badge, cooldown keybinds |
 | `chunk3b-ii-conversation.mjs` | everything **inside** the panel: tree browsing, grants, level walls, refusals, Back/Leave, unlock banner, ambient lines, the Wanderer hold — ⚑ leg 7's long-flaky drift pin was **REPAIRED in quest C3 (2026-07-30)**: it pinned the actor *after* the panel opened, but the badge is suppressed for whoever the panel belongs to, so the pin silently fell back to "largest mover" (the camera, or a boar that left the viewport and froze at drift 0). It now pins while the badge is lit and reports INCONCLUSIVE rather than red if it cannot | conversation content or the panel UI |
 | `chunkC3-journal.mjs` | the **journal**: the `/quests` minimal projection, the ledger on `GameState`, J + the HUD button, the empty-vs-unavailable degrade, the D17 banners, abandon-by-click. Half B needs the probe quest documented in its header (`cp .claude/skills/verify/chunkC3-probe-quest.json api/quests/`, restart, then delete it) and SKIPs without it | quest wire/ledger, the journal panel, the quest catalog, `AbandonQuest` |
-| `chunkC4-quests.mjs` | the **authored quest content**: offer / advance / turn-in rows on the right conversants at the right ledger states, what a turn-in pays, and D9's two-NPC branch. Four legs; the wolf branch kills eight real wolves and goes INCONCLUSIVE rather than red if the hunt comes up short, and the lamp chain deliberately stops before the kobolds | `api/quests/*`, any conversant's `interaction` nodes, the quest grant kinds, `quest_at_stage` |
+| `chunkC4-quests.mjs` | the **authored quest content**: offer / advance / turn-in rows on the right conversants at the right ledger states, the R1 row lifecycle (Accept vanishes, turn-in appears), the authored Q2 trackers, what a turn-in pays, D9's two-NPC branch, and Damage-at-creation. Five legs; the wolf branch kills eight real wolves and goes INCONCLUSIVE rather than red if the hunt comes up short, and the lamp errand deliberately stops before the kobolds | `api/quests/*`, any conversant's `interaction` nodes, the quest grant kinds, the milestone table |
 | `npc-portraits.mjs` | NPC **presentation**: sprite size off the wire, health bars, nameplates absent | mob wire fields, NPC art, nameplate/health-bar gating |
 | `r4-badge.mjs` | the badge's **anchor** and its removal with the actor | any overlay hung on `Mob.shape`, or `EntityManager` removal |
 | `chunk2-roles.mjs` | the authored `role` discriminator; a structure's always-on aura | `mobs.ParseRole`, `applyMode`, structure behaviour |
@@ -165,7 +177,10 @@ regression to everyone who ran it afterwards.
 | `swift-cooldown.mjs` | `speed_burst` and the movement axis | `Buffs.MovementFactor()`, movement speed, slows |
 | `chunkP-presence.mjs` | presence-counts XP attribution at the game surface: aura-on bystander earns, bare bystander doesn't | the presence scan (`sys/skills.go notePresence`), `NotePresence`/the participant map, `presenceRadius`, `rewardPlayer` |
 | `round4-tooltip.mjs` | skill tooltips scaled to character level; the `/skills` payload shape | `SkillTooltip.ts`, the skills catalog endpoint |
+| `r1-focus-cost.mjs` | the **cost** half of the tooltip (R1): absolute-Focus cost lines computed off the live pool, `cost_factor` reaching the client (equip Discipline, the price drops), the Focus bar text, the spellbook row clearing the scrollbar. ⚑ Boundary with `round4-tooltip`: that one owns the character-level SCALE of output lines, this one owns what a cost SAYS | `skill_cost.go`, `GameState.cost_factor`, the cost/Focus wording, `roundHP`, the spellbook row CSS |
+| `r3-lifesteal-burst.mjs` | the `lifesteal_burst` effect type (Bloodthirst, R3 §5.6): the `/skills` catalog serving the new `lifesteal` payload, the tooltip line, and the buff reaching the DAMAGE path on a real player in a real fight. ⚑ Its leg 2 needs a fight, so it approaches the nearest mob and goes INCONCLUSIVE rather than red if it cannot reach one. ⚑ It equips **Long-Range Strike**, not Damage: the seeded aura's radius is 1.0 and mobs at the venue settle 2.5–3 units out, so a run with Damage measures a player reaching nothing — floating numbers everywhere (other mobs fighting), a flat health bar, and a leg that reads as a broken buff | `Buffs.LifestealFraction()`, `casterLifesteal`, the damage payload's Lifesteal term, `lifesteal_burst` content or its tooltip case |
 | `filler-batch.mjs` | `DAMAGE <pct>`, damage numbers in darkness, minimap-on-death, Ctrl +/− | darkness suppression, minimap lifecycle, dev cheats |
+| `backlog33-prehot.mjs` | the §33 split: `hot_aura` applies to a FULL-health ally (pre-hotting, PO 2026-07-31) while `heal_aura` still refuses one. 3 clients — healer, unhurt ally, out-of-range control | `applyHotAura` / `applyHealAura` eligibility, `HotParams`, Rejuvenation or Heal content |
 | `hygiene-wire-prune.mjs` | the join smoke for wire renumbering — garbage decode rather than a clean error | **any `.fbs` field add or remove** |
 | `chunk4-persistence.mjs` | **save & load** end to end: a fresh character starts empty, earns level/XP/skills/loadout, leaves to character-select, and comes back with all of it. ⚑ It must stay a **cold** return — leaving to character-select drops the socket, and if the reconnect stash resumed the live character instead, every assertion would pass while proving nothing. ⚑ Its `active aura slot` leg needs the aura actually switched **on**: an equipped-but-inactive loadout leaves the column at −1, which round-trips trivially | the snapshot/restore mapping (`sys/persist.go`), `store.SaveCharacter`/`LoadCharacterState`, the save triggers, `auth.Ticket.State`, `/select`'s load, the quest-ledger flag encoding |
 | `campfire-bind-persistence.mjs` | the **campfire bind surviving a login**: dwell binds, the bind persists, the cold login lands at the bound fire. ⚑ It binds at the **eastern** fire on purpose — binding at a `startingSpawn` fire would pass whether the feature works or not. ⚑ It deliberately does NOT check respawn placement: `window.game.character` is not re-pointed at a respawned entity, so post-respawn position reads return the pre-death position forever; that half is pinned by `sys.TestColdJoin_SpawnsAtThePersistedSpawnPoint`. ⚑ Takes `[label] [url]` | `world.Campfire.ID`, zone campfire content, `trackCampfireDwell`, `s.anchors`, `respawnPosition`/`AnchorOf`, `home_campfire_id` |
@@ -188,6 +203,33 @@ Not a style preference — it has faked a product failure three times (all
   3 PASS + a no-kill SKIP (vs its real 6/6) purely from server age; a restart
   fixed it with no code change. This is the same class as the wander-drift
   gotcha below.
+
+### ⚑ Reading HUD slot text: match `.slotLabel`, never the `li`
+
+An aura/cooldown slot's `li.textContent` **glues the hotkey onto the name** —
+slot 1 holding Heal reads `"2Heal"`, not `"2 Heal"`. So a perfectly reasonable
+`/\bHeal\b/` matches **nothing**: there is no word boundary between `2` and
+`H`. The equip has landed, the HUD is correct, and the script reports "equip
+did not land" — a pure false negative that survived three debugging rounds
+in `backlog33-prehot` (2026-07-31), including two wrong theories (slot
+occupancy, then rAF throttling on a backgrounded page). A single-client probe
+running the identical clicks passed every time, because the probe dumped the
+whole list and read `"1Rejuvenation 2Heal"` with human eyes.
+
+**Match `li[data-slot="N"] .slotLabel`.** It holds the name alone. The same
+trap applies to any regex with a leading `\b` against concatenated HUD text.
+
+⚑ **And when a harness leg fails, make it dump the DOM it is asserting on
+before theorising.** The dump solved this in one run after two rounds of
+plausible, wrong hypotheses cost several server restarts each.
+
+### ⚑ Residual buffs outlive the loadout switch
+
+Swapping the active aura does **not** clear what the previous one applied.
+Rejuvenation's HoT lives `hotTicks × hotTickInterval` = 12 s and is topped up
+until the instant you switch, so a leg that switches auras and immediately
+reads a pip is reading the OLD aura's buff and blaming the new one. Wait out
+the buff lifetime plus margin (16 s here) before asserting absence.
 
 So: restart `aurad`, run one script, read its result, then the next.
 | `mob-separation.mjs` | soft separation, by screenshot | `steer`, `AppendCircleDynamics`, the separation weight |
@@ -290,6 +332,18 @@ for reasons unrelated to any recent change:
   sprite's `.position` and `window.game.character.getX()/getY()` are in the
   **same** space (`character.shape.position` equals `getX/getY`), so the
   difference is a true distance in wire units — divide by 120 for world units.
+- **⚑ Measuring a HEALTH delta? A level-up refills the pool.** Killing things is
+  usually how a damage-side measurement gets its subject, kills grant XP, and a
+  ding raises `maxHealth` and fills it — arriving in the delta as a large
+  positive number that has nothing to do with the thing under test. It cost
+  `r3-lifesteal-burst` two runs in three (a control window read 40/100 → 112/112
+  and scored a +72 "heal"). ⚑ **Capping the level first removes the cause and
+  replaces it with a worse one:** at CL30 with GOD the player one-shots
+  everything, so nothing survives into the measurement window and every run goes
+  inconclusive for lack of a fight. What works is to **guard on `maxHealth`
+  holding across the window and re-measure when it moves** — a ding is a one-off
+  transition, so the retry is a clean measurement rather than a re-roll of the
+  same dice. Read `max` in the same `page.evaluate` as `cur`.
 - **⚑ Measuring a PACE? Check the ground first.** The world has 777 blocking
   props, so an arbitrary `WARP` target can sit in a pocket only a couple of units
   wide — and then every walk measures the pocket, not the speed. That cost four

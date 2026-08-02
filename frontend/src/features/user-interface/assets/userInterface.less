@@ -360,6 +360,9 @@ a.closeButton {
 
 // Own modules
 @import "../HUD/assets/HUD";
+// ⚑ Must stay AFTER HUD: several body.mobile rules override desktop rules of
+// equal specificity and rely on source order.
+@import "../HUD/assets/HUD.mobile";
 @import "../start-screen/assets/startScreen";
 @import "toggleSwitch";
 @import "../social-media-links/assets/socialMedia";

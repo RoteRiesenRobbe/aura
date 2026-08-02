@@ -199,7 +199,7 @@ check('Approaching the Emberkeeper teaches NOTHING (L18)',
   !approachSpellbook.some((s) => /Torch/i.test(s)),
   `spellbook ${JSON.stringify(beforeApproach)} → ${JSON.stringify(approachSpellbook)} at ${JSON.stringify(await pos())}`);
 check('...and says nothing',
-  !approachBubbles.some((t) => t.includes('a light for you in dark places')) && !/Taught by/.test(approachBanner),
+  !approachBubbles.some((t) => t.includes("I'll teach you Torch")) && !/Taught by/.test(approachBanner),
   `bubbles: ${JSON.stringify(approachBubbles.slice(-3))}; banner: ${JSON.stringify(approachBanner)}`);
 check('The E badge is lit over the actor in range',
   approachBadges > 0,

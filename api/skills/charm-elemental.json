@@ -3,19 +3,21 @@
   "id": 64,
   "name": "BindElemental",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 4200,
   "targetFactions": ["elemental"],
   "effects": [
     {
       "type": "charm",
+      "costFractionOfMax": 0.05,
+      "costFractionOfMaxPerLevel": 0.0075,
       "radius": 3.5,
       "selector": "nearest",
       "maxTargets": 1,
       "targetsEnemies": true,
       "targetsAllies": false,
       "charmTicks": 1200,
-      "charmTicksPerLevel": 200
+      "charmTicksPerLevel": 100
     }
   ]
 }

@@ -157,3 +157,39 @@ func TestRunDistribution_VarianceSpreads(t *testing.T) {
 	require.NotZero(t, d.Samples, "the player build must win at least sometimes")
 	assert.Less(t, d.Min, d.Max, "seeded runs must sample the variance band, not collapse to one value")
 }
+
+// --- resource cost (plan-numbers-rewrite D15) ---
+
+// The battery has to be able to SEE a player cost, or D3's "the pacing band
+// held" acceptance claim is measured against a game that no longer exists
+// (L8). Exact tick math with all RNG off: the aura hits on ticks 3, 6, 9, 12
+// and pays 5% of a 100 pool each time, so the player is at 80 when the mob
+// dies on tick 12.
+func TestRunFight_PlayerAuraCostDrainsThePlayer(t *testing.T) {
+	p := exactPlayer()
+	p.Aura.CostFractionOfMax = 0.05
+
+	sc := TTK(p, turretMob(0, 1), 0.5)
+	w := NewWorld(sc, 1)
+	r := runFightWorld(w, sc)
+
+	assert.Equal(t, OutcomeMobDied, r.Outcome)
+	assert.Equal(t, 12, r.Ticks, "the cost does not change the kill cadence")
+	assert.EqualValues(t, 80, w.Player.VitalSigns().Health, "4 hits × 5% of 100")
+}
+
+// A costed aura can lose the player the fight it would otherwise win — which
+// is the whole reason the spec carries the field: throughput bought with
+// survivability is exactly what the retune has to be able to measure.
+func TestRunFight_RuinousCostCanKillTheCaster(t *testing.T) {
+	p := exactPlayer()
+	p.Aura.CostFractionOfMax = 0.3
+
+	sc := TTK(p, turretMob(0, 1), 0.5)
+	w := NewWorld(sc, 1)
+	runFightWorld(w, sc)
+
+	// The never-kill clamp holds even here: paying leaves the caster at the
+	// 1-HP floor, never below (L4).
+	assert.EqualValues(t, 1, w.Player.VitalSigns().Health)
+}

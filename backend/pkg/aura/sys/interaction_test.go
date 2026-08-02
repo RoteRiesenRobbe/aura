@@ -123,13 +123,14 @@ func grant(id int, reqLevel uint32, line string) mobs.InteractionGrant {
 	}
 }
 
-// teachingInteraction is one node, one option, a grant list and a blocked line
-// — exactly what all 14 migrated NPCs author. Since D18 there is no trigger to
-// choose: a conversation only ever opens on the key.
-func teachingInteraction(blockedLine string, lines []string, grants ...mobs.InteractionGrant) *mobs.Interaction {
+// teachingInteraction is one node, one option and a grant list — exactly what
+// the migrated NPCs author. Since D18 there is no trigger to choose: a
+// conversation only ever opens on the key. (Q1/R1 deleted blockedLine — a
+// locked row is greyed and inert, so there is no refusal line to author.)
+func teachingInteraction(lines []string, grants ...mobs.InteractionGrant) *mobs.Interaction {
 	node := mobs.InteractionNode{ID: "root", Lines: lines}
-	if len(grants) > 0 || blockedLine != "" {
-		node.Options = []mobs.InteractionOption{{BlockedLine: blockedLine, Grants: grants}}
+	if len(grants) > 0 {
+		node.Options = []mobs.InteractionOption{{Grants: grants}}
 	}
 	return &mobs.Interaction{Nodes: []mobs.InteractionNode{node}}
 }
@@ -138,7 +139,7 @@ func teachingInteraction(blockedLine string, lines []string, grants ...mobs.Inte
 // walks past, AND a conversation behind the key. The two are independent
 // fields, which is the whole reason the single-valued trigger was retired.
 func ambientInteraction(ambient []string, grants ...mobs.InteractionGrant) *mobs.Interaction {
-	in := teachingInteraction("too low", []string{"lore"}, grants...)
+	in := teachingInteraction([]string{"lore"}, grants...)
 	in.Ambient = ambient
 	return in
 }
@@ -187,7 +188,7 @@ func namedGrant(id int, name string, reqLevel uint32, line string) mobs.Interact
 // the spellbook. Everything else in this file is a detail by comparison — if
 // present() mutates, the panel teaches people things by being looked at.
 func TestPresent_MutatesNothing(t *testing.T) {
-	in := teachingInteraction("too low", []string{"greetings"},
+	in := teachingInteraction([]string{"greetings"},
 		grant(1, 1, "learned heal"), grant(2, 5, "learned dash"))
 	p := newLearner(10) // qualifies for both
 
@@ -286,7 +287,7 @@ func TestPresent_NoNodePassesMeansNoConversation(t *testing.T) {
 // because a legacy multi-grant option expands to one row per grant, each
 // labelled with its skill's display name.
 func TestPresent_ExpandsLegacyMultiGrantOptionToOneRowPerGrant(t *testing.T) {
-	in := teachingInteraction("Grow stronger.", []string{"What would you have of the flame?"},
+	in := teachingInteraction([]string{"What would you have of the flame?"},
 		namedGrant(1, "Torch", 1, "a light in dark places"),
 		namedGrant(2, "Ignite", 7, "a fire in your enemies"),
 		namedGrant(3, "Immolate", 12, "burn everything around you"))
@@ -324,7 +325,7 @@ func TestPresent_AuthoredTextLabelsTheRow(t *testing.T) {
 // "Things already learned are not shown in that list" — the PO brief verbatim.
 // Under 3a this was a silent skip inside the walk; it is visibility now.
 func TestPresent_HidesKnownRows(t *testing.T) {
-	in := teachingInteraction("Grow stronger.", []string{"greetings"},
+	in := teachingInteraction([]string{"greetings"},
 		namedGrant(1, "Torch", 1, "light"),
 		namedGrant(2, "Ignite", 1, "fire"))
 	p := newLearner(10)
@@ -342,7 +343,7 @@ func TestPresent_HidesKnownRows(t *testing.T) {
 // D20: a row the player is too low for is SHOWN, greyed, with the wall named —
 // each NPC becomes a signpost for progression and a reason to come back.
 func TestPresent_LocksTooLowRowsAndNamesTheWall(t *testing.T) {
-	in := teachingInteraction("Fire doesn't suffer the careless.", []string{"greetings"},
+	in := teachingInteraction([]string{"greetings"},
 		namedGrant(1, "Torch", 1, "light"),
 		namedGrant(2, "Ignite", 7, "fire"),
 		namedGrant(3, "Immolate", 12, "burn"))
@@ -358,9 +359,10 @@ func TestPresent_LocksTooLowRowsAndNamesTheWall(t *testing.T) {
 }
 
 // The row carries what the actor will say, chosen by the row's own state — which
-// is what lets the panel answer on click with no round-trip (L24).
+// is what lets the panel answer on click with no round-trip (L24). A locked row
+// carries NOTHING (Q1/R1): the greying and the named wall are the whole message.
 func TestPresent_RowCarriesTheReplyForItsState(t *testing.T) {
-	in := teachingInteraction("Fire doesn't suffer the careless.", []string{"greetings"},
+	in := teachingInteraction([]string{"greetings"},
 		namedGrant(1, "Torch", 1, "Let this be a light for you."),
 		namedGrant(2, "Ignite", 7, "Let me show you fire."))
 
@@ -368,7 +370,7 @@ func TestPresent_RowCarriesTheReplyForItsState(t *testing.T) {
 
 	require.Len(t, rows, 2)
 	assert.Equal(t, "Let this be a light for you.", rows[0].Reply, "an available row replies with the grant line")
-	assert.Equal(t, "Fire doesn't suffer the careless.", rows[1].Reply, "a locked row replies with the blockedLine")
+	assert.Empty(t, rows[1].Reply, "a locked row says nothing — it is inert")
 }
 
 // A navigation row hands nothing over, and says so with the wire default rather
@@ -390,7 +392,7 @@ func TestPresent_NavigationRowCarriesNoGrant(t *testing.T) {
 // The sign-post case (ForestSign / LamplessTraveller): lines, no rows. It is a
 // first-class shape, not a degenerate one — the panel shows the lore and Leave.
 func TestPresent_LoreOnlyNodeHasNoRows(t *testing.T) {
-	in := teachingInteraction("", []string{"No entry.", "Trolls up north."})
+	in := teachingInteraction([]string{"No entry.", "Trolls up north."})
 
 	c := present(in, newLearner(10))
 
@@ -402,7 +404,7 @@ func TestPresent_LoreOnlyNodeHasNoRows(t *testing.T) {
 // The all-learned sage: the greeting survives even though every row is gone, so
 // an NPC you have exhausted still talks instead of opening an empty box.
 func TestPresent_AllKnownLeavesTheLinesStanding(t *testing.T) {
-	in := teachingInteraction("too low", []string{"You have learned all I can teach."},
+	in := teachingInteraction([]string{"You have learned all I can teach."},
 		namedGrant(1, "Torch", 1, "light"))
 	p := newLearner(10)
 	p.sc.Discover(1)
@@ -422,7 +424,7 @@ func TestConditionsPass_UnknownKindFailsClosed(t *testing.T) {
 // --- applyGrant(): hands over exactly ONE grant, validated on its own merits ---
 
 func TestApplyGrant_TeachesExactlyOneSkill(t *testing.T) {
-	in := teachingInteraction("too low", []string{"greetings"},
+	in := teachingInteraction([]string{"greetings"},
 		namedGrant(1, "Torch", 1, "Let this be a light."),
 		namedGrant(2, "Ignite", 1, "Let me show you fire."))
 	p := newLearner(10) // qualifies for BOTH — the walk would have taught both
@@ -442,7 +444,7 @@ func TestApplyGrant_TeachesExactlyOneSkill(t *testing.T) {
 // mistaken for an accident: the same fixture that used to hand over three
 // skills at once now hands over the one that was clicked.
 func TestApplyGrant_TheOrderedWalkIsGone(t *testing.T) {
-	in := teachingInteraction("too low", nil,
+	in := teachingInteraction(nil,
 		namedGrant(1, "Torch", 1, "a"), namedGrant(2, "Ignite", 5, "b"), namedGrant(3, "Immolate", 10, "c"))
 	p := newLearner(20) // qualifies for all three
 
@@ -455,17 +457,17 @@ func TestApplyGrant_TheOrderedWalkIsGone(t *testing.T) {
 	assert.Equal(t, 1, p.cascadeCalls)
 }
 
-// D17/D20: a locked row answers with the authored blockedLine and grants
-// nothing. It is accepted (the actor speaks) but hands nothing over.
-func TestApplyGrant_LockedRowRefusesWithTheAuthoredLine(t *testing.T) {
-	in := teachingInteraction("Fire doesn't suffer the careless.", nil,
+// Q1/R1: a locked row is INERT — clicking it is refused exactly like a stale
+// click, with no reply, no grant and no cascade. The greying already said it.
+func TestApplyGrant_LockedRowIsSilentlyRefused(t *testing.T) {
+	in := teachingInteraction(nil,
 		namedGrant(1, "Ignite", 7, "Let me show you fire."))
 	p := newLearner(2)
 
 	reply, taught, ok := applyGrant(in, p, "root", 0, 0)
 
-	assert.True(t, ok, "the actor answers rather than ignoring the click")
-	assert.Equal(t, "Fire doesn't suffer the careless.", reply)
+	assert.False(t, ok, "an ordinary silent refusal — the path a stale click already takes")
+	assert.Empty(t, reply)
 	assert.Nil(t, taught)
 	assert.False(t, p.sc.HasDiscovered(1))
 	assert.Zero(t, p.cascadeCalls)
@@ -475,7 +477,7 @@ func TestApplyGrant_LockedRowRefusesWithTheAuthoredLine(t *testing.T) {
 // to reach it, which is what keeps server session state down to two fields.
 func TestApplyGrant_Refusals(t *testing.T) {
 	build := func() *mobs.Interaction {
-		in := teachingInteraction("too low", []string{"greetings"}, namedGrant(1, "Torch", 1, "light"))
+		in := teachingInteraction([]string{"greetings"}, namedGrant(1, "Torch", 1, "light"))
 		in.Nodes = append(in.Nodes, mobs.InteractionNode{
 			ID:         "secret",
 			Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
@@ -523,7 +525,7 @@ func TestApplyGrant_Refusals(t *testing.T) {
 // The gated node's grant IS reachable once its condition passes — proof the
 // refusal above discriminates rather than disabling the path.
 func TestApplyGrant_ConditionPassedNodeGrants(t *testing.T) {
-	in := teachingInteraction("too low", []string{"greetings"}, namedGrant(1, "Torch", 1, "light"))
+	in := teachingInteraction([]string{"greetings"}, namedGrant(1, "Torch", 1, "light"))
 	in.Nodes = append(in.Nodes, mobs.InteractionNode{
 		ID:         "secret",
 		Conditions: []mobs.InteractionCondition{{Kind: mobs.ConditionMinLevel, Value: 10}},
@@ -592,7 +594,7 @@ func TestApplyGrant_AcceptsOnlyWhatPresentEmitted(t *testing.T) {
 	build := func() *mobs.Interaction {
 		return &mobs.Interaction{Nodes: []mobs.InteractionNode{
 			{ID: "root", Lines: []string{"hello"}, Options: []mobs.InteractionOption{
-				{Text: "learn", BlockedLine: "too low", Grants: []mobs.InteractionGrant{
+				{Text: "learn", Grants: []mobs.InteractionGrant{
 					namedGrant(1, "Torch", 1, "light"),
 					namedGrant(2, "Ignite", 7, "fire"),
 				}},
@@ -654,7 +656,7 @@ func TestApplyGrant_RefusesANavigationRow(t *testing.T) {
 // levels that straddle every wall.
 func TestPresentAndApplyGrant_CannotDisagree(t *testing.T) {
 	newIn := func() *mobs.Interaction {
-		return teachingInteraction("Fire doesn't suffer the careless.", []string{"greetings"},
+		return teachingInteraction([]string{"greetings"},
 			namedGrant(1, "Torch", 1, "light"),
 			namedGrant(2, "Ignite", 7, "fire"),
 			namedGrant(3, "Immolate", 12, "burn"))
@@ -677,12 +679,24 @@ func TestPresentAndApplyGrant_CannotDisagree(t *testing.T) {
 				}
 				reply, taught, ok := applyGrant(newIn(), taker, "root", int(row.OptionIndex), int(row.GrantIndex))
 
-				require.True(t, ok, "level %d, known %d, row %d (%s): a presented row must always be accepted",
+				// Q1/R1's deliberate twin: a LOCKED row is presented with an
+				// empty Reply and refused silently, so the panel's silence and
+				// the server's refusal are the same statement.
+				if row.Locked {
+					assert.False(t, ok, "level %d, known %d, row %d (%s): a locked row is inert",
+						level, known, i, row.Text)
+					assert.Empty(t, row.Reply,
+						"level %d, known %d, row %d (%s): the panel has nothing to speak for it", level, known, i, row.Text)
+					assert.Empty(t, reply)
+					assert.Nil(t, taught)
+					continue
+				}
+				require.True(t, ok, "level %d, known %d, row %d (%s): a presented available row must always be accepted",
 					level, known, i, row.Text)
 				assert.Equal(t, row.Reply, reply,
 					"level %d, known %d, row %d (%s): the panel already said this", level, known, i, row.Text)
-				assert.Equal(t, !row.Locked, taught != nil,
-					"level %d, known %d, row %d (%s): locked iff nothing is taught", level, known, i, row.Text)
+				assert.NotNil(t, taught,
+					"level %d, known %d, row %d (%s): an available row teaches", level, known, i, row.Text)
 			}
 		}
 	}
@@ -743,7 +757,11 @@ func TestPresent_QuestOptionIsOneRow(t *testing.T) {
 		mobs.InteractionGrant{Kind: mobs.GrantXP, XP: 250, Line: "experience"},
 		namedGrant(1, "Torch", 0, "and this"))
 
-	rows := rowsOf(t, present(in, newQuestLearner(t, 1, peltsQuest())), "root")
+	p := newQuestLearner(t, 1, peltsQuest())
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3) // waiting at turn_in, so the show-rule lets the row through
+	rows := rowsOf(t, present(in, p), "root")
 
 	require.Len(t, rows, 1, "three grants, ONE row — the option is the atomic unit")
 	assert.Equal(t, "Here are the pelts.", rows[0].Text, "labelled by the authored text, never by a reward")
@@ -751,16 +769,179 @@ func TestPresent_QuestOptionIsOneRow(t *testing.T) {
 	assert.Equal(t, "You have my thanks.", rows[0].Reply, "the quest grant's line is the actor's answer")
 }
 
-// A quest row is NOT hidden by the already-known rule that hides a learned skill:
-// its availability is authored with quest_at_stage conditions, and applyGrant
-// refuses it on its own merits if the ledger disagrees.
+// A quest row is NOT hidden by the already-known rule that hides a learned
+// skill: its availability is the LEDGER's answer (CanApply), never the
+// rewards' — a turn-in whose reward skill is already known still needs taking.
 func TestPresent_QuestRowShownRegardlessOfRewardsAlreadyKnown(t *testing.T) {
 	in := oneOption("Here are the pelts.", advanceGrant(), namedGrant(1, "Torch", 0, "and this"))
 	p := newQuestLearner(t, 1, peltsQuest())
-	p.sc.Discover(1) // already knows the reward skill
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3) // waiting at turn_in, so the edge is walkable
+	p.sc.Discover(1)     // already knows the reward skill
 
 	rows := rowsOf(t, present(in, p), "root")
 	require.Len(t, rows, 1, "the quest op still needs taking")
+}
+
+// ⭐ R1's headline (plan-conversation-journal.md Q1 §4.1 ②): a quest row is
+// shown iff its ledger op would succeed. This is what makes an Accept row
+// vanish the moment the quest is accepted while its sibling questions stay
+// askable — per-ROW availability on a shared node, with no option-level
+// conditions and nothing new to author.
+func TestPresent_QuestRowShownIffItsLedgerOpWouldSucceed(t *testing.T) {
+	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{
+			ID: "quest_node", Lines: []string{"Wolves have taken the road."},
+			Options: []mobs.InteractionOption{
+				{Text: "I'll do it.", Grants: []mobs.InteractionGrant{offerGrant()}},
+				{Text: "How many?", Next: "answer"},
+				{Text: "Here are the pelts.", Grants: []mobs.InteractionGrant{advanceGrant()}},
+			},
+		},
+		{ID: "answer", Lines: []string{"Two, at least."}},
+	}}
+	rowTexts := func(p *fakeLearner) []string {
+		var texts []string
+		for _, r := range rowsOf(t, present(in, p), "quest_node") {
+			texts = append(texts, r.Text)
+		}
+		return texts
+	}
+
+	p := newQuestLearner(t, 1, peltsQuest())
+	assert.Equal(t, []string{"I'll do it.", "How many?"}, rowTexts(p),
+		"not started: the offer shows, the turn-in does not")
+
+	require.NoError(t, p.ledger.Accept(questID))
+	assert.Equal(t, []string{"How many?"}, rowTexts(p),
+		"accepted: the Accept row is GONE, its sibling question stays askable")
+
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	assert.Equal(t, []string{"How many?", "Here are the pelts."}, rowTexts(p),
+		"objective met: the turn-in appears exactly when it can be taken")
+
+	_, _, ok := applyGrant(in, p, "quest_node", 2, 0)
+	require.True(t, ok)
+	assert.Equal(t, []string{"How many?"}, rowTexts(p),
+		"completed: both quest rows are gone, the question survives")
+}
+
+// A ledger-less learner sees no quest rows at all — the show-rule fails closed
+// exactly like the apply-rule it mirrors.
+func TestPresent_QuestRowHiddenWithoutALedger(t *testing.T) {
+	in := oneOption("I'll help.", offerGrant())
+	assert.Empty(t, rowsOf(t, present(in, newLearner(1)), "root"))
+}
+
+// --- the empty-destination prune (PO 2026-08-02): a row that leads to nothing
+// but Back is not shown. A navigation row promises the node behind it has
+// something to take or ask; when every one of that node's authored options is
+// currently hidden, the promise is empty and the row goes with them. Lore
+// leaves — nodes that never authored options — stay reachable: their lines ARE
+// the content.
+
+// hubInteraction is the authored hub shape (farmer.json): a root whose rows
+// NAVIGATE — one to the quest node, one to a lore leaf.
+func hubInteraction() *mobs.Interaction {
+	return &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "root", Lines: []string{"Well?"}, Options: []mobs.InteractionOption{
+			{Text: "Do you have a task for me?", Next: "quest_node"},
+			{Text: "Who are you?", Next: "about"},
+		}},
+		{ID: "quest_node", Lines: []string{"The brief."}, Options: []mobs.InteractionOption{
+			{Text: "I'll do it.", Grants: []mobs.InteractionGrant{offerGrant()}},
+			{Text: "Here are the pelts.", Grants: []mobs.InteractionGrant{advanceGrant()}},
+		}},
+		{ID: "about", Lines: []string{"Nobody."}},
+	}}
+}
+
+func rowTextsOf(t *testing.T, in *mobs.Interaction, p *fakeLearner, nodeID string) []string {
+	t.Helper()
+	var texts []string
+	for _, r := range rowsOf(t, present(in, p), nodeID) {
+		texts = append(texts, r.Text)
+	}
+	return texts
+}
+
+func TestPresent_NavRowHiddenWhileItsQuestNodeHasNothingTakeable(t *testing.T) {
+	in := hubInteraction()
+	p := newQuestLearner(t, 1, peltsQuest())
+
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Do you have a task for me?",
+		"not started: the offer is takeable, so the way to it shows")
+
+	require.NoError(t, p.ledger.Accept(questID))
+	assert.NotContains(t, rowTextsOf(t, in, p, "root"), "Do you have a task for me?",
+		"mid-quest: offer refused, turn-in not yet walkable — the node is nothing but Back")
+
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Do you have a task for me?",
+		"turn-in walkable: the way back to it shows again")
+
+	require.NoError(t, p.ledger.AdvanceDialogue(questID, stageTurn, stageDone))
+	assert.NotContains(t, rowTextsOf(t, in, p, "root"), "Do you have a task for me?",
+		"completed: the quest is spent and the row is gone for good")
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Who are you?",
+		"the lore leaf never authored options, so the way to it survives every state")
+}
+
+func TestPresent_NavRowHiddenWhenEveryTeachingIsKnown(t *testing.T) {
+	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "root", Lines: []string{"hm"}, Options: []mobs.InteractionOption{
+			{Text: "Teach me something.", Next: "teachings"},
+		}},
+		{ID: "teachings", Lines: []string{"What do you want to learn?"}, Options: []mobs.InteractionOption{
+			{Grants: []mobs.InteractionGrant{
+				namedGrant(1, "Heal", 1, "yours"),
+				namedGrant(2, "Dash", 5, "yours"),
+			}},
+		}},
+	}}
+	p := newLearner(1)
+
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Teach me something.")
+
+	p.sc.Discover(1)
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Teach me something.",
+		"Dash is level-locked but SHOWN (D20's signpost), so the node is still worth entering")
+
+	p.sc.Discover(2)
+	assert.NotContains(t, rowTextsOf(t, in, p, "root"), "Teach me something.",
+		"everything behind the row is known: nothing but Back left, so the row goes")
+}
+
+// The prune cascades: a pure selection node (the nesting shape ruled for
+// multi-quest NPCs) whose every row just got pruned is itself nothing but Back,
+// so the row pointing at IT goes too.
+func TestPresent_PruneCascadesThroughAPureSelectionNode(t *testing.T) {
+	in := &mobs.Interaction{Nodes: []mobs.InteractionNode{
+		{ID: "root", Lines: []string{"Well?"}, Options: []mobs.InteractionOption{
+			{Text: "Something to do?", Next: "selection"},
+		}},
+		{ID: "selection", Lines: []string{"Pick."}, Options: []mobs.InteractionOption{
+			{Text: "The pelts.", Next: "quest_node"},
+		}},
+		{ID: "quest_node", Lines: []string{"The brief."}, Options: []mobs.InteractionOption{
+			{Text: "I'll do it.", Grants: []mobs.InteractionGrant{offerGrant()}},
+			{Text: "Here are the pelts.", Grants: []mobs.InteractionGrant{advanceGrant()}},
+		}},
+	}}
+	p := newQuestLearner(t, 1, peltsQuest())
+
+	assert.Contains(t, rowTextsOf(t, in, p, "root"), "Something to do?")
+
+	require.NoError(t, p.ledger.Accept(questID))
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	require.NoError(t, p.ledger.AdvanceDialogue(questID, stageTurn, stageDone))
+
+	assert.Empty(t, rowsOf(t, present(in, p), "root"),
+		"quest done: the quest node empties, the selection row goes with it, and root's row follows")
 }
 
 func TestApplyGrant_OfferAcceptsTheQuest(t *testing.T) {
@@ -781,7 +962,10 @@ func TestApplyGrant_OfferAcceptsTheQuest(t *testing.T) {
 
 // D3's retroactive credit, through the dialogue row rather than the cheat: a
 // veteran who already has the kills completes the objective stage on accept.
-func TestApplyGrant_OfferCascadesRetroactively(t *testing.T) {
+// N4/D4 reversed the old retroactive cascade at this grant: kills from before
+// the accept no longer credit — the click lands the quest on its objective
+// stage, and only kills since then move it (the baseline is per stage entry).
+func TestApplyGrant_OfferDoesNotCreditOldKills(t *testing.T) {
 	in := oneOption("I'll help.", offerGrant())
 	p := newQuestLearner(t, 1, peltsQuest())
 	p.ledger.NoteKill(3)
@@ -791,7 +975,13 @@ func TestApplyGrant_OfferCascadesRetroactively(t *testing.T) {
 	require.True(t, ok)
 
 	path, running, _ := p.ledger.Progress(questID)
-	assert.Equal(t, []string{stageHunt, stageTurn}, path, "the objective stage fell through on accept")
+	assert.Equal(t, []string{stageHunt}, path, "the veteran's old kills do not fall through the stage")
+	assert.True(t, running)
+
+	p.ledger.NoteKill(3)
+	p.ledger.NoteKill(3)
+	path, running, _ = p.ledger.Progress(questID)
+	assert.Equal(t, []string{stageHunt, stageTurn}, path, "two kills since accept clear the stage")
 	assert.True(t, running, "and it waits at the dialogue stage rather than completing")
 }
 
@@ -990,6 +1180,69 @@ func TestPresentAndApplyGrant_CannotDisagreeOnQuestRows(t *testing.T) {
 	}
 }
 
+// The converse over quest rows, the C0 pin the Q1 show-rule must keep honest
+// (L3): with offer and turn-in sitting UNGATED on one shared node — the R1
+// authoring shape — anything applyGrant accepts must have been on screen.
+// Before the show-rule this fixture would present a turn-in the ledger refuses;
+// with it, present() and applyGrant ask the ledger the same question.
+func TestApplyGrant_AcceptsOnlyWhatPresentEmitted_QuestRows(t *testing.T) {
+	build := func() *mobs.Interaction {
+		return &mobs.Interaction{Nodes: []mobs.InteractionNode{
+			{
+				ID: "root", Lines: []string{"Wolves again."},
+				Options: []mobs.InteractionOption{
+					{Text: "I'll help.", Grants: []mobs.InteractionGrant{offerGrant()}},
+					{Text: "Here are the pelts.", Grants: []mobs.InteractionGrant{advanceGrant()}},
+					{Text: "gossip", Next: "news"},
+				},
+			},
+			{ID: "news", Lines: []string{"news"}},
+		}}
+	}
+	states := []func(p *fakeLearner){
+		func(p *fakeLearner) {},
+		func(p *fakeLearner) { _ = p.ledger.Accept(questID) },
+		func(p *fakeLearner) {
+			_ = p.ledger.Accept(questID)
+			p.ledger.NoteKill(3)
+			p.ledger.NoteKill(3)
+		},
+		func(p *fakeLearner) {
+			_ = p.ledger.Accept(questID)
+			p.ledger.NoteKill(3)
+			p.ledger.NoteKill(3)
+			_ = p.ledger.AdvanceDialogue(questID, stageTurn, stageDone)
+		},
+	}
+
+	for i, setup := range states {
+		in := build()
+		seen := newQuestLearner(t, 1, peltsQuest())
+		setup(seen)
+		presented := map[[2]int]bool{}
+		for _, node := range present(in, seen).Nodes {
+			for _, row := range node.Options {
+				presented[[2]int{int(row.OptionIndex), int(row.GrantIndex)}] = true
+			}
+		}
+
+		for ni := range in.Nodes {
+			node := &in.Nodes[ni]
+			for oi := range node.Options {
+				for gi := range node.Options[oi].Grants {
+					taker := newQuestLearner(t, 1, peltsQuest())
+					setup(taker)
+					_, _, ok := applyGrant(build(), taker, node.ID, oi, gi)
+					if ok {
+						assert.True(t, presented[[2]int{oi, gi}],
+							"state %d: node %q option %d grant %d was accepted but never shown", i, node.ID, oi, gi)
+					}
+				}
+			}
+		}
+	}
+}
+
 // --- InteractionSystem.Update: rising-edge wiring against real physics ---
 
 // npcDef is the shape the migrated content authors: passive friendly faction,
@@ -1124,7 +1377,7 @@ func TestInteractionSystem_AmbientDoesNotOpenAConversation(t *testing.T) {
 func TestInteractionSystem_ApproachTeachesAndSaysNothing(t *testing.T) {
 	space := phy.NewSpace()
 
-	m := mob.NewMob(npcDef("Farmer", teachingInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal"))), 0, nil)
+	m := mob.NewMob(npcDef("Farmer", teachingInteraction([]string{"lore"}, grant(1, 1, "learned heal"))), 0, nil)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	addNpcToSpace(t, space, m)
 
@@ -1175,7 +1428,7 @@ func namedInteractFixture(t *testing.T, name string, in *mobs.Interaction) (*Int
 // The prompt: standing in range stamps who the player could talk to, which is
 // the single value the client's badge and the server's validation both use.
 func TestInteractionSystem_StampsInteractableWhileInRange(t *testing.T) {
-	s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"lore"}, grant(1, 1, "learned heal")))
 
 	space.Update()
 	s.Update(33.0)
@@ -1189,7 +1442,7 @@ func TestInteractionSystem_StampsInteractableWhileInRange(t *testing.T) {
 // handlers-first Update would validate every keypress against 0 and refuse it.
 // This is the test that fails if the two halves are ever reordered.
 func TestInteractionSystem_StampAndInteractInTheSameTick(t *testing.T) {
-	s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"lore"}, grant(1, 1, "learned heal")))
 
 	// The click is already queued when the tick begins — the ordinary case,
 	// since the client sends it a tick or more before the server drains it.
@@ -1209,10 +1462,10 @@ func TestInteractionSystem_StampAndInteractInTheSameTick(t *testing.T) {
 // the client was given, never a second geometry implementation that could
 // disagree with the badge it drew.
 func TestInteractionSystem_RefusesUnofferedActor(t *testing.T) {
-	s, space, near, p := interactFixture(t, teachingInteraction("", []string{"near"}))
+	s, space, near, p := interactFixture(t, teachingInteraction([]string{"near"}))
 
 	// A second conversant, well outside the player's reach, teaching skill 1.
-	far := mob.NewMob(npcDef("Hermit", teachingInteraction("too low", nil, grant(1, 1, "learned heal"))), 0, nil)
+	far := mob.NewMob(npcDef("Hermit", teachingInteraction(nil, grant(1, 1, "learned heal"))), 0, nil)
 	far.SetPosition(phy.Vec2f{X: 50, Y: 0})
 	addNpcToSpace(t, space, far)
 	s.AddEntity(far)
@@ -1232,7 +1485,7 @@ func TestInteractionSystem_RefusesUnofferedActor(t *testing.T) {
 // problem D13 solved disappear rather than be solved. The unlock banner stays
 // private, as it always was.
 func TestInteractionSystem_TakingARowBroadcastsNothing(t *testing.T) {
-	s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"lore"}, grant(1, 1, "learned heal")))
 
 	bystander := newFakePlayer()
 	bystander.level = 10
@@ -1274,11 +1527,11 @@ func TestInteractionSystem_AmbientSpeechFansOut(t *testing.T) {
 func TestInteractionSystem_NearestConversantWins(t *testing.T) {
 	space := phy.NewSpace()
 
-	near := mob.NewMob(npcDef("Farmer", teachingInteraction("", []string{"near"})), 0, nil)
+	near := mob.NewMob(npcDef("Farmer", teachingInteraction([]string{"near"})), 0, nil)
 	near.SetPosition(phy.Vec2f{X: 1, Y: 0})
 	addNpcToSpace(t, space, near)
 
-	far := mob.NewMob(npcDef("Hermit", teachingInteraction("", []string{"far"})), 0, nil)
+	far := mob.NewMob(npcDef("Hermit", teachingInteraction([]string{"far"})), 0, nil)
 	far.SetPosition(phy.Vec2f{X: -2, Y: 0})
 	addNpcToSpace(t, space, far)
 
@@ -1315,7 +1568,7 @@ func TestInteractionSystem_IgnoresNonConversantMobs(t *testing.T) {
 // Unlike the NPC system it replaced, Remove cannot be a no-op: a conversant is
 // an ordinary actor now, and an actor can die or despawn.
 func TestInteractionSystem_RemoveDropsActorAndItsEdgeState(t *testing.T) {
-	m := mob.NewMob(npcDef("TownCrier", teachingInteraction("", []string{"lore"})), 0, nil)
+	m := mob.NewMob(npcDef("TownCrier", teachingInteraction([]string{"lore"})), 0, nil)
 	s := NewInteractionSystem()
 	s.AddEntity(m)
 	s.seen[m.Basic().ID()] = map[uint64]bool{7: true}
@@ -1345,7 +1598,7 @@ func TestInteractionSystem_RemoveDropsPlayer(t *testing.T) {
 // deleted the old authored-name-vs-sprite-name fallback: one name per actor.
 func TestInteractionSystem_TeachEmitsUnlockAttribution(t *testing.T) {
 	s, space, m, p := namedInteractFixture(t, "TownCrier",
-		teachingInteraction("too low", nil, grant(7, 1, "learn to farm")))
+		teachingInteraction(nil, grant(7, 1, "learn to farm")))
 
 	takeRow(p, m.Basic().ID(), "root", 0, 0)
 	space.Update()
@@ -1452,7 +1705,7 @@ func TestSession_OpeningStreamsTheWholeTree(t *testing.T) {
 // The tree is rebuilt every tick, so a row taught this tick is gone from the
 // next snapshot with no invalidation logic to get wrong.
 func TestSession_TaughtRowVanishesFromTheNextSnapshot(t *testing.T) {
-	s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"hello"},
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"},
 		namedGrant(1, "Torch", 1, "light"), namedGrant(2, "Ignite", 1, "fire")))
 	step := stepper(s, space, p)
 
@@ -1473,7 +1726,7 @@ func TestSession_TaughtRowVanishesFromTheNextSnapshot(t *testing.T) {
 // Leave / Escape / a second E. The panel then closes because the tree left the
 // snapshot, never because the client decided to.
 func TestSession_ClosesOnClose(t *testing.T) {
-	s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"hello"}, namedGrant(1, "Torch", 1, "light")))
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light")))
 	step := stepper(s, space, p)
 
 	pressInteract(p, m.Basic().ID())
@@ -1493,7 +1746,7 @@ func TestSession_ClosesOnClose(t *testing.T) {
 // instead of inheriting aggroRadius 1.0.
 func TestSession_ClosesOnWalkingOutOfRange(t *testing.T) {
 	space := phy.NewSpace()
-	m := mob.NewMob(npcDef("Farmer", teachingInteraction("too low", []string{"hello"}, namedGrant(1, "Torch", 1, "light"))), 0, nil)
+	m := mob.NewMob(npcDef("Farmer", teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light"))), 0, nil)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	addNpcToSpace(t, space, m)
 
@@ -1519,11 +1772,15 @@ func TestSession_ClosesOnWalkingOutOfRange(t *testing.T) {
 	assert.Nil(t, p.conversation)
 }
 
-// ⚑ D21, the rule that makes a NON-BLOCKING panel safe: a player cannot be left
-// reading dialogue while something eats them. Both sides count.
-func TestSession_ClosesWhenEitherPartyEntersCombat(t *testing.T) {
+// ⚑ Q1 §4.2 (plan-conversation-journal.md): combat no longer ends a
+// conversation — D21's safety rationale is explicitly overruled, because
+// nothing is blocked while the panel is open and the player's OWN aura ticking
+// re-stamped the combat window, making them un-talkable for the whole fight
+// plus 3.3 s. These are the entity-model D21 tests INVERTED, not deleted (L1):
+// what still closes a session is range, death, disconnect and despawn.
+func TestSession_SurvivesCombat(t *testing.T) {
 	t.Run("the player is hit", func(t *testing.T) {
-		s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"hello"}, namedGrant(1, "Torch", 1, "light")))
+		s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light")))
 		step := stepper(s, space, p)
 
 		pressInteract(p, m.Basic().ID())
@@ -1533,47 +1790,36 @@ func TestSession_ClosesWhenEitherPartyEntersCombat(t *testing.T) {
 		p.inCombat = true
 		step()
 
-		assert.Zero(t, p.ConversingWith())
-		assert.Nil(t, p.conversation)
+		assert.Equal(t, m.Basic().ID(), p.ConversingWith(), "being hit does not close the panel")
+		assert.NotNil(t, p.conversation)
 	})
 
 	t.Run("the actor is pulled into a fight", func(t *testing.T) {
-		s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"hello"}, namedGrant(1, "Torch", 1, "light")))
+		s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light")))
 		step := stepper(s, space, p)
 
 		pressInteract(p, m.Basic().ID())
 		step()
 		require.NotNil(t, p.conversation)
 
-		// Damage taken is the mob's own in-combat stamp (round 3): holding an
-		// aggro target OR having been hit recently. A conversant is not normally
-		// attackable, but the rule must hold for any actor that carries a
-		// conversation — a teaching guard that fights bandits is the point of the
-		// capability model.
 		m.PlayerTouches(p, model.Damage{HP: 5})
 		step()
 
 		require.True(t, m.InCombat(), "the actor really is in combat")
-		assert.Zero(t, p.ConversingWith(), "so the conversation ends")
-		assert.Nil(t, p.conversation)
+		assert.Equal(t, m.Basic().ID(), p.ConversingWith(), "and keeps talking anyway")
+		assert.NotNil(t, p.conversation)
 	})
 }
 
-// ⚑ The OFFER side of D21, and the half no in-game harness can reach: no cheat
-// can stamp player combat (DAMAGE bypasses takeDamage, THREAT is read-only), so
-// the browser harness reports SKIP here and these are the only eyes on it.
-//
-// Combat must withdraw the offer, not merely tear down the session. If it only
-// tore down, sense() would keep stamping through the whole recent-combat window
-// (~3.3 s, the shared combatRegenGraceTicks) and the client — which draws the
-// badge straight from this value — would light a key cap over an actor that
-// refuses to talk. Since the interact key is edge-triggered, the player would
-// press it, get nothing, and have to release and press again until the window
-// expired. A prompt that does nothing is precisely what handleInteracts'
-// contract says must never exist.
-func TestInteractionSystem_CombatWithdrawsTheOffer(t *testing.T) {
+// ⚑ The OFFER side, inverted with the session side above (Q1 §4.2 / L1): the
+// entity-model R2 fix made sense() withdraw the offer in combat so the badge
+// could not lie about a session the gates would refuse. With the gates gone the
+// offer must SURVIVE combat — and these Go tests remain the only eyes on the
+// offer path (no cheat can stamp player combat, so the browser harness cannot
+// reach it), which is why they are inverted rather than deleted.
+func TestInteractionSystem_CombatDoesNotWithdrawTheOffer(t *testing.T) {
 	t.Run("the player is in combat", func(t *testing.T) {
-		s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+		s, space, m, p := interactFixture(t, teachingInteraction([]string{"lore"}, grant(1, 1, "learned heal")))
 		step := stepper(s, space, p)
 
 		step()
@@ -1581,22 +1827,16 @@ func TestInteractionSystem_CombatWithdrawsTheOffer(t *testing.T) {
 
 		p.inCombat = true
 		step()
-		assert.Zero(t, p.Interactable(), "the badge goes dark rather than lying")
+		assert.Equal(t, m.Basic().ID(), p.Interactable(), "the badge stays lit mid-fight")
 
 		// And the verb agrees, because it validates against that same number.
 		pressInteract(p, m.Basic().ID())
 		step()
-		assert.Zero(t, p.ConversingWith(), "E cannot open what was never offered")
-
-		// The offer returns on its own once the window passes — no re-entry
-		// bookkeeping, because the stamp is live state rather than an event.
-		p.inCombat = false
-		step()
-		assert.Equal(t, m.Basic().ID(), p.Interactable(), "and comes back by itself")
+		assert.Equal(t, m.Basic().ID(), p.ConversingWith(), "E opens a conversation mid-fight")
 	})
 
 	t.Run("the actor is in combat", func(t *testing.T) {
-		s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"lore"}, grant(1, 1, "learned heal")))
+		s, space, m, p := interactFixture(t, teachingInteraction([]string{"lore"}, grant(1, 1, "learned heal")))
 		step := stepper(s, space, p)
 
 		step()
@@ -1606,16 +1846,14 @@ func TestInteractionSystem_CombatWithdrawsTheOffer(t *testing.T) {
 		step()
 
 		require.True(t, m.InCombat(), "the actor really is in combat")
-		assert.Zero(t, p.Interactable(), "a fighting actor stops offering to talk")
+		assert.Equal(t, m.Basic().ID(), p.Interactable(), "a fighting actor still offers to talk")
 	})
 }
 
-// Ambient lines are deliberately NOT gated by combat: they are independent of
-// the conversation (D18), and the town crier calling out as the player sprints
-// past mid-fight is the behaviour rather than a bug. Pinned because the obvious
-// reading of "combat suppresses talking" would sweep these up too.
+// Ambient lines were never gated by combat (D18), and now nothing about the
+// interaction system is: the crier calls out AND offers, mid-fight.
 func TestInteractionSystem_AmbientStillFiresInCombat(t *testing.T) {
-	s, space, _, p := interactFixture(t, &mobs.Interaction{
+	s, space, m, p := interactFixture(t, &mobs.Interaction{
 		Ambient: []string{"Hear ye!"},
 		Nodes:   []mobs.InteractionNode{{ID: "root", Lines: []string{"lore"}}},
 	})
@@ -1624,8 +1862,8 @@ func TestInteractionSystem_AmbientStillFiresInCombat(t *testing.T) {
 	p.inCombat = true
 	step()
 
-	assert.Zero(t, p.Interactable(), "no offer while fighting")
-	require.Len(t, sentOf(p), 1, "but the crier still calls out")
+	assert.Equal(t, m.Basic().ID(), p.Interactable(), "the offer stands mid-fight too")
+	require.Len(t, sentOf(p), 1, "and the crier still calls out")
 	_, msg := decodeEntityMessage(t, sentOf(p)[0])
 	assert.Equal(t, "Hear ye!", msg)
 }
@@ -1634,7 +1872,7 @@ func TestInteractionSystem_AmbientStillFiresInCombat(t *testing.T) {
 // Remove on every system, and a session naming an actor that is gone must not
 // survive as a tree pointing at nothing.
 func TestSession_ClosesWhenTheActorGoesAway(t *testing.T) {
-	s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"hello"}, namedGrant(1, "Torch", 1, "light")))
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light")))
 	step := stepper(s, space, p)
 
 	pressInteract(p, m.Basic().ID())
@@ -1651,7 +1889,7 @@ func TestSession_ClosesWhenTheActorGoesAway(t *testing.T) {
 // A player who disconnects (or dies — RemoveEntity fans out the same way) is
 // dropped from the system, so nothing keeps rebuilding a tree for a dead client.
 func TestSession_DisconnectDropsThePlayerEntirely(t *testing.T) {
-	s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"hello"}, namedGrant(1, "Torch", 1, "light")))
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light")))
 	step := stepper(s, space, p)
 
 	pressInteract(p, m.Basic().ID())
@@ -1693,7 +1931,7 @@ func TestSession_ARowFromAnUnvisitedNodeIsStillHonoured(t *testing.T) {
 // opening — the badge and the verb cannot disagree.
 func TestSession_ARowTakenOutOfRangeIsRefused(t *testing.T) {
 	space := phy.NewSpace()
-	m := mob.NewMob(npcDef("Farmer", teachingInteraction("too low", []string{"hello"}, namedGrant(1, "Torch", 1, "light"))), 0, nil)
+	m := mob.NewMob(npcDef("Farmer", teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light"))), 0, nil)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	addNpcToSpace(t, space, m)
 
@@ -1741,7 +1979,7 @@ func travelled(m *mob.Mob, n int) float32 {
 func TestHold_ActorStopsWhileTalkedToAndResumesAfter(t *testing.T) {
 	space := phy.NewSpace()
 
-	m := mob.NewMob(wanderingNpcDef(teachingInteraction("too low", []string{"hello"},
+	m := mob.NewMob(wanderingNpcDef(teachingInteraction([]string{"hello"},
 		namedGrant(1, "Torch", 1, "light"))), 0, nil)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})
 	m.SetWander(phy.Vec2f{X: 0, Y: 0}, 4)
@@ -1778,10 +2016,10 @@ func TestHold_ActorStopsWhileTalkedToAndResumesAfter(t *testing.T) {
 // The hold is derived fresh every tick from who is actually talking, so an actor
 // nobody is talking to is never held — no reference counting, nothing to leak.
 func TestHold_ClearedForAnActorNobodyIsTalkingTo(t *testing.T) {
-	s, space, m, p := interactFixture(t, teachingInteraction("too low", []string{"hello"}, namedGrant(1, "Torch", 1, "light")))
+	s, space, m, p := interactFixture(t, teachingInteraction([]string{"hello"}, namedGrant(1, "Torch", 1, "light")))
 	step := stepper(s, space, p)
 
-	other := mob.NewMob(wanderingNpcDef(teachingInteraction("", []string{"elsewhere"})), 0, nil)
+	other := mob.NewMob(wanderingNpcDef(teachingInteraction([]string{"elsewhere"})), 0, nil)
 	other.SetPosition(phy.Vec2f{X: 30, Y: 0})
 	other.SetWander(phy.Vec2f{X: 30, Y: 0}, 4)
 	addNpcToSpace(t, space, other)
@@ -1800,7 +2038,7 @@ func TestHold_ClearedForAnActorNobodyIsTalkingTo(t *testing.T) {
 func TestInteractionSystem_NpcBodyIsNotAnAuraTarget(t *testing.T) {
 	space := phy.NewSpace()
 
-	def := npcDef("Farmer", teachingInteraction("", []string{"lore"}))
+	def := npcDef("Farmer", teachingInteraction([]string{"lore"}))
 	def.Body.CollisionLayer = 97 // PlayerStatic|Viewport|MobStatic — no Action(2)
 	m := mob.NewMob(def, 0, nil)
 	m.SetPosition(phy.Vec2f{X: 0, Y: 0})

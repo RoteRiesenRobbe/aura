@@ -36,7 +36,15 @@ import {
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {registerPreload} from './Preloading';
 import {installContextLossWarning} from './ContextLossWarning';
+import {isMobile} from '../../user-interface/logic/Mobile';
 
+/**
+ * Ceiling on the mobile render resolution — see Game.renderResolution(). 2 is
+ * the sharpness/speed balance point the PO picked; 1.5 is measurably faster
+ * again and at phone viewing distance close to indistinguishable, so this is
+ * the knob to turn if a real device still struggles. [PLACEHOLDER]
+ */
+const MOBILE_MAX_RESOLUTION = 2;
 
 export let instance: Game;
 
@@ -92,14 +100,49 @@ export class Game implements IGame {
         return this.application.stage;
     }
 
+    /**
+     * Render resolution — the ONE definition, read by both init() and every
+     * resize. A second `window.devicePixelRatio` at either site would drift the
+     * cap back off on the first orientation change, which is exactly the class
+     * of bug the resize handler below was written to close.
+     *
+     * A phone reports devicePixelRatio 3, so the uncapped canvas was a
+     * 1170×2532 backbuffer — 2.97 Mpx per frame, more pixels than a 1440p
+     * desktop monitor, on a phone GPU. Measured headless, frame time is very
+     * nearly LINEAR in pixel count (~16 ms fixed + ~204 ms/Mpx), i.e. the scene
+     * is fill-bound, not JS-bound: capping at 2 alone cuts the frame ~2.3×.
+     *
+     * ⚑ The cap is what makes MOVEMENT playable, not just the framerate. The
+     * input clock (Controls' Tock) is setTimeout-based at 33 ms and so is
+     * nominally independent of rendering — but it still needs the main thread,
+     * and a saturated one starves it: measured input sends tracked the frame
+     * rate 1:1 (1.8/s at DPR 3, 10.4/s at DPR 1, against a 30/s target). The
+     * server then coasts between inputs and corrects, which reads as lurching
+     * and rubber-banding on top of the low framerate.
+     *
+     * Desktop is untouched BY CONSTRUCTION: off mobile this is the bare
+     * `window.devicePixelRatio` the renderer has always been given.
+     */
+    private renderResolution(): number {
+        if (!isMobile()) {
+            return window.devicePixelRatio;
+        }
+        return Math.min(window.devicePixelRatio, MOBILE_MAX_RESOLUTION);
+    }
+
     constructor() {
         this.application = new Application();
 
         // noinspection JSIgnoredPromiseFromCall
         registerPreload(this.application.init({
-            antialias: true,
+            // MSAA is close to pure cost here and is off on mobile (measured
+            // −26 % frame time at DPR 3, on top of the resolution cap). It
+            // antialiases GEOMETRY edges only, so in a sprite-based 2D game it
+            // touches nothing but the vector Graphics — aura rings, the bars,
+            // tier frames — while being paid for over the whole framebuffer.
+            antialias: !isMobile(),
             autoDensity: true,
-            resolution: window.devicePixelRatio,
+            resolution: this.renderResolution(),
         }).then(() => {
             this.setupResizeHandling();
             // Only reachable once init() resolved — application.canvas does not
@@ -121,7 +164,7 @@ export class Game implements IGame {
             this.application.renderer.resize(
                 window.innerWidth,
                 window.innerHeight,
-                window.devicePixelRatio,
+                this.renderResolution(),
             );
         };
         window.addEventListener('resize', resize);

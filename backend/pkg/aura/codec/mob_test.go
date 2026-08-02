@@ -3,12 +3,12 @@ package codec
 import (
 	"testing"
 
-	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/stretchr/testify/assert"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	flatbuffers "github.com/google/flatbuffers/go"
+	"github.com/stretchr/testify/assert"
 )
 
 // testMobDef builds a mob in the given ROLE: a structure's aura is always on,
@@ -21,9 +21,9 @@ func testMobDef(role mobs.Role) *mobs.MobDefinition {
 		Name: "Dodo",
 		Role: role,
 		Factors: mobs.Factors{
-			Speed:      1,
-			BaseMaxHealth:  40,
-			Experience: 1,
+			Speed:         1,
+			BaseMaxHealth: 40,
+			Experience:    1,
 		},
 		Body: mobs.Body{Radius: 0.3, AggroRadius: 2.0},
 		Skills: []mobs.MobSkill{{

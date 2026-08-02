@@ -3,15 +3,16 @@
   "id": 53,
   "name": "Lifewarden",
   "category": "active_aura",
-  "maxLevel": 5,
+  "maxLevel": 10,
   "effects": [
     {
       "type": "heal_aura",
+      "costFractionOfMax": 0.0185,
+      "costFractionOfMaxPerLevel": 0.004122,
       "radius": 1.4,
       "radiusPerLevel": 0.0,
       "healHP": 14,
-      "healHPPerLevel": 7,
-      "selfDamageHP": 0.0,
+      "healHPPerLevel": 3.1111,
       "selector": "lowest_health",
       "maxTargets": 2,
       "tickInterval": 120

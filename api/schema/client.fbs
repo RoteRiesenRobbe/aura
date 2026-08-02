@@ -68,6 +68,14 @@ table SpendSkillPoint {
     unspend:  bool = false;
 }
 
+// Reset every skill in the spellbook to level 1, refunding all spent points
+// in one step (round-7 item 8, PO 2026-08-02: free · blocked in combat ·
+// level 1 is the floor, so the milestone-seeded free baseline survives).
+// Carries nothing: the op is whole-spellbook by definition, and the refund
+// falls out of SpentPoints being derived rather than stored.
+table Respec {
+}
+
 // Respawn a dead player: sent from the death overlay instead of a fresh
 // Join — the server reuses the reserved name and carried progression and
 // spawns at the client's campfire anchor (atmosphere & recovery chunk 4).
@@ -132,7 +140,8 @@ union ClientMessageBody {
   SpendSkillPoint = 6,
   Respawn = 7,
   Interact = 8,
-  AbandonQuest = 9
+  AbandonQuest = 9,
+  Respec = 10
 }
 table ClientMessage { body:ClientMessageBody; }
 

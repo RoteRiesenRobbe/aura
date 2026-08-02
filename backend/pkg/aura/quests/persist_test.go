@@ -182,3 +182,99 @@ func TestDecodeFlagsIgnoresForeignKeys(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []mobs.MobID{7}, state.TalkedTo)
 }
+
+// veteranChoreQuest is the shape the N4 baselines exist for: one stage carrying
+// both a countable objective and a talk objective, entered by a character who
+// has ALREADY done some of both.
+func veteranChoreQuest() *QuestDefinition {
+	return &QuestDefinition{
+		ID: "veteran-chore", Title: "The Veteran's Chore",
+		Stages: []*Stage{
+			{ID: "work", Journal: "Do the work.", Objectives: []Objective{
+				{Kind: ObjectiveKill, Target: wolf, TargetName: "Wolf", Count: 3},
+				{Kind: ObjectiveTalkTo, Target: farmer, TargetName: "Farmer", Count: 1},
+			}, Next: "report"},
+			{ID: "report", Journal: "Report back."},
+		},
+	}
+}
+
+// TestLedgerFlagsCarryTheN4Baselines pins the half that the accounts branch and
+// the feel-pass branch each got right on their own and wrong together.
+//
+// Every objective counts "since this stage started" (N4, reversing D3), and the
+// only record of when that was is KillBase/TalkBase on the Progress entry. They
+// are STATE, not a cache: nothing recomputes them, because the lifetime counters
+// they were subtracted from have moved on.
+//
+// ⚑ Drop them from the stored shape and this test still passes on the counters
+// a fresh character accumulates — it only fails for a VETERAN, which is why the
+// fixture pre-loads two kills and a talk before accepting. A reload would hand
+// those back as progress: two thirds of the cull done and the farmer already
+// spoken to, from a save the player did nothing to earn.
+func TestLedgerFlagsCarryTheN4Baselines(t *testing.T) {
+	l := testLedger(t, veteranChoreQuest())
+	l.NoteKill(wolf)
+	l.NoteKill(wolf)
+	l.NoteTalkedTo(farmer) // long before the quest existed
+	require.NoError(t, l.Accept("veteran-chore"))
+
+	before := l.Snapshot()
+	require.Equal(t, []string{"0/3 Wolf slain", "Talk to the Farmer"}, before[0].Objectives,
+		"the baseline makes a fresh objective stage unsatisfied by construction")
+
+	flags, err := EncodeFlags(l)
+	require.NoError(t, err)
+	restored := testLedger(t, veteranChoreQuest())
+	state, err := DecodeFlags(flags)
+	require.NoError(t, err)
+	restored.Restore(state)
+
+	assert.Equal(t, before, restored.Snapshot(), "the baselines must survive the round trip")
+
+	// And they still BITE afterwards: the restored quest needs three fresh kills
+	// and a fresh talk, not the lifetime totals it was reloaded with.
+	assert.Equal(t, uint64(2), restored.KillCount(wolf), "the lifetime counter is untouched")
+	restored.NoteKill(wolf)
+	restored.NoteKill(wolf)
+	restored.NoteKill(wolf)
+	restored.NoteTalkedTo(farmer)
+	_, _, completed := restored.Progress("veteran-chore")
+	assert.True(t, completed, "three fresh kills and a fresh talk finish it")
+}
+
+// TestRestoreRecomposesObjectiveLines: the lines are DERIVED, so they are not
+// stored — enter() composes them at stage entry and the credit sites recompose
+// them, both of which a load skips. Without the recompose a restored character's
+// journal shows a running quest with no objective line at all.
+//
+// ⚑ It must not become a cascade: TestRestoreDoesNotCascade guards the other
+// side of that line, and the two are a pair.
+func TestRestoreRecomposesObjectiveLines(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	l.Restore(LedgerState{
+		KillCounts: map[mobs.MobID]uint64{wolf: 5},
+		Quests: map[string]Progress{"wolf-cull": {
+			Path: []string{"cull"}, Running: true,
+			KillBase: map[mobs.MobID]uint64{wolf: 4}, // one kill into the stage
+		}},
+	})
+	snap := l.Snapshot()
+	require.Len(t, snap, 1)
+	assert.Equal(t, []string{"1/3 Wolf slain"}, snap[0].Objectives,
+		"composed from the restored stage and the restored baseline")
+}
+
+// TestRestoreSurvivesContentThatMovedUnderTheSave: a quest or stage the content
+// no longer authors must leave the lines nil, not fail the load. Content changes
+// under saved characters, and a player who cannot log in is the worse outcome.
+func TestRestoreSurvivesContentThatMovedUnderTheSave(t *testing.T) {
+	l := testLedger(t, cullQuest())
+	l.Restore(LedgerState{Quests: map[string]Progress{
+		"wolf-cull":    {Path: []string{"a-stage-that-was-retired"}, Running: true},
+		"a-lost-quest": {Path: []string{"gone"}, Running: true},
+	}})
+	for _, e := range l.Snapshot() {
+		assert.Nil(t, e.Objectives, "%s: no line rather than a panic", e.QuestID)
+	}
+}

@@ -1572,6 +1572,21 @@ stay small.
 
 ## Pass 1 — the numbers rewrite
 
+> **⭐ PLANNED IN FULL AND THEN BUILT 2026-07-31 → `docs/plan-numbers-rewrite.md`**
+> (16 PO rulings D1–D16, **16** landmines, two chunks — **C1 + C2 both ✅,
+> uncommitted, awaiting the PO feel pass**). **That doc is now the
+> implementation record; this section stays the origin** — round-2 decisions 1
+> and 2, the round-6 resource ruling at §Intake round 6 item 1, and the
+> 2026-07-29 sweep are what it was planned from. ⚑ **The bundling described
+> immediately below is SUPERSEDED by D1**: the split is engine-first
+> (byte-identical) then one numbers chunk, which retunes once *and* keeps an
+> acceptance test. ⚑ Two claims in this document were corrected against HEAD
+> while planning: **8 player skills already author `damageTags`** (the sweep's
+> "no skill authors a damageType at all" is wrong — the real gap is that
+> resistances are only ever key-gates), and **Recover was never made
+> fractional** (§Findings is accurate; `HotParams` has no fraction field at
+> all, so it is engine work).
+
 **Both systemic changes together, then a single retune on top.** They each
 rewrite every number across the skill catalog; splitting them means retuning
 the whole catalog twice and invalidating a playtest twice. Bigger chunk, less
@@ -1872,6 +1887,322 @@ Also raised and answered: a `kill` objective counts exactly **one** MobID, so
 cheap version would be a species *list*, and the tempting shortcut is wrong
 (`wildlife_predator` also contains Bear and DireBear).
 
+## Intake — round 7 (2026-08-02): first round against the live N-session deploy
+
+Twelve items in two same-day batches, raised right after the 2026-08-02 live
+deploy (feel pass 2 + R-series + quests). Triaged same-day; investigation
+findings recorded inline so nobody re-derives them. **Items 1/2/4/9/11 plus
+the empty-destination prune shipped the same day — §Round-7 ledger below;
+still open: 3 (totems, third raise), 5 (Strong visibility), 6 (dot-keying
+design Q), 7 (blue cost numbers), 8 (respec), 10 (passive wording audit),
+12 (turn-in duplication, decision pending).**
+
+### 1. Quest text: say WHERE the City Guard and the Shaman stand — ✅ `3b415fa2` 2026-08-02
+
+`wolves-on-the-road`'s carry stage says *"at the city gate"* / *"at his fire by
+the road"* with no directions. PO wants compass directions. The map answers
+(+x = east — the crier's own ambient line says "east, to the city"; north = −y,
+anchored by the Wanderer's "tunnel up north" pointing at the kobold field):
+from the west road both lie **east** — the Shaman (18, 6) east along the road,
+the City Guard (62.4, 9.6) far east at the city gate.
+⚑ `chunkC4-quests.mjs` asserts these journal strings **by name** (C3/C4/C7
+legs) — the harness must be updated in the same edit or it goes red as a fake
+regression (verify-skill rule 8).
+
+### 2. Wanderer road advice: drop "stay put" — ✅ `3b415fa2` 2026-08-02
+
+`wanderer.json` `roads` node line 2: *"The tunnel up north, if you've a light.
+If you haven't, then nowhere — stay put a while."* PO wording: head up north;
+east only with a strong group. Replaces the fatalistic line and folds the
+east-warning (currently line 1's bandit note) into the strong-group framing.
+
+### 3. Totem tooltips say nothing about what the totem does — WHERE IT LIVES
+
+Already recorded: **§Rolling filler, "Totem/companion tooltips don't describe
+the summon's effects"** (deferred 2026-07-26, re-raised by the PO 2026-07-30
+with the Call-for-Aid triple-line, **re-raised again 2026-08-02 — third time**).
+The data prerequisite recorded there still holds: the `/skills` catalog serves
+only the caster's `spawn` effect, so describing the totem means following
+`spawn.mobName` into a served loadout or serving a curated line. Third raise =
+it should stop being filler and get scheduled.
+
+### 4. OrcGrunt XP is still 5 — ✅ `3b415fa2` 2026-08-02 (experience 75)
+
+`orc-grunt.json`: `curveLevel` 20, tier normal, `experience` **5** — the old
+deliberately-starved wave-fodder value, from before the front paid like real
+content (the elite Orc went 15 → 300 in the 2026-07-21 balancing pass; the
+grunt was never revisited). PO 2026-08-02: the human NPCs are weak enough that
+full XP is fair. Proposed value: **75** (elite ≈4× normal precedent → 300/4;
+cross-check: Wolf CL2 pays 70). ⚑ One consideration for the PO before locking
+it: grunts are **encounter wave-spawned** (`warlord.go`), so a generous value
+turns the warlord's waves into a repeatable XP faucet — 75 keeps a wave worth
+less than one elite Orc.
+
+### 5. Does Strong work? (server: YES; UI: invisible) — ✅ BUILT 2026-08-02 (round-7 session 2)
+
+`strong.json` → `stat_multiplier damageDealt` → `Derived.DamageDealtBonus` →
+`outgoingDamageFactor` (`sys/skills.go:763-772`), applied at the damage
+base-composition sites, direct hits and dots. **The passive works.** What the
+PO saw is the UI gap: no tooltip or HUD surface folds the multiplier in, so
+equipping it changes nothing on screen — the **same class as Discipline before
+R1**, which needed `GameState.cost_factor` on the wire before the tooltip
+could show it. Fix shape (small chunk, not a filler line): a `damage_factor`
+sibling on `GameState`, tooltip damage lines multiply through it — the R1
+pattern verbatim, including the harness leg (`r1-focus-cost.mjs` is the
+worked example; the wiring is invisible to vitest by construction).
+
+**Built exactly to that shape** (session 2, see §Round-7 session-2 ledger):
+`GameState.damage_factor` (field default 1, appended), `DerivedStats.
+DamageFactor()` as the ONE place the 1+bonus composition lives —
+`casterDamageFactor` and the codec both read it, so the tooltip cannot drift
+from what the server deals — and the tooltip multiplies its damage and dot
+lines through it, never heals/shields/CC (pinned by vitest). Harness
+`r7-strong.mjs`: baseline `Damage: 14` → `15` with Strong equipped.
+
+### 6. Two players, same dot, same target — do both tick? — ✅ RULED + BUILT 2026-08-02 (round-7 session 2)
+
+**No.** `Buffs.ApplyDot` (`skills/buffs.go:326`) keys streams by
+(source `SkillID`, per-tick `HP`): two casters with the same skill at the same
+level match one stream, and the second application is a REFRESH — duration
+tops up and `p.dot = dot` hands the stream to the **latest caster** (credit,
+cadence, and since N3 the live lifesteal read all follow). So one dot ticks,
+last applier owns it, and under R2's work-done rule the second caster paid
+nothing for the takeover. Different levels = different per-tick HP = separate
+streams, both tick. **Design question for the PO:** is last-writer-wins
+acceptable for group PvE, or should streams key per-caster (WoW-style — both
+tick, credit stays split)? Per-caster keying is a one-line key change with a
+real damage-throughput consequence (N dot players = N× dot damage on a boss).
+
+**PO ruling (2026-08-02): per-caster streams.** `ApplyDot` now keys on
+(caster, per-event HP) — two casters with the same skill at the same strength
+each ignite their own stream, both tick, credit stays split, and under R2's
+work-done rule the second caster pays their own entry rather than riding the
+first ignition for free. ⚑ **The "one-line key change" claim was optimistic:**
+the acting site (`DueBuffEvents`) had its own second collapse — per source
+skill only the STRONGEST dot acted, across casters — so the suppression rule
+had to become per-caster too (a high-level player's dot no longer silences a
+low-level ally's; a caster's own weaker stream is still suppressed by their
+stronger one). ⚑ No map in the acting path — the per-caster check is a nested
+scan, because `DueBuffEvents` runs per entity per tick under the idle-loop
+alloc pins. **HoTs deliberately stay last-writer-wins** (PO, same day): the
+result matches **WoW Classic exactly** — dots per-caster on mobs, same-spell
+HoTs exclusive on players (one Renew per target; per-caster HoTs are the
+modern-retail design) — and Classic is the stated reference. The asymmetry is
+a ruling, not an oversight.
+
+### 7. Floating numbers: focus spent should be BLUE — ✅ BUILT 2026-08-02 (round-7 session 2)
+
+Ask: focus spent blue, heal green, incoming damage red; later a damage-type
+icon in front of incoming damage (fire → flame). Heal green and damage red
+**already exist** (`_GameObject.ts` `FLOATING_NUMBER_COLORS`: damage `0xFF4D4D`,
+crit, heal `0x4DFF88`, xp). The real gap: **paying a cost produces no floating
+number at all** — `chargeCost` (`sys/skill_cost.go:127`) subtracts Health
+directly and never touches the `damageTaken` accumulator, so costs are only
+visible as the bar dropping. Fix shape: a `cost_paid` per-tick accumulator on
+the player + a Character wire field (append-only, both binding sets), client
+renders kind `'cost'` in blue. ⚑ Do NOT route costs through `damageTaken` —
+that would make every aura pulse read as being attacked (and trip the crit
+share and damage-interrupt logic at the same choke point). Damage-type icons:
+**later** per the PO's own phrasing; parked with §39 (entity presentation
+rework) where overlay/indicator art is pooled.
+
+**Built exactly to that shape:** `NoteCostPaid` on the `costPayer` interface
+(charged by `chargeCost` with the post-clamp amount — the number shown is what
+actually left the pool), `Character.cost_paid` appended (per-tick accumulator,
+reset with damage_taken), floating kind `'cost'` in `0x4D9EFF` with the `-`
+sign, own player + other players. ⚑ The costPayer widening is the R3
+silent-wiring landmine class, so `TestRealEntitiesAndTheCostPayerCapability`
+now pins BOTH polarities on real types: `*player` must satisfy it (or every
+cost is silently free) and `*Mob` must NOT (L5 — a paying caster mob
+suicides). ⚑ Harness note (`r7-respec-cost.mjs` leg A): the health-bar text is
+NOT a witness for a cost — paying does not enter combat, so ~1 %/s regen tops
+the pool back up before an after-read; the blue number itself is the evidence.
+
+### 8. Spellbook: a reset-all (respec) button — ✅ RULED + BUILT 2026-08-02 (round-7 session 2)
+
+Refund every spent skill point in one click. Engine-real: a new
+`ClientMessageBody` message (pinned union, append-only), a server-side refund
+op (walk the spellbook, reset levels, recredit points — through the existing
+point-accounting so the D10 curve refunds exactly what was paid), and the
+button + confirm in the spellbook. Open PO calls before building: ① free or
+priced? (GDD lists respec cost as a placeholder concept) ② allowed mid-combat?
+(the equip lock precedent says no) ③ do milestone-seeded skills (Damage@L1)
+reset to level 1 or keep their floor? Not a filler item — schedule as a small
+chunk once ruled.
+
+**The three rulings (PO 2026-08-02): ① FREE ② BLOCKED IN COMBAT ③ level 1 is
+the floor** — every discovered skill returns to its discovery level, so the
+milestone-seeded free baseline survives a respec by construction. **Built:**
+`ClientMessageBody.Respec = 10` (pinned, empty table — the Respawn precedent),
+`SkillComponent.ResetSkillLevels()` (walks the spellbook through the existing
+`setSkillLevel`, so equipped instances and derived stats follow), the
+`EquipSystem` handler gated on `InCombat()` like equip, and a quiet "Reset"
+button in the spellbook title with a two-press arm ("Confirm?", 4 s window) —
+a native `confirm()` would freeze the render loop. ⭐ **The refund needed ZERO
+point arithmetic**: `SpentPoints` is derived from the spellbook ("deriving
+makes free respec drift-proof" — the comment predates the feature), so
+resetting levels IS the refund. Harness `r7-respec-cost.mjs` leg B: Swift
+3 → 1, badge 27 → 29 points.
+
+### 9. Pending spellbook selection: an illegal key should clear it — ✅ `fd6fe48e` 2026-08-02
+
+Raised 2026-08-02, second batch. With a skill selected in the spellbook
+(pending equip), pressing any key that is not a legal bind for that thing
+should reset the selection — except WASD, which keeps moving. Today the
+selection survives every keypress; only clicking elsewhere clears it
+(`clearEquipSelection`, `HUD.ts`). Legal keys per pending category: aura →
+slot keys 1–3, cooldown → Q/R/F, passive → none (click-only), so for a
+pending passive any non-movement key clears. ⚑ Implementation trap: slot
+hotkeys are rAF-sampled by `Controls`, while a raw `keydown` listener fires
+immediately — so the handler must WHITELIST the legal keys rather than
+clear-on-anything, or pressing "1" to bind a pending aura would clear the
+selection before Controls ever samples the key.
+
+### 10. Passive tooltip wording audit — ✅ DONE 2026-08-02 (round-7 session 2)
+
+Raised 2026-08-02, second batch, "things like Tough". Passives author no prose;
+every tooltip line is generated (`SkillTooltip.ts` `stat_multiplier` case:
+`STAT_LABELS[stat] + ': +X%'` — Tough renders "Damage reduction: +10%"). The
+audit is per-stat: verify each label + the flat `+pct` phrasing against the
+server's actual composition (`component.go` recomputeDerived + the apply
+sites), for all five `validStat`s and the passive-adjacent lines (Hardy's
+"Max Focus", Discipline's cost line). Small sitting, not a one-liner — each
+stat needs its formula read before its wording is judged. Fold in item 5's
+finding (Strong works but is invisible) — same surface.
+
+**Audit result: every VALUE was correct; one real bug and one ruling.**
+⚑ The bug: `costReduction` had no `STAT_LABELS` entry, so Discipline's stat
+line rendered its raw JSON key on screen (`costReduction: +6%`) — the
+fallback `STAT_LABELS[name] ?? name` fails silently by design. A vitest now
+walks every stat `recomputeDerived` dispatches, so the next passive cannot
+ship with its internal name showing. **The ruling (PO 2026-08-02): one
+reduction vocabulary** — the two subtractive stats phrase as what the player
+pays/takes with the resist lines' −X% shape: Tough `Damage taken: −10%`,
+Discipline `All costs: −6%`; the four bonus stats keep their `+`. Verified
+per formula: maxHealth ×(1+b) on the pool ✓ · damageReduction incoming ×(1−b)
+✓ · critChance additive percentage points ✓ · damageDealt ×(1+b) direct+dots
+✓ · costReduction cost ×(1−b) ✓ · resist passives multiply per tag ✓.
+
+### 11. Warlord cleave: one slow beat, duckable — ✅ `3b415fa2` 2026-08-02 (beat 90, PO duck-feel check owed)
+
+Raised 2026-08-02, second batch. PO: the boss aura should tick MUCH slower
+with all effects on the same beat, so ducking in and out of range is real
+play. Today `WarlordCleave` is two cadences — `damage_aura` 20 HP every 35
+ticks (3 targets) + a bleed `dot_aura` applied every 50 ticks — so there is
+no gap to duck through. Fix shape = R3's one-beat rule applied to the boss:
+both effects `tickInterval` 90 (3 s; Frenzy's tick_rate 0.5 halves it to
+1.5 s during windows, preserving the burn-through design), magnitudes scaled
+throughput-neutral — cleave 20 → 50 (0.571 → 0.556 HP/tick), bleed per-tick
+6 → 11 (application-rate compensation). All values [PLACEHOLDER]; the duck
+window is a feel call for the PO by eye.
+
+### 12. Journal turn-in stages say the same thing twice — ✅ RULED + FIXED 2026-08-02 (round-7 session 2)
+
+Raised 2026-08-02 (the Turnip Chore screenshot). Not a code bug: the panel
+renders each stage's authored `journal` prose (italic, accumulating) plus the
+current stage's tracker line (bold). The `ac0f8a11` plain-text pass rewrote
+turn-in journal prose into exactly the instruction the tracker already
+carried, so every turn-in stage now duplicates ("Return to the Farmer." /
+"Return to the Farmer") — `village-welcome` and `turnip-chore` exact,
+`the-lost-lamp` and `wolves-on-the-road` near. Two content-only ways out,
+recommendation on record: **drop the `tracker` field on turn-in stages** (the
+prose alone states the task) vs. re-differentiate the prose (fact + place vs.
+terse instruction). Awaiting the PO's pick.
+
+**PO pick (2026-08-02): re-differentiate the prose — AGAINST the
+recommendation on record.** The tracker stays the terse instruction; the
+journal prose now carries fact + place, still inside the "deliberately plain"
+text rule: turnip-chore *"The turnips are gathered; the Farmer waits by his
+field."* · village-welcome *"The Farmer and the Town Crier have been met; the
+Hermit waits nearby."* · the-lost-lamp *"The kobolds are dealt with; the
+Traveller waits at the tunnel mouth."* · wolves-on-the-road *"The wolves are
+thinned; word should reach the City Guard at the city gate far to the east,
+or the Shaman at his fire east along the road."* Content-only, 4 lines. ⚑ Safe
+against the harnesses by construction: `chunkC4-quests`/`chunkC3-journal`
+assert the TRACKER lines, which did not move (re-verified 37 + 1 SKIP).
+
+### Round-7 ledger (what shipped 2026-08-02, same day as the intake)
+
+- **The empty-destination prune ✅ `5f2925b9`** — the PO ruling that came out
+  of item 12's conversation, wider than the question asked: *"you should not
+  be able to see an option that leads to nothing but Back"* — teaching lists
+  and quest entries alike; multi-quest NPCs will nest one deeper
+  ("something to do" → selection → quest). Built as a derived rule in
+  `present()` (`pruneEmptyDestinations`): a pure-navigation row is dropped
+  when its target node authored options but currently presents none; runs to
+  a fixed point so it cascades through pure selection nodes; lore leaves
+  (nodes that never authored options) stay reachable; grant rows untouched
+  (CanApply/spellbook own those). ⚑ Consequences accepted with the ruling:
+  mid-quest the entry row disappears too (accept spent, turn-in not yet
+  walkable — the journal carries the brief), and a locked teaching keeps its
+  node reachable (D20's signpost). 3 red-first Go tests (quest lifecycle,
+  all-teachings-known, the selection-node cascade). No content edits needed —
+  no `quest_not_at_stage` condition vocabulary, deliberately.
+- **Items 1/2/4 ✅ `3b415fa2`** (quest directions + crier brief · Wanderer
+  advice · OrcGrunt 75) · **item 9 ✅ `fd6fe48e`** (selection-escape
+  whitelist) · **item 11 ✅ `3b415fa2`** (Warlord one-beat 90).
+- **Verified:** full Go suite + `vet` + `gofmt` · 130 vitest · `tsc` · prod
+  build · `chunk3b-ii-conversation` **31/31** · `chunkC4-quests` **37 PASS +
+  1 deliberate SKIP** (twice: after the prune, and again after the content
+  edits — C7 read the new compass text back from the journal) · a 7-leg
+  ad-hoc probe for item 9 (illegal key clears, WASD/Escape behave, long-hold
+  "1" still binds — the whitelist race the item's ⚑ warns about, proven at
+  the real surface). Boot `-content ../api` 0 errors 0 warnings.
+- **Owed to the PO by eye:** the warlord duck-window feel (item 11), the
+  grunt-XP faucet check at the warlord fight (item 4), and the prune walked
+  through in-game (Farmer/Hermit/Crier/Traveller before and after their
+  quests).
+
+### Round-7 session-2 ledger (2026-08-02, the remaining six items in one session)
+
+Every open round-7 item except totem tooltips (item 3 — the PO deliberately
+left it queued; it needs catalog/data design). Rulings collected up front as
+choice prompts, then built small → large. Details pinned inline in each item's
+section above; this is the summary.
+
+- **Item 12 ✅** — turn-in prose re-differentiated (PO pick: AGAINST the
+  drop-the-tracker recommendation). 4 content lines, trackers untouched.
+- **Item 6 ✅** — **per-caster dot streams** (PO ruling): `ApplyDot` keys on
+  (caster, HP), and the `DueBuffEvents` strongest-dot suppression became
+  per-caster too — the advertised "one-line key change" was really two sites.
+  **HoTs stay last-writer-wins by ruling**: the result matches WoW Classic
+  (per-caster dots on mobs, exclusive same-spell HoTs on players), which is
+  the stated reference. No alloc added to the per-tick path (nested scan, not
+  a map).
+- **Item 5 ✅** — Strong visible: `GameState.damage_factor`, the R1
+  `cost_factor` pattern verbatim; `DerivedStats.DamageFactor()` is the one
+  composition site. New harness `r7-strong.mjs` (14 → 15).
+- **Item 7 ✅** — blue cost numbers: `Character.cost_paid` +
+  `costPayer.NoteCostPaid` + floating kind `'cost'` (0x4D9EFF, '-' sign).
+  Capability guard pins *player pays / *Mob must not, both on real types.
+- **Item 10 ✅** — wording audit: all values correct; Discipline's stat line
+  was rendering its raw JSON key (`costReduction` missing from STAT_LABELS);
+  PO ruled one −X% reduction vocabulary (Tough `Damage taken: −10%`,
+  Discipline `All costs: −6%`), bonus stats keep `+`.
+- **Item 8 ✅** — respec: FREE · blocked in combat · level-1 floor (3 PO
+  rulings). `ClientMessageBody.Respec = 10`, `ResetSkillLevels()`, the
+  EquipSystem handler, a two-press-arm Reset button in the spellbook title.
+  The refund is zero arithmetic — `SpentPoints` is derived.
+- **Verified:** full Go suite + vet + gofmt (both trees) · 133 vitest (+3) ·
+  tsc · prod build · alloc pins `-count=2` + simharness guardrails ·
+  boot `-content ../api` 0 errors 0 warnings (87 skills / 4 quests) ·
+  harnesses one-at-a-time on fresh servers: `hygiene-wire-prune` (3 wire
+  fields added) · `r7-strong` · `r1-focus-cost` 5/5 · `round4-tooltip` ·
+  `chunkC4-quests` 37 + 1 SKIP · new `r7-respec-cost.mjs` (blue number seen
+  in-scene; respec Swift 3 → 1, badge 27 → 29).
+- ✅ **PO-VERIFIED IN-GAME 2026-08-02, all six items** — same day, committed
+  `7c30b3e8`.
+- **Follow-up from the verification pass (PO 2026-08-02): a new character
+  spawns with Damage pre-equipped in aura slot 1 — equipped, deliberately NOT
+  active** (the PO's pick: the first press of "1" turns it on). Built as a
+  derived rule in `applyCreationMilestones`: a creation-seeded ACTIVE AURA
+  fills the first free aura slot (passives stay spellbook-only); only
+  genuinely new characters keep it, because respawn/reconnect overwrite the
+  loadout right after `New` — the same property the silent-discovery rule
+  already leans on. Pinned by `TestNew_CreationAuraIsPreEquippedButNotActive`;
+  probed live (`slot0: "1Damage"`, no active slot). ✅ **PO-VERIFIED
+  IN-GAME 2026-08-02**, committed `0e161de8`.
+
 ## Rolling filler — blocks nothing, do any time
 
 > **4 of 6 ✅ DONE 2026-07-26** in one batch, committed `dab4dae0` —
@@ -1888,7 +2219,9 @@ cheap version would be a species *list*, and the tempting shortcut is wrong
   tooltip reads the caster's `spawn` effect, not the summoned mob's loadout.
   Needs the tooltip to follow the spawn into the mob's own skills.
   *(Originally deferred 2026-07-26 because `SkillTooltip.ts` was round-4
-  test-pending; that cleared long ago.)* **Re-raised by the PO 2026-07-30**
+  test-pending; that cleared long ago.)* **⚑ Re-raised AGAIN 2026-08-02 —
+  third time (§Intake round 7 item 3); should stop being filler and get
+  scheduled.** **Re-raised by the PO 2026-07-30**
   during the §35 C4 in-game check, with a second observation on the same
   surface: **Call for Aid renders "Summons Soldier Companion …" three times**
   — one line per `spawn` effect, technically true, not pretty; wants a dedupe
@@ -2232,3 +2565,363 @@ level · aura-off bystander earns nothing · army-vs-orc skirmish pays nothing �
 the kill broadcast names both (L-P4). Per the standing per-bug model, not
 blocking. **L-P1 (participant-ref XP loss on death) stays on record,
 untouched** — fix vehicle quest L11 / step 8.
+
+### Cooldown re-slot exploit — a cooldown belongs to the SKILL ✅ DONE 2026-08-01, committed `abdb5673`
+
+**PO bug report, per the standing per-bug model:** *"if I place a cooldown in a
+cooldown slot, it can instantly be used, even if it was used before. A cooldown
+is always placed in a slot with a zero second cooldown."* Backend only, 8 files.
+
+**The defect in one line: remaining cooldown was stored on the SLOT, and
+`EquipCooldown` builds a fresh `&EquippedSkill{}`.** So `CdTicks` was 0 by
+construction on every equip, and re-slotting was a free reset of any cooldown in
+the game — Recall (300 s), Revive, Bloodthirst, the lot.
+
+**⚑ The in-combat equip lock was never a fix, only a lid.** `sys/equip` has
+rejected mid-combat loadout edits since the first report of this, with a comment
+claiming it *"closes the cooldown-refresh exploit"*. It does not: `InCombat()` is
+a 100-tick recency window, so the exploit is fully open **3.3 s after your last
+hit** — i.e. between every pull, which is exactly when a player edits their
+loadout anyway. The shipped test even asserted the mid-combat half and left the
+out-of-combat half unwritten, so the gap was *pinned open* by the suite. **The
+lesson is the general one: a guard on the ACCESS PATH is not a fix for state that
+is reconstructible.** As long as the counter died with the slot, every path that
+could ever re-create a slot was a hole, and only some of them are equips.
+
+**The fix: `SkillComponent.cooldowns map[SkillID]int`, and `EquippedSkill.CdTicks`
+is DELETED, not mirrored.** Keyed by skill because that is what a cooldown
+belongs to; an absent key means ready. Deleting the old field rather than syncing
+the two is the point — a mirrored copy is the drift class this repo keeps getting
+bitten by (§35's two conf restatements, R3's two taxonomy restatements), and a
+mirror here would have re-opened the exploit the first time someone wrote to the
+wrong one. Five accessors carry it: `CooldownRemaining` / `SlotCooldownRemaining`
+/ `SetCooldownRemaining` / `StartCooldown` / `TickCooldowns`.
+
+**PO decision (choice prompt): the in-combat equip lock STAYS.** With the timer
+on the skill, re-slotting mid-fight gains nothing, so the lock became a design
+choice rather than a security control — lifting it would have made the loadout a
+free mid-fight lever and softened the 3/3/3 slot limit. Kept as authored:
+loadout editing is an out-of-combat build activity, and switching the ACTIVE AURA
+(a separate input path) remains the intended mid-fight lever.
+
+**⚑ Unslotted cooldowns keep ticking, and that is load-bearing.** `processCooldowns`
+now calls `sc.TickCooldowns()` once per entity per tick instead of walking the
+three slots. Had the map ticked only while slotted, parking a skill outside the
+loadout would FREEZE its recovery — a worse exploit than the one being closed
+(you would hold the cooldown at 1 tick remaining indefinitely and re-slot it the
+moment you wanted it). Absent-key-is-ready plus tick-everything is the shape with
+no privileged state.
+
+**Free knock-ons, none of them designed for:** the wire is unchanged
+(`codec/gamestate.go` reads through `SlotCooldownRemaining(i)`), so **no frontend
+change at all** — the HUD is server-driven and greys a re-slotted skill for its
+true remaining time on the next tick. Death and reconnect were already safe:
+`sys/state.go` carries the whole `SkillComponent` pointer through both stashes,
+so the map rides along exactly like the slots do.
+
+**Verified:** the three new tests **proven RED first** — the old behaviour was
+re-introduced as a one-line probe in `EquipCooldown` and
+`TestCooldownMemory/survives moving the skill to another slot`,
+`TestEquipSystem_OutOfCombatReslotKeepsCooldown` and
+`TestEquipSystem_ParkingOutsideTheLoadoutDoesNotResetCooldown` all failed, then
+restored. Full Go suite (28 pkgs) + `vet` + `gofmt` clean; simharness guardrails
+`-count=2`. **Sim battery unchanged — TTK 6.67 s / TTD 8.70 s stand** (mobs never
+re-equip, so the mob fire path is behaviour-identical by construction).
+`TickCooldowns` on an idle component allocates **zero** (pinned by test — it runs
+for every entity every tick, and the idle-loop alloc pins are why). Boot
+`-content ../api` 0 errors 0 warnings 0 panics — **87 skills/15 factions/64 mobs/
+10 recipes/3 milestone unlocks/4 quests/5 prop definitions/777 props/485 spawns/
+5 campfires**.
+
+**Harness gate**, one at a time on freshly restarted servers: `swift-cooldown.mjs`
+**7/7**, and `chunk2-follower.mjs` **5/5 + 1 SKIP** — the summon path end to end
+(spellbook → cooldown slot → **fire** → follow), including its wait-out-a-running-
+cooldown loop, with the engage leg going INCONCLUSIVE on the **accepted D9
+fragility** (the pet is focused by its former packmates and died before it could
+be watched — not a cooldown signal either way). Both runs 0 console errors /
+0 WebGL losses.
+
+**⚑ And the harness gate is why this ledger can say that honestly.** The first
+clean `swift-cooldown` run scored **5/7** at a 1.20× sprint ratio — nothing in
+the diff touches `Buffs.MovementFactor()`, so the tempting move was to call it a
+flake. Settled instead per the verify skill's own rule: `git stash` + rebuild →
+HEAD baseline **7/7 at 1.39×**, restore + rebuild → **7/7 at 1.43×**. The bad run
+carried a **0.90 u/s unbuffed leg** against a nominal 1.5 — the documented
+obstruction signature — so it was the venue, not the change. A fourth run before
+that was void on a lost WebGL context (§29), which is an INVALID run, not a
+failure. Three runs to settle one number, and the alternative was shipping a
+guess in a ledger.
+
+### The next-level preview is gated on affordability ✅ DONE 2026-08-01, `66646743`
+
+**A PO ask, raised straight into a session and shipped in one sitting** —
+*"we should only show the effects a level up of a skill will give once a skill
+point is actually available; otherwise the tooltip should just show the current
+effects."* Frontend only, 3 files + 1 harness. Not a numbers item and not part
+of R1–R3, though it lands on the surface all three of them re-authored.
+
+**What was wrong:** the round-4 tooltip fix gave every level-scaled value a
+`current → next` preview whenever the skill was below its cap, which is a
+different condition from *the player can act on this*. A level-1 character
+holds **zero** points (`TotalSkillPoints` is `(level−1) × pointsPerLevel`), so
+from creation until the first ding every hovered skill advertised an upgrade
+with no way to buy it — and the same returns the moment the last point is
+spent, which at the cap is the permanent state.
+
+**The shape, as built:**
+
+- **One preview cap.** Every `→` in the tooltip renders through `prog()`, which
+  previews only while `level < maxLevel`, so the whole feature is
+  `previewMax = showNextLevel ? def.maxLevel : level` threaded to the effect
+  blocks and the four skill-level `prog` calls. Damage, cost, radius, targets,
+  tick cadence, cooldown and cast time are gated by that one line, and **a new
+  effect type inherits the gating without knowing it exists**.
+- **A RENDERING cap only** — the subtitle still reads `def.maxLevel`, so the
+  player keeps seeing how far the skill can go, and the cooldown branch's
+  summed per-cast cost still measures its slope across the real level range:
+  `previewMax` decides *whether* a next value is shown, never what it would be.
+- **PO ruling (choice prompt): the trigger is AFFORDABILITY, not possession.**
+  Levels cost 1–3 points on the D10 curve, so *"I hold a point"* and *"I can
+  buy this level"* are different questions. `showTooltip` asks
+  `skillPointCost(def.maxLevel, level + 1)` against the live count — the same
+  rule `updateSpellbook` already greys the `+` button on — so the preview
+  appears **exactly when the button is live**.
+- **The count is pushed, not pulled.** `SkillTooltip` cannot import `HUD` back,
+  so `updateSkillPointsDisplay` hands it over on every change. It starts at 0,
+  the conservative direction: before the first snapshot there is no preview
+  rather than a wrong one.
+
+**⚑ The wiring is invisible to vitest, by construction.** `formatSkillTooltip`
+stays pure and takes the flag as an argument, so **a HUD that never pushed the
+count would leave all 111 unit tests green with the feature dead on screen** —
+which is why `round4-tooltip.mjs` grew the leg that watches it (no preview at
+character level 1, preview after the XP cheat hands out 29 points).
+
+**⚑ And that harness needed a real repair — the same failure mode the R1/R2
+cost-wording fix had just been through.** Its radius check proves radius does
+*not* ride the character curve by comparing the whole rendered line, and the XP
+cheat between its two hovers is precisely what turns the preview on: so an
+unmoved radius (`Radius: 2.5` vs `Radius: 2.5 → 2.6`) reported as **moved**,
+i.e. as an over-applied power scale. It now compares the current value alone.
+**A harness that asserts on rendered text is broken by any change to what is
+rendered**, not only by a change to what it measures.
+
+**Verified:** **111 vitest** (4 new — previews present when affordable, absent
+when not, the subtitle unaffected either way, and a cooldown's summed per-cast
+cost gated too) · `tsc` · prod build · harnesses one at a time on fresh
+servers: **`round4-tooltip` all legs** and **`r1-focus-cost` 5/5** (cost
+reduction still visible, `21,26 → 20,25` Focus). Read off a real client:
+Rejuvenation at character level 1 with no points renders `Heal over time: 4 × 6
+over 11.88s | Costs you: 3 Focus | Radius: 2.5`, and after XP to the cap
+`107 → 134 | 82 → 102 Focus | Radius: 2.5 → 2.6`.
+
+**⚑ Harness gotcha worth keeping, cost two red runs:** a **second Claude
+session on the same machine** was running `swift-cooldown.mjs` and restarting
+`aurad` on port 2000 underneath this one — presenting as a dead XP cheat, a
+missing Discipline and a stray `equip Swift` by a player this script never
+created. `AURAD_CONF=<copy with server.port changed>` gives a private server
+(`./aurad -dev -content ../api` reads the env var, `loaders.go:262`) and the
+harnesses take the URL, so a parallel run needs no coordination.
+
+### Help panel — a placeholder tutorial ✅ DONE 2026-08-02, `8cc3ef82` — PO-VERIFIED IN-GAME 2026-08-02
+
+**A direct PO ask, not an intake item:** get the game's mechanics into the game
+as readable text NOW, as a stand-in until a real tutorial exists. A circled `?`
+at the top of the zoom column (placement PO-picked over the left column) opens
+a "How Aura works" overlay — **12 short sections ordered by when a new player
+meets each mechanic**, written as design statements, not FAQ. The draft was
+PO-edited before implementation: auras pick their own targets and are mostly
+target-capped (not "affects everything inside"), the beat folded into the aura
+section, "no way to grief" cut (*an intent, not a fact*), and **dying loses the
+XP gathered toward the next level**. Deliberately covers only what is live —
+no combinations, no exploration unlocks.
+
+**Shape: frontend-only, 5 files, zero logic beyond visibility.** Content is
+static HTML in `HUD.html`; `features/help/logic/Help.ts` (~40 lines) wires the
+button and ✕/Esc (`pointerdown`, per the documented click gotcha); the panel
+reuses the journal overlay pattern (only the body scrolls) and the button the
+zoomButton vocabulary. No hotkey by PO choice — button and Esc only. §39's
+presentation rework restyles it with everything else; the parked feel-pass
+"tutorial for entry pricing" item (`archive/plan-feel-pass-2.md` §6) remains
+open — this is written info, not a taught flow.
+
+**Verified:** `tsc` · 132 vitest · prod build · an 8/8 scratchpad smoke on a
+fresh server (button present, panel opens by real click, all 12 sections in
+order, Esc and ✕ close, 0 console errors) + screenshot. The smoke was NOT
+promoted into the verify suite — a static panel with no server state isn't
+worth a coverage-map row.
+
+### A mobile layout — the HUD stops covering the world on a phone ✅ DONE 2026-08-02 — PO-VERIFIED ON A REAL PHONE 2026-08-02
+
+*(Moved here from the CLAUDE.md status banner 2026-08-02 when the render-cost
+entry below superseded it as "last completed" — it had no plan-doc ledger, and
+the collapse rule needs one. Prose is the banner's, unedited except this note.)*
+
+PO ask (*"the UI elements all block the movement and view"*), **frontend only,
+no backend/wire change**, 4 PO rulings taken up front. **One class does
+everything:** `Mobile.ts` decides once at boot (`matchMedia('(pointer: coarse)')`,
+`?mobile`/`?desktop` overriding) and stamps **`html.mobile`**; every rule lives
+under it in the new `HUD.mobile.less`, so **the desktop HUD is unaffected by
+construction, not by inspection**. ⭐ **The sheet needed no DOM surgery** —
+`#leftColumn` (journal button + spellbook + passives) *becomes* the full-screen
+menu, and `#zoomControl`/`#minimap`/`#gameSettings`, which are SIBLINGS, are
+pulled into it by position + z-index, so every existing handler keeps working
+untouched. Always on screen: Focus/XP bars (moved off the thumb corner to the
+top edge), six tap tiles in one row, combat indicator, alerts.
+
+⚑ **Two defects found while building, both invisible to the layout work
+itself:** ① **read-only overlays were eating movement input** — `#inputAreas`
+(the joystick) sits BELOW `#gameUI`, so `#bottomCenter`'s full-width transparent
+strip and the bars swallowed touches across two wide bands (15 of 81 hit-test
+points); display-only elements are now `pointer-events: none` with the tappable
+children opting back in, worth **+20 points of world visibility on its own**;
+② **equipping was impossible for two of three categories** — the spellbook is
+inside the sheet but aura/cooldown slots are the tiles BEHIND it, so selecting a
+non-passive now closes the sheet (passives keep it open, their slots are in it).
+Tapping a tile already activated auras and fired cooldowns, so the tile bar
+itself needed **zero logic change**.
+
+**Scaling is ONE knob** — `html.mobile { font-size: clamp(15px, 4.1vmin, 28px) }`
+— keyed to **vmin so portrait and landscape agree**; a phone lands on 15.99px
+(the browser default the layout was verified at, so nothing phone-side moves)
+while a tablet/forced-desktop scales to 28px. ⚑ **Set on `<html>` directly
+rather than via `html:has(body.mobile)`**: rem is root-relative, and a `:has()`
+on the ROOT is evaluated against the whole document — the class goes on the root
+so a desktop page carries no `:has()` bookkeeping it did not already have.
+⚑ **The multi-viewport harness leg caught a real bug on its first run**: in
+PORTRAIT six 90px tiles + gaps need 591px on a 390px screen and the last
+cooldown fell off — hence `@mobile-tile: min(5.6rem, 15vh, 13vw)`, where **the
+13vw term binds in portrait only**.
+
+**Verified — desktop invariance MEASURED, not asserted:** a computed-state probe
+(rect + 18 computed properties for 33 HUD elements, every slot row, every
+hotkey) diffed against a HEAD rebuild is **identical except `domNodes` 417 →
+418**, the one hidden `#mobileMenuButton`; a selector audit shows **46 mobile
+rules, exactly 1 unscoped** (that button's `display: none`); 400 forced style
+recalcs cost **0.4–0.6ms on BOTH builds** (529 → 575 CSS rules, unmeasurable),
+desktop registers **zero** new listeners (`MobileMenu.setup` early-returns off
+`isMobile()`) and adds no per-frame work; CSS +4,967 B, JS +1,983 B. Plus `tsc`
+· 133 vitest · prod build · new `mobile-layout.mjs` all checks (world visibility
+**28% → 85%** at 844×390) · desktop control `r1-focus-cost` 5/5 ·
+`chunkC3-journal` journal geometry unchanged at both desktop viewports.
+
+**Follow-up same day: the interact verb got a tappable twin.** A phone has no E,
+so on mobile the badge over the actor's head is **REPLACED, not accompanied**
+(PO wording) by a gold speech-bubble button at the bottom right. ⭐
+**`Interact.trigger()` is the ONE definition of what an interact press does** —
+the key and the button both call it, so the second-press-closes rule (D21)
+cannot drift between them, the same shape as `toggleAuraSlot` serving both the
+hotkey and the click. Both surfaces are driven from **`Backend.applyGameState`'s
+single site** off the same `badged` id (`updateInteractBadge(isMobile() ? 0 :
+badged)` + `Interact.updateButton(badged)`), so badge and button can never name
+different actors; `InteractBadgeTargeting` and `Mobs.setInteractable` are
+untouched. ⚑ **The button must restate `.hidden` itself** — the global
+`.hidden {display:none}` is a bare class (0,1,0) and loses to
+`html.mobile #interactButton` (1,2,1), so without it the button would never
+hide. Position is `bottom: calc(tile + 2×edge)` rather than the true corner: in
+portrait the six tiles span nearly the full width. New harness
+`mobile-interact.mjs` **14/14** — badge absent + button shown on mobile, the
+desktop CONTROL inverted (badge shown, button absent), tap opens the panel, the
+button steps aside while it is open, comes back on leave, and hides out of
+range. **Desktop re-verified against the commit before it: the computed-state
+diff is again `domNodes` 418 → 421** — the button's div + svg + path,
+`display:none` — with 0 console errors both sides; `chunk3b-interact` (the E
+verb) and `r4-badge` (the badge anchor) both re-run green.
+
+### Mobile render cost — the phone was asked for 3 Mpx a frame ✅ DONE 2026-08-02, `59dfe266` — PO-VERIFIED ON A REAL PHONE 2026-08-02, DEPLOYED LIVE same day
+
+**A direct PO report against the live mobile deploy:** *"mobile performance and
+especially movement is quite laggy"* — with the open question of whether it was
+something obvious or a deep problem. It was obvious, it was **one** root cause,
+and the fix is two expressions in one file.
+
+`Game.ts` initialised the renderer with `resolution: window.devicePixelRatio`
+and `antialias: true` **unconditionally**. A phone reports DPR 3, so the canvas
+was a **1170×2532 backbuffer — 2.97 Mpx per frame with MSAA on top**, more
+pixels than a 1440p desktop monitor, on a phone GPU.
+
+⭐ **The measurement that named the cause: frame time is very nearly LINEAR in
+pixel count** (0.34 Mpx → 85.7 ms, 1.33 → 270.5, 2.97 → 621.9; fitting gives
+~16 ms fixed + ~204 ms/Mpx). The scene is **fill-bound, not JS-bound** — the
+per-frame JS is already a small constant, and the `AuraRings` / `updatePlate`
+dirty checks were all doing their job. That is what made this a one-knob fix
+rather than an optimisation pass.
+
+⚑ **The reported symptom was MOVEMENT, and movement is a CONSEQUENCE, not a
+second bug.** `Controls`' Tock clock is `setTimeout`-based at 33 ms and so is
+nominally independent of rendering — but it still needs the main thread, and a
+saturated one starves it. Measured input sends **tracked the frame rate 1:1**:
+**1.8/s at DPR 3, 10.4/s at DPR 1, against a 30/s target.** The server then
+coasts between inputs and corrects, which reads as lurching and rubber-banding
+*on top of* the low framerate. Anyone chasing this from the input side —
+joystick, `INPUT_TICKRATE`, the stop-tail, packet loss — would have found
+nothing wrong there, because nothing is.
+
+**Two things were checked and CLEARED**, both plausible suspects: the drag
+reaches the joystick correctly (`.nipple` spawns, `elementFromPoint` hits
+`.left-input-area` — the mobile-layout `pointer-events` work is sound), and
+there are **no passive-listener / `preventDefault` warnings**, because nipplejs
+sets `touch-action: none` on its own zone. `html`/`body` are still `touch-action:
+auto`, which is a minor iOS double-tap-zoom arbitration cost on HUD taps —
+recorded, not fixed.
+
+**PO ruling:** cap at **2** and turn antialias **off on mobile**.
+
+**Shape: frontend-only, ONE file, both knobs gated on the existing
+`isMobile()`.** Desktop is unchanged **by construction, not by inspection** —
+off mobile `antialias: !isMobile()` is `true` and `renderResolution()`
+early-returns the bare `window.devicePixelRatio`, which are literally the two
+previous expressions. ⭐ **`renderResolution()` is ONE definition read by both
+`init()` and the resize handler**: a second `window.devicePixelRatio` left at
+the resize site would have silently dropped the cap on the first orientation
+change — the exact drift class that handler's own comment exists to close.
+`MOBILE_MAX_RESOLUTION = 2` is a named `[PLACEHOLDER]` constant, so 1.5 is a
+one-line turn.
+
+⚑ **MSAA was close to pure cost here:** it antialiases *geometry* edges only, so
+in a sprite-based 2D game it touched nothing but the vector `Graphics` — aura
+rings, bars, tier frames — while being paid for over the whole framebuffer.
+Measured **−26 % frame time at DPR 3** on its own. It very slightly hardens
+those ring edges on mobile; PO accepted by eye.
+
+**Verified:** `tsc` · 133 vitest · prod build · `ctxloss-warning clean` at the
+documented baseline (**5 GL contexts / 2 probe losses / 0 warnings** — this
+changes the renderer boot path, so CLAUDE.md requires it) · `mobile-layout` all
+checks · `mobile-interact` 14/14 incl. its desktop control · `r1-focus-cost`
+5/5 as the desktop control. Live boot 0 errors 0 warnings, 87 skills/15
+factions/64 mobs/10 recipes/5 props/4 quests/5 campfires.
+
+**A/B, interleaved so machine load cannot favour either arm** (one phone
+viewport 390×844 at device DPR 3, `?desktop` vs `?mobile` in the *same* build):
+
+| | backing | Mpx | frame mean | input sends/s |
+|---|---|---|---|---|
+| before | 1170×2532 | 2.96 | 559.4 ms | 1.3 |
+| after | 780×1688 | 1.32 | 230.9 ms | 2.5 |
+
+**2.25× fewer pixels → 2.42× faster frames → 2× the input rate.** ⚑ **Read the
+ratios, never the absolutes** — headless Chromium rasterizes in software, so the
+fps figures are not device predictions; the pixel-count drop is the hard fact.
+Confirmed on the **deployed** bundle: phone path `780×1688`, `SAMPLES=0`;
+desktop control `1170×2532`, `SAMPLES=4`.
+
+⚑ **Two near-misses worth keeping.** ① A single-context run of the fixed build
+reported **16.7 ms / exactly 60 fps** — a 14× beat on the predicted 2.4×, which
+is the *blank-world* signature (§29). It was real, proven by screenshot before
+being believed, but the absolute was a quiet-machine artifact; the interleaved
+A/B is the number that survived. **A suspiciously good result deserves the same
+scepticism as a bad one.** ② A pixel-readback probe reported the canvas as 100 %
+black — `preserveDrawingBuffer` is false, so reading the WebGL buffer outside a
+frame is *always* black. **The probe was broken, not the render**; a Playwright
+screenshot goes through the compositor and shows the truth.
+
+**Open — PO: *"works fine for now, needs some love"*.** Not a regression, a
+ceiling: this recovered ~2.4× and stopped the input starvation, but mobile is
+not yet *good*. The cheapest next turns, in order — `MOBILE_MAX_RESOLUTION`
+1.5 (one line, measurably faster, near-indistinguishable at phone viewing
+distance) · the minimap is a **second WebGL context** rendering every frame,
+which costs a driver-level context switch per frame for a 94×94 canvas · the
+`touch-action: auto` on `html`/`body` above · and only then anything structural.
+⚑ **Not to be confused with `plan-server-performance.md`**, which is the
+*server's* concurrent-player ceiling; this is client render cost and the two
+share no mechanism.

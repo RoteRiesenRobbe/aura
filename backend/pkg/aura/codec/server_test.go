@@ -3,9 +3,9 @@ package codec
 import (
 	"testing"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/stretchr/testify/assert"
-	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 )
 
 // TestWelcomeMarshalFlatbuf_RoundTrip pins that the Welcome message — including

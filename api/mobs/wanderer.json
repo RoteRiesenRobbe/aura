@@ -1,5 +1,5 @@
 {
-  "_comment": "⚑ The one conversant that MOVES (plan-entity-model.md chunk 3b-ii, D22): every other NPC ships speed 0, so without this the hold — an actor in conversation stops walking and resumes after — would be shipped blind, exercised by nothing. speed 0.5 × idleSpeedFactor 0.35 ≈ 0.29 units/s, a stroll roughly half a chasing Orc; the short dwell (1–3 s vs the 3–10 s default) is deliberate, because an NPC that stands still a third of the time makes 'it stopped to talk' unprovable. ⚑ collisionMask 80 = MobStatic(64) + Border(16), the moving-mob default: the other 13 author 16 because a stationary NPC never needed to notice a tree. All movement values [PLACEHOLDER]. ⚑ wanderRadius also RANDOMISES THE SPAWN POINT — MobSystem.spawnAt offsets the authored position by randomInDisc(wanderRadius) — so this NPC starts up to 4 units off (-15.53, 30.68) and wanders 4 more. It is never where the zone file says, which matters for anyone (or any harness) trying to find it. Waypoints on the spawn are the alternative if a road route reads better than an amble, and they would also pin the start. — Teaching/lore NPC on the actor model (chunk 3a): formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Recall. The zone entry called it 'Wanderer_1'; the suffix was placement bookkeeping, not a name.",
+  "_comment": "⚑ The one conversant that MOVES (plan-entity-model.md chunk 3b-ii, D22): every other NPC ships speed 0, so without this the hold — an actor in conversation stops walking and resumes after — would be shipped blind, exercised by nothing. speed 0.5 × idleSpeedFactor 0.35 ≈ 0.29 units/s, a stroll roughly half a chasing Orc; the short dwell (1–3 s vs the 3–10 s default) is deliberate, because an NPC that stands still a third of the time makes 'it stopped to talk' unprovable. ⚑ collisionMask 80 = MobStatic(64) + Border(16), the moving-mob default: the other 13 author 16 because a stationary NPC never needed to notice a tree. All movement values [PLACEHOLDER]. ⚑ wanderRadius also RANDOMISES THE SPAWN POINT — MobSystem.spawnAt offsets the authored position by randomInDisc(wanderRadius) — so this NPC starts up to 4 units off (-15.53, 30.68) and wanders 4 more. It is never where the zone file says, which matters for anyone (or any harness) trying to find it. Waypoints on the spawn are the alternative if a road route reads better than an amble, and they would also pin the start. — Teaching/lore NPC on the actor model (chunk 3a): formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Recall behind the unified 'Teach me something.' row (PO 2026-08-02 — plain teach text, rows NAME the skill). The zone entry called it 'Wanderer_1'; the suffix was placement bookkeeping, not a name.",
   "id": 60,
   "name": "Wanderer",
   "type": "MOB",
@@ -29,19 +29,27 @@
       {
         "id": "root",
         "lines": [
-          "Oh — sorry. Wasn't expecting anyone out this way. Don't let me keep you standing."
+          "I am passing through."
         ],
         "options": [
-          {"text": "Which way is safe?", "next": "roads"},
+          { "text": "Which way is safe?", "next": "roads" },
+          { "text": "Teach me something.", "next": "teachings" }
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": [
+          "What do you want to learn?"
+        ],
+        "options": [
           {
-            "text": "Teach me to find my way back.",
-            "blockedLine": "Are you sure you should be out here? Anyways, don't go further east.",
+            "text": "Recall",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Recall",
                 "requiredLevel": 3,
-                "line": "Always nice to return to a fire!"
+                "line": "I'll teach you Recall."
               }
             ]
           }
@@ -50,8 +58,8 @@
       {
         "id": "roads",
         "lines": [
-          "Not east. Bandits are watching that road, and they've stopped bothering to hide it.",
-          "The tunnel up north, if you've a light. If you haven't, then nowhere — stay put a while."
+          "North, through the tunnel. Bring a light.",
+          "East is dangerous. Bandits watch that road."
         ]
       }
     ]

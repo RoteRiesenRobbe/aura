@@ -155,10 +155,6 @@ func (s *InteractionSystem) sense() {
 		id := a.Basic().ID()
 		prev := s.seen[id]
 		current := map[uint64]bool{}
-		// An actor that has been pulled into a fight stops offering to talk, to
-		// every player at once (D21) — hoisted out of the loop because it does
-		// not vary per player.
-		actorCanTalk := !a.InCombat()
 		for c := range a.Sensor().Collisions() {
 			p, ok := c.Shape().UserData.(model.PlayerEntity)
 			if !ok {
@@ -172,22 +168,14 @@ func (s *InteractionSystem) sense() {
 			// player standing still keeps the badge, and a player who logs in
 			// already in range gets one.
 			//
-			// ⚑ Combat is part of the OFFER, not just of the teardown. D21 says
-			// combat ends a conversation; if that rule lived only in
-			// refreshConversations, the sensor would keep stamping through the
-			// whole recent-combat window and the client would keep drawing a lit
-			// badge over an actor that refuses to talk — a prompt that does
-			// nothing, which is exactly what handleInteracts' contract below says
-			// must never happen. Withdrawing the offer instead makes the badge go
-			// dark, makes `E` a legitimate no-op, and keeps range/combat/session
-			// agreeing on ONE number.
-			//
-			// Ambient lines below are deliberately NOT gated: they are
-			// independent of the conversation (D18), and a town crier calling out
-			// as you sprint past mid-fight is the behaviour, not a bug.
-			if actorCanTalk && !p.InCombat() {
-				p.NoteInteractable(id, p.Position().DistanceToSquared(a.Position()))
-			}
+			// ⚑ Deliberately NOT gated on combat — either side's (Q1 §4.2,
+			// plan-conversation-journal.md). D21's gate caused the bug it was
+			// meant to prevent: the window was re-stamped by the player's OWN
+			// aura ticking, so a damage-aura player was un-talkable for the
+			// whole fight plus 3.3 s, and it read as a broken NPC. Nothing is
+			// blocked while a panel is open, so talking mid-fight is safe; what
+			// still ends things is range, death, disconnect and despawn.
+			p.NoteInteractable(id, p.Position().DistanceToSquared(a.Position()))
 
 			if prev[pid] {
 				continue // still in range since last tick — not a rising edge
@@ -298,17 +286,11 @@ func (s *InteractionSystem) refreshConversations() {
 			// Walked out of talking range. Free to check: the badge already
 			// recomputes this every tick, and comparing against the same stamp
 			// keeps range enforcement to one number.
-			p.Interactable() != id,
-			// ⚑ D21, and the rule that makes a non-blocking panel safe: a player
-			// cannot be left reading dialogue while something eats them, and an
-			// actor that has been pulled into a fight stops talking.
 			//
-			// Belt and braces since the R2 fix: sense() already withdraws the
-			// OFFER in combat, so the range comparison above catches this too.
-			// Kept explicit because this is a safety rule about session state, not
-			// about what the badge draws — if the offer logic ever changes, the
-			// panel must still close.
-			p.InCombat(), a.InCombat():
+			// ⚑ Combat is deliberately NOT in this list any more (Q1 §4.2):
+			// D21's gate is overruled — see the sense() comment above. Range,
+			// death, disconnect and despawn are the only end conditions.
+			p.Interactable() != id:
 			p.SetConversingWith(0)
 			continue
 		}
@@ -427,6 +409,16 @@ func present(in *mobs.Interaction, p learner) *model.Conversation {
 		return nil // nothing to say to this player right now
 	}
 
+	rows := make(map[string][]model.ConversationOption, len(in.Nodes))
+	for i := range in.Nodes {
+		node := &in.Nodes[i]
+		if !visible[node.ID] {
+			continue
+		}
+		rows[node.ID] = presentOptions(node, p, visible)
+	}
+	pruneEmptyDestinations(in, rows)
+
 	c := &model.Conversation{EntryNode: entry}
 	for i := range in.Nodes {
 		node := &in.Nodes[i]
@@ -436,10 +428,43 @@ func present(in *mobs.Interaction, p learner) *model.Conversation {
 		c.Nodes = append(c.Nodes, model.ConversationNode{
 			ID:      node.ID,
 			Lines:   node.Lines,
-			Options: presentOptions(node, p, visible),
+			Options: rows[node.ID],
 		})
 	}
 	return c
+}
+
+// pruneEmptyDestinations drops every pure-navigation row whose target node has
+// nothing left to show (PO 2026-08-02): a node that AUTHORED options but
+// currently presents none of them is nothing but Back, and a row promising it
+// is a button that leads nowhere. Lore leaves — nodes that never authored
+// options — stay reachable, their lines are the content. Grant-bearing rows are
+// never touched here; their visibility is CanApply's and the spellbook's call.
+//
+// Runs to a fixed point so the prune cascades through pure selection nodes
+// (the nesting shape ruled for multi-quest NPCs). Each pass only ever removes
+// rows, so it terminates regardless of authored cycles — the same reason
+// present() itself needs no cycle check.
+func pruneEmptyDestinations(in *mobs.Interaction, rows map[string][]model.ConversationOption) {
+	hasAuthored := make(map[string]bool, len(in.Nodes))
+	for i := range in.Nodes {
+		hasAuthored[in.Nodes[i].ID] = len(in.Nodes[i].Options) > 0
+	}
+	for changed := true; changed; {
+		changed = false
+		for id, rs := range rows {
+			kept := rs[:0]
+			for _, r := range rs {
+				if r.GrantIndex == model.ConversationNoGrant &&
+					hasAuthored[r.Next] && len(rows[r.Next]) == 0 {
+					changed = true
+					continue
+				}
+				kept = append(kept, r)
+			}
+			rows[id] = kept
+		}
+	}
 }
 
 // presentOptions turns one node's authored options into the rows a player sees.
@@ -479,11 +504,15 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 		// grants under one option are a MENU of independent teachings. The loader
 		// guarantees the quest grant leads, so the row addresses index 0.
 		//
-		// Availability is authored with quest_at_stage conditions rather than derived
-		// here: unlike a skill, a quest op has no "already known" the panel could
-		// read, and applyGrant refuses the row on its own merits if the ledger
-		// disagrees.
+		// ⭐ Shown iff its ledger op would succeed (Q1 §4.1 ②) — D17's already-known
+		// rule applied to a second grant kind. CanApply is the SAME judgement the
+		// mutating ops run (L3), so an Accept row vanishes the moment the quest is
+		// running while its sibling questions stay, and a turn-in appears exactly
+		// when it can be taken — with nothing new to author.
 		if opt.Grants[0].Kind.IsQuestKind() {
+			if !p.QuestLedger().CanApply(&opt.Grants[0]) {
+				continue
+			}
 			rows = append(rows, model.ConversationOption{
 				OptionIndex: uint8(oi),
 				GrantIndex:  0,
@@ -512,11 +541,13 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 
 			locked := level < g.RequiredLevel
 			// D20: a locked row is shown with its wall named, so each NPC is a
-			// signpost for progression. The reply is chosen by the row's state,
-			// which is what lets the panel answer on click with no round-trip.
+			// signpost for progression. But it says NOTHING when clicked (Q1/R1):
+			// the greying and the named wall already carry the message, so a
+			// locked row rides with an empty Reply and applyTeach refuses it
+			// silently — the deliberate twin that keeps the two ends agreeing.
 			reply := g.Line
 			if locked {
-				reply = opt.BlockedLine
+				reply = ""
 			}
 			// An authored label wins; otherwise the skill names its own row.
 			// Several grants under one authored Text would all read alike, so
@@ -551,8 +582,8 @@ func presentOptions(node *mobs.InteractionNode, p learner, visible map[string]bo
 // (L21).
 //
 // ok=false is a silent refusal — a stale click from a player who just walked
-// away is ordinary, not an error. A LOCKED row is ok=true with nothing taught:
-// the actor answers with the authored blockedLine and hands nothing over.
+// away is ordinary, not an error. A LOCKED row is refused the same way (Q1/R1):
+// it renders greyed with its wall named, and that is the whole answer.
 //
 // The returned reply is deliberately NOT sent anywhere: the panel already said
 // it, straight out of the streamed row (D19/L24). It exists so a test can prove
@@ -582,7 +613,7 @@ func applyGrant(in *mobs.Interaction, p learner, nodeID string, option, grant in
 	g := &opt.Grants[grant]
 	switch {
 	case g.Kind == mobs.GrantTeachSkill:
-		return applyTeach(opt, g, p)
+		return applyTeach(g, p)
 	case grant == 0 && g.Kind.IsQuestKind():
 		return applyQuestRow(opt, p)
 	default:
@@ -593,14 +624,16 @@ func applyGrant(in *mobs.Interaction, p learner, nodeID string, option, grant in
 }
 
 // applyTeach adds one skill to the spellbook: the original kind, unchanged.
-func applyTeach(opt *mobs.InteractionOption, g *mobs.InteractionGrant, p learner) (string, *skills.SkillID, bool) {
+func applyTeach(g *mobs.InteractionGrant, p learner) (string, *skills.SkillID, bool) {
 	sc := p.SkillComponent()
 	if sc.HasDiscovered(g.Skill.ID) {
 		// Not presented, so this can only be a stale click or a crafted one.
 		return "", nil, false
 	}
 	if p.Progression().Level < g.RequiredLevel {
-		return opt.BlockedLine, nil, true
+		// A locked row is inert (Q1/R1): presented greyed with an empty Reply,
+		// and refused here like any stale click — the greying already said it.
+		return "", nil, false
 	}
 
 	sc.Discover(g.Skill.ID)

@@ -201,9 +201,9 @@ func TestComponentLightRadius_ActiveAndPassiveTakeMax(t *testing.T) {
 // GDD §7 trade-off resolution.
 func TestComponentLightRadius_PassivePersistsAcrossAuraSwitch(t *testing.T) {
 	sc := NewSkillComponent(true)
-	sc.EquipAura(0, lightAuraDef, 3)                             // 6.0
-	sc.EquipAura(1, &SkillDefinition{ID: 93, MaxLevel: 1}, 1)    // no light
-	sc.EquipPassive(1, lightPassiveDef, 1)                       // 2.5
+	sc.EquipAura(0, lightAuraDef, 3)                          // 6.0
+	sc.EquipAura(1, &SkillDefinition{ID: 93, MaxLevel: 1}, 1) // no light
+	sc.EquipPassive(1, lightPassiveDef, 1)                    // 2.5
 	sc.SetActiveAura(0)
 	assert.Equal(t, float32(6.0), sc.LightRadius())
 
@@ -403,30 +403,83 @@ func TestLowerSkillLevel(t *testing.T) {
 	})
 }
 
+// defRegistry is a Registry over a handful of definitions — the minimum
+// SpentPoints needs now that the point cost is cap-relative (L1).
+type defRegistry map[SkillID]*SkillDefinition
+
+func (r defRegistry) Get(id SkillID) (*SkillDefinition, error) {
+	if def, ok := r[id]; ok {
+		return def, nil
+	}
+	return nil, assert.AnError
+}
+func (r defRegistry) GetByName(string) (*SkillDefinition, error) { return nil, assert.AnError }
+func (r defRegistry) All() []*SkillDefinition                    { return nil }
+
+// The D10 table, straight from the plan doc: the first half of a skill's own
+// levels cost 1 point, the third quarter 2, the last quarter 3.
+func TestPointCost_EscalatesRelativeToTheSkillsOwnCap(t *testing.T) {
+	t.Run("cap 10 — the build-defining core auras (D11)", func(t *testing.T) {
+		for level, want := range map[int]int{1: 0, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 2, 8: 2, 9: 3, 10: 3} {
+			assert.Equal(t, want, PointCost(10, level), "level %d", level)
+		}
+		assert.Equal(t, 16, BoundPoints(10, 10), "16 points to max a 10-cap skill")
+	})
+
+	t.Run("cap 5 — the supporting skills, quarters rounded up", func(t *testing.T) {
+		for level, want := range map[int]int{1: 0, 2: 1, 3: 1, 4: 2, 5: 3} {
+			assert.Equal(t, want, PointCost(5, level), "level %d", level)
+		}
+		assert.Equal(t, 7, BoundPoints(5, 5), "7 points to max a 5-cap skill")
+	})
+
+	t.Run("cap 1 — binary abilities cost nothing at all", func(t *testing.T) {
+		assert.Equal(t, 0, PointCost(1, 1))
+		assert.Equal(t, 0, BoundPoints(1, 1))
+	})
+
+	t.Run("level 1 is free on unlock, and past the cap is unbuyable", func(t *testing.T) {
+		// The free first level is load-bearing for the free floor (D6): every
+		// discovered skill is usable before any investment.
+		assert.Equal(t, 0, PointCost(10, 1))
+		assert.Equal(t, 0, PointCost(10, 11))
+	})
+
+	t.Run("the same level costs differently under a different cap", func(t *testing.T) {
+		// This is the whole point of a cap-relative curve (D2/D10): §37 moving
+		// a cap re-prices the skill instead of needing a new table.
+		assert.Equal(t, 1, PointCost(10, 5), "mid-run of a 10-cap skill")
+		assert.Equal(t, 3, PointCost(5, 5), "the last level of a 5-cap one")
+	})
+}
+
 func TestSpentPoints(t *testing.T) {
+	other := &SkillDefinition{ID: 2, Name: "Other", MaxLevel: 5}
+	defs := defRegistry{testDef.ID: testDef, other.ID: other}
+
 	t.Run("fresh spellbook has spent nothing", func(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.Discover(testDef.ID)
 
-		assert.Equal(t, 0, sc.SpentPoints())
+		assert.Equal(t, 0, sc.SpentPoints(defs))
 	})
 
-	t.Run("sums level minus one across skills", func(t *testing.T) {
-		other := &SkillDefinition{ID: 2, Name: "Other", MaxLevel: 5}
+	t.Run("sums the cap-relative cost across skills", func(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.Discover(testDef.ID)
 		sc.Discover(other.ID)
-		require.True(t, sc.RaiseSkillLevel(testDef)) // level 2 = 1 point
-		require.True(t, sc.RaiseSkillLevel(testDef)) // level 3 = 2 points
-		require.True(t, sc.RaiseSkillLevel(other))   // level 2 = 1 point
+		require.True(t, sc.RaiseSkillLevel(testDef)) // to L2 = 1 point
+		require.True(t, sc.RaiseSkillLevel(testDef)) // to L3 = 1 point
+		require.True(t, sc.RaiseSkillLevel(testDef)) // to L4 = 2 points
+		require.True(t, sc.RaiseSkillLevel(other))   // to L2 = 1 point
 
-		assert.Equal(t, 3, sc.SpentPoints())
+		assert.Equal(t, 5, sc.SpentPoints(defs))
 	})
 
 	t.Run("nil spellbook has spent nothing", func(t *testing.T) {
 		sc := NewSkillComponent(false)
 
-		assert.Equal(t, 0, sc.SpentPoints())
+		assert.Equal(t, 0, sc.SpentPoints(defs))
 	})
 }
 
@@ -456,7 +509,7 @@ func TestEquipCooldown(t *testing.T) {
 		require.NotNil(t, sc.CooldownSlots[1])
 		assert.Equal(t, testNova.ID, sc.CooldownSlots[1].Def.ID)
 		assert.Equal(t, 2, sc.CooldownSlots[1].Level)
-		assert.Equal(t, 0, sc.CooldownSlots[1].CdTicks, "equips ready to fire")
+		assert.Equal(t, 0, sc.SlotCooldownRemaining(1), "equips ready to fire")
 	})
 
 	t.Run("equipping the same cooldown again moves it", func(t *testing.T) {
@@ -469,6 +522,59 @@ func TestEquipCooldown(t *testing.T) {
 
 		assert.Nil(t, sc.CooldownSlots[0], "old slot must be cleared")
 		require.NotNil(t, sc.CooldownSlots[1])
+	})
+}
+
+// A cooldown belongs to the skill, not to the slot: the counter must survive
+// every way a slot can be emptied, or re-slotting resets it (the exploit).
+func TestCooldownMemory(t *testing.T) {
+	t.Run("survives moving the skill to another slot", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(0, testNova, 1)
+		sc.StartCooldown(sc.CooldownSlots[0])
+
+		sc.EquipCooldown(2, testNova, 1)
+
+		assert.Equal(t, 300, sc.SlotCooldownRemaining(2),
+			"re-slotting must not mint a ready copy")
+		assert.Equal(t, 0, sc.SlotCooldownRemaining(0), "the old slot is empty")
+	})
+
+	t.Run("keeps ticking while the skill is unslotted", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.EquipCooldown(0, testNova, 1)
+		sc.StartCooldown(sc.CooldownSlots[0])
+		sc.CooldownSlots[0] = nil // pushed out of the loadout
+
+		for i := 0; i < 10; i++ {
+			sc.TickCooldowns()
+		}
+
+		assert.Equal(t, 290, sc.CooldownRemaining(testNova.ID),
+			"parking a skill must not freeze its recovery")
+	})
+
+	t.Run("clears at zero", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		sc.SetCooldownRemaining(testNova.ID, 2)
+
+		sc.TickCooldowns()
+		assert.Equal(t, 1, sc.CooldownRemaining(testNova.ID))
+		sc.TickCooldowns()
+		assert.Equal(t, 0, sc.CooldownRemaining(testNova.ID), "ready again")
+	})
+
+	t.Run("undiscovered and unslotted skills read ready", func(t *testing.T) {
+		sc := NewSkillComponent(true)
+		assert.Equal(t, 0, sc.CooldownRemaining(testNova.ID))
+		assert.Equal(t, 0, sc.SlotCooldownRemaining(0), "empty slot")
+		assert.Equal(t, 0, sc.SlotCooldownRemaining(99), "out of range")
+	})
+
+	t.Run("ticking allocates nothing on an idle component", func(t *testing.T) {
+		// processCooldowns calls this every tick for every entity in the world.
+		sc := NewSkillComponent(false)
+		assert.Zero(t, testing.AllocsPerRun(100, sc.TickCooldowns))
 	})
 }
 
@@ -502,7 +608,7 @@ func TestBurstRadius(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.EquipCooldown(0, testNova, 3)
 		es := sc.CooldownSlots[0]
-		es.CdTicks = es.EffectiveCooldownTicks() // just fired
+		sc.StartCooldown(es) // just fired
 
 		assert.InDelta(t, 1.7, sc.BurstRadius(BurstVFXTicks), 1e-6) // 1.5 + 2×0.1
 	})
@@ -511,7 +617,7 @@ func TestBurstRadius(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.EquipCooldown(0, testNova, 1)
 		es := sc.CooldownSlots[0]
-		es.CdTicks = es.EffectiveCooldownTicks() - BurstVFXTicks
+		sc.SetCooldownRemaining(es.Def.ID, es.EffectiveCooldownTicks()-BurstVFXTicks)
 
 		assert.Equal(t, float32(0), sc.BurstRadius(BurstVFXTicks))
 	})
@@ -527,7 +633,7 @@ func TestBurstRadius(t *testing.T) {
 		sc := NewSkillComponent(true)
 		sc.EquipCooldown(0, ignite, 3)
 		es := sc.CooldownSlots[0]
-		es.CdTicks = es.EffectiveCooldownTicks() // just fired
+		sc.StartCooldown(es) // just fired
 
 		assert.InDelta(t, 1.7, sc.BurstRadius(BurstVFXTicks), 1e-6) // 1.5 + 2×0.1
 	})
@@ -539,7 +645,7 @@ func TestBurstRadius(t *testing.T) {
 		}
 		sc := NewSkillComponent(true)
 		sc.EquipCooldown(0, selfHeal, 1)
-		sc.CooldownSlots[0].CdTicks = 900 // just fired
+		sc.SetCooldownRemaining(selfHeal.ID, 900) // just fired
 
 		assert.Equal(t, float32(0), sc.BurstRadius(BurstVFXTicks))
 	})

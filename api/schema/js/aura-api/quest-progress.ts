@@ -46,8 +46,20 @@ completed():boolean {
   return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
 }
 
+objectives(index: number):string
+objectives(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
+objectives(index: number,optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__string(this.bb!.__vector(this.bb_pos + offset) + index * 4, optionalEncoding) : null;
+}
+
+objectivesLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 10);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startQuestProgress(builder:flatbuffers.Builder) {
-  builder.startObject(3);
+  builder.startObject(4);
 }
 
 static addQuestId(builder:flatbuffers.Builder, questIdOffset:flatbuffers.Offset) {
@@ -74,16 +86,33 @@ static addCompleted(builder:flatbuffers.Builder, completed:boolean) {
   builder.addFieldInt8(2, +completed, +false);
 }
 
+static addObjectives(builder:flatbuffers.Builder, objectivesOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(3, objectivesOffset, 0);
+}
+
+static createObjectivesVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startObjectivesVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
+}
+
 static endQuestProgress(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createQuestProgress(builder:flatbuffers.Builder, questIdOffset:flatbuffers.Offset, stagesOffset:flatbuffers.Offset, completed:boolean):flatbuffers.Offset {
+static createQuestProgress(builder:flatbuffers.Builder, questIdOffset:flatbuffers.Offset, stagesOffset:flatbuffers.Offset, completed:boolean, objectivesOffset:flatbuffers.Offset):flatbuffers.Offset {
   QuestProgress.startQuestProgress(builder);
   QuestProgress.addQuestId(builder, questIdOffset);
   QuestProgress.addStages(builder, stagesOffset);
   QuestProgress.addCompleted(builder, completed);
+  QuestProgress.addObjectives(builder, objectivesOffset);
   return QuestProgress.endQuestProgress(builder);
 }
 }

@@ -222,17 +222,49 @@ func TestBuffs_DotDistinctSkillsBothAct(t *testing.T) {
 	assert.Len(t, hits, 2, "distinct source skills are distinct dots")
 }
 
-func TestBuffs_DotCarriesCasterThroughRefresh(t *testing.T) {
-	// The caster reference rides the payload for attribution (XP
-	// participation, kill credit); a refresh hands the stream to the latest
-	// caster of that strength.
+func TestBuffs_DotStreamsArePerCaster(t *testing.T) {
+	// Round-7 item 6 (PO 2026-08-02): two casters applying the same skill at
+	// the same strength each own their own stream — both tick, credit stays
+	// split, and neither application is a free takeover of the other's work.
 	var b Buffs
-	b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2)
-	b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "bob"}, 2)
+	assert.True(t, b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2), "alice ignites her stream")
+	assert.True(t, b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "bob"}, 2), "bob's is a second ignition, not a refresh")
 
 	hits := cycleDot(&b)
-	assert.Len(t, hits, 1)
-	assert.Equal(t, "bob", hits[0].Caster)
+	assert.Len(t, hits, 2, "both streams tick")
+	casters := []any{hits[0].Caster, hits[1].Caster}
+	assert.Contains(t, casters, "alice")
+	assert.Contains(t, casters, "bob")
+}
+
+func TestBuffs_DotSuppressionIsPerCaster(t *testing.T) {
+	// The strongest-stream-only rule holds within one caster (their level-up
+	// stream suppresses their old weaker one) but never across casters — a
+	// high-level player's dot does not silence a low-level ally's.
+	var b Buffs
+	b.ApplyDot(5, DotBuff{HP: 8, Interval: 1, Caster: "alice"}, 2)
+	b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2)
+	b.ApplyDot(5, DotBuff{HP: 2, Interval: 1, Caster: "bob"}, 2)
+
+	hits := cycleDot(&b)
+	assert.Len(t, hits, 2, "alice's strongest + bob's — alice's weaker stream is the only one suppressed")
+	var hps []float32
+	for _, h := range hits {
+		hps = append(hps, h.HP)
+	}
+	assert.Contains(t, hps, float32(8))
+	assert.Contains(t, hps, float32(2))
+}
+
+func TestBuffs_DotSameCasterStillRefreshes(t *testing.T) {
+	// The per-caster split must not break the aura case: one caster's aura
+	// re-applying every tick refreshes their own stream rather than stacking.
+	var b Buffs
+	assert.True(t, b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2))
+	assert.False(t, b.ApplyDot(5, DotBuff{HP: 4, Interval: 1, Caster: "alice"}, 2), "a refresh, not a new stream")
+
+	hits := cycleDot(&b)
+	assert.Len(t, hits, 1, "one stream only")
 }
 
 // --- hot payload (heal-over-time, the dot twin — plan-skill-vocab §3.7) ---
@@ -652,6 +684,68 @@ func TestBuffs_DropCalmClearsEverySource(t *testing.T) {
 	assert.False(t, b.Calmed(), "damage breaks calm from every source, not just the newest")
 }
 
+// --- lifesteal payload (Bloodthirst, R3 / §5.6): the damage-side burst. Its
+// combining rule is deliberately NOT speed's: shares of one damage event ADD
+// across skills, they do not multiply. Strongest-within-a-skill is shared,
+// because that is what a level-up mid-buff needs. ---
+
+func TestBuffs_LifestealDefaultIsZero(t *testing.T) {
+	var b Buffs
+	assert.Zero(t, b.LifestealFraction(), "no burst up = no leech")
+}
+
+func TestBuffs_LifestealSingleFraction(t *testing.T) {
+	var b Buffs
+	b.ApplyLifesteal(8, 0.3, 2)
+	assert.InDelta(t, 0.3, b.LifestealFraction(), 1e-6)
+}
+
+func TestBuffs_LifestealDifferentSkillsAdd(t *testing.T) {
+	// Two 0.3 leeches return 0.6 of the hit, not 0.51 — a leech is a SHARE of
+	// one damage event, and shares add. This is where it parts company with
+	// SpeedFactor, which multiplies.
+	var b Buffs
+	b.ApplyLifesteal(8, 0.3, 2)
+	b.ApplyLifesteal(9, 0.3, 2)
+	assert.InDelta(t, 0.6, b.LifestealFraction(), 1e-6)
+}
+
+func TestBuffs_LifestealSameSkillStrongestWins(t *testing.T) {
+	// The same skill never stacks with itself. This is not theoretical for a
+	// burst: re-firing after a level-up applies a DIFFERENT fraction, which opens
+	// a second stream — summing blindly within a skill would double it.
+	var b Buffs
+	b.ApplyLifesteal(8, 0.3, 2)
+	b.ApplyLifesteal(8, 0.5, 2)
+	assert.InDelta(t, 0.5, b.LifestealFraction(), 1e-6)
+
+	b.ApplyLifesteal(8, 0.2, 3)
+	assert.InDelta(t, 0.5, b.LifestealFraction(), 1e-6)
+	b.Tick()
+	b.Tick()
+	assert.InDelta(t, 0.2, b.LifestealFraction(), 1e-6, "0.3/0.5 expired; the 3-tick 0.2 remains")
+}
+
+func TestBuffs_LifestealRefreshExtends(t *testing.T) {
+	var b Buffs
+	b.ApplyLifesteal(8, 0.3, 2)
+	b.Tick()
+	b.ApplyLifesteal(8, 0.3, 2) // same fraction: refreshes the stream in place
+	b.Tick()
+	assert.InDelta(t, 0.3, b.LifestealFraction(), 1e-6, "re-firing extends rather than stacking")
+}
+
+func TestBuffs_LifestealExpiry(t *testing.T) {
+	var b Buffs
+	b.ApplyLifesteal(8, 0.3, 2)
+
+	b.Tick()
+	assert.InDelta(t, 0.3, b.LifestealFraction(), 1e-6, "survives one tick boundary")
+
+	b.Tick()
+	assert.Zero(t, b.LifestealFraction(), "expired without re-application")
+}
+
 // --- speed payload (Swift as a cooldown): the movement-speed twin of
 // tick_rate, and the other half of the movement axis slow already owns. ---
 
@@ -731,4 +825,65 @@ func TestBuffs_MovementFactorNeverNegative(t *testing.T) {
 	var b Buffs
 	b.ApplySlow(4, 1.5, 2)
 	assert.InDelta(t, 0.0, b.MovementFactor(), 1e-6)
+}
+
+// --- new-vs-refresh reporting (plan-resource-costs-feedback R2 / §5.2) ---
+//
+// The store has always branched on new-vs-refresh internally; R2 is where it
+// says so, because "did this application do work" is what an aura's cost is
+// charged off. Every Apply* below reports TRUE only for an application that
+// changed something a refresh would not have.
+
+func TestBuffs_ApplyResistReportsNewOnly(t *testing.T) {
+	var b Buffs
+	assert.True(t, b.ApplyResist(40, []string{"fire"}, 0.5, 2), "first application is new")
+	assert.False(t, b.ApplyResist(40, []string{"fire"}, 0.5, 2), "same factor is a refresh")
+	assert.True(t, b.ApplyResist(40, []string{"fire"}, 0.4, 2), "a different factor opens its own stream")
+	assert.True(t, b.ApplyResist(41, []string{"fire"}, 0.5, 2), "a different skill is its own source")
+
+	// An expired application is new again — this is what makes a target that
+	// left the aura and came back pay a second time.
+	b.Tick()
+	b.Tick()
+	assert.True(t, b.ApplyResist(40, []string{"fire"}, 0.5, 2), "lapsed, so new again")
+}
+
+func TestBuffs_ApplySlowReportsNewOnly(t *testing.T) {
+	var b Buffs
+	assert.True(t, b.ApplySlow(4, 0.5, 2))
+	assert.False(t, b.ApplySlow(4, 0.5, 2), "same fraction is a refresh")
+	assert.True(t, b.ApplySlow(4, 0.3, 2), "a different fraction opens its own stream")
+}
+
+func TestBuffs_ApplyDotReportsNewOnly(t *testing.T) {
+	var b Buffs
+	dot := DotBuff{HP: 10, Interval: 2}
+	assert.True(t, b.ApplyDot(7, dot, 5), "the ignition")
+	assert.False(t, b.ApplyDot(7, dot, 5), "already burning — a refresh only bumps the duration")
+	assert.True(t, b.ApplyDot(7, DotBuff{HP: 12, Interval: 2}, 5), "a stronger dot is its own stream")
+}
+
+func TestBuffs_ApplyHotReportsNewOnly(t *testing.T) {
+	var b Buffs
+	hot := HotBuff{HP: 4, Interval: 2}
+	assert.True(t, b.ApplyHot(29, hot, 5))
+	assert.False(t, b.ApplyHot(29, hot, 5), "already running")
+	assert.True(t, b.ApplyHot(29, HotBuff{HP: 6, Interval: 2}, 5))
+}
+
+func TestBuffs_ApplyShieldReportsNewOrRestoredPool(t *testing.T) {
+	// Shield is the one payload with a sustain signal of its own (§5.2): a full
+	// pool topped up to full is not work, but a DRAINED pool restored is.
+	var b Buffs
+	assert.True(t, b.ApplyShield(50, 20, 3), "newly granted")
+	assert.False(t, b.ApplyShield(50, 20, 3), "full pool topped up to full — nothing restored")
+
+	assert.InDelta(t, 5.0, b.AbsorbShield(5), 1e-6)
+	assert.True(t, b.ApplyShield(50, 20, 3), "the drained 5 was restored — that is work")
+	assert.False(t, b.ApplyShield(50, 20, 3), "back at full")
+
+	// A pool drained to nothing is dropped outright, so the next application is
+	// new rather than a top-up.
+	assert.InDelta(t, 20.0, b.AbsorbShield(20), 1e-6)
+	assert.True(t, b.ApplyShield(50, 20, 3), "broken shields are gone, not empty")
 }

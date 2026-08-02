@@ -4,28 +4,34 @@
   "name": "CallForAid",
   "displayName": "Call for Aid",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 2400,
   "effects": [
     {
       "type": "spawn",
+      "costFractionOfMax": 0.02,
+      "costFractionOfMaxPerLevel": 0.003,
       "spawnMob": "SoldierCompanion",
       "ttlTicks": 1800,
-      "ttlTicksPerLevel": 300,
+      "ttlTicksPerLevel": 150,
       "powerPerOwnerLevel": 0.05
     },
     {
       "type": "spawn",
+      "costFractionOfMax": 0.02,
+      "costFractionOfMaxPerLevel": 0.003,
       "spawnMob": "SoldierCompanion",
       "ttlTicks": 1800,
-      "ttlTicksPerLevel": 300,
+      "ttlTicksPerLevel": 150,
       "powerPerOwnerLevel": 0.05
     },
     {
       "type": "spawn",
+      "costFractionOfMax": 0.02,
+      "costFractionOfMaxPerLevel": 0.003,
       "spawnMob": "SoldierCompanion",
       "ttlTicks": 1800,
-      "ttlTicksPerLevel": 300,
+      "ttlTicksPerLevel": 150,
       "powerPerOwnerLevel": 0.05
     }
   ]

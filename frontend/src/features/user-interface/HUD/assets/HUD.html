@@ -5,6 +5,13 @@
          Driven by AlertBanner.ts. -->
     <div id="alertBanner"></div>
 
+    <!-- Mobile menu button (2026-08-02): hidden unless <body> carries the
+         `mobile` class. Owns everything the phone layout takes off screen —
+         spellbook, passives, journal, help, minimap, zoom — by turning
+         #leftColumn into a full-screen sheet. Glyph (☰ / ✕) comes from CSS,
+         wiring from MobileMenu.ts. -->
+    <div id="mobileMenuButton" title="Menu"></div>
+
     <div id="minimap">
         <div class="wrapper">
             <!-- pixi.js instance here, to display minimap icons -->
@@ -20,7 +27,7 @@
     </div>
 
     <div id="vitalSigns" class="layout-column">
-        <div id="healthBar" class="bar flex">
+        <div id="healthBar" class="bar flex" title="Focus — your health and everything you spend to act">
             <div class="indicator"></div>
             <div class="negativeDeltaIndicator"></div>
             <div class="positiveDeltaIndicator"></div>
@@ -48,8 +55,23 @@
         </svg>
     </div>
 
+    <!-- Interact button (2026-08-02, mobile only): the tappable twin of E. A
+         phone has no E, so on mobile this REPLACES the badge over the actor's
+         head rather than accompanying it (PO ruling) — Backend suppresses the
+         badge and drives this from the same site. Hidden until an actor is
+         offered; wired by Interact.setupButton, which shares Interact.trigger
+         with the key so the two cannot drift. -->
+    <div id="interactButton" class="hidden" title="Talk">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 4 H20 A2 2 0 0 1 22 6 V15 A2 2 0 0 1 20 17 H13 L8 21 V17 H4 A2 2 0 0 1 2 15 V6 A2 2 0 0 1 4 4 Z"
+                  fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </div>
+
     <!-- In-game zoom (fixed FOV, camera/logic/Zoom.ts): 1 = nearest, 3 = furthest -->
     <div id="zoomControl">
+        <div id="helpButton" title="How Aura works">?</div>
         <div class="zoomIcon">
             <svg viewBox="0 0 24 24">
                 <circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.5"/>
@@ -61,10 +83,12 @@
         <button id="zoomOutButton" class="zoomButton">&minus;</button>
     </div>
 
-    <!-- Journal (plan-quests.md chunk C3, D7/D16): a centered overlay, opened by
-         J or the button below, dismissed by J / Esc / its ✕. Rendered entirely
-         by Journal.render(); §39's presentation rework will restyle it, so the
-         first pass is deliberately plain. -->
+    <!-- Journal (plan-quests.md chunk C3, D7/D16; two-pane since
+         plan-conversation-journal.md Q3): opened by J or the button below,
+         dismissed by J / Esc / its ✕. Left pane lists the quests (Running /
+         Completed), the right pane holds the selected quest's diary and its
+         Abandon. Rendered entirely by Journal.render(); §39's presentation
+         rework will restyle it, so it stays deliberately plain. -->
     <div id="journal" class="hidden">
         <div class="journalHeader">
             <span class="journalTitle">Journal</span>
@@ -72,14 +96,113 @@
         </div>
         <div class="journalBody">
             <div class="journalStatus hidden"></div>
-            <div class="journalRunning hidden">
-                <div class="journalSectionTitle">Running</div>
-                <ul class="journalQuests"></ul>
+            <div class="journalPanes hidden">
+                <div class="journalList">
+                    <div class="journalRunning hidden">
+                        <div class="journalSectionTitle">Running</div>
+                        <ul class="journalQuests"></ul>
+                    </div>
+                    <div class="journalCompleted hidden">
+                        <div class="journalSectionTitle">Completed</div>
+                        <ul class="journalQuests"></ul>
+                    </div>
+                </div>
+                <div class="journalDetail">
+                    <div class="journalDetailTitle"></div>
+                    <div class="journalDetailBody"></div>
+                </div>
             </div>
-            <div class="journalCompleted hidden">
-                <div class="journalSectionTitle">Completed</div>
-                <ul class="journalQuests"></ul>
-            </div>
+        </div>
+    </div>
+
+    <!-- Help panel: a placeholder tutorial until a real one exists — the game's
+         mechanics written down as short design statements, ordered by when a
+         new player meets them. Opened by the ?-button beside the zoom control,
+         closed by ✕ / Esc. Content is static; visibility is wired by Help.ts.
+         Deliberately plain, like the journal — §39 restyles both. -->
+    <div id="help" class="hidden">
+        <div class="helpHeader">
+            <span class="helpTitle">How Aura works</span>
+            <span class="helpClose" title="Close (Esc)">✕</span>
+        </div>
+        <div class="helpBody">
+            <section>
+                <h3>Moving</h3>
+                <p>Move with WASD or the arrow keys. The minimap is north-up; its
+                    compass shows directions. The world is shared — everyone you
+                    see is really there.</p>
+            </section>
+            <section>
+                <h3>Auras</h3>
+                <p>You fight with auras: a circle around you. No targeting, no
+                    aiming — where you stand is the attack. Each aura picks its
+                    own targets inside its range, and most affect only a limited
+                    number at a time (usually the nearest). An active aura ticks
+                    on a steady rhythm — every tick applies its effect; the ring
+                    pulse and the pip on the slot show the beat. Enemy auras tick
+                    too: stepping out between beats is real play. Exactly one
+                    aura is active at a time. You start with Damage equipped.</p>
+            </section>
+            <section>
+                <h3>Focus</h3>
+                <p>The bar at the top is Focus — your health and everything you
+                    spend, in one value. At zero you die. It refills out of
+                    combat; getting hit pauses that for a few seconds.</p>
+            </section>
+            <section>
+                <h3>Fighting and XP</h3>
+                <p>Everyone who takes part in a fight gets XP — being close with
+                    an aura on counts. The red sword means you are in combat.
+                    Mobs stop regenerating for a moment after being hit.</p>
+            </section>
+            <section>
+                <h3>Levels and skill points</h3>
+                <p>Leveling up grants skill points. Spend them in the spellbook
+                    with +. Higher levels cost more points; each skill has its
+                    own cap.</p>
+            </section>
+            <section>
+                <h3>The three kinds of skills</h3>
+                <p><em>Auras</em>: slots 1–3, one active, switch with the
+                    hotkeys — also mid-fight. <em>Passives</em>: always on, all
+                    in parallel. <em>Cooldowns</em> (Q, R, F): fire once, then
+                    recharge — the cooldown belongs to the skill, not the
+                    slot.</p>
+            </section>
+            <section>
+                <h3>Where skills come from</h3>
+                <p>Granted at certain levels, dropped by some mobs, taught by
+                    some people (E when the badge appears), rewarded by
+                    quests.</p>
+            </section>
+            <section>
+                <h3>Equipping</h3>
+                <p>Click a skill in the spellbook, then a slot or its hotkey.
+                    Not while in combat.</p>
+            </section>
+            <section>
+                <h3>Costs</h3>
+                <p>Most skills spend Focus — the tooltip states every price. The
+                    basic Damage aura is always free: you are never left without
+                    an option.</p>
+            </section>
+            <section>
+                <h3>People and quests</h3>
+                <p>Get close and press E when the badge lights up. Quests are
+                    offered and turned in through dialogue; J opens the
+                    journal.</p>
+            </section>
+            <section>
+                <h3>Dying</h3>
+                <p>At zero Focus you die and respawn, losing the XP you had
+                    gathered toward your next level.</p>
+            </section>
+            <section>
+                <h3>Dark places and other players</h3>
+                <p>Some areas are dark — bring a light aura, or a friend who
+                    carries one while you carry the damage. Filling roles for
+                    each other is the design. There is no PvP.</p>
+            </section>
         </div>
     </div>
 
@@ -89,7 +212,7 @@
         </div>
 
         <div id="spellbook">
-            <div class="spellbookTitle">Spellbook<span id="skillPointsBadge" class="hidden"></span></div>
+            <div class="spellbookTitle">Spellbook<span id="skillPointsBadge" class="hidden"></span><span id="respecButton" title="Reset every skill to level 1 and refund all points">Reset</span></div>
             <div id="spellbookScroll">
                 <ul id="spellbookList"></ul>
             </div>
@@ -143,9 +266,11 @@
             <div id="auraLoadout">
                 <div class="auraLoadoutTitle">Aura Slots</div>
                 <ul id="auraSlotList">
-                    <li class="auraSlot hotkeySlot" data-slot="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span></li>
-                    <li class="auraSlot hotkeySlot" data-slot="1"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span></li>
-                    <li class="auraSlot hotkeySlot" data-slot="2"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span></li>
+                    <!-- .beatPip: the N5 HUD metronome — visible on the active slot only,
+                         pulsed by HUD.pulseAuraMetronome each time the aura's tick lands. -->
+                    <li class="auraSlot hotkeySlot" data-slot="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                    <li class="auraSlot hotkeySlot" data-slot="1"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                    <li class="auraSlot hotkeySlot" data-slot="2"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
                 </ul>
             </div>
 

@@ -59,7 +59,27 @@ func (es *EquipSystem) Update(dt float32) {
 	for _, player := range es.players {
 		es.handleEquip(player)
 		es.handleSpendSkillPoint(player)
+		es.handleRespec(player)
 	}
+}
+
+// handleRespec resets the whole spellbook to level 1 (round-7 item 8): free —
+// the per-level unspend below always was — but atomic, so a full rebuild is
+// one click rather than a walk of every skill. Blocked in combat like equip:
+// it is loadout surgery, and every equipped instance's level drops with it.
+func (es *EquipSystem) handleRespec(player equipEntity) {
+	if player.Client().NextRespec() == nil {
+		return
+	}
+	if player.InCombat() {
+		slog.Info("respec: rejected in combat",
+			slog.String("player", player.Name()))
+		return
+	}
+	player.SkillComponent().ResetSkillLevels()
+	slog.Info("respec",
+		slog.String("player", player.Name()),
+		slog.Int("availablePoints", player.AvailableSkillPoints()))
 }
 
 func (es *EquipSystem) handleEquip(player equipEntity) {
@@ -173,10 +193,16 @@ func (es *EquipSystem) handleSpendSkillPoint(player equipEntity) {
 			return
 		}
 	} else {
-		if player.AvailableSkillPoints() <= 0 {
-			slog.Warn("spend: no skill points available",
+		// "Can you afford the NEXT level", not "do you have a point":
+		// a level's cost is cap-relative now (D10), so the last level of a
+		// 5-cap skill costs 3 and a player holding 2 points cannot buy it.
+		cost := skills.PointCost(def.MaxLevel, sc.SkillLevel(def.ID)+1)
+		if player.AvailableSkillPoints() < cost {
+			slog.Warn("spend: not enough skill points",
 				slog.String("player", player.Name()),
-				slog.String("skill", def.Name))
+				slog.String("skill", def.Name),
+				slog.Int("cost", cost),
+				slog.Int("available", player.AvailableSkillPoints()))
 			return
 		}
 		if !sc.RaiseSkillLevel(def) {

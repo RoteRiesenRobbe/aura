@@ -6,11 +6,13 @@ package quests
 // harness is where a quest is actually walked in a browser. What lives here is
 // what the harness cannot see cheaply and what would rot silently: that every
 // authored quest is REACHABLE and CONSISTENT with the rows scattered across
-// seven conversants' interaction blocks, and that the four shapes C4 exists to
-// prove are still authored — all three first-pass verbs, D9's two-turn-in
-// branch, the one non-terminal dialogue edge, and the XP budget (L9: the band
-// lock has no runtime existence, so an authored amount is only ever as correct
-// as somebody's memory of it).
+// the conversants' interaction blocks, and that the shapes the first pass
+// exists to prove are still authored — all three first-pass verbs, D9's
+// two-turn-in branch, and the XP budget (L9: the band lock has no runtime
+// existence, so an authored amount is only ever as correct as somebody's
+// memory of it). The non-terminal dialogue edge left content with Q4 (§7 q3,
+// PO 2026-07-30): the Miner's lamp leg was dropped, so the derivation's
+// non-terminal direction lives only in the ledger's fixture tests now.
 //
 // ⚑ It reads the EMBEDDED content (pkg/api/...), which `make cp-defs` syncs from
 // api/. A quest edited in api/ and not copied fails here, which is the intended
@@ -60,10 +62,10 @@ func contentRegistries(t *testing.T) (mobs.Registry, Registry) {
 
 // The authored census. A pin, not a rule: a fifth quest means a line here.
 var expectedQuests = map[string]string{
-	"village-welcome":    "Faces of the Village",
-	"turnip-chore":       "The Turnip Row",
+	"village-welcome":    "Village Welcome",
+	"turnip-chore":       "Turnip Chore",
 	"wolves-on-the-road": "Wolves on the Road",
-	"the-lost-lamp":      "The Lost Lamp",
+	"the-lost-lamp":      "The Lost Lamp", // retitled 2026-08-02 with the plain-text pass (no stylized quest text yet)
 }
 
 func TestContent_QuestCensus(t *testing.T) {
@@ -169,23 +171,47 @@ func TestContent_TheWolfQuestBranchesToTwoTurnInsWithDifferentRewards(t *testing
 	}
 }
 
-// The one edge in the first pass that advances a quest WITHOUT ending it: the
-// Miner pointing the way to the kobold den. Terminality is derived rather than
-// authored (C1 shape decision ①), so this is the only content that exercises the
-// derivation — and it is exercised in the direction that matters, since a stage
-// wrongly read as terminal would complete the quest three stages early.
-func TestContent_TheLampChainHasANonTerminalDialogueEdge(t *testing.T) {
-	_, qr := contentRegistries(t)
+// ⚑ L5b (conversation-journal Q4/R3): Lantern is QUEST-ONLY. The 5 % kobold
+// drops were deleted with Q4, so the traveller's turn-in row on the-lost-lamp
+// is the aura's SINGLE source — and Lantern is the light the zone-1/2 tunnel
+// is designed around. This is the reachability guarantee
+// content-skill-inventory.md states in prose and nothing else enforces: a
+// content edit that loses the row (or quietly re-adds a drop) changes an
+// authored decision, and this test is where it says so.
+func TestContent_LanternIsQuestOnlyAndHasASource(t *testing.T) {
+	mr, _ := contentRegistries(t)
 
-	q, err := qr.Get("the-lost-lamp")
-	require.NoError(t, err)
-
-	mid := q.Stage("ask_miner")
-	require.NotNil(t, mid)
-	assert.Empty(t, mid.Objectives, "it is a dialogue stage: it waits for a row, not for a counter")
-	assert.False(t, q.IsTerminal(mid), "a row advances out of it, so entering it must NOT complete the quest")
-
-	assert.True(t, q.IsTerminal(q.Stage("lit")), "and the real end still ends it")
+	var sources []string
+	for _, def := range mr.Mobs() {
+		for _, u := range def.Unlocks {
+			assert.NotEqual(t, "Lantern", u.Skill.Name,
+				"%s: the Lantern kill-drop was deleted with Q4 (R3) — the quest is the only source", def.Name)
+		}
+		if def.Interaction == nil {
+			continue
+		}
+		for _, node := range def.Interaction.Nodes {
+			for _, opt := range node.Options {
+				turnInOf := ""
+				teachesLantern := false
+				for _, g := range opt.Grants {
+					switch {
+					case g.Kind == mobs.GrantAdvanceQuest:
+						turnInOf = g.Quest
+					case g.Kind == mobs.GrantTeachSkill && g.Skill.Name == "Lantern":
+						teachesLantern = true
+					}
+				}
+				if teachesLantern {
+					sources = append(sources, def.Name)
+					assert.Equal(t, "the-lost-lamp", turnInOf,
+						"Lantern rides the lamp quest's turn-in row — a guaranteed reward, not a re-teach")
+				}
+			}
+		}
+	}
+	assert.Equal(t, []string{"LamplessTraveller"}, sources,
+		"exactly one row in the world grants Lantern")
 }
 
 // Every stage a quest defines can actually be walked into. An orphan stage is
@@ -320,7 +346,10 @@ func TestContent_TheWolfQuestWalksEndToEnd(t *testing.T) {
 // instant they accept. Every player will have spoken to the crier (he teaches the
 // base damage aura), so this is the normal path through village-welcome, not a
 // corner case.
-func TestContent_VillageWelcomeAutoCompletesForAVeteran(t *testing.T) {
+func TestContent_VillageWelcomeRequiresFreshTalksForAVeteran(t *testing.T) {
+	// N4/D4 reversed D3 here: a veteran who has already met both villagers no
+	// longer auto-advances at accept — every objective means "since this stage
+	// started", and a talk target must be spoken to again.
 	mr, qr := contentRegistries(t)
 
 	farmer, err := mr.GetByName("Farmer")
@@ -334,6 +363,12 @@ func TestContent_VillageWelcomeAutoCompletesForAVeteran(t *testing.T) {
 
 	require.NoError(t, l.Accept("village-welcome"))
 	path, running, _ := l.Progress("village-welcome")
-	assert.Equal(t, []string{"meet", "back"}, path, "accept cascades straight past the satisfied objective (D3)")
-	assert.True(t, running, "and rests on the turn-in stage — the reward still has to be collected")
+	assert.Equal(t, []string{"meet"}, path, "the old talks do not satisfy the fresh stage")
+	assert.True(t, running)
+
+	l.NoteTalkedTo(farmer.ID)
+	l.NoteTalkedTo(crier.ID)
+	path, running, _ = l.Progress("village-welcome")
+	assert.Equal(t, []string{"meet", "back"}, path, "fresh talks advance to the turn-in stage")
+	assert.True(t, running, "the reward still has to be collected")
 }

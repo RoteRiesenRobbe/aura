@@ -68,6 +68,16 @@ type speedPayload struct {
 	factor float32
 }
 
+// lifestealPayload is the damage-side burst (R3 / §5.6): while it is alive the
+// caster leeches this share of the damage its own hits deal, on top of whatever
+// the firing effect authors. Its own payload rather than a field on the damage
+// effect, because the two answer different questions — the authored fraction is
+// "what this aura always does", this is "what the caster is doing right now" —
+// and because a buff is the only shape that can expire.
+type lifestealPayload struct {
+	fraction float32
+}
+
 type tickRatePayload struct {
 	// factor scales the caster's own aura tick interval: < 1 = haste (faster
 	// ticks), > 1 = tick-slow. Streams are keyed by factor, like slow. The
@@ -123,15 +133,16 @@ type hotPayload struct {
 	age int
 }
 
-func (*resistPayload) isBuffPayload()   {}
-func (*slowPayload) isBuffPayload()     {}
-func (*speedPayload) isBuffPayload()    {}
-func (*tickRatePayload) isBuffPayload() {}
-func (*dotPayload) isBuffPayload()      {}
-func (*shieldPayload) isBuffPayload()   {}
-func (*hotPayload) isBuffPayload()      {}
-func (*calmPayload) isBuffPayload()     {}
-func (*charmPayload) isBuffPayload()    {}
+func (*resistPayload) isBuffPayload()    {}
+func (*slowPayload) isBuffPayload()      {}
+func (*speedPayload) isBuffPayload()     {}
+func (*tickRatePayload) isBuffPayload()  {}
+func (*dotPayload) isBuffPayload()       {}
+func (*shieldPayload) isBuffPayload()    {}
+func (*hotPayload) isBuffPayload()       {}
+func (*calmPayload) isBuffPayload()      {}
+func (*charmPayload) isBuffPayload()     {}
+func (*lifestealPayload) isBuffPayload() {}
 
 // DotBuff is one damage-over-time application: HP dealt per dot event, every
 // Interval game ticks, mitigated per event by the target's CURRENT
@@ -191,31 +202,38 @@ func (b *Buffs) apply(source SkillID, payload buffPayload, ticks int) {
 // ApplyResist grants (or refreshes) a tag-resistance buff from the given
 // source skill: an identical factor refreshes that stream, a different factor
 // opens its own.
-func (b *Buffs) ApplyResist(source SkillID, tags []string, factor float32, ticks int) {
+//
+// Reports whether the application was genuinely NEW — the "did this do work"
+// answer an aura's cost is charged off (plan-resource-costs-feedback §5.2). A
+// refresh at the same factor changes nothing but the expiry timer.
+func (b *Buffs) ApplyResist(source SkillID, tags []string, factor float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*resistPayload); ok && p.factor == factor {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
 			p.tags = tags
-			return
+			return false
 		}
 	}
 	b.apply(source, &resistPayload{tags: tags, factor: factor}, ticks)
+	return true
 }
 
 // ApplySlow grants (or refreshes) a movement-slow debuff from the given
-// source skill; same stream rules as resist, keyed by fraction.
-func (b *Buffs) ApplySlow(source SkillID, fraction float32, ticks int) {
+// source skill; same stream rules as resist, keyed by fraction. Reports
+// whether the application was genuinely new (the ApplyResist rule, §5.2).
+func (b *Buffs) ApplySlow(source SkillID, fraction float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*slowPayload); ok && p.fraction == fraction {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
-			return
+			return false
 		}
 	}
 	b.apply(source, &slowPayload{fraction: fraction}, ticks)
+	return true
 }
 
 // ApplySpeed grants (or refreshes) a movement-speed buff from the given source
@@ -232,6 +250,54 @@ func (b *Buffs) ApplySpeed(source SkillID, factor float32, ticks int) {
 		}
 	}
 	b.apply(source, &speedPayload{factor: factor}, ticks)
+}
+
+// ApplyLifesteal grants (or refreshes) a damage-leech buff from the given source
+// skill; same stream rules as speed and tick_rate, keyed by fraction — an
+// identical fraction refreshes that stream, a different one opens its own (which
+// is what a level-up mid-buff produces, and why LifestealFraction takes the
+// strongest per source rather than summing blindly within one).
+func (b *Buffs) ApplyLifesteal(source SkillID, fraction float32, ticks int) {
+	for _, e := range b.entries[source] {
+		if p, ok := e.payload.(*lifestealPayload); ok && p.fraction == fraction {
+			if ticks > e.ticks {
+				e.ticks = ticks
+			}
+			return
+		}
+	}
+	b.apply(source, &lifestealPayload{fraction: fraction}, ticks)
+}
+
+// LifestealFraction is the leech the caster's hits carry right now: the
+// strongest live application per source skill, SUMMED across skills.
+//
+// Additive across skills rather than multiplicative, because a leech is a share
+// of one damage event and shares add — two 0.3 bursts leech 0.6 of the hit, not
+// 0.51. Strongest-within-a-skill is the SpeedFactor rule and is what stops a
+// level-up mid-buff (a second stream at a different fraction) double-counting.
+//
+// The damage path composes this with the effect's own authored
+// LifestealFraction, so an aura that already leeches gets more while a burst is
+// up rather than being overridden by it.
+func (b *Buffs) LifestealFraction() float32 {
+	var total float32
+	for _, list := range b.entries {
+		var strongest *lifestealPayload
+		for _, e := range list {
+			p, ok := e.payload.(*lifestealPayload)
+			if !ok {
+				continue
+			}
+			if strongest == nil || p.fraction > strongest.fraction {
+				strongest = p
+			}
+		}
+		if strongest != nil {
+			total += strongest.fraction
+		}
+	}
+	return total
 }
 
 // ApplyTickRate grants (or refreshes) a tick-rate buff from the given source
@@ -251,20 +317,27 @@ func (b *Buffs) ApplyTickRate(source SkillID, factor float32, ticks int) {
 }
 
 // ApplyDot grants (or refreshes) a damage-over-time debuff from the given
-// source skill; streams are keyed by per-event damage. A refresh resets the
-// remaining duration and hands the stream to the latest application (caster,
-// tags, cadence) but keeps the acting accumulator running.
-func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) {
+// source skill; streams are keyed by (caster, per-event damage) — round-7
+// item 6 (PO 2026-08-02): two casters with the same skill at the same
+// strength each own their own stream, both tick, credit stays split. A
+// refresh (same caster, same strength) resets the remaining duration and
+// takes over tags/cadence but keeps the acting accumulator running.
+//
+// Reports whether the target was genuinely IGNITED rather than kept burning —
+// what "pay to ignite" is charged off (§5.1), so a second caster pays their
+// own entry rather than riding the first ignition for free.
+func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) bool {
 	for _, e := range b.entries[source] {
-		if p, ok := e.payload.(*dotPayload); ok && p.dot.HP == dot.HP {
+		if p, ok := e.payload.(*dotPayload); ok && p.dot.HP == dot.HP && p.dot.Caster == dot.Caster {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
 			p.dot = dot
-			return
+			return false
 		}
 	}
 	b.apply(source, &dotPayload{dot: dot}, ticks)
+	return true
 }
 
 // ApplyHot grants (or refreshes) a heal-over-time buff from the given source
@@ -272,35 +345,46 @@ func (b *Buffs) ApplyDot(source SkillID, dot DotBuff, ticks int) {
 // the remaining duration and hands the stream to the latest application (caster,
 // cadence) but keeps the acting accumulator running — so a hot_aura re-applying
 // every tick tops the duration up while in range, and the buff keeps ticking
-// down once the target leaves (plan-skill-vocab §3.7).
-func (b *Buffs) ApplyHot(source SkillID, hot HotBuff, ticks int) {
+// down once the target leaves (plan-skill-vocab §3.7). Reports whether the
+// buff was genuinely new, the ApplyDot rule (§5.1/§5.2).
+func (b *Buffs) ApplyHot(source SkillID, hot HotBuff, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*hotPayload); ok && p.hot.HP == hot.HP {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
 			p.hot = hot
-			return
+			return false
 		}
 	}
 	b.apply(source, &hotPayload{hot: hot}, ticks)
+	return true
 }
 
 // ApplyShield grants (or refreshes) an absorb pool from the given source
 // skill; streams are keyed by the authored pool size. A refresh with the
 // identical strength renews the remaining lifetime AND tops the pool back up
 // to the authored amount (plan-skill-vocab chunk 2, §3.2).
-func (b *Buffs) ApplyShield(source SkillID, hp float32, ticks int) {
+//
+// Reports whether the application did work: newly granted, OR a refresh that
+// actually restored a drained pool. Shield is the one payload with a sustain
+// signal of its own, which is why its rule is wider than resist's — a full pool
+// topped up to full is not work, but replacing absorbed HP is (§5.2). A broken
+// pool is dropped rather than kept at zero (dropDepletedShields), so re-shielding
+// after a break reports new rather than restored.
+func (b *Buffs) ApplyShield(source SkillID, hp float32, ticks int) bool {
 	for _, e := range b.entries[source] {
 		if p, ok := e.payload.(*shieldPayload); ok && p.authored == hp {
 			if ticks > e.ticks {
 				e.ticks = ticks
 			}
+			restored := p.remaining < p.authored
 			p.remaining = p.authored
-			return
+			return restored
 		}
 	}
 	b.apply(source, &shieldPayload{authored: hp, remaining: hp}, ticks)
+	return true
 }
 
 // Tick advances the per-tick lifecycle: applications not refreshed within
@@ -615,23 +699,23 @@ func (b *Buffs) dropDepletedShields() {
 // DueBuffEvents advances every acting payload's accumulator by one game tick
 // and returns the events due now — damage (dots) and healing (hots) in one
 // drain, so the SkillSystem's tick-order story stays single (plan-skill-vocab
-// §3.7). Per source skill only the strongest active dot deals damage and only
-// the strongest active hot heals (same skill never stacks with itself);
-// suppressed weaker streams keep aging and acting on their own cadence once the
-// stronger one expires. Called once per tick per entity by the SkillSystem.
+// §3.7). Per (source skill, caster) only the strongest active dot deals
+// damage — same skill never stacks with ITSELF, but two casters' streams both
+// tick (round-7 item 6, PO 2026-08-02); per source skill only the strongest
+// active hot heals. Suppressed weaker streams keep aging and acting on their
+// own cadence once the stronger one expires. Called once per tick per entity
+// by the SkillSystem — no per-call allocation beyond the returned slices (the
+// idle-loop alloc pins), which is why the per-caster check is a nested scan
+// rather than a map.
 func (b *Buffs) DueBuffEvents() ([]DotHit, []HotEvent) {
 	var dots []DotHit
 	var hots []HotEvent
 	for _, list := range b.entries {
-		var strongestDot *dotPayload
 		var strongestHot *hotPayload
 		for _, e := range list {
 			switch p := e.payload.(type) {
 			case *dotPayload:
 				p.age++
-				if strongestDot == nil || p.dot.HP > strongestDot.dot.HP {
-					strongestDot = p
-				}
 			case *hotPayload:
 				p.age++
 				if strongestHot == nil || p.hot.HP > strongestHot.hot.HP {
@@ -639,13 +723,19 @@ func (b *Buffs) DueBuffEvents() ([]DotHit, []HotEvent) {
 				}
 			}
 		}
-		if strongestDot != nil && strongestDot.age%strongestDot.dot.Interval == 0 {
-			dots = append(dots, DotHit{
-				HP:       strongestDot.dot.HP,
-				Tags:     strongestDot.dot.Tags,
-				Variance: strongestDot.dot.Variance,
-				Caster:   strongestDot.dot.Caster,
-			})
+		for _, e := range list {
+			p, ok := e.payload.(*dotPayload)
+			if !ok || dotSuppressed(list, p) {
+				continue
+			}
+			if p.age%p.dot.Interval == 0 {
+				dots = append(dots, DotHit{
+					HP:       p.dot.HP,
+					Tags:     p.dot.Tags,
+					Variance: p.dot.Variance,
+					Caster:   p.dot.Caster,
+				})
+			}
 		}
 		if strongestHot != nil && strongestHot.age%strongestHot.hot.Interval == 0 {
 			hots = append(hots, HotEvent{
@@ -656,4 +746,17 @@ func (b *Buffs) DueBuffEvents() ([]DotHit, []HotEvent) {
 		}
 	}
 	return dots, hots
+}
+
+// dotSuppressed reports whether a stronger dot stream from the SAME caster is
+// active in list. Within one caster HPs are distinct (an equal-strength
+// re-application is a refresh, not a second stream), so strict > needs no
+// tie-break.
+func dotSuppressed(list []*buffEntry, p *dotPayload) bool {
+	for _, e := range list {
+		if q, ok := e.payload.(*dotPayload); ok && q != p && q.dot.Caster == p.dot.Caster && q.dot.HP > p.dot.HP {
+			return true
+		}
+	}
+	return false
 }

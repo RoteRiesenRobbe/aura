@@ -3,12 +3,14 @@
   "id": 25,
   "name": "Taunt",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 300,
-  "cooldownTicksPerLevel": -20,
+  "cooldownTicksPerLevel": -10,
   "effects": [
     {
       "type": "taunt",
+      "costFractionOfMax": 0.01,
+      "costFractionOfMaxPerLevel": 0.0025,
       "radius": 2.0,
       "targetsEnemies": true,
       "targetsAllies": false,

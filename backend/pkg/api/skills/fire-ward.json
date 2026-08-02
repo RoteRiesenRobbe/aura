@@ -1,19 +1,21 @@
 {
-  "_comment": "First resist aura (item 11 Phase 2 Step 4): grants allies in range AND the caster (targetsSelf) a fire-damage multiplier of 0.6/0.5/0.4 at L1/2/3. Verification pair for the AngryMammothAura fire tag. All values [PLACEHOLDER]. Obtainable in dev via the SKILL FireWard cheat; no unlock source yet — real placement comes with the item 12 content pass.",
+  "_comment": "First resist aura (item 11 Phase 2 Step 4): grants allies in range AND the caster (targetsSelf) a fire-damage multiplier of 0.6/0.5/0.4 at L1/2/3. Verification pair for the AngryMammothAura fire tag. All values [PLACEHOLDER]. Obtainable in dev via the SKILL FireWard cheat; no unlock source yet — real placement comes with the item 12 content pass. ⚑ R3 (plan-resource-costs-feedback §5.2): this cost is now an ENTRY price, not a sustain rate. R2 made a resist aura charge only for a genuinely new application, and the applier authors the buff lifetime as tickInterval + 1, so the ward never expires on someone standing inside it — the caster pays once when the aura goes on and once more each time a new ally walks in. Priced x3, borrowing the dot's whole-burn heuristic: a resist buff has no natural burn length to price against, so this is an activation charge, and the real counterweight is that holding it costs the one active-aura slot.",
   "id": 40,
   "name": "FireWard",
   "category": "active_aura",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "effects": [
     {
       "type": "resist_aura",
+      "costFractionOfMax": 0.018,
+      "costFractionOfMaxPerLevel": 0.00225,
       "radius": 1.5,
       "resistTags": ["fire"],
       "resistFactor": 0.6,
-      "resistFactorPerLevel": -0.1,
+      "resistFactorPerLevel": -0.05,
       "targetsAllies": true,
       "targetsSelf": true,
-      "tickInterval": 1
+      "tickInterval": 30
     }
   ]
 }

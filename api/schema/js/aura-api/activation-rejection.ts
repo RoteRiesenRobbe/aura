@@ -5,5 +5,6 @@
 export enum ActivationRejection {
   None = 0,
   NoAnchor = 1,
-  NoTarget = 2
+  NoTarget = 2,
+  NotEnoughResource = 3
 }

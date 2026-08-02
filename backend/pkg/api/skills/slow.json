@@ -1,4 +1,5 @@
 {
+  "_comment": "⚑ R3 (plan-resource-costs-feedback §5.2): this cost is now an ENTRY price, not a sustain rate. R2 made a slow aura charge only when it NEWLY slows something — re-applying the same fraction to a mob already slowed moves nothing but the expiry timer — and the applier authors the buff lifetime as tickInterval + 1, so a mob that stays in the ring stays slowed for free. You pay per mob that walks in. Priced x3, borrowing the dot's whole-burn heuristic: a slow has no natural duration to price against, so this is an engagement charge. All values [PLACEHOLDER].",
   "id": 4,
   "name": "Slow",
   "category": "active_aura",
@@ -6,6 +7,9 @@
   "effects": [
     {
       "type": "slow_aura",
+      "costFractionOfMax": 0.018,
+      "costFractionOfMaxPerLevel": 0.00225,
+      "tickInterval": 30,
       "radius": 1.5,
       "radiusPerLevel": 0.0,
       "slowFraction": 0.1,

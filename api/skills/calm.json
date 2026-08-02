@@ -3,17 +3,19 @@
   "id": 62,
   "name": "Calm",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 600,
   "targetFactions": ["wildlife_prey", "wildlife_predator"],
   "effects": [
     {
       "type": "calm",
+      "costFractionOfMax": 0.015,
+      "costFractionOfMaxPerLevel": 0.00375,
       "radius": 4.0,
       "targetsEnemies": true,
       "targetsAllies": false,
       "calmTicks": 300,
-      "calmTicksPerLevel": 60
+      "calmTicksPerLevel": 30
     }
   ]
 }

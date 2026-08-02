@@ -1,5 +1,5 @@
 {
-  "_comment": "C7 recipe net (plan-content-zones12.md §13): Ignite + Immolate maxed → Wildfire — reworked 2026-07-21 from the ~70% side-grade into a strict Immolate upgrade, see api/skills/wildfire.json. Secret — never documented in-game.",
+  "_comment": "C7 recipe net (plan-content-zones12.md §13): Ignite + Immolate at the levels below → Wildfire — reworked 2026-07-21 from the ~70% side-grade into a strict Immolate upgrade, see api/skills/wildfire.json. Secret — never documented in-game. ⚑ NUMBERS REWRITE C2a: ingredient levels are ABSOLUTE and did NOT move with the cap pass (PO 2026-07-31), so an ingredient named at 5 whose cap is now 10 unlocks this half-way up its curve rather than at its ceiling. Re-pointing them at the new caps was rejected — two maxed cap-10 skills cost 32 points against a 29-point level-30 budget, which would make the recipe unreachable.",
   "id": 8,
   "result": "Wildfire",
   "ingredients": [

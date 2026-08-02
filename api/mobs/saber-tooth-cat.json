@@ -1,4 +1,5 @@
 {
+  "_comment": "⚑ NUMBERS REWRITE C2c: the Wild drop is GONE — Wild itself was deleted (D12 item 4, \"we had these to proof concepts, not to be final\"), and the freed slot stays EMPTY by PO ruling rather than being back-filled with an existing skill.",
   "id": 3,
   "name": "SaberToothCat",
   "legacy": true,
@@ -21,6 +22,5 @@
     { "skillName": "SaberToothCatAura", "level": 1 }
   ],
   "unlocks": [
-    { "skillName": "Wild", "chance": 0.2 }
   ]
 }

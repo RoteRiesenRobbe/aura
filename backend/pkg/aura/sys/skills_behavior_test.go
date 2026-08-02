@@ -38,7 +38,7 @@ import (
 type touchRecorder struct {
 	touches    []float32 // damage HP per hit
 	touchTags  [][]string
-	gated      []bool            // Damage.Gated per hit (content pass C1)
+	gateKeys   []string          // Damage.GateKey per hit (content pass C1)
 	sources    []model.Combatant // Damage.Source per hit (threat attribution, chunk 3)
 	crits      []bool            // Damage.Crit per hit (chunk 1)
 	lifesteals []float32         // Damage.Lifesteal per hit (chunk 1)
@@ -49,7 +49,7 @@ func (r *touchRecorder) MobTouches(m model.MobEntity, factors mobs.Factors) {}
 func (r *touchRecorder) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 	r.touches = append(r.touches, damage.HP)
 	r.touchTags = append(r.touchTags, damage.Tags)
-	r.gated = append(r.gated, damage.Gated)
+	r.gateKeys = append(r.gateKeys, damage.GateKey)
 	r.sources = append(r.sources, damage.Source)
 	r.crits = append(r.crits, damage.Crit)
 	r.lifesteals = append(r.lifesteals, damage.Lifesteal)
@@ -87,6 +87,7 @@ type fakePlayer struct {
 	resists       []appliedResist
 	shields       []appliedShield
 	hots          []appliedHot
+	costPaid      vitals.VitalSign     // NoteCostPaid accumulator (round-7 item 7)
 	inCombat      bool                 // reported by InCombat (chunk 1 combat-gate tests)
 	combatActions int                  // NoteCombatAction call count (chunk 1)
 	client        model.Client         // recall reads Client().UUID() (chunk 4)
@@ -143,6 +144,7 @@ func (f *fakePlayer) PowerScale() float32                    { return f.powerSca
 func (f *fakePlayer) IsGod() bool                            { return f.god }
 func (f *fakePlayer) MaxHealth() vitals.VitalSign            { return f.maxHealth }
 func (f *fakePlayer) NoteHealedBy(h model.PlayerEntity)      { f.healedBy = append(f.healedBy, h) }
+func (f *fakePlayer) NoteCostPaid(paid vitals.VitalSign)     { f.costPaid += paid }
 func (f *fakePlayer) HealthRatio() float32 {
 	if f.maxHealth == 0 {
 		return 0
@@ -168,14 +170,17 @@ func (f *fakePlayer) AddExperience(xp uint64)             { f.xp = append(f.xp, 
 func (f *fakePlayer) RecentHealers() []model.PlayerEntity { return nil }
 func (f *fakePlayer) ApplyRecipeCascade()                 {}
 
-func (f *fakePlayer) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+func (f *fakePlayer) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool {
 	f.resists = append(f.resists, appliedResist{source, tags, factor, ticks})
+	return f.buffs.ApplyResist(source, tags, factor, ticks)
 }
-func (f *fakePlayer) ApplyShield(source skills.SkillID, hp float32, ticks int) {
+func (f *fakePlayer) ApplyShield(source skills.SkillID, hp float32, ticks int) bool {
 	f.shields = append(f.shields, appliedShield{source, hp, ticks})
+	return f.buffs.ApplyShield(source, hp, ticks)
 }
-func (f *fakePlayer) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
+func (f *fakePlayer) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool {
 	f.hots = append(f.hots, appliedHot{source, hot, ticks})
+	return f.buffs.ApplyHot(source, hot, ticks)
 }
 func (f *fakePlayer) ApplySpeed(source skills.SkillID, factor float32, ticks int) {
 	f.buffs.ApplySpeed(source, factor, ticks)
@@ -185,8 +190,12 @@ func (f *fakePlayer) ApplyTickRate(source skills.SkillID, factor float32, ticks 
 	f.buffs.ApplyTickRate(source, factor, ticks)
 }
 func (f *fakePlayer) TickRateFactor() float32 { return f.buffs.TickRateFactor() }
-func (f *fakePlayer) InCombat() bool          { return f.inCombat }
-func (f *fakePlayer) NoteCombatAction()       { f.combatActions++ }
+func (f *fakePlayer) ApplyLifesteal(source skills.SkillID, fraction float32, ticks int) {
+	f.buffs.ApplyLifesteal(source, fraction, ticks)
+}
+func (f *fakePlayer) LifestealFraction() float32 { return f.buffs.LifestealFraction() }
+func (f *fakePlayer) InCombat() bool             { return f.inCombat }
+func (f *fakePlayer) NoteCombatAction()          { f.combatActions++ }
 
 func (f *fakePlayer) Client() model.Client    { return f.client }
 func (f *fakePlayer) SetPosition(v phy.Vec2f) { f.aura.SetPosition(v) }
@@ -309,9 +318,10 @@ func damageEffect(interval int) skills.EffectDef {
 
 func healEffect() skills.EffectDef {
 	return skills.EffectDef{
-		Type:         skills.EffectTypeHealAura,
-		TickInterval: 1,
-		Heal:         &skills.HealParams{HP: 10, SelfDamageHP: 2},
+		Type:              skills.EffectTypeHealAura,
+		TickInterval:      1,
+		Heal:              &skills.HealParams{HP: 10},
+		CostFractionOfMax: 0.02, // 2 % of the fake player's 100 pool = the old absolute 2
 	}
 }
 
@@ -369,20 +379,20 @@ func TestApplyDamageAura_CarriesDamageTags(t *testing.T) {
 	assert.Equal(t, []string{"fire", "boss_x_lava"}, mobTarget.factors[0].DamageTags)
 }
 
-func TestApplyDamageAura_CarriesGatedFlag(t *testing.T) {
-	// Gated damage tags (content pass C1): the effect's opt-in flag rides the
-	// Damage payload (player path) and the Factors payload (mob path), so the
-	// target's takeDamage can close the gate on unauthored resistances.
+func TestApplyDamageAura_CarriesGateKey(t *testing.T) {
+	// The gate key (content pass C1, D4's split) rides the Damage payload
+	// (player path) and the Factors payload (mob path), so the target's
+	// takeDamage can close the gate on a mob that never named the key.
 	caster := newFakePlayer()
 	target := &touchRecorder{}
 	effect := damageEffect(1)
-	effect.Damage.Tags = []string{"turnip"}
-	effect.Damage.Gated = true
+	effect.Damage.Tags = nil // a gated hit declares no damage type
+	effect.Damage.GateKey = "harvest"
 
 	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
 
-	require.Len(t, target.gated, 1)
-	assert.True(t, target.gated[0])
+	require.Len(t, target.gateKeys, 1)
+	assert.Equal(t, "harvest", target.gateKeys[0])
 
 	mobCaster := newFakeMob()
 	mobTarget := &mobTouchRecorder{}
@@ -390,7 +400,7 @@ func TestApplyDamageAura_CarriesGatedFlag(t *testing.T) {
 	applyDamageAura(mobCaster, 1, effect, colliderSetOf(mobTarget), testRNG())
 
 	require.Len(t, mobTarget.factors, 1)
-	assert.True(t, mobTarget.factors[0].Gated)
+	assert.Equal(t, "harvest", mobTarget.factors[0].GateKey)
 }
 
 func TestApplyDamageAura_TagsFireStyleForFastTick(t *testing.T) {
@@ -532,7 +542,7 @@ func TestApplyHealAura_SelfDamageOnSuccessfulHeal(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyAuraEffect(caster, 0, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health)
 	assert.Contains(t, caster.statusEffects.Effects(), model.StatusEffectDamagedAmbient)
@@ -545,7 +555,7 @@ func TestApplyHealAura_SelfDamageIsFlatHP(t *testing.T) {
 	ally.vitalSigns.Health = 50
 	set := colliderSetOf(model.PlayerEntity(ally))
 
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), set)
+	testSkillSystem().applyAuraEffect(caster, 0, 1, healEffect(), set)
 
 	assert.Equal(t, vitals.VitalSign(98), caster.vitalSigns.Health,
 		"self-damage is a flat HP cost, independent of PoolFactor")
@@ -1328,7 +1338,7 @@ func TestApplyHealAura_VarianceRollsWithinBand(t *testing.T) {
 	caster := newFakePlayer()
 	effect := healEffect()
 	effect.Heal.HP = 50
-	effect.Heal.SelfDamageHP = 0
+	effect.CostFractionOfMax = 0
 	effect.Heal.Variance = 0.2
 
 	s := testSkillSystem()
@@ -1424,20 +1434,20 @@ func TestCooldown_PlayerActivationFiresBurst(t *testing.T) {
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.15, target.touches[0], 1e-6)
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 	assert.Empty(t, caster.sc.PendingCooldowns, "pending activations are consumed")
 }
 
 func TestCooldown_ActivationWhileOnCooldownIsIgnored(t *testing.T) {
 	target := &touchRecorder{}
 	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
-	caster.sc.CooldownSlots[0].CdTicks = 5
+	caster.sc.SetCooldownRemaining(caster.sc.CooldownSlots[0].Def.ID, 5)
 	caster.sc.RequestCooldownActivation(0)
 
 	sk.Update(33.0)
 
 	assert.Empty(t, target.touches)
-	assert.Equal(t, 4, caster.sc.CooldownSlots[0].CdTicks, "still ticking down")
+	assert.Equal(t, 4, caster.sc.SlotCooldownRemaining(0), "still ticking down")
 	assert.Empty(t, caster.sc.PendingCooldowns, "request is consumed, not queued")
 }
 
@@ -1451,7 +1461,7 @@ func TestCooldown_PlayerWhiffConsumesCooldown(t *testing.T) {
 
 	sk.Update(33.0)
 
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks)
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0))
 }
 
 func TestCooldown_LevelScalesDamageAndCooldown(t *testing.T) {
@@ -1464,7 +1474,7 @@ func TestCooldown_LevelScalesDamageAndCooldown(t *testing.T) {
 
 	require.Len(t, target.touches, 1)
 	assert.InDelta(t, 0.21, target.touches[0], 1e-6) // 0.15 + 2×0.03
-	assert.Equal(t, 260, caster.sc.CooldownSlots[0].CdTicks, "300 − 2×20")
+	assert.Equal(t, 260, caster.sc.SlotCooldownRemaining(0), "300 − 2×20")
 }
 
 func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
@@ -1491,7 +1501,7 @@ func TestCooldown_MobAutoFiresWhenTargetInRange(t *testing.T) {
 
 	require.Len(t, target.factors, 1)
 	assert.InDelta(t, 0.2, target.factors[0].Damage, 1e-6)
-	assert.Equal(t, 450, caster.sc.CooldownSlots[0].CdTicks)
+	assert.Equal(t, 450, caster.sc.SlotCooldownRemaining(0))
 }
 
 func TestCooldown_MobHoldsFireWithoutTarget(t *testing.T) {
@@ -1517,7 +1527,7 @@ func TestCooldown_MobHoldsFireWithoutTarget(t *testing.T) {
 	sk.Update(33.0)
 	sk.Update(33.0)
 
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "cooldown not consumed on a whiff — stays ready")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "cooldown not consumed on a whiff — stays ready")
 }
 
 func TestCooldown_BurstFiredStatusEffect(t *testing.T) {
@@ -1533,7 +1543,7 @@ func TestCooldown_BurstFiredStatusEffect(t *testing.T) {
 
 	// Simulate the per-tick clear + the VFX window running out.
 	caster.statusEffects.Clear()
-	caster.sc.CooldownSlots[0].CdTicks = caster.sc.CooldownSlots[0].EffectiveCooldownTicks() - skills.BurstVFXTicks
+	caster.sc.SetCooldownRemaining(caster.sc.CooldownSlots[0].Def.ID, caster.sc.CooldownSlots[0].EffectiveCooldownTicks()-skills.BurstVFXTicks)
 	sk.Update(33.0)
 
 	assert.NotContains(t, caster.statusEffects.Effects(), model.StatusEffectBurstFired,
@@ -1563,7 +1573,7 @@ func TestCooldown_SelfHealHealsCaster(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.Equal(t, start.Add(25), caster.vitalSigns.Health, "20 + 1×5 HP at level 2")
-	assert.Equal(t, 900, caster.sc.CooldownSlots[0].CdTicks, "self-heal always consumes the cooldown")
+	assert.Equal(t, 900, caster.sc.SlotCooldownRemaining(0), "self-heal always consumes the cooldown")
 }
 
 func TestCooldown_SelfHealFractionOfMaxAndNumber(t *testing.T) {
@@ -1605,6 +1615,10 @@ type slowRecorder struct {
 	sources   []skills.SkillID
 	fractions []float32
 	ticks     []int
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 // newSlowTarget builds a hostile slowable — the ordinary target of a player's
@@ -1616,10 +1630,11 @@ func newSlowTarget() *slowRecorder {
 func (r *slowRecorder) Basic() ecs.BasicEntity  { return r.basic }
 func (r *slowRecorder) Faction() model.Faction  { return r.faction }
 func (r *slowRecorder) FriendlyToPlayers() bool { return r.friendly }
-func (r *slowRecorder) ApplySlow(source skills.SkillID, fraction float32, ticks int) {
+func (r *slowRecorder) ApplySlow(source skills.SkillID, fraction float32, ticks int) bool {
 	r.sources = append(r.sources, source)
 	r.fractions = append(r.fractions, fraction)
 	r.ticks = append(r.ticks, ticks)
+	return r.buffs.ApplySlow(source, fraction, ticks)
 }
 
 func TestSlowAura_AppliesLevelScaledSlow(t *testing.T) {
@@ -1756,12 +1771,17 @@ type resistTargetRecorder struct {
 	model.PlayerEntity
 	basic   ecs.BasicEntity
 	resists []appliedResist
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *resistTargetRecorder) Basic() ecs.BasicEntity { return r.basic }
 func (r *resistTargetRecorder) Faction() model.Faction { return model.FactionAligned }
-func (r *resistTargetRecorder) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+func (r *resistTargetRecorder) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool {
 	r.resists = append(r.resists, appliedResist{source, tags, factor, ticks})
+	return r.buffs.ApplyResist(source, tags, factor, ticks)
 }
 
 func resistEffect() skills.EffectDef {
@@ -1821,12 +1841,17 @@ type shieldTargetRecorder struct {
 	model.PlayerEntity
 	basic   ecs.BasicEntity
 	shields []appliedShield
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *shieldTargetRecorder) Basic() ecs.BasicEntity { return r.basic }
 func (r *shieldTargetRecorder) Faction() model.Faction { return model.FactionAligned }
-func (r *shieldTargetRecorder) ApplyShield(source skills.SkillID, hp float32, ticks int) {
+func (r *shieldTargetRecorder) ApplyShield(source skills.SkillID, hp float32, ticks int) bool {
 	r.shields = append(r.shields, appliedShield{source, hp, ticks})
+	return r.buffs.ApplyShield(source, hp, ticks)
 }
 
 func shieldEffect() skills.EffectDef {
@@ -1906,7 +1931,7 @@ func TestCooldown_InstantShieldBuffsSelfAndAllies(t *testing.T) {
 	assert.Equal(t, 300+1, caster.shields[0].ticks,
 		"instant lifetime = authored duration + 1 (the dot convention)")
 	require.Len(t, ally.shields, 1, "allies in the circle are shielded too")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 }
 
 func TestCooldown_InstantShieldSelfOnlyStillFires(t *testing.T) {
@@ -1919,7 +1944,7 @@ func TestCooldown_InstantShieldSelfOnlyStillFires(t *testing.T) {
 	sk.Update(33.0)
 
 	require.Len(t, caster.shields, 1)
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks)
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0))
 }
 
 // --- hot_aura / instant_hot + tickHotEvents (plan-skill-vocab chunk 3) ---
@@ -1931,7 +1956,16 @@ type hotTargetRecorder struct {
 	basic ecs.BasicEntity
 	hots  []appliedHot
 	ratio float32
+	// maxHealth backs the percent-of-max HoT (D14). Left 0 by the flat-heal
+	// tests, which never read it.
+	maxHealth vitals.VitalSign
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
+
+func (r *hotTargetRecorder) MaxHealth() vitals.VitalSign { return r.maxHealth }
 
 func (r *hotTargetRecorder) Basic() ecs.BasicEntity          { return r.basic }
 func (r *hotTargetRecorder) Faction() model.Faction          { return model.FactionAligned }
@@ -1940,8 +1974,9 @@ func (r *hotTargetRecorder) InCombat() bool                  { return false }
 func (r *hotTargetRecorder) Position() phy.Vec2f             { return phy.VEC2F_ZERO }
 func (r *hotTargetRecorder) Radius() float32                 { return 0.25 }
 func (r *hotTargetRecorder) Heal(hp uint32) vitals.VitalSign { return vitals.VitalSign(hp) }
-func (r *hotTargetRecorder) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
+func (r *hotTargetRecorder) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool {
 	r.hots = append(r.hots, appliedHot{source, hot, ticks})
+	return r.buffs.ApplyHot(source, hot, ticks)
 }
 
 var _ model.Healable = (*hotTargetRecorder)(nil)
@@ -1974,13 +2009,43 @@ func TestApplyHotAura_AppliesLingeringBuffToWoundedAlly(t *testing.T) {
 	assert.Equal(t, model.PlayerEntity(caster), got.hot.Caster)
 }
 
-func TestApplyHotAura_SkipsFullHealthAlly(t *testing.T) {
+// Pre-hotting is legitimate (backlog §33, PO 2026-07-31): hot_aura applies
+// regardless of the target's current health, matching instant_hot (Recover),
+// which never had the gate. The wounded-only rule stays on applyHealAura,
+// where it is load-bearing — heal pays selfDamageHP per healing tick and caps
+// at maxTargets 1, so a tick spent on a full-HP ally costs the caster real HP
+// and burns its only slot. Rejuvenation authors neither, which is why the gate
+// was inherited rather than designed.
+//
+// A HoT on a full-HP ally is inert until they are hurt: tickHotEvents skips
+// any tick that heals <= 0, before participation XP, healer threat and combat
+// entry. So this buys pre-placement, not free healing or free threat.
+func TestApplyHotAura_AppliesToFullHealthAlly(t *testing.T) {
 	caster := newFakePlayer()
 	full := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 1.0}
 
 	applyHotAura(caster, 30, 1, hotAuraEffect(), colliderSetOf(model.Healable(full)))
 
-	assert.Empty(t, full.hots, "wounded-only: a full-health ally gets no HoT")
+	assert.Len(t, full.hots, 1, "pre-hot: a full-health ally receives the HoT")
+}
+
+// The half that read as a bug in play (§33): the gate blocked RE-application,
+// not just first application, so a HoT that healed its target back to full
+// stopped being topped up and decayed while they still stood in the aura —
+// the aura was weakest at the moment it succeeded. Re-application must keep
+// working across the wounded → full transition.
+func TestApplyHotAura_RefreshesAllyHealedBackToFull(t *testing.T) {
+	caster := newFakePlayer()
+	ally := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5}
+	targets := colliderSetOf(model.Healable(ally))
+
+	applyHotAura(caster, 30, 1, hotAuraEffect(), targets)
+	require.Len(t, ally.hots, 1, "wounded ally gets the initial HoT")
+
+	ally.ratio = 1.0 // the HoT did its job
+	applyHotAura(caster, 30, 1, hotAuraEffect(), targets)
+
+	assert.Len(t, ally.hots, 2, "still in range at full health: the stream keeps refreshing")
 }
 
 func TestApplyHotAura_SkipsSelf(t *testing.T) {
@@ -2017,7 +2082,7 @@ func TestCooldown_InstantHotBuffsSelfAndAllies(t *testing.T) {
 	assert.InDelta(t, 4, caster.hots[0].hot.HP, 1e-6)
 	assert.Equal(t, 6*20+1, caster.hots[0].ticks, "instant lifetime = authored duration + 1")
 	require.Len(t, ally.hots, 1, "allies in the circle are HoT'd too, regardless of full health")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 }
 
 func TestCooldown_InstantHotSelfOnlyStillFires(t *testing.T) {
@@ -2028,7 +2093,7 @@ func TestCooldown_InstantHotSelfOnlyStillFires(t *testing.T) {
 	sk.Update(33.0)
 
 	require.Len(t, caster.hots, 1, "the self-apply is a hit, not a whiff")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks)
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0))
 }
 
 // hotCarrier is a real-Buffs-backed PlayerEntity heal target for the
@@ -2080,13 +2145,18 @@ type dotRecorder struct {
 	basic ecs.BasicEntity
 	dots  []skills.DotBuff
 	ticks []int
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *dotRecorder) Basic() ecs.BasicEntity { return r.basic }
 func (r *dotRecorder) Faction() model.Faction { return model.FactionHostile }
-func (r *dotRecorder) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
+func (r *dotRecorder) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) bool {
 	r.dots = append(r.dots, dot)
 	r.ticks = append(r.ticks, ticks)
+	return r.buffs.ApplyDot(source, dot, ticks)
 }
 
 func dotEffect() skills.EffectDef {
@@ -2226,6 +2296,122 @@ func TestTickDots_VarianceRollsPerEvent(t *testing.T) {
 	assert.Greater(t, len(distinct), 1, "every event rolls independently")
 }
 
+// --- dots leech (N3, plan-feel-pass-2.md §5 / D1) ---
+//
+// R3 folded casterLifesteal into both DIRECT damage payload sites and missed
+// this third one: tickBuffEvents built its payload with no Lifesteal field at
+// all, so no dot ever leeched — the *Touches consumers were wired and waiting
+// on a field that was never set. D1 rules the leech is read LIVE at each burn
+// tick off the POST-credit caster (the entity whose buff store carries the
+// burst), deliberately diverging from the dot model's freeze-at-ignition:
+// "Bloodthirst is up, so my damage leeches" is the promise the tooltip makes.
+
+func TestTickDots_LiveBurstRidesTheDotPayload(t *testing.T) {
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	caster := newFakePlayer()
+	caster.ApplyLifesteal(70, 0.3, 100)
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(5, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: model.PlayerEntity(caster)}, 2)
+
+	v.buffs.Tick()
+	sk.tickBuffEvents(v)
+
+	require.Len(t, v.playerHits, 1)
+	assert.InDelta(t, 0.3, v.playerHits[0].Lifesteal, 1e-6,
+		"a live burst reaches the burn tick's payload — the *Touches consumers do the healing from there")
+}
+
+func TestTickDots_BurstStartingMidBurnTakesEffect(t *testing.T) {
+	// The D1 divergence, and the exact thing the PO reported: firing
+	// Bloodthirst on an ALREADY-burning target starts leeching immediately.
+	// Frozen-at-ignition would read 0 here forever.
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	caster := newFakePlayer()
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(5, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: model.PlayerEntity(caster)}, 4)
+
+	v.buffs.Tick()
+	sk.tickBuffEvents(v)
+	caster.ApplyLifesteal(70, 0.3, 100) // burst fired mid-burn
+	v.buffs.Tick()
+	sk.tickBuffEvents(v)
+
+	require.Len(t, v.playerHits, 2)
+	assert.Zero(t, v.playerHits[0].Lifesteal, "no burst up yet — no leech")
+	assert.InDelta(t, 0.3, v.playerHits[1].Lifesteal, 1e-6, "the burst reaches the running burn")
+}
+
+func TestTickDots_ExpiredBurstStopsLeeching(t *testing.T) {
+	// The other edge of D1's live read: the burst expires, the burn keeps
+	// running, and the leech stops with the burst.
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	caster := newFakePlayer()
+	// 2 ticks: aging runs at tick start, so the burst is live for the first
+	// burn tick and expired for the second (the buff lifetime convention).
+	caster.ApplyLifesteal(70, 0.3, 2)
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(5, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: model.PlayerEntity(caster)}, 4)
+
+	v.buffs.Tick()
+	caster.buffs.Tick() // the caster's own per-tick aging, as PreUpdate runs it
+	sk.tickBuffEvents(v)
+	v.buffs.Tick()
+	caster.buffs.Tick() // burst expires here; the burn does not
+	sk.tickBuffEvents(v)
+
+	require.Len(t, v.playerHits, 2)
+	assert.InDelta(t, 0.3, v.playerHits[0].Lifesteal, 1e-6, "burst still up on the first burn tick")
+	assert.Zero(t, v.playerHits[1].Lifesteal, "burst gone — the burn stops leeching, and keeps burning")
+}
+
+func TestTickDots_CreditedCasterBurstReachesSummonBurns(t *testing.T) {
+	// The leech reads off the POST-credit caster — the owner whose buff store
+	// carries the burst — not the summon stored on the buff (which has no
+	// burst and would read 0). A charmed pet's burn leeches while its
+	// charmer's Bloodthirst is up, because the burn credits the charmer.
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	owner := newFakePlayer()
+	owner.ApplyLifesteal(70, 0.25, 100)
+	totem := newTestTotem(owner)
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(106, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: totem}, 2)
+
+	v.buffs.Tick()
+	sk.tickBuffEvents(v)
+
+	require.Len(t, v.playerHits, 1)
+	assert.InDelta(t, 0.25, v.playerHits[0].Lifesteal, 1e-6,
+		"the owner's burst rides the credited burn tick")
+	assert.Same(t, any(totem), any(v.playerHits[0].Source),
+		"the summon stays the Source, so the leech-back heals it while it lives (§4.2)")
+}
+
+func TestTickDots_MobCasterBurstRidesTheFactorsPayload(t *testing.T) {
+	// The mob double dispatch gets the same live read: a mob carrying a
+	// lifesteal_burst (content-possible, R3) leeches on its burn ticks too.
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.rng = testRNG()
+	caster := mob.NewMob(testMobDef(), 0, nil)
+	caster.ApplyLifesteal(70, 0.4, 100)
+
+	v := newDotVictim()
+	v.buffs.ApplyDot(104, skills.DotBuff{HP: 4, Tags: []string{"fire"}, Interval: 1, Caster: caster}, 2)
+
+	v.buffs.Tick()
+	sk.tickBuffEvents(v)
+
+	require.Len(t, v.mobHits, 1)
+	assert.InDelta(t, 0.4, v.mobHits[0].Lifesteal, 1e-6)
+}
+
 func instantDotDef() *skills.SkillDefinition {
 	return &skills.SkillDefinition{
 		ID: 22, Name: "Ignite", Category: skills.SkillCategoryCooldown, MaxLevel: 3,
@@ -2252,7 +2438,7 @@ func TestCooldown_InstantDotAppliesDotOnce(t *testing.T) {
 	require.Len(t, target.dots, 1, "one activation applies the dot once")
 	assert.InDelta(t, 6, target.dots[0].HP, 1e-6)
 	assert.Equal(t, 3*30+1, target.ticks[0])
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 }
 
 // --- taunt / detaunt cooldowns (mob-depth chunk 7) ---
@@ -2304,7 +2490,7 @@ func TestCooldown_TauntForcesCasterToTopOfThreat(t *testing.T) {
 	assert.True(t, m.TargetsEntity(caster.basic.ID()),
 		"taunt forced the caster above the 100-threat holder → retention swings onto it")
 	assert.False(t, m.TargetsEntity(other.basic.ID()))
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown consumed")
 }
 
 func TestCooldown_TauntSkipsAlliedTarget(t *testing.T) {
@@ -2413,7 +2599,7 @@ func TestCooldown_SpawnAddsOwnedAlignedMobWithTTL(t *testing.T) {
 	m := g.added[0].(*mob.Mob)
 	assert.Equal(t, model.FactionAligned, m.Faction(), "summon adopts its caster's faction")
 	assert.Same(t, model.PlayerEntity(caster), m.Owner())
-	assert.Equal(t, caster.sc.CooldownSlots[0].EffectiveCooldownTicks(), caster.sc.CooldownSlots[0].CdTicks,
+	assert.Equal(t, caster.sc.CooldownSlots[0].EffectiveCooldownTicks(), caster.sc.SlotCooldownRemaining(0),
 		"the cooldown is consumed")
 
 	// Owner level 5 (chunk 1b): the summon STANDS at level 5, so its pool is
@@ -2928,12 +3114,17 @@ type alignedMobResistTarget struct {
 	model.MobEntity
 	basic   ecs.BasicEntity
 	resists []appliedResist
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *alignedMobResistTarget) Basic() ecs.BasicEntity { return r.basic }
 func (r *alignedMobResistTarget) Faction() model.Faction { return model.FactionAligned }
-func (r *alignedMobResistTarget) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
+func (r *alignedMobResistTarget) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool {
 	r.resists = append(r.resists, appliedResist{source, tags, factor, ticks})
+	return r.buffs.ApplyResist(source, tags, factor, ticks)
 }
 
 func TestApplyResistAura_ReachesAlignedMobAlly(t *testing.T) {
@@ -2998,11 +3189,16 @@ func TestApplyMobDamageAura_ThreatTableAttackerIsFairGame(t *testing.T) {
 type factionedDotRecorder struct {
 	faction model.Faction
 	dots    []skills.SkillID
+	// buffs is the REAL store, so the recorder's new-vs-refresh answer (R2 /
+	// §5.2) is the shipped one. A stub returning a constant would let a
+	// refresh-charges-nothing regression through silently.
+	buffs skills.Buffs
 }
 
 func (r *factionedDotRecorder) Faction() model.Faction { return r.faction }
-func (r *factionedDotRecorder) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
+func (r *factionedDotRecorder) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) bool {
 	r.dots = append(r.dots, source)
+	return r.buffs.ApplyDot(source, dot, ticks)
 }
 
 func TestApplyDotEffect_MobCasterRespectsHostility(t *testing.T) {
@@ -3387,6 +3583,12 @@ func TestApplyDamageAura_LifestealRidesDamagePayload(t *testing.T) {
 // one hit walked through berserker × execute × crit with hand-computed values.
 // base 10 × berserker(half HP, max 1 → 1.5) × execute(0.2 < 0.35 → 2) ×
 // crit(chance 1 → 2) = 60.
+//
+// ⚑ It is also, since R3, the ONLY place execute + berserker + lifesteal are
+// exercised together. Reaper was authored as the live smoke content for exactly
+// that combination and dropped its lifesteal rider in R3 (§5.6), so this fixture
+// is what stands in for it — do not simplify the effect down to the terms this
+// test's arithmetic strictly needs.
 func TestApplyDamageAura_CompositionOrderF6(t *testing.T) {
 	effect := vocabEffect(func(d *skills.DamageParams) {
 		d.BerserkerMaxBonusFactor = 1
@@ -3506,7 +3708,7 @@ func TestCast_ActivationStartsCastNotFire(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.Empty(t, target.touches, "cast winds up, nothing fires yet")
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed only at completion")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "cooldown consumed only at completion")
 	assert.True(t, caster.sc.IsCasting())
 	assert.Equal(t, 0, caster.sc.CastingSlot)
 }
@@ -3522,7 +3724,7 @@ func TestCast_CompletionFiresAndConsumesCooldown(t *testing.T) {
 	}
 
 	require.Len(t, target.touches, 1, "cast completed → burst fired")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts at completion")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(0), "cooldown starts at completion")
 	assert.False(t, caster.sc.IsCasting())
 }
 
@@ -3558,8 +3760,8 @@ func TestCast_DifferentSlotActivationCancelsAndFires(t *testing.T) {
 
 	assert.False(t, caster.sc.IsCasting(), "different-slot activation cancels the cast")
 	require.Len(t, target.touches, 1, "the canceling cooldown still fires normally")
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "interrupted cast consumes no cooldown")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[1].CdTicks)
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "interrupted cast consumes no cooldown")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(1))
 }
 
 func TestCast_UnequipMidCastCancelsSafely(t *testing.T) {
@@ -3588,7 +3790,7 @@ func TestRecall_NoAnchorRejectsActivation(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.False(t, caster.sc.IsCasting(), "precondition fails → no cast starts")
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "no cooldown consumed")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "no cooldown consumed")
 	require.Len(t, caster.rejections, 1)
 	assert.Equal(t, skills.SkillID(28), caster.rejections[0].skill)
 	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
@@ -3611,7 +3813,7 @@ func TestRecall_CompletionTeleportsToAnchorWithJitter(t *testing.T) {
 	dist := caster.Position().DistanceToSquared(anchor)
 	assert.LessOrEqual(t, dist, float32(respawnJitterRadius*respawnJitterRadius),
 		"teleported into the jitter disc around the anchor")
-	assert.Equal(t, 9000, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed on success")
+	assert.Equal(t, 9000, caster.sc.SlotCooldownRemaining(0), "cooldown consumed on success")
 	assert.Empty(t, caster.rejections)
 }
 
@@ -3635,7 +3837,7 @@ func TestRecall_AnchorLostMidCastRejectsAtCompletion(t *testing.T) {
 
 	assert.False(t, caster.sc.IsCasting())
 	assert.Equal(t, phy.VEC2F_ZERO, caster.Position(), "no teleport")
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "cooldown refunded (never consumed)")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "cooldown refunded (never consumed)")
 	require.Len(t, caster.rejections, 1)
 	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
 }
@@ -3692,7 +3894,7 @@ func TestRevive_NoCorpseRejectsActivation(t *testing.T) {
 
 	sk.Update(33.0)
 
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "no corpse in range → no cooldown consumed")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "no corpse in range → no cooldown consumed")
 	require.Len(t, caster.rejections, 1)
 	assert.Equal(t, skills.SkillID(33), caster.rejections[0].skill)
 	assert.Equal(t, model.ActivationRejectedNoTarget, caster.rejections[0].reason)
@@ -3711,7 +3913,7 @@ func TestRevive_FiresReviveAtNearestCorpse(t *testing.T) {
 
 	assert.Equal(t, c.Basic().ID(), cs.revivedCorpseID, "revive targets the corpse in range")
 	assert.InDelta(t, 0.3, cs.revivedFraction, 1e-6, "the authored health fraction is passed through")
-	assert.Equal(t, 600, caster.sc.CooldownSlots[0].CdTicks, "a landed revive consumes the cooldown")
+	assert.Equal(t, 600, caster.sc.SlotCooldownRemaining(0), "a landed revive consumes the cooldown")
 	assert.Empty(t, caster.rejections)
 }
 
@@ -3842,8 +4044,8 @@ func TestDash_CancelsRunningCast(t *testing.T) {
 
 	assert.False(t, caster.sc.IsCasting(), "dash cancels the running cast")
 	assert.InDelta(t, 2.5, caster.Position().X, 1e-4, "dash displaced the caster")
-	assert.Equal(t, 0, caster.sc.CooldownSlots[0].CdTicks, "interrupted cast consumes no cooldown")
-	assert.Equal(t, 300, caster.sc.CooldownSlots[1].CdTicks, "dash consumed its own cooldown")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "interrupted cast consumes no cooldown")
+	assert.Equal(t, 300, caster.sc.SlotCooldownRemaining(1), "dash consumed its own cooldown")
 }
 
 // --- C0: caster power scale — f(character level) on HP-side values ---
@@ -3884,16 +4086,23 @@ func TestApplyDamageAura_MobCaster_PowerScaleMultipliesDamage(t *testing.T) {
 func TestApplyHealAura_PowerScaleMultipliesHealAndSelfCost(t *testing.T) {
 	caster := newFakePlayer()
 	caster.powerScale = 2
+	// ⚑ The pool has to move WITH the power scale here, because that is now the
+	// only route by which a cost scales. The old absolute selfDamageHp was
+	// multiplied by casterPowerScale at the apply site; the fraction model
+	// (D7) drops that second mechanism entirely — a cost is a share of max
+	// health, and max health is what already carries f(L)
+	// (baseHealth × PowerScale × MaxHealthFactor). One mechanism, same result,
+	// and it can no longer go free as the pool grows.
+	caster.maxHealth = 200
+
 	ally := newFakePlayer()
 	ally.vitalSigns.Health = 10 // wounded
 
-	// healEffect: HP 10, SelfDamageHP 2 — both HP-side values scale
-	// (GDD §5 lists self-damage explicitly: costs stay proportional to the
-	// inflated pool).
-	testSkillSystem().applyHealAura(caster, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
+	// healEffect: HP 10 healed (× f 2), costing 2 % of a 200 pool.
+	testSkillSystem().applyAuraEffect(caster, 0, 1, healEffect(), colliderSetOf(model.PlayerEntity(ally)))
 
 	assert.Equal(t, vitals.VitalSign(20), ally.healReceived, "10 HP × f 2")
-	assert.Equal(t, vitals.VitalSign(96), caster.vitalSigns.Health, "self-cost 2 × f 2")
+	assert.Equal(t, vitals.VitalSign(96), caster.vitalSigns.Health, "self-cost 2 % of the f-2 pool")
 }
 
 func TestApplyShieldAura_PowerScaleMultipliesPool(t *testing.T) {
@@ -4095,7 +4304,7 @@ func TestCooldown_CalmPutsAnAllowedFactionOutOfCombat(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.True(t, m.Calmed(), "a mob in the allowlist is calmed")
-	assert.Equal(t, 600, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed")
+	assert.Equal(t, 600, caster.sc.SlotCooldownRemaining(0), "cooldown consumed")
 }
 
 func TestCooldown_CalmSkipsAFactionOutsideTheAllowlist(t *testing.T) {
@@ -4235,7 +4444,7 @@ func TestCooldown_CharmTakesTheNearestAllowedMob(t *testing.T) {
 
 	assert.Equal(t, model.FactionAligned, m.Faction(), "it fights on the player side now")
 	assert.Equal(t, model.PlayerEntity(caster), m.CreditTo())
-	assert.Equal(t, 3600, caster.sc.CooldownSlots[0].CdTicks, "cooldown consumed")
+	assert.Equal(t, 3600, caster.sc.SlotCooldownRemaining(0), "cooldown consumed")
 }
 
 func TestCooldown_CharmSkipsAFactionOutsideTheAllowlist(t *testing.T) {
@@ -4339,7 +4548,7 @@ func TestCooldown_SpeedBurstBuffsTheCaster(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.InDelta(t, 1.5, caster.buffs.MovementFactor(), 1e-6, "the sprint is live")
-	assert.Equal(t, 600, caster.sc.CooldownSlots[0].CdTicks, "cooldown starts after firing")
+	assert.Equal(t, 600, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
 }
 
 func TestCooldown_SpeedBurstScalesWithLevel(t *testing.T) {
@@ -4353,7 +4562,7 @@ func TestCooldown_SpeedBurstScalesWithLevel(t *testing.T) {
 	sk.Update(33.0)
 
 	assert.InDelta(t, 1.7, caster.buffs.MovementFactor(), 1e-6, "1.5 + 2×0.1")
-	assert.Equal(t, 480, caster.sc.CooldownSlots[0].CdTicks, "600 − 2×60")
+	assert.Equal(t, 480, caster.sc.SlotCooldownRemaining(0), "600 − 2×60")
 }
 
 func TestCooldown_SpeedBurstExpires(t *testing.T) {
@@ -4391,6 +4600,126 @@ func TestCooldown_SpeedBurstSetsThePip(t *testing.T) {
 
 	assert.NotZero(t, caster.buffs.AppliedEffects()&skills.AppliedEffectSpeed,
 		"a sprinting caster carries the speed pip")
+}
+
+// --- lifesteal_burst: Bloodthirst, the rider Reaper lost (R3 / §5.6). The
+// speed_burst twin — self-targeted, no query circle — but where a sprint is read
+// by the movement site, this is read by the DAMAGE site, so the assertions that
+// matter are on what a hit carries while it is up. ---
+
+func lifestealBurstDef() *skills.SkillDefinition {
+	return &skills.SkillDefinition{
+		ID: 8, Name: "Bloodthirst", Category: skills.SkillCategoryCooldown, MaxLevel: 5,
+		CooldownTicks: 900, CooldownTicksPerLevel: -60,
+		Effects: []skills.EffectDef{{
+			Type: skills.EffectTypeLifestealBurst,
+			Lifesteal: &skills.LifestealParams{
+				Fraction: 0.3, FractionPerLevel: 0.05, DurationTicks: 180,
+			},
+		}},
+	}
+}
+
+func fireLifestealBurst(t *testing.T, caster *fakePlayer, level int) {
+	t.Helper()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	caster.sc.EquipCooldown(0, lifestealBurstDef(), level)
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.AddEntity(caster)
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+}
+
+func TestCooldown_LifestealBurstBuffsTheCaster(t *testing.T) {
+	caster := newFakePlayer()
+	require.Zero(t, caster.buffs.LifestealFraction(), "no leech before firing")
+
+	fireLifestealBurst(t, caster, 1)
+
+	assert.InDelta(t, 0.3, caster.buffs.LifestealFraction(), 1e-6, "the leech is live")
+	assert.Equal(t, 900, caster.sc.SlotCooldownRemaining(0), "cooldown starts after firing")
+}
+
+func TestCooldown_LifestealBurstScalesWithLevel(t *testing.T) {
+	caster := newFakePlayer()
+	fireLifestealBurst(t, caster, 5)
+
+	assert.InDelta(t, 0.5, caster.buffs.LifestealFraction(), 1e-6, "0.3 + 4×0.05")
+	assert.Equal(t, 660, caster.sc.SlotCooldownRemaining(0), "900 − 4×60")
+}
+
+// This is the whole feature: a burst that never reaches the damage payload is a
+// buff nobody reads. It is asserted through applyDamageAura on an effect that
+// authors NO lifesteal of its own, so the fraction on the hit can only have come
+// from the caster's buff store.
+func TestCooldown_LifestealBurstRidesTheCastersHits(t *testing.T) {
+	caster := newFakePlayer()
+	effect := vocabEffect(func(*skills.DamageParams) {})
+	target := &touchRecorder{}
+
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+	require.Len(t, target.lifesteals, 1)
+	require.Zero(t, target.lifesteals[0], "an unbuffed caster's hits do not leech")
+
+	fireLifestealBurst(t, caster, 1)
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.lifesteals, 2)
+	assert.InDelta(t, 0.3, target.lifesteals[1], 1e-6, "the same hit now leeches")
+}
+
+// The burst ADDS to an aura that already leeches rather than replacing it — the
+// casterCritChance rule. Overriding would make a leech aura strictly worse to
+// pair with the cooldown built for leeching, which is backwards.
+func TestCooldown_LifestealBurstComposesWithAnAuthoredLeech(t *testing.T) {
+	caster := newFakePlayer()
+	fireLifestealBurst(t, caster, 1)
+
+	effect := vocabEffect(func(d *skills.DamageParams) { d.LifestealFraction = 0.25 })
+	target := &touchRecorder{}
+	applyDamageAura(caster, 1, effect, colliderSetOf(target), testRNG())
+
+	require.Len(t, target.lifesteals, 1)
+	assert.InDelta(t, 0.55, target.lifesteals[0], 1e-6, "0.25 authored + 0.3 burst")
+}
+
+func TestCooldown_LifestealBurstExpires(t *testing.T) {
+	// The duration is what makes it a burst rather than the passive it used to
+	// be on Reaper — the entire point of §5.6 is that it runs out.
+	caster := newFakePlayer()
+	caster.aura = phy.NewCircle(phy.VEC2F_ZERO, 1.0)
+	def := lifestealBurstDef()
+	def.Effects[0].Lifesteal.DurationTicks = 3
+	caster.sc.EquipCooldown(0, def, 1)
+	sk := NewSkillSystem(phy.NewSpace(), nil)
+	sk.AddEntity(caster)
+
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+	require.InDelta(t, 0.3, caster.buffs.LifestealFraction(), 1e-6)
+
+	for i := 0; i < 3; i++ {
+		caster.buffs.Tick()
+	}
+	assert.Zero(t, caster.buffs.LifestealFraction(), "the leech ends with the window")
+
+	target := &touchRecorder{}
+	applyDamageAura(caster, 1, vocabEffect(func(*skills.DamageParams) {}), colliderSetOf(target), testRNG())
+	require.Len(t, target.lifesteals, 1)
+	assert.Zero(t, target.lifesteals[0], "and hits after it stop leeching")
+}
+
+// ⚑ The one place it is deliberately invisible: applied_effects is a full ubyte
+// (bit 7 went to speed), so this is the first buff in the game with a real
+// duration and NO pip. Pinned rather than left to be discovered, so backlog §39
+// has a concrete first customer for a widened field.
+func TestCooldown_LifestealBurstHasNoPipYet(t *testing.T) {
+	caster := newFakePlayer()
+	fireLifestealBurst(t, caster, 1)
+
+	require.InDelta(t, 0.3, caster.buffs.LifestealFraction(), 1e-6, "the buff IS live")
+	assert.Zero(t, caster.buffs.AppliedEffects(),
+		"no bit left in applied_effects — the tells are the floating heal numbers and the cooldown timer")
 }
 
 // --- presence scan (chunk P, presence-counts attribution) ---
@@ -4528,4 +4857,58 @@ func TestPresenceScan_ZeroAllocSteadyState(t *testing.T) {
 		s.notePresence(bystander)
 	})
 	assert.Zero(t, allocs, "the presence probe must not allocate per tick")
+}
+
+// --- percent-of-max heal-over-time (plan-numbers-rewrite D14) ---
+
+// fractionHotEffect is the shape Recover takes in C2: a share of the target's
+// pool per event instead of a flat HP amount.
+func fractionHotEffect(frac float32) skills.EffectDef {
+	return skills.EffectDef{
+		Type:         skills.EffectTypeHotAura,
+		TickInterval: 10,
+		Hot:          &skills.HotParams{FractionOfMax: frac, FractionOfMaxPerLevel: 0.01, TickCount: 5, Interval: 30},
+	}
+}
+
+func TestApplyHotAura_FractionOfMax_ResolvesAgainstEachTargetsPool(t *testing.T) {
+	// The heal aura's percent branch, mirrored onto the HoT: a small and a
+	// large pool healed by the same tick restore the same SHARE. This is what
+	// stops a heal-over-time becoming dead content as pools grow ~26× over 30
+	// levels (Recover: 36 flat HP, a full heal at L1 and a rounding error at
+	// L30).
+	caster := newFakePlayer()
+	small := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5, maxHealth: 100}
+	big := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5, maxHealth: 2600}
+
+	applyHotAura(caster, 30, 1, fractionHotEffect(0.02), colliderSetOf(model.Healable(small)))
+	applyHotAura(caster, 30, 1, fractionHotEffect(0.02), colliderSetOf(model.Healable(big)))
+
+	require.Len(t, small.hots, 1)
+	require.Len(t, big.hots, 1)
+	assert.InDelta(t, 2, small.hots[0].hot.HP, 1e-6, "2% of 100")
+	assert.InDelta(t, 52, big.hots[0].hot.HP, 1e-6, "2% of 2600 — the same share, not the same number")
+}
+
+func TestApplyHotAura_FractionOfMax_ScalesPerSkillLevel(t *testing.T) {
+	caster := newFakePlayer()
+	ally := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5, maxHealth: 100}
+
+	applyHotAura(caster, 30, 3, fractionHotEffect(0.02), colliderSetOf(model.Healable(ally)))
+
+	require.Len(t, ally.hots, 1)
+	assert.InDelta(t, 4, ally.hots[0].hot.HP, 1e-6, "(0.02 + 2×0.01) × 100")
+}
+
+func TestApplyHotAura_FractionOfMax_IgnoresCasterPowerScale(t *testing.T) {
+	// Max HP already carries f(level) — scaling the fraction again would
+	// double-inflate (the selfHealHP precedent).
+	caster := newFakePlayer()
+	caster.powerScale = 4
+	ally := &hotTargetRecorder{basic: ecs.NewBasic(), ratio: 0.5, maxHealth: 100}
+
+	applyHotAura(caster, 30, 1, fractionHotEffect(0.02), colliderSetOf(model.Healable(ally)))
+
+	require.Len(t, ally.hots, 1)
+	assert.InDelta(t, 2, ally.hots[0].hot.HP, 1e-6)
 }

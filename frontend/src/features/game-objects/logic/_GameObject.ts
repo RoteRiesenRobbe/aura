@@ -46,13 +46,16 @@ GameSetupEvent.subscribe((game: IGame) => {
 
 // Floating-number kinds (item 11) and their colors. 'crit' is the
 // crit-flagged share of damage (skill-vocab chunk 1): same '-' semantics as
-// damage, rendered bigger and warmer so the one sanctioned RNG pops.
-export type FloatingNumberKind = 'damage' | 'crit' | 'heal' | 'xp';
+// damage, rendered bigger and warmer so the one sanctioned RNG pops. 'cost'
+// is the resource the player SPENT (round-7 item 7) — same '-' semantics,
+// blue so paying never reads as being attacked.
+export type FloatingNumberKind = 'damage' | 'crit' | 'heal' | 'xp' | 'cost';
 const FLOATING_NUMBER_COLORS: Record<FloatingNumberKind, number> = {
     damage: 0xFF4D4D,
     crit: 0xFFB84D,
     heal: 0x4DFF88,
     xp: 0xFFD700,
+    cost: 0x4D9EFF,
 };
 
 // Crit numbers render this much larger than regular floating numbers
@@ -435,7 +438,7 @@ export abstract class GameObject {
     // inherits the shape's rotation.
     showFloatingNumber(value: number, kind: FloatingNumberKind) {
         if (value <= 0) return;
-        const sign = (kind === 'damage' || kind === 'crit') ? '-' : '+';
+        const sign = (kind === 'damage' || kind === 'crit' || kind === 'cost') ? '-' : '+';
         const label = sign + value + (kind === 'xp' ? ' XP' : '');
         this.showFloatingText(label, FLOATING_NUMBER_COLORS[kind], kind === 'crit' ? CRIT_SIZE_FACTOR : 1);
     }

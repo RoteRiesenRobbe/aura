@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Pickaxe, which is the only thing that clears a Rockfall (the gated 'smash' tag). ⚑ QUESTS (plan-quests.md C4): the MIDDLE of `the-lost-lamp`, and the only NON-TERMINAL advance_quest edge in the first pass — his row moves ask_miner → clear_den and ends nothing, which is exactly what C1's derived terminality and C2's two-phase cross-validation exist to get right. It carries no reward, and under L10 it may not: grant_xp is legal only on an edge that ends a quest, because abandon leaves the lifetime counters standing.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. Teaches Pickaxe, which is the only thing that clears a Rockfall (the gated 'smash' tag). ⚑ Q4 (conversation-journal §7 q3, PO 2026-07-30): his `the-lost-lamp` middle leg is GONE — the quest is the simple three-stage version and the game's only non-terminal advance_quest edge went with it (a mechanism should not keep content alive to satisfy a test). The kobold-nest lore he carried stays as an answer-node. ⚑ TEXT SHAPE (PO 2026-08-02): teaching behind the unified 'Teach me something.' row as a row that NAMES the skill directly.",
   "id": 55,
   "name": "Miner",
   "type": "MOB",
@@ -23,47 +23,38 @@
     "range": 2.0,
     "nodes": [
       {
-        "id": "lamp_directions",
-        "conditions": [
-          { "kind": "quest_at_stage", "quest": "the-lost-lamp", "stage": "ask_miner" }
-        ],
+        "id": "root",
         "lines": [
-          "The one sitting in the dark sent you, did he. He's been sitting there three days."
+          "The tunnel is overrun."
         ],
         "options": [
-          {
-            "text": "Where do the kobolds nest?",
-            "grants": [
-              {
-                "kind": "advance_quest",
-                "quest": "the-lost-lamp",
-                "fromStage": "ask_miner",
-                "toStage": "clear_den",
-                "line": "North of the tunnel, where the trees thin out and the ground turns to scree. Half a dozen of them at least — and nobody has ever got anything back off a kobold by asking."
-              }
-            ],
-            "next": "root"
-          },
-          { "text": "Something else.", "next": "root" }
+          { "text": "What happened down there?", "next": "tunnel" },
+          { "text": "Teach me something.", "next": "teachings" }
         ]
       },
       {
-        "id": "root",
+        "id": "teachings",
         "lines": [
-          "We need the Militia to clear this tunnel once and for all... They are so useless"
+          "What do you want to learn?"
         ],
         "options": [
           {
-            "blockedLine": "Careful! The tunnel is dark and dangerous.",
+            "text": "Pickaxe",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Pickaxe",
                 "requiredLevel": 4,
-                "line": "The tunnel is overrun! Take my Pickaxe, I have no use for it anymore."
+                "line": "I'll teach you Pickaxe."
               }
             ]
           }
+        ]
+      },
+      {
+        "id": "tunnel",
+        "lines": [
+          "First the Kobolds, now the Spiders. Things are getting worse every day."
         ]
       }
     ]

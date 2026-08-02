@@ -3,16 +3,18 @@
   "id": 54,
   "name": "Shockwave",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 240,
-  "cooldownTicksPerLevel": -20,
+  "cooldownTicksPerLevel": -10,
   "effects": [
     {
       "type": "instant_damage",
+      "costFractionOfMax": 0.0487,
+      "costFractionOfMaxPerLevel": 0.005525,
       "radius": 2.0,
-      "radiusPerLevel": 0.1,
+      "radiusPerLevel": 0.05,
       "damageHP": 44,
-      "damageHPPerLevel": 10,
+      "damageHPPerLevel": 5,
       "damageTags": ["physical", "bleed"],
       "targetsEnemies": true,
       "targetsAllies": false

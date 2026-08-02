@@ -70,8 +70,13 @@ func TestMilestoneUnlocksFromFS_MissingFile(t *testing.T) {
 // (plan-content-zones12.md §13 C8, PO 2026-07-19) fixed milestones as the rare
 // guaranteed beats and pushed everything else into the world. FirstAid left the
 // table on 2026-07-21 (PO): the village Hermit now teaches it at L2 — earlier
-// than the L3 milestone granted it — so the milestone was dead weight and Haste
-// (first cooldown) is the only guaranteed beat left.
+// than the L3 milestone granted it — so the milestone was dead weight. Damage
+// JOINED at level 1 with conversation-journal Q4 (2026-07-30): the free
+// baseline aura is seeded at character creation instead of being the
+// TownCrier's first teaching, so a peasant can always fight. Discipline JOINED
+// at level 5 with the numbers rewrite (C2b): once every skill outside the free
+// floor costs resource, the cost-reduction passive is the build's answer to the
+// economy, and level 5 is roughly where costs start to bite.
 // Resolves against the real content in api/skills so a renamed skill fails
 // here, not at boot.
 func TestMilestoneUnlocksFromFS_PinnedTable(t *testing.T) {
@@ -86,7 +91,9 @@ func TestMilestoneUnlocksFromFS_PinnedTable(t *testing.T) {
 		got[u.Skill.Name] = u.Level
 	}
 	assert.Equal(t, map[string]uint32{
-		"Haste": 7,
+		"Damage":     1,
+		"Discipline": 5,
+		"Haste":      7,
 	}, got)
 }
 

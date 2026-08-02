@@ -3,13 +3,13 @@
   "id": 42,
   "name": "Hardy",
   "category": "passive",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "effects": [
     {
       "type": "stat_multiplier",
       "stat": "maxHealth",
       "statBonus": 0.08,
-      "statBonusPerLevel": 0.08
+      "statBonusPerLevel": 0.04
     }
   ]
 }

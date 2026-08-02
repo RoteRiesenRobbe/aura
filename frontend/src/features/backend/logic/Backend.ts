@@ -13,7 +13,13 @@ import * as AccountScreens from '../../user-interface/account-screens/logic/Acco
 import * as AccountFlow from '../../accounts/logic/AccountFlow';
 import * as EndScreen from '../../user-interface/end-screen/logic/EndScreen';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
-import {activationRejectionMessage, skillCategory, skillDisplayName} from '../../../client-data/Skills';
+import {
+    activationRejectionMessage,
+    setLocalPlayerCostFactor,
+    setLocalPlayerDamageFactor,
+    skillCategory,
+    skillDisplayName,
+} from '../../../client-data/Skills';
 import {AuraApi} from './AuraApi';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
@@ -21,6 +27,8 @@ import {GameState, IGame} from "../../core/logic/IGame";
 import {BackendState, IBackend} from "./IBackend";
 import {Session} from "../../accounts/logic/Session";
 import {Badgeable, retargetInteractBadge} from "./InteractBadgeTargeting";
+import * as Interact from "../../interact/logic/Interact";
+import {isMobile} from "../../user-interface/logic/Mobile";
 import * as Conversation from "../../conversation/logic/Conversation";
 import * as Journal from "../../journal/logic/Journal";
 import {Develop} from "../../internal-tools/develop/logic/_Develop";
@@ -335,6 +343,14 @@ export class Backend implements IBackend {
                     snapshot.player.name);
             }
 
+            // The tooltip prices every cost through it (R1/F2). Mirrored before
+            // the spellbook update below, so the panel that opens on an unlock
+            // already prices with it; `?? 1` is the neutral value, which is what
+            // an absent field means on the wire too.
+            setLocalPlayerCostFactor(snapshot.costFactor ?? 1);
+            // Same contract for the damage side (round-7 item 5, Strong).
+            setLocalPlayerDamageFactor(snapshot.damageFactor ?? 1);
+
             // snapshot.spellbook is always defined ([] for empty); isDefined guard
             // matches inventory pattern and is safe against the first-tick edge case.
             if (Utils.isDefined(snapshot.spellbook)) {
@@ -404,7 +420,13 @@ export class Backend implements IBackend {
         // a trap for the next reader of that getter.
         const offered = snapshot.interactableEntityId ?? 0;
         this.interactableEntityId = offered;
-        this.updateInteractBadge(offered === Conversation.partnerId() ? 0 : offered);
+        const badged = offered === Conversation.partnerId() ? 0 : offered;
+        // ⚑ On mobile the badge is REPLACED, not accompanied (PO 2026-08-02):
+        // a phone has no E, so the offer is presented as a HUD button instead.
+        // Both surfaces are driven from this one site off the same `badged`
+        // id, so they can never disagree about which actor is on offer.
+        this.updateInteractBadge(isMobile() ? 0 : badged);
+        Interact.updateButton(badged);
 
         if (!this.firstGameStateReceived) {
             this.firstGameStateResolve();

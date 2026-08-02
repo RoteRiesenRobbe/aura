@@ -8,9 +8,9 @@ package mob
 import (
 	"testing"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 )
 
 // tickIdle advances the mob n idle ticks (no aggro), keeping it alive.

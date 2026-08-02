@@ -62,12 +62,8 @@ type InteractionOption struct {
 	// Text is the row's label. Empty is legal and means "label me from what I
 	// grant": present() falls back to the skill's display name, which is what
 	// renders the NPCs that were never re-authored into trees.
-	Text string
-	// BlockedLine is what the actor answers when the player takes a row whose
-	// grant they are too low for. It replaces nothing and grants nothing (D17
-	// retired the walk that used to stop here).
-	BlockedLine string
-	Grants      []InteractionGrant
+	Text   string
+	Grants []InteractionGrant
 	// Next names the node to continue at. Empty = this row only grants.
 	// Validated at load since 3a; 3b-ii is where it is finally READ, and it is
 	// the entire navigation mechanism — Back and Leave are automatic, so no
@@ -267,7 +263,13 @@ type jsonInteractionNode struct {
 }
 
 type jsonInteractionOption struct {
-	Text        string                 `json:"text"`
+	Text string `json:"text"`
+	// ⚑ BlockedLine is a TOMBSTONE, kept solely to reject it (Q1/R1, the
+	// `trigger` precedent above): a locked row is greyed with its wall named and
+	// clicking it does nothing — the greying is the message, and nothing
+	// replaces the line. Without this the loader's DisallowUnknownFields would
+	// still fail, but as `unknown field "blockedLine"`, which reads as a typo
+	// rather than as a retirement (L22).
 	BlockedLine string                 `json:"blockedLine"`
 	Grants      []jsonInteractionGrant `json:"grants"`
 	Next        string                 `json:"next"`
@@ -375,11 +377,15 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 				return nil, fmt.Errorf("mob %q: interaction node %q option %d: %d grants, but only indices 0..%d are addressable on the wire",
 					m.Name, jn.ID, j, len(jo.Grants), maxAddressableIndex)
 			}
+			if jo.BlockedLine != "" {
+				return nil, fmt.Errorf("mob %q: interaction node %q option %d: blockedLine was retired — a locked "+
+					"row is greyed with its wall named and clicking it is inert; the greying is the message, and "+
+					"nothing replaces the line (plan-conversation-journal.md Q1/R1)", m.Name, jn.ID, j)
+			}
 			if err := m.checkSchemaRoom(jn.ID, j, jo); err != nil {
 				return nil, err
 			}
-			opt := InteractionOption{Text: jo.Text, BlockedLine: jo.BlockedLine, Next: jo.Next}
-			gated := false
+			opt := InteractionOption{Text: jo.Text, Next: jo.Next}
 			for k, jg := range jo.Grants {
 				kind, ok := ParseGrantKind(jg.Kind)
 				if !ok {
@@ -395,26 +401,10 @@ func (m *mobDefinition) mapToInteraction(sr skills.Registry, legacyRefs *[]strin
 				if err != nil {
 					return nil, err
 				}
-				// ⚑ > 1, not > 0: players start at level 1, so a requiredLevel
-				// of 1 can never refuse anybody and demanding a refusal line for
-				// it just adds a string no player will ever see. (3a asked for
-				// one whenever requiredLevel was set at all; under D20 a genuinely
-				// locked row also renders its wall, so the line is the ANSWER to
-				// clicking it rather than the only feedback there is.)
-				if jg.RequiredLevel > 1 {
-					gated = true
-				}
 				opt.Grants = append(opt.Grants, g)
 			}
 			if err := m.checkQuestRowShape(jn.ID, j, &opt); err != nil {
 				return nil, err
-			}
-			// Today's rule, moved from the zone loader: a level-gated grant has
-			// to have something to say when it is refused, or a player who is
-			// too low meets silence and reads it as a broken NPC.
-			if gated && strings.TrimSpace(jo.BlockedLine) == "" {
-				return nil, fmt.Errorf("mob %q: interaction node %q option %d: blockedLine is required when a grant has a requiredLevel",
-					m.Name, jn.ID, j)
 			}
 			// An option is a clickable row now (D15), so one that neither
 			// grants nor navigates is a button that visibly does nothing.

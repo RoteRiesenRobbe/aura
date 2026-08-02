@@ -267,7 +267,11 @@ Context from current state:
   recipe path? (Replacement would be the first *non-monotonic* spellbook
   operation — the cascade evaluator currently assumes levels only grow.)
 
-## 4. Location-bound leveling conditions
+## 4. Location-bound leveling conditions — ✗ DECIDED AGAINST 2026-08-02
+
+> **✗ DECIDED AGAINST (PO ruling 2026-08-02) — not happening for now.** The
+> entry is kept as the design record; the open questions below stay
+> unanswered on purpose. Re-opens only on an explicit PO request.
 
 **WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 Certain skills can only be leveled up (spending skill points) at a specific
@@ -665,7 +669,24 @@ a medium half:
 - **Rotation stays out** either way — the whole `phy` broadphase is
   AABB-based; "square" means axis-aligned.
 
-## 9. Recall to last safe place
+## 9. Recall — ✅ DONE 2026-07-14, shipped `4287977e`
+
+> **✅ BUILT AND LIVE.** Shipped as skill-vocabulary chunk 4 (*"cast-time +
+> interrupt + Recall"*, execution step 4) — exactly where the 2026-07-09 status
+> below placed it; this banner was simply never written. **`api/skills/recall.json`:**
+> id 28, `category: cooldown`, `maxLevel: 1`, `cooldownTicks: 9000` (5 min),
+> `castTicks: 300` (**10 s, matching the placeholder below**),
+> `castInterruptedByDamage: true`, one `{"type": "recall"}` effect. Engine:
+> `skills.EffectTypeRecall` (`skills/definition.go:53`), teleport at
+> `sys/skills.go:1377`, and an **activation precondition** at
+> `sys/skills.go:1253` that rejects with `ActivationRejectedNoAnchor` when the
+> player has no campfire anchor bound — so the mechanic below resolved as
+> *interrupted by damage*, not invulnerable-while-casting, and the target set
+> resolved as the **campfire anchor** (`connState.AnchorOf`), i.e. the same
+> tracker as death-respawn, not a broader "safe place" set. §20's teleport-snap
+> was fixed in the same commit, as the ⚠ note below required. The ⚑ open
+> questions further down are all answered by the shipped skill; they are kept
+> as the design record only.
 
 **WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 Teleport back to the last visited safe place (campfire, town, or other
@@ -1436,8 +1457,70 @@ with a real design decision in front of it.
 ## 25. Tech debt: `sys/skills.go` — size is warranted, the cleanup layer on top is not
 
 **WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
-> **PARTIALLY DONE — options A#4 and B landed 2026-07-24 (`2ec03ee7`),
-> option C landed 2026-07-25** (A#1–3, D, E still open).
+> **PARTIALLY DONE — A#4 + B landed 2026-07-24 (`2ec03ee7`), C landed
+> 2026-07-25, A#1 + A#3 landed 2026-07-31 (`1bfd6677`).** Only **A#2**
+> (blocked on §33 — see below), **D** and **E** remain open.
+>
+> - **A#1 + A#3 (the mechanical cleanups): DONE 2026-07-31**, together with
+>   §27.2.8, as the opportunistic sitting the recommendation below reserves for
+>   "if the file is being opened anyway" — taken before step 8 goes near this
+>   file. **Zero behaviour change, and that was the acceptance test**: the sim
+>   battery is byte-identical against a clean HEAD worktree across all five
+>   runs (default · `-chain` · `-levels` · `-matrix` · `-content ../api`).
+>   - **A#1** — the if-chain became one `switch`, and the negated two-type
+>     guard plus the nested `switch`-on-the-same-value at the tail both
+>     dissolved into ordinary sibling cases. ⚑ **The survey below recorded
+>     eight if-blocks; there were twelve** — `calm`, `charm` and `speed_burst`
+>     each appended one after it was written. That is this finding's own
+>     prediction ("every new cooldown effect appends another if-block")
+>     measured three effects later, and the reason it was worth doing rather
+>     than re-deferring.
+>   - **A#3** — two helpers, not one: `instantQueryCircle` (radius → circle →
+>     mask, 4 sites) and `queryInstantTargets` (that plus hits→`ColliderSet`
+>     minus the caster, 3 sites). ⚑ **The survey's "four sites, three
+>     byte-identical loops" was slightly off**: `applyThreatEffect` builds no
+>     set at all and `fireCooldown`'s loop carries an inline caster-skip, so
+>     only two were truly identical. `applyThreatEffect` deliberately keeps its
+>     **slice** iteration — a `ColliderSet` would trade deterministic order for
+>     Go's randomized map order for no gain, in the one file where the
+>     guardrail replay is the safety net.
+>   - ⚑ **What made the caster-skip unification safe, and is worth reusing:**
+>     `selectTargets` applies `eligible` BEFORE it sorts and caps
+>     (`targeting.go:109-128`), so dropping the caster from the candidate set
+>     early cannot change which targets survive the cap. Conversely
+>     `fireCooldown` sets `hitAny` on a non-empty **raw** set, before
+>     eligibility runs — so the helper must NOT filter, or landed cooldowns
+>     would silently become whiffs.
+>   - **A#2 was deliberately left**, per §33's ordering constraint — and that
+>     call paid off within a day: **§33 was ruled 2026-07-31 (lift the gate),
+>     which SUPERSEDES A#2 outright.** Heal and hot stop sharing a rule, so the
+>     hot-side copy gets *deleted* rather than deduped, and the shared
+>     `woundedAllyPredicate()` A#2 proposed would have been the wrong
+>     abstraction — taken opportunistically alongside A#1/A#3, it would have had
+>     to be un-done a day later. ⚑ **The generalizable lesson: a "mechanical,
+>     no-behaviour-change" dedupe is only safe when the duplication is genuinely
+>     ONE rule. While an open question asks whether the two copies *should*
+>     agree, the dedupe is a design commitment wearing hygiene's clothes.**
+>   - ⚑ **`gofmt -l pkg/` reports 34 files at HEAD**, including both files this
+>     pass touched. Proven pre-existing by stash-testing, and deliberately not
+>     folded in — a repo-wide reformat does not belong inside a behaviour-neutral
+>     hygiene diff. It is a genuine one-command cleanup for its own commit.
+>     **✅ TAKEN 2026-07-31 as exactly that, its own commit** (`e1ed7468`) — and the count was
+>     **36, not 34**: `gofmt -l pkg/` misses `cmd/`, where `bhclient/main.go` and
+>     `simharness/guardrail_test.go` had drifted too. All of it import ordering
+>     and struct-literal alignment; **no generated file was affected** (the
+>     `AuraApi` bindings and `collisionlayer_enumer.go` were already clean), so
+>     the generators will not fight it on the next `make gen`.
+>   - **Verified:** full suite green (28 pkgs, exit 0) + `vet`; guardrails +
+>     alloc `-count=2`; boot both ways identical, 0 errors 0 warnings; five
+>     browser harnesses each solo on a fresh server — presence 6/6, follower
+>     6/6, calm 7/7, charm 8/8 + 1 D9 SKIP, swift green.
+> - ⚑ **A#4 was already done and the list below did not say so** — it landed
+>   with B in `2ec03ee7`, and only this banner recorded it, so a later reader
+>   planning off the numbered list would have re-planned finished work. Item 4
+>   is struck through in place now. **The lesson generalizes: when a §-banner
+>   and the prose beneath it disagree, the prose is the stale one** — banners
+>   get amended per chunk, survey bodies almost never do.
 > - **C (`applySlowAura` eligibility): FIXED, not pinned — and it was a LIVE
 >   bug, not the latent one recorded below.** The assessment under
 >   "⚑ Latent correctness gap" was wrong on its central fact: it assumed
@@ -1540,13 +1623,19 @@ but the reading today is benign.
 
 ### Cleanup layer (mechanical, no behavior change, ~70 lines / ~7%)
 
-1. **`fireCooldown` is a `switch` written as an if-chain** (`skills.go:1233–1337`).
+1. ~~**`fireCooldown` is a `switch` written as an if-chain**~~ ✅ **DONE
+   2026-07-31** (`skills.go:1233–1337`; it had grown to twelve branches by then).
    Eight sequential `if effect.Type == X { …; continue }` blocks, then a negated
    two-type guard, then an actual `switch` for the last two. Every new cooldown
    effect appends another if-block. One `switch` collapses ~25 lines and makes
    the exhaustiveness visible. **Highest value of the four** — this is the
    extension point that grows.
-2. **Copy-pasted "wounded ally" predicate** — `applyHealAura:716–728` and
+2. ~~**Copy-pasted "wounded ally" predicate**~~ ⚑ **SUPERSEDED by §33's ruling
+   2026-07-31 — do NOT extract this.** The PO lifted the wounded-only gate on
+   `hot_aura`, so heal and hot no longer share a rule: the hot-side copy is
+   *deleted*, not deduped, and a shared `woundedAllyPredicate()` would be
+   exactly the wrong abstraction. Close this item when §33 lands.
+   `applyHealAura:716–728` and
    `applyHotAura:815–827` are logically identical (`Healable` + same faction +
    not self + `HealthRatio() < 1`). This is the **residual of §3.4 in
    `research-code-quality.md`**: the flag-gated predicates were unified into
@@ -1554,7 +1643,8 @@ but the reading today is benign.
    that was deliberately left out of that seam — and then duplicated. Extract it
    as a named `woundedAllyPredicate(e)`; both call sites already comment that
    they share the rule.
-3. **Four copies of the instant-query preamble** — `applyInstantShield:977–990`,
+3. ~~**Four copies of the instant-query preamble**~~ ✅ **DONE 2026-07-31** —
+   `applyInstantShield:977–990`,
    `applyInstantHot:1023–1036`, `applyThreatEffect:1453–1455`, and the
    instant-damage path in `fireCooldown:1308–1321` all do: `skills.Scaled`
    radius → `NewCircle` at aura pos → `InstantDamageMask` → `QueryCircle` →
@@ -1565,7 +1655,9 @@ but the reading today is benign.
    different buff payload — merging them needs generics over two unrelated apply
    signatures, which costs more clarity than the ~40 lines buy. KISS says leave
    the pair.)
-4. **A doc comment got merged into its neighbour** (`skills.go:594–616`).
+4. ~~**A doc comment got merged into its neighbour**~~ ✅ **DONE 2026-07-24**
+   (`2ec03ee7`, alongside option B — it sat in the same hunk as the deleted
+   `defaultCritFactor` const) (`skills.go:594–616`).
    `casterCritChance`'s doc paragraph runs straight into `casterDamageFactor`'s
    with no break, and the function that actually follows the block is
    `casterDamageFactor`. Net effect: **`casterCritChance` (line 617) has no doc
@@ -1638,10 +1730,11 @@ Flagged only so the ratio is a **choice on record** rather than drift.
 
 ### Options (none chosen)
 
-- **A — Do the four mechanical cleanups.** ~70 lines removed, no behavior
-  change, `skills_behavior_test.go` (3839 lines) is the regression net. **~1–2
-  hours, low risk.** #4 alone is 2 minutes and should ride along with any
-  future touch of that file.
+- ~~**A — Do the four mechanical cleanups.**~~ ✅ **A#1 + A#3 + A#4 DONE**
+  (A#4 2026-07-24, A#1 + A#3 2026-07-31); **A#2 remains, blocked on §33.** No
+  behavior change, `skills_behavior_test.go` (3839 lines) plus the byte-identical
+  sim battery were the regression net. Actual cost for A#1 + A#3 was well under
+  the ~1–2 h estimate, mostly because the survey had already located every site.
 - **B — Move the two balance constants into `conf.json`.** ~30 min, independent
   of A.
 - ~~**C — Pin `applySlowAura`'s gap with a test**~~ ✅ **FIXED 2026-07-25** (see
@@ -1657,14 +1750,24 @@ Flagged only so the ratio is a **choice on record** rather than drift.
 - **E — Do nothing.** Fully defensible. Nothing here is a live bug; the file
   is readable, tested, and its size is earned.
 
-**Recommendation on record (2026-07-24, amended 2026-07-25):** **A + B if the
-file is being opened anyway** (they are the kind of thing that is cheap on a
-visit and never worth a dedicated session); ~~C whenever a mob slow aura is
-first considered~~ — **C is done, and it should not have waited on mob content
-at all**; D and E otherwise. **A#1–3 not scheduled.**
+**Recommendation on record (2026-07-24, amended 2026-07-25, closed
+2026-07-31):** **A + B if the file is being opened anyway** (they are the kind
+of thing that is cheap on a visit and never worth a dedicated session);
+~~C whenever a mob slow aura is first considered~~ — **C is done, and it should
+not have waited on mob content at all**; D and E otherwise. ⚑ **The
+"opportunistic" framing turned out to be the wrong bet on A#1**: nobody opened
+the file for an unrelated reason in the seven days it sat there, three new
+effect types appended three new if-blocks in the meantime, and it ended up
+taking a dedicated (if short) sitting anyway. **A cleanup on the extension
+point that is actively growing should be scheduled, not left to a passing
+visit.**
 
-**Scope guess:** A ~1–2 h; D ~15 min. (B took ~30 min; C took ~40 min including
-the four pins.) None of them interact, so they can be taken individually.
+**What is left: A#2** (decide §33 first), **D** (~15 min, still not
+recommended — the file is cohesive), **E**.
+
+**Scope guess:** ~~A ~1–2 h~~ (A#1 + A#3 came in well under it); D ~15 min.
+(B took ~30 min; C took ~40 min including the four pins.) None of the remainder
+interact, so they can be taken individually.
 
 ---
 
@@ -1980,14 +2083,37 @@ Ranked by consequence, not by size.
    `TODO use walkingSpeedPerTick from global config`. That hardcoded
    tick-coupled constant is exactly what makes **`plan-input-jitter.md` chunk 3
    (client/server rate alignment) non-trivial** — worth reading together.
-8. Smaller, all one-sitting fixes: `highestThreatTarget()` (line 1074) **prunes
-   dead entries while reading** — a getter that mutates, as does
-   `ForceThreatToTop`; the threat-entry gate (nil / same-faction / dead + lazy
-   map init + get-or-create) is **copy-pasted** between `noteThreat` (923) and
-   `ForceThreatToTop` (962); `tryGrantKillRewards` (1372) and `KillCreditNames`
-   (1340) walk the **same** participants × `RecentHealers()` dedupe twice, one to
-   grant and one to name, so a change to the credit rule must land in both;
-   `NoteThreat` is an exported one-line wrapper around `noteThreat`.
+8. ~~Smaller, all one-sitting fixes~~ ✅ **DONE 2026-07-31** (with §25 A#1 +
+   A#3, one sitting, zero behaviour change — sim battery byte-identical):
+   `highestThreatTarget()` (line 1074) **prunes dead entries while reading** —
+   a getter that mutates, as does `ForceThreatToTop`; the threat-entry gate
+   (nil / same-faction / dead + lazy map init + get-or-create) is
+   **copy-pasted** between `noteThreat` (923) and `ForceThreatToTop` (962);
+   `tryGrantKillRewards` (1372) and `KillCreditNames` (1340) walk the **same**
+   participants × `RecentHealers()` dedupe twice, one to grant and one to name,
+   so a change to the credit rule must land in both; `NoteThreat` is an
+   exported one-line wrapper around `noteThreat`.
+
+   **What shipped:** `threatEntryFor` (the shared gate), `pruneDeadThreat`
+   (the mutation, now named — both threat readers call it first) and
+   `forEachCredited` (the credit walk, stated once; `tryGrantKillRewards` is
+   three lines now). **`NoteThreat` was deliberately KEPT** — it is the
+   documented crediting seam, `companion_test.go:310` calls the unexported
+   `noteThreat` directly while five other tests call the exported one, and
+   collapsing them only moves where the export marker sits.
+
+   ⚑ **Two constraints found while doing it, both worth knowing before anyone
+   touches this area again:**
+   - **`ThreatSnapshot` must NOT get the prune.** It deliberately *skips* dead
+     rows without deleting them, being the read-only `THREAT` cheat dump — a
+     debug read that mutates what it dumps is a worse bug than the duplication.
+   - **`forEachCredited` must not sort.** `rewardPlayer` draws from the mob's
+     RNG per unlock roll, so imposing an order would shift that stream on
+     every multi-participant kill. It follows participant-map order and
+     `KillCreditNames` sorts its own output afterwards, exactly as before.
+
+   **Harness note:** `chunkP-presence` owns `rewardPlayer` / the participant
+   map, so it is the eyes on `forEachCredited` — 6/6 on a fresh server.
 9. **Layering note, knowingly taken:** `rewardPlayer` (1406) composes the
    user-facing English string — `p.Client().SendUnlock(id, "Dropped by: "+…)` —
    so a domain entity reaches through to the network client *and* authors UI
@@ -2069,8 +2195,32 @@ no-op of exactly the kind the rest of the file exists to prevent.
    away: an authored `"tickInterval": 0` or `-5` is rewritten to 1 instead of
    hard-failing, in the one file whose entire thesis is that a value the engine
    ignores must not load. 3-line fix.
-4. **Authors and the catalog speak different vocabularies for the same data.**
-   Content JSON is flat and prefixed (`damageHP`, `healHP`, `resistTags` — the
+4. ✅ **DONE 2026-07-31** `389f3935` (docs only, with §27.3.6 in one hygiene sitting).
+   **Authors and the catalog speak different vocabularies for the same data.**
+
+   > **The table now lives in `manual-content-authoring.md` §2 → "Authored key →
+   > catalog path (two vocabularies for the same data)"**, derived from
+   > `effectKeys` + the payload structs' json tags rather than written from
+   > memory — which is what turned up more asymmetry than this finding
+   > described. ⚑ **The general rule (`damageHP` → `damage.hp`) has three
+   > documented exceptions worth knowing before authoring:** the *same* authored
+   > key maps to **different catalog paths depending on `type`** — `damageHP` is
+   > `damage.hp` on the damage types but `dot.hp` on the dot types, and `healHP`
+   > is `heal.hp` / `hot.hp` / `selfHeal.healHp` across three payloads (the
+   > self-heal payload keeps the `heal` prefix its siblings drop); `selfDamageHP`
+   > lands as `heal.selfDamageHp`, the one place the capital `HP` becomes `Hp`;
+   > and `targetsSelf` lives **inside** the payload while every other target flag
+   > stays flat on `EffectDef`. The table ends by naming `definition.go` as the
+   > authority, so a future drift resolves without a second survey.
+   >
+   > ⚑ **One row was wrong on the first pass and caught against the mapper:**
+   > `gatedDamageTags` reads like "one key becomes two" (`damage.tags` +
+   > `damage.gated`), but `definition.go:1240` shows it is a plain bool authored
+   > *alongside* `damageTags` that hard-fails without it. Writing this table from
+   > the struct tags alone would have shipped that error — the payload builders
+   > are the thing to read.
+
+   Original finding: Content JSON is flat and prefixed (`damageHP`, `healHP`, `resistTags` — the
    private `effectDef` shape); `GET /skills` serves nested payloads
    (`damage.hp`, `heal.hp`, `resist.tags` — the public `EffectDef` shape). Both
    halves are deliberate and well-documented, but the consequence is that a
@@ -2082,8 +2232,32 @@ no-op of exactly the kind the rest of the file exists to prevent.
    duplicate entries when key groups overlap (`variance` sits in both
    `keysDamagePayload` and `keysDotPayload`) — harmless against a linear
    `slices.Contains`, and a *dropped* entry fails loudly rather than silently.
-6. **`TargetFactionMask` is now dead payload on the wire (found 2026-07-29).**
-   `/skills` marshals `SkillDefinition` verbatim, so the resolved mask ships to
+6. ✅ **FIXED 2026-07-31, test-first** `af7925d0` (with §27.3.4, one hygiene sitting).
+   **`TargetFactionMask` is now dead payload on the wire (found 2026-07-29).**
+
+   > `json:"-"` on **both** fields — the skill-level one and the per-effect copy
+   > — with the comment at each site naming the other, since the pair is the
+   > whole point (the mask is authored once and stamped onto every effect, so a
+   > half-fix would keep shipping it). Pinned by
+   > `TestMap_TargetFactionMaskIsNotServedToTheClient`, which asserts the mask is
+   > **still non-zero in memory on the skill and on its effects** before
+   > asserting it is absent from `json.Marshal` — a deletion and a
+   > de-serialization look identical to a test that only checks the payload, and
+   > the effect-level copy is the live runtime gate (`sys/skills.go:520`).
+   >
+   > **Verified end to end rather than by unit test alone:** a HEAD binary and a
+   > patched one were booted against the same content and their `/skills`
+   > payloads compared — HEAD served **6** mask occurrences (3 faction-scoped
+   > skills × skill-level + effect-level), the patched build serves **0**, and
+   > the two documents are **structurally identical once the key is removed**,
+   > so nothing else moved. 61 167 → 61 019 bytes. `Calm → [Prey, Predators]`,
+   > `CharmBeast → [Prey, Predators]`, `BindElemental → [Elementals]` still
+   > render, which is the half that had to survive. Frontend `tsc --noEmit`
+   > clean + 84 vitest green + `round4-tooltip.mjs` (which owns the `/skills`
+   > payload shape) green on a real browser client — the "0 client readers"
+   > claim proven at the surface, not just by grep.
+
+   Original finding: `/skills` marshals `SkillDefinition` verbatim, so the resolved mask ships to
    the client on the **skill and on every effect** — and since `2fffe9ee` the
    client reads the display **names** instead, leaving **0 client readers** of
    either mask. It cannot be decoded there anyway (the faction registry is
@@ -2102,8 +2276,12 @@ no-op of exactly the kind the rest of the file exists to prevent.
 | 4 | ~~§27.3.2 even out the zero-value payload guards~~ **✅ DONE 2026-07-24** (`eee10331`, same session as #2) | ~15 lines | authoring-safety, same session as #2 |
 | 5 | ~~§27.2.2 drop-RNG determinism~~ **✅ DONE 2026-07-24** (`b4b0e66d`) | ~1 h, test-first | **PO-ruled a bug** — now random per run via a per-process salt |
 | 6 | ~~§27.2.3 mob regen → `conf.json`~~ **✅ DONE 2026-07-24** (`2ec03ee7`) | ~30 min, test-first | now `game.mob.healthGainTick`, mirroring the player block's vocabulary |
-| 7 | ~~§27.3.3~~ **✅ DONE 2026-07-24** (`f095514a`) · §27.2.8 still open | opportunistic | pure hygiene |
+| 7 | ~~§27.3.3~~ **✅ DONE 2026-07-24** (`f095514a`) · ~~§27.2.8~~ **✅ DONE 2026-07-31** (with §25 A#1 + A#3) · ~~§27.3.4 + §27.3.6~~ **✅ DONE 2026-07-31** (`389f3935` + `af7925d0`) | opportunistic | pure hygiene |
 | — | §27.2.4 `Mob` god struct | do **not** act pre-emptively | watch item, like §25's |
+| — | §27.2.5 / §27.2.6 / §27.2.7 | **re-survey before acting** | §27.2.6's two "zero means unset" read sites are partly stale — entity-model 1b deleted `MobDefinition.PowerScale` and R5 re-shaped `SummonPower` into an authored rate, so the finding names code that has moved |
+
+> **§27.3 is now fully closed** — findings 1–4 and 6 are done, and 5 is the one
+> explicitly ruled not worth acting on. §27.2 keeps 4–7 open, all watch items.
 
 ---
 
@@ -2964,6 +3142,51 @@ question is on the table anyway.
 
 ## 33. `hot_aura` cannot pre-hot — the wounded-only gate is inherited, not designed
 
+> **✅ RULED AND SHIPPED 2026-07-31 (`dc21ad81`): OPTION 1 — THE GATE IS
+> LIFTED FOR `hot_aura` ONLY.** `HealthRatio() < 1` is gone from
+> `applyHotAura` and **kept** on `applyHealAura`. Pre-hotting works, an
+> in-range HoT keeps refreshing instead of decaying the moment it succeeds,
+> and `instant_hot`/`hot_aura` no longer disagree.
+>
+> **Test-first, three pins:** `TestApplyHotAura_SkipsFullHealthAlly` inverted
+> into `..._AppliesToFullHealthAlly`, plus a new
+> `..._RefreshesAllyHealedBackToFull` for the second-order half — the one that
+> actually read as a bug in play, where a HoT that healed its target to full
+> stopped being topped up and decayed while they still stood in the aura.
+> Both were watched failing before the line came out.
+>
+> **New harness `backlog33-prehot.mjs` (4/4, twice, registered in the verify
+> skill's coverage map):** three clients — healer, unhurt ally, out-of-range
+> control. It asserts the *split*, not just the change: the full-health ally
+> gets the HoT pip, the control does not, and switching the healer to `Heal`
+> leaves the same full-health ally unpipped. ⚑ It reads the **pip**, not the
+> HP bar, because a HoT on a full-HP ally is inert by design — which is the
+> point of the ruling: the buff is *placed*, ready for damage that has not
+> arrived. Leg 2 asserts the ally is at ratio 1.0 when the pip is read and
+> reports INCONCLUSIVE otherwise, since a wounded ally would have passed under
+> the OLD behaviour too.
+>
+> **Verified:** suite green (28 pkgs) + vet, guardrails + alloc `-count=2`,
+> **sim battery byte-identical** across all five runs (no sim scenario equips
+> Rejuvenation, so this was expected and is stated rather than claimed as
+> evidence of nothing changing).
+>
+> ⚑ **Consequence for §25 A#2, which is what this ruling was blocking:** heal
+> and hot now stop sharing a rule, so they want **separate** predicates. A#2's
+> proposed shared `woundedAllyPredicate()` is therefore **the wrong change** —
+> do not extract it. The heal-side gate stays where it is; the hot-side one
+> ceases to exist, which is a deletion rather than a dedupe. **A#2 should be
+> closed as superseded once this lands.**
+>
+> **Claims re-verified against HEAD 2026-07-31** (the line numbers below
+> predate the §25 A#1/A#3 refactor; the substance held): the gate is still the
+> literal tail of `applyHotAura`'s eligibility closure; `rejuvenation.json`
+> authors **no** `selfDamageHP`, `maxTargets` or `selector`, so none of the
+> heal-side justifications apply; it is still the only `hot_aura` in `api/`;
+> and `tickHotEvents` still guards `healed <= 0 → continue` **before**
+> participation XP, healer threat and combat entry, so a HoT ticking on a
+> full-HP ally is inert and lifting the gate opens no exploit.
+
 **WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO question 2026-07-26: *"is it intended that Rejuvenation, the
 heal-over-time aura, only applies a HoT if the target has taken damage? So
@@ -3602,6 +3825,59 @@ again.
 before anything is authored — they diverge immediately and shape (a) is not a
 stepping stone to shape (b).
 
+### ⭐ 2026-08-01 — this entry now inherits a MEASURED problem, and a parked fix
+
+Feel pass 2 (`plan-feel-pass-2.md` §3.2) arrived at this entry from two
+directions in one session. The PO's checklist reply on the premise was *"we need
+more choice and identity on the base damage aura, it's very samey and bland"*,
+pointed here explicitly — and separately, that **leveling the Damage aura does
+nothing visible**. They are the same defect seen from two sides, so the
+augmentation session inherits both, along with the measurement rather than
+having to re-derive it.
+
+Damage is dealt as `vitals.HP(...)` — integer, **rounded per hit** — so a
+per-level step below ~0.5 HP is zero in play. `Damage` authors `damageHP: 14`
+with `damageHPPerLevel: 0.2222`, an order of magnitude flatter than anything
+else in the catalog (Vanguard +1.42, LongRangeStrike +1.44, Reaper +1.56,
+Wildfire +6.88). That flatness is **deliberate** — D16b of the numbers rewrite
+made Damage the worst damage aura at cap, reversing the inversion where the
+starter aura was the best — but nobody priced the side effect.
+
+**The survey.** Every levelable skill, every level-up, checked for whether *any*
+rendered number changes at `powerScale` 1, using the tooltip's own renderers
+(`roundHP` for absolute Focus, 2-decimal trim elsewhere) — i.e. exactly the
+condition under which `prog()` suppresses every `→` in the tooltip:
+
+```
+skill                  cat            cap  dead level-ups
+Damage                 active_aura     10  7/9: [1, 2, 4, 5, 6, 8, 9]
+1 of 48 levelable skills has at least one dead level-up
+```
+
+**It is Damage alone** — not a catalog-wide rounding problem, so a uniform
+scale-up of every number in the game would be the wrong instrument.
+
+⚑ **It is an early-game problem specifically**, because `powerScale` multiplies
+the step: 2/9 level-ups do something at character level 1, 3/9 at CL5, 5/9 at
+CL10, and **9/9 from CL15**. The quantization bites hardest exactly where new
+players are. ⚑ **But the second half survives at every level:** even at CL30
+where all nine move a number, the full **16-point** investment buys
+**374 → 428, +14 %**. Invisible early, poor value throughout.
+
+**Directions surveyed, none taken:** cut `maxLevel` to 1 (the free floor stops
+pretending to be levelable — cap-1 is free in the point curve, so no budget is
+lost) · level a different axis, `radiusPerLevel` / `maxTargetsPerLevel` /
+`costFractionOfMaxPerLevel` all being authorable today and `tickIntervalPerLevel`
+being the one to avoid, since dropping one effect's interval desyncs R3's
+one-beat rule · steepen the slope and raise the cap, which re-opens D16b.
+
+**PO ruling 2026-08-01: parked, to be answered here with the augmentation
+concept.** ⚑ **A catalog guard test is parked with it** — "every level must move
+at least one rendered number at `powerScale` 1" would be the durable form of
+this finding, but it goes **red on Damage the moment it is written**, so it can
+only ship alongside the content answer, or with an explicit Damage exemption
+that would be a tombstone for a decision not yet taken.
+
 ---
 
 ## 38. One species, many levels — a per-SPAWN level override
@@ -4008,7 +4284,7 @@ rather than designing it independently.
 
 ---
 
-## 42. Quests — a dedicated quest layer vs. the GDD's implicit-quest stance
+## 42. Quests — a dedicated quest layer vs. the GDD's implicit-quest stance — ✅ BUILT 2026-07-30, in the game
 
 **WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO request 2026-07-29 (the WoW/Gothic backlog-fit ranking session).
@@ -4400,3 +4676,104 @@ stashed session, which is the rule that would matter.
 notably `discardStashFor` (which exists because leaving to character-select
 keeps a character's NAME reserved) and the expiry sweep. Do this **after** §46,
 when there is a single way to prove identity and the reasoning is simpler.
+
+## 49. The accounts merge left main's socket clients speaking the pre-accounts join
+
+**Raised 2026-08-02, at the `accounts-8a` → `main` merge.** The one item with data at
+stake was **fixed in the merge commit** (last section); the rest is **noted and
+deliberately left** — the merge's job was to reconcile two lines of work, not to
+re-verify every client of a wire contract that changed under one of them. The split is
+along a line worth keeping: the fixed one had a **failing test**, the others have
+**no eyes on them at all**, which is what makes them a backlog item rather than an
+afternoon.
+
+Step 8a chunk 3 made a `Join` **without a play ticket a refusal**, and chunk 2 replaced
+the `#startForm` name prompt with the account screens. Both landed on `accounts-8a`,
+which taught **its own** clients accordingly — the 19 harness scripts it touched went
+through `lib/join.mjs`, and `cmd/loadbot` grew `mintPlayTicket`. Everything written on
+`main` in parallel, against the *old* contract, did not — and could not, the two
+branches never met until now.
+
+⚑ **This is not a merge-resolution defect.** Every one of these files merged cleanly or
+was resolved correctly against both sides; they are *semantically* stale, which is
+exactly the class of breakage a textual merge cannot see. Nothing here failed to
+compile, and the Go suite says nothing about any of it.
+
+### What is stale
+
+**`backend/cmd/loadbot/main.go`** — resolved to the ticket path (it is the only way it
+joins at all), keeping main's `id` so `-orbit` still rings. But `-names`' `nameOf(id)`
+no longer reaches the nameplate: the name is now the **server-issued character name**
+from `mintPlayTicket`, so a demo run's bots are `hrnss_…`-shaped, not the readable
+names `21ebaa7e` added them for. `nameOf` is now called nowhere. Either teach
+`mintPlayTicket` to *request* the name it wants at character creation, or drop `-names`.
+
+**Eight harness scripts written on `main`** still drive `page.fill('#startForm .playerNameInput', …)`,
+a selector that no longer exists — they will hang on it for their full timeout:
+
+- `backlog33-prehot.mjs`, `n1-shield-bar.mjs` (via their own `newPlayer`)
+- `mobile-interact.mjs`, `mobile-layout.mjs`
+- `r1-focus-cost.mjs`, `r3-lifesteal-burst.mjs`, `r7-respec-cost.mjs`, `r7-strong.mjs`
+
+The fix is one line each — the same `joinAsNewCharacter(page, tag)` the other 19 now
+use. ⚑ Budget the *whole* timeout when one is run before then: the failure is a
+60–120 s hang, not an error, which is the trap `plan-accounts-frontend.md` already
+records against `waitForSelector`.
+
+**`botname.mjs` is orphaned by construction, not by oversight.** It builds names like
+`"QuestDoer the Quest"` — spaces, no prefix — and `auth.ValidateCharacterName` refuses
+both; the `hrnss_` prefix is also what scopes `harnessdb -cleanup`. The flavour it
+added is genuinely lost. If it is wanted back, it has to generate *inside* the shape
+rule (`hrnss_questdoer`), and `lib/join.mjs`'s `harnessCharacterName` is where that
+would live.
+
+### The one with data at stake — ✅ FIXED IN THE MERGE COMMIT
+
+`quests.Progress` gained three fields on main's feel-pass-2 chunk N4 —
+`Objectives`, `KillBase`, `TalkBase` — while `quests/persist.go` was being
+written on `accounts-8a` against a `Progress` that had `Path`, `Running` and
+`Completed` and nothing else.
+
+⚑ **Neither side got this wrong.** N4's own comment on `Progress` says it in as
+many words — *"the baselines belong in the character record step 8a writes … or a
+reload would hand every in-flight objective its lifetime totals back"* — a handoff
+to a chunk that was, at that moment, being written in parallel against a
+`Progress` that had neither field. The merge is where the handoff came due, and
+**`TestLedgerFlagsRoundTrip` was the only red test on the merge**: it compares a
+snapshot taken before the save against one taken after the restore, so it needed
+no updating to catch this. It reported the gap the moment the two branches met,
+which is what chunk 4 built it for.
+
+**The two halves were repaired differently, and the difference is the point:**
+
+- **`KillBase`/`TalkBase` are state** — nothing can recompute them, because the
+  lifetime counters they were subtracted from have moved on. They join the stored
+  shape as `killBase` (object) and `talkBase` (**sorted** array, for the same
+  fingerprint-stability reason `quests.talkedTo` is one). Both `omitempty`: a
+  dialogue stage carries neither, and a row written before they existed decodes to
+  nil, which is exactly what a re-entry produces anyway.
+- **`Objectives` is derived** (`objectiveLines`, cached per L4), so `Restore`
+  **recomposes** it rather than storing it — storing would freeze a display string
+  authored in content into a player's save. ⚑ It could not ride `enter()`:
+  `Restore` deliberately does not cascade, so the recompose is its own method that
+  composes a line for the stage the quest already rests on and never asks whether
+  that stage is satisfied. `TestRestoreDoesNotCascade` and
+  `TestRestoreRecomposesObjectiveLines` guard the two sides of that line and are
+  a pair.
+
+⚑ **NO SCHEMA CHANGE.** `character_flags.flag_value` is JSONB and this is a change
+to the *value* shape, not the table — no DDL, no migration. Rows written before the
+merge stay readable and decode to nil baselines, which degrades to "this stage
+re-baselines on next entry" rather than to an error.
+
+**Verified:** full Go suite green including the real-Postgres `store` round trip ·
+both repairs **mutation-checked** — dropping the baselines from the encode fails
+`TestLedgerFlagsCarryTheN4Baselines` on *"the baselines must survive the round
+trip"* and nothing else, and removing the recompose fails
+`TestRestoreRecomposesObjectiveLines` on its own message.
+
+⚑ **The new test pins a VETERAN on purpose.** Drop the baselines from the stored
+shape and a round trip still passes for the counters a fresh character accumulates
+— the defect only appears for someone who killed two wolves and met the farmer
+*before* accepting, which is why the fixture pre-loads exactly that. A test built
+from a clean character would have gone green over the bug.

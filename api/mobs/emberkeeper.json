@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. ⚑ D23's TEACHING LIST (chunk 3b-ii): the fire line, now three separate one-grant options instead of one three-grant walk — clicking a row teaches that row and nothing else (D17). The 1/7/12/15 walls make hidden-when-known and locked-with-the-level-named both visible in a single screen, which is why this is the NPC to look at first. It also carries the other two branch shapes the PO brief asks for: a hint leaf (news) and a WoW-guard directions list. Prose is authored HERE, in JSON — the zone editor cannot reach it.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. ⚑ D23's TEACHING LIST (chunk 3b-ii): the fire line, four separate one-grant options — clicking a row teaches that row and nothing else (D17). The 1/7/12/15 walls make hidden-when-known and locked-with-the-level-named both visible in a single screen, which is why this is the NPC to look at first. It also carries the other two branch shapes the PO brief asks for: a hint leaf (news) and a WoW-guard directions list. Prose is authored HERE, in JSON — the zone editor cannot reach it. ⚑ TEXT SHAPE (PO 2026-08-02): teach text is deliberately plain — teachings behind the unified 'Teach me something.' row as rows that NAME the skill directly.",
   "id": 64,
   "name": "Emberkeeper",
   "type": "MOB",
@@ -26,10 +26,10 @@
       {
         "id": "root",
         "lines": [
-          "Fire remembers who feeds it. Sit, if you like — the flame does not mind company."
+          "You can rest at my fire."
         ],
         "options": [
-          {"text": "Teach me something of the flame.", "next": "teachings"},
+          {"text": "Teach me something.", "next": "teachings"},
           {"text": "Anything new around here?", "next": "news"},
           {"text": "Where can I find...", "next": "directions"}
         ]
@@ -37,53 +37,50 @@
       {
         "id": "teachings",
         "lines": [
-          "What would you have of it? Speak plainly; fire has no patience for hedging."
+          "What do you want to learn?"
         ],
         "options": [
           {
-            "text": "A light to carry.",
+            "text": "Torch",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Torch",
                 "requiredLevel": 1,
-                "line": "Let this be a light for you in dark places."
+                "line": "I'll teach you Torch."
               }
             ]
           },
           {
-            "text": "A fire for my enemies.",
-            "blockedLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
+            "text": "Ignite",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Ignite",
                 "requiredLevel": 7,
-                "line": "Let me show you how to light a fire in your enemies."
+                "line": "I'll teach you Ignite."
               }
             ]
           },
           {
-            "text": "Everything you have.",
-            "blockedLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
+            "text": "Immolate",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Immolate",
                 "requiredLevel": 12,
-                "line": "I can teach you how to burn everything around you. If you so desire."
+                "line": "I'll teach you Immolate."
               }
             ]
           },
           {
-            "text": "A servant of the flame.",
-            "blockedLine": "Fire doesn't suffer the careless. Grow stronger, then come to my flame.",
+            "text": "Bind Elemental",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "BindElemental",
                 "requiredLevel": 15,
-                "line": "A fire that walks is still a fire. Bind one, and it forgets whose it was."
+                "line": "I'll teach you Bind Elemental."
               }
             ]
           }
@@ -92,13 +89,13 @@
       {
         "id": "news",
         "lines": [
-          "They burned this forest to hide their camp, and thought the ash would keep their secret.",
-          "Ash keeps nothing. Walk east far enough and you will smell them before you see them."
+          "Bandits hide in the dark forest.",
+          "The camp is east of here."
         ]
       },
       {
         "id": "directions",
-        "lines": ["Speak the name. I have walked most of what is left."],
+        "lines": ["Ask about a place."],
         "options": [
           {"text": "The mill.", "next": "dir_mill"},
           {"text": "The tunnel north.", "next": "dir_tunnel"},
@@ -107,18 +104,18 @@
       },
       {
         "id": "dir_mill",
-        "lines": ["Downhill, past the broken fence. The wheel still turns; nobody grinds anything."]
+        "lines": ["Downhill, past the broken fence."]
       },
       {
         "id": "dir_tunnel",
         "lines": [
-          "North, where the hills close in. Take a light — the dark in there is the old kind, and it is patient."
+          "North, where the hills close in. Take a light."
         ]
       },
       {
         "id": "dir_fires",
         "lines": [
-          "Scattered. Sit at one and it remembers you; die far from it and you will find your way back."
+          "Campfires are scattered around. Sit at one and you respawn there."
         ]
       }
     ]

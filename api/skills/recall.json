@@ -7,6 +7,6 @@
   "castTicks": 300,
   "castInterruptedByDamage": true,
   "effects": [
-    { "type": "recall" }
+    { "costFractionOfMax": 0.05, "type": "recall" }
   ]
 }

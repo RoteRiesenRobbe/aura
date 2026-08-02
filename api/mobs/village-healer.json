@@ -1,5 +1,5 @@
 {
-  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and, being the wider of the two (D7), sizes the one sensor — which is also the audience interaction.ambient fans out to. The pre-merge aggroRadius 1.0 stayed as authored but no longer governs anything: under D21 leaving talk range now ENDS a conversation, and 1.0 leaves less standing room than the two bodies take up (L26). experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. The support-line teacher: FirstAid early, Revive much later.",
+  "_comment": "Teaching/lore NPC on the actor model (plan-entity-model.md chunk 3a) — formerly a statless model/npc type placed from zone.npcs, now an ordinary actor carrying an interaction block. role creature + speed 0 (PO 2026-07-27, D4): an NPC is an actor that authors no movement, not a kind of its own. Unattackable by two AUTHORED knobs (D5): faction townsfolk (friendlyToPlayers ⇒ player damage skips it) and collisionLayer 97 = PlayerStatic(1) + Viewport(32) + MobStatic(64) — solid and streamed, but deliberately NOT on Action(2), so no aura on either side can target it. interaction.range 2.0 [PLACEHOLDER] is the talk reach and sizes the one sensor. experience 0 keeps it off the nameplate path; the health bar is accepted (D3). All values [PLACEHOLDER]. The support-line teacher: FirstAid early, Revive much later. ⚑ TEXT SHAPE (PO 2026-08-02, on top of the Q4/R1 tree shape): teach text is deliberately plain — teachings behind the unified 'Teach me something.' row as rows that NAME the skill directly.",
   "id": 57,
   "name": "VillageHealer",
   "type": "MOB",
@@ -28,20 +28,34 @@
           "Rest by the fire and regain your strength."
         ],
         "options": [
+          { "text": "Teach me something.", "next": "teachings" }
+        ]
+      },
+      {
+        "id": "teachings",
+        "lines": [
+          "What do you want to learn?"
+        ],
+        "options": [
           {
-            "blockedLine": "I see you have a long way ahead of you. But I also see much potential. Come back later.",
+            "text": "First Aid",
             "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "FirstAid",
                 "requiredLevel": 2,
-                "line": "You are hurt. Here — learn to patch yourself up, you will need it out there."
-              },
+                "line": "I'll teach you First Aid."
+              }
+            ]
+          },
+          {
+            "text": "Revive",
+            "grants": [
               {
                 "kind": "teach_skill",
                 "skill": "Revive",
                 "requiredLevel": 8,
-                "line": "Let me teach you how to aid your fallen comrades and bring them back to life."
+                "line": "I'll teach you Revive."
               }
             ]
           }

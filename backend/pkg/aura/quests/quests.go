@@ -11,8 +11,10 @@ import (
 	"io/fs"
 	"path"
 	"sort"
+	"strings"
 
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 // ObjectiveKind is what an objective stage counts. Kill and harvest share the
@@ -30,11 +32,15 @@ const (
 // Objective is one satisfaction condition of an objective stage, checked
 // against the ledger's lifetime state (D3: thresholds are lifetime totals, L7).
 // Target is the authored species' / conversant's MobID — never EntityType, and
-// never a process-local entity id (L12).
+// never a process-local entity id (L12). TargetName is its display name,
+// resolved at LOAD through the one display-name path (§35 C3:
+// skills.DeriveDisplayName, the same rule /mobs serves) so the Q2 objective
+// line never touches the mob registry at runtime.
 type Objective struct {
-	Kind   ObjectiveKind
-	Target mobs.MobID
-	Count  uint64
+	Kind       ObjectiveKind
+	Target     mobs.MobID
+	TargetName string
+	Count      uint64
 }
 
 // Stage is one node of the quest graph. Either it carries Objectives and a
@@ -42,9 +48,15 @@ type Objective struct {
 // satisfy every objective), or neither (a dialogue stage — advanced only by
 // authored conversation rows, D1). Journal is the diary prose appended when
 // the stage is entered; it is served by the C3 catalog, never the wire.
+//
+// Tracker is the optional authored objective line (Q2/R2): when set it wins
+// over the derived "3/8 Wolf slain" lines, with {n}/{m} substituted live from
+// the stage's first countable objective. Dialogue stages have nothing
+// derivable, so a tracker is their only way to a line at all.
 type Stage struct {
 	ID         string
 	Journal    string
+	Tracker    string
 	Objectives []Objective
 	Next       string
 }
@@ -179,6 +191,13 @@ func validateQuest(q *QuestDefinition) error {
 				return fmt.Errorf("quest %q stage %q: objective with count 0", q.ID, s.ID)
 			}
 		}
+		// Q2: {n}/{m} substitute from a countable (kill/harvest) objective; on
+		// a stage without one they would render literally forever.
+		if strings.Contains(s.Tracker, "{n}") || strings.Contains(s.Tracker, "{m}") {
+			if firstCountable(s) == nil {
+				return fmt.Errorf("quest %q stage %q: tracker uses {n}/{m} but the stage has no kill/harvest objective to count", q.ID, s.ID)
+			}
+		}
 	}
 	for _, s := range q.Stages {
 		if s.Next == "" {
@@ -192,6 +211,17 @@ func validateQuest(q *QuestDefinition) error {
 		}
 	}
 	return validateAcyclicObjectiveChains(q)
+}
+
+// firstCountable is the objective whose counters {n}/{m} substitution reads:
+// the first kill/harvest one (talk_to has no meaningful count to show).
+func firstCountable(s *Stage) *Objective {
+	for i := range s.Objectives {
+		if s.Objectives[i].Kind != ObjectiveTalkTo {
+			return &s.Objectives[i]
+		}
+	}
+	return nil
 }
 
 // validateAcyclicObjectiveChains rejects a cycle in the objective-stage next
@@ -227,6 +257,7 @@ type jsonObjective struct {
 type jsonStage struct {
 	ID         string          `json:"id"`
 	Journal    string          `json:"journal"`
+	Tracker    string          `json:"tracker"`
 	Objectives []jsonObjective `json:"objectives"`
 	Next       string          `json:"next"`
 }
@@ -288,7 +319,7 @@ func parseQuest(data []byte, mr speciesResolver) (*QuestDefinition, error) {
 
 	q := &QuestDefinition{ID: jq.ID, Title: jq.Title, Repeatable: jq.Repeatable}
 	for _, js := range jq.Stages {
-		s := &Stage{ID: js.ID, Journal: js.Journal, Next: js.Next}
+		s := &Stage{ID: js.ID, Journal: js.Journal, Tracker: js.Tracker, Next: js.Next}
 		for _, jo := range js.Objectives {
 			o, err := mapObjective(jo, mr)
 			if err != nil {
@@ -323,6 +354,7 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 	if err != nil {
 		return Objective{}, fmt.Errorf("objective %q: unknown target %q", jo.Kind, name)
 	}
+	displayName := skills.DeriveDisplayName(def.Name)
 	// L12: ten definitions are legacy: true — proving-grounds content the live
 	// world never spawns. Naming one boots green and produces a quest no player
 	// can ever finish, which is the worst class of content defect: it looks
@@ -338,5 +370,5 @@ func mapObjective(jo jsonObjective, mr speciesResolver) (Objective, error) {
 	if count == 0 {
 		count = 1
 	}
-	return Objective{Kind: kind, Target: def.ID, Count: count}, nil
+	return Objective{Kind: kind, Target: def.ID, TargetName: displayName, Count: count}, nil
 }

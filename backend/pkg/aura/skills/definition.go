@@ -59,6 +59,7 @@ const (
 	EffectTypeCalm
 	EffectTypeCharm
 	EffectTypeSpeedBurst
+	EffectTypeLifestealBurst
 )
 
 // HasVisibleTickCadence reports whether an active-aura effect produces a
@@ -83,6 +84,20 @@ func HasVisibleTickCadence(t EffectType) bool {
 	default:
 		return false
 	}
+}
+
+// ParseEffectType resolves an authored effect-type name to its EffectType, the
+// mobs.ParseRole shape. Reports false for an unknown name rather than a zero
+// value that would silently read as damage_aura.
+//
+// It exists so a caller outside the loader can talk about effect types in the
+// authored vocabulary without keeping a second copy of the table — which is the
+// §35 duplication class. Its first caller is the cost-drain content guard,
+// which reads api/shared-constants.json's charge-trigger taxonomy (authored as
+// "dot_aura", …) and has to reach the enum from it.
+func ParseEffectType(name string) (EffectType, bool) {
+	t, ok := effectTypeMap[name]
+	return t, ok
 }
 
 var effectTypeMap = map[string]EffectType{
@@ -111,6 +126,7 @@ var effectTypeMap = map[string]EffectType{
 	"calm":            EffectTypeCalm,
 	"charm":           EffectTypeCharm,
 	"speed_burst":     EffectTypeSpeedBurst,
+	"lifesteal_burst": EffectTypeLifestealBurst,
 }
 
 // Selector decides which of the in-range candidates a capped effect actually
@@ -163,6 +179,56 @@ var hitStyleMap = map[string]HitStyle{
 // applies to untyped damage like any other tag.
 const DamageTagPhysical = "physical"
 
+// The two vocabularies (plan-numbers-rewrite D4). They used to be ONE — a hit
+// carried `damageTags` and a `gatedDamageTags` bool decided whether the target's
+// resistance map was read as mitigation or as a lock. That overload is what let
+// "a turnip resists everything except harvest" be written in the same words as
+// "a wolf takes half damage from fire", when they are not the same idea at all:
+// one is a resistance, the other is a lock and key.
+//
+// Splitting them means each gets the validation it actually wants, and — the
+// point — neither can be typo'd into the other. `damageTags: ["harvst"]` used
+// to be a skill that silently hit nothing; now it does not load.
+
+// DamageTypes is the CLOSED vocabulary a damage payload may declare. Closed
+// because these are the axis builds and mob resistances are balanced against:
+// an unknown type is a typo, not an extension point.
+//
+// ⚑ `frost` and `nature` ship with no skill carrying them (D4, accepted
+// deliberately) — the Slow/Calm line reads as frost and the wildlife line as
+// nature once later content fills them in.
+var DamageTypes = map[string]bool{
+	"physical": true,
+	"fire":     true,
+	"frost":    true,
+	"nature":   true,
+	"poison":   true,
+	"bleed":    true,
+}
+
+// GateKeys is the CLOSED vocabulary of lock-and-key tags (GDD §5 chore gates).
+// A gated effect names exactly one; a mob opts in by listing it in
+// `factors.gateKeys`. Nothing else can be damaged by that effect at all — which
+// is why the key is not a damage type and never touches resistance math.
+var GateKeys = map[string]bool{
+	"harvest": true,
+	"smash":   true,
+}
+
+// validateDamageTypes rejects anything outside the closed vocabulary, naming
+// what was authored — the whole value of closing the list.
+func validateDamageTypes(tags []string) error {
+	for _, tag := range tags {
+		if !DamageTypes[tag] {
+			if GateKeys[tag] {
+				return fmt.Errorf("damageTags: %q is a GATE KEY, not a damage type — author it as gateKey", tag)
+			}
+			return fmt.Errorf("damageTags: unknown damage type %q", tag)
+		}
+	}
+	return nil
+}
+
 // Supported stat_multiplier stat names. A stat listed here must actually be
 // applied somewhere (movementSpeed: core/input.go; maxHealth:
 // player.PoolFactor) — accepting an unapplied stat would be a silent
@@ -173,6 +239,12 @@ const (
 	StatDamageReduction = "damageReduction" // applied in player.takeDamage
 	StatCritChance      = "critChance"      // applied in sys.rollHitDamage (§4.3 amendment, backlog §23)
 	StatDamageDealt     = "damageDealt"     // applied at sys' outgoing-damage base sites (Strong, triage 2026-07-21)
+	// StatCostReduction is the first stat that modifies an INPUT rather than an
+	// output (plan-numbers-rewrite D13): every other one scales what the actor
+	// deals, takes or moves — this one scales what an effect costs to use,
+	// applied in sys.effectCostHP. It is the build answer to resource costs
+	// other than not paying them.
+	StatCostReduction = "costReduction"
 )
 
 var validStats = map[string]bool{
@@ -181,6 +253,7 @@ var validStats = map[string]bool{
 	StatDamageReduction: true,
 	StatCritChance:      true,
 	StatDamageDealt:     true,
+	StatCostReduction:   true,
 }
 
 // EffectDef holds the parameters of one effect within a skill: the shared
@@ -227,7 +300,24 @@ type EffectDef struct {
 	// stamped here at load (see SkillDefinition.TargetFactionMask — it is
 	// authored once, on the skill). 0 = unrestricted; a non-zero mask narrows
 	// eligibility to exactly those factions in eligibleByTargetFlags.
-	TargetFactionMask uint64 `json:"targetFactionMask,omitempty"`
+	//
+	// Server-only, like its skill-level twin: `json:"-"` because /skills
+	// marshals this struct verbatim and the client has no use for bits it
+	// cannot decode (backlog §27.3.6).
+	TargetFactionMask uint64 `json:"-"`
+
+	// Resource cost: the share of the caster's MAX health one application of
+	// this effect costs (plan-numbers-rewrite D5/D7). It lives on the effect
+	// rather than on a payload type so ANY effect type can be priced — damage,
+	// slow, shield, summon, speed_burst — and a skill's total cost is the sum
+	// of its effects' costs, each charged on its own tick interval. Fraction of
+	// max is the one cost model (D7): scale-invariant by construction, so a
+	// cost can never go free as the pool grows ~26× over 30 levels.
+	//
+	// 0 = free, and free is a real design position, not an absence (D6/D16b:
+	// Damage and the utility skills are permanently free).
+	CostFractionOfMax         float32 `json:"costFractionOfMax"`
+	CostFractionOfMaxPerLevel float32 `json:"costFractionOfMaxPerLevel"`
 
 	// Per-type payloads — exactly one non-nil, matching Type.
 	Damage   *DamageParams   `json:"damage,omitempty"`   // damage_aura, instant_damage
@@ -247,6 +337,19 @@ type EffectDef struct {
 	Speed    *SpeedParams    `json:"speed,omitempty"`    // speed_burst
 	Calm     *CalmParams     `json:"calm,omitempty"`     // calm
 	Charm    *CharmParams    `json:"charm,omitempty"`    // charm
+
+	Lifesteal *LifestealParams `json:"lifesteal,omitempty"` // lifesteal_burst
+}
+
+// CostFractionAt is the level-scaled share of the caster's max health one
+// application of this effect costs, floored at 0 (an authored negative
+// PerLevel makes the effect cheaper with level, never a refund).
+func (e *EffectDef) CostFractionAt(level int) float32 {
+	cost := Scaled(e.CostFractionOfMax, e.CostFractionOfMaxPerLevel, level)
+	if cost < 0 {
+		cost = 0
+	}
+	return cost
 }
 
 // ThreatParams is the taunt / detaunt payload (mob-depth chunk 7). Margin is
@@ -267,14 +370,16 @@ type DamageParams struct {
 	// "fire"). Always non-empty after parsing: absent → [DamageTagPhysical].
 	Tags []string `json:"tags"`
 
-	// Gated flips the resist default for this payload's tags (content pass
-	// C1, GDD §5 chore gate): the hit only damages targets whose BASE
-	// resistances explicitly name one of Tags (skills.GateOpensFor) — every
-	// unauthored target is immune instead of unresisted. Requires explicit
-	// damageTags (gating the [physical] default hard-fails at parse). This
-	// is what makes Harvest pop turnips and nothing else without every
-	// combat mob authoring a "harvest": 0 entry.
-	Gated bool `json:"gated"`
+	// GateKey turns this payload into a lock-and-key hit (content pass C1,
+	// GDD §5 chore gate; the vocabulary split is D4): it damages ONLY targets
+	// whose authored `factors.gateKeys` name this key, and nothing else in the
+	// world — no resistance entry required on any other mob. Empty = ordinary
+	// damage. This is what makes Harvest pop turnips and nothing else.
+	//
+	// ⚑ A gated payload carries NO damage types, and that is not an omission:
+	// its targets are an explicit list, so mitigation has nothing to say about
+	// it. Authoring both hard-fails.
+	GateKey string `json:"gateKey"`
 
 	// Per-hit percentage variance band (item 11 Phase 3): each hit rolls
 	// uniform in [center×(1−v), center×(1+v)] around the level-scaled
@@ -362,18 +467,19 @@ func (p *DamageParams) BerserkerMultiplier(casterHealthRatio float32) float32 {
 }
 
 // HealParams is the heal_aura payload: absolute HP healed per tick (item 11
-// Phase 1) plus the caster's HP cost per heal tick. Heals roll their variance
-// per hit like damage does (decision C1). The self-cost scales per level via
-// SelfDamageHPPerLevel (triage item 2): authored negative it falls with level
-// (leveling makes the aura cheaper, never stronger), clamped at 0. FractionOfMax
-// (triage item 13) is the percent-of-max heal used by the campfire: > 0 heals
-// that fraction of the TARGET's max HP instead of the flat HP (mutually
-// exclusive with HP), so a campfire restores the same share of every pool.
+// Phase 1). Heals roll their variance per hit like damage does (decision C1).
+// FractionOfMax (triage item 13) is the percent-of-max heal used by the
+// campfire: > 0 heals that fraction of the TARGET's max HP instead of the flat
+// HP (mutually exclusive with HP), so a campfire restores the same share of
+// every pool.
+//
+// ⚑ The caster's self-cost used to live HERE, as an absolute `selfDamageHp`
+// that rode casterPowerScale. It moved onto EffectDef.CostFractionOfMax in the
+// numbers rewrite (D5/D7) — pricing belongs to the effect, not to one payload
+// type, or only heals can ever cost anything.
 type HealParams struct {
-	HP                   float32 `json:"hp"`
-	HPPerLevel           float32 `json:"hpPerLevel"`
-	SelfDamageHP         float32 `json:"selfDamageHp"`
-	SelfDamageHPPerLevel float32 `json:"selfDamageHpPerLevel"`
+	HP         float32 `json:"hp"`
+	HPPerLevel float32 `json:"hpPerLevel"`
 
 	FractionOfMax         float32 `json:"fractionOfMax"`
 	FractionOfMaxPerLevel float32 `json:"fractionOfMaxPerLevel"`
@@ -384,17 +490,6 @@ type HealParams struct {
 // HPAt is the level-scaled heal center in absolute HP (pre-variance-roll).
 func (p *HealParams) HPAt(level int) float32 {
 	return Scaled(p.HP, p.HPPerLevel, level)
-}
-
-// SelfDamageAt is the level-scaled self-cost in absolute HP (triage item 2).
-// SelfDamageHPPerLevel is authored negative to make the aura cheaper per level;
-// the cost is clamped at 0 so an over-generous curve never heals the caster.
-func (p *HealParams) SelfDamageAt(level int) float32 {
-	cost := Scaled(p.SelfDamageHP, p.SelfDamageHPPerLevel, level)
-	if cost < 0 {
-		cost = 0
-	}
-	return cost
 }
 
 // FractionAt is the level-scaled percent-of-max heal fraction (triage item 13);
@@ -518,6 +613,16 @@ type HotParams struct {
 	HP         float32 `json:"hp"`
 	HPPerLevel float32 `json:"hpPerLevel"`
 
+	// FractionOfMax > 0 heals that share of the TARGET's max HP per event
+	// instead of the flat HP (plan-numbers-rewrite D14) — the field HealParams
+	// has carried since triage item 13, mirrored onto the heal-over-time twin.
+	// It is what stops a HoT becoming dead content as the pool grows ~26% per
+	// level: Recover's 36 flat HP is a full heal at level 1 and a rounding
+	// error at level 30. Mutually exclusive with HP (L11) — a heal event is one
+	// or the other, never both.
+	FractionOfMax         float32 `json:"fractionOfMax"`
+	FractionOfMaxPerLevel float32 `json:"fractionOfMaxPerLevel"`
+
 	Variance float32 `json:"variance"`
 
 	TickCount int `json:"tickCount"` // number of heal events per application
@@ -530,6 +635,13 @@ type HotParams struct {
 // (pre-variance-roll).
 func (p *HotParams) HPAt(level int) float32 {
 	return Scaled(p.HP, p.HPPerLevel, level)
+}
+
+// FractionAt is the level-scaled share of the target's max HP one heal event
+// restores; the fraction grows by FractionOfMaxPerLevel (absolute) per level,
+// the HealParams.FractionAt convention.
+func (p *HotParams) FractionAt(level int) float32 {
+	return Scaled(p.FractionOfMax, p.FractionOfMaxPerLevel, level)
 }
 
 // DurationTicks is the buff lifetime of one application (the DotParams rule).
@@ -580,6 +692,46 @@ type SpeedParams struct {
 	FactorPerLevel        float32 `json:"factorPerLevel"`
 	DurationTicks         int     `json:"durationTicks"`
 	DurationTicksPerLevel int     `json:"durationTicksPerLevel"`
+}
+
+// LifestealParams is the lifesteal_burst payload (plan-resource-costs-feedback
+// R3 / §5.6): for DurationTicks game ticks, the caster leeches Fraction of the
+// damage its hits actually deal, on top of whatever the effect itself authors.
+// Self-only — no target flags, no radius — exactly like speed_burst and
+// tick_rate, the two bursts it is modelled on.
+//
+// It exists because Reaper carried lifesteal as a permanent rider next to
+// berserker, and the two multiplied: berserker scales damage with health
+// MISSING, lifesteal returns a share of that damage, so the lower Reaper's
+// caster went the faster it healed back up. Splitting the rider out turns a loop
+// into a choice — the leech is now something you spend a cooldown and a resource
+// cost on, for six seconds, while berserker keeps the low-health identity.
+type LifestealParams struct {
+	Fraction              float32 `json:"fraction"`
+	FractionPerLevel      float32 `json:"fractionPerLevel"`
+	DurationTicks         int     `json:"durationTicks"`
+	DurationTicksPerLevel int     `json:"durationTicksPerLevel"`
+}
+
+// FractionAt is the level-scaled share of damage dealt that comes back as
+// healing, floored at 0 — a negative leech is not a thing the damage path can
+// express (ApplyLifesteal early-returns on it).
+func (p *LifestealParams) FractionAt(level int) float32 {
+	f := Scaled(p.Fraction, p.FractionPerLevel, level)
+	if f < 0 {
+		return 0
+	}
+	return f
+}
+
+// TicksAt is the level-scaled buff lifetime, floored at 1 — the SpeedParams
+// firing-site rule, kept here so both callers cannot drift.
+func (p *LifestealParams) TicksAt(level int) int {
+	ticks := Scaled(p.DurationTicks, p.DurationTicksPerLevel, level)
+	if ticks < 1 {
+		ticks = 1
+	}
+	return ticks
 }
 
 // CalmParams is the calm payload (plan-faction-flips chunk 2, D7): how long a
@@ -697,7 +849,13 @@ type SkillDefinition struct {
 	// per-apply-site copy is exactly how the mayHarm gate warns it gets
 	// forgotten. Authoring vocabulary is what the ruling fixes; where the
 	// resolved bits are carried is an implementation detail.
-	TargetFactionMask uint64 `json:"targetFactionMask,omitempty"`
+	//
+	// ⚑ Server-only (`json:"-"`, backlog §27.3.6). /skills marshals this struct
+	// verbatim, so until the pin below the resolved bits shipped to a client
+	// that had zero readers for them and could not have decoded them anyway —
+	// the faction registry is boot-only and the bits depend on registry load
+	// order. TargetFactions (the display names) is what travels.
+	TargetFactionMask uint64 `json:"-"`
 
 	// TargetFactions is the same allowlist as DISPLAY NAMES, in authoring
 	// order — what the tooltip prints, and the reason it exists at all: the
@@ -722,12 +880,15 @@ type effectDef struct {
 	Radius         float32 `json:"radius"`
 	RadiusPerLevel float32 `json:"radiusPerLevel"`
 
+	CostFractionOfMax         float32 `json:"costFractionOfMax"`
+	CostFractionOfMaxPerLevel float32 `json:"costFractionOfMaxPerLevel"`
+
 	DamageHP         float32  `json:"damageHP"`
 	DamageHPPerLevel float32  `json:"damageHPPerLevel"`
 	TargetsEnemies   bool     `json:"targetsEnemies"`
 	TargetsAllies    bool     `json:"targetsAllies"`
 	DamageTags       []string `json:"damageTags"` // absent → [physical] on damage effects
-	GatedDamageTags  bool     `json:"gatedDamageTags"`
+	GateKey          string   `json:"gateKey"`    // lock-and-key hit; mutually exclusive with damageTags
 
 	Variance float32 `json:"variance"` // 0 = static; only on damage/heal amounts
 
@@ -738,10 +899,8 @@ type effectDef struct {
 	StructureDamageFraction float32 `json:"structureDamageFraction"`
 	TargetsStructures       bool    `json:"targetsStructures"`
 
-	HealHP               float32 `json:"healHP"`
-	HealHPPerLevel       float32 `json:"healHPPerLevel"`
-	SelfDamageHP         float32 `json:"selfDamageHP"`
-	SelfDamageHPPerLevel float32 `json:"selfDamageHPPerLevel"`
+	HealHP         float32 `json:"healHP"`
+	HealHPPerLevel float32 `json:"healHPPerLevel"`
 
 	HealFractionOfMax         float32 `json:"healFractionOfMax"`
 	HealFractionOfMaxPerLevel float32 `json:"healFractionOfMaxPerLevel"`
@@ -801,6 +960,14 @@ type effectDef struct {
 	SpeedDurationTicks         int     `json:"speedDurationTicks"`         // speed_burst: buff lifetime in game ticks
 	SpeedDurationTicksPerLevel int     `json:"speedDurationTicksPerLevel"` // speed_burst: lifetime added per level
 
+	// lifesteal_burst reuses the damage payload's lifestealFraction key — it is
+	// the same quantity (a share of damage dealt that comes back), just granted
+	// for a while instead of welded to one effect. The per-type key allowlist is
+	// what keeps the two from being authorable in the same place.
+	LifestealFractionPerLevel float32 `json:"lifestealFractionPerLevel"` // lifesteal_burst: leech added per level
+	LifestealDurationTicks    int     `json:"lifestealDurationTicks"`    // lifesteal_burst: buff lifetime in game ticks
+	LifestealDurationPerLevel int     `json:"lifestealDurationTicksPerLevel"`
+
 	CalmTicks         int `json:"calmTicks"`         // calm: ticks out of combat
 	CalmTicksPerLevel int `json:"calmTicksPerLevel"` // calm: per skill level
 
@@ -833,6 +1000,13 @@ type skillDefinition struct {
 
 // Shared key groups for the effectKeys allowlist.
 var (
+	// keysCost is allowed on EVERY effect type and therefore lives outside
+	// effectKeys (plan-numbers-rewrite D5): pricing is a property of the
+	// effect, not of a payload, and the PO requirement behind that ruling is
+	// that a cost must not be hard-coded per effect type. Adding it to each of
+	// the ~25 entries below would have been the same rule spelled 25 times,
+	// with a new effect type silently unpriceable until someone remembered.
+	keysCost        = []string{"costFractionOfMax", "costFractionOfMaxPerLevel"}
 	keysGeometry    = []string{"radius", "radiusPerLevel"}
 	keysCadence     = []string{"tickInterval", "tickIntervalPerLevel"}
 	keysCapped      = []string{"selector", "maxTargets", "maxTargetsPerLevel"}
@@ -841,7 +1015,7 @@ var (
 	// ride only here — dots are deliberately excluded in v1 (§3.3; add to
 	// keysDotPayload + DotParams when content wants a burning execute).
 	keysDamagePayload = []string{
-		"damageHP", "damageHPPerLevel", "damageTags", "gatedDamageTags", "variance", "hitStyle", "targetsStructures", "structureDamageFraction",
+		"damageHP", "damageHPPerLevel", "damageTags", "gateKey", "variance", "hitStyle", "targetsStructures", "structureDamageFraction",
 		"executeBelowFraction", "executeBonusFactor", "berserkerMaxBonusFactor", "critChance", "critChancePerLevel", "critFactor", "lifestealFraction",
 	}
 	keysResistPayload = []string{"resistTags", "resistFactor", "resistFactorPerLevel"}
@@ -849,7 +1023,8 @@ var (
 	keysShieldPayload = []string{"shieldHP", "shieldHPPerLevel"}
 	// Hot reuses the heal HP/variance keys (heal HP is heal HP) plus its own
 	// cadence, the dot twin (plan-skill-vocab chunk 3).
-	keysHotPayload = []string{"healHP", "healHPPerLevel", "variance", "hotTicks", "hotTickInterval"}
+	keysHotPayload = []string{"healHP", "healHPPerLevel", "healFractionOfMax", "healFractionOfMaxPerLevel",
+		"variance", "hotTicks", "hotTickInterval"}
 )
 
 // effectKeys lists every JSON key each effect type actually reads (besides
@@ -865,7 +1040,7 @@ var effectKeys = map[EffectType][]string{
 	// No target flags: heal auras target allies implicitly (mob support
 	// behaviors lift the player-only capability with roadmap item 7).
 	EffectTypeHealAura: mergeKeys(keysGeometry, keysCadence, keysCapped,
-		[]string{"healHP", "healHPPerLevel", "selfDamageHP", "selfDamageHPPerLevel",
+		[]string{"healHP", "healHPPerLevel",
 			"healFractionOfMax", "healFractionOfMaxPerLevel", "variance"}),
 	EffectTypeSelfHeal: {"healHP", "healHPPerLevel", "healFractionOfMax", "healFractionOfMaxPerLevel", "variance"},
 	// No selector/cap: a slow aura is a zone — it slows everything in range.
@@ -926,6 +1101,11 @@ var effectKeys = map[EffectType][]string{
 	// targeting, no cadence; it modifies movement, it does not project.
 	EffectTypeSpeedBurst: {"speedFactor", "speedFactorPerLevel",
 		"speedDurationTicks", "speedDurationTicksPerLevel"},
+	// Lifesteal burst (R3 / §5.6): the damage-side twin of speed_burst — a
+	// scalar leech fraction plus a lifetime. It projects nothing and targets
+	// nobody; it changes what the caster's own hits do while it is up.
+	EffectTypeLifestealBurst: {"lifestealFraction", "lifestealFractionPerLevel",
+		"lifestealDurationTicks", "lifestealDurationTicksPerLevel"},
 	// Calm (plan-faction-flips chunk 2): a query circle of enemy mobs, each
 	// dropped out of combat for the authored duration. No cadence (it fires on
 	// cooldown activation) and no selector/cap on purpose — calm is a DISENGAGE
@@ -987,7 +1167,7 @@ func validateEffectKeys(typeName string, effectType EffectType, raw map[string]j
 
 	allowed := effectKeys[effectType]
 	for _, k := range keys {
-		if k == "type" || slices.Contains(allowed, k) {
+		if k == "type" || slices.Contains(keysCost, k) || slices.Contains(allowed, k) {
 			continue
 		}
 		if hint, ok := renamedEffectKeys[k]; ok {
@@ -1070,6 +1250,9 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 			return nil, fmt.Errorf("skill %q: effect type %v requires a non-empty targetFactions allowlist", s.Name, effect.Type)
 		}
 		effect.TargetFactionMask = targetFactionMask
+		if err := checkOverTimeLifetime(effect, s.MaxLevel); err != nil {
+			return nil, fmt.Errorf("skill %q: %w", s.Name, err)
+		}
 		effects = append(effects, effect)
 	}
 
@@ -1094,6 +1277,52 @@ func (s *skillDefinition) mapToSkillDefinition(fr factions.Registry) (*SkillDefi
 		TargetFactions:          targetFactionNames,
 		Effects:                 effects,
 	}, nil
+}
+
+// checkOverTimeLifetime enforces the property an over-time AURA is held together
+// by: its buff must outlive the gap between re-applications, at every level.
+//
+// dot_aura and hot_aura keep a target under their effect by REFRESHING it — the
+// aura re-applies every tickInterval and each application resets a buff whose own
+// lifetime is dotTicks × dotTickInterval, authored independently. Author the
+// lifetime shorter than the cadence and a debuff the player reads as permanent
+// becomes a blinking one: it expires, the target is briefly free, and it returns
+// on the next application. Nothing else fails — the skill loads, the tooltip is
+// right, and the symptom is a flickering icon.
+//
+// Scope, both halves deliberate:
+//
+//   - Only the AURA forms. instant_dot and instant_hot fire once per cast and
+//     have no re-apply cadence, so a short burn there is the authored intent.
+//   - Only this pair. resist_aura, slow_aura and shield_aura derive their
+//     lifetime as effectiveTickInterval + 1 at the apply site (sys/skills.go),
+//     so the refresh structurally outruns the expiry whatever the cadence — this
+//     is the one place the two numbers are independent, and therefore the one
+//     place the property is authorable at all.
+//
+// Checked at maxLevel because tickIntervalPerLevel scales the cadence while the
+// lifetime is flat: the realistic content mistake is a per-level cadence tweak
+// that is correct at the level it was eyeballed.
+func checkOverTimeLifetime(e EffectDef, maxLevel int) error {
+	var lifetime int
+	switch e.Type {
+	case EffectTypeDotAura:
+		lifetime = e.Dot.DurationTicks()
+	case EffectTypeHotAura:
+		lifetime = e.Hot.DurationTicks()
+	default:
+		return nil
+	}
+	if maxLevel < 1 {
+		maxLevel = 1
+	}
+	if interval := EffectiveTickInterval(e, maxLevel, 1); lifetime <= interval {
+		return fmt.Errorf(
+			"effect type %v: the buff lifetime (%d ticks) must outlast the re-apply cadence (%d ticks at level %d), "+
+				"or the effect expires between applications and blinks instead of holding",
+			e.Type, lifetime, interval, maxLevel)
+	}
+	return nil
 }
 
 // mapEffect parses one effect object: resolve the type, hard-fail any JSON
@@ -1140,18 +1369,32 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		tickInterval = *e.TickInterval
 	}
 
+	// The cost rides every effect type (keysCost), so it is validated here
+	// rather than in a payload builder. A cost of a full pool or more would
+	// make the effect unusable at any health — the apply sites clamp (auras)
+	// or reject (cooldowns) rather than kill, so such a value is a content bug
+	// that reads as a silently dead skill.
+	if e.CostFractionOfMax < 0 {
+		return EffectDef{}, fmt.Errorf("costFractionOfMax: must be >= 0, got %v", e.CostFractionOfMax)
+	}
+	if e.CostFractionOfMax >= 1 {
+		return EffectDef{}, fmt.Errorf("costFractionOfMax: must be < 1 (a cost of the whole pool can never be paid), got %v", e.CostFractionOfMax)
+	}
+
 	def := EffectDef{
-		Type:                 effectType,
-		Radius:               e.Radius,
-		RadiusPerLevel:       e.RadiusPerLevel,
-		TickInterval:         tickInterval,
-		TickIntervalPerLevel: e.TickIntervalPerLevel,
-		Selector:             selector,
-		MaxTargets:           e.MaxTargets,
-		MaxTargetsPerLevel:   e.MaxTargetsPerLevel,
-		TargetsEnemies:       e.TargetsEnemies,
-		TargetsAllies:        e.TargetsAllies,
-		TargetsStructures:    e.TargetsStructures,
+		Type:                      effectType,
+		Radius:                    e.Radius,
+		RadiusPerLevel:            e.RadiusPerLevel,
+		CostFractionOfMax:         e.CostFractionOfMax,
+		CostFractionOfMaxPerLevel: e.CostFractionOfMaxPerLevel,
+		TickInterval:              tickInterval,
+		TickIntervalPerLevel:      e.TickIntervalPerLevel,
+		Selector:                  selector,
+		MaxTargets:                e.MaxTargets,
+		MaxTargetsPerLevel:        e.MaxTargetsPerLevel,
+		TargetsEnemies:            e.TargetsEnemies,
+		TargetsAllies:             e.TargetsAllies,
+		TargetsStructures:         e.TargetsStructures,
 	}
 
 	var err error
@@ -1188,6 +1431,8 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 		def.TickRate, err = e.tickRateParams()
 	case EffectTypeSpeedBurst:
 		def.Speed, err = e.speedParams()
+	case EffectTypeLifestealBurst:
+		def.Lifesteal, err = e.lifestealParams()
 	case EffectTypeCalm:
 		def.Calm, err = e.calmParams()
 	case EffectTypeCharm:
@@ -1222,16 +1467,25 @@ func (e *effectDef) mapToEffectDef(effectType EffectType) (EffectDef, error) {
 // damageParams builds the damage payload, normalizing absent tags to
 // [DamageTagPhysical] (Phase 2: no "matches nothing" damage).
 func (e *effectDef) damageParams() (*DamageParams, error) {
+	// A gated payload is a lock and key: its targets are the mobs that name its
+	// key, so it declares no damage type and never enters resistance math.
+	// Authoring both is a category error and hard-fails rather than picking one.
 	tags := e.DamageTags
-	if len(tags) == 0 {
-		// Gating the implicit [physical] default would silently damage
-		// nothing that doesn't author "physical" — require the tags spelled
-		// out (content pass C1).
-		if e.GatedDamageTags {
-			return nil, fmt.Errorf("gatedDamageTags: requires explicit damageTags")
+	if e.GateKey != "" {
+		if !GateKeys[e.GateKey] {
+			if DamageTypes[e.GateKey] {
+				return nil, fmt.Errorf("gateKey: %q is a DAMAGE TYPE, not a gate key — author it as damageTags", e.GateKey)
+			}
+			return nil, fmt.Errorf("gateKey: unknown gate key %q", e.GateKey)
 		}
+		if len(tags) > 0 {
+			return nil, fmt.Errorf("gateKey: a gated hit declares no damageTags (its targets are an explicit list, so mitigation cannot apply)")
+		}
+	} else if len(tags) == 0 {
 		tags = []string{DamageTagPhysical}
 	} else if err := validateTags("damageTags", tags); err != nil {
+		return nil, err
+	} else if err := validateDamageTypes(tags); err != nil {
 		return nil, err
 	}
 
@@ -1289,7 +1543,7 @@ func (e *effectDef) damageParams() (*DamageParams, error) {
 		HP:                      e.DamageHP,
 		HPPerLevel:              e.DamageHPPerLevel,
 		Tags:                    tags,
-		Gated:                   e.GatedDamageTags,
+		GateKey:                 e.GateKey,
 		Variance:                e.Variance,
 		HitStyle:                hitStyle,
 		StructureDamageFraction: e.StructureDamageFraction,
@@ -1320,8 +1574,6 @@ func (e *effectDef) healParams() (*HealParams, error) {
 	return &HealParams{
 		HP:                    e.HealHP,
 		HPPerLevel:            e.HealHPPerLevel,
-		SelfDamageHP:          e.SelfDamageHP,
-		SelfDamageHPPerLevel:  e.SelfDamageHPPerLevel,
 		FractionOfMax:         e.HealFractionOfMax,
 		FractionOfMaxPerLevel: e.HealFractionOfMaxPerLevel,
 		Variance:              e.Variance,
@@ -1372,6 +1624,8 @@ func (e *effectDef) dotParams() (*DotParams, error) {
 	if len(tags) == 0 {
 		tags = []string{DamageTagPhysical}
 	} else if err := validateTags("damageTags", tags); err != nil {
+		return nil, err
+	} else if err := validateDamageTypes(tags); err != nil {
 		return nil, err
 	}
 	if err := validateVariance(e.Variance); err != nil {
@@ -1448,8 +1702,15 @@ func (e *effectDef) hotParams() (*HotParams, error) {
 	if err := validateVariance(e.Variance); err != nil {
 		return nil, err
 	}
-	if e.HealHP == 0 && e.HealHPPerLevel == 0 {
-		return nil, fmt.Errorf("hot: no heal authored (healHP and healHPPerLevel both 0)")
+	// Flat HP and percent-of-max are mutually exclusive (L11), the rule
+	// heal_aura already carries: a heal event is one or the other, so the
+	// apply-site branch stays total and authoring both hard-fails instead of
+	// silently picking one.
+	if e.HealFractionOfMax > 0 && e.HealHP > 0 {
+		return nil, fmt.Errorf("hot: healHP and healFractionOfMax are mutually exclusive (flat XOR percent-of-max)")
+	}
+	if e.HealHP == 0 && e.HealHPPerLevel == 0 && e.HealFractionOfMax == 0 && e.HealFractionOfMaxPerLevel == 0 {
+		return nil, fmt.Errorf("hot: no heal authored (healHP, healHPPerLevel, healFractionOfMax, healFractionOfMaxPerLevel all 0)")
 	}
 	if e.HotTicks < 1 {
 		return nil, fmt.Errorf("hotTicks: must be >= 1, got %v", e.HotTicks)
@@ -1458,12 +1719,14 @@ func (e *effectDef) hotParams() (*HotParams, error) {
 		return nil, fmt.Errorf("hotTickInterval: must be >= 1, got %v", e.HotTickInterval)
 	}
 	return &HotParams{
-		HP:          e.HealHP,
-		HPPerLevel:  e.HealHPPerLevel,
-		Variance:    e.Variance,
-		TickCount:   e.HotTicks,
-		Interval:    e.HotTickInterval,
-		TargetsSelf: e.TargetsSelf,
+		HP:                    e.HealHP,
+		HPPerLevel:            e.HealHPPerLevel,
+		FractionOfMax:         e.HealFractionOfMax,
+		FractionOfMaxPerLevel: e.HealFractionOfMaxPerLevel,
+		Variance:              e.Variance,
+		TickCount:             e.HotTicks,
+		Interval:              e.HotTickInterval,
+		TargetsSelf:           e.TargetsSelf,
 	}, nil
 }
 
@@ -1525,6 +1788,27 @@ func (e *effectDef) speedParams() (*SpeedParams, error) {
 		FactorPerLevel:        e.SpeedFactorPerLevel,
 		DurationTicks:         e.SpeedDurationTicks,
 		DurationTicksPerLevel: e.SpeedDurationTicksPerLevel,
+	}, nil
+}
+
+// lifestealParams builds the lifesteal_burst payload on the speedParams rules:
+// a leech of 0 or below is a cooldown that does nothing, and a zero lifetime is
+// a buff that expires before a single hit can read it. Unlike speed there is no
+// no-op value to exclude at the top end — a leech of 1 (full damage back) is a
+// legitimate, if strong, authoring choice. Per-level scaling is unconstrained;
+// the firing site floors both scaled values (LifestealParams.FractionAt/TicksAt).
+func (e *effectDef) lifestealParams() (*LifestealParams, error) {
+	if e.LifestealFraction <= 0 {
+		return nil, fmt.Errorf("lifestealFraction: must be > 0, got %v", e.LifestealFraction)
+	}
+	if e.LifestealDurationTicks <= 0 {
+		return nil, fmt.Errorf("lifestealDurationTicks: must be > 0, got %v", e.LifestealDurationTicks)
+	}
+	return &LifestealParams{
+		Fraction:              e.LifestealFraction,
+		FractionPerLevel:      e.LifestealFractionPerLevel,
+		DurationTicks:         e.LifestealDurationTicks,
+		DurationTicksPerLevel: e.LifestealDurationPerLevel,
 	}, nil
 }
 

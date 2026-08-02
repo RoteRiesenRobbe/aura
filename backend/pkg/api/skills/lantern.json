@@ -3,12 +3,12 @@
   "id": 6,
   "name": "Lantern",
   "category": "active_aura",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "effects": [
     {
       "type": "light_aura",
       "radius": 4.0,
-      "radiusPerLevel": 1.0
+      "radiusPerLevel": 0.5
     }
   ]
 }

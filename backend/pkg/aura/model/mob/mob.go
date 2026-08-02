@@ -276,17 +276,17 @@ func NewMob(d *mobs.MobDefinition, chaseIntoAuraMargin float32, space *phy.Space
 		baseMaxHealth = vitals.RollVariance(baseMaxHealth, v, rnd)
 	}
 	m := &Mob{
-		BaseEntity:       base,
-		space:            space,
-		rand:             rnd,
-		heading:          phy.Vec2f{X: -1, Y: 0},
-		baseMaxHealth:    baseMaxHealth,
-		definition:       d,
-		skills:           sc,
-		aura:             aura,
-		aggroAura:        aggroAura,
-		spawnPosition:    phy.VEC2F_ZERO,
-		spawnInitialized: false,
+		BaseEntity:          base,
+		space:               space,
+		rand:                rnd,
+		heading:             phy.Vec2f{X: -1, Y: 0},
+		baseMaxHealth:       baseMaxHealth,
+		definition:          d,
+		skills:              sc,
+		aura:                aura,
+		aggroAura:           aggroAura,
+		spawnPosition:       phy.VEC2F_ZERO,
+		spawnInitialized:    false,
 		velocity:            walkingSpeedPerTick * d.Factors.Speed,
 		role:                role,
 		supportSlot:         supportSlot,
@@ -1075,8 +1075,9 @@ func (m *Mob) SetAngle(a float32) {
 // wins in moveTowards). The SkillSystem runs after mob movement, so the
 // aura-convention lifetime of tick interval + 1 makes the debuff survive
 // exactly one movement step past its last re-application.
-func (m *Mob) ApplySlow(source skills.SkillID, fraction float32, ticks int) {
-	m.buffs.ApplySlow(source, fraction, ticks)
+// Reports whether the slow was genuinely new rather than a refresh (§5.2).
+func (m *Mob) ApplySlow(source skills.SkillID, fraction float32, ticks int) bool {
+	return m.buffs.ApplySlow(source, fraction, ticks)
 }
 
 func (m *Mob) moveTowards(target phy.Vec2f) {
@@ -1395,11 +1396,25 @@ type threatEntry struct {
 // post-mitigation HP (§6.3, decided 2026-07-10); allied, dead and empty
 // credits are dropped, so a faction gate never needs re-checking on read.
 func (m *Mob) noteThreat(source model.Combatant, amount float32) {
-	if source == nil || amount <= 0 {
+	if amount <= 0 {
 		return
 	}
+	if e := m.threatEntryFor(source); e != nil {
+		e.threat += amount
+	}
+}
+
+// threatEntryFor resolves the row to credit for source, creating it — and the
+// table — on first credit. It returns nil when source is not creditable at
+// all: nil, same-faction, or dead. That gate is shared by every crediting
+// path, which is what lets the readers skip re-checking faction on a row that
+// is already on the table.
+func (m *Mob) threatEntryFor(source model.Combatant) *threatEntry {
+	if source == nil {
+		return nil
+	}
 	if source.Faction() == m.faction || source.HealthRatio() == 0 {
-		return
+		return nil
 	}
 	if m.threat == nil {
 		m.threat = make(map[uint64]*threatEntry)
@@ -1410,7 +1425,20 @@ func (m *Mob) noteThreat(source model.Combatant, amount float32) {
 		e = &threatEntry{entity: source}
 		m.threat[id] = e
 	}
-	e.threat += amount
+	return e
+}
+
+// pruneDeadThreat drops every row whose entity is dead (a TTL-expired summon
+// zeroes its health, so stale refs read as dead). The readers that act on a
+// row call it first, which is why a threat table shrinks without anyone
+// owning a cleanup pass. ThreatSnapshot deliberately does NOT call it: a
+// read-only debug dump must not mutate what it is dumping.
+func (m *Mob) pruneDeadThreat() {
+	for id, e := range m.threat {
+		if e.entity.HealthRatio() == 0 {
+			delete(m.threat, id)
+		}
+	}
 }
 
 // NoteThreat is the exported crediting seam for threat that does not arrive
@@ -1431,38 +1459,28 @@ func (m *Mob) HasThreat(id uint64) bool {
 // the taunt primitive (mob-depth chunk 7, decided: force-to-top, no separate
 // target lock). margin is the head start above the old top; because it lands
 // on the table, MayHarm grants the mob the right to hit the taunter for free
-// (chunk 6.6). Gates match noteThreat: nil, allied, dead and non-positive
-// sources are dropped.
+// (chunk 6.6). Gates match noteThreat because both go through
+// threatEntryFor: nil, allied and dead sources are dropped, as are
+// non-positive margins.
 func (m *Mob) ForceThreatToTop(source model.Combatant, margin float32) {
-	if source == nil || margin <= 0 {
+	if margin <= 0 {
 		return
-	}
-	if source.Faction() == m.faction || source.HealthRatio() == 0 {
-		return
-	}
-	if m.threat == nil {
-		m.threat = make(map[uint64]*threatEntry)
 	}
 
-	// Current max over living entries (pruning dead on the way, like retention).
+	// Current max over living entries. Measured BEFORE the taunter's own row is
+	// created: a first-time taunter must not count itself as the bar it has to
+	// clear, and a repeat taunter must.
+	m.pruneDeadThreat()
 	var max float32
-	for id, e := range m.threat {
-		if e.entity.HealthRatio() == 0 {
-			delete(m.threat, id)
-			continue
-		}
+	for _, e := range m.threat {
 		if e.threat > max {
 			max = e.threat
 		}
 	}
 
-	id := source.Basic().ID()
-	e := m.threat[id]
-	if e == nil {
-		e = &threatEntry{entity: source}
-		m.threat[id] = e
+	if e := m.threatEntryFor(source); e != nil {
+		e.threat = max + margin
 	}
-	e.threat = max + margin
 }
 
 // DropThreat removes exactly one threat entry — the Fade / detaunt primitive
@@ -1551,13 +1569,11 @@ func (m *Mob) FriendlyToPlayers() bool {
 // entries on the way (a TTL-expired summon zeroes its health, so stale refs
 // read as dead). Ties break toward the lower entity ID for determinism.
 func (m *Mob) highestThreatTarget() model.Combatant {
+	m.pruneDeadThreat()
+
 	var best *threatEntry
 	var bestID uint64
 	for id, e := range m.threat {
-		if e.entity.HealthRatio() == 0 {
-			delete(m.threat, id)
-			continue
-		}
 		if best == nil || e.threat > best.threat || (e.threat == best.threat && id < bestID) {
 			best = e
 			bestID = id
@@ -1631,10 +1647,13 @@ func (m *Mob) takeDamage(damage model.Damage, s model.StatusEffect) vitals.Vital
 	if m.invulnerable {
 		return 0
 	}
-	// Gated hits (content pass C1) are opt-in: without an explicit base
-	// entry for one of the hit's tags the mob was never a valid target —
-	// same non-event as a fully resisted hit.
-	if damage.Gated && !skills.GateOpensFor(damage.Tags, m.definition.Factors.Resistances) {
+	// A gated hit (content pass C1) is opt-in: a mob that does not name the key
+	// in factors.gateKeys was never a valid target — the same non-event as a
+	// fully resisted hit. ⚑ D4 moved this OFF the resistance map: "immune to
+	// everything except harvest" and "takes half damage from fire" are not the
+	// same idea, and writing them in the same words is what made a mistyped tag
+	// a silently-inert skill.
+	if damage.GateKey != "" && !skills.GateOpensFor(damage.GateKey, m.definition.Factors.GateKeys) {
 		return 0
 	}
 	multiplier := skills.ResistMultiplier(damage.Tags, m.definition.Factors.Resistances) *
@@ -1725,29 +1744,34 @@ func (m *Mob) NoteAuraHit(style model.AuraHitStyle) {
 // ApplyResist grants a transient tag-resistance buff from a resist aura
 // (item 11 Phase 2); re-applied each aura tick, it expires on the same
 // per-tick lifecycle as the floating-number accumulators.
-func (m *Mob) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) {
-	m.buffs.ApplyResist(source, tags, factor, ticks)
+// Reports whether the buff was genuinely new rather than a refresh (§5.2).
+func (m *Mob) ApplyResist(source skills.SkillID, tags []string, factor float32, ticks int) bool {
+	return m.buffs.ApplyResist(source, tags, factor, ticks)
 }
 
 // ApplyDot grants a damage-over-time debuff (effect foundations Step 2); it
 // runs its full authored duration independent of re-application, ticked by
 // the SkillSystem via DueBuffEvents.
-func (m *Mob) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) {
-	m.buffs.ApplyDot(source, dot, ticks)
+// Reports whether this application ignited the mob rather than refreshing a
+// burn already running (§5.1).
+func (m *Mob) ApplyDot(source skills.SkillID, dot skills.DotBuff, ticks int) bool {
+	return m.buffs.ApplyDot(source, dot, ticks)
 }
 
 // ApplyHot grants a heal-over-time buff (plan-skill-vocab chunk 3) — mobs can
 // be HoT'd by content, the machinery is entity-agnostic; ticked by the
 // SkillSystem via DueBuffEvents.
-func (m *Mob) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) {
-	m.buffs.ApplyHot(source, hot, ticks)
+// Reports whether the buff was genuinely new rather than a refresh (§5.2).
+func (m *Mob) ApplyHot(source skills.SkillID, hot skills.HotBuff, ticks int) bool {
+	return m.buffs.ApplyHot(source, hot, ticks)
 }
 
 // ApplyShield grants (or tops up) an absorb pool from a shield effect
 // (plan-skill-vocab chunk 2) — mobs can be shielded by content, the machinery
 // is entity-agnostic; drained by takeDamage before HP.
-func (m *Mob) ApplyShield(source skills.SkillID, hp float32, ticks int) {
-	m.buffs.ApplyShield(source, hp, ticks)
+// Reports whether the pool was newly granted or a drained one restored (§5.2).
+func (m *Mob) ApplyShield(source skills.SkillID, hp float32, ticks int) bool {
+	return m.buffs.ApplyShield(source, hp, ticks)
 }
 
 // ApplySpeed grants a movement-speed buff from a speed_burst cooldown; read
@@ -1763,6 +1787,20 @@ func (m *Mob) ApplySpeed(source skills.SkillID, factor float32, ticks int) {
 // tick via TickRateFactor.
 func (m *Mob) ApplyTickRate(source skills.SkillID, factor float32, ticks int) {
 	m.buffs.ApplyTickRate(source, factor, ticks)
+}
+
+// ApplyLifesteal grants a damage-leech buff from a lifesteal_burst cooldown
+// (R3 / §5.6) — entity-agnostic like the rest of the burst machinery, so mob
+// content can carry one; the damage site reads it via LifestealFraction when it
+// builds the hit's Factors.
+func (m *Mob) ApplyLifesteal(source skills.SkillID, fraction float32, ticks int) {
+	m.buffs.ApplyLifesteal(source, fraction, ticks)
+}
+
+// LifestealFraction is the share of damage dealt this mob's hits currently leech
+// back, on top of whatever the firing effect authors; 0 with no burst up.
+func (m *Mob) LifestealFraction() float32 {
+	return m.buffs.LifestealFraction()
 }
 
 // ApplyCalm puts this mob out of combat for ticks (plan-faction-flips chunk 2,
@@ -1814,7 +1852,7 @@ func (m *Mob) ResetTickNumbers() {
 }
 
 func (m *Mob) MobTouches(e model.MobEntity, factors mobs.Factors) {
-	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, Gated: factors.Gated, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
+	lost := m.takeDamage(model.Damage{HP: factors.Damage, Tags: factors.DamageTags, GateKey: factors.GateKey, Crit: factors.Crit}, model.StatusEffectDamagedAmbient)
 	// Mob-cast lifesteal (chunk 1): Factors carries no Source — the mob is
 	// always its own recipient.
 	model.ApplyLifesteal(lost, factors.Lifesteal, nil, e)
@@ -1861,23 +1899,37 @@ func (m *Mob) PlayerTouches(p model.PlayerEntity, damage model.Damage) {
 // server-wide kill broadcast reads it in OnMobDeath, where the participant
 // map is still intact: it clears on full regen, never on death).
 func (m *Mob) KillCreditNames() []string {
-	seen := make(map[uint64]bool, len(m.participants))
 	var names []string
+	m.forEachCredited(func(p model.PlayerEntity) { names = append(names, p.Name()) })
+	sort.Strings(names)
+	return names
+}
+
+// forEachCredited visits everyone this mob's death rewards reach, each exactly
+// once: every participant plus their recent healers. It is the single
+// statement of the credit RULE — tryGrantKillRewards grants against it and
+// KillCreditNames names against it, and the two must never disagree about who
+// is on the list.
+//
+// ⚑ Visits in participant-map order, i.e. Go's randomized one. Do not sort
+// here: rewardPlayer draws from the mob's RNG per unlock roll, so imposing an
+// order would shift that stream on every multi-participant kill. Callers
+// needing a stable result sort their own output, as KillCreditNames does.
+func (m *Mob) forEachCredited(visit func(model.PlayerEntity)) {
+	seen := make(map[uint64]bool, len(m.participants))
 	for id, p := range m.participants {
 		if !seen[id] {
 			seen[id] = true
-			names = append(names, p.Name())
+			visit(p)
 		}
 		for _, healer := range p.RecentHealers() {
 			hid := healer.Basic().ID()
 			if !seen[hid] {
 				seen[hid] = true
-				names = append(names, healer.Name())
+				visit(healer)
 			}
 		}
 	}
-	sort.Strings(names)
-	return names
 }
 
 // NotePresence records a bystander with an active aura as a combat
@@ -1915,20 +1967,7 @@ func (m *Mob) tryGrantKillRewards() {
 	m.deathRewardGiven = true
 
 	xp := uint64(m.definition.Factors.Experience)
-	rewarded := make(map[uint64]bool, len(m.participants))
-	for id, p := range m.participants {
-		if !rewarded[id] {
-			rewarded[id] = true
-			m.rewardPlayer(p, xp)
-		}
-		for _, healer := range p.RecentHealers() {
-			hid := healer.Basic().ID()
-			if !rewarded[hid] {
-				rewarded[hid] = true
-				m.rewardPlayer(healer, xp)
-			}
-		}
-	}
+	m.forEachCredited(func(p model.PlayerEntity) { m.rewardPlayer(p, xp) })
 }
 
 // rewardPlayer grants one participant their death rewards: the full XP amount

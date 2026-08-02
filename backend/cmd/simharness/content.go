@@ -188,10 +188,20 @@ func playerAuraSpecByName(contentDir, ref string) (sim.AuraSpec, error) {
 
 // hasDamageEffect reports whether the definition carries any payload the sim
 // models — damage_aura or dot_aura.
+//
+// ⚑ GATED damage does not count. The sim has no notion of `damage.Gated`, so a
+// gate skill derives into a preset as if it were a full-power combat aura — and
+// Harvest and Pickaxe then top the kills/hour table while being unable to
+// scratch anything in the real game (a gated hit only damages targets whose
+// resistances explicitly name one of its tags). Reporting the free gathering
+// tool as the strongest damage aura in the game is worse than not reporting it,
+// especially to a balance pass reading the table for exactly that ordering.
 func hasDamageEffect(def *skills.SkillDefinition) bool {
 	for _, e := range def.Effects {
-		if (e.Type == skills.EffectTypeDamageAura && e.Damage != nil) ||
-			(e.Type == skills.EffectTypeDotAura && e.Dot != nil) {
+		if e.Type == skills.EffectTypeDamageAura && e.Damage != nil && e.Damage.GateKey == "" {
+			return true
+		}
+		if e.Type == skills.EffectTypeDotAura && e.Dot != nil {
 			return true
 		}
 	}
@@ -261,6 +271,10 @@ func auraSpecOf(def *skills.SkillDefinition, level int, powerScale float32) (sim
 		spec.Variance = direct.Damage.Variance
 		spec.CritChance = direct.Damage.CritChanceAt(level)
 		spec.CritFactor = direct.Damage.CritFactor
+		// The authored resource cost travels too (D15/L8) — an authored
+		// preset that dropped it would report the pacing band held while
+		// measuring a game where the aura is free.
+		spec.CostFractionOfMax = direct.CostFractionAt(level)
 	}
 	if dot != nil {
 		applyInterval := skills.EffectiveTickInterval(*dot, level, 1)
@@ -286,6 +300,11 @@ func auraSpecOf(def *skills.SkillDefinition, level int, powerScale float32) (sim
 			spec.Variance = dot.Dot.Variance
 			spec.TickInterval = applyInterval
 			spec.MaxTargets = targets
+		}
+		spec.DotCostFractionOfMax = dot.CostFractionAt(level)
+		if direct == nil {
+			spec.CostFractionOfMax = spec.DotCostFractionOfMax
+			spec.DotCostFractionOfMax = 0
 		}
 
 		// A dot only sustains its DotTickInterval rate while it stays

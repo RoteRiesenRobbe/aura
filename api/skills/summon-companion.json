@@ -3,14 +3,16 @@
   "id": 24,
   "name": "SummonCompanion",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 2400,
   "effects": [
     {
       "type": "spawn",
+      "costFractionOfMax": 0.05,
+      "costFractionOfMaxPerLevel": 0.0075,
       "spawnMob": "Companion",
       "ttlTicks": 1800,
-      "ttlTicksPerLevel": 300,
+      "ttlTicksPerLevel": 150,
       "powerPerOwnerLevel": 0.05
     }
   ]

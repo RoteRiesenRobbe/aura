@@ -15,17 +15,21 @@ const (
 // There is deliberately no per-skill physics collider: since exactly one aura
 // is active at a time, each entity owns a single aura sensor that the
 // SkillSystem resizes to the active skill's EffectiveRadius.
+//
+// ⚑ Remaining cooldown deliberately does NOT live here. It is keyed by skill
+// on the component (see SkillComponent.cooldowns): a per-slot field is
+// destroyed by unequip, so re-slotting minted a fresh, ready copy — the
+// cooldown-refresh exploit.
 type EquippedSkill struct {
 	Def   *SkillDefinition
 	Level int
 
-	CdTicks         int // cooldown only: ticks remaining (0 = ready)
 	TickAccumulator int // active_aura only: ticks since last effect application
 }
 
 // BurstVFXTicks is how long the burst VFX (BurstFired status effect + wire
 // burst_radius) stays on after a cooldown fires — ~1.5 s [PLACEHOLDER].
-// Derived from CdTicks, so no extra state is needed anywhere.
+// Derived from the remaining cooldown, so no extra state is needed anywhere.
 const BurstVFXTicks = 45
 
 // EffectiveCooldownTicks is the level-scaled cooldown: base plus
@@ -106,6 +110,18 @@ type SkillComponent struct {
 	// ready cooldowns directly.
 	PendingCooldowns []int
 
+	// cooldowns maps a skill to the ticks remaining until it is ready again;
+	// an absent key means ready. Keyed by SkillID rather than by slot because
+	// a cooldown belongs to the SKILL, not to the slot it happens to sit in:
+	// with the counter on the EquippedSkill, unequipping destroyed it and
+	// re-equipping minted a ready copy, so any cooldown could be reset by
+	// re-slotting it between fights. Entries keep ticking down while the skill
+	// is unslotted — parking a skill must not freeze its recovery.
+	//
+	// Lazily allocated (nil until the first cooldown fires) so a mob that
+	// never fires one carries no map, mirroring Spellbook's nil-for-mobs shape.
+	cooldowns map[SkillID]int
+
 	// Casting state (plan-skill-vocab chunk 4): the cooldown slot currently
 	// winding up (-1 = idle) and the ticks left until it fires. One cast at a
 	// time; the cooldown is consumed only at successful completion. Player-only
@@ -145,6 +161,12 @@ type DerivedStats struct {
 	// authored critChance (§4.3 amendment, backlog §23). Applied in
 	// sys.rollHitDamage; DoTs never crit.
 	CritChanceBonus float32
+	// CostReductionBonus is subtractive on the RESOURCE COST of an effect:
+	// cost × (1 − bonus), applied in sys.effectCostHP (plan-numbers-rewrite
+	// D13). The DamageReductionBonus shape, pointed at an input instead of an
+	// output — this is the first stat that changes what an action costs rather
+	// than what it does.
+	CostReductionBonus float32
 	// DamageDealtBonus multiplies ALL outgoing damage of the acting entity
 	// (direct hits and dots alike): base × (1 + bonus), applied at the
 	// damage base-composition sites in sys (Strong, triage 2026-07-21).
@@ -193,6 +215,29 @@ func (d DerivedStats) DamageReductionFactor() float32 {
 // base per-tick step: base × (1 + bonus).
 func (d DerivedStats) MovementSpeedFactor() float32 {
 	return 1 + d.MovementSpeedBonus
+}
+
+// DamageFactor is the multiplier a damageDealt passive (Strong) puts on every
+// point of damage the owner deals: base × (1 + bonus). The one place the
+// 1+bonus composition is written — the damage sites and the wire both read it,
+// so the tooltip cannot drift from what the server charges (round-7 item 5).
+func (d DerivedStats) DamageFactor() float32 {
+	return 1 + d.DamageDealtBonus
+}
+
+// CostFactor is the multiplier a cost-reduction passive puts on an effect's
+// resource cost: cost × (1 − bonus). Clamped to [0, 1] like
+// DamageReductionFactor, so a stacked build can reach free but never a refund,
+// and no call site has to re-check it.
+func (d DerivedStats) CostFactor() float32 {
+	r := d.CostReductionBonus
+	if r > 1 {
+		r = 1
+	}
+	if r < 0 {
+		r = 0
+	}
+	return 1 - r
 }
 
 // NewSkillComponent creates a SkillComponent with no skills equipped.
@@ -305,6 +350,52 @@ func (sc *SkillComponent) EquipCooldown(slot int, def *SkillDefinition, level in
 	sc.revision++
 }
 
+// CooldownRemaining is the ticks left until the given skill is ready to fire
+// again; 0 = ready. Answers for any skill, slotted or not.
+func (sc *SkillComponent) CooldownRemaining(id SkillID) int {
+	return sc.cooldowns[id]
+}
+
+// SlotCooldownRemaining is CooldownRemaining for whatever occupies the given
+// cooldown slot; 0 for an empty or out-of-range slot.
+func (sc *SkillComponent) SlotCooldownRemaining(slot int) int {
+	if slot < 0 || slot >= MaxCooldownSlots || sc.CooldownSlots[slot] == nil {
+		return 0
+	}
+	return sc.cooldowns[sc.CooldownSlots[slot].Def.ID]
+}
+
+// SetCooldownRemaining puts a skill on cooldown for the given ticks; ≤ 0
+// clears it (ready). Test/cheat seam — the fire path uses StartCooldown.
+func (sc *SkillComponent) SetCooldownRemaining(id SkillID, ticks int) {
+	if ticks <= 0 {
+		delete(sc.cooldowns, id)
+		return
+	}
+	if sc.cooldowns == nil {
+		sc.cooldowns = make(map[SkillID]int, MaxCooldownSlots)
+	}
+	sc.cooldowns[id] = ticks
+}
+
+// StartCooldown puts the skill on its full level-scaled cooldown — what firing
+// it consumes.
+func (sc *SkillComponent) StartCooldown(es *EquippedSkill) {
+	sc.SetCooldownRemaining(es.Def.ID, es.EffectiveCooldownTicks())
+}
+
+// TickCooldowns advances every running cooldown by one tick, dropping the ones
+// that reach zero. Skill-keyed, so unslotted skills recover too.
+func (sc *SkillComponent) TickCooldowns() {
+	for id, ticks := range sc.cooldowns {
+		if ticks <= 1 {
+			delete(sc.cooldowns, id)
+			continue
+		}
+		sc.cooldowns[id] = ticks - 1
+	}
+}
+
 // BurstRadius is the effective radius of the largest instant-AoE effect
 // (instant_damage or instant_dot — e.g. Ignite) among cooldowns fired within
 // the last `window` ticks; 0 = none. Serialized as the wire burst_radius so
@@ -313,7 +404,11 @@ func (sc *SkillComponent) EquipCooldown(slot int, def *SkillDefinition, level in
 func (sc *SkillComponent) BurstRadius(window int) float32 {
 	var max float32
 	for _, es := range sc.CooldownSlots {
-		if es == nil || es.CdTicks == 0 || es.EffectiveCooldownTicks()-es.CdTicks >= window {
+		if es == nil {
+			continue
+		}
+		cd := sc.cooldowns[es.Def.ID]
+		if cd == 0 || es.EffectiveCooldownTicks()-cd >= window {
 			continue
 		}
 		for _, e := range es.Def.Effects {
@@ -390,6 +485,8 @@ func (sc *SkillComponent) recomputeDerived() {
 					d.CritChanceBonus += bonus
 				case StatDamageDealt:
 					d.DamageDealtBonus += bonus
+				case StatCostReduction:
+					d.CostReductionBonus += bonus
 				}
 			case EffectTypeResistPassive:
 				// Level scaling mirrors the aura fields (FactorAt: base +
@@ -507,6 +604,21 @@ func (sc *SkillComponent) LowerSkillLevel(def *SkillDefinition) bool {
 	return true
 }
 
+// ResetSkillLevels returns every discovered skill to level 1 in one step —
+// the whole-book respec (round-7 item 8). Level 1 is the discovery floor
+// (LowerSkillLevel's own rule), so the milestone-seeded free baseline
+// survives by construction; equipped instances and derived stats follow via
+// setSkillLevel. The refund needs no point arithmetic at all: SpentPoints is
+// derived from the spellbook, which is exactly what made free respec
+// drift-proof.
+func (sc *SkillComponent) ResetSkillLevels() {
+	for id, level := range sc.Spellbook {
+		if level > 1 {
+			sc.setSkillLevel(id, 1)
+		}
+	}
+}
+
 func (sc *SkillComponent) setSkillLevel(id SkillID, level int) {
 	sc.Spellbook[id] = level
 	sc.revision++
@@ -522,13 +634,65 @@ func (sc *SkillComponent) setSkillLevel(id SkillID, level int) {
 	sc.recomputeDerived()
 }
 
+// PointCost is what BUYING the given level of a skill costs in skill points
+// (plan-numbers-rewrite D10): the first half of a skill's levels cost 1 point
+// each, the third quarter 2, the last quarter 3, rounding up where the quarters
+// do not divide evenly. maxLevel 10 → L2–5 cost 1, L6–8 cost 2, L9–10 cost 3
+// (16 points to max); maxLevel 5 → 7 points to max; maxLevel 1 → 0.
+//
+// The curve is relative to each skill's OWN cap rather than to an absolute
+// level number, so it survives backlog §37 later moving a cap — a 5-cap skill
+// promoted to 10 re-prices itself instead of needing a new table.
+//
+// Level 1 is free on unlock (PO 2026-07-31): a skill arrives in the spellbook
+// at level 1 having cost nothing, and the first purchased level is 2. That is
+// load-bearing for the free floor (D6) — every discovered skill is usable
+// before any investment.
+//
+// ⚑ Every number here is [PLACEHOLDER], the quarter thresholds included.
+func PointCost(maxLevel, level int) int {
+	if level <= 1 || level > maxLevel {
+		return 0
+	}
+	if level <= ceilDiv(maxLevel, 2) {
+		return 1
+	}
+	if level <= ceilDiv(3*maxLevel, 4) {
+		return 2
+	}
+	return 3
+}
+
+// BoundPoints is the total a skill standing at `level` has cost: the sum of
+// every purchased level's PointCost.
+func BoundPoints(maxLevel, level int) int {
+	total := 0
+	for l := 2; l <= level; l++ {
+		total += PointCost(maxLevel, l)
+	}
+	return total
+}
+
+func ceilDiv(a, b int) int { return (a + b - 1) / b }
+
 // SpentPoints is the number of skill points bound in the spellbook. Derived,
-// never stored: level 1 is free on discovery, so each skill binds level−1
-// points (flat cost of 1 per level). Deriving makes free respec drift-proof.
-func (sc *SkillComponent) SpentPoints() int {
+// never stored — deriving makes free respec drift-proof.
+//
+// The registry parameter is what D10's cap-relative curve costs (L1): the
+// spellbook is SkillID → level with no definition pointers, and the cost of a
+// level now depends on where that level sits inside the skill's own cap.
+func (sc *SkillComponent) SpentPoints(defs Registry) int {
 	spent := 0
-	for _, level := range sc.Spellbook {
-		spent += level - 1
+	for id, level := range sc.Spellbook {
+		maxLevel := level
+		if def, err := defs.Get(id); err == nil {
+			maxLevel = def.MaxLevel
+		}
+		// An unresolvable spellbook entry cannot happen with a loaded registry
+		// (every key came from one). Pricing it against its own level as the
+		// cap is the harshest reading, so the failure mode is a point the
+		// player cannot spend rather than a free one they can.
+		spent += BoundPoints(maxLevel, level)
 	}
 	return spent
 }

@@ -80,15 +80,30 @@ faction and skills without a schema append (see §5 and
      follower), which is why old defs carried a dummy `aggroRadius`.
    - `factors`: `baseMaxHealth`, `maxHealthVariance`, `experience`, `speed`,
      `deltaPhi`, `turnRate`, optional `resistances` / `damageTags`
-   - **Chore/gate tags are opt-in (C1):** gate-style damage (Harvest)
-     carries `"gatedDamageTags": true` on its effect, which flips the resist
-     default — the hit only damages mobs whose `resistances` **explicitly
-     name** one of its tags (the `"*"` wildcard does not opt in). Combat
-     mobs therefore need NO harvest entry; things the gate aura should
-     affect opt in, like the turnip (`{ "*": 0, "harvest": 1 }`, see
-     `api/mobs/turnip.json`), the C2 bramble walls and the C3 rockfall
-     (`{ "*": 0, "smash": 1 }` — each gate obstacle picks its own tag +
-     opener skill).
+   - **Chore/gate keys are opt-in (C1; the vocabulary split is D4):**
+     gate-style damage (Harvest) carries `"gateKey": "harvest"` on its effect,
+     and a mob opts in by listing that key in **`factors.gateKeys`**. Combat
+     mobs therefore need no entry at all; things the gate aura should affect
+     opt in, like the turnip (`"resistances": { "*": 0 }` +
+     `"gateKeys": ["harvest"]`, see `api/mobs/turnip.json`), the C2 bramble
+     walls and the C3 rockfall (`"gateKeys": ["smash"]`).
+   - ⚑ **`resistances` and `gateKeys` are DIFFERENT QUESTIONS and must not be
+     mixed.** `resistances` maps a **damage type** to an incoming multiplier
+     (`0.5` half, `1.5` vulnerable, `0` immune, `"*"` the per-type fallback);
+     `gateKeys` is a list of locks. Both vocabularies are closed and each
+     rejects the other's words by name, because until D4 they shared one map —
+     which meant "a turnip resists everything except harvest" and "a troll takes
+     half damage from bleed" were written identically, and a mistyped key
+     shipped as a skill that silently hit nothing.
+   - ⚑ **A `"*"` wildcard covers damage types that do not exist yet.** A mob at
+     `{"*": 0}` is automatically immune to any type added later — right for a
+     turnip, wrong the first time someone uses the wildcard as shorthand for
+     "tough".
+   - ⚑ **Think twice before authoring a `physical` resistance.** The C8 tier
+     guardrail drives its bot with authored `Damage` at L1, which is physical,
+     so a physical entry anywhere re-calibrates the tier thresholds — a test
+     (`TestNoCuratedResistanceTouchesPhysical`) makes that a deliberate act
+     rather than a surprise.
    - `body`: `radius`, `aggroRadius` (required and `> 0` for `creature` and
      `follower`; **omit it on a `structure`** — a structure acquires nothing,
      and requiring one is what produced the old `0.1` dummies)
@@ -259,22 +274,83 @@ error. If the type also puts a buff on an entity, it needs a pip decision in
 `applied_effects.go` (compile-enforced) and a matching entry in `EffectPips.ts`.
 
 Existing effect `type`s to compose (the authoritative list is `effectTypeMap` in
-`backend/pkg/aura/skills/definition.go` — 25 as of 2026-07-29):
+`backend/pkg/aura/skills/definition.go` — 26 as of 2026-08-01):
 `damage_aura`, `instant_damage`, `heal_aura`, `self_heal`, `hot_aura`,
 `instant_hot`, `dot_aura`, `instant_dot`, `shield_aura`, `instant_shield`,
 `slow_aura`, `resist_aura`, `resist_passive`, `stat_multiplier`, `light_aura`,
 `taunt`, `detaunt`, `spawn`, `recall`, `revive`, `dash`, `tick_rate`, `calm`,
-`charm`, `speed_burst`.
+`charm`, `speed_burst`, `lifesteal_burst`.
 
 Each type has its **own allowlist of legal fields** (`effectKeys`), enforced at
 load: an unknown or renamed key hard-fails the boot naming the field and its
 replacement, rather than silently reading as zero. Authoring against the wrong
 type is therefore a boot error, not a mystery in play.
 
+⚑ **The two healing types do NOT target alike, and it is not authorable.**
+`heal_aura` only ever affects a **wounded** ally (`HealthRatio() < 1`, hardcoded
+in `applyHealAura`); `hot_aura`, `instant_hot` and every other type affect
+eligible targets regardless of health. The asymmetry is deliberate (backlog §33,
+PO 2026-07-31): the gate exists because a heal aura authors a `costFractionOfMax`
+per healing tick and typically `maxTargets: 1`, so a tick spent on a full-HP
+target bills the caster real HP and burns its only slot. A heal-over-time
+typically authors neither, so it is free to **pre-hot** — placing the buff
+before the damage arrives, which is legitimate support play. (The cost used to
+be a heal-only `selfDamageHP`; the numbers rewrite moved it onto the effect so
+any effect type can be priced, but the reasoning is unchanged.)
+
+Two consequences when authoring:
+
+- **A `heal_aura` with `maxTargets: 0` still cannot top anybody off.** If you
+  want "keeps the party topped up", that is a `hot_aura`.
+- **A HoT on a full-health target is inert, not wasted.** `tickHotEvents` drops
+  any tick healing ≤ 0 *before* participation XP, healer threat and combat
+  entry, so a pre-hot generates no credit and pulls nothing until real damage
+  lands.
+
+⚑ **The ORDER of a multi-effect skill's `effects[]` array carries meaning near
+the resource floor** (plan-resource-costs-feedback §3.7 — documented rather than
+engineered away, PO 2026-08-01). Effects charge **sequentially within one tick**,
+each pricing against the health the previous one left, and `auraEffectCost`
+skips an effect the caster cannot afford (L4 — a cost may never kill its caster).
+So on a nearly-dead caster **the effect authored first is the one that still
+fires**, and the one authored last is the one that gets skipped. Nothing
+validates or surfaces this: reordering the array is a silent balance change.
+
+Two things keep the surface small, and neither removes it:
+
+- **One shared beat.** Since R3/F5 every multi-effect aura authors the same
+  `tickInterval` on all its effects, so they price against the same health in
+  the same tick rather than drifting in and out of each other. Ordering now
+  decides only *which* effect wins the last affordable charge, not which of them
+  sees a stale pool.
+- **The free floor.** The base damage aura is permanently free (D6) and is never
+  the effect being skipped.
+
+⇒ When authoring a multi-effect skill, put the effect the skill is *for* first.
+A Warbanner that heals before it damages is a different skill at 5 % health than
+one that damages before it heals.
+
 ### Backend / data
 
 1. **`api/skills/newskill.json`** — copy `api/skills/damage-aura.json`:
    - `id`, `name`, `category` (`active_aura` / `passive` / `cooldown`), `maxLevel`
+   - **`maxLevel` is drawn from a closed vocabulary: `{1, 5, 10}`**
+     (plan-numbers-rewrite D2/D11, authored 2026-07-31). **10** = a
+     build-defining core aura, the kind a build is named after — today Damage,
+     Heal, Immolate, LongRangeStrike, Reaper plus the four combo ceilings
+     (Vanguard, Spearhead, Lifewarden, Warbanner). **5** = everything
+     supporting. **1** = a binary ability with nothing to scale (Recall,
+     Revive, Haste, Recover).
+   - ⚑ **The cap is a PRICE, not just a ceiling.** Point cost is *cap-relative*
+     (D10): the first half of a skill's levels cost 1 point, the third quarter
+     2, the last quarter 3 — so maxing a cap-10 skill costs **16** points and a
+     cap-5 skill **7**, against a ~29-point level-30 budget. Raising a cap
+     without re-deriving the `*PerLevel` slopes therefore both inflates the
+     ceiling *and* re-prices the skill.
+   - ⚑ **Raising a cap silently re-times every recipe that names the skill.**
+     `recipe.go` only checks `level ≤ maxLevel`, so `Damage 5` stays valid when
+     Damage moves to cap 10 — it just stops meaning "maxed" and starts meaning
+     "half-way". Re-read `api/recipes/` after any cap change.
    - `effects[]`: one payload per effect; params follow
      `base + (level−1) × perLevel` (e.g. `damageHP` + `damageHPPerLevel`)
    - targeting is faction-relative: `targetsEnemies` / `targetsAllies`
@@ -310,6 +386,64 @@ connectivity/CORS symptom, not a missing frontend entry.
 
 > No `.fbs` / FlatBuffers regen is needed for new skills, and no frontend edit
 > at all. A new ability is **pure JSON + restart**.
+
+### Authored key → catalog path (two vocabularies for the same data)
+
+What you author is **not** what `GET /skills` serves, and both halves are
+deliberate: content JSON is **flat and prefixed** (`damageHP`, `resistTags`) so
+an effect is one readable block; the catalog is **nested** (`damage.hp`,
+`resist.tags`) so the payload matching `type` is the only non-nil one. The cost
+is that a key you see in devtools cannot be grepped back to the file you author
+— hence this table (backlog §27.3.4).
+
+**The general rule:** the type prefix moves into the payload name and drops off
+the key. `damageHP` → `damage.hp`. `PerLevel` suffixes always survive intact.
+
+**Flat keys that stay flat** (they live on `EffectDef` itself, not in a
+payload): `radius`, `radiusPerLevel`, `tickInterval`, `tickIntervalPerLevel`,
+`selector`, `maxTargets`, `maxTargetsPerLevel`, `targetsEnemies`,
+`targetsAllies`, `targetsStructures`.
+
+| Authored (content JSON) | Served (`GET /skills`) | Effect types |
+|---|---|---|
+| `damageHP` / `damageHPPerLevel` | `damage.hp` / `damage.hpPerLevel` | damage_aura, instant_damage |
+| `damageTags` | `damage.tags` | ⚑ also `dot.tags` on the dot types. **Closed vocabulary** (D4): `physical` `fire` `frost` `nature` `poison` `bleed` — anything else hard-fails |
+| `gateKey` (string) | `damage.gateKey` | ⚑ the lock-and-key mechanism, **not** a damage type. Closed vocabulary: `harvest` `smash`. Mutually exclusive with `damageTags` — a gated hit declares no type |
+| `variance` | `<payload>.variance` | damage / dot / heal / hot / selfHeal |
+| `hitStyle`, `structureDamageFraction` | `damage.hitStyle`, `damage.structureDamageFraction` | damage_aura, instant_damage |
+| `executeBelowFraction`, `executeBonusFactor`, `berserkerMaxBonusFactor`, `critChance`, `critChancePerLevel`, `critFactor`, `lifestealFraction` | `damage.<same name>` | damage_aura, instant_damage |
+| `damageHP` / `damageHPPerLevel` | `dot.hp` / `dot.hpPerLevel` | ⚑ dot_aura, instant_dot — **same authored key, different path** |
+| `dotTicks` / `dotTickInterval` | `dot.tickCount` / `dot.interval` | dot_aura, instant_dot |
+| `healHP` / `healHPPerLevel` | `heal.hp` / `heal.hpPerLevel` | heal_aura |
+| `healHP` / `healHPPerLevel` | `selfHeal.healHp` / `selfHeal.healHpPerLevel` | ⚑ self_heal — the payload keeps the `heal` prefix here |
+| `healHP` / `healHPPerLevel` | `hot.hp` / `hot.hpPerLevel` | hot_aura, instant_hot |
+| `healFractionOfMax` / `…PerLevel` | `heal.fractionOfMax` / `selfHeal.fractionOfMax` | heal_aura / self_heal |
+| `costFractionOfMax` / `…PerLevel` | `costFractionOfMax` / `costFractionOfMaxPerLevel` | ⚑ the ONE key that is not inside a payload — it sits on the effect itself and is valid on **every** effect type, so it is checked outside `effectKeys` |
+| `hotTicks` / `hotTickInterval` | `hot.tickCount` / `hot.interval` | hot_aura, instant_hot |
+| `shieldHP` / `shieldHPPerLevel` | `shield.hp` / `shield.hpPerLevel` | shield_aura, instant_shield |
+| `shieldDurationTicks` | `shield.durationTicks` | instant_shield only |
+| `slowFraction` / `slowFractionPerLevel` | `slow.fraction` / `slow.fractionPerLevel` | slow_aura |
+| `resistTags` / `resistFactor` / `resistFactorPerLevel` | `resist.tags` / `resist.factor` / `resist.factorPerLevel` | resist_aura, resist_passive |
+| `stat` / `statBonus` / `statBonusPerLevel` | `stat.name` / `stat.bonus` / `stat.bonusPerLevel` | stat_multiplier |
+| `targetsSelf` | `<payload>.targetsSelf` | ⚑ resist / shield / hot — inside the payload, unlike the other target flags |
+| `spawnMob` / `ttlTicks` / `ttlTicksPerLevel` / `powerPerOwnerLevel` | `spawn.mobName` / `spawn.ttlTicks` / … | spawn |
+| `threatMargin` | `threat.margin` | taunt (detaunt ignores it) |
+| `reviveHealthFraction` | `revive.healthFraction` | revive |
+| `dashDistance` / `dashDistancePerLevel` | `dash.distance` / `dash.distancePerLevel` | dash |
+| `tickRateFactor` / `tickRateDurationTicks` | `tickRate.factor` / `tickRate.durationTicks` | tick_rate |
+| `speedFactor` / `speedDurationTicks` (+`PerLevel`) | `speed.factor` / `speed.durationTicks` | ⚑ speed_burst — the payload is `speed`, not `speedBurst` |
+| `lifestealFraction` / `lifestealDurationTicks` (+`PerLevel`) | `lifesteal.fraction` / `lifesteal.durationTicks` | ⚑ lifesteal_burst — `lifestealFraction` is **shared with the damage payload**; on `damage_aura` / `instant_damage` it is a permanent rider on that effect and lands at `damage.lifestealFraction` instead |
+| `calmTicks` / `calmTicksPerLevel` | `calm.durationTicks` / `calm.durationTicksPerLevel` | calm |
+| `charmTicks` / `charmTicksPerLevel` | `charm.durationTicks` / `charm.durationTicksPerLevel` | charm |
+
+**Skill level, not effect level:** `targetFactions` keeps its key but **changes
+its values** — you author faction *identifiers* (`["prey"]`), the catalog serves
+resolved *display names* (`["Prey"]`). The bitmask those names resolve to is
+server-only and is **not** served at all (`json:"-"`, backlog §27.3.6).
+
+The authoritative lists are `effectKeys` (what each type accepts) and the
+payload structs' json tags, both in `backend/pkg/aura/skills/definition.go`. If
+this table and that file ever disagree, the file wins.
 
 ---
 
@@ -509,15 +643,37 @@ stage on the spot. There is no opt-out flag yet, deliberately.
 stage pays nothing. The shape every authored quest uses is
 `objective stage → dialogue stage → terminal stage entered by a rewarding row`.
 
-### The rows
+**The journal's objective line** (conversation-journal Q2) is composed
+server-side from the current stage. An optional `tracker` string on the stage
+wins over the derived line, with `{n}/{m}` substituted live from the stage's
+first countable objective — it is the plural fix (`"3/8 wolves slain"` instead
+of the derived `"3/8 Wolf slain"`) and the ONLY way a dialogue stage gets a
+line at all (`"Return to the farmer"`), so author one on every non-terminal
+dialogue stage. The loader rejects `{n}/{m}` on a stage with nothing to count.
+
+### The rows — and the show-rule that replaced the old gating
+
+⚑ **A quest row is shown iff its ledger op would succeed** (Q1's show-rule):
+an `offer_quest` row vanishes the moment the quest is accepted, and a turn-in
+row appears exactly when its edge is walkable. So **quest rows need no
+`quest_at_stage` gates at all**, and since Q4 the content pattern is:
+
+- the NPC's **root** is an ordinary unconditional greeting with rows;
+- each quest sits **behind its own row** on root (`"Any issues around here?"`),
+  its brief as that quest node's text — written once, so it reads correctly
+  before and after acceptance (§4.6 of the plan);
+- the Accept row, the turn-in row and any follow-up question rows all live on
+  that one node; the show-rule sorts out which are visible. Grant rows author
+  no `next` — the player stays on the node and the grant's `line` is spoken;
+- an NPC turning in a quest that is not otherwise his (the wolves branch legs)
+  puts the turn-in row directly on root.
 
 ```json
 { "text": "I've spoken to them both.",
   "grants": [
     { "kind": "advance_quest", "quest": "village-welcome",
       "fromStage": "back", "toStage": "known", "line": "..." },
-    { "kind": "grant_xp", "xp": 150, "line": "..." } ],
-  "next": "root" }
+    { "kind": "grant_xp", "xp": 150, "line": "..." } ] }
 ```
 
 - A quest grant makes the whole option **one atomic row**, applied together —
@@ -528,26 +684,29 @@ stage pays nothing. The shape every authored quest uses is
   leaves the counters standing, so anything else is a loopable faucet.
 - A quest grant takes no `requiredLevel` — the stage graph is its gate.
 
-### Node conditions, and the two traps
+### Node conditions — for greetings now, not for quest plumbing
 
 Gate nodes with `quest_at_stage` (`{"quest", "stage"}`, where `stage` is a stage
 id or `not_started` / `completed`). Options have no conditions of their own; an
-option pointing at a hidden node is hidden with it.
+option pointing at a hidden node is hidden with it. Since the show-rule took
+over the rows, conditions are for **state-dependent greetings** only (the
+traveller greets differently once his quest is done).
 
 1. ⚑ **Conditional nodes must sit ABOVE the unconditional root** — the loader
    hard-fails otherwise (L3), because the greeting is the first node whose
-   conditions pass. The consequence is a feature: whenever a quest state is live
-   at an NPC, that state IS the greeting. **Give every quest node a row back to
-   `root`**, or the NPC's ordinary teachings are unreachable while a quest runs.
-2. ⚑ **A quest row's `next` must name a node that is visible BEFORE the row is
-   taken.** The destination is checked against the pre-op state, so pointing an
-   offer row at a node gated on "quest running" hides the row from itself. Point
-   it at the unconditional `root` — which also avoids the panel snapping when the
-   node it is standing on vanishes a tick later.
+   conditions pass. *(The C4-era corollary — quest-state nodes hijacking the
+   greeting, each needing a row back to `root` — is retired: quest nodes are
+   unconditional now and reached by a row, so Back covers the way out.)*
+2. ⚑ **If a row authors a `next`, it must name a node that is visible BEFORE
+   the row is taken.** The destination is checked against the pre-op state, so
+   pointing a row at a node gated on the state the row is about to create hides
+   the row from itself. Grant rows authoring no `next` (the Q4 convention)
+   sidestep this entirely.
 
-`api/mobs/hermit.json` (offer + running + turn-in on one NPC) and
-`api/mobs/miner.json` (a mid-quest, non-rewarding, non-terminal edge) are the
-worked examples; `api/quests/README.md` documents the file format itself.
+`api/mobs/hermit.json` (offer + turn-in + follow-up question on one quest node)
+and `api/mobs/lampless-traveller.json` (the same plus a conditional completed
+greeting) are the worked examples; `api/quests/README.md` documents the file
+format itself.
 
 ### Verify
 

@@ -10,7 +10,8 @@
     "baseMaxHealth": 40,
     "experience": 0,
     "speed": 0,
-    "resistances": { "*": 0, "harvest": 1 }
+    "resistances": { "*": 0 },
+    "gateKeys": ["harvest"]
   },
   "body": {
     "radius": 0.9,

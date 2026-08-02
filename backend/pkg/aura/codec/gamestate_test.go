@@ -3,15 +3,15 @@ package codec
 import (
 	"testing"
 
-	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/prop"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	flatbuffers "github.com/google/flatbuffers/go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSpellbookMarshalFlatbuf_RoundTrip(t *testing.T) {
@@ -96,7 +96,7 @@ func TestCooldownSlotsMarshalFlatbuf_ContentsAndRemaining(t *testing.T) {
 	sc := skills.NewSkillComponent(true)
 	nova := &skills.SkillDefinition{ID: 20, Name: "NovaBurst", CooldownTicks: 300}
 	sc.EquipCooldown(1, nova, 1)
-	sc.CooldownSlots[1].CdTicks = 120
+	sc.SetCooldownRemaining(nova.ID, 120)
 
 	b := flatbuffers.NewBuilder(128)
 
@@ -130,6 +130,52 @@ func TestGameStateSkillPoints_RoundTrip(t *testing.T) {
 	result := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
 
 	assert.Equal(t, uint16(7), result.SkillPoints())
+}
+
+// The cost factor rides the same owner-only slot as skill_points (R1/F2). Its
+// neutral value is the FIELD DEFAULT, which is the half worth pinning: an
+// unmodified player writes nothing and the client must still read 1, or every
+// tooltip on every player without Discipline reads a cost of zero.
+func TestGameStateCostFactor_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddCostFactor(b, 0.8)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	assert.Equal(t, float32(0.8), AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).CostFactor())
+
+	unwritten := flatbuffers.NewBuilder(64)
+	AuraApi.GameStateStart(unwritten)
+	unwritten.Finish(AuraApi.GameStateEnd(unwritten))
+
+	assert.Equal(t, float32(1),
+		AuraApi.GetRootAsGameState(unwritten.FinishedBytes(), 0).CostFactor(),
+		"an absent cost factor must read as neutral, not as zero")
+}
+
+// The damage factor is cost_factor's twin (round-7 item 5, Strong): the same
+// owner-only slot, the same neutral-by-field-default contract — an unmodified
+// player writes nothing and the client must still read 1, or every damage
+// tooltip on a player without Strong reads zero.
+func TestGameStateDamageFactor_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddDamageFactor(b, 1.1)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	assert.Equal(t, float32(1.1), AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).DamageFactor())
+
+	unwritten := flatbuffers.NewBuilder(64)
+	AuraApi.GameStateStart(unwritten)
+	unwritten.Finish(AuraApi.GameStateEnd(unwritten))
+
+	assert.Equal(t, float32(1),
+		AuraApi.GetRootAsGameState(unwritten.FinishedBytes(), 0).DamageFactor(),
+		"an absent damage factor must read as neutral, not as zero")
 }
 
 func TestSpellbookMarshalFlatbuf_Empty(t *testing.T) {
@@ -532,7 +578,7 @@ func TestEntitiesMarshalFlatbuf_Empty(t *testing.T) {
 func TestGameStateQuestProgress_RoundTrip(t *testing.T) {
 	entries := []quests.ProgressEntry{
 		{QuestID: "choice", Path: []string{"choose", "a-end"}, Completed: true},
-		{QuestID: "wolf-cull", Path: []string{"cull"}},
+		{QuestID: "wolf-cull", Path: []string{"cull"}, Objectives: []string{"1/3 Wolf slain", "Talk to the Farmer"}},
 	}
 
 	b := flatbuffers.NewBuilder(256)
@@ -553,11 +599,17 @@ func TestGameStateQuestProgress_RoundTrip(t *testing.T) {
 	assert.Equal(t, "choose", string(done.Stages(0)), "the walked path keeps its order (L6)")
 	assert.Equal(t, "a-end", string(done.Stages(1)))
 	assert.True(t, done.Completed())
+	assert.Zero(t, done.ObjectivesLength(), "a completed quest carries no objective line (Q2 §7.1)")
 
 	assert.Equal(t, "wolf-cull", string(running.QuestId()))
 	require.Equal(t, 1, running.StagesLength())
 	assert.Equal(t, "cull", string(running.Stages(0)))
 	assert.False(t, running.Completed())
+	// Q2: the composed lines ride beside the path, order preserved — the same
+	// prepend-reversal rule as the stages vector.
+	require.Equal(t, 2, running.ObjectivesLength())
+	assert.Equal(t, "1/3 Wolf slain", string(running.Objectives(0)))
+	assert.Equal(t, "Talk to the Farmer", string(running.Objectives(1)))
 }
 
 // A player with no quests writes no vector at all, which the client reads as an

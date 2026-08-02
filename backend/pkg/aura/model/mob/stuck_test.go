@@ -10,9 +10,9 @@ package mob
 import (
 	"testing"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 )
 
 // campPocket builds a three-prop concave pocket around the origin: blockers

@@ -41,6 +41,10 @@ type Client interface {
 	// from the client (plan-quests.md C3, D13)
 	NextAbandonQuest() *AbandonQuest
 
+	// NextRespec deques a Respec (spellbook reset-all) message received
+	// from the client (round-7 item 8). Returns nil if none available.
+	NextRespec() *Respec
+
 	// SendMessage enqueues a message in the outgoing
 	// messages queue
 	SendMessage([]byte) error

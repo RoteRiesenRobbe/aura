@@ -1,0 +1,19 @@
+{
+  "_comment": "Bloodthirst (R3, plan-resource-costs-feedback §5.6 — PO 2026-08-01): the rider Reaper lost, re-shaped as a cooldown. For six seconds every hit the caster lands leeches back a share of the damage it dealt, whatever aura is on — it is a self-buff (new `lifesteal_burst` effect type, the damage-side twin of Swift's `speed_burst`), so it composes with the loadout instead of belonging to one skill. The point of moving it: as a permanent rider next to Reaper's berserker it was a LOOP (lower health -> more damage -> more leech -> back up); as a cooldown it is a decision with a resource price and a timer, and berserker keeps the low-health identity on its own. Duration is fixed at 180 ticks = 6 s at 30 tps and does NOT scale — the PO specified the window, so level buys leech strength, not uptime. Cost 0.02 sits with Recover (0.02) and Barrier (0.0195), the other two 'spend now to survive the next few seconds' cooldowns. ⚑ No pip: applied_effects is a full ubyte, so this is the first buff in the game with a real duration and no overhead indicator — the tells are the floating heal numbers and the cooldown icon's own timer (backlog §39 should give it the first widened bit). ⚑ No unlock source yet — dev-obtainable via the SKILL Bloodthirst cheat, like FireWard. Placement is a content-pass call, and the obvious home is the wolf line Reaper already drops from. All values [PLACEHOLDER].",
+  "id": 8,
+  "name": "Bloodthirst",
+  "category": "cooldown",
+  "maxLevel": 5,
+  "cooldownTicks": 900,
+  "cooldownTicksPerLevel": -60,
+  "effects": [
+    {
+      "type": "lifesteal_burst",
+      "costFractionOfMax": 0.02,
+      "costFractionOfMaxPerLevel": 0.0025,
+      "lifestealFraction": 0.3,
+      "lifestealFractionPerLevel": 0.05,
+      "lifestealDurationTicks": 180
+    }
+  ]
+}

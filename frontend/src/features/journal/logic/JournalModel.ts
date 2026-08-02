@@ -1,6 +1,7 @@
 /**
- * The journal's view model (plan-quests.md chunk C3, D7) — DOM-free, so vitest
- * covers it; Journal.ts next door owns the panel and the clicks.
+ * The journal's view model (plan-quests.md chunk C3, D7; two-pane since
+ * plan-conversation-journal.md Q3) — DOM-free, so vitest covers it; Journal.ts
+ * next door owns the panel and the clicks.
  *
  * Two inputs meet here and neither is enough alone: the wire carries the
  * player's ledger as IDS ONLY (which quests are running, and the ordered stages
@@ -8,9 +9,12 @@
  * words. The catalog is injected rather than imported so this module stays
  * fetch-free as well as DOM-free.
  *
- * Gothic 1's shape, which is what D7 rules: entries grouped under their quest,
- * a running and a completed section. Not a checklist — every line is prose the
- * player has already been shown.
+ * The Q3 shape: a LIST of titles (running and completed sections, D7's
+ * grouping) beside a DETAIL pane holding the selected quest's diary. Selection
+ * is client state over a per-tick re-send — exactly the ConversationModel
+ * hazard — so it lives here by quest ID, where the re-send cannot reset it,
+ * and it deliberately survives the panel closing (PO ruling 2026-07-30:
+ * reopening lands on the quest last read).
  */
 
 /** One quest as GameState.quest_progress carries it. */
@@ -19,6 +23,12 @@ export interface QuestProgress {
     /** The stages entered, oldest first — the walked path, not a position. */
     stages: string[];
     completed: boolean;
+    /**
+     * The CURRENT stage's objective lines, composed by the server and rendered
+     * verbatim (Q2, R2): "3/8 Wolf slain", "Talk to the Farmer ✓". Empty for
+     * completed quests — the diary is their record.
+     */
+    objectives: string[];
 }
 
 export type JournalCatalogState = 'loading' | 'ready' | 'unavailable';
@@ -30,11 +40,23 @@ export interface JournalCatalog {
     stageJournal(questId: string, stageId: string): string | undefined;
 }
 
-export interface JournalQuestView {
+/** One row of the list pane: a title to click, nothing more. */
+export interface JournalListRow {
+    questId: string;
+    title: string;
+    selected: boolean;
+}
+
+/** The detail pane: the selected quest's diary. */
+export interface JournalDetailView {
     questId: string;
     title: string;
     /** The diary of the stages walked, in order. */
     entries: string[];
+    /** The current stage's server-composed objective lines, verbatim (Q2). */
+    objectives: string[];
+    /** Only a running quest can be abandoned (D13). */
+    running: boolean;
 }
 
 export interface JournalView {
@@ -46,12 +68,15 @@ export interface JournalView {
      * degrade this panel must not get wrong.
      */
     state: JournalCatalogState;
-    running: JournalQuestView[];
-    completed: JournalQuestView[];
+    running: JournalListRow[];
+    completed: JournalListRow[];
+    /** The selected quest, or null when the journal is empty. */
+    detail: JournalDetailView | null;
 }
 
 export class JournalModel {
     private progress: QuestProgress[] = [];
+    private selectedQuestId: string | null = null;
 
     constructor(private readonly catalog: JournalCatalog) {
     }
@@ -59,21 +84,50 @@ export class JournalModel {
     /** Feed a snapshot's quest_progress. Called every tick. */
     update(progress: QuestProgress[]) {
         this.progress = progress ?? [];
+        // Resolve the selection HERE rather than in view(), so view() stays
+        // pure and an unchanged ledger provably yields an identical view. A
+        // selection that left the ledger falls back to the first running
+        // quest, else the first completed, else nothing (PO ruling
+        // 2026-07-30) — and a first snapshot lands on the first running quest
+        // by the same rule.
+        if (this.selectedQuestId === null || !this.progress.some(p => p.questId === this.selectedQuestId)) {
+            const fallback = this.progress.find(p => !p.completed) ?? this.progress[0];
+            this.selectedQuestId = fallback?.questId ?? null;
+        }
+    }
+
+    /** Click a list row. A quest not in the journal cannot be selected. */
+    select(questId: string) {
+        if (this.progress.some(p => p.questId === questId)) {
+            this.selectedQuestId = questId;
+        }
     }
 
     view(): JournalView {
         const state = this.catalog.state();
         if (state !== 'ready') {
-            return {state, running: [], completed: []};
+            return {state, running: [], completed: [], detail: null};
         }
+        const selected = this.progress.find(p => p.questId === this.selectedQuestId) ?? null;
         return {
             state,
-            running: this.progress.filter(p => !p.completed).map(p => this.questView(p)),
-            completed: this.progress.filter(p => p.completed).map(p => this.questView(p)),
+            running: this.progress.filter(p => !p.completed).map(p => this.listRow(p)),
+            completed: this.progress.filter(p => p.completed).map(p => this.listRow(p)),
+            detail: selected === null ? null : this.detailView(selected),
         };
     }
 
-    private questView(p: QuestProgress): JournalQuestView {
+    private listRow(p: QuestProgress): JournalListRow {
+        // The id as a last-resort title keeps an unknown quest visible — and
+        // abandonable — instead of silently vanishing from the panel.
+        return {
+            questId: p.questId,
+            title: this.catalog.title(p.questId) ?? p.questId,
+            selected: p.questId === this.selectedQuestId,
+        };
+    }
+
+    private detailView(p: QuestProgress): JournalDetailView {
         const entries: string[] = [];
         for (const stageId of p.stages) {
             const prose = this.catalog.stageJournal(p.questId, stageId);
@@ -85,8 +139,14 @@ export class JournalModel {
                 entries.push(prose);
             }
         }
-        // The id as a last-resort title keeps an unknown quest visible — and
-        // abandonable — instead of silently vanishing from the panel.
-        return {questId: p.questId, title: this.catalog.title(p.questId) ?? p.questId, entries};
+        // The objective lines pass through verbatim: the server composed them
+        // (R2), this model adds no words of its own.
+        return {
+            questId: p.questId,
+            title: this.catalog.title(p.questId) ?? p.questId,
+            entries,
+            objectives: p.objectives,
+            running: !p.completed,
+        };
     }
 }

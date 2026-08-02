@@ -105,7 +105,10 @@ enum ActivationRejection : ubyte {
   // recall: no campfire anchor bound
   NoAnchor = 1,
   // reserved: revive with no corpse in range
-  NoTarget = 2
+  NoTarget = 2,
+  // the caster cannot pay the skill's resource cost and live
+  // (plan-numbers-rewrite D9)
+  NotEnoughResource = 3
 }
 
 struct AABB {
@@ -339,6 +342,15 @@ table Character {
   // (shield_hp already carries them). Appended at the table end so existing
   // field IDs stay stable.
   applied_effects:ubyte = 0;
+
+  // Resource cost paid this tick (round-7 item 7): the damage_taken twin for
+  // what the player SPENT rather than what hit them. Same absolute-HP scale,
+  // reset every tick; the client pops it as a blue floating number. Costs
+  // deliberately do NOT ride damage_taken — that accumulator feeds the crit
+  // share and the damage-interrupt at the same choke point, and an aura pulse
+  // must not read as being attacked. Appended at the table end so existing
+  // field IDs stay stable.
+  cost_paid:uint = 0;
 }
 
 table Spectator {
@@ -382,9 +394,10 @@ table ConversationOption {
   // entirely rather than locked.
   locked:bool = false;
   required_level:ubyte = 0;
-  // What the actor says when this row is taken: the grant's line, or the
-  // option's blockedLine while locked. ⚑ Carried in the tree so the panel can
-  // answer instantly, which makes it optimistic by design — see L24.
+  // What the actor says when this row is taken: the grant's line. Empty on a
+  // locked row — a locked row is inert and says nothing (Q1/R1). ⚑ Carried in
+  // the tree so the panel can answer instantly, which makes it optimistic by
+  // design — see L24.
   reply:string;
 }
 
@@ -422,6 +435,14 @@ table QuestProgress {
   // abandoning never touches it. A quest that is neither running nor completed
   // is simply absent — an abandoned quest returns to not-started.
   completed:bool = false;
+  // The CURRENT stage's objective lines, composed server-side and rendered
+  // verbatim by the client (plan-conversation-journal.md Q2, R2): "3/8 Wolf
+  // slain", "Talk to the Farmer ✓", or a stage's authored tracker. Per-player
+  // state, deliberately NOT on the /quests catalog — thresholds for unreached
+  // stages stay unserved (D14/L5). Empty while completed or nothing to track.
+  // ⚑ Appended LAST: this table is positional (no field ids), so an insert
+  // above would silently renumber `completed` for every client.
+  objectives:[string];
 }
 
 table GameState {
@@ -502,6 +523,30 @@ table GameState {
   // as an empty journal. Appended at the table end so existing field IDs stay
   // stable.
   quest_progress:[QuestProgress];
+
+  // The multiplier the cost-reduction passive (Discipline, D13) puts on every
+  // resource cost this player pays: 1 = no reduction, 0.8 = pays 80 %. Own
+  // player only, and owner-only DATA like skill_points beside it rather than
+  // per-tick state — the client folds it into the cost the skill tooltip
+  // shows, which is the whole point (R1/F2: the passive worked and was
+  // invisible, because the client had no knowledge of it whatsoever).
+  //
+  // Default 1 is the neutral value, so a player with no such passive costs
+  // nothing on the wire. Appended at the table end so existing field IDs stay
+  // stable.
+  cost_factor:float = 1.0;
+
+  // The multiplier the damageDealt passive (Strong) puts on every point of
+  // damage this player deals: 1 = no bonus, 1.1 = +10 %. The cost_factor
+  // pattern verbatim (round-7 item 5): the server has always applied it at
+  // the damage base-composition sites, and without it on the wire the
+  // tooltip renders numbers the passive silently beats — the same
+  // worked-but-invisible class as Discipline before R1. Own player only.
+  //
+  // Default 1 is the neutral value, so a player with no such passive costs
+  // nothing on the wire. Appended at the table end so existing field IDs stay
+  // stable.
+  damage_factor:float = 1.0;
 }
 
 table Welcome {

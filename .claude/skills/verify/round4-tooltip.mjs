@@ -125,9 +125,31 @@ if (atLevel1 && atLevel30) {
     fail('expected "Heal over time: 107" at level 30, got: ' + atLevel30);
   }
   // The boundary: radius is NOT an HP value and must not have moved.
-  const radiusOf = t => (t.match(/Radius: [^|]*/) || [''])[0].trim();
+  //
+  // ⚑ Compare the CURRENT value only, never the whole rendered line. Since the
+  // 2026-08-01 preview gating a "→ next" appears only while the next level is
+  // affordable, and the XP cheat between these two hovers hands out 29 points —
+  // so the level-30 line grew a preview the level-1 line never had, and a
+  // whole-string compare reported an unmoved radius as moved. The scale
+  // question is about the number, not about whether a preview is on screen.
+  const radiusOf = t => (t.match(/Radius: ([\d.]+)/) || [])[1];
   if (radiusOf(atLevel1) !== radiusOf(atLevel30)) {
     fail(`radius moved with the curve (${radiusOf(atLevel1)} → ${radiusOf(atLevel30)}) — over-applied scale`);
+  }
+
+  // The next-level preview is gated on affordability (2026-08-01): it answers
+  // "what does the point I am about to spend get me?", so it only renders while
+  // there is a point to spend. A level-1 character holds zero (TotalSkillPoints
+  // is (level-1) × perLevel), and the XP cheat above hands out 29.
+  //
+  // This is the ONLY eye on the wiring — the formatter's unit tests take the
+  // flag as an argument, so a HUD that never pushed the point count would leave
+  // them all green with the feature dead on screen.
+  if (/→/.test(atLevel1)) {
+    fail('a level-1 character has no skill points, yet the tooltip previews the next level: ' + atLevel1);
+  }
+  if (!/→/.test(atLevel30)) {
+    fail('29 unspent points and still no next-level preview: ' + atLevel30);
   }
 }
 

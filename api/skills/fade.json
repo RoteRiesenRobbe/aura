@@ -3,12 +3,14 @@
   "id": 26,
   "name": "Fade",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 300,
-  "cooldownTicksPerLevel": -20,
+  "cooldownTicksPerLevel": -10,
   "effects": [
     {
       "type": "detaunt",
+      "costFractionOfMax": 0.01,
+      "costFractionOfMaxPerLevel": 0.0025,
       "radius": 2.0,
       "targetsEnemies": true,
       "targetsAllies": false

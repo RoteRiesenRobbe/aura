@@ -4,10 +4,10 @@ import (
 	"log"
 
 	"github.com/EngoEngine/ecs"
-	"github.com/google/flatbuffers/go"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/google/flatbuffers/go"
 )
 
 // SystemEntityID is the EntityMessage sender id for server announcements —

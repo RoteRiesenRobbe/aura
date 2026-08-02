@@ -199,8 +199,18 @@ questProgressLength():number {
   return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
 }
 
+costFactor():number {
+  const offset = this.bb!.__offset(this.bb_pos, 44);
+  return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 1.0;
+}
+
+damageFactor():number {
+  const offset = this.bb!.__offset(this.bb_pos, 46);
+  return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 1.0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(20);
+  builder.startObject(22);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -402,6 +412,14 @@ static createQuestProgressVector(builder:flatbuffers.Builder, data:flatbuffers.O
 
 static startQuestProgressVector(builder:flatbuffers.Builder, numElems:number) {
   builder.startVector(4, numElems, 4);
+}
+
+static addCostFactor(builder:flatbuffers.Builder, costFactor:number) {
+  builder.addFieldFloat32(20, costFactor, 1.0);
+}
+
+static addDamageFactor(builder:flatbuffers.Builder, damageFactor:number) {
+  builder.addFieldFloat32(21, damageFactor, 1.0);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

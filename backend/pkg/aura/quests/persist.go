@@ -36,10 +36,48 @@ const (
 //
 // ⚑ Its own type, with its own lowercase tags, rather than marshalling Progress
 // directly: the stored format must not move because someone renames a Go field.
+//
+// ⚑ THE N4 BASELINES ARE STATE, NOT A CACHE. Every objective counts "since this
+// stage started", so KillBase/TalkBase are what the three read sites subtract
+// from the lifetime counters. Dropping them on a reload hands an in-flight
+// objective its lifetime totals back — the reversed D3 behaviour, for exactly
+// one stage per quest, invisible until someone counts wolves
+// (plan-accounts-schema.md §"The quest ledger", backlog §49).
+//
+// ⚑ `Objectives` is deliberately NOT here: it is derived from the stage and the
+// counters (objectiveLines), so Restore recomputes it. Storing it would freeze a
+// display string authored in content into a player's save.
+//
+// Both baselines are `omitempty` — a dialogue stage carries neither, and a quest
+// stored before they existed decodes to nil, which is what a re-entry produces
+// anyway. TalkBase is a sorted array rather than an object for the same reason
+// FlagTalkedTo is: the encoding has to be stable or the writer's fingerprint
+// calls every reloaded character dirty forever.
 type questFlag struct {
-	Path      []string `json:"path"`
-	Running   bool     `json:"running"`
-	Completed bool     `json:"completed"`
+	Path      []string              `json:"path"`
+	Running   bool                  `json:"running"`
+	Completed bool                  `json:"completed"`
+	KillBase  map[mobs.MobID]uint64 `json:"killBase,omitempty"`
+	TalkBase  []mobs.MobID          `json:"talkBase,omitempty"`
+}
+
+// sortedIDs flattens a MobID set to a stable array.
+//
+// ⚑ The sort is not cosmetic: Go randomises map order, so an unsorted encoding
+// would differ byte-for-byte between two identical ledgers and the writer's
+// fingerprint would call every character dirty on every autosave.
+//
+// Returns nil for an empty set so the `omitempty` tags actually elide.
+func sortedIDs(set map[mobs.MobID]bool) []mobs.MobID {
+	if len(set) == 0 {
+		return nil
+	}
+	ids := make([]mobs.MobID, 0, len(set))
+	for id := range set {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	return ids
 }
 
 // LedgerState is the whole persisted ledger, in Go terms.
@@ -74,14 +112,7 @@ func EncodeFlags(l *Ledger) (map[string]json.RawMessage, error) {
 	}
 
 	if len(l.talkedTo) > 0 {
-		// Sorted so the encoding is stable, which is what lets the writer's
-		// fingerprint recognise an unchanged ledger — Go randomises map order.
-		talked := make([]mobs.MobID, 0, len(l.talkedTo))
-		for id := range l.talkedTo {
-			talked = append(talked, id)
-		}
-		sort.Slice(talked, func(i, j int) bool { return talked[i] < talked[j] })
-		raw, err := json.Marshal(talked)
+		raw, err := json.Marshal(sortedIDs(l.talkedTo))
 		if err != nil {
 			return nil, fmt.Errorf("encoding talked-to conversants: %w", err)
 		}
@@ -92,7 +123,13 @@ func EncodeFlags(l *Ledger) (map[string]json.RawMessage, error) {
 		if !p.Running && !p.Completed {
 			continue
 		}
-		raw, err := json.Marshal(questFlag{Path: p.Path, Running: p.Running, Completed: p.Completed})
+		raw, err := json.Marshal(questFlag{
+			Path:      p.Path,
+			Running:   p.Running,
+			Completed: p.Completed,
+			KillBase:  p.KillBase,
+			TalkBase:  sortedIDs(p.TalkBase),
+		})
 		if err != nil {
 			return nil, fmt.Errorf("encoding quest %q: %w", id, err)
 		}
@@ -129,9 +166,17 @@ func DecodeFlags(flags map[string]json.RawMessage) (LedgerState, error) {
 			if state.Quests == nil {
 				state.Quests = map[string]Progress{}
 			}
-			state.Quests[strings.TrimPrefix(key, FlagQuestPrefix)] = Progress{
+			p := Progress{
 				Path: q.Path, Running: q.Running, Completed: q.Completed,
+				KillBase: q.KillBase,
 			}
+			if len(q.TalkBase) > 0 {
+				p.TalkBase = make(map[mobs.MobID]bool, len(q.TalkBase))
+				for _, id := range q.TalkBase {
+					p.TalkBase[id] = true
+				}
+			}
+			state.Quests[strings.TrimPrefix(key, FlagQuestPrefix)] = p
 		}
 	}
 	return state, nil
@@ -170,6 +215,35 @@ func (l *Ledger) Restore(state LedgerState) {
 		for id, p := range state.Quests {
 			held := p
 			l.quests[id] = &held
+			l.restoreObjectives(id, &held)
 		}
+	}
+}
+
+// restoreObjectives rebuilds one quest's objective lines after a load.
+//
+// The lines are derived (Q2/R2), so they are not stored — enter() composes them
+// at every stage entry and the credit sites recompose them, both of which a load
+// skips by design. Without this a restored character's journal shows a running
+// quest with no objective line at all, which reads as a broken quest.
+//
+// ⚑ This is NOT the cascade Restore refuses to run. It composes a display string
+// for the stage the quest already rests on; it never asks whether that stage is
+// satisfied and never advances anything. The distinction is the whole reason it
+// is a separate method rather than a call to enter().
+//
+// A quest or stage the content no longer authors leaves the lines nil rather
+// than failing the load: content moves under saved characters, and a player who
+// cannot log in is a worse outcome than a journal row missing its counter.
+func (l *Ledger) restoreObjectives(id string, p *Progress) {
+	if !p.Running || len(p.Path) == 0 || l.reg == nil {
+		return // a completed quest's diary is its record (§7.1)
+	}
+	q, err := l.reg.Get(id)
+	if err != nil {
+		return
+	}
+	if s := q.Stage(p.Path[len(p.Path)-1]); s != nil {
+		p.Objectives = l.objectiveLines(p, s)
 	}
 }

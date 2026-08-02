@@ -274,7 +274,7 @@ restated against `pkg/aura/quests/ledger.go` rather than against the plan.
 
 | Ledger field | Shape (as SHIPPED) | Home |
 |---|---|---|
-| `quests` | quest id → `Progress{Path []string, Running bool, Completed bool}` — the **ordered** list of stages entered, plus **two** independent flags | `character_flags`, one row per quest, `flag_value` a JSONB object with **all three** members |
+| `quests` | quest id → `Progress{Path []string, Running bool, Completed bool}` — the **ordered** list of stages entered, plus **two** independent flags — **and, since N4, the baselines below** | `character_flags`, one row per quest, `flag_value` a JSONB object with all of them |
 | `killCounts` | `map[MobID]uint64` — lifetime count | `character_flags`, JSONB map in **one** row |
 | `talkedTo` | `map[MobID]bool` — a set | `character_flags`, JSONB array in **one** row |
 
@@ -297,6 +297,29 @@ keeps `Completed`, so the rule cannot be shortened to "running only".
 **JSONB keys are strings**, so both `MobID` maps serialise with their numeric ids
 as object keys. Harmless, but it means the load path parses them back rather than
 scanning integers.
+
+⚑ **The N4 baselines are part of the per-quest object** *(added 2026-08-02 with
+feel-pass-2 chunk N4, which landed before this schema's first migration on
+purpose)*: `Progress` now carries `KillBase` (`MobID` → lifetime count at the
+current stage's entry) and `TalkBase` (set of `MobID`s needing a fresh talk),
+rewritten whole at every stage entry (`quests/ledger.go`). They persist in the
+same per-quest JSONB object as the path — **dropping them on a reload would
+hand every in-flight objective its lifetime totals back**, silently restoring
+the reversed D3 behaviour for exactly one stage per quest. Same `MobID`
+stability constraint as the two lifetime maps below.
+
+✅ **Shipped 2026-08-02**, at the `accounts-8a` → `main` merge, which is where
+the handoff came due — the two branches wrote N4 and chunk 4 in parallel against
+different versions of `Progress`, and the round-trip test caught it the moment
+they met (backlog §49). The stored keys are `killBase` (object) and `talkBase`
+(**sorted** array, same fingerprint-stability reason as `quests.talkedTo`), both
+`omitempty`. ⚑ **No DDL** — `flag_value` is JSONB, so this is a value shape, and
+a row written before them decodes to nil baselines.
+
+⚑ **`Objectives` is the counter-example and belongs in neither.** It is composed
+from the stage and the counters, so it is **recomposed on load**, not stored —
+storing it would freeze a display string authored in *content* into a player's
+save, where a later wording change could never reach it.
 
 **The generic key/value table holds all three without a schema change**, which
 is what it was built for. Three consequences that are *not* free:

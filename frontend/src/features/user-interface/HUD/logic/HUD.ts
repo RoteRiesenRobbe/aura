@@ -1,10 +1,20 @@
 import '../assets/HUD.less';
 import * as Conversation from '../../../conversation/logic/Conversation';
 import * as Journal from '../../../journal/logic/Journal';
+import * as Help from '../../../help/logic/Help';
+import * as MobileMenu from './MobileMenu';
+import * as Interact from '../../../interact/logic/Interact';
+import * as Mobile from '../../logic/Mobile';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
-import {skillDisplayName, skillMaxLevel, skillCategory, SkillCategory} from '../../../../client-data/Skills';
-import {attachSkillTooltips} from './SkillTooltip';
+import {
+    skillDisplayName,
+    skillMaxLevel,
+    skillCategory,
+    skillPointCost,
+    SkillCategory,
+} from '../../../../client-data/Skills';
+import {attachSkillTooltips, setAvailableSkillPoints} from './SkillTooltip';
 import {clearNode, isUndefined, playCssAnimation} from '../../../common/logic/Utils';
 import * as AlertBanner from '../../alert-banner/logic/AlertBanner';
 import {VitalSignBar} from '../../../vital-signs/logic/VitalSignBar';
@@ -14,6 +24,7 @@ import {VitalSign} from '../../../vital-signs/logic/VitalSigns';
 import {InputMessage, DEACTIVATE_AURA_SLOT} from '../../../backend/logic/messages/outgoing/InputMessage';
 import {EquipMessage} from '../../../backend/logic/messages/outgoing/EquipMessage';
 import {SpendSkillPointMessage} from '../../../backend/logic/messages/outgoing/SpendSkillPointMessage';
+import {RespecMessage} from '../../../backend/logic/messages/outgoing/RespecMessage';
 import * as Zoom from '../../../camera/logic/Zoom';
 import SimpleBar from 'simplebar';
 
@@ -65,6 +76,9 @@ let castBarTextElement: HTMLElement;
 
 Preloading.renderPartial(require('../assets/HUD.html'), () => {
     rootElement = document.getElementById('gameUI');
+    // Stamped here, not in setup(): #gameUI is still hidden at this point, so
+    // the desktop layout never flashes before the mobile class lands.
+    Mobile.apply();
     UserInteraceDomReadyEvent.trigger(rootElement);
 });
 
@@ -74,11 +88,17 @@ export function setup(game) {
     setupVitalSigns();
     setupZoomControl();
     setupSpellbook();
+    setupPendingSelectionEscape();
     setupAuraLoadout();
     setupPassiveLoadout();
     setupCooldownLoadout();
     Conversation.setup();
     Journal.setup();
+    Help.setup();
+    // After Journal/Help: it adds a second pointerdown listener to their
+    // buttons, and both handlers should run in the order they were added.
+    MobileMenu.setup();
+    Interact.setupButton();
 }
 
 // Zoom control: steps through the fixed-FOV zoom levels (camera/logic/Zoom.ts).
@@ -177,35 +197,85 @@ function rejectEquipInCombat(): boolean {
     return true;
 }
 
-// updateShield renders the absorb segment on the health bar (skill-vocab
-// chunk 2, bare rendering): width proportional to shieldHp/maxHealth,
-// anchored at the end of the HP fill — sliding left over it when the bar is
-// too full to fit, so an active shield is always visible.
-export function updateShield(shieldHp: number, maxHealth: number, healthFraction: number) {
+// setupRespecButton wires the spellbook's reset-all (round-7 item 8). The
+// confirm is a two-press arm — the first press turns the button into
+// "Confirm?", the second within the window sends — rather than a native
+// confirm(), which would freeze the render loop mid-game. pointerdown, not
+// click: MouseManager preventDefaults mousedown, so click never fires on HUD
+// panels (the documented gotcha).
+function setupRespecButton(button: HTMLElement) {
+    if (!button) {
+        return;
+    }
+    let armed: ReturnType<typeof setTimeout> | null = null;
+    const disarm = () => {
+        if (armed !== null) {
+            clearTimeout(armed);
+            armed = null;
+        }
+        button.textContent = 'Reset';
+        button.classList.remove('armed');
+    };
+    button.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (rejectEquipInCombat()) {
+            disarm();
+            return;
+        }
+        if (armed === null) {
+            button.textContent = 'Confirm?';
+            button.classList.add('armed');
+            armed = setTimeout(disarm, 4000);
+            return;
+        }
+        disarm();
+        new RespecMessage().send();
+    });
+}
+
+// updateShield renders the absorb segment on the health bar. Both fractions
+// come from shieldBarSegments (N1): the bar's denominator is total effective
+// HP, so the segment sits directly after the health fill and always fits —
+// healthFraction + shieldFraction <= 1 by construction. The old slide-left
+// anchoring (shield sliding back over a full HP fill so it stayed visible)
+// was only needed while the pool was the denominator; do not reintroduce it.
+export function updateShield(healthFraction: number, shieldFraction: number) {
     if (!shieldIndicatorElement) {
         return;
     }
-    if (!(shieldHp > 0) || !(maxHealth > 0)) {
+    if (!(shieldFraction > 0)) {
         shieldIndicatorElement.style.display = 'none';
         return;
     }
-    const width = Math.min(shieldHp / maxHealth, 1);
-    const left = Math.min(healthFraction, 1 - width);
     shieldIndicatorElement.style.display = 'block';
-    shieldIndicatorElement.style.left = `${left * 100}%`;
-    shieldIndicatorElement.style.width = `${width * 100}%`;
+    shieldIndicatorElement.style.left = `${healthFraction * 100}%`;
+    shieldIndicatorElement.style.width = `${shieldFraction * 100}%`;
+}
+
+// pulseAuraMetronome pops the beat pip on the active aura slot (N5/D3): the
+// own player calls it when a tick of their active aura lands (the beat is
+// inferred client-side — Character.setAuraTick / BeatDetector own the
+// inference and its switch-reset guard; this only renders). The pip itself is
+// only visible on .activeSlot, so an inactive loadout shows no metronome.
+export function pulseAuraMetronome() {
+    const pip = auraSlotListElement?.querySelector('.auraSlot.activeSlot .beatPip') as HTMLElement | null;
+    if (pip) {
+        playCssAnimation(pip, 'beatPulse');
+    }
 }
 
 // updateBarTexts renders the absolute numbers over the HUD bars each tick:
-// health as currentHP/maxHP, XP as within-level progress toward the next
-// level (server-authoritative — resets to 0/needed on level-up and on the
-// death XP penalty).
+// Focus as current/max, XP as within-level progress toward the next level
+// (server-authoritative — resets to 0/needed on level-up and on the death XP
+// penalty).
 //
-// The XP bar carries an explicit "XP" prefix (feedback pass B item 5): the
-// playtester did not recognise the bare "12/40" as an experience bar at all.
+// Both bars carry an explicit prefix. The XP one came from feedback pass B
+// item 5 (the playtester did not recognise the bare "12/40" as an experience
+// bar at all); the Focus one from F7 — the resource is spent by every tooltip
+// in the game and had no name anywhere on screen to spend.
 export function updateBarTexts(health: number, maxHealth: number, xpInLevel: number, xpForNextLevel: number) {
     if (healthBarTextElement) {
-        healthBarTextElement.textContent = `${health}/${maxHealth}`;
+        healthBarTextElement.textContent = `Focus ${health}/${maxHealth}`;
     }
     if (xpBarTextElement) {
         xpBarTextElement.textContent = `XP ${xpInLevel}/${xpForNextLevel}`;
@@ -243,6 +313,7 @@ export function getChat(): HTMLElement {
 function setupSpellbook() {
     spellbookListElement = document.getElementById('spellbookList');
     skillPointsBadgeElement = document.getElementById('skillPointsBadge');
+    setupRespecButton(document.getElementById('respecButton'));
     // Explicit init: the HUD partial lands after DOMContentLoaded, so
     // simplebar's data-attribute auto-init never sees it. SimpleBar's own
     // MutationObserver tracks the list re-renders in updateSpellbook.
@@ -281,6 +352,14 @@ function setupSpellbook() {
             auraLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'aura');
             passiveLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'passive');
             cooldownLoadoutElement.classList.toggle('hasPendingSkill', skillCategory(id) === 'cooldown');
+
+            // Mobile: the spellbook lives inside the menu sheet, but the aura
+            // and cooldown slots it equips into are TILES BEHIND it — leaving
+            // the sheet open makes those two categories unequippable. Passives
+            // keep the sheet open, because their slots are in it.
+            if (skillCategory(id) !== 'passive') {
+                MobileMenu.close();
+            }
         }
     });
 }
@@ -448,6 +527,34 @@ function clearActiveSlotHighlight() {
     auraSlotListElement.querySelectorAll('.auraSlot').forEach(el => el.classList.remove('activeSlot'));
 }
 
+// While a spellbook selection is pending, any key that is not a legal bind for
+// it clears the selection (intake round 7 item 9) — movement excepted, so
+// repositioning never costs the selection. This must stay a WHITELIST, not
+// clear-on-anything: the slot hotkeys are rAF-sampled by Controls, so this
+// keydown handler runs before the "1" that should BIND the pending aura is
+// ever sampled — clearing here would kill the equip the key was pressed for.
+const MOVEMENT_KEY_CODES = new Set(
+    ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+const BIND_KEY_CODES: { [category in SkillCategory]: Set<string> } = {
+    aura: new Set(['Digit1', 'Digit2', 'Digit3']),
+    cooldown: new Set(['KeyQ', 'KeyR', 'KeyF']),
+    passive: new Set(), // passives bind by click only — every non-movement key clears
+};
+
+function setupPendingSelectionEscape() {
+    window.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (selectedSkillId === null) return;
+        // Typing (chat, console) is not slot input.
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+        // A bare modifier is not a button press in this flow.
+        if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return;
+        if (MOVEMENT_KEY_CODES.has(e.code)) return;
+        if (BIND_KEY_CODES[skillCategory(selectedSkillId)].has(e.code)) return;
+        clearEquipSelection();
+    });
+}
+
 function clearEquipSelection() {
     selectedSkillId = null;
     spellbookListElement.querySelectorAll('li').forEach(el => el.classList.remove('selected'));
@@ -466,6 +573,11 @@ let knownSpellbookIds: number[] | null = null;
 // Previous tick's per-skill levels, parallel to knownSpellbookIds; level
 // changes trigger a list rebuild but never the unlock glow.
 let knownSpellbookLevels: number[] = [];
+// Previous tick's unspent point count. Part of the rebuild key since the +
+// buttons grey on affordability (L9): a level-up hands out a point without
+// touching ids or levels, and the buttons it makes affordable would otherwise
+// stay greyed until the next unrelated spellbook change.
+let knownSpellbookPoints = -1;
 
 function sameIds(a: number[], b: number[]) {
     return a.length === b.length && a.every((id, i) => id === b[i]);
@@ -475,6 +587,10 @@ function sameIds(a: number[], b: number[]) {
 // class (which lights up the spend buttons) in sync with the server count.
 function updateSkillPointsDisplay(points: number) {
     currentSkillPoints = points;
+    // The hover tooltips show their next-level preview only while the point is
+    // there to spend, so they need the same live count the + buttons grey on.
+    // Pushed rather than pulled: SkillTooltip cannot import this module back.
+    setAvailableSkillPoints(points);
     if (skillPointsBadgeElement) {
         skillPointsBadgeElement.textContent = points === 1 ? '1 Point' : `${points} Points`;
         skillPointsBadgeElement.classList.toggle('hidden', points <= 0);
@@ -491,7 +607,8 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
     if (!spellbookListElement) return;
     updateSkillPointsDisplay(points);
     if (knownSpellbookIds !== null
-        && sameIds(ids, knownSpellbookIds) && sameIds(levels, knownSpellbookLevels)) return;
+        && sameIds(ids, knownSpellbookIds) && sameIds(levels, knownSpellbookLevels)
+        && points === knownSpellbookPoints) return;
 
     const isBaseline = knownSpellbookIds === null;
     const known = new Set(knownSpellbookIds ?? []);
@@ -545,10 +662,21 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
             levelBadge.textContent = `${level}/${maxLevel}`;
             controls.appendChild(levelBadge);
 
+            // The + button shows what the NEXT level costs and greys when it
+            // cannot be afforded (L9). Before the D10 curve every level cost
+            // one point, so "you have points" and "you can buy this" were the
+            // same question and the button only ever greyed at the cap — an
+            // unaffordable spend was refused server-side with a log line the
+            // player never saw. With a variable cost that silence would be the
+            // normal case, not an edge one.
+            const nextCost = skillPointCost(maxLevel, level + 1);
             const spendBtn = document.createElement('button');
             spendBtn.className = 'spendBtn';
-            spendBtn.textContent = '+';
-            spendBtn.classList.toggle('inactive', level >= maxLevel);
+            spendBtn.textContent = level >= maxLevel ? '+' : `+${nextCost}`;
+            spendBtn.classList.toggle('inactive', level >= maxLevel || points < nextCost);
+            if (level < maxLevel) {
+                spendBtn.title = `Costs ${nextCost} skill point${nextCost === 1 ? '' : 's'}`;
+            }
             controls.appendChild(spendBtn);
 
             li.appendChild(controls);
@@ -575,6 +703,7 @@ export function updateSpellbook(ids: number[], levels: number[], points: number)
 
     knownSpellbookIds = ids.slice();
     knownSpellbookLevels = levels.slice();
+    knownSpellbookPoints = points;
 }
 
 // updateActiveAuraSlot applies the server-authoritative active aura slot

@@ -5,6 +5,6 @@
   "maxLevel": 1,
   "cooldownTicks": 300,
   "effects": [
-    { "type": "tick_rate", "tickRateFactor": 0.5, "tickRateDurationTicks": 90 }
+    { "costFractionOfMax": 0.03, "type": "tick_rate", "tickRateFactor": 0.5, "tickRateDurationTicks": 90 }
   ]
 }

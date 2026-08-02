@@ -3,9 +3,9 @@ package chat
 import (
 	"testing"
 
-	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 // bcastClient captures wire bytes; only SendMessage is expected — every other

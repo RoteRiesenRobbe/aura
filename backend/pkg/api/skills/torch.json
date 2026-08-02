@@ -3,12 +3,12 @@
   "id": 46,
   "name": "Torch",
   "category": "passive",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "effects": [
     {
       "type": "light_aura",
       "radius": 2.5,
-      "radiusPerLevel": 0.5
+      "radiusPerLevel": 0.25
     }
   ]
 }

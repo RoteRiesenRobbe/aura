@@ -51,7 +51,6 @@ const teachOneJSON = `{
     "id": "root",
     "lines": ["Tend to the field if you have time..."],
     "options": [{
-      "blockedLine": "There's always money in farming.",
       "grants": [{"kind": "teach_skill", "skill": "DodoAura", "requiredLevel": 1, "line": "Let me show you."}]
     }]
   }]
@@ -71,7 +70,6 @@ func TestMapMobDefinition_ResolvesInteraction(t *testing.T) {
 	require.Len(t, node.Options, 1)
 
 	opt := node.Options[0]
-	assert.Equal(t, "There's always money in farming.", opt.BlockedLine)
 	require.Len(t, opt.Grants, 1)
 
 	grant := opt.Grants[0]
@@ -247,50 +245,31 @@ func TestMapMobDefinition_RejectsUnknownTaughtSkill(t *testing.T) {
 	assert.Contains(t, err.Error(), "NoSuchSkill")
 }
 
-// Today's rule, moved: zone.go rejected a teaching NPC without a tooLowLine,
-// because a player who is too low would otherwise be met with silence.
-func TestMapMobDefinition_RejectsGatedGrantWithoutBlockedLine(t *testing.T) {
+// R1 (plan-conversation-journal.md Q1): a refused row says nothing — the
+// greying already says it — so blockedLine is DELETED, and the key is a
+// tombstone like `trigger` (L22): a stale content file must fail with a
+// sentence naming the replacement, not with `unknown field "blockedLine"`.
+func TestMapMobDefinition_RejectsRetiredBlockedLineKey(t *testing.T) {
 	_, err := mapInteraction(t, `{"nodes": [{
 	  "id": "root",
-	  "options": [{"grants": [{"kind": "teach_skill", "skill": "DodoAura", "requiredLevel": 5, "line": "here"}]}]
-	}]}`)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "blockedLine")
-}
-
-// An ungated grant can never block, so it needs no blocked line.
-// ⚑ requiredLevel 1 is not a gate: players START at level 1, so it can never
-// refuse anybody, and demanding a refusal line for it only adds a string nobody
-// will ever read. 3a asked for one whenever requiredLevel was set at all.
-func TestMapMobDefinition_LevelOneGrantNeedsNoBlockedLine(t *testing.T) {
-	_, err := mapInteraction(t, `{"nodes": [{
-	  "id": "root",
-	  "lines": ["hi"],
-	  "options": [{"text": "A light to carry.", "grants": [
-	    {"kind": "teach_skill", "skill": "DodoAura", "requiredLevel": 1, "line": "here"}
+	  "options": [{"blockedLine": "Come back later.", "grants": [
+	    {"kind": "teach_skill", "skill": "DodoAura", "requiredLevel": 5, "line": "here"}
 	  ]}]
 	}]}`)
-	require.NoError(t, err)
+	require.Error(t, err, "blockedLine was retired (Q1/R1) and must not load silently")
+	assert.Contains(t, err.Error(), "blockedLine")
+	assert.Contains(t, err.Error(), "inert", "the tombstone names what replaced it")
 }
 
-// ...while a real wall still has to have an answer, or clicking a greyed row
-// gets silence.
-func TestMapMobDefinition_RealGateStillNeedsBlockedLine(t *testing.T) {
+// ...and the rule that demanded one for a gated grant went with it: a locked
+// row is greyed with its wall named, and clicking it does nothing.
+func TestMapMobDefinition_GatedGrantNeedsNoBlockedLine(t *testing.T) {
 	_, err := mapInteraction(t, `{"nodes": [{
 	  "id": "root",
 	  "lines": ["hi"],
 	  "options": [{"text": "Everything you have.", "grants": [
 	    {"kind": "teach_skill", "skill": "DodoAura", "requiredLevel": 2, "line": "here"}
 	  ]}]
-	}]}`)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "blockedLine")
-}
-
-func TestMapMobDefinition_UngatedGrantNeedsNoBlockedLine(t *testing.T) {
-	_, err := mapInteraction(t, `{"nodes": [{
-	  "id": "root",
-	  "options": [{"grants": [{"kind": "teach_skill", "skill": "DodoAura", "line": "here"}]}]
 	}]}`)
 	require.NoError(t, err)
 }
@@ -551,7 +530,7 @@ func TestMapMobDefinition_RejectsGrantXPWithoutAnAmount(t *testing.T) {
 func TestMapMobDefinition_RejectsARequiredLevelOnAQuestGrant(t *testing.T) {
 	_, err := mapInteraction(t, `{"nodes": [{
 	  "id": "root", "lines": ["hi"],
-	  "options": [{"text": "yes", "blockedLine": "not yet", "grants": [
+	  "options": [{"text": "yes", "grants": [
 	    {"kind": "offer_quest", "quest": "pelts", "requiredLevel": 5, "line": "go"}
 	  ]}]
 	}]}`)

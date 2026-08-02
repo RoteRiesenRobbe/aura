@@ -195,8 +195,13 @@ appliedEffects():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+costPaid():number {
+  const offset = this.bb!.__offset(this.bb_pos, 66);
+  return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(31);
+  builder.startObject(32);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -333,6 +338,10 @@ static addAuraCategory(builder:flatbuffers.Builder, auraCategory:number) {
 
 static addAppliedEffects(builder:flatbuffers.Builder, appliedEffects:number) {
   builder.addFieldInt8(30, appliedEffects, 0);
+}
+
+static addCostPaid(builder:flatbuffers.Builder, costPaid:number) {
+  builder.addFieldInt32(31, costPaid, 0);
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

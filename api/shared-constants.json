@@ -24,6 +24,38 @@
     "elite": 1,
     "boss": 2
   },
+  "_skillPointCostComment": "The D10 escalating point curve (plan-numbers-rewrite): buying a level costs `tier1Points` while the level is within the first `tier2AboveFraction` of the skill's OWN cap, `tier2Points` up to `tier3AboveFraction`, `tier3Points` beyond — thresholds rounded UP. Level 1 is free on unlock, so the first purchased level is 2. Cross-language because the client shows the cost on the spellbook + button. ⚑ Every value is [PLACEHOLDER], the fractions included.",
+  "skillPointCost": {
+    "tier1Points": 1,
+    "tier2Points": 2,
+    "tier3Points": 3,
+    "tier2AboveFraction": 0.5,
+    "tier3AboveFraction": 0.75
+  },
+  "_hpRoundingComment": "vitals.HP, the rule every absolute health amount passes through before it is dealt: round half up to a whole point, and never round a positive amount away to nothing (min 1). R1/F6 puts it in TypeScript for the first time — the skill tooltip now shows a cost in absolute HP, so client and server must round the SAME fraction to the SAME point or the tooltip promises a price the server does not charge. Stated as input → output pairs rather than as prose, because a rule restated in two languages is exactly the drift class §35 closed. Go: model/vitals.HP. Client: roundHP in client-data/Skills.ts.",
+  "hpRounding": [
+    [-1, 0],
+    [0, 0],
+    [0.0001, 1],
+    [0.4, 1],
+    [0.5, 1],
+    [1, 1],
+    [1.49, 1],
+    [1.5, 2],
+    [2.5, 3],
+    [11.4, 11],
+    [11.6, 12]
+  ],
+  "_costChargeTriggerComment": "WHEN an aura effect's cost is taken, which is not the same question as how often the effect fires. R2 (plan-resource-costs-feedback §5.2) made five of the seven chargeable types pay only for work DONE: they report new-vs-refresh out of the buff store and are charged off that answer, so holding one on a target set that is not changing is free. Only damage_aura and heal_aura still pay on every application, and only they can honestly print a cadence on their cost line. Cross-language because BOTH sides restate it: the client picks the cost line's wording (SkillTooltip.ts COST_TRIGGER_TEXT) and the Go content guard picks which effects the haste term applies to (cmd/aurad workGatedCharge). ⚑ The real authority is what each applier RETURNS in sys/skills.go — this file cannot derive that, it can only stop the two restatements drifting apart from each other. A new chargeable type must be added here, and both sides then fail until they agree.",
+  "costChargeTrigger": {
+    "damage_aura": "application",
+    "heal_aura": "application",
+    "dot_aura": "work",
+    "hot_aura": "work",
+    "resist_aura": "work",
+    "slow_aura": "work",
+    "shield_aura": "work"
+  },
   "viewportMeters": {
     "width": 20,
     "height": 12

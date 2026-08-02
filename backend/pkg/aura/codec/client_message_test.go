@@ -3,11 +3,11 @@ package codec
 import (
 	"testing"
 
+	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 )
 
 func buildInputBytes(addFields func(b *flatbuffers.Builder)) []byte {

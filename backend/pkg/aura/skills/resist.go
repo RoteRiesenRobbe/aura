@@ -16,9 +16,15 @@ const ResistWildcard = "*"
 // (ResistWildcard) if present, else are unresisted there. The stacking rule:
 // distinct sources (mob base resistances, each distinct resist aura skill,
 // passives) always stack multiplicatively, and the multipliers of all tags on
-// one hit multiply too — so a general "fire" resist composes with a bespoke
-// "boss_x_lava" one. De-duplication of the *same* skill from several casters
-// is the buff store's job (strongest wins there), not this function's.
+// one hit multiply too — so a "fire" resist composes with a "bleed" one on a
+// two-type hit. De-duplication of the *same* skill from several casters is the
+// buff store's job (strongest wins there), not this function's.
+//
+// ⚑ Tags used to be arbitrary strings, and this comment used to advertise a
+// bespoke "boss_x_lava" axis. D4 closed the vocabulary to skills.DamageTypes,
+// which retires that — no content ever used it, and the cost of keeping it open
+// was that every typo shipped as a silently-inert skill. Re-opening it for boss
+// content is a deliberate decision, not an accident away.
 //
 // Multiplicative stacking makes immunity unreachable by stacking alone: the
 // result is 0 only if a single source grants 0 outright (design decision —
@@ -42,22 +48,23 @@ func ResistMultiplier(tags []string, sources ...map[string]float32) float32 {
 	return multiplier
 }
 
-// GateOpensFor reports whether a gated hit may damage a target with the given
-// BASE resistances (content pass C1, "gatedDamageTags"): gated damage is
-// opt-in — the target's own base map must explicitly name at least one of the
-// hit's tags. The wildcard entry does NOT opt in (it is a fallback, not a
-// declaration), and transient resist buffs never open the gate — opting into
-// a chore tag is a property of the authored mob, not of a buff. An explicit 0
-// entry opens the gate; the normal multiplier math then makes it a non-event
-// anyway. This is what keeps Harvest popping turnips (["harvest"] against
-// {"*": 0, "harvest": 1}) while every mob that never mentions the tag —
-// present or future — is immune with zero authoring.
-func GateOpensFor(tags []string, base map[string]float32) bool {
-	for _, tag := range tags {
-		if tag == ResistWildcard {
-			continue
-		}
-		if _, ok := base[tag]; ok {
+// GateOpensFor reports whether a gated hit may damage a target that opts into
+// the given gate keys (content pass C1; the vocabulary split is
+// plan-numbers-rewrite D4). Gated damage is opt-in: the target's authored
+// `factors.gateKeys` must name the hit's key. This is what keeps Harvest
+// popping turnips while every mob that never mentions the key — present or
+// future — is immune with zero authoring.
+//
+// ⚑ It reads a KEY LIST, not the resistance map. It used to read the map, which
+// meant a lock ("immune to everything except harvest") and a resistance ("takes
+// half damage from fire") were written in the same words, and three things
+// followed from that overload: a mistyped key produced a silently inert skill,
+// the "*" wildcard needed a special case here so it could not accidentally open
+// every gate, and adding a new damage type silently changed what a wildcard mob
+// was immune to (L13). All three are gone with the split.
+func GateOpensFor(key string, gateKeys []string) bool {
+	for _, k := range gateKeys {
+		if k == key {
 			return true
 		}
 	}

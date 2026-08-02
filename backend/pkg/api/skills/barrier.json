@@ -3,16 +3,18 @@
   "id": 27,
   "name": "Barrier",
   "category": "cooldown",
-  "maxLevel": 3,
+  "maxLevel": 5,
   "cooldownTicks": 300,
-  "cooldownTicksPerLevel": -20,
+  "cooldownTicksPerLevel": -10,
   "effects": [
     {
       "type": "instant_shield",
+      "costFractionOfMax": 0.0195,
+      "costFractionOfMaxPerLevel": 0.002425,
       "radius": 1.5,
-      "radiusPerLevel": 0.1,
+      "radiusPerLevel": 0.05,
       "shieldHP": 20,
-      "shieldHPPerLevel": 5,
+      "shieldHPPerLevel": 2.5,
       "shieldDurationTicks": 300,
       "targetsAllies": true,
       "targetsSelf": true

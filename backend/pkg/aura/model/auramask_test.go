@@ -3,8 +3,8 @@ package model
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
+	"github.com/stretchr/testify/assert"
 )
 
 // Masks are kind-agnostic since mob factions (chunk 6.6): faction no longer

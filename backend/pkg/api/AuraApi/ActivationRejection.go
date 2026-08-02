@@ -7,21 +7,24 @@ import "strconv"
 type ActivationRejection byte
 
 const (
-	ActivationRejectionNone     ActivationRejection = 0
-	ActivationRejectionNoAnchor ActivationRejection = 1
-	ActivationRejectionNoTarget ActivationRejection = 2
+	ActivationRejectionNone              ActivationRejection = 0
+	ActivationRejectionNoAnchor          ActivationRejection = 1
+	ActivationRejectionNoTarget          ActivationRejection = 2
+	ActivationRejectionNotEnoughResource ActivationRejection = 3
 )
 
 var EnumNamesActivationRejection = map[ActivationRejection]string{
-	ActivationRejectionNone:     "None",
-	ActivationRejectionNoAnchor: "NoAnchor",
-	ActivationRejectionNoTarget: "NoTarget",
+	ActivationRejectionNone:              "None",
+	ActivationRejectionNoAnchor:          "NoAnchor",
+	ActivationRejectionNoTarget:          "NoTarget",
+	ActivationRejectionNotEnoughResource: "NotEnoughResource",
 }
 
 var EnumValuesActivationRejection = map[string]ActivationRejection{
-	"None":     ActivationRejectionNone,
-	"NoAnchor": ActivationRejectionNoAnchor,
-	"NoTarget": ActivationRejectionNoTarget,
+	"None":              ActivationRejectionNone,
+	"NoAnchor":          ActivationRejectionNoAnchor,
+	"NoTarget":          ActivationRejectionNoTarget,
+	"NotEnoughResource": ActivationRejectionNotEnoughResource,
 }
 
 func (v ActivationRejection) String() string {

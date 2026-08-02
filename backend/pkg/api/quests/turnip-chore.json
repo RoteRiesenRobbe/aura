@@ -1,21 +1,23 @@
 {
-  "_comment": "plan-quests.md C4, quest 2 of 4 — the harvest verb. D2: harvest-N is kill-N of a harvest species, so this rides the same lifetime counters as a wolf cull; the Turnip is damageable ONLY by a `harvest`-tagged aura, which is the one the Farmer teaches at level 1 in the same conversation. Six turnips stand in the row north of him and respawn on 600 ticks, so five is a chore rather than a wait. Reward: 150 XP.",
+  "_comment": "plan-quests.md C4, quest 2 of 4 — the harvest verb. D2: harvest-N is kill-N of a harvest species, so this rides the same lifetime counters as a wolf cull; the Turnip is damageable ONLY by a `harvest`-tagged aura, which is the one the Farmer teaches in the same conversation. Six turnips stand in the row north of him and respawn on 600 ticks, so five is a chore rather than a wait. Reward: 150 XP. Text deliberately plain (PO 2026-08-02: no lore or stylized quest text yet — simple, direct wording only).",
   "id": "turnip-chore",
-  "title": "The Turnip Row",
+  "title": "Turnip Chore",
   "stages": [
     {
       "id": "pull",
-      "journal": "The farmer wants five turnips out of the north row before the boars find them. He was very clear that pulling them up by hand is not how it is done — that is what the harvesting is for, and he will show me if I ask.",
+      "journal": "Harvest 5 turnips from the row north of the Farmer.",
+      "tracker": "{n}/{m} turnips harvested",
       "objectives": [{ "kind": "harvest", "species": "Turnip", "count": 5 }],
       "next": "handover"
     },
     {
       "id": "handover",
-      "journal": "Five turnips out of the ground. The farmer is where he always is, at the edge of his field, watching the treeline instead of the crop."
+      "journal": "The turnips are gathered; the Farmer waits by his field.",
+      "tracker": "Return to the Farmer"
     },
     {
       "id": "paid",
-      "journal": "He counted all five, said nothing for a while, and then allowed that the row would have rotted without me. From a farmer that is as close to thanks as anyone gets."
+      "journal": "Done. Reported back to the Farmer."
     }
   ]
 }
