@@ -2596,3 +2596,31 @@ missing Discipline and a stray `equip Swift` by a player this script never
 created. `AURAD_CONF=<copy with server.port changed>` gives a private server
 (`./aurad -dev -content ../api` reads the env var, `loaders.go:262`) and the
 harnesses take the URL, so a parallel run needs no coordination.
+
+### Help panel — a placeholder tutorial ✅ DONE 2026-08-02, `8cc3ef82`
+
+**A direct PO ask, not an intake item:** get the game's mechanics into the game
+as readable text NOW, as a stand-in until a real tutorial exists. A circled `?`
+at the top of the zoom column (placement PO-picked over the left column) opens
+a "How Aura works" overlay — **12 short sections ordered by when a new player
+meets each mechanic**, written as design statements, not FAQ. The draft was
+PO-edited before implementation: auras pick their own targets and are mostly
+target-capped (not "affects everything inside"), the beat folded into the aura
+section, "no way to grief" cut (*an intent, not a fact*), and **dying loses the
+XP gathered toward the next level**. Deliberately covers only what is live —
+no combinations, no exploration unlocks.
+
+**Shape: frontend-only, 5 files, zero logic beyond visibility.** Content is
+static HTML in `HUD.html`; `features/help/logic/Help.ts` (~40 lines) wires the
+button and ✕/Esc (`pointerdown`, per the documented click gotcha); the panel
+reuses the journal overlay pattern (only the body scrolls) and the button the
+zoomButton vocabulary. No hotkey by PO choice — button and Esc only. §39's
+presentation rework restyles it with everything else; the parked feel-pass
+"tutorial for entry pricing" item (`archive/plan-feel-pass-2.md` §6) remains
+open — this is written info, not a taught flow.
+
+**Verified:** `tsc` · 132 vitest · prod build · an 8/8 scratchpad smoke on a
+fresh server (button present, panel opens by real click, all 12 sections in
+order, Esc and ✕ close, 0 console errors) + screenshot. The smoke was NOT
+promoted into the verify suite — a static panel with no server state isn't
+worth a coverage-map row.
