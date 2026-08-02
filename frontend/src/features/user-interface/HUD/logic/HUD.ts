@@ -3,6 +3,7 @@ import * as Conversation from '../../../conversation/logic/Conversation';
 import * as Journal from '../../../journal/logic/Journal';
 import * as Help from '../../../help/logic/Help';
 import * as MobileMenu from './MobileMenu';
+import * as Interact from '../../../interact/logic/Interact';
 import * as Mobile from '../../logic/Mobile';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
@@ -97,6 +98,7 @@ export function setup(game) {
     // After Journal/Help: it adds a second pointerdown listener to their
     // buttons, and both handlers should run in the order they were added.
     MobileMenu.setup();
+    Interact.setupButton();
 }
 
 // Zoom control: steps through the fixed-FOV zoom levels (camera/logic/Zoom.ts).

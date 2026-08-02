@@ -25,6 +25,8 @@ import {GameState, IGame} from "../../core/logic/IGame";
 import {BackendState, IBackend} from "./IBackend";
 import {Session} from "../../accounts/logic/Session";
 import {Badgeable, retargetInteractBadge} from "./InteractBadgeTargeting";
+import * as Interact from "../../interact/logic/Interact";
+import {isMobile} from "../../user-interface/logic/Mobile";
 import * as Conversation from "../../conversation/logic/Conversation";
 import * as Journal from "../../journal/logic/Journal";
 import {Develop} from "../../internal-tools/develop/logic/_Develop";
@@ -397,7 +399,13 @@ export class Backend implements IBackend {
         // a trap for the next reader of that getter.
         const offered = snapshot.interactableEntityId ?? 0;
         this.interactableEntityId = offered;
-        this.updateInteractBadge(offered === Conversation.partnerId() ? 0 : offered);
+        const badged = offered === Conversation.partnerId() ? 0 : offered;
+        // ⚑ On mobile the badge is REPLACED, not accompanied (PO 2026-08-02):
+        // a phone has no E, so the offer is presented as a HUD button instead.
+        // Both surfaces are driven from this one site off the same `badged`
+        // id, so they can never disagree about which actor is on offer.
+        this.updateInteractBadge(isMobile() ? 0 : badged);
+        Interact.updateButton(badged);
 
         if (!this.firstGameStateReceived) {
             this.firstGameStateResolve();

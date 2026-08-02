@@ -55,6 +55,20 @@
         </svg>
     </div>
 
+    <!-- Interact button (2026-08-02, mobile only): the tappable twin of E. A
+         phone has no E, so on mobile this REPLACES the badge over the actor's
+         head rather than accompanying it (PO ruling) — Backend suppresses the
+         badge and drives this from the same site. Hidden until an actor is
+         offered; wired by Interact.setupButton, which shares Interact.trigger
+         with the key so the two cannot drift. -->
+    <div id="interactButton" class="hidden" title="Talk">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 4 H20 A2 2 0 0 1 22 6 V15 A2 2 0 0 1 20 17 H13 L8 21 V17 H4 A2 2 0 0 1 2 15 V6 A2 2 0 0 1 4 4 Z"
+                  fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </div>
+
     <!-- In-game zoom (fixed FOV, camera/logic/Zoom.ts): 1 = nearest, 3 = furthest -->
     <div id="zoomControl">
         <div id="helpButton" title="How Aura works">?</div>

@@ -15,7 +15,7 @@ import {InputMessage} from '../../backend/logic/messages/outgoing/InputMessage';
 import * as Conversation from '../../conversation/logic/Conversation';
 import * as Journal from '../../journal/logic/Journal';
 import * as Help from '../../help/logic/Help';
-import {InteractMessage} from '../../backend/logic/messages/outgoing/InteractMessage';
+import * as Interact from '../../interact/logic/Interact';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {Vector} from '../../core/logic/Vector';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
@@ -289,16 +289,9 @@ export class Controls {
         // costs nothing.
         const interactDown = this.interactKey.isDown;
         if (interactDown && !this.interactKeyWasDown) {
-            if (Conversation.isOpen()) {
-                // A second E closes the panel (chunk 3b-ii, D21) — the same key
-                // that opened it, which is what players reach for first.
-                Conversation.leave();
-            } else {
-                const target = Game.getInteractableEntityId();
-                if (target !== 0) {
-                    new InteractMessage(target).send();
-                }
-            }
+            // Interact.trigger is shared with the mobile button, so the
+            // second-press-closes rule has one implementation, not two.
+            Interact.trigger(Game.getInteractableEntityId());
         }
         this.interactKeyWasDown = interactDown;
 

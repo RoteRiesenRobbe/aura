@@ -66,8 +66,10 @@ html.mobile {
 	font-size: clamp(15px, 4.1vmin, 28px);
 }
 
-// Desktop-only by default; the phone layout opts it in below.
-#mobileMenuButton {
+// Desktop-only by default; the phone layout opts these in below. Desktop keeps
+// the E key and the badge over the actor's head, so neither is ever shown.
+#mobileMenuButton,
+#interactButton {
 	display: none;
 }
 
@@ -179,6 +181,48 @@ html.mobile {
 	#alertBanner {
 		top: 7rem;
 		max-width: 90vw;
+	}
+
+	/* --- the interact button ------------------------------------------- */
+	// The tappable twin of E, and on mobile the ONLY interact surface — the
+	// badge over the actor's head is suppressed (Backend.applyGameState).
+	// Bottom right, under the right thumb, but lifted clear of the tile row:
+	// in portrait the six tiles span nearly the full width, so the true corner
+	// is not free at every size.
+	//
+	// ⚑ It must restate `.hidden` itself. The global `.hidden { display: none }`
+	// is a bare class (0,1,0) and loses to `html.mobile #interactButton`
+	// (1,2,1), so without this the button would never hide and would sit lit
+	// over the world permanently.
+	#interactButton {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		position: fixed;
+		right: @mobile-edge;
+		bottom: ~"calc(min(5.6rem, 15vh, 13vw) + 2 * 0.7rem)";
+		z-index: (@mobile-menu-z - 1);
+
+		width: @mobile-button;
+		height: @mobile-button;
+		padding: 0.9rem;
+
+		background: fade(black, 65%);
+		border: 2px solid fade(#ffd75e, 80%);
+		border-radius: 50%;
+		color: #ffd75e;
+		cursor: pointer;
+
+		> svg {
+			display: block;
+			width: 100%;
+			height: 100%;
+		}
+
+		&.hidden {
+			display: none;
+		}
 	}
 
 	/* --- always on: the six action tiles ------------------------------- */
