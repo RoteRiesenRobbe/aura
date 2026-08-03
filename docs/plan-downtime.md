@@ -228,7 +228,7 @@ C1 first — it builds the class C2 rides, and it is independently shippable
 
 ## 9. Chunk ledgers
 
-### C1 — Recall becomes a baseline utility ✅ BUILT 2026-08-03 (uncommitted; PO review pending)
+### C1 — Recall becomes a baseline utility ✅ BUILT 2026-08-03, committed `ec389164`, deployed live same day
 
 **Shipped.** `recall.json` deleted (id 28 burned), both teach rows removed,
 `skills.UtilityKind`/`UtilityDef` (Go literals — the class is deliberately not
