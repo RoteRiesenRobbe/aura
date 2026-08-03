@@ -1,12 +1,11 @@
-//  Resets a Key object back to its default settings.
+//  Resets a Key object's press state back to released.
 //  Optionally resets the keyCode as well.
-export function ResetKey(key, clearKeyCode) {
-    if (clearKeyCode === undefined) {
-        clearKeyCode = false;
-    }
-
-    key.preventDefault = false;
-    key.enabled = true;
+//
+//  Deliberately leaves the configuration fields (preventDefault, enabled)
+//  alone: the inherited Phaser version forced preventDefault to false, which
+//  contradicts Key's own constructor default of true — a swept movement key
+//  would have started scrolling the page on its next press.
+export function ResetKey(key, clearKeyCode = false) {
     key.isDown = false;
     key.isUp = true;
     key.altKey = false;

@@ -14,6 +14,7 @@ import {KeyCodes} from './keys/KeyCodes';
 import {KeyCombo} from './combo/KeyCombo';
 import {ProcessKeyDown} from './keys/ProcessKeyDown';
 import {ProcessKeyUp} from './keys/ProcessKeyUp';
+import {ResetKey} from './keys/ResetKey';
 
 // Keys that zoom the browser when held with Ctrl (or Cmd on macOS). Matched on
 // `event.key` rather than `keyCode` so the main row and the numpad are both
@@ -40,6 +41,8 @@ export class KeyboardManager {
     // Standard FIFO queue
     queue = [];
     handler;
+    blurHandler;
+    visibilityHandler;
 
     constructor() {
         // EventEmitter.call(this);
@@ -88,11 +91,45 @@ export class KeyboardManager {
 
         this.target.addEventListener('keydown', handler, false);
         this.target.addEventListener('keyup', handler, false);
+
+        // A key held across a focus loss never gets its keyup — the browser
+        // delivers it to whoever has focus then — so without a sweep the key
+        // stays down forever and movement keeps streaming to the server
+        // (round-8 item 3). Sweeping the KEYS (rather than zeroing Controls'
+        // movement vector) matters: Controls' next tick then reads (0,0)
+        // through its normal released-keys path, which is what arms the
+        // stop-tail. blur catches window switches; visibilitychange catches
+        // tab switches and mobile app-switching, gated on hidden so becoming
+        // visible again doesn't sweep a legitimately re-pressed key.
+        this.blurHandler = () => this.releaseAllKeys();
+        this.visibilityHandler = () => {
+            if (document.hidden) {
+                this.releaseAllKeys();
+            }
+        };
+        window.addEventListener('blur', this.blurHandler);
+        document.addEventListener('visibilitychange', this.visibilityHandler);
     }
 
     stopListeners() {
         this.target.removeEventListener('keydown', this.handler);
         this.target.removeEventListener('keyup', this.handler);
+        window.removeEventListener('blur', this.blurHandler);
+        document.removeEventListener('visibilitychange', this.visibilityHandler);
+    }
+
+    /**
+     * Forces every key back to its up state. Also drops the unprocessed event
+     * queue — a keydown queued just before the focus loss would otherwise
+     * resurrect its key on the next update(), with no keyup ever coming.
+     */
+    releaseAllKeys() {
+        this.queue.length = 0;
+        this.keys.forEach((key) => {
+            if (key) {
+                ResetKey(key);
+            }
+        });
     }
 
     /**
