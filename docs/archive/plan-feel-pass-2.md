@@ -17,6 +17,11 @@ That session ran **2026-08-01**. This doc is its intake and its plan.
 > measurement attached (§6). Per-chunk ledgers in §8.
 >
 > **Progress: N1 ✅ · N2 ✅ · N3 ✅ · N4 ✅ · N5 ✅ (all 2026-08-02, one commit).**
+>
+> **✅ PO-VERIFIED IN-GAME 2026-08-03 — all five chunks approved** (N5's
+> acceptance test was the PO's eyes by design, see its ledger). PO note on
+> record: **balancing related to costs will happen over time** — the values
+> stay tuning-open as an ongoing activity, not a scheduled chunk.
 
 ---
 
