@@ -402,7 +402,7 @@ rest of the landmines resolved as follows.
 
 ## 9. Chunk ledgers
 
-### C2 — The mini-campfire ✅ BUILT 2026-08-03
+### C2 — The mini-campfire ✅ BUILT 2026-08-03, committed `3910e536`
 
 **Shipped.** `api/mobs/camp.json` (id 65, `entityType: "Campfire"` — the wire
 enum is pinned and "Camp" resolves to nothing, so the sprite is reused) +

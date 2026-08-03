@@ -29,7 +29,11 @@ and rode into `40d9b204` with the pass.
 > design questions, chunked there as **N1 → N5**. ⚑ **F4** (§6, quest progress
 > only after acceptance) is picked up by that plan as **N4**, with the ruling
 > that baselines are **per stage entry**. **R4 — the downtime design session —
-> is now unblocked and is the last thing this plan is waiting on.**
+> RAN 2026-08-03 → `docs/plan-downtime.md`, and BOTH its chunks are BUILT
+> (C1 Recall `ec389164`, deployed + PO-verified · C2 the mini-campfire
+> `3910e536`) — this plan's schedule (R1 → R4) is fully executed; what remains
+> lives in `plan-downtime.md` (the [PLACEHOLDER] numbers + the PO in-game
+> pass).**
 >
 > ⭐ **R4 WIDENED 2026-08-02** (`plan-playtest-feedback.md` §Intake round 8
 > item 1): it also owns **a free, baseline Recall**. PO ruling — the way back to
