@@ -4684,10 +4684,51 @@ drop `ReconnectToken` from the wire message and from `sessionStorage`, and the
 system loses a whole token. `claimSession` already governs who may take over a
 stashed session, which is the rule that would matter.
 
-⚑ **Not yet traced.** Every reader of `stashByToken` needs checking first —
-notably `discardStashFor` (which exists because leaving to character-select
-keeps a character's NAME reserved) and the expiry sweep. Do this **after** §46,
-when there is a single way to prove identity and the reasoning is simpler.
+### ✅ TRACED 2026-08-03 — it is deletable, and it is really "one join path"
+
+Every reader of `stashByToken` was enumerated. **Six sites**, and only ONE uses
+the token as a lookup at all:
+
+| site | what the token is for | character id enough? |
+|---|---|---|
+| `sweepExpiredStashes` | delete key only (iterates values) | yes |
+| `discardStashFor` | delete key only (full scan on `accountID`) | yes — becomes O(1) |
+| `tryJoin` | **the only real lookup** | yes — the ticket carries `CharacterID` |
+| `reattach` | delete | yes |
+| `handleDeath` | delete; token came from `tokenByClient` | yes — `characterByClient` is right there |
+| `removeFrom{Players,Spectators}` | write key | yes — the record already stores `characterID` |
+
+`tryJoin` re-checks `ticket.AccountID` against the stash on the very next line,
+so the token proves nothing on its own. `claimSession` never touches the stash
+and remains the take-over authority — and `SessionRegistry.Claim` already lets a
+**stashed** session be taken over, so the claim can safely move ahead of the
+stash lookup.
+
+⭐ **The reframe: this is not "delete a token", it is "there is one join path."**
+Keyed by character id, every join simply asks whether that character is still
+parked. Resuming stops being a special mode.
+
+### ⛔ BLOCKED ON §52 (PO 2026-08-03) — do them together
+
+**The blocker, found while starting the implementation:** the "I deliberately
+left" signal is carried **by the client throwing its token away.**
+`AccountSettings.leave()` sets `Session.reconnectToken = null` and reloads,
+commented *"…auto-rejoining the character we are trying to leave"*. The server
+never learns the difference — it only ever sees a socket drop.
+
+Delete the token and that signal has no carrier, so **every return to the same
+character resumes the parked session instead of cold-loading.** Two consequences:
+
+1. The deliberate-leave distinction must move **server-side** to exist at all —
+   which is exactly §52's open question 4 (explicit leave vs dropped connection).
+2. ⚑ **`chunk4-persistence` would stop testing what it claims.** Its header
+   warns: *"It must stay a COLD return — if the reconnect stash resumed the live
+   character instead, every assertion would pass while proving nothing."*
+   Confirmed 2026-08-03 that it does go cold today (two fresh-join log lines, no
+   reattach), and only because `leave()` drops the token.
+
+So §48 would force a leave-semantics decision as a **side effect** rather than
+as a choice. Design §52 first, decide what leaving means once, then land both.
 
 ## 49. The accounts merge left main's socket clients speaking the pre-accounts join
 
@@ -4953,7 +4994,12 @@ protect."* Step 8a shipped the progress.
 4. What happens on an explicit **logout** (which ends the world session today)
    versus a dropped connection?
 
-**Do it after §48**, when there is one join path to hang it on.
+⭐ **Question 4 is the load-bearing one, and §48 is BLOCKED on it** (PO
+2026-08-03). Today the difference between *"I left"* and *"I dropped"* is not a
+server concept at all — it is carried by the client throwing its reconnect token
+away (`AccountSettings.leave()`). §48 deletes that token, so the distinction has
+to become something the server is **told**. Answer it here, once, and both this
+and §48 fall out. **This now runs FIRST**, not after §48.
 
 ⚑ **A related idea was considered and rejected:** deferring live players' saves
 until the park expires, to cut database writes. The writes are already
