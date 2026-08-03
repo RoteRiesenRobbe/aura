@@ -158,6 +158,10 @@ Not maintained, but **not dead**: several of these are still the only design rec
 system that is very much live, so read them for *why*, not for *current state*. Paths below
 are relative to `docs/archive/`.
 
+- **status-history.md** — verbatim `CLAUDE.md ## Status` entries that fell off the section's
+  cap (last completed + 2 prior; see the `chunk-wrap` skill). Historical snapshots — their
+  "open"/"next" claims may since be closed; the full ledgers are the plan-doc §-banners
+
 ### Execution-step records (the build order, oldest first)
 
 - **archive-block2-survival-removal.md** — Block 2 (roadmap items 1+2): survival systems, crafting, inventory, item wire protocol removed; single resource established. Complete 2026-07-04

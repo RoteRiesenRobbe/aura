@@ -1,26 +1,57 @@
 ---
 name: chunk-wrap
-description: Session-end bookkeeping when a plan chunk / session is finished — update the CLAUDE.md status banner, the plan-doc §13 (or equivalent) chunk banner, and the MEMORY.md index line in the house format. Use when the user says a chunk/session is done, verified, or ready to record. Encodes the format + the no-autonomous-commit guardrail.
+description: Session-end bookkeeping when a plan chunk / session is finished — TIERED by session size (full plan-chunk ritual · light bugfix wrap · docs-only). Use when the user says a chunk/session is done, verified, or ready to record. Encodes the tier rule, the CLAUDE.md Status cap, the banner format + the no-autonomous-commit guardrail.
 ---
 
-Ritual for recording a finished chunk/session so the three status surfaces stay
+Ritual for recording a finished chunk/session so the status surfaces stay
 consistent. **Never commit, branch, or push as part of this** — that is a
 separate, explicitly-requested step (project rule). Wrap-up = docs only.
 
+## Pick the tier FIRST — most sessions are not FULL
+
+The uniform ritual is what bloated CLAUDE.md to 157 KB by 2026-08-03: every
+bugfix got a plan-chunk-sized banner on every surface. Match the ceremony to
+the session:
+
+- **FULL** — a chunk of a `plan-*.md`, or any session with PO rulings and a
+  verification tail. Everything below applies: all three surfaces, the harness
+  gate, the archive check.
+- **LIGHT** — a bugfix or small standalone item. The full ledger goes in the
+  owning plan doc's ledger section (or the backlog §) — that is the ONE
+  authoritative record. CLAUDE.md Status changes **only if the item changes
+  Recent/Next/Open items** (an item that closes an Open line: delete the line,
+  don't add a new entry; a notable fix may take a `Prior` slot under the cap).
+  MEMORY.md gets a line **only for a durable cross-session lesson** — a routine
+  fix earns no memory. Run only the harnesses the change actually owns.
+- **DOCS-ONLY** — a design/planning session. The plan doc IS the record; give
+  it one Status `Recent` entry pointing there. No harness gate, memory only
+  for a durable reframe.
+
+When unsure between FULL and LIGHT, ask: did this session produce rulings or
+findings that a *different* future session must know? If only the diff matters,
+it's LIGHT.
+
 ## Where status lives (single sources, keep in sync)
 
-1. **`CLAUDE.md` `## Status`** — the *current* state. Update the top
-   `- **Last completed:**` bullet to the just-finished chunk; demote the previous
-   `Last completed` to a one-line `Prior:` pointer (see the docs-hygiene note
-   below — do **not** paste a fresh full banner into every `Prior`). Update
-   `Next` / `Deferred` / `Standing locks` if they changed.
+1. **`CLAUDE.md` `## Status`** — the *current* state, under a **hard cap**:
+   `Last completed` + at most **two** `Prior` entries, each ≤10 lines ending in a
+   ledger pointer. Write the new `Last completed` entry *compressed* (what shipped,
+   the 1–2 findings that outlive the chunk, a one-line Verified tally, the
+   pointer) — the full banner goes in the plan doc, never here. Demote the
+   previous `Last completed` to a `Prior`, and **move the entry that falls off
+   the cap verbatim to the top of `docs/archive/status-history.md`'s entry list**.
+   Update `Next` / `Open items` / `Standing locks` if they changed — and prune
+   any Open-items line the finished chunk just closed.
 2. **The plan doc's chunk banner** — the authoritative full ledger
    (`plan-content-zones12.md §13 C#`, `plan-intermission-triage.md §…`, etc.).
    The complete retrospective prose belongs **here**, not in CLAUDE.md.
 3. **`MEMORY.md` index line** — a **one-line hook** for the relevant project
-   memory (e.g. `project_skill_system.md`). Append `C# ✅ + commit hash` to the
-   existing line; do **not** grow it into a paragraph. If detail is needed,
-   it goes in the memory file body, not the index.
+   memory, **hard-capped at ~250 chars**. Update the hook's status words if they
+   changed; per-chunk detail goes in the memory file **body**, never the index.
+   ⚑ By 2026-08-03 one index line had grown to 5.5 KB — nearly the size of the
+   file it pointed at — which is why this is a cap, not a style note. And only
+   write to memory at all when there is a durable cross-session lesson (see the
+   tier rule above).
 
 ## Banner house style (match the existing entries)
 
@@ -60,11 +91,13 @@ reference) **stays in `docs/`**.
 
 ## Docs-hygiene guard (keeps context from overflowing)
 
-CLAUDE.md and MEMORY.md load **every session**. The full prose history of past
-chunks already lives in the plan-doc banners — so in CLAUDE.md, past chunks are
-**one-line pointers** (`C6 ✅ \`5961b29a\` — Orc Warlord encounter; full ledger:
-plan-content-zones12.md §13 C6`), only the *current* chunk gets a full banner.
-When wrapping up, if you see stale full `Prior:` banners piled up, collapse them.
+CLAUDE.md and MEMORY.md load **every session**. By 2026-08-03 the Status section
+had accreted to **136 KB / 87 % of the file** because every session prepended a
+full banner and nothing ever pruned — that is why the cap in point 1 above is a
+hard rule, not a style note. The full prose history lives in the plan-doc
+banners; overflow entries live verbatim in `docs/archive/status-history.md`.
+When wrapping up, if Status holds more than 3 completed-work entries or any
+entry longer than ~10 lines, collapse/move them **as part of the wrap**.
 
 ## The harness gate — run it BEFORE writing the banner
 
