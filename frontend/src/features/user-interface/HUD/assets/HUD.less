@@ -978,7 +978,8 @@
 
 #auraLoadout,
 #passiveLoadout,
-#cooldownLoadout {
+#cooldownLoadout,
+#utilityBar {
 	background: @panel-bg;
 	border: 1px solid @panel-border;
 	border-radius: @panel-border-radius;
@@ -1090,6 +1091,24 @@
 		> .beatPip.beatPulse {
 			animation: hudBeatPulse 0.28s ease-out;
 		}
+	}
+}
+
+// Baseline utilities (plan-downtime.md D1): always-present and always
+// pressable, so the row never wears the faded "empty slot" look and always
+// carries a pointer cursor — unlike the loadout slots, whose affordance is
+// state-dependent.
+#utilityBar > ul > .utilityButton {
+	cursor: pointer;
+	color: @panel-color;
+
+	&:hover {
+		background: fade(white, 8%);
+		border-radius: 0.4rem;
+	}
+
+	&:active {
+		background: fade(white, 14%);
 	}
 }
 

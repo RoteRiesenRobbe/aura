@@ -124,3 +124,35 @@ func TestJoinMessageFlatbufferUnmarshal_TokenAbsent_OldClient(t *testing.T) {
 	assert.Equal(t, "Momo", result.PlayerName)
 	assert.Equal(t, "", result.ReconnectToken)
 }
+
+// --- UseUtility (plan-downtime.md C1) -----------------------------------------
+
+// The Go utility constants and the UtilityKind wire enum are two statements of
+// one vocabulary; this is the cross-language pin (§3.11 discipline — the
+// shared-constants precedent). A Go renumber would otherwise send the wrong
+// utility with nothing failing on either side.
+func TestUtilityKind_GoConstantsMatchTheWireEnum(t *testing.T) {
+	assert.EqualValues(t, AuraApi.UtilityKindNone, skills.UtilityNone)
+	assert.EqualValues(t, AuraApi.UtilityKindRecall, skills.UtilityRecall)
+}
+
+func buildUseUtilityClientMessage(kind AuraApi.UtilityKind) []byte {
+	b := flatbuffers.NewBuilder(64)
+	AuraApi.UseUtilityStart(b)
+	AuraApi.UseUtilityAddKind(b, kind)
+	body := AuraApi.UseUtilityEnd(b)
+
+	AuraApi.ClientMessageStart(b)
+	AuraApi.ClientMessageAddBodyType(b, AuraApi.ClientMessageBodyUseUtility)
+	AuraApi.ClientMessageAddBody(b, body)
+	root := AuraApi.ClientMessageEnd(b)
+	b.Finish(root)
+	return b.FinishedBytes()
+}
+
+func TestUseUtilityMessageFlatbufferUnmarshal_RoundTrip(t *testing.T) {
+	msg := ClientMessageFlatbufferUnmarshal(buildUseUtilityClientMessage(AuraApi.UtilityKindRecall))
+	result := UseUtilityMessageFlatbufferUnmarshal(msg)
+	require.NotNil(t, result)
+	assert.Equal(t, skills.UtilityRecall, result.Kind)
+}

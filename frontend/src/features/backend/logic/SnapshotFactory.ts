@@ -26,6 +26,7 @@ export class Snapshot {
     castSkillId: number; // running cast (chunk 4); 0 = no cast
     castTicksLeft: number;
     castTicksTotal: number;
+    castUtility: number; // baseline utility winding up (downtime C1); 0 = none
     activationRejectedSkillId: number; // one-tick rejection feedback; 0 = none
     activationRejectedReason: number;
     interactableEntityId: number; // conversant in talking range (3b-i); 0 = none
@@ -76,6 +77,7 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         snapshot.castSkillId = gameState.castSkillId;
         snapshot.castTicksLeft = gameState.castTicksLeft;
         snapshot.castTicksTotal = gameState.castTicksTotal;
+        snapshot.castUtility = gameState.castUtility;
         snapshot.activationRejectedSkillId = gameState.activationRejectedSkillId;
         snapshot.activationRejectedReason = gameState.activationRejectedReason;
         // Always carried, like the scalars above: it is live state, so "absent"

@@ -18,6 +18,7 @@ const (
 	ClientMessageBodyInteract        ClientMessageBody = 8
 	ClientMessageBodyAbandonQuest    ClientMessageBody = 9
 	ClientMessageBodyRespec          ClientMessageBody = 10
+	ClientMessageBodyUseUtility      ClientMessageBody = 11
 )
 
 var EnumNamesClientMessageBody = map[ClientMessageBody]string{
@@ -32,6 +33,7 @@ var EnumNamesClientMessageBody = map[ClientMessageBody]string{
 	ClientMessageBodyInteract:        "Interact",
 	ClientMessageBodyAbandonQuest:    "AbandonQuest",
 	ClientMessageBodyRespec:          "Respec",
+	ClientMessageBodyUseUtility:      "UseUtility",
 }
 
 var EnumValuesClientMessageBody = map[string]ClientMessageBody{
@@ -46,6 +48,7 @@ var EnumValuesClientMessageBody = map[string]ClientMessageBody{
 	"Interact":        ClientMessageBodyInteract,
 	"AbandonQuest":    ClientMessageBodyAbandonQuest,
 	"Respec":          ClientMessageBodyRespec,
+	"UseUtility":      ClientMessageBodyUseUtility,
 }
 
 func (v ClientMessageBody) String() string {

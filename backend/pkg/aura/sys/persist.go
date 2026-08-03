@@ -275,6 +275,17 @@ func restoreCharacterState(p model.PlayerEntity, state persist.CharacterState, r
 
 	sc := p.SkillComponent()
 	for id, level := range state.Spellbook {
+		// The loadout rule below, applied to its sibling (R4 C1): a retired
+		// skill is skipped, not fatal. Left unvalidated, a ghost id survives
+		// into live state, onto the wire (Discovered() ships raw ids) and
+		// into SpentPoints, which prices an unresolvable entry pessimistically
+		// against its own level — points the player could never refund.
+		if _, err := registry.Get(skills.SkillID(id)); err != nil {
+			slog.Warn("dropping a spellbook entry for a skill that no longer exists",
+				slog.Int64("character_id", state.CharacterID),
+				slog.Int("skill_id", int(id)))
+			continue
+		}
 		if level < 1 {
 			level = 1
 		}

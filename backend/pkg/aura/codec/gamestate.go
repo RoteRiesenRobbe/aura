@@ -429,6 +429,14 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 		AuraApi.GameStateAddCastTicksLeft(builder, uint16(sc.CastTicksLeft))
 		AuraApi.GameStateAddCastTicksTotal(builder, uint16(es.EffectiveCastTicks()))
 	}
+	// A baseline-utility cast rides the same two tick fields — one cast at a
+	// time, so cast_skill_id and cast_utility are never both nonzero
+	// (plan-downtime.md C1). The client's bar only needs the label source.
+	if ud := sc.CastingUtilityDef(); ud != nil {
+		AuraApi.GameStateAddCastUtility(builder, uint8(ud.Kind))
+		AuraApi.GameStateAddCastTicksLeft(builder, uint16(sc.CastTicksLeft))
+		AuraApi.GameStateAddCastTicksTotal(builder, uint16(ud.CastTicks))
+	}
 	// Rejection feedback (chunk 4, §3.5): per-tick one-shot, campfire_bound
 	// lifecycle — stamped by the SkillSystem, cleared in ResetTickNumbers.
 	if id, reason := gs.Player.ActivationRejected(); reason != model.ActivationRejectedNone {

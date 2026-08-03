@@ -4912,3 +4912,140 @@ func TestApplyHotAura_FractionOfMax_IgnoresCasterPowerScale(t *testing.T) {
 	require.Len(t, ally.hots, 1)
 	assert.InDelta(t, 2, ally.hots[0].hot.HP, 1e-6)
 }
+
+// --- baseline utility: Recall (plan-downtime.md C1) ---------------------------
+
+// utilityCastUpdates is one press-processing update plus the full wind-up.
+// The utility table authors 300 ticks [PLACEHOLDER]; unlike recallTestDef
+// there is no per-test knob — the table IS the definition under test.
+const utilityCastUpdates = 1 + 300
+
+func TestUtilityRecall_PressStartsCastNotTeleport(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	sk.SetConnState(&fakeConnState{anchor: phy.Vec2f{X: 25, Y: -13}, bound: true})
+	caster.sc.RequestUtilityCast(skills.UtilityRecall)
+
+	sk.Update(33.0)
+
+	assert.True(t, caster.sc.IsCasting())
+	assert.Equal(t, skills.UtilityRecall, caster.sc.CastingUtility)
+	assert.Equal(t, phy.VEC2F_ZERO, caster.Position(), "wind-up, no teleport yet")
+	assert.Empty(t, caster.sc.PendingUtilities, "queue drained")
+}
+
+func TestUtilityRecall_CompletionTeleportsToAnchorWithJitter(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	anchor := phy.Vec2f{X: 25, Y: -13}
+	sk.SetConnState(&fakeConnState{anchor: anchor, bound: true})
+	healthBefore := caster.VitalSigns().Health
+	caster.sc.RequestUtilityCast(skills.UtilityRecall)
+
+	for i := 0; i < utilityCastUpdates; i++ {
+		sk.Update(33.0)
+	}
+
+	assert.False(t, caster.sc.IsCasting())
+	dist := caster.Position().DistanceToSquared(anchor)
+	assert.LessOrEqual(t, dist, float32(respawnJitterRadius*respawnJitterRadius),
+		"teleported into the jitter disc around the anchor")
+	// D7: free and cooldown-less — the interruptible cast is the only brake.
+	assert.Equal(t, healthBefore, caster.VitalSigns().Health, "no cost charged")
+	assert.Empty(t, caster.rejections)
+}
+
+func TestUtilityRecall_NoAnchorRejectsPress(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	sk.SetConnState(&fakeConnState{bound: false})
+	caster.sc.RequestUtilityCast(skills.UtilityRecall)
+
+	sk.Update(33.0)
+
+	assert.False(t, caster.sc.IsCasting(), "precondition fails → no cast starts")
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, skills.SkillID(0), caster.rejections[0].skill,
+		"a utility is no catalog skill — the client renders the REASON alone")
+	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
+}
+
+func TestUtilityRecall_AnchorLostMidCastRejectsAtCompletion(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	cs := &fakeConnState{anchor: phy.Vec2f{X: 25, Y: -13}, bound: true}
+	sk.SetConnState(cs)
+	caster.sc.RequestUtilityCast(skills.UtilityRecall)
+	sk.Update(33.0)
+	require.True(t, caster.sc.IsCasting())
+
+	cs.bound = false
+	for i := 0; i < utilityCastUpdates; i++ {
+		sk.Update(33.0)
+	}
+
+	assert.False(t, caster.sc.IsCasting())
+	assert.Equal(t, phy.VEC2F_ZERO, caster.Position(), "no teleport")
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, model.ActivationRejectedNoAnchor, caster.rejections[0].reason)
+}
+
+func TestUtilityRecall_RepressDoesNotRestartTheCast(t *testing.T) {
+	empty := phy.NewSpace()
+	empty.Update()
+	caster, sk := cooldownCaster(empty)
+	sk.SetConnState(&fakeConnState{anchor: phy.Vec2f{X: 1, Y: 1}, bound: true})
+	caster.sc.RequestUtilityCast(skills.UtilityRecall)
+	sk.Update(33.0)
+	sk.Update(33.0)
+	ticksAfterTwo := caster.sc.CastTicksLeft
+
+	caster.sc.RequestUtilityCast(skills.UtilityRecall)
+	sk.Update(33.0)
+
+	assert.True(t, caster.sc.IsCasting())
+	assert.Equal(t, ticksAfterTwo-1, caster.sc.CastTicksLeft,
+		"spamming your own key must not reset the wind-up")
+}
+
+// A cooldown press is a deliberate act: it cancels the utility cast and fires
+// normally — the same rule slot casts already have among themselves.
+func TestUtilityRecall_CooldownPressCancelsUtilityCast(t *testing.T) {
+	target := &touchRecorder{}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
+	sk.SetConnState(&fakeConnState{anchor: phy.Vec2f{X: 25, Y: -13}, bound: true})
+	caster.sc.EquipCooldown(0, novaDef(), 1)
+	caster.sc.RequestUtilityCast(skills.UtilityRecall)
+	sk.Update(33.0)
+	require.True(t, caster.sc.IsCasting())
+
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+
+	assert.Equal(t, skills.UtilityNone, caster.sc.CastingUtility, "utility cast cancelled")
+	assert.NotEmpty(t, target.touches, "the instant nova fired")
+	assert.Equal(t, phy.VEC2F_ZERO, caster.Position(), "recall never completed")
+}
+
+// And the mirror: a utility press cancels a running slot cast.
+func TestUtilityRecall_UtilityPressCancelsSlotCast(t *testing.T) {
+	target := &touchRecorder{}
+	caster, sk := cooldownCaster(spaceWithBurstTarget(int(model.LayerActionCollision), target))
+	sk.SetConnState(&fakeConnState{anchor: phy.Vec2f{X: 25, Y: -13}, bound: true})
+	caster.sc.EquipCooldown(0, castNovaDef(), 1)
+	caster.sc.RequestCooldownActivation(0)
+	sk.Update(33.0)
+	require.Equal(t, 0, caster.sc.CastingSlot)
+
+	caster.sc.RequestUtilityCast(skills.UtilityRecall)
+	sk.Update(33.0)
+
+	assert.Equal(t, -1, caster.sc.CastingSlot, "slot cast cancelled")
+	assert.Equal(t, skills.UtilityRecall, caster.sc.CastingUtility)
+	assert.Empty(t, target.touches, "the cast nova never fired")
+	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "no cooldown consumed")
+}

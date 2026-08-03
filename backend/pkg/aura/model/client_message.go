@@ -71,6 +71,15 @@ type SpendSkillPoint struct {
 // floor — the milestone-seeded free baseline survives it by construction.
 type Respec struct{}
 
+// UseUtility is a baseline-utility press (plan-downtime.md C1): Recall now,
+// the mini-campfire with C2. Free and cooldown-less by design (D7) — the
+// server's interruptible cast window is the entire brake — so it carries the
+// kind and nothing else. Unknown kinds are dropped at the component
+// (RequestUtilityCast validates against the Go utility table).
+type UseUtility struct {
+	Kind skills.UtilityKind
+}
+
 // AbandonQuest is the journal panel's one upstream message (plan-quests.md C3,
 // D13): give up a running quest. It returns to not-started — path and diary
 // cleared — and becomes offerable again; lifetime counters and the completed set

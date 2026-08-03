@@ -76,6 +76,22 @@ table SpendSkillPoint {
 table Respec {
 }
 
+// Baseline utilities (plan-downtime.md D1): a small class of always-present
+// abilities outside the skill catalog — Recall now, the mini-campfire with
+// C2. Values PERMANENTLY PINNED (the ActivationRejection precedent): a Go
+// renumber would otherwise send the wrong utility with nothing failing.
+enum UtilityKind : ubyte {
+    None = 0,
+    Recall = 1
+}
+
+// Press a baseline utility. Free, no cooldown — the server's interruptible
+// cast window is the entire brake (plan-downtime.md D7), so this carries the
+// kind and nothing else.
+table UseUtility {
+    kind: UtilityKind = None;
+}
+
 // Respawn a dead player: sent from the death overlay instead of a fresh
 // Join — the server reuses the reserved name and carried progression and
 // spawns at the client's campfire anchor (atmosphere & recovery chunk 4).
@@ -141,7 +157,8 @@ union ClientMessageBody {
   Respawn = 7,
   Interact = 8,
   AbandonQuest = 9,
-  Respec = 10
+  Respec = 10,
+  UseUtility = 11
 }
 table ClientMessage { body:ClientMessageBody; }
 

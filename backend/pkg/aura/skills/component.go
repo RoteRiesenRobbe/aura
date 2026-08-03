@@ -129,6 +129,18 @@ type SkillComponent struct {
 	CastingSlot   int
 	CastTicksLeft int
 
+	// CastingUtility is the baseline utility currently winding up (0 = none;
+	// plan-downtime.md C1). It shares CastTicksLeft with the slot cast under
+	// the one-cast-at-a-time rule — StartCast and StartUtilityCast each clear
+	// the other, and CancelCast clears both, so every existing cancel site
+	// (movement, aura switch, respawn) covers utilities with no new call.
+	CastingUtility UtilityKind
+
+	// PendingUtilities holds baseline-utility casts the owner requested,
+	// mirroring PendingCooldowns: filled at input time, consumed (and
+	// cleared) by the SkillSystem in the same tick.
+	PendingUtilities []UtilityKind
+
 	// revision counts changes to the PERSISTED half of this component — the
 	// spellbook, the three slot arrays and the active aura index. Cast state,
 	// cooldown timers and tick accumulators deliberately do not bump it.
@@ -254,9 +266,10 @@ func NewSkillComponent(withSpellbook bool) *SkillComponent {
 	}
 }
 
-// IsCasting reports whether a cooldown skill is currently winding up.
+// IsCasting reports whether a cooldown skill or a baseline utility is
+// currently winding up.
 func (sc *SkillComponent) IsCasting() bool {
-	return sc.CastingSlot >= 0
+	return sc.CastingSlot >= 0 || sc.CastingUtility != UtilityNone
 }
 
 // CastingSkill is the equipped skill in the casting slot; nil when idle.
@@ -268,28 +281,65 @@ func (sc *SkillComponent) CastingSkill() *EquippedSkill {
 }
 
 // StartCast begins winding up the given cooldown slot for its effective cast
-// time. Invalid or empty slots are ignored (client-supplied indices).
+// time. Invalid or empty slots are ignored (client-supplied indices). A
+// running utility cast is cancelled — one cast at a time.
 func (sc *SkillComponent) StartCast(slot int) {
 	if slot < 0 || slot >= MaxCooldownSlots || sc.CooldownSlots[slot] == nil {
 		return
 	}
+	sc.CastingUtility = UtilityNone
 	sc.CastingSlot = slot
 	sc.CastTicksLeft = sc.CooldownSlots[slot].EffectiveCastTicks()
 }
 
-// CancelCast aborts a running cast: no fire, no cooldown consumed — the risk
-// window is the cost. No-op when idle.
+// StartUtilityCast begins winding up a baseline utility (plan-downtime.md
+// C1). Unknown kinds are ignored (client-supplied values). A running slot
+// cast is cancelled — one cast at a time.
+func (sc *SkillComponent) StartUtilityCast(kind UtilityKind) {
+	def := UtilityByKind(kind)
+	if def == nil {
+		return
+	}
+	sc.CastingSlot = -1
+	sc.CastingUtility = kind
+	sc.CastTicksLeft = def.CastTicks
+}
+
+// CastingUtilityDef is the definition of the utility currently winding up;
+// nil when idle or when a slot cast is running.
+func (sc *SkillComponent) CastingUtilityDef() *UtilityDef {
+	return UtilityByKind(sc.CastingUtility)
+}
+
+// RequestUtilityCast queues a baseline-utility press, mirroring
+// RequestCooldownActivation: filled at input time, consumed by the
+// SkillSystem in the same tick. Unknown kinds are dropped here so the queue
+// only ever holds resolvable work.
+func (sc *SkillComponent) RequestUtilityCast(kind UtilityKind) {
+	if UtilityByKind(kind) == nil {
+		return
+	}
+	sc.PendingUtilities = append(sc.PendingUtilities, kind)
+}
+
+// CancelCast aborts a running cast — slot or utility: no fire, no cooldown
+// consumed — the risk window is the cost. No-op when idle.
 func (sc *SkillComponent) CancelCast() {
 	sc.CastingSlot = -1
+	sc.CastingUtility = UtilityNone
 	sc.CastTicksLeft = 0
 }
 
-// CancelCastOnDamage aborts a running cast only if the casting skill opted
-// into the damage interrupt (castInterruptedByDamage — Recall-style; regular
-// combat casts survive being hit). Called from the takeDamage choke point on
-// dealt > 0, keeping the flag check out of player.go.
+// CancelCastOnDamage aborts a running cast only if the casting skill or
+// utility opted into the damage interrupt (castInterruptedByDamage —
+// Recall-style; regular combat casts survive being hit). Called from the
+// takeDamage choke point on dealt > 0, keeping the flag check out of
+// player.go.
 func (sc *SkillComponent) CancelCastOnDamage() {
 	if es := sc.CastingSkill(); es != nil && es.Def.CastInterruptedByDamage {
+		sc.CancelCast()
+	}
+	if ud := sc.CastingUtilityDef(); ud != nil && ud.CastInterruptedByDamage {
 		sc.CancelCast()
 	}
 }

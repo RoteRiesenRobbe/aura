@@ -1345,6 +1345,27 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 		s.fireAndCharge(e, es)
 	}
 	sc.PendingCooldowns = sc.PendingCooldowns[:0]
+
+	// Baseline utilities (plan-downtime.md C1): the same press rules as slot
+	// activations — re-pressing the casting utility is ignored, any other
+	// press cancels a running cast — but no cost and no cooldown (D7): the
+	// interruptible wind-up is the entire brake.
+	for _, kind := range sc.PendingUtilities {
+		if sc.IsCasting() {
+			if kind == sc.CastingUtility {
+				continue
+			}
+			sc.CancelCast()
+		}
+		if reason := s.utilityPrecondition(e, kind); reason != model.ActivationRejectedNone {
+			// A utility is no catalog skill: the id slot carries 0 and the
+			// client renders the REASON alone (it never used the id).
+			noteActivationRejected(e, 0, reason)
+			continue
+		}
+		sc.StartUtilityCast(kind)
+	}
+	sc.PendingUtilities = sc.PendingUtilities[:0]
 }
 
 // advanceCast ticks a running cast down and fires it at zero. The
@@ -1353,6 +1374,22 @@ func (s *SkillSystem) processCooldowns(e skillEntity, sc *skills.SkillComponent)
 // cooldown is only consumed on a successful fire, "refund" is automatic.
 func (s *SkillSystem) advanceCast(e skillEntity, sc *skills.SkillComponent) {
 	if !sc.IsCasting() {
+		return
+	}
+	// The utility branch first: during a utility cast CastingSkill() is nil
+	// by construction (no slot is occupied), which the slot branch below
+	// reads as "unequipped mid-cast" and would silently cancel.
+	if ud := sc.CastingUtilityDef(); ud != nil {
+		sc.CastTicksLeft--
+		if sc.CastTicksLeft > 0 {
+			return
+		}
+		sc.CancelCast()
+		if reason := s.utilityPrecondition(e, ud.Kind); reason != model.ActivationRejectedNone {
+			noteActivationRejected(e, 0, reason)
+			return
+		}
+		s.fireUtility(e, ud.Kind)
 		return
 	}
 	es := sc.CastingSkill()
@@ -1424,6 +1461,33 @@ func (s *SkillSystem) activationPrecondition(e skillEntity, es *skills.EquippedS
 		}
 	}
 	return model.ActivationRejectedNone
+}
+
+// utilityPrecondition is activationPrecondition's baseline-utility twin
+// (plan-downtime.md C1), checked at press AND at cast completion. No
+// affordability arm — utilities are free by design (D7).
+func (s *SkillSystem) utilityPrecondition(e skillEntity, kind skills.UtilityKind) model.ActivationRejection {
+	switch kind {
+	case skills.UtilityRecall:
+		p, ok := e.(model.PlayerEntity)
+		if !ok || s.connState == nil {
+			// Mobs cannot recall; an unwired seam reads as nothing bound.
+			return model.ActivationRejectedNoAnchor
+		}
+		if _, bound := s.connState.AnchorOf(p.Client().UUID()); !bound {
+			return model.ActivationRejectedNoAnchor
+		}
+	}
+	return model.ActivationRejectedNone
+}
+
+// fireUtility applies a completed baseline-utility cast. No cost is charged
+// and no cooldown starts (D7) — completion IS the whole transaction.
+func (s *SkillSystem) fireUtility(e skillEntity, kind skills.UtilityKind) {
+	switch kind {
+	case skills.UtilityRecall:
+		s.applyRecall(e)
+	}
 }
 
 // nearestCorpseID finds the closest player corpse within the revive effect's

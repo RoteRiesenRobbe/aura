@@ -37,5 +37,7 @@ export { ServerMessageBody } from './aura-api/server-message-body.js';
 export { Spectator } from './aura-api/spectator.js';
 export { SpendSkillPoint } from './aura-api/spend-skill-point.js';
 export { StatusEffect } from './aura-api/status-effect.js';
+export { UseUtility } from './aura-api/use-utility.js';
+export { UtilityKind } from './aura-api/utility-kind.js';
 export { Vec2f } from './aura-api/vec2f.js';
 export { Welcome } from './aura-api/welcome.js';

@@ -31,7 +31,7 @@
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { botName } from './botname.mjs';
+import { joinAsNewCharacter } from './lib/join.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -65,9 +65,9 @@ async function joinGame(flavour, topic) {
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 
   await page.goto(base + '&' + flavour, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 30_000 });
-  await page.fill('#startForm .playerNameInput', botName(topic));
-  await page.click('#startForm .playerNameSubmit');
+  // The account screens replaced #startForm (step 8a chunk 2); each context
+  // has its own cookie jar, so every joinGame mints a fresh anonymous account.
+  await joinAsNewCharacter(page, topic);
   await page.waitForFunction(() => !!window.game?.character, null, { timeout: 30_000 });
   // The dev panel is a large table layered over the right-hand HUD — it would
   // dominate every hit-test below and win every click.

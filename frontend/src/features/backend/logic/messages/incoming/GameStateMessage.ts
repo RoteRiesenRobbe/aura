@@ -57,6 +57,9 @@ export class GameStateMessage {
     castSkillId: number;
     castTicksLeft: number;
     castTicksTotal: number;
+    // baseline utility winding up (plan-downtime.md C1); 0 = none — shares the
+    // two tick fields above with the slot cast (one cast at a time)
+    castUtility: number;
     // one-tick rejection feedback: a cooldown activation refused by its
     // precondition — which skill and why (0 = none)
     activationRejectedSkillId: number;
@@ -131,6 +134,7 @@ export class GameStateMessage {
         this.castSkillId = gameState.castSkillId();
         this.castTicksLeft = gameState.castTicksLeft();
         this.castTicksTotal = gameState.castTicksTotal();
+        this.castUtility = gameState.castUtility();
 
         this.activationRejectedSkillId = gameState.activationRejectedSkillId();
         this.activationRejectedReason = gameState.activationRejectedReason();

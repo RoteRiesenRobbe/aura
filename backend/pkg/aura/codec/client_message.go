@@ -236,6 +236,28 @@ func RespecMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.Respec 
 	return &model.Respec{}
 }
 
+func unwrapUseUtility(msg *AuraApi.ClientMessage) *AuraApi.UseUtility {
+	i := &AuraApi.UseUtility{}
+	err := fbutil.UnwrapUnion[AuraApi.ClientMessageBody](msg, i)
+	if err != nil {
+		return nil
+	}
+	return i
+}
+
+func unmarshalUseUtility(u *AuraApi.UseUtility) *model.UseUtility {
+	if u == nil {
+		return nil
+	}
+	// The raw byte crosses as-is; RequestUtilityCast drops unknown kinds.
+	return &model.UseUtility{Kind: skills.UtilityKind(u.Kind())}
+}
+
+func UseUtilityMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.UseUtility {
+	fbutil.AssertBodyType[AuraApi.ClientMessageBody](msg, AuraApi.ClientMessageBodyUseUtility)
+	return unmarshalUseUtility(unwrapUseUtility(msg))
+}
+
 func ClientMessageFlatbufferUnmarshal(bytes []byte) *AuraApi.ClientMessage {
 	return AuraApi.GetRootAsClientMessage(bytes, 0)
 }

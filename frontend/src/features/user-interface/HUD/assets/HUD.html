@@ -167,7 +167,9 @@
                     hotkeys — also mid-fight. <em>Passives</em>: always on, all
                     in parallel. <em>Cooldowns</em> (Q, R, F): fire once, then
                     recharge — the cooldown belongs to the skill, not the
-                    slot.</p>
+                    slot. Besides your skills, everyone always has
+                    <em>Recall</em> on the utility button: free, no cooldown,
+                    but the long cast breaks if you move or get hit.</p>
             </section>
             <section>
                 <h3>Where skills come from</h3>
@@ -261,7 +263,7 @@
             <span class="barText"></span>
         </div>
 
-        <!-- Action bars: aura slots left, cooldowns right. -->
+        <!-- Action bars: aura slots left, utilities middle, cooldowns right. -->
         <div id="actionBars">
             <div id="auraLoadout">
                 <div class="auraLoadoutTitle">Aura Slots</div>
@@ -271,6 +273,21 @@
                     <li class="auraSlot hotkeySlot" data-slot="0"><span class="hotkey">1</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
                     <li class="auraSlot hotkeySlot" data-slot="1"><span class="hotkey">2</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
                     <li class="auraSlot hotkeySlot" data-slot="2"><span class="hotkey">3</span><span class="slotLabel">— Empty —</span><span class="beatPip"></span></li>
+                </ul>
+            </div>
+
+            <!-- Baseline utilities (plan-downtime.md D1): always-present, outside
+                 the 3 cooldown slots and outside the spellbook — nothing to
+                 discover, level, slot, or spend points on. Tooltips live on the
+                 buttons (title=, the helpButton convention). Presses are handled
+                 by Utilities.ts via pointerdown (MouseManager suppresses click).
+                 Camp joins with C2. -->
+            <div id="utilityBar">
+                <div class="auraLoadoutTitle">Utility</div>
+                <ul id="utilityList">
+                    <li class="auraSlot utilityButton" data-utility="1"
+                        title="Return to your bound campfire. Takes 10 s — moving or taking damage interrupts. Free, no cooldown."
+                        ><span class="slotLabel">Recall</span></li>
                 </ul>
             </div>
 

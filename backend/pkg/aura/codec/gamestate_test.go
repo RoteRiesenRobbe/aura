@@ -353,6 +353,25 @@ func TestGameStateCastAndRejection_AbsentReadsZero(t *testing.T) {
 	assert.Zero(t, result.CastTicksTotal())
 	assert.Zero(t, result.ActivationRejectedSkillId())
 	assert.Zero(t, result.ActivationRejectedReason())
+	assert.Zero(t, result.CastUtility(), "absent cast_utility reads 0 = no utility cast")
+}
+
+// A baseline-utility cast rides the same two tick fields with cast_utility as
+// the label source (plan-downtime.md C1).
+func TestGameStateCastUtility_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddCastUtility(b, uint8(AuraApi.UtilityKindRecall))
+	AuraApi.GameStateAddCastTicksLeft(b, 120)
+	AuraApi.GameStateAddCastTicksTotal(b, 300)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	result := AuraApi.GetRootAsGameState(b.FinishedBytes(), 0)
+	assert.Equal(t, uint8(AuraApi.UtilityKindRecall), result.CastUtility())
+	assert.Zero(t, result.CastSkillId(), "one cast at a time — no slot skill during a utility cast")
+	assert.Equal(t, uint16(120), result.CastTicksLeft())
+	assert.Equal(t, uint16(300), result.CastTicksTotal())
 }
 
 // --- the interact prompt wire (plan-entity-model.md chunk 3b-i) ---

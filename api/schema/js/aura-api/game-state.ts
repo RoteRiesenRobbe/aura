@@ -209,8 +209,13 @@ damageFactor():number {
   return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 1.0;
 }
 
+castUtility():number {
+  const offset = this.bb!.__offset(this.bb_pos, 48);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(22);
+  builder.startObject(23);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -420,6 +425,10 @@ static addCostFactor(builder:flatbuffers.Builder, costFactor:number) {
 
 static addDamageFactor(builder:flatbuffers.Builder, damageFactor:number) {
   builder.addFieldFloat32(21, damageFactor, 1.0);
+}
+
+static addCastUtility(builder:flatbuffers.Builder, castUtility:number) {
+  builder.addFieldInt8(22, castUtility, 0);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

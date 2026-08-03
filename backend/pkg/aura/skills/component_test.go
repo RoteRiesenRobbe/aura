@@ -1043,3 +1043,85 @@ func TestAuraCategories_ActiveAuraOnly(t *testing.T) {
 	sc.ActiveAuraSlot = -1
 	assert.Equal(t, AuraCategoryNone, sc.AuraCategories())
 }
+
+// --- baseline utility casting (plan-downtime.md C1) --------------------------
+
+func TestStartUtilityCast_SetsKindAndTicks(t *testing.T) {
+	sc := NewSkillComponent(true)
+
+	sc.StartUtilityCast(UtilityRecall)
+
+	assert.True(t, sc.IsCasting())
+	assert.Equal(t, UtilityRecall, sc.CastingUtility)
+	assert.Equal(t, 300, sc.CastTicksLeft)
+	assert.Nil(t, sc.CastingSkill(), "a utility cast occupies no cooldown slot")
+}
+
+func TestStartUtilityCast_UnknownKindIgnored(t *testing.T) {
+	sc := NewSkillComponent(true)
+
+	sc.StartUtilityCast(UtilityNone)
+	assert.False(t, sc.IsCasting())
+	sc.StartUtilityCast(UtilityKind(200)) // client-supplied garbage
+	assert.False(t, sc.IsCasting())
+}
+
+func TestCancelCast_ClearsAUtilityCast(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.StartUtilityCast(UtilityRecall)
+
+	sc.CancelCast()
+
+	assert.False(t, sc.IsCasting())
+	assert.Equal(t, UtilityNone, sc.CastingUtility)
+	assert.Equal(t, 0, sc.CastTicksLeft)
+}
+
+// One cast at a time is the standing rule; the two casting states must not
+// coexist or the wire would have to pick one and the other would fire blind.
+func TestStartUtilityCast_CancelsARunningSlotCast(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipCooldown(0, castDef(true), 1)
+	sc.StartCast(0)
+	require.True(t, sc.IsCasting())
+
+	sc.StartUtilityCast(UtilityRecall)
+
+	assert.Equal(t, -1, sc.CastingSlot, "the slot cast is gone")
+	assert.Equal(t, UtilityRecall, sc.CastingUtility)
+	assert.Equal(t, 300, sc.CastTicksLeft, "ticks are the utility's, not a leftover")
+}
+
+func TestStartCast_CancelsARunningUtilityCast(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.EquipCooldown(0, castDef(true), 1)
+	sc.StartUtilityCast(UtilityRecall)
+	require.True(t, sc.IsCasting())
+
+	sc.StartCast(0)
+
+	assert.Equal(t, UtilityNone, sc.CastingUtility, "the utility cast is gone")
+	assert.Equal(t, 0, sc.CastingSlot)
+}
+
+// Recall opts into the damage interrupt (plan-downtime.md D7: the 10 s
+// interruptible cast is the ONLY brake on a free, cooldown-less Recall).
+func TestCancelCastOnDamage_UtilityRecallIsInterrupted(t *testing.T) {
+	sc := NewSkillComponent(true)
+	sc.StartUtilityCast(UtilityRecall)
+
+	sc.CancelCastOnDamage()
+
+	assert.False(t, sc.IsCasting())
+	assert.Equal(t, UtilityNone, sc.CastingUtility)
+}
+
+func TestRequestUtilityCast_QueuesOnlyKnownKinds(t *testing.T) {
+	sc := NewSkillComponent(true)
+
+	sc.RequestUtilityCast(UtilityRecall)
+	sc.RequestUtilityCast(UtilityKind(200)) // dropped, client-supplied
+	sc.RequestUtilityCast(UtilityNone)      // dropped
+
+	assert.Equal(t, []UtilityKind{UtilityRecall}, sc.PendingUtilities)
+}

@@ -110,12 +110,11 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	fsys := os.DirFS("../../../../api/skills")
 	r, err := RegistryFromFS(fsys, realFactions(t))
 	require.NoError(t, err)
-	// 25 player skills (incl. Swift/Tough, NovaBurst/FirstAid,
+	// 24 player skills (incl. Swift/Tough, NovaBurst/FirstAid,
 	// Slow, the Paladin combination result, the FireWard resist
 	// aura, the Immolate/Ignite dot pair, SummonTotem,
 	// SummonCompanion, the Taunt/Fade threat-op pair, Lantern (né Light), the
-	// Reaper vocabulary smoke, the Barrier shield smoke, the Recall
-	// cast-time cooldown, the chunk-3 HoT+revive smoke trio
+	// Reaper vocabulary smoke, the Barrier shield smoke, the chunk-3 HoT+revive smoke trio
 	// Rejuvenation/Recover/Revive, the chunk-5 Dash cooldown, the chunk-6
 	// Haste tick_rate cooldown, and the C1 Harvest peasant-start aura — né
 	// TurnipPull, renamed C2 Part 2)
@@ -151,7 +150,9 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// + Bloodthirst, the R3 lifesteal_burst cooldown — the rider Reaper dropped
 	// in §5.6, re-shaped as a six-second window you spend a cooldown on
 	// (2026-08-01)
-	assert.Len(t, r.All(), 87)
+	// − Recall, RETIRED 2026-08-03 (R4 C1, plan-downtime.md D7): it became a
+	// baseline utility outside the skill catalog; id 28 stays burned.
+	assert.Len(t, r.All(), 86)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

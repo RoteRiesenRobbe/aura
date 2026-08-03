@@ -87,6 +87,10 @@ func (c *fakeClient) NextRespec() *model.Respec {
 	return nil
 }
 
+func (c *fakeClient) NextUseUtility() *model.UseUtility {
+	return nil
+}
+
 // A real queue like the interacts above: the abandon verb's whole server half
 // is what happens when this drains (chunk C3, D13).
 func (c *fakeClient) NextAbandonQuest() *model.AbandonQuest {

@@ -314,6 +314,7 @@ func (nopClient) NextRespawn() *model.Respawn                 { return nil }
 func (nopClient) NextInteract() *model.Interact               { return nil }
 func (nopClient) NextAbandonQuest() *model.AbandonQuest       { return nil }
 func (nopClient) NextRespec() *model.Respec                   { return nil }
+func (nopClient) NextUseUtility() *model.UseUtility           { return nil }
 func (nopClient) SendMessage([]byte) error                    { return nil }
 func (nopClient) SendUnlock(uint64, string) error             { return nil }
 func (nopClient) SendJournal(string) error                    { return nil }

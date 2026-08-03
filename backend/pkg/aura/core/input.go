@@ -166,6 +166,13 @@ func (i *PlayerInputSystem) Update(dt float32) {
 		if input != nil {
 			i.storeInput(p.Basic().ID(), input)
 		}
+		// Baseline-utility presses (plan-downtime.md C1) ride their own
+		// message kind, not Input — queued here like cooldown activations,
+		// fired by the SkillSystem later this same tick. Health-gated the
+		// way movement is: the dead do not recall.
+		if u := p.Client().NextUseUtility(); u != nil && p.VitalSigns().Health != 0 {
+			p.SkillComponent().RequestUtilityCast(u.Kind)
+		}
 	}
 
 	// freeze input, concurrent reads are fine

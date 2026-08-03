@@ -45,6 +45,10 @@ type Client interface {
 	// from the client (round-7 item 8). Returns nil if none available.
 	NextRespec() *Respec
 
+	// NextUseUtility deques a baseline-utility press (plan-downtime.md C1).
+	// Returns nil if none available.
+	NextUseUtility() *UseUtility
+
 	// SendMessage enqueues a message in the outgoing
 	// messages queue
 	SendMessage([]byte) error

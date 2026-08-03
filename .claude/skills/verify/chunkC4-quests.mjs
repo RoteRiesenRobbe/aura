@@ -516,16 +516,12 @@ try {
   check('C1 the crier greets at root with the wolves behind "Do you have a task for me?"',
     crier?.rows.some((r) => r.includes('Do you have a task for me')), `rows=${JSON.stringify(crier?.rows)}`);
 
-  // Q4: the crier's teachings no longer offer Damage — it is the creation
-  // milestone now. Recall must still be there (locked or not: the row shows).
-  await clickRow('Teach me something');
-  const teachings = await panel();
-  check('C2 ⭐ the crier TEACHES NO DAMAGE any more (Q4) — Recall remains',
-    teachings !== null
-    && !teachings.rows.some((r) => /damage/i.test(r))
-    && teachings.rows.some((r) => r.includes('Recall')),
-    `teaching rows=${JSON.stringify(teachings?.rows)}`);
-  await clickBack();
+  // Q4 retired the Damage teaching (creation milestone); R4 C1 retired Recall
+  // (baseline utility, plan-downtime.md D7/D8) — so the crier teaches nothing
+  // and the whole "Teach me something." row is gone from root.
+  check('C2 ⭐ the crier OFFERS NO TEACHING any more (Q4 + R4 C1) — the row is gone from root',
+    crier !== null && !crier.rows.some((r) => r.includes('Teach me something')),
+    `rows=${JSON.stringify(crier?.rows)}`);
 
   await clickRow('Do you have a task for me');
   await clickRow("I'll do it");

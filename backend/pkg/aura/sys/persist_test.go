@@ -150,6 +150,15 @@ func TestRestoreDropsASlotForARetiredSkill(t *testing.T) {
 	assert.Nil(t, p.SkillComponent().AuraSlots[0], "the retired skill's slot is empty")
 	require.NotNil(t, p.SkillComponent().PassiveSlots[0])
 	assert.Equal(t, uint32(3), p.Progression().Level, "the character still loaded")
+
+	// The SPELLBOOK row gets the same treatment (R4 C1 — Recall's retirement
+	// is the first real instance): an unvalidated ghost id would ship on the
+	// wire every tick and keep pricing skill points the player can never
+	// refund (SpentPoints treats an unresolvable entry pessimistically).
+	assert.NotContains(t, p.SkillComponent().Spellbook, skills.SkillID(999),
+		"the retired skill's spellbook entry is dropped")
+	assert.Contains(t, p.SkillComponent().Spellbook, skills.SkillID(41),
+		"the surviving skill's entry loads")
 }
 
 // TestReconnectIgnoresPersistedState is §5's rule: load-from-DB is for cold

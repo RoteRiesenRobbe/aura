@@ -1,10 +1,12 @@
 # Plan: Downtime agency + baseline Recall (R4)
 
-> **Status: DESIGNED 2026-08-03 (design session, no code).** This is R4 from
+> **Status: C1 ✅ BUILT 2026-08-03 (ledger §9) — C2 open.** Designed
+> 2026-08-03 (design session): this is R4 from
 > `plan-resource-costs-feedback.md` §6, widened 2026-08-02 by intake round 8
 > item 1 (`plan-playtest-feedback.md`). All nine design questions ruled by the
-> PO in one session, as choice prompts. Chunks C1–C2 below are ready to
-> execute. Every number is [PLACEHOLDER].
+> PO in one session, as choice prompts. ⚑ Two claims in the prose below were
+> corrected by C1's survey — D8's prune cascade and §2's "existing fallback
+> ladder" — see §9. Every number is [PLACEHOLDER].
 
 ## 1. What this is, and its inputs
 
@@ -226,4 +228,93 @@ C1 first — it builds the class C2 rides, and it is independently shippable
 
 ## 9. Chunk ledgers
 
-*(filled per chunk as they ship)*
+### C1 — Recall becomes a baseline utility ✅ BUILT 2026-08-03 (uncommitted; PO review pending)
+
+**Shipped.** `recall.json` deleted (id 28 burned), both teach rows removed,
+`skills.UtilityKind`/`UtilityDef` (Go literals — the class is deliberately not
+catalog content), `UseUtility` pinned at `ClientMessageBody = 11` with a
+`UtilityKind` wire **enum** (None=0, Recall=1 — the ActivationRejection
+precedent, pinned cross-language by `TestUtilityKind_GoConstantsMatchTheWireEnum`),
+utility casting state on `SkillComponent` (`CastingUtility` + `PendingUtilities`,
+mirroring the slot vocabulary), `cast_utility:ubyte` appended to `GameState`
+(shares the two tick fields — one cast at a time), `#utilityBar` +
+`features/utilities/Utilities.ts` (desktop panel between the loadouts; mobile a
+fixed round button above the tile row on the LEFT, the interactButton mirror —
+the six-tile row is width-saturated and must not grow), help-panel sentence,
+new harness `r4-recall-utility.mjs`.
+
+**Decisions taken in-chunk:**
+- **The rejection wire needed nothing new**: the client renders the REASON
+  alone (`activationRejectionMessage(reason)` — the skill id was never read),
+  so a utility refusal sends id 0 + `NoAnchor` through the existing one-shot.
+- **The cast bar needed one field, not a rework**: the client bar was already
+  slot-agnostic; only the server's `CastingSkill()` was welded to
+  `CooldownSlots` (L2 confirmed). The utility branch runs FIRST in
+  `advanceCast`, because during a utility cast `CastingSkill()` is nil by
+  construction and the slot branch reads nil as "unequipped mid-cast".
+- **Every cancel site covered by construction**: `CancelCast()` clears both
+  casting states, so movement / aura switch / other-press / respawn needed no
+  new calls; only `CancelCastOnDamage` learned the utility flag. Mutual
+  exclusion pinned both directions in component tests.
+- **Utility presses ride their own message** (not `Input.cooldown_activations`,
+  which is slot-indexed `ubyte`), drained in `PlayerInputSystem.Update` next to
+  `NextInput`, health-gated — the dead do not recall.
+
+**⚑ Two plan-doc corrections (recorded in place here):**
+- **D8's prune-cascade claim was WRONG**: `pruneEmptyDestinations` fires only
+  for a destination that *authored* options but *presents* none (the lore-leaf
+  carve-out) — deleting just the Recall option leaves `teachings`
+  authored-empty and the *"Teach me something."* row ALIVE, leading to a dead
+  screen. The row and the node were deleted **together, in content**, on both
+  NPCs; the prune contributed nothing.
+- **§2/§6's "existing fallback ladder" is the RESPAWN path's.** Recall is
+  deliberately fail-closed (`AnchorOf` or refuse with `NoAnchor` — never
+  default spawn) and stays so as a utility, checked at press AND completion.
+
+**⚑ Findings:**
+- **The chunk-4 "retired skill skipped, not fatal" rule covered the LOADOUT
+  only** — the spellbook restore loop validated nothing, so a persisted
+  character taught Recall would carry ghost id 28 into live state, onto the
+  wire (`Discovered()` ships raw ids) and into `SpentPoints` (which prices an
+  unresolvable entry pessimistically, points the player can never refund).
+  Closed with a registry check + warn-skip in `sys/persist.go`, pinned by
+  extending `TestRestoreDropsASlotForARetiredSkill` (proven red first).
+- **Deleting `recall.json` alone is a hard BOOT failure, not a red test** —
+  teach grants resolve skills by name at load; the file, both teach rows and
+  the 87→86 registry pin had to land as one edit (L10 held: full suite run
+  immediately after, green).
+- **⚑ NEW BUG, pre-existing, found by the mobile-layout re-run:
+  `#registrationNag` covers the open mobile sheet** — the accounts-chunk nag
+  has no mobile home, sits over the journal button (probed:
+  `elementFromPoint` at the button's centre returns the nag), so
+  journal-from-sheet is dead on phones. Confirmed on a HEAD frontend build
+  (stash + rebuild) — NOT this chunk's regression, the same accounts↔mobile
+  merge class as backlog §49. Where the nag belongs on a phone is a PO call;
+  `mobile-layout.mjs` leg 7 stays legitimately red until it is fixed.
+- `mobile-layout.mjs` still joined through the deleted `#startForm` (written
+  on the pre-accounts-merge line) — repaired to `joinAsNewCharacter` with this
+  chunk per the rot rule.
+- `SkillTooltip.ts`'s `case 'recall'` line is now unreachable (no catalog
+  skill carries the effect) — left in place: the effect type is engine
+  vocabulary and C2-era content may reuse it.
+
+**Verified:** Go full suite `-count=1` against real Postgres green · five new
+sys behavior tests + seven component tests + codec pin/round-trips (component
+API proven red first; the completion re-check mutation-tested — deleting it
+reddens exactly `TestUtilityRecall_AnchorLostMidCastRejectsAtCompletion`) ·
+vet/gofmt clean · vitest 154/154 · tsc · prod build · boot **86 skills**
+(87−1)/15 factions/64 mobs/10 recipes/4 quests/777 props/485 spawns/5
+campfires, 0 errors 0 warnings · **`r4-recall-utility.mjs` 12/12** (bind →
+warp 37 units out → cast bar "Recall" → move-interrupt goes nowhere →
+completion lands 1.04 units from home → crier offers no teaching) ·
+`hygiene-wire-prune` clean (643 sprites, 0 errors — the .fbs adds decode) ·
+`chunk4-persistence.mjs` 16/16 · `chunkC4-quests.mjs` 37+1 SKIP ·
+`mobile-layout.mjs` green EXCEPT the pre-existing leg-7 nag bug above (leg 5
+pins the tile row untouched at six). ⚑ This box: harness against the
+`aura-pg` Docker Postgres; `AURA_JWT_KEY` must be ≥32 CSPRNG bytes or the
+accounts endpoints refuse to start (boots, then exits).
+
+**Open, deliberately:** the Recall button has no hotkey (buttons are D1's
+ruling; a key is one `Controls` entry later) · no disabled/greyed state while
+unbound (the client cannot see bind state; the NoAnchor floating text is the
+feedback) · every number [PLACEHOLDER] (cast 300 ticks inherited).

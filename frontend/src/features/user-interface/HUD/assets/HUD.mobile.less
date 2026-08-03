@@ -506,4 +506,45 @@ html.mobile {
 		display: flex;
 		align-items: center;
 	}
+
+	/* --- baseline utilities (plan-downtime.md D1, L7) ------------------- */
+	// The six-tile row is width-saturated in portrait (the 13vw cap above is
+	// what keeps it on screen), so the Recall button does NOT join it as a
+	// seventh tile: it takes the #interactButton treatment — fixed above the
+	// tile row, on the LEFT edge where interact holds the right. It stays a
+	// child of #actionBars, so the pointer-events: auto opt-in covers it.
+	#utilityBar {
+		position: fixed;
+		left: @mobile-edge;
+		bottom: ~"calc(min(5.6rem, 15vh, 13vw) + 2 * 0.7rem)";
+		z-index: (@mobile-menu-z - 1);
+
+		min-width: 0;
+		padding: 0;
+		background: none;
+		border: none;
+
+		> .auraLoadoutTitle {
+			display: none;
+		}
+
+		> ul > .utilityButton {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			width: @mobile-button;
+			height: @mobile-button;
+			padding: 0.2rem;
+
+			background: fade(black, 65%);
+			border: 2px solid fade(#ffd75e, 80%);
+			border-radius: 50%;
+			color: #ffd75e;
+
+			font-size: 1.1rem;
+			text-align: center;
+			overflow: hidden;
+		}
+	}
 }

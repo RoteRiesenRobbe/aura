@@ -4,6 +4,7 @@ import * as Journal from '../../../journal/logic/Journal';
 import * as Help from '../../../help/logic/Help';
 import * as MobileMenu from './MobileMenu';
 import * as Interact from '../../../interact/logic/Interact';
+import * as Utilities from '../../../utilities/logic/Utilities';
 import * as Mobile from '../../logic/Mobile';
 import * as Preloading from '../../../core/logic/Preloading';
 import {BasicConfig as Constants} from '../../../../client-data/BasicConfig';
@@ -92,6 +93,7 @@ export function setup(game) {
     setupAuraLoadout();
     setupPassiveLoadout();
     setupCooldownLoadout();
+    Utilities.setup();
     Conversation.setup();
     Journal.setup();
     Help.setup();
@@ -148,19 +150,26 @@ function setupVitalSigns() {
 // remaining seconds (ticks × the server tick interval, the cooldown
 // convention — never a rounded 33, see Constants.SERVER_TICKRATE). All-zero
 // hides the bar — no cast, or the cast was canceled/completed.
-export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: number) {
+//
+// A baseline-utility cast (downtime C1) rides the same bar: one cast at a
+// time server-side, so at most one of skillId/utilityKind is nonzero. Only
+// the label source differs — a utility is no catalog skill, so
+// skillDisplayName cannot name it.
+export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: number,
+                              utilityKind: number = 0) {
     if (!castBarElement) {
         return;
     }
-    const casting = skillId > 0 && ticksTotal > 0;
+    const casting = (skillId > 0 || utilityKind > 0) && ticksTotal > 0;
     castBarElement.classList.toggle('casting', casting);
     if (!casting) {
         return;
     }
     const progress = Math.min(Math.max(1 - ticksLeft / ticksTotal, 0), 1);
     castBarIndicatorElement.style.width = `${progress * 100}%`;
+    const name = utilityKind > 0 ? Utilities.utilityDisplayName(utilityKind) : skillDisplayName(skillId);
     castBarTextElement.textContent =
-        `${skillDisplayName(skillId)} ${(ticksLeft * Constants.SERVER_TICKRATE / 1000).toFixed(1)}s`;
+        `${name} ${(ticksLeft * Constants.SERVER_TICKRATE / 1000).toFixed(1)}s`;
 }
 
 // updateCombatIndicator shows/hides the red sword next to the zoom control

@@ -374,10 +374,14 @@ export class Backend implements IBackend {
             }
 
             // Cast bar (skill-vocab chunk 4): all-zero = no cast, hides the bar.
+            // A baseline-utility cast (downtime C1) rides the same bar via the
+            // fourth argument — its label source, since utilities are not
+            // catalog skills.
             HUD.updateCastBar(
                 snapshot.castSkillId ?? 0,
                 snapshot.castTicksLeft ?? 0,
-                snapshot.castTicksTotal ?? 0);
+                snapshot.castTicksTotal ?? 0,
+                snapshot.castUtility ?? 0);
 
             // Rejection feedback (chunk 4, §3.5): one-tick stamp → floating
             // text over the own character (the campfire-bound rendering path).

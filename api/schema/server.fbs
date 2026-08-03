@@ -547,6 +547,15 @@ table GameState {
   // nothing on the wire. Appended at the table end so existing field IDs stay
   // stable.
   damage_factor:float = 1.0;
+
+  // The baseline utility currently winding up (plan-downtime.md C1): 0 = no
+  // utility cast. Shares cast_ticks_left/cast_ticks_total with the slot cast
+  // above — one cast at a time is the standing rule, so a nonzero value here
+  // means cast_skill_id is 0 and vice versa. The client renders the same
+  // cast bar either way; only the label source differs (utilities are not
+  // catalog skills). Own player only. Default 0 is the neutral value.
+  // Appended at the table end so existing field IDs stay stable.
+  cast_utility:ubyte = 0;
 }
 
 table Welcome {

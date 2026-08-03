@@ -411,8 +411,20 @@ func (rcv *GameState) MutateDamageFactor(n float32) bool {
 	return rcv._tab.MutateFloat32Slot(46, n)
 }
 
+func (rcv *GameState) CastUtility() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *GameState) MutateCastUtility(n byte) bool {
+	return rcv._tab.MutateByteSlot(48, n)
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(22)
+	builder.StartObject(23)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -503,6 +515,9 @@ func GameStateAddCostFactor(builder *flatbuffers.Builder, costFactor float32) {
 }
 func GameStateAddDamageFactor(builder *flatbuffers.Builder, damageFactor float32) {
 	builder.PrependFloat32Slot(21, damageFactor, 1.0)
+}
+func GameStateAddCastUtility(builder *flatbuffers.Builder, castUtility byte) {
+	builder.PrependByteSlot(22, castUtility, 0)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
