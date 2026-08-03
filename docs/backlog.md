@@ -4921,3 +4921,43 @@ claiming a property nothing tested.
 
 **Acceptance criterion if it is built:** all eight existing writer tests pass
 **unedited**. If any needs changing, the refactor is wrong.
+
+---
+
+## 52. Leaving the world should take time
+
+*(PO idea 2026-08-03, raised alongside §46/§48)*
+
+Today, closing the tab removes your character from the world instantly. It is
+parked in memory for ~10 minutes so you can come back, but as far as the world
+is concerned you simply vanished.
+
+**The proposal:** decide by where you are standing.
+
+- **Somewhere safe** (near a campfire) — you leave immediately, as now.
+- **In the wilderness** — your character **stays in the world for ~30 seconds,
+  fully simulated**. Auras keep ticking, mobs can still hit you, and you can
+  die. Movement input is reset, so you stand still. Logging back in simply
+  resumes control of that same character.
+
+⚑ **This is a fix, not a new feature.** `plan-accounts-frontend.md` §12 already
+records the **disconnect-to-escape exploit**: *"disconnecting removes your
+entity instantly; harmless today, a real problem once there is progress to
+protect."* Step 8a shipped the progress.
+
+**Open questions to answer before building it:**
+
+1. What counts as safe? Any campfire radius, or specifically your bound one?
+2. What does a returning player see if they died while away?
+3. Are the 30 s and the ~10 min park one timer or two?
+4. What happens on an explicit **logout** (which ends the world session today)
+   versus a dropped connection?
+
+**Do it after §48**, when there is one join path to hang it on.
+
+⚑ **A related idea was considered and rejected:** deferring live players' saves
+until the park expires, to cut database writes. The writes are already
+asynchronous, already de-duplicated, and already run with
+`synchronous_commit = off` — so it would trade durability for nothing much, and
+keep more state in memory for longer. The tail is lazy already:
+`sweepExpiredStashes` saves on expiry rather than at disconnect.
