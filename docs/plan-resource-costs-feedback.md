@@ -743,6 +743,16 @@ numbers are [PLACEHOLDER] until played.
 
 ### R4 — Downtime agency **+ a free, baseline Recall** (design session, no code)
 
+> ✅ **RAN 2026-08-03 → `docs/plan-downtime.md`.** All five §2.3 open
+> questions ruled. The headline rulings: a new **baseline-utility** class
+> (Recall + a placeable **mini-campfire**, always-present HUD buttons outside
+> the cooldown slots and the spellbook); Recall free with **no cooldown at
+> all** — the 10 s interruptible cast is the only brake, and the slottable
+> skill is retired; charges are **purely per-session** (§32 answered: store
+> nothing); the teachers lose their teach rows to the empty-destination prune.
+> ⚑ The constraint-table consequence below that Recall "joins the
+> `freeFloorSkills` guard" is **superseded** — a retired skill joins nothing.
+
 §2.3, **widened 2026-08-02** — see §2.3's *"Recall belongs to this design"*
 sub-section for the full ruling, the four constraints and the five open
 questions. In one line: **the way back to safety and the way back to fighting

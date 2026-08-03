@@ -3095,6 +3095,18 @@ tutorial is built on.
 
 ## 32. Consumable cooldowns — charges in the spellbook
 
+> ⭐ **THE OPEN QUESTION IS ANSWERED — PO 2026-08-03, via R4
+> (`docs/plan-downtime.md`): charges are purely per-session.** The first
+> charge-carrying ability (the mini-campfire baseline utility) persists
+> **nothing** — wiped on death AND logout; death is painless by construction
+> because respawn lands at the bound campfire, which is the refill point. No
+> migration, no stockpile, no economy seed. ⚑ This rules the *first* charge
+> mechanism, not the concept: a future powerful-but-finite spellbook cooldown
+> (the "disposable bomb" below) would re-open the persistence question on its
+> own merits — but it now starts from a shipped per-session precedent, and
+> "never transferable" stays the standing recommendation. The section below
+> is kept as the original idea record.
+
 **WoW/Gothic fit: medium** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO idea 2026-07-25, recorded alongside the healer-regen bug
 (`plan-playtest-feedback.md` §Intake round 3). *"Cooldowns that are very

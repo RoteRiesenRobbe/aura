@@ -2215,6 +2215,13 @@ session** — it is written up where R4 lives (`plan-resource-costs-feedback.md`
 
 ### 1. Recall must be free and baseline — and it is the same design as downtime → **R4**
 
+> ✅ **DESIGNED 2026-08-03 → `docs/plan-downtime.md`** (the R4 session ran;
+> 9 PO rulings). Recall becomes a **baseline utility** — a dedicated HUD
+> button outside the cooldown slots and the spellbook, free, **no cooldown**,
+> the 10 s interruptible cast as the only brake; recovery is a charge-fed
+> placeable **mini-campfire** refilled by dwelling at any real fire, charges
+> purely per-session. Not built yet — chunks C1/C2 in the plan doc.
+
 > *"recall should not have a cost and become a baseline ability. author that
 > design together with the downtime recovery changes that still need a design.
 > both should be designed together. both options should be available from the
