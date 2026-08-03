@@ -14,7 +14,7 @@ Aura is designed as a **single-binary deployment**: the server (`aurad`) carries
   Migrations are embedded directly into the Go binary (`backend/pkg/aura/store/migrate.go`) via `go:embed migrations/*.sql`. We do not install or invoke the `migrate` CLI tool on production servers or developers' machines. This guarantees that a schema/binary version mismatch is impossible by construction: every binary knows exactly which schema version it requires and carries the SQL to get there.
 
 - **Automatic Execution at Boot (`database.go`)**:
-  Before `aurad` starts its game loop or opens its HTTP/websocket ports, it invokes [`store.Migrate(url)`](file:///F:/Projects/aura/backend/pkg/aura/store/migrate.go#L41).
+  Before `aurad` starts its game loop or opens its HTTP/websocket ports, it invokes [`store.Migrate(url)`](../backend/pkg/aura/store/migrate.go#L41).
   - If pending migrations exist, they are applied automatically.
   - If the database is already at the correct version (`migrate.ErrNoChange`), boot proceeds immediately.
   - If a migration fails, `aurad` logs the failure and **refuses to start**. We never run an online game against a half-migrated or broken schema.
@@ -23,7 +23,7 @@ Aura is designed as a **single-binary deployment**: the server (`aurad`) carries
   `golang-migrate` acquires a PostgreSQL advisory lock before running migrations. If multiple server processes start simultaneously against the same database, only one will perform the schema upgrade while others wait.
 
 - **Driver & Custom URL Scheme (`pgx5://`)**:
-  Aura uses the native `pgx/v5` PostgreSQL driver (`pgxpool`). Because `golang-migrate` routes database drivers based on the URL scheme, [`toMigrateURL(url)`](file:///F:/Projects/aura/backend/pkg/aura/store/migrate.go#L135) automatically rewrites `postgres://` connection strings to `pgx5://` before initializing the migrator.
+  Aura uses the native `pgx/v5` PostgreSQL driver (`pgxpool`). Because `golang-migrate` routes database drivers based on the URL scheme, [`toMigrateURL(url)`](../backend/pkg/aura/store/migrate.go#L135) automatically rewrites `postgres://` connection strings to `pgx5://` before initializing the migrator.
 
 ---
 
@@ -98,9 +98,9 @@ DROP TABLE IF EXISTS game.example_table;
 Aura's Go test suite validates both up and down migrations against a real PostgreSQL instance:
 
 - **Test Database URL (`AURA_TEST_DB_URL`)**:
-  Integration tests in [`backend/pkg/aura/store`](file:///F:/Projects/aura/backend/pkg/aura/store) and [`backend/pkg/aura/accounts`](file:///F:/Projects/aura/backend/pkg/aura/accounts) read `AURA_TEST_DB_URL` from the environment. If unset, database tests skip cleanly.
+  Integration tests in [`backend/pkg/aura/store`](../backend/pkg/aura/store) and [`backend/pkg/aura/accounts`](../backend/pkg/aura/accounts) read `AURA_TEST_DB_URL` from the environment. If unset, database tests skip cleanly.
 - **Round-Trip Acceptance Testing**:
-  [`TestMigrateAndRollback`](file:///F:/Projects/aura/backend/pkg/aura/store/store_test.go) executes `store.Migrate(url)` followed by `store.Rollback(url)` and verifies that rolling back leaves a genuinely empty database (zero remaining tables in schema `game`).
+  [`TestMigrateAndRollback`](../backend/pkg/aura/store/store_test.go) executes `store.Migrate(url)` followed by `store.Rollback(url)` and verifies that rolling back leaves a genuinely empty database (zero remaining tables in schema `game`).
 - **Parallel Test Lock (`storetest`)**:
   Because `go test ./...` executes Go packages in parallel, multiple test packages (`accounts`, `store`) share a single test database. Every DB-touching test package acquires the **Postgres advisory lock** in `store/storetest` before running migrations or queries. Without this lock, parallel packages will drop each other's schema mid-run, surfacing as false-positive `"relation game.accounts does not exist"` errors.
 
@@ -139,7 +139,7 @@ When `golang-migrate` runs a migration file:
 > Because PostgreSQL rolls back the failed SQL statement automatically, the database tables may be **absent or untouched**, but `schema_migrations.dirty` remains `true`. When this happens, `aurad` will **refuse to boot** and emit an error stating the schema is dirty.
 
 ### Diagnosing a Dirty State
-When `store.Migrate` encounters a dirty state, it calls [`dirtyHint(err)`](file:///F:/Projects/aura/backend/pkg/aura/store/migrate.go#L96-L109), which prints exact recovery instructions to the console and server logs.
+When `store.Migrate` encounters a dirty state, it calls [`dirtyHint(err)`](../backend/pkg/aura/store/migrate.go#L96-L109), which prints exact recovery instructions to the console and server logs.
 
 To inspect the database manually using `psql`:
 ```sql
@@ -200,8 +200,8 @@ When deploying Aura to a live VPS (e.g., via `devops/deploy.sh`):
 | Topic | Implementation / Location | Notes |
 | :--- | :--- | :--- |
 | **Migration Files** | `backend/pkg/aura/store/migrations/*.sql` | Six-digit sequential prefix (`000001_...`), `.up.sql` / `.down.sql` pairs |
-| **Migrator Module** | [`backend/pkg/aura/store/migrate.go`](file:///F:/Projects/aura/backend/pkg/aura/store/migrate.go) | Embeds SQL via `go:embed`, calls `golang-migrate` as a library |
-| **Boot Hook** | [`backend/cmd/aurad/database.go`](file:///F:/Projects/aura/backend/cmd/aurad/database.go) | Invokes `store.Migrate(url)` before game loop or network listen |
-| **Dirty Recovery** | [`store.dirtyHint(err)`](file:///F:/Projects/aura/backend/pkg/aura/store/migrate.go#L96) | Log output provides exact `SELECT` and `DELETE` queries to recover |
-| **Test Lock** | [`backend/pkg/aura/store/storetest`](file:///F:/Projects/aura/backend/pkg/aura/store/storetest) | Advisory lock prevents parallel `go test ./...` packages from colliding |
-| **Schema Doc** | [`docs/plan-accounts-schema.md`](file:///F:/Projects/aura/docs/plan-accounts-schema.md) | Architectural rationale behind every table, column, and hash choice |
+| **Migrator Module** | [`backend/pkg/aura/store/migrate.go`](../backend/pkg/aura/store/migrate.go) | Embeds SQL via `go:embed`, calls `golang-migrate` as a library |
+| **Boot Hook** | [`backend/cmd/aurad/database.go`](../backend/cmd/aurad/database.go) | Invokes `store.Migrate(url)` before game loop or network listen |
+| **Dirty Recovery** | [`store.dirtyHint(err)`](../backend/pkg/aura/store/migrate.go#L96) | Log output provides exact `SELECT` and `DELETE` queries to recover |
+| **Test Lock** | [`backend/pkg/aura/store/storetest`](../backend/pkg/aura/store/storetest) | Advisory lock prevents parallel `go test ./...` packages from colliding |
+| **Schema Doc** | [`docs/plan-accounts-schema.md`](plan-accounts-schema.md) | Architectural rationale behind every table, column, and hash choice |
