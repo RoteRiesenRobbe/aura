@@ -189,8 +189,9 @@ html.mobile {
 	// Bottom right, under the right thumb, but lifted clear of the tile row:
 	// in portrait the six tiles span nearly the full width, so the true corner
 	// is not free at every size. Since R4 C1's follow-up (PO 2026-08-03) it is
-	// lifted one further step — the always-present Recall button (#utilityBar)
-	// holds the spot directly above the tiles, and Talk stacks above it.
+	// lifted clear of the always-present #utilityBar column, which holds the
+	// spots directly above the tiles — with C2 that column is TWO buttons tall
+	// (Camp closest to the thumb, Recall above it), so Talk stacks above both.
 	//
 	// ⚑ It must restate `.hidden` itself. The global `.hidden { display: none }`
 	// is a bare class (0,1,0) and loses to `html.mobile #interactButton`
@@ -203,8 +204,9 @@ html.mobile {
 
 		position: fixed;
 		right: @mobile-edge;
-		// The Recall spot (tile + 2 edges) + one button height + one edge gap.
-		bottom: ~"calc(min(5.6rem, 15vh, 13vw) + 2 * 0.7rem + 4.4rem + 0.7rem)";
+		// The utility column's base (tile + 2 edges) + TWO button heights and
+		// their gaps — Camp and Recall both sit below Talk.
+		bottom: ~"calc(min(5.6rem, 15vh, 13vw) + 2 * 0.7rem + 2 * (4.4rem + 0.7rem))";
 		z-index: (@mobile-menu-z - 1);
 
 		width: @mobile-button;
@@ -519,6 +521,12 @@ html.mobile {
 	// It holds the spot just above the tiles; the Talk button, when offered,
 	// stacks ABOVE it — Recall is always present, Talk is transient. It stays
 	// a child of #actionBars, so the pointer-events: auto opt-in covers it.
+	//
+	// C2 makes it a COLUMN of two. It is anchored by its bottom edge, so the
+	// last entry in the markup is the one closest to the thumb: Camp, the
+	// frequent mid-loop press (PO 2026-08-03), with Recall a step above it.
+	// Without the explicit flex column the second <li> stacks as a raw list
+	// item and the round buttons lose their gap.
 	#utilityBar {
 		position: fixed;
 		right: @mobile-edge;
@@ -534,14 +542,37 @@ html.mobile {
 			display: none;
 		}
 
-		> ul > .utilityButton {
+		> ul {
 			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			gap: 0.7rem;
+		}
+
+		> ul > .utilityButton {
+			// A COLUMN here, unlike the desktop row: a round button has no
+			// right edge to park the charge counter against, so Camp reads
+			// its label over its count.
+			display: flex;
+			flex-direction: column;
 			align-items: center;
 			justify-content: center;
+			gap: 0;
 
 			width: @mobile-button;
 			height: @mobile-button;
 			padding: 0.2rem;
+
+			// Undo the desktop row's stretch — inside a column, flex: 1 would
+			// push the counter to the button's rim.
+			> .slotLabel {
+				flex: none;
+			}
+
+			> .utilityCharges {
+				font-size: 0.85em;
+				line-height: 1.1;
+			}
 
 			background: fade(black, 65%);
 			border: 2px solid fade(#ffd75e, 80%);

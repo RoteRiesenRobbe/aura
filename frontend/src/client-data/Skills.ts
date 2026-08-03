@@ -412,7 +412,19 @@ export const ActivationRejectionMessages: { [reason: number]: string } = {
     [ActivationRejection.NoAnchor]: 'No campfire bound',
     [ActivationRejection.NoTarget]: 'No valid target',
     [ActivationRejection.NotEnoughResource]: 'Not enough Focus',
+    [ActivationRejection.NoCharges]: 'No camp charges — rest at a campfire',
 };
+
+// How many Camp charges a character of this level may hold (plan-downtime.md
+// D9). PINNED to api/shared-constants.json's campChargeCap block, which the Go
+// side reads too — the cap is deliberately NOT a wire field, so both languages
+// compute it and SharedConstants.test.ts holds them together.
+const CAMP_CHARGE_CAP_BASE = 1;      // [PLACEHOLDER]
+const CAMP_CHARGE_CAP_PER_LEVELS = 7; // [PLACEHOLDER]
+
+export function campChargeCap(level: number): number {
+    return CAMP_CHARGE_CAP_BASE + Math.floor(Math.max(level, 0) / CAMP_CHARGE_CAP_PER_LEVELS);
+}
 
 export function activationRejectionMessage(reason: number): string {
     return ActivationRejectionMessages[reason] ?? 'Cannot use that now';

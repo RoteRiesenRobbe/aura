@@ -4,5 +4,6 @@
 
 export enum UtilityKind {
   None = 0,
-  Recall = 1
+  Recall = 1,
+  Camp = 2
 }

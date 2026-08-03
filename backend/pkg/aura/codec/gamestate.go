@@ -420,6 +420,11 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	// to the same worked-but-invisible defect. Neutral 1 is the field default,
 	// so an unmodified player adds no bytes.
 	AuraApi.GameStateAddDamageFactor(builder, gs.Player.SkillComponent().Derived.DamageFactor())
+	// The Camp charge store (plan-downtime.md C2): owner-only data like
+	// skill_points above. Only the COUNT rides the wire — the client derives
+	// the cap from the level it already has, through the shared cap curve, so
+	// the button can read "2/3" off one field.
+	AuraApi.GameStateAddCampCharges(builder, uint8(min(max(gs.Player.CampCharges(), 0), 255)))
 
 	// Cast bar (skill-vocab chunk 4): the running cast, read live off the
 	// component each tick; absent fields read as 0 = no cast.

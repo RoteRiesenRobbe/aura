@@ -92,6 +92,7 @@ type fakePlayer struct {
 	combatActions int                  // NoteCombatAction call count (chunk 1)
 	client        model.Client         // recall reads Client().UUID() (chunk 4)
 	rejections    []rejectedActivation // NoteActivationRejected calls (chunk 4)
+	campCharges   int                  // Camp baseline-utility charges (C2)
 	lastMoveDir   phy.Vec2f            // dash aim source (chunk 5)
 	buffs         skills.Buffs         // real store for tick_rate (chunk 6); zero value = factor 1.0
 	powerScale    float32              // f(character level) (C0); newFakePlayer sets neutral 1
@@ -202,6 +203,20 @@ func (f *fakePlayer) SetPosition(v phy.Vec2f) { f.aura.SetPosition(v) }
 func (f *fakePlayer) NoteActivationRejected(id skills.SkillID, reason model.ActivationRejection) {
 	f.rejections = append(f.rejections, rejectedActivation{id, reason})
 }
+
+// The Camp charge store (plan-downtime.md C2). Mirrors the real player's rules
+// so a precondition/spend bug shows up here rather than being papered over:
+// spend fails at zero, refill goes to the level-derived cap.
+func (f *fakePlayer) CampCharges() int { return f.campCharges }
+func (f *fakePlayer) SpendCampCharge() bool {
+	if f.campCharges <= 0 {
+		return false
+	}
+	f.campCharges--
+	return true
+}
+func (f *fakePlayer) RefillCampCharges()   { f.campCharges = skills.CampChargeCap(int(f.level)) }
+func (f *fakePlayer) SetCampCharges(n int) { f.campCharges = n }
 
 func (f *fakePlayer) Interactable() uint64 { return f.interactableID }
 
@@ -5048,4 +5063,226 @@ func TestUtilityRecall_UtilityPressCancelsSlotCast(t *testing.T) {
 	assert.Equal(t, skills.UtilityRecall, caster.sc.CastingUtility)
 	assert.Empty(t, target.touches, "the cast nova never fired")
 	assert.Equal(t, 0, caster.sc.SlotCooldownRemaining(0), "no cooldown consumed")
+}
+
+// --- the Camp baseline utility (plan-downtime.md C2) ---------------------------
+
+// campMobTestDef is camp.json's shape: a planted, structurally unkillable body
+// carrying the heal + dim light aura. ⚑ The EntityType override is load-bearing
+// — "Camp" is no wire EntityType (the enum is pinned), so the def borrows the
+// campfire's and NewMob panics on a def that forgets it.
+func campMobTestDef() *mobs.MobDefinition {
+	return &mobs.MobDefinition{
+		ID: 65, Name: campMobName, EntityType: "Campfire",
+		Role:       mobs.RoleStructure,
+		Body:       mobs.Body{Radius: 0.25},
+		Factors:    mobs.Factors{BaseMaxHealth: 50},
+		CurveLevel: 1,
+		Curve:      curve.Curve{Growth: 1.12, MaxLevel: 30},
+		Skills:     []mobs.MobSkill{{Def: totemAuraDef(), Level: 1}},
+	}
+}
+
+// campTestSetup wires a level-5 player holding `charges` Camp charges into a
+// SkillSystem backed by a game that knows the Camp definition.
+func campTestSetup(charges int) (*fakePlayer, *fakeGame, *SkillSystem) {
+	g := newFakeGame()
+	g.mobReg = fakeMobRegistry{campMobName: campMobTestDef()}
+	caster := newFakePlayer()
+	caster.level = 5
+	caster.campCharges = charges
+	space := phy.NewSpace()
+	space.Update()
+	sk := NewSkillSystem(space, g)
+	sk.rng = testRNG()
+	sk.AddEntity(caster)
+	return caster, g, sk
+}
+
+// campCastUpdates is one press-processing update plus the full 150-tick channel.
+const campCastUpdates = 1 + 150
+
+func TestUtilityCamp_PressStartsChannelAndSpendsNothing(t *testing.T) {
+	caster, g, sk := campTestSetup(2)
+	caster.sc.RequestUtilityCast(skills.UtilityCamp)
+
+	sk.Update(33.0)
+
+	assert.True(t, caster.sc.IsCasting())
+	assert.Equal(t, skills.UtilityCamp, caster.sc.CastingUtility)
+	assert.Empty(t, g.added, "the channel is the wind-up — nothing is placed yet")
+	assert.Equal(t, 2, caster.CampCharges(), "D4: the charge is spent at completion, never at the press")
+}
+
+func TestUtilityCamp_CompletionPlacesAlignedOwnedCampAndSpendsOneCharge(t *testing.T) {
+	caster, g, sk := campTestSetup(2)
+	healthBefore := caster.VitalSigns().Health
+	caster.sc.RequestUtilityCast(skills.UtilityCamp)
+
+	for i := 0; i < campCastUpdates; i++ {
+		sk.Update(33.0)
+	}
+
+	assert.False(t, caster.sc.IsCasting())
+	require.Len(t, g.added, 1, "the channel completed → the camp is placed")
+	m := g.added[0].(*mob.Mob)
+	// Align, not EnlistUnder (L5): the camp joins the player SIDE, which is
+	// what lets its heal reach every player in range rather than its owner.
+	assert.Equal(t, model.FactionAligned, m.Faction())
+	assert.Same(t, model.PlayerEntity(caster), m.Owner())
+	assert.Equal(t, m.MaxHealth(), m.Health(), "placed at its full pool")
+	// Offset placement, the summon ring: casterR 0.25 + campR 0.25 + gap 0.3.
+	assert.InDelta(t, 0.8, m.Position().Sub(caster.aura.Position()).Abs(), 1e-3,
+		"the camp lands beside the placer, not under them")
+
+	assert.Equal(t, 1, caster.CampCharges(), "exactly one charge, at completion")
+	assert.Equal(t, healthBefore, caster.VitalSigns().Health, "utilities are free (D7) — the charge IS the price")
+	assert.Empty(t, caster.rejections)
+}
+
+// D4, the half that matters in play: an interrupted channel did no work, so it
+// pays nothing. This is not a refund — there is no charge rule anywhere before
+// completion for a refund to undo.
+func TestUtilityCamp_InterruptedChannelSpendsNothing(t *testing.T) {
+	caster, g, sk := campTestSetup(2)
+	caster.sc.RequestUtilityCast(skills.UtilityCamp)
+	sk.Update(33.0)
+	require.True(t, caster.sc.IsCasting())
+
+	caster.sc.CancelCastOnDamage()
+	for i := 0; i < campCastUpdates; i++ {
+		sk.Update(33.0)
+	}
+
+	assert.Empty(t, g.added, "no camp — the channel was broken")
+	assert.Equal(t, 2, caster.CampCharges(), "and no charge was taken for it")
+}
+
+func TestUtilityCamp_NoChargesRejectsPress(t *testing.T) {
+	caster, g, sk := campTestSetup(0)
+	caster.sc.RequestUtilityCast(skills.UtilityCamp)
+
+	sk.Update(33.0)
+
+	assert.False(t, caster.sc.IsCasting(), "precondition fails → no channel starts")
+	assert.Empty(t, g.added)
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, skills.SkillID(0), caster.rejections[0].skill,
+		"a utility is no catalog skill — the client renders the REASON alone")
+	assert.Equal(t, model.ActivationRejectedNoCharges, caster.rejections[0].reason)
+}
+
+// The completion re-check, the C1 two-site pattern: the world moves during a
+// channel. Deleting the re-check in utilityPrecondition's caller must redden
+// exactly this test.
+func TestUtilityCamp_ChargeLostMidCastRejectsAtCompletion(t *testing.T) {
+	caster, g, sk := campTestSetup(1)
+	caster.sc.RequestUtilityCast(skills.UtilityCamp)
+	sk.Update(33.0)
+	require.True(t, caster.sc.IsCasting())
+
+	require.True(t, caster.SpendCampCharge(), "the charge goes elsewhere mid-channel")
+	for i := 0; i < campCastUpdates; i++ {
+		sk.Update(33.0)
+	}
+
+	assert.False(t, caster.sc.IsCasting())
+	assert.Empty(t, g.added, "no camp placed on an empty store")
+	require.Len(t, caster.rejections, 1)
+	assert.Equal(t, model.ActivationRejectedNoCharges, caster.rejections[0].reason)
+}
+
+// D5: one camp per player, placing again replaces. The old one is expired
+// through the ordinary TTL path rather than removed inline — removing an entity
+// from inside fireUtility would splice the system's own entity slice mid-range.
+func TestUtilityCamp_SecondPlacementReplacesTheFirst(t *testing.T) {
+	caster, g, sk := campTestSetup(2)
+
+	placeCamp := func() *mob.Mob {
+		caster.sc.RequestUtilityCast(skills.UtilityCamp)
+		for i := 0; i < campCastUpdates; i++ {
+			sk.Update(33.0)
+		}
+		return g.added[len(g.added)-1].(*mob.Mob)
+	}
+
+	first := placeCamp()
+	require.True(t, first.Update(0), "the first camp is standing")
+	second := placeCamp()
+	require.NotSame(t, first, second)
+
+	assert.False(t, first.Update(0), "the first camp expires on the very next tick")
+	assert.True(t, second.Update(0), "the second one burns on")
+	assert.Zero(t, caster.CampCharges(), "two placements cost two charges")
+}
+
+// A different player's camp is never touched: only SELF-stacking is closed
+// (D5), and two players' fires overlapping is a feature, not a collision.
+func TestUtilityCamp_ReplaceIsPerPlayer(t *testing.T) {
+	caster, g, sk := campTestSetup(1)
+	other := newFakePlayer()
+	other.level = 5
+	other.campCharges = 1
+	sk.AddEntity(other)
+
+	caster.sc.RequestUtilityCast(skills.UtilityCamp)
+	other.sc.RequestUtilityCast(skills.UtilityCamp)
+	for i := 0; i < campCastUpdates; i++ {
+		sk.Update(33.0)
+	}
+
+	require.Len(t, g.added, 2, "both players placed")
+	assert.True(t, g.added[0].(*mob.Mob).Update(0), "the first player's camp is untouched by the second's")
+	assert.True(t, g.added[1].(*mob.Mob).Update(0))
+}
+
+// L6: the lifetime machinery already existed, and expiry rides the normal
+// removal path — which grants no XP, because kill rewards only flow through
+// PlayerTouches. A camp is not a kill.
+func TestUtilityCamp_BurnsOutOnItsTTL(t *testing.T) {
+	caster, g, sk := campTestSetup(1)
+	caster.sc.RequestUtilityCast(skills.UtilityCamp)
+	for i := 0; i < campCastUpdates; i++ {
+		sk.Update(33.0)
+	}
+	require.Len(t, g.added, 1)
+	m := g.added[0].(*mob.Mob)
+
+	for i := 0; i < campTTLTicks-1; i++ {
+		require.True(t, m.Update(0), "tick %d: the camp is still burning", i)
+	}
+	assert.False(t, m.Update(0), "TTL over → gone through the ordinary removal path")
+}
+
+// The R2/R3 silent-wiring guard: replaceStandingCamp reaches its target through
+// a structural assert, so a *mob.Mob that stopped satisfying it would make
+// replacement a silent no-op with every other test still green.
+func TestCampExpirable_IsSatisfiedByTheRealMobType(t *testing.T) {
+	var m any = mob.NewMob(campMobTestDef(), 0, nil)
+	_, ok := m.(campExpirable)
+	assert.True(t, ok, "*mob.Mob must satisfy campExpirable, or replacing a camp silently does nothing")
+}
+
+// L5, and the reason the camp is a SHARED object rather than a personal buff
+// (D2): its heal's eligibility is same-FACTION, not same-owner, so a camp
+// placed by one player heals every player standing in it. The caster here is a
+// real Align()ed camp mob, not a stand-in, because "does an owned structure's
+// heal reach a stranger" is exactly the question the plan flagged as open.
+func TestApplyHealAura_APlacedCampHealsASecondPlayer(t *testing.T) {
+	owner := newFakePlayer()
+	camp := mob.NewMob(campMobTestDef(), 0, nil)
+	camp.Align()
+	camp.SetOwner(owner)
+	camp.RestoreToFullHealth()
+
+	stranger := newFakePlayer()
+	stranger.vitalSigns.Health = 50
+	start := stranger.vitalSigns.Health
+
+	testSkillSystem().applyHealAura(camp, 1, healEffect(), colliderSetOf(model.PlayerEntity(stranger)))
+
+	assert.Greater(t, stranger.vitalSigns.Health, start,
+		"a camp heals whoever stands in it — no owner check anywhere in the heal path")
+	require.Len(t, stranger.healedBy, 0,
+		"but the healer credit is player-only; a structure is not a participant")
 }

@@ -106,6 +106,16 @@ export const GraphicsConfig = {
             maxSize: <number> 60,
         },
 
+        // The player-placed mini-campfire (downtime C2). Half the permanent
+        // fire's 60 px [PLACEHOLDER, PO 2026-08-03]: it reuses the campfire
+        // artwork for now, so SIZE is the only thing telling a player that the
+        // thing they put down is temporary and personal rather than a landmark.
+        camp: {
+            file: require('../features/game-objects/assets/mobs/campfire.svg'),
+            minSize: <number> 30,
+            maxSize: <number> 30,
+        },
+
         turnip: {
             file: require('../features/game-objects/assets/mobs/turnip.svg'),
             minSize: <number> 20,

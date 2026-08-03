@@ -73,6 +73,7 @@ const (
 	EntityTypeGreaterFireElemental  EntityType = 72
 	EntityTypeFireTotem             EntityType = 73
 	EntityTypeNpcPlaceholder        EntityType = 74
+	EntityTypeCamp                  EntityType = 75
 )
 
 var EnumNamesEntityType = map[EntityType]string{
@@ -142,6 +143,7 @@ var EnumNamesEntityType = map[EntityType]string{
 	EntityTypeGreaterFireElemental:  "GreaterFireElemental",
 	EntityTypeFireTotem:             "FireTotem",
 	EntityTypeNpcPlaceholder:        "NpcPlaceholder",
+	EntityTypeCamp:                  "Camp",
 }
 
 var EnumValuesEntityType = map[string]EntityType{
@@ -211,6 +213,7 @@ var EnumValuesEntityType = map[string]EntityType{
 	"GreaterFireElemental":  EntityTypeGreaterFireElemental,
 	"FireTotem":             EntityTypeFireTotem,
 	"NpcPlaceholder":        EntityTypeNpcPlaceholder,
+	"Camp":                  EntityTypeCamp,
 }
 
 func (v EntityType) String() string {

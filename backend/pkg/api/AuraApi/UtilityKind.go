@@ -9,16 +9,19 @@ type UtilityKind byte
 const (
 	UtilityKindNone   UtilityKind = 0
 	UtilityKindRecall UtilityKind = 1
+	UtilityKindCamp   UtilityKind = 2
 )
 
 var EnumNamesUtilityKind = map[UtilityKind]string{
 	UtilityKindNone:   "None",
 	UtilityKindRecall: "Recall",
+	UtilityKindCamp:   "Camp",
 }
 
 var EnumValuesUtilityKind = map[string]UtilityKind{
 	"None":   UtilityKindNone,
 	"Recall": UtilityKindRecall,
+	"Camp":   UtilityKindCamp,
 }
 
 func (v UtilityKind) String() string {

@@ -354,6 +354,21 @@ func TestGameStateCastAndRejection_AbsentReadsZero(t *testing.T) {
 	assert.Zero(t, result.ActivationRejectedSkillId())
 	assert.Zero(t, result.ActivationRejectedReason())
 	assert.Zero(t, result.CastUtility(), "absent cast_utility reads 0 = no utility cast")
+	assert.Zero(t, result.CampCharges(), "absent camp_charges reads 0 = none held")
+}
+
+// The camp charge counter (plan-downtime.md C2, D3). Own-player data like
+// skill_points, and 0 IS the meaningful neutral here — a fresh character holds
+// none until their first dwell — so unlike cost_factor there is no
+// absent-must-not-read-zero trap; the pin is that the value survives the trip.
+func TestGameStateCampCharges_RoundTrip(t *testing.T) {
+	b := flatbuffers.NewBuilder(64)
+	AuraApi.GameStateStart(b)
+	AuraApi.GameStateAddCampCharges(b, 3)
+	gs := AuraApi.GameStateEnd(b)
+	b.Finish(gs)
+
+	assert.Equal(t, uint8(3), AuraApi.GetRootAsGameState(b.FinishedBytes(), 0).CampCharges())
 }
 
 // A baseline-utility cast rides the same two tick fields with cast_utility as

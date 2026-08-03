@@ -175,6 +175,16 @@ type player struct {
 	// the accumulators above; drives the client's "bound" feedback.
 	campfireBound bool
 
+	// campCharges is how many Camp baseline-utility charges this player is
+	// holding (plan-downtime.md C2, D3). Deliberately NOT a per-tick
+	// accumulator and deliberately NOT persisted: it refills to cap by
+	// dwelling at a real campfire, is spent at a channel's completion, and is
+	// simply absent from the freshly built player struct a respawn produces —
+	// which is how "zeroed on death" is achieved by construction rather than
+	// by a reset someone has to remember. Only a reconnect carries it, through
+	// the stash.
+	campCharges int
+
 	// rejectedSkill/rejectedReason are stamped the tick a cooldown activation
 	// is refused by its precondition (plan-skill-vocab chunk 4, §3.5): the
 	// SkillSystem notes it, the wire carries it once, reset each tick
@@ -446,6 +456,44 @@ func (p *player) CampfireBound() bool { return p.campfireBound }
 // NoteCampfireBound records that a campfire became this player's respawn
 // anchor this tick; the ConnectionStateSystem's dwell tracker calls it.
 func (p *player) NoteCampfireBound() { p.campfireBound = true }
+
+// CampCharges is how many Camp charges this player holds (C2); serialized as
+// the own-player camp_charges wire field.
+func (p *player) CampCharges() int { return p.campCharges }
+
+// SpendCampCharge consumes one charge, reporting whether there was one to
+// consume. Called at CHANNEL COMPLETION, never at the press (D4): an
+// interrupted channel did no work and pays nothing, the R2 shape.
+func (p *player) SpendCampCharge() bool {
+	if p.campCharges <= 0 {
+		return false
+	}
+	p.campCharges--
+	return true
+}
+
+// RefillCampCharges tops the store up to this player's level-derived cap
+// (D9). To-cap rather than by-one: the fire is the anchor of the loop, so
+// leaving it should always mean leaving it full.
+func (p *player) RefillCampCharges() {
+	if cap := skills.CampChargeCap(int(p.Progression().Level)); p.campCharges < cap {
+		p.campCharges = cap
+	}
+}
+
+// SetCampCharges restores a stashed count on reconnect. The only writer
+// besides the two verbs above, and deliberately clamped: the cap can have
+// shrunk between the disconnect and the return only if the level did, but a
+// clamp costs one comparison and makes the invariant unconditional.
+func (p *player) SetCampCharges(n int) {
+	if cap := skills.CampChargeCap(int(p.Progression().Level)); n > cap {
+		n = cap
+	}
+	if n < 0 {
+		n = 0
+	}
+	p.campCharges = n
+}
 
 // ActivationRejected reports the cooldown activation refused this tick
 // (chunk 4, §3.5); zero values = none. Serialized as

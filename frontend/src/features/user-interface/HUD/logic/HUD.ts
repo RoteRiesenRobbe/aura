@@ -172,6 +172,13 @@ export function updateCastBar(skillId: number, ticksLeft: number, ticksTotal: nu
         `${name} ${(ticksLeft * Constants.SERVER_TICKRATE / 1000).toFixed(1)}s`;
 }
 
+// updateCampCharges renders the Camp button's charge counter (downtime C2).
+// Thin pass-through so Backend keeps talking to one HUD surface, the way it
+// does for every other panel.
+export function updateCampCharges(charges: number, level: number) {
+    Utilities.updateCampCharges(charges, level);
+}
+
 // updateCombatIndicator shows/hides the red sword next to the zoom control
 // while the own player is in combat (Character.in_combat) — the same window
 // during which the server locks loadout editing.

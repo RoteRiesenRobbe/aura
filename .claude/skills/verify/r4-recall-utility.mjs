@@ -104,11 +104,26 @@ try {
 
   const button = await page.evaluate(() => {
     const li = document.querySelector('#utilityList li[data-utility="1"]');
-    return li ? { label: li.querySelector('.slotLabel')?.textContent, title: li.title } : null;
+    return li ? { label: li.querySelector('.slotLabel')?.textContent } : null;
   });
-  check(!!button && button.label === 'Recall' && /campfire/.test(button.title || ''),
-    'the Recall button is present with its tooltip, no teacher visited',
-    JSON.stringify(button));
+  check(!!button && button.label === 'Recall',
+    'the Recall button is present, no teacher visited', JSON.stringify(button));
+
+  // ⚑ Through a HOVER, not a title= attribute: the buttons carried a native
+  // browser tooltip until the PO called it out (2026-08-03), and they now
+  // render through the same element every ability uses. Reading the rendered
+  // panel is what would notice a fall back to title=.
+  await page.hover('#utilityList li[data-utility="1"]');
+  await page.waitForTimeout(700);
+  const tip = await page.evaluate(() => {
+    // ⚑ #skillTooltip, the element itself — a [class*=ooltip] selector matches
+    // the inner .tooltipTitle first and reads back only the title.
+    const el = document.getElementById('skillTooltip');
+    return el && !el.classList.contains('hidden') ? el.textContent ?? '' : '';
+  });
+  await page.mouse.move(640, 400); // park it: an open tooltip covers the panels beside the bar
+  check(/^Recall/.test(tip) && /Utility/.test(tip) && /campfire/.test(tip),
+    'hovering it renders the GAME tooltip, not the browser one', JSON.stringify(tip.slice(0, 90)));
 
   // --- 2. warp out, press, the cast bar lights -----------------------------
   await cmd(`WARP ${w(OPEN_GROUND.x, OPEN_GROUND.y)}`);

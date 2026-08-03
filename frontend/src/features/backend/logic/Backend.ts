@@ -20,6 +20,7 @@ import {
     skillCategory,
     skillDisplayName,
 } from '../../../client-data/Skills';
+import {getLocalPlayerLevel} from '../../../client-data/Mobs';
 import {AuraApi} from './AuraApi';
 import * as flatbuffers from 'flatbuffers';
 import * as Urls from './Urls';
@@ -382,6 +383,11 @@ export class Backend implements IBackend {
                 snapshot.castTicksLeft ?? 0,
                 snapshot.castTicksTotal ?? 0,
                 snapshot.castUtility ?? 0);
+
+            // The Camp charge counter (downtime C2). Only the count is on the
+            // wire; the cap comes from getLocalPlayerLevel, which Player has
+            // already mirrored from this same snapshot's own character.
+            HUD.updateCampCharges(snapshot.campCharges ?? 0, getLocalPlayerLevel());
 
             // Rejection feedback (chunk 4, §3.5): one-tick stamp → floating
             // text over the own character (the campfire-bound rendering path).

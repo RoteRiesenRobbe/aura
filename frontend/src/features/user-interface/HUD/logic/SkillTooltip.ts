@@ -752,6 +752,10 @@ export function setAvailableSkillPoints(points: number) {
 function ensureTooltipElement(): HTMLElement {
     if (!tooltipElement) {
         tooltipElement = document.createElement('div');
+        // ⚑ The id says "skill" but the element is shared: the baseline-utility
+        // buttons render through it too since 2026-08-03. Kept as-is because
+        // five browser harnesses and the stylesheet key on it, and the rename
+        // would buy nothing but the name.
         tooltipElement.id = 'skillTooltip';
         tooltipElement.classList.add('hidden');
         document.body.appendChild(tooltipElement);
@@ -759,12 +763,12 @@ function ensureTooltipElement(): HTMLElement {
     return tooltipElement;
 }
 
-function hideTooltip() {
+export function hideTooltip() {
     currentAnchor = null;
     tooltipElement?.classList.add('hidden');
 }
 
-function showTooltip(anchor: HTMLElement, skillId: number, level: number) {
+function showSkillTooltip(anchor: HTMLElement, skillId: number, level: number) {
     const def = skillDefinition(skillId);
     if (!def) {
         // Catalog not loaded (or fetch failed) — names fall back, tooltips
@@ -772,8 +776,6 @@ function showTooltip(anchor: HTMLElement, skillId: number, level: number) {
         hideTooltip();
         return;
     }
-    currentAnchor = anchor;
-    const element = ensureTooltipElement();
     // getLocalPlayerLevel lives in the mob catalog because the nameplate
     // difficulty tint (its first consumer) already owned the mob side; it is
     // live-updated from every snapshot by Player.updateFromBackend.
@@ -784,9 +786,19 @@ function showTooltip(anchor: HTMLElement, skillId: number, level: number) {
     // would be advertising a spend the player cannot make.
     const nextCost = skillPointCost(def.maxLevel, level + 1);
     const canSpend = nextCost > 0 && availableSkillPoints >= nextCost;
-    const content = formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()),
+    showTooltip(anchor, formatSkillTooltip(def, level, powerScaleAt(getLocalPlayerLevel()),
         getLocalPlayerMaxHealth(), getLocalPlayerCostFactor(), canSpend,
-        getLocalPlayerDamageFactor());
+        getLocalPlayerDamageFactor()));
+}
+
+// showTooltip renders any TooltipContent beside an anchor. Split out of the
+// skill path so the baseline-utility buttons render through the SAME element,
+// styling and placement as every ability (PO 2026-08-03: the native title=
+// tooltip they had before read as a bug, because it was the only hover in the
+// HUD that looked like the browser instead of the game).
+export function showTooltip(anchor: HTMLElement, content: TooltipContent) {
+    currentAnchor = anchor;
+    const element = ensureTooltipElement();
 
     element.innerHTML = '';
     const title = document.createElement('div');
@@ -837,28 +849,28 @@ function showTooltip(anchor: HTMLElement, skillId: number, level: number) {
     element.style.top = `${y}px`;
 }
 
-// attachSkillTooltips wires delegated hover handling onto a list container
-// whose entries carry data-skill-id (the spellbook and the three loadout
-// slot lists). Hover works on pointerenter semantics via pointerover/out —
+// attachTooltips wires delegated hover handling onto a container whose entries
+// match `selector`. Hover works on pointerenter semantics via pointerover/out —
 // the MouseManager pointerdown gotcha does not affect hover events.
-export function attachSkillTooltips(container: HTMLElement, levelOf: (skillId: number) => number) {
+//
+// `show` is called with the hovered entry and decides what to render; it is a
+// callback rather than a content value because both callers need the CURRENT
+// state at hover time (a skill's level, a utility's charge count), not the
+// state at wiring time.
+export function attachTooltips(container: HTMLElement, selector: string,
+                               show: (entry: HTMLElement) => void) {
     container.addEventListener('pointerover', (e) => {
-        const entry = (e.target as HTMLElement).closest('[data-skill-id]') as HTMLElement | null;
+        const entry = (e.target as HTMLElement).closest(selector) as HTMLElement | null;
         if (!entry || !container.contains(entry)) {
-            return;
-        }
-        const skillId = Number(entry.dataset.skillId);
-        if (!skillId) {
-            hideTooltip();
             return;
         }
         if (entry === currentAnchor) {
             return; // still on the same entry, moving between its children
         }
-        showTooltip(entry, skillId, levelOf(skillId));
+        show(entry);
     });
     container.addEventListener('pointerout', (e) => {
-        const entry = (e.target as HTMLElement).closest('[data-skill-id]');
+        const entry = (e.target as HTMLElement).closest(selector);
         const goingTo = e.relatedTarget as HTMLElement | null;
         if (entry && goingTo && entry.contains(goingTo)) {
             return; // moving within the same entry
@@ -868,4 +880,17 @@ export function attachSkillTooltips(container: HTMLElement, levelOf: (skillId: n
     // Clicks re-render lists and equip/activate — the anchored element may
     // vanish under the pointer, so drop the tooltip.
     container.addEventListener('pointerdown', hideTooltip);
+}
+
+// attachSkillTooltips is attachTooltips over the catalog: the spellbook and the
+// three loadout slot lists, whose entries carry data-skill-id.
+export function attachSkillTooltips(container: HTMLElement, levelOf: (skillId: number) => number) {
+    attachTooltips(container, '[data-skill-id]', (entry) => {
+        const skillId = Number(entry.dataset.skillId);
+        if (!skillId) {
+            hideTooltip();
+            return;
+        }
+        showSkillTooltip(entry, skillId, levelOf(skillId));
+    });
 }

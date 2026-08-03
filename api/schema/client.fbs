@@ -82,7 +82,8 @@ table Respec {
 // renumber would otherwise send the wrong utility with nothing failing.
 enum UtilityKind : ubyte {
     None = 0,
-    Recall = 1
+    Recall = 1,
+    Camp = 2
 }
 
 // Press a baseline utility. Free, no cooldown — the server's interruptible

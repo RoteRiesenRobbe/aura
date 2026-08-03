@@ -114,6 +114,17 @@ type SkillSystem struct {
 	// zero per-tick allocation (steering_alloc_test.go's lesson).
 	presenceProbe *phy.Circle
 	presenceHits  []phy.DynamicCollider
+
+	// campByOwner is the one-camp-per-player index (plan-downtime.md D5):
+	// client UUID → the entity id of that player's standing mini-campfire.
+	//
+	// ⚑ Keyed by CLIENT UUID, not entity id, so it survives death and respawn
+	// (the ConnectionStateSystem.anchors precedent — the player struct is
+	// rebuilt, the client is not). Entries are never swept: a stale id simply
+	// fails to resolve through game.GetEntity and is overwritten by the next
+	// placement, so the map needs no fan-out cleanup and cannot hold an
+	// entity alive.
+	campByOwner map[uuid.UUID]uint64
 }
 
 // SetConnState wires the ConnectionStateSystem seam (chunk 4); called from
@@ -124,9 +135,10 @@ func (s *SkillSystem) SetConnState(cs ConnState) {
 
 func NewSkillSystem(space *phy.Space, g model.Game) *SkillSystem {
 	return &SkillSystem{
-		space: space,
-		game:  g,
-		rng:   rand.New(rand.NewSource(time.Now().UnixNano())),
+		space:       space,
+		game:        g,
+		rng:         rand.New(rand.NewSource(time.Now().UnixNano())),
+		campByOwner: map[uuid.UUID]uint64{},
 	}
 }
 
@@ -1477,6 +1489,19 @@ func (s *SkillSystem) utilityPrecondition(e skillEntity, kind skills.UtilityKind
 		if _, bound := s.connState.AnchorOf(p.Client().UUID()); !bound {
 			return model.ActivationRejectedNoAnchor
 		}
+	case skills.UtilityCamp:
+		// Checked at the press AND again at completion, like recall's anchor:
+		// the charge is only SPENT at completion (D4), so a channel started
+		// with a charge that is somehow gone by the end must refuse rather
+		// than place a free camp.
+		p, ok := e.(model.PlayerEntity)
+		if !ok {
+			// Mobs hold no charges; nothing can place a camp but a player.
+			return model.ActivationRejectedNoCharges
+		}
+		if p.CampCharges() <= 0 {
+			return model.ActivationRejectedNoCharges
+		}
 	}
 	return model.ActivationRejectedNone
 }
@@ -1487,6 +1512,106 @@ func (s *SkillSystem) fireUtility(e skillEntity, kind skills.UtilityKind) {
 	switch kind {
 	case skills.UtilityRecall:
 		s.applyRecall(e)
+	case skills.UtilityCamp:
+		s.applyCamp(e)
+	}
+}
+
+const (
+	// campMobName is the def applyCamp builds. ⚑ A def referenced only from Go
+	// is invisible to the registry's boot validation of spawnMob names, so a
+	// test pins that this resolves.
+	campMobName = "Camp"
+	// campTTLTicks is how long a placed camp burns: 15 s [PLACEHOLDER], the
+	// middle of the ruled 10–20 s band. Long enough to be worth channelling
+	// for, short enough that the loop stays "get back to a real fire".
+	campTTLTicks = 450
+)
+
+// campExpirable is the narrow verb applyCamp needs from a standing camp to
+// replace it (D5): expire it through the ordinary TTL path.
+//
+// ⚑ Deliberately NOT game.RemoveEntity — calling that from inside fireUtility
+// splices SkillSystem.entities while Update is ranging it, the §27.1
+// skip-a-survivor class MobSystem defers removals to avoid. Setting the TTL to
+// 1 hands the removal to the path that already knows how to do it safely, at
+// the cost of ≤1 tick of two camps overlapping.
+type campExpirable interface{ SetTTLTicks(int) }
+
+// applyCamp places the mini-campfire at the end of a Camp channel (D2): an
+// aligned, owned, unkillable structure carrying the camp aura, burning for
+// campTTLTicks and then expiring through the ordinary TTL path — granting no
+// XP, because kill rewards only flow through PlayerTouches.
+//
+// The charge is spent HERE, at completion, and only on a successful placement:
+// D4's "an interrupt costs nothing" is not a refund rule, it is the absence of
+// a charge rule anywhere before this point.
+//
+// Hand-rolled rather than routed through spawnSummon: that path wants an
+// EquippedSkill (a utility has none) and would RaiseLoadoutLevels, which the
+// camp does not want — its aura is level 1 and heals a fraction of each
+// target's pool, so it scales with the target rather than with the placer.
+func (s *SkillSystem) applyCamp(e skillEntity) bool {
+	p, ok := e.(model.PlayerEntity)
+	if !ok {
+		return false
+	}
+	def, err := s.game.Mobs().GetByName(campMobName)
+	if err != nil {
+		// Unreachable with loaded content; guards direct construction and a
+		// content deletion, which would otherwise be a silent no-op button.
+		log.Printf("camp utility: mob %q not found", campMobName)
+		return false
+	}
+
+	m := mob.NewMob(def, s.game.Config().MobChaseIntoAuraMargin, s.space)
+	// Align, not EnlistUnder: a player is no model.Allegiance (it has no
+	// AggroMask), so every player-side spawn takes the player side outright.
+	// That is what makes the camp's heal reach EVERY player in range — the
+	// heal's eligibility is same-faction, not same-owner (L5).
+	m.Align()
+	m.SetOwner(p)
+	// The owner binds the pool to the owner's level; the fill is needed because
+	// the pool only widens once the owner is bound (the summon precedent). The
+	// body is unreachable anyway, so this is tidiness rather than survival.
+	m.RestoreToFullHealth()
+	m.SetTTLTicks(campTTLTicks)
+	m.SetPosition(s.summonPosition(e, m.Radius()))
+
+	s.replaceStandingCamp(p)
+	s.game.AddEntity(m)
+	if s.campByOwner == nil {
+		// Defensive: a SkillSystem built by struct literal (sim, tests).
+		s.campByOwner = map[uuid.UUID]uint64{}
+	}
+	s.campByOwner[p.Client().UUID()] = m.Basic().ID()
+	p.SpendCampCharge()
+	return true
+}
+
+// replaceStandingCamp expires this player's previous camp, if it is still
+// standing (D5 — one camp per player; placing again replaces). A different
+// player's camp is never touched: only SELF-stacking is closed, and two
+// players' fires overlapping is a feature.
+func (s *SkillSystem) replaceStandingCamp(p model.PlayerEntity) {
+	prev, ok := s.campByOwner[p.Client().UUID()]
+	if !ok {
+		return
+	}
+	ent, err := s.game.GetEntity(prev)
+	if err != nil {
+		// Already gone — expired on its own TTL, or the id predates a restart.
+		return
+	}
+	// The name check guards against an id that has come to mean something
+	// else. Entity ids are monotonic today, so this is belt and braces; it
+	// costs one comparison and makes the map unable to expire a bystander.
+	m, ok := ent.(model.MobEntity)
+	if !ok || m.MobDefinition() == nil || m.MobDefinition().Name != campMobName {
+		return
+	}
+	if exp, ok := m.(campExpirable); ok {
+		exp.SetTTLTicks(1)
 	}
 }
 

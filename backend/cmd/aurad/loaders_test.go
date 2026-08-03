@@ -197,3 +197,26 @@ func mustLoadFactions(t *testing.T, c contentSources) factions.Registry {
 	require.NoError(t, err)
 	return fr
 }
+
+// The Camp definition is referenced ONLY from Go (sys.applyCamp builds it by
+// name), so it is invisible to the loader's spawnMob cross-validation and to
+// every zone spawn list — nothing in the boot path would notice if it were
+// renamed or deleted. Deleting it would turn the Camp button into a silent
+// no-op with a log line nobody reads, so the resolution is pinned here.
+func TestDiskContent_CampDefinitionResolves(t *testing.T) {
+	content, err := diskContent("../../../api")
+	require.NoError(t, err)
+	skillsRegistry, err := skills.RegistryFromFS(content.skills, mustLoadFactions(t, content))
+	require.NoError(t, err)
+	factionsRegistry, err := factions.RegistryFromFS(content.factions)
+	require.NoError(t, err)
+	mobsRegistry, err := mobs.RegistryFromFS(skillsRegistry, factionsRegistry, curve.Default(), content.mobs)
+	require.NoError(t, err)
+
+	// The name is the contract: sys.applyCamp looks it up by this string.
+	def, err := mobsRegistry.GetByName("Camp")
+	require.NoError(t, err, "api/mobs/camp.json must resolve — the Camp utility builds it by name")
+	assert.Equal(t, mobs.RoleStructure, def.Role, "a camp is planted, not a creature")
+	require.Len(t, def.Skills, 1, "the camp carries exactly its heal + light aura")
+	assert.Equal(t, "CampAura", def.Skills[0].Def.Name)
+}

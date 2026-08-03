@@ -60,5 +60,10 @@
     "width": 20,
     "height": 12
   },
-  "ticksPerSecond": 30
+  "ticksPerSecond": 30,
+  "_campChargeCapComment": "How many Camp charges a character can hold (plan-downtime.md D9): `base` at level 1, one more every `perLevels` levels — cap = base + floor(level / perLevels). D9's reasoning: the camp's heal is %-of-max, so its strength already scales with the pool for free; COUNT is the axis that would otherwise be flat, and it is the one the player can see grow. Cross-language because the cap is deliberately NOT a wire field — the server sends the live charge count and the client derives the cap from the level it already knows (getLocalPlayerLevel), so the button can read `2/3` without a second field. Go: skills.CampChargeCap. Client: campChargeCap in client-data/Skills.ts. ⚑ Both values [PLACEHOLDER] — retuned 2026-08-03 after the PO's first hand pass, from 3 / +1-per-10 to 1 / +1-per-7: 1 charge at level 1, 2 from level 7, 3 from level 14, topping out at 5 by level 30. The first curve was generous enough that a level-1 character never ran out, which made the walk back to a fire optional and the whole loop invisible.",
+  "campChargeCap": {
+    "base": 1,
+    "perLevels": 7
+  }
 }

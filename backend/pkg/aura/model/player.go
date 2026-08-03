@@ -45,6 +45,11 @@ const (
 	// ActivationRejectedNotEnoughResource: the caster cannot pay the skill's
 	// resource cost and live (plan-numbers-rewrite D9).
 	ActivationRejectedNotEnoughResource = ActivationRejection(AuraApi.ActivationRejectionNotEnoughResource)
+	// ActivationRejectedNoCharges: the Camp baseline utility pressed with an
+	// empty charge store (plan-downtime.md C2). Not a resource shortfall —
+	// utilities are free (D7); the charge is a separate, per-session currency
+	// refilled by resting at a real campfire.
+	ActivationRejectedNoCharges = ActivationRejection(AuraApi.ActivationRejectionNoCharges)
 )
 
 type Players []PlayerEntity
@@ -160,6 +165,15 @@ type PlayerEntity interface {
 	// the tick a dwell completes, serialized as campfire_bound.
 	CampfireBound() bool
 	NoteCampfireBound()
+	// The Camp baseline utility's charge store (plan-downtime.md C2, D3):
+	// per-session, refilled to a level-derived cap by dwelling at a REAL
+	// campfire, spent at channel completion. Serialized as camp_charges.
+	// Not persisted and not carried through death — only through the
+	// reconnect stash.
+	CampCharges() int
+	SpendCampCharge() bool
+	RefillCampCharges()
+	SetCampCharges(n int)
 	// ActivationRejected / NoteActivationRejected carry the per-tick "a
 	// cooldown activation was refused by its precondition" stamp
 	// (plan-skill-vocab chunk 4, §3.5): the SkillSystem notes it, serialized

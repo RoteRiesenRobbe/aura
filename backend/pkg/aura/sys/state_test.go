@@ -16,6 +16,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/cfg"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/spectator"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
@@ -1161,4 +1162,160 @@ func TestRejoiningTheSameCharacterKeepsItsName(t *testing.T) {
 	rejoined := g.players[len(g.players)-1]
 	assert.Equal(t, "Alice", rejoined.Name(),
 		"a player returning to their own character must keep its name, not be mangled")
+}
+
+// --- the Camp charge store (plan-downtime.md C2) ------------------------------
+
+// The dwell that rebinds the spawn point also refills the Camp charges (D9):
+// one act, one errand. A fresh character deliberately starts EMPTY — they spawn
+// at a fire, so their first 1.7 s of standing still fills them, which is §2's
+// "painless by construction" argument working rather than a seeding rule.
+func TestDwell_RefillsCampChargesToTheLevelCap(t *testing.T) {
+	s, g := newStateFixture(t)
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{fire})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	require.Zero(t, p.CampCharges(), "a fresh character holds no charges")
+
+	// Step clear of the fire first: the join spawns AT it, so the dwell count
+	// is already running and a bare "tick threshold-1 times" would overshoot.
+	p.SetPosition(phy.Vec2f{X: 40, Y: 40})
+	s.Update(0)
+
+	p.SetPosition(fire.Pos)
+	for i := 0; i < campfireDwellTicks-1; i++ {
+		s.Update(0)
+	}
+	assert.Zero(t, p.CampCharges(), "the refill lands with the bind, not before it")
+
+	s.Update(0)
+	assert.Equal(t, skills.CampChargeCap(1), p.CampCharges(), "completing the dwell refills to cap")
+
+	// Refill is to-cap and idempotent while standing there: the exactly-at-
+	// threshold branch runs once per ENTRY, so spending without leaving does
+	// not silently top back up (§6a — accepted, the loop never does that).
+	require.True(t, p.SpendCampCharge())
+	for i := 0; i < campfireDwellTicks+5; i++ {
+		s.Update(0)
+	}
+	assert.Equal(t, skills.CampChargeCap(1)-1, p.CampCharges(),
+		"staying inside the dwell radius must not re-refill — you have to leave and come back")
+}
+
+// The cap rides the character's level, not a constant (D9): the camp's heal is
+// a fraction of the target's pool and scales for free, so COUNT is the axis
+// that grows visibly.
+func TestDwell_RefillCapScalesWithLevel(t *testing.T) {
+	s, g := newStateFixture(t)
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{fire})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	p.SetProgression(model.PlayerProgression{Level: 30, Experience: 0})
+
+	p.SetPosition(fire.Pos)
+	for i := 0; i < campfireDwellTicks; i++ {
+		s.Update(0)
+	}
+
+	assert.Equal(t, skills.CampChargeCap(30), p.CampCharges())
+	assert.Greater(t, skills.CampChargeCap(30), skills.CampChargeCap(1),
+		"a flat cap would make the level scaling invisible, which is the whole of D9")
+}
+
+// L3, both directions, and the reason the loop is not a perpetual motion
+// machine: a PLACED camp is an ordinary spawned mob, while binding and
+// refilling read the boot-frozen authored campfire slice. Structural today —
+// SetCampfireAnchors has exactly one caller — but this is precisely the kind of
+// invariant that erodes when someone adds a second one.
+func TestDwell_APlacedCampNeitherBindsNorRefills(t *testing.T) {
+	s, g := newStateFixture(t)
+	// A real fire exists, far away: the tracker is armed, so a green result
+	// here cannot be "campfires were empty and it returned early".
+	far := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 500, Y: 500}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{far})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+
+	spot := phy.Vec2f{X: -20, Y: -20}
+	p.SetPosition(spot)
+	camp := mob.NewMob(campTestDef(), 0, nil)
+	camp.Align()
+	camp.SetPosition(spot)
+	g.AddEntity(camp)
+
+	for i := 0; i < campfireDwellTicks*3; i++ {
+		s.Update(0)
+	}
+
+	assert.Empty(t, s.anchors, "standing in a placed camp must bind nothing")
+	assert.Zero(t, p.CampCharges(), "standing in a placed camp must refill nothing")
+}
+
+// campTestDef is the shape camp.json authors: a planted, structurally
+// unkillable body. The EntityType override is not decoration — "Camp" is no
+// wire EntityType (the enum is pinned), so the def reuses the campfire's, and
+// NewMob panics on a def that forgets it.
+func campTestDef() *mobs.MobDefinition {
+	def := testMobDef()
+	def.Name = "Camp"
+	def.EntityType = "Campfire"
+	def.Role = mobs.RoleStructure
+	return def
+}
+
+// D3's stash half (PO 2026-08-03): charges survive an F5 because the stash
+// means "same session". Nothing about them reaches persist.CharacterState.
+func TestReconnect_CarriesCampCharges(t *testing.T) {
+	s, g := newStateFixture(t)
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{fire})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	// Level 14 puts the cap at 3: at the level-1 cap of ONE, spending the only
+	// charge would leave 0 to carry — and 0 is also what a broken carry
+	// produces, so the test would pass for the wrong reason.
+	p.SetProgression(model.PlayerProgression{Level: 14, Experience: 0})
+	p.SetPosition(fire.Pos)
+	for i := 0; i < campfireDwellTicks; i++ {
+		s.Update(0)
+	}
+	require.True(t, p.SpendCampCharge(), "spend one, so the carry cannot pass by refilling")
+	want := p.CampCharges()
+	require.Positive(t, want)
+	token := s.tokenByClient[c.UUID()]
+
+	g.RemoveEntity(p.Basic()) // disconnect
+
+	c2 := newFakeClient()
+	reconnect(t, s, g, c2, "ignored-name", token)
+
+	require.Len(t, g.players, 2)
+	assert.Equal(t, want, g.players[1].CampCharges(),
+		"a reconnect resumes the same session — the charges come with it, at the spent count")
+}
+
+// D3's other half: death zeroes them. Achieved by construction (the respawn
+// builds a fresh player struct and the death scene carries no count), which is
+// exactly why it needs a test — nothing in the code says so.
+func TestRespawn_ZeroesCampCharges(t *testing.T) {
+	s, g := newStateFixture(t)
+	fire := CampfireAnchor{ID: "spawnpoint-1", Pos: phy.Vec2f{X: 10, Y: 10}, DwellRadius: 0.75}
+	s.SetCampfireAnchors([]CampfireAnchor{fire})
+	c := newFakeClient()
+	p := joinPlayer(t, s, g, c, "Alice")
+	p.SetPosition(fire.Pos)
+	for i := 0; i < campfireDwellTicks; i++ {
+		s.Update(0)
+	}
+	require.Positive(t, p.CampCharges())
+
+	s.handleDeath(p)
+	c.respawns = append(c.respawns, &model.Respawn{})
+	s.Update(0)
+
+	respawned := g.players[len(g.players)-1]
+	require.NotSame(t, p, respawned, "the respawn rebuilds the player struct")
+	assert.Zero(t, respawned.CampCharges(), "death costs the charges (D3) — the fire you wake at refills them")
 }

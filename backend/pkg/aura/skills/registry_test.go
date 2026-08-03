@@ -152,7 +152,10 @@ func TestRegistry_LoadsFromDisk(t *testing.T) {
 	// (2026-08-01)
 	// − Recall, RETIRED 2026-08-03 (R4 C1, plan-downtime.md D7): it became a
 	// baseline utility outside the skill catalog; id 28 stays burned.
-	assert.Len(t, r.All(), 86)
+	// + CampAura, the R4 C2 mini-campfire's heal + dim light (2026-08-03) —
+	// mob content, referenced only by camp.json, which applyCamp builds from
+	// Go rather than from a spawn effect.
+	assert.Len(t, r.All(), 87)
 
 	for _, name := range []string{"DodoAura", "SaberToothCatAura", "MammothAura", "AngryMammothAura", "CompanionAura", "SummonCompanion"} {
 		_, err := r.GetByName(name)

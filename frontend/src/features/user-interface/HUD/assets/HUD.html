@@ -167,9 +167,13 @@
                     hotkeys — also mid-fight. <em>Passives</em>: always on, all
                     in parallel. <em>Cooldowns</em> (Q, R, F): fire once, then
                     recharge — the cooldown belongs to the skill, not the
-                    slot. Besides your skills, everyone always has
-                    <em>Recall</em> on the utility button: free, no cooldown,
-                    but the long cast breaks if you move or get hit.</p>
+                    slot. Besides your skills, everyone always has two utility
+                    buttons, free and unlevelled: <em>Recall</em> takes you back
+                    to your bound campfire, and <em>Camp</em> puts down a small
+                    fire that heals everyone standing in it for a short while.
+                    Both cast slowly and break if you move or get hit. Camp
+                    costs a charge — resting at a real campfire refills them,
+                    and you carry more of them as you level.</p>
             </section>
             <section>
                 <h3>Where skills come from</h3>
@@ -280,14 +284,23 @@
                  the 3 cooldown slots and outside the spellbook — nothing to
                  discover, level, slot, or spend points on. Tooltips live on the
                  buttons (title=, the helpButton convention). Presses are handled
-                 by Utilities.ts via pointerdown (MouseManager suppresses click).
-                 Camp joins with C2. -->
+                 by Utilities.ts via pointerdown (MouseManager suppresses click),
+                 and their hover tooltips render through the SAME element every
+                 ability uses — no title= attribute, which was the only hover in
+                 the HUD that looked like the browser instead of the game.
+                 Camp's charge counter is filled by HUD.updateCampCharges. -->
             <div id="utilityBar">
                 <div class="auraLoadoutTitle">Utility</div>
+                <!-- ⚑ Order is load-bearing on MOBILE, where this becomes a
+                     fixed column of round buttons anchored at its BOTTOM edge:
+                     the LAST entry sits closest to the thumb. PO 2026-08-03 put
+                     Camp there (the frequent mid-loop press), Recall a step up,
+                     Talk above both. -->
                 <ul id="utilityList">
                     <li class="auraSlot utilityButton" data-utility="1"
-                        title="Return to your bound campfire. Takes 10 s — moving or taking damage interrupts. Free, no cooldown."
                         ><span class="slotLabel">Recall</span></li>
+                    <li class="auraSlot utilityButton" data-utility="2"
+                        ><span class="slotLabel">Camp</span><span class="utilityCharges"></span></li>
                 </ul>
             </div>
 

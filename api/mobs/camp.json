@@ -1,0 +1,22 @@
+{
+  "_comment": "Downtime R4 C2 (plan-downtime.md D2): the player-placed mini-campfire — a temporary, shared heal object, the payoff of the Camp baseline utility's channel. Campfire pattern verbatim: role structure = aura always-on, speed 0 = planted, collisionLayer 32 (Viewport ONLY) = structurally unkillable/interaction-free body, collisionMask 16 = Border only (nothing pushes it, it blocks nothing). Never referenced by a zone spawn and never by a spawn EFFECT — applyCamp builds it directly from Go, which is why a test pins GetByName(\"Camp\") resolving (§6a). No faction key: applyCamp calls Align() post-construction, like every player summon. Its wire EntityType is its own (appended as 75 when the PO asked for a visibly smaller fire), so the name resolves with no override and the client can size it independently of the permanent world campfire. It offers no protection (mobs walk in freely, no safe zone), cannot be bound to and cannot refill charges — all three hold BY CONSTRUCTION, because binding/refilling/repelling read the boot-frozen zone.Campfires slice a spawned mob never joins (L3, pinned both directions in Go). maxHealth is moot (unreachable body), experience 0, no aggroRadius (a structure acquires nothing). Its lifetime is the Go-side TTL applyCamp arms, not a content value. All values [PLACEHOLDER].",
+  "id": 65,
+  "name": "Camp",
+  "type": "MOB",
+  "role": "structure",
+  "tier": "normal",
+  "curveLevel": 1,
+  "factors": {
+    "baseMaxHealth": 50,
+    "experience": 0,
+    "speed": 0
+  },
+  "body": {
+    "radius": 0.25,
+    "collisionLayer": 32,
+    "collisionMask": 16
+  },
+  "skills": [
+    { "skillName": "CampAura", "level": 1 }
+  ]
+}

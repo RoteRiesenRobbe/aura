@@ -5,7 +5,7 @@ import {AppliedEffectBit} from '../features/game-objects/logic/EffectPips';
 import {AuraCategoryBit} from '../features/game-objects/logic/AuraRings';
 import {TierRank} from './Mobs';
 import {BasicConfig, meter2px} from './BasicConfig';
-import {SKILL_POINT_COST, roundHP, skillPointCost} from './Skills';
+import {campChargeCap, SKILL_POINT_COST, roundHP, skillPointCost} from './Skills';
 import {COST_TRIGGER_TEXT} from '../features/user-interface/HUD/logic/SkillTooltip';
 
 // §35 C4c (plan-conf-duplication.md D3): the client half of the
@@ -116,6 +116,21 @@ describe('shared constants (api/shared-constants.json)', () => {
         expect(shared.hpRounding.length).toBeGreaterThan(0);
         for (const [amount, want] of shared.hpRounding) {
             expect(roundHP(amount), `roundHP(${amount})`).toBe(want);
+        }
+    });
+
+    // plan-downtime.md D9. The cap is the one Camp value NOT on the wire — the
+    // server sends the live charge count and the client derives the cap from
+    // the level it already has, so both sides own the curve and either can
+    // drift alone. The Go twin asserts the same levels against
+    // skills.CampChargeCap.
+    it('pins the Camp charge cap curve', () => {
+        const c = shared.campChargeCap;
+        expect(c.base).toBeGreaterThan(0);
+        expect(c.perLevels).toBeGreaterThan(0);
+        for (const level of [0, 1, 2, 9, 10, 11, 20, 29, 30, 31]) {
+            expect(campChargeCap(level), `level ${level}`)
+                .toBe(c.base + Math.floor(level / c.perLevels));
         }
     });
 });

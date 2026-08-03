@@ -1,6 +1,6 @@
 # Plan: Downtime agency + baseline Recall (R4)
 
-> **Status: C1 ✅ BUILT 2026-08-03 (ledger §9) — C2 SURVEYED + IMPLEMENTATION-PLANNED 2026-08-03 (§6a), ready to build.** Designed
+> **Status: C1 ✅ BUILT 2026-08-03 · C2 ✅ BUILT 2026-08-03 — both ledgers in §9. Every chunk in this plan is built; what is left is tuning and the [PLACEHOLDER] numbers (§8).** Designed
 > 2026-08-03 (design session): this is R4 from
 > `plan-resource-costs-feedback.md` §6, widened 2026-08-02 by intake round 8
 > item 1 (`plan-playtest-feedback.md`). All nine design questions ruled by the
@@ -356,11 +356,20 @@ rest of the landmines resolved as follows.
 
 - Channel: **150 ticks (5 s)**, damage- and movement-interruptible.
 - Camp TTL: **450 ticks (15 s)** — mid of the ruled 10–20 s band.
-- Heal: the regular campfire's shape verbatim (`healFractionOfMax 0.12`,
-  `tickInterval 60`, radius 1.5, `maxTargets 0`).
+- Heal: the regular campfire's strength and cadence (`healFractionOfMax 0.12`,
+  `tickInterval 60`, `maxTargets 0`) at **half its radius — 0.75, not 1.5**
+  (PO 2026-08-03, with the sprite). ⚑ Its floor is the PLACEMENT OFFSET:
+  `applyCamp` puts the camp on the summon ring 0.8 units from the placer, and
+  the query is collider-vs-collider, so 0.75 reaches a 0.25-radius body at 0.8
+  with 0.2 to spare. Below ~0.6 the placer stops being healed by their own camp
+  unless they walk onto it.
 - Light: **radius 2.0** — Torch-band (2.5), well under Lantern's 4.0 (D6).
-- Charge cap: **3 + ⌊level/10⌋** → 3 at L1, 6 at L30 (§2's "~3–5 at
-  level 1" band).
+- Charge cap: ~~3 + ⌊level/10⌋~~ → **1 + ⌊level/7⌋** → 1 at L1, 2 from L7,
+  3 from L14, 5 at L30. ⚑ **Retuned by the PO after the first hand pass**
+  (2026-08-03), against §2's own "~3–5 at level 1" band: three charges was
+  enough that a level-1 character never ran out, which makes the walk back to
+  a fire optional and the whole loop invisible. The band in §2 is superseded
+  by play.
 
 ## 7. Test strategy
 
@@ -392,6 +401,142 @@ rest of the landmines resolved as follows.
   the *button*, not on the cast path.
 
 ## 9. Chunk ledgers
+
+### C2 — The mini-campfire ✅ BUILT 2026-08-03
+
+**Shipped.** `api/mobs/camp.json` (id 65, `entityType: "Campfire"` — the wire
+enum is pinned and "Camp" resolves to nothing, so the sprite is reused) +
+`api/skills/mobs/camp-aura.json` (id 138, heal + dim `light_aura` r2.0, the
+`campfire-aura.json` unequal-radii precedent) · `UtilityKind.Camp = 2` and
+`ActivationRejection.NoCharges = 4` pinned on the wire, `camp_charges:ubyte`
+appended to `GameState` as id 23 · `skills.UtilityCamp` (150-tick channel,
+damage-interruptible; movement already cancels every cast) + `CampChargeCap`
+pinned to `api/shared-constants.json`'s new `campChargeCap` block by BOTH
+languages' fixture tests · the charge store on `*player`
+(`CampCharges`/`SpendCampCharge`/`RefillCampCharges`/`SetCampCharges`), refilled
+in `trackCampfireDwell`'s exactly-at-threshold branch beside the bind, carried by
+`reconnectStash` and by nothing else · `applyCamp` + the
+`map[uuid.UUID]uint64` replace index on `SkillSystem` · the Camp button, its
+charge counter and its greyed-at-zero state on desktop + mobile · new harness
+`r4-camp.mjs`.
+
+**Decisions taken in-chunk:**
+- **The charge store is not a per-tick accumulator and has no death reset** —
+  "zeroed on death" falls out of the respawn rebuilding the player struct, and
+  the death scene (`deadState`) deliberately carries no count. It is pinned by
+  test precisely *because* nothing in the code says so.
+- **`SetCampCharges` clamps to the level cap**, so the stash restore cannot
+  reintroduce a count the current level could not hold; it runs after
+  `SetProgression`, since the cap is level-derived.
+- **The refusal reaches the client through the existing one-shot** — C1 already
+  established that a utility rejection sends skill id 0 and the client renders
+  the reason alone, so `NoCharges` needed one enum value and one message string.
+- **The button greys but stays pressable.** Unlike Recall, whose bind state the
+  client genuinely cannot see, an empty store IS visible — so the refusal is
+  shown before the press. Pressing it anyway is how a player learns why.
+
+**⚑ Findings:**
+- ⭐ **D5's premise was wrong in BOTH halves and the survey caught it** (already
+  recorded in §3): there is no owner→summon index anywhere, and
+  `OwnedEntities`/`doFuneral` is a vestige with no writers. The ruling stood;
+  the index is new work. It is keyed by **client UUID**, not entity id, so it
+  survives death and respawn (the `anchors` precedent), and replacement is
+  `SetTTLTicks(1)` rather than `RemoveEntity` — removing an entity from inside
+  `fireUtility` would splice `SkillSystem.entities` while `Update` ranges it,
+  the §27.1 skip-a-survivor class.
+- **`replaceStandingCamp` reaches its target through a structural assert**
+  (`campExpirable`), which is the R2/R3 silent-wiring class — a `*mob.Mob` that
+  stopped satisfying it would make replacement a silent no-op with every other
+  test green. Guarded by a capability test on the real type.
+- **A def referenced only from Go is invisible to boot validation.** Nothing in
+  the boot path resolves `camp.json`: no zone spawn names it and no `spawnMob`
+  effect does, so deleting or renaming it would turn the Camp button into a log
+  line nobody reads. Pinned by `TestDiskContent_CampDefinitionResolves`.
+- **⚑ `DAMAGE` takes a whole PERCENT and writes the pool directly** — it bites
+  through godmode, while godmode skips `updateVitalSigns` entirely. That turned
+  the harness's heal check from a noisy A/B into a clean **isolation**: the
+  control window recovers `+0 %` because there is no regen to confound it, and
+  the camp window recovers `+48 %`.
+- **⚑ Open ground is prop-free, not MOB-free.** `(-23, 14)` is the documented
+  clean tile for *pacing* measurements; a level-1 character standing there
+  through the 20 s warp settle **died before the first press** on the harness's
+  first run. There is no whole-unit tile that is both far from every campfire
+  and clear of every mob spawn (the best is 5.1 units from one), so GOD is not
+  optional in a script that stands still out there.
+
+**Verified:** Go full suite `-count=1` against real Postgres green (incl.
+`store` 26.9 s and `accounts` 16.7 s with `AURA_TEST_DB_URL` set — ⚑ without
+that variable those packages SKIP silently and finish in milliseconds, which
+reads exactly like a fast green run) · vet/gofmt clean · **two mutation runs,
+each reddening exactly its own test**: deleting the completion re-check reddens
+only the two `…RejectsAtCompletion` tests (Camp's and Recall's), and neutering
+`SetTTLTicks(1)` reddens only `TestUtilityCamp_SecondPlacementReplacesTheFirst`
+· vitest **155/155** · tsc · prod build · sim battery **byte-identical**
+(TTK 6.67 s / TTD 8.70 s) · `-dev` boot **87 skills/15 factions/65 mobs/10
+recipes/4 quests/5 props/5 campfires, 0 errors 0 warnings** · new
+**`r4-camp.mjs` 24/24** (rerun after the retune, with the two new cap legs) · reruns all green: `hygiene-wire-prune` (0 webgl
+losses, 0 console errors — the new field decodes), `r4-recall-utility` 12/12,
+`campfire-bind-persistence` 6/6 (the dwell branch gained code), `chunk4-
+persistence` 16/16, `mobile-interact` ALL (Talk at its new height),
+`mobile-layout` green EXCEPT the **pre-existing leg-7 `#registrationNag` bug**
+from C1 — leg 5 still pins the tile row untouched at six. The mobile stack was
+probed directly, since the ruled order is hand-written CSS no harness asserts:
+in a 390×844 portrait the tiles end at y=782, Camp occupies 701–771 and Recall
+619–689, both on the right edge, no overlap, and the round Camp button reads
+"Camp 3/3" over two lines.
+
+**PO hand pass, same day — two changes, both taken:**
+- **The charge cap dropped from `3 + ⌊level/10⌋` to `1 + ⌊level/7⌋`** (1 at
+  level 1, 2 from 7, 3 from 14). One constant per language plus the fixture;
+  the formula's shape did not move. ⚑ Two Go tests went red on it and both were
+  right to: the role census (a new authored structure) and
+  `TestReconnect_CarriesCampCharges`, which spent the character's ONLY charge
+  and would then have asserted a carried 0 — the same value a broken carry
+  produces. It now levels the character first, so the carried count is nonzero.
+- ⭐ **The camp got its own wire `EntityType` (`Camp = 75`) so it could be drawn
+  half-size.** The PO asked for "roughly 50 % smaller"; the camp was borrowing
+  `Campfire`'s type, so the client could not tell the two apart. The cheap
+  alternative — sizing the sprite from the wire `radius`, which already differs
+  (0.25 vs 0.3) — was rejected twice over: it is only a 17 % difference, and it
+  would make ART depend on a PHYSICS value, which is the "role inferred from an
+  incidental number" defect the actor model's chunk 2 spent itself removing. So
+  `camp.json` drops its `entityType` override (the name resolves now), a
+  `Mobs.Camp` class renders the same artwork at 30 px against the campfire's 60,
+  and it deliberately does NOT subclass `Campfire` — a camp can never be bound
+  to, so it must never grow the dwell bind ring. The pinned enum is append-only,
+  so this also leaves room for real Camp art with no second wire change.
+- ⚑ The harness's charge assertions were **rewritten to be relative** (parse
+  `n/m`, level to the ceiling, loop until empty) rather than matching `"3/3"`.
+  A cap that has already been retuned once will be retuned again, and a harness
+  that needs editing for a tuning change has stopped being evidence. It gained
+  two legs in the process — the level-1 cap is ONE, and levelling raises the cap
+  **without quietly topping the store up** — and is now **24/24**.
+- ⚑ **The step-out-and-back that reproves the refill has to warp onto the FIRE,
+  not onto the recorded home position.** Home is where the character *spawned*,
+  a jittered point up to the respawn jitter radius away, and rounding that to a
+  whole-unit WARP target lands outside the 0.75-unit bind radius — the refill
+  then silently never fires and reads exactly like a broken refill. It cost one
+  red run. The authored fires sit within ~0.2 units of a whole tile, so the fire
+  itself rounds safely; the harness reads its position off the campfire layer.
+- ⭐ **The sprite alone was the wrong half of the ask.** Shrinking the art left
+  the camp healing over a full campfire's footprint — it *looked* half-size and
+  was not, which is a worse state than either extreme. The heal radius went
+  1.5 → **0.75** with it (the light stays 2.0, deliberately wider than the heal,
+  exactly as the permanent fire's 7.0 is wider than its 1.5). Content-only;
+  `r4-camp.mjs` stayed 24/24 with the heal still landing at +48 %, which is the
+  check that mattered — the placer sits at the 0.8-unit placement offset, so a
+  smaller radius could have silently stopped healing the person who placed it.
+- ⚑ **`.width` on a PIXI mob container measures the AURA RING, not the sprite.**
+  The first size check reported camp and campfire both at 423 px and looked like
+  a change that had not taken; a screenshot with the two side by side showed the
+  camp at visibly half size. Measure sprites by picture, or by the texture-
+  bearing child — never by the container.
+
+**Open, deliberately:** every number [PLACEHOLDER] (channel 150 ticks, TTL 450,
+light radius 2.0, cap `1 + ⌊level/7⌋`, camp sprite 30 px) · Camp reuses the campfire sprite and
+has no art of its own (§8) · no hotkey (D1's ruling: buttons; a key is one
+`Controls` entry later) · in-combat placement stays possible by design (§8's
+watch item).
 
 ### C1 — Recall becomes a baseline utility ✅ BUILT 2026-08-03, committed `ec389164`, deployed live same day — **PO-VERIFIED IN-GAME 2026-08-03**
 

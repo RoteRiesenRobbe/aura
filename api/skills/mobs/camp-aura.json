@@ -1,0 +1,20 @@
+{
+  "_comment": "Downtime R4 C2: the mini-campfire's aura. ONE skill with two effects, the campfire-aura.json unequal-radii precedent verbatim — structures pin aura slot 0 always-on, so there is no second-aura question. HEAL: the regular campfire's tick and strength (healFractionOfMax, so the camp scales with each target's pool for free — D9's own argument for scaling the charge CAP rather than the rate), uncapped so it heals EVERY wounded aligned entity in range, owner included, itself never (applyHealAura's bespoke same-faction/wounded/never-self rule). Its RADIUS is 0.75 [PLACEHOLDER], half the permanent fire's 1.5 — PO 2026-08-03, the same halving as the sprite: a camp that looked half-size while healing over a full campfire's footprint was telling the player something untrue. ⚑ The floor on this number is the PLACEMENT OFFSET: applyCamp puts the camp on the summon ring, 0.8 units from the placer (caster 0.25 + camp 0.25 + gap 0.3), and the query is collider-vs-collider, so a 0.75 radius reaches a 0.25-radius body at 0.8 with 0.2 to spare. Take this much below ~0.6 and the placer stops being healed by their own camp unless they walk onto it. LIGHT: radius 2.0 [PLACEHOLDER] — Torch-band, well under Lantern's 4.0, which is D6's constraint: it must let you see your feet, never substitute for the light aura in dark zones (the tunnel's light-vs-damage trade-off is a GDD pillar). Deliberately left WIDER than the heal, exactly as the permanent fire's is (7.0 against 1.5): you see the camp from further than it can mend you. No resource cost: the charge IS the price, spent at channel completion. All values [PLACEHOLDER].",
+  "id": 138,
+  "name": "CampAura",
+  "category": "active_aura",
+  "maxLevel": 1,
+  "effects": [
+    {
+      "type": "heal_aura",
+      "radius": 0.75,
+      "healFractionOfMax": 0.12,
+      "maxTargets": 0,
+      "tickInterval": 60
+    },
+    {
+      "type": "light_aura",
+      "radius": 2.0
+    }
+  ]
+}

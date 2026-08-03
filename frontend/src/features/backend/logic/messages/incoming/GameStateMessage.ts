@@ -60,6 +60,9 @@ export class GameStateMessage {
     // baseline utility winding up (plan-downtime.md C1); 0 = none — shares the
     // two tick fields above with the slot cast (one cast at a time)
     castUtility: number;
+    // Camp baseline-utility charges the owning player holds (C2); 0 = none.
+    // The CAP is not on the wire — campChargeCap derives it from the level.
+    campCharges: number;
     // one-tick rejection feedback: a cooldown activation refused by its
     // precondition — which skill and why (0 = none)
     activationRejectedSkillId: number;
@@ -135,6 +138,7 @@ export class GameStateMessage {
         this.castTicksLeft = gameState.castTicksLeft();
         this.castTicksTotal = gameState.castTicksTotal();
         this.castUtility = gameState.castUtility();
+        this.campCharges = gameState.campCharges();
 
         this.activationRejectedSkillId = gameState.activationRejectedSkillId();
         this.activationRejectedReason = gameState.activationRejectedReason();
@@ -424,6 +428,7 @@ const gameObjectClasses: Record<AuraApi.EntityType, GameObjectClass> = {
     [AuraApi.EntityType.Brazier]: Mobs.Brazier,
     [AuraApi.EntityType.Healer]: Mobs.Healer,
     [AuraApi.EntityType.Campfire]: Mobs.Campfire,
+    [AuraApi.EntityType.Camp]: Mobs.Camp,
     [AuraApi.EntityType.Corpse]: Corpse,
     [AuraApi.EntityType.Turnip]: Mobs.Turnip,
     [AuraApi.EntityType.House]: Resources.House,

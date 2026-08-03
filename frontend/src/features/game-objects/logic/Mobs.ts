@@ -716,6 +716,23 @@ export class Campfire extends Mob {
 // noinspection JSIgnoredPromiseFromCall
 Preloading.registerGameObjectSVG(Campfire, file('campfire'), maxSize('campfire'));
 
+// The player-placed mini-campfire (plan-downtime.md C2): the same artwork at
+// half the size, on the same layer, and deliberately NOT a subclass of
+// Campfire — a camp can never be bound to, so it must never grow the dwell
+// bind circle. Its own wire EntityType is what lets it size independently.
+export class Camp extends Mob {
+    static svg: PIXI.Texture;
+
+    constructor(id: number, x: number, y: number) {
+        super(id, Game.layers.mobs.campfire, x, y,
+            randomInt(minSize('camp'), maxSize('camp')),
+            Camp.svg);
+    }
+}
+
+// noinspection JSIgnoredPromiseFromCall
+Preloading.registerGameObjectSVG(Camp, file('camp'), maxSize('camp'));
+
 // The stationary harvest-mob (content pass C1): stands in the Rübenfeld field,
 // never moves or fights back — only Harvest damages it (wildcard resist).
 // No hit sound — the base Damaged flash suffices for the placeholder art.

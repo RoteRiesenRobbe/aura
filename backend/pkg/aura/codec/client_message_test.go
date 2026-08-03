@@ -134,6 +134,7 @@ func TestJoinMessageFlatbufferUnmarshal_TokenAbsent_OldClient(t *testing.T) {
 func TestUtilityKind_GoConstantsMatchTheWireEnum(t *testing.T) {
 	assert.EqualValues(t, AuraApi.UtilityKindNone, skills.UtilityNone)
 	assert.EqualValues(t, AuraApi.UtilityKindRecall, skills.UtilityRecall)
+	assert.EqualValues(t, AuraApi.UtilityKindCamp, skills.UtilityCamp)
 }
 
 func buildUseUtilityClientMessage(kind AuraApi.UtilityKind) []byte {

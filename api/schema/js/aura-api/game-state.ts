@@ -214,8 +214,13 @@ castUtility():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+campCharges():number {
+  const offset = this.bb!.__offset(this.bb_pos, 50);
+  return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(23);
+  builder.startObject(24);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -429,6 +434,10 @@ static addDamageFactor(builder:flatbuffers.Builder, damageFactor:number) {
 
 static addCastUtility(builder:flatbuffers.Builder, castUtility:number) {
   builder.addFieldInt8(22, castUtility, 0);
+}
+
+static addCampCharges(builder:flatbuffers.Builder, campCharges:number) {
+  builder.addFieldInt8(23, campCharges, 0);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

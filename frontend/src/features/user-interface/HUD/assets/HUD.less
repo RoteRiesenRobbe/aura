@@ -1102,6 +1102,17 @@
 	cursor: pointer;
 	color: @panel-color;
 
+	// Flex so the charge counter sits at the right edge, the cooldown-slot
+	// layout. The hotkeySlot rules next door cannot be reused wholesale — a
+	// utility has no hotkey badge (D1: buttons, no keys).
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+
+	> .slotLabel {
+		flex: 1;
+	}
+
 	&:hover {
 		background: fade(white, 8%);
 		border-radius: 0.4rem;
@@ -1109,6 +1120,22 @@
 
 	&:active {
 		background: fade(white, 14%);
+	}
+
+	// Camp's charge counter (C2). The cooldown-remaining treatment verbatim —
+	// it answers the same question ("can I press this yet") in the same corner,
+	// so it gets the same colour and the same tabular digits.
+	> .utilityCharges {
+		flex: none;
+		color: fade(gold, 90%);
+		font-variant-numeric: tabular-nums;
+	}
+
+	// An empty store greys the LABEL, not the button: the button stays
+	// pressable (pressing it is how you learn why it is grey), and the counter
+	// stays at full contrast because it is the explanation.
+	&.outOfCharges > .slotLabel {
+		opacity: 0.45;
 	}
 }
 

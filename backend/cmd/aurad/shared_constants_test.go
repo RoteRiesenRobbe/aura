@@ -42,6 +42,32 @@ type sharedConstants struct {
 		Tier2AboveFraction float64 `json:"tier2AboveFraction"`
 		Tier3AboveFraction float64 `json:"tier3AboveFraction"`
 	} `json:"skillPointCost"`
+	CampChargeCap struct {
+		Base      int `json:"base"`
+		PerLevels int `json:"perLevels"`
+	} `json:"campChargeCap"`
+}
+
+// TestSharedConstants_CampChargeCap pins skills.CampChargeCap against the
+// fixture (plan-downtime.md C2/D9). The cap is a cross-language mirror for a
+// deliberate reason: it is NOT on the wire — the server sends the live charge
+// count and the client derives the cap from the level it already has, so both
+// sides own the curve and either can drift alone.
+func TestSharedConstants_CampChargeCap(t *testing.T) {
+	raw, err := os.ReadFile("../../../api/shared-constants.json")
+	require.NoError(t, err)
+	var fixture sharedConstants
+	require.NoError(t, json.Unmarshal(raw, &fixture))
+	c := fixture.CampChargeCap
+	require.NotZero(t, c.Base, "the fixture must carry a campChargeCap block")
+	require.NotZero(t, c.PerLevels)
+
+	// Level 0 is not a real character level; it is included so a cap curve that
+	// went negative or divided by something odd cannot pass quietly.
+	for _, level := range []int{0, 1, 2, 9, 10, 11, 20, 29, 30, 31} {
+		assert.Equal(t, c.Base+level/c.PerLevels, skills.CampChargeCap(level),
+			"skills.CampChargeCap has drifted from api/shared-constants.json (level %d)", level)
+	}
 }
 
 // TestSharedConstants_SkillPointCurve pins skills.PointCost against the

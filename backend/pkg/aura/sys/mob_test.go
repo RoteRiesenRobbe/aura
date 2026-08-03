@@ -1,6 +1,7 @@
 package sys
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -56,7 +57,19 @@ func (g *fakeGame) Bounds() (float32, float32)                    { return 60, 4
 func (g *fakeGame) Config() *cfg.GameConfig                       { return g.cfg }
 func (g *fakeGame) Handler(func(*http.Request) bool) http.Handler { panic("unused") }
 func (g *fakeGame) Loop()                                         { panic("unused") }
-func (g *fakeGame) GetEntity(uint64) (model.BasicEntity, error)   { panic("unused") }
+
+// GetEntity resolves out of the added set — the camp replace index (C2, D5)
+// looks its previous camp up by id, so this can no longer panic. Removed
+// entities stay in g.added on purpose: it is the id, not the slice, that the
+// index is being tested against.
+func (g *fakeGame) GetEntity(id uint64) (model.BasicEntity, error) {
+	for _, m := range g.added {
+		if m.Basic().ID() == id {
+			return m, nil
+		}
+	}
+	return nil, fmt.Errorf("entity with id %d not found", id)
+}
 func (g *fakeGame) Mobs() mobs.Registry {
 	if g.mobReg == nil {
 		panic("unused")

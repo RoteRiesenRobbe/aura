@@ -42,7 +42,7 @@ func TestContent_AuthoredRoleCensus(t *testing.T) {
 	}
 
 	assert.ElementsMatch(t, []string{
-		"Bramble", "Brazier", "Campfire", "FireTotem", "PoisonPool",
+		"Bramble", "Brazier", "Camp", "Campfire", "FireTotem", "PoisonPool",
 		"Rockfall", "SpikeBarricade", "Totem", "Turnip", "WarbannerTotem",
 	}, byRole[RoleStructure], "the authored structures")
 

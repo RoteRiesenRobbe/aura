@@ -27,6 +27,7 @@ export class Snapshot {
     castTicksLeft: number;
     castTicksTotal: number;
     castUtility: number; // baseline utility winding up (downtime C1); 0 = none
+    campCharges: number; // Camp charges held (downtime C2); cap derived from level
     activationRejectedSkillId: number; // one-tick rejection feedback; 0 = none
     activationRejectedReason: number;
     interactableEntityId: number; // conversant in talking range (3b-i); 0 = none
@@ -78,6 +79,10 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         snapshot.castTicksLeft = gameState.castTicksLeft;
         snapshot.castTicksTotal = gameState.castTicksTotal;
         snapshot.castUtility = gameState.castUtility;
+        // Always carried like the cast scalars: 0 is a meaningful value here
+        // (an empty store greys the button), so a delta snapshot dropping the
+        // field would leave the counter showing a charge the player has spent.
+        snapshot.campCharges = gameState.campCharges;
         snapshot.activationRejectedSkillId = gameState.activationRejectedSkillId;
         snapshot.activationRejectedReason = gameState.activationRejectedReason;
         // Always carried, like the scalars above: it is live state, so "absent"

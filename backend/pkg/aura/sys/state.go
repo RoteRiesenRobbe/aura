@@ -73,13 +73,19 @@ const reconnectStashTTLTicks = 10 * 60 * constant.TicksPerSecond
 // stashed; the TTL sweep frees both. Buffs and casting state are NOT carried
 // (the death-respawn precedent).
 type reconnectStash struct {
-	name           string
-	progression    model.PlayerProgression
-	skills         *skills.SkillComponent
-	quests         *quests.Ledger   // the L11 carry, exactly like deadState's
-	health         vitals.VitalSign // alive-stash only; dead reconnects respawn normally
-	position       phy.Vec2f        // alive: last position; dead: the deathspot
-	anchor         string           // bound spawn-point id; "" for unbound
+	name        string
+	progression model.PlayerProgression
+	skills      *skills.SkillComponent
+	quests      *quests.Ledger   // the L11 carry, exactly like deadState's
+	health      vitals.VitalSign // alive-stash only; dead reconnects respawn normally
+	// campCharges is the Camp charge store (plan-downtime.md C2). Alive-stash
+	// only, and that asymmetry IS the ruling: the stash means "same session",
+	// so an F5 keeps the charges, while death — which stashes through
+	// deadState, not here — zeroes them along with everything else the
+	// rebuilt player struct loses. Nothing about it reaches persist.
+	campCharges    int
+	position       phy.Vec2f // alive: last position; dead: the deathspot
+	anchor         string    // bound spawn-point id; "" for unbound
 	dead           bool
 	disconnectTick uint64
 
@@ -796,6 +802,9 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 	p.SetSkillComponent(stash.skills)
 	p.SetQuestLedger(stash.quests)
 	p.SetPosition(stash.position)
+	// After the progression is back: the cap is level-derived, so restoring
+	// the count first would clamp against a level-1 cap.
+	p.SetCampCharges(stash.campCharges)
 	// Exact stashed HP, clamped AFTER progression/skills are back (triage
 	// item 14 ordering) in case the max pool shrank.
 	health := stash.health
@@ -1007,6 +1016,22 @@ func (s *ConnectionStateSystem) trackCampfireDwell() {
 		if progress.ticks == campfireDwellTicks {
 			s.anchors[p.Client().UUID()] = near.ID
 			p.NoteCampfireBound()
+			// The same act rebinds the spawn point and refills the Camp
+			// charge store (C2): the fire is the one anchor of the whole
+			// downtime loop, and giving the two the same trigger is what
+			// makes "walk back to a fire" a single errand.
+			//
+			// ⚑ Exactly-at-threshold, like the bind: standing at a fire
+			// refills once per ENTRY, so spending charges without ever
+			// leaving the dwell radius does not re-refill until you step out
+			// and back in. Accepted (§6a) — the loop never does that.
+			//
+			// ⚑ L3 rides on s.campfires being the boot-frozen authored slice:
+			// a player-placed camp is a spawned mob that never enters it, so
+			// it can neither bind nor refill. Structural, and pinned in both
+			// directions by test because that is exactly the kind of
+			// invariant that erodes.
+			p.RefillCampCharges()
 		}
 	}
 }
@@ -1103,6 +1128,7 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 			skills:         p.SkillComponent(),
 			quests:         p.QuestLedger(),
 			health:         p.VitalSigns().Health,
+			campCharges:    p.CampCharges(),
 			position:       p.Position(),
 			anchor:         s.anchors[clientUUID],
 			disconnectTick: s.game.Ticks(),
