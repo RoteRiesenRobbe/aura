@@ -228,7 +228,16 @@ C1 first — it builds the class C2 rides, and it is independently shippable
 
 ## 9. Chunk ledgers
 
-### C1 — Recall becomes a baseline utility ✅ BUILT 2026-08-03, committed `ec389164`, deployed live same day
+### C1 — Recall becomes a baseline utility ✅ BUILT 2026-08-03, committed `ec389164`, deployed live same day — **PO-VERIFIED IN-GAME 2026-08-03**
+
+**Follow-up, same day (PO after the in-game pass):** the mobile Recall button
+moved from the LEFT edge to the RIGHT — the left half of a phone screen is the
+joystick, so nothing tappable may live there. Recall now holds the spot
+directly above the tile row on the right (always present, the thumb side) and
+the **Talk button stacks one step above it** when an actor is offered — Talk is
+transient, Recall is permanent, so Recall gets the closer reach. CSS-only, two
+rules in `HUD.mobile.less`; verified with `mobile-interact.mjs` (Talk at its
+new height) and a two-button stack probe. Committed with this note.
 
 **Shipped.** `recall.json` deleted (id 28 burned), both teach rows removed,
 `skills.UtilityKind`/`UtilityDef` (Go literals — the class is deliberately not

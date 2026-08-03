@@ -25,7 +25,7 @@
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { botName } from './botname.mjs';
+import { joinAsNewCharacter } from './lib/join.mjs';
 
 const workdir = process.env.AURA_RUN_DIR || join(process.env.HOME, '.cache/aurahunter-run');
 const require = createRequire(join(workdir, 'noop.js'));
@@ -67,9 +67,9 @@ async function run(flavour) {
   page.on('console', m => { if (m.type() === 'error') errors.push(`${flavour} console: ` + m.text()); });
 
   await page.goto(`${base}&${flavour}`, { waitUntil: 'domcontentloaded', timeout: 120_000 });
-  await page.waitForSelector('#startForm .playerNameSubmit:not([disabled])', { timeout: 60_000 });
-  await page.fill('#startForm .playerNameInput', botName(flavour === 'mobile' ? 'tap' : 'key'));
-  await page.click('#startForm .playerNameSubmit');
+  // The account screens replaced #startForm (step 8a chunk 2); each context
+  // has its own cookie jar, so every join mints a fresh anonymous account.
+  await joinAsNewCharacter(page, flavour === 'mobile' ? 'tap' : 'key');
   await page.waitForFunction(() => !!window.game?.character, null, { timeout: 60_000 });
   await page.waitForSelector('#console_command', { state: 'attached', timeout: 60_000 });
 

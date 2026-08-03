@@ -188,7 +188,9 @@ html.mobile {
 	// badge over the actor's head is suppressed (Backend.applyGameState).
 	// Bottom right, under the right thumb, but lifted clear of the tile row:
 	// in portrait the six tiles span nearly the full width, so the true corner
-	// is not free at every size.
+	// is not free at every size. Since R4 C1's follow-up (PO 2026-08-03) it is
+	// lifted one further step — the always-present Recall button (#utilityBar)
+	// holds the spot directly above the tiles, and Talk stacks above it.
 	//
 	// ⚑ It must restate `.hidden` itself. The global `.hidden { display: none }`
 	// is a bare class (0,1,0) and loses to `html.mobile #interactButton`
@@ -201,7 +203,8 @@ html.mobile {
 
 		position: fixed;
 		right: @mobile-edge;
-		bottom: ~"calc(min(5.6rem, 15vh, 13vw) + 2 * 0.7rem)";
+		// The Recall spot (tile + 2 edges) + one button height + one edge gap.
+		bottom: ~"calc(min(5.6rem, 15vh, 13vw) + 2 * 0.7rem + 4.4rem + 0.7rem)";
 		z-index: (@mobile-menu-z - 1);
 
 		width: @mobile-button;
@@ -511,11 +514,14 @@ html.mobile {
 	// The six-tile row is width-saturated in portrait (the 13vw cap above is
 	// what keeps it on screen), so the Recall button does NOT join it as a
 	// seventh tile: it takes the #interactButton treatment — fixed above the
-	// tile row, on the LEFT edge where interact holds the right. It stays a
-	// child of #actionBars, so the pointer-events: auto opt-in covers it.
+	// tile row on the RIGHT edge, the thumb side (PO 2026-08-03: the left
+	// half of the screen is the joystick, so nothing tappable lives there).
+	// It holds the spot just above the tiles; the Talk button, when offered,
+	// stacks ABOVE it — Recall is always present, Talk is transient. It stays
+	// a child of #actionBars, so the pointer-events: auto opt-in covers it.
 	#utilityBar {
 		position: fixed;
-		left: @mobile-edge;
+		right: @mobile-edge;
 		bottom: ~"calc(min(5.6rem, 15vh, 13vw) + 2 * 0.7rem)";
 		z-index: (@mobile-menu-z - 1);
 
