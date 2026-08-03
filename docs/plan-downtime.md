@@ -1,6 +1,6 @@
 # Plan: Downtime agency + baseline Recall (R4)
 
-> **Status: C1 ✅ BUILT 2026-08-03 (ledger §9) — C2 open.** Designed
+> **Status: C1 ✅ BUILT 2026-08-03 (ledger §9) — C2 SURVEYED + IMPLEMENTATION-PLANNED 2026-08-03 (§6a), ready to build.** Designed
 > 2026-08-03 (design session): this is R4 from
 > `plan-resource-costs-feedback.md` §6, widened 2026-08-02 by intake round 8
 > item 1 (`plan-playtest-feedback.md`). All nine design questions ruled by the
@@ -82,9 +82,14 @@ seed. Revisit only if it stings in play.
 Same shape as R2's *pay for work done*: nothing happened, nothing is paid. The
 lost time and the incoming mob are the interrupt's price.
 
-**D5 — One camp per player; placing again replaces.** The summon machinery
-already tracks owned spawns; replace is the existing pattern. Different
-players' fires may overlap — only self-stacking is closed.
+**D5 — One camp per player; placing again replaces.** ~~The summon machinery
+already tracks owned spawns; replace is the existing pattern.~~ ⚑ **Corrected
+by the C2 survey (§6a): both halves of that sentence are wrong** — no
+owner→summon index exists anywhere (one-totem-at-a-time is a *content
+convention*, cooldown ≥ TTL, per the `summon-totem.json` comment), and the
+`OwnedEntities`/`doFuneral` cleanup is a vestige with zero writers. The RULING
+stands; C2 builds the small replace index (§6a step 4). Different players'
+fires may overlap — only self-stacking is closed.
 
 **D6 — Dim light.** Camp carries a `light_aura` with a radius meaningfully
 smaller than Lantern's [PLACEHOLDER] — enough to see your feet, not enough to
@@ -196,6 +201,166 @@ first.
 
 C1 first — it builds the class C2 rides, and it is independently shippable
 (free baseline Recall is round-8 item 1 on its own).
+
+## 6a. C2 implementation plan (surveyed + PO-ruled 2026-08-03)
+
+Four parallel code surveys against HEAD (post-C1). **Verdict: ready to
+implement.** One §3 claim corrected in place (D5 — no replace pattern exists,
+no owned-spawn tracking; the ruling stands, the mechanism is new work), the
+rest of the landmines resolved as follows.
+
+### Landmines answered by the survey
+
+- **L2 — closed by C1.** The utility casting state, cast bar, press message
+  and precondition seam all shipped; Camp plugs into `fireUtility`'s switch
+  (`sys/skills.go:1486`) and `utilityPrecondition` (`skills.go:1469`).
+- **L3 — structural today, still pinned.** `SetCampfireAnchors` has exactly
+  one caller, boot-time `aurad.go:205` from authored `zone.Campfires`; the
+  dwell detector iterates only that boot-frozen slice, and safe zones
+  (`mob.SetSafeZones`) are boot-only too. A spawned camp can never bind,
+  refill, or repel mobs unless someone adds a second caller — pin both
+  directions in Go anyway (the invariant-erosion argument in L3 holds).
+- **L4 — movement cancels casts today, unconditionally.** `core/input.go:346`
+  `CancelCast()`s on any non-zero movement vector while alive; there is no
+  per-utility movement opt-out (only damage has `CastInterruptedByDamage`).
+  The camp channel inherits *sit still* for free; the "deliberate difference"
+  branch of L4 is moot. Recall behaves identically, as players already know.
+- **L5 — dissolves, differently than written.** A player caster can never
+  `EnlistUnder`: `spawnSummon`'s `e.(model.Allegiance)` assert requires
+  `AggroMask()`, which `*player` does not implement — every player summon
+  takes `Align()` (skills.go:1999-2003). And `applyHealAura`'s eligibility is
+  bespoke (skills.go:866-885): same **faction**, wounded, never-self — no
+  target flags, no aggro-mask read. So an `Align()`ed camp heals every player
+  and every aligned summon in range, owner included, itself never. Pin the
+  second-player heal per §7; there is no owned-structure targeting gap.
+- **L6 — the machinery exists and fits exactly.** `Mob.SetTTLTicks`
+  (`mob.go:828`, spawn-site-only) counts down in `Mob.Update` and expires
+  through the normal removal path granting no XP (`mob.go:925-932`). Totems
+  already use it (300 + 30/level ticks); nothing about "permanent until
+  killed" needs handling.
+- **L7 — ruled, see below.**
+- **L8 — one new wire field.** `GameState` tail is field id 22
+  (`cast_utility`); `camp_charges:ubyte` appends as **id 23**, own-player
+  block. Cap is **derived client-side from level** (no second field):
+  `getLocalPlayerLevel()` (`client-data/Mobs.ts:89`) is the established
+  mirror, and the cap curve joins `api/shared-constants.json` (the
+  `skillPointCost` curve is the closest analogue), asserted by both
+  languages' fixture tests.
+
+### New PO rulings (2026-08-03, choice prompts)
+
+- **Mobile stack order: Camp closest to the thumb.** Camp takes the spot
+  directly above the tile row (the frequent mid-loop press), Recall moves one
+  step up, Talk on top. Talk's hardcoded `bottom` offset moves again;
+  `mobile-interact.mjs` updated with it. The six-tile row stays untouched
+  (`mobile-layout.mjs` leg 5 pins it at six).
+- **Charges survive an F5/reconnect — stash only, NO schema changes.** The
+  count joins `reconnectStash` (`sys/state.go:75`) but **not** `deadState`
+  and **not** `persist.CharacterState`: survives the ~10-min window, zeroed
+  by death, logout and stash TTL — all in memory, the database untouched.
+  This is the natural shape anyway (the stash carries "same session", the
+  death carry deliberately doesn't).
+
+### Decisions taken in planning (flagged here, not asked)
+
+- **The camp def rides `entityType: "Campfire"`** — sprite reuse, since the
+  wire EntityType enum is pinned and "Camp" resolves to nothing; button art
+  and a distinct sprite stay [PLACEHOLDER] per §8.
+- **Replace = `SetTTLTicks(1)` on the old camp, not `RemoveEntity`.** Calling
+  `game.RemoveEntity` from inside `fireUtility` splices `SkillSystem.entities`
+  while `Update` ranges it — the exact §27.1 skip/double-visit class
+  `MobSystem` defers removals to avoid. Setting the old camp's TTL to 1
+  expires it through the normal path next tick (≤1 tick of overlap,
+  harmless). The index is `map[client-UUID]entityID` in `SkillSystem`, keyed
+  by client UUID so it survives death/respawn (the `anchors` precedent);
+  stale ids resolve to nil via `game.GetEntity` and need no fan-out cleanup.
+- **Owner death lets the camp burn out on its TTL** (totem precedent; D2
+  calls it a shared object). `doFuneral` would be the instant-removal hook
+  but is dead code today — not revived for this.
+- **Refill is to-cap, in the exactly-once dwell branch** (`state.go:1007`,
+  next to the bind). Consequence: standing at a fire refills once per entry —
+  spending charges while never leaving the dwell radius does not re-refill
+  until you step out and back in. Accepted; the loop never does that.
+- **A fresh character starts at 0 charges** — they spawn at a fire and the
+  1.7 s dwell fills them, which is §2's "painless by construction" argument
+  working as designed. No creation seeding.
+- **Refusal is a new pinned `ActivationRejection` value `NoCharges`**
+  (append-only wire enum, the §28 discipline), client text on the existing
+  one-shot ("No camp charges — rest at a campfire").
+- **The camp's aura is ONE skill with two effects** (`heal_aura` +
+  `light_aura`) — the `campfire-aura.json` unequal-radii precedent verbatim;
+  structures pin aura slot 0 always-on, so no multi-aura question exists.
+- **`applyCamp` is a small hand-rolled spawn**, not a `spawnSummon` reuse:
+  the verb set is `NewMob` → `Align()` → `SetOwner` → `RestoreToFullHealth` →
+  `SetTTLTicks` → one `SetPosition` (`summonPosition` ring, blocker-aware) →
+  `AddEntity` — `spawnSummon` itself wants an `EquippedSkill` that does not
+  exist here, and the camp needs no `RaiseLoadoutLevels` (level-1 aura; the
+  %-of-max heal scales with the target's pool for free, which is D9's own
+  rationale). ⚑ A def referenced only from Go is invisible to the registry's
+  `spawnMob` boot validation — pin `GetByName("Camp")` resolving in a test.
+
+### Build order
+
+1. **Content**: `api/mobs/camp.json` (role structure, `collisionLayer: 32` /
+   `collisionMask: 16` — the campfire's structurally-unkillable body,
+   `speed: 0`, `experience: 0`, `entityType: "Campfire"`) +
+   `api/skills/mobs/camp-aura.json` (heal_aura + dim light_aura). Boot
+   counts move: **86→87 skills, 64→65 mobs** — every harness/status pin
+   that names them follows.
+2. **Wire**: `client.fbs` `UtilityKind.Camp = 2` (the pinned comment already
+   reserves it) · `server.fbs` `camp_charges:ubyte` (id 23) ·
+   `ActivationRejection.NoCharges` · regenerate both binding sets (devops
+   bundle copies move too) · extend `TestUtilityKind_GoConstantsMatchTheWireEnum`
+   and the GameState codec round-trips.
+3. **Charge store (Go, test-first)**: fields + accessors on the player
+   struct (`CampCharges`/`SpendCampCharge`/`RefillCampCharges`), cap curve
+   as one Go function + `shared-constants.json` entry + both fixture tests,
+   the refill hook in `trackCampfireDwell`, the stash carry (stash struct +
+   its writers/readers only — deadState untouched). Tests: cap-by-level,
+   refill at dwell threshold, zero on death, carry through stash, L3 both
+   directions (a camp mob near the player binds nothing and refills nothing).
+4. **Camp utility (Go, test-first)**: `UtilityCamp` literal in
+   `skills/utility.go` (Camp needs `CastInterruptedByDamage: true`),
+   `utilityPrecondition` arm (charges > 0 at press AND completion — the C1
+   two-site pattern, mutation-check the completion re-check),
+   `fireUtility` → `applyCamp` (spend at completion — D4's interrupt-refunds
+   falls out; replace via the UUID index + `SetTTLTicks(1)`). Tests: D4
+   (interrupted cast spends nothing), replace (old camp gone within a tick,
+   only one camp per owner), second-player heal (L5), TTL expiry removes it
+   with zero XP, zero-charge press rejected with `NoCharges`.
+5. **Codec**: `camp_charges` in the own-player block next to `cost_factor`,
+   absent-reads-0 + round-trip tests.
+6. **Frontend**: `UTILITY_NAMES[Camp]` (label + cast-bar name + press guard
+   in one table) · second `<li data-utility="2">` in `#utilityBar` (the
+   delegated pointerdown needs zero new wiring) · charge counter span on the
+   button (`.cdRemaining` styling precedent, `tabular-nums`; count from the
+   new snapshot field, cap derived from level) · disabled/greyed state at 0
+   charges (unlike Recall, the client CAN see this state) · mobile: the
+   ruled stack order in `HUD.mobile.less` (Camp at Recall's current offset,
+   Recall +1 step, Talk +2; the `ul` needs a flex column since a second `li`
+   currently stacks raw) · help-panel sentence.
+7. **Harness** `r4-camp.mjs`: dwell at a fire → counter shows cap → warp
+   out → place → cast bar "Camp" → camp entity appears + ally-heal evidence →
+   counter decremented at completion (not at press) → move-interrupt leaves
+   the counter alone → second placement replaces the first → dwell at the
+   placed camp refills nothing → return to the real fire refills → camp
+   expires on its TTL. Plus reruns: `hygiene-wire-prune` (field append),
+   `r4-recall-utility.mjs`, `mobile-layout.mjs` (leg 5 six-tile pin;
+   leg 7 stays red on the known nag bug), `mobile-interact.mjs` (Talk's new
+   height), `campfire-bind-persistence.mjs` (the dwell branch gained code).
+8. **Tail**: full Go suite vs Postgres · vitest · tsc · prod build · `-dev`
+   boot 87/15/**65**/10/4/777/485/5, 0 errors 0 warnings · sim battery
+   (byte-identity expected — no combat numbers move).
+
+### Numbers (all [PLACEHOLDER], proposed for the first build)
+
+- Channel: **150 ticks (5 s)**, damage- and movement-interruptible.
+- Camp TTL: **450 ticks (15 s)** — mid of the ruled 10–20 s band.
+- Heal: the regular campfire's shape verbatim (`healFractionOfMax 0.12`,
+  `tickInterval 60`, radius 1.5, `maxTargets 0`).
+- Light: **radius 2.0** — Torch-band (2.5), well under Lantern's 4.0 (D6).
+- Charge cap: **3 + ⌊level/10⌋** → 3 at L1, 6 at L30 (§2's "~3–5 at
+  level 1" band).
 
 ## 7. Test strategy
 
