@@ -92,8 +92,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/RoteRiesenRobbe/aura/pkg/aura/accounts"
 )
 
 var (
@@ -249,29 +247,44 @@ func (o outcome) String() string {
 	return "error"
 }
 
-func createCharacter(c *http.Client, base, name string) (secret string, id int64, d time.Duration, out outcome) {
+// createCharacter mints an anonymous account, returning the SESSION COOKIE it
+// was issued.
+//
+// ⚑ The cookie, not the anonymous secret (backlog §46). The secret no longer
+// authenticates an ordinary request — it is a recovery credential spent at
+// /api/session/anonymous — and creation now issues a session, so this tool never
+// needs the exchange at all.
+func createCharacter(c *http.Client, base, name string) (session string, id int64, d time.Duration, out outcome) {
 	var body struct {
 		Character struct {
 			ID int64 `json:"id"`
 		} `json:"character"`
 		AnonymousSecret string `json:"anonymousSecret"`
 	}
-	d, out = call(c, base+"/api/characters", "", map[string]any{"name": name}, &body)
-	return body.AnonymousSecret, body.Character.ID, d, out
+	d, out, session = call(c, base+"/api/characters", "", map[string]any{"name": name}, &body)
+	return session, body.Character.ID, d, out
 }
 
-func registerAccount(c *http.Client, base, name, secret string) (time.Duration, outcome) {
-	return call(c, base+"/api/auth/register", secret,
+func registerAccount(c *http.Client, base, name, session string) (time.Duration, outcome) {
+	d, out, _ := call(c, base+"/api/auth/register", session,
 		map[string]any{"username": name, "password": *password}, nil)
+	return d, out
 }
 
 func login(c *http.Client, base, name string) (time.Duration, outcome) {
-	return call(c, base+"/api/auth/login", "",
+	d, out, _ := call(c, base+"/api/auth/login", "",
 		map[string]any{"username": name, "password": *password}, nil)
+	return d, out
 }
 
-// call posts body and times the whole round trip, decoding into out when given.
-func call(c *http.Client, url, secret string, body any, out any) (time.Duration, outcome) {
+// call posts body and times the whole round trip, decoding into out when given,
+// and reports the session cookie the response set.
+//
+// ⚑ The cookie is carried by hand rather than in a net/http/cookiejar: the
+// session cookie is Secure, and Go's jar will not send a Secure cookie over
+// plain http even to localhost (browsers exempt it, Go does not). A jar here
+// would silently send nothing and every call would read as unauthenticated.
+func call(c *http.Client, url, session string, body any, out any) (time.Duration, outcome, string) {
 	encoded, err := json.Marshal(body)
 	if err != nil {
 		log.Fatalf("encoding a request body: %v", err) // our own bug, not the server's
@@ -281,8 +294,8 @@ func call(c *http.Client, url, secret string, body any, out any) (time.Duration,
 		log.Fatalf("building a request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if secret != "" {
-		req.Header.Set(accounts.AnonymousSecretHeader, secret)
+	if session != "" {
+		req.Header.Set("Cookie", session)
 	}
 
 	started := time.Now()
@@ -290,12 +303,18 @@ func call(c *http.Client, url, secret string, body any, out any) (time.Duration,
 	d := time.Since(started)
 	if err != nil {
 		if strings.Contains(err.Error(), "Client.Timeout") {
-			return d, clientTimeout
+			return d, clientTimeout, session
 		}
 		fmt.Fprintf(os.Stderr, "  %s: %v\n", url, err)
-		return d, failed
+		return d, failed, session
 	}
 	defer resp.Body.Close()
+
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == "aura_session" && cookie.Value != "" {
+			session = cookie.Name + "=" + cookie.Value
+		}
+	}
 
 	if resp.StatusCode >= 300 {
 		var e struct {
@@ -306,17 +325,17 @@ func call(c *http.Client, url, secret string, body any, out any) (time.Duration,
 		_ = json.Unmarshal(raw, &e)
 		fmt.Fprintf(os.Stderr, "  %s → %s %s %q\n", short(url), resp.Status, e.Code, e.Error)
 		if resp.StatusCode == http.StatusServiceUnavailable {
-			return d, busy
+			return d, busy, session
 		}
-		return d, refused
+		return d, refused, session
 	}
 	if out != nil {
 		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
 			fmt.Fprintf(os.Stderr, "  %s: decoding the reply: %v\n", short(url), err)
-			return d, failed
+			return d, failed, session
 		}
 	}
-	return d, ok
+	return d, ok, session
 }
 
 func short(url string) string {

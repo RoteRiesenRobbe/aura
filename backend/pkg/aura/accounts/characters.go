@@ -148,6 +148,18 @@ func (s *Server) handleCreateCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚑ A NEWLY MINTED ACCOUNT LEAVES HERE ALREADY SIGNED IN (backlog §46). The
+	// secret below is a RECOVERY credential now, spent only at
+	// POST /api/session/anonymous — so without a session here a brand-new player
+	// would have to exchange it before their very next request, and the ordinary
+	// path would run through the recovery path on every single creation.
+	//
+	// ⚑ Only on the minting branch. An existing caller already holds a session;
+	// re-issuing one would reset their expiry on an unrelated write.
+	if rawSecret != "" && !s.issueSession(w, r, created.AccountID, store.AuditAnonymousSession) {
+		return
+	}
+
 	writeJSON(w, http.StatusCreated, createCharacterResponse{
 		Character:       viewOf(created),
 		AnonymousSecret: rawSecret,

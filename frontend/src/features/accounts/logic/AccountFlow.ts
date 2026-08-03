@@ -182,13 +182,22 @@ export async function start(): Promise<void> {
     // localStorage would send every returning REGISTERED player to the
     // character-creation form instead of their own characters.
     try {
-        const state = await AccountsApi.session();
+        let state = await AccountsApi.session();
+        if (!state.hasAccount && Identity.anonymousSecret) {
+            // A returning guest: the session is gone but the secret that can
+            // re-open it is not (backlog §46).
+            //
+            // ⚑ THE EXCHANGE MUST COME BEFORE ANY FORGETTING, and this is the
+            // single most dangerous line in §46. Until the secret came off every
+            // request, `!hasAccount` genuinely meant "the stored secret is dead
+            // — had it resolved, the server would have said so", so forgetting
+            // it here was safe. It is not any more: the server never saw the
+            // secret, and forgetting it now would permanently destroy an
+            // unregistered player's account on an ordinary cold boot.
+            state = await exchangeOrForget(state);
+        }
         adoptIdentity(state);
         if (!state.hasAccount) {
-            // Nobody is signed in — an ordinary answer, not an error, and now
-            // shaped like one. ⚑ Any stored secret is dead by definition: had it
-            // resolved, the server would have said so.
-            Identity.forgetAnonymous();
             CharacterCreation.show('home', 0);
             return;
         }
@@ -201,6 +210,30 @@ export async function start(): Promise<void> {
             AccountScreens.element('characterCreation'),
             error instanceof ApiError ? error.message : 'Aura could not be reached. Please try again in a moment.',
             error instanceof ApiError ? error.ref : undefined);
+    }
+}
+
+/**
+ * Spend the stored anonymous secret, and re-read who we are.
+ *
+ * ⚑ ONLY `session_expired` MAY FORGET THE SECRET. That refusal is the server
+ * saying the secret names no account, which is the one condition under which
+ * dropping it loses nothing. Every other failure — the network, a 500, a
+ * database outage — leaves it exactly where it is, because a guest's secret is
+ * the only key to an unregistered account and there is no way to get it back.
+ * Erring towards keeping a dead secret costs a wasted request on the next boot;
+ * erring the other way costs someone their character.
+ */
+async function exchangeOrForget(current: SessionState): Promise<SessionState> {
+    try {
+        await AccountsApi.exchangeAnonymous();
+        return await AccountsApi.session();
+    } catch (error) {
+        if (error instanceof ApiError && error.code === 'session_expired') {
+            Identity.forgetAnonymous();
+            return current;
+        }
+        throw error;
     }
 }
 

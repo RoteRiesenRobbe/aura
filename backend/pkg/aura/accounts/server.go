@@ -153,6 +153,7 @@ func New(cfg Config) (*Server, error) {
 	s.mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	s.mux.HandleFunc("POST /api/auth/logout", s.handleLogout)
 	s.mux.HandleFunc("GET /api/session", s.handleSession)
+	s.mux.HandleFunc("POST /api/session/anonymous", s.handleAnonymousSession)
 	s.mux.HandleFunc("POST /api/session/refresh", s.handleRefresh)
 	return s, nil
 }
@@ -197,7 +198,12 @@ func (s *Server) withCORS(next http.Handler) http.Handler {
 
 		if r.Method == http.MethodOptions {
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, "+AnonymousSecretHeader)
+			// ⚑ Content-Type ALONE. The anonymous-secret header left the wire in
+			// backlog §46 — it is presented in the body of POST
+			// /api/session/anonymous now — and advertising a header nothing reads
+			// would only invite a client to keep sending a credential that
+			// authenticates nothing. See the tombstone on AnonymousSecretHeader.
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 			w.Header().Set("Access-Control-Max-Age", preflightMaxAge)
 			w.WriteHeader(http.StatusNoContent)
 			return

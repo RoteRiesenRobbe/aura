@@ -437,7 +437,11 @@ func mintPlayTicket(id int) (name, ticket string, err error) {
 		} `json:"character"`
 		AnonymousSecret string `json:"anonymousSecret"`
 	}{}
-	if err = postJSON(base+"/api/characters", "", map[string]string{"name": name}, &created); err != nil {
+	// ⚑ Creation now hands back a SESSION COOKIE as well as the secret (backlog
+	// §46), so this bot never touches the exchange endpoint — it is already
+	// signed in, exactly like a brand-new player in a browser.
+	session, err := postJSON(base+"/api/characters", "", map[string]string{"name": name}, &created)
+	if err != nil {
 		return "", "", fmt.Errorf("creating a bot character: %w", err)
 	}
 
@@ -445,43 +449,54 @@ func mintPlayTicket(id int) (name, ticket string, err error) {
 		Ticket string `json:"ticket"`
 	}{}
 	url := fmt.Sprintf("%s/api/characters/%d/select", base, created.Character.ID)
-	if err = postJSON(url, created.AnonymousSecret, nil, &selected); err != nil {
+	if _, err = postJSON(url, session, nil, &selected); err != nil {
 		return "", "", fmt.Errorf("selecting a bot character: %w", err)
 	}
 	return name, selected.Ticket, nil
 }
 
-// postJSON posts body (may be nil) and decodes the reply into out. secret, when
-// non-empty, rides the anonymous-secret header — the same one the browser sends.
-func postJSON(url, secret string, body any, out any) error {
+// postJSON posts body (may be nil), decodes the reply into out, and returns the
+// session cookie the response set (or the one passed in, when it set none).
+//
+// ⚑ THE COOKIE IS CARRIED BY HAND, and net/http/cookiejar is the wrong tool here
+// rather than merely a heavier one: setSessionCookie sets Secure unconditionally,
+// and Go's jar refuses to send a Secure cookie over plain http. Browsers exempt
+// localhost; Go does not. A jar would silently send nothing against
+// http://localhost:2000 and every bot would read as an auth regression.
+func postJSON(url, session string, body any, out any) (string, error) {
 	var payload io.Reader
 	if body != nil {
 		encoded, err := json.Marshal(body)
 		if err != nil {
-			return err
+			return "", err
 		}
 		payload = bytes.NewReader(encoded)
 	}
 	req, err := http.NewRequest(http.MethodPost, url, payload)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	if secret != "" {
-		req.Header.Set("X-Aura-Anonymous-Secret", secret)
+	if session != "" {
+		req.Header.Set("Cookie", session)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		reason, _ := io.ReadAll(io.LimitReader(resp.Body, 300))
-		return fmt.Errorf("%s: %s", resp.Status, bytes.TrimSpace(reason))
+		return "", fmt.Errorf("%s: %s", resp.Status, bytes.TrimSpace(reason))
 	}
-	return json.NewDecoder(resp.Body).Decode(out)
+	for _, cookie := range resp.Cookies() {
+		if cookie.Name == "aura_session" && cookie.Value != "" {
+			session = cookie.Name + "=" + cookie.Value
+		}
+	}
+	return session, json.NewDecoder(resp.Body).Decode(out)
 }
 
 func spawnBot(id int) (*bot, error) {

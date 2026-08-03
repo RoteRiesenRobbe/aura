@@ -47,7 +47,21 @@ type harness struct {
 
 	cookies map[string]*http.Cookie
 	// secret is the anonymous secret this "browser" holds in localStorage.
+	//
+	// ⚑ HOLDING IT IS NOT PRESENTING IT (backlog §46). It rides no ordinary
+	// request; it is spent at POST /api/session/anonymous, which is what `exchange`
+	// below does. A test that sets this and expects to be signed in is asserting
+	// the rule this change deleted.
 	secret string
+	// sendsLegacyHeader makes this browser attach the retired anonymous-secret
+	// header to every request, the way every client did before backlog §46.
+	//
+	// ⚑ IT EXISTS SO ONE TEST CAN PROVE THE SERVER IGNORES IT. Without it the
+	// harness simply stops sending the header, and "the header is not an identity"
+	// would be a fact about the test rather than about the code — restoring the
+	// branch in resolveCaller would leave every test green. This is the stale
+	// client, and the server must refuse it.
+	sendsLegacyHeader bool
 	// remoteAddr is this client's source address. ⚑ It matters: the throttle's
 	// per-IP axis is real, so two clients sharing an address share a delay — and
 	// a timing measurement taken from one address would be measuring the throttle
@@ -128,7 +142,7 @@ func (h *harness) do(method, path string, body any) response {
 	if r.RemoteAddr == "" {
 		r.RemoteAddr = "203.0.113.7:54321"
 	}
-	if h.secret != "" {
+	if h.sendsLegacyHeader && h.secret != "" {
 		r.Header.Set(accounts.AnonymousSecretHeader, h.secret)
 	}
 	for _, cookie := range h.cookies {
@@ -165,6 +179,15 @@ func (h *harness) createCharacter(name string) response {
 		h.secret = secret
 	}
 	return got
+}
+
+// exchange spends a stored anonymous secret on a session, the way a returning
+// guest's client does on boot.
+func (h *harness) exchange(secret string) response {
+	h.t.Helper()
+	h.secret = secret
+	return h.do(http.MethodPost, "/api/session/anonymous",
+		map[string]any{"anonymousSecret": secret})
 }
 
 func (h *harness) characterID(got response) int64 {
@@ -214,17 +237,29 @@ func TestAnonymousFirstCreation(t *testing.T) {
 // TestUnknownIdentityIsRefusedRatherThanReplaced pins the branch most likely to
 // be written the wrong way.
 //
-// ⚑ A secret that no longer resolves must NOT fall through to "mint a new
+// ⚑ An identity that no longer resolves must NOT fall through to "mint a new
 // account". Doing so would silently strand whatever the old one held, at exactly
 // the moment a player most needs to be told something went wrong.
+//
+// ⚑ The stale identity is a COOKIE now (backlog §46) — a session revoked by a
+// logout elsewhere. The anonymous-secret half of this rule moved to the exchange
+// endpoint, where TestExchangeRefusesASecretThatNamesNothing holds it.
 func TestUnknownIdentityIsRefusedRatherThanReplaced(t *testing.T) {
 	h := newHarness(t)
-	h.secret = "a-secret-that-names-nothing"
+	require.Equal(t, http.StatusCreated, h.createCharacter("Barney").code)
+	require.Equal(t, http.StatusOK, h.register("barney", "s3cret!pass").code)
 
-	got := h.createCharacter("Barney")
+	// A second browser holding a copy of the session, which the logout below
+	// revokes underneath it.
+	stale := newBrowser(h)
+	stale.cookies["aura_session"] = h.cookies["aura_session"]
+	require.Equal(t, http.StatusOK, h.do(http.MethodPost, "/api/auth/logout", nil).code)
+
+	before := scalarInt(t, h, `SELECT count(*) FROM game.accounts`)
+	got := stale.do(http.MethodPost, "/api/characters", map[string]any{"name": "Wilma"})
 	assert.Equal(t, http.StatusUnauthorized, got.code)
 	assert.Equal(t, "session_expired", got.errCode())
-	assert.Equal(t, 0, scalarInt(t, h, `SELECT count(*) FROM game.accounts`), "no account was minted")
+	assert.Equal(t, before, scalarInt(t, h, `SELECT count(*) FROM game.accounts`), "no account was minted")
 }
 
 // TestCharacterNameRules covers the validator at the endpoint, including the
@@ -273,6 +308,11 @@ func TestSlotCapIsEnforcedAtTheEndpoint(t *testing.T) {
 	// Deleting one frees the slot, and the freed slot is the one reused.
 	listed := h.do(http.MethodGet, "/api/characters", nil)
 	characters, _ := listed.body["characters"].([]any)
+	// ⚑ require, not a bare index. An empty list here PANICS, and a panicking test
+	// takes the whole test binary down with it — so every test after this one
+	// silently never runs. That is survivable in a green suite and actively
+	// misleading in a mutation run, where it makes a broad mutation look narrow.
+	require.Len(t, characters, 3, "%v", listed.body)
 	middle := int64(characters[1].(map[string]any)["id"].(float64))
 	require.Equal(t, http.StatusOK, h.do(http.MethodPost, fmt.Sprintf("/api/characters/%d/delete", middle), nil).code)
 
@@ -315,7 +355,7 @@ func TestHarnessPrefixIsReservedButUsable(t *testing.T) {
 	// A seeded harness account, by contrast, creates its own characters freely.
 	seeded := seedHarnessAccount(t, h, "hrnss_01")
 	h.cookies = map[string]*http.Cookie{}
-	h.secret = seeded
+	require.Equal(t, http.StatusOK, h.exchange(seeded).code)
 	created := h.do(http.MethodPost, "/api/characters", map[string]any{"name": "hrnss_01_a"})
 	assert.Equal(t, http.StatusCreated, created.code, "%v", created.body)
 }
@@ -805,8 +845,12 @@ func TestLoginDiscardsTheAnonymousAccountOnlyWhenAsked(t *testing.T) {
 
 	// Confirming discards it: characters soft-deleted, names released, the secret
 	// unresolvable so it can never come back.
+	// ⚑ The browser must OPEN the anonymous session before logging in — that
+	// session's cookie is what names the account to discard now. Before §46 the
+	// secret rode the login request itself and the handler resolved a second
+	// identity out of band from the raw header.
 	again := newBrowser(h)
-	again.secret = anonymousSecret
+	require.Equal(t, http.StatusOK, again.exchange(anonymousSecret).code)
 	got := again.do(http.MethodPost, "/api/auth/login",
 		map[string]any{"username": "wilma", "password": "s3cret!pass", "discardAnonymous": true})
 	require.Equal(t, http.StatusOK, got.code)
@@ -836,7 +880,8 @@ func TestDiscardNeverTouchesTheAccountBeingLoggedInto(t *testing.T) {
 	require.Equal(t, http.StatusOK, h.register("barney", "s3cret!pass").code)
 
 	fresh := newBrowser(h)
-	fresh.secret = h.secret // the same account, by its still-valid anonymous secret
+	// The same account, re-opened from its still-valid anonymous secret.
+	require.Equal(t, http.StatusOK, fresh.exchange(h.secret).code)
 	got := fresh.do(http.MethodPost, "/api/auth/login",
 		map[string]any{"username": "barney", "password": "s3cret!pass", "discardAnonymous": true})
 	require.Equal(t, http.StatusOK, got.code)
