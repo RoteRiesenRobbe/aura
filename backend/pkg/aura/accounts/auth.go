@@ -111,6 +111,21 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	ip := clientIP(r)
 
+	// Who this browser is BEFORE the login — the anonymous account §6's discard
+	// may be asked to abandon.
+	//
+	// ⚑ RESOLVED HERE, ONCE, from the same credential as every other request.
+	// The discard used to re-read the raw anonymous-secret header and resolve a
+	// SECOND identity out of band, mid-request; that out-of-band read is what let
+	// it soft-delete a character still standing in the world (backlog §46).
+	//
+	// ⚑ Failing to resolve is not an error. Logging in from a browser with no
+	// session at all is ordinary, and there is simply nothing to discard then.
+	var anonymousAccountID int64
+	if previous, err := s.resolveCaller(r.Context(), r); err == nil {
+		anonymousAccountID = previous.accountID
+	}
+
 	// ⚑ A MISSING USERNAME MUST NOT SHORT-CIRCUIT. The lookup failing is not a
 	// reason to skip the comparison — it is the reason the comparison has to
 	// happen anyway, against an empty hash, so that "no such user" costs the same
@@ -165,41 +180,35 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// §6: abandon the anonymous account this browser was on, but only when the
 	// player has confirmed it, and never the account they just logged into.
 	if body.DiscardAnonymous {
-		s.discardPresentedAnonymousAccount(r, credentials.AccountID)
+		s.discardAnonymousAccount(r, anonymousAccountID, credentials.AccountID)
 	}
 
 	s.startSession(w, r, credentials.AccountID, credentials.Username, store.AuditLogin)
 }
 
-// discardPresentedAnonymousAccount runs §6's discard on the anonymous secret
-// this request carried, if any.
+// discardAnonymousAccount runs §6's discard on the account this browser was
+// signed into before the login.
+//
+// ⚑ IT IS TOLD ITS TARGET, it does not go looking (backlog §46). This used to
+// read the raw anonymous-secret header and resolve a SECOND identity mid-request
+// — an out-of-band read that answered to a different account than the caller of
+// record, and is what let the discard soft-delete a character still standing in
+// the world. The account id now comes from the same credential every other part
+// of the request was resolved from.
 //
 // ⚑ THE AUTHORITY IS store.DiscardAnonymousAccount's `AND username IS NULL`, not
 // the equality check below — a mutation run proved it. Deleting the check leaves
-// the "log in as yourself from a browser still holding your own old secret" case
-// safe anyway, because registration leaves the anonymous secret in place, so
-// that account is registered and the store refuses it. The check is an EARLY
-// OUT: it skips a write that would always fail and a warning that would fire on
-// a perfectly ordinary login. Do not mistake it for the guard.
+// the "log in as yourself from a browser still holding your own old session" case
+// safe anyway, because that account is registered and the store refuses it. The
+// check is an EARLY OUT: it skips a write that would always fail and a warning
+// that would fire on a perfectly ordinary login. Do not mistake it for the guard.
 //
 // ⚑ Failures are logged, not surfaced. The login itself succeeded; refusing it
 // because some housekeeping did not would be the worse outcome, and the leftover
 // account is inert either way (its characters stay, unreachable, until an
 // operator looks).
-func (s *Server) discardPresentedAnonymousAccount(r *http.Request, loggedInAccountID int64) {
-	secret := r.Header.Get(AnonymousSecretHeader)
-	if secret == "" {
-		return
-	}
-	credentials, err := s.cfg.Store.CredentialsByAnonymousSecret(r.Context(), auth.AnonymousSecretKey(secret))
-	if err != nil {
-		// Unknown secret: nothing to discard, and nothing worth reporting.
-		if !errors.Is(err, store.ErrNoAccount) {
-			slog.Warn("could not resolve an anonymous secret while discarding", slog.Any("err", err))
-		}
-		return
-	}
-	if credentials.AccountID == loggedInAccountID {
+func (s *Server) discardAnonymousAccount(r *http.Request, anonymousAccountID, loggedInAccountID int64) {
+	if anonymousAccountID == 0 || anonymousAccountID == loggedInAccountID {
 		return
 	}
 
@@ -218,13 +227,13 @@ func (s *Server) discardPresentedAnonymousAccount(r *http.Request, loggedInAccou
 	// and a save landing in the window between them is a no-op anyway (the save
 	// UPDATE carries its own alive check).
 	if s.cfg.World != nil {
-		s.cfg.World.EndSessionFor(credentials.AccountID)
+		s.cfg.World.EndSessionFor(anonymousAccountID)
 	}
 
-	if err := s.cfg.Store.DiscardAnonymousAccount(r.Context(), credentials.AccountID); err != nil {
+	if err := s.cfg.Store.DiscardAnonymousAccount(r.Context(), anonymousAccountID); err != nil {
 		// ErrNotAnonymous is the guard doing its job on a registered account.
 		slog.Warn("could not discard an anonymous account",
-			slog.Int64("account_id", credentials.AccountID), slog.Any("err", err))
+			slog.Int64("account_id", anonymousAccountID), slog.Any("err", err))
 	}
 }
 
@@ -297,26 +306,42 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"loggedOut": true})
 }
 
-// startSession issues the token, sets the cookie and records the audit row —
-// the tail both register and login share, so the two cannot drift in what a
-// successful authentication does.
-func (s *Server) startSession(w http.ResponseWriter, r *http.Request, accountID int64, username, event string) {
+// issueSession mints the token, sets the cookie and records the audit row. It
+// writes NO body, so a handler with a response of its own can call it.
+//
+// ⚑ Character creation is that handler (backlog §46): it answers 201 with the
+// new character and the minted secret, and must not have a 200 session envelope
+// written over the top of it. Everything else goes through startSession.
+//
+// It reports whether the session was issued; false means a failure has already
+// been written, so the caller simply returns.
+func (s *Server) issueSession(w http.ResponseWriter, r *http.Request, accountID int64, event string) bool {
 	// The generation is re-read rather than assumed: it may have been bumped
 	// between this account's last logout and now, and a token stamped with a
 	// stale one would be rejected by the very next request that used it.
 	credentials, err := s.cfg.Store.CredentialsByAccount(r.Context(), accountID)
 	if err != nil {
 		failStore(w, r, err, "reading the token generation")
-		return
+		return false
 	}
 	token, err := s.cfg.Keys.Issue(accountID, credentials.TokenGeneration)
 	if err != nil {
 		fail(w, r, http.StatusInternalServerError, codeInternal, msgGeneric, err)
-		return
+		return false
 	}
 
 	s.setSessionCookie(w, token)
 	s.audit(r.Context(), accountID, event, clientIP(r))
+	return true
+}
+
+// startSession issues the session and answers with it — the tail register,
+// login and the anonymous exchange share, so they cannot drift in what a
+// successful authentication does.
+func (s *Server) startSession(w http.ResponseWriter, r *http.Request, accountID int64, username, event string) {
+	if !s.issueSession(w, r, accountID, event) {
+		return
+	}
 	writeJSON(w, http.StatusOK, sessionResponse{
 		Username:         username,
 		ExpiresInSeconds: int(auth.TokenLifetime.Seconds()),

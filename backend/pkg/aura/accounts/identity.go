@@ -10,17 +10,22 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/store"
 )
 
-// AnonymousSecretHeader carries an anonymous account's secret.
+// AnonymousSecretHeader is a TOMBSTONE. Nothing sends it and nothing reads it.
 //
-// ⚑ A HEADER, not a cookie, and the asymmetry with the JWT is deliberate. The
-// anonymous secret lives in localStorage, so the client reads it and attaches it
-// explicitly; the JWT lives in an httpOnly cookie the client cannot read and the
-// browser attaches on its own. Two storages, two lifetimes, two mechanisms
-// (plan-accounts-frontend.md §2) — one of which is deliberately out of reach of
-// script, and would stop being so if it moved here.
+// ⚑ IT IS KEPT SO THE TESTS CAN NAME WHAT MUST NOT COME BACK (backlog §46).
+// Until 2026-08-03 the anonymous secret rode this header on EVERY request, which
+// made it a second way to prove who you are — so resolveCaller needed a
+// precedence rule, and that rule is where the two-tab logout bug lived: with the
+// browser-wide cookie cleared by another tab, a leftover localStorage entry
+// silently became the identity and logout answered "That request could not be
+// understood."
 //
-// ⚑ It must appear in Access-Control-Allow-Headers, or every cross-origin
-// request carrying it fails preflight — which in dev is all of them.
+// ⚑ The secret is a RECOVERY credential, not a session credential. It is spent
+// once at POST /api/session/anonymous — presented at a login endpoint, the way a
+// password is — and the ordinary session cookie carries every request after
+// that. Re-adding it here would restore both the precedence rule and the bug
+// class, and would put the product's least revocable credential back into every
+// request log, devtools panel and error report.
 const AnonymousSecretHeader = "X-Aura-Anonymous-Secret"
 
 // sessionCookieName holds the JWT.
@@ -48,23 +53,23 @@ type caller struct {
 
 func (c caller) registered() bool { return c.username != "" }
 
-// resolveCaller identifies the requester from the session cookie or the
-// anonymous-secret header, in that order.
+// resolveCaller identifies the requester from the session cookie.
 //
-// ⚑ THE JWT WINS WHEN BOTH ARE PRESENT. A registered player is not supposed to
-// carry a local anonymous secret at all (plan-accounts-frontend.md §5.3), so the
-// overlap is a leftover rather than a choice — and between a signed, revocable,
-// expiring token and an unrevocable bearer string, the token is the stronger
-// claim. Deciding this by order is what stops a stale localStorage entry
-// silently downgrading a logged-in player onto an old account.
+// ⚑ ONE CREDENTIAL, ONE BRANCH (backlog §46). This used to fall back to the
+// anonymous-secret header, which meant the server had two ways to be told who
+// you are and therefore needed a precedence rule between them. Deleting the
+// second way deletes the rule, and with it the whole class of bug where a stale
+// localStorage entry answers for a request the cookie should have owned.
+//
+// ⚑ Anonymous players are NOT an exception any more: they hold an ordinary
+// session too, issued by character creation or by the exchange endpoint. That is
+// what makes this a single branch rather than a shorter version of the old one.
 func (s *Server) resolveCaller(ctx context.Context, r *http.Request) (caller, error) {
-	if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie.Value != "" {
-		return s.callerFromToken(ctx, cookie.Value)
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil || cookie.Value == "" {
+		return caller{}, errNoIdentity
 	}
-	if secret := r.Header.Get(AnonymousSecretHeader); secret != "" {
-		return s.callerFromAnonymousSecret(ctx, secret)
-	}
-	return caller{}, errNoIdentity
+	return s.callerFromToken(ctx, cookie.Value)
 }
 
 // callerFromToken verifies a session token against the account's CURRENT
@@ -106,6 +111,10 @@ func (s *Server) callerFromToken(ctx context.Context, token string) (caller, err
 //
 // The raw secret is hashed here and never travels further: store sees a lookup
 // key, and nothing below this line could log the token even by accident.
+//
+// ⚑ ONE CALLER, AND THAT IS THE POINT: handleAnonymousSession. This is no longer
+// part of resolving an ordinary request — it is the lookup behind a login-shaped
+// endpoint, in the same position CredentialsByUsername occupies for a password.
 func (s *Server) callerFromAnonymousSecret(ctx context.Context, secret string) (caller, error) {
 	credentials, err := s.cfg.Store.CredentialsByAnonymousSecret(ctx, auth.AnonymousSecretKey(secret))
 	if errors.Is(err, store.ErrNoAccount) {

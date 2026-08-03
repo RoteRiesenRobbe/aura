@@ -82,6 +82,68 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// anonymousSessionRequest presents a stored anonymous secret.
+//
+// ⚑ IN THE BODY, not a header, and that is the whole of backlog §46. A credential
+// belongs in the request that spends it; putting this one on every request is
+// what gave the server two ways to identify a caller.
+type anonymousSessionRequest struct {
+	AnonymousSecret string `json:"anonymousSecret"`
+}
+
+// handleAnonymousSession exchanges a stored anonymous secret for an ordinary
+// session — the returning-guest equivalent of typing a password.
+//
+// ⚑ THE SECRET IS SPENT HERE AND NOWHERE ELSE. Before this endpoint it rode
+// every request as an ambient credential, which put the product's least
+// revocable secret into every proxy log and devtools panel, and forced
+// resolveCaller to arbitrate between two identities. Now it is presented once,
+// against one endpoint, and what leaves is a cookie that expires and can be
+// revoked.
+//
+// ⚑ It is NOT behind auth.Gate. That exists to bound bcrypt concurrency, and
+// there is no bcrypt here: the secret is 32 CSPRNG bytes looked up by its
+// SHA-256, so it is unguessable rather than merely expensive to guess. The
+// per-IP throttle still applies, because an endpoint that turns a string into a
+// session should not be free to hammer.
+//
+// ⚑ No username axis for the throttle, deliberately. There is no account named
+// until the lookup succeeds, and throttling on the presented secret would key on
+// attacker-chosen input.
+func (s *Server) handleAnonymousSession(w http.ResponseWriter, r *http.Request) {
+	var body anonymousSessionRequest
+	if !decodeBody(w, r, &body) {
+		return
+	}
+	if body.AnonymousSecret == "" {
+		refuse(w, http.StatusUnauthorized, codeNoIdentity, msgSignedOut)
+		return
+	}
+
+	ip := clientIP(r)
+	who, err := s.callerFromAnonymousSecret(r.Context(), body.AnonymousSecret)
+	switch {
+	case errors.Is(err, errSessionStale):
+		// ⚑ REFUSE, never mint. A secret that names no account is a dead identity,
+		// and falling through to "make a new one" would strand whatever the old
+		// account held at exactly the moment the player needs to be told.
+		//
+		// ⚑ The client reads this refusal as permission to forget its stored
+		// secret, so this branch must only be reached when the lookup genuinely
+		// found nothing — a database error below must NOT arrive here.
+		s.cfg.Throttle.Wait(r.Context(), ip, 0)
+		s.cfg.Throttle.Fail(ip, 0)
+		refuse(w, http.StatusUnauthorized, codeSessionExpired, msgSignedOut)
+		return
+	case err != nil:
+		failStore(w, r, err, "resolving an anonymous secret")
+		return
+	}
+	s.cfg.Throttle.Succeed(ip, 0)
+
+	s.startSession(w, r, who.accountID, who.username, store.AuditAnonymousSession)
+}
+
 // handleRefresh is the server half of silent session refresh: a still-valid
 // token is exchanged for a fresh one, so a token expiring mid-fight never throws
 // a player back to a login screen.

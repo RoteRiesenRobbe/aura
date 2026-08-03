@@ -152,11 +152,20 @@ func (s *Store) SetCredentials(ctx context.Context, accountID int64, username, p
 // Audit event names. The set is closed here rather than at the call sites so a
 // typo cannot quietly create a new event nobody queries for.
 const (
-	AuditLogin          = "login"
-	AuditLogout         = "logout"
-	AuditRegister       = "register"
-	AuditPasswordChange = "password_change"
-	AuditErasure        = "erasure"
+	AuditLogin  = "login"
+	AuditLogout = "logout"
+	// AuditAnonymousSession is a stored anonymous secret exchanged for a session
+	// (backlog §46).
+	//
+	// ⚑ ITS OWN EVENT, not AuditLogin. Nobody typed anything: this is a browser
+	// spending a secret it has held since it created its first character. An
+	// operator reading the trail needs to tell "someone knew the password" from
+	// "a returning guest re-opened a session", and one name for both would hide
+	// exactly the case worth noticing.
+	AuditAnonymousSession = "anonymous_session"
+	AuditRegister         = "register"
+	AuditPasswordChange   = "password_change"
+	AuditErasure          = "erasure"
 )
 
 // RecordAuditEvent writes one successful account event.

@@ -156,15 +156,29 @@ const BUSY_RETRY_DELAY_MS = 1000;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, isRetry = false): Promise<T> {
+/**
+ * The one endpoint that takes the anonymous secret. Named because `request`
+ * has to recognise it: a refusal from the exchange must never trigger another
+ * exchange.
+ */
+const EXCHANGE_PATH = 'session/anonymous';
+
+/** What a single request is allowed to have already tried. */
+interface Retries {
+    busy?: boolean;
+    reauth?: boolean;
+}
+
+async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, tried: Retries = {}): Promise<T> {
     const headers: Record<string, string> = {};
     if (body !== undefined) {
         headers['Content-Type'] = 'application/json';
     }
-    const secret = Identity.anonymousSecret;
-    if (secret) {
-        headers['X-Aura-Anonymous-Secret'] = secret;
-    }
+    // ⚑ NO ANONYMOUS-SECRET HEADER (backlog §46). The secret is presented in the
+    // body of the exchange endpoint and nowhere else; every ordinary request is
+    // carried by the session cookie the browser attaches itself. Putting it back
+    // here restores a second way to prove identity, and with it the precedence
+    // rule that produced the two-tab logout bug.
 
     let response: Response;
     try {
@@ -207,9 +221,31 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown, 
         // through to the generic message rather than inventing a code.
     }
 
-    if (code === 'busy' && !isRetry) {
+    if (code === 'busy' && !tried.busy) {
         await delay(BUSY_RETRY_DELAY_MS);
-        return request<T>(method, path, body, true);
+        return request<T>(method, path, body, {...tried, busy: true});
+    }
+
+    // ⚑ SILENT RE-EXCHANGE (backlog §46). An anonymous session now expires like
+    // a registered one, so a guest who leaves a tab open long enough comes back
+    // to a dead cookie — and the secret in localStorage is exactly what re-opens
+    // it. This is the honest cost of taking the secret off every request: it has
+    // to be spent again when the session it bought runs out.
+    //
+    // ⚑ Never from the exchange itself, or a refused secret would recurse. And
+    // only once, so a server that refuses everything reports rather than loops.
+    if ((code === 'session_expired' || code === 'no_identity')
+        && !tried.reauth && path !== EXCHANGE_PATH && Identity.anonymousSecret) {
+        try {
+            await AccountsApi.exchangeAnonymous();
+        } catch {
+            // The secret is dead too. Fall through and report the original
+            // refusal — which is the one that describes what the caller asked
+            // for. ⚑ Deliberately NOT forgetting the secret here: only the boot
+            // path decides that, where it can tell the player.
+            throw new ApiError(code, message, response.status, ref);
+        }
+        return request<T>(method, path, body, {...tried, reauth: true});
     }
 
     throw new ApiError(code, message, response.status, ref);
@@ -247,6 +283,28 @@ export const AccountsApi = {
      */
     session(): Promise<SessionState> {
         return request<SessionState>('GET', 'session');
+    },
+
+    /**
+     * Spend the stored anonymous secret on a session — the returning guest's
+     * equivalent of typing a password (backlog §46).
+     *
+     * ⚑ THE SECRET IS PRESENTED HERE AND ON NO OTHER REQUEST. It used to ride
+     * every call as an ambient header, which gave the server two ways to be told
+     * who we are and needed a precedence rule to arbitrate them. It is a
+     * RECOVERY credential: it opens a session, and the cookie carries everything
+     * after that.
+     *
+     * ⚑ It throws `session_expired` when the secret names no account. That is
+     * the ONLY signal that a stored secret is genuinely dead, and the boot path
+     * treats it as permission to forget it — so nothing else may infer that.
+     */
+    exchangeAnonymous(): Promise<Session> {
+        const anonymousSecret = Identity.anonymousSecret;
+        if (!anonymousSecret) {
+            throw new ApiError('no_identity', 'You are signed out. Please log in again.', 401);
+        }
+        return request<Session>('POST', EXCHANGE_PATH, {anonymousSecret});
     },
 
     deleteCharacter(id: number): Promise<void> {
@@ -288,9 +346,18 @@ export const AccountsApi = {
      */
     async login(username: string, password: string, discardAnonymous = false): Promise<Session> {
         const session = await request<Session>('POST', 'auth/login', {username, password, discardAnonymous});
-        // A registered player is not supposed to carry a local anonymous secret
-        // at all (§5.3); leaving one would be a stale claim on an old account.
-        Identity.forgetAnonymous();
+        // ⚑ ONLY WHEN THE ACCOUNT WAS ACTUALLY DISCARDED. This used to forget
+        // the secret unconditionally, which quietly threw away progress: with
+        // `discardAnonymous` false the server DELIBERATELY keeps the anonymous
+        // account (switching accounts must not destroy the one you came from),
+        // and the secret is the only key to it. Dropping the key while keeping
+        // the account orphans it permanently.
+        //
+        // ⚑ When the discard DID run, the secret names an account that no longer
+        // resolves, so forgetting it is the tidy-up §5.3 asks for.
+        if (discardAnonymous) {
+            Identity.forgetAnonymous();
+        }
         return session;
     },
 

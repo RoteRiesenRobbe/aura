@@ -72,9 +72,12 @@ func TestCredentialedEndpointsEchoASpecificOrigin(t *testing.T) {
 	assert.Contains(t, w.Header().Get("Vary"), "Origin",
 		"the response varies by origin, so a cache must not share it across origins")
 
-	// ⚑ The anonymous-secret header has to be preflight-approved, or every
-	// cross-origin request carrying it fails — which in dev is all of them.
-	assert.Contains(t, w.Header().Get("Access-Control-Allow-Headers"), accounts.AnonymousSecretHeader)
+	// ⚑ THE ANONYMOUS-SECRET HEADER IS DELIBERATELY ABSENT, and this assertion is
+	// inverted from what it said before backlog §46. The secret is presented in
+	// the BODY of POST /api/session/anonymous now and on no other request, so
+	// advertising a header nothing reads would only invite a client to keep
+	// sending a credential that authenticates nothing.
+	assert.NotContains(t, w.Header().Get("Access-Control-Allow-Headers"), accounts.AnonymousSecretHeader)
 	assert.Contains(t, w.Header().Get("Access-Control-Allow-Headers"), "Content-Type")
 	assert.Contains(t, w.Header().Get("Access-Control-Allow-Methods"), "POST")
 }
