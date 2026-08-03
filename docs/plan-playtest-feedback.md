@@ -2307,6 +2307,12 @@ to write down is *a row that answers a question only a running quest asks*.
 > tabbing out, just stop the movement when focus ends unless auto walk is
 > enabled"*
 
+> **✅ THE BUG HALF SHIPPED 2026-08-03** — the focus-loss key sweep, exactly
+> the shape below (sweep the keys, never the vector; plus a queue drop and a
+> latent `ResetKey` config-clobber found underneath). Full ledger: §Ledgers,
+> "Round-8 item 3, the bugfix half". **The auto-walk feature half stays open**,
+> with its design questions unchanged.
+
 Two halves of one item: today the game has **the bug and not the feature** —
 tabbing out mid-run *is* the auto-walk, and it is the only one there is.
 
@@ -3064,3 +3070,57 @@ which costs a driver-level context switch per frame for a 94×94 canvas · the
 ⚑ **Not to be confused with `plan-server-performance.md`**, which is the
 *server's* concurrent-player ceiling; this is client render cost and the two
 share no mechanism.
+
+### Round-8 item 3, the BUGFIX half — held keys survive focus loss ✅ DONE 2026-08-03, committed `c8163ad1`
+
+Frontend only, 3 files + 1 new harness; the auto-walk feature half stays open
+(§Intake round 8 item 3), and the *"unless auto-walk is enabled"* clause is one
+condition added to this fix later.
+
+**The fix, exactly the intake's shape.** `KeyboardManager` registers two more
+listeners in `startListeners()` (removed in `stopListeners()`): window `blur`
+sweeps every key, `document visibilitychange` sweeps only when `document.hidden`
+— blur catches window switches, the hidden-gated twin catches tab switches and
+mobile app-switching without sweeping a legitimately re-pressed key when the tab
+comes *back*. The sweep (`releaseAllKeys()`) resets every key via the existing
+`ResetKey` **and drops the unprocessed event queue** — a keydown queued just
+before the blur would otherwise resurrect its key on the next `update()`, with
+no keyup ever coming. `Controls` untouched, per the intake's warning: with the
+keys swept its next tick reads (0,0) through the normal released-keys path,
+which is what arms the stop-tail.
+
+**⚑ A second latent bug underneath, found because the sweep is `ResetKey`'s
+FIRST caller ever:** the inherited Phaser helper forced `key.preventDefault =
+false` — contradicting `Key`'s own constructor default of `true`, which
+`ProcessKeyDown`/`ProcessKeyUp` read. Used as-is, the first alt-tab would have
+let every swept movement key start scrolling the page on its next press.
+`ResetKey` now resets *press state* only and leaves the configuration fields
+(`preventDefault`, `enabled`) alone; a test pins both. (Its unused
+`clearKeyCode` undefined-check also became a TS default — the parameter was
+never marked optional because no typed code had ever called it.)
+
+**Verified:** vitest **154/154** (+6: blur sweep · queued-keydown drop ·
+hidden-gated visibilitychange · config preservation · refocus re-press · the
+existing zoom rows), the three sweep tests **proven red** before the fix ·
+typecheck + prod build clean · new **`focus-loss-sweep.mjs` 4/4** at the real
+game surface (held W walks 1.63 u/s → synthetic blur with the key still
+physically down stops the character at **0.00 u over 2 s** → a fresh press
+moves again at 1.67 u/s, 0 console errors) · **the red control:** the same
+harness against HEAD-without-the-fix fails exactly the blur leg — the character
+keeps walking at full pace (3.07 u in 2 s), the reported bug verbatim.
+
+**⚑ Two environment findings from the harness run (the WSL2 box, not the
+Windows one the verify skill documents):** ① no local Postgres and no sudo —
+the run used a throwaway `postgres:16` **Docker container** (`DOCKER_CONFIG`
+pointed at a clean `{}` config first; the Docker Desktop credential helper
+`docker-credential-desktop.exe` is missing from this shell's PATH and fails
+every pull otherwise), migrations applied to the fresh DB at boot, container
+removed afterwards; ② headless Chromium here lost the WebGL context on
+**every** GPU-backed boot — two consecutive §29 signatures, not the documented
+~1-in-6 — and `--disable-gpu` (software GL) sidesteps it, noted in the script
+header. ⚑ With a dead render loop every movement leg reads **0.00 u/s**:
+`getX()/getY()` ride the interpolated sprite, so a §29 loss zeroes position
+reads even though the server keeps moving the entity. ⚑ Also: measure pace
+from a sample taken **~700 ms after keydown**, not from the keydown — the
+input-startup latency folded into a 1.5 s window reads a healthy 1.5 u/s walk
+as 0.97 and lands it under the open-ground threshold.
