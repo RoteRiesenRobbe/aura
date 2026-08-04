@@ -3,7 +3,7 @@
 // and writes accounts and characters.
 //
 // Design decisions this package is the first consumer of live in
-// docs/plan-accounts-implementation.md §0:
+// docs/archive/plan-accounts-implementation.md §0:
 //
 //   - pgx/v5 through pgxpool, deliberately NOT database/sql. The schema is
 //     Postgres-only and irreversibly so (CITEXT, JSONB, partial unique indexes,

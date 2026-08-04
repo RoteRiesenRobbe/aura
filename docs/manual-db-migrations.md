@@ -222,11 +222,20 @@ When deploying Aura to a live VPS (e.g., via `devops/deploy.sh`):
 1. **Connection String Percent-Encoding**:
    Always **percent-encode** passwords and special characters in `AURA_DB_URL`. While `psql` accepts unencoded special characters in URLs, Go's standard `net/url` parser does not.
    - Good: `postgres://aura:p%40ssw%23rd@127.0.0.1:5432/aura_prod?sslmode=disable`
-2. **Pre-Deployment Database Backup**:
-   Before replacing the `aurad` binary on production with a release containing new schema migrations, take a snapshot:
+2. **Pre-Deployment Database Backup** — ⚑ **the only backup the live server has.**
+   There is no scheduled backup and nothing off-box: the PO ruled on 2026-08-04
+   (closing step 8a) that the live server is still a testing ground and infinite
+   persistence is not the goal yet. That makes *this* snapshot the whole safety
+   net for a migration, so do not skip it. Stop `aurad` first so it flushes live
+   characters, then:
    ```bash
    pg_dump -U aura aura_prod > aura_backup_before_v2.sql
    ```
+   ⚑ **Check the file size before trusting it** — a 0-byte dump has happened, and
+   a dump is only a backup once it has been **restored** somewhere. ⚑ **Live runs
+   PostgreSQL 18.4 while the dev container runs 16.14**, so a live dump does *not*
+   restore onto the dev box: it dies on `unrecognized configuration parameter
+   "transaction_timeout"` (PG 17+). Deleting that `SET` line works.
 3. **Zero-Touch Upgrade**:
    Restarting the `aurad` systemd service automatically executes the embedded `store.Migrate(url)`. No manual SQL scripts or migration commands are needed on the server.
 4. **Environment Secrets**:
@@ -243,4 +252,4 @@ When deploying Aura to a live VPS (e.g., via `devops/deploy.sh`):
 | **Boot Hook** | [`backend/cmd/aurad/database.go`](../backend/cmd/aurad/database.go) | Invokes `store.Migrate(url)` before game loop or network listen |
 | **Dirty Recovery** | [`store.dirtyHint(err)`](../backend/pkg/aura/store/migrate.go#L96) | Log output provides exact `SELECT` and `DELETE` queries to recover |
 | **Test Lock** | [`backend/pkg/aura/store/storetest`](../backend/pkg/aura/store/storetest) | Advisory lock prevents parallel `go test ./...` packages from colliding |
-| **Schema Doc** | [`docs/plan-accounts-schema.md`](plan-accounts-schema.md) | Architectural rationale behind every table, column, and hash choice |
+| **Schema Doc** | [`docs/archive/plan-accounts-schema.md`](plan-accounts-schema.md) | Architectural rationale behind every table, column, and hash choice |

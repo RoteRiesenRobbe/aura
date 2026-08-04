@@ -4519,6 +4519,14 @@ permissive defaults. *(Done — see the banner above.)*
 **Found 2026-07-31**, while designing the 8a browser harness. Not a bug today;
 a risk profile that changes the day step 8a ships.
 
+> ⚑ **That day has come — 8a shipped and CLOSED 2026-08-04, and it closed
+> WITHOUT backups** (PO ruling). So the anticipated change is now live *and*
+> irreversible: a leaked token's cheated levels/unlocks are written to the live
+> database permanently, and there is no snapshot to restore from. Doesn't make
+> this urgent (the token is still only with the PO), but it removes the "we could
+> always roll back" comfort this item silently assumed. Interim mitigation below
+> — `plz` must not be in the live `tokens.list` — is now the whole defence.
+
 ### How it works now
 
 `backend/tokens.list` holds one token per line, loaded at boot

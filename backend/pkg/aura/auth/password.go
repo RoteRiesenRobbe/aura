@@ -5,9 +5,9 @@
 // It is deliberately free of HTTP and of game code. The endpoints that call it
 // arrive in chunk 1c; the wiring of SessionRegistry into sys/state.go arrives in
 // chunk 3. Everything here is pure Go and unit-tested in isolation, which is the
-// whole point of the chunk boundary — see docs/plan-accounts-frontend.md §10.
+// whole point of the chunk boundary — see docs/archive/plan-accounts-frontend.md §10.
 //
-// The design lives in docs/plan-accounts-implementation.md §7 (what auth is)
+// The design lives in docs/archive/plan-accounts-implementation.md §7 (what auth is)
 // and §7b (how identity reaches the server). Three rules from there are load
 // bearing and easy to undo by accident:
 //

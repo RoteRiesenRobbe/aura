@@ -42,8 +42,15 @@ devops/deploy.sh root@<host>                  # full: rebuild + push + restart
 devops/deploy.sh root@<host> --content-only   # map/content JSON only, no rebuild
 ```
 
-Any restart wipes characters (no persistence yet) — announce in-game first
-(`ANNOUNCE <text>` cheat).
+Restarts **no longer wipe characters** — the server has persisted to PostgreSQL
+since roadmap step 8a, and shutdown flushes every live character
+(`💾 flushed N live character(s) for shutdown` in the log). Still announce first
+(`ANNOUNCE <text>` cheat) and let the shutdown finish before the restart lands.
+
+⚑ **The live database is not backed up** — deliberate, PO ruling 2026-08-04
+(the server is still a testing ground; infinite persistence is not the goal yet).
+Nothing off-box holds a copy, so treat it as losable and don't hand-edit rows
+under a running `aurad`.
 
 ## Notes
 

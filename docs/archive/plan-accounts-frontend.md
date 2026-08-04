@@ -4,13 +4,16 @@ What the player actually clicks through, from a cold page load to being in the
 world and back out again. Companion to `plan-accounts-schema.md` (the DDL) and
 `plan-accounts-implementation.md` (save/load mechanics, auth, transport).
 
-**Status: code-complete.** Chunk 0 (local Postgres), **1a** (schema, migrations,
-connection layer), **1b** (auth & sessions), **1c** (the eight endpoints),
-**2** (the frontend), **3** (the wire) and **4** (save & load) have all shipped —
-ledgers in §10a. What remains of step 8a is **§8's operational work** (backups
-with a proven restore, off-machine storage, live-server provisioning), which is
-runbook work rather than a code chunk. All numbers below (max alive characters,
-cooldown seconds) are placeholders per the project convention.
+**Status: SHIPPED — roadmap step 8a is CLOSED (2026-08-04).** Chunk 0 (local
+Postgres), **1a** (schema, migrations, connection layer), **1b** (auth &
+sessions), **1c** (the eight endpoints), **2** (the frontend), **3** (the wire)
+and **4** (save & load) have all shipped — ledgers in §10a. The operational half
+(`plan-accounts-implementation.md` §8) closed the same day: **provisioning is
+done and exercised live**, and **backups + off-machine storage were deliberately
+deferred by PO ruling** — the live server is still a testing ground and infinite
+persistence is not the goal yet; see that section's ruling box. All numbers below
+(max alive characters, cooldown seconds) are placeholders per the project
+convention.
 
 ---
 

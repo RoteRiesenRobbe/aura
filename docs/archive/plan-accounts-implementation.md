@@ -8,7 +8,14 @@ Aura has no database today — everything is in memory. Standing one up is net-n
 work in this step, which is why the migration tooling and backup items in §8 are
 part of the scope rather than a follow-up.
 
-**Status: designed, not started.**
+**Status: SHIPPED — roadmap step 8a is CLOSED (2026-08-04).** Chunks 0 · 1a ·
+1b · 1c · 2 · 3 · 4 all landed (ledgers in `plan-accounts-frontend.md` §10a) and
+persistence has been live on the playtest server since chunk 4. §8's operational
+work closed **partly by shipping and partly by ruling**: provisioning + migration
+tooling are done and exercised live, while **backups and off-machine storage were
+deliberately deferred by the PO on 2026-08-04** — see the ruling box in §8.
+`plan-accounts-password-reset.md` is the one member of this set still live: it
+needs outbound email and holds its own five open questions.
 
 ---
 
@@ -1027,13 +1034,33 @@ Smaller items, none of which have a home elsewhere:
 
 ## 8. Operational work in scope
 
-- **Backups with a proven restore.** A backup that has never been restored is a
-  hypothesis. Restore into a fresh instance, verify chains and unlocks survived,
-  time it, and write down the exact commands so nobody improvises at 2am. Before
-  persistence ships, a crash costs players nothing; after, it can permanently
-  cost every graveyard chain.
-- **Off-machine backup storage** — a disk failure must not take the database and
-  its backups together.
+> ⚑ **PO RULING 2026-08-04 — NO BACKUPS FOR NOW; STEP 8a IS CLOSED.** The live
+> server is still a testing ground even though it is externally reachable, and
+> **infinite persistence is not the goal yet** — losing the database costs a
+> playtest, not a player's history. So the two *durability* bullets below
+> (backups with a proven restore, off-machine storage) are **deliberately
+> deferred**, and 8a closes without them. We will obviously come back to it: the
+> natural trigger is the moment a character's history is meant to be permanent —
+> in practice the **character-sacrifice loop**, whose whole point is a bloodline
+> that outlives the character. ⚑ The ruling covers **durability only**. It says
+> nothing about the *security* posture items still unticked in
+> `plan-playtest-deploy.md` §Ops & security posture (cloud firewall, DB bound to
+> localhost, credential handling, non-root deploy user) — those are a separate
+> question and stay open.
+
+- ⏸ **Backups with a proven restore — DEFERRED (PO 2026-08-04, above).** A backup
+  that has never been restored is a hypothesis. Restore into a fresh instance,
+  verify chains and unlocks survived, time it, and write down the exact commands
+  so nobody improvises at 2am. Before persistence ships, a crash costs players
+  nothing; after, it can permanently cost every graveyard chain — which is
+  precisely the cost the ruling accepts for now. ⚑ The one-off dump taken before
+  migration `000002` (2026-08-04) already surfaced the trap this item exists to
+  catch, and it is recorded in `plan-playtest-deploy.md`'s checklist item rather
+  than here: **live is PostgreSQL 18.4, the dev container 16.14**, so a live dump
+  does not restore onto the dev box. Keep that note alive through the deferral.
+- ⏸ **Off-machine backup storage — DEFERRED with the bullet above** (it has
+  nothing to store until backups exist). A disk failure must not take the
+  database and its backups together.
 - **Admin/support tooling: none, deliberately.** Early ops is an operator
   running SQL over SSH — erasure (schema doc §Erasure), releasing a name,
   unsticking an account. Keep those statements as a copy-pasteable runbook
@@ -1046,12 +1073,18 @@ Smaller items, none of which have a home elsewhere:
 - **Single-instance restore consistency** — one Postgres instance, one schema,
   so a point-in-time restore recovers credentials and game state together by
   construction.
-- **Database bound to localhost**, firewall, credential handling.
-- **Provisioning is one-time manual server work, NOT part of `deploy.sh`.**
+- ☐ **Database bound to localhost**, firewall, credential handling. **Still
+  open** — untouched by the 2026-08-04 ruling, which deferred durability, not
+  security. Tracked in `plan-playtest-deploy.md` §Ops & security posture.
+- ✅ **Provisioning is one-time manual server work, NOT part of `deploy.sh`.**
   Installing Postgres, creating the role and database, and populating the
   systemd `EnvironmentFile` happen once, by hand, recorded in the runbook. ⚑ The
   deploy path's whole virtue is that it is "rsync + `systemctl restart`" — it
-  must not silently grow a database install. Details in §0.
+  must not silently grow a database install. Details in §0. **Done, in anger:**
+  the live box has been running persistence since 8a chunk 4, and migration
+  `000002` (world-map C2, 2026-08-04) applied on the live database with all 14
+  characters intact — so the provisioning half of this section shipped by being
+  used, not by being written up.
 - **Migration tooling** — aura has none today. `golang-migrate`, versioned SQL,
   used as a library (§0). **Migrations run automatically at `aurad` boot**,
   before the game loop starts, rather than as a manual deploy step: one less

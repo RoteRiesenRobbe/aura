@@ -4,9 +4,10 @@ The DDL for roadmap step **8a**, and the reasoning behind each shape. Companion
 to `plan-accounts-implementation.md` (how the running server gets state in and
 out) and `plan-accounts-frontend.md` (what the player clicks through).
 
-**Status: designed, not started.** Every open question that could be answered is
-answered; what remains open is listed in the last section and is blocked on
-other plans.
+**Status: SHIPPED — roadmap step 8a is CLOSED (2026-08-04).** The schema is live
+(migration `000001`, plus `000002_character_campfires` from world-map C2), and it
+is the reference for what each table and column is *for*. What remains open is
+listed in the last section and is blocked on other plans.
 
 ## Storage tiers
 

@@ -1,6 +1,6 @@
 -- Step 8a chunk 1a: the whole `game` schema.
 --
--- Transcribed from docs/plan-accounts-schema.md §DDL, which carries the
+-- Transcribed from docs/archive/plan-accounts-schema.md §DDL, which carries the
 -- reasoning behind every shape. Read it before changing anything here — in
 -- particular §"Hashing: lookup keys vs. verifiers" before touching any column
 -- holding secret material, and §"The quest ledger" before character_flags.

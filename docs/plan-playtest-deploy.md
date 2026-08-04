@@ -17,7 +17,7 @@ part of this.
 | Frontend serving | `aurad -dev` serving `frontend/dist` | The `-dev` flag just means "serve the frontend dir" — it enables nothing unsafe. One process, same origin, client auto-derives `wss://host/game`. |
 | Content on server | `-content ./api` | PO map/content edits deploy as JSON upload + restart — no rebuild. Closes the loop with the PO's ongoing zone-editor passes. |
 | Cheat safety | `tokens.list` with one private token | Cheats (GOD/WARP/XP/…) are token-gated server-side. Token stays with the PO; players can't cheat. Joining stays open — acceptable for an unlisted URL. |
-| Persistence | None (unchanged) | Server restart wipes all characters (reconnect stash is in-memory, TTL ~10 min). Playtest-acceptable; set expectations in the invite + announce restarts. |
+| Persistence | ~~None (unchanged)~~ → **SUPERSEDED by step 8a** | *As decided 2026-07-21:* server restart wipes all characters (reconnect stash in-memory, TTL ~10 min). **No longer true since 8a chunk 4** — accounts + characters persist to PostgreSQL on the box, and shutdown flushes live characters. ⚑ And the box holds real data that **is not backed up**, by ruling — see §Status. |
 
 ## Known-accepted risks (fine for F&F, revisit before any public launch)
 
@@ -83,10 +83,11 @@ part of this.
 ### E. Ops notes / invite text
 
 - **Update, full:** `devops/deploy.sh root@<host>` (rebuilds everything,
-  ~seconds of downtime, wipes characters — announce first, e.g. via
-  `ANNOUNCE`).
+  ~seconds of downtime — announce first, e.g. via `ANNOUNCE`). ⚑ Since step 8a a
+  restart **keeps** characters; the flush happens on shutdown, so give it its
+  moment rather than killing the process.
 - **Update, map/content only:** `devops/deploy.sh root@<host> --content-only`
-  (no rebuild; still a restart → still wipes characters).
+  (no rebuild; still a restart, so still announce).
 - **Logs:** `journalctl -u aurad -f`. **Liveness:** in TLS mode `/` serves the
   frontend, `/skills` is a cheap probe.
 - **Cert cache** lives in the systemd `CacheDirectory` (`/var/cache/aurad`-
@@ -188,15 +189,27 @@ dismissed.
 
 fail2ban likewise skipped: with key-only root it reduces log noise, not risk.
 
-### Carry into the step-8 persistence planning session
+### Carried into step 8 — outcome recorded inline (step 8a closed 2026-08-04)
 
 Persistence — not public launch — is the posture tipping point: it's the first
 time the box holds something whose loss hurts. Attach a small ops block to that
 plan:
 
+> **Where this list stands now that 8a has shipped:** the durability item was
+> **ruled deferred** (see its entry) and the rest of this block is **still owed** —
+> closing step 8a did not tick the firewall, the localhost bind, the credential
+> item, or the non-root deploy user. The GDPR line stays live too. This is the
+> home of that debt; nothing else tracks it.
+
 - [ ] Hetzner cloud firewall, allow 22/80/443 only (now that a DB exists)
 - [ ] DB bound to localhost, never `0.0.0.0`
-- [ ] Daily backup + a **restore** actually exercised once. ⚑ Two things learned
+- ⏸ ~~Daily backup + a **restore** actually exercised once.~~ **DEFERRED by PO
+  ruling 2026-08-04** — the live server is a testing ground even while externally
+  reachable, and infinite persistence is not the goal yet, so a lost database
+  costs a playtest, not a player's history. Step 8a closed without it; we come
+  back when history is meant to be permanent (natural trigger: the
+  character-sacrifice loop). **The learnings below survive the deferral** — read
+  them before improvising a dump. ⚑ Two things learned
   while taking the one-off dump before migration `000002` (2026-08-04): a dump
   is only a backup once it has been **restored** somewhere (that one was, into a
   throwaway DB — 18 character rows, 12 accounts, 65 spellbook rows), and **live
@@ -225,13 +238,24 @@ and stay acceptable only while the URL is unlisted:
 
 ### Rule of thumb
 
-**Now:** nothing. → **With persistence:** firewall + backups + DB closed. →
+**Now:** nothing. → **With persistence:** firewall + ~~backups~~ + DB closed
+(backups deferred 2026-08-04 — see the checklist above; the *firewall* and
+*DB closed* halves are untouched by that ruling and still owed). →
 **Before public:** rate limiting + `CheckOrigin`.
 
 ## Status
 
+- ⭐ **The box now persists (step 8a, closed 2026-08-04), and it is NOT backed
+  up.** PO ruling the same day: no backups for now — the live server is still a
+  testing ground even though it is externally reachable, and infinite persistence
+  is not the ultimate goal yet. Treat the live database as **losable**: it holds
+  real accounts and characters, and nothing off-box holds a copy. Revisit is
+  expected, not forgotten — see §Ops & security posture and
+  `archive/plan-accounts-implementation.md` §8.
 - **Security posture audited + SSH hardened 2026-07-22** (key-only SSH; cloud
-  firewall deliberately deferred to step 8). See §Ops & security posture.
+  firewall deliberately deferred to step 8 — ⚑ **still owed**: the 2026-08-04
+  ruling deferred *durability*, not the firewall / DB-bound-to-localhost /
+  credential-handling items). See §Ops & security posture.
 - **Agent access narrowed 2026-07-22** — blanket `Bash(ssh *)` replaced by
   three runbook-shaped allow rules + 8 ssh deny rules; deploys unaffected, ad-hoc
   remote commands now prompt. Rules are per-machine (file is gitignored).
@@ -241,6 +265,8 @@ and stay acceptable only while the URL is unlisted:
   played live ("hat alles geklappt, wir können spielen").
 - **Ops quick-ref:** full update `devops/deploy.sh root@159.69.148.73`;
   map/content only `devops/deploy.sh root@159.69.148.73 --content-only`;
-  logs `ssh root@159.69.148.73 journalctl -u aurad -f`. Every restart wipes
-  characters — `ANNOUNCE` in-game first. Cheat token: server
-  `/opt/aurad/tokens.list` only, never in the repo.
+  logs `ssh root@159.69.148.73 journalctl -u aurad -f`. ⚑ **Restarts no longer
+  wipe characters** (persistence live since 8a chunk 4) — but `aurad` flushes
+  live characters on shutdown, so still `ANNOUNCE` before a restart and give the
+  shutdown its moment (`💾 flushed N live character(s) for shutdown`). Cheat
+  token: server `/opt/aurad/tokens.list` only, never in the repo.

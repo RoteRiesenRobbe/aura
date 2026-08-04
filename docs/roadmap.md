@@ -66,7 +66,16 @@ food/tool items.
   Note: item-flavored passives will grow the `stat_multiplier` stat list
   beyond `movementSpeed`/`maxHealth` (e.g. flat aura damage per tick).
 
-## 3. Accounts & persistence
+## 3. Accounts & persistence ✓ Done
+
+> **Done (execution-order step 8a, CLOSED 2026-08-04) — see
+> `archive/plan-accounts-schema.md` + `archive/plan-accounts-implementation.md` +
+> `archive/plan-accounts-frontend.md`.** Anonymous-first accounts, registration/
+> login, 3 character slots with soft-delete, and per-character persistence of
+> level/skills/loadout/spellbook/quests — live on the playtest server.
+> ⚑ **Backups were deliberately deferred** (PO 2026-08-04): the live server is a
+> testing ground and infinite persistence is not the goal yet.
+> `plan-accounts-password-reset.md` remains unscheduled (needs outbound email).
 
 > **Sequenced after the content pass (see "Execution order").** The game proves
 > out session-based first; persistence + the account service are step 8, not a
@@ -973,7 +982,8 @@ system ships blind.
 > per-character ledger that survives death and reconnect — which is exactly the
 > shape D12 wanted step 8 to inherit rather than invent.
 
-8. **Accounts & persistence + UI polish / avatar / audio** — deliberately
+8. **Accounts & persistence + UI polish / avatar / audio** — **8a ✅ CLOSED
+   2026-08-04 · 8b still open** — deliberately
    **after** content: the game proves out session-based first, then we invest in
    persistence and presentation. ⚑ **Split into 8a and 8b (2026-07-30)** because
    it bundled two different roadmap *items* (3 and 8) that share only their
@@ -983,26 +993,43 @@ system ships blind.
 
    **8a — Accounts & persistence** (item 3). The anonymous-first account service,
    built fresh (chieftain deleted 2026-07-09).
-   ✅ **DESIGNED 2026-07-30, not started** → `plan-accounts-schema.md` +
-   `plan-accounts-implementation.md` + `plan-accounts-frontend.md`;
-   `plan-accounts-password-reset.md` is split out to run *after* those three
-   (it needs outbound email, which aura has no capability for, and would
-   otherwise gate login behind a mail-provider decision).
+   ✅ **COMPLETE — CLOSED 2026-08-04.** Designed 2026-07-30, built and deployed
+   across chunks 0 · 1a · 1b · 1c · 2 · 3 · 4 (ledgers in
+   `archive/plan-accounts-frontend.md` §10a): accounts, registration/login,
+   3 character slots with soft-delete, and per-character persistence of
+   level/skills/loadout/spellbook/quests, live on the playtest server.
+   ⚑ **The step closes WITHOUT backups, deliberately** — PO ruling 2026-08-04:
+   the live server is still a testing ground even though it is externally
+   reachable, and *infinite persistence is not the goal yet*, so losing the
+   database costs a playtest rather than a player's history. §8's other
+   operational work (provisioning, migration tooling) shipped by being used —
+   migration `000002` applied live with 14 characters intact. **We come back to
+   backups** when a character's history is meant to be permanent; the natural
+   trigger is the sacrifice loop below, since a bloodline is by definition
+   supposed to outlive the character. ⚑ The ruling covers durability only — the
+   *security* posture items (cloud firewall, DB bound to localhost, credential
+   handling, non-root deploy user) stay open in `plan-playtest-deploy.md`.
+   `plan-accounts-password-reset.md` is split out and still unscheduled (it needs
+   outbound email, which aura has no capability for, and would otherwise gate
+   login behind a mail-provider decision).
    ✅ **Its quest-pass prerequisite is SATISFIED** — D12 put chunks P + C0–C4 in
    front of 8a so persistence would receive a *live* quest ledger rather than a
    paper one, and whose duplicate-`MobID` boot guard had to exist before any of
    it persisted. All of it shipped 2026-07-30 (`archive/plan-quests.md`), so 8a
    now inherits both.
-   ⚑ **The one remaining prerequisite is manual, not code:** stand up Postgres
-   locally (`plan-accounts-implementation.md` §0 "MANUAL STEP") — chunk 1a's
-   first line of Go needs a database and the disposable `aura_test` to exist.
+   Its one manual prerequisite — stand up Postgres locally
+   (`archive/plan-accounts-implementation.md` §0 "MANUAL STEP") — was done in
+   chunk 0 and is now routine dev setup (`make -C backend db-up`, CLAUDE.md
+   §"Local database").
    **The character-sacrifice loop (pulled into v1 scope, PO 2026-07-19 —
    `plan-intermission-triage.md` item 10) slots directly after 8a as
    persistence's first consumer** (max-level detection, retire flow, unlock
    storage — now **per-slot bloodline**, backlog §36 — memorial; all cheap once
    account identity + storage exist).
 
-   **8b — UI polish / avatar / audio** (item 8). The styling pass
+   **8b — UI polish / avatar / audio** (item 8) — ⏸ **STILL OPEN**, and closing
+   8a does not close it (that independence is exactly why the split exists).
+   The styling pass
    (`plan-ui-polish.md`, chunk 1 done, rest deferred) and avatar selection
    (`plan-avatar-system.md`, design sketch, unscheduled). Largely independent of
    8a — only avatar *persistence* (`plan-avatar-system.md` §7 chunk 4) needs 8a's
@@ -1024,6 +1051,14 @@ system ships blind.
    math + persistent-servers decision: `research-hosting.md` — Phase 0 "friends
    playtest" deploy may pull earlier, into the content pass; Phase 0 planned →
    `plan-phase0-deploy.md`).
+   ⚑ **This step inherits the durability debt 8a deferred** (PO 2026-08-04):
+   backups with a proven restore + off-machine storage. It also inherits the
+   *security* items that were never part of that ruling and are still unticked —
+   cloud firewall, DB bound to localhost, credential handling, non-root deploy
+   user. Both lists live in `plan-playtest-deploy.md` §Ops & security posture;
+   until then the live database holds real accounts and **nothing off-box holds a
+   copy**. Whichever comes first — this step or the ascension loop — is where the
+   backup question gets re-asked.
 
 > **Superseded framing:** earlier drafts called item 12 "the only remaining
 > prototype gate" and everything else "turns the prototype into v1." That
