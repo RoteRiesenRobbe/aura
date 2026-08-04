@@ -191,28 +191,46 @@ func (n *MobSystem) Remove(b ecs.BasicEntity) {
 	}
 	if delete >= 0 {
 		n.mobs = append(n.mobs[:delete], n.mobs[delete+1:]...)
-		return
 	}
-	n.breakCharmsBy(b.ID())
+	// ⚑ Runs for EVERY removal, mobs included. Skipping the mob branch looks
+	// free — a dying mob is removed at 0 HP, which the per-tick HealthRatio
+	// reset already catches — but a player's placed entities are mobs too, and
+	// doFuneral removes them ALIVE on disconnect. That left the whole pack
+	// latched on a vanished camp, permanently.
+	n.forgetDeparted(b.ID())
 }
 
-// breakCharmsBy reverts every mob charmed by the entity that just left the
-// world (plan-faction-flips chunk 3, D10 / L-G). Death AND disconnect both end
-// in game.RemoveEntity(player), whose fan-out reaches every system's Remove —
-// which makes this the one hook covering both, and the only one available: a
-// disconnected player's entity is gone but the mob's pointer stays valid and
-// its HealthRatio stays above 0, so a per-tick poll would leave a pet following
-// a ghost for the rest of a 60-second charm.
+// forgetDeparted severs every reference the mobs hold to the entity that just
+// left the world (plan-faction-flips chunk 3, D10 / L-G for the charm half;
+// the aggro half followed the same reasoning once the ghost-chase bug was
+// traced). Death AND disconnect both end in game.RemoveEntity(player), whose
+// fan-out reaches every system's Remove — which makes this the one hook
+// covering both, and the only one available: a disconnected player's entity is
+// gone but the mob's pointer stays valid and its HealthRatio stays above 0, so
+// a per-tick poll would leave a pet following a ghost for the rest of a
+// 60-second charm, and a chaser parked on the disconnect spot indefinitely.
 //
-// It runs only on the non-mob branch above, so the hot path (a mob dying) is
-// untouched; what reaches here is a player, corpse or prop leaving, and the
-// scan is a nil-pointer compare per mob.
-func (n *MobSystem) breakCharmsBy(id uint64) {
+// It is the second half of the guarantee, not the whole of it: severing the
+// references a mob already holds only sticks because Space.RemoveShape now
+// also purges the departed shape from the sensor sets, so nothing re-acquires
+// it on the next tick. Either half alone leaves the mob latched.
+func (n *MobSystem) forgetDeparted(id uint64) {
 	for _, m := range n.mobs {
 		if c, ok := m.(charmBreaker); ok && c.CharmedBy(id) {
 			c.EndCharm()
 		}
+		if f, ok := m.(targetForgetter); ok {
+			f.ForgetEntity(id)
+		}
 	}
+}
+
+// targetForgetter is a departing entity as the mobs' combat state sees it: an
+// id to match (the fan-out holds ecs ids, never entity refs) and the verb that
+// drops every latch onto it. A capability rather than a MobEntity method, like
+// charmBreaker below and every other narrow contract the systems assert.
+type targetForgetter interface {
+	ForgetEntity(id uint64)
 }
 
 // charmBreaker is the charm link as the removal fan-out sees it: an id to match

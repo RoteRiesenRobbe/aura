@@ -46,6 +46,7 @@ type Collider interface {
 	resetCollisions()
 	resolveCollisions()
 	addCollision(s Collider)
+	removeCollision(s Collider)
 
 	// double dispatchers
 	CollisionResolver
@@ -108,6 +109,12 @@ func (c *colliderShape) Collisions() ColliderSet {
 
 func (c *colliderShape) addCollision(s Collider) {
 	c.collisions[s] = struct{}{}
+}
+
+// removeCollision drops a single partner, for the one case that cannot wait
+// for the next resetCollisions: the partner has left the space entirely.
+func (c *colliderShape) removeCollision(s Collider) {
+	delete(c.collisions, s)
 }
 
 func (c *colliderShape) resetCollisions() {

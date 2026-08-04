@@ -300,9 +300,35 @@ func (s *Space) AddShape(c DynamicCollider) {
 	s.shapes[c] = struct{}{}
 }
 
-// RemoveShape removes a shape from the existing ones
+// RemoveShape removes a shape from the existing ones.
+//
+// ⚑ The purge below is load-bearing, not tidiness. Dropping the shape from
+// s.shapes stops the NEXT Update from re-deriving its overlaps, but the sets
+// handed out by the LAST one still name it — and those sets are read again
+// before physics runs, because removal happens late in the tick (NetSystem, at
+// the bottom of the priority order, is where a dead socket is noticed) while
+// mob aggro acquisition happens early in the next one.
+//
+// One stale read was enough to strand a mob permanently: it re-acquired a
+// player who had already left the world, and a departed entity reads as alive
+// at a frozen position forever, so the leash never counts down. Nothing else
+// clears it. Keeping the invariant "a shape outside the space appears in no
+// collision set" is what makes every reader safe, not just aggro.
+// ⚑ The sweep is over EVERY shape, deliberately. Overlap is recorded per
+// direction (ArbiterShapes tests Mask & Layer each way independently), so a
+// sensor watching a body records the body while the body records nothing back
+// — walking only c's own set would miss every one-way watcher, which is
+// precisely the mob-aggro-sensor-over-a-player-body pair. A removed shape
+// cannot name who points at it, so the space has to ask.
+//
+// Affordable because removal is rare (a death, a disconnect) while Update runs
+// 30×/s: this is a few hundred map deletes on an event, not per tick.
 func (s *Space) RemoveShape(c DynamicCollider) {
 	delete(s.shapes, c)
+	for other := range s.shapes {
+		other.removeCollision(c)
+	}
+	c.resetCollisions()
 }
 
 // AddStaticShape adds a static shape

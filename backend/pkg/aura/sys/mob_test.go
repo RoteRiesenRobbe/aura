@@ -144,6 +144,73 @@ func TestMobSystem_RemovingDeadMobDoesNotSkipOrDoubleUpdateSurvivors(t *testing.
 	assert.Equal(t, []uint64{b.Basic().ID()}, g.removed, "only the dead mob is removed")
 }
 
+// A player who disconnects mid-chase leaves through game.RemoveEntity, whose
+// fan-out lands on the non-mob branch of MobSystem.Remove. Every mob latched
+// onto them has to let go there: nothing downstream can tell the stale pointer
+// from a live target (it stays "alive" at its last position forever), so
+// without this hook the pack parks on the disconnect spot indefinitely.
+func TestMobSystem_Remove_ForgetsADepartedPlayerAcrossEveryMob(t *testing.T) {
+	ms, g := newMobSystemWith(nil)
+	ms.Update(0)
+
+	pack := []*mob.Mob{
+		mob.NewMob(testMobDef(), 0, nil),
+		mob.NewMob(testMobDef(), 0, nil),
+		mob.NewMob(testMobDef(), 0, nil),
+	}
+	leaver := newFakePlayer()
+	for _, m := range pack {
+		ms.AddEntity(m)
+		m.ForceThreatToTop(leaver, 50) // as if the player had been hitting it
+		require.True(t, m.Update(0))
+		require.True(t, m.TargetsEntity(leaver.basic.ID()), "mob is chasing the player")
+	}
+
+	g.RemoveEntity(leaver.basic) // the disconnect
+
+	for i, m := range pack {
+		assert.Falsef(t, m.TargetsEntity(leaver.basic.ID()), "mob %d still chases the ghost", i)
+		assert.Falsef(t, m.HasThreat(leaver.basic.ID()), "mob %d still holds the ghost's threat", i)
+		require.True(t, m.Update(0))
+		assert.Falsef(t, m.TargetsEntity(leaver.basic.ID()), "mob %d re-latched the ghost", i)
+	}
+}
+
+// ⚑ The path that actually stranded the wolves in-game. A player's placed
+// entities are MOBS (a camp is mob.NewMob, aligned + owned + unkillable), and
+// doFuneral removes them on disconnect while their health is still full. That
+// removal lands on Remove's mob branch, so before this it took the early
+// return and the departure hook never ran — leaving every wolf that had
+// acquired the camp latched onto an entity that is gone but reads as alive at
+// a frozen position. targetWithinAuraReach then keeps the leash at zero
+// forever, so the pack parks on the vanished camp and ignores live players.
+//
+// Death does not show this: a killed mob is removed at 0 HP, which the
+// per-tick HealthRatio reset already catches. It is removal-while-ALIVE that
+// needs the hook — which is exactly what an owned structure does.
+func TestMobSystem_Remove_ForgetsALivingMobRemovedFromTheWorld(t *testing.T) {
+	ms, g := newMobSystemWith(nil)
+	ms.Update(0)
+
+	wolf := mob.NewMob(testMobDef(), 0, nil) // hostile by default
+	camp := mob.NewMob(testMobDef(), 0, nil)
+	camp.Align() // the player side, like every player-placed structure
+	ms.AddEntity(wolf)
+	ms.AddEntity(camp)
+
+	wolf.ForceThreatToTop(camp, 50)
+	require.True(t, wolf.Update(0))
+	require.True(t, wolf.TargetsEntity(camp.Basic().ID()), "the wolf has acquired the camp")
+	require.Greater(t, camp.HealthRatio(), float32(0), "the camp is removed ALIVE — that is the point")
+
+	g.RemoveEntity(camp.Basic()) // doFuneral on disconnect
+
+	assert.False(t, wolf.TargetsEntity(camp.Basic().ID()), "the wolf still holds the removed camp")
+	assert.False(t, wolf.HasThreat(camp.Basic().ID()))
+	require.True(t, wolf.Update(0))
+	assert.False(t, wolf.TargetsEntity(camp.Basic().ID()), "and it re-latched the ghost next tick")
+}
+
 func TestSpawnPoint_SpawnsAtAuthoredPosition(t *testing.T) {
 	pos := phy.Vec2f{X: 12, Y: -5}
 	ms, g := newMobSystemWith([]world.Spawn{

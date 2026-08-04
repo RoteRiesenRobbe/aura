@@ -1500,6 +1500,34 @@ func (m *Mob) TargetsEntity(id uint64) bool {
 	return m.aggroTarget != nil && m.aggroTarget.Basic().ID() == id
 }
 
+// ForgetEntity severs every reference this mob holds to an entity that just
+// left the world — the aggro twin of EndCharm, driven from the same removal
+// fan-out (see MobSystem.Remove).
+//
+// It has to be an explicit hook because a departure is invisible to the
+// per-tick polls: a disconnect pulls the player's shapes out of the physics
+// space, but the latched pointer stays valid, HealthRatio() stays above 0 and
+// Position() keeps returning the spot it vanished at. So pruneDeadThreat sees
+// a living row, retention re-latches the same pointer every tick, and
+// targetWithinAuraReach goes permanently true once the mob arrives — which
+// zeroes the leash. The mob parks on the disconnect spot forever, in combat
+// with its aura on, until something else aggroes it or it dies.
+//
+// Only THIS entity's references go: the threat row is dropped singly, so a
+// second player still fighting keeps the mob — retention re-picks the
+// next-highest holder next tick, and an emptied table falls through to the
+// leash and the walk home.
+func (m *Mob) ForgetEntity(id uint64) {
+	delete(m.threat, id)
+	if m.TargetsEntity(id) {
+		m.aggroTarget = nil
+		m.leashTicks = 0
+	}
+	if m.supportTarget != nil && m.supportTarget.Basic().ID() == id {
+		m.supportTarget = nil
+	}
+}
+
 // InCombat reports whether this mob is currently engaged (model.Combatant;
 // atmosphere & recovery chunk 1) — read by the regen gate and by a healer
 // deciding whether an allied mob it heals counts as an in-combat ally.

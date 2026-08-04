@@ -5076,3 +5076,122 @@ it: the values **never change** over 3 s (so nothing "corrects them later", as
 the first filing claimed), and the objects are **detached from the scene graph**
 (so they are out-of-AOI leftovers, not mispositioned neighbours). Committed as
 `6e2af665`; corrected here rather than deleted.
+
+## 54. Mobs chase players who have left the world — ✅ FIXED `9684dcce` 2026-08-04, PO-verified in-game
+
+*(A long-standing known issue, reported with screenshots: disconnect — even a
+plain reload — while a wolf pack is chasing you, and the pack parks on the spot
+you vanished from, aura lit, ignoring every player who walks past, until
+something else aggros it or it dies.)*
+
+**Three defects stacked. Only the third explains why it was permanent**, and the
+first two are the reason two rounds of "fixed" were not.
+
+### 1. Nothing severed a mob's references when its target left the world
+
+A mob latches `aggroTarget` as a live Go pointer, and `threat` holds pointers
+too. Removal does not invalidate them: a departed player's `HealthRatio()` stays
+above 0 and its `Position()` keeps returning the spot it vanished at. So every
+per-tick escape hatch missed — `pruneDeadThreat` saw a living row, retention
+re-latched the same pointer, and once the mob arrived at the frozen position
+`targetWithinAuraReach()` was permanently true, which pins `leashTicks` at 0.
+The leash never counts down. Nothing else clears aggro.
+
+Fixed with `Mob.ForgetEntity(id)` (drops the threat row, unlatches
+`aggroTarget`, releases `supportTarget`), driven from `MobSystem.Remove` — the
+same removal fan-out that already carried `EndCharm`, whose doc comment had
+described this exact ghost-pointer hazard for charm without anyone writing the
+aggro twin.
+
+⚑ It drops only **that** entity's threat row, never the table: a second player
+still fighting keeps the mob, and retention re-picks the next-highest holder.
+
+### 2. `MobSystem.Remove` skipped the hook for mobs
+
+The mob branch spliced `n.mobs` and returned early, so `forgetDeparted` ran only
+for non-mobs. That reads as free — a killed mob is removed at 0 HP, which the
+ordinary `HealthRatio` reset catches — but **a player's placed entities are mobs
+too**, and `doFuneral` removes them *alive* on disconnect. A camp
+(`mob.NewMob`, aligned, owned, unkillable) that a pack had acquired became a
+ghost with full health the moment its owner left. This is what the reported
+screenshots actually show: wolves clustered in the camp's light, `Camp 0/1` in
+the HUD.
+
+Removal-while-**alive** is the case that needs the hook.
+
+### 3. ⚑ The real one — `Space.RemoveShape` left dangling collision references
+
+`RemoveShape` only did `delete(s.shapes, c)`. The shape stayed in its partners'
+collision sets until the next `Update()` rebuilt them, and `resetCollisions`
+carries a comment arguing that is safe because *"no caller holds on to the map
+across ticks"*. True, and irrelevant: **the tick order makes the stale set
+readable before physics runs again.**
+
+| system | priority | when |
+|---|---|---|
+| `MobSystem` (aggro acquisition) | **20** | early |
+| `PhysicsSystem` (rebuilds collisions) | 0 | middle |
+| `NetSystem` (notices the dead socket → `RemoveEntity`) | **−100** | last |
+
+So a player removed at the bottom of tick N is still in every sensor's set when
+`findAggroTarget` runs at the top of tick N+1. Instrumented, the whole failure
+is 29 ms — one tick:
+
+```
+15:12:03.929  👢 Disconnect player
+15:12:03.929  forgetDeparted id=1273 mobs=410 released=3
+15:12:03.958  mob=796 RE-ACQUIRED ghost=1273 via SENSOR
+15:12:03.958  mob=797 RE-ACQUIRED ghost=1273 via SENSOR
+15:12:03.958  mob=798 RE-ACQUIRED ghost=1273 via SENSOR
+```
+
+The clear worked. One stale sensor read undid it — and re-acquiring is
+permanent, because a ghost never fails a liveness check.
+
+`RemoveShape` now purges the shape from every other shape's set and clears its
+own, restoring the invariant *a shape outside the space appears in no collision
+set*.
+
+⚑ **The purge must sweep ALL shapes, not the removed shape's own set.** Overlap
+is recorded per direction — `ArbiterShapes` tests `Mask & Layer` each way
+independently — so a mob's aggro sensor records the player body while the body
+records nothing back. A removed shape cannot name who points at it. The first
+attempt walked only `c.Collisions()`, missed every one-way watcher, and still
+failed in-game. Affordable because removal is an event (a death, a disconnect)
+while `Update` runs 30×/s.
+
+### Why this took three attempts
+
+Each layer hid the next. Static analysis of #1 was complete and correct — the
+fan-out reaches every system, physics removes all four player bodies, mobs hold
+exactly five entity references — and the fix still did nothing, because the
+re-acquisition path is invisible unless you look at *system priority ordering*.
+The lesson: **"the reference is cleared" and "the reference stays cleared" are
+different claims**, and only the second one is the bug.
+
+### Verified
+
+Go suite green vs real Postgres · `go vet` + `gofmt` clean · new tests in `phy`
+(including the asymmetric one-way-watcher case), `model/mob` and `sys`, each
+confirmed to fail without its fix rather than trusted green.
+
+In-game via a headless audit (two clients through the real path — place a camp
+among wolves, hard disconnect, second player, disconnect — then a third client
+dumps every aggro target in range and resolves each id, with a settle-and-
+recheck pass so a genuinely dying target is not miscounted):
+
+- buggy build → **2 confirmed ghosts** (both departed players, still held after
+  the settle)
+- fixed build → **clean, no mob holds a departed entity**
+
+Harnesses this touches: `chunk2-follower` all PASS + its designed SKIP ·
+`chunk3-charm` 8/9 (top of its documented 6–8/9 band) · `chunk2-calm` 6/7 and
+`chunk2-roles` 1/3 **proven identical at HEAD** — both pre-existing, the roles
+legs on a script-side `undefined HP` probe.
+
+**Schema impact: none** — in-memory combat and collision state only.
+
+⚑ **Left open deliberately.** The same stale-read window was open to *every*
+collision consumer, not just aggro — `SkillSystem` aura hits and `NetSystem`
+viewport streaming read those sets too. Fixing it in `RemoveShape` closes it for
+all of them, but only the aggro symptom was ever reproduced and measured.

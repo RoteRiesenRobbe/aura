@@ -12,6 +12,12 @@ Entries are in the order they appeared (newest first, as of 2026-08-03).
 
 ---
 
+*(2026-08-04, second move of the day: backlog §54 — the disconnect ghost-chase
+fix — took the cap slot, so the compressed `backlog §46` bullet dropped off
+`CLAUDE.md`. It is **not** re-copied here: its full pre-collapse banner is
+already the last entry in the 2026-08-03 batch below, and the compressed line
+carried nothing the full one does not.)*
+
 *(Moved 2026-08-04 when world-map C1 took the cap slot.)*
 
 - **R4 C1 — RECALL BECOMES A BASELINE UTILITY** ✅ `ec389164` 2026-08-03, deployed + PO-verified in-game same day — every character holds a free, cooldown-less **Recall button** from creation (new baseline-utility class outside the cooldown slots and the spellbook; the 10 s interruptible cast is the whole brake). `recall.json` deleted (id 28 burned), `UseUtility = 11` pinned, spellbook restore now warn-skips retired ids. Found pre-existing bug: `#registrationNag` covers the mobile ☰ sheet (still open, needs a PO call). Full ledger: `docs/plan-downtime.md` §9.
