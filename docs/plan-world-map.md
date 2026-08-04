@@ -114,6 +114,12 @@ only on resize.
 PO later wants unexplored terrain hidden, that is a new decision, not an
 oversight.
 
+> **SUPERSEDED 2026-08-04, in C1 itself.** The PO took exactly that new
+> decision: terrain **is** fogged, session-only, revealed by the real 20 × 12
+> AOI as you walk (`MapFog.ts`). The paragraph above is kept as the record of
+> what was decided at design time and what it took to reverse it. Persistence
+> of the reveal is still open and can ride part 2's migration.
+
 ### 4.3 The player roster (the one wire addition)
 
 A new low-rate server message: `PlayerRoster { tick, entries: [{ id, x, y, name? }] }`,
@@ -271,15 +277,20 @@ mid-chunk by PO ruling — session fog of war and click-away dismissal.
 2. ⚑ **The world is origin-centred**, so both states put the layer origin at the
    canvas centre and **letterboxing needs no offset term at all** — just the
    smaller of the two axis fits.
-3. ⚑ **Backlog §53, filed from this chunk:** static minimap icons are placed at
-   **player-relative** coordinates. Measured, not inferred — instrumenting
-   `add()` shows `getX()` returning −466/−96/1360/704 at that moment, while the
-   same objects report absolute −7352/−6689 later. Dynamic icons self-heal every
-   tick; static ones are placed once and never again. Pre-existing (docked scale
-   math is arithmetically unchanged), invisible at 202 px, glaring at 7×.
-   **Worth fixing before C2** — C2's campfire markers come from bundled
-   *absolute* data, so they will land correctly while the trees beside them do
-   not, which reads as the campfire markers being broken.
+3. ⚑ **Backlog §53, filed from this chunk — and its first version was WRONG.**
+   The full-screen map shows a cluster of prop icons at the world origin that
+   the character never visited. Cause: `core/game.go:467` creates the pre-join
+   spectator at `VEC2F_ZERO`, so the client is streamed the ~24 props around
+   the origin and builds `STATIC` icons for them — and `STATIC` is documented
+   as *"never removed"*. Positions are **correct**; it is a fog-consistency
+   problem, visible only now because C1 draws at 7× the docked scale and added
+   fog. ⚑ It was first filed as *"icons use player-relative coordinates"* on
+   the strength of small values at `add()` time (−466, −96, 1360) while the
+   player was at −6982 — an inference never checked against "do real props sit
+   near the origin?" (24 do). Two measurements settled it: the values never
+   change over 3 s, and the objects are detached from the scene graph. The
+   lesson is the general one: **a small coordinate is not evidence of a
+   relative coordinate.**
 4. ⚑ **A mask Sprite is not drawn normally** — `AlphaMask` sets
    `renderable = false` for a Sprite mask, but it must still be IN the scene
    graph to have a world transform. A detached mask silently masks nothing.

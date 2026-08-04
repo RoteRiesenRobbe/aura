@@ -5023,47 +5023,56 @@ asynchronous, already de-duplicated, and already run with
 keep more state in memory for longer. The tail is lazy already:
 `sweepExpiredStashes` saves on expiry rather than at disconnect.
 
-## 53. Minimap icons for static entities are placed at player-relative coordinates
+## 53. The map shows props you have never visited — the origin spectator seeds it
 
-*(Found 2026-08-04 while building `plan-world-map.md` C1. Pre-existing; C1
-explicitly does not own markers, and PO ruled 2026-08-04 to file rather than
-fix in that chunk.)*
+*(Filed 2026-08-04 during `plan-world-map.md` C1 — **and rewritten the same day
+after the first diagnosis turned out to be wrong**. See the correction note at
+the end; it is kept because the wrong version was committed and pushed, and
+because the mistake is instructive.)*
 
-Trees, stones and every other non-moving entity are drawn on the minimap at the
-**wrong place**: they cluster around the map's centre instead of around the
-character. Your own dot, and mobs, are correct.
+Open the full-screen map on a fresh character and there is a tight cluster of
+tree and stone icons around the **world origin**, far from anywhere you have
+been — sitting on top of ground that fog of war is otherwise hiding.
 
-**Root cause, measured — not inferred.** `MiniMap.add()` positions an icon once,
-at `gameObject.getX() * scale`. Instrumenting that call shows `getX()` returning
-**player-relative** values at that moment — `-466`, `-96`, `1360`, `704` — while
-a walk of the world scene graph moments later shows those same objects at
-**absolute** world coordinates (`-7352`, `-6689`, `-7416`). So the entity's
-position is corrected *after* it has already been added to the minimap.
+**Cause, verified against the server.** `core/game.go:467` creates the pre-join
+spectator at `phy.VEC2F_ZERO`. So before you pick a character you are a
+spectator **at (0,0)**, the client is streamed the AOI around the origin, and it
+builds game objects and minimap icons for the ~24 props that live there
+(`api/zones/world.json` has 24 props within 12 × 7 units of the origin).
 
-Why only static ones are visibly wrong: `MiniMap.update()` re-derives the
-position of every `DYNAMIC` icon from its game object on each tick, so movers
-self-heal on the first frame. `STATIC` icons are placed once and never again —
-`onResize` only ratio-rescales the stored pixel value, which preserves the
-error exactly (measured: every icon rescales by the correct 6.931×, so the
-toggle is not the problem, the original placement is).
+Those icons then **stay forever, by design**: `LevelOfDynamic.STATIC` is
+documented as *"Doesn't move, gets never removed"*, and `MiniMap.remove()`
+early-returns for it. When you join at (−58, 24) the origin props leave the AOI
+and are detached from the world render graph — measured, `shape.parent` is null
+— but their icons remain.
 
-**Why nobody noticed.** On the 202 px docked minimap the whole 144-unit world is
-~200 px wide, so a 68-unit error is ~9 px and reads as blur. The full-screen map
-(C1) draws at ~7× that scale, where the same error is ~660 px and unmistakable.
+**Nothing here is a positioning bug.** The icons are at the props' true absolute
+coordinates: measured `-991`, `-1270`, `166`, `-638` px ÷ 120 = −8.26, −10.58,
+1.38, −5.32 world units, which match zone props authored at −8.3, −10.9, 1.4,
+−5.2.
 
-**Fix options, in the order they were considered:**
+**Why it only became visible now.** On the 202 px docked minimap the whole world
+is ~200 px wide and an origin cluster is a few pixels from everything else. C1's
+full-screen map draws at ~7× that, and C1 also added fog of war — so the map now
+makes a promise ("you see what you have visited") that these icons break.
 
-1. **Deferred placement in `MiniMap`** — register every icon rather than only
-   the dynamic ones, and place it from its game object on the next `update()`
-   tick instead of trusting the position at `add()` time. Contained to one file,
-   one-shot per icon, fixes the docked minimap too. Treats the symptom.
-2. **Root cause in the entity/snapshot path** — find why an entity reports
-   relative coordinates at construction and absolute ones later
-   (`EntityManager` line ~61 constructs from `entity.position`). Cleaner if it
-   is a genuine wire or ordering bug, but unknown depth, and the world renderer
-   depends on the same path.
+**Fix options:**
 
-⚑ **This is worth doing before C2.** C2 draws campfire markers from bundled zone
-data — i.e. from *known-absolute* coordinates — so campfires will land correctly
-while the trees beside them do not, which looks like the campfire markers are
-the broken ones.
+1. **Clear the minimap when the character enters the world.** The spectator's
+   view is not the character's, so nothing it saw belongs on the character's
+   map. Smallest change, and it matches what fog already claims.
+2. **Gate entity icons on the revealed fog** — draw an icon only where the
+   character has been. More faithful, more work, and it needs a fog lookup per
+   icon.
+3. **Do not seed the minimap while spectating at all.**
+
+⚑ **Correction note.** This was first filed as *"static icons are placed at
+player-relative coordinates"*, on the strength of instrumenting `MiniMap.add()`
+and seeing small values (−466, −96, 1360, 704) while the player was at −6982.
+That inference was wrong: the values are absolute coordinates of props that
+genuinely sit near the origin, and the check that would have caught it —
+"are there real props there?" — was never run. Two later measurements settled
+it: the values **never change** over 3 s (so nothing "corrects them later", as
+the first filing claimed), and the objects are **detached from the scene graph**
+(so they are out-of-AOI leftovers, not mispositioned neighbours). Committed as
+`6e2af665`; corrected here rather than deleted.
