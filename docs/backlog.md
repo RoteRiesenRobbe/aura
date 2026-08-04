@@ -4232,6 +4232,21 @@ independently-anchored overlay before it.
 
 ## 41. Fast travel — campfire network vs. flight paths
 
+> **⭐ DESIGNED 2026-08-04 — OPTION 2 (flight paths) CHOSEN, and the design ran
+> wider than this entry: it took the world map with it.** Two plan docs, split by
+> PO ruling D1 so the map can ship on its own:
+> **`docs/plan-world-map.md`** (map + minimap rework, no schema impact) and
+> **`docs/plan-flight-paths.md`** (the flight system, one migration).
+> 12 PO rulings in total. The ⚑ death-penalty tension flagged below was ruled
+> **no extra brake** (D9): flight is fire-to-fire and fights are almost never at
+> a fire, so the walk-back survives as the last stretch — WoW's own economics.
+> Discovery is the **existing campfire dwell** (D4), the graph is **complete**
+> (D2, no authored routes), and the "players can't see you flying over" half is
+> a filter in `playerSendState`, **not** the per-viewer visibility system §40
+> ranks as the widest-blast-radius archetype — it stays scoped to flight.
+> The open questions below are answered in those docs' §3; kept here as the
+> record of what was asked.
+
 **WoW/Gothic fit: high** *(ranked 2026-07-29, PO-confirmed)*
 **Origin:** PO idea 2026-07-29. Two options are under discussion; neither is
 chosen, neither is scoped.
