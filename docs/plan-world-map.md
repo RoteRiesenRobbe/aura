@@ -746,6 +746,34 @@ leg that was running**, so the next sighting says *when*. Four GL contexts in
 one headless process (two pages × world + map) is a plausible aggravator and is
 recorded as a suspicion, not a finding.
 
+#### Deployed to live 2026-08-04 ✅
+
+`106585c4` is live at `https://aura-game.duckdns.org/`. **No migration this
+time** — C3's schema impact is NONE, so live stayed at `version=2 dirty=false`
+and C2's one-way-deploy finding does not apply: a rollback here is just
+redeploying the previous binary.
+
+Sequence: `systemctl stop aurad` → `💾 flushed 0 live character(s)` (nobody
+online, checked via `/players` first) → `pg_dump` pulled **off-box** to
+`~/aura-live-pre-c3.sql` → `devops/deploy.sh root@…` → boot log clean, **0
+panics, 0 ERROR/WARN**, `87 skills/15 factions/65 mobs/10 recipes/5 props/3
+milestone unlocks/4 quests`, zone world 144 × 72 777 props/485 spawns/5
+campfires. After: **19 characters, 74 spellbook rows, 7 campfire rows**
+unchanged.
+
+⚑ The served bundle hash was compared against the local build and matches
+(`main.aa50a4c3a7bf04478d46.js` + `main.8058096d1f0526fc5378.css`) — C2's
+finding, kept as a step: an rsync deploy can serve a stale frontend silently,
+and a roster the client cannot decode looks exactly like a server that never
+sends one.
+
+⚑ The dump is a plain `sudo -u postgres pg_dump` — there is **no Docker on the
+live box**, unlike the dev machine. The first attempt copy-pasted the dev
+runbook's `docker exec aura-dev-db pg_dump …` and produced a **0-byte file that
+reported no error**, because the fallback ran and failed on password auth.
+A backup command that can succeed at writing nothing is one to check the size
+of, every time.
+
 **Still open for C3:** PO in-game verification — **the dot's colour and size**
 (both [PLACEHOLDER]) and **one consequence of finding 8's map order**: your own
 dot is invisible while you stand at your bound fire, which is exactly where you
