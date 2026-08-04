@@ -1,7 +1,7 @@
 # Plan: The world map & minimap rework (fast travel, part 1)
 
 **Status:** IN PROGRESS — **C1 shipped** 2026-08-04 (`f09d99d0`), **C2 shipped
-and live** 2026-08-04 (`6c0888ff`), **C3 shipped** 2026-08-04 (`[uncommitted]`),
+and live** 2026-08-04 (`6c0888ff`), **C3 shipped** 2026-08-04 (`106585c4`),
 all three PO-verified in-game. Every chunk is built; what keeps this doc out of
 `archive/` is **C1's tail** — the mobile real-device pass §7 requires, and the
 `features/map/` rename. Designed 2026-08-04. Per-chunk ledger: §10.
@@ -564,7 +564,7 @@ has to bracket it rather than sit inside it: **stop** `aurad` first and wait for
 `💾 flushed N live character(s) for shutdown`, or the dump misses the last
 minutes of play.
 
-### C3 — The player roster — DONE (2026-08-04), PO-VERIFIED IN-GAME 2026-08-04, committed `[uncommitted]`
+### C3 — The player roster — DONE (2026-08-04), PO-VERIFIED IN-GAME 2026-08-04, committed `106585c4`
 
 Ships the `PlayerRoster` message, its single assembly point, and other players'
 dots on both map states. **The map is now feature-complete for part 1**: D6's
