@@ -1,10 +1,18 @@
 # Plan: The world map & minimap rework (fast travel, part 1)
 
-**Status:** IN PROGRESS — **C1 shipped** 2026-08-04 (`f09d99d0`), **C2 shipped
+**Status:** ✅ **COMPLETE** — **C1 shipped** 2026-08-04 (`f09d99d0`), **C2 shipped
 and live** 2026-08-04 (`6c0888ff`), **C3 shipped** 2026-08-04 (`106585c4`),
-all three PO-verified in-game. Every chunk is built; what keeps this doc out of
-`archive/` is **C1's tail** — the mobile real-device pass §7 requires, and the
-`features/map/` rename. Designed 2026-08-04. Per-chunk ledger: §10.
+all three PO-verified in-game **and live**, C1's **mobile real-device pass done**
+(PO-verified on a real phone 2026-08-04 against the live build, so one pass
+covered all three chunks' phone surface), and the deferred **`features/map/`
+rename** taken the same day. Nothing is open. Designed 2026-08-04. Per-chunk
+ledger: §10.
+
+⚑ **What is deliberately NOT closed by this doc**, and belongs to whoever picks
+it up next: the marker sizes and the dot colour are still [PLACEHOLDER], and the
+map's ruled draw order means **your own dot is invisible while you stand at your
+bound fire** — which is exactly where you respawn. Both are tuning questions for
+a future session, not unfinished work in this plan.
 
 ⚑ **C2 absorbed `plan-flight-paths.md` C1 wholesale** (PO ruling: discovered
 fires persist per character). That reverses **§8** — this plan *does* ship a
@@ -105,8 +113,8 @@ about **96 s wide on foot** today.
 
 ### 4.1 The map module
 
-`features/mini-map/` grows into the map feature (rename deferred to the chunk —
-see §6 C1). One PixiJS application, one marker registry, two **states**:
+`features/mini-map/` grows into the map feature (renamed to `features/map/`
+2026-08-04, after part 1 was live — see the C1 ledger). One PixiJS application, one marker registry, two **states**:
 
 | | docked (today's minimap) | full-screen |
 |---|---|---|
@@ -369,9 +377,26 @@ here so the next run does not read it as new. `mobile-layout` legs 1–6 and 8
 green; **leg 7 red is the known `#registrationNag` bug** already carried in
 CLAUDE.md, untouched by this chunk.
 
-**Still open for C1:** the **mobile real-device pass** §7 requires (headless
-perf transfers only as ratios) and the `features/map/` rename, deliberately not
-taken so the diff stayed reviewable.
+**Still open for C1:** nothing. The `features/map/` rename — deliberately not
+taken in C1 so the diff stayed reviewable — was done 2026-08-04 once part 1 was
+live: `git mv frontend/src/features/mini-map frontend/src/features/map` plus
+seven import paths, verified by `tsc` + vitest 207/207 + a production build +
+all three map harnesses re-run green (`c1` 12/12, `c2` 17/17, `c3` 15/15).
+⚑ **The DIRECTORY only.** `MiniMap.ts`, the `MiniMap` class, `IMiniMapRendered`
+and the `game.miniMap` handle all keep their names: the interface is implemented
+by every game object and the handle is a harness surface C2 added on purpose, so
+renaming them is a wide diff whose entire benefit is a nicer word. The directory
+was what the plan deferred and the directory is what moved.
+
+> **The mobile real-device pass is DONE — PO-verified on a real phone
+> 2026-08-04**, against the deployed live build, so it covered all three
+> chunks' phone surface in one pass rather than C1's alone: the permanent map
+> button, C2's 9 px docked campfire markers and C3's 7 px roster dots. Verdict
+> was "works"; **no numbers were taken**, which is the honest scope of it — §7
+> asked for a real-device pass because headless perf transfers only as ratios,
+> and this answers that question and no other. The `MOBILE_MAX_RESOLUTION 1.5`
+> lead in CLAUDE.md's mobile-perf line is untouched and still the cheapest next
+> move if the ceiling is ever raised as a topic.
 
 ### C2 — Campfire markers + discovery persistence — DONE (2026-08-04), PO-VERIFIED IN-GAME 2026-08-04, committed `6c0888ff`
 

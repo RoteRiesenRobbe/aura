@@ -1,5 +1,5 @@
 import {AuraApi} from '../../AuraApi';
-import {RosterPlayer} from '../../../../mini-map/logic/MapScale';
+import {RosterPlayer} from '../../../../map/logic/MapScale';
 
 /**
  * The map's player roster (plan-world-map.md C3, D7): every live player

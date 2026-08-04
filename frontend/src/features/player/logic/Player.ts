@@ -7,7 +7,7 @@ import {DamageState, VitalSigns, VitalSignValues} from '../../vital-signs/logic/
 import {isDefined} from '../../common/logic/Utils';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
-import {MiniMap} from '../../mini-map/logic/MiniMap';
+import {MiniMap} from '../../map/logic/MiniMap';
 import {PlayerCreatedEvent, PlayerDamagedEvent} from '../../core/logic/Events';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {setLocalPlayerLevel} from '../../../client-data/Mobs';

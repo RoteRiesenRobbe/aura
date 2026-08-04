@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 import {EntityManager} from "../../backend/logic/EntityManager";
 import {JoystickManager} from "../../input-system/logic/virtual-joystick/JoystickManager";
-import {MiniMap} from "../../mini-map/logic/MiniMap";
+import {MiniMap} from "../../map/logic/MiniMap";
 import {Spectator} from "../../player/logic/Spectator";
 import {Player} from "../../player/logic/Player";
 import {InputManager} from "../../input-system/logic/InputManager";

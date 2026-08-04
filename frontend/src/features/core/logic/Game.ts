@@ -2,7 +2,7 @@ import {Application, Container, Graphics, Ticker} from 'pixi.js';
 
 import {Backend} from '../../backend/logic/Backend';
 import {EntityManager} from '../../backend/logic/EntityManager';
-import {MiniMap} from '../../mini-map/logic/MiniMap';
+import {MiniMap} from '../../map/logic/MiniMap';
 import * as DayCycle from '../../day-cycle/logic/DayCycle';
 import {Player} from '../../player/logic/Player';
 import {Spectator} from '../../player/logic/Spectator';

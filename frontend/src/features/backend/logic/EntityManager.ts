@@ -10,8 +10,8 @@ import {AuraApi} from './AuraApi';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
 import {gameObjectId} from '../../common/logic/Types';
 import {Vector} from '../../core/logic/Vector';
-import {IMiniMapRendered} from '../../mini-map/logic/MiniMapInterfaces';
-import {MiniMap} from '../../mini-map/logic/MiniMap';
+import {IMiniMapRendered} from '../../map/logic/MiniMapInterfaces';
+import {MiniMap} from '../../map/logic/MiniMap';
 import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 
 

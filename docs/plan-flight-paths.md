@@ -6,7 +6,8 @@ persist per character while that chunk was being built and C1 *was* that work.
 **C2–C5 not started.** §5's storage question is answered (the real table);
 §7 carries the detail.
 
-**Depends on:** `plan-world-map.md` (part 1) — destination selection happens on
+**Depends on:** `plan-world-map.md` (part 1, **complete and archived 2026-08-04** —
+`docs/archive/plan-world-map.md`) — destination selection happens on
 that map. PO ruling **D1**: map first, flight second.
 
 **Closes:** backlog **§41** (fast travel), option 2 (flight paths) — chosen over

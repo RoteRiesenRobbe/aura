@@ -20,7 +20,7 @@ import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {Container, Graphics, Sprite, Text, Texture} from 'pixi.js';
 import * as TextDisplay from '../../../client-data/TextDisplay';
 import {ISvgContainer} from '../../core/logic/ISvgContainer';
-import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../mini-map/logic/MiniMapInterfaces';
+import {IMiniMapRendered, Layer, LevelOfDynamic} from '../../map/logic/MiniMapInterfaces';
 import {AuraRingStack} from './AuraRings';
 import {EffectPips} from './EffectPips';
 import {shieldBarSegments} from './ShieldBarMath';
