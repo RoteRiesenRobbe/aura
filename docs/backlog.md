@@ -5022,3 +5022,48 @@ asynchronous, already de-duplicated, and already run with
 `synchronous_commit = off` — so it would trade durability for nothing much, and
 keep more state in memory for longer. The tail is lazy already:
 `sweepExpiredStashes` saves on expiry rather than at disconnect.
+
+## 53. Minimap icons for static entities are placed at player-relative coordinates
+
+*(Found 2026-08-04 while building `plan-world-map.md` C1. Pre-existing; C1
+explicitly does not own markers, and PO ruled 2026-08-04 to file rather than
+fix in that chunk.)*
+
+Trees, stones and every other non-moving entity are drawn on the minimap at the
+**wrong place**: they cluster around the map's centre instead of around the
+character. Your own dot, and mobs, are correct.
+
+**Root cause, measured — not inferred.** `MiniMap.add()` positions an icon once,
+at `gameObject.getX() * scale`. Instrumenting that call shows `getX()` returning
+**player-relative** values at that moment — `-466`, `-96`, `1360`, `704` — while
+a walk of the world scene graph moments later shows those same objects at
+**absolute** world coordinates (`-7352`, `-6689`, `-7416`). So the entity's
+position is corrected *after* it has already been added to the minimap.
+
+Why only static ones are visibly wrong: `MiniMap.update()` re-derives the
+position of every `DYNAMIC` icon from its game object on each tick, so movers
+self-heal on the first frame. `STATIC` icons are placed once and never again —
+`onResize` only ratio-rescales the stored pixel value, which preserves the
+error exactly (measured: every icon rescales by the correct 6.931×, so the
+toggle is not the problem, the original placement is).
+
+**Why nobody noticed.** On the 202 px docked minimap the whole 144-unit world is
+~200 px wide, so a 68-unit error is ~9 px and reads as blur. The full-screen map
+(C1) draws at ~7× that scale, where the same error is ~660 px and unmistakable.
+
+**Fix options, in the order they were considered:**
+
+1. **Deferred placement in `MiniMap`** — register every icon rather than only
+   the dynamic ones, and place it from its game object on the next `update()`
+   tick instead of trusting the position at `add()` time. Contained to one file,
+   one-shot per icon, fixes the docked minimap too. Treats the symptom.
+2. **Root cause in the entity/snapshot path** — find why an entity reports
+   relative coordinates at construction and absolute ones later
+   (`EntityManager` line ~61 constructs from `entity.position`). Cleaner if it
+   is a genuine wire or ordering bug, but unknown depth, and the world renderer
+   depends on the same path.
+
+⚑ **This is worth doing before C2.** C2 draws campfire markers from bundled zone
+data — i.e. from *known-absolute* coordinates — so campfires will land correctly
+while the trees beside them do not, which looks like the campfire markers are
+the broken ones.

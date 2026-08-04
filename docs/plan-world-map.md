@@ -1,6 +1,7 @@
 # Plan: The world map & minimap rework (fast travel, part 1)
 
-**Status:** DESIGNED 2026-08-04, not started. Planning session only — no code written.
+**Status:** IN PROGRESS — **C1 shipped** 2026-08-04 (`f09d99d0`), C2 and C3 open.
+Designed 2026-08-04. Per-chunk ledger: §10.
 
 **Sibling:** `plan-flight-paths.md` (part 2) builds the flight system **on top of
 this**. This doc ships standalone and is useful without it; that split is PO
@@ -227,4 +228,86 @@ without a database change.
 
 ## 10. Chunk ledger
 
-*(empty — nothing built yet)*
+### C1 — The map module, two states — DONE (2026-08-04), PO-VERIFIED IN-GAME 2026-08-04, committed `f09d99d0`
+
+Ships the docked ⇄ full-screen toggle, the bundled-terrain bake, and — added
+mid-chunk by PO ruling — session fog of war and click-away dismissal.
+
+**PO rulings (2026-08-04), all taken in-session:**
+
+- **Map button lives OUTSIDE the ☰ sheet.** ⚑ Sharper than it looked: on mobile
+  `#minimap` is *itself* inside the sheet (`opacity: 0; pointer-events: none`
+  until `menuOpen`), so minimap-tap cannot be the phone's entry point and the
+  button is the only one. It is a permanent 4.4 rem square under the ☰ — which
+  **widens the permanent mobile HUD** that the 2026-08-02 ruling capped at "the
+  bars, the tiles, the combat indicator and the alert banner. Nothing else."
+  Flagged in `HUD.mobile.less`, not slipped in.
+- **Tapping the docked minimap opens the full-screen state** (third entry point,
+  `pointerdown`).
+- **The docked minimap gets no visual pass** — C1 only adds the second state.
+- **`M`** is the toggle key (verified free against `Controls.ts`); Esc closes on
+  the existing journal path.
+- **Fog of war — REVERSES §4.2.** That section recorded "no fog of war… if the
+  PO later wants unexplored terrain hidden, that is a new decision, not an
+  oversight." This is that decision, taken because props are only ever seen
+  inside the streamed AOI and a map showing the whole world read as
+  inconsistent. **Session-only** (no schema change, so §8 holds) and the reveal
+  is **exactly the AOI**, both PO-chosen.
+- **The overlay stays translucent.** It was briefly opaque; that was the wrong
+  half of the fix. Panels visible *through* the map is fine — panels stacked
+  *on top of* it was the bug, and that is z-index, not opacity. ⚑ One layer
+  covers the world and the panels together, so no opacity value can hide the
+  panels while showing the world.
+- **Press ON the map does not dismiss** — reserved for part 2's destination
+  selection, so the gesture never has to be un-learned.
+
+**Findings that outlive this chunk:**
+
+1. ⚑ **`Welcome.mapWidth` is px space, not world units** — `Bounds.Width *
+   Points2px` (`core/game.go`), so the 144 × 72 zone arrives as 17280 × 8640,
+   the same space `getX()/getY()` use. The scale math is a pure ratio and was
+   always right; the doc comment claiming "world units" was not. The trap is
+   "helpfully" converting one side.
+2. ⚑ **The world is origin-centred**, so both states put the layer origin at the
+   canvas centre and **letterboxing needs no offset term at all** — just the
+   smaller of the two axis fits.
+3. ⚑ **Backlog §53, filed from this chunk:** static minimap icons are placed at
+   **player-relative** coordinates. Measured, not inferred — instrumenting
+   `add()` shows `getX()` returning −466/−96/1360/704 at that moment, while the
+   same objects report absolute −7352/−6689 later. Dynamic icons self-heal every
+   tick; static ones are placed once and never again. Pre-existing (docked scale
+   math is arithmetically unchanged), invisible at 202 px, glaring at 7×.
+   **Worth fixing before C2** — C2's campfire markers come from bundled
+   *absolute* data, so they will land correctly while the trees beside them do
+   not, which reads as the campfire markers being broken.
+4. ⚑ **A mask Sprite is not drawn normally** — `AlphaMask` sets
+   `renderable = false` for a Sprite mask, but it must still be IN the scene
+   graph to have a world transform. A detached mask silently masks nothing.
+
+**Content:** no JSON, no ids, no pins. New files `MapScale.ts` (+ its test),
+`MapTerrain.ts`, `MapFog.ts`; `#worldMap` + `#mapButton` markup; `MiniMap.setup`
+gains `zoneName`.
+
+**Schema impact: NONE.** Bundled zone content and live positions only; the fog
+lives in one object and is deliberately not persisted.
+
+**Verified:** `tsc --noEmit` clean · vitest **190/190** (26 in the map suite,
+covering letterbox fits, the zero/NaN degenerates, terrain↔marker scale
+alignment and the click-away hit test) · production webpack build clean ·
+`c1-world-map.mjs` (new, this chunk's harness) **12/12, 0 console errors** ·
+`ctxloss-warning clean` 0 warnings · boot `87 skills/15 factions/65 mobs/10
+recipes/5 props/3 milestone unlocks/4 quests`, zone world 144×72 777 props/485
+spawns/5 campfires, 0 panics.
+
+**Harness gate:** `filler-batch` (owns minimap lifecycle) ends **1 check failed**
+— proven pre-existing by `git stash` + rebuild + re-run against HEAD, which
+fails identically; its message contradicts itself (*"DAMAGE 100 did NOT empty
+the pool, got Focus 0/100"*). ⚑ Its death/respawn player-dot leg failed once and
+passed on re-run **and** at HEAD — a flake in the pixel-blob probe, recorded
+here so the next run does not read it as new. `mobile-layout` legs 1–6 and 8
+green; **leg 7 red is the known `#registrationNag` bug** already carried in
+CLAUDE.md, untouched by this chunk.
+
+**Still open for C1:** the **mobile real-device pass** §7 requires (headless
+perf transfers only as ratios) and the `features/map/` rename, deliberately not
+taken so the diff stayed reviewable.
