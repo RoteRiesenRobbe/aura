@@ -417,7 +417,7 @@ Per `CLAUDE.md`'s persistence rule, stated explicitly:
 ### C2 — the flight state machine, server-side
 
 **C2 DONE (2026-08-05), the full server half of flight — awaiting the C3
-in-game pass (no client can send `StartFlight` yet), committed `[uncommitted]`**
+in-game pass (no client can send `StartFlight` yet), committed `bc01a45c`**
 
 **Decisions this session (PO):** D13 (flight leaves the physics space — the
 structural mechanism replaced a per-system suppression checklist during the
