@@ -22,3 +22,9 @@ node_modules/
 /devops/bundle/
 .vscode/extensions.json
 frontend/package-lock.json
+
+# Playwright screenshots the verify harnesses write beside themselves. They are
+# run artifacts, not fixtures: several legs (C1's terrain and fog) can only be
+# read by eye, so the scripts shoot deliberately and every run overwrites them.
+# Ignored rather than swept, so `git status` after a harness run stays readable.
+/.claude/skills/verify/*.png
