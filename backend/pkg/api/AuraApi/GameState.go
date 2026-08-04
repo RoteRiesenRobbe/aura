@@ -435,8 +435,33 @@ func (rcv *GameState) MutateCampCharges(n byte) bool {
 	return rcv._tab.MutateByteSlot(50, n)
 }
 
+func (rcv *GameState) HomeCampfire() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *GameState) DiscoveredCampfires(j int) []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
+	}
+	return nil
+}
+
+func (rcv *GameState) DiscoveredCampfiresLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func GameStateStart(builder *flatbuffers.Builder) {
-	builder.StartObject(24)
+	builder.StartObject(26)
 }
 func GameStateAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -533,6 +558,15 @@ func GameStateAddCastUtility(builder *flatbuffers.Builder, castUtility byte) {
 }
 func GameStateAddCampCharges(builder *flatbuffers.Builder, campCharges byte) {
 	builder.PrependByteSlot(23, campCharges, 0)
+}
+func GameStateAddHomeCampfire(builder *flatbuffers.Builder, homeCampfire flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(24, flatbuffers.UOffsetT(homeCampfire), 0)
+}
+func GameStateAddDiscoveredCampfires(builder *flatbuffers.Builder, discoveredCampfires flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(25, flatbuffers.UOffsetT(discoveredCampfires), 0)
+}
+func GameStateStartDiscoveredCampfiresVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func GameStateEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

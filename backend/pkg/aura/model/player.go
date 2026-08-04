@@ -165,6 +165,19 @@ type PlayerEntity interface {
 	// the tick a dwell completes, serialized as campfire_bound.
 	CampfireBound() bool
 	NoteCampfireBound()
+	// HomeCampfire / DiscoveredCampfires / NoteCampfireState carry the map's
+	// campfire markers (plan-world-map.md C2): which fire this character would
+	// respawn at, and every fire it has ever dwelled at. The
+	// ConnectionStateSystem publishes both together on the two occasions either
+	// can change — entering the world, and completing a dwell — and they are
+	// serialized into the owner-only GameState table.
+	//
+	// ⚑ A ONE-SHOT like CampfireBound above, not live state, and the pair is
+	// cleared with the per-tick accumulators. The set changes minutes apart; a
+	// string vector at 30 Hz for that is the waste this shape avoids.
+	HomeCampfire() string
+	DiscoveredCampfires() []string
+	NoteCampfireState(home string, discovered []string)
 	// The Camp baseline utility's charge store (plan-downtime.md C2, D3):
 	// per-session, refilled to a level-derived cap by dwelling at a REAL
 	// campfire, spent at channel completion. Serialized as camp_charges.

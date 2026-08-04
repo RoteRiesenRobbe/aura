@@ -79,6 +79,9 @@ func TestMigrateCreatesTheWholeSchema(t *testing.T) {
 		"character_loadout_slots",
 		"character_flags",
 		"audit_log",
+		// 000002 (plan-world-map.md C2): the per-character discovered-campfire
+		// set — the map's markers, and flight's future network.
+		"character_campfires",
 	}
 	for _, table := range want {
 		t.Run(table, func(t *testing.T) {
@@ -88,8 +91,8 @@ func TestMigrateCreatesTheWholeSchema(t *testing.T) {
 		})
 	}
 
-	// Nothing beyond those eight — a stray table means the migration and the
-	// plan have drifted.
+	// Nothing beyond those — a stray table means the migrations and the plans
+	// have drifted.
 	assert.Equal(t, len(want), scalar[int](t, db.Pool,
 		`SELECT count(*) FROM information_schema.tables WHERE table_schema = 'game'`),
 		"game holds exactly the tables the plan declares")

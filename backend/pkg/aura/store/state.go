@@ -102,6 +102,20 @@ func (s *Store) SaveCharacter(ctx context.Context, state persist.CharacterState)
 		}
 	}
 
+	// ⚑ THE ONE COLLECTION THAT IS NOT DELETED FIRST, deliberately. Discovery is
+	// monotonic — a character never un-discovers a campfire — so there is no
+	// removal for a snapshot to represent, and delete-and-reinsert would reset
+	// every row's discovered_at on every save. ON CONFLICT DO NOTHING is
+	// idempotent over the same set and preserves the timestamp.
+	for _, campfireID := range state.DiscoveredCampfires {
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO game.character_campfires (character_id, campfire_id) VALUES ($1, $2)
+			 ON CONFLICT (character_id, campfire_id) DO NOTHING`,
+			state.CharacterID, campfireID); err != nil {
+			return fmt.Errorf("saving discovered campfire %q: %w", campfireID, err)
+		}
+	}
+
 	if _, err := tx.Exec(ctx,
 		`DELETE FROM game.character_flags WHERE character_id = $1`, state.CharacterID); err != nil {
 		return fmt.Errorf("clearing character flags: %w", err)
@@ -215,6 +229,27 @@ func (s *Store) LoadCharacterState(ctx context.Context, accountID, characterID i
 	rows.Close()
 	if err := rows.Err(); err != nil {
 		return persist.CharacterState{}, fmt.Errorf("loading a loadout: %w", err)
+	}
+
+	// ORDER BY matches persist.SortCampfires, for the same round-trip reason the
+	// loadout query is ordered.
+	rows, err = s.Pool.Query(ctx,
+		`SELECT campfire_id FROM game.character_campfires
+		  WHERE character_id = $1 ORDER BY campfire_id`, characterID)
+	if err != nil {
+		return persist.CharacterState{}, fmt.Errorf("loading discovered campfires: %w", err)
+	}
+	for rows.Next() {
+		var campfireID string
+		if err := rows.Scan(&campfireID); err != nil {
+			rows.Close()
+			return persist.CharacterState{}, fmt.Errorf("reading a discovered campfire: %w", err)
+		}
+		state.DiscoveredCampfires = append(state.DiscoveredCampfires, campfireID)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return persist.CharacterState{}, fmt.Errorf("loading discovered campfires: %w", err)
 	}
 
 	rows, err = s.Pool.Query(ctx,

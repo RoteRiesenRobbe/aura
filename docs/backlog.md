@@ -5023,7 +5023,18 @@ asynchronous, already de-duplicated, and already run with
 keep more state in memory for longer. The tail is lazy already:
 `sweepExpiredStashes` saves on expiry rather than at disconnect.
 
-## 53. The map shows props you have never visited — the origin spectator seeds it
+## 53. ✅ FIXED (2026-08-04, `plan-world-map.md` C2) — The map shows props you have never visited
+
+> **Fixed by option 1, but option 1 as filed was NOT enough.** "Clear the
+> minimap when the character enters the world" would have been a one-way loss:
+> `EntityManager.addOrUpdate` creates an icon only on an entity's **first**
+> sighting, so every object already in `this.objects` — everything genuinely in
+> view at that moment — would never have got a second one. The shipped fix
+> (`EntityManager.reseedMinimap`, called from `Game.createPlayer` before the
+> Player is constructed) clears **and rebuilds** from what is actually there.
+>
+> Pinned by `c2-campfire-markers.mjs` leg 7, which counts icons within 4 px of
+> the map origin rather than eyeballing a screenshot.
 
 *(Filed 2026-08-04 during `plan-world-map.md` C1 — **and rewritten the same day
 after the first diagnosis turned out to be wrong**. See the correction note at

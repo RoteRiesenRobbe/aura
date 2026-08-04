@@ -63,6 +63,15 @@ export class GameStateMessage {
     // Camp baseline-utility charges the owning player holds (C2); 0 = none.
     // The CAP is not on the wire — campChargeCap derives it from the level.
     campCharges: number;
+    // The map's campfire markers (plan-world-map.md C2): the spawn-point ids
+    // this character has dwelled at, and the one it would respawn at.
+    //
+    // ⚑ BOTH ARE UNDEFINED ON ALMOST EVERY TICK, and undefined means "no
+    // change" — they are one-shots, published only on entering the world and on
+    // completing a dwell. Reading an absent field as an empty set would blank
+    // the markers on every tick but two.
+    discoveredCampfires: string[] | undefined;
+    homeCampfire: string | undefined;
     // one-tick rejection feedback: a cooldown activation refused by its
     // precondition — which skill and why (0 = none)
     activationRejectedSkillId: number;
@@ -139,6 +148,8 @@ export class GameStateMessage {
         this.castTicksTotal = gameState.castTicksTotal();
         this.castUtility = gameState.castUtility();
         this.campCharges = gameState.campCharges();
+        this.homeCampfire = gameState.homeCampfire() ?? undefined;
+        this.discoveredCampfires = unmarshalDiscoveredCampfires(gameState);
 
         this.activationRejectedSkillId = gameState.activationRejectedSkillId();
         this.activationRejectedReason = gameState.activationRejectedReason();
@@ -147,6 +158,26 @@ export class GameStateMessage {
         this.conversation = unmarshalConversation(gameState.conversation(null));
         this.questProgress = unmarshalQuestProgress(gameState);
     }
+}
+
+/**
+ * Read the discovered-campfire set out of a snapshot (plan-world-map.md C2).
+ *
+ * ⚑ Returns `undefined` for an absent vector rather than `[]`, and the two mean
+ * genuinely different things here: absent is "not published this tick" (the
+ * case on all but two ticks of a session), while empty would be "you have
+ * discovered nothing". Collapsing them blanks the markers continuously.
+ */
+function unmarshalDiscoveredCampfires(gameState: AuraApi.GameState): string[] | undefined {
+    const length = gameState.discoveredCampfiresLength();
+    if (length === 0) {
+        return undefined;
+    }
+    const ids: string[] = [];
+    for (let i = 0; i < length; ++i) {
+        ids.push(gameState.discoveredCampfires(i));
+    }
+    return ids;
 }
 
 /**

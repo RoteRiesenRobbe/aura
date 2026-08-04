@@ -1,6 +1,10 @@
 # Plan: Flight paths — campfire-to-campfire fast travel (fast travel, part 2)
 
-**Status:** DESIGNED 2026-08-04, not started. Planning session only — no code written.
+**Status:** DESIGNED 2026-08-04. **C1 is DONE** — shipped inside
+`plan-world-map.md` C2 (2026-08-04), because the PO ruled discovered fires must
+persist per character while that chunk was being built and C1 *was* that work.
+**C2–C5 not started.** §5's storage question is answered (the real table);
+§7 carries the detail.
 
 **Depends on:** `plan-world-map.md` (part 1) — destination selection happens on
 that map. PO ruling **D1**: map first, flight second.
@@ -171,6 +175,12 @@ Per `CLAUDE.md`'s persistence rule, stated explicitly:
   - ⚑ Alternative considered: rows in the existing generic `game.character_flags`
     (JSONB kv). Cheaper (no migration) but it makes a *set* into stringly-typed
     flags and gives up the FK. Recommendation: the real table. Decide at C1.
+  - ✅ **SHIPPED 2026-08-04 as `000002_character_campfires`**, exactly as
+    specified, inside `plan-world-map.md` C2. The real table was chosen.
+    ⚑ One thing this section did not anticipate: the save **inserts** with
+    `ON CONFLICT DO NOTHING` rather than the delete-and-reinsert every other
+    child table uses — discovery is monotonic, so there is no removal to
+    represent, and `discovered_at` is only meaningful if a re-save preserves it.
 - **`characters.home_campfire_id` already has its writer** — the "later ADDITIVE
   chunk" its 8a-era documentation promised has since shipped. The bind is
   persisted end to end: `sys/persist.go` snapshots the connection anchor,
@@ -214,10 +224,21 @@ Per `CLAUDE.md`'s persistence rule, stated explicitly:
 
 ## 7. Chunks
 
-- **C1 — Discovery + persistence.** Discovery in the dwell tracker, the new
-  table, the set on the wire (`home_campfire_id` persistence already exists —
-  see §5). No flying yet; the map (part 1 C2) starts showing a *persisted* set
-  instead of a session one.
+- ~~**C1 — Discovery + persistence.**~~ ✅ **DONE 2026-08-04 — shipped inside
+  `plan-world-map.md` C2**, not here. The PO ruled during that chunk that
+  discovered fires must persist per character, which is this chunk's entire
+  scope, so building it separately would have meant writing a session-only set
+  and deleting it a week later. Everything below landed there: discovery in the
+  dwell tracker (on the existing exactly-at-threshold firing, per landmine 5),
+  the new table, and the set on the wire.
+  - **§5's open storage decision is TAKEN: the real table**, not
+    `character_flags` — the option this doc recommended.
+  - ⚑ **Landmine 2 (two directions of visibility) gains a third channel, and
+    it is benign.** `GameState.discovered_campfires` now also carries campfire
+    knowledge outward. A flyer's *set* leaks no position, so C4 needs no filter
+    on it — but this doc told the next person to check every channel, so the
+    check is recorded rather than left to be re-derived.
+  - Full ledger: `plan-world-map.md` §10, C2.
 - **C2 — The flight state machine, server-side.** `StartFlight`, validation, the
   lerp, arrival, the full suppression list, viewport enlargement. Testable
   headlessly before any client work.

@@ -130,6 +130,73 @@ export function isInsideDrawnMap(
         && Math.abs(point.y - viewport.height / 2) <= halfHeight;
 }
 
+/** One campfire as the bundled zone JSON authors it: world units, plus its id. */
+export interface ZoneCampfirePoint {
+    id?: string;
+    x: number;
+    y: number;
+}
+
+/** A campfire marker placed on the map, in canvas pixels from the layer origin. */
+export interface CampfireMarker {
+    id: string;
+    x: number;
+    y: number;
+    /** The fire this character would respawn at — drawn with its own highlight. */
+    home: boolean;
+}
+
+/**
+ * Which campfires to draw, and where (plan-world-map.md C2).
+ *
+ * ⚑ DISCOVERED FIRES ONLY, and undiscovered ones are ABSENT rather than dimmed
+ * or greyed (D6). The map turning exploration into a visible reward is the whole
+ * point; a greyed marker would show you where to go.
+ *
+ * ⚑ AN ID WITH NO PLACED FIRE DRAWS NOTHING, silently. The server publishes the
+ * set raw, and the client's bundled zone data can differ from the server's
+ * authored content across a deploy — so a fire deleted in the zone editor has to
+ * be a marker that simply is not there, never a throw and never a per-frame
+ * warning. Same rule the server already applies to home_campfire_id.
+ *
+ * ⚑ Returns nothing at scale 0. A pixi canvas measures 0 × 0 while it is
+ * display:none (the phone keeps the minimap in the layout for exactly this
+ * reason), and multiplying through would stack every marker on the origin —
+ * which looks like a cluster of fires at the centre of the world, not like a
+ * canvas that has not been measured yet.
+ *
+ * `campfires` is authored in WORLD units and the map is in px space, so the
+ * caller passes the px-per-world-unit factor it already has (meter2px) rather
+ * than this module reaching for the client's config.
+ */
+export function campfireMarkers(
+    campfires: ZoneCampfirePoint[],
+    discovered: ReadonlySet<string>,
+    home: string,
+    scale: number,
+    worldToPx: number,
+): CampfireMarker[] {
+    if (!isPositive(scale) || !campfires || discovered.size === 0) {
+        return [];
+    }
+    const markers: CampfireMarker[] = [];
+    for (const fire of campfires) {
+        if (!fire || !fire.id || !discovered.has(fire.id)) {
+            continue;
+        }
+        if (!Number.isFinite(fire.x) || !Number.isFinite(fire.y)) {
+            continue;
+        }
+        markers.push({
+            id: fire.id,
+            x: fire.x * worldToPx * scale,
+            y: fire.y * worldToPx * scale,
+            home: fire.id === home,
+        });
+    }
+    return markers;
+}
+
 /** The two fields resizeTerrain touches — see the note on its signature. */
 export interface ResizableTerrain {
     width: number;

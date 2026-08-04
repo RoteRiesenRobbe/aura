@@ -9,6 +9,7 @@ import {BasicConfig} from '../../../client-data/BasicConfig';
 import {MapState, isInsideDrawnMap, mapScale, rescaleCoordinate, resizeTerrain} from './MapScale';
 import {bakeTerrain, destroyTerrain} from './MapTerrain';
 import {MapFog} from './MapFog';
+import {MapCampfires} from './MapCampfires';
 
 const sizeFactorRelatedToMapSize = 2;
 
@@ -59,6 +60,8 @@ export class MiniMap {
     private terrainLayer: Container = null;
     /** Session-only fog over the terrain — see MapFog's header. */
     private fog: MapFog = null;
+    /** Discovered-campfire markers, drawn in BOTH states — see MapCampfires. */
+    private campfires: MapCampfires = null;
 
     // `renderer.screen`, not `canvas.width`: screen is the LOGICAL size the
     // stage's coordinate system uses, while canvas.width is the backing store
@@ -115,7 +118,14 @@ export class MiniMap {
             [Layer.CHARACTER]: createNamedContainer('character'),
             [Layer.OTHER]: createNamedContainer('other'),
         };
+        // ⚑ THE MARKER LAYER GOES BETWEEN THE TWO ICON LAYERS, and the split is
+        // the whole point. Under OTHER — which is where the ~777 prop icons
+        // live — a fire in dense forest is completely buried; that was the
+        // shipped-and-caught bug, reported in-game with one fire clear, one
+        // half-covered and one invisible. Over CHARACTER it would hide the
+        // player dot standing at the fire. Above the scenery, below the people.
         this.stage.addChild(this.layerContainers[Layer.OTHER]);
+        this.setupCampfires(zoneName);
         this.stage.addChild(this.layerContainers[Layer.CHARACTER]);
 
         this.setupTerrain(zoneName);
@@ -124,6 +134,44 @@ export class MiniMap {
 
         this.application.ticker.add(this.update, this);
         this.application.renderer.addListener('resize', this.onResize, this);
+    }
+
+    /**
+     * Installs the campfire-marker layer for a zone.
+     *
+     * A re-setup (a second join in one page life) rebuilds it, for the same
+     * reason setupTerrain rebuilds the terrain: the old layer is ours, and
+     * leaving it on the stage would stack two sets of markers — and the second
+     * character's discovered set is not the first one's.
+     *
+     * ⚑ Inserted just above the OTHER layer by INDEX rather than appended.
+     * Appending happens to be right the first time through setup() and wrong on
+     * every re-setup, where it would land above CHARACTER and start hiding the
+     * player dot — a bug that only a second join in one page life could show.
+     */
+    private setupCampfires(zoneName: string) {
+        if (this.campfires) {
+            this.campfires.destroy();
+        }
+        this.campfires = new MapCampfires(zoneName);
+        this.campfires.layer.position.set(this.width / 2, this.height / 2);
+
+        const props = this.layerContainers[Layer.OTHER];
+        const above = props.parent === this.stage ? this.stage.getChildIndex(props) + 1 : 0;
+        this.stage.addChildAt(this.campfires.layer, above);
+    }
+
+    /**
+     * Applies a server publication of the discovered set + the bound fire.
+     *
+     * ⚑ Called every tick with whatever the snapshot carried, which is almost
+     * always nothing: both are one-shots. `update` returning false is the
+     * common case and skips the redraw entirely.
+     */
+    public setDiscoveredCampfires(discovered: string[] | undefined, home: string | undefined) {
+        if (this.campfires?.update(discovered, home)) {
+            this.campfires.draw(this.state, this.scale);
+        }
     }
 
     /**
@@ -311,6 +359,7 @@ export class MiniMap {
             );
         });
         this.terrainLayer?.position.set(this.width / 2, this.height / 2);
+        this.campfires?.layer.position.set(this.width / 2, this.height / 2);
 
         const previousScale = this.scale;
         this.scale = mapScale(
@@ -333,6 +382,16 @@ export class MiniMap {
                 resizeTerrain(this.fog.mask, this.mapWidth, this.mapHeight, this.scale);
             }
         }
+
+        // The markers are placed by the same scale, so they are re-derived here
+        // rather than walked from the old scale like the entity icons. Their
+        // source of truth is a set the server published, not a position on a
+        // canvas — nothing about them has to be preserved across a resize.
+        //
+        // ⚑ Redrawn on a STATE change too, and not only on a size change: the
+        // marker size is per state, so the same canvas dimensions still need a
+        // new drawing.
+        this.campfires?.draw(this.state, this.scale);
 
         return previousScale;
     }
@@ -492,6 +551,12 @@ export class MiniMap {
         this.registeredGameObjectIds.delete(gameObject.id);
     }
 
+    /**
+     * Drops every ENTITY icon. Deliberately leaves the terrain, the fog and the
+     * campfire markers alone — none of the three comes from an entity, and the
+     * one caller that matters is backlog §53's "the spectator's view is not the
+     * character's", which is a statement about entities only.
+     */
     public clear() {
         this.registeredGameObjectIds.clear();
 

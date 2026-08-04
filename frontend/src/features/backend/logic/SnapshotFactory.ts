@@ -28,6 +28,10 @@ export class Snapshot {
     castTicksTotal: number;
     castUtility: number; // baseline utility winding up (downtime C1); 0 = none
     campCharges: number; // Camp charges held (downtime C2); cap derived from level
+    // The map's campfire markers (plan-world-map.md C2). undefined = not
+    // published this tick, which is the case on all but two ticks of a session.
+    discoveredCampfires: string[] | undefined;
+    homeCampfire: string | undefined;
     activationRejectedSkillId: number; // one-tick rejection feedback; 0 = none
     activationRejectedReason: number;
     interactableEntityId: number; // conversant in talking range (3b-i); 0 = none
@@ -83,6 +87,12 @@ export function newSnapshot(backendState: BackendState, gameState: GameStateMess
         // (an empty store greys the button), so a delta snapshot dropping the
         // field would leave the counter showing a charge the player has spent.
         snapshot.campCharges = gameState.campCharges;
+        // ⚑ Carried VERBATIM, undefineds included — the opposite of the
+        // always-carry reasoning above, and deliberately so. These two are
+        // one-shots: undefined means "unchanged", and substituting a value
+        // would turn every tick into a redraw of markers nobody moved.
+        snapshot.discoveredCampfires = gameState.discoveredCampfires;
+        snapshot.homeCampfire = gameState.homeCampfire;
         snapshot.activationRejectedSkillId = gameState.activationRejectedSkillId;
         snapshot.activationRejectedReason = gameState.activationRejectedReason;
         // Always carried, like the scalars above: it is live state, so "absent"

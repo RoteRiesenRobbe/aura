@@ -175,6 +175,18 @@ type player struct {
 	// the accumulators above; drives the client's "bound" feedback.
 	campfireBound bool
 
+	// homeCampfire and discoveredCampfires are the map's campfire markers
+	// (plan-world-map.md C2), published together by the ConnectionStateSystem
+	// on the two occasions either can change: entering the world, and
+	// completing a dwell. Reset each tick alongside the accumulators above.
+	//
+	// ⚑ EMPTY PUBLISHES NOTHING, and that is sound rather than sloppy: the set
+	// only grows, so "published empty" can only happen while the client's own
+	// set is still empty, and a bind never reverts to unbound inside a session.
+	// Absent therefore always means "no change", never "cleared".
+	homeCampfire        string
+	discoveredCampfires []string
+
 	// campCharges is how many Camp baseline-utility charges this player is
 	// holding (plan-downtime.md C2, D3). Deliberately NOT a per-tick
 	// accumulator and deliberately NOT persisted: it refills to cap by
@@ -457,6 +469,28 @@ func (p *player) CampfireBound() bool { return p.campfireBound }
 // anchor this tick; the ConnectionStateSystem's dwell tracker calls it.
 func (p *player) NoteCampfireBound() { p.campfireBound = true }
 
+// HomeCampfire is the spawn point this player would respawn at, published this
+// tick; "" when there is nothing to publish. Serialized into the owner-only
+// GameState table (plan-world-map.md C2).
+func (p *player) HomeCampfire() string { return p.homeCampfire }
+
+// DiscoveredCampfires is the whole set of spawn points this character has
+// dwelled at, published this tick; nil when there is nothing to publish.
+func (p *player) DiscoveredCampfires() []string { return p.discoveredCampfires }
+
+// NoteCampfireState publishes both to this tick's GameState; the
+// ConnectionStateSystem calls it on entering the world and on completing a
+// dwell.
+//
+// ⚑ It does NOT stamp campfireBound. Entering the world republishes the pair
+// without anything having been bound just now, and the bound stamp is what pops
+// "Bound to campfire" over the character — firing it on every login would be a
+// user-visible regression with no bind behind it.
+func (p *player) NoteCampfireState(home string, discovered []string) {
+	p.homeCampfire = home
+	p.discoveredCampfires = discovered
+}
+
 // CampCharges is how many Camp charges this player holds (C2); serialized as
 // the own-player camp_charges wire field.
 func (p *player) CampCharges() int { return p.campCharges }
@@ -660,6 +694,8 @@ func (p *player) ResetTickNumbers() {
 	p.xpGained = 0
 	p.auraHitStyle = model.AuraHitStyleNone
 	p.campfireBound = false
+	p.homeCampfire = ""
+	p.discoveredCampfires = nil
 	p.rejectedSkill = 0
 	p.rejectedReason = model.ActivationRejectedNone
 	p.interactableEntityID = 0

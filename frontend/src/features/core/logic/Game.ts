@@ -438,6 +438,12 @@ export class Game implements IGame {
             this.spectator = undefined;
         }
 
+        // The spectator's view is not the character's (backlog §53). Everything
+        // the pre-join spectator saw at the world origin is dropped here, and
+        // what is genuinely in view right now is rebuilt — before the Player is
+        // constructed, because that is what adds the own character's own icon.
+        this.map.reseedMinimap();
+
         /**
          * @type Player
          */

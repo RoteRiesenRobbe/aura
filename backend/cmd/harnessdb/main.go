@@ -185,6 +185,11 @@ func runCleanup(ctx context.Context, db *store.Store) error {
 		"game.character_loadout_slots",
 		"game.character_spellbook",
 		"game.character_flags",
+		// Migration 000002 (plan-world-map.md C2): the discovered-campfire set.
+		// ⚑ It landed here the way the comment above predicts — the first
+		// cleanup after the migration failed on this exact foreign key. Any new
+		// character-scoped table is this tool's problem on the day it ships.
+		"game.character_campfires",
 	} {
 		if _, err := tx.Exec(ctx, "DELETE FROM "+table+ofTheseAccounts, ids); err != nil {
 			return fmt.Errorf("%s: %w", table, err)

@@ -580,6 +580,34 @@ table GameState {
   // Default 0 is the neutral value (a fresh character holds none until their
   // first dwell). Appended at the table end so existing field IDs stay stable.
   camp_charges:ubyte = 0;
+
+  // The map's campfire markers (plan-world-map.md C2, absorbing
+  // plan-flight-paths.md C1): which fire the owning character would respawn at,
+  // and every fire it has ever dwelled at. Authored spawn-point ids
+  // (world.Campfire.ID, "spawnpoint-N") — the same namespace the persisted
+  // characters.home_campfire_id uses, and the one flight will fly between.
+  //
+  // ⚑ NOT sent every tick, unlike everything above. Both are ONE-SHOTS,
+  // published on the only two occasions either can change: entering the world
+  // (join, reconnect, respawn, revive) and completing a campfire dwell. A
+  // string vector at 30 Hz for a pair that changes minutes apart is the waste
+  // the roster message was kept out of GameState to avoid.
+  //
+  // ⚑ ABSENT MEANS "NO CHANGE", never "cleared". The discovered set only grows
+  // and a bind never reverts to unbound inside a session, so an empty
+  // publication can only coincide with a client that has nothing yet.
+  //
+  // ⚑ The whole set every time, never a delta — five short strings, and the
+  // client simply replaces what it holds, so there is no accumulate-and-drift
+  // path. An id the client's bundled zone data cannot place draws nothing,
+  // silently: content and client can differ across a deploy, and the same
+  // "unresolvable is unbound, never an error" rule already governs
+  // home_campfire_id server-side.
+  //
+  // Own player only. Appended at the table end so existing field IDs stay
+  // stable.
+  home_campfire:string;
+  discovered_campfires:[string];
 }
 
 table Welcome {

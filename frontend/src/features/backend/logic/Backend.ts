@@ -389,6 +389,13 @@ export class Backend implements IBackend {
             // already mirrored from this same snapshot's own character.
             HUD.updateCampCharges(snapshot.campCharges ?? 0, getLocalPlayerLevel());
 
+            // The map's campfire markers (plan-world-map.md C2). Passed
+            // straight through, including the undefineds: absent means "not
+            // published this tick", which is the case on all but two ticks of a
+            // session, and the map is the thing that knows what to do with it.
+            this.game.miniMap.setDiscoveredCampfires(
+                snapshot.discoveredCampfires, snapshot.homeCampfire);
+
             // Rejection feedback (chunk 4, §3.5): one-tick stamp → floating
             // text over the own character (the campfire-bound rendering path).
             if ((snapshot.activationRejectedReason ?? 0) > 0) {

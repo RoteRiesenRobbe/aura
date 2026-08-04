@@ -57,6 +57,15 @@ type saveWatch struct {
 	skillRev uint64
 	questRev uint64
 	anchor   string
+	// discovered is the SIZE of the discovered-campfire set, which is a faithful
+	// change detector because the set only ever grows.
+	//
+	// ⚑ It is redundant against `anchor` today — discovery and the bind fire on
+	// the same tick, so a new fire always moves both — and it is here precisely
+	// so that stops being load-bearing. If the two triggers are ever separated,
+	// the coupling breaks silently: discoveries would simply stop being saved
+	// until something else forced a write.
+	discovered int
 }
 
 // SetCharacterSaves installs the persistence writer.
@@ -121,7 +130,8 @@ func (s *ConnectionStateSystem) trackCharacterSaves() {
 			level:    p.Progression().Level,
 			skillRev: p.SkillComponent().Revision(),
 			questRev: p.QuestLedger().Revision(),
-			anchor:   s.anchors[clientUUID],
+			anchor:     s.anchors[clientUUID],
+			discovered: len(s.discovered[clientUUID]),
 		}
 		watch, known := s.saveWatch[clientUUID]
 		if !known {
@@ -135,7 +145,8 @@ func (s *ConnectionStateSystem) trackCharacterSaves() {
 		forced := current.level != watch.level ||
 			current.skillRev != watch.skillRev ||
 			current.questRev != watch.questRev ||
-			current.anchor != watch.anchor
+			current.anchor != watch.anchor ||
+			current.discovered != watch.discovered
 		if !forced && now < watch.nextTick {
 			continue
 		}
@@ -156,6 +167,7 @@ func (s *ConnectionStateSystem) saveCharacter(p model.PlayerEntity) {
 		return
 	}
 	s.saves.Save(characterState(characterID, p.Name(), s.anchors[p.Client().UUID()],
+		s.DiscoveredCampfires(p.Client().UUID()),
 		p.Progression(), p.SkillComponent(), p.QuestLedger()))
 }
 
@@ -173,6 +185,7 @@ func (s *ConnectionStateSystem) saveStash(stash reconnectStash) {
 		return
 	}
 	s.saves.Save(characterState(stash.characterID, stash.name, stash.anchor,
+		sortedSet(stash.discovered),
 		stash.progression, stash.skills, stash.quests))
 }
 
@@ -185,20 +198,22 @@ func (s *ConnectionStateSystem) saveStash(stash reconnectStash) {
 // It takes the pieces rather than a player because the session-expiry trigger
 // snapshots a stash, which has no player left to ask.
 //
-// ⚑ homeCampfireID is passed in rather than read off the player because a
-// character's bind is CONNECTION state (s.anchors), not player state — and the
-// session-expiry save has neither, only a stash.
-func characterState(characterID int64, name, homeCampfireID string, prog model.PlayerProgression,
-	sc *skills.SkillComponent, ledger *quests.Ledger) persist.CharacterState {
+// ⚑ homeCampfireID and discovered are passed in rather than read off the player
+// because a character's bind and its discovered set are CONNECTION state
+// (s.anchors, s.discovered), not player state — and the session-expiry save has
+// neither, only a stash.
+func characterState(characterID int64, name, homeCampfireID string, discovered []string,
+	prog model.PlayerProgression, sc *skills.SkillComponent, ledger *quests.Ledger) persist.CharacterState {
 
 	state := persist.CharacterState{
-		CharacterID:    characterID,
-		Name:           name,
-		HomeCampfireID: homeCampfireID,
-		Level:          int(prog.Level),
-		Experience:     int64(prog.Experience),
-		ActiveAuraSlot: persist.NoActiveAura,
-		Spellbook:      map[int32]int{},
+		CharacterID:         characterID,
+		Name:                name,
+		HomeCampfireID:      homeCampfireID,
+		DiscoveredCampfires: discovered,
+		Level:               int(prog.Level),
+		Experience:          int64(prog.Experience),
+		ActiveAuraSlot:      persist.NoActiveAura,
+		Spellbook:           map[int32]int{},
 	}
 	if sc != nil {
 		state.ActiveAuraSlot = sc.ActiveAuraSlot

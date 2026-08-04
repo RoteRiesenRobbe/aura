@@ -219,8 +219,27 @@ campCharges():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+homeCampfire():string|null
+homeCampfire(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+homeCampfire(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 52);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
+discoveredCampfires(index: number):string
+discoveredCampfires(index: number,optionalEncoding:flatbuffers.Encoding):string|Uint8Array
+discoveredCampfires(index: number,optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 54);
+  return offset ? this.bb!.__string(this.bb!.__vector(this.bb_pos + offset) + index * 4, optionalEncoding) : null;
+}
+
+discoveredCampfiresLength():number {
+  const offset = this.bb!.__offset(this.bb_pos, 54);
+  return offset ? this.bb!.__vector_len(this.bb_pos + offset) : 0;
+}
+
 static startGameState(builder:flatbuffers.Builder) {
-  builder.startObject(24);
+  builder.startObject(26);
 }
 
 static addTick(builder:flatbuffers.Builder, tick:bigint) {
@@ -438,6 +457,26 @@ static addCastUtility(builder:flatbuffers.Builder, castUtility:number) {
 
 static addCampCharges(builder:flatbuffers.Builder, campCharges:number) {
   builder.addFieldInt8(23, campCharges, 0);
+}
+
+static addHomeCampfire(builder:flatbuffers.Builder, homeCampfireOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(24, homeCampfireOffset, 0);
+}
+
+static addDiscoveredCampfires(builder:flatbuffers.Builder, discoveredCampfiresOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(25, discoveredCampfiresOffset, 0);
+}
+
+static createDiscoveredCampfiresVector(builder:flatbuffers.Builder, data:flatbuffers.Offset[]):flatbuffers.Offset {
+  builder.startVector(4, data.length, 4);
+  for (let i = data.length - 1; i >= 0; i--) {
+    builder.addOffset(data[i]!);
+  }
+  return builder.endVector();
+}
+
+static startDiscoveredCampfiresVector(builder:flatbuffers.Builder, numElems:number) {
+  builder.startVector(4, numElems, 4);
 }
 
 static endGameState(builder:flatbuffers.Builder):flatbuffers.Offset {

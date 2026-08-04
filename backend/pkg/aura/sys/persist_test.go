@@ -106,12 +106,14 @@ func TestCharacterStateRoundTripsThroughAPlayer(t *testing.T) {
 	origin.QuestLedger().NoteTalkedTo(11)
 
 	saved := characterState(99, origin.Name(), s.anchors[originClient.UUID()],
+		s.DiscoveredCampfires(originClient.UUID()),
 		origin.Progression(), origin.SkillComponent(), origin.QuestLedger())
 
 	// Apply it to a brand-new player and snapshot again.
 	restoredClient := newFakeClient()
 	restored := joinWithState(t, s, g, restoredClient, "Fred", saved)
 	reSaved := characterState(99, "Barney", s.anchors[restoredClient.UUID()],
+		s.DiscoveredCampfires(restoredClient.UUID()),
 		restored.Progression(), restored.SkillComponent(), restored.QuestLedger())
 
 	assert.Equal(t, saved, reSaved, "a restored character must snapshot identically")
@@ -405,7 +407,7 @@ func TestCharacterStateEncodesTheQuestLedgerAsThreeRows(t *testing.T) {
 	ledger.NoteKill(3)
 	ledger.NoteTalkedTo(9)
 
-	state := characterState(7, "Barney", "", model.PlayerProgression{Level: 1},
+	state := characterState(7, "Barney", "", nil, model.PlayerProgression{Level: 1},
 		skills.NewSkillComponent(true), ledger)
 
 	assert.Equal(t, json.RawMessage(`{"3":1}`), state.Flags[quests.FlagKillCounts])

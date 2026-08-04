@@ -31,7 +31,11 @@ func TestCharacterStateRoundTrips(t *testing.T) {
 		Experience:     123456,
 		ActiveAuraSlot: 2,
 		HomeCampfireID: "spawnpoint-3",
-		Spellbook:      map[int32]int{1: 3, 7: 1, 42: 9},
+		// Deliberately given out of order — the load path's ORDER BY and
+		// persist.SortCampfires have to agree, or the round-trip equality below
+		// fails for a reason that has nothing to do with persistence.
+		DiscoveredCampfires: []string{"spawnpoint-1", "spawnpoint-3"},
+		Spellbook:           map[int32]int{1: 3, 7: 1, 42: 9},
 		Loadout: []persist.LoadoutSlot{
 			{Type: persist.SlotAura, Index: 2, SkillID: 42},
 			{Type: persist.SlotCooldown, Index: 0, SkillID: 7},
@@ -61,10 +65,20 @@ func TestCharacterStateRoundTrips(t *testing.T) {
 	// Unbinding must round-trip too: "" has to reach the column as NULL and come
 	// back as "", or a spawn point deleted from the zone could never be cleared.
 	saved.HomeCampfireID = ""
+	// ⚑ THE ONE COLLECTION THAT IS NOT REPLACED. Discovery is monotonic, so the
+	// save path inserts with ON CONFLICT DO NOTHING and a shorter list does not
+	// un-discover anything — the loaded set is still both fires. Asserting the
+	// full set here is what keeps someone from "fixing" the asymmetry back into
+	// a delete-and-reinsert, which would let a stale snapshot erase progress.
+	saved.DiscoveredCampfires = []string{"spawnpoint-1"}
 	require.NoError(t, db.SaveCharacter(ctx, saved))
 
 	loaded, err = db.LoadCharacterState(ctx, accountID, created.ID)
 	require.NoError(t, err)
+	assert.Equal(t, []string{"spawnpoint-1", "spawnpoint-3"}, loaded.DiscoveredCampfires,
+		"discovery only grows: a save must never remove a discovered campfire")
+
+	saved.DiscoveredCampfires = loaded.DiscoveredCampfires
 	assert.Equal(t, saved, loaded, "a save must replace the previous one, not add to it")
 }
 
@@ -89,6 +103,7 @@ func TestLoadCharacterStateOfANeverSavedCharacter(t *testing.T) {
 	assert.Equal(t, int64(0), loaded.Experience)
 	assert.Equal(t, persist.NoActiveAura, loaded.ActiveAuraSlot)
 	assert.Empty(t, loaded.HomeCampfireID, "a character that never dwelled at a fire loads unbound")
+	assert.Empty(t, loaded.DiscoveredCampfires, "and has discovered nothing — an empty map")
 	assert.Empty(t, loaded.Spellbook, "an empty spellbook is what marks a character as never saved")
 	assert.Empty(t, loaded.Loadout)
 	assert.Empty(t, loaded.Flags)

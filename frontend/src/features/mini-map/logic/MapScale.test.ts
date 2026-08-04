@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
-    MapState, isInsideDrawnMap, mapScale, rescaleCoordinate, resizeTerrain, worldToMap,
+    MapState, campfireMarkers, isInsideDrawnMap, mapScale, rescaleCoordinate, resizeTerrain,
+    worldToMap,
 } from './MapScale';
 
 // The real world zone (api/zones/world.json) as the CLIENT receives it:
@@ -250,5 +251,106 @@ describe('isInsideDrawnMap', () => {
         expect(isInsideDrawnMap({x: 500, y: 100}, wide, WORLD, wideScale)).toBe(true);
         expect(isInsideDrawnMap({x: 100, y: 100}, wide, WORLD, wideScale)).toBe(false);
         expect(isInsideDrawnMap({x: 900, y: 100}, wide, WORLD, wideScale)).toBe(false);
+    });
+});
+
+/**
+ * Campfire markers (plan-world-map.md C2). The fixture is the real world zone's
+ * five fires, so "discovered" and "placed" are the same shapes production sees.
+ */
+describe('campfireMarkers', () => {
+    const FIRES = [
+        {id: 'spawnpoint-1', x: -58.2, y: 24},
+        {id: 'spawnpoint-2', x: 44, y: 10.5},
+        {id: 'spawnpoint-3', x: -16.47, y: 31.53},
+        {id: 'spawnpoint-4', x: -21.26, y: -23.51},
+        {id: 'spawnpoint-5', x: 34.19, y: -20.68},
+    ];
+    const PX_PER_UNIT = 120;
+    const FULL = mapScale(MapState.FULLSCREEN, {width: 1920, height: 1080}, WORLD);
+
+    it('draws only discovered fires — the rest are absent, not dimmed', () => {
+        const markers = campfireMarkers(
+            FIRES, new Set(['spawnpoint-2', 'spawnpoint-5']), '', FULL, PX_PER_UNIT);
+
+        expect(markers.map((m) => m.id)).toEqual(['spawnpoint-2', 'spawnpoint-5']);
+    });
+
+    it('places a marker exactly where the same world point renders', () => {
+        const [marker] = campfireMarkers(
+            FIRES, new Set(['spawnpoint-1']), '', FULL, PX_PER_UNIT);
+
+        // -58.2 world units -> -6984 px -> the map's own worldToMap.
+        expect(marker.x).toBeCloseTo(worldToMap(-6984, FULL), 6);
+        expect(marker.y).toBeCloseTo(worldToMap(2880, FULL), 6);
+    });
+
+    it('flags exactly the bound fire as home', () => {
+        const markers = campfireMarkers(
+            FIRES, new Set(['spawnpoint-1', 'spawnpoint-2']), 'spawnpoint-2',
+            FULL, PX_PER_UNIT);
+
+        expect(markers.filter((m) => m.home).map((m) => m.id)).toEqual(['spawnpoint-2']);
+    });
+
+    it('flags nothing when the bound fire has not been discovered', () => {
+        // Reachable: the bind is re-installed at join from a persisted id, and
+        // a set that does not contain it can only mean content drift.
+        const markers = campfireMarkers(
+            FIRES, new Set(['spawnpoint-1']), 'spawnpoint-9', FULL, PX_PER_UNIT);
+
+        expect(markers.every((m) => !m.home)).toBe(true);
+    });
+
+    it('silently skips a discovered id the zone no longer places', () => {
+        // A fire deleted in the zone editor, or a client whose bundled content
+        // is older than the server's. It must draw nothing — never throw, and
+        // never warn once a frame.
+        const markers = campfireMarkers(
+            FIRES, new Set(['spawnpoint-1', 'spawnpoint-deleted']), '', FULL, PX_PER_UNIT);
+
+        expect(markers.map((m) => m.id)).toEqual(['spawnpoint-1']);
+    });
+
+    it('draws nothing at scale 0, rather than stacking every fire on the origin', () => {
+        // A canvas measures 0 × 0 while display:none — the phone keeps the
+        // minimap in the layout for exactly that reason. Multiplying through
+        // would put five fires at the centre of the world, which reads as a
+        // real cluster rather than as an unmeasured canvas.
+        expect(campfireMarkers(FIRES, new Set(['spawnpoint-1']), '', 0, PX_PER_UNIT))
+            .toEqual([]);
+        expect(campfireMarkers(FIRES, new Set(['spawnpoint-1']), '', NaN, PX_PER_UNIT))
+            .toEqual([]);
+    });
+
+    it('draws nothing before anything is discovered, and survives absent data', () => {
+        expect(campfireMarkers(FIRES, new Set(), '', FULL, PX_PER_UNIT)).toEqual([]);
+        expect(campfireMarkers([], new Set(['spawnpoint-1']), '', FULL, PX_PER_UNIT))
+            .toEqual([]);
+        expect(campfireMarkers(
+            undefined as never, new Set(['spawnpoint-1']), '', FULL, PX_PER_UNIT))
+            .toEqual([]);
+    });
+
+    it('skips a fire with no id — it can never be named by the server set', () => {
+        expect(campfireMarkers(
+            [{x: 1, y: 2}], new Set(['spawnpoint-1']), '', FULL, PX_PER_UNIT)).toEqual([]);
+    });
+
+    it('keeps a marker on the same fraction of the map at every scale', () => {
+        // The same invariant resizeTerrain is pinned against next door: markers
+        // and the ground under them are placed by one scale, so a state toggle
+        // cannot slide a fire off the spot it stands on.
+        const fractions = [
+            mapScale(MapState.DOCKED, {width: 202, height: 202}, WORLD),
+            mapScale(MapState.FULLSCREEN, {width: 1920, height: 1080}, WORLD),
+            mapScale(MapState.FULLSCREEN, {width: 390, height: 844}, WORLD),
+        ].map((scale) => {
+            const [marker] = campfireMarkers(
+                FIRES, new Set(['spawnpoint-4']), '', scale, PX_PER_UNIT);
+            return marker.x / (WORLD.mapWidth * scale);
+        });
+
+        fractions.forEach((fraction) => expect(fraction).toBeCloseTo(fractions[0], 10));
     });
 });

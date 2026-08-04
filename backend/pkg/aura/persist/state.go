@@ -92,6 +92,23 @@ type CharacterState struct {
 	// failure mode that must never lock anyone out of the world.
 	HomeCampfireID string `json:"homeCampfireId"`
 
+	// DiscoveredCampfires holds the spawn-point ids this character has dwelled
+	// at, sorted. The map draws a marker for each (plan-world-map.md C2) and
+	// flight will fly between them (plan-flight-paths.md D4).
+	//
+	// ⚑ SORTED, always — build it through SortCampfires. Fingerprint() marshals
+	// this struct, so an array in map-iteration order would make every snapshot
+	// of an unchanged character look dirty and defeat the write suppression.
+	//
+	// ⚑ The set only ever GROWS. That is why the save path inserts with ON
+	// CONFLICT DO NOTHING instead of the delete-and-reinsert every other
+	// collection here uses: there is no removal to represent, and the
+	// discovered_at column is only meaningful if a re-save preserves it.
+	//
+	// ⚑ An id that no longer resolves is skipped silently, not an error — the
+	// same rule HomeCampfireID above documents, for the same reason.
+	DiscoveredCampfires []string `json:"discoveredCampfires"`
+
 	// Spellbook is skill id → level, mirroring SkillComponent.Spellbook.
 	//
 	// ⚑ An EMPTY spellbook means "this character has never been saved", and the
@@ -125,6 +142,16 @@ func SortLoadout(slots []LoadoutSlot) {
 		}
 		return slots[i].Index < slots[j].Index
 	})
+}
+
+// SortCampfires orders a discovered set, matching the load query's
+// `ORDER BY campfire_id`.
+//
+// Same reasoning as SortLoadout: both halves call it, so a snapshot and a
+// reloaded state compare equal — and here it additionally keeps Fingerprint()
+// stable across a map iteration that has no order of its own.
+func SortCampfires(ids []string) {
+	sort.Strings(ids)
 }
 
 // CanonicalFlags rewrites every flag value into Go's canonical JSON encoding:

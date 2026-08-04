@@ -219,6 +219,32 @@ export class EntityManager {
         });
         this.objects = {};
     }
+
+    /**
+     * Drops every minimap icon and rebuilds it from the entities that actually
+     * exist right now (backlog §53).
+     *
+     * ⚑ WHY THE REBUILD IS NOT OPTIONAL. `MiniMap.clear()` alone would be a
+     * one-way loss: icons are created in addOrUpdate, on an entity's FIRST
+     * sighting only, so an object already in `this.objects` would never get a
+     * second one. Anything still in view has to be re-added in the same breath.
+     *
+     * ⚑ Why it is needed at all: the pre-join spectator sits at the world
+     * origin (core/game.go), so the client is streamed the ~24 props around
+     * (0,0) and builds STATIC icons for them — and STATIC is documented as
+     * "never removed", so they outlive the spectator and sit on ground the
+     * character has never seen. Harmless while the minimap was 200 px wide;
+     * visibly wrong once the full-screen map draws at ~7× that with fog of war
+     * promising "you see what you have visited".
+     */
+    reseedMinimap() {
+        this.miniMap.clear();
+        Object.values(this.objects).forEach((gameObject: GameObject) => {
+            if (gameObject.visibleOnMinimap) {
+                this.miniMap.add(gameObject as unknown as IMiniMapRendered);
+            }
+        });
+    }
 }
 
 // Corpse-fade duration for removed mobs. [PLACEHOLDER]

@@ -394,6 +394,15 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	cooldownRemaining := CooldownRemainingMarshalFlatbuf(gs.Player.SkillComponent(), builder)
 	conversation := ConversationMarshalFlatbuf(gs.Player.Conversation(), builder)
 	questProgress := QuestProgressMarshalFlatbuf(gs.Player.QuestLedger().Snapshot(), builder)
+	// The map's campfire markers (plan-world-map.md C2). Both are one-shots: on
+	// almost every tick these are empty and add nothing to the buffer. Built
+	// here with everything else, because strings and vectors cannot be created
+	// once GameStateStart has opened the table.
+	var homeCampfire flatbuffers.UOffsetT
+	if home := gs.Player.HomeCampfire(); home != "" {
+		homeCampfire = builder.CreateString(home)
+	}
+	discoveredCampfires := DiscoveredCampfiresMarshalFlatbuf(gs.Player.DiscoveredCampfires(), builder)
 
 	AuraApi.GameStateStart(builder)
 	AuraApi.GameStateAddTick(builder, gs.Tick)
@@ -467,8 +476,38 @@ func (gs *CharacterGameState) MarshalFlatbuf(builder *flatbuffers.Builder) flatb
 	if questProgress != 0 {
 		AuraApi.GameStateAddQuestProgress(builder, questProgress)
 	}
+	// The map's campfire markers (plan-world-map.md C2): one-shots published on
+	// entering the world and on completing a dwell, absent on every other tick.
+	// Absent means "no change" — see the schema note; the set only grows, so
+	// there is no cleared state for absence to be confused with.
+	if homeCampfire != 0 {
+		AuraApi.GameStateAddHomeCampfire(builder, homeCampfire)
+	}
+	if discoveredCampfires != 0 {
+		AuraApi.GameStateAddDiscoveredCampfires(builder, discoveredCampfires)
+	}
 
 	return AuraApi.GameStateEnd(builder)
+}
+
+// DiscoveredCampfiresMarshalFlatbuf builds the spawn-point id vector, or 0 when
+// there is nothing to publish this tick.
+func DiscoveredCampfiresMarshalFlatbuf(ids []string, builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	if len(ids) == 0 {
+		return 0
+	}
+	offsets := make([]flatbuffers.UOffsetT, 0, len(ids))
+	for _, id := range ids {
+		offsets = append(offsets, builder.CreateString(id))
+	}
+	AuraApi.GameStateStartDiscoveredCampfiresVector(builder, len(offsets))
+	// Prepend in reverse so index 0 lands at the lowest address — the same rule
+	// every vector here follows. The set is sorted, and staying sorted on the
+	// wire is what keeps a harness assertion about it stable.
+	for k := len(offsets) - 1; k >= 0; k-- {
+		builder.PrependUOffsetT(offsets[k])
+	}
+	return builder.EndVector(len(offsets))
 }
 
 func CharacterGameStateMessageMarshalFlatbuf(builder *flatbuffers.Builder, g *CharacterGameState) flatbuffers.UOffsetT {

@@ -17,6 +17,7 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/player"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/spectator"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/vitals"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/persist"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/quests"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
@@ -86,6 +87,11 @@ type reconnectStash struct {
 	campCharges    int
 	position       phy.Vec2f // alive: last position; dead: the deathspot
 	anchor         string    // bound spawn-point id; "" for unbound
+	// discovered is the anchor's twin — the whole discovered set, carried so a
+	// reload does not lose the fires found since the last save. Unlike
+	// campCharges above this is stashed on BOTH the alive and the dead path:
+	// discovery is persisted progress, and death does not take it.
+	discovered     stringSet
 	dead           bool
 	disconnectTick uint64
 
@@ -196,6 +202,19 @@ type ConnectionStateSystem struct {
 	// Everything that needs coordinates resolves through campfireByID, so an id
 	// that no longer resolves behaves as unbound everywhere at once.
 	anchors map[uuid.UUID]string
+	// discovered is the set of spawn-point ids each client's character has ever
+	// dwelled at — the map's campfire markers (plan-world-map.md C2) and, once
+	// flight ships, its flight network (plan-flight-paths.md D4).
+	//
+	// ⚑ CONNECTION STATE, keyed exactly like anchors, and every one of anchors'
+	// touch points has a twin here: seeded from the play ticket at join, carried
+	// through the reconnect stash, re-added after death's removal fan-out, and
+	// dropped on disconnect. A missing twin does not fail loudly — it silently
+	// loses a session's discoveries at whichever seam was forgotten.
+	//
+	// ⚑ It only ever GROWS within a session. Nothing un-discovers a fire, which
+	// is what lets the save path insert instead of replacing (store.SaveCharacter).
+	discovered map[uuid.UUID]stringSet
 	// dwell tracks a player's bind progress at ONE campfire, keyed by player
 	// entity ID (reset on leave or on reaching a different fire, dropped on
 	// removal).
@@ -287,12 +306,71 @@ func (s *ConnectionStateSystem) campfireFor(id string) (CampfireAnchor, bool) {
 	return c, ok
 }
 
+// discoveredFor is a client's discovered set, created empty on first touch.
+func (s *ConnectionStateSystem) discoveredFor(client uuid.UUID) stringSet {
+	set, ok := s.discovered[client]
+	if !ok {
+		set = stringSet{}
+		s.discovered[client] = set
+	}
+	return set
+}
+
+// DiscoveredCampfires is a client's discovered set as a sorted slice — the form
+// both the wire and the save snapshot want.
+//
+// ⚑ It publishes the set RAW, without dropping ids the loaded zone no longer
+// places. Filtering here would be a second opinion on resolution and the client
+// needs its own anyway: its bundled zone data and the server's authored content
+// can differ across a deploy, so "an id I cannot place draws nothing" has to
+// hold on the client regardless of what the server sends.
+func (s *ConnectionStateSystem) DiscoveredCampfires(client uuid.UUID) []string {
+	return sortedSet(s.discovered[client])
+}
+
+// sortedSet renders a discovered set as the sorted slice the wire and the save
+// snapshot both want. Nil for an empty set — an absent wire field and a
+// no-rows save, which is what "has discovered nothing" means on both sides.
+//
+// ⚑ Sorted, not incidental: persist.CharacterState.Fingerprint() marshals this
+// slice, so map-iteration order would make every snapshot of an unchanged
+// character look dirty.
+func sortedSet(set stringSet) []string {
+	if len(set) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(set))
+	for id := range set {
+		ids = append(ids, id)
+	}
+	persist.SortCampfires(ids)
+	return ids
+}
+
+// publishCampfireState stamps the owning client's home fire and whole discovered
+// set onto the player, for this tick's GameState.
+//
+// ⚑ THE WHOLE SET, never a delta. It is five short strings today and the client
+// simply replaces what it holds, so there is no accumulate-and-drift path and no
+// "what if the client missed one" question to answer.
+//
+// ⚑ Called on every path that puts a player entity into the world (join,
+// reattach, respawn, revive) and at the dwell threshold — the only two moments
+// either value can change. Deliberately NOT every tick: the pair changes minutes
+// apart, and a string vector at 30 Hz for that is the shape of waste the roster
+// message was kept out of GameState to avoid.
+func (s *ConnectionStateSystem) publishCampfireState(p model.PlayerEntity) {
+	client := p.Client().UUID()
+	p.NoteCampfireState(s.anchors[client], s.DiscoveredCampfires(client))
+}
+
 func NewConnectionStateSystem(g model.Game) *ConnectionStateSystem {
 	return &ConnectionStateSystem{
 		game:            g,
 		names:           stringSet{},
 		deadByClient:    map[uuid.UUID]deadState{},
 		anchors:         map[uuid.UUID]string{},
+		discovered:      map[uuid.UUID]stringSet{},
 		dwell:           map[uint64]dwellProgress{},
 		tokenByClient:   map[uuid.UUID]string{},
 		stashByToken:    map[string]reconnectStash{},
@@ -546,6 +624,7 @@ func (s *ConnectionStateSystem) tryRespawn(sp model.Spectator) bool {
 	// Re-stamp full health AFTER progression/skills (triage item 14): the
 	// constructor stamped the base pool before +maxHealth passives were back.
 	p.VitalSigns().Health = p.MaxHealth()
+	s.publishCampfireState(p)
 	s.game.AddEntity(p)
 	return true
 }
@@ -745,6 +824,20 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 		p.SetPosition(s.defaultSpawnPosition())
 	}
 
+	// The discovered set is seeded the same way and for the same reason: it is
+	// connection state, so a cold login starts empty and the ticket is the only
+	// place the persisted set arrives from.
+	//
+	// ⚑ UNION, never replace. A player who rejoins through character-select
+	// after dying has discoveries on this connection that are newer than the
+	// snapshot /select read — the same "carried state wins" rule the restore
+	// above follows, except a set can honour both halves instead of choosing.
+	set := s.discoveredFor(client.UUID())
+	for _, id := range ticket.State.DiscoveredCampfires {
+		set.add(id)
+	}
+
+	s.publishCampfireState(p)
 	s.game.AddEntity(p)
 }
 
@@ -774,6 +867,16 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 	}
 	if stash.anchor != "" {
 		s.anchors[client.UUID()] = stash.anchor
+	}
+	// The anchor's twin: the reconnect stash is the ONLY carrier of a session's
+	// discoveries across a reload. Without this leg an F5 loses every fire found
+	// since the last save — invisibly, because the next save then writes the
+	// shrunken set back and the loss looks like it was never discovered.
+	if len(stash.discovered) > 0 {
+		set := s.discoveredFor(client.UUID())
+		for id := range stash.discovered {
+			set.add(id)
+		}
 	}
 	sendAcceptMessage(client, token)
 
@@ -812,6 +915,7 @@ func (s *ConnectionStateSystem) reattach(sp model.Spectator, token string, stash
 		health = p.MaxHealth()
 	}
 	p.VitalSigns().Health = health
+	s.publishCampfireState(p)
 	s.game.AddEntity(p)
 }
 
@@ -826,6 +930,7 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 	p.LoseCurrentLevelExperience()
 	name := p.Name()
 	anchor, hasAnchor := s.anchors[client.UUID()]
+	discovered := s.discovered[client.UUID()]
 	token, hasToken := s.tokenByClient[client.UUID()]
 	account := s.accountByClient[client.UUID()]
 	character := s.characterByClient[client.UUID()]
@@ -838,6 +943,12 @@ func (s *ConnectionStateSystem) handleDeath(p model.PlayerEntity) {
 	s.names.add(name)
 	if hasAnchor {
 		s.anchors[client.UUID()] = anchor
+	}
+	// The anchor's twin again: dying must not un-discover anything. The bind
+	// survives death (state_test pins that), and the fires you found on the way
+	// to dying survive it for the same reason.
+	if len(discovered) > 0 {
+		s.discovered[client.UUID()] = discovered
 	}
 	if hasToken {
 		delete(s.stashByToken, token)
@@ -962,6 +1073,7 @@ func (s *ConnectionStateSystem) ReviveAtCorpse(corpseID uint64, healthFraction f
 	// Partial revive: set health AFTER progression/skills so MaxHealth reflects
 	// the restored loadout.
 	p.VitalSigns().Health = vitals.VitalSign(float32(p.MaxHealth()) * healthFraction)
+	s.publishCampfireState(p)
 	s.game.AddEntity(p)
 	return true
 }
@@ -1032,6 +1144,15 @@ func (s *ConnectionStateSystem) trackCampfireDwell() {
 			// directions by test because that is exactly the kind of
 			// invariant that erodes.
 			p.RefillCampCharges()
+			// …and discovers the fire (plan-world-map.md C2, absorbing
+			// plan-flight-paths.md C1 / D4). A fourth consequence of the one
+			// act, on the SAME firing rather than beside it: a discovery
+			// threshold of its own is exactly how the consequences of "rest at
+			// a fire" would drift apart. L3 above covers this too — a
+			// player-placed mini-camp is never in s.campfires, so it can no
+			// more become a map marker than it can become a spawn point.
+			s.discoveredFor(p.Client().UUID()).add(near.ID)
+			s.publishCampfireState(p)
 		}
 	}
 }
@@ -1073,6 +1194,7 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 				quests:         dead.quests,
 				position:       dead.corpse.Position(),
 				anchor:         s.anchors[client],
+				discovered:     s.discovered[client],
 				dead:           true,
 				disconnectTick: s.game.Ticks(),
 				accountID:      s.accountByClient[client],
@@ -1095,6 +1217,7 @@ func (s *ConnectionStateSystem) removeFromSpectators(e ecs.BasicEntity) {
 		s.game.RemoveEntity(dead.corpse.Basic())
 		delete(s.deadByClient, client)
 		delete(s.anchors, client)
+		delete(s.discovered, client)
 	}
 }
 
@@ -1131,6 +1254,7 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 			campCharges:    p.CampCharges(),
 			position:       p.Position(),
 			anchor:         s.anchors[clientUUID],
+			discovered:     s.discovered[clientUUID],
 			disconnectTick: s.game.Ticks(),
 			accountID:      s.accountByClient[clientUUID],
 			characterID:    s.characterByClient[clientUUID],
@@ -1149,6 +1273,7 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 	delete(s.accountByClient, clientUUID)
 	delete(s.characterByClient, clientUUID)
 	delete(s.anchors, clientUUID)
+	delete(s.discovered, clientUUID)
 	delete(s.dwell, p.Basic().ID())
 	s.players = append(arr[:idx], arr[idx+1:]...)
 }

@@ -122,6 +122,12 @@ interface DarkAreaDefinition {
 interface CampfireDefinition {
     x: number;
     y: number;
+    // Stable authored spawn-point id ("spawnpoint-N"). ⚑ Optional here and
+    // required by the backend's zone validation: this interface describes what
+    // the client can rely on finding, and a fire with no id simply cannot be a
+    // map marker (plan-world-map.md C2) because the server's discovered set has
+    // no way to name it.
+    id?: string;
 }
 
 interface ZoneJSON {
