@@ -122,6 +122,45 @@ make -C backend dev
 
 `backend/conf.json` controls server port (default `2000`), day/night cycle durations, and all game-balance tuning values. `backend/tokens.list` must exist with at least one token (e.g. `plz`) for in-game commands to work.
 
+### Local database — required for EVERY boot
+
+`aurad` **refuses to boot** without `AURA_DB_URL`, and panics without `AURA_JWT_KEY` (step 8a
+chunk 1c). That includes headless harness runs. One-time setup:
+
+```bash
+make -C backend db-up                                   # Docker Postgres, named volume, both DBs
+cp backend/.env.local.example backend/.env.local        # then put a real random key in it
+```
+
+`scripts/dev-restart.sh` sources `backend/.env.local` automatically (an already-exported value
+still wins), so a plain restart works in any shell. `backend/.env.local` is **gitignored** —
+credentials never live in the repo.
+
+**Two databases on one server, and the split is load-bearing:**
+
+| Database | Role |
+| --- | --- |
+| `aura` | durable dev data — characters survive restarts and container removal |
+| `aura_test` | **disposable** — `AURA_TEST_DB_URL` points here |
+
+> ⛔ **Never point `AURA_TEST_DB_URL` at `aura`.** Every DB-touching test calls `store.Rollback`,
+> which drops the whole `game` schema, before *and* after itself. Aimed at the dev database it
+> deletes every account and character silently — the run still goes green. Use
+> `make -C backend db-test`, which aims correctly.
+
+Targets: `db-up` · `db-down` · `db-shell` · `db-test` (store + accounts vs `aura_test`) ·
+`db-reset` (recreates `aura_test` empty; never touches `aura`).
+
+⚑ **The dev database now accumulates residue.** Playwright verify runs leave `hrnss_*` characters
+behind, which used to die with the throwaway container. `backend/cmd/harnessdb -cleanup` clears
+them — but **stop `aurad` first**: it holds live sessions the DELETE never reaches, and cleaning up
+under a running server has already corrupted save games once.
+
+⚑ **Dump before any migration test against real data**, and stop `aurad` first so it flushes
+(`💾 flushed N live character(s) for shutdown`):
+`docker exec aura-dev-db pg_dump -U aura -d aura --clean --if-exists > /tmp/aura-dev-backup.sql`.
+Full runbook: `docs/manual-db-migrations.md` §4.
+
 ### Frontend (Node 20 / npm 10)
 
 ```bash

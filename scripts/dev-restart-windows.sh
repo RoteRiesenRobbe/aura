@@ -39,6 +39,21 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="${AURA_LOG_DIR:-/tmp/aura-dev}"
 mkdir -p "$LOG_DIR"
 
+# Every aurad boot needs AURA_DB_URL and AURA_JWT_KEY — an unset AURA_DB_URL is
+# FATAL (cmd/aurad/database.go). Source the gitignored local env file if it
+# exists; an already-exported value still wins. Kept in sync with dev-restart.sh.
+if [ -f "$REPO/backend/.env.local" ]; then
+	set -a
+	# shellcheck disable=SC1091
+	. "$REPO/backend/.env.local"
+	set +a
+fi
+if [ -z "${AURA_DB_URL:-}" ]; then
+	echo -e "${RED}✖ AURA_DB_URL is not set and backend/.env.local does not exist.${RESET}" >&2
+	echo -e "  Copy the template and edit it:  cp backend/.env.local.example backend/.env.local" >&2
+	exit 1
+fi
+
 # Wait until $1 (url) answers, up to $2 seconds.
 wait_for_http() {
 	local url="$1" limit="$2" name="${3:-server}" i=0

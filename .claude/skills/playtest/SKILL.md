@@ -9,6 +9,28 @@ it is ready.
 
 All paths relative to the **repo root**.
 
+## 0. The database must be up (every boot, no exceptions)
+
+`aurad` **refuses to boot** without `AURA_DB_URL` and panics without `AURA_JWT_KEY`. Neither
+failure looks like a database problem in the log, so check this first when a restart dies:
+
+```bash
+make -C backend db-up     # idempotent — starts the container, creates aura + aura_test
+```
+
+`dev-restart.sh` sources the gitignored `backend/.env.local` for both variables, so you do not
+export anything by hand. If that file is missing the script exits with the `cp
+backend/.env.local.example …` command to run.
+
+⚑ **`AURA_JWT_KEY` must stay STABLE across restarts.** Generating a fresh one per boot invalidates
+every issued token, so the PO gets logged out of a character the database still holds — which
+reads as "persistence is broken" when it is only the key rotating. Keep it in `.env.local`.
+
+⚑ **Dev data is durable now** (named volume `aura-dev-pgdata`), so characters survive restarts —
+and so does harness residue. Never point `AURA_TEST_DB_URL` at the `aura` database: the DB tests
+drop the whole `game` schema and would wipe the PO's characters silently. See CLAUDE.md
+"Local database".
+
 ## 1. Decide what needs rebuilding
 
 Check what changed (`git status`, `git diff --stat`) and pick the cheapest path:

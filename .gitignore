@@ -15,6 +15,8 @@
 simharness-report*.json
 node_modules/
 /backend/tokens.list
+# Local AURA_DB_URL / AURA_JWT_KEY for dev boots — credentials never live in the repo.
+/backend/.env.local
 
 *:Zone.Identifier
 /devops/bundle/

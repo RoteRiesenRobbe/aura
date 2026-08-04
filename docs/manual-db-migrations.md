@@ -104,16 +104,40 @@ Aura's Go test suite validates both up and down migrations against a real Postgr
 - **Parallel Test Lock (`storetest`)**:
   Because `go test ./...` executes Go packages in parallel, multiple test packages (`accounts`, `store`) share a single test database. Every DB-touching test package acquires the **Postgres advisory lock** in `store/storetest` before running migrations or queries. Without this lock, parallel packages will drop each other's schema mid-run, surfacing as false-positive `"relation game.accounts does not exist"` errors.
 
+### The local development database
+
+Local Postgres runs in Docker, driven by targets in `backend/Makefile` — `make -C backend db-up`
+creates (or starts) the `aura-dev-db` container on a **named volume**, so dev characters survive a
+container removal or a WSL restart.
+
+It serves **two databases, and the split is load-bearing**:
+
+| Database | Role | URL |
+| --- | --- | --- |
+| `aura` | durable dev data — your characters live here | `AURA_DB_URL` |
+| `aura_test` | **disposable** — wiped constantly by the suite | `AURA_TEST_DB_URL` |
+
+> ⚠️ **Never point `AURA_TEST_DB_URL` at `aura`.** Every DB-touching test calls
+> [`store.Rollback`](../backend/pkg/aura/store/migrate.go) before *and* after itself, which drops
+> the whole `game` schema. Aimed at the dev database it deletes every account and character with
+> no prompt and no error — the run just goes green. `make -C backend db-test` aims correctly.
+
 ### Manual Verification During Development
 
 To test a migration locally:
-1. Ensure your local PostgreSQL server is running and `AURA_DB_URL` is exported:
+1. Start the database and export the dev URL:
    ```bash
-   export AURA_DB_URL="postgres://aura:aura@127.0.0.1:5432/aura_dev?sslmode=disable"
+   make -C backend db-up
+   export AURA_DB_URL="postgres://aura:aura@127.0.0.1:5432/aura?sslmode=disable"
    ```
-2. Run tests in `backend/pkg/aura/store`:
+2. Run the DB-touching suites against the **disposable** database:
    ```bash
-   cd backend && AURA_TEST_DB_URL=$AURA_DB_URL go test -v ./pkg/aura/store
+   make -C backend db-test          # store + accounts, aimed at aura_test
+   ```
+   Or by hand, if you need `-v` or a single test:
+   ```bash
+   cd backend && AURA_TEST_DB_URL="postgres://aura:aura@127.0.0.1:5432/aura_test?sslmode=disable" \
+     go test -v ./pkg/aura/store
    ```
 3. Boot `aurad` in development mode to see the boot-time migration log line:
    ```bash
@@ -123,6 +147,21 @@ To test a migration locally:
    ```
    🗄️ database schema ready version=... dirty=false
    ```
+4. **Test the migration against data that already exists.** This is the check the test suite
+   structurally cannot make: `aura_test` is empty at the start of every test, so a migration that
+   works on an empty table and violates a new `NOT NULL`/`UNIQUE` constraint on real rows passes
+   green and then fails on a live database. The durable `aura` database is where you catch that —
+   play a little first, then let `aurad` apply the new migration over your existing characters.
+
+   Snapshot before you do, so a bad up-migration costs nothing:
+   ```bash
+   docker exec aura-dev-db pg_dump -U aura -d aura --clean --if-exists > /tmp/aura-dev-backup.sql
+   # restore:
+   docker exec -i aura-dev-db psql -U aura -d aura -v ON_ERROR_STOP=1 < /tmp/aura-dev-backup.sql
+   ```
+   ⚑ **Stop `aurad` before dumping** (`kill -TERM`). It holds live characters in memory and only
+   writes them on shutdown — `💾 flushed N live character(s) for shutdown` in the log — so a dump
+   taken under a running server misses whatever has not been flushed yet.
 
 ---
 

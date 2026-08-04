@@ -20,12 +20,29 @@ the webpack **prod build**, not just a dev server. Game URL:
 `http://localhost:2000/?token=plz&wsUrl=ws://localhost:2000/game&develop`.
 
 ⚑ **Since step 8a chunk 1c, `aurad` REFUSES TO BOOT without `AURA_DB_URL` and
-`AURA_JWT_KEY`.** Both are set at User scope on the dev box, but a shell opened
-before they were set does not see them — read them back with
-`[Environment]::GetEnvironmentVariable('NAME','User')`. An unset `AURA_DB_URL`
-exits 1 with an explicit message; an unset `AURA_JWT_KEY` panics. Neither looks
-like a harness problem, so check the log's first lines before chasing anything
-else.
+`AURA_JWT_KEY`.** An unset `AURA_DB_URL` exits 1 with an explicit message; an
+unset `AURA_JWT_KEY` panics. Neither looks like a harness problem, so check the
+log's first lines before chasing anything else. The canonical source for both is
+the gitignored **`backend/.env.local`** (`cp backend/.env.local.example` to
+create it) — source it before launching `aurad` by hand:
+
+```bash
+make -C backend db-up && set -a && . backend/.env.local && set +a
+```
+
+`scripts/dev-restart.sh` does this for you. On the Windows dev box they may also
+be set at User scope, but a shell opened before that does not see them — read
+them back with `[Environment]::GetEnvironmentVariable('NAME','User')`.
+
+⚑ **Harness runs now leave residue in a DURABLE database.** Every script creates
+`hrnss_*` characters, and since the dev DB moved to a named volume they no longer
+vanish with the container. Clear them with `backend/cmd/harnessdb -cleanup`, and
+**stop `aurad` first** — it holds live sessions the DELETE never reaches, and
+running cleanup under a live server has corrupted save games once already.
+
+⚑ **Point `AURA_TEST_DB_URL` at `aura_test`, NEVER `aura`.** The Go DB tests drop
+the whole `game` schema; aimed at the dev database they silently delete the PO's
+characters and still report green.
 
 ⚑ **Run the harness with `-dev`, which is what these commands already do.** A
 non-`-dev` boot with no `tlsHost` allows no browser origin at all — correct, and
