@@ -171,10 +171,14 @@ Per `CLAUDE.md`'s persistence rule, stated explicitly:
   - ⚑ Alternative considered: rows in the existing generic `game.character_flags`
     (JSONB kv). Cheaper (no migration) but it makes a *set* into stringly-typed
     flags and gives up the FK. Recommendation: the real table. Decide at C1.
-- **`characters.home_campfire_id` gets its first writer.** The column exists and
-  is documented as *"⚑ Nothing writes this column in 8a … a later ADDITIVE chunk
-  with no migration"*. This is that chunk: the bind and the discovery are the
-  same event, so persisting one without the other would be strange.
+- **`characters.home_campfire_id` already has its writer** — the "later ADDITIVE
+  chunk" its 8a-era documentation promised has since shipped. The bind is
+  persisted end to end: `sys/persist.go` snapshots the connection anchor,
+  `store/state.go` writes the column, and login restores the spawn position from
+  it. Nothing here touches that path; discovery only **adds** the new table
+  beside it. *(Corrected 2026-08-04 — the original survey copied the stale
+  "nothing writes this column" comment from `plan-accounts-schema.md` without
+  checking the code.)*
 - ⚑ **An id that no longer resolves is UNBOUND, not an error** — the existing
   rule for `home_campfire_id` (deleting a fire in the editor must not lock its
   dwellers out). Discovered-set rows inherit it: a stale row is **skipped
@@ -211,8 +215,9 @@ Per `CLAUDE.md`'s persistence rule, stated explicitly:
 ## 7. Chunks
 
 - **C1 — Discovery + persistence.** Discovery in the dwell tracker, the new
-  table, the `home_campfire_id` writer, the set on the wire. No flying yet; the
-  map (part 1 C2) starts showing a *persisted* set instead of a session one.
+  table, the set on the wire (`home_campfire_id` persistence already exists —
+  see §5). No flying yet; the map (part 1 C2) starts showing a *persisted* set
+  instead of a session one.
 - **C2 — The flight state machine, server-side.** `StartFlight`, validation, the
   lerp, arrival, the full suppression list, viewport enlargement. Testable
   headlessly before any client work.

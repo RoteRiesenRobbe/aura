@@ -138,8 +138,9 @@ character has dwelled where). Part 2 owns persisting that set — but the map is
 the first consumer, so **this plan needs the set to exist**:
 
 - If part 1 ships first, the docked/full-screen map shows fires the character
-  has bound **this session** (the `ConnectionStateSystem.dwell` tracker already
-  knows, in memory).
+  has bound **this session**. ⚑ The dwell tracker holds only the *current*
+  anchor (`s.anchors`, one fire per connection) — C2 adds a small in-memory
+  session **set**, accumulated at the same dwell trigger, no persistence.
 - Part 2 promotes that to persisted state (new migration, `plan-flight-paths.md`
   §5). Nothing in the map UI changes when it does — the set just survives logout.
 
@@ -216,8 +217,8 @@ without a database change.
 
 ## 9. Open / [PLACEHOLDER]
 
-- Key binding for the map toggle (`M` is the obvious candidate; check it is free
-  against `KeyboardManager` before pinning).
+- Key binding for the map toggle (`M` is the obvious candidate; verified free
+  2026-08-04 — `Controls.ts` binds only WASD/arrows, P, 1–3, Q/R/F, E, J).
 - Player names on the map — recommended **off** (§4.3).
 - Pan/zoom inside the full-screen state — **out of v1** unless the world grows
   past what fits legibly; at 144 × 72 it fits.
