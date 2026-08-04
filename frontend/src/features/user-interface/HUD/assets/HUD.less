@@ -1625,3 +1625,118 @@
 		margin-right: 0.8rem;
 	}
 }
+
+// The full-screen map state (plan-world-map.md C1, D5).
+//
+// A viewport-filling overlay rather than a centred panel like #journal: the
+// map is a scale drawing of a 144 × 72 world and every pixel it gives up costs
+// legibility. It pauses nothing — the world keeps running behind it.
+//
+// The world keeps running behind it and stays visible — the map is a thing you
+// hold up in front of the game, not a screen that replaces it.
+#worldMap {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+
+	// ⚑ Above EVERY HUD element — the nag (90), the account screens (100) and
+	// the settings gear (101, which is deliberately above the account screens
+	// so it overlays the start and end screens). The spellbook, the loadout
+	// bars, the nag and the gear all painted over the open map before this
+	// existed, which is what a full-screen overlay must never do.
+	//
+	// Covering the account screens costs nothing: HUD.hide() docks the map, so
+	// it is never open while they are up. The gear IS unreachable while the
+	// map is open — that is the trade a full-screen map makes, and M or Esc
+	// gets you back to it in one press.
+	z-index: 102;
+
+	// The PANEL does not scroll and does not shrink — .wrapper takes whatever
+	// is left after the header, which is what the pixi canvas sizes itself to.
+	display: flex;
+	flex-direction: column;
+
+	// ⚑ TRANSLUCENT, and that is the point (PO 2026-08-04). The living world
+	// stays visible underneath, and so do the HUD panels — showing THROUGH the
+	// map is fine, what was wrong was them being stacked ON TOP of it. That is
+	// a z-index problem, fixed above, and opacity is not the tool for it: this
+	// is one layer over both the world and the panels, so any value dark
+	// enough to hide the panels blacks out the world with them. It was briefly
+	// opaque and that was the wrong half of the fix.
+	background: fade(black, 88%);
+	color: @panel-color;
+	font-size: @panel-font-size;
+
+	&.hidden {
+		display: none;
+	}
+
+	> .worldMapHeader {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+
+		padding: @panel-padding;
+		border-bottom: 1px solid @panel-row-divider;
+
+		> .worldMapTitle {
+			color: @panel-title-color;
+			font-size: @panel-title-size;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+
+		> .worldMapClose {
+			cursor: pointer;
+			color: @panel-title-color;
+
+			&:hover {
+				color: white;
+			}
+		}
+	}
+
+	// ⚑ `min-height: 0` is load-bearing, not tidiness: a flex item's default
+	// `min-height: auto` refuses to shrink below its content, and the pixi
+	// canvas inside is content. Without it the wrapper reports a height that
+	// grows with the canvas, the canvas resizes to match, and the two ratchet
+	// each other off the bottom of the screen.
+	> .wrapper {
+		flex: 1;
+		min-height: 0;
+		position: relative;
+		overflow: hidden;
+	}
+}
+
+// The map button. Styled like #journalButton (same HUD vocabulary) but placed
+// by hand under the minimap, because it is a sibling of #minimap rather than a
+// member of #leftColumn — see the markup comment for why that matters on
+// phones.
+#mapButton {
+	position: absolute;
+	top: 15.6vw;
+	right: 0.3vw;
+
+	background: @panel-bg;
+	border: 1px solid @panel-border;
+	border-radius: @panel-border-radius;
+	padding: 0.5rem 1.5rem;
+
+	cursor: pointer;
+	color: @panel-color;
+	font-size: @panel-font-size;
+
+	&:hover {
+		color: white;
+	}
+
+	> .mapButtonHotkey {
+		color: @panel-title-color;
+		font-size: @panel-title-size;
+		margin-right: 0.8rem;
+	}
+}

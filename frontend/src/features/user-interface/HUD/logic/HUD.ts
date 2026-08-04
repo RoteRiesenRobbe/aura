@@ -306,6 +306,11 @@ export function show() {
 
 export function hide() {
     rootElement.classList.add('hidden');
+    // Dock the map before stopping it. Every path through here — death,
+    // disconnect, back to character-select — ends the world this map is of, so
+    // coming back to a full-screen map still covering the game would be a
+    // state the player never asked for and did not leave behind.
+    Game.miniMap.close();
     Game.miniMap.stop();
 }
 
@@ -320,6 +325,16 @@ export function getVitalSignBar(vitalSign: string): VitalSignBar {
 
 export function getMinimapContainer(): Element {
     return document.querySelector('#minimap > .wrapper');
+}
+
+/**
+ * The full-screen map overlay (plan-world-map.md C1, D5) — the second home of
+ * the ONE map canvas, which MiniMap reparents between this and the minimap
+ * container above. Returns the panel rather than its `.wrapper` because the
+ * caller needs both: the panel to un-hide, the wrapper to size the canvas to.
+ */
+export function getWorldMapPanel(): Element {
+    return document.getElementById('worldMap');
 }
 
 export function getChat(): HTMLElement {

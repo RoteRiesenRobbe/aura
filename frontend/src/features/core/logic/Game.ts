@@ -491,7 +491,10 @@ export class Game implements IGame {
             .rect(-mapWidth / 2, -mapHeight / 2, mapWidth, mapHeight)
             .fill(GraphicsConfig.landColor));
 
-        this.miniMap.setup(mapWidth, mapHeight);
+        // The zone name reaches the map for the same reason it reaches the
+        // ground textures above: the full-screen state bakes that zone's
+        // terrain from the bundled data (plan-world-map.md C1).
+        this.miniMap.setup(mapWidth, mapHeight, gameInformation.zoneName);
         this.map = new EntityManager(mapWidth, mapHeight, this.miniMap);
         // NOTE: the night tint is currently DEACTIVATED — see
         // DAY_CYCLE_PRESENTATION_ENABLED in DayCycle.ts for why. The list below

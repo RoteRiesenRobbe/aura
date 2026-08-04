@@ -138,6 +138,16 @@ export class Controls {
             return;
         }
 
+        // The map (plan-world-map.md C1, D5). M was free — verified against
+        // this file 2026-08-04 — and sits behind the same chat/console guards
+        // as J above, so typing "map" in chat cannot open it. Optional-chained
+        // because the map only exists once the game has been set up.
+        if (event.code === 'KeyM') {
+            Game?.miniMap?.toggle();
+            event.preventDefault();
+            return;
+        }
+
         if (event.code === 'Escape') {
             HUD.cancelEquipSelection();
             // ...and closes the journal, which is client-owned visibility (C3)
@@ -145,6 +155,8 @@ export class Controls {
             Journal.close();
             // ...and the help panel — purely client-side, same rule.
             Help.close();
+            // ...and the full-screen map, same rule again (C1).
+            Game?.miniMap?.close();
             // ...and dismisses an open conversation (chunk 3b-ii, D21). Also a
             // no-op when no panel is open. It only ASKS: the panel closes when
             // the server drops the tree from the next snapshot.

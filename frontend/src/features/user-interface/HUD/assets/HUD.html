@@ -26,6 +26,15 @@
         </div>
     </div>
 
+    <!-- Deliberately a SIBLING of #minimap rather than a member of
+         #leftColumn: the phone layout turns #leftColumn into the ☰ sheet, and
+         the map button has to stay reachable without opening it (the minimap
+         itself is inside the sheet on mobile, so it cannot be the phone's way
+         in). PO ruling 2026-08-04. -->
+    <div id="mapButton" title="Map (M)">
+        <span class="mapButtonHotkey">M</span>Map
+    </div>
+
     <div id="vitalSigns" class="layout-column">
         <div id="healthBar" class="bar flex" title="Focus — your health and everything you spend to act">
             <div class="indicator"></div>
@@ -81,6 +90,22 @@
         <button id="zoomInButton" class="zoomButton">+</button>
         <div id="zoomLevelDisplay"></div>
         <button id="zoomOutButton" class="zoomButton">&minus;</button>
+    </div>
+
+    <!-- The full-screen map (plan-world-map.md C1, D5). NOT a second map: the
+         one pixi canvas that normally sits in #minimap above is REPARENTED
+         into .wrapper below while this is open, so there is one renderer and
+         one set of markers. Opened by M / the map button / tapping the
+         minimap, dismissed by M / Esc / its ✕. Pauses nothing — the world
+         keeps running behind it, like the journal. -->
+    <div id="worldMap" class="hidden">
+        <div class="worldMapHeader">
+            <span class="worldMapTitle">Map</span>
+            <span class="worldMapClose" title="Close (M / Esc)">✕</span>
+        </div>
+        <div class="wrapper">
+            <!-- the minimap's pixi canvas moves in here while open -->
+        </div>
     </div>
 
     <!-- Journal (plan-quests.md chunk C3, D7/D16; two-pane since

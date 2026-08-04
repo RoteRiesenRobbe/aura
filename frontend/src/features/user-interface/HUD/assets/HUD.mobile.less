@@ -403,6 +403,55 @@ html.mobile {
 		z-index: (@mobile-menu-z + 3);
 	}
 
+	/* --- always on: the map button ------------------------------------ */
+	// Stacked under the ☰, and permanently on screen because it is the
+	// phone's ONLY way into the map: #minimap is inside the sheet here, so
+	// tapping it cannot be the entry point the way it is on desktop, and a
+	// button inside the sheet would inherit the #registrationNag bug that
+	// already makes the journal unreachable (PO ruling 2026-08-04: outside
+	// the sheet).
+	//
+	// ⚑ This WIDENS the permanent mobile HUD, which the 2026-08-02 ruling
+	// deliberately capped at "the bars, the tiles, the combat indicator and
+	// the alert banner. Nothing else." One 4.4rem square is the smallest
+	// version of that, and it is flagged rather than assumed.
+	//
+	// ⚑ It also takes pointer events out of the joystick's half of the screen,
+	// the same cost the ☰ above already pays — see the touch-passthrough note.
+	#mapButton {
+		position: fixed;
+		top: (2 * @mobile-edge + @mobile-button);
+		left: @mobile-edge;
+		z-index: (@mobile-menu-z + 3);
+
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		width: @mobile-button;
+		height: @mobile-button;
+		padding: 0;
+
+		font-size: 1.4rem;
+
+		// There is no keyboard to press M on.
+		> .mapButtonHotkey {
+			display: none;
+		}
+	}
+
+	// One sheet at a time: the ☰ doubles as the sheet's close control and
+	// nothing else may float over it.
+	&.menuOpen #mapButton {
+		display: none;
+	}
+
+	// ⚑ No z-index override here on purpose. The desktop rule already sets 95,
+	// which beats both the ☰ stack (@mobile-menu-z + 3 = 53) and the
+	// registration nag (90). An override in this file would have to restate
+	// that ordering and would silently lose it the day either number moves —
+	// this file used to carry `@mobile-menu-z + 4`, which was BELOW the nag.
+
 	// Settings: the gear steps left of the minimap on desktop
 	// (right: calc(15vw + 1vw)), which on a phone parks it on top of the Focus
 	// bar. It belongs with everything else that is not needed mid-fight —
