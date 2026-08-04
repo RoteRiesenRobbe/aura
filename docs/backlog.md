@@ -5077,7 +5077,7 @@ the first filing claimed), and the objects are **detached from the scene graph**
 (so they are out-of-AOI leftovers, not mispositioned neighbours). Committed as
 `6e2af665`; corrected here rather than deleted.
 
-## 54. Mobs chase players who have left the world — ✅ FIXED `9684dcce` 2026-08-04, PO-verified in-game
+## 54. Mobs chase players who have left the world — ✅ FIXED `71735371` 2026-08-04, PO-verified in-game
 
 *(A long-standing known issue, reported with screenshots: disconnect — even a
 plain reload — while a wolf pack is chasing you, and the pack parks on the spot
