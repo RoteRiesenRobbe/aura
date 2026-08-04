@@ -14,6 +14,7 @@ const (
 	ServerMessageBodyObituary      ServerMessageBody = 4
 	ServerMessageBodyEntityMessage ServerMessageBody = 5
 	ServerMessageBodyPong          ServerMessageBody = 6
+	ServerMessageBodyPlayerRoster  ServerMessageBody = 7
 )
 
 var EnumNamesServerMessageBody = map[ServerMessageBody]string{
@@ -24,6 +25,7 @@ var EnumNamesServerMessageBody = map[ServerMessageBody]string{
 	ServerMessageBodyObituary:      "Obituary",
 	ServerMessageBodyEntityMessage: "EntityMessage",
 	ServerMessageBodyPong:          "Pong",
+	ServerMessageBodyPlayerRoster:  "PlayerRoster",
 }
 
 var EnumValuesServerMessageBody = map[string]ServerMessageBody{
@@ -34,6 +36,7 @@ var EnumValuesServerMessageBody = map[string]ServerMessageBody{
 	"Obituary":      ServerMessageBodyObituary,
 	"EntityMessage": ServerMessageBodyEntityMessage,
 	"Pong":          ServerMessageBodyPong,
+	"PlayerRoster":  ServerMessageBodyPlayerRoster,
 }
 
 func (v ServerMessageBody) String() string {

@@ -654,16 +654,61 @@ table Pong {
     // nothing to send with it, purely for signaling
 }
 
+// --- the player roster (plan-world-map.md C3, §4.3 / D7) ---
+//
+// One live player character, for the map's dots. IDS AND POSITIONS ONLY: no
+// name, no level, no health (PO ruling 2026-08-04 — dots only in v1).
+//
+// ⚑ A TABLE, not a struct, deliberately. A struct's layout is frozen at birth,
+// and the PO's ruling was "don't build names, but don't block them either" —
+// a later hover readout is exactly the follow-up a struct would have made a
+// wire break. `id` is here for the same reason: the dots need no identity to
+// be drawn, but a hover cannot be added later without one.
+table RosterEntry {
+  // The character's entity id — the SAME id GameState's Character entities
+  // carry, which is what lets a client recognise its own dot and skip it
+  // (its own position comes from the 30 Hz AOI stream, not from here).
+  id:ulong;
+  // Client px space (world × Points2px), exactly like Character.pos — the
+  // space Welcome.map_width and the client's getX()/getY() already use. Any
+  // other unit here would mean a conversion on one side only, and the map's
+  // scale math is a pure ratio that would silently place every dot wrong.
+  pos:Vec2f;
+}
+
+// Every live player character in the zone, sent to every client at ~1 Hz
+// (D7). Deliberately NOT folded into GameState: it has a different rate and a
+// different scope, and a whole-zone vector at 30 Hz for a fact that matters
+// once a second is the waste this message exists to avoid.
+//
+// ⚑ ONE ASSEMBLY POINT, one marshal, the same bytes to everyone (core/net.go).
+// That is a design requirement, not an optimisation: when flight ships, a
+// flying player must be filtered out of this roster exactly as they are
+// filtered out of GameState (plan-flight-paths.md C4), and a per-viewer
+// assembly would be a second place for that filter to be forgotten.
+//
+// ⚑ ABSENT ENTRIES MEAN GONE. Unlike GameState's one-shots, this message is
+// the WHOLE roster every time — a player not in it has left, died, or
+// disconnected, and the client drops their dot. There is no removal signal to
+// miss, which is what keeps stale dots off the map.
+table PlayerRoster {
+  tick:ulong;
+  entries:[RosterEntry];
+}
+
 // Values PERMANENTLY PINNED, same rule as ClientMessageBody (L16). 3b-i and
 // 3b-ii both deliberately added nothing here — the in-range signal and the whole
-// conversation tree ride GameState instead.
+// conversation tree ride GameState instead. PlayerRoster = 7 is the first
+// addition since; an old cached client hits Backend.ts's `default:` branch and
+// warns instead of throwing, so the skew is safe in both directions.
 union ServerMessageBody {
   Welcome = 1,
   GameState = 2,
   Accept = 3,
   Obituary = 4,
   EntityMessage = 5,
-  Pong = 6
+  Pong = 6,
+  PlayerRoster = 7
 }
 table ServerMessage { body:ServerMessageBody; }
 

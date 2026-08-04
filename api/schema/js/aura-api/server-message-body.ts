@@ -6,6 +6,7 @@ import { Accept } from '../aura-api/accept.js';
 import { EntityMessage } from '../aura-api/entity-message.js';
 import { GameState } from '../aura-api/game-state.js';
 import { Obituary } from '../aura-api/obituary.js';
+import { PlayerRoster } from '../aura-api/player-roster.js';
 import { Pong } from '../aura-api/pong.js';
 import { Welcome } from '../aura-api/welcome.js';
 
@@ -17,13 +18,14 @@ export enum ServerMessageBody {
   Accept = 3,
   Obituary = 4,
   EntityMessage = 5,
-  Pong = 6
+  Pong = 6,
+  PlayerRoster = 7
 }
 
 export function unionToServerMessageBody(
   type: ServerMessageBody,
-  accessor: (obj:Accept|EntityMessage|GameState|Obituary|Pong|Welcome) => Accept|EntityMessage|GameState|Obituary|Pong|Welcome|null
-): Accept|EntityMessage|GameState|Obituary|Pong|Welcome|null {
+  accessor: (obj:Accept|EntityMessage|GameState|Obituary|PlayerRoster|Pong|Welcome) => Accept|EntityMessage|GameState|Obituary|PlayerRoster|Pong|Welcome|null
+): Accept|EntityMessage|GameState|Obituary|PlayerRoster|Pong|Welcome|null {
   switch(ServerMessageBody[type]) {
     case 'NONE': return null; 
     case 'Welcome': return accessor(new Welcome())! as Welcome;
@@ -32,15 +34,16 @@ export function unionToServerMessageBody(
     case 'Obituary': return accessor(new Obituary())! as Obituary;
     case 'EntityMessage': return accessor(new EntityMessage())! as EntityMessage;
     case 'Pong': return accessor(new Pong())! as Pong;
+    case 'PlayerRoster': return accessor(new PlayerRoster())! as PlayerRoster;
     default: return null;
   }
 }
 
 export function unionListToServerMessageBody(
   type: ServerMessageBody, 
-  accessor: (index: number, obj:Accept|EntityMessage|GameState|Obituary|Pong|Welcome) => Accept|EntityMessage|GameState|Obituary|Pong|Welcome|null, 
+  accessor: (index: number, obj:Accept|EntityMessage|GameState|Obituary|PlayerRoster|Pong|Welcome) => Accept|EntityMessage|GameState|Obituary|PlayerRoster|Pong|Welcome|null, 
   index: number
-): Accept|EntityMessage|GameState|Obituary|Pong|Welcome|null {
+): Accept|EntityMessage|GameState|Obituary|PlayerRoster|Pong|Welcome|null {
   switch(ServerMessageBody[type]) {
     case 'NONE': return null; 
     case 'Welcome': return accessor(index, new Welcome())! as Welcome;
@@ -49,6 +52,7 @@ export function unionListToServerMessageBody(
     case 'Obituary': return accessor(index, new Obituary())! as Obituary;
     case 'EntityMessage': return accessor(index, new EntityMessage())! as EntityMessage;
     case 'Pong': return accessor(index, new Pong())! as Pong;
+    case 'PlayerRoster': return accessor(index, new PlayerRoster())! as PlayerRoster;
     default: return null;
   }
 }

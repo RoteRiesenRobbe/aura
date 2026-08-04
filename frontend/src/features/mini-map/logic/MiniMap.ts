@@ -6,10 +6,18 @@ import {gameObjectId} from '../../common/logic/Types';
 import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {Character} from '../../game-objects/logic/Character';
 import {BasicConfig} from '../../../client-data/BasicConfig';
-import {MapState, isInsideDrawnMap, mapScale, rescaleCoordinate, resizeTerrain} from './MapScale';
+import {
+    MapState,
+    RosterPlayer,
+    isInsideDrawnMap,
+    mapScale,
+    rescaleCoordinate,
+    resizeTerrain,
+} from './MapScale';
 import {bakeTerrain, destroyTerrain} from './MapTerrain';
 import {MapFog} from './MapFog';
 import {MapCampfires} from './MapCampfires';
+import {MapPlayers} from './MapPlayers';
 
 const sizeFactorRelatedToMapSize = 2;
 
@@ -62,6 +70,8 @@ export class MiniMap {
     private fog: MapFog = null;
     /** Discovered-campfire markers, drawn in BOTH states — see MapCampfires. */
     private campfires: MapCampfires = null;
+    /** Other players, from the 1 Hz roster, in BOTH states — see MapPlayers. */
+    private players: MapPlayers = null;
 
     // `renderer.screen`, not `canvas.width`: screen is the LOGICAL size the
     // stage's coordinate system uses, while canvas.width is the backing store
@@ -118,15 +128,28 @@ export class MiniMap {
             [Layer.CHARACTER]: createNamedContainer('character'),
             [Layer.OTHER]: createNamedContainer('other'),
         };
-        // ⚑ THE MARKER LAYER GOES BETWEEN THE TWO ICON LAYERS, and the split is
-        // the whole point. Under OTHER — which is where the ~777 prop icons
-        // live — a fire in dense forest is completely buried; that was the
-        // shipped-and-caught bug, reported in-game with one fire clear, one
-        // half-covered and one invisible. Over CHARACTER it would hide the
-        // player dot standing at the fire. Above the scenery, below the people.
+        // ⚑ THE DRAW ORDER IS A PO RULING, lowest first (2026-08-04, C3):
+        //
+        //     terrain → props → other players → you → campfires
+        //
+        // *"the campfire is still the most important information the map can
+        // provide"*, so nothing is allowed to cover one. ⚑ This REVERSES C2's
+        // "above the scenery, below the people": C2 put fires under both icon
+        // layers, reasoning that a person must not be swallowed by the landmark
+        // they stand at. The ruling inverts that trade — a dot lost under a
+        // fire costs less than a landmark lost under a dot, because the dot
+        // moves and the fire is what the map is *for*.
+        //
+        // What survives from C2 unchanged: fires must stay above the ~777 prop
+        // icons in Layer.OTHER. Under them, a fire in dense forest is buried —
+        // that was the shipped-and-caught bug, reported in-game with one fire
+        // clear, one half-covered and one invisible. The harness asserts the
+        // whole order as stage indices, because C2's lesson was that every
+        // other leg passes while a marker is invisible.
         this.stage.addChild(this.layerContainers[Layer.OTHER]);
-        this.setupCampfires(zoneName);
+        this.setupPlayers();
         this.stage.addChild(this.layerContainers[Layer.CHARACTER]);
+        this.setupCampfires(zoneName);
 
         this.setupTerrain(zoneName);
 
@@ -144,10 +167,11 @@ export class MiniMap {
      * leaving it on the stage would stack two sets of markers — and the second
      * character's discovered set is not the first one's.
      *
-     * ⚑ Inserted just above the OTHER layer by INDEX rather than appended.
-     * Appending happens to be right the first time through setup() and wrong on
-     * every re-setup, where it would land above CHARACTER and start hiding the
-     * player dot — a bug that only a second join in one page life could show.
+     * ⚑ Anchored to the CHARACTER layer by INDEX rather than appended. Under
+     * the PO's order the fires are the topmost markers, so appending is right
+     * the first time through setup() — and wrong on every re-setup, where the
+     * terrain layer has since been inserted at 0 and a bare append is no longer
+     * expressing "just above the people". Anchoring says what is meant.
      */
     private setupCampfires(zoneName: string) {
         if (this.campfires) {
@@ -156,9 +180,52 @@ export class MiniMap {
         this.campfires = new MapCampfires(zoneName);
         this.campfires.layer.position.set(this.width / 2, this.height / 2);
 
+        const characters = this.layerContainers[Layer.CHARACTER];
+        const above = characters.parent === this.stage
+            ? this.stage.getChildIndex(characters) + 1
+            : this.stage.children.length;
+        this.stage.addChildAt(this.campfires.layer, above);
+    }
+
+    /**
+     * Installs the roster-dot layer, between the props and your own dot.
+     *
+     * ⚑ Inserted by INDEX, never appended — the C2 rule, and for the same
+     * reason: appending is right on the first setup() and wrong on every
+     * re-setup, where it lands on top of everything and starts hiding the very
+     * markers the PO's order puts above it. Anchoring to the prop layer's index
+     * means the two cannot swap however often setup() runs.
+     */
+    private setupPlayers() {
+        if (this.players) {
+            this.players.destroy();
+        }
+        this.players = new MapPlayers();
+        this.players.layer.position.set(this.width / 2, this.height / 2);
+
         const props = this.layerContainers[Layer.OTHER];
         const above = props.parent === this.stage ? this.stage.getChildIndex(props) + 1 : 0;
-        this.stage.addChildAt(this.campfires.layer, above);
+        this.stage.addChildAt(this.players.layer, above);
+    }
+
+    /**
+     * Applies a roster publication (plan-world-map.md C3): every live player in
+     * the zone, ~1×/s.
+     *
+     * ⚑ Unlike the campfire one-shots, this genuinely changes almost every time
+     * — players move — so it redraws unconditionally rather than diffing.
+     */
+    public setRoster(players: RosterPlayer[]) {
+        if (!this.players) {
+            return;
+        }
+        this.players.update(players);
+        // Re-applied on every publication rather than latched once: on a fresh
+        // join the first roster can arrive before the local character exists,
+        // and this way that resolves itself a second later instead of drawing
+        // your own dot twice for the rest of the session.
+        this.players.setSelf(this.playerCharacter?.id ?? 0);
+        this.players.draw(this.state, this.scale);
     }
 
     /**
@@ -360,6 +427,7 @@ export class MiniMap {
         });
         this.terrainLayer?.position.set(this.width / 2, this.height / 2);
         this.campfires?.layer.position.set(this.width / 2, this.height / 2);
+        this.players?.layer.position.set(this.width / 2, this.height / 2);
 
         const previousScale = this.scale;
         this.scale = mapScale(
@@ -392,6 +460,13 @@ export class MiniMap {
         // marker size is per state, so the same canvas dimensions still need a
         // new drawing.
         this.campfires?.draw(this.state, this.scale);
+        // Same reasoning for the roster dots, which are placed by the scale and
+        // sized by the icon factor — both of which have just been re-derived.
+        // Redrawing from the held roster keeps them on the ground they were on
+        // across a resize or a state toggle, with no wait for the next 1 Hz
+        // publication (otherwise opening the map could show a second of dots
+        // sitting at their docked-scale positions).
+        this.players?.draw(this.state, this.scale);
 
         return previousScale;
     }
@@ -556,8 +631,18 @@ export class MiniMap {
      * campfire markers alone — none of the three comes from an entity, and the
      * one caller that matters is backlog §53's "the spectator's view is not the
      * character's", which is a statement about entities only.
+     *
+     * ⚑ The roster dots ARE dropped, though they are not entities either, and
+     * the reason is the other caller: death. The roster only goes to players in
+     * the world, so a dead client stops receiving publications — and without
+     * this the last roster before dying would stay frozen on the map for as
+     * long as the death overlay is up. Rejoining repopulates it within a
+     * second; there is nothing to rebuild here, unlike the icons.
      */
     public clear() {
+        this.players?.update([]);
+        this.players?.draw(this.state, this.scale);
+
         this.registeredGameObjectIds.clear();
 
         this.dynamicIcons[LevelOfDynamic.REMOVABLE_REMEMBERED] = {};

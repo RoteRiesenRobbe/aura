@@ -12,6 +12,8 @@ Entries are in the order they appeared (newest first, as of 2026-08-03).
 
 ---
 
+- **Prior: WORLD MAP C1 — THE MAP GETS A SECOND STATE** ✅ `f09d99d0` 2026-08-04, PO-verified in-game same day — the minimap is now the **docked state** of one map module; `M` / a HUD button / tapping the minimap open a **full-screen** state over the running world. ⚑ **One Application, reparented, never a second renderer** — `createMinimapIcon()` returns a single ViewContainer and a display object lives in one stage, so a second app would mean changing `IMiniMapRendered`; it also keeps the GL context count at two. Terrain **bakes once** into a single sprite (frame pinned to the world rect, not container bounds). Mid-chunk PO additions: **session fog of war** (reverses §4.2's recorded "no fog"; AOI-sized reveal, no schema change) and click-away dismissal. Overlay is z-index 102 but **stays translucent** — panels showing *through* is fine, panels *on top* was the bug. Found + filed **backlog §53** (⚑ its first diagnosis — "player-relative coords" — was WRONG; corrected `9a054b56`, closed in C2). Verified: vitest 190/190 · `c1-world-map.mjs` 12/12 0 errors · `filler-batch` 1 fail proven identical at HEAD · boot 0 panics. **Still open: the mobile real-device pass.** Full ledger: `docs/plan-world-map.md` §10.
+
 *(2026-08-04, second move of the day: backlog §54 — the disconnect ghost-chase
 fix — took the cap slot, so the compressed `backlog §46` bullet dropped off
 `CLAUDE.md`. It is **not** re-copied here: its full pre-collapse banner is

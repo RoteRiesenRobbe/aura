@@ -197,6 +197,68 @@ export function campfireMarkers(
     return markers;
 }
 
+/** One player as the roster message delivers them: px space, plus their id. */
+export interface RosterPlayer {
+    id: number;
+    x: number;
+    y: number;
+}
+
+/** A player dot placed on the map, in canvas pixels from the layer origin. */
+export interface RosterMarker {
+    id: number;
+    x: number;
+    y: number;
+}
+
+/**
+ * Where to draw the other players (plan-world-map.md C3, D7).
+ *
+ * ⚑ THE ROSTER IS THE ONLY SOURCE FOR OTHER PLAYERS, which §2 of the plan got
+ * wrong: it recorded that other characters already appear on the minimap via
+ * their AOI entity icons, but `Character` sets `visibleOnMinimap = false` in its
+ * constructor and only the local `Player` flips it true. Nobody but you has ever
+ * been drawn. That is why the plan's landmine 6 ("two sources for the same
+ * player") does not bite here — there is no second source to arbitrate against.
+ *
+ * ⚑ YOUR OWN DOT IS EXCLUDED, and by id rather than by trusting the server to
+ * leave you out. Your position comes from the 30 Hz AOI stream and glides;
+ * roster positions step once a second, so drawing yourself from both would show
+ * one dot sliding out from under another every second.
+ *
+ * ⚑ Positions arrive ALREADY IN PX (RosterEntry.pos is marshalled through the
+ * same f32ToPx as Character.pos), so unlike campfireMarkers above there is no
+ * world→px factor here. Applying one would place every dot 120× too far out.
+ *
+ * ⚑ Returns nothing at scale 0, for the same reason campfireMarkers does — a
+ * display:none canvas measures 0 × 0, and multiplying through would pile every
+ * player onto the centre of the world.
+ */
+export function rosterMarkers(
+    players: RosterPlayer[],
+    selfId: number,
+    scale: number,
+): RosterMarker[] {
+    if (!isPositive(scale) || !players) {
+        return [];
+    }
+    const markers: RosterMarker[] = [];
+    for (const player of players) {
+        if (!player || player.id === selfId) {
+            continue;
+        }
+        if (!Number.isFinite(player.x) || !Number.isFinite(player.y)) {
+            continue;
+        }
+        markers.push({
+            id: player.id,
+            x: player.x * scale,
+            y: player.y * scale,
+        });
+    }
+    return markers;
+}
+
 /** The two fields resizeTerrain touches — see the note on its signature. */
 export interface ResizableTerrain {
     width: number;

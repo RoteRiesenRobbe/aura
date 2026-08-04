@@ -1,7 +1,10 @@
 # Plan: The world map & minimap rework (fast travel, part 1)
 
-**Status:** IN PROGRESS — **C1 shipped** 2026-08-04 (`f09d99d0`), **C2 built**
-2026-08-04 (`6c0888ff`), C3 open. Designed 2026-08-04. Per-chunk ledger: §10.
+**Status:** IN PROGRESS — **C1 shipped** 2026-08-04 (`f09d99d0`), **C2 shipped
+and live** 2026-08-04 (`6c0888ff`), **C3 shipped** 2026-08-04 (`[uncommitted]`),
+all three PO-verified in-game. Every chunk is built; what keeps this doc out of
+`archive/` is **C1's tail** — the mobile real-device pass §7 requires, and the
+`features/map/` rename. Designed 2026-08-04. Per-chunk ledger: §10.
 
 ⚑ **C2 absorbed `plan-flight-paths.md` C1 wholesale** (PO ruling: discovered
 fires persist per character). That reverses **§8** — this plan *does* ship a
@@ -55,6 +58,19 @@ that game objects already implement.
 So "show other players on the minimap" is **not** a client feature — the client
 already draws every player it knows about, and it knows about almost none of
 them. It is a new server stream (D7).
+
+> **WRONG, corrected 2026-08-04 in C3.** Other characters have **never** been
+> drawn on the minimap at all: `Character` sets `visibleOnMinimap = false` in its
+> constructor (`Character.ts:78`) and only the local `Player` flips it true
+> (`Player.ts:28`). `EntityManager` gates on that flag at all three of its call
+> sites. The survey read the *capability* (an icon factory and a manager that
+> honours the flag) as the *behaviour*.
+>
+> ⚑ **This is what dissolves landmine 6.** With no AOI-driven dot for other
+> players, the roster is the **only** source, not a second one, and the whole
+> arbitration the landmine asked for reduces to "skip your own id". The
+> conclusion the paragraph draws — "it is a new server stream" — was right
+> anyway, and for a stronger reason than the one given.
 
 **Scale check.** `api/zones/world.json` is **144 × 72** units and holds 5
 campfires, 777 props, 485 spawns, 537 terrain pieces. The whole world is ~7 × 6
@@ -143,6 +159,12 @@ there is one place to apply it.
 is a small privacy/harassment surface and the dots are the ask. Recommendation:
 **dots only in v1**, no names, no levels. [PLACEHOLDER — PO may want names.]
 
+> **RULED 2026-08-04 in C3: dots only, confirming the recommendation** — with
+> the rider that a *hover* readout may come later and must not be blocked. The
+> shipped message is `PlayerRoster { tick, entries: [{ id, pos }] }`: no name
+> field, but `RosterEntry` is a **table** (a struct could never gain one) and
+> carries the id a hover would need to resolve. §10's C3 ledger has the detail.
+
 ### 4.4 Campfire markers
 
 From bundled zone data (positions) filtered by the **discovered set** (which
@@ -187,6 +209,14 @@ That ordering is deliberate: it keeps part 1 free of any schema change.
    (recommendation: AOI position when present, roster otherwise) or the dot will
    visibly stutter between a 30 Hz and a 1 Hz position.
 
+   > **DISSOLVED 2026-08-04 in C3, on a corrected survey — see §2.** Other
+   > players are not drawn from the AOI and never have been, so there is no
+   > second source to arbitrate against. What survives of the landmine is the
+   > *self* case: your own dot comes from the AOI at 30 Hz **and** would come
+   > from the roster at 1 Hz, so the client drops its own id from the roster.
+   > `MapScale.rosterMarkers` does exactly that, and the harness's leg 1b is the
+   > negative control for it.
+
 ## 6. Chunks
 
 - **C1 — The map module, two states, no new data.** Rename/restructure
@@ -203,7 +233,10 @@ That ordering is deliberate: it keeps part 1 free of any schema change.
   markers on both states. ~~The one chunk with a protocol change~~ — **no longer
   true:** C2's persistence ruling put two fields on `GameState` and regenerated
   the bindings, so C3 is the *second* wire change, not the first. C3's is still
-  the larger one (a new message, not two appended fields).
+  the larger one (a new message, not two appended fields). ⚑ **Built
+  2026-08-04** — and smaller than billed, because the roster turned out to be
+  the *only* source for other players rather than a second one (§2's correction).
+  Ledger: §10 C3.
 
 Suggested order **C1 → C2 → C3**. C1 is the risky one (perf, mobile); C3 is the
 one that touches the wire. C2 between them is small and is what part 2 needs.
@@ -530,3 +563,192 @@ decode (`hygiene-wire-prune` is that gate, and is clean).
 has to bracket it rather than sit inside it: **stop** `aurad` first and wait for
 `💾 flushed N live character(s) for shutdown`, or the dump misses the last
 minutes of play.
+
+### C3 — The player roster — DONE (2026-08-04), PO-VERIFIED IN-GAME 2026-08-04, committed `[uncommitted]`
+
+Ships the `PlayerRoster` message, its single assembly point, and other players'
+dots on both map states. **The map is now feature-complete for part 1**: D6's
+three contents (self, discovered fires, other players) are all drawn.
+
+**PO rulings (2026-08-04), both taken before any code existed:**
+
+- **Dots only, no names — confirms §4.3's recommendation.** ⚑ With a rider:
+  *"at a later point we might want information when hovering a player. Don't
+  build it yet, but don't block it either."* Two things were shaped by that and
+  neither costs anything today: `RosterEntry` is a **table, not a struct** (a
+  struct's layout is frozen at birth, so `name` could never be appended), and
+  it **carries the entity id** even though nothing drawn needs one. The client
+  keeps the decoded entries rather than reducing them to coordinates, so a
+  hover readout is a client change, not a wire change.
+- **Same shape and size as your own dot, a different colour** — the option
+  chosen over "different colour AND smaller". Colour is white at 0.9 alpha
+  **[PLACEHOLDER]**: it has to separate from your own dark blue and from the
+  campfire ring's orange, on green terrain and on the dark HUD box alike.
+  ⚑ **The size half was implemented, measured, and then deliberately deviated
+  from — see finding 7.** The dots are now `7 / 20 px` per state
+  **[PLACEHOLDER]**, not the own dot's `4 / 29`. **This needs the PO's eye.**
+
+**⚑ The survey was wrong, and it made the chunk smaller — see §2 and landmine 6.**
+Other players have never been on the minimap: `Character` sets
+`visibleOnMinimap = false` and only the local `Player` flips it true. So the
+roster is the **only** source rather than a second one, and landmine 6's
+"pick one as authoritative or the dot stutters" collapses to "skip your own id".
+The lesson generalises: **the survey read a capability as a behaviour** — an
+icon factory plus a manager that honours a flag is not the same as the flag
+being set.
+
+**Findings that outlive this chunk:**
+
+1. ⚑ **One assembly, one marshal, the same bytes to everyone — and it is a
+   design requirement, not an optimisation.** `plan-flight-paths.md` C4 warns
+   that the roster is a *second* leak path for the fact `playerSendState`'s
+   flyer filter hides, "and they are in different files". A per-viewer assembly
+   would add a third. The Go test asserts the two clients received *the same
+   backing array*, not merely equal bytes: an equality assertion would pass for
+   a per-viewer build and lose the property.
+2. ⚑ **`NetSystem.players` is exactly "joined and alive"**, so the roster
+   filters nothing. §7 asked for dead- and spectator-exclusion tests; filtering
+   again in `RosterFor` would be a *second opinion* on who is in the world,
+   with its own way of being wrong. `sys/playercount_test.go` already pins both
+   exclusions over the same membership rule, and the roster inherits them.
+3. ⚑ **The 1 Hz dots STEP while your own dot GLIDES**, and that is written down
+   rather than fixed (YAGNI). It is the most likely thing to come back from the
+   PO as a bug report, so it is named in `rosterIntervalTicks`' comment and in
+   `MapPlayers`' header — an accepted cost, not an oversight.
+4. ⚑ **A `model.PlayerEntity` is ~40 methods, and embedding the interface is
+   how to fake it.** `struct { model.PlayerEntity; ... }` overriding only
+   `Basic()`, `Position()` and `Client()` panics loudly on anything else the
+   code under test reaches for — strictly better than a hand-written stub that
+   returns plausible zero values.
+5. ⚑ **A harness must assert against where the other player IS, not where WARP
+   was told to put them.** Leg 5 failed at 3.1 px until it read B's real
+   position off B's own client: a warp lands a fraction of a unit off its
+   target (measured: −29.95, −19.68 for a `WARP -30 -20`), because the body is
+   pushed out of whatever it materialised inside. The warp target is the
+   harness's *intent*; the client's position is the *fact* the map claims.
+6. ⚑ **`clear()` drops the dots although they are not entities.** C2
+   established that terrain, fog and campfire markers survive a clear; the
+   roster does not, and the reason is death — a dead client leaves the players
+   slice and stops receiving publications, so without this the last roster
+   before dying would sit frozen behind the death overlay.
+7. ⚑ **"Same size as your own dot" was implemented literally, and it erased the
+   campfires — C2's bug with the operands swapped.** The own dot is sized
+   `character.size × sizeFactor × iconSizeFactor`, and `iconSizeFactor` rides
+   the map scale: **4.2 px docked, 29.2 px full-screen**. The campfire markers
+   are per-state constants, **9 / 26**. So full-screen a dot is *wider than a
+   fire* and the roster layer draws above it — a player standing at a fire left
+   only the fire's orange home ring. Binding a campfire is what standing still
+   at one is FOR, so that is not a corner case. **All 13 legs passed while it
+   happened**, exactly as C2's did: leg 3 proves the dot draws *above* the
+   marker and says nothing about the marker surviving. The new **leg 6b**
+   asserts `dot ≤ fire` on the same canvas, and the dots became per-state
+   constants **7 / 20** — under the fires so a person cannot swallow a
+   landmark, above them so a landmark cannot swallow a person.
+   ⚑ **The docstring was the tell**: it claimed one number sizing both was "the
+   PO's ruling made structural". It was structural about the wrong invariant —
+   the ruling was that another player is not a *different kind of thing*, not
+   that a dot must be 29 px wide. **Flagged for the PO**, since it does touch
+   the letter of what they chose.
+   ⚑ **Overtaken the same day by the ruling in finding 8** — which inverts the
+   order and makes the collision impossible from the other side. The sizes were
+   kept anyway: they are what the PO looked at, and a marker that is 29 px in
+   one state and 4 px in the other is a marker whose legibility depends on
+   which state you are in.
+8. ⚑ **PO RULING, 2026-08-04: the map's draw order is `terrain → props →
+   other players → you → campfires`**, and the same in the world — *"the
+   campfire is still the most important information the map can provide"*.
+   Two reversals ride on it, both taken knowingly:
+   - **On the map it inverts C2's "above the scenery, below the people".** C2
+     put fires under both icon layers so a person could not be swallowed by a
+     landmark; the ruling takes the opposite trade, because a dot moves and a
+     fire is what the map is *for*. C2's own half survives untouched: fires
+     stay above the ~777 prop icons, which is the bug C2 was fixing. Its
+     harness leg 2d was relaxed to exactly that half, with the upper bound
+     moved to C3's leg 3.
+   - **The world is NOT part of it, and the two are not tied together.** The
+     first cut changed both — the original ask said "in the world and minimap" —
+     which reversed `6afbee84`'s campfire half (2026-07-21, from a PO report:
+     every mob layer moved under `characters` so *"the fire sprite can no longer
+     hide the avatar"*). The PO bounced it back **from a screenshot** within
+     minutes: *"the order I gave only applies to the minimap; in the world,
+     players should render on top of campfires."* `Game.ts` is byte-identical to
+     HEAD again; only its comment changed, to say why the two orders differ.
+     ⚑ The principle worth keeping: **a map marker is a claim about where
+     something is; a world sprite is the thing itself.** The map ranks by
+     information value, the world by physical sense — and "make them consistent"
+     is a cleanup that would break one of them, so `c3-player-roster` leg 6c
+     asserts **both** orders in one place, and says they are deliberately
+     opposite.
+   ⚑ **And it has a consequence nobody asked for, found by a harness that
+   failed for the right reason**: you respawn at your bound fire, so your own
+   dot lands exactly under that fire's marker — measured, icon at layer
+   position `(-82, 33)` against the marker's `(-81.7, 33.7)` — and **is
+   invisible until you walk off it**. `filler-batch`'s respawn leg is a pixel
+   probe and went red on precisely this. Its subject is icon *lifecycle* (no
+   leak, no duplicate), so it now counts CHARACTER-layer children instead of
+   blue pixels, keeping the pixel probe as the "more than one dot visible"
+   guard. ⚑ Proven a genuine consequence and not a regression by the house
+   method: `git stash -u` + rebuild + re-run at HEAD, where the same leg is
+   green. **Worth the PO's eye in-game** — "where am I" right after dying is a
+   moment you look at the map.
+9. ⚑ **A harness on the dev server is NOT alone on it.** Three legs asserted
+   `dots === 1` and went red while the feature was perfectly correct: the PO was
+   hand-testing on the same server, so their character was a third dot. `GET
+   /players` and the boot log named them (`'Bamm-Bamm Bull' joined`), which is
+   what separated "bystander" from "leaked ghost" in one command. Every position
+   leg now asks **"is B's dot here / not here"** through one `nearestDot`
+   helper, never "how many dots are there" — and the passing run reports
+   `2 dot(s)` with the extra one ignored, which is a better proof of the feature
+   than the count ever was.
+
+**Content:** no JSON, no ids, no pins. `BrowserConsole.ts` exposes
+`window.game.layers` (the `miniMap` precedent — the world's draw order is now a
+ruling, and only a stage-index assertion can pin it). New files `MapPlayers.ts`,
+`messages/incoming/PlayerRosterMessage.ts`, `codec/roster.go`,
+`core/roster_test.go`, `.claude/skills/verify/c3-player-roster.mjs`.
+`server.fbs` gains `RosterEntry` + `PlayerRoster` and
+**`ServerMessageBody.PlayerRoster = 7`** (the first addition to that pinned
+union since the entity-model chunks); `MapScale.ts` gains `rosterMarkers()`;
+`Graphics.ts` gains the `otherPlayer` minimap icon.
+
+**Schema impact: NONE.** The roster is assembled from live positions every
+tick-30 and persisted nowhere — nothing about who is online outlives the
+session. (Contrast C2, which is the migration in this plan.)
+
+**Client/server skew is safe in both directions.** An old cached client hits
+`Backend.ts`'s `default:` branch and warns instead of throwing; a new client
+against an old server simply never receives the message and draws no dots. The
+union value is appended, so nothing renumbers — `hygiene-wire-prune` is that
+gate and is clean.
+
+**Verified:** `go build` + full Go suite green (incl. 4 new roster tests) ·
+`make -C backend db-test` green vs real Postgres · `tsc --noEmit` clean ·
+vitest **207/207** (+8, covering self-exclusion, the not-yet-known local
+character, px-space placement, a dot landing on the same spot as the campfire
+at the same world point, scale-0 and the non-finite entry) · production webpack
+build clean · **`c3-player-roster.mjs` 15/15, 0 console errors** — with the PO
+live on the same server, i.e. a real third player on the map (legs 6/6b/6c are
+findings 7 and 8's) ·
+`c1-world-map` **12/12** and `c2-campfire-markers` **17/17** unregressed (leg 2d
+relaxed to its own half per finding 8) · `filler-batch` back to its **one**
+recorded pre-existing failure (the self-contradicting *"DAMAGE 100 did NOT empty
+the pool, got Focus 0/100"*) after finding 8's probe change · `hygiene-wire-prune` clean (631 sprites decoded, 0 ctx
+losses, 0 console errors) — the `.fbs` gate · boot `87 skills/15 factions/65
+mobs/10 recipes/5 props/3 milestone unlocks/4 quests`, migration `version=2
+dirty=false`, **0 panics, 0 ERROR**.
+
+**Harness note:** the first `c3-player-roster` run ended 11/13 — leg 5 on the
+warp-target measurement above, and a **backlog §29 lost WebGL context** on
+client A (with its usual companion, pixi's error reporter dying on
+`gl.getShaderSource(shader).split()`). It did not recur on the re-run, and §29's
+trigger is still unknown; the harness now **tags every console error with the
+leg that was running**, so the next sighting says *when*. Four GL contexts in
+one headless process (two pages × world + map) is a plausible aggravator and is
+recorded as a suspicion, not a finding.
+
+**Still open for C3:** PO in-game verification — **the dot's colour and size**
+(both [PLACEHOLDER]) and **one consequence of finding 8's map order**: your own
+dot is invisible while you stand at your bound fire, which is exactly where you
+respawn. (The world-order consequence is gone: the world was reverted.) C1's
+tail (the mobile real-device pass, the `features/map/` rename) is unchanged and
+still C1's.

@@ -171,9 +171,16 @@ try {
   // ⚑ 2d is the leg that would have caught the shipped-and-caught bug: markers
   // drawn UNDER the prop layer are invisible wherever the forest is dense, and
   // every count and position leg above still passes while they are.
-  check(m.depth.campfires > m.depth.props && m.depth.campfires < m.depth.characters,
-    '2d markers draw above the props and below the player dot',
-    `props ${m.depth.props} < campfires ${m.depth.campfires} < characters ${m.depth.characters}`);
+  //
+  // ⚑ The upper half was RELAXED in C3 by PO ruling (2026-08-04): fires now
+  // draw above the player dots too — *"the campfire is still the most important
+  // information the map can provide"* — so this chunk's original
+  // `campfires < characters` is no longer the rule and asserting it would fail
+  // a correct build. What C2 owns is the half that came from its own bug: a
+  // fire is never behind the scenery. The full order is c3-player-roster's leg 3.
+  check(m.depth.campfires > m.depth.props,
+    '2d markers draw above the props (C2\'s own bug; the upper bound is C3\'s leg 3)',
+    `props ${m.depth.props} < campfires ${m.depth.campfires} (characters ${m.depth.characters})`);
 
   // --- 3. the marker sits where the fire is --------------------------------
   //

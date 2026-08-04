@@ -49,7 +49,12 @@ const HOME_RING_FACTOR = 0.85;
 const HOME_RING_COLOR = 0xE37313;
 
 export class MapCampfires {
-    /** Add to the stage under the icon layers; positioned like the terrain. */
+    /**
+     * Add to the stage ABOVE both icon layers — the topmost markers on the map
+     * (PO ruling 2026-08-04: *"the campfire is still the most important
+     * information the map can provide"*, so nothing may cover one). Positioned
+     * like the terrain.
+     */
     readonly layer: Container;
 
     private campfires: ZoneCampfirePoint[] = [];

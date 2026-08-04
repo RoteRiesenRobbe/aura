@@ -15,6 +15,7 @@ function setup() {
         pause: undefined,
         play: undefined,
         miniMap: undefined,
+        layers: undefined,
     };
 
     consoleCommands.run = Console.run;
@@ -32,6 +33,12 @@ function setup() {
         // not an assertion. This is an internal-tools surface like everything
         // else on this object; nothing in the game reads it back.
         consoleCommands.miniMap = game.miniMap;
+        // The world's render layers, for the same reason and by the same
+        // precedent (plan-world-map.md C3). The draw ORDER is a PO ruling —
+        // campfires above the characters, every other mob layer below — and a
+        // stage-index assertion is the only way to pin it; by eye, a fire that
+        // has quietly slipped back under the avatar looks like nothing at all.
+        consoleCommands.layers = game.layers;
 
         return true;
     });

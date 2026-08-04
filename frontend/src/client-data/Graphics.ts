@@ -452,6 +452,21 @@ export const GraphicsConfig = {
                 alpha: 1,
                 sizeFactor: 3,
             },
+            /**
+             * Another player, from the 1 Hz roster (plan-world-map.md C3, D7).
+             * PO ruling: the same shape and size as your own dot, a different
+             * colour — so the SAME sizeFactor is deliberate and MapPlayers
+             * multiplies it by the very iconSizeFactor the AOI icons use.
+             *
+             * White [PLACEHOLDER]: it has to separate from your own dark-blue
+             * dot AND from the campfire markers' orange ring (0xE37313), on
+             * green terrain full-screen and on the dark HUD box docked.
+             */
+            otherPlayer: {
+                color: 0xFFFFFF,
+                alpha: 0.9,
+                sizeFactor: 3,
+            },
             tree: {
                 color: 0x1F5B0B,
                 alpha: 0.8,

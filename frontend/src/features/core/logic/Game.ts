@@ -280,8 +280,18 @@ export class Game implements IGame {
 
         // Mobs — deliberately UNDER the characters: a player standing on a
         // mob-layer entity (campfire, turnip field) must never be covered by
-        // its art (night-readability fix; the fire sprite used to hide the
-        // avatar completely).
+        // its art (night-readability fix `6afbee84`; the fire sprite used to
+        // hide the avatar completely).
+        //
+        // ⚑ THE MAP'S ORDER IS THE OPPOSITE, AND THE TWO ARE NOT TIED TOGETHER
+        // (PO ruling 2026-08-04, plan-world-map.md C3 finding 8). On the map,
+        // campfire markers draw ABOVE the player dots — *"the campfire is still
+        // the most important information the map can provide"*. In the WORLD
+        // the player stays on top, which is this line, unchanged since
+        // `6afbee84`. A map marker is a claim about where something is; a world
+        // sprite is the thing itself, and you must be able to see yourself
+        // standing in it. Building the world to match the map was tried in this
+        // chunk and bounced back by the PO from a screenshot.
         this.cameraGroup.addChild(
             this.layers.mobs.dodo,
             this.layers.mobs.saberToothCat,

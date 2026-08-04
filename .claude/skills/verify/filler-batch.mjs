@@ -257,11 +257,34 @@ if (dotsDead.length > 0) {
 } else {
   pass('no player dot remains while dead');
 }
-if (dotsRespawned.length !== 1) {
-  fail('expected exactly 1 player dot after respawn, found ' + dotsRespawned.length
+// ⚑ THE RESPAWN LEG COUNTS ICONS, NOT PIXELS, and it has to since
+// plan-world-map.md C3 (2026-08-04). The PO's map draw order puts the campfire
+// markers ABOVE the player dots — *"the campfire is still the most important
+// information the map can provide"* — and you respawn AT your bound fire, so
+// your own 4 px dot lands exactly under the 9 px marker and the pixel probe
+// sees nothing. Measured: the icon is present, visible, alpha 1, at layer
+// position (-82, 33), and the fire's marker is at (-81.7, 33.7).
+//
+// The two legs above stay on pixels: the live dot is out in the open, and the
+// dead-dot leg is asking whether anything was LEFT behind, which pixels answer
+// honestly. Only this one had its subject hidden by a deliberate ruling — and
+// what it was ever really testing is that the death/respawn cycle neither
+// leaks an icon nor fails to make a new one.
+const respawnedIcons = await page.evaluate(() => {
+  const layer = window.game?.miniMap?.layerContainers?.[0]; // Layer.CHARACTER
+  if (!layer) return null;
+  return layer.children.filter((c) => c.visible && c.alpha > 0).length;
+});
+console.log('  own-character icons in the CHARACTER layer after respawn: ' + respawnedIcons);
+if (respawnedIcons !== 1) {
+  fail('expected exactly 1 player icon after respawn, found ' + respawnedIcons
     + ' — the death/respawn cycle leaks icons');
 } else {
-  pass('exactly 1 player dot after respawn — no duplicate, no stale dot');
+  pass('exactly 1 player icon after respawn — no duplicate, no stale dot');
+}
+if (dotsRespawned.length > 1) {
+  fail('more than one player dot is VISIBLE after respawn (' + dotsRespawned.length
+    + ') — a stale dot survived somewhere the campfire marker does not cover');
 }
 
 const health = await readHealth();

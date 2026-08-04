@@ -4,6 +4,7 @@ import * as BackendConstants from './BackendConstants';
 import * as SnapshotFactory from './SnapshotFactory';
 import {Snapshot} from './SnapshotFactory';
 import {GameStateMessage} from './messages/incoming/GameStateMessage';
+import {PlayerRosterMessage} from './messages/incoming/PlayerRosterMessage';
 import {WelcomeMessage} from './messages/incoming/WelcomeMessage';
 import * as Chat from '../../chat/logic/Chat';
 import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
@@ -309,6 +310,17 @@ export class Backend implements IBackend {
                 GameLateSetupEvent.subscribe(() => {
                     this.receiveSnapshot(SnapshotFactory.newSnapshot(this.state, gameState));
                 });
+                break;
+            case AuraApi.ServerMessageBody.PlayerRoster:
+                // The map's other-player dots (plan-world-map.md C3, D7): every
+                // live player in the zone, ~1×/s. Handed straight to the map —
+                // it is not snapshot state and deliberately does not travel
+                // through Snapshot/receiveSnapshot, which is the 30 Hz path.
+                let roster = new PlayerRosterMessage(serverMessage.body(new AuraApi.PlayerRoster()));
+                if (Develop.isActive()) {
+                    Develop.get().logServerMessage(roster, 'PlayerRoster', timeSinceLastMessage);
+                }
+                this.game.miniMap?.setRoster(roster.players);
                 break;
             case AuraApi.ServerMessageBody.Pong:
                 PongReceivedEvent.trigger();

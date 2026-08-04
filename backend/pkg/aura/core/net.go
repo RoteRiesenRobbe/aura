@@ -7,6 +7,7 @@ import (
 	"github.com/EngoEngine/ecs"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/codec"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/google/flatbuffers/go"
 )
 
@@ -43,6 +44,17 @@ func (n *NetSystem) AddSpectator(s model.Spectator) {
 	n.spectators = append(n.spectators, s)
 }
 
+// rosterIntervalTicks is how often the map's player roster goes out: ~1 Hz
+// (plan-world-map.md D7). [PLACEHOLDER]
+//
+// ⚑ The accepted, visible cost of 1 Hz: another player's dot STEPS once a
+// second while your own dot — which comes from the 30 Hz AOI stream, not from
+// here — glides. That asymmetry is deliberate and is not a bug report waiting
+// to happen only because it is written down: interpolating roster dots is a
+// whole moving-average of its own for a marker a few pixels across, and YAGNI
+// says not until someone actually minds.
+const rosterIntervalTicks = uint64(constant.TicksPerSecond)
+
 func (n *NetSystem) Update(dt float32) {
 	// assemble game state prototype
 	characterGameState := codec.CharacterGameState{}
@@ -60,6 +72,45 @@ func (n *NetSystem) Update(dt float32) {
 	// process players
 	for _, spectator := range n.spectators {
 		n.spectatorSendState(spectator, spectatorGameState)
+	}
+
+	if n.game.Tick%rosterIntervalTicks == 0 {
+		n.sendRoster()
+	}
+}
+
+// sendRoster publishes the map's player roster to every player.
+//
+// ⚑ ONE ASSEMBLY, ONE MARSHAL, THE SAME BYTES TO EVERYONE — the whole reason
+// §4.3 specified a single assembly point. Per-viewer assembly would cost a
+// marshal per player for a message every player gets identically, and, more
+// importantly, it would give part 2's flyer-invisibility filter a second place
+// to be forgotten (plan-flight-paths.md L: "the roster is a *second* leak path
+// for the same fact — one filter is not enough, and they are in different
+// files"). When flight ships, the filter goes in codec.RosterFor and nowhere
+// else.
+//
+// Spectators are deliberately skipped: a client on the start screen or the
+// death overlay has no map open, and the roster is for the map.
+//
+// ⚑ A failed send is ignored here rather than disconnecting. The 30 Hz
+// GameState send above already runs its own error path over the same sockets
+// every tick, so a dead socket is detected there within 33 ms — reacting to it
+// twice would mean removing an entity while iterating the slice a caller above
+// is also iterating.
+func (n *NetSystem) sendRoster() {
+	if len(n.players) == 0 {
+		return
+	}
+
+	roster := codec.RosterFor(n.game.Tick, n.players)
+
+	builder := flatbuffers.NewBuilder(64)
+	builder.Finish(codec.PlayerRosterMessageFlatbufMarshal(builder, &roster))
+	payload := builder.FinishedBytes()
+
+	for _, player := range n.players {
+		_ = player.Client().SendMessage(payload)
 	}
 }
 

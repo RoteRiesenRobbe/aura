@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
     MapState, campfireMarkers, isInsideDrawnMap, mapScale, rescaleCoordinate, resizeTerrain,
-    worldToMap,
+    rosterMarkers, worldToMap,
 } from './MapScale';
 
 // The real world zone (api/zones/world.json) as the CLIENT receives it:
@@ -348,6 +348,85 @@ describe('campfireMarkers', () => {
         ].map((scale) => {
             const [marker] = campfireMarkers(
                 FIRES, new Set(['spawnpoint-4']), '', scale, PX_PER_UNIT);
+            return marker.x / (WORLD.mapWidth * scale);
+        });
+
+        fractions.forEach((fraction) => expect(fraction).toBeCloseTo(fractions[0], 10));
+    });
+});
+
+/**
+ * The other-player dots (plan-world-map.md C3, D7). Positions arrive from the
+ * roster ALREADY IN PX — the server marshals them through the same f32ToPx as
+ * Character.pos — so the fixture is in px, unlike the campfire one above.
+ */
+describe('rosterMarkers', () => {
+    const FULL = mapScale(MapState.FULLSCREEN, {width: 1920, height: 1080}, WORLD);
+    const SELF = 7;
+    const ROSTER = [
+        {id: SELF, x: 1200, y: -600},
+        {id: 8, x: -6984, y: 2880},
+        {id: 9, x: 5280, y: 1260},
+    ];
+
+    it('skips your own dot — its position comes from the 30 Hz stream instead', () => {
+        // Drawing yourself from both sources is the plan's landmine 6: the AOI
+        // dot glides and the roster dot steps once a second, so one would
+        // visibly slide out from under the other.
+        expect(rosterMarkers(ROSTER, SELF, FULL).map((m) => m.id)).toEqual([8, 9]);
+    });
+
+    it('draws every player when the local character is not known yet', () => {
+        // A fresh join can take the first roster before the Character exists,
+        // and MiniMap passes 0 for "nobody". An entity id is never 0, so this
+        // cannot silently drop a real player.
+        expect(rosterMarkers(ROSTER, 0, FULL)).toHaveLength(3);
+    });
+
+    it('places a dot exactly where the same point renders on the map', () => {
+        const [marker] = rosterMarkers(ROSTER, SELF, FULL);
+
+        expect(marker.x).toBeCloseTo(worldToMap(-6984, FULL), 6);
+        expect(marker.y).toBeCloseTo(worldToMap(2880, FULL), 6);
+    });
+
+    it('lands a player and the campfire they stand at on the same spot', () => {
+        // The unit trap C1's finding 1 names: the roster is px and the zone
+        // JSON is world units, so one of the two callers has to apply the ×120
+        // — and only one. spawnpoint-1 sits at -58.2, 24 world units, which is
+        // the same place as this player's -6984, 2880 px.
+        const [fire] = campfireMarkers(
+            [{id: 'spawnpoint-1', x: -58.2, y: 24}], new Set(['spawnpoint-1']), '', FULL, 120);
+        const [dot] = rosterMarkers([{id: 8, x: -6984, y: 2880}], SELF, FULL);
+
+        expect(dot.x).toBeCloseTo(fire.x, 6);
+        expect(dot.y).toBeCloseTo(fire.y, 6);
+    });
+
+    it('draws nothing at scale 0, rather than piling everyone on the origin', () => {
+        expect(rosterMarkers(ROSTER, SELF, 0)).toEqual([]);
+        expect(rosterMarkers(ROSTER, SELF, NaN)).toEqual([]);
+    });
+
+    it('survives an empty or absent roster', () => {
+        expect(rosterMarkers([], SELF, FULL)).toEqual([]);
+        expect(rosterMarkers(undefined as never, SELF, FULL)).toEqual([]);
+    });
+
+    it('skips an entry with a non-finite position', () => {
+        expect(rosterMarkers(
+            [{id: 8, x: NaN, y: 0}, {id: 9, x: 0, y: Infinity}], SELF, FULL)).toEqual([]);
+    });
+
+    it('keeps a dot on the same fraction of the map at every scale', () => {
+        // The same invariant the campfire markers and the terrain are pinned
+        // against: one scale places the ground and everything on it.
+        const fractions = [
+            mapScale(MapState.DOCKED, {width: 202, height: 202}, WORLD),
+            mapScale(MapState.FULLSCREEN, {width: 1920, height: 1080}, WORLD),
+            mapScale(MapState.FULLSCREEN, {width: 390, height: 844}, WORLD),
+        ].map((scale) => {
+            const [marker] = rosterMarkers([{id: 8, x: -6984, y: 2880}], SELF, scale);
             return marker.x / (WORLD.mapWidth * scale);
         });
 
