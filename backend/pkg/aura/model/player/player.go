@@ -114,6 +114,10 @@ type player struct {
 	lastMoveDir phy.Vec2f
 	client      model.Client
 
+	// flight is the campfire-to-campfire fast-travel state
+	// (plan-flight-paths.md C2); zero value = on the ground.
+	flight flightState
+
 	viewport *phy.Box
 	aura     *phy.Circle
 

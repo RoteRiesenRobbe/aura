@@ -77,6 +77,15 @@ func characterCommonMarshalFlatbuf(builder *flatbuffers.Builder, p model.PlayerE
 	AuraApi.CharacterAddAuraCategory(builder, byte(p.AuraCategories()))
 	// Buff/debuff kinds currently applied TO the player — drives the pips.
 	AuraApi.CharacterAddAppliedEffects(builder, byte(p.AppliedEffects()))
+	// Flight state (plan-flight-paths.md C2, D15): destination + arrival tick
+	// let the client run its camera, input lock and ETA without guessing.
+	// Dest/arrival only while airborne — the fields default to zero/absent.
+	if p.Flying() {
+		AuraApi.CharacterAddFlying(builder, true)
+		dest := Vec2fMarshalFlatbuf(builder, p.FlightDest())
+		AuraApi.CharacterAddFlightDest(builder, dest)
+		AuraApi.CharacterAddFlightArrivalTick(builder, p.FlightArrivalTick())
+	}
 }
 
 // u64ToU32Clamped narrows a uint64 to uint32 for the wire, saturating rather

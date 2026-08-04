@@ -160,6 +160,10 @@ func NewGameWith(seed int64, conf ...Configuration) (model.Game, error) {
 	// constructed before the ConnectionStateSystem, so the reference is wired
 	// post-construction (the CampfireAnchorSink precedent).
 	sk.SetConnState(s)
+	// The flight machine's seams (plan-flight-paths.md C2): validation
+	// answers from ConnState, takeoff leaves the physics space and sweeps
+	// the mobs' latches. Wired here for the same construction-order reason.
+	i.SetFlightSeams(s, p.Space(), m)
 
 	c := cmd.NewCommandSystem(g, gc.Tokens, p.Space(), chatSys)
 	g.AddSystem(c)

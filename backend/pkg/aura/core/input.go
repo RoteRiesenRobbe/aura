@@ -9,6 +9,8 @@ import (
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/constant"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/phy"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/sys"
+	"github.com/google/uuid"
 )
 
 const inputBuffererCount = 3
@@ -108,6 +110,40 @@ type PlayerInputSystem struct {
 	// stats holds per-player input-transport instrumentation, parallel to
 	// lastMove. Accessed only from the tick goroutine via statFor.
 	stats map[uint64]*playerInputStats
+
+	// Flight seams (plan-flight-paths.md C2), wired post-construction in
+	// NewGameWith like every cross-system reference. Nil-tolerant: a world
+	// without them (bare-literal tests) silently refuses StartFlight.
+	flightConn   FlightConn
+	flightSpace  *phy.Space
+	flightForget FlightForget
+}
+
+// FlightConn is the ConnectionStateSystem capability the flight machine needs
+// (plan-flight-paths.md §4.4): resolve the fire the player stands at, check
+// discovery, resolve a destination. All three answer from the boot-frozen
+// authored set + the per-client discovered sets — the client's map is a
+// convenience, never the authority.
+type FlightConn interface {
+	CampfireAt(pos phy.Vec2f) (id string, ok bool)
+	CampfireDiscovered(client uuid.UUID, id string) bool
+	CampfirePosition(id string) (pos phy.Vec2f, ok bool)
+}
+
+// FlightForget is the mob-side takeoff sweep (MobSystem.ForgetDeparted): the
+// flyer has left the ground world, so every latch onto them — target, threat
+// table, charm — is severed, exactly as on disconnect. The second half of the
+// §54 guarantee; BeginFlight's RemoveShape purge is the first (§4.2).
+type FlightForget interface {
+	ForgetDeparted(id uint64)
+}
+
+// SetFlightSeams wires the flight machine's cross-system references
+// (the SetConnState precedent).
+func (i *PlayerInputSystem) SetFlightSeams(conn FlightConn, space *phy.Space, forget FlightForget) {
+	i.flightConn = conn
+	i.flightSpace = space
+	i.flightForget = forget
 }
 
 func NewInputSystem(g *game) *PlayerInputSystem {
@@ -169,9 +205,17 @@ func (i *PlayerInputSystem) Update(dt float32) {
 		// Baseline-utility presses (plan-downtime.md C1) ride their own
 		// message kind, not Input — queued here like cooldown activations,
 		// fired by the SkillSystem later this same tick. Health-gated the
-		// way movement is: the dead do not recall.
-		if u := p.Client().NextUseUtility(); u != nil && p.VitalSigns().Health != 0 {
+		// way movement is: the dead do not recall. Neither do the airborne
+		// (plan-flight-paths.md §4.2): Recall would teleport out of a
+		// committed flight (D11), Camp would place a mini-camp in mid-air.
+		// The press is still drained, so a stale one dies here.
+		if u := p.Client().NextUseUtility(); u != nil && p.VitalSigns().Health != 0 && !p.Flying() {
 			p.SkillComponent().RequestUtilityCast(u.Kind)
+		}
+		// Flight requests (plan-flight-paths.md C2) — validated on server
+		// state alone; refusal is silent (§4.4).
+		if f := p.Client().NextStartFlight(); f != nil {
+			i.tryStartFlight(p, f)
 		}
 	}
 
@@ -180,6 +224,19 @@ func (i *PlayerInputSystem) Update(dt float32) {
 
 	// apply inputs to player
 	for _, p := range i.players {
+		// A flyer's picked input is discarded whole — movement, aura
+		// switches and cooldown activations all ride Input, so the one skip
+		// covers them (plan-flight-paths.md §4.2). The lerp is the only
+		// mover; landing goes through the one re-entry (player.Ground).
+		if p.Flying() {
+			pos, arrived := p.FlightPosition(i.game.Tick)
+			if arrived {
+				i.land(p, pos)
+			} else {
+				p.SetPosition(pos)
+			}
+			continue
+		}
 		id := p.Basic().ID()
 		i.updateInput(p, i.pickInput(id, ibuf[id]), nil)
 	}
@@ -297,6 +354,70 @@ func logInputStats(id, winTicks uint64, base, cur inputStatSnapshot, hist []uint
 }
 
 // applies the inputs to a player
+// tryStartFlight validates a flight request against server state alone
+// (plan-flight-paths.md §4.4) and, when every check passes, performs the
+// takeoff. Refusal is silent, the established pattern — a stale click from
+// the map looks exactly like an invalid one.
+func (i *PlayerInputSystem) tryStartFlight(p model.PlayerEntity, req *model.StartFlight) {
+	if i.flightConn == nil || i.flightSpace == nil {
+		return // world without flight wiring (bare-literal tests)
+	}
+	if p.Flying() || p.VitalSigns().Health == 0 {
+		return
+	}
+	client := p.Client().UUID()
+	fromID, ok := i.flightConn.CampfireAt(p.Position())
+	if !ok || !i.flightConn.CampfireDiscovered(client, fromID) {
+		return
+	}
+	toID := req.DestinationCampfireID
+	if toID == fromID || !i.flightConn.CampfireDiscovered(client, toID) {
+		return
+	}
+	dest, ok := i.flightConn.CampfirePosition(toID)
+	if !ok {
+		// A discovered id whose fire no longer exists is skipped silently,
+		// never an error — the home_campfire_id rule (§5).
+		return
+	}
+
+	// Takeoff. The one-shot §4.2 gates first: a running cast dies, the aura
+	// goes out synchronously (a merely skipped aura would keep streaming its
+	// ring), and the held coast input is dropped so a landing cannot replay
+	// the pre-takeoff walk direction on its first starved tick.
+	sc := p.SkillComponent()
+	sc.CancelCast()
+	// A press queued THIS tick outlives CancelCast (the pending queues are
+	// separate state, consumed by the SkillSystem after this system runs) —
+	// without this a same-tick UseUtility+StartFlight starts a Recall cast
+	// mid-air, and Recall completing mid-flight is a teleport out of a
+	// committed flight (D11).
+	sc.PendingUtilities = nil
+	sc.PendingCooldowns = nil
+	sc.SetActiveAura(-1)
+	delete(i.lastMove, p.Basic().ID())
+
+	// Leave the ground world (D13: shapes out with the §54 purge, viewport
+	// grown)…
+	p.BeginFlight(i.flightSpace, fromID, toID, dest, i.game.Tick)
+	// …and sever every latch the mobs hold — the second §54 half.
+	if i.flightForget != nil {
+		i.flightForget.ForgetDeparted(p.Basic().ID())
+	}
+}
+
+// land completes a flight: back into the ground world via the one re-entry,
+// then the arrival snap — jittered like every other simultaneous-arrival
+// point (respawns, recalls).
+func (i *PlayerInputSystem) land(p model.PlayerEntity, dest phy.Vec2f) {
+	p.Ground()
+	p.SetPosition(sys.JitterAround(dest, landingJitterRadius))
+}
+
+// landingJitterRadius spreads simultaneous landings in a small disc around
+// the destination fire, the respawn precedent. [PLACEHOLDER]
+const landingJitterRadius = 1.0
+
 func (i *PlayerInputSystem) updateInput(p model.PlayerEntity, next, last *model.PlayerInput) {
 	if next == nil {
 		return

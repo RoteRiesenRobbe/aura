@@ -213,6 +213,21 @@ type PlayerEntity interface {
 	// (the same flag that gates out-of-combat regen). The EquipSystem reads it
 	// to lock loadout editing in combat.
 	InCombat() bool
+
+	// Flight (plan-flight-paths.md C2): campfire-to-campfire fast travel.
+	// Flying/FlightDest/FlightArrivalTick feed the Character wire fields.
+	// BeginFlight leaves the ground world (the D13 space exit — body, hand
+	// and aura sensor out, viewport stays — plus the flight-scale AOI);
+	// Ground() is the ONE re-entry, shared by landing and a mid-flight WARP,
+	// so a half-restored flyer cannot exist. Validation, the mob forget
+	// sweep and the §4.2 input gates are the driving system's job
+	// (PlayerInputSystem).
+	Flying() bool
+	FlightDest() phy.Vec2f
+	FlightArrivalTick() uint64
+	BeginFlight(space *phy.Space, fromID, toID string, dest phy.Vec2f, startTick uint64)
+	FlightPosition(tick uint64) (pos phy.Vec2f, arrived bool)
+	Ground()
 	// QuestLedger is this character's lifetime quest state (plan-quests.md
 	// C1): kill counters increment at the mob's death-reward fan-out,
 	// conversants stamp at session open, and the connection-state stash

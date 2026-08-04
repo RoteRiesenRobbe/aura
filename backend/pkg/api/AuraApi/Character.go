@@ -437,8 +437,45 @@ func (rcv *Character) MutateCostPaid(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(66, n)
 }
 
+func (rcv *Character) Flying() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(68))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Character) MutateFlying(n bool) bool {
+	return rcv._tab.MutateBoolSlot(68, n)
+}
+
+func (rcv *Character) FlightDest(obj *Vec2f) *Vec2f {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(70))
+	if o != 0 {
+		x := o + rcv._tab.Pos
+		if obj == nil {
+			obj = new(Vec2f)
+		}
+		obj.Init(rcv._tab.Bytes, x)
+		return obj
+	}
+	return nil
+}
+
+func (rcv *Character) FlightArrivalTick() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(72))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Character) MutateFlightArrivalTick(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(72, n)
+}
+
 func CharacterStart(builder *flatbuffers.Builder) {
-	builder.StartObject(32)
+	builder.StartObject(35)
 }
 func CharacterAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -538,6 +575,15 @@ func CharacterAddAppliedEffects(builder *flatbuffers.Builder, appliedEffects byt
 }
 func CharacterAddCostPaid(builder *flatbuffers.Builder, costPaid uint32) {
 	builder.PrependUint32Slot(31, costPaid, 0)
+}
+func CharacterAddFlying(builder *flatbuffers.Builder, flying bool) {
+	builder.PrependBoolSlot(32, flying, false)
+}
+func CharacterAddFlightDest(builder *flatbuffers.Builder, flightDest flatbuffers.UOffsetT) {
+	builder.PrependStructSlot(33, flatbuffers.UOffsetT(flightDest), 0)
+}
+func CharacterAddFlightArrivalTick(builder *flatbuffers.Builder, flightArrivalTick uint64) {
+	builder.PrependUint64Slot(34, flightArrivalTick, 0)
 }
 func CharacterEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

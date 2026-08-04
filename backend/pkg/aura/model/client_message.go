@@ -80,6 +80,14 @@ type UseUtility struct {
 	Kind skills.UtilityKind
 }
 
+// StartFlight is a campfire-to-campfire flight request (plan-flight-paths.md
+// C2). Not a UtilityKind because it carries a destination — the discovered
+// spawn-point id the player clicked on the map. The server validates on its
+// own state and refuses silently.
+type StartFlight struct {
+	DestinationCampfireID string
+}
+
 // AbandonQuest is the journal panel's one upstream message (plan-quests.md C3,
 // D13): give up a running quest. It returns to not-started — path and diary
 // cleared — and becomes offerable again; lifetime counters and the completed set

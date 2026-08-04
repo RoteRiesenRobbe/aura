@@ -82,6 +82,7 @@ func (c *stubClient) NextRespec() *model.Respec {
 func (c *stubClient) NextUseUtility() *model.UseUtility {
 	return nil
 }
+func (c *stubClient) NextStartFlight() *model.StartFlight { return nil }
 func (c *stubClient) NextInput() *model.PlayerInput         { return nil }
 func (c *stubClient) NextJoin() *model.Join                 { return nil }
 func (c *stubClient) NextCheat() *model.Cheat               { return nil }

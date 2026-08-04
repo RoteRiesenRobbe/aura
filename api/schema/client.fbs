@@ -93,6 +93,16 @@ table UseUtility {
     kind: UtilityKind = None;
 }
 
+// Start a campfire-to-campfire flight (plan-flight-paths.md C2). Carries the
+// destination spawn-point id, which is why it is NOT a UtilityKind — utilities
+// are argument-free presses. The server validates on its own state (alive, no
+// flight active, standing at a discovered fire, destination discovered +
+// different + still existing) and refuses silently; the client's map is a
+// convenience, never the authority.
+table StartFlight {
+    destination_campfire_id:string;
+}
+
 // Respawn a dead player: sent from the death overlay instead of a fresh
 // Join — the server reuses the reserved name and carried progression and
 // spawns at the client's campfire anchor (atmosphere & recovery chunk 4).
@@ -159,7 +169,8 @@ union ClientMessageBody {
   Interact = 8,
   AbandonQuest = 9,
   Respec = 10,
-  UseUtility = 11
+  UseUtility = 11,
+  StartFlight = 12
 }
 table ClientMessage { body:ClientMessageBody; }
 

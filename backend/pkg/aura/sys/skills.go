@@ -1786,7 +1786,7 @@ func (s *SkillSystem) applyRecall(e skillEntity) bool {
 	if !bound {
 		return false
 	}
-	p.SetPosition(jitterAround(anchor, respawnJitterRadius))
+	p.SetPosition(JitterAround(anchor, respawnJitterRadius))
 	return true
 }
 

@@ -49,6 +49,10 @@ type Client interface {
 	// Returns nil if none available.
 	NextUseUtility() *UseUtility
 
+	// NextStartFlight deques a flight request (plan-flight-paths.md C2).
+	// Returns nil if none available.
+	NextStartFlight() *StartFlight
+
 	// SendMessage enqueues a message in the outgoing
 	// messages queue
 	SendMessage([]byte) error

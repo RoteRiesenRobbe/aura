@@ -455,7 +455,7 @@ func (s *ConnectionStateSystem) defaultSpawnPosition() phy.Vec2f {
 		starts = s.campfires // defensive: validation forbids this in real zones
 	}
 	c := starts[rand.Intn(len(starts))]
-	return jitterAround(c.Pos, c.DwellRadius)
+	return JitterAround(c.Pos, c.DwellRadius)
 }
 
 func (s *ConnectionStateSystem) Update(dt float32) {
@@ -819,7 +819,7 @@ func (s *ConnectionStateSystem) tryJoin(sp model.Spectator) {
 	}
 	if fire, ok := s.campfireFor(home); ok {
 		s.anchors[client.UUID()] = fire.ID
-		p.SetPosition(jitterAround(fire.Pos, respawnJitterRadius))
+		p.SetPosition(JitterAround(fire.Pos, respawnJitterRadius))
 	} else {
 		p.SetPosition(s.defaultSpawnPosition())
 	}
@@ -1003,18 +1003,50 @@ func (s *ConnectionStateSystem) respawnPosition(id uuid.UUID) phy.Vec2f {
 	if !ok {
 		return s.defaultSpawnPosition()
 	}
-	return jitterAround(fire.Pos, respawnJitterRadius)
+	return JitterAround(fire.Pos, respawnJitterRadius)
 }
 
-// jitterAround spreads positions in a small disc around pos so simultaneous
-// arrivals (respawns, recalls) don't stack on one point.
-func jitterAround(pos phy.Vec2f, radius float32) phy.Vec2f {
+// JitterAround spreads positions in a small disc around pos so simultaneous
+// arrivals (respawns, recalls, flight landings) don't stack on one point.
+// Exported for the flight landing snap (core/input.go, plan-flight-paths.md).
+func JitterAround(pos phy.Vec2f, radius float32) phy.Vec2f {
 	angle := rand.Float64() * 2 * math.Pi
 	r := rand.Float32() * radius
 	return phy.Vec2f{
 		X: pos.X + r*float32(math.Cos(angle)),
 		Y: pos.Y + r*float32(math.Sin(angle)),
 	}
+}
+
+// CampfireAt resolves which authored fire's bind radius contains pos, if any —
+// the same geometry the dwell tracker walks every tick, shared so a "standing
+// at a fire" answer can never disagree between binding and flight validation
+// (plan-flight-paths.md §4.4). Only the boot-frozen authored slice answers: a
+// player-placed mini-camp is never in it (L3), so it can no more become a
+// flight node than a spawn point.
+func (s *ConnectionStateSystem) CampfireAt(pos phy.Vec2f) (string, bool) {
+	for i := range s.campfires {
+		c := &s.campfires[i]
+		if pos.DistanceToSquared(c.Pos) <= c.DwellRadius*c.DwellRadius {
+			return c.ID, true
+		}
+	}
+	return "", false
+}
+
+// CampfireDiscovered reports whether this client's character has discovered
+// the fire (dwelled at it, D4) — flight validation's authority
+// (plan-flight-paths.md §4.4).
+func (s *ConnectionStateSystem) CampfireDiscovered(client uuid.UUID, id string) bool {
+	return s.discovered[client].contains(id)
+}
+
+// CampfirePosition resolves a spawn-point id to its fire's position. Reports
+// false for an id that no longer resolves — the home_campfire_id rule: stale
+// is skipped silently, never an error.
+func (s *ConnectionStateSystem) CampfirePosition(id string) (phy.Vec2f, bool) {
+	fire, ok := s.campfireFor(id)
+	return fire.Pos, ok
 }
 
 // AnchorOf is the ConnState seam (plan-skill-vocab chunk 4): the campfire
@@ -1097,17 +1129,19 @@ func (s *ConnectionStateSystem) trackCampfireDwell() {
 		return
 	}
 	for _, p := range s.players {
-		pos := p.Position()
-		var near *CampfireAnchor
-		for i := range s.campfires {
-			c := &s.campfires[i]
-			if pos.DistanceToSquared(c.Pos) <= c.DwellRadius*c.DwellRadius {
-				near = c
-				break
-			}
-		}
 		id := p.Basic().ID()
-		if near == nil {
+		// A flyer's position sweeps the whole world (plan-flight-paths.md
+		// §4.2): without this skip a slow fly-over would discover — and
+		// REBIND the respawn to — fires never landed at, and a takeoff
+		// within the dwell threshold of arriving would complete the origin
+		// fire's dwell mid-air. Dropping the progress means a landing starts
+		// a fresh count, which is exactly what standing at the fire earns.
+		if p.Flying() {
+			delete(s.dwell, id)
+			continue
+		}
+		nearID, ok := s.CampfireAt(p.Position())
+		if !ok {
 			delete(s.dwell, id)
 			continue
 		}
@@ -1118,15 +1152,15 @@ func (s *ConnectionStateSystem) trackCampfireDwell() {
 		// they stayed bound to a campfire they had left. Reachable on foot
 		// wherever two bind radii touch, and instantly with a warp.
 		progress := s.dwell[id]
-		if progress.spawnPoint != near.ID {
-			progress = dwellProgress{spawnPoint: near.ID}
+		if progress.spawnPoint != nearID {
+			progress = dwellProgress{spawnPoint: nearID}
 		}
 		progress.ticks++
 		s.dwell[id] = progress
 		// Exactly-at-threshold: bind once per dwell (leaving and returning
 		// re-binds) and stamp the one-tick feedback for the client.
 		if progress.ticks == campfireDwellTicks {
-			s.anchors[p.Client().UUID()] = near.ID
+			s.anchors[p.Client().UUID()] = nearID
 			p.NoteCampfireBound()
 			// The same act rebinds the spawn point and refills the Camp
 			// charge store (C2): the fire is the one anchor of the whole
@@ -1151,7 +1185,7 @@ func (s *ConnectionStateSystem) trackCampfireDwell() {
 			// a fire" would drift apart. L3 above covers this too — a
 			// player-placed mini-camp is never in s.campfires, so it can no
 			// more become a map marker than it can become a spawn point.
-			s.discoveredFor(p.Client().UUID()).add(near.ID)
+			s.discoveredFor(p.Client().UUID()).add(nearID)
 			s.publishCampfireState(p)
 		}
 	}
@@ -1244,6 +1278,15 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 	// stays reserved while stashed). Death routes through here too — it drops
 	// the spurious stash and re-registers the token right after the fan-out
 	// returns (see handleDeath). Without a token (defensive): old free path.
+	// A disconnect mid-flight resolves the flight immediately
+	// (plan-flight-paths.md D12/D14): the stashed position is the
+	// DESTINATION — the flight is committed (D11), so arrival is where the
+	// character truthfully is next. Reconnect and the session-expiry save
+	// both read this one field, so one line covers both.
+	position := p.Position()
+	if p.Flying() {
+		position = p.FlightDest()
+	}
 	if token, hasToken := s.tokenByClient[clientUUID]; hasToken {
 		s.stashByToken[token] = reconnectStash{
 			name:           p.Name(),
@@ -1252,7 +1295,7 @@ func (s *ConnectionStateSystem) removeFromPlayers(e ecs.BasicEntity) {
 			quests:         p.QuestLedger(),
 			health:         p.VitalSigns().Health,
 			campCharges:    p.CampCharges(),
-			position:       p.Position(),
+			position:       position,
 			anchor:         s.anchors[clientUUID],
 			discovered:     s.discovered[clientUUID],
 			disconnectTick: s.game.Ticks(),

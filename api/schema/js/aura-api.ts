@@ -38,6 +38,7 @@ export { ServerMessage } from './aura-api/server-message.js';
 export { ServerMessageBody } from './aura-api/server-message-body.js';
 export { Spectator } from './aura-api/spectator.js';
 export { SpendSkillPoint } from './aura-api/spend-skill-point.js';
+export { StartFlight } from './aura-api/start-flight.js';
 export { StatusEffect } from './aura-api/status-effect.js';
 export { UseUtility } from './aura-api/use-utility.js';
 export { UtilityKind } from './aura-api/utility-kind.js';

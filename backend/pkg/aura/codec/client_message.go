@@ -258,6 +258,27 @@ func UseUtilityMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.Use
 	return unmarshalUseUtility(unwrapUseUtility(msg))
 }
 
+func unwrapStartFlight(msg *AuraApi.ClientMessage) *AuraApi.StartFlight {
+	i := &AuraApi.StartFlight{}
+	err := fbutil.UnwrapUnion[AuraApi.ClientMessageBody](msg, i)
+	if err != nil {
+		return nil
+	}
+	return i
+}
+
+func unmarshalStartFlight(f *AuraApi.StartFlight) *model.StartFlight {
+	if f == nil {
+		return nil
+	}
+	return &model.StartFlight{DestinationCampfireID: string(f.DestinationCampfireId())}
+}
+
+func StartFlightMessageFlatbufferUnmarshal(msg *AuraApi.ClientMessage) *model.StartFlight {
+	fbutil.AssertBodyType[AuraApi.ClientMessageBody](msg, AuraApi.ClientMessageBodyStartFlight)
+	return unmarshalStartFlight(unwrapStartFlight(msg))
+}
+
 func ClientMessageFlatbufferUnmarshal(bytes []byte) *AuraApi.ClientMessage {
 	return AuraApi.GetRootAsClientMessage(bytes, 0)
 }

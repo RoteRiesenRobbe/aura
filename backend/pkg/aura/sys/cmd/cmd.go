@@ -75,6 +75,11 @@ var commands = map[string]Command{
 
 		xf := float32(x / codec.Points2px)
 		yf := float32(y / codec.Points2px)
+		// A warp cancels a running flight (plan-flight-paths.md L9): Ground()
+		// is the one re-entry (shapes back, viewport restored, flight
+		// cleared) — without it the next tick's lerp would silently snap the
+		// warp back. No-op on the ground.
+		p.Ground()
 		p.SetPosition(phy.Vec2f{X: xf, Y: yf})
 
 		return nil

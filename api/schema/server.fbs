@@ -362,6 +362,17 @@ table Character {
   // must not read as being attacked. Appended at the table end so existing
   // field IDs stay stable.
   cost_paid:uint = 0;
+
+  // Flight state (plan-flight-paths.md C2, D15): true while the character is
+  // airborne between two campfires. flight_dest is the landing POSITION (px,
+  // like pos) rather than a campfire id — Character streams at 30 Hz, and the
+  // map resolves id→pos itself for the route overlay. flight_arrival_tick is
+  // the server tick the lerp completes on, so the client can run its camera,
+  // input lock and ETA without guessing. All three are zero/absent on the
+  // ground. Appended at the table end so existing field IDs stay stable.
+  flying:bool = false;
+  flight_dest:Vec2f;
+  flight_arrival_tick:ulong = 0;
 }
 
 table Spectator {

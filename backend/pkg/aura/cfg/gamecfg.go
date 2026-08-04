@@ -131,6 +131,10 @@ type PlayerConfig struct {
 
 	WalkingSpeedPerTick float32
 
+	// FlightSpeedFactor × WalkingSpeedPerTick is the campfire-to-campfire
+	// flight speed (plan-flight-paths.md D8). [PLACEHOLDER 4]
+	FlightSpeedFactor float32
+
 	// BaseHealth is the player's absolute HP pool at level 1 (item 11 Phase 1)
 	// [PLACEHOLDER]; scaled by f(level) (LevelCurve) × passive bonuses.
 	BaseHealth int

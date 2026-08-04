@@ -18,6 +18,7 @@ func Config(conf *cfg.Config) Configuration {
 
 		g.PlayerConfig.HealthGainTick = conf.Game.Player.HealthGainTick
 		g.PlayerConfig.WalkingSpeedPerTick = conf.Game.Player.WalkingSpeedPerTick
+		g.PlayerConfig.FlightSpeedFactor = conf.Game.Player.FlightSpeedFactor
 		g.PlayerConfig.BaseHealth = conf.Game.Player.BaseHealth
 		g.PlayerConfig.LevelCurve = conf.LevelCurve()
 		g.PlayerConfig.LevelUpXPBase = conf.Game.Player.LevelUpXPBase
@@ -48,6 +49,9 @@ func Config(conf *cfg.Config) Configuration {
 		}
 		if g.PlayerConfig.WalkingSpeedPerTick <= 0 {
 			g.PlayerConfig.WalkingSpeedPerTick = 0.05
+		}
+		if g.PlayerConfig.FlightSpeedFactor <= 0 {
+			g.PlayerConfig.FlightSpeedFactor = 4 // ≈4× walk (D8) [PLACEHOLDER]
 		}
 		if g.PlayerConfig.LevelUpXPBase == 0 {
 			g.PlayerConfig.LevelUpXPBase = 300

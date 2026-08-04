@@ -197,10 +197,10 @@ func (n *MobSystem) Remove(b ecs.BasicEntity) {
 	// reset already catches — but a player's placed entities are mobs too, and
 	// doFuneral removes them ALIVE on disconnect. That left the whole pack
 	// latched on a vanished camp, permanently.
-	n.forgetDeparted(b.ID())
+	n.ForgetDeparted(b.ID())
 }
 
-// forgetDeparted severs every reference the mobs hold to the entity that just
+// ForgetDeparted severs every reference the mobs hold to the entity that just
 // left the world (plan-faction-flips chunk 3, D10 / L-G for the charm half;
 // the aggro half followed the same reasoning once the ghost-chase bug was
 // traced). Death AND disconnect both end in game.RemoveEntity(player), whose
@@ -210,11 +210,15 @@ func (n *MobSystem) Remove(b ecs.BasicEntity) {
 // a per-tick poll would leave a pet following a ghost for the rest of a
 // 60-second charm, and a chaser parked on the disconnect spot indefinitely.
 //
+// Exported since plan-flight-paths.md C2: a flight takeoff is the same event
+// for the ground world — the flyer has left it — so the input system calls
+// this directly (the FlightForget seam), without any entity removal.
+//
 // It is the second half of the guarantee, not the whole of it: severing the
 // references a mob already holds only sticks because Space.RemoveShape now
 // also purges the departed shape from the sensor sets, so nothing re-acquires
 // it on the next tick. Either half alone leaves the mob latched.
-func (n *MobSystem) forgetDeparted(id uint64) {
+func (n *MobSystem) ForgetDeparted(id uint64) {
 	for _, m := range n.mobs {
 		if c, ok := m.(charmBreaker); ok && c.CharmedBy(id) {
 			c.EndCharm()

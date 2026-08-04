@@ -200,8 +200,23 @@ costPaid():number {
   return offset ? this.bb!.readUint32(this.bb_pos + offset) : 0;
 }
 
+flying():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 68);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
+flightDest(obj?:Vec2f):Vec2f|null {
+  const offset = this.bb!.__offset(this.bb_pos, 70);
+  return offset ? (obj || new Vec2f()).__init(this.bb_pos + offset, this.bb!) : null;
+}
+
+flightArrivalTick():bigint {
+  const offset = this.bb!.__offset(this.bb_pos, 72);
+  return offset ? this.bb!.readUint64(this.bb_pos + offset) : BigInt('0');
+}
+
 static startCharacter(builder:flatbuffers.Builder) {
-  builder.startObject(32);
+  builder.startObject(35);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -342,6 +357,18 @@ static addAppliedEffects(builder:flatbuffers.Builder, appliedEffects:number) {
 
 static addCostPaid(builder:flatbuffers.Builder, costPaid:number) {
   builder.addFieldInt32(31, costPaid, 0);
+}
+
+static addFlying(builder:flatbuffers.Builder, flying:boolean) {
+  builder.addFieldInt8(32, +flying, +false);
+}
+
+static addFlightDest(builder:flatbuffers.Builder, flightDestOffset:flatbuffers.Offset) {
+  builder.addFieldStruct(33, flightDestOffset, 0);
+}
+
+static addFlightArrivalTick(builder:flatbuffers.Builder, flightArrivalTick:bigint) {
+  builder.addFieldInt64(34, flightArrivalTick, BigInt('0'));
 }
 
 static endCharacter(builder:flatbuffers.Builder):flatbuffers.Offset {

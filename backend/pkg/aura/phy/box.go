@@ -54,6 +54,20 @@ func NewBox(pos, extent Vec2f) *Box {
 	return b
 }
 
+// SetExtent resizes the box around its current position (plan-flight-paths.md
+// §4.3: the flyer's viewport grows for the duration of a flight). The bounding
+// box follows immediately, exactly like SetPosition-then-rebuild would — the
+// space's per-tick rebuild re-reads it either way.
+func (b *Box) SetExtent(extent Vec2f) {
+	b.extent = extent
+	b.updateBB()
+}
+
+// Extent is the vector from the center to the upper-right corner.
+func (b *Box) Extent() Vec2f {
+	return b.extent
+}
+
 // Stabs the shape and returns true if the point lies on the shape
 func (b *Box) StabQuery(p Vec2f) bool {
 	return b.shape.bb.StabQuery(p)

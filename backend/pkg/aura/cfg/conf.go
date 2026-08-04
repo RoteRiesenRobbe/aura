@@ -41,7 +41,12 @@ type Config struct {
 
 			//
 			WalkingSpeedPerTick float32 `json:"walkingSpeedPerTick"`
-			BaseHealth          int     `json:"baseHealth"`
+			// FlightSpeedFactor multiplies WalkingSpeedPerTick for
+			// campfire-to-campfire flight (plan-flight-paths.md D8) — a
+			// factor rather than an absolute so a walk-speed retune moves
+			// flight with it. [PLACEHOLDER 4]
+			FlightSpeedFactor float32 `json:"flightSpeedFactor"`
+			BaseHealth        int     `json:"baseHealth"`
 			// LevelGrowth + MaxLevel define f(character level) =
 			// levelGrowth^(L-1) — the number-inflation curve (GDD §5,
 			// [WORKING LOCK 2026-07-16]: 1.12 × 30). Replaced the linear
