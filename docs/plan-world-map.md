@@ -464,6 +464,30 @@ before the migration applied, with `aurad` stopped first so it flushed
 **Still open for C2:** nothing. C1's tail (the mobile real-device pass, the
 `features/map/` rename) is unchanged and still C1's.
 
+#### Deployed to live 2026-08-04 ✅
+
+`6c0888ff` is live at `https://aura-game.duckdns.org/`. Sequence run as designed:
+`systemctl stop aurad` → `💾 flushed 0 live character(s)` (nobody online) →
+`pg_dump` pulled **off-box** to `~/aura-live-pre-000002.sql` → `devops/deploy.sh`
+→ boot log `🗄️ database schema ready version=2 dirty=false`, 0 panics, 0
+ERROR/WARN. Live went **1 → 2**. After: `character_campfires` present and empty
+(no backfill, per the ruling below), **14 characters and 65 spellbook rows
+unchanged**. The served bundle hash was compared against the local build and
+matches — an rsync deploy can otherwise serve a stale frontend silently.
+
+⚑ **The dump was RESTORE-TESTED, not just taken** — restored into a throwaway
+database and counted: 18 character rows, 12 accounts, 65 spellbook rows, schema
+version 1. A dump nobody has restored is not a backup, and this deploy is
+one-way.
+
+⚑ **And the restore test found a real constraint:** live is **PostgreSQL 18.4**,
+the dev box's container is **16.14**, and an 18-dump does not restore onto 16 —
+it dies on `unrecognized configuration parameter "transaction_timeout"` (a
+PG 17+ setting). Deleting that one `SET` line makes it restore cleanly, but the
+general point stands for the backup chunk: **an off-box backup is only as good
+as the version you can restore it onto.** Recorded in
+`plan-playtest-deploy.md`'s backup checklist item.
+
 #### Deploying C2 to live — rulings + the one-way finding (2026-08-04)
 
 **⚑ MEASURED: the deploy is ONE-WAY.** An `aurad` embedding only `000001`,

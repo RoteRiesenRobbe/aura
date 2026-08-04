@@ -196,7 +196,15 @@ plan:
 
 - [ ] Hetzner cloud firewall, allow 22/80/443 only (now that a DB exists)
 - [ ] DB bound to localhost, never `0.0.0.0`
-- [ ] Daily backup + a **restore** actually exercised once
+- [ ] Daily backup + a **restore** actually exercised once. ⚑ Two things learned
+  while taking the one-off dump before migration `000002` (2026-08-04): a dump
+  is only a backup once it has been **restored** somewhere (that one was, into a
+  throwaway DB — 18 character rows, 12 accounts, 65 spellbook rows), and **live
+  is PostgreSQL 18.4 while the dev container is 16.14**, so a live dump does
+  *not* restore onto the dev box — it dies on `unrecognized configuration
+  parameter "transaction_timeout"` (PG 17+). Deleting that `SET` line works, but
+  the restore target's major version belongs in this checklist item, not in
+  someone's head at 3am.
 - [ ] Credential handling (DB password not in the repo, same pattern as `tokens.list`)
 - [ ] Deploy as a non-root user (narrow `systemctl restart aurad` sudo rule) +
   passphrase or a separate unattended deploy key — see agent-access section
