@@ -1,7 +1,7 @@
 # Plan: The world map & minimap rework (fast travel, part 1)
 
 **Status:** IN PROGRESS — **C1 shipped** 2026-08-04 (`f09d99d0`), **C2 built**
-2026-08-04 (`[uncommitted]`), C3 open. Designed 2026-08-04. Per-chunk ledger: §10.
+2026-08-04 (`6c0888ff`), C3 open. Designed 2026-08-04. Per-chunk ledger: §10.
 
 ⚑ **C2 absorbed `plan-flight-paths.md` C1 wholesale** (PO ruling: discovered
 fires persist per character). That reverses **§8** — this plan *does* ship a
@@ -340,7 +340,7 @@ CLAUDE.md, untouched by this chunk.
 perf transfers only as ratios) and the `features/map/` rename, deliberately not
 taken so the diff stayed reviewable.
 
-### C2 — Campfire markers + discovery persistence — DONE (2026-08-04), PO-VERIFIED IN-GAME 2026-08-04, committed `[uncommitted]`
+### C2 — Campfire markers + discovery persistence — DONE (2026-08-04), PO-VERIFIED IN-GAME 2026-08-04, committed `6c0888ff`
 
 Ships discovered-campfire markers on both map states, the per-character
 persistence behind them, and backlog **§53**. ⚑ **It absorbs
