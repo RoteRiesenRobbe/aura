@@ -5214,3 +5214,88 @@ legs on a script-side `undefined HP` probe.
 collision consumer, not just aggro — `SkillSystem` aura hits and `NetSystem`
 viewport streaming read those sets too. Fixing it in `RemoveShape` closes it for
 all of them, but only the aggro symptom was ever reproduced and measured.
+
+---
+
+## 55. What prototyping PvP would take — DISCUSSION ITEM, no work scheduled
+
+*(added 2026-08-05 on a PO question; scoping only, PO ruled "just scoping — nothing
+taken". Recorded so the survey does not have to be re-derived. PvP is explicitly
+**Not in v1.0** in the GDD — "earliest 5 years out" — so anything here is a spike
+behind a toggle, committing nothing.)*
+
+**The answer: a usable prototype is ONE execution chunk.** Not because PvP is small,
+but because the machinery is already built and only one predicate stands in the way.
+
+### Three things that are already true
+
+1. **Other players are already inside every player's aura collision set, every tick.**
+   `model/player/player.go:96` sets the aura sensor mask to
+   `LayerPlayerCollision | LayerActionCollision`, and `model/auramask.go:12` says so
+   deliberately — masks span both combatant layers and "ELIGIBILITY does the exact
+   faction check". **No physics work, no new queries, no per-tick cost.**
+2. **The victim side is generic and already implemented on `player`.**
+   `applyPlayerDamageAura` (`sys/skills.go:651`) is interface-typed end to end —
+   `model.Interacter`, `healthRatioer`, `model.AuraHitNotifier` — and nothing on it
+   assumes mob-ness. `player` implements every hook: `PlayerTouches`
+   (`player/player.go:731`), `takeDamage` with resistances/shields/crit,
+   `NoteAuraHit`, `ApplyDot`/`ApplyHot`/`ApplyResist`. Threat tables and XP
+   participants live on the **mob** side (`Mob.PlayerTouches`), so a player victim
+   never enters them — no attribution plumbing to untangle.
+3. **Death is source-agnostic, and presentation is FREE.** `handleDeath`
+   (`sys/state.go:925`) fires on health reaching 0 and never asks who did it (corpse,
+   obituary, spectator, respawn-at-anchor all follow). The client already draws
+   overhead health bars, hit flashes and floating numbers for *every* character —
+   `Character` on the wire carries `health`/`max_health`/`damage_taken`/`crit_taken`/
+   `aura_hit_style`.
+
+### The whole blocker is four seams
+
+`player.Faction()` is hardcoded to `FactionAligned` (`player/player.go:741`), so every
+player-vs-player pair takes the same-faction branch. The faction comparisons in the
+harm/support paths are exactly four, all in `sys/skills.go`:
+
+| line | what |
+| --- | --- |
+| `:588` | `eligibleByTargetFlags` — the shared predicate (damage / instant_damage / dot / resist) |
+| `:721` | `applyMobDamageAura`'s inline twin (summons acting for a player) |
+| `:885` | heal aura (its own bespoke same-faction predicate) |
+| `:976` | hot aura (ditto) |
+
+`mayHarm` (`sys/skills.go:546`) is already permissive for players — they carry no
+`model.HostilityGate` — so nothing else blocks it.
+
+### ⚑ Teams, NOT free-for-all — same code cost, and FFA is incoherent
+
+Add a **second "team" dimension** read only inside those four predicates. Do **not**
+re-faction players:
+
+- Mob aggro masks are `Bit(Aligned)` (`factions/factions.go:124`), so giving players a
+  new faction makes **every mob in the game stop aggroing them** — a content-wide fix
+  for a spike.
+- Flipping only the two *harm* seams for FFA leaves enemies healing each other.
+  That is incoherent for FFA and exactly right for teams.
+
+### Landmines — each one ships green and silent
+
+- ⚑ **Gated damage is a no-op against players.** `player/player.go:371` returns 0 for
+  any hit carrying a `gateKey`, because players have no gate keys; the comment even
+  says "defensive; nothing casts gated damage at players under no-PvP". Any skill
+  authoring a gate key does **nothing** in PvP and every test still passes.
+- ⚑ **The XP penalty makes it untestable.** `handleDeath` calls
+  `LoseCurrentLevelExperience` unconditionally — a full level per duel. Not polish;
+  part of the minimum. The cheap source already exists: `RecentAttacker()`
+  (`player/player.go:293`), the combat-signal window, answers "was I killed by a
+  player" with no new plumbing — and gives obituary attribution for free.
+- ⚑ **Campfires do not protect players.** `blockedBySafeZone` (`model/mob/safezone.go`)
+  bars *mobs* only, so the fires people **respawn at** become spawn-camping spots.
+  Reusing that geometry costs a small access change (`safeZones` is package-private).
+- **Summons/companions** are `FactionAligned` and credited to their owner — whether
+  they fight enemy players is a scope decision, not a freebie.
+
+### Schema & wire impact, by scope
+
+- Cheat-toggled, session-scoped, invisible teams → **wire none, schema none**.
+- Client-visible teams (nameplate colour / who is hostile) → one appended `Character`
+  field, regenerate both binding sets.
+- Team or PvP flag persisted per character → a migration.
