@@ -86,6 +86,7 @@ let propSelectedIndexLabel: HTMLElement;
 
 let spawnControls: HTMLElement;
 let spawnMobSelect: HTMLSelectElement;
+let spawnLevelInput: HTMLInputElement;
 let respawnTicksInput: HTMLInputElement;
 let respawnVarianceInput: HTMLInputElement;
 let spawnAngleInput: HTMLInputElement;
@@ -146,6 +147,7 @@ export function setupPanel() {
 
     spawnControls = document.getElementById('zoneEditor_spawnControls');
     spawnMobSelect = document.getElementById('zoneEditor_spawnMob') as HTMLSelectElement;
+    spawnLevelInput = document.getElementById('zoneEditor_spawnLevel') as HTMLInputElement;
     respawnTicksInput = document.getElementById('zoneEditor_respawnTicks') as HTMLInputElement;
     respawnVarianceInput = document.getElementById('zoneEditor_respawnVariance') as HTMLInputElement;
     spawnAngleInput = document.getElementById('zoneEditor_spawnAngle') as HTMLInputElement;
@@ -575,6 +577,21 @@ function readSpawnControls(x: number, y: number): ZoneSpawn {
         Game.player.character.say('No mob selected');
         return null;
     }
+    // The per-spawn level override: empty = inherit the species curveLevel
+    // (plan-mob-levels.md D1/L6 — the field is never pre-filled from the
+    // picked species, because a copied default is no longer inheritance).
+    // Mirrors the loader's ">= 1" hard-fail, and rejects fractions on top of
+    // it: world.Spawn.Level is a *int, so a 2.5 in the file fails
+    // json.Unmarshal at boot instead of reporting the friendly message.
+    let level: number = undefined;
+    if (spawnLevelInput.value.trim() !== '') {
+        let parsedLevel = parseFloat(spawnLevelInput.value);
+        if (!Number.isInteger(parsedLevel) || parsedLevel < 1) {
+            Game.player.character.say('Level must be a whole number >= 1');
+            return null;
+        }
+        level = parsedLevel;
+    }
     let respawnTicks = parseInt(respawnTicksInput.value);
     if (isNaN(respawnTicks) || respawnTicks < 0) {
         Game.player.character.say('Invalid respawn ticks');
@@ -609,6 +626,7 @@ function readSpawnControls(x: number, y: number): ZoneSpawn {
         respawnVariancePct: variance,
         wanderRadius,
         idleSpeedFactor,
+        level,
         waypoints: [],
     };
 }
@@ -622,6 +640,7 @@ function populatePropControls(prop: ZoneProp) {
 
 function populateSpawnControls(spawn: ZoneSpawn) {
     spawnMobSelect.value = spawn.mob;
+    spawnLevelInput.value = spawn.level !== undefined ? String(spawn.level) : '';
     respawnTicksInput.value = String(spawn.respawnTicks);
     respawnVarianceInput.value = String(spawn.respawnVariancePct);
     spawnAngleInput.value = String(Math.round(spawn.angle * 180 / Math.PI));

@@ -134,6 +134,29 @@ to select, **Update**/**Delete** as above.
 Each spawn point = exactly one mob alive at a time: it spawns there, and after
 dying respawns at the same spot once the timer elapses.
 
+### Level: one species, many levels
+
+The *Level* input is the **per-spawn level override** (`plan-mob-levels.md`).
+**Empty = inherit the species level** — the `cL<n>` shown in the mob picker's
+suffix, authored once in `api/mobs/`. A number places *this* mob at *that*
+level: HP, damage output and the XP a kill pays all follow, so the same Wolf
+can stand at level 2 near the start fire and level 25 in a far corner without
+a new species.
+
+- It is an **absolute** level, not an offset — a species rebalance must never
+  move your placements.
+- Whole numbers **≥ 1** only. The editor refuses anything else before the
+  server can hard-fail on it at boot.
+- Overridden spawns label themselves on the map: the diamond reads
+  **"Wolf L25"** instead of plain "Wolf", so you can see at a glance which
+  placements are authored and which inherit.
+- ⚑ The picker's `cL<n>` suffix and this field are **two different numbers**:
+  the suffix is the species default, the field is this placement. The field is
+  deliberately never pre-filled from the suffix — a copied default would look
+  identical but stop tracking a later species rebalance.
+- Levels above the player cap (30) are allowed on purpose: a level-40 mob is a
+  legitimate "unkillable for now" authoring tool.
+
 ### Movement archetypes: wander and patrol routes
 
 A spawn's archetype (mob-depth chunk 5): route patrol beats wander, wander
@@ -279,6 +302,7 @@ else: the zone editor's **Download** (§7).
 | Open the editor                  | Add `&textures` to the game URL                    |
 | Place a prop / spawn             | Pick mode + type, click the ground (or "Place at my position") |
 | Author an NPC (place/text/teachings) | NPCs mode — end-to-end walkthrough in §5c      |
+| Place this mob at a different level | Spawns mode, set *Level* (empty = species default) |
 | Edit one                         | Click its marker, change controls, **Update**      |
 | Move one                         | **Delete**, then click the new spot                |
 | Remove one                       | Click its marker, **Delete**                       |

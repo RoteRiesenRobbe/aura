@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {ZoneData, ZoneModel} from './ZoneModel';
+import {ZoneData, ZoneModel, ZoneSpawn} from './ZoneModel';
 
 // A character's campfire bind is persisted as the spawn-point id, so these are
 // persistence tests wearing an editor's clothes: an id the editor drops or
@@ -15,6 +15,28 @@ function zone(campfires: ZoneData['campfires']): ZoneModel {
         spawns: [],
         campfires,
     });
+}
+
+function zoneWithSpawns(spawns: ZoneSpawn[]): ZoneModel {
+    return ZoneModel.fromJSON({
+        name: 'X',
+        bounds: {width: 60, height: 40},
+        terrain: [],
+        props: [],
+        spawns,
+    });
+}
+
+function spawn(overrides: Partial<ZoneSpawn> = {}): ZoneSpawn {
+    return {
+        mob: 'Wolf',
+        x: 1,
+        y: 2,
+        angle: 0,
+        respawnTicks: 900,
+        respawnVariancePct: 0.2,
+        ...overrides,
+    };
 }
 
 describe('ZoneModel spawn points', () => {
@@ -75,5 +97,31 @@ describe('ZoneModel spawn points', () => {
         model.addCampfire({id: 'crossroads-fire', x: 5, y: 5});
 
         expect(model.campfires.map(c => c.id)).toEqual(['village-fire', 'crossroads-fire']);
+    });
+});
+
+// The per-spawn level override (plan-mob-levels.md C3, L7). Same whitelist,
+// same failure shape as the campfire id above: the backend has accepted
+// spawn.level since C1, but a field the serializer does not name survives a
+// load and vanishes on the next save — so a hand-authored override is deleted
+// by opening the zone for an unrelated edit, with nothing visible going wrong.
+describe('ZoneModel spawn levels', () => {
+    it('keeps a per-spawn level through an export round-trip', () => {
+        let model = zoneWithSpawns([spawn({level: 15})]);
+
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+
+        expect(exported.spawns[0].level).toBe(15);
+    });
+
+    it('emits no level key for a spawn that inherits the species level', () => {
+        // The diff-clean property every optional field in this serializer
+        // maintains: absent must stay absent, or a one-spawn edit turns
+        // world.json's 485 spawns into a 485-line diff.
+        let model = zoneWithSpawns([spawn()]);
+
+        let exported = JSON.parse(model.getZoneAsJSON()) as ZoneData;
+
+        expect(exported.spawns[0]).not.toHaveProperty('level');
     });
 });

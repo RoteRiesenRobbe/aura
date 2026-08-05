@@ -596,7 +596,12 @@ function drawSpawnMarker(spawn: ZoneSpawn, selected: boolean): Container {
         .stroke({width: 2, color: COLOR_SPAWN});
     graphic.rotation = spawn.angle;
     marker.addChild(graphic);
-    marker.addChild(markerLabel(spawn.mob, radiusPx));
+    // "Wolf L15" ONLY when the placement overrides the species level — an
+    // inherited spawn stays a bare "Wolf" (L6: the two numbers must not read
+    // as one). Without this an override is invisible on the map, which is the
+    // same silent state the serializer whitelist used to produce.
+    marker.addChild(markerLabel(
+        spawn.level !== undefined ? spawn.mob + ' L' + spawn.level : spawn.mob, radiusPx));
     marker.position.set(meter2px(spawn.x), meter2px(spawn.y));
     return marker;
 }

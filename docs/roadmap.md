@@ -1071,11 +1071,16 @@ system ships blind.
 >
 > **The remaining chain, in order — each step is a precondition of the next:**
 >
-> 1. **`mob-levels` C3** — the zone-editor `level` field + the first real
->    placements. Small, but it must fix **L7** (`ZoneModel.toJSON` is a field
->    whitelist) in *both* halves, or the editor silently deletes every override
->    authored by hand.
-> 2. **The world re-placement pass** — re-place mobs across `world.json` with
+> 1. ✅ **`mob-levels` C3 — SHIPPED 2026-08-05** (`[uncommitted]`). The
+>    zone-editor `level` field, with **L7** fixed in both halves
+>    (`ZoneSpawn.level` *and* the `getZoneAsJSON` whitelist — the plan called
+>    the method `toJSON`; it is `getZoneAsJSON`), so hand-authoring is safe and
+>    the editor no longer deletes an override on save. ⚑ **Its "first real
+>    placements" half was deliberately left to step 2** — no `api/zones/*.json`
+>    carries a level yet. **This closes backlog §38 and finishes the plan's
+>    build work; the plan stays live only for that content half.**
+> 2. **The world re-placement pass — ⭐ THIS IS NOW THE NEXT STEP, and its tool
+>    is ready.** Re-place mobs across `world.json` with
 >    sensible level bands, fill the level gaps, and re-author the `curveLevel`s
 >    that do not track difficulty (AngryMammoth, SaberToothCat and ProvingBoss
 >    are all authored **cL1**). ⚠️ **This owns no plan doc and is the long pole**;

@@ -53,6 +53,14 @@ export interface ZoneSpawn {
     // round-trip diff-clean — but an explicit 0 radius IS exported.
     wanderRadius?: number;
     idleSpeedFactor?: number;
+    // ABSOLUTE per-spawn level override (plan-mob-levels.md C3, D1) — the mob
+    // placed here stands at it, and HP, damage and kill XP all follow.
+    // undefined = inherit the species curveLevel, which is the overwhelming
+    // majority of spawns and must serialize exactly as before. Integer >= 1;
+    // the backend rejects 0 because Mob.spawnLevel encodes "no override" as 0.
+    // ⚑ It is deliberately NOT pre-filled from the species value anywhere:
+    // copying the default in would freeze inheritance into a snapshot (L6).
+    level?: number;
     waypoints?: ZoneWaypoint[];
     patrolMode?: 'pingpong' | 'loop';
 }
@@ -280,6 +288,11 @@ export class ZoneModel {
                 // radius is a real value (stationary override) and exports.
                 wanderRadius: s.wanderRadius !== undefined ? round(s.wanderRadius, 2) : undefined,
                 idleSpeedFactor: s.idleSpeedFactor !== undefined ? round(s.idleSpeedFactor, 2) : undefined,
+                // Named here or the whitelist eats it: the backend has
+                // accepted spawn.level since C1, so an override that only
+                // lives in fromJSON's spread survives a load and vanishes on
+                // the next save — silent data loss on a round-trip (L7).
+                level: s.level,
                 waypoints: s.waypoints && s.waypoints.length > 0
                     ? s.waypoints.map(w => ({x: round(w.x, 2), y: round(w.y, 2)}))
                     : undefined,

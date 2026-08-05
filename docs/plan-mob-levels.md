@@ -1,8 +1,16 @@
 # Plan: One species, many levels — the per-spawn level override
 
-> **Status: ⭐ C1 (`975e5c4c`) + C2 (`f1d6eebc`) SHIPPED 2026-08-05, both headless-verified — only C3
-> (the editor field + the first real placements) is open. Still the SEQUENCING
-> GATE for the sibling plan's C2.**
+> **Status: ⭐ ALL THREE CHUNKS SHIPPED 2026-08-05 — C1 (`975e5c4c`) + C2
+> (`f1d6eebc`) + C3 (`[uncommitted]`), each headless-verified. The BUILD work is
+> done; what remains is **content**, and it is not this plan's: the PO's first
+> real placements and the world re-placement pass (roadmap step 2, owned by no
+> plan). Still the SEQUENCING GATE for the sibling plan's C2.**
+> ✅ **L7 IS DISCHARGED with C3** — the zone editor has a *Level* field and
+> `getZoneAsJSON` names it, so a per-spawn level survives the save that used to
+> delete it. Hand-authoring is safe again, and the tool the re-placement pass
+> needs exists. Measured at the panel: a Wolf placed at 15 exports
+> `"level": 15`, a blank field exports **no key at all**, and none of the 485
+> spawns already in `world.json` gained one.
 > ✅ **L3 IS DISCHARGED.** The nameplate and its difficulty tint now read the
 > wire's effective level, so an overridden mob's plate tells the truth and an
 > overridden spawn may reach a live zone. Measured in-game: one Stag placed at
@@ -178,16 +186,19 @@ per-spawn levels, every overridden mob's plate and tint would lie.
 
 ### 3.4 Zone editor + authoring
 
-- `ZoneSpawn` (`ZoneModel.ts`) gains optional `level`; the spawn tool panel
-  gets a number field (blank = inherit). ~~Until that ships the PO can author
-  `level` by hand in the zone JSON — the loader accepts it from C1 on.~~
-  ⛔ **FALSE, found in C1 — do not hand-author until C3.** The loader does
-  accept it, but `ZoneModel.toJSON` (`ZoneModel.ts:271-287`) serializes an
-  explicit **field whitelist**, so opening such a zone in the editor and saving
-  it **silently deletes** the override. `fromJSON` spreads and would preserve
-  it; only the serializer drops it — the same whitelist that could drop a
-  hand-authored campfire `id`, which the file already warns about. C3 must add
-  `level` to **both** halves (L7).
+- ✅ **DONE in C3.** `ZoneSpawn` (`ZoneModel.ts`) has optional `level` and the
+  spawn tool panel has a number field (blank = inherit). ~~Until that ships the
+  PO can author `level` by hand in the zone JSON — the loader accepts it from
+  C1 on.~~
+  ⛔ **That sentence was FALSE from C1 until C3, and the hand-authoring window
+  was closed for exactly that long.** The loader accepted it, but the
+  serializer — **`getZoneAsJSON`, not `toJSON`; the plan named the method
+  wrong** (`ZoneModel.ts:271-287`) — writes an explicit **field whitelist**, so
+  opening such a zone in the editor and saving it **silently deleted** the
+  override. `fromJSON` spreads and preserved it; only the serializer dropped it
+  — the same whitelist that could drop a hand-authored campfire `id`, which the
+  file already warns about. C3 added `level` to the interface **and** the
+  serializer, and pinned both directions.
 - ⚑ The editor's mob picker suffix `cL<n>` (`_ZoneEditorPanel.ts:201`) shows
   the **species** curve level and keeps doing so — it describes the species
   default, not the placement. The spawn's own field is where the override
@@ -301,11 +312,13 @@ one execution session if it runs clean (they verify at different surfaces).
   in `codec/mob.go` · `Mobs.ts` plate + tint switch to the wire value with
   catalog fallback (§3.3) · headless verify leg: a test-world spawn with an
   override shows the overridden number on the plate.
-- **C3 — the editor field + first placements.** `ZoneSpawn.level` + spawn
-  tool panel input · PO places the first real overridden spawns. ~~**Gated on
-  `plan-xp-formula.md` C1 being live** (§6.5).~~ ✅ **Both gates are now clear**
-  — that C1 shipped 2026-08-05, and C2 here discharged L3 the same day. C3 also
-  owns the L7 whitelist defect, which is what still makes hand-authoring unsafe.
+- **C3 — the editor field + first placements.** ✅ **SHIPPED 2026-08-05** —
+  `ZoneSpawn.level` + the spawn tool panel input + the L7 whitelist fix. ⚑ Its
+  second half, *"PO places the first real overridden spawns"*, is **deliberately
+  not in the chunk**: placement is content, the roadmap's step 2 (the world
+  re-placement pass) owns it, and no `api/zones/*.json` was touched here. What
+  shipped is the tool that pass needs. ~~**Gated on `plan-xp-formula.md` C1
+  being live** (§6.5).~~ ✅ Both gates cleared 2026-08-05.
 
 ## 8. Open questions & deferred
 
@@ -385,11 +398,11 @@ one execution session if it runs clean (they verify at different surfaces).
 - **L2 — precedence order is pinned by other plans.** `owner` must win over
   `spawnLevel` (chunk 1b live summon levels; faction-flips L-B/L-M charm
   semantics). The test table in §9 exists to make the wrong order red.
-- **L3 — C1 without C2 ships lying nameplates.** The catalog-fed plate/tint
-  shows the species number for an overridden mob — an "easy to miss" client
-  half called out by §38 from the start. Chunks may land separately, but no
-  overridden spawn reaches a live zone before C2 (and per §6.5, before the
-  XP formula's C1).
+- **L3 — C1 without C2 ships lying nameplates** — ✅ **DISCHARGED in C2.** The
+  catalog-fed plate/tint showed the species number for an overridden mob — an
+  "easy to miss" client half called out by §38 from the start. The bar on
+  overridden spawns reaching a live zone is lifted; both the plate and the XP
+  award now read the effective level.
 - **L4 — the append discipline.** `level` goes at the `Mob` table **end**;
   both binding sets regenerate and deploy together (the `max_health`
   precedent; renumbering is the known foot-gun). `hygiene-wire-prune` gates
@@ -404,14 +417,134 @@ one execution session if it runs clean (they verify at different surfaces).
   value, which would freeze inheritance into a copy) breaks the
   absent-means-inherit tri-state.
 - **L7 — the editor's serializer is a WHITELIST, and it eats what it does not
-  know** (found in C1, owned by C3). `ZoneModel.toJSON` names every spawn field
-  it writes, so a `level` that only exists in `fromJSON`'s spread survives a
-  load and vanishes on the next save — **silent data loss on a round-trip**,
-  and the reason §3.4's hand-authoring window is closed until C3 adds the field
-  to **both** halves. ⚑ The failure is invisible from the editor: the override
-  works right up until someone opens the zone for an unrelated edit.
+  know** (found in C1) — ✅ **DISCHARGED in C3, but the RULE survives it.**
+  **`ZoneModel.getZoneAsJSON`** (the plan said `toJSON` throughout; that method
+  does not exist, and the name is the dangerous kind — `JSON.stringify` would
+  call a real `toJSON` implicitly) names every spawn field it writes, so a
+  `level` that only existed in `fromJSON`'s spread survived a load and vanished
+  on the next save — **silent data loss on a round-trip**, invisible from the
+  editor: the override worked right up until someone opened the zone for an
+  unrelated edit. C3 added the field to **both** halves and pinned both
+  directions, and the spawn whitelist is now field-complete against the Go
+  struct (§11 C3). ⚑ **The constraint is standing, not spent**: the next
+  optional spawn or campfire field must be added to the interface *and* the
+  serializer, or it inherits this exact failure.
 
 ## 11. Chunk ledger
+
+### C3 — the editor field ✅ `[uncommitted]` 2026-08-05, headless-verified
+
+**A per-spawn level can now be authored, and saving the zone no longer deletes
+it** — which discharges **L7** and hands the world re-placement pass its tool.
+Measured at the panel, on the real export path: a Wolf placed at level 15
+exports `"level": 15`, the same Wolf placed with a blank field exports **no
+`level` key at all**, and all 485 spawns already in `world.json` came through
+with none. Frontend-only; **no `api/zones/*.json` was touched** — placement is
+the next step's content work, not this chunk's (§7).
+
+- `ZoneModel.ts` — `ZoneSpawn.level?: number`, and the field **named in
+  `getZoneAsJSON`'s spawn literal**, positioned after `idleSpeedFactor` to hold
+  the hand-written file's field order. `fromJSON` needed no edit: it spreads.
+- `_ZoneEditorPanel.ts` + `groundTexturePanel.html` — the *Level* input
+  (`step="1" min="1"`, blank = inherit), read in `readSpawnControls` and
+  restored in `populateSpawnControls`.
+- `ZoneEditor.ts` — `drawSpawnMarker` suffixes the label with `L<n>` **only when
+  overridden**.
+- `docs/manual-zone-editor.md` — §5 gained a *"Level: one species, many levels"*
+  subsection and the quick-reference table a row.
+- `.claude/skills/verify/c3-zone-editor-level.mjs` — **NEW**, registered in the
+  coverage map.
+
+**Schema impact: DB NONE · FlatBuffers NONE · content JSON NONE** — the format
+was already accepted at C1; C3 only makes the editor *write* it. `world.json` is
+byte-for-byte unchanged.
+
+**What the plan did not predict:**
+
+- ⚑ **The plan named the method wrong, and the wrong name is the safer one.**
+  §3.4 and L7 both say `ZoneModel.toJSON`; the method is **`getZoneAsJSON`**.
+  Harmless here because the line numbers were right — but `toJSON` is a name
+  JSON.stringify would call *implicitly*, and a reader who trusted it would
+  look for an override that does not exist. Corrected in §3.4.
+- ⭐ **A stronger fact than the chunk aimed for: the spawn round-trip is now
+  LOSSLESS.** `getZoneAsJSON` writes `mob, x, y, angle, respawnTicks,
+  respawnVariancePct, wanderRadius, idleSpeedFactor, level, waypoints,
+  patrolMode` — **field for field the Go `Spawn` struct minus `Def`**
+  (`json:"-"`, `zone.go:71-85`), verified by re-read. `level` was the last gap.
+  That matters more than "no spawn gained a level key": the re-placement pass is
+  about to run load → edit → download → replace over 485 spawns, and there is
+  now no spawn field the editor can silently drop. ⚑ It is **not** true of the
+  file as a whole — the campfire `id` warning above still stands, and the
+  property holds only until the next Go-side field is added without its
+  serializer half.
+- ⚑ **The blank-field leg is the one that protects the other 485 spawns, and it
+  is a SEPARATE assertion from "the level round-trips".** Both go green with a
+  serializer that writes `level: s.level ?? someDefault`; only the second one
+  goes red. Absent must stay **absent** — `JSON.stringify` drops `undefined`
+  keys, which is the whole mechanism — or one edited spawn turns `world.json`
+  into a 485-line diff and freezes every inherited level into a copy. *Same
+  shape as the campfire-id test above it: the interesting half of an optional
+  field is what it does when it is not there.*
+- ⚑ **`populateSpawnControls` is a SECOND instance of the same silent-loss
+  class, not a nicety.** Selecting a levelled spawn to change its respawn ticks
+  and pressing Update runs `readSpawnControls`, which reads the *input* — so a
+  field left blank on selection writes the blank straight back over the level.
+  The whitelist ate the field on save; this would eat it on edit. It has its own
+  harness leg for that reason.
+- ⚑ **The editor refuses FRACTIONS, which the loader's rule does not cover.**
+  `world.Spawn.Level` is a `*int`, so a `2.5` that reached the file fails
+  `json.Unmarshal` with a **type error at boot** rather than the loader's
+  friendly `level %d must be >= 1`. Mirroring only the `>= 1` half would have
+  let the editor author a file the server cannot describe. *General shape: an
+  input mirroring a validator must also mirror the parser underneath it.*
+- ⚑ **The map marker now says `Wolf L15` — beyond the plan's letter, and
+  vetoable.** Without it an override is invisible on the map, which is the same
+  silent state the whitelist produced wearing a different hat, on a tool about
+  to be pointed at 485 spawns. The suffix appears **only** on overridden spawns
+  (L6: a bare `Wolf` for inherited ones); the harness asserts the **pair**,
+  measured 1 × `Wolf L15` against 122 × `Wolf`.
+- ⚑ **The picker's `cL<n>` suffix was left alone (L6), and the field is never
+  pre-filled from it.** Pre-filling is a one-liner — `ZoneEditor.mobOptions`
+  carries `curveLevel` two lines from the select — and it would look identical
+  while silently converting inheritance into a snapshot that stops tracking a
+  species rebalance.
+- ⚑ **Three harness attempts failed at SETUP before one measured anything**,
+  and both causes are now in the script header because neither is guessable:
+  **`&textures` mounts the editor, not `&develop`** (the panel partial renders
+  only under `MODE_PARAMETERS.GROUND_TEXTURE_EDITOR`, so a `&develop`-only URL
+  leaves every `#zoneEditor_*` id out of the DOM — which reads exactly like
+  "the field was never added"), and **`window.game` is the six-member
+  `BrowserConsole` façade**, not `IGame`: no `player`, so no camera to invert.
+  Screen coordinates come from `character.shape.getGlobalPosition()`.
+- ⚑ **`elementFromPoint` over open world returns the `#inputAreas` overlay, not
+  the canvas** — the full-screen virtual-joystick layer sits above it. A
+  canvas-only "is this point clickable" guard called **every** valid point
+  covered and skipped the leg. The editor's own `isMapPointerEvent` accepts
+  both; the script mirrors it rather than inventing a second rule.
+- ⚑ **A `page.click` on a control inside a `hidden` group HANGS rather than
+  fails** — `#zoneEditor_spawnDeselect` lives in `#zoneEditor_spawnSelection`,
+  which is hidden while nothing is selected, so Playwright waits for visibility
+  until the timeout. It presents as a dead run with no output, three legs after
+  the actual problem. Every deselect goes through a visibility-guarded helper.
+- ⚑ **The zone JSON the editor edits is webpack-BUNDLED, not fetched**
+  (`require.context('../../../../../api/zones')`). So a hand-authored level in
+  `api/zones/*.json` needs `npm run build` before the editor can see it — the
+  **opposite** of C2's probe, which needed a server restart with
+  `-content ../api`. Recorded in the script header; getting it backwards reads
+  as the whitelist eating the field again.
+
+**Verified:** `tsc --noEmit` clean · **vitest 227/227** (2 new; the round-trip
+pin **proven RED first** — it read `undefined` off the export before the
+serializer line existed) · `go build ./...` + `go vet ./...` clean and
+`world`/`model/mob`/`sys` green, stated as **negatives on purpose: no Go file
+changed** (`Spawn.Level` and its validation shipped in C1) · boot
+`-content ../api`: 15 factions/87 skills/65 mobs/3 milestones/10 recipes/4
+quests/5 props/777 props/485 spawns/5 campfires, **0 panics** ·
+**`c3-zone-editor-level` 7/7, 0 console errors** (NEW). ⚑ **No other harness
+was run, reasoned:** the diff is confined to `features/zone-editor/` and one
+panel partial — no wire, no server, no gameplay surface, and **no `.fbs` touch,
+so `hygiene-wire-prune` is not required**. No existing script drives the editor;
+that gap is what the new one closes.
 
 ### C2 — the wire + the client ✅ `f1d6eebc` 2026-08-05, headless-verified
 
