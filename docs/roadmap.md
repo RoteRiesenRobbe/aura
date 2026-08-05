@@ -931,7 +931,10 @@ system ships blind.
    a village/farm start beat, dark forest, kobold hideout + tunnel, bandit
    gate, the front, the Orc Warlord world boss, 47 mobs, 78 skills, 10
    combination recipes, teaching NPCs, and the first real balance pass
-   (kills/hour-derived XP bands, guardrail asserts). **One deliberate
+   (kills/hour-derived XP bands, guardrail asserts). ⚑ **That XP half has since
+   been REPLACED** — the authored `factors.experience` bands are gone from all 65
+   defs (2026-08-05, `a03b95ff`), superseded by the level-relative formula in the
+   post-8a insert below; the guardrail asserts stand. **One deliberate
    remnant:** the combat-feel SFX slice below stayed open past the gate;
    **DEFERRED by PO 2026-07-21** (no placeholder audio assets — background
    music + existing sounds suffice for now; revisit later, natural slot: the
@@ -1053,6 +1056,55 @@ system ships blind.
    persistence) this half is first off the truck under time pressure — the
    combat-SFX slice pulled into step 6 is what guarantees the game isn't silent
    even if this half slips or is cut.
+> **Post-8a insert: the XP economy rebuild** (`plan-xp-formula.md` +
+> `plan-mob-levels.md`, designed and started 2026-08-05). Step 6 shipped "the
+> first real balance pass" as **kills/hour-derived authored XP bands**; that
+> economy is being replaced by a **level-relative formula**, and the replacement
+> turned out to be gated on world *content*, not on more formula work — which is
+> why it earns a slot here rather than living inside either plan.
+>
+> Shipped so far, all 2026-08-05: kill XP is computed **per participant at that
+> participant's own level** (`xp C1`, `a03b95ff` — `factors.experience` is gone
+> from all 65 defs, replaced by the relative `factors.xpFactor`), and a **zone
+> spawn point may author its own `level`** with the nameplate to match
+> (`mob-levels C1` `975e5c4c` + `C2` `f1d6eebc`).
+>
+> **The remaining chain, in order — each step is a precondition of the next:**
+>
+> 1. **`mob-levels` C3** — the zone-editor `level` field + the first real
+>    placements. Small, but it must fix **L7** (`ZoneModel.toJSON` is a field
+>    whitelist) in *both* halves, or the editor silently deletes every override
+>    authored by hand.
+> 2. **The world re-placement pass** — re-place mobs across `world.json` with
+>    sensible level bands, fill the level gaps, and re-author the `curveLevel`s
+>    that do not track difficulty (AngryMammoth, SaberToothCat and ProvingBoss
+>    are all authored **cL1**). ⚠️ **This owns no plan doc and is the long pole**;
+>    it needs a design session before it needs a chunk. It is also the step that
+>    makes the roster trustworthy — measured at `xp C1`, **at level 20 exactly
+>    two rungs of the 36-species roster pay anything**, because 27 species sit at
+>    cL1–7 and cL13–17 is completely empty.
+> 3. **Sim-harness placement support** — the harness balances *species at their
+>    curve position* and is blind to placements. ⚑ This **reverses a deliberate
+>    YAGNI deferral** (`plan-mob-levels.md` §8.3, which declined it and named its
+>    own trigger); the trigger arrived the same evening, because calibrating a
+>    re-placed world is exactly the case it declined.
+> 4. **`xp C2` — the single final calibration pass.** PO ruling **D9**: it is the
+>    LAST step, not the next one. It settles D8's open mechanism (make the taper
+>    concave, or redefine gray as "pays < ~15 %" rather than "pays exactly 0"),
+>    the §8.1 pacing call, and the kite list.
+>
+> ⚑ **Droppable anywhere before step 4: the plate derivation** (**D7**) — the
+> nameplate's difficulty colour must be a *function* of what the kill pays, not a
+> coincidence. The client owns a frozen second copy of the gray rule while the
+> server computes it; the copy is deleted and `grayBase`/`grayStep` ship in
+> `Welcome`. Mechanism-independent, so it forecloses nothing — and landing it
+> early gives the calibration pass honest visual feedback instead of plates that
+> lie further the more the band is tuned.
+>
+> ⚑ **Independent of the ascension loop.** Ascension is still the visibly-next
+> item after 8a and shares nothing with this chain — neither blocks the other, so
+> the two can interleave freely.
+
 9. **Ops & closed-alpha readiness** — CI tests, crash isolation, observability,
    DB / hosting decisions (`research-v1-readiness.md`; hosting phases + load
    math + persistent-servers decision: `research-hosting.md` — Phase 0 "friends
