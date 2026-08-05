@@ -1071,7 +1071,7 @@ system ships blind.
 >
 > **The remaining chain, in order — each step is a precondition of the next:**
 >
-> 1. ✅ **`mob-levels` C3 — SHIPPED 2026-08-05** (`[uncommitted]`). The
+> 1. ✅ **`mob-levels` C3 — SHIPPED 2026-08-05** (`0c6eca22`). The
 >    zone-editor `level` field, with **L7** fixed in both halves
 >    (`ZoneSpawn.level` *and* the `getZoneAsJSON` whitelist — the plan called
 >    the method `toJSON`; it is `getZoneAsJSON`), so hand-authoring is safe and

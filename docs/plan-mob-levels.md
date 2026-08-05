@@ -1,7 +1,7 @@
 # Plan: One species, many levels — the per-spawn level override
 
 > **Status: ⭐ ALL THREE CHUNKS SHIPPED 2026-08-05 — C1 (`975e5c4c`) + C2
-> (`f1d6eebc`) + C3 (`[uncommitted]`), each headless-verified. The BUILD work is
+> (`f1d6eebc`) + C3 (`0c6eca22`), each headless-verified. The BUILD work is
 > done; what remains is **content**, and it is not this plan's: the PO's first
 > real placements and the world re-placement pass (roadmap step 2, owned by no
 > plan). Still the SEQUENCING GATE for the sibling plan's C2.**
@@ -432,7 +432,7 @@ one execution session if it runs clean (they verify at different surfaces).
 
 ## 11. Chunk ledger
 
-### C3 — the editor field ✅ `[uncommitted]` 2026-08-05, headless-verified
+### C3 — the editor field ✅ `0c6eca22` 2026-08-05, headless-verified
 
 **A per-spawn level can now be authored, and saving the zone no longer deletes
 it** — which discharges **L7** and hands the world re-placement pass its tool.
