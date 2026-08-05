@@ -1,7 +1,8 @@
 # Plan: The Numbers Rewrite — PO feel pass
 
-> **Status: ✅ RUN 2026-08-01 — the findings live in
-> `plan-resource-costs-feedback.md`.** The premise landed (*"resource cost
+> **Status: ✅ RUN 2026-08-01 — ARCHIVED 2026-08-05. The findings live in
+> `plan-resource-costs-feedback.md`** (archived alongside this doc — its whole
+> R-series is built). The premise landed (*"resource cost
 > changes feel good actually"*); 11 feel items came back, alongside a technical
 > review of the cost system run the same day. This doc stays the **checklist of
 > record** — what was asked and why; the replies and their triage are in the

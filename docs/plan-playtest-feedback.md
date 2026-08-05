@@ -2210,12 +2210,12 @@ campfire bind, the two-tab fix). Investigation findings recorded inline so
 nobody re-derives them.
 
 **Routing:** item 1 is *not* a fix, it is a **scope widening of the R4 design
-session** — it is written up where R4 lives (`plan-resource-costs-feedback.md`
+session** — it is written up where R4 lives (`archive/plan-resource-costs-feedback.md`
 §2.3 + §6 R4) and only summarised here. Items 2 and 3 are ordinary intake.
 
 ### 1. Recall must be free and baseline — and it is the same design as downtime → **R4**
 
-> ✅ **DESIGNED 2026-08-03 → `docs/plan-downtime.md`** (the R4 session ran;
+> ✅ **DESIGNED 2026-08-03 → `docs/archive/plan-downtime.md`** (the R4 session ran;
 > 9 PO rulings). Recall becomes a **baseline utility** — a dedicated HUD
 > button outside the cooldown slots and the spellbook, free, **no cooldown**,
 > the 10 s interruptible cast as the only brake; recovery is a charge-fed
@@ -2245,7 +2245,7 @@ GDD §3 makes for the permanently free damage aura.
 ⇒ **R4 is widened, not joined by a second session.** Everything from this
 paragraph — free Recall, baseline availability, both-from-the-start, and the
 *"out-of-combat regen might scale up in charges or otherwise with level"* hint
-— lands in `plan-resource-costs-feedback.md` §6 R4, which now carries the open
+— lands in `archive/plan-resource-costs-feedback.md` §6 R4, which now carries the open
 questions R4 must rule on (what "baseline" means mechanically, what happens to
 the two NPC teachers, whether the 10 s cast and 5 min cooldown survive a free
 Recall, and whether the level scaling is charge count / charge strength /

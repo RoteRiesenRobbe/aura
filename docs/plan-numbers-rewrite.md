@@ -2,9 +2,9 @@
 
 > **Status: BUILT 2026-07-31, committed 2026-08-01 `40d9b204` — C1 ✅ + C2 ✅.
 > The PO feel pass has RUN (2026-08-01) and the premise landed** — *"resource
-> cost changes feel good actually"*. Its checklist is `plan-numbers-feel-pass.md`
+> cost changes feel good actually"*. Its checklist is `archive/plan-numbers-feel-pass.md`
 > and its findings — 11 PO items plus a 9-finding technical review of the cost
-> system — are `plan-resource-costs-feedback.md`, which is where the retune is
+> system — are `archive/plan-resource-costs-feedback.md`, which is where the retune is
 > scoped from. 16 PO decisions
 > (**D1–D16**) and **16 landmines** (L1–L13 validated against HEAD `dfaeb776` at
 > planning time; **L14–L16 found while building** and worth reading before any
@@ -12,10 +12,13 @@
 > byte-identical) → **C2 the numbers** (caps, points, costs, retune, tags),
 > executed as C2a caps · C2b costs · C2c retune · C2d damage types. Ledgers in §7.
 >
-> ⚑ **Still open, and why this doc is not archived:** the retune that the feel
-> pass asks for (`plan-resource-costs-feedback.md` §6 sketches R1–R4, nothing
-> scheduled), and open question 4 (does the free floor stay free under
-> `backlog.md` §37?).
+> ⚑ **Still open, and why this doc is not archived:** open question 4 — does the
+> free floor stay free under `backlog.md` §37? — which is a **watch item, not a
+> chunk**. ⚑ **The retune this banner used to name as open has SHIPPED**:
+> `archive/plan-resource-costs-feedback.md` §6's R1–R4 are all built and
+> PO-verified (R1 `b2116ba3` · R2 `47074d63` · R3 `f4ab5bc9` + follow-up
+> `194036c8` · R4 → `archive/plan-downtime.md`, both chunks 2026-08-03), and both
+> of those docs were archived 2026-08-05.
 >
 > ⚑ **Every number this pass authored is [PLACEHOLDER]** — including the caps
 > (D2 expects §37 to move them), the point-curve thresholds, and the whole
@@ -702,7 +705,7 @@ inverts D16b.
   real `maxHealth`), and the ruling itself was **reversed by the feel pass**
   (F6): as of R1 a cost renders in **absolute Focus**, computed from the live
   pool and the cost-reduction multiplier. See
-  `plan-resource-costs-feedback.md` §4.2. ⚑ **Where the line goes follows how the cost is charged**
+  `archive/plan-resource-costs-feedback.md` §4.2. ⚑ **Where the line goes follows how the cost is charged**
   — per effect on its own cadence for an aura, once beside `Cooldown:` for a
   cooldown, because CallForAid's three summons at 2 % each cost **6 %** per cast
   and printing "2 %" three times would understate it threefold. Pinned by a new

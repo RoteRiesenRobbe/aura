@@ -17,9 +17,11 @@ and rode into `40d9b204` with the pass.
 > are ruled** (§5), and the work is chunked into **R1 → R2 → R3** plus one
 > design session (§6). §6 is the schedule and the order in it is load-bearing.
 >
-> **Progress: R1 ✅ + R2 ✅ + R3 ✅ built 2026-08-01 (ledgers §8), plus the
-> follow-up `194036c8` that closed the R1/R2 cost-wording discrepancy R3
-> surfaced. All build work in this plan is DONE.**
+> **Progress: ✅ COMPLETE — ARCHIVED 2026-08-05.** R1 ✅ + R2 ✅ + R3 ✅ built
+> 2026-08-01 (ledgers §8), plus the follow-up `194036c8` that closed the R1/R2
+> cost-wording discrepancy R3 surfaced; **R4 ✅ ran and both its chunks shipped
+> and were PO-verified** (see below). All build work in this plan is DONE and
+> the whole R1 → R4 schedule is executed.
 >
 > ⭐ **The PO feel pass it ended owing has RUN (2026-08-01) — its intake and
 > plan are `plan-feel-pass-2.md`.** The R-series landed: entry pricing reads
@@ -29,11 +31,11 @@ and rode into `40d9b204` with the pass.
 > design questions, chunked there as **N1 → N5**. ⚑ **F4** (§6, quest progress
 > only after acceptance) is picked up by that plan as **N4**, with the ruling
 > that baselines are **per stage entry**. **R4 — the downtime design session —
-> RAN 2026-08-03 → `docs/plan-downtime.md`, and BOTH its chunks are BUILT
-> (C1 Recall `ec389164`, deployed + PO-verified · C2 the mini-campfire
-> `3910e536`) — this plan's schedule (R1 → R4) is fully executed; what remains
-> lives in `plan-downtime.md` (the [PLACEHOLDER] numbers + the PO in-game
-> pass).**
+> RAN 2026-08-03 → `plan-downtime.md`, and BOTH its chunks are BUILT **and
+> PO-verified in-game** (C1 Recall `ec389164`, deployed + PO-verified · C2 the
+> mini-campfire `3910e536`, PO hand pass the same day) — this plan's schedule
+> (R1 → R4) is fully executed, and `plan-downtime.md` is archived alongside this
+> doc. What remains there is [PLACEHOLDER] tuning only.**
 >
 > ⭐ **R4 WIDENED 2026-08-02** (`plan-playtest-feedback.md` §Intake round 8
 > item 1): it also owns **a free, baseline Recall**. PO ruling — the way back to
@@ -747,7 +749,7 @@ numbers are [PLACEHOLDER] until played.
 
 ### R4 — Downtime agency **+ a free, baseline Recall** (design session, no code)
 
-> ✅ **RAN 2026-08-03 → `docs/plan-downtime.md`.** All five §2.3 open
+> ✅ **RAN 2026-08-03 → `plan-downtime.md`.** All five §2.3 open
 > questions ruled. The headline rulings: a new **baseline-utility** class
 > (Recall + a placeable **mini-campfire**, always-present HUD buttons outside
 > the cooldown slots and the spellbook); Recall free with **no cooldown at

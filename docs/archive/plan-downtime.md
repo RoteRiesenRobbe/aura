@@ -1,6 +1,12 @@
 # Plan: Downtime agency + baseline Recall (R4)
 
-> **Status: C1 ✅ BUILT 2026-08-03 · C2 ✅ BUILT 2026-08-03 — both ledgers in §9. Every chunk in this plan is built; what is left is tuning and the [PLACEHOLDER] numbers (§8).** Designed
+> **Status: ✅ COMPLETE — ARCHIVED 2026-08-05.** C1 ✅ BUILT 2026-08-03
+> (`ec389164`, deployed + PO-verified in-game same day) · C2 ✅ BUILT 2026-08-03
+> (`3910e536`, PO hand pass the same day — it produced two accepted changes, the
+> charge-cap retune and the camp's own `EntityType`). Both ledgers in §9. Every
+> chunk in this plan is built and PO-verified; what is left is tuning and the
+> [PLACEHOLDER] numbers (§8), which is the ordinary standing state of a shipped
+> pass and not an open chunk. Designed
 > 2026-08-03 (design session): this is R4 from
 > `plan-resource-costs-feedback.md` §6, widened 2026-08-02 by intake round 8
 > item 1 (`plan-playtest-feedback.md`). All nine design questions ruled by the

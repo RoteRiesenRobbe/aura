@@ -3245,7 +3245,7 @@ tutorial is built on.
 ## 32. Consumable cooldowns — charges in the spellbook
 
 > ⭐ **THE OPEN QUESTION IS ANSWERED — PO 2026-08-03, via R4
-> (`docs/plan-downtime.md`): charges are purely per-session.** The first
+> (`docs/archive/plan-downtime.md`): charges are purely per-session.** The first
 > charge-carrying ability (the mini-campfire baseline utility) persists
 > **nothing** — wiped on death AND logout; death is painless by construction
 > because respawn lands at the bound campfire, which is the refill point. No
