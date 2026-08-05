@@ -20,6 +20,11 @@ func MobEntityFlatbufMarshal(m model.MobEntity, builder *flatbuffers.Builder) fl
 	AuraApi.MobAddAabb(builder, aabb)
 	AuraApi.MobAddHealth(builder, m.Health().UInt32())
 	AuraApi.MobAddMaxHealth(builder, m.MaxHealth().UInt32())
+	// The EFFECTIVE level (plan-mob-levels.md C2): `owner ?? spawn override ??
+	// species curveLevel`, already resolved by Level(). Encoding the raw
+	// override instead would make the client re-implement the precedence — and
+	// an owned summon plates at its owner's level here for free, unprompted.
+	AuraApi.MobAddLevel(builder, uint16(m.Level()))
 
 	pos := Vec2fMarshalFlatbuf(builder, m.Position())
 	AuraApi.MobAddPos(builder, pos)

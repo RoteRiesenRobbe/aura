@@ -108,6 +108,13 @@ export class EntityManager {
             if (isDefined(entity.mobId) && isFunction(gameObject['setMobId'])) {
                 gameObject['setMobId'](entity.mobId);
             }
+            // Effective level of THIS instance (plan-mob-levels.md C2), fed
+            // after setMobId so the species is known when the plate text is
+            // built. Sent every tick like the rest; the mob re-renders the
+            // plate only when the number actually changes.
+            if (isDefined(entity.mobLevel) && isFunction(gameObject['setLevel'])) {
+                gameObject['setLevel'](entity.mobLevel);
+            }
         }
 
         // Buff/debuff pips (applied_effects): the kinds currently applied TO

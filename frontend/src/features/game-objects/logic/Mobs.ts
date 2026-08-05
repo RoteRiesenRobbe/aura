@@ -111,6 +111,10 @@ export abstract class Mob extends GameObject {
     // difference moves when the PLAYER levels, not the mob).
     private plateMobId: number = 0;
     private plateDifference: number = null;
+    // Server-resolved effective level of THIS instance (wire Mob.level,
+    // plan-mob-levels.md C2); 0 = not sent yet or an old server, which falls
+    // back to the species catalog value — today's behaviour exactly.
+    private plateLevel: number = 0;
 
     protected constructor(
         id: number,
@@ -134,8 +138,10 @@ export abstract class Mob extends GameObject {
 
     /**
      * setMobId resolves the species against the /mobs catalog and renders
-     * "<Name> <cL>" under the health bar, tinted by how far the mob's combat
-     * level sits from the player's (decision 5). An id the catalog does not
+     * "<Name> <level>" under the health bar, tinted by how far the mob's level
+     * sits from the player's (decision 5). The NAME comes from the catalog;
+     * the LEVEL comes from the wire (setLevel), because it is a property of the
+     * placement rather than the species (plan-mob-levels.md C2). An id the catalog does not
      * know (catalog still loading, or fetch failed) renders nothing at all —
      * a nameless mob beats a mob labelled "undefined".
      */
@@ -171,7 +177,50 @@ export abstract class Mob extends GameObject {
             this.plate.addChild(text);
             this.nameElement = text;
         }
-        this.nameElement.text = `${definition.displayName} ${definition.curveLevel}`;
+        this.refreshPlateText();
+    }
+
+    /**
+     * setLevel takes the server-resolved effective level of this instance
+     * (plan-mob-levels.md C2), which is what makes one species placeable at
+     * many levels: two Wolves standing at 1 and 25 must not plate the same.
+     *
+     * ⚑ This has to re-render the text, not just record the number. The plate
+     * text is written ONCE per species (setMobId early-returns on an unchanged
+     * id), and the level arrives on a later field of the same snapshot — so a
+     * setter that only stored the value would leave every plate stamped with
+     * the catalog fallback forever. The TINT would still be right, because it
+     * is recomputed per frame off `plateDifference`, which is exactly what
+     * makes the half-fix look correct in-game.
+     */
+    setLevel(level: number) {
+        if (this.plateLevel === level) {
+            return;
+        }
+        this.plateLevel = level;
+        this.plateDifference = null; // force a re-tint at the new level
+        this.refreshPlateText();
+    }
+
+    /**
+     * The level the plate speaks with: the wire value, falling back to the
+     * species catalog while it is absent (0 = not sent yet, or an old server
+     * during a rollout). One accessor on purpose — the text and the tint must
+     * never disagree about which number they are showing.
+     */
+    private effectiveLevel(definition: { curveLevel: number }): number {
+        return this.plateLevel > 0 ? this.plateLevel : definition.curveLevel;
+    }
+
+    private refreshPlateText() {
+        if (this.nameElement === null) {
+            return;
+        }
+        const definition = mobDefinition(this.plateMobId);
+        if (!definition) {
+            return;
+        }
+        this.nameElement.text = `${definition.displayName} ${this.effectiveLevel(definition)}`;
     }
 
     // Y offset of the plate text: under the overhead bar, whose own offset is
@@ -210,12 +259,13 @@ export abstract class Mob extends GameObject {
         if (!definition) {
             return;
         }
-        const difference = definition.curveLevel - getLocalPlayerLevel();
+        const level = this.effectiveLevel(definition);
+        const difference = level - getLocalPlayerLevel();
         if (difference === this.plateDifference) {
             return;
         }
         this.plateDifference = difference;
-        this.nameElement.style.fill = difficultyColor(definition.curveLevel);
+        this.nameElement.style.fill = difficultyColor(level);
     }
 
     /**

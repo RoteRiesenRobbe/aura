@@ -341,6 +341,11 @@ function unmarshalEntity(entity, eType) {
         tier: undefined,
         // mob definition id — the key into the /mobs catalog (nameplates)
         mobId: undefined,
+        // effective combat level of a MOB instance (plan-mob-levels.md C2).
+        // Deliberately NOT the `level` slot above: that one is character-only,
+        // and reusing it would make isDefined(entity.level) newly true for
+        // every mob, silently widening what the character path sees.
+        mobLevel: undefined,
         // buff/debuff kinds currently applied TO the entity — drives the pips
         appliedEffects: undefined,
         // flight state of the OWNING player (plan-flight-paths.md C3) — never
@@ -386,6 +391,12 @@ function unmarshalEntity(entity, eType) {
         // the /mobs catalog to render the level-tinted nameplate (feedback
         // pass C item 2). Long-present on the wire, first read here.
         result.mobId = entity.mobId();
+        // EFFECTIVE level of this instance, server-resolved (owner ?? per-spawn
+        // override ?? species curveLevel; plan-mob-levels.md C2). The nameplate
+        // and its tint read this instead of the catalog, so a level-25 wolf and
+        // a level-1 wolf of the same species plate differently. 0 = old server;
+        // the client then falls back to the catalog value.
+        result.mobLevel = entity.level();
         // buff/debuff kinds currently applied TO the mob — drives the pips.
         result.appliedEffects = entity.appliedEffects();
     }

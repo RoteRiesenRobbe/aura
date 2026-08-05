@@ -5,6 +5,7 @@ import (
 
 	"github.com/RoteRiesenRobbe/aura/pkg/api/AuraApi"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/items/mobs"
+	"github.com/RoteRiesenRobbe/aura/pkg/aura/model"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/model/mob"
 	"github.com/RoteRiesenRobbe/aura/pkg/aura/skills"
 	flatbuffers "github.com/google/flatbuffers/go"
@@ -147,4 +148,60 @@ func TestMobMarshalFlatbuf_Radius(t *testing.T) {
 
 	assert.Equal(t, f32ToU16Px(0.35), got, "the body radius must reach the client")
 	assert.NotZero(t, got)
+}
+
+// Mob.level (plan-mob-levels.md C2): the wire carries the EFFECTIVE level —
+// the server's live Mob.Level(), i.e. `owner ?? spawnLevel ?? curveLevel` —
+// so the client renders the nameplate and its difficulty tint without
+// re-implementing the precedence.
+//
+// Encoding the raw per-spawn override instead would plate an unoverridden mob
+// as level 0 and an owned summon at its species value; the three cases below
+// are exactly the three branches of Level().
+func TestMobMarshalFlatbuf_Level(t *testing.T) {
+	t.Run("no override: the species curve level", func(t *testing.T) {
+		def := testMobDef(mobs.RoleCreature)
+		def.CurveLevel = 7
+
+		assert.Equal(t, uint16(7), marshalledMob(t, mob.NewMob(def, 0, nil)).Level(),
+			"today's behaviour byte-for-byte — the catalog value, now also on the wire")
+	})
+
+	t.Run("spawn override: the placement, not the species", func(t *testing.T) {
+		def := testMobDef(mobs.RoleCreature)
+		def.CurveLevel = 1
+		m := mob.NewMob(def, 0, nil)
+		m.SetSpawnLevel(25)
+
+		assert.Equal(t, uint16(25), marshalledMob(t, m).Level(),
+			"the whole point of the chunk: the plate must stop reading the catalog")
+	})
+
+	// The free half of §3.3 — because the codec encodes the effective level, an
+	// owned summon plates at its owner's level with no client-side precedence
+	// and no code that knows summons exist.
+	t.Run("owned summon: the owner's level wins", func(t *testing.T) {
+		def := testMobDef(mobs.RoleCreature)
+		def.CurveLevel = 1
+		m := mob.NewMob(def, 0, nil)
+		m.SetSpawnLevel(25)
+		m.SetOwner(&levelledOwner{level: 12})
+
+		assert.Equal(t, uint16(12), marshalledMob(t, m).Level(),
+			"owner ?? spawnLevel ?? curveLevel, resolved server-side")
+	})
+}
+
+// levelledOwner answers Progression() and nothing else: the embedded nil
+// interface satisfies model.PlayerEntity at compile time, and Level() is the
+// only call the encode path makes on an owner. Any other call panics loudly,
+// which is the point — a double that silently answers would hide a widened
+// dependency.
+type levelledOwner struct {
+	model.PlayerEntity
+	level uint16
+}
+
+func (o *levelledOwner) Progression() model.PlayerProgression {
+	return model.PlayerProgression{Level: uint32(o.level)}
 }

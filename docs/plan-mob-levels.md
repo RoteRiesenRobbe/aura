@@ -1,11 +1,13 @@
 # Plan: One species, many levels — the per-spawn level override
 
-> **Status: ⭐ C1 SHIPPED 2026-08-05 (`975e5c4c`, headless-verified) —
-> C2 + C3 open. Still the SEQUENCING GATE for the sibling plan's C2.**
-> ⚑ **C1 alone must not reach a live zone (L3):** the nameplate and its
-> difficulty tint still read the species catalog, so an overridden mob's plate
-> would lie until **C2** puts the effective level on the wire. Full C1 ledger:
-> **§11**.
+> **Status: ⭐ C1 + C2 SHIPPED 2026-08-05, both headless-verified — only C3
+> (the editor field + the first real placements) is open. Still the SEQUENCING
+> GATE for the sibling plan's C2.**
+> ✅ **L3 IS DISCHARGED.** The nameplate and its difficulty tint now read the
+> wire's effective level, so an overridden mob's plate tells the truth and an
+> overridden spawn may reach a live zone. Measured in-game: one Stag placed at
+> `level: 25` plates **"Stag 25" in red** while an untouched Stag of the same
+> species plates **"Stag 1" in yellow**, in the same world. Full ledgers: **§11**.
 > Ratifies backlog §38 (PO ask 2026-07-29: *"I want to be able to author a
 > single mob in all levels — so be able to spawn the same wolf on level 1 and
 > level 30"*). A spawn point may author a `level`; the mob placed there stands
@@ -32,6 +34,14 @@
 > re-authoring pass neither plan owns, and the XP formula made it *more*
 > load-bearing because a mis-authored level now mis-prices XP as well as
 > mis-scaling HP.
+>
+> ⭐ **THE CHAIN GOT LONGER, 2026-08-05 evening (`plan-xp-formula.md` D9).**
+> C3 here is no longer the last thing before calibration. The PO's order is:
+> **C3 (the tool) → a world RE-PLACEMENT pass (the content — sensible level
+> bands, gaps filled; still owned by no plan, and it is where the `curveLevel`
+> half above finally gets fixed) → sim-harness PLACEMENT support (new plumbing,
+> reversing §8.3) → one final calibration pass.** So this plan gates that C2 by
+> two more steps than it did this morning.
 >
 > ⚑ **Schema impact: DB NONE, FlatBuffers YES** — one field appended to the
 > `Mob` table (`server.fbs`), both binding sets regenerated together. No
@@ -147,7 +157,7 @@ m.RestoreToFullHealth()     // pool re-derives at the override level
 Skipping the second call ships a level-30 wolf with a level-1 pool that
 silently caps at level-30 max — wrong in the way that looks almost right (L1).
 
-### 3.3 Wire + client: the nameplate must stop reading the catalog
+### 3.3 Wire + client: the nameplate must stop reading the catalog ✅ C2
 
 The single biggest cost, and the half that is easy to get wrong by omission:
 the nameplate renders `"<displayName> <curveLevel>"` from the **static
@@ -292,8 +302,10 @@ one execution session if it runs clean (they verify at different surfaces).
   catalog fallback (§3.3) · headless verify leg: a test-world spawn with an
   override shows the overridden number on the plate.
 - **C3 — the editor field + first placements.** `ZoneSpawn.level` + spawn
-  tool panel input · PO places the first real overridden spawns. **Gated on
-  `plan-xp-formula.md` C1 being live** (§6.5).
+  tool panel input · PO places the first real overridden spawns. ~~**Gated on
+  `plan-xp-formula.md` C1 being live** (§6.5).~~ ✅ **Both gates are now clear**
+  — that C1 shipped 2026-08-05, and C2 here discharged L3 the same day. C3 also
+  owns the L7 whitelist defect, which is what still makes hand-authoring unsafe.
 
 ## 8. Open questions & deferred
 
@@ -301,12 +313,40 @@ one execution session if it runs clean (they verify at different surfaces).
    player maxes at 30 (conf-owned, not loader-visible). Proposal: validate
    `>= 1` only, matching the species check — a >30 mob is a legitimate
    "unkillable for now" authoring tool. Flag, don't block.
-2. **Gray tint vs. gray XP** — the shared seam, §6.4. Owned by the
-   cross-plan check, decided when both mechanisms exist.
-3. **Simharness stays species-keyed** — deliberate. The harness balances
+2. **Gray tint vs. gray XP** — the shared seam, §6.4. ~~Owned by the
+   cross-plan check, decided when both mechanisms exist.~~ ⭐ **BOTH MECHANISMS
+   NOW EXIST, and C2 is what made the seam real.** Before this chunk the client
+   tinted from `curveLevel` while the server priced from `Level()` — two
+   different numbers, so the mismatch was noise. Now both read the **same**
+   effective level, and what is left is purely the two BANDINGS: the client's
+   fixed `DIFFICULTY_BANDS` gray at `Δ ≤ −5` against the server's
+   `ZD(P) = 5 + ⌊P/6⌋`. They agree up to player level ~6 and diverge above it,
+   so **mobs that plate GRAY still pay** — from player level 12 up, and by
+   level 30 four rungs' worth (a level-21 mob plates gray and pays 791).
+   ⚑ **The direction matters and I first recorded it backwards:** a *green*
+   plate always pays, at every level, because the client's green band ends at
+   Δ = −5 and ZD is never smaller than 5. The defect is only at the gray end.
+   ⭐ **RULED 2026-08-05 evening (`plan-xp-formula.md` D7):** the client's copy
+   is deleted, not tuned — `grayBase`/`grayStep` ship in `Welcome` (the two
+   knobs, **not** the resolved ZD, which goes stale on every ding) and the
+   boundary is derived, so *gray ⟺ pays nothing* becomes structural. Green
+   becomes the variable-width band it is in WoW, which is the actual diagnosis:
+   the client copied WoW's fixed offsets (red +5, orange +3, yellow ±2) but also
+   froze the one boundary WoW **derives**. Owned by that plan; droppable any
+   time before its final calibration pass.
+3. ~~**Simharness stays species-keyed** — deliberate. The harness balances
    *species at their curve position*; placement is a zone-authoring concern.
    If a specific overridden encounter ever needs balancing there, that is
-   new plumbing and a new ask.
+   new plumbing and a new ask.~~
+   ⭐ **THE ASK CAME, 2026-08-05 evening — this is REVERSED.** The PO's plan for
+   the XP economy is *"re-place mobs throughout the world with actual sensible
+   level bands, fill the level gaps and adjust XP base and bands based on
+   various factors. For this, we will need the sim harness as well"*
+   (`plan-xp-formula.md` **D9**). Calibrating a **re-placed world** is exactly
+   the case this paragraph declined: the harness must model *placements*, not
+   only species at their curve position. It is new plumbing, it is now owned by
+   that plan's final pass, and it is a **precondition of the calibration** — not
+   of C3 here, which still only needs the editor field.
 4. **Zone-band default** (`level` on the zone, spawn-overridable) — declined
    for now (D1), revisit if zone-2 authoring turns out to be "set 40 spawns
    to the same number by hand".
@@ -372,6 +412,102 @@ one execution session if it runs clean (they verify at different surfaces).
   works right up until someone opens the zone for an unrelated edit.
 
 ## 11. Chunk ledger
+
+### C2 — the wire + the client ✅ 2026-08-05, headless-verified
+
+**The nameplate stopped reading the species catalog**, which is what turns C1's
+server-side truth into something a player can see — and it discharges **L3**, so
+an overridden spawn may now reach a live zone. Measured at the real surface: a
+Stag placed at `level: 25` plates **"Stag 25" in red** (`0xff5555`) while an
+untouched Stag of the *same species* plates **"Stag 1" in yellow** (`0xf5d442`),
+in one world, in one run. Two levels, one species — exactly what a catalog-fed
+plate cannot produce.
+
+- `api/schema/server.fbs` — `level:ushort = 0` appended at the `Mob` table end
+  (slot **24**; both binding sets regenerated together, nothing renumbered).
+- `model/entity.go` — `Level() int` on `model.MobEntity`, the first edit C1
+  predicted.
+- `codec/mob.go` — `MobAddLevel(uint16(m.Level()))`, the **effective** level.
+- `GameStateMessage.ts` / `EntityManager.ts` / `Mobs.ts` — the snapshot field,
+  the feed, and the plate's text + tint switched to the wire with a catalog
+  fallback.
+
+**Schema impact: DB NONE · FlatBuffers YES** (one appended field, the banner's)
+**· content JSON NONE** — the verify probe was reverted before any rebuild, so
+no `api/zones/*.json` changed; C3 still owns the first real placements.
+
+**What the plan did not predict:**
+
+- ⚑ **The plate text is written ONCE, and the tint is not — so the obvious
+  `setLevel` ships a half-fix that looks 50 % correct.** `setMobId` early-returns
+  on an unchanged id and stamps `nameElement.text` at the end, while the level
+  arrives on a *later field of the same snapshot*. A setter that merely stored
+  the number would leave every plate catalog-fed **forever** — and the *tint*
+  would still be right, because it is recomputed per frame off the cached
+  `plateDifference`. Text and tint now both route through one `effectiveLevel()`,
+  and the harness asserts them **separately** for exactly this reason. *General
+  shape: when two derived views of one value have different refresh disciplines
+  — one event-driven, one per-frame — the lazy one is where the staleness hides,
+  and the eager one is what disguises it.*
+- ⚑ **The snapshot field is `mobLevel`, deliberately not the existing `level`
+  slot.** `result.level` is character-only; setting it in the Mob block would
+  make `isDefined(entity.level)` newly true for **every mob** and silently widen
+  what the character path sees — a §35 one-value-many-homes in the making. A
+  distinct field costs nothing and deletes the audit. *C4's "two channels carry
+  the same fact" lesson, applied to a channel that did not exist yet.*
+- ⚑ **Encoding the EFFECTIVE level, not the raw override, buys the summon case
+  for free** — and the codec test proves it: an owned mob with `SetSpawnLevel(25)`
+  goes on the wire at its *owner's* 12. Encoding the raw override would have
+  plated an unoverridden mob as **"Stag 0"**, which is the visible face of C1's
+  sentinel pair. All three branches of `Level()` are one `t.Run` each.
+- ⚑ **Widening `model.MobEntity` broke nothing, and that was checked rather than
+  assumed:** only `*mob.Mob` implements it concretely, and every test double
+  embeds the interface. `go build ./...` was clean on the first try.
+- ⚑ **The verify probe needs a REVERT-BEFORE-REBUILD rule, not just a revert.**
+  `make -C backend build` runs `cp-defs`, which would have baked the throwaway
+  `level: 25` into the embedded content and shipped it in the binary — a content
+  edit leaking through a build step that no one thinks of as content. The script
+  documents the order (revert, *then* rebuild) and **SKIPs rather than fails**
+  when the probe is absent, so a sweep that forgets the install says so instead
+  of reporting a product defect. (Its `--install` rewrite happened to match the
+  file's existing formatting exactly — a 1-line diff, confirmed before running.)
+- ⚑ **`ushort` caps at 65535 while the loader validates `>= 1` with no upper
+  bound** (§8.1, deliberate). Nothing near the cap is authorable by accident;
+  recorded as a comment on the `.fbs` field so a future cap discussion has the
+  fact rather than a surprise.
+- ⚑ **§9's client-fallback leg (wire 0 → catalog) needed no test of its own —
+  it is the FIRST-FRAME PATH EVERY MOB TRAVERSES.** `setMobId` renders the plate
+  while `plateLevel` is still 0, and the level arrives on a later field of the
+  same snapshot, so every green plate in every harness run entered through the
+  fallback branch and then transitioned off it. That is the same branch a stale
+  peer would sit in permanently during a rollout — so the leg is discharged by
+  observation, not skipped.
+- ⚑ **The revert-before-rebuild hazard is VERIFIED not to have fired, not just
+  documented:** the final tree shows `backend/pkg/api/AuraApi/Mob.go` as the only
+  change under `backend/pkg/api/` — no embedded `zones/world.json` — which is
+  positive proof `cp-defs` never ran while the probe was installed.
+- ⚑ **C2 turned §8.2's gray-tint seam from hypothetical into live**, because it
+  is the chunk that made the client and the server read the *same* number. What
+  remains is two bandings, diverging above player level ~6. Recorded there.
+- ⚑ **The zone editor's `cL<n>` suffix was left alone on purpose (L6)** — it
+  describes the *species* default, not the placement. Verified by sweep: every
+  surviving `curveLevel` reader in the client is either the fallback itself, the
+  type declaration, or the editor.
+
+**Verified:** full Go suite **53 packages, 0 FAIL** (33 ok + 20 no-test-files),
+including `store`/`accounts` run against `aura_test` via `make db-test` ·
+`go build ./...` · `go vet ./...` clean · **3 new codec tests, all proven RED
+first** (all three read 0 off the wire before the encode line existed) ·
+`tsc --noEmit` clean · **vitest 225/225** · boot `-content ../api`: 15 factions/
+87 skills/65 mobs/3 milestones/10 recipes/4 quests/5 props/777 props placed/
+485 spawns/5 campfires, **0 panics**. Harnesses, one at a time on a freshly
+restarted server: **`hygiene-wire-prune` clean** (645 sprites decoded, 0 console
+errors — the mandatory gate for the `.fbs` touch; a renumber shows garbage) ·
+**`c2-mob-level` 7/7, 0 console errors** (NEW — the pair above, text *and* tint,
+both frames screenshotted) · **`npc-portraits` 4/4 plate-less**, 9/6/9/2 mob
+plates as the control, 0 WebGL losses · **`chunk2-follower` 5/5 + 1 SKIP, 0
+console errors** — the "owner/**level** plumbing" row, identical to C1's result;
+the SKIP is the script's own documented tri-state.
 
 ### C1 — the override, server-side ✅ `975e5c4c` 2026-08-05, headless-verified
 

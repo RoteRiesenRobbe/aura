@@ -73,6 +73,12 @@ type MobEntity interface {
 	// MaxHealth is the mob's absolute HP pool (item 11 Phase 1), serialized as
 	// the max_health wire field so the client draws health/maxHealth.
 	MaxHealth() vitals.VitalSign
+	// Level is the mob's EFFECTIVE combat level — `owner ?? per-spawn override
+	// ?? species curveLevel`, resolved live (plan-mob-levels.md C2), serialized
+	// as the `level` wire field. The client's nameplate and difficulty tint read
+	// it instead of the species catalog, so an up-levelled placement and an
+	// owned summon both plate correctly without any client-side precedence.
+	Level() int
 	// Velocity() phy.Vec2f
 	// SetVelocity(v phy.Vec2f)
 	Update(dt float32) bool

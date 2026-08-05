@@ -345,8 +345,20 @@ func (rcv *Mob) MutateAppliedEffects(n byte) bool {
 	return rcv._tab.MutateByteSlot(50, n)
 }
 
+func (rcv *Mob) Level() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Mob) MutateLevel(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(52, n)
+}
+
 func MobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(24)
+	builder.StartObject(25)
 }
 func MobAddId(builder *flatbuffers.Builder, id uint64) {
 	builder.PrependUint64Slot(0, id, 0)
@@ -422,6 +434,9 @@ func MobAddTier(builder *flatbuffers.Builder, tier byte) {
 }
 func MobAddAppliedEffects(builder *flatbuffers.Builder, appliedEffects byte) {
 	builder.PrependByteSlot(23, appliedEffects, 0)
+}
+func MobAddLevel(builder *flatbuffers.Builder, level uint16) {
+	builder.PrependUint16Slot(24, level, 0)
 }
 func MobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

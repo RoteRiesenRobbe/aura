@@ -158,8 +158,13 @@ appliedEffects():number {
   return offset ? this.bb!.readUint8(this.bb_pos + offset) : 0;
 }
 
+level():number {
+  const offset = this.bb!.__offset(this.bb_pos, 52);
+  return offset ? this.bb!.readUint16(this.bb_pos + offset) : 0;
+}
+
 static startMob(builder:flatbuffers.Builder) {
-  builder.startObject(24);
+  builder.startObject(25);
 }
 
 static addId(builder:flatbuffers.Builder, id:bigint) {
@@ -268,6 +273,10 @@ static addTier(builder:flatbuffers.Builder, tier:number) {
 
 static addAppliedEffects(builder:flatbuffers.Builder, appliedEffects:number) {
   builder.addFieldInt8(23, appliedEffects, 0);
+}
+
+static addLevel(builder:flatbuffers.Builder, level:number) {
+  builder.addFieldInt16(24, level, 0);
 }
 
 static endMob(builder:flatbuffers.Builder):flatbuffers.Offset {

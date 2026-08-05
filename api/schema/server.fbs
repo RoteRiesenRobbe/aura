@@ -244,6 +244,22 @@ table Mob {
   // absent: shield_hp already carries them. Appended at table end so existing
   // field IDs stay stable.
   applied_effects:ubyte = 0;
+
+  // EFFECTIVE combat level of this mob instance (plan-mob-levels.md C2), i.e.
+  // the server's live Mob.Level() — owner ?? spawn override ?? species
+  // curveLevel — not the raw per-spawn override. The client renders the
+  // nameplate and its difficulty tint from this, so an up-levelled placement
+  // (and an owned summon) plates correctly with no precedence logic on the
+  // client. 0 = absent/old server; the client then falls back to the catalog
+  // curveLevel, which is exactly today's behaviour.
+  //
+  // ⚑ ushort caps at 65535 while the loader validates `level >= 1` with no
+  // upper bound (plan-mob-levels.md §8.1, deliberate — a >30 mob is a valid
+  // "unkillable for now" authoring tool). Nothing near the cap is authorable
+  // by accident; noted so a future cap discussion has the fact.
+  //
+  // Appended at table end so existing field IDs stay stable.
+  level:ushort = 0;
 }
 
 table Character {

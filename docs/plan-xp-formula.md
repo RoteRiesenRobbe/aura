@@ -1,9 +1,21 @@
 # Plan: Kill XP becomes a formula — level-relative XP
 
-> **Status: C1 BUILT 2026-08-05 (`a03b95ff`, headless-verified, §10) — C2 open.**
+> **Status: C1 BUILT 2026-08-05 (`a03b95ff`, headless-verified, §10) — C2 open,
+> and RE-SCOPED the same evening by D7–D9 (§12).**
 > Replaces the flat authored per-mob `experience` value with a computed,
 > level-relative award — WoW-Classic-shaped, anchored to the *recipient's*
 > level. Every number is [PLACEHOLDER] unless marked.
+>
+> ⚑ **C2 IS NOT "CALIBRATE NEXT" ANY MORE.** Per **D9** it is the *single final
+> pass*, and three things must land first: `plan-mob-levels.md` C3 (the tool),
+> a **world re-placement pass that no plan currently owns** (the content), and
+> **sim-harness placement support** (new plumbing). ⚑ **D7** adds a droppable,
+> mechanism-independent piece — the nameplate's difficulty colour must be
+> *derived* from the server's gray knobs instead of the client's frozen copy.
+> ⚑ **D8 ("green must pay meaningfully") is NOT answered by §11's candidate
+> band table** — §12.1 measures why: the taper is linear to zero, so a *wider*
+> band makes the deepest green pay a *smaller* fraction (10 % → 5 %). It is a
+> question about the taper's shape or the boundary's definition. Full ledger: **§12**.
 >
 > ⚑ **Schema impact: NONE. No migration, no wire change.** The award is
 > computed server-side at kill time; the DB stores only the player's XP total
@@ -88,7 +100,11 @@ mechanics walkthrough was requested and given):
   log, then reverted). The requirement itself — "10 levels of difference should
   still lead to some progress" — is **recorded, not discarded**: it is the
   acceptance test for whoever turns the knob, and the candidate shapes are
-  costed in §11.
+  costed in §11. ⭐ **REFINED THE SAME EVENING by D8 (§12): "some progress" is
+  not enough — green must pay MEANINGFULLY.** §12.1 measures why that is a
+  different question from the one §11's table answers: the taper is linear to
+  zero, so widening the band makes the deepest green rung pay a *smaller*
+  fraction, not a larger one.
 
 ## 3. The formula
 
@@ -391,9 +407,16 @@ Three distinct problems live in that table, and only one of them is the band:
 
 ⚑ **This is C2's sequencing problem, and `plan-mob-levels.md` is the gate.**
 Calibrating an economy against a roster whose levels are untrustworthy and
-which has a five-level hole calibrates against noise. Recommended order:
-**C1 ✅ → `plan-mob-levels.md` (fills the hole) → C2 (calibrate)**. Recorded in
-that plan's header and its §6.6 as well, from the other side. Costed candidates, if the knob is turned later — all satisfy
+which has a five-level hole calibrates against noise. ~~Recommended order:
+**C1 ✅ → `plan-mob-levels.md` (fills the hole) → C2 (calibrate)**.~~
+⭐ **SUPERSEDED BY D9 (§12) the same day — the chain is longer**: mob-levels C3
+→ a world **re-placement** pass (no plan owns it) → **sim-harness placement
+support** → C2 as the single final calibration pass. Recorded in that plan's
+header and its §6.6 as well, from the other side.
+
+⚑ **The candidates below answer "how many rungs pay at all", NOT D8's "does
+green pay meaningfully"** — §12.1 measures the difference, and a *wider* band
+makes the deepest green rung pay a *smaller* fraction. Costed candidates, if the knob is turned later — all satisfy
 "Δ=−10 still progresses", they differ in reach (mod at Δ=−10, and what a
 level-20 can earn from):
 
@@ -403,3 +426,74 @@ level-20 can earn from):
 | `10 + P/6` | 13 | 15 | 0.23 | +cL9–12 |
 | `5 + P/2` | 15 | 20 | 0.33 | +cL7, cL9–12 |
 | `12 + P/4` | 17 | 19 | 0.41 | +cL5(!), cL7, cL9–12 |
+
+## 12. PO rulings 2026-08-05 (evening) — C2 is a FINAL pass, and it is bigger than this plan
+
+Taken after `plan-mob-levels.md` C2 shipped, in response to the plate-vs-XP seam
+that chunk made live (§6.4 there / §8.2 here).
+
+- **D7 — the plate must be a FUNCTION of the pay, not a coincidence.** *"The
+  colour code should always correlate to XP earned to some degree, a green mob
+  plate must still give XP, always. Same rules as World of Warcraft."* The client
+  currently owns a **second, frozen copy** of the gray rule
+  (`DIFFICULTY_BANDS`, `client-data/Mobs.ts`) while the server computes
+  `GrayDistance(P) = grayBase + P/grayStep` (`curve/killxp.go`). The fix is to
+  delete the client's copy: ship the two knobs in **`Welcome`** (static conf,
+  once per session — **not** the resolved ZD, which goes stale on every ding) and
+  derive the boundary client-side. Green then becomes the variable-width band it
+  is in WoW, and *gray ⟺ pays nothing* becomes structural.
+- **D8 — green must pay MEANINGFULLY, not merely non-zero.**
+- **D9 — calibration is the LAST step, and it is one pass.** *"We will need to do
+  one final pass once all the content in `world.json` follows the new formula.
+  Then we can re-place mobs throughout the world with actual sensible level
+  bands, fill the level gaps and adjust XP base and bands based on various
+  factors. For this we will need the sim harness as well."* So **C2 as written is
+  superseded**: it is not "calibrate next", it is the last step of a longer
+  chain, and it acquires a sim-harness dependency.
+
+**The corrected order** (each step is a precondition of the next):
+
+```
+mob-levels C3 (the tool: editor field + first placements)
+  → world re-placement (the CONTENT: sensible level bands, fill the gaps)  ← NO PLAN OWNS THIS
+  → sim-harness placement support                                          ← NEW PLUMBING (D9)
+  → C2, the single final calibration pass
+```
+
+The plate derivation (D7) is **mechanism-independent and droppable anywhere
+before the last step** — and landing it early is worth something, because it
+gives the calibration pass honest visual feedback instead of plates that lie
+*further* the more the band is tuned.
+
+### 12.1 ⚑ The measurement D8 has to survive: widening the band makes the deepest green pay LESS
+
+Measured 2026-08-05 against `curve.KillXP` at player level 30. `mod(Δ) = 1 + Δ/ZD`
+is a **linear taper to exactly zero at the boundary**, so the last green rung
+always pays ≈ `1/ZD` of an at-level kill — and a wider band makes that fraction
+*smaller*:
+
+| band | ZD(30) | green rungs | top of green (Δ=−3) | **bottom of green** |
+| --- | --- | --- | --- | --- |
+| `5 + P/6` (shipped) | 10 | 7 | 70 % | **10 %** |
+| `10 + P/6` | 15 | 12 | 80 % | **6.7 %** |
+| `5 + P/2` | 20 | 17 | 85 % | **5 %** |
+
+So **D8 is not a question about the band's WIDTH** — the §11 candidate table
+answers a different question (how many rungs pay at all). It is a question about
+the taper's **shape** or the boundary's **definition**, and there are two ways to
+satisfy it:
+
+- **A — change the taper.** Make `Modifier` concave, or floor it inside the band
+  with a drop to 0 at gray, so everything above the boundary pays a real amount.
+  Changes the economy, and reopens **D2**, which deliberately chose the pure
+  linear taper ("not a token floor, not a cliff at full value").
+- **B — move the boundary.** Leave the formula untouched and define gray as
+  *"pays less than ~15 % of an at-level kill"* rather than *"pays exactly zero"*.
+  Green pays meaningfully **by construction**, at zero balance cost. The price:
+  a gray mob pays a trickle rather than literally nothing — a departure from WoW,
+  where gray is exactly zero.
+
+⚑ **Both need the same plumbing** (D7's wire + client derivation), so the choice
+between A and B does **not** block it. Decide A-vs-B in the final pass, with the
+sim harness in hand — it is a numbers question and this plan's numbers are all
+[PLACEHOLDER] until that pass says otherwise.
