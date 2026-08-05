@@ -19,10 +19,11 @@ import (
 // character in the zone, published to everyone at ~1 Hz.
 //
 // What these pin is the property the design rests on — ONE assembly, ONE
-// marshal, the SAME bytes to every client — because that is what gives part
-// 2's flyer-invisibility filter exactly one place to live
-// (plan-flight-paths.md C4). A per-viewer assembly would still look correct
-// in-game today and would quietly become a second leak path later.
+// marshal, the SAME bytes to every client. ⚑ Part 1 justified that partly as
+// "so part 2's flyer-invisibility filter has exactly one place to live"; C4
+// ruled there is NO such filter (D16 — see roster_flight_test.go), so the
+// property now stands on its own: one marshal for a message every viewer
+// receives identically, and a roster that therefore cannot vary per viewer.
 //
 // ⚑ The dead and spectators are NOT filtered by the roster code and so are not
 // tested for here. NetSystem.players holds joined, living characters only — a
@@ -39,11 +40,17 @@ type rosterPlayer struct {
 	basic  ecs.BasicEntity
 	pos    phy.Vec2f
 	client *rosterClient
+	flying bool
 }
 
 func (p *rosterPlayer) Basic() ecs.BasicEntity { return p.basic }
 func (p *rosterPlayer) Position() phy.Vec2f    { return p.pos }
 func (p *rosterPlayer) Client() model.Client   { return p.client }
+
+// Flying is answered — rather than left to the embedded nil — so that
+// roster_flight_test.go's D16 pin asserts a fact instead of catching a panic.
+// The roster does not ask this question today, and D16 says it never should.
+func (p *rosterPlayer) Flying() bool { return p.flying }
 
 // rosterClient records what was sent to it, same embedding trick.
 type rosterClient struct {

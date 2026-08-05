@@ -83,12 +83,16 @@ func (n *NetSystem) Update(dt float32) {
 //
 // ⚑ ONE ASSEMBLY, ONE MARSHAL, THE SAME BYTES TO EVERYONE — the whole reason
 // §4.3 specified a single assembly point. Per-viewer assembly would cost a
-// marshal per player for a message every player gets identically, and, more
-// importantly, it would give part 2's flyer-invisibility filter a second place
-// to be forgotten (plan-flight-paths.md L: "the roster is a *second* leak path
-// for the same fact — one filter is not enough, and they are in different
-// files"). When flight ships, the filter goes in codec.RosterFor and nowhere
-// else.
+// marshal per player for a message every player gets identically.
+//
+// ⚑ The second reason this comment used to give — "so part 2's
+// flyer-invisibility filter cannot be forgotten in one of two places" — is
+// SPENT: there is no such filter. The PO ruled flyers stay on the map (D16,
+// plan-flight-paths.md C4), so the single assembly now stands on the first
+// reason alone. It also means the roster CANNOT vary per viewer: everyone gets
+// the same bytes, so a flyer is visible to all or to none, which is exactly
+// what makes "flyers cannot see each other in the world, but can on the map"
+// consistent rather than accidental.
 //
 // Spectators are deliberately skipped: a client on the start screen or the
 // death overlay has no map open, and the roster is for the map.

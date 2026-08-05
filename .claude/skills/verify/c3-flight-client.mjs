@@ -15,15 +15,20 @@
 //   3  the second press flies: Character.flying turns true
 //   4  airborne: zoom out, ability bar greyed + refusing, indicator counting
 //   5  the observer's snapshot LOSES the flyer (D13 — the body left the space)
+//   5b the observer's MAP KEEPS them, and the dot tracks the flight (D16, C4)
 //   6  landing restores every one of them, at the destination fire
 //
 // ⚑ Leg 6 is the one that can fail alone, and it is the same bug class as a
 // takeoff that only half-happens: the plan's landmine 1 asks for every gate to
 // be pinned in BOTH directions.
 //
-// ⚑ It does NOT assert that the observer stops seeing the flyer on the MAP —
-// the roster filter is C4, so a flyer is still a dot there and that is
-// expected, not a defect.
+// ⚑ LEGS 5 AND 5b ARE THE WHOLE POINT, AND THEY POINT OPPOSITE WAYS. The world
+// and the map are different facts (D16, PO 2026-08-05): the same player, at the
+// same instant, must be gone from the observer's snapshot and present on the
+// observer's map. Scored side by side and from one client, because a filter
+// added to codec.RosterFor would make 5b red while leaving 5 green — and the
+// plan, five source comments and two status docs all used to instruct exactly
+// that. (This header said it too, until C4.)
 //
 // Usage: node .claude/skills/verify/c3-flight-client.mjs [label] [url]
 // Afterwards: cd backend && go run ./cmd/harnessdb -cleanup
@@ -180,6 +185,59 @@ const seesPlayer = (page, name) => page.evaluate((wanted) => {
   return parent.children.some((plate) =>
     (plate.children || []).some((c) => c.text === wanted));
 }, name);
+
+/**
+ * The dots on this client's map, in canvas px from the layer origin — the
+ * c3-player-roster reader, trimmed to what the flight legs ask.
+ */
+const readMapDots = (page) => page.evaluate(() => {
+  const players = window.game?.miniMap?.['players'];
+  if (!players) return { reachable: false };
+  return {
+    reachable: true,
+    dots: players.layer.children.length,
+    positions: players.layer.children.map((c) => ({ x: c.x, y: c.y })),
+    scale: window.game.miniMap.scale,
+    // For the landing diagnostic below: a dot at a fire is UNDER that fire's
+    // marker (the PO's draw order puts campfires on top), so its presence in
+    // the scene graph does not mean it can be seen.
+    dotRadius: players.layer.children[0]?.getLocalBounds
+      ? (players.layer.children[0].getLocalBounds().maxX
+         - players.layer.children[0].getLocalBounds().minX) / 2
+      : null,
+    fireSize: (() => {
+      const fire = window.game.miniMap['campfires']?.layer.children.find((c) => !c.context);
+      if (!fire) return null;
+      const bnd = fire.getLocalBounds();
+      return Math.max(bnd.maxX - bnd.minX, bnd.maxY - bnd.minY) * fire.scale.x;
+    })(),
+  };
+});
+
+/**
+ * Distance from the nearest drawn dot to a world point, in canvas px.
+ *
+ * ⚑ NEAREST-DOT, NEVER A COUNT — inherited verbatim from c3-player-roster,
+ * where a count went red because a third player (the PO, hand-testing) was on
+ * the same dev server. What these legs mean is "the flyer's dot is / is not
+ * HERE", and that is what this measures.
+ */
+const nearestDot = (sampled, target) => sampled.positions
+  .map((p) => Math.hypot(p.x - target.x, p.y - target.y))
+  .sort((x, y) => x - y)[0];
+
+/**
+ * How far a dot may legitimately lag its player, in canvas px.
+ *
+ * ⚑ DERIVED, not guessed, and the derivation is the point: the roster
+ * publishes at 1 Hz (core/net.go rosterIntervalTicks), so a dot is up to one
+ * full second stale — which at flight speed is ~4.3 world units, roughly three
+ * times a walker's staleness. That step is the accepted, written-down cost of
+ * a 1 Hz roster (MapPlayers' header; re-affirmed by the PO at C4 rather than
+ * fixed). A tolerance tighter than the publication interval would be scoring
+ * the roster rate, not the D16 ruling.
+ */
+const lagPx = (scale) => 4.3 * 1.2 * 120 * scale + 2.0;
 
 /**
  * Hold the interact key long enough for the rAF-throttled Controls clock to
@@ -387,6 +445,39 @@ try {
     '5 the flyer leaves the observer\'s snapshot (D13 — the body left the space)',
     `sees ${a.name}: before=${seenBefore} airborne=${seenDuring}`);
 
+  // --- 5b. ...and stays on the observer's MAP (D16) -------------------------
+  //
+  // The same player, the same instant, the opposite answer. This is the leg a
+  // filter in codec.RosterFor turns red while leaving leg 5 green.
+  const dots1 = await readMapDots(b.page);
+  const air1 = await readFlight(a.page);
+  if (!dots1.reachable) {
+    check(false, '5b the observer\'s roster layer is reachable',
+      'window.game.miniMap.players missing');
+  } else {
+    const tol = lagPx(dots1.scale);
+    const near1 = nearestDot(dots1, { x: air1.x * dots1.scale, y: air1.y * dots1.scale });
+    check(near1 !== undefined && near1 < tol,
+      '5b the flyer is STILL a dot on the observer\'s map (D16)',
+      `nearest dot ${near1 === undefined ? 'none' : near1.toFixed(2) + ' px'}`
+      + ` from the flyer, tolerance ${tol.toFixed(2)} px, of ${dots1.dots} dot(s)`);
+
+    // ⚑ Present is not enough — a dot frozen at the origin fire would pass the
+    // leg above for the first second of every flight. The payoff the PO ruled
+    // for is watching someone CROSS the map, so the dot has to move with the
+    // lerp. (It does because core/input.go writes SetPosition every tick and
+    // RosterFor reads Position(); leaving the physics space freezes nothing.)
+    await a.page.waitForTimeout(2500);
+    const dots2 = await readMapDots(b.page);
+    const air2 = await readFlight(a.page);
+    const flew = Math.hypot(air2.x - air1.x, air2.y - air1.y) / 120;
+    const near2 = nearestDot(dots2, { x: air2.x * dots2.scale, y: air2.y * dots2.scale });
+    check(flew > 1.0 && near2 !== undefined && near2 < lagPx(dots2.scale),
+      '5c and the dot TRACKS the flight rather than sitting at the origin fire',
+      `the flyer moved ${flew.toFixed(2)} world units; the nearest dot followed to`
+      + ` ${near2 === undefined ? 'none' : near2.toFixed(2) + ' px'}`);
+  }
+
   // --- 6. landing restores everything --------------------------------------
   phase = 'landing';
   await a.page.waitForFunction(
@@ -424,6 +515,33 @@ try {
     '6f movement input is accepted again',
     `${(Math.hypot(after.x - before.x, after.y - before.y) / 120).toFixed(2)} world units walked`);
   await a.page.screenshot({ path: join(outDir, `${label}-landed.png`) });
+
+  // --- 6g. the map dot survives landing too (D16, both directions) ----------
+  //
+  // ⚑ There is no restore-at-landing gate here to forget, and that is the leg:
+  // D16 is cheaper than the filter it replaced precisely because takeoff
+  // changed nothing, so landing has nothing to undo (landmine 1's rule costs
+  // one assertion instead of a mechanism).
+  const dots3 = await readMapDots(b.page);
+  const landedAt = await readFlight(a.page);
+  const near3 = nearestDot(dots3, { x: landedAt.x * dots3.scale, y: landedAt.y * dots3.scale });
+  check(near3 !== undefined && near3 < lagPx(dots3.scale),
+    '6g the flyer\'s dot is still on the observer\'s map after landing',
+    `${near3 === undefined ? 'none' : near3.toFixed(2) + ' px'} from the landed flyer`
+    + ` of ${dots3.dots} dot(s)`);
+
+  // ⚑ NOT A LEG — a measurement, for a call the PO already owns. The dot is in
+  // the scene graph; whether it can be SEEN is a different question, because
+  // the ruled draw order puts campfires above other players and landing puts
+  // the dot under a fire marker by construction. That is CLAUDE.md's standing
+  // open item ("your own dot is invisible under that fire's marker") reaching
+  // a second surface: every arrival, for every observer. Recorded, not fixed —
+  // marker sizing is a tuning call, and asserting the graph would be the same
+  // false comfort as C2's `display: block` on an invisible marker.
+  console.log(`\n  [diagnostic] landed dot vs the fire marker it sits under:`
+    + ` dot r=${dots3.dotRadius?.toFixed(1)} px, marker=${dots3.fireSize?.toFixed(1)} px`
+    + ` → ${dots3.dotRadius * 2 < dots3.fireSize ? 'OCCLUDED' : 'visible'}`);
+  await b.page.screenshot({ path: join(outDir, `${label}-observer-map.png`) });
 
 } catch (e) {
   check(false, `harness error during "${phase}"`, e.message);

@@ -14,10 +14,17 @@ import (
 // ⚑ It is assembled ONCE per publication and the finished bytes go to every
 // client — see core.NetSystem.sendRoster. That is why this type exists at all
 // rather than the marshal taking the player slice directly: the assembly is a
-// separate, testable step from the send, and when flight ships its
-// flyer-invisibility filter has exactly one place to live
-// (plan-flight-paths.md C4, which warns that the roster is a *second* leak path
-// for the fact GameState's filter hides).
+// separate, testable step from the send, and one marshal serves every viewer
+// of a message they all receive identically.
+//
+// ⚑ FLYERS ARE ON THE ROSTER, DELIBERATELY (D16 — plan-flight-paths.md C4).
+// Part 1 built this assembly point expecting to host flight's
+// flyer-invisibility filter; the PO ruled the opposite. The world and the map
+// are DIFFERENT FACTS: a flyer is unreachable and unseeable on the ground
+// (structural, D13 — their shapes leave the physics space), and still a dot
+// crossing the map, because fires and the routes between them are what the map
+// is FOR. Do not "complete C4" by adding the filter — roster_flight_test.go
+// fails if you do.
 type PlayerRoster struct {
 	Tick    uint64
 	Entries []RosterEntry
@@ -46,6 +53,9 @@ func RosterFor(tick uint64, players []model.PlayerEntity) PlayerRoster {
 		if p == nil {
 			continue
 		}
+		// NO `if p.Flying() { continue }` HERE — see D16 on the type above.
+		// The flyer's Position() is the live in-air lerp (core/input.go writes
+		// it every tick), so this is what draws them crossing the map.
 		entries = append(entries, RosterEntry{
 			ID:  p.Basic().ID(),
 			Pos: p.Position(),

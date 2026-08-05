@@ -5,7 +5,11 @@
 because the PO ruled discovered fires must persist per character while that
 chunk was being built and C1 *was* that work. **C2 (`bc01a45c`) and C3
 (`bcfb4faf`) are both DONE 2026-08-05, C3 PO-VERIFIED IN-GAME the same day**
-(§10 ledgers) — flight is playable end to end. **C4–C5 not started.**
+(§10 ledgers) — flight is playable end to end. **C4 is DONE 2026-08-05,
+PO-verified in-game the same day, and it INVERTED**: the PO ruled a flyer stays
+visible on the map (**D16**), so the roster filter this plan specified from §2
+onward was never built. **C5 — the route overlay — is the last chunk, and the
+only one left.**
 
 ⚑ **The C3 feel pass reshaped the design, so read §10 C3 "The PO feel pass"
 before §1 or §3.** It moved the trigger to **`E` at the campfire** (an
@@ -37,8 +41,9 @@ option 1 (campfire teleport network).
    ignored, the active aura goes off and no ability can be used.
 4. **In flight.** They travel in a straight line at ~2.8× walk speed (4× as
    designed; retuned in the C3 feel pass), seeing mobs
-   and players below them. Ground players **cannot see them**. Mobs cannot
-   aggro, target, or damage them; they cannot damage anything.
+   and players below them. Ground players **cannot see them in the world** —
+   but **can** see them crossing the **map** (D16; the two are different facts).
+   Mobs cannot aggro, target, or damage them; they cannot damage anything.
 5. **Landing** at the destination fire. Camera returns, control returns, the aura
    may be switched back on. They are at a fire, which means safe, bound, and
    able to fly onward.
@@ -75,7 +80,8 @@ assembles the entity list from the viewer's viewport collision set but sets
 `gs.Player = p` separately — so a body absent from the space vanishes from
 every *other* player's snapshot while its owner keeps receiving themself. The
 roster (`codec.RosterFor`, annotated for this plan since part 1) is the one
-player-visibility channel that does not read the space.
+player-visibility channel that does not read the space — which is exactly why
+it can, and by **D16 does**, keep showing a flyer the world cannot see.
 
 **Movement is a position write in the input system.**
 `PlayerInputSystem.updateInput` computes `p.Position().Add(v)` and calls
@@ -158,6 +164,21 @@ as a brake** — that is a real finding, not an omission.
 - **D15 — Both wire directions ship with C2.** `StartFlight` and the
   `Character` flight fields land in one schema pass; C3 is purely client work
   against data already streaming.
+- ⭐ **D16 — A FLYER IS INVISIBLE IN THE WORLD AND VISIBLE ON THE MAP.** The
+  roster is **not** filtered; a flyer stays a dot, and the dot tracks the
+  crossing. *Why:* this plan had assumed the two were one fact and told C4 to
+  close "the second leak path". The PO ruled they are **two facts**. Fires and
+  the routes between them are what the map is *for*, so a dot crossing toward a
+  fire is the map doing its job — and it becomes the only way to know someone
+  is inbound: a dot approaches a fire, then a player materialises. Nothing
+  argued for the filter except consistency with the world channel (there is no
+  PvP and no griefing vector, §5 of the GDD), and consistency between two
+  channels that answer **different questions** is not a property worth having.
+  ⚑ **This decision INVERTS C4**, which becomes the ruling, a pin test that
+  fails if anyone adds the filter, and the correction of every site that used
+  to instruct them to. ⚑ It also costs nothing at runtime and, unlike the
+  filter, has **no restore at landing to forget** (landmine 1's rule met by
+  construction rather than by a mechanism).
 
 ## 4. The shape
 
@@ -223,7 +244,7 @@ each with its restore at landing:
 | Active aura forced **off** | synchronously at takeoff (`CancelCast` + `SetActiveAura(-1)`) — an aura merely *skipped* would keep streaming `aura_radius` and sit visually on while doing nothing. Landing does **not** re-enable it; the player switches back on (§1 step 5). |
 | `UseUtility` refused | `core/input.go`, beside the existing health gate — Recall mid-flight is a teleport out of a committed flight (D11), Camp would place a mini-camp in mid-air. |
 | Campfire dwell tracker skips flyers | `trackCampfireDwell` is position-math over the players list. Without the skip, a slow fly-over **discovers and re-binds to** fires never landed at (breaking D4's premise), and a takeoff within 1.7 s of arrival completes the origin fire's dwell mid-air. |
-| Roster | `codec.RosterFor` — C4, as annotated there since part 1. |
+| ~~Roster~~ — **NOT a gate** | `codec.RosterFor` deliberately does **not** check `Flying()` (**D16**): the map keeps the flyer. This row survives struck through because five source comments and this table all used to specify the opposite. |
 | Disconnect stash | position = destination (D14), at the stash-build site. |
 
 ⚑ **The audit rule that keeps this list complete:** it is exactly the set of
@@ -312,11 +333,16 @@ Per `CLAUDE.md`'s persistence rule, stated explicitly:
    gate can. Pin every gate with a test **in both directions, plus its restore
    at landing** — a flight that never fully lands is the same bug class as one
    that never fully takes off.
-2. **Player-visibility channels.** The snapshot leg is structural (D13); the
-   roster is a *second* channel for the same fact and needs its own filter, in
-   a different file (`codec.RosterFor`, C4). `GameState.discovered_campfires`
-   is a third channel and **benign** — a flyer's set leaks no position (checked
-   at C1, recorded so it is not re-derived).
+2. **Player-visibility channels.** ⚑ **RESOLVED AT C4, AND NOT THE WAY THIS
+   LANDMINE ASSUMED.** It read: *"the roster is a second channel for the same
+   fact and needs its own filter"*. It is a channel for a **different** fact,
+   and it is deliberately left open (**D16**) — the world hides the flyer, the
+   map shows them. The snapshot leg stays structural (D13);
+   `GameState.discovered_campfires` is a third channel and **benign** — a
+   flyer's set leaks no position (checked at C1, recorded so it is not
+   re-derived). ⚑ The durable lesson is the one that outlives the ruling:
+   **"two channels carry the same fact" is a claim to verify, not to assume**.
+   Enumerating the channels was right; concluding they must agree was not.
 3. **The zoom cap and the AOI must move together** (§4.3) or entities pop in at
    the edges — the exact symptom `MAX_VISIBLE_WIDTH`'s comment documents. C2's
    server-only half-state is safe; C3 must close it.
@@ -387,9 +413,11 @@ Per `CLAUDE.md`'s persistence rule, stated explicitly:
     dev-console command. The generated TS binding
     (`api/schema/js/aura-api/start-flight.ts`) and the send path just need a
     marshal call beside the existing client messages.
-- **C4 — Roster invisibility + map.** The `codec.RosterFor` filter — the one
-  visibility channel D13 does not cover — verified on the map with a second
-  client.
+- **C4 — ~~Roster invisibility~~ → the map keeps the flyer (D16).** ✅ **DONE
+  2026-08-05.** The chunk inverted on a PO ruling before a line was written:
+  there is **no** `codec.RosterFor` filter. What shipped is the ruling, the pin
+  test that fails if anyone adds one, and the correction of every site that
+  instructed them to. Verified on the map with a second client.
 - **C5 — Map destination selection.** Click a discovered fire → confirm → fly.
   Route overlay on the map.
 
@@ -481,7 +509,8 @@ origin fire must itself be discovered.
    Takeoff now clears `PendingUtilities`+`PendingCooldowns`; the gap class is
    "queued-but-not-yet-consumed state survives the cancel verb".
 3. **Snapshot invisibility arrived here structurally** (C4 shrinks to the
-   roster filter): a real second player's viewport stops recording the flyer
+   roster filter — *and C4 then deleted even that, D16*): a real second
+   player's viewport stops recording the flyer
    at takeoff and records them again at landing — pinned in
    `player/flight_test.go` with real players, standing in for the two-client
    browser check until C3 gives a client a way to fly.
@@ -506,7 +535,7 @@ unlocks/4 quests/777 props/485 spawns/5 campfires) · harness residue cleaned
 **Deferred to C3/C4:** the two-client browser flight (needs the client UI) ·
 the PO feel pass (speed + zoom are placeholders judged only in the air) ·
 the client zoom cap moving with the AOI (landmine 3) · the roster filter
-(`codec.RosterFor`, C4).
+(`codec.RosterFor`, C4) — *which C4 then ruled out of existence (D16)*.
 
 ### C3 — the client flight experience
 
@@ -596,7 +625,9 @@ joystick touches. **Schema impact: NONE** — both
 wire directions shipped with C2 (D15); nothing new is persisted.
 
 **Deferred to C4:** ⚑ **a flyer is still a dot on other players' maps** — the
-roster filter is C4, so that is expected, not a defect.
+roster filter is C4, so that is expected, not a defect. *(Superseded the next
+day: C4 ruled the dot **stays**, D16. The sentence is left standing because the
+belief it records is what C4 had to go around and correct in eleven places.)*
 
 ---
 
@@ -682,3 +713,108 @@ this pass changed is what NPC conversations depend on · `c2-campfire-markers`
 **17/17** · `c1-world-map` **12/12** · boot `15 factions/87 skills/65 mobs/3
 milestone unlocks/10 recipes/4 quests/5 props/777 props/485 spawns/5 campfires,
 0 panics` · harness DB residue cleaned. **Schema impact: NONE.**
+
+### C4 — the map keeps the flyer (D16)
+
+**C4 DONE (2026-08-05), PO-VERIFIED IN-GAME the same day (two clients, two
+browser profiles — *"everything works and looks good, no changes needed"*), and
+it is the chunk that INVERTED before a line of it was written.** Its scope was one line of code — `if p.Flying() { continue }` in
+`codec.RosterFor` — and the PO's answer to "here is what we're building" was
+that it should not exist. What shipped is a **ruling, a guard, and a paper
+trail**: no product behaviour changed, and that is the finding, not a caveat.
+
+**Decisions this session (PO, both via choice prompt):**
+
+- ⭐ **D16 — the world and the map are DIFFERENT facts.** A flyer is
+  unreachable and unseeable on the ground (D13, structural) **and** a dot
+  crossing the map. See §3.
+- **A flying dot is drawn like any other dot** — no `flying` flag on
+  `RosterEntry`, no distinct style. The wire is untouched. Revisitable after
+  watching one cross; deliberately not pre-built (YAGNI).
+- **The 1 Hz step is accepted as-is.** A flying dot jumps ~4 world units per
+  publication against a walker's ~1.5. `MapPlayers`' header already records
+  stepping as the written cost of a 1 Hz roster; flight only makes it more
+  visible. Raising the rate would cost every player at all times to smooth one
+  case, and C5's route overlay may answer it for free.
+
+**What shipped, and where:**
+
+- **`codec/roster.go`** — the D16 rationale on the type, and a comment **inside
+  the loop**, which is where the person adding the filter puts their cursor.
+  The header's old justification ("so the flyer filter has exactly one place to
+  live") is retired; the single-assembly design still stands on the other one.
+- **`core/net.go`** — `sendRoster`'s comment likewise, plus what the single
+  assembly now *implies*: one marshal for everyone means the roster **cannot**
+  vary per viewer, so a flyer is on everyone's map or nobody's. That is what
+  makes landmine 10 (flyers cannot see each other in the world) coexist with
+  flyers seeing each other on the map without inventing a third rule.
+- **`core/roster_flight_test.go`** — three pins: the flyer is on the roster,
+  the dot **tracks the lerp** (not a frozen takeoff snapshot), and landing
+  changes nothing. `rosterPlayer` gained a real `Flying()` so the pin asserts a
+  fact rather than catching a nil-panic from the embedded interface.
+- **`c3-flight-client.mjs`** — legs **5b/5c/6g** beside the existing leg 5, so
+  the two opposite facts are scored **from one client at one instant**.
+- **Eleven correction sites** across all four status layers (§below).
+
+**Findings that outlive the chunk:**
+
+1. ⚑ **"Two channels carry the same fact" is a claim to VERIFY, not to
+   assume.** Landmine 2 enumerated the visibility channels correctly and then
+   concluded they must agree. They answer different questions: the world asks
+   *can this reach me*, the map asks *where is everyone*. The enumeration was
+   the valuable half; the agreement was an assumption wearing its clothes.
+2. ⚑ **A negative pin needs a double that ANSWERS the question, not one that
+   panics on it.** `rosterPlayer` embeds `model.PlayerEntity`, so a filter
+   added to `RosterFor` would have nil-panicked — technically red, but reported
+   as a decoder crash rather than as "you broke D16". Implementing `Flying()`
+   to return the flag turns the failure into its own explanation. **Verified by
+   temporarily adding the filter**: all three pins go red naming D16, where the
+   first attempt panicked inside flatbuffers instead.
+3. ⚑ **Flatbuffers' generated `Entries(obj, i)` does not bounds-check** — it
+   returns `true` and yields garbage offsets past the end, so reading index 1
+   of a filtered 1-entry roster panics deep in the decoder. Any leg reading an
+   entry by index must assert `EntriesLength()` first, or the failure it
+   reports is never the failure that happened.
+4. ⚑ **Leaving the physics space freezes NOTHING about a position.**
+   `core/input.go` writes `SetPosition` on every tick of the lerp and
+   `RosterFor` reads `Position()`, so the map dot glides for free — no plumbing
+   at all. Worth stating because the natural worry ("their shapes are out of
+   the space, is their position still live?") has a clean answer, and the
+   feature D16 rules for depends on it entirely.
+5. ⚑ **The landing dot is OCCLUDED, measured: `dot r=3.5 px` under a
+   `9.0 px` fire marker.** The ruled draw order puts campfires above other
+   players, so **every arrival, for every observer**, ends with the dot hidden
+   under the destination fire — the second surface of CLAUDE.md's standing open
+   item (*"your own dot is invisible under that fire's marker"*), which until
+   now was only about your own respawn. D16 gives that tuning question a real
+   consequence: the payoff is watching someone cross the map, and it ends the
+   instant they land. **Recorded as a diagnostic print, deliberately not a
+   leg** — asserting the dot's presence in the scene graph would be the same
+   false comfort as C2's `display: block` on a marker sitting under the props.
+   The fix is marker sizing, which is a PO call and not this chunk's.
+
+**The eleven correction sites** — the actual deliverable, because the stale
+instruction lived in all four layers of `docs/README.md`'s status model:
+`codec/roster.go` (header + loop) · `core/net.go` · this plan's §2, §4.2 table,
+landmine 2, §7 C4 bullet, the C2 ledger's deferral and the C3 ledger's ·
+`docs/README.md` · `CLAUDE.md` **Next** · the `verify` skill's coverage map ·
+`MEMORY.md`'s world-map project file. ⚑ Two of those (`CLAUDE.md`, the skill
+map) are loaded into **every** session, which is why a "docs-only" tail was the
+part of this chunk most able to go wrong.
+
+**Verified:** `go build ./...` + the **full Go suite** green · the three D16
+pins **verified red** with the filter temporarily restored, then green without
+it · **`c3-flight-client` 35/35, 0 console errors** (+3 legs, and leg 5 —
+snapshot invisibility — still green beside them, which is the pair that matters)
+· boot `15 factions/87 skills/65 mobs/3 milestone unlocks/10 recipes/4 quests/5
+props/777 props/485 spawns/5 campfires, 0 panics` · harness DB residue cleaned.
+⚑ **No other harness was re-run, and that is a reasoned call, not an omission:**
+this chunk changed **zero lines of product code** — comments, tests and one
+harness only — so there is no behaviour any other script could observe
+differently. The Go suite plus the flight harness is the complete surface.
+**Schema impact: NONE.**
+
+**Nothing deferred to C5** by this chunk. C5 is unchanged: the route overlay,
+plus the open arm-vs-dialog question. ⚑ D16 gives the overlay a second reason
+to exist — a route line drawn under a moving dot is what makes a 1 Hz step read
+as flight rather than as a stuttering walker.
