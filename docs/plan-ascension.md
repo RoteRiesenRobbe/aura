@@ -131,9 +131,11 @@ design:
 3. **`backlog.md` §36** — mark ratified → this plan; its five sub-questions are
    answered (emergent D8 · no reset in v1, P5 · survives deletion, P6 · slot
    count stays [PLACEHOLDER] 3 · races deferred with the avatar plan).
-4. **`docs/README.md`** — index line for this plan, and correct the existing
-   `plan-ascension.md` entry: it still advertises points, a migration and a
-   scoring chunk, all of which D13 removed.
+4. ✅ **`docs/README.md`** — **done 2026-08-05**, ahead of C0, because the entry
+   was actively wrong after D13 (it advertised points, a migration and a
+   scoring chunk). ⚑ The old C0 item asked to *add* an index line and
+   `plan-camps.md` §3 item 7 repeats that — **both were mistaken, the entry
+   existed all along**; it needed correcting, not creating.
 5. **`backlog.md` §41 — nothing owed, deliberately.** The design session
    pre-ruled its discovery-scoping question (D12); §41 then *closed* on
    2026-08-05 when fast travel shipped, having landed D12's shape on its own.
