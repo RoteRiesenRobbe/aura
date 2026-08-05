@@ -4232,11 +4232,25 @@ independently-anchored overlay before it.
 
 ## 41. Fast travel — campfire network vs. flight paths
 
+> # ✅ CLOSED 2026-08-05 — BUILT, PO-VERIFIED IN-GAME, BOTH PLANS ARCHIVED.
+>
+> Part 1 (the map) shipped 2026-08-04; part 2 (flight) 2026-08-05 across C1–C4,
+> with **C5 cut** (D17 — the route overlay was all that remained and the in-game
+> pass read well without it). Dwell at a fire to discover it, `E` there to open
+> the map, two presses to fly. ⚑ **One design answer below was WRONG and is
+> corrected in the docs**: this entry says the can't-see-you-flying half is "a
+> filter in `playerSendState`". It is not a filter anywhere — **D13** removes the
+> flyer's shapes from `phy.Space`, so world invisibility is structural, and
+> **D16** then ruled the *map* keeps showing them, because the world and the map
+> are different facts. Nothing was filtered at all.
+>
+> ---
+>
 > **⭐ DESIGNED 2026-08-04 — OPTION 2 (flight paths) CHOSEN, and the design ran
 > wider than this entry: it took the world map with it.** Two plan docs, split by
 > PO ruling D1 so the map can ship on its own:
 > **`docs/archive/plan-world-map.md`** (map + minimap rework, no schema impact) and
-> **`docs/plan-flight-paths.md`** (the flight system, one migration).
+> **`docs/archive/plan-flight-paths.md`** (the flight system, one migration).
 > 12 PO rulings in total. The ⚑ death-penalty tension flagged below was ruled
 > **no extra brake** (D9): flight is fire-to-fire and fights are almost never at
 > a fire, so the walk-back survives as the last stretch — WoW's own economics.

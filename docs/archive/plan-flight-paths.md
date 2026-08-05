@@ -1,15 +1,25 @@
 # Plan: Flight paths — campfire-to-campfire fast travel (fast travel, part 2)
 
-**Status:** DESIGNED 2026-08-04; C2's mechanism surveyed and decided 2026-08-05
-(D13–D15). **C1 is DONE** — shipped inside `plan-world-map.md` C2 (2026-08-04),
-because the PO ruled discovered fires must persist per character while that
-chunk was being built and C1 *was* that work. **C2 (`bc01a45c`) and C3
-(`bcfb4faf`) are both DONE 2026-08-05, C3 PO-VERIFIED IN-GAME the same day**
-(§10 ledgers) — flight is playable end to end. **C4 is DONE 2026-08-05,
-PO-verified in-game the same day, and it INVERTED**: the PO ruled a flyer stays
-visible on the map (**D16**), so the roster filter this plan specified from §2
-onward was never built. **C5 — the route overlay — is the last chunk, and the
-only one left.**
+**Status: ✅ COMPLETE — designed and fully shipped 2026-08-04 → 2026-08-05,
+PO-verified in-game.** Fast travel is live: dwell at a fire to discover it,
+press `E` there to open the map, two presses to fly.
+
+- **C1** — shipped inside `plan-world-map.md` C2 (2026-08-04): the PO ruled
+  mid-chunk that discovered fires must persist per character, which *was* this
+  chunk's entire scope.
+- **C2** (`bc01a45c`) — the server state machine, 2026-08-05.
+- **C3** (`bcfb4faf`) — the client experience, 2026-08-05, PO-verified in-game
+  the same day, then reshaped by a feel pass (four more rulings).
+- **C4** (`fc000765`) — 2026-08-05, PO-verified in-game the same day, and it
+  **INVERTED**: the PO ruled a flyer stays visible on the map (**D16**), so the
+  roster filter this plan specified from §2 onward was never built.
+- **C5** — ⛔ **CUT** (**D17**, 2026-08-05). It had shrunk twice before it was
+  ever started, and the C4 pass verified flight reads well without the route
+  overlay that was all it had left. YAGNI, applied to a plan document.
+
+⚑ **Two tuning items outlive this doc** and live in `CLAUDE.md`'s Open items,
+not here: the **occluded landing dot** (marker sizing) and the **speed 2.8× /
+viewport 1.2×** `[PLACEHOLDER]`s.
 
 ⚑ **The C3 feel pass reshaped the design, so read §10 C3 "The PO feel pass"
 before §1 or §3.** It moved the trigger to **`E` at the campfire** (an
@@ -179,6 +189,25 @@ as a brake** — that is a real finding, not an omission.
   to instruct them to. ⚑ It also costs nothing at runtime and, unlike the
   filter, has **no restore at landing to forget** (landmine 1's rule met by
   construction rather than by a mechanism).
+- ⛔ **D17 — C5 IS CUT, AND THE PLAN IS COMPLETE.** No route overlay, no
+  confirm dialog; the two-press arm stands as the final interaction. *Why:*
+  C5 shrank twice before it was ever started, and each cut was a **precondition
+  disappearing rather than scope being deferred**. The confirm dialog existed
+  mainly to give the not-at-a-fire refusal a voice, and the C3 feel pass
+  **removed that case** (an `M`-opened map is read-only, so the flight map is
+  unreachable unless the precondition already holds). What remained was the
+  route overlay — and the C4 in-game pass verified flight reads well **without
+  it**, with the arm used in anger twice and reported as *"works and looks
+  good, no changes needed"*. ⚑ Building it anyway would have been the plan's
+  own momentum, not a present need: **YAGNI applied to a plan document.** The
+  overlay stays a legitimate idea for the day the world is large enough that a
+  crossing is long enough to want a drawn line — §9 already records that the
+  world is only ~96 s wide on foot and that this is infrastructure built ahead
+  of the size that justifies it. ⚑ **What this ruling does NOT close:** the two
+  tuning items ride forward to `CLAUDE.md`'s Open items rather than dying with
+  this doc — the **occluded landing dot** (marker sizing, now hit on every
+  arrival by every observer) and the **speed 2.8× / viewport 1.2×**
+  `[PLACEHOLDER]`s.
 
 ## 4. The shape
 
@@ -418,8 +447,9 @@ Per `CLAUDE.md`'s persistence rule, stated explicitly:
   there is **no** `codec.RosterFor` filter. What shipped is the ruling, the pin
   test that fails if anyone adds one, and the correction of every site that
   instructed them to. Verified on the map with a second client.
-- **C5 — Map destination selection.** Click a discovered fire → confirm → fly.
-  Route overlay on the map.
+- ~~**C5 — Map destination selection.** Click a discovered fire → confirm → fly.
+  Route overlay on the map.~~ ⛔ **CUT 2026-08-05 (PO), and the plan closes
+  with it.** See **D17** below.
 
 ## 8. Test strategy
 
