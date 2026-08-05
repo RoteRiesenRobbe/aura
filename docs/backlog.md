@@ -5462,3 +5462,98 @@ re-faction players:
 - Client-visible teams (nameplate colour / who is hostile) → one appended `Character`
   field, regenerate both binding sets.
 - Team or PvP flag persisted per character → a migration.
+
+## 56. Player ORIGINS — per-origin milestone tracks, starting kits, start locations
+
+*(added 2026-08-05 from a PO design conversation; three rulings taken the same day,
+recorded below. Not scheduled — the natural build moment is described at the end.
+All skill/level specifics are [PLACEHOLDER].)*
+
+The idea: players choose an **origin** at character creation — WoW-race-shaped
+identity, "basically different starting kits and locations." All origins stay
+mutually aligned; this is **not** the combat-allegiance `model.Faction`
+(`player/player.go:745` hardcodes players to aligned, per effect-foundations F8,
+and §55 documents why re-factioning players breaks every mob aggro mask). Call it
+`origin` in code and content precisely so it can never be confused with
+`api/factions/`.
+
+**PO rulings (2026-08-05):**
+
+1. **The full milestone track can diverge per origin** — not just the level-1 kit.
+   Milestone rows gain an optional `origin` field (null = everyone), filtered at
+   BOTH sites: creation seeding and level-up.
+2. **An origin's location is a pre-bound home campfire** — the origin names a
+   campfire that starts discovered *and* bound, reusing `home_campfire_id`
+   (nullable; NULL → zone default spawn today). Gives a sane day-one map state and
+   composes with fast travel.
+3. **Recorded here**, referenced from `plan-avatar-system.md` (which owns the
+   creation screen the choice lives on).
+
+### Answered by current state — how the starting kit works today
+
+- The kit IS the level-1 milestone rows: `api/milestones/milestone-unlocks.json`,
+  loaded by `skills/milestones.go:23` (hard-fails on unknown skill names).
+- `player.New` → `applyCreationMilestones` (`player/player.go:79`, impl `:967`)
+  discovers every `Level <= 1` entry **silently** and pre-equips a seeded active
+  aura into the first free aura slot, deliberately not activated (round-7 PO
+  ruling). Runs on **every** construction — fresh, respawn, reconnect.
+- Persistence tolerates that via a sentinel: `restoreCharacterState`
+  (`sys/persist.go:287`) treats an **empty persisted spellbook as "never saved"**
+  and leaves the creation defaults alone; anything else overwrites.
+- The level-up half is `applyMilestoneUnlocks` (`player/player.go:986`) — with
+  ruling 1, this is the second filter site.
+
+### Design shape
+
+- **A ninth content directory, `api/origins/`** — each origin bundles: extra
+  creation unlocks/pre-equips, the home-campfire id (ruling 2), and later the
+  avatar defaults `plan-avatar-system.md` parks. Wire it into
+  `cmd/aurad/loaders.go` `contentSources` (standing rule: every `api/` subdir
+  stays covered or content edits silently no-op).
+- **Optional `origin` field on milestone rows** (ruling 1). Both filter sites
+  compare against the character's origin; null rows apply to all.
+- **`game.characters` gains an `origin` column** — new migration pair, NULL mapped
+  to a default origin (existing characters predate the feature).
+- **The origin must reach `player.New` before `applyCreationMilestones` runs**, on
+  all three construction paths. ⚑ This is the SAME seam ascension C1's successor
+  seeding is about to build (`plan-ascension.md` — bloodline unlocks are also
+  "extra creation-time unlocks from account/character state"). Build C1's seeding
+  as a general "creation unlock set" and origins become content + one column.
+- Origin conditions on catalog entries later (origin-gated ascension picks, etc.)
+  land in the same nullable gate field D13 already designated for
+  `plan-camps.md`'s faction condition — one condition mechanism, not two.
+
+### ⚑ Landmines — each ships green and silent
+
+- ⚑ **GDD §3 / the round-6 lock generalizes**: every origin's kit must contain at
+  least one active aura that is free at every resource level, or a fresh character
+  of that origin can spawn with no action. Enforce at content load (the
+  tier+baseline hard-fail pattern), not in a runbook.
+- ⚑ **The creation recipe cascade is NOT silent.** `applyCreationMilestones` is
+  silent for milestones but ends in `ApplyRecipeCascade`
+  (`player/player.go:1004`), which sends "Combination discovered" unlocks. Today
+  Damage alone satisfies no recipe, so it never fires — a richer origin kit that
+  satisfies a curated recipe would toast on **every respawn and reconnect**
+  (seeding runs before restore overwrites). Needs a silent cascade at creation or
+  a load-time check that no kit self-satisfies a recipe.
+- ⚑ **The empty-spellbook sentinel** (`sys/persist.go:287`) survives only because
+  of the first landmine. Pin it: a test that every authored origin produces a
+  non-empty creation spellbook.
+- **Pre-equip slot order becomes content-visible**: the pre-equip loop takes the
+  first free aura slot, so a kit seeding multiple active auras equips them in
+  table order. Fine — but authored order is then meaningful.
+
+### Schema & wire impact
+
+- Schema: one migration pair (`characters.origin`). The pre-bound campfire reuses
+  `home_campfire_id` + the per-character discovery rows fast travel already
+  persists — no new tables.
+- Wire: the creation flow needs the choice (accounts HTTP side, no game-protocol
+  change); nothing else, unless origins later become client-visible on other
+  characters (then one appended `Character` field, regenerate both binding sets).
+
+### When to build
+
+Not before ascension C1 — C1 builds the creation-seeding seam this rides on, and
+the creation *screen* belongs to `plan-avatar-system.md` (§8 there now points
+here). With both in place, an origin is authored content plus one migration.

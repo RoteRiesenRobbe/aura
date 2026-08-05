@@ -207,6 +207,11 @@ Sequenced so each chunk is independently shippable and in-game verifiable:
 5. **Art pipeline** — portrait (picker thumbnail) vs in-world SVG: one asset
    scaled, or two per avatar? Affects the `avatars.json` shape (`file` vs
    `file` + `portrait`). [PLACEHOLDER art either way.]
+6. **Player ORIGINS share this plan's creation screen** — backlog §56 (PO-ruled
+   2026-08-05: per-origin milestone tracks, kit + pre-bound home campfire, all
+   origins mutually aligned). The origin picker and the avatar picker are the
+   same character-creation surface; design them together when this plan is
+   picked up. The seeding mechanics and landmines live in §56, not here.
 
 ---
 
