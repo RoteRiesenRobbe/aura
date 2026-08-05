@@ -62,6 +62,46 @@ Context from current state:
 
 ## 2. Friendly NPCs & the dialogue system
 
+> **✅ BUILT — the scoping fork was resolved by building the far branch.** Full
+> player-selectable branching dialogue shipped with the quest layer
+> (`docs/archive/plan-quests.md`, complete 2026-07-30, §42) on top of the actor
+> model (`plan-entity-model.md` chunk 3a). Live today: **eight** NPCs carrying
+> authored conversation trees (`api/mobs/*.json` `interaction` blocks) and **ten**
+> carrying `teachings`, so unlock path #4 is real content, not a design question.
+>
+> **How the open questions above were actually answered** — recorded because
+> several landed differently than the entry guessed:
+>
+> - **Trigger:** an explicit interact key (`E`) in range, **not** auto-fire on
+>   the proximity circle — so no "already greeted" latch was ever needed. D21
+>   additionally *ends* a conversation when the player leaves talk range.
+> - **Reuse vs. bespoke entity:** neither of the two options offered. An NPC is
+>   an ordinary **actor** with `role: creature` and `speed 0` (PO 2026-07-27,
+>   D4) — *"an NPC is an actor that authors no movement, not a kind of its own."*
+>   The old statless `model/npc` type is gone.
+> - **Authoring home:** the interaction tree lives **on the mob definition**
+>   (`api/mobs/<npc>.json`), not in a separate `api/npcs/` registry as this entry
+>   proposed.
+> - **Condition vocabulary — narrower than the candidate set here.** Exactly two
+>   kinds shipped (`items/mobs/interaction.go`): `minLevel` and `quest_at_stage`
+>   (plus the `not_started` / `completed` sentinels). Area-population state and
+>   personal kill counters were **not** built. Conditional teaching is live
+>   regardless — the Hermit gates the two beast-handling cooldowns behind level
+>   10, and the Farmer's turnip chore gates on quest stage.
+> - **Statefulness / memory:** the persisted **quest ledger** is the per-player
+>   memory this entry called the dividing line.
+> - **"No quest log, no markers":** the pillar was **amended, not preserved** —
+>   PO 2026-07-29 (§42) made quests first-class with a journal.
+>
+> ⚑ **The one live gap this entry predicted and nobody closed:** the condition
+> vocabulary is **AND-only with no negation**, so a node cannot say *"while this
+> quest is running"* — which is exactly the round-8 item-2 defect (quest info
+> rows stay readable after turn-in). Tracked with its recommended fix (a third
+> `running` sentinel) in `plan-playtest-feedback.md` §Intake round 8, **not
+> here**.
+>
+> *The original write-up follows, as the record of why.*
+
 Peaceful, hand-placed NPCs — the entity behavior behind unlock path #4 (NPC
 teaching) — and the open question of whether their interaction is bare
 teach-on-approach or player-selectable **branching dialogue** (contextual to
@@ -313,7 +353,36 @@ Two variants:
   radius, the player spawns a friendly temporary copy of that dead mob,
   which fights alongside the player for a limited duration.
 
-**Status (2026-07-09): placed → execution step 2 (mob depth + totems).** Both
+> **✅ VARIANT (A) SHIPPED · ⬜ VARIANT (B) STILL OPEN — but its blockers are
+> gone.** Split the entry when reading it; the two halves are no longer in the
+> same state.
+>
+> - **(A) is live:** `api/skills/summon-companion.json` (`SummonCompanion`,
+>   id 24, mob-depth chunk 6) — a `spawn` effect that puts an owned,
+>   player-aligned Companion beside the caster; it follows the owner, attacks
+>   what the owner attacks and what attacks the owner, and despawns on a TTL the
+>   skill level scales. That is this entry's variant (A) verbatim, including the
+>   timeout. The "one generic spawn framework vs. two hardcoded cooldowns"
+>   question was answered **generic**: `spawnMob` is a content field, which is
+>   what makes the heal-companion a content author's job and not a chunk.
+> - **(B) is NOT built, and charm is not it.** `CharmBeast` / `CharmElemental`
+>   flip a **living** mob's allegiance for a duration; (B) is *"a mob dies inside
+>   my aura ⇒ spawn a friendly temporary copy of it"*, which is a different
+>   trigger (a death hook on an aura) and a different subject (a corpse's
+>   species, not a live target).
+>
+> ⚑ **What changed is the cost, not the status.** Everything (B) was waiting on
+> now exists and is proven by shipped content: the faction setter and the
+> allegiance-flip semantics (`plan-faction-flips.md`, incl. D2 keep-your-own-level
+> and D11 no-extension), owner attribution + TTL + XP credit (the Companion), and
+> the `targetFactions` allowlist that decides *which* corpses may be copied. So
+> (B) is now **one new effect type plus content**, not the open design problem
+> this entry filed. The faction open questions below are all answered; what
+> remains genuinely open is the copy's stat basis (the original's, or reduced)
+> and whether copies stack.
+
+**Status (2026-07-09, superseded by the banner above): placed → execution step 2
+(mob depth + totems).** Both
 variants are **consumers of the effect-foundations Step-3 spawned-entity/totem
 machinery**: (A) a companion = a totem with velocity + owner attribution; (B) the
 friendly-copy is charm, needing the parked faction setter. The faction concept
@@ -432,6 +501,71 @@ Context from current state:
 ## 8. Destructible/respawning movement obstacles via aura hits
 
 **WoW/Gothic fit: low** *(ranked 2026-07-29, PO-confirmed)*
+
+> **✅ LARGELY SHIPPED — as MOBS, not as props, and the entry never saw it
+> coming.** Traced against HEAD 2026-08-05 (PO observation). A destructible
+> aura-gated obstacle is **live content in the world today** and has its own
+> section in the authoring manual: *"Solid-obstacle mobs (brazier/bramble
+> pattern) … a **destructible aura-gated wall**"*
+> (`manual-content-authoring.md`).
+>
+> **What is actually in the game:** `api/mobs/bramble.json` and
+> `api/mobs/rockfall.json` — `role: "structure"`, `speed 0`, `experience 0`,
+> `resistances: {"*": 0}`, `gateKeys: ["harvest"]` / `["smash"]`, body
+> `collisionLayer 99` (PlayerStatic 1 + Action 2 + Viewport 32 + MobStatic 64) /
+> `collisionMask 16` (Border only). That layer/mask pair is the whole trick:
+> **blocks players and mobs, stays aura-hittable, and nothing can push it.**
+> `world.json` places four Brambles in a line at `y −4.8`, spaced 1.2 apart —
+> a wall — each with `respawnTicks: 9000` (~5 min) and `respawnVariancePct: 0.1`.
+> The keys are taught: `harvest` by the Farmer, `smash` by the Miner, so the
+> barrier **is** the attunement gate this entry's own extension asked for.
+>
+> ⚑ **The mechanism is TWO authored facts, not one, and they are deliberately
+> different systems.** `"*": 0` is a *resistance* wildcard — it makes the mob
+> immune to all **tagged** damage. What lets exactly one aura through is
+> `gateKeys` + the skill's `gateKey`, a **lock-and-key** that carries **no
+> damage tags at all** and therefore never enters resistance math. The numbers
+> rewrite (D4) split them on purpose: *"a turnip resists everything except
+> harvest"* and *"takes half damage from fire"* were being written in the same
+> words, which made a mistyped key a silently inert skill. Do not collapse them
+> back together.
+>
+> ⚑ **This closes the *"Decided (2026-07-09): the `"*"` wildcard resist key
+> will be built"* line below — it WAS built** (`skills.ResistWildcard`,
+> plan-skill-vocab chunk 1).
+>
+> **The entry's framing ("extend the existing map format") was the expensive
+> road, and we did not take it.** Everything a *prop*-shaped obstacle would have
+> cost, a structure mob gets for free:
+>
+> | Cost on the prop path | On the mob path |
+> |---|---|
+> | `panic("Cannot remove static entities!")` (`sys/physics.go:86`) — props are static bodies | Mobs are dynamic bodies; removal works, and §54 hardened the collision-set purge |
+> | `PropEntity` is `interface{ Entity }`, *"no gameplay behavior"* — no health, no damage entry point | Mobs carry vitals, and `structure` is a **first-class authored role**, not inferred from `speed: 0` |
+> | Minimap `LevelOfDynamic.STATIC` = *"Doesn't get removed"* → a destroyed prop leaves a permanent map ghost | `Mobs.ts:127` sets `visibleOnMinimap = false` — structure mobs are never on the map |
+> | Respawn would have to copy `MobSystem`'s spawn-point shape | It **is** that code: `respawnTicks` + `respawnVariancePct`, per placement |
+>
+> ⚑ **The one real tradeoff, for the record:** a prop is a static body that
+> streams with no tick; a structure mob is a full actor through `MobSystem`. At
+> 4 brambles + 2 rockfalls that is not a concern, but it is the only argument
+> that would ever bring a prop-shaped obstacle back — a *perf* argument, never a
+> capability one. Don't extend props for this.
+>
+> **What is genuinely LEFT of this entry:**
+>
+> - ⬜ **Variant (a)** — the obstacle returns *"once the aura is no longer
+>   active/present"*. **Not built.** Respawn is timer-based end to end; an
+>   aura-presence-linked restore is a different lifecycle from anything the
+>   spawn system does. This is the only open mechanic here.
+> - ✅ **Variant (b)** (independent respawn timer) — shipped, with variance.
+> - ✅ *"Any damage aura, or only flagged ones?"* — answered by authoring, both
+>   ways: omit `"*": 0` and any damage aura hurts it; include it and only the
+>   keyed aura does.
+> - ✅ *Decorative vs gameplay-gating* — gating is live (see above); both remain
+>   authorable per mob.
+>
+> *The original write-up follows, as the record of why.*
+
 World objects that block movement (~~and likely line-of-sight~~ — aura LoS
 cut 2026-07-10) can be removed when hit by an aura. They can reappear either **(a)** once the aura is no
 longer active/present, or **(b)** via a respawn timer independent of aura
@@ -1443,7 +1577,9 @@ File it as a separate, smaller item so the two don't get conflated.
 only if a future entity type makes the matrix actually hurt.** The free
 cleanup is done (above); everything else is **not scheduled**.
 
-**⚠ Sequencing:** **§26 (prune the dead resource/decay layer) should land
+**⚠ Sequencing — ✅ SATISFIED: §26 landed 2026-07-24, so B is unblocked and the
+matrix is at the 6-helper shape below.** The original note follows.
+**§26 (prune the dead resource/decay layer) should land
 first.** It deletes `addPlaceableEntity` (1 of the **7** helpers remaining after
 the free cleanup above) and `DecaySystem` (1 of the 16 systems every helper
 iterates) — so the original 8×13 matrix ends up **6 helpers**. Any work here
@@ -1458,8 +1594,10 @@ with a real design decision in front of it.
 
 **WoW/Gothic fit: none (theme-neutral)** *(ranked 2026-07-29, PO-confirmed)*
 > **PARTIALLY DONE — A#4 + B landed 2026-07-24 (`2ec03ee7`), C landed
-> 2026-07-25, A#1 + A#3 landed 2026-07-31 (`1bfd6677`).** Only **A#2**
-> (blocked on §33 — see below), **D** and **E** remain open.
+> 2026-07-25, A#1 + A#3 landed 2026-07-31 (`1bfd6677`), and **A#2 closed
+> 2026-08-05** — *dissolved* by §33's ruling rather than done (see the
+> cleanup-layer item). **Option A is therefore fully done**; only **D** and
+> **E** remain open.
 >
 > - **A#1 + A#3 (the mechanical cleanups): DONE 2026-07-31**, together with
 >   §27.2.8, as the opportunistic sitting the recommendation below reserves for
@@ -1630,11 +1768,21 @@ but the reading today is benign.
    effect appends another if-block. One `switch` collapses ~25 lines and makes
    the exhaustiveness visible. **Highest value of the four** — this is the
    extension point that grows.
-2. ~~**Copy-pasted "wounded ally" predicate**~~ ⚑ **SUPERSEDED by §33's ruling
+2. ~~**Copy-pasted "wounded ally" predicate**~~ ✅ **CLOSED 2026-08-05 — §33
+   landed (`dc21ad81`) and took the duplication with it.** Verified against HEAD:
+   `sys/skills.go` now has exactly **one** `HealthRatio() < 1` site, inside
+   `applyHealAura`, and no `woundedAllyPredicate` exists. ⚑ **Worth keeping as a
+   pattern:** this cleanup was never done — it was *dissolved* by a design
+   ruling. The duplication was the symptom of two effects sharing a rule that
+   turned out not to be one rule, so extracting a helper would have hardened a
+   mistake. **A duplication finding should be re-checked against any design
+   change that touches either copy before it is acted on.**
+   *The record of how it got here follows.* ⚑ **SUPERSEDED by §33's ruling
    2026-07-31 — do NOT extract this.** The PO lifted the wounded-only gate on
    `hot_aura`, so heal and hot no longer share a rule: the hot-side copy is
    *deleted*, not deduped, and a shared `woundedAllyPredicate()` would be
-   exactly the wrong abstraction. Close this item when §33 lands.
+   exactly the wrong abstraction. ~~Close this item when §33 lands.~~ (Done —
+   see the banner on this item.) The original finding, 2026-07-24:
    `applyHealAura:716–728` and
    `applyHotAura:815–827` are logically identical (`Healable` + same faction +
    not self + `HealthRatio() < 1`). This is the **residual of §3.4 in
@@ -1730,8 +1878,9 @@ Flagged only so the ratio is a **choice on record** rather than drift.
 
 ### Options (none chosen)
 
-- ~~**A — Do the four mechanical cleanups.**~~ ✅ **A#1 + A#3 + A#4 DONE**
-  (A#4 2026-07-24, A#1 + A#3 2026-07-31); **A#2 remains, blocked on §33.** No
+- ~~**A — Do the four mechanical cleanups.**~~ ✅ **ALL FOUR CLOSED**
+  (A#4 2026-07-24, A#1 + A#3 2026-07-31, **A#2 closed 2026-08-05 — dissolved by
+  §33 rather than done**, see the cleanup-layer item). No
   behavior change, `skills_behavior_test.go` (3839 lines) plus the byte-identical
   sim battery were the regression net. Actual cost for A#1 + A#3 was well under
   the ~1–2 h estimate, mostly because the survey had already located every site.
@@ -1762,8 +1911,8 @@ taking a dedicated (if short) sitting anyway. **A cleanup on the extension
 point that is actively growing should be scheduled, not left to a passing
 visit.**
 
-**What is left: A#2** (decide §33 first), **D** (~15 min, still not
-recommended — the file is cohesive), **E**.
+**What is left: D** (~15 min, still not recommended — the file is cohesive) and
+**E**. ~~A#2~~ closed 2026-08-05, so **option A is fully done**.
 
 **Scope guess:** ~~A ~1–2 h~~ (A#1 + A#3 came in well under it); D ~15 min.
 (B took ~30 min; C took ~40 min including the four pins.) None of the remainder
