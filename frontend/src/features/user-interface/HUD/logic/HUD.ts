@@ -27,6 +27,7 @@ import {EquipMessage} from '../../../backend/logic/messages/outgoing/EquipMessag
 import {SpendSkillPointMessage} from '../../../backend/logic/messages/outgoing/SpendSkillPointMessage';
 import {RespecMessage} from '../../../backend/logic/messages/outgoing/RespecMessage';
 import * as Zoom from '../../../camera/logic/Zoom';
+import * as Flight from '../../../flight/logic/Flight';
 import SimpleBar from 'simplebar';
 
 let Game: IGame = null;
@@ -74,6 +75,9 @@ let shieldIndicatorElement: HTMLElement;
 let castBarElement: HTMLElement;
 let castBarIndicatorElement: HTMLElement;
 let castBarTextElement: HTMLElement;
+let flightBarElement: HTMLElement;
+let flightBarIndicatorElement: HTMLElement;
+let flightBarTextElement: HTMLElement;
 
 Preloading.renderPartial(require('../assets/HUD.html'), () => {
     rootElement = document.getElementById('gameUI');
@@ -128,7 +132,14 @@ function setupZoomControl() {
     });
 
     render();
+    // Published so the flight lock can re-render the buttons: taking off makes
+    // both directions unavailable (the zoom override), and this is the only
+    // path that puts that on screen. Presses were the sole trigger until now.
+    renderZoomControl = render;
 }
+
+// Set by setupZoomControl; undefined until the HUD is wired.
+let renderZoomControl: (() => void) | undefined;
 
 
 function setupVitalSigns() {
@@ -143,6 +154,9 @@ function setupVitalSigns() {
     castBarElement = document.getElementById('castBar');
     castBarIndicatorElement = castBarElement?.querySelector('.indicator');
     castBarTextElement = castBarElement?.querySelector('.barText');
+    flightBarElement = document.getElementById('flightBar');
+    flightBarIndicatorElement = flightBarElement?.querySelector('.indicator');
+    flightBarTextElement = flightBarElement?.querySelector('.barText');
 }
 
 // updateCastBar renders the owning player's running cast (skill-vocab
@@ -212,6 +226,83 @@ function rejectEquipInCombat(): boolean {
     AlertBanner.show("Can't change loadout in combat", 'warning');
     return true;
 }
+
+// rejectWhileFlying blocks an ability-bar interaction mid-flight, showing the
+// reason in the alert banner. Returns true when the interaction was blocked.
+// The mirror of rejectEquipInCombat above — the same idea about a different
+// server rule (plan-flight-paths.md §4.2: input discarded whole, utilities
+// refused).
+//
+// ⚑ It reads the Flight module rather than a local flag. `in_combat` has
+// nowhere else to live, so combatLocked has to mirror it; `flying` has a home
+// four surfaces already share, and a second copy here could only drift.
+//
+// ⚑ Covers CLICKS AND HOTKEYS BOTH, because every entry point funnels through
+// the handlers this sits in — the keyboard goes through hotkeyAuraSlot /
+// hotkeyCooldownSlot, the mouse through the slot-list listeners, and both
+// reach the same toggleAuraSlot / activateCooldownSlot. Gating Controls alone
+// would have locked the keyboard and left the mouse working.
+function rejectWhileFlying(): boolean {
+    if (!Flight.isFlying()) {
+        return false;
+    }
+    AlertBanner.show("Can't use abilities while flying", 'warning');
+    return true;
+}
+
+// updateFlight renders everything the HUD shows about a flight: the greyed
+// ability bar (the VISIBLE REASON half of the lock — dimming without the guard
+// above would be a dimmed bar that still worked, and the guard without the
+// dimming would be presses that silently did nothing, the exact failure mode
+// feedback pass B item 7 recorded), the locked zoom buttons, and the progress
+// bar. Called every tick from the owning player's update; the per-flight edges
+// are detected here so nothing outside this file has to know about them.
+//
+// The bar is deliberately the cast bar's shape and second convention (ticks ×
+// SERVER_TICKRATE, one decimal) so a flight timer and a cast timer read as one
+// system.
+//
+// ⚑ It cannot name the destination. `Character.flight_dest` is a POSITION, not
+// an id (§4.4, a deliberate choice — the map resolves id→pos itself), and
+// campfire ids are bare `spawnpoint-N` with no authored display name. §4.5's
+// "flying to X — Ns" was written before that call; the ETA is the half that
+// exists.
+export function updateFlight(flying: boolean, ticksLeft: number) {
+    if (flying !== flightHudShown) {
+        flightHudShown = flying;
+        document.getElementById('actionBars')?.classList.toggle('flightLocked', flying);
+        flightBarElement?.classList.toggle('flying', flying);
+        // Takeoff owns the progress denominator, so an interrupted flight (a
+        // mid-air WARP grounds you without the countdown ever reaching zero)
+        // cannot leave the next flight's bar starting part-full.
+        flightTicksTotal = 0;
+        // Both zoom directions report unavailable while the override is on, and
+        // this is the only path that puts that on screen — presses were its
+        // sole trigger until now.
+        renderZoomControl?.();
+    }
+    if (!flying || !flightBarElement) {
+        return;
+    }
+
+    // Progress against the longest remainder seen this flight: the duration is
+    // never on the wire (only the arrival tick is), and a flight's first
+    // snapshot carries its full remainder.
+    if (ticksLeft > flightTicksTotal) {
+        flightTicksTotal = ticksLeft;
+    }
+    const progress = flightTicksTotal > 0
+        ? Math.min(Math.max(1 - ticksLeft / flightTicksTotal, 0), 1)
+        : 0;
+    flightBarIndicatorElement.style.width = `${progress * 100}%`;
+    flightBarTextElement.textContent =
+        `Flying — ${(ticksLeft * Constants.SERVER_TICKRATE / 1000).toFixed(1)}s`;
+}
+
+// What the HUD is currently showing, for edge detection only — never a second
+// answer to "am I flying" (Flight owns that).
+let flightHudShown = false;
+let flightTicksTotal = 0;
 
 // setupRespecButton wires the spellbook's reset-all (round-7 item 8). The
 // confirm is a two-press arm — the first press turns the button into
@@ -415,6 +506,14 @@ function tryEquipPending(category: SkillCategory, slot: number): boolean {
     if (rejectEquipInCombat()) {
         return true;
     }
+    // ⚑ The flight lock covers equipping too, and that is a UI ruling rather
+    // than a server rule: EquipMessage is its own ClientMessageBody, so the
+    // takeoff input discard (§4.2) never sees it and the server would accept
+    // it. A greyed-out bar that still re-slots on click is the inconsistency —
+    // one lock, one reading, and nothing is lost by waiting out the flight.
+    if (rejectWhileFlying()) {
+        return true;
+    }
     new EquipMessage(selectedSkillId, slot).send();
     clearEquipSelection();
     return true;
@@ -452,6 +551,9 @@ function setupAuraLoadout() {
 // (updateActiveAuraSlot), and the on-character ring follows
 // Character.active_skill_id. Shared by slot clicks and hotkeys 1–3.
 function toggleAuraSlot(slot: number) {
+    if (rejectWhileFlying()) {
+        return;
+    }
     if (currentAuraSlots[slot] === 0 || currentAuraSlots[slot] === undefined) {
         return;
     }
@@ -535,6 +637,7 @@ function setupCooldownLoadout() {
 // activateCooldownSlot fires an occupied, ready cooldown slot. Shared by
 // slot clicks and the Q/E/F hotkeys; the server re-validates every request.
 function activateCooldownSlot(slot: number) {
+    if (rejectWhileFlying()) return;
     if ((currentCooldownSlots[slot] ?? 0) === 0) return;
     if ((currentCooldownRemaining[slot] ?? 0) > 0) return;
     const input = new InputMessage();

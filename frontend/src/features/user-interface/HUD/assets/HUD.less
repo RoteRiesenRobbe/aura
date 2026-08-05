@@ -719,6 +719,64 @@
 	}
 }
 
+// Flight progress (plan-flight-paths.md C3). Borrows the cast bar's geometry
+// and text treatment so the two timers read as one system; the fill is the
+// campfire orange every other reading of "campfire" already uses (the bound
+// ring on the map, the "Bound to campfire" floating text) rather than the cast
+// bar's gold, because what it counts down to is a campfire.
+//
+// ⚑ `display`, not `visibility`: the cast bar reserves its slot permanently so
+// a cast cannot shove the conversation panel around (L25), but a flight is
+// rare and a second always-reserved bar would push the action bars down for
+// everyone, every game.
+#flightBar {
+	position: relative;
+	width: 18vw;
+	height: (0.5 * @uiElementHeight);
+	background-color: rgba(20, 24, 28, 0.75);
+	display: none;
+
+	&.flying {
+		display: block;
+	}
+
+	> .indicator {
+		height: 100%;
+		width: 0;
+		background-color: #E37313;
+	}
+
+	> .barText {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+
+		color: white;
+		font-size: (0.3 * @uiElementHeight);
+		text-shadow: 0 0 2px black, 0 0 2px black;
+	}
+}
+
+// The ability bar while airborne (plan-flight-paths.md §4.2). The dimming is
+// the VISIBLE half of the lock — HUD.rejectWhileFlying is the functional half,
+// and a bar that looked available while refusing every press is exactly the
+// silent refusal feedback pass B item 7 ruled against.
+//
+// ⚑ Pointer events stay ON deliberately: pressing a locked slot is how the
+// player learns WHY it is locked (the alert banner). The same reasoning keeps
+// the out-of-charges Camp button clickable.
+#actionBars.flightLocked {
+	opacity: 0.45;
+	filter: grayscale(70%);
+}
+
 @panel-bg:           fade(black, 50%);
 @panel-border:       fade(white, 15%);
 @panel-border-radius: 1rem;

@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {
     MapState, campfireMarkers, isInsideDrawnMap, mapScale, rescaleCoordinate, resizeTerrain,
-    rosterMarkers, worldToMap,
+    pickCampfireMarker, rosterMarkers, worldToMap,
 } from './MapScale';
 
 // The real world zone (api/zones/world.json) as the CLIENT receives it:
@@ -431,5 +431,62 @@ describe('rosterMarkers', () => {
         });
 
         fractions.forEach((fraction) => expect(fraction).toBeCloseTo(fractions[0], 10));
+    });
+});
+
+/**
+ * The flight destination hit-test (plan-flight-paths.md C3). Markers are laid
+ * out from the layer origin, which is the canvas CENTRE, so every point here is
+ * relative to that — the same space `campfireMarkers` returns.
+ */
+describe('pickCampfireMarker', () => {
+    const MARKERS = [
+        {id: 'spawnpoint-1', x: 0, y: 0, home: true},
+        {id: 'spawnpoint-2', x: 100, y: 0, home: false},
+        {id: 'spawnpoint-3', x: 108, y: 0, home: false},
+    ];
+    const RADIUS = 13;
+
+    it('picks the fire under the press', () => {
+        expect(pickCampfireMarker(MARKERS, {x: 3, y: -4}, RADIUS)?.id).toBe('spawnpoint-1');
+    });
+
+    it('picks the NEAREST when two markers overlap within one radius', () => {
+        // At docked scale the whole 144-unit world is ~200 px across, so fires
+        // a few units apart genuinely overlap. First-inside would make whichever
+        // is drawn earlier permanently unclickable.
+        expect(pickCampfireMarker(MARKERS, {x: 107, y: 0}, RADIUS)?.id).toBe('spawnpoint-3');
+        expect(pickCampfireMarker(MARKERS, {x: 101, y: 0}, RADIUS)?.id).toBe('spawnpoint-2');
+    });
+
+    it('returns null for a press on open map', () => {
+        // The map is not a fly-anywhere surface (D2): fire to fire only, so a
+        // miss has to be nothing rather than the closest fire.
+        expect(pickCampfireMarker(MARKERS, {x: 400, y: 400}, RADIUS)).toBeNull();
+    });
+
+    it('counts a press exactly on the radius, and nothing past it', () => {
+        expect(pickCampfireMarker(MARKERS, {x: RADIUS, y: 0}, RADIUS)?.id).toBe('spawnpoint-1');
+        expect(pickCampfireMarker(MARKERS, {x: RADIUS + 0.5, y: 0}, RADIUS)).toBeNull();
+    });
+
+    it('degrades to no pick on an unmeasured canvas', () => {
+        // Radius comes from the marker size of the last draw, which is 0 before
+        // one has happened (and a display:none canvas measures 0 × 0 — the phone
+        // keeps the minimap in the layout for exactly that reason).
+        expect(pickCampfireMarker(MARKERS, {x: 0, y: 0}, 0)).toBeNull();
+        expect(pickCampfireMarker([], {x: 0, y: 0}, RADIUS)).toBeNull();
+    });
+
+    it('can pick an undiscovered fire only if one was drawn', () => {
+        // Not a rule of its own: campfireMarkers already filters to discovered
+        // fires (D6), so the hit-test's input can only contain flyable
+        // destinations. Pinned so a future caller that hands it the raw zone
+        // list has to notice that it is bypassing the filter.
+        const fromZone = campfireMarkers(
+            [{id: 'spawnpoint-1', x: 0, y: 0}, {id: 'spawnpoint-2', x: 10, y: 0}],
+            new Set(['spawnpoint-2']), '', 1, 1);
+        expect(pickCampfireMarker(fromZone, {x: 0, y: 0}, 5)).toBeNull();
+        expect(pickCampfireMarker(fromZone, {x: 10, y: 0}, 5)?.id).toBe('spawnpoint-2');
     });
 });

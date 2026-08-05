@@ -11,7 +11,7 @@
     "player": {
       "healthGainTick": 0.00033,
       "walkingSpeedPerTick": 0.05,
-      "flightSpeedFactor": 4,
+      "flightSpeedFactor": 2.8,
       "baseHealth": 100,
       "levelGrowth": 1.12,
       "maxLevel": 30,

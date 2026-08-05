@@ -240,6 +240,14 @@ export class Game implements IGame {
                 trees: createNamedContainer('trees'),
             },
             bossMobs: createNamedContainer('bossMobs'),
+            // A character in FLIGHT, above props and boss mobs (flight C3, PO
+            // pass 2026-08-05). Every other character stays on `characters`,
+            // deliberately BELOW the trees and rocks it walks behind — this
+            // layer exists only for the one entity that is meant to be over
+            // them, and only while it is. Empty on the ground, and it can hold
+            // at most the local player: a flyer is removed from everyone
+            // else's snapshot (D13), so no remote character can ever reach it.
+            flyers: createNamedContainer('flyers'),
             // Darkness overlay (chunk 3): above all entities, below the
             // floating numbers; deliberately NOT in the DayCycle filtered
             // set — dark areas are dark independent of the cycle (§6.5).
@@ -317,6 +325,13 @@ export class Game implements IGame {
 
         // Boss mobs overlaying resources
         this.cameraGroup.addChild(this.layers.bossMobs);
+
+        // …and a flyer above even those. Walking behind a tree is correct;
+        // flying behind one breaks the only thing selling the flight, since
+        // altitude has no other representation (no shadow, no scale change).
+        // Above darkness would be wrong — a flyer crossing a dark region is
+        // still in it — so this sits just below it.
+        this.cameraGroup.addChild(this.layers.flyers);
 
         // Darkness overlay above every entity
         this.cameraGroup.addChild(this.layers.darkness);

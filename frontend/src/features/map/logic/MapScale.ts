@@ -197,6 +197,53 @@ export function campfireMarkers(
     return markers;
 }
 
+/**
+ * Which discovered campfire a press landed on, or null (plan-flight-paths.md
+ * C3 — the map click that starts a flight).
+ *
+ * ⚑ THE POINT IS IN MARKER SPACE, not canvas space: markers are laid out from
+ * the layer origin, which sits at the canvas centre, so the caller subtracts
+ * the centre before calling. Passing raw canvas coordinates would put every
+ * fire a half-canvas away from where it looks.
+ *
+ * ⚑ NEAREST WINS, not first-inside. Two fires close together at docked scale
+ * overlap within one hit radius, and picking the first match would make the
+ * one drawn earlier unclickable — a bug that only appears on a map with fires
+ * near each other, which is exactly the map a real zone has.
+ *
+ * The radius is the caller's, because it is a function of the marker size,
+ * which is per map state.
+ */
+export function pickCampfireMarker(
+    markers: CampfireMarker[],
+    point: {x: number, y: number},
+    radius: number,
+): CampfireMarker | null {
+    if (!markers || !isPositive(radius)) {
+        return null;
+    }
+    const radiusSq = radius * radius;
+    let best: CampfireMarker | null = null;
+    let bestDistanceSq = 0;
+    for (const marker of markers) {
+        const dx = marker.x - point.x;
+        const dy = marker.y - point.y;
+        const distanceSq = dx * dx + dy * dy;
+        // `<=` so a press exactly on the radius counts; the strict `<` against
+        // the running best keeps the earlier marker on an exact tie, so
+        // repeated presses on the same spot cannot alternate between two
+        // equidistant fires.
+        if (distanceSq > radiusSq) {
+            continue;
+        }
+        if (best === null || distanceSq < bestDistanceSq) {
+            best = marker;
+            bestDistanceSq = distanceSq;
+        }
+    }
+    return best;
+}
+
 /** One player as the roster message delivers them: px space, plus their id. */
 export interface RosterPlayer {
     id: number;

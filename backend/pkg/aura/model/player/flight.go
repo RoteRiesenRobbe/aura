@@ -136,9 +136,21 @@ func (p *player) flightShapes() []phy.DynamicCollider {
 
 // flightViewportScale is how much the server-side AOI grows while flying
 // (§4.3, D3) — ~2.5× linear is ~6.25× streamed area, so this is a perf knob
-// as much as a feel knob. The client zoom cap must move with it (C3).
-// [PLACEHOLDER]
-const flightViewportScale = 2.5
+// as much as a feel knob.
+//
+// ⚑ RETUNING THIS ALONE IS A BUG. The client's zoom-out must move with it or
+// entities pop in at the screen edges (landmine 3), and the client's copy is a
+// separate literal in a separate language: FLIGHT_VIEWPORT_SCALE in
+// frontend/src/features/camera/logic/Zoom.ts. Nothing but
+// TestFlightViewportScale_MatchesTheClient can notice when the two drift —
+// both language's suites stay green, because each side is internally
+// consistent.
+//
+// Cut twice by the PO's in-air passes on 2026-08-05: 2.5 → 1.75 → 1.2, each
+// time "still too far out". The two cuts together take the streamed area from
+// ~6.25× the ground viewport to ~1.4×, so what began as the flight feature's
+// biggest mobile-perf cost is now nearly free. [PLACEHOLDER]
+const flightViewportScale = 1.2
 
 // setViewportScale resizes the AOI box around the default viewport extent.
 func (p *player) setViewportScale(factor float32) {

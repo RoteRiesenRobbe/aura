@@ -13,6 +13,8 @@ import * as DarknessOverlay from '../../darkness/logic/DarknessOverlay';
 import {setLocalPlayerLevel} from '../../../client-data/Mobs';
 import {setLocalPlayerMaxHealth} from '../../../client-data/Skills';
 import {shieldBarSegments} from '../../game-objects/logic/ShieldBarMath';
+import * as Flight from '../../flight/logic/Flight';
+import * as FlightOrigin from '../../flight/logic/FlightOrigin';
 import './PlayerJuice';
 
 export class Player {
@@ -179,6 +181,14 @@ export class Player {
     }
 
     remove() {
+        // Leaving the world grounds the client (plan-flight-paths.md C3): death
+        // and disconnect both come through here, and the server resolves a
+        // dropped flight to arrival (D14) rather than replaying it. Without
+        // this, a re-join would spend its first tick zoomed out with a greyed
+        // ability bar until the first snapshot corrected it.
+        Flight.reset();
+        FlightOrigin.setOrigin(0);
+        HUD.updateFlight(false, 0);
         // The own character is added to the minimap here rather than through
         // the entity snapshot, so nothing else will ever take it off again.
         // Until CLEAR_MINIMAP_ON_DEATH was turned off, the wholesale clear on

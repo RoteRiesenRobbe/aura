@@ -19,6 +19,7 @@ import * as Interact from '../../interact/logic/Interact';
 import * as HUD from '../../user-interface/HUD/logic/HUD';
 import {Vector} from '../../core/logic/Vector';
 import {Develop} from '../../internal-tools/develop/logic/_Develop';
+import * as Flight from '../../flight/logic/Flight';
 
 let Game: IGame = null;
 GameSetupEvent.subscribe((game: IGame) => {
@@ -197,6 +198,23 @@ export class Controls {
 
         if (consoleCooldown > 0) {
             consoleCooldown--;
+        }
+
+        // Airborne: send nothing and read nothing (plan-flight-paths.md §4.2).
+        // The server already discards a flyer's Input whole — this is not what
+        // produces the lock, it is what stops the client from arguing with it.
+        // Everything below the line is gated at once, deliberately: movement,
+        // rotation, the aura/cooldown hotkeys and interact all ride the same
+        // Input message or the same HUD handlers, so one gate is the complete
+        // set rather than four that could drift.
+        //
+        // ⚑ `wasMoving` is deliberately left standing. If the keys were down at
+        // takeoff, landing sends the stop-tail's explicit (0,0) once — which is
+        // exactly right, because takeoff cleared the server's held coast input
+        // and the client must not resume a walk the player is no longer asking
+        // for.
+        if (Flight.isFlying()) {
+            return;
         }
 
         if (Game.joystickManager.touchActionActive) {

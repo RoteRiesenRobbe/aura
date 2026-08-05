@@ -292,6 +292,17 @@
             <span class="barText"></span>
         </div>
 
+        <!-- Flight progress (plan-flight-paths.md C3): visible only while
+             airborne between two campfires; fill + ETA set by HUD.updateFlight.
+             Deliberately the cast bar's markup and place in the column so the
+             two timers read as one system — but it hides with `display`, not
+             `visibility`, because a flight is rare and a permanently reserved
+             second bar would push the action bars down for everyone. -->
+        <div id="flightBar">
+            <div class="indicator"></div>
+            <span class="barText"></span>
+        </div>
+
         <!-- Action bars: aura slots left, utilities middle, cooldowns right. -->
         <div id="actionBars">
             <div id="auraLoadout">

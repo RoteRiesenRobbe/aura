@@ -7,6 +7,7 @@ import {createNamedContainer} from '../../pixi-js/logic/CustomData';
 import {Character} from '../../game-objects/logic/Character';
 import {BasicConfig} from '../../../client-data/BasicConfig';
 import {
+    CampfireMarker,
     MapState,
     RosterPlayer,
     isInsideDrawnMap,
@@ -14,12 +15,20 @@ import {
     rescaleCoordinate,
     resizeTerrain,
 } from './MapScale';
+import {StartFlightMessage} from '../../backend/logic/messages/outgoing/StartFlightMessage';
 import {bakeTerrain, destroyTerrain} from './MapTerrain';
 import {MapFog} from './MapFog';
 import {MapCampfires} from './MapCampfires';
 import {MapPlayers} from './MapPlayers';
 
 const sizeFactorRelatedToMapSize = 2;
+
+/**
+ * How long an armed flight destination waits for its confirming second press
+ * (plan-flight-paths.md C3). The spellbook Reset button's window, because it is
+ * the same gesture. [PLACEHOLDER]
+ */
+const ARM_TIMEOUT_MS = 4000;
 
 /**
  * The map (plan-world-map.md C1, D5) — ONE module with two states: the docked
@@ -70,6 +79,20 @@ export class MiniMap {
     private fog: MapFog = null;
     /** Discovered-campfire markers, drawn in BOTH states — see MapCampfires. */
     private campfires: MapCampfires = null;
+    /**
+     * The expiry timer for a pending flight arm (plan-flight-paths.md C3). The
+     * armed destination ITSELF lives in MapCampfires, which draws the ring —
+     * only the timeout is the press handler's business, so there is nothing
+     * here for the ring to disagree with.
+     */
+    private armedFlightTimeout: ReturnType<typeof setTimeout> | undefined;
+    /**
+     * Whether this opening of the map can start a flight — true only when E at
+     * a campfire opened it (see openForFlight). Cleared on every close, so it
+     * can never outlive the standing-at-a-fire fact that set it.
+     */
+    private flightMode = false;
+
     /** Other players, from the 1 Hz roster, in BOTH states — see MapPlayers. */
     private players: MapPlayers = null;
 
@@ -321,15 +344,92 @@ export class MiniMap {
         // empty overlay on two sides, plus the header strip. A press anywhere
         // off the drawn map means "done".
         //
-        // ⚑ Presses ON the map are deliberately ignored rather than closing:
-        // that gesture is spoken for. Part 2 turns it into destination
-        // selection, and a map that closed when you clicked it would have to
-        // un-learn the habit later.
+        // ⚑ Presses ON the map are NOT a dismissal: that gesture is spoken for,
+        // and since plan-flight-paths.md C3 it is destination selection (the
+        // habit part 1 deliberately avoided teaching, now cashed in). A press
+        // that hits no campfire still does nothing — the map is not a
+        // fly-anywhere surface (D2: fire to fire, and only discovered ones).
         HUD.getWorldMapPanel()?.addEventListener('pointerdown', (event: PointerEvent) => {
             if (!this.isPressOnDrawnMap(event)) {
                 this.close();
+                return;
             }
+            this.pressOnMap(event);
         });
+    }
+
+    /**
+     * A press on the drawn map: arm a discovered campfire, or confirm the one
+     * already armed and ask to fly there (plan-flight-paths.md C3).
+     *
+     * ⚑ TWO PRESSES, not one, and this is the interim of C5's confirm dialog
+     * rather than a placeholder for it. A flight is COMMITTED — once airborne
+     * you arrive, there is no bail-out (D11) — so a single stray press would
+     * cost the player the full crossing. The arm/confirm shape is the one the
+     * spellbook's Reset button already uses, and it degrades into C5's dialog
+     * instead of being thrown away by it.
+     *
+     * ⚑ It asks; it does not decide. Every precondition is still the server's
+     * (§4.4) and every refusal is still silent. What changed with the PO's
+     * 2026-08-05 ruling is that the ONE precondition the map could not observe
+     * — standing at a discovered fire — is now guaranteed by how the map was
+     * opened rather than reported after the fact: `flightMode` is set only by
+     * E at a fire. A map opened with M reads; it does not depart.
+     */
+    private pressOnMap(event: PointerEvent) {
+        if (!this.flightMode) {
+            return;
+        }
+        const marker = this.markerUnderPress(event);
+        if (!marker) {
+            // A press on open map clears a pending arm: it is the natural
+            // "never mind", and leaving the ring up would let a much later
+            // second press on the same fire fly without a fresh intent.
+            this.disarmFlight();
+            return;
+        }
+        if (marker.id === this.campfires?.armedId()) {
+            this.disarmFlight();
+            new StartFlightMessage(marker.id).send();
+            this.close();
+            return;
+        }
+        this.armFlight(marker.id);
+    }
+
+    /** The campfire marker under a press, in LAYER coordinates (canvas centre). */
+    private markerUnderPress(event: PointerEvent): CampfireMarker | null {
+        const box = this.application.canvas.getBoundingClientRect();
+        if (box.width <= 0 || box.height <= 0) {
+            return null;
+        }
+        return this.campfires?.markerAt({
+            x: event.clientX - box.left - box.width / 2,
+            y: event.clientY - box.top - box.height / 2,
+        }) ?? null;
+    }
+
+    private armFlight(campfireId: string) {
+        this.setArmed(campfireId);
+        clearTimeout(this.armedFlightTimeout);
+        // Times out rather than staying armed forever: the second press has to
+        // be an answer to the first, not to something the player did minutes
+        // ago and has since forgotten about.
+        this.armedFlightTimeout = setTimeout(() => this.disarmFlight(), ARM_TIMEOUT_MS);
+    }
+
+    /** Clears a pending arm. A no-op when nothing is armed. */
+    private disarmFlight() {
+        clearTimeout(this.armedFlightTimeout);
+        this.armedFlightTimeout = undefined;
+        this.setArmed('');
+    }
+
+    /** Arms (or clears) the ring, redrawing only when it actually changed. */
+    private setArmed(campfireId: string) {
+        if (this.campfires?.setArmed(campfireId)) {
+            this.campfires.draw(this.state, this.scale);
+        }
     }
 
     /**
@@ -361,16 +461,62 @@ export class MiniMap {
         return this.state === MapState.FULLSCREEN;
     }
 
-    public toggle() {
-        this.setState(this.isOpen() ? MapState.DOCKED : MapState.FULLSCREEN);
+    /**
+     * Whether the authored fire at (x, y) in ZONE units has been discovered —
+     * the E prompt's gate (flight C3). Delegated to MapCampfires, which owns
+     * the discovered set; the map is where that knowledge already lives, so
+     * asking it beats keeping a second copy beside the interact badge.
+     */
+    public isDiscoveredAt(x: number, y: number): boolean {
+        return this.campfires?.isDiscoveredAt(x, y) ?? false;
     }
 
+    public toggle() {
+        // Through close()/open() rather than setState directly, so the M key and
+        // the map button drop a pending flight arm like every other exit does.
+        if (this.isOpen()) {
+            this.close();
+        } else {
+            this.open();
+        }
+    }
+
+    /**
+     * The map as a MAP: fires are visible, presses do nothing (PO ruling
+     * 2026-08-05). M and the map button land here.
+     */
     public open() {
+        this.flightMode = false;
+        this.setState(MapState.FULLSCREEN);
+    }
+
+    /**
+     * The map as a DEPARTURE BOARD — opened by E at a discovered campfire, the
+     * only way into flight (PO ruling 2026-08-05).
+     *
+     * ⚑ The mode is what makes the gesture honest. Flight needs the player to
+     * be STANDING at a discovered fire, and nothing on the map can show that;
+     * before this, a confirmed press anywhere else was refused by the server in
+     * silence (§4.4) with no way to tell the player why. Gating the gesture on
+     * how the map was opened removes the case instead of reporting it: you
+     * cannot reach this state unless the precondition already held.
+     *
+     * It is not a security boundary — the server re-validates everything, as it
+     * must, since a hand-built StartFlight can still be sent. It is a promise
+     * that every press the UI accepts is one the server will honour.
+     */
+    public openForFlight() {
+        this.flightMode = true;
         this.setState(MapState.FULLSCREEN);
     }
 
     /** A no-op when already docked, like Journal.close(). */
     public close() {
+        // Every way out of the map lands here — Esc, M, the ✕, the click-away,
+        // and the confirm itself — so this is the one place a pending flight arm
+        // has to be dropped. Closing the map is "never mind" by any route.
+        this.disarmFlight();
+        this.flightMode = false;
         this.setState(MapState.DOCKED);
     }
 

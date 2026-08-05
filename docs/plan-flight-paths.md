@@ -3,9 +3,11 @@
 **Status:** DESIGNED 2026-08-04; C2's mechanism surveyed and decided 2026-08-05
 (D13–D15). **C1 is DONE** — shipped inside `plan-world-map.md` C2 (2026-08-04),
 because the PO ruled discovered fires must persist per character while that
-chunk was being built and C1 *was* that work. **C2 is BUILT AND
-HEADLESS-VERIFIED 2026-08-05** (§10 ledger) — the in-game pass waits for C3,
-since no client can send `StartFlight` yet. **C3–C5 not started.**
+chunk was being built and C1 *was* that work. **C2 (the server state machine) and
+C3 (the client experience) are both BUILT AND HEADLESS-VERIFIED 2026-08-05**
+(§10 ledgers). C3 is the first time flight ran outside a Go test at all, and it
+**owes the PO feel pass** — speed 4× and viewport scale 2.5× are [PLACEHOLDER]
+and only judgeable in the air. **C4–C5 not started.**
 
 **Depends on:** `plan-world-map.md` (part 1, **complete and archived 2026-08-04** —
 `docs/archive/plan-world-map.md`) — destination selection happens on
@@ -493,3 +495,178 @@ unlocks/4 quests/777 props/485 spawns/5 campfires) · harness residue cleaned
 the PO feel pass (speed + zoom are placeholders judged only in the air) ·
 the client zoom cap moving with the AOI (landmine 3) · the roster filter
 (`codec.RosterFor`, C4).
+
+### C3 — the client flight experience
+
+**C3 DONE (2026-08-05), the client flight experience — PO-VERIFIED IN-GAME
+2026-08-05, committed `[uncommitted]`.** Built and headless-verified first (the
+first time flight ran outside a Go test), then reshaped by the PO feel pass the
+same day — see **"The PO feel pass"** at the end of this ledger, which is where
+the trigger, both tuning knobs and the render order actually landed.
+
+**Decisions this session (PO, all four via choice prompt):** the trigger is
+**C5's map click built early and minimally** (the map's own C1 comment had
+already reserved the gesture: *"Part 2 turns it into destination selection"*) ·
+a **two-press arm** stands in for C5's confirm dialog · the camera
+**hard-follows** while airborne · the indicator shows **progress AND an ETA in
+seconds**, closing §9's open question.
+
+**What shipped, and where:**
+
+- **Wire read:** `GameStateMessage.ts` — `flying` / `flightDest` /
+  `flightArrivalTick` on the Character branch, fed from `Backend.receiveSnapshot`
+  together with the tick from the same message.
+- **The state:** `features/flight/logic/Flight.ts` — a dependency **leaf** four
+  surfaces read (camera, Controls, HUD, the utility bar). Owns the Zoom
+  override; enforces nothing.
+- **Zoom:** `FLIGHT_VIEWPORT_SCALE` named after the Go const, with both flight
+  bounds **derived** from the ground ones by that one factor — landmine 3
+  closed, and `Zoom.test.ts` fails if either side is retuned alone. (Shipped at
+  2.5; the PO pass took it to **1.2** — see below, including the cross-language
+  pin that makes a half-applied retune impossible.)
+- **Camera:** hard-follow in `Camera.update`, ahead of the existing
+  teleport-snap branch.
+- **HUD:** `rejectWhileFlying()` beside `rejectEquipInCombat()`, on all four
+  ability entry points; `#flightBar` (the cast bar's shape and second
+  convention); `#actionBars.flightLocked`; the zoom buttons grey out with it.
+- **Controls:** one gate covering movement, rotation, the slot hotkeys and
+  interact — they all ride the same Input message or the same HUD handlers.
+- **The trigger:** `StartFlightMessage`, `pickCampfireMarker` (pure, in
+  `MapScale`), `MapCampfires.markerAt`/`setArmed` + the armed ring, and the
+  arm/confirm in `MiniMap.pressOnMap`.
+
+**Findings that outlive the chunk:**
+
+1. ⚑ **The camera could not have kept up, and it would have been misdiagnosed
+   as flight speed.** `Camera` fixes the steering Vehicle's max speed at
+   `movementSpeed × 2` in its constructor, and flight is 4× walk — the flyer
+   would have drifted to the screen edge for the whole crossing. Found by
+   reading the constructor, not by flying. The general shape: **a constant set
+   once from a rate that later gains a second, faster mode.**
+2. ⚑ **The ability lock has four entry points, not one.** Gating `Controls`
+   covers only the keyboard; slot *clicks* reach `toggleAuraSlot` /
+   `activateCooldownSlot` directly and the utilities go through
+   `Utilities.trigger`. The guard belongs at the shared handlers, which is
+   where both keyboard and mouse already meet.
+3. ⚑ **`flight_arrival_tick` is `ulong` → `bigint` in the generated binding,**
+   and `bigint − number` throws. Narrowed at unmarshal, like `tick` and the
+   entity ids.
+4. ⚑ **§4.5's "flying to X" cannot be built as written** — `flight_dest` is a
+   position by deliberate choice (§4.4) and campfire ids are bare
+   `spawnpoint-N` with no display name. The ETA is the half that exists.
+5. **Flight is a zoom OVERRIDE, not a fourth level.** `currentIndex` is never
+   touched, so landing restores the player's own zoom by construction — the
+   client's equivalent of C2's single `Ground()` re-entry.
+6. **Equipping mid-flight is blocked client-side only** — `Equip` is its own
+   `ClientMessageBody`, so the takeoff input discard never sees it and the
+   server would accept it. A greyed bar that still re-slots is the
+   inconsistency; recorded because it is a UI ruling, not a server rule.
+
+**Verified:** `go build ./...` green (no Go changes) · `tsc --noEmit` clean ·
+vitest **218/218** (+11: `Zoom.test.ts` 5, `pickCampfireMarker` 6) · webpack
+prod build clean · **`c3-flight-client` 24/24, 0 console errors** — a new
+harness covering arm → confirm → airborne → landing end to end, **including
+the two-client snapshot-invisibility leg C2 deferred** (the observer's
+nameplate for the flyer disappears at takeoff and the flyer lands 0.18 units
+from the destination fire) · map-surface harnesses re-run per the coverage map:
+`c1-world-map` **12/12** (leg 7 — "the press is reserved for flight" — still
+passes: a press on no marker is a no-op) · `c2-campfire-markers` **17/17** ·
+`c3-player-roster` **15/15** · boot 0 panics · **the airborne and landed frames
+read by eye**, not only asserted: `display: block` is the same shape of
+assertion that passed all through world-map C2 while the campfire markers sat
+invisible under the prop layer. The bar renders legibly and centred, the action
+bars are visibly dimmed, the flyer is dead-centre (hard-follow), and landing
+restores the zoom. ⚑ Reading them is what turned up the **phone stylesheet**:
+`HUD.mobile.less` overrides `#castBar` geometry specifically (`width: 100%` over
+the desktop `18vw`) and takes it out of the touch layer, so `#flightBar` needed
+both rules or it would have been an 18vw sliver in a full-width column, eating
+joystick touches. **Schema impact: NONE** — both
+wire directions shipped with C2 (D15); nothing new is persisted.
+
+**Deferred to C4:** ⚑ **a flyer is still a dot on other players' maps** — the
+roster filter is C4, so that is expected, not a defect.
+
+---
+
+#### The PO feel pass (2026-08-05, same day)
+
+The half only a human could score. It changed the trigger, both tuning knobs
+and the render order, and turned up one bug the headless run structurally could
+not see.
+
+**PO rulings (4):**
+
+1. **Flight starts by interacting with the campfire.** Approach a discovered
+   fire → `E` lights over it → `E` opens the map → two presses fly.
+2. **A map opened with `M` is READ-ONLY** (choice prompt). Flight is reachable
+   only from a fire. ⚑ This **removes** the silent-refusal case rather than
+   reporting it: you cannot reach the flight map unless the precondition
+   already holds, so **C5's confirm dialog loses its main job** and C5 shrinks
+   to the route overlay plus the arm-vs-dialog question.
+3. **A second `E` closes the map** — once it is up, every remaining choice is
+   made with the mouse. The conversation panel's rule, applied to the map.
+4. **Tuning, twice each:** speed `4 → 2.8` (measured 4.26 u/s against the
+   1.5 u/s walk) · viewport `2.5 → 1.75 → 1.2`, each time *"still too far
+   out"*. The two zoom cuts take the streamed area from ~6.25× the ground
+   viewport to ~1.4×, so **flight is no longer the mobile-perf cost it was
+   designed as** (§4.3's premise is spent).
+
+**Findings that outlive the pass:**
+
+7. ⚑ **The flyer rendered UNDER props, and the layer comment said the opposite
+   was already fixed.** Mobs are below characters deliberately (`6afbee84` —
+   a player standing in a campfire must not be hidden by it), but `resources`
+   and `bossMobs` are added to the cameraGroup *after* `characters`. Altitude
+   has no other representation — no shadow, no scale change — so passing behind
+   a tree stops reading as flight at all. Fixed with a `flyers` layer above the
+   props and below darkness (a flyer crossing a dark region is still in it),
+   which can only ever hold the local player because D13 removes flyers from
+   everyone else's snapshot.
+8. ⚑ **A conversant stands within ~1.5 units of FOUR of the world's five
+   fires** (VillageHealer 1.49 from spawnpoint-2, Wanderer 1.27 from -3,
+   LamplessTraveller 1.07 from -4, Emberkeeper 1.13 from -5; only spawnpoint-1
+   is clear at 3.2). The first cut had a conversant win the `E` offer, which
+   made spawnpoint-2 **unflyable** — one of five fires, silently. **The fire now
+   wins inside its bind radius** (0.75 units, against the 2.0 talk range): the
+   tighter condition is the unambiguous statement of intent, and the NPC is one
+   step away. ⚑ This is a **content** pattern, not a one-off — anything needing
+   both at one spot wants a row in the fire's own panel, not a re-ordering.
+9. ⚑ **THE BADGE SHIPPED SUPPRESSED AT EVERY LONELY FIRE, AND THE HARNESS WENT
+   GREEN ON IT.** The "hide the badge while its own conversation is open" guard
+   read `offered === Conversation.partnerId()`, and `partnerId()` is `0` when
+   nothing is open — so it matched whenever no conversant was in range. Free
+   while the badge could only wear `offered` (both were 0 together); the
+   campfire offer made the two diverge, and `E` kept working because the key
+   reads the tracked id while the badge reads the suppressed one. **The harness
+   could not catch it: both flight endpoints have an NPC ~1.1–1.5 units away**
+   (finding 8), so every badge reading was taken where a conversant was also in
+   range. Pinned by a new leg scored **first, at spawn, at spawnpoint-1** — the
+   one fire with nobody next to it. *General shape: a sentinel compared against
+   a value that is also the sentinel, harmless only while the two operands move
+   together.*
+10. ⚑ **The cross-language constant pin found a flaw in itself.** Comparing the
+    Go const to the parsed TS literal at float32 went red the first time the
+    value was retuned to something not exactly representable in binary — 2.5 and
+    1.75 are, **1.2 is not** — reporting `1.2 ≠ 1.2000000476837` for two files
+    that both said `1.2`. It compares the written literals at float64 within
+    1e-9 now, re-verified to still go red on a real 1.2-vs-1.3 drift.
+11. **The interact badge is no longer purely server-driven.** Campfires carry no
+    authored `interaction`, so `sense()` never names one; the offer is added
+    client-side from `Mob.dwell_radius`, which the server already streams. Still
+    one range check with the server's own number — just not the same publisher.
+    `Mobs.setInteractable`'s doc comment was corrected to stop claiming otherwise.
+
+**Also cleaned up in the same pass** (found by a pre-commit review, both
+verified at the game surface): the arm state was **mirrored** in `MiniMap` and
+`MapCampfires` — collapsed to the object that draws the ring — and the
+cross-language `2.5` had nothing that could fail when the two sides drifted,
+which is what finding 10's pin now covers.
+
+**Verified (post-pass):** full Go suite + `go build` clean · `tsc --noEmit`
+clean · vitest **225/225** (+7 for `FlightOrigin`) · **`c3-flight-client`
+32/32, 0 console errors** (+3 legs: the lonely-fire prompt, `E` closes, `E`
+re-opens) · `chunk3b-interact` **14/14** — re-run because the badge suppression
+this pass changed is what NPC conversations depend on · `c2-campfire-markers`
+**17/17** · `c1-world-map` **12/12** · boot `15 factions/87 skills/65 mobs/3
+milestone unlocks/10 recipes/4 quests/5 props/777 props/485 spawns/5 campfires,
+0 panics` · harness DB residue cleaned. **Schema impact: NONE.**

@@ -12,6 +12,8 @@ import {UseUtilityMessage} from '../../backend/logic/messages/outgoing/UseUtilit
 import {AuraApi} from '../../backend/logic/AuraApi';
 import {campChargeCap} from '../../../client-data/Skills';
 import {attachTooltips, showTooltip, TooltipContent} from '../../user-interface/HUD/logic/SkillTooltip';
+import * as Flight from '../../flight/logic/Flight';
+import * as AlertBanner from '../../user-interface/alert-banner/logic/AlertBanner';
 
 // Display names for the pinned UtilityKind wire enum. Utilities are not
 // catalog skills, so the cast bar cannot resolve them through
@@ -88,6 +90,16 @@ function utilityTooltip(kind: number): TooltipContent | null {
  */
 export function trigger(kind: number) {
     if (!UTILITY_NAMES[kind]) {
+        return;
+    }
+    // Refused mid-flight (plan-flight-paths.md §4.2): Recall would be a
+    // teleport out of a committed flight (D11) and Camp would place a
+    // mini-campfire in mid-air. The server refuses both — silently, as always —
+    // so this only supplies the reason. It reads the Flight module directly
+    // rather than routing through HUD, which keeps HUD ↔ Utilities from
+    // becoming a cycle.
+    if (Flight.isFlying()) {
+        AlertBanner.show("Can't use abilities while flying", 'warning');
         return;
     }
     new UseUtilityMessage(kind).send();

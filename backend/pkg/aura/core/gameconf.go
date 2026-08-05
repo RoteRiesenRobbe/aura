@@ -51,7 +51,9 @@ func Config(conf *cfg.Config) Configuration {
 			g.PlayerConfig.WalkingSpeedPerTick = 0.05
 		}
 		if g.PlayerConfig.FlightSpeedFactor <= 0 {
-			g.PlayerConfig.FlightSpeedFactor = 4 // ≈4× walk (D8) [PLACEHOLDER]
+			// ≈2.8× walk (D8) — cut from 4× by the PO's first in-air pass
+			// 2026-08-05 ("too fast"). [PLACEHOLDER]
+			g.PlayerConfig.FlightSpeedFactor = 2.8
 		}
 		if g.PlayerConfig.LevelUpXPBase == 0 {
 			g.PlayerConfig.LevelUpXPBase = 300

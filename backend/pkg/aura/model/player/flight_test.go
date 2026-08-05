@@ -12,6 +12,9 @@ package player
 // fully takes off).
 
 import (
+	"os"
+	"regexp"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -265,4 +268,48 @@ func TestBeginFlight_OwnAuraAndHandTouchNothing(t *testing.T) {
 
 	assert.Empty(t, flyer.aura.Collisions(), "an airborne aura records nothing")
 	assert.Empty(t, flyer.hand.Collider.Collisions(), "an airborne hand records nothing")
+}
+
+// zoomTSPath is the client's zoom module, relative to this package.
+const zoomTSPath = "../../../../../frontend/src/features/camera/logic/Zoom.ts"
+
+// flightViewportScaleTS extracts the client's mirror of the AOI scale.
+var flightViewportScaleTS = regexp.MustCompile(
+	`FLIGHT_VIEWPORT_SCALE\s*=\s*([0-9.]+)`)
+
+// The client's zoom-out and the server's AOI are ONE number in two languages,
+// and this is the only thing that can fail when they stop agreeing.
+//
+// ⚑ The failure it guards is silent by construction: retuning
+// flightViewportScale alone leaves the whole Go suite AND the whole vitest
+// suite green — Zoom.test.ts pins that both client bounds derive from the
+// client's copy, which stays internally consistent while it drifts away from
+// what the server actually streams. What you then see in the air is entities
+// popping in at the screen edges (landmine 3), which reads as a rendering bug
+// rather than as a retune that was only half applied.
+//
+// It lives on the SERVER side because the server is the authority: the number
+// is an area-of-interest, and the client zoom is the mirror. The direction that
+// matters most is therefore caught by the suite a backend retune already runs.
+func TestFlightViewportScale_MatchesTheClient(t *testing.T) {
+	source, err := os.ReadFile(zoomTSPath)
+	require.NoError(t, err, "cannot read %s — if the client moved, move this pin with it", zoomTSPath)
+
+	match := flightViewportScaleTS.FindSubmatch(source)
+	require.NotNil(t, match,
+		"FLIGHT_VIEWPORT_SCALE is gone from %s: either flight's client half was removed "+
+			"(then remove flightViewportScale too) or the const was renamed", zoomTSPath)
+
+	// ⚑ Parsed at float64 and compared with a delta, NOT for equality at
+	// float32. The claim is about the two written LITERALS agreeing, and an
+	// exact float32 comparison answers a different question: it went red the
+	// first time the value was retuned to something not exactly representable
+	// in binary (2.5 and 1.75 are; 1.2 is not), reporting 1.2 ≠ 1.2000000476837
+	// for two files that both said 1.2. The delta is far tighter than any
+	// retune could be and far looser than the representation error.
+	client, err := strconv.ParseFloat(string(match[1]), 64)
+	require.NoError(t, err)
+	assert.InDelta(t, float64(flightViewportScale), client, 1e-9,
+		"the client zoom cap and the server AOI must be retuned TOGETHER "+
+			"(flight.go's flightViewportScale ↔ Zoom.ts's FLIGHT_VIEWPORT_SCALE)")
 }

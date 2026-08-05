@@ -5,6 +5,7 @@ import {Develop} from "../../internal-tools/develop/logic/_Develop";
 import {CameraUpdatedEvent, ISubscriptionToken, PrerenderEvent} from "../../core/logic/Events";
 import {ICharacterLike} from "../../game-objects/logic/ICharacter";
 import * as Zoom from './Zoom';
+import * as Flight from '../../flight/logic/Flight';
 
 let Game: IGame = null;
 
@@ -81,7 +82,22 @@ export class Camera {
         const dx = target.x - this.vehicle.position.x;
         const dy = target.y - this.vehicle.position.y;
         const snapDistance = Math.max(Game.width, Game.height) / scale;
-        if (dx * dx + dy * dy > snapDistance * snapDistance) {
+        if (Flight.isFlying()) {
+            // Hard-follow while airborne (plan-flight-paths.md C3). The steering
+            // Vehicle's max speed is fixed at movementSpeed × 2 in the
+            // constructor, and flight is 4× walk — left to steer, the camera
+            // falls permanently behind and the flyer drifts off the screen edge
+            // for the whole flight, which reads as "flight speed feels wrong"
+            // and gets the wrong knob tuned.
+            //
+            // There is nothing for the easing to smooth anyway: the server's
+            // position is an exact lerp between two fixed points, so the
+            // steering could only add lag to something already smooth. Landing
+            // hands straight back to the Vehicle, which is already standing on
+            // the landing spot.
+            this.vehicle.position.set(target.x, target.y);
+            this.vehicle.velocity.set(0, 0);
+        } else if (dx * dx + dy * dy > snapDistance * snapDistance) {
             this.vehicle.position.set(target.x, target.y);
             this.vehicle.velocity.set(0, 0);
         } else {

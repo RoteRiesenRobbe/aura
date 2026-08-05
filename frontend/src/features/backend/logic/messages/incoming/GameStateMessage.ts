@@ -343,6 +343,12 @@ function unmarshalEntity(entity, eType) {
         mobId: undefined,
         // buff/debuff kinds currently applied TO the entity — drives the pips
         appliedEffects: undefined,
+        // flight state of the OWNING player (plan-flight-paths.md C3) — never
+        // set for anyone else, because a flyer is removed from the physics
+        // space and so never reaches another viewer's snapshot at all (D13).
+        flying: undefined,
+        flightDest: undefined,
+        flightArrivalTick: undefined,
     };
 
     if (eType === AuraApi.AnyEntity.Mob) {
@@ -426,6 +432,26 @@ function unmarshalEntity(entity, eType) {
         result.auraCategory = entity.auraCategory();
         // buff/debuff kinds currently applied TO the character — drives the pips.
         result.appliedEffects = entity.appliedEffects();
+        // Flight state (plan-flight-paths.md C2/C3): drives the camera zoom-out,
+        // the input lock and the in-flight indicator.
+        //
+        // ⚑ AUTHORITATIVE EVERY TICK, unlike the discovered-campfire one-shots
+        // above: `flying` defaults to false on the wire, so an absent field
+        // already reads as "on the ground". Wrapping it in the isDefined
+        // ("undefined means no change") pattern would produce a client stuck in
+        // flight that never lands.
+        //
+        // ⚑ arrival tick is a `ulong` → bigint in the generated binding; the
+        // ETA arithmetic mixes it with the plain-number gameState.tick(), and
+        // bigint ⊖ number throws. Narrowed here, like tick and the entity ids.
+        //
+        // The destination is only marshalled while airborne (codec/gamestate.go),
+        // so the struct accessor returns null on every ground tick — null, not a
+        // zero vector, because that is what an absent struct field is.
+        result.flying = entity.flying();
+        const flightDest = entity.flightDest();
+        result.flightDest = flightDest === null ? null : unmarshalVec2f(flightDest);
+        result.flightArrivalTick = Number(entity.flightArrivalTick());
     }
 
     if (isFunction(entity.statusEffectsLength) &&

@@ -219,10 +219,15 @@ export abstract class Mob extends GameObject {
     }
 
     /**
-     * Show or hide the interact prompt over this mob (chunk 3b-i). Purely
-     * server-driven: the caller passes whether this entity is the one named in
-     * GameState.interactable_entity_id, so the badge and the server's own range
-     * check can never disagree.
+     * Show or hide the interact prompt over this mob (chunk 3b-i). The caller
+     * passes whether this entity is the one on offer, so the badge and the
+     * range check behind it can never disagree.
+     *
+     * ⚑ Server-driven for every mob EXCEPT campfires. `interactable_entity_id`
+     * names conversants, and a campfire has no authored `interaction` — its
+     * offer is added client-side (flight C3, Backend.campfireUnderPlayer) from
+     * the bind radius the server streams. Still one range check, still not a
+     * second implementation of one; just not the same publisher.
      */
     setInteractable(interactable: boolean) {
         if (!interactable && this.interactBadge === null) {
@@ -710,6 +715,18 @@ export class Campfire extends Mob {
         if (radiusPx <= 0) {
             this.setDwellRadius(0);
         }
+    }
+
+    /**
+     * The wire bind radius in px, 0 when none has been published.
+     *
+     * Read by `FlightOrigin.fireUnderPlayer` to answer "am I standing at this
+     * fire" with the SERVER's radius rather than a client copy — the same
+     * value already drawn as the bind circle, so what the player sees and what
+     * the prompt tests are one number.
+     */
+    dwellRadius(): number {
+        return this.dwellRingRadius;
     }
 }
 

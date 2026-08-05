@@ -216,6 +216,35 @@ export class Character extends GameObject implements ICharacterLike, IMiniMapRen
         this.effectPips?.setMask(mask);
     }
 
+    /**
+     * Lifts this character onto the flyers layer for the duration of a flight,
+     * and puts it back on landing (plan-flight-paths.md C3, PO pass
+     * 2026-08-05: *"the player renders under props while flying"*).
+     *
+     * ⚑ It moves `this.layer` too, not just the child. `show()`/`hide()` add
+     * and remove `shape` from whatever `layer` names, so reparenting the sprite
+     * alone would leave `hide()` calling removeChild on a container that no
+     * longer holds it — a silent no-op that strands a visible sprite in the
+     * world after the entity is gone.
+     *
+     * Idempotent, and called every tick from the flight fan-out rather than on
+     * an edge: a character that left and re-entered the viewport mid-flight is
+     * a fresh object on the default layer, exactly like the interact badge's
+     * re-apply.
+     */
+    setFlying(flying: boolean) {
+        const target = flying ? Game.layers.flyers : Game.layers.characters;
+        if (this.layer === target) {
+            return;
+        }
+        this.layer = target;
+        // Only re-add what was already on screen — an object mid-`hide()`
+        // must not be resurrected by a flight state change.
+        if (this.shape.parent !== null) {
+            target.addChild(this.shape);
+        }
+    }
+
     // setAuraCategories drives the ring colours from the server-authoritative
     // Character.aura_category bitmask (triage item 7). 0 = no aura → no rings.
     // This replaced a hardcoded skill-ID switch: the categories are resolved

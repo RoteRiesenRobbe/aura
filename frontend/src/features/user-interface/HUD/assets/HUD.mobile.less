@@ -124,6 +124,7 @@ html.mobile {
 	#alertBanner,
 	#combatIndicator,
 	#castBar,
+	#flightBar,
 	#bottomCenter {
 		pointer-events: none;
 	}
@@ -246,7 +247,11 @@ html.mobile {
 		max-height: 45vh;
 	}
 
-	#castBar {
+	#castBar,
+	// Same treatment for the flight bar (plan-flight-paths.md C3) — it shares
+	// the cast bar's geometry, so it needs the cast bar's phone override too or
+	// an 18vw sliver sits in the middle of a full-width column.
+	#flightBar {
 		width: 100%;
 	}
 
