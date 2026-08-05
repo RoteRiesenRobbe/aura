@@ -1,7 +1,7 @@
 # Plan: Kill XP becomes a formula — level-relative XP
 
 > **Status: C1 BUILT 2026-08-05 (`a03b95ff`, headless-verified, §10) — C2 open,
-> and RE-SCOPED the same evening by D7–D9 (§12).**
+> and RE-SCOPED the same evening by D7–D9 (§12, recorded `f1d6eebc`).**
 > Replaces the flat authored per-mob `experience` value with a computed,
 > level-relative award — WoW-Classic-shaped, anchored to the *recipient's*
 > level. Every number is [PLACEHOLDER] unless marked.

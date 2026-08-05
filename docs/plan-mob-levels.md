@@ -1,6 +1,6 @@
 # Plan: One species, many levels — the per-spawn level override
 
-> **Status: ⭐ C1 + C2 SHIPPED 2026-08-05, both headless-verified — only C3
+> **Status: ⭐ C1 (`975e5c4c`) + C2 (`f1d6eebc`) SHIPPED 2026-08-05, both headless-verified — only C3
 > (the editor field + the first real placements) is open. Still the SEQUENCING
 > GATE for the sibling plan's C2.**
 > ✅ **L3 IS DISCHARGED.** The nameplate and its difficulty tint now read the
@@ -413,7 +413,7 @@ one execution session if it runs clean (they verify at different surfaces).
 
 ## 11. Chunk ledger
 
-### C2 — the wire + the client ✅ 2026-08-05, headless-verified
+### C2 — the wire + the client ✅ `f1d6eebc` 2026-08-05, headless-verified
 
 **The nameplate stopped reading the species catalog**, which is what turns C1's
 server-side truth into something a player can see — and it discharges **L3**, so
