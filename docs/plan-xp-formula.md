@@ -410,7 +410,7 @@ Calibrating an economy against a roster whose levels are untrustworthy and
 which has a five-level hole calibrates against noise. ~~Recommended order:
 **C1 ✅ → `plan-mob-levels.md` (fills the hole) → C2 (calibrate)**.~~
 ⭐ **SUPERSEDED BY D9 (§12) the same day — the chain is longer**: mob-levels C3
-→ a world **re-placement** pass (no plan owns it) → **sim-harness placement
+→ a world **re-placement** pass (✅ `plan-world-replacement.md`, designed 2026-08-06) → **sim-harness placement
 support** → C2 as the single final calibration pass. Recorded in that plan's
 header and its §6.6 as well, from the other side.
 
@@ -455,7 +455,7 @@ that chunk made live (§6.4 there / §8.2 here).
 
 ```
 mob-levels C3 (the tool: editor field + first placements)
-  → world re-placement (the CONTENT: sensible level bands, fill the gaps)  ← NO PLAN OWNS THIS
+  → world re-placement (the CONTENT: sensible level bands, fill the gaps)  ← plan-world-replacement.md (designed 2026-08-06)
   → sim-harness placement support                                          ← NEW PLUMBING (D9)
   → C2, the single final calibration pass
 ```

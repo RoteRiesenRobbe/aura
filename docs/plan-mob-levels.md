@@ -46,7 +46,7 @@
 > ⭐ **THE CHAIN GOT LONGER, 2026-08-05 evening (`plan-xp-formula.md` D9).**
 > C3 here is no longer the last thing before calibration. The PO's order is:
 > **C3 (the tool) → a world RE-PLACEMENT pass (the content — sensible level
-> bands, gaps filled; still owned by no plan, and it is where the `curveLevel`
+> bands, gaps filled; ✅ **owned by `plan-world-replacement.md` since 2026-08-06**, and it is where the `curveLevel`
 > half above finally gets fixed) → sim-harness PLACEMENT support (new plumbing,
 > reversing §8.3) → one final calibration pass.** So this plan gates that C2 by
 > two more steps than it did this morning.

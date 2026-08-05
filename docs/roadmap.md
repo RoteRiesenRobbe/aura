@@ -1079,15 +1079,34 @@ system ships blind.
 >    placements" half was deliberately left to step 2** — no `api/zones/*.json`
 >    carries a level yet. **This closes backlog §38 and finishes the plan's
 >    build work; the plan stays live only for that content half.**
-> 2. **The world re-placement pass — ⭐ THIS IS NOW THE NEXT STEP, and its tool
->    is ready.** Re-place mobs across `world.json` with
->    sensible level bands, fill the level gaps, and re-author the `curveLevel`s
->    that do not track difficulty (AngryMammoth, SaberToothCat and ProvingBoss
->    are all authored **cL1**). ⚠️ **This owns no plan doc and is the long pole**;
->    it needs a design session before it needs a chunk. It is also the step that
+> 2. **The world re-placement pass — ⭐ THIS IS THE NEXT STEP. ✅ DESIGNED
+>    2026-08-06 → `docs/plan-world-replacement.md`** (D2–D5, **three** chunks —
+>    C0 the honest plate · C1 the decisions · C2 the re-placement — nothing
+>    built; the next session is **C0**). It no longer "owns no plan
+>    doc" — that was true until the design session, and this file is the
+>    answer. Re-places and re-levels `world.json`'s **423 combat spawns** so
+>    difficulty tracks player level, with bands keyed to **regions** (D2) rather
+>    than to an x-coordinate. It is still the long pole and still the step that
 >    makes the roster trustworthy — measured at `xp C1`, **at level 20 exactly
->    two rungs of the 36-species roster pay anything**, because 27 species sit at
->    cL1–7 and cL13–17 is completely empty.
+>    two rungs of the roster pay anything**.
+>    ⚑ **Two corrections the design session produced, both load-bearing:**
+>    **(a)** the hole is bigger than cL13–17 — `maxLevel` is 30, the *placed*
+>    roster tops out at **cL20**, so **levels 21–30 have nothing at level at
+>    all**. ⭐ **D5 rules that this pass does NOT fill it**: the band stays the
+>    roster's current ~1–20, **the top of difficulty is not retuned** (the front
+>    and `OrcWarlord` keep their levels, and the pass touches **no Go at all**),
+>    because a 144 × 72 world is too small to spread 30 levels and still offer
+>    more than one option per level range. **Levels ~21–30 are now a recorded
+>    standing gap**, which sharpens step 4's §8.1 pacing call: the last third of
+>    the curve has nothing at level *by decision*.
+>    **(b)** ⚠️ **the three species named above as the `curveLevel`-doesn't-track
+>    -difficulty cases — AngryMammoth, SaberToothCat, ProvingBoss — are NOT
+>    PLACED IN THE WORLD** (the first two are unplaced, the third is
+>    proving-grounds), so re-authoring them changes nothing a player touches.
+>    The live offenders are **Bear** (cL4 but 270 effHP, tougher than every cL5
+>    and cL6), **OrcGrunt** (cL20 but 646 effHP) and **EliteBandit**, plus 18
+>    `ArmySoldier` spawns at cL18 paying nothing — that is the list D4 puts in
+>    scope. See `plan-world-replacement.md` §3.3–§3.4.
 > 3. **Sim-harness placement support** — the harness balances *species at their
 >    curve position* and is blind to placements. ⚑ This **reverses a deliberate
 >    YAGNI deferral** (`plan-mob-levels.md` §8.3, which declined it and named its
