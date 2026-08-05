@@ -26,7 +26,14 @@ Inputs, all read during the session:
 - **`docs/plan-ascension.md`** — D1 (the world-parity power rule, reused
   verbatim here), D8 (per-faction ascension explicitly sanctioned as a later
   layer, *"the data model must not block it"* — this plan is what unblocks it),
-  D9 (achievement-gated catalog entries), §5 (the catalog lives in content JSON).
+  D9 (the catalog entries), §5 (the catalog lives in content JSON).
+  ⚑ **That plan was scope-cut on 2026-08-05 (its D13), one day after this one
+  was written.** v1 ascension is now *one pick from a curated list* — no
+  points, no prices, **and no achievement-gated entries**. Nothing here breaks:
+  D1 and D8 are untouched, the catalog still lives in content JSON, and the
+  gate field this plan needs still exists (§3 item 5). But **read that plan
+  before quoting it** — an earlier reading of D9 promised feat gates that are
+  now deferred, and its superseded rulings sit in its §10, never its body.
 - **`docs/archive/plan-quests.md` D8/D10** — the reserved cost/consequence
   vocabulary, named against exactly this session.
 - **`docs/archive/plan-faction-flips.md`** — the runtime allegiance verbs, whose
@@ -114,16 +121,30 @@ Applied as chunk C0 (docs-only):
    documentation is the ascension escape hatch (D2/D8).
 4. **GDD §5** — note that the world-parity rule (ascension D1) also governs camp
    rewards, so the two systems share one calibration sentence.
-5. **`plan-ascension.md` §5** — one sentence so the catalog entry's gate field is
-   general enough to name a faction condition; the faction gate is the **same
-   gate slot as D9's achievements, not a parallel system**.
-6. **`plan-ascension.md` §4 + its C1 bullet** — add **standing** to the
-   "everything character-bound dies with the row" enumeration and name it in the
-   C1 chunk description. ⚑ Not optional bookkeeping: see L0 in §4.1. The wipe is
-   implemented by a chunk in *that* plan, so if it is not written down there it
-   will not be written at all.
-7. **`docs/README.md`** index line for this plan. ⚑ While there: `plan-ascension.md`
-   is itself unindexed — its own C0 item 5, still pending.
+5. ✅ **`plan-ascension.md` §5 — DONE 2026-08-05** (`73120512`): the catalog
+   entry carries a **nullable gate**, general enough to name a faction
+   condition, and that plan states it is the *single* slot both gate kinds use
+   so they never become parallel systems. ⚑ **Read the amended wording, not
+   this line's original:** ascension **D13** cut feat gates out of its v1, so
+   the slot is **unset in every v1 entry** — the faction gate is no longer "the
+   same slot as D9's achievements" (those are deferred alongside the point
+   economy), it is the same slot as *whatever gate ships first*, which may well
+   be this plan's.
+6. ✅ **`plan-ascension.md` §4 + its C1 bullet — DONE 2026-08-05** (`73120512`):
+   **standing** is named in the loss-scope enumeration and in that plan's C1.
+   ⚑ Two things came back with it. **(a)** The wipe is **structural**:
+   `game.character_flags` is keyed `character_id`, so a successor — a new
+   character row — cannot inherit standing. L0's hazard is therefore real only
+   if standing is ever stored per-account or per-slot, which is the change to
+   guard, and C1's job is an *assert*, not wipe code. **(b) Ownership is
+   settled: whichever of the two plans ships second owns that assert.**
+   Ascension C1 is next while this plan is unbuilt, so realistically **camps C1
+   inherits it** — see L0.
+7. ✅ **`docs/README.md` — nothing owed.** Both plans were indexed all along;
+   this item's original claim that `plan-ascension.md` is unindexed was simply
+   **wrong** (as was that plan's own matching C0 item). Its entry was
+   *corrected* on 2026-08-05 (`90d0ceb4`) for D13, not created. **Verify before
+   re-adding anything here.**
 
 ### 3.2 The pillar carve-out, stated deliberately
 
@@ -146,7 +167,7 @@ for non-neutral factions. Its three consumers are all reads:
 | --- | --- |
 | teaching | node condition hides the teacher's grant nodes |
 | quests | node condition hides the offer / turn-in rows |
-| ascension | catalog entry gate (`plan-ascension.md` D9's gate slot) |
+| ascension | catalog entry gate (`plan-ascension.md` §5's nullable gate slot) |
 
 It rides the quest ledger's **carry** legs and only those: the death-respawn
 hand-back and the reconnect stash (`sys/state.go:544,708,803` — `SetQuestLedger`
@@ -160,15 +181,31 @@ It **wipes on ascension** with everything else character-bound
 locations) — otherwise a successor inherits a camp and D2's escape hatch is a
 no-op.
 
-⚑ **L0 — that wipe has no owner today, and this is the plan's one cross-doc
-hazard.** Camps C1 cannot implement it: the ascension transaction is
-`plan-ascension.md` C1, which is unbuilt and is the first writer of
-`sacrificed_at`. If camps ship and ascension is later written from its own plan,
-standing survives ascension silently and D2's escape hatch is dead. **C0 must
-therefore amend `plan-ascension.md` itself** (§3 items 5–6), not merely note the
-dependency here. This is the structural-assert silent-wiring class the repo has
-already been bitten by three times (R2/R3 and `plan-mob-voicelines.md` L1) —
-authored intent that loads green and does nothing.
+⚑ **L0 — the wipe's owner, and this plan's one cross-doc hazard.** Camps C1
+cannot implement it alone: the ascension transaction is `plan-ascension.md` C1,
+which is unbuilt and is the first writer of `sacrificed_at`. If camps ship and
+ascension is later written from its own plan, standing survives ascension
+silently and D2's escape hatch is dead. **C0 therefore amends
+`plan-ascension.md` itself** (§3 items 5–6), not merely notes the dependency
+here. This is the structural-assert silent-wiring class the repo has already
+been bitten by three times (R2/R3 and `plan-mob-voicelines.md` L1) — authored
+intent that loads green and does nothing.
+
+✅ **Discharged 2026-08-05** (`73120512`): that amendment is written, so the
+enumeration now exists in the plan that owns the transaction. Two updates to
+the hazard as originally stated:
+
+- **The wipe is structural, so the deliverable is an assert, not code.**
+  `game.character_flags` — standing's planned home — is keyed `character_id`,
+  and a successor is a *new* character row, so it cannot inherit standing any
+  more than it inherits the spellbook. **The hazard survives only in one
+  shape**: moving standing per-account or per-slot (the way `bloodline_unlocks`
+  is keyed) would silently resurrect it. Guard that change, not the wipe.
+- **Ownership: whichever plan ships second owns the assert.** Ascension C1 is
+  next while this plan is unbuilt, so the realistic outcome is that **camps C1
+  inherits it** and must assert the wipe against an already-built ascension
+  transaction. Ascension's §4.8 states the same sentence, deliberately — a
+  hazard named in only one of two plans is how it gets skipped.
 
 ### 4.2 Reading it — one new condition kind
 
@@ -314,8 +351,12 @@ Consequences for the standing rule:
   branching chain, the two camp abilities (D1-calibrated), the rival's rows
   gated. **After ascension C1** (D8). Verified with the `verify` skill.
 - **C3 — legibility + the ascension handoff.** Where a player *sees* their
-  allegiance (§8 open question), and the faction gate on the ascension catalog —
-  which is a one-field addition in `plan-ascension.md`'s C3, not work here.
+  allegiance (§8 open question), and the faction gate on the ascension catalog.
+  ⚑ **Cheaper than written**: the gate slot now exists in the catalog format
+  from `plan-ascension.md` C1 (its §5, unset in every v1 entry), so this is
+  populating a field that is already there rather than adding one. ⚑ **And it
+  is the natural home for L0's standing assert** if ascension has shipped by
+  then — which it will have (D8 sequences camp content after ascension C1).
 
 Each chunk its own execution session, per working style.
 
