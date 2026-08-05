@@ -1,6 +1,6 @@
 # Plan: Kill XP becomes a formula — level-relative XP
 
-> **Status: C1 BUILT 2026-08-05 (`37668bc3`, headless-verified, §10) — C2 open.**
+> **Status: C1 BUILT 2026-08-05 (`a03b95ff`, headless-verified, §10) — C2 open.**
 > Replaces the flat authored per-mob `experience` value with a computed,
 > level-relative award — WoW-Classic-shaped, anchored to the *recipient's*
 > level. Every number is [PLACEHOLDER] unless marked.
@@ -280,7 +280,7 @@ Two chunks, buildable in one execution session each.
 
 ## 10. Chunk ledger
 
-### C1 — the formula, wired ✅ `37668bc3` 2026-08-05, headless-verified
+### C1 — the formula, wired ✅ `a03b95ff` 2026-08-05, headless-verified
 
 The economy is level-relative end to end. `curve.KillXP` is the shared type
 (the sim harness consumes it), `factors.xpFactor` replaced `factors.experience`
