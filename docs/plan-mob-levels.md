@@ -1,6 +1,6 @@
 # Plan: One species, many levels — the per-spawn level override
 
-> **Status: ⭐ C1 SHIPPED 2026-08-05 (`[uncommitted]`, headless-verified) —
+> **Status: ⭐ C1 SHIPPED 2026-08-05 (`975e5c4c`, headless-verified) —
 > C2 + C3 open. Still the SEQUENCING GATE for the sibling plan's C2.**
 > ⚑ **C1 alone must not reach a live zone (L3):** the nameplate and its
 > difficulty tint still read the species catalog, so an overridden mob's plate
@@ -373,7 +373,7 @@ one execution session if it runs clean (they verify at different surfaces).
 
 ## 11. Chunk ledger
 
-### C1 — the override, server-side ✅ `[uncommitted]` 2026-08-05, headless-verified
+### C1 — the override, server-side ✅ `975e5c4c` 2026-08-05, headless-verified
 
 A spawn point may author `level`, and the mob standing there stands at it —
 pool, damage and (through `plan-xp-formula.md` C1) kill XP all follow. Three
