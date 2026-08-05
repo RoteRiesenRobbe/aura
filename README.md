@@ -5,7 +5,7 @@ Top-down browser MMO where players and NPCs interact exclusively through auras.
 
 ## Running Locally on Windows with IntelliJ IDEA (2026 Edition)
 
-This section describes how to run and debug the project natively on Windows using IntelliJ IDEA and a local Go installation — no WSL, no Docker required.
+This section describes how to run and debug the project natively on Windows using IntelliJ IDEA and a local Go installation — no WSL required. (The backend does need a PostgreSQL database since the accounts/persistence work; the easiest way to get one is the Docker-based `make -C backend db-up`, but a native Windows PostgreSQL works too — see "Set up the database" below.)
 
 ### Prerequisites
 
@@ -17,22 +17,37 @@ This section describes how to run and debug the project natively on Windows usin
   nvm install 20.12.2
   nvm use 20.12.2
   ```
+- **PostgreSQL** — required; `aurad` refuses to boot without a database (see below).
+  Easiest via **Docker Desktop** (`make -C backend db-up`), or install PostgreSQL natively.
 
 ### One-time setup
 
 1. **Configure the backend**
     1. Copy `backend/conf.local-windows.json` to `backend/conf.json` and adjust as needed.
     2. The most important value is `server.port` (defaults to `2000`) — this is the WebSocket port the backend listens on.
-    3. The `game` section contains tuning parameters that are useful for testing (e.g. slower day/night cycles) but are optional.
+    3. The `game` section holds only genuine per-environment tuning deltas; every absent key falls back to the Go defaults, documented in full in `backend/conf.default.json`.
 
-2. **Create a token file**
+2. **Set up the database** (required — `aurad` refuses to boot without `AURA_DB_URL` and panics without `AURA_JWT_KEY`)
+    1. Start a local PostgreSQL. Easiest (needs Docker):
+       ```
+       make -C backend db-up
+       ```
+       This creates a container with both databases: `aura` (durable dev data) and `aura_test` (disposable, used by DB tests). Alternatively install PostgreSQL natively and create a user/database matching the URLs in `backend/.env.local.example`.
+    2. Copy the env template and set a real key:
+       ```
+       cp backend/.env.local.example backend/.env.local
+       ```
+       Then replace the `AURA_JWT_KEY` placeholder with a random value of at least 32 bytes (e.g. `head -c 48 /dev/urandom | base64 | tr -d '\n'` in any Unix shell). Keep the key stable across restarts — a fresh key per boot logs everyone out. `backend/.env.local` is gitignored; never commit it or put a real key anywhere else.
+    3. **IntelliJ does not source `.env.local`** — add `AURA_DB_URL` and `AURA_JWT_KEY` (same values as in `.env.local`) to the run configuration's **Environment variables** field.
+
+3. **Create a token file**
     1. Create `backend/tokens.list` and add at least one token, e.g.:
        ```
        plz
        ```
        This token is passed in the game URL and required to run commands against the server from chat and URL bar.
 
-3. **Install frontend dependencies** (first time only)
+4. **Install frontend dependencies** (first time only)
    Open a terminal in the `frontend/` directory and run:
    ```
    npm install
@@ -49,6 +64,7 @@ This compiles and runs the Go backend server.
 - **Type:** Go Application
 - **Package Path:** `github.com/RoteRiesenRobbe/aura/cmd/aurad`
 - **Working directory:** `<project root>/backend`
+- **Environment variables:** `AURA_DB_URL` and `AURA_JWT_KEY` (see "Set up the database" above — the server will not boot without them)
 
 Run it via **Run > Run 'go build aurad'**, or use **Run > Debug** to attach IntelliJ's debugger. Breakpoints set in Go source files will be hit normally.
 
@@ -84,7 +100,7 @@ http://localhost:2001/?token=plz&wsUrl=ws://localhost:2000/game
 The following query parameters are optional but helpful during development:
 
 * `&develop`: Opens the draggable development panel in the frontend UI
-* `&start-cmds=GOD,SKILL Damage,XP`: Runs server-side commands on spawn, letting you skip the early game (available cheats: `GOD`, `WARP`, `SPEED`, `XP`, `SKILL <name>`, `ANNOUNCE`, `THREAT`)
+* `&start-cmds=GOD,SKILL Damage,XP`: Runs server-side commands on spawn, letting you skip the early game (available cheats: `GOD`, `WARP <x> <y>`, `SPEED`, `XP`, `SKILL <name>`, `ANNOUNCE`, `THREAT`, `QUEST`, `KILL`, `DAMAGE`, `PING`)
 
 To disable god mode during a run, type `#god off` into chat or the console (openable on Windows keyboards via the `^` key.)
 
@@ -113,7 +129,7 @@ Debugging in IntelliJ might be possible, but has not yet been tested.
   - `make`
   - `go >1.22` ([instructions](https://go.dev/doc/install))
   - `docker` ([instructions](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository))
-  - `node 20` (optional but useful; includes npm 10.5; usage of NVM recommended)
+  - `node 20` (optional but useful; includes npm 10; usage of NVM recommended)
 
 ### Build
 1. build the frontend
@@ -126,13 +142,22 @@ Debugging in IntelliJ might be possible, but has not yet been tested.
    # requires go >1.22
    make -C backend build
    ```
-3. boot the server
+3. set up the database — **required, `aurad` refuses to boot without it**
+   ```
+   # requires docker
+   make -C backend db-up
+   cp backend/.env.local.example backend/.env.local
+   # edit .env.local: replace the AURA_JWT_KEY placeholder with a real random value,
+   # e.g.  head -c 48 /dev/urandom | base64 | tr -d '\n'
+   ```
+4. boot the server
     ```
     cd backend
+    source .env.local
     ./aurad -dev
     ```
-4. check the console to figure out what URL to open in your local browser, probably http://localhost:2000/?wsUrl=ws://localhost:2000/game
-5. profit!
+5. check the console to figure out what URL to open in your local browser, probably http://localhost:2000/?wsUrl=ws://localhost:2000/game (append `&token=plz` — matching a line in `backend/tokens.list` — if you want to run dev commands)
+6. profit!
 
 
 ## Running the Project
